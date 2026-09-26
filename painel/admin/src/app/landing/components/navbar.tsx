@@ -200,7 +200,7 @@ export function LandingNavbar() {
                               solution.title ? (
                                 <div
                                   key={`title-${index}`}
-                                  className="px-4 mt-5 py-2 text-xs font-semibold text-muted-foreground/50 uppercase tracking-wider"
+                                  className="px-4 mt-5 py-2 text-xs font-semibold text-muted-foreground/50"
                                 >
                                   {solution.title}
                                 </div>

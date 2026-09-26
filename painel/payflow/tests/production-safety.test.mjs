@@ -338,3 +338,18 @@ test("public health exposes bank/alert/settlement/emis readiness without secrets
   assert.match(alert, /siga\.settlement\.notify_failed/);
   assert.match(alert, /http_status/);
 });
+
+test("student PIN has a per-student limit independent of IP, and login compares keys in constant time", async () => {
+  const session = await readFile(path.join(root, "app/api/v1/student/session/route.ts"), "utf8");
+  const login = await readFile(path.join(root, "app/api/v1/admin/login/route.ts"), "utf8");
+  assert.match(session, /acct:\$\{parsed\.data\.school_code\}:\$\{parsed\.data\.student_code\}/);
+  assert.match(session, /ACCOUNT_MAX_FAILED_ATTEMPTS/);
+  assert.match(login, /safeEqual\(providedKey, configuredApiKey\)/);
+  assert.doesNotMatch(login, /configuredApiKey === providedKey;/);
+});
+
+test("SSO redirect rejects backslash and control characters", async () => {
+  const exchange = await readFile(path.join(root, "app/api/v1/sso/exchange/route.ts"), "utf8");
+  assert.match(exchange, /\/\^\\\/\[\\\/\\\\\]\//);
+  assert.match(exchange, /\\u0000-\\u001f/);
+});

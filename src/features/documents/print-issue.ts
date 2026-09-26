@@ -71,6 +71,8 @@ export async function issuePrintDocument(input: {
   school: PrintSchoolContext;
   student?: PrintStudentContext;
   overlay?: Record<string, unknown>;
+  /** Valor impresso (recibos, faturas): fica no registo e aparece na verificação. */
+  amountLabel?: string;
   fallback?: () => void;
 }) {
   try {
@@ -92,6 +94,22 @@ export async function issuePrintDocument(input: {
       buildIssuePayload(school, student, template.css),
       input.overlay ?? {},
     );
+    // O documento diz que se valida pelo QR ou pelo código: passa a ser verdade.
+    const verification = await registerForVerification({
+      title: input.tipo,
+      holderName: input.student?.fullName,
+      templateKey: key,
+      reference: input.student?.documentTitle,
+      amountLabel: input.amountLabel,
+    });
+    const document = (payload.document ?? {}) as Record<string, unknown>;
+    payload.document = {
+      ...document,
+      hash: verification.code,
+      uuid: verification.code,
+      qrCodeDataUrl: verification.qrCodeDataUrl,
+      verifyUrl: verification.url,
+    };
     printOfficialHtml(renderHandlebars(template.source, payload));
     return key;
   } catch (error) {
@@ -101,6 +119,24 @@ export async function issuePrintDocument(input: {
     }
     throw error;
   }
+}
+
+async function registerForVerification(details: {
+  title: string;
+  holderName?: string | undefined;
+  templateKey: string;
+  reference?: string | undefined;
+  amountLabel?: string | undefined;
+}) {
+  const [{ registerIssuedDocument }, { default: QRCode }] = await Promise.all([
+    import("@/features/documents/verification"),
+    import("qrcode"),
+  ]);
+  const { code } = await registerIssuedDocument({ data: details });
+  const origin = typeof window !== "undefined" ? window.location.origin : "";
+  const url = `${origin}/verificar?codigo=${encodeURIComponent(code)}`;
+  const qrCodeDataUrl = await QRCode.toDataURL(url, { margin: 1, width: 160 });
+  return { code, url, qrCodeDataUrl };
 }
 
 export async function loadPublicPrintAssets(key: string) {

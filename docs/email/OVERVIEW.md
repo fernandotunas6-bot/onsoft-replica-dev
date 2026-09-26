@@ -272,17 +272,15 @@ fazia `signOut` quando a conta não tinha nenhuma `school_memberships` —
 suficiente para bloquear o acesso, mas a conta `auth.users` "fantasma"
 continuava a existir no banco para sempre.
 
-Corrigido com [`verify-oauth-account-server.ts`](../../src/features/auth/verify-oauth-account-server.ts):
-um server function autenticado (não confia no cliente) que verifica
-`school_memberships` com o service role e, se não encontrar nenhum vínculo
-activo, **apaga a conta `auth.users`** (`supabaseAdmin.auth.admin.deleteUser`)
-antes de responder. `signInWithGoogle` marca
-`sessionStorage["siga:oauth-pending"]` antes do redirect; ao voltar,
-`AuthGate` chama este verificador e, se `authorized: false`, só precisa de
-limpar a sessão local (a conta já não existe no servidor). Auditado em
-`saas_audit_logs` como `oauth_account_rejected_and_deleted`. Só corre para
-sessões vindas do botão Google — não afecta login por senha, magic link, ou
-dev-bypass.
+**Substituído a 2026-09-25 (PR #32).** Durante algum tempo, `verify-oauth-account-server.ts`
+apagava a conta `auth.users` de quem entrava com Google sem vínculo. Esse ficheiro e o
+atalho `dev-bypass` foram removidos. Hoje:
+
+- existe registo público de conta ("Criar conta" no `AuthGate`, via `requestSignupFn`);
+- uma conta sem vínculo activo não é apagada: entra na sessão, **não vê dados de nenhuma
+  escola** (o servidor recusa tudo o que exige membership) e o `RouteAccessGate` mostra o
+  painel de integração institucional (criar escola ou pedir acesso à secretaria);
+- ver `docs/agents/CONTINUE.md` (Ciclo 102).
 
 **Mesmo princípio aplicado a `inviteSystemUser` (bug pré-existente, não
 introduzido nesta sessão):** se `createUser` tivesse sucesso mas o perfil, a

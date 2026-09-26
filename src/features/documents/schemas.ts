@@ -43,9 +43,24 @@ export const getPrintTemplateInputSchema = z.object({
   key: printTemplateKeySchema,
 });
 
+/**
+ * Código activo num modelo de impressão: scripts, handlers `on…=`, URLs
+ * `javascript:` e documentos embutidos. O modelo é HTML da escola e corre no
+ * browser de quem imprime; nada disto é preciso para um documento.
+ */
+export const ACTIVE_TEMPLATE_CONTENT =
+  /<\s*(script|iframe|object|embed)\b|[\s"'/]on[a-z]+\s*=|javascript\s*:|srcdoc\s*=/i;
+
 export const savePrintTemplateInputSchema = z.object({
   key: printTemplateKeySchema,
-  source: z.string().trim().min(20).max(80_000),
+  source: z
+    .string()
+    .trim()
+    .min(20)
+    .max(80_000)
+    .refine((source) => !ACTIVE_TEMPLATE_CONTENT.test(source), {
+      message: "O modelo não pode ter scripts, eventos (on…=) nem ligações javascript:.",
+    }),
 });
 
 export const setActivePrintTemplateInputSchema = z.object({

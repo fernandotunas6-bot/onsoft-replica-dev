@@ -257,7 +257,7 @@ export function DisciplinasWorkspaceTab({
               if (rows.length === 0) return null;
               return (
                 <div key={level.id} className="space-y-2">
-                  <h4 className="text-xs font-bold uppercase tracking-[0.12em] text-muted-foreground">
+                  <h4 className="text-xs font-bold text-muted-foreground">
                     {level.cycle} · {level.classes.join(" · ")}
                   </h4>
                   <div className="overflow-x-auto">
@@ -494,9 +494,7 @@ export function DisciplinasWorkspaceTab({
             );
           }).length > 0 ? (
             <div className="space-y-2">
-              <h4 className="text-xs font-bold uppercase tracking-[0.12em] text-muted-foreground">
-                Outras disciplinas
-              </h4>
+              <h4 className="text-xs font-bold text-muted-foreground">Outras disciplinas</h4>
               <p className="text-xs text-muted-foreground">
                 {subjects
                   .filter((subject) => {

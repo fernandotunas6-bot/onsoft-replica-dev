@@ -220,7 +220,8 @@ export async function createEmailRoute(config: EmailRouteConfig): Promise<EmailR
           destination_address: config.forwardTo,
           cloudflare_route_id: routeId ?? null,
           provider,
-          status: "active",
+          // Activo só com a regra criada na Cloudflare; sem ela é um pedido.
+          status: provider === "cloudflare" ? "active" : "pending",
           updated_at: new Date().toISOString(),
         },
         { onConflict: "school_id,source_address" },

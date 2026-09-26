@@ -3,14 +3,14 @@ import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { z } from "zod";
 import {
+  ChevronDown,
   Download,
+  FileBadge,
   FileDown,
   FileUp,
-  Award,
   Plus,
-  Sparkles,
   ShieldAlert,
-  ChevronDown,
+  Sparkles,
 } from "lucide-react";
 import { DocHelpButton } from "@/components/ui/doc-help-button";
 import { AppShell } from "@/components/layout/AppShell";
@@ -169,6 +169,8 @@ function PedagogicaPage() {
   const account = useCurrentAccount();
   const installed = useInstalledIntegrations();
   const zoomOn = installed.hasCapability("zoom.rooms");
+  const classroomOn = installed.hasCapability("classroom.classes");
+  const moodleOn = installed.hasCapability("moodle.courses");
   const canvasWork = installed.hasCapability("canvas.assignments");
   const { activeYearLabel, selectedYearId, school } = useSchoolSettings();
   const {
@@ -650,7 +652,7 @@ function PedagogicaPage() {
                     onClick={exportarPautaOficial}
                     className="gap-2 text-xs cursor-pointer"
                   >
-                    <Award className="size-3.5 text-primary" /> Pauta Oficial PDF
+                    <FileBadge className="size-3.5 text-primary" /> Pauta Oficial PDF
                   </DropdownMenuItem>
                   <DropdownMenuItem
                     onClick={exportarPautaPdf}
@@ -668,7 +670,7 @@ function PedagogicaPage() {
                     onClick={exportarTurmasOficial}
                     className="gap-2 text-xs cursor-pointer"
                   >
-                    <Award className="size-3.5 text-primary" /> Turmas Oficial PDF
+                    <FileBadge className="size-3.5 text-primary" /> Turmas Oficial PDF
                   </DropdownMenuItem>
                   <DropdownMenuItem
                     onClick={exportarTurmasCsv}
@@ -822,6 +824,8 @@ function PedagogicaPage() {
 
           <TabsContent value="disciplinas" className="mt-5">
             <DisciplinasWorkspaceTab
+              classroomOn={classroomOn}
+              moodleOn={moodleOn}
               canManageAcademic={canManageAcademic}
               subjectsAvailable={subjectsAvailable}
               subjects={subjects}

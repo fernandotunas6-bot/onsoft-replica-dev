@@ -27,6 +27,8 @@ import { Route as PedagogicaRouteImport } from './routes/pedagogica'
 import { Route as PerfilRouteImport } from './routes/perfil'
 import { Route as PlanosAulaRouteImport } from './routes/planos-aula'
 import { Route as SaasAdminRouteImport } from './routes/saas-admin'
+import { Route as TesourariaRouteImport } from './routes/tesouraria'
+import { Route as VerificarRouteImport } from './routes/verificar'
 import { Route as AlumniAlumniIdRouteImport } from './routes/alumni.$alumniId'
 import { Route as AlumniCalendarRouteImport } from './routes/alumni.calendar'
 import { Route as AlumniCommunicationsRouteImport } from './routes/alumni.communications'
@@ -42,9 +44,11 @@ import { Route as AuthEmailChangeRouteImport } from './routes/auth.email-change'
 import { Route as AuthMagicLinkRouteImport } from './routes/auth.magic-link'
 import { Route as AuthResetPasswordRouteImport } from './routes/auth.reset-password'
 import { Route as CalendarioIcsRouteImport } from './routes/calendario.ics'
+import { Route as ConfiguracoesDiagnosticoRouteImport } from './routes/configuracoes_.diagnostico'
 import { Route as ConviteTokenRouteImport } from './routes/convite.$token'
 import { Route as FinanceiroRhRouteImport } from './routes/financeiro.rh'
 import { Route as MatriculaSlugRouteImport } from './routes/matricula/$slug'
+import { Route as PedagogicaRiscoRouteImport } from './routes/pedagogica_.risco'
 import { Route as PessoasIndexRouteImport } from './routes/pessoas/index'
 import { Route as ProfessorPresencaRouteImport } from './routes/professor.presenca'
 import { Route as ProfessoresTeacherIdRouteImport } from './routes/professores/$teacherId'
@@ -79,6 +83,7 @@ import { Route as ApiFinanceGatewayConfirmRouteImport } from './routes/api/finan
 import { Route as ApiFinancePayflowSettlementRouteImport } from './routes/api/finance/payflow.settlement'
 import { Route as ApiIntegrationsResendWebhookRouteImport } from './routes/api/integrations/resend.webhook'
 import { Route as ApiIntegrationsZoomCallbackRouteImport } from './routes/api/integrations/zoom/callback'
+import { Route as ApiPublicPaymentsAppypayRouteImport } from './routes/api/public/payments/appypay'
 import { Route as ApiSaasDomainsCheckRouteImport } from './routes/api/saas/domains.check'
 import { Route as ApiSaasDomainsPollRouteImport } from './routes/api/saas/domains.poll'
 import { Route as ApiSaasDomainsStatusRouteImport } from './routes/api/saas/domains.status'
@@ -182,6 +187,16 @@ const SaasAdminRoute = SaasAdminRouteImport.update({
   path: '/saas-admin',
   getParentRoute: () => rootRouteImport,
 } as any)
+const TesourariaRoute = TesourariaRouteImport.update({
+  id: '/tesouraria',
+  path: '/tesouraria',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const VerificarRoute = VerificarRouteImport.update({
+  id: '/verificar',
+  path: '/verificar',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AlumniAlumniIdRoute = AlumniAlumniIdRouteImport.update({
   id: '/$alumniId',
   path: '/$alumniId',
@@ -257,6 +272,12 @@ const CalendarioIcsRoute = CalendarioIcsRouteImport.update({
   path: '/ics',
   getParentRoute: () => CalendarioRoute,
 } as any)
+const ConfiguracoesDiagnosticoRoute =
+  ConfiguracoesDiagnosticoRouteImport.update({
+    id: '/configuracoes_/diagnostico',
+    path: '/configuracoes/diagnostico',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ConviteTokenRoute = ConviteTokenRouteImport.update({
   id: '/convite/$token',
   path: '/convite/$token',
@@ -270,6 +291,11 @@ const FinanceiroRhRoute = FinanceiroRhRouteImport.update({
 const MatriculaSlugRoute = MatriculaSlugRouteImport.update({
   id: '/matricula/$slug',
   path: '/matricula/$slug',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PedagogicaRiscoRoute = PedagogicaRiscoRouteImport.update({
+  id: '/pedagogica_/risco',
+  path: '/pedagogica/risco',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PessoasIndexRoute = PessoasIndexRouteImport.update({
@@ -450,6 +476,12 @@ const ApiIntegrationsZoomCallbackRoute =
     path: '/api/integrations/zoom/callback',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicPaymentsAppypayRoute =
+  ApiPublicPaymentsAppypayRouteImport.update({
+    id: '/api/public/payments/appypay',
+    path: '/api/public/payments/appypay',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiSaasDomainsCheckRoute = ApiSaasDomainsCheckRouteImport.update({
   id: '/check',
   path: '/check',
@@ -534,6 +566,8 @@ export interface FileRoutesByFullPath {
   '/perfil': typeof PerfilRoute
   '/planos-aula': typeof PlanosAulaRoute
   '/saas-admin': typeof SaasAdminRoute
+  '/tesouraria': typeof TesourariaRoute
+  '/verificar': typeof VerificarRoute
   '/alumni/$alumniId': typeof AlumniAlumniIdRouteWithChildren
   '/alumni/calendar': typeof AlumniCalendarRoute
   '/alumni/communications': typeof AlumniCommunicationsRoute
@@ -548,9 +582,11 @@ export interface FileRoutesByFullPath {
   '/auth/magic-link': typeof AuthMagicLinkRoute
   '/auth/reset-password': typeof AuthResetPasswordRoute
   '/calendario/ics': typeof CalendarioIcsRoute
+  '/configuracoes/diagnostico': typeof ConfiguracoesDiagnosticoRoute
   '/convite/$token': typeof ConviteTokenRoute
   '/financeiro/rh': typeof FinanceiroRhRouteWithChildren
   '/matricula/$slug': typeof MatriculaSlugRoute
+  '/pedagogica/risco': typeof PedagogicaRiscoRoute
   '/professor/presenca': typeof ProfessorPresencaRoute
   '/professores/$teacherId': typeof ProfessoresTeacherIdRoute
   '/relatorios/academicos': typeof RelatoriosAcademicosRoute
@@ -586,6 +622,7 @@ export interface FileRoutesByFullPath {
   '/api/finance/payflow/settlement': typeof ApiFinancePayflowSettlementRoute
   '/api/integrations/resend/webhook': typeof ApiIntegrationsResendWebhookRoute
   '/api/integrations/zoom/callback': typeof ApiIntegrationsZoomCallbackRoute
+  '/api/public/payments/appypay': typeof ApiPublicPaymentsAppypayRoute
   '/api/saas/domains/check': typeof ApiSaasDomainsCheckRoute
   '/api/saas/domains/poll': typeof ApiSaasDomainsPollRoute
   '/api/saas/domains/status': typeof ApiSaasDomainsStatusRoute
@@ -618,6 +655,8 @@ export interface FileRoutesByTo {
   '/perfil': typeof PerfilRoute
   '/planos-aula': typeof PlanosAulaRoute
   '/saas-admin': typeof SaasAdminRoute
+  '/tesouraria': typeof TesourariaRoute
+  '/verificar': typeof VerificarRoute
   '/alumni/$alumniId': typeof AlumniAlumniIdRouteWithChildren
   '/alumni/calendar': typeof AlumniCalendarRoute
   '/alumni/communications': typeof AlumniCommunicationsRoute
@@ -632,9 +671,11 @@ export interface FileRoutesByTo {
   '/auth/magic-link': typeof AuthMagicLinkRoute
   '/auth/reset-password': typeof AuthResetPasswordRoute
   '/calendario/ics': typeof CalendarioIcsRoute
+  '/configuracoes/diagnostico': typeof ConfiguracoesDiagnosticoRoute
   '/convite/$token': typeof ConviteTokenRoute
   '/financeiro/rh': typeof FinanceiroRhRouteWithChildren
   '/matricula/$slug': typeof MatriculaSlugRoute
+  '/pedagogica/risco': typeof PedagogicaRiscoRoute
   '/professor/presenca': typeof ProfessorPresencaRoute
   '/professores/$teacherId': typeof ProfessoresTeacherIdRoute
   '/relatorios/academicos': typeof RelatoriosAcademicosRoute
@@ -670,6 +711,7 @@ export interface FileRoutesByTo {
   '/api/finance/payflow/settlement': typeof ApiFinancePayflowSettlementRoute
   '/api/integrations/resend/webhook': typeof ApiIntegrationsResendWebhookRoute
   '/api/integrations/zoom/callback': typeof ApiIntegrationsZoomCallbackRoute
+  '/api/public/payments/appypay': typeof ApiPublicPaymentsAppypayRoute
   '/api/saas/domains/check': typeof ApiSaasDomainsCheckRoute
   '/api/saas/domains/poll': typeof ApiSaasDomainsPollRoute
   '/api/saas/domains/status': typeof ApiSaasDomainsStatusRoute
@@ -703,6 +745,8 @@ export interface FileRoutesById {
   '/perfil': typeof PerfilRoute
   '/planos-aula': typeof PlanosAulaRoute
   '/saas-admin': typeof SaasAdminRoute
+  '/tesouraria': typeof TesourariaRoute
+  '/verificar': typeof VerificarRoute
   '/alumni/$alumniId': typeof AlumniAlumniIdRouteWithChildren
   '/alumni/calendar': typeof AlumniCalendarRoute
   '/alumni/communications': typeof AlumniCommunicationsRoute
@@ -717,9 +761,11 @@ export interface FileRoutesById {
   '/auth/magic-link': typeof AuthMagicLinkRoute
   '/auth/reset-password': typeof AuthResetPasswordRoute
   '/calendario/ics': typeof CalendarioIcsRoute
+  '/configuracoes_/diagnostico': typeof ConfiguracoesDiagnosticoRoute
   '/convite/$token': typeof ConviteTokenRoute
   '/financeiro/rh': typeof FinanceiroRhRouteWithChildren
   '/matricula/$slug': typeof MatriculaSlugRoute
+  '/pedagogica_/risco': typeof PedagogicaRiscoRoute
   '/professor/presenca': typeof ProfessorPresencaRoute
   '/professores/$teacherId': typeof ProfessoresTeacherIdRoute
   '/relatorios/academicos': typeof RelatoriosAcademicosRoute
@@ -755,6 +801,7 @@ export interface FileRoutesById {
   '/api/finance/payflow/settlement': typeof ApiFinancePayflowSettlementRoute
   '/api/integrations/resend/webhook': typeof ApiIntegrationsResendWebhookRoute
   '/api/integrations/zoom/callback': typeof ApiIntegrationsZoomCallbackRoute
+  '/api/public/payments/appypay': typeof ApiPublicPaymentsAppypayRoute
   '/api/saas/domains/check': typeof ApiSaasDomainsCheckRoute
   '/api/saas/domains/poll': typeof ApiSaasDomainsPollRoute
   '/api/saas/domains/status': typeof ApiSaasDomainsStatusRoute
@@ -789,6 +836,8 @@ export interface FileRouteTypes {
     | '/perfil'
     | '/planos-aula'
     | '/saas-admin'
+    | '/tesouraria'
+    | '/verificar'
     | '/alumni/$alumniId'
     | '/alumni/calendar'
     | '/alumni/communications'
@@ -803,9 +852,11 @@ export interface FileRouteTypes {
     | '/auth/magic-link'
     | '/auth/reset-password'
     | '/calendario/ics'
+    | '/configuracoes/diagnostico'
     | '/convite/$token'
     | '/financeiro/rh'
     | '/matricula/$slug'
+    | '/pedagogica/risco'
     | '/professor/presenca'
     | '/professores/$teacherId'
     | '/relatorios/academicos'
@@ -841,6 +892,7 @@ export interface FileRouteTypes {
     | '/api/finance/payflow/settlement'
     | '/api/integrations/resend/webhook'
     | '/api/integrations/zoom/callback'
+    | '/api/public/payments/appypay'
     | '/api/saas/domains/check'
     | '/api/saas/domains/poll'
     | '/api/saas/domains/status'
@@ -873,6 +925,8 @@ export interface FileRouteTypes {
     | '/perfil'
     | '/planos-aula'
     | '/saas-admin'
+    | '/tesouraria'
+    | '/verificar'
     | '/alumni/$alumniId'
     | '/alumni/calendar'
     | '/alumni/communications'
@@ -887,9 +941,11 @@ export interface FileRouteTypes {
     | '/auth/magic-link'
     | '/auth/reset-password'
     | '/calendario/ics'
+    | '/configuracoes/diagnostico'
     | '/convite/$token'
     | '/financeiro/rh'
     | '/matricula/$slug'
+    | '/pedagogica/risco'
     | '/professor/presenca'
     | '/professores/$teacherId'
     | '/relatorios/academicos'
@@ -925,6 +981,7 @@ export interface FileRouteTypes {
     | '/api/finance/payflow/settlement'
     | '/api/integrations/resend/webhook'
     | '/api/integrations/zoom/callback'
+    | '/api/public/payments/appypay'
     | '/api/saas/domains/check'
     | '/api/saas/domains/poll'
     | '/api/saas/domains/status'
@@ -957,6 +1014,8 @@ export interface FileRouteTypes {
     | '/perfil'
     | '/planos-aula'
     | '/saas-admin'
+    | '/tesouraria'
+    | '/verificar'
     | '/alumni/$alumniId'
     | '/alumni/calendar'
     | '/alumni/communications'
@@ -971,9 +1030,11 @@ export interface FileRouteTypes {
     | '/auth/magic-link'
     | '/auth/reset-password'
     | '/calendario/ics'
+    | '/configuracoes_/diagnostico'
     | '/convite/$token'
     | '/financeiro/rh'
     | '/matricula/$slug'
+    | '/pedagogica_/risco'
     | '/professor/presenca'
     | '/professores/$teacherId'
     | '/relatorios/academicos'
@@ -1009,6 +1070,7 @@ export interface FileRouteTypes {
     | '/api/finance/payflow/settlement'
     | '/api/integrations/resend/webhook'
     | '/api/integrations/zoom/callback'
+    | '/api/public/payments/appypay'
     | '/api/saas/domains/check'
     | '/api/saas/domains/poll'
     | '/api/saas/domains/status'
@@ -1042,12 +1104,16 @@ export interface RootRouteChildren {
   PerfilRoute: typeof PerfilRoute
   PlanosAulaRoute: typeof PlanosAulaRoute
   SaasAdminRoute: typeof SaasAdminRoute
+  TesourariaRoute: typeof TesourariaRoute
+  VerificarRoute: typeof VerificarRoute
   AlunosStudentIdRoute: typeof AlunosStudentIdRoute
   AuthEmailChangeRoute: typeof AuthEmailChangeRoute
   AuthMagicLinkRoute: typeof AuthMagicLinkRoute
   AuthResetPasswordRoute: typeof AuthResetPasswordRoute
+  ConfiguracoesDiagnosticoRoute: typeof ConfiguracoesDiagnosticoRoute
   ConviteTokenRoute: typeof ConviteTokenRoute
   MatriculaSlugRoute: typeof MatriculaSlugRoute
+  PedagogicaRiscoRoute: typeof PedagogicaRiscoRoute
   ProfessorPresencaRoute: typeof ProfessorPresencaRoute
   ProfessoresTeacherIdRoute: typeof ProfessoresTeacherIdRoute
   RelatoriosAcademicosRoute: typeof RelatoriosAcademicosRoute
@@ -1073,6 +1139,7 @@ export interface RootRouteChildren {
   ApiFinancePayflowSettlementRoute: typeof ApiFinancePayflowSettlementRoute
   ApiIntegrationsResendWebhookRoute: typeof ApiIntegrationsResendWebhookRoute
   ApiIntegrationsZoomCallbackRoute: typeof ApiIntegrationsZoomCallbackRoute
+  ApiPublicPaymentsAppypayRoute: typeof ApiPublicPaymentsAppypayRoute
   ApiSaasEmailRoutesRoute: typeof ApiSaasEmailRoutesRoute
   ApiSaasUsageSyncRoute: typeof ApiSaasUsageSyncRoute
   ApiFinanceGatewayUnitelConfirmRoute: typeof ApiFinanceGatewayUnitelConfirmRoute
@@ -1206,6 +1273,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SaasAdminRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/tesouraria': {
+      id: '/tesouraria'
+      path: '/tesouraria'
+      fullPath: '/tesouraria'
+      preLoaderRoute: typeof TesourariaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/verificar': {
+      id: '/verificar'
+      path: '/verificar'
+      fullPath: '/verificar'
+      preLoaderRoute: typeof VerificarRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/alumni/$alumniId': {
       id: '/alumni/$alumniId'
       path: '/$alumniId'
@@ -1311,6 +1392,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CalendarioIcsRouteImport
       parentRoute: typeof CalendarioRoute
     }
+    '/configuracoes_/diagnostico': {
+      id: '/configuracoes_/diagnostico'
+      path: '/configuracoes/diagnostico'
+      fullPath: '/configuracoes/diagnostico'
+      preLoaderRoute: typeof ConfiguracoesDiagnosticoRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/convite/$token': {
       id: '/convite/$token'
       path: '/convite/$token'
@@ -1330,6 +1418,13 @@ declare module '@tanstack/react-router' {
       path: '/matricula/$slug'
       fullPath: '/matricula/$slug'
       preLoaderRoute: typeof MatriculaSlugRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/pedagogica_/risco': {
+      id: '/pedagogica_/risco'
+      path: '/pedagogica/risco'
+      fullPath: '/pedagogica/risco'
+      preLoaderRoute: typeof PedagogicaRiscoRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/pessoas/': {
@@ -1568,6 +1663,13 @@ declare module '@tanstack/react-router' {
       path: '/api/integrations/zoom/callback'
       fullPath: '/api/integrations/zoom/callback'
       preLoaderRoute: typeof ApiIntegrationsZoomCallbackRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/payments/appypay': {
+      id: '/api/public/payments/appypay'
+      path: '/api/public/payments/appypay'
+      fullPath: '/api/public/payments/appypay'
+      preLoaderRoute: typeof ApiPublicPaymentsAppypayRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/saas/domains/check': {
@@ -1846,12 +1948,16 @@ const rootRouteChildren: RootRouteChildren = {
   PerfilRoute: PerfilRoute,
   PlanosAulaRoute: PlanosAulaRoute,
   SaasAdminRoute: SaasAdminRoute,
+  TesourariaRoute: TesourariaRoute,
+  VerificarRoute: VerificarRoute,
   AlunosStudentIdRoute: AlunosStudentIdRoute,
   AuthEmailChangeRoute: AuthEmailChangeRoute,
   AuthMagicLinkRoute: AuthMagicLinkRoute,
   AuthResetPasswordRoute: AuthResetPasswordRoute,
+  ConfiguracoesDiagnosticoRoute: ConfiguracoesDiagnosticoRoute,
   ConviteTokenRoute: ConviteTokenRoute,
   MatriculaSlugRoute: MatriculaSlugRoute,
+  PedagogicaRiscoRoute: PedagogicaRiscoRoute,
   ProfessorPresencaRoute: ProfessorPresencaRoute,
   ProfessoresTeacherIdRoute: ProfessoresTeacherIdRoute,
   RelatoriosAcademicosRoute: RelatoriosAcademicosRoute,
@@ -1877,6 +1983,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiFinancePayflowSettlementRoute: ApiFinancePayflowSettlementRoute,
   ApiIntegrationsResendWebhookRoute: ApiIntegrationsResendWebhookRoute,
   ApiIntegrationsZoomCallbackRoute: ApiIntegrationsZoomCallbackRoute,
+  ApiPublicPaymentsAppypayRoute: ApiPublicPaymentsAppypayRoute,
   ApiSaasEmailRoutesRoute: ApiSaasEmailRoutesRoute,
   ApiSaasUsageSyncRoute: ApiSaasUsageSyncRoute,
   ApiFinanceGatewayUnitelConfirmRoute: ApiFinanceGatewayUnitelConfirmRoute,

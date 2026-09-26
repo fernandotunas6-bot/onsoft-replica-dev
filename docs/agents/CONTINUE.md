@@ -273,15 +273,20 @@ build de produção com saída 0. A árvore publicada é bit a bit a de `origin/
 a 200; `scripts/pwa-check.mjs` contra `https://portal-siga.com` com os 8 controlos verdes
 (manifesto, 4 ícones, apple-touch-icon, viewport, theme-color, service worker, offline).
 
-**Achado novo, em produção — RESOLVIDO a 2026-09-23** (ver a secção «Hidratação» no topo
-deste ficheiro; correcções em `1963804` e `f1a51d4`). **Atenção ao que segue, porque está
-errado e ficou registado como facto:** a parte de «está em `/`, `/alunos` e
-`/alterar-senha`» era um **artefacto de medição** — a consola do painel acumula mensagens
-entre navegações, e o #418 do `/alterar-senha` era lido como se fosse da página seguinte.
-Medido em separador limpo, o erro vinha **só do `/alterar-senha`**, a única das três que
-renderiza o `AppShell` estando deslogado. O texto original fica abaixo tal como estava.
+**Resolvido a 2026-09-25 (por publicar):** a causa era o `DesktopTitleBar`. A condição
+`typeof window !== "undefined"` desenhava a barra no servidor e escondia-a no browser. A
+visibilidade passou a ser decidida depois de montar, e `tests/ui/desktop-titlebar-ssr.test.tsx`
+protege a correcção. Em modo de desenvolvimento, `/`, `/alterar-senha`, `/matricula`,
+`/criar-escola` e `/auth/reset-password` deixaram de dar erro de hidratação.
 
-O erro de hidratação que o Ciclo 101 viu em
+**Ressalva ao texto original, que ficou registado como facto e está errado:** a parte de
+«está em `/`, `/alunos` e `/alterar-senha`» era um **artefacto de medição** — a consola do
+painel acumula mensagens entre navegações, e o #418 do `/alterar-senha` era lido como se
+fosse da página seguinte. Medido em separador limpo, o erro vinha **só do
+`/alterar-senha`**, a única das três que renderiza o `AppShell` estando deslogado. A
+suspeita do `AuthGate` registada abaixo também não se confirmou. Texto original:
+
+**Achado novo, em produção e por resolver.** O erro de hidratação que o Ciclo 101 viu em
 `/alterar-senha` **não é dessa página**: está em `/`, `/alunos` e `/alterar-senha` — React
 #418 em todas, portanto vem do que embrulha tudo. A suspeita registada era o `AuthGate`,
 mas o `checking` nasce `true` nos dois lados (`useState(true)`, linha 66), logo o primeiro
@@ -296,6 +301,98 @@ deitado fora em cada visita**, o que anula o SSR e põe em causa as metas de FCP
 simples** no worker, não como secrets — aparecem na listagem de bindings de qualquer
 `wrangler deploy`. A chave de serviço ignora o RLS por completo; numa base multi-inquilino
 isso é a chave do reino. Passá-las a `wrangler secret` não muda o código que as lê.
+
+## Ciclo 102 — Identidade única e vinculação institucional (2026-09-25)
+
+Uma identidade (`auth.users`), vários vínculos (`school_memberships` + `member_roles`), um
+papel por escola. O sistema passa a distinguir três situações:
+
+1. **Conta com vínculo activo:** abre o painel, como antes (escolha de escola já existia).
+2. **Conta sem vínculo:** `RouteAccessGate` mostra `InstitutionOnboarding` em vez de
+   "acesso não autorizado". Opção A → assistente WEB de criação de escola. Opção B →
+   pedido de acesso: identificação → escolha da escola → pedido → verificação → acesso.
+3. **Pessoa nova:** separador **Criar conta** no `AuthGate` (`supabase.auth.signUp`).
+   Cria só a identidade, sem vínculo. A resposta é a mesma exista ou não o e-mail.
+
+**Mudança de política, deliberada:** o login Google de uma conta sem escola **deixou de
+apagar a conta** (`verify-oauth-account-server.ts` removido). Continua sem acesso a dados:
+tudo o que exige membership é recusado no servidor. A pessoa passa a ver o painel de
+boas-vindas.
+
+**Secretaria:** painel **Solicitações de acesso** no topo de `/acessos`. Tem os estados
+pendente, em análise, informação pedida, aprovado, rejeitado e cancelado. A aprovação cria
+ou activa **só** o vínculo e o papel. Não cria matrícula, contrato nem cadastro. Só liga
+`people.user_id` quando o revisor marca a opção e o cadastro não tem conta. Regras (puras,
+em `institutional-link.ts`):
+- "Administrador" nunca se concede por pedido.
+- Secretaria/Tesouraria só se concedem por um Administrador.
+- Ninguém decide o próprio pedido.
+- Um membership `suspended` não é reactivado por aqui.
+
+Cada decisão fica em `audit_logs` (`entity_type = school_access_request`). O aviso por
+e-mail (Resend) é de melhor esforço e só corre com `RESEND_API_KEY`.
+
+**Cadastro encontrado:** só com dois factores na mesma escola (B.I. + número de
+aluno/funcionário; o encarregado usa o número do educando). O requerente nunca sabe se
+houve correspondência. A pesquisa de escola usa `name`, `commercial_name`, `public_code`
+(código da escola) e o slug do tenant, e não devolve contactos.
+
+**Também corrigido:** `resolveUserLinkedEntities` localizava a pessoa em `people` por
+e-mail mesmo sem confirmação. Agora só usa e-mail confirmado (`email_confirmed_at`).
+
+**Os testes de esquema apanharam três colunas que não existem em produção**, já corrigidas
+antes do commit: `schools.short_name`, `schools.deleted_at` e `students.registration_number`.
+
+**E-mails de autenticação (2026-09-25, 2.º commit):** o registo de conta passou a usar o
+mesmo caminho que a recuperação de senha, o link mágico e o convite. `requestSignupFn`
+(`signup-server.ts`) gera o link com `generateLink({ type: "signup" })` e envia o modelo
+`signup-confirm` pelo Resend. Se o envio falhar, a conta criada é apagada. O mailer nativo
+do Supabase ("Confirm signup") só é usado se `RESEND_API_KEY` faltar. Por isso, **os modelos
+do painel do Supabase quase não são usados em produção**: o SIGA gera os seus próprios
+e-mails.
+
+**Google:** o login usa o provider Google do Supabase. No Google Cloud, o URI de
+redireccionamento é só `https://xodgfmxiaunpamctfeea.supabase.co/auth/v1/callback`.
+`firebase-applet-config.json → oAuthClientId` passou do cliente de outro projecto
+(`445079520865-…`, que era o valor por omissão) para o cliente do projecto
+`siga-plus-509706`. É usado pelo fluxo Workspace de `src/lib/google-oauth.ts`, que ainda
+nenhum ecrã chama. Quando for ligado, o seu redirect `<origem>/configuracoes` terá de ser
+acrescentado no Google Cloud.
+
+**Ícones (2026-09-25, 3.º commit):** medição inicial de 203 ícones Lucide diferentes em 192
+ficheiros, com colisões no menu: "Gestão de Acessos" e "Pessoas" partilhavam `UserCog`,
+"Faltas" e "Auditoria" partilhavam `History`, "Académico" e "Lista de Alunos" partilhavam
+`GraduationCap`. Criado `src/lib/app-icons.ts` (módulos, acções e estados), usado por todos
+os itens de `portal-engine.ts`. Exportações "Oficial/PDF" passaram de `Award` (troféu) para
+`FileBadge`; o troféu fica só para mérito. `Loader2` foi uniformizado para `LoaderCircle`
+(mesmo glifo). O resto do código ainda importa do `lucide-react` directamente; migrar ao
+tocar em cada ecrã.
+
+### Por fazer (bloqueia o deploy desta funcionalidade)
+
+- ~~Aplicar `20260925090000_school_access_requests.sql`~~ — **aplicada pelo utilizador no
+  SQL Editor a 2026-09-25** (não verificada pelo agente, que não tinha acesso à base). Falta
+  recapturar `supabase/PRODUCTION_SNAPSHOT.json` e só então retirar `school_access_requests`
+  de `TABELAS_AUSENTES_DA_PRODUCAO`; antes disso o teste de entradas obsoletas continua
+  correcto com ela lá. Texto original: aplicar `20260925090000_school_access_requests.sql` (também no fim de
+  `APPLY_ENROLLMENT_AND_PREMIUM.sql`). Depois, retirar `school_access_requests` de
+  `TABELAS_AUSENTES_DA_PRODUCAO` em `tests/security/production-snapshot.test.ts` e
+  actualizar o retrato. Sem a tabela, o painel e a fila dizem que os pedidos não estão
+  activos. Não fingem.
+- **Supabase Auth:** confirmar "Confirm email" **ligado** e novos registos permitidos. A
+  ligação de identidades Google ↔ senha é automática no Supabase só para e-mails
+  verificados, e é isso que evita contas duplicadas. Não há fusão manual de contas no código.
+
+### Achados por decidir, não tocados
+
+- **Login por B.I. (resolvido, 2026-09-25):** `resolveBiToEmailFn` devolvia o e-mail de
+  qualquer B.I. Passou a `signInWithIdentifierFn`: o servidor verifica a senha no Supabase
+  Auth (`grant_type=password`) e devolve só a sessão. **Antes de juntar ao `main`:** os
+  logins por B.I. passam a chegar ao Supabase a partir do worker, e o limite
+  "Sign-ups and sign-ins" do Supabase (Authentication → Rate limits) conta por IP.
+  Subir esse limite, ou todos os logins por B.I. partilham a mesma quota. O login por
+  e-mail continua directo do browser.
+- O limite de taxa é em memória, por isolado (ver `src/lib/rate-limit.ts`).
 
 ## Estado (2026-09-20)
 

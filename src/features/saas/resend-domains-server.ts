@@ -2,12 +2,16 @@ import { z } from "zod";
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { ResendDomainsClient } from "@/features/integrations/resend-domains-client";
-import { loadSgaAdminClient, requireSgaWriter } from "@/integrations/supabase/sga-admin";
+import {
+  loadSgaAdminClient,
+  requireSgaWriterFor,
+  requireSgaWriterForWrite,
+} from "@/integrations/supabase/sga-admin";
 
 export const listResendDomainsFn = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    await requireSgaWriter(context.supabase, context.userId, ["Administrador"]);
+    await requireSgaWriterFor("gestao", context.supabase, context.userId, ["Administrador"]);
     try {
       const domains = await ResendDomainsClient.listDomains();
       return {
@@ -43,7 +47,7 @@ export const verifyResendDomainFn = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((input: unknown) => verifyResendDomainInputSchema.parse(input))
   .handler(async ({ data, context }) => {
-    await requireSgaWriter(context.supabase, context.userId, ["Administrador"]);
+    await requireSgaWriterForWrite("gestao", context.supabase, context.userId, ["Administrador"]);
     try {
       const result = await ResendDomainsClient.verifyDomain(data.domainId);
       return {
@@ -72,7 +76,9 @@ export const createResendDomainFn = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((input: unknown) => createResendDomainInputSchema.parse(input))
   .handler(async ({ data, context }) => {
-    const membership = await requireSgaWriter(context.supabase, context.userId, ["Administrador"]);
+    const membership = await requireSgaWriterForWrite("gestao", context.supabase, context.userId, [
+      "Administrador",
+    ]);
     const db = await loadSgaAdminClient();
 
     try {

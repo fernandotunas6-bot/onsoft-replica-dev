@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { Award, FileDown, Lock, Save, Unlock } from "lucide-react";
+import { FileBadge, FileDown, Lock, Save, Unlock } from "lucide-react";
 import { toast } from "sonner";
 import { whatsappHref } from "@/features/integrations/actions";
 import { useInstalledIntegrations } from "@/features/integrations/use-installed-integrations";
@@ -599,7 +599,7 @@ export function GradePautaSheet({
   return (
     <div className="space-y-4">
       <div className="rounded-xl border border-border bg-muted/30 p-4 text-center">
-        <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-muted-foreground">
+        <p className="text-[10px] font-bold text-muted-foreground">
           República de Angola · Ministério da Educação
         </p>
         <h3 className="mt-1 font-display text-lg font-extrabold tracking-tight">{schoolName}</h3>
@@ -698,7 +698,7 @@ export function GradePautaSheet({
           <FileDown className="size-3.5" /> PDF
         </Button>
         <Button size="sm" variant="outline" className="gap-1.5" onClick={exportOficialPauta}>
-          <Award className="size-3.5" /> Oficial
+          <FileBadge className="size-3.5" /> Oficial
         </Button>
         {whatsappOn ? (
           <Button size="sm" variant="outline" asChild>

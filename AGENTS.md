@@ -33,3 +33,10 @@ npm run siga:scaffold -- <modulo> [--route=/caminho] [--with-page]
 
 No SGA não aplicar migrações Lovable. SQL correcto: `npm run siga:sql`.
 
+**Base de dados — ler antes de qualquer SQL:** [docs/agents/DATABASE_RULES.md](docs/agents/DATABASE_RULES.md).
+O Lovable está ligado à base de **produção**: uma migração aprovada corre nas escolas reais.
+Em resumo: confirmar colunas em `supabase/PRODUCTION_SNAPSHOT.json`; triggers com
+`siga_touch_updated_at()`; SQL idempotente; `is_school_member` inclui alunos e encarregados,
+por isso nunca serve para escrita nem para dados sensíveis; tabelas sensíveis só com o
+servidor (`FORCE ROW LEVEL SECURITY` + `REVOKE ALL … FROM PUBLIC, anon, authenticated`).
+

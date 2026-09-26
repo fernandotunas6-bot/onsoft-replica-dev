@@ -1,6 +1,6 @@
 import { Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { CalendarDays, Award, GraduationCap, Users } from "lucide-react";
+import { CalendarDays, FileBadge, GraduationCap, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Panel } from "@/components/layout/PageHeader";
@@ -120,7 +120,7 @@ export function TeacherWorkspacePanel({
                     );
                   }}
                 >
-                  <Award className="size-3.5" /> Diário
+                  <FileBadge className="size-3.5" /> Diário
                 </Button>
               ) : null}
               {workspace?.teacherId ? (

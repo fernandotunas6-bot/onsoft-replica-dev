@@ -2,7 +2,11 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { publicDatabaseError } from "@/integrations/supabase/server-error";
-import { loadSgaAdminClient, requireSgaWriter } from "@/integrations/supabase/sga-admin";
+import {
+  loadSgaAdminClient,
+  requireSgaWriterFor,
+  requireSgaWriterForWrite,
+} from "@/integrations/supabase/sga-admin";
 import {
   alumniEventRegistrationInputSchema,
   alumniOpportunityApplicationInputSchema,
@@ -17,8 +21,12 @@ const pipelineListSchema = z.object({
   limit: z.number().int().min(1).max(300).default(200),
 });
 
-async function adminContext(userId: string) {
-  const membership = await requireSgaWriter(userId, ["Administrador", "Secretaria"]);
+async function adminContext(userId: string, mode: "read" | "write" = "read") {
+  const membership = await (mode === "write" ? requireSgaWriterForWrite : requireSgaWriterFor)(
+    "pessoas",
+    userId,
+    ["Administrador", "Secretaria"],
+  );
   const db = await loadSgaAdminClient();
   return { membership, db };
 }
@@ -102,7 +110,7 @@ export const updateOpportunityApplicationStatus = createServerFn({ method: "POST
   .validator((input: unknown) => alumniOpportunityApplicationInputSchema.parse(input))
   .handler(async ({ data, context }) => {
     if (!context) throw new Error("Sessão inválida.");
-    const { membership, db } = await adminContext(context.userId);
+    const { membership, db } = await adminContext(context.userId, "write");
     const { data: existing, error: existingError } = await db
       .from("alumni_opportunity_applications")
       .select("id, applied_at")
@@ -164,7 +172,7 @@ export const updateEventRegistrationStatus = createServerFn({ method: "POST" })
   .validator((input: unknown) => alumniEventRegistrationInputSchema.parse(input))
   .handler(async ({ data, context }) => {
     if (!context) throw new Error("Sessão inválida.");
-    const { membership, db } = await adminContext(context.userId);
+    const { membership, db } = await adminContext(context.userId, "write");
     const patch: Record<string, unknown> = { status: data.status };
     if (data.status === "attended") patch.checked_in_at = new Date().toISOString();
     if (data.status !== "attended") patch.checked_in_at = null;
@@ -213,7 +221,7 @@ export const createMentorshipFromPipeline = createServerFn({ method: "POST" })
   .validator((input: unknown) => mentoringMatchInputSchema.parse(input))
   .handler(async ({ data, context }) => {
     if (!context) throw new Error("Sessão inválida.");
-    const { membership, db } = await adminContext(context.userId);
+    const { membership, db } = await adminContext(context.userId, "write");
     const { count: mentorCount } = await db
       .from("alumni_profiles")
       .select("id", { count: "exact", head: true })
@@ -247,7 +255,7 @@ export const updateMentorshipPipelineStatus = createServerFn({ method: "POST" })
   .validator((input: unknown) => mentoringStatusInputSchema.parse(input))
   .handler(async ({ data, context }) => {
     if (!context) throw new Error("Sessão inválida.");
-    const { membership, db } = await adminContext(context.userId);
+    const { membership, db } = await adminContext(context.userId, "write");
     const patch: Record<string, unknown> = {
       status: data.status,
       updated_at: new Date().toISOString(),

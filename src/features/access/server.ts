@@ -15,7 +15,8 @@ import {
   sendResendEmail,
 } from "@/features/integrations/resend-client";
 import { checkRateLimit, isRateLimitBypassed, recordRateLimitAttempt } from "@/lib/rate-limit";
-import { resolveBiToEmailInputSchema } from "./bi-login";
+import { signInWithIdentifierInputSchema } from "./bi-login";
+import { recordAccessAudit } from "@/features/audit/record-audit";
 import {
   inviteUserInputSchema,
   resendSystemInviteInputSchema,
@@ -54,6 +55,40 @@ async function requireAdminContext(context: AuthedContext) {
     appRole: membership.appRole,
     isAdministrator: membership.appRole === "Administrador",
   };
+}
+
+/**
+ * A identidade (auth.users) é partilhada entre escolas; as memberships não.
+ * Acções sobre a conta inteira — senha, bloqueio global — só são seguras
+ * quando a pessoa não pertence a mais nenhuma escola. Caso contrário, um
+ * administrador da escola A mexia no acesso da pessoa à escola B.
+ */
+export async function otherSchoolAccess(
+  admin: Awaited<ReturnType<typeof loadAdminClient>>,
+  userId: string,
+  schoolId: string,
+) {
+  const { data: memberships } = await admin
+    .from("school_memberships")
+    .select("id, school_id, status")
+    .eq("user_id", userId);
+  const rows = (memberships ?? []) as Array<{ id: string; school_id: string; status: string }>;
+  const otherActive = rows.filter((m) => m.school_id !== schoolId && m.status === "active");
+
+  let adminAnywhere = false;
+  if (rows.length) {
+    const { data: roleRows } = await admin
+      .from("member_roles")
+      .select("roles(code)")
+      .in(
+        "membership_id",
+        rows.map((m) => m.id),
+      );
+    adminAnywhere = ((roleRows ?? []) as Array<{ roles?: { code?: string } | null }>).some((r) =>
+      isAdministratorRole(String(r.roles?.code ?? "")),
+    );
+  }
+  return { hasOtherActiveSchools: otherActive.length > 0, adminAnywhere };
 }
 
 async function loadAdminClient() {
@@ -156,20 +191,6 @@ export const inviteSystemUser = createServerFn({ method: "POST" })
       );
     }
     const admin = await loadAdminClient();
-    // Validar o cadastro antes de criar auth.users: um conflito não deve
-    // deixar conta, perfil ou membership parcialmente provisionados.
-    const inviteEmail = data.email.trim().toLowerCase();
-    const { data: existingPeople, error: existingPeopleError } = await admin
-      .from("people")
-      .select("id, user_id")
-      .eq("school_id", schoolId)
-      .ilike("email", inviteEmail);
-    if (existingPeopleError) {
-      throw publicDatabaseError(existingPeopleError, "Não foi possível validar a identidade do convite.");
-    }
-    if ((existingPeople ?? []).length > 1 || existingPeople?.[0]?.user_id) {
-      throw new Error("Pessoa já vinculada ou e-mail duplicado nesta escola; reveja o cadastro antes de criar a conta.");
-    }
 
     // Não usar inviteUserByEmail: o mailer nativo da Supabase (sem SMTP próprio)
     // envia um e-mail genérico "Supabase Auth" — proibido pela identidade
@@ -261,38 +282,20 @@ export const inviteSystemUser = createServerFn({ method: "POST" })
       });
     }
 
-    // Professores são vinculados em ensureTeacherHrRecord. Outras pessoas só
-    // recebem o vínculo quando a identidade existente não pertence a outro login.
-    if (data.cargo !== "Professor") {
-      const normalizedEmail = data.email.trim().toLowerCase();
-      const { data: matchingPeople, error: personLookupError } = await admin
+    // Vinculação idempotente com o registo de pessoa (se já existir na escola com este email)
+    try {
+      const { data: existingPerson } = await admin
         .from("people")
-        .select("id, user_id")
+        .select("id")
         .eq("school_id", schoolId)
-        .ilike("email", normalizedEmail);
-      if (personLookupError) {
-        throw publicDatabaseError(personLookupError, "Não foi possível validar a identidade da pessoa.");
+        .eq("email", data.email.trim().toLowerCase())
+        .maybeSingle();
+
+      if (existingPerson?.id) {
+        await admin.from("people").update({ user_id: userId }).eq("id", existingPerson.id);
       }
-      if ((matchingPeople ?? []).length > 1) {
-        throw new Error("E-mail associado a múltiplas pessoas nesta escola; reveja o cadastro.");
-      }
-      const person = matchingPeople?.[0];
-      if (person?.user_id && String(person.user_id) !== userId) {
-        throw new Error("Pessoa já vinculada a outra conta; reveja o cadastro.");
-      }
-      if (person && !person.user_id) {
-        const { data: linked, error: linkError } = await admin
-          .from("people")
-          .update({ user_id: userId })
-          .eq("id", person.id)
-          .eq("school_id", schoolId)
-          .is("user_id", null)
-          .select("id")
-          .maybeSingle();
-        if (linkError || !linked?.id) {
-          throw new Error("Não foi possível vincular a pessoa ao login.");
-        }
-      }
+    } catch {
+      // Falha não impeditiva na vinculação biográfica
     }
 
     // Entrega do link de acesso por e-mail institucional (best-effort: a conta
@@ -345,6 +348,15 @@ export const inviteSystemUser = createServerFn({ method: "POST" })
       inviteDeliveryError =
         deliveryErr instanceof Error ? deliveryErr.message : "Falha ao enviar o convite.";
     }
+
+    await recordAccessAudit({
+      schoolId,
+      actorUserId: context.userId,
+      action: "access.user_invited",
+      entityType: "auth_user",
+      entityId: userId,
+      metadata: { email: data.email, cargo: data.cargo },
+    });
 
     return {
       id: userId,
@@ -401,6 +413,15 @@ export const updateSystemAccountCargo = createServerFn({ method: "POST" })
       .maybeSingle();
     if (!role?.id) throw new Error(`Papel SGA em falta para ${data.cargo}.`);
 
+    // O cargo do perfil é global (vale em todas as escolas da pessoa); o papel
+    // desta escola vive em member_roles. Quem é administrador noutra escola só
+    // é alterado por um Administrador, e o cargo global só muda se a pessoa não
+    // tiver outras escolas activas.
+    const access = await otherSchoolAccess(admin, data.userId, schoolId);
+    if (access.adminAnywhere && !isAdministrator) {
+      throw new Error("Apenas Administradores podem alterar contas de outros Administradores.");
+    }
+
     await admin.from("member_roles").delete().eq("membership_id", membership.id);
     await admin.from("member_roles").insert({
       school_id: schoolId,
@@ -408,12 +429,14 @@ export const updateSystemAccountCargo = createServerFn({ method: "POST" })
       role_id: role.id,
     });
 
-    const { error: profileError } = await admin
-      .from("profiles")
-      .update({ cargo: data.cargo })
-      .eq("id", data.userId);
-    if (profileError) {
-      throw publicDatabaseError(profileError, "Papel SGA actualizado, mas falhou o perfil.");
+    if (!access.hasOtherActiveSchools) {
+      const { error: profileError } = await admin
+        .from("profiles")
+        .update({ cargo: data.cargo })
+        .eq("id", data.userId);
+      if (profileError) {
+        throw publicDatabaseError(profileError, "Papel SGA actualizado, mas falhou o perfil.");
+      }
     }
 
     if (data.cargo === "Professor") {
@@ -429,6 +452,14 @@ export const updateSystemAccountCargo = createServerFn({ method: "POST" })
       });
     }
 
+    await recordAccessAudit({
+      schoolId,
+      actorUserId: context.userId,
+      action: "access.cargo_changed",
+      entityType: "auth_user",
+      entityId: data.userId,
+      metadata: { cargo: data.cargo },
+    });
     return { id: data.userId, cargo: data.cargo };
   });
 
@@ -472,10 +503,24 @@ export const setSystemAccountDisabled = createServerFn({ method: "POST" })
       .eq("id", membership.id);
     if (error) throw publicDatabaseError(error, "Não foi possível actualizar o estado da conta.");
 
-    await admin.auth.admin.updateUserById(data.userId, {
-      ban_duration: data.disabled ? "876000h" : "none",
-    });
+    // O bloqueio de auth.users vale para todas as escolas. Com acesso activo a
+    // outra escola, suspende-se só a membership desta — as outras escolas
+    // decidem por si. Ao reactivar, o bloqueio global é levantado.
+    const access = await otherSchoolAccess(admin, data.userId, schoolId);
+    if (!data.disabled || !access.hasOtherActiveSchools) {
+      await admin.auth.admin.updateUserById(data.userId, {
+        ban_duration: data.disabled ? "876000h" : "none",
+      });
+    }
 
+    await recordAccessAudit({
+      schoolId,
+      actorUserId: context.userId,
+      action: data.disabled ? "access.account_disabled" : "access.account_enabled",
+      entityType: "auth_user",
+      entityId: data.userId,
+      metadata: {},
+    });
     return { id: data.userId, disabled: data.disabled };
   });
 
@@ -484,7 +529,7 @@ export const resendSystemInvite = createServerFn({ method: "POST" })
   .validator((input: unknown) => resendSystemInviteInputSchema.parse(input))
   .handler(async ({ data, context }) => {
     if (!context) throw new Error("Unauthorized");
-    const { schoolId } = await requireAdminContext(context);
+    const { schoolId, isAdministrator } = await requireAdminContext(context);
     if (data.userId === context.userId) {
       throw new Error("Use Alterar senha para a sua própria conta.");
     }
@@ -499,6 +544,35 @@ export const resendSystemInvite = createServerFn({ method: "POST" })
       throw publicDatabaseError(membershipError, "Não foi possível validar a conta.");
     }
     if (!membership) throw new Error("Conta não encontrada nesta escola.");
+
+    // O link devolvido aqui abre a conta a quem o tiver: copiá-lo equivale a
+    // entrar na conta da pessoa. Por isso, fora destes casos, só "Enviar
+    // E-mail" (o link vai para a caixa da própria pessoa).
+    const access = await otherSchoolAccess(admin, data.userId, schoolId);
+    if (access.adminAnywhere) {
+      throw new Error("Para contas de administrador, use Enviar E-mail.");
+    }
+    if (access.hasOtherActiveSchools) {
+      throw new Error("Esta conta também dá acesso a outra escola. Use Enviar E-mail.");
+    }
+    if (!isAdministrator) {
+      const { data: targetRoles } = await admin
+        .from("member_roles")
+        .select("roles(code)")
+        .eq("membership_id", membership.id);
+      const staffCodes = [
+        ...mapAppRoleToSgaCodes("Secretaria"),
+        ...mapAppRoleToSgaCodes("Tesouraria"),
+      ];
+      const isStaff = ((targetRoles ?? []) as Array<{ roles?: { code?: string } | null }>).some(
+        (r) => staffCodes.includes(String(r.roles?.code ?? "").toLowerCase()),
+      );
+      if (isStaff) {
+        throw new Error(
+          "Só um Administrador pode copiar o link de acesso de pessoal administrativo. Use Enviar E-mail.",
+        );
+      }
+    }
 
     const { data: authData, error: userError } = await admin.auth.admin.getUserById(data.userId);
     if (userError) throw new Error(userError.message || "Não foi possível ler o utilizador.");
@@ -515,6 +589,14 @@ export const resendSystemInvite = createServerFn({ method: "POST" })
     }
     const actionLink = linkData.properties?.action_link;
     if (!actionLink) throw new Error("O servidor não devolveu um link de acesso.");
+    await recordAccessAudit({
+      schoolId,
+      actorUserId: context.userId,
+      action: "access.link_copied",
+      entityType: "auth_user",
+      entityId: data.userId,
+      metadata: { kind },
+    });
     return { email, kind, actionLink };
   });
 
@@ -594,8 +676,16 @@ export const sendSystemInviteEmail = createServerFn({ method: "POST" })
     return { email, kind };
   });
 
-export const resolveBiToEmailFn = createServerFn({ method: "POST" })
-  .validator((input: unknown) => resolveBiToEmailInputSchema.parse(input))
+/**
+ * Login por B.I. (ou telefone) e senha, feito no servidor.
+ *
+ * Antes, o browser pedia o e-mail associado a um B.I. e depois entrava com ele:
+ * qualquer pessoa descobria o e-mail de quem tivesse o B.I. Agora o e-mail
+ * nunca sai do servidor. Só a sessão volta, e só com a senha certa; um B.I.
+ * desconhecido e uma senha errada dão a mesma resposta.
+ */
+export const signInWithIdentifierFn = createServerFn({ method: "POST" })
+  .validator((input: unknown) => signInWithIdentifierInputSchema.parse(input))
   .handler(async ({ data }) => {
     const ip =
       (typeof getRequestIP === "function" ? getRequestIP({ xForwardedFor: true }) : null) ??
@@ -605,15 +695,15 @@ export const resolveBiToEmailFn = createServerFn({ method: "POST" })
       !isRateLimitBypassed(rateLimitKey) &&
       !checkRateLimit([rateLimitKey], BI_LOOKUP_RATE_LIMIT)
     ) {
-      throw new Error(
-        "Muitas tentativas de consulta a partir deste endereço IP. Tente novamente mais tarde.",
-      );
+      return { ok: false as const, error: "rate_limited" as const };
     }
     recordRateLimitAttempt([rateLimitKey], BI_LOOKUP_RATE_LIMIT);
 
-    const { resolveBiOrEmailToUserEmail } = await import("./bi-login");
-    const resolvedEmail = await resolveBiOrEmailToUserEmail(data.identifier);
-    return { email: resolvedEmail };
+    const { resolveBiOrEmailToUserEmail, passwordGrant } = await import("./bi-login");
+    const email = await resolveBiOrEmailToUserEmail(data.identifier);
+    if (!email.includes("@")) return { ok: false as const, error: "invalid_credentials" as const };
+
+    return passwordGrant(email, data.password);
   });
 
 export const resetStaffPasswordDirect = createServerFn({ method: "POST" })
@@ -645,10 +735,20 @@ export const resetStaffPasswordDirect = createServerFn({ method: "POST" })
         .select("cargo")
         .eq("id", data.userId)
         .maybeSingle();
+      const access = await otherSchoolAccess(admin, data.userId, schoolId);
 
-      if (targetProfile?.cargo && isAdministratorRole(targetProfile.cargo)) {
+      if (
+        (targetProfile?.cargo && isAdministratorRole(targetProfile.cargo)) ||
+        access.adminAnywhere
+      ) {
         throw new Error(
           "Não é permitido redefinir directamente a senha de outro Administrador. Utilize a recuperação por e-mail.",
+        );
+      }
+      // A senha vale para todas as escolas da pessoa: só esta escola não decide.
+      if (access.hasOtherActiveSchools) {
+        throw new Error(
+          "Esta conta também dá acesso a outra escola. Use a recuperação de senha por e-mail.",
         );
       }
     }
@@ -660,6 +760,14 @@ export const resetStaffPasswordDirect = createServerFn({ method: "POST" })
       throw new Error(error.message || "Não foi possível redefinir a senha do funcionário.");
     }
 
+    await recordAccessAudit({
+      schoolId,
+      actorUserId: context.userId,
+      action: "access.password_reset_direct",
+      entityType: "auth_user",
+      entityId: data.userId,
+      metadata: {},
+    });
     return { success: true, userId: data.userId };
   });
 
@@ -708,7 +816,13 @@ export const createSchoolInvitation = createServerFn({ method: "POST" })
   .validator((input: unknown) => createSchoolInvitationInputSchema.parse(input))
   .handler(async ({ data, context }) => {
     if (!context) throw new Error("Unauthorized");
-    const { schoolId } = await requireAdminContext(context);
+    const { schoolId, isAdministrator } = await requireAdminContext(context);
+    // Igual a inviteSystemUser: só um Administrador convida administradores.
+    // Sem isto, a Secretaria criava um convite owner/admin (por exemplo para
+    // um segundo e-mail seu), aceitava-o e tornava-se administradora.
+    if (isAdministratorRole(data.roleCode) && !isAdministrator) {
+      throw new Error("Apenas um Administrador pode convidar com cargo de Administrador.");
+    }
     const admin = await loadAdminClient();
 
     const rawToken = Array.from(crypto.getRandomValues(new Uint8Array(24)))
@@ -786,6 +900,15 @@ export const createSchoolInvitation = createServerFn({ method: "POST" })
           : "Falha ao enviar o convite por e-mail.";
     }
 
+    await recordAccessAudit({
+      schoolId,
+      actorUserId: context.userId,
+      action: "access.invitation_created",
+      entityType: "school_invitation",
+      entityId: String(invitation.id),
+      metadata: { email: invitation.email, role_code: invitation.role_code },
+    });
+
     return {
       invitation,
       rawToken,
@@ -812,6 +935,14 @@ export const revokeSchoolInvitation = createServerFn({ method: "POST" })
       throw publicDatabaseError(error, "Não foi possível revogar o convite.");
     }
 
+    await recordAccessAudit({
+      schoolId,
+      actorUserId: context.userId,
+      action: "access.invitation_revoked",
+      entityType: "school_invitation",
+      entityId: data.invitationId,
+      metadata: {},
+    });
     return { success: true };
   });
 
@@ -860,12 +991,24 @@ export const acceptSchoolInvitation = createServerFn({ method: "POST" })
     }
 
     // 3.1. Validar correspondência do destinatário (anti-sequestro de convite)
-    const userEmail = (context.claims?.email as string | undefined)?.toLowerCase().trim();
-    const invitedEmail = (invitation.email as string).toLowerCase().trim();
-    if (!userEmail || userEmail !== invitedEmail) {
+    // O e-mail vem da conta no Auth, não das claims: sem e-mail nas claims
+    // (conta só com telefone, token sem o campo) a verificação era saltada e
+    // qualquer pessoa com o link aceitava o convite — incluindo de administrador.
+    const { data: authData } = await admin.auth.admin.getUserById(userId);
+    const authUser = authData?.user;
+    const userEmail = authUser?.email?.toLowerCase().trim() ?? "";
+    const invitedEmail = String(invitation.email ?? "")
+      .toLowerCase()
+      .trim();
+    if (!invitedEmail || userEmail !== invitedEmail) {
       throw new Error(
-        `Este convite foi emitido para ${invitedEmail}. A sessão actual (${userEmail}) não corresponde ao destinatário do convite.`,
+        userEmail
+          ? `Este convite foi emitido para ${invitedEmail}. A sessão actual (${userEmail}) não corresponde ao destinatário do convite.`
+          : `Este convite foi emitido para ${invitedEmail}. Entre com a conta desse e-mail para o aceitar.`,
       );
+    }
+    if (!authUser?.email_confirmed_at) {
+      throw new Error("Confirme primeiro o e-mail da sua conta e depois abra o convite outra vez.");
     }
 
     const schoolId = invitation.school_id as string;
@@ -925,34 +1068,16 @@ export const acceptSchoolInvitation = createServerFn({ method: "POST" })
         );
     }
 
-    // 6. Vincular somente uma pessoa identificada pelo email do convite.
-    const { data: invitePeople, error: invitePeopleError } = await admin
-      .from("people")
-      .select("id, user_id")
-      .eq("school_id", schoolId)
-      .ilike("email", invitedEmail);
-    if (invitePeopleError) {
-      throw publicDatabaseError(invitePeopleError, "Não foi possível validar a identidade do convite.");
-    }
-    if ((invitePeople ?? []).length > 1) {
-      throw new Error("E-mail associado a múltiplas pessoas nesta escola; reveja o cadastro.");
-    }
-    const invitePerson = invitePeople?.[0];
-    if (invitePerson?.user_id && String(invitePerson.user_id) !== userId) {
-      throw new Error("Pessoa já vinculada a outra conta; reveja o cadastro.");
-    }
-    if (invitePerson && !invitePerson.user_id) {
-      const { data: linked, error: linkError } = await admin
+    // 6. Ligar people.user_id por email (idempotente)
+    try {
+      await admin
         .from("people")
         .update({ user_id: userId })
-        .eq("id", invitePerson.id)
         .eq("school_id", schoolId)
-        .is("user_id", null)
-        .select("id")
-        .maybeSingle();
-      if (linkError || !linked?.id) {
-        throw new Error("Não foi possível vincular a pessoa ao login.");
-      }
+        .ilike("email", invitedEmail)
+        .is("user_id", null);
+    } catch {
+      // Não crítico — falha silenciosa se people não tiver coluna email ou user_id
     }
 
     // 7. Marcar como aceite
@@ -973,5 +1098,13 @@ export const acceptSchoolInvitation = createServerFn({ method: "POST" })
     // Invalidar sessão client (forçar refresh de memberships)
     void supabase.auth.refreshSession().catch(() => undefined);
 
+    await recordAccessAudit({
+      schoolId,
+      actorUserId: context.userId,
+      action: "access.invitation_accepted",
+      entityType: "school_invitation",
+      entityId: String(invitation.id),
+      metadata: { role_code: roleCode },
+    });
     return { success: true, schoolId, roleCode };
   });

@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, type FormEvent } from "react";
+import { publicErrorMessage } from "@/lib/public-error";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import {
   ShieldCheck,
@@ -209,8 +210,7 @@ function ResetPasswordPage() {
         void navigate({ to: "/" });
       }, 2500);
     } catch (err) {
-      const msg =
-        err instanceof Error ? err.message : "Não foi possível atualizar a senha. Tente novamente.";
+      const msg = publicErrorMessage(err, "Não foi possível atualizar a senha. Tente novamente.");
       toast.error(msg);
     } finally {
       setSubmitting(false);
@@ -223,13 +223,11 @@ function ResetPasswordPage() {
         <Card className="shadow-lg border-border bg-card">
           <CardHeader className="text-center pb-4">
             {/* Header com Branding da Escola */}
-            <div className="mx-auto mb-3 flex size-14 items-center justify-center rounded-2xl bg-primary/10 text-primary font-bold text-xl uppercase tracking-wider">
+            <div className="mx-auto mb-3 flex size-14 items-center justify-center rounded-2xl bg-primary/10 text-primary font-bold text-xl">
               {initials}
             </div>
 
-            <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
-              Conta Institucional
-            </p>
+            <p className="text-xs font-semibold text-muted-foreground">Conta Institucional</p>
             <CardTitle className="text-xl font-bold tracking-tight text-foreground mt-0.5">
               {schoolName}
             </CardTitle>
@@ -347,7 +345,7 @@ function ResetPasswordPage() {
 
                 {/* Requisitos de segurança em tempo real */}
                 <div className="rounded-xl border border-border/80 bg-muted/40 p-3.5 space-y-2 text-xs">
-                  <p className="font-semibold text-muted-foreground text-[11px] uppercase tracking-wider">
+                  <p className="font-semibold text-muted-foreground text-[11px]">
                     Requisitos da Senha
                   </p>
                   <div className="grid grid-cols-2 gap-2 text-[11px]">

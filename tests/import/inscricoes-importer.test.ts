@@ -42,16 +42,21 @@ function createMockCtx(db: any, overrides: Partial<ImportCommitContext> = {}): I
   };
 }
 
-/** Cache com a forma real de `loadRefCache`: a lista de candidaturas e o conjunto dos números. */
+/**
+ * Cache com a forma real de `loadRefCache`: só a lista de candidaturas.
+ *
+ * Houve aqui também um `existingApplicantNumbers: Set<string>`. Foi removido porque o
+ * importador deixou de o manter: guardar o `id` ao lado do número é o que lhe permite
+ * devolver `target_record_id` quando encontra uma candidatura repetida, e um conjunto de
+ * números sozinho não o permitia. Um teste que afirma sobre uma cache que o código já não
+ * escreve passa a medir o próprio teste.
+ */
 function createCache(applications: Array<{ id: string; application_number: string | null; full_name: string }> = []) {
   return {
     existingPeople: [] as any[],
     classGroups: [],
     studentByPersonId: new Map(),
     applications,
-    existingApplicantNumbers: new Set(
-      applications.map((a) => a.application_number).filter((n): n is string => Boolean(n)),
-    ),
   };
 }
 
@@ -116,7 +121,9 @@ describe("inscricoesImporter", () => {
       expect(result.status).toBe("imported");
       expect(result.target_record_id).toBe("app-1");
       expect(mockDb.from).toHaveBeenCalledWith("enrollment_applications");
-      expect(cache.existingApplicantNumbers.has("CAND-2026-010")).toBe(true);
+      expect(cache.applications.some((a) => a.application_number === "CAND-2026-010")).toBe(
+        true,
+      );
     });
 
     // A ordem importa: antes, a pessoa era criada e só depois a candidatura falhava
@@ -173,7 +180,7 @@ describe("inscricoesImporter", () => {
       );
 
       expect(result.status).toBe("imported");
-      expect(cache.existingApplicantNumbers.size).toBe(1);
+      expect(cache.applications).toHaveLength(1);
     });
 
     // O número não pode depender do milissegundo: várias linhas são processadas no mesmo instante.
@@ -191,7 +198,11 @@ describe("inscricoesImporter", () => {
       await inscricoesImporter.commitRow({ full_name: "Beatriz Fernandes" }, ctx, cache as any);
       await inscricoesImporter.commitRow({ full_name: "Joana Fernandes" }, ctx, cache as any);
 
-      expect(cache.existingApplicantNumbers.size).toBe(2);
+      expect(cache.applications).toHaveLength(2);
+      // Duas candidaturas, e não uma linha a apanhar a outra como duplicada. O número não é
+      // inventado: fica nulo, e a deduplicação por número só se aplica a quem traz um. Duas
+      // linhas sem número são duas candidaturas, como devem ser.
+      expect(cache.applications.map((a) => a.application_number)).toEqual([null, null]);
     });
 
     it("devolve error sem chamar resolveOrCreatePerson quando a linha é inválida", async () => {
@@ -223,7 +234,7 @@ describe("inscricoesImporter", () => {
 
       expect(result.status).toBe("error");
       expect(result.errors[0]).toContain("número de candidatura duplicado");
-      expect(cache.existingApplicantNumbers.size).toBe(0);
+      expect(cache.applications).toHaveLength(0);
     });
   });
 });

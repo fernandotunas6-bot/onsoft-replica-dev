@@ -1,10 +1,16 @@
 import { z } from "zod";
+import {
+  assertCanSeeStudent,
+  loadStudentScope,
+  resolveVerifiedAccountEmail,
+} from "@/features/students/student-scope";
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { publicDatabaseError } from "@/integrations/supabase/server-error";
 import {
   loadSgaAdminClient,
-  requireSgaWriter,
+  requireSgaWriterFor,
+  requireSgaWriterForWrite,
   resolveSgaMembershipAdmin,
 } from "@/integrations/supabase/sga-admin";
 import { resolveUserLinkedEntities } from "@/features/auth/server";
@@ -288,8 +294,12 @@ export const getAttendanceCallSheet = createServerFn({ method: "GET" })
   .validator((input: unknown) => getAttendanceCallSheetInputSchema.parse(input ?? {}))
   .handler(async ({ data, context }) => {
     if (!context) throw new Error("Não autenticado.");
-    const membership = await resolveSgaMembershipAdmin(context.userId);
-    if (!membership) throw new Error("Sem membership activa nesta escola.");
+    // A folha de chamada lista a turma inteira: é do corpo docente, não dos alunos.
+    const membership = await requireSgaWriterFor("pedagogica", context.supabase, context.userId, [
+      "Administrador",
+      "Secretaria",
+      "Professor",
+    ]);
     const db = await loadSgaAdminClient();
 
     let sessionRow: {
@@ -326,6 +336,23 @@ export const getAttendanceCallSheet = createServerFn({ method: "GET" })
       sessionRow = s;
 
       if (!sessionRow) {
+        // Só se abre sessão para uma turma e disciplina desta escola.
+        const [{ data: ownGroup }, { data: ownSubject }] = await Promise.all([
+          db
+            .from("class_groups")
+            .select("id")
+            .eq("id", data.classGroupId)
+            .eq("school_id", membership.schoolId)
+            .maybeSingle(),
+          db
+            .from("subjects")
+            .select("id")
+            .eq("id", data.subjectId)
+            .eq("school_id", membership.schoolId)
+            .maybeSingle(),
+        ]);
+        if (!ownGroup || !ownSubject) throw new Error("Turma ou disciplina não encontrada.");
+
         const { data: created } = await db
           .from("siga_attendance_sessions")
           .insert({
@@ -419,11 +446,12 @@ export const submitAttendanceCallBatch = createServerFn({ method: "POST" })
   .validator((input: unknown) => submitAttendanceCallBatchInputSchema.parse(input))
   .handler(async ({ data, context }) => {
     if (!context) throw new Error("Não autenticado.");
-    const membership = await requireSgaWriter(context.supabase, context.userId, [
-      "Administrador",
-      "Secretaria",
-      "Professor",
-    ]);
+    const membership = await requireSgaWriterForWrite(
+      "pedagogica",
+      context.supabase,
+      context.userId,
+      ["Administrador", "Secretaria", "Professor"],
+    );
     const db = await loadSgaAdminClient();
 
     const { data: session, error: sErr } = await db
@@ -440,6 +468,19 @@ export const submitAttendanceCallBatch = createServerFn({ method: "POST" })
       if (linked.teacher_id && session.teacher_id && linked.teacher_id !== session.teacher_id) {
         throw new Error("Não tem permissão para realizar a chamada de outro professor.");
       }
+    }
+
+    // Só alunos matriculados nesta turma entram na chamada.
+    const { data: classEnrollments } = await db
+      .from("enrollments")
+      .select("student_id")
+      .eq("school_id", membership.schoolId)
+      .eq("class_group_id", session.class_group_id)
+      .in("status", ["active", "pending"]);
+    const enrolled = new Set((classEnrollments ?? []).map((row) => String(row.student_id)));
+    const outsiders = data.records.filter((item) => !enrolled.has(item.studentId));
+    if (outsiders.length) {
+      throw new Error("A chamada inclui alunos que não estão matriculados nesta turma.");
     }
 
     for (const item of data.records) {
@@ -478,21 +519,41 @@ export const editFinalizedAttendanceCall = createServerFn({ method: "POST" })
   .validator((input: unknown) => editFinalizedAttendanceCallInputSchema.parse(input))
   .handler(async ({ data, context }) => {
     if (!context) throw new Error("Não autenticado.");
-    const membership = await requireSgaWriter(context.supabase, context.userId, [
-      "Administrador",
-      "Secretaria",
-      "Professor",
-    ]);
+    const membership = await requireSgaWriterForWrite(
+      "pedagogica",
+      context.supabase,
+      context.userId,
+      ["Administrador", "Secretaria", "Professor"],
+    );
     const db = await loadSgaAdminClient();
 
     const { data: session } = await db
       .from("siga_attendance_sessions")
-      .select("id, school_id, lesson_date, created_at")
+      .select("id, school_id, lesson_date, created_at, class_group_id, teacher_id")
       .eq("id", data.sessionId)
       .eq("school_id", membership.schoolId)
       .single();
 
     if (!session) throw new Error("Sessão de chamada não encontrada.");
+
+    // As mesmas regras da chamada normal: o professor só corrige as suas
+    // chamadas, e só entram alunos matriculados nesta turma.
+    if (membership.appRole === "Professor") {
+      const linked = await resolveUserLinkedEntities(db, membership.schoolId, context.userId);
+      if (linked.teacher_id && session.teacher_id && linked.teacher_id !== session.teacher_id) {
+        throw new Error("Não tem permissão para corrigir a chamada de outro professor.");
+      }
+    }
+    const { data: classEnrollments } = await db
+      .from("enrollments")
+      .select("student_id")
+      .eq("school_id", membership.schoolId)
+      .eq("class_group_id", session.class_group_id)
+      .in("status", ["active", "pending"]);
+    const enrolled = new Set((classEnrollments ?? []).map((row) => String(row.student_id)));
+    if (data.records.some((item) => !enrolled.has(item.studentId))) {
+      throw new Error("A correcção inclui alunos que não estão matriculados nesta turma.");
+    }
 
     const { data: existingRecords } = await db
       .from("siga_attendance_records")
@@ -550,6 +611,18 @@ export const submitAttendanceJustification = createServerFn({ method: "POST" })
     const membership = await resolveSgaMembershipAdmin(context.userId);
     if (!membership) throw new Error("Sem membership activa.");
     const db = await loadSgaAdminClient();
+    assertCanSeeStudent(await loadStudentScope(db, membership, context.userId), data.studentId);
+    // A aprovação marca este registo como justificado: tem de ser do próprio aluno.
+    if (data.attendanceRecordId) {
+      const { data: record } = await db
+        .from("siga_attendance_records")
+        .select("id")
+        .eq("id", data.attendanceRecordId)
+        .eq("school_id", membership.schoolId)
+        .eq("student_id", data.studentId)
+        .maybeSingle();
+      if (!record) throw new Error("Registo de presença não encontrado para este aluno.");
+    }
 
     const { data: justification, error } = await db
       .from("siga_attendance_justifications")
@@ -576,11 +649,12 @@ export const reviewAttendanceJustification = createServerFn({ method: "POST" })
   .validator((input: unknown) => reviewAttendanceJustificationInputSchema.parse(input))
   .handler(async ({ data, context }) => {
     if (!context) throw new Error("Não autenticado.");
-    const membership = await requireSgaWriter(context.supabase, context.userId, [
-      "Administrador",
-      "Secretaria",
-      "Professor",
-    ]);
+    const membership = await requireSgaWriterForWrite(
+      "pedagogica",
+      context.supabase,
+      context.userId,
+      ["Administrador", "Secretaria", "Professor"],
+    );
     const db = await loadSgaAdminClient();
 
     const { data: just } = await db
@@ -623,7 +697,12 @@ export const getStudentAttendanceHistory = createServerFn({ method: "GET" })
     if (!membership) throw new Error("Sem membership activa.");
     const db = await loadSgaAdminClient();
 
-    const linked = await resolveUserLinkedEntities(db, membership.schoolId, context.userId);
+    const linked = await resolveUserLinkedEntities(
+      db,
+      membership.schoolId,
+      context.userId,
+      await resolveVerifiedAccountEmail(db, context.userId),
+    );
     let targetStudentId = data.studentId || linked.student_id;
 
     if (membership.appRole === "Encarregado") {
@@ -636,6 +715,9 @@ export const getStudentAttendanceHistory = createServerFn({ method: "GET" })
       }
     } else if (membership.appRole === "Aluno") {
       if (linked.student_id) targetStudentId = linked.student_id;
+    }
+    if (targetStudentId) {
+      assertCanSeeStudent(await loadStudentScope(db, membership, context.userId), targetStudentId);
     }
 
     if (!targetStudentId) {

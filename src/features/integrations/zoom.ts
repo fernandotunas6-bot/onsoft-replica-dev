@@ -1,9 +1,11 @@
 import { createServerFn } from "@tanstack/react-start";
+import { loadStudentScope } from "@/features/students/student-scope";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import {
   loadSgaAdminClient,
-  requireSgaWriter,
+  requireSgaWriterFor,
+  requireSgaWriterForWrite,
   resolveSgaMembershipAdmin,
 } from "@/integrations/supabase/sga-admin";
 
@@ -19,12 +21,13 @@ function env(name: string) {
 }
 
 function basicAuth() {
-  return `Basic ${Buffer.from(`${env("ZOOM_CLIENT_ID")}:${env("ZOOM_CLIENT_SECRET")}`).toString("base64")}`;
+  return `Basic ${btoa(`${env("ZOOM_CLIENT_ID")}:${env("ZOOM_CLIENT_SECRET")}`)}`;
 }
 
 function redirectUri() {
   return (
-    process.env.ZOOM_REDIRECT_URI?.trim() || "http://localhost:3000/api/integrations/zoom/callback"
+    process.env.ZOOM_REDIRECT_URI?.trim() ||
+    "https://app.portal-siga.com/api/integrations/zoom/callback"
   );
 }
 
@@ -136,7 +139,9 @@ export const startZoomOAuth = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     if (!context) throw new Error("Unauthorized");
-    const membership = await requireSgaWriter(context.supabase, context.userId, ["Administrador"]);
+    const membership = await requireSgaWriterFor("gestao", context.supabase, context.userId, [
+      "Administrador",
+    ]);
     const clientId = env("ZOOM_CLIENT_ID");
     const uri = redirectUri();
     if (!uri) throw new Error("Configuração Zoom em falta: ZOOM_REDIRECT_URI.");
@@ -258,7 +263,9 @@ export const disconnectZoom = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     if (!context) throw new Error("Unauthorized");
-    const membership = await requireSgaWriter(context.supabase, context.userId, ["Administrador"]);
+    const membership = await requireSgaWriterForWrite("gestao", context.supabase, context.userId, [
+      "Administrador",
+    ]);
     const db = await loadSgaAdminClient();
     await deleteSecrets(membership.schoolId);
     const { data: existing } = await db
@@ -298,7 +305,7 @@ export const createZoomLessonMeeting = createServerFn({ method: "POST" })
   .validator((input: unknown) => createMeetingSchema.parse(input))
   .handler(async ({ data, context }) => {
     if (!context) throw new Error("Unauthorized");
-    const membership = await requireSgaWriter(context.supabase, context.userId, [
+    const membership = await requireSgaWriterForWrite("gestao", context.supabase, context.userId, [
       "Administrador",
       "Professor",
     ]);
@@ -390,6 +397,27 @@ export const getZoomLessonMeeting = createServerFn({ method: "GET" })
     const membership = await resolveSgaMembershipAdmin(context.userId);
     if (!membership) return null;
     const db = await loadSgaAdminClient();
+    // O link da aula é da turma: alunos e encarregados só o vêem se estiverem nela.
+    const scope = await loadStudentScope(db, membership, context.userId);
+    if (!scope.all) {
+      const { data: session } = await db
+        .from("siga_attendance_sessions")
+        .select("class_group_id")
+        .eq("id", data.attendanceSessionId)
+        .eq("school_id", membership.schoolId)
+        .maybeSingle();
+      if (!session || scope.studentIds.length === 0) return null;
+      const { data: enrolled } = await db
+        .from("enrollments")
+        .select("id")
+        .eq("school_id", membership.schoolId)
+        .eq("class_group_id", session.class_group_id)
+        .in("student_id", scope.studentIds)
+        .in("status", ["active", "pending"])
+        .limit(1)
+        .maybeSingle();
+      if (!enrolled) return null;
+    }
     const { data: row } = await db
       .from("siga_lesson_meetings")
       .select(

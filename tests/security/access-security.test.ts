@@ -3,7 +3,6 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { isRateLimitBypassed, checkRateLimit, recordRateLimitAttempt } from "@/lib/rate-limit";
 import { clientIpFromRequest } from "@/lib/request-ip";
-import { isDevAuthBypassEnabled } from "@/lib/dev-auth-bypass";
 
 describe("Rate Limit Security Hardening", () => {
   const originalEnv = process.env;
@@ -43,50 +42,6 @@ describe("Rate Limit Security Hardening", () => {
 
     // Exceeded max=2
     expect(checkRateLimit([key], opts)).toBe(false);
-  });
-});
-
-describe("Development authentication bypass", () => {
-  it("never enables a bypass in production, even when a flag leaks into the environment", () => {
-    expect(isDevAuthBypassEnabled({ NODE_ENV: "production", AUTH_BYPASS: "true" })).toBe(false);
-    expect(isDevAuthBypassEnabled({ NODE_ENV: "production", VITE_AUTH_DISABLED: "true" })).toBe(
-      false,
-    );
-  });
-
-  it("only enables the shortcut in explicit local development", () => {
-    expect(isDevAuthBypassEnabled({ NODE_ENV: "development" })).toBe(false);
-    expect(isDevAuthBypassEnabled({ NODE_ENV: "development", AUTH_BYPASS: "true" })).toBe(true);
-  });
-
-  it("treats anything that is not development as not development", () => {
-    // Recusar apenas `production` deixava passar um NODE_ENV ausente ou staging.
-    for (const environment of [
-      { AUTH_BYPASS: "true" },
-      { NODE_ENV: "", AUTH_BYPASS: "true" },
-      { NODE_ENV: "test", AUTH_BYPASS: "true" },
-      { NODE_ENV: "staging", AUTH_BYPASS: "true" },
-    ]) {
-      expect(isDevAuthBypassEnabled(environment)).toBe(false);
-    }
-  });
-
-  it("never lets a client-side flag open a server session", () => {
-    // `VITE_AUTH_DISABLED` vai no bundle: nao pode decidir isto sozinha.
-    expect(isDevAuthBypassEnabled({ NODE_ENV: "development", VITE_AUTH_DISABLED: "true" })).toBe(
-      false,
-    );
-  });
-
-  it("does not keep a reusable development password in source code", () => {
-    const source = readFileSync(
-      resolve(__dirname, "../../src/features/auth/dev-bypass.server.ts"),
-      "utf8",
-    );
-
-    expect(source).toContain("crypto.randomUUID()");
-    expect(source).not.toContain("siga-dev-bypass-");
-    expect(source).not.toContain("Admin@Escola2026!");
   });
 });
 

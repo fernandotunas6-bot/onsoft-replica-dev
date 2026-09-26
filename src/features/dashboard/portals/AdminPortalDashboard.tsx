@@ -223,7 +223,7 @@ export function AdminPortalDashboard({
         <div>
           <div className="flex items-center gap-2">
             <span className="inline-flex size-2 rounded-full bg-success" aria-hidden="true" />
-            <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+            <span className="text-[11px] font-semibold text-muted-foreground">
               {school?.name ?? "Escola"} · Resumo de Hoje
             </span>
           </div>

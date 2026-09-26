@@ -5,7 +5,8 @@ import { publicDatabaseError } from "@/integrations/supabase/server-error";
 import type { Json } from "@/integrations/supabase/types";
 import {
   loadSgaAdminClient,
-  requireSgaWriter,
+  requireSgaWriterFor,
+  requireSgaWriterForWrite,
   resolveSgaMembershipAdmin,
 } from "@/integrations/supabase/sga-admin";
 import {
@@ -18,8 +19,10 @@ import { generateWebhookApiKey, buildRotatedWebhookConfig } from "./gateway-webh
 import {
   normalizeResendRecipients,
   resolveResendCredentials,
+  resolveSystemSender,
   sendResendEmail,
 } from "./resend-client";
+import { checkRateLimit, isRateLimitBypassed, recordRateLimitAttempt } from "@/lib/rate-limit";
 import {
   normalizeWhatsAppRecipients,
   resolveWhatsAppCredentials,
@@ -52,8 +55,12 @@ const sendSchoolResendEmailInputSchema = z.object({
   to: z.array(z.string().email()).min(1).max(50).optional(),
   subject: z.string().trim().min(2).max(200),
   text: z.string().trim().min(1).max(8000),
-  html: z.string().trim().max(20_000).optional(),
 });
+
+// Com a chave da plataforma, uma escola criada pelo registo público podia
+// enviar para qualquer endereço, com o remetente que quisesse: um canal de
+// phishing com a reputação do domínio SIGA. Limite por escola e por hora.
+const PLATFORM_EMAIL_RATE_LIMIT = { windowMs: 60 * 60 * 1000, max: 20 };
 
 const sendSchoolWhatsAppInputSchema = z.object({
   to: z.array(z.string().trim().min(6).max(32)).min(1).max(50).optional(),
@@ -92,7 +99,9 @@ export const listSchoolIntegrations = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     if (!context) throw new Error("Unauthorized");
-    const membership = await requireSgaWriter(context.supabase, context.userId, ["Administrador"]);
+    const membership = await requireSgaWriterFor("gestao", context.supabase, context.userId, [
+      "Administrador",
+    ]);
     const db = await loadSgaAdminClient();
     try {
       const { data, error } = await db
@@ -151,7 +160,9 @@ export const upsertSchoolIntegration = createServerFn({ method: "POST" })
   .validator((input: unknown) => upsertIntegrationInputSchema.parse(input))
   .handler(async ({ data, context }) => {
     if (!context) throw new Error("Unauthorized");
-    const membership = await requireSgaWriter(context.supabase, context.userId, ["Administrador"]);
+    const membership = await requireSgaWriterForWrite("gestao", context.supabase, context.userId, [
+      "Administrador",
+    ]);
     if (!isCatalogIntegrationId(data.provider)) {
       throw new Error("Integração desconhecida no catálogo SIGA.");
     }
@@ -182,7 +193,9 @@ export const installSchoolIntegration = createServerFn({ method: "POST" })
   .validator((input: unknown) => installIntegrationInputSchema.parse(input))
   .handler(async ({ data, context }) => {
     if (!context) throw new Error("Unauthorized");
-    const membership = await requireSgaWriter(context.supabase, context.userId, ["Administrador"]);
+    const membership = await requireSgaWriterForWrite("gestao", context.supabase, context.userId, [
+      "Administrador",
+    ]);
     if (!isCatalogIntegrationId(data.provider)) {
       throw new Error("Integração desconhecida no catálogo SIGA.");
     }
@@ -227,7 +240,9 @@ export const revokeSchoolIntegration = createServerFn({ method: "POST" })
   .validator((input: unknown) => revokeIntegrationInputSchema.parse(input))
   .handler(async ({ data, context }) => {
     if (!context) throw new Error("Unauthorized");
-    const membership = await requireSgaWriter(context.supabase, context.userId, ["Administrador"]);
+    const membership = await requireSgaWriterForWrite("gestao", context.supabase, context.userId, [
+      "Administrador",
+    ]);
     if (!isCatalogIntegrationId(data.provider)) {
       throw new Error("Integração desconhecida no catálogo SIGA.");
     }
@@ -257,7 +272,9 @@ export const rotateGatewayWebhookApiKey = createServerFn({ method: "POST" })
   .validator((input: unknown) => rotateGatewayWebhookKeyInputSchema.parse(input))
   .handler(async ({ data, context }) => {
     if (!context) throw new Error("Unauthorized");
-    const membership = await requireSgaWriter(context.supabase, context.userId, ["Administrador"]);
+    const membership = await requireSgaWriterForWrite("gestao", context.supabase, context.userId, [
+      "Administrador",
+    ]);
     const db = await loadSgaAdminClient();
     const existing = await readIntegrationConfig(db, membership.schoolId, data.provider);
     const { data: row } = await db
@@ -290,12 +307,57 @@ export const rotateGatewayWebhookApiKey = createServerFn({ method: "POST" })
  * Envio HTTP Resend com API key da escola (Integrações → merchantId).
  * Sem key ou sem destinatários resolvíveis → mode "clipboard" (caller copia).
  */
+async function withoutOptedOutPhones(
+  db: Awaited<ReturnType<typeof loadSgaAdminClient>>,
+  schoolId: string,
+  recipients: string[],
+): Promise<string[]> {
+  const { data: optedOut } = await db
+    .from("user_communication_preferences")
+    .select("user_id")
+    .eq("school_id", schoolId)
+    .eq("announcements_enabled", false);
+  const userIds = (optedOut ?? []).map((row) => String(row.user_id));
+  if (!userIds.length) return recipients;
+  const { data: people } = await db
+    .from("people")
+    .select("phone")
+    .eq("school_id", schoolId)
+    .in("user_id", userIds);
+  // Mesma normalização dos destinatários, para comparar números iguais.
+  const blocked = new Set(
+    normalizeWhatsAppRecipients((people ?? []).map((row) => String(row.phone ?? ""))),
+  );
+  return recipients.filter((phone) => !blocked.has(phone));
+}
+
+async function withoutOptedOutRecipients(
+  db: Awaited<ReturnType<typeof loadSgaAdminClient>>,
+  schoolId: string,
+  recipients: string[],
+): Promise<string[]> {
+  const { data: optedOut } = await db
+    .from("user_communication_preferences")
+    .select("user_id")
+    .eq("school_id", schoolId)
+    .eq("announcements_enabled", false);
+  const userIds = (optedOut ?? []).map((row) => String(row.user_id));
+  if (!userIds.length) return recipients;
+  const { data: people } = await db
+    .from("people")
+    .select("email")
+    .eq("school_id", schoolId)
+    .in("user_id", userIds);
+  const blocked = new Set((people ?? []).map((row) => String(row.email ?? "").toLowerCase()));
+  return recipients.filter((email) => !blocked.has(email.toLowerCase()));
+}
+
 export const sendSchoolResendEmail = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((input: unknown) => sendSchoolResendEmailInputSchema.parse(input))
   .handler(async ({ data, context }) => {
     if (!context) throw new Error("Unauthorized");
-    const membership = await requireSgaWriter(context.supabase, context.userId, [
+    const membership = await requireSgaWriterForWrite("gestao", context.supabase, context.userId, [
       "Administrador",
       "Secretaria",
     ]);
@@ -329,6 +391,8 @@ export const sendSchoolResendEmail = createServerFn({ method: "POST" })
     }
 
     const credentials = resolveResendCredentials(config, process.env.RESEND_API_KEY);
+    const ownKey = String(config.merchantId ?? config.apiKey ?? config.webhookApiKey ?? "").trim();
+    const usingPlatformKey = !ownKey;
     if (!credentials) {
       return {
         mode: "clipboard" as const,
@@ -347,14 +411,56 @@ export const sendSchoolResendEmail = createServerFn({ method: "POST" })
       };
     }
 
-    const html =
-      data.html ??
-      `<pre style="font-family:sans-serif;white-space:pre-wrap">${escapeHtml(data.text)}</pre>`;
+    // Quem desligou os comunicados nesta escola não os recebe por e-mail.
+    recipients = await withoutOptedOutRecipients(db, membership.schoolId, recipients);
+    if (!recipients.length) {
+      return {
+        mode: "clipboard" as const,
+        reason: "Todos os destinatários desligaram os comunicados por e-mail.",
+      };
+    }
+
+    let from = credentials.from;
+    if (usingPlatformKey) {
+      const rateLimitKey = `platform_email:${membership.schoolId}`;
+      if (
+        !isRateLimitBypassed(rateLimitKey) &&
+        !checkRateLimit([rateLimitKey], PLATFORM_EMAIL_RATE_LIMIT)
+      ) {
+        return {
+          mode: "clipboard" as const,
+          reason: "Limite de envios por hora atingido. Configure uma chave Resend própria.",
+        };
+      }
+      recordRateLimitAttempt([rateLimitKey], PLATFORM_EMAIL_RATE_LIMIT);
+      // Só para contactos desta escola, e com o remetente do sistema.
+      const { data: known } = await db
+        .from("people")
+        .select("email")
+        .eq("school_id", membership.schoolId)
+        .in("email", recipients);
+      const allowed = new Set((known ?? []).map((row) => String(row.email ?? "").toLowerCase()));
+      recipients = recipients.filter((email) => allowed.has(email));
+      if (!recipients.length) {
+        return {
+          mode: "clipboard" as const,
+          reason: "Sem destinatários desta escola com e-mail registado.",
+        };
+      }
+      const { data: school } = await db
+        .from("schools")
+        .select("name")
+        .eq("id", membership.schoolId)
+        .maybeSingle();
+      from = resolveSystemSender("academic", { schoolName: school?.name ?? null });
+    }
+
+    const html = `<pre style="font-family:sans-serif;white-space:pre-wrap">${escapeHtml(data.text)}</pre>`;
 
     try {
       const result = await sendResendEmail({
         apiKey: credentials.apiKey,
-        from: credentials.from,
+        from,
         to: recipients,
         subject: data.subject,
         text: data.text,
@@ -383,7 +489,7 @@ export const sendSchoolWhatsAppMessage = createServerFn({ method: "POST" })
   .validator((input: unknown) => sendSchoolWhatsAppInputSchema.parse(input))
   .handler(async ({ data, context }) => {
     if (!context) throw new Error("Unauthorized");
-    const membership = await requireSgaWriter(context.supabase, context.userId, [
+    const membership = await requireSgaWriterForWrite("gestao", context.supabase, context.userId, [
       "Administrador",
       "Secretaria",
     ]);
@@ -428,6 +534,23 @@ export const sendSchoolWhatsAppMessage = createServerFn({ method: "POST" })
       };
     }
 
+    const ownToken = String(
+      config.accessToken ?? config.apiKey ?? config.webhookApiKey ?? config.callbackUrl ?? "",
+    ).trim();
+    if (!ownToken || /^https?:\/\//i.test(ownToken)) {
+      const rateLimitKey = `platform_whatsapp:${membership.schoolId}`;
+      if (
+        !isRateLimitBypassed(rateLimitKey) &&
+        !checkRateLimit([rateLimitKey], PLATFORM_EMAIL_RATE_LIMIT)
+      ) {
+        return {
+          mode: "deeplink" as const,
+          reason: "Limite de envios por hora atingido. Configure um token WhatsApp próprio.",
+        };
+      }
+      recordRateLimitAttempt([rateLimitKey], PLATFORM_EMAIL_RATE_LIMIT);
+    }
+
     let recipients = normalizeWhatsAppRecipients(data.to ?? []);
     if (!recipients.length) {
       recipients = await listSchoolStaffPhones(db, membership.schoolId);
@@ -436,6 +559,14 @@ export const sendSchoolWhatsAppMessage = createServerFn({ method: "POST" })
       return {
         mode: "deeplink" as const,
         reason: "Sem destinatários: indique telemóveis ou cadastre phones na equipa.",
+      };
+    }
+    // Quem desligou os comunicados nesta escola não os recebe por WhatsApp.
+    recipients = await withoutOptedOutPhones(db, membership.schoolId, recipients);
+    if (!recipients.length) {
+      return {
+        mode: "deeplink" as const,
+        reason: "Todos os destinatários desligaram os comunicados.",
       };
     }
 
@@ -480,7 +611,7 @@ export const sendSchoolSmsMessage = createServerFn({ method: "POST" })
   .validator((input: unknown) => sendSchoolSmsInputSchema.parse(input))
   .handler(async ({ data, context }) => {
     if (!context) throw new Error("Unauthorized");
-    const membership = await requireSgaWriter(context.supabase, context.userId, [
+    const membership = await requireSgaWriterForWrite("gestao", context.supabase, context.userId, [
       "Administrador",
       "Secretaria",
     ]);

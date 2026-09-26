@@ -11,9 +11,18 @@ import {
   resolveResendFromAddress,
   resolveSystemSender,
 } from "@/features/integrations/resend-client";
+import { checkRateLimit, isRateLimitBypassed, recordRateLimitAttempt } from "@/lib/rate-limit";
+import { passwordGrant } from "@/features/access/bi-login";
+
+const EMAIL_CHANGE_RATE_LIMIT = { windowMs: 60 * 60 * 1000, max: 5 };
+
+function escapeHtml(value: string) {
+  return value.replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
+}
 
 export const requestEmailChangeInputSchema = z.object({
   newEmail: z.string().trim().email("Indique um endereço de e-mail válido."),
+  currentPassword: z.string().min(1, "Indique a senha actual.").max(200),
   hostname: z.string().trim().optional(),
 });
 
@@ -48,6 +57,26 @@ export const requestEmailChangeFn = createServerFn({ method: "POST" })
     const currentEmail = authData.user.email.toLowerCase();
     if (currentEmail === newEmail) {
       throw new Error("O novo e-mail deve ser diferente do actual.");
+    }
+
+    // Mudar o e-mail entrega a conta a quem controla o novo endereço (a
+    // recuperação de senha passa a ir para lá). Uma sessão deixada aberta não
+    // chega: exige-se a senha actual, e há limite de pedidos por conta.
+    const rateLimitKey = `email_change:${context.userId}`;
+    if (
+      !isRateLimitBypassed(rateLimitKey) &&
+      !checkRateLimit([rateLimitKey], EMAIL_CHANGE_RATE_LIMIT)
+    ) {
+      throw new Error("Demasiados pedidos de alteração de e-mail. Tente mais tarde.");
+    }
+    recordRateLimitAttempt([rateLimitKey], EMAIL_CHANGE_RATE_LIMIT);
+    const check = await passwordGrant(currentEmail, data.currentPassword);
+    if (!check.ok) {
+      throw new Error(
+        check.error === "invalid_credentials"
+          ? "A senha actual não está correcta."
+          : "Não foi possível confirmar a senha actual. Tente mais tarde.",
+      );
     }
 
     const membership = await resolveSgaMembershipAdmin(context.userId);
@@ -94,7 +123,12 @@ export const requestEmailChangeFn = createServerFn({ method: "POST" })
       options: { redirectTo: getAuthEmailChangeUrl(targetOrigin) },
     });
     if (linkError || !linkData?.properties?.action_link) {
-      throw new Error(linkError?.message || "Não foi possível gerar o link de confirmação.");
+      const already = /already|registered|exists/i.test(linkError?.message ?? "");
+      throw new Error(
+        already
+          ? "Este e-mail já está associado a outra conta."
+          : "Não foi possível gerar o link de confirmação.",
+      );
     }
 
     const apiKey = process.env["RESEND_API_KEY"]?.trim();
@@ -129,6 +163,22 @@ export const requestEmailChangeFn = createServerFn({ method: "POST" })
       });
     } catch {
       /* Silencioso para não interromper */
+    }
+
+    // Aviso ao endereço actual: se não foi a pessoa, fica a saber a tempo.
+    try {
+      const safeNew = escapeHtml(newEmail);
+      const safeSchool = escapeHtml(schoolName);
+      await sendResendEmail({
+        apiKey,
+        from: resolveSystemSender("auth", { schoolName }),
+        to: [currentEmail],
+        subject: "Pedido de alteração do e-mail da sua conta",
+        html: `<p>Foi pedida a alteração do e-mail da sua conta ${safeSchool} para <strong>${safeNew}</strong>.</p><p>O e-mail só muda depois de confirmado no novo endereço. Se não foi você, altere já a sua senha e contacte a secretaria.</p>`,
+        text: `Foi pedida a alteração do e-mail da sua conta ${schoolName} para ${newEmail}. O e-mail só muda depois de confirmado no novo endereço. Se não foi você, altere já a sua senha e contacte a secretaria.`,
+      });
+    } catch {
+      /* o aviso não impede o pedido */
     }
 
     return { success: true, message: `Enviámos um link de confirmação para ${newEmail}.` };

@@ -1,4 +1,5 @@
 import { IMessageDeliveryAdapter, OtpChannel, OtpDeliveryResult, OtpPayload } from "../contracts";
+import { escapeHtml } from "@/features/auth/email-templates/reset-password.html";
 import { sendResendEmail, resolveSystemSender } from "@/features/integrations/resend-client";
 
 export class ResendOtpAdapter implements IMessageDeliveryAdapter {
@@ -18,13 +19,14 @@ export class ResendOtpAdapter implements IMessageDeliveryAdapter {
     }
 
     const schoolDisplay = payload.schoolName || "SIGA Plus";
+    const schoolDisplayHtml = escapeHtml(schoolDisplay);
     const from = resolveSystemSender("auth", { schoolName: payload.schoolName });
 
     const htmlContent = `
       <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 460px; margin: 0 auto; padding: 28px 24px; border: 1px solid #e2e8f0; border-radius: 12px; background-color: #ffffff;">
         <div style="text-align: center; margin-bottom: 24px;">
           <h2 style="color: #0f172a; font-size: 20px; font-weight: 700; margin: 0 0 8px;">Código de Verificação</h2>
-          <p style="color: #64748b; font-size: 14px; margin: 0;">${schoolDisplay}</p>
+          <p style="color: #64748b; font-size: 14px; margin: 0;">${schoolDisplayHtml}</p>
         </div>
         <p style="color: #334155; font-size: 14px; line-height: 1.5; margin: 0 0 20px;">
           Utilize o código numérico abaixo para autenticar a sua operação no SIGA Plus.

@@ -73,7 +73,7 @@ export function EducationWorkflowVisual({
         className,
       )}
     >
-      <div className="inline-flex w-fit items-center gap-2 rounded-full border border-border bg-background/80 px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+      <div className="inline-flex w-fit items-center gap-2 rounded-full border border-border bg-background/80 px-3 py-1.5 text-[11px] font-semibold text-muted-foreground">
         <span className="size-2 rounded-full bg-primary" aria-hidden="true" />
         SIGA Plus
       </div>
@@ -254,9 +254,7 @@ export function EducationWorkflowVisual({
       </div>
 
       <div className="max-w-md space-y-2">
-        <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-primary">
-          {eyebrow ?? copy.eyebrow}
-        </p>
+        <p className="text-[11px] font-semibold text-primary">{eyebrow ?? copy.eyebrow}</p>
         <h3 className="text-2xl font-bold tracking-tight text-foreground">{title ?? copy.title}</h3>
         <p className="text-sm leading-6 text-muted-foreground">{description ?? copy.description}</p>
       </div>

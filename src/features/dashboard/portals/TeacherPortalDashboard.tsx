@@ -149,7 +149,7 @@ export function TeacherPortalDashboard() {
 
       {nextLesson ? (
         <section className="surface-card border-2 border-primary/25 p-5">
-          <p className="text-xs font-semibold uppercase tracking-wide text-primary">Próxima aula</p>
+          <p className="text-xs font-semibold text-primary">Próxima aula</p>
           <div className="mt-2 flex flex-wrap items-end justify-between gap-4">
             <div>
               <h2 className="text-xl font-extrabold tracking-tight">{nextLesson.subject_name}</h2>
@@ -281,7 +281,9 @@ export function TeacherPortalDashboard() {
                 <div className="flex items-start justify-between gap-2">
                   <div>
                     <Badge variant="outline" className="text-[10px] font-mono mb-1">
-                      {sess.starts_at || "08:00"} {sess.ends_at ? `- ${sess.ends_at}` : ""}
+                      {sess.starts_at
+                        ? `${sess.starts_at}${sess.ends_at ? ` – ${sess.ends_at}` : ""}`
+                        : "Sem hora"}
                     </Badge>
                     <h3 className="font-extrabold text-base text-foreground leading-tight">
                       {sess.class_group_name}

@@ -1,4 +1,6 @@
 import { Fragment, useState, type ElementType, type ReactNode } from "react";
+import { MoreInfo } from "@/components/ui/more-info";
+import { splitDescription } from "@/lib/split-description";
 import { Link } from "@tanstack/react-router";
 import { ChevronDown } from "lucide-react";
 import type { ChipTone } from "@/components/ui/icon-chip";
@@ -20,6 +22,16 @@ export type PageCrumb = {
   to?: string;
   search?: Record<string, string | undefined>;
 };
+
+function ShortDescription({ text, className }: { text: string; className?: string }) {
+  const { lead, rest } = splitDescription(text);
+  return (
+    <div className={className}>
+      <p>{lead}</p>
+      {rest ? <MoreInfo className="mt-0.5">{rest}</MoreInfo> : null}
+    </div>
+  );
+}
 
 export function PageHeader({
   group,
@@ -90,13 +102,18 @@ export function PageHeader({
         <div className="flex items-center gap-3">
           {headerMark}
           <div>
-            <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
-              {group}
-            </p>
-            <h1 className="font-display text-xl font-bold tracking-tight md:text-2xl">{title}</h1>
-            <p className="mt-0.5 max-w-2xl text-xs text-muted-foreground md:text-sm">
-              {description}
-            </p>
+            {/* O grupo já aparece no caminho de navegação; repeti-lo em
+                maiúsculas por cima do título era ruído. */}
+            {hideBreadcrumb ? (
+              <p className="text-xs font-medium text-muted-foreground">{group}</p>
+            ) : null}
+            <h1 className="font-display text-lg font-semibold tracking-tight md:text-xl">
+              {title}
+            </h1>
+            <ShortDescription
+              text={description}
+              className="mt-0.5 max-w-2xl text-xs text-muted-foreground md:text-sm"
+            />
           </div>
         </div>
         {actions ? <div className="flex flex-wrap gap-2">{actions}</div> : null}
@@ -255,7 +272,10 @@ export function Panel({
               {title}
             </h2>
             {description ? (
-              <p className="text-[11px] text-muted-foreground sm:text-xs">{description}</p>
+              <ShortDescription
+                text={description}
+                className="text-[11px] text-muted-foreground sm:text-xs"
+              />
             ) : null}
           </div>
         </div>

@@ -259,10 +259,14 @@ export const getCurrentAccountContext = createServerFn({ method: "GET" })
     let metaPhone = "";
     let emailName = "";
     let authEmail = "";
+    // Só um e-mail confirmado serve para localizar o cadastro em `people`: um
+    // e-mail por verificar pode ter sido escrito por qualquer pessoa.
+    let authEmailVerified = false;
     try {
       const { data: uData } = await db.auth.admin.getUserById(context.userId);
       const authUser = uData.user;
       authEmail = authUser?.email ?? "";
+      authEmailVerified = Boolean(authUser?.email_confirmed_at);
       metaName =
         typeof authUser?.user_metadata?.["full_name"] === "string"
           ? String(authUser.user_metadata["full_name"]).trim()
@@ -327,7 +331,7 @@ export const getCurrentAccountContext = createServerFn({ method: "GET" })
         db,
         membership.schoolId,
         context.userId,
-        authEmail,
+        authEmailVerified ? authEmail : null,
       );
     }
 
@@ -505,26 +509,51 @@ export const signProfileAvatar = createServerFn({ method: "GET" })
       .maybeSingle();
     if (error) throw publicDatabaseError(error, "Não foi possível abrir a foto de perfil.");
     if (!profile) return { url: null };
+    // Só fotos de quem pertence à mesma escola (ou a própria).
+    if (ownerId !== context.userId) {
+      const { data: sameSchool } = await db
+        .from("school_memberships")
+        .select("id")
+        .eq("school_id", membership.schoolId)
+        .eq("user_id", ownerId)
+        .limit(1)
+        .maybeSingle();
+      if (!sameSchool) return { url: null };
+    }
     const signed = await db.storage.from("avatars").createSignedUrl(storagePath, 120);
     return { url: signed.data?.signedUrl ?? null };
   });
+
+const AVATAR_EXTENSIONS = {
+  "image/png": "png",
+  "image/jpeg": "jpg",
+  "image/webp": "webp",
+} as const;
 
 export const uploadCurrentProfileAvatar = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((input: unknown) =>
     z
       .object({
-        fileName: z.string(),
-        contentType: z.string(),
-        base64: z.string(),
+        fileName: z.string().max(255),
+        contentType: z.enum(["image/png", "image/jpeg", "image/webp"], {
+          message: "Use uma imagem PNG, JPG ou WebP.",
+        }),
+        // 4 MB em base64 (≈ 4/3), o mesmo limite do ecrã.
+        base64: z.string().min(1).max(5_600_000, "A imagem deve ter no máximo 4 MB."),
       })
       .parse(input),
   )
   .handler(async ({ data, context }) => {
     const db = await loadSgaAdminClient();
-    const extension = data.fileName.split(".").pop()?.toLowerCase() || "jpg";
+    // A extensão vem do tipo, nunca do nome: um nome com "/" punha o ficheiro
+    // fora da pasta da própria conta (e com upsert, por cima de outro).
+    const extension = AVATAR_EXTENSIONS[data.contentType];
     const storagePath = `${context.userId}/avatar-${Date.now()}.${extension}`;
     const buffer = Buffer.from(data.base64, "base64");
+    if (buffer.byteLength > 4 * 1024 * 1024) {
+      throw new Error("A imagem deve ter no máximo 4 MB.");
+    }
 
     const { error: uploadError } = await db.storage.from("avatars").upload(storagePath, buffer, {
       contentType: data.contentType,

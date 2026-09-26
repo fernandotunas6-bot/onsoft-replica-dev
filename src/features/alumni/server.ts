@@ -3,7 +3,7 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { publicDatabaseError } from "@/integrations/supabase/server-error";
 import {
   loadSgaAdminClient,
-  requireSgaWriter,
+  requireSgaWriterForWrite,
   resolveSgaMembershipAdmin,
 } from "@/integrations/supabase/sga-admin";
 import {
@@ -317,7 +317,7 @@ export const bootstrapGraduatedStudents = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     if (!context) throw new Error("Sessão inválida. Termine e volte a entrar.");
-    const membership = await requireSgaWriter(context.userId);
+    const membership = await requireSgaWriterForWrite("pessoas", context.userId);
     const db = await loadSgaAdminClient();
     const { data: graduated, error } = await db
       .from("students")
@@ -353,7 +353,7 @@ export const upsertAlumniProfile = createServerFn({ method: "POST" })
   .validator((input: unknown) => upsertAlumniInputSchema.parse(input))
   .handler(async ({ data, context }) => {
     if (!context) throw new Error("Sessão inválida. Termine e volte a entrar.");
-    const membership = await requireSgaWriter(context.userId);
+    const membership = await requireSgaWriterForWrite("pessoas", context.userId);
     const db = await loadSgaAdminClient();
     const { data: student, error: studentError } = await db
       .from("students")
@@ -406,7 +406,7 @@ export const verifyAlumniProfile = createServerFn({ method: "POST" })
   .validator((input: unknown) => alumniIdInputSchema.parse(input))
   .handler(async ({ data, context }) => {
     if (!context) throw new Error("Sessão inválida. Termine e volte a entrar.");
-    const membership = await requireSgaWriter(context.userId);
+    const membership = await requireSgaWriterForWrite("pessoas", context.userId);
     const db = await loadSgaAdminClient();
     await assertAlumniInSchool(db, membership.schoolId, data.alumniId);
     const { error } = await db
@@ -423,7 +423,7 @@ export const upsertAlumniExperience = createServerFn({ method: "POST" })
   .validator((input: unknown) => alumniExperienceInputSchema.parse(input))
   .handler(async ({ data, context }) => {
     if (!context) throw new Error("Sessão inválida. Termine e volte a entrar.");
-    const membership = await requireSgaWriter(context.userId);
+    const membership = await requireSgaWriterForWrite("pessoas", context.userId);
     const db = await loadSgaAdminClient();
     await assertAlumniInSchool(db, membership.schoolId, data.alumniId);
     const payload = {
@@ -460,7 +460,7 @@ export const deleteAlumniExperience = createServerFn({ method: "POST" })
   .validator((input: unknown) => deleteAlumniExperienceInputSchema.parse(input))
   .handler(async ({ data, context }) => {
     if (!context) throw new Error("Sessão inválida. Termine e volte a entrar.");
-    const membership = await requireSgaWriter(context.userId);
+    const membership = await requireSgaWriterForWrite("pessoas", context.userId);
     const db = await loadSgaAdminClient();
     const { error } = await db
       .from("alumni_experiences")
@@ -503,7 +503,7 @@ export const upsertAlumniOpportunity = createServerFn({ method: "POST" })
   .validator((input: unknown) => upsertAlumniOpportunityInputSchema.parse(input))
   .handler(async ({ data, context }) => {
     if (!context) throw new Error("Sessão inválida. Termine e volte a entrar.");
-    const membership = await requireSgaWriter(context.userId);
+    const membership = await requireSgaWriterForWrite("pessoas", context.userId);
     const db = await loadSgaAdminClient();
     if (data.createdByAlumniId)
       await assertAlumniInSchool(db, membership.schoolId, data.createdByAlumniId);
@@ -541,7 +541,7 @@ export const createMentorshipMatch = createServerFn({ method: "POST" })
   .validator((input: unknown) => mentoringMatchInputSchema.parse(input))
   .handler(async ({ data, context }) => {
     if (!context) throw new Error("Sessão inválida. Termine e volte a entrar.");
-    const membership = await requireSgaWriter(context.userId);
+    const membership = await requireSgaWriterForWrite("pessoas", context.userId);
     const db = await loadSgaAdminClient();
     await Promise.all([
       assertAlumniInSchool(db, membership.schoolId, data.mentorAlumniId),
@@ -567,7 +567,7 @@ export const updateMentorshipStatus = createServerFn({ method: "POST" })
   .validator((input: unknown) => mentoringStatusInputSchema.parse(input))
   .handler(async ({ data, context }) => {
     if (!context) throw new Error("Sessão inválida. Termine e volte a entrar.");
-    const membership = await requireSgaWriter(context.userId);
+    const membership = await requireSgaWriterForWrite("pessoas", context.userId);
     const db = await loadSgaAdminClient();
     const patch: Record<string, unknown> = {
       status: data.status,
@@ -589,7 +589,7 @@ export const recordAlumniEngagement = createServerFn({ method: "POST" })
   .validator((input: unknown) => alumniEngagementInputSchema.parse(input))
   .handler(async ({ data, context }) => {
     if (!context) throw new Error("Sessão inválida. Termine e volte a entrar.");
-    const membership = await requireSgaWriter(context.userId);
+    const membership = await requireSgaWriterForWrite("pessoas", context.userId);
     const db = await loadSgaAdminClient();
     await assertAlumniInSchool(db, membership.schoolId, data.alumniId);
     const occurredAt = data.occurredAt ?? new Date().toISOString();
@@ -631,7 +631,7 @@ export const upsertAlumniEvent = createServerFn({ method: "POST" })
   .validator((input: unknown) => alumniEventInputSchema.parse(input))
   .handler(async ({ data, context }) => {
     if (!context) throw new Error("Sessão inválida. Termine e volte a entrar.");
-    const membership = await requireSgaWriter(context.userId);
+    const membership = await requireSgaWriterForWrite("pessoas", context.userId);
     const db = await loadSgaAdminClient();
     const payload = {
       school_id: membership.schoolId,
@@ -665,7 +665,7 @@ export const registerAlumniForEvent = createServerFn({ method: "POST" })
   .validator((input: unknown) => alumniEventRegistrationInputSchema.parse(input))
   .handler(async ({ data, context }) => {
     if (!context) throw new Error("Sessão inválida. Termine e volte a entrar.");
-    const membership = await requireSgaWriter(context.userId);
+    const membership = await requireSgaWriterForWrite("pessoas", context.userId);
     const db = await loadSgaAdminClient();
     await assertAlumniInSchool(db, membership.schoolId, data.alumniId);
     const { error } = await db.from("alumni_event_registrations").upsert(

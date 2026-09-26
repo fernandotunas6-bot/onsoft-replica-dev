@@ -1,3 +1,4 @@
+import { useEffect, useRef } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { completeZoomOAuth } from "@/features/integrations/zoom";
 
@@ -50,8 +51,13 @@ function ZoomOAuthCallbackPage() {
 }
 
 function ZoomCallbackHandler({ code, state }: { code: string; state: string }) {
-  // Executa a validação no cliente invocando a server function completeZoomOAuth
-  if (typeof window !== "undefined" && code && state) {
+  // O código OAuth só vale uma vez. Trocado durante o render, corria em cada
+  // re-render; a segunda troca falhava e mandava para o erro mesmo com a
+  // ligação feita. Num efeito, com guarda, corre uma única vez.
+  const started = useRef(false);
+  useEffect(() => {
+    if (started.current || !code || !state) return;
+    started.current = true;
     completeZoomOAuth({ data: { code, state } })
       .then(() => {
         window.location.href = "/configuracoes?zoom=connected";
@@ -60,7 +66,7 @@ function ZoomCallbackHandler({ code, state }: { code: string; state: string }) {
         const msg = encodeURIComponent(err?.message || "Falha na conexão Zoom");
         window.location.href = `/configuracoes?zoom_error=${msg}`;
       });
-  }
+  }, [code, state]);
 
   return null;
 }

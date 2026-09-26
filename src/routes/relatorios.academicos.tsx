@@ -1,7 +1,7 @@
 import { useMemo, lazy, Suspense, useEffect } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { Award, Download, FileDown } from "lucide-react";
+import { Award, Download, FileBadge, FileDown } from "lucide-react";
 import { toast } from "sonner";
 import { whatsappHref } from "@/features/integrations/actions";
 import { AppMark } from "@/features/integrations/app-marks";
@@ -26,6 +26,7 @@ import { useSchoolSettings } from "@/features/auth/use-school-settings";
 import { cn } from "@/lib/utils";
 import { documentValidationCode } from "@/features/academic/assessment-views";
 import { exportCsv, type CsvValue } from "@/lib/export-csv";
+import { PautaExportDialog } from "@/features/academic/PautaExportDialog";
 import { exportOfficialPautaPdf, exportPdfTable } from "@/lib/export-pdf-loader";
 import { overlayServico } from "@/features/documents/print-overlays";
 import { issuePrintDocument } from "@/features/documents/print-issue-loader";
@@ -296,6 +297,11 @@ function RelatoriosAcademicos() {
           actions={
             <>
               <DocHelpButton title="Navegação — Relatórios académicos" />
+              <PautaExportDialog
+                termGrades={termGradesAll}
+                classGroups={classGroups}
+                disabled={!canRead || termGradesAll.length === 0}
+              />
               <Button
                 variant="outline"
                 className="gap-2"
@@ -318,7 +324,7 @@ function RelatoriosAcademicos() {
                 onClick={exportarPautaOficial}
                 disabled={!canRead || termGrades.length === 0}
               >
-                <Award className="size-4" /> Oficial
+                <FileBadge className="size-4" /> Oficial
               </Button>
               {sigeOn ? (
                 <Button

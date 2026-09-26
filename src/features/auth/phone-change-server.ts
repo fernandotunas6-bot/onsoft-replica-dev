@@ -5,10 +5,12 @@ import { loadSgaAdminClient, resolveSgaMembershipAdmin } from "@/integrations/su
 import { OtpDispatcher } from "@/features/otp/otp-dispatcher";
 import { OtpService } from "@/features/otp/otp-service";
 import { getAppName } from "@/lib/app-config";
+import { passwordGrant } from "@/features/access/bi-login";
 
 export const requestPhoneChangeInputSchema = z.object({
   newPhone: z.string().trim().min(9, "Indique um número de telemóvel válido."),
   preferredChannel: z.enum(["whatsapp", "sms"]).default("whatsapp"),
+  currentPassword: z.string().min(1, "Indique a senha actual.").max(200),
 });
 
 export type RequestPhoneChangeInput = z.infer<typeof requestPhoneChangeInputSchema>;
@@ -26,6 +28,25 @@ export const requestPhoneChangeOtpFn = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     if (!context) throw new Error("Não autenticado.");
     const normalizedPhone = OtpService.normalizeIdentifier(data.newPhone);
+
+    // O telefone também recupera a senha por código: mudá-lo exige a senha
+    // actual, como o e-mail. Uma sessão deixada aberta não chega.
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: authData } = await supabaseAdmin.auth.admin.getUserById(context.userId);
+    const currentEmail = authData.user?.email;
+    if (!currentEmail) {
+      return { success: false, message: "Esta conta não tem e-mail para confirmar a senha." };
+    }
+    const check = await passwordGrant(currentEmail, data.currentPassword);
+    if (!check.ok) {
+      return {
+        success: false,
+        message:
+          check.error === "invalid_credentials"
+            ? "A senha actual não está correcta."
+            : "Não foi possível confirmar a senha actual. Tente mais tarde.",
+      };
+    }
 
     const db = await loadSgaAdminClient();
     const membership = await resolveSgaMembershipAdmin(context.userId);
@@ -79,6 +100,8 @@ export const confirmPhoneChangeWithOtpFn = createServerFn({ method: "POST" })
       targetIdentifier: normalizedPhone,
       purpose: "phone_change",
       code: data.code,
+      // Só vale o código que esta conta pediu.
+      userId: context.userId,
     });
 
     if (!verification.valid) {

@@ -30,6 +30,11 @@ const lookupSchema = z.object({
 
 const ACCESS_WINDOW_MS = 15 * 60 * 1000;
 const MAX_FAILED_ATTEMPTS = 5;
+// O limite acima é por aluno e IP: rodando endereços, um PIN de 4 dígitos
+// (10 000 combinações) adivinhava-se. Este conta por aluno, qualquer IP.
+const ACCOUNT_WINDOW_MS = 24 * 60 * 60 * 1000;
+const ACCOUNT_MAX_FAILED_ATTEMPTS = 30;
+const ACCOUNT_LOCK_MS = 60 * 60 * 1000;
 
 export async function OPTIONS() {
   return new Response(null, { status: 204, headers: corsHeaders });
@@ -68,11 +73,20 @@ export async function POST(request: Request) {
       .where(eq(studentAccessLimits.keyHash, accessKeyHash))
       .limit(1);
 
-    if (accessLimit?.lockedUntil && Date.parse(accessLimit.lockedUntil) > requestTime.getTime()) {
-      const retryAfter = Math.max(
-        1,
-        Math.ceil((Date.parse(accessLimit.lockedUntil) - requestTime.getTime()) / 1000),
-      );
+    const accountKeyHash = await sha256(
+      `acct:${parsed.data.school_code}:${parsed.data.student_code}`,
+    );
+    const [accountLimit] = await db
+      .select()
+      .from(studentAccessLimits)
+      .where(eq(studentAccessLimits.keyHash, accountKeyHash))
+      .limit(1);
+
+    const activeLock = [accessLimit?.lockedUntil, accountLimit?.lockedUntil]
+      .map((value) => (value ? Date.parse(value) : 0))
+      .reduce((latest, value) => Math.max(latest, value), 0);
+    if (activeLock > requestTime.getTime()) {
+      const retryAfter = Math.max(1, Math.ceil((activeLock - requestTime.getTime()) / 1000));
       return jsonResponse(
         { error: { code: "student_access_limited", message: "Muitas tentativas. Aguarde alguns minutos e tente novamente." } },
         { status: 429, headers: { "Retry-After": String(retryAfter) } },
@@ -202,7 +216,37 @@ export async function POST(request: Request) {
           },
         });
 
-      if (lockedUntil) {
+      const accountWindowStart = accountLimit ? Date.parse(accountLimit.windowStartedAt) : Number.NaN;
+      const insideAccountWindow =
+        Number.isFinite(accountWindowStart) &&
+        requestTime.getTime() - accountWindowStart < ACCOUNT_WINDOW_MS;
+      const accountFailures = insideAccountWindow ? (accountLimit?.failedAttempts ?? 0) + 1 : 1;
+      const accountWindowStartedAt =
+        insideAccountWindow && accountLimit ? accountLimit.windowStartedAt : requestTime.toISOString();
+      const accountLockedUntil =
+        accountFailures >= ACCOUNT_MAX_FAILED_ATTEMPTS
+          ? new Date(requestTime.getTime() + ACCOUNT_LOCK_MS).toISOString()
+          : null;
+      await db
+        .insert(studentAccessLimits)
+        .values({
+          keyHash: accountKeyHash,
+          failedAttempts: accountFailures,
+          windowStartedAt: accountWindowStartedAt,
+          lockedUntil: accountLockedUntil,
+          updatedAt: requestTime.toISOString(),
+        })
+        .onConflictDoUpdate({
+          target: studentAccessLimits.keyHash,
+          set: {
+            failedAttempts: accountFailures,
+            windowStartedAt: accountWindowStartedAt,
+            lockedUntil: accountLockedUntil,
+            updatedAt: requestTime.toISOString(),
+          },
+        });
+
+      if (lockedUntil || accountLockedUntil) {
         return jsonResponse(
           { error: { code: "student_access_limited", message: "Muitas tentativas. Aguarde alguns minutos e tente novamente." } },
           { status: 429, headers: { "Retry-After": String(ACCESS_WINDOW_MS / 1000) } },
@@ -217,6 +261,9 @@ export async function POST(request: Request) {
 
     if (accessLimit) {
       await db.delete(studentAccessLimits).where(eq(studentAccessLimits.keyHash, accessKeyHash));
+    }
+    if (accountLimit) {
+      await db.delete(studentAccessLimits).where(eq(studentAccessLimits.keyHash, accountKeyHash));
     }
 
     const sessionToken = createOpaqueId("stu_session", 32);

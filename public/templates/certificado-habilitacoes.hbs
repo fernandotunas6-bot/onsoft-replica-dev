@@ -70,7 +70,7 @@
           {{document.issuedAtLabel}}
           por
           {{document.issuedBy}}.<br />
-          A validade pode ser confirmada pelo QR Code ou pelo hash acima.
+          {{#if document.verifyUrl}}Confirme a validade pelo QR Code ou em {{document.verifyUrl}}.{{/if}}
         </div>
       </section>
     </main>

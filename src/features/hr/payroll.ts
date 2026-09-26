@@ -1,18 +1,24 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { publicDatabaseError } from "@/integrations/supabase/server-error";
-import { loadSgaAdminClient, resolveSgaMembershipAdmin } from "@/integrations/supabase/sga-admin";
+import {
+  assertModuleNotBlocked,
+  loadSgaAdminClient,
+  resolveSgaMembershipAdmin,
+} from "@/integrations/supabase/sga-admin";
 import type { Json } from "@/integrations/supabase/types";
 import { createPayrollRunInputSchema, payrollRunIdInputSchema } from "@/features/hr/schemas";
 
 const PAYROLL_ROLES = new Set(["Administrador", "Tesouraria"]);
 
-async function requirePayrollAdmin(userId: string) {
+async function requirePayrollAdmin(userId: string, mode: "read" | "write" = "read") {
   const membership = await resolveSgaMembershipAdmin(userId);
   if (!membership) throw new Error("Sem vínculo activo com uma escola.");
   if (!PAYROLL_ROLES.has(membership.appRole)) {
     throw new Error("Sem permissão para processar a folha salarial.");
   }
+  // Permissões por módulo (Nenhum/Leitura) também valem no RH.
+  await assertModuleNotBlocked(membership.schoolId, userId, "financeiro", mode);
   return membership;
 }
 
@@ -31,7 +37,7 @@ export const createPayrollRun = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((input: unknown) => createPayrollRunInputSchema.parse(input))
   .handler(async ({ data, context }) => {
-    await requirePayrollAdmin(context.userId);
+    await requirePayrollAdmin(context.userId, "write");
     const { data: result, error } = await context.supabase.rpc("hr_create_payroll_run", {
       p_year: data.year,
       p_month: data.month,
@@ -46,7 +52,7 @@ export const calculatePayrollRun = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((input: unknown) => payrollRunIdInputSchema.parse(input))
   .handler(async ({ data, context }) => {
-    await requirePayrollAdmin(context.userId);
+    await requirePayrollAdmin(context.userId, "write");
     const { data: result, error } = await context.supabase.rpc("hr_calculate_payroll_run", {
       p_payroll_run_id: data.payrollRunId,
     });
@@ -59,7 +65,7 @@ export const approvePayrollRun = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((input: unknown) => payrollRunIdInputSchema.parse(input))
   .handler(async ({ data, context }) => {
-    await requirePayrollAdmin(context.userId);
+    await requirePayrollAdmin(context.userId, "write");
     const { data: result, error } = await context.supabase.rpc("hr_approve_payroll_run", {
       p_payroll_run_id: data.payrollRunId,
     });

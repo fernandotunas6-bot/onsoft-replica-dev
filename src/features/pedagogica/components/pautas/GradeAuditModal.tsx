@@ -60,9 +60,7 @@ export function GradeAuditModal({
 
         {/* Detalhe dos Lançamentos */}
         <div className="space-y-2">
-          <p className="font-semibold text-foreground uppercase tracking-wider text-[11px]">
-            Componentes de Avaliação
-          </p>
+          <p className="font-semibold text-foreground text-[11px]">Componentes de Avaliação</p>
           <div className="grid grid-cols-3 gap-2">
             <div className="p-2.5 rounded-md border border-border bg-card">
               <span className="block text-[10px] text-muted-foreground font-medium">MACT</span>

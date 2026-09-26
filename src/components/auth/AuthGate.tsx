@@ -1,4 +1,12 @@
 import {
+  SESSION_EXPIRED_MESSAGE,
+  consumeSessionExpiredFlag,
+  reportPossibleSessionError,
+} from "@/lib/session-expiry";
+import { SigaLogo } from "@/components/ui/siga-logo";
+import { AuthHeroSlides } from "./AuthHeroSlides";
+import { AuthBackgroundVideo } from "./AuthBackgroundVideo";
+import {
   createContext,
   useContext,
   useEffect,
@@ -19,7 +27,6 @@ import {
 import type { Session } from "@supabase/supabase-js";
 import { Link } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
-import { getCreateSchoolUrl } from "@/lib/ecosystem-urls";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -54,6 +61,27 @@ function mapSignInError(message: string) {
   return "Não foi possível iniciar sessão. Tente novamente.";
 }
 
+const identifierSignInErrors = {
+  invalid_credentials: "Invalid login credentials",
+  email_not_confirmed: "Email not confirmed",
+  rate_limited: "Too many requests",
+  unavailable: "network",
+} as const;
+
+/** Entra com B.I./telefone pelo servidor e instala a sessão devolvida. */
+async function signInWithIdentifier(identifier: string, password: string) {
+  const { signInWithIdentifierFn } = await import("@/features/access/server");
+  const result = await signInWithIdentifierFn({ data: { identifier, password } });
+  if (!result.ok) {
+    return { data: { user: null }, error: { message: identifierSignInErrors[result.error] } };
+  }
+  const { data, error } = await supabase.auth.setSession({
+    access_token: result.accessToken,
+    refresh_token: result.refreshToken,
+  });
+  return { data: { user: data.user }, error: error ? { message: error.message } : null };
+}
+
 export function useAuthSession(): Session | null {
   return useContext(AuthSessionContext);
 }
@@ -72,6 +100,7 @@ export function AuthGate({ children }: { children: ReactNode }) {
   const [mfaCode, setMfaCode] = useState("");
   const [installPrompt, setInstallPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [isStandalone, setIsStandalone] = useState(false);
+  const [mode, setMode] = useState<"signin" | "signup">("signin");
 
   useEffect(() => {
     try {
@@ -113,70 +142,11 @@ export function AuthGate({ children }: { children: ReactNode }) {
   useEffect(() => {
     let active = true;
 
-    const requireInstitutionalMembership = async (): Promise<boolean> => {
-      try {
-        const { verifyInstitutionalMembershipFn } =
-          await import("@/features/auth/verify-institutional-membership-server");
-        const verification = await verifyInstitutionalMembershipFn();
-        if (verification.authorized) return false;
-
-        await supabase.auth.signOut({ scope: "local" });
-        if (active) {
-          setSession(null);
-          setError("A sua conta não possui um vínculo institucional ativo.");
-        }
-        return true;
-      } catch {
-        // Falha fechada sem afirmar, incorretamente, que o vínculo não existe.
-        await supabase.auth.signOut({ scope: "local" });
-        if (active) {
-          setSession(null);
-          setError("Não foi possível confirmar o vínculo institucional. Tente novamente.");
-        }
-        return true;
-      }
-    };
-
-    const requireMfaChallenge = async (): Promise<boolean> => {
-      try {
-        const assurance = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
-        if (assurance.error) throw assurance.error;
-        if (assurance.data?.nextLevel !== "aal2" || assurance.data.currentLevel === "aal2") {
-          return false;
-        }
-
-        const factors = await supabase.auth.mfa.listFactors();
-        if (factors.error) throw factors.error;
-        const totp = factors.data?.totp.find((factor) => factor.status === "verified");
-        if (!totp) {
-          setError("A autenticação de dois fatores não pôde ser iniciada.");
-          setSession(null);
-          return true;
-        }
-        setMfaFactorId(totp.id);
-        setSession(null);
-        return true;
-      } catch {
-        setError("Não foi possível confirmar a autenticação de dois fatores.");
-        setSession(null);
-        return true;
-      }
-    };
-
     const bootstrap = async () => {
       try {
         const { data } = await supabase.auth.getSession();
         if (!active) return;
         if (data.session) {
-          if (await requireInstitutionalMembership()) {
-            if (active) setChecking(false);
-            return;
-          }
-          if (await requireMfaChallenge()) {
-            if (active) setChecking(false);
-            return;
-          }
-          if (!active) return;
           setSession(data.session);
           setChecking(false);
           return;
@@ -199,98 +169,30 @@ export function AuthGate({ children }: { children: ReactNode }) {
 
     const { data } = supabase.auth.onAuthStateChange((event, nextSession) => {
       if (!active) return;
-      // O bootstrap abaixo é a única via para a sessão restaurada. Não
-      // disponibilizar INITIAL_SESSION antes do vínculo institucional e MFA.
-      if (event === "INITIAL_SESSION") return;
-
-      if (!nextSession) {
-        setSession(null);
-        setChecking(false);
-        setSubmitting(false);
-        return;
+      // Uma conta sem vínculo escolar (ex.: primeiro login Google) entra na
+      // sessão mas não vê dados de escola nenhuma: o RouteAccessGate mostra-lhe
+      // o painel de integração institucional, e o servidor recusa tudo o que
+      // exija membership. A identidade prova QUEM é; só um vínculo aprovado
+      // decide O QUE pode ver.
+      if (event === "SIGNED_IN" && nextSession) {
+        localStorage.setItem(activityKey(nextSession.user.id), String(Date.now()));
       }
-
-      if (event !== "SIGNED_IN") {
-        void (async () => {
-          if (
-            (await requireInstitutionalMembership()) ||
-            (await requireMfaChallenge())
-          ) {
-            if (active) {
-              setChecking(false);
-              setSubmitting(false);
-            }
-            return;
-          }
-          if (!active) return;
-          setSession(nextSession);
-          setChecking(false);
-          setSubmitting(false);
-        })();
-        return;
+      if (event === "SIGNED_OUT" && consumeSessionExpiredFlag()) {
+        setError(SESSION_EXPIRED_MESSAGE);
       }
-
-      localStorage.setItem(activityKey(nextSession.user.id), String(Date.now()));
-      void (async () => {
-        // O OAuth só autentica a identidade; a associação à escola é sempre
-        // confirmada no servidor antes de a sessão chegar à aplicação.
-        let oauthPending = false;
-        try {
-          oauthPending = sessionStorage.getItem("siga:oauth-pending") === "1";
-          if (oauthPending) sessionStorage.removeItem("siga:oauth-pending");
-        } catch {
-          oauthPending = false;
-        }
-
-        if (oauthPending) {
-          try {
-            const { verifyOAuthAccountFn } =
-              await import("@/features/auth/verify-oauth-account-server");
-            const verification = await verifyOAuthAccountFn();
-            if (!active) return;
-            if (!verification.authorized) {
-              await supabase.auth.signOut({ scope: "local" });
-              if (!active) return;
-              setSession(null);
-              setError(
-                "Esta conta Google não está associada a nenhuma escola no SIGA. Peça ao administrador da sua instituição para a convidar.",
-              );
-              return;
-            }
-          } catch {
-            if (!active) return;
-            await supabase.auth.signOut({ scope: "local" });
-            if (!active) return;
-            setSession(null);
-            setError("Não foi possível confirmar a conta. Tente novamente.");
-            return;
-          }
-        }
-
-        if (!oauthPending && (await requireInstitutionalMembership())) {
-          if (active) {
-            setChecking(false);
-            setSubmitting(false);
-          }
-          return;
-        }
-
-        if (await requireMfaChallenge()) {
-          if (active) {
-            setChecking(false);
-            setSubmitting(false);
-          }
-          return;
-        }
-        if (!active) return;
-        setSession(nextSession);
-        setChecking(false);
-        setSubmitting(false);
-      })();
+      setSession(nextSession);
+      setChecking(false);
+      setSubmitting(false);
     });
+    // Erros de sessão não tratados (ex.: server function chamada num evento).
+    const onRejection = (event: PromiseRejectionEvent) => {
+      if (reportPossibleSessionError(event.reason)) event.preventDefault();
+    };
+    window.addEventListener("unhandledrejection", onRejection);
     return () => {
       active = false;
       data.subscription.unsubscribe();
+      window.removeEventListener("unhandledrejection", onRejection);
     };
   }, []);
 
@@ -358,22 +260,31 @@ export function AuthGate({ children }: { children: ReactNode }) {
     setSubmitting(true);
     setError(null);
     setInfo(null);
-    let email = inputIdentifier.trim().toLowerCase();
+    const email = inputIdentifier.trim().toLowerCase();
     try {
-      if (!email.includes("@") && email.length >= 3) {
-        const { resolveBiToEmailFn } = await import("@/features/access/server");
-        const resolved = await resolveBiToEmailFn({ data: { identifier: inputIdentifier.trim() } });
-        email = resolved.email;
-      }
-
       if (options?.remember) localStorage.setItem(REMEMBERED_EMAIL_KEY, inputIdentifier.trim());
       else localStorage.removeItem(REMEMBERED_EMAIL_KEY);
 
-      const { error: signInError } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
-      if (signInError) setError(mapSignInError(signInError.message));
+      // B.I. ou telefone: a senha é verificada no servidor, e o e-mail da
+      // conta nunca chega ao browser.
+      const { data, error: signInError } = email.includes("@")
+        ? await supabase.auth.signInWithPassword({ email, password })
+        : await signInWithIdentifier(inputIdentifier.trim(), password);
+      if (!signInError) {
+        if (data.user) localStorage.setItem(activityKey(data.user.id), String(Date.now()));
+        const assurance = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+        if (assurance.data?.nextLevel === "aal2" && assurance.data.currentLevel !== "aal2") {
+          const factors = await supabase.auth.mfa.listFactors();
+          const totp = factors.data?.totp[0];
+          if (totp) {
+            setMfaFactorId(totp.id);
+            setSession(null);
+            return;
+          }
+        }
+        return;
+      }
+      setError(mapSignInError(signInError.message));
     } catch {
       setError("Não foi possível contactar o serviço de autenticação.");
     } finally {
@@ -439,24 +350,83 @@ export function AuthGate({ children }: { children: ReactNode }) {
   const signInWithGoogle = async () => {
     setError(null);
     setInfo(null);
-    try {
-      sessionStorage.setItem("siga:oauth-pending", "1");
-    } catch {
-      /* ignore — a verificação pós-login ainda corre no bootstrap se falhar */
-    }
     const { error: oauthError } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: { redirectTo: typeof window !== "undefined" ? window.location.origin : undefined },
     });
     if (oauthError) {
-      try {
-        sessionStorage.removeItem("siga:oauth-pending");
-      } catch {
-        /* ignore */
-      }
       setError("Não foi possível iniciar sessão com o Google. Tente novamente.");
     }
     // Em sucesso, o browser navega para o Google — nada mais a fazer aqui.
+  };
+
+  /**
+   * Criação de conta pela primeira vez. Cria só a identidade (auth.users) —
+   * nenhum vínculo escolar. O e-mail tem de ser confirmado antes do primeiro
+   * login, e é isso que permite ao Supabase ligar, mais tarde, a mesma pessoa
+   * pelo Google sem duplicar a conta (só liga identidades com e-mail
+   * verificado). A resposta é igual exista ou não o e-mail, para não revelar
+   * contas registadas.
+   */
+  const signUp = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const form = new FormData(event.currentTarget);
+    const fullName = String(form.get("fullName") ?? "").trim();
+    const email = String(form.get("email") ?? "")
+      .trim()
+      .toLowerCase();
+    const password = String(form.get("password") ?? "");
+    const confirm = String(form.get("confirmPassword") ?? "");
+    setError(null);
+    setInfo(null);
+    if (fullName.length < 3) return setError("Indique o nome completo.");
+    if (!email.includes("@")) return setError("Indique um endereço de e-mail válido.");
+    if (password.length < 8) return setError("A senha deve ter pelo menos 8 caracteres.");
+    if (password !== confirm) return setError("As senhas não coincidem.");
+
+    setSubmitting(true);
+    try {
+      // Preferência: e-mail do SIGA via Resend (como recuperação e link mágico).
+      const { requestSignupFn } = await import("@/features/auth/signup-server");
+      const viaSiga = await requestSignupFn({ data: { fullName, email, password } });
+      if (viaSiga.handled) {
+        setMode("signin");
+        setInfo(viaSiga.message);
+        return;
+      }
+      // Sem Resend configurado: mailer nativo do Supabase ("Confirm signup").
+      const { data, error: signUpError } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: { full_name: fullName },
+          emailRedirectTo: typeof window !== "undefined" ? window.location.origin : undefined,
+        },
+      });
+      if (signUpError) {
+        setError(
+          /password/i.test(signUpError.message)
+            ? "A senha não cumpre a política de segurança. Use uma senha mais forte."
+            : mapSignInError(signUpError.message),
+        );
+        return;
+      }
+      // Com confirmação de e-mail activa não há sessão: a pessoa confirma e entra.
+      if (!data.session) {
+        setMode("signin");
+        setInfo(
+          "Se este e-mail ainda não tiver conta, enviámos um link de confirmação. Confirme-o e depois inicie sessão.",
+        );
+      }
+    } catch (signUpFailure) {
+      setError(
+        signUpFailure instanceof Error && signUpFailure.message
+          ? signUpFailure.message
+          : "Não foi possível contactar o serviço de autenticação.",
+      );
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   if (checking) {
@@ -473,29 +443,15 @@ export function AuthGate({ children }: { children: ReactNode }) {
 
   return (
     <AuthSessionContext.Provider value={null}>
-      <main className="grid min-h-screen bg-background lg:grid-cols-[1.15fr_0.85fr]">
-        <section className="relative hidden overflow-hidden flex-col justify-between bg-primary p-12 text-primary-foreground lg:flex">
+      <main className="grid min-h-screen bg-background lg:grid-cols-[1.15fr_0.85fr] lg:p-2">
+        <section className="relative hidden overflow-hidden flex-col justify-between rounded-2xl border border-border/60 bg-primary p-12 text-primary-foreground shadow-sm lg:flex">
+          <AuthBackgroundVideo />
           <div
             aria-hidden
-            className="pointer-events-none absolute inset-0 opacity-25"
-            style={{
-              backgroundImage:
-                "radial-gradient(circle at 20% 20%, rgba(255,255,255,0.25), transparent 45%), radial-gradient(circle at 80% 80%, rgba(255,255,255,0.15), transparent 40%)",
-            }}
+            className="pointer-events-none absolute inset-0 bg-gradient-to-t from-primary/90 via-primary/60 to-primary/40"
           />
           <div />
-          <div className="relative max-w-xl">
-            <p className="text-xs font-semibold uppercase tracking-widest opacity-80">
-              Sistema Integrado de Gestão
-            </p>
-            <h1 className="mt-4 font-display text-4xl font-extrabold leading-tight">
-              A instituição em pleno controlo operacional.
-            </h1>
-            <p className="mt-4 max-w-lg text-sm leading-6 opacity-85">
-              Secretaria académica, estudantes, turmas, contabilidade, propinas e relatórios
-              integrados com segurança e rapidez.
-            </p>
-          </div>
+          <AuthHeroSlides />
           <div className="relative flex items-center justify-between text-xs opacity-80">
             <div className="flex items-center gap-2">
               <ShieldCheck className="size-4" /> Autenticação Segura
@@ -509,7 +465,9 @@ export function AuthGate({ children }: { children: ReactNode }) {
         </section>
 
         <section className="flex flex-col items-center justify-center bg-muted/20 px-5 py-10 sm:px-10">
-          <div className="w-full max-w-md rounded-2xl border border-border bg-card p-7 shadow-sm sm:p-9">
+          {/* No telemóvel o painel da marca não aparece: sem isto, o ecrã não dizia onde se entra. */}
+          <SigaLogo className="mb-6 lg:hidden" />
+          <div className="w-full max-w-lg rounded-2xl border border-border bg-card p-8 shadow-sm sm:p-10 lg:[zoom:1.15]">
             {installPrompt && (
               <div className="mb-6 flex flex-col items-center justify-center text-center pb-4 border-b border-border">
                 <Button
@@ -523,18 +481,46 @@ export function AuthGate({ children }: { children: ReactNode }) {
               </div>
             )}
 
-            <h2 className="mt-1 font-display text-2xl font-bold tracking-tight text-center">
-              Iniciar sessão
+            <h2 className="mt-1 font-display text-xl font-semibold tracking-tight text-center">
+              {mode === "signup" ? "Criar conta SIGA Plus" : "Iniciar sessão"}
             </h2>
             <p className="mt-1.5 text-xs text-muted-foreground text-center">
-              Introduza as credenciais da conta no portal SIGA.
+              {mode === "signup"
+                ? "Uma só identidade para todas as escolas a que pertencer."
+                : "Entre com Google, e-mail ou Nº de BI."}
             </p>
-            <p className="mt-1 text-xs text-center">
-              Ainda não tem escola?{" "}
-              <a href={getCreateSchoolUrl()} className="font-semibold text-primary hover:underline">
-                Criar a minha escola
-              </a>
-            </p>
+            <div
+              role="tablist"
+              aria-label="Modo de acesso"
+              className="mt-4 grid grid-cols-2 gap-1 rounded-xl bg-muted p-1 text-xs font-semibold"
+              hidden={Boolean(mfaFactorId)}
+            >
+              {(
+                [
+                  ["signin", "Já tenho conta"],
+                  ["signup", "Criar conta"],
+                ] as const
+              ).map(([value, label]) => (
+                <button
+                  key={value}
+                  type="button"
+                  role="tab"
+                  aria-selected={mode === value}
+                  onClick={() => {
+                    setMode(value);
+                    setError(null);
+                    setInfo(null);
+                  }}
+                  className={`rounded-lg px-3 py-1.5 transition-colors ${
+                    mode === value
+                      ? "bg-card text-foreground shadow-sm"
+                      : "text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
 
             {error ? (
               <p
@@ -559,11 +545,6 @@ export function AuthGate({ children }: { children: ReactNode }) {
                 onSubmit={(event) => {
                   event.preventDefault();
                   void (async () => {
-                    const code = mfaCode.replace(/\D/g, "");
-                    if (!/^\d{6}$/.test(code)) {
-                      setError("Introduza os 6 dígitos da aplicação autenticadora.");
-                      return;
-                    }
                     setSubmitting(true);
                     setError(null);
                     try {
@@ -574,7 +555,7 @@ export function AuthGate({ children }: { children: ReactNode }) {
                       const verified = await supabase.auth.mfa.verify({
                         factorId: mfaFactorId,
                         challengeId: challenge.data.id,
-                        code,
+                        code: mfaCode.trim(),
                       });
                       if (verified.error) throw verified.error;
 
@@ -600,8 +581,10 @@ export function AuthGate({ children }: { children: ReactNode }) {
                       setSession(sessionData.session);
                       setMfaFactorId(null);
                       setMfaCode("");
-                    } catch {
-                      setError("Não foi possível confirmar o código 2FA. Verifique-o e tente novamente.");
+                    } catch (verifyError) {
+                      setError(
+                        verifyError instanceof Error ? verifyError.message : "Código 2FA inválido.",
+                      );
                     } finally {
                       setSubmitting(false);
                     }
@@ -609,16 +592,14 @@ export function AuthGate({ children }: { children: ReactNode }) {
                 }}
               >
                 <p className="text-xs text-muted-foreground">
-                  Introduza os 6 dígitos da aplicação autenticadora para concluir o início de sessão.
+                  Introduza o código da aplicação autenticadora para concluir o início de sessão.
                 </p>
                 <Input
                   aria-label="Código de autenticação multifator"
                   value={mfaCode}
-                  onChange={(event) => setMfaCode(event.target.value.replace(/\D/g, "").slice(0, 6))}
+                  onChange={(event) => setMfaCode(event.target.value)}
                   inputMode="numeric"
                   autoComplete="one-time-code"
-                  pattern="[0-9]{6}"
-                  maxLength={6}
                   placeholder="000000"
                   required
                 />
@@ -636,7 +617,7 @@ export function AuthGate({ children }: { children: ReactNode }) {
               className="mt-6 space-y-4"
               onSubmit={signIn}
               aria-busy={submitting}
-              hidden={Boolean(mfaFactorId)}
+              hidden={Boolean(mfaFactorId) || mode === "signup"}
             >
               <div className="space-y-1.5">
                 <Label htmlFor="login-email" className="text-xs font-medium">
@@ -724,7 +705,82 @@ export function AuthGate({ children }: { children: ReactNode }) {
               </button>
             </form>
 
-            <div className="mt-4 flex items-center gap-3 text-[11px] uppercase tracking-wider text-muted-foreground">
+            {mode === "signup" && !mfaFactorId ? (
+              <form className="mt-6 space-y-4" onSubmit={signUp} aria-busy={submitting}>
+                <div className="space-y-1.5">
+                  <Label htmlFor="signup-name" className="text-xs font-medium">
+                    Nome completo
+                  </Label>
+                  <Input
+                    id="signup-name"
+                    name="fullName"
+                    autoComplete="name"
+                    required
+                    minLength={3}
+                    maxLength={160}
+                    className="h-10 text-sm"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="signup-email" className="text-xs font-medium">
+                    E-mail
+                  </Label>
+                  <Input
+                    id="signup-email"
+                    name="email"
+                    type="email"
+                    autoComplete="email"
+                    required
+                    className="h-10 text-sm"
+                    placeholder="nome@exemplo.ao"
+                  />
+                </div>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <div className="space-y-1.5">
+                    <Label htmlFor="signup-password" className="text-xs font-medium">
+                      Senha
+                    </Label>
+                    <Input
+                      id="signup-password"
+                      name="password"
+                      type="password"
+                      autoComplete="new-password"
+                      required
+                      minLength={8}
+                      className="h-10 text-sm"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="signup-confirm" className="text-xs font-medium">
+                      Confirmar senha
+                    </Label>
+                    <Input
+                      id="signup-confirm"
+                      name="confirmPassword"
+                      type="password"
+                      autoComplete="new-password"
+                      required
+                      minLength={8}
+                      className="h-10 text-sm"
+                    />
+                  </div>
+                </div>
+                <p className="text-[11px] leading-4 text-muted-foreground">
+                  Criar conta não dá acesso a nenhuma escola. Depois de entrar, poderá configurar a
+                  sua escola ou pedir acesso à secretaria da escola a que pertence.
+                </p>
+                <Button
+                  type="submit"
+                  className="w-full gap-2 h-10 text-sm font-semibold"
+                  disabled={submitting}
+                >
+                  {submitting ? <LoaderCircle className="size-4 animate-spin" /> : null}
+                  {submitting ? "A criar conta…" : "Criar conta"}
+                </Button>
+              </form>
+            ) : null}
+
+            <div className="mt-4 flex items-center gap-3 text-[11px] text-muted-foreground">
               <span className="h-px flex-1 bg-border" />
               ou
               <span className="h-px flex-1 bg-border" />
@@ -754,7 +810,7 @@ export function AuthGate({ children }: { children: ReactNode }) {
                   d="M12 4.75c1.76 0 3.34.6 4.59 1.79l3.44-3.44C17.95 1.19 15.24 0 12 0 7.31 0 3.26 2.69 1.27 6.6l4 3.11C6.22 6.86 8.87 4.75 12 4.75Z"
                 />
               </svg>
-              Entrar com Google
+              {mode === "signup" ? "Continuar com Google" : "Entrar com Google"}
             </Button>
 
             {installPrompt && (

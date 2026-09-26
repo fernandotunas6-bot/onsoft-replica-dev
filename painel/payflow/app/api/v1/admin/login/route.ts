@@ -2,7 +2,7 @@ import { getDb } from "@/db";
 import { adminSessions, schools } from "@/db/schema";
 import { permissionsForRole, sessionCookie } from "@/lib/admin-session";
 import { createOpaqueId, sha256 } from "@/lib/identifiers";
-import { corsHeaders, jsonResponse } from "@/lib/payflow";
+import { corsHeaders, jsonResponse, safeEqual } from "@/lib/payflow";
 import { getIntegrationApiKey, isSandboxRuntime } from "@/lib/runtime";
 
 export const dynamic = "force-dynamic";
@@ -42,7 +42,7 @@ export async function POST(request: Request) {
     const providedKey = body.key?.trim() || "";
     // Fail-closed: atalho «admin» / chave vazia só em sandbox explícito.
     const isKeyMatch =
-      configuredApiKey.length >= 24 && providedKey.length >= 24 && configuredApiKey === providedKey;
+      configuredApiKey.length >= 24 && providedKey.length >= 24 && safeEqual(providedKey, configuredApiKey);
     const isAllowedSandboxAccess =
       isSandboxRuntime() &&
       (isKeyMatch || providedKey === configuredApiKey || providedKey === "admin" || (!configuredApiKey && !providedKey));

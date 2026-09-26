@@ -1,8 +1,13 @@
 export type CsvValue = string | number | boolean | null | undefined;
 
-function safeCell(value: CsvValue) {
+/**
+ * Texto que o Excel leria como fórmula (`=`, `+`, `-`, `@`, tabulação ou
+ * retorno no início) ganha um apóstrofo. Números ficam como números: um
+ * valor negativo (-500) não é uma fórmula.
+ */
+export function safeCell(value: CsvValue) {
   const text = value == null ? "" : String(value);
-  const protectedText = /^[=+\-@]/.test(text) ? `'${text}` : text;
+  const protectedText = typeof value === "string" && /^[=+\-@\t\r]/.test(text) ? `'${text}` : text;
   return `"${protectedText.replaceAll('"', '""')}"`;
 }
 

@@ -1,20 +1,20 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
-  Award,
-  Printer,
-  CheckCircle2,
-  FileText,
-  Layers,
-  Copy,
-  FileSpreadsheet,
-  ShieldCheck,
-  GraduationCap,
-  Calendar,
-  Search,
-  Filter,
-  MessageSquare,
   AlertTriangle,
+  Calendar,
+  CheckCircle2,
+  Copy,
+  FileBadge,
+  FileSpreadsheet,
+  FileText,
+  Filter,
+  GraduationCap,
+  Layers,
+  MessageSquare,
+  Printer,
+  Search,
+  ShieldCheck,
   Users,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -691,7 +691,7 @@ export function PautasWorkspaceModule({
       `Turma: ${rawMiniDocument.context.classGroup} (${rawMiniDocument.context.className})\n` +
       `Total de Alunos: ${currentStudents.length}\n` +
       `Aprovados/Transitam: ${passCount} (${passRate}%)\n` +
-      `Código de Autenticidade: ${validationCode}`;
+      `Referência: ${validationCode}`;
 
     window.open(whatsappHref(text), "_blank");
   };
@@ -704,7 +704,7 @@ export function PautasWorkspaceModule({
           <div className="space-y-1">
             <div className="flex flex-wrap items-center gap-2">
               <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-semibold text-primary">
-                <Award className="size-3.5" /> Decreto Executivo n.º 424/25
+                <FileBadge className="size-3.5" /> Decreto Executivo n.º 424/25
               </span>
               <span className="inline-flex items-center gap-1 rounded-full bg-success/10 px-2.5 py-0.5 text-xs font-semibold text-success">
                 <CheckCircle2 className="size-3.5" /> Sistema Escolar Angolano

@@ -4,6 +4,10 @@
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
+  /* Tipografia SIGA: pesos 400/500/600 — negrito limitado a 600 (igual ao SIGA). */
+  --font-weight-bold: 600;
+  --font-weight-extrabold: 600;
+  --font-weight-black: 600;
   --font-sans: var(--font-inter);
   --radius-xs: calc(var(--radius) - 4px);
   --radius-sm: calc(var(--radius) - 2px);
@@ -239,4 +243,18 @@ html {
     animation: none;
     will-change: auto;
   }
+}
+
+/*
+ * Títulos sem negrito forte (igual ao SIGA). Fora das camadas de propósito: no
+ * Tailwind v4 prevalece sobre `font-semibold`/`font-bold` nos títulos.
+ */
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+[data-slot="card-title"] {
+  font-weight: 500;
 }

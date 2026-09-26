@@ -1,35 +1,4 @@
-import {
-  Banknote,
-  BriefcaseBusiness,
-  BookOpen,
-  Building2,
-  CalendarDays,
-  CheckSquare,
-  CreditCard,
-  Download,
-  FileText,
-  FileUp,
-  FolderOpen,
-  GraduationCap,
-  History,
-  LayoutGrid,
-  Link2,
-  Megaphone,
-  Network,
-  NotebookPen,
-  PieChart,
-  Plug,
-  QrCode,
-  Receipt,
-  Settings,
-  ShieldCheck,
-  TrendingUp,
-  UserCheck,
-  UserCog,
-  UserPlus,
-  Users,
-  User,
-} from "lucide-react";
+import { moduleIcons } from "@/lib/app-icons";
 import type { ApplicationRole } from "@/features/auth/access-policy";
 import type { Plan } from "@/features/saas/types";
 import { canAccessPath } from "@/features/auth/access-policy";
@@ -134,47 +103,47 @@ export function getPortalNavigation(
         {
           title: "Portal do Aluno",
           items: [
-            { label: "Início", icon: LayoutGrid, to: "/" },
+            { label: "Início", icon: moduleIcons.dashboard, to: "/" },
             {
               label: "Académico",
-              icon: GraduationCap,
+              icon: moduleIcons.pedagogy,
               children: [
                 {
                   label: "Minha Turma",
-                  icon: BookOpen,
+                  icon: moduleIcons.classes,
                   to: "/pedagogica",
                   search: { tab: "turmas" },
                 },
                 {
                   label: "Horário",
-                  icon: CalendarDays,
+                  icon: moduleIcons.schedule,
                   to: "/pedagogica",
                   search: { tab: "horarios" },
                 },
                 {
                   label: "Avaliações e Notas",
-                  icon: PieChart,
+                  icon: moduleIcons.grades,
                   to: "/pedagogica",
                   search: { tab: "notas" },
                 },
               ],
             },
-            { label: "Calendário Lectivo", icon: CalendarDays, to: "/calendario" },
+            { label: "Calendário Lectivo", icon: moduleIcons.calendar, to: "/calendario" },
             {
               label: "Frequência",
-              icon: CheckSquare,
+              icon: moduleIcons.attendance,
               to: "/pedagogica",
               search: { tab: "presencas" },
             },
             {
               label: "Financeiro",
-              icon: CreditCard,
+              icon: moduleIcons.finance,
               to: "/financeiro",
             },
-            { label: "Documentos", icon: FileText, to: "/documentos" },
-            { label: "Comunicação", icon: Megaphone, to: "/comunicacoes" },
-            { label: "Meu Portal Alumni", icon: Network, to: "/alumni/portal" },
-            { label: "Meu Perfil", icon: User, to: "/perfil" },
+            { label: "Documentos", icon: moduleIcons.documents, to: "/documentos" },
+            { label: "Comunicação", icon: moduleIcons.communications, to: "/comunicacoes" },
+            { label: "Meu Portal Alumni", icon: moduleIcons.alumni, to: "/alumni/portal" },
+            { label: "Meu Perfil", icon: moduleIcons.profile, to: "/perfil" },
           ],
         },
       ],
@@ -190,49 +159,49 @@ export function getPortalNavigation(
         {
           title: "Portal do Encarregado",
           items: [
-            { label: "Meu Educando", icon: LayoutGrid, to: "/" },
+            { label: "Meu Educando", icon: moduleIcons.dashboard, to: "/" },
             {
               label: "Desempenho",
-              icon: PieChart,
+              icon: moduleIcons.academicReports,
               children: [
                 {
                   label: "Notas e Boletim",
-                  icon: PieChart,
+                  icon: moduleIcons.grades,
                   to: "/pedagogica",
                   search: { tab: "notas" },
                 },
                 {
                   label: "Turma e Disciplinas",
-                  icon: BookOpen,
+                  icon: moduleIcons.classes,
                   to: "/pedagogica",
                   search: { tab: "turmas" },
                 },
                 {
                   label: "Horário de Aulas",
-                  icon: CalendarDays,
+                  icon: moduleIcons.schedule,
                   to: "/pedagogica",
                   search: { tab: "horarios" },
                 },
               ],
             },
-            { label: "Calendário Lectivo", icon: CalendarDays, to: "/calendario" },
+            { label: "Calendário Lectivo", icon: moduleIcons.calendar, to: "/calendario" },
             {
               label: "Frequência",
-              icon: CheckSquare,
+              icon: moduleIcons.attendance,
               to: "/pedagogica",
               search: { tab: "presencas" },
             },
             {
               label: "Financeiro",
-              icon: CreditCard,
+              icon: moduleIcons.finance,
               children: [
-                { label: "Propinas e Faturas", icon: CreditCard, to: "/financeiro" },
-                { label: "Recibos", icon: Receipt, to: "/faturas" },
+                { label: "Propinas e Faturas", icon: moduleIcons.finance, to: "/financeiro" },
+                { label: "Recibos", icon: moduleIcons.receipts, to: "/faturas" },
               ],
             },
-            { label: "Documentos", icon: FileText, to: "/documentos" },
-            { label: "Comunicação", icon: Megaphone, to: "/comunicacoes" },
-            { label: "Meu Perfil", icon: User, to: "/perfil" },
+            { label: "Documentos", icon: moduleIcons.documents, to: "/documentos" },
+            { label: "Comunicação", icon: moduleIcons.communications, to: "/comunicacoes" },
+            { label: "Meu Perfil", icon: moduleIcons.profile, to: "/perfil" },
           ],
         },
       ],
@@ -248,59 +217,64 @@ export function getPortalNavigation(
         {
           title: "Portal do Professor",
           items: [
-            { label: "Início", icon: LayoutGrid, to: "/" },
+            { label: "Início", icon: moduleIcons.dashboard, to: "/" },
             {
               label: "Frequência",
-              icon: CheckSquare,
+              icon: moduleIcons.attendance,
               children: [
                 {
                   label: "Fazer Chamada",
-                  icon: CheckSquare,
+                  icon: moduleIcons.attendance,
                   to: "/pedagogica",
                   search: { tab: "chamada" },
                 },
                 {
                   label: "Histórico de Presenças",
-                  icon: CheckSquare,
+                  icon: moduleIcons.attendance,
                   to: "/pedagogica",
                   search: { tab: "presencas" },
                 },
                 {
                   label: "Minha presença (QR)",
-                  icon: QrCode,
+                  icon: moduleIcons.qrPresence,
                   to: "/professor/presenca",
                 },
               ],
             },
             {
               label: "Ensino e Avaliações",
-              icon: BookOpen,
+              icon: moduleIcons.pedagogy,
               children: [
                 {
                   label: "Minhas Turmas",
-                  icon: BookOpen,
+                  icon: moduleIcons.classes,
                   to: "/pedagogica",
                   search: { tab: "turmas" },
                 },
                 {
                   label: "Lançar Notas e Pautas",
-                  icon: PieChart,
+                  icon: moduleIcons.grades,
                   to: "/pedagogica",
                   search: { tab: "notas" },
                 },
                 {
                   label: "Horário de Aulas",
-                  icon: CalendarDays,
+                  icon: moduleIcons.schedule,
                   to: "/pedagogica",
                   search: { tab: "horarios" },
                 },
-                { label: "Planos de Aula", icon: NotebookPen, to: "/planos-aula" },
+                { label: "Planos de Aula", icon: moduleIcons.lessonPlans, to: "/planos-aula" },
+                {
+                  label: "Alunos em risco",
+                  icon: moduleIcons.studentRisk,
+                  to: "/pedagogica/risco",
+                },
               ],
             },
-            { label: "Calendário Lectivo", icon: CalendarDays, to: "/calendario" },
-            { label: "Biblioteca & Materiais", icon: FolderOpen, to: "/arquivos" },
-            { label: "Comunicação", icon: Megaphone, to: "/comunicacoes" },
-            { label: "Meu Perfil", icon: User, to: "/perfil" },
+            { label: "Calendário Lectivo", icon: moduleIcons.calendar, to: "/calendario" },
+            { label: "Biblioteca & Materiais", icon: moduleIcons.files, to: "/arquivos" },
+            { label: "Comunicação", icon: moduleIcons.communications, to: "/comunicacoes" },
+            { label: "Meu Perfil", icon: moduleIcons.profile, to: "/perfil" },
           ],
         },
       ],
@@ -314,8 +288,8 @@ export function getPortalNavigation(
     {
       title: "Principal",
       items: [
-        { label: "Início", icon: LayoutGrid, to: "/" },
-        { label: "Calendário Lectivo", icon: CalendarDays, to: "/calendario" },
+        { label: "Início", icon: moduleIcons.dashboard, to: "/" },
+        { label: "Calendário Lectivo", icon: moduleIcons.calendar, to: "/calendario" },
       ],
     },
     {
@@ -323,36 +297,41 @@ export function getPortalNavigation(
       items: [
         {
           label: "Área Pedagógica",
-          icon: BookOpen,
+          icon: moduleIcons.pedagogy,
           children: [
             {
               label: "Turmas e Disciplinas",
-              icon: BookOpen,
+              icon: moduleIcons.classes,
               to: "/pedagogica",
               search: { tab: "turmas" },
             },
             {
               label: "Notas e Avaliações",
-              icon: PieChart,
+              icon: moduleIcons.grades,
               to: "/pedagogica",
               search: { tab: "notas" },
             },
             {
               label: "Horários",
-              icon: CalendarDays,
+              icon: moduleIcons.schedule,
               to: "/pedagogica",
               search: { tab: "horarios" },
             },
             {
               label: "Presenças e Chamada",
-              icon: CheckSquare,
+              icon: moduleIcons.attendance,
               to: "/pedagogica",
               search: { tab: "chamada" },
             },
             {
               label: "Planos de Aula",
-              icon: NotebookPen,
+              icon: moduleIcons.lessonPlans,
               to: "/planos-aula",
+            },
+            {
+              label: "Alunos em risco",
+              icon: moduleIcons.studentRisk,
+              to: "/pedagogica/risco",
             },
           ],
         },
@@ -361,21 +340,26 @@ export function getPortalNavigation(
     {
       title: "Secretaria",
       items: [
-        { label: "Pessoas", icon: UserCog, to: "/pessoas" },
+        { label: "Pessoas", icon: moduleIcons.people, to: "/pessoas" },
         {
           label: "Importação de Dados",
-          icon: FileUp,
+          icon: moduleIcons.import,
           children: [
-            { label: "Nova Importação", icon: FileUp, to: "/importar", search: { tab: "novo" } },
+            {
+              label: "Nova Importação",
+              icon: moduleIcons.import,
+              to: "/importar",
+              search: { tab: "novo" },
+            },
             {
               label: "Histórico & Auditoria",
-              icon: History,
+              icon: moduleIcons.audit,
               to: "/importar",
               search: { tab: "historico" },
             },
             {
               label: "Modelos Oficiais Excel",
-              icon: Download,
+              icon: moduleIcons.officialTemplates,
               to: "/importar",
               search: { tab: "modelos" },
             },
@@ -383,31 +367,38 @@ export function getPortalNavigation(
         },
         {
           label: "Gestão de Alunos",
-          icon: Users,
+          icon: moduleIcons.students,
           children: [
-            { label: "Lista de Alunos", icon: GraduationCap, to: "/alunos" },
+            { label: "Lista de Alunos", icon: moduleIcons.students, to: "/alunos" },
             {
               label: "Matricular Aluno",
-              icon: UserPlus,
+              icon: moduleIcons.enrollment,
               to: "/alunos",
               search: { action: "matricular" },
             },
             {
               label: "Confirmar Matrícula",
-              icon: UserCheck,
+              icon: moduleIcons.enrollmentConfirm,
               to: "/alunos",
               search: { action: "confirmar" },
             },
-            { label: "Estado do Aluno", icon: Users, to: "/alunos", search: { action: "estado" } },
-            { label: "Alumni · Antigos Alunos", icon: Network, to: "/alumni" },
+            {
+              label: "Estado do Aluno",
+              icon: moduleIcons.students,
+              to: "/alunos",
+              search: { action: "estado" },
+            },
+            { label: "Alumni · Antigos Alunos", icon: moduleIcons.alumni, to: "/alumni" },
           ],
         },
         {
           label: "Documentos",
-          icon: FileText,
-          children: [{ label: "Emissão de Documentos", icon: FileText, to: "/documentos" }],
+          icon: moduleIcons.documents,
+          children: [
+            { label: "Emissão de Documentos", icon: moduleIcons.documents, to: "/documentos" },
+          ],
         },
-        { label: "Biblioteca de Arquivos", icon: FolderOpen, to: "/arquivos" },
+        { label: "Biblioteca de Arquivos", icon: moduleIcons.files, to: "/arquivos" },
       ],
     },
     {
@@ -415,15 +406,28 @@ export function getPortalNavigation(
       items: [
         {
           label: "Caixa e Pagamentos",
-          icon: CreditCard,
+          icon: moduleIcons.finance,
           children: [
-            { label: "Movimentos de Caixa", icon: CreditCard, to: "/financeiro" },
-            { label: "Faturas e Recibos", icon: Receipt, to: "/faturas" },
-            { label: "RH e Folha Salarial", icon: BriefcaseBusiness, to: "/financeiro/rh" },
-            { label: "Processar Folha", icon: BriefcaseBusiness, to: "/financeiro/rh/folha" },
-            { label: "Ordens de Pagamento RH", icon: Banknote, to: "/financeiro/rh/pagamentos" },
-            { label: "Faltas e Assiduidade", icon: History, to: "/financeiro/rh/faltas" },
-            { label: "Validação de Presença", icon: QrCode, to: "/financeiro/rh/presenca" },
+            { label: "Movimentos de Caixa", icon: moduleIcons.finance, to: "/financeiro" },
+            { label: "Tesouraria", icon: moduleIcons.treasury, to: "/tesouraria" },
+            { label: "Faturas e Recibos", icon: moduleIcons.receipts, to: "/faturas" },
+            { label: "RH e Folha Salarial", icon: moduleIcons.hr, to: "/financeiro/rh" },
+            { label: "Processar Folha", icon: moduleIcons.hr, to: "/financeiro/rh/folha" },
+            {
+              label: "Ordens de Pagamento RH",
+              icon: moduleIcons.payouts,
+              to: "/financeiro/rh/pagamentos",
+            },
+            {
+              label: "Faltas e Assiduidade",
+              icon: moduleIcons.staffAbsences,
+              to: "/financeiro/rh/faltas",
+            },
+            {
+              label: "Validação de Presença",
+              icon: moduleIcons.qrPresence,
+              to: "/financeiro/rh/presenca",
+            },
           ],
         },
       ],
@@ -431,16 +435,24 @@ export function getPortalNavigation(
     {
       title: "Relatórios",
       items: [
-        { label: "Relatórios Financeiros", icon: TrendingUp, to: "/relatorios/financeiros" },
-        { label: "Relatórios Académicos", icon: PieChart, to: "/relatorios/academicos" },
+        {
+          label: "Relatórios Financeiros",
+          icon: moduleIcons.financialReports,
+          to: "/relatorios/financeiros",
+        },
+        {
+          label: "Relatórios Académicos",
+          icon: moduleIcons.academicReports,
+          to: "/relatorios/academicos",
+        },
       ],
     },
     {
       title: "Gestão e Comunicação",
       items: [
-        { label: "Catracas & Cartão Virtual", icon: QrCode, to: "/catracas" },
-        { label: "Gestão de Acessos", icon: UserCog, to: "/acessos" },
-        { label: "Comunicações", icon: Megaphone, to: "/comunicacoes" },
+        { label: "Catracas & Cartão Virtual", icon: moduleIcons.accessCards, to: "/catracas" },
+        { label: "Gestão de Acessos", icon: moduleIcons.access, to: "/acessos" },
+        { label: "Comunicações", icon: moduleIcons.communications, to: "/comunicacoes" },
       ],
     },
     {
@@ -448,41 +460,46 @@ export function getPortalNavigation(
       items: [
         {
           label: "Definições",
-          icon: Settings,
+          icon: moduleIcons.settings,
           children: [
             {
               label: "Escola e branding",
-              icon: Building2,
+              icon: moduleIcons.school,
               to: "/configuracoes",
               search: { painel: "escola" },
             },
             {
               label: "Matrícula online",
-              icon: Link2,
+              icon: moduleIcons.onlineEnrollment,
               to: "/configuracoes",
               search: { painel: "matricula" },
             },
             {
               label: "Integrações",
-              icon: Plug,
+              icon: moduleIcons.integrations,
               to: "/configuracoes",
               search: { painel: "integracoes" },
             },
             {
               label: "Financeiro",
-              icon: CreditCard,
+              icon: moduleIcons.finance,
               to: "/configuracoes",
               search: { painel: "financeiro" },
             },
             {
               label: "Segurança",
-              icon: ShieldCheck,
+              icon: moduleIcons.security,
               to: "/configuracoes",
               search: { painel: "seguranca" },
             },
+            {
+              label: "Diagnóstico de erros",
+              icon: moduleIcons.diagnostics,
+              to: "/configuracoes/diagnostico",
+            },
           ],
         },
-        { label: "Meu Perfil", icon: User, to: "/perfil" },
+        { label: "Meu Perfil", icon: moduleIcons.profile, to: "/perfil" },
       ],
     },
   ];

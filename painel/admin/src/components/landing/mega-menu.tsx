@@ -111,7 +111,7 @@ export function MegaMenu() {
         {menuSections.map((section) => (
           <div key={section.title} className="space-y-4 lg:space-y-6">
             {/* Section Header */}
-            <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wide">
+            <h3 className="text-sm font-medium text-muted-foreground">
               {section.title}
             </h3>
 

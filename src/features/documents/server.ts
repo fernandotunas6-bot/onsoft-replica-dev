@@ -3,10 +3,11 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { publicDatabaseError } from "@/integrations/supabase/server-error";
 import {
   loadSgaAdminClient,
-  requireSgaWriter,
+  requireSgaWriterForWrite,
   resolveSgaMembershipAdmin,
 } from "@/integrations/supabase/sga-admin";
 import { loadPersonNamesById } from "@/features/people/lookup";
+import { loadStudentScope } from "@/features/students/student-scope";
 import baseCss from "../../../public/templates/base.css?raw";
 import talaoCandidaturaHbs from "../../../public/templates/talao-candidatura.hbs?raw";
 import talaoMatriculaHbs from "../../../public/templates/talao-matricula.hbs?raw";
@@ -104,6 +105,9 @@ export const listDocumentWorkspace = createServerFn({ method: "GET" })
     const membership = await resolveSgaMembershipAdmin(context.userId);
     if (!membership) throw new Error("Sem membership activa nesta escola.");
     const db = await loadSgaAdminClient();
+    // Alunos e encarregados só vêem os pedidos e o nome dos seus.
+    const scope = await loadStudentScope(db, membership, context.userId);
+    const onlyStudents = scope.all ? null : scope.studentIds;
 
     const [templatesResult, requestsResult, studentsResult] = await Promise.all([
       db
@@ -112,18 +116,34 @@ export const listDocumentWorkspace = createServerFn({ method: "GET" })
         .eq("school_id", membership.schoolId)
         .eq("status", "active")
         .order("name"),
-      db
-        .from("document_requests")
-        .select(
-          "id, student_id, template_id, request_type, status, purpose, requested_by, reviewed_by, created_at, updated_at",
-        )
-        .eq("school_id", membership.schoolId)
+      (onlyStudents
+        ? db
+            .from("document_requests")
+            .select(
+              "id, student_id, template_id, request_type, status, purpose, requested_by, reviewed_by, created_at, updated_at",
+            )
+            .eq("school_id", membership.schoolId)
+            .in("student_id", onlyStudents)
+        : db
+            .from("document_requests")
+            .select(
+              "id, student_id, template_id, request_type, status, purpose, requested_by, reviewed_by, created_at, updated_at",
+            )
+            .eq("school_id", membership.schoolId)
+      )
         .order("created_at", { ascending: false })
         .limit(data.limit),
-      db
-        .from("students")
-        .select("id, student_number, person_id")
-        .eq("school_id", membership.schoolId)
+      (onlyStudents
+        ? db
+            .from("students")
+            .select("id, student_number, person_id")
+            .eq("school_id", membership.schoolId)
+            .in("id", onlyStudents)
+        : db
+            .from("students")
+            .select("id, student_number, person_id")
+            .eq("school_id", membership.schoolId)
+      )
         .order("student_number")
         .limit(250),
     ]);
@@ -244,7 +264,7 @@ export const createDocumentRequest = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((input: unknown) => createDocumentRequestInputSchema.parse(input))
   .handler(async ({ data, context }) => {
-    const membership = await requireSgaWriter(context.supabase, context.userId, [
+    const membership = await requireSgaWriterForWrite("pessoas", context.supabase, context.userId, [
       "Administrador",
       "Secretaria",
     ]);
@@ -289,7 +309,7 @@ export const updateDocumentRequestStatus = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((input: unknown) => updateDocumentRequestStatusInputSchema.parse(input))
   .handler(async ({ data, context }) => {
-    const membership = await requireSgaWriter(context.supabase, context.userId, [
+    const membership = await requireSgaWriterForWrite("pessoas", context.supabase, context.userId, [
       "Administrador",
       "Secretaria",
     ]);
@@ -482,7 +502,7 @@ export const savePrintTemplate = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((input: unknown) => savePrintTemplateInputSchema.parse(input))
   .handler(async ({ data, context }) => {
-    const membership = await requireSgaWriter(context.supabase, context.userId, [
+    const membership = await requireSgaWriterForWrite("pessoas", context.supabase, context.userId, [
       "Administrador",
       "Secretaria",
     ]);
@@ -507,7 +527,7 @@ export const resetPrintTemplate = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((input: unknown) => resetPrintTemplateInputSchema.parse(input))
   .handler(async ({ data, context }) => {
-    const membership = await requireSgaWriter(context.supabase, context.userId, [
+    const membership = await requireSgaWriterForWrite("pessoas", context.supabase, context.userId, [
       "Administrador",
       "Secretaria",
     ]);
@@ -531,7 +551,7 @@ export const setActivePrintTemplate = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((input: unknown) => setActivePrintTemplateInputSchema.parse(input))
   .handler(async ({ data, context }) => {
-    const membership = await requireSgaWriter(context.supabase, context.userId, [
+    const membership = await requireSgaWriterForWrite("pessoas", context.supabase, context.userId, [
       "Administrador",
       "Secretaria",
     ]);

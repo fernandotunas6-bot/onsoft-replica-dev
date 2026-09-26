@@ -25,7 +25,7 @@ import { resolve } from "node:path";
  * importador escrever durante um dry run, o teste falha com o nome da tabela.
  */
 
-function explodingDb(reads: Record<string, unknown> = {}) {
+function explodingDb() {
   const writes: string[] = [];
   const fail = (table: string, op: string) => {
     writes.push(`${op} ${table}`);
@@ -39,13 +39,10 @@ function explodingDb(reads: Record<string, unknown> = {}) {
         in: () => chain,
         limit: () => chain,
         order: () => chain,
-        maybeSingle: async () => ({ data: reads[table] ?? null, error: null }),
-        single: async () => ({ data: reads[table] ?? null, error: null }),
+        maybeSingle: async () => ({ data: null, error: null }),
+        single: async () => ({ data: null, error: null }),
         then: (resolve: (value: { data: never[]; error: null }) => unknown) =>
-          resolve({
-            data: (Array.isArray(reads[table]) ? reads[table] : []) as never[],
-            error: null,
-          }),
+          resolve({ data: [], error: null }),
         insert: () => fail(table, "insert"),
         update: () => fail(table, "update"),
         upsert: () => fail(table, "upsert"),
@@ -251,31 +248,41 @@ describe("dry run não escreve na base", () => {
     expect(writes).toEqual([]);
   });
 
-  it("presencasImporter — sem gravar a presença da sessão", async () => {
-    const { client, writes } = explodingDb({
+  it("presencasImporter — sem gravar a sessão nem a presença", async () => {
+    const { writes } = explodingDb();
+    const lookups: Record<string, unknown> = {
       enrollments: { id: "e1" },
       class_subjects: { id: "cs1", teacher_id: null },
-      siga_attendance_sessions: [{ id: "session-1", status: "pending" }],
-      siga_attendance_records: { id: "record-1", status: "absent", notes: null },
-    });
+    };
+    const client = {
+      from(table: string) {
+        const deny = (op: string) => () => {
+          writes.push(`${op} ${table}`);
+          throw new Error(`ESCRITA PROIBIDA EM DRY RUN: ${op} em ${table}`);
+        };
+        const chain: Record<string, unknown> = {
+          select: () => chain, eq: () => chain, in: () => chain, limit: () => chain,
+          order: async () => ({ data: [], error: null }),
+          maybeSingle: async () => ({ data: lookups[table] ?? null, error: null }),
+          insert: deny("insert"), update: deny("update"), upsert: deny("upsert"), delete: deny("delete"),
+        };
+        return chain;
+      },
+      rpc: () => { throw new Error("RPC proibida em dry run"); },
+    };
     const cache = {
-      academicYearId: "ay1",
+      academicYearId: "y1",
       students: [student],
-      groups: [{ id: "g1", code: "10A", name: "10ª Classe A", academic_year_id: "ay1" }],
+      groups: [{ id: "g1", code: "10A", name: "10ª A" }],
       subjects: [{ id: "sub1", code: "MAT", name: "Matemática" }],
     };
     const res = await presencasImporter.commitRow(
-      {
-        student_identifier: "PROC-2026-042",
-        class_group: "10A",
-        subject: "MAT",
-        attendance_date: "2026-09-24",
-        status: "presente",
-      },
-      { ...commitContext(client), duplicateStrategy: "update" } as never,
+      { student_identifier: "PROC-2026-042", turma: "10A", disciplina: "MAT", data: "2026-03-02", estado: "presente" },
+      { ...(commitContext(client) as object), academicYearId: "y1" } as never,
       cache as never,
     );
-    expect(res.status).toBe("will_update");
+    expect(res.errors).toEqual([]);
+    expect(res.status).toBe("will_insert");
     expect(writes).toEqual([]);
   });
 

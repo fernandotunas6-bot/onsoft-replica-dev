@@ -2,10 +2,59 @@ import { z } from "zod";
 import { normalizeAngolaIdentity, validateAngolaBi } from "@/lib/angola-identity";
 import { loadSgaAdminClient } from "@/integrations/supabase/sga-admin";
 
-export const resolveBiToEmailInputSchema = z.object({
+export const signInWithIdentifierInputSchema = z.object({
   identifier: z.string().trim().min(3).max(100),
+  password: z.string().min(1).max(200),
 });
-export type ResolveBiToEmailInput = z.infer<typeof resolveBiToEmailInputSchema>;
+export type SignInWithIdentifierInput = z.infer<typeof signInWithIdentifierInputSchema>;
+
+export type PasswordGrantResult =
+  | { ok: true; accessToken: string; refreshToken: string }
+  | {
+      ok: false;
+      error: "invalid_credentials" | "email_not_confirmed" | "rate_limited" | "unavailable";
+    };
+
+/**
+ * Pede a sessão ao Supabase Auth (`grant_type=password`) com a chave pública.
+ * O erro é reduzido a um código: a mensagem do Auth não volta ao browser.
+ */
+export async function passwordGrant(
+  email: string,
+  password: string,
+  fetchImpl: typeof fetch = fetch,
+): Promise<PasswordGrantResult> {
+  const url = process.env["SUPABASE_URL"];
+  const key = process.env["SUPABASE_PUBLISHABLE_KEY"];
+  if (!url || !key) return { ok: false, error: "unavailable" };
+
+  let response: Response;
+  try {
+    response = await fetchImpl(`${url.replace(/\/$/, "")}/auth/v1/token?grant_type=password`, {
+      method: "POST",
+      headers: { apikey: key, "Content-Type": "application/json" },
+      body: JSON.stringify({ email, password }),
+    });
+  } catch {
+    return { ok: false, error: "unavailable" };
+  }
+
+  const body = (await response.json().catch(() => ({}))) as Record<string, unknown>;
+  if (
+    response.ok &&
+    typeof body.access_token === "string" &&
+    typeof body.refresh_token === "string"
+  ) {
+    return { ok: true, accessToken: body.access_token, refreshToken: body.refresh_token };
+  }
+  const code = String(body.error_code ?? body.code ?? body.msg ?? body.error ?? "").toLowerCase();
+  if (response.status === 429 || code.includes("rate")) return { ok: false, error: "rate_limited" };
+  if (code.includes("not_confirmed") || code.includes("not confirmed")) {
+    return { ok: false, error: "email_not_confirmed" };
+  }
+  if (response.status >= 500) return { ok: false, error: "unavailable" };
+  return { ok: false, error: "invalid_credentials" };
+}
 
 export async function resolveBiOrEmailToUserEmail(identifier: string): Promise<string> {
   const trimmed = identifier.trim();

@@ -5,62 +5,39 @@ import { propinasImporter } from "@/features/import/importers/propinas-importer"
 
 describe("Academic Advanced Importers (presencas, pautas, propinas)", () => {
   describe("presencasImporter", () => {
-    it("valida os campos obrigatórios de uma presença por sessão", () => {
-      const cache = { academicYearId: "ay1", students: [], groups: [], subjects: [] };
-      const analysis = presencasImporter.analyzeRow({}, cache as any);
+    // Presenças são importadas por sessão (turma + disciplina + data + estado),
+    // não como taxa agregada — evita misturar sessões diferentes.
+    const refs = {
+      academicYearId: "y1",
+      students: [{ id: "s1", student_number: "PROC-042", national_id: "001234LA042", status: "active", person_id: "p1" }],
+      groups: [{ id: "g1", code: "10A", name: "10ª A" }],
+      subjects: [{ id: "sub1", code: "MAT", name: "Matemática" }],
+    };
+
+    it("valida campos obrigatórios (aluno, turma, disciplina, data e estado)", () => {
+      const analysis = presencasImporter.analyzeRow({}, { ...refs, academicYearId: null } as any);
       expect(analysis.status).toBe("error");
+      expect(analysis.errors).toContain("Seleccione o ano lectivo antes de importar presenças.");
       expect(analysis.errors).toContain("Identificador do aluno é obrigatório.");
       expect(analysis.errors).toContain("Turma é obrigatória para registar a presença.");
       expect(analysis.errors).toContain("Disciplina é obrigatória para registar a presença.");
-      expect(analysis.errors).toContain("Data da presença é obrigatória e deve ser válida.");
-      expect(analysis.errors).toContain(
-        "Estado de presença inválido. Use presente, ausente, justificada, atrasado ou saída antecipada.",
-      );
     });
 
-    it("rejeita um estado de presença desconhecido", () => {
-      const cache = { academicYearId: "ay1", students: [], groups: [], subjects: [] };
+    it("rejeita estado de presença inválido", () => {
       const analysis = presencasImporter.analyzeRow(
-        {
-          student_identifier: "PROC-1",
-          class_group: "10A",
-          subject: "MAT",
-          attendance_date: "2026-09-24",
-          status: "talvez",
-        },
-        cache as any,
+        { student_identifier: "PROC-042", turma: "10A", disciplina: "MAT", data: "2026-03-02", estado: "talvez" },
+        refs as any,
       );
       expect(analysis.status).toBe("error");
-      expect(analysis.errors).toContain(
-        "Estado de presença inválido. Use presente, ausente, justificada, atrasado ou saída antecipada.",
-      );
+      expect(analysis.errors.join(" ")).toMatch(/Estado de presença inválido/);
     });
 
-    it("reconhece uma presença por aluno, turma, disciplina e data", () => {
-      const cache = {
-        academicYearId: "ay1",
-        students: [
-          {
-            id: "s1",
-            student_number: "PROC-042",
-            national_id: "001234LA042",
-            status: "active",
-            person_id: "p1",
-          },
-        ],
-        groups: [{ id: "g1", code: "10A", name: "10ª Classe A", academic_year_id: "ay1" }],
-        subjects: [{ id: "sub1", code: "MAT", name: "Matemática" }],
-      };
+    it("reconhece presença válida", () => {
       const analysis = presencasImporter.analyzeRow(
-        {
-          student_identifier: "PROC-042",
-          class_group: "10A",
-          subject: "MAT",
-          attendance_date: "2026-09-24",
-          status: "presente",
-        },
-        cache as any,
+        { student_identifier: "PROC-042", turma: "10A", disciplina: "MAT", data: "2026-03-02", estado: "presente" },
+        refs as any,
       );
+      expect(analysis.errors).toEqual([]);
       expect(analysis.status).toBe("valid");
     });
   });

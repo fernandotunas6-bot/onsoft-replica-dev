@@ -28,16 +28,14 @@ export function DocumentHeader({ school, title, context, subject }: Props) {
           <span aria-hidden="true" />
         )}
       </div>
-      <div className="flex flex-col gap-0.5 text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+      <div className="flex flex-col gap-0.5 text-[11px] font-bold text-muted-foreground">
         <span>{school.republic ?? "REPÚBLICA DE ANGOLA"}</span>
         {school.province && <span>{school.province}</span>}
         {school.municipality && <span>{school.municipality}</span>}
         {school.educationOffice && <span>{school.educationOffice}</span>}
         <span className="text-foreground text-xs">{school.schoolName}</span>
       </div>
-      <h1 className="my-2 text-base font-extrabold tracking-tight uppercase text-foreground">
-        {title}
-      </h1>
+      <h1 className="my-2 text-base font-extrabold tracking-tight text-foreground">{title}</h1>
       <div className="grid grid-cols-2 md:grid-cols-4 gap-1.5 border border-border bg-card p-2 text-left text-[11px] rounded-md shadow-xs">
         {subject && (
           <span>

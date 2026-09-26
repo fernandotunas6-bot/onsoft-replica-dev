@@ -12,6 +12,7 @@ describe("Phone Change OTP Schemas", () => {
   describe("requestPhoneChangeInputSchema", () => {
     it("valida parâmetros de solicitação de código para novo número", () => {
       const valid = requestPhoneChangeInputSchema.parse({
+        currentPassword: "senha",
         newPhone: "923 456 789",
         preferredChannel: "whatsapp",
       });
@@ -21,6 +22,7 @@ describe("Phone Change OTP Schemas", () => {
 
     it("valida com preferência de SMS", () => {
       const valid = requestPhoneChangeInputSchema.parse({
+        currentPassword: "senha",
         newPhone: "923456789",
         preferredChannel: "sms",
       });
@@ -29,6 +31,7 @@ describe("Phone Change OTP Schemas", () => {
 
     it("usa whatsapp como canal padrão", () => {
       const valid = requestPhoneChangeInputSchema.parse({
+        currentPassword: "senha",
         newPhone: "923456789",
       });
       expect(valid.preferredChannel).toBe("whatsapp");
@@ -37,15 +40,21 @@ describe("Phone Change OTP Schemas", () => {
     it("rejeita número com menos de 9 dígitos", () => {
       expect(() =>
         requestPhoneChangeInputSchema.parse({
+          currentPassword: "senha",
           newPhone: "12345",
           preferredChannel: "whatsapp",
         }),
       ).toThrow("Indique um número de telemóvel válido");
     });
 
+    it("exige a senha actual", () => {
+      expect(() => requestPhoneChangeInputSchema.parse({ newPhone: "923456789" })).toThrow();
+    });
+
     it("rejeita canal inválido", () => {
       expect(() =>
         requestPhoneChangeInputSchema.parse({
+          currentPassword: "senha",
           newPhone: "923456789",
           preferredChannel: "email",
         }),
@@ -54,6 +63,7 @@ describe("Phone Change OTP Schemas", () => {
 
     it("corta espaços em branco", () => {
       const valid = requestPhoneChangeInputSchema.parse({
+        currentPassword: "senha",
         newPhone: "  923 456 789  ",
         preferredChannel: "whatsapp",
       });

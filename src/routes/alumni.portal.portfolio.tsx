@@ -361,12 +361,12 @@ function AlumniPortfolioPage() {
                       <div className="flex items-start justify-between gap-3">
                         <div>
                           <div className="flex flex-wrap gap-2">
-                            <span className="rounded-full bg-muted px-2.5 py-1 text-[10px] font-bold uppercase text-muted-foreground">
+                            <span className="rounded-full bg-muted px-2.5 py-1 text-[10px] font-bold text-muted-foreground">
                               {item.education_level
                                 ? levelLabels[item.education_level]
                                 : "Sem nível"}
                             </span>
-                            <span className="rounded-full bg-primary/10 px-2.5 py-1 text-[10px] font-bold uppercase text-primary">
+                            <span className="rounded-full bg-primary/10 px-2.5 py-1 text-[10px] font-bold text-primary">
                               {typeLabels[item.item_type] || item.item_type}
                             </span>
                             {item.featured ? (
@@ -425,7 +425,7 @@ function AlumniPortfolioPage() {
                             Documento SIGA: {item.document_requests.request_type || "Documento"}
                           </span>
                         ) : null}
-                        <span className="ml-auto text-[10px] font-bold uppercase text-muted-foreground">
+                        <span className="ml-auto text-[10px] font-bold text-muted-foreground">
                           {item.visibility}
                         </span>
                       </div>

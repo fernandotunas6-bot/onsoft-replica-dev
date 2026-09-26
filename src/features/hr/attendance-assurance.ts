@@ -1,7 +1,11 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { publicDatabaseError } from "@/integrations/supabase/server-error";
-import { loadSgaAdminClient, resolveSgaMembershipAdmin } from "@/integrations/supabase/sga-admin";
+import {
+  assertModuleNotBlocked,
+  loadSgaAdminClient,
+  resolveSgaMembershipAdmin,
+} from "@/integrations/supabase/sga-admin";
 import {
   attendanceAssurancePolicySchema,
   DEFAULT_ATTENDANCE_ASSURANCE_POLICY,
@@ -9,12 +13,14 @@ import {
 
 const ASSURANCE_ADMIN_ROLES = new Set(["Administrador", "Tesouraria"]);
 
-async function requireAssuranceAdmin(userId: string) {
+async function requireAssuranceAdmin(userId: string, mode: "read" | "write" = "read") {
   const membership = await resolveSgaMembershipAdmin(userId);
   if (!membership) throw new Error("Sem vínculo activo com uma escola.");
   if (!ASSURANCE_ADMIN_ROLES.has(membership.appRole)) {
     throw new Error("Sem permissão para configurar validação de presença.");
   }
+  // Permissões por módulo (Nenhum/Leitura) também valem no RH.
+  await assertModuleNotBlocked(membership.schoolId, userId, "financeiro", mode);
   return membership;
 }
 
@@ -62,7 +68,7 @@ export const saveAttendanceAssurancePolicy = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((input: unknown) => attendanceAssurancePolicySchema.parse(input))
   .handler(async ({ data, context }) => {
-    const membership = await requireAssuranceAdmin(context.userId);
+    const membership = await requireAssuranceAdmin(context.userId, "write");
     const db = await loadSgaAdminClient();
     const { error } = await db.from("hr_attendance_assurance_policies").upsert(
       {

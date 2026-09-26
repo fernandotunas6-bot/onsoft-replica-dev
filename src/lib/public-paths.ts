@@ -1,5 +1,7 @@
 const PUBLIC_PREFIXES = [
   "/matricula",
+  // Verificação de documentos: quem recebe um certificado não tem conta.
+  "/verificar",
   "/calendario/ics",
   "/criar-escola",
   "/saas-admin",

@@ -270,7 +270,7 @@ export function CheckoutExperience({ token }: { token: string }) {
               <div className="h-1.5 bg-gradient-to-r from-blue-600 via-cyan-500 to-emerald-400" />
               <CardContent className="px-6 py-7 sm:px-7">
                 <div className="flex items-start justify-between gap-4">
-                  <div><p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">Total a pagar</p><p className="mt-2 text-3xl font-bold tracking-[-0.04em]">{formatCurrency(payment.amount, payment.currency)}</p></div>
+                  <div><p className="text-xs font-semibold text-slate-400">Total a pagar</p><p className="mt-2 text-3xl font-bold tracking-[-0.04em]">{formatCurrency(payment.amount, payment.currency)}</p></div>
                   <span className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-semibold text-slate-600">{payment.currency}</span>
                 </div>
                 <div className="mt-5 rounded-2xl border border-slate-200 bg-slate-50 p-4"><p className="font-semibold text-slate-900">{payment.description}</p><p className="mt-1 text-xs text-slate-500">{payment.sourceApp} · {payment.customerName || "Cliente"}</p></div>

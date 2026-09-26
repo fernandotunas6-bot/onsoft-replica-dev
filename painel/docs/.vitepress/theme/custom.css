@@ -55,3 +55,10 @@ html {
 .VPDoc .vp-doc {
   contain: content;
 }
+
+/* Títulos sem negrito forte (igual ao SIGA). */
+.vp-doc :is(h1, h2, h3, h4, h5, h6),
+.VPHero .name,
+.VPHero .text {
+  font-weight: 500;
+}

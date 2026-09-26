@@ -87,7 +87,13 @@ export const TenantProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         //
         // Continua a falhar fechado: a escola vem da membership resolvida no
         // servidor, e se não houver membership activa fica null como antes.
-        const fromMembership = await getTenantForCurrentUser().catch(() => null);
+        // Só pedir ao servidor quando há sessão: sem ela o pedido é recusado
+        // (401) e, antes de iniciar sessão, isso deixava o ecrã em branco.
+        const { supabase } = await import("@/integrations/supabase/client");
+        const { data: sessionData } = await supabase.auth.getSession();
+        const fromMembership = sessionData.session
+          ? await getTenantForCurrentUser().catch(() => null)
+          : null;
         setActiveTenant(fromMembership ?? null);
         setActivePlan(fromMembership?.plans ?? null);
       }
@@ -106,6 +112,14 @@ export const TenantProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
   useEffect(() => {
     loadTenant();
+    let unsub: (() => void) | undefined;
+    void import("@/integrations/supabase/client").then(({ supabase }) => {
+      const { data } = supabase.auth.onAuthStateChange((event) => {
+        if (event === "SIGNED_IN") void loadTenant();
+      });
+      unsub = () => data.subscription.unsubscribe();
+    });
+    return () => unsub?.();
   }, []);
 
   const setDevSlug = (slug: string) => {

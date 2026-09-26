@@ -5,7 +5,6 @@ import { loadExistingPeople, personCandidateFromRow, resolveOrCreatePerson } fro
 type ApplicationRef = { id: string; application_number: string | null; full_name: string };
 type InscricoesCache = ImportRefCache & {
   applications: ApplicationRef[];
-  existingApplicantNumbers: Set<string>;
 };
 
 function valueOf(row: Record<string, unknown>, ...keys: string[]) {
@@ -16,33 +15,17 @@ function valueOf(row: Record<string, unknown>, ...keys: string[]) {
   return null;
 }
 
-function generateApplicantNumber(existingNumbers: ReadonlySet<string>): string {
-  let candidate = "";
-  do {
-    // Mantém um identificador legível, mas sem depender do milissegundo da
-    // importação — várias linhas podem ser processadas no mesmo instante.
-    candidate = `CAND-${crypto.randomUUID().replaceAll("-", "").slice(0, 12).toUpperCase()}`;
-  } while (existingNumbers.has(normalizeText(candidate)));
-  return candidate;
-}
-
 export const inscricoesImporter: RowImporter = {
   module: "inscricoes",
 
   async loadRefCache(ctx) {
     const [existingPeople, applicationsResult] = await Promise.all([
       loadExistingPeople(ctx.db, ctx.schoolId),
-      ctx.db
-        .from("enrollment_applications")
-        .select("id, full_name, payload")
-        .eq("school_id", ctx.schoolId)
-        .is("deleted_at", null),
+      ctx.db.from("enrollment_applications").select("id, full_name, payload").eq("school_id", ctx.schoolId).is("deleted_at", null),
     ]);
 
     if (applicationsResult.error) {
-      throw new Error(
-        `Não foi possível carregar candidaturas existentes: ${applicationsResult.error.message}`,
-      );
+      throw new Error(`Não foi possível carregar candidaturas existentes: ${applicationsResult.error.message}`);
     }
 
     const applications = (applicationsResult.data ?? []).map((row) => {
@@ -59,9 +42,6 @@ export const inscricoesImporter: RowImporter = {
       classGroups: [],
       studentByPersonId: new Map(),
       applications,
-      existingApplicantNumbers: new Set(
-        applications.map((a) => a.application_number).filter((n): n is string => Boolean(n)),
-      ),
     } as InscricoesCache;
   },
 
@@ -80,9 +60,7 @@ export const inscricoesImporter: RowImporter = {
     if (appNumber) {
       const existing = (cache.applications ?? []).find((a) => a.application_number === appNumber);
       if (existing) {
-        warnings.push(
-          `Candidatura "${appNumber}" já existe no sistema; a candidatura existente será actualizada conforme a estratégia.`,
-        );
+        warnings.push(`Candidatura "${appNumber}" já existe no sistema; a candidatura existente será actualizada conforme a estratégia.`);
         return { status: "duplicate", warnings, errors: [], duplicate_of: existing.id };
       }
     }
@@ -100,48 +78,32 @@ export const inscricoesImporter: RowImporter = {
 
     const candidate = personCandidateFromRow(normalized);
     if (!candidate) {
-      return {
-        status: "error",
-        warnings: analysis.warnings,
-        errors: ["Dados do candidato insuficientes."],
-        audits: [],
-      };
+      return { status: "error", warnings: analysis.warnings, errors: ["Dados do candidato insuficientes."], audits: [] };
     }
 
-    // O numero e decidido — e o duplicado resolvido — antes de tocar em `people`.
-    // A ordem inversa criava a pessoa e so depois falhava na chave unica da
-    // candidatura, deixando uma pessoa orfa por cada linha repetida.
-    const appNumber =
-      normalizeText(
-        valueOf(normalized, "application_number", "numero_candidatura", "processo", "inscricao"),
-      ) || generateApplicantNumber(cache.existingApplicantNumbers);
-
-    const existing =
-      (cache.applications ?? []).find((a) => a.application_number === appNumber) ?? null;
+    // O número e o duplicado são resolvidos ANTES de a pessoa ser criada. Estava ao
+    // contrário: `resolveOrCreatePerson` corria primeiro, e uma candidatura repetida com
+    // estratégia "ignorar" deixava atrás de si uma pessoa criada que ninguém pediu — e com
+    // "create_new" devolvia erro depois de já a ter gravado. Ignorar uma linha tem de não
+    // tocar em nada.
+    const appNumber = normalizeText(
+      valueOf(normalized, "application_number", "numero_candidatura", "processo", "inscricao"),
+    );
+    const existing = appNumber
+      ? (cache.applications ?? []).find((a) => a.application_number === appNumber) ?? null
+      : null;
 
     if (existing && ctx.duplicateStrategy === "ignore") {
-      return {
-        status: "ignored",
-        warnings: analysis.warnings,
-        errors: [],
-        audits: [],
-        target_record_id: existing.id,
-      };
+      return { status: "ignored", warnings: analysis.warnings, errors: [], audits: [], target_record_id: existing.id };
     }
     if (existing && ctx.duplicateStrategy === "create_new") {
-      return {
-        status: "error",
-        warnings: analysis.warnings,
-        errors: ["Não é permitido criar uma segunda candidatura com o mesmo número."],
-        audits: [],
-        target_record_id: existing.id,
-      };
+      return { status: "error", warnings: analysis.warnings, errors: ["Não é permitido criar uma segunda candidatura com o mesmo número."], audits: [], target_record_id: existing.id };
     }
 
     const personRes = await resolveOrCreatePerson(candidate, cache.existingPeople, ctx);
 
     const payload = {
-      application_number: appNumber,
+      application_number: appNumber || null,
       person: {
         full_name: candidate.full_name,
         national_id: candidate.national_id || null,
@@ -151,12 +113,8 @@ export const inscricoesImporter: RowImporter = {
         gender: candidate.gender || null,
       },
       grade_level: normalizeText(valueOf(normalized, "grade_level", "classe", "grau", "nivel")),
-      course_choice: normalizeText(
-        valueOf(normalized, "course_choice", "curso", "curso_pretendido"),
-      ),
-      application_date: normalizeText(
-        valueOf(normalized, "application_date", "data_inscricao", "data"),
-      ),
+      course_choice: normalizeText(valueOf(normalized, "course_choice", "curso", "curso_pretendido")),
+      application_date: normalizeText(valueOf(normalized, "application_date", "data_inscricao", "data")),
     };
 
     if (ctx.dryRun) {
@@ -177,14 +135,7 @@ export const inscricoesImporter: RowImporter = {
         .eq("school_id", ctx.schoolId)
         .single();
       if (beforeError || !before) {
-        return {
-          status: "error",
-          warnings: analysis.warnings,
-          errors: [
-            `Não foi possível carregar a candidatura antes da actualização: ${beforeError?.message ?? "registo não encontrado"}`,
-          ],
-          audits: personRes.audits,
-        };
+        return { status: "error", warnings: analysis.warnings, errors: [`Não foi possível carregar a candidatura antes da actualização: ${beforeError?.message ?? "registo não encontrado"}`], audits: personRes.audits };
       }
 
       const { data: updated, error } = await ctx.db
@@ -200,12 +151,7 @@ export const inscricoesImporter: RowImporter = {
         .single();
 
       if (error || !updated) {
-        return {
-          status: "error",
-          warnings: analysis.warnings,
-          errors: [`Erro ao actualizar candidatura: ${error?.message ?? "registo não encontrado"}`],
-          audits: personRes.audits,
-        };
+        return { status: "error", warnings: analysis.warnings, errors: [`Erro ao actualizar candidatura: ${error?.message ?? "registo não encontrado"}`], audits: personRes.audits };
       }
 
       return {
@@ -240,21 +186,17 @@ export const inscricoesImporter: RowImporter = {
       .single();
 
     if (error || !created) {
-      return {
-        status: "error",
-        warnings: analysis.warnings,
-        errors: [`Erro ao criar candidatura: ${error?.message ?? "erro desconhecido"}`],
-        audits: personRes.audits,
-      };
+      return { status: "error", warnings: analysis.warnings, errors: [`Erro ao criar candidatura: ${error?.message ?? "erro desconhecido"}`], audits: personRes.audits };
     }
 
-    cache.applications.push({
+    // `appNumber || null` e não `appNumber`: sem número, `normalizeText` devolve string
+    // vazia, e a cache ficava a afirmar `""` enquanto a linha gravada tem `null` no
+    // payload. Duas respostas para a mesma pergunta, dependendo de onde se perguntasse.
+    (cache.applications ??= []).push({
       id: String(created.id),
-      application_number: appNumber,
+      application_number: appNumber || null,
       full_name: candidate.full_name,
     });
-    // As linhas seguintes do mesmo lote tem de ver este numero como ja usado.
-    cache.existingApplicantNumbers.add(appNumber);
 
     return {
       status: "imported",

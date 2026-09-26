@@ -3,7 +3,7 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { publicDatabaseError } from "@/integrations/supabase/server-error";
 import {
   loadSgaAdminClient,
-  requireSgaWriter,
+  requireSgaWriterForWrite,
   resolveSgaMembershipAdmin,
 } from "@/integrations/supabase/sga-admin";
 import {
@@ -25,6 +25,17 @@ export const listSchoolAnnouncements = createServerFn({ method: "GET" })
     if (!membership) throw new Error("Sem membership activa nesta escola.");
     const db = await loadSgaAdminClient();
 
+    // Não há tarefa agendada: os comunicados cuja hora já passou são publicados
+    // quando alguém abre a lista, para não ficarem "agendados" para sempre.
+    const nowIso = new Date().toISOString();
+    await db
+      .from("school_announcements")
+      .update({ status: "sent", published_at: nowIso })
+      .eq("school_id", membership.schoolId)
+      .eq("status", "scheduled")
+      .lte("scheduled_for", nowIso)
+      .is("deleted_at", null);
+
     let query = db
       .from("school_announcements")
       .select(
@@ -37,6 +48,11 @@ export const listSchoolAnnouncements = createServerFn({ method: "GET" })
 
     if (data.status) {
       query = query.eq("status", data.status);
+    }
+    // Rascunhos, agendados e avisos ao corpo docente não são para alunos e encarregados.
+    const roles: string[] = membership.allAppRoles ?? [membership.appRole];
+    if (!["Administrador", "Secretaria", "Professor"].some((role) => roles.includes(role))) {
+      query = query.eq("status", "sent").neq("audience", "teaching_staff");
     }
 
     const { data: announcements, error } = await query;
@@ -61,10 +77,12 @@ export const createSchoolAnnouncement = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((input: unknown) => createAnnouncementInputSchema.parse(input))
   .handler(async ({ data, context }) => {
-    const membership = await requireSgaWriter(context.supabase, context.userId, [
-      "Administrador",
-      "Secretaria",
-    ]);
+    const membership = await requireSgaWriterForWrite(
+      "pedagogica",
+      context.supabase,
+      context.userId,
+      ["Administrador", "Secretaria"],
+    );
     const db = await loadSgaAdminClient();
 
     const publishedAt = data.status === "sent" ? new Date().toISOString() : null;
@@ -99,10 +117,12 @@ export const updateSchoolAnnouncementStatus = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((input: unknown) => updateAnnouncementStatusInputSchema.parse(input))
   .handler(async ({ data, context }) => {
-    const membership = await requireSgaWriter(context.supabase, context.userId, [
-      "Administrador",
-      "Secretaria",
-    ]);
+    const membership = await requireSgaWriterForWrite(
+      "pedagogica",
+      context.supabase,
+      context.userId,
+      ["Administrador", "Secretaria"],
+    );
     const db = await loadSgaAdminClient();
     const patch = {
       status: data.status,
@@ -135,10 +155,12 @@ export const updateSchoolAnnouncement = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((input: unknown) => updateAnnouncementInputSchema.parse(input))
   .handler(async ({ data, context }) => {
-    const membership = await requireSgaWriter(context.supabase, context.userId, [
-      "Administrador",
-      "Secretaria",
-    ]);
+    const membership = await requireSgaWriterForWrite(
+      "pedagogica",
+      context.supabase,
+      context.userId,
+      ["Administrador", "Secretaria"],
+    );
     const db = await loadSgaAdminClient();
     const { data: announcement, error } = await db
       .from("school_announcements")
@@ -168,10 +190,12 @@ export const archiveSchoolAnnouncement = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((input: unknown) => archiveAnnouncementInputSchema.parse(input))
   .handler(async ({ data, context }) => {
-    const membership = await requireSgaWriter(context.supabase, context.userId, [
-      "Administrador",
-      "Secretaria",
-    ]);
+    const membership = await requireSgaWriterForWrite(
+      "pedagogica",
+      context.supabase,
+      context.userId,
+      ["Administrador", "Secretaria"],
+    );
     const db = await loadSgaAdminClient();
     // Soft-delete: set deleted_at instead of status 'archived' (not in DB constraint)
     const { data: announcement, error } = await db

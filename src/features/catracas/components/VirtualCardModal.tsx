@@ -44,6 +44,7 @@ export function VirtualCardModal({
   });
 
   const card = cardQuery.data;
+  const validityLabel = formatCardValidity(card?.expires_at);
 
   useEffect(() => {
     if (!card?.qr_secret) {
@@ -85,7 +86,14 @@ export function VirtualCardModal({
         sections: [
           {
             title: "Dados do Cartão",
-            text: `Número do Cartão: ${card.card_number}\nCódigo de Barras: ${card.barcode}\nTurma: ${className ?? "Regular"}\nValidade: 31/12/${new Date().getFullYear()}`,
+            text: [
+              `Número do Cartão: ${card.card_number}`,
+              `Código de Barras: ${card.barcode}`,
+              className ? `Turma: ${className}` : null,
+              validityLabel ? `Validade: ${validityLabel}` : null,
+            ]
+              .filter(Boolean)
+              .join("\n"),
           },
         ],
         termsText:
@@ -125,7 +133,7 @@ export function VirtualCardModal({
             <div className="flex items-center justify-between gap-3 border-b border-border pb-3">
               <div className="flex items-center gap-2">
                 <Award className="size-5 text-primary" />
-                <span className="font-extrabold text-xs tracking-tight text-foreground uppercase">
+                <span className="font-extrabold text-xs tracking-tight text-foreground">
                   {school?.name ?? "Instituto de Educação"}
                 </span>
               </div>
@@ -141,15 +149,13 @@ export function VirtualCardModal({
                 className="size-16 border-2 border-primary shadow-sm"
               />
               <div className="space-y-0.5">
-                <h3 className="font-extrabold text-base text-foreground leading-tight">
-                  {studentName}
-                </h3>
-                <p className="text-xs text-primary font-bold">
-                  {className || "10ª Classe · Turma A"}
-                </p>
-                <p className="text-[11px] text-muted-foreground font-mono">
-                  Validade: 31/12/{new Date().getFullYear()}
-                </p>
+                <h3 className="text-base text-foreground leading-tight">{studentName}</h3>
+                {className ? <p className="text-xs text-primary">{className}</p> : null}
+                {validityLabel ? (
+                  <p className="text-[11px] text-muted-foreground font-mono">
+                    Validade: {validityLabel}
+                  </p>
+                ) : null}
               </div>
             </div>
 
@@ -196,4 +202,12 @@ export function VirtualCardModal({
       </DialogContent>
     </Dialog>
   );
+}
+
+/** Validade registada no cartão; sem data, não se imprime nenhuma. */
+function formatCardValidity(expiresAt: string | null | undefined) {
+  if (!expiresAt) return null;
+  const date = new Date(expiresAt);
+  if (Number.isNaN(date.getTime())) return null;
+  return new Intl.DateTimeFormat("pt-PT", { timeZone: "Africa/Luanda" }).format(date);
 }

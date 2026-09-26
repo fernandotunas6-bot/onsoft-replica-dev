@@ -3,7 +3,8 @@ import { createServerFn } from "@tanstack/react-start";
 import { accessModules } from "@/features/auth/access-policy";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { publicDatabaseError } from "@/integrations/supabase/server-error";
-import { requireSgaWriter } from "@/integrations/supabase/sga-admin";
+import { requireSgaWriter, resolveSgaMembershipAdmin } from "@/integrations/supabase/sga-admin";
+import { recordAccessAudit } from "@/features/audit/record-audit";
 
 /**
  * Este módulo lê e escreve com o cliente do utilizador (`context.supabase`),
@@ -11,10 +12,13 @@ import { requireSgaWriter } from "@/integrations/supabase/sga-admin";
  *
  * A troca só é segura com evidência da base, não do SQL versionado — o
  * repositório não descreve o esquema de produção. Consultado a 2026-09-14,
- * `staff_module_grants` tem, para `authenticated`, uma política `ALL` com
- * `USING is_school_member(school_id)` e o mesmo `CHECK`: cobre o select, o
- * upsert e o delete que este ficheiro faz. `npm run siga:rls-readiness`
- * reproduz a consulta.
+ * `staff_module_grants` tinha, para `authenticated`, uma política `ALL` com
+ * `USING is_school_member(school_id)`. Isso deixava QUALQUER membro (alunos
+ * incluídos) conceder-se permissões pela API. A migração
+ * `20260925190000_harden_member_wide_policies.sql` troca-a por
+ * `is_school_admin(school_id)` — administrador da escola da própria linha —,
+ * que continua a cobrir o select, o upsert e o delete deste ficheiro.
+ * `npm run siga:rls-readiness` reproduz a consulta.
  *
  * O `requireSgaWriter(["Administrador"])` continua por cima: a política
  * restringe à escola, a aplicação restringe ao cargo. Uma protege da outra
@@ -60,6 +64,15 @@ export const setStaffModuleGrant = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     if (!context) throw new Error("Unauthorized");
     const membership = await requireSgaWriter(context.supabase, context.userId, ["Administrador"]);
+    // A permissão só se dá a pessoal desta escola. No servidor ela pode abrir
+    // funções a quem não tem o cargo; a um aluno ou encarregado, nunca.
+    const target = await resolveSgaMembershipAdmin(data.userId, membership.schoolId);
+    if (!target || target.schoolId !== membership.schoolId) {
+      throw new Error("Esta conta não pertence à escola.");
+    }
+    if (target.appRole === "Aluno" || target.appRole === "Encarregado") {
+      throw new Error("Permissões por módulo são só para pessoal da escola.");
+    }
     const { error } = await context.supabase.from("staff_module_grants").upsert(
       {
         school_id: membership.schoolId,
@@ -72,6 +85,14 @@ export const setStaffModuleGrant = createServerFn({ method: "POST" })
       { onConflict: "school_id,user_id,module_key" },
     );
     if (error) throw publicDatabaseError(error, "Não foi possível guardar a permissão.");
+    await recordAccessAudit({
+      schoolId: membership.schoolId,
+      actorUserId: context.userId,
+      action: "access.module_grant_set",
+      entityType: "auth_user",
+      entityId: data.userId,
+      metadata: { module: data.moduleKey, level: data.level },
+    });
     return { ok: true };
   });
 
@@ -94,5 +115,13 @@ export const clearStaffModuleGrant = createServerFn({ method: "POST" })
       .eq("user_id", data.userId)
       .eq("module_key", data.moduleKey);
     if (error) throw publicDatabaseError(error, "Não foi possível repor a predefinição.");
+    await recordAccessAudit({
+      schoolId: membership.schoolId,
+      actorUserId: context.userId,
+      action: "access.module_grant_cleared",
+      entityType: "auth_user",
+      entityId: data.userId,
+      metadata: { module: data.moduleKey },
+    });
     return { ok: true };
   });

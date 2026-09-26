@@ -29,6 +29,42 @@ function missingMessagesTable(error: { message?: string } | null) {
   return Boolean(error?.message && MISSING_TABLE.test(error.message));
 }
 
+/**
+ * Quem pode conversar com quem. O pessoal da escola fala com toda a gente;
+ * alunos, encarregados e contas sem cargo só com o pessoal. Sem isto, um
+ * encarregado (um adulto de fora) escrevia em privado a qualquer aluno, e
+ * alunos trocavam mensagens entre si sem supervisão.
+ */
+const MESSAGING_STAFF_ROLES = new Set(["Administrador", "Secretaria", "Tesouraria", "Professor"]);
+
+export function isMessagingStaff(roles: readonly string[]): boolean {
+  return roles.some((role) => MESSAGING_STAFF_ROLES.has(role));
+}
+
+/** Cargos da pessoa NESTA escola (não o cargo global do perfil). */
+async function schoolRolesOf(
+  db: Awaited<ReturnType<typeof loadSgaAdminClient>>,
+  schoolId: string,
+  userId: string,
+): Promise<string[]> {
+  const { data: membershipRow } = await db
+    .from("school_memberships")
+    .select("id")
+    .eq("school_id", schoolId)
+    .eq("user_id", userId)
+    .eq("status", "active")
+    .maybeSingle();
+  if (!membershipRow) return [];
+  const { data: memberRoles } = await db
+    .from("member_roles")
+    .select("role_id")
+    .eq("membership_id", membershipRow.id);
+  const roleIds = (memberRoles ?? []).map((row) => String(row.role_id));
+  if (!roleIds.length) return [];
+  const { data: roles } = await db.from("roles").select("code").in("id", roleIds);
+  return (roles ?? []).map((row) => mapSgaRoleCode(String(row.code ?? "")));
+}
+
 function mapColleagues(
   userIds: string[],
   profiles: ProfileRow[],
@@ -100,23 +136,29 @@ export const listSchoolColleagues = createServerFn({ method: "GET" })
     if (!userIds.length) return [] as SchoolColleague[];
 
     const cargoByUserId = await loadCargoByUserId(db, memberships);
+    // Alunos e encarregados só vêem o pessoal da escola.
+    const viewerIsStaff = isMessagingStaff(membership.allAppRoles ?? [membership.appRole]);
+    const visibleIds = viewerIsStaff
+      ? userIds
+      : userIds.filter((id) => isMessagingStaff([cargoByUserId.get(id) ?? ""]));
+    if (!visibleIds.length) return [] as SchoolColleague[];
 
     const { data: profiles, error: profileError } = await db
       .from("profiles")
       .select("id, full_name, avatar_url, cargo")
-      .in("id", userIds);
+      .in("id", visibleIds);
     if (profileError && /avatar_url|cargo|42703|schema cache/i.test(profileError.message)) {
       const { data: fallback } = await db
         .from("profiles")
         .select("id, full_name")
-        .in("id", userIds);
-      return mapColleagues(userIds, fallback ?? [], cargoByUserId);
+        .in("id", visibleIds);
+      return mapColleagues(visibleIds, fallback ?? [], cargoByUserId);
     }
     if (profileError) {
       throw publicDatabaseError(profileError, "Não foi possível ler os perfis.");
     }
 
-    return mapColleagues(userIds, profiles ?? [], cargoByUserId);
+    return mapColleagues(visibleIds, profiles ?? [], cargoByUserId);
   });
 
 export const listDirectThread = createServerFn({ method: "GET" })
@@ -181,6 +223,12 @@ export const sendDirectMessage = createServerFn({ method: "POST" })
       .eq("status", "active")
       .maybeSingle();
     if (!peer) throw new Error("Este utilizador não pertence à escola.");
+    if (!isMessagingStaff(membership.allAppRoles ?? [membership.appRole])) {
+      const peerRoles = await schoolRolesOf(db, membership.schoolId, data.peerId);
+      if (!isMessagingStaff(peerRoles)) {
+        throw new Error("Só pode enviar mensagens ao pessoal da escola.");
+      }
+    }
 
     const { data: row, error } = await db
       .from("siga_direct_messages")

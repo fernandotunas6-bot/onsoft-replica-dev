@@ -149,12 +149,12 @@ async function ensureGradebook(
     // não existia em produção, e as duas funções que a preencheriam
     // (`configure_assessment_rules`, `publish_assessment_rule_version`) falhavam com 42P01
     // pela mesma razão — sem `rule_set_id` não se abria o primeiro diário, logo não se
-    // lançavam notas. A migração `20260916140000_assessment_rule_sets.sql` foi aplicada e
+    // lançavam notas. A migração `20260924005124_assessment_rule_sets.sql` foi aplicada e
     // as funções passam a chegar à verificação de permissão (`assessment.rules.manage`).
     // Restam, portanto, dois casos distintos, e o segundo é accionável por quem o lê.
     throw new Error(
       ruleTableMissing
-        ? "As regras de avaliação ainda não existem nesta base de dados. É preciso aplicar a migração 20260916140000_assessment_rule_sets.sql antes de abrir o primeiro diário de notas."
+        ? "As regras de avaliação ainda não existem nesta base de dados. É preciso aplicar a migração 20260924005124_assessment_rule_sets.sql antes de abrir o primeiro diário de notas."
         : "Não há regras de avaliação activas nesta escola. Configure-as no SGA antes de lançar notas.",
     );
   }
@@ -539,21 +539,37 @@ export async function listSgaTermGrades(params: {
   const { db, schoolId, enrollmentIds, limit = 200 } = params;
   if (enrollmentIds && enrollmentIds.length === 0) return [];
 
-  let scoresQuery = db
-    .from("grade_scores")
-    .select("id, grade_item_id, enrollment_id, score, status, updated_at")
-    .eq("school_id", schoolId)
-    .neq("status", "reversed")
-    .order("updated_at", { ascending: false })
-    .limit(Math.max(limit * 3, 300));
-  if (enrollmentIds?.length) scoresQuery = scoresQuery.in("enrollment_id", enrollmentIds);
-
-  const { data: scores, error } = await scoresQuery;
-  if (error) {
-    if (/schema cache|does not exist|42P01|PGRST/i.test(error.message)) return [];
-    throw publicDatabaseError(error, "Não foi possível carregar as notas.");
+  // O servidor devolve no máximo 1000 linhas por pedido: ler por páginas,
+  // senão as turmas cujas notas ficam depois da 1000ª aparecem sem média.
+  const PAGE = 1000;
+  const maxRows = Math.max(limit * 3, 300);
+  const scores: Array<{
+    id: string;
+    grade_item_id: string;
+    enrollment_id: string;
+    score: number | null;
+    status: string | null;
+    updated_at: string | null;
+  }> = [];
+  for (let from = 0; from < maxRows; from += PAGE) {
+    let scoresQuery = db
+      .from("grade_scores")
+      .select("id, grade_item_id, enrollment_id, score, status, updated_at")
+      .eq("school_id", schoolId)
+      .neq("status", "reversed")
+      .order("updated_at", { ascending: false })
+      .order("id", { ascending: true })
+      .range(from, Math.min(from + PAGE, maxRows) - 1);
+    if (enrollmentIds?.length) scoresQuery = scoresQuery.in("enrollment_id", enrollmentIds);
+    const { data: page, error } = await scoresQuery;
+    if (error) {
+      if (/schema cache|does not exist|42P01|PGRST/i.test(error.message)) return [];
+      throw publicDatabaseError(error, "Não foi possível carregar as notas.");
+    }
+    scores.push(...((page ?? []) as typeof scores));
+    if (!page || page.length < PAGE) break;
   }
-  if (!scores?.length) return [];
+  if (!scores.length) return [];
 
   const itemIds = [...new Set(scores.map((row: { grade_item_id: string }) => row.grade_item_id))];
   const { data: items, error: itemsError } = await db

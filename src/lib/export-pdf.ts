@@ -164,23 +164,11 @@ export async function exportOfficialPautaPdf<Row extends object>(
     doc.setFontSize(8);
     doc.text(meta.directorName, pageWidth - 14, signaturesY + 6, { align: "right" });
   }
+  // Antes desenhava-se aqui um "QR" de quadrados que nenhum leitor lia, com um
+  // código que não se verificava em lado nenhum. Fica só a referência.
   if (meta.validationCode) {
-    const boxX = pageWidth - 42;
-    const boxY = 8;
-    doc.setDrawColor(30, 30, 30);
-    doc.rect(boxX, boxY, 28, 28);
-    doc.setFillColor(20, 20, 20);
-    for (let row = 0; row < 6; row += 1) {
-      for (let col = 0; col < 6; col += 1) {
-        const on =
-          (meta.validationCode.charCodeAt((row + col) % meta.validationCode.length) + row * col) %
-            3 ===
-          0;
-        if (on) doc.rect(boxX + 2 + col * 4, boxY + 2 + row * 4, 3.2, 3.2, "F");
-      }
-    }
-    doc.setFontSize(6);
-    doc.text(meta.validationCode, boxX + 14, boxY + 32, { align: "center" });
+    doc.setFontSize(7);
+    doc.text(`Referência: ${meta.validationCode}`, pageWidth - 14, 12, { align: "right" });
   }
   doc.save(filename.endsWith(".pdf") ? filename : `${filename}.pdf`);
 }
@@ -215,7 +203,7 @@ export async function exportOfficialDeclarationPdf(
   if (meta.validationCode) {
     doc.setFontSize(8);
     doc.setFont("courier", "normal");
-    doc.text(`Validar: ${meta.validationCode}`, 18, pageHeight - 18);
+    doc.text(`Referência: ${meta.validationCode}`, 18, pageHeight - 18);
   }
   doc.save(filename.endsWith(".pdf") ? filename : `${filename}.pdf`);
 }

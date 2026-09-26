@@ -5,8 +5,8 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import {
   Archive,
-  Award,
   Download,
+  FileBadge,
   FileDown,
   FileText,
   Mail,
@@ -536,7 +536,7 @@ function ComunicacoesPage() {
                 onClick={exportarOficial}
                 disabled={!filtered.length}
               >
-                <Award className="size-4" /> Oficial
+                <FileBadge className="size-4" /> Oficial
               </Button>
               <PickFileButton
                 area="escola"

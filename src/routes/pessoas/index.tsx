@@ -3,8 +3,8 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import {
-  Award,
   Download,
+  FileBadge,
   FileDown,
   FileText,
   FileUp,
@@ -352,7 +352,7 @@ function PeoplePage() {
               <FileDown className="size-4" /> Prof. PDF
             </Button>
             <Button variant="outline" className="gap-2" onClick={exportarProfessoresOficial}>
-              <Award className="size-4" /> Oficial
+              <FileBadge className="size-4" /> Oficial
             </Button>
             <Button variant="outline" className="gap-2" asChild>
               <Link to="/importar" search={{ tab: "novo", modulo: "professores" }}>
@@ -762,7 +762,7 @@ function PeoplePage() {
                 onClick={exportarRegistoOficial}
                 disabled={!people.length}
               >
-                <Award className="size-3.5" /> Oficial
+                <FileBadge className="size-3.5" /> Oficial
               </Button>
             </div>
           </div>
@@ -1019,9 +1019,7 @@ function PeoplePage() {
                 </div>
                 <dl className="grid gap-4 sm:grid-cols-2">
                   <div>
-                    <dt className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                      Email
-                    </dt>
+                    <dt className="text-xs font-semibold text-muted-foreground">Email</dt>
                     <dd className="mt-1 text-sm font-medium">
                       {person.email ?? "—"}
                       {resendOn && person.email ? (
@@ -1039,9 +1037,7 @@ function PeoplePage() {
                     </dd>
                   </div>
                   <div>
-                    <dt className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                      Telefone
-                    </dt>
+                    <dt className="text-xs font-semibold text-muted-foreground">Telefone</dt>
                     <dd className="mt-1 text-sm font-medium">
                       {person.phone_primary ? (
                         <AngolaPhoneField
@@ -1055,9 +1051,7 @@ function PeoplePage() {
                     </dd>
                   </div>
                   <div>
-                    <dt className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                      NIF
-                    </dt>
+                    <dt className="text-xs font-semibold text-muted-foreground">NIF</dt>
                     <dd className="mt-1 text-sm font-medium">
                       {person.nif
                         ? isAngolaBiNif(person.nif)
@@ -1067,23 +1061,17 @@ function PeoplePage() {
                     </dd>
                   </div>
                   <div>
-                    <dt className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                      Estado
-                    </dt>
+                    <dt className="text-xs font-semibold text-muted-foreground">Estado</dt>
                     <dd className="mt-1 text-sm font-medium">
                       {statusLabels[person.status] ?? person.status}
                     </dd>
                   </div>
                   <div className="sm:col-span-2">
-                    <dt className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                      Morada
-                    </dt>
+                    <dt className="text-xs font-semibold text-muted-foreground">Morada</dt>
                     <dd className="mt-1 text-sm font-medium">{person.address ?? "—"}</dd>
                   </div>
                   <div className="sm:col-span-2">
-                    <dt className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                      Documentos
-                    </dt>
+                    <dt className="mb-2 text-xs font-semibold text-muted-foreground">Documentos</dt>
                     <dd className="space-y-3">
                       {(person.documents ?? []).length ? (
                         <ul className="space-y-2">

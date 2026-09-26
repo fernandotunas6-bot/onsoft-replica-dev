@@ -14,7 +14,7 @@ export type PautaExportRow = {
 export function AssessmentStat({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-xl border bg-card p-4">
-      <p className="text-xs font-bold uppercase tracking-wide text-muted-foreground">{label}</p>
+      <p className="text-xs font-bold text-muted-foreground">{label}</p>
       <p className="mt-1 font-display text-2xl font-extrabold">{value}</p>
     </div>
   );
@@ -45,12 +45,10 @@ export function OfficialPautaView({
     >
       <div className="text-center">
         <AngolaEmblem className="mx-auto size-20" />
-        <p className="mt-3 text-xs font-bold uppercase tracking-[0.2em]">República de Angola</p>
-        <p className="text-xs uppercase tracking-[0.16em]">Ministério da Educação</p>
+        <p className="mt-3 text-xs font-bold">República de Angola</p>
+        <p className="text-xs">Ministério da Educação</p>
         <h2 className="mt-3 font-display text-2xl font-extrabold">{schoolName}</h2>
-        <p className="mt-1 text-sm font-semibold uppercase tracking-wide">
-          Pauta de avaliação contínua
-        </p>
+        <p className="mt-1 text-sm font-semibold">Pauta de avaliação contínua</p>
       </div>
       <div className="mt-6 grid grid-cols-2 gap-2 text-sm">
         <p>Ano Lectivo: {academicYear}</p>
@@ -88,7 +86,7 @@ export function OfficialPautaView({
         </tbody>
       </table>
       {meta.validationCode ? (
-        <p className="mt-4 text-right text-[11px] font-mono">Validar: {meta.validationCode}</p>
+        <p className="mt-4 text-right text-[11px] font-mono">Referência: {meta.validationCode}</p>
       ) : null}
       <div className="mt-10 grid grid-cols-3 gap-6 text-center text-sm">
         <p>O Professor: __________________</p>

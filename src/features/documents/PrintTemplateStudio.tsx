@@ -84,9 +84,10 @@ export function PrintTemplateStudio() {
         ),
       );
     } catch (error) {
-      return `<pre style="padding:24px;color:#b91c1c;font:14px/1.4 ui-monospace,monospace">${
-        error instanceof Error ? error.message : "Erro ao renderizar o modelo."
-      }</pre>`;
+      const message = error instanceof Error ? error.message : "Erro ao renderizar o modelo.";
+      return `<pre style="padding:24px;color:#b91c1c;font:14px/1.4 ui-monospace,monospace">${message
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")}</pre>`;
     }
   }, [draft, school, selectedYearLabel, templateQuery.data]);
 
@@ -190,7 +191,7 @@ export function PrintTemplateStudio() {
                     </span>
                   ) : null}
                 </div>
-                <p className="mt-3 text-[11px] uppercase tracking-wide text-muted-foreground">
+                <p className="mt-3 text-[11px] text-muted-foreground">
                   {item.customized ? "Personalizado" : "Original"}
                   {item.sourceOfTruth ? " · fonte oficial" : ""}
                   {item.type ? ` · ${item.type}` : ""}
@@ -241,9 +242,7 @@ export function PrintTemplateStudio() {
           <ModalContent>
             <div className="grid min-h-[68vh] gap-4 lg:grid-cols-2">
               <label className="flex min-h-[320px] flex-col gap-2">
-                <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                  Fonte do modelo
-                </span>
+                <span className="text-xs font-semibold text-muted-foreground">Fonte do modelo</span>
                 <textarea
                   value={draft}
                   onChange={(event) => setDraft(event.target.value)}
@@ -255,11 +254,12 @@ export function PrintTemplateStudio() {
                 />
               </label>
               <div className="flex min-h-[320px] flex-col gap-2">
-                <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                <span className="text-xs font-semibold text-muted-foreground">
                   Pré-visualização
                 </span>
                 <iframe
                   title="Pré-visualização do modelo"
+                  sandbox=""
                   className="siga-print-preview min-h-[320px] flex-1 rounded-lg border border-border"
                   srcDoc={previewHtml}
                 />

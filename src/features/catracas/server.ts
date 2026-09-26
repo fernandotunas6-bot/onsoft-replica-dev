@@ -1,10 +1,12 @@
 import { z } from "zod";
+import { resolveVerifiedAccountEmail } from "@/features/students/student-scope";
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { publicDatabaseError } from "@/integrations/supabase/server-error";
 import {
   loadSgaAdminClient,
-  requireSgaWriter,
+  requireSgaWriterFor,
+  requireSgaWriterForWrite,
   resolveSgaMembershipAdmin,
 } from "@/integrations/supabase/sga-admin";
 import { resolveUserLinkedEntities } from "@/features/auth/server";
@@ -20,7 +22,11 @@ import {
   listAccessCardsInputSchema,
   validateGatePassDeviceInputSchema,
 } from "./schemas";
-import { gatePassLookupTokens, normalizeRfidTag } from "./gate-pass-token";
+import {
+  gatePassLookupTokens,
+  generateAccessCardIdentifiers,
+  normalizeRfidTag,
+} from "./gate-pass-token";
 import { evaluateGatePassAccess, resolveGatePassDevice } from "./gate-pass-validation";
 import { runDeviceGatePassWebhook } from "./device-webhook-handler";
 
@@ -90,6 +96,43 @@ export function detectAttendanceAnomalies(
     .filter((x): x is AttendanceAnomaly => x !== null);
 }
 
+type LinkedEntities = {
+  person_id?: string | null;
+  student_id?: string | null;
+  linked_students: { student_id: string }[];
+};
+
+/** De quem é o cartão que esta conta pode ver ou criar. */
+export function virtualCardScope(
+  role: string,
+  requested: { studentId?: string; personId?: string },
+  linked: LinkedEntities,
+): { personId: string | null; studentId: string | null } {
+  if (role === "Administrador" || role === "Secretaria") {
+    return {
+      personId: requested.personId || linked.person_id || null,
+      studentId: requested.studentId || linked.student_id || null,
+    };
+  }
+  if (role === "Encarregado") {
+    const allowedIds = linked.linked_students.map((s) => s.student_id);
+    const studentId = requested.studentId ?? allowedIds[0] ?? null;
+    if (requested.personId || (studentId && !allowedIds.includes(studentId))) {
+      throw new Error("Sem permissão para consultar o cartão deste educando.");
+    }
+    return { personId: null, studentId };
+  }
+  const ownStudent = linked.student_id ?? null;
+  const ownPerson = linked.person_id ?? null;
+  if (
+    (requested.studentId && requested.studentId !== ownStudent) ||
+    (requested.personId && requested.personId !== ownPerson)
+  ) {
+    throw new Error("Sem permissão para consultar o cartão de outra pessoa.");
+  }
+  return { personId: ownPerson, studentId: ownStudent };
+}
+
 export const getOrCreateVirtualCard = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((input: unknown) =>
@@ -106,19 +149,18 @@ export const getOrCreateVirtualCard = createServerFn({ method: "POST" })
     if (!membership) throw new Error("Sem membership activa.");
     const db = await loadSgaAdminClient();
 
-    const linked = await resolveUserLinkedEntities(db, membership.schoolId, context.userId);
-    let personId = data.personId || linked.person_id;
-    let studentId = data.studentId || linked.student_id;
-
-    if (membership.appRole === "Encarregado") {
-      const allowedIds = linked.linked_students.map((s) => s.student_id);
-      if (studentId && !allowedIds.includes(studentId)) {
-        throw new Error("Sem permissão para consultar o cartão deste educando.");
-      }
-      if (!studentId && allowedIds.length > 0) {
-        studentId = allowedIds[0] ?? null;
-      }
-    }
+    const linked = await resolveUserLinkedEntities(
+      db,
+      membership.schoolId,
+      context.userId,
+      await resolveVerifiedAccountEmail(db, context.userId),
+    );
+    // O cartão traz o segredo do QR, que abre a catraca. Só a secretaria e a
+    // administração escolhem de quem é o cartão; os outros vêem só o seu (e o
+    // encarregado, o dos educandos).
+    const scope = virtualCardScope(membership.appRole, data, linked);
+    let personId = scope.personId;
+    const studentId = scope.studentId;
 
     if (studentId && !personId) {
       const { data: st } = await db
@@ -145,9 +187,7 @@ export const getOrCreateVirtualCard = createServerFn({ method: "POST" })
       return existingCard;
     }
 
-    const randomSuffix = Math.floor(100000 + Math.random() * 900000);
-    const cardNumber = `CARD-${new Date().getFullYear()}-${randomSuffix}`;
-    const barcode = `STU${new Date().getFullYear()}${randomSuffix}`;
+    const { cardNumber, barcode } = generateAccessCardIdentifiers();
     const qrSecret = crypto.randomUUID();
 
     const { data: created, error } = await db
@@ -173,8 +213,10 @@ export const validateGatePassToken = createServerFn({ method: "POST" })
   .validator((input: unknown) => validateGatePassTokenInputSchema.parse(input))
   .handler(async ({ data, context }) => {
     if (!context) throw new Error("Não autenticado.");
-    const membership = await resolveSgaMembershipAdmin(context.userId);
-    if (!membership) throw new Error("Sem membership activa.");
+    const membership = await requireSgaWriterForWrite("gestao", context.supabase, context.userId, [
+      "Administrador",
+      "Secretaria",
+    ]);
     const db = await loadSgaAdminClient();
 
     const tokens = gatePassLookupTokens(data.token);
@@ -205,8 +247,10 @@ export const listTurnstileDevices = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     if (!context) throw new Error("Não autenticado.");
-    const membership = await resolveSgaMembershipAdmin(context.userId);
-    if (!membership) throw new Error("Sem membership activa.");
+    const membership = await requireSgaWriterFor("gestao", context.supabase, context.userId, [
+      "Administrador",
+      "Secretaria",
+    ]);
     const db = await loadSgaAdminClient();
 
     const { data: devices, error } = await db
@@ -224,7 +268,7 @@ export const registerTurnstileDevice = createServerFn({ method: "POST" })
   .validator((input: unknown) => registerTurnstileDeviceInputSchema.parse(input))
   .handler(async ({ data, context }) => {
     if (!context) throw new Error("Não autenticado.");
-    const membership = await requireSgaWriter(context.supabase, context.userId, [
+    const membership = await requireSgaWriterForWrite("gestao", context.supabase, context.userId, [
       "Administrador",
       "Secretaria",
     ]);
@@ -240,7 +284,7 @@ export const registerTurnstileDevice = createServerFn({ method: "POST" })
         direction_capability: data.directionCapability,
         ip_address: data.ipAddress ?? null,
         mac_address: data.macAddress ?? null,
-        api_key: `KEY-${crypto.randomUUID().slice(0, 8).toUpperCase()}`,
+        api_key: `KEY-${crypto.randomUUID().replace(/-/g, "").toUpperCase()}`,
         status: "online",
         last_ping_at: new Date().toISOString(),
       })
@@ -256,7 +300,10 @@ export const updateTurnstileDevice = createServerFn({ method: "POST" })
   .validator((input: unknown) => updateTurnstileDeviceInputSchema.parse(input))
   .handler(async ({ data, context }) => {
     if (!context) throw new Error("Não autenticado.");
-    await requireSgaWriter(context.supabase, context.userId, ["Administrador", "Secretaria"]);
+    await requireSgaWriterForWrite("gestao", context.supabase, context.userId, [
+      "Administrador",
+      "Secretaria",
+    ]);
     const membership = await resolveSgaMembershipAdmin(context.userId);
     if (!membership) throw new Error("Sem membership activa.");
     const db = await loadSgaAdminClient();
@@ -286,7 +333,10 @@ export const setAccessCardStatus = createServerFn({ method: "POST" })
   .validator((input: unknown) => setAccessCardStatusInputSchema.parse(input))
   .handler(async ({ data, context }) => {
     if (!context) throw new Error("Não autenticado.");
-    await requireSgaWriter(context.supabase, context.userId, ["Administrador", "Secretaria"]);
+    await requireSgaWriterForWrite("gestao", context.supabase, context.userId, [
+      "Administrador",
+      "Secretaria",
+    ]);
     const membership = await resolveSgaMembershipAdmin(context.userId);
     if (!membership) throw new Error("Sem membership activa.");
     const db = await loadSgaAdminClient();
@@ -308,7 +358,10 @@ export const linkAccessCardRfid = createServerFn({ method: "POST" })
   .validator((input: unknown) => linkAccessCardRfidInputSchema.parse(input))
   .handler(async ({ data, context }) => {
     if (!context) throw new Error("Não autenticado.");
-    await requireSgaWriter(context.supabase, context.userId, ["Administrador", "Secretaria"]);
+    await requireSgaWriterForWrite("gestao", context.supabase, context.userId, [
+      "Administrador",
+      "Secretaria",
+    ]);
     const membership = await resolveSgaMembershipAdmin(context.userId);
     if (!membership) throw new Error("Sem membership activa.");
     const db = await loadSgaAdminClient();
@@ -349,7 +402,10 @@ export const rotateAccessCardQr = createServerFn({ method: "POST" })
   .validator((input: unknown) => rotateAccessCardQrInputSchema.parse(input))
   .handler(async ({ data, context }) => {
     if (!context) throw new Error("Não autenticado.");
-    await requireSgaWriter(context.supabase, context.userId, ["Administrador", "Secretaria"]);
+    await requireSgaWriterForWrite("gestao", context.supabase, context.userId, [
+      "Administrador",
+      "Secretaria",
+    ]);
     const membership = await resolveSgaMembershipAdmin(context.userId);
     if (!membership) throw new Error("Sem membership activa.");
     const db = await loadSgaAdminClient();
@@ -374,7 +430,10 @@ export const issueAccessCard = createServerFn({ method: "POST" })
   .validator((input: unknown) => issueAccessCardInputSchema.parse(input))
   .handler(async ({ data, context }) => {
     if (!context) throw new Error("Não autenticado.");
-    await requireSgaWriter(context.supabase, context.userId, ["Administrador", "Secretaria"]);
+    await requireSgaWriterForWrite("gestao", context.supabase, context.userId, [
+      "Administrador",
+      "Secretaria",
+    ]);
     const membership = await resolveSgaMembershipAdmin(context.userId);
     if (!membership) throw new Error("Sem membership activa.");
     const db = await loadSgaAdminClient();
@@ -399,9 +458,7 @@ export const issueAccessCard = createServerFn({ method: "POST" })
       if (clash) throw new Error("Tag RFID já associada a outro cartão.");
     }
 
-    const randomSuffix = Math.floor(100000 + Math.random() * 900000);
-    const cardNumber = `CARD-${new Date().getFullYear()}-${randomSuffix}`;
-    const barcode = `STU${new Date().getFullYear()}${randomSuffix}`;
+    const { cardNumber, barcode } = generateAccessCardIdentifiers();
 
     const { data: created, error } = await db
       .from("siga_access_cards")
@@ -427,8 +484,10 @@ export const listAccessCards = createServerFn({ method: "GET" })
   .validator((input: unknown) => listAccessCardsInputSchema.parse(input ?? {}))
   .handler(async ({ data, context }) => {
     if (!context) throw new Error("Não autenticado.");
-    const membership = await resolveSgaMembershipAdmin(context.userId);
-    if (!membership) throw new Error("Sem membership activa.");
+    const membership = await requireSgaWriterFor("gestao", context.supabase, context.userId, [
+      "Administrador",
+      "Secretaria",
+    ]);
     const db = await loadSgaAdminClient();
 
     let query = db
@@ -474,8 +533,10 @@ export const listAccessLogs = createServerFn({ method: "GET" })
   .validator((input: unknown) => listAccessLogsInputSchema.parse(input ?? {}))
   .handler(async ({ data, context }) => {
     if (!context) throw new Error("Não autenticado.");
-    const membership = await resolveSgaMembershipAdmin(context.userId);
-    if (!membership) throw new Error("Sem membership activa.");
+    const membership = await requireSgaWriterFor("gestao", context.supabase, context.userId, [
+      "Administrador",
+      "Secretaria",
+    ]);
     const db = await loadSgaAdminClient();
 
     let query = db
@@ -518,8 +579,10 @@ export const exportGatePassOfflineList = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     if (!context) throw new Error("Não autenticado.");
-    const membership = await resolveSgaMembershipAdmin(context.userId);
-    if (!membership) throw new Error("Sem membership activa.");
+    const membership = await requireSgaWriterFor("gestao", context.supabase, context.userId, [
+      "Administrador",
+      "Secretaria",
+    ]);
     const db = await loadSgaAdminClient();
 
     const { data: cards, error } = await db
@@ -545,8 +608,10 @@ export const getCampusVsClassroomReconciliation = createServerFn({ method: "GET"
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     if (!context) throw new Error("Não autenticado.");
-    const membership = await resolveSgaMembershipAdmin(context.userId);
-    if (!membership) throw new Error("Sem membership activa.");
+    const membership = await requireSgaWriterFor("gestao", context.supabase, context.userId, [
+      "Administrador",
+      "Secretaria",
+    ]);
     const db = await loadSgaAdminClient();
 
     const todayStr = new Date().toISOString().slice(0, 10);

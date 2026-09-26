@@ -6,11 +6,11 @@ import {
   AlertCircle,
   ArrowDownRight,
   ArrowUpRight,
-  Award,
   Banknote,
   BriefcaseBusiness,
   CreditCard,
   Download,
+  FileBadge,
   FileDown,
   FileUp,
   Plus,
@@ -436,7 +436,7 @@ function FinanceiroPage() {
                 <FileDown className="size-4" /> PDF
               </Button>
               <Button variant="outline" className="gap-2" onClick={exportarCaixaOficial}>
-                <Award className="size-4" /> Oficial
+                <FileBadge className="size-4" /> Oficial
               </Button>
               <Button variant="outline" className="gap-2" asChild>
                 <Link to="/importar" search={{ tab: "novo", modulo: "pagamentos" }}>

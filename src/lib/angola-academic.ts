@@ -111,24 +111,21 @@ export const angolaGradeScale = {
 } as const;
 
 /**
- * Fonte única de cálculo de médias (Decreto Executivo n.º 424/25). Usada tanto pelo motor de
- * avaliação (`assessment-engine.ts`) como pelas pautas (`pautas/assessment.ts`) — não duplicar
- * esta fórmula noutro sítio.
- */
-/**
- * Uma casa decimal, que é a precisão em que as médias são impressas nas pautas.
+ * Arredonda à décima. O `Number.EPSILON` está aqui porque `Math.round(x * 10) / 10` sozinho
+ * erra em valores como 10.45, que em binário fica ligeiramente abaixo e desce para 10.4.
  *
- * Fonte única de propósito: a média **decide** com o mesmo arredondamento com que é
- * **impressa**. Ter dois sítios a arredondar por conta própria foi o que fez uma pauta
- * imprimir "Média 10,0 — NÃO TRANSITA" (o motor decidia sobre 9,95 bruto).
- *
- * `Number.EPSILON` corrige o caso em que a divisão cai imediatamente abaixo do meio por
- * erro de vírgula flutuante — sem ele, 2,675 arredonda para 2,67.
+ * Existe como função e não inline porque a mesma linha estava copiada em três cálculos deste
+ * ficheiro, e o motor de avaliação precisa dela para as médias que calcula por fora.
  */
 export function roundToOneDecimal(value: number): number {
   return Math.round((value + Number.EPSILON) * 10) / 10;
 }
 
+/**
+ * Fonte única de cálculo de médias (Decreto Executivo n.º 424/25). Usada tanto pelo motor de
+ * avaliação (`assessment-engine.ts`) como pelas pautas (`pautas/assessment.ts`) — não duplicar
+ * esta fórmula noutro sítio.
+ */
 export function normalizeScore(value: unknown): number | null {
   if (value === null || value === undefined) return null;
   const num = Number(value);
@@ -150,11 +147,9 @@ export function calculateTrimesterAverage(
   const normNpt = normalizeScore(npt);
   const normNpp = normalizeScore(npp);
 
+  // Decreto 424/25: MT = (MACT + NPT) / 2. A NPP já entra na MACT.
   if (normMac !== null && normNpt !== null) {
     return roundToOneDecimal((normMac + normNpt) / 2);
-  }
-  if (normMac !== null && normNpp !== null && normNpt !== null) {
-    return roundToOneDecimal((normMac + normNpp + normNpt) / 3);
   }
   if (normMac !== null) return normMac;
   if (normNpt !== null) return normNpt;
@@ -337,8 +332,6 @@ export const assessmentComponents = [
   { id: "NPT", label: "NPT · Prova trimestral" },
   { id: "recurso", label: "Recurso" },
   { id: "exame", label: "Exame" },
-  { id: "pap", label: "PAP · Prova de aptidão profissional" },
-  { id: "estagio", label: "Estágio curricular" },
 ] as const;
 
 export type AssessmentComponentId = (typeof assessmentComponents)[number]["id"];

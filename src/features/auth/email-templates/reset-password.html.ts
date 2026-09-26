@@ -16,6 +16,25 @@ export interface SchoolBrandingContext {
   platformUrl?: string;
 }
 
+/** Texto de utilizador (nome da escola, cargo, e-mail) dentro do HTML do e-mail. */
+export function escapeHtml(value: string | null | undefined): string {
+  return String(value ?? "").replace(
+    /[&<>"']/g,
+    (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]!,
+  );
+}
+
+/** Logótipo só por https: nada de `javascript:`, `data:` ou aspas a fugir do atributo. */
+export function safeImageUrl(url: string | null | undefined): string | null {
+  const trimmed = url?.trim();
+  if (!trimmed) return null;
+  try {
+    return new URL(trimmed).protocol === "https:" ? trimmed : null;
+  } catch {
+    return null;
+  }
+}
+
 export function getSchoolInitials(name: string): string {
   if (!name) return "SP";
   const words = name
@@ -49,7 +68,7 @@ export function renderResetPasswordEmail(params: {
   const platformName = params.platformName?.trim() || "SIGA Plus";
   const platformUrl = params.platformUrl?.trim() || "https://portal-siga.com";
   const initials = getSchoolInitials(schoolName);
-  const logoUrl = params.logoUrl?.trim() || null;
+  const logoUrl = safeImageUrl(params.logoUrl);
   const brandColor = sanitizeHexColor(params.primaryColor, "#2563eb");
 
   const subject = `Redefina a sua senha — ${schoolName}`;
@@ -75,11 +94,11 @@ ${platformUrl}
 `.trim();
 
   const logoMarkup = logoUrl
-    ? `<img src="${logoUrl}" alt="${schoolName}" width="64" height="64" style="display:block; border-radius:12px; object-fit:contain; max-width:64px; max-height:64px; border:0; outline:none; text-decoration:none;" />`
+    ? `<img src="${escapeHtml(logoUrl)}" alt="${escapeHtml(schoolName)}" width="64" height="64" style="display:block; border-radius:12px; object-fit:contain; max-width:64px; max-height:64px; border:0; outline:none; text-decoration:none;" />`
     : `<table cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;">
         <tr>
-          <td align="center" valign="middle" style="width:56px; height:56px; background-color:#1e293b; color:#ffffff; font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; font-size:20px; font-weight:700; border-radius:14px; letter-spacing:1px; text-transform:uppercase;">
-            ${initials}
+          <td align="center" valign="middle" style="width:56px; height:56px; background-color:#1e293b; color:#ffffff; font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; font-size:20px; font-weight:600; border-radius:14px; letter-spacing:1px; text-transform:uppercase;">
+            ${escapeHtml(initials)}
           </td>
         </tr>
       </table>`;
@@ -90,7 +109,7 @@ ${platformUrl}
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
-  <title>${subject}</title>
+  <title>${escapeHtml(subject)}</title>
   <!--[if mso]>
   <noscript>
     <xml>
@@ -135,11 +154,11 @@ ${platformUrl}
                           ${logoMarkup}
                         </td>
                         <td valign="middle">
-                          <p style="margin:0; font-size:12px; font-weight:700; letter-spacing:1px; text-transform:uppercase; color:#64748b;" class="text-muted">
+                          <p style="margin:0; font-size:12px; font-weight:600; letter-spacing:1px; text-transform:uppercase; color:#64748b;" class="text-muted">
                             Conta Institucional
                           </p>
-                          <h2 style="margin:2px 0 0 0; font-size:20px; font-weight:800; color:#0f172a; line-height:1.25;" class="text-title">
-                            ${schoolName}
+                          <h2 style="margin:2px 0 0 0; font-size:20px; font-weight:600; color:#0f172a; line-height:1.25;" class="text-title">
+                            ${escapeHtml(schoolName)}
                           </h2>
                         </td>
                       </tr>
@@ -152,7 +171,7 @@ ${platformUrl}
               <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse; margin-top:28px;">
                 <tr>
                   <td>
-                    <h1 style="margin:0 0 16px 0; font-size:22px; font-weight:700; color:#0f172a; line-height:1.3;" class="text-title">
+                    <h1 style="margin:0 0 16px 0; font-size:22px; font-weight:600; color:#0f172a; line-height:1.3;" class="text-title">
                       Redefina a sua senha
                     </h1>
                     <p style="margin:0 0 16px 0; font-size:15px; line-height:1.6; color:#475569;" class="text-body">
@@ -166,7 +185,7 @@ ${platformUrl}
                     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse; margin:24px 0 32px 0;">
                       <tr>
                         <td align="center">
-                          <a href="${params.resetUrl}" target="_blank" style="display:inline-block; background-color:${brandColor}; color:#ffffff; font-size:15px; font-weight:600; text-decoration:none; padding:14px 32px; border-radius:12px; box-shadow:0 2px 4px rgba(37,99,235,0.25); text-align:center; min-width:200px;">
+                          <a href="${escapeHtml(params.resetUrl)}" target="_blank" style="display:inline-block; background-color:${brandColor}; color:#ffffff; font-size:15px; font-weight:600; text-decoration:none; padding:14px 32px; border-radius:12px; box-shadow:0 2px 4px rgba(37,99,235,0.25); text-align:center; min-width:200px;">
                             Redefinir Minha Senha
                           </a>
                         </td>
@@ -177,7 +196,7 @@ ${platformUrl}
                     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse; background-color:#f8fafc; border:1px solid #e2e8f0; border-radius:12px; margin-top:8px;" class="box-alert">
                       <tr>
                         <td style="padding:16px 20px;">
-                          <p style="margin:0 0 6px 0; font-size:13px; font-weight:700; color:#0f172a;" class="text-title">
+                          <p style="margin:0 0 6px 0; font-size:13px; font-weight:600; color:#0f172a;" class="text-title">
                             🔒 Proteção e Privacidade
                           </p>
                           <p style="margin:0; font-size:13px; line-height:1.5; color:#64748b;" class="text-muted">
@@ -190,7 +209,7 @@ ${platformUrl}
                     <!-- Fallback Link -->
                     <p style="margin:24px 0 0 0; font-size:12px; line-height:1.5; color:#94a3b8; word-break:break-all;" class="text-muted">
                       Caso o botão acima não funcione, copie e cole o seguinte endereço no seu navegador:<br>
-                      <a href="${params.resetUrl}" style="color:${brandColor}; text-decoration:underline;">${params.resetUrl}</a>
+                      <a href="${escapeHtml(params.resetUrl)}" style="color:${brandColor}; text-decoration:underline;">${escapeHtml(params.resetUrl)}</a>
                     </p>
 
                   </td>
@@ -204,13 +223,13 @@ ${platformUrl}
           <tr>
             <td style="padding:28px 12px 16px 12px; text-align:center;">
               <p style="margin:0 0 6px 0; font-size:13px; font-weight:600; color:#64748b;" class="text-muted">
-                Gerido com segurança por <span style="color:#0f172a; font-weight:700;" class="text-title">${platformName}</span>
+                Gerido com segurança por <span style="color:#0f172a; font-weight:600;" class="text-title">${escapeHtml(platformName)}</span>
               </p>
               <p style="margin:0 0 12px 0; font-size:12px; color:#94a3b8;" class="text-muted">
                 Sistema Inteligente de Gestão Académica
               </p>
               <p style="margin:0; font-size:12px;">
-                <a href="${platformUrl}" target="_blank" style="color:#64748b; text-decoration:none; font-weight:500;" class="text-muted">
+                <a href="${escapeHtml(platformUrl)}" target="_blank" style="color:#64748b; text-decoration:none; font-weight:500;" class="text-muted">
                   ${platformUrl.replace(/^https?:\/\//, "")}
                 </a>
               </p>

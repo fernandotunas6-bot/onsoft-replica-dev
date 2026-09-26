@@ -1,8 +1,14 @@
 import { createServerFn } from "@tanstack/react-start";
+import { getRequestIP } from "@tanstack/react-start/server";
+import { checkRateLimit, isRateLimitBypassed, recordRateLimitAttempt } from "@/lib/rate-limit";
 import { sgaClient } from "@/integrations/supabase/sga";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { publicDatabaseError } from "@/integrations/supabase/server-error";
-import { loadSgaAdminClient, requireSgaWriter } from "@/integrations/supabase/sga-admin";
+import {
+  loadSgaAdminClient,
+  requireSgaWriterFor,
+  requireSgaWriterForWrite,
+} from "@/integrations/supabase/sga-admin";
 import { mapSgaGuardianRelationship } from "@/features/students/schemas";
 import {
   publicInstalledProviderIds,
@@ -42,7 +48,7 @@ export const getOrCreateEnrollmentForm = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     if (!context) throw new Error("Unauthorized");
-    const membership = await requireSgaWriter(context.supabase, context.userId, [
+    const membership = await requireSgaWriterForWrite("pessoas", context.supabase, context.userId, [
       "Administrador",
       "Secretaria",
     ]);
@@ -106,7 +112,7 @@ export const updateEnrollmentForm = createServerFn({ method: "POST" })
   .validator((input: unknown) => updateEnrollmentFormInputSchema.parse(input))
   .handler(async ({ data, context }) => {
     if (!context) throw new Error("Unauthorized");
-    const membership = await requireSgaWriter(context.supabase, context.userId, [
+    const membership = await requireSgaWriterForWrite("pessoas", context.supabase, context.userId, [
       "Administrador",
       "Secretaria",
     ]);
@@ -190,9 +196,20 @@ export const getPublicEnrollmentForm = createServerFn({ method: "GET" })
     };
   });
 
+const PUBLIC_ENROLLMENT_RATE_LIMIT = { windowMs: 60 * 60 * 1000, max: 10 };
+
 export const submitPublicEnrollment = createServerFn({ method: "POST" })
   .validator((input: unknown) => submitPublicEnrollmentInputSchema.parse(input))
   .handler(async ({ data }) => {
+    // Formulário público: sem limite, um script enchia a lista de candidaturas.
+    const ip = getRequestIP({ xForwardedFor: true }) ?? "unknown";
+    const rateLimitKey = `public_enrollment:${ip}`;
+    if (ip !== "unknown" && !isRateLimitBypassed(rateLimitKey)) {
+      if (!checkRateLimit([rateLimitKey], PUBLIC_ENROLLMENT_RATE_LIMIT)) {
+        throw new Error("Demasiadas candidaturas a partir desta ligação. Tente mais tarde.");
+      }
+      recordRateLimitAttempt([rateLimitKey], PUBLIC_ENROLLMENT_RATE_LIMIT);
+    }
     const db = await loadSgaAdminClient();
     const { data: form, error: formError } = await db
       .from("enrollment_forms")
@@ -232,7 +249,7 @@ export const listEnrollmentApplications = createServerFn({ method: "GET" })
   .validator((input: unknown) => listEnrollmentApplicationsInputSchema.parse(input ?? {}))
   .handler(async ({ data, context }) => {
     if (!context) throw new Error("Unauthorized");
-    const membership = await requireSgaWriter(context.supabase, context.userId, [
+    const membership = await requireSgaWriterFor("pessoas", context.supabase, context.userId, [
       "Administrador",
       "Secretaria",
     ]);
@@ -272,7 +289,7 @@ export const decideEnrollmentApplication = createServerFn({ method: "POST" })
   .validator((input: unknown) => decideEnrollmentApplicationInputSchema.parse(input))
   .handler(async ({ data, context }) => {
     if (!context) throw new Error("Unauthorized");
-    const membership = await requireSgaWriter(context.supabase, context.userId, [
+    const membership = await requireSgaWriterForWrite("pessoas", context.supabase, context.userId, [
       "Administrador",
       "Secretaria",
     ]);
@@ -397,32 +414,16 @@ export const decideEnrollmentApplication = createServerFn({ method: "POST" })
         },
       );
       if (registerError) {
+        // A base recusa sem 2FA (private.is_aal2) ou sem permissão. Antes, este
+        // ramo repetia a escrita com a chave de serviço — contornava a recusa e
+        // o registo do encarregado. Igual a createPerson: recusar e explicar.
         if (
           registerError.code === "42501" ||
           /is_aal2|autorização|permission denied/i.test(registerError.message ?? "")
         ) {
-          const today = new Date().toISOString().slice(0, 10);
-          const studentNumber = `EST-${String(Math.floor(100000 + Math.random() * 900000))}`;
-          const { data: createdStudent, error: directStudentErr } = await db
-            .from("students")
-            .insert({
-              school_id: membership.schoolId,
-              person_id: personRow.id,
-              student_number: studentNumber,
-              admission_date: today,
-              status: "applicant",
-              created_by: context.userId,
-              updated_by: context.userId,
-            })
-            .select("id")
-            .single();
-          if (directStudentErr) {
-            throw publicDatabaseError(directStudentErr, "Não foi possível matricular o candidato.");
-          }
-          studentId = createdStudent.id;
-        } else {
-          throw publicDatabaseError(registerError, "Não foi possível matricular o candidato.");
+          throw new Error("Esta conta precisa de 2FA activo para matricular alunos.");
         }
+        throw publicDatabaseError(registerError, "Não foi possível matricular o candidato.");
       } else {
         const studentOutcome = registered as { studentId: string };
         studentId = studentOutcome.studentId;
@@ -448,29 +449,20 @@ export const decideEnrollmentApplication = createServerFn({ method: "POST" })
           enrolled_on: new Date().toISOString().slice(0, 10),
         });
         if (enrollError) {
+          // Sem desvio pela chave de serviço: saltaria a verificação de
+          // capacidade da turma que enroll_student faz sob FOR UPDATE.
           if (
             enrollError.code === "42501" ||
             /is_aal2|autorização|permission denied/i.test(enrollError.message ?? "")
           ) {
-            const today = new Date().toISOString().slice(0, 10);
-            const enrollmentNumber = `MAT-${String(Math.floor(100000 + Math.random() * 900000))}`;
-            await db.from("enrollments").insert({
-              school_id: membership.schoolId,
-              student_id: studentId,
-              class_group_id: classGroup.id,
-              academic_year_id: classGroup.academic_year_id,
-              enrollment_number: enrollmentNumber,
-              enrolled_on: today,
-              status: "active",
-              created_by: context.userId,
-              updated_by: context.userId,
-            });
-          } else {
-            throw publicDatabaseError(
-              enrollError,
-              "Aluno criado, mas não foi possível colocá-lo na turma.",
+            throw new Error(
+              "Aluno criado, mas esta conta precisa de 2FA activo para o colocar na turma.",
             );
           }
+          throw publicDatabaseError(
+            enrollError,
+            "Aluno criado, mas não foi possível colocá-lo na turma.",
+          );
         }
       }
 

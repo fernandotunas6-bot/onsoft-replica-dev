@@ -76,9 +76,7 @@ export const StatCard = React.forwardRef<HTMLDivElement, StatCardProps>(
         )}
       >
         <div className="flex items-center justify-between gap-2">
-          <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-            {title}
-          </span>
+          <span className="text-xs font-medium text-muted-foreground">{title}</span>
           <div className="flex items-center gap-1.5">
             {action ? <div>{action}</div> : null}
             {Icon ? (

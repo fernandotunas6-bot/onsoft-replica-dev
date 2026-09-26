@@ -1,9 +1,11 @@
 import { createServerFn } from "@tanstack/react-start";
+import { assertCanSeeStudent, loadStudentScope } from "@/features/students/student-scope";
+import { recordAuditBatch } from "@/features/audit/record-audit";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { publicDatabaseError } from "@/integrations/supabase/server-error";
 import {
   loadSgaAdminClient,
-  requireSgaWriter,
+  requireSgaWriterForWrite,
   resolveSgaMembershipAdmin,
 } from "@/integrations/supabase/sga-admin";
 import { pedagogySettingsSchema } from "@/features/school/schemas";
@@ -47,22 +49,12 @@ async function assertTermOpen(
   schoolId: string,
   term: number,
 ) {
-  const { data, error } = await db
+  const { data } = await db
     .from("school_settings")
     .select("value")
     .eq("school_id", schoolId)
     .eq("domain", "pedagogy")
     .maybeSingle();
-  // O erro era descartado: se esta leitura falhasse, `pedagogy` ficava indefinido, a
-  // função retornava sem lançar, e o trimestre fechado aceitava notas. Numa verificação
-  // de bloqueio o incumprimento tem de ser fechar, não abrir — não se sabe se o período
-  // está fechado, logo não se deixa escrever.
-  if (error) {
-    throw publicDatabaseError(
-      error,
-      "Não foi possível confirmar se o período está aberto. Tente novamente.",
-    );
-  }
   const pedagogy = pedagogySettingsSchema.safeParse(data?.value ?? {}).data;
   if (pedagogy?.closedTerms.includes(term as 1 | 2 | 3)) {
     throw new Error(
@@ -157,10 +149,7 @@ export type ScheduleSlotSummary = {
   ends_at: string;
   subject_id: string | null;
   teacher_id: string | null;
-  room_id: string | null;
-  room_name: string | null;
   label: string | null;
-  notes: string | null;
   subject_name: string | null;
   display_label: string;
   class_group_name: string;
@@ -169,7 +158,6 @@ export type ScheduleSlotSummary = {
 type ClassSubjectNav = {
   class_group_id: string;
   subject_id: string;
-  weekly_periods: number | null;
   subject_name: string;
   teacher_id: string | null;
   teacher_name: string | null;
@@ -204,8 +192,7 @@ export const listPedagogicalWorkspace = createServerFn({ method: "GET" })
   .validator((input: unknown) => listPedagogicalWorkspaceInputSchema.parse(input ?? {}))
   .handler(async ({ data, context }): Promise<PedagogicalWorkspace> => {
     if (!context) throw new Error("Não autenticado.");
-    const membership = await resolveSgaMembershipAdmin(context.userId);
-    if (!membership) throw new Error("Sem membership activa nesta escola.");
+    const membership = await requireAcademicManager(context.userId);
     // Leituras académicas via admin: várias tabelas SGA não têm GRANT/RLS para authenticated.
     const db = await loadSgaAdminClient();
 
@@ -264,6 +251,31 @@ export const listPedagogicalWorkspace = createServerFn({ method: "GET" })
     const subjectsMissing = Boolean(subjects.error);
     const filteredGroupIds = (groups.data ?? []).map((group: { id: string }) => group.id);
 
+    const classSubjectsChain = (async () => {
+      const { data: classSubjectsData } = filteredGroupIds.length
+        ? await db
+            .from("class_subjects")
+            .select("id, class_group_id, subject_id, teacher_id, weekly_periods, status")
+            .in("class_group_id", filteredGroupIds)
+            .eq("status", "active")
+        : { data: [] as Array<Record<string, unknown>> };
+      const ids = (classSubjectsData ?? []).map((row: Record<string, unknown>) =>
+        String(row["id"]),
+      );
+      const { data: slots, error: slotsError } = ids.length
+        ? await db
+            .from("timetable_slots")
+            .select("id, class_subject_id, weekday, starts_at, ends_at, room, status")
+            .in("class_subject_id", ids)
+            .eq("status", "active")
+            .order("starts_at")
+            .limit(500)
+        : { data: [] as Array<Record<string, unknown>>, error: null };
+      return { data: classSubjectsData, timetableSlots: slots, scheduleError: slotsError };
+    })();
+    // Evita rejeição não tratada se falhar antes de ser aguardado.
+    classSubjectsChain.catch(() => undefined);
+
     let enrollments =
       yearFilter && filteredGroupIds.length === 0
         ? { data: [] as Array<Record<string, unknown>>, error: null }
@@ -294,26 +306,8 @@ export const listPedagogicalWorkspace = createServerFn({ method: "GET" })
       throw publicDatabaseError(enrollments.error, "Não foi possível carregar as matrículas.");
     }
 
-    const { data: classSubjects } = filteredGroupIds.length
-      ? await db
-          .from("class_subjects")
-          .select("id, class_group_id, subject_id, teacher_id, weekly_periods, status")
-          .in("class_group_id", filteredGroupIds)
-          .eq("status", "active")
-      : { data: [] as Array<Record<string, unknown>> };
-
-    const classSubjectIds = (classSubjects ?? []).map((row: Record<string, unknown>) =>
-      String(row["id"]),
-    );
-    const { data: timetableSlots, error: scheduleError } = classSubjectIds.length
-      ? await db
-          .from("timetable_slots")
-          .select("id, class_subject_id, weekday, starts_at, ends_at, room, room_id, notes, status")
-          .in("class_subject_id", classSubjectIds)
-          .eq("status", "active")
-          .order("starts_at")
-          .limit(500)
-      : { data: [] as Array<Record<string, unknown>>, error: null };
+    // Disciplinas/horários não dependem das matrículas: correm em paralelo com as notas.
+    const { data: classSubjects, timetableSlots, scheduleError } = await classSubjectsChain;
 
     const scheduleMissing = Boolean(scheduleError);
     const enrollmentIds = (enrollments.data ?? []).map((row) => String(row.id));
@@ -369,11 +363,6 @@ export const listPedagogicalWorkspace = createServerFn({ method: "GET" })
       const sum = values.reduce((total, value) => total + value, 0);
       return Math.round((sum / values.length) * 10) / 10;
     };
-
-    console.log(
-      "[DBG3] groups",
-      JSON.stringify([...gradeAveragesByGroup.entries()].map(([k, v]) => [k, v.length])),
-    );
 
     const programById = new Map(
       (programs.data ?? []).map((row: { id: string }) => [row.id, row as Record<string, unknown>]),
@@ -525,10 +514,7 @@ export const listPedagogicalWorkspace = createServerFn({ method: "GET" })
             ends_at: String(slot["ends_at"] ?? ""),
             subject_id: subjectIdRaw ? String(subjectIdRaw) : null,
             teacher_id: classSubject?.["teacher_id"] ? String(classSubject["teacher_id"]) : null,
-            room_id: slot["room_id"] ? String(slot["room_id"]) : null,
-            room_name: slot["room"] ? String(slot["room"]) : null,
             label: slot["room"] ? String(slot["room"]) : null,
-            notes: slot["notes"] ? String(slot["notes"]) : null,
             subject_name: (subject?.["name"] as string | null) ?? null,
             display_label: (subject?.["name"] as string) ?? (slot["room"] as string) ?? "—",
             class_group_name: (classGroup?.["name"] as string) ?? "—",
@@ -628,9 +614,6 @@ export const listPedagogicalWorkspace = createServerFn({ method: "GET" })
       return {
         class_group_id: String(record["class_group_id"] ?? ""),
         subject_id: String(record["subject_id"] ?? ""),
-        weekly_periods: Number.isFinite(Number(record["weekly_periods"]))
-          ? Number(record["weekly_periods"])
-          : null,
         subject_name: String(subject?.["name"] ?? "Disciplina"),
         teacher_id: teacherId,
         teacher_name: teacherId ? (teacherNameById.get(teacherId) ?? null) : null,
@@ -666,10 +649,12 @@ export const createClassGroup = createServerFn({ method: "POST" })
     // independente da Classe seria uma escolha que o formulário mostrava
     // como significativa mas que nunca era gravada em lado nenhum.
     if (!context) throw new Error("Não autenticado.");
-    const membership = await requireSgaWriter(context.supabase, context.userId, [
-      "Administrador",
-      "Secretaria",
-    ]);
+    const membership = await requireSgaWriterForWrite(
+      "pedagogica",
+      context.supabase,
+      context.userId,
+      ["Administrador", "Secretaria"],
+    );
     const db = await loadSgaAdminClient();
 
     const payload = {
@@ -710,10 +695,12 @@ export const updateClassGroup = createServerFn({ method: "POST" })
   .validator((input: unknown) => updateClassGroupInputSchema.parse(input))
   .handler(async ({ data, context }) => {
     if (!context) throw new Error("Não autenticado.");
-    const membership = await requireSgaWriter(context.supabase, context.userId, [
-      "Administrador",
-      "Secretaria",
-    ]);
+    const membership = await requireSgaWriterForWrite(
+      "pedagogica",
+      context.supabase,
+      context.userId,
+      ["Administrador", "Secretaria"],
+    );
     const db = await loadSgaAdminClient();
     const payload = {
       code: data.code,
@@ -757,10 +744,12 @@ export const deleteClassGroup = createServerFn({ method: "POST" })
   .validator((input: unknown) => deleteClassGroupInputSchema.parse(input))
   .handler(async ({ data, context }) => {
     if (!context) throw new Error("Não autenticado.");
-    const membership = await requireSgaWriter(context.supabase, context.userId, [
-      "Administrador",
-      "Secretaria",
-    ]);
+    const membership = await requireSgaWriterForWrite(
+      "pedagogica",
+      context.supabase,
+      context.userId,
+      ["Administrador", "Secretaria"],
+    );
     const db = await loadSgaAdminClient();
     const { count, error: countError } = await db
       .from("enrollments")
@@ -793,10 +782,12 @@ export const createSubject = createServerFn({ method: "POST" })
   .validator((input: unknown) => createSubjectInputSchema.parse(input))
   .handler(async ({ data, context }) => {
     if (!context) throw new Error("Não autenticado.");
-    const membership = await requireSgaWriter(context.supabase, context.userId, [
-      "Administrador",
-      "Secretaria",
-    ]);
+    const membership = await requireSgaWriterForWrite(
+      "pedagogica",
+      context.supabase,
+      context.userId,
+      ["Administrador", "Secretaria"],
+    );
     const db = await loadSgaAdminClient();
 
     const insertPayload: Record<string, unknown> = {
@@ -832,10 +823,12 @@ export const updateSubject = createServerFn({ method: "POST" })
   .validator((input: unknown) => updateSubjectInputSchema.parse(input))
   .handler(async ({ data, context }) => {
     if (!context) throw new Error("Não autenticado.");
-    const membership = await requireSgaWriter(context.supabase, context.userId, [
-      "Administrador",
-      "Secretaria",
-    ]);
+    const membership = await requireSgaWriterForWrite(
+      "pedagogica",
+      context.supabase,
+      context.userId,
+      ["Administrador", "Secretaria"],
+    );
     const db = await loadSgaAdminClient();
 
     const updatePayload: Record<string, unknown> = {
@@ -872,10 +865,12 @@ export const deactivateSubject = createServerFn({ method: "POST" })
   .validator((input: unknown) => deactivateSubjectInputSchema.parse(input))
   .handler(async ({ data, context }) => {
     if (!context) throw new Error("Não autenticado.");
-    const membership = await requireSgaWriter(context.supabase, context.userId, [
-      "Administrador",
-      "Secretaria",
-    ]);
+    const membership = await requireSgaWriterForWrite(
+      "pedagogica",
+      context.supabase,
+      context.userId,
+      ["Administrador", "Secretaria"],
+    );
     const db = await loadSgaAdminClient();
     const { count, error: linkError } = await db
       .from("class_subjects")
@@ -903,13 +898,28 @@ export const deactivateSubject = createServerFn({ method: "POST" })
     return subject;
   });
 
+/**
+ * As leituras da escola inteira desta implementação antiga. A fachada
+ * `server-secure-legacy.ts` só as chama para a Direcção/Secretaria e filtra as
+ * do professor; mas estas funções continuam acessíveis pela rede, por isso
+ * verificam o mesmo por si.
+ */
+async function requireAcademicManager(userId: string) {
+  const membership = await resolveSgaMembershipAdmin(userId);
+  if (!membership) throw new Error("Sem membership activa nesta escola.");
+  const roles = membership.allAppRoles ?? [membership.appRole];
+  if (!roles.includes("Administrador") && !roles.includes("Secretaria")) {
+    throw new Error("Sem permissão para consultar dados pedagógicos da escola inteira.");
+  }
+  return membership;
+}
+
 export const listTermGrades = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .validator((input: unknown) => listTermGradesInputSchema.parse(input ?? {}))
   .handler(async ({ data, context }) => {
     if (!context) throw new Error("Não autenticado.");
-    const membership = await resolveSgaMembershipAdmin(context.userId);
-    if (!membership) throw new Error("Sem membership activa nesta escola.");
+    const membership = await requireAcademicManager(context.userId);
     const db = await loadSgaAdminClient();
     const rows = await listSgaTermGrades({
       db,
@@ -935,11 +945,12 @@ export const upsertTermGrade = createServerFn({ method: "POST" })
   .validator((input: unknown) => upsertTermGradeInputSchema.parse(input))
   .handler(async ({ data, context }) => {
     if (!context) throw new Error("Não autenticado.");
-    const membership = await requireSgaWriter(context.supabase, context.userId, [
-      "Administrador",
-      "Secretaria",
-      "Professor",
-    ]);
+    const membership = await requireSgaWriterForWrite(
+      "pedagogica",
+      context.supabase,
+      context.userId,
+      ["Administrador", "Secretaria", "Professor"],
+    );
     const db = await loadSgaAdminClient();
     await assertTermOpen(db, membership.schoolId, data.term);
     return upsertSgaTermGrade({
@@ -960,11 +971,12 @@ export const upsertTermGradesBatch = createServerFn({ method: "POST" })
   .validator((input: unknown) => upsertTermGradesBatchInputSchema.parse(input))
   .handler(async ({ data, context }) => {
     if (!context) throw new Error("Não autenticado.");
-    const membership = await requireSgaWriter(context.supabase, context.userId, [
-      "Administrador",
-      "Secretaria",
-      "Professor",
-    ]);
+    const membership = await requireSgaWriterForWrite(
+      "pedagogica",
+      context.supabase,
+      context.userId,
+      ["Administrador", "Secretaria", "Professor"],
+    );
     const db = await loadSgaAdminClient();
     await assertTermOpen(db, membership.schoolId, data.term);
     return upsertSgaTermGradesBatch({
@@ -982,10 +994,12 @@ export const assignClassSubjectTeacher = createServerFn({ method: "POST" })
   .validator((input: unknown) => assignClassSubjectTeacherInputSchema.parse(input))
   .handler(async ({ data, context }) => {
     if (!context) throw new Error("Não autenticado.");
-    const membership = await requireSgaWriter(context.supabase, context.userId, [
-      "Administrador",
-      "Secretaria",
-    ]);
+    const membership = await requireSgaWriterForWrite(
+      "pedagogica",
+      context.supabase,
+      context.userId,
+      ["Administrador", "Secretaria"],
+    );
     const db = await loadSgaAdminClient();
 
     const [{ data: group }, { data: teacher }, { data: subject }] = await Promise.all([
@@ -1063,10 +1077,12 @@ export const unassignClassSubjectTeacher = createServerFn({ method: "POST" })
   .validator((input: unknown) => unassignClassSubjectTeacherInputSchema.parse(input))
   .handler(async ({ data, context }) => {
     if (!context) throw new Error("Não autenticado.");
-    const membership = await requireSgaWriter(context.supabase, context.userId, [
-      "Administrador",
-      "Secretaria",
-    ]);
+    const membership = await requireSgaWriterForWrite(
+      "pedagogica",
+      context.supabase,
+      context.userId,
+      ["Administrador", "Secretaria"],
+    );
     const db = await loadSgaAdminClient();
     const { data: existing, error: loadError } = await db
       .from("class_subjects")
@@ -1099,10 +1115,12 @@ export const ensureAcademicDefaults = createServerFn({ method: "POST" })
   .validator((input: unknown) => ensureAcademicDefaultsInputSchema.parse(input ?? {}))
   .handler(async ({ data, context }) => {
     if (!context) throw new Error("Não autenticado.");
-    const membership = await requireSgaWriter(context.supabase, context.userId, [
-      "Administrador",
-      "Secretaria",
-    ]);
+    const membership = await requireSgaWriterForWrite(
+      "pedagogica",
+      context.supabase,
+      context.userId,
+      ["Administrador", "Secretaria"],
+    );
     const db = await loadSgaAdminClient();
 
     const result = await ensureAcademicDefaultsCore(
@@ -1131,8 +1149,7 @@ export const getTeacherWorkspace = createServerFn({ method: "GET" })
   .validator((input: unknown) => getTeacherWorkspaceInputSchema.parse(input ?? {}))
   .handler(async ({ data, context }) => {
     if (!context) throw new Error("Não autenticado.");
-    const membership = await resolveSgaMembershipAdmin(context.userId);
-    if (!membership) throw new Error("Sem membership activa nesta escola.");
+    const membership = await requireAcademicManager(context.userId);
     const db = await loadSgaAdminClient();
 
     let teacherId = data.teacherId ?? null;
@@ -1399,8 +1416,7 @@ export const listAssessments = createServerFn({ method: "GET" })
   .validator((input: unknown) => listAssessmentsInputSchema.parse(input ?? {}))
   .handler(async ({ data, context }) => {
     if (!context) throw new Error("Não autenticado.");
-    const membership = await resolveSgaMembershipAdmin(context.userId);
-    if (!membership) return { available: false, items: [], scores: [] };
+    const membership = await requireAcademicManager(context.userId);
     const db = await loadSgaAdminClient();
     let query = db
       .from("siga_assessment_items")
@@ -1440,11 +1456,12 @@ export const createAssessment = createServerFn({ method: "POST" })
   .validator((input: unknown) => createAssessmentInputSchema.parse(input))
   .handler(async ({ data, context }) => {
     if (!context) throw new Error("Não autenticado.");
-    const membership = await requireSgaWriter(context.supabase, context.userId, [
-      "Administrador",
-      "Secretaria",
-      "Professor",
-    ]);
+    const membership = await requireSgaWriterForWrite(
+      "pedagogica",
+      context.supabase,
+      context.userId,
+      ["Administrador", "Secretaria", "Professor"],
+    );
     const db = await loadSgaAdminClient();
     const { data: created, error } = await db
       .from("siga_assessment_items")
@@ -1482,11 +1499,12 @@ export const upsertAssessmentScores = createServerFn({ method: "POST" })
   .validator((input: unknown) => upsertAssessmentScoresInputSchema.parse(input))
   .handler(async ({ data, context }) => {
     if (!context) throw new Error("Não autenticado.");
-    const membership = await requireSgaWriter(context.supabase, context.userId, [
-      "Administrador",
-      "Secretaria",
-      "Professor",
-    ]);
+    const membership = await requireSgaWriterForWrite(
+      "pedagogica",
+      context.supabase,
+      context.userId,
+      ["Administrador", "Secretaria", "Professor"],
+    );
     const db = await loadSgaAdminClient();
     const { data: item, error: itemError } = await db
       .from("siga_assessment_items")
@@ -1572,6 +1590,26 @@ export const upsertAssessmentScores = createServerFn({ method: "POST" })
       if (result.error)
         throw publicDatabaseError(result.error, "Não foi possível actualizar as notas.");
     }
+    // A tabela só guarda a nota anterior: uma nota mudada duas vezes perdia a
+    // original. Cada alteração de uma nota já lançada fica em audit_logs.
+    await recordAuditBatch(
+      toUpdate
+        .map((row) => ({ row, existing: existingByEnrollment.get(row.enrollmentId)! }))
+        .filter(({ row, existing }) => Number(existing.score) !== Number(row.score))
+        .map(({ row, existing }) => ({
+          schoolId: membership.schoolId,
+          actorUserId: context.userId,
+          action: "grades.assessment_score_changed",
+          entityType: "siga_assessment_scores",
+          entityId: existing.id,
+          metadata: {
+            item_id: data.itemId,
+            enrollment_id: row.enrollmentId,
+            from: existing.score,
+            to: row.score,
+          },
+        })),
+    );
     return { saved: data.rows.length };
   });
 
@@ -1580,11 +1618,12 @@ export const updateAssessmentItem = createServerFn({ method: "POST" })
   .validator((input: unknown) => updateAssessmentInputSchema.parse(input))
   .handler(async ({ data, context }) => {
     if (!context) throw new Error("Não autenticado.");
-    const membership = await requireSgaWriter(context.supabase, context.userId, [
-      "Administrador",
-      "Secretaria",
-      "Professor",
-    ]);
+    const membership = await requireSgaWriterForWrite(
+      "pedagogica",
+      context.supabase,
+      context.userId,
+      ["Administrador", "Secretaria", "Professor"],
+    );
     const db = await loadSgaAdminClient();
     const { data: updated, error } = await db
       .from("siga_assessment_items")
@@ -1616,11 +1655,12 @@ export const deleteAssessmentItem = createServerFn({ method: "POST" })
   .validator((input: unknown) => deleteAssessmentInputSchema.parse(input))
   .handler(async ({ data, context }) => {
     if (!context) throw new Error("Não autenticado.");
-    const membership = await requireSgaWriter(context.supabase, context.userId, [
-      "Administrador",
-      "Secretaria",
-      "Professor",
-    ]);
+    const membership = await requireSgaWriterForWrite(
+      "pedagogica",
+      context.supabase,
+      context.userId,
+      ["Administrador", "Secretaria", "Professor"],
+    );
     const db = await loadSgaAdminClient();
 
     // Check if assessment scores exist
@@ -1694,6 +1734,7 @@ export const getStudentAcademicHistory = createServerFn({ method: "GET" })
     const membership = await resolveSgaMembershipAdmin(context.userId);
     if (!membership) throw new Error("Sem membership activa nesta escola.");
     const db = await loadSgaAdminClient();
+    assertCanSeeStudent(await loadStudentScope(db, membership, context.userId), data.studentId);
 
     const { data: enrollments, error: enrollmentsError } = await db
       .from("enrollments")
@@ -1954,10 +1995,12 @@ export const addProgramSubject = createServerFn({ method: "POST" })
   .validator((input: unknown) => addProgramSubjectInputSchema.parse(input))
   .handler(async ({ data, context }) => {
     if (!context) throw new Error("Não autenticado.");
-    const membership = await requireSgaWriter(context.supabase, context.userId, [
-      "Administrador",
-      "Secretaria",
-    ]);
+    const membership = await requireSgaWriterForWrite(
+      "pedagogica",
+      context.supabase,
+      context.userId,
+      ["Administrador", "Secretaria"],
+    );
     const db = await loadSgaAdminClient();
 
     const { error } = await db.from("program_subjects").insert({
@@ -1982,10 +2025,12 @@ export const removeProgramSubject = createServerFn({ method: "POST" })
   .validator((input: unknown) => removeProgramSubjectInputSchema.parse(input))
   .handler(async ({ data, context }) => {
     if (!context) throw new Error("Não autenticado.");
-    const membership = await requireSgaWriter(context.supabase, context.userId, [
-      "Administrador",
-      "Secretaria",
-    ]);
+    const membership = await requireSgaWriterForWrite(
+      "pedagogica",
+      context.supabase,
+      context.userId,
+      ["Administrador", "Secretaria"],
+    );
     const db = await loadSgaAdminClient();
 
     const { error } = await db
@@ -2014,10 +2059,12 @@ export const applyCurriculumToClassGroup = createServerFn({ method: "POST" })
   .validator((input: unknown) => applyCurriculumToClassGroupInputSchema.parse(input))
   .handler(async ({ data, context }) => {
     if (!context) throw new Error("Não autenticado.");
-    const membership = await requireSgaWriter(context.supabase, context.userId, [
-      "Administrador",
-      "Secretaria",
-    ]);
+    const membership = await requireSgaWriterForWrite(
+      "pedagogica",
+      context.supabase,
+      context.userId,
+      ["Administrador", "Secretaria"],
+    );
     const db = await loadSgaAdminClient();
 
     const { data: group } = await db
@@ -2085,7 +2132,12 @@ export const updateProgramGradingProfile = createServerFn({ method: "POST" })
   .validator((input: unknown) => updateProgramGradingProfileInputSchema.parse(input))
   .handler(async ({ data, context }) => {
     if (!context) throw new Error("Não autenticado.");
-    const membership = await requireSgaWriter(context.supabase, context.userId, ["Administrador"]);
+    const membership = await requireSgaWriterForWrite(
+      "pedagogica",
+      context.supabase,
+      context.userId,
+      ["Administrador"],
+    );
     const db = await loadSgaAdminClient();
 
     const { error } = await db

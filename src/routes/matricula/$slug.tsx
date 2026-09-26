@@ -1,4 +1,6 @@
 import { useState, type FormEvent } from "react";
+import { InlineLoading } from "@/components/ui/inline-loading";
+import { publicErrorMessage } from "@/lib/public-error";
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { CheckCircle2, LoaderCircle } from "lucide-react";
@@ -101,7 +103,7 @@ function PublicEnrollmentPage() {
       });
       setSent(true);
     } catch (submitError) {
-      setError(submitError instanceof Error ? submitError.message : "Não foi possível enviar.");
+      setError(publicErrorMessage(submitError, "Não foi possível enviar."));
     } finally {
       setSaving(false);
     }
@@ -146,18 +148,21 @@ function PublicEnrollmentPage() {
         <section className="rounded-3xl border border-border bg-card/95 p-6 shadow-2xl backdrop-blur">
           {formQuery.isLoading ? (
             <div className="flex justify-center py-16">
-              <LoaderCircle className="size-7 animate-spin text-primary" />
+              <InlineLoading label="A carregar o formulário…" />
             </div>
           ) : formQuery.isError ? (
-            <p className="py-10 text-center text-sm text-destructive">
-              {formQuery.error instanceof Error ? formQuery.error.message : "Link indisponível."}
-            </p>
+            <div className="space-y-2 py-10 text-center">
+              <p className="font-medium text-foreground">
+                {publicErrorMessage(formQuery.error, "Este link de matrícula não está disponível.")}
+              </p>
+              <p className="text-sm text-muted-foreground">Confirme o link com a escola.</p>
+            </div>
           ) : sent ? (
             <div className="py-10 text-center">
               <CheckCircle2 className="mx-auto size-10 text-primary" />
-              <h2 className="mt-4 font-display text-2xl font-extrabold">Candidatura enviada</h2>
+              <h2 className="mt-4 font-display text-xl font-semibold">Candidatura enviada</h2>
               <p className="mt-2 text-sm text-muted-foreground">
-                A secretaria vai rever os dados e contactá-lo para confirmar a matrícula.
+                A secretaria vai contactá-lo para confirmar.
               </p>
               {receipt ? (
                 <p className="mt-3 text-sm font-semibold text-foreground">
@@ -218,7 +223,7 @@ function PublicEnrollmentPage() {
           ) : (
             <form className="space-y-4" onSubmit={(event) => void onSubmit(event)}>
               <div>
-                <h2 className="font-display text-xl font-extrabold">Dados do aluno</h2>
+                <h2 className="font-display text-lg font-semibold">Dados do aluno</h2>
                 {form?.subtitle ? (
                   <p className="mt-1 text-sm text-muted-foreground">{form.subtitle}</p>
                 ) : null}

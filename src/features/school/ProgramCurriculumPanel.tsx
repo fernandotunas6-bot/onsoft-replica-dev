@@ -121,9 +121,7 @@ export function ProgramCurriculumPanel({
             .sort(([a], [b]) => a - b)
             .map(([sem, items]) => (
               <div key={sem} className="space-y-1.5">
-                <p className="text-xs font-bold uppercase tracking-wide text-muted-foreground">
-                  {sem}.º Semestre
-                </p>
+                <p className="text-xs font-bold text-muted-foreground">{sem}.º Semestre</p>
                 <div className="divide-y divide-border rounded-lg border border-border bg-card">
                   {items.map((entry) => (
                     <div

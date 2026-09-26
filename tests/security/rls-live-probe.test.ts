@@ -92,9 +92,14 @@ const MUST_NOT_LEAK: Array<{ table: string; why: string }> = [
 ];
 
 describe.skipIf(!canProbe)("sonda de isolamento contra a base real", () => {
-  const anon = createClient(SUPABASE_URL, ANON_KEY, {
-    auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
-  });
+  // O corpo do describe corre mesmo quando é saltado (recolha dos testes):
+  // sem credenciais, criar o cliente aqui rebentava o ficheiro inteiro em vez
+  // de o saltar. Só se cria quando há o que sondar.
+  const anon = canProbe
+    ? createClient(SUPABASE_URL, ANON_KEY, {
+        auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
+      })
+    : (null as unknown as ReturnType<typeof createClient>);
 
   for (const { table, why } of MUST_NOT_LEAK) {
     it(`${table} não devolve linhas a um pedido anónimo (${why})`, async () => {

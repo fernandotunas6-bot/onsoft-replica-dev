@@ -2,7 +2,11 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { publicDatabaseError } from "@/integrations/supabase/server-error";
-import { loadSgaAdminClient, requireSgaWriter } from "@/integrations/supabase/sga-admin";
+import {
+  loadSgaAdminClient,
+  requireSgaWriterFor,
+  requireSgaWriterForWrite,
+} from "@/integrations/supabase/sga-admin";
 
 const audienceSchema = z.object({
   graduationYear: z.number().int().min(1950).max(2100).optional(),
@@ -17,8 +21,12 @@ const audienceSchema = z.object({
     .default("general"),
 });
 
-async function adminContext(userId: string) {
-  const membership = await requireSgaWriter(userId, ["Administrador", "Secretaria"]);
+async function adminContext(userId: string, mode: "read" | "write" = "read") {
+  const membership = await (mode === "write" ? requireSgaWriterForWrite : requireSgaWriterFor)(
+    "pessoas",
+    userId,
+    ["Administrador", "Secretaria"],
+  );
   const db = await loadSgaAdminClient();
   return { membership, db };
 }

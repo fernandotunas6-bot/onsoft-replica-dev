@@ -5,11 +5,11 @@ import { supabase } from "@/integrations/supabase/client";
 import { ListPaginationBar } from "@/components/filters/ListPaginationBar";
 import {
   AlertCircle,
-  Award,
   Banknote,
   ChevronDown,
   CreditCard,
   Download,
+  FileBadge,
   FileDown,
   FileText,
   FileUp,
@@ -368,6 +368,7 @@ function FaturasPage() {
     const validationCode = documentValidationCode([fatura.numero, receiptNumber, fatura.processo]);
     await issuePrintDocument({
       tipo: kind === "fatura" ? "Fatura escolar" : "Recibo de pagamento",
+      amountLabel: kwanza(kind === "fatura" ? fatura.valor : amount),
       school: financeSchool,
       student: {
         fullName: fatura.aluno,
@@ -613,7 +614,7 @@ function FaturasPage() {
                     onClick={exportarFaturasOficial}
                     className="gap-2 text-xs cursor-pointer"
                   >
-                    <Award className="size-3.5 text-primary" /> Relatório Oficial PDF
+                    <FileBadge className="size-3.5 text-primary" /> Relatório Oficial PDF
                   </DropdownMenuItem>
                   <DropdownMenuItem
                     onClick={exportarFaturasPdf}
@@ -1109,8 +1110,11 @@ function FaturasPage() {
                             title="Cancelar fatura"
                             description={`A fatura ${f.numero} de ${f.aluno} sai da lista de cobrança. Recibos existentes impedem esta operação.`}
                             confirmLabel="Cancelar fatura"
-                            onConfirm={async () => {
-                              await cancelInvoice({ data: { invoiceId: f.id } });
+                            reasonLabel="Motivo da anulação"
+                            onConfirm={async (reason) => {
+                              await cancelInvoice({
+                                data: { invoiceId: f.id, reason: reason ?? "" },
+                              });
                               await Promise.all([
                                 queryClient.invalidateQueries({
                                   queryKey: ["finance", "invoices"],

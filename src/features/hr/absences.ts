@@ -1,7 +1,11 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { publicDatabaseError } from "@/integrations/supabase/server-error";
-import { loadSgaAdminClient, resolveSgaMembershipAdmin } from "@/integrations/supabase/sga-admin";
+import {
+  assertModuleNotBlocked,
+  loadSgaAdminClient,
+  resolveSgaMembershipAdmin,
+} from "@/integrations/supabase/sga-admin";
 import {
   hrAbsenceTypeSchema,
   reviewHrAbsenceInputSchema,
@@ -12,12 +16,14 @@ import {
 
 const ABSENCE_ADMIN_ROLES = new Set(["Administrador", "Tesouraria"]);
 
-async function requireAbsenceAdmin(userId: string) {
+async function requireAbsenceAdmin(userId: string, mode: "read" | "write" = "read") {
   const membership = await resolveSgaMembershipAdmin(userId);
   if (!membership) throw new Error("Sem vínculo activo com uma escola.");
   if (!ABSENCE_ADMIN_ROLES.has(membership.appRole)) {
     throw new Error("Sem permissão para rever faltas e assiduidade.");
   }
+  // Permissões por módulo (Nenhum/Leitura) também valem no RH.
+  await assertModuleNotBlocked(membership.schoolId, userId, "financeiro", mode);
   return membership;
 }
 
@@ -201,7 +207,7 @@ export const reviewHrAbsence = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((input: unknown) => reviewHrAbsenceInputSchema.parse(input))
   .handler(async ({ data, context }) => {
-    const membership = await requireAbsenceAdmin(context.userId);
+    const membership = await requireAbsenceAdmin(context.userId, "write");
     const db = await loadSgaAdminClient();
     const now = new Date().toISOString();
 

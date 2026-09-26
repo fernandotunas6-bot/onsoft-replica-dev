@@ -55,6 +55,24 @@ const MIGRADOS = [
  * na contagem de dívida abaixo.
  */
 const PRIVILEGIO_POR_DESENHO = new Set([
+  // Regista cada documento oficial emitido (audit_logs, só o servidor grava) e
+  // verifica-o publicamente, sem sessão, a partir do código impresso.
+  "src/features/documents/verification.ts",
+
+  // Grava em `audit_logs`, que não tem política de escrita para utilizadores:
+  // o registo de auditoria só é escrito pelo servidor.
+  "src/features/audit/record-audit.ts",
+
+  // O professor grava a sua escolha de visibilidade do contacto numa entrada
+  // de `school_settings`, que o RLS só deixa escrever à administração. O
+  // servidor limita a escrita ao `teacher_id` da própria conta.
+  "src/features/people/teacher-contact-visibility.ts",
+
+  // Agenda do aluno no painel inicial. O RLS não deixa o aluno ler matrículas,
+  // turmas nem disciplinas (can_read_students / academic.*.read). O servidor
+  // só responde ao papel Aluno e só com a matrícula activa da própria conta.
+  "src/features/dashboard/student-agenda.ts",
+
   // Corre antes de existir sessão: resolve BI → e-mail no ecrã de entrada.
   // Não há JWT para levar, logo não há cliente de utilizador possível.
   "src/features/access/bi-login.ts",

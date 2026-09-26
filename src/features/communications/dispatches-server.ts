@@ -1,7 +1,12 @@
 import { z } from "zod";
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { loadSgaAdminClient, resolveSgaMembershipAdmin } from "@/integrations/supabase/sga-admin";
+import { publicDatabaseError } from "@/integrations/supabase/server-error";
+import {
+  loadSgaAdminClient,
+  requireSgaWriterFor,
+  resolveSgaMembershipAdmin,
+} from "@/integrations/supabase/sga-admin";
 
 export const listDispatchesInputSchema = z.object({
   channel: z.enum(["email", "sms", "whatsapp", "all"]).default("all"),
@@ -17,8 +22,11 @@ export const listSchoolCommunicationDispatches = createServerFn({ method: "GET" 
   .middleware([requireSupabaseAuth])
   .validator((input: unknown) => listDispatchesInputSchema.parse(input ?? {}))
   .handler(async ({ data, context }) => {
-    const membership = await resolveSgaMembershipAdmin(context.userId);
-    if (!membership) throw new Error("Sem vínculo ativo com esta escola.");
+    if (!context) throw new Error("Não autenticado.");
+    const membership = await requireSgaWriterFor("pedagogica", context.supabase, context.userId, [
+      "Administrador",
+      "Secretaria",
+    ]);
 
     const db = await loadSgaAdminClient();
     let query = db
@@ -39,7 +47,7 @@ export const listSchoolCommunicationDispatches = createServerFn({ method: "GET" 
 
     const { data: rows, error } = await query;
     if (error) {
-      throw new Error(`Falha ao carregar despachos de comunicação: ${error.message}`);
+      throw publicDatabaseError(error, "Falha ao carregar despachos de comunicação.");
     }
 
     return (rows ?? []).map((row: Record<string, unknown>) => ({
@@ -60,8 +68,11 @@ export const listSchoolCommunicationDispatches = createServerFn({ method: "GET" 
 export const getCommunicationDispatchStats = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    const membership = await resolveSgaMembershipAdmin(context.userId);
-    if (!membership) throw new Error("Sem vínculo ativo com esta escola.");
+    if (!context) throw new Error("Não autenticado.");
+    const membership = await requireSgaWriterFor("pedagogica", context.supabase, context.userId, [
+      "Administrador",
+      "Secretaria",
+    ]);
 
     const db = await loadSgaAdminClient();
     const { data: rows } = await db

@@ -3,7 +3,7 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { publicDatabaseError } from "@/integrations/supabase/server-error";
 import {
   loadSgaAdminClient,
-  requireSgaWriter,
+  requireSgaWriterForWrite,
   resolveSgaMembershipAdmin,
 } from "@/integrations/supabase/sga-admin";
 import {
@@ -221,6 +221,11 @@ async function saveComponents(
   }
 }
 
+function isLessonPlanStaff(membership: { appRole: string; allAppRoles?: string[] }) {
+  const roles = membership.allAppRoles ?? [membership.appRole];
+  return ["Administrador", "Secretaria", "Professor"].some((role) => roles.includes(role));
+}
+
 export const listLessonPlans = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .validator((input: unknown) => listLessonPlansInputSchema.parse(input ?? {}))
@@ -237,6 +242,8 @@ export const listLessonPlans = createServerFn({ method: "GET" })
       .eq("school_id", membership.schoolId)
       .order("updated_at", { ascending: false })
       .limit(data.limit);
+    // Rascunhos são do corpo docente; alunos e encarregados só vêem os publicados.
+    if (!isLessonPlanStaff(membership)) query = query.eq("status", "published");
     if (data.classGroupId) query = query.eq("class_group_id", data.classGroupId);
     if (data.subjectId) query = query.eq("subject_id", data.subjectId);
     if (data.term) query = query.eq("term", data.term);
@@ -336,6 +343,9 @@ export const getLessonPlan = createServerFn({ method: "GET" })
       .maybeSingle();
     if (error) throw publicDatabaseError(error, "Não foi possível carregar o plano de aula.");
     if (!plan) throw new Error("Plano de aula não encontrado.");
+    if (!isLessonPlanStaff(membership) && plan.status !== "published") {
+      throw new Error("Plano de aula não encontrado.");
+    }
     const { data: components } = await db
       .from("siga_lesson_plan_components")
       .select("id, kind, name, planned_count, sequence")
@@ -348,11 +358,12 @@ export const createLessonPlan = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((input: unknown) => createLessonPlanInputSchema.parse(input))
   .handler(async ({ data, context }) => {
-    const membership = await requireSgaWriter(context.supabase, context.userId, [
-      "Administrador",
-      "Secretaria",
-      "Professor",
-    ]);
+    const membership = await requireSgaWriterForWrite(
+      "pedagogica",
+      context.supabase,
+      context.userId,
+      ["Administrador", "Secretaria", "Professor"],
+    );
     const db = await loadSgaAdminClient();
     const { data: created, error } = await db
       .from("siga_lesson_plans")
@@ -396,11 +407,12 @@ export const updateLessonPlan = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((input: unknown) => updateLessonPlanInputSchema.parse(input))
   .handler(async ({ data, context }) => {
-    const membership = await requireSgaWriter(context.supabase, context.userId, [
-      "Administrador",
-      "Secretaria",
-      "Professor",
-    ]);
+    const membership = await requireSgaWriterForWrite(
+      "pedagogica",
+      context.supabase,
+      context.userId,
+      ["Administrador", "Secretaria", "Professor"],
+    );
     const db = await loadSgaAdminClient();
     const { data: updated, error } = await db
       .from("siga_lesson_plans")
@@ -438,11 +450,12 @@ export const deleteLessonPlan = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((input: unknown) => deleteLessonPlanInputSchema.parse(input))
   .handler(async ({ data, context }) => {
-    const membership = await requireSgaWriter(context.supabase, context.userId, [
-      "Administrador",
-      "Secretaria",
-      "Professor",
-    ]);
+    const membership = await requireSgaWriterForWrite(
+      "pedagogica",
+      context.supabase,
+      context.userId,
+      ["Administrador", "Secretaria", "Professor"],
+    );
     const db = await loadSgaAdminClient();
     // Apagar o plano remove as suas definições de componentes (cascade); os itens do
     // Centro de Avaliação já gerados ficam (SET NULL), incluindo notas já lançadas.
