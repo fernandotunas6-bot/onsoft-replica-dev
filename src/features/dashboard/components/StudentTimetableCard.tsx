@@ -1,7 +1,6 @@
 import type { CSSProperties } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Clock } from "lucide-react";
-import { IconChip } from "@/components/ui/icon-chip";
 import { InlineLoading } from "@/components/ui/inline-loading";
 import { todayInLuanda } from "@/features/calendar/dates";
 import { weekdayJsFromIso } from "@/features/dashboard/school-today";
@@ -39,7 +38,7 @@ export function StudentTimetableCard({ studentId }: { studentId?: string | null 
     <section className="surface-card p-5 space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="flex items-center gap-2.5">
-          <IconChip icon={Clock} size="sm" label="Horário da semana" />
+          <Clock className="size-4 text-muted-foreground" aria-hidden />
           <h2 className="text-sm font-medium">
             Horário da semana
             {timetable?.className ? (
@@ -75,7 +74,7 @@ export function StudentTimetableCard({ studentId }: { studentId?: string | null 
                 data-today={isToday || undefined}
                 className={cn(
                   "rounded-xl border p-3 space-y-2",
-                  isToday ? "border-primary/40 bg-primary-soft/40" : "border-border bg-card",
+                  isToday ? "border-primary/30 bg-primary-soft/30" : "border-border",
                 )}
               >
                 <p className="text-sm font-medium text-foreground">
@@ -90,7 +89,9 @@ export function StudentTimetableCard({ studentId }: { studentId?: string | null 
                         key={`${lesson.startsAt}-${index}`}
                         className={cn(
                           "rounded-lg px-2 py-1.5",
-                          current ? "bg-primary text-primary-foreground" : "bg-secondary/60",
+                          current
+                            ? "bg-primary-soft text-primary-strong ring-1 ring-primary/30"
+                            : "bg-muted/60",
                         )}
                       >
                         <p className="flex items-center justify-between gap-2 whitespace-nowrap text-xs tabular-nums opacity-80">

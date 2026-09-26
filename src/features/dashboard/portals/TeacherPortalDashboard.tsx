@@ -3,29 +3,24 @@ import { Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import {
   BookOpen,
+  Building2,
   CalendarDays,
+  CheckCheck,
   CheckSquare,
   Clock,
-  NotebookPen,
-  PieChart,
-  UserCheck,
-  AlertCircle,
-  ChevronRight,
-  CheckCheck,
-  Building2,
   FileText,
   FolderOpen,
+  NotebookPen,
+  PieChart,
   QrCode,
 } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { useCurrentAccount } from "@/features/auth/use-current-account";
 import { useSchoolSettings } from "@/features/auth/use-school-settings";
 import { todayInLuanda } from "@/features/calendar/dates";
 import { listTeacherAttendanceSessions } from "@/features/pedagogica/attendance-server";
 import { listPedagogicalWorkspace } from "@/features/academic/server";
 import { nowTimeInLuanda, pickNextLesson } from "@/features/dashboard/school-today";
-import { IconChip } from "@/components/ui/icon-chip";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { AttendanceCallDialog } from "@/features/pedagogica/components/AttendanceCallDialog";
 import { SpotlightRail } from "@/features/spotlight/SpotlightRail";
 import { DashboardCalendarCard } from "@/features/dashboard/components/DashboardCalendarCard";
@@ -35,6 +30,18 @@ import {
   teacherGradesSearch,
   teacherLessonPlansSearch,
 } from "@/features/hr/teacher-classroom-links";
+import {
+  PortalEmpty,
+  PortalHeader,
+  PortalList,
+  PortalLoading,
+  PortalQuickLinks,
+  PortalSection,
+  PortalStat,
+  PortalStats,
+  type PortalQuickLink,
+} from "./portal-ui";
+import { greetingFor } from "./portal-format";
 
 export function TeacherPortalDashboard() {
   const currentUser = useCurrentAccount();
@@ -54,9 +61,6 @@ export function TeacherPortalDashboard() {
     queryFn: () => listPedagogicalWorkspace({}),
   });
 
-  const now = new Date();
-  const greeting =
-    now.getHours() < 12 ? "Bom dia" : now.getHours() < 19 ? "Boa tarde" : "Boa noite";
   const firstName = currentUser.name.split(" ")[0];
 
   const sessions = sessionsQuery.data?.sessions ?? [];
@@ -69,336 +73,203 @@ export function TeacherPortalDashboard() {
     setCallDialogOpen(true);
   };
 
-  const teacherMenu: Array<{
-    label: string;
-    icon: typeof QrCode;
-    to: "/professor/presenca" | "/pedagogica" | "/planos-aula" | "/arquivos";
-    search?: { tab: "chamada" | "notas" | "turmas" | "horarios" };
-  }> = [
-    { label: "Assinar presença (QR)", icon: QrCode, to: "/professor/presenca" },
-    { label: "Fazer Chamada", icon: CheckSquare, to: "/pedagogica", search: { tab: "chamada" } },
+  const teacherLinks: PortalQuickLink[] = [
+    { label: "Fazer chamada", icon: CheckSquare, to: "/pedagogica", search: { tab: "chamada" } },
+    { label: "Lançar notas", icon: PieChart, to: "/pedagogica", search: { tab: "notas" } },
+    { label: "Turmas e disciplinas", icon: BookOpen, to: "/pedagogica", search: { tab: "turmas" } },
     {
-      label: "Lançar Notas e Avaliações",
-      icon: PieChart,
-      to: "/pedagogica",
-      search: { tab: "notas" },
-    },
-    {
-      label: "Minhas Turmas e Disciplinas",
-      icon: BookOpen,
-      to: "/pedagogica",
-      search: { tab: "turmas" },
-    },
-    {
-      label: "Horário de Aulas",
+      label: "Horário de aulas",
       icon: CalendarDays,
       to: "/pedagogica",
       search: { tab: "horarios" },
     },
-    { label: "Planos de Aula", icon: NotebookPen, to: "/planos-aula" },
-    { label: "Materiais e Ficheiros", icon: FileText, to: "/arquivos" },
+    { label: "Planos de aula", icon: NotebookPen, to: "/planos-aula" },
+    { label: "Materiais e ficheiros", icon: FileText, to: "/arquivos" },
   ];
+  const completedCount = sessions.filter((s) => s.status === "completed").length;
+  const time = (value: string | null | undefined) => (value ? String(value).slice(0, 5) : "");
 
   return (
-    <div className="space-y-6">
-      {/* CABEÇALHO DO PROFESSOR */}
-      <div className="flex flex-wrap items-end justify-between gap-4 border-b border-border pb-5">
-        <div>
-          <div className="flex items-center gap-2 text-xs font-semibold text-primary">
-            <UserCheck className="size-4" /> Portal do Professor · {selectedYearLabel}
-          </div>
-          <h1 className="mt-1 text-3xl font-extrabold tracking-tight">
-            {greeting}, Professor {firstName}!
-          </h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Assine a presença por QR, faça a chamada da turma, lance notas e prepare planos de aula.
-          </p>
-
-          <SpotlightRail
-            surface="home"
-            className="mt-4 max-w-xl"
-            role={currentUser.role}
-            grants={currentUser.grants}
-            onNavigate={() => undefined}
-            onOpenSettings={openSettingsPanel}
-          />
-        </div>
-
-        {pendingCount > 0 ? (
-          <div className="flex flex-wrap items-center gap-2">
-            <Badge
-              variant="outline"
-              className="bg-warning/10 text-warning-foreground border-warning/30 px-3 py-1.5 text-xs font-extrabold animate-pulse"
-            >
-              <AlertCircle className="size-3.5 mr-1" /> {pendingCount} Chamada(s) Pendente(s) Hoje
-            </Badge>
-            <Button asChild size="sm" className="gap-1.5 font-bold">
-              <Link to="/professor/presenca">
-                <QrCode className="size-3.5" /> Assinar presença (QR)
-              </Link>
-            </Button>
-          </div>
-        ) : (
-          <Button asChild size="sm" variant="outline" className="gap-1.5 font-bold">
+    <div className="space-y-5">
+      <PortalHeader
+        eyebrow={`Portal do Professor · ${selectedYearLabel}`}
+        title={`${greetingFor()}, Professor ${firstName}`}
+        subtitle="Assine o QR de presença antes da chamada: é o que conta para a hora/aula."
+        actions={
+          <Button asChild size="sm" variant="outline" className="gap-1.5 text-xs font-medium">
             <Link to="/professor/presenca">
               <QrCode className="size-3.5" /> Assinar presença (QR)
             </Link>
           </Button>
-        )}
-      </div>
+        }
+      >
+        <SpotlightRail
+          surface="home"
+          className="mt-3 max-w-xl"
+          role={currentUser.role}
+          grants={currentUser.grants}
+          onNavigate={() => undefined}
+          onOpenSettings={openSettingsPanel}
+        />
+      </PortalHeader>
 
       {nextLesson ? (
-        <section className="surface-card border-2 border-primary/25 p-5">
-          <p className="text-xs font-semibold text-primary">Próxima aula</p>
-          <div className="mt-2 flex flex-wrap items-end justify-between gap-4">
-            <div>
-              <h2 className="text-xl font-extrabold tracking-tight">{nextLesson.subject_name}</h2>
-              <p className="mt-1 text-sm text-muted-foreground">
-                {nextLesson.class_group_name}
-                {nextLesson.room ? ` · Sala ${nextLesson.room}` : ""}
-              </p>
-              <p className="mt-1 font-mono text-sm font-semibold">
-                {String(nextLesson.starts_at).slice(0, 5)}–{String(nextLesson.ends_at).slice(0, 5)}
-              </p>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              <Button asChild size="sm" variant="outline" className="gap-1.5 font-bold">
-                <Link to="/professor/presenca">
-                  <QrCode className="size-3.5" /> QR presença
-                </Link>
-              </Button>
-              <Button
-                size="sm"
-                className="gap-1.5 font-bold"
-                onClick={() => openCall(nextLesson.id)}
+        <section className="surface-card flex flex-wrap items-center justify-between gap-4 p-5">
+          <div className="min-w-0">
+            <p className="text-xs text-muted-foreground">Próxima aula</p>
+            <p className="text-lg font-medium leading-tight">{nextLesson.subject_name}</p>
+            <p className="text-sm text-muted-foreground">
+              {time(nextLesson.starts_at)}–{time(nextLesson.ends_at)} ·{" "}
+              {nextLesson.class_group_name}
+              {nextLesson.room ? ` · Sala ${nextLesson.room}` : ""}
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <Button size="sm" className="gap-1.5 text-xs" onClick={() => openCall(nextLesson.id)}>
+              <CheckSquare className="size-3.5" /> Fazer chamada
+            </Button>
+            <Button asChild size="sm" variant="ghost" className="gap-1.5 text-xs">
+              <Link
+                to="/planos-aula"
+                search={teacherLessonPlansSearch(nextLesson.class_group_id, nextLesson.subject_id)}
               >
-                <CheckSquare className="size-3.5" /> Marcar presença
-              </Button>
-              <Button asChild size="sm" variant="ghost" className="gap-1.5 font-bold">
-                <Link
-                  to="/planos-aula"
-                  search={teacherLessonPlansSearch(
-                    nextLesson.class_group_id,
-                    nextLesson.subject_id,
-                  )}
-                >
-                  <NotebookPen className="size-3.5" /> Ver plano
-                </Link>
-              </Button>
-            </div>
+                <NotebookPen className="size-3.5" /> Plano de aula
+              </Link>
+            </Button>
           </div>
         </section>
       ) : null}
 
-      {/* QUADRO DE INDICADORES PRODUTIVOS */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <div className="surface-card p-5 space-y-2 border-l-4 border-l-primary">
-          <div className="flex items-center justify-between text-muted-foreground text-xs font-semibold">
-            <span>Aulas de Hoje</span>
-            <Clock className="size-4 text-primary" />
-          </div>
-          <p className="text-3xl font-extrabold text-foreground">{sessions.length}</p>
-          <p className="text-xs text-muted-foreground">
-            {sessions.filter((s) => s.status === "completed").length} chamadas concluídas
-          </p>
-        </div>
+      <PortalStats columns={3}>
+        <PortalStat
+          label="Aulas de hoje"
+          icon={Clock}
+          loading={sessionsQuery.isLoading}
+          value={sessions.length}
+          hint={`${completedCount} ${completedCount === 1 ? "chamada feita" : "chamadas feitas"}`}
+        />
+        <PortalStat
+          label="Chamadas por fazer"
+          icon={CheckCheck}
+          loading={sessionsQuery.isLoading}
+          value={pendingCount}
+          hint={pendingCount > 0 ? "Faça a chamada durante a aula." : "Tudo em dia."}
+          attention={pendingCount > 0}
+        />
+        <PortalStat
+          label="Turmas atribuídas"
+          icon={Building2}
+          loading={workspaceQuery.isLoading}
+          value={teacherClasses.length}
+          hint="Neste ano lectivo"
+        />
+      </PortalStats>
 
-        <div className="surface-card p-5 space-y-2 border-l-4 border-l-warning">
-          <div className="flex items-center justify-between text-muted-foreground text-xs font-semibold">
-            <span>Presenças Pendentes</span>
-            <AlertCircle className="size-4 text-warning" />
-          </div>
-          <p className="text-3xl font-extrabold text-foreground">{pendingCount}</p>
-          <p className="text-xs text-warning-foreground font-semibold">
-            {pendingCount > 0 ? "Requer chamada em aula" : "Todas as chamadas em dia!"}
-          </p>
-        </div>
-
-        <div className="surface-card p-5 space-y-2 border-l-4 border-l-info">
-          <div className="flex items-center justify-between text-muted-foreground text-xs font-semibold">
-            <span>Turmas Atribuídas</span>
-            <Building2 className="size-4 text-info" />
-          </div>
-          <p className="text-3xl font-extrabold text-foreground">{teacherClasses.length}</p>
-          <p className="text-xs text-muted-foreground">Atribuição pedagógica ativa</p>
-        </div>
-
-        <div className="surface-card p-5 space-y-2 border-l-4 border-l-success">
-          <div className="flex items-center justify-between text-muted-foreground text-xs font-semibold">
-            <span>Ano lectivo</span>
-            <NotebookPen className="size-4 text-success" />
-          </div>
-          <p className="text-lg font-extrabold leading-tight text-foreground">
-            {selectedYearLabel}
-          </p>
-          <p className="text-xs text-muted-foreground">Contexto pedagógico activo</p>
-        </div>
-      </div>
-
-      {/* WIDGET PRIORITÁRIO: AULAS DE HOJE E BOTÃO DE CHAMADA RÁPIDA */}
-      <div className="surface-card p-5 space-y-4 border-2 border-primary/20">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <h2 className="text-lg font-extrabold flex items-center gap-2">
-              <CheckCheck className="size-5 text-primary" /> Aulas de Hoje e Chamada Rápida
-            </h2>
-            <p className="text-xs text-muted-foreground">
-              Para hora/aula remunerada, assine primeiro o QR em Presença. Depois marque os alunos
-              aqui ou no telemóvel.
-            </p>
-          </div>
-          <div className="flex flex-wrap items-center gap-2">
-            <Button asChild size="sm" variant="outline" className="gap-1.5 text-xs font-bold">
-              <Link to="/professor/presenca">
-                <QrCode className="size-3.5" /> QR de presença
-              </Link>
-            </Button>
-            <span className="text-xs font-bold text-muted-foreground font-mono">
-              {new Date().toLocaleDateString("pt-PT", {
-                weekday: "long",
-                day: "numeric",
-                month: "long",
-              })}
-            </span>
-          </div>
-        </div>
-
+      <PortalSection
+        title="Aulas de hoje"
+        icon={CheckSquare}
+        action={{ label: "Ver chamadas", to: "/pedagogica", search: { tab: "chamada" } }}
+      >
         {sessionsQuery.isLoading ? (
-          <div className="py-8 text-center text-xs text-muted-foreground animate-pulse">
-            A carregar as aulas de hoje...
-          </div>
+          <PortalLoading label="A carregar as aulas de hoje…" />
         ) : sessions.length === 0 ? (
-          <div className="py-8 text-center text-xs text-muted-foreground border border-dashed border-border rounded-xl">
-            Não existem aulas agendadas para hoje nas tuas turmas atribuídas.
-          </div>
+          <PortalEmpty>Sem aulas marcadas para hoje nas suas turmas.</PortalEmpty>
         ) : (
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            {sessions.map((sess) => (
-              <div
-                key={sess.id}
-                className="p-4 rounded-xl border border-border bg-card space-y-3 flex flex-col justify-between hover:border-primary/40 transition-colors"
-              >
-                <div className="flex items-start justify-between gap-2">
-                  <div>
-                    <Badge variant="outline" className="text-[10px] font-mono mb-1">
+          <PortalList>
+            {sessions.map((sess) => {
+              const pending = sess.status !== "completed";
+              return (
+                <li
+                  key={sess.id}
+                  className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 py-3"
+                >
+                  <div className="flex min-w-0 items-baseline gap-3">
+                    <span className="w-24 shrink-0 text-xs tabular-nums text-muted-foreground">
                       {sess.starts_at
-                        ? `${sess.starts_at}${sess.ends_at ? ` – ${sess.ends_at}` : ""}`
+                        ? `${time(sess.starts_at)}${sess.ends_at ? `–${time(sess.ends_at)}` : ""}`
                         : "Sem hora"}
-                    </Badge>
-                    <h3 className="font-extrabold text-base text-foreground leading-tight">
-                      {sess.class_group_name}
-                    </h3>
-                    <p className="text-xs text-primary font-semibold mt-0.5">{sess.subject_name}</p>
+                    </span>
+                    <div className="min-w-0">
+                      <p className="truncate text-sm">
+                        {sess.class_group_name}
+                        <span className="text-muted-foreground"> · {sess.subject_name}</span>
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        {pending ? "Chamada por fazer" : "Chamada feita"}
+                      </p>
+                    </div>
                   </div>
-                  {sess.status === "completed" ? (
-                    <Badge
+                  <div className="flex items-center gap-1">
+                    <Button
+                      type="button"
+                      size="sm"
                       variant="outline"
-                      className="bg-success/10 text-success border-success/30 text-[10px]"
+                      className="h-8 gap-1.5 text-xs"
+                      onClick={() => openCall(sess.id)}
                     >
-                      Finalizada
-                    </Badge>
-                  ) : (
-                    <Badge
-                      variant="outline"
-                      className="bg-warning/10 text-warning-foreground border-warning/30 text-[10px] animate-pulse"
+                      <CheckSquare className="size-3.5" />
+                      {pending ? "Fazer chamada" : "Ver chamada"}
+                    </Button>
+                    <Button
+                      asChild
+                      size="icon"
+                      variant="ghost"
+                      className="size-8"
+                      title="Lançar notas desta aula"
                     >
-                      Pendente
-                    </Badge>
-                  )}
-                </div>
-
-                <Button
-                  type="button"
-                  size="sm"
-                  onClick={() => {
-                    setSelectedCallSessionId(sess.id);
-                    setCallDialogOpen(true);
-                  }}
-                  className={`w-full gap-2 font-bold text-xs h-9 ${
-                    sess.status === "pending"
-                      ? "bg-primary text-primary-foreground hover:bg-primary/90 shadow-sm"
-                      : ""
-                  }`}
-                  variant={sess.status === "pending" ? "default" : "outline"}
-                >
-                  <CheckSquare className="size-4" />
-                  {sess.status === "pending" ? "Fazer chamada agora" : "Ver / Editar chamada"}
-                </Button>
-                <Button
-                  asChild
-                  type="button"
-                  size="sm"
-                  variant="ghost"
-                  className="w-full gap-1 text-xs h-8"
-                >
-                  <Link
-                    to="/pedagogica"
-                    search={teacherGradesSearch(sess.class_group_id, sess.subject_id)}
-                  >
-                    <PieChart className="size-3.5" /> Lançar notas desta aula
-                  </Link>
-                </Button>
-                <div className="grid grid-cols-2 gap-1">
-                  <Button
-                    asChild
-                    type="button"
-                    size="sm"
-                    variant="ghost"
-                    className="gap-1 text-xs h-8"
-                  >
-                    <Link
-                      to="/planos-aula"
-                      search={teacherLessonPlansSearch(sess.class_group_id, sess.subject_id)}
+                      <Link
+                        to="/pedagogica"
+                        search={teacherGradesSearch(sess.class_group_id, sess.subject_id)}
+                        aria-label="Lançar notas desta aula"
+                      >
+                        <PieChart className="size-4" />
+                      </Link>
+                    </Button>
+                    <Button
+                      asChild
+                      size="icon"
+                      variant="ghost"
+                      className="size-8"
+                      title="Plano de aula"
                     >
-                      <NotebookPen className="size-3.5" /> Plano
-                    </Link>
-                  </Button>
-                  <Button
-                    asChild
-                    type="button"
-                    size="sm"
-                    variant="ghost"
-                    className="gap-1 text-xs h-8"
-                  >
-                    <Link to="/arquivos" search={teacherClassFilesSearch(sess.class_group_id)}>
-                      <FolderOpen className="size-3.5" /> Materiais
-                    </Link>
-                  </Button>
-                </div>
-              </div>
-            ))}
-          </div>
+                      <Link
+                        to="/planos-aula"
+                        search={teacherLessonPlansSearch(sess.class_group_id, sess.subject_id)}
+                        aria-label="Plano de aula"
+                      >
+                        <NotebookPen className="size-4" />
+                      </Link>
+                    </Button>
+                    <Button
+                      asChild
+                      size="icon"
+                      variant="ghost"
+                      className="size-8"
+                      title="Materiais"
+                    >
+                      <Link
+                        to="/arquivos"
+                        search={teacherClassFilesSearch(sess.class_group_id)}
+                        aria-label="Materiais"
+                      >
+                        <FolderOpen className="size-4" />
+                      </Link>
+                    </Button>
+                  </div>
+                </li>
+              );
+            })}
+          </PortalList>
         )}
+      </PortalSection>
+
+      <div className="grid gap-5 lg:grid-cols-2">
+        <DashboardCalendarCard />
+        <PortalSection title="Acesso rápido">
+          <PortalQuickLinks items={teacherLinks} />
+        </PortalSection>
       </div>
 
-      {/* FERRAMENTAS PEDAGÓGICAS DO PROFESSOR */}
-      <div className="surface-card p-5">
-        <h2 className="text-base font-bold mb-4 flex items-center gap-2">
-          <BookOpen className="size-4 text-primary" /> Ferramentas do Professor
-        </h2>
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {teacherMenu.map((item) => (
-            <Link
-              key={item.label}
-              to={item.to}
-              {...(item.search ? { search: item.search } : {})}
-              className="flex items-center justify-between p-3.5 rounded-xl border border-border bg-card hover:bg-accent/60 transition-all group"
-            >
-              <div className="flex items-center gap-3">
-                <IconChip icon={item.icon} size="sm" tone="primary" label={item.label} />
-                <span className="text-xs font-bold text-foreground group-hover:text-primary transition-colors">
-                  {item.label}
-                </span>
-              </div>
-              <ChevronRight className="size-4 text-muted-foreground group-hover:translate-x-1 transition-transform" />
-            </Link>
-          ))}
-        </div>
-      </div>
-
-      <DashboardCalendarCard />
-
-      {/* DIÁLOGO DA CHAMADA RÁPIDA */}
       {selectedCallSessionId ? (
         <AttendanceCallDialog
           open={callDialogOpen}

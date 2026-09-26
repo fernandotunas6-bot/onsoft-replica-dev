@@ -7,31 +7,31 @@ import type { ChipTone } from "@/components/ui/icon-chip";
 import type { SpotlightItem, SpotlightTone } from "./schemas";
 
 const wash: Record<SpotlightTone, string> = {
-  primary: "bg-primary-soft",
-  info: "bg-info/15",
-  success: "bg-success/14",
-  warning: "bg-warning/16",
+  primary: "bg-primary-soft/50",
+  info: "bg-info/6",
+  success: "bg-success/6",
+  warning: "bg-warning/8",
 };
 
 const titleTone: Record<SpotlightTone, string> = {
-  primary: "text-primary",
-  info: "text-info-strong",
-  success: "text-success-strong",
-  warning: "text-warning-strong",
+  primary: "text-foreground",
+  info: "text-foreground",
+  success: "text-foreground",
+  warning: "text-foreground",
 };
 
 const bodyTone: Record<SpotlightTone, string> = {
-  primary: "text-primary/80",
-  info: "text-info-strong/80",
-  success: "text-success-strong/80",
-  warning: "text-warning-strong/80",
+  primary: "text-muted-foreground",
+  info: "text-muted-foreground",
+  success: "text-muted-foreground",
+  warning: "text-muted-foreground",
 };
 
 const buttonTone: Record<SpotlightTone, string> = {
-  primary: "bg-primary text-primary-foreground",
-  info: "bg-info text-info-foreground",
-  success: "bg-success text-success-foreground",
-  warning: "bg-warning text-warning-foreground",
+  primary: "border border-primary/30 text-primary-strong",
+  info: "border border-info/30 text-info-strong",
+  success: "border border-success/30 text-success-strong",
+  warning: "border border-warning/40 text-warning-strong",
 };
 
 const chipTone: Record<SpotlightTone, ChipTone> = {
@@ -52,7 +52,7 @@ export function SpotlightCard({
   onInternal?: () => void;
   onSettings?: (panel: string) => void;
 }) {
-  const ctaClass = `mt-3 inline-flex rounded-full px-3 py-1.5 text-xs font-semibold transition-opacity hover:opacity-90 ${buttonTone[item.tone]}`;
+  const ctaClass = `mt-3 inline-flex rounded-full px-3 py-1.5 text-xs font-medium bg-background/60 transition-colors hover:bg-background ${buttonTone[item.tone]}`;
 
   let action: ReactNode = <span className={ctaClass}>{item.cta}</span>;
   if (item.link.type === "external") {
@@ -83,10 +83,10 @@ export function SpotlightCard({
   );
 
   return (
-    <div className={`overflow-hidden rounded-2xl p-4 ${wash[item.tone]}`}>
+    <div className={`overflow-hidden rounded-2xl border border-border/60 p-4 ${wash[item.tone]}`}>
       <div className="flex items-start gap-3">
         <div className="min-w-0 flex-1">
-          <p className={`text-sm font-semibold ${titleTone[item.tone]}`}>{item.title}</p>
+          <p className={`text-sm font-medium ${titleTone[item.tone]}`}>{item.title}</p>
           <p className={`mt-0.5 text-xs ${bodyTone[item.tone]}`}>{item.body}</p>
           {action}
         </div>
