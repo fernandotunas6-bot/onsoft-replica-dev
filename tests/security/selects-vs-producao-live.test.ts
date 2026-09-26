@@ -52,7 +52,7 @@ const podeSondar = Boolean(URL_BASE && CHAVE);
  */
 const AUSENCIAS_CONHECIDAS = new Map([
   // `assessment_rule_sets` saiu daqui a 2026-09-20: a migração foi aplicada.
-  ["tenant_mailboxes", "caixas de correio por tenant — sem migração no repositório"],
+  ["tenant_mailboxes", "caixas de correio por tenant — 20260926180000, por aplicar"],
 ]);
 
 function selectsDoCodigo(): { ficheiro: string; tabela: string; colunas: string }[] {

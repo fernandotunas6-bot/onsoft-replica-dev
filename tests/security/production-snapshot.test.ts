@@ -115,13 +115,14 @@ const ANON_POLICIES_ESPERADAS = [
  *      (`20260916130000_contact_verification_and_communication_preferences.sql`).
  *      O grupo 1 está fechado.
  *   2. Caixas de correio de tenant — `tenant_mailboxes`, declarada em
- *      `supabase/APPLY_MAILBOXES.sql`, script manual também por aplicar.
+ *      `20260926180000_tenant_mailboxes_server_only.sql` (substitui o antigo
+ *      `APPLY_MAILBOXES.sql`, cujas políticas liam uma tabela inexistente).
  *   3. Importadores contra o esquema Lovable antigo — `courses`, `invoices`,
  *      `payments` e `class_schedule_slots` são nomes do esquema que o SGA nunca
  *      teve. Os importadores respectivos foram remapeados; o grupo está fechado.
  *
- * A lista existe para encolher até zero. Falta um: `tenant_mailboxes`, que
- * precisa de decisão, não só de SQL.
+ * A lista existe para encolher até zero. Tudo o que falta está em
+ * `docs/agents/SIGA_aplicar_migracoes.sql`.
  */
 /**
  * Cada entrada diz que funcionalidade fica partida enquanto a tabela não

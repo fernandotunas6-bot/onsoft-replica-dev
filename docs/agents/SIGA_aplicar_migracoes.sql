@@ -1,8 +1,9 @@
 -- SIGA Plus — SQL a aplicar no Supabase (projecto Sga), 2026-09-26
 -- Colar TUDO no SQL Editor → Run. Pode correr mais do que uma vez sem problema.
--- 8 migrações. Testado em 2026-09-26 num Postgres 16 com o esquema da
--- produção (supabase/PRODUCTION_SNAPSHOT.json): duas corridas seguidas sem
--- erros. Depois de aplicar, confirmar com docs/agents/SIGA_confirmar_migracoes.sql.
+-- 16 migrações: as 8 do SIGA de 25–26/09, as 7 do catálogo de importação
+-- (import_table_specs, sem ele a importação fica bloqueada) e tenant_mailboxes.
+-- Testado em 2026-09-26 num Postgres 16 com o esquema da produção
+-- (supabase/PRODUCTION_SNAPSHOT.json): três corridas seguidas sem erros. Depois de aplicar, confirmar com docs/agents/SIGA_confirmar_migracoes.sql.
 
 
 -- ══════════ 20260925090000_school_access_requests.sql ══════════
@@ -691,3 +692,226 @@ ALTER TABLE public.grade_score_history ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.grade_score_history FORCE ROW LEVEL SECURITY;
 REVOKE ALL ON public.grade_score_history FROM PUBLIC, anon, authenticated;
 GRANT ALL ON public.grade_score_history TO service_role;
+
+
+-- ══════════ 20260924010712_add_import_table_specs_catalog.sql ══════════
+-- Governed catalog of public SGA tables for premium import/export.
+-- Non-destructive: adds metadata only; no existing business table is modified.
+
+create table if not exists public.import_table_specs (
+  id uuid primary key default gen_random_uuid(),
+  table_schema text not null default 'public',
+  table_name text not null,
+  direct_import_policy text not null default 'review',
+  export_policy text not null default 'review',
+  sensitivity text not null default 'normal',
+  module_code text,
+  dependency_rank integer,
+  natural_key_columns jsonb not null default '[]'::jsonb,
+  fk_dependencies jsonb not null default '[]'::jsonb,
+  derived_from jsonb not null default '[]'::jsonb,
+  notes text,
+  active boolean not null default true,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  unique(table_schema, table_name),
+  check (direct_import_policy in ('allow','controlled','review','deny')),
+  check (export_policy in ('allow','controlled','review','deny')),
+  check (sensitivity in ('normal','sensitive','secret','internal'))
+);
+
+insert into public.import_table_specs
+(table_schema,table_name,direct_import_policy,export_policy,sensitivity,module_code,dependency_rank,natural_key_columns,fk_dependencies,derived_from,notes)
+select
+ 'public', t.table_name,
+ case
+   when t.table_name in ('school_integration_secrets','calendar_feed_tokens','verification_otps','audit_logs','saas_audit_logs','import_audits','finance_gateway_webhook_events','siga_file_events','siga_attendance_audits','alumni_privacy_audit','document_signatures','school_invitations') then 'deny'
+   when t.table_name in ('people','students','student_guardians','teachers','teacher_subjects','hr_employments','hr_contracts','hr_departments','hr_positions','academic_years','academic_levels','grade_levels','programs','subjects','subject_types','curriculum_areas','curriculum_subjects','curricula','campuses','rooms','school_shifts','school_shift_slots','class_groups','class_subjects','enrollments','timetable_slots','academic_schedules','terms','siga_attendance_sessions','siga_attendance_records','siga_assessment_items','siga_assessment_scores','gradebooks','grade_items','grade_scores','grade_sheets','grade_sheet_rows','report_cards','fee_plans','fee_items','finance_contracts','finance_invoices','finance_receipts','finance_payment_plans','student_status_history','student_academic_history') then 'controlled'
+   else 'review'
+ end,
+ case
+   when t.table_name in ('school_integration_secrets','calendar_feed_tokens','verification_otps','audit_logs','saas_audit_logs','import_audits','finance_gateway_webhook_events','siga_file_events','siga_attendance_audits','alumni_privacy_audit','document_signatures') then 'deny'
+   else 'review'
+ end,
+ case
+   when t.table_name in ('school_integration_secrets','calendar_feed_tokens','verification_otps','audit_logs','saas_audit_logs','finance_gateway_webhook_events') then 'secret'
+   when t.table_name like 'audit%' or t.table_name like '%_audits' then 'internal'
+   else 'normal'
+ end,
+ case
+   when t.table_name in ('people','students','student_guardians') then 'pessoas'
+   when t.table_name in ('teachers','teacher_subjects','hr_employments','hr_contracts','hr_departments','hr_positions') then 'professores'
+   when t.table_name in ('academic_years','academic_levels','grade_levels','programs','subjects','subject_types','curriculum_areas','curriculum_subjects','curricula','class_groups','class_subjects','enrollments','terms','academic_schedules','timetable_slots','campuses','rooms','school_shifts','school_shift_slots') then 'academico'
+   when t.table_name in ('siga_attendance_sessions','siga_attendance_records') then 'presencas'
+   when t.table_name in ('siga_assessment_items','siga_assessment_scores','gradebooks','grade_items','grade_scores','grade_sheets','grade_sheet_rows','report_cards') then 'avaliacoes'
+   when t.table_name like 'finance_%' or t.table_name in ('fee_plans','fee_items') then 'financeiro'
+   when t.table_name like 'alumni_%' then 'alumni'
+   else null
+ end,
+ case
+   when t.table_name='schools' then 0
+   when t.table_name in ('people','academic_years','academic_levels','campuses','school_shifts') then 10
+   when t.table_name in ('students','teachers','grade_levels','programs','subjects','rooms','hr_departments','hr_positions') then 20
+   when t.table_name in ('class_groups','class_subjects','terms','curricula','teacher_subjects','hr_employments') then 30
+   when t.table_name in ('enrollments','academic_schedules','school_shift_slots','curriculum_subjects','hr_contracts') then 40
+   when t.table_name in ('timetable_slots','fee_plans','fee_items') then 50
+   when t.table_name in ('siga_attendance_sessions','siga_assessment_items','gradebooks','grade_sheets') then 60
+   when t.table_name in ('siga_attendance_records','siga_assessment_scores','grade_items','grade_scores','grade_sheet_rows','report_cards','finance_contracts','finance_invoices') then 70
+   else null
+ end,
+ '[]'::jsonb,'[]'::jsonb,'[]'::jsonb,
+ case when t.table_name in ('school_integration_secrets','calendar_feed_tokens','verification_otps','audit_logs','saas_audit_logs','import_audits','finance_gateway_webhook_events') then 'Não importar directamente; usar operações server-side controladas.' else null end
+from information_schema.tables t
+where t.table_schema='public' and t.table_type='BASE TABLE'
+on conflict (table_schema,table_name) do update set
+  direct_import_policy=excluded.direct_import_policy,
+  export_policy=excluded.export_policy,
+  sensitivity=excluded.sensitivity,
+  module_code=excluded.module_code,
+  dependency_rank=excluded.dependency_rank,
+  notes=coalesce(excluded.notes, public.import_table_specs.notes),
+  updated_at=now();
+
+create index if not exists import_table_specs_policy_idx on public.import_table_specs (direct_import_policy, module_code, dependency_rank);
+create index if not exists import_table_specs_module_idx on public.import_table_specs (module_code, dependency_rank);
+
+comment on table public.import_table_specs is 'Catálogo governado das 156 tabelas públicas do SGA para import/export. Política conservadora contra escrita cega em segurança, auditoria e segredos.';
+
+
+-- ══════════ 20260924010713_harden_import_table_specs_rls.sql ══════════
+-- Keep the schema catalog server-side by default.
+alter table public.import_table_specs enable row level security;
+alter table public.import_table_specs force row level security;
+comment on table public.import_table_specs is 'Catálogo governado do schema público do SGA para import/export. Uso server-side; sem acesso directo do cliente por defeito.';
+
+
+-- ══════════ 20260924010749_enrich_import_table_specs_dependencies.sql ══════════
+-- Enrich governed import/export catalog from the live SGA FK and UNIQUE constraints.
+update public.import_table_specs s
+set fk_dependencies = coalesce((
+  select jsonb_agg(
+    jsonb_build_object(
+      'columns', src.cols,
+      'target_table', src.target_table,
+      'target_columns', src.target_cols
+    ) order by src.target_table, src.target_cols::text
+  )
+  from (
+    select
+      array_agg(kcu.column_name order by kcu.ordinal_position) as cols,
+      ccu.table_name as target_table,
+      array_agg(ccu.column_name order by kcu.ordinal_position) as target_cols
+    from information_schema.table_constraints tc
+    join information_schema.key_column_usage kcu
+      on kcu.constraint_name=tc.constraint_name
+     and kcu.table_schema=tc.table_schema
+     and kcu.table_name=tc.table_name
+    join information_schema.constraint_column_usage ccu
+      on ccu.constraint_name=tc.constraint_name
+     and ccu.constraint_schema=tc.constraint_schema
+    where tc.constraint_type='FOREIGN KEY'
+      and tc.table_schema=s.table_schema
+      and tc.table_name=s.table_name
+    group by ccu.table_name, tc.constraint_name
+  ) src
+), '[]'::jsonb),
+natural_key_columns = coalesce((
+  select to_jsonb(array_agg(kcu.column_name order by kcu.ordinal_position))
+  from information_schema.table_constraints tc
+  join information_schema.key_column_usage kcu
+    on kcu.constraint_name=tc.constraint_name
+   and kcu.table_schema=tc.table_schema
+   and kcu.table_name=tc.table_name
+  where tc.table_schema=s.table_schema
+    and tc.table_name=s.table_name
+    and tc.constraint_type='UNIQUE'
+  group by tc.constraint_name
+  order by tc.constraint_name
+  limit 1
+), '[]'::jsonb),
+updated_at=now()
+where s.table_schema='public';
+
+comment on column public.import_table_specs.fk_dependencies is 'Foreign-key dependency graph extracted from the live SGA schema.';
+comment on column public.import_table_specs.natural_key_columns is 'Candidate natural/unique key columns discovered from live UNIQUE constraints; importer must still validate semantic suitability.';
+
+
+-- ══════════ 20260924011200_authorize_billing_settings_for_controlled_import.sql ══════════
+-- Governança: school_billing_settings é configuração operacional segura para
+-- importação controlada. Segredos e credenciais continuam fora do catálogo importável.
+update public.import_table_specs
+set direct_import_policy = 'controlled',
+    module_code = 'financeiro',
+    notes = concat_ws(' ', nullif(notes, ''), 'Autorizada para importação controlada: parâmetros de cobrança escolar, sem segredos.')
+where table_schema = 'public'
+  and table_name = 'school_billing_settings';
+
+
+-- ══════════ 20260924012020_authorize_enrollment_applications_controlled_import.sql ══════════
+-- Governança: candidaturas são dados escolares de negócio e podem ser
+-- importadas de forma controlada. A importação não cria aluno automaticamente.
+update public.import_table_specs
+set direct_import_policy = 'controlled',
+    module_code = 'inscricoes',
+    notes = concat_ws(' ', nullif(notes, ''), 'Importação controlada: candidaturas escolares; não cria aluno automaticamente.')
+where table_schema = 'public'
+  and table_name = 'enrollment_applications';
+
+
+-- ══════════ 20260924012304_govern_validated_export_targets.sql ══════════
+update public.import_table_specs
+set export_policy='controlled',
+    notes=concat_ws(' ', nullif(notes,''), 'Exportação bidireccional validada em 2026-09-24.')
+where table_schema='public' and table_name in
+('hr_positions','hr_employments','hr_departments','grade_levels','rooms','timetable_slots','finance_invoices','finance_contracts');
+
+
+-- ══════════ 20260924012347_govern_validated_application_attendance_exports.sql ══════════
+update public.import_table_specs
+set export_policy='controlled',
+    notes=concat_ws(' ', nullif(notes,''), 'Exportação bidireccional validada em 2026-09-24.')
+where table_schema='public' and table_name in
+('enrollment_applications','siga_attendance_sessions','siga_attendance_records');
+
+-- Catálogo só do servidor (o importador usa a chave de serviço).
+REVOKE ALL ON public.import_table_specs FROM PUBLIC, anon, authenticated;
+
+
+-- ══════════ 20260926180000_tenant_mailboxes_server_only.sql ══════════
+-- Caixas de correio institucionais por tenant (Control Center, Fase 5).
+--
+-- Substitui `supabase/APPLY_MAILBOXES.sql`, que nunca foi aplicado e não podia
+-- ser: as políticas liam `tenant_members`, tabela que a base SGA não tem.
+-- Todo o código (`saas/server.ts`, `saas/school-domain-ops.ts`,
+-- `api/saas/mailboxes.tsx`) usa a chave de serviço depois de validar o acesso
+-- ao tenant, por isso a tabela fica só do servidor: sem políticas de cliente.
+--
+-- Aditiva e idempotente: não altera nenhuma tabela existente.
+
+CREATE TABLE IF NOT EXISTS public.tenant_mailboxes (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  tenant_id uuid REFERENCES public.tenants(id) ON DELETE CASCADE,
+  email text NOT NULL CHECK (char_length(email) BETWEEN 3 AND 254),
+  display_name text CHECK (display_name IS NULL OR char_length(display_name) <= 160),
+  provider text NOT NULL DEFAULT 'simulated' CHECK (provider IN ('simulated', 'zoho', 'google')),
+  provider_account_id text,
+  status text NOT NULL DEFAULT 'active' CHECK (status IN ('active', 'suspended', 'deleted')),
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now(),
+  CONSTRAINT tenant_mailboxes_email_key UNIQUE (email)
+);
+
+CREATE INDEX IF NOT EXISTS tenant_mailboxes_tenant_created_idx
+  ON public.tenant_mailboxes (tenant_id, created_at DESC);
+
+DROP TRIGGER IF EXISTS trg_tenant_mailboxes_touch ON public.tenant_mailboxes;
+CREATE TRIGGER trg_tenant_mailboxes_touch
+  BEFORE UPDATE ON public.tenant_mailboxes
+  FOR EACH ROW EXECUTE FUNCTION public.siga_touch_updated_at();
+
+ALTER TABLE public.tenant_mailboxes ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.tenant_mailboxes FORCE ROW LEVEL SECURITY;
+REVOKE ALL ON public.tenant_mailboxes FROM PUBLIC, anon, authenticated;
+
+COMMENT ON TABLE public.tenant_mailboxes IS
+  'Caixas de correio institucionais por tenant. Só o servidor (chave de serviço) lê e escreve.';

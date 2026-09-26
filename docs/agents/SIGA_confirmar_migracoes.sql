@@ -28,6 +28,10 @@ from (values
      and to_regclass('public.siga_lesson_reminder_settings') is not null
      and to_regclass('public.siga_lesson_reminder_log') is not null),
   ('20260926160000_grade_score_history',
-     to_regclass('public.grade_score_history') is not null)
+     to_regclass('public.grade_score_history') is not null),
+  ('20260924010712_import_table_specs (catálogo de importação, 7 ficheiros)',
+     to_regclass('public.import_table_specs') is not null),
+  ('20260926180000_tenant_mailboxes_server_only',
+     to_regclass('public.tenant_mailboxes') is not null)
 ) as m(migracao, ok)
 order by migracao;

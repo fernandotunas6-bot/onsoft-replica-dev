@@ -827,7 +827,7 @@ financeira completa (`finance_invoices`, `finance_receipts`,
   `user_communication_preferences` não estão declaradas em lado nenhum. Em
   produção, OTP, verificação de contactos e preferências de comunicação
   devolvem o erro de tabela inexistente do PostgREST — não um ecrã vazio.
-- **`tenant_mailboxes`** (`supabase/APPLY_MAILBOXES.sql`): script manual também
+- **`tenant_mailboxes`** (agora `20260926180000_tenant_mailboxes_server_only.sql`, no pacote `SIGA_aplicar_migracoes.sql`): script manual também
   por aplicar.
 - **Importadores contra o esquema Lovable antigo**: `courses`, `invoices`,
   `payments`, `class_schedule_slots`, `assessment_rule_sets` — nomes que o SGA

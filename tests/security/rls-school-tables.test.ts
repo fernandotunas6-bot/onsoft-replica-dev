@@ -89,7 +89,7 @@ const RLS_PENDING = new Set<string>([
  * `configure_assessment_rules` falham com 42P01, e uma escola nova não consegue
  * abrir o primeiro diário de notas (`gradebooks.rule_set_id` é NOT NULL).
  */
-const SCHEMA_ONLY_IN_PRODUCTION = new Set(["avatars", "tenant_mailboxes"]);
+const SCHEMA_ONLY_IN_PRODUCTION = new Set(["avatars"]);
 
 function collectSqlFiles(dir: string, out: string[] = []): string[] {
   if (!existsSync(dir)) return out;
