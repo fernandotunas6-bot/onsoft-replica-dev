@@ -150,9 +150,15 @@ function PublicEnrollmentPage() {
               <LoaderCircle className="size-7 animate-spin text-primary" />
             </div>
           ) : formQuery.isError ? (
-            <p className="py-10 text-center text-sm text-destructive">
-              {publicErrorMessage(formQuery.error, "Link indisponível.")}
-            </p>
+            <div className="space-y-2 py-10 text-center">
+              <p className="font-medium text-foreground">
+                {publicErrorMessage(formQuery.error, "Este link de matrícula não está disponível.")}
+              </p>
+              <p className="text-sm text-muted-foreground">
+                Confirme o endereço com a escola. Se as candidaturas já fecharam, a secretaria
+                indica-lhe o próximo passo.
+              </p>
+            </div>
           ) : sent ? (
             <div className="py-10 text-center">
               <CheckCircle2 className="mx-auto size-10 text-primary" />

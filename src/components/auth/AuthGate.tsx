@@ -3,6 +3,7 @@ import {
   consumeSessionExpiredFlag,
   reportPossibleSessionError,
 } from "@/lib/session-expiry";
+import { SigaLogo } from "@/components/ui/siga-logo";
 import { AuthHeroSlides } from "./AuthHeroSlides";
 import { AuthBackgroundVideo } from "./AuthBackgroundVideo";
 import {
@@ -464,6 +465,8 @@ export function AuthGate({ children }: { children: ReactNode }) {
         </section>
 
         <section className="flex flex-col items-center justify-center bg-muted/20 px-5 py-10 sm:px-10">
+          {/* No telemóvel o painel da marca não aparece: sem isto, o ecrã não dizia onde se entra. */}
+          <SigaLogo className="mb-6 lg:hidden" />
           <div className="w-full max-w-lg rounded-2xl border border-border bg-card p-8 shadow-sm sm:p-10 lg:[zoom:1.15]">
             {installPrompt && (
               <div className="mb-6 flex flex-col items-center justify-center text-center pb-4 border-b border-border">
