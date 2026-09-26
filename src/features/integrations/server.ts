@@ -19,8 +19,10 @@ import { generateWebhookApiKey, buildRotatedWebhookConfig } from "./gateway-webh
 import {
   normalizeResendRecipients,
   resolveResendCredentials,
+  resolveSystemSender,
   sendResendEmail,
 } from "./resend-client";
+import { checkRateLimit, isRateLimitBypassed, recordRateLimitAttempt } from "@/lib/rate-limit";
 import {
   normalizeWhatsAppRecipients,
   resolveWhatsAppCredentials,
@@ -52,8 +54,12 @@ const sendSchoolResendEmailInputSchema = z.object({
   to: z.array(z.string().email()).min(1).max(50).optional(),
   subject: z.string().trim().min(2).max(200),
   text: z.string().trim().min(1).max(8000),
-  html: z.string().trim().max(20_000).optional(),
 });
+
+// Com a chave da plataforma, uma escola criada pelo registo público podia
+// enviar para qualquer endereço, com o remetente que quisesse: um canal de
+// phishing com a reputação do domínio SIGA. Limite por escola e por hora.
+const PLATFORM_EMAIL_RATE_LIMIT = { windowMs: 60 * 60 * 1000, max: 20 };
 
 const sendSchoolWhatsAppInputSchema = z.object({
   to: z.array(z.string().trim().min(6).max(32)).min(1).max(50).optional(),
@@ -334,6 +340,8 @@ export const sendSchoolResendEmail = createServerFn({ method: "POST" })
     }
 
     const credentials = resolveResendCredentials(config, process.env.RESEND_API_KEY);
+    const ownKey = String(config.merchantId ?? config.apiKey ?? config.webhookApiKey ?? "").trim();
+    const usingPlatformKey = !ownKey;
     if (!credentials) {
       return {
         mode: "clipboard" as const,
@@ -352,14 +360,47 @@ export const sendSchoolResendEmail = createServerFn({ method: "POST" })
       };
     }
 
-    const html =
-      data.html ??
-      `<pre style="font-family:sans-serif;white-space:pre-wrap">${escapeHtml(data.text)}</pre>`;
+    let from = credentials.from;
+    if (usingPlatformKey) {
+      const rateLimitKey = `platform_email:${membership.schoolId}`;
+      if (
+        !isRateLimitBypassed(rateLimitKey) &&
+        !checkRateLimit([rateLimitKey], PLATFORM_EMAIL_RATE_LIMIT)
+      ) {
+        return {
+          mode: "clipboard" as const,
+          reason: "Limite de envios por hora atingido. Configure uma chave Resend própria.",
+        };
+      }
+      recordRateLimitAttempt([rateLimitKey], PLATFORM_EMAIL_RATE_LIMIT);
+      // Só para contactos desta escola, e com o remetente do sistema.
+      const { data: known } = await db
+        .from("people")
+        .select("email")
+        .eq("school_id", membership.schoolId)
+        .in("email", recipients);
+      const allowed = new Set((known ?? []).map((row) => String(row.email ?? "").toLowerCase()));
+      recipients = recipients.filter((email) => allowed.has(email));
+      if (!recipients.length) {
+        return {
+          mode: "clipboard" as const,
+          reason: "Sem destinatários desta escola com e-mail registado.",
+        };
+      }
+      const { data: school } = await db
+        .from("schools")
+        .select("name")
+        .eq("id", membership.schoolId)
+        .maybeSingle();
+      from = resolveSystemSender("academic", { schoolName: school?.name ?? null });
+    }
+
+    const html = `<pre style="font-family:sans-serif;white-space:pre-wrap">${escapeHtml(data.text)}</pre>`;
 
     try {
       const result = await sendResendEmail({
         apiKey: credentials.apiKey,
-        from: credentials.from,
+        from,
         to: recipients,
         subject: data.subject,
         text: data.text,
@@ -431,6 +472,23 @@ export const sendSchoolWhatsAppMessage = createServerFn({ method: "POST" })
         reason:
           "Configure Phone Number ID (merchant) e Access Token (callback) em Definições → Integrações.",
       };
+    }
+
+    const ownToken = String(
+      config.accessToken ?? config.apiKey ?? config.webhookApiKey ?? config.callbackUrl ?? "",
+    ).trim();
+    if (!ownToken || /^https?:\/\//i.test(ownToken)) {
+      const rateLimitKey = `platform_whatsapp:${membership.schoolId}`;
+      if (
+        !isRateLimitBypassed(rateLimitKey) &&
+        !checkRateLimit([rateLimitKey], PLATFORM_EMAIL_RATE_LIMIT)
+      ) {
+        return {
+          mode: "deeplink" as const,
+          reason: "Limite de envios por hora atingido. Configure um token WhatsApp próprio.",
+        };
+      }
+      recordRateLimitAttempt([rateLimitKey], PLATFORM_EMAIL_RATE_LIMIT);
     }
 
     let recipients = normalizeWhatsAppRecipients(data.to ?? []);

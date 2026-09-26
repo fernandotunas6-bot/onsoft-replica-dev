@@ -1,4 +1,9 @@
-import { getSchoolInitials, sanitizeHexColor } from "./reset-password.html";
+import {
+  getSchoolInitials,
+  sanitizeHexColor,
+  escapeHtml,
+  safeImageUrl,
+} from "./reset-password.html";
 
 export function renderSignupConfirmationEmail(params: {
   schoolName: string;
@@ -12,7 +17,7 @@ export function renderSignupConfirmationEmail(params: {
   const platformName = params.platformName?.trim() || "SIGA Plus";
   const platformUrl = params.platformUrl?.trim() || "https://portal-siga.com";
   const initials = getSchoolInitials(schoolName);
-  const logoUrl = params.logoUrl?.trim() || null;
+  const logoUrl = safeImageUrl(params.logoUrl);
   const brandColor = sanitizeHexColor(params.primaryColor, "#2563eb");
 
   const subject = `Confirmação de conta — ${schoolName}`;
@@ -34,11 +39,11 @@ ${platformUrl}
 `.trim();
 
   const logoMarkup = logoUrl
-    ? `<img src="${logoUrl}" alt="${schoolName}" width="64" height="64" style="display:block; border-radius:12px; object-fit:contain; max-width:64px; max-height:64px; border:0; outline:none;" />`
+    ? `<img src="${escapeHtml(logoUrl)}" alt="${escapeHtml(schoolName)}" width="64" height="64" style="display:block; border-radius:12px; object-fit:contain; max-width:64px; max-height:64px; border:0; outline:none;" />`
     : `<table cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;">
         <tr>
           <td align="center" valign="middle" style="width:56px; height:56px; background-color:#1e293b; color:#ffffff; font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; font-size:20px; font-weight:600; border-radius:14px; letter-spacing:1px; text-transform:uppercase;">
-            ${initials}
+            ${escapeHtml(initials)}
           </td>
         </tr>
       </table>`;
@@ -48,7 +53,7 @@ ${platformUrl}
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>${subject}</title>
+  <title>${escapeHtml(subject)}</title>
   <style>
     @media (prefers-color-scheme: dark) {
       .email-bg { background-color: #0f172a !important; }
@@ -84,7 +89,7 @@ ${platformUrl}
                             Nova Conta
                           </p>
                           <h2 style="margin:2px 0 0 0; font-size:20px; font-weight:600; color:#0f172a;" class="text-title">
-                            ${schoolName}
+                            ${escapeHtml(schoolName)}
                           </h2>
                         </td>
                       </tr>
@@ -101,7 +106,7 @@ ${platformUrl}
                       Confirme a sua conta
                     </h1>
                     <p style="margin:0 0 16px 0; font-size:15px; line-height:1.6; color:#475569;" class="text-body">
-                      A sua conta de acesso à plataforma de gestão escolar em <strong>${schoolName}</strong> foi criada com sucesso.
+                      A sua conta de acesso à plataforma de gestão escolar em <strong>${escapeHtml(schoolName)}</strong> foi criada com sucesso.
                     </p>
                     <p style="margin:0 0 28px 0; font-size:15px; line-height:1.6; color:#475569;" class="text-body">
                       Para ativar a conta e definir os seus acessos, clique no botão abaixo:
@@ -111,7 +116,7 @@ ${platformUrl}
                     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse; margin:24px 0 32px 0;">
                       <tr>
                         <td align="center">
-                          <a href="${params.confirmUrl}" target="_blank" style="display:inline-block; background-color:${brandColor}; color:#ffffff; font-size:15px; font-weight:600; text-decoration:none; padding:14px 32px; border-radius:12px; box-shadow:0 2px 4px rgba(37,99,235,0.25); text-align:center;">
+                          <a href="${escapeHtml(params.confirmUrl)}" target="_blank" style="display:inline-block; background-color:${brandColor}; color:#ffffff; font-size:15px; font-weight:600; text-decoration:none; padding:14px 32px; border-radius:12px; box-shadow:0 2px 4px rgba(37,99,235,0.25); text-align:center;">
                             Confirmar e Ativar Conta
                           </a>
                         </td>
@@ -120,7 +125,7 @@ ${platformUrl}
 
                     <p style="margin:24px 0 0 0; font-size:12px; line-height:1.5; color:#94a3b8; word-break:break-all;" class="text-muted">
                       Se o botão não funcionar, copie e cole este link no seu navegador:<br>
-                      <a href="${params.confirmUrl}" style="color:#2563eb; text-decoration:underline;">${params.confirmUrl}</a>
+                      <a href="${escapeHtml(params.confirmUrl)}" style="color:#2563eb; text-decoration:underline;">${escapeHtml(params.confirmUrl)}</a>
                     </p>
 
                   </td>
@@ -134,10 +139,10 @@ ${platformUrl}
           <tr>
             <td style="padding:28px 12px 16px 12px; text-align:center;">
               <p style="margin:0 0 6px 0; font-size:13px; font-weight:600; color:#64748b;" class="text-muted">
-                Gerido com segurança por <span style="color:#0f172a; font-weight:600;" class="text-title">${platformName}</span>
+                Gerido com segurança por <span style="color:#0f172a; font-weight:600;" class="text-title">${escapeHtml(platformName)}</span>
               </p>
               <p style="margin:0; font-size:12px;">
-                <a href="${platformUrl}" target="_blank" style="color:#64748b; text-decoration:none;" class="text-muted">
+                <a href="${escapeHtml(platformUrl)}" target="_blank" style="color:#64748b; text-decoration:none;" class="text-muted">
                   ${platformUrl.replace(/^https?:\/\//, "")}
                 </a>
               </p>

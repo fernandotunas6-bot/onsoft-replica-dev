@@ -221,3 +221,14 @@ o Supabase directamente e muda a senha.
   recusa modelos com scripts, eventos `on…=`, `javascript:` ou documentos embutidos.
   Protegido por `tests/security/print-template-xss.test.ts`.
 - **Matrícula pública:** limite de 10 candidaturas por hora por IP.
+- **HTML nos e-mails.** Os modelos de e-mail (convite, recuperação, link mágico, confirmação,
+  mudança de e-mail, código OTP) punham o nome da escola, o cargo e o logótipo no HTML sem
+  escape. Com o registo público, qualquer pessoa cria uma escola com um nome que é HTML
+  (um link falso) e os convites saem do domínio SIGA com esse conteúdo. Agora tudo é
+  escapado e o logótipo só é aceite por `https`.
+- **Envio de e-mail com a chave da plataforma** (`sendSchoolResendEmail`). Uma escola sem
+  chave Resend própria usava a da plataforma, com HTML livre, qualquer destinatário e
+  qualquer remetente: um canal de phishing com a reputação do domínio SIGA. Agora o HTML vem
+  sempre do texto escapado; com a chave da plataforma, só para contactos da escola, com o
+  remetente do sistema e 20 envios por hora. O WhatsApp com o token da plataforma tem o
+  mesmo limite. Protegido por `tests/security/email-html-injection.test.ts`.
