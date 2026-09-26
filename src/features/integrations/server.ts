@@ -301,6 +301,27 @@ export const rotateGatewayWebhookApiKey = createServerFn({ method: "POST" })
  * Envio HTTP Resend com API key da escola (Integrações → merchantId).
  * Sem key ou sem destinatários resolvíveis → mode "clipboard" (caller copia).
  */
+async function withoutOptedOutRecipients(
+  db: Awaited<ReturnType<typeof loadSgaAdminClient>>,
+  schoolId: string,
+  recipients: string[],
+): Promise<string[]> {
+  const { data: optedOut } = await db
+    .from("user_communication_preferences")
+    .select("user_id")
+    .eq("school_id", schoolId)
+    .eq("announcements_enabled", false);
+  const userIds = (optedOut ?? []).map((row) => String(row.user_id));
+  if (!userIds.length) return recipients;
+  const { data: people } = await db
+    .from("people")
+    .select("email")
+    .eq("school_id", schoolId)
+    .in("user_id", userIds);
+  const blocked = new Set((people ?? []).map((row) => String(row.email ?? "").toLowerCase()));
+  return recipients.filter((email) => !blocked.has(email.toLowerCase()));
+}
+
 export const sendSchoolResendEmail = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((input: unknown) => sendSchoolResendEmailInputSchema.parse(input))
@@ -357,6 +378,15 @@ export const sendSchoolResendEmail = createServerFn({ method: "POST" })
       return {
         mode: "clipboard" as const,
         reason: "Sem destinatários: indique e-mails ou cadastre e-mails na equipa.",
+      };
+    }
+
+    // Quem desligou os comunicados nesta escola não os recebe por e-mail.
+    recipients = await withoutOptedOutRecipients(db, membership.schoolId, recipients);
+    if (!recipients.length) {
+      return {
+        mode: "clipboard" as const,
+        reason: "Todos os destinatários desligaram os comunicados por e-mail.",
       };
     }
 

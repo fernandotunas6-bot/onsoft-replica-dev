@@ -24,3 +24,12 @@ describe("sincronização de contactos com o Resend", () => {
     expect(source).not.toMatch(/\$\{err\.message\}|\$\{e\.message\}/);
   });
 });
+
+describe("comunicados por e-mail respeitam preferências", () => {
+  it("sendSchoolResendEmail retira quem desligou os comunicados", () => {
+    const server = readFileSync(join(process.cwd(), "src/features/integrations/server.ts"), "utf8");
+    const start = server.indexOf("export const sendSchoolResendEmail ");
+    const body = server.slice(start, server.indexOf("export const ", start + 1));
+    expect(body).toMatch(/withoutOptedOutRecipients\(db, membership\.schoolId, recipients\)/);
+  });
+});
