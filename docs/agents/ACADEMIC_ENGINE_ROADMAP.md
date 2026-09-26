@@ -50,15 +50,27 @@ A produção tem o fluxo premium quase todo — falta ligá-lo aos ecrãs:
 - **Auditoria**: triggers `audit_row_change` em `grade_scores` e avaliações.
 - **Currículo**: `curricula`, `curriculum_areas`, `curriculum_subjects`.
 
+## Feito depois (2026-09-26, tarde)
+
+- **Pautas oficiais** (separador Pautas): quadro por período, gerar,
+  pré-pauta, transições (`transition_grade_sheet`), bloqueio, reabrir com
+  motivo, aviso na publicação. O servidor recusa recalcular pautas
+  homologadas/publicadas (a função da base apagaria as linhas).
+- **Histórico e pedidos de alteração**: migração `grade_score_history`
+  (faltava na produção e partia `upsert_grade_score`/`review_grade_change`);
+  lançamento bloqueado com pauta oficial; pedido → fila da coordenação →
+  aprovar só com a pauta em rectificação.
+
+**Observações sobre a base (por verificar com a direcção técnica):**
+- `build_grade_sheet` calcula as faltas em `attendance_records` /
+  `attendance_sessions`, mas a chamada do SIGA grava em
+  `siga_attendance_records`: a percentagem de faltas da pauta pode sair 0.
+- `build_grade_sheet` exige uma regra activa com `code = 'DEFAULT'`.
+
 ## Próximas fatias (por ordem)
 
-1. **Pauta com estados** — ecrã da coordenação: pré-pauta com verificações
-   (notas em falta, fora da escala, alterações pendentes, alunos sem
-   matrícula) numa função pura testada; botões de transição que chamam
-   `transition_grade_sheet`; pauta publicada bloqueada; histórico de estados.
-2. **Pedidos de alteração de nota** — professor pede (valor, motivo) numa
-   nota fechada; coordenação aprova/recusa via `review_grade_change`; aviso
-   aos dois; tudo na auditoria.
+1. ~~Pauta com estados~~ (feito).
+2. ~~Pedidos de alteração de nota~~ (feito).
 3. **Modelos académicos** — ecrã sobre `assessment_rule_sets` (pesos, escala,
    arredondamento, aprovação, versões); o motor passa a ler a regra activa
    da turma, com o Decreto 424/25 como modelo por omissão.
