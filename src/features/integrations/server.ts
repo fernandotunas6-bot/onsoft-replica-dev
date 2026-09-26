@@ -301,6 +301,30 @@ export const rotateGatewayWebhookApiKey = createServerFn({ method: "POST" })
  * Envio HTTP Resend com API key da escola (Integrações → merchantId).
  * Sem key ou sem destinatários resolvíveis → mode "clipboard" (caller copia).
  */
+async function withoutOptedOutPhones(
+  db: Awaited<ReturnType<typeof loadSgaAdminClient>>,
+  schoolId: string,
+  recipients: string[],
+): Promise<string[]> {
+  const { data: optedOut } = await db
+    .from("user_communication_preferences")
+    .select("user_id")
+    .eq("school_id", schoolId)
+    .eq("announcements_enabled", false);
+  const userIds = (optedOut ?? []).map((row) => String(row.user_id));
+  if (!userIds.length) return recipients;
+  const { data: people } = await db
+    .from("people")
+    .select("phone")
+    .eq("school_id", schoolId)
+    .in("user_id", userIds);
+  // Mesma normalização dos destinatários, para comparar números iguais.
+  const blocked = new Set(
+    normalizeWhatsAppRecipients((people ?? []).map((row) => String(row.phone ?? ""))),
+  );
+  return recipients.filter((phone) => !blocked.has(phone));
+}
+
 async function withoutOptedOutRecipients(
   db: Awaited<ReturnType<typeof loadSgaAdminClient>>,
   schoolId: string,
@@ -529,6 +553,14 @@ export const sendSchoolWhatsAppMessage = createServerFn({ method: "POST" })
       return {
         mode: "deeplink" as const,
         reason: "Sem destinatários: indique telemóveis ou cadastre phones na equipa.",
+      };
+    }
+    // Quem desligou os comunicados nesta escola não os recebe por WhatsApp.
+    recipients = await withoutOptedOutPhones(db, membership.schoolId, recipients);
+    if (!recipients.length) {
+      return {
+        mode: "deeplink" as const,
+        reason: "Todos os destinatários desligaram os comunicados.",
       };
     }
 
