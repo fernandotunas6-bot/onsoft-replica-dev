@@ -21,7 +21,7 @@ function env(name: string) {
 }
 
 function basicAuth() {
-  return `Basic ${Buffer.from(`${env("ZOOM_CLIENT_ID")}:${env("ZOOM_CLIENT_SECRET")}`).toString("base64")}`;
+  return `Basic ${btoa(`${env("ZOOM_CLIENT_ID")}:${env("ZOOM_CLIENT_SECRET")}`)}`;
 }
 
 function redirectUri() {

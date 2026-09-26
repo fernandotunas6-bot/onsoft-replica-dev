@@ -51,39 +51,44 @@ export class WhatsAppOtpAdapter implements IMessageDeliveryAdapter {
     const cleanNumber = payload.recipient.replace(/\D/g, "");
 
     try {
-      const response = await fetch(`https://graph.instagram.com/v18.0/${phoneNumberId}/messages`, {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          messaging_product: "whatsapp",
-          to: cleanNumber,
-          type: "template",
-          template: {
-            name: templateName,
-            language: {
-              code: "pt_PT",
-            },
-            components: [
-              {
-                type: "body",
-                parameters: [
-                  {
-                    type: "text",
-                    text: payload.code,
-                  },
-                  {
-                    type: "text",
-                    text: payload.expiresInMinutes.toString(),
-                  },
-                ],
-              },
-            ],
+      const response = await fetch(
+        // API do WhatsApp Cloud (Meta). O endereço antigo era o do Instagram,
+        // e os códigos por WhatsApp nunca chegavam.
+        `https://graph.facebook.com/v21.0/${encodeURIComponent(phoneNumberId)}/messages`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+            "Content-Type": "application/json",
           },
-        }),
-      });
+          body: JSON.stringify({
+            messaging_product: "whatsapp",
+            to: cleanNumber,
+            type: "template",
+            template: {
+              name: templateName,
+              language: {
+                code: "pt_PT",
+              },
+              components: [
+                {
+                  type: "body",
+                  parameters: [
+                    {
+                      type: "text",
+                      text: payload.code,
+                    },
+                    {
+                      type: "text",
+                      text: payload.expiresInMinutes.toString(),
+                    },
+                  ],
+                },
+              ],
+            },
+          }),
+        },
+      );
 
       interface MetaResponse {
         messages?: Array<{ id: string }>;
