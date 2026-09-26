@@ -97,6 +97,12 @@ const PRIVILEGIO_POR_DESENHO = new Set([
   // decidir só a coordenação (Administrador/Secretaria).
   "src/features/academic/grade-change-requests.ts",
 
+  // Modelos de avaliação: `assessment_rule_sets` só tem leitura por RLS e a
+  // função de produção não é SECURITY DEFINER; publicar vai por
+  // `siga_publish_assessment_rule` (só service_role), depois de validar
+  // Administrador + 2FA (aal2) no servidor.
+  "src/features/academic/assessment-models.ts",
+
   // Agendador dos lembretes da véspera: sem sessão (quem chama é o cron),
   // autenticado por SIGA_CRON_SECRET em tempo constante.
   "src/routes/api/cron/lesson-reminders.tsx",

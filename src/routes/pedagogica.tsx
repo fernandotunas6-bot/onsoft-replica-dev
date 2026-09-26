@@ -1,6 +1,7 @@
 import { GradeSheetsBoard } from "@/features/academic/GradeSheetsBoard";
 import { GradeChangeRequestsPanel } from "@/features/academic/GradeChangeRequestsPanel";
 import { AcademicStructureTab } from "@/features/academic/AcademicStructureTab";
+import { AssessmentModelsTab } from "@/features/academic/AssessmentModelsTab";
 import { useEffect, useMemo, useState, lazy, Suspense } from "react";
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -98,6 +99,7 @@ const pedagogicaSearchSchema = z
     tab: z
       .enum([
         "estrutura",
+        "modelos",
         "turmas",
         "disciplinas",
         "salas",
@@ -261,6 +263,7 @@ function PedagogicaPage() {
       !(
         [
           "estrutura",
+          "modelos",
           "turmas",
           "disciplinas",
           "salas",
@@ -789,6 +792,9 @@ function PedagogicaPage() {
             {canReadAcademic ? (
               <TabsTrigger value="estrutura">Estrutura académica</TabsTrigger>
             ) : null}
+            {canReadAcademic ? (
+              <TabsTrigger value="modelos">Modelos de avaliação</TabsTrigger>
+            ) : null}
             <TabsTrigger value="turmas">Turmas</TabsTrigger>
             <TabsTrigger value="disciplinas">Disciplinas</TabsTrigger>
             <TabsTrigger value="salas">Salas & Espaços</TabsTrigger>
@@ -823,6 +829,11 @@ function PedagogicaPage() {
                 yearLabel={activeYearLabel}
                 onOpenTab={onTabChange}
               />
+            </TabsContent>
+          ) : null}
+          {canReadAcademic ? (
+            <TabsContent value="modelos" className="mt-5">
+              <AssessmentModelsTab />
             </TabsContent>
           ) : null}
 

@@ -71,9 +71,12 @@ A produção tem o fluxo premium quase todo — falta ligá-lo aos ecrãs:
 
 1. ~~Pauta com estados~~ (feito).
 2. ~~Pedidos de alteração de nota~~ (feito).
-3. **Modelos académicos** — ecrã sobre `assessment_rule_sets` (pesos, escala,
-   arredondamento, aprovação, versões); o motor passa a ler a regra activa
-   da turma, com o Decreto 424/25 como modelo por omissão.
+3. ~~Modelos académicos~~ (feito): separador "Modelos de avaliação" em
+   Pedagógica — regra em vigor, versões anteriores e, para o Administrador com
+   2FA, publicar nova versão (pesos MAC/NPT, aprovação, limite de faltas,
+   arredondamento, disciplinas-chave, bloqueio). Publica por
+   `siga_publish_assessment_rule` (migração `20260926200000`, só service_role:
+   a função original não é SECURITY DEFINER e a tabela só tem leitura por RLS).
 4. **Recuperação, exames e resultado final** — precisam de tabelas novas
    (migração só do servidor): inscrição, prova, júri, classificação, e a
    situação final calculada pela regra do modelo.

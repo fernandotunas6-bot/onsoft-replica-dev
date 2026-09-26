@@ -32,6 +32,8 @@ from (values
   ('20260924010712_import_table_specs (catálogo de importação, 7 ficheiros)',
      to_regclass('public.import_table_specs') is not null),
   ('20260926180000_tenant_mailboxes_server_only',
-     to_regclass('public.tenant_mailboxes') is not null)
+     to_regclass('public.tenant_mailboxes') is not null),
+  ('20260926200000_assessment_rule_publish_server',
+     to_regprocedure('public.siga_publish_assessment_rule(uuid, uuid, text, numeric, numeric, numeric, numeric, text, boolean, boolean, uuid[], boolean)') is not null)
 ) as m(migracao, ok)
 order by migracao;

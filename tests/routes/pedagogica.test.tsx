@@ -69,6 +69,52 @@ vi.mock("@/features/academic/academic-structure", () => ({
     }),
 }));
 
+vi.mock("@/features/academic/assessment-models", () => ({
+  getAssessmentModels: () =>
+    Promise.resolve({
+      scale: { name: "Escala 0–20", minimum: 0, maximum: 20, decimalPlaces: 0 },
+      subjects: [{ id: "s1", name: "Matemática" }],
+      canPublish: true,
+      versions: [
+        {
+          id: "r2",
+          version: 2,
+          status: "active",
+          name: "Decreto Executivo n.º 424/25",
+          continuousWeight: 50,
+          examWeight: 50,
+          passingValue: 10,
+          maximumAbsencePercentage: 33,
+          roundingMethod: "nearest",
+          gradeChangeRequiresApproval: true,
+          lockAfterPublication: true,
+          keySubjectIds: ["s1"],
+          keySubjectsCauseFailure: true,
+          createdAt: "2026-09-20T10:00:00Z",
+          createdByName: "Direcção",
+        },
+        {
+          id: "r1",
+          version: 1,
+          status: "retired",
+          name: "Regra principal de avaliação",
+          continuousWeight: 40,
+          examWeight: 60,
+          passingValue: 10,
+          maximumAbsencePercentage: 25,
+          roundingMethod: "up",
+          gradeChangeRequiresApproval: false,
+          lockAfterPublication: false,
+          keySubjectIds: [],
+          keySubjectsCauseFailure: true,
+          createdAt: "2026-09-01T10:00:00Z",
+          createdByName: null,
+        },
+      ],
+    }),
+  publishAssessmentModel: vi.fn(),
+}));
+
 vi.mock("@/features/people/server", () => ({
   listTeachers: () => listTeachersMock(),
 }));
@@ -185,6 +231,21 @@ describe("/pedagogica — render", () => {
     });
     expect(screen.getByText("Percurso da informação")).toBeDefined();
     expect(screen.getAllByText("Por activar").length).toBeGreaterThanOrEqual(2);
+  });
+
+  it("mostra o modelo de avaliação em vigor e as versões anteriores", async () => {
+    seed();
+    setRouteSearch({ tab: "modelos" });
+
+    renderRoute(Pedagogica);
+
+    await waitFor(() => {
+      expect(screen.getByText("Decreto Executivo n.º 424/25")).toBeDefined();
+    });
+    expect(screen.getByText("MT = (MAC + NPT) ÷ 2")).toBeDefined();
+    expect(screen.getByText("Matemática (negativa reprova)")).toBeDefined();
+    expect(screen.getByText("Versões anteriores")).toBeDefined();
+    expect(screen.getByRole("button", { name: "Nova versão" })).toBeDefined();
   });
 
   it("abre directamente na aba pedida pela query string", async () => {
