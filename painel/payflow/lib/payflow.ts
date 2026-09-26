@@ -36,7 +36,7 @@ export function createCheckoutToken() {
   return crypto.randomUUID().replaceAll("-", "");
 }
 
-function safeEqual(left: string, right: string) {
+export function safeEqual(left: string, right: string) {
   if (!left || left.length !== right.length) return false;
   let difference = 0;
   for (let index = 0; index < left.length; index += 1) {

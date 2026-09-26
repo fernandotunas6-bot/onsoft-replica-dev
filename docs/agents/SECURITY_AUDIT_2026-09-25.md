@@ -238,3 +238,14 @@ o Supabase directamente e muda a senha.
   ficheiros acima de 25 MB antes de os ler.
 - **CSV:** a protecção contra fórmulas cobre também tabulação e retorno no início, e deixa de
   transformar números negativos em texto (`-500` saía como `'-500`).
+- **PayFlow.**
+  - PIN do aluno: o limite de tentativas era por aluno **e IP** (5 em 15 min); rodando
+    endereços, um PIN de 4 dígitos adivinhava-se. Soma-se um limite por aluno, qualquer IP:
+    30 falhas em 24 h bloqueiam 1 h.
+  - Redireccionamento depois do SSO: recusava `//`, mas `/\evil.com` e `/\t/evil.com`
+    passavam (os browsers resolvem-nos para outro site).
+  - Login de administrador compara a chave em tempo constante.
+  - Revisto sem alteração: SSO (HMAC, 60 s, anti-replay por `jti`), modo de produção por
+    omissão, chave de integração com comparação segura.
+  - Testes: `node --experimental-strip-types --test painel/payflow/tests/*.test.mjs` (os 2 de
+    HTML precisam do build).

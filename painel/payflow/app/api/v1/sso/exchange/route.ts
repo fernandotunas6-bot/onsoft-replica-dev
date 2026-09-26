@@ -30,7 +30,7 @@ function readRedirectTo(request: Request, form: FormData | null) {
 }
 
 /**
- * Só caminhos internos. "/\\evil.com" também sai do site: os browsers tratam
+ * Só caminhos internos (evita open redirect). "/\\evil.com" também sai do site: os browsers tratam
  * a barra invertida como "/", e o resultado é "//evil.com". Idem para
  * caracteres de controlo (um "/\t/evil.com" também vira "//evil.com").
  */
