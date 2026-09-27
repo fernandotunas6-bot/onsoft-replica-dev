@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo, type FormEvent } from "react";
 import { publicErrorMessage } from "@/lib/public-error";
+import { passwordPolicyMessage } from "@/lib/password-policy-error";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import {
   ShieldCheck,
@@ -210,7 +211,9 @@ function ResetPasswordPage() {
         void navigate({ to: "/" });
       }, 2500);
     } catch (err) {
-      const msg = publicErrorMessage(err, "Não foi possível atualizar a senha. Tente novamente.");
+      const msg =
+        passwordPolicyMessage(err) ??
+        publicErrorMessage(err, "Não foi possível atualizar a senha. Tente novamente.");
       toast.error(msg);
     } finally {
       setSubmitting(false);

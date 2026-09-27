@@ -1,3 +1,5 @@
+import { toast } from "sonner";
+import { passwordPolicyMessage, weakSignInPasswordNotice } from "@/lib/password-policy-error";
 import {
   SESSION_EXPIRED_MESSAGE,
   consumeSessionExpiredFlag,
@@ -272,6 +274,18 @@ export function AuthGate({ children }: { children: ReactNode }) {
         : await signInWithIdentifier(inputIdentifier.trim(), password);
       if (!signInError) {
         if (data.user) localStorage.setItem(activityKey(data.user.id), String(Date.now()));
+        const weakNotice = weakSignInPasswordNotice(
+          (data as { weakPassword?: unknown }).weakPassword,
+        );
+        if (weakNotice) {
+          toast.warning(weakNotice, {
+            duration: 15000,
+            action: {
+              label: "Alterar senha",
+              onClick: () => window.location.assign("/alterar-senha"),
+            },
+          });
+        }
         const assurance = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
         if (assurance.data?.nextLevel === "aal2" && assurance.data.currentLevel !== "aal2") {
           const factors = await supabase.auth.mfa.listFactors();
@@ -413,9 +427,10 @@ export function AuthGate({ children }: { children: ReactNode }) {
       });
       if (signUpError) {
         setError(
-          /password/i.test(signUpError.message)
-            ? "A senha não cumpre a política de segurança. Use uma senha mais forte."
-            : mapSignInError(signUpError.message),
+          passwordPolicyMessage(signUpError) ??
+            (/password/i.test(signUpError.message)
+              ? "A senha não cumpre a política de segurança. Use uma senha mais forte."
+              : mapSignInError(signUpError.message)),
         );
         return;
       }

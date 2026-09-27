@@ -4,6 +4,18 @@ Ler isto **antes** de alterar código. Ecossistema (5 apps):
 [ARCHITECTURE_HARMONIZATION.md](./ARCHITECTURE_HARMONIZATION.md).
 Depois abrir o skill do módulo em `.cursor/skills/`.
 
+## Protecção contra senhas expostas (2026-09-28)
+
+A protecção liga-se no painel do Supabase, em Authentication → Sign In /
+Providers → Email → "Prevent use of leaked passwords". Exige o plano Pro. O
+conector MCP não mexe na configuração de autenticação, por isso fica do lado do
+dono do projecto.
+
+A aplicação já está preparada. `src/lib/password-policy-error.ts` traduz o
+erro `weak_password` (razões `pwned`, `length`, `characters`) no registo, em
+`PasswordChangeForm` e em `/auth/reset-password`. Quem entra com uma senha
+exposta entra na mesma, mas recebe um aviso com o botão "Alterar senha".
+
 ## Registos da produção e embeds sem relação (2026-09-28)
 
 Os registos da API (conector Supabase, últimas 24 h) mostram um erro real:

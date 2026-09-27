@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from "react";
 import { KeyRound, LoaderCircle } from "lucide-react";
 import { toast } from "sonner";
+import { passwordPolicyMessage } from "@/lib/password-policy-error";
 import { useAuthSession } from "@/components/auth/AuthGate";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -63,8 +64,10 @@ export function PasswordChangeForm({ compact = false }: { compact?: boolean }) {
       form.reset();
       stackNav?.reportDirty(false);
       toast.success("Senha actualizada. As outras sessões desta conta foram terminadas.");
-    } catch {
-      toast.error("Não foi possível actualizar a senha. Tente novamente.");
+    } catch (error) {
+      toast.error(
+        passwordPolicyMessage(error) ?? "Não foi possível actualizar a senha. Tente novamente.",
+      );
     } finally {
       setSaving(false);
     }
