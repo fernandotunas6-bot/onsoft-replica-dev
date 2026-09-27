@@ -20,9 +20,9 @@ Das 56 políticas de escrita com `is_school_member` na captura, 24 já foram
 tratadas pelas migrações de 25–26/09 (aplicadas). Matrículas públicas
 (`enrollment_applications`, `enrollment_forms`) só tinham `is_school_member`:
 migração `20260927210000_enrollment_policies_staff_only.sql`, pacote
-`docs/agents/SIGA_aplicar_matriculas_politicas.sql` — **por aplicar**.
+`docs/agents/SIGA_aplicar_matriculas_politicas.sql` — aplicado pelo dono a 2026-09-28.
 
-**Papel global em vez do papel na escola (48 políticas) — escrito, por aplicar:**
+**Papel global em vez do papel na escola (48 políticas) — aplicado pelo dono a 2026-09-28:**
 `can_manage_students()` lê `current_profile_role()` (papel do perfil, global da
 conta). Nas tabelas centrais, quem é Administrador/Secretaria numa escola e
 aluno/encarregado noutra podia escrever na segunda. Migração
@@ -31,7 +31,15 @@ as mesmas expressões, trocando essa parte por `is_school_office(school_id)`;
 pacote `docs/agents/SIGA_aplicar_politicas_papel_escola.sql`. Nenhum ecrã
 escreve estas tabelas com a sessão (só servidor e funções SECURITY DEFINER).
 
-**Leitura de salários e históricos — escrito, por aplicar:** `hr_contracts`,
+**Leitura pelo papel na escola (24 políticas) — escrito, por aplicar:** as
+leituras usavam `can_read_students()`/`can_manage_students()`, que lêem
+`profiles.cargo` (global; o utilizador só pode alterar `full_name`, por isso
+não há auto-promoção, mas quem tem várias escolas lia os dados pessoais de
+todas). Migração `20260928110000_core_read_policies_school_role.sql`, pacote
+`docs/agents/SIGA_aplicar_leitura_papel_escola.sql`. Depois dela, nenhuma
+política usa `can_*_students`.
+
+**Leitura de salários e históricos — aplicado pelo dono a 2026-09-28:** `hr_contracts`,
 `hr_employments`, `hr_payroll_items`, `hr_payroll_item_components`,
 `hr_payroll_runs`, `hr_compensation_events`, `finance_invoice_events` e
 `student_status_events` liam-se com `is_school_member`/`current_school_id()`:
