@@ -101,7 +101,9 @@ describe("motor de horários", () => {
   });
 
   it("respeita a sala ocupada por outra turma", () => {
-    const result = suggestTimetable(baseInput({ roomBusy: { "room-1": ["1:07:30", "1:08:15", "1:09:00"] } }));
+    const result = suggestTimetable(
+      baseInput({ roomBusy: { "room-1": ["1:07:30", "1:08:15", "1:09:00"] } }),
+    );
     const monday = result.placements.filter((p) => p.weekday === 1 && p.block <= 3);
     expect(monday).toEqual([]);
   });
@@ -153,8 +155,24 @@ describe("motor de horários", () => {
 
   it("mantém as células fixadas pelo utilizador", () => {
     const pinned: EnginePlacement[] = [
-      { classSubjectId: "edf", weekday: 5, block: 6, startsAt: "11:30", endsAt: "12:15", roomId: "room-1", room: "Sala 1" },
-      { classSubjectId: "edf", weekday: 3, block: 6, startsAt: "11:30", endsAt: "12:15", roomId: "room-1", room: "Sala 1" },
+      {
+        classSubjectId: "edf",
+        weekday: 5,
+        block: 6,
+        startsAt: "11:30",
+        endsAt: "12:15",
+        roomId: "room-1",
+        room: "Sala 1",
+      },
+      {
+        classSubjectId: "edf",
+        weekday: 3,
+        block: 6,
+        startsAt: "11:30",
+        endsAt: "12:15",
+        roomId: "room-1",
+        room: "Sala 1",
+      },
     ];
     const result = suggestTimetable(baseInput({ pinned }));
     const edf = result.placements.filter((p) => p.classSubjectId === "edf");
@@ -186,19 +204,29 @@ describe("motor de horários", () => {
 
   it("quando a carga diminui, retira tempos e mantém os restantes", () => {
     const first = suggestTimetable(baseInput());
-    const reduced = baseDemands.map((d) => (d.classSubjectId === "geo" ? { ...d, weeklyPeriods: 2 } : d));
+    const reduced = baseDemands.map((d) =>
+      d.classSubjectId === "geo" ? { ...d, weeklyPeriods: 2 } : d,
+    );
     const second = suggestTimetable(
-      baseInput({ demands: reduced, previous: first.placements, options: { continuityWeight: 20 } }),
+      baseInput({
+        demands: reduced,
+        previous: first.placements,
+        options: { continuityWeight: 20 },
+      }),
     );
     expect(second.placements.filter((p) => p.classSubjectId === "geo")).toHaveLength(2);
-    expect(second.changes.some((c) => c.kind === "removed" && c.classSubjectId === "geo")).toBe(true);
+    expect(second.changes.some((c) => c.kind === "removed" && c.classSubjectId === "geo")).toBe(
+      true,
+    );
   });
 
   it("assinala quando uma disciplina deixou de existir na turma", () => {
     const first = suggestTimetable(baseInput());
     const without = baseDemands.filter((d) => d.classSubjectId !== "ing");
     const second = suggestTimetable(baseInput({ demands: without, previous: first.placements }));
-    const removed = second.changes.filter((c) => c.kind === "removed" && c.classSubjectId === "ing");
+    const removed = second.changes.filter(
+      (c) => c.kind === "removed" && c.classSubjectId === "ing",
+    );
     expect(removed.length).toBe(3);
     expect(removed[0]!.reason).toMatch(/já não faz parte/);
   });
@@ -231,22 +259,33 @@ describe("diff e validação", () => {
     const changes = diffPlacements(prev, next, demandById);
     expect(changes.filter((c) => c.kind === "kept")).toHaveLength(1);
     expect(changes.filter((c) => c.kind === "moved")).toHaveLength(1);
-    expect(changes.filter((c) => c.kind === "removed").map((c) => c.classSubjectId)).toEqual(["lp"]);
-    expect(changes.filter((c) => c.kind === "added").map((c) => c.classSubjectId)).toEqual(["hist"]);
+    expect(changes.filter((c) => c.kind === "removed").map((c) => c.classSubjectId)).toEqual([
+      "lp",
+    ]);
+    expect(changes.filter((c) => c.kind === "added").map((c) => c.classSubjectId)).toEqual([
+      "hist",
+    ]);
   });
 
   it("detecta conflitos numa grelha editada à mão", () => {
-    const issues = validatePlacements(
-      { ...baseInput(), teacherBusy: { "t-mat": ["1:07:30"] } },
-      [p("mat", 1, 1), p("lp", 1, 1), p("fis", 2, 1)],
-    );
+    const issues = validatePlacements({ ...baseInput(), teacherBusy: { "t-mat": ["1:07:30"] } }, [
+      p("mat", 1, 1),
+      p("lp", 1, 1),
+      p("fis", 2, 1),
+    ]);
     expect(issues.some((i) => i.message.includes("já tem aula noutra turma"))).toBe(true);
     expect(issues.some((i) => i.message.includes("Duas disciplinas"))).toBe(true);
   });
 
   it("avisa quando há mais tempos marcados do que a carga", () => {
-    const issues = validatePlacements(baseInput(), [p("edf", 1, 1), p("edf", 2, 1), p("edf", 3, 1)]);
-    expect(issues.find((i) => i.message.startsWith("Educação Física"))?.message).toMatch(/3 tempos/);
+    const issues = validatePlacements(baseInput(), [
+      p("edf", 1, 1),
+      p("edf", 2, 1),
+      p("edf", 3, 1),
+    ]);
+    expect(issues.find((i) => i.message.startsWith("Educação Física"))?.message).toMatch(
+      /3 tempos/,
+    );
   });
 
   it("pesa disciplinas por nome", () => {

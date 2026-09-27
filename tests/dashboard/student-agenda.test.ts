@@ -1,6 +1,10 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { pickNextLesson, type StudentAgendaSlot } from "@/features/dashboard/student-agenda";
+import {
+  groupTimetableByDay,
+  pickNextLesson,
+  type StudentAgendaSlot,
+} from "@/features/dashboard/student-agenda";
 
 const slot = (weekday: number, startsAt: string, endsAt: string, subjectName: string) =>
   ({ weekday, startsAt, endsAt, subjectName }) satisfies StudentAgendaSlot;
@@ -66,5 +70,36 @@ describe.each([
     ]) {
       expect(source).not.toContain(fake);
     }
+  });
+});
+
+describe("groupTimetableByDay", () => {
+  const lesson = (weekday: number, startsAt: string, subjectName: string) => ({
+    weekday,
+    startsAt,
+    endsAt: "23:59",
+    subjectName,
+    teacherName: null,
+    room: null,
+  });
+
+  it("agrupa por dia, segunda primeiro, e ordena por hora", () => {
+    const days = groupTimetableByDay([
+      lesson(3, "10:00", "Física"),
+      lesson(1, "10:00", "Química"),
+      lesson(1, "07:30", "Português"),
+      lesson(6, "08:00", "Educação Física"),
+    ]);
+    expect(days.map((d) => d.weekday)).toEqual([1, 3, 6]);
+    expect(days[0]!.lessons.map((l) => l.subjectName)).toEqual(["Português", "Química"]);
+  });
+
+  it("domingo vai para o fim e dias inválidos são ignorados", () => {
+    const days = groupTimetableByDay([
+      lesson(0, "09:00", "A"),
+      lesson(2, "09:00", "B"),
+      lesson(9, "09:00", "C"),
+    ]);
+    expect(days.map((d) => d.weekday)).toEqual([2, 0]);
   });
 });

@@ -35,8 +35,18 @@ describe("getWeeklyScheduleCoverage", () => {
     );
 
     expect(coverage).toEqual([
-      expect.objectContaining({ subjectId: "subject-1", plannedPeriods: 2, requiredPeriods: 3, missingPeriods: 1 }),
-      expect.objectContaining({ subjectId: "subject-2", plannedPeriods: 1, requiredPeriods: 1, missingPeriods: 0 }),
+      expect.objectContaining({
+        subjectId: "subject-1",
+        plannedPeriods: 2,
+        requiredPeriods: 3,
+        missingPeriods: 1,
+      }),
+      expect.objectContaining({
+        subjectId: "subject-2",
+        plannedPeriods: 1,
+        requiredPeriods: 1,
+        missingPeriods: 0,
+      }),
     ]);
   });
 
@@ -54,11 +64,20 @@ describe("getWeeklyScheduleCoverage", () => {
   });
   it("detecta aulas em excesso sem confundir com aulas em falta", () => {
     const coverage = getWeeklyScheduleCoverage(
-      [slot({ id: "slot-1" }), slot({ id: "slot-2", weekday: 2 }), slot({ id: "slot-3", weekday: 3 })],
+      [
+        slot({ id: "slot-1" }),
+        slot({ id: "slot-2", weekday: 2 }),
+        slot({ id: "slot-3", weekday: 3 }),
+      ],
       [{ class_group_id: "class-1", subject_id: "subject-1", weekly_periods: 2 }],
       "class-1",
     );
-    expect(coverage[0]).toMatchObject({ requiredPeriods: 2, plannedPeriods: 3, missingPeriods: 0, excessPeriods: 1 });
+    expect(coverage[0]).toMatchObject({
+      requiredPeriods: 2,
+      plannedPeriods: 3,
+      missingPeriods: 0,
+      excessPeriods: 1,
+    });
   });
 
   it("ignora carga semanal fracionária ou inválida", () => {
@@ -72,5 +91,4 @@ describe("getWeeklyScheduleCoverage", () => {
     );
     expect(coverage).toEqual([]);
   });
-
 });

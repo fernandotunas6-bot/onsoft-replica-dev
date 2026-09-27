@@ -597,10 +597,139 @@ export function buildPrintSamplePayload(
   };
 }
 
+/**
+ * Base de um documento real. Parte da estrutura da pré-visualização, mas sem
+ * nenhum dado de demonstração: notas, pessoas, encarregado, valores, turno,
+ * nacionalidade, listas — tudo vazio. O que o documento precisa vem do
+ * `overlay` de quem o emite; o que faltar sai em branco ou "—", nunca
+ * inventado. (Antes, uma declaração de notas emitida sem overlay imprimia as
+ * notas de exemplo — LP 14, MAT 12, HIST 15 — com o nome do aluno real.)
+ */
 export function buildIssuePayload(
   school: PrintSchoolContext,
   student: PrintStudentContext,
   css: string,
 ): Record<string, unknown> {
-  return buildPrintSamplePayload(school, { css, student, realIssuance: true });
+  const sample = buildPrintSamplePayload(school, { css, student, realIssuance: true });
+  const year = school.academicYear || "";
+  const dash = "—";
+  const hash = (sample.document as Record<string, unknown>)["hash"];
+  return {
+    ...sample,
+    student: {
+      fullName: student.fullName,
+      academicNumber: student.academicNumber,
+      docType: "Processo",
+      docNumber: student.academicNumber,
+      nationality: "",
+      gender: "",
+    },
+    classGroup: {
+      name: student.className || "",
+      level: student.programName || "",
+      shift: "",
+      room: "",
+      course: student.programName || "",
+    },
+    program: { name: student.programName || "" },
+    academicYear: { name: year },
+    period: { name: year ? `Ano lectivo ${year}` : "" },
+    teacher: { fullName: "" },
+    subject: { name: "" },
+    grading: { minimumPass: dash },
+    document: {
+      ...(sample.document as Record<string, unknown>),
+      number: student.documentTitle || String(hash ?? ""),
+      sourceNote: "Documento gerado no SIGA a partir dos registos da escola.",
+    },
+    application: { temporaryId: "", status: "", desiredClass: "", course: "", submittedAt: "" },
+    candidate: { fullName: student.fullName, docNumber: student.academicNumber },
+    guardian: { fullName: "", phone: "", email: "" },
+    subjects: [],
+    grades: [],
+    students: [],
+    summary: {
+      total: dash,
+      approved: dash,
+      failed: dash,
+      approvalRate: dash,
+      average: dash,
+      attendance: dash,
+      status: dash,
+      rate: dash,
+      totalLessons: dash,
+      source: "",
+      ok: dash,
+      pending: dash,
+    },
+    record: {
+      status: dash,
+      globalAverage: dash,
+      totalSubjects: dash,
+      failedSubjects: dash,
+      finalStatus: dash,
+    },
+    periods: [],
+    enrollment: { status: "", date: "", academicYear: { name: year } },
+    credentials: {
+      portalId: "",
+      institutionalEmail: "",
+      compactId: "",
+      institutionalId: student.academicNumber,
+      cardId: "",
+      acceptedLoginIdentifiers: [],
+      firstPasswordRule: "",
+    },
+    financial: { status: dash, total: dash, paid: dash, debt: dash },
+    nextSteps: [],
+    restrictions: [],
+    dossier: { checklist: [], lifecycle: [], documents: [] },
+    service: {
+      name: student.documentTitle || "",
+      areaLabel: "Secretaria",
+      reference: String(hash ?? ""),
+      status: "Emitido",
+      validityLabel: "",
+    },
+    governance: {
+      riskLabel: "",
+      dataSensitivityLabel: "",
+      retentionPolicy: "",
+      approvalFlow: [],
+      automationEvents: [],
+    },
+    parties: [
+      { label: "Aluno", value: student.fullName },
+      { label: "Escola", value: school.name },
+    ],
+    sections: [],
+    meeting: { date: "", summary: "" },
+    decisions: [],
+    lessons: [],
+    validations: [],
+    rows: [],
+  };
+}
+
+/**
+ * Modelos que certificam notas: só se emitem com os dados reais no overlay.
+ * Sem eles, o documento sairia com a tabela vazia (ou, antes, com as notas de
+ * exemplo). Devolve a mensagem a mostrar, ou null se pode emitir.
+ */
+const ACADEMIC_DATA_FIELD: Partial<Record<PrintTemplateKey, string>> = {
+  "declaracao-notas-simples": "grades",
+  "certificado-habilitacoes": "periods",
+  "historico-academico-individual": "periods",
+  "boletim-escolar": "subjects",
+};
+
+export function missingAcademicData(
+  key: PrintTemplateKey,
+  overlay: Record<string, unknown> | undefined,
+): string | null {
+  const field = ACADEMIC_DATA_FIELD[key];
+  if (!field) return null;
+  const value = overlay?.[field];
+  if (Array.isArray(value) && value.length > 0) return null;
+  return `${PRINT_TEMPLATE_META[key].title}: este documento leva as notas do aluno. Emita-o na ficha do aluno, onde as notas são carregadas.`;
 }

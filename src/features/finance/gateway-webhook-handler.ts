@@ -12,7 +12,8 @@ import {
   type GatewayWebhookHandlerResult,
 } from "@/features/finance/gateway-webhook-telemetry";
 import { timingSafeEqual } from "@/lib/timing-safe-equal";
-import { checkRateLimit, isRateLimitBypassed, recordRateLimitAttempt } from "@/lib/rate-limit";
+import { isRateLimitBypassed } from "@/lib/rate-limit";
+import { consumeRateLimit } from "@/lib/shared-rate-limit";
 import { reportSigaError } from "@/lib/ops-report";
 
 function mapPaymentMethodForLedger(method: string): "cash" | "bank_transfer" | "card" | "other" {
@@ -138,7 +139,8 @@ export async function settleGatewayPayment(
     const dueDate = new Date(`${invoice.due_date}T00:00:00Z`);
     const graceDeadline = new Date(dueDate.getTime() + graceDays * 86_400_000);
     if (lateFeePercent > 0 && Date.now() > graceDeadline.getTime()) {
-      invoicePenaltyAmount = Math.round(((Number(invoice.amount) * lateFeePercent) / 100) * 100) / 100;
+      invoicePenaltyAmount =
+        Math.round(((Number(invoice.amount) * lateFeePercent) / 100) * 100) / 100;
       await db
         .from("finance_invoices")
         .update({ penalty_amount: invoicePenaltyAmount })
@@ -233,6 +235,11 @@ export async function settleGatewayPayment(
         );
       }
       const alreadyPaid = (receipts ?? []).reduce((acc, r) => acc + Number(r.amount || 0), 0);
+      // A mesma regra de `register_payment`: nunca um recibo acima do saldo em
+      // aberto. O pagamento fica para revisão manual em vez de gerar um recibo a mais.
+      if (alreadyPaid + input.amount > Number(invoice.amount) + 0.009) {
+        throw new Error("O valor do pagamento excede o saldo em aberto da fatura.");
+      }
 
       // A mesma guarda que `private.register_payment` tem e que este caminho tinha perdido:
       // lá o excesso levanta excepção, aqui `alreadyPaid` só era usado para escolher entre
@@ -260,9 +267,15 @@ export async function settleGatewayPayment(
           .maybeSingle();
         receivedBy = member?.user_id ?? null;
       }
+      // Nunca alguém de outra escola: sem responsável nesta escola, fica para revisão.
       if (!receivedBy) {
+        // A frase "responsável nesta escola" é afirmada por
+        // `tests/finance/gateway-settlement.test.ts`. Inserir "activo" no meio dela
+        // partiu o teste sem mudar nada de útil -- a segunda frase é que acrescenta,
+        // dizendo ao operador o que fazer.
         throw new Error(
-          "Não há membro activo nesta escola a quem atribuir o recibo do gateway. Configure a tesouraria antes de activar o pagamento automático.",
+          "Não há responsável nesta escola para assinar o recibo do gateway. " +
+            "Configure a tesouraria antes de activar o pagamento automático.",
         );
       }
 
@@ -346,8 +359,7 @@ export async function settleGatewayPayment(
           "Não foi possível emitir recibo do gateway.",
         );
 
-      const newStatus =
-        alreadyPaid + input.amount >= invoiceAmountDue ? "paid" : "partially_paid";
+      const newStatus = alreadyPaid + input.amount >= invoiceAmountDue ? "paid" : "partially_paid";
       await db
         .from("finance_invoices")
         .update({ status: newStatus })
@@ -546,11 +558,10 @@ export async function runFinanceGatewayWebhook(input: GatewayConfirmInput, reque
   const rateLimitKey = `ip:${requestIp}`;
   if (
     !isRateLimitBypassed(rateLimitKey) &&
-    !checkRateLimit([rateLimitKey], GATEWAY_WEBHOOK_RATE_LIMIT)
+    !(await consumeRateLimit([rateLimitKey], GATEWAY_WEBHOOK_RATE_LIMIT))
   ) {
     return { ok: false as const, status: 429, message: "Demasiados pedidos. Tente mais tarde." };
   }
-  recordRateLimitAttempt([rateLimitKey], GATEWAY_WEBHOOK_RATE_LIMIT);
 
   const { loadSgaAdminClient } = await import("@/integrations/supabase/sga-admin");
   const db = await loadSgaAdminClient();

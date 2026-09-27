@@ -1279,7 +1279,10 @@ export const reverseCashEntry = createServerFn({ method: "POST" })
         .eq("id", data.cashEntryId)
         .eq("school_id", membership.schoolId)
         .maybeSingle();
-      return { ...(receipt ?? { id: resultado.receiptId }), invoice_status: resultado.invoiceStatus };
+      return {
+        ...(receipt ?? { id: resultado.receiptId }),
+        invoice_status: resultado.invoiceStatus,
+      };
     }
 
     const { data: expense, error: expenseError } = await db

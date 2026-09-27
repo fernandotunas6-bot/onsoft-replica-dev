@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { getRequestIP } from "@tanstack/react-start/server";
-import { checkRateLimit, isRateLimitBypassed, recordRateLimitAttempt } from "@/lib/rate-limit";
+import { isRateLimitBypassed } from "@/lib/rate-limit";
+import { consumeRateLimit } from "@/lib/shared-rate-limit";
 import { sgaClient } from "@/integrations/supabase/sga";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { publicDatabaseError } from "@/integrations/supabase/server-error";
@@ -205,10 +206,9 @@ export const submitPublicEnrollment = createServerFn({ method: "POST" })
     const ip = getRequestIP({ xForwardedFor: true }) ?? "unknown";
     const rateLimitKey = `public_enrollment:${ip}`;
     if (ip !== "unknown" && !isRateLimitBypassed(rateLimitKey)) {
-      if (!checkRateLimit([rateLimitKey], PUBLIC_ENROLLMENT_RATE_LIMIT)) {
+      if (!(await consumeRateLimit([rateLimitKey], PUBLIC_ENROLLMENT_RATE_LIMIT))) {
         throw new Error("Demasiadas candidaturas a partir desta ligação. Tente mais tarde.");
       }
-      recordRateLimitAttempt([rateLimitKey], PUBLIC_ENROLLMENT_RATE_LIMIT);
     }
     const db = await loadSgaAdminClient();
     const { data: form, error: formError } = await db

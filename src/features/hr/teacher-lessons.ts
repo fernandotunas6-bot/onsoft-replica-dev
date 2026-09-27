@@ -293,7 +293,11 @@ async function enrichOccurrencesWithClassroom(
       ),
     ];
     const { data: people } = personIds.length
-      ? await db.from("people").select("id, full_name").eq("school_id", schoolId).in("id", personIds)
+      ? await db
+          .from("people")
+          .select("id, full_name")
+          .eq("school_id", schoolId)
+          .in("id", personIds)
       : { data: [] as Array<{ id: string; full_name: string }> };
     const personNameMap = new Map(
       (people ?? []).map((person: { id: string; full_name: string }) => [
@@ -686,15 +690,12 @@ export const redeemTeacherLessonQr = createServerFn({ method: "POST" })
       ) => Promise<{ data: unknown; error: { code?: string; message?: string } | null }>;
     };
 
-    const { data: result, error } = await untypedRpc.rpc(
-      "hr_redeem_teacher_qr_secure",
-      {
-        p_token_hash: tokenHash,
-        p_latitude: data.latitude,
-        p_longitude: data.longitude,
-        p_accuracy_m: data.accuracy,
-      },
-    );
+    const { data: result, error } = await untypedRpc.rpc("hr_redeem_teacher_qr_secure", {
+      p_token_hash: tokenHash,
+      p_latitude: data.latitude,
+      p_longitude: data.longitude,
+      p_accuracy_m: data.accuracy,
+    });
 
     if (error) {
       throw publicDatabaseError(error, "Não foi possível validar a presença por QR.");
@@ -723,12 +724,9 @@ export const redeemTeacherLessonQr = createServerFn({ method: "POST" })
       assurance: {
         score: Number(row.assurance_score ?? 0),
         decision: String(row.decision) as "auto_approve" | "review" | "reject",
-        insideGeofence:
-          row.inside_geofence == null ? null : Boolean(row.inside_geofence),
+        insideGeofence: row.inside_geofence == null ? null : Boolean(row.inside_geofence),
         distanceFromSchoolM:
-          row.distance_from_school_m == null
-            ? null
-            : Number(row.distance_from_school_m),
+          row.distance_from_school_m == null ? null : Number(row.distance_from_school_m),
       },
     };
   });

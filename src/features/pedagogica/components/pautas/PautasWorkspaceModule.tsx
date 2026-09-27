@@ -35,6 +35,7 @@ import {
   getPeriodsForCycle,
   getPeriodNoun,
 } from "@/lib/angola-academic";
+import { useActiveAssessmentRule } from "@/features/academic/use-passing-value";
 import {
   buildClassAcademicSummaries,
   decidePromotionStatus,
@@ -97,6 +98,12 @@ export function PautasWorkspaceModule({
   const configuredPeriodCount = schoolSettings?.evaluation_periods;
   const [modelType, setModelType] = useState<PautaMode>("mini");
   const [selectedCycle, setSelectedCycle] = useState<AngolaTeachingCycle>("i_ciclo");
+  // Nota de aprovação e regras de transição do modelo de avaliação em vigor.
+  const activeRule = useActiveAssessmentRule();
+  const promotionOptions = useMemo(
+    () => ({ passing: activeRule.passing, rules: activeRule.promotionRules }),
+    [activeRule.passing, activeRule.promotionRules],
+  );
   const initialTerm =
     globalTerm?.sequence && globalTerm.sequence >= 1 && globalTerm.sequence <= 3
       ? globalTerm.sequence
@@ -224,8 +231,16 @@ export function PautasWorkspaceModule({
         npt: g.npt,
       })),
       cycle: selectedCycle,
+      options: promotionOptions,
     });
-  }, [isRealClass, enrollmentsForClass, realSubjectsForClass, termGradesForClass, selectedCycle]);
+  }, [
+    isRealClass,
+    enrollmentsForClass,
+    realSubjectsForClass,
+    termGradesForClass,
+    selectedCycle,
+    promotionOptions,
+  ]);
 
   // O motor académico expõe médias parciais durante o lançamento de notas, o que é útil na
   // grelha viva. Esta projecção é deliberadamente mais rígida: os documentos impressos só
@@ -397,7 +412,7 @@ export function PautasWorkspaceModule({
             if (mt !== null && mt !== undefined) {
               total += mt;
               count += 1;
-              if (mt < 10) failing += 1;
+              if (mt < promotionOptions.passing) failing += 1;
             }
           });
           const avg = count > 0 ? Math.round((total / count) * 10) / 10 : null;
@@ -412,9 +427,16 @@ export function PautasWorkspaceModule({
               return mt !== null && mt !== undefined;
             });
           const status: StudentStatus =
+            // `!isComplete` é deste lado, `promotionOptions` do outro, e as duas fazem
+            // falta: as regras de transição vêm do modelo de avaliação em vez de um 10
+            // fixo, e um estado só se imprime quando há notas para o sustentar. Sem a
+            // primeira, aprova-se por um número que a escola não escolheu; sem a segunda,
+            // a pauta imprimia uma média em branco ao lado de "Aprovado".
             avg === null || !isComplete
               ? ""
-              : toStudentStatus(decidePromotionStatus(avg, failing, selectedCycle));
+              : toStudentStatus(
+                  decidePromotionStatus(avg, failing, selectedCycle, undefined, promotionOptions),
+                );
 
           return {
             id: summary.enrollmentId,
@@ -462,6 +484,7 @@ export function PautasWorkspaceModule({
     currentClass,
     activeYearLabel,
     configuredPeriodCount,
+    promotionOptions,
   ]);
 
   // Final Pauta Document

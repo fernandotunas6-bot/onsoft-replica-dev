@@ -1,6 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { inscricoesImporter } from "@/features/import/importers/inscricoes-importer";
-import { personCandidateFromRow, resolveOrCreatePerson } from "@/features/import/importers/people-core";
+import {
+  personCandidateFromRow,
+  resolveOrCreatePerson,
+} from "@/features/import/importers/people-core";
 import type { ImportCommitContext } from "@/features/import/engine/types";
 
 vi.mock("@/features/import/importers/people-core", async (importOriginal) => {
@@ -51,7 +54,9 @@ function createMockCtx(db: any, overrides: Partial<ImportCommitContext> = {}): I
  * números sozinho não o permitia. Um teste que afirma sobre uma cache que o código já não
  * escreve passa a medir o próprio teste.
  */
-function createCache(applications: Array<{ id: string; application_number: string | null; full_name: string }> = []) {
+function createCache(
+  applications: Array<{ id: string; application_number: string | null; full_name: string }> = [],
+) {
   return {
     existingPeople: [] as any[],
     classGroups: [],
@@ -83,7 +88,11 @@ describe("inscricoesImporter", () => {
 
     it("marca número de candidatura existente como duplicado da candidatura real", () => {
       const cache = createCache([
-        { id: "app-existente", application_number: "CAND-2026-010", full_name: "Beatriz Fernandes" },
+        {
+          id: "app-existente",
+          application_number: "CAND-2026-010",
+          full_name: "Beatriz Fernandes",
+        },
       ]);
       const analysis = inscricoesImporter.analyzeRow(
         { full_name: "Beatriz Fernandes", application_number: "CAND-2026-010" },
@@ -121,16 +130,18 @@ describe("inscricoesImporter", () => {
       expect(result.status).toBe("imported");
       expect(result.target_record_id).toBe("app-1");
       expect(mockDb.from).toHaveBeenCalledWith("enrollment_applications");
-      expect(cache.applications.some((a) => a.application_number === "CAND-2026-010")).toBe(
-        true,
-      );
+      expect(cache.applications.some((a) => a.application_number === "CAND-2026-010")).toBe(true);
     });
 
     // A ordem importa: antes, a pessoa era criada e só depois a candidatura falhava
     // na chave única, deixando uma pessoa órfã por cada linha repetida.
     it("não cria pessoa nem toca na base quando o número já existe e a estratégia é ignorar", async () => {
       const cache = createCache([
-        { id: "app-existente", application_number: "CAND-2026-010", full_name: "Beatriz Fernandes" },
+        {
+          id: "app-existente",
+          application_number: "CAND-2026-010",
+          full_name: "Beatriz Fernandes",
+        },
       ]);
       const mockDb = createMockDb();
 
@@ -148,7 +159,11 @@ describe("inscricoesImporter", () => {
 
     it("recusa criar uma segunda candidatura com o mesmo número, sem criar pessoa", async () => {
       const cache = createCache([
-        { id: "app-existente", application_number: "CAND-2026-010", full_name: "Beatriz Fernandes" },
+        {
+          id: "app-existente",
+          application_number: "CAND-2026-010",
+          full_name: "Beatriz Fernandes",
+        },
       ]);
       const mockDb = createMockDb();
 
@@ -208,7 +223,11 @@ describe("inscricoesImporter", () => {
     it("devolve error sem chamar resolveOrCreatePerson quando a linha é inválida", async () => {
       const mockDb = createMockDb();
 
-      const result = await inscricoesImporter.commitRow({}, createMockCtx(mockDb), createCache() as any);
+      const result = await inscricoesImporter.commitRow(
+        {},
+        createMockCtx(mockDb),
+        createCache() as any,
+      );
 
       expect(result.status).toBe("error");
       expect(resolveOrCreatePersonMock).not.toHaveBeenCalled();
@@ -223,7 +242,10 @@ describe("inscricoesImporter", () => {
         audits: [],
       });
       const mockDb = createMockDb({
-        enrollment_applications: { data: null, error: { message: "número de candidatura duplicado" } },
+        enrollment_applications: {
+          data: null,
+          error: { message: "número de candidatura duplicado" },
+        },
       });
 
       const result = await inscricoesImporter.commitRow(

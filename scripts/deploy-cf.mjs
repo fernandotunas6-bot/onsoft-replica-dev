@@ -1,6 +1,7 @@
 import { execSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
+import { collectWorkerSecrets } from "./worker-secrets.mjs";
 
 // Load .env file
 const envFile = path.resolve(".env");
@@ -33,7 +34,8 @@ function requireEnv(name) {
 
 const SUPABASE_URL = requireEnv("VITE_SUPABASE_URL");
 const SUPABASE_PUBLISHABLE_KEY = requireEnv("VITE_SUPABASE_PUBLISHABLE_KEY");
-const SUPABASE_SERVICE_ROLE_KEY = requireEnv("SUPABASE_SERVICE_ROLE_KEY");
+// Obrigatória; vai como segredo (collectWorkerSecrets), nunca em vars.
+requireEnv("SUPABASE_SERVICE_ROLE_KEY");
 const CLOUDFLARE_API_TOKEN = requireEnv("CLOUDFLARE_API_TOKEN");
 const CLOUDFLARE_ACCOUNT_ID = requireEnv("CLOUDFLARE_ACCOUNT_ID");
 
@@ -142,10 +144,10 @@ function classificarFalha(erro) {
   return null;
 }
 
-const segredos = [
-  ["SUPABASE_SERVICE_ROLE_KEY", SUPABASE_SERVICE_ROLE_KEY],
-  ...(envVars["RESEND_API_KEY"] ? [["RESEND_API_KEY", envVars["RESEND_API_KEY"]]] : []),
-];
+// Todas as chaves sensíveis definidas (lista em worker-secrets.mjs). Os nomes
+// aparecem no registo; os valores nunca.
+const segredos = collectWorkerSecrets(envVars, process.env);
+console.log(`==> Secrets to set: ${segredos.map(([nome]) => nome).join(", ")}`);
 
 let segredosPostos = false;
 try {

@@ -4,6 +4,8 @@ import { spotlightItemSchema, type SpotlightItem } from "./schemas";
  * Destaques do catálogo (atalhos e novidades do produto).
  * A escola acrescenta notas próprias em Definições → Destaques (`extras` em school_settings).
  * `link.type`: internal (rota SIGA) | external (URL) | settings (painel de Definições).
+ * `roles`: quem vê o destaque. Os de gestão (lançar notas, cobrar, publicar)
+ * não aparecem a alunos nem encarregados, mesmo que a rota lhes esteja aberta.
  */
 const rawSpotlights: SpotlightItem[] = [
   {
@@ -16,6 +18,7 @@ const rawSpotlights: SpotlightItem[] = [
     cta: "Abrir relatórios",
     tone: "primary",
     accessPath: "/relatorios/academicos",
+    roles: ["Administrador", "Secretaria", "Tesouraria", "Professor"],
     link: {
       type: "internal",
       to: "/relatorios/financeiros",
@@ -32,6 +35,7 @@ const rawSpotlights: SpotlightItem[] = [
     cta: "Abrir pedagógica",
     tone: "info",
     accessPath: "/pedagogica",
+    roles: ["Administrador", "Secretaria", "Professor"],
     link: { type: "internal", to: "/pedagogica" },
   },
   {
@@ -56,6 +60,7 @@ const rawSpotlights: SpotlightItem[] = [
     cta: "Abrir faturas",
     tone: "warning",
     accessPath: "/faturas",
+    roles: ["Administrador", "Tesouraria", "Secretaria"],
     link: { type: "internal", to: "/faturas" },
   },
   {
@@ -80,6 +85,7 @@ const rawSpotlights: SpotlightItem[] = [
     cta: "Abrir documentos",
     tone: "primary",
     accessPath: "/documentos",
+    roles: ["Administrador", "Secretaria", "Tesouraria", "Professor"],
     link: { type: "internal", to: "/documentos" },
   },
   {
@@ -92,6 +98,7 @@ const rawSpotlights: SpotlightItem[] = [
     cta: "Abrir comunicações",
     tone: "success",
     accessPath: "/comunicacoes",
+    roles: ["Administrador", "Secretaria", "Professor"],
     link: { type: "internal", to: "/comunicacoes" },
   },
   {

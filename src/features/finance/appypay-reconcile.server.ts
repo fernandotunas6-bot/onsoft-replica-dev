@@ -28,7 +28,10 @@ export async function reconcileAppyPayCharge(
   const remote = await getAppyPayCharge(row.provider_charge_id);
   if (!remote) return { status: row.status };
 
-  if (remote.merchantTransactionId && remote.merchantTransactionId !== row.merchant_transaction_id) {
+  if (
+    remote.merchantTransactionId &&
+    remote.merchantTransactionId !== row.merchant_transaction_id
+  ) {
     await db
       .from("payment_gateway_charges")
       .update({ status: "mismatch", status_message: "Identificador da transacção não confere." })
@@ -78,10 +81,19 @@ export async function reconcileAppyPayCharge(
     }
   }
 
-  const mapped = s.includes("expir") ? "expired" : s === "failed" || remote.successful === false && s !== "pending" ? "failed" : "pending";
+  const mapped = s.includes("expir")
+    ? "expired"
+    : s === "failed" || (remote.successful === false && s !== "pending")
+      ? "failed"
+      : "pending";
   await db
     .from("payment_gateway_charges")
-    .update({ status: mapped, status_message: remote.message, last_webhook_at: now, raw_last_payload: payload ?? remote.raw })
+    .update({
+      status: mapped,
+      status_message: remote.message,
+      last_webhook_at: now,
+      raw_last_payload: payload ?? remote.raw,
+    })
     .eq("id", row.id)
     .neq("status", "paid");
   return { status: mapped };

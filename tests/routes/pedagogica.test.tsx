@@ -48,6 +48,74 @@ vi.mock("@/features/academic/server", () => ({
   upsertTermGrade: vi.fn(),
 }));
 
+vi.mock("@/features/academic/academic-structure", () => ({
+  getAcademicStructureStatus: () =>
+    Promise.resolve({
+      yearName: "2025/2026",
+      yearActive: true,
+      activeRuleSets: 1,
+      subjects: 12,
+      terms: 3,
+      classGroups: 4,
+      classSubjects: 40,
+      classSubjectsWithTeacher: 37,
+      enrollments: 120,
+      assessments: 8,
+      gradebooks: { open: 30, closed: 10 },
+      gradeSheets: { draft: 4 },
+      pendingGradeChanges: 0,
+      historyRecords: 0,
+      auditEvents30d: 55,
+    }),
+}));
+
+vi.mock("@/features/academic/assessment-models", () => ({
+  getAssessmentModels: () =>
+    Promise.resolve({
+      scale: { name: "Escala 0–20", minimum: 0, maximum: 20, decimalPlaces: 0 },
+      subjects: [{ id: "s1", name: "Matemática" }],
+      canPublish: true,
+      versions: [
+        {
+          id: "r2",
+          version: 2,
+          status: "active",
+          name: "Decreto Executivo n.º 424/25",
+          continuousWeight: 50,
+          examWeight: 50,
+          passingValue: 10,
+          maximumAbsencePercentage: 33,
+          roundingMethod: "nearest",
+          gradeChangeRequiresApproval: true,
+          lockAfterPublication: true,
+          keySubjectIds: ["s1"],
+          keySubjectsCauseFailure: true,
+          createdAt: "2026-09-20T10:00:00Z",
+          createdByName: "Direcção",
+        },
+        {
+          id: "r1",
+          version: 1,
+          status: "retired",
+          name: "Regra principal de avaliação",
+          continuousWeight: 40,
+          examWeight: 60,
+          passingValue: 10,
+          maximumAbsencePercentage: 25,
+          roundingMethod: "up",
+          gradeChangeRequiresApproval: false,
+          lockAfterPublication: false,
+          keySubjectIds: [],
+          keySubjectsCauseFailure: true,
+          createdAt: "2026-09-01T10:00:00Z",
+          createdByName: null,
+        },
+      ],
+    }),
+  publishAssessmentModel: vi.fn(),
+  getActivePassingValue: () => Promise.resolve({ passingValue: 10 }),
+}));
+
 vi.mock("@/features/people/server", () => ({
   listTeachers: () => listTeachersMock(),
 }));
@@ -117,6 +185,7 @@ describe("/pedagogica — render", () => {
     // Sem anos lectivos / cursos / classes, `structureReady` é falso e a aba de
     // turmas devolve cedo — mesmo havendo turmas no workspace.
     seed({ classGroups: [turma] });
+    setRouteSearch({ tab: "turmas" });
 
     renderRoute(Pedagogica);
 
@@ -133,6 +202,7 @@ describe("/pedagogica — render", () => {
       gradeLevels: [{ id: "classe-1", name: "10ª Classe", code: "10" }],
       classGroups: [turma],
     });
+    setRouteSearch({ tab: "turmas" });
 
     renderRoute(Pedagogica);
 
@@ -145,6 +215,38 @@ describe("/pedagogica — render", () => {
       expect(screen.getByRole("button", { name: "Turma 10ª A" })).toBeDefined();
     });
     expect(screen.queryByText("Nenhuma turma neste filtro")).toBeNull();
+  });
+
+  it("a direcção abre na estrutura académica, com o estado real de cada módulo", async () => {
+    seed();
+
+    renderRoute(Pedagogica);
+
+    await waitFor(() => {
+      expect(
+        screen.getByRole("tab", { name: /Estrutura académica/i }).getAttribute("data-state"),
+      ).toBe("active");
+    });
+    await waitFor(() => {
+      expect(screen.getByText("3 sem professor")).toBeDefined();
+    });
+    expect(screen.getByText("Percurso da informação")).toBeDefined();
+    expect(screen.getByText("Sem épocas de exame")).toBeDefined();
+  });
+
+  it("mostra o modelo de avaliação em vigor e as versões anteriores", async () => {
+    seed();
+    setRouteSearch({ tab: "modelos" });
+
+    renderRoute(Pedagogica);
+
+    await waitFor(() => {
+      expect(screen.getByText("Decreto Executivo n.º 424/25")).toBeDefined();
+    });
+    expect(screen.getByText("MT = (MAC + NPT) ÷ 2")).toBeDefined();
+    expect(screen.getByText("Matemática (negativa reprova)")).toBeDefined();
+    expect(screen.getByText("Versões anteriores")).toBeDefined();
+    expect(screen.getByRole("button", { name: "Nova versão" })).toBeDefined();
   });
 
   it("abre directamente na aba pedida pela query string", async () => {

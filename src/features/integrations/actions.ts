@@ -92,7 +92,6 @@ export async function copyText(text: string): Promise<boolean> {
   }
 }
 
-
 export function actionLabelForCapability(cap: IntegrationCapability): string {
   const kind = capabilityActionKind[cap.id];
   switch (kind) {

@@ -8,7 +8,10 @@ const migration = readFileSync(
   resolve(migrationsDir, "20260924004749_reconcile_zoom_lesson_meetings.sql"),
   "utf8",
 );
-const zoomServer = readFileSync(resolve(__dirname, "../../src/features/integrations/zoom.ts"), "utf8");
+const zoomServer = readFileSync(
+  resolve(__dirname, "../../src/features/integrations/zoom.ts"),
+  "utf8",
+);
 
 describe("SIGA Integrations — Zoom Meetings & Class Integration", () => {
   it("deve fornecer link de sala e rota oficial da integração", () => {
@@ -30,7 +33,9 @@ describe("SIGA Integrations — Zoom Meetings & Class Integration", () => {
   });
 
   it("migração canónica 20260924004749 é idempotente e não destrutiva", () => {
-    expect(existsSync(resolve(migrationsDir, "20260924090000_reconcile_zoom_lesson_meetings.sql"))).toBe(false);
+    expect(
+      existsSync(resolve(migrationsDir, "20260924090000_reconcile_zoom_lesson_meetings.sql")),
+    ).toBe(false);
     expect(migration).toContain("CREATE TABLE IF NOT EXISTS public.siga_lesson_meetings");
     expect(migration).toContain("UNIQUE (provider, external_meeting_id)");
     expect(migration).toContain("UNIQUE (attendance_session_id, provider)");

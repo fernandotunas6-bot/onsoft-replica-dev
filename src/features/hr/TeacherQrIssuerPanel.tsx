@@ -8,10 +8,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { actionIcons, moduleIcons } from "@/lib/app-icons";
 import { materializeTeacherLessons } from "@/features/hr/materialize-lessons";
-import {
-  createTeacherLessonQr,
-  listTeacherQrOccurrences,
-} from "@/features/hr/teacher-lessons";
+import { createTeacherLessonQr, listTeacherQrOccurrences } from "@/features/hr/teacher-lessons";
 import { schoolTodayIso } from "@/features/hr/schoolClock";
 
 type VisibleQr = {
@@ -145,7 +142,9 @@ export function TeacherQrIssuerPanel() {
                     <td className="py-3 pr-4">
                       <StatusBadge
                         status={checkedOut ? "paid" : checkedIn ? "pending" : "inactive"}
-                        label={checkedOut ? "Concluída" : checkedIn ? "Em curso" : "Aguardando entrada"}
+                        label={
+                          checkedOut ? "Concluída" : checkedIn ? "Em curso" : "Aguardando entrada"
+                        }
                       />
                     </td>
                     <td className="py-3 text-right">
@@ -153,7 +152,9 @@ export function TeacherQrIssuerPanel() {
                         size="sm"
                         variant="outline"
                         disabled={disabled || generateQr.isPending}
-                        onClick={() => generateQr.mutate({ occurrenceId: lesson.id, purpose, label })}
+                        onClick={() =>
+                          generateQr.mutate({ occurrenceId: lesson.id, purpose, label })
+                        }
                       >
                         <QrIcon className="mr-2 size-4" />
                         {checkedIn ? "QR saída" : "QR entrada"}

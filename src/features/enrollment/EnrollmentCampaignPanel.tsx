@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Copy, ExternalLink, Link2 } from "lucide-react";
 import { toast } from "sonner";
+import { isTwoFactorRequiredMessage, TWO_FACTOR_SETUP_PATH } from "@/lib/two-factor-error";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -304,7 +305,7 @@ function ApplicationRow({
   const selected = classGroups.find((group) => group.id === classGroupId);
   const contactPhone = row.payload?.guardianPhone || row.payload?.person?.phone_primary || "";
   const contactEmail = row.payload?.person?.email || "";
-  const shareText = `Candidatura SIGA de ${row.full_name} (${row.status}).`;
+  const shareText = `Candidatura SIGA de ${row.full_name} (${applicationStatusLabel(row.status).toLowerCase()}).`;
 
   const printTalao = async (kind: "candidatura" | "matricula") => {
     const payload = row.payload ?? {};
@@ -362,7 +363,7 @@ function ApplicationRow({
       );
       await printTalao(withClass ? "matricula" : "candidatura").catch(() => undefined);
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Não foi possível aceitar.");
+      showDecisionError(error, "Não foi possível aceitar.");
     } finally {
       setBusy(false);
     }
@@ -385,7 +386,7 @@ function ApplicationRow({
       await refresh(`Aluno colocado em ${selected.name ?? "turma"}.`);
       await printTalao("matricula").catch(() => undefined);
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Não foi possível colocar na turma.");
+      showDecisionError(error, "Não foi possível colocar na turma.");
     } finally {
       setBusy(false);
     }
@@ -395,7 +396,9 @@ function ApplicationRow({
     <li className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-border px-3 py-2 text-sm">
       <span>
         <strong>{row.full_name}</strong>
-        <span className="ml-2 text-xs text-muted-foreground">{row.status}</span>
+        <span className="ml-2 text-xs text-muted-foreground">
+          {applicationStatusLabel(row.status)}
+        </span>
       </span>
       {row.status === "pending" ? (
         <span className="flex flex-wrap items-center gap-1">
@@ -536,4 +539,34 @@ function ApplicationRow({
       ) : null}
     </li>
   );
+}
+
+/**
+ * Sem 2FA a base recusa criar ou matricular o aluno (e a candidatura fica
+ * pendente). O aviso leva directamente à activação, em vez de só informar.
+ */
+function showDecisionError(error: unknown, fallback: string) {
+  const message = error instanceof Error ? error.message : fallback;
+  if (isTwoFactorRequiredMessage(message)) {
+    toast.error(message, {
+      description: "A candidatura continua pendente. Active o 2FA e volte a aceitar.",
+      duration: 12_000,
+      action: {
+        label: "Activar 2FA",
+        onClick: () => window.location.assign(TWO_FACTOR_SETUP_PATH),
+      },
+    });
+    return;
+  }
+  toast.error(message);
+}
+
+const APPLICATION_STATUS_LABELS: Record<string, string> = {
+  pending: "Pendente",
+  accepted: "Aceite",
+  rejected: "Recusada",
+};
+
+function applicationStatusLabel(status: string) {
+  return APPLICATION_STATUS_LABELS[status] ?? status;
 }

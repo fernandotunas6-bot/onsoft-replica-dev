@@ -103,16 +103,9 @@ const COMPACT_SERVICE_IDS = [
   "resend_email",
 ] as const;
 
-const COMPACT_TEACHING_IDS = [
-  "zoom",
-  "google_calendar",
-  "apple_calendar",
-  "sige",
-] as const;
+const COMPACT_TEACHING_IDS = ["zoom", "google_calendar", "apple_calendar", "sige"] as const;
 
-export const teachingBundleIds = [
-  "zoom",
-] as const;
+export const teachingBundleIds = ["zoom"] as const;
 
 const INTEGRATION_FOCUS_KEY = "siga:focus-integration";
 

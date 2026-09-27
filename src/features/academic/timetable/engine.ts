@@ -155,7 +155,11 @@ export function blockKey(weekday: number, block: number): string {
 export function subjectWeight(name: string): number {
   const n = name.toLowerCase();
   if (/matem|portugu|f[ií]sica(?!.*educa)|qu[ií]mica|biolog/.test(n) && !/educa/.test(n)) return 1;
-  if (/educa[cç][aã]o f[ií]sica|desporto|visual|pl[aá]stica|musical|manual|laboral|moral|c[ií]vica/.test(n))
+  if (
+    /educa[cç][aã]o f[ií]sica|desporto|visual|pl[aá]stica|musical|manual|laboral|moral|c[ií]vica/.test(
+      n,
+    )
+  )
     return 0;
   if (/hist|geogr|filos|ingl|franc|inform|tic|program|econom|contab/.test(n)) return 0.55;
   return 0.5;
@@ -231,7 +235,8 @@ function buildCtx(input: EngineInput): Ctx {
     roomBusy.set(roomId, new Set(cells.map(normalizeCellKey)));
   }
   const previousByCell = new Map<string, string>();
-  for (const p of input.previous ?? []) previousByCell.set(blockKey(p.weekday, p.block), p.classSubjectId);
+  for (const p of input.previous ?? [])
+    previousByCell.set(blockKey(p.weekday, p.block), p.classSubjectId);
   return {
     input,
     opts,
@@ -245,20 +250,30 @@ function buildCtx(input: EngineInput): Ctx {
   };
 }
 
-function isCellFree(ctx: Ctx, grid: Grid, demand: EngineDemand, weekday: number, block: EngineBlock): boolean {
+function isCellFree(
+  ctx: Ctx,
+  grid: Grid,
+  demand: EngineDemand,
+  weekday: number,
+  block: EngineBlock,
+): boolean {
   const bk = blockKey(weekday, block.number);
   if (ctx.blocked.has(bk) || grid.has(bk)) return false;
   const ck = cellKey(weekday, block.startsAt);
   if (demand.teacherId && ctx.teacherBusy.get(demand.teacherId)?.has(ck)) return false;
   if (ctx.input.roomId && ctx.roomBusy.get(ctx.input.roomId)?.has(ck)) return false;
-  if (demand.teacherId && !teacherAvailable(ctx.input.teacherAvailability?.[demand.teacherId], weekday, block))
+  if (
+    demand.teacherId &&
+    !teacherAvailable(ctx.input.teacherAvailability?.[demand.teacherId], weekday, block)
+  )
     return false;
   return true;
 }
 
 function countSubjectOnDay(grid: Grid, classSubjectId: string, weekday: number): number {
   let n = 0;
-  for (const p of grid.values()) if (p.classSubjectId === classSubjectId && p.weekday === weekday) n++;
+  for (const p of grid.values())
+    if (p.classSubjectId === classSubjectId && p.weekday === weekday) n++;
   return n;
 }
 
@@ -268,25 +283,42 @@ function dayLoad(grid: Grid, weekday: number): number {
   return n;
 }
 
-function hasAdjacentSame(grid: Grid, classSubjectId: string, weekday: number, block: number): boolean {
+function hasAdjacentSame(
+  grid: Grid,
+  classSubjectId: string,
+  weekday: number,
+  block: number,
+): boolean {
   const prev = grid.get(blockKey(weekday, block - 1));
   const next = grid.get(blockKey(weekday, block + 1));
   return prev?.classSubjectId === classSubjectId || next?.classSubjectId === classSubjectId;
 }
 
-function teacherAdjacentElsewhere(ctx: Ctx, teacherId: string | null, weekday: number, block: EngineBlock): boolean {
+function teacherAdjacentElsewhere(
+  ctx: Ctx,
+  teacherId: string | null,
+  weekday: number,
+  block: EngineBlock,
+): boolean {
   if (!teacherId) return false;
   const busy = ctx.teacherBusy.get(teacherId);
   if (!busy) return false;
   const prev = ctx.blocksByNumber.get(block.number - 1);
   const next = ctx.blocksByNumber.get(block.number + 1);
   return Boolean(
-    (prev && busy.has(cellKey(weekday, prev.startsAt))) || (next && busy.has(cellKey(weekday, next.startsAt))),
+    (prev && busy.has(cellKey(weekday, prev.startsAt))) ||
+    (next && busy.has(cellKey(weekday, next.startsAt))),
   );
 }
 
 /** Pontuação de colocar `demand` na célula — maior é melhor. */
-function scoreCell(ctx: Ctx, grid: Grid, demand: EngineDemand, weekday: number, block: EngineBlock): number {
+function scoreCell(
+  ctx: Ctx,
+  grid: Grid,
+  demand: EngineDemand,
+  weekday: number,
+  block: EngineBlock,
+): number {
   const { opts } = ctx;
   const nBlocks = ctx.input.blocks.length;
   const weight = demand.weight ?? subjectWeight(demand.subjectName);
@@ -305,7 +337,9 @@ function scoreCell(ctx: Ctx, grid: Grid, demand: EngineDemand, weekday: number, 
     score += (0.5 - position) * 6 * (weight - 0.5) * 2;
   }
 
-  const avg = ctx.input.demands.reduce((s, d) => s + d.weeklyPeriods, 0) / Math.max(1, ctx.input.weekdays.length);
+  const avg =
+    ctx.input.demands.reduce((s, d) => s + d.weeklyPeriods, 0) /
+    Math.max(1, ctx.input.weekdays.length);
   const load = dayLoad(grid, weekday);
   score -= Math.max(0, load + 1 - avg) * 1.6;
   // Preferir manhã cedo compacta: penalizar buracos (célula anterior vazia mas há aulas antes).
@@ -314,7 +348,10 @@ function scoreCell(ctx: Ctx, grid: Grid, demand: EngineDemand, weekday: number, 
 
   if (teacherAdjacentElsewhere(ctx, demand.teacherId, weekday, block)) score += 0.8;
 
-  if (opts.continuityWeight > 0 && ctx.previousByCell.get(blockKey(weekday, block.number)) === demand.classSubjectId) {
+  if (
+    opts.continuityWeight > 0 &&
+    ctx.previousByCell.get(blockKey(weekday, block.number)) === demand.classSubjectId
+  ) {
     score += opts.continuityWeight;
   }
 
@@ -464,7 +501,9 @@ export function diffPlacements(
         classSubjectId: id,
         subjectName: name(id),
         from: { weekday: olds[i]!.weekday, block: olds[i]!.block },
-        reason: reasons.get(id) ?? "A carga semanal desta disciplina diminuiu ou deixou de existir na turma.",
+        reason:
+          reasons.get(id) ??
+          "A carga semanal desta disciplina diminuiu ou deixou de existir na turma.",
       });
     }
     for (let i = n; i < news.length; i++) {
@@ -478,10 +517,15 @@ export function diffPlacements(
     }
   }
   const order: Record<EngineChangeKind, number> = { moved: 0, added: 1, removed: 2, kept: 3 };
-  return changes.sort((a, b) => order[a.kind] - order[b.kind] || a.subjectName.localeCompare(b.subjectName));
+  return changes.sort(
+    (a, b) => order[a.kind] - order[b.kind] || a.subjectName.localeCompare(b.subjectName),
+  );
 }
 
-export function computeMetrics(ctx: Ctx | EngineInput, placements: EnginePlacement[]): EngineMetrics {
+export function computeMetrics(
+  ctx: Ctx | EngineInput,
+  placements: EnginePlacement[],
+): EngineMetrics {
   const input = "input" in ctx ? ctx.input : ctx;
   const required = input.demands.reduce((s, d) => s + d.weeklyPeriods, 0);
   const capacity = input.weekdays.length * input.blocks.length - (input.blockedCells?.length ?? 0);
@@ -498,9 +542,12 @@ export function computeMetrics(ctx: Ctx | EngineInput, placements: EnginePlaceme
   }
   let continuity: number | null = null;
   if (input.previous && input.previous.length) {
-    const prev = new Map(input.previous.map((p) => [blockKey(p.weekday, p.block), p.classSubjectId]));
+    const prev = new Map(
+      input.previous.map((p) => [blockKey(p.weekday, p.block), p.classSubjectId]),
+    );
     let kept = 0;
-    for (const p of placements) if (prev.get(blockKey(p.weekday, p.block)) === p.classSubjectId) kept++;
+    for (const p of placements)
+      if (prev.get(blockKey(p.weekday, p.block)) === p.classSubjectId) kept++;
     continuity = Math.round((kept / input.previous.length) * 100);
   }
   // Pontuação 0..100: cobertura (60), distribuição (25), continuidade (15 quando existe).
@@ -555,12 +602,15 @@ export function suggestTimetable(input: EngineInput): EngineResult {
   // 2. Ordem de colocação: mais tempos primeiro, depois professores com menos células livres.
   const freeCellsForTeacher = (d: EngineDemand) => {
     let n = 0;
-    for (const w of input.weekdays) for (const b of input.blocks) if (isCellFree(ctx, grid, d, w, b)) n++;
+    for (const w of input.weekdays)
+      for (const b of input.blocks) if (isCellFree(ctx, grid, d, w, b)) n++;
     return n;
   };
   const remaining = new Map<string, number>();
   for (const d of input.demands) {
-    const pinnedCount = [...grid.values()].filter((p) => p.classSubjectId === d.classSubjectId).length;
+    const pinnedCount = [...grid.values()].filter(
+      (p) => p.classSubjectId === d.classSubjectId,
+    ).length;
     remaining.set(d.classSubjectId, Math.max(0, d.weeklyPeriods - pinnedCount));
   }
   const order = [...input.demands].sort((a, b) => {
@@ -597,11 +647,20 @@ export function suggestTimetable(input: EngineInput): EngineResult {
           : "Não há blocos livres no turno da turma.";
         const existing = unplaced.find((u) => u.classSubjectId === demand.classSubjectId);
         if (existing) existing.missing = left;
-        else unplaced.push({ classSubjectId: demand.classSubjectId, subjectName: demand.subjectName, missing: left, reason });
+        else
+          unplaced.push({
+            classSubjectId: demand.classSubjectId,
+            subjectName: demand.subjectName,
+            missing: left,
+            reason,
+          });
         remaining.set(demand.classSubjectId, 0);
         continue;
       }
-      grid.set(blockKey(best.weekday, best.block.number), placementFor(ctx, demand, best.weekday, best.block));
+      grid.set(
+        blockKey(best.weekday, best.block.number),
+        placementFor(ctx, demand, best.weekday, best.block),
+      );
       remaining.set(demand.classSubjectId, left - 1);
       progress = true;
     }
@@ -633,9 +692,18 @@ export function suggestTimetable(input: EngineInput): EngineResult {
           `O professor ${demand.teacherName ?? ""} passou a ter aula noutra turma em ${describeCell(prev.weekday, prev.block)}.`,
         );
       } else if (input.roomId && ctx.roomBusy.get(input.roomId)?.has(ck)) {
-        reasons.set(prev.classSubjectId, `A sala passou a estar ocupada em ${describeCell(prev.weekday, prev.block)}.`);
-      } else if (demand.teacherId && !teacherAvailable(input.teacherAvailability?.[demand.teacherId], prev.weekday, block)) {
-        reasons.set(prev.classSubjectId, `O professor deixou de estar disponível em ${describeCell(prev.weekday, prev.block)}.`);
+        reasons.set(
+          prev.classSubjectId,
+          `A sala passou a estar ocupada em ${describeCell(prev.weekday, prev.block)}.`,
+        );
+      } else if (
+        demand.teacherId &&
+        !teacherAvailable(input.teacherAvailability?.[demand.teacherId], prev.weekday, block)
+      ) {
+        reasons.set(
+          prev.classSubjectId,
+          `O professor deixou de estar disponível em ${describeCell(prev.weekday, prev.block)}.`,
+        );
       }
     }
   }
@@ -654,9 +722,12 @@ export function suggestTimetable(input: EngineInput): EngineResult {
       `Ficaram por colocar ${unplaced.reduce((s, u) => s + u.missing, 0)} tempo(s) em ${unplaced.length} disciplina(s). Ajuste a carga, a disponibilidade dos professores ou os blocos do turno.`,
     );
   } else {
-    explanations.push(`Carga semanal completa: ${metrics.filled} de ${metrics.required} tempos colocados sem conflitos.`);
+    explanations.push(
+      `Carga semanal completa: ${metrics.filled} de ${metrics.required} tempos colocados sem conflitos.`,
+    );
   }
-  if (metrics.doubles > 0) explanations.push(`${metrics.doubles} tempo(s) geminado(s) para disciplinas com mais carga.`);
+  if (metrics.doubles > 0)
+    explanations.push(`${metrics.doubles} tempo(s) geminado(s) para disciplinas com mais carga.`);
 
   return { placements, unplaced, metrics, changes, explanations };
 }
@@ -667,7 +738,8 @@ export function validatePlacements(
   placements: EnginePlacement[],
 ): Array<{ classSubjectId: string; weekday: number; block: number; message: string }> {
   const ctx = buildCtx({ ...input, previous: undefined, pinned: undefined });
-  const issues: Array<{ classSubjectId: string; weekday: number; block: number; message: string }> = [];
+  const issues: Array<{ classSubjectId: string; weekday: number; block: number; message: string }> =
+    [];
   const seen = new Map<string, EnginePlacement>();
   for (const p of placements) {
     const d = ctx.demandById.get(p.classSubjectId);
@@ -681,13 +753,19 @@ export function validatePlacements(
     seen.set(bk, p);
     const ck = cellKey(p.weekday, b.startsAt);
     if (d.teacherId && ctx.teacherBusy.get(d.teacherId)?.has(ck)) {
-      issues.push({ ...p, message: `${d.teacherName ?? "O professor"} já tem aula noutra turma neste tempo.` });
+      issues.push({
+        ...p,
+        message: `${d.teacherName ?? "O professor"} já tem aula noutra turma neste tempo.`,
+      });
     }
     if (input.roomId && ctx.roomBusy.get(input.roomId)?.has(ck)) {
       issues.push({ ...p, message: "A sala está ocupada por outra turma neste tempo." });
     }
     if (d.teacherId && !teacherAvailable(input.teacherAvailability?.[d.teacherId], p.weekday, b)) {
-      issues.push({ ...p, message: `${d.teacherName ?? "O professor"} não está disponível neste tempo.` });
+      issues.push({
+        ...p,
+        message: `${d.teacherName ?? "O professor"} não está disponível neste tempo.`,
+      });
     }
   }
   const counts = new Map<string, number>();
@@ -695,7 +773,12 @@ export function validatePlacements(
   for (const d of input.demands) {
     const n = counts.get(d.classSubjectId) ?? 0;
     if (n > d.weeklyPeriods) {
-      issues.push({ classSubjectId: d.classSubjectId, weekday: 0, block: 0, message: `${d.subjectName}: ${n} tempos marcados, a carga semanal é ${d.weeklyPeriods}.` });
+      issues.push({
+        classSubjectId: d.classSubjectId,
+        weekday: 0,
+        block: 0,
+        message: `${d.subjectName}: ${n} tempos marcados, a carga semanal é ${d.weeklyPeriods}.`,
+      });
     }
   }
   return issues;

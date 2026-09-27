@@ -16,6 +16,7 @@ import { useSchoolSettings } from "@/features/auth/use-school-settings";
 import { cn } from "@/lib/utils";
 import { saveRiskAnalysis } from "@/features/ai-assist/risk-followup.functions";
 import { RiskFollowup, riskCasesKey } from "@/features/ai-assist/RiskFollowup";
+import { EarlyWarningsPanel } from "@/features/academic/EarlyWarningsPanel";
 
 export const Route = createFileRoute("/pedagogica_/risco")({
   head: () => ({
@@ -87,6 +88,33 @@ function RiskPage() {
     }
     return [...map.values()].slice(0, 80);
   }, [workspace?.termGrades, effectiveClass]);
+  // Todas as notas da turma (sem o corte de 80 que a análise por IA usa).
+  const warningStudents = useMemo(() => {
+    const map = new Map<
+      string,
+      {
+        enrollmentId: string;
+        name: string;
+        grades: Array<{ subjectId: string; subjectName: string; term: number; average: number }>;
+      }
+    >();
+    for (const g of workspace?.termGrades ?? []) {
+      if (g.class_group_id !== effectiveClass) continue;
+      const s = map.get(g.enrollment_id) ?? {
+        enrollmentId: g.enrollment_id,
+        name: g.student_name,
+        grades: [],
+      };
+      s.grades.push({
+        subjectId: g.subject_id,
+        subjectName: g.subject_name,
+        term: g.term,
+        average: g.average,
+      });
+      map.set(g.enrollment_id, s);
+    }
+    return [...map.values()];
+  }, [workspace?.termGrades, effectiveClass]);
 
   const mutation = useMutation<RiskAnalysis, Error>({
     mutationFn: () =>
@@ -130,7 +158,7 @@ function RiskPage() {
         <PageHeader
           group="Académico"
           title="Alunos em risco"
-          description="A IA analisa as notas da turma e o histórico que indicar, e sugere intervenções para cada aluno."
+          description="Sinais automáticos pelas regras do modelo de avaliação e, se quiser, uma análise por IA com intervenções sugeridas."
           icon={moduleIcons.studentRisk}
         />
         <Panel title="Dados da análise">
@@ -187,6 +215,8 @@ function RiskPage() {
             ) : null}
           </div>
         </Panel>
+
+        <EarlyWarningsPanel classGroupId={effectiveClass} students={warningStudents} />
 
         {mutation.data ? (
           <Panel title="Resultado" description={mutation.data.overview}>

@@ -117,6 +117,7 @@ function CaseCard({ c }: { c: RiskCase }) {
               </select>
             </div>
             <Textarea
+              aria-label="Intervenção feita e resultado"
               rows={2}
               maxLength={2000}
               value={text}

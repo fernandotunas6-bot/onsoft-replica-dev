@@ -423,6 +423,7 @@ export function InstitutionOnboarding({ displayName }: { displayName: string }) 
                     <input
                       type="radio"
                       name="profile"
+                      aria-label={accessRequestProfileLabels[profile]}
                       value={profile}
                       className="sr-only"
                       checked={draft.profile === profile}

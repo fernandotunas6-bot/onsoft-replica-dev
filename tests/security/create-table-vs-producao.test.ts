@@ -50,7 +50,8 @@ function declaracoes() {
   const saida: Array<{ ficheiro: string; tabela: string; colunas: string[] }> = [];
   for (const ficheiro of ficheiros) {
     const sql = readFileSync(resolve(MIGRACOES, ficheiro), "utf8");
-    const re = /CREATE TABLE(?:\s+IF NOT EXISTS)?\s+(?:public\.)?"?([a-z_][a-z_0-9]*)"?\s*\(([\s\S]*?)\n\);/gi;
+    const re =
+      /CREATE TABLE(?:\s+IF NOT EXISTS)?\s+(?:public\.)?"?([a-z_][a-z_0-9]*)"?\s*\(([\s\S]*?)\n\);/gi;
     for (const m of sql.matchAll(re)) {
       const corpo = m[2];
       // Uma coluna é uma linha com dois espaços de indentação, um nome, e um TIPO.
@@ -97,7 +98,7 @@ function colunasReconciliadas(): Set<string> {
     }
 
     // Renomeações feitas por `format(...)` dentro de um bloco DO, como em
-    // `20260927090000_reconcile_school_access_requests.sql`: o nome de destino
+    // `20260927100000_reconcile_school_access_requests.sql`: o nome de destino
     // está numa lista de pares, não no texto do ALTER.
     if (/RENAME COLUMN %I TO %I/i.test(sql)) {
       const alvo = /ALTER TABLE public\.([a-z_][a-z_0-9]*) RENAME COLUMN %I TO %I/i.exec(sql);
@@ -125,8 +126,10 @@ describe("CREATE TABLE vs. produção", () => {
   });
 
   it("encontra declarações de tabela nas migrações", () => {
-    expect(declaradas.length, "nenhum CREATE TABLE encontrado — o padrão deixou de bater").
-      toBeGreaterThan(20);
+    expect(
+      declaradas.length,
+      "nenhum CREATE TABLE encontrado — o padrão deixou de bater",
+    ).toBeGreaterThan(20);
   });
 
   it("nenhum CREATE TABLE declara coluna que a produção não tem e ninguém acrescenta", () => {
@@ -151,7 +154,7 @@ describe("CREATE TABLE vs. produção", () => {
         `existem: ${promessasVazias.join("; ")}. Um CREATE TABLE IF NOT EXISTS sobre uma ` +
         `tabela existente não faz nada e não dá erro — a coluna nunca aparece e quem ` +
         `aplicou fica convencido de que aplicou. Alterar uma tabela que já existe faz-se ` +
-        `com ALTER TABLE: ver 20260927090000_reconcile_school_access_requests.sql.`,
+        `com ALTER TABLE: ver 20260927100000_reconcile_school_access_requests.sql.`,
     ).toEqual([]);
   });
 

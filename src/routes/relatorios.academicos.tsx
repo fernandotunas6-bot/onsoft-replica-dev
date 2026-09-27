@@ -1,6 +1,7 @@
 import { useMemo, lazy, Suspense, useEffect } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
+import { usePassingValue } from "@/features/academic/use-passing-value";
 import { Award, Download, FileBadge, FileDown } from "lucide-react";
 import { toast } from "sonner";
 import { whatsappHref } from "@/features/integrations/actions";
@@ -84,6 +85,7 @@ function RelatoriosAcademicos() {
   );
 
   const { selectedYearId, selectedYearLabel, school } = useSchoolSettings();
+  const passing = usePassingValue();
   const workspaceQuery = useQuery({
     queryKey: ["academic", "pedagogical-workspace", selectedYearId],
     queryFn: () =>
@@ -114,16 +116,16 @@ function RelatoriosAcademicos() {
       const matchTurma = filters.turma === "todas" || nota.class_group_name === filters.turma;
       const matchResultado =
         filters.resultado === "todos" ||
-        (filters.resultado === "aprovados" ? nota.average >= 10 : nota.average < 10);
+        (filters.resultado === "aprovados" ? nota.average >= passing : nota.average < passing);
       return matchQ && matchTrimestre && matchTurma && matchResultado;
     });
-  }, [filters.q, filters.trimestre, filters.turma, filters.resultado, termGradesAll]);
+  }, [filters.q, filters.trimestre, filters.turma, filters.resultado, termGradesAll, passing]);
 
   const mediaGeral =
     termGrades.length > 0
       ? termGrades.reduce((sum, nota) => sum + nota.average, 0) / termGrades.length
       : 0;
-  const aprovados = termGrades.filter((nota) => nota.average >= 10).length;
+  const aprovados = termGrades.filter((nota) => nota.average >= passing).length;
   const taxaAprovados =
     termGrades.length > 0 ? Math.round((aprovados / termGrades.length) * 100) : 0;
   const taxaReprovados = termGrades.length > 0 ? 100 - taxaAprovados : 0;
@@ -143,7 +145,7 @@ function RelatoriosAcademicos() {
       .reduce((map, nota) => {
         const classe = nota.class_group_name.split(" ")[0] ?? nota.class_group_name;
         const current = map.get(classe) ?? { classe, aprovados: 0, reprovados: 0 };
-        if (nota.average >= 10) current.aprovados += 1;
+        if (nota.average >= passing) current.aprovados += 1;
         else current.reprovados += 1;
         map.set(classe, current);
         return map;
@@ -164,7 +166,7 @@ function RelatoriosAcademicos() {
     const mediaTurma = matchingNotas.length
       ? matchingNotas.reduce((sum, nota) => sum + nota.average, 0) / matchingNotas.length
       : (turma.average_score ?? 0);
-    const aprovadosTurma = matchingNotas.filter((nota) => nota.average >= 10).length;
+    const aprovadosTurma = matchingNotas.filter((nota) => nota.average >= passing).length;
     return {
       id: turma.id,
       nome: turma.name,
@@ -196,7 +198,7 @@ function RelatoriosAcademicos() {
     npp: nota.npp,
     npt: nota.npt,
     media: Number(nota.average.toFixed(1)),
-    resultado: nota.average >= 10 ? "Aprovado" : "Em recuperação",
+    resultado: nota.average >= passing ? "Aprovado" : "Em recuperação",
   }));
   const pautaColumns: Array<{ label: string; value: (row: Record<string, CsvValue>) => CsvValue }> =
     [

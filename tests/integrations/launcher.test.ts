@@ -46,9 +46,7 @@ describe("app launcher catalog", () => {
       "unitel_money",
       "whatsapp_business",
     ]);
-    expect(compact[2]?.apps.map((app) => app.id)).toEqual(
-      expect.arrayContaining(["zoom", "sige"]),
-    );
+    expect(compact[2]?.apps.map((app) => app.id)).toEqual(expect.arrayContaining(["zoom", "sige"]));
     expect(appsForHubSection("academic").map((app) => app.id)).toEqual(
       expect.arrayContaining(["zoom"]),
     );

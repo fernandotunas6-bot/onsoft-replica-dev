@@ -261,14 +261,22 @@ describe("dry run não escreve na base", () => {
           throw new Error(`ESCRITA PROIBIDA EM DRY RUN: ${op} em ${table}`);
         };
         const chain: Record<string, unknown> = {
-          select: () => chain, eq: () => chain, in: () => chain, limit: () => chain,
+          select: () => chain,
+          eq: () => chain,
+          in: () => chain,
+          limit: () => chain,
           order: async () => ({ data: [], error: null }),
           maybeSingle: async () => ({ data: lookups[table] ?? null, error: null }),
-          insert: deny("insert"), update: deny("update"), upsert: deny("upsert"), delete: deny("delete"),
+          insert: deny("insert"),
+          update: deny("update"),
+          upsert: deny("upsert"),
+          delete: deny("delete"),
         };
         return chain;
       },
-      rpc: () => { throw new Error("RPC proibida em dry run"); },
+      rpc: () => {
+        throw new Error("RPC proibida em dry run");
+      },
     };
     const cache = {
       academicYearId: "y1",
@@ -277,7 +285,13 @@ describe("dry run não escreve na base", () => {
       subjects: [{ id: "sub1", code: "MAT", name: "Matemática" }],
     };
     const res = await presencasImporter.commitRow(
-      { student_identifier: "PROC-2026-042", turma: "10A", disciplina: "MAT", data: "2026-03-02", estado: "presente" },
+      {
+        student_identifier: "PROC-2026-042",
+        turma: "10A",
+        disciplina: "MAT",
+        data: "2026-03-02",
+        estado: "presente",
+      },
       { ...(commitContext(client) as object), academicYearId: "y1" } as never,
       cache as never,
     );

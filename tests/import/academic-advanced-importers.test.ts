@@ -9,7 +9,15 @@ describe("Academic Advanced Importers (presencas, pautas, propinas)", () => {
     // não como taxa agregada — evita misturar sessões diferentes.
     const refs = {
       academicYearId: "y1",
-      students: [{ id: "s1", student_number: "PROC-042", national_id: "001234LA042", status: "active", person_id: "p1" }],
+      students: [
+        {
+          id: "s1",
+          student_number: "PROC-042",
+          national_id: "001234LA042",
+          status: "active",
+          person_id: "p1",
+        },
+      ],
       groups: [{ id: "g1", code: "10A", name: "10ª A" }],
       subjects: [{ id: "sub1", code: "MAT", name: "Matemática" }],
     };
@@ -25,7 +33,13 @@ describe("Academic Advanced Importers (presencas, pautas, propinas)", () => {
 
     it("rejeita estado de presença inválido", () => {
       const analysis = presencasImporter.analyzeRow(
-        { student_identifier: "PROC-042", turma: "10A", disciplina: "MAT", data: "2026-03-02", estado: "talvez" },
+        {
+          student_identifier: "PROC-042",
+          turma: "10A",
+          disciplina: "MAT",
+          data: "2026-03-02",
+          estado: "talvez",
+        },
         refs as any,
       );
       expect(analysis.status).toBe("error");
@@ -34,7 +48,13 @@ describe("Academic Advanced Importers (presencas, pautas, propinas)", () => {
 
     it("reconhece presença válida", () => {
       const analysis = presencasImporter.analyzeRow(
-        { student_identifier: "PROC-042", turma: "10A", disciplina: "MAT", data: "2026-03-02", estado: "presente" },
+        {
+          student_identifier: "PROC-042",
+          turma: "10A",
+          disciplina: "MAT",
+          data: "2026-03-02",
+          estado: "presente",
+        },
         refs as any,
       );
       expect(analysis.errors).toEqual([]);

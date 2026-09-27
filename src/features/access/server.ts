@@ -14,7 +14,7 @@ import {
   resolveSystemSender,
   sendResendEmail,
 } from "@/features/integrations/resend-client";
-import { checkRateLimit, isRateLimitBypassed, recordRateLimitAttempt } from "@/lib/rate-limit";
+import { isRateLimitBypassed } from "@/lib/rate-limit";
 import { signInWithIdentifierInputSchema } from "./bi-login";
 import { recordAccessAudit } from "@/features/audit/record-audit";
 import {
@@ -29,6 +29,8 @@ import {
 } from "./schemas";
 
 const BI_LOOKUP_RATE_LIMIT = { windowMs: 60 * 1000, max: 10 };
+/** Por conta: 10 tentativas por 15 minutos, venham de onde vierem. */
+const BI_ACCOUNT_RATE_LIMIT = { windowMs: 15 * 60 * 1000, max: 10 };
 
 type AuthedContext = {
   supabase: SupabaseClient;
@@ -96,9 +98,7 @@ export async function otherSchoolAccess(
         rows.map((m) => m.id),
       );
     if (roleError) {
-      throw new Error(
-        `Não foi possível confirmar os cargos noutras escolas: ${roleError.message}`,
-      );
+      throw new Error(`Não foi possível confirmar os cargos noutras escolas: ${roleError.message}`);
     }
     adminAnywhere = ((roleRows ?? []) as Array<{ roles?: { code?: string } | null }>).some((r) =>
       isAdministratorRole(String(r.roles?.code ?? "")),
@@ -714,13 +714,17 @@ export const signInWithIdentifierFn = createServerFn({ method: "POST" })
       (typeof getRequestIP === "function" ? getRequestIP({ xForwardedFor: true }) : null) ??
       "unknown";
     const rateLimitKey = `bi_lookup:${ip}`;
-    if (
-      !isRateLimitBypassed(rateLimitKey) &&
-      !checkRateLimit([rateLimitKey], BI_LOOKUP_RATE_LIMIT)
-    ) {
-      return { ok: false as const, error: "rate_limited" as const };
+    // Limite partilhado por todas as instâncias: por IP e, à parte, por conta
+    // (identificador) — quem use muitos IPs não tenta senhas sem fim numa conta.
+    const identifierKey = `bi_login_identifier:${data.identifier.trim().toLowerCase()}`;
+    if (!isRateLimitBypassed(rateLimitKey)) {
+      const { consumeRateLimit } = await import("@/lib/shared-rate-limit");
+      const ipOk = await consumeRateLimit([rateLimitKey], BI_LOOKUP_RATE_LIMIT);
+      const accountOk = ipOk && (await consumeRateLimit([identifierKey], BI_ACCOUNT_RATE_LIMIT));
+      if (!ipOk || !accountOk) {
+        return { ok: false as const, error: "rate_limited" as const };
+      }
     }
-    recordRateLimitAttempt([rateLimitKey], BI_LOOKUP_RATE_LIMIT);
 
     const { resolveBiOrEmailToUserEmail, passwordGrant } = await import("./bi-login");
     const email = await resolveBiOrEmailToUserEmail(data.identifier);

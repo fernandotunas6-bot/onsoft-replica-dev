@@ -9,7 +9,11 @@ export type WeeklyScheduleCoverage = {
   excessPeriods: number;
 };
 
-export function getWeeklyScheduleCoverage(slots: ScheduleSlot[], classSubjects: ScheduleClassSubject[], classGroupId: string): WeeklyScheduleCoverage[] {
+export function getWeeklyScheduleCoverage(
+  slots: ScheduleSlot[],
+  classSubjects: ScheduleClassSubject[],
+  classGroupId: string,
+): WeeklyScheduleCoverage[] {
   const plannedBySubject = new Map<string, number>();
   const subjectNameById = new Map<string, string>();
   for (const slot of slots) {
@@ -32,8 +36,9 @@ export function getWeeklyScheduleCoverage(slots: ScheduleSlot[], classSubjects: 
       };
     })
     .filter((item) => Number.isSafeInteger(item.requiredPeriods) && item.requiredPeriods > 0)
-    .sort((left, right) =>
-      (right.missingPeriods + right.excessPeriods) - (left.missingPeriods + left.excessPeriods) ||
-      left.subjectName.localeCompare(right.subjectName),
+    .sort(
+      (left, right) =>
+        right.missingPeriods + right.excessPeriods - (left.missingPeriods + left.excessPeriods) ||
+        left.subjectName.localeCompare(right.subjectName),
     );
 }

@@ -188,6 +188,7 @@ function RequestRow({
               <label className="flex items-center gap-1.5 text-xs">
                 Papel
                 <select
+                  aria-label="Papel"
                   className="h-8 rounded-md border border-input bg-background px-2 text-xs"
                   value={roleOptions.includes(role) ? role : roleOptions[0]}
                   onChange={(event) => setRole(event.target.value as ApplicationRole)}
@@ -204,6 +205,7 @@ function RequestRow({
               <label className="flex items-center gap-1.5 text-xs">
                 <input
                   type="checkbox"
+                  aria-label="Ligar a conta ao cadastro"
                   checked={linkRecord}
                   onChange={(event) => setLinkRecord(event.target.checked)}
                 />

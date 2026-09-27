@@ -59,7 +59,7 @@ forma antiga. Qualquer uma que corra primeiro ganha.
 Regras que saem disto:
 
 - **Alterar uma tabela que já existe faz-se com `ALTER TABLE`**, não reescrevendo o
-  `CREATE TABLE`. Ver `20260927090000_reconcile_school_access_requests.sql` como modelo:
+  `CREATE TABLE`. Ver `20260927100000_reconcile_school_access_requests.sql` como modelo:
   renomear preserva tipo, `NOT NULL` e chaves estrangeiras; `ADD COLUMN IF NOT EXISTS`
   acrescenta; as restrições de valor largam-se antes de traduzir os valores e põem-se depois.
 - **Uma tabela, uma declaração.** Se a captura do catálogo já declara a tabela, a migração de

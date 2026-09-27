@@ -68,10 +68,67 @@ const PRIVILEGIO_POR_DESENHO = new Set([
   // servidor limita a escrita ao `teacher_id` da própria conta.
   "src/features/people/teacher-contact-visibility.ts",
 
-  // Agenda do aluno no painel inicial. O RLS não deixa o aluno ler matrículas,
-  // turmas nem disciplinas (can_read_students / academic.*.read). O servidor
-  // só responde ao papel Aluno e só com a matrícula activa da própria conta.
-  "src/features/dashboard/student-agenda.ts",
+  // Portal do aluno/encarregado (agenda, horário, notas). O RLS não deixa o
+  // aluno ler matrículas, turmas, disciplinas nem notas. resolveVisibleStudent
+  // só responde a Aluno (a si próprio) e Encarregado (educandos ligados).
+  "src/features/dashboard/student-access.ts",
+
+  // Detalhes da aula, tarefas e lembretes: tabelas só do servidor (FORCE RLS,
+  // sem acesso para authenticated). A autorização é por papel e por
+  // professor da disciplina (assertCanManageClassSubject).
+  "src/features/academic/timetable-lessons.ts",
+
+  // Painel de avaliações do professor: lê diários, notas e matrículas das
+  // turmas que o próprio professor lecciona (teachers.user_id = sessão).
+  "src/features/academic/teacher-assessments.ts",
+
+  // Estrutura académica: só contagens (head: true) para o pessoal da escola;
+  // várias tabelas contadas (audit_logs, grade_sheets) não têm leitura por
+  // RLS para Professor.
+  "src/features/academic/academic-structure.ts",
+
+  // Pautas oficiais: leituras (pauta, linhas, diários, notas) para o pessoal
+  // da escola; gerar e mudar de estado vão pela sessão do utilizador
+  // (build_grade_sheet / transition_grade_sheet com permissões e 2FA).
+  "src/features/academic/grade-sheets.ts",
+
+  // Pedidos de alteração de nota: grade_scores/grade_score_history só pelo
+  // servidor; pedir exige ser o professor da disciplina ou a coordenação,
+  // decidir só a coordenação (Administrador/Secretaria).
+  "src/features/academic/grade-change-requests.ts",
+
+  // Modelos de avaliação: `assessment_rule_sets` só tem leitura por RLS e a
+  // função de produção não é SECURITY DEFINER; publicar vai por
+  // `siga_publish_assessment_rule` (só service_role), depois de validar
+  // Administrador + 2FA (aal2) no servidor.
+  "src/features/academic/assessment-models.ts",
+
+  // Exames e resultado final: siga_exam_* são só do servidor (FORCE RLS, sem
+  // acesso de cliente); lê a pauta anual e escreve inscrições e notas depois
+  // de validar Administrador/Secretaria (Professor só consulta).
+  "src/features/academic/exams.ts",
+
+  // Resultado final: lê a pauta anual e os exames e grava no histórico
+  // académico (só do servidor desde 20260927090000) e em enrollments.
+  "src/features/academic/final-results.ts",
+
+  // Sinais automáticos de risco: faltas da chamada (siga_attendance_*) e limite
+  // do modelo, lidos pelo servidor para o pessoal da escola; devolve só
+  // percentagens por matrícula da turma pedida.
+  "src/features/academic/early-warning-server.ts",
+
+  // Competências: siga_competencies / siga_assessment_item_competencies só do
+  // servidor; definir é da coordenação, ligar avaliações do professor da
+  // disciplina (verificado em teachers/class_subjects) ou da coordenação.
+  "src/features/academic/competencies.ts",
+
+  // Limite de tentativas partilhado entre instâncias: pedidos sem sessão (login
+  // por B.I.), por isso só a chave de serviço executa siga_rate_limit_consume.
+  "src/lib/shared-rate-limit.ts",
+
+  // Agendador dos lembretes da véspera: sem sessão (quem chama é o cron),
+  // autenticado por SIGA_CRON_SECRET em tempo constante.
+  "src/routes/api/cron/lesson-reminders.tsx",
 
   // Corre antes de existir sessão: resolve BI → e-mail no ecrã de entrada.
   // Não há JWT para levar, logo não há cliente de utilizador possível.

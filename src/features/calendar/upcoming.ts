@@ -7,7 +7,7 @@ export type UpcomingCalendarItem = {
   description: string | null;
   event_date: string;
   ends_on: string | null;
-  category: "academic" | "holiday";
+  category: "academic" | "holiday" | "assessment";
 };
 
 export function buildUpcomingCalendarItems(
@@ -20,6 +20,8 @@ export function buildUpcomingCalendarItems(
   }>,
   today: string,
   limit = 6,
+  /** Itens de uma turma (ex.: avaliações marcadas), juntos aos períodos e feriados. */
+  extras: UpcomingCalendarItem[] = [],
 ): UpcomingCalendarItem[] {
   const horizon = addDaysIso(today, 120);
   const termItems: UpcomingCalendarItem[] = terms
@@ -45,7 +47,8 @@ export function buildUpcomingCalendarItems(
   const current = termItems.filter((item) =>
     isoInInclusiveRange(today, item.event_date, item.ends_on ?? item.event_date),
   );
-  const rest = [...termItems, ...holidayItems]
+  const extraItems = extras.filter((item) => (item.ends_on || item.event_date) >= today);
+  const rest = [...termItems, ...holidayItems, ...extraItems]
     .filter((item) => !current.some((open) => open.id === item.id))
     .sort(
       (a, b) => a.event_date.localeCompare(b.event_date) || a.title.localeCompare(b.title, "pt"),
@@ -55,6 +58,7 @@ export function buildUpcomingCalendarItems(
 
 export function upcomingItemHint(item: UpcomingCalendarItem, today: string) {
   if (item.category === "holiday") return "Feriado nacional";
+  if (item.category === "assessment") return "Avaliação";
   const life = termLifecycle(item.event_date, item.ends_on ?? item.event_date, today);
   if (life === "em_curso") return "Em curso";
   if (life === "futuro") return "Próximo período";

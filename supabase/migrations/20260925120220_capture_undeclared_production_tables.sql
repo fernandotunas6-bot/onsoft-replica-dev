@@ -62,7 +62,7 @@ CREATE INDEX IF NOT EXISTS google_workspace_states_user_idx ON public.google_wor
 
 -- school_access_requests: declarada em
 -- `20260925090000_school_access_requests.sql`, e reconciliada com a produção em
--- `20260927090000_reconcile_school_access_requests.sql`.
+-- `20260927100000_reconcile_school_access_requests.sql`.
 --
 -- O que estava aqui era a fotografia de um acidente. A captura correu quando a
 -- tabela existia com a forma antiga -- `institutional_id`, `requested_role`,

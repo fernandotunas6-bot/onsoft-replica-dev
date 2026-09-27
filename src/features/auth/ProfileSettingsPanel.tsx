@@ -297,7 +297,14 @@ function MfaSecurityPanel() {
       </div>
 
       {!checking && !enabled && !pending && !incompleteFactorId ? (
-        <Button type="button" variant="outline" size="sm" className="mt-4" onClick={() => void enroll()} disabled={enrolling}>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          className="mt-4"
+          onClick={() => void enroll()}
+          disabled={enrolling}
+        >
           {enrolling ? "A preparar…" : "Configurar 2FA"}
         </Button>
       ) : null}
@@ -319,7 +326,11 @@ function MfaSecurityPanel() {
 
       {pending ? (
         <div className="mt-4 space-y-3 border-t border-border pt-4">
-          <img src={pending.qrCode} alt="QR code para configurar autenticação de dois fatores" className="size-40 rounded-md border bg-white p-2" />
+          <img
+            src={pending.qrCode}
+            alt="QR code para configurar autenticação de dois fatores"
+            className="size-40 rounded-md border bg-white p-2"
+          />
           <Label htmlFor="mfa-setup-code">Código da aplicação autenticadora</Label>
           <div className="flex flex-col gap-2 sm:flex-row">
             <Input
@@ -332,7 +343,11 @@ function MfaSecurityPanel() {
               placeholder="000000"
               maxLength={6}
             />
-            <Button type="button" onClick={() => void confirm()} disabled={verifying || code.length !== 6}>
+            <Button
+              type="button"
+              onClick={() => void confirm()}
+              disabled={verifying || code.length !== 6}
+            >
               {verifying ? "A confirmar…" : "Ativar"}
             </Button>
             <Button

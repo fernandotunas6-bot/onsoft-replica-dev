@@ -11,7 +11,8 @@ import {
   resolveResendFromAddress,
   resolveSystemSender,
 } from "@/features/integrations/resend-client";
-import { checkRateLimit, isRateLimitBypassed, recordRateLimitAttempt } from "@/lib/rate-limit";
+import { isRateLimitBypassed } from "@/lib/rate-limit";
+import { consumeRateLimit } from "@/lib/shared-rate-limit";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { ContactVerificationService } from "@/features/contacts/contact-verification-service";
 
@@ -52,12 +53,11 @@ export const requestMagicLinkFn = createServerFn({ method: "POST" })
     const rateLimitKeys = [`ip:${ip}`, `email:${email}`];
     if (
       !isRateLimitBypassed(...rateLimitKeys) &&
-      !checkRateLimit(rateLimitKeys, MAGIC_LINK_RATE_LIMIT)
+      !(await consumeRateLimit(rateLimitKeys, MAGIC_LINK_RATE_LIMIT))
     ) {
       // Resposta neutra igual à de sucesso — não revelar que houve limite.
       return { success: true, message: NEUTRAL_SUCCESS_MESSAGE };
     }
-    recordRateLimitAttempt(rateLimitKeys, MAGIC_LINK_RATE_LIMIT);
 
     try {
       const db = await loadSgaAdminClient();

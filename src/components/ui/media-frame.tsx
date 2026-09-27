@@ -28,6 +28,12 @@ export function MediaFrame({
   children?: React.ReactNode;
 }) {
   const [loaded, setLoaded] = useState(false);
+  // Uma imagem já em cache (ou carregada antes da hidratação, com `priority`)
+  // termina antes de o React ligar o onLoad: o evento perde-se e a imagem
+  // ficava invisível (opacity-0) para sempre. Ao montar, confirma-se o estado.
+  const markIfComplete = (img: HTMLImageElement | null) => {
+    if (img?.complete && img.naturalWidth > 0) setLoaded(true);
+  };
 
   return (
     <div
@@ -42,6 +48,7 @@ export function MediaFrame({
         loading={priority ? "eager" : "lazy"}
         decoding="async"
         fetchPriority={priority ? "high" : "auto"}
+        ref={markIfComplete}
         onLoad={() => setLoaded(true)}
         className={cn(
           "size-full object-cover transition-[opacity,transform] duration-300 will-change-transform",

@@ -1,9 +1,5 @@
 import { describe, expect, it } from "vitest";
-import {
-  nextSgaStatus,
-  statusToUi,
-  uiStatusToSga,
-} from "@/features/documents/server";
+import { nextSgaStatus, statusToUi, uiStatusToSga } from "@/features/documents/server";
 import { updateDocumentRequestStatusInputSchema } from "@/features/documents/schemas";
 
 /**
@@ -77,9 +73,7 @@ describe("vocabulário de estados dos pedidos de documento", () => {
     for (const [de, para] of Object.entries(nextSgaStatus)) {
       expect(ESTADOS_DA_BASE, `estado de partida desconhecido: ${de}`).toContain(de);
       if (para !== null) {
-        expect(ESTADOS_DA_BASE, `${de} avança para um estado inexistente: ${para}`).toContain(
-          para,
-        );
+        expect(ESTADOS_DA_BASE, `${de} avança para um estado inexistente: ${para}`).toContain(para);
       }
     }
 
