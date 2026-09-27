@@ -43,3 +43,32 @@ describe("Mailbox Providers", () => {
     expect(result.ok).toBe(true);
   });
 });
+
+describe("sem caixas de correio fingidas", () => {
+  const config = {
+    tenantId: "123",
+    tenantSlug: "escola1",
+    email: "admin@escola1.siga.ao",
+    displayName: "Escola 1",
+  };
+
+  it("em produção, sem fornecedor configurado, não cria nada", async () => {
+    vi.stubEnv("NODE_ENV", "production");
+    vi.stubEnv("MAILBOX_PROVIDER", "");
+    const result = await createMailbox(config);
+    expect(result.ok).toBe(false);
+    expect((await suspendMailbox("sim-1", "simulated")).ok).toBe(false);
+    vi.unstubAllEnvs();
+  });
+
+  it("Zoho com credenciais não finge sucesso enquanto a API não estiver ligada", async () => {
+    vi.stubEnv("MAILBOX_PROVIDER", "zoho");
+    vi.stubEnv("ZOHO_MAIL_ORG_ID", "o");
+    vi.stubEnv("ZOHO_MAIL_CLIENT_ID", "c");
+    vi.stubEnv("ZOHO_MAIL_CLIENT_SECRET", "s");
+    vi.stubEnv("ZOHO_MAIL_REFRESH_TOKEN", "t");
+    const result = await createMailbox(config);
+    expect(result.ok).toBe(false);
+    vi.unstubAllEnvs();
+  });
+});

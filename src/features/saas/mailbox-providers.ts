@@ -27,6 +27,8 @@ export type MailboxItem = {
   providerAccountId: string;
 };
 
+const isProduction = () => process.env.NODE_ENV === "production";
+
 export function resolveMailboxProvider(): MailboxProvider {
   const provider = (process.env.MAILBOX_PROVIDER || "simulated").toLowerCase();
   if (provider === "zoho" || provider === "google") {
@@ -50,7 +52,15 @@ export async function createMailbox(config: MailboxConfig): Promise<MailboxProvi
       return await googleCreateMailbox(config);
     }
 
-    // Default: Simulated
+    // Simulado só fora de produção: em produção, responder "ok" registava como
+    // activa uma caixa de correio que não existe em lado nenhum.
+    if (isProduction()) {
+      return {
+        ok: false,
+        reason:
+          "Nenhum fornecedor de e-mail configurado (MAILBOX_PROVIDER). A caixa não foi criada.",
+      };
+    }
     console.log(`[SIMULATED] A criar mailbox para ${config.email}`);
     return { ok: true, provider: "simulated", providerAccountId: `sim-${Date.now()}` };
   } catch (error) {
@@ -70,7 +80,9 @@ export async function suspendMailbox(
       return await googleSuspendMailbox(providerAccountId);
     }
 
-    // Default: Simulated
+    if (isProduction()) {
+      return { ok: false, reason: "Nenhum fornecedor de e-mail configurado (MAILBOX_PROVIDER)." };
+    }
     console.log(`[SIMULATED] A suspender mailbox ${providerAccountId}`);
     return { ok: true };
   } catch (error) {
