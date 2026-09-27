@@ -298,6 +298,10 @@ const FUNCOES_ESPERA_MIGRACAO = new Set<string>([
   // recapturado mostra-a em `public` e em `private`.
   // `20260927170000_shared_rate_limit.sql` (limite de tentativas partilhado).
   "siga_rate_limit_consume",
+  // `20260926203852_harden_teacher_qr_attendance.sql` (leitura do QR do docente).
+  // `hr/teacher-lessons.ts` chama-a desde eaceb8f2; enquanto não correr, a leitura
+  // do QR devolve PGRST202 e a presença do docente não é registada.
+  "hr_redeem_teacher_qr_secure",
 ]);
 
 /**
