@@ -62,6 +62,7 @@ import { paymentReference, whatsappHref } from "@/features/integrations/actions"
 import { InstalledModuleTools } from "@/features/integrations/InstalledModuleTools";
 import { useInstalledIntegrations } from "@/features/integrations/use-installed-integrations";
 import { useSchoolSettings } from "@/features/auth/use-school-settings";
+import { usePassingValue } from "@/features/academic/use-passing-value";
 import {
   assignGuardian,
   cancelEnrollment,
@@ -228,6 +229,8 @@ function StudentDetail() {
   const queryClient = useQueryClient();
   const [cardModalOpen, setCardModalOpen] = useState(false);
   const { activeYearLabel, selectedYearId, school, selectedYearLabel } = useSchoolSettings();
+  // Nota de aprovação do modelo de avaliação em vigor (a da pauta oficial).
+  const passingValue = usePassingValue();
   const account = useCurrentAccount();
   const canIssueInvoice =
     account.role === "Administrador" ||
@@ -552,19 +555,16 @@ function StudentDetail() {
     if (subjects.length === 0) {
       throw new Error("Ainda não há notas lançadas para este aluno.");
     }
-    return buildStudentDossier(
-      grades,
-      subjects,
-      student.enrollment_id,
-      school?.passing_grade ?? 10,
-    ).map((row) => ({
-      name: row.subjectName,
-      t1: formatScore(row.terms[0]),
-      t2: formatScore(row.terms[1]),
-      t3: formatScore(row.terms[2]),
-      mfa: formatScore(row.mfa),
-      status: row.situacao.label,
-    }));
+    return buildStudentDossier(grades, subjects, student.enrollment_id, passingValue).map(
+      (row) => ({
+        name: row.subjectName,
+        t1: formatScore(row.terms[0]),
+        t2: formatScore(row.terms[1]),
+        t3: formatScore(row.terms[2]),
+        mfa: formatScore(row.mfa),
+        status: row.situacao.label,
+      }),
+    );
   };
 
   /**

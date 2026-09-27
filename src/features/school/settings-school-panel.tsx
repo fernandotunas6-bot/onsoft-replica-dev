@@ -25,6 +25,7 @@ import { resolveFileBlob } from "@/features/arquivos/resolve-file";
 import { useOptionalStackNav } from "@/components/ui/stacked-modal";
 import { angolaSchoolTypes, emptyInstitution, schoolSettingDefaults } from "@/lib/school-config";
 import { formatGeoPoint, parseGeoPoint } from "@/lib/geo-coordinates";
+import { useActiveAssessmentRule } from "@/features/academic/use-passing-value";
 import { normalizeEvaluationPeriods } from "@/lib/angola-academic";
 import { useCurrentAccount } from "@/features/auth/use-current-account";
 import { supabase } from "@/integrations/supabase/client";
@@ -183,6 +184,8 @@ export function SchoolSettingsPanel() {
   const resendOn = installed.hasCapability("resend.send");
   const agtOn = installed.hasCapability("agt.nif") || installed.hasCapability("agt.einvoice");
   const queryClient = useQueryClient();
+  // A nota de aprovação que vale é a do modelo publicado, quando existe.
+  const activeRule = useActiveAssessmentRule();
   const [institution, setInstitution] = useState<Institution>(initialInstitution);
   const [errors, setErrors] = useState<Partial<Record<keyof Institution, string>>>({});
   const [anoLectivo, setAnoLectivo] = useState<string>(schoolSettingDefaults.academicYear);
@@ -692,6 +695,12 @@ export function SchoolSettingsPanel() {
               onValueChange={setMediaMinima}
               disabled={!canEdit}
             />
+            {activeRule.engine ? (
+              <p className="text-xs text-muted-foreground">
+                Em uso: {activeRule.passing} valores, do modelo de avaliação publicado (Pedagógica →
+                Modelos de avaliação). Este valor só conta enquanto a escola não tiver modelo.
+              </p>
+            ) : null}
           </div>
         </div>
 

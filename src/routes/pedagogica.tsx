@@ -1048,7 +1048,7 @@ function PedagogicaPage() {
                   subjects={subjects}
                   enrollments={enrollmentOptions}
                   termGrades={termGrades}
-                  passingGrade={school?.passing_grade ?? 10}
+                  passingGrade={passing}
                   canLaunch={canLaunchGrades}
                   canLockTerm={account.role === "Administrador"}
                   closedTerms={school?.pedagogy?.closedTerms ?? []}
@@ -1273,7 +1273,7 @@ function PedagogicaPage() {
           enrollments={enrollmentOptions}
           termGrades={termGrades}
           classSubjects={classSubjects}
-          passingGrade={school?.passing_grade ?? 10}
+          passingGrade={passing}
           canLaunch={canLaunchGrades}
           canLockTerm={account.role === "Administrador"}
           closedTerms={school?.pedagogy?.closedTerms ?? []}
