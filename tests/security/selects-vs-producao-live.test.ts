@@ -50,9 +50,11 @@ const podeSondar = Boolean(URL_BASE && CHAVE);
  * Não é para esconder achados: é para o teste falhar por coisas **novas**. Tirar
  * uma entrada daqui quando a migração respectiva for aplicada.
  */
-const AUSENCIAS_CONHECIDAS = new Map([
+const AUSENCIAS_CONHECIDAS = new Map<string, string>([
   // `assessment_rule_sets` saiu daqui a 2026-09-20: a migração foi aplicada.
-  ["tenant_mailboxes", "caixas de correio por tenant — 20260926180000, por aplicar"],
+  // `tenant_mailboxes` saiu a 2026-09-27, pela mesma razão. A lista está vazia, e
+  // é isso que se pretende: cada entrada aqui é uma tabela cuja ausência o teste
+  // deixa de reportar.
 ]);
 
 function selectsDoCodigo(): { ficheiro: string; tabela: string; colunas: string }[] {

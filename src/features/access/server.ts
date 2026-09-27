@@ -81,10 +81,12 @@ export async function otherSchoolAccess(
   if (rows.length) {
     // `member_roles` tem duas chaves para `roles`: sem indicar qual, o
     // PostgREST recusa o embed (PGRST201) e, com o erro ignorado, a conta
-    // passava por não-administrador — a protecção ficava desligada.
+    // passava por não-administrador — a protecção ficava desligada. Usa-se a
+    // composta `(school_id, role_id)`, que garante que o cargo é da mesma escola
+    // que o vínculo.
     const { data: roleRows, error: roleError } = await admin
       .from("member_roles")
-      .select("roles!member_roles_role_id_fkey(code)")
+      .select("roles!member_roles_school_id_role_id_fkey(code)")
       .in(
         "membership_id",
         rows.map((m) => m.id),
@@ -565,7 +567,7 @@ export const resendSystemInvite = createServerFn({ method: "POST" })
     if (!isAdministrator) {
       const { data: targetRoles, error: targetRolesError } = await admin
         .from("member_roles")
-        .select("roles!member_roles_role_id_fkey(code)")
+        .select("roles!member_roles_school_id_role_id_fkey(code)")
         .eq("membership_id", membership.id);
       if (targetRolesError) {
         throw new Error("Não foi possível confirmar o perfil desta conta. Use Enviar E-mail.");
