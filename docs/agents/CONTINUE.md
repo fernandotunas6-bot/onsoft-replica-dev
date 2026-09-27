@@ -4,6 +4,30 @@ Ler isto **antes** de alterar código. Ecossistema (5 apps):
 [ARCHITECTURE_HARMONIZATION.md](./ARCHITECTURE_HARMONIZATION.md).
 Depois abrir o skill do módulo em `.cursor/skills/`.
 
+## Retrato da produção recapturado (2026-09-28)
+
+`supabase/PRODUCTION_SNAPSHOT.json` foi relido da produção pelo conector do
+Supabase: 178 tabelas, 290 políticas, 235 funções e 186 triggers, todas as
+tabelas com RLS. Com o retrato novo:
+
+- **`notification_preferences` já não existe na produção.** A verificação de
+  `getFinanceSchemaStatus` dava a base como incompleta e **bloqueava a emissão
+  de faturas em /faturas e /financeiro**. A verificação saiu, com o aviso da
+  interface e o mapeamento de erro em `issueInvoice`. Nenhuma função da
+  produção menciona a tabela, confirmado no catálogo.
+  `private.fanout_announcement_notifications` também a usava;
+  `20260928170000_fanout_announcements_without_notification_preferences.sql`
+  retirou-a e **já foi aplicada**.
+- `src/integrations/supabase/types.ts` foi regenerado da produção (178 tabelas).
+- As listas de espera dos testes (`TABELAS_AUSENTES_DA_PRODUCAO`,
+  `FUNCOES_ESPERA_MIGRACAO`, `ESPERA_MIGRACAO`) ficaram vazias: tudo o que
+  esperavam está aplicado.
+- As 7 tabelas sem `CREATE TABLE` no repositório (Google Workspace e escalas e
+  alterações salariais de RH) foram capturadas do catálogo em
+  `20260928190000_capture_google_workspace_and_hr_salary_tables.sql`. É só
+  declaração, porque na produção já existem. Estão só no servidor: RLS ligado,
+  sem políticas e sem concessões a anon/authenticated.
+
 ## Migrações aplicadas (2026-09-27)
 
 O dono aplicou `docs/agents/SIGA_aplicar_migracoes.sql` (23 migrações, até

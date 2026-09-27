@@ -257,51 +257,29 @@ export const getFinanceSchemaStatus = createServerFn({ method: "GET" })
       return {
         ready: false,
         missingPenaltyAmount: true,
-        missingNotificationPreferences: false,
         missingActiveFeePlan: true,
       };
     }
     const db = await loadSgaAdminClient();
-    const [
-      { error: penaltyError },
-      { error: prefsError },
-      { error: cashExpensesError },
-      feePlanResult,
-    ] = await Promise.all([
-      db.from("finance_invoices").select("id, penalty_amount").limit(1),
-      db.from("notification_preferences").select("id").limit(1),
-      db.from("siga_cash_expenses").select("id").limit(1),
-      db
-        .from("fee_plans")
-        .select("id")
-        .eq("school_id", membership.schoolId)
-        .eq("status", "active")
-        .limit(1)
-        .maybeSingle(),
-    ]);
+    // `notification_preferences` saiu da verificação: a tabela já não existe na
+    // produção (2026-09-28) e os gatilhos das faturas não dependem dela. A
+    // verificação antiga dava a base como incompleta e bloqueava a emissão de
+    // faturas em /faturas.
+    const [{ error: penaltyError }, { error: cashExpensesError }, feePlanResult] =
+      await Promise.all([
+        db.from("finance_invoices").select("id, penalty_amount").limit(1),
+        db.from("siga_cash_expenses").select("id").limit(1),
+        db
+          .from("fee_plans")
+          .select("id")
+          .eq("school_id", membership.schoolId)
+          .eq("status", "active")
+          .limit(1)
+          .maybeSingle(),
+      ]);
     const missingPenaltyAmount = Boolean(
       penaltyError && /penalty_amount/i.test(penaltyError.message),
     );
-    let missingNotificationPreferences = Boolean(
-      prefsError &&
-      (/notification_preferences|schema cache|does not exist|42P01|PGRST/i.test(
-        prefsError.message,
-      ) ||
-        prefsError.code === "42P01" ||
-        prefsError.code === "PGRST205"),
-    );
-    if (!missingNotificationPreferences) {
-      const { error: colError } = await db
-        .from("notification_preferences")
-        .select("id, in_app_enabled, email_enabled, whatsapp_enabled")
-        .limit(1);
-      if (
-        colError &&
-        /in_app_enabled|email_enabled|whatsapp_enabled|column/i.test(colError.message)
-      ) {
-        missingNotificationPreferences = true;
-      }
-    }
     if (penaltyError && !missingPenaltyAmount) {
       throw publicDatabaseError(penaltyError, "Não foi possível validar o schema financeiro.");
     }
@@ -319,9 +297,8 @@ export const getFinanceSchemaStatus = createServerFn({ method: "GET" })
       throw publicDatabaseError(feePlanError, "Não foi possível validar o plano financeiro.");
     }
     return {
-      ready: !missingPenaltyAmount && !missingNotificationPreferences && !missingActiveFeePlan,
+      ready: !missingPenaltyAmount && !missingActiveFeePlan,
       missingPenaltyAmount,
-      missingNotificationPreferences,
       missingCashExpenses: isMissingSgaTable(cashExpensesError),
       missingActiveFeePlan,
     };
@@ -1123,15 +1100,6 @@ export const issueInvoice = createServerFn({ method: "POST" })
       if (/penalty_amount/i.test(error.message)) {
         throw new Error(
           "A base SGA precisa da coluna finance_invoices.penalty_amount. No SQL Editor do projecto xodgfmxiaunpamctfeea execute supabase/APPLY_IN_SQL_EDITOR.sql.",
-        );
-      }
-      if (
-        /notification_preferences|in_app_enabled|email_enabled|whatsapp_enabled/i.test(
-          error.message,
-        )
-      ) {
-        throw new Error(
-          "O trigger de faturas precisa do schema de notification_preferences (in_app_enabled, email_enabled, sms_enabled, whatsapp_enabled). Execute supabase/APPLY_IN_SQL_EDITOR.sql no SQL Editor do SGA.",
         );
       }
       throw publicDatabaseError(error, "Não foi possível emitir a fatura.");

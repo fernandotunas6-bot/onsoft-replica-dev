@@ -182,9 +182,8 @@ function FaturasPage() {
   });
   const financeStudents = financeStudentsQuery.data ?? [];
   const missingPenalty = Boolean(schemaQuery.data?.missingPenaltyAmount);
-  const missingPrefs = Boolean(schemaQuery.data?.missingNotificationPreferences);
   const missingActiveFeePlan = Boolean(schemaQuery.data?.missingActiveFeePlan);
-  const schemaBlocked = missingPenalty || missingPrefs;
+  const schemaBlocked = missingPenalty;
   const financeInvoiceBlocked = schemaBlocked || missingActiveFeePlan;
   const studentOptions = financeStudents.map(
     (student) => `${student.registration_number} · ${student.full_name}`,
@@ -800,13 +799,6 @@ function FaturasPage() {
                 <>
                   {" "}
                   (falta <code>finance_invoices.penalty_amount</code>)
-                </>
-              ) : null}
-              {missingPrefs ? (
-                <>
-                  {" "}
-                  (faltam colunas em <code>notification_preferences</code>, ex.{" "}
-                  <code>in_app_enabled</code>)
                 </>
               ) : null}
               . <SqlChecklistLink />

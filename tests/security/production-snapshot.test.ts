@@ -146,49 +146,12 @@ const ANON_POLICIES_ESPERADAS = [
  * outro diário da escola — numa escola nova não havia nenhum dos dois, logo não
  * se abria o primeiro diário nem se lançavam notas.
  */
-const TABELAS_AUSENTES_DA_PRODUCAO = new Set([
-  // Histórico das notas (2026-09-26, `20260926160000_grade_score_history.sql`).
-  // As funções da base já a usavam sem ela existir. Sem a tabela, o
-  // lançamento continua e o histórico simplesmente não fica gravado.
-  "grade_score_history",
-  // Horários: detalhes da aula, tarefas e lembretes (2026-09-26,
-  // `20260926140000_timetable_lesson_details_tasks_reminders.sql`). Sem elas,
-  // o detalhe da aula mostra só o essencial e a edição avisa que falta a
-  // migração (`isMissingTable` em `timetable-lessons.ts`).
-  "siga_timetable_slot_details",
-  "siga_class_tasks",
-  "siga_lesson_reminder_settings",
-  "siga_lesson_reminder_log",
-  // Catálogo de governança da importação (Lovable, 2026-09-24,
-  // `20260924010712_add_import_table_specs_catalog.sql` e seguintes). Sem ele,
-  // `assertImportModuleGoverned` bloqueia todas as importações (falha fechada).
-  // Aplicar antes de usar a importação e retirar daqui.
-  "import_table_specs",
-  // Épocas e inscrições de exame (2026-09-26,
-  // `20260926220000_exam_sessions_registrations.sql`). Sem elas, o separador
-  // Exames avisa que falta a migração; a estrutura académica conta 0.
-  "siga_exam_sessions",
-  "siga_exam_registrations",
-  // Competências (2026-09-27, `20260927150000_competencies.sql`).
-  "siga_competencies",
-  "siga_assessment_item_competencies",
-  // Caixas de correio por tenant, no Control Center: sem a tabela, o
-  // aprovisionamento de caixas institucionais não grava nem lista nada.
-  "tenant_mailboxes",
-  // Pedidos de vinculação institucional (2026-09-25,
-  // `20260925090000_school_access_requests.sql`). Sem a tabela, o painel de
-  // boas-vindas e a fila da secretaria dizem que os pedidos não estão activos
-  // (`isMissingTable` em `requests-server.ts`) — não fingem que gravaram.
-  // Aplicar antes do deploy e retirar daqui.
-  "school_access_requests",
-  // Alunos em risco e cobranças AppyPay (2026-09-25, Lovable). Criadas por
-  // `20260925160000_academic_guards_risk_followup_appypay.sql`, que ainda não
-  // foi aplicada. Sem elas, "Alunos em risco" e AppyPay respondem com erro de
-  // tabela inexistente. Aplicar antes do deploy e retirar daqui.
-  "student_risk_cases",
-  "student_risk_interventions",
-  "payment_gateway_charges",
-]);
+// Vazia desde 2026-09-28: as quinze entradas que restavam (histórico das
+// notas, horários e lembretes, catálogo da importação, exames, competências,
+// caixas de correio, pedidos de vinculação, alunos em risco e cobranças
+// AppyPay) já existem na produção — confirmado no retrato recapturado nesse dia
+// pelo conector Supabase.
+const TABELAS_AUSENTES_DA_PRODUCAO = new Set<string>([]);
 
 /** Tabelas consultadas pelo código — `.from("x")`, excluindo buckets de storage. */
 function tabelasUsadasPelaApp(): string[] {
