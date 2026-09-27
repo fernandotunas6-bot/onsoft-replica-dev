@@ -35,6 +35,14 @@ const bool = (v: unknown) => v === true || v === "true";
 const READ_ROLES = ["Administrador", "Secretaria", "Professor"] as const;
 const PUBLISH_ROLES = ["Administrador"] as const;
 
+/** O que o ecrã de notas precisa do modelo activo para calcular como a pauta oficial. */
+export type ActiveAssessmentEngine = {
+  continuousWeight: number;
+  examWeight: number;
+  roundingMethod: RoundingMethod;
+  scale: AssessmentScale;
+};
+
 export type AssessmentModelsData = {
   scale: (AssessmentScale & { name: string }) | null;
   versions: AssessmentRuleVersion[];
@@ -263,22 +271,55 @@ export const getActivePassingValue = createServerFn({ method: "GET" })
   .handler(
     async ({
       context,
-    }): Promise<{ passingValue: number | null; promotionRules: PromotionRules }> => {
+    }): Promise<{
+      passingValue: number | null;
+      promotionRules: PromotionRules;
+      engine: ActiveAssessmentEngine | null;
+    }> => {
       const membership = await resolveSgaMembershipAdmin(context.userId);
-      if (!membership) return { passingValue: null, promotionRules: DEFAULT_PROMOTION_RULES };
+      if (!membership) {
+        return { passingValue: null, promotionRules: DEFAULT_PROMOTION_RULES, engine: null };
+      }
       const db = await loadSgaAdminClient();
       const { data } = await db
         .from("assessment_rule_sets")
-        .select("passing_value, formula")
+        .select(
+          "passing_value, formula, continuous_weight, exam_weight, rounding_method, grading_scale_id",
+        )
         .eq("school_id", membership.schoolId)
         .eq("code", "DEFAULT")
         .eq("status", "active")
+        .order("version", { ascending: false })
         .limit(1)
         .maybeSingle();
       const value = data?.passing_value == null ? NaN : Number(data.passing_value);
+      let engine: ActiveAssessmentEngine | null = null;
+      if (data) {
+        const { data: scaleRow } = data.grading_scale_id
+          ? await db
+              .from("grading_scales")
+              .select("minimum_value, maximum_value, decimal_places")
+              .eq("school_id", membership.schoolId)
+              .eq("id", data.grading_scale_id)
+              .maybeSingle()
+          : { data: null };
+        engine = {
+          continuousWeight: num(data.continuous_weight),
+          examWeight: num(data.exam_weight),
+          roundingMethod: toRoundingMethod(data.rounding_method),
+          scale: scaleRow
+            ? {
+                minimum: num(scaleRow.minimum_value),
+                maximum: num(scaleRow.maximum_value),
+                decimalPlaces: num(scaleRow.decimal_places),
+              }
+            : { minimum: 0, maximum: 20, decimalPlaces: 1 },
+        };
+      }
       return {
         passingValue: Number.isFinite(value) ? value : null,
         promotionRules: parsePromotionRules(data?.formula),
+        engine,
       };
     },
   );

@@ -3,7 +3,8 @@ import { describe, expect, it, vi } from "vitest";
 vi.mock("@/integrations/supabase/server-error", () => ({ publicDatabaseError: (e: unknown) => e }));
 
 const { PAUTA_COMPONENT_KINDS } = await import("@/features/academic/sga-grades-legacy");
-const { calculateTrimesterAverage } = await import("@/lib/angola-academic");
+const { calculateTrimesterAverage, parsePautaScore } = await import("@/lib/angola-academic");
+const { termAverageByRule } = await import("@/features/academic/assessment-model");
 
 // Réplica de private.compute_subject_averages: cada item entra na média do
 // seu grupo pelo `kind`; o que não está em nenhum grupo não conta.
@@ -48,5 +49,30 @@ describe("motor oficial da pauta e fórmula do ecrã", () => {
 
   it("14 em tudo dá 14, e não metade (o erro de todos os componentes contínuos)", () => {
     expect(officialEngine({ MAC: 14, NPP: 14, NPT: 14 })).toBe(14);
+  });
+
+  it.each([
+    { weights: { continuous: 50, exam: 50 }, scores: { MAC: 14, NPP: 10, NPT: 13 } },
+    { weights: { continuous: 40, exam: 60 }, scores: { MAC: 12, NPP: 15, NPT: 16 } },
+    { weights: { continuous: 60, exam: 40 }, scores: { MAC: 9, NPP: 11, NPT: 10 } },
+  ])("o ecrã calcula com os pesos do modelo como a pauta oficial: %o", ({ weights, scores }) => {
+    const rule = {
+      continuousWeight: weights.continuous,
+      examWeight: weights.exam,
+      roundingMethod: "nearest" as const,
+    };
+    expect(termAverageByRule(scores.MAC, scores.NPT, rule, 1)).toBe(
+      officialEngine(scores, weights),
+    );
+  });
+});
+
+describe("escala das notas", () => {
+  it("usa a escala do modelo, com 0–20 só por omissão", () => {
+    expect(parsePautaScore("15")).toBe(15);
+    expect(parsePautaScore("21")).toBeNaN();
+    expect(parsePautaScore("75", { minimum: 0, maximum: 100 })).toBe(75);
+    expect(parsePautaScore("4", { minimum: 5, maximum: 20 })).toBeNaN();
+    expect(parsePautaScore("")).toBeNull();
   });
 });

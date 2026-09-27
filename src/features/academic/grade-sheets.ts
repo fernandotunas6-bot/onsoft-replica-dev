@@ -162,7 +162,7 @@ async function loadPrePauta(
         .in("status", ["active", "pending"]),
       db
         .from("assessment_rule_sets")
-        .select("id")
+        .select("id, grading_scale_id")
         .eq("school_id", schoolId)
         .eq("status", "active")
         .eq("code", "DEFAULT")
@@ -175,6 +175,19 @@ async function loadPrePauta(
         .eq("class_group_id", classGroupId)
         .in("status", ["active", "pending"]),
     ]);
+  // Escala do modelo activo; 0–20 só se o modelo não tiver escala.
+  const { data: scaleRow } = rule?.grading_scale_id
+    ? await db
+        .from("grading_scales")
+        .select("minimum_value, maximum_value")
+        .eq("school_id", schoolId)
+        .eq("id", str(rule.grading_scale_id))
+        .maybeSingle()
+    : { data: null };
+  const scale = {
+    minimum: scaleRow ? Number(scaleRow.minimum_value) : 0,
+    maximum: scaleRow ? Number(scaleRow.maximum_value) : 20,
+  };
   const csRows = (cs ?? []) as Row[];
   const enrollmentIds = (enrollments ?? []).map((e) => str(e.id));
   const subjectIds = [...new Set(csRows.map((c) => str(c["subject_id"])))];
@@ -254,7 +267,9 @@ async function loadPrePauta(
       missingMac: Math.max(0, enrollmentIds.length - scoredFor("MAC")),
       missingNpt: Math.max(0, enrollmentIds.length - scoredFor("NPT")),
       outOfScale: allScores.filter(
-        (s) => s["score"] != null && (Number(s["score"]) < 0 || Number(s["score"]) > 20),
+        (s) =>
+          s["score"] != null &&
+          (Number(s["score"]) < scale.minimum || Number(s["score"]) > scale.maximum),
       ).length,
       pendingChanges: allScores.filter((s) => s["pending_score"] != null).length,
     };
@@ -264,6 +279,7 @@ async function loadPrePauta(
     enrolled: enrolled ?? 0,
     hasActiveRule: Boolean(rule?.id),
     subjects: perSubject,
+    scale,
     scoresChangedAfterBuild: Number.isNaN(builtTime)
       ? null
       : ((scores ?? []) as Row[]).filter((s) => Date.parse(str(s["updated_at"])) > builtTime)

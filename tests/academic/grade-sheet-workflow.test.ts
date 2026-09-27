@@ -103,4 +103,20 @@ describe("pré-pauta", () => {
       /3 nota\(s\) alterada\(s\).*gere-a de novo/,
     );
   });
+
+  it("a verificação da escala diz qual é a escala do modelo", () => {
+    const checks = buildPrePautaChecks({
+      enrolled: 1,
+      hasActiveRule: true,
+      subjects: [subject()],
+      scale: { minimum: 0, maximum: 100 },
+    });
+    expect(checks.find((c) => c.id === "scale")!.label).toBe("Notas dentro da escala 0–100");
+    const fallback = buildPrePautaChecks({
+      enrolled: 1,
+      hasActiveRule: true,
+      subjects: [subject()],
+    });
+    expect(fallback.find((c) => c.id === "scale")!.label).toBe("Notas dentro da escala 0–20");
+  });
 });

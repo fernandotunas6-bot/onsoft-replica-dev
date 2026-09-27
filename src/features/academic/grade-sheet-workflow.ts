@@ -143,6 +143,8 @@ export function buildPrePautaChecks(input: {
   subjects: PrePautaSubject[];
   /** Notas alteradas depois de a pauta ser gerada (`null`: pauta ainda por gerar). */
   scoresChangedAfterBuild?: number | null;
+  /** Escala do modelo activo (a contagem `outOfScale` já foi feita com ela). */
+  scale?: { minimum: number; maximum: number } | null;
 }): PrePautaCheck[] {
   const s = input.subjects;
   const withoutTeacher = s.filter((x) => !x.hasTeacher).map((x) => x.subjectName);
@@ -188,7 +190,7 @@ export function buildPrePautaChecks(input: {
     },
     {
       id: "scale",
-      label: "Notas dentro da escala 0–20",
+      label: `Notas dentro da escala ${input.scale?.minimum ?? 0}–${input.scale?.maximum ?? 20}`,
       ok: outOfScale === 0,
       detail: outOfScale ? `${outOfScale} fora da escala` : undefined,
     },
