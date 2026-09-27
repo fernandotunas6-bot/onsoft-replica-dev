@@ -39,6 +39,37 @@ aluno, e duas nem chegavam a correr na base SGA (função e colunas inexistentes
    (`private.has_permission(school_id, '<permissão>')` ou `public.current_school_role_is(...)`),
    nunca apenas "é membro".
 
+## `CREATE TABLE IF NOT EXISTS` não corrige uma tabela que já existe
+
+Se a tabela existe com outra forma, `CREATE TABLE IF NOT EXISTS` não faz nada **e não dá
+erro**. Quem aplica vê sucesso e conclui que ficou feito.
+
+Aconteceu com `school_access_requests`: uma versão foi aplicada à mão a 2026-09-25, a
+migração `20260925090000_school_access_requests.sql` foi depois reescrita com outros nomes
+(`institutional_number` por `institutional_id`, `requested_profile` por `requested_role`, e
+sete colunas novas), correu, e a tabela ficou como estava. O pedido de acesso a uma escola
+nunca gravou. O rasto visível eram seis índices onde deviam estar três — os da versão nova
+criaram-se, porque só tocam colunas que as duas versões partilham.
+
+Pior: o repositório tinha **duas** declarações da mesma tabela, com formas diferentes e ambas
+com `IF NOT EXISTS` — a migração acima e a captura
+`20260925120220_capture_undeclared_production_tables.sql`, esta com carimbo mais recente e a
+forma antiga. Qualquer uma que corra primeiro ganha.
+
+Regras que saem disto:
+
+- **Alterar uma tabela que já existe faz-se com `ALTER TABLE`**, não reescrevendo o
+  `CREATE TABLE`. Ver `20260927090000_reconcile_school_access_requests.sql` como modelo:
+  renomear preserva tipo, `NOT NULL` e chaves estrangeiras; `ADD COLUMN IF NOT EXISTS`
+  acrescenta; as restrições de valor largam-se antes de traduzir os valores e põem-se depois.
+- **Uma tabela, uma declaração.** Se a captura do catálogo já declara a tabela, a migração de
+  funcionalidade não a volta a declarar — altera-a.
+- **Confirmar no retrato as COLUNAS, não só a tabela.** `supabase/PRODUCTION_SNAPSHOT.json`
+  lista as colunas de cada tabela. A regra 1 diz «tabela e coluna»; é esta a razão.
+- Depois de aplicar, recapturar (`npm run siga:db-snapshot`) e comparar. Se o retrato não
+  mudou, a migração não correu — foi assim que se soube, a 2026-09-26, que nada posterior a
+  25/09 11:50 tinha sido aplicado.
+
 ## Processo
 
 7. **Nunca aprovar no Lovable uma migração que falhe estas regras.** Em dúvida, rejeitar e

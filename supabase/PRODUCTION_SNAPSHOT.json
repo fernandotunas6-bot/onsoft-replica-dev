@@ -1,11 +1,11 @@
 {
-  "capturadoEm": "2026-09-26T21:05:36.988Z",
+  "capturadoEm": "2026-09-27T06:52:49.502Z",
   "resumo": {
-    "com_rls": 164,
-    "funcoes_private": 94,
-    "politicas": 291,
-    "tabelas": 164,
-    "triggers": 174
+    "com_rls": 175,
+    "funcoes_private": 95,
+    "politicas": 294,
+    "tabelas": 175,
+    "triggers": 185
   },
   "tabelas": [
     {
@@ -682,7 +682,7 @@
         "created_at",
         "updated_at"
       ],
-      "politicas": 2,
+      "politicas": 1,
       "rls": true,
       "rls_forcada": false,
       "tabela": "communication_dispatches"
@@ -1119,7 +1119,7 @@
         "created_by",
         "updated_by"
       ],
-      "politicas": 1,
+      "politicas": 2,
       "rls": true,
       "rls_forcada": true,
       "tabela": "finance_payment_plans"
@@ -1251,6 +1251,26 @@
       "rls": true,
       "rls_forcada": true,
       "tabela": "grade_levels"
+    },
+    {
+      "anon_select": false,
+      "auth_select": false,
+      "colunas": [
+        "id",
+        "school_id",
+        "grade_score_id",
+        "previous_score",
+        "new_score",
+        "reason",
+        "actor_user_id",
+        "approved_by",
+        "kind",
+        "created_at"
+      ],
+      "politicas": 0,
+      "rls": true,
+      "rls_forcada": true,
+      "tabela": "grade_score_history"
     },
     {
       "anon_select": false,
@@ -1585,7 +1605,7 @@
       "tabela": "hr_contracts"
     },
     {
-      "anon_select": true,
+      "anon_select": false,
       "auth_select": true,
       "colunas": [
         "id",
@@ -1825,7 +1845,7 @@
       "tabela": "hr_payroll_runs"
     },
     {
-      "anon_select": true,
+      "anon_select": false,
       "auth_select": true,
       "colunas": [
         "id",
@@ -2135,8 +2155,8 @@
       "tabela": "import_rows"
     },
     {
-      "anon_select": true,
-      "auth_select": true,
+      "anon_select": false,
+      "auth_select": false,
       "colunas": [
         "id",
         "table_schema",
@@ -2178,7 +2198,7 @@
         "checksum",
         "is_system"
       ],
-      "politicas": 1,
+      "politicas": 0,
       "rls": true,
       "rls_forcada": true,
       "tabela": "import_templates"
@@ -2289,6 +2309,37 @@
       "rls": true,
       "rls_forcada": false,
       "tabela": "notifications"
+    },
+    {
+      "anon_select": false,
+      "auth_select": false,
+      "colunas": [
+        "id",
+        "school_id",
+        "provider",
+        "invoice_id",
+        "student_name",
+        "method",
+        "merchant_transaction_id",
+        "provider_charge_id",
+        "amount",
+        "reference_entity",
+        "reference_number",
+        "phone_number",
+        "status",
+        "status_message",
+        "receipt_number",
+        "reconciled_at",
+        "last_webhook_at",
+        "raw_last_payload",
+        "created_by",
+        "created_at",
+        "updated_at"
+      ],
+      "politicas": 0,
+      "rls": true,
+      "rls_forcada": true,
+      "tabela": "payment_gateway_charges"
     },
     {
       "anon_select": false,
@@ -2606,16 +2657,23 @@
         "user_id",
         "full_name",
         "national_id",
-        "institutional_id",
-        "requested_role",
+        "institutional_number",
+        "requested_profile",
         "status",
-        "person_id",
-        "reviewed_by",
-        "review_note",
+        "matched_person_id",
+        "reviewer_id",
+        "decision_note",
         "reviewed_at",
         "created_at",
         "updated_at",
-        "enrollment_application_id"
+        "enrollment_application_id",
+        "contact_phone",
+        "message",
+        "match_kind",
+        "granted_role_code",
+        "membership_id",
+        "info_request_note",
+        "requester_reply"
       ],
       "politicas": 1,
       "rls": true,
@@ -2730,7 +2788,7 @@
     },
     {
       "anon_select": false,
-      "auth_select": true,
+      "auth_select": false,
       "colunas": [
         "id",
         "school_id",
@@ -2748,8 +2806,8 @@
       "tabela": "school_integrations"
     },
     {
-      "anon_select": true,
-      "auth_select": true,
+      "anon_select": false,
+      "auth_select": false,
       "colunas": [
         "id",
         "school_id",
@@ -2947,7 +3005,7 @@
         "created_at",
         "updated_at"
       ],
-      "politicas": 0,
+      "politicas": 1,
       "rls": true,
       "rls_forcada": true,
       "tabela": "siga_access_cards"
@@ -2996,7 +3054,7 @@
         "updated_by",
         "lesson_plan_component_id"
       ],
-      "politicas": 2,
+      "politicas": 3,
       "rls": true,
       "rls_forcada": true,
       "tabela": "siga_assessment_items"
@@ -3015,7 +3073,7 @@
         "recorded_by",
         "updated_at"
       ],
-      "politicas": 2,
+      "politicas": 3,
       "rls": true,
       "rls_forcada": true,
       "tabela": "siga_assessment_scores"
@@ -3036,7 +3094,7 @@
         "device_info",
         "created_at"
       ],
-      "politicas": 1,
+      "politicas": 0,
       "rls": true,
       "rls_forcada": true,
       "tabela": "siga_attendance_audits"
@@ -3060,7 +3118,7 @@
         "created_at",
         "updated_at"
       ],
-      "politicas": 1,
+      "politicas": 2,
       "rls": true,
       "rls_forcada": true,
       "tabela": "siga_attendance_justifications"
@@ -3079,7 +3137,7 @@
         "created_at",
         "updated_at"
       ],
-      "politicas": 1,
+      "politicas": 2,
       "rls": true,
       "rls_forcada": true,
       "tabela": "siga_attendance_records"
@@ -3106,7 +3164,7 @@
         "updated_at",
         "updated_by"
       ],
-      "politicas": 1,
+      "politicas": 2,
       "rls": true,
       "rls_forcada": true,
       "tabela": "siga_attendance_sessions"
@@ -3133,10 +3191,33 @@
         "updated_at",
         "updated_by"
       ],
-      "politicas": 1,
+      "politicas": 0,
       "rls": true,
       "rls_forcada": true,
       "tabela": "siga_cash_expenses"
+    },
+    {
+      "anon_select": false,
+      "auth_select": false,
+      "colunas": [
+        "id",
+        "school_id",
+        "class_subject_id",
+        "timetable_slot_id",
+        "kind",
+        "title",
+        "description",
+        "due_on",
+        "status",
+        "created_by",
+        "updated_by",
+        "created_at",
+        "updated_at"
+      ],
+      "politicas": 0,
+      "rls": true,
+      "rls_forcada": true,
+      "tabela": "siga_class_tasks"
     },
     {
       "anon_select": true,
@@ -3152,10 +3233,63 @@
         "attachment_file_id",
         "attachment_file_name"
       ],
-      "politicas": 2,
+      "politicas": 1,
       "rls": true,
       "rls_forcada": true,
       "tabela": "siga_direct_messages"
+    },
+    {
+      "anon_select": false,
+      "auth_select": false,
+      "colunas": [
+        "id",
+        "school_id",
+        "session_id",
+        "enrollment_id",
+        "subject_id",
+        "class_group_id",
+        "grade_sheet_id",
+        "original_average",
+        "exam_date",
+        "room",
+        "jury",
+        "score",
+        "final_average",
+        "status",
+        "notes",
+        "created_by",
+        "updated_by",
+        "created_at",
+        "updated_at"
+      ],
+      "politicas": 0,
+      "rls": true,
+      "rls_forcada": true,
+      "tabela": "siga_exam_registrations"
+    },
+    {
+      "anon_select": false,
+      "auth_select": false,
+      "colunas": [
+        "id",
+        "school_id",
+        "academic_year_id",
+        "kind",
+        "name",
+        "starts_on",
+        "ends_on",
+        "max_failed_subjects",
+        "result_method",
+        "status",
+        "created_by",
+        "updated_by",
+        "created_at",
+        "updated_at"
+      ],
+      "politicas": 0,
+      "rls": true,
+      "rls_forcada": true,
+      "tabela": "siga_exam_sessions"
     },
     {
       "anon_select": true,
@@ -3169,7 +3303,7 @@
         "detail",
         "created_at"
       ],
-      "politicas": 2,
+      "politicas": 0,
       "rls": true,
       "rls_forcada": true,
       "tabela": "siga_file_events"
@@ -3238,8 +3372,8 @@
       "tabela": "siga_lesson_meetings"
     },
     {
-      "anon_select": true,
-      "auth_select": true,
+      "anon_select": false,
+      "auth_select": false,
       "colunas": [
         "id",
         "school_id",
@@ -3250,14 +3384,14 @@
         "sequence",
         "created_at"
       ],
-      "politicas": 1,
+      "politicas": 0,
       "rls": true,
       "rls_forcada": true,
       "tabela": "siga_lesson_plan_components"
     },
     {
       "anon_select": false,
-      "auth_select": true,
+      "auth_select": false,
       "colunas": [
         "id",
         "school_id",
@@ -3274,10 +3408,74 @@
         "created_by",
         "updated_by"
       ],
-      "politicas": 1,
+      "politicas": 0,
       "rls": true,
       "rls_forcada": true,
       "tabela": "siga_lesson_plans"
+    },
+    {
+      "anon_select": false,
+      "auth_select": false,
+      "colunas": [
+        "id",
+        "school_id",
+        "user_id",
+        "lesson_date",
+        "channel",
+        "lessons_count",
+        "status",
+        "error",
+        "created_at"
+      ],
+      "politicas": 0,
+      "rls": true,
+      "rls_forcada": true,
+      "tabela": "siga_lesson_reminder_log"
+    },
+    {
+      "anon_select": false,
+      "auth_select": false,
+      "colunas": [
+        "school_id",
+        "enabled",
+        "send_hour",
+        "notify_teachers",
+        "notify_students",
+        "notify_guardians",
+        "channel_in_app",
+        "channel_email",
+        "channel_sms",
+        "notify_on_publish",
+        "updated_by",
+        "created_at",
+        "updated_at"
+      ],
+      "politicas": 0,
+      "rls": true,
+      "rls_forcada": true,
+      "tabela": "siga_lesson_reminder_settings"
+    },
+    {
+      "anon_select": false,
+      "auth_select": false,
+      "colunas": [
+        "id",
+        "school_id",
+        "timetable_slot_id",
+        "lesson_type",
+        "delivery_mode",
+        "online_url",
+        "topic",
+        "notes",
+        "created_by",
+        "updated_by",
+        "created_at",
+        "updated_at"
+      ],
+      "politicas": 0,
+      "rls": true,
+      "rls_forcada": true,
+      "tabela": "siga_timetable_slot_details"
     },
     {
       "anon_select": false,
@@ -3296,7 +3494,7 @@
         "last_ping_at",
         "created_at"
       ],
-      "politicas": 0,
+      "politicas": 1,
       "rls": true,
       "rls_forcada": true,
       "tabela": "siga_turnstile_devices"
@@ -3331,7 +3529,7 @@
         "created_by",
         "updated_by"
       ],
-      "politicas": 4,
+      "politicas": 6,
       "rls": true,
       "rls_forcada": true,
       "tabela": "staff_module_grants"
@@ -3353,7 +3551,7 @@
         "created_at",
         "updated_at"
       ],
-      "politicas": 1,
+      "politicas": 2,
       "rls": true,
       "rls_forcada": true,
       "tabela": "student_academic_history"
@@ -3379,6 +3577,51 @@
       "rls": true,
       "rls_forcada": true,
       "tabela": "student_guardians"
+    },
+    {
+      "anon_select": false,
+      "auth_select": false,
+      "colunas": [
+        "id",
+        "school_id",
+        "enrollment_id",
+        "class_group_id",
+        "student_name",
+        "class_group_name",
+        "risk_level",
+        "reasons",
+        "suggested_interventions",
+        "baseline_average",
+        "latest_average",
+        "status",
+        "created_by",
+        "created_at",
+        "updated_at"
+      ],
+      "politicas": 0,
+      "rls": true,
+      "rls_forcada": true,
+      "tabela": "student_risk_cases"
+    },
+    {
+      "anon_select": false,
+      "auth_select": false,
+      "colunas": [
+        "id",
+        "case_id",
+        "school_id",
+        "kind",
+        "description",
+        "outcome",
+        "risk_level",
+        "average_snapshot",
+        "created_by",
+        "created_at"
+      ],
+      "politicas": 0,
+      "rls": true,
+      "rls_forcada": true,
+      "tabela": "student_risk_interventions"
     },
     {
       "anon_select": true,
@@ -3411,7 +3654,7 @@
         "changed_by",
         "created_at"
       ],
-      "politicas": 1,
+      "politicas": 2,
       "rls": true,
       "rls_forcada": true,
       "tabela": "student_status_history"
@@ -3630,6 +3873,25 @@
       "rls": true,
       "rls_forcada": false,
       "tabela": "tenant_domains"
+    },
+    {
+      "anon_select": false,
+      "auth_select": false,
+      "colunas": [
+        "id",
+        "tenant_id",
+        "email",
+        "display_name",
+        "provider",
+        "provider_account_id",
+        "status",
+        "created_at",
+        "updated_at"
+      ],
+      "politicas": 0,
+      "rls": true,
+      "rls_forcada": true,
+      "tabela": "tenant_mailboxes"
     },
     {
       "anon_select": true,
@@ -4047,14 +4309,6 @@
       "verificando": ""
     },
     {
-      "cmd": "SELECT",
-      "papeis": "{authenticated}",
-      "politica": "auth_view_school_dispatches",
-      "tabela": "communication_dispatches",
-      "usando": "is_school_member(school_id)",
-      "verificando": ""
-    },
-    {
       "cmd": "ALL",
       "papeis": "{service_role}",
       "politica": "service_role_full_dispatches",
@@ -4401,6 +4655,14 @@
     {
       "cmd": "SELECT",
       "papeis": "{authenticated}",
+      "politica": "Members read finance_payment_plans",
+      "tabela": "finance_payment_plans",
+      "usando": "is_school_member(school_id)",
+      "verificando": ""
+    },
+    {
+      "cmd": "SELECT",
+      "papeis": "{authenticated}",
       "politica": "finance_payment_plans_select_finance",
       "tabela": "finance_payment_plans",
       "usando": "(is_school_member(school_id) AND (private.sga_app_role(school_id) = ANY (ARRAY['Administrador'::text, 'Tesouraria'::text])))",
@@ -4716,7 +4978,7 @@
       "politica": "Create hr_departments in own school",
       "tabela": "hr_departments",
       "usando": "",
-      "verificando": "(is_school_member(school_id) AND (created_by = ( SELECT auth.uid() AS uid)))"
+      "verificando": "(is_school_admin(school_id) AND (created_by = ( SELECT auth.uid() AS uid)))"
     },
     {
       "cmd": "SELECT",
@@ -4731,8 +4993,8 @@
       "papeis": "{authenticated}",
       "politica": "Update hr_departments in own school",
       "tabela": "hr_departments",
-      "usando": "is_school_member(school_id)",
-      "verificando": "is_school_member(school_id)"
+      "usando": "is_school_admin(school_id)",
+      "verificando": "is_school_admin(school_id)"
     },
     {
       "cmd": "INSERT",
@@ -4860,7 +5122,7 @@
       "politica": "Create hr_positions in own school",
       "tabela": "hr_positions",
       "usando": "",
-      "verificando": "(is_school_member(school_id) AND (created_by = ( SELECT auth.uid() AS uid)))"
+      "verificando": "(is_school_admin(school_id) AND (created_by = ( SELECT auth.uid() AS uid)))"
     },
     {
       "cmd": "SELECT",
@@ -4875,8 +5137,8 @@
       "papeis": "{authenticated}",
       "politica": "Update hr_positions in own school",
       "tabela": "hr_positions",
-      "usando": "is_school_member(school_id)",
-      "verificando": "is_school_member(school_id)"
+      "usando": "is_school_admin(school_id)",
+      "verificando": "is_school_admin(school_id)"
     },
     {
       "cmd": "INSERT",
@@ -4996,14 +5258,6 @@
       "politica": "Read school import rows",
       "tabela": "import_rows",
       "usando": "(EXISTS ( SELECT 1\n   FROM import_jobs j\n  WHERE ((j.id = import_rows.import_job_id) AND is_school_member(j.school_id))))",
-      "verificando": ""
-    },
-    {
-      "cmd": "SELECT",
-      "papeis": "{authenticated}",
-      "politica": "Read school import templates",
-      "tabela": "import_templates",
-      "usando": "is_school_member(school_id)",
       "verificando": ""
     },
     {
@@ -5553,7 +5807,15 @@
     {
       "cmd": "SELECT",
       "papeis": "{authenticated}",
-      "politica": "Access logs in own school",
+      "politica": "Members read siga_access_cards",
+      "tabela": "siga_access_cards",
+      "usando": "is_school_member(school_id)",
+      "verificando": ""
+    },
+    {
+      "cmd": "SELECT",
+      "papeis": "{authenticated}",
+      "politica": "Members read siga_access_logs",
       "tabela": "siga_access_logs",
       "usando": "is_school_member(school_id)",
       "verificando": ""
@@ -5565,6 +5827,14 @@
       "tabela": "siga_assessment_items",
       "usando": "current_user_can_manage_assessment_item(school_id, class_group_id, subject_id)",
       "verificando": "current_user_can_manage_assessment_item(school_id, class_group_id, subject_id)"
+    },
+    {
+      "cmd": "SELECT",
+      "papeis": "{authenticated}",
+      "politica": "Members read siga_assessment_items",
+      "tabela": "siga_assessment_items",
+      "usando": "is_school_member(school_id)",
+      "verificando": ""
     },
     {
       "cmd": "SELECT",
@@ -5585,6 +5855,14 @@
     {
       "cmd": "SELECT",
       "papeis": "{authenticated}",
+      "politica": "Members read siga_assessment_scores",
+      "tabela": "siga_assessment_scores",
+      "usando": "is_school_member(school_id)",
+      "verificando": ""
+    },
+    {
+      "cmd": "SELECT",
+      "papeis": "{authenticated}",
       "politica": "Read assessment scores in own school",
       "tabela": "siga_assessment_scores",
       "usando": "is_school_member(school_id)",
@@ -5593,8 +5871,8 @@
     {
       "cmd": "SELECT",
       "papeis": "{authenticated}",
-      "politica": "Read attendance audits in own school",
-      "tabela": "siga_attendance_audits",
+      "politica": "Members read siga_attendance_justifications",
+      "tabela": "siga_attendance_justifications",
       "usando": "is_school_member(school_id)",
       "verificando": ""
     },
@@ -5609,8 +5887,24 @@
     {
       "cmd": "SELECT",
       "papeis": "{authenticated}",
+      "politica": "Members read siga_attendance_records",
+      "tabela": "siga_attendance_records",
+      "usando": "is_school_member(school_id)",
+      "verificando": ""
+    },
+    {
+      "cmd": "SELECT",
+      "papeis": "{authenticated}",
       "politica": "Read attendance records in own school",
       "tabela": "siga_attendance_records",
+      "usando": "is_school_member(school_id)",
+      "verificando": ""
+    },
+    {
+      "cmd": "SELECT",
+      "papeis": "{authenticated}",
+      "politica": "Members read siga_attendance_sessions",
+      "tabela": "siga_attendance_sessions",
       "usando": "is_school_member(school_id)",
       "verificando": ""
     },
@@ -5625,42 +5919,10 @@
     {
       "cmd": "SELECT",
       "papeis": "{authenticated}",
-      "politica": "Read school cash expenses",
-      "tabela": "siga_cash_expenses",
-      "usando": "is_school_member(school_id)",
-      "verificando": ""
-    },
-    {
-      "cmd": "SELECT",
-      "papeis": "{authenticated}",
       "politica": "Read own school direct messages",
       "tabela": "siga_direct_messages",
-      "usando": "is_school_member(school_id)",
+      "usando": "(is_school_member(school_id) AND ((( SELECT auth.uid() AS uid) = sender_id) OR (( SELECT auth.uid() AS uid) = recipient_id)))",
       "verificando": ""
-    },
-    {
-      "cmd": "INSERT",
-      "papeis": "{authenticated}",
-      "politica": "Send school direct messages",
-      "tabela": "siga_direct_messages",
-      "usando": "",
-      "verificando": "(is_school_member(school_id) AND (sender_id = ( SELECT auth.uid() AS uid)))"
-    },
-    {
-      "cmd": "SELECT",
-      "papeis": "{authenticated}",
-      "politica": "Read school file events",
-      "tabela": "siga_file_events",
-      "usando": "is_school_member(school_id)",
-      "verificando": ""
-    },
-    {
-      "cmd": "INSERT",
-      "papeis": "{authenticated}",
-      "politica": "Write school file events",
-      "tabela": "siga_file_events",
-      "usando": "",
-      "verificando": "(is_school_member(school_id) AND (actor_user_id = ( SELECT auth.uid() AS uid)))"
     },
     {
       "cmd": "DELETE",
@@ -5713,17 +5975,25 @@
     {
       "cmd": "SELECT",
       "papeis": "{authenticated}",
-      "politica": "Manage lesson plan components in own school",
-      "tabela": "siga_lesson_plan_components",
+      "politica": "Members read siga_turnstile_devices",
+      "tabela": "siga_turnstile_devices",
       "usando": "is_school_member(school_id)",
       "verificando": ""
     },
     {
+      "cmd": "ALL",
+      "papeis": "{authenticated}",
+      "politica": "Admins manage staff grants",
+      "tabela": "staff_module_grants",
+      "usando": "is_school_admin(school_id)",
+      "verificando": "is_school_admin(school_id)"
+    },
+    {
       "cmd": "SELECT",
       "papeis": "{authenticated}",
-      "politica": "Manage lesson plans in own school",
-      "tabela": "siga_lesson_plans",
-      "usando": "is_school_member(school_id)",
+      "politica": "Read own or admin staff grants",
+      "tabela": "staff_module_grants",
+      "usando": "((is_school_member(school_id) AND (user_id = ( SELECT auth.uid() AS uid))) OR is_school_admin(school_id))",
       "verificando": ""
     },
     {
@@ -5757,6 +6027,14 @@
       "tabela": "staff_module_grants",
       "usando": "(is_school_member(school_id) AND (private.sga_app_role(school_id) = 'Administrador'::text))",
       "verificando": "(is_school_member(school_id) AND (private.sga_app_role(school_id) = 'Administrador'::text))"
+    },
+    {
+      "cmd": "SELECT",
+      "papeis": "{authenticated}",
+      "politica": "Members read student_academic_history",
+      "tabela": "student_academic_history",
+      "usando": "is_school_member(school_id)",
+      "verificando": ""
     },
     {
       "cmd": "SELECT",
@@ -5813,6 +6091,14 @@
       "tabela": "student_status_events",
       "usando": "",
       "verificando": "(school_id = ( SELECT current_school_id() AS current_school_id))"
+    },
+    {
+      "cmd": "SELECT",
+      "papeis": "{authenticated}",
+      "politica": "Members read student_status_history",
+      "tabela": "student_status_history",
+      "usando": "is_school_member(school_id)",
+      "verificando": ""
     },
     {
       "cmd": "SELECT",
@@ -6589,6 +6875,12 @@
       "security_definer": true
     },
     {
+      "args": "target_school_id uuid, actor uuid, rule_name text, continuous_weight_value numeric, exam_weight_value numeric, passing_grade_value numeric, maximum_absence_value numeric, rounding_method_value text, require_change_approval boolean, lock_after_publication_value boolean, key_subject_ids uuid[], key_subjects_cause_failure boolean",
+      "funcao": "siga_publish_assessment_rule",
+      "schema": "private",
+      "security_definer": true
+    },
+    {
       "args": "object_name text",
       "funcao": "storage_school_id",
       "schema": "private",
@@ -6885,6 +7177,24 @@
     {
       "args": "school_id uuid, student_id uuid, class_group_id uuid, enrolled_on date",
       "funcao": "enroll_student",
+      "schema": "public",
+      "security_definer": false
+    },
+    {
+      "args": "",
+      "funcao": "guard_class_subject_grade_range",
+      "schema": "public",
+      "security_definer": false
+    },
+    {
+      "args": "",
+      "funcao": "guard_term_within_year",
+      "schema": "public",
+      "security_definer": false
+    },
+    {
+      "args": "",
+      "funcao": "guard_timetable_slot_conflicts",
       "schema": "public",
       "security_definer": false
     },
@@ -7190,6 +7500,12 @@
     },
     {
       "args": "p_school_id uuid",
+      "funcao": "is_school_admin",
+      "schema": "public",
+      "security_definer": true
+    },
+    {
+      "args": "p_school_id uuid",
       "funcao": "is_school_member",
       "schema": "public",
       "security_definer": true
@@ -7389,6 +7705,12 @@
     {
       "args": "target alumni_profiles",
       "funcao": "siga_alumni_profile_completion",
+      "schema": "public",
+      "security_definer": false
+    },
+    {
+      "args": "target_school_id uuid, actor uuid, rule_name text, continuous_weight_value numeric, exam_weight_value numeric, passing_grade_value numeric, maximum_absence_value numeric, rounding_method_value text, require_change_approval boolean, lock_after_publication_value boolean, key_subject_ids uuid[], key_subjects_cause_failure boolean",
+      "funcao": "siga_publish_assessment_rule",
       "schema": "public",
       "security_definer": false
     },
@@ -7615,6 +7937,12 @@
       "funcao_schema": "private",
       "tabela": "class_subjects",
       "trigger": "enforce_teacher_class_subject_scope"
+    },
+    {
+      "funcao": "guard_class_subject_grade_range",
+      "funcao_schema": "public",
+      "tabela": "class_subjects",
+      "trigger": "trg_guard_class_subject_grade_range"
     },
     {
       "funcao": "siga_touch_updated_at_and_version",
@@ -8199,6 +8527,12 @@
       "trigger": "update_objects_updated_at"
     },
     {
+      "funcao": "siga_touch_updated_at",
+      "funcao_schema": "public",
+      "tabela": "payment_gateway_charges",
+      "trigger": "trg_gateway_charges_updated"
+    },
+    {
       "funcao": "audit_row_change",
       "funcao_schema": "private",
       "tabela": "people",
@@ -8393,14 +8727,50 @@
     {
       "funcao": "siga_touch_updated_at",
       "funcao_schema": "public",
+      "tabela": "siga_class_tasks",
+      "trigger": "siga_class_tasks_touch"
+    },
+    {
+      "funcao": "siga_touch_updated_at",
+      "funcao_schema": "public",
+      "tabela": "siga_exam_registrations",
+      "trigger": "trg_siga_exam_registrations_touch"
+    },
+    {
+      "funcao": "siga_touch_updated_at",
+      "funcao_schema": "public",
+      "tabela": "siga_exam_sessions",
+      "trigger": "trg_siga_exam_sessions_touch"
+    },
+    {
+      "funcao": "siga_touch_updated_at",
+      "funcao_schema": "public",
       "tabela": "siga_lesson_plans",
       "trigger": "siga_lesson_plans_set_updated_at"
+    },
+    {
+      "funcao": "siga_touch_updated_at",
+      "funcao_schema": "public",
+      "tabela": "siga_lesson_reminder_settings",
+      "trigger": "siga_lesson_reminder_settings_touch"
+    },
+    {
+      "funcao": "siga_touch_updated_at",
+      "funcao_schema": "public",
+      "tabela": "siga_timetable_slot_details",
+      "trigger": "siga_timetable_slot_details_touch"
     },
     {
       "funcao": "audit_row_change",
       "funcao_schema": "private",
       "tabela": "student_guardians",
       "trigger": "audit_student_guardians_change"
+    },
+    {
+      "funcao": "siga_touch_updated_at",
+      "funcao_schema": "public",
+      "tabela": "student_risk_cases",
+      "trigger": "trg_student_risk_cases_updated"
     },
     {
       "funcao": "audit_row_change",
@@ -8469,6 +8839,12 @@
       "trigger": "protect_teacher_identity"
     },
     {
+      "funcao": "siga_touch_updated_at",
+      "funcao_schema": "public",
+      "tabela": "tenant_mailboxes",
+      "trigger": "trg_tenant_mailboxes_touch"
+    },
+    {
       "funcao": "audit_row_change",
       "funcao_schema": "private",
       "tabela": "terms",
@@ -8479,6 +8855,12 @@
       "funcao_schema": "private",
       "tabela": "terms",
       "trigger": "enforce_academic_calendar_manager_scope"
+    },
+    {
+      "funcao": "guard_term_within_year",
+      "funcao_schema": "public",
+      "tabela": "terms",
+      "trigger": "trg_guard_term_within_year"
     },
     {
       "funcao": "audit_row_change",
@@ -8497,6 +8879,12 @@
       "funcao_schema": "private",
       "tabela": "timetable_slots",
       "trigger": "timetable_slot_no_overlap"
+    },
+    {
+      "funcao": "guard_timetable_slot_conflicts",
+      "funcao_schema": "public",
+      "tabela": "timetable_slots",
+      "trigger": "trg_guard_timetable_slot_conflicts"
     },
     {
       "funcao": "validate_timetable_school_references",

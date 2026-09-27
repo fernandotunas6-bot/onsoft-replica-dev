@@ -3510,6 +3510,60 @@ export type Database = {
           },
         ]
       }
+      grade_score_history: {
+        Row: {
+          actor_user_id: string | null
+          approved_by: string | null
+          created_at: string
+          grade_score_id: string
+          id: string
+          kind: string
+          new_score: number | null
+          previous_score: number | null
+          reason: string | null
+          school_id: string
+        }
+        Insert: {
+          actor_user_id?: string | null
+          approved_by?: string | null
+          created_at?: string
+          grade_score_id: string
+          id?: string
+          kind?: string
+          new_score?: number | null
+          previous_score?: number | null
+          reason?: string | null
+          school_id: string
+        }
+        Update: {
+          actor_user_id?: string | null
+          approved_by?: string | null
+          created_at?: string
+          grade_score_id?: string
+          id?: string
+          kind?: string
+          new_score?: number | null
+          previous_score?: number | null
+          reason?: string | null
+          school_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "grade_score_history_grade_score_id_fkey"
+            columns: ["grade_score_id"]
+            isOneToOne: false
+            referencedRelation: "grade_scores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "grade_score_history_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "schools"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       grade_scores: {
         Row: {
           created_at: string
@@ -6500,6 +6554,86 @@ export type Database = {
           },
         ]
       }
+      payment_gateway_charges: {
+        Row: {
+          amount: number
+          created_at: string
+          created_by: string | null
+          id: string
+          invoice_id: string
+          last_webhook_at: string | null
+          merchant_transaction_id: string
+          method: string
+          phone_number: string | null
+          provider: string
+          provider_charge_id: string | null
+          raw_last_payload: Json | null
+          receipt_number: string | null
+          reconciled_at: string | null
+          reference_entity: string | null
+          reference_number: string | null
+          school_id: string
+          status: string
+          status_message: string | null
+          student_name: string | null
+          updated_at: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          invoice_id: string
+          last_webhook_at?: string | null
+          merchant_transaction_id: string
+          method: string
+          phone_number?: string | null
+          provider?: string
+          provider_charge_id?: string | null
+          raw_last_payload?: Json | null
+          receipt_number?: string | null
+          reconciled_at?: string | null
+          reference_entity?: string | null
+          reference_number?: string | null
+          school_id: string
+          status?: string
+          status_message?: string | null
+          student_name?: string | null
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          invoice_id?: string
+          last_webhook_at?: string | null
+          merchant_transaction_id?: string
+          method?: string
+          phone_number?: string | null
+          provider?: string
+          provider_charge_id?: string | null
+          raw_last_payload?: Json | null
+          receipt_number?: string | null
+          reconciled_at?: string | null
+          reference_entity?: string | null
+          reference_number?: string | null
+          school_id?: string
+          status?: string
+          status_message?: string | null
+          student_name?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payment_gateway_charges_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "schools"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       people: {
         Row: {
           address: string | null
@@ -7280,51 +7414,72 @@ export type Database = {
       }
       school_access_requests: {
         Row: {
+          contact_phone: string | null
           created_at: string
+          decision_note: string | null
           enrollment_application_id: string | null
           full_name: string
+          granted_role_code: string | null
           id: string
-          institutional_id: string | null
+          info_request_note: string | null
+          institutional_number: string | null
+          match_kind: string | null
+          matched_person_id: string | null
+          membership_id: string | null
+          message: string | null
           national_id: string | null
-          person_id: string | null
-          requested_role: string
-          review_note: string | null
+          requested_profile: string
+          requester_reply: string | null
           reviewed_at: string | null
-          reviewed_by: string | null
+          reviewer_id: string | null
           school_id: string
           status: string
           updated_at: string
           user_id: string
         }
         Insert: {
+          contact_phone?: string | null
           created_at?: string
+          decision_note?: string | null
           enrollment_application_id?: string | null
           full_name: string
+          granted_role_code?: string | null
           id?: string
-          institutional_id?: string | null
+          info_request_note?: string | null
+          institutional_number?: string | null
+          match_kind?: string | null
+          matched_person_id?: string | null
+          membership_id?: string | null
+          message?: string | null
           national_id?: string | null
-          person_id?: string | null
-          requested_role: string
-          review_note?: string | null
+          requested_profile: string
+          requester_reply?: string | null
           reviewed_at?: string | null
-          reviewed_by?: string | null
+          reviewer_id?: string | null
           school_id: string
           status?: string
           updated_at?: string
           user_id: string
         }
         Update: {
+          contact_phone?: string | null
           created_at?: string
+          decision_note?: string | null
           enrollment_application_id?: string | null
           full_name?: string
+          granted_role_code?: string | null
           id?: string
-          institutional_id?: string | null
+          info_request_note?: string | null
+          institutional_number?: string | null
+          match_kind?: string | null
+          matched_person_id?: string | null
+          membership_id?: string | null
+          message?: string | null
           national_id?: string | null
-          person_id?: string | null
-          requested_role?: string
-          review_note?: string | null
+          requested_profile?: string
+          requester_reply?: string | null
           reviewed_at?: string | null
-          reviewed_by?: string | null
+          reviewer_id?: string | null
           school_id?: string
           status?: string
           updated_at?: string
@@ -7339,8 +7494,15 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "school_access_requests_membership_id_fkey"
+            columns: ["membership_id"]
+            isOneToOne: false
+            referencedRelation: "school_memberships"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "school_access_requests_person_id_fkey"
-            columns: ["person_id"]
+            columns: ["matched_person_id"]
             isOneToOne: false
             referencedRelation: "people"
             referencedColumns: ["id"]
@@ -8771,6 +8933,76 @@ export type Database = {
           },
         ]
       }
+      siga_class_tasks: {
+        Row: {
+          class_subject_id: string
+          created_at: string
+          created_by: string | null
+          description: string | null
+          due_on: string | null
+          id: string
+          kind: string
+          school_id: string
+          status: string
+          timetable_slot_id: string | null
+          title: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          class_subject_id: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          due_on?: string | null
+          id?: string
+          kind?: string
+          school_id: string
+          status?: string
+          timetable_slot_id?: string | null
+          title: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          class_subject_id?: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          due_on?: string | null
+          id?: string
+          kind?: string
+          school_id?: string
+          status?: string
+          timetable_slot_id?: string | null
+          title?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "siga_class_tasks_class_subject_id_fkey"
+            columns: ["class_subject_id"]
+            isOneToOne: false
+            referencedRelation: "class_subjects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "siga_class_tasks_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "schools"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "siga_class_tasks_timetable_slot_id_fkey"
+            columns: ["timetable_slot_id"]
+            isOneToOne: false
+            referencedRelation: "timetable_slots"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       siga_direct_messages: {
         Row: {
           attachment_file_id: string | null
@@ -8815,6 +9047,181 @@ export type Database = {
           },
           {
             foreignKeyName: "siga_direct_messages_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "schools"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      siga_exam_registrations: {
+        Row: {
+          class_group_id: string
+          created_at: string
+          created_by: string | null
+          enrollment_id: string
+          exam_date: string | null
+          final_average: number | null
+          grade_sheet_id: string | null
+          id: string
+          jury: string | null
+          notes: string | null
+          original_average: number | null
+          room: string | null
+          school_id: string
+          score: number | null
+          session_id: string
+          status: string
+          subject_id: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          class_group_id: string
+          created_at?: string
+          created_by?: string | null
+          enrollment_id: string
+          exam_date?: string | null
+          final_average?: number | null
+          grade_sheet_id?: string | null
+          id?: string
+          jury?: string | null
+          notes?: string | null
+          original_average?: number | null
+          room?: string | null
+          school_id: string
+          score?: number | null
+          session_id: string
+          status?: string
+          subject_id: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          class_group_id?: string
+          created_at?: string
+          created_by?: string | null
+          enrollment_id?: string
+          exam_date?: string | null
+          final_average?: number | null
+          grade_sheet_id?: string | null
+          id?: string
+          jury?: string | null
+          notes?: string | null
+          original_average?: number | null
+          room?: string | null
+          school_id?: string
+          score?: number | null
+          session_id?: string
+          status?: string
+          subject_id?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "siga_exam_registrations_class_group_id_fkey"
+            columns: ["class_group_id"]
+            isOneToOne: false
+            referencedRelation: "class_groups"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "siga_exam_registrations_enrollment_id_fkey"
+            columns: ["enrollment_id"]
+            isOneToOne: false
+            referencedRelation: "enrollments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "siga_exam_registrations_grade_sheet_id_fkey"
+            columns: ["grade_sheet_id"]
+            isOneToOne: false
+            referencedRelation: "grade_sheets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "siga_exam_registrations_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "schools"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "siga_exam_registrations_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "siga_exam_sessions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "siga_exam_registrations_subject_id_fkey"
+            columns: ["subject_id"]
+            isOneToOne: false
+            referencedRelation: "subjects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      siga_exam_sessions: {
+        Row: {
+          academic_year_id: string
+          created_at: string
+          created_by: string | null
+          ends_on: string | null
+          id: string
+          kind: string
+          max_failed_subjects: number | null
+          name: string
+          result_method: string
+          school_id: string
+          starts_on: string | null
+          status: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          academic_year_id: string
+          created_at?: string
+          created_by?: string | null
+          ends_on?: string | null
+          id?: string
+          kind: string
+          max_failed_subjects?: number | null
+          name: string
+          result_method?: string
+          school_id: string
+          starts_on?: string | null
+          status?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          academic_year_id?: string
+          created_at?: string
+          created_by?: string | null
+          ends_on?: string | null
+          id?: string
+          kind?: string
+          max_failed_subjects?: number | null
+          name?: string
+          result_method?: string
+          school_id?: string
+          starts_on?: string | null
+          status?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "siga_exam_sessions_academic_year_id_fkey"
+            columns: ["academic_year_id"]
+            isOneToOne: false
+            referencedRelation: "academic_years"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "siga_exam_sessions_school_id_fkey"
             columns: ["school_id"]
             isOneToOne: false
             referencedRelation: "schools"
@@ -9165,6 +9572,166 @@ export type Database = {
           },
         ]
       }
+      siga_lesson_reminder_log: {
+        Row: {
+          channel: string
+          created_at: string
+          error: string | null
+          id: string
+          lesson_date: string
+          lessons_count: number
+          school_id: string
+          status: string
+          user_id: string
+        }
+        Insert: {
+          channel: string
+          created_at?: string
+          error?: string | null
+          id?: string
+          lesson_date: string
+          lessons_count?: number
+          school_id: string
+          status?: string
+          user_id: string
+        }
+        Update: {
+          channel?: string
+          created_at?: string
+          error?: string | null
+          id?: string
+          lesson_date?: string
+          lessons_count?: number
+          school_id?: string
+          status?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "siga_lesson_reminder_log_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "schools"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      siga_lesson_reminder_settings: {
+        Row: {
+          channel_email: boolean
+          channel_in_app: boolean
+          channel_sms: boolean
+          created_at: string
+          enabled: boolean
+          notify_guardians: boolean
+          notify_on_publish: boolean
+          notify_students: boolean
+          notify_teachers: boolean
+          school_id: string
+          send_hour: number
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          channel_email?: boolean
+          channel_in_app?: boolean
+          channel_sms?: boolean
+          created_at?: string
+          enabled?: boolean
+          notify_guardians?: boolean
+          notify_on_publish?: boolean
+          notify_students?: boolean
+          notify_teachers?: boolean
+          school_id: string
+          send_hour?: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          channel_email?: boolean
+          channel_in_app?: boolean
+          channel_sms?: boolean
+          created_at?: string
+          enabled?: boolean
+          notify_guardians?: boolean
+          notify_on_publish?: boolean
+          notify_students?: boolean
+          notify_teachers?: boolean
+          school_id?: string
+          send_hour?: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "siga_lesson_reminder_settings_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: true
+            referencedRelation: "schools"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      siga_timetable_slot_details: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          delivery_mode: string
+          id: string
+          lesson_type: string
+          notes: string | null
+          online_url: string | null
+          school_id: string
+          timetable_slot_id: string
+          topic: string | null
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          delivery_mode?: string
+          id?: string
+          lesson_type?: string
+          notes?: string | null
+          online_url?: string | null
+          school_id: string
+          timetable_slot_id: string
+          topic?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          delivery_mode?: string
+          id?: string
+          lesson_type?: string
+          notes?: string | null
+          online_url?: string | null
+          school_id?: string
+          timetable_slot_id?: string
+          topic?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "siga_timetable_slot_details_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "schools"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "siga_timetable_slot_details_timetable_slot_id_fkey"
+            columns: ["timetable_slot_id"]
+            isOneToOne: false
+            referencedRelation: "timetable_slots"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       siga_turnstile_devices: {
         Row: {
           api_key: string | null
@@ -9413,6 +9980,122 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "students"
             referencedColumns: ["school_id", "id"]
+          },
+        ]
+      }
+      student_risk_cases: {
+        Row: {
+          baseline_average: number | null
+          class_group_id: string | null
+          class_group_name: string | null
+          created_at: string
+          created_by: string | null
+          enrollment_id: string
+          id: string
+          latest_average: number | null
+          reasons: Json
+          risk_level: string
+          school_id: string
+          status: string
+          student_name: string
+          suggested_interventions: Json
+          updated_at: string
+        }
+        Insert: {
+          baseline_average?: number | null
+          class_group_id?: string | null
+          class_group_name?: string | null
+          created_at?: string
+          created_by?: string | null
+          enrollment_id: string
+          id?: string
+          latest_average?: number | null
+          reasons?: Json
+          risk_level?: string
+          school_id: string
+          status?: string
+          student_name: string
+          suggested_interventions?: Json
+          updated_at?: string
+        }
+        Update: {
+          baseline_average?: number | null
+          class_group_id?: string | null
+          class_group_name?: string | null
+          created_at?: string
+          created_by?: string | null
+          enrollment_id?: string
+          id?: string
+          latest_average?: number | null
+          reasons?: Json
+          risk_level?: string
+          school_id?: string
+          status?: string
+          student_name?: string
+          suggested_interventions?: Json
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "student_risk_cases_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "schools"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      student_risk_interventions: {
+        Row: {
+          average_snapshot: number | null
+          case_id: string
+          created_at: string
+          created_by: string | null
+          description: string
+          id: string
+          kind: string
+          outcome: string | null
+          risk_level: string | null
+          school_id: string
+        }
+        Insert: {
+          average_snapshot?: number | null
+          case_id: string
+          created_at?: string
+          created_by?: string | null
+          description: string
+          id?: string
+          kind?: string
+          outcome?: string | null
+          risk_level?: string | null
+          school_id: string
+        }
+        Update: {
+          average_snapshot?: number | null
+          case_id?: string
+          created_at?: string
+          created_by?: string | null
+          description?: string
+          id?: string
+          kind?: string
+          outcome?: string | null
+          risk_level?: string | null
+          school_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "student_risk_interventions_case_id_fkey"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "student_risk_cases"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "student_risk_interventions_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "schools"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -10096,6 +10779,50 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "tenant_domains_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tenant_mailboxes: {
+        Row: {
+          created_at: string
+          display_name: string | null
+          email: string
+          id: string
+          provider: string
+          provider_account_id: string | null
+          status: string
+          tenant_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          display_name?: string | null
+          email: string
+          id?: string
+          provider?: string
+          provider_account_id?: string | null
+          status?: string
+          tenant_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          display_name?: string | null
+          email?: string
+          id?: string
+          provider?: string
+          provider_account_id?: string | null
+          status?: string
+          tenant_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tenant_mailboxes_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
@@ -11077,6 +11804,7 @@ export type Database = {
         Returns: string
       }
       is_platform_admin: { Args: never; Returns: boolean }
+      is_school_admin: { Args: { p_school_id: string }; Returns: boolean }
       is_school_member: { Args: { p_school_id: string }; Returns: boolean }
       issue_report_cards: {
         Args: { grade_sheet_id: string; school_id: string }
@@ -11331,6 +12059,23 @@ export type Database = {
       siga_alumni_profile_completion: {
         Args: { target: Database["public"]["Tables"]["alumni_profiles"]["Row"] }
         Returns: number
+      }
+      siga_publish_assessment_rule: {
+        Args: {
+          actor: string
+          continuous_weight_value: number
+          exam_weight_value: number
+          key_subject_ids?: string[]
+          key_subjects_cause_failure?: boolean
+          lock_after_publication_value: boolean
+          maximum_absence_value: number
+          passing_grade_value: number
+          require_change_approval: boolean
+          rounding_method_value: string
+          rule_name: string
+          target_school_id: string
+        }
+        Returns: Json
       }
       submit_approved_school_enrollment: {
         Args: { p_payload: Json; p_request_id: string; p_user_id: string }

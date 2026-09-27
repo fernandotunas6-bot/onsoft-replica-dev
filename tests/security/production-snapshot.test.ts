@@ -145,26 +145,16 @@ const ANON_POLICIES_ESPERADAS = [
  * outro diário da escola — numa escola nova não havia nenhum dos dois, logo não
  * se abria o primeiro diário nem se lançavam notas.
  */
-const TABELAS_AUSENTES_DA_PRODUCAO = new Set([
-  // Caixas de correio por tenant, no Control Center: sem a tabela, o
-  // aprovisionamento de caixas institucionais não grava nem lista nada.
-  "tenant_mailboxes",
-
-  // Criadas por `20260925160000_academic_guards_risk_followup_appypay.sql`, que
-  // não está aplicada: o retrato recapturado a 2026-09-26 é idêntico ao de 25/09
-  // 11:50, logo nada correu na produção desde então. Entram aqui pela regra 8 de
-  // docs/agents/DATABASE_RULES.md e saem depois de a migração correr e o retrato
-  // ser recapturado.
-  //
-  // O que falha entretanto, para não se procurar no sítio errado: a análise de
-  // risco (`risk-followup.functions.ts`) e o gateway AppyPay
-  // (`appypay.functions.ts`, `appypay-reconcile.server.ts`,
-  // `routes/api/public/payments/appypay.tsx`) recebem o erro de tabela
-  // inexistente do PostgREST, não um ecrã vazio.
-  "student_risk_cases",
-  "student_risk_interventions",
-  "payment_gateway_charges",
-]);
+/**
+ * Tabelas que o código consulta e a produção ainda não tem.
+ *
+ * Vazia desde 2026-09-27. `tenant_mailboxes`, `student_risk_cases`,
+ * `student_risk_interventions` e `payment_gateway_charges` estavam aqui e foram
+ * aplicadas — retrato recapturado, 164 → 175 tabelas. Ficarem na lista depois de
+ * existirem é pior do que não estarem: cada entrada é uma tabela que este teste
+ * deixa de verificar, e a lista passa a ser onde uma tabela inventada se esconde.
+ */
+const TABELAS_AUSENTES_DA_PRODUCAO = new Set<string>([]);
 
 /** Tabelas consultadas pelo código — `.from("x")`, excluindo buckets de storage. */
 function tabelasUsadasPelaApp(): string[] {
