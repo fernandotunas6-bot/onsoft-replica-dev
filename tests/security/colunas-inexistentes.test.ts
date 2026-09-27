@@ -293,8 +293,9 @@ const funcoesPublicas = new Set(
  * quando o retrato a mostrar.
  */
 const FUNCOES_ESPERA_MIGRACAO = new Set<string>([
-  // `20260926200000_assessment_rule_publish_server.sql` (modelos de avaliação).
-  "siga_publish_assessment_rule",
+  // `siga_publish_assessment_rule` saiu a 2026-09-27: a migração
+  // `20260926200000_assessment_rule_publish_server.sql` foi aplicada e o retrato
+  // recapturado mostra-a em `public` e em `private`.
   // `20260927170000_shared_rate_limit.sql` (limite de tentativas partilhado).
   "siga_rate_limit_consume",
 ]);

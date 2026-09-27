@@ -180,7 +180,8 @@ describe("idempotência da liquidação de gateway", () => {
     cenario.errosNoInsert = [
       {
         code: "23505",
-        message: 'duplicate key value violates unique constraint "finance_receipts_school_external_id_key"',
+        message:
+          'duplicate key value violates unique constraint "finance_receipts_school_external_id_key"',
         details: "Key (school_id, external_id) already exists.",
       },
     ];
@@ -197,7 +198,8 @@ describe("idempotência da liquidação de gateway", () => {
     cenario.errosNoInsert = [
       {
         code: "23505",
-        message: 'duplicate key value violates unique constraint "finance_receipts_school_id_receipt_number_key"',
+        message:
+          'duplicate key value violates unique constraint "finance_receipts_school_id_receipt_number_key"',
         details: "Key (school_id, receipt_number) already exists.",
       },
       null,
@@ -212,7 +214,10 @@ describe("idempotência da liquidação de gateway", () => {
 
   it("repete sem external_id enquanto a migração não estiver aplicada", async () => {
     cenario.errosNoInsert = [
-      { code: "42703", message: 'column "external_id" of relation "finance_receipts" does not exist' },
+      {
+        code: "42703",
+        message: 'column "external_id" of relation "finance_receipts" does not exist',
+      },
       null,
     ];
 
@@ -236,7 +241,7 @@ describe("idempotência da liquidação de gateway", () => {
     cenario.fatura = { id: "inv-1", status: "open", amount: 45_000, issued_by: null };
     cenario.membroDaEscola = null;
 
-    await expect(liquidar()).rejects.toThrow(/membro activo nesta escola/i);
+    await expect(liquidar()).rejects.toThrow(/responsável nesta escola/i);
 
     const procuras = consultas.filter((c) => c.tabela === "school_memberships");
     for (const procura of procuras) {

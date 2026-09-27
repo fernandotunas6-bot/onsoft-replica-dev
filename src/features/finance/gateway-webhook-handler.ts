@@ -269,8 +269,12 @@ export async function settleGatewayPayment(
       }
       // Nunca alguém de outra escola: sem responsável nesta escola, fica para revisão.
       if (!receivedBy) {
+        // A frase "responsável nesta escola" é afirmada por
+        // `tests/finance/gateway-settlement.test.ts`. Inserir "activo" no meio dela
+        // partiu o teste sem mudar nada de útil -- a segunda frase é que acrescenta,
+        // dizendo ao operador o que fazer.
         throw new Error(
-          "Não há responsável activo nesta escola a quem atribuir o recibo do gateway. " +
+          "Não há responsável nesta escola para assinar o recibo do gateway. " +
             "Configure a tesouraria antes de activar o pagamento automático.",
         );
       }
