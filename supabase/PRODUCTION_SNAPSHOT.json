@@ -7758,6 +7758,12 @@
       "security_definer": true
     },
     {
+      "args": "p_school_id uuid, p_student_ids uuid[]",
+      "funcao": "siga_recompute_attendance_rates",
+      "schema": "public",
+      "security_definer": true
+    },
+    {
       "args": "",
       "funcao": "siga_refresh_alumni_profile_completion",
       "schema": "public",

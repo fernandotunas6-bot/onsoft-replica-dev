@@ -4,6 +4,28 @@ Ler isto **antes** de alterar código. Ecossistema (5 apps):
 [ARCHITECTURE_HARMONIZATION.md](./ARCHITECTURE_HARMONIZATION.md).
 Depois abrir o skill do módulo em `.cursor/skills/`.
 
+## Auditoria de eficiência: consultas em ciclo (2026-09-28)
+
+Há 30 ciclos no servidor com `await db.from/rpc` lá dentro (o levantamento está
+na conversa; a heurística olha para o corpo de cada `for … of`). A maioria é
+limitada: webhooks, tarefas agendadas, poucas iterações.
+
+Tratado o mais pesado, a **chamada de presença**:
+- `submitAttendanceCallBatch` fazia por aluno um upsert, a leitura do histórico e
+  a actualização da taxa, ~120 consultas em série numa turma de 40. Os upserts
+  não verificavam erro, por isso respondia "ok" com linhas recusadas.
+- Agora faz um upsert para a turma inteira (com erro verificado) e uma chamada a
+  `siga_recompute_attendance_rates` (migração `20260928230000`, **já
+  aplicada**). A função só actualiza matrículas cuja taxa mudou, o que evita
+  ruído em `audit_logs`, e deixa de estar sujeita ao limite de 1000 linhas do
+  PostgREST.
+- `editFinalizedAttendanceCall` faz o mesmo (um upsert, um insert de
+  auditoria e um recálculo).
+
+A seguir, pela mesma ordem de peso: `students/server.ts:1593` (acção em lote
+sobre alunos), `final-results.ts:275/286`, `exams.ts:579`,
+`finance/server.ts:1660`.
+
 ## Registos do Auth: Google e captcha (2026-09-28)
 
 - **Google:** a 2026-09-26 o regresso do Google falhou com `invalid_client`
