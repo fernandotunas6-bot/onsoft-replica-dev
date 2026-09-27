@@ -1,4 +1,13 @@
 import { createServerFn } from "@tanstack/react-start";
+import { z } from "zod";
+import {
+  ACADEMIC_ENTITY_TYPES,
+  AUDIT_SCOPES,
+  NOISY_ENTITY_TYPES,
+  auditChangedFields,
+  auditReason,
+  describeAuditAction,
+} from "@/features/audit/audit-view";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { publicDatabaseError } from "@/integrations/supabase/server-error";
 import {
@@ -218,9 +227,12 @@ export type SchoolSettingsBundle = Awaited<ReturnType<typeof loadSchoolSettingsB
 export type RecentAuditLog = {
   id: string;
   actor_id: string | null;
+  actor_name: string | null;
   action: string;
   entity_type: string;
+  summary: string;
   reason: string | null;
+  changed_fields: string[];
   created_at: string;
 };
 
@@ -371,36 +383,52 @@ export const updateSchoolSettings = createServerFn({ method: "POST" })
 
 export const listRecentAuditLogs = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
-  .handler(async ({ context }) => {
+  .validator((input: unknown) =>
+    z.object({ scope: z.enum(AUDIT_SCOPES).default("all") }).parse(input ?? {}),
+  )
+  .handler(async ({ data, context }): Promise<RecentAuditLog[]> => {
     const membership = await requireSgaWriterFor("gestao", context.supabase, context.userId, [
       "Administrador",
     ]);
     const db = await loadSgaAdminClient();
-    const { data, error } = await db
+    let query = db
       .from("audit_logs")
       .select("id, actor_user_id, action, entity_type, entity_id, metadata, occurred_at")
-      .eq("school_id", membership.schoolId)
-      .order("occurred_at", { ascending: false })
-      .limit(20);
+      .eq("school_id", membership.schoolId);
+    query =
+      data.scope === "academic"
+        ? query.in("entity_type", [...ACADEMIC_ENTITY_TYPES])
+        : query.not("entity_type", "in", `(${NOISY_ENTITY_TYPES.join(",")})`);
+    const { data: rows, error } = await query.order("occurred_at", { ascending: false }).limit(40);
     if (error) throw publicDatabaseError(error, "Não foi possível consultar a auditoria.");
-    return (data ?? []).map(
-      (row: {
-        id: number | string;
-        actor_user_id: string | null;
-        action: string;
-        entity_type: string;
-        entity_id: string | null;
-        metadata: unknown;
-        occurred_at: string;
-      }) => ({
-        id: String(row.id),
-        actor_id: row.actor_user_id,
-        action: row.action,
-        entity_type: row.entity_type,
-        reason: null,
-        created_at: row.occurred_at,
-      }),
-    );
+
+    // Nome de quem agiu: o cadastro da pessoa nesta escola.
+    const actorIds = [
+      ...new Set((rows ?? []).map((row) => row.actor_user_id).filter(Boolean)),
+    ] as string[];
+    const names = new Map<string, string>();
+    if (actorIds.length) {
+      const { data: people } = await db
+        .from("people")
+        .select("user_id, full_name")
+        .eq("school_id", membership.schoolId)
+        .in("user_id", actorIds);
+      for (const person of people ?? []) {
+        if (person.user_id && person.full_name) names.set(person.user_id, person.full_name);
+      }
+    }
+
+    return (rows ?? []).map((row) => ({
+      id: String(row.id),
+      actor_id: row.actor_user_id,
+      actor_name: row.actor_user_id ? (names.get(row.actor_user_id) ?? null) : null,
+      action: row.action,
+      entity_type: row.entity_type,
+      summary: describeAuditAction(row.action, row.entity_type),
+      reason: auditReason(row.metadata),
+      changed_fields: auditChangedFields(row.metadata),
+      created_at: row.occurred_at,
+    }));
   });
 
 export const updateBillingSettings = createServerFn({ method: "POST" })
