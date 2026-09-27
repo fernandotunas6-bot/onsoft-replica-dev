@@ -4,7 +4,8 @@ import { getRequestIP } from "@tanstack/react-start/server";
 import { getAppName, getAppUrl, getAuthMagicLinkUrl } from "@/lib/app-config";
 import { renderSignupConfirmationEmail } from "./email-templates/signup-confirm.html";
 import { resolveSystemSender, sendResendEmail } from "@/features/integrations/resend-client";
-import { checkRateLimit, isRateLimitBypassed, recordRateLimitAttempt } from "@/lib/rate-limit";
+import { isRateLimitBypassed } from "@/lib/rate-limit";
+import { consumeRateLimit } from "@/lib/shared-rate-limit";
 
 const SIGNUP_RATE_LIMIT = { windowMs: 60 * 60 * 1000, max: 5 };
 
@@ -43,10 +44,9 @@ export const requestSignupFn = createServerFn({ method: "POST" })
     const email = data.email.toLowerCase().trim();
     const ip = getRequestIP({ xForwardedFor: true }) ?? "unknown";
     const keys = [`signup:ip:${ip}`, `signup:email:${email}`];
-    if (!isRateLimitBypassed(...keys) && !checkRateLimit(keys, SIGNUP_RATE_LIMIT)) {
+    if (!isRateLimitBypassed(...keys) && !(await consumeRateLimit(keys, SIGNUP_RATE_LIMIT))) {
       return { handled: true, message: NEUTRAL_MESSAGE };
     }
-    recordRateLimitAttempt(keys, SIGNUP_RATE_LIMIT);
 
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data: link, error } = await supabaseAdmin.auth.admin.generateLink({

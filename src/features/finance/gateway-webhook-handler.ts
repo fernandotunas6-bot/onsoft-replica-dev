@@ -12,7 +12,8 @@ import {
   type GatewayWebhookHandlerResult,
 } from "@/features/finance/gateway-webhook-telemetry";
 import { timingSafeEqual } from "@/lib/timing-safe-equal";
-import { checkRateLimit, isRateLimitBypassed, recordRateLimitAttempt } from "@/lib/rate-limit";
+import { isRateLimitBypassed } from "@/lib/rate-limit";
+import { consumeRateLimit } from "@/lib/shared-rate-limit";
 import { reportSigaError } from "@/lib/ops-report";
 
 function mapPaymentMethodForLedger(method: string): "cash" | "bank_transfer" | "card" | "other" {
@@ -428,11 +429,10 @@ export async function runFinanceGatewayWebhook(input: GatewayConfirmInput, reque
   const rateLimitKey = `ip:${requestIp}`;
   if (
     !isRateLimitBypassed(rateLimitKey) &&
-    !checkRateLimit([rateLimitKey], GATEWAY_WEBHOOK_RATE_LIMIT)
+    !(await consumeRateLimit([rateLimitKey], GATEWAY_WEBHOOK_RATE_LIMIT))
   ) {
     return { ok: false as const, status: 429, message: "Demasiados pedidos. Tente mais tarde." };
   }
-  recordRateLimitAttempt([rateLimitKey], GATEWAY_WEBHOOK_RATE_LIMIT);
 
   const { loadSgaAdminClient } = await import("@/integrations/supabase/sga-admin");
   const db = await loadSgaAdminClient();
