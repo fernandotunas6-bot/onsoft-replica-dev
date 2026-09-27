@@ -4,6 +4,22 @@ Ler isto **antes** de alterar código. Ecossistema (5 apps):
 [ARCHITECTURE_HARMONIZATION.md](./ARCHITECTURE_HARMONIZATION.md).
 Depois abrir o skill do módulo em `.cursor/skills/`.
 
+## Escritas abertas a qualquer membro (2026-09-29)
+
+Cinco tabelas aceitavam escrita de qualquer conta da escola (aluno e
+encarregado incluídos), porque a política era só `school_id =
+current_school_id()`: `school_branding`, `mailboxes`, `school_email_routes`
+(ALL) e `finance_invoice_events`, `student_status_events` (INSERT). Migração
+`20260929150000` (aplicada): as duas de e-mail só o servidor; a marca mantém a
+leitura pública; os históricos mantêm a leitura da Tesouraria/Secretaria. Estavam
+vazias. O teste `tests/security/write-policies-need-role.test.ts` lê o retrato e
+recusa qualquer política de escrita sem verificação de papel, permissão ou dono.
+
+Visto e deixado: as políticas de RH que comparam `current_profile_role()` com
+"Administrador" nunca batem certo (a função devolve o código, `owner`), por isso
+fecham por omissão — o RH escreve pelo servidor. `profiles.cargo` não é editável
+pelo cliente.
+
 ## Auditoria de eficiência: consultas em ciclo (2026-09-28)
 
 Há 30 ciclos no servidor com `await db.from/rpc` lá dentro (o levantamento está

@@ -3,7 +3,7 @@
   "resumo": {
     "com_rls": 179,
     "funcoes_private": 97,
-    "politicas": 290,
+    "politicas": 285,
     "tabelas": 179,
     "triggers": 187
   },
@@ -1058,7 +1058,7 @@
       "tabela": "finance_gateway_webhook_events"
     },
     {
-      "anon_select": true,
+      "anon_select": false,
       "auth_select": true,
       "colunas": [
         "id",
@@ -1070,7 +1070,7 @@
         "changed_by",
         "created_at"
       ],
-      "politicas": 2,
+      "politicas": 1,
       "rls": true,
       "rls_forcada": true,
       "tabela": "finance_invoice_events"
@@ -2259,8 +2259,8 @@
       "tabela": "issued_documents"
     },
     {
-      "anon_select": true,
-      "auth_select": true,
+      "anon_select": false,
+      "auth_select": false,
       "colunas": [
         "id",
         "school_id",
@@ -2273,9 +2273,9 @@
         "created_at",
         "updated_at"
       ],
-      "politicas": 1,
+      "politicas": 0,
       "rls": true,
-      "rls_forcada": false,
+      "rls_forcada": true,
       "tabela": "mailboxes"
     },
     {
@@ -2764,14 +2764,14 @@
         "created_at",
         "updated_at"
       ],
-      "politicas": 2,
+      "politicas": 1,
       "rls": true,
       "rls_forcada": false,
       "tabela": "school_branding"
     },
     {
-      "anon_select": true,
-      "auth_select": true,
+      "anon_select": false,
+      "auth_select": false,
       "colunas": [
         "id",
         "school_id",
@@ -2784,9 +2784,9 @@
         "updated_at",
         "cloudflare_route_id"
       ],
-      "politicas": 1,
+      "politicas": 0,
       "rls": true,
-      "rls_forcada": false,
+      "rls_forcada": true,
       "tabela": "school_email_routes"
     },
     {
@@ -3696,7 +3696,7 @@
       "tabela": "student_risk_interventions"
     },
     {
-      "anon_select": true,
+      "anon_select": false,
       "auth_select": true,
       "colunas": [
         "id",
@@ -3708,7 +3708,7 @@
         "changed_by",
         "created_at"
       ],
-      "politicas": 2,
+      "politicas": 1,
       "rls": true,
       "rls_forcada": true,
       "tabela": "student_status_events"
@@ -4693,14 +4693,6 @@
       "verificando": ""
     },
     {
-      "cmd": "INSERT",
-      "papeis": "{authenticated}",
-      "politica": "Write own school invoice events",
-      "tabela": "finance_invoice_events",
-      "usando": "",
-      "verificando": "(school_id = ( SELECT current_school_id() AS current_school_id))"
-    },
-    {
       "cmd": "SELECT",
       "papeis": "{authenticated}",
       "politica": "finance_invoices_select_authorized",
@@ -5341,14 +5333,6 @@
       "verificando": "(private.is_aal2() AND private.has_permission(school_id, 'documents.issued.revoke'::text))"
     },
     {
-      "cmd": "ALL",
-      "papeis": "{authenticated}",
-      "politica": "platform_admin_all_mailboxes",
-      "tabela": "mailboxes",
-      "usando": "((school_id = ( SELECT current_school_id() AS current_school_id)) OR is_platform_admin())",
-      "verificando": "((school_id = ( SELECT current_school_id() AS current_school_id)) OR is_platform_admin())"
-    },
-    {
       "cmd": "SELECT",
       "papeis": "{authenticated}",
       "politica": "Read member_roles in own school",
@@ -5709,28 +5693,12 @@
       "verificando": "((school_id = ( SELECT current_school_id() AS current_school_id)) AND (( SELECT current_profile_role() AS current_profile_role) = ANY (ARRAY['Administrador'::text, 'Tesouraria'::text])))"
     },
     {
-      "cmd": "ALL",
-      "papeis": "{authenticated}",
-      "politica": "school_admin_manage_branding",
-      "tabela": "school_branding",
-      "usando": "((school_id = ( SELECT current_school_id() AS current_school_id)) OR is_platform_admin())",
-      "verificando": "((school_id = ( SELECT current_school_id() AS current_school_id)) OR is_platform_admin())"
-    },
-    {
       "cmd": "SELECT",
       "papeis": "{anon,authenticated}",
       "politica": "school_members_view_branding",
       "tabela": "school_branding",
       "usando": "true",
       "verificando": ""
-    },
-    {
-      "cmd": "ALL",
-      "papeis": "{authenticated}",
-      "politica": "platform_admin_all_email_routes",
-      "tabela": "school_email_routes",
-      "usando": "((school_id = ( SELECT current_school_id() AS current_school_id)) OR is_platform_admin())",
-      "verificando": "((school_id = ( SELECT current_school_id() AS current_school_id)) OR is_platform_admin())"
     },
     {
       "cmd": "SELECT",
@@ -6131,14 +6099,6 @@
       "tabela": "student_status_events",
       "usando": "((school_id = ( SELECT current_school_id() AS current_school_id)) AND is_school_office(school_id))",
       "verificando": ""
-    },
-    {
-      "cmd": "INSERT",
-      "papeis": "{authenticated}",
-      "politica": "Write own school student status events",
-      "tabela": "student_status_events",
-      "usando": "",
-      "verificando": "(school_id = ( SELECT current_school_id() AS current_school_id))"
     },
     {
       "cmd": "SELECT",
