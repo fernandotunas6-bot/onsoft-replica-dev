@@ -62,3 +62,15 @@ describe("pauta: pré-pauta obrigatória", () => {
     expect(source).toMatch(/from\("grade_sheet_rows"\)[\s\S]{0,120}\.select\("created_at"\)/);
   });
 });
+
+describe("pedidos de acesso: a escola é avisada", () => {
+  const source = read("src/features/access/requests-server.ts");
+
+  it("submeter avisa no portal a Administração e a Secretaria, além do e-mail", () => {
+    const fn = body(source, "submitAccessRequest");
+    expect(fn).toMatch(/notifyReviewers\(db, data\.schoolId/);
+    expect(source).toMatch(
+      /REVIEWER_ROLE_CODES = \["owner", "admin", "administrador", "secretary", "secretaria"\]/,
+    );
+  });
+});

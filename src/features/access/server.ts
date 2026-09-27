@@ -79,13 +79,18 @@ export async function otherSchoolAccess(
 
   let adminAnywhere = false;
   if (rows.length) {
-    const { data: roleRows } = await admin
+    // `member_roles` tem duas chaves para `roles`: sem indicar qual, o
+    // PostgREST recusa o embed (PGRST201) e, com o erro ignorado, a conta
+    // passava por não-administrador — a protecção ficava desligada.
+    const { data: roleRows, error: roleError } = await admin
       .from("member_roles")
-      .select("roles(code)")
+      .select("roles!member_roles_role_id_fkey(code)")
       .in(
         "membership_id",
         rows.map((m) => m.id),
       );
+    // Sem conseguir ler os papéis, recusa-se (como se fosse administrador).
+    if (roleError) return { hasOtherActiveSchools: otherActive.length > 0, adminAnywhere: true };
     adminAnywhere = ((roleRows ?? []) as Array<{ roles?: { code?: string } | null }>).some((r) =>
       isAdministratorRole(String(r.roles?.code ?? "")),
     );
@@ -558,10 +563,13 @@ export const resendSystemInvite = createServerFn({ method: "POST" })
       throw new Error("Esta conta também dá acesso a outra escola. Use Enviar E-mail.");
     }
     if (!isAdministrator) {
-      const { data: targetRoles } = await admin
+      const { data: targetRoles, error: targetRolesError } = await admin
         .from("member_roles")
-        .select("roles(code)")
+        .select("roles!member_roles_role_id_fkey(code)")
         .eq("membership_id", membership.id);
+      if (targetRolesError) {
+        throw new Error("Não foi possível confirmar o perfil desta conta. Use Enviar E-mail.");
+      }
       const staffCodes = [
         ...mapAppRoleToSgaCodes("Secretaria"),
         ...mapAppRoleToSgaCodes("Tesouraria"),

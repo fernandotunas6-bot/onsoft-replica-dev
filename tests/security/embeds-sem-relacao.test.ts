@@ -29,6 +29,9 @@ const tabelas = new Set(retrato.tabelas.map((t) => t.tabela));
 const relacoes = retrato.relacoes ?? [];
 const ligadas = new Set(relacoes.flatMap((r) => [`${r.de}>${r.para}`, `${r.para}>${r.de}`]));
 const chaves = new Map(relacoes.map((r) => [r.chave, r]));
+/** Quantas chaves estrangeiras ligam o par, nos dois sentidos. */
+const chavesEntre = (a: string, b: string) =>
+  relacoes.filter((r) => (r.de === a && r.para === b) || (r.de === b && r.para === a)).length;
 
 type Embed = { nome: string; dica: string | null; filhos: Embed[] };
 
@@ -99,6 +102,12 @@ function semRelacao(tabela: string, embeds: Embed[], ficheiro: string): string[]
       if (!certa) erros.push(`${ficheiro}: ${tabela} → ${e.nome}!${dica} (chave de outro par)`);
     } else if (!dica && tabelas.has(tabela) && !ligadas.has(`${tabela}>${e.nome}`)) {
       erros.push(`${ficheiro}: ${tabela} → ${e.nome}`);
+    } else if (!dica && tabelas.has(tabela) && chavesEntre(tabela, e.nome) > 1) {
+      // Mais de uma chave entre as duas tabelas: o PostgREST recusa o embed
+      // (PGRST201) sem `tabela!nome_da_chave(...)`.
+      erros.push(
+        `${ficheiro}: ${tabela} → ${e.nome} (ambíguo: ${chavesEntre(tabela, e.nome)} chaves)`,
+      );
     }
     erros.push(...semRelacao(e.nome, e.filhos, ficheiro));
   }

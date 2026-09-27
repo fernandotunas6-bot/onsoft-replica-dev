@@ -164,6 +164,77 @@ async function notifyByEmail(input: {
   }
 }
 
+/** Papéis que revêem pedidos de acesso (os mesmos de `is_school_office`). */
+const REVIEWER_ROLE_CODES = ["owner", "admin", "administrador", "secretary", "secretaria"];
+
+/**
+ * Avisa no portal (sino de notificações) quem revê pedidos na escola. Antes
+ * só havia e-mail, e só com RESEND_API_KEY e e-mail na ficha da escola: sem
+ * isso ninguém sabia que havia pedidos à espera. Falha em silêncio registado —
+ * o pedido já está gravado e aparece em Acessos na mesma.
+ */
+async function notifyReviewers(
+  db: Db,
+  schoolId: string,
+  input: { title: string; body: string; requestId: string },
+): Promise<number> {
+  try {
+    // Três leituras simples: entre member_roles e roles/school_memberships há
+    // duas chaves estrangeiras cada, e um embed seria ambíguo (PGRST201).
+    const { data: memberships, error } = await db
+      .from("school_memberships")
+      .select("id, user_id")
+      .eq("school_id", schoolId)
+      .eq("status", "active");
+    if (error) throw error;
+    const userByMembership = new Map(
+      ((memberships ?? []) as Array<{ id: string; user_id: string | null }>)
+        .filter((m) => m.user_id)
+        .map((m) => [m.id, m.user_id as string]),
+    );
+    if (!userByMembership.size) return 0;
+    const { data: memberRoles, error: mrError } = await db
+      .from("member_roles")
+      .select("membership_id, role_id")
+      .eq("school_id", schoolId)
+      .in("membership_id", [...userByMembership.keys()]);
+    if (mrError) throw mrError;
+    const roleIds = [
+      ...new Set(((memberRoles ?? []) as Array<{ role_id: string }>).map((r) => r.role_id)),
+    ];
+    const { data: roles, error: rolesError } = roleIds.length
+      ? await db.from("roles").select("id, code").in("id", roleIds)
+      : { data: [], error: null };
+    if (rolesError) throw rolesError;
+    const reviewerRoleIds = new Set(
+      ((roles ?? []) as Array<{ id: string; code: string | null }>)
+        .filter((r) => REVIEWER_ROLE_CODES.includes((r.code ?? "").toLowerCase()))
+        .map((r) => r.id),
+    );
+    const userIds = new Set<string>();
+    for (const mr of (memberRoles ?? []) as Array<{ membership_id: string; role_id: string }>) {
+      const userId = userByMembership.get(mr.membership_id);
+      if (userId && reviewerRoleIds.has(mr.role_id)) userIds.add(userId);
+    }
+    if (!userIds.size) return 0;
+    const { insertInAppNotifications } = await import("@/features/academic/lesson-delivery");
+    return await insertInAppNotifications(
+      db,
+      schoolId,
+      [...userIds].map((userId) => ({
+        userId,
+        eventType: "access_request.submitted",
+        title: input.title,
+        body: input.body,
+        payload: { requestId: input.requestId, href: "/acessos" },
+      })),
+    );
+  } catch (error) {
+    console.error("[access-requests] in-app notify failed:", error);
+    return 0;
+  }
+}
+
 function escapeHtml(value: string) {
   return value
     .replace(/&/g, "&amp;")
@@ -553,6 +624,12 @@ export const submitAccessRequest = createServerFn({ method: "POST" })
       action: "access_request.submitted",
       requestId: inserted.id,
       metadata: { profile: data.profile, matched: Boolean(match), match_kind: match?.kind ?? null },
+    });
+
+    await notifyReviewers(db, data.schoolId, {
+      requestId: String(inserted.id),
+      title: `Novo pedido de acesso — ${accessRequestProfileLabels[data.profile]}`,
+      body: `${data.fullName} pede acesso como ${accessRequestProfileLabels[data.profile].toLowerCase()}. Verifique a identidade e decida em Acessos → Solicitações.`,
     });
 
     await notifyByEmail({
