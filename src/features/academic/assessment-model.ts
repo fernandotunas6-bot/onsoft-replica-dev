@@ -18,6 +18,67 @@ export const ROUNDING_LABELS: Record<RoundingMethod, string> = {
   none: "Sem arredondamento",
 };
 
+/**
+ * Opções de cálculo que o director escolhe no modelo (guardadas em
+ * `formula.calculation`). As omissões são o comportamento do Decreto 424/25.
+ */
+export const NPP_MODES = ["in_mac", "in_continuous"] as const;
+export type NppMode = (typeof NPP_MODES)[number];
+export const NPP_MODE_LABELS: Record<NppMode, string> = {
+  in_mac: "Já incluída no MAC (não conta à parte)",
+  in_continuous: "Conta na parte contínua, com o MAC",
+};
+
+export const RECOVERY_METHODS = ["average", "replace", "max"] as const;
+export type RecoveryMethod = (typeof RECOVERY_METHODS)[number];
+export const RECOVERY_METHOD_LABELS: Record<RecoveryMethod, string> = {
+  average: "Média entre a nota anterior e a de recurso",
+  replace: "A nota de recurso substitui a anterior",
+  max: "Fica a maior das duas",
+};
+
+export type CalculationOptions = { nppMode: NppMode; recoveryMethod: RecoveryMethod };
+
+export const DEFAULT_CALCULATION_OPTIONS: CalculationOptions = {
+  nppMode: "in_mac",
+  recoveryMethod: "average",
+};
+
+export function parseCalculationOptions(formula: unknown): CalculationOptions {
+  const calc =
+    formula && typeof formula === "object"
+      ? ((formula as Record<string, unknown>)["calculation"] as Record<string, unknown> | undefined)
+      : undefined;
+  const npp = calc?.["nppMode"];
+  const recovery = calc?.["recoveryMethod"];
+  return {
+    nppMode: (NPP_MODES as readonly unknown[]).includes(npp)
+      ? (npp as NppMode)
+      : DEFAULT_CALCULATION_OPTIONS.nppMode,
+    recoveryMethod: (RECOVERY_METHODS as readonly unknown[]).includes(recovery)
+      ? (recovery as RecoveryMethod)
+      : DEFAULT_CALCULATION_OPTIONS.recoveryMethod,
+  };
+}
+
+/** Parte contínua do período: o MAC, ou a média de MAC e NPP se o modelo o pedir. */
+export function continuousComponent(mac: number, npp: number | null, mode: NppMode) {
+  return mode === "in_continuous" && npp != null ? (mac + npp) / 2 : mac;
+}
+
+/** Nota depois do recurso, pelo método do modelo. */
+export function recoveryResult(
+  original: number | null,
+  recovery: number | null,
+  method: RecoveryMethod,
+) {
+  if (original == null) return recovery;
+  if (recovery == null) return original;
+  if (method === "replace") return recovery;
+  if (method === "max") return Math.max(original, recovery);
+  return (original + recovery) / 2;
+}
+
 /* ── Regras de transição por ciclo ─────────────────────────────────────── */
 
 export const PROMOTION_CYCLES = ["primario", "i_ciclo", "ii_ciclo", "tecnico"] as const;
@@ -121,6 +182,7 @@ export type AssessmentRuleDraft = {
   keySubjectIds: string[];
   keySubjectsCauseFailure: boolean;
   promotionRules: PromotionRules;
+  calculation: CalculationOptions;
 };
 
 export type AssessmentRuleVersion = AssessmentRuleDraft & {
@@ -143,6 +205,7 @@ export const DECREE_424_25_MODEL: Omit<AssessmentRuleDraft, "maximumAbsencePerce
   keySubjectIds: [],
   keySubjectsCauseFailure: true,
   promotionRules: DEFAULT_PROMOTION_RULES,
+  calculation: DEFAULT_CALCULATION_OPTIONS,
 };
 
 export function draftFromRule(rule: AssessmentRuleVersion | null): AssessmentRuleDraft {
@@ -155,6 +218,7 @@ export function draftFromRule(rule: AssessmentRuleVersion | null): AssessmentRul
       ...DECREE_424_25_MODEL,
       maximumAbsencePercentage: null,
       promotionRules: copyRules(DEFAULT_PROMOTION_RULES),
+      calculation: { ...DEFAULT_CALCULATION_OPTIONS },
     };
   }
   const { id: _id, version: _v, status: _s, createdAt: _c, createdByName: _n, ...draft } = rule;
@@ -162,6 +226,7 @@ export function draftFromRule(rule: AssessmentRuleVersion | null): AssessmentRul
     ...draft,
     keySubjectIds: [...draft.keySubjectIds],
     promotionRules: copyRules(draft.promotionRules ?? DEFAULT_PROMOTION_RULES),
+    calculation: { ...(draft.calculation ?? DEFAULT_CALCULATION_OPTIONS) },
   };
 }
 
@@ -259,9 +324,15 @@ export function termAverageByRule(
   return roundGrade(raw, rule.roundingMethod, decimalPlaces);
 }
 
-export function formulaText(rule: Pick<AssessmentRuleDraft, "continuousWeight" | "examWeight">) {
-  if (rule.continuousWeight === 50 && rule.examWeight === 50) return "MT = (MAC + NPT) ÷ 2";
-  return `MT = MAC × ${rule.continuousWeight}% + NPT × ${rule.examWeight}%`;
+export function formulaText(
+  rule: Pick<AssessmentRuleDraft, "continuousWeight" | "examWeight"> & {
+    calculation?: CalculationOptions;
+  },
+) {
+  const continuous = rule.calculation?.nppMode === "in_continuous" ? "(MAC + NPP) ÷ 2" : "MAC";
+  const wrapped = continuous === "MAC" ? "MAC" : `[${continuous}]`;
+  if (rule.continuousWeight === 50 && rule.examWeight === 50) return `MT = (${wrapped} + NPT) ÷ 2`;
+  return `MT = ${wrapped} × ${rule.continuousWeight}% + NPT × ${rule.examWeight}%`;
 }
 
 export type RuleChange = { label: string; from: string; to: string };
@@ -302,6 +373,16 @@ export function ruleChanges(
       "Negativa em disciplina-chave reprova",
       yesNo(current.keySubjectsCauseFailure),
       yesNo(next.keySubjectsCauseFailure),
+    ],
+    [
+      "NPP",
+      NPP_MODE_LABELS[(current.calculation ?? DEFAULT_CALCULATION_OPTIONS).nppMode],
+      NPP_MODE_LABELS[(next.calculation ?? DEFAULT_CALCULATION_OPTIONS).nppMode],
+    ],
+    [
+      "Recurso",
+      RECOVERY_METHOD_LABELS[(current.calculation ?? DEFAULT_CALCULATION_OPTIONS).recoveryMethod],
+      RECOVERY_METHOD_LABELS[(next.calculation ?? DEFAULT_CALCULATION_OPTIONS).recoveryMethod],
     ],
   ];
   for (const cycle of PROMOTION_CYCLES) {

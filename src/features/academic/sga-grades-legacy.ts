@@ -1,6 +1,11 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { publicDatabaseError } from "@/integrations/supabase/server-error";
 import { calculateTrimesterAverage } from "@/lib/angola-academic";
+import {
+  DEFAULT_CALCULATION_OPTIONS,
+  parseCalculationOptions,
+  type NppMode,
+} from "./assessment-model";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any -- remote SGA schema has no generated types
 type Db = SupabaseClient<any>;
@@ -21,6 +26,31 @@ export const PAUTA_COMPONENT_KINDS: Record<ComponentCode, string> = {
   NPP: "informative",
   NPT: "term_exam",
 };
+
+/** Os tipos para a opção de NPP do modelo ("conta na parte contínua" → `continuous`). */
+export function pautaComponentKinds(nppMode: NppMode): Record<ComponentCode, string> {
+  return nppMode === "in_continuous"
+    ? { ...PAUTA_COMPONENT_KINDS, NPP: "continuous" }
+    : PAUTA_COMPONENT_KINDS;
+}
+
+/** Opção de NPP do modelo a que o diário pertence. */
+async function gradebookNppMode(db: Db, schoolId: string, gradebookId: string): Promise<NppMode> {
+  const { data: book } = await db
+    .from("gradebooks")
+    .select("rule_set_id")
+    .eq("school_id", schoolId)
+    .eq("id", gradebookId)
+    .maybeSingle();
+  if (!book?.rule_set_id) return DEFAULT_CALCULATION_OPTIONS.nppMode;
+  const { data: rule } = await db
+    .from("assessment_rule_sets")
+    .select("formula")
+    .eq("school_id", schoolId)
+    .eq("id", book.rule_set_id)
+    .maybeSingle();
+  return parseCalculationOptions(rule?.formula).nppMode;
+}
 
 async function ensureTerm(db: Db, schoolId: string, academicYearId: string, term: number) {
   const { data: existing, error } = await db
@@ -208,9 +238,10 @@ async function ensureComponentItems(db: Db, schoolId: string, gradebookId: strin
     ]),
   );
 
+  const kinds = pautaComponentKinds(await gradebookNppMode(db, schoolId, gradebookId));
   const ids = {} as Record<ComponentCode, string>;
   for (const [index, code] of COMPONENT_CODES.entries()) {
-    const kind = PAUTA_COMPONENT_KINDS[code];
+    const kind = kinds[code];
     const current = byCode.get(code);
     if (current) {
       ids[code] = current.id;

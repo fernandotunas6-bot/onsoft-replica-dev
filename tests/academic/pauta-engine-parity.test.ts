@@ -2,9 +2,17 @@ import { describe, expect, it, vi } from "vitest";
 
 vi.mock("@/integrations/supabase/server-error", () => ({ publicDatabaseError: (e: unknown) => e }));
 
-const { PAUTA_COMPONENT_KINDS } = await import("@/features/academic/sga-grades-legacy");
+const { PAUTA_COMPONENT_KINDS, pautaComponentKinds } =
+  await import("@/features/academic/sga-grades-legacy");
 const { calculateTrimesterAverage, parsePautaScore } = await import("@/lib/angola-academic");
-const { termAverageByRule } = await import("@/features/academic/assessment-model");
+const {
+  termAverageByRule,
+  continuousComponent,
+  recoveryResult,
+  parseCalculationOptions,
+  formulaText,
+  DEFAULT_CALCULATION_OPTIONS,
+} = await import("@/features/academic/assessment-model");
 
 // Réplica de private.compute_subject_averages: cada item entra na média do
 // seu grupo pelo `kind`; o que não está em nenhum grupo não conta.
@@ -14,10 +22,11 @@ const EXAM = ["term_exam", "exam", "resit"];
 function officialEngine(
   scores: Record<"MAC" | "NPP" | "NPT", number>,
   weights = { continuous: 50, exam: 50 },
+  kinds: Record<string, string> = PAUTA_COMPONENT_KINDS,
 ) {
-  const avg = (kinds: string[]) => {
+  const avg = (bucket: string[]) => {
     const values = (Object.keys(scores) as Array<keyof typeof scores>)
-      .filter((code) => kinds.includes(PAUTA_COMPONENT_KINDS[code]))
+      .filter((code) => bucket.includes(kinds[code]!))
       .map((code) => scores[code]);
     return values.length ? values.reduce((a, b) => a + b, 0) / values.length : null;
   };
@@ -74,5 +83,50 @@ describe("escala das notas", () => {
     expect(parsePautaScore("75", { minimum: 0, maximum: 100 })).toBe(75);
     expect(parsePautaScore("4", { minimum: 5, maximum: 20 })).toBeNaN();
     expect(parsePautaScore("")).toBeNull();
+  });
+});
+
+describe("opções do director no modelo", () => {
+  it("sem opções guardadas fica o Decreto 424/25", () => {
+    expect(parseCalculationOptions({})).toEqual(DEFAULT_CALCULATION_OPTIONS);
+    expect(parseCalculationOptions({ calculation: { nppMode: "x", recoveryMethod: 3 } })).toEqual(
+      DEFAULT_CALCULATION_OPTIONS,
+    );
+    expect(
+      parseCalculationOptions({ calculation: { nppMode: "in_continuous", recoveryMethod: "max" } }),
+    ).toEqual({ nppMode: "in_continuous", recoveryMethod: "max" });
+  });
+
+  it.each([
+    { MAC: 14, NPP: 10, NPT: 13 },
+    { MAC: 12, NPP: 18, NPT: 9 },
+  ])("NPP na parte contínua: o ecrã e o motor oficial dão o mesmo (%o)", (scores) => {
+    const rule = { continuousWeight: 50, examWeight: 50, roundingMethod: "nearest" as const };
+    const screen = termAverageByRule(
+      continuousComponent(scores.MAC, scores.NPP, "in_continuous"),
+      scores.NPT,
+      rule,
+      1,
+    );
+    expect(screen).toBe(officialEngine(scores, undefined, pautaComponentKinds("in_continuous")));
+  });
+
+  it("o recurso segue o método escolhido", () => {
+    expect(recoveryResult(8, 12, "average")).toBe(10);
+    expect(recoveryResult(8, 12, "replace")).toBe(12);
+    expect(recoveryResult(14, 12, "max")).toBe(14);
+    expect(recoveryResult(null, 12, "average")).toBe(12);
+    expect(recoveryResult(9, null, "replace")).toBe(9);
+  });
+
+  it("a fórmula mostrada inclui a NPP quando ela conta", () => {
+    const rule = { continuousWeight: 50, examWeight: 50 };
+    expect(formulaText(rule)).toBe("MT = (MAC + NPT) ÷ 2");
+    expect(
+      formulaText({
+        ...rule,
+        calculation: { nppMode: "in_continuous", recoveryMethod: "average" },
+      }),
+    ).toBe("MT = ([(MAC + NPP) ÷ 2] + NPT) ÷ 2");
   });
 });

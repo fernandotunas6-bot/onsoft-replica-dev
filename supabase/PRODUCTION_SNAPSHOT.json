@@ -6894,7 +6894,7 @@
       "security_definer": true
     },
     {
-      "args": "target_school_id uuid, actor uuid, rule_name text, continuous_weight_value numeric, exam_weight_value numeric, passing_grade_value numeric, maximum_absence_value numeric, rounding_method_value text, require_change_approval boolean, lock_after_publication_value boolean, key_subject_ids uuid[], key_subjects_cause_failure boolean, promotion_rules jsonb",
+      "args": "target_school_id uuid, actor uuid, rule_name text, continuous_weight_value numeric, exam_weight_value numeric, passing_grade_value numeric, maximum_absence_value numeric, rounding_method_value text, require_change_approval boolean, lock_after_publication_value boolean, key_subject_ids uuid[], key_subjects_cause_failure boolean, promotion_rules jsonb, calculation_options jsonb",
       "funcao": "siga_publish_assessment_rule",
       "schema": "private",
       "security_definer": true
@@ -7746,7 +7746,7 @@
       "security_definer": false
     },
     {
-      "args": "target_school_id uuid, actor uuid, rule_name text, continuous_weight_value numeric, exam_weight_value numeric, passing_grade_value numeric, maximum_absence_value numeric, rounding_method_value text, require_change_approval boolean, lock_after_publication_value boolean, key_subject_ids uuid[], key_subjects_cause_failure boolean, promotion_rules jsonb",
+      "args": "target_school_id uuid, actor uuid, rule_name text, continuous_weight_value numeric, exam_weight_value numeric, passing_grade_value numeric, maximum_absence_value numeric, rounding_method_value text, require_change_approval boolean, lock_after_publication_value boolean, key_subject_ids uuid[], key_subjects_cause_failure boolean, promotion_rules jsonb, calculation_options jsonb",
       "funcao": "siga_publish_assessment_rule",
       "schema": "public",
       "security_definer": false

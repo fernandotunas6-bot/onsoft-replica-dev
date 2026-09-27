@@ -18,6 +18,10 @@ import {
 } from "@/integrations/supabase/sga-admin";
 import {
   DEFAULT_PROMOTION_RULES,
+  NPP_MODES,
+  RECOVERY_METHODS,
+  parseCalculationOptions,
+  type CalculationOptions,
   parsePromotionRules,
   type PromotionRules,
   ROUNDING_METHODS,
@@ -41,6 +45,7 @@ export type ActiveAssessmentEngine = {
   examWeight: number;
   roundingMethod: RoundingMethod;
   scale: AssessmentScale;
+  calculation: CalculationOptions;
 };
 
 export type AssessmentModelsData = {
@@ -154,6 +159,7 @@ export const getAssessmentModels = createServerFn({ method: "GET" })
         keySubjectIds: keysByRule.get(str(r.id)) ?? [],
         keySubjectsCauseFailure: formula.keySubjectsCauseFailure !== false,
         promotionRules: parsePromotionRules(formula),
+        calculation: parseCalculationOptions(formula),
         createdAt: str(r.created_at),
         createdByName: names.get(str(r.created_by)) ?? null,
       };
@@ -194,6 +200,10 @@ const publishInput = z.object({
     i_ciclo: promotionCycleSchema,
     ii_ciclo: promotionCycleSchema,
     tecnico: promotionCycleSchema,
+  }),
+  calculation: z.object({
+    nppMode: z.enum(NPP_MODES),
+    recoveryMethod: z.enum(RECOVERY_METHODS),
   }),
 });
 
@@ -248,6 +258,7 @@ export const publishAssessmentModel = createServerFn({ method: "POST" })
         key_subject_ids: keySubjectIds,
         key_subjects_cause_failure: data.keySubjectsCauseFailure,
         promotion_rules: data.promotionRules,
+        calculation_options: data.calculation,
       } as never,
     );
     if (error) {
@@ -257,6 +268,26 @@ export const publishAssessmentModel = createServerFn({ method: "POST" })
         );
       }
       throw publicDatabaseError(error, "Não foi possível publicar o modelo de avaliação.");
+    }
+    // O motor da pauta conta a NPP pelo tipo do item: alinhar os diários ainda
+    // abertos com a opção agora publicada (os fechados ficam como foram
+    // calculados).
+    const { data: openBooks } = await db
+      .from("gradebooks")
+      .select("id")
+      .eq("school_id", membership.schoolId)
+      .neq("status", "closed");
+    const bookIds = (openBooks ?? []).map((b) => str(b.id));
+    if (bookIds.length) {
+      const { error: kindError } = await db
+        .from("grade_items")
+        .update({
+          kind: data.calculation.nppMode === "in_continuous" ? "continuous" : "informative",
+        })
+        .eq("school_id", membership.schoolId)
+        .eq("code", "NPP")
+        .in("gradebook_id", bookIds);
+      if (kindError) console.warn("[assessment-models] NPP kind:", kindError.message);
     }
     return result as { ruleSetId: string; version: number };
   });
@@ -314,6 +345,7 @@ export const getActivePassingValue = createServerFn({ method: "GET" })
                 decimalPlaces: num(scaleRow.decimal_places),
               }
             : { minimum: 0, maximum: 20, decimalPlaces: 1 },
+          calculation: parseCalculationOptions(data.formula),
         };
       }
       return {

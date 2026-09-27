@@ -65,3 +65,20 @@ Stack: a especificação fala em Next.js e Python. O SIGA é TanStack Start com
 Supabase (Postgres), e a especificação aplica-se igual. As regras vivem em
 tabelas de configuração e em funções da base (`private.*`), não no código da
 aplicação.
+
+## Opções do director no modelo (2026-09-29)
+
+Em Pedagógica → Modelos de avaliação, o Administrador (com 2FA) escolhe, além
+dos pesos, da aprovação e do arredondamento:
+
+- **NPP:** "já incluída no MAC" (Decreto 424/25, omissão) ou "conta na parte
+  contínua, com o MAC". O motor oficial conta a NPP pelo tipo do item
+  (`informative` ou `continuous`, em `pautaComponentKinds`). Ao publicar, os
+  diários ainda abertos passam para a opção nova; os fechados ficam como foram
+  calculados.
+- **Recurso:** média entre a nota anterior e a de recurso (omissão), a de
+  recurso substitui, ou fica a maior.
+
+As opções ficam em `assessment_rule_sets.formula.calculation`, com a migração
+`20260929110000` (parâmetro opcional `calculation_options`, já aplicada). Os
+testes de paridade cobrem os dois modos da NPP.

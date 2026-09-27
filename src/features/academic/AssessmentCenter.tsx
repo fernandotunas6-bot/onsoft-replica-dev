@@ -22,7 +22,11 @@ import { ListFilterBar } from "@/components/filters/ListFilterBar";
 import { QuickModal } from "@/components/ui/modal-system";
 import { confirmDiscardChanges } from "@/components/ui/modal-system/confirm-close";
 import { AssessmentGrid, type GridColumn } from "@/features/academic/AssessmentGrid";
-import { termAverageByRule } from "@/features/academic/assessment-model";
+import {
+  continuousComponent,
+  recoveryResult,
+  termAverageByRule,
+} from "@/features/academic/assessment-model";
 import { useActiveAssessmentRule } from "@/features/academic/use-passing-value";
 import { ClassCourseTable, StudentDossierTable } from "@/features/academic/AssessmentViewTables";
 import { CreateAssessmentDialog } from "@/features/academic/CreateAssessmentDialog";
@@ -216,6 +220,10 @@ export function AssessmentCenter({
   // 424/25 e a escala 0–20.
   const { engine } = useActiveAssessmentRule();
   const parseScore = (value: string) => parsePautaScore(value, engine?.scale);
+  const afterRecovery = (original: number | null, recovery: number | null) =>
+    engine
+      ? recoveryResult(original, recovery, engine.calculation.recoveryMethod)
+      : recursoFinal(original, recovery);
   const { selectedTerm: globalTerm, terms: academicTerms, setSelectedTermId } = useSchoolSettings();
   const installed = useInstalledIntegrations();
   const turnitinOn = installed.hasCapability("turnitin.originality");
@@ -495,7 +503,12 @@ export function AssessmentCenter({
       const average =
         mac != null && npp != null && npt != null
           ? engine
-            ? termAverageByRule(mac, npt, engine, engine.scale.decimalPlaces)
+            ? termAverageByRule(
+                continuousComponent(mac, npp, engine.calculation.nppMode),
+                npt,
+                engine,
+                engine.scale.decimalPlaces,
+              )
             : scoreAverage(mac, npp, npt)
           : null;
       const recurso = annualAverage(
@@ -508,7 +521,7 @@ export function AssessmentCenter({
           (value): value is number => value != null && !Number.isNaN(value),
         ),
       );
-      const finalScore = exame ?? recursoFinal(average, recurso);
+      const finalScore = exame ?? afterRecovery(average, recurso);
       const situacao =
         finalScore == null
           ? { label: "Pendente", tone: "muted" as const }
@@ -1593,7 +1606,7 @@ export function AssessmentCenter({
                       <td className="px-3 py-2 text-right">{formatScore(row.average)}</td>
                       <td className="px-3 py-2 text-right">{formatScore(row.recurso)}</td>
                       <td className="px-3 py-2 text-right font-bold">
-                        {formatScore(recursoFinal(row.average, row.recurso))}
+                        {formatScore(afterRecovery(row.average, row.recurso))}
                       </td>
                     </tr>
                   ))}
