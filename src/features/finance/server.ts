@@ -24,6 +24,7 @@ import {
 // Só o schema (zod puro, sem dependências pesadas) entra estaticamente; o
 // gerador de XML continua a ser carregado dinamicamente dentro do handler.
 import { generateSaftInputSchema } from "./saft-generator";
+import { invoiceStatusFromPaid } from "./invoice-settlement";
 import { insertFinanceArchive } from "@/features/arquivos/archive-finance-core";
 import { stableDocumentCode } from "@/features/arquivos/document-code";
 import { canWriteFileArea } from "@/features/arquivos/kinds";
@@ -1228,20 +1229,81 @@ export const reverseCashEntry = createServerFn({ method: "POST" })
     );
     const db = await loadSgaAdminClient();
 
-    const { data: receipt, error } = await db
+    const { data: existingReceipt, error: lookupError } = await db
       .from("finance_receipts")
-      .update({
-        status: "reversed",
-        reversed_at: new Date().toISOString(),
-        reversed_by: context.userId,
-        reversal_reason: data.reason,
-      })
+      .select("id, status, invoice_id")
       .eq("id", data.cashEntryId)
       .eq("school_id", membership.schoolId)
-      .select("*")
       .maybeSingle();
-    if (error) throw publicDatabaseError(error, "Não foi possível anular o lançamento.");
-    if (receipt) return receipt;
+    if (lookupError)
+      throw publicDatabaseError(lookupError, "Não foi possível localizar o lançamento.");
+
+    if (existingReceipt) {
+      // Estornar um recibo tira dinheiro à fatura: o mesmo 2FA que registar o
+      // pagamento (register_payment exige private.is_aal2).
+      if (context.claims["aal"] !== "aal2") {
+        throw new Error("Estornar um recibo exige 2FA activo nesta sessão.");
+      }
+      if (existingReceipt.status === "reversed") {
+        // Nunca reescrever quem estornou, quando e porquê.
+        throw new Error("Este recibo já foi estornado.");
+      }
+      const { data: receipt, error } = await db
+        .from("finance_receipts")
+        .update({
+          status: "reversed",
+          reversed_at: new Date().toISOString(),
+          reversed_by: context.userId,
+          reversal_reason: data.reason,
+        })
+        .eq("id", data.cashEntryId)
+        .eq("school_id", membership.schoolId)
+        .eq("status", "issued")
+        .select("*")
+        .maybeSingle();
+      if (error) throw publicDatabaseError(error, "Não foi possível anular o lançamento.");
+      if (!receipt) throw new Error("Este recibo já foi estornado.");
+
+      // A fatura volta ao estado que tem sem este recibo (paga → parcial/aberta).
+      if (existingReceipt.invoice_id) {
+        const invoiceId = String(existingReceipt.invoice_id);
+        const [{ data: invoice }, { data: valid }] = await Promise.all([
+          db
+            .from("finance_invoices")
+            .select("id, amount, status")
+            .eq("id", invoiceId)
+            .eq("school_id", membership.schoolId)
+            .maybeSingle(),
+          db
+            .from("finance_receipts")
+            .select("amount")
+            .eq("school_id", membership.schoolId)
+            .eq("invoice_id", invoiceId)
+            .eq("status", "issued"),
+        ]);
+        if (invoice && invoice.status !== "cancelled") {
+          const paid = (valid ?? []).reduce(
+            (sum: number, row: { amount: unknown }) => sum + Number(row.amount || 0),
+            0,
+          );
+          const status = invoiceStatusFromPaid(Number(invoice.amount ?? 0), paid);
+          if (status !== invoice.status) {
+            const { error: statusError } = await db
+              .from("finance_invoices")
+              .update({ status })
+              .eq("id", invoiceId)
+              .eq("school_id", membership.schoolId);
+            if (statusError) {
+              throw publicDatabaseError(
+                statusError,
+                "O recibo foi estornado, mas não foi possível actualizar o estado da fatura.",
+              );
+            }
+          }
+        }
+      }
+      return receipt;
+    }
 
     const { data: expense, error: expenseError } = await db
       .from("siga_cash_expenses")
