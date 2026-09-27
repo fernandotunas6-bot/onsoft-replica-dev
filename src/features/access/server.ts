@@ -726,7 +726,7 @@ export const signInWithIdentifierFn = createServerFn({ method: "POST" })
     const email = await resolveBiOrEmailToUserEmail(data.identifier);
     if (!email.includes("@")) return { ok: false as const, error: "invalid_credentials" as const };
 
-    return passwordGrant(email, data.password);
+    return passwordGrant(email, data.password, fetch, data.captchaToken);
   });
 
 export const resetStaffPasswordDirect = createServerFn({ method: "POST" })
