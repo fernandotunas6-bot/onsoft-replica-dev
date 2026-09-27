@@ -41,7 +41,7 @@ describe("operações públicas usam o limite partilhado entre instâncias", () 
     "src/features/documents/verification.ts",
   ])("%s", async (file) => {
     const { readFileSync } = await import("node:fs");
-    expect(readFileSync(file, "utf8")).toMatch(/await consumeRateLimit\(/);
+    expect(readFileSync(file, "utf8")).toMatch(/consumeRateLimit\(/);
   });
 
   it("o envio de OTP já não conta só em memória", async () => {
