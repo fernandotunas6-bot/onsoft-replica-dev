@@ -3,13 +3,14 @@ import { cn } from "@/lib/utils"
 interface MarketingAuthShellProps {
   children: React.ReactNode
   className?: string
-  maxWidth?: "sm" | "md" | "lg"
+  maxWidth?: "sm" | "md" | "lg" | "5xl"
 }
 
 const widthClass = {
   sm: "max-w-sm",
   md: "max-w-md",
   lg: "max-w-lg",
+  "5xl": "max-w-5xl",
 } as const
 
 /** Área centrada para wizard, login e erros — dentro do MarketingLayout. */

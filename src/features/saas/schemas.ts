@@ -1,4 +1,6 @@
 import { z } from "zod";
+import { normalizeAngolaProvince } from "@/lib/angola-territory";
+import { isSchoolTypeId } from "@/lib/school-config";
 import { isReservedSubdomain } from "@/lib/saas/platform-domain";
 import { validateSchoolNif } from "@/lib/angola-identity";
 import { validateAngolaPhone } from "@/lib/angola-phone";
@@ -106,8 +108,22 @@ export const createSchoolWizardInputSchema = z.object({
       message:
         "NIF inválido. Use o NIF de entidade da AGT (9–10 dígitos) — confirme o número na AGT.",
     }),
-  address: z.string().trim().optional(),
-  city: z.string().trim().optional(),
+  address: z.string().trim().max(200).optional(),
+  city: z.string().trim().max(80).optional(),
+  // Localização e natureza. Opcionais: ficam logo na ficha da escola
+  // (Definições → Escola) em vez de a escola as ter de procurar depois.
+  province: z
+    .string()
+    .trim()
+    .optional()
+    .transform((value) => normalizeAngolaProvince(value) ?? undefined),
+  municipality: z.string().trim().max(80).optional(),
+  commune: z.string().trim().max(80).optional(),
+  neighborhood: z.string().trim().max(120).optional(),
+  school_type: z
+    .unknown()
+    .optional()
+    .transform((value) => (isSchoolTypeId(value) ? value : undefined)),
   phone: optionalAngolaPhone,
   email: normalizedEmail("E-mail da escola inválido").optional().or(z.literal("")),
   logo_url: z.string().trim().optional(),

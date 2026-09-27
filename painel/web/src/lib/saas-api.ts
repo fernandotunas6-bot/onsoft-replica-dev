@@ -16,10 +16,16 @@ export interface SaasPlan {
 
 export interface SchoolSignupPayload {
   name: string
+  commercial_name?: string
   /** Obrigatório no servidor: sem NIF a exportação SAF-T para a AGT não é gerada. */
   nif: string
   address?: string
   city?: string
+  province?: string
+  municipality?: string
+  commune?: string
+  neighborhood?: string
+  school_type?: string
   phone?: string
   email?: string
   contact_name: string
