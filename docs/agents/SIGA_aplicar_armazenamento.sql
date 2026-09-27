@@ -1,4 +1,4 @@
--- SIGA Plus — SQL a aplicar no Supabase (projecto Sga), pacote de 2026-09-28 (3.º)
+-- SIGA Plus — SQL a aplicar no Supabase (projecto Sga), pacote de 2026-09-28 (3.º) — APLICADO à produção a 2026-09-28 (conector do Supabase).
 -- Colar TUDO no SQL Editor → Run. Pode correr mais do que uma vez sem problema.
 -- 1 migração (Storage): o arquivo da escola (bucket siga-files: recibos,
 -- documentos, fotografias) deixa de ser legível por qualquer membro — cada um

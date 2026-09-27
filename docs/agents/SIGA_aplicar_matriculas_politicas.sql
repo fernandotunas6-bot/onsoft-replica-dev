@@ -1,4 +1,4 @@
--- SIGA Plus — SQL a aplicar no Supabase (projecto Sga), pacote de 2026-09-27 (3.º)
+-- SIGA Plus — SQL a aplicar no Supabase (projecto Sga), pacote de 2026-09-27 (3.º) — APLICADO à produção a 2026-09-28 (conector do Supabase).
 -- Colar TUDO no SQL Editor → Run. Pode correr mais do que uma vez sem problema.
 -- 1 migração: matrículas públicas — alunos e encarregados deixam de poder ler,
 -- aceitar/recusar candidaturas e alterar os formulários de matrícula. A

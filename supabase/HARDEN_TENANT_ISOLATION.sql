@@ -1,3 +1,9 @@
+-- ⚠️  NÃO CORRER NA PRODUÇÃO (2026-09-28).
+-- Este script manual antigo recria políticas que as migrações de 2026-09-25 a
+-- 2026-09-28 corrigiram (matrículas abertas a alunos, logótipos sem escola,
+-- arquivo legível por qualquer membro, escrita só com is_school_member…).
+-- A fonte de verdade é supabase/migrations/. Ver docs/agents/CONTINUE.md.
+
 -- =============================================================================
 -- SIGA PLUS — HARDEN TENANT / SCHOOL ISOLATION
 -- =============================================================================

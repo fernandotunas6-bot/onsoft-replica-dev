@@ -61,6 +61,35 @@ leitura. Leituras "abertas a membros" que ficam: comunicados, períodos,
 departamentos, cargos, políticas de assiduidade, reuniões de aula e
 formulários de matrícula (sem dados pessoais).
 
+## Estado da produção verificado pelo conector do Supabase (2026-09-28)
+
+Verificado directamente no projecto Sga (`xodgfmxiaunpamctfeea`): os pacotes
+de matrículas, escrita e leitura pelo papel na escola e armazenamento **não**
+tinham entrado (só os de salários/históricos e desconto nos pagamentos).
+Aplicados pelo conector (`apply_migration`) a 2026-09-28:
+`enrollment_policies_staff_only`, `core_write_policies_school_role`,
+`core_read_policies_school_role`, `storage_files_logos_hardening` e
+`revoke_public_validate_issued_document`. Confirmação: 69 políticas com
+`is_school_office`; nenhuma com `can_(read|manage)_students`.
+
+As migrações de papel na escola foram reescritas para recriar cada política a
+partir da expressão que tem na base: a captura (`PRODUCTION_SNAPSHOT.json`) já
+não correspondia à produção — as políticas de escrita em `grade_items`,
+`gradebooks` e `grade_scores` tinham sido removidas e as de leitura de
+`class_subjects`/`timetable_slots` têm um ramo para quem não é professor. A
+versão antiga teria reaberto escrita directa nas notas. **Antes de qualquer
+migração de políticas, ler o estado actual da base, não a captura.**
+
+A política de logótipos na produção só verificava o formato do nome (qualquer
+utilizador de qualquer escola podia substituir o logótipo de outra); corrigida.
+Scripts manuais antigos em `supabase/*.sql` que recriam políticas fracas levam
+agora um aviso "NÃO CORRER NA PRODUÇÃO".
+
+Avisos do Supabase que ficam: 56 tabelas com RLS e sem políticas (só servidor,
+por desenho); funções auxiliares SECURITY DEFINER usadas pelas políticas;
+**protecção contra palavras-passe vazadas desligada** (Auth → Password
+security, decisão do dono).
+
 ## Funcionalidades que fingiam resultados (2026-09-28)
 
 Removidas: `integrations/google/server-workspace.ts` (6 funções Google com
