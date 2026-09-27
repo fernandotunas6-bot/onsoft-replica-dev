@@ -28,7 +28,7 @@ import {
   updateStudentProfileInputSchema,
 } from "./schemas";
 import { deriveAcademicStatus, deriveFinancialSnapshot, type InvoiceLike } from "./academic-status";
-import { recordStudentStatusHistory } from "./status-history";
+import { recordStudentStatusHistory, recordStudentStatusHistoryBatch } from "./status-history";
 import { assertCanSeeStudent, loadStudentScope } from "./student-scope";
 import { recordAccessAudit } from "@/features/audit/record-audit";
 import { queueTenantUsageSync } from "@/features/saas/usage-sync";
@@ -1580,58 +1580,146 @@ export const batchAssignClass = createServerFn({ method: "POST" })
       "Secretaria",
     ]);
     const db = await loadSgaAdminClient();
+    const schoolId = membership.schoolId;
 
-    const { data: group } = await db
+    const { data: group, error: groupError } = await db
       .from("class_groups")
       .select("id, name, capacity, academic_year_id")
       .eq("id", data.classGroupId)
-      .eq("school_id", membership.schoolId)
+      .eq("school_id", schoolId)
       .maybeSingle();
+    if (groupError) throw publicDatabaseError(groupError, "Não foi possível abrir a turma.");
     if (!group) throw new Error("Turma não encontrada.");
-
-    const updatedStudents: string[] = [];
-    for (const studentId of data.studentIds) {
-      const { data: existing } = await db
-        .from("enrollments")
-        .select("id")
-        .eq("student_id", studentId)
-        .eq("academic_year_id", data.academicYearId)
-        .eq("school_id", membership.schoolId)
-        .maybeSingle();
-
-      if (existing) {
-        await db
-          .from("enrollments")
-          .update({
-            class_group_id: data.classGroupId,
-            status: "active",
-            updated_by: context.userId,
-          })
-          .eq("id", existing.id);
-      } else {
-        await db.from("enrollments").insert({
-          school_id: membership.schoolId,
-          student_id: studentId,
-          class_group_id: data.classGroupId,
-          academic_year_id: data.academicYearId,
-          status: "active",
-          enrolled_on: new Date().toISOString().slice(0, 10),
-          created_by: context.userId,
-          updated_by: context.userId,
-        });
-      }
-
-      await db
-        .from("students")
-        .update({ status: "active", updated_by: context.userId })
-        .eq("id", studentId)
-        .eq("school_id", membership.schoolId);
-
-      updatedStudents.push(studentId);
+    if (String(group.academic_year_id) !== data.academicYearId) {
+      throw new Error("A turma não pertence ao ano lectivo indicado.");
     }
 
-    queueTenantUsageSync(membership.schoolId);
-    return { success: true, count: updatedStudents.length, className: group.name };
+    const requested = [...new Set(data.studentIds)];
+    const { data: students, error: studentsError } = await db
+      .from("students")
+      .select("id, status")
+      .eq("school_id", schoolId)
+      .in("id", requested);
+    if (studentsError) throw publicDatabaseError(studentsError, "Não foi possível ler os alunos.");
+    const statusById = new Map(
+      (students ?? []).map((row) => [String(row.id), (row.status as string | null) ?? null]),
+    );
+    const failed: Array<{ studentId: string; message: string }> = requested
+      .filter((id) => !statusById.has(id))
+      .map((studentId) => ({ studentId, message: "Aluno não encontrado nesta escola." }));
+    const knownIds = [...statusById.keys()];
+    if (knownIds.length === 0)
+      throw new Error("Nenhum dos alunos seleccionados pertence a esta escola.");
+
+    // Matrícula corrente no ano (activa ou pendente — a base só admite uma).
+    const { data: current, error: currentError } = await db
+      .from("enrollments")
+      .select("id, student_id, class_group_id")
+      .eq("school_id", schoolId)
+      .eq("academic_year_id", data.academicYearId)
+      .in("status", ["pending", "active"])
+      .in("student_id", knownIds);
+    if (currentError) {
+      throw publicDatabaseError(currentError, "Não foi possível verificar matrículas existentes.");
+    }
+    const currentRows = (current ?? []) as Array<{
+      id: string;
+      student_id: string;
+      class_group_id: string | null;
+    }>;
+    const withCurrent = new Set(currentRows.map((row) => String(row.student_id)));
+    const toMove = currentRows.filter((row) => row.class_group_id !== group.id);
+    const toEnroll = knownIds.filter((id) => !withCurrent.has(id));
+
+    // Capacidade: tudo ou nada, antes de mexer em qualquer matrícula.
+    const capacity = typeof group.capacity === "number" ? group.capacity : null;
+    if (capacity && capacity > 0) {
+      const { count, error: countError } = await db
+        .from("enrollments")
+        .select("id", { count: "exact", head: true })
+        .eq("school_id", schoolId)
+        .eq("class_group_id", group.id)
+        .in("status", ["pending", "active"]);
+      if (countError) throw publicDatabaseError(countError, "Não foi possível ler a lotação.");
+      const free = capacity - (count ?? 0);
+      const incoming = toMove.length + toEnroll.length;
+      if (incoming > free) {
+        throw new Error(
+          `A turma ${group.name} tem ${Math.max(free, 0)} lugar(es) livre(s) e seleccionou ${incoming} aluno(s) a entrar.`,
+        );
+      }
+    }
+
+    const enrolled = new Set(
+      currentRows.filter((row) => row.class_group_id === group.id).map((row) => row.student_id),
+    );
+
+    if (toMove.length) {
+      const { error: moveError } = await db
+        .from("enrollments")
+        .update({ class_group_id: group.id, status: "active", updated_by: context.userId })
+        .eq("school_id", schoolId)
+        .in(
+          "id",
+          toMove.map((row) => row.id),
+        );
+      if (moveError)
+        throw publicDatabaseError(moveError, "Não foi possível mudar os alunos de turma.");
+      for (const row of toMove) enrolled.add(String(row.student_id));
+    }
+
+    // Matrículas novas pela mesma função que a matrícula individual: tranca a
+    // turma, valida capacidade/ano/estado, gera o número e exige 2FA. Em série,
+    // porque cada chamada tranca a mesma turma.
+    const enrolledOn = new Date().toISOString().slice(0, 10);
+    for (const studentId of toEnroll) {
+      const { error } = await sgaClient(context.supabase).rpc("enroll_student", {
+        school_id: schoolId,
+        student_id: studentId,
+        class_group_id: group.id,
+        enrolled_on: enrolledOn,
+      });
+      if (!error) {
+        enrolled.add(studentId);
+        continue;
+      }
+      if (rpcAuthError(error)) {
+        throw new Error(
+          "Esta conta precisa de verificação em duas etapas (2FA) activa para matricular alunos.",
+        );
+      }
+      failed.push({
+        studentId,
+        message: publicDatabaseError(error, "Não foi possível matricular o aluno.").message,
+      });
+    }
+
+    const reactivated = [...enrolled]
+      .map((studentId) => ({ studentId, previousStatus: statusById.get(studentId) ?? null }))
+      .filter((change) => change.previousStatus !== "active");
+    if (reactivated.length) {
+      const { error: statusError } = await db
+        .from("students")
+        .update({ status: "active", updated_by: context.userId })
+        .eq("school_id", schoolId)
+        .in(
+          "id",
+          reactivated.map((change) => change.studentId),
+        );
+      if (statusError) {
+        throw publicDatabaseError(statusError, "Não foi possível actualizar o estado dos alunos.");
+      }
+      await recordStudentStatusHistoryBatch(db, {
+        schoolId,
+        changes: reactivated,
+        newStatus: "active",
+        reason: "Colocado em turma (em lote)",
+        changedBy: context.userId,
+      });
+    }
+
+    queueTenantUsageSync(schoolId);
+    return { success: failed.length === 0, count: enrolled.size, className: group.name, failed };
   });
 
 export const batchUpdateStudentStatus = createServerFn({ method: "POST" })

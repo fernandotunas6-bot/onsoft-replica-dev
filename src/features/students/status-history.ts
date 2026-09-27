@@ -29,3 +29,32 @@ export async function recordStudentStatusHistory(
   }
   throw publicDatabaseError(error, "Não foi possível registar o histórico de estado.");
 }
+
+/** O mesmo registo para vários alunos, numa só escrita (acções em lote). */
+export async function recordStudentStatusHistoryBatch(
+  db: AdminDb,
+  input: {
+    schoolId: string;
+    changes: Array<{ studentId: string; previousStatus: string | null }>;
+    newStatus: string;
+    reason?: string | null;
+    changedBy: string;
+  },
+) {
+  if (input.changes.length === 0) return;
+  const { error } = await db.from("student_status_history").insert(
+    input.changes.map((change) => ({
+      school_id: input.schoolId,
+      student_id: change.studentId,
+      previous_status: change.previousStatus,
+      new_status: input.newStatus,
+      reason: input.reason || null,
+      changed_by: input.changedBy,
+    })),
+  );
+  if (!error) return;
+  if (/student_status_history|42P01|schema cache|does not exist/i.test(error.message)) {
+    return;
+  }
+  throw publicDatabaseError(error, "Não foi possível registar o histórico de estado.");
+}

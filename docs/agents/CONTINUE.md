@@ -22,9 +22,22 @@ Tratado o mais pesado, a **chamada de presença**:
 - `editFinalizedAttendanceCall` faz o mesmo (um upsert, um insert de
   auditoria e um recálculo).
 
-A seguir, pela mesma ordem de peso: `students/server.ts:1593` (acção em lote
-sobre alunos), `final-results.ts:275/286`, `exams.ts:579`,
-`finance/server.ts:1660`.
+`batchAssignClass` (atribuir turma em lote) inseria matrículas com a chave de
+serviço e **saltava `enroll_student`**, ou seja, 2FA, capacidade, ano lectivo
+e número de matrícula. Reactivava matrículas transferidas ou concluídas e
+ignorava todos os erros. Agora:
+- confirma que a turma é do ano pedido;
+- verifica a lotação antes de mexer (tudo ou nada);
+- muda de turma, numa só actualização, quem já tem matrícula corrente no ano;
+- matricula os restantes por `enroll_student`;
+- regista o histórico de estado numa só escrita;
+- devolve `count` e `failed`, que o ecrã mostra.
+
+`tests/security/batch-writes.test.ts` guarda as duas correcções.
+
+A seguir: `final-results.ts:275/286`, `exams.ts:579` e
+`finance/server.ts:1660`. `batchUpdateStudentStatus` ainda actualiza aluno a
+aluno, mas verifica o histórico e está limitado a 100.
 
 ## Registos do Auth: Google e captcha (2026-09-28)
 
