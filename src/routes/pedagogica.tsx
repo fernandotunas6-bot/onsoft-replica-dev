@@ -3,6 +3,7 @@ import { GradeChangeRequestsPanel } from "@/features/academic/GradeChangeRequest
 import { AcademicStructureTab } from "@/features/academic/AcademicStructureTab";
 import { AssessmentModelsTab } from "@/features/academic/AssessmentModelsTab";
 import { ExamsTab } from "@/features/academic/ExamsTab";
+import { usePassingValue } from "@/features/academic/use-passing-value";
 import { useEffect, useMemo, useState, lazy, Suspense } from "react";
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -187,6 +188,7 @@ function PedagogicaPage() {
   const teamsClasses = installed.hasCapability("teams.classes");
   const onedriveOn = installed.hasCapability("m365.onedrive");
   const { activeYearLabel, selectedYearId, school } = useSchoolSettings();
+  const passing = usePassingValue();
   const {
     tab: tabFromSearch,
     turma: turmaFromSearch,
@@ -339,7 +341,7 @@ function PedagogicaPage() {
         classGroups.filter((group) => group.attendance_rate != null).length
       : 0;
   const assiduidadeSafe = Number.isFinite(assiduidadeMedia) ? assiduidadeMedia : 0;
-  const aproveitamento = termGrades.filter((nota) => nota.average >= 10).length;
+  const aproveitamento = termGrades.filter((nota) => nota.average >= passing).length;
   const taxaAproveitamento =
     termGrades.length > 0 ? Math.round((aproveitamento / termGrades.length) * 100) : 0;
 
@@ -426,7 +428,7 @@ function PedagogicaPage() {
       .reduce((map, nota) => {
         const classe = nota.class_group_name.split(" ")[0] ?? nota.class_group_name;
         const current = map.get(classe) ?? { classe, aprovados: 0, reprovados: 0 };
-        if (nota.average >= 10) current.aprovados += 1;
+        if (nota.average >= passing) current.aprovados += 1;
         else current.reprovados += 1;
         map.set(classe, current);
         return map;
@@ -1061,10 +1063,10 @@ function PedagogicaPage() {
                             <span
                               className={cn(
                                 badgeBase,
-                                n.average >= 10 ? toneClass.success : toneClass.danger,
+                                n.average >= passing ? toneClass.success : toneClass.danger,
                               )}
                             >
-                              {n.average >= 10 ? "Transita" : "Não transita"}
+                              {n.average >= passing ? "Transita" : "Não transita"}
                             </span>
                           </TableCell>
                         </TableRow>

@@ -12,6 +12,7 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { publicDatabaseError } from "@/integrations/supabase/server-error";
 import {
   loadSgaAdminClient,
+  resolveSgaMembershipAdmin,
   requireSgaWriterFor,
   requireSgaWriterForWrite,
 } from "@/integrations/supabase/sga-admin";
@@ -233,4 +234,27 @@ export const publishAssessmentModel = createServerFn({ method: "POST" })
       throw publicDatabaseError(error, "Não foi possível publicar o modelo de avaliação.");
     }
     return result as { ruleSetId: string; version: number };
+  });
+
+/**
+ * Nota de aprovação em vigor: a do modelo de avaliação publicado (a mesma que
+ * a pauta oficial usa). `null` se a escola ainda não tem modelo — aí os ecrãs
+ * usam a das Definições. Qualquer membro da escola pode ler (é só um número).
+ */
+export const getActivePassingValue = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }): Promise<{ passingValue: number | null }> => {
+    const membership = await resolveSgaMembershipAdmin(context.userId);
+    if (!membership) return { passingValue: null };
+    const db = await loadSgaAdminClient();
+    const { data } = await db
+      .from("assessment_rule_sets")
+      .select("passing_value")
+      .eq("school_id", membership.schoolId)
+      .eq("code", "DEFAULT")
+      .eq("status", "active")
+      .limit(1)
+      .maybeSingle();
+    const value = data?.passing_value == null ? NaN : Number(data.passing_value);
+    return { passingValue: Number.isFinite(value) ? value : null };
   });

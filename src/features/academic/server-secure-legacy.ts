@@ -1,5 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { loadActivePassingValue } from "./exam-data";
 import { publicDatabaseError } from "@/integrations/supabase/server-error";
 import { loadSgaAdminClient, resolveSgaMembershipAdmin } from "@/integrations/supabase/sga-admin";
 import { loadPeopleLite, loadPersonNamesById } from "@/features/people/lookup";
@@ -822,6 +823,8 @@ export const listPedagogicalWorkspace = createServerFn({ method: "GET" })
       };
     });
 
+    // Aprovação pela nota do modelo de avaliação em vigor, não por um 10 fixo.
+    const passingValue = await loadActivePassingValue(db, membership.schoolId);
     const subjectPassRates = new Map<string, { pass: number; total: number }>();
     const termGrades = termGradeRows.map((grade) => {
       const enrollment = (enrollments ?? []).find((row) => String(row.id) === grade.enrollment_id);
@@ -832,7 +835,7 @@ export const listPedagogicalWorkspace = createServerFn({ method: "GET" })
       const average = scoreAverage(grade.mac, grade.npp, grade.npt);
       const stats = subjectPassRates.get(grade.subject_id) ?? { pass: 0, total: 0 };
       stats.total += 1;
-      if (average >= 10) stats.pass += 1;
+      if (average >= passingValue) stats.pass += 1;
       subjectPassRates.set(grade.subject_id, stats);
       return {
         id: grade.id,

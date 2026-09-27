@@ -225,3 +225,17 @@ export async function absenceByEnrollment(
   }
   return result;
 }
+
+/** Nota de aprovação do modelo de avaliação em vigor; sem modelo, a da escala angolana. */
+export async function loadActivePassingValue(db: Db, schoolId: string): Promise<number> {
+  const { data } = await db
+    .from("assessment_rule_sets")
+    .select("passing_value")
+    .eq("school_id", schoolId)
+    .eq("code", "DEFAULT")
+    .eq("status", "active")
+    .limit(1)
+    .maybeSingle();
+  const value = data?.passing_value == null ? NaN : Number(data.passing_value);
+  return Number.isFinite(value) ? value : 10;
+}

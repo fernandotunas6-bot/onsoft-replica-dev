@@ -1,5 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { assertCanSeeStudent, loadStudentScope } from "@/features/students/student-scope";
+import { loadActivePassingValue } from "./exam-data";
 import { recordAuditBatch } from "@/features/audit/record-audit";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { publicDatabaseError } from "@/integrations/supabase/server-error";
@@ -528,6 +529,8 @@ export const listPedagogicalWorkspace = createServerFn({ method: "GET" })
     const enrollmentByIdMap = new Map(
       (enrollments.data ?? []).map((row) => [String(row["id"]), row]),
     );
+    // Aprovação pela nota do modelo de avaliação em vigor, não por um 10 fixo.
+    const passingValue = await loadActivePassingValue(db, membership.schoolId);
     const subjectPassRates = new Map<string, { pass: number; total: number }>();
     const termGrades = gradesMissing
       ? []
@@ -543,7 +546,7 @@ export const listPedagogicalWorkspace = createServerFn({ method: "GET" })
           const average = scoreAverage(grade.mac, grade.npp, grade.npt);
           const passStats = subjectPassRates.get(grade.subject_id) ?? { pass: 0, total: 0 };
           passStats.total += 1;
-          if (average >= 10) passStats.pass += 1;
+          if (average >= passingValue) passStats.pass += 1;
           subjectPassRates.set(grade.subject_id, passStats);
           return {
             id: grade.id,

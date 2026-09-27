@@ -113,6 +113,7 @@ vi.mock("@/features/academic/assessment-models", () => ({
       ],
     }),
   publishAssessmentModel: vi.fn(),
+  getActivePassingValue: () => Promise.resolve({ passingValue: 10 }),
 }));
 
 vi.mock("@/features/people/server", () => ({
