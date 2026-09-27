@@ -1730,6 +1730,8 @@ export type StudentAcademicHistoryYear = {
   subjects: ReturnType<typeof buildClassAcademicSummaries>[number]["subjects"];
   overallMfd: number | null;
   status: ReturnType<typeof buildClassAcademicSummaries>[number]["status"];
+  /** Resultado registado pela secretaria (Exames → Resultado final); null se ainda não houver. */
+  official: { outcome: string; finalAverage: number | null } | null;
 };
 
 /**
@@ -1877,6 +1879,23 @@ export const getStudentAcademicHistory = createServerFn({ method: "GET" })
       (subjectsData ?? []).map((s: Record<string, unknown>) => [String(s["id"]), s]),
     );
 
+    // Resultado oficial por ano lectivo (histórico académico registado).
+    const { data: officialRows } = await db
+      .from("student_academic_history")
+      .select("academic_year_label, outcome, final_average, updated_at")
+      .eq("school_id", membership.schoolId)
+      .eq("student_id", data.studentId)
+      .order("updated_at", { ascending: false });
+    const officialByYear = new Map<string, { outcome: string; finalAverage: number | null }>();
+    for (const row of (officialRows ?? []) as Array<Record<string, unknown>>) {
+      const label = String(row["academic_year_label"] ?? "");
+      if (!label || officialByYear.has(label) || !row["outcome"]) continue;
+      officialByYear.set(label, {
+        outcome: String(row["outcome"]),
+        finalAverage: row["final_average"] == null ? null : Number(row["final_average"]),
+      });
+    }
+
     const years_ = enrollments.map((enrollment): StudentAcademicHistoryYear => {
       const group = enrollment.class_group_id
         ? groupById.get(String(enrollment.class_group_id))
@@ -1933,6 +1952,7 @@ export const getStudentAcademicHistory = createServerFn({ method: "GET" })
         subjects: summary?.subjects ?? [],
         overallMfd: summary?.overallMfd ?? null,
         status: summary?.status ?? "PENDENTE",
+        official: officialByYear.get(String(year?.["name"] ?? "")) ?? null,
       };
     });
 

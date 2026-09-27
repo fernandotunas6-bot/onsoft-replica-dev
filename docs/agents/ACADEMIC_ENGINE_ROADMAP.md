@@ -89,7 +89,12 @@ A produção tem o fluxo premium quase todo — falta ligá-lo aos ecrãs:
    aberta. O aluno e o encarregado vêem o "Resultado oficial" no cartão de
    notas. Migração `20260927090000`: histórico do aluno só do servidor (antes,
    qualquer membro — alunos incluídos — lia o de toda a escola).
-   Falta: certificados/declarações a partir do histórico.
+   Documentos (ficha do aluno): o certificado só se emite com o resultado do
+   ano registado no histórico e usa essa média e resultado; o histórico mostra
+   o resultado oficial ou "(provisório)"; a declaração de notas leva as notas
+   reais. A emissão real deixou de herdar dados de exemplo (antes, uma
+   declaração sem overlay imprimia notas inventadas) e os modelos de notas
+   recusam emitir sem notas.
 5. **Competências** — tabela de competências ligada a `curriculum_subjects` e
    às avaliações; percentagem de competências dominadas por aluno.
 6. **Analytics** — comparativo trimestral, turma/disciplina, alunos em risco

@@ -4,6 +4,7 @@ import {
   buildIssuePayload,
   isPrintTemplateKey,
   matchPrintTemplateKey,
+  missingAcademicData,
   type PrintSchoolContext,
   type PrintStudentContext,
 } from "@/features/documents/print-catalog";
@@ -84,6 +85,9 @@ export async function issuePrintDocument(input: {
       ...(catalog.issue ? { issue: catalog.issue } : {}),
       byType: catalog.byType,
     });
+    // Documento de notas sem notas reais: não se emite (cai na alternativa, se houver).
+    const missing = missingAcademicData(key, input.overlay);
+    if (missing) throw new Error(missing);
     const template = await getPrintTemplate({ data: { key } });
     const student = input.student ?? {
       fullName: school.name || "Escola SIGA",

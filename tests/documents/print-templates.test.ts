@@ -269,3 +269,50 @@ describe("modelos em public/templates", () => {
     expect(payload.school.address).toBe("Talatona, Luanda");
   });
 });
+
+describe("emissão real sem dados de exemplo", () => {
+  const school = { name: "Escola Real", academicYear: "2025/2026" };
+  const student = { fullName: "Aluno Real", academicNumber: "P-001" };
+
+  it("não leva notas, pessoas nem valores da pré-visualização", async () => {
+    const payload = buildIssuePayload(school, student, "");
+    const text = JSON.stringify(payload);
+    for (const sample of [
+      "Ana Domingos Ferreira",
+      "Maria Ferreira",
+      "Noé Mateus",
+      "Prof. Manuel Costa",
+      "45.000 Kz",
+      "Angolana",
+      "Manhã",
+      "Sala 12",
+      "EST-2026-0142",
+    ]) {
+      expect(text).not.toContain(sample);
+    }
+    expect(payload["grades"]).toEqual([]);
+    expect(payload["subjects"]).toEqual([]);
+    expect(payload["periods"]).toEqual([]);
+    expect((payload["student"] as Record<string, unknown>)["fullName"]).toBe("Aluno Real");
+
+    // A declaração de notas renderizada sem overlay não mostra notas inventadas.
+    const source = await readFile(
+      join(process.cwd(), "public/templates/declaracao-notas-simples.hbs"),
+      "utf8",
+    );
+    const html = renderHandlebars(source, payload);
+    expect(html).toContain("Aluno Real");
+    expect(html).not.toContain("Língua Portuguesa");
+    expect(html).not.toContain("Matemática");
+  });
+
+  it("recusa documentos de notas sem as notas reais", async () => {
+    const { missingAcademicData } = await import("@/features/documents/print-catalog");
+    expect(missingAcademicData("declaracao-notas-simples", undefined)).toMatch(/ficha do aluno/);
+    expect(missingAcademicData("certificado-habilitacoes", { periods: [] })).toMatch(/notas/);
+    expect(
+      missingAcademicData("declaracao-notas-simples", { grades: [{ subject: "LP" }] }),
+    ).toBeNull();
+    expect(missingAcademicData("service-document", undefined)).toBeNull();
+  });
+});

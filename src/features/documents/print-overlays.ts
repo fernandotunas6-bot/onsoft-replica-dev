@@ -162,6 +162,8 @@ type HistoricoPeriod = {
   periodName: string;
   average?: string | number;
   status?: string;
+  /** Ano com resultado registado no histórico oficial. */
+  official?: boolean;
 };
 
 /**
@@ -181,7 +183,7 @@ export function overlayHistorico(input: { periods: HistoricoPeriod[] }) {
       status: period.status ?? "—",
       subjects: period.subjects.map((subject) => ({
         name: subject.name,
-        type: "Nuclear",
+        type: "",
         workload: "—",
         mac: subject.t1,
         npp: subject.t2 ?? "—",
