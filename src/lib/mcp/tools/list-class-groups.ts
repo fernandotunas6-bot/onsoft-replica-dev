@@ -8,7 +8,13 @@ export default defineTool({
   description: "Lista as turmas activas que o utilizador ligado pode ver na sua escola.",
   inputSchema: {
     search: z.string().trim().max(80).optional().describe("Filtrar pelo nome ou código da turma."),
-    limit: z.number().int().min(1).max(200).optional().describe("Máximo de turmas (por omissão 50)."),
+    limit: z
+      .number()
+      .int()
+      .min(1)
+      .max(200)
+      .optional()
+      .describe("Máximo de turmas (por omissão 50)."),
   },
   annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: false },
   handler: async ({ search, limit }, ctx) => {
@@ -17,8 +23,8 @@ export default defineTool({
     }
     let query = supabaseForUser(ctx)
       .from("class_groups")
+      // `class_groups` não tem `deleted_at`: com esse filtro a consulta falhava sempre.
       .select("id, code, name, shift, status, capacity")
-      .is("deleted_at", null)
       .order("name")
       .limit(limit ?? 50);
     if (search) {
