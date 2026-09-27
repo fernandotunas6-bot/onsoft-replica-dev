@@ -38,4 +38,9 @@ export const emptyInstitution = {
   telefone: "",
   email: "",
   endereco: "",
+  provincia: "",
+  municipio: "",
+  comuna: "",
+  bairro: "",
+  gps: "",
 } as const;

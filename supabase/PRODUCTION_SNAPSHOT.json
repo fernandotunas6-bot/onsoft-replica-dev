@@ -3001,7 +3001,11 @@
         "director_name",
         "evaluation_periods",
         "passing_grade",
-        "preferences"
+        "preferences",
+        "commune",
+        "neighborhood",
+        "latitude",
+        "longitude"
       ],
       "politicas": 2,
       "rls": true,

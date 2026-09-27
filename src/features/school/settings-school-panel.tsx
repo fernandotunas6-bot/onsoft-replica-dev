@@ -24,6 +24,7 @@ import { PickFileButton } from "@/features/arquivos/PickFileButton";
 import { resolveFileBlob } from "@/features/arquivos/resolve-file";
 import { useOptionalStackNav } from "@/components/ui/stacked-modal";
 import { angolaSchoolTypes, emptyInstitution, schoolSettingDefaults } from "@/lib/school-config";
+import { formatGeoPoint, parseGeoPoint } from "@/lib/geo-coordinates";
 import { normalizeEvaluationPeriods } from "@/lib/angola-academic";
 import { useCurrentAccount } from "@/features/auth/use-current-account";
 import { supabase } from "@/integrations/supabase/client";
@@ -58,6 +59,16 @@ const institutionSchema = z.object({
     }),
   email: z.string().trim().email("E-mail inválido").max(255, "Máximo 255 caracteres"),
   endereco: z.string().trim().min(5, "Endereço demasiado curto").max(200, "Máximo 200 caracteres"),
+  provincia: z.string().trim().max(80, "Máximo 80 caracteres"),
+  municipio: z.string().trim().max(80, "Máximo 80 caracteres"),
+  comuna: z.string().trim().max(80, "Máximo 80 caracteres"),
+  bairro: z.string().trim().max(120, "Máximo 120 caracteres"),
+  gps: z
+    .string()
+    .trim()
+    .refine((value) => parseGeoPoint(value) !== "invalid", {
+      message: "Use latitude, longitude (por exemplo -12.7761, 15.7392).",
+    }),
 });
 
 type Institution = z.infer<typeof institutionSchema>;
@@ -84,6 +95,16 @@ const institutionFields: {
   { id: "telefone", label: "Telefone" },
   { id: "email", label: "E-mail institucional" },
   { id: "endereco", label: "Endereço", full: true },
+  { id: "provincia", label: "Província" },
+  { id: "municipio", label: "Município" },
+  { id: "comuna", label: "Comuna" },
+  { id: "bairro", label: "Bairro" },
+  {
+    id: "gps",
+    label: "Coordenadas GPS",
+    hint: "Latitude, longitude — copie do mapa (por exemplo -12.7761, 15.7392).",
+    full: true,
+  },
 ];
 
 const preferences = [
@@ -113,6 +134,24 @@ const preferences = [
     on: false,
   },
 ];
+
+/** Campos de localização do formulário a partir do que o servidor devolve. */
+function locationFields(school: {
+  province?: string | null;
+  municipality?: string | null;
+  commune?: string | null;
+  neighborhood?: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
+}) {
+  return {
+    provincia: school.province ?? "",
+    municipio: school.municipality ?? "",
+    comuna: school.commune ?? "",
+    bairro: school.neighborhood ?? "",
+    gps: formatGeoPoint(school.latitude, school.longitude),
+  };
+}
 
 function readStoredPreference(value: unknown, id: string, fallback: boolean) {
   if (value && typeof value === "object" && !Array.isArray(value)) {
@@ -186,6 +225,7 @@ export function SchoolSettingsPanel() {
             telefone: schoolQuery.data.phone ?? "",
             email: schoolQuery.data.email ?? "",
             endereco: schoolQuery.data.address ?? "",
+            ...locationFields(schoolQuery.data),
           }
         : initialInstitution,
     [schoolQuery.data],
@@ -201,6 +241,7 @@ export function SchoolSettingsPanel() {
       telefone: school.phone ?? "",
       email: school.email ?? "",
       endereco: school.address ?? "",
+      ...locationFields(school),
     });
     setAnoLectivo(school.academic_year ?? schoolSettingDefaults.academicYear);
     setMoeda(school.currency || schoolSettingDefaults.currency);
@@ -310,6 +351,8 @@ export function SchoolSettingsPanel() {
       toast.error("Os dados da escola ainda não estão disponíveis.");
       return;
     }
+    const geo = parseGeoPoint(parsed.data.gps);
+    const point = geo === "invalid" ? null : geo;
     setSaving(true);
     try {
       const data = await updateSchoolSettings({
@@ -320,6 +363,12 @@ export function SchoolSettingsPanel() {
           phone: parsed.data.telefone,
           email: parsed.data.email,
           address: parsed.data.endereco,
+          province: parsed.data.provincia,
+          municipality: parsed.data.municipio,
+          commune: parsed.data.comuna,
+          neighborhood: parsed.data.bairro,
+          latitude: point ? point.latitude : null,
+          longitude: point ? point.longitude : null,
           academicYear: anoLectivo,
           currency: moeda,
           evaluationPeriods: Number(trimestres),

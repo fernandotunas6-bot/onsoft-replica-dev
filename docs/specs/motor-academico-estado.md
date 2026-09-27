@@ -18,7 +18,7 @@ Legenda: ✅ existe · 🟡 parcial · ❌ falta
 
 | # | Ponto | Estado | Onde está | Lacuna |
 |---|---|---|---|---|
-| 1 | Escola | 🟡 | `schools` (nome, NIF, contactos, província, município, endereço) | Faltam comuna, bairro, coordenadas GPS e tipo de instituição. `schools.passing_grade` e `schools.evaluation_periods` duplicam regras que devem viver só no modelo |
+| 1 | Escola | ✅ | `schools` (nome, NIF, contactos, província, município, comuna, bairro, GPS, endereço) e tipo de instituição em Definições | Desde 2026-09-29 (migração `20260929210000`, aplicada) província, município, comuna, bairro e coordenadas editam-se em Definições → Escola. Continua por limpar: `schools.passing_grade` e `evaluation_periods` duplicam regras que devem viver só no modelo |
 | 2 | Ano lectivo | ✅ | `academic_years` (rascunho → activo → fechado → arquivado) | — |
 | 3 | Modelo académico | 🟡 | `assessment_rule_sets` + `grading_scales` (versionados; separador "Modelos de avaliação") | **Nenhuma escola em produção tem modelo activo**, e sem ele não se abrem diários nem se geram pautas. Pedagógica passou a avisar, com atalho para o Administrador. Não há campo de periodicidade no modelo |
 | 4 | Currículo | ✅ | `curricula`, `curriculum_areas`, `curriculum_subjects` (carga horária, obrigatória) | Conteúdos, objectivos e critérios por disciplina não têm lugar próprio |
@@ -58,8 +58,8 @@ Legenda: ✅ existe · 🟡 parcial · ❌ falta
    Agrupá-los pelas quatro etapas que `academic-architecture.ts` já define
    (Estrutura do ano → Turmas e pessoas → Avaliação → Resultado e registo), pela
    ordem dos módulos, sem acrescentar ecrãs.
-6. Campos em falta: escola (comuna, bairro, GPS, tipo), avaliação (hora,
-   duração, finalidade) e periodicidade no modelo.
+6. ~~Campos em falta da escola e da avaliação~~ (feito a 2026-09-29).
+   Falta a periodicidade no modelo.
 
 Stack: a especificação fala em Next.js e Python. O SIGA é TanStack Start com
 Supabase (Postgres), e a especificação aplica-se igual. As regras vivem em

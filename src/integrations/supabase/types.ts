@@ -8252,16 +8252,20 @@ export type Database = {
           address: string | null
           city: string | null
           commercial_name: string | null
+          commune: string | null
           created_at: string
           currency_code: string
           director_name: string | null
           email: string | null
           evaluation_periods: number
           id: string
+          latitude: number | null
           logo_path: string | null
           logo_url: string | null
+          longitude: number | null
           municipality: string | null
           name: string
+          neighborhood: string | null
           nif: string | null
           official_authorization_reference: string | null
           passing_grade: number
@@ -8279,16 +8283,20 @@ export type Database = {
           address?: string | null
           city?: string | null
           commercial_name?: string | null
+          commune?: string | null
           created_at?: string
           currency_code?: string
           director_name?: string | null
           email?: string | null
           evaluation_periods?: number
           id?: string
+          latitude?: number | null
           logo_path?: string | null
           logo_url?: string | null
+          longitude?: number | null
           municipality?: string | null
           name: string
+          neighborhood?: string | null
           nif?: string | null
           official_authorization_reference?: string | null
           passing_grade?: number
@@ -8306,16 +8314,20 @@ export type Database = {
           address?: string | null
           city?: string | null
           commercial_name?: string | null
+          commune?: string | null
           created_at?: string
           currency_code?: string
           director_name?: string | null
           email?: string | null
           evaluation_periods?: number
           id?: string
+          latitude?: number | null
           logo_path?: string | null
           logo_url?: string | null
+          longitude?: number | null
           municipality?: string | null
           name?: string
+          neighborhood?: string | null
           nif?: string | null
           official_authorization_reference?: string | null
           passing_grade?: number

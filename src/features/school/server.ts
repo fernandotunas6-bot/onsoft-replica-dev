@@ -90,7 +90,7 @@ export async function loadSchoolSettingsBundle(db: AdminDb, schoolId: string) {
   const { data: school, error } = await db
     .from("schools")
     .select(
-      "id, name, nif, phone, email, address, currency_code, theme, province, municipality, updated_at",
+      "id, name, nif, phone, email, address, currency_code, theme, province, municipality, commune, neighborhood, latitude, longitude, updated_at",
     )
     .eq("id", schoolId)
     .maybeSingle();
@@ -153,6 +153,12 @@ export async function loadSchoolSettingsBundle(db: AdminDb, schoolId: string) {
     phone: (school.phone as string | null) ?? null,
     email: (school.email as string | null) ?? null,
     address: (school.address as string | null) ?? null,
+    province: (school.province as string | null) ?? null,
+    municipality: (school.municipality as string | null) ?? null,
+    commune: (school.commune as string | null) ?? null,
+    neighborhood: (school.neighborhood as string | null) ?? null,
+    latitude: school.latitude == null ? null : Number(school.latitude),
+    longitude: school.longitude == null ? null : Number(school.longitude),
     academic_year:
       (academicValue["academic_year"] as string | undefined) ??
       (activeYear?.name as string | undefined) ??
@@ -317,6 +323,12 @@ export const updateSchoolSettings = createServerFn({ method: "POST" })
         phone: data.phone,
         email: data.email,
         address: data.address,
+        province: data.province || null,
+        municipality: data.municipality || null,
+        commune: data.commune || null,
+        neighborhood: data.neighborhood || null,
+        latitude: data.latitude ?? null,
+        longitude: data.latitude == null ? null : (data.longitude ?? null),
         currency_code: data.currency,
         // `evaluation_periods` NÃO é escrito aqui: a coluna só existe na
         // migração 20260810130207, que nunca entrou nos APPLY_*.sql canónicos
