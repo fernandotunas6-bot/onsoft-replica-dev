@@ -77,13 +77,29 @@ export async function otherSchoolAccess(
 
   let adminAnywhere = false;
   if (rows.length) {
-    const { data: roleRows } = await admin
+    // `roles!member_roles_school_id_role_id_fkey`: `member_roles` tem DUAS chaves
+    // estrangeiras para `roles` -- `role_id → roles(id)` e a composta
+    // `(school_id, role_id) → roles(school_id, id)`. Sem dizer qual, o PostgREST
+    // recusa a consulta inteira com PGRST201. Escolhida a composta, que é a que
+    // garante que o cargo é da mesma escola que o vínculo.
+    //
+    // O erro tem de ser lançado, não engolido. Estava `(roleRows ?? [])`, e uma
+    // consulta recusada dava lista vazia, logo `adminAnywhere = false`: um
+    // administrador deixava de ser reconhecido como tal. As três verificações que
+    // dependem disto -- quem pode alterar cargos de um administrador, quem entra
+    // pela ligação directa, quem lhe redefine a senha -- passavam todas.
+    const { data: roleRows, error: roleError } = await admin
       .from("member_roles")
-      .select("roles(code)")
+      .select("roles!member_roles_school_id_role_id_fkey(code)")
       .in(
         "membership_id",
         rows.map((m) => m.id),
       );
+    if (roleError) {
+      throw new Error(
+        `Não foi possível confirmar os cargos noutras escolas: ${roleError.message}`,
+      );
+    }
     adminAnywhere = ((roleRows ?? []) as Array<{ roles?: { code?: string } | null }>).some((r) =>
       isAdministratorRole(String(r.roles?.code ?? "")),
     );
@@ -556,10 +572,17 @@ export const resendSystemInvite = createServerFn({ method: "POST" })
       throw new Error("Esta conta também dá acesso a outra escola. Use Enviar E-mail.");
     }
     if (!isAdministrator) {
-      const { data: targetRoles } = await admin
+      // Mesma desambiguação e mesma razão de lançar: com o erro engolido,
+      // `isStaff` dava falso e o bloqueio abaixo nunca chegava a acontecer.
+      const { data: targetRoles, error: targetRolesError } = await admin
         .from("member_roles")
-        .select("roles(code)")
+        .select("roles!member_roles_school_id_role_id_fkey(code)")
         .eq("membership_id", membership.id);
+      if (targetRolesError) {
+        throw new Error(
+          `Não foi possível confirmar o cargo desta conta: ${targetRolesError.message}`,
+        );
+      }
       const staffCodes = [
         ...mapAppRoleToSgaCodes("Secretaria"),
         ...mapAppRoleToSgaCodes("Tesouraria"),
