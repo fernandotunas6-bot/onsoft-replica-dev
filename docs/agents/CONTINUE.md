@@ -296,6 +296,10 @@ páginas funcionam — o React recupera renderizando no cliente — mas **o HTML
 deitado fora em cada visita**, o que anula o SSR e põe em causa as metas de FCP/LCP do
 `lighthouserc.json`.
 
+**Resolvido (2026-09-27):** as chaves já não vão em `vars`. `scripts/worker-secrets.mjs`
+lista todas as chaves sensíveis que o servidor lê; `deploy-cf.mjs` envia as que estiverem
+definidas por `wrangler secret put` (cifradas), e `tests/security/worker-secrets.test.ts`
+falha se aparecer uma chave sensível nova fora da lista. Texto original:
 **A registar e a decidir, não tocado.** O `deploy-cf.mjs` grava
 `SUPABASE_SERVICE_ROLE_KEY` e `RESEND_API_KEY` como **variáveis de ambiente em texto
 simples** no worker, não como secrets — aparecem na listagem de bindings de qualquer
@@ -393,6 +397,12 @@ tocar em cada ecrã.
   Subir esse limite, ou todos os logins por B.I. partilham a mesma quota. O login por
   e-mail continua directo do browser.
 - O limite de taxa é em memória, por isolado (ver `src/lib/rate-limit.ts`).
+  **Login por B.I. resolvido (2026-09-27):** usa o contador partilhado
+  `siga_rate_limit_consume` (migração `20260927170000`, chaves em SHA-256), por IP e
+  também por conta (10 por 15 min). Sem a migração, cai no limite em memória. Os
+  outros pontos sem sessão também já o usam (recuperação de senha, link mágico, registo,
+  alteração de e-mail, matrícula pública, webhook de pagamentos). Só em memória ficam
+  os que exigem sessão (pesquisa de escolas, IA, envios pela plataforma).
 
 ## Estado (2026-09-20)
 
@@ -1083,7 +1093,7 @@ financeira completa (`finance_invoices`, `finance_receipts`,
   `user_communication_preferences` não estão declaradas em lado nenhum. Em
   produção, OTP, verificação de contactos e preferências de comunicação
   devolvem o erro de tabela inexistente do PostgREST — não um ecrã vazio.
-- **`tenant_mailboxes`** (`supabase/APPLY_MAILBOXES.sql`): script manual também
+- **`tenant_mailboxes`** (agora `20260926180000_tenant_mailboxes_server_only.sql`, no pacote `SIGA_aplicar_migracoes.sql`): script manual também
   por aplicar.
 - **Importadores contra o esquema Lovable antigo**: `courses`, `invoices`,
   `payments`, `class_schedule_slots`, `assessment_rule_sets` — nomes que o SGA

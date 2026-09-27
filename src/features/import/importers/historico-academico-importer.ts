@@ -158,7 +158,9 @@ export const historicoAcademicoImporter: RowImporter = {
         return {
           status: "error",
           warnings: analysis.warnings,
-          errors: [`Não foi possível carregar o histórico existente antes da actualização: ${beforeError?.message ?? "registo não encontrado"}`],
+          errors: [
+            `Não foi possível carregar o histórico existente antes da actualização: ${beforeError?.message ?? "registo não encontrado"}`,
+          ],
           audits: [],
         };
       }

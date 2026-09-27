@@ -11,7 +11,8 @@ import {
   resolveResendFromAddress,
   resolveSystemSender,
 } from "@/features/integrations/resend-client";
-import { checkRateLimit, isRateLimitBypassed, recordRateLimitAttempt } from "@/lib/rate-limit";
+import { isRateLimitBypassed } from "@/lib/rate-limit";
+import { consumeRateLimit } from "@/lib/shared-rate-limit";
 import { passwordGrant } from "@/features/access/bi-login";
 
 const EMAIL_CHANGE_RATE_LIMIT = { windowMs: 60 * 60 * 1000, max: 5 };
@@ -65,11 +66,10 @@ export const requestEmailChangeFn = createServerFn({ method: "POST" })
     const rateLimitKey = `email_change:${context.userId}`;
     if (
       !isRateLimitBypassed(rateLimitKey) &&
-      !checkRateLimit([rateLimitKey], EMAIL_CHANGE_RATE_LIMIT)
+      !(await consumeRateLimit([rateLimitKey], EMAIL_CHANGE_RATE_LIMIT))
     ) {
       throw new Error("Demasiados pedidos de alteração de e-mail. Tente mais tarde.");
     }
-    recordRateLimitAttempt([rateLimitKey], EMAIL_CHANGE_RATE_LIMIT);
     const check = await passwordGrant(currentEmail, data.currentPassword);
     if (!check.ok) {
       throw new Error(

@@ -943,7 +943,16 @@ export const publishAcademicSchedule = createServerFn({ method: "POST" })
       });
     }
 
-    return { schedule, generatedSessions, success: true };
+    // Avisar professores e alunos da turma (configurável; nunca falha a publicação).
+    const { notifySchedulePublished } = await import("./timetable-lessons");
+    const notified = await notifySchedulePublished(db, {
+      schoolId: membership.schoolId,
+      classGroupId: data.classGroupId,
+      validFrom: data.validFrom ?? null,
+      scheduleId: String(schedule.id),
+    });
+
+    return { schedule, generatedSessions, notified, success: true };
   });
 
 // ---------------------------------------------------------------------------

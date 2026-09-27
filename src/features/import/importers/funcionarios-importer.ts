@@ -3,7 +3,12 @@ import type { ImportRefCache, RowImporter } from "../engine/types";
 import { loadExistingPeople, resolveOrCreatePerson, type PersonCandidate } from "./people-core";
 
 type PositionRef = { id: string; name: string; category: string };
-type EmploymentRef = { id: string; person_id: string; employee_number: string | null; status: string };
+type EmploymentRef = {
+  id: string;
+  person_id: string;
+  employee_number: string | null;
+  status: string;
+};
 
 type FuncionariosCache = ImportRefCache & {
   positions: PositionRef[];
@@ -19,22 +24,35 @@ function valueOf(row: Record<string, unknown>, ...keys: string[]) {
   return null;
 }
 
-function employmentType(value: unknown): "permanent" | "fixed_term" | "service_provider" | "intern" | "temporary" | "other" {
+function employmentType(
+  value: unknown,
+): "permanent" | "fixed_term" | "service_provider" | "intern" | "temporary" | "other" {
   const text = normalizeText(value).toLowerCase();
-  if (text.includes("efectivo") || text.includes("efetivo") || text.includes("permanent")) return "permanent";
+  if (text.includes("efectivo") || text.includes("efetivo") || text.includes("permanent"))
+    return "permanent";
   if (text.includes("termo") || text.includes("fixed")) return "fixed_term";
   if (text.includes("estag") || text.includes("intern")) return "intern";
-  if (text.includes("prest") || text.includes("servic") || text.includes("service")) return "service_provider";
+  if (text.includes("prest") || text.includes("servic") || text.includes("service"))
+    return "service_provider";
   if (text.includes("tempor")) return "temporary";
   return "other";
 }
 
-function positionCategory(value: unknown): "teacher" | "staff" | "director" | "management" | "support" | "other" {
+function positionCategory(
+  value: unknown,
+): "teacher" | "staff" | "director" | "management" | "support" | "other" {
   const text = normalizeText(value).toLowerCase();
   if (text.includes("director") || text.includes("direc")) return "director";
-  if (text.includes("gestor") || text.includes("gerent") || text.includes("coorden")) return "management";
+  if (text.includes("gestor") || text.includes("gerent") || text.includes("coorden"))
+    return "management";
   if (text.includes("professor") || text.includes("docent")) return "teacher";
-  if (text.includes("porteir") || text.includes("motor") || text.includes("limpeza") || text.includes("seguran")) return "support";
+  if (
+    text.includes("porteir") ||
+    text.includes("motor") ||
+    text.includes("limpeza") ||
+    text.includes("seguran")
+  )
+    return "support";
   return "staff";
 }
 
@@ -44,14 +62,31 @@ export const funcionariosImporter: RowImporter = {
   async loadRefCache(ctx) {
     const [existingPeople, positionRows, employmentRows, departmentRows] = await Promise.all([
       loadExistingPeople(ctx.db, ctx.schoolId),
-      ctx.db.from("hr_positions").select("id, name, category").eq("school_id", ctx.schoolId).is("deleted_at", null),
-      ctx.db.from("hr_employments").select("id, person_id, employee_number, status").eq("school_id", ctx.schoolId).is("deleted_at", null),
-      ctx.db.from("hr_departments").select("id, name").eq("school_id", ctx.schoolId).is("deleted_at", null),
+      ctx.db
+        .from("hr_positions")
+        .select("id, name, category")
+        .eq("school_id", ctx.schoolId)
+        .is("deleted_at", null),
+      ctx.db
+        .from("hr_employments")
+        .select("id, person_id, employee_number, status")
+        .eq("school_id", ctx.schoolId)
+        .is("deleted_at", null),
+      ctx.db
+        .from("hr_departments")
+        .select("id, name")
+        .eq("school_id", ctx.schoolId)
+        .is("deleted_at", null),
     ]);
 
-    if (positionRows.error) throw new Error(`Não foi possível carregar cargos de RH: ${positionRows.error.message}`);
-    if (employmentRows.error) throw new Error(`Não foi possível carregar vínculos de RH: ${employmentRows.error.message}`);
-    if (departmentRows.error) throw new Error(`Não foi possível carregar departamentos de RH: ${departmentRows.error.message}`);
+    if (positionRows.error)
+      throw new Error(`Não foi possível carregar cargos de RH: ${positionRows.error.message}`);
+    if (employmentRows.error)
+      throw new Error(`Não foi possível carregar vínculos de RH: ${employmentRows.error.message}`);
+    if (departmentRows.error)
+      throw new Error(
+        `Não foi possível carregar departamentos de RH: ${departmentRows.error.message}`,
+      );
 
     return {
       existingPeople,
@@ -100,11 +135,15 @@ export const funcionariosImporter: RowImporter = {
 
     if (
       employeeNumber &&
-      cache.employments.some((e) => e.employee_number?.toLowerCase() === employeeNumber.toLowerCase())
+      cache.employments.some(
+        (e) => e.employee_number?.toLowerCase() === employeeNumber.toLowerCase(),
+      )
     ) {
       return {
         status: "duplicate",
-        warnings: [`Nº de funcionário "${employeeNumber}" já está associado a um vínculo activo/existente.`],
+        warnings: [
+          `Nº de funcionário "${employeeNumber}" já está associado a um vínculo activo/existente.`,
+        ],
         errors: [],
         duplicate_of: employeeNumber,
       };
@@ -138,7 +177,9 @@ export const funcionariosImporter: RowImporter = {
     const employeeNumber = normalizeText(
       valueOf(normalized, "employee_number", "numero_funcionario", "n_agente", "agente"),
     );
-    const departmentName = normalizeText(valueOf(normalized, "department", "departamento", "sector", "seccao"));
+    const departmentName = normalizeText(
+      valueOf(normalized, "department", "departamento", "sector", "seccao"),
+    );
     const contract = valueOf(normalized, "contract_type", "tipo_contrato", "contrato", "vinculo");
 
     const candidate: PersonCandidate = {
@@ -157,7 +198,9 @@ export const funcionariosImporter: RowImporter = {
     if (existingPersonEmployment) {
       return {
         status: "duplicate",
-        warnings: [`A pessoa já possui um vínculo laboral activo (ID ${existingPersonEmployment.id}).`],
+        warnings: [
+          `A pessoa já possui um vínculo laboral activo (ID ${existingPersonEmployment.id}).`,
+        ],
         errors: [],
         audits: person.audits,
         target_record_id: existingPersonEmployment.id,
@@ -172,7 +215,8 @@ export const funcionariosImporter: RowImporter = {
         status: "will_insert",
         warnings: analysis.warnings.concat(
           position ? [] : [`Será criado o cargo de RH "${roleTitle}".`],
-          departmentName && !cache.departments.some((d) => d.name.toLowerCase() === departmentName.toLowerCase())
+          departmentName &&
+            !cache.departments.some((d) => d.name.toLowerCase() === departmentName.toLowerCase())
             ? [`Será criado o departamento de RH "${departmentName}".`]
             : [],
         ),
@@ -185,7 +229,9 @@ export const funcionariosImporter: RowImporter = {
     const audits = [...person.audits];
     let departmentId: string | null = null;
     if (departmentName) {
-      const department = cache.departments.find((d) => d.name.toLowerCase() === departmentName.toLowerCase());
+      const department = cache.departments.find(
+        (d) => d.name.toLowerCase() === departmentName.toLowerCase(),
+      );
       if (department) {
         departmentId = department.id;
       } else {

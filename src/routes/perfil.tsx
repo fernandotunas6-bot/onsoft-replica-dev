@@ -21,7 +21,15 @@ import { EmailChangeForm } from "@/features/auth/EmailChangeForm";
 import { useCurrentAccount } from "@/features/auth/use-current-account";
 import { getCreateSchoolUrl } from "@/lib/ecosystem-urls";
 
+const PROFILE_TABS = ["perfil", "instituicoes", "seguranca"] as const;
+
 export const Route = createFileRoute("/perfil")({
+  // `?tab=seguranca` abre directamente o 2FA (ex.: a partir de uma recusa por
+  // falta de verificação em duas etapas).
+  validateSearch: (search: Record<string, unknown>): { tab?: (typeof PROFILE_TABS)[number] } =>
+    PROFILE_TABS.includes(search["tab"] as (typeof PROFILE_TABS)[number])
+      ? { tab: search["tab"] as (typeof PROFILE_TABS)[number] }
+      : {},
   head: () => ({
     meta: [
       { title: "Perfil & Conta · SIGA" },
@@ -36,7 +44,8 @@ export const Route = createFileRoute("/perfil")({
 
 function PerfilPage() {
   const currentUser = useCurrentAccount();
-  const [activeTab, setActiveTab] = useState("perfil");
+  const { tab } = Route.useSearch();
+  const [activeTab, setActiveTab] = useState<string>(tab ?? "perfil");
 
   return (
     <AppShell>

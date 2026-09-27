@@ -14,6 +14,27 @@ const MIGRATIONS = {
     "student_risk_interventions",
     "payment_gateway_charges",
   ],
+  "supabase/migrations/20260926160000_grade_score_history.sql": ["grade_score_history"],
+  "supabase/migrations/20260926140000_timetable_lesson_details_tasks_reminders.sql": [
+    "siga_timetable_slot_details",
+    "siga_class_tasks",
+    "siga_lesson_reminder_settings",
+    "siga_lesson_reminder_log",
+  ],
+  "supabase/migrations/20260926180000_tenant_mailboxes_server_only.sql": ["tenant_mailboxes"],
+  "supabase/migrations/20260927170000_shared_rate_limit.sql": ["siga_rate_limit_hits"],
+  "supabase/migrations/20260927150000_competencies.sql": [
+    "siga_competencies",
+    "siga_assessment_item_competencies",
+  ],
+  "supabase/migrations/20260927090000_student_history_server_only.sql": [
+    "student_academic_history",
+    "student_status_history",
+  ],
+  "supabase/migrations/20260926220000_exam_sessions_registrations.sql": [
+    "siga_exam_sessions",
+    "siga_exam_registrations",
+  ],
   "supabase/migrations/20260925162000_lesson_plans_and_subject_guards.sql": [
     "siga_lesson_plans",
     "siga_lesson_plan_components",

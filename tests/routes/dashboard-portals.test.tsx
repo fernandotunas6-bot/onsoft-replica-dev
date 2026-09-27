@@ -200,12 +200,14 @@ describe("/ (painel principal) — Portais especializados por perfil", () => {
       expect(screen.getByText(/11ª Classe · Turma B/)).toBeDefined();
     });
 
-    expect(screen.getByText("Minha Turma")).toBeDefined();
-    expect(screen.getByText("Notas e Boletim")).toBeDefined();
-    expect(screen.getByText("Frequência e Faltas")).toBeDefined();
-    expect(screen.getByText("Meu Perfil")).toBeDefined();
+    expect(screen.getByText("A minha turma")).toBeDefined();
+    expect(screen.getByText("Notas e boletim")).toBeDefined();
+    expect(screen.getAllByText("Faltas e presenças").length).toBeGreaterThan(0);
+    expect(screen.getByText("O meu perfil")).toBeDefined();
+    expect(screen.getByText("Horário da semana")).toBeDefined();
+    expect(screen.getByText("Cartão de acesso")).toBeDefined();
 
-    expect(screen.getByRole("button", { name: /Cartão Virtual/i })).toBeDefined();
+    expect(screen.getByRole("button", { name: /Cartão de acesso/i })).toBeDefined();
 
     await waitFor(() => {
       expect(screen.getAllByText(/96%/).length).toBeGreaterThan(0);
@@ -246,10 +248,10 @@ describe("/ (painel principal) — Portais especializados por perfil", () => {
       expect(screen.getAllByText(/Ana Manuel da Costa/).length).toBeGreaterThan(0);
     });
 
-    expect(screen.getByText("Boletim e Notas")).toBeDefined();
-    expect(screen.getByText("Presenças e Faltas")).toBeDefined();
-    expect(screen.getByText("Horário Escolar")).toBeDefined();
-    expect(screen.getByText("Contactar a Escola")).toBeDefined();
+    expect(screen.getByText("Boletim e notas")).toBeDefined();
+    expect(screen.getAllByText(/Faltas e presenças/).length).toBeGreaterThan(0);
+    expect(screen.getByText("Horário da semana")).toBeDefined();
+    expect(screen.getByText("Contactar a escola")).toBeDefined();
   });
 
   it("monta o Portal do Professor com sessões de chamada, turmas atribuídas e atalhos de docência", async () => {
@@ -274,12 +276,12 @@ describe("/ (painel principal) — Portais especializados por perfil", () => {
     });
 
     expect(screen.getAllByText("Assinar presença (QR)").length).toBeGreaterThan(0);
-    expect(screen.getAllByText("Fazer Chamada").length).toBeGreaterThan(0);
-    expect(screen.getByText("Lançar Notas e Avaliações")).toBeDefined();
-    expect(screen.getByText("Planos de Aula")).toBeDefined();
+    expect(screen.getAllByText("Fazer chamada").length).toBeGreaterThan(0);
+    expect(screen.getByText("Lançar notas")).toBeDefined();
+    expect(screen.getByText("Planos de aula")).toBeDefined();
 
     await waitFor(() => {
-      expect(screen.getAllByText("Matemática").length).toBeGreaterThan(0);
+      expect(screen.getAllByText(/Matemática/).length).toBeGreaterThan(0);
     });
   });
 });

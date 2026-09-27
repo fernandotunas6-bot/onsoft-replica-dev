@@ -213,6 +213,15 @@ function DocumentosPage() {
     processo: string;
     turma: string | null;
   }) => {
+    // Documentos de notas (declaração de notas, certificado, histórico,
+    // boletim) levam as notas do aluno: emitem-se na ficha dele. Aqui só sairia
+    // uma declaração genérica com esse título, o que engana quem a recebe.
+    if (/nota|certific|hist[óo]ric|boletim/i.test(documento.tipo)) {
+      toast.error(
+        `${documento.tipo}: emita-o na ficha do aluno (Alunos → ${documento.aluno} → Documentos Oficiais), onde as notas são carregadas.`,
+      );
+      return;
+    }
     const validationCode = documentValidationCode([
       documento.id,
       documento.processo,

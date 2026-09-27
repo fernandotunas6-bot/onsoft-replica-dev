@@ -1,3 +1,4 @@
+import { LessonReminderSettingsDialog } from "./LessonReminderSettingsDialog";
 import { useMemo, useState } from "react";
 import {
   AlertTriangle,
@@ -59,7 +60,6 @@ function weekdayLabel(value: number) {
   return weekdays[value - 1] ?? `Dia ${value}`;
 }
 
-
 export function ScheduleWorkspace({
   activeYearLabel,
   activeYearId,
@@ -91,7 +91,7 @@ export function ScheduleWorkspace({
   onCreateSlot: (input: ScheduleSlotInput) => Promise<void>;
   onUpdateSlot: (input: ScheduleSlotUpdate) => Promise<void>;
   onDeleteSlot: (slotId: string) => Promise<void>;
-  onPublishSchedule?: (classGroupId: string) => Promise<void>;
+  onPublishSchedule?: (classGroupId: string) => Promise<{ notified?: number } | void>;
 }) {
   const [viewMode, setViewMode] = useState<"turma" | "professor" | "sala">("turma");
   const [classGroupId, setClassGroupId] = useState("");
@@ -107,7 +107,9 @@ export function ScheduleWorkspace({
     "";
   const selectedClassGroup = classGroups.find((group) => group.id === selectedClassGroupId);
 
-  const selectedTeacherId = teachers.some((teacher) => teacher.id === teacherId) ? teacherId : teachers[0]?.id || "";
+  const selectedTeacherId = teachers.some((teacher) => teacher.id === teacherId)
+    ? teacherId
+    : teachers[0]?.id || "";
   const selectedTeacher = teachers.find((t) => t.id === selectedTeacherId);
 
   const selectedRoomId = rooms.some((room) => room.id === roomId) ? roomId : rooms[0]?.id || "";
@@ -144,18 +146,35 @@ export function ScheduleWorkspace({
       .some((value) => String(value).toLocaleLowerCase().includes(normalizedQuery));
   });
 
-  const conflicts = useMemo(() => detectScheduleConflicts(slots.filter((slot) =>
-    currentSlots.some((visible) => visible.id === slot.id ||
-      (visible.schedule_id != null && visible.schedule_id === slot.schedule_id) ||
-      (visible.schedule_id == null && slot.schedule_id == null)),
-  )), [slots, currentSlots]);
+  const conflicts = useMemo(
+    () =>
+      detectScheduleConflicts(
+        slots.filter((slot) =>
+          currentSlots.some(
+            (visible) =>
+              visible.id === slot.id ||
+              (visible.schedule_id != null && visible.schedule_id === slot.schedule_id) ||
+              (visible.schedule_id == null && slot.schedule_id == null),
+          ),
+        ),
+      ),
+    [slots, currentSlots],
+  );
   const selectedConflicts = conflicts.filter((conflict) =>
     conflict.slotIds.some((slotId) => currentSlots.some((slot) => slot.id === slotId)),
   );
 
   const rows = gridRows(visibleSlots);
   const visibleWeekdays = weekdays.slice(0, visibleSlots.some((slot) => slot.weekday > 5) ? 7 : 5);
-  const publication = schedulePublicationReadiness({ classGroupId: selectedClassGroupId, slots, classGroups, subjects, teachers, rooms, classSubjects });
+  const publication = schedulePublicationReadiness({
+    classGroupId: selectedClassGroupId,
+    slots,
+    classGroups,
+    subjects,
+    teachers,
+    rooms,
+    classSubjects,
+  });
 
   const classGroupOptions = classGroups.map((group) => optionLabel(group.id, group.name));
   const subjectOptions = subjects.map((subject) => optionLabel(subject.id, subject.name));
@@ -181,8 +200,15 @@ export function ScheduleWorkspace({
       throw new Error("Seleccione turma, disciplina e dia da semana.");
     }
 
-    const classVersions = new Set(slots.filter((item) => item.class_group_id === classGroup.id).map((item) => item.schedule_id ?? "__legacy__"));
-    if (classVersions.size > 1) throw new Error("Existem várias versões da turma. Seleccione uma versão antes de adicionar aulas.");
+    const classVersions = new Set(
+      slots
+        .filter((item) => item.class_group_id === classGroup.id)
+        .map((item) => item.schedule_id ?? "__legacy__"),
+    );
+    if (classVersions.size > 1)
+      throw new Error(
+        "Existem várias versões da turma. Seleccione uma versão antes de adicionar aulas.",
+      );
 
     const teacherOpt = values["professor"];
     const resolvedTeacher = teachers.find((t) => optionLabel(t.id, t.name) === teacherOpt);
@@ -198,20 +224,43 @@ export function ScheduleWorkspace({
       throw new Error("A sala seleccionada não está disponível nesta instituição.");
     }
 
-    if (resolvedRoom && classGroup.enrolled_count > 0 && (resolvedRoom.capacity == null || !Number.isFinite(resolvedRoom.capacity) || resolvedRoom.capacity <= 0)) {
-      throw new Error(`Defina uma lotação válida para a sala ${resolvedRoom.name} antes de atribuí-la à turma.`);
+    if (
+      resolvedRoom &&
+      classGroup.enrolled_count > 0 &&
+      (resolvedRoom.capacity == null ||
+        !Number.isFinite(resolvedRoom.capacity) ||
+        resolvedRoom.capacity <= 0)
+    ) {
+      throw new Error(
+        `Defina uma lotação válida para a sala ${resolvedRoom.name} antes de atribuí-la à turma.`,
+      );
     }
     if (resolvedRoom?.capacity != null && classGroup.enrolled_count > resolvedRoom.capacity) {
-      throw new Error(`A sala ${resolvedRoom.name} comporta ${resolvedRoom.capacity} alunos; a turma tem ${classGroup.enrolled_count}.`);
+      throw new Error(
+        `A sala ${resolvedRoom.name} comporta ${resolvedRoom.capacity} alunos; a turma tem ${classGroup.enrolled_count}.`,
+      );
     }
     const roomLabel = resolvedRoom?.name || values["rotulo"]?.trim() || "Sala";
     const virtualRoom = virtualRooms.find((item) => item.label === values["salaVirtual"]);
-    if (values["salaVirtual"] && !virtualRoom) throw new Error("A sala virtual seleccionada não está disponível.");
+    if (values["salaVirtual"] && !virtualRoom)
+      throw new Error("A sala virtual seleccionada não está disponível.");
 
     const startsAt = values["inicio"] ?? "";
     const endsAt = values["fim"] ?? "";
     assertValidScheduleTime(weekday, startsAt, endsAt);
-    assertNoScheduleConflict(slots, { class_group_id: classGroup.id, teacher_id: resolvedTeacher?.id ?? null, room_id: resolvedRoom?.id ?? null, weekday, starts_at: startsAt, ends_at: endsAt }, undefined, slots.find((item) => item.class_group_id === classGroup.id)?.schedule_id ?? null);
+    assertNoScheduleConflict(
+      slots,
+      {
+        class_group_id: classGroup.id,
+        teacher_id: resolvedTeacher?.id ?? null,
+        room_id: resolvedRoom?.id ?? null,
+        weekday,
+        starts_at: startsAt,
+        ends_at: endsAt,
+      },
+      undefined,
+      slots.find((item) => item.class_group_id === classGroup.id)?.schedule_id ?? null,
+    );
 
     await onCreateSlot({
       classGroupId: classGroup.id,
@@ -247,18 +296,45 @@ export function ScheduleWorkspace({
       throw new Error("A sala seleccionada não está disponível nesta instituição.");
     }
     const currentGroup = classGroups.find((group) => group.id === slot.class_group_id);
-    if (resolvedRoom && currentGroup && currentGroup.enrolled_count > 0 && (resolvedRoom.capacity == null || !Number.isFinite(resolvedRoom.capacity) || resolvedRoom.capacity <= 0)) {
-      throw new Error(`Defina uma lotação válida para a sala ${resolvedRoom.name} antes de atribuí-la à turma.`);
+    if (
+      resolvedRoom &&
+      currentGroup &&
+      currentGroup.enrolled_count > 0 &&
+      (resolvedRoom.capacity == null ||
+        !Number.isFinite(resolvedRoom.capacity) ||
+        resolvedRoom.capacity <= 0)
+    ) {
+      throw new Error(
+        `Defina uma lotação válida para a sala ${resolvedRoom.name} antes de atribuí-la à turma.`,
+      );
     }
-    if (resolvedRoom?.capacity != null && currentGroup && currentGroup.enrolled_count > resolvedRoom.capacity) {
-      throw new Error(`A sala ${resolvedRoom.name} comporta ${resolvedRoom.capacity} alunos; a turma tem ${currentGroup.enrolled_count}.`);
+    if (
+      resolvedRoom?.capacity != null &&
+      currentGroup &&
+      currentGroup.enrolled_count > resolvedRoom.capacity
+    ) {
+      throw new Error(
+        `A sala ${resolvedRoom.name} comporta ${resolvedRoom.capacity} alunos; a turma tem ${currentGroup.enrolled_count}.`,
+      );
     }
     const roomLabel = resolvedRoom?.name || values["rotulo"]?.trim() || slot.label || "Sala";
 
     const startsAt = values["inicio"] ?? "";
     const endsAt = values["fim"] ?? "";
     assertValidScheduleTime(weekday, startsAt, endsAt);
-    assertNoScheduleConflict(slots, { class_group_id: slot.class_group_id, teacher_id: resolvedTeacher?.id ?? null, room_id: resolvedRoom?.id ?? null, weekday, starts_at: startsAt, ends_at: endsAt }, slot.id, slot.schedule_id);
+    assertNoScheduleConflict(
+      slots,
+      {
+        class_group_id: slot.class_group_id,
+        teacher_id: resolvedTeacher?.id ?? null,
+        room_id: resolvedRoom?.id ?? null,
+        weekday,
+        starts_at: startsAt,
+        ends_at: endsAt,
+      },
+      slot.id,
+      slot.schedule_id,
+    );
 
     await onUpdateSlot({
       slotId: slot.id,
@@ -291,16 +367,39 @@ export function ScheduleWorkspace({
     if (slot.room_id && !sourceRoom) {
       throw new Error("A sala desta aula deixou de estar disponível.");
     }
-    if (sourceRoom && sourceGroup.enrolled_count > 0 &&
-      (sourceRoom.capacity == null || !Number.isFinite(sourceRoom.capacity) || sourceRoom.capacity < sourceGroup.enrolled_count)) {
+    if (
+      sourceRoom &&
+      sourceGroup.enrolled_count > 0 &&
+      (sourceRoom.capacity == null ||
+        !Number.isFinite(sourceRoom.capacity) ||
+        sourceRoom.capacity < sourceGroup.enrolled_count)
+    ) {
       throw new Error("A sala já não tem lotação válida para esta turma.");
     }
-    const sourceVersions = new Set(slots.filter((item) => item.class_group_id === slot.class_group_id).map((item) => item.schedule_id ?? "__legacy__"));
+    const sourceVersions = new Set(
+      slots
+        .filter((item) => item.class_group_id === slot.class_group_id)
+        .map((item) => item.schedule_id ?? "__legacy__"),
+    );
     if (sourceVersions.size > 1) {
-      throw new Error("Existem várias versões desta turma. Seleccione a versão antes de copiar aulas.");
+      throw new Error(
+        "Existem várias versões desta turma. Seleccione a versão antes de copiar aulas.",
+      );
     }
     assertValidScheduleTime(weekday, slot.starts_at, slot.ends_at);
-    assertNoScheduleConflict(slots, { class_group_id: slot.class_group_id, teacher_id: slot.teacher_id, room_id: slot.room_id ?? null, weekday, starts_at: slot.starts_at, ends_at: slot.ends_at }, undefined, slot.schedule_id);
+    assertNoScheduleConflict(
+      slots,
+      {
+        class_group_id: slot.class_group_id,
+        teacher_id: slot.teacher_id,
+        room_id: slot.room_id ?? null,
+        weekday,
+        starts_at: slot.starts_at,
+        ends_at: slot.ends_at,
+      },
+      undefined,
+      slot.schedule_id,
+    );
     await onCreateSlot({
       classGroupId: slot.class_group_id,
       scheduleId: slot.schedule_id ?? null,
@@ -315,15 +414,27 @@ export function ScheduleWorkspace({
   };
 
   const handlePublish = async () => {
-    if (!canManage || !scheduleAvailable || !selectedClassGroupId || !onPublishSchedule || publishing) return;
+    if (
+      !canManage ||
+      !scheduleAvailable ||
+      !selectedClassGroupId ||
+      !onPublishSchedule ||
+      publishing
+    )
+      return;
     if (!publication.ready) {
       toast.error(`Resolva ${publication.issues.length} pendência(s) antes de publicar.`);
       return;
     }
     setPublishing(true);
     try {
-      await onPublishSchedule(selectedClassGroupId);
-      toast.success("Horário publicado com sucesso.");
+      const result = await onPublishSchedule(selectedClassGroupId);
+      const notified = result && typeof result.notified === "number" ? result.notified : 0;
+      toast.success(
+        notified > 0
+          ? `Horário publicado. ${notified} ${notified === 1 ? "pessoa avisada" : "pessoas avisadas"} no portal.`
+          : "Horário publicado e sincronizado com o calendário escolar.",
+      );
     } catch (err: any) {
       toast.error(err.message || "Erro ao publicar horário.");
     } finally {
@@ -359,9 +470,18 @@ export function ScheduleWorkspace({
 
           {canManage && scheduleAvailable && classGroups.length > 0 && (
             <>
-              <Button variant="outline" size="sm" className="rounded-xl text-xs gap-1.5 print:hidden" onClick={() => window.print()} title="Imprimir o horário actualmente visível">
+              {/* Imprimir e lembretes convivem: um lado da barra trouxe cada um, e
+                  nenhum substitui o outro. */}
+              <Button
+                variant="outline"
+                size="sm"
+                className="rounded-xl text-xs gap-1.5 print:hidden"
+                onClick={() => window.print()}
+                title="Imprimir o horário actualmente visível"
+              >
                 <Printer className="size-3.5" /> Imprimir
               </Button>
+              <LessonReminderSettingsDialog />
               {onPublishSchedule && selectedClassGroupId && (
                 <Button
                   variant="outline"
@@ -369,7 +489,11 @@ export function ScheduleWorkspace({
                   className="rounded-xl text-xs border-primary/30 text-primary hover:bg-primary/10 gap-1.5"
                   onClick={handlePublish}
                   disabled={publishing || !publication.ready || viewMode !== "turma"}
-                  title={!publication.ready ? publication.issues.map((issue) => issue.message).join("\n") : "Publicar horário da turma seleccionada"}
+                  title={
+                    !publication.ready
+                      ? publication.issues.map((issue) => issue.message).join("\n")
+                      : "Publicar horário da turma seleccionada"
+                  }
                 >
                   <Send className="size-3.5" />
                   {publishing ? "A publicar…" : "Publicar Horário"}
@@ -552,20 +676,43 @@ export function ScheduleWorkspace({
       </div>
 
       {viewMode === "turma" && canManage && onPublishSchedule && (
-        <section aria-label="Preparação para publicação" className="mb-4 rounded-2xl border border-border bg-gradient-to-r from-card to-muted/30 p-4 shadow-sm print:hidden">
+        <section
+          aria-label="Preparação para publicação"
+          className="mb-4 rounded-2xl border border-border bg-gradient-to-r from-card to-muted/30 p-4 shadow-sm print:hidden"
+        >
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
               <h3 className="text-sm font-semibold text-foreground">Preparação para publicação</h3>
-              <p className="mt-1 text-xs text-muted-foreground">{publication.lessonCount} aulas · {publication.teacherCount} professores · {publication.roomCount} salas</p>
+              <p className="mt-1 text-xs text-muted-foreground">
+                {publication.lessonCount} aulas · {publication.teacherCount} professores ·{" "}
+                {publication.roomCount} salas
+              </p>
             </div>
-            <span className={`rounded-full px-3 py-1 text-xs font-semibold ${publication.ready ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300" : "bg-amber-500/10 text-amber-700 dark:text-amber-300"}`}>
-              {publication.ready ? "Pronto para publicar" : `${publication.issues.length} pendência(s)`}
+            <span
+              className={`rounded-full px-3 py-1 text-xs font-semibold ${publication.ready ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300" : "bg-amber-500/10 text-amber-700 dark:text-amber-300"}`}
+            >
+              {publication.ready
+                ? "Pronto para publicar"
+                : `${publication.issues.length} pendência(s)`}
             </span>
           </div>
           {publication.issues.length > 0 && (
-            <ul className="mt-3 grid gap-1.5 text-xs text-muted-foreground sm:grid-cols-2" aria-live="polite">
-              {publication.issues.slice(0, 8).map((issue, index) => <li key={`${issue.code}-${issue.slotId ?? index}`} className="flex items-start gap-1.5"><AlertTriangle className="mt-0.5 size-3.5 shrink-0 text-amber-600" />{issue.message}</li>)}
-              {publication.issues.length > 8 && <li>Mais {publication.issues.length - 8} pendência(s).</li>}
+            <ul
+              className="mt-3 grid gap-1.5 text-xs text-muted-foreground sm:grid-cols-2"
+              aria-live="polite"
+            >
+              {publication.issues.slice(0, 8).map((issue, index) => (
+                <li
+                  key={`${issue.code}-${issue.slotId ?? index}`}
+                  className="flex items-start gap-1.5"
+                >
+                  <AlertTriangle className="mt-0.5 size-3.5 shrink-0 text-amber-600" />
+                  {issue.message}
+                </li>
+              ))}
+              {publication.issues.length > 8 && (
+                <li>Mais {publication.issues.length - 8} pendência(s).</li>
+              )}
             </ul>
           )}
         </section>
@@ -604,7 +751,10 @@ export function ScheduleWorkspace({
           <TableBody>
             {rows.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={visibleWeekdays.length + 1} className="py-12 text-center text-xs text-muted-foreground">
+                <TableCell
+                  colSpan={visibleWeekdays.length + 1}
+                  className="py-12 text-center text-xs text-muted-foreground"
+                >
                   Nenhuma aula agendada para esta selecção.
                 </TableCell>
               </TableRow>
@@ -615,10 +765,7 @@ export function ScheduleWorkspace({
                     {row.range}
                   </TableCell>
                   {row.cells.slice(0, visibleWeekdays.length).map((slot, cellIdx) => (
-                    <TableCell
-                      key={cellIdx}
-                      className="p-2 align-top min-w-[150px] max-w-[200px]"
-                    >
+                    <TableCell key={cellIdx} className="p-2 align-top min-w-[150px] max-w-[200px]">
                       {slot ? (
                         <div
                           className={`group relative rounded-xl border-l-4 border p-3 shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md ${

@@ -254,13 +254,15 @@ async function upsertScore(
 ) {
   const { data: existing, error } = await db
     .from("grade_scores")
-    .select("id")
+    .select("id, score")
     .eq("grade_item_id", gradeItemId)
     .eq("enrollment_id", enrollmentId)
     .maybeSingle();
   if (error) throw publicDatabaseError(error, "Não foi possível verificar a nota.");
 
   if (existing?.id) {
+    const previous = existing.score == null ? null : Number(existing.score);
+    if (previous === score) return { id: existing.id, score };
     const { data: updated, error: updateError } = await db
       .from("grade_scores")
       .update({
@@ -272,6 +274,9 @@ async function upsertScore(
       .select("id, score")
       .single();
     if (updateError) throw publicDatabaseError(updateError, "Não foi possível actualizar a nota.");
+    await recordScoreChanges(db, schoolId, userId, [
+      { gradeScoreId: String(existing.id), previous, next: score },
+    ]);
     return updated;
   }
 
@@ -397,7 +402,7 @@ async function upsertScoresBatch(
   const enrollmentIds = entries.map((entry) => entry.enrollmentId);
   const { data: existing, error } = await db
     .from("grade_scores")
-    .select("id, enrollment_id")
+    .select("id, enrollment_id, score")
     .eq("grade_item_id", gradeItemId)
     .in("enrollment_id", enrollmentIds);
   if (error) throw publicDatabaseError(error, "Não foi possível verificar as notas existentes.");
@@ -408,8 +413,19 @@ async function upsertScoresBatch(
       row.id,
     ]),
   );
+  const previousByEnrollment = new Map(
+    (existing ?? []).map((row: { enrollment_id: string; score: number | null }) => [
+      row.enrollment_id,
+      row.score == null ? null : Number(row.score),
+    ]),
+  );
   const toInsert = entries.filter((entry) => !existingByEnrollment.has(entry.enrollmentId));
-  const toUpdate = entries.filter((entry) => existingByEnrollment.has(entry.enrollmentId));
+  // Só se regravam (e registam no histórico) as notas que mudaram mesmo.
+  const toUpdate = entries.filter(
+    (entry) =>
+      existingByEnrollment.has(entry.enrollmentId) &&
+      previousByEnrollment.get(entry.enrollmentId) !== entry.score,
+  );
 
   const [insertResult, ...updateResults] = await Promise.all([
     toInsert.length
@@ -438,6 +454,43 @@ async function upsertScoresBatch(
   for (const result of updateResults) {
     if (result.error)
       throw publicDatabaseError(result.error, "Não foi possível actualizar as notas.");
+  }
+  await recordScoreChanges(
+    db,
+    schoolId,
+    userId,
+    toUpdate.map((entry) => ({
+      gradeScoreId: existingByEnrollment.get(entry.enrollmentId)!,
+      previous: previousByEnrollment.get(entry.enrollmentId) ?? null,
+      next: entry.score,
+    })),
+  );
+}
+
+/**
+ * Histórico de alterações (valor anterior → novo, quem). Sem a tabela
+ * (migração 20260926160000 por aplicar) não falha o lançamento.
+ */
+async function recordScoreChanges(
+  db: Db,
+  schoolId: string,
+  userId: string,
+  changes: Array<{ gradeScoreId: string; previous: number | null; next: number }>,
+) {
+  if (!changes.length) return;
+  const { error } = await db.from("grade_score_history").insert(
+    changes.map((change) => ({
+      school_id: schoolId,
+      grade_score_id: change.gradeScoreId,
+      previous_score: change.previous,
+      new_score: change.next,
+      reason: "Alteração no lançamento",
+      actor_user_id: userId,
+      kind: "change",
+    })),
+  );
+  if (error && !/schema cache|does not exist|42P01|PGRST205/i.test(error.message)) {
+    console.warn("[grade_score_history] não gravado:", error.message);
   }
 }
 

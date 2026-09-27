@@ -36,7 +36,12 @@ export function AuthHeroSlides() {
     <div className="relative max-w-xl">
       <div className="relative min-h-[15rem] overflow-hidden">
         {slides.map((s, i) => {
-          const offset = i === index ? "translate-x-0 opacity-100" : i === (index - 1 + slides.length) % slides.length ? "-translate-x-10 opacity-0" : "translate-x-10 opacity-0";
+          const offset =
+            i === index
+              ? "translate-x-0 opacity-100"
+              : i === (index - 1 + slides.length) % slides.length
+                ? "-translate-x-10 opacity-0"
+                : "translate-x-10 opacity-0";
           return (
             <div
               key={s.title}

@@ -94,19 +94,16 @@ const RLS_PENDING = new Set<string>([
  * abrir o primeiro diário de notas (`gradebooks.rule_set_id` é NOT NULL).
  */
 /**
- * `tenant_mailboxes` saiu a 2026-09-23 com `20260923120000_tenant_mailboxes.sql`.
+ * `tenant_mailboxes` saiu a 2026-09-23 com `20260923120000_tenant_mailboxes.sql`, e foi
+ * aplicada a 2026-09-27 — confirmada no retrato.
  *
- * Não é o `supabase/APPLY_MAILBOXES.sql` que estava à espera desde Setembro: esse
+ * Não foi o `supabase/APPLY_MAILBOXES.sql` que estava à espera desde Setembro: esse
  * declarava a política de leitura por `tenant_members`, tabela que **não existe em
  * produção**, e teria falhado com 42P01 a meio — tabela criada, uma política aplicada e a
- * outra não. A migração nova segue o caminho real, `school_memberships` → `schools.tenant_id`.
- *
- * Continua **ausente da produção** enquanto a migração não for aplicada; isso é a outra
- * lista (`TABELAS_AUSENTES_DA_PRODUCAO`), e é lá que continua registada. Esta mede
- * declaração no repositório.
+ * outra não. A migração seguiu o caminho real, `school_memberships` → `schools.tenant_id`.
  *
  * Sobra `avatars`, que é o falso positivo do conjunto: é um bucket de storage, não uma
- * tabela.
+ * tabela. É por isso que a lista abaixo não está vazia.
  */
 const SCHEMA_ONLY_IN_PRODUCTION = new Set(["avatars"]);
 

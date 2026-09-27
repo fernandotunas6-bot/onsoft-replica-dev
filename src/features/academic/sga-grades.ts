@@ -67,6 +67,44 @@ async function requireConfiguredClassSubject(
   return data;
 }
 
+/** Estados em que a pauta é oficial: as notas já não se alteram directamente. */
+export const LOCKED_SHEET_STATUSES = ["homologated", "published", "closed", "contested"];
+
+const SHEET_STATUS_PT: Record<string, string> = {
+  homologated: "homologada",
+  published: "publicada",
+  closed: "fechada",
+  contested: "contestada",
+};
+
+/**
+ * Recusa lançar/alterar notas de um período cuja pauta (do período ou anual)
+ * já é oficial. A alteração passa a pedido, aprovado pela coordenação.
+ */
+export async function assertGradesNotLocked(
+  db: Db,
+  schoolId: string,
+  classGroupId: string,
+  termId: string,
+) {
+  const { data: sheets, error } = await db
+    .from("grade_sheets")
+    .select("kind, term_id, status")
+    .eq("school_id", schoolId)
+    .eq("class_group_id", classGroupId)
+    .in("status", LOCKED_SHEET_STATUSES);
+  if (error) return; // tabela ausente: sem pautas oficiais, nada a bloquear
+  const locked = (sheets ?? []).find(
+    (sheet: { kind: string; term_id: string | null }) =>
+      sheet.kind === "annual" || String(sheet.term_id) === termId,
+  );
+  if (locked) {
+    throw new Error(
+      `A pauta deste período está ${SHEET_STATUS_PT[String(locked.status)] ?? "fechada"}: as notas já não se alteram aqui. Peça a alteração na pauta (Pedagógica → Pautas), com o motivo.`,
+    );
+  }
+}
+
 /**
  * Compatibilidade para fluxos antigos de horário. Nunca escolhe o primeiro
  * professor activo da escola: só aceita um docente explicitamente ligado ao
@@ -116,8 +154,14 @@ export async function upsertSgaTermGrade(params: {
     throw new Error("Só é possível lançar notas numa matrícula activa ou pendente válida.");
   }
 
-  await requireConfiguredTerm(db, schoolId, String(enrollment.academic_year_id), term);
+  const termRow = await requireConfiguredTerm(
+    db,
+    schoolId,
+    String(enrollment.academic_year_id),
+    term,
+  );
   await requireConfiguredClassSubject(db, schoolId, String(enrollment.class_group_id), subjectId);
+  await assertGradesNotLocked(db, schoolId, String(enrollment.class_group_id), String(termRow.id));
 
   // A implementação histórica continua a tratar gradebook, itens MAC/NPP/NPT e
   // upsert dos scores. Como período e class_subject já existem, os antigos
@@ -162,8 +206,9 @@ export async function upsertSgaTermGradesBatch(params: {
   }
 
   for (const context of contexts.values()) {
-    await requireConfiguredTerm(db, schoolId, context.academicYearId, term);
+    const termRow = await requireConfiguredTerm(db, schoolId, context.academicYearId, term);
     await requireConfiguredClassSubject(db, schoolId, context.classGroupId, subjectId);
+    await assertGradesNotLocked(db, schoolId, context.classGroupId, String(termRow.id));
   }
 
   return legacy.upsertSgaTermGradesBatch(params);

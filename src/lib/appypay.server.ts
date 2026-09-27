@@ -27,9 +27,9 @@ function env(name: string) {
 export function appyPayConfigured() {
   return Boolean(
     env("APPYPAY_CLIENT_ID") &&
-      env("APPYPAY_CLIENT_SECRET") &&
-      env("APPYPAY_RESOURCE") &&
-      (env("APPYPAY_GPO_METHOD") || env("APPYPAY_REF_METHOD")),
+    env("APPYPAY_CLIENT_SECRET") &&
+    env("APPYPAY_RESOURCE") &&
+    (env("APPYPAY_GPO_METHOD") || env("APPYPAY_REF_METHOD")),
   );
 }
 
@@ -68,7 +68,7 @@ async function accessToken(): Promise<string> {
 
 function normalize(raw: Record<string, unknown>): AppyPayCharge {
   const rs = (raw["responseStatus"] ?? {}) as Record<string, unknown>;
-  const ref = ((rs["reference"] ?? raw["reference"]) ?? {}) as Record<string, unknown>;
+  const ref = (rs["reference"] ?? raw["reference"] ?? {}) as Record<string, unknown>;
   return {
     id: String(raw["id"] ?? ""),
     merchantTransactionId: String(raw["merchantTransactionId"] ?? ""),

@@ -1,4 +1,11 @@
-import { useEffect, useMemo, useState, lazy, Suspense } from "react";
+import { GradeSheetsBoard } from "@/features/academic/GradeSheetsBoard";
+import { GradeChangeRequestsPanel } from "@/features/academic/GradeChangeRequestsPanel";
+import { AcademicStructureTab } from "@/features/academic/AcademicStructureTab";
+import { AssessmentModelsTab } from "@/features/academic/AssessmentModelsTab";
+import { ExamsTab } from "@/features/academic/ExamsTab";
+import { CompetenciesTab } from "@/features/academic/CompetenciesTab";
+import { usePassingValue } from "@/features/academic/use-passing-value";
+import { useEffect, useMemo, useRef, useState, lazy, Suspense } from "react";
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { z } from "zod";
@@ -94,6 +101,8 @@ const pedagogicaSearchSchema = z
   .object({
     tab: z
       .enum([
+        "estrutura",
+        "modelos",
         "turmas",
         "disciplinas",
         "salas",
@@ -103,6 +112,8 @@ const pedagogicaSearchSchema = z
         "presencas",
         "chamada",
         "pautas",
+        "exames",
+        "competencias",
       ])
       .optional(),
     turma: z.string().uuid().optional(),
@@ -173,6 +184,7 @@ function PedagogicaPage() {
   const moodleOn = installed.hasCapability("moodle.courses");
   const canvasWork = installed.hasCapability("canvas.assignments");
   const { activeYearLabel, selectedYearId, school } = useSchoolSettings();
+  const passing = usePassingValue();
   const {
     tab: tabFromSearch,
     turma: turmaFromSearch,
@@ -180,7 +192,11 @@ function PedagogicaPage() {
     pauta,
     dia: diaFromSearch,
   } = Route.useSearch();
-  const [tab, setTab] = useState<PedagogicaTab>(tabFromSearch ?? "turmas");
+  // Direcção e secretaria abrem na estrutura do ano; os restantes nas turmas.
+  const [tab, setTab] = useState<PedagogicaTab>(
+    tabFromSearch ??
+      (["Administrador", "Secretaria"].includes(account.role) ? "estrutura" : "turmas"),
+  );
   const [bootstrapping, setBootstrapping] = useState(false);
   const [assessmentOpen, setAssessmentOpen] = useState(false);
   const [openTurmaId, setOpenTurmaId] = useState<string | null>(null);
@@ -242,10 +258,21 @@ function PedagogicaPage() {
     if (pauta === "1") setAssessmentOpen(true);
   }, [pauta, turmaFromSearch, disciplinaFromSearch]);
 
+  // Traz o separador activo à vista quando a linha desliza (telemóvel).
+  const tabsListRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const active = tabsListRef.current?.querySelector<HTMLElement>(
+      '[role="tab"][data-state="active"]',
+    );
+    active?.scrollIntoView?.({ block: "nearest", inline: "nearest" });
+  }, [tab]);
+
   const onTabChange = (next: string) => {
     if (
       !(
         [
+          "estrutura",
+          "modelos",
           "turmas",
           "disciplinas",
           "salas",
@@ -255,6 +282,8 @@ function PedagogicaPage() {
           "presencas",
           "chamada",
           "pautas",
+          "exames",
+          "competencias",
         ] as const
       ).includes(next as PedagogicaTab)
     ) {
@@ -318,7 +347,7 @@ function PedagogicaPage() {
         classGroups.filter((group) => group.attendance_rate != null).length
       : 0;
   const assiduidadeSafe = Number.isFinite(assiduidadeMedia) ? assiduidadeMedia : 0;
-  const aproveitamento = termGrades.filter((nota) => nota.average >= 10).length;
+  const aproveitamento = termGrades.filter((nota) => nota.average >= passing).length;
   const taxaAproveitamento =
     termGrades.length > 0 ? Math.round((aproveitamento / termGrades.length) * 100) : 0;
 
@@ -405,7 +434,7 @@ function PedagogicaPage() {
       .reduce((map, nota) => {
         const classe = nota.class_group_name.split(" ")[0] ?? nota.class_group_name;
         const current = map.get(classe) ?? { classe, aprovados: 0, reprovados: 0 };
-        if (nota.average >= 10) current.aprovados += 1;
+        if (nota.average >= passing) current.aprovados += 1;
         else current.reprovados += 1;
         map.set(classe, current);
         return map;
@@ -770,7 +799,18 @@ function PedagogicaPage() {
         />
 
         <Tabs value={tab} onValueChange={onTabChange}>
-          <TabsList className="flex flex-wrap gap-1">
+          {/* Uma só linha que desliza: com 12 separadores, quebrar em várias
+              linhas empurrava (e tapava) o conteúdo. */}
+          <TabsList
+            ref={tabsListRef}
+            className="no-scrollbar flex h-auto w-full max-w-full flex-nowrap justify-start gap-1 overflow-x-auto"
+          >
+            {canReadAcademic ? (
+              <TabsTrigger value="estrutura">Estrutura académica</TabsTrigger>
+            ) : null}
+            {canReadAcademic ? (
+              <TabsTrigger value="modelos">Modelos de avaliação</TabsTrigger>
+            ) : null}
             <TabsTrigger value="turmas">Turmas</TabsTrigger>
             <TabsTrigger value="disciplinas">Disciplinas</TabsTrigger>
             <TabsTrigger value="salas">Salas & Espaços</TabsTrigger>
@@ -778,7 +818,9 @@ function PedagogicaPage() {
             <TabsTrigger value="horarios">Horários</TabsTrigger>
             <TabsTrigger value="notas">Notas</TabsTrigger>
             <TabsTrigger value="presencas">Presenças / Chamada</TabsTrigger>
-            <TabsTrigger value="pautas">Modelos de Pauta</TabsTrigger>
+            <TabsTrigger value="pautas">Pautas</TabsTrigger>
+            {canReadAcademic ? <TabsTrigger value="exames">Exames</TabsTrigger> : null}
+            {canReadAcademic ? <TabsTrigger value="competencias">Competências</TabsTrigger> : null}
           </TabsList>
           <div className="mt-4">
             <InstalledModuleTools
@@ -796,6 +838,22 @@ function PedagogicaPage() {
               />
             </div>
           </div>
+
+          {canReadAcademic ? (
+            <TabsContent value="estrutura" className="mt-5">
+              <AcademicStructureTab
+                schoolName={school?.name ?? null}
+                yearId={selectedYearId ?? null}
+                yearLabel={activeYearLabel}
+                onOpenTab={onTabChange}
+              />
+            </TabsContent>
+          ) : null}
+          {canReadAcademic ? (
+            <TabsContent value="modelos" className="mt-5">
+              <AssessmentModelsTab />
+            </TabsContent>
+          ) : null}
 
           <TabsContent value="turmas" className="mt-5 space-y-6">
             <TurmasWorkspaceTab
@@ -1010,10 +1068,10 @@ function PedagogicaPage() {
                             <span
                               className={cn(
                                 badgeBase,
-                                n.average >= 10 ? toneClass.success : toneClass.danger,
+                                n.average >= passing ? toneClass.success : toneClass.danger,
                               )}
                             >
-                              {n.average >= 10 ? "Transita" : "Não transita"}
+                              {n.average >= passing ? "Transita" : "Não transita"}
                             </span>
                           </TableCell>
                         </TableRow>
@@ -1108,16 +1166,18 @@ function PedagogicaPage() {
                 await refreshAcademic();
               }}
               onPublishSchedule={async (classGroupId) => {
-                if (selectedYearId) {
-                  await publishAcademicSchedule({
-                    data: {
-                      classGroupId,
-                      academicYearId: selectedYearId,
-                      syncToCalendar: true,
-                    },
-                  });
-                  await refreshAcademic();
+                if (!selectedYearId) {
+                  throw new Error("Seleccione o ano lectivo antes de publicar o horário.");
                 }
+                const result = await publishAcademicSchedule({
+                  data: {
+                    classGroupId,
+                    academicYearId: selectedYearId,
+                    syncToCalendar: true,
+                  },
+                });
+                await refreshAcademic();
+                return { notified: result.notified };
               }}
             />
           </TabsContent>
@@ -1138,7 +1198,22 @@ function PedagogicaPage() {
             />
           </TabsContent>
 
+          {canReadAcademic ? (
+            <TabsContent value="exames" className="mt-5">
+              <ExamsTab yearId={selectedYearId ?? null} />
+            </TabsContent>
+          ) : null}
+          {canReadAcademic ? (
+            <TabsContent value="competencias" className="mt-5">
+              <CompetenciesTab />
+            </TabsContent>
+          ) : null}
+
           <TabsContent value="pautas" className="mt-5 space-y-6">
+            {canManageAcademic ? <GradeChangeRequestsPanel /> : null}
+            {canReadAcademic ? (
+              <GradeSheetsBoard yearId={selectedYearId ?? null} canManage={canManageAcademic} />
+            ) : null}
             <PautasWorkspaceModule workspace={workspace} />
           </TabsContent>
         </Tabs>

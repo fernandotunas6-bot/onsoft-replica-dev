@@ -1,5 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { assertCanSeeStudent, loadStudentScope } from "@/features/students/student-scope";
+import { loadActivePassingValue, loadActiveRuleSummary } from "./exam-data";
 import { recordAuditBatch } from "@/features/audit/record-audit";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { publicDatabaseError } from "@/integrations/supabase/server-error";
@@ -528,6 +529,8 @@ export const listPedagogicalWorkspace = createServerFn({ method: "GET" })
     const enrollmentByIdMap = new Map(
       (enrollments.data ?? []).map((row) => [String(row["id"]), row]),
     );
+    // Aprovação pela nota do modelo de avaliação em vigor, não por um 10 fixo.
+    const passingValue = await loadActivePassingValue(db, membership.schoolId);
     const subjectPassRates = new Map<string, { pass: number; total: number }>();
     const termGrades = gradesMissing
       ? []
@@ -543,7 +546,7 @@ export const listPedagogicalWorkspace = createServerFn({ method: "GET" })
           const average = scoreAverage(grade.mac, grade.npp, grade.npt);
           const passStats = subjectPassRates.get(grade.subject_id) ?? { pass: 0, total: 0 };
           passStats.total += 1;
-          if (average >= 10) passStats.pass += 1;
+          if (average >= passingValue) passStats.pass += 1;
           subjectPassRates.set(grade.subject_id, passStats);
           return {
             id: grade.id,
@@ -1491,6 +1494,17 @@ export const createAssessment = createServerFn({ method: "POST" })
       }
       throw publicDatabaseError(error, "Não foi possível criar a avaliação.");
     }
+    // Prova com data: avisar os alunos da turma (e o professor, se não foi ele).
+    const { notifyAssessmentScheduled } = await import("./assessment-notify");
+    await notifyAssessmentScheduled(db, {
+      schoolId: membership.schoolId,
+      classGroupId: data.classGroupId,
+      subjectId: data.subjectId,
+      itemId: String(created.id),
+      name: data.name,
+      assessedOn: data.assessedOn ?? null,
+      creatorUserId: context.userId,
+    });
     return created;
   });
 
@@ -1719,6 +1733,8 @@ export type StudentAcademicHistoryYear = {
   subjects: ReturnType<typeof buildClassAcademicSummaries>[number]["subjects"];
   overallMfd: number | null;
   status: ReturnType<typeof buildClassAcademicSummaries>[number]["status"];
+  /** Resultado registado pela secretaria (Exames → Resultado final); null se ainda não houver. */
+  official: { outcome: string; finalAverage: number | null } | null;
 };
 
 /**
@@ -1866,6 +1882,26 @@ export const getStudentAcademicHistory = createServerFn({ method: "GET" })
       (subjectsData ?? []).map((s: Record<string, unknown>) => [String(s["id"]), s]),
     );
 
+    // Regra de transição do modelo em vigor (nota de aprovação e regras por ciclo).
+    const activeRule = await loadActiveRuleSummary(db, membership.schoolId);
+
+    // Resultado oficial por ano lectivo (histórico académico registado).
+    const { data: officialRows } = await db
+      .from("student_academic_history")
+      .select("academic_year_label, outcome, final_average, updated_at")
+      .eq("school_id", membership.schoolId)
+      .eq("student_id", data.studentId)
+      .order("updated_at", { ascending: false });
+    const officialByYear = new Map<string, { outcome: string; finalAverage: number | null }>();
+    for (const row of (officialRows ?? []) as Array<Record<string, unknown>>) {
+      const label = String(row["academic_year_label"] ?? "");
+      if (!label || officialByYear.has(label) || !row["outcome"]) continue;
+      officialByYear.set(label, {
+        outcome: String(row["outcome"]),
+        finalAverage: row["final_average"] == null ? null : Number(row["final_average"]),
+      });
+    }
+
     const years_ = enrollments.map((enrollment): StudentAcademicHistoryYear => {
       const group = enrollment.class_group_id
         ? groupById.get(String(enrollment.class_group_id))
@@ -1908,6 +1944,7 @@ export const getStudentAcademicHistory = createServerFn({ method: "GET" })
         subjects: subjectsForClass,
         termGrades: gradesForEnrollment,
         cycle,
+        options: { passing: activeRule.passing, rules: activeRule.promotionRules },
       });
 
       return {
@@ -1922,6 +1959,7 @@ export const getStudentAcademicHistory = createServerFn({ method: "GET" })
         subjects: summary?.subjects ?? [],
         overallMfd: summary?.overallMfd ?? null,
         status: summary?.status ?? "PENDENTE",
+        official: officialByYear.get(String(year?.["name"] ?? "")) ?? null,
       };
     });
 

@@ -611,7 +611,9 @@ export async function exportSchoolData(
     if (mod === "presencas") {
       const { data: records, error } = await db
         .from("siga_attendance_records")
-        .select("id, status, notes, student_id, siga_attendance_sessions!inner(class_group_id, subject_id, lesson_date)")
+        .select(
+          "id, status, notes, student_id, siga_attendance_sessions!inner(class_group_id, subject_id, lesson_date)",
+        )
         .eq("school_id", options.schoolId)
         .order("created_at", { ascending: true });
 
@@ -621,9 +623,27 @@ export async function exportSchoolData(
 
       const rows = records || [];
       const studentIds = [...new Set(rows.map((r: any) => String(r.student_id)))];
-      const sessionRows = rows.map((r: any) => Array.isArray(r.siga_attendance_sessions) ? r.siga_attendance_sessions[0] : r.siga_attendance_sessions);
-      const groupIds = [...new Set(sessionRows.map((r: any) => r?.class_group_id).filter(Boolean).map(String))];
-      const subjectIds = [...new Set(sessionRows.map((r: any) => r?.subject_id).filter(Boolean).map(String))];
+      const sessionRows = rows.map((r: any) =>
+        Array.isArray(r.siga_attendance_sessions)
+          ? r.siga_attendance_sessions[0]
+          : r.siga_attendance_sessions,
+      );
+      const groupIds = [
+        ...new Set(
+          sessionRows
+            .map((r: any) => r?.class_group_id)
+            .filter(Boolean)
+            .map(String),
+        ),
+      ];
+      const subjectIds = [
+        ...new Set(
+          sessionRows
+            .map((r: any) => r?.subject_id)
+            .filter(Boolean)
+            .map(String),
+        ),
+      ];
 
       const [{ data: students }, { data: groups }, { data: subjects }] = await Promise.all([
         studentIds.length
@@ -637,9 +657,15 @@ export async function exportSchoolData(
           : Promise.resolve({ data: [], error: null } as any),
       ]);
 
-      const studentById = new Map((students || []).map((s: any) => [String(s.id), String(s.student_number || "")]));
-      const groupById = new Map((groups || []).map((g: any) => [String(g.id), String(g.name || "")]));
-      const subjectById = new Map((subjects || []).map((s: any) => [String(s.id), String(s.name || "")]));
+      const studentById = new Map(
+        (students || []).map((s: any) => [String(s.id), String(s.student_number || "")]),
+      );
+      const groupById = new Map(
+        (groups || []).map((g: any) => [String(g.id), String(g.name || "")]),
+      );
+      const subjectById = new Map(
+        (subjects || []).map((s: any) => [String(s.id), String(s.name || "")]),
+      );
 
       counts["presencas"] = rows.length;
       totalRecords += rows.length;
@@ -677,84 +703,247 @@ export async function exportSchoolData(
     if (mod === "funcionarios") {
       const { data, error } = await db
         .from("hr_employments")
-        .select("id, employee_number, employment_type, status, hire_date, person_id, position_id, department_id, people(full_name, national_id, phone, email), hr_positions(name), hr_departments(name)")
+        .select(
+          "id, employee_number, employment_type, status, hire_date, person_id, position_id, department_id, people(full_name, national_id, phone, email), hr_positions(name), hr_departments(name)",
+        )
         .eq("school_id", options.schoolId)
         .is("deleted_at", null);
       if (error) throw new Error(`Não foi possível exportar funcionários: ${error.message}`);
       const rows = data || [];
-      counts["funcionarios"] = rows.length; totalRecords += rows.length;
+      counts["funcionarios"] = rows.length;
+      totalRecords += rows.length;
       const sheet = workbook.addWorksheet("FUNCIONARIOS");
       sheet.views = [{ state: "frozen", ySplit: 1, showGridLines: true }];
-      const headers = ["Nome Completo","Nº BI / Documento","Nº de Funcionário / Agente","Data de Admissão","Cargo / Função","Departamento / Sector","Telefone","E-mail","Tipo de Contrato"];
+      const headers = [
+        "Nome Completo",
+        "Nº BI / Documento",
+        "Nº de Funcionário / Agente",
+        "Data de Admissão",
+        "Cargo / Função",
+        "Departamento / Sector",
+        "Telefone",
+        "E-mail",
+        "Tipo de Contrato",
+      ];
       styleHeaderRow(sheet.addRow(headers), options.mode);
       for (const r of rows) {
-        const p = first(r.people as any); const pos = first(r.hr_positions as any); const dep = first(r.hr_departments as any);
-        sheet.addRow([p?.full_name || "",p?.national_id || "",r.employee_number || "",r.hire_date || "",pos?.name || "",dep?.name || "",p?.phone || "",p?.email || "",r.employment_type || ""]);
+        const p = first(r.people as any);
+        const pos = first(r.hr_positions as any);
+        const dep = first(r.hr_departments as any);
+        sheet.addRow([
+          p?.full_name || "",
+          p?.national_id || "",
+          r.employee_number || "",
+          r.hire_date || "",
+          pos?.name || "",
+          dep?.name || "",
+          p?.phone || "",
+          p?.email || "",
+          r.employment_type || "",
+        ]);
       }
       autoFitColumns(sheet);
     }
 
     if (mod === "classes") {
-      let query = db.from("grade_levels").select("id, code, name, sequence, program_id, programs(name, code)").eq("school_id", options.schoolId);
+      const query = db
+        .from("grade_levels")
+        .select("id, code, name, sequence, program_id, programs(name, code)")
+        .eq("school_id", options.schoolId);
       const { data, error } = await query;
       if (error) throw new Error(`Não foi possível exportar classes: ${error.message}`);
-      const rows = data || []; counts["classes"] = rows.length; totalRecords += rows.length;
-      const sheet = workbook.addWorksheet("CLASSES"); sheet.views = [{ state: "frozen", ySplit: 1, showGridLines: true }];
-      styleHeaderRow(sheet.addRow(["Código da Classe","Nome da Classe","Curso / Especialidade","Ordem / Nível"]), options.mode);
-      for (const r of rows) { const p=first(r.programs as any); sheet.addRow([r.code||"",r.name||"",p?.code||p?.name||"",r.sequence ?? ""]); }
+      const rows = data || [];
+      counts["classes"] = rows.length;
+      totalRecords += rows.length;
+      const sheet = workbook.addWorksheet("CLASSES");
+      sheet.views = [{ state: "frozen", ySplit: 1, showGridLines: true }];
+      styleHeaderRow(
+        sheet.addRow([
+          "Código da Classe",
+          "Nome da Classe",
+          "Curso / Especialidade",
+          "Ordem / Nível",
+        ]),
+        options.mode,
+      );
+      for (const r of rows) {
+        const p = first(r.programs as any);
+        sheet.addRow([r.code || "", r.name || "", p?.code || p?.name || "", r.sequence ?? ""]);
+      }
       autoFitColumns(sheet);
     }
 
     if (mod === "cursos") {
-      const { data, error } = await db.from("programs").select("id, name, code, academic_level_id").eq("school_id", options.schoolId).eq("is_active", true);
+      const { data, error } = await db
+        .from("programs")
+        .select("id, name, code, academic_level_id")
+        .eq("school_id", options.schoolId)
+        .eq("is_active", true);
       if (error) throw new Error(`Não foi possível exportar cursos: ${error.message}`);
-      const rows=data||[]; counts["cursos"]=rows.length; totalRecords+=rows.length;
-      const levelIds=[...new Set(rows.map((r:any)=>String(r.academic_level_id)))];
-      const {data: levels}=levelIds.length ? await db.from("academic_levels").select("id,name").in("id",levelIds) : {data:[]};
-      const lm=new Map((levels||[]).map((r:any)=>[String(r.id),r.name]));
-      const sheet=workbook.addWorksheet("CURSOS"); sheet.views=[{state:"frozen",ySplit:1,showGridLines:true}];
-      styleHeaderRow(sheet.addRow(["Nome do Curso","Código do Curso","Nível Académico"]),options.mode);
-      for(const r of rows) sheet.addRow([r.name||"",r.code||"",lm.get(String(r.academic_level_id))||""]);
+      const rows = data || [];
+      counts["cursos"] = rows.length;
+      totalRecords += rows.length;
+      const levelIds = [...new Set(rows.map((r: any) => String(r.academic_level_id)))];
+      const { data: levels } = levelIds.length
+        ? await db.from("academic_levels").select("id,name").in("id", levelIds)
+        : { data: [] };
+      const lm = new Map((levels || []).map((r: any) => [String(r.id), r.name]));
+      const sheet = workbook.addWorksheet("CURSOS");
+      sheet.views = [{ state: "frozen", ySplit: 1, showGridLines: true }];
+      styleHeaderRow(
+        sheet.addRow(["Nome do Curso", "Código do Curso", "Nível Académico"]),
+        options.mode,
+      );
+      for (const r of rows)
+        sheet.addRow([r.name || "", r.code || "", lm.get(String(r.academic_level_id)) || ""]);
       autoFitColumns(sheet);
     }
 
     if (mod === "salas") {
-      const { data, error } = await db.from("rooms").select("id, code, name, capacity, room_type, campus_id").eq("school_id", options.schoolId).is("deleted_at", null);
+      const { data, error } = await db
+        .from("rooms")
+        .select("id, code, name, capacity, room_type, campus_id")
+        .eq("school_id", options.schoolId)
+        .is("deleted_at", null);
       if (error) throw new Error(`Não foi possível exportar salas: ${error.message}`);
-      const rows=data||[]; counts["salas"]=rows.length; totalRecords+=rows.length;
-      const campusIds=[...new Set(rows.map((r:any)=>r.campus_id).filter(Boolean).map(String))];
-      const {data: campuses}=campusIds.length ? await db.from("campuses").select("id,name").in("id",campusIds) : {data:[]};
-      const cm=new Map((campuses||[]).map((r:any)=>[String(r.id),r.name]));
-      const sheet=workbook.addWorksheet("SALAS"); sheet.views=[{state:"frozen",ySplit:1,showGridLines:true}];
-      styleHeaderRow(sheet.addRow(["Código da Sala","Nome da Sala","Campus / Bloco","Capacidade","Tipo de Espaço"]),options.mode);
-      for(const r of rows) sheet.addRow([r.code||"",r.name||"",cm.get(String(r.campus_id))||"",r.capacity??"",r.room_type||""]);
+      const rows = data || [];
+      counts["salas"] = rows.length;
+      totalRecords += rows.length;
+      const campusIds = [
+        ...new Set(
+          rows
+            .map((r: any) => r.campus_id)
+            .filter(Boolean)
+            .map(String),
+        ),
+      ];
+      const { data: campuses } = campusIds.length
+        ? await db.from("campuses").select("id,name").in("id", campusIds)
+        : { data: [] };
+      const cm = new Map((campuses || []).map((r: any) => [String(r.id), r.name]));
+      const sheet = workbook.addWorksheet("SALAS");
+      sheet.views = [{ state: "frozen", ySplit: 1, showGridLines: true }];
+      styleHeaderRow(
+        sheet.addRow([
+          "Código da Sala",
+          "Nome da Sala",
+          "Campus / Bloco",
+          "Capacidade",
+          "Tipo de Espaço",
+        ]),
+        options.mode,
+      );
+      for (const r of rows)
+        sheet.addRow([
+          r.code || "",
+          r.name || "",
+          cm.get(String(r.campus_id)) || "",
+          r.capacity ?? "",
+          r.room_type || "",
+        ]);
       autoFitColumns(sheet);
     }
 
     if (mod === "horarios") {
-      let query = db.from("timetable_slots").select("id,class_subject_id,weekday,starts_at,ends_at,room,status,room_id,shift_id").eq("school_id", options.schoolId).eq("status","active");
-      const {data,error}=await query;
-      if(error) throw new Error(`Não foi possível exportar horários: ${error.message}`);
-      const rows=data||[]; counts["horarios"]=rows.length; totalRecords+=rows.length;
-      const csIds=[...new Set(rows.map((r:any)=>String(r.class_subject_id)))];
-      const roomIds=[...new Set(rows.map((r:any)=>r.room_id).filter(Boolean).map(String))];
-      const {data: css}=csIds.length ? await db.from("class_subjects").select("id,class_group_id,subject_id,teacher_id").in("id",csIds) : {data:[]};
-      const groupIds=[...new Set((css||[]).map((r:any)=>String(r.class_group_id)))];
-      const subjectIds=[...new Set((css||[]).map((r:any)=>String(r.subject_id)))];
-      const teacherIds=[...new Set((css||[]).map((r:any)=>r.teacher_id).filter(Boolean).map(String))];
-      const [{data: groups},{data: subjects},{data: teachers},{data: rooms}] = await Promise.all([
-        groupIds.length?db.from("class_groups").select("id,name,code").in("id",groupIds):Promise.resolve({data:[] as any[]}),
-        subjectIds.length?db.from("subjects").select("id,name,code").in("id",subjectIds):Promise.resolve({data:[] as any[]}),
-        teacherIds.length?db.from("teachers").select("id,employee_number,people(full_name)").in("id",teacherIds):Promise.resolve({data:[] as any[]}),
-        roomIds.length?db.from("rooms").select("id,name,code").in("id",roomIds):Promise.resolve({data:[] as any[]}),
-      ]);
-      const csm=new Map((css||[]).map((r:any)=>[String(r.id),r])); const gm=new Map((groups||[]).map((r:any)=>[String(r.id),r]));
-      const sm=new Map((subjects||[]).map((r:any)=>[String(r.id),r])); const tm=new Map((teachers||[]).map((r:any)=>[String(r.id),r]));
-      const rm=new Map((rooms||[]).map((r:any)=>[String(r.id),r]));
-      const days=["","Segunda-feira","Terça-feira","Quarta-feira","Quinta-feira","Sexta-feira","Sábado","Domingo"];
-      const sheet=workbook.addWorksheet("HORARIOS"); sheet.views=[{state:"frozen",ySplit:1,showGridLines:true}];
-      styleHeaderRow(sheet.addRow(["Turma","Disciplina","Professor (Nº Agente ou BI)","Dia da Semana","Hora de Início","Hora de Fim","Sala"]),options.mode);
-      for(const r of rows){const cs=csm.get(String(r.class_subject_id)); const g=gm.get(String(cs?.class_group_id)); const s=sm.get(String(cs?.subject_id)); const t=tm.get(String(cs?.teacher_id)); const p=first(t?.people as any); const room=rm.get(String(r.room_id)); sheet.addRow([g?.code||g?.name||"",s?.code||s?.name||"",t?.employee_number||p?.full_name||"",days[Number(r.weekday)]||String(r.weekday),r.starts_at||"",r.ends_at||"",room?.code||room?.name||r.room||""]); }
+      const query = db
+        .from("timetable_slots")
+        .select("id,class_subject_id,weekday,starts_at,ends_at,room,status,room_id,shift_id")
+        .eq("school_id", options.schoolId)
+        .eq("status", "active");
+      const { data, error } = await query;
+      if (error) throw new Error(`Não foi possível exportar horários: ${error.message}`);
+      const rows = data || [];
+      counts["horarios"] = rows.length;
+      totalRecords += rows.length;
+      const csIds = [...new Set(rows.map((r: any) => String(r.class_subject_id)))];
+      const roomIds = [
+        ...new Set(
+          rows
+            .map((r: any) => r.room_id)
+            .filter(Boolean)
+            .map(String),
+        ),
+      ];
+      const { data: css } = csIds.length
+        ? await db
+            .from("class_subjects")
+            .select("id,class_group_id,subject_id,teacher_id")
+            .in("id", csIds)
+        : { data: [] };
+      const groupIds = [...new Set((css || []).map((r: any) => String(r.class_group_id)))];
+      const subjectIds = [...new Set((css || []).map((r: any) => String(r.subject_id)))];
+      const teacherIds = [
+        ...new Set(
+          (css || [])
+            .map((r: any) => r.teacher_id)
+            .filter(Boolean)
+            .map(String),
+        ),
+      ];
+      const [{ data: groups }, { data: subjects }, { data: teachers }, { data: rooms }] =
+        await Promise.all([
+          groupIds.length
+            ? db.from("class_groups").select("id,name,code").in("id", groupIds)
+            : Promise.resolve({ data: [] as any[] }),
+          subjectIds.length
+            ? db.from("subjects").select("id,name,code").in("id", subjectIds)
+            : Promise.resolve({ data: [] as any[] }),
+          teacherIds.length
+            ? db
+                .from("teachers")
+                .select("id,employee_number,people(full_name)")
+                .in("id", teacherIds)
+            : Promise.resolve({ data: [] as any[] }),
+          roomIds.length
+            ? db.from("rooms").select("id,name,code").in("id", roomIds)
+            : Promise.resolve({ data: [] as any[] }),
+        ]);
+      const csm = new Map((css || []).map((r: any) => [String(r.id), r]));
+      const gm = new Map((groups || []).map((r: any) => [String(r.id), r]));
+      const sm = new Map((subjects || []).map((r: any) => [String(r.id), r]));
+      const tm = new Map((teachers || []).map((r: any) => [String(r.id), r]));
+      const rm = new Map((rooms || []).map((r: any) => [String(r.id), r]));
+      const days = [
+        "",
+        "Segunda-feira",
+        "Terça-feira",
+        "Quarta-feira",
+        "Quinta-feira",
+        "Sexta-feira",
+        "Sábado",
+        "Domingo",
+      ];
+      const sheet = workbook.addWorksheet("HORARIOS");
+      sheet.views = [{ state: "frozen", ySplit: 1, showGridLines: true }];
+      styleHeaderRow(
+        sheet.addRow([
+          "Turma",
+          "Disciplina",
+          "Professor (Nº Agente ou BI)",
+          "Dia da Semana",
+          "Hora de Início",
+          "Hora de Fim",
+          "Sala",
+        ]),
+        options.mode,
+      );
+      for (const r of rows) {
+        const cs = csm.get(String(r.class_subject_id));
+        const g = gm.get(String(cs?.class_group_id));
+        const s = sm.get(String(cs?.subject_id));
+        const t = tm.get(String(cs?.teacher_id));
+        const p = first(t?.people as any);
+        const room = rm.get(String(r.room_id));
+        sheet.addRow([
+          g?.code || g?.name || "",
+          s?.code || s?.name || "",
+          t?.employee_number || p?.full_name || "",
+          days[Number(r.weekday)] || String(r.weekday),
+          r.starts_at || "",
+          r.ends_at || "",
+          room?.code || room?.name || r.room || "",
+        ]);
+      }
       autoFitColumns(sheet);
     }
 
@@ -764,47 +953,149 @@ export async function exportSchoolData(
       // grade_items; embutir os dois lado a lado fazia o PostgREST recusar a
       // consulta inteira ("Could not find a relationship between grade_scores and
       // gradebooks"), e o ecrã de exportação ficava vazio sem nenhum erro visível.
-      let scoreQuery=db.from("grade_scores").select("id,grade_item_id,enrollment_id,score,status,note,grade_items(code,name,gradebooks!inner(term_id,class_subject_id,class_group_id))").eq("school_id",options.schoolId);
-      const {data,error}=await scoreQuery;
-      if(error) throw new Error(`Não foi possível exportar notas: ${error.message}`);
-      const rows=data||[]; counts["notas"]=rows.length; totalRecords+=rows.length;
-      const enrIds=[...new Set(rows.map((r:any)=>String(r.enrollment_id)))]; const csIds=[...new Set(rows.map((r:any)=>String(first(first(r.grade_items as any)?.gradebooks as any)?.class_subject_id)))];
-      const {data: enrollments}=enrIds.length?await db.from("enrollments").select("id,student_id,class_group_id").in("id",enrIds):{data:[]};
-      const {data: css}=csIds.length?await db.from("class_subjects").select("id,subject_id").in("id",csIds):{data:[]};
-      const studentIds=[...new Set((enrollments||[]).map((r:any)=>String(r.student_id)))]; const subjectIds=[...new Set((css||[]).map((r:any)=>String(r.subject_id)))];
-      const termIds=[...new Set(rows.map((r:any)=>String(first(first(r.grade_items as any)?.gradebooks as any)?.term_id)))];
-      const [{data:students},{data:subjects},{data:terms}]=await Promise.all([
-        studentIds.length?db.from("students").select("id,student_number").in("id",studentIds):Promise.resolve({data:[] as any[]}),
-        subjectIds.length?db.from("subjects").select("id,name,code").in("id",subjectIds):Promise.resolve({data:[] as any[]}),
-        termIds.length?db.from("terms").select("id,sequence,name").in("id",termIds):Promise.resolve({data:[] as any[]}),
+      const scoreQuery = db
+        .from("grade_scores")
+        .select(
+          "id,grade_item_id,enrollment_id,score,status,note,grade_items(code,name,gradebooks!inner(term_id,class_subject_id,class_group_id))",
+        )
+        .eq("school_id", options.schoolId);
+      const { data, error } = await scoreQuery;
+      if (error) throw new Error(`Não foi possível exportar notas: ${error.message}`);
+      const rows = data || [];
+      counts["notas"] = rows.length;
+      totalRecords += rows.length;
+      const enrIds = [...new Set(rows.map((r: any) => String(r.enrollment_id)))];
+      const csIds = [
+        ...new Set(
+          rows.map((r: any) =>
+            String(first(first(r.grade_items as any)?.gradebooks as any)?.class_subject_id),
+          ),
+        ),
+      ];
+      const { data: enrollments } = enrIds.length
+        ? await db.from("enrollments").select("id,student_id,class_group_id").in("id", enrIds)
+        : { data: [] };
+      const { data: css } = csIds.length
+        ? await db.from("class_subjects").select("id,subject_id").in("id", csIds)
+        : { data: [] };
+      const studentIds = [...new Set((enrollments || []).map((r: any) => String(r.student_id)))];
+      const subjectIds = [...new Set((css || []).map((r: any) => String(r.subject_id)))];
+      const termIds = [
+        ...new Set(
+          rows.map((r: any) =>
+            String(first(first(r.grade_items as any)?.gradebooks as any)?.term_id),
+          ),
+        ),
+      ];
+      const [{ data: students }, { data: subjects }, { data: terms }] = await Promise.all([
+        studentIds.length
+          ? db.from("students").select("id,student_number").in("id", studentIds)
+          : Promise.resolve({ data: [] as any[] }),
+        subjectIds.length
+          ? db.from("subjects").select("id,name,code").in("id", subjectIds)
+          : Promise.resolve({ data: [] as any[] }),
+        termIds.length
+          ? db.from("terms").select("id,sequence,name").in("id", termIds)
+          : Promise.resolve({ data: [] as any[] }),
       ]);
-      const em=new Map((enrollments||[]).map((r:any)=>[String(r.id),r])); const cm=new Map((css||[]).map((r:any)=>[String(r.id),r]));
-      const sm=new Map((students||[]).map((r:any)=>[String(r.id),r.student_number])); const subm=new Map((subjects||[]).map((r:any)=>[String(r.id),r]));
-      const termm=new Map((terms||[]).map((r:any)=>[String(r.id),r.sequence ?? r.name]));
-      const sheet=workbook.addWorksheet("NOTAS"); sheet.views=[{state:"frozen",ySplit:1,showGridLines:true}];
-      styleHeaderRow(sheet.addRow(["Identificador do Aluno (Processo ou Nome)","Turma","Disciplina","Trimestre / Período","Código da Avaliação","Nota / Média Final do Período","Observação"]),options.mode);
-      for(const r of rows){const gi=first(r.grade_items as any); const gb=first(gi?.gradebooks as any); const e=em.get(String(r.enrollment_id)); const cs=cm.get(String(gb?.class_subject_id)); const sub=subm.get(String(cs?.subject_id)); sheet.addRow([sm.get(String(e?.student_id))||"",String(e?.class_group_id||""),sub?.code||sub?.name||"",termm.get(String(gb?.term_id))||"",gi?.code||"",r.score??"",r.note||""]); }
+      const em = new Map((enrollments || []).map((r: any) => [String(r.id), r]));
+      const cm = new Map((css || []).map((r: any) => [String(r.id), r]));
+      const sm = new Map((students || []).map((r: any) => [String(r.id), r.student_number]));
+      const subm = new Map((subjects || []).map((r: any) => [String(r.id), r]));
+      const termm = new Map((terms || []).map((r: any) => [String(r.id), r.sequence ?? r.name]));
+      const sheet = workbook.addWorksheet("NOTAS");
+      sheet.views = [{ state: "frozen", ySplit: 1, showGridLines: true }];
+      styleHeaderRow(
+        sheet.addRow([
+          "Identificador do Aluno (Processo ou Nome)",
+          "Turma",
+          "Disciplina",
+          "Trimestre / Período",
+          "Código da Avaliação",
+          "Nota / Média Final do Período",
+          "Observação",
+        ]),
+        options.mode,
+      );
+      for (const r of rows) {
+        const gi = first(r.grade_items as any);
+        const gb = first(gi?.gradebooks as any);
+        const e = em.get(String(r.enrollment_id));
+        const cs = cm.get(String(gb?.class_subject_id));
+        const sub = subm.get(String(cs?.subject_id));
+        sheet.addRow([
+          sm.get(String(e?.student_id)) || "",
+          String(e?.class_group_id || ""),
+          sub?.code || sub?.name || "",
+          termm.get(String(gb?.term_id)) || "",
+          gi?.code || "",
+          r.score ?? "",
+          r.note || "",
+        ]);
+      }
       autoFitColumns(sheet);
     }
 
     if (mod === "dividas") {
-      const {data,error}=await db.from("finance_invoices").select("id,contract_id,fee_item_id,invoice_number,competence_month,amount,discount_amount,due_date,status,penalty_amount").eq("school_id",options.schoolId);
-      if(error) throw new Error(`Não foi possível exportar dívidas: ${error.message}`);
-      const rows=data||[]; counts["dividas"]=rows.length; totalRecords+=rows.length;
-      const contractIds=[...new Set(rows.map((r:any)=>String(r.contract_id)))]; const feeItemIds=[...new Set(rows.map((r:any)=>String(r.fee_item_id)))];
-      const [{data:contracts},{data:feeItems}]=await Promise.all([
-        contractIds.length?db.from("finance_contracts").select("id,enrollment_id").in("id",contractIds):Promise.resolve({data:[] as any[]}),
-        feeItemIds.length?db.from("fee_items").select("id,name").in("id",feeItemIds):Promise.resolve({data:[] as any[]}),
+      const { data, error } = await db
+        .from("finance_invoices")
+        .select(
+          "id,contract_id,fee_item_id,invoice_number,competence_month,amount,discount_amount,due_date,status,penalty_amount",
+        )
+        .eq("school_id", options.schoolId);
+      if (error) throw new Error(`Não foi possível exportar dívidas: ${error.message}`);
+      const rows = data || [];
+      counts["dividas"] = rows.length;
+      totalRecords += rows.length;
+      const contractIds = [...new Set(rows.map((r: any) => String(r.contract_id)))];
+      const feeItemIds = [...new Set(rows.map((r: any) => String(r.fee_item_id)))];
+      const [{ data: contracts }, { data: feeItems }] = await Promise.all([
+        contractIds.length
+          ? db.from("finance_contracts").select("id,enrollment_id").in("id", contractIds)
+          : Promise.resolve({ data: [] as any[] }),
+        feeItemIds.length
+          ? db.from("fee_items").select("id,name").in("id", feeItemIds)
+          : Promise.resolve({ data: [] as any[] }),
       ]);
-      const enrollmentIds=[...new Set((contracts||[]).map((r:any)=>String(r.enrollment_id)))];
-      const {data:enrollments}=enrollmentIds.length?await db.from("enrollments").select("id,student_id").in("id",enrollmentIds):{data:[]};
-      const studentIds=[...new Set((enrollments||[]).map((r:any)=>String(r.student_id)))];
-      const {data:students}=studentIds.length?await db.from("students").select("id,student_number").in("id",studentIds):{data:[]};
-      const cm=new Map((contracts||[]).map((r:any)=>[String(r.id),r])); const fm=new Map((feeItems||[]).map((r:any)=>[String(r.id),r.name]));
-      const em=new Map((enrollments||[]).map((r:any)=>[String(r.id),r])); const stm=new Map((students||[]).map((r:any)=>[String(r.id),r.student_number]));
-      const sheet=workbook.addWorksheet("DIVIDAS"); sheet.views=[{state:"frozen",ySplit:1,showGridLines:true}];
-      styleHeaderRow(sheet.addRow(["Aluno (Processo ou BI)","Nº da Fatura / Guia","Mês / Descrição da Dívida","Valor em Dívida (Kz)","Data de Vencimento","Estado da Cobrança"]),options.mode);
-      for(const r of rows){const c=cm.get(String(r.contract_id)); const e=em.get(String(c?.enrollment_id)); sheet.addRow([stm.get(String(e?.student_id))||"",r.invoice_number||"",fm.get(String(r.fee_item_id))||r.competence_month||"",r.amount??"",r.due_date||"",r.status||""]); }
+      const enrollmentIds = [
+        ...new Set((contracts || []).map((r: any) => String(r.enrollment_id))),
+      ];
+      const { data: enrollments } = enrollmentIds.length
+        ? await db.from("enrollments").select("id,student_id").in("id", enrollmentIds)
+        : { data: [] };
+      const studentIds = [...new Set((enrollments || []).map((r: any) => String(r.student_id)))];
+      const { data: students } = studentIds.length
+        ? await db.from("students").select("id,student_number").in("id", studentIds)
+        : { data: [] };
+      const cm = new Map((contracts || []).map((r: any) => [String(r.id), r]));
+      const fm = new Map((feeItems || []).map((r: any) => [String(r.id), r.name]));
+      const em = new Map((enrollments || []).map((r: any) => [String(r.id), r]));
+      const stm = new Map((students || []).map((r: any) => [String(r.id), r.student_number]));
+      const sheet = workbook.addWorksheet("DIVIDAS");
+      sheet.views = [{ state: "frozen", ySplit: 1, showGridLines: true }];
+      styleHeaderRow(
+        sheet.addRow([
+          "Aluno (Processo ou BI)",
+          "Nº da Fatura / Guia",
+          "Mês / Descrição da Dívida",
+          "Valor em Dívida (Kz)",
+          "Data de Vencimento",
+          "Estado da Cobrança",
+        ]),
+        options.mode,
+      );
+      for (const r of rows) {
+        const c = cm.get(String(r.contract_id));
+        const e = em.get(String(c?.enrollment_id));
+        sheet.addRow([
+          stm.get(String(e?.student_id)) || "",
+          r.invoice_number || "",
+          fm.get(String(r.fee_item_id)) || r.competence_month || "",
+          r.amount ?? "",
+          r.due_date || "",
+          r.status || "",
+        ]);
+      }
       autoFitColumns(sheet);
     }
 

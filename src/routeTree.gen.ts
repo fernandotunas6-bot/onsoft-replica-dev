@@ -59,6 +59,7 @@ import { Route as AlumniAlumniIdPortfolioRouteImport } from './routes/alumni.$al
 import { Route as AlumniPortalPortfolioRouteImport } from './routes/alumni.portal.portfolio'
 import { Route as ApiCalendarIcsRouteImport } from './routes/api/calendar.ics'
 import { Route as ApiCatracasDeviceScanRouteImport } from './routes/api/catracas/device-scan'
+import { Route as ApiCronLessonRemindersRouteImport } from './routes/api/cron/lesson-reminders'
 import { Route as ApiSaasAuditLogsRouteImport } from './routes/api/saas/audit-logs'
 import { Route as ApiSaasDomainsRouteImport } from './routes/api/saas/domains'
 import { Route as ApiSaasGatewayWebhooksRouteImport } from './routes/api/saas/gateway-webhooks'
@@ -350,6 +351,11 @@ const ApiCatracasDeviceScanRoute = ApiCatracasDeviceScanRouteImport.update({
   path: '/api/catracas/device-scan',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiCronLessonRemindersRoute = ApiCronLessonRemindersRouteImport.update({
+  id: '/api/cron/lesson-reminders',
+  path: '/api/cron/lesson-reminders',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiSaasAuditLogsRoute = ApiSaasAuditLogsRouteImport.update({
   id: '/api/saas/audit-logs',
   path: '/api/saas/audit-logs',
@@ -605,6 +611,7 @@ export interface FileRoutesByFullPath {
   '/alumni/portal/portfolio': typeof AlumniPortalPortfolioRouteWithChildren
   '/api/calendar/ics': typeof ApiCalendarIcsRoute
   '/api/catracas/device-scan': typeof ApiCatracasDeviceScanRoute
+  '/api/cron/lesson-reminders': typeof ApiCronLessonRemindersRoute
   '/api/saas/audit-logs': typeof ApiSaasAuditLogsRoute
   '/api/saas/domains': typeof ApiSaasDomainsRouteWithChildren
   '/api/saas/gateway-webhooks': typeof ApiSaasGatewayWebhooksRoute
@@ -695,6 +702,7 @@ export interface FileRoutesByTo {
   '/alumni/portal/portfolio': typeof AlumniPortalPortfolioRouteWithChildren
   '/api/calendar/ics': typeof ApiCalendarIcsRoute
   '/api/catracas/device-scan': typeof ApiCatracasDeviceScanRoute
+  '/api/cron/lesson-reminders': typeof ApiCronLessonRemindersRoute
   '/api/saas/audit-logs': typeof ApiSaasAuditLogsRoute
   '/api/saas/domains': typeof ApiSaasDomainsRouteWithChildren
   '/api/saas/gateway-webhooks': typeof ApiSaasGatewayWebhooksRoute
@@ -786,6 +794,7 @@ export interface FileRoutesById {
   '/alumni/portal/portfolio': typeof AlumniPortalPortfolioRouteWithChildren
   '/api/calendar/ics': typeof ApiCalendarIcsRoute
   '/api/catracas/device-scan': typeof ApiCatracasDeviceScanRoute
+  '/api/cron/lesson-reminders': typeof ApiCronLessonRemindersRoute
   '/api/saas/audit-logs': typeof ApiSaasAuditLogsRoute
   '/api/saas/domains': typeof ApiSaasDomainsRouteWithChildren
   '/api/saas/gateway-webhooks': typeof ApiSaasGatewayWebhooksRoute
@@ -878,6 +887,7 @@ export interface FileRouteTypes {
     | '/alumni/portal/portfolio'
     | '/api/calendar/ics'
     | '/api/catracas/device-scan'
+    | '/api/cron/lesson-reminders'
     | '/api/saas/audit-logs'
     | '/api/saas/domains'
     | '/api/saas/gateway-webhooks'
@@ -968,6 +978,7 @@ export interface FileRouteTypes {
     | '/alumni/portal/portfolio'
     | '/api/calendar/ics'
     | '/api/catracas/device-scan'
+    | '/api/cron/lesson-reminders'
     | '/api/saas/audit-logs'
     | '/api/saas/domains'
     | '/api/saas/gateway-webhooks'
@@ -1058,6 +1069,7 @@ export interface FileRouteTypes {
     | '/alumni/portal/portfolio'
     | '/api/calendar/ics'
     | '/api/catracas/device-scan'
+    | '/api/cron/lesson-reminders'
     | '/api/saas/audit-logs'
     | '/api/saas/domains'
     | '/api/saas/gateway-webhooks'
@@ -1136,6 +1148,7 @@ export interface RootRouteChildren {
   PessoasIndexRoute: typeof PessoasIndexRoute
   ApiCalendarIcsRoute: typeof ApiCalendarIcsRoute
   ApiCatracasDeviceScanRoute: typeof ApiCatracasDeviceScanRoute
+  ApiCronLessonRemindersRoute: typeof ApiCronLessonRemindersRoute
   ApiSaasAuditLogsRoute: typeof ApiSaasAuditLogsRoute
   ApiSaasDomainsRoute: typeof ApiSaasDomainsRouteWithChildren
   ApiSaasGatewayWebhooksRoute: typeof ApiSaasGatewayWebhooksRoute
@@ -1509,6 +1522,13 @@ declare module '@tanstack/react-router' {
       path: '/api/catracas/device-scan'
       fullPath: '/api/catracas/device-scan'
       preLoaderRoute: typeof ApiCatracasDeviceScanRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/cron/lesson-reminders': {
+      id: '/api/cron/lesson-reminders'
+      path: '/api/cron/lesson-reminders'
+      fullPath: '/api/cron/lesson-reminders'
+      preLoaderRoute: typeof ApiCronLessonRemindersRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/saas/audit-logs': {
@@ -1988,6 +2008,7 @@ const rootRouteChildren: RootRouteChildren = {
   PessoasIndexRoute: PessoasIndexRoute,
   ApiCalendarIcsRoute: ApiCalendarIcsRoute,
   ApiCatracasDeviceScanRoute: ApiCatracasDeviceScanRoute,
+  ApiCronLessonRemindersRoute: ApiCronLessonRemindersRoute,
   ApiSaasAuditLogsRoute: ApiSaasAuditLogsRoute,
   ApiSaasDomainsRoute: ApiSaasDomainsRouteWithChildren,
   ApiSaasGatewayWebhooksRoute: ApiSaasGatewayWebhooksRoute,

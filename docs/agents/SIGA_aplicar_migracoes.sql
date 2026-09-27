@@ -1,12 +1,26 @@
--- SIGA Plus — SQL a aplicar no Supabase (projecto Sga), actualizado 2026-09-27
+-- SIGA Plus — SQL a aplicar no Supabase (projecto Sga), 2026-09-27
 -- Colar TUDO no SQL Editor → Run. Pode correr mais do que uma vez sem problema.
+-- 23 migrações: as 8 do SIGA de 25–26/09, as 7 do catálogo de importação
+-- (import_table_specs, sem ele a importação fica bloqueada), tenant_mailboxes,
+-- a publicação de modelos de avaliação (siga_publish_assessment_rule), os
+-- exames (siga_exam_sessions, siga_exam_registrations) e o histórico do aluno
+-- só do servidor (alunos e encarregados deixam de ler o dos colegas) e as
+-- faltas da pauta oficial lidas da chamada do SIGA e as regras de transição
+-- por ciclo no modelo de avaliação, as competências por disciplina e o limite
+-- de tentativas partilhado (login por B.I.).
+-- Testado em 2026-09-27 num Postgres 16 com o esquema da produção
+-- (supabase/PRODUCTION_SNAPSHOT.json): três corridas seguidas sem erros.
+-- Depois de aplicar, confirmar com docs/agents/SIGA_confirmar_migracoes.sql.
 --
--- A ordem não se inverte: `20260925190000` cria `public.is_school_admin`, e
--- `20260926120000` usa-a em quatro políticas de RH. Trocadas, a segunda falha.
+-- A ordem não se inverte, e há duas dependências a saber:
+--   · `20260925190000` cria `public.is_school_admin`, e `20260926120000` usa-a em quatro
+--     políticas de RH. Trocadas, a segunda falha.
+--   · `20260927120000` larga duas políticas que `20260925190000` cria. Invertidas,
+--     ficariam criadas.
 --
 -- Falta aqui, de propósito, `20260925170000_timetable_builder_shifts_versions.sql`
--- (451 linhas, construtor de horários): é grande e independente destas, e merece
--- ser aplicada e verificada à parte.
+-- (451 linhas, construtor de horários): é grande e independente, e merece ser aplicada
+-- e verificada à parte.
 
 
 -- ══════════ 20260925090000_school_access_requests.sql ══════════
@@ -536,8 +550,1069 @@ CREATE POLICY "Update hr_positions in own school" ON public.hr_positions
 REVOKE ALL ON TABLE public.hr_departments FROM anon;
 REVOKE ALL ON TABLE public.hr_positions FROM anon;
 
+-- ══════════ 20260926140000_timetable_lesson_details_tasks_reminders.sql ══════════
+-- Horários: detalhes da aula, tarefas da turma e lembretes da véspera (2026-09-26).
+--
+-- Aditiva: não altera tabelas existentes. Quatro tabelas só do servidor
+-- (FORCE RLS + REVOKE a anon/authenticated, sem políticas): a autorização é
+-- feita em src/features/academic/timetable-lessons.ts (professor da disciplina,
+-- Administrador ou Secretaria para escrever; aluno/encarregado só lêem os da
+-- sua turma, pelo servidor).
+--
+-- Idempotente: pode correr mais do que uma vez.
 
--- ══════════ 20260927090000_reconcile_school_access_requests.sql ══════════
+-- ── 1. Detalhes de cada bloco do horário ──────────────────────────────────
+CREATE TABLE IF NOT EXISTS public.siga_timetable_slot_details (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  school_id uuid NOT NULL REFERENCES public.schools(id) ON DELETE CASCADE,
+  timetable_slot_id uuid NOT NULL REFERENCES public.timetable_slots(id) ON DELETE CASCADE,
+  lesson_type text NOT NULL DEFAULT 'teorica' CHECK (
+    lesson_type IN ('teorica', 'pratica', 'laboratorio', 'revisao', 'avaliacao', 'outra')
+  ),
+  delivery_mode text NOT NULL DEFAULT 'presencial' CHECK (
+    delivery_mode IN ('presencial', 'zoom', 'online', 'hibrido')
+  ),
+  online_url text CHECK (online_url IS NULL OR (char_length(online_url) <= 500 AND online_url ~* '^https://')),
+  topic text CHECK (topic IS NULL OR char_length(topic) <= 200),
+  notes text CHECK (notes IS NULL OR char_length(notes) <= 1000),
+  created_by uuid REFERENCES auth.users(id) ON DELETE SET NULL,
+  updated_by uuid REFERENCES auth.users(id) ON DELETE SET NULL,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now()
+);
+CREATE UNIQUE INDEX IF NOT EXISTS siga_timetable_slot_details_slot_idx
+  ON public.siga_timetable_slot_details (timetable_slot_id);
+CREATE INDEX IF NOT EXISTS siga_timetable_slot_details_school_idx
+  ON public.siga_timetable_slot_details (school_id);
+
+-- ── 2. Tarefas da turma (TPC, trabalhos, leituras) ────────────────────────
+CREATE TABLE IF NOT EXISTS public.siga_class_tasks (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  school_id uuid NOT NULL REFERENCES public.schools(id) ON DELETE CASCADE,
+  class_subject_id uuid NOT NULL REFERENCES public.class_subjects(id) ON DELETE CASCADE,
+  timetable_slot_id uuid REFERENCES public.timetable_slots(id) ON DELETE SET NULL,
+  kind text NOT NULL DEFAULT 'tpc' CHECK (
+    kind IN ('tpc', 'trabalho', 'leitura', 'projecto', 'pesquisa', 'outra')
+  ),
+  title text NOT NULL CHECK (char_length(title) BETWEEN 2 AND 160),
+  description text CHECK (description IS NULL OR char_length(description) <= 2000),
+  due_on date,
+  status text NOT NULL DEFAULT 'published' CHECK (status IN ('published', 'archived')),
+  created_by uuid REFERENCES auth.users(id) ON DELETE SET NULL,
+  updated_by uuid REFERENCES auth.users(id) ON DELETE SET NULL,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS siga_class_tasks_class_subject_idx
+  ON public.siga_class_tasks (school_id, class_subject_id, due_on);
+
+-- ── 3. Configuração dos lembretes da véspera (uma por escola) ─────────────
+CREATE TABLE IF NOT EXISTS public.siga_lesson_reminder_settings (
+  school_id uuid PRIMARY KEY REFERENCES public.schools(id) ON DELETE CASCADE,
+  enabled boolean NOT NULL DEFAULT false,
+  -- Hora local (Luanda) a que sai o lembrete do dia seguinte.
+  send_hour smallint NOT NULL DEFAULT 18 CHECK (send_hour BETWEEN 0 AND 23),
+  notify_teachers boolean NOT NULL DEFAULT true,
+  notify_students boolean NOT NULL DEFAULT true,
+  notify_guardians boolean NOT NULL DEFAULT false,
+  channel_in_app boolean NOT NULL DEFAULT true,
+  channel_email boolean NOT NULL DEFAULT false,
+  channel_sms boolean NOT NULL DEFAULT false,
+  -- Na publicação de um horário, avisar professores e alunos da turma.
+  notify_on_publish boolean NOT NULL DEFAULT true,
+  updated_by uuid REFERENCES auth.users(id) ON DELETE SET NULL,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now()
+);
+
+-- ── 4. Registo de envios (nunca duplicar o mesmo lembrete) ────────────────
+CREATE TABLE IF NOT EXISTS public.siga_lesson_reminder_log (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  school_id uuid NOT NULL REFERENCES public.schools(id) ON DELETE CASCADE,
+  user_id uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  lesson_date date NOT NULL,
+  channel text NOT NULL CHECK (channel IN ('in_app', 'email', 'sms')),
+  lessons_count integer NOT NULL DEFAULT 0,
+  status text NOT NULL DEFAULT 'sent' CHECK (status IN ('sent', 'failed', 'skipped')),
+  error text,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+CREATE UNIQUE INDEX IF NOT EXISTS siga_lesson_reminder_log_once_idx
+  ON public.siga_lesson_reminder_log (school_id, user_id, lesson_date, channel);
+
+-- ── updated_at ────────────────────────────────────────────────────────────
+DROP TRIGGER IF EXISTS siga_timetable_slot_details_touch ON public.siga_timetable_slot_details;
+CREATE TRIGGER siga_timetable_slot_details_touch
+  BEFORE UPDATE ON public.siga_timetable_slot_details
+  FOR EACH ROW EXECUTE FUNCTION public.siga_touch_updated_at();
+
+DROP TRIGGER IF EXISTS siga_class_tasks_touch ON public.siga_class_tasks;
+CREATE TRIGGER siga_class_tasks_touch
+  BEFORE UPDATE ON public.siga_class_tasks
+  FOR EACH ROW EXECUTE FUNCTION public.siga_touch_updated_at();
+
+DROP TRIGGER IF EXISTS siga_lesson_reminder_settings_touch ON public.siga_lesson_reminder_settings;
+CREATE TRIGGER siga_lesson_reminder_settings_touch
+  BEFORE UPDATE ON public.siga_lesson_reminder_settings
+  FOR EACH ROW EXECUTE FUNCTION public.siga_touch_updated_at();
+
+-- ── Só o servidor ─────────────────────────────────────────────────────────
+ALTER TABLE public.siga_timetable_slot_details ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.siga_timetable_slot_details FORCE ROW LEVEL SECURITY;
+REVOKE ALL ON public.siga_timetable_slot_details FROM PUBLIC, anon, authenticated;
+GRANT ALL ON public.siga_timetable_slot_details TO service_role;
+
+ALTER TABLE public.siga_class_tasks ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.siga_class_tasks FORCE ROW LEVEL SECURITY;
+REVOKE ALL ON public.siga_class_tasks FROM PUBLIC, anon, authenticated;
+GRANT ALL ON public.siga_class_tasks TO service_role;
+
+ALTER TABLE public.siga_lesson_reminder_settings ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.siga_lesson_reminder_settings FORCE ROW LEVEL SECURITY;
+REVOKE ALL ON public.siga_lesson_reminder_settings FROM PUBLIC, anon, authenticated;
+GRANT ALL ON public.siga_lesson_reminder_settings TO service_role;
+
+ALTER TABLE public.siga_lesson_reminder_log ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.siga_lesson_reminder_log FORCE ROW LEVEL SECURITY;
+REVOKE ALL ON public.siga_lesson_reminder_log FROM PUBLIC, anon, authenticated;
+GRANT ALL ON public.siga_lesson_reminder_log TO service_role;
+
+-- ══════════ 20260926160000_grade_score_history.sql ══════════
+-- Histórico de cada nota (2026-09-26).
+--
+-- As funções da base `upsert_grade_score` e `review_grade_change` já gravam
+-- em `public.grade_score_history`, mas a tabela nunca foi criada na produção:
+-- qualquer chamada a essas funções falhava. A aplicação também passa a gravar
+-- aqui cada alteração (valor anterior, novo, quem, motivo, quem aprovou).
+--
+-- Aditiva e idempotente. Só do servidor (FORCE RLS, sem acesso directo).
+
+CREATE TABLE IF NOT EXISTS public.grade_score_history (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  school_id uuid NOT NULL REFERENCES public.schools(id) ON DELETE CASCADE,
+  grade_score_id uuid NOT NULL REFERENCES public.grade_scores(id) ON DELETE CASCADE,
+  previous_score numeric,
+  new_score numeric,
+  reason text CHECK (reason IS NULL OR char_length(reason) <= 1000),
+  actor_user_id uuid REFERENCES auth.users(id) ON DELETE SET NULL,
+  approved_by uuid REFERENCES auth.users(id) ON DELETE SET NULL,
+  -- 'launch' | 'change' | 'request_approved' | 'request_rejected'
+  kind text NOT NULL DEFAULT 'change' CHECK (
+    kind IN ('launch', 'change', 'request_approved', 'request_rejected')
+  ),
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS grade_score_history_score_idx
+  ON public.grade_score_history (school_id, grade_score_id, created_at DESC);
+
+ALTER TABLE public.grade_score_history ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.grade_score_history FORCE ROW LEVEL SECURITY;
+REVOKE ALL ON public.grade_score_history FROM PUBLIC, anon, authenticated;
+GRANT ALL ON public.grade_score_history TO service_role;
+
+
+-- ══════════ 20260924010712_add_import_table_specs_catalog.sql ══════════
+-- Governed catalog of public SGA tables for premium import/export.
+-- Non-destructive: adds metadata only; no existing business table is modified.
+
+create table if not exists public.import_table_specs (
+  id uuid primary key default gen_random_uuid(),
+  table_schema text not null default 'public',
+  table_name text not null,
+  direct_import_policy text not null default 'review',
+  export_policy text not null default 'review',
+  sensitivity text not null default 'normal',
+  module_code text,
+  dependency_rank integer,
+  natural_key_columns jsonb not null default '[]'::jsonb,
+  fk_dependencies jsonb not null default '[]'::jsonb,
+  derived_from jsonb not null default '[]'::jsonb,
+  notes text,
+  active boolean not null default true,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  unique(table_schema, table_name),
+  check (direct_import_policy in ('allow','controlled','review','deny')),
+  check (export_policy in ('allow','controlled','review','deny')),
+  check (sensitivity in ('normal','sensitive','secret','internal'))
+);
+
+insert into public.import_table_specs
+(table_schema,table_name,direct_import_policy,export_policy,sensitivity,module_code,dependency_rank,natural_key_columns,fk_dependencies,derived_from,notes)
+select
+ 'public', t.table_name,
+ case
+   when t.table_name in ('school_integration_secrets','calendar_feed_tokens','verification_otps','audit_logs','saas_audit_logs','import_audits','finance_gateway_webhook_events','siga_file_events','siga_attendance_audits','alumni_privacy_audit','document_signatures','school_invitations') then 'deny'
+   when t.table_name in ('people','students','student_guardians','teachers','teacher_subjects','hr_employments','hr_contracts','hr_departments','hr_positions','academic_years','academic_levels','grade_levels','programs','subjects','subject_types','curriculum_areas','curriculum_subjects','curricula','campuses','rooms','school_shifts','school_shift_slots','class_groups','class_subjects','enrollments','timetable_slots','academic_schedules','terms','siga_attendance_sessions','siga_attendance_records','siga_assessment_items','siga_assessment_scores','gradebooks','grade_items','grade_scores','grade_sheets','grade_sheet_rows','report_cards','fee_plans','fee_items','finance_contracts','finance_invoices','finance_receipts','finance_payment_plans','student_status_history','student_academic_history') then 'controlled'
+   else 'review'
+ end,
+ case
+   when t.table_name in ('school_integration_secrets','calendar_feed_tokens','verification_otps','audit_logs','saas_audit_logs','import_audits','finance_gateway_webhook_events','siga_file_events','siga_attendance_audits','alumni_privacy_audit','document_signatures') then 'deny'
+   else 'review'
+ end,
+ case
+   when t.table_name in ('school_integration_secrets','calendar_feed_tokens','verification_otps','audit_logs','saas_audit_logs','finance_gateway_webhook_events') then 'secret'
+   when t.table_name like 'audit%' or t.table_name like '%_audits' then 'internal'
+   else 'normal'
+ end,
+ case
+   when t.table_name in ('people','students','student_guardians') then 'pessoas'
+   when t.table_name in ('teachers','teacher_subjects','hr_employments','hr_contracts','hr_departments','hr_positions') then 'professores'
+   when t.table_name in ('academic_years','academic_levels','grade_levels','programs','subjects','subject_types','curriculum_areas','curriculum_subjects','curricula','class_groups','class_subjects','enrollments','terms','academic_schedules','timetable_slots','campuses','rooms','school_shifts','school_shift_slots') then 'academico'
+   when t.table_name in ('siga_attendance_sessions','siga_attendance_records') then 'presencas'
+   when t.table_name in ('siga_assessment_items','siga_assessment_scores','gradebooks','grade_items','grade_scores','grade_sheets','grade_sheet_rows','report_cards') then 'avaliacoes'
+   when t.table_name like 'finance_%' or t.table_name in ('fee_plans','fee_items') then 'financeiro'
+   when t.table_name like 'alumni_%' then 'alumni'
+   else null
+ end,
+ case
+   when t.table_name='schools' then 0
+   when t.table_name in ('people','academic_years','academic_levels','campuses','school_shifts') then 10
+   when t.table_name in ('students','teachers','grade_levels','programs','subjects','rooms','hr_departments','hr_positions') then 20
+   when t.table_name in ('class_groups','class_subjects','terms','curricula','teacher_subjects','hr_employments') then 30
+   when t.table_name in ('enrollments','academic_schedules','school_shift_slots','curriculum_subjects','hr_contracts') then 40
+   when t.table_name in ('timetable_slots','fee_plans','fee_items') then 50
+   when t.table_name in ('siga_attendance_sessions','siga_assessment_items','gradebooks','grade_sheets') then 60
+   when t.table_name in ('siga_attendance_records','siga_assessment_scores','grade_items','grade_scores','grade_sheet_rows','report_cards','finance_contracts','finance_invoices') then 70
+   else null
+ end,
+ '[]'::jsonb,'[]'::jsonb,'[]'::jsonb,
+ case when t.table_name in ('school_integration_secrets','calendar_feed_tokens','verification_otps','audit_logs','saas_audit_logs','import_audits','finance_gateway_webhook_events') then 'Não importar directamente; usar operações server-side controladas.' else null end
+from information_schema.tables t
+where t.table_schema='public' and t.table_type='BASE TABLE'
+on conflict (table_schema,table_name) do update set
+  direct_import_policy=excluded.direct_import_policy,
+  export_policy=excluded.export_policy,
+  sensitivity=excluded.sensitivity,
+  module_code=excluded.module_code,
+  dependency_rank=excluded.dependency_rank,
+  notes=coalesce(excluded.notes, public.import_table_specs.notes),
+  updated_at=now();
+
+create index if not exists import_table_specs_policy_idx on public.import_table_specs (direct_import_policy, module_code, dependency_rank);
+create index if not exists import_table_specs_module_idx on public.import_table_specs (module_code, dependency_rank);
+
+comment on table public.import_table_specs is 'Catálogo governado das 156 tabelas públicas do SGA para import/export. Política conservadora contra escrita cega em segurança, auditoria e segredos.';
+
+
+-- ══════════ 20260924010713_harden_import_table_specs_rls.sql ══════════
+-- Keep the schema catalog server-side by default.
+alter table public.import_table_specs enable row level security;
+alter table public.import_table_specs force row level security;
+comment on table public.import_table_specs is 'Catálogo governado do schema público do SGA para import/export. Uso server-side; sem acesso directo do cliente por defeito.';
+
+
+-- ══════════ 20260924010749_enrich_import_table_specs_dependencies.sql ══════════
+-- Enrich governed import/export catalog from the live SGA FK and UNIQUE constraints.
+update public.import_table_specs s
+set fk_dependencies = coalesce((
+  select jsonb_agg(
+    jsonb_build_object(
+      'columns', src.cols,
+      'target_table', src.target_table,
+      'target_columns', src.target_cols
+    ) order by src.target_table, src.target_cols::text
+  )
+  from (
+    select
+      array_agg(kcu.column_name order by kcu.ordinal_position) as cols,
+      ccu.table_name as target_table,
+      array_agg(ccu.column_name order by kcu.ordinal_position) as target_cols
+    from information_schema.table_constraints tc
+    join information_schema.key_column_usage kcu
+      on kcu.constraint_name=tc.constraint_name
+     and kcu.table_schema=tc.table_schema
+     and kcu.table_name=tc.table_name
+    join information_schema.constraint_column_usage ccu
+      on ccu.constraint_name=tc.constraint_name
+     and ccu.constraint_schema=tc.constraint_schema
+    where tc.constraint_type='FOREIGN KEY'
+      and tc.table_schema=s.table_schema
+      and tc.table_name=s.table_name
+    group by ccu.table_name, tc.constraint_name
+  ) src
+), '[]'::jsonb),
+natural_key_columns = coalesce((
+  select to_jsonb(array_agg(kcu.column_name order by kcu.ordinal_position))
+  from information_schema.table_constraints tc
+  join information_schema.key_column_usage kcu
+    on kcu.constraint_name=tc.constraint_name
+   and kcu.table_schema=tc.table_schema
+   and kcu.table_name=tc.table_name
+  where tc.table_schema=s.table_schema
+    and tc.table_name=s.table_name
+    and tc.constraint_type='UNIQUE'
+  group by tc.constraint_name
+  order by tc.constraint_name
+  limit 1
+), '[]'::jsonb),
+updated_at=now()
+where s.table_schema='public';
+
+comment on column public.import_table_specs.fk_dependencies is 'Foreign-key dependency graph extracted from the live SGA schema.';
+comment on column public.import_table_specs.natural_key_columns is 'Candidate natural/unique key columns discovered from live UNIQUE constraints; importer must still validate semantic suitability.';
+
+
+-- ══════════ 20260924011200_authorize_billing_settings_for_controlled_import.sql ══════════
+-- Governança: school_billing_settings é configuração operacional segura para
+-- importação controlada. Segredos e credenciais continuam fora do catálogo importável.
+update public.import_table_specs
+set direct_import_policy = 'controlled',
+    module_code = 'financeiro',
+    notes = concat_ws(' ', nullif(notes, ''), 'Autorizada para importação controlada: parâmetros de cobrança escolar, sem segredos.')
+where table_schema = 'public'
+  and table_name = 'school_billing_settings';
+
+
+-- ══════════ 20260924012020_authorize_enrollment_applications_controlled_import.sql ══════════
+-- Governança: candidaturas são dados escolares de negócio e podem ser
+-- importadas de forma controlada. A importação não cria aluno automaticamente.
+update public.import_table_specs
+set direct_import_policy = 'controlled',
+    module_code = 'inscricoes',
+    notes = concat_ws(' ', nullif(notes, ''), 'Importação controlada: candidaturas escolares; não cria aluno automaticamente.')
+where table_schema = 'public'
+  and table_name = 'enrollment_applications';
+
+
+-- ══════════ 20260924012304_govern_validated_export_targets.sql ══════════
+update public.import_table_specs
+set export_policy='controlled',
+    notes=concat_ws(' ', nullif(notes,''), 'Exportação bidireccional validada em 2026-09-24.')
+where table_schema='public' and table_name in
+('hr_positions','hr_employments','hr_departments','grade_levels','rooms','timetable_slots','finance_invoices','finance_contracts');
+
+
+-- ══════════ 20260924012347_govern_validated_application_attendance_exports.sql ══════════
+update public.import_table_specs
+set export_policy='controlled',
+    notes=concat_ws(' ', nullif(notes,''), 'Exportação bidireccional validada em 2026-09-24.')
+where table_schema='public' and table_name in
+('enrollment_applications','siga_attendance_sessions','siga_attendance_records');
+
+-- Catálogo só do servidor (o importador usa a chave de serviço).
+REVOKE ALL ON public.import_table_specs FROM PUBLIC, anon, authenticated;
+
+
+-- ══════════ 20260926180000_tenant_mailboxes_server_only.sql ══════════
+-- Caixas de correio institucionais por tenant (Control Center, Fase 5).
+--
+-- Substitui `supabase/APPLY_MAILBOXES.sql`, que nunca foi aplicado e não podia
+-- ser: as políticas liam `tenant_members`, tabela que a base SGA não tem.
+-- Todo o código (`saas/server.ts`, `saas/school-domain-ops.ts`,
+-- `api/saas/mailboxes.tsx`) usa a chave de serviço depois de validar o acesso
+-- ao tenant, por isso a tabela fica só do servidor: sem políticas de cliente.
+--
+-- Aditiva e idempotente: não altera nenhuma tabela existente.
+
+CREATE TABLE IF NOT EXISTS public.tenant_mailboxes (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  tenant_id uuid REFERENCES public.tenants(id) ON DELETE CASCADE,
+  email text NOT NULL CHECK (char_length(email) BETWEEN 3 AND 254),
+  display_name text CHECK (display_name IS NULL OR char_length(display_name) <= 160),
+  provider text NOT NULL DEFAULT 'simulated' CHECK (provider IN ('simulated', 'zoho', 'google')),
+  provider_account_id text,
+  status text NOT NULL DEFAULT 'active' CHECK (status IN ('active', 'suspended', 'deleted')),
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now(),
+  CONSTRAINT tenant_mailboxes_email_key UNIQUE (email)
+);
+
+CREATE INDEX IF NOT EXISTS tenant_mailboxes_tenant_created_idx
+  ON public.tenant_mailboxes (tenant_id, created_at DESC);
+
+DROP TRIGGER IF EXISTS trg_tenant_mailboxes_touch ON public.tenant_mailboxes;
+CREATE TRIGGER trg_tenant_mailboxes_touch
+  BEFORE UPDATE ON public.tenant_mailboxes
+  FOR EACH ROW EXECUTE FUNCTION public.siga_touch_updated_at();
+
+ALTER TABLE public.tenant_mailboxes ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.tenant_mailboxes FORCE ROW LEVEL SECURITY;
+REVOKE ALL ON public.tenant_mailboxes FROM PUBLIC, anon, authenticated;
+
+COMMENT ON TABLE public.tenant_mailboxes IS
+  'Caixas de correio institucionais por tenant. Só o servidor (chave de serviço) lê e escreve.';
+
+
+-- ══════════ 20260926200000_assessment_rule_publish_server.sql ══════════
+-- Modelos de avaliação: publicar uma nova versão da regra da escola pelo servidor.
+--
+-- `publish_assessment_rule_version` (produção) não é SECURITY DEFINER e
+-- `assessment_rule_sets` só tem política de leitura: chamada com o token do
+-- utilizador, a actualização e a inserção são recusadas pela RLS. Esta função
+-- faz o mesmo numa só transacção, mas só a chave de serviço a pode executar;
+-- o servidor (`assessment-models.ts`) valida antes o perfil e a 2FA (aal2) e
+-- passa o autor explicitamente, porque `auth.uid()` é nulo com a chave de serviço.
+--
+-- Mesmas validações da função original. A versão anterior é aposentada e a nova
+-- activada na mesma transacção: nunca fica a escola sem regra activa.
+--
+-- Aditiva e idempotente.
+
+-- Já inclui `promotion_rules` (regras de transição por ciclo, 20260927130000):
+-- apaga a assinatura anterior, sem esse parâmetro, para nunca ficarem duas
+-- versões — repetir este ficheiro depois do 20260927130000 não cria ambiguidade.
+
+DROP FUNCTION IF EXISTS public.siga_publish_assessment_rule(
+  uuid, uuid, text, numeric, numeric, numeric, numeric, text, boolean, boolean, uuid[], boolean
+);
+DROP FUNCTION IF EXISTS private.siga_publish_assessment_rule(
+  uuid, uuid, text, numeric, numeric, numeric, numeric, text, boolean, boolean, uuid[], boolean
+);
+
+CREATE OR REPLACE FUNCTION private.siga_publish_assessment_rule(
+  target_school_id uuid,
+  actor uuid,
+  rule_name text,
+  continuous_weight_value numeric,
+  exam_weight_value numeric,
+  passing_grade_value numeric,
+  maximum_absence_value numeric,
+  rounding_method_value text,
+  require_change_approval boolean,
+  lock_after_publication_value boolean,
+  key_subject_ids uuid[] DEFAULT '{}'::uuid[],
+  key_subjects_cause_failure boolean DEFAULT true,
+  promotion_rules jsonb DEFAULT '{}'::jsonb
+)
+RETURNS jsonb
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path TO ''
+AS $function$
+declare
+  active_scale public.grading_scales%rowtype;
+  next_version integer;
+  new_rule_id uuid;
+  key_subject uuid;
+begin
+  if target_school_id is null or actor is null then
+    raise exception using errcode = '22023', message = 'Escola e autor são obrigatórios.';
+  end if;
+
+  -- Uma publicação de cada vez por escola.
+  perform pg_advisory_xact_lock(hashtext('siga_publish_assessment_rule:' || target_school_id::text));
+
+  select * into active_scale from public.grading_scales
+  where school_id = target_school_id and is_active
+  order by version desc limit 1;
+  if not found then
+    raise exception using errcode = '55000', message = 'Escala de notas activa em falta.';
+  end if;
+
+  if continuous_weight_value < 0 or exam_weight_value < 0
+     or continuous_weight_value + exam_weight_value <> 100
+     or passing_grade_value < active_scale.minimum_value
+     or passing_grade_value > active_scale.maximum_value
+     or maximum_absence_value < 0 or maximum_absence_value > 100
+     or rounding_method_value not in ('none', 'nearest', 'up', 'down') then
+    raise exception using errcode = '22023', message = 'Parâmetros de regra inválidos.';
+  end if;
+
+  select coalesce(max(version), 0) + 1 into next_version
+  from public.assessment_rule_sets
+  where school_id = target_school_id and code = 'DEFAULT';
+
+  update public.assessment_rule_sets
+  set status = 'retired'
+  where school_id = target_school_id and code = 'DEFAULT' and status = 'active';
+
+  insert into public.assessment_rule_sets (
+    school_id, grading_scale_id, code, name, version, status, continuous_weight, exam_weight,
+    passing_value, maximum_absence_percentage, rounding_method, grade_change_requires_approval,
+    lock_after_publication, formula, created_by
+  ) values (
+    target_school_id, active_scale.id, 'DEFAULT',
+    coalesce(nullif(btrim(rule_name), ''), 'Regra principal de avaliação'),
+    next_version, 'active',
+    continuous_weight_value, exam_weight_value, passing_grade_value, maximum_absence_value,
+    rounding_method_value, require_change_approval, lock_after_publication_value,
+    jsonb_build_object(
+      'operation', 'weighted_average',
+      'components', jsonb_build_array(
+        jsonb_build_object('code', 'continuous', 'weight', continuous_weight_value),
+        jsonb_build_object('code', 'exam', 'weight', exam_weight_value)
+      ),
+      'keySubjectsCauseFailure', key_subjects_cause_failure,
+      'promotion', coalesce(promotion_rules, '{}'::jsonb),
+      'scale', jsonb_build_object(
+        'minimum', active_scale.minimum_value,
+        'maximum', active_scale.maximum_value,
+        'passing', passing_grade_value,
+        'decimalPlaces', active_scale.decimal_places
+      )
+    ),
+    actor
+  ) returning id into new_rule_id;
+
+  foreach key_subject in array coalesce(key_subject_ids, '{}') loop
+    if not exists (
+      select 1 from public.subjects
+      where school_id = target_school_id and id = key_subject and status = 'active'
+    ) then
+      raise exception using errcode = '22023', message = 'Disciplina-chave inválida.';
+    end if;
+    insert into public.assessment_key_subjects (school_id, rule_set_id, subject_id)
+    values (target_school_id, new_rule_id, key_subject)
+    on conflict do nothing;
+  end loop;
+
+  return jsonb_build_object('ruleSetId', new_rule_id, 'version', next_version, 'status', 'active');
+end;
+$function$;
+
+REVOKE ALL ON FUNCTION private.siga_publish_assessment_rule(
+  uuid, uuid, text, numeric, numeric, numeric, numeric, text, boolean, boolean, uuid[], boolean, jsonb
+) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION private.siga_publish_assessment_rule(
+  uuid, uuid, text, numeric, numeric, numeric, numeric, text, boolean, boolean, uuid[], boolean, jsonb
+) TO service_role;
+
+-- A API (PostgREST) só expõe `public`: invólucro com os mesmos privilégios.
+GRANT USAGE ON SCHEMA private TO service_role;
+
+CREATE OR REPLACE FUNCTION public.siga_publish_assessment_rule(
+  target_school_id uuid,
+  actor uuid,
+  rule_name text,
+  continuous_weight_value numeric,
+  exam_weight_value numeric,
+  passing_grade_value numeric,
+  maximum_absence_value numeric,
+  rounding_method_value text,
+  require_change_approval boolean,
+  lock_after_publication_value boolean,
+  key_subject_ids uuid[] DEFAULT '{}'::uuid[],
+  key_subjects_cause_failure boolean DEFAULT true,
+  promotion_rules jsonb DEFAULT '{}'::jsonb
+)
+RETURNS jsonb
+LANGUAGE sql
+SET search_path TO ''
+AS $function$
+  select private.siga_publish_assessment_rule(
+    target_school_id, actor, rule_name, continuous_weight_value, exam_weight_value,
+    passing_grade_value, maximum_absence_value, rounding_method_value,
+    require_change_approval, lock_after_publication_value, key_subject_ids,
+    key_subjects_cause_failure, promotion_rules
+  );
+$function$;
+
+REVOKE ALL ON FUNCTION public.siga_publish_assessment_rule(
+  uuid, uuid, text, numeric, numeric, numeric, numeric, text, boolean, boolean, uuid[], boolean, jsonb
+) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.siga_publish_assessment_rule(
+  uuid, uuid, text, numeric, numeric, numeric, numeric, text, boolean, boolean, uuid[], boolean, jsonb
+) TO service_role;
+
+-- ══════════ 20260926220000_exam_sessions_registrations.sql ══════════
+-- Recuperação, exames e resultado final.
+--
+-- Uma época de exames (recurso, exame especial, exame final, melhoria) pertence
+-- ao ano lectivo. Cada inscrição liga uma matrícula a uma disciplina, com a média
+-- de origem lida da pauta anual, a nota do exame e a média que resulta.
+--
+-- Nenhum limiar fica no código nem aqui: a nota de aprovação e o arredondamento
+-- vêm da regra de avaliação da escola; quantas negativas dão acesso ao exame e
+-- como a nota do exame entra na média (substitui, média, a maior) são
+-- parâmetros de cada época, decididos pela escola.
+--
+-- Só o servidor lê e escreve (chave de serviço depois de validar o perfil):
+-- `is_school_member` inclui alunos e encarregados. Aditiva e idempotente.
+
+CREATE TABLE IF NOT EXISTS public.siga_exam_sessions (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  school_id uuid NOT NULL REFERENCES public.schools(id) ON DELETE CASCADE,
+  academic_year_id uuid NOT NULL REFERENCES public.academic_years(id) ON DELETE CASCADE,
+  kind text NOT NULL CHECK (kind IN ('recurso', 'exame_especial', 'exame_final', 'melhoria')),
+  name text NOT NULL CHECK (char_length(name) BETWEEN 2 AND 120),
+  starts_on date,
+  ends_on date,
+  -- Máximo de disciplinas em negativa para ter acesso (NULL = sem limite).
+  max_failed_subjects integer CHECK (max_failed_subjects IS NULL OR max_failed_subjects BETWEEN 1 AND 30),
+  result_method text NOT NULL DEFAULT 'replace'
+    CHECK (result_method IN ('replace', 'average', 'max')),
+  status text NOT NULL DEFAULT 'draft' CHECK (status IN ('draft', 'open', 'closed')),
+  created_by uuid,
+  updated_by uuid,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now(),
+  CONSTRAINT siga_exam_sessions_dates_check
+    CHECK (starts_on IS NULL OR ends_on IS NULL OR ends_on >= starts_on)
+);
+
+CREATE INDEX IF NOT EXISTS siga_exam_sessions_school_year_idx
+  ON public.siga_exam_sessions (school_id, academic_year_id, created_at DESC);
+
+CREATE TABLE IF NOT EXISTS public.siga_exam_registrations (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  school_id uuid NOT NULL REFERENCES public.schools(id) ON DELETE CASCADE,
+  session_id uuid NOT NULL REFERENCES public.siga_exam_sessions(id) ON DELETE CASCADE,
+  enrollment_id uuid NOT NULL REFERENCES public.enrollments(id) ON DELETE CASCADE,
+  subject_id uuid NOT NULL REFERENCES public.subjects(id) ON DELETE CASCADE,
+  class_group_id uuid NOT NULL REFERENCES public.class_groups(id) ON DELETE CASCADE,
+  grade_sheet_id uuid REFERENCES public.grade_sheets(id) ON DELETE SET NULL,
+  original_average numeric(6, 2),
+  exam_date date,
+  room text CHECK (room IS NULL OR char_length(room) <= 80),
+  jury text CHECK (jury IS NULL OR char_length(jury) <= 300),
+  score numeric(6, 2),
+  final_average numeric(6, 2),
+  status text NOT NULL DEFAULT 'registered'
+    CHECK (status IN ('registered', 'absent', 'graded', 'cancelled')),
+  notes text CHECK (notes IS NULL OR char_length(notes) <= 1000),
+  created_by uuid,
+  updated_by uuid,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now(),
+  CONSTRAINT siga_exam_registrations_unique UNIQUE (session_id, enrollment_id, subject_id),
+  CONSTRAINT siga_exam_registrations_graded_check
+    CHECK (status <> 'graded' OR (score IS NOT NULL AND final_average IS NOT NULL))
+);
+
+CREATE INDEX IF NOT EXISTS siga_exam_registrations_session_class_idx
+  ON public.siga_exam_registrations (session_id, class_group_id);
+CREATE INDEX IF NOT EXISTS siga_exam_registrations_enrollment_idx
+  ON public.siga_exam_registrations (enrollment_id);
+CREATE INDEX IF NOT EXISTS siga_exam_registrations_school_idx
+  ON public.siga_exam_registrations (school_id);
+CREATE INDEX IF NOT EXISTS siga_exam_registrations_subject_idx
+  ON public.siga_exam_registrations (subject_id);
+CREATE INDEX IF NOT EXISTS siga_exam_registrations_class_group_idx
+  ON public.siga_exam_registrations (class_group_id);
+CREATE INDEX IF NOT EXISTS siga_exam_registrations_grade_sheet_idx
+  ON public.siga_exam_registrations (grade_sheet_id);
+CREATE INDEX IF NOT EXISTS siga_exam_sessions_year_idx
+  ON public.siga_exam_sessions (academic_year_id);
+
+DROP TRIGGER IF EXISTS trg_siga_exam_sessions_touch ON public.siga_exam_sessions;
+CREATE TRIGGER trg_siga_exam_sessions_touch
+  BEFORE UPDATE ON public.siga_exam_sessions
+  FOR EACH ROW EXECUTE FUNCTION public.siga_touch_updated_at();
+
+DROP TRIGGER IF EXISTS trg_siga_exam_registrations_touch ON public.siga_exam_registrations;
+CREATE TRIGGER trg_siga_exam_registrations_touch
+  BEFORE UPDATE ON public.siga_exam_registrations
+  FOR EACH ROW EXECUTE FUNCTION public.siga_touch_updated_at();
+
+ALTER TABLE public.siga_exam_sessions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.siga_exam_sessions FORCE ROW LEVEL SECURITY;
+REVOKE ALL ON public.siga_exam_sessions FROM PUBLIC, anon, authenticated;
+
+ALTER TABLE public.siga_exam_registrations ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.siga_exam_registrations FORCE ROW LEVEL SECURITY;
+REVOKE ALL ON public.siga_exam_registrations FROM PUBLIC, anon, authenticated;
+
+COMMENT ON TABLE public.siga_exam_sessions IS
+  'Épocas de exame (recurso, especial, final, melhoria) por ano lectivo. Só o servidor.';
+COMMENT ON TABLE public.siga_exam_registrations IS
+  'Inscrições em exame por matrícula e disciplina, com média de origem, nota e média final. Só o servidor.';
+
+
+-- ══════════ 20260927090000_student_history_server_only.sql ══════════
+-- Histórico académico e histórico de estados do aluno: só o servidor.
+--
+-- `20260925190000_harden_member_wide_policies.sql` tirou a escrita a qualquer
+-- membro, mas deixou a leitura por `is_school_member` — que é verdadeiro para
+-- alunos e encarregados: qualquer aluno lia as médias finais, o resultado e as
+-- mudanças de estado de todos os colegas da escola. Nenhum código do browser lê
+-- estas tabelas; o servidor usa a chave de serviço depois de validar o perfil
+-- (`students/server.ts`, importação/exportação, resultado final).
+--
+-- Idempotente. Não apaga dados.
+
+DROP POLICY IF EXISTS "Members read student_academic_history" ON public.student_academic_history;
+DROP POLICY IF EXISTS "School members can access student academic history" ON public.student_academic_history;
+ALTER TABLE public.student_academic_history ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.student_academic_history FORCE ROW LEVEL SECURITY;
+REVOKE ALL ON public.student_academic_history FROM PUBLIC, anon, authenticated;
+GRANT ALL ON public.student_academic_history TO service_role;
+
+DROP POLICY IF EXISTS "Members read student_status_history" ON public.student_status_history;
+DROP POLICY IF EXISTS "School members can access student status history" ON public.student_status_history;
+DROP POLICY IF EXISTS "Read student status history in own school" ON public.student_status_history;
+ALTER TABLE public.student_status_history ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.student_status_history FORCE ROW LEVEL SECURITY;
+REVOKE ALL ON public.student_status_history FROM PUBLIC, anon, authenticated;
+GRANT ALL ON public.student_status_history TO service_role;
+
+
+-- ══════════ 20260927110000_grade_sheet_absences_from_siga.sql ══════════
+-- Pauta oficial: faltas a partir da chamada do SIGA.
+--
+-- `private.build_grade_sheet` calcula a percentagem de faltas em
+-- `attendance_records` / `attendance_sessions`, mas a chamada do SIGA grava em
+-- `siga_attendance_records` / `siga_attendance_sessions`. Resultado: a
+-- percentagem saía 0 e a pauta nunca reprovava por faltas.
+--
+-- A função não é substituída inteira (a versão do repositório foi capturada a
+-- 2026-09-08 e a produção pode ter mudado). Lê-se a definição que está na base
+-- e troca-se só o bloco das faltas: passa a contar primeiro as presenças do
+-- SIGA (faltas ÷ aulas registadas, sem as justificadas) e, só se o aluno não
+-- tiver nenhuma, o cálculo antigo. Se o bloco não estiver como esperado, nada
+-- é alterado e fica um aviso (NOTICE). Pode correr-se mais do que uma vez.
+
+DO $migration$
+DECLARE
+  fn regprocedure;
+  current_def text;
+  patched_def text;
+  pattern text := 'select coalesce\(\s*\(\s*select \(count\(\*\) filter \(where ar\.status in \(''absent''\)\)::numeric \* 100\)(.*?from public\.attendance_records ar.*?and ar\.status <> ''excused''\s*)\),\s*0\s*\) into absence_pct;';
+  replacement text := 'select coalesce(
+      (
+        select (count(*) filter (where sr.status = ''absent'')::numeric * 100)
+               / nullif(count(*), 0)
+        from public.siga_attendance_records sr
+        join public.siga_attendance_sessions ss on ss.school_id = sr.school_id and ss.id = sr.session_id
+        join public.enrollments en on en.school_id = sr.school_id and en.student_id = sr.student_id
+        where sr.school_id = target_school_id
+          and en.id = enrollment_row.id
+          and ss.class_group_id = target_class_group_id
+          and sr.status <> ''excused''
+      ),
+      (
+        select (count(*) filter (where ar.status in (''absent''))::numeric * 100)\1),
+      0
+    ) into absence_pct;';
+BEGIN
+  fn := to_regprocedure('private.build_grade_sheet(uuid, uuid, uuid, text)');
+  IF fn IS NULL THEN
+    RAISE NOTICE 'build_grade_sheet: função não encontrada; nada alterado.';
+    RETURN;
+  END IF;
+
+  current_def := pg_get_functiondef(fn);
+  IF position('siga_attendance_records' in current_def) > 0 THEN
+    RAISE NOTICE 'build_grade_sheet: já lê as presenças do SIGA; nada alterado.';
+    RETURN;
+  END IF;
+
+  patched_def := regexp_replace(current_def, pattern, replacement);
+  IF patched_def = current_def THEN
+    RAISE NOTICE 'build_grade_sheet: bloco das faltas diferente do esperado; nada alterado.';
+    RETURN;
+  END IF;
+
+  EXECUTE patched_def;
+  RAISE NOTICE 'build_grade_sheet: faltas passam a vir da chamada do SIGA.';
+END
+$migration$;
+
+
+-- ══════════ 20260927130000_assessment_rule_promotion_rules.sql ══════════
+-- Modelos de avaliação: regras de transição por ciclo.
+--
+-- As regras que decidem "Transita / Não transita / Admitido a exame / Apto (PAP)"
+-- por ciclo (máximo de negativas, média de admissão a exame, PAP) estavam fixas
+-- no código. Passam a fazer parte do modelo publicado pela escola:
+-- `siga_publish_assessment_rule` ganha `promotion_rules` (jsonb), guardado em
+-- `assessment_rule_sets.formula -> 'promotion'`. Sem ele, os ecrãs usam as
+-- regras que o SIGA já aplicava.
+--
+-- Substitui a versão de `20260926200000` (a assinatura muda: apaga-se a antiga
+-- para não ficarem duas). Idempotente.
+
+DROP FUNCTION IF EXISTS public.siga_publish_assessment_rule(
+  uuid, uuid, text, numeric, numeric, numeric, numeric, text, boolean, boolean, uuid[], boolean
+);
+DROP FUNCTION IF EXISTS private.siga_publish_assessment_rule(
+  uuid, uuid, text, numeric, numeric, numeric, numeric, text, boolean, boolean, uuid[], boolean
+);
+
+CREATE OR REPLACE FUNCTION private.siga_publish_assessment_rule(
+  target_school_id uuid,
+  actor uuid,
+  rule_name text,
+  continuous_weight_value numeric,
+  exam_weight_value numeric,
+  passing_grade_value numeric,
+  maximum_absence_value numeric,
+  rounding_method_value text,
+  require_change_approval boolean,
+  lock_after_publication_value boolean,
+  key_subject_ids uuid[] DEFAULT '{}'::uuid[],
+  key_subjects_cause_failure boolean DEFAULT true,
+  promotion_rules jsonb DEFAULT '{}'::jsonb
+)
+RETURNS jsonb
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path TO ''
+AS $function$
+declare
+  active_scale public.grading_scales%rowtype;
+  next_version integer;
+  new_rule_id uuid;
+  key_subject uuid;
+begin
+  if target_school_id is null or actor is null then
+    raise exception using errcode = '22023', message = 'Escola e autor são obrigatórios.';
+  end if;
+
+  -- Uma publicação de cada vez por escola.
+  perform pg_advisory_xact_lock(hashtext('siga_publish_assessment_rule:' || target_school_id::text));
+
+  select * into active_scale from public.grading_scales
+  where school_id = target_school_id and is_active
+  order by version desc limit 1;
+  if not found then
+    raise exception using errcode = '55000', message = 'Escala de notas activa em falta.';
+  end if;
+
+  if continuous_weight_value < 0 or exam_weight_value < 0
+     or continuous_weight_value + exam_weight_value <> 100
+     or passing_grade_value < active_scale.minimum_value
+     or passing_grade_value > active_scale.maximum_value
+     or maximum_absence_value < 0 or maximum_absence_value > 100
+     or rounding_method_value not in ('none', 'nearest', 'up', 'down') then
+    raise exception using errcode = '22023', message = 'Parâmetros de regra inválidos.';
+  end if;
+
+  select coalesce(max(version), 0) + 1 into next_version
+  from public.assessment_rule_sets
+  where school_id = target_school_id and code = 'DEFAULT';
+
+  update public.assessment_rule_sets
+  set status = 'retired'
+  where school_id = target_school_id and code = 'DEFAULT' and status = 'active';
+
+  insert into public.assessment_rule_sets (
+    school_id, grading_scale_id, code, name, version, status, continuous_weight, exam_weight,
+    passing_value, maximum_absence_percentage, rounding_method, grade_change_requires_approval,
+    lock_after_publication, formula, created_by
+  ) values (
+    target_school_id, active_scale.id, 'DEFAULT',
+    coalesce(nullif(btrim(rule_name), ''), 'Regra principal de avaliação'),
+    next_version, 'active',
+    continuous_weight_value, exam_weight_value, passing_grade_value, maximum_absence_value,
+    rounding_method_value, require_change_approval, lock_after_publication_value,
+    jsonb_build_object(
+      'operation', 'weighted_average',
+      'components', jsonb_build_array(
+        jsonb_build_object('code', 'continuous', 'weight', continuous_weight_value),
+        jsonb_build_object('code', 'exam', 'weight', exam_weight_value)
+      ),
+      'keySubjectsCauseFailure', key_subjects_cause_failure,
+      'promotion', coalesce(promotion_rules, '{}'::jsonb),
+      'scale', jsonb_build_object(
+        'minimum', active_scale.minimum_value,
+        'maximum', active_scale.maximum_value,
+        'passing', passing_grade_value,
+        'decimalPlaces', active_scale.decimal_places
+      )
+    ),
+    actor
+  ) returning id into new_rule_id;
+
+  foreach key_subject in array coalesce(key_subject_ids, '{}') loop
+    if not exists (
+      select 1 from public.subjects
+      where school_id = target_school_id and id = key_subject and status = 'active'
+    ) then
+      raise exception using errcode = '22023', message = 'Disciplina-chave inválida.';
+    end if;
+    insert into public.assessment_key_subjects (school_id, rule_set_id, subject_id)
+    values (target_school_id, new_rule_id, key_subject)
+    on conflict do nothing;
+  end loop;
+
+  return jsonb_build_object('ruleSetId', new_rule_id, 'version', next_version, 'status', 'active');
+end;
+$function$;
+
+REVOKE ALL ON FUNCTION private.siga_publish_assessment_rule(
+  uuid, uuid, text, numeric, numeric, numeric, numeric, text, boolean, boolean, uuid[], boolean, jsonb
+) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION private.siga_publish_assessment_rule(
+  uuid, uuid, text, numeric, numeric, numeric, numeric, text, boolean, boolean, uuid[], boolean, jsonb
+) TO service_role;
+
+-- A API (PostgREST) só expõe `public`: invólucro com os mesmos privilégios.
+GRANT USAGE ON SCHEMA private TO service_role;
+
+CREATE OR REPLACE FUNCTION public.siga_publish_assessment_rule(
+  target_school_id uuid,
+  actor uuid,
+  rule_name text,
+  continuous_weight_value numeric,
+  exam_weight_value numeric,
+  passing_grade_value numeric,
+  maximum_absence_value numeric,
+  rounding_method_value text,
+  require_change_approval boolean,
+  lock_after_publication_value boolean,
+  key_subject_ids uuid[] DEFAULT '{}'::uuid[],
+  key_subjects_cause_failure boolean DEFAULT true,
+  promotion_rules jsonb DEFAULT '{}'::jsonb
+)
+RETURNS jsonb
+LANGUAGE sql
+SET search_path TO ''
+AS $function$
+  select private.siga_publish_assessment_rule(
+    target_school_id, actor, rule_name, continuous_weight_value, exam_weight_value,
+    passing_grade_value, maximum_absence_value, rounding_method_value,
+    require_change_approval, lock_after_publication_value, key_subject_ids,
+    key_subjects_cause_failure, promotion_rules
+  );
+$function$;
+
+REVOKE ALL ON FUNCTION public.siga_publish_assessment_rule(
+  uuid, uuid, text, numeric, numeric, numeric, numeric, text, boolean, boolean, uuid[], boolean, jsonb
+) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.siga_publish_assessment_rule(
+  uuid, uuid, text, numeric, numeric, numeric, numeric, text, boolean, boolean, uuid[], boolean, jsonb
+) TO service_role;
+
+
+-- ══════════ 20260927150000_competencies.sql ══════════
+-- Competências por disciplina e ligação às avaliações.
+--
+-- A coordenação define as competências de cada disciplina (opcionalmente por
+-- classe). O professor da disciplina liga cada avaliação (`siga_assessment_items`)
+-- às competências que ela avalia. O domínio de cada aluno calcula-se a partir das
+-- notas dessas avaliações e da nota de aprovação do modelo — nada é guardado em
+-- duplicado.
+--
+-- Só o servidor lê e escreve (chave de serviço depois de validar o perfil):
+-- `is_school_member` inclui alunos e encarregados. Aditiva e idempotente.
+
+CREATE TABLE IF NOT EXISTS public.siga_competencies (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  school_id uuid NOT NULL REFERENCES public.schools(id) ON DELETE CASCADE,
+  subject_id uuid NOT NULL REFERENCES public.subjects(id) ON DELETE CASCADE,
+  grade_level_id uuid REFERENCES public.grade_levels(id) ON DELETE CASCADE,
+  code text NOT NULL CHECK (char_length(code) BETWEEN 1 AND 20),
+  description text NOT NULL CHECK (char_length(description) BETWEEN 3 AND 500),
+  status text NOT NULL DEFAULT 'active' CHECK (status IN ('active', 'archived')),
+  display_order integer NOT NULL DEFAULT 0,
+  created_by uuid,
+  updated_by uuid,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now()
+);
+
+-- Um código por disciplina e classe (NULL = todas as classes).
+CREATE UNIQUE INDEX IF NOT EXISTS siga_competencies_code_key
+  ON public.siga_competencies (school_id, subject_id, coalesce(grade_level_id, '00000000-0000-0000-0000-000000000000'::uuid), code);
+CREATE INDEX IF NOT EXISTS siga_competencies_subject_idx
+  ON public.siga_competencies (subject_id);
+CREATE INDEX IF NOT EXISTS siga_competencies_grade_level_idx
+  ON public.siga_competencies (grade_level_id);
+
+CREATE TABLE IF NOT EXISTS public.siga_assessment_item_competencies (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  school_id uuid NOT NULL REFERENCES public.schools(id) ON DELETE CASCADE,
+  item_id uuid NOT NULL REFERENCES public.siga_assessment_items(id) ON DELETE CASCADE,
+  competency_id uuid NOT NULL REFERENCES public.siga_competencies(id) ON DELETE CASCADE,
+  created_by uuid,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  CONSTRAINT siga_assessment_item_competencies_key UNIQUE (item_id, competency_id)
+);
+
+CREATE INDEX IF NOT EXISTS siga_assessment_item_competencies_competency_idx
+  ON public.siga_assessment_item_competencies (competency_id);
+CREATE INDEX IF NOT EXISTS siga_assessment_item_competencies_school_idx
+  ON public.siga_assessment_item_competencies (school_id);
+
+DROP TRIGGER IF EXISTS trg_siga_competencies_touch ON public.siga_competencies;
+CREATE TRIGGER trg_siga_competencies_touch
+  BEFORE UPDATE ON public.siga_competencies
+  FOR EACH ROW EXECUTE FUNCTION public.siga_touch_updated_at();
+
+ALTER TABLE public.siga_competencies ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.siga_competencies FORCE ROW LEVEL SECURITY;
+REVOKE ALL ON public.siga_competencies FROM PUBLIC, anon, authenticated;
+
+ALTER TABLE public.siga_assessment_item_competencies ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.siga_assessment_item_competencies FORCE ROW LEVEL SECURITY;
+REVOKE ALL ON public.siga_assessment_item_competencies FROM PUBLIC, anon, authenticated;
+
+COMMENT ON TABLE public.siga_competencies IS
+  'Competências por disciplina (e classe). Só o servidor.';
+COMMENT ON TABLE public.siga_assessment_item_competencies IS
+  'Avaliações ligadas às competências que avaliam. Só o servidor.';
+
+
+-- ══════════ 20260927170000_shared_rate_limit.sql ══════════
+-- Limite de tentativas partilhado entre todas as instâncias do servidor.
+--
+-- O limitador de `src/lib/rate-limit.ts` vive na memória de cada instância do
+-- worker: com várias instâncias, quem tente adivinhar senhas espalha os pedidos
+-- e foge ao limite. Este contador fica na base e é o mesmo para todas.
+--
+-- As chaves chegam já cifradas (SHA-256) do servidor: a tabela nunca guarda IPs
+-- nem identificadores em claro. Só a chave de serviço executa a função; a
+-- tabela não tem acesso de cliente. Aditiva e idempotente.
+
+CREATE TABLE IF NOT EXISTS public.siga_rate_limit_hits (
+  id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+  key_hash text NOT NULL CHECK (char_length(key_hash) = 64),
+  hit_at timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS siga_rate_limit_hits_key_idx
+  ON public.siga_rate_limit_hits (key_hash, hit_at DESC);
+CREATE INDEX IF NOT EXISTS siga_rate_limit_hits_hit_at_idx
+  ON public.siga_rate_limit_hits (hit_at);
+
+ALTER TABLE public.siga_rate_limit_hits ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.siga_rate_limit_hits FORCE ROW LEVEL SECURITY;
+REVOKE ALL ON public.siga_rate_limit_hits FROM PUBLIC, anon, authenticated;
+
+-- Verifica e regista numa só operação: devolve false (sem registar) se alguma
+-- das chaves já atingiu o máximo na janela; senão regista uma tentativa em cada.
+CREATE OR REPLACE FUNCTION public.siga_rate_limit_consume(
+  key_hashes text[],
+  window_seconds integer,
+  max_hits integer
+)
+RETURNS boolean
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path TO ''
+AS $function$
+declare
+  key_hash_value text;
+  since timestamptz := now() - make_interval(secs => greatest(window_seconds, 1));
+  hits integer;
+begin
+  if key_hashes is null or cardinality(key_hashes) = 0 or max_hits < 1 then
+    return true;
+  end if;
+
+  -- Ordem fixa dos bloqueios: dois pedidos com as mesmas chaves nunca se cruzam.
+  foreach key_hash_value in array (select array_agg(k order by k) from unnest(key_hashes) k) loop
+    perform pg_advisory_xact_lock(hashtext('siga_rate_limit:' || key_hash_value));
+  end loop;
+
+  foreach key_hash_value in array key_hashes loop
+    select count(*) into hits
+    from public.siga_rate_limit_hits
+    where key_hash = key_hash_value and hit_at > since;
+    if hits >= max_hits then
+      return false;
+    end if;
+  end loop;
+
+  insert into public.siga_rate_limit_hits (key_hash)
+  select distinct k from unnest(key_hashes) k;
+
+  -- Limpeza ocasional do que já não conta para nenhuma janela.
+  if random() < 0.02 then
+    delete from public.siga_rate_limit_hits where hit_at < now() - interval '2 days';
+  end if;
+  return true;
+end;
+$function$;
+
+REVOKE ALL ON FUNCTION public.siga_rate_limit_consume(text[], integer, integer)
+  FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.siga_rate_limit_consume(text[], integer, integer)
+  TO service_role;
+
+
+-- ══════════ 20260927100000_reconcile_school_access_requests.sql ══════════
 -- Vem no fim de propósito. O bloco de `20260925090000` acima abre com
 -- `CREATE TABLE IF NOT EXISTS` e, numa base onde a tabela já existe com a forma
 -- antiga, não faz nada e não dá erro -- foi exactamente isso que aconteceu na

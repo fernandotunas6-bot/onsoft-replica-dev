@@ -288,6 +288,18 @@ const funcoesPublicas = new Set(
 );
 
 /**
+ * Funções `public` escritas numa migração por aplicar. Mesma regra que
+ * ESPERA_MIGRACAO: a lista só encolhe, e o teste obriga a tirar a entrada
+ * quando o retrato a mostrar.
+ */
+const FUNCOES_ESPERA_MIGRACAO = new Set<string>([
+  // `20260926200000_assessment_rule_publish_server.sql` (modelos de avaliação).
+  "siga_publish_assessment_rule",
+  // `20260927170000_shared_rate_limit.sql` (limite de tentativas partilhado).
+  "siga_rate_limit_consume",
+]);
+
+/**
  * Colunas que o código grava e a produção ainda não tem porque há uma migração escrita e
  * por aplicar. Aplicar SQL à base é decisão do dono do projecto, não do agente — esta
  * lista é o registo explícito dessa espera, e o teste seguinte obriga-a a encolher.
@@ -417,7 +429,9 @@ describe("colunas pedidas vs colunas que existem", () => {
 
     const invisiveis = [
       ...new Set(
-        rpcs.filter((r) => !funcoesPublicas.has(r.funcao)).map((r) => `${r.ficheiro}: ${r.funcao}`),
+        rpcs
+          .filter((r) => !funcoesPublicas.has(r.funcao) && !FUNCOES_ESPERA_MIGRACAO.has(r.funcao))
+          .map((r) => `${r.ficheiro}: ${r.funcao}`),
       ),
     ].sort();
 
@@ -427,6 +441,11 @@ describe("colunas pedidas vs colunas que existem", () => {
         `${invisiveis.join("; ")}. Devolvem PGRST202, e o chamador quase sempre ` +
         `ignora o erro — o trabalho simplesmente não acontece.`,
     ).toEqual([]);
+  });
+
+  it("a lista de funções à espera de migração não tem entradas obsoletas", () => {
+    const jaExistem = [...FUNCOES_ESPERA_MIGRACAO].filter((f) => funcoesPublicas.has(f));
+    expect(jaExistem, `já estão na produção, tirar da lista: ${jaExistem.join(", ")}`).toEqual([]);
   });
 
   it("a lista de colunas à espera de migração não tem entradas obsoletas", () => {

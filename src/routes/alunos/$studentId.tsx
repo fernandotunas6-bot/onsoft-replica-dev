@@ -597,10 +597,17 @@ function StudentDetail() {
     if (years.length === 0) {
       throw new Error("Ainda não há histórico académico registado para este aluno.");
     }
+    // O resultado oficial (registado em Exames → Resultado final) manda; sem ele,
+    // o ano sai com o cálculo das notas lançadas, marcado como provisório.
     return years.map((year) => ({
       periodName: year.academicYearName,
-      ...(year.overallMfd != null ? { average: formatScore(year.overallMfd) } : {}),
-      status: year.status || "Pendente",
+      ...(year.official?.finalAverage != null
+        ? { average: formatScore(year.official.finalAverage) }
+        : year.overallMfd != null
+          ? { average: formatScore(year.overallMfd) }
+          : {}),
+      status: year.official?.outcome ?? `${year.status || "Pendente"} (provisório)`,
+      official: Boolean(year.official),
       subjects: year.subjects.map((subject) => ({
         name: subject.subjectName,
         t1: formatScore(subject.mt1),
@@ -768,8 +775,17 @@ function StudentDetail() {
   const downloadCertificado = async () => {
     // Certificado deriva do Histórico, mas certifica apenas o ano lectivo mais recente concluído
     // (o Histórico completo mostra a trajectória multi-ano; ver historicoPeriods()).
-    const periods = historicoPeriods().slice(-1);
-    const academicYear = studentPrintSchool.academicYear || "";
+    // Só certifica o que está no histórico oficial: o ano mais recente com
+    // resultado registado. Sem registo, não há certificado.
+    const periods = historicoPeriods()
+      .filter((period) => period.official)
+      .slice(-1);
+    if (!periods.length) {
+      throw new Error(
+        "O certificado só se emite com o resultado do ano registado no histórico (Pedagógica → Exames → Resultado final).",
+      );
+    }
+    const academicYear = periods[0].periodName || studentPrintSchool.academicYear || "";
     await issuePrintDocument({
       tipo: "Certificado de habilitações",
       school: studentPrintSchool,
@@ -791,8 +807,32 @@ function StudentDetail() {
 
   const downloadDeclaracao = async () => {
     const academicYear = studentPrintSchool.academicYear || "";
+    // Notas reais do ano (as mesmas do boletim). Sem notas lançadas, não há
+    // declaração: antes saía com as notas de exemplo do modelo.
+    const rows = studentDossierRows();
+    const failing = (status: string) => /reprov|não trans/i.test(status);
+    const numericAverages = rows
+      .map((row) => Number(String(row.mfa).replace(",", ".")))
+      .filter((value) => Number.isFinite(value));
+    const average = numericAverages.length
+      ? formatScore(numericAverages.reduce((sum, value) => sum + value, 0) / numericAverages.length)
+      : "—";
     await issuePrintDocument({
       tipo: "Declaração de notas",
+      overlay: {
+        grades: rows.map((row) => ({
+          subject: row.name,
+          finalGrade: row.mfa,
+          status: row.status,
+        })),
+        period: { name: academicYear ? `Ano lectivo ${academicYear}` : "Ano lectivo" },
+        summary: {
+          approved: rows.filter((row) => !failing(row.status)).length,
+          failed: rows.filter((row) => failing(row.status)).length,
+          average,
+          status: rows.some((row) => failing(row.status)) ? "Com disciplinas em atraso" : "Regular",
+        },
+      },
       school: studentPrintSchool,
       student: {
         fullName: student.full_name,

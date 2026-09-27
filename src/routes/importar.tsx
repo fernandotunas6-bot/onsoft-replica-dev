@@ -157,7 +157,7 @@ export function ImportarDadosPage() {
             value={activeTab}
             onValueChange={(v) => setActiveTab(v as "novo" | "historico" | "modelos" | "exportar")}
           >
-            <TabsList className="mb-4">
+            <TabsList className="no-scrollbar mb-4 max-w-full justify-start overflow-x-auto">
               <TabsTrigger value="novo" className="gap-1.5">
                 <FileUp className="size-3.5" /> Nova Importação
               </TabsTrigger>

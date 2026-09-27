@@ -115,13 +115,14 @@ const ANON_POLICIES_ESPERADAS = [
  *      (`20260916130000_contact_verification_and_communication_preferences.sql`).
  *      O grupo 1 está fechado.
  *   2. Caixas de correio de tenant — `tenant_mailboxes`, declarada em
- *      `supabase/APPLY_MAILBOXES.sql`, script manual também por aplicar.
+ *      `20260926180000_tenant_mailboxes_server_only.sql` (substitui o antigo
+ *      `APPLY_MAILBOXES.sql`, cujas políticas liam uma tabela inexistente).
  *   3. Importadores contra o esquema Lovable antigo — `courses`, `invoices`,
  *      `payments` e `class_schedule_slots` são nomes do esquema que o SGA nunca
  *      teve. Os importadores respectivos foram remapeados; o grupo está fechado.
  *
- * A lista existe para encolher até zero. Falta um: `tenant_mailboxes`, que
- * precisa de decisão, não só de SQL.
+ * A lista existe para encolher até zero. Tudo o que falta está em
+ * `docs/agents/SIGA_aplicar_migracoes.sql`.
  */
 /**
  * Cada entrada diz que funcionalidade fica partida enquanto a tabela não
@@ -148,13 +149,22 @@ const ANON_POLICIES_ESPERADAS = [
 /**
  * Tabelas que o código consulta e a produção ainda não tem.
  *
- * Vazia desde 2026-09-27. `tenant_mailboxes`, `student_risk_cases`,
- * `student_risk_interventions` e `payment_gateway_charges` estavam aqui e foram
- * aplicadas — retrato recapturado, 164 → 175 tabelas. Ficarem na lista depois de
- * existirem é pior do que não estarem: cada entrada é uma tabela que este teste
- * deixa de verificar, e a lista passa a ser onde uma tabela inventada se esconde.
+ * A lista é curta de propósito, e cada entrada aponta a migração que a fecha. Cada
+ * tabela aqui é uma tabela que este teste deixa de verificar — mantê-la depois de a
+ * migração correr transforma a lista no sítio onde uma tabela inventada se esconde.
+ *
+ * Saíram a 2026-09-27, por terem sido aplicadas e confirmadas no retrato (164 → 175
+ * tabelas): `tenant_mailboxes`, `student_risk_cases`, `student_risk_interventions`,
+ * `payment_gateway_charges`, `grade_score_history`, `siga_timetable_slot_details`,
+ * `siga_class_tasks`, `siga_lesson_reminder_settings`, `siga_lesson_reminder_log`,
+ * `import_table_specs`, `siga_exam_sessions`, `siga_exam_registrations`.
  */
-const TABELAS_AUSENTES_DA_PRODUCAO = new Set<string>([]);
+const TABELAS_AUSENTES_DA_PRODUCAO = new Set<string>([
+  // Competências por disciplina, ligadas às avaliações (`20260927150000_competencies.sql`).
+  // Por aplicar. Sem elas, o separador de competências não lista nem grava.
+  "siga_competencies",
+  "siga_assessment_item_competencies",
+]);
 
 /** Tabelas consultadas pelo código — `.from("x")`, excluindo buckets de storage. */
 function tabelasUsadasPelaApp(): string[] {
