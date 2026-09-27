@@ -121,3 +121,13 @@ describe("nota de exame que conta", () => {
     ]);
   });
 });
+
+describe("faltas a partir das presenças do SIGA", () => {
+  it("faltas ÷ aulas registadas, sem contar as justificadas", async () => {
+    const { absencePercentageFromStatuses } = await import("@/features/academic/exam-engine");
+    expect(absencePercentageFromStatuses([])).toBeNull();
+    expect(absencePercentageFromStatuses(["excused", "excused"])).toBeNull();
+    expect(absencePercentageFromStatuses(["present", "absent", "late", "excused"])).toBe(33.33);
+    expect(absencePercentageFromStatuses(["absent", "absent", "present", "present"])).toBe(50);
+  });
+});

@@ -24,6 +24,7 @@ import {
   type PrePautaSubject,
 } from "./grade-sheet-workflow";
 import { insertInAppNotifications, resolveClassAudience } from "./lesson-delivery";
+import { absenceByEnrollment } from "./exam-data";
 
 type Db = Awaited<ReturnType<typeof loadSgaAdminClient>>;
 type Row = Record<string, unknown>;
@@ -289,6 +290,14 @@ export const getGradeSheetDetail = createServerFn({ method: "GET" })
       .eq("school_id", schoolId)
       .eq("grade_sheet_id", data.sheetId);
     const enrollmentIds = (rows ?? []).map((r) => str(r.enrollment_id));
+    // Faltas reais da chamada do SIGA (a base calcula-as numa tabela que o SIGA não usa).
+    const absences = await absenceByEnrollment(
+      db,
+      schoolId,
+      str(sheet.academic_year_id),
+      str(sheet.class_group_id),
+      enrollmentIds,
+    );
     const { data: enrollments } = enrollmentIds.length
       ? await db.from("enrollments").select("id, student_id").in("id", enrollmentIds)
       : { data: [] as Row[] };
@@ -336,7 +345,9 @@ export const getGradeSheetDetail = createServerFn({ method: "GET" })
           continuous: num(r.continuous_average),
           exam: num(r.exam_average),
           average: num(r.term_average),
-          absencePct: num(r.absence_percentage),
+          absencePct: absences.has(str(r.enrollment_id))
+            ? absences.get(str(r.enrollment_id))!
+            : num(r.absence_percentage),
           result: str(r.result),
           subjects: (Array.isArray(r.subject_breakdown) ? (r.subject_breakdown as Row[]) : []).map(
             (b) => ({

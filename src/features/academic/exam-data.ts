@@ -5,7 +5,7 @@
 import type { loadSgaAdminClient } from "@/integrations/supabase/sga-admin";
 import { publicDatabaseError } from "@/integrations/supabase/server-error";
 import { ROUNDING_METHODS, type RoundingMethod } from "./assessment-model";
-import type { BreakdownEntry, EngineRule } from "./exam-engine";
+import { absencePercentageFromStatuses, type BreakdownEntry, type EngineRule } from "./exam-engine";
 
 type Db = Awaited<ReturnType<typeof loadSgaAdminClient>>;
 type Row = Record<string, unknown>;
@@ -106,13 +106,25 @@ export async function loadAnnualSheet(
       .eq("grade_sheet_id", str(sheet.id)),
     loadEngineRule(db, schoolId, sheet.rule_set_id ? str(sheet.rule_set_id) : null),
   ]);
+  const sheetRows = (rows ?? []) as Row[];
+  const absences = await absenceByEnrollment(
+    db,
+    schoolId,
+    yearId,
+    classGroupId,
+    sheetRows.map((r) => str(r.enrollment_id)),
+  );
   return {
     id: str(sheet.id),
     status: str(sheet.status),
     rule,
-    rows: ((rows ?? []) as Row[]).map((r) => ({
+    rows: sheetRows.map((r) => ({
       enrollmentId: str(r.enrollment_id),
-      absencePercentage: numOrNull(r.absence_percentage),
+      // As presenças do SIGA mandam; a percentagem gravada na pauta só serve de
+      // recurso (build_grade_sheet lê `attendance_records`, que o SIGA não usa).
+      absencePercentage: absences.has(str(r.enrollment_id))
+        ? absences.get(str(r.enrollment_id))!
+        : numOrNull(r.absence_percentage),
       sheetResult: r.result ? str(r.result) : null,
       breakdown: Array.isArray(r.subject_breakdown)
         ? (r.subject_breakdown as BreakdownEntry[])
@@ -152,4 +164,64 @@ export async function studentNames(db: Db, schoolId: string, enrollmentIds: stri
     });
   }
   return names;
+}
+
+/**
+ * Faltas por matrícula a partir das presenças do SIGA (`siga_attendance_*`),
+ * que é onde a chamada grava. Só entram matrículas com aulas registadas.
+ */
+export async function absenceByEnrollment(
+  db: Db,
+  schoolId: string,
+  yearId: string,
+  classGroupId: string,
+  enrollmentIds: string[],
+): Promise<Map<string, number>> {
+  const result = new Map<string, number>();
+  if (!enrollmentIds.length) return result;
+  const { data: enrollments } = await db
+    .from("enrollments")
+    .select("id, student_id")
+    .eq("school_id", schoolId)
+    .in("id", enrollmentIds);
+  const enrollmentOfStudent = new Map(
+    ((enrollments ?? []) as Row[]).map((e) => [str(e.student_id), str(e.id)]),
+  );
+  if (!enrollmentOfStudent.size) return result;
+
+  const { data: sessions, error: sessionsError } = await db
+    .from("siga_attendance_sessions")
+    .select("id")
+    .eq("school_id", schoolId)
+    .eq("academic_year_id", yearId)
+    .eq("class_group_id", classGroupId)
+    .limit(5000);
+  if (sessionsError || !sessions?.length) return result;
+  const sessionIds = (sessions as Row[]).map((s) => str(s.id));
+
+  const statuses = new Map<string, string[]>();
+  for (let i = 0; i < sessionIds.length; i += 200) {
+    for (let from = 0; ; from += 1000) {
+      const { data: records, error } = await db
+        .from("siga_attendance_records")
+        .select("student_id, status")
+        .eq("school_id", schoolId)
+        .in("session_id", sessionIds.slice(i, i + 200))
+        .range(from, from + 999);
+      if (error) return result;
+      for (const r of (records ?? []) as Row[]) {
+        const enrollmentId = enrollmentOfStudent.get(str(r.student_id));
+        if (!enrollmentId) continue;
+        const list = statuses.get(enrollmentId) ?? [];
+        list.push(str(r.status));
+        statuses.set(enrollmentId, list);
+      }
+      if (!records || records.length < 1000) break;
+    }
+  }
+  for (const [enrollmentId, list] of statuses) {
+    const pct = absencePercentageFromStatuses(list);
+    if (pct != null) result.set(enrollmentId, pct);
+  }
+  return result;
 }

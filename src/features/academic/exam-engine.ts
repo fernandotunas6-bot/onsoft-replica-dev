@@ -263,3 +263,14 @@ export function latestGradedBySubject(
     finalAverage: v.finalAverage,
   }));
 }
+
+/**
+ * Percentagem de faltas como a pauta a calcula: faltas ÷ aulas registadas,
+ * sem contar as justificadas. `null` se não houver registos.
+ */
+export function absencePercentageFromStatuses(statuses: string[]): number | null {
+  const counted = statuses.filter((s) => s !== "excused");
+  if (!counted.length) return null;
+  const absent = counted.filter((s) => s === "absent").length;
+  return Math.round((absent * 10000) / counted.length) / 100;
+}
