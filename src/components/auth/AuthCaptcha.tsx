@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useId, useRef } from "react";
+import { AUTH_CAPTCHA_SITE_KEY } from "@/lib/auth-captcha-config";
 
 /**
  * hCaptcha no formulário de autenticação.
@@ -13,7 +14,7 @@ import { useCallback, useEffect, useId, useRef } from "react";
  * sem sinal — o erro mapeado diz então que falta configurar, em vez de acusar a senha.
  */
 
-const SITE_KEY = import.meta.env["VITE_HCAPTCHA_SITE_KEY"] as string | undefined;
+const SITE_KEY = AUTH_CAPTCHA_SITE_KEY;
 
 type HCaptchaApi = {
   render: (container: HTMLElement, options: Record<string, unknown>) => string;
@@ -26,8 +27,6 @@ declare global {
     hcaptcha?: HCaptchaApi;
   }
 }
-
-export const authCaptchaConfigured = Boolean(SITE_KEY);
 
 let scriptPromise: Promise<void> | null = null;
 

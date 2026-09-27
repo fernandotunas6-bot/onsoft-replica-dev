@@ -6,7 +6,8 @@ import {
 import { SigaLogo } from "@/components/ui/siga-logo";
 import { AuthHeroSlides } from "./AuthHeroSlides";
 import { AuthBackgroundVideo } from "./AuthBackgroundVideo";
-import { AuthCaptcha, authCaptchaConfigured } from "./AuthCaptcha";
+import { AuthCaptcha } from "./AuthCaptcha";
+import { authCaptchaConfigured } from "@/lib/auth-captcha-config";
 import {
   createContext,
   useContext,

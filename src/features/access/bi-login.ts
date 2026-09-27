@@ -67,7 +67,19 @@ export async function passwordGrant(
     return { ok: false, error: "email_not_confirmed" };
   }
   if (response.status >= 500) return { ok: false, error: "unavailable" };
-  return { ok: false, error: "invalid_credentials" };
+  // Só se acusa a senha quando o Auth o diz. Tudo o resto — conta suspensa, registo
+  // desligado, um código que o GoTrue passe a devolver amanhã — caía aqui e saía como
+  // «Email ou senha incorrectos»: foi assim que a captcha se disfarçou de senha errada
+  // durante três dias, e ninguém tinha por onde pegar.
+  if (
+    code.includes("invalid_credentials") ||
+    code.includes("invalid login credentials") ||
+    code.includes("invalid_grant")
+  ) {
+    return { ok: false, error: "invalid_credentials" };
+  }
+  console.warn(`[bi-login] recusa não reconhecida do Auth: ${response.status} ${code}`);
+  return { ok: false, error: "unavailable" };
 }
 
 export async function resolveBiOrEmailToUserEmail(identifier: string): Promise<string> {
