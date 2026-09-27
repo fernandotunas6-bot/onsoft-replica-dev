@@ -20,7 +20,7 @@ Legenda: ✅ existe · 🟡 parcial · ❌ falta
 |---|---|---|---|---|
 | 1 | Escola | 🟡 | `schools` (nome, NIF, contactos, província, município, endereço) | Faltam comuna, bairro, coordenadas GPS e tipo de instituição. `schools.passing_grade` e `schools.evaluation_periods` duplicam regras que devem viver só no modelo |
 | 2 | Ano lectivo | ✅ | `academic_years` (rascunho → activo → fechado → arquivado) | — |
-| 3 | Modelo académico | 🟡 | `assessment_rule_sets` + `grading_scales` (versionados; separador "Modelos de avaliação") | **Nenhuma escola em produção tem modelo activo**, e sem ele `build_grade_sheet` recusa gerar a pauta. Não há campo de periodicidade no modelo |
+| 3 | Modelo académico | 🟡 | `assessment_rule_sets` + `grading_scales` (versionados; separador "Modelos de avaliação") | **Nenhuma escola em produção tem modelo activo**, e sem ele não se abrem diários nem se geram pautas. Pedagógica passou a avisar, com atalho para o Administrador. Não há campo de periodicidade no modelo |
 | 4 | Currículo | ✅ | `curricula`, `curriculum_areas`, `curriculum_subjects` (carga horária, obrigatória) | Conteúdos, objectivos e critérios por disciplina não têm lugar próprio |
 | 5 | Competências | ✅ | `siga_competencies`, `siga_assessment_item_competencies` | Sem dados em produção |
 | 6 | Atribuição do professor | ✅ | `class_subjects.teacher_id`, `teacher_subjects` | — |
@@ -30,7 +30,7 @@ Legenda: ✅ existe · 🟡 parcial · ❌ falta
 | 10 | Pesos | 🟡 | `assessment_rule_sets.continuous_weight`, `exam_weight`, `formula` | Pesos por tipo de prova (MAC/Teste/Prova) não são configuráveis; a média do componente é média simples |
 | 11 | Lançamento de notas | ✅ | `grade_scores` (componentes) e `siga_assessment_scores` (provas) | — |
 | 12 | Histórico da nota | ✅ | `grade_score_history`, pedidos de alteração com aprovação (`grade-change-requests.ts`, `pending_score`), `audit_logs` | — |
-| 13 | Motor de cálculo | 🟡 | Pauta oficial: `private.build_grade_sheet` (usa `passing_value` e `formula` do modelo) | No ecrã de notas, MAC/NPP/NPT e a média são calculados **no navegador** com regras fixas de `src/lib/angola-academic.ts`: fórmula do trimestre, recurso `(original + recurso) / 2`, escala 0–20, limiar por omissão |
+| 13 | Motor de cálculo | 🟡 | Pauta oficial: `private.build_grade_sheet` (usa `passing_value` e `formula` do modelo). **Corrigido a 2026-09-29:** MAC, NPP e NPT eram todos `continuous` e a pauta daria metade da média (14 → 7); agora MAC `continuous`, NPP `informative`, NPT `term_exam` (migração `20260929090000`, aplicada), com teste de paridade entre o motor e a fórmula do ecrã | No ecrã de notas, MAC/NPP/NPT e a média são calculados **no navegador** com regras fixas de `src/lib/angola-academic.ts`: fórmula do trimestre, recurso `(original + recurso) / 2`, escala 0–20, limiar por omissão |
 | 14 | Boletim | 🟡 | `report_cards`, `private.issue_report_cards` | Sem uso em produção; comportamento e observações por professor não estão no boletim |
 | 15 | Pré-pauta | ✅ | `buildPrePautaChecks`: regra activa, alunos, professores, diários submetidos, notas em falta, escala, alterações pendentes, e agora pauta desactualizada | **Passou a ser obrigatória no servidor (2026-09-28)**. Antes só informava. A escala verificada ainda é 0–20 fixa |
 | 16 | Validação da coordenação | ✅ | `transition_grade_sheet`: submetida → em revisão → homologada, "Devolver para correcção" | — |

@@ -8,6 +8,20 @@ type Db = SupabaseClient<any>;
 const COMPONENT_CODES = ["MAC", "NPP", "NPT"] as const;
 type ComponentCode = (typeof COMPONENT_CODES)[number];
 
+/**
+ * Tipo de cada componente no diário, que decide como o motor oficial
+ * (`private.compute_subject_averages`) o conta: `continuous` entra na média
+ * contínua, `term_exam` na de exame, `informative` em nenhuma. Com o Decreto
+ * 424/25, MT = (MAC + NPT) ÷ 2 e a NPP já está incluída no MAC. Migração
+ * `20260929090000_pauta_component_kinds.sql`: antes os três eram
+ * `continuous` e a pauta daria metade da média.
+ */
+export const PAUTA_COMPONENT_KINDS: Record<ComponentCode, string> = {
+  MAC: "continuous",
+  NPP: "informative",
+  NPT: "term_exam",
+};
+
 async function ensureTerm(db: Db, schoolId: string, academicYearId: string, term: number) {
   const { data: existing, error } = await db
     .from("terms")
@@ -183,16 +197,36 @@ async function ensureGradebook(
 async function ensureComponentItems(db: Db, schoolId: string, gradebookId: string, userId: string) {
   const { data: existing, error } = await db
     .from("grade_items")
-    .select("id, code")
+    .select("id, code, kind")
     .eq("gradebook_id", gradebookId);
   if (error) throw publicDatabaseError(error, "Não foi possível carregar os componentes de nota.");
 
   const byCode = new Map(
-    (existing ?? []).map((row: { id: string; code: string }) => [row.code.toUpperCase(), row.id]),
+    (existing ?? []).map((row: { id: string; code: string; kind: string }) => [
+      row.code.toUpperCase(),
+      row,
+    ]),
   );
 
+  const ids = {} as Record<ComponentCode, string>;
   for (const [index, code] of COMPONENT_CODES.entries()) {
-    if (byCode.has(code)) continue;
+    const kind = PAUTA_COMPONENT_KINDS[code];
+    const current = byCode.get(code);
+    if (current) {
+      ids[code] = current.id;
+      // Diários antigos: corrigir o tipo para o motor contar certo.
+      if (current.kind !== kind) {
+        const { error: kindError } = await db
+          .from("grade_items")
+          .update({ kind })
+          .eq("id", current.id)
+          .eq("school_id", schoolId);
+        if (kindError) {
+          throw publicDatabaseError(kindError, `Não foi possível corrigir o componente ${code}.`);
+        }
+      }
+      continue;
+    }
     const { data: created, error: createError } = await db
       .from("grade_items")
       .insert({
@@ -200,48 +234,23 @@ async function ensureComponentItems(db: Db, schoolId: string, gradebookId: strin
         gradebook_id: gradebookId,
         code,
         name: code,
-        kind: "score",
+        kind,
         weight: 1,
         max_score: 20,
         sequence: index + 1,
         created_by: userId,
       })
-      .select("id, code")
+      .select("id")
       .single();
     if (createError) {
-      // Alguns SGA usam kind diferente; tenta continuous.
-      const { data: retry, error: retryError } = await db
-        .from("grade_items")
-        .insert({
-          school_id: schoolId,
-          gradebook_id: gradebookId,
-          code,
-          name: code,
-          kind: "continuous",
-          weight: 1,
-          max_score: 20,
-          sequence: index + 1,
-          created_by: userId,
-        })
-        .select("id, code")
-        .single();
-      if (retryError) {
-        throw publicDatabaseError(
-          createError,
-          `Não foi possível criar o componente ${code} no diário.`,
-        );
-      }
-      byCode.set(code, retry.id);
-    } else {
-      byCode.set(code, created.id);
+      throw publicDatabaseError(
+        createError,
+        `Não foi possível criar o componente ${code} no diário.`,
+      );
     }
+    ids[code] = created.id;
   }
-
-  return {
-    MAC: byCode.get("MAC")!,
-    NPP: byCode.get("NPP")!,
-    NPT: byCode.get("NPT")!,
-  } as Record<ComponentCode, string>;
+  return ids;
 }
 
 async function upsertScore(
