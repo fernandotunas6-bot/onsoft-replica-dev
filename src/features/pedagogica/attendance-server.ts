@@ -93,6 +93,14 @@ export function computeAttendanceRate(records: Array<{ status: AttendanceStatus 
   return Math.round((presentCount / records.length) * 100);
 }
 
+/** Professores só podem abrir ou alterar sessões explicitamente atribuídas à sua ficha. */
+export function teacherOwnsAttendanceSession(
+  linkedTeacherId: string | null | undefined,
+  sessionTeacherId: string | null | undefined,
+): boolean {
+  return Boolean(linkedTeacherId && sessionTeacherId && linkedTeacherId === sessionTeacherId);
+}
+
 type AdminDb = Awaited<ReturnType<typeof loadSgaAdminClient>>;
 
 /**
@@ -165,6 +173,10 @@ export const listTeacherAttendanceSessions = createServerFn({ method: "GET" })
     const isTeacherOnly =
       membership.appRole === "Professor" &&
       !["Administrador", "Secretaria"].includes(membership.appRole);
+
+    if (isTeacherOnly && !linked.teacher_id) {
+      return { sessions: [], date: today, pendingCount: 0 };
+    }
 
     let classSubjectQuery = db
       .from("class_subjects")
@@ -362,22 +374,23 @@ export const getAttendanceCallSheet = createServerFn({ method: "GET" })
       sessionRow = s;
 
       if (!sessionRow) {
-        // Só se abre sessão para uma turma e disciplina desta escola.
-        const [{ data: ownGroup }, { data: ownSubject }] = await Promise.all([
-          db
-            .from("class_groups")
-            .select("id")
-            .eq("id", data.classGroupId)
-            .eq("school_id", membership.schoolId)
-            .maybeSingle(),
-          db
-            .from("subjects")
-            .select("id")
-            .eq("id", data.subjectId)
-            .eq("school_id", membership.schoolId)
-            .maybeSingle(),
-        ]);
-        if (!ownGroup || !ownSubject) throw new Error("Turma ou disciplina não encontrada.");
+        // Só se abre sessão para uma disciplina realmente atribuída à turma.
+        const { data: classSubject } = await db
+          .from("class_subjects")
+          .select("id, teacher_id")
+          .eq("school_id", membership.schoolId)
+          .eq("class_group_id", data.classGroupId)
+          .eq("subject_id", data.subjectId)
+          .eq("status", "active")
+          .maybeSingle();
+        if (!classSubject) throw new Error("Turma ou disciplina não encontrada.");
+
+        if (membership.appRole === "Professor") {
+          const linked = await resolveUserLinkedEntities(db, membership.schoolId, context.userId);
+          if (!teacherOwnsAttendanceSession(linked.teacher_id, classSubject.teacher_id)) {
+            throw new Error("Não tem permissão para abrir a chamada de outro professor.");
+          }
+        }
 
         const { data: created } = await db
           .from("siga_attendance_sessions")
@@ -385,6 +398,7 @@ export const getAttendanceCallSheet = createServerFn({ method: "GET" })
             school_id: membership.schoolId,
             class_group_id: data.classGroupId,
             subject_id: data.subjectId,
+            teacher_id: classSubject.teacher_id,
             lesson_date: today,
             status: "pending",
             created_by: context.userId,
@@ -397,6 +411,13 @@ export const getAttendanceCallSheet = createServerFn({ method: "GET" })
 
     if (!sessionRow) {
       throw new Error("Sessão de chamada não encontrada.");
+    }
+
+    if (membership.appRole === "Professor") {
+      const linked = await resolveUserLinkedEntities(db, membership.schoolId, context.userId);
+      if (!teacherOwnsAttendanceSession(linked.teacher_id, sessionRow.teacher_id)) {
+        throw new Error("Não tem permissão para consultar a chamada de outro professor.");
+      }
     }
 
     const [{ data: classGroup }, { data: subject }] = await Promise.all([
@@ -491,7 +512,7 @@ export const submitAttendanceCallBatch = createServerFn({ method: "POST" })
 
     if (membership.appRole === "Professor") {
       const linked = await resolveUserLinkedEntities(db, membership.schoolId, context.userId);
-      if (linked.teacher_id && session.teacher_id && linked.teacher_id !== session.teacher_id) {
+      if (!teacherOwnsAttendanceSession(linked.teacher_id, session.teacher_id)) {
         throw new Error("Não tem permissão para realizar a chamada de outro professor.");
       }
     }
@@ -571,7 +592,7 @@ export const editFinalizedAttendanceCall = createServerFn({ method: "POST" })
     // chamadas, e só entram alunos matriculados nesta turma.
     if (membership.appRole === "Professor") {
       const linked = await resolveUserLinkedEntities(db, membership.schoolId, context.userId);
-      if (linked.teacher_id && session.teacher_id && linked.teacher_id !== session.teacher_id) {
+      if (!teacherOwnsAttendanceSession(linked.teacher_id, session.teacher_id)) {
         throw new Error("Não tem permissão para corrigir a chamada de outro professor.");
       }
     }
