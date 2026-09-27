@@ -1,4 +1,8 @@
-import type { GenerateSaftInput, SaftInvoiceItem } from "@/features/finance/saft-generator";
+import type {
+  GenerateSaftInput,
+  SaftInvoiceItem,
+  SaftPaymentItem,
+} from "@/features/finance/saft-generator";
 import { validateSchoolNif } from "@/lib/angola-identity";
 
 export type SaftReadinessIssue = {
@@ -22,10 +26,18 @@ export function invoiceDateInSaftPeriod(date: string, start: string, end: string
 export function validateSaftSchoolReadiness(school: {
   nif?: string | null;
   name?: string | null;
+  address?: string | null;
 }): SaftReadinessIssue[] {
   const issues: SaftReadinessIssue[] = [];
   const nif = String(school.nif ?? "").trim();
   const name = String(school.name ?? "").trim();
+
+  if (!String(school.address ?? "").trim()) {
+    issues.push({
+      level: "warn",
+      message: 'Morada da escola em falta — o ficheiro leva "Desconhecido" (Definições → Escola).',
+    });
+  }
 
   if (!name) {
     issues.push({
@@ -67,6 +79,7 @@ export function mapFinanceInvoiceToSaftItem(input: {
   amount: number;
   discount_amount: number;
   status: string;
+  cancelled_at?: string | null;
   description: string;
   customerName: string;
   customerNif?: string | null;
@@ -86,7 +99,57 @@ export function mapFinanceInvoiceToSaftItem(input: {
     description: input.description,
     amount: total,
     status: input.status === "cancelled" ? "A" : "N",
+    ...(input.status === "cancelled" && input.cancelled_at
+      ? { statusDate: input.cancelled_at.slice(0, 10) }
+      : {}),
   };
+}
+
+/** Recibo (finance_receipts) → pagamento SAF-T; estornado = anulado. */
+export function mapFinanceReceiptToSaftPayment(input: {
+  id: string;
+  receipt_number: string | null;
+  paid_on: string | null;
+  created_at: string | null;
+  amount: number;
+  status: string;
+  reversed_at?: string | null;
+  payment_method?: string | null;
+  customerName: string;
+  customerNif?: string | null;
+  studentId?: string | null;
+  sourceInvoiceNo?: string | null;
+  sourceInvoiceDate?: string | null;
+  description?: string | null;
+}): SaftPaymentItem {
+  const date = (input.paid_on ?? input.created_at ?? "").slice(0, 10);
+  const reversed = input.status === "reversed";
+  return {
+    id: input.id,
+    paymentRefNo: input.receipt_number || `RG ${date.slice(0, 4)}/${input.id.slice(0, 8)}`,
+    paymentType: "RG",
+    date,
+    customerName: input.customerName,
+    customerNif: input.customerNif ?? null,
+    studentId: input.studentId ?? undefined,
+    description: input.description ?? undefined,
+    amount: Number(input.amount ?? 0),
+    ...(input.sourceInvoiceNo ? { sourceInvoiceNo: input.sourceInvoiceNo } : {}),
+    ...(input.sourceInvoiceDate ? { sourceInvoiceDate: input.sourceInvoiceDate.slice(0, 10) } : {}),
+    status: reversed ? "A" : "N",
+    ...(reversed && input.reversed_at ? { statusDate: input.reversed_at.slice(0, 10) } : {}),
+  };
+}
+
+/**
+ * Aviso sempre presente: o SIGA não assina as faturas com chave da AGT, por isso
+ * o ficheiro serve para conferência e para o contabilista, não como SAF-T de
+ * software certificado.
+ */
+export function saftCertificationWarning(certificateNumber?: string) {
+  return certificateNumber
+    ? `Documentos sem assinatura digital (Hash 0): o SIGA não assina faturas com a chave da AGT, mesmo com o certificado ${certificateNumber} indicado nas definições.`
+    : "Ficheiro para conferência: o SIGA não é software de facturação certificado pela AGT (certificado 0, documentos sem assinatura).";
 }
 
 export function saftExportBlocked(issues: SaftReadinessIssue[]) {

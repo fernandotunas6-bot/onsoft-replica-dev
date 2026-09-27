@@ -446,11 +446,14 @@ function FaturasPage() {
         link.click();
         document.body.removeChild(link);
         URL.revokeObjectURL(url);
-        toast.success(`Ficheiro ${res.filename} descarregado (${res.invoiceCount} faturas).`, {
-          description: val.valid
-            ? `Conformidade AGT validada (${val.version}).`
-            : `Aviso: ${val.errors.length} erro(s) estruturais detectados.`,
-        });
+        toast.success(
+          `Ficheiro ${res.filename} descarregado (${res.invoiceCount} faturas, ${res.paymentCount ?? 0} recibos).`,
+          {
+            description: val.valid
+              ? `Estrutura verificada (versão ${val.version}).`
+              : `Aviso: ${val.errors.length} erro(s) de estrutura.`,
+          },
+        );
         for (const warning of [...(res.warnings ?? []), ...val.warnings.map((w) => w.message)]) {
           toast.warning(warning);
         }
@@ -471,8 +474,8 @@ function FaturasPage() {
       }
       const val = validateSaftAoXml(res.xml);
       if (val.valid) {
-        toast.success(`SAF-T AO ${fiscalYear} 100% Válido!`, {
-          description: `Versão ${val.version} · NIF: ${val.taxRegistrationNumber} · ${val.totalInvoices} faturas · Total: ${val.grossTotal.toLocaleString("pt-PT")} Kz`,
+        toast.success(`SAF-T AO ${fiscalYear}: estrutura correcta`, {
+          description: `Versão ${val.version} · NIF: ${val.taxRegistrationNumber} · ${val.totalInvoices} faturas · ${val.totalPayments} recibos · Total: ${val.grossTotal.toLocaleString("pt-PT")} Kz. Verificação de estrutura; não substitui a validação da AGT.`,
         });
       } else {
         toast.error(`SAF-T AO ${fiscalYear}: ${val.errors.length} erro(s) estruturais`, {

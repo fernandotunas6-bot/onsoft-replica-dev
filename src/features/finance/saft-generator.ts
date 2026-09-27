@@ -37,6 +37,8 @@ export type SaftInvoiceItem = {
   description: string;
   amount: number;
   status: "N" | "A"; // N = Normal, A = Anulada
+  /** Data do estado (anulação); por omissão, a da fatura. */
+  statusDate?: string;
 };
 
 export type SaftPaymentItem = {
@@ -50,8 +52,20 @@ export type SaftPaymentItem = {
   description?: string;
   amount: number;
   sourceInvoiceNo?: string;
+  /** Data da fatura liquidada (não a do recibo). */
+  sourceInvoiceDate?: string;
   status: "N" | "A"; // N = Normal, A = Anulada
+  statusDate?: string;
 };
+
+/**
+ * O SIGA não assina documentos com chave certificada pela AGT: sem número de
+ * certificado configurado vai "0" (valor que a norma prevê quando não se
+ * aplica), e o Hash vai sempre "0" com HashControl "0" — nunca um certificado
+ * ou uma assinatura inventados.
+ */
+export const SAFT_NOT_CERTIFIED = "0";
+const UNKNOWN = "Desconhecido";
 
 function escapeXml(str: string): string {
   return str
@@ -74,9 +88,9 @@ export function buildSaftAoXml(
   const dateCreated = new Date().toISOString().slice(0, 10);
 
   const schoolNif = school.nif?.trim() || "999999999";
-  const schoolName = school.name?.trim() || "Instituição Escolar SIGA";
-  const schoolAddress = school.address?.trim() || "Luanda";
-  const schoolCity = school.city?.trim() || "Luanda";
+  const schoolName = school.name?.trim() || UNKNOWN;
+  const schoolAddress = school.address?.trim() || UNKNOWN;
+  const schoolCity = school.city?.trim() || UNKNOWN;
 
   // Build Customers map
   const customerMap = new Map<string, { id: string; name: string; nif: string }>();
@@ -139,7 +153,7 @@ export function buildSaftAoXml(
   xml += `    <ProductID>SIGA/AO</ProductID>\n`;
   xml += `    <ProductVersion>2026.1</ProductVersion>\n`;
   xml += `    <HeaderComment>Ficheiro SAFT-AO gerado pelo SIGA per Decreto Presidencial 312/18 AGT</HeaderComment>\n`;
-  xml += `    <SoftwareCertificateNumber>${escapeXml(input.softwareCertificateNumber?.trim() || "0/AGT/2026")}</SoftwareCertificateNumber>\n`;
+  xml += `    <SoftwareCertificateNumber>${escapeXml(input.softwareCertificateNumber?.trim() || SAFT_NOT_CERTIFIED)}</SoftwareCertificateNumber>\n`;
   xml += `  </Header>\n`;
 
   xml += `  <MasterFiles>\n`;
@@ -151,8 +165,8 @@ export function buildSaftAoXml(
     xml += `      <CustomerTaxID>${escapeXml(cust.nif)}</CustomerTaxID>\n`;
     xml += `      <CompanyName>${escapeXml(cust.name)}</CompanyName>\n`;
     xml += `      <BillingAddress>\n`;
-    xml += `        <AddressDetail>${escapeXml(schoolCity)}</AddressDetail>\n`;
-    xml += `        <City>${escapeXml(schoolCity)}</City>\n`;
+    xml += `        <AddressDetail>${UNKNOWN}</AddressDetail>\n`;
+    xml += `        <City>${UNKNOWN}</City>\n`;
     xml += `        <Country>AO</Country>\n`;
     xml += `      </BillingAddress>\n`;
     xml += `      <SelfBillingIndicator>0</SelfBillingIndicator>\n`;
@@ -196,12 +210,12 @@ export function buildSaftAoXml(
     xml += `        <InvoiceNo>${escapeXml(inv.invoiceNo)}</InvoiceNo>\n`;
     xml += `        <DocumentStatus>\n`;
     xml += `          <InvoiceStatus>${inv.status}</InvoiceStatus>\n`;
-    xml += `          <InvoiceStatusDate>${inv.date}T00:00:00</InvoiceStatusDate>\n`;
+    xml += `          <InvoiceStatusDate>${inv.statusDate ?? inv.date}T00:00:00</InvoiceStatusDate>\n`;
     xml += `          <SourceID>SIGA</SourceID>\n`;
     xml += `          <SourceBilling>P</SourceBilling>\n`;
     xml += `        </DocumentStatus>\n`;
     xml += `        <Hash>0</Hash>\n`;
-    xml += `        <HashControl>1</HashControl>\n`;
+    xml += `        <HashControl>0</HashControl>\n`;
     xml += `        <Period>${inv.date.slice(5, 7)}</Period>\n`;
     xml += `        <InvoiceDate>${inv.date}</InvoiceDate>\n`;
     xml += `        <InvoiceType>${inv.invoiceType}</InvoiceType>\n`;
@@ -258,7 +272,7 @@ export function buildSaftAoXml(
       xml += `        <PaymentType>${pay.paymentType}</PaymentType>\n`;
       xml += `        <PaymentStatus>\n`;
       xml += `          <PaymentStatus>${pay.status}</PaymentStatus>\n`;
-      xml += `          <PaymentStatusDate>${pay.date}T00:00:00</PaymentStatusDate>\n`;
+      xml += `          <PaymentStatusDate>${pay.statusDate ?? pay.date}T00:00:00</PaymentStatusDate>\n`;
       xml += `          <SourceID>SIGA</SourceID>\n`;
       xml += `          <SourcePayment>P</SourcePayment>\n`;
       xml += `        </PaymentStatus>\n`;
@@ -270,7 +284,7 @@ export function buildSaftAoXml(
       if (pay.sourceInvoiceNo) {
         xml += `          <SourceDocumentID>\n`;
         xml += `            <OriginatingON>${escapeXml(pay.sourceInvoiceNo)}</OriginatingON>\n`;
-        xml += `            <InvoiceDate>${pay.date}</InvoiceDate>\n`;
+        xml += `            <InvoiceDate>${pay.sourceInvoiceDate ?? pay.date}</InvoiceDate>\n`;
         xml += `            <Description>${escapeXml(pay.description || "Propina")}</Description>\n`;
         xml += `          </SourceDocumentID>\n`;
       }

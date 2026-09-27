@@ -44,6 +44,8 @@ import { loadPersonNamesById } from "@/features/people/lookup";
 import {
   invoiceDateInSaftPeriod,
   mapFinanceInvoiceToSaftItem,
+  mapFinanceReceiptToSaftPayment,
+  saftCertificationWarning,
   saftExportBlocked,
   saftPeriodBounds,
   validateSaftSchoolReadiness,
@@ -1660,11 +1662,13 @@ export const exportSaftAoXml = createServerFn({ method: "POST" })
 
     const schoolVal = (schoolSetting?.value as Record<string, unknown>) ?? {};
     const agtVal = (agtSetting?.value as Record<string, unknown>) ?? {};
+    const text = (v: unknown) => (typeof v === "string" ? v.trim() : "");
+    // Sem valores inventados: o que faltar fica vazio e aparece nos avisos.
     const schoolInfo = {
-      nif: String(schoolVal["nif"] ?? schoolVal["taxId"] ?? ""),
-      name: String(schoolVal["name"] ?? schoolVal["schoolName"] ?? "Instituição Escolar SIGA"),
-      address: String(schoolVal["address"] ?? "Luanda"),
-      city: String(schoolVal["city"] ?? "Luanda"),
+      nif: text(schoolVal["nif"]) || text(schoolVal["taxId"]),
+      name: text(schoolVal["name"]) || text(schoolVal["schoolName"]),
+      address: text(schoolVal["address"]),
+      city: text(schoolVal["city"]),
     };
 
     const readiness = validateSaftSchoolReadiness(schoolInfo);
@@ -1674,42 +1678,105 @@ export const exportSaftAoXml = createServerFn({ method: "POST" })
       );
     }
 
+    type InvoiceRow = {
+      id: string;
+      contract_id: string | null;
+      fee_item_id: string | null;
+      invoice_number: string;
+      amount: number;
+      discount_amount: number;
+      status: string;
+      created_at: string;
+      cancelled_at: string | null;
+    };
+    type ReceiptRow = {
+      id: string;
+      invoice_id: string | null;
+      receipt_number: string | null;
+      amount: number;
+      paid_on: string | null;
+      payment_method: string | null;
+      status: string;
+      reversed_at: string | null;
+      created_at: string | null;
+    };
+    const invoiceColumns =
+      "id, contract_id, fee_item_id, invoice_number, amount, discount_amount, status, created_at, cancelled_at";
+
     const period = saftPeriodBounds(data);
-    const { data: invoices, error } = await db
-      .from("finance_invoices")
-      .select(
-        "id, contract_id, fee_item_id, invoice_number, amount, discount_amount, status, created_at",
-      )
-      .eq("school_id", membership.schoolId)
-      .gte("created_at", `${period.start}T00:00:00`)
-      .lte("created_at", `${period.end}T23:59:59`)
-      .order("created_at", { ascending: true });
+    const [{ data: invoiceRows, error }, { data: receiptRows, error: receiptsError }] =
+      await Promise.all([
+        db
+          .from("finance_invoices")
+          .select(invoiceColumns)
+          .eq("school_id", membership.schoolId)
+          .gte("created_at", `${period.start}T00:00:00`)
+          .lte("created_at", `${period.end}T23:59:59`)
+          .order("created_at", { ascending: true }),
+        db
+          .from("finance_receipts")
+          .select(
+            "id, invoice_id, receipt_number, amount, paid_on, payment_method, status, reversed_at, created_at",
+          )
+          .eq("school_id", membership.schoolId)
+          .gte("paid_on", period.start)
+          .lte("paid_on", period.end)
+          .order("paid_on", { ascending: true }),
+      ]);
 
     if (error) {
       throw publicDatabaseError(error, "Não foi possível carregar as faturas para o SAFT-AO.");
     }
+    if (receiptsError) {
+      throw publicDatabaseError(
+        receiptsError,
+        "Não foi possível carregar os recibos para o SAFT-AO.",
+      );
+    }
+    const invoices = (invoiceRows ?? []) as InvoiceRow[];
+    const receipts = (receiptRows ?? []) as ReceiptRow[];
+
+    // Recibos do período podem liquidar faturas emitidas antes: carregá-las
+    // também (só para o número, a data e o aluno; não entram nas faturas).
+    const invoiceById = new Map(invoices.map((row) => [row.id, row]));
+    const missingInvoiceIds = [
+      ...new Set(
+        receipts
+          .map((row) => row.invoice_id)
+          .filter((id): id is string => Boolean(id) && !invoiceById.has(id as string)),
+      ),
+    ];
+    if (missingInvoiceIds.length) {
+      const { data: earlier } = await db
+        .from("finance_invoices")
+        .select(invoiceColumns)
+        .eq("school_id", membership.schoolId)
+        .in("id", missingInvoiceIds);
+      for (const row of (earlier ?? []) as InvoiceRow[]) invoiceById.set(row.id, row);
+    }
+    const allInvoices = [...invoiceById.values()];
 
     const contractIds = [
-      ...new Set(
-        (invoices ?? [])
-          .map((row: { contract_id: string | null }) => row.contract_id)
-          .filter(Boolean),
-      ),
+      ...new Set(allInvoices.map((row) => row.contract_id).filter(Boolean)),
     ] as string[];
     const feeIds = [
-      ...new Set(
-        (invoices ?? [])
-          .map((row: { fee_item_id: string | null }) => row.fee_item_id)
-          .filter(Boolean),
-      ),
+      ...new Set(allInvoices.map((row) => row.fee_item_id).filter(Boolean)),
     ] as string[];
 
     const [{ data: contracts }, { data: feeItems }] = await Promise.all([
       contractIds.length
-        ? db.from("finance_contracts").select("id, enrollment_id").in("id", contractIds)
+        ? db
+            .from("finance_contracts")
+            .select("id, enrollment_id")
+            .eq("school_id", membership.schoolId)
+            .in("id", contractIds)
         : Promise.resolve({ data: [] as Array<{ id: string; enrollment_id: string }> }),
       feeIds.length
-        ? db.from("fee_items").select("id, name").in("id", feeIds)
+        ? db
+            .from("fee_items")
+            .select("id, name")
+            .eq("school_id", membership.schoolId)
+            .in("id", feeIds)
         : Promise.resolve({ data: [] as Array<{ id: string; name: string }> }),
     ]);
 
@@ -1717,7 +1784,11 @@ export const exportSaftAoXml = createServerFn({ method: "POST" })
       ...new Set((contracts ?? []).map((row) => row.enrollment_id).filter(Boolean)),
     ];
     const { data: enrollments } = enrollmentIds.length
-      ? await db.from("enrollments").select("id, student_id").in("id", enrollmentIds)
+      ? await db
+          .from("enrollments")
+          .select("id, student_id")
+          .eq("school_id", membership.schoolId)
+          .in("id", enrollmentIds)
       : { data: [] as Array<{ id: string; student_id: string }> };
 
     const studentIds = [...new Set((enrollments ?? []).map((row) => row.student_id))];
@@ -1729,37 +1800,50 @@ export const exportSaftAoXml = createServerFn({ method: "POST" })
     const contractById = new Map((contracts ?? []).map((row) => [row.id, row]));
     const feeById = new Map((feeItems ?? []).map((row) => [row.id, row]));
 
-    const formattedInvoices = (invoices ?? [])
-      .map(
-        (invoice: {
-          id: string;
-          contract_id: string | null;
-          fee_item_id: string | null;
-          invoice_number: string;
-          amount: number;
-          discount_amount: number;
-          status: string;
-          created_at: string;
-        }) => {
-          const contract = invoice.contract_id ? contractById.get(invoice.contract_id) : null;
-          const enrollment = contract ? enrollmentById.get(contract.enrollment_id) : null;
-          const student = enrollment ? studentById.get(enrollment.student_id) : null;
-          const fee = invoice.fee_item_id ? feeById.get(invoice.fee_item_id) : null;
-          return mapFinanceInvoiceToSaftItem({
-            id: invoice.id,
-            invoice_number: invoice.invoice_number,
-            created_at: invoice.created_at,
-            amount: Number(invoice.amount ?? 0),
-            discount_amount: Number(invoice.discount_amount ?? 0),
-            status: invoice.status,
-            description: fee?.name ?? "Propina e Serviços Escolares",
-            customerName: student?.full_name ?? "Estudante SIGA",
-            studentId: enrollment?.student_id ?? null,
-            fiscalYear: data.fiscalYear,
-          });
-        },
-      )
+    const invoiceParty = (invoice: InvoiceRow | undefined) => {
+      const contract = invoice?.contract_id ? contractById.get(invoice.contract_id) : null;
+      const enrollment = contract ? enrollmentById.get(contract.enrollment_id) : null;
+      const student = enrollment ? studentById.get(enrollment.student_id) : null;
+      const fee = invoice?.fee_item_id ? feeById.get(invoice.fee_item_id) : null;
+      return {
+        customerName: student?.full_name ?? "Consumidor final",
+        studentId: enrollment?.student_id ?? null,
+        description: fee?.name ?? "Propinas e serviços escolares",
+      };
+    };
+
+    const formattedInvoices = invoices
+      .map((invoice) => {
+        const party = invoiceParty(invoice);
+        return mapFinanceInvoiceToSaftItem({
+          id: invoice.id,
+          invoice_number: invoice.invoice_number,
+          created_at: invoice.created_at,
+          amount: Number(invoice.amount ?? 0),
+          discount_amount: Number(invoice.discount_amount ?? 0),
+          status: invoice.status,
+          cancelled_at: invoice.cancelled_at,
+          description: party.description,
+          customerName: party.customerName,
+          studentId: party.studentId,
+          fiscalYear: data.fiscalYear,
+        });
+      })
       .filter((item) => invoiceDateInSaftPeriod(item.date, period.start, period.end));
+
+    const formattedPayments = receipts.map((receipt) => {
+      const invoice = receipt.invoice_id ? invoiceById.get(receipt.invoice_id) : undefined;
+      const party = invoiceParty(invoice);
+      return mapFinanceReceiptToSaftPayment({
+        ...receipt,
+        amount: Number(receipt.amount ?? 0),
+        customerName: party.customerName,
+        studentId: party.studentId,
+        description: party.description,
+        sourceInvoiceNo: invoice?.invoice_number ?? null,
+        sourceInvoiceDate: invoice?.created_at ?? null,
+      });
+    });
 
     const softwareCertificateNumber =
       typeof agtVal["software_certified"] === "string" && agtVal["software_certified"].trim()
@@ -1767,12 +1851,15 @@ export const exportSaftAoXml = createServerFn({ method: "POST" })
         : undefined;
 
     const { buildSaftAoXml } = await import("./saft-generator");
-    const xml = buildSaftAoXml(schoolInfo, formattedInvoices, {
-      ...data,
-      softwareCertificateNumber,
-    });
+    const xml = buildSaftAoXml(
+      schoolInfo,
+      formattedInvoices,
+      { ...data, softwareCertificateNumber },
+      formattedPayments,
+    );
 
     const warnings = [
+      saftCertificationWarning(softwareCertificateNumber),
       ...readiness.filter((issue) => issue.level === "warn").map((issue) => issue.message),
       ...(formattedInvoices.length === 0
         ? [`Nenhuma fatura no período ${period.start} — ${period.end}.`]
@@ -1784,6 +1871,7 @@ export const exportSaftAoXml = createServerFn({ method: "POST" })
       filename: `SAFT-AO_${schoolInfo.nif}_${data.fiscalYear}.xml`,
       xml,
       invoiceCount: formattedInvoices.length,
+      paymentCount: formattedPayments.length,
       warnings,
     };
   });

@@ -43,7 +43,10 @@ describe("SAFT-AO AGT XML Generator", () => {
     expect(xml).toContain(`urn:OECD:StandardAuditFile-Tax:AO_1.01_01`);
     expect(xml).toContain(`<CompanyID>5417001234</CompanyID>`);
     expect(xml).toContain(`<CompanyName>Complexo Escolar SIGA de Luanda</CompanyName>`);
-    expect(xml).toContain(`<SoftwareCertificateNumber>0/AGT/2026</SoftwareCertificateNumber>`);
+    // Sem certificado configurado: "0", nunca um número inventado.
+    expect(xml).toContain(`<SoftwareCertificateNumber>0</SoftwareCertificateNumber>`);
+    expect(xml).not.toContain("0/AGT/");
+    expect(xml).toContain(`<HashControl>0</HashControl>`);
     expect(xml).toContain(`<CustomerTaxID>005481234LA042</CustomerTaxID>`);
     expect(xml).toContain(`<InvoiceNo>FT 2026/0001</InvoiceNo>`);
     expect(xml).toContain(`<CreditAmount>45000.00</CreditAmount>`);
@@ -97,5 +100,48 @@ describe("SAFT-AO AGT XML Generator", () => {
     expect(xml).toContain(`<OriginatingON>FT 2026/0001</OriginatingON>`);
     expect(xml).toContain(`<SettlementAmount>45000.00</SettlementAmount>`);
     expect(xml).toContain(`</Payments>`);
+  });
+
+  it("não inventa morada e usa as datas certas de anulação e da fatura liquidada", () => {
+    const xml = buildSaftAoXml(
+      { nif: "5417001234", name: "Escola" },
+      [
+        {
+          id: "i1",
+          invoiceNo: "FT 2026/0009",
+          invoiceType: "FT",
+          date: "2026-02-01",
+          customerName: "Ana",
+          description: "Propina",
+          amount: 1000,
+          status: "A",
+          statusDate: "2026-02-10",
+        },
+      ],
+      { fiscalYear: 2026 },
+      [
+        {
+          id: "r1",
+          paymentRefNo: "RG 2026/0001",
+          paymentType: "RG",
+          date: "2026-03-05",
+          customerName: "Ana",
+          amount: 1000,
+          sourceInvoiceNo: "FT 2025/0100",
+          sourceInvoiceDate: "2025-12-01",
+          status: "A",
+          statusDate: "2026-03-06",
+        },
+      ],
+    );
+    expect(xml).not.toContain("Luanda");
+    expect(xml).toContain("<AddressDetail>Desconhecido</AddressDetail>");
+    expect(xml).toContain("<InvoiceStatusDate>2026-02-10T00:00:00</InvoiceStatusDate>");
+    expect(xml).toContain("<InvoiceDate>2025-12-01</InvoiceDate>");
+    expect(xml).toContain("<PaymentStatusDate>2026-03-06T00:00:00</PaymentStatusDate>");
+    // Anulados contam nas entradas mas não nos totais.
+    expect(xml).toMatch(
+      /<SalesInvoices>\s*<NumberOfEntries>1<\/NumberOfEntries>\s*<TotalDebit>0.00<\/TotalDebit>\s*<TotalCredit>0.00<\/TotalCredit>/,
+    );
   });
 });
