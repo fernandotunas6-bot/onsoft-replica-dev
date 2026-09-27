@@ -117,7 +117,8 @@ export function AppSidebar({
       <aside
         data-sidebar="siga"
         className={cn(
-          "flex h-full shrink-0 flex-col bg-sidebar text-sidebar-foreground transition-[width] duration-200",
+          "flex h-full shrink-0 flex-col overflow-hidden bg-sidebar text-sidebar-foreground transition-[width] duration-200",
+          "lg:rounded-2xl lg:border lg:border-border/60 lg:shadow-sm",
           collapsed ? "w-[64px]" : "w-[240px]",
           className,
         )}
