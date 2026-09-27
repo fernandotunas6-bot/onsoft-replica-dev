@@ -5,6 +5,9 @@ import { loadSgaAdminClient } from "@/integrations/supabase/sga-admin";
 export const signInWithIdentifierInputSchema = z.object({
   identifier: z.string().trim().min(3).max(100),
   password: z.string().min(1).max(200),
+  // O projecto tem captcha activa; sem este sinal o `/auth/v1/token` recusa antes de
+  // sequer olhar para a senha. Opcional para o caso de a protecção ser desligada.
+  captchaToken: z.string().min(1).max(4000).optional(),
 });
 export type SignInWithIdentifierInput = z.infer<typeof signInWithIdentifierInputSchema>;
 
@@ -12,7 +15,12 @@ export type PasswordGrantResult =
   | { ok: true; accessToken: string; refreshToken: string }
   | {
       ok: false;
-      error: "invalid_credentials" | "email_not_confirmed" | "rate_limited" | "unavailable";
+      error:
+        | "invalid_credentials"
+        | "email_not_confirmed"
+        | "rate_limited"
+        | "captcha_failed"
+        | "unavailable";
     };
 
 /**
@@ -23,6 +31,7 @@ export async function passwordGrant(
   email: string,
   password: string,
   fetchImpl: typeof fetch = fetch,
+  captchaToken?: string,
 ): Promise<PasswordGrantResult> {
   const url = process.env["SUPABASE_URL"];
   const key = process.env["SUPABASE_PUBLISHABLE_KEY"];
@@ -33,7 +42,11 @@ export async function passwordGrant(
     response = await fetchImpl(`${url.replace(/\/$/, "")}/auth/v1/token?grant_type=password`, {
       method: "POST",
       headers: { apikey: key, "Content-Type": "application/json" },
-      body: JSON.stringify({ email, password }),
+      body: JSON.stringify({
+        email,
+        password,
+        ...(captchaToken ? { gotrue_meta_security: { captcha_token: captchaToken } } : {}),
+      }),
     });
   } catch {
     return { ok: false, error: "unavailable" };
@@ -48,6 +61,7 @@ export async function passwordGrant(
     return { ok: true, accessToken: body.access_token, refreshToken: body.refresh_token };
   }
   const code = String(body.error_code ?? body.code ?? body.msg ?? body.error ?? "").toLowerCase();
+  if (code.includes("captcha")) return { ok: false, error: "captcha_failed" };
   if (response.status === 429 || code.includes("rate")) return { ok: false, error: "rate_limited" };
   if (code.includes("not_confirmed") || code.includes("not confirmed")) {
     return { ok: false, error: "email_not_confirmed" };
