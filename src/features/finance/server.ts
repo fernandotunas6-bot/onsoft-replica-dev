@@ -24,7 +24,7 @@ import {
 // Só o schema (zod puro, sem dependências pesadas) entra estaticamente; o
 // gerador de XML continua a ser carregado dinamicamente dentro do handler.
 import { generateSaftInputSchema } from "./saft-generator";
-import { invoiceStatusFromPaid } from "./invoice-settlement";
+import { invoiceNetTotal, invoiceStatusFromPaid } from "./invoice-settlement";
 import { insertFinanceArchive } from "@/features/arquivos/archive-finance-core";
 import { stableDocumentCode } from "@/features/arquivos/document-code";
 import { canWriteFileArea } from "@/features/arquivos/kinds";
@@ -1270,7 +1270,7 @@ export const reverseCashEntry = createServerFn({ method: "POST" })
         const [{ data: invoice }, { data: valid }] = await Promise.all([
           db
             .from("finance_invoices")
-            .select("id, amount, status")
+            .select("id, amount, discount_amount, status")
             .eq("id", invoiceId)
             .eq("school_id", membership.schoolId)
             .maybeSingle(),
@@ -1286,7 +1286,7 @@ export const reverseCashEntry = createServerFn({ method: "POST" })
             (sum: number, row: { amount: unknown }) => sum + Number(row.amount || 0),
             0,
           );
-          const status = invoiceStatusFromPaid(Number(invoice.amount ?? 0), paid);
+          const status = invoiceStatusFromPaid(invoiceNetTotal(invoice), paid);
           if (status !== invoice.status) {
             const { error: statusError } = await db
               .from("finance_invoices")

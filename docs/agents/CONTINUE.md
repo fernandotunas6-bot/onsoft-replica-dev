@@ -23,13 +23,12 @@ leituras presas à escola, ecrã sem "Conformidade AGT"); estorno de recibo com
 (`invoice-settlement.ts`); plano de propinas por omissão sem preços de exemplo
 (0 = por definir) e erro do servidor visível no painel.
 
-**Por fazer (precisa de migração):** `private.register_payment` compara o pago
-com `finance_invoices.amount` e ignora `discount_amount`, enquanto a aplicação
-usa `amount - discount_amount` como total. Uma fatura com desconto paga por
-inteiro fica `partially_paid`, e aceita pagamentos até ao valor bruto. As
-faturas emitidas pelo SIGA têm desconto 0; só afecta faturas importadas com
-desconto. O webhook do gateway e `registerReceiptDirect` seguem a mesma regra
-e devem mudar juntos. Escolas criadas antes desta data podem ter o plano com
+**Desconto nos pagamentos — escrito, por aplicar:** `private.register_payment`
+comparava o pago com `amount` e ignorava `discount_amount`. Migração
+`20260927190000_register_payment_net_of_discount.sql`, no pacote
+`docs/agents/SIGA_aplicar_pagamentos_desconto.sql` (com a confirmação no fim).
+O webhook do gateway, o estorno e a importação de pagamentos já usam o mesmo
+total (`invoiceNetTotal` em `invoice-settlement.ts`). Escolas criadas antes desta data podem ter o plano com
 45 000 / 25 000 Kz semeados; não há forma de distinguir de preços reais.
 
 ## Deploy (2026-09-20)

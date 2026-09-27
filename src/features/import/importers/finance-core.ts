@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { invoiceNetTotal, invoiceStatusFromPaid } from "@/features/finance/invoice-settlement";
 import { normalizeText } from "../engine/normalize";
 import { categoryToFeeKind } from "@/features/finance/server";
 
@@ -266,7 +267,7 @@ export async function loadOpenInvoiceRefs(
 ): Promise<OpenInvoiceRef[]> {
   const { data: invoices, error: invoicesError } = await db
     .from("finance_invoices")
-    .select("id, contract_id, invoice_number, amount, due_date, competence_month")
+    .select("id, contract_id, invoice_number, amount, discount_amount, due_date, competence_month")
     .eq("school_id", schoolId)
     .in("status", ["open", "partially_paid"]);
   if (invoicesError) {
@@ -289,7 +290,11 @@ export async function loadOpenInvoiceRefs(
 
   const enrollmentIds = [...new Set([...enrollmentIdByContract.values()])];
   const { data: enrollments, error: enrollmentsError } = enrollmentIds.length
-    ? await db.from("enrollments").select("id, student_id").in("id", enrollmentIds)
+    ? await db
+        .from("enrollments")
+        .select("id, student_id")
+        .eq("school_id", schoolId)
+        .in("id", enrollmentIds)
     : { data: [], error: null };
   if (enrollmentsError) {
     throw new Error(
@@ -320,7 +325,8 @@ export async function loadOpenInvoiceRefs(
     .map((row) => {
       const enrollmentId = enrollmentIdByContract.get(String(row.contract_id));
       const studentId = enrollmentId ? studentIdByEnrollment.get(enrollmentId) : undefined;
-      const amount = Number(row.amount);
+      // Total a pagar (valor menos desconto): a mesma regra de register_payment.
+      const amount = invoiceNetTotal(row);
       const paid = paidByInvoice.get(String(row.id)) ?? 0;
       return studentId
         ? {
@@ -481,8 +487,7 @@ export async function registerReceiptDirect(
     );
   }
 
-  const invoiceStatus =
-    alreadyPaid + params.amount >= params.invoiceAmount ? "paid" : "partially_paid";
+  const invoiceStatus = invoiceStatusFromPaid(params.invoiceAmount, alreadyPaid + params.amount);
   const { error: updateError } = await db
     .from("finance_invoices")
     .update({ status: invoiceStatus })

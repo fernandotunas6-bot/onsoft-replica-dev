@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { invoiceNetTotal, invoiceStatusFromPaid } from "./invoice-settlement";
 import { publicDatabaseError } from "@/integrations/supabase/server-error";
 import { normalizePaymentReference } from "@/features/finance/emiss-multicaixa";
 import {
@@ -158,7 +159,7 @@ export async function settleGatewayPayment(
       const alreadyPaid = (receipts ?? []).reduce((acc, r) => acc + Number(r.amount || 0), 0);
       // A mesma regra de `register_payment`: nunca um recibo acima do saldo em
       // aberto. O pagamento fica para revisão manual em vez de gerar um recibo a mais.
-      if (alreadyPaid + input.amount > Number(invoice.amount) + 0.009) {
+      if (alreadyPaid + input.amount > invoiceNetTotal(invoice) + 0.009) {
         throw new Error("O valor do pagamento excede o saldo em aberto da fatura.");
       }
 
@@ -230,8 +231,7 @@ export async function settleGatewayPayment(
           "Não foi possível emitir recibo do gateway.",
         );
 
-      const newStatus =
-        alreadyPaid + input.amount >= Number(invoice.amount) ? "paid" : "partially_paid";
+      const newStatus = invoiceStatusFromPaid(invoiceNetTotal(invoice), alreadyPaid + input.amount);
       await db
         .from("finance_invoices")
         .update({ status: newStatus })

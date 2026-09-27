@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { invoiceStatusFromPaid } from "@/features/finance/invoice-settlement";
+import { invoiceNetTotal, invoiceStatusFromPaid } from "@/features/finance/invoice-settlement";
 
 describe("invoiceStatusFromPaid", () => {
   it("sem recibos válidos a fatura volta a aberta", () => {
@@ -30,5 +30,17 @@ describe("estorno de recibos (reverseCashEntry)", () => {
   });
   it("repõe o estado da fatura a partir dos recibos que ficam", () => {
     expect(handler).toContain("invoiceStatusFromPaid(");
+  });
+});
+
+describe("invoiceNetTotal", () => {
+  it("é o valor menos o desconto, nunca negativo", () => {
+    expect(invoiceNetTotal({ amount: 10_000, discount_amount: 2_000 })).toBe(8_000);
+    expect(invoiceNetTotal({ amount: 10_000, discount_amount: null })).toBe(10_000);
+    expect(invoiceNetTotal({ amount: 1_000, discount_amount: 5_000 })).toBe(0);
+  });
+  it("com desconto, pagar o total com desconto deixa a fatura paga", () => {
+    const total = invoiceNetTotal({ amount: 10_000, discount_amount: 2_000 });
+    expect(invoiceStatusFromPaid(total, 8_000)).toBe("paid");
   });
 });
