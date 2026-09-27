@@ -156,6 +156,23 @@ export function canGrantRole(
   return { ok: true };
 }
 
+/** Códigos que um pedido de acesso pode conceder: nunca o de proprietário. */
+export function grantableRoleCodes(roleCodes: string[]): string[] {
+  return roleCodes.filter((code) => code !== "owner");
+}
+
+/** Escolhe o papel pela ordem de preferência dos códigos. */
+export function pickRoleByPreference<T extends { id: unknown; code: unknown }>(
+  roles: T[],
+  codes: string[],
+): T | null {
+  for (const code of codes) {
+    const found = roles.find((r) => r.code === code && r.id);
+    if (found) return found;
+  }
+  return null;
+}
+
 // ─── Normalização dos dados de identificação ────────────────────────────────
 
 /** Compacta um identificador para comparação (maiúsculas, sem espaços/pontuação). */

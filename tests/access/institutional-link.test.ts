@@ -6,10 +6,12 @@ import {
   classifyAccountLink,
   compactIdentifier,
   defaultRoleForProfile,
+  grantableRoleCodes,
   grantableRolesByProfile,
   isOpenAccessRequest,
   isSafeRecordMatch,
   nextAccessRequestStatus,
+  pickRoleByPreference,
 } from "@/features/access/institutional-link";
 import {
   requesterAccessRequestActionInputSchema,
@@ -203,5 +205,23 @@ describe("esquemas de entrada", () => {
   it("pesquisa de escola exige pelo menos 3 caracteres", () => {
     expect(searchSchoolsForAccessInputSchema.safeParse({ query: "ab" }).success).toBe(false);
     expect(searchSchoolsForAccessInputSchema.safeParse({ query: "Liceu" }).success).toBe(true);
+  });
+});
+
+describe("papel concedido na aprovação", () => {
+  it("nunca concede o papel de proprietário", () => {
+    expect(grantableRoleCodes(["owner", "admin", "administrador"])).toEqual([
+      "admin",
+      "administrador",
+    ]);
+  });
+
+  it("escolhe pela ordem de preferência, não pela ordem da base", () => {
+    const roles = [
+      { id: "3", code: "finance" },
+      { id: "1", code: "treasury" },
+    ];
+    expect(pickRoleByPreference(roles, ["treasury", "tesouraria", "finance"])?.id).toBe("1");
+    expect(pickRoleByPreference(roles, ["student"])).toBeNull();
   });
 });

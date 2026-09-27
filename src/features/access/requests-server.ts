@@ -23,9 +23,11 @@ import {
   canGrantRole,
   classifyAccountLink,
   compactIdentifier,
+  grantableRoleCodes,
   isSafeRecordMatch,
   nextAccessRequestStatus,
   OPEN_ACCESS_REQUEST_STATUSES,
+  pickRoleByPreference,
   type AccessRequestProfile,
   type AccessRequestStatus,
   type AccountLinkSituation,
@@ -840,14 +842,18 @@ export const listSchoolAccessRequests = createServerFn({ method: "GET" })
 
 /** Cria ou reactiva o vínculo e atribui o papel. Idempotente. */
 async function grantMembership(db: Db, schoolId: string, userId: string, roleCodes: string[]) {
-  const { data: role } = await db
+  // O papel de proprietário nunca se concede por pedido de acesso. Entre os
+  // códigos equivalentes, vale a ordem de `roleCodes` (a base não garante ordem).
+  const codes = grantableRoleCodes(roleCodes);
+  const { data: roles, error: rolesError } = await db
     .from("roles")
     .select("id, code")
     .eq("school_id", schoolId)
-    .in("code", roleCodes)
-    .limit(1)
-    .maybeSingle();
-  if (!role?.id) throw new Error("O papel pedido não está configurado nesta escola.");
+    .in("code", codes.length ? codes : ["-"]);
+  if (rolesError)
+    throw publicDatabaseError(rolesError, "Não foi possível ler os papéis da escola.");
+  const role = pickRoleByPreference(roles ?? [], codes);
+  if (!role) throw new Error("O papel pedido não está configurado nesta escola.");
 
   const now = new Date().toISOString();
   const { data: existing } = await db
@@ -998,6 +1004,22 @@ export const reviewAccessRequest = createServerFn({ method: "POST" })
       requestId: request.id,
       metadata: audit,
     });
+
+    if (data.action === "approve") {
+      // Já tem vínculo: o aviso aparece no sino do painel da escola.
+      const { insertInAppNotifications } = await import("@/features/academic/lesson-delivery");
+      await insertInAppNotifications(db, membership.schoolId, [
+        {
+          userId: request.user_id,
+          title: "Pedido de acesso aprovado",
+          body: "O seu acesso à escola foi aprovado. Já pode usar o painel.",
+          eventType: "access_request.approved",
+          payload: { requestId: request.id, href: "/" },
+        },
+      ]).catch((notifyError) => {
+        console.error("[access-requests] aviso ao requerente falhou", notifyError);
+      });
+    }
 
     let emailed = false;
     if (data.action !== "start_review") {
