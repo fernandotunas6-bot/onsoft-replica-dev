@@ -67,8 +67,9 @@ A produção tem o fluxo premium quase todo — falta ligá-lo aos ecrãs:
   `siga_attendance_records`: a percentagem gravada na pauta sai 0 e o
   resultado da base nunca reprova por faltas. **Contornado na aplicação**
   (2026-09-27): detalhe da pauta, exames e resultado final calculam as faltas
-  a partir de `siga_attendance_*` (`exam-data.ts: absenceByEnrollment`). Falta
-  corrigir a própria função na base — precisa do corpo actual da produção.
+  a partir de `siga_attendance_*` (`exam-data.ts: absenceByEnrollment`). A
+  própria função é corrigida por `20260927110000` (troca só o bloco das faltas
+  na definição que estiver na base; se não o reconhecer, não mexe).
 - `build_grade_sheet` exige uma regra activa com `code = 'DEFAULT'`.
 
 ## Próximas fatias (por ordem)

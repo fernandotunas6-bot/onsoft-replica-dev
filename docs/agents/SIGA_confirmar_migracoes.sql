@@ -41,6 +41,10 @@ from (values
   ('20260927090000_student_history_server_only',
      not exists (select 1 from pg_policies
                  where tablename in ('student_academic_history', 'student_status_history'))
-     and not has_table_privilege('authenticated', 'public.student_academic_history', 'SELECT'))
+     and not has_table_privilege('authenticated', 'public.student_academic_history', 'SELECT')),
+  ('20260927110000_grade_sheet_absences_from_siga',
+     coalesce(position('siga_attendance_records' in
+       (select prosrc from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+        where n.nspname = 'private' and p.proname = 'build_grade_sheet' limit 1)) > 0, false))
 ) as m(migracao, ok)
 order by migracao;

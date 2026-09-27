@@ -1,11 +1,12 @@
--- SIGA Plus — SQL a aplicar no Supabase (projecto Sga), 2026-09-26
+-- SIGA Plus — SQL a aplicar no Supabase (projecto Sga), 2026-09-27
 -- Colar TUDO no SQL Editor → Run. Pode correr mais do que uma vez sem problema.
--- 19 migrações: as 8 do SIGA de 25–26/09, as 7 do catálogo de importação
+-- 20 migrações: as 8 do SIGA de 25–26/09, as 7 do catálogo de importação
 -- (import_table_specs, sem ele a importação fica bloqueada), tenant_mailboxes,
 -- a publicação de modelos de avaliação (siga_publish_assessment_rule), os
 -- exames (siga_exam_sessions, siga_exam_registrations) e o histórico do aluno
--- só do servidor (alunos e encarregados deixam de ler o dos colegas).
--- Testado em 2026-09-26 num Postgres 16 com o esquema da produção
+-- só do servidor (alunos e encarregados deixam de ler o dos colegas) e as
+-- faltas da pauta oficial lidas da chamada do SIGA.
+-- Testado em 2026-09-27 num Postgres 16 com o esquema da produção
 -- (supabase/PRODUCTION_SNAPSHOT.json): três corridas seguidas sem erros.
 -- Depois de aplicar, confirmar com docs/agents/SIGA_confirmar_migracoes.sql.
 
@@ -1209,3 +1210,65 @@ ALTER TABLE public.student_status_history ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.student_status_history FORCE ROW LEVEL SECURITY;
 REVOKE ALL ON public.student_status_history FROM PUBLIC, anon, authenticated;
 GRANT ALL ON public.student_status_history TO service_role;
+
+
+-- ══════════ 20260927110000_grade_sheet_absences_from_siga.sql ══════════
+-- Pauta oficial: faltas a partir da chamada do SIGA.
+--
+-- `private.build_grade_sheet` calcula a percentagem de faltas em
+-- `attendance_records` / `attendance_sessions`, mas a chamada do SIGA grava em
+-- `siga_attendance_records` / `siga_attendance_sessions`. Resultado: a
+-- percentagem saía 0 e a pauta nunca reprovava por faltas.
+--
+-- A função não é substituída inteira (a versão do repositório foi capturada a
+-- 2026-09-08 e a produção pode ter mudado). Lê-se a definição que está na base
+-- e troca-se só o bloco das faltas: passa a contar primeiro as presenças do
+-- SIGA (faltas ÷ aulas registadas, sem as justificadas) e, só se o aluno não
+-- tiver nenhuma, o cálculo antigo. Se o bloco não estiver como esperado, nada
+-- é alterado e fica um aviso (NOTICE). Pode correr-se mais do que uma vez.
+
+DO $migration$
+DECLARE
+  fn regprocedure;
+  current_def text;
+  patched_def text;
+  pattern text := 'select coalesce\(\s*\(\s*select \(count\(\*\) filter \(where ar\.status in \(''absent''\)\)::numeric \* 100\)(.*?from public\.attendance_records ar.*?and ar\.status <> ''excused''\s*)\),\s*0\s*\) into absence_pct;';
+  replacement text := 'select coalesce(
+      (
+        select (count(*) filter (where sr.status = ''absent'')::numeric * 100)
+               / nullif(count(*), 0)
+        from public.siga_attendance_records sr
+        join public.siga_attendance_sessions ss on ss.school_id = sr.school_id and ss.id = sr.session_id
+        join public.enrollments en on en.school_id = sr.school_id and en.student_id = sr.student_id
+        where sr.school_id = target_school_id
+          and en.id = enrollment_row.id
+          and ss.class_group_id = target_class_group_id
+          and sr.status <> ''excused''
+      ),
+      (
+        select (count(*) filter (where ar.status in (''absent''))::numeric * 100)\1),
+      0
+    ) into absence_pct;';
+BEGIN
+  fn := to_regprocedure('private.build_grade_sheet(uuid, uuid, uuid, text)');
+  IF fn IS NULL THEN
+    RAISE NOTICE 'build_grade_sheet: função não encontrada; nada alterado.';
+    RETURN;
+  END IF;
+
+  current_def := pg_get_functiondef(fn);
+  IF position('siga_attendance_records' in current_def) > 0 THEN
+    RAISE NOTICE 'build_grade_sheet: já lê as presenças do SIGA; nada alterado.';
+    RETURN;
+  END IF;
+
+  patched_def := regexp_replace(current_def, pattern, replacement);
+  IF patched_def = current_def THEN
+    RAISE NOTICE 'build_grade_sheet: bloco das faltas diferente do esperado; nada alterado.';
+    RETURN;
+  END IF;
+
+  EXECUTE patched_def;
+  RAISE NOTICE 'build_grade_sheet: faltas passam a vir da chamada do SIGA.';
+END
+$migration$;
