@@ -39,7 +39,7 @@ Legenda: ✅ existe · 🟡 parcial · ❌ falta
 | 19 | Exames | ✅ | `siga_exam_sessions`, `siga_exam_registrations` (época, sala, júri, nota) | Exames externos/nacionais e centros não estão modelados |
 | 20 | Resultado final | ✅ | `final-results.ts` → `student_academic_history` | — |
 | 21 | Histórico académico | 🟡 | `student_academic_history` | Guarda o ano e a classe como texto, sem ligação à pauta, notas e frequência. Não é imutável |
-| 22 | Auditoria | 🟡 | `audit_logs` (quem, quando, o quê, metadados) | Sem "porquê" e "aprovado por" como campos; sem vista "Auditoria académica" |
+| 22 | Auditoria | 🟡 | `audit_logs` (quem, quando, o quê, metadados). Definições → Segurança → Auditoria tem, desde 2026-09-29, a vista "Académica" (notas, pautas, matrículas, modelo, exames), nome de quem agiu, motivo e campos alterados, sem o ruído automático das permissões | "Aprovado por" não é campo próprio; os registos automáticos não guardam o valor anterior (esse está em `grade_score_history`) |
 
 ## Prioridades
 
