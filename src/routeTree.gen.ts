@@ -48,6 +48,7 @@ import { Route as ConfiguracoesDiagnosticoRouteImport } from './routes/configura
 import { Route as ConviteTokenRouteImport } from './routes/convite.$token'
 import { Route as FinanceiroRhRouteImport } from './routes/financeiro.rh'
 import { Route as MatriculaSlugRouteImport } from './routes/matricula/$slug'
+import { Route as PedagogicaPresencaDocenteRouteImport } from './routes/pedagogica_.presenca-docente'
 import { Route as PedagogicaRiscoRouteImport } from './routes/pedagogica_.risco'
 import { Route as PessoasIndexRouteImport } from './routes/pessoas/index'
 import { Route as ProfessorPresencaRouteImport } from './routes/professor.presenca'
@@ -293,6 +294,12 @@ const MatriculaSlugRoute = MatriculaSlugRouteImport.update({
   path: '/matricula/$slug',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PedagogicaPresencaDocenteRoute =
+  PedagogicaPresencaDocenteRouteImport.update({
+    id: '/pedagogica_/presenca-docente',
+    path: '/pedagogica/presenca-docente',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const PedagogicaRiscoRoute = PedagogicaRiscoRouteImport.update({
   id: '/pedagogica_/risco',
   path: '/pedagogica/risco',
@@ -586,6 +593,7 @@ export interface FileRoutesByFullPath {
   '/convite/$token': typeof ConviteTokenRoute
   '/financeiro/rh': typeof FinanceiroRhRouteWithChildren
   '/matricula/$slug': typeof MatriculaSlugRoute
+  '/pedagogica/presenca-docente': typeof PedagogicaPresencaDocenteRoute
   '/pedagogica/risco': typeof PedagogicaRiscoRoute
   '/professor/presenca': typeof ProfessorPresencaRoute
   '/professores/$teacherId': typeof ProfessoresTeacherIdRoute
@@ -675,6 +683,7 @@ export interface FileRoutesByTo {
   '/convite/$token': typeof ConviteTokenRoute
   '/financeiro/rh': typeof FinanceiroRhRouteWithChildren
   '/matricula/$slug': typeof MatriculaSlugRoute
+  '/pedagogica/presenca-docente': typeof PedagogicaPresencaDocenteRoute
   '/pedagogica/risco': typeof PedagogicaRiscoRoute
   '/professor/presenca': typeof ProfessorPresencaRoute
   '/professores/$teacherId': typeof ProfessoresTeacherIdRoute
@@ -765,6 +774,7 @@ export interface FileRoutesById {
   '/convite/$token': typeof ConviteTokenRoute
   '/financeiro/rh': typeof FinanceiroRhRouteWithChildren
   '/matricula/$slug': typeof MatriculaSlugRoute
+  '/pedagogica_/presenca-docente': typeof PedagogicaPresencaDocenteRoute
   '/pedagogica_/risco': typeof PedagogicaRiscoRoute
   '/professor/presenca': typeof ProfessorPresencaRoute
   '/professores/$teacherId': typeof ProfessoresTeacherIdRoute
@@ -856,6 +866,7 @@ export interface FileRouteTypes {
     | '/convite/$token'
     | '/financeiro/rh'
     | '/matricula/$slug'
+    | '/pedagogica/presenca-docente'
     | '/pedagogica/risco'
     | '/professor/presenca'
     | '/professores/$teacherId'
@@ -945,6 +956,7 @@ export interface FileRouteTypes {
     | '/convite/$token'
     | '/financeiro/rh'
     | '/matricula/$slug'
+    | '/pedagogica/presenca-docente'
     | '/pedagogica/risco'
     | '/professor/presenca'
     | '/professores/$teacherId'
@@ -1034,6 +1046,7 @@ export interface FileRouteTypes {
     | '/convite/$token'
     | '/financeiro/rh'
     | '/matricula/$slug'
+    | '/pedagogica_/presenca-docente'
     | '/pedagogica_/risco'
     | '/professor/presenca'
     | '/professores/$teacherId'
@@ -1113,6 +1126,7 @@ export interface RootRouteChildren {
   ConfiguracoesDiagnosticoRoute: typeof ConfiguracoesDiagnosticoRoute
   ConviteTokenRoute: typeof ConviteTokenRoute
   MatriculaSlugRoute: typeof MatriculaSlugRoute
+  PedagogicaPresencaDocenteRoute: typeof PedagogicaPresencaDocenteRoute
   PedagogicaRiscoRoute: typeof PedagogicaRiscoRoute
   ProfessorPresencaRoute: typeof ProfessorPresencaRoute
   ProfessoresTeacherIdRoute: typeof ProfessoresTeacherIdRoute
@@ -1418,6 +1432,13 @@ declare module '@tanstack/react-router' {
       path: '/matricula/$slug'
       fullPath: '/matricula/$slug'
       preLoaderRoute: typeof MatriculaSlugRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/pedagogica_/presenca-docente': {
+      id: '/pedagogica_/presenca-docente'
+      path: '/pedagogica/presenca-docente'
+      fullPath: '/pedagogica/presenca-docente'
+      preLoaderRoute: typeof PedagogicaPresencaDocenteRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/pedagogica_/risco': {
@@ -1957,6 +1978,7 @@ const rootRouteChildren: RootRouteChildren = {
   ConfiguracoesDiagnosticoRoute: ConfiguracoesDiagnosticoRoute,
   ConviteTokenRoute: ConviteTokenRoute,
   MatriculaSlugRoute: MatriculaSlugRoute,
+  PedagogicaPresencaDocenteRoute: PedagogicaPresencaDocenteRoute,
   PedagogicaRiscoRoute: PedagogicaRiscoRoute,
   ProfessorPresencaRoute: ProfessorPresencaRoute,
   ProfessoresTeacherIdRoute: ProfessoresTeacherIdRoute,

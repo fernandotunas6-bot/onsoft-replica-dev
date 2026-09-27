@@ -239,6 +239,13 @@ export const attendanceAssurancePolicySchema = z
         message: "Latitude e longitude devem ser definidas em conjunto.",
       });
     }
+    if (value.requireLocation && (value.centerLatitude == null || value.centerLongitude == null)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["centerLatitude"],
+        message: "Defina o centro da escola antes de exigir localização.",
+      });
+    }
     if (value.autoApproveScore < value.reviewScore) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,

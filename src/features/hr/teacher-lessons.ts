@@ -14,6 +14,7 @@ import {
 } from "@/features/hr/schemas";
 
 const HR_LESSON_ROLES = new Set(["Administrador", "Tesouraria"]);
+const TEACHER_QR_ISSUER_ROLES = new Set(["Administrador", "Secretaria", "Tesouraria"]);
 
 type SgaAdminClient = Awaited<ReturnType<typeof loadSgaAdminClient>>;
 
@@ -36,6 +37,17 @@ async function requireHrLessonReader(userId: string, mode: "read" | "write" = "r
   }
   // Permissões por módulo (Nenhum/Leitura) também valem no RH.
   await assertModuleNotBlocked(membership.schoolId, userId, "financeiro", mode);
+  return membership;
+}
+
+async function requireTeacherQrIssuer(userId: string, mode: "read" | "write" = "read") {
+  const membership = await resolveSgaMembershipAdmin(userId);
+  if (!membership) throw new Error("Sem vínculo activo com uma escola.");
+  if (!TEACHER_QR_ISSUER_ROLES.has(membership.appRole)) {
+    throw new Error("Sem permissão para gerir a presença docente por QR.");
+  }
+  const moduleKey = membership.appRole === "Secretaria" ? "pedagogica" : "financeiro";
+  await assertModuleNotBlocked(membership.schoolId, userId, moduleKey, mode);
   return membership;
 }
 
@@ -170,7 +182,7 @@ async function ensureAttendanceSessionForOccurrence(
   }
 
   if (!sessionId) {
-    const { data: created } = await db
+    const { data: created, error: createError } = await db
       .from("siga_attendance_sessions")
       .insert({
         school_id: schoolId,
@@ -187,6 +199,16 @@ async function ensureAttendanceSessionForOccurrence(
       .select("id")
       .maybeSingle();
     if (created?.id) sessionId = String(created.id);
+    if (!sessionId && createError?.code === "23505" && occurrence.timetable_slot_id) {
+      const { data: concurrent } = await db
+        .from("siga_attendance_sessions")
+        .select("id")
+        .eq("school_id", schoolId)
+        .eq("timetable_slot_id", occurrence.timetable_slot_id)
+        .eq("lesson_date", lessonDate)
+        .maybeSingle();
+      if (concurrent?.id) sessionId = String(concurrent.id);
+    }
   }
 
   return {
@@ -205,6 +227,7 @@ async function ensureAttendanceSessionForOccurrence(
 export type HrTeacherLessonOccurrence = {
   id: string;
   teacher_id: string;
+  teacher_name?: string | null;
   employment_id: string;
   lesson_date: string;
   scheduled_starts_at: string;
@@ -228,6 +251,7 @@ function mapOccurrence(row: Record<string, unknown>): HrTeacherLessonOccurrence 
   return {
     id: String(row.id),
     teacher_id: String(row.teacher_id),
+    teacher_name: row.teacher_name ? String(row.teacher_name) : null,
     employment_id: String(row.employment_id),
     lesson_date: String(row.lesson_date),
     scheduled_starts_at: String(row.scheduled_starts_at),
@@ -253,6 +277,36 @@ async function enrichOccurrencesWithClassroom(
   schoolId: string,
   rows: Record<string, unknown>[],
 ): Promise<HrTeacherLessonOccurrence[]> {
+  const teacherIds = [...new Set(rows.map((row) => String(row.teacher_id)).filter(Boolean))];
+  const teacherNameMap = new Map<string, string>();
+  if (teacherIds.length) {
+    const { data: teachers } = await db
+      .from("teachers")
+      .select("id, person_id")
+      .eq("school_id", schoolId)
+      .in("id", teacherIds);
+    const personIds = [
+      ...new Set(
+        (teachers ?? [])
+          .map((teacher: { person_id: string | null }) => teacher.person_id)
+          .filter((id): id is string => Boolean(id)),
+      ),
+    ];
+    const { data: people } = personIds.length
+      ? await db.from("people").select("id, full_name").eq("school_id", schoolId).in("id", personIds)
+      : { data: [] as Array<{ id: string; full_name: string }> };
+    const personNameMap = new Map(
+      (people ?? []).map((person: { id: string; full_name: string }) => [
+        String(person.id),
+        String(person.full_name),
+      ]),
+    );
+    for (const teacher of teachers ?? []) {
+      const name = teacher.person_id ? personNameMap.get(String(teacher.person_id)) : null;
+      if (name) teacherNameMap.set(String(teacher.id), name);
+    }
+  }
+
   const classSubjectIds = [
     ...new Set(
       rows
@@ -363,6 +417,7 @@ async function enrichOccurrencesWithClassroom(
     const cs = row.class_subject_id ? classSubjectMap.get(String(row.class_subject_id)) : null;
     return mapOccurrence({
       ...row,
+      teacher_name: teacherNameMap.get(String(row.teacher_id)) ?? null,
       class_group_id: cs?.class_group_id ?? null,
       class_group_name: cs?.class_group_name ?? null,
       subject_id: cs?.subject_id ?? null,
@@ -398,6 +453,49 @@ export const listHrTeacherLessonOccurrences = createServerFn({ method: "GET" })
       membership.schoolId,
       (data ?? []) as Record<string, unknown>[],
     );
+  });
+
+/** Lista operacional sem campos salariais para Direcção Pedagógica/Secretaria. */
+export const listTeacherQrOccurrences = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const membership = await requireTeacherQrIssuer(context.userId);
+    const db = await loadSgaAdminClient();
+    const { data, error } = await db
+      .from("hr_teacher_lesson_occurrences")
+      .select(
+        "id, teacher_id, employment_id, lesson_date, scheduled_starts_at, scheduled_ends_at, actual_started_at, actual_ended_at, quantity, status, evidence_method, evidence_ref, compensation_event_id, class_subject_id, timetable_slot_id",
+      )
+      .eq("school_id", membership.schoolId)
+      .is("deleted_at", null)
+      .gte("lesson_date", new Date(Date.now() - 86_400_000).toISOString().slice(0, 10))
+      .order("lesson_date", { ascending: true })
+      .order("scheduled_starts_at", { ascending: true })
+      .limit(120);
+
+    if (error) {
+      if (missingTeacherLessonSchema(error)) return [];
+      throw publicDatabaseError(error, "Não foi possível carregar as aulas para emissão do QR.");
+    }
+
+    const occurrences = await enrichOccurrencesWithClassroom(
+      db,
+      membership.schoolId,
+      (data ?? []) as Record<string, unknown>[],
+    );
+    return occurrences.map((occurrence) => ({
+      id: occurrence.id,
+      teacherId: occurrence.teacher_id,
+      teacherName: occurrence.teacher_name ?? "Professor",
+      lessonDate: occurrence.lesson_date,
+      startsAt: occurrence.scheduled_starts_at,
+      endsAt: occurrence.scheduled_ends_at,
+      actualStartedAt: occurrence.actual_started_at,
+      actualEndedAt: occurrence.actual_ended_at,
+      status: occurrence.status,
+      classGroupName: occurrence.class_group_name ?? "Turma",
+      subjectName: occurrence.subject_name ?? "Disciplina",
+    }));
   });
 
 export const listMyTeacherLessonOccurrences = createServerFn({ method: "GET" })
@@ -479,7 +577,7 @@ export const createTeacherLessonQr = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((input: unknown) => createTeacherLessonQrInputSchema.parse(input))
   .handler(async ({ data, context }) => {
-    const membership = await requireHrLessonReader(context.userId, "write");
+    const membership = await requireTeacherQrIssuer(context.userId, "write");
     const db = await loadSgaAdminClient();
 
     const { data: occurrence, error: occurrenceError } = await db
@@ -569,45 +667,15 @@ export const redeemTeacherLessonQr = createServerFn({ method: "POST" })
       );
     }
 
-    const { data: session, error: sessionError } = await admin
-      .from("hr_teacher_qr_sessions")
-      .select("occurrence_id, purpose, school_id, status, expires_at")
-      .eq("token_hash", tokenHash)
-      .limit(1)
-      .maybeSingle();
-    if (sessionError) {
-      throw publicDatabaseError(sessionError, "Não foi possível validar o desafio QR.");
-    }
-    if (!session || session.school_id !== membership.schoolId)
-      throw new Error("QR não pertence a esta escola.");
-    if (
-      session.status !== "active" ||
-      new Date(String(session.expires_at)).getTime() <= Date.now()
-    ) {
-      throw new Error("QR expirado ou indisponível.");
-    }
-
-    const { data: occurrenceOwner } = await admin
-      .from("hr_teacher_lesson_occurrences")
-      .select("teacher_id")
-      .eq("id", session.occurrence_id)
-      .eq("school_id", membership.schoolId)
-      .maybeSingle();
-    if (!occurrenceOwner || String(occurrenceOwner.teacher_id) !== teacherId) {
-      throw new Error("Este QR pertence a outra aula/professor.");
-    }
-
-    type AssuranceRpcRow = {
-      assurance_score?: number | null;
-      decision?: string | null;
-      inside_geofence?: boolean | null;
-      distance_from_school_m?: number | null;
-    };
-    type RedeemRpcRow = {
+    type SecureRedeemRpcRow = {
       occurrence_id?: string | null;
       purpose?: string | null;
       compensation_event_id?: string | null;
       occurrence_status?: string | null;
+      assurance_score?: number | null;
+      decision?: string | null;
+      inside_geofence?: boolean | null;
+      distance_from_school_m?: number | null;
     };
 
     // RPCs RH ainda fora do Database.Functions tipado do cliente Supabase.
@@ -618,39 +686,21 @@ export const redeemTeacherLessonQr = createServerFn({ method: "POST" })
       ) => Promise<{ data: unknown; error: { code?: string; message?: string } | null }>;
     };
 
-    const { data: assuranceResult, error: assuranceError } = await untypedRpc.rpc(
-      "hr_evaluate_teacher_attendance_assurance",
+    const { data: result, error } = await untypedRpc.rpc(
+      "hr_redeem_teacher_qr_secure",
       {
-        p_occurrence_id: session.occurrence_id,
-        p_purpose: session.purpose,
+        p_token_hash: tokenHash,
         p_latitude: data.latitude,
         p_longitude: data.longitude,
         p_accuracy_m: data.accuracy,
       },
     );
-    if (assuranceError) {
-      throw publicDatabaseError(
-        assuranceError,
-        "Não foi possível avaliar a confiança da presença. Aplique a migration de assurance do RH.",
-      );
-    }
-    const assurance = (
-      Array.isArray(assuranceResult) ? assuranceResult[0] : assuranceResult
-    ) as AssuranceRpcRow | null;
-    if (!assurance) throw new Error("A presença não produziu uma avaliação de confiança.");
-    if (String(assurance.decision) === "reject") {
-      throw new Error("A presença não atingiu o nível mínimo de confiança e precisa ser repetida.");
-    }
-
-    const { data: result, error } = await untypedRpc.rpc("hr_redeem_teacher_qr", {
-      p_token_hash: tokenHash,
-    });
 
     if (error) {
       throw publicDatabaseError(error, "Não foi possível validar a presença por QR.");
     }
 
-    const row = (Array.isArray(result) ? result[0] : result) as RedeemRpcRow | null;
+    const row = (Array.isArray(result) ? result[0] : result) as SecureRedeemRpcRow | null;
     if (!row) throw new Error("O QR não produziu um registo de presença válido.");
 
     const purpose = String(row.purpose) as "check_in" | "check_out";
@@ -671,14 +721,14 @@ export const redeemTeacherLessonQr = createServerFn({ method: "POST" })
       occurrenceStatus: String(row.occurrence_status),
       classroom,
       assurance: {
-        score: Number(assurance.assurance_score ?? 0),
-        decision: String(assurance.decision) as "auto_approve" | "review" | "reject",
+        score: Number(row.assurance_score ?? 0),
+        decision: String(row.decision) as "auto_approve" | "review" | "reject",
         insideGeofence:
-          assurance.inside_geofence == null ? null : Boolean(assurance.inside_geofence),
+          row.inside_geofence == null ? null : Boolean(row.inside_geofence),
         distanceFromSchoolM:
-          assurance.distance_from_school_m == null
+          row.distance_from_school_m == null
             ? null
-            : Number(assurance.distance_from_school_m),
+            : Number(row.distance_from_school_m),
       },
     };
   });
