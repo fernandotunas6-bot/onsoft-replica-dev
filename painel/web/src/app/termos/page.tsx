@@ -12,7 +12,6 @@ export default function TermsPage() {
       description="Condições de utilização do SIGA Plus."
       eyebrow="Legal"
       lastUpdated="Setembro de 2026"
-      draftNotice="Este é um rascunho inicial, escrito para dar às escolas uma base honesta sobre como o serviço funciona. Antes de ser considerado definitivo, precisa de revisão por um advogado e da inclusão dos dados de registo formais da empresa (razão social, NIF e morada)."
     >
       <LegalSection title="1. Âmbito destes Termos">
         <p>

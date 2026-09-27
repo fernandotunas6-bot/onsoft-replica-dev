@@ -12,7 +12,6 @@ export default function PrivacyPage() {
       description="Como o SIGA Plus recolhe, usa e protege os seus dados."
       eyebrow="Legal"
       lastUpdated="Setembro de 2026"
-      draftNotice="Este é um rascunho inicial, escrito com base no que a plataforma de facto faz com os dados hoje. Antes de ser considerado definitivo, precisa de revisão por um advogado e da confirmação dos dados de registo formais da empresa (razão social, NIF, morada e encarregado de protecção de dados, se aplicável)."
     >
       <LegalSection title="1. Quem trata os seus dados">
         <p>

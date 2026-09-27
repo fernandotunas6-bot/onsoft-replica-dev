@@ -75,6 +75,8 @@ Platform → Branding e Central de verificação, e pede:
 - Posse de `portal-siga.com` confirmada no Google Search Console (registo TXT
   no Cloudflare).
 
-As duas páginas legais ainda mostram o aviso de rascunho (`draftNotice` em
-`LegalPage`). Tem de ser retirado depois da revisão legal, antes de pedir a
-verificação.
+O aviso de rascunho das duas páginas legais foi retirado a 2026-09-28, a
+pedido do dono do projecto. Continuam por acrescentar os dados de registo
+formais da empresa (razão social, NIF, morada). O contacto das páginas vem de
+`VITE_SUPPORT_EMAIL` no build do site comercial; sem ele, o texto remete para
+"os canais de contacto indicados no site".
