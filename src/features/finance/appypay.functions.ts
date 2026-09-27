@@ -85,8 +85,22 @@ export const createInvoiceCharge = createServerFn({ method: "POST" })
     if (invoice.status === "paid" || invoice.status === "cancelled") {
       throw new Error("Esta factura já não tem valor por pagar.");
     }
-    const due = Number(invoice.amount) - Number(invoice.discount_amount ?? 0);
-    if (data.amount > due + 0.01) throw new Error("O valor é maior do que o total da factura.");
+    // O que falta pagar: total, menos desconto, menos os recibos já emitidos.
+    const { data: receipts } = await db
+      .from("finance_receipts")
+      .select("amount")
+      .eq("school_id", schoolId)
+      .eq("invoice_id", data.invoiceId)
+      .eq("status", "issued");
+    const alreadyPaid = (receipts ?? []).reduce(
+      (sum: number, r: { amount: unknown }) => sum + Number(r.amount || 0),
+      0,
+    );
+    const due = Number(invoice.amount) - Number(invoice.discount_amount ?? 0) - alreadyPaid;
+    if (due <= 0.009) throw new Error("Esta factura já não tem valor por pagar.");
+    if (data.amount > due + 0.01) {
+      throw new Error(`O valor é maior do que o que falta pagar (${due.toFixed(2)} Kz).`);
+    }
 
     const { appyPayConfigured, createAppyPayCharge, newMerchantTransactionId } =
       await import("@/lib/appypay.server");

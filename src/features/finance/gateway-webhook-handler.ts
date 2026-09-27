@@ -156,6 +156,11 @@ export async function settleGatewayPayment(
         .eq("invoice_id", input.invoiceId)
         .eq("status", "issued");
       const alreadyPaid = (receipts ?? []).reduce((acc, r) => acc + Number(r.amount || 0), 0);
+      // A mesma regra de `register_payment`: nunca um recibo acima do saldo em
+      // aberto. O pagamento fica para revisão manual em vez de gerar um recibo a mais.
+      if (alreadyPaid + input.amount > Number(invoice.amount) + 0.009) {
+        throw new Error("O valor do pagamento excede o saldo em aberto da fatura.");
+      }
 
       let receivedBy = (invoice as { issued_by?: string | null }).issued_by ?? null;
       if (!receivedBy) {
@@ -167,13 +172,9 @@ export async function settleGatewayPayment(
           .maybeSingle();
         receivedBy = member?.user_id ?? null;
       }
+      // Nunca alguém de outra escola: sem responsável nesta escola, fica para revisão.
       if (!receivedBy) {
-        const { data: anyMember } = await db
-          .from("school_memberships")
-          .select("user_id")
-          .limit(1)
-          .maybeSingle();
-        receivedBy = anyMember?.user_id ?? null;
+        throw new Error("Não há responsável nesta escola para assinar o recibo do gateway.");
       }
 
       // A numeração oficial vem de `private.next_document_number`, que não tem wrapper
