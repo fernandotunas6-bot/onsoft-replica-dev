@@ -14,6 +14,24 @@ verificado a partir da sessão de agente, porque a rede do ambiente não chega a
 recapturar antes de encolher `TABELAS_AUSENTES_DA_PRODUCAO` e `FUNCOES_ESPERA_MIGRACAO`.
 Migrações novas a partir daqui vão num pacote novo.
 
+## Políticas de escrita com `is_school_member` (2026-09-27)
+
+Das 56 políticas de escrita com `is_school_member` na captura, 24 já foram
+tratadas pelas migrações de 25–26/09 (aplicadas). Matrículas públicas
+(`enrollment_applications`, `enrollment_forms`) só tinham `is_school_member`:
+migração `20260927210000_enrollment_policies_staff_only.sql`, pacote
+`docs/agents/SIGA_aplicar_matriculas_politicas.sql` — **por aplicar**.
+
+**Por decidir (28 políticas):** `academic_years`, `class_groups`,
+`class_subjects`, `enrollments`, `grade_*`, `gradebooks`, `people`,
+`person_documents`, `student_guardians`, `students`, `terms`,
+`timetable_slots` usam `is_school_member(school_id) AND can_manage_students()`.
+`can_manage_students()` lê `current_profile_role()`, que é o papel do perfil
+(global da conta), não o papel nessa escola: quem é Administrador/Secretaria
+numa escola e aluno/encarregado noutra pode escrever na segunda. Correcção
+proposta: trocar por `is_school_office(school_id)` (papel na própria escola),
+depois de confirmar que nenhum ecrã escreve nestas tabelas com a sessão.
+
 ## Auditoria financeira (2026-09-27)
 
 Feito: SAF-T honesto (certificado "0", Hash/HashControl "0", sem nome/morada
