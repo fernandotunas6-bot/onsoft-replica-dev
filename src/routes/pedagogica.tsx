@@ -5,7 +5,7 @@ import { AssessmentModelsTab } from "@/features/academic/AssessmentModelsTab";
 import { ExamsTab } from "@/features/academic/ExamsTab";
 import { CompetenciesTab } from "@/features/academic/CompetenciesTab";
 import { usePassingValue } from "@/features/academic/use-passing-value";
-import { useEffect, useMemo, useState, lazy, Suspense } from "react";
+import { useEffect, useMemo, useRef, useState, lazy, Suspense } from "react";
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { z } from "zod";
@@ -263,6 +263,15 @@ function PedagogicaPage() {
   useEffect(() => {
     if (pauta === "1") setAssessmentOpen(true);
   }, [pauta, turmaFromSearch, disciplinaFromSearch]);
+
+  // Traz o separador activo à vista quando a linha desliza (telemóvel).
+  const tabsListRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const active = tabsListRef.current?.querySelector<HTMLElement>(
+      '[role="tab"][data-state="active"]',
+    );
+    active?.scrollIntoView?.({ block: "nearest", inline: "nearest" });
+  }, [tab]);
 
   const onTabChange = (next: string) => {
     if (
@@ -796,7 +805,12 @@ function PedagogicaPage() {
         />
 
         <Tabs value={tab} onValueChange={onTabChange}>
-          <TabsList className="flex flex-wrap gap-1">
+          {/* Uma só linha que desliza: com 12 separadores, quebrar em várias
+              linhas empurrava (e tapava) o conteúdo. */}
+          <TabsList
+            ref={tabsListRef}
+            className="no-scrollbar flex h-auto w-full max-w-full flex-nowrap justify-start gap-1 overflow-x-auto"
+          >
             {canReadAcademic ? (
               <TabsTrigger value="estrutura">Estrutura académica</TabsTrigger>
             ) : null}
