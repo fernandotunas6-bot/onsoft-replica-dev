@@ -168,31 +168,33 @@ export function PaymentReferenceCard({
         </div>
       </div>
 
-      {/* CARTEIRAS MÓVEIS (UNITEL MONEY / KWIK) */}
-      <div className="space-y-3">
-        <h4 className="text-xs font-bold text-muted-foreground flex items-center gap-1.5">
-          <Smartphone className="size-3.5 text-primary" />
-          Carteiras Móveis e Pagamento Instantâneo
-        </h4>
+      {/* CARTEIRAS MÓVEIS — só as que a escola configurou */}
+      {wallets.length ? (
+        <div className="space-y-3">
+          <h4 className="text-xs font-bold text-muted-foreground flex items-center gap-1.5">
+            <Smartphone className="size-3.5 text-primary" />
+            Carteiras Móveis e Pagamento Instantâneo
+          </h4>
 
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-          {wallets.map((wallet) => (
-            <div
-              key={wallet.provider}
-              className="p-3 rounded-xl border border-border bg-card space-y-1 hover:border-primary/40 transition-colors"
-            >
-              <div className="flex items-center justify-between">
-                <span className="font-bold text-xs">{wallet.providerName}</span>
-                <Zap className="size-3 text-warning" />
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            {wallets.map((wallet) => (
+              <div
+                key={wallet.provider}
+                className="p-3 rounded-xl border border-border bg-card space-y-1 hover:border-primary/40 transition-colors"
+              >
+                <div className="flex items-center justify-between">
+                  <span className="font-bold text-xs">{wallet.providerName}</span>
+                  <Zap className="size-3 text-warning" />
+                </div>
+                <p className="text-[11px] text-muted-foreground">{wallet.phoneOrAccount}</p>
+                <p className="text-[10px] font-mono text-muted-foreground truncate">
+                  Ref: {wallet.transactionRef}
+                </p>
               </div>
-              <p className="text-[11px] text-muted-foreground">{wallet.phoneOrAccount}</p>
-              <p className="text-[10px] font-mono text-muted-foreground truncate">
-                Ref: {wallet.transactionRef}
-              </p>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
-      </div>
+      ) : null}
 
       <div className="rounded-lg border border-dashed border-border bg-muted/30 px-3 py-2 text-[11px] text-muted-foreground font-mono break-all">
         Webhook EMIS: POST {getFinanceGatewayConfirmUrl()}

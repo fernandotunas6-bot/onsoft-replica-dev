@@ -17,6 +17,28 @@ export function emisEntityFromIntegrationConfig(
   return DEFAULT_EMIS_ENTITY;
 }
 
+/** Entidade configurada, ou `null` — nunca a entidade de exemplo. */
+export function configuredEmisEntity(config: Record<string, unknown> | null | undefined) {
+  const raw = String(config?.emisEntity ?? config?.merchantId ?? "").trim();
+  return /^\d{4,6}$/.test(raw) ? raw : null;
+}
+
+/**
+ * Entidade EMIS da escola, só se estiver configurada em Integrações →
+ * Multicaixa. Uma referência com outra entidade podia levar um encarregado a
+ * pagar a quem não é a escola.
+ */
+export async function resolveConfiguredSchoolEmisEntity(db: SupabaseClient, schoolId: string) {
+  const { data } = await db
+    .from("school_integrations")
+    .select("config")
+    .eq("school_id", schoolId)
+    .eq("provider", "multicaixa_express")
+    .in("status", ["configured", "connected"])
+    .maybeSingle();
+  return configuredEmisEntity((data?.config ?? {}) as Record<string, unknown>);
+}
+
 /** Entidade EMIS configurada em Integrações → Multicaixa (merchantId / emisEntity). */
 export async function resolveSchoolEmisEntity(db: SupabaseClient, schoolId: string) {
   const { data } = await db
@@ -109,40 +131,6 @@ export function generateMulticaixaReference(
     status: "pending",
     qrCodeText,
   };
-}
-
-export function generateMobileWalletOptions(
-  amount: number,
-  invoiceNumber: string,
-): MobileWalletPayment[] {
-  const cleanRef = invoiceNumber.replace(/[^a-zA-Z0-9]/g, "").toUpperCase();
-
-  return [
-    {
-      provider: "multicaixa_express",
-      providerName: "Multicaixa Express",
-      phoneOrAccount: "+244 923 000 000",
-      merchantCode: "SIGA-EXP-AO",
-      transactionRef: `MCX-${cleanRef}`,
-      status: "pending",
-    },
-    {
-      provider: "unitel_money",
-      providerName: "Unitel Money",
-      phoneOrAccount: "*444# ou App Unitel Money",
-      merchantCode: "923-SIGA",
-      transactionRef: `UM-${cleanRef}`,
-      status: "pending",
-    },
-    {
-      provider: "kwik",
-      providerName: "Kwik (Rede EMIS)",
-      phoneOrAccount: "Transferência Instantânea Kwik",
-      merchantCode: "KWIK-SIGA-01",
-      transactionRef: `KWK-${cleanRef}`,
-      status: "pending",
-    },
-  ];
 }
 
 export const GATEWAY_CHANNELS = new Set([

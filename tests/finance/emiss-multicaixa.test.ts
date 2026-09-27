@@ -52,3 +52,14 @@ describe("gateway-simulate referenceDigitsForInvoice", () => {
     expect(referenceDigitsForInvoice(invoiceId)).toBe(fromTs);
   });
 });
+
+describe("configuredEmisEntity", () => {
+  it("devolve a entidade da escola, ou nada — nunca a de exemplo", async () => {
+    const { configuredEmisEntity } = await import("@/features/finance/emiss-multicaixa");
+    expect(configuredEmisEntity({ emisEntity: "12345" })).toBe("12345");
+    expect(configuredEmisEntity({ merchantId: "54321" })).toBe("54321");
+    expect(configuredEmisEntity({ merchantId: "SIGA-KEY" })).toBeNull();
+    expect(configuredEmisEntity({})).toBeNull();
+    expect(configuredEmisEntity(null)).toBeNull();
+  });
+});

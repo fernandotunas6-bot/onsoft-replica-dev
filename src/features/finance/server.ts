@@ -34,8 +34,9 @@ import {
 } from "./fee-plan-defaults";
 import {
   generateMulticaixaReference,
-  generateMobileWalletOptions,
+  resolveConfiguredSchoolEmisEntity,
   resolveSchoolEmisEntity,
+  type MobileWalletPayment,
   isGatewayPaymentChannel,
   normalizePaymentReference,
 } from "./emiss-multicaixa";
@@ -807,9 +808,14 @@ export const recordInvoicePayment = createServerFn({ method: "POST" })
     };
   });
 
+const paymentReferenceInputSchema = z.object({
+  invoiceId: z.string().uuid(),
+  amount: z.number().positive().max(100_000_000),
+});
+
 export const generateInvoicePaymentReference = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .validator((data: { invoiceId: string; amount: number }) => data)
+  .validator((input: unknown) => paymentReferenceInputSchema.parse(input))
   .handler(async ({ data, context }) => {
     if (!context) throw new Error("Sessão inválida.");
     const membership = await requireSgaWriterForWrite(
@@ -821,7 +827,7 @@ export const generateInvoicePaymentReference = createServerFn({ method: "POST" }
     const db = await loadSgaAdminClient();
     const { data: invoice, error: invoiceError } = await db
       .from("finance_invoices")
-      .select("id")
+      .select("id, status, amount, discount_amount")
       .eq("id", data.invoiceId)
       .eq("school_id", membership.schoolId)
       .maybeSingle();
@@ -829,13 +835,37 @@ export const generateInvoicePaymentReference = createServerFn({ method: "POST" }
       throw publicDatabaseError(invoiceError, "Não foi possível validar a fatura.");
     }
     if (!invoice?.id) throw new Error("Fatura não encontrada nesta escola.");
+    if (invoice.status === "paid" || invoice.status === "cancelled") {
+      throw new Error("Esta fatura já não tem valor por pagar.");
+    }
+    const { data: receipts } = await db
+      .from("finance_receipts")
+      .select("amount")
+      .eq("school_id", membership.schoolId)
+      .eq("invoice_id", data.invoiceId)
+      .eq("status", "issued");
+    const alreadyPaid = (receipts ?? []).reduce(
+      (sum: number, r: { amount: unknown }) => sum + Number(r.amount || 0),
+      0,
+    );
+    const due = Number(invoice.amount) - Number(invoice.discount_amount ?? 0) - alreadyPaid;
+    if (data.amount > due + 0.01) {
+      throw new Error(`O valor é maior do que o que falta pagar (${due.toFixed(2)} Kz).`);
+    }
 
-    const emisEntity = await resolveSchoolEmisEntity(db, membership.schoolId);
+    // Sem a entidade EMIS da escola configurada não há referência: nunca uma
+    // entidade de exemplo, que podia levar o encarregado a pagar a outra pessoa.
+    const emisEntity = await resolveConfiguredSchoolEmisEntity(db, membership.schoolId);
+    if (!emisEntity) {
+      throw new Error(
+        "A entidade EMIS da escola não está configurada. Defina-a em Definições → Integrações → Multicaixa antes de gerar referências.",
+      );
+    }
     const mcx = generateMulticaixaReference(emisEntity, data.invoiceId, data.amount);
-    const wallets = generateMobileWalletOptions(data.amount, data.invoiceId);
     return {
       multicaixa: mcx,
-      mobileWallets: wallets,
+      // Só carteiras configuradas pela escola; nenhuma está ainda — nunca dados de exemplo.
+      mobileWallets: [] as MobileWalletPayment[],
       emisEntity,
     };
   });
@@ -845,11 +875,16 @@ export const generateInvoicePaymentReference = createServerFn({ method: "POST" }
  * Não existe integração real com um webhook EMIS — quem chama esta função está a
  * atestar que viu o comprovativo do pagamento. Continua gated a Administrador/Tesouraria.
  */
+const confirmManualPaymentInputSchema = z.object({
+  invoiceId: z.string().uuid(),
+  amount: z.number().positive().max(100_000_000),
+  reference: z.string().trim().min(3).max(40),
+  method: z.string().trim().max(40).optional(),
+});
+
 export const confirmManualMulticaixaPayment = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .validator(
-    (data: { invoiceId: string; amount: number; reference: string; method?: string }) => data,
-  )
+  .validator((input: unknown) => confirmManualPaymentInputSchema.parse(input))
   .handler(async ({ data, context }) => {
     if (!context) throw new Error("Sessão inválida.");
     const membership = await requireSgaWriterForWrite(
