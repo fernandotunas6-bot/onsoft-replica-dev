@@ -2,6 +2,8 @@ import { useMemo, useState } from "react";
 import { Panel } from "@/components/layout/PageHeader";
 import { cn } from "@/lib/utils";
 import { TREND_THRESHOLD, termEvolution, type AnalyticsGrade } from "./academic-analytics";
+import { evolutionColumns } from "./analytics-export";
+import { PanelExportButtons } from "./PanelExportButtons";
 
 type Grade = {
   class_group_id: string | null;
@@ -25,7 +27,16 @@ const fmt = (v: number | null) => (v == null ? "—" : v.toFixed(1));
  * variação entre os dois últimos com notas e negativas no último. As que mais
  * desceram aparecem primeiro.
  */
-export function EvolutionPanel({ grades, passing }: { grades: Grade[]; passing: number }) {
+export function EvolutionPanel({
+  grades,
+  passing,
+  subtitle,
+}: {
+  grades: Grade[];
+  passing: number;
+  /** Ano lectivo e filtros, para o PDF. */
+  subtitle?: string;
+}) {
   const [by, setBy] = useState<"turma" | "disciplina">("turma");
   const rows = useMemo(() => {
     const mapped: AnalyticsGrade[] = grades.map((g) =>
@@ -44,6 +55,15 @@ export function EvolutionPanel({ grades, passing }: { grades: Grade[]; passing: 
   return (
     <Panel
       title="Evolução entre períodos"
+      action={
+        <PanelExportButtons
+          filename={`evolucao-por-${by}`}
+          title={`Evolução entre períodos por ${by}`}
+          subtitle={subtitle}
+          columns={evolutionColumns(by)}
+          rows={rows}
+        />
+      }
       description={`Onde agir primeiro: as que mais desceram. "A subir" e "a descer" a partir de ${String(TREND_THRESHOLD).replace(".", ",")} valores; negativas abaixo de ${passing}.`}
     >
       <div className="mb-3 flex gap-1" role="group" aria-label="Agrupar por">

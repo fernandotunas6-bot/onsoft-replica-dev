@@ -3,6 +3,8 @@ import { useQuery } from "@tanstack/react-query";
 import { Panel } from "@/components/layout/PageHeader";
 import { cn } from "@/lib/utils";
 import type { YearComparison } from "./academic-analytics";
+import { levelColumns, yearColumns } from "./analytics-export";
+import { PanelExportButtons } from "./PanelExportButtons";
 import { getYearComparison } from "./year-comparison";
 
 const pct = (v: number | null) => (v == null ? "—" : `${v}%`);
@@ -25,10 +27,30 @@ export function YearComparisonPanel({ enabled }: { enabled: boolean }) {
   // Os últimos cinco anos chegam para ver a tendência sem alargar a tabela.
   const years = (data?.years ?? []).slice(-5);
   const labels = years.map((y) => y.yearLabel);
+  const levels = data?.levels ?? [];
 
   return (
     <Panel
       title="Comparativo entre anos lectivos"
+      action={
+        view === "anos" ? (
+          <PanelExportButtons
+            filename="comparativo-anos-lectivos"
+            title="Comparativo entre anos lectivos"
+            subtitle="Histórico académico oficial"
+            columns={yearColumns}
+            rows={years}
+          />
+        ) : (
+          <PanelExportButtons
+            filename="comparativo-anos-por-classe"
+            title="Transição por classe e ano lectivo"
+            subtitle="Histórico académico oficial"
+            columns={levelColumns(labels)}
+            rows={levels}
+          />
+        )
+      }
       description="Do histórico académico oficial (resultados registados no fim de cada ano). Transição sobre os alunos com situação decidida."
     >
       {query.isLoading ? (
@@ -118,7 +140,7 @@ export function YearComparisonPanel({ enabled }: { enabled: boolean }) {
                   </tr>
                 </thead>
                 <tbody>
-                  {(data?.levels ?? []).map((level) => (
+                  {levels.map((level) => (
                     <tr key={level.gradeLevel} className="border-b border-border/60 last:border-0">
                       <td className="py-2 pr-3">{level.gradeLevel}</td>
                       {labels.map((label) => (

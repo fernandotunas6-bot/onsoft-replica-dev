@@ -509,7 +509,11 @@ function RelatoriosAcademicos() {
                   />
                 </Suspense>
 
-                <EvolutionPanel grades={evolutionGrades} passing={passing} />
+                <EvolutionPanel
+                  grades={evolutionGrades}
+                  passing={passing}
+                  subtitle={`${selectedYearLabel}${filters.turma !== "todas" ? ` · ${filters.turma}` : ""}`}
+                />
                 <YearComparisonPanel enabled={canRead} />
 
                 <Panel title="Desempenho por turma" description="Ordenado pela média da turma">

@@ -132,3 +132,5 @@ A produção tem o fluxo premium quase todo — falta ligá-lo aos ecrãs:
    `YearComparisonPanel.tsx`): do histórico académico oficial, por ano (alunos,
    média final, % que transitou e variação em pontos face ao ano anterior) e
    por classe ao longo dos últimos cinco anos. Só totais saem do servidor.
+   Os dois painéis exportam em CSV e PDF (`analytics-export.ts`,
+   `PanelExportButtons.tsx`): médias e variações como números no CSV.
