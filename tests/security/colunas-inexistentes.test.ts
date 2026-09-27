@@ -307,7 +307,22 @@ const funcoesPublicas = new Set(
  * este teste deixa de verificar, e a lista era o sítio onde uma coluna inventada se
  * esconderia sem ninguém notar.
  */
-const ESPERA_MIGRACAO = new Set<string>([]);
+const ESPERA_MIGRACAO = new Set<string>([
+  // `school_access_requests` existe na produção; estas seis colunas não. O código
+  // de `src/features/access/requests-server.ts` grava-as, e um insert recusado
+  // pelo PostgREST é pior do que uma leitura recusada: a leitura dá ecrã vazio, o
+  // insert deixa a pessoa convencida de que o pedido de acesso foi submetido.
+  //
+  // Por aplicar à data de 2026-09-26 — o retrato recapturado é idêntico ao de
+  // 25/09 11:50. Retirar daqui depois de a migração correr e o retrato ser
+  // recapturado; a lista existe para encolher.
+  "school_access_requests.requested_profile",
+  "school_access_requests.institutional_number",
+  "school_access_requests.contact_phone",
+  "school_access_requests.message",
+  "school_access_requests.matched_person_id",
+  "school_access_requests.match_kind",
+]);
 
 const leituras = leiturasDoCodigo();
 const escritas = escritasDoCodigo();

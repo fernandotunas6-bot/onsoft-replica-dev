@@ -68,8 +68,14 @@ Base de dados = PRODUÇÃO das escolas. Regras obrigatórias para qualquer migra
 
 ## `types.ts` gerado da base errada
 
-`src/integrations/supabase/types.ts` descreve a base de **produção do SIGA** (156 tabelas,
-igual a `supabase/PRODUCTION_SNAPSHOT.json`). Em 2026-09-26 o Lovable regenerou-o a partir
+`src/integrations/supabase/types.ts` descreve a base de **produção do SIGA** (164 tabelas a
+2026-09-26, igual a `supabase/PRODUCTION_SNAPSHOT.json`). Em 2026-09-26 o Lovable regenerou-o a partir
 de outra base (86 tabelas, com `invoices`, `payments`, `courses`, que não existem no SIGA) e
 o código deixou de compilar. `tests/security/types-match-production.test.ts` falha nesse
 caso. **Não aceitar um types.ts que apague tabelas da produção:** repor a versão anterior.
+
+Não o editar à mão nem corrigir o número acima quando ele divergir: `npm run siga:gen-types`
+gera-o a partir do projecto ligado e carimba-o, e `npm run siga:db-snapshot` recaptura o
+retrato. Os dois têm de contar as mesmas tabelas — foi assim que se soube, a 2026-09-26, que
+nenhuma das migrações posteriores a 25/09 11:50 tinha corrido: o retrato recapturado saiu
+idêntico ao anterior, byte por byte, tirando a data.

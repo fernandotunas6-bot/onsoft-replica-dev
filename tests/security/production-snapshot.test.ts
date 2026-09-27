@@ -149,6 +149,21 @@ const TABELAS_AUSENTES_DA_PRODUCAO = new Set([
   // Caixas de correio por tenant, no Control Center: sem a tabela, o
   // aprovisionamento de caixas institucionais não grava nem lista nada.
   "tenant_mailboxes",
+
+  // Criadas por `20260925160000_academic_guards_risk_followup_appypay.sql`, que
+  // não está aplicada: o retrato recapturado a 2026-09-26 é idêntico ao de 25/09
+  // 11:50, logo nada correu na produção desde então. Entram aqui pela regra 8 de
+  // docs/agents/DATABASE_RULES.md e saem depois de a migração correr e o retrato
+  // ser recapturado.
+  //
+  // O que falha entretanto, para não se procurar no sítio errado: a análise de
+  // risco (`risk-followup.functions.ts`) e o gateway AppyPay
+  // (`appypay.functions.ts`, `appypay-reconcile.server.ts`,
+  // `routes/api/public/payments/appypay.tsx`) recebem o erro de tabela
+  // inexistente do PostgREST, não um ecrã vazio.
+  "student_risk_cases",
+  "student_risk_interventions",
+  "payment_gateway_charges",
 ]);
 
 /** Tabelas consultadas pelo código — `.from("x")`, excluindo buckets de storage. */
