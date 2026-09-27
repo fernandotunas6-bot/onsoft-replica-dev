@@ -114,7 +114,8 @@ A produção tem o fluxo premium quase todo — falta ligá-lo aos ecrãs:
    competências que avalia; domínio = média das avaliações ligadas, na escala
    da escola, ≥ nota de aprovação do modelo. Percentagem por aluno e por
    competência na turma. Migração `20260927150000` (só servidor).
-   Falta: mostrar o domínio no portal do aluno e do encarregado.
+   Portal do aluno e do encarregado: cartão "Competências" por disciplina
+   (dominada / a consolidar / por avaliar), só com as notas do próprio aluno.
 7. **Analytics** — em curso. Feito: aprovação pela nota do modelo em todos os
    relatórios; sinais automáticos de risco em `/pedagogica/risco` (sem IA, pelas
    regras do modelo: não transitaria, passou a negativa, faltas acima/perto do

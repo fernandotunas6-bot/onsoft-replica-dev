@@ -24,6 +24,7 @@ import { SpotlightRail } from "@/features/spotlight/SpotlightRail";
 import { DashboardCalendarCard } from "@/features/dashboard/components/DashboardCalendarCard";
 import { StudentTimetableCard } from "@/features/dashboard/components/StudentTimetableCard";
 import { StudentGradesCard } from "@/features/dashboard/components/StudentGradesCard";
+import { StudentCompetenciesCard } from "@/features/dashboard/components/StudentCompetenciesCard";
 import { assessmentCalendarItems } from "@/features/dashboard/student-calendar-items";
 import { openSettingsPanel } from "@/lib/settings-deep-link";
 import { SubmitAttendanceJustificationModal } from "@/features/pedagogica/components/AttendanceJustificationModal";
@@ -203,6 +204,8 @@ export function StudentPortalDashboard() {
       <StudentTimetableCard />
 
       <StudentGradesCard />
+
+      <StudentCompetenciesCard />
 
       <div className="grid gap-5 lg:grid-cols-2">
         <PortalSection
