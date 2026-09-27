@@ -4,6 +4,22 @@ Ler isto **antes** de alterar código. Ecossistema (5 apps):
 [ARCHITECTURE_HARMONIZATION.md](./ARCHITECTURE_HARMONIZATION.md).
 Depois abrir o skill do módulo em `.cursor/skills/`.
 
+## Registos do Auth: Google e captcha (2026-09-28)
+
+- **Google:** a 2026-09-26 o regresso do Google falhou com `invalid_client`
+  ("The provided client secret is invalid"). O segredo do cliente OAuth está
+  errado no painel do Supabase (Authentication → Providers → Google) e tem de
+  ser corrigido pelo dono do projecto. O ecrã de entrada ignorava o erro que o
+  Supabase deixa no URL. Agora `src/lib/auth-redirect-error.ts` mostra uma
+  mensagem e limpa o URL; as rotas `/auth/*` continuam a tratar o seu.
+- **Captcha:** a 2026-09-26/27 houve entradas recusadas com `captcha_failed`.
+  A aplicação não envia token de captcha e, desde as 09h de 27/09, as entradas
+  passam, por isso a protecção foi desligada. **Não a voltar a ligar** sem
+  suporte na aplicação. A mensagem de entrada passa a dizê-lo, em vez de
+  "tente novamente".
+- O índice duplicado de `siga_assessment_items` saiu
+  (`20260928220000_drop_duplicate_assessment_items_index.sql`, **já aplicada**).
+
 ## Funções órfãs do portal antigo (2026-09-28)
 
 `portal_identities` foi apagada por `supabase/cleanup_unused_sga_tables.sql`,

@@ -6,6 +6,7 @@ import {
   weakSignInPasswordNotice,
 } from "@/lib/password-policy-error";
 import { passwordExposureCount } from "@/lib/pwned-password";
+import { authRedirectError, withoutAuthRedirectError } from "@/lib/auth-redirect-error";
 import {
   SESSION_EXPIRED_MESSAGE,
   consumeSessionExpiredFlag,
@@ -69,6 +70,11 @@ function mapSignInError(message: string) {
   }
   if (value.includes("email not confirmed")) {
     return "Confirme o email da conta antes de iniciar sessão.";
+  }
+  if (value.includes("captcha")) {
+    // A protecção por captcha do Supabase Auth exige um token que esta
+    // aplicação não envia: ligada no painel, bloqueia todas as entradas.
+    return "O início de sessão está bloqueado por uma configuração do servidor (captcha). Avise a administração.";
   }
   if (value.includes("too many requests") || value.includes("rate limit")) {
     return "Demasiadas tentativas. Aguarde um momento e tente outra vez.";
@@ -172,6 +178,19 @@ export function AuthGate({ children }: { children: ReactNode }) {
 
         setSession(null);
         setChecking(false);
+        // Regresso de um início de sessão externo (Google) que falhou: o
+        // Supabase deixa o erro no URL. As rotas /auth/* tratam o seu.
+        if (typeof window !== "undefined" && !window.location.pathname.startsWith("/auth/")) {
+          const redirectError = authRedirectError(window.location.search, window.location.hash);
+          if (redirectError) {
+            setError(redirectError.message);
+            window.history.replaceState(
+              window.history.state,
+              "",
+              withoutAuthRedirectError(window.location.href),
+            );
+          }
+        }
       } catch (bootstrapError) {
         if (!active) return;
         setError(
