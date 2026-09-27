@@ -3,6 +3,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { usePassingValue } from "@/features/academic/use-passing-value";
 import { EvolutionPanel } from "@/features/academic/EvolutionPanel";
+import { YearComparisonPanel } from "@/features/academic/YearComparisonPanel";
 import { Award, Download, FileBadge, FileDown } from "lucide-react";
 import { toast } from "sonner";
 import { whatsappHref } from "@/features/integrations/actions";
@@ -509,6 +510,7 @@ function RelatoriosAcademicos() {
                 </Suspense>
 
                 <EvolutionPanel grades={evolutionGrades} passing={passing} />
+                <YearComparisonPanel enabled={canRead} />
 
                 <Panel title="Desempenho por turma" description="Ordenado pela média da turma">
                   {turmasComDados.length === 0 ? (

@@ -128,3 +128,7 @@ A produção tem o fluxo premium quase todo — falta ligá-lo aos ecrãs:
    entre os dois últimos com notas (a subir / a descer a partir de 0,5 valores)
    e negativas no último, por turma ou por disciplina; as que mais desceram
    primeiro. Segue os filtros de pesquisa e turma da página.
+   Painel "Comparativo entre anos lectivos" (`year-comparison.ts`,
+   `YearComparisonPanel.tsx`): do histórico académico oficial, por ano (alunos,
+   média final, % que transitou e variação em pontos face ao ano anterior) e
+   por classe ao longo dos últimos cinco anos. Só totais saem do servidor.

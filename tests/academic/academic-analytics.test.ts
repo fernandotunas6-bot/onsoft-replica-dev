@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { termEvolution } from "@/features/academic/academic-analytics";
+import { outcomeKind, termEvolution, yearComparison } from "@/features/academic/academic-analytics";
 
 const g = (groupId: string, term: number, average: number) => ({
   groupId,
@@ -52,5 +52,86 @@ describe("evolução entre períodos", () => {
   it("usa a nota de aprovação passada (do modelo)", () => {
     const strict = termEvolution([g("x", 1, 11), g("x", 1, 13)], 12);
     expect(strict[0].terms[0].negativesPct).toBe(50);
+  });
+});
+
+describe("outcomeKind", () => {
+  it("reconhece a negação antes de 'transit'", () => {
+    expect(outcomeKind("Não transitou")).toBe("fail");
+    expect(outcomeKind("NAO TRANSITOU")).toBe("fail");
+    expect(outcomeKind("Transitou")).toBe("pass");
+    expect(outcomeKind("Aprovado")).toBe("pass");
+    expect(outcomeKind("Reprovado")).toBe("fail");
+    expect(outcomeKind("Incompleto")).toBe("other");
+    expect(outcomeKind(null)).toBe("other");
+  });
+});
+
+describe("yearComparison", () => {
+  const rec = (
+    yearLabel: string,
+    gradeLevel: string,
+    finalAverage: number | null,
+    outcome: string,
+  ) => ({
+    yearLabel,
+    gradeLevel,
+    finalAverage,
+    outcome,
+  });
+
+  it("resume por ano na ordem dada e calcula a variação da transição", () => {
+    const result = yearComparison(
+      [
+        rec("2024/2025", "10ª", 12, "Transitou"),
+        rec("2024/2025", "10ª", 8, "Não transitou"),
+        rec("2023/2024", "10ª", 14, "Transitou"),
+        rec("2023/2024", "11ª", 11, "Transitou"),
+        rec("2023/2024", "11ª", null, "Incompleto"),
+      ],
+      ["2023/2024", "2024/2025"],
+    );
+    expect(result.years.map((y) => y.yearLabel)).toEqual(["2023/2024", "2024/2025"]);
+    const [first, second] = result.years;
+    expect(first).toMatchObject({
+      students: 3,
+      average: 12.5,
+      passPct: 100,
+      failPct: 0,
+      passDelta: null,
+    });
+    expect(second).toMatchObject({
+      students: 2,
+      average: 10,
+      passPct: 50,
+      failPct: 50,
+      passDelta: -50,
+    });
+    expect(result.levels).toEqual([
+      { gradeLevel: "10ª", byYear: { "2023/2024": 100, "2024/2025": 50 } },
+      { gradeLevel: "11ª", byYear: { "2023/2024": 100, "2024/2025": null } },
+    ]);
+  });
+
+  it("anos sem ordem conhecida vão no fim, por nome", () => {
+    const result = yearComparison(
+      [
+        rec("2022", "7ª", 10, "Transitou"),
+        rec("2019", "7ª", 10, "Transitou"),
+        rec("2021", "7ª", 10, "Transitou"),
+      ],
+      ["2021"],
+    );
+    expect(result.years.map((y) => y.yearLabel)).toEqual(["2021", "2019", "2022"]);
+  });
+
+  it("sem situação decidida não inventa percentagens", () => {
+    const result = yearComparison([rec("2025", "1ª", null, "Incompleto")]);
+    expect(result.years[0]).toMatchObject({
+      students: 1,
+      average: null,
+      passPct: null,
+      failPct: null,
+    });
   });
 });
