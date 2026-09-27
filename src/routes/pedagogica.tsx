@@ -39,6 +39,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { STAGE_LABELS } from "@/features/academic/academic-architecture";
 import { InstalledModuleTools } from "@/features/integrations/InstalledModuleTools";
 import { PickFileButton } from "@/features/arquivos/PickFileButton";
 import { meetingRoomLink } from "@/features/integrations/actions";
@@ -811,22 +812,32 @@ function PedagogicaPage() {
             ref={tabsListRef}
             className="no-scrollbar flex h-auto w-full max-w-full flex-nowrap justify-start gap-1 overflow-x-auto"
           >
+            {/* Pela ordem do ano lectivo (academic-architecture.ts): cada
+                informação nasce numa etapa e segue para a seguinte. */}
+            <TabStageLabel>{STAGE_LABELS.estrutura}</TabStageLabel>
             {canReadAcademic ? (
               <TabsTrigger value="estrutura">Estrutura académica</TabsTrigger>
             ) : null}
             {canReadAcademic ? (
               <TabsTrigger value="modelos">Modelos de avaliação</TabsTrigger>
             ) : null}
-            <TabsTrigger value="turmas">Turmas</TabsTrigger>
-            <TabsTrigger value="disciplinas">Disciplinas</TabsTrigger>
-            <TabsTrigger value="salas">Salas & Espaços</TabsTrigger>
             <TabsTrigger value="curriculo">Currículo & Turnos</TabsTrigger>
-            <TabsTrigger value="horarios">Horários</TabsTrigger>
-            <TabsTrigger value="notas">Notas</TabsTrigger>
-            <TabsTrigger value="presencas">Presenças / Chamada</TabsTrigger>
-            <TabsTrigger value="pautas">Pautas</TabsTrigger>
-            {canReadAcademic ? <TabsTrigger value="exames">Exames</TabsTrigger> : null}
+            <TabsTrigger value="disciplinas">Disciplinas</TabsTrigger>
             {canReadAcademic ? <TabsTrigger value="competencias">Competências</TabsTrigger> : null}
+            <TabStageLabel>{STAGE_LABELS.pessoas}</TabStageLabel>
+            <TabsTrigger value="turmas">Turmas</TabsTrigger>
+            <TabsTrigger value="horarios">Horários</TabsTrigger>
+            <TabsTrigger value="salas">Salas & Espaços</TabsTrigger>
+            <TabsTrigger value="presencas">Presenças / Chamada</TabsTrigger>
+            <TabStageLabel>{STAGE_LABELS.avaliacao}</TabStageLabel>
+            <TabsTrigger value="notas">Notas</TabsTrigger>
+            <TabsTrigger value="pautas">Pautas</TabsTrigger>
+            {canReadAcademic ? (
+              <>
+                <TabStageLabel>{STAGE_LABELS.resultado}</TabStageLabel>
+                <TabsTrigger value="exames">Exames e resultado final</TabsTrigger>
+              </>
+            ) : null}
           </TabsList>
           <div className="mt-4">
             <InstalledModuleTools
@@ -1268,5 +1279,17 @@ function PedagogicaPage() {
         onRefresh={refreshAcademic}
       />
     </AppShell>
+  );
+}
+
+/** Nome da etapa entre separadores: só texto, fora da lista de separadores para leitores de ecrã. */
+function TabStageLabel({ children }: { children: string }) {
+  return (
+    <span
+      aria-hidden="true"
+      className="ml-2 shrink-0 self-center whitespace-nowrap border-l border-border pl-3 pr-1 text-[11px] text-muted-foreground first:ml-0 first:border-l-0 first:pl-1"
+    >
+      {children}
+    </span>
   );
 }
