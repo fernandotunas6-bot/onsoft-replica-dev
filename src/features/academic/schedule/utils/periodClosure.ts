@@ -3,8 +3,11 @@
  * inputs from authoritative, versioned school records; this is not an API.
  */
 export type PeriodClosureInput = {
-  schoolId: string; academicYearId: string; periodId: string;
-  publishedScheduleVersion: string; curriculumVersion: string;
+  schoolId: string;
+  academicYearId: string;
+  periodId: string;
+  publishedScheduleVersion: string;
+  curriculumVersion: string;
   expectedOccurrenceIds: readonly string[];
   reconciledOccurrenceIds: readonly string[];
   excusedOccurrenceIds: readonly string[];
@@ -12,10 +15,13 @@ export type PeriodClosureInput = {
   approvedAssessmentIds: readonly string[];
   pendingGradeAppealIds: readonly string[];
   pendingExamConflictIds: readonly string[];
-  coordinatorApproved: boolean; pedagogicalDirectorApproved: boolean;
+  coordinatorApproved: boolean;
+  pedagogicalDirectorApproved: boolean;
 };
 export type PeriodClosureResult = {
-  ready: boolean; missingLessonIds: string[]; missingAssessmentIds: string[];
+  ready: boolean;
+  missingLessonIds: string[];
+  missingAssessmentIds: string[];
   blockers: string[];
 };
 function duplicates(ids: readonly string[]): boolean {
@@ -23,23 +29,38 @@ function duplicates(ids: readonly string[]): boolean {
 }
 export function validatePeriodClosure(input: PeriodClosureInput): PeriodClosureResult {
   const blockers: string[] = [];
-  if (!input.schoolId || !input.academicYearId || !input.periodId ||
-      !input.publishedScheduleVersion || !input.curriculumVersion) {
+  if (
+    !input.schoolId ||
+    !input.academicYearId ||
+    !input.periodId ||
+    !input.publishedScheduleVersion ||
+    !input.curriculumVersion
+  ) {
     blockers.push("Identidade institucional ou versões oficiais incompletas.");
   }
-  const collections = [input.expectedOccurrenceIds, input.reconciledOccurrenceIds,
-    input.excusedOccurrenceIds, input.expectedAssessmentIds, input.approvedAssessmentIds,
-    input.pendingGradeAppealIds, input.pendingExamConflictIds];
+  const collections = [
+    input.expectedOccurrenceIds,
+    input.reconciledOccurrenceIds,
+    input.excusedOccurrenceIds,
+    input.expectedAssessmentIds,
+    input.approvedAssessmentIds,
+    input.pendingGradeAppealIds,
+    input.pendingExamConflictIds,
+  ];
   if (collections.some(duplicates)) blockers.push("Identificadores inválidos ou duplicados.");
   const expectedLessons = new Set(input.expectedOccurrenceIds);
   const reconciled = new Set(input.reconciledOccurrenceIds);
   const excused = new Set(input.excusedOccurrenceIds);
-  if ([...reconciled].some((id) => !expectedLessons.has(id)) ||
-      [...excused].some((id) => !expectedLessons.has(id)) ||
-      [...reconciled].some((id) => excused.has(id))) {
+  if (
+    [...reconciled].some((id) => !expectedLessons.has(id)) ||
+    [...excused].some((id) => !expectedLessons.has(id)) ||
+    [...reconciled].some((id) => excused.has(id))
+  ) {
     blockers.push("Aulas conciliadas ou justificadas divergem do horário publicado.");
   }
-  const missingLessonIds = [...expectedLessons].filter((id) => !reconciled.has(id) && !excused.has(id));
+  const missingLessonIds = [...expectedLessons].filter(
+    (id) => !reconciled.has(id) && !excused.has(id),
+  );
   if (missingLessonIds.length) blockers.push("Aulas previstas sem conciliação ou justificação.");
   const expectedAssessments = new Set(input.expectedAssessmentIds);
   const approved = new Set(input.approvedAssessmentIds);

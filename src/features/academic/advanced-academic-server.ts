@@ -874,8 +874,8 @@ export const publishAcademicSchedule = createServerFn({ method: "POST" })
         `Configure uma carga semanal válida para ${invalidWorkload.length} disciplina(s) antes de publicar.`,
       );
     }
-    const mismatchedWorkload = classSubjects.filter((item) =>
-      (plannedByClassSubject.get(String(item.id)) ?? 0) !== Number(item.weekly_periods),
+    const mismatchedWorkload = classSubjects.filter(
+      (item) => (plannedByClassSubject.get(String(item.id)) ?? 0) !== Number(item.weekly_periods),
     );
     if (mismatchedWorkload.length > 0) {
       throw new Error(

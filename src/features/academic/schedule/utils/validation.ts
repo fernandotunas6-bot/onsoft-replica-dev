@@ -49,8 +49,8 @@ export function assertNoScheduleConflict(
     display_label: "Nova aula",
   };
   const conflicts = detectScheduleConflicts([
-    ...existing.filter((slot) =>
-      slot.id !== editingSlotId && (slot.schedule_id ?? null) === (scheduleId ?? null),
+    ...existing.filter(
+      (slot) => slot.id !== editingSlotId && (slot.schedule_id ?? null) === (scheduleId ?? null),
     ),
     candidate,
   ]).filter((conflict) => conflict.slotIds.includes(candidate.id));

@@ -82,9 +82,7 @@ describe("movimentos de dinheiro passam pelas funções da base", () => {
   });
 
   it("reverseCashEntry chama reverse_receipt", () => {
-    const servidor = ficheiros.find(
-      ({ caminho }) => caminho === "src/features/finance/server.ts",
-    )!;
+    const servidor = ficheiros.find(({ caminho }) => caminho === "src/features/finance/server.ts")!;
     const bloco = servidor.fonte.slice(
       servidor.fonte.indexOf("export const reverseCashEntry"),
       servidor.fonte.indexOf("export const createPaymentPlan"),
@@ -106,9 +104,7 @@ describe("movimentos de dinheiro passam pelas funções da base", () => {
   });
 
   it("recordInvoicePayment continua a chamar register_payment na sessão", () => {
-    const servidor = ficheiros.find(
-      ({ caminho }) => caminho === "src/features/finance/server.ts",
-    )!;
+    const servidor = ficheiros.find(({ caminho }) => caminho === "src/features/finance/server.ts")!;
     const bloco = servidor.fonte.slice(
       servidor.fonte.indexOf("export const recordInvoicePayment"),
       servidor.fonte.indexOf("export const generateInvoicePaymentReference"),

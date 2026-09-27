@@ -1144,9 +1144,7 @@ function PedagogicaPage() {
                 name: t.full_name || "Docente",
               }))}
               slots={scheduleSlots}
-              virtualRooms={[
-                ...(zoomOn ? [{ label: "Zoom", url: meetingRoomLink() }] : []),
-              ]}
+              virtualRooms={[...(zoomOn ? [{ label: "Zoom", url: meetingRoomLink() }] : [])]}
               onCreateSlot={async (data) => {
                 const { warnings } = await createAdvancedScheduleSlot({ data });
                 for (const warning of warnings) {

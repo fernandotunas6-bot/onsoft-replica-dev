@@ -3,14 +3,25 @@ import { schedulePublicationReadiness } from "./publicationReadiness";
 import type { ScheduleSlot } from "../types";
 
 const slot: ScheduleSlot = {
-  id: "slot-1", schedule_id: "version-1", class_group_id: "class-1", class_group_name: "10.ª A",
-  subject_id: "subject-1", subject_name: "Matemática", teacher_id: "teacher-1",
-  teacher_name: "Professor A", room_id: "room-1", room_name: "Sala 1",
-  weekday: 1, starts_at: "08:00:00", ends_at: "08:45:00",
-  label: "Sala 1", display_label: "Matemática",
+  id: "slot-1",
+  schedule_id: "version-1",
+  class_group_id: "class-1",
+  class_group_name: "10.ª A",
+  subject_id: "subject-1",
+  subject_name: "Matemática",
+  teacher_id: "teacher-1",
+  teacher_name: "Professor A",
+  room_id: "room-1",
+  room_name: "Sala 1",
+  weekday: 1,
+  starts_at: "08:00:00",
+  ends_at: "08:45:00",
+  label: "Sala 1",
+  display_label: "Matemática",
 };
 const base = {
-  classGroupId: "class-1", slots: [slot],
+  classGroupId: "class-1",
+  slots: [slot],
   classGroups: [{ id: "class-1", name: "10.ª A", enrolled_count: 25 }],
   subjects: [{ id: "subject-1", name: "Matemática" }],
   teachers: [{ id: "teacher-1", name: "Professor A" }],
@@ -27,47 +38,79 @@ describe("schedulePublicationReadiness", () => {
   });
 
   it("bloqueia publicação de aulas legadas sem versão identificada", () => {
-    const result = schedulePublicationReadiness({ ...base, slots: [{ ...slot, schedule_id: null }] });
+    const result = schedulePublicationReadiness({
+      ...base,
+      slots: [{ ...slot, schedule_id: null }],
+    });
     expect(result.ready).toBe(false);
     expect(result.issues.map((issue) => issue.code)).toContain("version");
   });
 
   it("impede publicação de horário vazio", () => {
-    expect(schedulePublicationReadiness({ ...base, slots: [] }).issues.map((issue) => issue.code)).toContain("empty");
+    expect(
+      schedulePublicationReadiness({ ...base, slots: [] }).issues.map((issue) => issue.code),
+    ).toContain("empty");
   });
 
   it("identifica docente e sala por atribuir", () => {
-    const result = schedulePublicationReadiness({ ...base, slots: [{ ...slot, teacher_id: null, room_id: null }] });
-    expect(result.issues.map((issue) => issue.code)).toEqual(expect.arrayContaining(["teacher", "room"]));
+    const result = schedulePublicationReadiness({
+      ...base,
+      slots: [{ ...slot, teacher_id: null, room_id: null }],
+    });
+    expect(result.issues.map((issue) => issue.code)).toEqual(
+      expect.arrayContaining(["teacher", "room"]),
+    );
   });
 
   it("bloqueia salas cuja lotação é inferior aos alunos matriculados", () => {
-    const result = schedulePublicationReadiness({ ...base, rooms: [{ ...base.rooms[0], capacity: 20 }] });
+    const result = schedulePublicationReadiness({
+      ...base,
+      rooms: [{ ...base.rooms[0], capacity: 20 }],
+    });
     expect(result.issues.map((issue) => issue.code)).toContain("capacity");
   });
 
   it("bloqueia a publicação quando a lotação da sala é desconhecida", () => {
-    const result = schedulePublicationReadiness({ ...base, rooms: [{ ...base.rooms[0], capacity: null }] });
+    const result = schedulePublicationReadiness({
+      ...base,
+      rooms: [{ ...base.rooms[0], capacity: null }],
+    });
     expect(result.ready).toBe(false);
     expect(result.issues.map((issue) => issue.code)).toContain("capacity");
   });
 
   it("bloqueia salas com lotação zero ou inválida", () => {
     for (const capacity of [0, -1, Number.NaN]) {
-      const result = schedulePublicationReadiness({ ...base, rooms: [{ ...base.rooms[0], capacity }] });
+      const result = schedulePublicationReadiness({
+        ...base,
+        rooms: [{ ...base.rooms[0], capacity }],
+      });
       expect(result.issues.map((issue) => issue.code)).toContain("capacity");
       expect(result.ready).toBe(false);
     }
   });
 
   it("deteta choques de docentes mesmo entre turmas diferentes", () => {
-    const second: ScheduleSlot = { ...slot, id: "slot-2", class_group_id: "class-2", class_group_name: "10.ª B", room_id: "room-2" };
+    const second: ScheduleSlot = {
+      ...slot,
+      id: "slot-2",
+      class_group_id: "class-2",
+      class_group_name: "10.ª B",
+      room_id: "room-2",
+    };
     const result = schedulePublicationReadiness({ ...base, slots: [slot, second] });
     expect(result.issues.map((issue) => issue.code)).toContain("conflict");
   });
 
   it("não inclui aulas de outras turmas nas métricas", () => {
-    const second: ScheduleSlot = { ...slot, id: "slot-2", class_group_id: "class-2", teacher_id: "teacher-2", room_id: "room-2", weekday: 2 };
+    const second: ScheduleSlot = {
+      ...slot,
+      id: "slot-2",
+      class_group_id: "class-2",
+      teacher_id: "teacher-2",
+      room_id: "room-2",
+      weekday: 2,
+    };
     const result = schedulePublicationReadiness({ ...base, slots: [slot, second] });
     expect(result.lessonCount).toBe(1);
     expect(result.ready).toBe(true);
@@ -80,5 +123,4 @@ describe("schedulePublicationReadiness", () => {
     expect(result.issues.map((issue) => issue.code)).toContain("version");
     expect(result.ready).toBe(false);
   });
-
 });

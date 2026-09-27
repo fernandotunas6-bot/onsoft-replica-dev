@@ -23,7 +23,8 @@ export const listApprovedSalaryScales = createServerFn({ method: "GET" })
       .from("hr_salary_scales")
       .select("id, code, name, sector, jurisdiction, source_title, source_reference, source_url")
       .order("name");
-    if (scaleError) throw publicDatabaseError(scaleError, "Não foi possível carregar tabelas salariais.");
+    if (scaleError)
+      throw publicDatabaseError(scaleError, "Não foi possível carregar tabelas salariais.");
     if (!scales?.length) return [];
 
     const { data: versions, error: versionError } = await db
@@ -32,29 +33,40 @@ export const listApprovedSalaryScales = createServerFn({ method: "GET" })
       .eq("status", "approved")
       .lte("effective_from", new Date().toISOString().slice(0, 10))
       .order("effective_from", { ascending: false });
-    if (versionError) throw publicDatabaseError(versionError, "Não foi possível carregar versões salariais.");
+    if (versionError)
+      throw publicDatabaseError(versionError, "Não foi possível carregar versões salariais.");
     const today = new Date().toISOString().slice(0, 10);
-    const currentVersions = (versions ?? []).filter((v) => !v.effective_until || v.effective_until >= today);
+    const currentVersions = (versions ?? []).filter(
+      (v) => !v.effective_until || v.effective_until >= today,
+    );
     if (!currentVersions.length) return [];
 
     const { data: steps, error: stepsError } = await db
       .from("hr_salary_scale_steps")
       .select("id, version_id, category_code, category_name, grade, monthly_base_kz")
-      .in("version_id", currentVersions.map((v) => v.id))
+      .in(
+        "version_id",
+        currentVersions.map((v) => v.id),
+      )
       .order("category_name")
       .order("grade");
-    if (stepsError) throw publicDatabaseError(stepsError, "Não foi possível carregar escalões salariais.");
+    if (stepsError)
+      throw publicDatabaseError(stepsError, "Não foi possível carregar escalões salariais.");
     const stepsByVersion = new Map<string, typeof steps>();
     for (const step of steps ?? []) {
       const list = stepsByVersion.get(step.version_id) ?? [];
       list.push(step);
       stepsByVersion.set(step.version_id, list);
     }
-    return scales.map((scale) => ({
-      ...scale,
-      versions: currentVersions.filter((v) => v.scale_id === scale.id).map((version) => ({
-        ...version,
-        steps: stepsByVersion.get(version.id) ?? [],
-      })),
-    })).filter((scale) => scale.versions.length > 0);
+    return scales
+      .map((scale) => ({
+        ...scale,
+        versions: currentVersions
+          .filter((v) => v.scale_id === scale.id)
+          .map((version) => ({
+            ...version,
+            steps: stepsByVersion.get(version.id) ?? [],
+          })),
+      }))
+      .filter((scale) => scale.versions.length > 0);
   });

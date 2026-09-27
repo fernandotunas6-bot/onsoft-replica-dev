@@ -30,27 +30,37 @@ export const requestHrSalaryChange = createServerFn({ method: "POST" })
   .handler(async ({ context, data }) => {
     const membership = await requireHrWriter(context.userId);
     const db = await loadSgaAdminClient();
-    const { data: contract, error: contractError } = await db.from("hr_contracts")
+    const { data: contract, error: contractError } = await db
+      .from("hr_contracts")
       .select("id,school_id,starts_on,ends_on,status")
-      .eq("id", data.contractId).eq("school_id", membership.schoolId)
-      .is("deleted_at", null).maybeSingle();
-    if (contractError) throw publicDatabaseError(contractError, "Não foi possível validar o contrato.");
+      .eq("id", data.contractId)
+      .eq("school_id", membership.schoolId)
+      .is("deleted_at", null)
+      .maybeSingle();
+    if (contractError)
+      throw publicDatabaseError(contractError, "Não foi possível validar o contrato.");
     if (!contract || contract.status !== "active") {
       throw new Error("Contrato inexistente ou indisponível para alteração.");
     }
-    if (data.effectiveOn < contract.starts_on ||
-      (contract.ends_on && data.effectiveOn > contract.ends_on)) {
+    if (
+      data.effectiveOn < contract.starts_on ||
+      (contract.ends_on && data.effectiveOn > contract.ends_on)
+    ) {
       throw new Error("Data da alteração fora da vigência do contrato.");
     }
     const luandaParts = new Intl.DateTimeFormat("en", {
-      timeZone: "Africa/Luanda", year: "numeric", month: "2-digit", day: "2-digit",
+      timeZone: "Africa/Luanda",
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
     }).formatToParts(new Date());
     const part = (type: string) => luandaParts.find((item) => item.type === type)?.value ?? "";
     const todayLuanda = `${part("year")}-${part("month")}-${part("day")}`;
     if (data.effectiveOn < todayLuanda) {
       throw new Error("Alterações retroactivas exigem um procedimento de rectificação.");
     }
-    const { data: request, error } = await db.from("hr_salary_change_requests")
+    const { data: request, error } = await db
+      .from("hr_salary_change_requests")
       .insert({
         school_id: membership.schoolId,
         contract_id: contract.id,
@@ -59,7 +69,9 @@ export const requestHrSalaryChange = createServerFn({ method: "POST" })
         effective_on: data.effectiveOn,
         reason: data.reason,
         requested_by: context.userId,
-      }).select("id,status").single();
+      })
+      .select("id,status")
+      .single();
     if (error) throw publicDatabaseError(error, "Não foi possível registar o pedido salarial.");
     return request;
   });
@@ -71,20 +83,30 @@ export const reviewHrSalaryChange = createServerFn({ method: "POST" })
   .handler(async ({ context, data }) => {
     const membership = await requireHrWriter(context.userId);
     const db = await loadSgaAdminClient();
-    const { data: request, error: readError } = await db.from("hr_salary_change_requests")
+    const { data: request, error: readError } = await db
+      .from("hr_salary_change_requests")
       .select("id,school_id,requested_by,status")
-      .eq("id", data.requestId).eq("school_id", membership.schoolId).maybeSingle();
+      .eq("id", data.requestId)
+      .eq("school_id", membership.schoolId)
+      .maybeSingle();
     if (readError) throw publicDatabaseError(readError, "Não foi possível consultar o pedido.");
-    if (!request || request.status !== "pending") throw new Error("Pedido indisponível para decisão.");
-    if (request.requested_by === context.userId) throw new Error("Não pode aprovar o próprio pedido.");
-    const { data: updated, error } = await db.from("hr_salary_change_requests")
+    if (!request || request.status !== "pending")
+      throw new Error("Pedido indisponível para decisão.");
+    if (request.requested_by === context.userId)
+      throw new Error("Não pode aprovar o próprio pedido.");
+    const { data: updated, error } = await db
+      .from("hr_salary_change_requests")
       .update({
         status: data.decision,
         reviewed_by: context.userId,
         reviewed_at: new Date().toISOString(),
         review_reason: data.reason,
-      }).eq("id", data.requestId).eq("school_id", membership.schoolId)
-      .eq("status", "pending").select("id,status").maybeSingle();
+      })
+      .eq("id", data.requestId)
+      .eq("school_id", membership.schoolId)
+      .eq("status", "pending")
+      .select("id,status")
+      .maybeSingle();
     if (error) throw publicDatabaseError(error, "Não foi possível decidir o pedido.");
     if (!updated) throw new Error("O pedido já foi decidido por outro utilizador.");
     return updated;

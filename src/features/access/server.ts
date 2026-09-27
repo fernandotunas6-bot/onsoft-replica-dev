@@ -98,9 +98,7 @@ export async function otherSchoolAccess(
         rows.map((m) => m.id),
       );
     if (roleError) {
-      throw new Error(
-        `Não foi possível confirmar os cargos noutras escolas: ${roleError.message}`,
-      );
+      throw new Error(`Não foi possível confirmar os cargos noutras escolas: ${roleError.message}`);
     }
     adminAnywhere = ((roleRows ?? []) as Array<{ roles?: { code?: string } | null }>).some((r) =>
       isAdministratorRole(String(r.roles?.code ?? "")),

@@ -2,10 +2,23 @@ import { describe, expect, it } from "vitest";
 import { gridRows } from "./gridRows";
 import type { ScheduleSlot } from "../types";
 
-const slot = (id: string, weekday: number, starts_at = "08:00:00", ends_at = "09:00:00"): ScheduleSlot => ({
-  id, class_group_id: id, class_group_name: id, weekday, starts_at, ends_at,
-  subject_id: id, subject_name: id, teacher_id: id,
-  label: null, display_label: id,
+const slot = (
+  id: string,
+  weekday: number,
+  starts_at = "08:00:00",
+  ends_at = "09:00:00",
+): ScheduleSlot => ({
+  id,
+  class_group_id: id,
+  class_group_name: id,
+  weekday,
+  starts_at,
+  ends_at,
+  subject_id: id,
+  subject_name: id,
+  teacher_id: id,
+  label: null,
+  display_label: id,
 });
 
 describe("gridRows", () => {

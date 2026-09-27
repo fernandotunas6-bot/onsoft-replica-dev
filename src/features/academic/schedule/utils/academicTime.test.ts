@@ -1,17 +1,30 @@
 import { describe, expect, it } from "vitest";
 import {
-  gateWindows, parseCivilDate, parseLocalMinute, planAcademicLessons,
-  validateAcademicPeriods, validateAcademicShift,
-  type AcademicPeriod, type AcademicShift, type PlannedLesson,
+  gateWindows,
+  parseCivilDate,
+  parseLocalMinute,
+  planAcademicLessons,
+  validateAcademicPeriods,
+  validateAcademicShift,
+  type AcademicPeriod,
+  type AcademicShift,
+  type PlannedLesson,
 } from "./academicTime";
 
 const period: AcademicPeriod = {
-  id: "p1", name: "Primeiro trimestre", startsOn: "2026-09-21", endsOn: "2026-09-27",
+  id: "p1",
+  name: "Primeiro trimestre",
+  startsOn: "2026-09-21",
+  endsOn: "2026-09-27",
   teachingDays: [1, 2, 3, 4, 5],
 };
 const shift: AcademicShift = {
-  id: "morning", name: "Manhã", entry: "07:30", exit: "12:30",
-  gateEntryMinutesBefore: 30, gateExitMinutesAfter: 15,
+  id: "morning",
+  name: "Manhã",
+  entry: "07:30",
+  exit: "12:30",
+  gateEntryMinutesBefore: 30,
+  gateExitMinutesAfter: 15,
   lessons: [
     { id: "block1", start: "08:00", end: "09:00" },
     { id: "block2", start: "09:00", end: "10:00" },
@@ -20,8 +33,15 @@ const shift: AcademicShift = {
   breaks: [{ id: "break1", name: "Intervalo", start: "10:00", end: "10:20" }],
 };
 const lesson: PlannedLesson = {
-  id: "lesson-1", periodId: "p1", shiftId: "morning", weekday: 1,
-  start: "08:00", end: "09:00", teacherId: "teacher-1", classGroupId: "class-1", roomId: "room-1",
+  id: "lesson-1",
+  periodId: "p1",
+  shiftId: "morning",
+  weekday: 1,
+  start: "08:00",
+  end: "09:00",
+  teacherId: "teacher-1",
+  classGroupId: "class-1",
+  roomId: "room-1",
 };
 describe("períodos lectivos, turnos, intervalos e catracas", () => {
   it("valida datas reais e minutos inteiros", () => {
@@ -39,72 +59,125 @@ describe("períodos lectivos, turnos, intervalos e catracas", () => {
     });
   });
   it("bloqueia aula durante o intervalo e intervalos sobrepostos", () => {
-    expect(validateAcademicShift({
-      ...shift, breaks: [{ id: "break1", name: "Intervalo", start: "08:50", end: "09:10" }],
-    }).some((issue) => issue.code === "overlapping_blocks")).toBe(true);
-    expect(planAcademicLessons({ periods: [period], shifts: [shift],
-      lessons: [{ ...lesson, start: "09:50", end: "10:30" }] }).issues
-      .some((issue) => issue.code === "lesson_outside_teaching_window")).toBe(true);
+    expect(
+      validateAcademicShift({
+        ...shift,
+        breaks: [{ id: "break1", name: "Intervalo", start: "08:50", end: "09:10" }],
+      }).some((issue) => issue.code === "overlapping_blocks"),
+    ).toBe(true);
+    expect(
+      planAcademicLessons({
+        periods: [period],
+        shifts: [shift],
+        lessons: [{ ...lesson, start: "09:50", end: "10:30" }],
+      }).issues.some((issue) => issue.code === "lesson_outside_teaching_window"),
+    ).toBe(true);
   });
   it("rejeita períodos sobrepostos e turnos com catracas fora do dia", () => {
-    expect(validateAcademicPeriods([period, { ...period, id: "p2", startsOn: "2026-09-25", endsOn: "2026-10-01" }])
-      .some((issue) => issue.code === "overlapping_periods")).toBe(true);
-    expect(() => validateAcademicShift({ ...shift, entry: "00:10", gateEntryMinutesBefore: 30 })).toThrow();
+    expect(
+      validateAcademicPeriods([
+        period,
+        { ...period, id: "p2", startsOn: "2026-09-25", endsOn: "2026-10-01" },
+      ]).some((issue) => issue.code === "overlapping_periods"),
+    ).toBe(true);
+    expect(() =>
+      validateAcademicShift({ ...shift, entry: "00:10", gateEntryMinutesBefore: 30 }),
+    ).toThrow();
   });
   it("expande apenas as datas previstas, excluindo feriados", () => {
     const result = planAcademicLessons({ periods: [period], shifts: [shift], lessons: [lesson] });
     expect(result.issues).toEqual([]);
     expect(result.occurrences.map((item) => item.date)).toEqual(["2026-09-21"]);
-    const holiday = planAcademicLessons({ periods: [period], shifts: [shift],
-      lessons: [lesson], holidays: ["2026-09-21"] });
+    const holiday = planAcademicLessons({
+      periods: [period],
+      shifts: [shift],
+      lessons: [lesson],
+      holidays: ["2026-09-21"],
+    });
     expect(holiday.occurrences).toEqual([]);
   });
   it("não replica todas as aulas em dias extraordinários", () => {
-    const result = planAcademicLessons({ periods: [period], shifts: [shift],
-      lessons: [lesson], extraTeachingDates: ["2026-09-26"] });
+    const result = planAcademicLessons({
+      periods: [period],
+      shifts: [shift],
+      lessons: [lesson],
+      extraTeachingDates: ["2026-09-26"],
+    });
     expect(result.occurrences.map((item) => item.date)).toEqual(["2026-09-21"]);
   });
   it("recusa aulas em lacunas entre blocos e fora do período", () => {
-    const gap = planAcademicLessons({ periods: [period], shifts: [shift],
-      lessons: [{ ...lesson, start: "11:25", end: "12:00" }] });
+    const gap = planAcademicLessons({
+      periods: [period],
+      shifts: [shift],
+      lessons: [{ ...lesson, start: "11:25", end: "12:00" }],
+    });
     expect(gap.issues.some((issue) => issue.code === "lesson_outside_teaching_window")).toBe(true);
     expect(gap.occurrences).toEqual([]);
-    expect(() => planAcademicLessons({ periods: [period], shifts: [shift],
-      lessons: [lesson], extraTeachingDates: ["2026-10-03"] })).toThrow(/fora dos períodos/);
+    expect(() =>
+      planAcademicLessons({
+        periods: [period],
+        shifts: [shift],
+        lessons: [lesson],
+        extraTeachingDates: ["2026-10-03"],
+      }),
+    ).toThrow(/fora dos períodos/);
   });
   it("não expande períodos sobrepostos nem turnos inválidos", () => {
-    const overlapping = planAcademicLessons({ periods: [period,
-      { ...period, id: "p2", startsOn: "2026-09-25", endsOn: "2026-09-30" }],
-      shifts: [shift], lessons: [lesson] });
+    const overlapping = planAcademicLessons({
+      periods: [period, { ...period, id: "p2", startsOn: "2026-09-25", endsOn: "2026-09-30" }],
+      shifts: [shift],
+      lessons: [lesson],
+    });
     expect(overlapping.occurrences).toEqual([]);
     expect(overlapping.issues.some((issue) => issue.code === "overlapping_periods")).toBe(true);
   });
   it("repõe a aula de segunda-feira no sábado explicitamente configurado", () => {
-    const result = planAcademicLessons({ periods: [period], shifts: [shift],
-      lessons: [lesson], recoveryDays: [{ date: "2026-09-26", followsWeekday: 1 }] });
+    const result = planAcademicLessons({
+      periods: [period],
+      shifts: [shift],
+      lessons: [lesson],
+      recoveryDays: [{ date: "2026-09-26", followsWeekday: 1 }],
+    });
     expect(result.issues).toEqual([]);
     expect(result.occurrences.map((item) => item.date)).toEqual(["2026-09-21", "2026-09-26"]);
   });
   it("rejeita reposições duplicadas, feriados e datas fora do período", () => {
     const base = { periods: [period], shifts: [shift], lessons: [lesson] };
-    expect(() => planAcademicLessons({ ...base, recoveryDays: [
-      { date: "2026-09-26", followsWeekday: 1 },
-      { date: "2026-09-26", followsWeekday: 2 },
-    ] })).toThrow();
-    expect(() => planAcademicLessons({ ...base, holidays: ["2026-09-26"],
-      recoveryDays: [{ date: "2026-09-26", followsWeekday: 1 }] })).toThrow();
-    expect(() => planAcademicLessons({ ...base,
-      recoveryDays: [{ date: "2026-10-03", followsWeekday: 1 }] })).toThrow();
+    expect(() =>
+      planAcademicLessons({
+        ...base,
+        recoveryDays: [
+          { date: "2026-09-26", followsWeekday: 1 },
+          { date: "2026-09-26", followsWeekday: 2 },
+        ],
+      }),
+    ).toThrow();
+    expect(() =>
+      planAcademicLessons({
+        ...base,
+        holidays: ["2026-09-26"],
+        recoveryDays: [{ date: "2026-09-26", followsWeekday: 1 }],
+      }),
+    ).toThrow();
+    expect(() =>
+      planAcademicLessons({ ...base, recoveryDays: [{ date: "2026-10-03", followsWeekday: 1 }] }),
+    ).toThrow();
   });
   it("detecta conflito real por docente, turma ou sala na mesma data", () => {
-    const result = planAcademicLessons({ periods: [period], shifts: [shift],
-      lessons: [lesson, { ...lesson, id: "lesson-2", classGroupId: "class-2", roomId: "room-2" }] });
+    const result = planAcademicLessons({
+      periods: [period],
+      shifts: [shift],
+      lessons: [lesson, { ...lesson, id: "lesson-2", classGroupId: "class-2", roomId: "room-2" }],
+    });
     expect(result.issues.some((issue) => issue.code === "resource_collision")).toBe(true);
     expect(result.occurrences).toEqual([]);
   });
   it("não cria conflitos entre aulas consecutivas", () => {
-    const result = planAcademicLessons({ periods: [period], shifts: [shift],
-      lessons: [lesson, { ...lesson, id: "lesson-2", start: "09:00", end: "10:00" }] });
+    const result = planAcademicLessons({
+      periods: [period],
+      shifts: [shift],
+      lessons: [lesson, { ...lesson, id: "lesson-2", start: "09:00", end: "10:00" }],
+    });
     expect(result.issues).toEqual([]);
     expect(result.occurrences).toHaveLength(2);
   });

@@ -437,7 +437,10 @@ function ComunicacoesPage() {
           data: { text },
         });
         if (dispatch.mode === "sent") {
-          dispatchNote = [dispatchNote, `SMS via Twilio: ${dispatch.recipientCount} destinatário(s).`]
+          dispatchNote = [
+            dispatchNote,
+            `SMS via Twilio: ${dispatch.recipientCount} destinatário(s).`,
+          ]
             .filter(Boolean)
             .join(" ");
         } else {
@@ -1028,7 +1031,9 @@ function ComunicacoesPage() {
                             {resendOn
                               ? "Canal E-mail: envio HTTP Resend (ou cópia se faltar API key). "
                               : ""}
-                            {whatsappNotices ? "Canal WhatsApp: envio via WhatsApp Cloud API. " : ""}
+                            {whatsappNotices
+                              ? "Canal WhatsApp: envio via WhatsApp Cloud API. "
+                              : ""}
                             Canal SMS: envio via Twilio (ou cópia se não estiver configurado).
                           </p>
                         ) : null}
