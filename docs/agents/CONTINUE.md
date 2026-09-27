@@ -61,6 +61,17 @@ leitura. Leituras "abertas a membros" que ficam: comunicados, períodos,
 departamentos, cargos, políticas de assiduidade, reuniões de aula e
 formulários de matrícula (sem dados pessoais).
 
+## Funcionalidades que fingiam resultados (2026-09-28)
+
+Removidas: `integrations/google/server-workspace.ts` (6 funções Google com
+"sucesso" inventado), `pauta-ocr-scanner.ts` + `PautaOcrScannerModal.tsx`
+(o "OCR" ignorava a fotografia e inventava notas pela posição do aluno, com
+96% de confiança — não estava ligado a nenhum ecrã) e
+`dropout-risk-predictor.ts` + `DropoutRiskReportModal.tsx` (abria sempre sem
+alunos e dizia "nenhum aluno em risco"; o menu em /pedagogica abre agora
+/pedagogica/risco, a análise real). Caixas de correio: simulado só fora de
+produção; Zoho diz que não está implementado.
+
 ## Auditoria financeira (2026-09-27)
 
 Feito: SAF-T honesto (certificado "0", Hash/HashControl "0", sem nome/morada

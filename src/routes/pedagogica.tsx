@@ -73,7 +73,6 @@ import { cn } from "@/lib/utils";
 import { exportCsv } from "@/lib/export-csv";
 import { exportOfficialPautaPdf, exportPdfTable } from "@/lib/export-pdf-loader";
 import { usePersistedListFilters } from "@/lib/list-filters";
-import { DropoutRiskReportModal } from "@/features/pedagogica/components/DropoutRiskReportModal";
 import { PautasWorkspaceModule } from "@/features/pedagogica/components/pautas/PautasWorkspaceModule";
 import { AttendanceWorkspaceModule } from "@/features/pedagogica/components/AttendanceWorkspaceModule";
 import { TurmasWorkspaceTab } from "@/features/pedagogica/components/TurmasWorkspaceTab";
@@ -626,8 +625,6 @@ function PedagogicaPage() {
     }
   };
 
-  const [dropoutModalOpen, setDropoutModalOpen] = useState(false);
-
   return (
     <AppShell>
       <div className="space-y-6">
@@ -667,7 +664,10 @@ function PedagogicaPage() {
                     <Sparkles className="size-3.5 text-primary" /> Lançar notas (grelha viva)
                   </DropdownMenuItem>
                   <DropdownMenuItem
-                    onClick={() => setDropoutModalOpen(true)}
+                    // A análise real (regras do modelo de avaliação, faltas da
+                    // chamada) está em /pedagogica/risco; o relatório antigo
+                    // abria sempre vazio e dizia "nenhum aluno em risco".
+                    onClick={() => void navigate({ to: "/pedagogica/risco" })}
                     className="gap-2 text-xs text-destructive cursor-pointer"
                   >
                     <ShieldAlert className="size-3.5 text-destructive" /> Relatório Risco Abandono
@@ -1267,8 +1267,6 @@ function PedagogicaPage() {
         teacherIds={teachers.map((teacher) => teacher.id)}
         onRefresh={refreshAcademic}
       />
-
-      <DropoutRiskReportModal open={dropoutModalOpen} onOpenChange={setDropoutModalOpen} />
     </AppShell>
   );
 }
