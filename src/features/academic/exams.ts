@@ -34,7 +34,7 @@ import {
   type RegistrationStatus,
   type SubjectFinal,
 } from "./exam-engine";
-import { insertInAppNotifications } from "./lesson-delivery";
+import { notifyAfterAction } from "./lesson-delivery";
 import {
   OFFICIAL_SHEET_STATUSES,
   activeYearId,
@@ -513,8 +513,7 @@ async function notifyRegistered(
       rows.push({ userId: r.userId, title, body: r.body, eventType: "exam.registered" });
     }
   }
-  await insertInAppNotifications(db, schoolId, rows);
-  return rows.length;
+  return notifyAfterAction(db, schoolId, rows, "exam.registered");
 }
 
 const scoresInput = z.object({

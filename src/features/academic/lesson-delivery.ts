@@ -267,3 +267,22 @@ export async function sendLessonSms(input: { to: string; title: string; body: st
     };
   }
 }
+
+/**
+ * Avisos depois de uma acção já gravada (inscrição, publicação, decisão,
+ * tarefa): uma falha no aviso não pode parecer uma falha da acção — senão a
+ * pessoa repete-a e ninguém chega a ser avisado. Regista e devolve 0.
+ */
+export async function notifyAfterAction(
+  db: Db,
+  schoolId: string,
+  rows: Parameters<typeof insertInAppNotifications>[2],
+  context: string,
+): Promise<number> {
+  try {
+    return await insertInAppNotifications(db, schoolId, rows);
+  } catch (error) {
+    console.warn(`[${context}] avisos não enviados:`, error);
+    return 0;
+  }
+}

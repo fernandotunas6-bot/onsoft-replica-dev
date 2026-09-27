@@ -435,6 +435,7 @@ export const transitionGradeSheet = createServerFn({ method: "POST" })
       const { data: sheet } = await db
         .from("grade_sheets")
         .select("class_group_id, title")
+        .eq("school_id", membership.schoolId)
         .eq("id", data.sheetId)
         .maybeSingle();
       if (sheet?.class_group_id) {

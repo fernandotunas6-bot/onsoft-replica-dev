@@ -119,6 +119,21 @@ export const saveRiskAnalysis = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => saveSchema.parse(input))
   .handler(async ({ data, context }) => {
     const { schoolId, db } = await ctx(context.userId, "write");
+    // Só matrículas desta escola (e da turma indicada, quando há turma): o ecrã
+    // não decide a que alunos se abre um caso.
+    let enrollmentQuery = db
+      .from("enrollments")
+      .select("id")
+      .eq("school_id", schoolId)
+      .in(
+        "id",
+        data.students.map((s) => s.enrollment_id),
+      );
+    if (data.classGroupId)
+      enrollmentQuery = enrollmentQuery.eq("class_group_id", data.classGroupId);
+    const { data: validRows } = await enrollmentQuery;
+    const valid = new Set((validRows ?? []).map((e: { id: string }) => String(e.id)));
+    data.students = data.students.filter((s) => valid.has(s.enrollment_id));
     const enrollmentIds = data.students.map((s) => s.enrollment_id);
     if (!enrollmentIds.length) return { saved: 0 };
     const { data: existing } = await db

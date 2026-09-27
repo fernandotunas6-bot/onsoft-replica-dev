@@ -113,6 +113,7 @@ export const requestGradeChange = createServerFn({ method: "POST" })
         pending_requested_at: new Date().toISOString(),
         updated_by: context.userId,
       })
+      .eq("school_id", schoolId)
       .eq("id", score.id);
     if (error) throw publicDatabaseError(error, "Não foi possível registar o pedido.");
     return { ok: true };
@@ -337,6 +338,7 @@ export const decideGradeChange = createServerFn({ method: "POST" })
         pending_requested_at: null,
         updated_by: context.userId,
       })
+      .eq("school_id", schoolId)
       .eq("id", score.id);
     if (error) throw publicDatabaseError(error, "Não foi possível concluir a decisão.");
 
