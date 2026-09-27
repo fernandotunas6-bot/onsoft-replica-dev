@@ -1,4 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
+import { normalizeStoredPhone } from "@/lib/angola-phone";
 import { sgaClient } from "@/integrations/supabase/sga";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { publicDatabaseError } from "@/integrations/supabase/server-error";
@@ -768,7 +769,9 @@ export const enrollNewStudent = createServerFn({ method: "POST" })
       preferred_name:
         personInput.preferred_name || personInput.first_name || fullName.split(/\s+/)[0],
       email: personInput.email || null,
-      phone: personInput.phone_primary || null,
+      phone: personInput.phone_primary
+        ? (normalizeStoredPhone(personInput.phone_primary) ?? personInput.phone_primary)
+        : null,
       national_id: personInput.nif || null,
       date_of_birth: personInput.birth_date || null,
       sex:
