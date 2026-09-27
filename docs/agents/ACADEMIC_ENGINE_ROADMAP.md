@@ -110,5 +110,8 @@ A produção tem o fluxo premium quase todo — falta ligá-lo aos ecrãs:
    por média, disciplinas-chave e faltas; o resultado final corrige isso.
 6. **Competências** — tabela de competências ligada a `curriculum_subjects` e
    às avaliações; percentagem de competências dominadas por aluno.
-7. **Analytics** — comparativo trimestral, turma/disciplina, alunos em risco
+7. **Analytics** — em curso. Feito: aprovação pela nota do modelo em todos os
+   relatórios; sinais automáticos de risco em `/pedagogica/risco` (sem IA, pelas
+   regras do modelo: não transitaria, passou a negativa, faltas acima/perto do
+   limite — `early-warning.ts`). Falta: — comparativo trimestral, turma/disciplina, alunos em risco
    (reaproveitar `student_risk_cases`).

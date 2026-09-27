@@ -112,6 +112,11 @@ const PRIVILEGIO_POR_DESENHO = new Set([
   // académico (só do servidor desde 20260927090000) e em enrollments.
   "src/features/academic/final-results.ts",
 
+  // Sinais automáticos de risco: faltas da chamada (siga_attendance_*) e limite
+  // do modelo, lidos pelo servidor para o pessoal da escola; devolve só
+  // percentagens por matrícula da turma pedida.
+  "src/features/academic/early-warning-server.ts",
+
   // Agendador dos lembretes da véspera: sem sessão (quem chama é o cron),
   // autenticado por SIGA_CRON_SECRET em tempo constante.
   "src/routes/api/cron/lesson-reminders.tsx",
