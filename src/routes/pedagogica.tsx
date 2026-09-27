@@ -4,7 +4,7 @@ import { AcademicStructureTab } from "@/features/academic/AcademicStructureTab";
 import { AssessmentModelsTab } from "@/features/academic/AssessmentModelsTab";
 import { ExamsTab } from "@/features/academic/ExamsTab";
 import { CompetenciesTab } from "@/features/academic/CompetenciesTab";
-import { usePassingValue } from "@/features/academic/use-passing-value";
+import { useActiveAssessmentRule } from "@/features/academic/use-passing-value";
 import { useEffect, useMemo, useRef, useState, lazy, Suspense } from "react";
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -190,7 +190,9 @@ function PedagogicaPage() {
   const teamsClasses = installed.hasCapability("teams.classes");
   const onedriveOn = installed.hasCapability("m365.onedrive");
   const { activeYearLabel, selectedYearId, school } = useSchoolSettings();
-  const passing = usePassingValue();
+  const { passing, hasModel } = useActiveAssessmentRule();
+  // Publicar o modelo é só do Administrador (com 2FA), como em Modelos de avaliação.
+  const canPublishModel = account.role === "Administrador";
   const {
     tab: tabFromSearch,
     turma: turmaFromSearch,
@@ -804,6 +806,21 @@ function PedagogicaPage() {
             },
           ]}
         />
+
+        {canReadAcademic && !hasModel ? (
+          <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-warning/40 bg-warning/10 px-4 py-3 text-sm">
+            <p>
+              A escola ainda não tem modelo de avaliação publicado. Sem ele não se gravam as notas
+              da pauta nem se geram pautas.
+              {canPublishModel ? "" : " Peça ao Administrador que o publique."}
+            </p>
+            {canPublishModel ? (
+              <Button size="sm" variant="outline" onClick={() => onTabChange("modelos")}>
+                Publicar modelo
+              </Button>
+            ) : null}
+          </div>
+        ) : null}
 
         <Tabs value={tab} onValueChange={onTabChange}>
           {/* Uma só linha que desliza: com 12 separadores, quebrar em várias

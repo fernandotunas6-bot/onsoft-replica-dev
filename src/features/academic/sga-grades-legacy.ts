@@ -155,7 +155,7 @@ async function ensureGradebook(
     throw new Error(
       ruleTableMissing
         ? "As regras de avaliação ainda não existem nesta base de dados. É preciso aplicar a migração 20260924005124_assessment_rule_sets.sql antes de abrir o primeiro diário de notas."
-        : "Não há regras de avaliação activas nesta escola. Configure-as no SGA antes de lançar notas.",
+        : "A escola ainda não tem modelo de avaliação publicado. O Administrador publica-o em Pedagógica → Modelos de avaliação; só depois se gravam as notas da pauta.",
     );
   }
 
