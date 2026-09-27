@@ -36,7 +36,6 @@ import {
 import {
   generateMulticaixaReference,
   resolveConfiguredSchoolEmisEntity,
-  resolveSchoolEmisEntity,
   type MobileWalletPayment,
   isGatewayPaymentChannel,
   normalizePaymentReference,
@@ -1337,25 +1336,55 @@ export const createPaymentPlan = createServerFn({ method: "POST" })
     const db = await loadSgaAdminClient();
 
     let reference = data.reference?.trim() || null;
-    let invoiceAmount: number | null = null;
+    let amountDue: number | null = null;
     if (data.invoiceId) {
-      const { data: invoiceRow } = await db
+      const { data: invoiceRow, error: invoiceError } = await db
         .from("finance_invoices")
         // `total_amount` não existe em `finance_invoices` (as colunas são
-        // `amount` e `discount_amount`). Com ela no select, o PostgREST recusava
-        // a consulta inteira: `invoiceRow` vinha null e o valor da referência
-        // ficava por resolver — a defesa do `||` abaixo nunca chegava a correr.
-        .select("amount, discount_amount")
+        // `amount` e `discount_amount`).
+        .select("id, amount, discount_amount, status")
         .eq("id", data.invoiceId)
         .eq("school_id", membership.schoolId)
         .maybeSingle();
-      if (invoiceRow) {
-        invoiceAmount = Number(invoiceRow.amount ?? 0) - Number(invoiceRow.discount_amount ?? 0);
+      if (invoiceError)
+        throw publicDatabaseError(invoiceError, "Não foi possível validar a fatura.");
+      if (!invoiceRow) throw new Error("Fatura não encontrada nesta escola.");
+      if (invoiceRow.status === "paid" || invoiceRow.status === "cancelled") {
+        throw new Error("Esta fatura já não tem valor por pagar.");
       }
+      // A referência é do que falta pagar, não do total da fatura.
+      const { data: receipts } = await db
+        .from("finance_receipts")
+        .select("amount")
+        .eq("school_id", membership.schoolId)
+        .eq("invoice_id", data.invoiceId)
+        .eq("status", "issued");
+      const paid = (receipts ?? []).reduce(
+        (sum: number, row: { amount: unknown }) => sum + Number(row.amount || 0),
+        0,
+      );
+      amountDue = Math.max(invoiceNetTotal(invoiceRow) - paid, 0);
     }
-    if (!reference && data.invoiceId && isGatewayPaymentChannel(data.channel) && invoiceAmount) {
-      const emisEntity = await resolveSchoolEmisEntity(db, membership.schoolId);
-      const generated = generateMulticaixaReference(emisEntity, data.invoiceId, invoiceAmount);
+    if (data.studentId) {
+      const { data: studentRow, error: studentError } = await db
+        .from("students")
+        .select("id")
+        .eq("id", data.studentId)
+        .eq("school_id", membership.schoolId)
+        .maybeSingle();
+      if (studentError)
+        throw publicDatabaseError(studentError, "Não foi possível validar o aluno.");
+      if (!studentRow) throw new Error("Aluno não encontrado nesta escola.");
+    }
+    if (!reference && data.invoiceId && isGatewayPaymentChannel(data.channel) && amountDue) {
+      // Nunca uma entidade de exemplo: sem a entidade EMIS da escola, não há referência.
+      const emisEntity = await resolveConfiguredSchoolEmisEntity(db, membership.schoolId);
+      if (!emisEntity) {
+        throw new Error(
+          "A entidade EMIS da escola não está configurada. Defina-a em Definições → Integrações → Multicaixa, ou indique a referência.",
+        );
+      }
+      const generated = generateMulticaixaReference(emisEntity, data.invoiceId, amountDue);
       reference = normalizePaymentReference(generated.reference);
     }
 

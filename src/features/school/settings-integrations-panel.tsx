@@ -108,8 +108,8 @@ function GatewayWebhookHint({
       </p>
       {provider === "multicaixa_express" ? (
         <p className="text-[11px] text-muted-foreground">
-          Entidade EMIS: preencha o campo «Merchant EMIS / Multicaixa» acima (4–6 dígitos). Sem
-          valor, usa-se <code className="text-[10px]">99824</code> (demo).
+          Entidade EMIS: preencha o campo «Merchant EMIS / Multicaixa» acima (4–6 dígitos). Sem ela,
+          o SIGA não gera referências Multicaixa.
         </p>
       ) : null}
       <div className="flex flex-wrap items-center gap-2">

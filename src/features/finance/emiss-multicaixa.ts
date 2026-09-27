@@ -6,17 +6,6 @@ import type { SupabaseClient } from "@supabase/supabase-js";
  * (ou simulador) notifica o SIGA com a API key da escola.
  */
 
-export const DEFAULT_EMIS_ENTITY = "99824";
-
-/** Lê entidade EMIS do config de integração (merchantId ou emisEntity). */
-export function emisEntityFromIntegrationConfig(
-  config: Record<string, unknown> | null | undefined,
-) {
-  const raw = String(config?.emisEntity ?? config?.merchantId ?? "").trim();
-  if (/^\d{4,6}$/.test(raw)) return raw;
-  return DEFAULT_EMIS_ENTITY;
-}
-
 /** Entidade configurada, ou `null` — nunca a entidade de exemplo. */
 export function configuredEmisEntity(config: Record<string, unknown> | null | undefined) {
   const raw = String(config?.emisEntity ?? config?.merchantId ?? "").trim();
@@ -37,18 +26,6 @@ export async function resolveConfiguredSchoolEmisEntity(db: SupabaseClient, scho
     .in("status", ["configured", "connected"])
     .maybeSingle();
   return configuredEmisEntity((data?.config ?? {}) as Record<string, unknown>);
-}
-
-/** Entidade EMIS configurada em Integrações → Multicaixa (merchantId / emisEntity). */
-export async function resolveSchoolEmisEntity(db: SupabaseClient, schoolId: string) {
-  const { data } = await db
-    .from("school_integrations")
-    .select("config")
-    .eq("school_id", schoolId)
-    .eq("provider", "multicaixa_express")
-    .in("status", ["configured", "connected"])
-    .maybeSingle();
-  return emisEntityFromIntegrationConfig((data?.config ?? {}) as Record<string, unknown>);
 }
 
 export interface MulticaixaReference {
@@ -99,7 +76,8 @@ function emisCheckDigit(raw8: string) {
  * Gera referência Multicaixa de 9 dígitos estável para a mesma fatura.
  */
 export function generateMulticaixaReference(
-  entity: string = DEFAULT_EMIS_ENTITY,
+  /** Entidade configurada pela escola — nunca uma entidade de exemplo. */
+  entity: string,
   invoiceId: string,
   amount: number,
   expiryDays: number = 30,

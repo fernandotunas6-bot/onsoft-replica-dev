@@ -1,4 +1,4 @@
--- SIGA Plus — SQL a aplicar no Supabase (projecto Sga), pacote de 2026-09-27 (2.º)
+-- SIGA Plus — SQL a aplicar no Supabase (projecto Sga), pacote de 2026-09-27 (2.º) — APLICADO pelo dono a 2026-09-27.
 -- Colar TUDO no SQL Editor → Run. Pode correr mais do que uma vez sem problema.
 -- 1 migração: registar pagamentos contra o total a pagar da fatura (valor
 -- menos desconto). Só substitui a função private.register_payment; não mexe

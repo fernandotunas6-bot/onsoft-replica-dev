@@ -23,7 +23,7 @@ leituras presas à escola, ecrã sem "Conformidade AGT"); estorno de recibo com
 (`invoice-settlement.ts`); plano de propinas por omissão sem preços de exemplo
 (0 = por definir) e erro do servidor visível no painel.
 
-**Desconto nos pagamentos — escrito, por aplicar:** `private.register_payment`
+**Desconto nos pagamentos — aplicado pelo dono a 2026-09-27 (SQL Editor):** `private.register_payment`
 comparava o pago com `amount` e ignorava `discount_amount`. Migração
 `20260927190000_register_payment_net_of_discount.sql`, no pacote
 `docs/agents/SIGA_aplicar_pagamentos_desconto.sql` (com a confirmação no fim).

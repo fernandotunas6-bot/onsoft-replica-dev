@@ -1,21 +1,21 @@
 import { describe, expect, it } from "vitest";
 import {
+  configuredEmisEntity,
   generateMulticaixaReference,
-  emisEntityFromIntegrationConfig,
   normalizePaymentReference,
-  DEFAULT_EMIS_ENTITY,
 } from "@/features/finance/emiss-multicaixa";
 import { referencesMatch } from "@/features/finance/gateway-webhook-schemas";
 import { referenceDigitsForInvoice } from "../../scripts/siga/gateway-reference.mjs";
 
-describe("emisEntityFromIntegrationConfig", () => {
+describe("configuredEmisEntity", () => {
   it("usa merchantId numérico como entidade EMIS", () => {
-    expect(emisEntityFromIntegrationConfig({ merchantId: "12345" })).toBe("12345");
+    expect(configuredEmisEntity({ merchantId: "12345" })).toBe("12345");
+    expect(configuredEmisEntity({ emisEntity: "00123" })).toBe("00123");
   });
 
-  it("cai no default quando merchantId não é numérico", () => {
-    expect(emisEntityFromIntegrationConfig({ merchantId: "SIGA-KEY" })).toBe(DEFAULT_EMIS_ENTITY);
-    expect(emisEntityFromIntegrationConfig(null)).toBe(DEFAULT_EMIS_ENTITY);
+  it("sem entidade válida não há entidade — nunca uma de exemplo", () => {
+    expect(configuredEmisEntity({ merchantId: "SIGA-KEY" })).toBeNull();
+    expect(configuredEmisEntity(null)).toBeNull();
   });
 });
 
@@ -61,5 +61,16 @@ describe("configuredEmisEntity", () => {
     expect(configuredEmisEntity({ merchantId: "SIGA-KEY" })).toBeNull();
     expect(configuredEmisEntity({})).toBeNull();
     expect(configuredEmisEntity(null)).toBeNull();
+  });
+});
+
+describe("sem entidade EMIS de exemplo", () => {
+  it("nenhum código de servidor gera referências com uma entidade por omissão", async () => {
+    const mod = await import("@/features/finance/emiss-multicaixa");
+    expect("DEFAULT_EMIS_ENTITY" in mod).toBe(false);
+    expect("resolveSchoolEmisEntity" in mod).toBe(false);
+    const { readFileSync } = await import("node:fs");
+    const server = readFileSync("src/features/finance/server.ts", "utf8");
+    expect(server).not.toMatch(/99824/);
   });
 });
