@@ -2,6 +2,7 @@ import { useMemo, lazy, Suspense, useEffect } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { usePassingValue } from "@/features/academic/use-passing-value";
+import { EvolutionPanel } from "@/features/academic/EvolutionPanel";
 import { Award, Download, FileBadge, FileDown } from "lucide-react";
 import { toast } from "sonner";
 import { whatsappHref } from "@/features/integrations/actions";
@@ -120,6 +121,19 @@ function RelatoriosAcademicos() {
       return matchQ && matchTrimestre && matchTurma && matchResultado;
     });
   }, [filters.q, filters.trimestre, filters.turma, filters.resultado, termGradesAll, passing]);
+
+  // A evolução precisa de todos os períodos: só respeita a pesquisa e a turma.
+  const evolutionGrades = useMemo(() => {
+    const q = filters.q.trim().toLowerCase();
+    return termGradesAll.filter(
+      (nota) =>
+        (!q ||
+          nota.student_name.toLowerCase().includes(q) ||
+          nota.class_group_name.toLowerCase().includes(q) ||
+          nota.subject_name.toLowerCase().includes(q)) &&
+        (filters.turma === "todas" || nota.class_group_name === filters.turma),
+    );
+  }, [filters.q, filters.turma, termGradesAll]);
 
   const mediaGeral =
     termGrades.length > 0
@@ -493,6 +507,8 @@ function RelatoriosAcademicos() {
                     hasTermGrades={termGrades.length > 0}
                   />
                 </Suspense>
+
+                <EvolutionPanel grades={evolutionGrades} passing={passing} />
 
                 <Panel title="Desempenho por turma" description="Ordenado pela média da turma">
                   {turmasComDados.length === 0 ? (

@@ -123,3 +123,8 @@ A produção tem o fluxo premium quase todo — falta ligá-lo aos ecrãs:
    já existia nos relatórios académicos. "Guardar no acompanhamento" grava os
    sinais em `student_risk_cases` (matrículas e nomes validados no servidor;
    casos existentes mantêm as intervenções) com registo no histórico do caso.
+   Painel "Evolução entre períodos" em `/relatorios/academicos`
+   (`academic-analytics.ts`, `EvolutionPanel.tsx`): média por período, variação
+   entre os dois últimos com notas (a subir / a descer a partir de 0,5 valores)
+   e negativas no último, por turma ou por disciplina; as que mais desceram
+   primeiro. Segue os filtros de pesquisa e turma da página.
