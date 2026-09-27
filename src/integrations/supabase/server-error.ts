@@ -14,6 +14,47 @@ const publicMessages: Record<string, string> = {
   PGRST116: "O registo solicitado não foi encontrado.",
 };
 
+/**
+ * Regras da base com mensagem própria: dizem o que corrigir, sem revelar a
+ * estrutura. A chave é o nome da restrição, que vem na mensagem do Postgres.
+ */
+const constraintMessages: Record<string, string> = {
+  people_school_email_uidx: "Já existe uma pessoa com este e-mail nesta escola.",
+  people_school_national_id_uidx: "Já existe uma pessoa com este BI nesta escola.",
+  people_one_active_login_per_school: "Esta conta já está ligada a outra pessoa nesta escola.",
+  people_phone_check:
+    "Telefone inválido. Use só dígitos, espaços ou hífen (ex.: +244 923 000 000).",
+  people_email_check: "E-mail inválido.",
+  people_full_name_check: "O nome deve ter entre 2 e 200 caracteres.",
+  people_date_of_birth_check: "A data de nascimento não pode ser no futuro.",
+  people_national_id_check: "O BI deve ter entre 3 e 40 caracteres.",
+  students_school_id_person_id_key: "Esta pessoa já está registada como aluno.",
+  students_school_id_student_number_key: "Já existe um aluno com este número.",
+  teachers_school_id_person_id_key: "Esta pessoa já está registada como professor.",
+  teachers_one_login_per_school: "Esta conta já está ligada a outro professor nesta escola.",
+  enrollments_one_current_per_year_uidx: "O aluno já tem uma matrícula activa neste ano lectivo.",
+  class_groups_school_id_academic_year_id_code_key:
+    "Já existe uma turma com este código neste ano.",
+  class_groups_code_check:
+    "O código da turma usa só maiúsculas, dígitos, hífen ou sublinhado (2 a 30).",
+  class_groups_capacity_check: "A lotação da turma deve ser entre 1 e 500.",
+  subjects_school_id_code_key: "Já existe uma disciplina com este código.",
+  subjects_code_check:
+    "O código da disciplina usa só maiúsculas, dígitos, hífen ou sublinhado (2 a 20).",
+  academic_years_school_id_name_key: "Já existe um ano lectivo com este nome.",
+  academic_years_check: "O fim do ano lectivo tem de ser depois do início.",
+  terms_check: "O fim do período tem de ser depois do início.",
+  terms_school_id_academic_year_id_sequence_key: "Este período já existe neste ano lectivo.",
+  rooms_school_code_key: "Já existe uma sala com este código.",
+  student_guardians_one_primary_uidx: "O aluno já tem um encarregado principal.",
+  student_guardians_check1: "O aluno não pode ser o seu próprio encarregado.",
+};
+
+function constraintMessage(message: string | undefined): string | null {
+  const name = /constraint "([a-z0-9_]+)"/i.exec(message ?? "")?.[1];
+  return (name && constraintMessages[name]) || null;
+}
+
 /** Prevent database structure and raw SQL details from reaching browser clients. */
 export function publicDatabaseError(error: DatabaseError, fallback: string): Error {
   // A mensagem devolvida ao browser é deliberadamente vaga; sem este registo
@@ -26,6 +67,10 @@ export function publicDatabaseError(error: DatabaseError, fallback: string): Err
     /schema cache|does not exist|relation .* does not exist/i.test(String(error.message ?? ""));
   if (missingTable) {
     return new Error(publicMessages["42P01"] ?? fallback);
+  }
+  if (error.code === "23505" || error.code === "23514") {
+    const specific = constraintMessage(error.message);
+    if (specific) return new Error(specific);
   }
   return new Error((error.code && publicMessages[error.code]) || fallback);
 }

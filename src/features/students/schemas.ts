@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { personCoreFieldsSchema } from "@/features/people/schemas";
+import { normalizeStoredPhone } from "@/lib/angola-phone";
 
 export const studentStatusOptions = [
   "active",
@@ -117,12 +118,30 @@ export const changeStudentStatusInputSchema = z.object({
 });
 export type ChangeStudentStatusInput = z.infer<typeof changeStudentStatusInputSchema>;
 
+/** Telefone opcional, gravado já normalizado (ver `normalizeStoredPhone`). */
+const optionalPhone = z
+  .string()
+  .trim()
+  .optional()
+  .transform((value, ctx) => {
+    if (!value) return undefined;
+    const phone = normalizeStoredPhone(value);
+    if (!phone) {
+      ctx.addIssue({
+        code: "custom",
+        message: "Telefone inválido. Use +244 9XX XXX XXX ou o indicativo do país.",
+      });
+      return z.NEVER;
+    }
+    return phone;
+  });
+
 export const updateStudentProfileInputSchema = z.object({
   personId: z.string().uuid(),
   expectedVersion: z.number().int().positive(),
   fullName: z.string().trim().min(2).max(160),
   email: z.union([z.literal(""), z.string().trim().email()]).optional(),
-  phone: optionalText,
+  phone: optionalPhone,
   province: optionalText,
   municipality: optionalText,
   commune: optionalText,
