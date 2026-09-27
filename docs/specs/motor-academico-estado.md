@@ -38,7 +38,7 @@ Legenda: ✅ existe · 🟡 parcial · ❌ falta
 | 18 | Recuperação | 🟡 | Dentro de Exames (`siga_exam_registrations`) | A especificação pede módulo próprio; a regra de recurso no ecrã está fixa no código (ver 13) |
 | 19 | Exames | ✅ | `siga_exam_sessions`, `siga_exam_registrations` (época, sala, júri, nota) | Exames externos/nacionais e centros não estão modelados |
 | 20 | Resultado final | ✅ | `final-results.ts` → `student_academic_history` | — |
-| 21 | Histórico académico | 🟡 | `student_academic_history` | Guarda o ano e a classe como texto, sem ligação à pauta, notas e frequência. Não é imutável |
+| 21 | Histórico académico | ✅ | `student_academic_history` | Desde 2026-09-29 (migração `20260929170000`, aplicada) cada registo vindo da pauta guarda a matrícula, a pauta anual homologada, a nota final por disciplina (com exames) e as faltas; rectificar deixa o valor anterior na auditoria; não se apaga directamente. Os registos importados de outras escolas ficam sem ligação |
 | 22 | Auditoria | 🟡 | `audit_logs` (quem, quando, o quê, metadados). Definições → Segurança → Auditoria tem, desde 2026-09-29, a vista "Académica" (notas, pautas, matrículas, modelo, exames), nome de quem agiu, motivo e campos alterados, sem o ruído automático das permissões | "Aprovado por" não é campo próprio; os registos automáticos não guardam o valor anterior (esse está em `grade_score_history`) |
 
 ## Prioridades

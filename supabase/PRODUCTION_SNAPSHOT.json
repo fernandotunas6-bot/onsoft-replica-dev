@@ -2,10 +2,10 @@
   "capturadoEm": "2026-09-27T14:25:59.502399Z",
   "resumo": {
     "com_rls": 179,
-    "funcoes_private": 97,
+    "funcoes_private": 98,
     "politicas": 285,
     "tabelas": 179,
-    "triggers": 187
+    "triggers": 190
   },
   "tabelas": [
     {
@@ -3621,7 +3621,12 @@
         "notes",
         "created_by",
         "created_at",
-        "updated_at"
+        "updated_at",
+        "enrollment_id",
+        "grade_sheet_id",
+        "subject_results",
+        "absence_percentage",
+        "updated_by"
       ],
       "politicas": 1,
       "rls": true,
@@ -6899,6 +6904,12 @@
       "security_definer": false
     },
     {
+      "args": "",
+      "funcao": "student_academic_history_no_delete",
+      "schema": "private",
+      "security_definer": false
+    },
+    {
       "args": "target_school_id uuid, target_session_id uuid, target_submission_key text, target_records jsonb",
       "funcao": "submit_attendance",
       "schema": "private",
@@ -8817,6 +8828,24 @@
     {
       "funcao": "audit_row_change",
       "funcao_schema": "private",
+      "tabela": "student_academic_history",
+      "trigger": "audit_student_academic_history"
+    },
+    {
+      "funcao": "student_academic_history_no_delete",
+      "funcao_schema": "private",
+      "tabela": "student_academic_history",
+      "trigger": "student_academic_history_no_delete"
+    },
+    {
+      "funcao": "siga_touch_updated_at",
+      "funcao_schema": "public",
+      "tabela": "student_academic_history",
+      "trigger": "trg_student_academic_history_touch"
+    },
+    {
+      "funcao": "audit_row_change",
+      "funcao_schema": "private",
       "tabela": "student_guardians",
       "trigger": "audit_student_guardians_change"
     },
@@ -10634,6 +10663,16 @@
       "chave": "student_academic_history_student_fkey",
       "de": "student_academic_history",
       "para": "students"
+    },
+    {
+      "chave": "student_academic_history_enrollment_id_fkey",
+      "de": "student_academic_history",
+      "para": "enrollments"
+    },
+    {
+      "chave": "student_academic_history_grade_sheet_id_fkey",
+      "de": "student_academic_history",
+      "para": "grade_sheets"
     },
     {
       "chave": "student_guardians_school_id_guardian_person_id_fkey",

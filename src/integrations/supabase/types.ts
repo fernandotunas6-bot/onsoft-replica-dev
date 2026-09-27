@@ -10062,48 +10062,77 @@ export type Database = {
       }
       student_academic_history: {
         Row: {
+          absence_percentage: number | null
           academic_year_label: string
           created_at: string
           created_by: string | null
+          enrollment_id: string | null
           final_average: number | null
           grade_level: string
+          grade_sheet_id: string | null
           id: string
           notes: string | null
           outcome: string | null
           previous_school: string | null
           school_id: string
           student_id: string
+          subject_results: Json
           updated_at: string
+          updated_by: string | null
         }
         Insert: {
+          absence_percentage?: number | null
           academic_year_label: string
           created_at?: string
           created_by?: string | null
+          enrollment_id?: string | null
           final_average?: number | null
           grade_level: string
+          grade_sheet_id?: string | null
           id?: string
           notes?: string | null
           outcome?: string | null
           previous_school?: string | null
           school_id: string
           student_id: string
+          subject_results?: Json
           updated_at?: string
+          updated_by?: string | null
         }
         Update: {
+          absence_percentage?: number | null
           academic_year_label?: string
           created_at?: string
           created_by?: string | null
+          enrollment_id?: string | null
           final_average?: number | null
           grade_level?: string
+          grade_sheet_id?: string | null
           id?: string
           notes?: string | null
           outcome?: string | null
           previous_school?: string | null
           school_id?: string
           student_id?: string
+          subject_results?: Json
           updated_at?: string
+          updated_by?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "student_academic_history_enrollment_id_fkey"
+            columns: ["enrollment_id"]
+            isOneToOne: false
+            referencedRelation: "enrollments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "student_academic_history_grade_sheet_id_fkey"
+            columns: ["grade_sheet_id"]
+            isOneToOne: false
+            referencedRelation: "grade_sheets"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "student_academic_history_school_id_fkey"
             columns: ["school_id"]
