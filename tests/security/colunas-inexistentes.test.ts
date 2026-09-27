@@ -295,6 +295,8 @@ const funcoesPublicas = new Set(
 const FUNCOES_ESPERA_MIGRACAO = new Set<string>([
   // `20260926200000_assessment_rule_publish_server.sql` (modelos de avaliação).
   "siga_publish_assessment_rule",
+  // `20260927170000_shared_rate_limit.sql` (limite de tentativas partilhado).
+  "siga_rate_limit_consume",
 ]);
 
 /**

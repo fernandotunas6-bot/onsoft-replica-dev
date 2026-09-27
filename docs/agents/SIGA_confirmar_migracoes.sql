@@ -51,6 +51,8 @@ from (values
      to_regprocedure('public.siga_publish_assessment_rule(uuid, uuid, text, numeric, numeric, numeric, numeric, text, boolean, boolean, uuid[], boolean, jsonb)') is not null),
   ('20260927150000_competencies',
      to_regclass('public.siga_competencies') is not null
-     and to_regclass('public.siga_assessment_item_competencies') is not null)
+     and to_regclass('public.siga_assessment_item_competencies') is not null),
+  ('20260927170000_shared_rate_limit',
+     to_regprocedure('public.siga_rate_limit_consume(text[], integer, integer)') is not null)
 ) as m(migracao, ok)
 order by migracao;

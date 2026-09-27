@@ -143,6 +143,10 @@ tocar em cada ecrã.
   Subir esse limite, ou todos os logins por B.I. partilham a mesma quota. O login por
   e-mail continua directo do browser.
 - O limite de taxa é em memória, por isolado (ver `src/lib/rate-limit.ts`).
+  **Login por B.I. resolvido (2026-09-27):** usa o contador partilhado
+  `siga_rate_limit_consume` (migração `20260927170000`, chaves em SHA-256), por IP e
+  também por conta (10 por 15 min). Sem a migração, cai no limite em memória. Os
+  outros pontos de entrada continuam só em memória; migrar com `consumeRateLimit`.
 
 ## Estado (2026-09-20)
 
