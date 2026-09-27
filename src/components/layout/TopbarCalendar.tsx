@@ -123,7 +123,7 @@ export function TopbarCalendar() {
             <div className="space-y-3">
               {lessons.length > 0 ? (
                 <div>
-                  <p className="px-2 pb-1 text-[10px] font-semibold text-muted-foreground">
+                  <p className="px-2 pb-1 text-[11px] font-semibold text-muted-foreground">
                     Aulas de hoje
                   </p>
                   <ul className="space-y-1">
@@ -209,7 +209,7 @@ export function TopbarCalendar() {
               ) : null}
               {items.length > 0 ? (
                 <div>
-                  <p className="px-2 pb-1 text-[10px] font-semibold text-muted-foreground">
+                  <p className="px-2 pb-1 text-[11px] font-semibold text-muted-foreground">
                     Períodos e feriados
                   </p>
                   <ul className="space-y-1">
@@ -228,7 +228,7 @@ export function TopbarCalendar() {
                             <span className="block truncate text-sm font-medium">{item.title}</span>
                             <span
                               className={cn(
-                                "mt-0.5 inline-block rounded-full px-1.5 py-px text-[10px] font-semibold",
+                                "mt-0.5 inline-block rounded-full px-1.5 py-px text-[11px] font-semibold",
                                 item.category === "holiday"
                                   ? "bg-destructive/12 text-destructive"
                                   : "bg-primary-soft text-primary-strong",

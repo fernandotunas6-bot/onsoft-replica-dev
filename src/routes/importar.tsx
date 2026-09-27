@@ -278,7 +278,7 @@ export function ImportarDadosPage() {
                         </div>
                         <Badge
                           variant="outline"
-                          className="text-[10px] capitalize shrink-0 font-normal"
+                          className="text-[11px] capitalize shrink-0 font-normal"
                         >
                           {spec.category === "pessoas"
                             ? "Identidade"

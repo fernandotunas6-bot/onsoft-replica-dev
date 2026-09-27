@@ -184,7 +184,7 @@ export function AppearanceColors() {
                   <Rows3 className="size-3.5" />
                   {preset.label}
                 </span>
-                <span className="text-[10px] leading-snug opacity-80">{preset.hint}</span>
+                <span className="text-[11px] leading-snug opacity-80">{preset.hint}</span>
               </button>
             );
           })}

@@ -180,7 +180,7 @@ export function AssessmentGrid({
                     <UserAvatar
                       {...(student.student_photo_url ? { url: student.student_photo_url } : {})}
                       initials={initialsFromName(student.student_name)}
-                      className="size-8 bg-primary-soft text-[10px] font-extrabold text-primary"
+                      className="size-8 bg-primary-soft text-[11px] font-extrabold text-primary"
                     />
                     <span className="font-semibold">{student.student_name}</span>
                   </div>

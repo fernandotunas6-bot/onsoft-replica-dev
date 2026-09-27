@@ -127,7 +127,7 @@ export function DropoutRiskReportModal({
 
                       <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs">
                         <div className="p-2 rounded-lg bg-secondary/30">
-                          <span className="text-[10px] text-muted-foreground block font-semibold">
+                          <span className="text-[11px] text-muted-foreground block font-semibold">
                             Assiduidade
                           </span>
                           <span className="font-bold font-mono text-destructive">
@@ -136,7 +136,7 @@ export function DropoutRiskReportModal({
                         </div>
 
                         <div className="p-2 rounded-lg bg-secondary/30">
-                          <span className="text-[10px] text-muted-foreground block font-semibold">
+                          <span className="text-[11px] text-muted-foreground block font-semibold">
                             Média Geral
                           </span>
                           <span className="font-bold font-mono text-destructive">
@@ -145,7 +145,7 @@ export function DropoutRiskReportModal({
                         </div>
 
                         <div className="p-2 rounded-lg bg-secondary/30">
-                          <span className="text-[10px] text-muted-foreground block font-semibold">
+                          <span className="text-[11px] text-muted-foreground block font-semibold">
                             Atraso Propina
                           </span>
                           <span className="font-bold font-mono text-destructive">

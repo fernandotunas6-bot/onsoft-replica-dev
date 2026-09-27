@@ -222,15 +222,15 @@ export function AlumniPrivacyPanel() {
           <div className="grid grid-cols-3 gap-2 text-center">
             <div className="rounded-xl bg-muted/50 p-3">
               <Mail className="mx-auto size-4 text-primary" />
-              <p className="mt-1 text-[10px] text-muted-foreground">E-mail</p>
+              <p className="mt-1 text-[11px] text-muted-foreground">E-mail</p>
             </div>
             <div className="rounded-xl bg-muted/50 p-3">
               <Smartphone className="mx-auto size-4 text-primary" />
-              <p className="mt-1 text-[10px] text-muted-foreground">SMS</p>
+              <p className="mt-1 text-[11px] text-muted-foreground">SMS</p>
             </div>
             <div className="rounded-xl bg-muted/50 p-3">
               <MessageCircle className="mx-auto size-4 text-primary" />
-              <p className="mt-1 text-[10px] text-muted-foreground">WhatsApp</p>
+              <p className="mt-1 text-[11px] text-muted-foreground">WhatsApp</p>
             </div>
           </div>
           <h3 className="mt-5 text-sm font-bold">Histórico recente</h3>
@@ -239,7 +239,7 @@ export function AlumniPrivacyPanel() {
               (auditQuery.data ?? []).map((row) => (
                 <div key={row.id} className="rounded-xl border border-border/60 px-3 py-2.5">
                   <p className="text-xs font-semibold">{String(row.action).replaceAll("_", " ")}</p>
-                  <p className="mt-1 text-[10px] text-muted-foreground">
+                  <p className="mt-1 text-[11px] text-muted-foreground">
                     {new Date(row.occurred_at).toLocaleString("pt-AO")}
                   </p>
                 </div>

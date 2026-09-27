@@ -140,7 +140,7 @@ export function FinalPautaView({ data }: { data: FinalPautaDocument }) {
         </table>
       </div>
 
-      <div className="mt-3 text-[10px] text-muted-foreground">
+      <div className="mt-3 text-[11px] text-muted-foreground">
         <b>Fórmula base:</b> MFD = ({periods.map((p) => `MT${p}`).join(" + ")}) ÷ {periods.length}.
         A situação final obedece à aprovação pedagógica e deliberação do conselho de notas do SIGA.
         Clique em qualquer MT para inspecionar a auditoria da nota.

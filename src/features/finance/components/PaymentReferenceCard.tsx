@@ -187,7 +187,7 @@ export function PaymentReferenceCard({
                   <Zap className="size-3 text-warning" />
                 </div>
                 <p className="text-[11px] text-muted-foreground">{wallet.phoneOrAccount}</p>
-                <p className="text-[10px] font-mono text-muted-foreground truncate">
+                <p className="text-[11px] font-mono text-muted-foreground truncate">
                   Ref: {wallet.transactionRef}
                 </p>
               </div>

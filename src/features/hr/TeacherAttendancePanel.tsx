@@ -583,7 +583,7 @@ export function TeacherAttendancePanel({
                           <p className="font-semibold leading-snug">
                             {lessonTitle(lesson)}
                             {isFocused ? (
-                              <span className="ml-2 text-[10px] font-semibold text-primary">
+                              <span className="ml-2 text-[11px] font-semibold text-primary">
                                 Agenda
                               </span>
                             ) : null}

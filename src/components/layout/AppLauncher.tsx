@@ -130,7 +130,7 @@ function HubAppRow({
           {app.catalogId ? (
             <span
               className={cn(
-                "mt-1 inline-block text-[10px] font-semibold",
+                "mt-1 inline-block text-[11px] font-semibold",
                 status === "error"
                   ? "text-destructive"
                   : active

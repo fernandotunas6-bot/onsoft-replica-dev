@@ -43,7 +43,7 @@ export function FileBrowserNav({
               <span className="min-w-0">
                 <span className="block truncate">{meta.label}</span>
                 {meta.reserved ? (
-                  <span className="block text-[10px] font-semibold text-muted-foreground">
+                  <span className="block text-[11px] font-semibold text-muted-foreground">
                     Reservado
                   </span>
                 ) : null}

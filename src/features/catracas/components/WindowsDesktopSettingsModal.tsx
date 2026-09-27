@@ -245,7 +245,7 @@ export function WindowsDesktopSettingsModal({
                 </p>
               </div>
             </div>
-            <span className="font-mono text-[10px] bg-primary/10 text-primary px-2 py-1 rounded font-bold">
+            <span className="font-mono text-[11px] bg-primary/10 text-primary px-2 py-1 rounded font-bold">
               {isTauriDesktop() ? "RUST NATIVE" : "WEB HTTP"}
             </span>
           </div>
@@ -372,7 +372,7 @@ export function WindowsDesktopSettingsModal({
               browser; a allowlist fica neste PC.
             </p>
             {discoverMeta ? (
-              <p className="text-[10px] font-mono text-muted-foreground">{discoverMeta}</p>
+              <p className="text-[11px] font-mono text-muted-foreground">{discoverMeta}</p>
             ) : null}
             {discoverError ? (
               <p className="text-[11px] text-destructive rounded-lg bg-destructive/10 px-2.5 py-2">
@@ -395,7 +395,7 @@ export function WindowsDesktopSettingsModal({
                   >
                     <div className="min-w-0">
                       <p className="font-semibold truncate">{device.label || device.path}</p>
-                      <p className="font-mono text-[10px] text-muted-foreground truncate">
+                      <p className="font-mono text-[11px] text-muted-foreground truncate">
                         {device.kind} · {device.path || device.id}
                       </p>
                     </div>

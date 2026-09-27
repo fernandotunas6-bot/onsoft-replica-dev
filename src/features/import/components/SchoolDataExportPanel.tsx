@@ -199,13 +199,13 @@ export function SchoolDataExportPanel({
             <span className="font-semibold text-xs text-foreground flex items-center gap-1.5">
               <Sparkles className="size-3.5 text-primary" /> SIGA Exchange (Reimportável)
             </span>
-            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-primary/10 text-primary">
+            <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-primary/10 text-primary">
               Recomendado
             </span>
           </div>
           <p className="text-[11px] text-muted-foreground leading-relaxed">
             Gera livro Excel com aba{" "}
-            <code className="text-primary font-mono text-[10px]">00_MANIFESTO</code>, checksum
+            <code className="text-primary font-mono text-[11px]">00_MANIFESTO</code>, checksum
             SHA-256 e identificadores estáveis que permitem alterar valores e reimportar no SIGA com
             idempotência total.
           </p>
@@ -224,7 +224,7 @@ export function SchoolDataExportPanel({
             <span className="font-semibold text-xs text-foreground flex items-center gap-1.5">
               <FileSpreadsheet className="size-3.5 text-muted-foreground" /> Relatório Humano
             </span>
-            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-secondary text-foreground">
+            <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-secondary text-foreground">
               Direção / Secretaria
             </span>
           </div>
@@ -274,7 +274,7 @@ export function SchoolDataExportPanel({
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between gap-2">
                     <p className="text-xs font-semibold text-foreground">{item.label}</p>
-                    <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded bg-secondary text-muted-foreground">
+                    <span className="text-[11px] font-semibold px-1.5 py-0.5 rounded bg-secondary text-muted-foreground">
                       {item.badge}
                     </span>
                   </div>

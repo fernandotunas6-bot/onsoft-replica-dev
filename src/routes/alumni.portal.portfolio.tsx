@@ -361,16 +361,16 @@ function AlumniPortfolioPage() {
                       <div className="flex items-start justify-between gap-3">
                         <div>
                           <div className="flex flex-wrap gap-2">
-                            <span className="rounded-full bg-muted px-2.5 py-1 text-[10px] font-bold text-muted-foreground">
+                            <span className="rounded-full bg-muted px-2.5 py-1 text-[11px] font-bold text-muted-foreground">
                               {item.education_level
                                 ? levelLabels[item.education_level]
                                 : "Sem nível"}
                             </span>
-                            <span className="rounded-full bg-primary/10 px-2.5 py-1 text-[10px] font-bold text-primary">
+                            <span className="rounded-full bg-primary/10 px-2.5 py-1 text-[11px] font-bold text-primary">
                               {typeLabels[item.item_type] || item.item_type}
                             </span>
                             {item.featured ? (
-                              <span className="inline-flex items-center rounded-full bg-warning/15 px-2.5 py-1 text-[10px] font-bold">
+                              <span className="inline-flex items-center rounded-full bg-warning/15 px-2.5 py-1 text-[11px] font-bold">
                                 <Star className="mr-1 size-3" />
                                 Destaque
                               </span>
@@ -402,7 +402,7 @@ function AlumniPortfolioPage() {
                           {item.skills.map((skill: string) => (
                             <span
                               key={skill}
-                              className="rounded-full bg-muted px-2 py-1 text-[10px] font-semibold"
+                              className="rounded-full bg-muted px-2 py-1 text-[11px] font-semibold"
                             >
                               {skill}
                             </span>
@@ -425,7 +425,7 @@ function AlumniPortfolioPage() {
                             Documento SIGA: {item.document_requests.request_type || "Documento"}
                           </span>
                         ) : null}
-                        <span className="ml-auto text-[10px] font-bold text-muted-foreground">
+                        <span className="ml-auto text-[11px] font-bold text-muted-foreground">
                           {item.visibility}
                         </span>
                       </div>

@@ -257,7 +257,7 @@ export function UserProfileModal({
                   <Building2 className="size-4" />
                   Instituições
                   {currentUser.schools.length > 0 ? (
-                    <Badge variant="secondary" className="px-1.5 py-0 text-[10px] ml-1">
+                    <Badge variant="secondary" className="px-1.5 py-0 text-[11px] ml-1">
                       {currentUser.schools.length}
                     </Badge>
                   ) : null}
@@ -495,7 +495,7 @@ export function UserProfileModal({
                                   {school.schoolName}
                                 </span>
                                 {isCurrent ? (
-                                  <Badge className="bg-primary/20 text-primary border-primary/30 text-[10px] py-0">
+                                  <Badge className="bg-primary/20 text-primary border-primary/30 text-[11px] py-0">
                                     Actual
                                   </Badge>
                                 ) : null}

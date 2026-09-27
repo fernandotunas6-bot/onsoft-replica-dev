@@ -106,19 +106,19 @@ export function FileBrowserTable({
                     <span className="block truncate font-medium text-foreground">
                       {file.title || file.name}
                       {file.isSystem ? (
-                        <span className="ml-2 text-[10px] font-semibold text-muted-foreground">
+                        <span className="ml-2 text-[11px] font-semibold text-muted-foreground">
                           {canAccessFileContent(file, account.id, account.role)
                             ? "Sistema"
                             : "Protegido"}
                         </span>
                       ) : null}
                       {fileNeedsOrganization(file) ? (
-                        <span className="ml-2 text-[10px] font-semibold text-warning-foreground">
+                        <span className="ml-2 text-[11px] font-semibold text-warning-foreground">
                           Por organizar
                         </span>
                       ) : null}
                     </span>
-                    <span className="block text-[10px] text-muted-foreground">
+                    <span className="block text-[11px] text-muted-foreground">
                       {fileKindMeta[file.kind].label} · {fileMyAccessMeta[access].label}
                       {file.category ? ` · ${fileCategoryMeta[file.category].label}` : ""}
                       {file.classGroupId ? " · turma" : ""}
@@ -146,7 +146,7 @@ export function FileBrowserTable({
                   <UserAvatar
                     url={file.updatedByAvatarUrl ?? file.ownerAvatarUrl}
                     initials={initialsFromName(file.updatedByName ?? file.ownerName)}
-                    className="size-6 bg-secondary text-[9px] font-bold"
+                    className="size-6 bg-secondary text-[11px] font-bold"
                   />
                   <span className="truncate">{file.updatedByName ?? file.ownerName ?? "—"}</span>
                 </span>
@@ -165,7 +165,7 @@ export function FileBrowserTable({
                   <UserAvatar
                     url={file.lastActionByAvatarUrl ?? file.ownerAvatarUrl}
                     initials={initialsFromName(file.lastActionByName ?? file.ownerName)}
-                    className="size-5 bg-secondary text-[8px] font-bold"
+                    className="size-5 bg-secondary text-[11px] font-bold"
                   />
                   <span className="truncate">
                     {formatFileActivityLine({

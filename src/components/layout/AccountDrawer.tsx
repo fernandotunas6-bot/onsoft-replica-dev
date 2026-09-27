@@ -213,7 +213,7 @@ export function AccountDrawer({
                 {currentUser.activeSchool?.schoolName ? (
                   <Badge
                     variant="outline"
-                    className="mt-1.5 text-[10px] py-0 px-2 bg-background/50"
+                    className="mt-1.5 text-[11px] py-0 px-2 bg-background/50"
                   >
                     {currentUser.activeSchool.schoolName}
                   </Badge>
@@ -252,7 +252,7 @@ export function AccountDrawer({
                           <IconChip icon={icon} tone={tone} size="sm" />
                           <span className="min-w-0 flex-1 truncate text-left">{label}</span>
                           {tab === "instituicoes" && currentUser.schools.length > 1 ? (
-                            <Badge variant="secondary" className="px-1.5 py-0 text-[10px]">
+                            <Badge variant="secondary" className="px-1.5 py-0 text-[11px]">
                               {currentUser.schools.length}
                             </Badge>
                           ) : null}

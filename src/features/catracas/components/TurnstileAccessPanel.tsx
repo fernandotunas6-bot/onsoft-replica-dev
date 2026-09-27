@@ -298,7 +298,7 @@ export function TurnstileAccessPanel() {
             <div className="flex flex-wrap items-center gap-2 justify-end">
               <Badge
                 variant="outline"
-                className={`text-[10px] gap-1 ${
+                className={`text-[11px] gap-1 ${
                   bridgeHealthQuery.data?.online
                     ? "bg-success/10 text-success border-success/30"
                     : "bg-muted text-muted-foreground border-border"
@@ -327,7 +327,7 @@ export function TurnstileAccessPanel() {
               </Button>
               <Badge
                 variant="outline"
-                className="bg-primary/10 text-primary border-primary/30 text-[10px]"
+                className="bg-primary/10 text-primary border-primary/30 text-[11px]"
               >
                 {devices.length} dispositivo{devices.length === 1 ? "" : "s"} registado
                 {devices.length === 1 ? "" : "s"}
@@ -505,7 +505,7 @@ export function TurnstileAccessPanel() {
                         })
                       }
                     >
-                      <SelectTrigger className="h-7 w-[110px] text-[10px]">
+                      <SelectTrigger className="h-7 w-[110px] text-[11px]">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
@@ -520,7 +520,7 @@ export function TurnstileAccessPanel() {
                       size="sm"
                       disabled={pulsingDeviceId === dev.id}
                       onClick={() => void handleManualPulse(dev)}
-                      className="h-7 text-[10px] gap-1 font-bold"
+                      className="h-7 text-[11px] gap-1 font-bold"
                       title="Enviar pulso de relé via daemon/Tauri"
                     >
                       <Zap className="size-3" /> Relé
@@ -531,7 +531,7 @@ export function TurnstileAccessPanel() {
                       size="sm"
                       disabled={!dev.api_key}
                       onClick={() => void copyDeviceApiKey(dev)}
-                      className="h-7 text-[10px] gap-1"
+                      className="h-7 text-[11px] gap-1"
                       title="Copiar API key do controlador offline"
                     >
                       <Copy className="size-3" /> Key

@@ -65,7 +65,7 @@ export function TemplatesCatalogModal({
               >
                 <div className="flex items-center justify-between">
                   <span className="text-foreground">{t.name}</span>
-                  <Badge variant="outline" className="text-[10px] uppercase font-mono">
+                  <Badge variant="outline" className="text-[11px] uppercase font-mono">
                     {t.category}
                   </Badge>
                 </div>
@@ -92,7 +92,7 @@ export function TemplatesCatalogModal({
                   {activeTemplate.variables.map((v) => (
                     <code
                       key={v}
-                      className="px-1.5 py-0.5 rounded bg-background border border-border font-mono text-[10px] text-primary"
+                      className="px-1.5 py-0.5 rounded bg-background border border-border font-mono text-[11px] text-primary"
                     >
                       {`{{${v}}}`}
                     </code>
@@ -109,7 +109,7 @@ export function TemplatesCatalogModal({
                     variant="ghost"
                     size="sm"
                     onClick={() => handleCopy(activeTemplate.defaultText)}
-                    className="h-6 px-2 text-[10px] gap-1"
+                    className="h-6 px-2 text-[11px] gap-1"
                   >
                     {copied ? (
                       <Check className="size-3 text-primary" />

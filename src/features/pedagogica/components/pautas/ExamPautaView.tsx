@@ -95,7 +95,7 @@ export function ExamPautaView({ data }: { data: ExamPautaDocument }) {
         </table>
       </div>
 
-      <div className="mt-3 text-[10px] text-muted-foreground">
+      <div className="mt-3 text-[11px] text-muted-foreground">
         <b>Normativa:</b>{" "}
         {isTechnical
           ? "Regulamento do Ensino Técnico-Profissional Decreto 424/25 — PAP e Estágio Curricular."

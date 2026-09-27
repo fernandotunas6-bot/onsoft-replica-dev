@@ -395,13 +395,13 @@ export function PersonProfile360Modal({
                       <Badge
                         key={r}
                         variant={roleBadges[r]?.variant ?? "outline"}
-                        className="text-[10px]"
+                        className="text-[11px]"
                       >
                         {roleLabels[r] ?? r}
                       </Badge>
                     ))
                   ) : (
-                    <Badge variant="outline" className="text-[10px] text-muted-foreground">
+                    <Badge variant="outline" className="text-[11px] text-muted-foreground">
                       Sem Vínculo Específico
                     </Badge>
                   )}

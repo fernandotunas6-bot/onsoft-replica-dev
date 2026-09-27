@@ -22,6 +22,18 @@
   --font-weight-extrabold: 600;
   --font-weight-black: 600;
 
+  /*
+   * Mínimos de leitura. A raiz está reduzida (12px no telemóvel, 11px no
+   * computador), o que deixava `text-xs` com 8–9px. Cada degrau da escala tem
+   * um mínimo em px e a ordem mantém-se: xs 11 · sm 12 · base 13 · lg 14 · xl 15.
+   * Acima do mínimo, continua a escalar com a raiz.
+   */
+  --text-xs: max(11px, 0.75rem);
+  --text-sm: max(12px, 0.875rem);
+  --text-base: max(13px, 1rem);
+  --text-lg: max(14px, 1.125rem);
+  --text-xl: max(15px, 1.25rem);
+
   --radius-xs: 0.375rem;
   --radius-sm: 0.5rem;
   --radius-md: 0.625rem;

@@ -342,8 +342,8 @@ function AuthenticatedAppShell({ children }: { children: ReactNode }) {
             >
               <Search className="size-3.5 opacity-60 shrink-0" />
               <span className="truncate flex-1 text-left">Pesquisar no SIGA…</span>
-              <kbd className="pointer-events-none inline-flex h-4 select-none items-center gap-0.5 rounded border border-border/80 bg-muted/70 px-1 font-mono text-[10px] font-medium text-muted-foreground shrink-0">
-                <span className="text-[9px]">⌘</span>K
+              <kbd className="pointer-events-none inline-flex h-4 select-none items-center gap-0.5 rounded border border-border/80 bg-muted/70 px-1 font-mono text-[11px] font-medium text-muted-foreground shrink-0">
+                <span className="text-[11px]">⌘</span>K
               </kbd>
             </button>
             <Button
@@ -470,7 +470,7 @@ function AuthenticatedAppShell({ children }: { children: ReactNode }) {
                   className="size-9 bg-primary text-sm font-semibold text-primary-foreground ring-2 ring-primary/20"
                 />
                 {unreadCount ? (
-                  <span className="absolute -right-1 -top-1 min-w-4 rounded-full bg-destructive px-1 text-center text-[10px] font-bold leading-4 text-destructive-foreground">
+                  <span className="absolute -right-1 -top-1 min-w-4 rounded-full bg-destructive px-1 text-center text-[11px] font-bold leading-4 text-destructive-foreground">
                     {unreadCount > 9 ? "9+" : unreadCount}
                   </span>
                 ) : null}
@@ -628,7 +628,7 @@ function AuthenticatedAppShell({ children }: { children: ReactNode }) {
           <footer className="flex flex-wrap items-center justify-between gap-3 border-t border-border bg-card/40 px-3.5 py-3 text-xs text-muted-foreground backdrop-blur-xs md:px-5">
             <div className="flex items-center gap-4">
               <span className="inline-flex items-center gap-2 font-semibold text-foreground">
-                <span className="inline-flex size-6 items-center justify-center rounded-lg bg-primary-soft text-[10px] font-extrabold text-primary">
+                <span className="inline-flex size-6 items-center justify-center rounded-lg bg-primary-soft text-[11px] font-extrabold text-primary">
                   S
                 </span>
                 SIGA

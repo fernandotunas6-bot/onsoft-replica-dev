@@ -179,7 +179,7 @@ export function AttendanceWorkspaceModule({
               >
                 <div>
                   <div className="flex items-center justify-between gap-2 mb-1">
-                    <Badge variant="outline" className="text-[10px] font-mono">
+                    <Badge variant="outline" className="text-[11px] font-mono">
                       {sess.starts_at
                         ? `${sess.starts_at}${sess.ends_at ? ` – ${sess.ends_at}` : ""}`
                         : "Sem hora"}
@@ -187,14 +187,14 @@ export function AttendanceWorkspaceModule({
                     {sess.status === "completed" ? (
                       <Badge
                         variant="outline"
-                        className="bg-success/10 text-success border-success/30 text-[10px]"
+                        className="bg-success/10 text-success border-success/30 text-[11px]"
                       >
                         Finalizada
                       </Badge>
                     ) : (
                       <Badge
                         variant="outline"
-                        className="bg-warning/10 text-warning-foreground border-warning/30 text-[10px] animate-pulse"
+                        className="bg-warning/10 text-warning-foreground border-warning/30 text-[11px] animate-pulse"
                       >
                         Pendente
                       </Badge>
@@ -288,28 +288,28 @@ export function AttendanceWorkspaceModule({
                     {rec.status === "present" ? (
                       <Badge
                         variant="outline"
-                        className="bg-success/10 text-success border-success/30 text-[10px]"
+                        className="bg-success/10 text-success border-success/30 text-[11px]"
                       >
                         <Check className="size-3 mr-1" /> Presente
                       </Badge>
                     ) : rec.status === "absent" ? (
                       <Badge
                         variant="outline"
-                        className="bg-destructive/10 text-destructive border-destructive/30 text-[10px]"
+                        className="bg-destructive/10 text-destructive border-destructive/30 text-[11px]"
                       >
                         <X className="size-3 mr-1" /> Falta
                       </Badge>
                     ) : rec.status === "excused" ? (
                       <Badge
                         variant="outline"
-                        className="bg-info/10 text-info border-info/30 text-[10px]"
+                        className="bg-info/10 text-info border-info/30 text-[11px]"
                       >
                         Justificada
                       </Badge>
                     ) : (
                       <Badge
                         variant="outline"
-                        className="bg-warning/10 text-warning-foreground border-warning/30 text-[10px]"
+                        className="bg-warning/10 text-warning-foreground border-warning/30 text-[11px]"
                       >
                         Atrasado
                       </Badge>

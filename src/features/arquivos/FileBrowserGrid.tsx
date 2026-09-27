@@ -95,7 +95,7 @@ export function FileBrowserGrid({
               </div>
             )}
             <p className="mt-1 truncate px-1 text-xs font-medium">{file.title || file.name}</p>
-            <p className="px-1 text-[10px] text-muted-foreground">
+            <p className="px-1 text-[11px] text-muted-foreground">
               {file.referenceCode ? (
                 <span className="font-mono">{file.referenceCode}</span>
               ) : (

@@ -462,7 +462,7 @@ export function ColleagueThread({ peer, onBack }: { peer: SchoolColleague; onBac
               ) : null}
               {item.createdAt ? (
                 <p
-                  className={`mt-1 text-[10px] ${
+                  className={`mt-1 text-[11px] ${
                     item.mine ? "text-primary-foreground/70" : "text-muted-foreground"
                   }`}
                 >
