@@ -1,0 +1,67 @@
+{
+  "version": 1,
+  "sdk_version": "3.0.4",
+  "path": "/mcp",
+  "auth": {
+    "type": "oauth",
+    "issuer": "https://ocjogpveouwbgyyjibah.supabase.co/auth/v1",
+    "accepted_audiences": [
+      "authenticated"
+    ]
+  },
+  "mcp": {
+    "server": {
+      "name": "edu-s-code-mirror",
+      "version": "0.1.0",
+      "title": "Edu's Code Mirror"
+    },
+    "tools": [
+      {
+        "name": "whoami",
+        "title": "Utilizador ligado",
+        "description": "Mostra o e-mail e o identificador da conta SIGA Plus ligada ao agente.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "type": "object",
+          "properties": {},
+          "additionalProperties": false
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "list_class_groups",
+        "title": "Listar turmas",
+        "description": "Lista as turmas activas que o utilizador ligado pode ver na sua escola.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "type": "object",
+          "properties": {
+            "search": {
+              "description": "Filtrar pelo nome ou código da turma.",
+              "type": "string",
+              "maxLength": 80
+            },
+            "limit": {
+              "description": "Máximo de turmas (por omissão 50).",
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 200
+            }
+          },
+          "additionalProperties": false
+        },
+        "outputSchema": null
+      }
+    ]
+  }
+}
