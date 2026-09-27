@@ -35,7 +35,7 @@ const opportunityActionSchema = z.object({
 const eventActionSchema = z.object({ eventId: z.string().uuid() });
 const surveyActionSchema = z.object({
   surveyId: z.string().uuid(),
-  response: z.record(z.unknown()),
+  response: z.record(z.string(), z.unknown()),
 });
 
 async function resolveSchool(userId: string) {
