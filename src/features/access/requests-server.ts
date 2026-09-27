@@ -693,6 +693,13 @@ export const actOnMyAccessRequest = createServerFn({ method: "POST" })
       requestId: request.id,
       metadata: { before: { status: request.status }, after: { status: next } },
     });
+    if (data.action === "reply") {
+      await notifyReviewers(db, request.school_id, {
+        requestId: request.id,
+        title: "Resposta a pedido de acesso",
+        body: `${request.full_name} respondeu ao pedido de informação. Reveja em Acessos → Solicitações.`,
+      });
+    }
     return { id: request.id, status: next };
   });
 

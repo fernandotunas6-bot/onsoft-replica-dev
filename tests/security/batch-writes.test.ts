@@ -73,4 +73,12 @@ describe("pedidos de acesso: a escola é avisada", () => {
       /REVIEWER_ROLE_CODES = \["owner", "admin", "administrador", "secretary", "secretaria"\]/,
     );
   });
+
+  it("a resposta do requerente também avisa a Administração e a Secretaria", () => {
+    expect(body(source, "actOnMyAccessRequest")).toMatch(/notifyReviewers\(db, request\.school_id/);
+  });
+
+  it("aprovar avisa o requerente no portal", () => {
+    expect(body(source, "reviewAccessRequest")).toMatch(/access_request\.approved/);
+  });
 });
