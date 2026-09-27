@@ -22,15 +22,14 @@ tratadas pelas migrações de 25–26/09 (aplicadas). Matrículas públicas
 migração `20260927210000_enrollment_policies_staff_only.sql`, pacote
 `docs/agents/SIGA_aplicar_matriculas_politicas.sql` — **por aplicar**.
 
-**Por decidir (28 políticas):** `academic_years`, `class_groups`,
-`class_subjects`, `enrollments`, `grade_*`, `gradebooks`, `people`,
-`person_documents`, `student_guardians`, `students`, `terms`,
-`timetable_slots` usam `is_school_member(school_id) AND can_manage_students()`.
-`can_manage_students()` lê `current_profile_role()`, que é o papel do perfil
-(global da conta), não o papel nessa escola: quem é Administrador/Secretaria
-numa escola e aluno/encarregado noutra pode escrever na segunda. Correcção
-proposta: trocar por `is_school_office(school_id)` (papel na própria escola),
-depois de confirmar que nenhum ecrã escreve nestas tabelas com a sessão.
+**Papel global em vez do papel na escola (48 políticas) — escrito, por aplicar:**
+`can_manage_students()` lê `current_profile_role()` (papel do perfil, global da
+conta). Nas tabelas centrais, quem é Administrador/Secretaria numa escola e
+aluno/encarregado noutra podia escrever na segunda. Migração
+`20260927230000_core_write_policies_school_role.sql` recria as 48 políticas com
+as mesmas expressões, trocando essa parte por `is_school_office(school_id)`;
+pacote `docs/agents/SIGA_aplicar_politicas_papel_escola.sql`. Nenhum ecrã
+escreve estas tabelas com a sessão (só servidor e funções SECURITY DEFINER).
 
 ## Auditoria financeira (2026-09-27)
 
