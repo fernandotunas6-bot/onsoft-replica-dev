@@ -228,7 +228,7 @@ export function UserProfileModal({
           {/* Navegação por Abas */}
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
             <div className="border-b border-border/60 px-6 bg-background/50">
-              <TabsList className="bg-transparent h-12 p-0 gap-6">
+              <TabsList className="no-scrollbar bg-transparent h-12 p-0 gap-6 max-w-full justify-start overflow-x-auto">
                 <TabsTrigger
                   value="perfil"
                   className="data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:bg-transparent rounded-none px-1 pb-3 text-xs font-semibold gap-2"
