@@ -4,6 +4,21 @@ Ler isto **antes** de alterar código. Ecossistema (5 apps):
 [ARCHITECTURE_HARMONIZATION.md](./ARCHITECTURE_HARMONIZATION.md).
 Depois abrir o skill do módulo em `.cursor/skills/`.
 
+## Funções órfãs do portal antigo (2026-09-28)
+
+`portal_identities` foi apagada por `supabase/cleanup_unused_sga_tables.sql`,
+mas ficaram 10 funções que a usam: `activate_*_portal_link`, `claim_*_portal`,
+`portal_list_*`, `portal_ward_overview` e três de `private`. Na produção falham
+sempre e a aplicação não as chama. As de `public` estavam expostas como RPC, e
+os `claim_*` reactivavam ligações revogadas pela escola.
+`20260928210000_revoke_dead_portal_identity_functions.sql` retira a execução
+a `PUBLIC`, `anon` e `authenticated`, sem apagar nada. **Já foi aplicada**.
+
+Revisto no mesmo passo: as RPC de presença dos professores
+(`hr_evaluate_teacher_attendance_assurance` e `hr_redeem_teacher_qr`) exigem
+o QR válido no registo final. O resto do aviso "SECURITY DEFINER executável"
+são funções auxiliares das políticas, e isso é esperado.
+
 ## Protecção contra senhas expostas (2026-09-28)
 
 A protecção do Supabase ("Prevent use of leaked passwords") exige o plano
