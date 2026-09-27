@@ -17,6 +17,7 @@ import {
 import { sgaClient } from "@/integrations/supabase/sga";
 import {
   GRADE_SHEET_STATUSES,
+  PRE_PAUTA_GATED_STATUSES,
   buildPrePautaChecks,
   canRebuildGradeSheet,
   type GradeSheetStatus,
@@ -143,6 +144,7 @@ async function loadPrePauta(
   schoolId: string,
   classGroupId: string,
   termId: string | null,
+  builtAt: string | null = null,
 ): Promise<PrePautaCheck[]> {
   const [{ data: cs }, { count: enrolled }, { data: rule }, { data: enrollments }] =
     await Promise.all([
@@ -203,7 +205,7 @@ async function loadPrePauta(
     itemRows.length && enrollmentIds.length
       ? await db
           .from("grade_scores")
-          .select("grade_item_id, enrollment_id, score, pending_score")
+          .select("grade_item_id, enrollment_id, score, pending_score, updated_at")
           .eq("school_id", schoolId)
           .in(
             "grade_item_id",
@@ -257,11 +259,33 @@ async function loadPrePauta(
       pendingChanges: allScores.filter((s) => s["pending_score"] != null).length,
     };
   });
+  const builtTime = builtAt ? Date.parse(builtAt) : Number.NaN;
   return buildPrePautaChecks({
     enrolled: enrolled ?? 0,
     hasActiveRule: Boolean(rule?.id),
     subjects: perSubject,
+    scoresChangedAfterBuild: Number.isNaN(builtTime)
+      ? null
+      : ((scores ?? []) as Row[]).filter((s) => Date.parse(str(s["updated_at"])) > builtTime)
+          .length,
   });
+}
+
+/**
+ * Quando a pauta foi gerada: as linhas são apagadas e refeitas em cada geração
+ * (`build_grade_sheet`). O `updated_at` da pauta não serve — muda também em
+ * cada mudança de estado e esconderia notas alteradas depois da geração.
+ */
+async function gradeSheetBuiltAt(db: Db, schoolId: string, sheetId: string) {
+  const { data } = await db
+    .from("grade_sheet_rows")
+    .select("created_at")
+    .eq("school_id", schoolId)
+    .eq("grade_sheet_id", sheetId)
+    .order("created_at", { ascending: true })
+    .limit(1)
+    .maybeSingle();
+  return data?.created_at ? str(data.created_at) : null;
 }
 
 const detailInput = z.object({ sheetId: z.string().uuid() });
@@ -320,6 +344,7 @@ export const getGradeSheetDetail = createServerFn({ method: "GET" })
       schoolId,
       str(sheet.class_group_id),
       sheet.kind === "term" ? str(sheet.term_id) : null,
+      await gradeSheetBuiltAt(db, schoolId, str(sheet.id)),
     );
     return {
       id: str(sheet.id),
@@ -420,6 +445,35 @@ export const transitionGradeSheet = createServerFn({ method: "POST" })
       context.userId,
       [...READ_ROLES],
     );
+    // Pré-pauta obrigatória: submeter e homologar só com todas as verificações
+    // limpas. Antes eram só informativas — homologava-se com notas em falta,
+    // alterações pendentes ou uma pauta gerada antes das últimas notas.
+    if (PRE_PAUTA_GATED_STATUSES.includes(data.status)) {
+      const db = await loadSgaAdminClient();
+      const { data: sheet, error: sheetError } = await db
+        .from("grade_sheets")
+        .select("id, class_group_id, term_id, kind")
+        .eq("school_id", membership.schoolId)
+        .eq("id", data.sheetId)
+        .maybeSingle();
+      if (sheetError) throw publicDatabaseError(sheetError, "Não foi possível abrir a pauta.");
+      if (!sheet) throw new Error("Pauta não encontrada.");
+      const checks = await loadPrePauta(
+        db,
+        membership.schoolId,
+        str(sheet.class_group_id),
+        sheet.kind === "term" ? str(sheet.term_id) : null,
+        await gradeSheetBuiltAt(db, membership.schoolId, str(sheet.id)),
+      );
+      const failing = checks.filter((check) => !check.ok);
+      if (failing.length) {
+        throw new Error(
+          `A pré-pauta tem pendências: ${failing
+            .map((check) => (check.detail ? `${check.label} (${check.detail})` : check.label))
+            .join("; ")}.`,
+        );
+      }
+    }
     const { error } = await sgaClient(context.supabase).rpc("transition_grade_sheet", {
       school_id: membership.schoolId,
       grade_sheet_id: data.sheetId,

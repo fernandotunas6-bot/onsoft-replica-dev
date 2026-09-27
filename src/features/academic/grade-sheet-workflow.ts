@@ -141,6 +141,8 @@ export function buildPrePautaChecks(input: {
   enrolled: number;
   hasActiveRule: boolean;
   subjects: PrePautaSubject[];
+  /** Notas alteradas depois de a pauta ser gerada (`null`: pauta ainda por gerar). */
+  scoresChangedAfterBuild?: number | null;
 }): PrePautaCheck[] {
   const s = input.subjects;
   const withoutTeacher = s.filter((x) => !x.hasTeacher).map((x) => x.subjectName);
@@ -196,8 +198,23 @@ export function buildPrePautaChecks(input: {
       ok: pending === 0,
       detail: pending ? `${pending} à espera de aprovação` : undefined,
     },
+    ...(input.scoresChangedAfterBuild == null
+      ? []
+      : [
+          {
+            id: "fresh",
+            label: "Pauta gerada depois da última alteração de notas",
+            ok: input.scoresChangedAfterBuild === 0,
+            detail: input.scoresChangedAfterBuild
+              ? `${input.scoresChangedAfterBuild} nota(s) alterada(s) depois de gerar a pauta: gere-a de novo`
+              : undefined,
+          },
+        ]),
   ];
 }
+
+/** Estados para os quais a pré-pauta tem de estar limpa. */
+export const PRE_PAUTA_GATED_STATUSES: readonly GradeSheetStatus[] = ["submitted", "homologated"];
 
 export function prePautaIsClean(checks: PrePautaCheck[]) {
   return checks.every((check) => check.ok);

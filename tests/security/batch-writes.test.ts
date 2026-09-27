@@ -47,3 +47,18 @@ describe("chamada de presença", () => {
     expect(source).toMatch(/rpc\("siga_recompute_attendance_rates"/);
   });
 });
+
+describe("pauta: pré-pauta obrigatória", () => {
+  const source = read("src/features/academic/grade-sheets.ts");
+
+  it("submeter e homologar recalculam a pré-pauta no servidor e recusam pendências", () => {
+    const fn = body(source, "transitionGradeSheet");
+    expect(fn).toMatch(/PRE_PAUTA_GATED_STATUSES\.includes\(data\.status\)/);
+    expect(fn).toMatch(/loadPrePauta\(/);
+    expect(fn.indexOf("loadPrePauta(")).toBeLessThan(fn.indexOf('rpc("transition_grade_sheet"'));
+  });
+
+  it("a data de geração vem das linhas da pauta, não do updated_at", () => {
+    expect(source).toMatch(/from\("grade_sheet_rows"\)[\s\S]{0,120}\.select\("created_at"\)/);
+  });
+});

@@ -88,4 +88,19 @@ describe("pré-pauta", () => {
     expect(byId.scale!.detail).toBe("1 fora da escala");
     expect(byId.pending!.detail).toBe("2 à espera de aprovação");
   });
+
+  it("exige gerar de novo a pauta se houve notas alteradas depois", () => {
+    const base = { enrolled: 30, hasActiveRule: true, subjects: [subject()] };
+    // Pauta ainda por gerar: a verificação não se aplica.
+    expect(buildPrePautaChecks(base).some((c) => c.id === "fresh")).toBe(false);
+
+    const fresh = buildPrePautaChecks({ ...base, scoresChangedAfterBuild: 0 });
+    expect(prePautaIsClean(fresh)).toBe(true);
+
+    const stale = buildPrePautaChecks({ ...base, scoresChangedAfterBuild: 3 });
+    expect(prePautaIsClean(stale)).toBe(false);
+    expect(stale.find((c) => c.id === "fresh")!.detail).toMatch(
+      /3 nota\(s\) alterada\(s\).*gere-a de novo/,
+    );
+  });
 });
