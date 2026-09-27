@@ -215,3 +215,110 @@ export const addRiskIntervention = createServerFn({ method: "POST" })
     }
     return { ok: true };
   });
+
+const automaticSchema = z.object({
+  classGroupId: z.string().uuid(),
+  students: z
+    .array(
+      z.object({
+        enrollment_id: z.string().uuid(),
+        risk: z.enum(["alto", "médio"]),
+        reasons: z.array(z.string().max(500)).min(1).max(10),
+        average: z.number().min(0).max(20).nullable(),
+      }),
+    )
+    .min(1)
+    .max(200),
+});
+
+/**
+ * Guarda os sinais automáticos (regras do modelo) no acompanhamento. Não
+ * confia no ecrã para nomes nem turmas: só aceita matrículas desta turma e
+ * escola, e lê os nomes da base. Casos existentes mantêm as intervenções
+ * sugeridas; cada gravação fica no histórico do caso.
+ */
+export const saveAutomaticRiskSignals = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => automaticSchema.parse(input))
+  .handler(async ({ data, context }) => {
+    const { schoolId, db } = await ctx(context.userId, "write");
+    const { studentNames } = await import("@/features/academic/exam-data");
+    const { data: group } = await db
+      .from("class_groups")
+      .select("id, name")
+      .eq("school_id", schoolId)
+      .eq("id", data.classGroupId)
+      .maybeSingle();
+    if (!group) throw new Error("Turma não encontrada nesta escola.");
+    const ids = [...new Set(data.students.map((s) => s.enrollment_id))];
+    const { data: enrollments } = await db
+      .from("enrollments")
+      .select("id")
+      .eq("school_id", schoolId)
+      .eq("class_group_id", data.classGroupId)
+      .in("id", ids);
+    const valid = new Set((enrollments ?? []).map((e: { id: string }) => String(e.id)));
+    const students = data.students.filter((s) => valid.has(s.enrollment_id));
+    if (!students.length) return { saved: 0 };
+    const names = await studentNames(db, schoolId, [...valid]);
+
+    const { data: existing } = await db
+      .from("student_risk_cases")
+      .select("id, enrollment_id")
+      .eq("school_id", schoolId)
+      .in(
+        "enrollment_id",
+        students.map((s) => s.enrollment_id),
+      );
+    const caseOf = new Map(
+      (existing ?? []).map((e: { id: string; enrollment_id: string }) => [e.enrollment_id, e.id]),
+    );
+
+    const log: Array<Record<string, unknown>> = [];
+    for (const s of students) {
+      const common = {
+        risk_level: s.risk,
+        reasons: s.reasons,
+        latest_average: s.average,
+        status: "aberto",
+        class_group_id: data.classGroupId,
+        class_group_name: String(group.name ?? ""),
+        student_name: names.get(s.enrollment_id)?.name ?? "Aluno",
+      };
+      let caseId = caseOf.get(s.enrollment_id) ?? null;
+      if (caseId) {
+        const { error } = await db
+          .from("student_risk_cases")
+          .update(common)
+          .eq("school_id", schoolId)
+          .eq("id", caseId);
+        if (error) throw new Error("Não foi possível actualizar o acompanhamento.");
+      } else {
+        const { data: created, error } = await db
+          .from("student_risk_cases")
+          .insert({
+            ...common,
+            school_id: schoolId,
+            enrollment_id: s.enrollment_id,
+            suggested_interventions: [],
+            baseline_average: s.average,
+            created_by: context.userId,
+          })
+          .select("id")
+          .single();
+        if (error || !created) throw new Error("Não foi possível guardar o acompanhamento.");
+        caseId = String(created.id);
+      }
+      log.push({
+        case_id: caseId,
+        school_id: schoolId,
+        kind: "sinais automáticos",
+        description: `Sinais automáticos: ${s.reasons.join("; ")}.`,
+        risk_level: s.risk,
+        average_snapshot: s.average,
+        created_by: context.userId,
+      });
+    }
+    if (log.length) await db.from("student_risk_interventions").insert(log);
+    return { saved: log.length };
+  });

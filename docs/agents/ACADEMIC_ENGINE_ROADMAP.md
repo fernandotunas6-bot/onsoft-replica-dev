@@ -120,6 +120,6 @@ A produção tem o fluxo premium quase todo — falta ligá-lo aos ecrãs:
    relatórios; sinais automáticos de risco em `/pedagogica/risco` (sem IA, pelas
    regras do modelo: não transitaria, passou a negativa, faltas acima/perto do
    limite — `early-warning.ts`). O comparativo por trimestre, turma e disciplina
-   já existia nos relatórios académicos. Falta: guardar os sinais automáticos
-   no acompanhamento (`student_risk_cases`), como já acontece com a análise por
-   IA.
+   já existia nos relatórios académicos. "Guardar no acompanhamento" grava os
+   sinais em `student_risk_cases` (matrículas e nomes validados no servidor;
+   casos existentes mantêm as intervenções) com registo no histórico do caso.

@@ -1,5 +1,10 @@
 import { useMemo } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
+import { toastActionError } from "@/lib/action-error-toast";
+import { saveAutomaticRiskSignals } from "@/features/ai-assist/risk-followup.functions";
+import { riskCasesKey } from "@/features/ai-assist/RiskFollowup";
 import { InlineLoading } from "@/components/ui/inline-loading";
 import { cn } from "@/lib/utils";
 import { classWarnings, type WarningStudent } from "./early-warning";
@@ -42,6 +47,27 @@ export function EarlyWarningsPanel({
     );
   }, [query.data, students, rule.passing, rule.promotionRules]);
 
+  const queryClient = useQueryClient();
+  const save = useMutation({
+    mutationFn: () =>
+      saveAutomaticRiskSignals({
+        data: {
+          classGroupId,
+          students: warnings.map((w) => ({
+            enrollment_id: w.enrollmentId,
+            risk: w.level,
+            reasons: w.signals.map((s) => s.label).slice(0, 10),
+            average: w.average,
+          })),
+        },
+      }),
+    onSuccess: (r) => {
+      toast.success(`${r.saved} aluno(s) guardados no acompanhamento.`);
+      void queryClient.invalidateQueries({ queryKey: riskCasesKey });
+    },
+    onError: (e) => toastActionError(e, "Não foi possível guardar no acompanhamento."),
+  });
+
   if (!classGroupId) return null;
 
   return (
@@ -67,11 +93,21 @@ export function EarlyWarningsPanel({
         </p>
       ) : (
         <>
-          <p className="text-xs text-muted-foreground">
-            {warnings.filter((w) => w.level === "alto").length} com risco alto ·{" "}
-            {warnings.filter((w) => w.level === "médio").length} com risco médio · de{" "}
-            {students.length} alunos
-          </p>
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <p className="text-xs text-muted-foreground">
+              {warnings.filter((w) => w.level === "alto").length} com risco alto ·{" "}
+              {warnings.filter((w) => w.level === "médio").length} com risco médio · de{" "}
+              {students.length} alunos
+            </p>
+            <Button
+              size="sm"
+              variant="outline"
+              disabled={save.isPending}
+              onClick={() => save.mutate()}
+            >
+              {save.isPending ? "A guardar…" : "Guardar no acompanhamento"}
+            </Button>
+          </div>
           <ul className="divide-y divide-border">
             {warnings.map((w) => (
               <li key={w.enrollmentId} className="space-y-1 py-2.5">
