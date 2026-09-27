@@ -58,3 +58,23 @@ Web*):
 3. Se falhar, a aplicação mostra "Não foi possível entrar com a conta externa…"
    (`src/lib/auth-redirect-error.ts`). A causa exacta fica nos registos do Auth
    (Supabase → Logs → Auth, filtrar por `/callback`).
+
+## Verificação da marca (ecrã de consentimento com "SIGA Plus")
+
+Enquanto a marca não for verificada, o ecrã da Google mostra
+`xodgfmxiaunpamctfeea.supabase.co`. A verificação é feita em Google Auth
+Platform → Branding e Central de verificação, e pede:
+
+- **Página inicial:** `https://www.portal-siga.com`, o site comercial
+  (`painel/web`). Explica a aplicação e liga à política de privacidade.
+  `portal-siga.com` sem "www" é o SIGA (ecrã de login).
+- **Política de Privacidade:** `https://www.portal-siga.com/privacidade`. A
+  secção 5 descreve o uso dos dados do login com Google (nome, e-mail e foto),
+  como a Google exige.
+- **Termos:** `https://www.portal-siga.com/termos`.
+- Posse de `portal-siga.com` confirmada no Google Search Console (registo TXT
+  no Cloudflare).
+
+As duas páginas legais ainda mostram o aviso de rascunho (`draftNotice` em
+`LegalPage`). Tem de ser retirado depois da revisão legal, antes de pedir a
+verificação.
