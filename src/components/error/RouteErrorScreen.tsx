@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import { useRouter } from "@tanstack/react-router";
 import { reportLovableError } from "@/lib/lovable-error-reporting";
 import { handleSessionExpired, isSessionError } from "@/lib/session-expiry";
+import { STALE_BUILD_MESSAGE, isStaleBuildError, recoverFromStaleBuild } from "@/lib/stale-build";
 
 type RouteErrorScreenProps = {
   error: Error;
@@ -13,14 +14,24 @@ type RouteErrorScreenProps = {
 export function RouteErrorScreen({ error, reset, fullPage = false }: RouteErrorScreenProps) {
   const router = useRouter();
   const sessionExpired = isSessionError(error);
+  const staleBuild = !sessionExpired && isStaleBuildError(error);
   useEffect(() => {
     if (sessionExpired) {
       handleSessionExpired();
       return;
     }
+    if (staleBuild && recoverFromStaleBuild(error)) return;
     console.error(error);
     reportLovableError(error, { boundary: fullPage ? "siga_root" : "siga_route" });
-  }, [error, fullPage, sessionExpired]);
+  }, [error, fullPage, sessionExpired, staleBuild]);
+
+  if (staleBuild) {
+    return (
+      <div className="flex min-h-[50vh] items-center justify-center px-4 py-10" role="status">
+        <p className="text-sm text-muted-foreground">{STALE_BUILD_MESSAGE}</p>
+      </div>
+    );
+  }
 
   if (sessionExpired) {
     return (
