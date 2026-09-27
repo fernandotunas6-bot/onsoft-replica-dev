@@ -59,10 +59,10 @@ qualquer aluno podia escrever directamente pela API REST do Supabase.
 4. **Leituras ainda largas:** notas, presenças, `import_jobs` e `terms` continuam legíveis
    por qualquer membro. É preciso passar a ler por papel/turma sem esvaziar o dashboard do
    aluno e do encarregado.
-5. **Políticas do Storage (buckets):** o retrato de produção não as inclui, e os scripts do
-   repositório têm várias versões contraditórias. Para as auditar, correr na base:
-   `SELECT policyname, cmd, roles, qual, with_check FROM pg_policies WHERE schemaname = 'storage';`
-   e `SELECT id, public FROM storage.buckets;`.
+5. **Políticas do Storage (buckets):** levantamento estático feito a 2026-09-27 — ver
+   «Storage — ponto 5» no fim deste documento. Falta o lado da base: correr
+   `docs/agents/SIGA_auditoria_storage.sql` (só leitura) e trazer o resultado. Cinco
+   achados ficam por confirmar até lá.
 6. **Planos de aula:** corrigidos em `20260925162000`, também por aplicar.
 
 ## Segunda passagem (mesmo dia)
@@ -299,3 +299,76 @@ o Supabase directamente e muda a senha.
   Realtime). As 5 migrações por aplicar estão juntas em `docs/agents/SIGA_aplicar_migracoes.sql`.
 - **Comunicados** (e-mail, WhatsApp, lista do Resend) respeitam quem os desligou; a lista do
   Resend é única por escola.
+
+## Storage — ponto 5 (quinta passagem, 2026-09-27)
+
+Levantamento do que o repositório prova sozinho. **Nenhuma destas conclusões é sobre a
+produção**: as políticas do esquema `storage` nunca entraram em nenhum retrato, porque
+`scripts/siga/capture-db-snapshot.mjs` filtra `where schemaname='public'`. O que a base
+tem está por confirmar com `docs/agents/SIGA_auditoria_storage.sql` (só leitura).
+
+**Três buckets, e só três.** `school-logos` (público), `avatars` (privado) e `siga-files`
+(privado). Não há outro nome de bucket no código.
+
+**O que passa pela RLS do Storage e o que não passa.** As leituras não passam: os bytes
+saem sempre por URL assinada gerada no servidor com a chave de serviço
+(`arquivos/server.ts:1394` e `:1443`, `auth/server.ts:523`), que ignora a RLS. As
+**escritas** passam todas: os quatro envios são feitos do browser, com a sessão do
+utilizador — `arquivos/FileBrowser.tsx:653`, `arquivos/apply-person-photo.ts:40`,
+`school/settings-school-panel.tsx:365` e `school/settings-identity-panel.tsx:157`. Para os
+envios, a política do Storage é a única fronteira que existe.
+
+**Achado (P1): os metadados estão guardados por papel e área; os bytes podem não estar.**
+`siga_files_select_scoped` (no retrato) só deixa ler a linha a quem tem o papel certo, e
+`secretaria` só a Administrador e Secretaria. Mas o caminho do objecto é
+`<escola>/<ano>/<mês>/<área>/<utilizador>/<id>-<nome>` (`arquivos/local-store.ts:49`), com a
+área lá dentro. Se a política que estiver na base for a do repositório — `Staff can read
+siga files`, `APPLY_ENROLLMENT_AND_PREMIUM.sql:679`, que só compara
+`split_part(name,'/',1)` com `current_school_id()` — então qualquer membro autenticado,
+aluno incluído, lista `<escola>/2026/09/secretaria` pela API do Storage e descarrega o que
+lá estiver. O papel e a área que a tabela impõe deixam de valer, porque o ficheiro não é
+pedido à tabela. **Confirmar na base antes de tratar isto como real.**
+
+**Achado (P1): três versões contraditórias das políticas de escrita de `school-logos`, e só
+a base sabe qual ficou.** Os três ficheiros são corridos à mão, sem ordem registada (ver
+`scripts-supabase-corridos-a-mao`):
+
+| Ficheiro | `WITH CHECK` do upload | Consequência |
+|---|---|---|
+| `supabase/APPLY_IN_SQL_EDITOR.sql:169` | `name ~ '^[0-9a-f-]{36}/logo-…'` | prefixo de **qualquer** escola |
+| `supabase/APPLY_ENROLLMENT_AND_PREMIUM.sql:119` | `split_part(name,'/',1) = current_school_id()` | só a própria, sem guarda de nulo |
+| `supabase/HARDEN_TENANT_ISOLATION.sql:122` | o mesmo, **mais** `current_school_id() IS NOT NULL` | só a própria |
+
+Se a que ficou for a primeira, qualquer utilizador autenticado de qualquer escola escreve —
+e, pela política de UPDATE, **substitui** — o logótipo de qualquer outra escola, num bucket
+público. É o padrão que a memória já registou: o `APPLY` desfaz o `HARDEN`.
+
+**Achado (P2): `current_school_id()` devolve a primeira escola, não a activa** (ponto 3
+desta lista). O que é novo é que isso agora também decide escritas de ficheiros: um
+administrador de duas escolas, ao trabalhar na segunda, tem o envio de logótipo e de
+ficheiros recusado pela política, sem explicação possível no ecrã.
+
+**Achado (P1): `private.storage_school_id` só reconhece caminhos de 4 segmentos; a
+aplicação escreve 6.** A função existe na produção (retrato, `funcoes[79]`), o corpo está em
+`supabase/migrations/20260908210000_capture_all_db_functions.sql:2807`, e **nenhuma política
+de `public` a usa** — logo foi escrita para uma política do `storage`. O regex exige
+`<uuid>/<seg>/<seg>/<ficheiro>`. Os caminhos reais são
+`<escola>/<ano>/<mês>/<área>/<utilizador>/<id>-<nome>` (6) e `<escola>/logo-<ts>.<ext>` (2).
+Se alguma política do Storage a usar, **todos os envios do browser são recusados** — e
+`FileBrowser.tsx:653` trata a recusa como `backend = "local"`: o ficheiro fica no IndexedDB
+do próprio browser, a lista mostra-o, e o utilizador fica convencido de que o guardou na
+escola. `apply-person-photo.ts:43` pelo menos falha à vista.
+
+**Achado (P2): o bucket público pode ainda ter fotografias de pessoas.**
+`supabase/AUDIT_LEGACY_PUBLIC_PHOTOS.sql` descreve fotografias enviadas para `school-logos`
+(público) em `avatars/<person_id>-<ts>.<ext>`. O código já não as cria — as fotos vão para
+`siga-files` (`apply-person-photo.ts:11-16`) — mas **nada prova que as antigas foram
+removidas**; o script é de auditoria e não apaga. Num bucket público, um objecto é legível
+sem sessão por quem souber o caminho. Muitas destas fotografias são de menores.
+
+**O que só a base responde.** Correr `docs/agents/SIGA_auditoria_storage.sql` e trazer: que
+buckets existem e quais são públicos, as políticas inteiras do esquema `storage`, os GRANT
+de `anon`/`authenticated` sobre `storage.objects`, quantos objectos há fora do padrão em
+`school-logos` (as fotografias antigas) e quantos caminhos a `private.storage_school_id`
+reconhece. Enquanto isso não chegar, os cinco achados acima são hipóteses fundamentadas no
+repositório, não factos sobre a produção.
