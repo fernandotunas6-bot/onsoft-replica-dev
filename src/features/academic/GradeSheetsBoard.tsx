@@ -305,6 +305,25 @@ function GradeSheetDialog({
                 Motivo da reabertura: {sheet.reopenReason}
               </p>
             ) : null}
+            {sheet.versions?.length ? (
+              <details className="text-xs text-muted-foreground">
+                <summary className="cursor-pointer">
+                  {sheet.versions.length === 1
+                    ? "1 versão oficial anterior guardada"
+                    : `${sheet.versions.length} versões oficiais anteriores guardadas`}
+                </summary>
+                <ul className="mt-1.5 space-y-1 pl-4">
+                  {sheet.versions.map((v) => (
+                    <li key={v.version}>
+                      Versão {v.version} ·{" "}
+                      {GRADE_SHEET_STATUS_LABELS[v.status as GradeSheetStatus] ?? v.status} ·{" "}
+                      {new Date(v.archivedAt).toLocaleDateString("pt-AO")} · {v.rows} alunos
+                      {v.reason ? ` · ${v.reason}` : ""}
+                    </li>
+                  ))}
+                </ul>
+              </details>
+            ) : null}
 
             <section className="space-y-2">
               <h3 className="text-sm font-medium">Pré-pauta</h3>

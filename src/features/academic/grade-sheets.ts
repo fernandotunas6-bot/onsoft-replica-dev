@@ -136,6 +136,14 @@ export type GradeSheetDetail = {
     subjects: Array<{ subject: string; subjectId: string; average: number | null }>;
   }>;
   checks: PrePautaCheck[];
+  /** Versões oficiais anteriores, guardadas antes de cada rectificação. */
+  versions: Array<{
+    version: number;
+    status: string;
+    reason: string | null;
+    archivedAt: string;
+    rows: number;
+  }>;
 };
 
 /** Dados da pré-pauta de uma turma num período (ou no ano, pauta anual). */
@@ -362,6 +370,20 @@ export const getGradeSheetDetail = createServerFn({ method: "GET" })
       sheet.kind === "term" ? str(sheet.term_id) : null,
       await gradeSheetBuiltAt(db, schoolId, str(sheet.id)),
     );
+    // Tabela da migração 20260929130000; sem ela, a lista fica vazia.
+    const { data: versionRows } = await db
+      .from("grade_sheet_versions")
+      .select("version, status, reason, archived_at, snapshot")
+      .eq("school_id", schoolId)
+      .eq("grade_sheet_id", str(sheet.id))
+      .order("version", { ascending: false });
+    const versions = ((versionRows ?? []) as Row[]).map((v) => ({
+      version: Number(v.version),
+      status: str(v.status),
+      reason: v.reason ? str(v.reason) : null,
+      archivedAt: str(v.archived_at),
+      rows: Array.isArray(v.snapshot) ? v.snapshot.length : 0,
+    }));
     return {
       id: str(sheet.id),
       classGroupId: str(sheet.class_group_id),
@@ -400,6 +422,7 @@ export const getGradeSheetDetail = createServerFn({ method: "GET" })
         }))
         .sort((a, b) => a.studentName.localeCompare(b.studentName, "pt")),
       checks,
+      versions,
     };
   });
 

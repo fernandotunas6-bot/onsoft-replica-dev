@@ -40,7 +40,7 @@
 
 /**
  * Regenerado a 2026-09-28 a partir da produção (conector Supabase,
- * `generate_typescript_types`). São 178 tabelas (eram 156). Saiu
+ * `generate_typescript_types`). São 179 tabelas (eram 156); a 2026-09-29 entrou `grade_sheet_versions`. Saiu
  * `notification_preferences`, que já não existe na produção.
  */
 
@@ -3720,6 +3720,63 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "grade_sheets"
             referencedColumns: ["school_id", "id"]
+          },
+        ]
+      }
+      grade_sheet_versions: {
+        Row: {
+          archived_at: string
+          archived_by: string | null
+          built_at: string | null
+          grade_sheet_id: string
+          id: string
+          reason: string | null
+          rule_set_id: string | null
+          school_id: string
+          snapshot: Json
+          status: string
+          version: number
+        }
+        Insert: {
+          archived_at?: string
+          archived_by?: string | null
+          built_at?: string | null
+          grade_sheet_id: string
+          id?: string
+          reason?: string | null
+          rule_set_id?: string | null
+          school_id: string
+          snapshot: Json
+          status: string
+          version: number
+        }
+        Update: {
+          archived_at?: string
+          archived_by?: string | null
+          built_at?: string | null
+          grade_sheet_id?: string
+          id?: string
+          reason?: string | null
+          rule_set_id?: string | null
+          school_id?: string
+          snapshot?: Json
+          status?: string
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "grade_sheet_versions_grade_sheet_id_fkey"
+            columns: ["grade_sheet_id"]
+            isOneToOne: false
+            referencedRelation: "grade_sheets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "grade_sheet_versions_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "schools"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -12213,6 +12270,7 @@ export type Database = {
       siga_publish_assessment_rule: {
         Args: {
           actor: string
+          calculation_options?: Json
           continuous_weight_value: number
           exam_weight_value: number
           key_subject_ids?: string[]
@@ -12231,6 +12289,10 @@ export type Database = {
       siga_rate_limit_consume: {
         Args: { key_hashes: string[]; max_hits: number; window_seconds: number }
         Returns: boolean
+      }
+      siga_recompute_attendance_rates: {
+        Args: { p_school_id: string; p_student_ids: string[] }
+        Returns: number
       }
       submit_approved_school_enrollment: {
         Args: { p_payload: Json; p_request_id: string; p_user_id: string }

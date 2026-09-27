@@ -1,11 +1,11 @@
 {
   "capturadoEm": "2026-09-27T14:25:59.502399Z",
   "resumo": {
-    "com_rls": 178,
-    "funcoes_private": 95,
+    "com_rls": 179,
+    "funcoes_private": 97,
     "politicas": 290,
-    "tabelas": 178,
-    "triggers": 186
+    "tabelas": 179,
+    "triggers": 187
   },
   "tabelas": [
     {
@@ -1319,6 +1319,27 @@
       "rls": true,
       "rls_forcada": false,
       "tabela": "grade_sheet_rows"
+    },
+    {
+      "anon_select": false,
+      "auth_select": false,
+      "colunas": [
+        "id",
+        "school_id",
+        "grade_sheet_id",
+        "version",
+        "status",
+        "reason",
+        "rule_set_id",
+        "built_at",
+        "snapshot",
+        "archived_by",
+        "archived_at"
+      ],
+      "politicas": 0,
+      "rls": true,
+      "rls_forcada": true,
+      "tabela": "grade_sheet_versions"
     },
     {
       "anon_select": false,
@@ -6438,6 +6459,12 @@
       "security_definer": false
     },
     {
+      "args": "target_school_id uuid, target_sheet_id uuid, actor uuid",
+      "funcao": "archive_grade_sheet_version",
+      "schema": "private",
+      "security_definer": true
+    },
+    {
       "args": "target_school_id uuid, title text, classification text, target_student_id uuid, target_issued_document_id uuid, target_case_id uuid, retention_until date, notes text",
       "funcao": "archive_school_record",
       "schema": "private",
@@ -6610,6 +6637,12 @@
       "funcao": "fanout_announcement_notifications",
       "schema": "private",
       "security_definer": true
+    },
+    {
+      "args": "",
+      "funcao": "grade_sheet_versions_immutable",
+      "schema": "private",
+      "security_definer": false
     },
     {
       "args": "target_school_id uuid, permission_code text",
@@ -8162,6 +8195,12 @@
       "trigger": "enforce_teacher_grade_score_scope"
     },
     {
+      "funcao": "grade_sheet_versions_immutable",
+      "funcao_schema": "private",
+      "tabela": "grade_sheet_versions",
+      "trigger": "grade_sheet_versions_immutable"
+    },
+    {
       "funcao": "audit_row_change",
       "funcao_schema": "private",
       "tabela": "grade_sheets",
@@ -9604,6 +9643,16 @@
     {
       "chave": "grade_sheet_rows_school_id_fkey",
       "de": "grade_sheet_rows",
+      "para": "schools"
+    },
+    {
+      "chave": "grade_sheet_versions_grade_sheet_id_fkey",
+      "de": "grade_sheet_versions",
+      "para": "grade_sheets"
+    },
+    {
+      "chave": "grade_sheet_versions_school_id_fkey",
+      "de": "grade_sheet_versions",
       "para": "schools"
     },
     {
