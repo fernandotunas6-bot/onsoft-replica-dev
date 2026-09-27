@@ -446,6 +446,7 @@ function ClassExamDetail({ sessionId, classGroupId }: { sessionId: string; class
                             <label className="flex items-center gap-1.5 text-xs text-muted-foreground">
                               <input
                                 type="checkbox"
+                                aria-label={`Faltou ao exame de ${r.subjectName} — ${s.studentName}`}
                                 className="accent-primary"
                                 checked={absent}
                                 onChange={(e) =>
@@ -558,6 +559,7 @@ function CreateSessionDialog({
         <div className="space-y-3">
           <Field label="Tipo">
             <select
+              aria-label="Tipo"
               className={selectClass}
               value={kind}
               onChange={(e) => setKind(e.target.value as ExamKind)}
@@ -571,6 +573,7 @@ function CreateSessionDialog({
           </Field>
           <Field label="Nome (opcional)">
             <Input
+              aria-label="Nome (opcional)"
               value={name}
               placeholder={EXAM_KIND_LABELS[kind]}
               onChange={(e) => setName(e.target.value)}
@@ -578,15 +581,26 @@ function CreateSessionDialog({
           </Field>
           <div className="grid gap-3 sm:grid-cols-2">
             <Field label="Início">
-              <Input type="date" value={startsOn} onChange={(e) => setStartsOn(e.target.value)} />
+              <Input
+                aria-label="Início"
+                type="date"
+                value={startsOn}
+                onChange={(e) => setStartsOn(e.target.value)}
+              />
             </Field>
             <Field label="Fim">
-              <Input type="date" value={endsOn} onChange={(e) => setEndsOn(e.target.value)} />
+              <Input
+                aria-label="Fim"
+                type="date"
+                value={endsOn}
+                onChange={(e) => setEndsOn(e.target.value)}
+              />
             </Field>
           </div>
           {kind !== "melhoria" ? (
             <Field label="Máximo de negativas para ter acesso (vazio = sem limite)">
               <Input
+                aria-label="Máximo de negativas para ter acesso (vazio = sem limite)"
                 type="number"
                 min={1}
                 max={30}
@@ -597,6 +611,7 @@ function CreateSessionDialog({
           ) : null}
           <Field label="Como a nota do exame entra na média">
             <select
+              aria-label="Como a nota do exame entra na média"
               className={selectClass}
               value={method}
               onChange={(e) => setMethod(e.target.value as ExamResultMethod)}

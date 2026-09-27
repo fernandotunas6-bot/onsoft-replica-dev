@@ -275,7 +275,9 @@ export const horariosImporter: RowImporter = {
         return {
           status: "error",
           warnings: analysis.warnings,
-          errors: [`Erro ao atribuir professor à disciplina da turma: ${teacherUpdateError.message}`],
+          errors: [
+            `Erro ao atribuir professor à disciplina da turma: ${teacherUpdateError.message}`,
+          ],
           audits,
         };
       }

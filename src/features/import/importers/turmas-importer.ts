@@ -87,7 +87,8 @@ export const turmasImporter: RowImporter = {
     if (campusValue) {
       const campus = uniqueExactMatch(campusValue, cache.campuses, [(r) => r.code, (r) => r.name]);
       if (campus.ambiguous) errors.push(`Campus "${normalizeText(campusValue)}" é ambíguo.`);
-      else if (!campus.row) errors.push(`Campus "${normalizeText(campusValue)}" não encontrado nesta escola.`);
+      else if (!campus.row)
+        errors.push(`Campus "${normalizeText(campusValue)}" não encontrado nesta escola.`);
     }
     const roomValue = valueOf(normalized, "room", "sala", "Sala");
     if (roomValue) {

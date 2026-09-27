@@ -314,7 +314,11 @@ function RuleEditorDialog({
             </div>
 
             <Field label="Nome" error={issueFor("name")}>
-              <Input value={draft.name} onChange={(e) => set("name", e.target.value)} />
+              <Input
+                aria-label="Nome"
+                value={draft.name}
+                onChange={(e) => set("name", e.target.value)}
+              />
             </Field>
 
             <div className="grid gap-3 sm:grid-cols-2">
@@ -323,6 +327,7 @@ function RuleEditorDialog({
                 error={issueFor("continuousWeight")}
               >
                 <Input
+                  aria-label="Peso da avaliação contínua (MAC) %"
                   type="number"
                   min={0}
                   max={100}
@@ -338,10 +343,17 @@ function RuleEditorDialog({
                 />
               </Field>
               <Field label="Peso da prova (NPT) %" error={issueFor("examWeight")}>
-                <Input type="number" value={draft.examWeight} readOnly className="bg-muted/30" />
+                <Input
+                  aria-label="Peso da prova (NPT) %"
+                  type="number"
+                  value={draft.examWeight}
+                  readOnly
+                  className="bg-muted/30"
+                />
               </Field>
               <Field label="Nota mínima de aprovação" error={issueFor("passingValue")}>
                 <Input
+                  aria-label="Nota mínima de aprovação"
                   type="number"
                   step="0.5"
                   value={draft.passingValue}
@@ -350,6 +362,7 @@ function RuleEditorDialog({
               </Field>
               <Field label="Limite de faltas (%)" error={issueFor("maximumAbsencePercentage")}>
                 <Input
+                  aria-label="Limite de faltas (%)"
                   type="number"
                   min={0}
                   max={100}
@@ -362,6 +375,7 @@ function RuleEditorDialog({
 
             <Field label="Arredondamento">
               <select
+                aria-label="Arredondamento"
                 className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
                 value={draft.roundingMethod}
                 onChange={(e) => set("roundingMethod", e.target.value as RoundingMethod)}

@@ -9,7 +9,9 @@ export const getRouter = () => {
   const queryClient = new QueryClient({
     // Sessão expirada em qualquer pedido → volta ao ecrã de entrada em vez de ecrã em branco.
     queryCache: new QueryCache({ onError: (error) => void reportPossibleSessionError(error) }),
-    mutationCache: new MutationCache({ onError: (error) => void reportPossibleSessionError(error) }),
+    mutationCache: new MutationCache({
+      onError: (error) => void reportPossibleSessionError(error),
+    }),
     defaultOptions: {
       queries: {
         staleTime: 5 * 60_000,

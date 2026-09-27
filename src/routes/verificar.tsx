@@ -1,3 +1,4 @@
+// style-check: route-exempt - página pública de verificação de documentos, sem shell administrativo.
 import { useState, type FormEvent } from "react";
 import { publicErrorMessage } from "@/lib/public-error";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";

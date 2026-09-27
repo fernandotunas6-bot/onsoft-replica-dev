@@ -220,6 +220,7 @@ export function TeacherPortalDashboard() {
                       variant="ghost"
                       className="size-8"
                       title="Lançar notas desta aula"
+                      aria-label="Lançar notas desta aula"
                     >
                       <Link
                         to="/pedagogica"
@@ -235,6 +236,7 @@ export function TeacherPortalDashboard() {
                       variant="ghost"
                       className="size-8"
                       title="Plano de aula"
+                      aria-label="Plano de aula"
                     >
                       <Link
                         to="/planos-aula"
@@ -250,6 +252,7 @@ export function TeacherPortalDashboard() {
                       variant="ghost"
                       className="size-8"
                       title="Materiais"
+                      aria-label="Materiais"
                     >
                       <Link
                         to="/arquivos"

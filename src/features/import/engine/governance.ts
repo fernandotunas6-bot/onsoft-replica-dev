@@ -42,22 +42,31 @@ export async function assertImportModuleGoverned(
     .in("table_name", targets);
 
   if (error) {
-    throw new Error(`Não foi possível validar a governança do módulo "${module}": ${error.message}`);
+    throw new Error(
+      `Não foi possível validar a governança do módulo "${module}": ${error.message}`,
+    );
   }
 
   const byName = new Map((data ?? []).map((row) => [String(row.table_name), row]));
   const missing = targets.filter((table) => !byName.has(table));
   const blocked = targets.filter((table) => {
     const row = byName.get(table);
-    return !row || row.active !== true || row.direct_import_policy !== "controlled" ||
-      row.sensitivity === "secret" || row.sensitivity === "internal";
+    return (
+      !row ||
+      row.active !== true ||
+      row.direct_import_policy !== "controlled" ||
+      row.sensitivity === "secret" ||
+      row.sensitivity === "internal"
+    );
   });
 
   if (missing.length || blocked.length) {
     const details = [
       missing.length ? `ausentes: ${missing.join(", ")}` : "",
       blocked.length ? `não controladas: ${blocked.join(", ")}` : "",
-    ].filter(Boolean).join("; ");
+    ]
+      .filter(Boolean)
+      .join("; ");
     throw new Error(
       `Importação do módulo "${module}" bloqueada pela governança do SGA: ${details}.`,
     );

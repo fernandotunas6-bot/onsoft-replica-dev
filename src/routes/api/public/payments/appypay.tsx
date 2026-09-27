@@ -46,12 +46,20 @@ export const Route = createFileRoute("/api/public/payments/appypay")({
         // Devolvemos 200 mesmo para cobranças desconhecidas, para a AppyPay não repetir sem fim.
         if (!row) return Response.json({ ok: true, known: false });
         if (!row.provider_charge_id) {
-          await db.from("payment_gateway_charges").update({ provider_charge_id: parsed.data.id }).eq("id", row.id);
+          await db
+            .from("payment_gateway_charges")
+            .update({ provider_charge_id: parsed.data.id })
+            .eq("id", row.id);
           row.provider_charge_id = parsed.data.id;
         }
-        const { reconcileAppyPayCharge } = await import("@/features/finance/appypay-reconcile.server");
+        const { reconcileAppyPayCharge } =
+          await import("@/features/finance/appypay-reconcile.server");
         try {
-          const result = await reconcileAppyPayCharge(db, row, parsed.data as Record<string, unknown>);
+          const result = await reconcileAppyPayCharge(
+            db,
+            row,
+            parsed.data as Record<string, unknown>,
+          );
           return Response.json({ ok: true, status: result.status });
         } catch {
           // 500 → a AppyPay volta a tentar mais tarde.

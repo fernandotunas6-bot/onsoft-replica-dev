@@ -115,6 +115,7 @@ export function CompetenciesTab() {
         <label className="space-y-1.5">
           <span className="block text-xs text-muted-foreground">Turma</span>
           <select
+            aria-label="Turma"
             className={selectClass}
             value={board.classGroupId ?? ""}
             onChange={(e) => {
@@ -132,6 +133,7 @@ export function CompetenciesTab() {
         <label className="space-y-1.5">
           <span className="block text-xs text-muted-foreground">Disciplina</span>
           <select
+            aria-label="Disciplina"
             className={selectClass}
             value={board.subjectId ?? ""}
             onChange={(e) => setSubjectId(e.target.value)}
@@ -231,6 +233,7 @@ export function CompetenciesTab() {
                   <label className="flex items-center gap-2 text-xs text-muted-foreground sm:col-span-3">
                     <input
                       type="checkbox"
+                      aria-label={`Só para a ${board.gradeLevel.name}`}
                       className="accent-primary"
                       checked={onlyThisLevel}
                       onChange={(e) => setOnlyThisLevel(e.target.checked)}

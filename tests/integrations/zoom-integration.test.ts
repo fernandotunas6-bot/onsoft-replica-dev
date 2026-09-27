@@ -7,7 +7,10 @@ const migration = readFileSync(
   resolve(__dirname, "../../supabase/migrations/20260924004749_reconcile_zoom_lesson_meetings.sql"),
   "utf8",
 );
-const zoomServer = readFileSync(resolve(__dirname, "../../src/features/integrations/zoom.ts"), "utf8");
+const zoomServer = readFileSync(
+  resolve(__dirname, "../../src/features/integrations/zoom.ts"),
+  "utf8",
+);
 
 describe("SIGA Integrations — Zoom Meetings & Class Integration", () => {
   it("deve fornecer link de sala e rota oficial da integração", () => {

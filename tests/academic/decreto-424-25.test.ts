@@ -84,10 +84,42 @@ describe("Decreto 424/25 — situação e recurso", () => {
 describe("Exportação de pautas", () => {
   const base = { class_group_id: "c1", registration_number: null };
   const grades = [
-    { ...base, enrollment_id: "e1", student_name: "Beatriz", subject_id: "mat", subject_name: "Matemática", term: 1, average: 9 },
-    { ...base, enrollment_id: "e1", student_name: "Beatriz", subject_id: "mat", subject_name: "Matemática", term: 2, average: 11 },
-    { ...base, enrollment_id: "e1", student_name: "Beatriz", subject_id: "por", subject_name: "Português", term: 1, average: 14 },
-    { ...base, enrollment_id: "e2", student_name: "Ana", subject_id: "mat", subject_name: "Matemática", term: 1, average: 8 },
+    {
+      ...base,
+      enrollment_id: "e1",
+      student_name: "Beatriz",
+      subject_id: "mat",
+      subject_name: "Matemática",
+      term: 1,
+      average: 9,
+    },
+    {
+      ...base,
+      enrollment_id: "e1",
+      student_name: "Beatriz",
+      subject_id: "mat",
+      subject_name: "Matemática",
+      term: 2,
+      average: 11,
+    },
+    {
+      ...base,
+      enrollment_id: "e1",
+      student_name: "Beatriz",
+      subject_id: "por",
+      subject_name: "Português",
+      term: 1,
+      average: 14,
+    },
+    {
+      ...base,
+      enrollment_id: "e2",
+      student_name: "Ana",
+      subject_id: "mat",
+      subject_name: "Matemática",
+      term: 1,
+      average: 8,
+    },
   ];
   it("filtra por período e disciplinas e ordena por nome", () => {
     const rows = buildPautaExportRows(grades, ["mat"], 1);
@@ -107,7 +139,9 @@ describe("Exportação de pautas", () => {
 
 describe("Sessão expirada", () => {
   it("reconhece erros de sessão", () => {
-    expect(isSessionError(new Error("Unauthorized: sessão em falta. Termine e volte a entrar."))).toBe(true);
+    expect(
+      isSessionError(new Error("Unauthorized: sessão em falta. Termine e volte a entrar.")),
+    ).toBe(true);
     expect(isSessionError(new Error("JWT expired"))).toBe(true);
     expect(isSessionError({ status: 401 })).toBe(true);
     expect(isSessionError(new Error("Não foi possível carregar as notas."))).toBe(false);

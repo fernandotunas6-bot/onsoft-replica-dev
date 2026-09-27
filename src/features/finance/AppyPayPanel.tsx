@@ -29,7 +29,11 @@ const kz = (n: number) =>
 
 export function useAppyPayStatus() {
   const fn = useServerFn(getAppyPayStatus);
-  return useQuery({ queryKey: ["tesouraria", "appypay-status"], queryFn: () => fn(), retry: false });
+  return useQuery({
+    queryKey: ["tesouraria", "appypay-status"],
+    queryFn: () => fn(),
+    retry: false,
+  });
 }
 
 export function ChargeInvoiceButton(props: {
@@ -74,7 +78,12 @@ export function ChargeInvoiceButton(props: {
           value={phone}
           onChange={(e) => setPhone(e.target.value)}
         />
-        <Button size="sm" variant="outline" disabled={m.isPending || phone.length < 9} onClick={() => m.mutate("GPO")}>
+        <Button
+          size="sm"
+          variant="outline"
+          disabled={m.isPending || phone.length < 9}
+          onClick={() => m.mutate("GPO")}
+        >
           Express
         </Button>
       </div>
@@ -113,7 +122,13 @@ export function AppyPayPanel() {
           : "A AppyPay ainda não está ligada: faltam as chaves da escola."
       }
       action={
-        <Button variant="outline" size="sm" className="gap-2" disabled={rec.isPending || !cfg?.configured} onClick={() => rec.mutate()}>
+        <Button
+          variant="outline"
+          size="sm"
+          className="gap-2"
+          disabled={rec.isPending || !cfg?.configured}
+          onClick={() => rec.mutate()}
+        >
           <RefreshCw className={cn("size-4", rec.isPending && "animate-spin")} /> Conciliar agora
         </Button>
       }
@@ -128,14 +143,18 @@ export function AppyPayPanel() {
       ) : charges.error ? (
         <p className="text-sm text-destructive">{(charges.error as Error).message}</p>
       ) : !charges.data?.length ? (
-        <EmptyState title="Sem cobranças" description="Use “Cobrar” numa factura pendente para criar uma referência." />
+        <EmptyState
+          title="Sem cobranças"
+          description="Use “Cobrar” numa factura pendente para criar uma referência."
+        />
       ) : (
         <ul className="divide-y divide-border text-sm">
           {charges.data.map((c) => (
             <li key={c.id} className="flex flex-wrap items-center justify-between gap-2 py-2">
               <div className="min-w-0">
                 <p className="truncate">
-                  {c.student_name ?? "Aluno"} · {c.method === "GPO" ? "Multicaixa Express" : "Referência"}
+                  {c.student_name ?? "Aluno"} ·{" "}
+                  {c.method === "GPO" ? "Multicaixa Express" : "Referência"}
                   {c.reference_number ? ` ${c.reference_entity ?? ""}/${c.reference_number}` : ""}
                 </p>
                 <p className="text-xs text-muted-foreground">
@@ -146,7 +165,16 @@ export function AppyPayPanel() {
               </div>
               <div className="text-right">
                 <p className="font-medium">{kz(c.amount)}</p>
-                <p className={cn("text-xs", c.status === "paid" ? "text-primary" : ["failed", "mismatch", "needs_review"].includes(c.status) ? "text-destructive" : "text-muted-foreground")}>
+                <p
+                  className={cn(
+                    "text-xs",
+                    c.status === "paid"
+                      ? "text-primary"
+                      : ["failed", "mismatch", "needs_review"].includes(c.status)
+                        ? "text-destructive"
+                        : "text-muted-foreground",
+                  )}
+                >
                   {statusLabel[c.status] ?? c.status}
                 </p>
               </div>
