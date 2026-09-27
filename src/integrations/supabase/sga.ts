@@ -125,53 +125,33 @@ export async function listUserSchoolMemberships(
     }
   }
 
-  // Fetch member roles
-  const memberRolesMap = new Map<string, string[]>();
-  const allRoleIds: string[] = [];
+  // Papéis de cada vínculo numa só consulta. O embed com a chave explícita
+  // (member_roles tem duas chaves para roles) já corre em produção em
+  // `features/access/server.ts`.
+  const rolesByMembership = new Map<string, Array<{ code: string; name: string }>>();
   if (membershipIds.length) {
-    try {
-      const { data: mrData } = await db
-        .from("member_roles")
-        .select("membership_id, role_id")
-        .in("membership_id", membershipIds);
-      if (mrData) {
-        for (const mr of mrData) {
-          const list = memberRolesMap.get(mr.membership_id) ?? [];
-          list.push(mr.role_id);
-          memberRolesMap.set(mr.membership_id, list);
-          allRoleIds.push(mr.role_id);
-        }
-      }
-    } catch {
-      /* ignore */
+    const { data: mrData, error: mrError } = await db
+      .from("member_roles")
+      .select("membership_id, roles!member_roles_role_id_fkey(code, name)")
+      .in("membership_id", membershipIds);
+    if (mrError) {
+      console.error("[listUserSchoolMemberships] error querying roles:", mrError);
     }
-  }
-
-  // Fetch roles definitions
-  let rolesMap = new Map<string, { code: string; name: string }>();
-  if (allRoleIds.length) {
-    try {
-      const { data: rolesData } = await db
-        .from("roles")
-        .select("id, code, name")
-        .in("id", [...new Set(allRoleIds)]);
-      if (rolesData) {
-        rolesMap = new Map(
-          rolesData.map((r: { id: string; code: string; name: string }) => [r.id, r]),
-        );
-      }
-    } catch {
-      /* ignore */
+    for (const mr of (mrData ?? []) as Array<{
+      membership_id: string;
+      roles: { code: string; name: string } | Array<{ code: string; name: string }> | null;
+    }>) {
+      const role = Array.isArray(mr.roles) ? mr.roles[0] : mr.roles;
+      if (!role?.code) continue;
+      const list = rolesByMembership.get(mr.membership_id) ?? [];
+      list.push({ code: String(role.code), name: String(role.name ?? role.code) });
+      rolesByMembership.set(mr.membership_id, list);
     }
   }
 
   return memberships.map((m: { id: string; school_id: string; status: string }) => {
     const schoolInfo = schoolsMap.get(m.school_id);
-    const roleIds = memberRolesMap.get(m.id) ?? [];
-    const roles = roleIds.map((rid) => rolesMap.get(rid)).filter(Boolean) as Array<{
-      code: string;
-      name: string;
-    }>;
+    const roles = rolesByMembership.get(m.id) ?? [];
 
     let roleCode = "member";
     let roleName = "Utilizador";
