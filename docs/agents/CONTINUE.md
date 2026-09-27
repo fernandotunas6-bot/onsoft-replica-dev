@@ -42,6 +42,10 @@ páginas funcionam — o React recupera renderizando no cliente — mas **o HTML
 deitado fora em cada visita**, o que anula o SSR e põe em causa as metas de FCP/LCP do
 `lighthouserc.json`.
 
+**Resolvido (2026-09-27):** as chaves já não vão em `vars`. `scripts/worker-secrets.mjs`
+lista todas as chaves sensíveis que o servidor lê; `deploy-cf.mjs` envia as que estiverem
+definidas por `wrangler secret put` (cifradas), e `tests/security/worker-secrets.test.ts`
+falha se aparecer uma chave sensível nova fora da lista. Texto original:
 **A registar e a decidir, não tocado.** O `deploy-cf.mjs` grava
 `SUPABASE_SERVICE_ROLE_KEY` e `RESEND_API_KEY` como **variáveis de ambiente em texto
 simples** no worker, não como secrets — aparecem na listagem de bindings de qualquer
