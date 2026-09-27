@@ -32,6 +32,7 @@ import {
   getPeriodsForCycle,
   getPeriodNoun,
 } from "@/lib/angola-academic";
+import { useActiveAssessmentRule } from "@/features/academic/use-passing-value";
 import {
   buildClassAcademicSummaries,
   decidePromotionStatus,
@@ -136,6 +137,12 @@ export function PautasWorkspaceModule({
   const configuredPeriodCount = schoolSettings?.evaluation_periods;
   const [modelType, setModelType] = useState<PautaMode>("mini");
   const [selectedCycle, setSelectedCycle] = useState<AngolaTeachingCycle>("i_ciclo");
+  // Nota de aprovação e regras de transição do modelo de avaliação em vigor.
+  const activeRule = useActiveAssessmentRule();
+  const promotionOptions = useMemo(
+    () => ({ passing: activeRule.passing, rules: activeRule.promotionRules }),
+    [activeRule.passing, activeRule.promotionRules],
+  );
   const initialTerm =
     globalTerm?.sequence && globalTerm.sequence >= 1 && globalTerm.sequence <= 3
       ? globalTerm.sequence
@@ -249,8 +256,16 @@ export function PautasWorkspaceModule({
         npt: g.npt,
       })),
       cycle: selectedCycle,
+      options: promotionOptions,
     });
-  }, [isRealClass, enrollmentsForClass, realSubjectsForClass, termGradesForClass, selectedCycle]);
+  }, [
+    isRealClass,
+    enrollmentsForClass,
+    realSubjectsForClass,
+    termGradesForClass,
+    selectedCycle,
+    promotionOptions,
+  ]);
 
   const consistencyReport: ConsistencyCheckReport | null = useMemo(() => {
     if (!isRealClass || !currentClass) return null;
@@ -394,12 +409,16 @@ export function PautasWorkspaceModule({
             if (mt !== null && mt !== undefined) {
               total += mt;
               count += 1;
-              if (mt < 10) failing += 1;
+              if (mt < promotionOptions.passing) failing += 1;
             }
           });
           const avg = count > 0 ? Math.round((total / count) * 10) / 10 : null;
           const status: StudentStatus =
-            avg === null ? "" : toStudentStatus(decidePromotionStatus(avg, failing, selectedCycle));
+            avg === null
+              ? ""
+              : toStudentStatus(
+                  decidePromotionStatus(avg, failing, selectedCycle, undefined, promotionOptions),
+                );
 
           return {
             id: summary.enrollmentId,
@@ -443,6 +462,7 @@ export function PautasWorkspaceModule({
     currentClass,
     activeYearLabel,
     configuredPeriodCount,
+    promotionOptions,
   ]);
 
   // Final Pauta Document

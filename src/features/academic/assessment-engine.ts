@@ -15,6 +15,7 @@ import {
   getPeriodLabelUpper,
   type AngolaTeachingCycle,
 } from "@/lib/angola-academic";
+import { DEFAULT_PROMOTION_RULES, promotionRuleFor, type PromotionRules } from "./assessment-model";
 
 // Reexportadas para compatibilidade — a matemática e os ciclos de ensino vivem em
 // lib/angola-academic.ts (fonte única, partilhada com
@@ -78,39 +79,35 @@ export interface StudentAcademicSummary {
  * src/features/pedagogica/components/pautas/assessment.ts (que já os recebe calculados), para não
  * duplicar as regras por ciclo em dois sítios.
  */
+export type PromotionOptions = {
+  /** Nota de aprovação do modelo em vigor (por omissão, a da escala angolana). */
+  passing?: number;
+  /** Regras de transição por ciclo do modelo (por omissão, as que o SIGA aplicava). */
+  rules?: PromotionRules;
+};
+
 export function decidePromotionStatus(
   overallAvg: number,
   failingCount: number,
   cycle: AngolaTeachingCycle = "i_ciclo",
   papGrade?: number | null,
+  options: PromotionOptions = {},
 ): PromotionStatus {
-  if (cycle === "primario") {
-    return overallAvg >= angolaGradeScale.passing ? "TRANSITA" : "NÃO TRANSITA";
-  }
+  const passing = options.passing ?? angolaGradeScale.passing;
+  const rule = promotionRuleFor(options.rules ?? DEFAULT_PROMOTION_RULES, cycle);
+  const withinFailures = rule.maxFailedSubjects == null || failingCount <= rule.maxFailedSubjects;
+  const passes = overallAvg >= passing && withinFailures;
 
-  if (cycle === "tecnico") {
-    if (papGrade !== undefined && papGrade !== null && papGrade < angolaGradeScale.passing) {
+  if (rule.requiresPap) {
+    if (papGrade !== undefined && papGrade !== null && papGrade < passing) {
       return "NÃO APTO (PAP)";
     }
-    if (overallAvg >= angolaGradeScale.passing && failingCount <= 2) {
-      return "APTO (PAP)";
-    }
-    return "NÃO TRANSITA";
-  }
-
-  if (cycle === "ii_ciclo") {
-    if (overallAvg >= angolaGradeScale.passing && failingCount === 0) {
-      return "TRANSITA";
-    }
-    if (overallAvg >= 9) {
-      return "ADMITIDO A EXAME";
-    }
-    return "NÃO TRANSITA";
-  }
-
-  // Default: I Ciclo
-  if (overallAvg >= angolaGradeScale.passing && failingCount <= 2) {
+    if (passes) return "APTO (PAP)";
+  } else if (passes) {
     return "TRANSITA";
+  }
+  if (rule.examAdmissionMinimum != null && overallAvg >= rule.examAdmissionMinimum) {
+    return "ADMITIDO A EXAME";
   }
   return "NÃO TRANSITA";
 }
@@ -122,10 +119,12 @@ export function evaluateStudentPromotion({
   subjectResults,
   cycle = "i_ciclo",
   papGrade,
+  options = {},
 }: {
   subjectResults: StudentSubjectSummary[];
   cycle?: AngolaTeachingCycle;
   papGrade?: number | null;
+  options?: PromotionOptions;
 }): { status: PromotionStatus; failingCount: number } {
   const mfds = subjectResults.map((s) => s.mfd).filter((x): x is number => x !== null);
 
@@ -134,11 +133,14 @@ export function evaluateStudentPromotion({
   }
 
   const failingCount = subjectResults.filter(
-    (s) => s.mfd !== null && s.mfd < angolaGradeScale.passing,
+    (s) => s.mfd !== null && s.mfd < (options.passing ?? angolaGradeScale.passing),
   ).length;
   const overallAvg = mfds.reduce((a, b) => a + b, 0) / mfds.length;
 
-  return { status: decidePromotionStatus(overallAvg, failingCount, cycle, papGrade), failingCount };
+  return {
+    status: decidePromotionStatus(overallAvg, failingCount, cycle, papGrade, options),
+    failingCount,
+  };
 }
 
 /**
@@ -149,11 +151,13 @@ export function buildClassAcademicSummaries({
   subjects,
   termGrades,
   cycle = "i_ciclo",
+  options = {},
 }: {
   enrollments: Array<{ id: string; student_name: string; registration_number?: string | null }>;
   subjects: Array<{ id: string; name: string }>;
   termGrades: AssessmentItem[];
   cycle?: AngolaTeachingCycle;
+  options?: PromotionOptions;
 }): StudentAcademicSummary[] {
   return enrollments.map((e) => {
     const studentSubjectSummaries: StudentSubjectSummary[] = subjects.map((sub) => {
@@ -193,6 +197,7 @@ export function buildClassAcademicSummaries({
     const { status, failingCount } = evaluateStudentPromotion({
       subjectResults: studentSubjectSummaries,
       cycle,
+      options,
     });
 
     return {

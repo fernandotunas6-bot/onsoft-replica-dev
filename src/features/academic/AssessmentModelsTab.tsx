@@ -21,6 +21,11 @@ import {
   ROUNDING_METHODS,
   draftFromRule,
   formulaText,
+  DEFAULT_PROMOTION_RULES,
+  PROMOTION_CYCLES,
+  PROMOTION_CYCLE_LABELS,
+  describePromotionRule,
+  type PromotionCycleRule,
   ruleChanges,
   termAverageByRule,
   validateRuleDraft,
@@ -183,6 +188,19 @@ function RuleSummary({
           </div>
         ))}
       </dl>
+      <div className="space-y-1.5">
+        <p className="text-xs text-muted-foreground">Transição por ciclo</p>
+        <ul className="grid gap-x-6 gap-y-1 text-sm sm:grid-cols-2">
+          {PROMOTION_CYCLES.map((cycle) => (
+            <li key={cycle} className="flex justify-between gap-3">
+              <span className="text-muted-foreground">{PROMOTION_CYCLE_LABELS[cycle]}</span>
+              <span className="text-right">
+                {describePromotionRule((rule.promotionRules ?? DEFAULT_PROMOTION_RULES)[cycle])}
+              </span>
+            </li>
+          ))}
+        </ul>
+      </div>
       <p className="rounded-md bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
         Exemplo: MAC 12 e NPT 9 dão MT {example}.
       </p>
@@ -372,6 +390,82 @@ function RuleEditorDialog({
                 checked={draft.keySubjectsCauseFailure}
                 onChange={(v) => set("keySubjectsCauseFailure", v)}
               />
+            </div>
+
+            <div className="space-y-2">
+              <p className="text-xs text-muted-foreground">
+                Transição por ciclo — além da média mínima de aprovação
+              </p>
+              <div className="space-y-2.5 rounded-md border border-border p-3">
+                <div
+                  aria-hidden
+                  className="hidden gap-2 text-xs text-muted-foreground sm:grid sm:grid-cols-[120px_1fr_1fr_auto]"
+                >
+                  <span>Ciclo</span>
+                  <span>Máx. negativas (vazio = sem limite)</span>
+                  <span>Admitido a exame com média ≥ (vazio = não)</span>
+                  <span className="w-14">PAP</span>
+                </div>
+                {PROMOTION_CYCLES.map((cycle) => {
+                  const rule = draft.promotionRules[cycle];
+                  const setRule = (patch: Partial<PromotionCycleRule>) =>
+                    setDraft((prev) => ({
+                      ...prev,
+                      promotionRules: {
+                        ...prev.promotionRules,
+                        [cycle]: { ...prev.promotionRules[cycle], ...patch },
+                      },
+                    }));
+                  return (
+                    <div
+                      key={cycle}
+                      className="grid items-end gap-2 sm:grid-cols-[120px_1fr_1fr_auto]"
+                    >
+                      <span className="pb-2 text-sm">{PROMOTION_CYCLE_LABELS[cycle]}</span>
+                      <label className="block space-y-1">
+                        <span className="block text-xs text-muted-foreground sm:hidden">
+                          Máx. negativas (vazio = sem limite)
+                        </span>
+                        <Input
+                          type="number"
+                          min={0}
+                          max={30}
+                          aria-label={`${PROMOTION_CYCLE_LABELS[cycle]}: máximo de negativas`}
+                          value={rule.maxFailedSubjects ?? ""}
+                          onChange={(e) =>
+                            setRule({ maxFailedSubjects: numberOrNull(e.target.value) })
+                          }
+                        />
+                      </label>
+                      <label className="block space-y-1">
+                        <span className="block text-xs text-muted-foreground sm:hidden">
+                          Admitido a exame com média ≥ (vazio = não)
+                        </span>
+                        <Input
+                          type="number"
+                          step="0.5"
+                          aria-label={`${PROMOTION_CYCLE_LABELS[cycle]}: admissão a exame`}
+                          value={rule.examAdmissionMinimum ?? ""}
+                          onChange={(e) =>
+                            setRule({ examAdmissionMinimum: numberOrNull(e.target.value) })
+                          }
+                        />
+                      </label>
+                      <label className="flex w-14 items-center gap-2 text-xs text-muted-foreground">
+                        <Switch
+                          checked={rule.requiresPap}
+                          onCheckedChange={(v) => setRule({ requiresPap: v })}
+                          aria-label={`${PROMOTION_CYCLE_LABELS[cycle]}: PAP obrigatória`}
+                        />
+                        <span className="sm:hidden">PAP</span>
+                      </label>
+                    </div>
+                  );
+                })}
+              </div>
+              {issueFor("promotionRules") ? (
+                <p className="text-xs text-destructive/80">{issueFor("promotionRules")}</p>
+              ) : null}
             </div>
 
             {data.subjects.length ? (

@@ -9,7 +9,7 @@
  * A nota de aprovação, o arredondamento e as disciplinas-chave vêm da regra; o
  * acesso ao exame e o modo de cálculo vêm da época. Nada é fixado aqui.
  */
-import { roundGrade, type RoundingMethod } from "./assessment-model";
+import { roundGrade, type PromotionCycleRule, type RoundingMethod } from "./assessment-model";
 
 export const EXAM_KINDS = ["recurso", "exame_especial", "exame_final", "melhoria"] as const;
 export type ExamKind = (typeof EXAM_KINDS)[number];
@@ -53,6 +53,8 @@ export type EngineRule = {
   roundingMethod: RoundingMethod;
   decimalPlaces: number;
   keySubjectsCauseFailure: boolean;
+  /** Regra de transição do ciclo da turma (máx. negativas, admissão a exame). */
+  promotion?: PromotionCycleRule | null;
 };
 
 export type BreakdownEntry = {
@@ -214,10 +216,31 @@ export function computeFinalResult(
   if (keyFail) {
     return { result: "fail", average, failedSubjects, reason: "Negativa em disciplina-chave" };
   }
+  const promotion = rule.promotion ?? null;
+  const admitted =
+    promotion?.examAdmissionMinimum != null && average >= promotion.examAdmissionMinimum;
   if (average >= rule.passingValue) {
-    return { result: "pass", average, failedSubjects, reason: null };
+    const maxFailed = promotion?.maxFailedSubjects ?? null;
+    if (maxFailed == null || failedSubjects.length <= maxFailed) {
+      return { result: "pass", average, failedSubjects, reason: null };
+    }
+    return {
+      result: "fail",
+      average,
+      failedSubjects,
+      reason: admitted
+        ? "Admitido a exame"
+        : maxFailed === 0
+          ? "Negativas não permitidas neste ciclo"
+          : `Mais de ${maxFailed} negativa(s)`,
+    };
   }
-  return { result: "fail", average, failedSubjects, reason: "Média abaixo da aprovação" };
+  return {
+    result: "fail",
+    average,
+    failedSubjects,
+    reason: admitted ? "Admitido a exame" : "Média abaixo da aprovação",
+  };
 }
 
 /** Substitui as médias das disciplinas com exame avaliado. */

@@ -17,6 +17,9 @@ import {
   requireSgaWriterForWrite,
 } from "@/integrations/supabase/sga-admin";
 import {
+  DEFAULT_PROMOTION_RULES,
+  parsePromotionRules,
+  type PromotionRules,
   ROUNDING_METHODS,
   validateRuleDraft,
   type AssessmentRuleVersion,
@@ -142,6 +145,7 @@ export const getAssessmentModels = createServerFn({ method: "GET" })
         lockAfterPublication: bool(r.lock_after_publication),
         keySubjectIds: keysByRule.get(str(r.id)) ?? [],
         keySubjectsCauseFailure: formula.keySubjectsCauseFailure !== false,
+        promotionRules: parsePromotionRules(formula),
         createdAt: str(r.created_at),
         createdByName: names.get(str(r.created_by)) ?? null,
       };
@@ -160,6 +164,12 @@ export const getAssessmentModels = createServerFn({ method: "GET" })
     };
   });
 
+const promotionCycleSchema = z.object({
+  maxFailedSubjects: z.number().int().min(0).max(30).nullable(),
+  examAdmissionMinimum: z.number().nullable(),
+  requiresPap: z.boolean(),
+});
+
 const publishInput = z.object({
   name: z.string().trim().max(120),
   continuousWeight: z.number().min(0).max(100),
@@ -171,6 +181,12 @@ const publishInput = z.object({
   lockAfterPublication: z.boolean(),
   keySubjectIds: z.array(z.string().uuid()).max(60),
   keySubjectsCauseFailure: z.boolean(),
+  promotionRules: z.object({
+    primario: promotionCycleSchema,
+    i_ciclo: promotionCycleSchema,
+    ii_ciclo: promotionCycleSchema,
+    tecnico: promotionCycleSchema,
+  }),
 });
 
 export const publishAssessmentModel = createServerFn({ method: "POST" })
@@ -223,6 +239,7 @@ export const publishAssessmentModel = createServerFn({ method: "POST" })
         lock_after_publication_value: data.lockAfterPublication,
         key_subject_ids: keySubjectIds,
         key_subjects_cause_failure: data.keySubjectsCauseFailure,
+        promotion_rules: data.promotionRules,
       } as never,
     );
     if (error) {
@@ -243,18 +260,25 @@ export const publishAssessmentModel = createServerFn({ method: "POST" })
  */
 export const getActivePassingValue = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
-  .handler(async ({ context }): Promise<{ passingValue: number | null }> => {
-    const membership = await resolveSgaMembershipAdmin(context.userId);
-    if (!membership) return { passingValue: null };
-    const db = await loadSgaAdminClient();
-    const { data } = await db
-      .from("assessment_rule_sets")
-      .select("passing_value")
-      .eq("school_id", membership.schoolId)
-      .eq("code", "DEFAULT")
-      .eq("status", "active")
-      .limit(1)
-      .maybeSingle();
-    const value = data?.passing_value == null ? NaN : Number(data.passing_value);
-    return { passingValue: Number.isFinite(value) ? value : null };
-  });
+  .handler(
+    async ({
+      context,
+    }): Promise<{ passingValue: number | null; promotionRules: PromotionRules }> => {
+      const membership = await resolveSgaMembershipAdmin(context.userId);
+      if (!membership) return { passingValue: null, promotionRules: DEFAULT_PROMOTION_RULES };
+      const db = await loadSgaAdminClient();
+      const { data } = await db
+        .from("assessment_rule_sets")
+        .select("passing_value, formula")
+        .eq("school_id", membership.schoolId)
+        .eq("code", "DEFAULT")
+        .eq("status", "active")
+        .limit(1)
+        .maybeSingle();
+      const value = data?.passing_value == null ? NaN : Number(data.passing_value);
+      return {
+        passingValue: Number.isFinite(value) ? value : null,
+        promotionRules: parsePromotionRules(data?.formula),
+      };
+    },
+  );

@@ -18,6 +18,91 @@ export const ROUNDING_LABELS: Record<RoundingMethod, string> = {
   none: "Sem arredondamento",
 };
 
+/* ── Regras de transição por ciclo ─────────────────────────────────────── */
+
+export const PROMOTION_CYCLES = ["primario", "i_ciclo", "ii_ciclo", "tecnico"] as const;
+export type PromotionCycle = (typeof PROMOTION_CYCLES)[number];
+
+export const PROMOTION_CYCLE_LABELS: Record<PromotionCycle, string> = {
+  primario: "Primário",
+  i_ciclo: "I Ciclo",
+  ii_ciclo: "II Ciclo",
+  tecnico: "Técnico-profissional",
+};
+
+export type PromotionCycleRule = {
+  /** Máximo de disciplinas em negativa para transitar (null = sem limite). */
+  maxFailedSubjects: number | null;
+  /** Sem transitar, média mínima para ser admitido a exame (null = não há). */
+  examAdmissionMinimum: number | null;
+  /** Exige Prova de Aptidão Profissional (resultado "Apto (PAP)"). */
+  requiresPap: boolean;
+};
+
+export type PromotionRules = Record<PromotionCycle, PromotionCycleRule>;
+
+/** As regras que o SIGA já aplicava; a escola pode mudá-las no modelo. */
+export const DEFAULT_PROMOTION_RULES: PromotionRules = {
+  primario: { maxFailedSubjects: null, examAdmissionMinimum: null, requiresPap: false },
+  i_ciclo: { maxFailedSubjects: 2, examAdmissionMinimum: null, requiresPap: false },
+  ii_ciclo: { maxFailedSubjects: 0, examAdmissionMinimum: 9, requiresPap: false },
+  tecnico: { maxFailedSubjects: 2, examAdmissionMinimum: null, requiresPap: true },
+};
+
+const intOrNull = (v: unknown) =>
+  v == null || v === "" || !Number.isFinite(Number(v)) ? null : Math.trunc(Number(v));
+const numOrNull = (v: unknown) =>
+  v == null || v === "" || !Number.isFinite(Number(v)) ? null : Number(v);
+
+/** Lê `formula.promotion` da regra guardada; o que faltar vem das regras por omissão. */
+export function parsePromotionRules(formula: unknown): PromotionRules {
+  const promotion =
+    formula && typeof formula === "object"
+      ? ((formula as Record<string, unknown>)["promotion"] as Record<string, unknown> | undefined)
+      : undefined;
+  const out = {} as PromotionRules;
+  for (const cycle of PROMOTION_CYCLES) {
+    const base = DEFAULT_PROMOTION_RULES[cycle];
+    const given = promotion?.[cycle] as Record<string, unknown> | undefined;
+    out[cycle] = given
+      ? {
+          maxFailedSubjects:
+            "maxFailedSubjects" in given
+              ? intOrNull(given["maxFailedSubjects"])
+              : base.maxFailedSubjects,
+          examAdmissionMinimum:
+            "examAdmissionMinimum" in given
+              ? numOrNull(given["examAdmissionMinimum"])
+              : base.examAdmissionMinimum,
+          requiresPap: "requiresPap" in given ? given["requiresPap"] === true : base.requiresPap,
+        }
+      : { ...base };
+  }
+  return out;
+}
+
+/** Adultos e superior seguem a regra do I Ciclo, como até aqui. */
+export function promotionRuleFor(rules: PromotionRules, cycle: string): PromotionCycleRule {
+  return (PROMOTION_CYCLES as readonly string[]).includes(cycle)
+    ? rules[cycle as PromotionCycle]
+    : rules.i_ciclo;
+}
+
+export function describePromotionRule(rule: PromotionCycleRule, passing?: number): string {
+  const parts = [
+    ...(passing == null ? [] : [`média ≥ ${passing}`]),
+    rule.maxFailedSubjects == null
+      ? "sem limite de negativas"
+      : rule.maxFailedSubjects === 0
+        ? "sem negativas"
+        : `até ${rule.maxFailedSubjects} negativa(s)`,
+  ];
+  if (rule.examAdmissionMinimum != null)
+    parts.push(`exame a partir de ${rule.examAdmissionMinimum}`);
+  if (rule.requiresPap) parts.push("PAP obrigatória");
+  return parts.join(" · ");
+}
+
 export type AssessmentScale = {
   minimum: number;
   maximum: number;
@@ -35,6 +120,7 @@ export type AssessmentRuleDraft = {
   lockAfterPublication: boolean;
   keySubjectIds: string[];
   keySubjectsCauseFailure: boolean;
+  promotionRules: PromotionRules;
 };
 
 export type AssessmentRuleVersion = AssessmentRuleDraft & {
@@ -56,12 +142,27 @@ export const DECREE_424_25_MODEL: Omit<AssessmentRuleDraft, "maximumAbsencePerce
   lockAfterPublication: true,
   keySubjectIds: [],
   keySubjectsCauseFailure: true,
+  promotionRules: DEFAULT_PROMOTION_RULES,
 };
 
 export function draftFromRule(rule: AssessmentRuleVersion | null): AssessmentRuleDraft {
-  if (!rule) return { ...DECREE_424_25_MODEL, maximumAbsencePercentage: null };
+  const copyRules = (rules: PromotionRules) =>
+    Object.fromEntries(
+      PROMOTION_CYCLES.map((cycle) => [cycle, { ...rules[cycle] }]),
+    ) as PromotionRules;
+  if (!rule) {
+    return {
+      ...DECREE_424_25_MODEL,
+      maximumAbsencePercentage: null,
+      promotionRules: copyRules(DEFAULT_PROMOTION_RULES),
+    };
+  }
   const { id: _id, version: _v, status: _s, createdAt: _c, createdByName: _n, ...draft } = rule;
-  return { ...draft, keySubjectIds: [...draft.keySubjectIds] };
+  return {
+    ...draft,
+    keySubjectIds: [...draft.keySubjectIds],
+    promotionRules: copyRules(draft.promotionRules ?? DEFAULT_PROMOTION_RULES),
+  };
 }
 
 export type RuleIssue = { field: keyof AssessmentRuleDraft; message: string };
@@ -102,6 +203,32 @@ export function validateRuleDraft(
   }
   if (draft.name.trim().length > 120) {
     issues.push({ field: "name", message: "Nome demasiado longo (máx. 120)." });
+  }
+  for (const cycle of PROMOTION_CYCLES) {
+    const rule = draft.promotionRules[cycle];
+    const label = PROMOTION_CYCLE_LABELS[cycle];
+    if (
+      rule.maxFailedSubjects != null &&
+      (!Number.isInteger(rule.maxFailedSubjects) ||
+        rule.maxFailedSubjects < 0 ||
+        rule.maxFailedSubjects > 30)
+    ) {
+      issues.push({
+        field: "promotionRules",
+        message: `${label}: o máximo de negativas vai de 0 a 30 (ou vazio).`,
+      });
+    }
+    const admission = rule.examAdmissionMinimum;
+    if (admission != null) {
+      if (!Number.isFinite(admission) || (scale && admission < scale.minimum)) {
+        issues.push({ field: "promotionRules", message: `${label}: admissão a exame inválida.` });
+      } else if (Number.isFinite(draft.passingValue) && admission > draft.passingValue) {
+        issues.push({
+          field: "promotionRules",
+          message: `${label}: a admissão a exame não pode ser acima da nota de aprovação.`,
+        });
+      }
+    }
   }
   return issues;
 }
@@ -177,6 +304,13 @@ export function ruleChanges(
       yesNo(next.keySubjectsCauseFailure),
     ],
   ];
+  for (const cycle of PROMOTION_CYCLES) {
+    rows.push([
+      `Transição · ${PROMOTION_CYCLE_LABELS[cycle]}`,
+      describePromotionRule(current.promotionRules[cycle]),
+      describePromotionRule(next.promotionRules[cycle]),
+    ]);
+  }
   const sameKeys =
     current.keySubjectIds.length === next.keySubjectIds.length &&
     current.keySubjectIds.every((id) => next.keySubjectIds.includes(id));

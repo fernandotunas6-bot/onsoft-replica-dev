@@ -4,7 +4,13 @@
  */
 import type { loadSgaAdminClient } from "@/integrations/supabase/sga-admin";
 import { publicDatabaseError } from "@/integrations/supabase/server-error";
-import { ROUNDING_METHODS, type RoundingMethod } from "./assessment-model";
+import {
+  ROUNDING_METHODS,
+  parsePromotionRules,
+  promotionRuleFor,
+  type RoundingMethod,
+} from "./assessment-model";
+import { inferTeachingCycle } from "@/lib/angola-academic";
 import { absencePercentageFromStatuses, type BreakdownEntry, type EngineRule } from "./exam-engine";
 
 type Db = Awaited<ReturnType<typeof loadSgaAdminClient>>;
@@ -38,7 +44,12 @@ export async function activeYearId(db: Db, schoolId: string, requested?: string)
 }
 
 /** Regra com que a pauta foi gerada (e a escala dela), no formato do motor. */
-export async function loadEngineRule(db: Db, schoolId: string, ruleSetId: string | null) {
+export async function loadEngineRule(
+  db: Db,
+  schoolId: string,
+  ruleSetId: string | null,
+  cycle?: string | null,
+) {
   let query = db
     .from("assessment_rule_sets")
     .select("passing_value, maximum_absence_percentage, rounding_method, formula, grading_scale_id")
@@ -66,6 +77,7 @@ export async function loadEngineRule(db: Db, schoolId: string, ruleSetId: string
       : "nearest",
     decimalPlaces: Number(scale?.decimal_places ?? 0) || 0,
     keySubjectsCauseFailure: formula.keySubjectsCauseFailure !== false,
+    promotion: cycle ? promotionRuleFor(parsePromotionRules(formula), cycle) : null,
   };
   return engine;
 }
@@ -104,7 +116,12 @@ export async function loadAnnualSheet(
       .select("enrollment_id, absence_percentage, result, subject_breakdown")
       .eq("school_id", schoolId)
       .eq("grade_sheet_id", str(sheet.id)),
-    loadEngineRule(db, schoolId, sheet.rule_set_id ? str(sheet.rule_set_id) : null),
+    loadEngineRule(
+      db,
+      schoolId,
+      sheet.rule_set_id ? str(sheet.rule_set_id) : null,
+      await classCycle(db, schoolId, classGroupId),
+    ),
   ]);
   const sheetRows = (rows ?? []) as Row[];
   const absences = await absenceByEnrollment(
@@ -228,14 +245,51 @@ export async function absenceByEnrollment(
 
 /** Nota de aprovação do modelo de avaliação em vigor; sem modelo, a da escala angolana. */
 export async function loadActivePassingValue(db: Db, schoolId: string): Promise<number> {
+  return (await loadActiveRuleSummary(db, schoolId)).passing;
+}
+
+/** Nota de aprovação e regras de transição por ciclo do modelo em vigor. */
+export async function loadActiveRuleSummary(db: Db, schoolId: string) {
   const { data } = await db
     .from("assessment_rule_sets")
-    .select("passing_value")
+    .select("passing_value, formula")
     .eq("school_id", schoolId)
     .eq("code", "DEFAULT")
     .eq("status", "active")
     .limit(1)
     .maybeSingle();
   const value = data?.passing_value == null ? NaN : Number(data.passing_value);
-  return Number.isFinite(value) ? value : 10;
+  return {
+    passing: Number.isFinite(value) ? value : 10,
+    promotionRules: parsePromotionRules(data?.formula),
+  };
+}
+
+/** Ciclo de ensino da turma, pela classe e curso (a mesma inferência do resto do SIGA). */
+export async function classCycle(db: Db, schoolId: string, classGroupId: string) {
+  const { data: group } = await db
+    .from("class_groups")
+    .select("grade_level_id")
+    .eq("school_id", schoolId)
+    .eq("id", classGroupId)
+    .maybeSingle();
+  if (!group?.grade_level_id) return inferTeachingCycle(null, null);
+  const { data: level } = await db
+    .from("grade_levels")
+    .select("name, program_id")
+    .eq("school_id", schoolId)
+    .eq("id", str(group.grade_level_id))
+    .maybeSingle();
+  const { data: program } = level?.program_id
+    ? await db
+        .from("programs")
+        .select("name")
+        .eq("school_id", schoolId)
+        .eq("id", str(level.program_id))
+        .maybeSingle()
+    : { data: null };
+  return inferTeachingCycle(
+    level?.name ? str(level.name) : null,
+    program?.name ? str(program.name) : null,
+  );
 }

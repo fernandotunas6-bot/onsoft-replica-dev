@@ -1,20 +1,14 @@
--- Modelos de avaliação: publicar uma nova versão da regra da escola pelo servidor.
+-- Modelos de avaliação: regras de transição por ciclo.
 --
--- `publish_assessment_rule_version` (produção) não é SECURITY DEFINER e
--- `assessment_rule_sets` só tem política de leitura: chamada com o token do
--- utilizador, a actualização e a inserção são recusadas pela RLS. Esta função
--- faz o mesmo numa só transacção, mas só a chave de serviço a pode executar;
--- o servidor (`assessment-models.ts`) valida antes o perfil e a 2FA (aal2) e
--- passa o autor explicitamente, porque `auth.uid()` é nulo com a chave de serviço.
+-- As regras que decidem "Transita / Não transita / Admitido a exame / Apto (PAP)"
+-- por ciclo (máximo de negativas, média de admissão a exame, PAP) estavam fixas
+-- no código. Passam a fazer parte do modelo publicado pela escola:
+-- `siga_publish_assessment_rule` ganha `promotion_rules` (jsonb), guardado em
+-- `assessment_rule_sets.formula -> 'promotion'`. Sem ele, os ecrãs usam as
+-- regras que o SIGA já aplicava.
 --
--- Mesmas validações da função original. A versão anterior é aposentada e a nova
--- activada na mesma transacção: nunca fica a escola sem regra activa.
---
--- Aditiva e idempotente.
-
--- Já inclui `promotion_rules` (regras de transição por ciclo, 20260927130000):
--- apaga a assinatura anterior, sem esse parâmetro, para nunca ficarem duas
--- versões — repetir este ficheiro depois do 20260927130000 não cria ambiguidade.
+-- Substitui a versão de `20260926200000` (a assinatura muda: apaga-se a antiga
+-- para não ficarem duas). Idempotente.
 
 DROP FUNCTION IF EXISTS public.siga_publish_assessment_rule(
   uuid, uuid, text, numeric, numeric, numeric, numeric, text, boolean, boolean, uuid[], boolean

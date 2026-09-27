@@ -100,7 +100,15 @@ A produção tem o fluxo premium quase todo — falta ligá-lo aos ecrãs:
    reais. A emissão real deixou de herdar dados de exemplo (antes, uma
    declaração sem overlay imprimia notas inventadas) e os modelos de notas
    recusam emitir sem notas.
-5. **Competências** — tabela de competências ligada a `curriculum_subjects` e
+5. ~~Regras de transição por ciclo no modelo~~ (feito, 2026-09-27): máximo
+   de negativas, média de admissão a exame e PAP por ciclo (primário, I e II
+   ciclo, técnico) passam a ser publicados pela escola no modelo
+   (`formula.promotion`, migração `20260927130000`). Por omissão, as regras que
+   o SIGA já aplicava. Pauta Final, histórico da ficha e resultado final (que vai
+   para o histórico oficial) usam todos a mesma regra e a mesma nota de
+   aprovação. Limite: a pauta da base (`build_grade_sheet`) continua a decidir só
+   por média, disciplinas-chave e faltas; o resultado final corrige isso.
+6. **Competências** — tabela de competências ligada a `curriculum_subjects` e
    às avaliações; percentagem de competências dominadas por aluno.
-6. **Analytics** — comparativo trimestral, turma/disciplina, alunos em risco
+7. **Analytics** — comparativo trimestral, turma/disciplina, alunos em risco
    (reaproveitar `student_risk_cases`).

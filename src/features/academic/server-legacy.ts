@@ -1,6 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { assertCanSeeStudent, loadStudentScope } from "@/features/students/student-scope";
-import { loadActivePassingValue } from "./exam-data";
+import { loadActivePassingValue, loadActiveRuleSummary } from "./exam-data";
 import { recordAuditBatch } from "@/features/audit/record-audit";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { publicDatabaseError } from "@/integrations/supabase/server-error";
@@ -1882,6 +1882,9 @@ export const getStudentAcademicHistory = createServerFn({ method: "GET" })
       (subjectsData ?? []).map((s: Record<string, unknown>) => [String(s["id"]), s]),
     );
 
+    // Regra de transição do modelo em vigor (nota de aprovação e regras por ciclo).
+    const activeRule = await loadActiveRuleSummary(db, membership.schoolId);
+
     // Resultado oficial por ano lectivo (histórico académico registado).
     const { data: officialRows } = await db
       .from("student_academic_history")
@@ -1941,6 +1944,7 @@ export const getStudentAcademicHistory = createServerFn({ method: "GET" })
         subjects: subjectsForClass,
         termGrades: gradesForEnrollment,
         cycle,
+        options: { passing: activeRule.passing, rules: activeRule.promotionRules },
       });
 
       return {

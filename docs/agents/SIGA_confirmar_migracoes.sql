@@ -34,7 +34,8 @@ from (values
   ('20260926180000_tenant_mailboxes_server_only',
      to_regclass('public.tenant_mailboxes') is not null),
   ('20260926200000_assessment_rule_publish_server',
-     to_regprocedure('public.siga_publish_assessment_rule(uuid, uuid, text, numeric, numeric, numeric, numeric, text, boolean, boolean, uuid[], boolean)') is not null),
+     exists (select 1 from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+             where n.nspname = 'public' and p.proname = 'siga_publish_assessment_rule')),
   ('20260926220000_exam_sessions_registrations',
      to_regclass('public.siga_exam_sessions') is not null
      and to_regclass('public.siga_exam_registrations') is not null),
@@ -45,6 +46,8 @@ from (values
   ('20260927110000_grade_sheet_absences_from_siga',
      coalesce(position('siga_attendance_records' in
        (select prosrc from pg_proc p join pg_namespace n on n.oid = p.pronamespace
-        where n.nspname = 'private' and p.proname = 'build_grade_sheet' limit 1)) > 0, false))
+        where n.nspname = 'private' and p.proname = 'build_grade_sheet' limit 1)) > 0, false)),
+  ('20260927130000_assessment_rule_promotion_rules',
+     to_regprocedure('public.siga_publish_assessment_rule(uuid, uuid, text, numeric, numeric, numeric, numeric, text, boolean, boolean, uuid[], boolean, jsonb)') is not null)
 ) as m(migracao, ok)
 order by migracao;
