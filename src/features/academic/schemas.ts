@@ -164,6 +164,13 @@ export const createAssessmentInputSchema = z.object({
     .trim()
     .regex(/^\d{4}-\d{2}-\d{2}$/)
     .optional(),
+  startsAt: z
+    .string()
+    .trim()
+    .regex(/^([01]\d|2[0-3]):[0-5]\d$/)
+    .optional(),
+  durationMinutes: z.number().int().min(5).max(600).optional(),
+  purpose: z.enum(["diagnostic", "formative", "summative"]).optional(),
   maxScore: z.number().min(1).max(20).default(20),
   description: optionalText,
   countsTowardPauta: z.boolean().default(true),
@@ -181,6 +188,13 @@ export const updateAssessmentInputSchema = z.object({
     .trim()
     .regex(/^\d{4}-\d{2}-\d{2}$/)
     .optional(),
+  startsAt: z
+    .string()
+    .trim()
+    .regex(/^([01]\d|2[0-3]):[0-5]\d$/)
+    .optional(),
+  durationMinutes: z.number().int().min(5).max(600).optional(),
+  purpose: z.enum(["diagnostic", "formative", "summative"]).optional(),
   maxScore: z.number().min(1).max(20).default(20),
   description: optionalText,
   countsTowardPauta: z.boolean().default(true),

@@ -8546,12 +8546,15 @@ export type Database = {
           created_at: string
           created_by: string | null
           description: string | null
+          duration_minutes: number | null
           id: string
           kind: string
           lesson_plan_component_id: string | null
           max_score: number
           name: string
+          purpose: string | null
           school_id: string
+          starts_at: string | null
           subject_id: string | null
           term: number
           updated_at: string
@@ -8566,12 +8569,15 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           description?: string | null
+          duration_minutes?: number | null
           id?: string
           kind?: string
           lesson_plan_component_id?: string | null
           max_score?: number
           name: string
+          purpose?: string | null
           school_id: string
+          starts_at?: string | null
           subject_id?: string | null
           term: number
           updated_at?: string
@@ -8586,12 +8592,15 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           description?: string | null
+          duration_minutes?: number | null
           id?: string
           kind?: string
           lesson_plan_component_id?: string | null
           max_score?: number
           name?: string
+          purpose?: string | null
           school_id?: string
+          starts_at?: string | null
           subject_id?: string | null
           term?: number
           updated_at?: string

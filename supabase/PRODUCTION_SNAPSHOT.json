@@ -3089,7 +3089,10 @@
         "updated_at",
         "created_by",
         "updated_by",
-        "lesson_plan_component_id"
+        "lesson_plan_component_id",
+        "starts_at",
+        "duration_minutes",
+        "purpose"
       ],
       "politicas": 3,
       "rls": true,

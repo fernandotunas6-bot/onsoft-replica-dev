@@ -325,6 +325,15 @@ export const assessmentComponents = [
 
 export type AssessmentComponentId = (typeof assessmentComponents)[number]["id"];
 
+/** Para que serve a prova: diagnosticar, acompanhar ou classificar. */
+export const assessmentPurposes = [
+  { id: "diagnostic", label: "Diagnóstica" },
+  { id: "formative", label: "Formativa" },
+  { id: "summative", label: "Sumativa" },
+] as const;
+
+export type AssessmentPurposeId = (typeof assessmentPurposes)[number]["id"];
+
 export const pautaSituations = [
   { id: "todos", label: "Todos" },
   { id: "pendente", label: "Pendente" },

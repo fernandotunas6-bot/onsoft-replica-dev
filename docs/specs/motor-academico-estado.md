@@ -26,7 +26,7 @@ Legenda: ✅ existe · 🟡 parcial · ❌ falta
 | 6 | Atribuição do professor | ✅ | `class_subjects.teacher_id`, `teacher_subjects` | — |
 | 7 | Matrícula | ✅ | `enrollments` via `enroll_student` (2FA, lotação, número). Em lote passou a usar o mesmo caminho (2026-09-28) | — |
 | 8 | Avaliação | 🟡 | `siga_assessment_items` (provas: tipo, componente, data) | Tabela diferente da que chega à pauta (ver 13) |
-| 9 | Cadastro da avaliação | 🟡 | `CreateAssessmentDialog` | Hora, duração e finalidade (diagnóstica, formativa, sumativa) não são guardadas |
+| 9 | Cadastro da avaliação | ✅ | `CreateAssessmentDialog` | Desde 2026-09-29 (migração `20260929190000`, aplicada) guarda também a hora, a duração (5–600 min) e a finalidade (diagnóstica, formativa, sumativa); opcionais para as provas antigas |
 | 10 | Pesos | 🟡 | `assessment_rule_sets.continuous_weight`, `exam_weight`, `formula` | Pesos por tipo de prova (MAC/Teste/Prova) não são configuráveis; a média do componente é média simples |
 | 11 | Lançamento de notas | ✅ | `grade_scores` (componentes) e `siga_assessment_scores` (provas) | — |
 | 12 | Histórico da nota | ✅ | `grade_score_history`, pedidos de alteração com aprovação (`grade-change-requests.ts`, `pending_score`), `audit_logs` | — |
