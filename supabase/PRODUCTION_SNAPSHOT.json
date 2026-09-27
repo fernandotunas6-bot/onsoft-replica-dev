@@ -8953,5 +8953,1877 @@
       "tabela": "users",
       "trigger": "on_auth_user_created"
     }
+  ],
+  "relacoes": [
+    {
+      "chave": "academic_levels_school_id_fkey",
+      "de": "academic_levels",
+      "para": "schools"
+    },
+    {
+      "chave": "academic_schedules_academic_year_id_fkey",
+      "de": "academic_schedules",
+      "para": "academic_years"
+    },
+    {
+      "chave": "academic_schedules_class_group_id_fkey",
+      "de": "academic_schedules",
+      "para": "class_groups"
+    },
+    {
+      "chave": "academic_schedules_school_id_fkey",
+      "de": "academic_schedules",
+      "para": "schools"
+    },
+    {
+      "chave": "academic_years_school_id_fkey",
+      "de": "academic_years",
+      "para": "schools"
+    },
+    {
+      "chave": "alumni_communication_preferences_alumni_id_fkey",
+      "de": "alumni_communication_preferences",
+      "para": "alumni_profiles"
+    },
+    {
+      "chave": "alumni_communication_preferences_school_id_fkey",
+      "de": "alumni_communication_preferences",
+      "para": "schools"
+    },
+    {
+      "chave": "alumni_contributions_alumni_id_fkey",
+      "de": "alumni_contributions",
+      "para": "alumni_profiles"
+    },
+    {
+      "chave": "alumni_contributions_school_id_fkey",
+      "de": "alumni_contributions",
+      "para": "schools"
+    },
+    {
+      "chave": "alumni_education_stages_alumni_id_fkey",
+      "de": "alumni_education_stages",
+      "para": "alumni_profiles"
+    },
+    {
+      "chave": "alumni_education_stages_school_id_fkey",
+      "de": "alumni_education_stages",
+      "para": "schools"
+    },
+    {
+      "chave": "alumni_engagements_alumni_id_fkey",
+      "de": "alumni_engagements",
+      "para": "alumni_profiles"
+    },
+    {
+      "chave": "alumni_engagements_school_id_fkey",
+      "de": "alumni_engagements",
+      "para": "schools"
+    },
+    {
+      "chave": "alumni_event_registrations_event_id_fkey",
+      "de": "alumni_event_registrations",
+      "para": "alumni_events"
+    },
+    {
+      "chave": "alumni_event_registrations_alumni_id_fkey",
+      "de": "alumni_event_registrations",
+      "para": "alumni_profiles"
+    },
+    {
+      "chave": "alumni_event_registrations_school_id_fkey",
+      "de": "alumni_event_registrations",
+      "para": "schools"
+    },
+    {
+      "chave": "alumni_events_school_id_fkey",
+      "de": "alumni_events",
+      "para": "schools"
+    },
+    {
+      "chave": "alumni_experiences_alumni_id_fkey",
+      "de": "alumni_experiences",
+      "para": "alumni_profiles"
+    },
+    {
+      "chave": "alumni_experiences_school_id_fkey",
+      "de": "alumni_experiences",
+      "para": "schools"
+    },
+    {
+      "chave": "alumni_mentorships_mentee_alumni_id_fkey",
+      "de": "alumni_mentorships",
+      "para": "alumni_profiles"
+    },
+    {
+      "chave": "alumni_mentorships_mentor_alumni_id_fkey",
+      "de": "alumni_mentorships",
+      "para": "alumni_profiles"
+    },
+    {
+      "chave": "alumni_mentorships_school_id_fkey",
+      "de": "alumni_mentorships",
+      "para": "schools"
+    },
+    {
+      "chave": "alumni_opportunities_created_by_alumni_id_fkey",
+      "de": "alumni_opportunities",
+      "para": "alumni_profiles"
+    },
+    {
+      "chave": "alumni_opportunities_school_id_fkey",
+      "de": "alumni_opportunities",
+      "para": "schools"
+    },
+    {
+      "chave": "alumni_opportunity_applications_opportunity_id_fkey",
+      "de": "alumni_opportunity_applications",
+      "para": "alumni_opportunities"
+    },
+    {
+      "chave": "alumni_opportunity_applications_alumni_id_fkey",
+      "de": "alumni_opportunity_applications",
+      "para": "alumni_profiles"
+    },
+    {
+      "chave": "alumni_opportunity_applications_school_id_fkey",
+      "de": "alumni_opportunity_applications",
+      "para": "schools"
+    },
+    {
+      "chave": "alumni_portfolio_items_education_stage_id_fkey",
+      "de": "alumni_portfolio_items",
+      "para": "alumni_education_stages"
+    },
+    {
+      "chave": "alumni_portfolio_items_alumni_id_fkey",
+      "de": "alumni_portfolio_items",
+      "para": "alumni_profiles"
+    },
+    {
+      "chave": "alumni_portfolio_items_official_document_request_id_fkey",
+      "de": "alumni_portfolio_items",
+      "para": "document_requests"
+    },
+    {
+      "chave": "alumni_portfolio_items_school_id_fkey",
+      "de": "alumni_portfolio_items",
+      "para": "schools"
+    },
+    {
+      "chave": "alumni_privacy_audit_alumni_id_fkey",
+      "de": "alumni_privacy_audit",
+      "para": "alumni_profiles"
+    },
+    {
+      "chave": "alumni_privacy_audit_school_id_fkey",
+      "de": "alumni_privacy_audit",
+      "para": "schools"
+    },
+    {
+      "chave": "alumni_profiles_person_id_fkey",
+      "de": "alumni_profiles",
+      "para": "people"
+    },
+    {
+      "chave": "alumni_profiles_school_id_fkey",
+      "de": "alumni_profiles",
+      "para": "schools"
+    },
+    {
+      "chave": "alumni_profiles_student_id_fkey",
+      "de": "alumni_profiles",
+      "para": "students"
+    },
+    {
+      "chave": "alumni_survey_responses_alumni_id_fkey",
+      "de": "alumni_survey_responses",
+      "para": "alumni_profiles"
+    },
+    {
+      "chave": "alumni_survey_responses_survey_id_fkey",
+      "de": "alumni_survey_responses",
+      "para": "alumni_surveys"
+    },
+    {
+      "chave": "alumni_survey_responses_school_id_fkey",
+      "de": "alumni_survey_responses",
+      "para": "schools"
+    },
+    {
+      "chave": "alumni_surveys_school_id_fkey",
+      "de": "alumni_surveys",
+      "para": "schools"
+    },
+    {
+      "chave": "announcements_class_fk",
+      "de": "announcements",
+      "para": "class_groups"
+    },
+    {
+      "chave": "announcements_school_id_fkey",
+      "de": "announcements",
+      "para": "schools"
+    },
+    {
+      "chave": "assessment_key_subjects_rule_set_id_fkey",
+      "de": "assessment_key_subjects",
+      "para": "assessment_rule_sets"
+    },
+    {
+      "chave": "assessment_key_subjects_school_id_fkey",
+      "de": "assessment_key_subjects",
+      "para": "schools"
+    },
+    {
+      "chave": "assessment_key_subjects_subject_id_fkey",
+      "de": "assessment_key_subjects",
+      "para": "subjects"
+    },
+    {
+      "chave": "assessment_rule_sets_grading_scale_id_fkey",
+      "de": "assessment_rule_sets",
+      "para": "grading_scales"
+    },
+    {
+      "chave": "assessment_rule_sets_school_id_fkey",
+      "de": "assessment_rule_sets",
+      "para": "schools"
+    },
+    {
+      "chave": "attendance_records_roster_fkey",
+      "de": "attendance_records",
+      "para": "attendance_session_roster"
+    },
+    {
+      "chave": "attendance_records_school_id_attendance_session_id_fkey",
+      "de": "attendance_records",
+      "para": "attendance_sessions"
+    },
+    {
+      "chave": "attendance_records_school_id_enrollment_id_fkey",
+      "de": "attendance_records",
+      "para": "enrollments"
+    },
+    {
+      "chave": "attendance_records_school_id_fkey",
+      "de": "attendance_records",
+      "para": "schools"
+    },
+    {
+      "chave": "attendance_session_roster_school_id_attendance_session_id_fkey",
+      "de": "attendance_session_roster",
+      "para": "attendance_sessions"
+    },
+    {
+      "chave": "attendance_session_roster_school_id_enrollment_id_fkey",
+      "de": "attendance_session_roster",
+      "para": "enrollments"
+    },
+    {
+      "chave": "attendance_session_roster_school_id_fkey",
+      "de": "attendance_session_roster",
+      "para": "schools"
+    },
+    {
+      "chave": "attendance_sessions_school_id_class_subject_id_fkey",
+      "de": "attendance_sessions",
+      "para": "class_subjects"
+    },
+    {
+      "chave": "attendance_sessions_school_id_fkey",
+      "de": "attendance_sessions",
+      "para": "schools"
+    },
+    {
+      "chave": "attendance_sessions_school_id_timetable_slot_id_fkey",
+      "de": "attendance_sessions",
+      "para": "timetable_slots"
+    },
+    {
+      "chave": "attendance_sessions_slot_assignment_fkey",
+      "de": "attendance_sessions",
+      "para": "timetable_slots"
+    },
+    {
+      "chave": "audit_logs_school_id_fkey",
+      "de": "audit_logs",
+      "para": "schools"
+    },
+    {
+      "chave": "calendar_feed_tokens_school_id_fkey",
+      "de": "calendar_feed_tokens",
+      "para": "schools"
+    },
+    {
+      "chave": "campuses_school_id_fkey",
+      "de": "campuses",
+      "para": "schools"
+    },
+    {
+      "chave": "class_groups_school_id_academic_year_id_fkey",
+      "de": "class_groups",
+      "para": "academic_years"
+    },
+    {
+      "chave": "class_groups_school_id_campus_id_fkey",
+      "de": "class_groups",
+      "para": "campuses"
+    },
+    {
+      "chave": "class_groups_school_id_grade_level_id_fkey",
+      "de": "class_groups",
+      "para": "grade_levels"
+    },
+    {
+      "chave": "class_groups_school_id_fkey",
+      "de": "class_groups",
+      "para": "schools"
+    },
+    {
+      "chave": "class_groups_delegate_student_fk",
+      "de": "class_groups",
+      "para": "students"
+    },
+    {
+      "chave": "class_groups_school_id_homeroom_teacher_id_fkey",
+      "de": "class_groups",
+      "para": "teachers"
+    },
+    {
+      "chave": "class_subjects_school_id_class_group_id_fkey",
+      "de": "class_subjects",
+      "para": "class_groups"
+    },
+    {
+      "chave": "class_subjects_school_id_fkey",
+      "de": "class_subjects",
+      "para": "schools"
+    },
+    {
+      "chave": "class_subjects_school_id_subject_id_fkey",
+      "de": "class_subjects",
+      "para": "subjects"
+    },
+    {
+      "chave": "class_subjects_school_id_teacher_id_fkey",
+      "de": "class_subjects",
+      "para": "teachers"
+    },
+    {
+      "chave": "communication_dispatches_school_id_fkey",
+      "de": "communication_dispatches",
+      "para": "schools"
+    },
+    {
+      "chave": "communication_events_dispatch_id_fkey",
+      "de": "communication_events",
+      "para": "communication_dispatches"
+    },
+    {
+      "chave": "contact_verification_profiles_school_id_fkey",
+      "de": "contact_verification_profiles",
+      "para": "schools"
+    },
+    {
+      "chave": "curricula_academic_year_id_fkey",
+      "de": "curricula",
+      "para": "academic_years"
+    },
+    {
+      "chave": "curricula_grade_level_id_fkey",
+      "de": "curricula",
+      "para": "grade_levels"
+    },
+    {
+      "chave": "curricula_course_id_fkey",
+      "de": "curricula",
+      "para": "programs"
+    },
+    {
+      "chave": "curricula_school_id_fkey",
+      "de": "curricula",
+      "para": "schools"
+    },
+    {
+      "chave": "curriculum_areas_school_id_fkey",
+      "de": "curriculum_areas",
+      "para": "schools"
+    },
+    {
+      "chave": "curriculum_subjects_curriculum_id_fkey",
+      "de": "curriculum_subjects",
+      "para": "curricula"
+    },
+    {
+      "chave": "curriculum_subjects_school_id_fkey",
+      "de": "curriculum_subjects",
+      "para": "schools"
+    },
+    {
+      "chave": "curriculum_subjects_subject_type_id_fkey",
+      "de": "curriculum_subjects",
+      "para": "subject_types"
+    },
+    {
+      "chave": "curriculum_subjects_subject_id_fkey",
+      "de": "curriculum_subjects",
+      "para": "subjects"
+    },
+    {
+      "chave": "document_requests_school_id_template_id_fkey",
+      "de": "document_requests",
+      "para": "document_templates"
+    },
+    {
+      "chave": "document_requests_school_id_fkey",
+      "de": "document_requests",
+      "para": "schools"
+    },
+    {
+      "chave": "document_requests_school_id_student_id_fkey",
+      "de": "document_requests",
+      "para": "students"
+    },
+    {
+      "chave": "document_sequences_school_id_fkey",
+      "de": "document_sequences",
+      "para": "schools"
+    },
+    {
+      "chave": "document_signatures_school_id_issued_document_id_fkey",
+      "de": "document_signatures",
+      "para": "issued_documents"
+    },
+    {
+      "chave": "document_signatures_school_id_fkey",
+      "de": "document_signatures",
+      "para": "schools"
+    },
+    {
+      "chave": "document_templates_school_id_fkey",
+      "de": "document_templates",
+      "para": "schools"
+    },
+    {
+      "chave": "email_aliases_mailbox_id_fkey",
+      "de": "email_aliases",
+      "para": "mailboxes"
+    },
+    {
+      "chave": "enrollment_applications_form_id_fkey",
+      "de": "enrollment_applications",
+      "para": "enrollment_forms"
+    },
+    {
+      "chave": "enrollment_applications_school_id_fkey",
+      "de": "enrollment_applications",
+      "para": "schools"
+    },
+    {
+      "chave": "enrollment_forms_school_id_fkey",
+      "de": "enrollment_forms",
+      "para": "schools"
+    },
+    {
+      "chave": "enrollments_school_id_academic_year_id_fkey",
+      "de": "enrollments",
+      "para": "academic_years"
+    },
+    {
+      "chave": "enrollments_school_id_class_group_id_fkey",
+      "de": "enrollments",
+      "para": "class_groups"
+    },
+    {
+      "chave": "enrollments_school_id_fkey",
+      "de": "enrollments",
+      "para": "schools"
+    },
+    {
+      "chave": "enrollments_school_id_student_id_fkey",
+      "de": "enrollments",
+      "para": "students"
+    },
+    {
+      "chave": "fee_items_school_id_fee_plan_id_fkey",
+      "de": "fee_items",
+      "para": "fee_plans"
+    },
+    {
+      "chave": "fee_items_school_id_fkey",
+      "de": "fee_items",
+      "para": "schools"
+    },
+    {
+      "chave": "fee_plans_school_id_academic_year_id_fkey",
+      "de": "fee_plans",
+      "para": "academic_years"
+    },
+    {
+      "chave": "fee_plans_school_id_fkey",
+      "de": "fee_plans",
+      "para": "schools"
+    },
+    {
+      "chave": "finance_contracts_school_id_enrollment_id_fkey",
+      "de": "finance_contracts",
+      "para": "enrollments"
+    },
+    {
+      "chave": "finance_contracts_school_id_fee_plan_id_fkey",
+      "de": "finance_contracts",
+      "para": "fee_plans"
+    },
+    {
+      "chave": "finance_contracts_school_id_fkey",
+      "de": "finance_contracts",
+      "para": "schools"
+    },
+    {
+      "chave": "finance_gateway_webhook_events_school_id_fkey",
+      "de": "finance_gateway_webhook_events",
+      "para": "schools"
+    },
+    {
+      "chave": "finance_invoice_events_invoice_id_fkey",
+      "de": "finance_invoice_events",
+      "para": "finance_invoices"
+    },
+    {
+      "chave": "finance_invoice_events_school_id_fkey",
+      "de": "finance_invoice_events",
+      "para": "schools"
+    },
+    {
+      "chave": "finance_invoices_school_id_fee_item_id_fkey",
+      "de": "finance_invoices",
+      "para": "fee_items"
+    },
+    {
+      "chave": "finance_invoices_school_id_contract_id_fkey",
+      "de": "finance_invoices",
+      "para": "finance_contracts"
+    },
+    {
+      "chave": "finance_invoices_school_id_fkey",
+      "de": "finance_invoices",
+      "para": "schools"
+    },
+    {
+      "chave": "finance_payment_plans_school_id_fkey",
+      "de": "finance_payment_plans",
+      "para": "schools"
+    },
+    {
+      "chave": "finance_receipts_school_id_invoice_id_fkey",
+      "de": "finance_receipts",
+      "para": "finance_invoices"
+    },
+    {
+      "chave": "finance_receipts_school_id_fkey",
+      "de": "finance_receipts",
+      "para": "schools"
+    },
+    {
+      "chave": "financial_rule_sets_school_id_fkey",
+      "de": "financial_rule_sets",
+      "para": "schools"
+    },
+    {
+      "chave": "google_workspace_connections_school_id_fkey",
+      "de": "google_workspace_connections",
+      "para": "schools"
+    },
+    {
+      "chave": "google_workspace_oauth_states_school_id_fkey",
+      "de": "google_workspace_oauth_states",
+      "para": "schools"
+    },
+    {
+      "chave": "grade_items_school_id_gradebook_id_fkey",
+      "de": "grade_items",
+      "para": "gradebooks"
+    },
+    {
+      "chave": "grade_items_school_id_fkey",
+      "de": "grade_items",
+      "para": "schools"
+    },
+    {
+      "chave": "grade_levels_school_id_program_id_fkey",
+      "de": "grade_levels",
+      "para": "programs"
+    },
+    {
+      "chave": "grade_levels_school_id_fkey",
+      "de": "grade_levels",
+      "para": "schools"
+    },
+    {
+      "chave": "grade_score_history_grade_score_id_fkey",
+      "de": "grade_score_history",
+      "para": "grade_scores"
+    },
+    {
+      "chave": "grade_score_history_school_id_fkey",
+      "de": "grade_score_history",
+      "para": "schools"
+    },
+    {
+      "chave": "grade_scores_school_id_enrollment_id_fkey",
+      "de": "grade_scores",
+      "para": "enrollments"
+    },
+    {
+      "chave": "grade_scores_school_id_grade_item_id_fkey",
+      "de": "grade_scores",
+      "para": "grade_items"
+    },
+    {
+      "chave": "grade_scores_school_id_fkey",
+      "de": "grade_scores",
+      "para": "schools"
+    },
+    {
+      "chave": "grade_sheet_rows_school_id_enrollment_id_fkey",
+      "de": "grade_sheet_rows",
+      "para": "enrollments"
+    },
+    {
+      "chave": "grade_sheet_rows_school_id_grade_sheet_id_fkey",
+      "de": "grade_sheet_rows",
+      "para": "grade_sheets"
+    },
+    {
+      "chave": "grade_sheet_rows_school_id_fkey",
+      "de": "grade_sheet_rows",
+      "para": "schools"
+    },
+    {
+      "chave": "grade_sheets_school_id_academic_year_id_fkey",
+      "de": "grade_sheets",
+      "para": "academic_years"
+    },
+    {
+      "chave": "grade_sheets_school_id_class_group_id_fkey",
+      "de": "grade_sheets",
+      "para": "class_groups"
+    },
+    {
+      "chave": "grade_sheets_school_id_fkey",
+      "de": "grade_sheets",
+      "para": "schools"
+    },
+    {
+      "chave": "grade_sheets_school_id_term_id_fkey",
+      "de": "grade_sheets",
+      "para": "terms"
+    },
+    {
+      "chave": "gradebooks_school_id_academic_year_id_fkey",
+      "de": "gradebooks",
+      "para": "academic_years"
+    },
+    {
+      "chave": "gradebooks_school_id_class_group_id_fkey",
+      "de": "gradebooks",
+      "para": "class_groups"
+    },
+    {
+      "chave": "gradebooks_school_id_class_subject_id_fkey",
+      "de": "gradebooks",
+      "para": "class_subjects"
+    },
+    {
+      "chave": "gradebooks_school_id_fkey",
+      "de": "gradebooks",
+      "para": "schools"
+    },
+    {
+      "chave": "gradebooks_school_id_term_id_fkey",
+      "de": "gradebooks",
+      "para": "terms"
+    },
+    {
+      "chave": "grading_scales_school_id_fkey",
+      "de": "grading_scales",
+      "para": "schools"
+    },
+    {
+      "chave": "hr_absence_events_contract_id_fkey",
+      "de": "hr_absence_events",
+      "para": "hr_contracts"
+    },
+    {
+      "chave": "hr_absence_events_employment_id_fkey",
+      "de": "hr_absence_events",
+      "para": "hr_employments"
+    },
+    {
+      "chave": "hr_absence_events_school_id_fkey",
+      "de": "hr_absence_events",
+      "para": "schools"
+    },
+    {
+      "chave": "hr_attendance_assurance_evidence_occurrence_id_fkey",
+      "de": "hr_attendance_assurance_evidence",
+      "para": "hr_teacher_lesson_occurrences"
+    },
+    {
+      "chave": "hr_attendance_assurance_evidence_school_id_fkey",
+      "de": "hr_attendance_assurance_evidence",
+      "para": "schools"
+    },
+    {
+      "chave": "hr_attendance_assurance_policies_school_id_fkey",
+      "de": "hr_attendance_assurance_policies",
+      "para": "schools"
+    },
+    {
+      "chave": "hr_compensation_events_contract_id_fkey",
+      "de": "hr_compensation_events",
+      "para": "hr_contracts"
+    },
+    {
+      "chave": "hr_compensation_events_employment_id_fkey",
+      "de": "hr_compensation_events",
+      "para": "hr_employments"
+    },
+    {
+      "chave": "hr_compensation_events_school_id_fkey",
+      "de": "hr_compensation_events",
+      "para": "schools"
+    },
+    {
+      "chave": "hr_contract_remuneration_policies_contract_id_fkey",
+      "de": "hr_contract_remuneration_policies",
+      "para": "hr_contracts"
+    },
+    {
+      "chave": "hr_contract_remuneration_policies_school_id_fkey",
+      "de": "hr_contract_remuneration_policies",
+      "para": "schools"
+    },
+    {
+      "chave": "hr_contract_salary_amendments_contract_id_fkey",
+      "de": "hr_contract_salary_amendments",
+      "para": "hr_contracts"
+    },
+    {
+      "chave": "hr_contract_salary_amendments_request_id_fkey",
+      "de": "hr_contract_salary_amendments",
+      "para": "hr_salary_change_requests"
+    },
+    {
+      "chave": "hr_contract_salary_amendments_salary_scale_step_id_fkey",
+      "de": "hr_contract_salary_amendments",
+      "para": "hr_salary_scale_steps"
+    },
+    {
+      "chave": "hr_contract_salary_amendments_school_id_fkey",
+      "de": "hr_contract_salary_amendments",
+      "para": "schools"
+    },
+    {
+      "chave": "hr_contracts_employment_id_fkey",
+      "de": "hr_contracts",
+      "para": "hr_employments"
+    },
+    {
+      "chave": "hr_contracts_salary_scale_step_id_fkey",
+      "de": "hr_contracts",
+      "para": "hr_salary_scale_steps"
+    },
+    {
+      "chave": "hr_contracts_school_id_fkey",
+      "de": "hr_contracts",
+      "para": "schools"
+    },
+    {
+      "chave": "hr_departments_parent_department_id_fkey",
+      "de": "hr_departments",
+      "para": "hr_departments"
+    },
+    {
+      "chave": "hr_departments_school_id_fkey",
+      "de": "hr_departments",
+      "para": "schools"
+    },
+    {
+      "chave": "hr_employments_department_id_fkey",
+      "de": "hr_employments",
+      "para": "hr_departments"
+    },
+    {
+      "chave": "hr_employments_position_id_fkey",
+      "de": "hr_employments",
+      "para": "hr_positions"
+    },
+    {
+      "chave": "hr_employments_person_id_fkey",
+      "de": "hr_employments",
+      "para": "people"
+    },
+    {
+      "chave": "hr_employments_school_id_fkey",
+      "de": "hr_employments",
+      "para": "schools"
+    },
+    {
+      "chave": "hr_payment_destinations_employment_id_fkey",
+      "de": "hr_payment_destinations",
+      "para": "hr_employments"
+    },
+    {
+      "chave": "hr_payment_destinations_school_id_fkey",
+      "de": "hr_payment_destinations",
+      "para": "schools"
+    },
+    {
+      "chave": "hr_payment_settings_school_id_fkey",
+      "de": "hr_payment_settings",
+      "para": "schools"
+    },
+    {
+      "chave": "hr_payroll_item_components_payroll_item_id_fkey",
+      "de": "hr_payroll_item_components",
+      "para": "hr_payroll_items"
+    },
+    {
+      "chave": "hr_payroll_item_components_school_id_fkey",
+      "de": "hr_payroll_item_components",
+      "para": "schools"
+    },
+    {
+      "chave": "hr_payroll_items_contract_id_fkey",
+      "de": "hr_payroll_items",
+      "para": "hr_contracts"
+    },
+    {
+      "chave": "hr_payroll_items_employment_id_fkey",
+      "de": "hr_payroll_items",
+      "para": "hr_employments"
+    },
+    {
+      "chave": "hr_payroll_items_payroll_run_id_fkey",
+      "de": "hr_payroll_items",
+      "para": "hr_payroll_runs"
+    },
+    {
+      "chave": "hr_payroll_items_school_id_fkey",
+      "de": "hr_payroll_items",
+      "para": "schools"
+    },
+    {
+      "chave": "hr_payroll_payment_batches_payroll_run_id_fkey",
+      "de": "hr_payroll_payment_batches",
+      "para": "hr_payroll_runs"
+    },
+    {
+      "chave": "hr_payroll_payment_batches_school_id_fkey",
+      "de": "hr_payroll_payment_batches",
+      "para": "schools"
+    },
+    {
+      "chave": "hr_payroll_payment_items_employment_id_fkey",
+      "de": "hr_payroll_payment_items",
+      "para": "hr_employments"
+    },
+    {
+      "chave": "hr_payroll_payment_items_destination_id_fkey",
+      "de": "hr_payroll_payment_items",
+      "para": "hr_payment_destinations"
+    },
+    {
+      "chave": "hr_payroll_payment_items_payroll_item_id_fkey",
+      "de": "hr_payroll_payment_items",
+      "para": "hr_payroll_items"
+    },
+    {
+      "chave": "hr_payroll_payment_items_batch_id_fkey",
+      "de": "hr_payroll_payment_items",
+      "para": "hr_payroll_payment_batches"
+    },
+    {
+      "chave": "hr_payroll_payment_items_school_id_fkey",
+      "de": "hr_payroll_payment_items",
+      "para": "schools"
+    },
+    {
+      "chave": "hr_payroll_runs_school_id_fkey",
+      "de": "hr_payroll_runs",
+      "para": "schools"
+    },
+    {
+      "chave": "hr_positions_department_id_fkey",
+      "de": "hr_positions",
+      "para": "hr_departments"
+    },
+    {
+      "chave": "hr_positions_school_id_fkey",
+      "de": "hr_positions",
+      "para": "schools"
+    },
+    {
+      "chave": "hr_salary_change_requests_contract_id_fkey",
+      "de": "hr_salary_change_requests",
+      "para": "hr_contracts"
+    },
+    {
+      "chave": "hr_salary_change_requests_requested_step_id_fkey",
+      "de": "hr_salary_change_requests",
+      "para": "hr_salary_scale_steps"
+    },
+    {
+      "chave": "hr_salary_change_requests_school_id_fkey",
+      "de": "hr_salary_change_requests",
+      "para": "schools"
+    },
+    {
+      "chave": "hr_salary_scale_steps_version_id_fkey",
+      "de": "hr_salary_scale_steps",
+      "para": "hr_salary_scale_versions"
+    },
+    {
+      "chave": "hr_salary_scale_versions_scale_id_fkey",
+      "de": "hr_salary_scale_versions",
+      "para": "hr_salary_scales"
+    },
+    {
+      "chave": "hr_teacher_attendance_policies_school_id_fkey",
+      "de": "hr_teacher_attendance_policies",
+      "para": "schools"
+    },
+    {
+      "chave": "hr_teacher_employment_links_employment_id_fkey",
+      "de": "hr_teacher_employment_links",
+      "para": "hr_employments"
+    },
+    {
+      "chave": "hr_teacher_employment_links_school_id_fkey",
+      "de": "hr_teacher_employment_links",
+      "para": "schools"
+    },
+    {
+      "chave": "hr_teacher_employment_links_teacher_id_fkey",
+      "de": "hr_teacher_employment_links",
+      "para": "teachers"
+    },
+    {
+      "chave": "hr_teacher_lesson_occurrences_class_subject_id_fkey",
+      "de": "hr_teacher_lesson_occurrences",
+      "para": "class_subjects"
+    },
+    {
+      "chave": "hr_teacher_lesson_occurrences_compensation_event_id_fkey",
+      "de": "hr_teacher_lesson_occurrences",
+      "para": "hr_compensation_events"
+    },
+    {
+      "chave": "hr_teacher_lesson_occurrences_contract_id_fkey",
+      "de": "hr_teacher_lesson_occurrences",
+      "para": "hr_contracts"
+    },
+    {
+      "chave": "hr_teacher_lesson_occurrences_employment_id_fkey",
+      "de": "hr_teacher_lesson_occurrences",
+      "para": "hr_employments"
+    },
+    {
+      "chave": "hr_teacher_lesson_occurrences_school_id_fkey",
+      "de": "hr_teacher_lesson_occurrences",
+      "para": "schools"
+    },
+    {
+      "chave": "hr_teacher_lesson_occurrences_original_teacher_id_fkey",
+      "de": "hr_teacher_lesson_occurrences",
+      "para": "teachers"
+    },
+    {
+      "chave": "hr_teacher_lesson_occurrences_teacher_id_fkey",
+      "de": "hr_teacher_lesson_occurrences",
+      "para": "teachers"
+    },
+    {
+      "chave": "hr_teacher_lesson_occurrences_timetable_slot_id_fkey",
+      "de": "hr_teacher_lesson_occurrences",
+      "para": "timetable_slots"
+    },
+    {
+      "chave": "hr_teacher_qr_sessions_occurrence_id_fkey",
+      "de": "hr_teacher_qr_sessions",
+      "para": "hr_teacher_lesson_occurrences"
+    },
+    {
+      "chave": "hr_teacher_qr_sessions_school_id_fkey",
+      "de": "hr_teacher_qr_sessions",
+      "para": "schools"
+    },
+    {
+      "chave": "import_audits_import_job_id_fkey",
+      "de": "import_audits",
+      "para": "import_jobs"
+    },
+    {
+      "chave": "import_audits_row_id_fkey",
+      "de": "import_audits",
+      "para": "import_rows"
+    },
+    {
+      "chave": "import_jobs_academic_year_id_fkey",
+      "de": "import_jobs",
+      "para": "academic_years"
+    },
+    {
+      "chave": "import_jobs_school_id_fkey",
+      "de": "import_jobs",
+      "para": "schools"
+    },
+    {
+      "chave": "import_rows_import_job_id_fkey",
+      "de": "import_rows",
+      "para": "import_jobs"
+    },
+    {
+      "chave": "import_templates_school_id_fkey",
+      "de": "import_templates",
+      "para": "schools"
+    },
+    {
+      "chave": "issued_documents_school_id_request_id_fkey",
+      "de": "issued_documents",
+      "para": "document_requests"
+    },
+    {
+      "chave": "issued_documents_school_id_template_id_fkey",
+      "de": "issued_documents",
+      "para": "document_templates"
+    },
+    {
+      "chave": "issued_documents_school_id_fkey",
+      "de": "issued_documents",
+      "para": "schools"
+    },
+    {
+      "chave": "issued_documents_school_id_student_id_fkey",
+      "de": "issued_documents",
+      "para": "students"
+    },
+    {
+      "chave": "mailboxes_plan_id_fkey",
+      "de": "mailboxes",
+      "para": "plans"
+    },
+    {
+      "chave": "mailboxes_school_id_fkey",
+      "de": "mailboxes",
+      "para": "schools"
+    },
+    {
+      "chave": "member_roles_role_id_fkey",
+      "de": "member_roles",
+      "para": "roles"
+    },
+    {
+      "chave": "member_roles_school_id_role_id_fkey",
+      "de": "member_roles",
+      "para": "roles"
+    },
+    {
+      "chave": "member_roles_membership_id_fkey",
+      "de": "member_roles",
+      "para": "school_memberships"
+    },
+    {
+      "chave": "member_roles_school_id_membership_id_fkey",
+      "de": "member_roles",
+      "para": "school_memberships"
+    },
+    {
+      "chave": "member_roles_school_id_fkey",
+      "de": "member_roles",
+      "para": "schools"
+    },
+    {
+      "chave": "notifications_announcement_fk",
+      "de": "notifications",
+      "para": "announcements"
+    },
+    {
+      "chave": "notifications_school_id_fkey",
+      "de": "notifications",
+      "para": "schools"
+    },
+    {
+      "chave": "payment_gateway_charges_school_id_fkey",
+      "de": "payment_gateway_charges",
+      "para": "schools"
+    },
+    {
+      "chave": "people_school_id_fkey",
+      "de": "people",
+      "para": "schools"
+    },
+    {
+      "chave": "person_documents_person_id_fkey",
+      "de": "person_documents",
+      "para": "people"
+    },
+    {
+      "chave": "person_documents_school_id_fkey",
+      "de": "person_documents",
+      "para": "schools"
+    },
+    {
+      "chave": "person_roles_person_id_fkey",
+      "de": "person_roles",
+      "para": "people"
+    },
+    {
+      "chave": "person_roles_school_id_fkey",
+      "de": "person_roles",
+      "para": "schools"
+    },
+    {
+      "chave": "profiles_school_id_fkey",
+      "de": "profiles",
+      "para": "schools"
+    },
+    {
+      "chave": "program_subjects_program_id_fkey",
+      "de": "program_subjects",
+      "para": "programs"
+    },
+    {
+      "chave": "program_subjects_school_id_fkey",
+      "de": "program_subjects",
+      "para": "schools"
+    },
+    {
+      "chave": "program_subjects_subject_fkey",
+      "de": "program_subjects",
+      "para": "subjects"
+    },
+    {
+      "chave": "programs_school_id_academic_level_id_fkey",
+      "de": "programs",
+      "para": "academic_levels"
+    },
+    {
+      "chave": "programs_school_id_fkey",
+      "de": "programs",
+      "para": "schools"
+    },
+    {
+      "chave": "report_cards_school_id_academic_year_id_fkey",
+      "de": "report_cards",
+      "para": "academic_years"
+    },
+    {
+      "chave": "report_cards_school_id_enrollment_id_fkey",
+      "de": "report_cards",
+      "para": "enrollments"
+    },
+    {
+      "chave": "report_cards_school_id_grade_sheet_id_fkey",
+      "de": "report_cards",
+      "para": "grade_sheets"
+    },
+    {
+      "chave": "report_cards_school_id_fkey",
+      "de": "report_cards",
+      "para": "schools"
+    },
+    {
+      "chave": "report_cards_school_id_term_id_fkey",
+      "de": "report_cards",
+      "para": "terms"
+    },
+    {
+      "chave": "role_permissions_permission_id_fkey",
+      "de": "role_permissions",
+      "para": "permissions"
+    },
+    {
+      "chave": "role_permissions_role_id_fkey",
+      "de": "role_permissions",
+      "para": "roles"
+    },
+    {
+      "chave": "role_permissions_school_id_role_id_fkey",
+      "de": "role_permissions",
+      "para": "roles"
+    },
+    {
+      "chave": "role_permissions_school_id_fkey",
+      "de": "role_permissions",
+      "para": "schools"
+    },
+    {
+      "chave": "roles_school_id_fkey",
+      "de": "roles",
+      "para": "schools"
+    },
+    {
+      "chave": "rooms_school_id_fkey",
+      "de": "rooms",
+      "para": "schools"
+    },
+    {
+      "chave": "saas_audit_logs_tenant_id_fkey",
+      "de": "saas_audit_logs",
+      "para": "tenants"
+    },
+    {
+      "chave": "school_access_requests_enrollment_application_id_fkey",
+      "de": "school_access_requests",
+      "para": "enrollment_applications"
+    },
+    {
+      "chave": "school_access_requests_person_id_fkey",
+      "de": "school_access_requests",
+      "para": "people"
+    },
+    {
+      "chave": "school_access_requests_membership_id_fkey",
+      "de": "school_access_requests",
+      "para": "school_memberships"
+    },
+    {
+      "chave": "school_access_requests_school_id_fkey",
+      "de": "school_access_requests",
+      "para": "schools"
+    },
+    {
+      "chave": "school_announcements_school_id_fkey",
+      "de": "school_announcements",
+      "para": "schools"
+    },
+    {
+      "chave": "school_billing_settings_school_id_fkey",
+      "de": "school_billing_settings",
+      "para": "schools"
+    },
+    {
+      "chave": "school_branding_school_id_fkey",
+      "de": "school_branding",
+      "para": "schools"
+    },
+    {
+      "chave": "school_email_routes_school_id_fkey",
+      "de": "school_email_routes",
+      "para": "schools"
+    },
+    {
+      "chave": "school_integration_secrets_school_id_fkey",
+      "de": "school_integration_secrets",
+      "para": "schools"
+    },
+    {
+      "chave": "school_integrations_school_id_fkey",
+      "de": "school_integrations",
+      "para": "schools"
+    },
+    {
+      "chave": "school_invitations_school_id_fkey",
+      "de": "school_invitations",
+      "para": "schools"
+    },
+    {
+      "chave": "school_memberships_school_id_fkey",
+      "de": "school_memberships",
+      "para": "schools"
+    },
+    {
+      "chave": "school_modules_module_code_fkey",
+      "de": "school_modules",
+      "para": "module_catalog"
+    },
+    {
+      "chave": "school_modules_school_id_fkey",
+      "de": "school_modules",
+      "para": "schools"
+    },
+    {
+      "chave": "school_settings_school_id_fkey",
+      "de": "school_settings",
+      "para": "schools"
+    },
+    {
+      "chave": "school_shift_slots_shift_id_fkey",
+      "de": "school_shift_slots",
+      "para": "school_shifts"
+    },
+    {
+      "chave": "school_shift_slots_school_id_fkey",
+      "de": "school_shift_slots",
+      "para": "schools"
+    },
+    {
+      "chave": "school_shifts_school_id_fkey",
+      "de": "school_shifts",
+      "para": "schools"
+    },
+    {
+      "chave": "school_slug_history_tenant_id_fkey",
+      "de": "school_slug_history",
+      "para": "tenants"
+    },
+    {
+      "chave": "schools_tenant_id_fkey",
+      "de": "schools",
+      "para": "tenants"
+    },
+    {
+      "chave": "siga_access_cards_person_id_fkey",
+      "de": "siga_access_cards",
+      "para": "people"
+    },
+    {
+      "chave": "siga_access_cards_school_id_fkey",
+      "de": "siga_access_cards",
+      "para": "schools"
+    },
+    {
+      "chave": "siga_access_cards_student_id_fkey",
+      "de": "siga_access_cards",
+      "para": "students"
+    },
+    {
+      "chave": "siga_access_logs_person_id_fkey",
+      "de": "siga_access_logs",
+      "para": "people"
+    },
+    {
+      "chave": "siga_access_logs_school_id_fkey",
+      "de": "siga_access_logs",
+      "para": "schools"
+    },
+    {
+      "chave": "siga_access_logs_card_id_fkey",
+      "de": "siga_access_logs",
+      "para": "siga_access_cards"
+    },
+    {
+      "chave": "siga_access_logs_device_id_fkey",
+      "de": "siga_access_logs",
+      "para": "siga_turnstile_devices"
+    },
+    {
+      "chave": "siga_access_logs_student_id_fkey",
+      "de": "siga_access_logs",
+      "para": "students"
+    },
+    {
+      "chave": "siga_assessment_item_competencies_school_id_fkey",
+      "de": "siga_assessment_item_competencies",
+      "para": "schools"
+    },
+    {
+      "chave": "siga_assessment_item_competencies_item_id_fkey",
+      "de": "siga_assessment_item_competencies",
+      "para": "siga_assessment_items"
+    },
+    {
+      "chave": "siga_assessment_item_competencies_competency_id_fkey",
+      "de": "siga_assessment_item_competencies",
+      "para": "siga_competencies"
+    },
+    {
+      "chave": "siga_assessment_items_school_id_fkey",
+      "de": "siga_assessment_items",
+      "para": "schools"
+    },
+    {
+      "chave": "siga_assessment_items_lesson_plan_component_id_fkey",
+      "de": "siga_assessment_items",
+      "para": "siga_lesson_plan_components"
+    },
+    {
+      "chave": "siga_assessment_scores_school_id_fkey",
+      "de": "siga_assessment_scores",
+      "para": "schools"
+    },
+    {
+      "chave": "siga_assessment_scores_item_id_fkey",
+      "de": "siga_assessment_scores",
+      "para": "siga_assessment_items"
+    },
+    {
+      "chave": "siga_attendance_audits_school_id_fkey",
+      "de": "siga_attendance_audits",
+      "para": "schools"
+    },
+    {
+      "chave": "siga_attendance_audits_attendance_record_id_fkey",
+      "de": "siga_attendance_audits",
+      "para": "siga_attendance_records"
+    },
+    {
+      "chave": "siga_attendance_audits_session_id_fkey",
+      "de": "siga_attendance_audits",
+      "para": "siga_attendance_sessions"
+    },
+    {
+      "chave": "siga_attendance_audits_student_id_fkey",
+      "de": "siga_attendance_audits",
+      "para": "students"
+    },
+    {
+      "chave": "siga_attendance_justifications_school_id_fkey",
+      "de": "siga_attendance_justifications",
+      "para": "schools"
+    },
+    {
+      "chave": "siga_attendance_justifications_attendance_record_id_fkey",
+      "de": "siga_attendance_justifications",
+      "para": "siga_attendance_records"
+    },
+    {
+      "chave": "siga_attendance_justifications_session_id_fkey",
+      "de": "siga_attendance_justifications",
+      "para": "siga_attendance_sessions"
+    },
+    {
+      "chave": "siga_attendance_justifications_file_id_fkey",
+      "de": "siga_attendance_justifications",
+      "para": "siga_files"
+    },
+    {
+      "chave": "siga_attendance_justifications_student_id_fkey",
+      "de": "siga_attendance_justifications",
+      "para": "students"
+    },
+    {
+      "chave": "siga_attendance_records_school_id_fkey",
+      "de": "siga_attendance_records",
+      "para": "schools"
+    },
+    {
+      "chave": "siga_attendance_records_session_id_fkey",
+      "de": "siga_attendance_records",
+      "para": "siga_attendance_sessions"
+    },
+    {
+      "chave": "siga_attendance_records_student_id_fkey",
+      "de": "siga_attendance_records",
+      "para": "students"
+    },
+    {
+      "chave": "siga_attendance_sessions_academic_year_id_fkey",
+      "de": "siga_attendance_sessions",
+      "para": "academic_years"
+    },
+    {
+      "chave": "siga_attendance_sessions_class_group_id_fkey",
+      "de": "siga_attendance_sessions",
+      "para": "class_groups"
+    },
+    {
+      "chave": "siga_attendance_sessions_school_id_fkey",
+      "de": "siga_attendance_sessions",
+      "para": "schools"
+    },
+    {
+      "chave": "siga_attendance_sessions_subject_id_fkey",
+      "de": "siga_attendance_sessions",
+      "para": "subjects"
+    },
+    {
+      "chave": "siga_attendance_sessions_teacher_id_fkey",
+      "de": "siga_attendance_sessions",
+      "para": "teachers"
+    },
+    {
+      "chave": "siga_attendance_sessions_timetable_slot_id_fkey",
+      "de": "siga_attendance_sessions",
+      "para": "timetable_slots"
+    },
+    {
+      "chave": "siga_cash_expenses_school_id_fkey",
+      "de": "siga_cash_expenses",
+      "para": "schools"
+    },
+    {
+      "chave": "siga_class_tasks_class_subject_id_fkey",
+      "de": "siga_class_tasks",
+      "para": "class_subjects"
+    },
+    {
+      "chave": "siga_class_tasks_school_id_fkey",
+      "de": "siga_class_tasks",
+      "para": "schools"
+    },
+    {
+      "chave": "siga_class_tasks_timetable_slot_id_fkey",
+      "de": "siga_class_tasks",
+      "para": "timetable_slots"
+    },
+    {
+      "chave": "siga_competencies_grade_level_id_fkey",
+      "de": "siga_competencies",
+      "para": "grade_levels"
+    },
+    {
+      "chave": "siga_competencies_school_id_fkey",
+      "de": "siga_competencies",
+      "para": "schools"
+    },
+    {
+      "chave": "siga_competencies_subject_id_fkey",
+      "de": "siga_competencies",
+      "para": "subjects"
+    },
+    {
+      "chave": "siga_direct_messages_school_id_fkey",
+      "de": "siga_direct_messages",
+      "para": "schools"
+    },
+    {
+      "chave": "siga_direct_messages_attachment_file_id_fkey",
+      "de": "siga_direct_messages",
+      "para": "siga_files"
+    },
+    {
+      "chave": "siga_exam_registrations_class_group_id_fkey",
+      "de": "siga_exam_registrations",
+      "para": "class_groups"
+    },
+    {
+      "chave": "siga_exam_registrations_enrollment_id_fkey",
+      "de": "siga_exam_registrations",
+      "para": "enrollments"
+    },
+    {
+      "chave": "siga_exam_registrations_grade_sheet_id_fkey",
+      "de": "siga_exam_registrations",
+      "para": "grade_sheets"
+    },
+    {
+      "chave": "siga_exam_registrations_school_id_fkey",
+      "de": "siga_exam_registrations",
+      "para": "schools"
+    },
+    {
+      "chave": "siga_exam_registrations_session_id_fkey",
+      "de": "siga_exam_registrations",
+      "para": "siga_exam_sessions"
+    },
+    {
+      "chave": "siga_exam_registrations_subject_id_fkey",
+      "de": "siga_exam_registrations",
+      "para": "subjects"
+    },
+    {
+      "chave": "siga_exam_sessions_academic_year_id_fkey",
+      "de": "siga_exam_sessions",
+      "para": "academic_years"
+    },
+    {
+      "chave": "siga_exam_sessions_school_id_fkey",
+      "de": "siga_exam_sessions",
+      "para": "schools"
+    },
+    {
+      "chave": "siga_file_events_school_id_fkey",
+      "de": "siga_file_events",
+      "para": "schools"
+    },
+    {
+      "chave": "siga_file_events_file_id_fkey",
+      "de": "siga_file_events",
+      "para": "siga_files"
+    },
+    {
+      "chave": "siga_files_related_person_id_fkey",
+      "de": "siga_files",
+      "para": "people"
+    },
+    {
+      "chave": "siga_files_school_id_fkey",
+      "de": "siga_files",
+      "para": "schools"
+    },
+    {
+      "chave": "siga_files_parent_id_fkey",
+      "de": "siga_files",
+      "para": "siga_files"
+    },
+    {
+      "chave": "siga_lesson_meetings_school_id_fkey",
+      "de": "siga_lesson_meetings",
+      "para": "schools"
+    },
+    {
+      "chave": "siga_lesson_meetings_attendance_session_id_fkey",
+      "de": "siga_lesson_meetings",
+      "para": "siga_attendance_sessions"
+    },
+    {
+      "chave": "siga_lesson_plan_components_school_id_fkey",
+      "de": "siga_lesson_plan_components",
+      "para": "schools"
+    },
+    {
+      "chave": "siga_lesson_plan_components_lesson_plan_id_fkey",
+      "de": "siga_lesson_plan_components",
+      "para": "siga_lesson_plans"
+    },
+    {
+      "chave": "siga_lesson_plans_school_id_fkey",
+      "de": "siga_lesson_plans",
+      "para": "schools"
+    },
+    {
+      "chave": "siga_lesson_plans_file_id_fkey",
+      "de": "siga_lesson_plans",
+      "para": "siga_files"
+    },
+    {
+      "chave": "siga_lesson_reminder_log_school_id_fkey",
+      "de": "siga_lesson_reminder_log",
+      "para": "schools"
+    },
+    {
+      "chave": "siga_lesson_reminder_settings_school_id_fkey",
+      "de": "siga_lesson_reminder_settings",
+      "para": "schools"
+    },
+    {
+      "chave": "siga_timetable_slot_details_school_id_fkey",
+      "de": "siga_timetable_slot_details",
+      "para": "schools"
+    },
+    {
+      "chave": "siga_timetable_slot_details_timetable_slot_id_fkey",
+      "de": "siga_timetable_slot_details",
+      "para": "timetable_slots"
+    },
+    {
+      "chave": "siga_turnstile_devices_school_id_fkey",
+      "de": "siga_turnstile_devices",
+      "para": "schools"
+    },
+    {
+      "chave": "staff_module_grants_school_id_fkey",
+      "de": "staff_module_grants",
+      "para": "schools"
+    },
+    {
+      "chave": "student_academic_history_school_id_fkey",
+      "de": "student_academic_history",
+      "para": "schools"
+    },
+    {
+      "chave": "student_academic_history_student_fkey",
+      "de": "student_academic_history",
+      "para": "students"
+    },
+    {
+      "chave": "student_guardians_school_id_guardian_person_id_fkey",
+      "de": "student_guardians",
+      "para": "people"
+    },
+    {
+      "chave": "student_guardians_school_id_fkey",
+      "de": "student_guardians",
+      "para": "schools"
+    },
+    {
+      "chave": "student_guardians_school_id_student_id_fkey",
+      "de": "student_guardians",
+      "para": "students"
+    },
+    {
+      "chave": "student_risk_cases_school_id_fkey",
+      "de": "student_risk_cases",
+      "para": "schools"
+    },
+    {
+      "chave": "student_risk_interventions_school_id_fkey",
+      "de": "student_risk_interventions",
+      "para": "schools"
+    },
+    {
+      "chave": "student_risk_interventions_case_id_fkey",
+      "de": "student_risk_interventions",
+      "para": "student_risk_cases"
+    },
+    {
+      "chave": "student_status_events_school_id_fkey",
+      "de": "student_status_events",
+      "para": "schools"
+    },
+    {
+      "chave": "student_status_events_student_id_fkey",
+      "de": "student_status_events",
+      "para": "students"
+    },
+    {
+      "chave": "student_status_history_school_id_fkey",
+      "de": "student_status_history",
+      "para": "schools"
+    },
+    {
+      "chave": "student_status_history_student_fkey",
+      "de": "student_status_history",
+      "para": "students"
+    },
+    {
+      "chave": "students_school_id_person_id_fkey",
+      "de": "students",
+      "para": "people"
+    },
+    {
+      "chave": "students_school_id_fkey",
+      "de": "students",
+      "para": "schools"
+    },
+    {
+      "chave": "subject_types_school_id_fkey",
+      "de": "subject_types",
+      "para": "schools"
+    },
+    {
+      "chave": "subjects_curriculum_area_id_fkey",
+      "de": "subjects",
+      "para": "curriculum_areas"
+    },
+    {
+      "chave": "subjects_school_id_fkey",
+      "de": "subjects",
+      "para": "schools"
+    },
+    {
+      "chave": "subjects_subject_type_id_fkey",
+      "de": "subjects",
+      "para": "subject_types"
+    },
+    {
+      "chave": "subscription_addons_subscription_id_fkey",
+      "de": "subscription_addons",
+      "para": "subscriptions"
+    },
+    {
+      "chave": "subscriptions_plan_id_fkey",
+      "de": "subscriptions",
+      "para": "plans"
+    },
+    {
+      "chave": "subscriptions_tenant_id_fkey",
+      "de": "subscriptions",
+      "para": "tenants"
+    },
+    {
+      "chave": "teacher_availability_academic_year_id_fkey",
+      "de": "teacher_availability",
+      "para": "academic_years"
+    },
+    {
+      "chave": "teacher_availability_school_id_fkey",
+      "de": "teacher_availability",
+      "para": "schools"
+    },
+    {
+      "chave": "teacher_availability_teacher_id_fkey",
+      "de": "teacher_availability",
+      "para": "teachers"
+    },
+    {
+      "chave": "teacher_subjects_school_id_fkey",
+      "de": "teacher_subjects",
+      "para": "schools"
+    },
+    {
+      "chave": "teacher_subjects_school_id_subject_id_fkey",
+      "de": "teacher_subjects",
+      "para": "subjects"
+    },
+    {
+      "chave": "teacher_subjects_school_id_teacher_id_fkey",
+      "de": "teacher_subjects",
+      "para": "teachers"
+    },
+    {
+      "chave": "teachers_school_id_person_id_fkey",
+      "de": "teachers",
+      "para": "people"
+    },
+    {
+      "chave": "teachers_school_id_fkey",
+      "de": "teachers",
+      "para": "schools"
+    },
+    {
+      "chave": "tenant_domains_tenant_id_fkey",
+      "de": "tenant_domains",
+      "para": "tenants"
+    },
+    {
+      "chave": "tenant_mailboxes_tenant_id_fkey",
+      "de": "tenant_mailboxes",
+      "para": "tenants"
+    },
+    {
+      "chave": "tenant_provisioning_school_id_fkey",
+      "de": "tenant_provisioning",
+      "para": "schools"
+    },
+    {
+      "chave": "tenant_usage_tenant_id_fkey",
+      "de": "tenant_usage",
+      "para": "tenants"
+    },
+    {
+      "chave": "tenants_plan_id_fkey",
+      "de": "tenants",
+      "para": "plans"
+    },
+    {
+      "chave": "terms_school_id_academic_year_id_fkey",
+      "de": "terms",
+      "para": "academic_years"
+    },
+    {
+      "chave": "terms_school_id_fkey",
+      "de": "terms",
+      "para": "schools"
+    },
+    {
+      "chave": "timetable_slots_schedule_id_fkey",
+      "de": "timetable_slots",
+      "para": "academic_schedules"
+    },
+    {
+      "chave": "timetable_slots_school_id_class_subject_id_fkey",
+      "de": "timetable_slots",
+      "para": "class_subjects"
+    },
+    {
+      "chave": "timetable_slots_room_id_fkey",
+      "de": "timetable_slots",
+      "para": "rooms"
+    },
+    {
+      "chave": "timetable_slots_shift_id_fkey",
+      "de": "timetable_slots",
+      "para": "school_shifts"
+    },
+    {
+      "chave": "timetable_slots_school_id_fkey",
+      "de": "timetable_slots",
+      "para": "schools"
+    },
+    {
+      "chave": "user_communication_preferences_school_id_fkey",
+      "de": "user_communication_preferences",
+      "para": "schools"
+    },
+    {
+      "chave": "verification_otps_school_id_fkey",
+      "de": "verification_otps",
+      "para": "schools"
+    }
   ]
 }

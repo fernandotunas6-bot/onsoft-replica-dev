@@ -75,6 +75,16 @@ const QUERIES = {
     from pg_trigger t join pg_class c on c.oid=t.tgrelid
     join pg_proc p on p.oid=t.tgfoid join pg_namespace n on n.oid=p.pronamespace
     where not t.tgisinternal order by c.relname, t.tgname`,
+
+  // Chaves estrangeiras entre tabelas de `public`: são o que o PostgREST segue
+  // num embed (`tabela(colunas)`). Um embed sem relação dá 400 e o select
+  // inteiro falha. Ver tests/security/embeds-sem-relacao.test.ts.
+  relacoes: `select c.conrelid::regclass::text as de, c.confrelid::regclass::text as para, c.conname as chave
+    from pg_constraint c
+    join pg_class a on a.oid=c.conrelid join pg_namespace na on na.oid=a.relnamespace
+    join pg_class b on b.oid=c.confrelid join pg_namespace nb on nb.oid=b.relnamespace
+    where c.contype='f' and na.nspname='public' and nb.nspname='public'
+    order by 1, 2, 3`,
 };
 
 console.log("A consultar a produção (só leitura)…\n");

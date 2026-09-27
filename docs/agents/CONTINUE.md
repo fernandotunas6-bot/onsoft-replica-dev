@@ -4,6 +4,21 @@ Ler isto **antes** de alterar código. Ecossistema (5 apps):
 [ARCHITECTURE_HARMONIZATION.md](./ARCHITECTURE_HARMONIZATION.md).
 Depois abrir o skill do módulo em `.cursor/skills/`.
 
+## Registos da produção e embeds sem relação (2026-09-28)
+
+Os registos da API (conector Supabase, últimas 24 h) mostram um erro real:
+a **exportação de notas dava sempre 400**. `export-engine.ts` embebia
+`gradebooks!inner(...)` a partir de `grade_scores`, mas a nota liga-se ao
+diário pelo item (`grade_scores → grade_items → gradebooks`). Foi corrigido, e
+a coluna "Turma" da exportação passou a levar o código da turma em vez do id.
+
+O resto dos 4xx são sondas dos testes (pedidos anónimos recusados) ou pedidos
+a tabelas anteriores às migrações de 26/09.
+
+O retrato ganhou `relacoes` (374 chaves estrangeiras de `public`), e
+`tests/security/embeds-sem-relacao.test.ts` recusa qualquer embed, incluindo
+os aninhados, entre tabelas sem chave estrangeira.
+
 ## Retrato da produção recapturado (2026-09-28)
 
 `supabase/PRODUCTION_SNAPSHOT.json` foi relido da produção pelo conector do
