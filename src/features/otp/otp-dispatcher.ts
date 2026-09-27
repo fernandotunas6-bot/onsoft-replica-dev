@@ -10,7 +10,7 @@ import { ResendOtpAdapter } from "./adapters/resend-otp-adapter";
 import { WhatsAppOtpAdapter } from "./adapters/whatsapp-otp-adapter";
 import { SmsOtpAdapter } from "./adapters/sms-otp-adapter";
 import { loadSgaAdminClient } from "@/integrations/supabase/sga-admin";
-import { checkRateLimit, recordRateLimitAttempt } from "@/lib/rate-limit";
+import { consumeRateLimit } from "@/lib/shared-rate-limit";
 
 export interface RequestOtpOptions {
   targetIdentifier: string; // "+244923000000" ou "utilizador@escola.ao"
@@ -88,7 +88,10 @@ export class OtpDispatcher {
     const cooldownKey = `otp_cooldown:${normalizedIdentifier}`;
     const hourlyKey = `otp_hourly:${normalizedIdentifier}:${ip}`;
 
-    if (!checkRateLimit([cooldownKey], OTP_COOLDOWN_RATE_LIMIT)) {
+    // Contadores partilhados entre instâncias (siga_rate_limit_consume): em
+    // memória, cada instância do worker contava à parte e os pedidos
+    // espalhados fugiam ao limite. Cada pedido conta, mesmo que o envio falhe.
+    if (!(await consumeRateLimit([cooldownKey], OTP_COOLDOWN_RATE_LIMIT))) {
       return {
         success: false,
         targetIdentifier: normalizedIdentifier,
@@ -99,7 +102,7 @@ export class OtpDispatcher {
 
     // IP desconhecido não entra: uma chave comum a todos bloquearia toda a gente.
     const ipKey = ip !== "unknown" ? `otp_ip_hourly:${ip}` : null;
-    if (ipKey && !checkRateLimit([ipKey], OTP_IP_HOURLY_RATE_LIMIT)) {
+    if (ipKey && !(await consumeRateLimit([ipKey], OTP_IP_HOURLY_RATE_LIMIT))) {
       return {
         success: false,
         targetIdentifier: normalizedIdentifier,
@@ -108,7 +111,7 @@ export class OtpDispatcher {
       };
     }
 
-    if (!checkRateLimit([hourlyKey], OTP_HOURLY_RATE_LIMIT)) {
+    if (!(await consumeRateLimit([hourlyKey], OTP_HOURLY_RATE_LIMIT))) {
       return {
         success: false,
         targetIdentifier: normalizedIdentifier,
@@ -198,11 +201,6 @@ export class OtpDispatcher {
           "Não foi possível entregar o código através de nenhum dos canais disponíveis.",
       };
     }
-
-    // 4. Regista tentativa bem-sucedida nos contadores de rate limit
-    recordRateLimitAttempt([cooldownKey], OTP_COOLDOWN_RATE_LIMIT);
-    recordRateLimitAttempt([hourlyKey], OTP_HOURLY_RATE_LIMIT);
-    if (ipKey) recordRateLimitAttempt([ipKey], OTP_IP_HOURLY_RATE_LIMIT);
 
     return {
       success: true,
