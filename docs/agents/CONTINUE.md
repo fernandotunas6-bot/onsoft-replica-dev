@@ -4,6 +4,16 @@ Ler isto **antes** de alterar código. Ecossistema (5 apps):
 [ARCHITECTURE_HARMONIZATION.md](./ARCHITECTURE_HARMONIZATION.md).
 Depois abrir o skill do módulo em `.cursor/skills/`.
 
+## Migrações aplicadas (2026-09-27)
+
+O dono aplicou `docs/agents/SIGA_aplicar_migracoes.sql` (23 migrações, até
+`20260927170000_shared_rate_limit.sql`) no SQL Editor do projecto Sga. Confirmação:
+`docs/agents/SIGA_confirmar_migracoes.sql` deve dar 17 linhas "aplicada". Não foi
+verificado a partir da sessão de agente, porque a rede do ambiente não chega a
+`*.supabase.co`. `supabase/PRODUCTION_SNAPSHOT.json` continua com a captura anterior:
+recapturar antes de encolher `TABELAS_AUSENTES_DA_PRODUCAO` e `FUNCOES_ESPERA_MIGRACAO`.
+Migrações novas a partir daqui vão num pacote novo.
+
 ## Deploy (2026-09-20)
 
 ### Produção actualizada — dez dias de uma vez
