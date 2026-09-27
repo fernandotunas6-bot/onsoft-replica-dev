@@ -132,7 +132,8 @@ function supportedPeriods(stored: unknown): number {
   return normalizeEvaluationPeriods(stored) ?? schoolSettingDefaults.evaluationPeriods;
 }
 
-const LOGO_ALLOWED_TYPES = ["image/png", "image/jpeg", "image/webp", "image/svg+xml"];
+// Sem SVG: o bucket é público e um SVG pode levar código.
+const LOGO_ALLOWED_TYPES = ["image/png", "image/jpeg", "image/webp"];
 const MAX_LOGO_BYTES = 4 * 1024 * 1024;
 
 export function SchoolSettingsPanel() {
@@ -351,7 +352,7 @@ export function SchoolSettingsPanel() {
       return;
     }
     if (!LOGO_ALLOWED_TYPES.includes(file.type)) {
-      toast.error("Use PNG, JPG, WebP ou SVG.");
+      toast.error("Use PNG, JPG ou WebP.");
       return;
     }
     if (file.size > MAX_LOGO_BYTES) {

@@ -39,6 +39,15 @@ todas). Migração `20260928110000_core_read_policies_school_role.sql`, pacote
 `docs/agents/SIGA_aplicar_leitura_papel_escola.sql`. Depois dela, nenhuma
 política usa `can_*_students`.
 
+**Armazenamento — escrito, por aplicar:** `siga-files` ("Staff can read siga
+files") só verificava a escola actual: alunos liam o arquivo (recibos,
+documentos, fotografias) pela API de Storage. `school-logos` aceitava envios de
+qualquer membro e SVG, e recusava a pasta do tenant usada pelo ecrã de
+identidade. Migração `20260928130000_storage_files_logos_hardening.sql`, pacote
+`docs/agents/SIGA_aplicar_armazenamento.sql`. As políticas de Storage não
+estão em `PRODUCTION_SNAPSHOT.json`: testado contra as do
+`APPLY_ENROLLMENT_AND_PREMIUM.sql`.
+
 **Leitura de salários e históricos — aplicado pelo dono a 2026-09-28:** `hr_contracts`,
 `hr_employments`, `hr_payroll_items`, `hr_payroll_item_components`,
 `hr_payroll_runs`, `hr_compensation_events`, `finance_invoice_events` e
