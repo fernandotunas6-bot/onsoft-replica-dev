@@ -169,6 +169,9 @@ const TABELAS_AUSENTES_DA_PRODUCAO = new Set([
   // Exames avisa que falta a migração; a estrutura académica conta 0.
   "siga_exam_sessions",
   "siga_exam_registrations",
+  // Competências (2026-09-27, `20260927150000_competencies.sql`).
+  "siga_competencies",
+  "siga_assessment_item_competencies",
   // Caixas de correio por tenant, no Control Center: sem a tabela, o
   // aprovisionamento de caixas institucionais não grava nem lista nada.
   "tenant_mailboxes",

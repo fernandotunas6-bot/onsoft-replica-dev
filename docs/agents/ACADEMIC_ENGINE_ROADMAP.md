@@ -108,10 +108,17 @@ A produção tem o fluxo premium quase todo — falta ligá-lo aos ecrãs:
    para o histórico oficial) usam todos a mesma regra e a mesma nota de
    aprovação. Limite: a pauta da base (`build_grade_sheet`) continua a decidir só
    por média, disciplinas-chave e faltas; o resultado final corrige isso.
-6. **Competências** — tabela de competências ligada a `curriculum_subjects` e
-   às avaliações; percentagem de competências dominadas por aluno.
+6. ~~Competências~~ (feito, 2026-09-27): separador "Competências" em
+   Pedagógica. A coordenação define competências por disciplina (todas as
+   classes ou só uma); o professor da disciplina liga cada avaliação às
+   competências que avalia; domínio = média das avaliações ligadas, na escala
+   da escola, ≥ nota de aprovação do modelo. Percentagem por aluno e por
+   competência na turma. Migração `20260927150000` (só servidor).
+   Falta: mostrar o domínio no portal do aluno e do encarregado.
 7. **Analytics** — em curso. Feito: aprovação pela nota do modelo em todos os
    relatórios; sinais automáticos de risco em `/pedagogica/risco` (sem IA, pelas
    regras do modelo: não transitaria, passou a negativa, faltas acima/perto do
-   limite — `early-warning.ts`). Falta: — comparativo trimestral, turma/disciplina, alunos em risco
-   (reaproveitar `student_risk_cases`).
+   limite — `early-warning.ts`). O comparativo por trimestre, turma e disciplina
+   já existia nos relatórios académicos. Falta: guardar os sinais automáticos
+   no acompanhamento (`student_risk_cases`), como já acontece com a análise por
+   IA.

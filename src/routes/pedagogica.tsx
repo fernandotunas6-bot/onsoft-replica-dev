@@ -3,6 +3,7 @@ import { GradeChangeRequestsPanel } from "@/features/academic/GradeChangeRequest
 import { AcademicStructureTab } from "@/features/academic/AcademicStructureTab";
 import { AssessmentModelsTab } from "@/features/academic/AssessmentModelsTab";
 import { ExamsTab } from "@/features/academic/ExamsTab";
+import { CompetenciesTab } from "@/features/academic/CompetenciesTab";
 import { usePassingValue } from "@/features/academic/use-passing-value";
 import { useEffect, useMemo, useState, lazy, Suspense } from "react";
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
@@ -112,6 +113,7 @@ const pedagogicaSearchSchema = z
         "chamada",
         "pautas",
         "exames",
+        "competencias",
       ])
       .optional(),
     turma: z.string().uuid().optional(),
@@ -278,6 +280,7 @@ function PedagogicaPage() {
           "chamada",
           "pautas",
           "exames",
+          "competencias",
         ] as const
       ).includes(next as PedagogicaTab)
     ) {
@@ -809,6 +812,7 @@ function PedagogicaPage() {
             <TabsTrigger value="presencas">Presenças / Chamada</TabsTrigger>
             <TabsTrigger value="pautas">Pautas</TabsTrigger>
             {canReadAcademic ? <TabsTrigger value="exames">Exames</TabsTrigger> : null}
+            {canReadAcademic ? <TabsTrigger value="competencias">Competências</TabsTrigger> : null}
           </TabsList>
           <div className="mt-4">
             <InstalledModuleTools
@@ -1196,6 +1200,11 @@ function PedagogicaPage() {
           {canReadAcademic ? (
             <TabsContent value="exames" className="mt-5">
               <ExamsTab yearId={selectedYearId ?? null} />
+            </TabsContent>
+          ) : null}
+          {canReadAcademic ? (
+            <TabsContent value="competencias" className="mt-5">
+              <CompetenciesTab />
             </TabsContent>
           ) : null}
 

@@ -117,6 +117,11 @@ const PRIVILEGIO_POR_DESENHO = new Set([
   // percentagens por matrícula da turma pedida.
   "src/features/academic/early-warning-server.ts",
 
+  // Competências: siga_competencies / siga_assessment_item_competencies só do
+  // servidor; definir é da coordenação, ligar avaliações do professor da
+  // disciplina (verificado em teachers/class_subjects) ou da coordenação.
+  "src/features/academic/competencies.ts",
+
   // Agendador dos lembretes da véspera: sem sessão (quem chama é o cron),
   // autenticado por SIGA_CRON_SECRET em tempo constante.
   "src/routes/api/cron/lesson-reminders.tsx",
