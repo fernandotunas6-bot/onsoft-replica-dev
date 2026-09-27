@@ -1,4 +1,5 @@
 import { useEffect } from "react";
+import { Link } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { listMyNotifications, markMyNotificationsRead } from "./personal";
 import { cn } from "@/lib/utils";
@@ -50,7 +51,16 @@ export function PersonalNotificationsList({ open }: { open: boolean }) {
       {items.map((item) => (
         <li key={item.id} className={cn("px-3 py-2.5", !item.read && "bg-primary-soft/30")}>
           <p className="flex items-start justify-between gap-2 text-sm">
-            <span className={cn(!item.read && "font-medium")}>{item.title}</span>
+            {item.href ? (
+              <Link
+                to={item.href as never}
+                className={cn("hover:underline", !item.read && "font-medium")}
+              >
+                {item.title}
+              </Link>
+            ) : (
+              <span className={cn(!item.read && "font-medium")}>{item.title}</span>
+            )}
             <span className="shrink-0 text-xs text-muted-foreground">
               {relativeTime(item.createdAt)}
             </span>
