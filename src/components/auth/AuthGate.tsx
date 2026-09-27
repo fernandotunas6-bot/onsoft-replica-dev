@@ -1,5 +1,11 @@
 import { toast } from "sonner";
-import { passwordPolicyMessage, weakSignInPasswordNotice } from "@/lib/password-policy-error";
+import {
+  PWNED_PASSWORD_MESSAGE,
+  PWNED_SIGN_IN_NOTICE,
+  passwordPolicyMessage,
+  weakSignInPasswordNotice,
+} from "@/lib/password-policy-error";
+import { passwordExposureCount } from "@/lib/pwned-password";
 import {
   SESSION_EXPIRED_MESSAGE,
   consumeSessionExpiredFlag,
@@ -44,6 +50,16 @@ const activityKey = (userId: string) => `portal:last-activity:${userId}`;
 interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>;
   userChoice: Promise<{ outcome: "accepted" | "dismissed"; platform: string }>;
+}
+
+function warnToChangePassword(message: string) {
+  toast.warning(message, {
+    duration: 15000,
+    action: {
+      label: "Alterar senha",
+      onClick: () => window.location.assign("/alterar-senha"),
+    },
+  });
 }
 
 function mapSignInError(message: string) {
@@ -277,13 +293,12 @@ export function AuthGate({ children }: { children: ReactNode }) {
         const weakNotice = weakSignInPasswordNotice(
           (data as { weakPassword?: unknown }).weakPassword,
         );
-        if (weakNotice) {
-          toast.warning(weakNotice, {
-            duration: 15000,
-            action: {
-              label: "Alterar senha",
-              onClick: () => window.location.assign("/alterar-senha"),
-            },
+        if (weakNotice) warnToChangePassword(weakNotice);
+        else {
+          // Plano gratuito do Supabase: a verificação de fugas é feita aqui,
+          // em segundo plano, sem atrasar a entrada.
+          void passwordExposureCount(password).then((count) => {
+            if (count) warnToChangePassword(PWNED_SIGN_IN_NOTICE);
           });
         }
         const assurance = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
@@ -408,6 +423,10 @@ export function AuthGate({ children }: { children: ReactNode }) {
 
     setSubmitting(true);
     try {
+      if (await passwordExposureCount(password)) {
+        setError(PWNED_PASSWORD_MESSAGE);
+        return;
+      }
       // Preferência: e-mail do SIGA via Resend (como recuperação e link mágico).
       const { requestSignupFn } = await import("@/features/auth/signup-server");
       const viaSiga = await requestSignupFn({ data: { fullName, email, password } });

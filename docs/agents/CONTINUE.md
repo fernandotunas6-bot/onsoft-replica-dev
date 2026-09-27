@@ -6,10 +6,16 @@ Depois abrir o skill do módulo em `.cursor/skills/`.
 
 ## Protecção contra senhas expostas (2026-09-28)
 
-A protecção liga-se no painel do Supabase, em Authentication → Sign In /
-Providers → Email → "Prevent use of leaked passwords". Exige o plano Pro. O
-conector MCP não mexe na configuração de autenticação, por isso fica do lado do
-dono do projecto.
+A protecção do Supabase ("Prevent use of leaked passwords") exige o plano
+Pro, e **o projecto está no gratuito**. Por isso a aplicação verifica ela
+própria: `src/lib/pwned-password.ts` consulta a API pública do HaveIBeenPwned
+com k-anonimato. Só saem os 5 primeiros caracteres do SHA-1, num GET simples
+sem cabeçalhos próprios (sem pedido prévio de CORS). A verificação falha
+aberta. Bloqueia senhas expostas no registo, em `PasswordChangeForm` e em
+`/auth/reset-password`, e ao entrar verifica em segundo plano e avisa. Não
+chega à API de administração nem aos fluxos do servidor. Se o projecto passar
+a Pro, liguem também a opção no painel. O código abaixo já trata o
+`weak_password` do Supabase.
 
 A aplicação já está preparada. `src/lib/password-policy-error.ts` traduz o
 erro `weak_password` (razões `pwned`, `length`, `characters`) no registo, em

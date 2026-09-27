@@ -11,6 +11,14 @@
 
 type Reason = "length" | "characters" | "pwned" | string;
 
+/** Senha nova recusada por aparecer em fugas de dados. */
+export const PWNED_PASSWORD_MESSAGE =
+  "Esta senha aparece em fugas de dados conhecidas. Escolha outra que não use noutros sites.";
+
+/** Aviso a quem acabou de entrar com uma senha exposta. */
+export const PWNED_SIGN_IN_NOTICE =
+  "A sua senha aparece em fugas de dados conhecidas. Altere-a agora.";
+
 function reasonsOf(value: unknown): Reason[] | null {
   if (!value || typeof value !== "object") return null;
   const candidate = value as { code?: unknown; name?: unknown; reasons?: unknown };
@@ -23,9 +31,7 @@ function reasonsOf(value: unknown): Reason[] | null {
 }
 
 function messageFor(reasons: Reason[]): string {
-  if (reasons.includes("pwned")) {
-    return "Esta senha aparece em fugas de dados conhecidas. Escolha outra que não use noutros sites.";
-  }
+  if (reasons.includes("pwned")) return PWNED_PASSWORD_MESSAGE;
   if (reasons.includes("length")) {
     return "A senha é demasiado curta. Use pelo menos 8 caracteres.";
   }
@@ -52,8 +58,6 @@ export function weakSignInPasswordNotice(weakPassword: unknown): string | null {
       : null,
   );
   if (!reasons) return null;
-  if (reasons.includes("pwned")) {
-    return "A sua senha aparece em fugas de dados conhecidas. Altere-a agora.";
-  }
+  if (reasons.includes("pwned")) return PWNED_SIGN_IN_NOTICE;
   return "A sua senha já não cumpre a política de segurança. Altere-a agora.";
 }

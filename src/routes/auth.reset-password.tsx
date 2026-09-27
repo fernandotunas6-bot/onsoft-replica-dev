@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo, type FormEvent } from "react";
 import { publicErrorMessage } from "@/lib/public-error";
-import { passwordPolicyMessage } from "@/lib/password-policy-error";
+import { PWNED_PASSWORD_MESSAGE, passwordPolicyMessage } from "@/lib/password-policy-error";
+import { passwordExposureCount } from "@/lib/pwned-password";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import {
   ShieldCheck,
@@ -195,6 +196,10 @@ function ResetPasswordPage() {
 
     setSubmitting(true);
     try {
+      if (await passwordExposureCount(password.trim())) {
+        toast.error(PWNED_PASSWORD_MESSAGE);
+        return;
+      }
       const { error } = await supabase.auth.updateUser({
         password: password.trim(),
       });
