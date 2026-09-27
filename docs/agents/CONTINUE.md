@@ -31,6 +31,19 @@ as mesmas expressões, trocando essa parte por `is_school_office(school_id)`;
 pacote `docs/agents/SIGA_aplicar_politicas_papel_escola.sql`. Nenhum ecrã
 escreve estas tabelas com a sessão (só servidor e funções SECURITY DEFINER).
 
+**Leitura de salários e históricos — escrito, por aplicar:** `hr_contracts`,
+`hr_employments`, `hr_payroll_items`, `hr_payroll_item_components`,
+`hr_payroll_runs`, `hr_compensation_events`, `finance_invoice_events` e
+`student_status_events` liam-se com `is_school_member`/`current_school_id()`:
+um aluno via os salários de todos os funcionários. Migração
+`20260928090000_payroll_history_read_by_school_role.sql` (novas
+`is_school_finance`/`is_school_office`), pacote
+`docs/agents/SIGA_aplicar_salarios_historicos.sql`. As funções da folha
+(SECURITY INVOKER) exigem Administrador/Tesouraria, os mesmos papéis que a nova
+leitura. Leituras "abertas a membros" que ficam: comunicados, períodos,
+departamentos, cargos, políticas de assiduidade, reuniões de aula e
+formulários de matrícula (sem dados pessoais).
+
 ## Auditoria financeira (2026-09-27)
 
 Feito: SAF-T honesto (certificado "0", Hash/HashControl "0", sem nome/morada
