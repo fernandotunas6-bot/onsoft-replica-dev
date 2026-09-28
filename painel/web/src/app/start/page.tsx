@@ -28,6 +28,7 @@ import { MarketingFormPage } from "@/components/marketing/marketing-form-page"
 import {
   ANGOLA_PROVINCES,
   SCHOOL_TYPES,
+  EDUCATION_COUNTRIES,
   SHIFT_IDS,
   SHIFT_OPTIONS,
   TEACHING_LEVELS,
@@ -74,6 +75,8 @@ const schema = z.object({
   levels: z.array(z.enum(TEACHING_LEVEL_IDS)),
   /** O ensino pode ser escolhido depois, no SIGA (Configuração inicial). */
   teaching_later: z.boolean(),
+  /** País do sistema de ensino (notas, créditos, regras). */
+  country: z.string().regex(/^[A-Z]{2}$/),
   shifts: z.array(z.enum(SHIFT_IDS)).min(1, "Escolha pelo menos um turno"),
   rooms: z
     .string()
@@ -137,7 +140,7 @@ const schema = z.object({
 
 type FormValues = z.infer<typeof schema>
 /** Campos de texto (os de escolha múltipla têm o seu próprio controlo). */
-type TextFieldName = Exclude<keyof FormValues, "levels" | "shifts" | "teaching_later">
+type TextFieldName = Exclude<keyof FormValues, "levels" | "shifts" | "teaching_later" | "country">
 
 const STEPS = [
   { id: 1, title: "Instituição", hint: "Nome, NIF e natureza" },
@@ -255,6 +258,7 @@ export function StartSchoolWizard() {
       school_type: "privada",
       levels: [],
       teaching_later: false,
+      country: "AO",
       shifts: ["morning"],
       rooms: "",
       province: "",
@@ -432,6 +436,7 @@ export function StartSchoolWizard() {
                   levels: payload.levels,
                   shifts: payload.shifts,
                   rooms: Number(payload.rooms || 0),
+                  country: payload.country,
                 },
           email: payload.email || payload.contact_email,
         })
@@ -799,6 +804,29 @@ export function StartSchoolWizard() {
                 <>
                   <FormField
                     control={form.control}
+                    name="country"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Sistema de ensino</FormLabel>
+                        <Select value={field.value} onValueChange={field.onChange}>
+                          <FormControl>
+                            <SelectTrigger className="w-full sm:max-w-xs">
+                              <SelectValue />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {EDUCATION_COUNTRIES.map((country) => (
+                              <SelectItem key={country.code} value={country.code}>
+                                {country.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
                     name="levels"
                     render={({ field }) => (
                       <FormItem>
@@ -1129,6 +1157,10 @@ export function StartSchoolWizard() {
                       value={values.teaching_later ? "A definir no SIGA" : levelsLabel}
                     />
                     <Row label="Turnos" value={shiftsLabel} />
+                    <Row
+                      label="Sistema"
+                      value={EDUCATION_COUNTRIES.find((c) => c.code === values.country)?.name ?? ""}
+                    />
                     <Row label="Salas" value={values.rooms ? values.rooms : "A criar depois"} />
                   </ReviewSection>
                   <ReviewSection title="Localização" onEdit={() => setStep(3)}>

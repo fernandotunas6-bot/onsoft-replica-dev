@@ -19,8 +19,11 @@ import {
   formatGrade,
   fromDisplayGrade,
   gpaPoints,
+  gradeForLetter,
+  letterTable,
   type HigherEdRegulation,
 } from "./higher-ed-regulation";
+import { cn } from "@/lib/utils";
 
 /** Nota na escala da instituição, com nota ECTS ou GPA quando o regulamento pede. */
 function gradeText(reg: HigherEdRegulation, grade20: number) {
@@ -30,7 +33,6 @@ function gradeText(reg: HigherEdRegulation, grade20: number) {
   ].filter(Boolean);
   return [formatGrade(reg, grade20), ...extras].join(" · ");
 }
-import { cn } from "@/lib/utils";
 
 const errorText = (error: unknown) =>
   error instanceof Error ? error.message : "Não foi possível concluir.";
@@ -355,7 +357,9 @@ function GradeForm({
     return clean === "" ? null : Number(clean);
   };
   // Lança-se na escala da instituição; o servidor recebe 0–20.
+  const letters = letterTable(reg);
   const parseGrade = (text: string | undefined) => {
+    if (letters) return text ? gradeForLetter(reg, text) : null;
     const value = parse(text);
     return value == null ? null : fromDisplayGrade(reg, value);
   };
@@ -383,6 +387,7 @@ function GradeForm({
     onError: (error) => toast.error(errorText(error)),
   });
   const invalid = GRADE_FIELDS.some((field) => {
+    if (letters && field.key !== "absencePercentage") return false;
     const value = parse(values[field.key]);
     if (value == null) return false;
     const max = field.key === "absencePercentage" ? 100 : reg.displayScale;
@@ -396,23 +401,37 @@ function GradeForm({
           <label key={field.key} className="space-y-1">
             <span className="text-xs text-muted-foreground">
               {field.label}
-              {field.key === "absencePercentage"
+              {field.key === "absencePercentage" || letters
                 ? ""
                 : ` (0–${reg.displayScale === 100 ? "100%" : reg.displayScale})`}
             </span>
-            <Input
-              inputMode="decimal"
-              value={values[field.key] ?? ""}
-              onChange={(event) =>
-                setValues((current) => ({ ...current, [field.key]: event.target.value }))
-              }
-            />
+            {letters && field.key !== "absencePercentage" ? (
+              <select
+                className="h-9 w-full rounded-md border border-input bg-background px-2 text-sm"
+                value={values[field.key] ?? ""}
+                onChange={(event) =>
+                  setValues((current) => ({ ...current, [field.key]: event.target.value }))
+                }
+              >
+                <option value="">—</option>
+                {letters.map((band) => (
+                  <option key={band.letter} value={band.letter}>
+                    {band.letter}
+                  </option>
+                ))}
+              </select>
+            ) : (
+              <Input
+                inputMode="decimal"
+                value={values[field.key] ?? ""}
+                onChange={(event) =>
+                  setValues((current) => ({ ...current, [field.key]: event.target.value }))
+                }
+              />
+            )}
           </label>
         ))}
       </div>
-      <p className="mt-2 text-xs text-muted-foreground">
-        O resultado segue o regulamento: dispensa, exclusão, épocas e créditos.
-      </p>
       <div className="mt-2 flex justify-end gap-2">
         <Button type="button" size="sm" variant="ghost" onClick={onClose}>
           Cancelar

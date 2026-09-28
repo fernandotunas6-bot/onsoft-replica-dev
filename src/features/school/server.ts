@@ -373,11 +373,17 @@ export const updateSchoolSettings = createServerFn({ method: "POST" })
       { logo_url: data.logoUrl?.trim() || null, motto: data.motto?.trim() || null },
       context.userId,
     );
+    // Mantém o que este formulário não edita (ex.: país do sistema de ensino).
+    const currentInstitution = await readSettingDomain(db, membership.schoolId, "institution");
     await upsertSettingDomain(
       db,
       membership.schoolId,
       "institution",
-      { school_type: data.schoolType ?? null, philosophy: data.philosophy?.trim() || null },
+      {
+        ...(currentInstitution?.value ?? {}),
+        school_type: data.schoolType ?? null,
+        philosophy: data.philosophy?.trim() || null,
+      },
       context.userId,
     );
 

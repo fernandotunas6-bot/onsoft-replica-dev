@@ -9,6 +9,9 @@ import {
   fromDisplayGrade,
   gpaPoints,
   toDisplayGrade,
+  gradeForLetter,
+  letterFor,
+  regulationForCountry,
   canEnrollCredits,
   describeHigherEdRegulation,
   higherEdRegulationSchema,
@@ -98,12 +101,12 @@ describe("regulamento do ensino superior", () => {
     expect(parseHigherEdRegulation(null)).toEqual(REG);
   });
 
-  it("resumo legível", () => {
-    const lines = describeHigherEdRegulation(REG);
-    expect(lines[0]).toBe("Aprovação com 10 valores; nota final inteira.");
-    expect(lines).toContain(
-      "60 créditos por ano, até 75 com cadeiras em atraso; transita com 45 créditos.",
-    );
+  it("resumo curto em três linhas", () => {
+    expect(describeHigherEdRegulation(REG)).toEqual([
+      "Aprova com 10 valores · frequência 40% / exame 60% · dispensa com 14 valores",
+      "Exame com 7 valores · faltas até 33% · épocas: normal, recurso, especial, melhoria",
+      "60 créditos/ano (máx. 75) · transita com 45 · precedências obrigatórias",
+    ]);
   });
 });
 
@@ -148,10 +151,15 @@ describe("modelos nacionais e internacionais", () => {
 
   it("EUA: percentagens, aprovação a 60%, GPA e honras latinas", () => {
     const reg = applyRegulationPreset("eua");
-    expect(formatGrade(reg, 17)).toBe("85%");
-    expect(gpaPoints(reg, 18)).toBe(4);
-    expect(gpaPoints(reg, 12)).toBe(1);
+    expect(formatGrade(reg, 17)).toBe("B"); // 85%
+    expect(formatGrade({ ...reg, letterGrades: "nenhuma" }, 17)).toBe("85%");
+    expect(gpaPoints(reg, 18)).toBe(3.7); // 90% = A-
+    expect(gpaPoints(reg, 19)).toBe(4); // 95% = A
+    expect(gpaPoints(reg, 12)).toBe(0.7); // 60% = D-
     expect(gpaPoints(reg, 11)).toBe(0);
+    const plain = { ...reg, letterGrades: "nenhuma" as const };
+    expect(gpaPoints(plain, 18)).toBe(4);
+    expect(gpaPoints(plain, 12)).toBe(1);
     expect(finalMention(reg, null, 3.8)).toBe("Magna cum laude");
     expect(finalMention(reg, null, 3.2)).toBeNull();
   });
@@ -160,5 +168,36 @@ describe("modelos nacionais e internacionais", () => {
     expect(finalMention(REG, 15.6, null)).toBe("Muito Bom");
     expect(finalMention(REG, 13.4, null)).toBe("Suficiente");
     expect(finalMention(REG, 9, null)).toBeNull();
+  });
+
+  it("letras com + e −: letra, valor do meio da banda e GPA", () => {
+    const reg = applyRegulationPreset("eua");
+    expect(reg.letterGrades).toBe("a_f_mais_menos");
+    expect(letterFor(reg, 18.6)).toBe("A"); // 93%
+    expect(letterFor(reg, 17.4)).toBe("B+"); // 87%
+    expect(letterFor(reg, 11)).toBe("F"); // 55%
+    expect(formatGrade(reg, 16)).toBe("B-");
+    const b = gradeForLetter(reg, "B")!;
+    expect(letterFor(reg, b)).toBe("B");
+    expect(gpaPoints(reg, b)).toBe(3);
+    expect(gradeForLetter(reg, "Z")).toBeNull();
+  });
+
+  it("país escolhe o modelo e o nome dos créditos", () => {
+    expect(regulationForCountry("PT")).toMatchObject({ presetId: "bolonha", country: "PT" });
+    expect(regulationForCountry("GB")).toMatchObject({
+      presetId: "reino_unido",
+      creditLabel: "CATS",
+      creditsPerYear: 120,
+    });
+    expect(regulationForCountry("MZ")).toMatchObject({ presetId: "angola", country: "MZ" });
+    expect(regulationForCountry("XX").presetId).toBe("angola");
+  });
+
+  it("Reino Unido: aprovação a 40% e classificações britânicas", () => {
+    const reg = applyRegulationPreset("reino_unido");
+    expect(formatGrade(reg, 8)).toBe("40%");
+    expect(finalMention(reg, 14.2, null)).toBe("First Class");
+    expect(finalMention(reg, 12.4, null)).toBe("Upper Second (2:1)");
   });
 });

@@ -20,14 +20,15 @@ export const INSTITUTION_LEVELS = [
 export type InstitutionLevel = (typeof INSTITUTION_LEVELS)[number];
 
 /** Nomes para o ecrã (a WEB tem a mesma lista em painel/web/src/lib/angola.ts). */
-export const INSTITUTION_LEVEL_LABELS: Record<InstitutionLevel, { label: string; detail: string }> = {
-  pre_escolar: { label: "Pré-escolar", detail: "Iniciação" },
-  primario: { label: "Primário", detail: "1ª à 6ª classe" },
-  i_ciclo: { label: "I Ciclo", detail: "7ª à 9ª classe" },
-  ii_ciclo: { label: "II Ciclo / Médio", detail: "10ª à 12ª classe" },
-  tecnico: { label: "Técnico-profissional", detail: "10ª à 13ª classe" },
-  superior: { label: "Ensino Superior", detail: "Cursos e semestres" },
-};
+export const INSTITUTION_LEVEL_LABELS: Record<InstitutionLevel, { label: string; detail: string }> =
+  {
+    pre_escolar: { label: "Pré-escolar", detail: "Iniciação" },
+    primario: { label: "Primário", detail: "1ª à 6ª classe" },
+    i_ciclo: { label: "I Ciclo", detail: "7ª à 9ª classe" },
+    ii_ciclo: { label: "II Ciclo / Médio", detail: "10ª à 12ª classe" },
+    tecnico: { label: "Técnico-profissional", detail: "10ª à 13ª classe" },
+    superior: { label: "Ensino Superior", detail: "Cursos e semestres" },
+  };
 
 export const INSTITUTION_SHIFTS = ["morning", "afternoon", "evening"] as const;
 export type InstitutionShift = (typeof INSTITUTION_SHIFTS)[number];
@@ -47,6 +48,11 @@ export const institutionProfileSchema = z.object({
     .max(6),
   shifts: z.array(z.enum(INSTITUTION_SHIFTS)).min(1, "Escolha pelo menos um turno.").max(3),
   rooms: z.number().int().min(0).max(MAX_INITIAL_ROOMS).default(0),
+  /** País do sistema de ensino seguido (define notas, créditos e regras). */
+  country: z
+    .string()
+    .regex(/^[A-Z]{2}$/)
+    .default("AO"),
 });
 export type InstitutionProfile = z.infer<typeof institutionProfileSchema>;
 
@@ -254,6 +260,7 @@ export function buildInstitutionPlan(profile: InstitutionProfile, yearStart: num
     teachingLevels: [...new Set(levels.map((level) => level.teachingLevel))],
     courses: [...new Set(levels.flatMap((level) => (level.course ? [level.course] : [])))],
     isComplex: levels.length > 1,
+    country: profile.country ?? "AO",
     hasHigherEducation: levels.some((level) => level.code === "SUP"),
   };
 }

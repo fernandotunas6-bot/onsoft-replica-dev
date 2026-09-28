@@ -8,6 +8,7 @@
  * completa-a depois em Pedagógica.
  */
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { regulationForCountry } from "@/features/academic/higher-ed-regulation";
 import type { InstitutionPlan } from "./institution-profile";
 
 type Warn = (context: string, message: string) => void;
@@ -174,6 +175,28 @@ export async function applyInstitutionPlan(
       .eq("id", pedagogy.id)
       .eq("school_id", schoolId);
     if (error) warn("definições pedagógicas", error.message);
+  }
+
+  // Regulamento do ensino superior pelo país do sistema de ensino. Só se a
+  // escola ainda não tiver um: o que o Administrador guardou não se toca.
+  if (plan.hasHigherEducation) {
+    const { data: regulation } = await db
+      .from("school_settings")
+      .select("id")
+      .eq("school_id", schoolId)
+      .eq("domain", "higher_education")
+      .maybeSingle();
+    if (!regulation?.id) {
+      const { error } = await db.from("school_settings").insert({
+        school_id: schoolId,
+        domain: "higher_education",
+        version: 1,
+        value: regulationForCountry(plan.country),
+        changed_by: adminUserId,
+      });
+      if (error) warn("regulamento do ensino superior", error.message);
+      else seeded.push("regulamento");
+    }
   }
 
   return { seeded };

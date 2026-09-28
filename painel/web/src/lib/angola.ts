@@ -82,3 +82,26 @@ export function institutionSummary(levels: readonly string[], rooms: number): st
   if (rooms > 0) lines.push(`${rooms} sala(s) prontas para o horário`)
   return lines
 }
+
+/**
+ * País do sistema de ensino seguido. Mesma lista que `EDUCATION_COUNTRIES` no
+ * SIGA (src/features/academic/higher-ed-regulation.ts): define a escala de
+ * notas, o nome dos créditos e as regras; tudo se muda depois.
+ */
+export const EDUCATION_COUNTRIES = [
+  { code: "AO", name: "Angola" },
+  { code: "MZ", name: "Moçambique" },
+  { code: "CV", name: "Cabo Verde" },
+  { code: "GW", name: "Guiné-Bissau" },
+  { code: "ST", name: "São Tomé e Príncipe" },
+  { code: "TL", name: "Timor-Leste" },
+  { code: "PT", name: "Portugal" },
+  { code: "ES", name: "Espanha" },
+  { code: "FR", name: "França" },
+  { code: "BR", name: "Brasil" },
+  { code: "US", name: "Estados Unidos" },
+  { code: "CA", name: "Canadá" },
+  { code: "GB", name: "Reino Unido" },
+  { code: "ZA", name: "África do Sul" },
+  { code: "NA", name: "Namíbia" },
+] as const

@@ -189,12 +189,45 @@ describe("gravação do plano", () => {
       { schoolId: "s1", adminUserId: "u1", plan: plan(["primario", "tecnico"]) },
       () => {},
     );
-    const update = writes.find((w) => w.table === "school_settings" && w.op === "update")!
-      .rows as { value: Record<string, unknown>; version: number };
+    const update = writes.find((w) => w.table === "school_settings" && w.op === "update")!.rows as {
+      value: Record<string, unknown>;
+      version: number;
+    };
     expect(update.version).toBe(5);
     expect(update.value.teachingLevels).toEqual(["i_ciclo", "primario", "ii_ciclo"]);
     expect(update.value.courses).toEqual(["tecnico"]);
     expect(update.value.closedTerms).toEqual(["T1"]);
     expect(update.value.gradingProfile).toBe("x");
+  });
+
+  it("ensino superior: grava o regulamento do país do sistema de ensino", async () => {
+    const { db, writes } = fakeDb();
+    await applyInstitutionPlan(
+      db as never,
+      { schoolId: "s1", adminUserId: "u1", plan: plan(["superior"], { country: "PT" }) },
+      () => {},
+    );
+    const regulation = writes.find(
+      (w) =>
+        w.table === "school_settings" &&
+        (w.rows as { domain?: string }).domain === "higher_education",
+    )!.rows as { value: { presetId: string; country: string; creditLabel: string } };
+    expect(regulation.value).toMatchObject({
+      presetId: "bolonha",
+      country: "PT",
+      creditLabel: "ECTS",
+    });
+  });
+
+  it("sem ensino superior não grava regulamento", async () => {
+    const { db, writes } = fakeDb();
+    await applyInstitutionPlan(
+      db as never,
+      { schoolId: "s1", adminUserId: "u1", plan: plan(["primario"]) },
+      () => {},
+    );
+    expect(writes.some((w) => (w.rows as { domain?: string }).domain === "higher_education")).toBe(
+      false,
+    );
   });
 });

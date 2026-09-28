@@ -20,6 +20,7 @@ export const REGULATION_PRESET_IDS = [
   "bolonha",
   "brasil",
   "eua",
+  "reino_unido",
   "personalizado",
 ] as const;
 export type RegulationPresetId = (typeof REGULATION_PRESET_IDS)[number];
@@ -63,11 +64,23 @@ export const higherEdRegulationSchema = z
      */
     displayScale: z.union([z.literal(20), z.literal(10), z.literal(100)]).default(20),
     /** Nome da unidade de crédito nos ecrãs e documentos. */
-    creditLabel: z.enum(["créditos", "ECTS", "UC"]).default("créditos"),
+    creditLabel: z.string().trim().min(1).max(24).default("créditos"),
+    /**
+     * Notas por letras. Com letras, lança-se e mostra-se a letra; por dentro
+     * guarda-se o valor 0–20 do meio da banda (os limites vêm em %).
+     */
+    letterGrades: z.enum(["nenhuma", "a_f", "a_f_mais_menos"]).default("nenhuma"),
+    /** País do sistema de ensino seguido (ISO 3166, duas letras). */
+    country: z
+      .string()
+      .regex(/^[A-Z]{2}$/)
+      .default("AO"),
     /** Máximo de inscrições na mesma cadeira (prescrição). `null`: sem limite. */
     maxAttemptsPerUnit: z.number().int().min(1).max(20).nullable().default(null),
     /** Classificação final do curso: menções qualitativas, honras latinas ou nenhuma. */
-    finalMentions: z.enum(["qualitativa", "latinas", "nenhuma"]).default("qualitativa"),
+    finalMentions: z
+      .enum(["qualitativa", "latinas", "britanica", "nenhuma"])
+      .default("qualitativa"),
     /** Mostrar a nota ECTS (A–F) e o equivalente GPA 0–4 ao lado da nota. */
     showEctsGrade: z.boolean().default(false),
     showGpa: z.boolean().default(false),
@@ -215,6 +228,8 @@ export function gradeUnitLabel(reg: HigherEdRegulation) {
 }
 
 export function formatGrade(reg: HigherEdRegulation, grade20: number) {
+  const letter = letterFor(reg, grade20);
+  if (letter) return letter;
   const value = toDisplayGrade(reg, grade20).toLocaleString("pt-PT");
   return reg.displayScale === 100 ? `${value}%` : `${value} ${gradeUnitLabel(reg)}`;
 }
@@ -241,6 +256,8 @@ export function ectsGrade(
  */
 export function gpaPoints(reg: HigherEdRegulation, grade20: number): number {
   const percent = grade20 * 5;
+  const table = letterTable(reg);
+  if (table) return (table.find((band) => percent >= band.min) ?? table[table.length - 1]!).gpa;
   const bands: Array<[number, number]> =
     reg.finalMentions === "latinas"
       ? [
@@ -266,6 +283,15 @@ export function finalMention(
   gpa: number | null,
 ): string | null {
   if (reg.finalMentions === "nenhuma") return null;
+  if (reg.finalMentions === "britanica") {
+    if (average20 == null) return null;
+    const percent = average20 * 5;
+    if (percent >= 70) return "First Class";
+    if (percent >= 60) return "Upper Second (2:1)";
+    if (percent >= 50) return "Lower Second (2:2)";
+    if (percent >= 40) return "Third Class";
+    return null;
+  }
   if (reg.finalMentions === "latinas") {
     if (gpa == null) return null;
     if (gpa >= 3.9) return "Summa cum laude";
@@ -281,7 +307,58 @@ export function finalMention(
   return "Suficiente";
 }
 
-type PresetValues = Omit<HigherEdRegulation, "presetId">;
+/** Bandas das letras, do topo para baixo: letra, mínimo em %, pontos GPA. */
+export const LETTER_TABLES: Record<
+  Exclude<HigherEdRegulation["letterGrades"], "nenhuma">,
+  Array<{ letter: string; min: number; gpa: number }>
+> = {
+  a_f: [
+    { letter: "A", min: 90, gpa: 4 },
+    { letter: "B", min: 80, gpa: 3 },
+    { letter: "C", min: 70, gpa: 2 },
+    { letter: "D", min: 60, gpa: 1 },
+    { letter: "F", min: 0, gpa: 0 },
+  ],
+  a_f_mais_menos: [
+    { letter: "A+", min: 97, gpa: 4 },
+    { letter: "A", min: 93, gpa: 4 },
+    { letter: "A-", min: 90, gpa: 3.7 },
+    { letter: "B+", min: 87, gpa: 3.3 },
+    { letter: "B", min: 83, gpa: 3 },
+    { letter: "B-", min: 80, gpa: 2.7 },
+    { letter: "C+", min: 77, gpa: 2.3 },
+    { letter: "C", min: 73, gpa: 2 },
+    { letter: "C-", min: 70, gpa: 1.7 },
+    { letter: "D+", min: 67, gpa: 1.3 },
+    { letter: "D", min: 63, gpa: 1 },
+    { letter: "D-", min: 60, gpa: 0.7 },
+    { letter: "F", min: 0, gpa: 0 },
+  ],
+};
+
+export function letterTable(reg: HigherEdRegulation) {
+  return reg.letterGrades === "nenhuma" ? null : LETTER_TABLES[reg.letterGrades];
+}
+
+/** Letra de uma nota 0–20, ou `null` sem escala de letras. */
+export function letterFor(reg: HigherEdRegulation, grade20: number): string | null {
+  const table = letterTable(reg);
+  if (!table) return null;
+  const percent = grade20 * 5;
+  return (table.find((band) => percent >= band.min) ?? table[table.length - 1]!).letter;
+}
+
+/** Valor 0–20 que uma letra representa: o meio da sua banda. */
+export function gradeForLetter(reg: HigherEdRegulation, letter: string): number | null {
+  const table = letterTable(reg);
+  const index = table?.findIndex((band) => band.letter === letter) ?? -1;
+  if (!table || index < 0) return null;
+  const top = index === 0 ? 100 : table[index - 1]!.min - 0.5;
+  const bottom = table[index]!.min;
+  return Math.round(((bottom + top) / 2 / 5) * 100) / 100;
+}
+
+type PresetValues = Omit<HigherEdRegulation, "presetId" | "country">;
 
 /**
  * Modelos de referência. São pontos de partida com os valores mais comuns em
@@ -313,6 +390,7 @@ export const REGULATION_PRESETS: Record<
       finalGradeDecimals: 0,
       displayScale: 20,
       creditLabel: "créditos",
+      letterGrades: "nenhuma",
       maxAttemptsPerUnit: null,
       finalMentions: "qualitativa",
       showEctsGrade: false,
@@ -340,6 +418,7 @@ export const REGULATION_PRESETS: Record<
       finalGradeDecimals: 0,
       displayScale: 20,
       creditLabel: "ECTS",
+      letterGrades: "nenhuma",
       maxAttemptsPerUnit: null,
       finalMentions: "qualitativa",
       showEctsGrade: true,
@@ -367,6 +446,7 @@ export const REGULATION_PRESETS: Record<
       finalGradeDecimals: 1,
       displayScale: 10,
       creditLabel: "créditos",
+      letterGrades: "nenhuma",
       maxAttemptsPerUnit: null,
       finalMentions: "nenhuma",
       showEctsGrade: false,
@@ -394,57 +474,131 @@ export const REGULATION_PRESETS: Record<
       finalGradeDecimals: 0,
       displayScale: 100,
       creditLabel: "créditos",
+      letterGrades: "a_f_mais_menos",
       maxAttemptsPerUnit: 3,
       finalMentions: "latinas",
       showEctsGrade: false,
       showGpa: true,
     },
   },
+  reino_unido: {
+    label: "Reino Unido",
+    detail: "0–100%, aprovação a 40%, 120 créditos por ano, First, 2:1, 2:2, Third",
+    values: {
+      passingGrade: 8,
+      continuousWeight: 50,
+      exemptionGrade: null,
+      examAdmissionGrade: 0,
+      maxAbsencePercentage: 30,
+      minimumExamGrade: null,
+      appealSeason: true,
+      specialSeason: false,
+      appealMaxUnits: null,
+      gradeImprovement: false,
+      creditsPerYear: 120,
+      maxCreditsPerYear: 140,
+      progressionPercentage: 100,
+      enforcePrerequisites: true,
+      finalGradeDecimals: 0,
+      displayScale: 100,
+      creditLabel: "créditos",
+      letterGrades: "nenhuma",
+      maxAttemptsPerUnit: 2,
+      finalMentions: "britanica",
+      showEctsGrade: false,
+      showGpa: false,
+    },
+  },
 };
 
 export function applyRegulationPreset(
   id: Exclude<RegulationPresetId, "personalizado">,
+  country?: string,
 ): HigherEdRegulation {
-  return higherEdRegulationSchema.parse({ ...REGULATION_PRESETS[id].values, presetId: id });
+  return higherEdRegulationSchema.parse({
+    ...REGULATION_PRESETS[id].values,
+    presetId: id,
+    country: country ?? PRESET_HOME_COUNTRY[id],
+  });
 }
 
-/** O regulamento em frases curtas, para o resumo no ecrã e nos documentos. */
+const PRESET_HOME_COUNTRY: Record<Exclude<RegulationPresetId, "personalizado">, string> = {
+  angola: "AO",
+  bolonha: "PT",
+  brasil: "BR",
+  eua: "US",
+  reino_unido: "GB",
+};
+
+/**
+ * Países e o modelo com que começam. O nome dos créditos segue o uso local
+ * (ECTS na Europa, CATS no Reino Unido); tudo se muda depois nas definições.
+ */
+export const EDUCATION_COUNTRIES: Array<{
+  code: string;
+  name: string;
+  preset: Exclude<RegulationPresetId, "personalizado">;
+  creditLabel?: string;
+}> = [
+  { code: "AO", name: "Angola", preset: "angola" },
+  { code: "MZ", name: "Moçambique", preset: "angola" },
+  { code: "CV", name: "Cabo Verde", preset: "bolonha", creditLabel: "ECTS" },
+  { code: "GW", name: "Guiné-Bissau", preset: "angola" },
+  { code: "ST", name: "São Tomé e Príncipe", preset: "angola" },
+  { code: "TL", name: "Timor-Leste", preset: "angola" },
+  { code: "PT", name: "Portugal", preset: "bolonha" },
+  { code: "ES", name: "Espanha", preset: "bolonha" },
+  { code: "FR", name: "França", preset: "bolonha" },
+  { code: "BR", name: "Brasil", preset: "brasil" },
+  { code: "US", name: "Estados Unidos", preset: "eua" },
+  { code: "CA", name: "Canadá", preset: "eua" },
+  { code: "GB", name: "Reino Unido", preset: "reino_unido", creditLabel: "CATS" },
+  { code: "ZA", name: "África do Sul", preset: "reino_unido" },
+  { code: "NA", name: "Namíbia", preset: "reino_unido" },
+];
+
+/** Regulamento inicial para o país do sistema de ensino. */
+export function regulationForCountry(code: string): HigherEdRegulation {
+  const country = EDUCATION_COUNTRIES.find((item) => item.code === code);
+  if (!country) return applyRegulationPreset("angola", "AO");
+  const reg = applyRegulationPreset(country.preset, country.code);
+  return country.creditLabel ? { ...reg, creditLabel: country.creditLabel } : reg;
+}
+
+/** Nomes de créditos mais usados, para sugerir; aceita-se qualquer outro. */
+export const CREDIT_LABEL_SUGGESTIONS = ["créditos", "ECTS", "UC", "CATS", "SCH", "horas-crédito"];
+
+/** O regulamento em três linhas curtas, para o resumo no ecrã. */
 export function describeHigherEdRegulation(reg: HigherEdRegulation): string[] {
   const g = (grade20: number) => formatGrade(reg, grade20);
-  const credits = reg.creditLabel;
+  const progression = yearProgression(reg, 0).required;
   const seasons = [
     "normal",
     reg.appealSeason ? "recurso" : null,
     reg.specialSeason ? "especial" : null,
+    reg.gradeImprovement ? "melhoria" : null,
   ].filter(Boolean);
-  const progression = yearProgression(reg, 0).required;
-  const extras = [
-    reg.showEctsGrade ? "nota ECTS (A–F)" : null,
-    reg.showGpa ? "equivalente GPA 0–4" : null,
-  ].filter(Boolean);
+  const line = (parts: Array<string | null>) => {
+    const text = parts.filter(Boolean).join(" · ");
+    return text.charAt(0).toUpperCase() + text.slice(1);
+  };
   return [
-    `Aprovação com ${g(reg.passingGrade)}; nota final ${reg.finalGradeDecimals ? "com uma casa decimal" : "inteira"}.`,
-    `Frequência ${reg.continuousWeight}% e exame ${100 - reg.continuousWeight}%.`,
-    reg.exemptionGrade != null
-      ? `Dispensa de exame com ${g(reg.exemptionGrade)} de frequência.`
-      : "Sem dispensa de exame.",
-    `${reg.examAdmissionGrade > 0 ? `Admissão a exame com ${g(reg.examAdmissionGrade)}; e` : "E"}xcluído com mais de ${reg.maxAbsencePercentage}% de faltas.`,
-    reg.minimumExamGrade != null
-      ? `Nota mínima no exame: ${g(reg.minimumExamGrade)}.`
-      : "Sem nota mínima no exame.",
-    `Épocas: ${seasons.join(", ")}${reg.appealSeason && reg.appealMaxUnits ? ` (até ${reg.appealMaxUnits} cadeiras em recurso)` : ""}${reg.gradeImprovement ? "; melhoria de nota" : ""}.`,
-    `${reg.creditsPerYear} ${credits} por ano, até ${reg.maxCreditsPerYear} com cadeiras em atraso; ${progression ? `transita com ${progression} ${credits}` : "sem retenção por ano"}.`,
-    [
-      reg.enforcePrerequisites ? "Precedências obrigatórias" : "Precedências só indicativas",
-      reg.maxAttemptsPerUnit ? `até ${reg.maxAttemptsPerUnit} inscrições por cadeira` : null,
-    ]
-      .filter(Boolean)
-      .join("; ") + ".",
-    reg.finalMentions === "qualitativa"
-      ? "Classificação final: Suficiente, Bom, Muito Bom, Excelente."
-      : reg.finalMentions === "latinas"
-        ? "Classificação final com honras latinas pelo GPA."
-        : "Classificação final só com a média.",
-    ...(extras.length ? [`Mostra ${extras.join(" e ")}.`] : []),
+    line([
+      `aprova com ${g(reg.passingGrade)}`,
+      `frequência ${reg.continuousWeight}% / exame ${100 - reg.continuousWeight}%`,
+      reg.exemptionGrade != null ? `dispensa com ${g(reg.exemptionGrade)}` : null,
+    ]),
+    line([
+      reg.examAdmissionGrade > 0 ? `exame com ${g(reg.examAdmissionGrade)}` : null,
+      `faltas até ${reg.maxAbsencePercentage}%`,
+      reg.minimumExamGrade != null ? `mínimo no exame ${g(reg.minimumExamGrade)}` : null,
+      `épocas: ${seasons.join(", ")}`,
+    ]),
+    line([
+      `${reg.creditsPerYear} ${reg.creditLabel}/ano (máx. ${reg.maxCreditsPerYear})`,
+      progression ? `transita com ${progression}` : "sem retenção",
+      reg.maxAttemptsPerUnit ? `até ${reg.maxAttemptsPerUnit} inscrições` : null,
+      reg.enforcePrerequisites ? "precedências obrigatórias" : null,
+    ]),
   ];
 }

@@ -360,12 +360,16 @@ async function runProvisioning(
 
   // Natureza da instituição escolhida no registo: vai para o mesmo sítio que
   // Definições → Escola lê e grava. Falhar aqui não desfaz a escola.
-  if (data.school_type && adminUserId) {
+  const educationCountry = data.institution?.country;
+  if ((data.school_type || educationCountry) && adminUserId) {
     const { error: institutionErr } = await db.from("school_settings").insert({
       school_id: schoolId,
       domain: "institution",
       version: 1,
-      value: { school_type: data.school_type },
+      value: {
+        ...(data.school_type ? { school_type: data.school_type } : {}),
+        ...(educationCountry ? { education_country: educationCountry } : {}),
+      },
       changed_by: adminUserId,
     });
     if (institutionErr) {

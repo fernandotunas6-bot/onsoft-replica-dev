@@ -7,12 +7,15 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import {
+  CREDIT_LABEL_SUGGESTIONS,
   DEFAULT_HIGHER_ED_REGULATION,
+  EDUCATION_COUNTRIES,
   REGULATION_PRESETS,
   applyRegulationPreset,
   describeHigherEdRegulation,
   fromDisplayGrade,
   higherEdRegulationSchema,
+  regulationForCountry,
   toDisplayGrade,
   type HigherEdRegulation,
 } from "@/features/academic/higher-ed-regulation";
@@ -35,73 +38,47 @@ const GRADE_KEYS = new Set<FieldKey>([
   "minimumExamGrade",
 ]);
 
-/** Campos numéricos por grupo; `optional` aceita vazio (= sem esta regra). */
-const GROUPS: Array<{
-  title: string;
-  fields: Array<{ key: FieldKey; label: string; hint: string; optional?: boolean }>;
-}> = [
-  {
-    title: "Avaliação",
-    fields: [
-      { key: "passingGrade", label: "Aprovação", hint: "{nota}" },
-      {
-        key: "continuousWeight",
-        label: "Peso da frequência",
-        hint: "% · o exame fica com o resto",
-      },
-      {
-        key: "exemptionGrade",
-        label: "Dispensa de exame",
-        hint: "{nota} · vazio: sem dispensa",
-        optional: true,
-      },
-      { key: "examAdmissionGrade", label: "Admissão a exame", hint: "{nota} · 0: todos vão" },
-      {
-        key: "minimumExamGrade",
-        label: "Nota mínima no exame",
-        hint: "{nota} · vazio: sem mínimo",
-        optional: true,
-      },
-      { key: "maxAbsencePercentage", label: "Faltas máximas", hint: "% das aulas" },
-    ],
-  },
-  {
-    title: "Créditos e percurso",
-    fields: [
-      { key: "creditsPerYear", label: "Créditos por ano", hint: "{creditos}" },
-      { key: "maxCreditsPerYear", label: "Máximo por ano", hint: "com cadeiras em atraso" },
-      { key: "progressionPercentage", label: "Para transitar", hint: "% · 0: sem retenção" },
-      {
-        key: "maxAttemptsPerUnit",
-        label: "Inscrições por cadeira",
-        hint: "vazio: sem limite",
-        optional: true,
-      },
-      {
-        key: "appealMaxUnits",
-        label: "Cadeiras em recurso",
-        hint: "por semestre · vazio: sem limite",
-        optional: true,
-      },
-    ],
-  },
+const FIELDS: Array<{ key: FieldKey; label: string; optional?: boolean; suffix?: string }> = [
+  { key: "passingGrade", label: "Aprovação" },
+  { key: "continuousWeight", label: "Peso da frequência", suffix: "%" },
+  { key: "exemptionGrade", label: "Dispensa de exame", optional: true },
+  { key: "examAdmissionGrade", label: "Admissão a exame" },
+  { key: "minimumExamGrade", label: "Mínimo no exame", optional: true },
+  { key: "maxAbsencePercentage", label: "Faltas máximas", suffix: "%" },
+  { key: "creditsPerYear", label: "Créditos por ano" },
+  { key: "maxCreditsPerYear", label: "Máximo por ano" },
+  { key: "progressionPercentage", label: "Para transitar", suffix: "%" },
+  { key: "maxAttemptsPerUnit", label: "Inscrições por cadeira", optional: true },
+  { key: "appealMaxUnits", label: "Cadeiras em recurso", optional: true },
 ];
-const NUMBER_FIELDS = GROUPS.flatMap((group) => group.fields);
 
 const SWITCHES: Array<{ key: BooleanKey; label: string }> = [
   { key: "appealSeason", label: "Época de recurso" },
   { key: "specialSeason", label: "Época especial" },
   { key: "gradeImprovement", label: "Melhoria de nota" },
   { key: "enforcePrerequisites", label: "Precedências obrigatórias" },
-  { key: "showEctsGrade", label: "Mostrar nota ECTS (A–F)" },
-  { key: "showGpa", label: "Mostrar equivalente GPA 0–4" },
+  { key: "showEctsGrade", label: "Nota ECTS" },
+  { key: "showGpa", label: "Equivalente GPA" },
 ];
+
+/** Escalas de notas: números ou letras (as letras usam limites em %). */
+const SCALES = [
+  { id: "20", label: "0–20" },
+  { id: "10", label: "0–10" },
+  { id: "100", label: "0–100" },
+  { id: "a_f", label: "A–F" },
+  { id: "a_f_mais_menos", label: "A+ … F" },
+] as const;
+type ScaleId = (typeof SCALES)[number]["id"];
+
+const scaleOf = (reg: Pick<HigherEdRegulation, "displayScale" | "letterGrades">): ScaleId =>
+  reg.letterGrades !== "nenhuma" ? reg.letterGrades : (String(reg.displayScale) as ScaleId);
 
 type Draft = Record<FieldKey, string> & Omit<HigherEdRegulation, FieldKey>;
 
 function toDraft(reg: HigherEdRegulation): Draft {
   const draft = { ...reg } as unknown as Record<string, unknown>;
-  for (const field of NUMBER_FIELDS) {
+  for (const field of FIELDS) {
     const value = reg[field.key];
     draft[field.key] =
       value == null ? "" : String(GRADE_KEYS.has(field.key) ? toDisplayGrade(reg, value) : value);
@@ -113,15 +90,15 @@ function fromDraft(
   draft: Draft,
 ): { ok: true; data: HigherEdRegulation } | { ok: false; message: string } {
   const raw: Record<string, unknown> = { ...draft };
-  for (const field of NUMBER_FIELDS) {
+  for (const field of FIELDS) {
     const text = draft[field.key].trim().replace(",", ".");
     if (text === "" && !field.optional) return { ok: false, message: `Indique: ${field.label}.` };
     const value = text === "" ? null : Number(text);
     if (value != null && !Number.isFinite(value)) {
-      return { ok: false, message: `${field.label}: use só números.` };
+      return { ok: false, message: `${field.label}: só números.` };
     }
     if (value != null && GRADE_KEYS.has(field.key) && value > draft.displayScale) {
-      return { ok: false, message: `${field.label}: a escala vai até ${draft.displayScale}.` };
+      return { ok: false, message: `${field.label}: máximo ${draft.displayScale}.` };
     }
     raw[field.key] =
       value != null && GRADE_KEYS.has(field.key)
@@ -131,24 +108,12 @@ function fromDraft(
   const parsed = higherEdRegulationSchema.safeParse(raw);
   if (parsed.success) return { ok: true, data: parsed.data };
   const issue = parsed.error.issues[0];
-  const field = NUMBER_FIELDS.find((item) => item.key === issue?.path[0]);
-  // As regras cruzadas trazem mensagem própria; os limites simples não.
+  const field = FIELDS.find((item) => item.key === issue?.path[0]);
   return {
     ok: false,
     message:
-      issue?.code === "custom"
-        ? issue.message
-        : `${field?.label ?? "Valor"}: fora dos limites permitidos.`,
+      issue?.code === "custom" ? issue.message : `${field?.label ?? "Valor"}: fora dos limites.`,
   };
-}
-
-/** O regulamento difere do modelo de onde partiu? */
-function adjustedFromPreset(reg: HigherEdRegulation) {
-  if (reg.presetId === "personalizado") return false;
-  const base = applyRegulationPreset(reg.presetId);
-  return (Object.keys(base) as Array<keyof HigherEdRegulation>).some(
-    (key) => base[key] !== reg[key],
-  );
 }
 
 function Chips<T extends string | number>({
@@ -160,13 +125,13 @@ function Chips<T extends string | number>({
 }: {
   label: string;
   value: T;
-  options: Array<{ id: T; label: string }>;
+  options: ReadonlyArray<{ id: T; label: string }>;
   disabled: boolean;
   onChange: (id: T) => void;
 }) {
   return (
     <div className="flex flex-wrap items-center gap-2 text-sm">
-      <span className="w-full text-xs text-muted-foreground sm:w-auto">{label}</span>
+      <span className="w-full text-xs text-muted-foreground sm:w-40">{label}</span>
       {options.map((option) => (
         <button
           key={String(option.id)}
@@ -188,8 +153,8 @@ function Chips<T extends string | number>({
 }
 
 /**
- * Regulamento académico da instituição de ensino superior: parte de um modelo
- * nacional ou internacional e ajusta-se campo a campo.
+ * Regulamento académico do ensino superior. Parte do país do sistema de
+ * ensino e ajusta-se campo a campo; o resto é para quem precisar.
  */
 export function HigherEdRegulationPanel({ canEdit }: { canEdit: boolean }) {
   const queryClient = useQueryClient();
@@ -208,16 +173,18 @@ export function HigherEdRegulationPanel({ canEdit }: { canEdit: boolean }) {
   }, [query.data]);
 
   const parsed = fromDraft(draft);
-  const error = parsed.ok ? null : parsed.message;
-  const summary = parsed.ok ? describeHigherEdRegulation(parsed.data) : [];
-  const adjusted = parsed.ok && adjustedFromPreset(parsed.data);
   const set = <K extends keyof Draft>(key: K, value: Draft[K]) =>
     setDraft((current) => ({ ...current, [key]: value }));
 
-  const changeScale = (scale: HigherEdRegulation["displayScale"]) => {
-    // As notas mantêm o valor; só muda a forma de as escrever.
-    if (parsed.ok) setDraft(toDraft({ ...parsed.data, displayScale: scale }));
-    else set("displayScale", scale);
+  /** Muda a forma de escrever as notas sem mudar o seu valor. */
+  const changeScale = (id: ScaleId) => {
+    const letters = id === "a_f" || id === "a_f_mais_menos";
+    const next = {
+      letterGrades: letters ? id : ("nenhuma" as const),
+      displayScale: letters ? 100 : (Number(id) as 20 | 10 | 100),
+    };
+    if (parsed.ok) setDraft(toDraft({ ...parsed.data, ...next }));
+    else setDraft((current) => ({ ...current, ...next }));
   };
 
   const save = async () => {
@@ -226,7 +193,7 @@ export function HigherEdRegulationPanel({ canEdit }: { canEdit: boolean }) {
     try {
       await saveRegulation({ data: parsed.data });
       await queryClient.invalidateQueries({ queryKey: ["school", "higher-ed-regulation"] });
-      toast.success("Regulamento académico guardado.");
+      toast.success("Regulamento guardado.");
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Não foi possível guardar.");
     } finally {
@@ -234,69 +201,62 @@ export function HigherEdRegulationPanel({ canEdit }: { canEdit: boolean }) {
     }
   };
 
-  const hint = (text: string) =>
-    text
-      .replace("{nota}", draft.displayScale === 100 ? "%" : `0–${draft.displayScale}`)
-      .replace("{creditos}", draft.creditLabel);
+  const gradeSuffix =
+    draft.letterGrades !== "nenhuma" || draft.displayScale === 100 ? "%" : `/${draft.displayScale}`;
 
   return (
-    <div className="space-y-5">
-      <div className="space-y-2">
-        <p className="text-xs text-muted-foreground">Modelo de referência</p>
-        <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
-          {(Object.keys(REGULATION_PRESETS) as Array<keyof typeof REGULATION_PRESETS>).map((id) => {
-            const preset = REGULATION_PRESETS[id];
-            const active = draft.presetId === id;
-            return (
-              <button
-                key={id}
-                type="button"
-                disabled={!canEdit}
-                onClick={() => setDraft(toDraft(applyRegulationPreset(id)))}
-                className={cn(
-                  "rounded-lg border px-3 py-2.5 text-left transition-colors",
-                  active ? "border-primary bg-primary/5" : "hover:bg-muted/60",
-                )}
-              >
-                <span className="block text-sm">
-                  {preset.label}
-                  {active && adjusted ? (
-                    <span className="text-xs text-muted-foreground"> · ajustado</span>
-                  ) : null}
-                </span>
-                <span className="block text-xs text-muted-foreground">{preset.detail}</span>
-              </button>
-            );
-          })}
+    <div className="space-y-4">
+      <div className="grid gap-3 sm:grid-cols-2">
+        <div className="space-y-1.5">
+          <Label htmlFor="reg-country" className="text-xs">
+            País do sistema de ensino
+          </Label>
+          <select
+            id="reg-country"
+            disabled={!canEdit}
+            className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
+            value={draft.country}
+            onChange={(event) => setDraft(toDraft(regulationForCountry(event.target.value)))}
+          >
+            {EDUCATION_COUNTRIES.map((country) => (
+              <option key={country.code} value={country.code}>
+                {country.name}
+              </option>
+            ))}
+          </select>
         </div>
-        <p className="text-xs text-muted-foreground">
-          Os modelos trazem os valores mais comuns em cada sistema. Não substituem o regulamento
-          aprovado da instituição: confirme e ajuste abaixo.
-        </p>
+        <div className="space-y-1.5">
+          <Label htmlFor="reg-model" className="text-xs">
+            Modelo
+          </Label>
+          <select
+            id="reg-model"
+            disabled={!canEdit}
+            className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
+            value={draft.presetId === "personalizado" ? "" : draft.presetId}
+            onChange={(event) => {
+              const id = event.target.value as keyof typeof REGULATION_PRESETS;
+              if (id) setDraft(toDraft(applyRegulationPreset(id, draft.country)));
+            }}
+          >
+            {(Object.keys(REGULATION_PRESETS) as Array<keyof typeof REGULATION_PRESETS>).map(
+              (id) => (
+                <option key={id} value={id}>
+                  {REGULATION_PRESETS[id].label}
+                </option>
+              ),
+            )}
+          </select>
+        </div>
       </div>
 
       <div className="space-y-2">
         <Chips
-          label="Escala de notas"
-          value={draft.displayScale}
+          label="Notas"
+          value={scaleOf(draft)}
+          options={SCALES}
           disabled={!canEdit}
           onChange={changeScale}
-          options={[
-            { id: 20, label: "0–20 valores" },
-            { id: 10, label: "0–10 pontos" },
-            { id: 100, label: "0–100%" },
-          ]}
-        />
-        <Chips
-          label="Unidade de crédito"
-          value={draft.creditLabel}
-          disabled={!canEdit}
-          onChange={(id) => set("creditLabel", id)}
-          options={[
-            { id: "créditos", label: "Créditos" },
-            { id: "ECTS", label: "ECTS" },
-            { id: "UC", label: "Unidades de crédito (UC)" },
-          ]}
         />
         <Chips
           label="Classificação final"
@@ -304,52 +264,69 @@ export function HigherEdRegulationPanel({ canEdit }: { canEdit: boolean }) {
           disabled={!canEdit}
           onChange={(id) => set("finalMentions", id)}
           options={[
-            { id: "qualitativa", label: "Suficiente a Excelente" },
-            { id: "latinas", label: "Honras latinas (GPA)" },
+            { id: "qualitativa", label: "Suficiente…Excelente" },
+            { id: "latinas", label: "Cum laude" },
+            { id: "britanica", label: "First, 2:1, 2:2" },
             { id: "nenhuma", label: "Só a média" },
           ]}
         />
-        <Chips
-          label="Nota final"
-          value={draft.finalGradeDecimals}
-          disabled={!canEdit}
-          onChange={(id) => set("finalGradeDecimals", id)}
-          options={[
-            { id: 0, label: "Inteira" },
-            { id: 1, label: "Uma casa decimal" },
-          ]}
-        />
+        <div className="flex flex-wrap items-center gap-2 text-sm">
+          <Label
+            htmlFor="reg-credit-label"
+            className="w-full text-xs text-muted-foreground sm:w-40"
+          >
+            Nome dos créditos
+          </Label>
+          <Input
+            id="reg-credit-label"
+            list="reg-credit-labels"
+            className="h-8 w-40"
+            maxLength={24}
+            disabled={!canEdit}
+            value={draft.creditLabel}
+            onChange={(event) => set("creditLabel", event.target.value)}
+          />
+          <datalist id="reg-credit-labels">
+            {CREDIT_LABEL_SUGGESTIONS.map((label) => (
+              <option key={label} value={label} />
+            ))}
+          </datalist>
+        </div>
       </div>
 
-      {GROUPS.map((group) => (
-        <div key={group.title} className="space-y-2">
-          <p className="text-xs text-muted-foreground">{group.title}</p>
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-            {group.fields.map((field) => (
-              <div key={field.key} className="space-y-1.5">
-                <Label htmlFor={`reg-${field.key}`} className="text-xs">
-                  {field.label}
-                </Label>
-                <Input
-                  id={`reg-${field.key}`}
-                  inputMode="decimal"
-                  value={draft[field.key]}
-                  disabled={!canEdit}
-                  placeholder={field.optional ? "—" : undefined}
-                  onChange={(event) => set(field.key, event.target.value)}
-                />
-                <p className="text-[11px] text-muted-foreground">{hint(field.hint)}</p>
-              </div>
-            ))}
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+        {FIELDS.map((field) => (
+          <div key={field.key} className="space-y-1.5">
+            <Label htmlFor={`reg-${field.key}`} className="text-xs">
+              {field.label}
+            </Label>
+            <div className="relative">
+              <Input
+                id={`reg-${field.key}`}
+                inputMode="decimal"
+                value={draft[field.key]}
+                disabled={!canEdit}
+                placeholder={field.optional ? "—" : undefined}
+                className="pr-10"
+                onChange={(event) => set(field.key, event.target.value)}
+              />
+              <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-xs text-muted-foreground">
+                {GRADE_KEYS.has(field.key)
+                  ? gradeSuffix
+                  : field.key === "creditsPerYear" || field.key === "maxCreditsPerYear"
+                    ? ""
+                    : field.suffix}
+              </span>
+            </div>
           </div>
-        </div>
-      ))}
+        ))}
+      </div>
 
-      <div className="grid gap-2 sm:grid-cols-2">
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
         {SWITCHES.map((item) => (
           <label
             key={item.key}
-            className="flex cursor-pointer items-center gap-3 rounded-xl border bg-card px-3 py-2.5"
+            className="flex cursor-pointer items-center gap-2.5 rounded-lg border px-3 py-2"
           >
             <Switch
               checked={draft[item.key]}
@@ -361,35 +338,22 @@ export function HigherEdRegulationPanel({ canEdit }: { canEdit: boolean }) {
         ))}
       </div>
 
-      {error ? (
-        <p role="alert" className="text-sm text-destructive">
-          {error}
-        </p>
-      ) : (
-        <ul className="grid gap-1 rounded-xl bg-muted/50 px-4 py-3 text-xs text-muted-foreground">
-          {summary.map((line) => (
+      {parsed.ok ? (
+        <ul className="space-y-0.5 text-xs text-muted-foreground">
+          {describeHigherEdRegulation(parsed.data).map((line) => (
             <li key={line}>{line}</li>
           ))}
         </ul>
+      ) : (
+        <p role="alert" className="text-sm text-destructive">
+          {parsed.message}
+        </p>
       )}
 
       {canEdit ? (
-        <div className="flex justify-end gap-2">
-          {parsed.ok && parsed.data.presetId !== "personalizado" && adjusted ? (
-            <Button
-              type="button"
-              variant="ghost"
-              onClick={() =>
-                parsed.ok &&
-                parsed.data.presetId !== "personalizado" &&
-                setDraft(toDraft(applyRegulationPreset(parsed.data.presetId)))
-              }
-            >
-              Repor o modelo
-            </Button>
-          ) : null}
+        <div className="flex justify-end">
           <Button type="button" onClick={save} disabled={saving || !parsed.ok}>
-            {saving ? "A guardar…" : "Guardar regulamento"}
+            {saving ? "A guardar…" : "Guardar"}
           </Button>
         </div>
       ) : null}
