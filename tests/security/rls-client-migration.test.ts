@@ -55,6 +55,12 @@ const MIGRADOS = [
  * na contagem de dívida abaixo.
  */
 const PRIVILEGIO_POR_DESENHO = new Set([
+  // Assinatura da escola (Configurações → Assinatura). `tenants`,
+  // `subscriptions`, `tenant_usage` e `saas_audit_logs` só têm política para a
+  // equipa da plataforma. O servidor exige o Administrador e lê apenas o
+  // tenant da escola da sessão.
+  "src/features/saas/subscription-server.ts",
+
   // Regista cada documento oficial emitido (audit_logs, só o servidor grava) e
   // verifica-o publicamente, sem sessão, a partir do código impresso.
   "src/features/documents/verification.ts",

@@ -493,6 +493,11 @@ export function getPortalNavigation(
               search: { painel: "seguranca" },
             },
             {
+              label: "Assinatura e plano",
+              icon: moduleIcons.subscription,
+              to: "/configuracoes/assinatura",
+            },
+            {
               label: "Diagnóstico de erros",
               icon: moduleIcons.diagnostics,
               to: "/configuracoes/diagnostico",

@@ -532,13 +532,13 @@ export function StartSchoolWizard() {
             </div>
           ) : null}
 
-          {done.adminTenantsUrl ? (
-            <div className="flex justify-center border-t pt-3 text-sm">
-              <Button variant="link" asChild className="text-muted-foreground">
-                <a href={done.adminTenantsUrl}>Ver no Control Center (ADMIN) &rarr;</a>
-              </Button>
-            </div>
-          ) : null}
+          <div className="flex justify-center border-t pt-3 text-sm">
+            <Button variant="link" asChild className="text-muted-foreground">
+              <a href={manageUrl(done.sigaUrl)}>
+                Gerir a assinatura, o plano e o domínio &rarr;
+              </a>
+            </Button>
+          </div>
         </CardContent>
       </Card>
     )
@@ -984,6 +984,11 @@ export function StartSchoolWizard() {
       </Card>
     </div>
   )
+}
+
+/** Área do cliente no SIGA: plano, uso, pagamento e domínio (só Administrador). */
+function manageUrl(sigaUrl: string) {
+  return `${sigaUrl.replace(/\/+$/, "")}/configuracoes/assinatura`
 }
 
 function schoolInitials(name: string) {

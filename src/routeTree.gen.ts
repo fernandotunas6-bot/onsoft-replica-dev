@@ -46,6 +46,7 @@ import { Route as AuthEmailChangeRouteImport } from './routes/auth.email-change'
 import { Route as AuthMagicLinkRouteImport } from './routes/auth.magic-link'
 import { Route as AuthResetPasswordRouteImport } from './routes/auth.reset-password'
 import { Route as CalendarioIcsRouteImport } from './routes/calendario.ics'
+import { Route as ConfiguracoesAssinaturaRouteImport } from './routes/configuracoes_.assinatura'
 import { Route as ConfiguracoesDiagnosticoRouteImport } from './routes/configuracoes_.diagnostico'
 import { Route as ConviteTokenRouteImport } from './routes/convite.$token'
 import { Route as FinanceiroRhRouteImport } from './routes/financeiro.rh'
@@ -285,6 +286,11 @@ const CalendarioIcsRoute = CalendarioIcsRouteImport.update({
   id: '/ics',
   path: '/ics',
   getParentRoute: () => CalendarioRoute,
+} as any)
+const ConfiguracoesAssinaturaRoute = ConfiguracoesAssinaturaRouteImport.update({
+  id: '/configuracoes_/assinatura',
+  path: '/configuracoes/assinatura',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const ConfiguracoesDiagnosticoRoute =
   ConfiguracoesDiagnosticoRouteImport.update({
@@ -603,6 +609,7 @@ export interface FileRoutesByFullPath {
   '/auth/magic-link': typeof AuthMagicLinkRoute
   '/auth/reset-password': typeof AuthResetPasswordRoute
   '/calendario/ics': typeof CalendarioIcsRoute
+  '/configuracoes/assinatura': typeof ConfiguracoesAssinaturaRoute
   '/configuracoes/diagnostico': typeof ConfiguracoesDiagnosticoRoute
   '/convite/$token': typeof ConviteTokenRoute
   '/financeiro/rh': typeof FinanceiroRhRouteWithChildren
@@ -695,6 +702,7 @@ export interface FileRoutesByTo {
   '/auth/magic-link': typeof AuthMagicLinkRoute
   '/auth/reset-password': typeof AuthResetPasswordRoute
   '/calendario/ics': typeof CalendarioIcsRoute
+  '/configuracoes/assinatura': typeof ConfiguracoesAssinaturaRoute
   '/configuracoes/diagnostico': typeof ConfiguracoesDiagnosticoRoute
   '/convite/$token': typeof ConviteTokenRoute
   '/financeiro/rh': typeof FinanceiroRhRouteWithChildren
@@ -788,6 +796,7 @@ export interface FileRoutesById {
   '/auth/magic-link': typeof AuthMagicLinkRoute
   '/auth/reset-password': typeof AuthResetPasswordRoute
   '/calendario/ics': typeof CalendarioIcsRoute
+  '/configuracoes_/assinatura': typeof ConfiguracoesAssinaturaRoute
   '/configuracoes_/diagnostico': typeof ConfiguracoesDiagnosticoRoute
   '/convite/$token': typeof ConviteTokenRoute
   '/financeiro/rh': typeof FinanceiroRhRouteWithChildren
@@ -882,6 +891,7 @@ export interface FileRouteTypes {
     | '/auth/magic-link'
     | '/auth/reset-password'
     | '/calendario/ics'
+    | '/configuracoes/assinatura'
     | '/configuracoes/diagnostico'
     | '/convite/$token'
     | '/financeiro/rh'
@@ -974,6 +984,7 @@ export interface FileRouteTypes {
     | '/auth/magic-link'
     | '/auth/reset-password'
     | '/calendario/ics'
+    | '/configuracoes/assinatura'
     | '/configuracoes/diagnostico'
     | '/convite/$token'
     | '/financeiro/rh'
@@ -1066,6 +1077,7 @@ export interface FileRouteTypes {
     | '/auth/magic-link'
     | '/auth/reset-password'
     | '/calendario/ics'
+    | '/configuracoes_/assinatura'
     | '/configuracoes_/diagnostico'
     | '/convite/$token'
     | '/financeiro/rh'
@@ -1149,6 +1161,7 @@ export interface RootRouteChildren {
   AuthEmailChangeRoute: typeof AuthEmailChangeRoute
   AuthMagicLinkRoute: typeof AuthMagicLinkRoute
   AuthResetPasswordRoute: typeof AuthResetPasswordRoute
+  ConfiguracoesAssinaturaRoute: typeof ConfiguracoesAssinaturaRoute
   ConfiguracoesDiagnosticoRoute: typeof ConfiguracoesDiagnosticoRoute
   ConviteTokenRoute: typeof ConviteTokenRoute
   MatriculaSlugRoute: typeof MatriculaSlugRoute
@@ -1446,6 +1459,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/calendario/ics'
       preLoaderRoute: typeof CalendarioIcsRouteImport
       parentRoute: typeof CalendarioRoute
+    }
+    '/configuracoes_/assinatura': {
+      id: '/configuracoes_/assinatura'
+      path: '/configuracoes/assinatura'
+      fullPath: '/configuracoes/assinatura'
+      preLoaderRoute: typeof ConfiguracoesAssinaturaRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/configuracoes_/diagnostico': {
       id: '/configuracoes_/diagnostico'
@@ -2017,6 +2037,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthEmailChangeRoute: AuthEmailChangeRoute,
   AuthMagicLinkRoute: AuthMagicLinkRoute,
   AuthResetPasswordRoute: AuthResetPasswordRoute,
+  ConfiguracoesAssinaturaRoute: ConfiguracoesAssinaturaRoute,
   ConfiguracoesDiagnosticoRoute: ConfiguracoesDiagnosticoRoute,
   ConviteTokenRoute: ConviteTokenRoute,
   MatriculaSlugRoute: MatriculaSlugRoute,
