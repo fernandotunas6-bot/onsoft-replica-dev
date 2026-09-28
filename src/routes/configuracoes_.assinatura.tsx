@@ -93,7 +93,7 @@ function SubscriptionPage() {
   );
 }
 
-function SubscriptionDetail({ data }: { data: SubscriptionOverview }) {
+export function SubscriptionDetail({ data }: { data: SubscriptionOverview }) {
   const state = describeSubscription(data, new Date());
   return (
     <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_20rem]">
@@ -151,17 +151,17 @@ function SubscriptionDetail({ data }: { data: SubscriptionOverview }) {
         <PlanComparison data={data} />
       </div>
 
-      <div className="grid content-start gap-6">
+      <div className="grid min-w-0 content-start gap-6">
         <PaymentPanel data={data} />
         <Panel title="Endereço da escola">
-          <ul className="grid gap-2 text-sm">
-            <li className="flex items-center gap-2">
+          <ul className="grid min-w-0 gap-2 text-sm">
+            <li className="flex min-w-0 items-center gap-2">
               <Globe className="size-4 shrink-0 text-muted-foreground" />
               <a
                 href={`https://${data.subdomain}`}
                 target="_blank"
                 rel="noreferrer"
-                className="truncate hover:underline"
+                className="min-w-0 truncate hover:underline"
               >
                 {data.subdomain}
               </a>
@@ -169,11 +169,14 @@ function SubscriptionDetail({ data }: { data: SubscriptionOverview }) {
             {data.domains
               .filter((d) => d.hostname !== data.subdomain)
               .map((d) => (
-                <li key={d.hostname} className="flex items-center justify-between gap-2">
-                  <span className="truncate">{d.hostname}</span>
+                <li key={d.hostname} className="flex min-w-0 items-center justify-between gap-2">
+                  <span className="min-w-0 truncate" title={d.hostname}>
+                    {d.hostname}
+                  </span>
                   <span
                     className={cn(
                       badgeBase,
+                      "shrink-0",
                       toneClass[d.status === "active" ? "success" : "warning"],
                     )}
                   >
