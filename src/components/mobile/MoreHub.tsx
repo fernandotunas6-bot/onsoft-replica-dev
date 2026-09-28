@@ -89,7 +89,7 @@ export function MoreHub({
                           </span>
                           <span className="min-w-0 flex-1 truncate text-sm">{item.label}</span>
                           <ChevronRight
-                            className="size-4 shrink-0 text-muted-foreground/40"
+                            className="size-4 shrink-0 text-muted-foreground"
                             aria-hidden
                           />
                         </Link>
@@ -121,7 +121,7 @@ export function MoreHub({
                   <UserRound className="size-4" aria-hidden />
                 </span>
                 <span className="flex-1 truncate text-sm">Meu perfil</span>
-                <ChevronRight className="size-4 text-muted-foreground/40" aria-hidden />
+                <ChevronRight className="size-4 text-muted-foreground" aria-hidden />
               </Link>
             </li>
             {onOpenSettings &&
@@ -139,7 +139,7 @@ export function MoreHub({
                     <Settings className="size-4" aria-hidden />
                   </span>
                   <span className="flex-1 truncate text-sm">Definições</span>
-                  <ChevronRight className="size-4 text-muted-foreground/40" aria-hidden />
+                  <ChevronRight className="size-4 text-muted-foreground" aria-hidden />
                 </button>
               </li>
             ) : null}

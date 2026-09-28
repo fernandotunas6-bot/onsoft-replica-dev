@@ -158,8 +158,14 @@ function SalaryOperationsPage() {
             </label>
             <label className="space-y-1 text-sm">
               <span>Novo salário-base (Kz)</span>
+              {/* `aria-label` mesmo dentro do `<label>`: a associação implícita é
+                  válida, mas o verificador de acessibilidade do projecto não a
+                  reconhece — e explicitar não custa nada a quem lê por voz.
+                  `inputMode="decimal"` dá o teclado com vírgula no telemóvel. */}
               <Input
+                aria-label="Novo salário-base em kwanzas"
                 type="number"
+                inputMode="decimal"
                 min={0}
                 step="0.01"
                 value={amount}
@@ -170,6 +176,7 @@ function SalaryOperationsPage() {
             <label className="space-y-1 text-sm">
               <span>Entrada em vigor</span>
               <Input
+                aria-label="Data de entrada em vigor"
                 type="date"
                 value={effectiveOn}
                 onChange={(e) => setEffectiveOn(e.target.value)}

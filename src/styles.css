@@ -732,3 +732,26 @@ h6,
     --siga-mobile-pad: 1rem;
   }
 }
+
+/*
+ * Véu das folhas e diálogos. Token porque o valor não é o mesmo nos dois temas:
+ * no claro basta escurecer, no escuro um preto a 55% já não separa a folha do
+ * fundo — é preciso mais opacidade para o painel se ler como estando à frente.
+ */
+:root {
+  --siga-overlay: oklch(0.18 0.02 285 / 55%);
+}
+
+.dark {
+  --siga-overlay: oklch(0.08 0.01 285 / 72%);
+}
+
+/*
+ * Moldura do visor da câmara (leitura de QR). É escura nos dois temas de
+ * propósito: é a área onde ainda não há imagem, e um fundo claro a piscar antes
+ * do primeiro fotograma lê-se como falha do leitor.
+ */
+:root,
+.dark {
+  --siga-camera-bezel: oklch(0.14 0.01 285);
+}

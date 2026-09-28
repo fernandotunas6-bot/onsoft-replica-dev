@@ -150,7 +150,7 @@ export function TeacherLessonScanner({
           ref={video}
           playsInline
           muted
-          className="w-full max-w-sm rounded-xl bg-black"
+          className="w-full max-w-sm rounded-xl bg-(--siga-camera-bezel)"
           aria-label="Leitor de QR Code"
         />
       )}
@@ -185,9 +185,9 @@ export function TeacherLessonScanner({
       {message && (
         <p role="status" className="flex items-start gap-2 text-sm">
           {accepted ? (
-            <CheckCircle2 className="size-4 text-emerald-600" />
+            <CheckCircle2 className="size-4 text-success-strong" />
           ) : (
-            <AlertTriangle className="size-4 text-amber-600" />
+            <AlertTriangle className="size-4 text-warning-strong" />
           )}
           {message}
         </p>

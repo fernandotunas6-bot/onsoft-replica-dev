@@ -36,10 +36,15 @@ export function BottomSheet({
   return (
     <DrawerPrimitive.Root open={open} onOpenChange={onOpenChange} dismissible={dismissible}>
       <DrawerPrimitive.Portal>
-        <DrawerPrimitive.Overlay className="fixed inset-0 z-50 bg-black/55" />
+        {/* Véu por token (`--siga-overlay`): um preto cru não separa a folha
+              do fundo no tema escuro, e não acompanha a paleta. */}
+        <DrawerPrimitive.Overlay className="fixed inset-0 z-50 bg-(--siga-overlay)" />
         <DrawerPrimitive.Content
           className={cn(
-            "fixed inset-x-0 bottom-0 z-[55] flex flex-col rounded-t-2xl border-t border-border bg-card outline-none",
+            "fixed inset-x-0 bottom-0 z-[55] flex flex-col rounded-t-2xl border-t border-border bg-card",
+            // O painel em si não recebe anel (não é alvo de interacção), mas
+            // o foco dentro dele tem de continuar visível.
+            "outline-none focus-visible:ring-2 focus-visible:ring-ring",
             "max-h-[92dvh]",
             size === "medium" && "h-[60dvh]",
             size === "full" && "h-[92dvh]",

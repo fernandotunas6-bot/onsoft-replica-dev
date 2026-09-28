@@ -326,10 +326,16 @@ function MfaSecurityPanel() {
 
       {pending ? (
         <div className="mt-4 space-y-3 border-t border-border pt-4">
+          {/*
+            O fundo do QR é branco em qualquer tema — não é decoração: um leitor
+            de códigos precisa do contraste máximo entre módulo e fundo, e no
+            tema escuro um fundo escuro torna o código ilegível. `siga-official-paper`
+            é o utilitário que o sistema já tem para "papel branco invariável".
+          */}
           <img
             src={pending.qrCode}
             alt="QR code para configurar autenticação de dois fatores"
-            className="size-40 rounded-md border bg-white p-2"
+            className="siga-official-paper size-40 rounded-md border p-2"
           />
           <Label htmlFor="mfa-setup-code">Código da aplicação autenticadora</Label>
           <div className="flex flex-col gap-2 sm:flex-row">

@@ -2,6 +2,8 @@ import * as React from "react";
 import { Link } from "@tanstack/react-router";
 import { ChevronRight, MoreVertical } from "lucide-react";
 
+import { MediaAvatar } from "@/components/ui/media-frame";
+
 import { cn } from "@/lib/utils";
 
 /**
@@ -118,13 +120,13 @@ export function EntityRow({
           className={cn(rowClass, "min-w-0 flex-1")}
         >
           {body}
-          <ChevronRight className="size-4 shrink-0 text-muted-foreground/50" aria-hidden />
+          <ChevronRight className="size-4 shrink-0 text-muted-foreground" aria-hidden />
         </Link>
       ) : (
         <button type="button" onClick={item.onSelect} className={cn(rowClass, "min-w-0 flex-1")}>
           {body}
           {item.onSelect ? (
-            <ChevronRight className="size-4 shrink-0 text-muted-foreground/50" aria-hidden />
+            <ChevronRight className="size-4 shrink-0 text-muted-foreground" aria-hidden />
           ) : null}
         </button>
       )}
@@ -144,8 +146,13 @@ export function EntityRow({
 }
 
 /**
- * Iniciais como avatar de reserva. Uma fotografia que falhe a carregar deixava
- * um quadrado vazio; com iniciais a lista continua legível (§69).
+ * Avatar de uma entidade na lista.
+ *
+ * Delega no `MediaAvatar` de propósito: é ele que resolve o `photo_url` — as
+ * fotografias de pessoas vivem em Storage privado e precisam de URL assinado.
+ * Uma imagem crua com o `photo_url` mostrava um quadrado vazio em todas elas, e a
+ * lista ficava sem o único elemento que distingue dois alunos com nomes
+ * parecidos. Sem fotografia, o `MediaAvatar` desenha as iniciais (§69).
  */
 export function EntityAvatar({
   name,
@@ -156,41 +163,12 @@ export function EntityAvatar({
   photoUrl?: string | null;
   className?: string;
 }) {
-  const initials = React.useMemo(
-    () =>
-      name
-        .split(/\s+/)
-        .filter(Boolean)
-        .slice(0, 2)
-        .map((part) => part[0]?.toUpperCase() ?? "")
-        .join(""),
-    [name],
-  );
-
-  const [failed, setFailed] = React.useState(false);
-
-  if (photoUrl && !failed) {
-    return (
-      <img
-        src={photoUrl}
-        alt=""
-        loading="lazy"
-        decoding="async"
-        onError={() => setFailed(true)}
-        className={cn("size-9 rounded-full object-cover", className)}
-      />
-    );
-  }
-
   return (
-    <span
-      aria-hidden
-      className={cn(
-        "inline-flex size-9 items-center justify-center rounded-full bg-primary-soft text-[11px] font-medium text-primary-strong",
-        className,
-      )}
-    >
-      {initials || "—"}
-    </span>
+    <MediaAvatar
+      src={photoUrl ?? null}
+      alt={name}
+      className={cn("size-9 rounded-full object-cover", className)}
+      textClassName="text-[11px] font-medium"
+    />
   );
 }

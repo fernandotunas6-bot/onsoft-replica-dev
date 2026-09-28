@@ -689,7 +689,7 @@ export function ScheduleWorkspace({
               </p>
             </div>
             <span
-              className={`rounded-full px-3 py-1 text-xs font-semibold ${publication.ready ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300" : "bg-amber-500/10 text-amber-700 dark:text-amber-300"}`}
+              className={`rounded-full px-3 py-1 text-xs font-semibold ${publication.ready ? "bg-success/10 text-success-strong" : "bg-warning/15 text-warning-strong"}`}
             >
               {publication.ready
                 ? "Pronto para publicar"
@@ -706,7 +706,7 @@ export function ScheduleWorkspace({
                   key={`${issue.code}-${issue.slotId ?? index}`}
                   className="flex items-start gap-1.5"
                 >
-                  <AlertTriangle className="mt-0.5 size-3.5 shrink-0 text-amber-600" />
+                  <AlertTriangle className="mt-0.5 size-3.5 shrink-0 text-warning-strong" />
                   {issue.message}
                 </li>
               ))}
