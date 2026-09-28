@@ -19,8 +19,24 @@ export const INSTITUTION_LEVELS = [
 ] as const;
 export type InstitutionLevel = (typeof INSTITUTION_LEVELS)[number];
 
+/** Nomes para o ecrã (a WEB tem a mesma lista em painel/web/src/lib/angola.ts). */
+export const INSTITUTION_LEVEL_LABELS: Record<InstitutionLevel, { label: string; detail: string }> = {
+  pre_escolar: { label: "Pré-escolar", detail: "Iniciação" },
+  primario: { label: "Primário", detail: "1ª à 6ª classe" },
+  i_ciclo: { label: "I Ciclo", detail: "7ª à 9ª classe" },
+  ii_ciclo: { label: "II Ciclo / Médio", detail: "10ª à 12ª classe" },
+  tecnico: { label: "Técnico-profissional", detail: "10ª à 13ª classe" },
+  superior: { label: "Ensino Superior", detail: "Cursos e semestres" },
+};
+
 export const INSTITUTION_SHIFTS = ["morning", "afternoon", "evening"] as const;
 export type InstitutionShift = (typeof INSTITUTION_SHIFTS)[number];
+
+export const INSTITUTION_SHIFT_LABELS: Record<InstitutionShift, string> = {
+  morning: "Manhã",
+  afternoon: "Tarde",
+  evening: "Noite",
+};
 
 export const MAX_INITIAL_ROOMS = 200;
 

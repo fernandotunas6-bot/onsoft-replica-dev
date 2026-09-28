@@ -96,7 +96,7 @@ describe("perfil da instituição → estrutura inicial", () => {
 });
 
 describe("gravação do plano", () => {
-  function fakeDb() {
+  function fakeDb(pedagogy: Record<string, unknown> | null = null) {
     const writes: Array<{ table: string; op: string; rows: unknown }> = [];
     const ids: Record<string, Array<{ id: string; code: string }>> = {
       academic_levels: [{ id: "lvl-prim", code: "PRIM" }],
@@ -105,6 +105,10 @@ describe("gravação do plano", () => {
     const db = {
       from(table: string) {
         const chain = {
+          update(rows: unknown) {
+            writes.push({ table, op: "update", rows });
+            return chain;
+          },
           upsert(rows: unknown) {
             writes.push({ table, op: "upsert", rows });
             return Promise.resolve({ error: null });
@@ -124,7 +128,12 @@ describe("gravação do plano", () => {
           },
           maybeSingle() {
             return Promise.resolve({
-              data: table === "academic_years" ? { id: "year-1" } : null,
+              data:
+                table === "academic_years"
+                  ? { id: "year-1" }
+                  : table === "school_settings"
+                    ? pedagogy
+                    : null,
               error: null,
             });
           },
@@ -167,5 +176,25 @@ describe("gravação do plano", () => {
     };
     expect(settings.value.teachingLevels).toEqual(["primario"]);
     expect(result.seeded).toEqual(expect.arrayContaining(["classes", "trimestres", "salas"]));
+  });
+
+  it("numa escola já em uso junta os níveis às definições, sem apagar os que existem", async () => {
+    const { db, writes } = fakeDb({
+      id: "set-1",
+      version: 4,
+      value: { teachingLevels: ["i_ciclo"], courses: [], closedTerms: ["T1"], gradingProfile: "x" },
+    });
+    await applyInstitutionPlan(
+      db as never,
+      { schoolId: "s1", adminUserId: "u1", plan: plan(["primario", "tecnico"]) },
+      () => {},
+    );
+    const update = writes.find((w) => w.table === "school_settings" && w.op === "update")!
+      .rows as { value: Record<string, unknown>; version: number };
+    expect(update.version).toBe(5);
+    expect(update.value.teachingLevels).toEqual(["i_ciclo", "primario", "ii_ciclo"]);
+    expect(update.value.courses).toEqual(["tecnico"]);
+    expect(update.value.closedTerms).toEqual(["T1"]);
+    expect(update.value.gradingProfile).toBe("x");
   });
 });

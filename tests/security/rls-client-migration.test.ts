@@ -65,6 +65,10 @@ const PRIVILEGIO_POR_DESENHO = new Set([
   // escolas de uma vez, e a sessão só tem RLS para a escola activa. Só lê as
   // escolas onde a conta tem vínculo activo de Administrador.
   "src/features/saas/my-schools-server.ts",
+  // Configuração inicial: aplica o perfil de ensino (níveis, classes,
+  // disciplinas, períodos, turnos, salas) com o mesmo código do registo, e conta
+  // o que falta. Só Administrador, sempre pela escola do vínculo activo.
+  "src/features/saas/institution-setup-server.ts",
 
   // Regista cada documento oficial emitido (audit_logs, só o servidor grava) e
   // verifica-o publicamente, sem sessão, a partir do código impresso.

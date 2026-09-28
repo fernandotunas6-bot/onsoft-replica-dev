@@ -71,7 +71,9 @@ const schema = z.object({
     .regex(/^[0-9]{9,10}$/, "NIF inválido. Use o NIF de entidade da AGT (9–10 dígitos)"),
   commercial_name: z.string().trim().max(160).optional(),
   school_type: z.string().trim().optional(),
-  levels: z.array(z.enum(TEACHING_LEVEL_IDS)).min(1, "Escolha pelo menos um nível de ensino"),
+  levels: z.array(z.enum(TEACHING_LEVEL_IDS)),
+  /** O ensino pode ser escolhido depois, no SIGA (Configuração inicial). */
+  teaching_later: z.boolean(),
   shifts: z.array(z.enum(SHIFT_IDS)).min(1, "Escolha pelo menos um turno"),
   rooms: z
     .string()
@@ -128,9 +130,14 @@ const schema = z.object({
 }).refine((data) => data.admin_password === data.admin_password_confirm, {
   message: "As senhas não coincidem",
   path: ["admin_password_confirm"],
+}).refine((data) => data.teaching_later || data.levels.length > 0, {
+  message: "Escolha pelo menos um nível de ensino, ou defina depois",
+  path: ["levels"],
 })
 
 type FormValues = z.infer<typeof schema>
+/** Campos de texto (os de escolha múltipla têm o seu próprio controlo). */
+type TextFieldName = Exclude<keyof FormValues, "levels" | "shifts" | "teaching_later">
 
 const STEPS = [
   { id: 1, title: "Instituição", hint: "Nome, NIF e natureza" },
@@ -247,6 +254,7 @@ export function StartSchoolWizard() {
       commercial_name: "",
       school_type: "privada",
       levels: [],
+      teaching_later: false,
       shifts: ["morning"],
       rooms: "",
       province: "",
@@ -279,7 +287,7 @@ export function StartSchoolWizard() {
     for (const [key, value] of Object.entries(draft.values)) {
       if (
         !DRAFT_OMIT.has(key as keyof FormValues) &&
-        (typeof value === "string" || Array.isArray(value))
+        (typeof value === "string" || typeof value === "boolean" || Array.isArray(value))
       ) {
         form.setValue(key as keyof FormValues, value as never, { shouldValidate: false })
       }
@@ -367,6 +375,12 @@ export function StartSchoolWizard() {
   async function onNext() {
     setServerError(null)
     if (!(await validateStep())) return
+    // O refine do esquema só corre quando todo o objecto é válido; aqui os
+    // passos seguintes ainda estão vazios, por isso a regra repete-se à mão.
+    if (step === 2 && !form.getValues("teaching_later") && !form.getValues("levels").length) {
+      form.setError("levels", { message: "Escolha pelo menos um nível de ensino, ou defina depois" })
+      return
+    }
     if (step === 7 && slugStatus === "taken") {
       form.setError("slug", { message: "Este subdomínio já está em uso por outra escola." })
       return
@@ -411,11 +425,14 @@ export function StartSchoolWizard() {
           ...payload,
           city: payload.municipality || payload.city,
           commercial_name: payload.commercial_name || undefined,
-          institution: {
-            levels: payload.levels,
-            shifts: payload.shifts,
-            rooms: Number(payload.rooms || 0),
-          },
+          institution:
+            payload.teaching_later || !payload.levels.length
+              ? undefined
+              : {
+                  levels: payload.levels,
+                  shifts: payload.shifts,
+                  rooms: Number(payload.rooms || 0),
+                },
           email: payload.email || payload.contact_email,
         })
       } catch {
@@ -492,9 +509,9 @@ export function StartSchoolWizard() {
             <h3 className="text-sm">Primeiros passos no SIGA Plus</h3>
             <ol className="mt-3 grid gap-2.5">
               {[
-                ["Confirme os dados da escola", "Definições → Escola: logótipo, director e coordenadas."],
+                ["Abra a Configuração inicial", "Mostra o que já está pronto e o que pode fazer depois."],
                 ["Publique o modelo de avaliação", "Pedagógica → Modelos de avaliação. Sem ele não há pautas."],
-                ["Crie o ano lectivo, as classes e as turmas", "Pedagógica → Estrutura académica."],
+                ["Crie as turmas", "Pedagógica → Turmas, ou importe de uma folha."],
                 ["Convide a equipa", "Acessos: secretaria, tesouraria e professores."],
               ].map(([title, hint], index) => (
                 <li key={title} className="flex gap-3">
@@ -509,7 +526,7 @@ export function StartSchoolWizard() {
               ))}
             </ol>
             <Button asChild className="mt-4 w-full">
-              <a href={done.sigaUrl}>
+              <a href={setupUrl(done.sigaUrl)}>
                 Entrar no SIGA Plus <ArrowRight className="size-4" />
               </a>
             </Button>
@@ -657,7 +674,7 @@ export function StartSchoolWizard() {
               </p>
             </div>
           </div>
-          {levelsLabel ? (
+          {levelsLabel && !values.teaching_later ? (
             <p className="mt-3 text-xs text-muted-foreground">
               {(values.levels?.length ?? 0) > 1 ? "Complexo escolar · " : ""}
               {levelsLabel}
@@ -879,7 +896,33 @@ export function StartSchoolWizard() {
                     label="Número de salas (opcional)"
                     description="Criamos Sala 1, Sala 2… para o horário. Pode renomear depois."
                   />
-                  {summaryLines.length ? (
+                  <button
+                    type="button"
+                    role="checkbox"
+                    aria-checked={values.teaching_later}
+                    onClick={() => {
+                      form.setValue("teaching_later", !values.teaching_later)
+                      form.clearErrors("levels")
+                    }}
+                    className="flex items-start gap-3 rounded-lg border border-dashed px-3 py-2.5 text-left transition-colors hover:bg-muted/60"
+                  >
+                    <span
+                      className={cn(
+                        "mt-0.5 flex size-4 shrink-0 items-center justify-center rounded border",
+                        values.teaching_later && "border-primary bg-primary text-primary-foreground",
+                      )}
+                    >
+                      {values.teaching_later ? <Check className="size-3" /> : null}
+                    </span>
+                    <span className="text-sm">
+                      Definir o ensino mais tarde
+                      <span className="block text-xs text-muted-foreground">
+                        A escola é criada na mesma. No SIGA, em Configuração inicial, escolhe os
+                        níveis quando quiser.
+                      </span>
+                    </span>
+                  </button>
+                  {summaryLines.length && !values.teaching_later ? (
                     <div className="rounded-lg bg-muted/60 px-3 py-2.5">
                       <p className="text-xs text-muted-foreground">A escola começa com</p>
                       <ul className="mt-1.5 grid gap-1 text-sm">
@@ -1081,7 +1124,10 @@ export function StartSchoolWizard() {
                     <Row label="Natureza" value={typeLabel ?? ""} />
                   </ReviewSection>
                   <ReviewSection title="Ensino" onEdit={() => setStep(2)}>
-                    <Row label="Níveis" value={levelsLabel} />
+                    <Row
+                      label="Níveis"
+                      value={values.teaching_later ? "A definir no SIGA" : levelsLabel}
+                    />
                     <Row label="Turnos" value={shiftsLabel} />
                     <Row label="Salas" value={values.rooms ? values.rooms : "A criar depois"} />
                   </ReviewSection>
@@ -1154,6 +1200,10 @@ export function StartSchoolWizard() {
 }
 
 /** Área do cliente no SIGA: plano, uso, pagamento e domínio (só Administrador). */
+function setupUrl(sigaUrl: string) {
+  return `${sigaUrl.replace(/\/+$/, "")}/configuracoes/inicial`
+}
+
 function manageUrl(sigaUrl: string) {
   return `${sigaUrl.replace(/\/+$/, "")}/configuracoes/assinatura`
 }
@@ -1198,7 +1248,7 @@ function Field({
   description,
 }: {
   form: ReturnType<typeof useForm<FormValues>>
-  name: keyof FormValues
+  name: TextFieldName
   label: string
   type?: string
   description?: string

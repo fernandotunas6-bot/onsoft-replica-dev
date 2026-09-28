@@ -11,6 +11,7 @@
  * por dois conceitos diferentes.
  */
 import {
+  ListChecks,
   CreditCard,
   Banknote,
   BookOpen,
@@ -120,6 +121,8 @@ export const moduleIcons = {
   diagnostics: Stethoscope,
   /** Assinatura da escola: plano, uso e pagamento. */
   subscription: CreditCard,
+  /** Configuração inicial: o que falta configurar depois da criação. */
+  setup: ListChecks,
 } satisfies Record<string, LucideIcon>;
 
 export type ModuleIconKey = keyof typeof moduleIcons;

@@ -135,13 +135,14 @@ export async function applyInstitutionPlan(
   }
 
   // Definições pedagógicas: o que a escola vê em Pedagógica, pautas e matrícula.
+  // Numa escola já em uso junta os níveis aos que existem, sem apagar nenhum.
   const { data: pedagogy } = await db
     .from("school_settings")
-    .select("school_id")
+    .select("id, version, value")
     .eq("school_id", schoolId)
     .eq("domain", "pedagogy")
     .maybeSingle();
-  if (!pedagogy?.school_id) {
+  if (!pedagogy?.id) {
     const { error } = await db.from("school_settings").insert({
       school_id: schoolId,
       domain: "pedagogy",
@@ -154,6 +155,24 @@ export async function applyInstitutionPlan(
       },
       changed_by: adminUserId,
     });
+    if (error) warn("definições pedagógicas", error.message);
+  } else {
+    const current = (pedagogy.value ?? {}) as Record<string, unknown>;
+    const list = (value: unknown) =>
+      Array.isArray(value) ? value.filter((item): item is string => typeof item === "string") : [];
+    const { error } = await db
+      .from("school_settings")
+      .update({
+        value: {
+          ...current,
+          teachingLevels: [...new Set([...list(current.teachingLevels), ...plan.teachingLevels])],
+          courses: [...new Set([...list(current.courses), ...plan.courses])],
+        },
+        version: Number(pedagogy.version ?? 1) + 1,
+        changed_by: adminUserId,
+      })
+      .eq("id", pedagogy.id)
+      .eq("school_id", schoolId);
     if (error) warn("definições pedagógicas", error.message);
   }
 

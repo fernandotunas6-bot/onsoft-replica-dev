@@ -493,6 +493,11 @@ export function getPortalNavigation(
               search: { painel: "seguranca" },
             },
             {
+              label: "Configuração inicial",
+              icon: moduleIcons.setup,
+              to: "/configuracoes/inicial",
+            },
+            {
               label: "Assinatura e plano",
               icon: moduleIcons.subscription,
               to: "/configuracoes/assinatura",
