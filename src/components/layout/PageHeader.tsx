@@ -67,10 +67,10 @@ export function PageHeader({
     ([{ label: "Início", to: "/" }, { label: group }, { label: title }] satisfies PageCrumb[]);
 
   return (
-    <div className="space-y-2.5">
+    <div className="space-y-3">
       {!hideBreadcrumb ? (
         <Breadcrumb>
-          <BreadcrumbList className="text-[11px] sm:text-xs">
+          <BreadcrumbList className="max-w-full flex-nowrap overflow-x-auto whitespace-nowrap text-[11px] sm:text-xs">
             {trail.map((crumb, index) => {
               const isLast = index === trail.length - 1;
               // O separador é `<li>`: tem de ser irmão do item, não filho —
@@ -98,16 +98,16 @@ export function PageHeader({
           </BreadcrumbList>
         </Breadcrumb>
       ) : null}
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <div className="flex items-center gap-3">
+      <div className="flex flex-col items-stretch justify-between gap-4 sm:flex-row sm:flex-wrap sm:items-end">
+        <div className="flex min-w-0 items-center gap-3">
           {headerMark}
-          <div>
+          <div className="min-w-0">
             {/* O grupo já aparece no caminho de navegação; repeti-lo em
                 maiúsculas por cima do título era ruído. */}
             {hideBreadcrumb ? (
               <p className="text-xs font-medium text-muted-foreground">{group}</p>
             ) : null}
-            <h1 className="font-display text-lg font-semibold tracking-tight md:text-xl">
+            <h1 className="break-words font-display text-xl font-semibold tracking-tight md:text-xl">
               {title}
             </h1>
             <ShortDescription
@@ -116,7 +116,7 @@ export function PageHeader({
             />
           </div>
         </div>
-        {actions ? <div className="flex flex-wrap gap-2">{actions}</div> : null}
+        {actions ? <div className="flex w-full flex-wrap gap-2 sm:w-auto">{actions}</div> : null}
       </div>
     </div>
   );
