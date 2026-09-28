@@ -385,13 +385,18 @@ export async function revokePlatformAdmin(input: {
   return { success: true };
 }
 
-export async function fetchSaasAuditLogs(limit = 50): Promise<SaasAuditLogRow[]> {
+export async function fetchSaasAuditLogs(
+  limit = 50,
+  actions: string[] = [],
+): Promise<SaasAuditLogRow[]> {
   const db = await loadSgaAdminClient();
-  const { data, error } = await db
+  let query = db
     .from("saas_audit_logs")
     .select("*, tenants(name, slug)")
     .order("created_at", { ascending: false })
     .limit(limit);
+  if (actions.length) query = query.in("action", actions);
+  const { data, error } = await query;
   if (error) throw publicDatabaseError(error, "Não foi possível carregar a auditoria.");
 
   return ((data as Array<Record<string, unknown>>) ?? []).map((row) => {

@@ -16,7 +16,60 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { createClient, isSupabaseConfigured } from "@/lib/supabase/client"
-import { fetchSaasSubscriptions, backfillSaasSubscriptions, type SubscriptionRow } from "@/lib/saas-api"
+import {
+  backfillSaasSubscriptions,
+  fetchSaasAuditLogs,
+  fetchSaasSubscriptions,
+  updateTenantSubscription,
+  type SaasAuditLogRow,
+  type SubscriptionRow,
+} from "@/lib/saas-api"
+
+type PlanRequest = {
+  tenantId: string
+  tenantName: string
+  tenantSlug: string | null
+  from: string | null
+  to: string
+  billing: string | null
+  note: string | null
+  requestedAt: string
+}
+
+/**
+ * Pedidos feitos pelas escolas em SIGA → Configurações → Assinatura. O mais
+ * recente de cada escola decide: um pedido fica aberto até a escola o cancelar
+ * ou a equipa mudar o plano (prolongar o período experimental não o fecha).
+ * Mesma regra que `pendingPlanRequestFrom` no SIGA.
+ */
+function pendingPlanRequests(logs: SaasAuditLogRow[]): PlanRequest[] {
+  const decided = new Set<string>()
+  const pending: PlanRequest[] = []
+  const sorted = [...logs].sort((a, b) => b.created_at.localeCompare(a.created_at))
+  for (const log of sorted) {
+    if (!log.tenant_id || decided.has(log.tenant_id)) continue
+    const meta = (log.metadata ?? {}) as Record<string, unknown>
+    if (log.action === "plan_change_requested" && typeof meta.to === "string") {
+      decided.add(log.tenant_id)
+      pending.push({
+        tenantId: log.tenant_id,
+        tenantName: log.tenant_name || String(meta.school ?? "Escola"),
+        tenantSlug: log.tenant_slug ?? null,
+        from: typeof meta.from === "string" ? meta.from : null,
+        to: meta.to,
+        billing: typeof meta.billing === "string" ? meta.billing : null,
+        note: typeof meta.note === "string" && meta.note ? meta.note : null,
+        requestedAt: log.created_at,
+      })
+    } else if (
+      log.action === "plan_change_cancelled" ||
+      (log.action === "TENANT_SUBSCRIPTION_UPDATED" && typeof meta.plan_code === "string")
+    ) {
+      decided.add(log.tenant_id)
+    }
+  }
+  return pending
+}
 
 async function accessToken(): Promise<string | undefined> {
   if (!isSupabaseConfigured()) return undefined
@@ -44,12 +97,22 @@ export default function SubscriptionsPage() {
   const [needsAuth, setNeedsAuth] = useState(false)
   const [backfilling, setBackfilling] = useState(false)
   const [backfillMessage, setBackfillMessage] = useState<string | null>(null)
+  const [requests, setRequests] = useState<PlanRequest[]>([])
+  const [approving, setApproving] = useState<string | null>(null)
 
   const load = useCallback(async () => {
     setLoading(true)
     setError(null)
     const token = await accessToken()
-    const result = await fetchSaasSubscriptions(token)
+    const [result, audit] = await Promise.all([
+      fetchSaasSubscriptions(token),
+      fetchSaasAuditLogs(token, 300, [
+        "plan_change_requested",
+        "plan_change_cancelled",
+        "TENANT_SUBSCRIPTION_UPDATED",
+      ]),
+    ])
+    setRequests(audit.ok ? pendingPlanRequests(audit.logs ?? []) : [])
     if (!token || result.error?.includes("Unauthorized") || result.error?.includes("Sem permissão")) {
       setNeedsAuth(true)
       setSubscriptions([])
@@ -78,6 +141,20 @@ export default function SubscriptionsPage() {
     if (!filterSlug.trim()) return subscriptions
     return subscriptions.filter((row) => row.tenant_slug === filterSlug.trim())
   }, [subscriptions, filterSlug])
+
+  async function approve(request: PlanRequest) {
+    setApproving(request.tenantId)
+    setError(null)
+    const token = await accessToken()
+    const result = await updateTenantSubscription(token, {
+      tenantId: request.tenantId,
+      plan_code: request.to,
+    })
+    if (!result.ok) setError(result.error || "Não foi possível mudar o plano.")
+    else setBackfillMessage(`${request.tenantName} passou para o plano ${request.to}.`)
+    await load()
+    setApproving(null)
+  }
 
   async function handleBackfill() {
     setBackfilling(true)
@@ -146,6 +223,52 @@ export default function SubscriptionsPage() {
           <p className="mb-4 rounded-md bg-muted px-3 py-2 text-sm text-muted-foreground">
             {backfillMessage}
           </p>
+        ) : null}
+
+        {requests.length > 0 ? (
+          <Card className="mb-4">
+            <CardContent className="pt-6">
+              <h2 className="text-sm font-medium">Pedidos de mudança de plano ({requests.length})</h2>
+              <p className="mb-3 text-xs text-muted-foreground">
+                Feitos pelas escolas em Configurações → Assinatura. Aprove depois de confirmar o
+                pagamento; o pedido fecha sozinho.
+              </p>
+              <ul className="divide-y">
+                {requests.map((request) => (
+                  <li
+                    key={request.tenantId}
+                    className="flex flex-wrap items-center justify-between gap-3 py-3 text-sm"
+                  >
+                    <div className="min-w-0">
+                      <div>
+                        {request.tenantName}
+                        {request.tenantSlug ? (
+                          <span className="ml-2 font-mono text-xs text-muted-foreground">
+                            {request.tenantSlug}
+                          </span>
+                        ) : null}
+                      </div>
+                      <div className="text-xs text-muted-foreground">
+                        {request.from ?? "—"} → <span className="text-foreground">{request.to}</span>
+                        {request.billing === "yearly" ? " · anual" : " · mensal"} · pedido a{" "}
+                        {formatDate(request.requestedAt)}
+                      </div>
+                      {request.note ? (
+                        <div className="mt-1 text-xs text-muted-foreground">«{request.note}»</div>
+                      ) : null}
+                    </div>
+                    <Button
+                      size="sm"
+                      disabled={approving !== null}
+                      onClick={() => void approve(request)}
+                    >
+                      {approving === request.tenantId ? "A aprovar…" : `Aprovar ${request.to}`}
+                    </Button>
+                  </li>
+                ))}
+              </ul>
+            </CardContent>
+          </Card>
         ) : null}
 
         <div className="mb-3 flex flex-wrap items-center gap-2">

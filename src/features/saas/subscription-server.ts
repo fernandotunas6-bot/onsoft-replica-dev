@@ -19,6 +19,7 @@ import { getPlatformSubdomain } from "@/lib/saas/platform-domain";
 import { fetchActivePlans } from "./catalog";
 import { planCodeSchema } from "./schemas";
 import type { Plan } from "./types";
+import { PLAN_REQUEST_ACTIONS, pendingPlanRequestFrom } from "./subscription-view";
 
 type Db = Awaited<ReturnType<typeof loadSgaAdminClient>>;
 
@@ -68,13 +69,16 @@ async function latestPlanRequest(db: Db, tenantId: string) {
     .from("saas_audit_logs")
     .select("metadata, created_at, action")
     .eq("tenant_id", tenantId)
-    .in("action", ["plan_change_requested", "plan_change_cancelled"])
+    .in("action", [...PLAN_REQUEST_ACTIONS])
     .order("created_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
-  if (!data || data.action !== "plan_change_requested") return null;
-  const planCode = (data.metadata as { to?: unknown } | null)?.to;
-  return typeof planCode === "string" ? { planCode, requestedAt: String(data.created_at) } : null;
+    .limit(10);
+  return pendingPlanRequestFrom(
+    (data ?? []).map((row) => ({
+      action: String(row.action),
+      metadata: row.metadata,
+      created_at: String(row.created_at),
+    })),
+  );
 }
 
 export const getMySubscription = createServerFn({ method: "GET" })

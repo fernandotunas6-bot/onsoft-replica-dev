@@ -1,5 +1,54 @@
 import { describe, expect, it } from "vitest";
-import { describeSubscription, formatBytes, usageShare } from "@/features/saas/subscription-view";
+import {
+  describeSubscription,
+  formatBytes,
+  pendingPlanRequestFrom,
+  usageShare,
+} from "@/features/saas/subscription-view";
+
+describe("pedido de mudança de plano", () => {
+  const req = {
+    action: "plan_change_requested",
+    metadata: { to: "business" },
+    created_at: "2026-09-28",
+  };
+  it("fica pendente até ser tratado", () => {
+    expect(pendingPlanRequestFrom([req])).toEqual({
+      planCode: "business",
+      requestedAt: "2026-09-28",
+    });
+  });
+  it("fecha com o cancelamento ou com a mudança de plano no ADMIN", () => {
+    expect(
+      pendingPlanRequestFrom([
+        { action: "plan_change_cancelled", metadata: {}, created_at: "x" },
+        req,
+      ]),
+    ).toBeNull();
+    expect(
+      pendingPlanRequestFrom([
+        {
+          action: "TENANT_SUBSCRIPTION_UPDATED",
+          metadata: { plan_code: "business" },
+          created_at: "x",
+        },
+        req,
+      ]),
+    ).toBeNull();
+  });
+  it("prolongar o período experimental não fecha o pedido", () => {
+    expect(
+      pendingPlanRequestFrom([
+        {
+          action: "TENANT_SUBSCRIPTION_UPDATED",
+          metadata: { extend_trial_days: 7 },
+          created_at: "x",
+        },
+        req,
+      ]),
+    ).toEqual({ planCode: "business", requestedAt: "2026-09-28" });
+  });
+});
 
 const now = new Date("2026-09-28T10:00:00Z");
 const base = {

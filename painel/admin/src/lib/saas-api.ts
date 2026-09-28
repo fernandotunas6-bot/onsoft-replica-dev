@@ -199,9 +199,11 @@ export async function revokePlatformAdmin(
 export async function fetchSaasAuditLogs(
   accessToken: string | undefined | null,
   limit = 50,
+  actions: string[] = [],
 ): Promise<{ ok: boolean; logs?: SaasAuditLogRow[]; error?: string }> {
   if (!accessToken) return { ok: false, error: "Sessão em falta." }
-  const res = await fetch(getSaasApiUrl(`/api/saas/audit-logs?limit=${limit}`), {
+  const filter = actions.length ? `&actions=${encodeURIComponent(actions.join(","))}` : ""
+  const res = await fetch(getSaasApiUrl(`/api/saas/audit-logs?limit=${limit}${filter}`), {
     headers: authHeaders(accessToken),
   })
   const data = (await res.json().catch(() => ({}))) as { logs?: SaasAuditLogRow[]; error?: string }

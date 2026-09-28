@@ -91,6 +91,36 @@ export function describeSubscription(
   };
 }
 
+/** Acções de `saas_audit_logs` que abrem ou fecham um pedido de mudança de plano. */
+export const PLAN_REQUEST_ACTIONS = [
+  "plan_change_requested",
+  "plan_change_cancelled",
+  "TENANT_SUBSCRIPTION_UPDATED",
+] as const;
+
+/**
+ * Pedido de mudança de plano ainda por tratar, a partir do registo (mais
+ * recente primeiro). Fecha-o o cancelamento pela escola ou a mudança de plano
+ * feita pela equipa no ADMIN; prolongar o período experimental não o fecha.
+ */
+export function pendingPlanRequestFrom(
+  logs: Array<{ action: string; metadata: unknown; created_at: string }>,
+): { planCode: string; requestedAt: string } | null {
+  for (const log of logs) {
+    const meta = (log.metadata ?? {}) as { to?: unknown; plan_code?: unknown };
+    if (log.action === "plan_change_requested") {
+      return typeof meta.to === "string"
+        ? { planCode: meta.to, requestedAt: log.created_at }
+        : null;
+    }
+    if (log.action === "plan_change_cancelled") return null;
+    if (log.action === "TENANT_SUBSCRIPTION_UPDATED" && typeof meta.plan_code === "string") {
+      return null;
+    }
+  }
+  return null;
+}
+
 /** Fracção usada do limite; null quando o plano não tem limite. */
 export function usageShare(used: number, limit: number | null): number | null {
   if (!limit || limit <= 0) return null;
