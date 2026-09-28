@@ -661,7 +661,7 @@ function FinalResultsPanel({ board }: { board: ExamBoard }) {
     mutationFn: () => recordClassFinalResults({ data: { classGroupId } }),
     onSuccess: (r) => {
       toast.success(
-        `${r.recorded} aluno(s) registados no histórico${r.skipped ? `; ${r.skipped} incompleto(s) ficaram de fora` : ""}.`,
+        `${r.recorded} aluno(s) registados no histórico${r.rectified ? ` (${r.rectified} rectificado(s))` : ""}${r.skipped ? `; ${r.skipped} incompleto(s) ficaram de fora` : ""}.`,
       );
       void queryClient.invalidateQueries({ queryKey: key });
       void queryClient.invalidateQueries({ queryKey: ["academic", "structure-status"] });

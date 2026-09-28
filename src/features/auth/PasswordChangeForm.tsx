@@ -1,6 +1,8 @@
 import { useState, type FormEvent } from "react";
 import { KeyRound, LoaderCircle } from "lucide-react";
 import { toast } from "sonner";
+import { PWNED_PASSWORD_MESSAGE, passwordPolicyMessage } from "@/lib/password-policy-error";
+import { passwordExposureCount } from "@/lib/pwned-password";
 import { useAuthSession } from "@/components/auth/AuthGate";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -44,6 +46,10 @@ export function PasswordChangeForm({ compact = false }: { compact?: boolean }) {
 
     setSaving(true);
     try {
+      if (await passwordExposureCount(password)) {
+        toast.error(PWNED_PASSWORD_MESSAGE);
+        return;
+      }
       const { error: reauthError } = await supabase.auth.signInWithPassword({
         email: session.user.email,
         password: currentPassword,
@@ -63,8 +69,10 @@ export function PasswordChangeForm({ compact = false }: { compact?: boolean }) {
       form.reset();
       stackNav?.reportDirty(false);
       toast.success("Senha actualizada. As outras sessões desta conta foram terminadas.");
-    } catch {
-      toast.error("Não foi possível actualizar a senha. Tente novamente.");
+    } catch (error) {
+      toast.error(
+        passwordPolicyMessage(error) ?? "Não foi possível actualizar a senha. Tente novamente.",
+      );
     } finally {
       setSaving(false);
     }

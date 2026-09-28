@@ -1,9 +1,47 @@
 /**
- * Tipos gerados a partir da produção — não editar à mão.
+ * Tipos do esquema de produção, gerados — não editar à mão.
  *
- * Regenerar com `npm run siga:gen-types` depois de qualquer migração aplicada.
- * Editar este ficheiro à mão foi como ele passou a descrever menos de metade das
- * tabelas, dando cobertura de tipos a código que falhava em execução.
+ * Reposto a 2026-09-14 com `npx supabase gen types typescript --linked`. A
+ * versão anterior era mantida à mão e descrevia **40 tabelas**; a produção tem
+ * **149**. Duas consequências, ambas verificadas:
+ *
+ *   1. As 109 tabelas que faltavam não eram tipadas em lado nenhum. O caminho
+ *      privilegiado (`loadSgaAdminClient`) passa por `sgaClient()`, que relaxa
+ *      a tipagem para `any` — logo cada leitura privilegiada era também uma
+ *      leitura sem tipos, e um nome de coluna errado não era apanhado.
+ *   2. Descrevia 17 tabelas que **não existem na produção** — `invoices`,
+ *      `payments`, `courses`, `class_schedule_slots`, `term_grades` e outras —
+ *      dando cobertura de tipos a código que falha em tempo de execução. É
+ *      assim que cinco importadores ficaram a escrever para um modelo de dados
+ *      substituído sem que nada objectasse. Ver
+ *      `tests/security/production-snapshot.test.ts`.
+ *
+ * Para regenerar depois de uma migração: `npx supabase gen types typescript
+ * --linked > src/integrations/supabase/types.ts`. As tabelas que a aplicação
+ * usa e a produção não tem continuam a ser listadas por
+ * `npm run siga:rls-readiness` e pelo teste do retrato.
+ */
+
+/**
+ * Regenerado a 2026-09-16, depois de aplicadas
+ * `20260916120000_school_email_routes_cloudflare_route_id.sql` e
+ * `20260916130000_contact_verification_and_communication_preferences.sql`.
+ * São 154 tabelas (eram 149): as duas novas de `features/contacts` mais as que
+ * entretanto entraram. A regeneração só acrescentou — nenhuma tabela saiu.
+ */
+
+/**
+ * Regenerado a 2026-09-20, depois de aplicada
+ * `20260916140000_assessment_rule_sets.sql`. São 156 tabelas (eram 154): as
+ * duas que faltavam ao núcleo de avaliação — `assessment_rule_sets` e
+ * `assessment_key_subjects`. A regeneração só acrescentou: 255 entradas
+ * passaram a 257 e nenhuma saiu.
+ */
+
+/**
+ * Regenerado a 2026-09-28 a partir da produção (conector Supabase,
+ * `generate_typescript_types`). São 179 tabelas (eram 156); a 2026-09-29 entrou `grade_sheet_versions`. Saiu
+ * `notification_preferences`, que já não existe na produção.
  */
 
 export type Json =
@@ -19,31 +57,6 @@ export type Database = {
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
     PostgrestVersion: "14.5"
-  }
-  graphql_public: {
-    Tables: {
-      [_ in never]: never
-    }
-    Views: {
-      [_ in never]: never
-    }
-    Functions: {
-      graphql: {
-        Args: {
-          extensions?: Json
-          operationName?: string
-          query?: string
-          variables?: Json
-        }
-        Returns: Json
-      }
-    }
-    Enums: {
-      [_ in never]: never
-    }
-    CompositeTypes: {
-      [_ in never]: never
-    }
   }
   public: {
     Tables: {
@@ -3707,6 +3720,63 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "grade_sheets"
             referencedColumns: ["school_id", "id"]
+          },
+        ]
+      }
+      grade_sheet_versions: {
+        Row: {
+          archived_at: string
+          archived_by: string | null
+          built_at: string | null
+          grade_sheet_id: string
+          id: string
+          reason: string | null
+          rule_set_id: string | null
+          school_id: string
+          snapshot: Json
+          status: string
+          version: number
+        }
+        Insert: {
+          archived_at?: string
+          archived_by?: string | null
+          built_at?: string | null
+          grade_sheet_id: string
+          id?: string
+          reason?: string | null
+          rule_set_id?: string | null
+          school_id: string
+          snapshot: Json
+          status: string
+          version: number
+        }
+        Update: {
+          archived_at?: string
+          archived_by?: string | null
+          built_at?: string | null
+          grade_sheet_id?: string
+          id?: string
+          reason?: string | null
+          rule_set_id?: string | null
+          school_id?: string
+          snapshot?: Json
+          status?: string
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "grade_sheet_versions_grade_sheet_id_fkey"
+            columns: ["grade_sheet_id"]
+            isOneToOne: false
+            referencedRelation: "grade_sheets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "grade_sheet_versions_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "schools"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -8182,16 +8252,20 @@ export type Database = {
           address: string | null
           city: string | null
           commercial_name: string | null
+          commune: string | null
           created_at: string
           currency_code: string
           director_name: string | null
           email: string | null
           evaluation_periods: number
           id: string
+          latitude: number | null
           logo_path: string | null
           logo_url: string | null
+          longitude: number | null
           municipality: string | null
           name: string
+          neighborhood: string | null
           nif: string | null
           official_authorization_reference: string | null
           passing_grade: number
@@ -8209,16 +8283,20 @@ export type Database = {
           address?: string | null
           city?: string | null
           commercial_name?: string | null
+          commune?: string | null
           created_at?: string
           currency_code?: string
           director_name?: string | null
           email?: string | null
           evaluation_periods?: number
           id?: string
+          latitude?: number | null
           logo_path?: string | null
           logo_url?: string | null
+          longitude?: number | null
           municipality?: string | null
           name: string
+          neighborhood?: string | null
           nif?: string | null
           official_authorization_reference?: string | null
           passing_grade?: number
@@ -8236,16 +8314,20 @@ export type Database = {
           address?: string | null
           city?: string | null
           commercial_name?: string | null
+          commune?: string | null
           created_at?: string
           currency_code?: string
           director_name?: string | null
           email?: string | null
           evaluation_periods?: number
           id?: string
+          latitude?: number | null
           logo_path?: string | null
           logo_url?: string | null
+          longitude?: number | null
           municipality?: string | null
           name?: string
+          neighborhood?: string | null
           nif?: string | null
           official_authorization_reference?: string | null
           passing_grade?: number
@@ -8417,6 +8499,55 @@ export type Database = {
           },
         ]
       }
+      siga_assessment_item_competencies: {
+        Row: {
+          competency_id: string
+          created_at: string
+          created_by: string | null
+          id: string
+          item_id: string
+          school_id: string
+        }
+        Insert: {
+          competency_id: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          item_id: string
+          school_id: string
+        }
+        Update: {
+          competency_id?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          item_id?: string
+          school_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "siga_assessment_item_competencies_competency_id_fkey"
+            columns: ["competency_id"]
+            isOneToOne: false
+            referencedRelation: "siga_competencies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "siga_assessment_item_competencies_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "siga_assessment_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "siga_assessment_item_competencies_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "schools"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       siga_assessment_items: {
         Row: {
           allow_recovery: boolean
@@ -8427,12 +8558,15 @@ export type Database = {
           created_at: string
           created_by: string | null
           description: string | null
+          duration_minutes: number | null
           id: string
           kind: string
           lesson_plan_component_id: string | null
           max_score: number
           name: string
+          purpose: string | null
           school_id: string
+          starts_at: string | null
           subject_id: string | null
           term: number
           updated_at: string
@@ -8447,12 +8581,15 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           description?: string | null
+          duration_minutes?: number | null
           id?: string
           kind?: string
           lesson_plan_component_id?: string | null
           max_score?: number
           name: string
+          purpose?: string | null
           school_id: string
+          starts_at?: string | null
           subject_id?: string | null
           term: number
           updated_at?: string
@@ -8467,12 +8604,15 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           description?: string | null
+          duration_minutes?: number | null
           id?: string
           kind?: string
           lesson_plan_component_id?: string | null
           max_score?: number
           name?: string
+          purpose?: string | null
           school_id?: string
+          starts_at?: string | null
           subject_id?: string | null
           term?: number
           updated_at?: string
@@ -8999,6 +9139,73 @@ export type Database = {
             columns: ["timetable_slot_id"]
             isOneToOne: false
             referencedRelation: "timetable_slots"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      siga_competencies: {
+        Row: {
+          code: string
+          created_at: string
+          created_by: string | null
+          description: string
+          display_order: number
+          grade_level_id: string | null
+          id: string
+          school_id: string
+          status: string
+          subject_id: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          created_by?: string | null
+          description: string
+          display_order?: number
+          grade_level_id?: string | null
+          id?: string
+          school_id: string
+          status?: string
+          subject_id: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          created_by?: string | null
+          description?: string
+          display_order?: number
+          grade_level_id?: string | null
+          id?: string
+          school_id?: string
+          status?: string
+          subject_id?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "siga_competencies_grade_level_id_fkey"
+            columns: ["grade_level_id"]
+            isOneToOne: false
+            referencedRelation: "grade_levels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "siga_competencies_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "schools"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "siga_competencies_subject_id_fkey"
+            columns: ["subject_id"]
+            isOneToOne: false
+            referencedRelation: "subjects"
             referencedColumns: ["id"]
           },
         ]
@@ -9672,6 +9879,24 @@ export type Database = {
           },
         ]
       }
+      siga_rate_limit_hits: {
+        Row: {
+          hit_at: string
+          id: number
+          key_hash: string
+        }
+        Insert: {
+          hit_at?: string
+          id?: never
+          key_hash: string
+        }
+        Update: {
+          hit_at?: string
+          id?: never
+          key_hash?: string
+        }
+        Relationships: []
+      }
       siga_timetable_slot_details: {
         Row: {
           created_at: string
@@ -9858,48 +10083,77 @@ export type Database = {
       }
       student_academic_history: {
         Row: {
+          absence_percentage: number | null
           academic_year_label: string
           created_at: string
           created_by: string | null
+          enrollment_id: string | null
           final_average: number | null
           grade_level: string
+          grade_sheet_id: string | null
           id: string
           notes: string | null
           outcome: string | null
           previous_school: string | null
           school_id: string
           student_id: string
+          subject_results: Json
           updated_at: string
+          updated_by: string | null
         }
         Insert: {
+          absence_percentage?: number | null
           academic_year_label: string
           created_at?: string
           created_by?: string | null
+          enrollment_id?: string | null
           final_average?: number | null
           grade_level: string
+          grade_sheet_id?: string | null
           id?: string
           notes?: string | null
           outcome?: string | null
           previous_school?: string | null
           school_id: string
           student_id: string
+          subject_results?: Json
           updated_at?: string
+          updated_by?: string | null
         }
         Update: {
+          absence_percentage?: number | null
           academic_year_label?: string
           created_at?: string
           created_by?: string | null
+          enrollment_id?: string | null
           final_average?: number | null
           grade_level?: string
+          grade_sheet_id?: string | null
           id?: string
           notes?: string | null
           outcome?: string | null
           previous_school?: string | null
           school_id?: string
           student_id?: string
+          subject_results?: Json
           updated_at?: string
+          updated_by?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "student_academic_history_enrollment_id_fkey"
+            columns: ["enrollment_id"]
+            isOneToOne: false
+            referencedRelation: "enrollments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "student_academic_history_grade_sheet_id_fkey"
+            columns: ["grade_sheet_id"]
+            isOneToOne: false
+            referencedRelation: "grade_sheets"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "student_academic_history_school_id_fkey"
             columns: ["school_id"]
@@ -11805,7 +12059,9 @@ export type Database = {
       }
       is_platform_admin: { Args: never; Returns: boolean }
       is_school_admin: { Args: { p_school_id: string }; Returns: boolean }
+      is_school_finance: { Args: { p_school_id: string }; Returns: boolean }
       is_school_member: { Args: { p_school_id: string }; Returns: boolean }
+      is_school_office: { Args: { p_school_id: string }; Returns: boolean }
       issue_report_cards: {
         Args: { grade_sheet_id: string; school_id: string }
         Returns: Json
@@ -12056,6 +12312,7 @@ export type Database = {
         }
         Returns: Json
       }
+      school_logo_folder_ok: { Args: { p_folder: string }; Returns: boolean }
       siga_alumni_profile_completion: {
         Args: { target: Database["public"]["Tables"]["alumni_profiles"]["Row"] }
         Returns: number
@@ -12063,6 +12320,7 @@ export type Database = {
       siga_publish_assessment_rule: {
         Args: {
           actor: string
+          calculation_options?: Json
           continuous_weight_value: number
           exam_weight_value: number
           key_subject_ids?: string[]
@@ -12070,12 +12328,21 @@ export type Database = {
           lock_after_publication_value: boolean
           maximum_absence_value: number
           passing_grade_value: number
+          promotion_rules?: Json
           require_change_approval: boolean
           rounding_method_value: string
           rule_name: string
           target_school_id: string
         }
         Returns: Json
+      }
+      siga_rate_limit_consume: {
+        Args: { key_hashes: string[]; max_hits: number; window_seconds: number }
+        Returns: boolean
+      }
+      siga_recompute_attendance_rates: {
+        Args: { p_school_id: string; p_student_ids: string[] }
+        Returns: number
       }
       submit_approved_school_enrollment: {
         Args: { p_payload: Json; p_request_id: string; p_user_id: string }
@@ -12334,9 +12601,6 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
-  graphql_public: {
-    Enums: {},
-  },
   public: {
     Enums: {
       communication_channel: ["email", "sms", "whatsapp"],

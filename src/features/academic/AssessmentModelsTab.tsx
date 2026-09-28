@@ -18,6 +18,13 @@ import { formatPortalDate } from "@/features/dashboard/portals/portal-format";
 import {
   DECREE_424_25_MODEL,
   ROUNDING_LABELS,
+  DEFAULT_CALCULATION_OPTIONS,
+  NPP_MODES,
+  NPP_MODE_LABELS,
+  RECOVERY_METHODS,
+  RECOVERY_METHOD_LABELS,
+  type NppMode,
+  type RecoveryMethod,
   ROUNDING_METHODS,
   draftFromRule,
   formulaText,
@@ -169,6 +176,11 @@ function RuleSummary({
       rule.maximumAbsencePercentage == null ? "—" : `${rule.maximumAbsencePercentage}%`,
     ],
     ["Arredondamento", ROUNDING_LABELS[rule.roundingMethod]],
+    ["NPP", NPP_MODE_LABELS[(rule.calculation ?? DEFAULT_CALCULATION_OPTIONS).nppMode]],
+    [
+      "Recurso",
+      RECOVERY_METHOD_LABELS[(rule.calculation ?? DEFAULT_CALCULATION_OPTIONS).recoveryMethod],
+    ],
     ["Alterar nota", rule.gradeChangeRequiresApproval ? "Com aprovação" : "Directo"],
     ["Depois de publicar", rule.lockAfterPublication ? "Pauta bloqueada" : "Editável"],
     [
@@ -383,6 +395,43 @@ function RuleEditorDialog({
                 {ROUNDING_METHODS.map((m) => (
                   <option key={m} value={m}>
                     {ROUNDING_LABELS[m]}
+                  </option>
+                ))}
+              </select>
+            </Field>
+
+            <Field label="NPP (prova do professor)">
+              <select
+                aria-label="NPP (prova do professor)"
+                className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
+                value={draft.calculation.nppMode}
+                onChange={(e) =>
+                  set("calculation", { ...draft.calculation, nppMode: e.target.value as NppMode })
+                }
+              >
+                {NPP_MODES.map((m) => (
+                  <option key={m} value={m}>
+                    {NPP_MODE_LABELS[m]}
+                  </option>
+                ))}
+              </select>
+            </Field>
+
+            <Field label="Recurso">
+              <select
+                aria-label="Recurso"
+                className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
+                value={draft.calculation.recoveryMethod}
+                onChange={(e) =>
+                  set("calculation", {
+                    ...draft.calculation,
+                    recoveryMethod: e.target.value as RecoveryMethod,
+                  })
+                }
+              >
+                {RECOVERY_METHODS.map((m) => (
+                  <option key={m} value={m}>
+                    {RECOVERY_METHOD_LABELS[m]}
                   </option>
                 ))}
               </select>

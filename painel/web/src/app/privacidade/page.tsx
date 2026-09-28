@@ -12,7 +12,6 @@ export default function PrivacyPage() {
       description="Como o SIGA Plus recolhe, usa e protege os seus dados."
       eyebrow="Legal"
       lastUpdated="Setembro de 2026"
-      draftNotice="Este é um rascunho inicial, escrito com base no que a plataforma de facto faz com os dados hoje. Antes de ser considerado definitivo, precisa de revisão por um advogado e da confirmação dos dados de registo formais da empresa (razão social, NIF, morada e encarregado de protecção de dados, se aplicável)."
     >
       <LegalSection title="1. Quem trata os seus dados">
         <p>
@@ -62,7 +61,43 @@ export default function PrivacyPage() {
         </p>
       </LegalSection>
 
-      <LegalSection title="5. Onde e por quanto tempo guardamos os dados">
+      <LegalSection id="google" title="5. Início de sessão com Google">
+        <p>
+          Quem escolhe entrar com a conta Google autoriza o SIGA Plus a receber da Google apenas
+          o nome, o endereço de e-mail e a fotografia de perfil. Estes dados servem só para
+          identificar a pessoa e iniciar a sessão; o SIGA Plus não pede acesso ao Gmail, ao
+          Drive, aos contactos nem a qualquer outro serviço da conta Google.
+        </p>
+        <p>
+          Os dados recebidos da Google não são vendidos, não são usados para publicidade e não
+          são partilhados com terceiros, excepto os prestadores técnicos que alojam a
+          Plataforma. O uso destes dados cumpre a{" "}
+          <a
+            className="underline"
+            href="https://developers.google.com/terms/api-services-user-data-policy"
+            target="_blank"
+            rel="noreferrer"
+          >
+            Política de Dados do Utilizador dos Serviços de API da Google
+          </a>
+          , incluindo os requisitos de Uso Limitado.
+        </p>
+        <p>
+          A autorização pode ser retirada a qualquer momento em{" "}
+          <a
+            className="underline"
+            href="https://myaccount.google.com/permissions"
+            target="_blank"
+            rel="noreferrer"
+          >
+            myaccount.google.com/permissions
+          </a>
+          . Deixa então de ser possível entrar com Google; para eliminar também a conta no SIGA
+          Plus, use os contactos indicados no fim desta política.
+        </p>
+      </LegalSection>
+
+      <LegalSection title="6. Onde e por quanto tempo guardamos os dados">
         <p>
           Os dados são guardados enquanto a conta da escola estiver activa. Após o cancelamento
           de uma escola, os dados são conservados apenas pelo tempo necessário para cumprir
@@ -71,7 +106,7 @@ export default function PrivacyPage() {
         </p>
       </LegalSection>
 
-      <LegalSection title="6. Segurança">
+      <LegalSection title="7. Segurança">
         <p>
           Aplicamos medidas técnicas de segurança proporcionais à natureza dos dados, incluindo
           isolamento dos dados entre escolas, autenticação com senha encriptada e, quando
@@ -79,7 +114,7 @@ export default function PrivacyPage() {
         </p>
       </LegalSection>
 
-      <LegalSection title="7. Os seus direitos">
+      <LegalSection title="8. Os seus direitos">
         <p>
           Nos termos da legislação angolana de protecção de dados pessoais, o titular dos dados
           tem, entre outros, o direito de aceder, corrigir e solicitar a eliminação dos seus
@@ -90,7 +125,7 @@ export default function PrivacyPage() {
         </p>
       </LegalSection>
 
-      <LegalSection id="cookies" title="8. Cookies">
+      <LegalSection id="cookies" title="9. Cookies">
         <p>
           O site usa apenas cookies essenciais ao funcionamento (por exemplo, manter a sessão
           iniciada) e cookies técnicos de desempenho da infra-estrutura que aloja o site. Não
@@ -98,7 +133,7 @@ export default function PrivacyPage() {
         </p>
       </LegalSection>
 
-      <LegalSection title="9. Alterações a esta política">
+      <LegalSection title="10. Alterações a esta política">
         <p>
           Podemos actualizar esta política para reflectir alterações à Plataforma ou à lei
           aplicável. Alterações relevantes serão comunicadas às escolas com uma antecedência
@@ -106,7 +141,7 @@ export default function PrivacyPage() {
         </p>
       </LegalSection>
 
-      <LegalSection title="10. Contacto">
+      <LegalSection title="11. Contacto">
         <p>Questões sobre esta política podem ser esclarecidas {CONTACT_LINE}.</p>
       </LegalSection>
     </LegalPage>

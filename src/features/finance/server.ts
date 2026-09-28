@@ -318,6 +318,10 @@ export const getFinanceSchemaStatus = createServerFn({ method: "GET" })
       };
     }
     const db = await loadSgaAdminClient();
+    // `notification_preferences` saiu da verificação: a tabela já não existe na
+    // produção (2026-09-28) e os gatilhos das faturas não dependem dela. A
+    // verificação antiga dava a base como incompleta e bloqueava a emissão de
+    // faturas em /faturas.
     const [{ error: penaltyError }, { error: cashExpensesError }, feePlanResult] =
       await Promise.all([
         db.from("finance_invoices").select("id, penalty_amount").limit(1),
@@ -1163,15 +1167,6 @@ export const issueInvoice = createServerFn({ method: "POST" })
       if (/penalty_amount/i.test(error.message)) {
         throw new Error(
           "A base SGA precisa da coluna finance_invoices.penalty_amount. No SQL Editor do projecto xodgfmxiaunpamctfeea execute supabase/APPLY_IN_SQL_EDITOR.sql.",
-        );
-      }
-      if (
-        /notification_preferences|in_app_enabled|email_enabled|whatsapp_enabled/i.test(
-          error.message,
-        )
-      ) {
-        throw new Error(
-          "O trigger de faturas precisa do schema de notification_preferences (in_app_enabled, email_enabled, sms_enabled, whatsapp_enabled). Execute supabase/APPLY_IN_SQL_EDITOR.sql no SQL Editor do SGA.",
         );
       }
       throw publicDatabaseError(error, "Não foi possível emitir a fatura.");

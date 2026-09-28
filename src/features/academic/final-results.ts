@@ -23,7 +23,9 @@ import {
   latestGradedBySubject,
   subjectFinalsFromBreakdown,
   type FinalResult,
+  type SubjectFinal,
 } from "./exam-engine";
+import { recordAuditBatch } from "@/features/audit/record-audit";
 import { OFFICIAL_SHEET_STATUSES, activeYearId, loadAnnualSheet, studentNames } from "./exam-data";
 
 type Db = Awaited<ReturnType<typeof loadSgaAdminClient>>;
@@ -41,6 +43,9 @@ export type FinalResultLine = {
   before: FinalResult;
   after: FinalResult;
   examSubjects: number;
+  /** Nota final de cada disciplina, já com os exames. */
+  subjects: SubjectFinal[];
+  absencePercentage: number | null;
   recorded: { outcome: string | null; finalAverage: number | null } | null;
 };
 
@@ -148,13 +153,16 @@ async function buildClassFinalResults(
     );
     const who = names.get(row.enrollmentId);
     const recorded = who ? recordedBy.get(who.studentId) : undefined;
+    const finals = applyExamResults(subjects, graded);
     return {
       enrollmentId: row.enrollmentId,
       studentId: who?.studentId ?? "",
       studentName: who?.name ?? "Aluno",
       before: computeFinalResult(subjects, row.absencePercentage, rule),
-      after: computeFinalResult(applyExamResults(subjects, graded), row.absencePercentage, rule),
+      after: computeFinalResult(finals, row.absencePercentage, rule),
       examSubjects: graded.length,
+      subjects: finals,
+      absencePercentage: row.absencePercentage,
       recorded: recorded
         ? {
             outcome: recorded.outcome ? str(recorded.outcome) : null,
@@ -246,12 +254,21 @@ export const recordClassFinalResults = createServerFn({ method: "POST" })
           ? `Pauta anual e ${l.examSubjects} exame(s).${l.after.reason ? ` ${l.after.reason}.` : ""}`
           : `Pauta anual.${l.after.reason ? ` ${l.after.reason}.` : ""}`,
       created_by: context.userId,
+      enrollment_id: l.enrollmentId,
+      grade_sheet_id: ctx.sheet!.id,
+      subject_results: l.subjects.map((subject) => ({
+        subjectId: subject.subjectId,
+        subject: subject.subjectName,
+        final: subject.average,
+        isKeySubject: subject.isKeySubject,
+      })),
+      absence_percentage: l.absencePercentage,
     }));
     // Actualiza o registo do ano e classe se existir; senão, cria. Sem depender
     // do índice único (vem de uma migração Lovable que pode não estar aplicada).
     const { data: existing, error: existingError } = await db
       .from("student_academic_history")
-      .select("id, student_id")
+      .select("id, student_id, outcome, final_average")
       .eq("school_id", schoolId)
       .eq("academic_year_label", ctx.yearLabel)
       .eq("grade_level", ctx.gradeLevel)
@@ -272,10 +289,37 @@ export const recordClassFinalResults = createServerFn({ method: "POST" })
         throw publicDatabaseError(error, "Não foi possível registar no histórico académico.");
       }
     }
+    const previous = new Map(((existing ?? []) as Row[]).map((e) => [str(e.student_id), e]));
+    const rectified: Parameters<typeof recordAuditBatch>[0] = [];
     for (const r of rows.filter((row) => existingId.has(row.student_id))) {
+      const before = previous.get(r.student_id);
+      const beforeAverage = numOrNull(before?.final_average);
+      if (str(before?.outcome) !== str(r.outcome) || beforeAverage !== r.final_average) {
+        rectified.push({
+          schoolId,
+          actorUserId: context.userId,
+          action: "student_academic_history.rectified",
+          entityType: "student_academic_history",
+          entityId: existingId.get(r.student_id)!,
+          metadata: {
+            before: { outcome: before?.outcome ?? null, final_average: beforeAverage },
+            after: { outcome: r.outcome, final_average: r.final_average },
+            grade_sheet_id: r.grade_sheet_id,
+          },
+        });
+      }
       const { error } = await db
         .from("student_academic_history")
-        .update({ final_average: r.final_average, outcome: r.outcome, notes: r.notes })
+        .update({
+          final_average: r.final_average,
+          outcome: r.outcome,
+          notes: r.notes,
+          enrollment_id: r.enrollment_id,
+          grade_sheet_id: r.grade_sheet_id,
+          subject_results: r.subject_results,
+          absence_percentage: r.absence_percentage,
+          updated_by: context.userId,
+        })
         .eq("school_id", schoolId)
         .eq("id", existingId.get(r.student_id)!);
       if (error) {
@@ -291,5 +335,11 @@ export const recordClassFinalResults = createServerFn({ method: "POST" })
         .eq("school_id", schoolId)
         .eq("id", l.enrollmentId);
     }
-    return { recorded: rows.length, skipped: ctx.lines.length - rows.length };
+    // Rectificações: o valor anterior fica no registo de auditoria.
+    await recordAuditBatch(rectified);
+    return {
+      recorded: rows.length,
+      rectified: rectified.length,
+      skipped: ctx.lines.length - rows.length,
+    };
   });

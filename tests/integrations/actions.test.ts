@@ -35,7 +35,7 @@ describe("integration actions", () => {
 
   it("generates payment references and meeting links", () => {
     expect(paymentReference("EMIS")).toMatch(/^EMIS\d{9}$/);
-    expect(meetingRoomLink()).toMatch(/^https:\/\/zoom\.us\/j\/\d+$/);
+    expect(meetingRoomLink("zoom")).toMatch(/^https:\/\/zoom\.us\/j\/\d+$/);
   });
 
   it("returns official install URLs for catalog providers", () => {

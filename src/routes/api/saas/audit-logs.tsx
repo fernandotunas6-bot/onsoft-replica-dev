@@ -15,8 +15,16 @@ export const Route = createFileRoute("/api/saas/audit-logs")({
         try {
           await requirePlatformAdminFromRequest(request);
           const url = new URL(request.url);
-          const limit = Math.min(100, Math.max(1, Number(url.searchParams.get("limit") || 50)));
-          const logs = await fetchSaasAuditLogs(limit);
+          // `actions=a,b` filtra por acção (ex.: pedidos de mudança de plano), com
+          // um tecto maior porque o resultado é pequeno e não deve ficar enterrado.
+          const actions = (url.searchParams.get("actions") ?? "")
+            .split(",")
+            .map((a) => a.trim())
+            .filter((a) => /^[A-Za-z_]{3,60}$/.test(a))
+            .slice(0, 10);
+          const cap = actions.length ? 500 : 100;
+          const limit = Math.min(cap, Math.max(1, Number(url.searchParams.get("limit") || 50)));
+          const logs = await fetchSaasAuditLogs(limit, actions);
           return jsonWithCors(request, { logs }, { apps: [...APPS] });
         } catch (error) {
           const message =

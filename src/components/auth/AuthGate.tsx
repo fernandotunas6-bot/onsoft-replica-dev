@@ -1,3 +1,12 @@
+import { toast } from "sonner";
+import {
+  PWNED_PASSWORD_MESSAGE,
+  PWNED_SIGN_IN_NOTICE,
+  passwordPolicyMessage,
+  weakSignInPasswordNotice,
+} from "@/lib/password-policy-error";
+import { passwordExposureCount } from "@/lib/pwned-password";
+import { authRedirectError, withoutAuthRedirectError } from "@/lib/auth-redirect-error";
 import {
   SESSION_EXPIRED_MESSAGE,
   consumeSessionExpiredFlag,
@@ -46,6 +55,16 @@ interface BeforeInstallPromptEvent extends Event {
   userChoice: Promise<{ outcome: "accepted" | "dismissed"; platform: string }>;
 }
 
+function warnToChangePassword(message: string) {
+  toast.warning(message, {
+    duration: 15000,
+    action: {
+      label: "Alterar senha",
+      onClick: () => window.location.assign("/alterar-senha"),
+    },
+  });
+}
+
 function mapSignInError(message: string) {
   const value = message.toLowerCase();
   // O projecto tem captcha activa: o servidor recusa ANTES de olhar para a senha, e a
@@ -61,6 +80,11 @@ function mapSignInError(message: string) {
   }
   if (value.includes("email not confirmed")) {
     return "Confirme o email da conta antes de iniciar sessão.";
+  }
+  if (value.includes("captcha")) {
+    // A protecção por captcha do Supabase Auth exige um token que esta
+    // aplicação não envia: ligada no painel, bloqueia todas as entradas.
+    return "O início de sessão está bloqueado por uma configuração do servidor (captcha). Avise a administração.";
   }
   if (value.includes("too many requests") || value.includes("rate limit")) {
     return "Demasiadas tentativas. Aguarde um momento e tente outra vez.";
@@ -174,6 +198,19 @@ export function AuthGate({ children }: { children: ReactNode }) {
 
         setSession(null);
         setChecking(false);
+        // Regresso de um início de sessão externo (Google) que falhou: o
+        // Supabase deixa o erro no URL. As rotas /auth/* tratam o seu.
+        if (typeof window !== "undefined" && !window.location.pathname.startsWith("/auth/")) {
+          const redirectError = authRedirectError(window.location.search, window.location.hash);
+          if (redirectError) {
+            setError(redirectError.message);
+            window.history.replaceState(
+              window.history.state,
+              "",
+              withoutAuthRedirectError(window.location.href),
+            );
+          }
+        }
       } catch (bootstrapError) {
         if (!active) return;
         setError(
@@ -296,6 +333,17 @@ export function AuthGate({ children }: { children: ReactNode }) {
         : await signInWithIdentifier(inputIdentifier.trim(), password, captchaToken);
       if (!signInError) {
         if (data.user) localStorage.setItem(activityKey(data.user.id), String(Date.now()));
+        const weakNotice = weakSignInPasswordNotice(
+          (data as { weakPassword?: unknown }).weakPassword,
+        );
+        if (weakNotice) warnToChangePassword(weakNotice);
+        else {
+          // Plano gratuito do Supabase: a verificação de fugas é feita aqui,
+          // em segundo plano, sem atrasar a entrada.
+          void passwordExposureCount(password).then((count) => {
+            if (count) warnToChangePassword(PWNED_SIGN_IN_NOTICE);
+          });
+        }
         const assurance = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
         if (assurance.data?.nextLevel === "aal2" && assurance.data.currentLevel !== "aal2") {
           const factors = await supabase.auth.mfa.listFactors();
@@ -419,6 +467,10 @@ export function AuthGate({ children }: { children: ReactNode }) {
 
     setSubmitting(true);
     try {
+      if (await passwordExposureCount(password)) {
+        setError(PWNED_PASSWORD_MESSAGE);
+        return;
+      }
       // Preferência: e-mail do SIGA via Resend (como recuperação e link mágico).
       const { requestSignupFn } = await import("@/features/auth/signup-server");
       const viaSiga = await requestSignupFn({ data: { fullName, email, password } });
@@ -439,9 +491,10 @@ export function AuthGate({ children }: { children: ReactNode }) {
       });
       if (signUpError) {
         setError(
-          /password/i.test(signUpError.message)
-            ? "A senha não cumpre a política de segurança. Use uma senha mais forte."
-            : mapSignInError(signUpError.message),
+          passwordPolicyMessage(signUpError) ??
+            (/password/i.test(signUpError.message)
+              ? "A senha não cumpre a política de segurança. Use uma senha mais forte."
+              : mapSignInError(signUpError.message)),
         );
         return;
       }
@@ -482,7 +535,9 @@ export function AuthGate({ children }: { children: ReactNode }) {
           <AuthBackgroundVideo />
           <div
             aria-hidden
-            className="pointer-events-none absolute inset-0 bg-gradient-to-t from-primary/90 via-primary/60 to-primary/40"
+            // Só escurece em baixo, onde está o texto: o vídeo (sem logótipo por
+            // cima) fica visível no resto do painel.
+            className="pointer-events-none absolute inset-0 bg-gradient-to-t from-primary/85 via-primary/30 to-transparent"
           />
           <div />
           <AuthHeroSlides />

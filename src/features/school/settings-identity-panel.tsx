@@ -148,10 +148,15 @@ export function DigitalIdentityPanel() {
   const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !activeTenant) return;
+    // Só PNG, JPEG ou WebP (o bucket é público; SVG pode levar código).
+    const ext = file.name.split(".").pop()?.toLowerCase() ?? "";
+    if (!["png", "jpg", "jpeg", "webp"].includes(ext)) {
+      toast.error("Use um logótipo em PNG, JPEG ou WebP.");
+      return;
+    }
 
     setIsSavingBranding(true);
     try {
-      const ext = file.name.split(".").pop();
       const path = `${activeTenant.id}/logo-${Date.now()}.${ext}`;
 
       const { error, data } = await supabase.storage
@@ -718,7 +723,7 @@ export function DigitalIdentityPanel() {
                     <input
                       id="logo-upload"
                       type="file"
-                      accept="image/*"
+                      accept="image/png,image/jpeg,image/webp"
                       className="hidden"
                       onChange={handleLogoUpload}
                       disabled={isSavingBranding}

@@ -11,6 +11,7 @@
  * por dois conceitos diferentes.
  */
 import {
+  CreditCard,
   Banknote,
   BookOpen,
   BriefcaseBusiness,
@@ -117,6 +118,8 @@ export const moduleIcons = {
   studentRisk: TrendingDown,
   /** Diagnóstico de erros do sistema. */
   diagnostics: Stethoscope,
+  /** Assinatura da escola: plano, uso e pagamento. */
+  subscription: CreditCard,
 } satisfies Record<string, LucideIcon>;
 
 export type ModuleIconKey = keyof typeof moduleIcons;

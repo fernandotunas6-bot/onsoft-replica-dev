@@ -30,6 +30,11 @@ const exchangeCodeForSessionMock = vi.fn();
 const verifyOtpMock = vi.fn();
 const getSessionMock = vi.fn();
 const updateUserMock = vi.fn();
+// Sem rede nos testes: a verificação de fugas (HaveIBeenPwned) é simulada.
+const exposureMock = vi.fn(async (_password: string): Promise<number | null> => 0);
+vi.mock("@/lib/pwned-password", () => ({
+  passwordExposureCount: (password: string) => exposureMock(password),
+}));
 let authStateCallback: ((event: string, session: unknown) => void) | null = null;
 const unsubscribeMock = vi.fn();
 
@@ -167,5 +172,30 @@ describe("/auth/reset-password", () => {
     await waitFor(() => {
       expect(screen.getByText("Senha atualizada com sucesso!")).toBeDefined();
     });
+  });
+
+  it("recusa uma senha que aparece em fugas de dados, sem chamar updateUser", async () => {
+    navigateTo("/auth/reset-password?code=abc123");
+    exchangeCodeForSessionMock.mockResolvedValue({ error: null });
+    exposureMock.mockResolvedValueOnce(42);
+
+    const Page = await loadPage();
+    renderRoute(Page);
+
+    const passwordInput = await screen.findByLabelText("Nova senha");
+    fireEvent.change(passwordInput, { target: { value: "Senha123!" } });
+    fireEvent.change(screen.getByLabelText("Confirmar nova senha"), {
+      target: { value: "Senha123!" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: /Atualizar Senha/ }));
+
+    await waitFor(() => expect(exposureMock).toHaveBeenCalledWith("Senha123!"));
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: /Atualizar Senha/ })).toHaveProperty(
+        "disabled",
+        false,
+      ),
+    );
+    expect(updateUserMock).not.toHaveBeenCalled();
   });
 });

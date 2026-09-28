@@ -2,7 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useSchoolSettings } from "@/features/auth/use-school-settings";
 import { angolaGradeScale } from "@/lib/angola-academic";
 import { DEFAULT_PROMOTION_RULES, type PromotionRules } from "./assessment-model";
-import { getActivePassingValue } from "./assessment-models";
+import { getActivePassingValue, type ActiveAssessmentEngine } from "./assessment-models";
 
 /**
  * Nota mínima de aprovação para os ecrãs: a do modelo de avaliação em vigor
@@ -14,7 +14,14 @@ export function usePassingValue(): number {
 }
 
 /** Nota de aprovação e regras de transição por ciclo do modelo em vigor. */
-export function useActiveAssessmentRule(): { passing: number; promotionRules: PromotionRules } {
+export function useActiveAssessmentRule(): {
+  passing: number;
+  promotionRules: PromotionRules;
+  /** `false` só quando se sabe que a escola não tem modelo publicado. */
+  hasModel: boolean;
+  /** Pesos, arredondamento e escala do modelo activo (os da pauta oficial). */
+  engine: ActiveAssessmentEngine | null;
+} {
   const { school } = useSchoolSettings();
   const query = useQuery({
     queryKey: ["academic", "passing-value"],
@@ -24,5 +31,9 @@ export function useActiveAssessmentRule(): { passing: number; promotionRules: Pr
   return {
     passing: query.data?.passingValue ?? school?.passing_grade ?? angolaGradeScale.passing,
     promotionRules: query.data?.promotionRules ?? DEFAULT_PROMOTION_RULES,
+    // Sem modelo, os ecrãs mostram "Transita" com o limiar das Definições, mas
+    // o servidor recusa abrir diários e gerar pautas: é preciso avisar.
+    hasModel: !query.isSuccess || query.data.passingValue != null,
+    engine: query.data?.engine ?? null,
   };
 }

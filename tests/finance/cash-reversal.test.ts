@@ -20,16 +20,29 @@ describe("estorno de recibos (reverseCashEntry)", () => {
   const start = source.indexOf("export const reverseCashEntry");
   const handler = source.slice(start, source.indexOf("export const createPaymentPlan", start));
 
-  it("exige 2FA, como registar o pagamento", () => {
-    expect(handler).toMatch(/context\.claims\["aal"\] !== "aal2"/);
+  // As três garantias abaixo eram verificadas contra uma implementação em TypeScript
+  // que fazia o estorno e a reposição da fatura em duas escritas separadas. No merge de
+  // 2026-09-28 ficou a implementação que delega em `reverse_receipt`: a permissão, o 2FA
+  // e o recálculo do estado da fatura passam a ser impostos dentro da base, na mesma
+  // transacção. As garantias são as mesmas; o sítio onde se verificam é que mudou.
+  it("exige 2FA e permissão — impostos pela RPC, não pela aplicação", () => {
+    expect(handler).toContain('rpc("reverse_receipt"');
+    // No cliente da SESSÃO, senão `auth.uid()` e `is_aal2()` não resolvem lá dentro e a
+    // verificação de 2FA passa a não medir nada.
+    expect(handler).toMatch(/context\.supabase\.rpc\("reverse_receipt"/);
+    expect(handler).toMatch(/is_aal2\|autorização/);
   });
   it("só estorna recibos ainda válidos (não reescreve um estorno anterior)", () => {
-    expect(handler).toMatch(
-      /\.from\("finance_receipts"\)\s*\.update\([\s\S]*?\.eq\("status", "issued"\)/,
-    );
+    // A guarda a sério é o filtro `status = 'issued'` dentro da RPC; aqui verifica-se a
+    // leitura que dá a mensagem útil a quem tenta estornar duas vezes.
+    expect(handler).toContain('.select("id, status")');
+    expect(handler).toContain('existente.status === "reversed"');
   });
   it("repõe o estado da fatura a partir dos recibos que ficam", () => {
-    expect(handler).toContain("invoiceStatusFromPaid(");
+    // A RPC devolve o estado recalculado, e é esse que volta ao cliente — não um valor
+    // que a aplicação tenha adivinhado.
+    expect(handler).toContain("invoiceStatus");
+    expect(handler).toContain("invoice_status: resultado.invoiceStatus");
   });
 });
 

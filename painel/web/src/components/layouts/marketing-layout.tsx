@@ -60,7 +60,7 @@ export function MarketingLayout({
         </Suspense>
       ) : null}
 
-      {SHOW_THEME_CUSTOMIZER ? (
+      {SHOW_THEME_CUSTOMIZER && variant !== "auth" ? (
         <Suspense fallback={null}>
           <LandingThemeCustomizerTrigger onClick={() => setThemeCustomizerOpen(true)} />
           <LandingThemeCustomizer

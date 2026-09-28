@@ -4,7 +4,7 @@ import { AcademicStructureTab } from "@/features/academic/AcademicStructureTab";
 import { AssessmentModelsTab } from "@/features/academic/AssessmentModelsTab";
 import { ExamsTab } from "@/features/academic/ExamsTab";
 import { CompetenciesTab } from "@/features/academic/CompetenciesTab";
-import { usePassingValue } from "@/features/academic/use-passing-value";
+import { useActiveAssessmentRule } from "@/features/academic/use-passing-value";
 import { useEffect, useMemo, useRef, useState, lazy, Suspense } from "react";
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -39,6 +39,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { STAGE_LABELS } from "@/features/academic/academic-architecture";
 import { InstalledModuleTools } from "@/features/integrations/InstalledModuleTools";
 import { PickFileButton } from "@/features/arquivos/PickFileButton";
 import { meetingRoomLink } from "@/features/integrations/actions";
@@ -73,7 +74,6 @@ import { cn } from "@/lib/utils";
 import { exportCsv } from "@/lib/export-csv";
 import { exportOfficialPautaPdf, exportPdfTable } from "@/lib/export-pdf-loader";
 import { usePersistedListFilters } from "@/lib/list-filters";
-import { DropoutRiskReportModal } from "@/features/pedagogica/components/DropoutRiskReportModal";
 import { PautasWorkspaceModule } from "@/features/pedagogica/components/pautas/PautasWorkspaceModule";
 import { AttendanceWorkspaceModule } from "@/features/pedagogica/components/AttendanceWorkspaceModule";
 import { TurmasWorkspaceTab } from "@/features/pedagogica/components/TurmasWorkspaceTab";
@@ -184,7 +184,9 @@ function PedagogicaPage() {
   const moodleOn = installed.hasCapability("moodle.courses");
   const canvasWork = installed.hasCapability("canvas.assignments");
   const { activeYearLabel, selectedYearId, school } = useSchoolSettings();
-  const passing = usePassingValue();
+  const { passing, hasModel } = useActiveAssessmentRule();
+  // Publicar o modelo é só do Administrador (com 2FA), como em Modelos de avaliação.
+  const canPublishModel = account.role === "Administrador";
   const {
     tab: tabFromSearch,
     turma: turmaFromSearch,
@@ -620,8 +622,6 @@ function PedagogicaPage() {
     }
   };
 
-  const [dropoutModalOpen, setDropoutModalOpen] = useState(false);
-
   return (
     <AppShell>
       <div className="space-y-6">
@@ -661,7 +661,10 @@ function PedagogicaPage() {
                     <Sparkles className="size-3.5 text-primary" /> Lançar notas (grelha viva)
                   </DropdownMenuItem>
                   <DropdownMenuItem
-                    onClick={() => setDropoutModalOpen(true)}
+                    // A análise real (regras do modelo de avaliação, faltas da
+                    // chamada) está em /pedagogica/risco; o relatório antigo
+                    // abria sempre vazio e dizia "nenhum aluno em risco".
+                    onClick={() => void navigate({ to: "/pedagogica/risco" })}
                     className="gap-2 text-xs text-destructive cursor-pointer"
                   >
                     <ShieldAlert className="size-3.5 text-destructive" /> Relatório Risco Abandono
@@ -798,6 +801,21 @@ function PedagogicaPage() {
           ]}
         />
 
+        {canReadAcademic && !hasModel ? (
+          <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-warning/40 bg-warning/10 px-4 py-3 text-sm">
+            <p>
+              A escola ainda não tem modelo de avaliação publicado. Sem ele não se gravam as notas
+              da pauta nem se geram pautas.
+              {canPublishModel ? "" : " Peça ao Administrador que o publique."}
+            </p>
+            {canPublishModel ? (
+              <Button size="sm" variant="outline" onClick={() => onTabChange("modelos")}>
+                Publicar modelo
+              </Button>
+            ) : null}
+          </div>
+        ) : null}
+
         <Tabs value={tab} onValueChange={onTabChange}>
           {/* Uma só linha que desliza: com 12 separadores, quebrar em várias
               linhas empurrava (e tapava) o conteúdo. */}
@@ -805,22 +823,32 @@ function PedagogicaPage() {
             ref={tabsListRef}
             className="no-scrollbar flex h-auto w-full max-w-full flex-nowrap justify-start gap-1 overflow-x-auto"
           >
+            {/* Pela ordem do ano lectivo (academic-architecture.ts): cada
+                informação nasce numa etapa e segue para a seguinte. */}
+            <TabStageLabel>{STAGE_LABELS.estrutura}</TabStageLabel>
             {canReadAcademic ? (
               <TabsTrigger value="estrutura">Estrutura académica</TabsTrigger>
             ) : null}
             {canReadAcademic ? (
               <TabsTrigger value="modelos">Modelos de avaliação</TabsTrigger>
             ) : null}
-            <TabsTrigger value="turmas">Turmas</TabsTrigger>
-            <TabsTrigger value="disciplinas">Disciplinas</TabsTrigger>
-            <TabsTrigger value="salas">Salas & Espaços</TabsTrigger>
             <TabsTrigger value="curriculo">Currículo & Turnos</TabsTrigger>
-            <TabsTrigger value="horarios">Horários</TabsTrigger>
-            <TabsTrigger value="notas">Notas</TabsTrigger>
-            <TabsTrigger value="presencas">Presenças / Chamada</TabsTrigger>
-            <TabsTrigger value="pautas">Pautas</TabsTrigger>
-            {canReadAcademic ? <TabsTrigger value="exames">Exames</TabsTrigger> : null}
+            <TabsTrigger value="disciplinas">Disciplinas</TabsTrigger>
             {canReadAcademic ? <TabsTrigger value="competencias">Competências</TabsTrigger> : null}
+            <TabStageLabel>{STAGE_LABELS.pessoas}</TabStageLabel>
+            <TabsTrigger value="turmas">Turmas</TabsTrigger>
+            <TabsTrigger value="horarios">Horários</TabsTrigger>
+            <TabsTrigger value="salas">Salas & Espaços</TabsTrigger>
+            <TabsTrigger value="presencas">Presenças / Chamada</TabsTrigger>
+            <TabStageLabel>{STAGE_LABELS.avaliacao}</TabStageLabel>
+            <TabsTrigger value="notas">Notas</TabsTrigger>
+            <TabsTrigger value="pautas">Pautas</TabsTrigger>
+            {canReadAcademic ? (
+              <>
+                <TabStageLabel>{STAGE_LABELS.resultado}</TabStageLabel>
+                <TabsTrigger value="exames">Exames e resultado final</TabsTrigger>
+              </>
+            ) : null}
           </TabsList>
           <div className="mt-4">
             <InstalledModuleTools
@@ -1007,7 +1035,7 @@ function PedagogicaPage() {
                   subjects={subjects}
                   enrollments={enrollmentOptions}
                   termGrades={termGrades}
-                  passingGrade={school?.passing_grade ?? 10}
+                  passingGrade={passing}
                   canLaunch={canLaunchGrades}
                   canLockTerm={account.role === "Administrador"}
                   closedTerms={school?.pedagogy?.closedTerms ?? []}
@@ -1144,7 +1172,7 @@ function PedagogicaPage() {
                 name: t.full_name || "Docente",
               }))}
               slots={scheduleSlots}
-              virtualRooms={[...(zoomOn ? [{ label: "Zoom", url: meetingRoomLink() }] : [])]}
+              virtualRooms={[...(zoomOn ? [{ label: "Zoom", url: meetingRoomLink("zoom") }] : [])]}
               onCreateSlot={async (data) => {
                 const { warnings } = await createAdvancedScheduleSlot({ data });
                 for (const warning of warnings) {
@@ -1230,7 +1258,7 @@ function PedagogicaPage() {
           enrollments={enrollmentOptions}
           termGrades={termGrades}
           classSubjects={classSubjects}
-          passingGrade={school?.passing_grade ?? 10}
+          passingGrade={passing}
           canLaunch={canLaunchGrades}
           canLockTerm={account.role === "Administrador"}
           closedTerms={school?.pedagogy?.closedTerms ?? []}
@@ -1252,8 +1280,18 @@ function PedagogicaPage() {
         teacherIds={teachers.map((teacher) => teacher.id)}
         onRefresh={refreshAcademic}
       />
-
-      <DropoutRiskReportModal open={dropoutModalOpen} onOpenChange={setDropoutModalOpen} />
     </AppShell>
+  );
+}
+
+/** Nome da etapa entre separadores: só texto, fora da lista de separadores para leitores de ecrã. */
+function TabStageLabel({ children }: { children: string }) {
+  return (
+    <span
+      aria-hidden="true"
+      className="ml-2 shrink-0 self-center whitespace-nowrap border-l border-border pl-3 pr-1 text-[11px] text-muted-foreground first:ml-0 first:border-l-0 first:pl-1"
+    >
+      {children}
+    </span>
   );
 }

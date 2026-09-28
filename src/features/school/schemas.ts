@@ -47,6 +47,13 @@ export const updateSchoolSettingsInputSchema = z.object({
     .optional()
     .transform((value) => (isSchoolTypeId(value) ? value : undefined)),
   philosophy: z.string().trim().max(600).optional(),
+  // Localização. Todas opcionais; as coordenadas vêm em par ou nenhuma.
+  province: z.string().trim().max(80).optional(),
+  municipality: z.string().trim().max(80).optional(),
+  commune: z.string().trim().max(80).optional(),
+  neighborhood: z.string().trim().max(120).optional(),
+  latitude: z.number().min(-90).max(90).nullable().optional(),
+  longitude: z.number().min(-180).max(180).nullable().optional(),
 });
 export type UpdateSchoolSettingsInput = z.infer<typeof updateSchoolSettingsInputSchema>;
 

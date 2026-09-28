@@ -4,6 +4,145 @@ Ler isto **antes** de alterar código. Ecossistema (5 apps):
 [ARCHITECTURE_HARMONIZATION.md](./ARCHITECTURE_HARMONIZATION.md).
 Depois abrir o skill do módulo em `.cursor/skills/`.
 
+## Escritas abertas a qualquer membro (2026-09-29)
+
+Cinco tabelas aceitavam escrita de qualquer conta da escola (aluno e
+encarregado incluídos), porque a política era só `school_id =
+current_school_id()`: `school_branding`, `mailboxes`, `school_email_routes`
+(ALL) e `finance_invoice_events`, `student_status_events` (INSERT). Migração
+`20260929150000` (aplicada): as duas de e-mail só o servidor; a marca mantém a
+leitura pública; os históricos mantêm a leitura da Tesouraria/Secretaria. Estavam
+vazias. O teste `tests/security/write-policies-need-role.test.ts` lê o retrato e
+recusa qualquer política de escrita sem verificação de papel, permissão ou dono.
+
+Visto e deixado: as políticas de RH que comparam `current_profile_role()` com
+"Administrador" nunca batem certo (a função devolve o código, `owner`), por isso
+fecham por omissão — o RH escreve pelo servidor. `profiles.cargo` não é editável
+pelo cliente.
+
+## Auditoria de eficiência: consultas em ciclo (2026-09-28)
+
+Há 30 ciclos no servidor com `await db.from/rpc` lá dentro (o levantamento está
+na conversa; a heurística olha para o corpo de cada `for … of`). A maioria é
+limitada: webhooks, tarefas agendadas, poucas iterações.
+
+Tratado o mais pesado, a **chamada de presença**:
+- `submitAttendanceCallBatch` fazia por aluno um upsert, a leitura do histórico e
+  a actualização da taxa, ~120 consultas em série numa turma de 40. Os upserts
+  não verificavam erro, por isso respondia "ok" com linhas recusadas.
+- Agora faz um upsert para a turma inteira (com erro verificado) e uma chamada a
+  `siga_recompute_attendance_rates` (migração `20260928230000`, **já
+  aplicada**). A função só actualiza matrículas cuja taxa mudou, o que evita
+  ruído em `audit_logs`, e deixa de estar sujeita ao limite de 1000 linhas do
+  PostgREST.
+- `editFinalizedAttendanceCall` faz o mesmo (um upsert, um insert de
+  auditoria e um recálculo).
+
+`batchAssignClass` (atribuir turma em lote) inseria matrículas com a chave de
+serviço e **saltava `enroll_student`**, ou seja, 2FA, capacidade, ano lectivo
+e número de matrícula. Reactivava matrículas transferidas ou concluídas e
+ignorava todos os erros. Agora:
+- confirma que a turma é do ano pedido;
+- verifica a lotação antes de mexer (tudo ou nada);
+- muda de turma, numa só actualização, quem já tem matrícula corrente no ano;
+- matricula os restantes por `enroll_student`;
+- regista o histórico de estado numa só escrita;
+- devolve `count` e `failed`, que o ecrã mostra.
+
+`tests/security/batch-writes.test.ts` guarda as duas correcções.
+
+A seguir: `final-results.ts:275/286`, `exams.ts:579` e
+`finance/server.ts:1660`. `batchUpdateStudentStatus` ainda actualiza aluno a
+aluno, mas verifica o histórico e está limitado a 100.
+
+## Registos do Auth: Google e captcha (2026-09-28)
+
+- **Google:** a 2026-09-26 o regresso do Google falhou com `invalid_client`
+  ("The provided client secret is invalid"). O segredo do cliente OAuth está
+  errado no painel do Supabase (Authentication → Providers → Google) e tem de
+  ser corrigido pelo dono do projecto. O ecrã de entrada ignorava o erro que o
+  Supabase deixa no URL. Agora `src/lib/auth-redirect-error.ts` mostra uma
+  mensagem e limpa o URL; as rotas `/auth/*` continuam a tratar o seu.
+- **Captcha:** a 2026-09-26/27 houve entradas recusadas com `captcha_failed`.
+  A aplicação não envia token de captcha e, desde as 09h de 27/09, as entradas
+  passam, por isso a protecção foi desligada. **Não a voltar a ligar** sem
+  suporte na aplicação. A mensagem de entrada passa a dizê-lo, em vez de
+  "tente novamente".
+- O índice duplicado de `siga_assessment_items` saiu
+  (`20260928220000_drop_duplicate_assessment_items_index.sql`, **já aplicada**).
+
+## Funções órfãs do portal antigo (2026-09-28)
+
+`portal_identities` foi apagada por `supabase/cleanup_unused_sga_tables.sql`,
+mas ficaram 10 funções que a usam: `activate_*_portal_link`, `claim_*_portal`,
+`portal_list_*`, `portal_ward_overview` e três de `private`. Na produção falham
+sempre e a aplicação não as chama. As de `public` estavam expostas como RPC, e
+os `claim_*` reactivavam ligações revogadas pela escola.
+`20260928210000_revoke_dead_portal_identity_functions.sql` retira a execução
+a `PUBLIC`, `anon` e `authenticated`, sem apagar nada. **Já foi aplicada**.
+
+Revisto no mesmo passo: as RPC de presença dos professores
+(`hr_evaluate_teacher_attendance_assurance` e `hr_redeem_teacher_qr`) exigem
+o QR válido no registo final. O resto do aviso "SECURITY DEFINER executável"
+são funções auxiliares das políticas, e isso é esperado.
+
+## Protecção contra senhas expostas (2026-09-28)
+
+A protecção do Supabase ("Prevent use of leaked passwords") exige o plano
+Pro, e **o projecto está no gratuito**. Por isso a aplicação verifica ela
+própria: `src/lib/pwned-password.ts` consulta a API pública do HaveIBeenPwned
+com k-anonimato. Só saem os 5 primeiros caracteres do SHA-1, num GET simples
+sem cabeçalhos próprios (sem pedido prévio de CORS). A verificação falha
+aberta. Bloqueia senhas expostas no registo, em `PasswordChangeForm` e em
+`/auth/reset-password`, e ao entrar verifica em segundo plano e avisa. Não
+chega à API de administração nem aos fluxos do servidor. Se o projecto passar
+a Pro, liguem também a opção no painel. O código abaixo já trata o
+`weak_password` do Supabase.
+
+A aplicação já está preparada. `src/lib/password-policy-error.ts` traduz o
+erro `weak_password` (razões `pwned`, `length`, `characters`) no registo, em
+`PasswordChangeForm` e em `/auth/reset-password`. Quem entra com uma senha
+exposta entra na mesma, mas recebe um aviso com o botão "Alterar senha".
+
+## Registos da produção e embeds sem relação (2026-09-28)
+
+Os registos da API (conector Supabase, últimas 24 h) mostram um erro real:
+a **exportação de notas dava sempre 400**. `export-engine.ts` embebia
+`gradebooks!inner(...)` a partir de `grade_scores`, mas a nota liga-se ao
+diário pelo item (`grade_scores → grade_items → gradebooks`). Foi corrigido, e
+a coluna "Turma" da exportação passou a levar o código da turma em vez do id.
+
+O resto dos 4xx são sondas dos testes (pedidos anónimos recusados) ou pedidos
+a tabelas anteriores às migrações de 26/09.
+
+O retrato ganhou `relacoes` (374 chaves estrangeiras de `public`), e
+`tests/security/embeds-sem-relacao.test.ts` recusa qualquer embed, incluindo
+os aninhados, entre tabelas sem chave estrangeira.
+
+## Retrato da produção recapturado (2026-09-28)
+
+`supabase/PRODUCTION_SNAPSHOT.json` foi relido da produção pelo conector do
+Supabase: 178 tabelas, 290 políticas, 235 funções e 186 triggers, todas as
+tabelas com RLS. Com o retrato novo:
+
+- **`notification_preferences` já não existe na produção.** A verificação de
+  `getFinanceSchemaStatus` dava a base como incompleta e **bloqueava a emissão
+  de faturas em /faturas e /financeiro**. A verificação saiu, com o aviso da
+  interface e o mapeamento de erro em `issueInvoice`. Nenhuma função da
+  produção menciona a tabela, confirmado no catálogo.
+  `private.fanout_announcement_notifications` também a usava;
+  `20260928170000_fanout_announcements_without_notification_preferences.sql`
+  retirou-a e **já foi aplicada**.
+- `src/integrations/supabase/types.ts` foi regenerado da produção (178 tabelas).
+- As listas de espera dos testes (`TABELAS_AUSENTES_DA_PRODUCAO`,
+  `FUNCOES_ESPERA_MIGRACAO`, `ESPERA_MIGRACAO`) ficaram vazias: tudo o que
+  esperavam está aplicado.
+- As 7 tabelas sem `CREATE TABLE` no repositório (Google Workspace e escalas e
+  alterações salariais de RH) foram capturadas do catálogo em
+  `20260928190000_capture_google_workspace_and_hr_salary_tables.sql`. É só
+  declaração, porque na produção já existem. Estão só no servidor: RLS ligado,
+  sem políticas e sem concessões a anon/authenticated.
+
 ## Migrações aplicadas (2026-09-27)
 
 O dono aplicou `docs/agents/SIGA_aplicar_migracoes.sql` (23 migrações, até
@@ -13,6 +152,93 @@ verificado a partir da sessão de agente, porque a rede do ambiente não chega a
 `*.supabase.co`. `supabase/PRODUCTION_SNAPSHOT.json` continua com a captura anterior:
 recapturar antes de encolher `TABELAS_AUSENTES_DA_PRODUCAO` e `FUNCOES_ESPERA_MIGRACAO`.
 Migrações novas a partir daqui vão num pacote novo.
+
+## Políticas de escrita com `is_school_member` (2026-09-27)
+
+Das 56 políticas de escrita com `is_school_member` na captura, 24 já foram
+tratadas pelas migrações de 25–26/09 (aplicadas). Matrículas públicas
+(`enrollment_applications`, `enrollment_forms`) só tinham `is_school_member`:
+migração `20260927210000_enrollment_policies_staff_only.sql`, pacote
+`docs/agents/SIGA_aplicar_matriculas_politicas.sql` — aplicado pelo dono a 2026-09-28.
+
+**Papel global em vez do papel na escola (48 políticas) — aplicado pelo dono a 2026-09-28:**
+`can_manage_students()` lê `current_profile_role()` (papel do perfil, global da
+conta). Nas tabelas centrais, quem é Administrador/Secretaria numa escola e
+aluno/encarregado noutra podia escrever na segunda. Migração
+`20260927230000_core_write_policies_school_role.sql` recria as 48 políticas com
+as mesmas expressões, trocando essa parte por `is_school_office(school_id)`;
+pacote `docs/agents/SIGA_aplicar_politicas_papel_escola.sql`. Nenhum ecrã
+escreve estas tabelas com a sessão (só servidor e funções SECURITY DEFINER).
+
+**Leitura pelo papel na escola (24 políticas) — escrito, por aplicar:** as
+leituras usavam `can_read_students()`/`can_manage_students()`, que lêem
+`profiles.cargo` (global; o utilizador só pode alterar `full_name`, por isso
+não há auto-promoção, mas quem tem várias escolas lia os dados pessoais de
+todas). Migração `20260928110000_core_read_policies_school_role.sql`, pacote
+`docs/agents/SIGA_aplicar_leitura_papel_escola.sql`. Depois dela, nenhuma
+política usa `can_*_students`.
+
+**Armazenamento — escrito, por aplicar:** `siga-files` ("Staff can read siga
+files") só verificava a escola actual: alunos liam o arquivo (recibos,
+documentos, fotografias) pela API de Storage. `school-logos` aceitava envios de
+qualquer membro e SVG, e recusava a pasta do tenant usada pelo ecrã de
+identidade. Migração `20260928130000_storage_files_logos_hardening.sql`, pacote
+`docs/agents/SIGA_aplicar_armazenamento.sql`. As políticas de Storage não
+estão em `PRODUCTION_SNAPSHOT.json`: testado contra as do
+`APPLY_ENROLLMENT_AND_PREMIUM.sql`.
+
+**Leitura de salários e históricos — aplicado pelo dono a 2026-09-28:** `hr_contracts`,
+`hr_employments`, `hr_payroll_items`, `hr_payroll_item_components`,
+`hr_payroll_runs`, `hr_compensation_events`, `finance_invoice_events` e
+`student_status_events` liam-se com `is_school_member`/`current_school_id()`:
+um aluno via os salários de todos os funcionários. Migração
+`20260928090000_payroll_history_read_by_school_role.sql` (novas
+`is_school_finance`/`is_school_office`), pacote
+`docs/agents/SIGA_aplicar_salarios_historicos.sql`. As funções da folha
+(SECURITY INVOKER) exigem Administrador/Tesouraria, os mesmos papéis que a nova
+leitura. Leituras "abertas a membros" que ficam: comunicados, períodos,
+departamentos, cargos, políticas de assiduidade, reuniões de aula e
+formulários de matrícula (sem dados pessoais).
+
+## Estado da produção verificado pelo conector do Supabase (2026-09-28)
+
+Verificado directamente no projecto Sga (`xodgfmxiaunpamctfeea`): os pacotes
+de matrículas, escrita e leitura pelo papel na escola e armazenamento **não**
+tinham entrado (só os de salários/históricos e desconto nos pagamentos).
+Aplicados pelo conector (`apply_migration`) a 2026-09-28:
+`enrollment_policies_staff_only`, `core_write_policies_school_role`,
+`core_read_policies_school_role`, `storage_files_logos_hardening` e
+`revoke_public_validate_issued_document`. Confirmação: 69 políticas com
+`is_school_office`; nenhuma com `can_(read|manage)_students`.
+
+As migrações de papel na escola foram reescritas para recriar cada política a
+partir da expressão que tem na base: a captura (`PRODUCTION_SNAPSHOT.json`) já
+não correspondia à produção — as políticas de escrita em `grade_items`,
+`gradebooks` e `grade_scores` tinham sido removidas e as de leitura de
+`class_subjects`/`timetable_slots` têm um ramo para quem não é professor. A
+versão antiga teria reaberto escrita directa nas notas. **Antes de qualquer
+migração de políticas, ler o estado actual da base, não a captura.**
+
+A política de logótipos na produção só verificava o formato do nome (qualquer
+utilizador de qualquer escola podia substituir o logótipo de outra); corrigida.
+Scripts manuais antigos em `supabase/*.sql` que recriam políticas fracas levam
+agora um aviso "NÃO CORRER NA PRODUÇÃO".
+
+Avisos do Supabase que ficam: 56 tabelas com RLS e sem políticas (só servidor,
+por desenho); funções auxiliares SECURITY DEFINER usadas pelas políticas;
+**protecção contra palavras-passe vazadas desligada** (Auth → Password
+security, decisão do dono).
+
+## Funcionalidades que fingiam resultados (2026-09-28)
+
+Removidas: `integrations/google/server-workspace.ts` (6 funções Google com
+"sucesso" inventado), `pauta-ocr-scanner.ts` + `PautaOcrScannerModal.tsx`
+(o "OCR" ignorava a fotografia e inventava notas pela posição do aluno, com
+96% de confiança — não estava ligado a nenhum ecrã) e
+`dropout-risk-predictor.ts` + `DropoutRiskReportModal.tsx` (abria sempre sem
+alunos e dizia "nenhum aluno em risco"; o menu em /pedagogica abre agora
+/pedagogica/risco, a análise real). Caixas de correio: simulado só fora de
+produção; Zoho diz que não está implementado.
 
 ## Auditoria financeira (2026-09-27)
 

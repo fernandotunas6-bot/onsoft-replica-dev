@@ -23,9 +23,11 @@ import {
   canGrantRole,
   classifyAccountLink,
   compactIdentifier,
+  grantableRoleCodes,
   isSafeRecordMatch,
   nextAccessRequestStatus,
   OPEN_ACCESS_REQUEST_STATUSES,
+  pickRoleByPreference,
   type AccessRequestProfile,
   type AccessRequestStatus,
   type AccountLinkSituation,
@@ -161,6 +163,77 @@ async function notifyByEmail(input: {
   } catch (error) {
     console.error("[access-requests] email failed:", error);
     return false;
+  }
+}
+
+/** Papéis que revêem pedidos de acesso (os mesmos de `is_school_office`). */
+const REVIEWER_ROLE_CODES = ["owner", "admin", "administrador", "secretary", "secretaria"];
+
+/**
+ * Avisa no portal (sino de notificações) quem revê pedidos na escola. Antes
+ * só havia e-mail, e só com RESEND_API_KEY e e-mail na ficha da escola: sem
+ * isso ninguém sabia que havia pedidos à espera. Falha em silêncio registado —
+ * o pedido já está gravado e aparece em Acessos na mesma.
+ */
+async function notifyReviewers(
+  db: Db,
+  schoolId: string,
+  input: { title: string; body: string; requestId: string },
+): Promise<number> {
+  try {
+    // Três leituras simples: entre member_roles e roles/school_memberships há
+    // duas chaves estrangeiras cada, e um embed seria ambíguo (PGRST201).
+    const { data: memberships, error } = await db
+      .from("school_memberships")
+      .select("id, user_id")
+      .eq("school_id", schoolId)
+      .eq("status", "active");
+    if (error) throw error;
+    const userByMembership = new Map(
+      ((memberships ?? []) as Array<{ id: string; user_id: string | null }>)
+        .filter((m) => m.user_id)
+        .map((m) => [m.id, m.user_id as string]),
+    );
+    if (!userByMembership.size) return 0;
+    const { data: memberRoles, error: mrError } = await db
+      .from("member_roles")
+      .select("membership_id, role_id")
+      .eq("school_id", schoolId)
+      .in("membership_id", [...userByMembership.keys()]);
+    if (mrError) throw mrError;
+    const roleIds = [
+      ...new Set(((memberRoles ?? []) as Array<{ role_id: string }>).map((r) => r.role_id)),
+    ];
+    const { data: roles, error: rolesError } = roleIds.length
+      ? await db.from("roles").select("id, code").in("id", roleIds)
+      : { data: [], error: null };
+    if (rolesError) throw rolesError;
+    const reviewerRoleIds = new Set(
+      ((roles ?? []) as Array<{ id: string; code: string | null }>)
+        .filter((r) => REVIEWER_ROLE_CODES.includes((r.code ?? "").toLowerCase()))
+        .map((r) => r.id),
+    );
+    const userIds = new Set<string>();
+    for (const mr of (memberRoles ?? []) as Array<{ membership_id: string; role_id: string }>) {
+      const userId = userByMembership.get(mr.membership_id);
+      if (userId && reviewerRoleIds.has(mr.role_id)) userIds.add(userId);
+    }
+    if (!userIds.size) return 0;
+    const { insertInAppNotifications } = await import("@/features/academic/lesson-delivery");
+    return await insertInAppNotifications(
+      db,
+      schoolId,
+      [...userIds].map((userId) => ({
+        userId,
+        eventType: "access_request.submitted",
+        title: input.title,
+        body: input.body,
+        payload: { requestId: input.requestId, href: "/acessos" },
+      })),
+    );
+  } catch (error) {
+    console.error("[access-requests] in-app notify failed:", error);
+    return 0;
   }
 }
 
@@ -555,6 +628,12 @@ export const submitAccessRequest = createServerFn({ method: "POST" })
       metadata: { profile: data.profile, matched: Boolean(match), match_kind: match?.kind ?? null },
     });
 
+    await notifyReviewers(db, data.schoolId, {
+      requestId: String(inserted.id),
+      title: `Novo pedido de acesso — ${accessRequestProfileLabels[data.profile]}`,
+      body: `${data.fullName} pede acesso como ${accessRequestProfileLabels[data.profile].toLowerCase()}. Verifique a identidade e decida em Acessos → Solicitações.`,
+    });
+
     await notifyByEmail({
       to: school.email,
       schoolName: school.name,
@@ -614,6 +693,13 @@ export const actOnMyAccessRequest = createServerFn({ method: "POST" })
       requestId: request.id,
       metadata: { before: { status: request.status }, after: { status: next } },
     });
+    if (data.action === "reply") {
+      await notifyReviewers(db, request.school_id, {
+        requestId: request.id,
+        title: "Resposta a pedido de acesso",
+        body: `${request.full_name} respondeu ao pedido de informação. Reveja em Acessos → Solicitações.`,
+      });
+    }
     return { id: request.id, status: next };
   });
 
@@ -763,14 +849,18 @@ export const listSchoolAccessRequests = createServerFn({ method: "GET" })
 
 /** Cria ou reactiva o vínculo e atribui o papel. Idempotente. */
 async function grantMembership(db: Db, schoolId: string, userId: string, roleCodes: string[]) {
-  const { data: role } = await db
+  // O papel de proprietário nunca se concede por pedido de acesso. Entre os
+  // códigos equivalentes, vale a ordem de `roleCodes` (a base não garante ordem).
+  const codes = grantableRoleCodes(roleCodes);
+  const { data: roles, error: rolesError } = await db
     .from("roles")
     .select("id, code")
     .eq("school_id", schoolId)
-    .in("code", roleCodes)
-    .limit(1)
-    .maybeSingle();
-  if (!role?.id) throw new Error("O papel pedido não está configurado nesta escola.");
+    .in("code", codes.length ? codes : ["-"]);
+  if (rolesError)
+    throw publicDatabaseError(rolesError, "Não foi possível ler os papéis da escola.");
+  const role = pickRoleByPreference(roles ?? [], codes);
+  if (!role) throw new Error("O papel pedido não está configurado nesta escola.");
 
   const now = new Date().toISOString();
   const { data: existing } = await db
@@ -921,6 +1011,22 @@ export const reviewAccessRequest = createServerFn({ method: "POST" })
       requestId: request.id,
       metadata: audit,
     });
+
+    if (data.action === "approve") {
+      // Já tem vínculo: o aviso aparece no sino do painel da escola.
+      const { insertInAppNotifications } = await import("@/features/academic/lesson-delivery");
+      await insertInAppNotifications(db, membership.schoolId, [
+        {
+          userId: request.user_id,
+          title: "Pedido de acesso aprovado",
+          body: "O seu acesso à escola foi aprovado. Já pode usar o painel.",
+          eventType: "access_request.approved",
+          payload: { requestId: request.id, href: "/" },
+        },
+      ]).catch((notifyError) => {
+        console.error("[access-requests] aviso ao requerente falhou", notifyError);
+      });
+    }
 
     let emailed = false;
     if (data.action !== "start_review") {

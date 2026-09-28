@@ -215,10 +215,14 @@ export async function revokePlatformAdmin(
 export async function fetchSaasAuditLogs(
   accessToken: string | undefined | null,
   limit = 50,
+  actions: string[] = [],
 ): Promise<{ ok: boolean; logs?: SaasAuditLogRow[]; error?: string }> {
   if (!accessToken) return { ok: false, error: "Sessão em falta." };
-  const res = await apiFetch(getSaasApiUrl(`/api/saas/audit-logs?limit=${limit}`), {
-    headers: authHeaders(accessToken),
+  // Filtro por acção vem do main; o `apiFetch` fica do nosso lado — transforma uma
+  // falha de rede num 503 com JSON, em vez de deixar a excepção rebentar antes do
+  // `res.json()` a seguir.
+  const filter = actions.length ? `&actions=${encodeURIComponent(actions.join(","))}` : "";
+  const res = await apiFetch(getSaasApiUrl(`/api/saas/audit-logs?limit=${limit}${filter}`), {    headers: authHeaders(accessToken),
   });
   const data = (await res.json().catch(() => ({}))) as { logs?: SaasAuditLogRow[]; error?: string };
   if (!res.ok) return { ok: false, error: data.error || "Não foi possível carregar a auditoria." };

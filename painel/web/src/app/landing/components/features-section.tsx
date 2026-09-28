@@ -81,7 +81,7 @@ export function FeaturesSection() {
           <Image3D
             lightSrc="feature-1-light.png"
             darkSrc="feature-1-dark.png"
-            alt="Painel académico"
+            alt="SIGA Plus: médias por turma e disciplina, com as negativas destacadas"
             direction="left"
           />
           <div className="space-y-6">
@@ -169,7 +169,7 @@ export function FeaturesSection() {
           <Image3D
             lightSrc="feature-2-light.png"
             darkSrc="feature-2-dark.png"
-            alt="Painel financeiro"
+            alt="SIGA Plus: alunos por classe, matrículas por mês e propinas facturadas e recebidas"
             direction="right"
             className="order-1 lg:order-2"
           />

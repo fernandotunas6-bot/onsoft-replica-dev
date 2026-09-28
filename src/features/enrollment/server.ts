@@ -1,4 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
+import { normalizeStoredPhone } from "@/lib/angola-phone";
 import { getRequestIP } from "@tanstack/react-start/server";
 import { isRateLimitBypassed } from "@/lib/rate-limit";
 import { consumeRateLimit } from "@/lib/shared-rate-limit";
@@ -331,7 +332,9 @@ export const decideEnrollmentApplication = createServerFn({ method: "POST" })
         full_name: fullName,
         preferred_name: fullName.split(/\s+/)[0],
         email: person.email || null,
-        phone: person.phone_primary || null,
+        phone: person.phone_primary
+          ? (normalizeStoredPhone(person.phone_primary) ?? person.phone_primary)
+          : null,
         national_id: normalizedNif,
         date_of_birth: person.birth_date || null,
         sex: person.sex === "M" ? "male" : person.sex === "F" ? "female" : person.sex || null,

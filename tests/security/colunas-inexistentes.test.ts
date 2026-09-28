@@ -292,18 +292,18 @@ const funcoesPublicas = new Set(
  * ESPERA_MIGRACAO: a lista só encolhe, e o teste obriga a tirar a entrada
  * quando o retrato a mostrar.
  */
+/**
+ * Funções que o código chama e a produção ainda não tem. Existe para encolher.
+ *
+ * O `siga_publish_assessment_rule` e o `siga_rate_limit_consume` saíram a 2026-09-28:
+ * foram aplicados e o retrato recapturado mostra-os.
+ */
 const FUNCOES_ESPERA_MIGRACAO = new Set<string>([
-  // `siga_publish_assessment_rule` saiu a 2026-09-27: a migração
-  // `20260926200000_assessment_rule_publish_server.sql` foi aplicada e o retrato
-  // recapturado mostra-a em `public` e em `private`.
-  // `20260927170000_shared_rate_limit.sql` (limite de tentativas partilhado).
-  "siga_rate_limit_consume",
-  // `20260926203852_harden_teacher_qr_attendance.sql` (leitura do QR do docente).
-  // `hr/teacher-lessons.ts` chama-a desde eaceb8f2; enquanto não correr, a leitura
-  // do QR devolve PGRST202 e a presença do docente não é registada.
+  // `20260926203852_harden_teacher_qr_attendance.sql`, por aplicar.
+  // `hr/teacher-lessons.ts` chama-a desde eaceb8f2; sondada na produção a 2026-09-28
+  // devolve PGRST202, e a presença do docente por QR não é registada enquanto assim for.
   "hr_redeem_teacher_qr_secure",
 ]);
-
 /**
  * Colunas que o código grava e a produção ainda não tem porque há uma migração escrita e
  * por aplicar. Aplicar SQL à base é decisão do dono do projecto, não do agente — esta
@@ -314,16 +314,8 @@ const FUNCOES_ESPERA_MIGRACAO = new Set<string>([
  * recapturado a seguir. Vazia é o estado correcto — uma entrada aqui é uma escrita que a
  * produção recusa.
  */
-/**
- * Colunas que o código já grava e a produção ainda não tem. Existe para encolher.
- *
- * Está vazia desde 2026-09-26: as sete colunas de `import_jobs` do motor de importação
- * (`schema_version`, `exchange_mode`, `source_format`, `dry_run`, `idempotency_key`,
- * `manifest`, `dependency_plan`) estavam à espera do retrato de 2026-09-20 e já existem em
- * produção. Ficarem cá depois de aplicadas não é inofensivo: cada entrada é uma coluna que
- * este teste deixa de verificar, e a lista era o sítio onde uma coluna inventada se
- * esconderia sem ninguém notar.
- */
+// Vazia outra vez desde 2026-09-28: as colunas do motor de importação
+// (`import_jobs.*`) foram aplicadas e o retrato recapturado.
 const ESPERA_MIGRACAO = new Set<string>([]);
 
 const leituras = leiturasDoCodigo();

@@ -11,7 +11,7 @@ import {
   updateAssessmentItem,
   deleteAssessmentItem,
 } from "@/features/academic/server";
-import { assessmentComponents, assessmentKinds } from "@/lib/angola-academic";
+import { assessmentComponents, assessmentKinds, assessmentPurposes } from "@/lib/angola-academic";
 
 export type AssessmentItemDraft = {
   id: string;
@@ -19,6 +19,9 @@ export type AssessmentItemDraft = {
   kind?: string | null;
   component?: string | null;
   assessed_on?: string | null;
+  starts_at?: string | null;
+  duration_minutes?: number | null;
+  purpose?: string | null;
   max_score?: number | null;
   description?: string | null;
   counts_toward_pauta?: boolean | null;
@@ -46,6 +49,9 @@ export function CreateAssessmentDialog({
   const [kind, setKind] = useState("teste");
   const [component, setComponent] = useState("NPP");
   const [date, setDate] = useState("");
+  const [time, setTime] = useState("");
+  const [duration, setDuration] = useState("");
+  const [purpose, setPurpose] = useState("");
   const [maxScore, setMaxScore] = useState("20");
   const [description, setDescription] = useState("");
   const [counts, setCounts] = useState(true);
@@ -59,6 +65,9 @@ export function CreateAssessmentDialog({
       setKind(editingItem.kind ?? "teste");
       setComponent(editingItem.component ?? "NPP");
       setDate(editingItem.assessed_on ?? "");
+      setTime((editingItem.starts_at ?? "").slice(0, 5));
+      setDuration(editingItem.duration_minutes ? String(editingItem.duration_minutes) : "");
+      setPurpose(editingItem.purpose ?? "");
       setMaxScore(String(editingItem.max_score ?? "20"));
       setDescription(editingItem.description ?? "");
       setCounts(editingItem.counts_toward_pauta ?? true);
@@ -68,6 +77,9 @@ export function CreateAssessmentDialog({
       setKind("teste");
       setComponent("NPP");
       setDate("");
+      setTime("");
+      setDuration("");
+      setPurpose("");
       setMaxScore("20");
       setDescription("");
       setCounts(true);
@@ -80,6 +92,16 @@ export function CreateAssessmentDialog({
       toast.error("Seleccione turma e disciplina.");
       return;
     }
+    const minutes = duration.trim() ? Number(duration) : undefined;
+    if (minutes !== undefined && (!Number.isInteger(minutes) || minutes < 5 || minutes > 600)) {
+      toast.error("A duração é em minutos, entre 5 e 600.");
+      return;
+    }
+    const schedule = {
+      startsAt: time || undefined,
+      durationMinutes: minutes,
+      purpose: (purpose || undefined) as (typeof assessmentPurposes)[number]["id"] | undefined,
+    };
     setSaving(true);
     try {
       if (editingItem) {
@@ -90,6 +112,7 @@ export function CreateAssessmentDialog({
             kind: kind as (typeof assessmentKinds)[number]["id"],
             component: component as (typeof assessmentComponents)[number]["id"],
             assessedOn: date || undefined,
+            ...schedule,
             maxScore: Number(maxScore) || 20,
             description: description || undefined,
             countsTowardPauta: counts,
@@ -107,6 +130,7 @@ export function CreateAssessmentDialog({
             kind: kind as (typeof assessmentKinds)[number]["id"],
             component: component as (typeof assessmentComponents)[number]["id"],
             assessedOn: date || undefined,
+            ...schedule,
             maxScore: Number(maxScore) || 20,
             description: description || undefined,
             countsTowardPauta: counts,
@@ -221,6 +245,40 @@ export function CreateAssessmentDialog({
             value={date}
             onChange={(event) => setDate(event.target.value)}
           />
+        </div>
+        <div>
+          <Label htmlFor="av-time">Hora</Label>
+          <Input
+            id="av-time"
+            type="time"
+            value={time}
+            onChange={(event) => setTime(event.target.value)}
+          />
+        </div>
+        <div>
+          <Label htmlFor="av-duration">Duração (min)</Label>
+          <Input
+            id="av-duration"
+            inputMode="numeric"
+            value={duration}
+            onChange={(event) => setDuration(event.target.value)}
+          />
+        </div>
+        <div>
+          <Label>Finalidade</Label>
+          <select
+            aria-label="Finalidade da avaliação"
+            className="mt-1 flex h-9 w-full rounded-lg border border-input bg-background px-3 text-sm"
+            value={purpose}
+            onChange={(event) => setPurpose(event.target.value)}
+          >
+            <option value="">Não indicada</option>
+            {assessmentPurposes.map((item) => (
+              <option key={item.id} value={item.id}>
+                {item.label}
+              </option>
+            ))}
+          </select>
         </div>
         <div>
           <Label htmlFor="av-max">Cotação</Label>

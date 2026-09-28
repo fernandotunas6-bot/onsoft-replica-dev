@@ -475,7 +475,7 @@ export const listAssessments = createServerFn({ method: "GET" })
     let query = db
       .from("siga_assessment_items")
       .select(
-        "id, class_group_id, subject_id, term, name, kind, component, assessed_on, max_score, counts_toward_pauta, allow_recovery, description, updated_at",
+        "id, class_group_id, subject_id, term, name, kind, component, assessed_on, starts_at, duration_minutes, purpose, max_score, counts_toward_pauta, allow_recovery, description, updated_at",
       )
       .eq("school_id", membership.schoolId)
       .order("assessed_on", { ascending: true });

@@ -1,11 +1,11 @@
 {
-  "capturadoEm": "2026-09-27T06:52:49.502Z",
+  "capturadoEm": "2026-09-27T14:25:59.502399Z",
   "resumo": {
-    "com_rls": 175,
-    "funcoes_private": 95,
-    "politicas": 294,
-    "tabelas": 175,
-    "triggers": 185
+    "com_rls": 179,
+    "funcoes_private": 98,
+    "politicas": 285,
+    "tabelas": 179,
+    "triggers": 190
   },
   "tabelas": [
     {
@@ -921,7 +921,7 @@
         "version",
         "student_id"
       ],
-      "politicas": 3,
+      "politicas": 2,
       "rls": true,
       "rls_forcada": true,
       "tabela": "enrollment_applications"
@@ -947,7 +947,7 @@
         "deleted_at",
         "version"
       ],
-      "politicas": 3,
+      "politicas": 2,
       "rls": true,
       "rls_forcada": true,
       "tabela": "enrollment_forms"
@@ -1058,7 +1058,7 @@
       "tabela": "finance_gateway_webhook_events"
     },
     {
-      "anon_select": true,
+      "anon_select": false,
       "auth_select": true,
       "colunas": [
         "id",
@@ -1070,7 +1070,7 @@
         "changed_by",
         "created_at"
       ],
-      "politicas": 2,
+      "politicas": 1,
       "rls": true,
       "rls_forcada": true,
       "tabela": "finance_invoice_events"
@@ -1319,6 +1319,27 @@
       "rls": true,
       "rls_forcada": false,
       "tabela": "grade_sheet_rows"
+    },
+    {
+      "anon_select": false,
+      "auth_select": false,
+      "colunas": [
+        "id",
+        "school_id",
+        "grade_sheet_id",
+        "version",
+        "status",
+        "reason",
+        "rule_set_id",
+        "built_at",
+        "snapshot",
+        "archived_by",
+        "archived_at"
+      ],
+      "politicas": 0,
+      "rls": true,
+      "rls_forcada": true,
+      "tabela": "grade_sheet_versions"
     },
     {
       "anon_select": false,
@@ -2238,8 +2259,8 @@
       "tabela": "issued_documents"
     },
     {
-      "anon_select": true,
-      "auth_select": true,
+      "anon_select": false,
+      "auth_select": false,
       "colunas": [
         "id",
         "school_id",
@@ -2252,9 +2273,9 @@
         "created_at",
         "updated_at"
       ],
-      "politicas": 1,
+      "politicas": 0,
       "rls": true,
-      "rls_forcada": false,
+      "rls_forcada": true,
       "tabela": "mailboxes"
     },
     {
@@ -2743,14 +2764,14 @@
         "created_at",
         "updated_at"
       ],
-      "politicas": 2,
+      "politicas": 1,
       "rls": true,
       "rls_forcada": false,
       "tabela": "school_branding"
     },
     {
-      "anon_select": true,
-      "auth_select": true,
+      "anon_select": false,
+      "auth_select": false,
       "colunas": [
         "id",
         "school_id",
@@ -2763,9 +2784,9 @@
         "updated_at",
         "cloudflare_route_id"
       ],
-      "politicas": 1,
+      "politicas": 0,
       "rls": true,
-      "rls_forcada": false,
+      "rls_forcada": true,
       "tabela": "school_email_routes"
     },
     {
@@ -2980,7 +3001,11 @@
         "director_name",
         "evaluation_periods",
         "passing_grade",
-        "preferences"
+        "preferences",
+        "commune",
+        "neighborhood",
+        "latitude",
+        "longitude"
       ],
       "politicas": 2,
       "rls": true,
@@ -3032,6 +3057,22 @@
       "tabela": "siga_access_logs"
     },
     {
+      "anon_select": false,
+      "auth_select": false,
+      "colunas": [
+        "id",
+        "school_id",
+        "item_id",
+        "competency_id",
+        "created_by",
+        "created_at"
+      ],
+      "politicas": 0,
+      "rls": true,
+      "rls_forcada": true,
+      "tabela": "siga_assessment_item_competencies"
+    },
+    {
       "anon_select": true,
       "auth_select": true,
       "colunas": [
@@ -3052,7 +3093,10 @@
         "updated_at",
         "created_by",
         "updated_by",
-        "lesson_plan_component_id"
+        "lesson_plan_component_id",
+        "starts_at",
+        "duration_minutes",
+        "purpose"
       ],
       "politicas": 3,
       "rls": true,
@@ -3218,6 +3262,28 @@
       "rls": true,
       "rls_forcada": true,
       "tabela": "siga_class_tasks"
+    },
+    {
+      "anon_select": false,
+      "auth_select": false,
+      "colunas": [
+        "id",
+        "school_id",
+        "subject_id",
+        "grade_level_id",
+        "code",
+        "description",
+        "status",
+        "display_order",
+        "created_by",
+        "updated_by",
+        "created_at",
+        "updated_at"
+      ],
+      "politicas": 0,
+      "rls": true,
+      "rls_forcada": true,
+      "tabela": "siga_competencies"
     },
     {
       "anon_select": true,
@@ -3460,6 +3526,19 @@
       "auth_select": false,
       "colunas": [
         "id",
+        "key_hash",
+        "hit_at"
+      ],
+      "politicas": 0,
+      "rls": true,
+      "rls_forcada": true,
+      "tabela": "siga_rate_limit_hits"
+    },
+    {
+      "anon_select": false,
+      "auth_select": false,
+      "colunas": [
+        "id",
         "school_id",
         "timetable_slot_id",
         "lesson_type",
@@ -3535,8 +3614,8 @@
       "tabela": "staff_module_grants"
     },
     {
-      "anon_select": true,
-      "auth_select": true,
+      "anon_select": false,
+      "auth_select": false,
       "colunas": [
         "id",
         "school_id",
@@ -3549,9 +3628,14 @@
         "notes",
         "created_by",
         "created_at",
-        "updated_at"
+        "updated_at",
+        "enrollment_id",
+        "grade_sheet_id",
+        "subject_results",
+        "absence_percentage",
+        "updated_by"
       ],
-      "politicas": 2,
+      "politicas": 1,
       "rls": true,
       "rls_forcada": true,
       "tabela": "student_academic_history"
@@ -3624,7 +3708,7 @@
       "tabela": "student_risk_interventions"
     },
     {
-      "anon_select": true,
+      "anon_select": false,
       "auth_select": true,
       "colunas": [
         "id",
@@ -3636,14 +3720,14 @@
         "changed_by",
         "created_at"
       ],
-      "politicas": 2,
+      "politicas": 1,
       "rls": true,
       "rls_forcada": true,
       "tabela": "student_status_events"
     },
     {
-      "anon_select": true,
-      "auth_select": true,
+      "anon_select": false,
+      "auth_select": false,
       "colunas": [
         "id",
         "school_id",
@@ -3654,7 +3738,7 @@
         "changed_by",
         "created_at"
       ],
-      "politicas": 2,
+      "politicas": 1,
       "rls": true,
       "rls_forcada": true,
       "tabela": "student_status_history"
@@ -4066,14 +4150,14 @@
       "politica": "Create academic_schedules in own school",
       "tabela": "academic_schedules",
       "usando": "",
-      "verificando": "((school_id = ( SELECT current_school_id() AS current_school_id)) AND (created_by = ( SELECT auth.uid() AS uid)) AND ( SELECT can_manage_students() AS can_manage_students))"
+      "verificando": "((school_id = ( SELECT current_school_id() AS current_school_id)) AND (created_by = ( SELECT auth.uid() AS uid)) AND is_school_office(school_id))"
     },
     {
       "cmd": "SELECT",
       "papeis": "{authenticated}",
       "politica": "Read academic_schedules in own school",
       "tabela": "academic_schedules",
-      "usando": "((school_id = ( SELECT current_school_id() AS current_school_id)) AND (deleted_at IS NULL) AND ( SELECT can_read_students() AS can_read_students))",
+      "usando": "((school_id = ( SELECT current_school_id() AS current_school_id)) AND (deleted_at IS NULL) AND is_school_office(school_id))",
       "verificando": ""
     },
     {
@@ -4081,8 +4165,8 @@
       "papeis": "{authenticated}",
       "politica": "Update academic_schedules in own school",
       "tabela": "academic_schedules",
-      "usando": "((school_id = ( SELECT current_school_id() AS current_school_id)) AND ( SELECT can_manage_students() AS can_manage_students))",
-      "verificando": "((school_id = ( SELECT current_school_id() AS current_school_id)) AND ( SELECT can_manage_students() AS can_manage_students))"
+      "usando": "((school_id = ( SELECT current_school_id() AS current_school_id)) AND is_school_office(school_id))",
+      "verificando": "((school_id = ( SELECT current_school_id() AS current_school_id)) AND is_school_office(school_id))"
     },
     {
       "cmd": "INSERT",
@@ -4090,14 +4174,14 @@
       "politica": "Create academic_years in own school",
       "tabela": "academic_years",
       "usando": "",
-      "verificando": "(is_school_member(school_id) AND ( SELECT can_manage_students() AS can_manage_students))"
+      "verificando": "(is_school_member(school_id) AND is_school_office(school_id))"
     },
     {
       "cmd": "SELECT",
       "papeis": "{authenticated}",
       "politica": "Read academic_years in own school",
       "tabela": "academic_years",
-      "usando": "(is_school_member(school_id) AND ( SELECT can_read_students() AS can_read_students))",
+      "usando": "(is_school_member(school_id) AND is_school_office(school_id))",
       "verificando": ""
     },
     {
@@ -4105,8 +4189,8 @@
       "papeis": "{authenticated}",
       "politica": "Update academic_years in own school",
       "tabela": "academic_years",
-      "usando": "(is_school_member(school_id) AND ( SELECT can_manage_students() AS can_manage_students))",
-      "verificando": "(is_school_member(school_id) AND ( SELECT can_manage_students() AS can_manage_students))"
+      "usando": "(is_school_member(school_id) AND is_school_office(school_id))",
+      "verificando": "(is_school_member(school_id) AND is_school_office(school_id))"
     },
     {
       "cmd": "SELECT",
@@ -4226,7 +4310,7 @@
       "politica": "Create class_groups in own school",
       "tabela": "class_groups",
       "usando": "",
-      "verificando": "(is_school_member(school_id) AND (created_by = ( SELECT auth.uid() AS uid)) AND ( SELECT can_manage_students() AS can_manage_students))"
+      "verificando": "(is_school_member(school_id) AND (created_by = ( SELECT auth.uid() AS uid)) AND is_school_office(school_id))"
     },
     {
       "cmd": "SELECT",
@@ -4241,7 +4325,7 @@
       "papeis": "{authenticated}",
       "politica": "Read class_groups in own school",
       "tabela": "class_groups",
-      "usando": "(is_school_member(school_id) AND ( SELECT can_read_students() AS can_read_students))",
+      "usando": "(is_school_member(school_id) AND is_school_office(school_id))",
       "verificando": ""
     },
     {
@@ -4249,8 +4333,8 @@
       "papeis": "{authenticated}",
       "politica": "Update class_groups in own school",
       "tabela": "class_groups",
-      "usando": "(is_school_member(school_id) AND ( SELECT can_manage_students() AS can_manage_students))",
-      "verificando": "(is_school_member(school_id) AND ( SELECT can_manage_students() AS can_manage_students))"
+      "usando": "(is_school_member(school_id) AND is_school_office(school_id))",
+      "verificando": "(is_school_member(school_id) AND is_school_office(school_id))"
     },
     {
       "cmd": "INSERT",
@@ -4282,14 +4366,14 @@
       "politica": "Academic create class subjects",
       "tabela": "class_subjects",
       "usando": "",
-      "verificando": "(is_school_member(school_id) AND ( SELECT can_manage_students() AS can_manage_students))"
+      "verificando": "(is_school_member(school_id) AND is_school_office(school_id))"
     },
     {
       "cmd": "SELECT",
       "papeis": "{authenticated}",
       "politica": "Academic read class subjects",
       "tabela": "class_subjects",
-      "usando": "(is_school_member(school_id) AND (( SELECT can_manage_students() AS can_manage_students) OR (EXISTS ( SELECT 1\n   FROM teachers t\n  WHERE ((t.id = class_subjects.teacher_id) AND (t.school_id = class_subjects.school_id) AND (t.status = 'active'::text) AND (t.user_id = ( SELECT auth.uid() AS uid))))) OR (NOT (EXISTS ( SELECT 1\n   FROM teachers self_teacher\n  WHERE ((self_teacher.school_id = class_subjects.school_id) AND (self_teacher.status = 'active'::text) AND (self_teacher.user_id = ( SELECT auth.uid() AS uid))))))))",
+      "usando": "(is_school_member(school_id) AND (is_school_office(school_id) OR (EXISTS ( SELECT 1\n   FROM teachers t\n  WHERE ((t.id = class_subjects.teacher_id) AND (t.school_id = class_subjects.school_id) AND (t.status = 'active'::text) AND (t.user_id = ( SELECT auth.uid() AS uid))))) OR (NOT (EXISTS ( SELECT 1\n   FROM teachers self_teacher\n  WHERE ((self_teacher.school_id = class_subjects.school_id) AND (self_teacher.status = 'active'::text) AND (self_teacher.user_id = ( SELECT auth.uid() AS uid))))))))",
       "verificando": ""
     },
     {
@@ -4297,8 +4381,8 @@
       "papeis": "{authenticated}",
       "politica": "Academic update class subjects",
       "tabela": "class_subjects",
-      "usando": "(is_school_member(school_id) AND ( SELECT can_manage_students() AS can_manage_students))",
-      "verificando": "(is_school_member(school_id) AND ( SELECT can_manage_students() AS can_manage_students))"
+      "usando": "(is_school_member(school_id) AND is_school_office(school_id))",
+      "verificando": "(is_school_member(school_id) AND is_school_office(school_id))"
     },
     {
       "cmd": "SELECT",
@@ -4346,14 +4430,14 @@
       "politica": "Create curricula in own school",
       "tabela": "curricula",
       "usando": "",
-      "verificando": "((school_id = ( SELECT current_school_id() AS current_school_id)) AND (created_by = ( SELECT auth.uid() AS uid)) AND ( SELECT can_manage_students() AS can_manage_students))"
+      "verificando": "((school_id = ( SELECT current_school_id() AS current_school_id)) AND (created_by = ( SELECT auth.uid() AS uid)) AND is_school_office(school_id))"
     },
     {
       "cmd": "SELECT",
       "papeis": "{authenticated}",
       "politica": "Read curricula in own school",
       "tabela": "curricula",
-      "usando": "((school_id = ( SELECT current_school_id() AS current_school_id)) AND (deleted_at IS NULL) AND ( SELECT can_read_students() AS can_read_students))",
+      "usando": "((school_id = ( SELECT current_school_id() AS current_school_id)) AND (deleted_at IS NULL) AND is_school_office(school_id))",
       "verificando": ""
     },
     {
@@ -4361,8 +4445,8 @@
       "papeis": "{authenticated}",
       "politica": "Update curricula in own school",
       "tabela": "curricula",
-      "usando": "((school_id = ( SELECT current_school_id() AS current_school_id)) AND ( SELECT can_manage_students() AS can_manage_students))",
-      "verificando": "((school_id = ( SELECT current_school_id() AS current_school_id)) AND ( SELECT can_manage_students() AS can_manage_students))"
+      "usando": "((school_id = ( SELECT current_school_id() AS current_school_id)) AND is_school_office(school_id))",
+      "verificando": "((school_id = ( SELECT current_school_id() AS current_school_id)) AND is_school_office(school_id))"
     },
     {
       "cmd": "INSERT",
@@ -4370,14 +4454,14 @@
       "politica": "Create curriculum_areas in own school",
       "tabela": "curriculum_areas",
       "usando": "",
-      "verificando": "((school_id = ( SELECT current_school_id() AS current_school_id)) AND (created_by = ( SELECT auth.uid() AS uid)) AND ( SELECT can_manage_students() AS can_manage_students))"
+      "verificando": "((school_id = ( SELECT current_school_id() AS current_school_id)) AND (created_by = ( SELECT auth.uid() AS uid)) AND is_school_office(school_id))"
     },
     {
       "cmd": "SELECT",
       "papeis": "{authenticated}",
       "politica": "Read curriculum_areas in own school",
       "tabela": "curriculum_areas",
-      "usando": "((school_id = ( SELECT current_school_id() AS current_school_id)) AND (deleted_at IS NULL) AND ( SELECT can_read_students() AS can_read_students))",
+      "usando": "((school_id = ( SELECT current_school_id() AS current_school_id)) AND (deleted_at IS NULL) AND is_school_office(school_id))",
       "verificando": ""
     },
     {
@@ -4385,8 +4469,8 @@
       "papeis": "{authenticated}",
       "politica": "Update curriculum_areas in own school",
       "tabela": "curriculum_areas",
-      "usando": "((school_id = ( SELECT current_school_id() AS current_school_id)) AND ( SELECT can_manage_students() AS can_manage_students))",
-      "verificando": "((school_id = ( SELECT current_school_id() AS current_school_id)) AND ( SELECT can_manage_students() AS can_manage_students))"
+      "usando": "((school_id = ( SELECT current_school_id() AS current_school_id)) AND is_school_office(school_id))",
+      "verificando": "((school_id = ( SELECT current_school_id() AS current_school_id)) AND is_school_office(school_id))"
     },
     {
       "cmd": "INSERT",
@@ -4394,14 +4478,14 @@
       "politica": "Create curriculum_subjects in own school",
       "tabela": "curriculum_subjects",
       "usando": "",
-      "verificando": "((school_id = ( SELECT current_school_id() AS current_school_id)) AND (created_by = ( SELECT auth.uid() AS uid)) AND ( SELECT can_manage_students() AS can_manage_students))"
+      "verificando": "((school_id = ( SELECT current_school_id() AS current_school_id)) AND (created_by = ( SELECT auth.uid() AS uid)) AND is_school_office(school_id))"
     },
     {
       "cmd": "SELECT",
       "papeis": "{authenticated}",
       "politica": "Read curriculum_subjects in own school",
       "tabela": "curriculum_subjects",
-      "usando": "((school_id = ( SELECT current_school_id() AS current_school_id)) AND (deleted_at IS NULL) AND ( SELECT can_read_students() AS can_read_students))",
+      "usando": "((school_id = ( SELECT current_school_id() AS current_school_id)) AND (deleted_at IS NULL) AND is_school_office(school_id))",
       "verificando": ""
     },
     {
@@ -4409,8 +4493,8 @@
       "papeis": "{authenticated}",
       "politica": "Update curriculum_subjects in own school",
       "tabela": "curriculum_subjects",
-      "usando": "((school_id = ( SELECT current_school_id() AS current_school_id)) AND ( SELECT can_manage_students() AS can_manage_students))",
-      "verificando": "((school_id = ( SELECT current_school_id() AS current_school_id)) AND ( SELECT can_manage_students() AS can_manage_students))"
+      "usando": "((school_id = ( SELECT current_school_id() AS current_school_id)) AND is_school_office(school_id))",
+      "verificando": "((school_id = ( SELECT current_school_id() AS current_school_id)) AND is_school_office(school_id))"
     },
     {
       "cmd": "INSERT",
@@ -4501,36 +4585,20 @@
       "verificando": "is_platform_admin()"
     },
     {
+      "cmd": "SELECT",
+      "papeis": "{authenticated}",
+      "politica": "Office reads enrollment applications",
+      "tabela": "enrollment_applications",
+      "usando": "(is_school_office(school_id) AND (deleted_at IS NULL))",
+      "verificando": ""
+    },
+    {
       "cmd": "INSERT",
       "papeis": "{anon}",
       "politica": "Public insert open enrollment applications",
       "tabela": "enrollment_applications",
       "usando": "",
       "verificando": "((status = 'pending'::text) AND (EXISTS ( SELECT 1\n   FROM enrollment_forms forms\n  WHERE ((forms.id = enrollment_applications.form_id) AND (forms.school_id = forms.school_id) AND (forms.is_open = true) AND (forms.deleted_at IS NULL)))))"
-    },
-    {
-      "cmd": "SELECT",
-      "papeis": "{authenticated}",
-      "politica": "Read enrollment applications in own school",
-      "tabela": "enrollment_applications",
-      "usando": "(is_school_member(school_id) AND (deleted_at IS NULL))",
-      "verificando": ""
-    },
-    {
-      "cmd": "UPDATE",
-      "papeis": "{authenticated}",
-      "politica": "Update enrollment applications in own school",
-      "tabela": "enrollment_applications",
-      "usando": "(is_school_member(school_id) AND (deleted_at IS NULL))",
-      "verificando": "is_school_member(school_id)"
-    },
-    {
-      "cmd": "ALL",
-      "papeis": "{authenticated}",
-      "politica": "Manage enrollment forms in own school",
-      "tabela": "enrollment_forms",
-      "usando": "(is_school_member(school_id) AND (deleted_at IS NULL))",
-      "verificando": "is_school_member(school_id)"
     },
     {
       "cmd": "SELECT",
@@ -4554,7 +4622,7 @@
       "politica": "Create enrollments in own school",
       "tabela": "enrollments",
       "usando": "",
-      "verificando": "(is_school_member(school_id) AND (created_by = ( SELECT auth.uid() AS uid)) AND ( SELECT can_manage_students() AS can_manage_students))"
+      "verificando": "(is_school_member(school_id) AND (created_by = ( SELECT auth.uid() AS uid)) AND is_school_office(school_id))"
     },
     {
       "cmd": "SELECT",
@@ -4569,7 +4637,7 @@
       "papeis": "{authenticated}",
       "politica": "Read enrollments in own school",
       "tabela": "enrollments",
-      "usando": "(is_school_member(school_id) AND ( SELECT can_read_students() AS can_read_students))",
+      "usando": "(is_school_member(school_id) AND is_school_office(school_id))",
       "verificando": ""
     },
     {
@@ -4577,8 +4645,8 @@
       "papeis": "{authenticated}",
       "politica": "Update enrollments in own school",
       "tabela": "enrollments",
-      "usando": "(is_school_member(school_id) AND ( SELECT can_manage_students() AS can_manage_students))",
-      "verificando": "(is_school_member(school_id) AND ( SELECT can_manage_students() AS can_manage_students))"
+      "usando": "(is_school_member(school_id) AND is_school_office(school_id))",
+      "verificando": "(is_school_member(school_id) AND is_school_office(school_id))"
     },
     {
       "cmd": "SELECT",
@@ -4633,16 +4701,8 @@
       "papeis": "{authenticated}",
       "politica": "Read own school invoice events",
       "tabela": "finance_invoice_events",
-      "usando": "(school_id = ( SELECT current_school_id() AS current_school_id))",
+      "usando": "((school_id = ( SELECT current_school_id() AS current_school_id)) AND (is_school_finance(school_id) OR is_school_office(school_id)))",
       "verificando": ""
-    },
-    {
-      "cmd": "INSERT",
-      "papeis": "{authenticated}",
-      "politica": "Write own school invoice events",
-      "tabela": "finance_invoice_events",
-      "usando": "",
-      "verificando": "(school_id = ( SELECT current_school_id() AS current_school_id))"
     },
     {
       "cmd": "SELECT",
@@ -4689,7 +4749,7 @@
       "papeis": "{authenticated}",
       "politica": "Academic read grade items",
       "tabela": "grade_items",
-      "usando": "(is_school_member(school_id) AND (( SELECT can_manage_students() AS can_manage_students) OR (EXISTS ( SELECT 1\n   FROM ((gradebooks gb\n     JOIN class_subjects cs ON (((cs.id = gb.class_subject_id) AND (cs.school_id = gb.school_id))))\n     JOIN teachers t ON (((t.id = cs.teacher_id) AND (t.school_id = cs.school_id))))\n  WHERE ((gb.id = grade_items.gradebook_id) AND (gb.school_id = grade_items.school_id) AND (cs.status = 'active'::text) AND (t.user_id = ( SELECT auth.uid() AS uid)))))))",
+      "usando": "(is_school_member(school_id) AND (is_school_office(school_id) OR (EXISTS ( SELECT 1\n   FROM ((gradebooks gb\n     JOIN class_subjects cs ON (((cs.id = gb.class_subject_id) AND (cs.school_id = gb.school_id))))\n     JOIN teachers t ON (((t.id = cs.teacher_id) AND (t.school_id = cs.school_id))))\n  WHERE ((gb.id = grade_items.gradebook_id) AND (gb.school_id = grade_items.school_id) AND (cs.status = 'active'::text) AND (t.user_id = ( SELECT auth.uid() AS uid)))))))",
       "verificando": ""
     },
     {
@@ -4722,14 +4782,14 @@
       "politica": "Create grade_levels in own school",
       "tabela": "grade_levels",
       "usando": "",
-      "verificando": "(is_school_member(school_id) AND ( SELECT can_manage_students() AS can_manage_students))"
+      "verificando": "(is_school_member(school_id) AND is_school_office(school_id))"
     },
     {
       "cmd": "SELECT",
       "papeis": "{authenticated}",
       "politica": "Read grade_levels in own school",
       "tabela": "grade_levels",
-      "usando": "(is_school_member(school_id) AND ( SELECT can_read_students() AS can_read_students))",
+      "usando": "(is_school_member(school_id) AND is_school_office(school_id))",
       "verificando": ""
     },
     {
@@ -4737,8 +4797,8 @@
       "papeis": "{authenticated}",
       "politica": "Update grade_levels in own school",
       "tabela": "grade_levels",
-      "usando": "(is_school_member(school_id) AND ( SELECT can_manage_students() AS can_manage_students))",
-      "verificando": "(is_school_member(school_id) AND ( SELECT can_manage_students() AS can_manage_students))"
+      "usando": "(is_school_member(school_id) AND is_school_office(school_id))",
+      "verificando": "(is_school_member(school_id) AND is_school_office(school_id))"
     },
     {
       "cmd": "SELECT",
@@ -4753,7 +4813,7 @@
       "papeis": "{authenticated}",
       "politica": "Academic read grade scores",
       "tabela": "grade_scores",
-      "usando": "(is_school_member(school_id) AND (( SELECT can_manage_students() AS can_manage_students) OR (EXISTS ( SELECT 1\n   FROM (((grade_items gi\n     JOIN gradebooks gb ON (((gb.id = gi.gradebook_id) AND (gb.school_id = gi.school_id))))\n     JOIN class_subjects cs ON (((cs.id = gb.class_subject_id) AND (cs.school_id = gb.school_id))))\n     JOIN teachers t ON (((t.id = cs.teacher_id) AND (t.school_id = cs.school_id))))\n  WHERE ((gi.id = grade_scores.grade_item_id) AND (gi.school_id = grade_scores.school_id) AND (cs.status = 'active'::text) AND (t.user_id = ( SELECT auth.uid() AS uid)))))))",
+      "usando": "(is_school_member(school_id) AND (is_school_office(school_id) OR (EXISTS ( SELECT 1\n   FROM (((grade_items gi\n     JOIN gradebooks gb ON (((gb.id = gi.gradebook_id) AND (gb.school_id = gi.school_id))))\n     JOIN class_subjects cs ON (((cs.id = gb.class_subject_id) AND (cs.school_id = gb.school_id))))\n     JOIN teachers t ON (((t.id = cs.teacher_id) AND (t.school_id = cs.school_id))))\n  WHERE ((gi.id = grade_scores.grade_item_id) AND (gi.school_id = grade_scores.school_id) AND (cs.status = 'active'::text) AND (t.user_id = ( SELECT auth.uid() AS uid)))))))",
       "verificando": ""
     },
     {
@@ -4825,7 +4885,7 @@
       "papeis": "{authenticated}",
       "politica": "Academic read gradebooks",
       "tabela": "gradebooks",
-      "usando": "(is_school_member(school_id) AND (( SELECT can_manage_students() AS can_manage_students) OR (EXISTS ( SELECT 1\n   FROM (class_subjects cs\n     JOIN teachers t ON (((t.id = cs.teacher_id) AND (t.school_id = cs.school_id))))\n  WHERE ((cs.id = gradebooks.class_subject_id) AND (cs.school_id = gradebooks.school_id) AND (cs.status = 'active'::text) AND (t.user_id = ( SELECT auth.uid() AS uid)))))))",
+      "usando": "(is_school_member(school_id) AND (is_school_office(school_id) OR (EXISTS ( SELECT 1\n   FROM (class_subjects cs\n     JOIN teachers t ON (((t.id = cs.teacher_id) AND (t.school_id = cs.school_id))))\n  WHERE ((cs.id = gradebooks.class_subject_id) AND (cs.school_id = gradebooks.school_id) AND (cs.status = 'active'::text) AND (t.user_id = ( SELECT auth.uid() AS uid)))))))",
       "verificando": ""
     },
     {
@@ -4913,7 +4973,7 @@
       "papeis": "{authenticated}",
       "politica": "Read hr_compensation_events in own school",
       "tabela": "hr_compensation_events",
-      "usando": "is_school_member(school_id)",
+      "usando": "is_school_finance(school_id)",
       "verificando": ""
     },
     {
@@ -4961,7 +5021,7 @@
       "papeis": "{authenticated}",
       "politica": "Read hr_contracts in own school",
       "tabela": "hr_contracts",
-      "usando": "is_school_member(school_id)",
+      "usando": "is_school_finance(school_id)",
       "verificando": ""
     },
     {
@@ -5009,7 +5069,7 @@
       "papeis": "{authenticated}",
       "politica": "Read hr_employments in own school",
       "tabela": "hr_employments",
-      "usando": "is_school_member(school_id)",
+      "usando": "is_school_finance(school_id)",
       "verificando": ""
     },
     {
@@ -5049,7 +5109,7 @@
       "papeis": "{authenticated}",
       "politica": "Read hr_payroll_item_components in own school",
       "tabela": "hr_payroll_item_components",
-      "usando": "is_school_member(school_id)",
+      "usando": "is_school_finance(school_id)",
       "verificando": ""
     },
     {
@@ -5065,7 +5125,7 @@
       "papeis": "{authenticated}",
       "politica": "Read hr_payroll_items in own school",
       "tabela": "hr_payroll_items",
-      "usando": "is_school_member(school_id)",
+      "usando": "is_school_finance(school_id)",
       "verificando": ""
     },
     {
@@ -5105,7 +5165,7 @@
       "papeis": "{authenticated}",
       "politica": "Read hr_payroll_runs in own school",
       "tabela": "hr_payroll_runs",
-      "usando": "is_school_member(school_id)",
+      "usando": "is_school_finance(school_id)",
       "verificando": ""
     },
     {
@@ -5285,14 +5345,6 @@
       "verificando": "(private.is_aal2() AND private.has_permission(school_id, 'documents.issued.revoke'::text))"
     },
     {
-      "cmd": "ALL",
-      "papeis": "{authenticated}",
-      "politica": "platform_admin_all_mailboxes",
-      "tabela": "mailboxes",
-      "usando": "((school_id = ( SELECT current_school_id() AS current_school_id)) OR is_platform_admin())",
-      "verificando": "((school_id = ( SELECT current_school_id() AS current_school_id)) OR is_platform_admin())"
-    },
-    {
       "cmd": "SELECT",
       "papeis": "{authenticated}",
       "politica": "Read member_roles in own school",
@@ -5354,7 +5406,7 @@
       "politica": "Create people in own school",
       "tabela": "people",
       "usando": "",
-      "verificando": "(is_school_member(school_id) AND (created_by = ( SELECT auth.uid() AS uid)) AND ( SELECT can_manage_students() AS can_manage_students))"
+      "verificando": "(is_school_member(school_id) AND (created_by = ( SELECT auth.uid() AS uid)) AND is_school_office(school_id))"
     },
     {
       "cmd": "SELECT",
@@ -5369,7 +5421,7 @@
       "papeis": "{authenticated}",
       "politica": "Read people in own school",
       "tabela": "people",
-      "usando": "(is_school_member(school_id) AND ( SELECT can_read_students() AS can_read_students))",
+      "usando": "(is_school_member(school_id) AND is_school_office(school_id))",
       "verificando": ""
     },
     {
@@ -5377,8 +5429,8 @@
       "papeis": "{authenticated}",
       "politica": "Update people in own school",
       "tabela": "people",
-      "usando": "(is_school_member(school_id) AND ( SELECT can_manage_students() AS can_manage_students))",
-      "verificando": "(is_school_member(school_id) AND ( SELECT can_manage_students() AS can_manage_students))"
+      "usando": "(is_school_member(school_id) AND is_school_office(school_id))",
+      "verificando": "(is_school_member(school_id) AND is_school_office(school_id))"
     },
     {
       "cmd": "INSERT",
@@ -5426,14 +5478,14 @@
       "politica": "Create person_documents in own school",
       "tabela": "person_documents",
       "usando": "",
-      "verificando": "(is_school_member(school_id) AND (created_by = ( SELECT auth.uid() AS uid)) AND ( SELECT can_manage_students() AS can_manage_students))"
+      "verificando": "(is_school_member(school_id) AND (created_by = ( SELECT auth.uid() AS uid)) AND is_school_office(school_id))"
     },
     {
       "cmd": "SELECT",
       "papeis": "{authenticated}",
       "politica": "Read person_documents in own school",
       "tabela": "person_documents",
-      "usando": "(is_school_member(school_id) AND can_manage_students())",
+      "usando": "(is_school_member(school_id) AND is_school_office(school_id))",
       "verificando": ""
     },
     {
@@ -5441,15 +5493,15 @@
       "papeis": "{authenticated}",
       "politica": "Update person_documents in own school",
       "tabela": "person_documents",
-      "usando": "(is_school_member(school_id) AND ( SELECT can_manage_students() AS can_manage_students))",
-      "verificando": "(is_school_member(school_id) AND ( SELECT can_manage_students() AS can_manage_students))"
+      "usando": "(is_school_member(school_id) AND is_school_office(school_id))",
+      "verificando": "(is_school_member(school_id) AND is_school_office(school_id))"
     },
     {
       "cmd": "SELECT",
       "papeis": "{authenticated}",
       "politica": "Read person roles in own school",
       "tabela": "person_roles",
-      "usando": "(is_school_member(school_id) AND ( SELECT can_read_students() AS can_read_students))",
+      "usando": "(is_school_member(school_id) AND is_school_office(school_id))",
       "verificando": ""
     },
     {
@@ -5498,14 +5550,14 @@
       "politica": "Create program subjects in own school",
       "tabela": "program_subjects",
       "usando": "",
-      "verificando": "((school_id = ( SELECT current_school_id() AS current_school_id)) AND (created_by = ( SELECT auth.uid() AS uid)) AND ( SELECT can_manage_students() AS can_manage_students))"
+      "verificando": "((school_id = ( SELECT current_school_id() AS current_school_id)) AND (created_by = ( SELECT auth.uid() AS uid)) AND is_school_office(school_id))"
     },
     {
       "cmd": "SELECT",
       "papeis": "{authenticated}",
       "politica": "Read program subjects in own school",
       "tabela": "program_subjects",
-      "usando": "((school_id = ( SELECT current_school_id() AS current_school_id)) AND (deleted_at IS NULL) AND ( SELECT can_read_students() AS can_read_students))",
+      "usando": "((school_id = ( SELECT current_school_id() AS current_school_id)) AND (deleted_at IS NULL) AND is_school_office(school_id))",
       "verificando": ""
     },
     {
@@ -5513,8 +5565,8 @@
       "papeis": "{authenticated}",
       "politica": "Update program subjects in own school",
       "tabela": "program_subjects",
-      "usando": "((school_id = ( SELECT current_school_id() AS current_school_id)) AND ( SELECT can_manage_students() AS can_manage_students))",
-      "verificando": "((school_id = ( SELECT current_school_id() AS current_school_id)) AND ( SELECT can_manage_students() AS can_manage_students))"
+      "usando": "((school_id = ( SELECT current_school_id() AS current_school_id)) AND is_school_office(school_id))",
+      "verificando": "((school_id = ( SELECT current_school_id() AS current_school_id)) AND is_school_office(school_id))"
     },
     {
       "cmd": "SELECT",
@@ -5594,14 +5646,14 @@
       "politica": "Create rooms in own school",
       "tabela": "rooms",
       "usando": "",
-      "verificando": "((school_id = ( SELECT current_school_id() AS current_school_id)) AND (created_by = ( SELECT auth.uid() AS uid)) AND ( SELECT can_manage_students() AS can_manage_students))"
+      "verificando": "((school_id = ( SELECT current_school_id() AS current_school_id)) AND (created_by = ( SELECT auth.uid() AS uid)) AND is_school_office(school_id))"
     },
     {
       "cmd": "SELECT",
       "papeis": "{authenticated}",
       "politica": "Read rooms in own school",
       "tabela": "rooms",
-      "usando": "((school_id = ( SELECT current_school_id() AS current_school_id)) AND (deleted_at IS NULL) AND ( SELECT can_read_students() AS can_read_students))",
+      "usando": "((school_id = ( SELECT current_school_id() AS current_school_id)) AND (deleted_at IS NULL) AND is_school_office(school_id))",
       "verificando": ""
     },
     {
@@ -5609,8 +5661,8 @@
       "papeis": "{authenticated}",
       "politica": "Update rooms in own school",
       "tabela": "rooms",
-      "usando": "((school_id = ( SELECT current_school_id() AS current_school_id)) AND ( SELECT can_manage_students() AS can_manage_students))",
-      "verificando": "((school_id = ( SELECT current_school_id() AS current_school_id)) AND ( SELECT can_manage_students() AS can_manage_students))"
+      "usando": "((school_id = ( SELECT current_school_id() AS current_school_id)) AND is_school_office(school_id))",
+      "verificando": "((school_id = ( SELECT current_school_id() AS current_school_id)) AND is_school_office(school_id))"
     },
     {
       "cmd": "ALL",
@@ -5653,28 +5705,12 @@
       "verificando": "((school_id = ( SELECT current_school_id() AS current_school_id)) AND (( SELECT current_profile_role() AS current_profile_role) = ANY (ARRAY['Administrador'::text, 'Tesouraria'::text])))"
     },
     {
-      "cmd": "ALL",
-      "papeis": "{authenticated}",
-      "politica": "school_admin_manage_branding",
-      "tabela": "school_branding",
-      "usando": "((school_id = ( SELECT current_school_id() AS current_school_id)) OR is_platform_admin())",
-      "verificando": "((school_id = ( SELECT current_school_id() AS current_school_id)) OR is_platform_admin())"
-    },
-    {
       "cmd": "SELECT",
       "papeis": "{anon,authenticated}",
       "politica": "school_members_view_branding",
       "tabela": "school_branding",
       "usando": "true",
       "verificando": ""
-    },
-    {
-      "cmd": "ALL",
-      "papeis": "{authenticated}",
-      "politica": "platform_admin_all_email_routes",
-      "tabela": "school_email_routes",
-      "usando": "((school_id = ( SELECT current_school_id() AS current_school_id)) OR is_platform_admin())",
-      "verificando": "((school_id = ( SELECT current_school_id() AS current_school_id)) OR is_platform_admin())"
     },
     {
       "cmd": "SELECT",
@@ -5738,14 +5774,14 @@
       "politica": "Create school_shift_slots in own school",
       "tabela": "school_shift_slots",
       "usando": "",
-      "verificando": "((school_id = ( SELECT current_school_id() AS current_school_id)) AND (created_by = ( SELECT auth.uid() AS uid)) AND ( SELECT can_manage_students() AS can_manage_students))"
+      "verificando": "((school_id = ( SELECT current_school_id() AS current_school_id)) AND (created_by = ( SELECT auth.uid() AS uid)) AND is_school_office(school_id))"
     },
     {
       "cmd": "SELECT",
       "papeis": "{authenticated}",
       "politica": "Read school_shift_slots in own school",
       "tabela": "school_shift_slots",
-      "usando": "((school_id = ( SELECT current_school_id() AS current_school_id)) AND (deleted_at IS NULL) AND ( SELECT can_read_students() AS can_read_students))",
+      "usando": "((school_id = ( SELECT current_school_id() AS current_school_id)) AND (deleted_at IS NULL) AND is_school_office(school_id))",
       "verificando": ""
     },
     {
@@ -5753,8 +5789,8 @@
       "papeis": "{authenticated}",
       "politica": "Update school_shift_slots in own school",
       "tabela": "school_shift_slots",
-      "usando": "((school_id = ( SELECT current_school_id() AS current_school_id)) AND ( SELECT can_manage_students() AS can_manage_students))",
-      "verificando": "((school_id = ( SELECT current_school_id() AS current_school_id)) AND ( SELECT can_manage_students() AS can_manage_students))"
+      "usando": "((school_id = ( SELECT current_school_id() AS current_school_id)) AND is_school_office(school_id))",
+      "verificando": "((school_id = ( SELECT current_school_id() AS current_school_id)) AND is_school_office(school_id))"
     },
     {
       "cmd": "INSERT",
@@ -5762,14 +5798,14 @@
       "politica": "Create school_shifts in own school",
       "tabela": "school_shifts",
       "usando": "",
-      "verificando": "((school_id = ( SELECT current_school_id() AS current_school_id)) AND (created_by = ( SELECT auth.uid() AS uid)) AND ( SELECT can_manage_students() AS can_manage_students))"
+      "verificando": "((school_id = ( SELECT current_school_id() AS current_school_id)) AND (created_by = ( SELECT auth.uid() AS uid)) AND is_school_office(school_id))"
     },
     {
       "cmd": "SELECT",
       "papeis": "{authenticated}",
       "politica": "Read school_shifts in own school",
       "tabela": "school_shifts",
-      "usando": "((school_id = ( SELECT current_school_id() AS current_school_id)) AND (deleted_at IS NULL) AND ( SELECT can_read_students() AS can_read_students))",
+      "usando": "((school_id = ( SELECT current_school_id() AS current_school_id)) AND (deleted_at IS NULL) AND is_school_office(school_id))",
       "verificando": ""
     },
     {
@@ -5777,8 +5813,8 @@
       "papeis": "{authenticated}",
       "politica": "Update school_shifts in own school",
       "tabela": "school_shifts",
-      "usando": "((school_id = ( SELECT current_school_id() AS current_school_id)) AND ( SELECT can_manage_students() AS can_manage_students))",
-      "verificando": "((school_id = ( SELECT current_school_id() AS current_school_id)) AND ( SELECT can_manage_students() AS can_manage_students))"
+      "usando": "((school_id = ( SELECT current_school_id() AS current_school_id)) AND is_school_office(school_id))",
+      "verificando": "((school_id = ( SELECT current_school_id() AS current_school_id)) AND is_school_office(school_id))"
     },
     {
       "cmd": "ALL",
@@ -6031,14 +6067,6 @@
     {
       "cmd": "SELECT",
       "papeis": "{authenticated}",
-      "politica": "Members read student_academic_history",
-      "tabela": "student_academic_history",
-      "usando": "is_school_member(school_id)",
-      "verificando": ""
-    },
-    {
-      "cmd": "SELECT",
-      "papeis": "{authenticated}",
       "politica": "School members can read student academic history",
       "tabela": "student_academic_history",
       "usando": "is_school_member(school_id)",
@@ -6050,14 +6078,14 @@
       "politica": "Create student_guardians in own school",
       "tabela": "student_guardians",
       "usando": "",
-      "verificando": "(is_school_member(school_id) AND (created_by = ( SELECT auth.uid() AS uid)) AND ( SELECT can_manage_students() AS can_manage_students))"
+      "verificando": "(is_school_member(school_id) AND (created_by = ( SELECT auth.uid() AS uid)) AND is_school_office(school_id))"
     },
     {
       "cmd": "SELECT",
       "papeis": "{authenticated}",
       "politica": "Read student_guardians in own school",
       "tabela": "student_guardians",
-      "usando": "(is_school_member(school_id) AND ( SELECT can_read_students() AS can_read_students))",
+      "usando": "(is_school_member(school_id) AND is_school_office(school_id))",
       "verificando": ""
     },
     {
@@ -6065,8 +6093,8 @@
       "papeis": "{authenticated}",
       "politica": "Update student_guardians in own school",
       "tabela": "student_guardians",
-      "usando": "(is_school_member(school_id) AND ( SELECT can_manage_students() AS can_manage_students))",
-      "verificando": "(is_school_member(school_id) AND ( SELECT can_manage_students() AS can_manage_students))"
+      "usando": "(is_school_member(school_id) AND is_school_office(school_id))",
+      "verificando": "(is_school_member(school_id) AND is_school_office(school_id))"
     },
     {
       "cmd": "SELECT",
@@ -6081,23 +6109,7 @@
       "papeis": "{authenticated}",
       "politica": "Read own school student status events",
       "tabela": "student_status_events",
-      "usando": "(school_id = ( SELECT current_school_id() AS current_school_id))",
-      "verificando": ""
-    },
-    {
-      "cmd": "INSERT",
-      "papeis": "{authenticated}",
-      "politica": "Write own school student status events",
-      "tabela": "student_status_events",
-      "usando": "",
-      "verificando": "(school_id = ( SELECT current_school_id() AS current_school_id))"
-    },
-    {
-      "cmd": "SELECT",
-      "papeis": "{authenticated}",
-      "politica": "Members read student_status_history",
-      "tabela": "student_status_history",
-      "usando": "is_school_member(school_id)",
+      "usando": "((school_id = ( SELECT current_school_id() AS current_school_id)) AND is_school_office(school_id))",
       "verificando": ""
     },
     {
@@ -6114,7 +6126,7 @@
       "politica": "Create students in own school",
       "tabela": "students",
       "usando": "",
-      "verificando": "(is_school_member(school_id) AND (created_by = ( SELECT auth.uid() AS uid)) AND ( SELECT can_manage_students() AS can_manage_students))"
+      "verificando": "(is_school_member(school_id) AND (created_by = ( SELECT auth.uid() AS uid)) AND is_school_office(school_id))"
     },
     {
       "cmd": "SELECT",
@@ -6129,7 +6141,7 @@
       "papeis": "{authenticated}",
       "politica": "Read students in own school",
       "tabela": "students",
-      "usando": "(is_school_member(school_id) AND ( SELECT can_read_students() AS can_read_students))",
+      "usando": "(is_school_member(school_id) AND is_school_office(school_id))",
       "verificando": ""
     },
     {
@@ -6137,8 +6149,8 @@
       "papeis": "{authenticated}",
       "politica": "Update students in own school",
       "tabela": "students",
-      "usando": "(is_school_member(school_id) AND ( SELECT can_manage_students() AS can_manage_students))",
-      "verificando": "(is_school_member(school_id) AND ( SELECT can_manage_students() AS can_manage_students))"
+      "usando": "(is_school_member(school_id) AND is_school_office(school_id))",
+      "verificando": "(is_school_member(school_id) AND is_school_office(school_id))"
     },
     {
       "cmd": "SELECT",
@@ -6162,14 +6174,14 @@
       "politica": "Create subject_types in own school",
       "tabela": "subject_types",
       "usando": "",
-      "verificando": "((school_id = ( SELECT current_school_id() AS current_school_id)) AND (created_by = ( SELECT auth.uid() AS uid)) AND ( SELECT can_manage_students() AS can_manage_students))"
+      "verificando": "((school_id = ( SELECT current_school_id() AS current_school_id)) AND (created_by = ( SELECT auth.uid() AS uid)) AND is_school_office(school_id))"
     },
     {
       "cmd": "SELECT",
       "papeis": "{authenticated}",
       "politica": "Read subject_types in own school",
       "tabela": "subject_types",
-      "usando": "((school_id = ( SELECT current_school_id() AS current_school_id)) AND (deleted_at IS NULL) AND ( SELECT can_read_students() AS can_read_students))",
+      "usando": "((school_id = ( SELECT current_school_id() AS current_school_id)) AND (deleted_at IS NULL) AND is_school_office(school_id))",
       "verificando": ""
     },
     {
@@ -6177,8 +6189,8 @@
       "papeis": "{authenticated}",
       "politica": "Update subject_types in own school",
       "tabela": "subject_types",
-      "usando": "((school_id = ( SELECT current_school_id() AS current_school_id)) AND ( SELECT can_manage_students() AS can_manage_students))",
-      "verificando": "((school_id = ( SELECT current_school_id() AS current_school_id)) AND ( SELECT can_manage_students() AS can_manage_students))"
+      "usando": "((school_id = ( SELECT current_school_id() AS current_school_id)) AND is_school_office(school_id))",
+      "verificando": "((school_id = ( SELECT current_school_id() AS current_school_id)) AND is_school_office(school_id))"
     },
     {
       "cmd": "SELECT",
@@ -6234,14 +6246,14 @@
       "politica": "Create teacher_availability in own school",
       "tabela": "teacher_availability",
       "usando": "",
-      "verificando": "((school_id = ( SELECT current_school_id() AS current_school_id)) AND (created_by = ( SELECT auth.uid() AS uid)) AND ( SELECT can_manage_students() AS can_manage_students))"
+      "verificando": "((school_id = ( SELECT current_school_id() AS current_school_id)) AND (created_by = ( SELECT auth.uid() AS uid)) AND is_school_office(school_id))"
     },
     {
       "cmd": "SELECT",
       "papeis": "{authenticated}",
       "politica": "Read teacher_availability in own school",
       "tabela": "teacher_availability",
-      "usando": "((school_id = ( SELECT current_school_id() AS current_school_id)) AND (deleted_at IS NULL) AND ( SELECT can_read_students() AS can_read_students))",
+      "usando": "((school_id = ( SELECT current_school_id() AS current_school_id)) AND (deleted_at IS NULL) AND is_school_office(school_id))",
       "verificando": ""
     },
     {
@@ -6249,8 +6261,8 @@
       "papeis": "{authenticated}",
       "politica": "Update teacher_availability in own school",
       "tabela": "teacher_availability",
-      "usando": "((school_id = ( SELECT current_school_id() AS current_school_id)) AND ( SELECT can_manage_students() AS can_manage_students))",
-      "verificando": "((school_id = ( SELECT current_school_id() AS current_school_id)) AND ( SELECT can_manage_students() AS can_manage_students))"
+      "usando": "((school_id = ( SELECT current_school_id() AS current_school_id)) AND is_school_office(school_id))",
+      "verificando": "((school_id = ( SELECT current_school_id() AS current_school_id)) AND is_school_office(school_id))"
     },
     {
       "cmd": "SELECT",
@@ -6322,7 +6334,7 @@
       "politica": "Academic create terms",
       "tabela": "terms",
       "usando": "",
-      "verificando": "(is_school_member(school_id) AND ( SELECT can_manage_students() AS can_manage_students))"
+      "verificando": "(is_school_member(school_id) AND is_school_office(school_id))"
     },
     {
       "cmd": "SELECT",
@@ -6337,8 +6349,8 @@
       "papeis": "{authenticated}",
       "politica": "Academic update terms",
       "tabela": "terms",
-      "usando": "(is_school_member(school_id) AND ( SELECT can_manage_students() AS can_manage_students))",
-      "verificando": "(is_school_member(school_id) AND ( SELECT can_manage_students() AS can_manage_students))"
+      "usando": "(is_school_member(school_id) AND is_school_office(school_id))",
+      "verificando": "(is_school_member(school_id) AND is_school_office(school_id))"
     },
     {
       "cmd": "SELECT",
@@ -6354,14 +6366,14 @@
       "politica": "Academic create timetable slots",
       "tabela": "timetable_slots",
       "usando": "",
-      "verificando": "(is_school_member(school_id) AND ( SELECT can_manage_students() AS can_manage_students))"
+      "verificando": "(is_school_member(school_id) AND is_school_office(school_id))"
     },
     {
       "cmd": "SELECT",
       "papeis": "{authenticated}",
       "politica": "Academic read timetable slots",
       "tabela": "timetable_slots",
-      "usando": "(is_school_member(school_id) AND (( SELECT can_manage_students() AS can_manage_students) OR (EXISTS ( SELECT 1\n   FROM (class_subjects cs\n     JOIN teachers t ON (((t.id = cs.teacher_id) AND (t.school_id = cs.school_id))))\n  WHERE ((cs.id = timetable_slots.class_subject_id) AND (cs.school_id = timetable_slots.school_id) AND (cs.status = 'active'::text) AND (t.status = 'active'::text) AND (t.user_id = ( SELECT auth.uid() AS uid))))) OR (NOT (EXISTS ( SELECT 1\n   FROM teachers self_teacher\n  WHERE ((self_teacher.school_id = timetable_slots.school_id) AND (self_teacher.status = 'active'::text) AND (self_teacher.user_id = ( SELECT auth.uid() AS uid))))))))",
+      "usando": "(is_school_member(school_id) AND (is_school_office(school_id) OR (EXISTS ( SELECT 1\n   FROM (class_subjects cs\n     JOIN teachers t ON (((t.id = cs.teacher_id) AND (t.school_id = cs.school_id))))\n  WHERE ((cs.id = timetable_slots.class_subject_id) AND (cs.school_id = timetable_slots.school_id) AND (cs.status = 'active'::text) AND (t.status = 'active'::text) AND (t.user_id = ( SELECT auth.uid() AS uid))))) OR (NOT (EXISTS ( SELECT 1\n   FROM teachers self_teacher\n  WHERE ((self_teacher.school_id = timetable_slots.school_id) AND (self_teacher.status = 'active'::text) AND (self_teacher.user_id = ( SELECT auth.uid() AS uid))))))))",
       "verificando": ""
     },
     {
@@ -6369,8 +6381,8 @@
       "papeis": "{authenticated}",
       "politica": "Academic update timetable slots",
       "tabela": "timetable_slots",
-      "usando": "(is_school_member(school_id) AND ( SELECT can_manage_students() AS can_manage_students))",
-      "verificando": "(is_school_member(school_id) AND ( SELECT can_manage_students() AS can_manage_students))"
+      "usando": "(is_school_member(school_id) AND is_school_office(school_id))",
+      "verificando": "(is_school_member(school_id) AND is_school_office(school_id))"
     },
     {
       "cmd": "SELECT",
@@ -6417,6 +6429,12 @@
       "funcao": "add_student_case_item",
       "schema": "private",
       "security_definer": false
+    },
+    {
+      "args": "target_school_id uuid, target_sheet_id uuid, actor uuid",
+      "funcao": "archive_grade_sheet_version",
+      "schema": "private",
+      "security_definer": true
     },
     {
       "args": "target_school_id uuid, title text, classification text, target_student_id uuid, target_issued_document_id uuid, target_case_id uuid, retention_until date, notes text",
@@ -6591,6 +6609,12 @@
       "funcao": "fanout_announcement_notifications",
       "schema": "private",
       "security_definer": true
+    },
+    {
+      "args": "",
+      "funcao": "grade_sheet_versions_immutable",
+      "schema": "private",
+      "security_definer": false
     },
     {
       "args": "target_school_id uuid, permission_code text",
@@ -6875,7 +6899,7 @@
       "security_definer": true
     },
     {
-      "args": "target_school_id uuid, actor uuid, rule_name text, continuous_weight_value numeric, exam_weight_value numeric, passing_grade_value numeric, maximum_absence_value numeric, rounding_method_value text, require_change_approval boolean, lock_after_publication_value boolean, key_subject_ids uuid[], key_subjects_cause_failure boolean",
+      "args": "target_school_id uuid, actor uuid, rule_name text, continuous_weight_value numeric, exam_weight_value numeric, passing_grade_value numeric, maximum_absence_value numeric, rounding_method_value text, require_change_approval boolean, lock_after_publication_value boolean, key_subject_ids uuid[], key_subjects_cause_failure boolean, promotion_rules jsonb, calculation_options jsonb",
       "funcao": "siga_publish_assessment_rule",
       "schema": "private",
       "security_definer": true
@@ -6883,6 +6907,12 @@
     {
       "args": "object_name text",
       "funcao": "storage_school_id",
+      "schema": "private",
+      "security_definer": false
+    },
+    {
+      "args": "",
+      "funcao": "student_academic_history_no_delete",
       "schema": "private",
       "security_definer": false
     },
@@ -7506,7 +7536,19 @@
     },
     {
       "args": "p_school_id uuid",
+      "funcao": "is_school_finance",
+      "schema": "public",
+      "security_definer": true
+    },
+    {
+      "args": "p_school_id uuid",
       "funcao": "is_school_member",
+      "schema": "public",
+      "security_definer": true
+    },
+    {
+      "args": "p_school_id uuid",
+      "funcao": "is_school_office",
       "schema": "public",
       "security_definer": true
     },
@@ -7697,6 +7739,12 @@
       "security_definer": false
     },
     {
+      "args": "p_folder text",
+      "funcao": "school_logo_folder_ok",
+      "schema": "public",
+      "security_definer": true
+    },
+    {
       "args": "",
       "funcao": "set_updated_at_and_version",
       "schema": "public",
@@ -7709,10 +7757,22 @@
       "security_definer": false
     },
     {
-      "args": "target_school_id uuid, actor uuid, rule_name text, continuous_weight_value numeric, exam_weight_value numeric, passing_grade_value numeric, maximum_absence_value numeric, rounding_method_value text, require_change_approval boolean, lock_after_publication_value boolean, key_subject_ids uuid[], key_subjects_cause_failure boolean",
+      "args": "target_school_id uuid, actor uuid, rule_name text, continuous_weight_value numeric, exam_weight_value numeric, passing_grade_value numeric, maximum_absence_value numeric, rounding_method_value text, require_change_approval boolean, lock_after_publication_value boolean, key_subject_ids uuid[], key_subjects_cause_failure boolean, promotion_rules jsonb, calculation_options jsonb",
       "funcao": "siga_publish_assessment_rule",
       "schema": "public",
       "security_definer": false
+    },
+    {
+      "args": "key_hashes text[], window_seconds integer, max_hits integer",
+      "funcao": "siga_rate_limit_consume",
+      "schema": "public",
+      "security_definer": true
+    },
+    {
+      "args": "p_school_id uuid, p_student_ids uuid[]",
+      "funcao": "siga_recompute_attendance_rates",
+      "schema": "public",
+      "security_definer": true
     },
     {
       "args": "",
@@ -8111,6 +8171,12 @@
       "funcao_schema": "private",
       "tabela": "grade_scores",
       "trigger": "enforce_teacher_grade_score_scope"
+    },
+    {
+      "funcao": "grade_sheet_versions_immutable",
+      "funcao_schema": "private",
+      "tabela": "grade_sheet_versions",
+      "trigger": "grade_sheet_versions_immutable"
     },
     {
       "funcao": "audit_row_change",
@@ -8733,6 +8799,12 @@
     {
       "funcao": "siga_touch_updated_at",
       "funcao_schema": "public",
+      "tabela": "siga_competencies",
+      "trigger": "trg_siga_competencies_touch"
+    },
+    {
+      "funcao": "siga_touch_updated_at",
+      "funcao_schema": "public",
       "tabela": "siga_exam_registrations",
       "trigger": "trg_siga_exam_registrations_touch"
     },
@@ -8759,6 +8831,24 @@
       "funcao_schema": "public",
       "tabela": "siga_timetable_slot_details",
       "trigger": "siga_timetable_slot_details_touch"
+    },
+    {
+      "funcao": "audit_row_change",
+      "funcao_schema": "private",
+      "tabela": "student_academic_history",
+      "trigger": "audit_student_academic_history"
+    },
+    {
+      "funcao": "student_academic_history_no_delete",
+      "funcao_schema": "private",
+      "tabela": "student_academic_history",
+      "trigger": "student_academic_history_no_delete"
+    },
+    {
+      "funcao": "siga_touch_updated_at",
+      "funcao_schema": "public",
+      "tabela": "student_academic_history",
+      "trigger": "trg_student_academic_history_touch"
     },
     {
       "funcao": "audit_row_change",
@@ -8903,6 +8993,1898 @@
       "funcao_schema": "public",
       "tabela": "users",
       "trigger": "on_auth_user_created"
+    }
+  ],
+  "relacoes": [
+    {
+      "chave": "academic_levels_school_id_fkey",
+      "de": "academic_levels",
+      "para": "schools"
+    },
+    {
+      "chave": "academic_schedules_academic_year_id_fkey",
+      "de": "academic_schedules",
+      "para": "academic_years"
+    },
+    {
+      "chave": "academic_schedules_class_group_id_fkey",
+      "de": "academic_schedules",
+      "para": "class_groups"
+    },
+    {
+      "chave": "academic_schedules_school_id_fkey",
+      "de": "academic_schedules",
+      "para": "schools"
+    },
+    {
+      "chave": "academic_years_school_id_fkey",
+      "de": "academic_years",
+      "para": "schools"
+    },
+    {
+      "chave": "alumni_communication_preferences_alumni_id_fkey",
+      "de": "alumni_communication_preferences",
+      "para": "alumni_profiles"
+    },
+    {
+      "chave": "alumni_communication_preferences_school_id_fkey",
+      "de": "alumni_communication_preferences",
+      "para": "schools"
+    },
+    {
+      "chave": "alumni_contributions_alumni_id_fkey",
+      "de": "alumni_contributions",
+      "para": "alumni_profiles"
+    },
+    {
+      "chave": "alumni_contributions_school_id_fkey",
+      "de": "alumni_contributions",
+      "para": "schools"
+    },
+    {
+      "chave": "alumni_education_stages_alumni_id_fkey",
+      "de": "alumni_education_stages",
+      "para": "alumni_profiles"
+    },
+    {
+      "chave": "alumni_education_stages_school_id_fkey",
+      "de": "alumni_education_stages",
+      "para": "schools"
+    },
+    {
+      "chave": "alumni_engagements_alumni_id_fkey",
+      "de": "alumni_engagements",
+      "para": "alumni_profiles"
+    },
+    {
+      "chave": "alumni_engagements_school_id_fkey",
+      "de": "alumni_engagements",
+      "para": "schools"
+    },
+    {
+      "chave": "alumni_event_registrations_event_id_fkey",
+      "de": "alumni_event_registrations",
+      "para": "alumni_events"
+    },
+    {
+      "chave": "alumni_event_registrations_alumni_id_fkey",
+      "de": "alumni_event_registrations",
+      "para": "alumni_profiles"
+    },
+    {
+      "chave": "alumni_event_registrations_school_id_fkey",
+      "de": "alumni_event_registrations",
+      "para": "schools"
+    },
+    {
+      "chave": "alumni_events_school_id_fkey",
+      "de": "alumni_events",
+      "para": "schools"
+    },
+    {
+      "chave": "alumni_experiences_alumni_id_fkey",
+      "de": "alumni_experiences",
+      "para": "alumni_profiles"
+    },
+    {
+      "chave": "alumni_experiences_school_id_fkey",
+      "de": "alumni_experiences",
+      "para": "schools"
+    },
+    {
+      "chave": "alumni_mentorships_mentee_alumni_id_fkey",
+      "de": "alumni_mentorships",
+      "para": "alumni_profiles"
+    },
+    {
+      "chave": "alumni_mentorships_mentor_alumni_id_fkey",
+      "de": "alumni_mentorships",
+      "para": "alumni_profiles"
+    },
+    {
+      "chave": "alumni_mentorships_school_id_fkey",
+      "de": "alumni_mentorships",
+      "para": "schools"
+    },
+    {
+      "chave": "alumni_opportunities_created_by_alumni_id_fkey",
+      "de": "alumni_opportunities",
+      "para": "alumni_profiles"
+    },
+    {
+      "chave": "alumni_opportunities_school_id_fkey",
+      "de": "alumni_opportunities",
+      "para": "schools"
+    },
+    {
+      "chave": "alumni_opportunity_applications_opportunity_id_fkey",
+      "de": "alumni_opportunity_applications",
+      "para": "alumni_opportunities"
+    },
+    {
+      "chave": "alumni_opportunity_applications_alumni_id_fkey",
+      "de": "alumni_opportunity_applications",
+      "para": "alumni_profiles"
+    },
+    {
+      "chave": "alumni_opportunity_applications_school_id_fkey",
+      "de": "alumni_opportunity_applications",
+      "para": "schools"
+    },
+    {
+      "chave": "alumni_portfolio_items_education_stage_id_fkey",
+      "de": "alumni_portfolio_items",
+      "para": "alumni_education_stages"
+    },
+    {
+      "chave": "alumni_portfolio_items_alumni_id_fkey",
+      "de": "alumni_portfolio_items",
+      "para": "alumni_profiles"
+    },
+    {
+      "chave": "alumni_portfolio_items_official_document_request_id_fkey",
+      "de": "alumni_portfolio_items",
+      "para": "document_requests"
+    },
+    {
+      "chave": "alumni_portfolio_items_school_id_fkey",
+      "de": "alumni_portfolio_items",
+      "para": "schools"
+    },
+    {
+      "chave": "alumni_privacy_audit_alumni_id_fkey",
+      "de": "alumni_privacy_audit",
+      "para": "alumni_profiles"
+    },
+    {
+      "chave": "alumni_privacy_audit_school_id_fkey",
+      "de": "alumni_privacy_audit",
+      "para": "schools"
+    },
+    {
+      "chave": "alumni_profiles_person_id_fkey",
+      "de": "alumni_profiles",
+      "para": "people"
+    },
+    {
+      "chave": "alumni_profiles_school_id_fkey",
+      "de": "alumni_profiles",
+      "para": "schools"
+    },
+    {
+      "chave": "alumni_profiles_student_id_fkey",
+      "de": "alumni_profiles",
+      "para": "students"
+    },
+    {
+      "chave": "alumni_survey_responses_alumni_id_fkey",
+      "de": "alumni_survey_responses",
+      "para": "alumni_profiles"
+    },
+    {
+      "chave": "alumni_survey_responses_survey_id_fkey",
+      "de": "alumni_survey_responses",
+      "para": "alumni_surveys"
+    },
+    {
+      "chave": "alumni_survey_responses_school_id_fkey",
+      "de": "alumni_survey_responses",
+      "para": "schools"
+    },
+    {
+      "chave": "alumni_surveys_school_id_fkey",
+      "de": "alumni_surveys",
+      "para": "schools"
+    },
+    {
+      "chave": "announcements_class_fk",
+      "de": "announcements",
+      "para": "class_groups"
+    },
+    {
+      "chave": "announcements_school_id_fkey",
+      "de": "announcements",
+      "para": "schools"
+    },
+    {
+      "chave": "assessment_key_subjects_rule_set_id_fkey",
+      "de": "assessment_key_subjects",
+      "para": "assessment_rule_sets"
+    },
+    {
+      "chave": "assessment_key_subjects_school_id_fkey",
+      "de": "assessment_key_subjects",
+      "para": "schools"
+    },
+    {
+      "chave": "assessment_key_subjects_subject_id_fkey",
+      "de": "assessment_key_subjects",
+      "para": "subjects"
+    },
+    {
+      "chave": "assessment_rule_sets_grading_scale_id_fkey",
+      "de": "assessment_rule_sets",
+      "para": "grading_scales"
+    },
+    {
+      "chave": "assessment_rule_sets_school_id_fkey",
+      "de": "assessment_rule_sets",
+      "para": "schools"
+    },
+    {
+      "chave": "attendance_records_roster_fkey",
+      "de": "attendance_records",
+      "para": "attendance_session_roster"
+    },
+    {
+      "chave": "attendance_records_school_id_attendance_session_id_fkey",
+      "de": "attendance_records",
+      "para": "attendance_sessions"
+    },
+    {
+      "chave": "attendance_records_school_id_enrollment_id_fkey",
+      "de": "attendance_records",
+      "para": "enrollments"
+    },
+    {
+      "chave": "attendance_records_school_id_fkey",
+      "de": "attendance_records",
+      "para": "schools"
+    },
+    {
+      "chave": "attendance_session_roster_school_id_attendance_session_id_fkey",
+      "de": "attendance_session_roster",
+      "para": "attendance_sessions"
+    },
+    {
+      "chave": "attendance_session_roster_school_id_enrollment_id_fkey",
+      "de": "attendance_session_roster",
+      "para": "enrollments"
+    },
+    {
+      "chave": "attendance_session_roster_school_id_fkey",
+      "de": "attendance_session_roster",
+      "para": "schools"
+    },
+    {
+      "chave": "attendance_sessions_school_id_class_subject_id_fkey",
+      "de": "attendance_sessions",
+      "para": "class_subjects"
+    },
+    {
+      "chave": "attendance_sessions_school_id_fkey",
+      "de": "attendance_sessions",
+      "para": "schools"
+    },
+    {
+      "chave": "attendance_sessions_school_id_timetable_slot_id_fkey",
+      "de": "attendance_sessions",
+      "para": "timetable_slots"
+    },
+    {
+      "chave": "attendance_sessions_slot_assignment_fkey",
+      "de": "attendance_sessions",
+      "para": "timetable_slots"
+    },
+    {
+      "chave": "audit_logs_school_id_fkey",
+      "de": "audit_logs",
+      "para": "schools"
+    },
+    {
+      "chave": "calendar_feed_tokens_school_id_fkey",
+      "de": "calendar_feed_tokens",
+      "para": "schools"
+    },
+    {
+      "chave": "campuses_school_id_fkey",
+      "de": "campuses",
+      "para": "schools"
+    },
+    {
+      "chave": "class_groups_school_id_academic_year_id_fkey",
+      "de": "class_groups",
+      "para": "academic_years"
+    },
+    {
+      "chave": "class_groups_school_id_campus_id_fkey",
+      "de": "class_groups",
+      "para": "campuses"
+    },
+    {
+      "chave": "class_groups_school_id_grade_level_id_fkey",
+      "de": "class_groups",
+      "para": "grade_levels"
+    },
+    {
+      "chave": "class_groups_school_id_fkey",
+      "de": "class_groups",
+      "para": "schools"
+    },
+    {
+      "chave": "class_groups_delegate_student_fk",
+      "de": "class_groups",
+      "para": "students"
+    },
+    {
+      "chave": "class_groups_school_id_homeroom_teacher_id_fkey",
+      "de": "class_groups",
+      "para": "teachers"
+    },
+    {
+      "chave": "class_subjects_school_id_class_group_id_fkey",
+      "de": "class_subjects",
+      "para": "class_groups"
+    },
+    {
+      "chave": "class_subjects_school_id_fkey",
+      "de": "class_subjects",
+      "para": "schools"
+    },
+    {
+      "chave": "class_subjects_school_id_subject_id_fkey",
+      "de": "class_subjects",
+      "para": "subjects"
+    },
+    {
+      "chave": "class_subjects_school_id_teacher_id_fkey",
+      "de": "class_subjects",
+      "para": "teachers"
+    },
+    {
+      "chave": "communication_dispatches_school_id_fkey",
+      "de": "communication_dispatches",
+      "para": "schools"
+    },
+    {
+      "chave": "communication_events_dispatch_id_fkey",
+      "de": "communication_events",
+      "para": "communication_dispatches"
+    },
+    {
+      "chave": "contact_verification_profiles_school_id_fkey",
+      "de": "contact_verification_profiles",
+      "para": "schools"
+    },
+    {
+      "chave": "curricula_academic_year_id_fkey",
+      "de": "curricula",
+      "para": "academic_years"
+    },
+    {
+      "chave": "curricula_grade_level_id_fkey",
+      "de": "curricula",
+      "para": "grade_levels"
+    },
+    {
+      "chave": "curricula_course_id_fkey",
+      "de": "curricula",
+      "para": "programs"
+    },
+    {
+      "chave": "curricula_school_id_fkey",
+      "de": "curricula",
+      "para": "schools"
+    },
+    {
+      "chave": "curriculum_areas_school_id_fkey",
+      "de": "curriculum_areas",
+      "para": "schools"
+    },
+    {
+      "chave": "curriculum_subjects_curriculum_id_fkey",
+      "de": "curriculum_subjects",
+      "para": "curricula"
+    },
+    {
+      "chave": "curriculum_subjects_school_id_fkey",
+      "de": "curriculum_subjects",
+      "para": "schools"
+    },
+    {
+      "chave": "curriculum_subjects_subject_type_id_fkey",
+      "de": "curriculum_subjects",
+      "para": "subject_types"
+    },
+    {
+      "chave": "curriculum_subjects_subject_id_fkey",
+      "de": "curriculum_subjects",
+      "para": "subjects"
+    },
+    {
+      "chave": "document_requests_school_id_template_id_fkey",
+      "de": "document_requests",
+      "para": "document_templates"
+    },
+    {
+      "chave": "document_requests_school_id_fkey",
+      "de": "document_requests",
+      "para": "schools"
+    },
+    {
+      "chave": "document_requests_school_id_student_id_fkey",
+      "de": "document_requests",
+      "para": "students"
+    },
+    {
+      "chave": "document_sequences_school_id_fkey",
+      "de": "document_sequences",
+      "para": "schools"
+    },
+    {
+      "chave": "document_signatures_school_id_issued_document_id_fkey",
+      "de": "document_signatures",
+      "para": "issued_documents"
+    },
+    {
+      "chave": "document_signatures_school_id_fkey",
+      "de": "document_signatures",
+      "para": "schools"
+    },
+    {
+      "chave": "document_templates_school_id_fkey",
+      "de": "document_templates",
+      "para": "schools"
+    },
+    {
+      "chave": "email_aliases_mailbox_id_fkey",
+      "de": "email_aliases",
+      "para": "mailboxes"
+    },
+    {
+      "chave": "enrollment_applications_form_id_fkey",
+      "de": "enrollment_applications",
+      "para": "enrollment_forms"
+    },
+    {
+      "chave": "enrollment_applications_school_id_fkey",
+      "de": "enrollment_applications",
+      "para": "schools"
+    },
+    {
+      "chave": "enrollment_forms_school_id_fkey",
+      "de": "enrollment_forms",
+      "para": "schools"
+    },
+    {
+      "chave": "enrollments_school_id_academic_year_id_fkey",
+      "de": "enrollments",
+      "para": "academic_years"
+    },
+    {
+      "chave": "enrollments_school_id_class_group_id_fkey",
+      "de": "enrollments",
+      "para": "class_groups"
+    },
+    {
+      "chave": "enrollments_school_id_fkey",
+      "de": "enrollments",
+      "para": "schools"
+    },
+    {
+      "chave": "enrollments_school_id_student_id_fkey",
+      "de": "enrollments",
+      "para": "students"
+    },
+    {
+      "chave": "fee_items_school_id_fee_plan_id_fkey",
+      "de": "fee_items",
+      "para": "fee_plans"
+    },
+    {
+      "chave": "fee_items_school_id_fkey",
+      "de": "fee_items",
+      "para": "schools"
+    },
+    {
+      "chave": "fee_plans_school_id_academic_year_id_fkey",
+      "de": "fee_plans",
+      "para": "academic_years"
+    },
+    {
+      "chave": "fee_plans_school_id_fkey",
+      "de": "fee_plans",
+      "para": "schools"
+    },
+    {
+      "chave": "finance_contracts_school_id_enrollment_id_fkey",
+      "de": "finance_contracts",
+      "para": "enrollments"
+    },
+    {
+      "chave": "finance_contracts_school_id_fee_plan_id_fkey",
+      "de": "finance_contracts",
+      "para": "fee_plans"
+    },
+    {
+      "chave": "finance_contracts_school_id_fkey",
+      "de": "finance_contracts",
+      "para": "schools"
+    },
+    {
+      "chave": "finance_gateway_webhook_events_school_id_fkey",
+      "de": "finance_gateway_webhook_events",
+      "para": "schools"
+    },
+    {
+      "chave": "finance_invoice_events_invoice_id_fkey",
+      "de": "finance_invoice_events",
+      "para": "finance_invoices"
+    },
+    {
+      "chave": "finance_invoice_events_school_id_fkey",
+      "de": "finance_invoice_events",
+      "para": "schools"
+    },
+    {
+      "chave": "finance_invoices_school_id_fee_item_id_fkey",
+      "de": "finance_invoices",
+      "para": "fee_items"
+    },
+    {
+      "chave": "finance_invoices_school_id_contract_id_fkey",
+      "de": "finance_invoices",
+      "para": "finance_contracts"
+    },
+    {
+      "chave": "finance_invoices_school_id_fkey",
+      "de": "finance_invoices",
+      "para": "schools"
+    },
+    {
+      "chave": "finance_payment_plans_school_id_fkey",
+      "de": "finance_payment_plans",
+      "para": "schools"
+    },
+    {
+      "chave": "finance_receipts_school_id_invoice_id_fkey",
+      "de": "finance_receipts",
+      "para": "finance_invoices"
+    },
+    {
+      "chave": "finance_receipts_school_id_fkey",
+      "de": "finance_receipts",
+      "para": "schools"
+    },
+    {
+      "chave": "financial_rule_sets_school_id_fkey",
+      "de": "financial_rule_sets",
+      "para": "schools"
+    },
+    {
+      "chave": "google_workspace_connections_school_id_fkey",
+      "de": "google_workspace_connections",
+      "para": "schools"
+    },
+    {
+      "chave": "google_workspace_oauth_states_school_id_fkey",
+      "de": "google_workspace_oauth_states",
+      "para": "schools"
+    },
+    {
+      "chave": "grade_items_school_id_gradebook_id_fkey",
+      "de": "grade_items",
+      "para": "gradebooks"
+    },
+    {
+      "chave": "grade_items_school_id_fkey",
+      "de": "grade_items",
+      "para": "schools"
+    },
+    {
+      "chave": "grade_levels_school_id_program_id_fkey",
+      "de": "grade_levels",
+      "para": "programs"
+    },
+    {
+      "chave": "grade_levels_school_id_fkey",
+      "de": "grade_levels",
+      "para": "schools"
+    },
+    {
+      "chave": "grade_score_history_grade_score_id_fkey",
+      "de": "grade_score_history",
+      "para": "grade_scores"
+    },
+    {
+      "chave": "grade_score_history_school_id_fkey",
+      "de": "grade_score_history",
+      "para": "schools"
+    },
+    {
+      "chave": "grade_scores_school_id_enrollment_id_fkey",
+      "de": "grade_scores",
+      "para": "enrollments"
+    },
+    {
+      "chave": "grade_scores_school_id_grade_item_id_fkey",
+      "de": "grade_scores",
+      "para": "grade_items"
+    },
+    {
+      "chave": "grade_scores_school_id_fkey",
+      "de": "grade_scores",
+      "para": "schools"
+    },
+    {
+      "chave": "grade_sheet_rows_school_id_enrollment_id_fkey",
+      "de": "grade_sheet_rows",
+      "para": "enrollments"
+    },
+    {
+      "chave": "grade_sheet_rows_school_id_grade_sheet_id_fkey",
+      "de": "grade_sheet_rows",
+      "para": "grade_sheets"
+    },
+    {
+      "chave": "grade_sheet_rows_school_id_fkey",
+      "de": "grade_sheet_rows",
+      "para": "schools"
+    },
+    {
+      "chave": "grade_sheet_versions_grade_sheet_id_fkey",
+      "de": "grade_sheet_versions",
+      "para": "grade_sheets"
+    },
+    {
+      "chave": "grade_sheet_versions_school_id_fkey",
+      "de": "grade_sheet_versions",
+      "para": "schools"
+    },
+    {
+      "chave": "grade_sheets_school_id_academic_year_id_fkey",
+      "de": "grade_sheets",
+      "para": "academic_years"
+    },
+    {
+      "chave": "grade_sheets_school_id_class_group_id_fkey",
+      "de": "grade_sheets",
+      "para": "class_groups"
+    },
+    {
+      "chave": "grade_sheets_school_id_fkey",
+      "de": "grade_sheets",
+      "para": "schools"
+    },
+    {
+      "chave": "grade_sheets_school_id_term_id_fkey",
+      "de": "grade_sheets",
+      "para": "terms"
+    },
+    {
+      "chave": "gradebooks_school_id_academic_year_id_fkey",
+      "de": "gradebooks",
+      "para": "academic_years"
+    },
+    {
+      "chave": "gradebooks_school_id_class_group_id_fkey",
+      "de": "gradebooks",
+      "para": "class_groups"
+    },
+    {
+      "chave": "gradebooks_school_id_class_subject_id_fkey",
+      "de": "gradebooks",
+      "para": "class_subjects"
+    },
+    {
+      "chave": "gradebooks_school_id_fkey",
+      "de": "gradebooks",
+      "para": "schools"
+    },
+    {
+      "chave": "gradebooks_school_id_term_id_fkey",
+      "de": "gradebooks",
+      "para": "terms"
+    },
+    {
+      "chave": "grading_scales_school_id_fkey",
+      "de": "grading_scales",
+      "para": "schools"
+    },
+    {
+      "chave": "hr_absence_events_contract_id_fkey",
+      "de": "hr_absence_events",
+      "para": "hr_contracts"
+    },
+    {
+      "chave": "hr_absence_events_employment_id_fkey",
+      "de": "hr_absence_events",
+      "para": "hr_employments"
+    },
+    {
+      "chave": "hr_absence_events_school_id_fkey",
+      "de": "hr_absence_events",
+      "para": "schools"
+    },
+    {
+      "chave": "hr_attendance_assurance_evidence_occurrence_id_fkey",
+      "de": "hr_attendance_assurance_evidence",
+      "para": "hr_teacher_lesson_occurrences"
+    },
+    {
+      "chave": "hr_attendance_assurance_evidence_school_id_fkey",
+      "de": "hr_attendance_assurance_evidence",
+      "para": "schools"
+    },
+    {
+      "chave": "hr_attendance_assurance_policies_school_id_fkey",
+      "de": "hr_attendance_assurance_policies",
+      "para": "schools"
+    },
+    {
+      "chave": "hr_compensation_events_contract_id_fkey",
+      "de": "hr_compensation_events",
+      "para": "hr_contracts"
+    },
+    {
+      "chave": "hr_compensation_events_employment_id_fkey",
+      "de": "hr_compensation_events",
+      "para": "hr_employments"
+    },
+    {
+      "chave": "hr_compensation_events_school_id_fkey",
+      "de": "hr_compensation_events",
+      "para": "schools"
+    },
+    {
+      "chave": "hr_contract_remuneration_policies_contract_id_fkey",
+      "de": "hr_contract_remuneration_policies",
+      "para": "hr_contracts"
+    },
+    {
+      "chave": "hr_contract_remuneration_policies_school_id_fkey",
+      "de": "hr_contract_remuneration_policies",
+      "para": "schools"
+    },
+    {
+      "chave": "hr_contract_salary_amendments_contract_id_fkey",
+      "de": "hr_contract_salary_amendments",
+      "para": "hr_contracts"
+    },
+    {
+      "chave": "hr_contract_salary_amendments_request_id_fkey",
+      "de": "hr_contract_salary_amendments",
+      "para": "hr_salary_change_requests"
+    },
+    {
+      "chave": "hr_contract_salary_amendments_salary_scale_step_id_fkey",
+      "de": "hr_contract_salary_amendments",
+      "para": "hr_salary_scale_steps"
+    },
+    {
+      "chave": "hr_contract_salary_amendments_school_id_fkey",
+      "de": "hr_contract_salary_amendments",
+      "para": "schools"
+    },
+    {
+      "chave": "hr_contracts_employment_id_fkey",
+      "de": "hr_contracts",
+      "para": "hr_employments"
+    },
+    {
+      "chave": "hr_contracts_salary_scale_step_id_fkey",
+      "de": "hr_contracts",
+      "para": "hr_salary_scale_steps"
+    },
+    {
+      "chave": "hr_contracts_school_id_fkey",
+      "de": "hr_contracts",
+      "para": "schools"
+    },
+    {
+      "chave": "hr_departments_parent_department_id_fkey",
+      "de": "hr_departments",
+      "para": "hr_departments"
+    },
+    {
+      "chave": "hr_departments_school_id_fkey",
+      "de": "hr_departments",
+      "para": "schools"
+    },
+    {
+      "chave": "hr_employments_department_id_fkey",
+      "de": "hr_employments",
+      "para": "hr_departments"
+    },
+    {
+      "chave": "hr_employments_position_id_fkey",
+      "de": "hr_employments",
+      "para": "hr_positions"
+    },
+    {
+      "chave": "hr_employments_person_id_fkey",
+      "de": "hr_employments",
+      "para": "people"
+    },
+    {
+      "chave": "hr_employments_school_id_fkey",
+      "de": "hr_employments",
+      "para": "schools"
+    },
+    {
+      "chave": "hr_payment_destinations_employment_id_fkey",
+      "de": "hr_payment_destinations",
+      "para": "hr_employments"
+    },
+    {
+      "chave": "hr_payment_destinations_school_id_fkey",
+      "de": "hr_payment_destinations",
+      "para": "schools"
+    },
+    {
+      "chave": "hr_payment_settings_school_id_fkey",
+      "de": "hr_payment_settings",
+      "para": "schools"
+    },
+    {
+      "chave": "hr_payroll_item_components_payroll_item_id_fkey",
+      "de": "hr_payroll_item_components",
+      "para": "hr_payroll_items"
+    },
+    {
+      "chave": "hr_payroll_item_components_school_id_fkey",
+      "de": "hr_payroll_item_components",
+      "para": "schools"
+    },
+    {
+      "chave": "hr_payroll_items_contract_id_fkey",
+      "de": "hr_payroll_items",
+      "para": "hr_contracts"
+    },
+    {
+      "chave": "hr_payroll_items_employment_id_fkey",
+      "de": "hr_payroll_items",
+      "para": "hr_employments"
+    },
+    {
+      "chave": "hr_payroll_items_payroll_run_id_fkey",
+      "de": "hr_payroll_items",
+      "para": "hr_payroll_runs"
+    },
+    {
+      "chave": "hr_payroll_items_school_id_fkey",
+      "de": "hr_payroll_items",
+      "para": "schools"
+    },
+    {
+      "chave": "hr_payroll_payment_batches_payroll_run_id_fkey",
+      "de": "hr_payroll_payment_batches",
+      "para": "hr_payroll_runs"
+    },
+    {
+      "chave": "hr_payroll_payment_batches_school_id_fkey",
+      "de": "hr_payroll_payment_batches",
+      "para": "schools"
+    },
+    {
+      "chave": "hr_payroll_payment_items_employment_id_fkey",
+      "de": "hr_payroll_payment_items",
+      "para": "hr_employments"
+    },
+    {
+      "chave": "hr_payroll_payment_items_destination_id_fkey",
+      "de": "hr_payroll_payment_items",
+      "para": "hr_payment_destinations"
+    },
+    {
+      "chave": "hr_payroll_payment_items_payroll_item_id_fkey",
+      "de": "hr_payroll_payment_items",
+      "para": "hr_payroll_items"
+    },
+    {
+      "chave": "hr_payroll_payment_items_batch_id_fkey",
+      "de": "hr_payroll_payment_items",
+      "para": "hr_payroll_payment_batches"
+    },
+    {
+      "chave": "hr_payroll_payment_items_school_id_fkey",
+      "de": "hr_payroll_payment_items",
+      "para": "schools"
+    },
+    {
+      "chave": "hr_payroll_runs_school_id_fkey",
+      "de": "hr_payroll_runs",
+      "para": "schools"
+    },
+    {
+      "chave": "hr_positions_department_id_fkey",
+      "de": "hr_positions",
+      "para": "hr_departments"
+    },
+    {
+      "chave": "hr_positions_school_id_fkey",
+      "de": "hr_positions",
+      "para": "schools"
+    },
+    {
+      "chave": "hr_salary_change_requests_contract_id_fkey",
+      "de": "hr_salary_change_requests",
+      "para": "hr_contracts"
+    },
+    {
+      "chave": "hr_salary_change_requests_requested_step_id_fkey",
+      "de": "hr_salary_change_requests",
+      "para": "hr_salary_scale_steps"
+    },
+    {
+      "chave": "hr_salary_change_requests_school_id_fkey",
+      "de": "hr_salary_change_requests",
+      "para": "schools"
+    },
+    {
+      "chave": "hr_salary_scale_steps_version_id_fkey",
+      "de": "hr_salary_scale_steps",
+      "para": "hr_salary_scale_versions"
+    },
+    {
+      "chave": "hr_salary_scale_versions_scale_id_fkey",
+      "de": "hr_salary_scale_versions",
+      "para": "hr_salary_scales"
+    },
+    {
+      "chave": "hr_teacher_attendance_policies_school_id_fkey",
+      "de": "hr_teacher_attendance_policies",
+      "para": "schools"
+    },
+    {
+      "chave": "hr_teacher_employment_links_employment_id_fkey",
+      "de": "hr_teacher_employment_links",
+      "para": "hr_employments"
+    },
+    {
+      "chave": "hr_teacher_employment_links_school_id_fkey",
+      "de": "hr_teacher_employment_links",
+      "para": "schools"
+    },
+    {
+      "chave": "hr_teacher_employment_links_teacher_id_fkey",
+      "de": "hr_teacher_employment_links",
+      "para": "teachers"
+    },
+    {
+      "chave": "hr_teacher_lesson_occurrences_class_subject_id_fkey",
+      "de": "hr_teacher_lesson_occurrences",
+      "para": "class_subjects"
+    },
+    {
+      "chave": "hr_teacher_lesson_occurrences_compensation_event_id_fkey",
+      "de": "hr_teacher_lesson_occurrences",
+      "para": "hr_compensation_events"
+    },
+    {
+      "chave": "hr_teacher_lesson_occurrences_contract_id_fkey",
+      "de": "hr_teacher_lesson_occurrences",
+      "para": "hr_contracts"
+    },
+    {
+      "chave": "hr_teacher_lesson_occurrences_employment_id_fkey",
+      "de": "hr_teacher_lesson_occurrences",
+      "para": "hr_employments"
+    },
+    {
+      "chave": "hr_teacher_lesson_occurrences_school_id_fkey",
+      "de": "hr_teacher_lesson_occurrences",
+      "para": "schools"
+    },
+    {
+      "chave": "hr_teacher_lesson_occurrences_original_teacher_id_fkey",
+      "de": "hr_teacher_lesson_occurrences",
+      "para": "teachers"
+    },
+    {
+      "chave": "hr_teacher_lesson_occurrences_teacher_id_fkey",
+      "de": "hr_teacher_lesson_occurrences",
+      "para": "teachers"
+    },
+    {
+      "chave": "hr_teacher_lesson_occurrences_timetable_slot_id_fkey",
+      "de": "hr_teacher_lesson_occurrences",
+      "para": "timetable_slots"
+    },
+    {
+      "chave": "hr_teacher_qr_sessions_occurrence_id_fkey",
+      "de": "hr_teacher_qr_sessions",
+      "para": "hr_teacher_lesson_occurrences"
+    },
+    {
+      "chave": "hr_teacher_qr_sessions_school_id_fkey",
+      "de": "hr_teacher_qr_sessions",
+      "para": "schools"
+    },
+    {
+      "chave": "import_audits_import_job_id_fkey",
+      "de": "import_audits",
+      "para": "import_jobs"
+    },
+    {
+      "chave": "import_audits_row_id_fkey",
+      "de": "import_audits",
+      "para": "import_rows"
+    },
+    {
+      "chave": "import_jobs_academic_year_id_fkey",
+      "de": "import_jobs",
+      "para": "academic_years"
+    },
+    {
+      "chave": "import_jobs_school_id_fkey",
+      "de": "import_jobs",
+      "para": "schools"
+    },
+    {
+      "chave": "import_rows_import_job_id_fkey",
+      "de": "import_rows",
+      "para": "import_jobs"
+    },
+    {
+      "chave": "import_templates_school_id_fkey",
+      "de": "import_templates",
+      "para": "schools"
+    },
+    {
+      "chave": "issued_documents_school_id_request_id_fkey",
+      "de": "issued_documents",
+      "para": "document_requests"
+    },
+    {
+      "chave": "issued_documents_school_id_template_id_fkey",
+      "de": "issued_documents",
+      "para": "document_templates"
+    },
+    {
+      "chave": "issued_documents_school_id_fkey",
+      "de": "issued_documents",
+      "para": "schools"
+    },
+    {
+      "chave": "issued_documents_school_id_student_id_fkey",
+      "de": "issued_documents",
+      "para": "students"
+    },
+    {
+      "chave": "mailboxes_plan_id_fkey",
+      "de": "mailboxes",
+      "para": "plans"
+    },
+    {
+      "chave": "mailboxes_school_id_fkey",
+      "de": "mailboxes",
+      "para": "schools"
+    },
+    {
+      "chave": "member_roles_role_id_fkey",
+      "de": "member_roles",
+      "para": "roles"
+    },
+    {
+      "chave": "member_roles_school_id_role_id_fkey",
+      "de": "member_roles",
+      "para": "roles"
+    },
+    {
+      "chave": "member_roles_membership_id_fkey",
+      "de": "member_roles",
+      "para": "school_memberships"
+    },
+    {
+      "chave": "member_roles_school_id_membership_id_fkey",
+      "de": "member_roles",
+      "para": "school_memberships"
+    },
+    {
+      "chave": "member_roles_school_id_fkey",
+      "de": "member_roles",
+      "para": "schools"
+    },
+    {
+      "chave": "notifications_announcement_fk",
+      "de": "notifications",
+      "para": "announcements"
+    },
+    {
+      "chave": "notifications_school_id_fkey",
+      "de": "notifications",
+      "para": "schools"
+    },
+    {
+      "chave": "payment_gateway_charges_school_id_fkey",
+      "de": "payment_gateway_charges",
+      "para": "schools"
+    },
+    {
+      "chave": "people_school_id_fkey",
+      "de": "people",
+      "para": "schools"
+    },
+    {
+      "chave": "person_documents_person_id_fkey",
+      "de": "person_documents",
+      "para": "people"
+    },
+    {
+      "chave": "person_documents_school_id_fkey",
+      "de": "person_documents",
+      "para": "schools"
+    },
+    {
+      "chave": "person_roles_person_id_fkey",
+      "de": "person_roles",
+      "para": "people"
+    },
+    {
+      "chave": "person_roles_school_id_fkey",
+      "de": "person_roles",
+      "para": "schools"
+    },
+    {
+      "chave": "profiles_school_id_fkey",
+      "de": "profiles",
+      "para": "schools"
+    },
+    {
+      "chave": "program_subjects_program_id_fkey",
+      "de": "program_subjects",
+      "para": "programs"
+    },
+    {
+      "chave": "program_subjects_school_id_fkey",
+      "de": "program_subjects",
+      "para": "schools"
+    },
+    {
+      "chave": "program_subjects_subject_fkey",
+      "de": "program_subjects",
+      "para": "subjects"
+    },
+    {
+      "chave": "programs_school_id_academic_level_id_fkey",
+      "de": "programs",
+      "para": "academic_levels"
+    },
+    {
+      "chave": "programs_school_id_fkey",
+      "de": "programs",
+      "para": "schools"
+    },
+    {
+      "chave": "report_cards_school_id_academic_year_id_fkey",
+      "de": "report_cards",
+      "para": "academic_years"
+    },
+    {
+      "chave": "report_cards_school_id_enrollment_id_fkey",
+      "de": "report_cards",
+      "para": "enrollments"
+    },
+    {
+      "chave": "report_cards_school_id_grade_sheet_id_fkey",
+      "de": "report_cards",
+      "para": "grade_sheets"
+    },
+    {
+      "chave": "report_cards_school_id_fkey",
+      "de": "report_cards",
+      "para": "schools"
+    },
+    {
+      "chave": "report_cards_school_id_term_id_fkey",
+      "de": "report_cards",
+      "para": "terms"
+    },
+    {
+      "chave": "role_permissions_permission_id_fkey",
+      "de": "role_permissions",
+      "para": "permissions"
+    },
+    {
+      "chave": "role_permissions_role_id_fkey",
+      "de": "role_permissions",
+      "para": "roles"
+    },
+    {
+      "chave": "role_permissions_school_id_role_id_fkey",
+      "de": "role_permissions",
+      "para": "roles"
+    },
+    {
+      "chave": "role_permissions_school_id_fkey",
+      "de": "role_permissions",
+      "para": "schools"
+    },
+    {
+      "chave": "roles_school_id_fkey",
+      "de": "roles",
+      "para": "schools"
+    },
+    {
+      "chave": "rooms_school_id_fkey",
+      "de": "rooms",
+      "para": "schools"
+    },
+    {
+      "chave": "saas_audit_logs_tenant_id_fkey",
+      "de": "saas_audit_logs",
+      "para": "tenants"
+    },
+    {
+      "chave": "school_access_requests_enrollment_application_id_fkey",
+      "de": "school_access_requests",
+      "para": "enrollment_applications"
+    },
+    {
+      "chave": "school_access_requests_person_id_fkey",
+      "de": "school_access_requests",
+      "para": "people"
+    },
+    {
+      "chave": "school_access_requests_membership_id_fkey",
+      "de": "school_access_requests",
+      "para": "school_memberships"
+    },
+    {
+      "chave": "school_access_requests_school_id_fkey",
+      "de": "school_access_requests",
+      "para": "schools"
+    },
+    {
+      "chave": "school_announcements_school_id_fkey",
+      "de": "school_announcements",
+      "para": "schools"
+    },
+    {
+      "chave": "school_billing_settings_school_id_fkey",
+      "de": "school_billing_settings",
+      "para": "schools"
+    },
+    {
+      "chave": "school_branding_school_id_fkey",
+      "de": "school_branding",
+      "para": "schools"
+    },
+    {
+      "chave": "school_email_routes_school_id_fkey",
+      "de": "school_email_routes",
+      "para": "schools"
+    },
+    {
+      "chave": "school_integration_secrets_school_id_fkey",
+      "de": "school_integration_secrets",
+      "para": "schools"
+    },
+    {
+      "chave": "school_integrations_school_id_fkey",
+      "de": "school_integrations",
+      "para": "schools"
+    },
+    {
+      "chave": "school_invitations_school_id_fkey",
+      "de": "school_invitations",
+      "para": "schools"
+    },
+    {
+      "chave": "school_memberships_school_id_fkey",
+      "de": "school_memberships",
+      "para": "schools"
+    },
+    {
+      "chave": "school_modules_module_code_fkey",
+      "de": "school_modules",
+      "para": "module_catalog"
+    },
+    {
+      "chave": "school_modules_school_id_fkey",
+      "de": "school_modules",
+      "para": "schools"
+    },
+    {
+      "chave": "school_settings_school_id_fkey",
+      "de": "school_settings",
+      "para": "schools"
+    },
+    {
+      "chave": "school_shift_slots_shift_id_fkey",
+      "de": "school_shift_slots",
+      "para": "school_shifts"
+    },
+    {
+      "chave": "school_shift_slots_school_id_fkey",
+      "de": "school_shift_slots",
+      "para": "schools"
+    },
+    {
+      "chave": "school_shifts_school_id_fkey",
+      "de": "school_shifts",
+      "para": "schools"
+    },
+    {
+      "chave": "school_slug_history_tenant_id_fkey",
+      "de": "school_slug_history",
+      "para": "tenants"
+    },
+    {
+      "chave": "schools_tenant_id_fkey",
+      "de": "schools",
+      "para": "tenants"
+    },
+    {
+      "chave": "siga_access_cards_person_id_fkey",
+      "de": "siga_access_cards",
+      "para": "people"
+    },
+    {
+      "chave": "siga_access_cards_school_id_fkey",
+      "de": "siga_access_cards",
+      "para": "schools"
+    },
+    {
+      "chave": "siga_access_cards_student_id_fkey",
+      "de": "siga_access_cards",
+      "para": "students"
+    },
+    {
+      "chave": "siga_access_logs_person_id_fkey",
+      "de": "siga_access_logs",
+      "para": "people"
+    },
+    {
+      "chave": "siga_access_logs_school_id_fkey",
+      "de": "siga_access_logs",
+      "para": "schools"
+    },
+    {
+      "chave": "siga_access_logs_card_id_fkey",
+      "de": "siga_access_logs",
+      "para": "siga_access_cards"
+    },
+    {
+      "chave": "siga_access_logs_device_id_fkey",
+      "de": "siga_access_logs",
+      "para": "siga_turnstile_devices"
+    },
+    {
+      "chave": "siga_access_logs_student_id_fkey",
+      "de": "siga_access_logs",
+      "para": "students"
+    },
+    {
+      "chave": "siga_assessment_item_competencies_school_id_fkey",
+      "de": "siga_assessment_item_competencies",
+      "para": "schools"
+    },
+    {
+      "chave": "siga_assessment_item_competencies_item_id_fkey",
+      "de": "siga_assessment_item_competencies",
+      "para": "siga_assessment_items"
+    },
+    {
+      "chave": "siga_assessment_item_competencies_competency_id_fkey",
+      "de": "siga_assessment_item_competencies",
+      "para": "siga_competencies"
+    },
+    {
+      "chave": "siga_assessment_items_school_id_fkey",
+      "de": "siga_assessment_items",
+      "para": "schools"
+    },
+    {
+      "chave": "siga_assessment_items_lesson_plan_component_id_fkey",
+      "de": "siga_assessment_items",
+      "para": "siga_lesson_plan_components"
+    },
+    {
+      "chave": "siga_assessment_scores_school_id_fkey",
+      "de": "siga_assessment_scores",
+      "para": "schools"
+    },
+    {
+      "chave": "siga_assessment_scores_item_id_fkey",
+      "de": "siga_assessment_scores",
+      "para": "siga_assessment_items"
+    },
+    {
+      "chave": "siga_attendance_audits_school_id_fkey",
+      "de": "siga_attendance_audits",
+      "para": "schools"
+    },
+    {
+      "chave": "siga_attendance_audits_attendance_record_id_fkey",
+      "de": "siga_attendance_audits",
+      "para": "siga_attendance_records"
+    },
+    {
+      "chave": "siga_attendance_audits_session_id_fkey",
+      "de": "siga_attendance_audits",
+      "para": "siga_attendance_sessions"
+    },
+    {
+      "chave": "siga_attendance_audits_student_id_fkey",
+      "de": "siga_attendance_audits",
+      "para": "students"
+    },
+    {
+      "chave": "siga_attendance_justifications_school_id_fkey",
+      "de": "siga_attendance_justifications",
+      "para": "schools"
+    },
+    {
+      "chave": "siga_attendance_justifications_attendance_record_id_fkey",
+      "de": "siga_attendance_justifications",
+      "para": "siga_attendance_records"
+    },
+    {
+      "chave": "siga_attendance_justifications_session_id_fkey",
+      "de": "siga_attendance_justifications",
+      "para": "siga_attendance_sessions"
+    },
+    {
+      "chave": "siga_attendance_justifications_file_id_fkey",
+      "de": "siga_attendance_justifications",
+      "para": "siga_files"
+    },
+    {
+      "chave": "siga_attendance_justifications_student_id_fkey",
+      "de": "siga_attendance_justifications",
+      "para": "students"
+    },
+    {
+      "chave": "siga_attendance_records_school_id_fkey",
+      "de": "siga_attendance_records",
+      "para": "schools"
+    },
+    {
+      "chave": "siga_attendance_records_session_id_fkey",
+      "de": "siga_attendance_records",
+      "para": "siga_attendance_sessions"
+    },
+    {
+      "chave": "siga_attendance_records_student_id_fkey",
+      "de": "siga_attendance_records",
+      "para": "students"
+    },
+    {
+      "chave": "siga_attendance_sessions_academic_year_id_fkey",
+      "de": "siga_attendance_sessions",
+      "para": "academic_years"
+    },
+    {
+      "chave": "siga_attendance_sessions_class_group_id_fkey",
+      "de": "siga_attendance_sessions",
+      "para": "class_groups"
+    },
+    {
+      "chave": "siga_attendance_sessions_school_id_fkey",
+      "de": "siga_attendance_sessions",
+      "para": "schools"
+    },
+    {
+      "chave": "siga_attendance_sessions_subject_id_fkey",
+      "de": "siga_attendance_sessions",
+      "para": "subjects"
+    },
+    {
+      "chave": "siga_attendance_sessions_teacher_id_fkey",
+      "de": "siga_attendance_sessions",
+      "para": "teachers"
+    },
+    {
+      "chave": "siga_attendance_sessions_timetable_slot_id_fkey",
+      "de": "siga_attendance_sessions",
+      "para": "timetable_slots"
+    },
+    {
+      "chave": "siga_cash_expenses_school_id_fkey",
+      "de": "siga_cash_expenses",
+      "para": "schools"
+    },
+    {
+      "chave": "siga_class_tasks_class_subject_id_fkey",
+      "de": "siga_class_tasks",
+      "para": "class_subjects"
+    },
+    {
+      "chave": "siga_class_tasks_school_id_fkey",
+      "de": "siga_class_tasks",
+      "para": "schools"
+    },
+    {
+      "chave": "siga_class_tasks_timetable_slot_id_fkey",
+      "de": "siga_class_tasks",
+      "para": "timetable_slots"
+    },
+    {
+      "chave": "siga_competencies_grade_level_id_fkey",
+      "de": "siga_competencies",
+      "para": "grade_levels"
+    },
+    {
+      "chave": "siga_competencies_school_id_fkey",
+      "de": "siga_competencies",
+      "para": "schools"
+    },
+    {
+      "chave": "siga_competencies_subject_id_fkey",
+      "de": "siga_competencies",
+      "para": "subjects"
+    },
+    {
+      "chave": "siga_direct_messages_school_id_fkey",
+      "de": "siga_direct_messages",
+      "para": "schools"
+    },
+    {
+      "chave": "siga_direct_messages_attachment_file_id_fkey",
+      "de": "siga_direct_messages",
+      "para": "siga_files"
+    },
+    {
+      "chave": "siga_exam_registrations_class_group_id_fkey",
+      "de": "siga_exam_registrations",
+      "para": "class_groups"
+    },
+    {
+      "chave": "siga_exam_registrations_enrollment_id_fkey",
+      "de": "siga_exam_registrations",
+      "para": "enrollments"
+    },
+    {
+      "chave": "siga_exam_registrations_grade_sheet_id_fkey",
+      "de": "siga_exam_registrations",
+      "para": "grade_sheets"
+    },
+    {
+      "chave": "siga_exam_registrations_school_id_fkey",
+      "de": "siga_exam_registrations",
+      "para": "schools"
+    },
+    {
+      "chave": "siga_exam_registrations_session_id_fkey",
+      "de": "siga_exam_registrations",
+      "para": "siga_exam_sessions"
+    },
+    {
+      "chave": "siga_exam_registrations_subject_id_fkey",
+      "de": "siga_exam_registrations",
+      "para": "subjects"
+    },
+    {
+      "chave": "siga_exam_sessions_academic_year_id_fkey",
+      "de": "siga_exam_sessions",
+      "para": "academic_years"
+    },
+    {
+      "chave": "siga_exam_sessions_school_id_fkey",
+      "de": "siga_exam_sessions",
+      "para": "schools"
+    },
+    {
+      "chave": "siga_file_events_school_id_fkey",
+      "de": "siga_file_events",
+      "para": "schools"
+    },
+    {
+      "chave": "siga_file_events_file_id_fkey",
+      "de": "siga_file_events",
+      "para": "siga_files"
+    },
+    {
+      "chave": "siga_files_related_person_id_fkey",
+      "de": "siga_files",
+      "para": "people"
+    },
+    {
+      "chave": "siga_files_school_id_fkey",
+      "de": "siga_files",
+      "para": "schools"
+    },
+    {
+      "chave": "siga_files_parent_id_fkey",
+      "de": "siga_files",
+      "para": "siga_files"
+    },
+    {
+      "chave": "siga_lesson_meetings_school_id_fkey",
+      "de": "siga_lesson_meetings",
+      "para": "schools"
+    },
+    {
+      "chave": "siga_lesson_meetings_attendance_session_id_fkey",
+      "de": "siga_lesson_meetings",
+      "para": "siga_attendance_sessions"
+    },
+    {
+      "chave": "siga_lesson_plan_components_school_id_fkey",
+      "de": "siga_lesson_plan_components",
+      "para": "schools"
+    },
+    {
+      "chave": "siga_lesson_plan_components_lesson_plan_id_fkey",
+      "de": "siga_lesson_plan_components",
+      "para": "siga_lesson_plans"
+    },
+    {
+      "chave": "siga_lesson_plans_school_id_fkey",
+      "de": "siga_lesson_plans",
+      "para": "schools"
+    },
+    {
+      "chave": "siga_lesson_plans_file_id_fkey",
+      "de": "siga_lesson_plans",
+      "para": "siga_files"
+    },
+    {
+      "chave": "siga_lesson_reminder_log_school_id_fkey",
+      "de": "siga_lesson_reminder_log",
+      "para": "schools"
+    },
+    {
+      "chave": "siga_lesson_reminder_settings_school_id_fkey",
+      "de": "siga_lesson_reminder_settings",
+      "para": "schools"
+    },
+    {
+      "chave": "siga_timetable_slot_details_school_id_fkey",
+      "de": "siga_timetable_slot_details",
+      "para": "schools"
+    },
+    {
+      "chave": "siga_timetable_slot_details_timetable_slot_id_fkey",
+      "de": "siga_timetable_slot_details",
+      "para": "timetable_slots"
+    },
+    {
+      "chave": "siga_turnstile_devices_school_id_fkey",
+      "de": "siga_turnstile_devices",
+      "para": "schools"
+    },
+    {
+      "chave": "staff_module_grants_school_id_fkey",
+      "de": "staff_module_grants",
+      "para": "schools"
+    },
+    {
+      "chave": "student_academic_history_school_id_fkey",
+      "de": "student_academic_history",
+      "para": "schools"
+    },
+    {
+      "chave": "student_academic_history_student_fkey",
+      "de": "student_academic_history",
+      "para": "students"
+    },
+    {
+      "chave": "student_academic_history_enrollment_id_fkey",
+      "de": "student_academic_history",
+      "para": "enrollments"
+    },
+    {
+      "chave": "student_academic_history_grade_sheet_id_fkey",
+      "de": "student_academic_history",
+      "para": "grade_sheets"
+    },
+    {
+      "chave": "student_guardians_school_id_guardian_person_id_fkey",
+      "de": "student_guardians",
+      "para": "people"
+    },
+    {
+      "chave": "student_guardians_school_id_fkey",
+      "de": "student_guardians",
+      "para": "schools"
+    },
+    {
+      "chave": "student_guardians_school_id_student_id_fkey",
+      "de": "student_guardians",
+      "para": "students"
+    },
+    {
+      "chave": "student_risk_cases_school_id_fkey",
+      "de": "student_risk_cases",
+      "para": "schools"
+    },
+    {
+      "chave": "student_risk_interventions_school_id_fkey",
+      "de": "student_risk_interventions",
+      "para": "schools"
+    },
+    {
+      "chave": "student_risk_interventions_case_id_fkey",
+      "de": "student_risk_interventions",
+      "para": "student_risk_cases"
+    },
+    {
+      "chave": "student_status_events_school_id_fkey",
+      "de": "student_status_events",
+      "para": "schools"
+    },
+    {
+      "chave": "student_status_events_student_id_fkey",
+      "de": "student_status_events",
+      "para": "students"
+    },
+    {
+      "chave": "student_status_history_school_id_fkey",
+      "de": "student_status_history",
+      "para": "schools"
+    },
+    {
+      "chave": "student_status_history_student_fkey",
+      "de": "student_status_history",
+      "para": "students"
+    },
+    {
+      "chave": "students_school_id_person_id_fkey",
+      "de": "students",
+      "para": "people"
+    },
+    {
+      "chave": "students_school_id_fkey",
+      "de": "students",
+      "para": "schools"
+    },
+    {
+      "chave": "subject_types_school_id_fkey",
+      "de": "subject_types",
+      "para": "schools"
+    },
+    {
+      "chave": "subjects_curriculum_area_id_fkey",
+      "de": "subjects",
+      "para": "curriculum_areas"
+    },
+    {
+      "chave": "subjects_school_id_fkey",
+      "de": "subjects",
+      "para": "schools"
+    },
+    {
+      "chave": "subjects_subject_type_id_fkey",
+      "de": "subjects",
+      "para": "subject_types"
+    },
+    {
+      "chave": "subscription_addons_subscription_id_fkey",
+      "de": "subscription_addons",
+      "para": "subscriptions"
+    },
+    {
+      "chave": "subscriptions_plan_id_fkey",
+      "de": "subscriptions",
+      "para": "plans"
+    },
+    {
+      "chave": "subscriptions_tenant_id_fkey",
+      "de": "subscriptions",
+      "para": "tenants"
+    },
+    {
+      "chave": "teacher_availability_academic_year_id_fkey",
+      "de": "teacher_availability",
+      "para": "academic_years"
+    },
+    {
+      "chave": "teacher_availability_school_id_fkey",
+      "de": "teacher_availability",
+      "para": "schools"
+    },
+    {
+      "chave": "teacher_availability_teacher_id_fkey",
+      "de": "teacher_availability",
+      "para": "teachers"
+    },
+    {
+      "chave": "teacher_subjects_school_id_fkey",
+      "de": "teacher_subjects",
+      "para": "schools"
+    },
+    {
+      "chave": "teacher_subjects_school_id_subject_id_fkey",
+      "de": "teacher_subjects",
+      "para": "subjects"
+    },
+    {
+      "chave": "teacher_subjects_school_id_teacher_id_fkey",
+      "de": "teacher_subjects",
+      "para": "teachers"
+    },
+    {
+      "chave": "teachers_school_id_person_id_fkey",
+      "de": "teachers",
+      "para": "people"
+    },
+    {
+      "chave": "teachers_school_id_fkey",
+      "de": "teachers",
+      "para": "schools"
+    },
+    {
+      "chave": "tenant_domains_tenant_id_fkey",
+      "de": "tenant_domains",
+      "para": "tenants"
+    },
+    {
+      "chave": "tenant_mailboxes_tenant_id_fkey",
+      "de": "tenant_mailboxes",
+      "para": "tenants"
+    },
+    {
+      "chave": "tenant_provisioning_school_id_fkey",
+      "de": "tenant_provisioning",
+      "para": "schools"
+    },
+    {
+      "chave": "tenant_usage_tenant_id_fkey",
+      "de": "tenant_usage",
+      "para": "tenants"
+    },
+    {
+      "chave": "tenants_plan_id_fkey",
+      "de": "tenants",
+      "para": "plans"
+    },
+    {
+      "chave": "terms_school_id_academic_year_id_fkey",
+      "de": "terms",
+      "para": "academic_years"
+    },
+    {
+      "chave": "terms_school_id_fkey",
+      "de": "terms",
+      "para": "schools"
+    },
+    {
+      "chave": "timetable_slots_schedule_id_fkey",
+      "de": "timetable_slots",
+      "para": "academic_schedules"
+    },
+    {
+      "chave": "timetable_slots_school_id_class_subject_id_fkey",
+      "de": "timetable_slots",
+      "para": "class_subjects"
+    },
+    {
+      "chave": "timetable_slots_room_id_fkey",
+      "de": "timetable_slots",
+      "para": "rooms"
+    },
+    {
+      "chave": "timetable_slots_shift_id_fkey",
+      "de": "timetable_slots",
+      "para": "school_shifts"
+    },
+    {
+      "chave": "timetable_slots_school_id_fkey",
+      "de": "timetable_slots",
+      "para": "schools"
+    },
+    {
+      "chave": "user_communication_preferences_school_id_fkey",
+      "de": "user_communication_preferences",
+      "para": "schools"
+    },
+    {
+      "chave": "verification_otps_school_id_fkey",
+      "de": "verification_otps",
+      "para": "schools"
     }
   ]
 }

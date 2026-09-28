@@ -10,6 +10,8 @@ import { Separator } from "@/components/ui/separator";
 import { useCurrentAccount } from "@/features/auth/use-current-account";
 import { supabase } from "@/integrations/supabase/client";
 import { listRecentAuditLogs, type RecentAuditLog } from "@/features/school/server";
+import type { AuditScope } from "@/features/audit/audit-view";
+import { cn } from "@/lib/utils";
 import { useInstalledIntegrations } from "@/features/integrations/use-installed-integrations";
 
 const accessPolicies = [
@@ -20,38 +22,39 @@ const accessPolicies = [
   { label: "Restrição por horário escolar", state: "Não configurado" },
 ];
 
-function formatAuditAction(action: string, entityType: string) {
-  const operation = action.split(".").at(-1)?.toLowerCase();
-  const operationLabel =
-    operation === "insert" ? "Criou" : operation === "delete" ? "Eliminou" : "Actualizou";
-  const entityLabels: Record<string, string> = {
-    schools: "escola",
-    people: "pessoa",
-    students: "aluno",
-    enrollments: "matrícula",
-    school_memberships: "conta de acesso",
-    roles: "papel",
-    member_roles: "função",
-    student_guardians: "encarregado",
-    finance_invoices: "fatura",
-    finance_receipts: "recibo",
-    announcements: "comunicado",
-    terms: "período lectivo",
-    class_groups: "turma",
-    document_requests: "documento",
-  };
-  return `${operationLabel} ${entityLabels[entityType] ?? entityType}`;
-}
-
 function AuditLogList() {
   const currentUser = useCurrentAccount();
   const isAdministrator = currentUser.role === "Administrador";
+  const [scope, setScope] = useState<AuditScope>("all");
   const auditQuery = useQuery({
-    queryKey: ["audit-logs", "recent", currentUser.id],
+    queryKey: ["audit-logs", "recent", currentUser.id, scope],
     enabled: isAdministrator,
     staleTime: 30_000,
-    queryFn: () => listRecentAuditLogs() as Promise<RecentAuditLog[]>,
+    queryFn: () => listRecentAuditLogs({ data: { scope } }) as Promise<RecentAuditLog[]>,
   });
+  const scopeToggle = (
+    <div className="flex gap-1 text-xs" role="group" aria-label="Filtrar auditoria">
+      {(
+        [
+          ["all", "Tudo"],
+          ["academic", "Académica"],
+        ] as const
+      ).map(([value, label]) => (
+        <button
+          key={value}
+          type="button"
+          aria-pressed={scope === value}
+          onClick={() => setScope(value)}
+          className={cn(
+            "rounded-md px-2 py-1 text-muted-foreground",
+            scope === value && "bg-secondary text-foreground",
+          )}
+        >
+          {label}
+        </button>
+      ))}
+    </div>
+  );
 
   if (currentUser.profile.isLoading) {
     return <p className="text-sm text-muted-foreground">A confirmar permissões…</p>;
@@ -63,38 +66,58 @@ function AuditLogList() {
       </p>
     );
   }
-  if (auditQuery.isLoading) {
-    return <p className="text-sm text-muted-foreground">A carregar eventos…</p>;
-  }
-  if (auditQuery.isError) {
-    return <p className="text-sm text-destructive">Não foi possível carregar a auditoria.</p>;
-  }
-  if (!auditQuery.data?.length) {
-    return <p className="text-sm text-muted-foreground">Ainda não existem eventos registados.</p>;
+  const status = auditQuery.isLoading ? (
+    <p className="text-sm text-muted-foreground">A carregar eventos…</p>
+  ) : auditQuery.isError ? (
+    <p className="text-sm text-destructive">Não foi possível carregar a auditoria.</p>
+  ) : !auditQuery.data?.length ? (
+    <p className="text-sm text-muted-foreground">Ainda não existem eventos registados.</p>
+  ) : null;
+  if (status || !auditQuery.data) {
+    return (
+      <div className="space-y-2">
+        {scopeToggle}
+        {status}
+      </div>
+    );
   }
 
   return (
-    <ul className="space-y-2 text-sm">
-      {auditQuery.data.map((event) => (
-        <li key={event.id} className="rounded-lg border border-border bg-secondary/40 px-4 py-2.5">
-          <p className="font-medium">{formatAuditAction(event.action, event.entity_type)}</p>
-          <p className="text-xs text-muted-foreground">
-            {event.actor_id
-              ? event.actor_id === currentUser.id
-                ? currentUser.name
-                : `Utilizador ${event.actor_id.slice(0, 8)}`
-              : "Sistema"}
-            {" · "}
-            {new Intl.DateTimeFormat("pt-AO", { dateStyle: "short", timeStyle: "short" }).format(
-              new Date(event.created_at),
-            )}
-          </p>
-          {event.reason ? (
-            <p className="mt-1 text-xs text-muted-foreground">{event.reason}</p>
-          ) : null}
-        </li>
-      ))}
-    </ul>
+    <div className="space-y-2">
+      {scopeToggle}
+      <ul className="space-y-2 text-sm">
+        {auditQuery.data.map((event) => (
+          <li
+            key={event.id}
+            className="rounded-lg border border-border bg-secondary/40 px-4 py-2.5"
+          >
+            <p>
+              {event.summary}
+              {event.changed_fields.length ? (
+                <span className="text-xs text-muted-foreground">
+                  {" "}
+                  · {event.changed_fields.join(", ")}
+                </span>
+              ) : null}
+            </p>
+            <p className="text-xs text-muted-foreground">
+              {event.actor_id
+                ? event.actor_id === currentUser.id
+                  ? currentUser.name
+                  : (event.actor_name ?? `Utilizador ${event.actor_id.slice(0, 8)}`)
+                : "Sistema"}
+              {" · "}
+              {new Intl.DateTimeFormat("pt-AO", { dateStyle: "short", timeStyle: "short" }).format(
+                new Date(event.created_at),
+              )}
+            </p>
+            {event.reason ? (
+              <p className="mt-1 text-xs text-muted-foreground">Motivo: {event.reason}</p>
+            ) : null}
+          </li>
+        ))}
+      </ul>
+    </div>
   );
 }
 

@@ -982,6 +982,33 @@ export const upsertTermGradesBatch = createServerFn({ method: "POST" })
     );
     const db = await loadSgaAdminClient();
     await assertTermOpen(db, membership.schoolId, data.term);
+    // A escala vem do modelo de avaliação activo (o esquema só limita a 0–20).
+    const { data: rule } = await db
+      .from("assessment_rule_sets")
+      .select("grading_scale_id")
+      .eq("school_id", membership.schoolId)
+      .eq("code", "DEFAULT")
+      .eq("status", "active")
+      .order("version", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (rule?.grading_scale_id) {
+      const { data: scale } = await db
+        .from("grading_scales")
+        .select("minimum_value, maximum_value")
+        .eq("school_id", membership.schoolId)
+        .eq("id", rule.grading_scale_id)
+        .maybeSingle();
+      if (scale) {
+        const min = Number(scale.minimum_value);
+        const max = Number(scale.maximum_value);
+        const outside = data.rows.some((row) =>
+          [row.mac, row.npp, row.npt].some((value) => value < min || value > max),
+        );
+        if (outside)
+          throw new Error(`As notas têm de estar entre ${min} e ${max} (escala do modelo).`);
+      }
+    }
     return upsertSgaTermGradesBatch({
       db,
       schoolId: membership.schoolId,
@@ -1424,7 +1451,7 @@ export const listAssessments = createServerFn({ method: "GET" })
     let query = db
       .from("siga_assessment_items")
       .select(
-        "id, class_group_id, subject_id, term, name, kind, component, assessed_on, max_score, counts_toward_pauta, allow_recovery, description, updated_at",
+        "id, class_group_id, subject_id, term, name, kind, component, assessed_on, starts_at, duration_minutes, purpose, max_score, counts_toward_pauta, allow_recovery, description, updated_at",
       )
       .eq("school_id", membership.schoolId)
       .order("assessed_on", { ascending: true });
@@ -1477,6 +1504,9 @@ export const createAssessment = createServerFn({ method: "POST" })
         kind: data.kind,
         component: data.component,
         assessed_on: data.assessedOn ?? null,
+        starts_at: data.startsAt ?? null,
+        duration_minutes: data.durationMinutes ?? null,
+        purpose: data.purpose ?? null,
         max_score: data.maxScore,
         counts_toward_pauta: data.countsTowardPauta,
         allow_recovery: data.allowRecovery,
@@ -1646,6 +1676,9 @@ export const updateAssessmentItem = createServerFn({ method: "POST" })
         kind: data.kind,
         component: data.component,
         assessed_on: data.assessedOn ?? null,
+        starts_at: data.startsAt ?? null,
+        duration_minutes: data.durationMinutes ?? null,
+        purpose: data.purpose ?? null,
         max_score: data.maxScore,
         counts_toward_pauta: data.countsTowardPauta,
         allow_recovery: data.allowRecovery,

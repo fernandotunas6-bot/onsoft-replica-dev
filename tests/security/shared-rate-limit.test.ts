@@ -32,3 +32,21 @@ describe("limite de tentativas partilhado", () => {
     expect(await consumeRateLimit([key], opts, unavailable)).toBe(false);
   });
 });
+
+describe("operações públicas usam o limite partilhado entre instâncias", () => {
+  it.each([
+    "src/features/access/server.ts",
+    "src/features/otp/otp-dispatcher.ts",
+    "src/features/saas/public-signup.ts",
+    "src/features/documents/verification.ts",
+  ])("%s", async (file) => {
+    const { readFileSync } = await import("node:fs");
+    expect(readFileSync(file, "utf8")).toMatch(/consumeRateLimit\(/);
+  });
+
+  it("o envio de OTP já não conta só em memória", async () => {
+    const { readFileSync } = await import("node:fs");
+    const source = readFileSync("src/features/otp/otp-dispatcher.ts", "utf8");
+    expect(source).not.toMatch(/checkRateLimit\(|recordRateLimitAttempt\(/);
+  });
+});

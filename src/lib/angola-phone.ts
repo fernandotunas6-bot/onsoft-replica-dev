@@ -30,3 +30,15 @@ export function formatAngolaPhone(value: string): string {
   const local = compact.slice(4);
   return `+244 ${local.slice(0, 3)} ${local.slice(3, 6)} ${local.slice(6)}`;
 }
+
+/**
+ * Telefone para gravar: angolano normalizado (+2449XXXXXXXX) ou internacional
+ * com indicativo (+ e 8 a 15 dígitos). Devolve null se não for nenhum dos dois —
+ * a base recusaria o valor com uma mensagem que o utilizador não percebe.
+ */
+export function normalizeStoredPhone(value: string): string | null {
+  const angola = validateAngolaPhone(value);
+  if (angola.ok && angola.compact) return angola.compact;
+  const international = value.replace(/[\s().-]/g, "");
+  return /^\+[1-9]\d{7,14}$/.test(international) ? international : null;
+}

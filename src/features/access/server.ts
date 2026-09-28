@@ -97,9 +97,9 @@ export async function otherSchoolAccess(
         "membership_id",
         rows.map((m) => m.id),
       );
-    if (roleError) {
-      throw new Error(`Não foi possível confirmar os cargos noutras escolas: ${roleError.message}`);
-    }
+    // Sem conseguir ler os papéis, recusa-se (como se fosse administrador).
+    if (roleError) return { hasOtherActiveSchools: otherActive.length > 0, adminAnywhere: true };
+
     adminAnywhere = ((roleRows ?? []) as Array<{ roles?: { code?: string } | null }>).some((r) =>
       isAdministratorRole(String(r.roles?.code ?? "")),
     );
@@ -572,16 +572,14 @@ export const resendSystemInvite = createServerFn({ method: "POST" })
       throw new Error("Esta conta também dá acesso a outra escola. Use Enviar E-mail.");
     }
     if (!isAdministrator) {
-      // Mesma desambiguação e mesma razão de lançar: com o erro engolido,
+      // Mesma desambiguação e mesma razão de não engolir o erro: com ele engolido,
       // `isStaff` dava falso e o bloqueio abaixo nunca chegava a acontecer.
       const { data: targetRoles, error: targetRolesError } = await admin
         .from("member_roles")
         .select("roles!member_roles_school_id_role_id_fkey(code)")
         .eq("membership_id", membership.id);
       if (targetRolesError) {
-        throw new Error(
-          `Não foi possível confirmar o cargo desta conta: ${targetRolesError.message}`,
-        );
+        throw new Error("Não foi possível confirmar o perfil desta conta. Use Enviar E-mail.");
       }
       const staffCodes = [
         ...mapAppRoleToSgaCodes("Secretaria"),

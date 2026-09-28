@@ -15,7 +15,17 @@ export type PersonalNotification = {
   eventType: string;
   read: boolean;
   createdAt: string;
+  /** Destino dentro do painel, quando o aviso leva a algum lado. */
+  href: string | null;
 };
+
+/** Só caminhos internos simples: nada de outro domínio nem esquemas. */
+export function safeNotificationHref(payload: unknown): string | null {
+  const href =
+    payload && typeof payload === "object" ? (payload as { href?: unknown }).href : undefined;
+  if (typeof href !== "string") return null;
+  return /^\/(?!\/)[A-Za-z0-9\-_/]*$/.test(href) && href.length <= 200 ? href : null;
+}
 
 const isMissing = (message?: string) =>
   /schema cache|does not exist|42P01|PGRST205/i.test(message ?? "");
@@ -26,7 +36,7 @@ export const listMyNotifications = createServerFn({ method: "GET" })
     const db = sgaClient(context.supabase);
     const { data, error } = await db
       .from("notifications")
-      .select("id, title, body, event_type, status, read_at, created_at")
+      .select("id, title, body, event_type, status, read_at, created_at, payload")
       .eq("user_id", context.userId)
       .eq("channel", "in_app")
       .order("created_at", { ascending: false })
@@ -42,6 +52,7 @@ export const listMyNotifications = createServerFn({ method: "GET" })
       eventType: String(row.event_type ?? ""),
       read: row.status === "read" || Boolean(row.read_at),
       createdAt: String(row.created_at),
+      href: safeNotificationHref(row.payload),
     }));
     return { items, unread: items.filter((item) => !item.read).length };
   });

@@ -29,6 +29,16 @@ async function requirePaymentAdmin(userId: string, mode: "read" | "write" = "rea
   return membership;
 }
 
+/**
+ * Mudar para onde vai um salário e confirmar que foi pago mexem em dinheiro:
+ * o mesmo 2FA que registar um pagamento de propina (register_payment).
+ */
+function requireAal2(claims: Record<string, unknown>, action: string) {
+  if (claims["aal"] !== "aal2") {
+    throw new Error(`${action} exige 2FA activo nesta sessão.`);
+  }
+}
+
 function missingPaymentSchema(error: { code?: string; message?: string } | null) {
   return Boolean(
     error &&
@@ -43,6 +53,7 @@ export const upsertHrPaymentDestination = createServerFn({ method: "POST" })
   .validator((input: unknown) => upsertHrPaymentDestinationInputSchema.parse(input))
   .handler(async ({ data, context }) => {
     const membership = await requirePaymentAdmin(context.userId, "write");
+    requireAal2(context.claims, "Alterar o destino de pagamento de um salário");
     const db = await loadSgaAdminClient();
     const { data: employment, error: employmentError } = await db
       .from("hr_employments")
@@ -57,7 +68,7 @@ export const upsertHrPaymentDestination = createServerFn({ method: "POST" })
 
     const { data: existing, error: existingError } = await db
       .from("hr_payment_destinations")
-      .select("id")
+      .select("id, method, iban, account_number, destination_reference, beneficiary_name")
       .eq("school_id", membership.schoolId)
       .eq("employment_id", data.employmentId)
       .eq("is_primary", true)
@@ -81,6 +92,56 @@ export const upsertHrPaymentDestination = createServerFn({ method: "POST" })
       updated_by: context.userId,
     };
 
+    const label = (row: {
+      method?: unknown;
+      iban?: unknown;
+      account_number?: unknown;
+      destination_reference?: unknown;
+    }) =>
+      maskPaymentDestinationLabel(
+        row.iban ? String(row.iban) : null,
+        row.account_number ? String(row.account_number) : null,
+        row.destination_reference ? String(row.destination_reference) : null,
+        String(row.method ?? ""),
+      );
+    // Quem mudou, quando, de onde para onde (sempre mascarado): a troca de
+    // IBAN é o caminho clássico para desviar um salário.
+    const audit = async (destinationId: string) => {
+      const { error: auditError } = await db.from("audit_logs").insert({
+        school_id: membership.schoolId,
+        actor_user_id: context.userId,
+        action: "hr.payment_destination.changed",
+        entity_type: "hr_payment_destination",
+        entity_id: destinationId,
+        metadata: {
+          employment_id: data.employmentId,
+          before: existing
+            ? {
+                method: String(existing.method ?? ""),
+                destination: label(existing),
+                beneficiary: String(existing.beneficiary_name ?? ""),
+              }
+            : null,
+          after: {
+            method: data.method,
+            destination: label({
+              method: data.method,
+              iban: data.iban,
+              account_number: data.accountNumber,
+              destination_reference: data.destinationReference,
+            }),
+            beneficiary: data.beneficiaryName,
+          },
+        },
+      });
+      if (auditError) {
+        throw publicDatabaseError(
+          auditError,
+          "O destino foi guardado, mas não foi possível registar a alteração na auditoria.",
+        );
+      }
+    };
+
     if (existing?.id) {
       const { error } = await db
         .from("hr_payment_destinations")
@@ -89,6 +150,7 @@ export const upsertHrPaymentDestination = createServerFn({ method: "POST" })
         .eq("school_id", membership.schoolId);
       if (error)
         throw publicDatabaseError(error, "Não foi possível actualizar o destino de pagamento.");
+      await audit(String(existing.id));
       return { saved: true, id: String(existing.id) };
     }
 
@@ -98,6 +160,7 @@ export const upsertHrPaymentDestination = createServerFn({ method: "POST" })
       .select("id")
       .single();
     if (error) throw publicDatabaseError(error, "Não foi possível guardar o destino de pagamento.");
+    await audit(String(created.id));
     return { saved: true, id: String(created.id) };
   });
 
@@ -230,6 +293,7 @@ export const confirmPayrollPaymentItem = createServerFn({ method: "POST" })
   .validator((input: unknown) => confirmPayrollPaymentItemInputSchema.parse(input))
   .handler(async ({ data, context }) => {
     const membership = await requirePaymentAdmin(context.userId, "write");
+    requireAal2(context.claims, "Confirmar um pagamento salarial");
     const db = await loadSgaAdminClient();
 
     const { data: item, error: itemError } = await db

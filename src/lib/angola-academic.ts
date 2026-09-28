@@ -336,6 +336,15 @@ export const assessmentComponents = [
 
 export type AssessmentComponentId = (typeof assessmentComponents)[number]["id"];
 
+/** Para que serve a prova: diagnosticar, acompanhar ou classificar. */
+export const assessmentPurposes = [
+  { id: "diagnostic", label: "Diagnóstica" },
+  { id: "formative", label: "Formativa" },
+  { id: "summative", label: "Sumativa" },
+] as const;
+
+export type AssessmentPurposeId = (typeof assessmentPurposes)[number]["id"];
+
 export const pautaSituations = [
   { id: "todos", label: "Todos" },
   { id: "pendente", label: "Pendente" },
@@ -359,11 +368,18 @@ export function recursoFinal(original: number | null, recurso: number | null) {
   return (original + recurso) / 2;
 }
 
-export function parsePautaScore(value: string) {
+/**
+ * Nota escrita numa célula da pauta. A escala vem do modelo de avaliação
+ * activo; 0–20 só quando a escola ainda não tem modelo.
+ */
+export function parsePautaScore(
+  value: string,
+  scale: { minimum: number; maximum: number } = { minimum: 0, maximum: 20 },
+) {
   const trimmed = value.trim().replace(",", ".");
   if (!trimmed || trimmed === "—") return null;
   const parsed = Number(trimmed);
   if (!Number.isFinite(parsed)) return Number.NaN;
-  if (parsed < 0 || parsed > 20) return Number.NaN;
+  if (parsed < scale.minimum || parsed > scale.maximum) return Number.NaN;
   return parsed;
 }

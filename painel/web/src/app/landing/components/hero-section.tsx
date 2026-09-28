@@ -1,6 +1,8 @@
 "use client"
 
+import { useState } from 'react'
 import { ArrowRight, Play, Star } from 'lucide-react'
+import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { DotPattern } from '@/components/dot-pattern'
@@ -8,6 +10,7 @@ import { assetUrl } from "@/lib/utils"
 import { getCreateSchoolUrl, getPricingUrl } from "@/lib/ecosystem-urls"
 
 export function HeroSection() {
+  const [videoOpen, setVideoOpen] = useState(false)
   return (
     <section id="hero" className="relative overflow-hidden bg-gradient-to-b from-background to-background/80 pt-16 sm:pt-20 pb-16">
       <div className="absolute inset-0">
@@ -44,11 +47,17 @@ export function HeroSection() {
                 <ArrowRight className="ml-2 h-4 w-4" />
               </a>
             </Button>
-            <Button variant="outline" size="lg" className="text-base cursor-pointer" asChild>
-              <a href={getPricingUrl()}>
-                <Play className="mr-2 h-4 w-4" />
-                Ver planos
-              </a>
+            <Button
+              variant="outline"
+              size="lg"
+              className="text-base cursor-pointer"
+              onClick={() => setVideoOpen(true)}
+            >
+              <Play className="mr-2 h-4 w-4" />
+              Ver o vídeo
+            </Button>
+            <Button variant="ghost" size="lg" className="text-base cursor-pointer" asChild>
+              <a href={getPricingUrl()}>Ver planos</a>
             </Button>
           </div>
         </div>
@@ -60,7 +69,7 @@ export function HeroSection() {
             <div className="relative rounded-xl border bg-card shadow-2xl">
               <img
                 src={assetUrl("dashboard-light.png")}
-                alt="Pré-visualização do painel SIGA Plus — modo claro"
+                alt="Painel do director no SIGA Plus: o dia na escola, o ano lectivo e os números da escola"
                 className="w-full rounded-xl object-cover block dark:hidden"
                 fetchPriority="high"
                 decoding="async"
@@ -68,7 +77,7 @@ export function HeroSection() {
 
               <img
                 src={assetUrl("dashboard-dark.png")}
-                alt="Pré-visualização do painel SIGA Plus — modo escuro"
+                alt="Painel do director no SIGA Plus, em modo escuro"
                 className="w-full rounded-xl object-cover hidden dark:block"
                 decoding="async"
               />
@@ -79,17 +88,32 @@ export function HeroSection() {
                 <Button
                   size="lg"
                   className="rounded-full h-16 w-16 p-0 cursor-pointer hover:scale-105 transition-transform duration-150"
-                  asChild
+                  onClick={() => setVideoOpen(true)}
+                  aria-label="Ver o vídeo do SIGA Plus"
                 >
-                  <a href={getPricingUrl()} aria-label="Ver planos SIGA Plus">
-                    <Play className="h-6 w-6 fill-current" />
-                  </a>
+                  <Play className="h-6 w-6 fill-current" />
                 </Button>
               </div>
             </div>
           </div>
         </div>
       </div>
+
+      <Dialog open={videoOpen} onOpenChange={setVideoOpen}>
+        <DialogContent className="max-w-4xl overflow-hidden p-0 sm:max-w-4xl">
+          <DialogTitle className="sr-only">SIGA Plus em vídeo</DialogTitle>
+          {videoOpen ? (
+            <video
+              className="aspect-video w-full bg-black"
+              src={assetUrl("media/siga-plus.mp4")}
+              controls
+              autoPlay
+              playsInline
+              preload="metadata"
+            />
+          ) : null}
+        </DialogContent>
+      </Dialog>
     </section>
   )
 }

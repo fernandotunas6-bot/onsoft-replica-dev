@@ -9,6 +9,7 @@ export type CapabilityActionKind =
   | "copy-nif"
   | "copy-einvoice"
   | "copy-meeting-zoom"
+  | "copy-meeting-teams"
   | "open-official"
   | "open-whatsapp"
   | "navigate-notas"
@@ -25,13 +26,28 @@ export const capabilityActionKind: Record<string, CapabilityActionKind> = {
   "unitel.receipts": "copy-unitel-ref",
   "whatsapp.class_groups": "open-whatsapp",
   "whatsapp.notices": "navigate-comunicacoes",
+  "classroom.classes": "open-official",
+  "classroom.work": "open-official",
+  "moodle.courses": "open-official",
+  "moodle.grades": "navigate-notas",
+  "canvas.courses": "open-official",
+  "canvas.assignments": "navigate-notas",
+  "m365.outlook": "navigate-comunicacoes",
+  "m365.onedrive": "navigate-arquivos",
   "gcal.subscribe": "ics-google",
   "apple.ics": "ics-apple",
   "resend.send": "navigate-comunicacoes",
   "resend.invoices": "copy-einvoice",
   "resend.documents": "open-official",
+  "gmail.welcome": "navigate-comunicacoes",
+  "gmail.credentials": "open-official",
+  "firebase.crashlytics": "navigate-notas",
+  "firebase.telemetry": "navigate-comunicacoes",
   "zoom.rooms": "copy-meeting-zoom",
   "zoom.notices": "navigate-comunicacoes",
+  "teams.meetings": "copy-meeting-teams",
+  "teams.classes": "open-official",
+  "turnitin.originality": "navigate-notas",
   "sige.export_classes": "export-sige-classes",
   "sige.export_students": "export-sige-students",
   "agt.nif": "copy-nif",
@@ -48,10 +64,18 @@ export function providerIdFromCapability(capabilityId: string) {
     multicaixa: "multicaixa_express",
     unitel: "unitel_money",
     whatsapp: "whatsapp_business",
+    classroom: "google_classroom",
+    moodle: "moodle",
+    canvas: "canvas",
+    m365: "microsoft_365_education",
     gcal: "google_calendar",
     apple: "apple_calendar",
     resend: "resend_email",
+    gmail: "gmail_workspace",
+    firebase: "firebase_analytics",
     zoom: "zoom",
+    teams: "teams",
+    turnitin: "turnitin",
     sige: "sige",
     agt: "agt",
   };
@@ -70,9 +94,9 @@ export function paymentReference(kind: "EMIS" | "UML") {
   return `${kind}${stamp}`;
 }
 
-/** Sala de recurso quando o OAuth do Zoom nao devolve uma reuniao real. */
-export function meetingRoomLink() {
-  return "https://zoom.us/j/90011122233";
+export function meetingRoomLink(provider: "zoom" | "teams") {
+  if (provider === "zoom") return "https://zoom.us/j/90011122233";
+  return "https://teams.microsoft.com/l/meetup-join/siga-aula-virtual";
 }
 
 export function whatsappHref(phoneRaw: string, message?: string) {
@@ -90,6 +114,12 @@ export async function copyText(text: string): Promise<boolean> {
   } catch {
     return false;
   }
+}
+
+export function classroomCourseHref(codeOrUrl?: string): string {
+  if (!codeOrUrl) return "https://classroom.google.com/";
+  if (codeOrUrl.startsWith("https://")) return codeOrUrl;
+  return `https://classroom.google.com/c/${encodeURIComponent(codeOrUrl)}`;
 }
 
 export function actionLabelForCapability(cap: IntegrationCapability): string {
@@ -119,6 +149,8 @@ export function actionLabelForCapability(cap: IntegrationCapability): string {
       return "Copiar NIF";
     case "copy-meeting-zoom":
       return "Copiar link Zoom";
+    case "copy-meeting-teams":
+      return "Copiar link Teams";
     case "export-sige-classes":
       return "Exportar turmas SIGE";
     case "export-sige-students":

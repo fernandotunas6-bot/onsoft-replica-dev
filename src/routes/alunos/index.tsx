@@ -1558,16 +1558,19 @@ function StudentsPage() {
                       const yearId = String(group?.academic_year_id ?? "");
                       if (!group || !yearId)
                         throw new Error("Seleccione uma turma com ano lectivo.");
-                      await batchAssignClass({
+                      const result = await batchAssignClass({
                         data: {
                           studentIds: selectedIds,
                           classGroupId: group.id,
                           academicYearId: yearId,
                         },
                       });
-                      toast.success(
-                        `${selectedIds.length} alunos matriculados na turma ${group.name}.`,
-                      );
+                      toast.success(`${result.count} alunos na turma ${result.className}.`);
+                      if (result.failed.length) {
+                        toast.warning(
+                          `${result.failed.length} não ficaram matriculados: ${result.failed[0]?.message ?? ""}`,
+                        );
+                      }
                       setSelectedIds([]);
                       await queryClient.invalidateQueries({ queryKey: ["students", "search"] });
                     }}

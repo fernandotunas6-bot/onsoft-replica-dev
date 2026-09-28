@@ -237,7 +237,11 @@ async function runProvisioning(
       commercial_name: data.commercial_name || data.name,
       nif: data.nif || null,
       address: data.address || null,
-      city: data.city || "Luanda",
+      city: data.city || data.municipality || "Luanda",
+      province: data.province || null,
+      municipality: data.municipality || null,
+      commune: data.commune || null,
+      neighborhood: data.neighborhood || null,
       phone: data.phone || data.contact_phone || null,
       email: data.email || data.contact_email,
       logo_url: data.logo_url || null,
@@ -352,6 +356,21 @@ async function runProvisioning(
     slug: data.slug,
     adminUserId,
   });
+
+  // Natureza da instituição escolhida no registo: vai para o mesmo sítio que
+  // Definições → Escola lê e grava. Falhar aqui não desfaz a escola.
+  if (data.school_type && adminUserId) {
+    const { error: institutionErr } = await db.from("school_settings").insert({
+      school_id: schoolId,
+      domain: "institution",
+      version: 1,
+      value: { school_type: data.school_type },
+      changed_by: adminUserId,
+    });
+    if (institutionErr) {
+      console.warn("[provisioning] natureza da instituição:", institutionErr.message);
+    }
+  }
 
   // Confirmar o conjunto antes de declarar sucesso. Cada passo acima já lança
   // em caso de erro, mas nada afirmava o resultado — e uma escola meio-criada é

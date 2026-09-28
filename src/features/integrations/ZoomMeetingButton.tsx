@@ -63,7 +63,7 @@ export function ZoomMeetingButton({
       }
 
       // Fallback gracioso se não houver attendanceSessionId fornecida
-      const fallbackUrl = meetingRoomLink();
+      const fallbackUrl = meetingRoomLink("zoom");
       window.open(fallbackUrl, "_blank", "noopener,noreferrer");
       toast.success("A abrir sala Zoom", { description: fallbackUrl });
     } catch (err) {
@@ -74,7 +74,7 @@ export function ZoomMeetingButton({
           description:
             "Conecte o Zoom da escola em Definições → Integrações para gerar reuniões automáticas.",
         });
-        const fallbackUrl = meetingRoomLink();
+        const fallbackUrl = meetingRoomLink("zoom");
         window.open(fallbackUrl, "_blank", "noopener,noreferrer");
       } else {
         toast.error("Não foi possível gerar a reunião Zoom", {

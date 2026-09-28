@@ -49,7 +49,7 @@ describe("integration install packages", () => {
   it("builds catalog-ready payment refs and meeting links", () => {
     expect(paymentReference("EMIS")).toMatch(/^EMIS\d{9}$/);
     expect(paymentReference("UML")).toMatch(/^UML\d{9}$/);
-    expect(meetingRoomLink()).toContain("zoom.us/j/");
+    expect(meetingRoomLink("zoom")).toContain("zoom.us/j/");
     expect(whatsappHref("923 000 111", "Olá")).toBe("https://wa.me/923000111?text=Ol%C3%A1");
   });
 

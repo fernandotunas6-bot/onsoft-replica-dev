@@ -17,6 +17,7 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { publicDatabaseError } from "@/integrations/supabase/server-error";
 import { loadSgaAdminClient, resolveSgaMembershipAdmin } from "@/integrations/supabase/sga-admin";
 import { checkRateLimit, isRateLimitBypassed, recordRateLimitAttempt } from "@/lib/rate-limit";
+import { consumeRateLimit } from "@/lib/shared-rate-limit";
 
 export const ISSUED_DOCUMENT_ACTION = "documents.issued";
 const ISSUER_ROLES = ["Administrador", "Secretaria", "Tesouraria", "Professor"];
@@ -122,11 +123,13 @@ export const verifyIssuedDocument = createServerFn({ method: "GET" })
   .handler(async ({ data }): Promise<DocumentVerification> => {
     const ip = getRequestIP({ xForwardedFor: true }) ?? "unknown";
     const rateLimitKey = `document_verify:${ip}`;
-    if (!isRateLimitBypassed(rateLimitKey)) {
-      if (!checkRateLimit([rateLimitKey], VERIFY_RATE_LIMIT)) {
-        throw new Error("Demasiadas verificações. Aguarde um minuto.");
-      }
-      recordRateLimitAttempt([rateLimitKey], VERIFY_RATE_LIMIT);
+    // Partilhado entre instâncias: adivinhar códigos de documentos espalhando
+    // pedidos pelas instâncias não foge ao limite.
+    if (
+      !isRateLimitBypassed(rateLimitKey) &&
+      !(await consumeRateLimit([rateLimitKey], VERIFY_RATE_LIMIT))
+    ) {
+      throw new Error("Demasiadas verificações. Aguarde um minuto.");
     }
 
     const code = normalizeVerificationCode(data.code);

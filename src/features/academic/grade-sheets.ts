@@ -17,6 +17,7 @@ import {
 import { sgaClient } from "@/integrations/supabase/sga";
 import {
   GRADE_SHEET_STATUSES,
+  PRE_PAUTA_GATED_STATUSES,
   buildPrePautaChecks,
   canRebuildGradeSheet,
   type GradeSheetStatus,
@@ -135,6 +136,14 @@ export type GradeSheetDetail = {
     subjects: Array<{ subject: string; subjectId: string; average: number | null }>;
   }>;
   checks: PrePautaCheck[];
+  /** Versões oficiais anteriores, guardadas antes de cada rectificação. */
+  versions: Array<{
+    version: number;
+    status: string;
+    reason: string | null;
+    archivedAt: string;
+    rows: number;
+  }>;
 };
 
 /** Dados da pré-pauta de uma turma num período (ou no ano, pauta anual). */
@@ -143,6 +152,7 @@ async function loadPrePauta(
   schoolId: string,
   classGroupId: string,
   termId: string | null,
+  builtAt: string | null = null,
 ): Promise<PrePautaCheck[]> {
   const [{ data: cs }, { count: enrolled }, { data: rule }, { data: enrollments }] =
     await Promise.all([
@@ -160,7 +170,7 @@ async function loadPrePauta(
         .in("status", ["active", "pending"]),
       db
         .from("assessment_rule_sets")
-        .select("id")
+        .select("id, grading_scale_id")
         .eq("school_id", schoolId)
         .eq("status", "active")
         .eq("code", "DEFAULT")
@@ -173,6 +183,19 @@ async function loadPrePauta(
         .eq("class_group_id", classGroupId)
         .in("status", ["active", "pending"]),
     ]);
+  // Escala do modelo activo; 0–20 só se o modelo não tiver escala.
+  const { data: scaleRow } = rule?.grading_scale_id
+    ? await db
+        .from("grading_scales")
+        .select("minimum_value, maximum_value")
+        .eq("school_id", schoolId)
+        .eq("id", str(rule.grading_scale_id))
+        .maybeSingle()
+    : { data: null };
+  const scale = {
+    minimum: scaleRow ? Number(scaleRow.minimum_value) : 0,
+    maximum: scaleRow ? Number(scaleRow.maximum_value) : 20,
+  };
   const csRows = (cs ?? []) as Row[];
   const enrollmentIds = (enrollments ?? []).map((e) => str(e.id));
   const subjectIds = [...new Set(csRows.map((c) => str(c["subject_id"])))];
@@ -203,7 +226,7 @@ async function loadPrePauta(
     itemRows.length && enrollmentIds.length
       ? await db
           .from("grade_scores")
-          .select("grade_item_id, enrollment_id, score, pending_score")
+          .select("grade_item_id, enrollment_id, score, pending_score, updated_at")
           .eq("school_id", schoolId)
           .in(
             "grade_item_id",
@@ -252,16 +275,41 @@ async function loadPrePauta(
       missingMac: Math.max(0, enrollmentIds.length - scoredFor("MAC")),
       missingNpt: Math.max(0, enrollmentIds.length - scoredFor("NPT")),
       outOfScale: allScores.filter(
-        (s) => s["score"] != null && (Number(s["score"]) < 0 || Number(s["score"]) > 20),
+        (s) =>
+          s["score"] != null &&
+          (Number(s["score"]) < scale.minimum || Number(s["score"]) > scale.maximum),
       ).length,
       pendingChanges: allScores.filter((s) => s["pending_score"] != null).length,
     };
   });
+  const builtTime = builtAt ? Date.parse(builtAt) : Number.NaN;
   return buildPrePautaChecks({
     enrolled: enrolled ?? 0,
     hasActiveRule: Boolean(rule?.id),
     subjects: perSubject,
+    scale,
+    scoresChangedAfterBuild: Number.isNaN(builtTime)
+      ? null
+      : ((scores ?? []) as Row[]).filter((s) => Date.parse(str(s["updated_at"])) > builtTime)
+          .length,
   });
+}
+
+/**
+ * Quando a pauta foi gerada: as linhas são apagadas e refeitas em cada geração
+ * (`build_grade_sheet`). O `updated_at` da pauta não serve — muda também em
+ * cada mudança de estado e esconderia notas alteradas depois da geração.
+ */
+async function gradeSheetBuiltAt(db: Db, schoolId: string, sheetId: string) {
+  const { data } = await db
+    .from("grade_sheet_rows")
+    .select("created_at")
+    .eq("school_id", schoolId)
+    .eq("grade_sheet_id", sheetId)
+    .order("created_at", { ascending: true })
+    .limit(1)
+    .maybeSingle();
+  return data?.created_at ? str(data.created_at) : null;
 }
 
 const detailInput = z.object({ sheetId: z.string().uuid() });
@@ -320,7 +368,22 @@ export const getGradeSheetDetail = createServerFn({ method: "GET" })
       schoolId,
       str(sheet.class_group_id),
       sheet.kind === "term" ? str(sheet.term_id) : null,
+      await gradeSheetBuiltAt(db, schoolId, str(sheet.id)),
     );
+    // Tabela da migração 20260929130000; sem ela, a lista fica vazia.
+    const { data: versionRows } = await db
+      .from("grade_sheet_versions")
+      .select("version, status, reason, archived_at, snapshot")
+      .eq("school_id", schoolId)
+      .eq("grade_sheet_id", str(sheet.id))
+      .order("version", { ascending: false });
+    const versions = ((versionRows ?? []) as Row[]).map((v) => ({
+      version: Number(v.version),
+      status: str(v.status),
+      reason: v.reason ? str(v.reason) : null,
+      archivedAt: str(v.archived_at),
+      rows: Array.isArray(v.snapshot) ? v.snapshot.length : 0,
+    }));
     return {
       id: str(sheet.id),
       classGroupId: str(sheet.class_group_id),
@@ -359,6 +422,7 @@ export const getGradeSheetDetail = createServerFn({ method: "GET" })
         }))
         .sort((a, b) => a.studentName.localeCompare(b.studentName, "pt")),
       checks,
+      versions,
     };
   });
 
@@ -420,6 +484,35 @@ export const transitionGradeSheet = createServerFn({ method: "POST" })
       context.userId,
       [...READ_ROLES],
     );
+    // Pré-pauta obrigatória: submeter e homologar só com todas as verificações
+    // limpas. Antes eram só informativas — homologava-se com notas em falta,
+    // alterações pendentes ou uma pauta gerada antes das últimas notas.
+    if (PRE_PAUTA_GATED_STATUSES.includes(data.status)) {
+      const db = await loadSgaAdminClient();
+      const { data: sheet, error: sheetError } = await db
+        .from("grade_sheets")
+        .select("id, class_group_id, term_id, kind")
+        .eq("school_id", membership.schoolId)
+        .eq("id", data.sheetId)
+        .maybeSingle();
+      if (sheetError) throw publicDatabaseError(sheetError, "Não foi possível abrir a pauta.");
+      if (!sheet) throw new Error("Pauta não encontrada.");
+      const checks = await loadPrePauta(
+        db,
+        membership.schoolId,
+        str(sheet.class_group_id),
+        sheet.kind === "term" ? str(sheet.term_id) : null,
+        await gradeSheetBuiltAt(db, membership.schoolId, str(sheet.id)),
+      );
+      const failing = checks.filter((check) => !check.ok);
+      if (failing.length) {
+        throw new Error(
+          `A pré-pauta tem pendências: ${failing
+            .map((check) => (check.detail ? `${check.label} (${check.detail})` : check.label))
+            .join("; ")}.`,
+        );
+      }
+    }
     const { error } = await sgaClient(context.supabase).rpc("transition_grade_sheet", {
       school_id: membership.schoolId,
       grade_sheet_id: data.sheetId,

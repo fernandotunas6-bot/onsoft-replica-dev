@@ -101,8 +101,34 @@ export function teacherOwnsAttendanceSession(
   return Boolean(linkedTeacherId && sessionTeacherId && linkedTeacherId === sessionTeacherId);
 }
 
-async function recomputeStudentAttendanceRate(
-  db: Awaited<ReturnType<typeof loadSgaAdminClient>>,
+type AdminDb = Awaited<ReturnType<typeof loadSgaAdminClient>>;
+
+/**
+ * Recalcula a taxa de presença de vários alunos numa só instrução
+ * (`siga_recompute_attendance_rates`, migração 20260928230000). Antes eram duas
+ * idas à base por aluno, e a leitura sujeita ao limite de 1000 linhas do
+ * PostgREST. Se a função ainda não existir, faz o cálculo antigo aluno a aluno.
+ * A taxa é derivada: uma falha aqui não desfaz a chamada já gravada.
+ */
+async function recomputeAttendanceRates(db: AdminDb, schoolId: string, studentIds: string[]) {
+  const ids = [...new Set(studentIds)];
+  if (ids.length === 0) return;
+  const { error } = await db.rpc("siga_recompute_attendance_rates", {
+    p_school_id: schoolId,
+    p_student_ids: ids,
+  });
+  if (!error) return;
+  if (error.code !== "PGRST202" && error.code !== "42883") {
+    console.warn("[attendance] recálculo da taxa falhou:", error.message);
+    return;
+  }
+  for (const studentId of ids) {
+    await recomputeStudentAttendanceRateLegacy(db, schoolId, studentId);
+  }
+}
+
+async function recomputeStudentAttendanceRateLegacy(
+  db: AdminDb,
   schoolId: string,
   studentId: string,
 ) {
@@ -504,24 +530,29 @@ export const submitAttendanceCallBatch = createServerFn({ method: "POST" })
       throw new Error("A chamada inclui alunos que não estão matriculados nesta turma.");
     }
 
-    for (const item of data.records) {
-      const finalStatus =
-        data.markAllPresent && item.status === "not_registered" ? "present" : item.status;
-      await db.from("siga_attendance_records").upsert(
-        {
+    // Uma só escrita para a turma inteira. Antes era um upsert por aluno, com o
+    // erro ignorado: uma linha recusada pela base não impedia o "ok".
+    const now = new Date().toISOString();
+    if (data.records.length) {
+      const { error: upsertError } = await db.from("siga_attendance_records").upsert(
+        data.records.map((item) => ({
           school_id: membership.schoolId,
           session_id: session.id,
           student_id: item.studentId,
-          status: finalStatus,
+          status: data.markAllPresent && item.status === "not_registered" ? "present" : item.status,
           notes: item.notes ?? null,
           recorded_by: context.userId,
-          updated_at: new Date().toISOString(),
-        },
+          updated_at: now,
+        })),
         { onConflict: "session_id,student_id" },
       );
-
-      await recomputeStudentAttendanceRate(db, membership.schoolId, item.studentId);
+      if (upsertError) throw publicDatabaseError(upsertError, "Não foi possível gravar a chamada.");
     }
+    await recomputeAttendanceRates(
+      db,
+      membership.schoolId,
+      data.records.map((item) => item.studentId),
+    );
 
     await db
       .from("siga_attendance_sessions")
@@ -588,25 +619,33 @@ export const editFinalizedAttendanceCall = createServerFn({ method: "POST" })
       ]),
     );
 
-    for (const item of data.records) {
-      const prev = recordMap.get(item.studentId);
-      const oldStatus = prev?.status ?? "not_registered";
+    const changes = data.records
+      .map((item) => {
+        const prev = recordMap.get(item.studentId);
+        return { item, prev, oldStatus: prev?.status ?? "not_registered" };
+      })
+      .filter(({ item, oldStatus }) => oldStatus !== item.status);
 
-      if (oldStatus !== item.status) {
-        await db.from("siga_attendance_records").upsert(
-          {
-            school_id: membership.schoolId,
-            session_id: session.id,
-            student_id: item.studentId,
-            status: item.status,
-            notes: item.notes ?? null,
-            recorded_by: context.userId,
-            updated_at: new Date().toISOString(),
-          },
-          { onConflict: "session_id,student_id" },
-        );
+    if (changes.length) {
+      const now = new Date().toISOString();
+      const { error: upsertError } = await db.from("siga_attendance_records").upsert(
+        changes.map(({ item }) => ({
+          school_id: membership.schoolId,
+          session_id: session.id,
+          student_id: item.studentId,
+          status: item.status,
+          notes: item.notes ?? null,
+          recorded_by: context.userId,
+          updated_at: now,
+        })),
+        { onConflict: "session_id,student_id" },
+      );
+      if (upsertError) {
+        throw publicDatabaseError(upsertError, "Não foi possível corrigir a chamada.");
+      }
 
-        await db.from("siga_attendance_audits").insert({
+      const { error: auditError } = await db.from("siga_attendance_audits").insert(
+        changes.map(({ item, prev, oldStatus }) => ({
           school_id: membership.schoolId,
           session_id: session.id,
           attendance_record_id: prev?.id ?? null,
@@ -615,10 +654,16 @@ export const editFinalizedAttendanceCall = createServerFn({ method: "POST" })
           new_status: item.status,
           reason: data.reason.trim(),
           changed_by: context.userId,
-        });
+        })),
+      );
+      if (auditError)
+        console.warn("[attendance] auditoria da correcção falhou:", auditError.message);
 
-        await recomputeStudentAttendanceRate(db, membership.schoolId, item.studentId);
-      }
+      await recomputeAttendanceRates(
+        db,
+        membership.schoolId,
+        changes.map(({ item }) => item.studentId),
+      );
     }
 
     return { ok: true, editedCount: data.records.length };
@@ -703,7 +748,7 @@ export const reviewAttendanceJustification = createServerFn({ method: "POST" })
         .update({ status: "excused", updated_at: new Date().toISOString() })
         .eq("id", just.attendance_record_id);
 
-      await recomputeStudentAttendanceRate(db, membership.schoolId, just.student_id);
+      await recomputeAttendanceRates(db, membership.schoolId, [just.student_id]);
     }
 
     return { ok: true, status: data.status };

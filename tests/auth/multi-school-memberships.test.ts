@@ -74,9 +74,15 @@ describe("Multi-School Memberships & Roles Architecture", () => {
               select: vi.fn().mockReturnThis(),
               in: vi.fn().mockResolvedValue({
                 data: [
-                  { membership_id: "mem-1", role_id: "role-teacher" },
-                  { membership_id: "mem-2", role_id: "role-director" },
-                  { membership_id: "mem-3", role_id: "role-guardian" },
+                  { membership_id: "mem-1", roles: { code: "teacher", name: "Professor" } },
+                  {
+                    membership_id: "mem-2",
+                    roles: { code: "owner", name: "Diretor / Proprietário" },
+                  },
+                  {
+                    membership_id: "mem-3",
+                    roles: { code: "guardian", name: "Encarregado de Educação" },
+                  },
                 ],
                 error: null,
               }),
@@ -160,8 +166,8 @@ describe("Multi-School Memberships & Roles Architecture", () => {
               select: vi.fn().mockReturnThis(),
               in: vi.fn().mockResolvedValue({
                 data: [
-                  { membership_id: "mem-1", role_id: "role-teacher" },
-                  { membership_id: "mem-2", role_id: "role-admin" },
+                  { membership_id: "mem-1", roles: { code: "teacher", name: "Professor" } },
+                  { membership_id: "mem-2", roles: { code: "admin", name: "Administrador" } },
                 ],
                 error: null,
               }),

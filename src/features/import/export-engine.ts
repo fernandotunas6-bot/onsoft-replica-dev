@@ -948,30 +948,22 @@ export async function exportSchoolData(
     }
 
     if (mod === "notas") {
-      // grade_scores não tem FK directa para gradebooks -- a relação passa por
-      // grade_items.gradebook_id. O embed tem de aninhar gradebooks dentro de
-      // grade_items; embutir os dois lado a lado fazia o PostgREST recusar a
-      // consulta inteira ("Could not find a relationship between grade_scores and
-      // gradebooks"), e o ecrã de exportação ficava vazio sem nenhum erro visível.
       const scoreQuery = db
         .from("grade_scores")
         .select(
-          "id,grade_item_id,enrollment_id,score,status,note,grade_items(code,name,gradebooks!inner(term_id,class_subject_id,class_group_id))",
+          "id,grade_item_id,enrollment_id,score,status,note,grade_items!inner(code,name,gradebooks!inner(term_id,class_subject_id,class_group_id))",
         )
         .eq("school_id", options.schoolId);
       const { data, error } = await scoreQuery;
       if (error) throw new Error(`Não foi possível exportar notas: ${error.message}`);
       const rows = data || [];
+      // A nota liga-se ao diário pelo item de avaliação: `grade_scores` não
+      // tem `gradebook_id` (a relação directa dava 400 no PostgREST).
+      const gradebookOf = (r: any) => first(first(r.grade_items as any)?.gradebooks as any);
       counts["notas"] = rows.length;
       totalRecords += rows.length;
       const enrIds = [...new Set(rows.map((r: any) => String(r.enrollment_id)))];
-      const csIds = [
-        ...new Set(
-          rows.map((r: any) =>
-            String(first(first(r.grade_items as any)?.gradebooks as any)?.class_subject_id),
-          ),
-        ),
-      ];
+      const csIds = [...new Set(rows.map((r: any) => String(gradebookOf(r)?.class_subject_id)))];
       const { data: enrollments } = enrIds.length
         ? await db.from("enrollments").select("id,student_id,class_group_id").in("id", enrIds)
         : { data: [] };
@@ -980,24 +972,26 @@ export async function exportSchoolData(
         : { data: [] };
       const studentIds = [...new Set((enrollments || []).map((r: any) => String(r.student_id)))];
       const subjectIds = [...new Set((css || []).map((r: any) => String(r.subject_id)))];
-      const termIds = [
-        ...new Set(
-          rows.map((r: any) =>
-            String(first(first(r.grade_items as any)?.gradebooks as any)?.term_id),
-          ),
-        ),
-      ];
-      const [{ data: students }, { data: subjects }, { data: terms }] = await Promise.all([
-        studentIds.length
-          ? db.from("students").select("id,student_number").in("id", studentIds)
-          : Promise.resolve({ data: [] as any[] }),
-        subjectIds.length
-          ? db.from("subjects").select("id,name,code").in("id", subjectIds)
-          : Promise.resolve({ data: [] as any[] }),
-        termIds.length
-          ? db.from("terms").select("id,sequence,name").in("id", termIds)
-          : Promise.resolve({ data: [] as any[] }),
-      ]);
+      const termIds = [...new Set(rows.map((r: any) => String(gradebookOf(r)?.term_id)))];
+      const groupIds = [
+        ...new Set((enrollments || []).map((r: any) => String(r.class_group_id))),
+      ].filter((id) => id && id !== "null");
+      const [{ data: students }, { data: subjects }, { data: terms }, { data: groups }] =
+        await Promise.all([
+          studentIds.length
+            ? db.from("students").select("id,student_number").in("id", studentIds)
+            : Promise.resolve({ data: [] as any[] }),
+          subjectIds.length
+            ? db.from("subjects").select("id,name,code").in("id", subjectIds)
+            : Promise.resolve({ data: [] as any[] }),
+          termIds.length
+            ? db.from("terms").select("id,sequence,name").in("id", termIds)
+            : Promise.resolve({ data: [] as any[] }),
+          groupIds.length
+            ? db.from("class_groups").select("id,code,name").in("id", groupIds)
+            : Promise.resolve({ data: [] as any[] }),
+        ]);
+      const gm = new Map((groups || []).map((r: any) => [String(r.id), r]));
       const em = new Map((enrollments || []).map((r: any) => [String(r.id), r]));
       const cm = new Map((css || []).map((r: any) => [String(r.id), r]));
       const sm = new Map((students || []).map((r: any) => [String(r.id), r.student_number]));
@@ -1018,14 +1012,15 @@ export async function exportSchoolData(
         options.mode,
       );
       for (const r of rows) {
-        const gi = first(r.grade_items as any);
-        const gb = first(gi?.gradebooks as any);
+        const gb = gradebookOf(r);
         const e = em.get(String(r.enrollment_id));
+        const group = gm.get(String(e?.class_group_id));
         const cs = cm.get(String(gb?.class_subject_id));
         const sub = subm.get(String(cs?.subject_id));
+        const gi = first(r.grade_items as any);
         sheet.addRow([
           sm.get(String(e?.student_id)) || "",
-          String(e?.class_group_id || ""),
+          group?.code || group?.name || "",
           sub?.code || sub?.name || "",
           termm.get(String(gb?.term_id)) || "",
           gi?.code || "",

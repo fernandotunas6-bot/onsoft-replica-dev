@@ -67,7 +67,7 @@ const declaredTables = new Set(
 /**
  * Tabelas que existem em produção e não são declaradas no repositório.
  * Eram 35 a 2026-09-13. Passaram a 0 a 2026-09-14, com a captura do DDL real de
- * cada uma em `supabase/migrations/20260914151906_capture_undeclared_production_tables.sql`
+ * cada uma em `supabase/migrations/20260924005132_capture_undeclared_production_tables.sql`
  * (gerado por `npm run siga:db-ddl`, lido do catálogo do Postgres).
  *
  * Agora que está a zero, deixa de ser um travão e passa a ser uma invariante:
@@ -140,31 +140,18 @@ const ANON_POLICIES_ESPERADAS = [
  * a produção nunca teve.
  *
  * `assessment_rule_sets` (e `assessment_key_subjects`) saíram a 2026-09-20, com
- * a migração `20260916140000_assessment_rule_sets.sql` aplicada à produção. Era
+ * a migração `20260924005124_assessment_rule_sets.sql` aplicada à produção. Era
  * a entrada mais cara da lista: `gradebooks.rule_set_id` é NOT NULL e o caminho
  * legado só abre um diário com um `rule_set_id` desta tabela ou emprestado de
  * outro diário da escola — numa escola nova não havia nenhum dos dois, logo não
  * se abria o primeiro diário nem se lançavam notas.
  */
-/**
- * Tabelas que o código consulta e a produção ainda não tem.
- *
- * A lista é curta de propósito, e cada entrada aponta a migração que a fecha. Cada
- * tabela aqui é uma tabela que este teste deixa de verificar — mantê-la depois de a
- * migração correr transforma a lista no sítio onde uma tabela inventada se esconde.
- *
- * Saíram a 2026-09-27, por terem sido aplicadas e confirmadas no retrato (164 → 175
- * tabelas): `tenant_mailboxes`, `student_risk_cases`, `student_risk_interventions`,
- * `payment_gateway_charges`, `grade_score_history`, `siga_timetable_slot_details`,
- * `siga_class_tasks`, `siga_lesson_reminder_settings`, `siga_lesson_reminder_log`,
- * `import_table_specs`, `siga_exam_sessions`, `siga_exam_registrations`.
- */
-const TABELAS_AUSENTES_DA_PRODUCAO = new Set<string>([
-  // Competências por disciplina, ligadas às avaliações (`20260927150000_competencies.sql`).
-  // Por aplicar. Sem elas, o separador de competências não lista nem grava.
-  "siga_competencies",
-  "siga_assessment_item_competencies",
-]);
+// Vazia desde 2026-09-28: as quinze entradas que restavam (histórico das
+// notas, horários e lembretes, catálogo da importação, exames, competências,
+// caixas de correio, pedidos de vinculação, alunos em risco e cobranças
+// AppyPay) já existem na produção — confirmado no retrato recapturado nesse dia
+// pelo conector Supabase.
+const TABELAS_AUSENTES_DA_PRODUCAO = new Set<string>([]);
 
 /** Tabelas consultadas pelo código — `.from("x")`, excluindo buckets de storage. */
 function tabelasUsadasPelaApp(): string[] {
@@ -293,30 +280,19 @@ describe("produção vs repositório", () => {
     // O ficheiro de captura é gerado, não escrito. Se alguém o editar à mão e
     // apagar uma tabela, a divergência real volta sem o teste acima dar por ela
     // (a tabela continuaria declarada noutro ficheiro qualquer... ou não).
-    // Localizado por padrão, e não por nome fixo: a captura é regerada com um carimbo
-    // novo a cada vez, e o nome antigo (20260914151906) deixou este teste a falhar desde
-    // que ela foi regerada a 2026-09-24. Um teste que se parte sozinho ao correr o
-    // procedimento que ele próprio documenta deixa de ser lido.
-    const capturas = readdirSync(resolve(REPO, "supabase/migrations"))
-      .filter((f) => f.endsWith("_capture_undeclared_production_tables.sql"))
-      .sort();
-    expect(capturas.length, "ficheiro de captura de DDL desapareceu").toBeGreaterThan(0);
+    const captura = resolve(
+      REPO,
+      "supabase/migrations/20260924005132_capture_undeclared_production_tables.sql",
+    );
+    expect(existsSync(captura), "ficheiro de captura de DDL desapareceu").toBe(true);
 
-    // A união de todas as capturas, não só a última. `npm run siga:db-ddl` é
-    // incremental: captura o que está por declarar *nesse momento*, e escreve um
-    // ficheiro novo. Depois da primeira captura em massa, as seguintes trazem
-    // duas ou três tabelas — ler só a última fazia o limiar de 35 falhar ao
-    // correr o procedimento que este teste manda correr.
-    const capturadas = new Set<string>();
-    for (const nome of capturas) {
-      const ddl = readFileSync(resolve(REPO, "supabase/migrations", nome), "utf8");
-      for (const m of ddl.matchAll(/CREATE TABLE IF NOT EXISTS public\.(\w+)/gi)) {
-        capturadas.add(m[1]!.toLowerCase());
-      }
-    }
-    // Limiar, não igualdade: regerar a captura pode acrescentar tabelas legitimamente, e
-    // o que este teste quer apanhar é o contrário — alguém editá-la à mão e tirar uma.
-    expect(capturadas.size).toBeGreaterThanOrEqual(35);
+    const ddl = readFileSync(captura, "utf8");
+    const capturadas = new Set(
+      [...ddl.matchAll(/CREATE TABLE IF NOT EXISTS public\.(\w+)/gi)].map((m) =>
+        m[1].toLowerCase(),
+      ),
+    );
+    expect(capturadas.size).toBe(35);
 
     // Tudo o que a captura declara tem de existir mesmo em produção — o
     // contrário seria declarar tabelas fantasma.

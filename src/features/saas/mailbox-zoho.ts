@@ -20,17 +20,10 @@ export async function zohoCreateMailbox(config: MailboxConfig): Promise<MailboxP
   const creds = getZohoCreds();
   if (!creds) return { ok: false, reason: "Credenciais Zoho em falta." };
 
-  // Exemplo de payload Zoho
-  /*
-  const body = {
-    primaryEmailAddress: config.email,
-    firstName: config.displayName,
-    password: config.password || "Gerada123!",
-  };
-  */
-
-  // Simulação de sucesso para testes de integração
-  return { ok: true, provider: "zoho", providerAccountId: `zoid-${Date.now()}` };
+  // A chamada à API do Zoho ainda não está implementada. Responder "ok" aqui
+  // registava uma caixa de correio que não existe no Zoho.
+  void config;
+  return { ok: false, reason: "Criação de caixas Zoho Mail ainda não está implementada." };
 }
 
 export async function zohoSuspendMailbox(
@@ -39,7 +32,8 @@ export async function zohoSuspendMailbox(
   const creds = getZohoCreds();
   if (!creds) return { ok: false, reason: "Credenciais Zoho em falta." };
 
-  return { ok: true };
+  void accountId;
+  return { ok: false, reason: "Suspensão de caixas Zoho Mail ainda não está implementada." };
 }
 
 export async function zohoListMailboxes(domain: string): Promise<MailboxItem[]> {

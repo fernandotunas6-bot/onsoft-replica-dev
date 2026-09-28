@@ -18,6 +18,10 @@ import {
 } from "@/integrations/supabase/sga-admin";
 import {
   DEFAULT_PROMOTION_RULES,
+  NPP_MODES,
+  RECOVERY_METHODS,
+  parseCalculationOptions,
+  type CalculationOptions,
   parsePromotionRules,
   type PromotionRules,
   ROUNDING_METHODS,
@@ -34,6 +38,15 @@ const bool = (v: unknown) => v === true || v === "true";
 
 const READ_ROLES = ["Administrador", "Secretaria", "Professor"] as const;
 const PUBLISH_ROLES = ["Administrador"] as const;
+
+/** O que o ecrã de notas precisa do modelo activo para calcular como a pauta oficial. */
+export type ActiveAssessmentEngine = {
+  continuousWeight: number;
+  examWeight: number;
+  roundingMethod: RoundingMethod;
+  scale: AssessmentScale;
+  calculation: CalculationOptions;
+};
 
 export type AssessmentModelsData = {
   scale: (AssessmentScale & { name: string }) | null;
@@ -146,6 +159,7 @@ export const getAssessmentModels = createServerFn({ method: "GET" })
         keySubjectIds: keysByRule.get(str(r.id)) ?? [],
         keySubjectsCauseFailure: formula.keySubjectsCauseFailure !== false,
         promotionRules: parsePromotionRules(formula),
+        calculation: parseCalculationOptions(formula),
         createdAt: str(r.created_at),
         createdByName: names.get(str(r.created_by)) ?? null,
       };
@@ -186,6 +200,10 @@ const publishInput = z.object({
     i_ciclo: promotionCycleSchema,
     ii_ciclo: promotionCycleSchema,
     tecnico: promotionCycleSchema,
+  }),
+  calculation: z.object({
+    nppMode: z.enum(NPP_MODES),
+    recoveryMethod: z.enum(RECOVERY_METHODS),
   }),
 });
 
@@ -240,6 +258,7 @@ export const publishAssessmentModel = createServerFn({ method: "POST" })
         key_subject_ids: keySubjectIds,
         key_subjects_cause_failure: data.keySubjectsCauseFailure,
         promotion_rules: data.promotionRules,
+        calculation_options: data.calculation,
       } as never,
     );
     if (error) {
@@ -249,6 +268,26 @@ export const publishAssessmentModel = createServerFn({ method: "POST" })
         );
       }
       throw publicDatabaseError(error, "Não foi possível publicar o modelo de avaliação.");
+    }
+    // O motor da pauta conta a NPP pelo tipo do item: alinhar os diários ainda
+    // abertos com a opção agora publicada (os fechados ficam como foram
+    // calculados).
+    const { data: openBooks } = await db
+      .from("gradebooks")
+      .select("id")
+      .eq("school_id", membership.schoolId)
+      .neq("status", "closed");
+    const bookIds = (openBooks ?? []).map((b) => str(b.id));
+    if (bookIds.length) {
+      const { error: kindError } = await db
+        .from("grade_items")
+        .update({
+          kind: data.calculation.nppMode === "in_continuous" ? "continuous" : "informative",
+        })
+        .eq("school_id", membership.schoolId)
+        .eq("code", "NPP")
+        .in("gradebook_id", bookIds);
+      if (kindError) console.warn("[assessment-models] NPP kind:", kindError.message);
     }
     return result as { ruleSetId: string; version: number };
   });
@@ -263,22 +302,56 @@ export const getActivePassingValue = createServerFn({ method: "GET" })
   .handler(
     async ({
       context,
-    }): Promise<{ passingValue: number | null; promotionRules: PromotionRules }> => {
+    }): Promise<{
+      passingValue: number | null;
+      promotionRules: PromotionRules;
+      engine: ActiveAssessmentEngine | null;
+    }> => {
       const membership = await resolveSgaMembershipAdmin(context.userId);
-      if (!membership) return { passingValue: null, promotionRules: DEFAULT_PROMOTION_RULES };
+      if (!membership) {
+        return { passingValue: null, promotionRules: DEFAULT_PROMOTION_RULES, engine: null };
+      }
       const db = await loadSgaAdminClient();
       const { data } = await db
         .from("assessment_rule_sets")
-        .select("passing_value, formula")
+        .select(
+          "passing_value, formula, continuous_weight, exam_weight, rounding_method, grading_scale_id",
+        )
         .eq("school_id", membership.schoolId)
         .eq("code", "DEFAULT")
         .eq("status", "active")
+        .order("version", { ascending: false })
         .limit(1)
         .maybeSingle();
       const value = data?.passing_value == null ? NaN : Number(data.passing_value);
+      let engine: ActiveAssessmentEngine | null = null;
+      if (data) {
+        const { data: scaleRow } = data.grading_scale_id
+          ? await db
+              .from("grading_scales")
+              .select("minimum_value, maximum_value, decimal_places")
+              .eq("school_id", membership.schoolId)
+              .eq("id", data.grading_scale_id)
+              .maybeSingle()
+          : { data: null };
+        engine = {
+          continuousWeight: num(data.continuous_weight),
+          examWeight: num(data.exam_weight),
+          roundingMethod: toRoundingMethod(data.rounding_method),
+          scale: scaleRow
+            ? {
+                minimum: num(scaleRow.minimum_value),
+                maximum: num(scaleRow.maximum_value),
+                decimalPlaces: num(scaleRow.decimal_places),
+              }
+            : { minimum: 0, maximum: 20, decimalPlaces: 1 },
+          calculation: parseCalculationOptions(data.formula),
+        };
+      }
       return {
         passingValue: Number.isFinite(value) ? value : null,
         promotionRules: parsePromotionRules(data?.formula),
+        engine,
       };
     },
   );

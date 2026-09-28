@@ -24,6 +24,8 @@ import { PickFileButton } from "@/features/arquivos/PickFileButton";
 import { resolveFileBlob } from "@/features/arquivos/resolve-file";
 import { useOptionalStackNav } from "@/components/ui/stacked-modal";
 import { angolaSchoolTypes, emptyInstitution, schoolSettingDefaults } from "@/lib/school-config";
+import { formatGeoPoint, parseGeoPoint } from "@/lib/geo-coordinates";
+import { useActiveAssessmentRule } from "@/features/academic/use-passing-value";
 import { normalizeEvaluationPeriods } from "@/lib/angola-academic";
 import { useCurrentAccount } from "@/features/auth/use-current-account";
 import { supabase } from "@/integrations/supabase/client";
@@ -58,6 +60,16 @@ const institutionSchema = z.object({
     }),
   email: z.string().trim().email("E-mail inválido").max(255, "Máximo 255 caracteres"),
   endereco: z.string().trim().min(5, "Endereço demasiado curto").max(200, "Máximo 200 caracteres"),
+  provincia: z.string().trim().max(80, "Máximo 80 caracteres"),
+  municipio: z.string().trim().max(80, "Máximo 80 caracteres"),
+  comuna: z.string().trim().max(80, "Máximo 80 caracteres"),
+  bairro: z.string().trim().max(120, "Máximo 120 caracteres"),
+  gps: z
+    .string()
+    .trim()
+    .refine((value) => parseGeoPoint(value) !== "invalid", {
+      message: "Use latitude, longitude (por exemplo -12.7761, 15.7392).",
+    }),
 });
 
 type Institution = z.infer<typeof institutionSchema>;
@@ -84,6 +96,16 @@ const institutionFields: {
   { id: "telefone", label: "Telefone" },
   { id: "email", label: "E-mail institucional" },
   { id: "endereco", label: "Endereço", full: true },
+  { id: "provincia", label: "Província" },
+  { id: "municipio", label: "Município" },
+  { id: "comuna", label: "Comuna" },
+  { id: "bairro", label: "Bairro" },
+  {
+    id: "gps",
+    label: "Coordenadas GPS",
+    hint: "Latitude, longitude — copie do mapa (por exemplo -12.7761, 15.7392).",
+    full: true,
+  },
 ];
 
 const preferences = [
@@ -114,6 +136,24 @@ const preferences = [
   },
 ];
 
+/** Campos de localização do formulário a partir do que o servidor devolve. */
+function locationFields(school: {
+  province?: string | null;
+  municipality?: string | null;
+  commune?: string | null;
+  neighborhood?: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
+}) {
+  return {
+    provincia: school.province ?? "",
+    municipio: school.municipality ?? "",
+    comuna: school.commune ?? "",
+    bairro: school.neighborhood ?? "",
+    gps: formatGeoPoint(school.latitude, school.longitude),
+  };
+}
+
 function readStoredPreference(value: unknown, id: string, fallback: boolean) {
   if (value && typeof value === "object" && !Array.isArray(value)) {
     const stored = (value as Record<string, unknown>)[id];
@@ -132,7 +172,8 @@ function supportedPeriods(stored: unknown): number {
   return normalizeEvaluationPeriods(stored) ?? schoolSettingDefaults.evaluationPeriods;
 }
 
-const LOGO_ALLOWED_TYPES = ["image/png", "image/jpeg", "image/webp", "image/svg+xml"];
+// Sem SVG: o bucket é público e um SVG pode levar código.
+const LOGO_ALLOWED_TYPES = ["image/png", "image/jpeg", "image/webp"];
 const MAX_LOGO_BYTES = 4 * 1024 * 1024;
 
 export function SchoolSettingsPanel() {
@@ -143,6 +184,8 @@ export function SchoolSettingsPanel() {
   const resendOn = installed.hasCapability("resend.send");
   const agtOn = installed.hasCapability("agt.nif") || installed.hasCapability("agt.einvoice");
   const queryClient = useQueryClient();
+  // A nota de aprovação que vale é a do modelo publicado, quando existe.
+  const activeRule = useActiveAssessmentRule();
   const [institution, setInstitution] = useState<Institution>(initialInstitution);
   const [errors, setErrors] = useState<Partial<Record<keyof Institution, string>>>({});
   const [anoLectivo, setAnoLectivo] = useState<string>(schoolSettingDefaults.academicYear);
@@ -185,6 +228,7 @@ export function SchoolSettingsPanel() {
             telefone: schoolQuery.data.phone ?? "",
             email: schoolQuery.data.email ?? "",
             endereco: schoolQuery.data.address ?? "",
+            ...locationFields(schoolQuery.data),
           }
         : initialInstitution,
     [schoolQuery.data],
@@ -200,6 +244,7 @@ export function SchoolSettingsPanel() {
       telefone: school.phone ?? "",
       email: school.email ?? "",
       endereco: school.address ?? "",
+      ...locationFields(school),
     });
     setAnoLectivo(school.academic_year ?? schoolSettingDefaults.academicYear);
     setMoeda(school.currency || schoolSettingDefaults.currency);
@@ -309,6 +354,8 @@ export function SchoolSettingsPanel() {
       toast.error("Os dados da escola ainda não estão disponíveis.");
       return;
     }
+    const geo = parseGeoPoint(parsed.data.gps);
+    const point = geo === "invalid" ? null : geo;
     setSaving(true);
     try {
       const data = await updateSchoolSettings({
@@ -319,6 +366,12 @@ export function SchoolSettingsPanel() {
           phone: parsed.data.telefone,
           email: parsed.data.email,
           address: parsed.data.endereco,
+          province: parsed.data.provincia,
+          municipality: parsed.data.municipio,
+          commune: parsed.data.comuna,
+          neighborhood: parsed.data.bairro,
+          latitude: point ? point.latitude : null,
+          longitude: point ? point.longitude : null,
           academicYear: anoLectivo,
           currency: moeda,
           evaluationPeriods: Number(trimestres),
@@ -351,7 +404,7 @@ export function SchoolSettingsPanel() {
       return;
     }
     if (!LOGO_ALLOWED_TYPES.includes(file.type)) {
-      toast.error("Use PNG, JPG, WebP ou SVG.");
+      toast.error("Use PNG, JPG ou WebP.");
       return;
     }
     if (file.size > MAX_LOGO_BYTES) {
@@ -642,6 +695,12 @@ export function SchoolSettingsPanel() {
               onValueChange={setMediaMinima}
               disabled={!canEdit}
             />
+            {activeRule.engine ? (
+              <p className="text-xs text-muted-foreground">
+                Em uso: {activeRule.passing} valores, do modelo de avaliação publicado (Pedagógica →
+                Modelos de avaliação). Este valor só conta enquanto a escola não tiver modelo.
+              </p>
+            ) : null}
           </div>
         </div>
 

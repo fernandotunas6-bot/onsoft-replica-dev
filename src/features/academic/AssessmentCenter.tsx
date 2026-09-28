@@ -22,6 +22,12 @@ import { ListFilterBar } from "@/components/filters/ListFilterBar";
 import { QuickModal } from "@/components/ui/modal-system";
 import { confirmDiscardChanges } from "@/components/ui/modal-system/confirm-close";
 import { AssessmentGrid, type GridColumn } from "@/features/academic/AssessmentGrid";
+import {
+  continuousComponent,
+  recoveryResult,
+  termAverageByRule,
+} from "@/features/academic/assessment-model";
+import { useActiveAssessmentRule } from "@/features/academic/use-passing-value";
 import { ClassCourseTable, StudentDossierTable } from "@/features/academic/AssessmentViewTables";
 import { CreateAssessmentDialog } from "@/features/academic/CreateAssessmentDialog";
 import {
@@ -209,6 +215,15 @@ export function AssessmentCenter({
   initialSubjectId?: string | undefined;
 }) {
   const queryClient = useQueryClient();
+  // Pesos, arredondamento e escala do modelo activo: o ecrã calcula como a
+  // pauta oficial. Sem modelo (Pedagógica avisa), fica o cálculo do Decreto
+  // 424/25 e a escala 0–20.
+  const { engine } = useActiveAssessmentRule();
+  const parseScore = (value: string) => parsePautaScore(value, engine?.scale);
+  const afterRecovery = (original: number | null, recovery: number | null) =>
+    engine
+      ? recoveryResult(original, recovery, engine.calculation.recoveryMethod)
+      : recursoFinal(original, recovery);
   const { selectedTerm: globalTerm, terms: academicTerms, setSelectedTermId } = useSchoolSettings();
   const installed = useInstalledIntegrations();
   const turnitinOn = installed.hasCapability("turnitin.originality");
@@ -471,22 +486,31 @@ export function AssessmentCenter({
       mapa: Map<string, (typeof items)[number][]>,
       componente: string,
       row: Record<string, string>,
-    ) => (mapa.get(componente) ?? []).map((item) => parsePautaScore(row[String(item.id)] ?? ""));
+    ) => (mapa.get(componente) ?? []).map((item) => parseScore(row[String(item.id)] ?? ""));
 
     return roster.map((student) => {
       const row = values[student.id] ?? {};
       const fromItems = (component: string) => notasDe(itensPorComponente.contam, component, row);
       const mac =
-        parsePautaScore(row["mac"] ?? "") ??
+        parseScore(row["mac"] ?? "") ??
         annualAverage(fromItems("MAC").filter((value) => value != null && !Number.isNaN(value)));
       const npp =
-        parsePautaScore(row["npp"] ?? "") ??
+        parseScore(row["npp"] ?? "") ??
         annualAverage(fromItems("NPP").filter((value) => value != null && !Number.isNaN(value)));
       const npt =
-        parsePautaScore(row["npt"] ?? "") ??
+        parseScore(row["npt"] ?? "") ??
         annualAverage(fromItems("NPT").filter((value) => value != null && !Number.isNaN(value)));
       const average =
-        mac != null && npp != null && npt != null ? scoreAverage(mac, npp, npt) : null;
+        mac != null && npp != null && npt != null
+          ? engine
+            ? termAverageByRule(
+                continuousComponent(mac, npp, engine.calculation.nppMode),
+                npt,
+                engine,
+                engine.scale.decimalPlaces,
+              )
+            : scoreAverage(mac, npp, npt)
+          : null;
       const recurso = annualAverage(
         notasDe(itensPorComponente.todos, "recurso", row).filter(
           (value): value is number => value != null && !Number.isNaN(value),
@@ -497,14 +521,15 @@ export function AssessmentCenter({
           (value): value is number => value != null && !Number.isNaN(value),
         ),
       );
-      const finalScore = exame ?? recursoFinal(average, recurso);
+      const finalScore = exame ?? afterRecovery(average, recurso);
       const situacao =
         finalScore == null
           ? { label: "Pendente", tone: "muted" as const }
           : situacaoPauta(finalScore, passingGrade);
       return { student, mac, npp, npt, average, recurso, exame, finalScore, situacao, row };
     });
-  }, [roster, values, itensPorComponente, passingGrade]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- parseScore deriva de engine
+  }, [roster, values, itensPorComponente, passingGrade, engine]);
 
   const visibleRows = useMemo(
     () =>
@@ -617,7 +642,7 @@ export function AssessmentCenter({
       count +
       ["mac", "npp", "npt"].filter((key) => {
         const value = entry.row[key] ?? "";
-        return value.trim() !== "" && Number.isNaN(parsePautaScore(value));
+        return value.trim() !== "" && Number.isNaN(parseScore(value));
       }).length
     );
   }, 0);
@@ -672,7 +697,7 @@ export function AssessmentCenter({
         const rows = visibleRows
           .map((entry) => ({
             enrollmentId: entry.student.id,
-            score: parsePautaScore(entry.row[String(item.id)] ?? ""),
+            score: parseScore(entry.row[String(item.id)] ?? ""),
           }))
           .filter((row) => row.score != null && !Number.isNaN(row.score))
           .map((row) => ({ enrollmentId: row.enrollmentId, score: row.score as number }));
@@ -995,7 +1020,7 @@ export function AssessmentCenter({
   };
 
   const applyBatch = () => {
-    const parsed = parsePautaScore(batchValue);
+    const parsed = parseScore(batchValue);
     if (parsed == null || Number.isNaN(parsed) || checkedIds.size === 0) return;
     setValues((current) => {
       pushHistory(current);
@@ -1581,7 +1606,7 @@ export function AssessmentCenter({
                       <td className="px-3 py-2 text-right">{formatScore(row.average)}</td>
                       <td className="px-3 py-2 text-right">{formatScore(row.recurso)}</td>
                       <td className="px-3 py-2 text-right font-bold">
-                        {formatScore(recursoFinal(row.average, row.recurso))}
+                        {formatScore(afterRecovery(row.average, row.recurso))}
                       </td>
                     </tr>
                   ))}
