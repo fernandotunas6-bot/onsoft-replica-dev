@@ -112,74 +112,76 @@ export function AccessCardsPanel() {
           Nenhum cartão encontrado com estes filtros.
         </div>
       ) : (
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead className="text-xs">Pessoa</TableHead>
-              <TableHead className="text-xs">Nº / Barcode</TableHead>
-              <TableHead className="text-xs">RFID</TableHead>
-              <TableHead className="text-xs">Estado</TableHead>
-              <TableHead className="text-xs text-right">Acções</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {cards.map((card) => (
-              <TableRow key={card.id}>
-                <TableCell className="text-xs font-semibold">{card.person_name}</TableCell>
-                <TableCell className="text-xs font-mono">
-                  {card.card_number}
-                  <span className="block text-[11px] text-muted-foreground">{card.barcode}</span>
-                </TableCell>
-                <TableCell className="text-xs font-mono text-muted-foreground">
-                  {card.rfid_tag || "—"}
-                </TableCell>
-                <TableCell className="text-xs">
-                  <Badge variant="outline" className="text-[11px] capitalize">
-                    {card.status}
-                  </Badge>
-                </TableCell>
-                <TableCell className="text-xs text-right space-x-1">
-                  {card.status === "active" ? (
-                    <>
-                      <Button
-                        type="button"
-                        size="sm"
-                        variant="outline"
-                        className="h-7 text-[11px]"
-                        disabled={statusMutation.isPending}
-                        onClick={() =>
-                          statusMutation.mutate({ cardId: card.id, status: "suspended" })
-                        }
-                      >
-                        Suspender
-                      </Button>
-                      <Button
-                        type="button"
-                        size="sm"
-                        variant="outline"
-                        className="h-7 text-[11px]"
-                        disabled={statusMutation.isPending}
-                        onClick={() => statusMutation.mutate({ cardId: card.id, status: "lost" })}
-                      >
-                        Perdido
-                      </Button>
-                    </>
-                  ) : (
-                    <Button
-                      type="button"
-                      size="sm"
-                      className="h-7 text-[11px] font-bold"
-                      disabled={statusMutation.isPending}
-                      onClick={() => statusMutation.mutate({ cardId: card.id, status: "active" })}
-                    >
-                      Reactivar
-                    </Button>
-                  )}
-                </TableCell>
+        <div className="overflow-x-auto">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="text-xs">Pessoa</TableHead>
+                <TableHead className="text-xs">Nº / Barcode</TableHead>
+                <TableHead className="text-xs">RFID</TableHead>
+                <TableHead className="text-xs">Estado</TableHead>
+                <TableHead className="text-xs text-right">Acções</TableHead>
               </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+            </TableHeader>
+            <TableBody>
+              {cards.map((card) => (
+                <TableRow key={card.id}>
+                  <TableCell className="text-xs font-semibold">{card.person_name}</TableCell>
+                  <TableCell className="text-xs font-mono">
+                    {card.card_number}
+                    <span className="block text-[11px] text-muted-foreground">{card.barcode}</span>
+                  </TableCell>
+                  <TableCell className="text-xs font-mono text-muted-foreground">
+                    {card.rfid_tag || "—"}
+                  </TableCell>
+                  <TableCell className="text-xs">
+                    <Badge variant="outline" className="text-[11px] capitalize">
+                      {card.status}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="text-xs text-right space-x-1">
+                    {card.status === "active" ? (
+                      <>
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          className="h-7 text-[11px]"
+                          disabled={statusMutation.isPending}
+                          onClick={() =>
+                            statusMutation.mutate({ cardId: card.id, status: "suspended" })
+                          }
+                        >
+                          Suspender
+                        </Button>
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          className="h-7 text-[11px]"
+                          disabled={statusMutation.isPending}
+                          onClick={() => statusMutation.mutate({ cardId: card.id, status: "lost" })}
+                        >
+                          Perdido
+                        </Button>
+                      </>
+                    ) : (
+                      <Button
+                        type="button"
+                        size="sm"
+                        className="h-7 text-[11px] font-bold"
+                        disabled={statusMutation.isPending}
+                        onClick={() => statusMutation.mutate({ cardId: card.id, status: "active" })}
+                      >
+                        Reactivar
+                      </Button>
+                    )}
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
       )}
     </div>
   );

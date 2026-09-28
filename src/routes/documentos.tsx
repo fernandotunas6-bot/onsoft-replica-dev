@@ -11,6 +11,9 @@ import { useInstalledIntegrations } from "@/features/integrations/use-installed-
 import { AppShell } from "@/components/layout/AppShell";
 import { PageHeader, Panel, StatGrid, badgeBase, toneClass } from "@/components/layout/PageHeader";
 import { StatusBadge } from "@/components/ui/status-badge";
+import { ResponsiveEntityView } from "@/components/mobile/ResponsiveEntityView";
+import { EntityListSkeleton } from "@/components/mobile/skeletons";
+import { MobileEmptyState, MobileErrorState } from "@/components/mobile/states";
 import { DocHelpButton } from "@/components/ui/doc-help-button";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -399,6 +402,155 @@ function DocumentosPage() {
     });
   };
 
+  /**
+   * Acções de um pedido de documento (§85). Extraídas para a tabela do
+   * computador e a lista do telemóvel usarem as mesmas — avançar estado, recusar,
+   * cancelar, PDF e os atalhos de e-mail/WhatsApp, todos com a mesma invalidação
+   * de queries. É o mesmo motivo das faturas: duas cópias divergem na primeira
+   * mudança de fluxo da secretaria.
+   */
+  function DocumentoActions({ d }: { d: (typeof filtered)[number] }) {
+    return (
+      <div className="flex flex-wrap justify-end gap-2">
+        {d.nextStatus ? (
+          <Button
+            size="sm"
+            variant="outline"
+            disabled={advancingId === d.id}
+            onClick={() => void advanceRequest(d, d.nextStatus!)}
+          >
+            {advancingId === d.id
+              ? "A actualizar…"
+              : (advanceActionLabel[d.nextStatus] ?? "Avançar")}
+          </Button>
+        ) : null}
+        {d.nextStatus ? (
+          <>
+            <ConfirmActionModal
+              title="Cancelar pedido"
+              description={`Cancela o pedido de ${d.tipo} de ${d.aluno}. O aluno pode voltar a pedir.`}
+              confirmLabel="Cancelar pedido"
+              onConfirm={async () => {
+                await updateDocumentRequestStatus({
+                  data: { requestId: d.id, status: "cancelled" },
+                });
+                await Promise.all([
+                  queryClient.invalidateQueries({
+                    queryKey: ["documents", "workspace"],
+                  }),
+                  queryClient.invalidateQueries({
+                    queryKey: ["dashboard", "overview"],
+                  }),
+                ]);
+              }}
+              trigger={(open) => (
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="text-destructive"
+                  disabled={advancingId === d.id}
+                  onClick={open}
+                >
+                  Recusar
+                </Button>
+              )}
+            />
+            <ConfirmActionModal
+              title="Cancelar pedido"
+              description={`Cancela o pedido de ${d.tipo} de ${d.aluno}.`}
+              confirmLabel="Cancelar pedido"
+              onConfirm={async () => {
+                await updateDocumentRequestStatus({
+                  data: { requestId: d.id, status: "cancelled" },
+                });
+                await Promise.all([
+                  queryClient.invalidateQueries({
+                    queryKey: ["documents", "workspace"],
+                  }),
+                  queryClient.invalidateQueries({
+                    queryKey: ["dashboard", "overview"],
+                  }),
+                ]);
+              }}
+              trigger={(open) => (
+                <Button size="sm" variant="ghost" disabled={advancingId === d.id} onClick={open}>
+                  <X className="size-3.5" /> Cancelar
+                </Button>
+              )}
+            />
+          </>
+        ) : null}
+        {d.nextStatus && (resendOn || whatsappOn) ? (
+          <>
+            {resendOn ? (
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={async () => {
+                  await navigator.clipboard.writeText(
+                    `Pedido de ${d.tipo} de ${d.aluno} (${d.processo}) está ${d.estado.toLowerCase()} no SIGA.`,
+                  );
+                  toast.success("Texto do pedido copiado para e-mail Resend");
+                }}
+              >
+                E-mail
+              </Button>
+            ) : null}
+            {whatsappOn ? (
+              <Button size="sm" variant="ghost" asChild>
+                <a
+                  href={whatsappHref(
+                    "",
+                    `Pedido de ${d.tipo} de ${d.aluno} está ${d.estado.toLowerCase()}.`,
+                  )}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  WhatsApp
+                </a>
+              </Button>
+            ) : null}
+          </>
+        ) : null}
+        {d.estado === "Emitido" ? (
+          <>
+            <Button size="sm" variant="outline" onClick={() => void downloadDeclaration(d)}>
+              <Download className="size-3.5" /> PDF
+            </Button>
+            {resendOn ? (
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={async () => {
+                  await navigator.clipboard.writeText(
+                    `${d.tipo} de ${d.aluno} (${d.processo}) emitido no SIGA.`,
+                  );
+                  toast.success("Texto do documento copiado para e-mail Resend");
+                }}
+              >
+                E-mail
+              </Button>
+            ) : null}
+            {whatsappOn ? (
+              <Button size="sm" variant="outline" asChild>
+                <a
+                  href={whatsappHref("", `${d.tipo} de ${d.aluno} está pronto para levantamento.`)}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  WhatsApp
+                </a>
+              </Button>
+            ) : null}
+          </>
+        ) : null}
+        {!d.nextStatus && d.estado !== "Emitido" ? (
+          <span className="text-xs text-muted-foreground">—</span>
+        ) : null}
+      </div>
+    );
+  }
+
   return (
     <AppShell>
       <div className="space-y-6">
@@ -610,230 +762,159 @@ function DocumentosPage() {
             />
           }
         >
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Documento</TableHead>
-                  <TableHead>Aluno</TableHead>
-                  <TableHead>Processo</TableHead>
-                  <TableHead>Pedido em</TableHead>
-                  <TableHead>Responsável</TableHead>
-                  <TableHead>Estado</TableHead>
-                  <TableHead className="text-right">Acção</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filtered.map((d) => (
-                  <TableRow key={d.id}>
-                    <TableCell className="font-semibold">
-                      <span className="flex items-center gap-2">
-                        <FileCheck2 className="size-4 text-primary" />
-                        {d.tipo}
-                      </span>
-                    </TableCell>
-                    <TableCell>{d.aluno}</TableCell>
-                    <TableCell className="font-mono text-xs text-muted-foreground">
-                      {d.processo}
-                    </TableCell>
-                    <TableCell>{new Date(d.pedidoEm).toLocaleDateString("pt-PT")}</TableCell>
-                    <TableCell className="text-sm text-muted-foreground">{d.responsavel}</TableCell>
-                    <TableCell>
-                      <StatusBadge
-                        status={
-                          d.estado === "Emitido"
-                            ? "paid"
-                            : d.estado === "Em processamento"
-                              ? "info"
-                              : d.estado === "Pendente de pagamento"
-                                ? "warning"
-                                : "cancelled"
-                        }
-                        label={d.estado}
-                      />
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex justify-end gap-2">
-                        {d.nextStatus ? (
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            disabled={advancingId === d.id}
-                            onClick={() => void advanceRequest(d, d.nextStatus!)}
-                          >
-                            {advancingId === d.id
-                              ? "A actualizar…"
-                              : (advanceActionLabel[d.nextStatus] ?? "Avançar")}
-                          </Button>
-                        ) : null}
-                        {d.nextStatus ? (
-                          <>
-                            <ConfirmActionModal
-                              title="Cancelar pedido"
-                              description={`Cancela o pedido de ${d.tipo} de ${d.aluno}. O aluno pode voltar a pedir.`}
-                              confirmLabel="Cancelar pedido"
-                              onConfirm={async () => {
-                                await updateDocumentRequestStatus({
-                                  data: { requestId: d.id, status: "cancelled" },
-                                });
-                                await Promise.all([
-                                  queryClient.invalidateQueries({
-                                    queryKey: ["documents", "workspace"],
-                                  }),
-                                  queryClient.invalidateQueries({
-                                    queryKey: ["dashboard", "overview"],
-                                  }),
-                                ]);
-                              }}
-                              trigger={(open) => (
-                                <Button
-                                  size="sm"
-                                  variant="ghost"
-                                  className="text-destructive"
-                                  disabled={advancingId === d.id}
-                                  onClick={open}
-                                >
-                                  Recusar
-                                </Button>
-                              )}
-                            />
-                            <ConfirmActionModal
-                              title="Cancelar pedido"
-                              description={`Cancela o pedido de ${d.tipo} de ${d.aluno}.`}
-                              confirmLabel="Cancelar pedido"
-                              onConfirm={async () => {
-                                await updateDocumentRequestStatus({
-                                  data: { requestId: d.id, status: "cancelled" },
-                                });
-                                await Promise.all([
-                                  queryClient.invalidateQueries({
-                                    queryKey: ["documents", "workspace"],
-                                  }),
-                                  queryClient.invalidateQueries({
-                                    queryKey: ["dashboard", "overview"],
-                                  }),
-                                ]);
-                              }}
-                              trigger={(open) => (
-                                <Button
-                                  size="sm"
-                                  variant="ghost"
-                                  disabled={advancingId === d.id}
-                                  onClick={open}
-                                >
-                                  <X className="size-3.5" /> Cancelar
-                                </Button>
-                              )}
-                            />
-                          </>
-                        ) : null}
-                        {d.nextStatus && (resendOn || whatsappOn) ? (
-                          <>
-                            {resendOn ? (
-                              <Button
-                                size="sm"
-                                variant="ghost"
-                                onClick={async () => {
-                                  await navigator.clipboard.writeText(
-                                    `Pedido de ${d.tipo} de ${d.aluno} (${d.processo}) está ${d.estado.toLowerCase()} no SIGA.`,
-                                  );
-                                  toast.success("Texto do pedido copiado para e-mail Resend");
-                                }}
-                              >
-                                E-mail
-                              </Button>
-                            ) : null}
-                            {whatsappOn ? (
-                              <Button size="sm" variant="ghost" asChild>
-                                <a
-                                  href={whatsappHref(
-                                    "",
-                                    `Pedido de ${d.tipo} de ${d.aluno} está ${d.estado.toLowerCase()}.`,
-                                  )}
-                                  target="_blank"
-                                  rel="noreferrer"
-                                >
-                                  WhatsApp
-                                </a>
-                              </Button>
-                            ) : null}
-                          </>
-                        ) : null}
-                        {d.estado === "Emitido" ? (
-                          <>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => void downloadDeclaration(d)}
-                            >
-                              <Download className="size-3.5" /> PDF
-                            </Button>
-                            {resendOn ? (
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={async () => {
-                                  await navigator.clipboard.writeText(
-                                    `${d.tipo} de ${d.aluno} (${d.processo}) emitido no SIGA.`,
-                                  );
-                                  toast.success("Texto do documento copiado para e-mail Resend");
-                                }}
-                              >
-                                E-mail
-                              </Button>
-                            ) : null}
-                            {whatsappOn ? (
-                              <Button size="sm" variant="outline" asChild>
-                                <a
-                                  href={whatsappHref(
-                                    "",
-                                    `${d.tipo} de ${d.aluno} está pronto para levantamento.`,
-                                  )}
-                                  target="_blank"
-                                  rel="noreferrer"
-                                >
-                                  WhatsApp
-                                </a>
-                              </Button>
-                            ) : null}
-                          </>
-                        ) : null}
-                        {!d.nextStatus && d.estado !== "Emitido" ? (
-                          <span className="text-xs text-muted-foreground">—</span>
-                        ) : null}
+          {/*
+            Pedidos de documento no telemóvel (§99). Cada pedido é um cartão: o
+            documento e o aluno em cima, o estado à direita, e as acções de fluxo
+            (avançar, recusar, PDF) em baixo — as mesmas da tabela, porque são o
+            mesmo componente.
+          */}
+          <ResponsiveEntityView
+            mobile={
+              workspaceQuery.isLoading ? (
+                <EntityListSkeleton rows={5} />
+              ) : workspaceQuery.isError ? (
+                <MobileErrorState
+                  what="os pedidos de documentos"
+                  error={workspaceQuery.error}
+                  onRetry={() => void workspaceQuery.refetch()}
+                />
+              ) : filtered.length === 0 ? (
+                <MobileEmptyState
+                  icon={FileStack}
+                  title={
+                    (workspaceQuery.data?.requests ?? []).length === 0
+                      ? "Ainda não há pedidos de documentos"
+                      : "Nenhum pedido corresponde aos filtros"
+                  }
+                  description={
+                    (workspaceQuery.data?.requests ?? []).length === 0
+                      ? "Registe o primeiro pedido na secretaria para acompanhar declarações, certificados e transferências."
+                      : "Limpe a pesquisa ou altere o estado para ver outros pedidos."
+                  }
+                />
+              ) : (
+                <ul className="space-y-2.5 p-3">
+                  {filtered.map((d) => (
+                    <li key={d.id} className="rounded-xl border border-border bg-card p-3.5">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <p className="truncate text-sm font-medium text-foreground">{d.tipo}</p>
+                          <p className="mt-0.5 truncate text-xs text-muted-foreground">
+                            {d.aluno} · <span className="tnum">{d.processo}</span>
+                          </p>
+                          <p className="mt-0.5 text-[11px] text-muted-foreground">
+                            Pedido {new Date(d.pedidoEm).toLocaleDateString("pt-PT")} ·{" "}
+                            {d.responsavel}
+                          </p>
+                        </div>
+                        <StatusBadge
+                          status={
+                            d.estado === "Emitido"
+                              ? "paid"
+                              : d.estado === "Em processamento"
+                                ? "processing"
+                                : d.estado === "Pendente de pagamento"
+                                  ? "pending"
+                                  : "cancelled"
+                          }
+                          label={d.estado}
+                          size="sm"
+                        />
                       </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
-                {workspaceQuery.isError ? (
-                  <TableRow>
-                    <TableCell colSpan={7} className="py-8 text-center text-sm text-destructive">
-                      Não foi possível carregar os pedidos de documentos.
-                    </TableCell>
-                  </TableRow>
-                ) : filtered.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={7} className="p-4">
-                      <EmptyState
-                        icon={FileStack}
-                        title={
-                          (workspaceQuery.data?.requests ?? []).length === 0
-                            ? "Ainda não há pedidos de documentos"
-                            : "Nenhum pedido corresponde aos filtros"
-                        }
-                        description={
-                          (workspaceQuery.data?.requests ?? []).length === 0
-                            ? "Registe o primeiro pedido na secretaria para acompanhar declarações, certificados e transferências."
-                            : "Limpe a pesquisa ou altere o estado para ver outros pedidos."
-                        }
-                        compact
-                      />
-                    </TableCell>
-                  </TableRow>
-                ) : null}
-              </TableBody>
-            </Table>
-          </div>
+                      <div className="mt-2.5 border-t border-border pt-2.5">
+                        <DocumentoActions d={d} />
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              )
+            }
+            desktop={
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Documento</TableHead>
+                      <TableHead>Aluno</TableHead>
+                      <TableHead>Processo</TableHead>
+                      <TableHead>Pedido em</TableHead>
+                      <TableHead>Responsável</TableHead>
+                      <TableHead>Estado</TableHead>
+                      <TableHead className="text-right">Acção</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filtered.map((d) => (
+                      <TableRow key={d.id}>
+                        <TableCell className="font-semibold">
+                          <span className="flex items-center gap-2">
+                            <FileCheck2 className="size-4 text-primary" />
+                            {d.tipo}
+                          </span>
+                        </TableCell>
+                        <TableCell>{d.aluno}</TableCell>
+                        <TableCell className="font-mono text-xs text-muted-foreground">
+                          {d.processo}
+                        </TableCell>
+                        <TableCell>{new Date(d.pedidoEm).toLocaleDateString("pt-PT")}</TableCell>
+                        <TableCell className="text-sm text-muted-foreground">
+                          {d.responsavel}
+                        </TableCell>
+                        <TableCell>
+                          {/* Chaves do registo de estados (§43): "info"/"warning" não
+                          eram estados, eram cores — e caíam no tom neutro. */}
+                          <StatusBadge
+                            status={
+                              d.estado === "Emitido"
+                                ? "paid"
+                                : d.estado === "Em processamento"
+                                  ? "processing"
+                                  : d.estado === "Pendente de pagamento"
+                                    ? "pending"
+                                    : "cancelled"
+                            }
+                            label={d.estado}
+                          />
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <DocumentoActions d={d} />
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                    {workspaceQuery.isError ? (
+                      <TableRow>
+                        <TableCell
+                          colSpan={7}
+                          className="py-8 text-center text-sm text-destructive"
+                        >
+                          Não foi possível carregar os pedidos de documentos.
+                        </TableCell>
+                      </TableRow>
+                    ) : filtered.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={7} className="p-4">
+                          <EmptyState
+                            icon={FileStack}
+                            title={
+                              (workspaceQuery.data?.requests ?? []).length === 0
+                                ? "Ainda não há pedidos de documentos"
+                                : "Nenhum pedido corresponde aos filtros"
+                            }
+                            description={
+                              (workspaceQuery.data?.requests ?? []).length === 0
+                                ? "Registe o primeiro pedido na secretaria para acompanhar declarações, certificados e transferências."
+                                : "Limpe a pesquisa ou altere o estado para ver outros pedidos."
+                            }
+                            compact
+                          />
+                        </TableCell>
+                      </TableRow>
+                    ) : null}
+                  </TableBody>
+                </Table>
+              </div>
+            }
+          />
         </Panel>
 
         <Panel title="Modelos disponíveis" description="Taxas e prazos de emissão">

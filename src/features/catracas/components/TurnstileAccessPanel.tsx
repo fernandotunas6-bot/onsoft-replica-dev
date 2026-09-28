@@ -31,6 +31,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { ResponsiveEntityView } from "@/components/mobile/ResponsiveEntityView";
+import { EntityList, type EntityListItem } from "@/components/mobile/EntityList";
 import {
   Dialog,
   DialogContent,
@@ -598,41 +600,70 @@ export function TurnstileAccessPanel() {
             Ainda não foram registados eventos de passagem nas catracas.
           </div>
         ) : (
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="text-xs">Data & Hora</TableHead>
-                <TableHead className="text-xs">Pessoa / Aluno</TableHead>
-                <TableHead className="text-xs">Direção</TableHead>
-                <TableHead className="text-xs">Portaria / Dispositivo</TableHead>
-                <TableHead className="text-xs text-right">Resultado</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {logs.map((log) => (
-                <TableRow key={log.id}>
-                  <TableCell className="text-xs font-mono">
-                    {new Date(log.timestamp).toLocaleString("pt-PT")}
-                  </TableCell>
-                  <TableCell className="text-xs font-bold text-foreground">
-                    {log.person_name}
-                  </TableCell>
-                  <TableCell className="text-xs font-semibold capitalize">
-                    {log.direction === "entry" ? "Entrada" : "Saída"}
-                  </TableCell>
-                  <TableCell className="text-xs text-muted-foreground">{log.device_name}</TableCell>
-                  <TableCell className="text-xs text-right">
+          <ResponsiveEntityView
+            mobile={
+              <EntityList
+                className="-mx-4"
+                items={logs.map<EntityListItem>((log) => ({
+                  id: log.id,
+                  title: log.person_name,
+                  subtitle: `${new Date(log.timestamp).toLocaleString("pt-PT")} · ${
+                    log.direction === "entry" ? "Entrada" : "Saída"
+                  } · ${log.device_name}`,
+                  status: (
                     <StatusBadge
-                      status={log.status === "granted" ? "active" : "cancelled"}
-                      label={
-                        log.status === "granted" ? "Autorizado" : `Negado: ${log.denial_reason}`
-                      }
+                      status={log.status === "granted" ? "active" : "rejected"}
+                      label={log.status === "granted" ? "Autorizado" : "Negado"}
+                      size="sm"
                     />
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+                  ),
+                }))}
+              />
+            }
+            desktop={
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="text-xs">Data & Hora</TableHead>
+                      <TableHead className="text-xs">Pessoa / Aluno</TableHead>
+                      <TableHead className="text-xs">Direção</TableHead>
+                      <TableHead className="text-xs">Portaria / Dispositivo</TableHead>
+                      <TableHead className="text-xs text-right">Resultado</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {logs.map((log) => (
+                      <TableRow key={log.id}>
+                        <TableCell className="text-xs font-mono">
+                          {new Date(log.timestamp).toLocaleString("pt-PT")}
+                        </TableCell>
+                        <TableCell className="text-xs font-bold text-foreground">
+                          {log.person_name}
+                        </TableCell>
+                        <TableCell className="text-xs font-semibold capitalize">
+                          {log.direction === "entry" ? "Entrada" : "Saída"}
+                        </TableCell>
+                        <TableCell className="text-xs text-muted-foreground">
+                          {log.device_name}
+                        </TableCell>
+                        <TableCell className="text-xs text-right">
+                          <StatusBadge
+                            status={log.status === "granted" ? "active" : "cancelled"}
+                            label={
+                              log.status === "granted"
+                                ? "Autorizado"
+                                : `Negado: ${log.denial_reason}`
+                            }
+                          />
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            }
+          />
         )}
       </div>
 

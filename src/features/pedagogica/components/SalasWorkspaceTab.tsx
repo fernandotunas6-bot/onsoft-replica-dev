@@ -263,7 +263,7 @@ export function SalasWorkspaceTab({ canManage }: { canManage: boolean }) {
         </div>
 
         {/* Tabela de Salas */}
-        <div className="overflow-hidden rounded-xl border border-border bg-card">
+        <div className="overflow-x-auto rounded-xl border border-border bg-card">
           <Table>
             <TableHeader>
               <TableRow className="bg-muted/40">
