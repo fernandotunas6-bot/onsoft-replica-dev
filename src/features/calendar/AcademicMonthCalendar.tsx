@@ -242,7 +242,7 @@ export function AcademicMonthCalendar({
                 </span>
                 <span className="flex items-center gap-0.5">
                   {covering.length > 1 ? (
-                    <span className="text-[9px] font-semibold opacity-80">
+                    <span className="text-[11px] font-semibold opacity-80">
                       +{covering.length - 1}
                     </span>
                   ) : null}
@@ -255,11 +255,11 @@ export function AcademicMonthCalendar({
                 </span>
               </span>
               {primary ? (
-                <span className="mt-1 line-clamp-2 text-[10px] font-medium leading-tight">
+                <span className="mt-1 line-clamp-2 text-[11px] font-medium leading-tight">
                   {primary.title}
                 </span>
               ) : holiday ? (
-                <span className="mt-1 line-clamp-2 text-[10px] font-medium leading-tight text-destructive">
+                <span className="mt-1 line-clamp-2 text-[11px] font-medium leading-tight text-destructive">
                   {holiday.name}
                 </span>
               ) : null}

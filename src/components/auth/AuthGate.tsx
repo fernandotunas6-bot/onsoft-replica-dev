@@ -377,7 +377,15 @@ export function AuthGate({ children }: { children: ReactNode }) {
     setInfo(null);
     const { error: oauthError } = await supabase.auth.signInWithOAuth({
       provider: "google",
-      options: { redirectTo: typeof window !== "undefined" ? window.location.origin : undefined },
+      options: {
+        // Mantém o pedido de autorização de agentes (MCP) após o regresso do Google.
+        redirectTo:
+          typeof window === "undefined"
+            ? undefined
+            : window.location.pathname.startsWith("/.lovable/oauth/consent")
+              ? window.location.href
+              : window.location.origin,
+      },
     });
     if (oauthError) {
       setError("Não foi possível iniciar sessão com o Google. Tente novamente.");

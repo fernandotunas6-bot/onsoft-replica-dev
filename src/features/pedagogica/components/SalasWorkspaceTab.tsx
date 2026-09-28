@@ -294,7 +294,7 @@ export function SalasWorkspaceTab({ canManage }: { canManage: boolean }) {
                     <TableCell className="text-xs font-medium text-foreground">
                       {room.name}
                       {room.notes && (
-                        <p className="text-[10px] text-muted-foreground">{room.notes}</p>
+                        <p className="text-[11px] text-muted-foreground">{room.notes}</p>
                       )}
                     </TableCell>
                     <TableCell>
@@ -310,7 +310,7 @@ export function SalasWorkspaceTab({ canManage }: { canManage: boolean }) {
                     </TableCell>
                     <TableCell>
                       <span
-                        className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium ${
+                        className={`inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium ${
                           room.status === "active"
                             ? "bg-success/15 text-success"
                             : "bg-muted text-muted-foreground"

@@ -113,17 +113,17 @@ export function CampusAttendanceReconciliationPanel() {
               </div>
 
               <div className="flex items-center gap-2">
-                <Badge variant="outline" className="text-[10px] font-mono gap-1">
+                <Badge variant="outline" className="text-[11px] font-mono gap-1">
                   <Clock className="size-3" /> Portaria: {an.gateEntryTime}
                 </Badge>
                 {an.severity === "high" ? (
-                  <Badge variant="destructive" className="text-[10px] font-extrabold">
+                  <Badge variant="destructive" className="text-[11px] font-extrabold">
                     Alerta de Evasão
                   </Badge>
                 ) : (
                   <Badge
                     variant="outline"
-                    className="bg-warning/10 text-warning-strong border-warning/30 text-[10px]"
+                    className="bg-warning/10 text-warning-strong border-warning/30 text-[11px]"
                   >
                     Entrada Tardia
                   </Badge>

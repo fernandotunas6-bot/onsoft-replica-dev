@@ -685,7 +685,7 @@ export function CurriculoWorkspaceTab({
                         {type.name}
                       </span>
                       {type.description && (
-                        <p className="text-[10px] text-muted-foreground">{type.description}</p>
+                        <p className="text-[11px] text-muted-foreground">{type.description}</p>
                       )}
                     </TableCell>
                     <TableCell className="text-center text-xs">
@@ -772,7 +772,7 @@ export function CurriculoWorkspaceTab({
                 {area.description && (
                   <p className="mt-1.5 text-[11px] text-muted-foreground">{area.description}</p>
                 )}
-                <div className="mt-3 flex items-center justify-between border-t border-border/40 pt-2 text-[10px] text-muted-foreground font-mono">
+                <div className="mt-3 flex items-center justify-between border-t border-border/40 pt-2 text-[11px] text-muted-foreground font-mono">
                   <span>Código: {area.code}</span>
                   <span>Ordem: #{area.display_order}</span>
                 </div>

@@ -122,7 +122,7 @@ Ver [Runbook § Observabilidade](/integracoes/gateway-runbook-suporte#observabil
 | `401` API key inválida | Merchant ID colado no portal em vez de `webhookApiKey` | Copiar API key de Integrações |
 | Referência não encontrada | Plano não está `pending_gateway` ou referência diferente | Reemitir referência; comparar 9 dígitos |
 | Unitel não liquida | URL `/gateway/confirm` em vez de `/unitel/confirm` | Corrigir no portal Unitel |
-| Entidade errada no ATM | Campo Merchant EMIS vazio ou demo `99824` | Preencher entidade real da escola |
+| Entidade errada no ATM | Referência antiga gerada com a entidade de demonstração `99824` | Preencher a entidade real da escola e gerar nova referência |
 | Webhook OK mas sem recibo | Permissões SGA / RPC `register_payment` | Aplicar SQL SGA; confirmar manualmente na tesouraria |
 
 ## Segurança

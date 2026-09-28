@@ -34,11 +34,11 @@ export function DesktopTitleBar() {
     >
       {/* NOME DA APLICAÇÃO E ESCOLA */}
       <div className="flex items-center gap-2 pointer-events-none">
-        <div className="size-5 rounded bg-primary/20 text-primary flex items-center justify-center font-bold text-[10px]">
+        <div className="size-5 rounded bg-primary/20 text-primary flex items-center justify-center font-bold text-[11px]">
           <Shield className="size-3 text-primary" />
         </div>
         <span className="font-extrabold text-foreground tracking-tight">SIGA Desktop</span>
-        <span className="text-muted-foreground font-mono text-[10px]">v1.0 ({osName})</span>
+        <span className="text-muted-foreground font-mono text-[11px]">v1.0 ({osName})</span>
         {school?.name ? (
           <span className="text-muted-foreground font-semibold text-[11px] ml-2 border-l border-neutral-700 pl-2">
             {school.name}

@@ -95,7 +95,7 @@ export function FileDetailsPanel({
             <UserAvatar
               url={selected.ownerAvatarUrl}
               initials={initialsFromName(selected.ownerName)}
-              className="size-7 bg-secondary text-[10px] font-bold"
+              className="size-7 bg-secondary text-[11px] font-bold"
             />
             {selected.ownerName ?? "—"}
           </dd>
@@ -204,7 +204,7 @@ export function FileDetailsPanel({
                   <UserAvatar
                     url={event.actorAvatarUrl}
                     initials={initialsFromName(event.actorName)}
-                    className="mt-0.5 size-6 bg-secondary text-[9px] font-bold"
+                    className="mt-0.5 size-6 bg-secondary text-[11px] font-bold"
                   />
                   <div className="min-w-0">
                     <p className="font-medium text-foreground">

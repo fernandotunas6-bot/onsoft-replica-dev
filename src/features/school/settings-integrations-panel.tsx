@@ -104,16 +104,16 @@ function GatewayWebhookHint({
       <p className="text-muted-foreground">
         Configure no portal {provider === "unitel_money" ? "Unitel Money" : "EMIS/Multicaixa"} o
         POST abaixo. Corpo JSON:{" "}
-        <code className="text-[10px]">{`{ apiKey, reference, amount, invoiceId? }`}</code>
+        <code className="text-[11px]">{`{ apiKey, reference, amount, invoiceId? }`}</code>
       </p>
       {provider === "multicaixa_express" ? (
         <p className="text-[11px] text-muted-foreground">
-          Entidade EMIS: preencha o campo «Merchant EMIS / Multicaixa» acima (4–6 dígitos). Sem
-          valor, usa-se <code className="text-[10px]">99824</code> (demo).
+          Entidade EMIS: preencha o campo «Merchant EMIS / Multicaixa» acima (4–6 dígitos). Sem ela,
+          o SIGA não gera referências Multicaixa.
         </p>
       ) : null}
       <div className="flex flex-wrap items-center gap-2">
-        <code className="flex-1 min-w-0 truncate rounded bg-background px-2 py-1 font-mono text-[10px]">
+        <code className="flex-1 min-w-0 truncate rounded bg-background px-2 py-1 font-mono text-[11px]">
           {webhookUrl}
         </code>
         <Button type="button" size="sm" variant="outline" onClick={() => copy("URL", webhookUrl)}>
@@ -121,7 +121,7 @@ function GatewayWebhookHint({
         </Button>
       </div>
       <div className="flex flex-wrap items-center gap-2">
-        <code className="flex-1 min-w-0 truncate rounded bg-background px-2 py-1 font-mono text-[10px]">
+        <code className="flex-1 min-w-0 truncate rounded bg-background px-2 py-1 font-mono text-[11px]">
           {apiKey}
         </code>
         <Button type="button" size="sm" variant="outline" onClick={() => copy("API key", apiKey)}>
@@ -166,11 +166,11 @@ function GatewayWebhookHint({
             {recentEvents.map((event) => (
               <li
                 key={event.id}
-                className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[10px] text-muted-foreground"
+                className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px] text-muted-foreground"
               >
                 <Badge
                   variant={event.ok ? "secondary" : "destructive"}
-                  className="h-4 px-1 text-[9px] font-normal"
+                  className="h-4 px-1 text-[11px] font-normal"
                 >
                   {event.ok ? "OK" : "Falha"} {event.http_status}
                 </Badge>
@@ -183,10 +183,10 @@ function GatewayWebhookHint({
       ) : null}
       <p className="text-[11px] text-muted-foreground">
         Teste local:{" "}
-        <code className="text-[10px]">npm run siga:gateway-simulate -- --invoice-id=…</code>
-        {provider === "unitel_money" ? <code className="text-[10px]"> --unitel</code> : null}
+        <code className="text-[11px]">npm run siga:gateway-simulate -- --invoice-id=…</code>
+        {provider === "unitel_money" ? <code className="text-[11px]"> --unitel</code> : null}
         {" · "}
-        Operador: <code className="text-[10px]">npm run siga:gateway-events-recent</code>
+        Operador: <code className="text-[11px]">npm run siga:gateway-events-recent</code>
         {" · "}
         <a
           href={getDocUrl(DOC_PATHS.integracoesEmis)}

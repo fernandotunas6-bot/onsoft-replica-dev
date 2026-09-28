@@ -653,7 +653,7 @@ export function StudentEnrollmentSheet({
               <p>
                 <strong>Turma:</strong> {turmaLabel}
                 {isOverCapacity ? (
-                  <span className="ml-1.5 inline-flex items-center rounded-sm border border-destructive/30 bg-destructive/10 px-1.5 py-0.5 text-[10px] font-bold text-destructive">
+                  <span className="ml-1.5 inline-flex items-center rounded-sm border border-destructive/30 bg-destructive/10 px-1.5 py-0.5 text-[11px] font-bold text-destructive">
                     Sobrelotação
                   </span>
                 ) : null}

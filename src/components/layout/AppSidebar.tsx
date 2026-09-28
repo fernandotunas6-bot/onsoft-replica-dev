@@ -117,7 +117,8 @@ export function AppSidebar({
       <aside
         data-sidebar="siga"
         className={cn(
-          "flex h-full shrink-0 flex-col bg-sidebar text-sidebar-foreground transition-[width] duration-200",
+          "flex h-full shrink-0 flex-col overflow-hidden bg-sidebar text-sidebar-foreground transition-[width] duration-200",
+          "lg:rounded-2xl lg:border lg:border-border/60 lg:shadow-sm",
           collapsed ? "w-[64px]" : "w-[240px]",
           className,
         )}
@@ -161,7 +162,7 @@ export function AppSidebar({
                           {school?.name}
                         </span>
                         {schoolMotto ? (
-                          <span className="block truncate text-[10px] font-medium text-sidebar-muted">
+                          <span className="block truncate text-[11px] font-medium text-sidebar-muted">
                             {schoolMotto}
                           </span>
                         ) : null}
@@ -184,7 +185,7 @@ export function AppSidebar({
                 {currentUser.schools.length > 1 ? (
                   <>
                     <DropdownMenuSeparator />
-                    <DropdownMenuLabel className="text-[10px] font-semibold text-muted-foreground py-1">
+                    <DropdownMenuLabel className="text-[11px] font-semibold text-muted-foreground py-1">
                       Alternar Instituição
                     </DropdownMenuLabel>
                     {currentUser.schools.map((item) => {
@@ -203,7 +204,7 @@ export function AppSidebar({
                           )}
                         >
                           <span className="truncate">{item.schoolName}</span>
-                          <span className="text-[10px] text-muted-foreground ml-2 shrink-0">
+                          <span className="text-[11px] text-muted-foreground ml-2 shrink-0">
                             {item.roleName || item.appRole}
                           </span>
                         </DropdownMenuItem>
@@ -229,7 +230,7 @@ export function AppSidebar({
                 >
                   <Building2 className="size-4 text-primary" /> Instituições
                   {currentUser.schools.length > 1 ? (
-                    <span className="ml-auto rounded-full bg-primary/15 px-1.5 py-0.5 text-[10px] font-semibold text-primary">
+                    <span className="ml-auto rounded-full bg-primary/15 px-1.5 py-0.5 text-[11px] font-semibold text-primary">
                       {currentUser.schools.length}
                     </span>
                   ) : null}
@@ -461,7 +462,7 @@ export function AppSidebar({
               {currentUser.roles && currentUser.roles.length > 1 ? (
                 <>
                   <DropdownMenuSeparator />
-                  <DropdownMenuLabel className="text-[10px] font-extrabold text-muted-foreground">
+                  <DropdownMenuLabel className="text-[11px] font-extrabold text-muted-foreground">
                     Mudar Área (Perfil)
                   </DropdownMenuLabel>
                   {currentUser.roles.map((r) => (

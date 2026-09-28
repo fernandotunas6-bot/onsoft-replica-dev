@@ -182,7 +182,7 @@ export function ClassMaterialsPanel({
                   }}
                 >
                   {file.name}
-                  <span className="ml-2 text-[10px] font-normal text-muted-foreground">
+                  <span className="ml-2 text-[11px] font-normal text-muted-foreground">
                     {formatFileSize(file.sizeBytes)}
                     {file.isSystem && !contentOpen ? " · Protegido" : ""}
                   </span>

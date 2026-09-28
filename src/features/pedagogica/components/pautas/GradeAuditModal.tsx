@@ -63,27 +63,27 @@ export function GradeAuditModal({
           <p className="font-semibold text-foreground text-[11px]">Componentes de Avaliação</p>
           <div className="grid grid-cols-3 gap-2">
             <div className="p-2.5 rounded-md border border-border bg-card">
-              <span className="block text-[10px] text-muted-foreground font-medium">MACT</span>
+              <span className="block text-[11px] text-muted-foreground font-medium">MACT</span>
               <span className="text-sm font-bold text-foreground">{mac !== null ? mac : "—"}</span>
-              <span className="block text-[9px] text-muted-foreground mt-0.5">
+              <span className="block text-[11px] text-muted-foreground mt-0.5">
                 Avaliação Contínua
               </span>
             </div>
 
             <div className="p-2.5 rounded-md border border-border bg-card">
-              <span className="block text-[10px] text-muted-foreground font-medium">NPP*</span>
+              <span className="block text-[11px] text-muted-foreground font-medium">NPP*</span>
               <span className="text-sm font-bold text-muted-foreground">
                 {npp !== null ? npp : "—"}
               </span>
-              <span className="block text-[9px] text-muted-foreground mt-0.5">
+              <span className="block text-[11px] text-muted-foreground mt-0.5">
                 Prova do Professor
               </span>
             </div>
 
             <div className="p-2.5 rounded-md border border-border bg-card">
-              <span className="block text-[10px] text-muted-foreground font-medium">NPT</span>
+              <span className="block text-[11px] text-muted-foreground font-medium">NPT</span>
               <span className="text-sm font-bold text-foreground">{npt !== null ? npt : "—"}</span>
-              <span className="block text-[9px] text-muted-foreground mt-0.5">
+              <span className="block text-[11px] text-muted-foreground mt-0.5">
                 Prova {periodNoun === "Semestre" ? "Semestral" : "Trimestral"}
               </span>
             </div>

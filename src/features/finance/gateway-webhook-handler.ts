@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { invoiceStatusFromPaid } from "./invoice-settlement";
 import { publicDatabaseError } from "@/integrations/supabase/server-error";
 import { normalizePaymentReference } from "@/features/finance/emiss-multicaixa";
 import {
@@ -235,17 +236,11 @@ export async function settleGatewayPayment(
         );
       }
       const alreadyPaid = (receipts ?? []).reduce((acc, r) => acc + Number(r.amount || 0), 0);
-      // A mesma regra de `register_payment`: nunca um recibo acima do saldo em
-      // aberto. O pagamento fica para revisão manual em vez de gerar um recibo a mais.
-      if (alreadyPaid + input.amount > Number(invoice.amount) + 0.009) {
-        throw new Error("O valor do pagamento excede o saldo em aberto da fatura.");
-      }
-
       // A mesma guarda que `private.register_payment` tem e que este caminho tinha perdido:
       // lá o excesso levanta excepção, aqui `alreadyPaid` só era usado para escolher entre
       // `paid` e `partially_paid`. Sem ela, recibos a mais somavam acima do valor da fatura
       // sem nada o assinalar.
-      if (alreadyPaid + input.amount > invoiceAmountDue) {
+      if (alreadyPaid + input.amount > invoiceAmountDue + 0.009) {
         throw new Error("O valor do pagamento excede o saldo em aberto da fatura.");
       }
 
@@ -359,7 +354,12 @@ export async function settleGatewayPayment(
           "Não foi possível emitir recibo do gateway.",
         );
 
-      const newStatus = alreadyPaid + input.amount >= invoiceAmountDue ? "paid" : "partially_paid";
+      // `invoiceStatusFromPaid` veio do main e é melhor do que a comparação que estava
+      // aqui: arredonda a cêntimos, logo não deixa um pagamento exacto ficar
+      // "partially_paid" por erro de vírgula flutuante. Mas a base tem de ser
+      // `invoiceAmountDue`, não `invoiceNetTotal`: só a primeira soma a multa, e uma
+      // fatura com multa nunca chegaria a "paid" pagando o valor devido.
+      const newStatus = invoiceStatusFromPaid(invoiceAmountDue, alreadyPaid + input.amount);
       await db
         .from("finance_invoices")
         .update({ status: newStatus })

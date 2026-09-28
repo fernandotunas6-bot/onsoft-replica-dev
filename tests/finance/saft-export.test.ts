@@ -2,6 +2,8 @@ import { describe, expect, it } from "vitest";
 import {
   invoiceDateInSaftPeriod,
   mapFinanceInvoiceToSaftItem,
+  mapFinanceReceiptToSaftPayment,
+  saftCertificationWarning,
   saftExportBlocked,
   saftPeriodBounds,
   validateSaftSchoolReadiness,
@@ -51,5 +53,72 @@ describe("invoiceDateInSaftPeriod", () => {
   it("filtra datas fora do período", () => {
     expect(invoiceDateInSaftPeriod("2026-06-01", "2026-01-01", "2026-12-31")).toBe(true);
     expect(invoiceDateInSaftPeriod("2025-12-31", "2026-01-01", "2026-12-31")).toBe(false);
+  });
+});
+
+describe("recibos e avisos do SAF-T", () => {
+  it("recibo estornado vai anulado com a data do estorno", () => {
+    const pay = mapFinanceReceiptToSaftPayment({
+      id: "abcdef12-0000",
+      receipt_number: null,
+      paid_on: "2026-04-02",
+      created_at: "2026-04-02T10:00:00Z",
+      amount: 5000,
+      status: "reversed",
+      reversed_at: "2026-04-09T08:00:00Z",
+      customerName: "Ana",
+      sourceInvoiceNo: "FT 2026/0003",
+      sourceInvoiceDate: "2026-03-01T09:00:00Z",
+    });
+    expect(pay).toMatchObject({
+      paymentRefNo: "RG 2026/abcdef12",
+      paymentType: "RG",
+      date: "2026-04-02",
+      amount: 5000,
+      status: "A",
+      statusDate: "2026-04-09",
+      sourceInvoiceNo: "FT 2026/0003",
+      sourceInvoiceDate: "2026-03-01",
+    });
+  });
+
+  it("recibo normal fica N e sem data de estado própria", () => {
+    const pay = mapFinanceReceiptToSaftPayment({
+      id: "r2",
+      receipt_number: "RG 2026/0002",
+      paid_on: "2026-04-02",
+      created_at: null,
+      amount: 100,
+      status: "posted",
+      customerName: "Ana",
+    });
+    expect(pay.status).toBe("N");
+    expect(pay.statusDate).toBeUndefined();
+  });
+
+  it("fatura anulada leva a data de anulação", () => {
+    const item = mapFinanceInvoiceToSaftItem({
+      id: "i1",
+      invoice_number: "FT 1",
+      created_at: "2026-01-05T10:00:00Z",
+      amount: 100,
+      discount_amount: 0,
+      status: "cancelled",
+      cancelled_at: "2026-01-20T10:00:00Z",
+      description: "Propina",
+      customerName: "Ana",
+      fiscalYear: 2026,
+    });
+    expect(item).toMatchObject({ status: "A", statusDate: "2026-01-20" });
+  });
+
+  it("avisa sempre que o ficheiro não é de software certificado", () => {
+    expect(saftCertificationWarning()).toMatch(/não é software de facturação certificado/);
+    expect(saftCertificationWarning("123/AGT/2026")).toMatch(/sem assinatura digital/);
+  });
+
+  it("avisa quando falta a morada", () => {
+    const issues = validateSaftSchoolReadiness({ name: "Escola", nif: "5417001234", address: "" });
+    expect(issues.some((i) => i.level === "warn" && /Morada/.test(i.message))).toBe(true);
   });
 });

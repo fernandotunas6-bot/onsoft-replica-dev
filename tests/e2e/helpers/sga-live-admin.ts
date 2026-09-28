@@ -458,9 +458,13 @@ export async function seedE2EGatewayFixture(
     .single();
   if (invoiceError) throw new Error(invoiceError.message);
 
-  const { generateMulticaixaReference, normalizePaymentReference, resolveSchoolEmisEntity } =
-    await import("@/features/finance/emiss-multicaixa");
-  const emisEntity = await resolveSchoolEmisEntity(admin, schoolId);
+  const {
+    generateMulticaixaReference,
+    normalizePaymentReference,
+    resolveConfiguredSchoolEmisEntity,
+  } = await import("@/features/finance/emiss-multicaixa");
+  const emisEntity = await resolveConfiguredSchoolEmisEntity(admin, schoolId);
+  if (!emisEntity) throw new Error("A escola de teste não tem entidade EMIS configurada.");
   const generated = generateMulticaixaReference(emisEntity, invoice.id, amount);
   const reference = normalizePaymentReference(generated.reference);
 

@@ -330,7 +330,7 @@ function AlumniPortalPage() {
                         </p>
                       </div>
                       {item.remote_allowed ? (
-                        <span className="rounded-full bg-primary/10 px-2 py-1 text-[10px] font-bold text-primary">
+                        <span className="rounded-full bg-primary/10 px-2 py-1 text-[11px] font-bold text-primary">
                           Remoto
                         </span>
                       ) : null}

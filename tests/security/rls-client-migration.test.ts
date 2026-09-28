@@ -122,6 +122,11 @@ const PRIVILEGIO_POR_DESENHO = new Set([
   // disciplina (verificado em teachers/class_subjects) ou da coordenação.
   "src/features/academic/competencies.ts",
 
+  // Comparativo entre anos: lê o histórico académico (só do servidor desde
+  // 20260927090000) para o pessoal da escola e devolve apenas totais por ano e
+  // por classe — nenhum nome nem registo de aluno sai do servidor.
+  "src/features/academic/year-comparison.ts",
+
   // Limite de tentativas partilhado entre instâncias: pedidos sem sessão (login
   // por B.I.), por isso só a chave de serviço executa siga_rate_limit_consume.
   "src/lib/shared-rate-limit.ts",

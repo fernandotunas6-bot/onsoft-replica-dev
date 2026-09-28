@@ -13,7 +13,8 @@ import {
 } from "@/features/school/server";
 import { useInstalledIntegrations } from "@/features/integrations/use-installed-integrations";
 import { listFeePlanSettings, upsertFeePlanSettings } from "@/features/finance/server";
-import { DEFAULT_FEE_ITEMS, DEFAULT_FEE_PLAN_NAME } from "@/features/finance/fee-plan-defaults";
+import { DEFAULT_FEE_PLAN_NAME } from "@/features/finance/fee-plan-defaults";
+import { toastActionError } from "@/lib/action-error-toast";
 import { kwanza } from "@/lib/currency";
 
 export function BillingParametersSummary() {
@@ -209,13 +210,12 @@ export function FeePlanSettingsForm() {
   const stackNav = useOptionalStackNav();
   const queryClient = useQueryClient();
   const canManage = ["Administrador", "Tesouraria"].includes(currentUser.role);
-  const defaultTuition =
-    DEFAULT_FEE_ITEMS.find((item) => item.kind === "tuition")?.amount ?? 45_000;
-  const defaultEnrollment =
-    DEFAULT_FEE_ITEMS.find((item) => item.kind === "enrollment")?.amount ?? 25_000;
+  // Sem preço definido (ou 0, "por definir") o campo fica vazio: nunca um
+  // valor de exemplo que pareça ser o preço da escola.
+  const amountText = (amount: number | undefined) => (amount && amount > 0 ? String(amount) : "");
   const [planName, setPlanName] = useState(DEFAULT_FEE_PLAN_NAME);
-  const [tuitionAmount, setTuitionAmount] = useState(String(defaultTuition));
-  const [enrollmentAmount, setEnrollmentAmount] = useState(String(defaultEnrollment));
+  const [tuitionAmount, setTuitionAmount] = useState("");
+  const [enrollmentAmount, setEnrollmentAmount] = useState("");
   const [saving, setSaving] = useState(false);
 
   const feePlanQuery = useQuery({
@@ -230,22 +230,17 @@ export function FeePlanSettingsForm() {
     if (feePlanQuery.data.plan?.name) setPlanName(feePlanQuery.data.plan.name);
     const tuition = feePlanQuery.data.items.find((item) => item.kind === "tuition");
     const enrollment = feePlanQuery.data.items.find((item) => item.kind === "enrollment");
-    if (tuition) setTuitionAmount(String(tuition.amount));
-    if (enrollment) setEnrollmentAmount(String(enrollment.amount));
+    setTuitionAmount(amountText(tuition?.amount));
+    setEnrollmentAmount(amountText(enrollment?.amount));
   }, [feePlanQuery.data]);
 
   const feePlanDirty = Boolean(
     feePlanQuery.data &&
     (planName !== (feePlanQuery.data.plan?.name ?? DEFAULT_FEE_PLAN_NAME) ||
       tuitionAmount !==
-        String(
-          feePlanQuery.data.items.find((item) => item.kind === "tuition")?.amount ?? defaultTuition,
-        ) ||
+        amountText(feePlanQuery.data.items.find((item) => item.kind === "tuition")?.amount) ||
       enrollmentAmount !==
-        String(
-          feePlanQuery.data.items.find((item) => item.kind === "enrollment")?.amount ??
-            defaultEnrollment,
-        )),
+        amountText(feePlanQuery.data.items.find((item) => item.kind === "enrollment")?.amount)),
   );
 
   useEffect(() => {
@@ -261,7 +256,7 @@ export function FeePlanSettingsForm() {
       !Number.isFinite(enrollment) ||
       enrollment <= 0
     ) {
-      toast.error("Indique valores válidos para propina e matrícula.");
+      toast.error("Indique os valores da propina mensal e da taxa de matrícula da escola.");
       return;
     }
     setSaving(true);
@@ -275,8 +270,8 @@ export function FeePlanSettingsForm() {
       });
       queryClient.setQueryData(["finance", "fee-plan-settings"], data);
       toast.success("Plano de propinas actualizado.");
-    } catch {
-      toast.error("Não foi possível guardar o plano de propinas.");
+    } catch (error) {
+      toastActionError(error, "Não foi possível guardar o plano de propinas.");
     } finally {
       setSaving(false);
     }
@@ -323,6 +318,7 @@ export function FeePlanSettingsForm() {
             type="number"
             min={1}
             step={1000}
+            placeholder="Por definir"
             value={tuitionAmount}
             onChange={(event) => setTuitionAmount(event.target.value)}
           />
@@ -337,6 +333,7 @@ export function FeePlanSettingsForm() {
             type="number"
             min={1}
             step={1000}
+            placeholder="Por definir"
             value={enrollmentAmount}
             onChange={(event) => setEnrollmentAmount(event.target.value)}
           />

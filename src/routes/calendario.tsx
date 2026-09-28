@@ -649,7 +649,7 @@ function CalendarioPage() {
               )}
               {selectedDay ? (
                 <div className="space-y-1.5 border-t border-border/60 pt-3">
-                  <p className="text-[10px] font-semibold text-muted-foreground">
+                  <p className="text-[11px] font-semibold text-muted-foreground">
                     Aulas do horário
                   </p>
                   {dayLessonsQuery.isLoading ? (

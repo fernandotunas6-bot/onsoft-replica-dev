@@ -137,13 +137,13 @@ function AlumniPortfolio360Page() {
             <div className="grid min-w-52 grid-cols-2 gap-3 text-center">
               <div className="rounded-2xl bg-muted/60 p-3">
                 <p className="text-2xl font-black">{items.length}</p>
-                <p className="text-[10px] font-bold text-muted-foreground">Itens</p>
+                <p className="text-[11px] font-bold text-muted-foreground">Itens</p>
               </div>
               <div className="rounded-2xl bg-muted/60 p-3">
                 <p className="text-2xl font-black">
                   {items.filter((item) => item.featured).length}
                 </p>
-                <p className="text-[10px] font-bold text-muted-foreground">Destaques</p>
+                <p className="text-[11px] font-bold text-muted-foreground">Destaques</p>
               </div>
             </div>
           </div>
@@ -220,10 +220,10 @@ function PortfolioAdminCard({
       <CardContent className="p-5">
         <div className="flex items-start justify-between gap-3">
           <div className="flex flex-wrap gap-2">
-            <span className="rounded-full bg-primary/10 px-2.5 py-1 text-[10px] font-black text-primary">
+            <span className="rounded-full bg-primary/10 px-2.5 py-1 text-[11px] font-black text-primary">
               {typeLabels[item.item_type] || item.item_type}
             </span>
-            <span className="rounded-full bg-muted px-2.5 py-1 text-[10px] font-bold">
+            <span className="rounded-full bg-muted px-2.5 py-1 text-[11px] font-bold">
               {item.visibility}
             </span>
           </div>
@@ -249,7 +249,7 @@ function PortfolioAdminCard({
             {item.skills.map((skill: string) => (
               <span
                 key={skill}
-                className="rounded-full bg-muted px-2 py-1 text-[10px] font-semibold"
+                className="rounded-full bg-muted px-2 py-1 text-[11px] font-semibold"
               >
                 {skill}
               </span>

@@ -1,4 +1,4 @@
--- SIGA Plus — SQL a aplicar no Supabase (projecto Sga), 2026-09-27
+-- SIGA Plus — SQL a aplicar no Supabase (projecto Sga), 2026-09-27 — APLICADO pelo dono a 2026-09-27.
 -- Colar TUDO no SQL Editor → Run. Pode correr mais do que uma vez sem problema.
 -- 23 migrações: as 8 do SIGA de 25–26/09, as 7 do catálogo de importação
 -- (import_table_specs, sem ele a importação fica bloqueada), tenant_mailboxes,

@@ -104,7 +104,7 @@ Tesouraria → plano pending_gateway (referência EMIS determinística)
   → alternativa: confirmar manualmente na UI (PaymentReferenceCard)
 ```
 
-- **Entidade EMIS por escola:** Definições → Integrações → Multicaixa → campo «Merchant EMIS» (`merchantId` / `emisEntity`, 4–6 dígitos). Sem valor usa `99824` (demo).
+- **Entidade EMIS por escola:** Definições → Integrações → Multicaixa → campo «Merchant EMIS» (`merchantId` / `emisEntity`, 4–6 dígitos). Sem valor, o SIGA não gera referências (nunca uma entidade de exemplo).
 - **API key:** `webhookApiKey` gerada na instalação da integração (não confundir com merchant).
 - **Unitel:** URL dedicada `/api/finance/gateway/unitel/confirm` — ver manual [EMIS / Multicaixa e Unitel](/integracoes/emis-multicaixa-unitel).
 

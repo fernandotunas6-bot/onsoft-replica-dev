@@ -122,4 +122,50 @@ describe("saft-validator", () => {
     expect(result.totalPayments).toBe(1);
     expect(result.grossPaymentsTotal).toBe(30000);
   });
+
+  it("ficheiro com faturas e recibos (um anulado) passa na verificação de estrutura", () => {
+    const xml = buildSaftAoXml(
+      { nif: "5417001234", name: "Escola", address: "Rua 1", city: "Luanda" },
+      [
+        {
+          id: "i1",
+          invoiceNo: "FT 2026/0001",
+          invoiceType: "FT",
+          date: "2026-02-01",
+          customerName: "Ana",
+          description: "Propina",
+          amount: 1000,
+          status: "N",
+        },
+      ],
+      { fiscalYear: 2026 },
+      [
+        {
+          id: "r1",
+          paymentRefNo: "RG 2026/0001",
+          paymentType: "RG",
+          date: "2026-02-03",
+          customerName: "Ana",
+          amount: 1000,
+          sourceInvoiceNo: "FT 2026/0001",
+          sourceInvoiceDate: "2026-02-01",
+          status: "N",
+        },
+        {
+          id: "r2",
+          paymentRefNo: "RG 2026/0002",
+          paymentType: "RG",
+          date: "2026-02-04",
+          customerName: "Ana",
+          amount: 500,
+          status: "A",
+          statusDate: "2026-02-05",
+        },
+      ],
+    );
+    const res = validateSaftAoXml(xml);
+    expect(res.errors).toEqual([]);
+    expect(res.valid).toBe(true);
+    expect(res.totalPayments).toBe(2);
+  });
 });

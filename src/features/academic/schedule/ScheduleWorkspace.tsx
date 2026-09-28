@@ -918,7 +918,7 @@ export function ScheduleWorkspace({
                               </p>
                             )}
                             {viewMode !== "professor" && (
-                              <p className="line-clamp-1 text-[10px]">
+                              <p className="line-clamp-1 text-[11px]">
                                 Prof:{" "}
                                 <span className="font-medium text-foreground">
                                   {slot.teacher_name || "A definir"}
@@ -926,7 +926,7 @@ export function ScheduleWorkspace({
                               </p>
                             )}
                             {viewMode !== "sala" && (
-                              <p className="line-clamp-1 text-[10px]">
+                              <p className="line-clamp-1 text-[11px]">
                                 Sala:{" "}
                                 <span className="font-medium text-foreground">
                                   {slot.room_name || slot.label || "A definir"}

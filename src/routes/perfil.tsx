@@ -66,7 +66,7 @@ function PerfilPage() {
               <Building2 className="size-3.5" />
               Instituições
               {currentUser.schools.length > 1 ? (
-                <Badge variant="secondary" className="px-1.5 py-0 text-[10px] ml-1">
+                <Badge variant="secondary" className="px-1.5 py-0 text-[11px] ml-1">
                   {currentUser.schools.length}
                 </Badge>
               ) : null}
@@ -125,7 +125,7 @@ function PerfilPage() {
                                 {item.schoolName}
                               </h4>
                               {isCurrent ? (
-                                <Badge className="gap-1 bg-primary text-[10px] text-primary-foreground">
+                                <Badge className="gap-1 bg-primary text-[11px] text-primary-foreground">
                                   <CheckCircle2 className="size-3" /> Activa
                                 </Badge>
                               ) : null}

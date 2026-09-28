@@ -4,6 +4,33 @@ Ler isto **antes** de alterar código. Ecossistema (5 apps):
 [ARCHITECTURE_HARMONIZATION.md](./ARCHITECTURE_HARMONIZATION.md).
 Depois abrir o skill do módulo em `.cursor/skills/`.
 
+## Migrações aplicadas (2026-09-27)
+
+O dono aplicou `docs/agents/SIGA_aplicar_migracoes.sql` (23 migrações, até
+`20260927170000_shared_rate_limit.sql`) no SQL Editor do projecto Sga. Confirmação:
+`docs/agents/SIGA_confirmar_migracoes.sql` deve dar 17 linhas "aplicada". Não foi
+verificado a partir da sessão de agente, porque a rede do ambiente não chega a
+`*.supabase.co`. `supabase/PRODUCTION_SNAPSHOT.json` continua com a captura anterior:
+recapturar antes de encolher `TABELAS_AUSENTES_DA_PRODUCAO` e `FUNCOES_ESPERA_MIGRACAO`.
+Migrações novas a partir daqui vão num pacote novo.
+
+## Auditoria financeira (2026-09-27)
+
+Feito: SAF-T honesto (certificado "0", Hash/HashControl "0", sem nome/morada
+inventados, recibos em Payments, datas de anulação e da fatura liquidada,
+leituras presas à escola, ecrã sem "Conformidade AGT"); estorno de recibo com
+2FA, sem segundo estorno e com o estado da fatura reposto
+(`invoice-settlement.ts`); plano de propinas por omissão sem preços de exemplo
+(0 = por definir) e erro do servidor visível no painel.
+
+**Desconto nos pagamentos — aplicado pelo dono a 2026-09-27 (SQL Editor):** `private.register_payment`
+comparava o pago com `amount` e ignorava `discount_amount`. Migração
+`20260927190000_register_payment_net_of_discount.sql`, no pacote
+`docs/agents/SIGA_aplicar_pagamentos_desconto.sql` (com a confirmação no fim).
+O webhook do gateway, o estorno e a importação de pagamentos já usam o mesmo
+total (`invoiceNetTotal` em `invoice-settlement.ts`). Escolas criadas antes desta data podem ter o plano com
+45 000 / 25 000 Kz semeados; não há forma de distinguir de preços reais.
+
 ## `tenant_mailboxes` (2026-09-23)
 
 ### O SQL que estava à espera de ser aplicado falharia se o fosse

@@ -92,7 +92,7 @@ export function TrimesterPautaView({ data }: { data: TrimesterPautaDocument }) {
         </table>
       </div>
 
-      <div className="mt-3 text-[10px] text-muted-foreground">
+      <div className="mt-3 text-[11px] text-muted-foreground">
         <b>Nota explicativa:</b> Pauta de avaliação{" "}
         {periodNoun === "Semestre" ? "semestral" : "trimestral"} da turma. Apresenta a Média do{" "}
         {periodNoun} (MT) em cada disciplina do plano curricular. Clique sobre a nota de qualquer

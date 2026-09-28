@@ -23,12 +23,14 @@ import { Route as DocumentosRouteImport } from './routes/documentos'
 import { Route as FaturasRouteImport } from './routes/faturas'
 import { Route as FinanceiroRouteImport } from './routes/financeiro'
 import { Route as ImportarRouteImport } from './routes/importar'
+import { Route as McpRouteImport } from './routes/mcp'
 import { Route as PedagogicaRouteImport } from './routes/pedagogica'
 import { Route as PerfilRouteImport } from './routes/perfil'
 import { Route as PlanosAulaRouteImport } from './routes/planos-aula'
 import { Route as SaasAdminRouteImport } from './routes/saas-admin'
 import { Route as TesourariaRouteImport } from './routes/tesouraria'
 import { Route as VerificarRouteImport } from './routes/verificar'
+import { Route as Char91DotwellKnownChar93OauthProtectedResourceRouteImport } from './routes/[.well-known]/oauth-protected-resource'
 import { Route as AlumniAlumniIdRouteImport } from './routes/alumni.$alumniId'
 import { Route as AlumniCalendarRouteImport } from './routes/alumni.calendar'
 import { Route as AlumniCommunicationsRouteImport } from './routes/alumni.communications'
@@ -55,6 +57,7 @@ import { Route as ProfessorPresencaRouteImport } from './routes/professor.presen
 import { Route as ProfessoresTeacherIdRouteImport } from './routes/professores/$teacherId'
 import { Route as RelatoriosAcademicosRouteImport } from './routes/relatorios.academicos'
 import { Route as RelatoriosFinanceirosRouteImport } from './routes/relatorios.financeiros'
+import { Route as DotlovableOauthConsentRouteImport } from './routes/[.]lovable.oauth.consent'
 import { Route as AlumniAlumniIdPortfolioRouteImport } from './routes/alumni.$alumniId.portfolio'
 import { Route as AlumniPortalPortfolioRouteImport } from './routes/alumni.portal.portfolio'
 import { Route as ApiCalendarIcsRouteImport } from './routes/api/calendar.ics'
@@ -169,6 +172,11 @@ const ImportarRoute = ImportarRouteImport.update({
   path: '/importar',
   getParentRoute: () => rootRouteImport,
 } as any)
+const McpRoute = McpRouteImport.update({
+  id: '/mcp',
+  path: '/mcp',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const PedagogicaRoute = PedagogicaRouteImport.update({
   id: '/pedagogica',
   path: '/pedagogica',
@@ -199,6 +207,12 @@ const VerificarRoute = VerificarRouteImport.update({
   path: '/verificar',
   getParentRoute: () => rootRouteImport,
 } as any)
+const Char91DotwellKnownChar93OauthProtectedResourceRoute =
+  Char91DotwellKnownChar93OauthProtectedResourceRouteImport.update({
+    id: '/.well-known/oauth-protected-resource',
+    path: '/.well-known/oauth-protected-resource',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const AlumniAlumniIdRoute = AlumniAlumniIdRouteImport.update({
   id: '/$alumniId',
   path: '/$alumniId',
@@ -329,6 +343,11 @@ const RelatoriosAcademicosRoute = RelatoriosAcademicosRouteImport.update({
 const RelatoriosFinanceirosRoute = RelatoriosFinanceirosRouteImport.update({
   id: '/relatorios/financeiros',
   path: '/relatorios/financeiros',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DotlovableOauthConsentRoute = DotlovableOauthConsentRouteImport.update({
+  id: '/.lovable/oauth/consent',
+  path: '/.lovable/oauth/consent',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AlumniAlumniIdPortfolioRoute = AlumniAlumniIdPortfolioRouteImport.update({
@@ -575,12 +594,14 @@ export interface FileRoutesByFullPath {
   '/faturas': typeof FaturasRoute
   '/financeiro': typeof FinanceiroRouteWithChildren
   '/importar': typeof ImportarRoute
+  '/mcp': typeof McpRoute
   '/pedagogica': typeof PedagogicaRoute
   '/perfil': typeof PerfilRoute
   '/planos-aula': typeof PlanosAulaRoute
   '/saas-admin': typeof SaasAdminRoute
   '/tesouraria': typeof TesourariaRoute
   '/verificar': typeof VerificarRoute
+  '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
   '/alumni/$alumniId': typeof AlumniAlumniIdRouteWithChildren
   '/alumni/calendar': typeof AlumniCalendarRoute
   '/alumni/communications': typeof AlumniCommunicationsRoute
@@ -607,6 +628,7 @@ export interface FileRoutesByFullPath {
   '/relatorios/financeiros': typeof RelatoriosFinanceirosRoute
   '/alunos/': typeof AlunosIndexRoute
   '/pessoas/': typeof PessoasIndexRoute
+  '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
   '/alumni/$alumniId/portfolio': typeof AlumniAlumniIdPortfolioRoute
   '/alumni/portal/portfolio': typeof AlumniPortalPortfolioRouteWithChildren
   '/api/calendar/ics': typeof ApiCalendarIcsRoute
@@ -666,12 +688,14 @@ export interface FileRoutesByTo {
   '/faturas': typeof FaturasRoute
   '/financeiro': typeof FinanceiroRouteWithChildren
   '/importar': typeof ImportarRoute
+  '/mcp': typeof McpRoute
   '/pedagogica': typeof PedagogicaRoute
   '/perfil': typeof PerfilRoute
   '/planos-aula': typeof PlanosAulaRoute
   '/saas-admin': typeof SaasAdminRoute
   '/tesouraria': typeof TesourariaRoute
   '/verificar': typeof VerificarRoute
+  '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
   '/alumni/$alumniId': typeof AlumniAlumniIdRouteWithChildren
   '/alumni/calendar': typeof AlumniCalendarRoute
   '/alumni/communications': typeof AlumniCommunicationsRoute
@@ -698,6 +722,7 @@ export interface FileRoutesByTo {
   '/relatorios/financeiros': typeof RelatoriosFinanceirosRoute
   '/alunos': typeof AlunosIndexRoute
   '/pessoas': typeof PessoasIndexRoute
+  '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
   '/alumni/$alumniId/portfolio': typeof AlumniAlumniIdPortfolioRoute
   '/alumni/portal/portfolio': typeof AlumniPortalPortfolioRouteWithChildren
   '/api/calendar/ics': typeof ApiCalendarIcsRoute
@@ -758,12 +783,14 @@ export interface FileRoutesById {
   '/faturas': typeof FaturasRoute
   '/financeiro': typeof FinanceiroRouteWithChildren
   '/importar': typeof ImportarRoute
+  '/mcp': typeof McpRoute
   '/pedagogica': typeof PedagogicaRoute
   '/perfil': typeof PerfilRoute
   '/planos-aula': typeof PlanosAulaRoute
   '/saas-admin': typeof SaasAdminRoute
   '/tesouraria': typeof TesourariaRoute
   '/verificar': typeof VerificarRoute
+  '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
   '/alumni/$alumniId': typeof AlumniAlumniIdRouteWithChildren
   '/alumni/calendar': typeof AlumniCalendarRoute
   '/alumni/communications': typeof AlumniCommunicationsRoute
@@ -790,6 +817,7 @@ export interface FileRoutesById {
   '/relatorios/financeiros': typeof RelatoriosFinanceirosRoute
   '/alunos/': typeof AlunosIndexRoute
   '/pessoas/': typeof PessoasIndexRoute
+  '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
   '/alumni/$alumniId/portfolio': typeof AlumniAlumniIdPortfolioRoute
   '/alumni/portal/portfolio': typeof AlumniPortalPortfolioRouteWithChildren
   '/api/calendar/ics': typeof ApiCalendarIcsRoute
@@ -851,12 +879,14 @@ export interface FileRouteTypes {
     | '/faturas'
     | '/financeiro'
     | '/importar'
+    | '/mcp'
     | '/pedagogica'
     | '/perfil'
     | '/planos-aula'
     | '/saas-admin'
     | '/tesouraria'
     | '/verificar'
+    | '/.well-known/oauth-protected-resource'
     | '/alumni/$alumniId'
     | '/alumni/calendar'
     | '/alumni/communications'
@@ -883,6 +913,7 @@ export interface FileRouteTypes {
     | '/relatorios/financeiros'
     | '/alunos/'
     | '/pessoas/'
+    | '/.lovable/oauth/consent'
     | '/alumni/$alumniId/portfolio'
     | '/alumni/portal/portfolio'
     | '/api/calendar/ics'
@@ -942,12 +973,14 @@ export interface FileRouteTypes {
     | '/faturas'
     | '/financeiro'
     | '/importar'
+    | '/mcp'
     | '/pedagogica'
     | '/perfil'
     | '/planos-aula'
     | '/saas-admin'
     | '/tesouraria'
     | '/verificar'
+    | '/.well-known/oauth-protected-resource'
     | '/alumni/$alumniId'
     | '/alumni/calendar'
     | '/alumni/communications'
@@ -974,6 +1007,7 @@ export interface FileRouteTypes {
     | '/relatorios/financeiros'
     | '/alunos'
     | '/pessoas'
+    | '/.lovable/oauth/consent'
     | '/alumni/$alumniId/portfolio'
     | '/alumni/portal/portfolio'
     | '/api/calendar/ics'
@@ -1033,12 +1067,14 @@ export interface FileRouteTypes {
     | '/faturas'
     | '/financeiro'
     | '/importar'
+    | '/mcp'
     | '/pedagogica'
     | '/perfil'
     | '/planos-aula'
     | '/saas-admin'
     | '/tesouraria'
     | '/verificar'
+    | '/.well-known/oauth-protected-resource'
     | '/alumni/$alumniId'
     | '/alumni/calendar'
     | '/alumni/communications'
@@ -1065,6 +1101,7 @@ export interface FileRouteTypes {
     | '/relatorios/financeiros'
     | '/alunos/'
     | '/pessoas/'
+    | '/.lovable/oauth/consent'
     | '/alumni/$alumniId/portfolio'
     | '/alumni/portal/portfolio'
     | '/api/calendar/ics'
@@ -1125,12 +1162,14 @@ export interface RootRouteChildren {
   FaturasRoute: typeof FaturasRoute
   FinanceiroRoute: typeof FinanceiroRouteWithChildren
   ImportarRoute: typeof ImportarRoute
+  McpRoute: typeof McpRoute
   PedagogicaRoute: typeof PedagogicaRoute
   PerfilRoute: typeof PerfilRoute
   PlanosAulaRoute: typeof PlanosAulaRoute
   SaasAdminRoute: typeof SaasAdminRoute
   TesourariaRoute: typeof TesourariaRoute
   VerificarRoute: typeof VerificarRoute
+  Char91DotwellKnownChar93OauthProtectedResourceRoute: typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
   AlunosStudentIdRoute: typeof AlunosStudentIdRoute
   AuthEmailChangeRoute: typeof AuthEmailChangeRoute
   AuthMagicLinkRoute: typeof AuthMagicLinkRoute
@@ -1146,6 +1185,7 @@ export interface RootRouteChildren {
   RelatoriosFinanceirosRoute: typeof RelatoriosFinanceirosRoute
   AlunosIndexRoute: typeof AlunosIndexRoute
   PessoasIndexRoute: typeof PessoasIndexRoute
+  DotlovableOauthConsentRoute: typeof DotlovableOauthConsentRoute
   ApiCalendarIcsRoute: typeof ApiCalendarIcsRoute
   ApiCatracasDeviceScanRoute: typeof ApiCatracasDeviceScanRoute
   ApiCronLessonRemindersRoute: typeof ApiCronLessonRemindersRoute
@@ -1272,6 +1312,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ImportarRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/mcp': {
+      id: '/mcp'
+      path: '/mcp'
+      fullPath: '/mcp'
+      preLoaderRoute: typeof McpRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/pedagogica': {
       id: '/pedagogica'
       path: '/pedagogica'
@@ -1312,6 +1359,13 @@ declare module '@tanstack/react-router' {
       path: '/verificar'
       fullPath: '/verificar'
       preLoaderRoute: typeof VerificarRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/.well-known/oauth-protected-resource': {
+      id: '/.well-known/oauth-protected-resource'
+      path: '/.well-known/oauth-protected-resource'
+      fullPath: '/.well-known/oauth-protected-resource'
+      preLoaderRoute: typeof Char91DotwellKnownChar93OauthProtectedResourceRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/alumni/$alumniId': {
@@ -1494,6 +1548,13 @@ declare module '@tanstack/react-router' {
       path: '/relatorios/financeiros'
       fullPath: '/relatorios/financeiros'
       preLoaderRoute: typeof RelatoriosFinanceirosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/.lovable/oauth/consent': {
+      id: '/.lovable/oauth/consent'
+      path: '/.lovable/oauth/consent'
+      fullPath: '/.lovable/oauth/consent'
+      preLoaderRoute: typeof DotlovableOauthConsentRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/alumni/$alumniId/portfolio': {
@@ -1985,12 +2046,15 @@ const rootRouteChildren: RootRouteChildren = {
   FaturasRoute: FaturasRoute,
   FinanceiroRoute: FinanceiroRouteWithChildren,
   ImportarRoute: ImportarRoute,
+  McpRoute: McpRoute,
   PedagogicaRoute: PedagogicaRoute,
   PerfilRoute: PerfilRoute,
   PlanosAulaRoute: PlanosAulaRoute,
   SaasAdminRoute: SaasAdminRoute,
   TesourariaRoute: TesourariaRoute,
   VerificarRoute: VerificarRoute,
+  Char91DotwellKnownChar93OauthProtectedResourceRoute:
+    Char91DotwellKnownChar93OauthProtectedResourceRoute,
   AlunosStudentIdRoute: AlunosStudentIdRoute,
   AuthEmailChangeRoute: AuthEmailChangeRoute,
   AuthMagicLinkRoute: AuthMagicLinkRoute,
@@ -2006,6 +2070,7 @@ const rootRouteChildren: RootRouteChildren = {
   RelatoriosFinanceirosRoute: RelatoriosFinanceirosRoute,
   AlunosIndexRoute: AlunosIndexRoute,
   PessoasIndexRoute: PessoasIndexRoute,
+  DotlovableOauthConsentRoute: DotlovableOauthConsentRoute,
   ApiCalendarIcsRoute: ApiCalendarIcsRoute,
   ApiCatracasDeviceScanRoute: ApiCatracasDeviceScanRoute,
   ApiCronLessonRemindersRoute: ApiCronLessonRemindersRoute,

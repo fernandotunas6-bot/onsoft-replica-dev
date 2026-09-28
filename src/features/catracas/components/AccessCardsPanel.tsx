@@ -128,13 +128,13 @@ export function AccessCardsPanel() {
                 <TableCell className="text-xs font-semibold">{card.person_name}</TableCell>
                 <TableCell className="text-xs font-mono">
                   {card.card_number}
-                  <span className="block text-[10px] text-muted-foreground">{card.barcode}</span>
+                  <span className="block text-[11px] text-muted-foreground">{card.barcode}</span>
                 </TableCell>
                 <TableCell className="text-xs font-mono text-muted-foreground">
                   {card.rfid_tag || "—"}
                 </TableCell>
                 <TableCell className="text-xs">
-                  <Badge variant="outline" className="text-[10px] capitalize">
+                  <Badge variant="outline" className="text-[11px] capitalize">
                     {card.status}
                   </Badge>
                 </TableCell>
@@ -145,7 +145,7 @@ export function AccessCardsPanel() {
                         type="button"
                         size="sm"
                         variant="outline"
-                        className="h-7 text-[10px]"
+                        className="h-7 text-[11px]"
                         disabled={statusMutation.isPending}
                         onClick={() =>
                           statusMutation.mutate({ cardId: card.id, status: "suspended" })
@@ -157,7 +157,7 @@ export function AccessCardsPanel() {
                         type="button"
                         size="sm"
                         variant="outline"
-                        className="h-7 text-[10px]"
+                        className="h-7 text-[11px]"
                         disabled={statusMutation.isPending}
                         onClick={() => statusMutation.mutate({ cardId: card.id, status: "lost" })}
                       >
@@ -168,7 +168,7 @@ export function AccessCardsPanel() {
                     <Button
                       type="button"
                       size="sm"
-                      className="h-7 text-[10px] font-bold"
+                      className="h-7 text-[11px] font-bold"
                       disabled={statusMutation.isPending}
                       onClick={() => statusMutation.mutate({ cardId: card.id, status: "active" })}
                     >

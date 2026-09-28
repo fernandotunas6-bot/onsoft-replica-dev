@@ -31,7 +31,7 @@ Cada escola deve usar a **entidade EMIS** atribuída pelo banco/EMIS — não o 
 | Campo na UI | Campo no config | Regra |
 | --- | --- | --- |
 | Merchant EMIS / Multicaixa | `merchantId` ou `emisEntity` | 4–6 dígitos |
-| (vazio) | — | usa `99824` (apenas demo/dev) |
+| (vazio) | — | não há referências Multicaixa até a entidade ser preenchida |
 
 A entidade entra nas referências Multicaixa geradas em `/faturas` e no `PaymentReferenceCard`. O webhook valida montante e referência contra o plano `pending_gateway` da escola.
 

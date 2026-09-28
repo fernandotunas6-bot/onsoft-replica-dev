@@ -529,7 +529,7 @@ export function DigitalIdentityPanel() {
                       </div>
                     </div>
                   </div>
-                  <p className="text-[10px] text-muted-foreground">
+                  <p className="text-[11px] text-muted-foreground">
                     Opcionalmente, pode configurar um TXT no host{" "}
                     <strong>{dnsInstructions.txtHost}</strong> com o valor{" "}
                     <strong>{dnsInstructions.txtValue}</strong>.
@@ -570,7 +570,7 @@ export function DigitalIdentityPanel() {
               <h4 className="text-sm font-semibold text-foreground flex items-center gap-2">
                 E-mail Institucional da Escola
                 {emailRouteActive && (
-                  <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-medium bg-success/15 text-success">
+                  <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[11px] font-medium bg-success/15 text-success">
                     Activo
                   </span>
                 )}
@@ -702,7 +702,7 @@ export function DigitalIdentityPanel() {
                     </div>
                   ) : (
                     <div className="size-12 rounded border border-dashed flex items-center justify-center bg-muted/30">
-                      <span className="text-[10px] text-muted-foreground text-center leading-tight">
+                      <span className="text-[11px] text-muted-foreground text-center leading-tight">
                         Sem Logo
                       </span>
                     </div>
@@ -723,7 +723,7 @@ export function DigitalIdentityPanel() {
                       onChange={handleLogoUpload}
                       disabled={isSavingBranding}
                     />
-                    <p className="text-[10px] text-muted-foreground mt-1">
+                    <p className="text-[11px] text-muted-foreground mt-1">
                       PNG, JPG ou SVG. Altura recomendada: 64px.
                     </p>
                   </div>
@@ -752,7 +752,7 @@ export function DigitalIdentityPanel() {
                     />
                   </div>
                   {isValidBrandHex(primaryColor) && !isReadableBrandColor(primaryColor) ? (
-                    <p className="text-[10px] text-warning">
+                    <p className="text-[11px] text-warning">
                       Contraste baixo para botões — o SIGA bloqueará o guardar.
                     </p>
                   ) : null}
@@ -782,7 +782,7 @@ export function DigitalIdentityPanel() {
               </div>
 
               <div className="rounded-xl border border-border bg-secondary/40 p-3">
-                <p className="text-[10px] font-semibold text-muted-foreground">Pré-visualização</p>
+                <p className="text-[11px] font-semibold text-muted-foreground">Pré-visualização</p>
                 <div className="mt-2 flex flex-wrap items-center gap-2">
                   <span
                     className="inline-flex h-8 items-center rounded-md px-3 text-xs font-semibold"

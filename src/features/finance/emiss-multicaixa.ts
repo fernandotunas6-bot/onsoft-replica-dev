@@ -6,19 +6,18 @@ import type { SupabaseClient } from "@supabase/supabase-js";
  * (ou simulador) notifica o SIGA com a API key da escola.
  */
 
-export const DEFAULT_EMIS_ENTITY = "99824";
-
-/** Lê entidade EMIS do config de integração (merchantId ou emisEntity). */
-export function emisEntityFromIntegrationConfig(
-  config: Record<string, unknown> | null | undefined,
-) {
+/** Entidade configurada, ou `null` — nunca a entidade de exemplo. */
+export function configuredEmisEntity(config: Record<string, unknown> | null | undefined) {
   const raw = String(config?.emisEntity ?? config?.merchantId ?? "").trim();
-  if (/^\d{4,6}$/.test(raw)) return raw;
-  return DEFAULT_EMIS_ENTITY;
+  return /^\d{4,6}$/.test(raw) ? raw : null;
 }
 
-/** Entidade EMIS configurada em Integrações → Multicaixa (merchantId / emisEntity). */
-export async function resolveSchoolEmisEntity(db: SupabaseClient, schoolId: string) {
+/**
+ * Entidade EMIS da escola, só se estiver configurada em Integrações →
+ * Multicaixa. Uma referência com outra entidade podia levar um encarregado a
+ * pagar a quem não é a escola.
+ */
+export async function resolveConfiguredSchoolEmisEntity(db: SupabaseClient, schoolId: string) {
   const { data } = await db
     .from("school_integrations")
     .select("config")
@@ -26,7 +25,7 @@ export async function resolveSchoolEmisEntity(db: SupabaseClient, schoolId: stri
     .eq("provider", "multicaixa_express")
     .in("status", ["configured", "connected"])
     .maybeSingle();
-  return emisEntityFromIntegrationConfig((data?.config ?? {}) as Record<string, unknown>);
+  return configuredEmisEntity((data?.config ?? {}) as Record<string, unknown>);
 }
 
 export interface MulticaixaReference {
@@ -77,7 +76,8 @@ function emisCheckDigit(raw8: string) {
  * Gera referência Multicaixa de 9 dígitos estável para a mesma fatura.
  */
 export function generateMulticaixaReference(
-  entity: string = DEFAULT_EMIS_ENTITY,
+  /** Entidade configurada pela escola — nunca uma entidade de exemplo. */
+  entity: string,
   invoiceId: string,
   amount: number,
   expiryDays: number = 30,
@@ -109,40 +109,6 @@ export function generateMulticaixaReference(
     status: "pending",
     qrCodeText,
   };
-}
-
-export function generateMobileWalletOptions(
-  amount: number,
-  invoiceNumber: string,
-): MobileWalletPayment[] {
-  const cleanRef = invoiceNumber.replace(/[^a-zA-Z0-9]/g, "").toUpperCase();
-
-  return [
-    {
-      provider: "multicaixa_express",
-      providerName: "Multicaixa Express",
-      phoneOrAccount: "+244 923 000 000",
-      merchantCode: "SIGA-EXP-AO",
-      transactionRef: `MCX-${cleanRef}`,
-      status: "pending",
-    },
-    {
-      provider: "unitel_money",
-      providerName: "Unitel Money",
-      phoneOrAccount: "*444# ou App Unitel Money",
-      merchantCode: "923-SIGA",
-      transactionRef: `UM-${cleanRef}`,
-      status: "pending",
-    },
-    {
-      provider: "kwik",
-      providerName: "Kwik (Rede EMIS)",
-      phoneOrAccount: "Transferência Instantânea Kwik",
-      merchantCode: "KWIK-SIGA-01",
-      transactionRef: `KWK-${cleanRef}`,
-      status: "pending",
-    },
-  ];
 }
 
 export const GATEWAY_CHANNELS = new Set([

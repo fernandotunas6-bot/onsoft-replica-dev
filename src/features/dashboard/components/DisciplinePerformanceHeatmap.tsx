@@ -120,7 +120,7 @@ export function DisciplinePerformanceHeatmap({
                 <tr key={cGroup.classId} className="hover:bg-secondary/30 transition-colors">
                   <td className="p-3 font-bold text-foreground">
                     <div>{cGroup.className}</div>
-                    <div className="text-[10px] text-muted-foreground font-normal truncate max-w-[180px]">
+                    <div className="text-[11px] text-muted-foreground font-normal truncate max-w-[180px]">
                       {cGroup.courseName}
                     </div>
                   </td>
