@@ -69,6 +69,9 @@ const PRIVILEGIO_POR_DESENHO = new Set([
   // disciplinas, períodos, turnos, salas) com o mesmo código do registo, e conta
   // o que falta. Só Administrador, sempre pela escola do vínculo activo.
   "src/features/saas/institution-setup-server.ts",
+  // Inscrição por cadeira e precedências (ensino superior): tabelas só do
+  // servidor (FORCE RLS, sem concessões). Valida o papel e a escola do vínculo.
+  "src/features/academic/course-units-server.ts",
 
   // Regista cada documento oficial emitido (audit_logs, só o servidor grava) e
   // verifica-o publicamente, sem sessão, a partir do código impresso.

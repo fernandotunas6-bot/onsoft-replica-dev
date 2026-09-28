@@ -23,12 +23,20 @@ cada instituição tem o seu regulamento académico.
 
 ## O que falta
 
-1. **Inscrição por unidade curricular.** Hoje o aluno matricula-se numa turma
+1. **Inscrição por unidade curricular.** ✅ Feito (2026-09-28): tabela
+   `course_unit_enrollments` (migração 20260929230000), regras em
+   `src/features/academic/course-units.ts`, servidor em `course-units-server.ts`,
+   secção "Cadeiras e créditos" na ficha do aluno (inscrever, lançar notas pelo
+   regulamento, anular, créditos e progressão).
+   Descrição original: Hoje o aluno matricula-se numa turma
    e herda as disciplinas da turma. No superior, inscreve-se em cada cadeira do
    semestre (incluindo cadeiras em atraso de anos anteriores).
    → tabela `course_unit_enrollments` (aluno, ano, semestre, unidade, estado,
    nota final, créditos obtidos).
-2. **Precedências.** Uma cadeira só pode ser feita depois de outra ter sido
+2. **Precedências.** ✅ Feito (2026-09-28): `program_subject_prerequisites`,
+   editor no plano do curso (Definições → Pedagógico), recusa ciclos e cadeiras
+   de outro curso; a inscrição respeita-as quando o regulamento as exige.
+   Descrição original: Uma cadeira só pode ser feita depois de outra ter sido
    aprovada (ex.: Análise II exige Análise I).
    → tabela `program_subject_prerequisites`; a inscrição recusa sem elas.
 3. **Aprovação por cadeira e créditos acumulados.** Não há "transita/reprova"

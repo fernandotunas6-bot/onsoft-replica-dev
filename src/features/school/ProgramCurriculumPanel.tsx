@@ -10,6 +10,10 @@ import {
   removeProgramSubject,
   type PedagogicalWorkspace,
 } from "@/features/academic/server";
+import {
+  getProgramPrerequisites,
+  setUnitPrerequisites,
+} from "@/features/academic/course-units-server";
 
 /**
  * Currículo do curso (Ensino Superior) — disciplinas por semestre com créditos. Só entra em jogo
@@ -37,8 +41,28 @@ export function ProgramCurriculumPanel({
     enabled: Boolean(programId),
   });
 
+  const prerequisitesQuery = useQuery({
+    queryKey: ["academic", "program-prerequisites", programId],
+    queryFn: () => getProgramPrerequisites({ data: { programId } }),
+    enabled: Boolean(programId),
+    retry: false,
+  });
+  const [editingPrereq, setEditingPrereq] = useState<string | null>(null);
+
   const refresh = () =>
     queryClient.invalidateQueries({ queryKey: ["academic", "program-curriculum", programId] });
+
+  const savePrerequisites = async (programSubjectId: string, requiredIds: string[]) => {
+    try {
+      await setUnitPrerequisites({ data: { programId, programSubjectId, requiredIds } });
+      await queryClient.invalidateQueries({
+        queryKey: ["academic", "program-prerequisites", programId],
+      });
+      toast.success("Precedências guardadas.");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Não foi possível guardar.");
+    }
+  };
 
   const handleAdd = async () => {
     if (!programId || !subjectId) {
@@ -123,27 +147,66 @@ export function ProgramCurriculumPanel({
               <div key={sem} className="space-y-1.5">
                 <p className="text-xs font-bold text-muted-foreground">{sem}.º Semestre</p>
                 <div className="divide-y divide-border rounded-lg border border-border bg-card">
-                  {items.map((entry) => (
-                    <div
-                      key={entry.id}
-                      className="flex items-center justify-between gap-2 px-3 py-2 text-sm"
-                    >
-                      <span className="font-medium text-foreground">{entry.subjectName}</span>
-                      <span className="flex items-center gap-2 text-xs text-muted-foreground">
-                        {entry.credits} ECTS
-                        {canEdit ? (
-                          <button
-                            type="button"
-                            className="text-destructive hover:underline"
-                            onClick={() => handleRemove(entry.id)}
-                            aria-label={`Remover ${entry.subjectName} do currículo`}
-                          >
-                            <Trash2 className="size-3.5" />
-                          </button>
+                  {items.map((entry) => {
+                    const required = prerequisitesQuery.data?.[entry.id] ?? [];
+                    const nameOf = (id: string) =>
+                      entries.find((item) => item.id === id)?.subjectName ?? "—";
+                    return (
+                      <div key={entry.id} className="px-3 py-2 text-sm">
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="min-w-0">
+                            <span className="block font-medium text-foreground">
+                              {entry.subjectName}
+                            </span>
+                            {required.length ? (
+                              <span className="block text-xs text-muted-foreground">
+                                Exige: {required.map(nameOf).join(", ")}
+                              </span>
+                            ) : null}
+                          </span>
+                          <span className="flex items-center gap-2 text-xs text-muted-foreground">
+                            {canEdit && prerequisitesQuery.data ? (
+                              <button
+                                type="button"
+                                className="hover:underline"
+                                onClick={() =>
+                                  setEditingPrereq((current) =>
+                                    current === entry.id ? null : entry.id,
+                                  )
+                                }
+                              >
+                                Precedências
+                              </button>
+                            ) : null}
+                            {entry.credits} ECTS
+                            {canEdit ? (
+                              <button
+                                type="button"
+                                className="text-destructive hover:underline"
+                                onClick={() => handleRemove(entry.id)}
+                                aria-label={`Remover ${entry.subjectName} do currículo`}
+                              >
+                                <Trash2 className="size-3.5" />
+                              </button>
+                            ) : null}
+                          </span>
+                        </div>
+                        {editingPrereq === entry.id ? (
+                          <PrerequisiteEditor
+                            options={entries.filter(
+                              (item) => item.id !== entry.id && item.semester <= entry.semester,
+                            )}
+                            value={required}
+                            onSave={async (ids) => {
+                              await savePrerequisites(entry.id, ids);
+                              setEditingPrereq(null);
+                            }}
+                            onCancel={() => setEditingPrereq(null)}
+                          />
                         ) : null}
-                      </span>
-                    </div>
-                  ))}
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             ))}
@@ -194,6 +257,81 @@ export function ProgramCurriculumPanel({
           </Button>
         </div>
       ) : null}
+    </div>
+  );
+}
+
+function PrerequisiteEditor({
+  options,
+  value,
+  onSave,
+  onCancel,
+}: {
+  options: Array<{ id: string; subjectName: string; semester: number }>;
+  value: string[];
+  onSave: (ids: string[]) => Promise<void>;
+  onCancel: () => void;
+}) {
+  const [selected, setSelected] = useState<string[]>(value);
+  const [saving, setSaving] = useState(false);
+  if (!options.length) {
+    return (
+      <p className="mt-2 text-xs text-muted-foreground">
+        Não há cadeiras de semestres anteriores que possam ser precedência.
+      </p>
+    );
+  }
+  return (
+    <div className="mt-2 space-y-2 rounded-lg bg-muted/40 p-3">
+      <p className="text-xs text-muted-foreground">
+        Só se inscreve nesta cadeira quem tiver aprovado:
+      </p>
+      <div className="flex flex-wrap gap-2">
+        {options.map((option) => {
+          const on = selected.includes(option.id);
+          return (
+            <button
+              key={option.id}
+              type="button"
+              role="checkbox"
+              aria-checked={on}
+              onClick={() =>
+                setSelected((list) =>
+                  on ? list.filter((id) => id !== option.id) : [...list, option.id],
+                )
+              }
+              className={
+                on
+                  ? "rounded-full border border-primary bg-primary/5 px-3 py-1 text-xs"
+                  : "rounded-full border px-3 py-1 text-xs text-muted-foreground hover:bg-muted/60"
+              }
+            >
+              {option.subjectName}
+              <span className="ml-1 text-muted-foreground">{option.semester}.º sem.</span>
+            </button>
+          );
+        })}
+      </div>
+      <div className="flex justify-end gap-2">
+        <Button type="button" size="sm" variant="ghost" onClick={onCancel}>
+          Cancelar
+        </Button>
+        <Button
+          type="button"
+          size="sm"
+          disabled={saving}
+          onClick={async () => {
+            setSaving(true);
+            try {
+              await onSave(selected);
+            } finally {
+              setSaving(false);
+            }
+          }}
+        >
+          Guardar
+        </Button>
+      </div>
     </div>
   );
 }

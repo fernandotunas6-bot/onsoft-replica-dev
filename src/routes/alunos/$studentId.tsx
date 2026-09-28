@@ -1,4 +1,5 @@
 import { useMemo, useState, useRef, type ReactNode } from "react";
+import { CourseUnitsSection } from "@/features/academic/CourseUnitsSection";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -238,6 +239,7 @@ function StudentDetail() {
     account.role === "Tesouraria";
   const canReceivePayment = account.role === "Administrador" || account.role === "Tesouraria";
   const canRequestDocument = account.role === "Administrador" || account.role === "Secretaria";
+  const canManageCourseUnits = canRequestDocument;
   const installed = useInstalledIntegrations();
   const agtOn = installed.hasCapability("agt.einvoice") || installed.hasCapability("agt.nif");
   const whatsappOn = installed.hasCapability("whatsapp.notices");
@@ -1852,6 +1854,8 @@ function StudentDetail() {
               <CalendarDays className="size-4" /> Registo actualizado no {activeYearLabel}.
             </p>
           </section>
+
+          <CourseUnitsSection studentId={studentId} canEdit={canManageCourseUnits} />
         </div>
       </div>
 
