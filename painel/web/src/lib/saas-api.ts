@@ -26,6 +26,7 @@ export interface SchoolSignupPayload {
   commune?: string
   neighborhood?: string
   school_type?: string
+  institution?: { levels: string[]; shifts: string[]; rooms: number }
   phone?: string
   email?: string
   contact_name: string

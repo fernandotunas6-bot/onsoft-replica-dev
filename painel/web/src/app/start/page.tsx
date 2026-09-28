@@ -25,7 +25,15 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { MarketingFormPage } from "@/components/marketing/marketing-form-page"
-import { ANGOLA_PROVINCES, SCHOOL_TYPES } from "@/lib/angola"
+import {
+  ANGOLA_PROVINCES,
+  SCHOOL_TYPES,
+  SHIFT_IDS,
+  SHIFT_OPTIONS,
+  TEACHING_LEVELS,
+  TEACHING_LEVEL_IDS,
+  institutionSummary,
+} from "@/lib/angola"
 import { cn } from "@/lib/utils"
 import { ECOSYSTEM_URLS, PLATFORM_DOMAIN } from "@/lib/ecosystem-urls"
 import {
@@ -63,6 +71,13 @@ const schema = z.object({
     .regex(/^[0-9]{9,10}$/, "NIF inválido. Use o NIF de entidade da AGT (9–10 dígitos)"),
   commercial_name: z.string().trim().max(160).optional(),
   school_type: z.string().trim().optional(),
+  levels: z.array(z.enum(TEACHING_LEVEL_IDS)).min(1, "Escolha pelo menos um nível de ensino"),
+  shifts: z.array(z.enum(SHIFT_IDS)).min(1, "Escolha pelo menos um turno"),
+  rooms: z
+    .string()
+    .trim()
+    .regex(/^\d{0,3}$/, "Indique um número de salas")
+    .refine((v) => !v || Number(v) <= 200, { message: "No máximo 200 salas de início" }),
   province: z.string().trim().min(1, "Escolha a província"),
   municipality: z.string().trim().min(2, "Indique o município").max(80),
   commune: z.string().trim().max(80).optional(),
@@ -119,33 +134,36 @@ type FormValues = z.infer<typeof schema>
 
 const STEPS = [
   { id: 1, title: "Instituição", hint: "Nome, NIF e natureza" },
-  { id: 2, title: "Localização", hint: "Onde fica a escola" },
-  { id: 3, title: "Responsável", hint: "Quem trata do registo" },
-  { id: 4, title: "Plano", hint: "Pode mudar depois" },
-  { id: 5, title: "Conta", hint: "Acesso do administrador" },
-  { id: 6, title: "Endereço", hint: "O seu subdomínio" },
-  { id: 7, title: "Revisão", hint: "Confirmar e criar" },
+  { id: 2, title: "Ensino", hint: "Níveis, turnos e salas" },
+  { id: 3, title: "Localização", hint: "Onde fica a escola" },
+  { id: 4, title: "Responsável", hint: "Quem trata do registo" },
+  { id: 5, title: "Plano", hint: "Pode mudar depois" },
+  { id: 6, title: "Conta", hint: "Acesso do administrador" },
+  { id: 7, title: "Endereço", hint: "O seu subdomínio" },
+  { id: 8, title: "Revisão", hint: "Confirmar e criar" },
 ]
 
 const STEP_INTRO: Record<number, string> = {
   1: "Os dados oficiais aparecem nas facturas, pautas e certificados emitidos pela escola.",
-  2: "A localização fica na ficha da escola e nos documentos oficiais.",
-  3: "A pessoa que acompanha o registo e recebe as comunicações comerciais.",
-  4: "Todos os planos começam com um período experimental. O pagamento só é pedido depois.",
-  5: "Esta conta entra no SIGA Plus como Administrador e convida o resto da equipa.",
-  6: "O endereço próprio da escola no SIGA Plus. Pode ligar um domínio seu mais tarde.",
-  7: "Confirme os dados. Pode voltar a qualquer passo para corrigir.",
+  2: "A escola nasce com as classes, disciplinas, períodos, turnos e salas do ensino que oferece. Tudo se ajusta depois em Pedagógica.",
+  3: "A localização fica na ficha da escola e nos documentos oficiais.",
+  4: "A pessoa que acompanha o registo e recebe as comunicações comerciais.",
+  5: "Todos os planos começam com um período experimental. O pagamento só é pedido depois.",
+  6: "Esta conta entra no SIGA Plus como Administrador e convida o resto da equipa.",
+  7: "O endereço próprio da escola no SIGA Plus. Pode ligar um domínio seu mais tarde.",
+  8: "Confirme os dados. Pode voltar a qualquer passo para corrigir.",
 }
 
 const LAST_STEP = STEPS.length
 
 const FIELDS_BY_STEP: Record<number, (keyof FormValues)[]> = {
   1: ["name", "nif", "commercial_name"],
-  2: ["province", "municipality", "commune", "neighborhood", "address", "phone", "email"],
-  3: ["contact_name", "contact_role", "contact_phone", "contact_email"],
-  4: ["plan_code"],
-  5: ["admin_name", "admin_email", "admin_password", "admin_password_confirm"],
-  6: ["slug"],
+  2: ["levels", "shifts", "rooms"],
+  3: ["province", "municipality", "commune", "neighborhood", "address", "phone", "email"],
+  4: ["contact_name", "contact_role", "contact_phone", "contact_email"],
+  5: ["plan_code"],
+  6: ["admin_name", "admin_email", "admin_password", "admin_password_confirm"],
+  7: ["slug"],
 }
 
 /** Rascunho no navegador: quem fecha a página a meio retoma onde estava. Nunca a senha. */
@@ -228,6 +246,9 @@ export function StartSchoolWizard() {
       nif: "",
       commercial_name: "",
       school_type: "privada",
+      levels: [],
+      shifts: ["morning"],
+      rooms: "",
       province: "",
       municipality: "",
       commune: "",
@@ -256,12 +277,15 @@ export function StartSchoolWizard() {
     const draft = readDraft()
     if (!draft) return
     for (const [key, value] of Object.entries(draft.values)) {
-      if (!DRAFT_OMIT.has(key as keyof FormValues) && typeof value === "string") {
+      if (
+        !DRAFT_OMIT.has(key as keyof FormValues) &&
+        (typeof value === "string" || Array.isArray(value))
+      ) {
         form.setValue(key as keyof FormValues, value as never, { shouldValidate: false })
       }
     }
     // Sem a senha guardada, quem já ia além da conta volta ao passo da conta.
-    setStep(Math.min(Math.max(1, draft.step || 1), 5))
+    setStep(Math.min(Math.max(1, draft.step || 1), 6))
     setResumed(true)
   }, [form])
 
@@ -279,7 +303,7 @@ export function StartSchoolWizard() {
   }, [])
 
   // Chegar de /pricing com um plano já escolhido (?plan=professional) não deve
-  // obrigar a repetir a escolha no passo 3 — só pré-selecciona, a pessoa ainda
+  // obrigar a repetir a escolha no passo 5 — só pré-selecciona, a pessoa ainda
   // confirma lá.
   useEffect(() => {
     const requested = new URLSearchParams(window.location.search).get("plan")
@@ -343,11 +367,11 @@ export function StartSchoolWizard() {
   async function onNext() {
     setServerError(null)
     if (!(await validateStep())) return
-    if (step === 6 && slugStatus === "taken") {
+    if (step === 7 && slugStatus === "taken") {
       form.setError("slug", { message: "Este subdomínio já está em uso por outra escola." })
       return
     }
-    if (step === 3 && !form.getValues("admin_name")) {
+    if (step === 4 && !form.getValues("admin_name")) {
       form.setValue("admin_name", form.getValues("contact_name"))
       form.setValue("admin_email", form.getValues("contact_email"))
     }
@@ -375,7 +399,7 @@ export function StartSchoolWizard() {
       return
     }
     if (slugStatus === "taken") {
-      setServerError("Este subdomínio já está em uso por outra escola. Volte ao passo 6 e escolha outro.")
+      setServerError("Este subdomínio já está em uso por outra escola. Volte ao passo 7 e escolha outro.")
       return
     }
     setIsCreating(true)
@@ -387,6 +411,11 @@ export function StartSchoolWizard() {
           ...payload,
           city: payload.municipality || payload.city,
           commercial_name: payload.commercial_name || undefined,
+          institution: {
+            levels: payload.levels,
+            shifts: payload.shifts,
+            rooms: Number(payload.rooms || 0),
+          },
           email: payload.email || payload.contact_email,
         })
       } catch {
@@ -546,6 +575,13 @@ export function StartSchoolWizard() {
 
   const typeLabel = SCHOOL_TYPES.find((t) => t.id === values.school_type)?.label ?? null
   const locationLabel = [values.municipality, values.province].filter(Boolean).join(", ")
+  const levelsLabel = TEACHING_LEVELS.filter((l) => values.levels?.includes(l.id))
+    .map((l) => l.label)
+    .join(", ")
+  const shiftsLabel = SHIFT_OPTIONS.filter((sh) => values.shifts?.includes(sh.id))
+    .map((sh) => sh.label)
+    .join(", ")
+  const summaryLines = institutionSummary(values.levels ?? [], Number(values.rooms || 0))
   const progress = Math.round(((step - 1) / (LAST_STEP - 1)) * 100)
 
   return (
@@ -621,6 +657,12 @@ export function StartSchoolWizard() {
               </p>
             </div>
           </div>
+          {levelsLabel ? (
+            <p className="mt-3 text-xs text-muted-foreground">
+              {(values.levels?.length ?? 0) > 1 ? "Complexo escolar · " : ""}
+              {levelsLabel}
+            </p>
+          ) : null}
           <div className="mt-3 flex items-center gap-2 rounded-md bg-muted/60 px-2.5 py-1.5 text-xs text-muted-foreground">
             <Globe className="size-3.5 shrink-0" />
             <span className="truncate">
@@ -738,6 +780,126 @@ export function StartSchoolWizard() {
 
               {step === 2 ? (
                 <>
+                  <FormField
+                    control={form.control}
+                    name="levels"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Níveis de ensino</FormLabel>
+                        <p className="text-xs text-muted-foreground">
+                          Escolha todos os que a escola oferece. Mais do que um forma um complexo escolar.
+                        </p>
+                        <div className="grid gap-2 sm:grid-cols-2">
+                          {TEACHING_LEVELS.map((level) => {
+                            const selected = field.value.includes(level.id)
+                            return (
+                              <button
+                                key={level.id}
+                                type="button"
+                                role="checkbox"
+                                aria-checked={selected}
+                                onClick={() =>
+                                  field.onChange(
+                                    selected
+                                      ? field.value.filter((id) => id !== level.id)
+                                      : [...field.value, level.id],
+                                  )
+                                }
+                                className={cn(
+                                  "flex items-center justify-between gap-3 rounded-lg border px-3 py-2.5 text-left transition-colors",
+                                  selected ? "border-primary bg-primary/5" : "hover:bg-muted/60",
+                                )}
+                              >
+                                <span className="min-w-0">
+                                  <span className="block text-sm">{level.label}</span>
+                                  <span className="block text-xs text-muted-foreground">
+                                    {level.detail}
+                                  </span>
+                                </span>
+                                <span
+                                  className={cn(
+                                    "flex size-4 shrink-0 items-center justify-center rounded border",
+                                    selected && "border-primary bg-primary text-primary-foreground",
+                                  )}
+                                >
+                                  {selected ? <Check className="size-3" /> : null}
+                                </span>
+                              </button>
+                            )
+                          })}
+                        </div>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="shifts"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Turnos</FormLabel>
+                        <div className="flex flex-wrap gap-2">
+                          {SHIFT_OPTIONS.map((shift) => {
+                            const selected = field.value.includes(shift.id)
+                            return (
+                              <button
+                                key={shift.id}
+                                type="button"
+                                role="checkbox"
+                                aria-checked={selected}
+                                onClick={() =>
+                                  field.onChange(
+                                    selected
+                                      ? field.value.filter((id) => id !== shift.id)
+                                      : [...field.value, shift.id],
+                                  )
+                                }
+                                className={cn(
+                                  "rounded-full border px-3 py-1.5 text-sm transition-colors",
+                                  selected
+                                    ? "border-primary bg-primary/5 text-foreground"
+                                    : "text-muted-foreground hover:bg-muted/60",
+                                )}
+                              >
+                                {shift.label}
+                                <span className="ml-1.5 text-xs text-muted-foreground">
+                                  {shift.detail}
+                                </span>
+                              </button>
+                            )
+                          })}
+                        </div>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <Field
+                    form={form}
+                    name="rooms"
+                    label="Número de salas (opcional)"
+                    description="Criamos Sala 1, Sala 2… para o horário. Pode renomear depois."
+                  />
+                  {summaryLines.length ? (
+                    <div className="rounded-lg bg-muted/60 px-3 py-2.5">
+                      <p className="text-xs text-muted-foreground">A escola começa com</p>
+                      <ul className="mt-1.5 grid gap-1 text-sm">
+                        {summaryLines.map((line) => (
+                          <li key={line} className="flex items-start gap-2">
+                            <Check className="mt-0.5 size-3.5 shrink-0 text-primary" />
+                            {line}
+                          </li>
+                        ))}
+                      </ul>
+                      <p className="mt-2 text-xs text-muted-foreground">
+                        Tudo ajustável depois em Pedagógica e Configurações.
+                      </p>
+                    </div>
+                  ) : null}
+                </>
+              ) : null}
+
+              {step === 3 ? (
+                <>
                   <div className="grid gap-4 sm:grid-cols-2">
                     <FormField
                       control={form.control}
@@ -777,7 +939,7 @@ export function StartSchoolWizard() {
                 </>
               ) : null}
 
-              {step === 3 ? (
+              {step === 4 ? (
                 <>
                   <Field form={form} name="contact_name" label="Nome do responsável" />
                   <div className="grid gap-4 sm:grid-cols-2">
@@ -793,7 +955,7 @@ export function StartSchoolWizard() {
                 </>
               ) : null}
 
-              {step === 4 ? (
+              {step === 5 ? (
                 <div className="grid gap-2 sm:grid-cols-2" role="radiogroup">
                   {plans.map((plan) => {
                     const selected = values.plan_code === plan.code
@@ -847,7 +1009,7 @@ export function StartSchoolWizard() {
                 </div>
               ) : null}
 
-              {step === 5 ? (
+              {step === 6 ? (
                 <>
                   <Field form={form} name="admin_name" label="Nome do administrador" />
                   <Field
@@ -868,7 +1030,7 @@ export function StartSchoolWizard() {
                 </>
               ) : null}
 
-              {step === 6 ? (
+              {step === 7 ? (
                 <FormField
                   control={form.control}
                   name="slug"
@@ -918,7 +1080,12 @@ export function StartSchoolWizard() {
                     <Row label="NIF" value={values.nif} />
                     <Row label="Natureza" value={typeLabel ?? ""} />
                   </ReviewSection>
-                  <ReviewSection title="Localização" onEdit={() => setStep(2)}>
+                  <ReviewSection title="Ensino" onEdit={() => setStep(2)}>
+                    <Row label="Níveis" value={levelsLabel} />
+                    <Row label="Turnos" value={shiftsLabel} />
+                    <Row label="Salas" value={values.rooms ? values.rooms : "A criar depois"} />
+                  </ReviewSection>
+                  <ReviewSection title="Localização" onEdit={() => setStep(3)}>
                     <Row label="Província" value={values.province} />
                     <Row
                       label="Município"
@@ -929,11 +1096,11 @@ export function StartSchoolWizard() {
                       value={[values.neighborhood, values.address].filter(Boolean).join(", ")}
                     />
                   </ReviewSection>
-                  <ReviewSection title="Responsável e plano" onEdit={() => setStep(3)}>
+                  <ReviewSection title="Responsável e plano" onEdit={() => setStep(4)}>
                     <Row label="Responsável" value={`${values.contact_name} · ${values.contact_email}`} />
                     <Row label="Plano" value={planLabel} />
                   </ReviewSection>
-                  <ReviewSection title="Acesso" onEdit={() => setStep(5)}>
+                  <ReviewSection title="Acesso" onEdit={() => setStep(6)}>
                     <Row label="Administrador" value={`${values.admin_name} · ${values.admin_email}`} />
                     <Row label="Endereço" value={`${values.slug}.${PLATFORM_DOMAIN}`} />
                   </ReviewSection>

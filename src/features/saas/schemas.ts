@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { normalizeAngolaProvince } from "@/lib/angola-territory";
 import { isSchoolTypeId } from "@/lib/school-config";
+import { institutionProfileSchema } from "./institution-profile";
 import { isReservedSubdomain } from "@/lib/saas/platform-domain";
 import { validateSchoolNif } from "@/lib/angola-identity";
 import { validateAngolaPhone } from "@/lib/angola-phone";
@@ -126,6 +127,9 @@ export const createSchoolWizardInputSchema = z.object({
     .transform((value) => (isSchoolTypeId(value) ? value : undefined)),
   phone: optionalAngolaPhone,
   email: normalizedEmail("E-mail da escola inválido").optional().or(z.literal("")),
+  // Ensino, turnos e salas: definem a estrutura com que a escola nasce
+  // (institution-profile). Opcional para o assistente interno antigo.
+  institution: institutionProfileSchema.optional(),
   logo_url: z.string().trim().optional(),
 
   contact_name: z.string().trim().min(2, "Nome do responsável obrigatório"),

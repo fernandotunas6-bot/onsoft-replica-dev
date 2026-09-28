@@ -355,6 +355,7 @@ async function runProvisioning(
     schoolName: data.name,
     slug: data.slug,
     adminUserId,
+    profile: data.institution,
   });
 
   // Natureza da instituição escolhida no registo: vai para o mesmo sítio que

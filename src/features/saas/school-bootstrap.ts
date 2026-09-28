@@ -9,6 +9,8 @@ import {
   bootstrapAcademicYearIfMissing,
 } from "@/features/academic/academic-bootstrap";
 import { schoolSettingDefaults } from "@/lib/school-config";
+import { buildInstitutionPlan, type InstitutionProfile } from "./institution-profile";
+import { applyInstitutionPlan } from "./institution-bootstrap";
 
 function isMissingTable(error: { code?: string; message?: string } | null) {
   return Boolean(
@@ -324,9 +326,16 @@ export async function bootstrapSchoolDefaults(
     // um administrador criado com sucesso — tornar isto opcional permitiu, no
     // passado, um insert silencioso a falhar com 23502 sob console.warn.
     adminUserId: string;
+    /**
+     * Ensino, turnos e salas escolhidos no registo. Com ele, a escola nasce com
+     * os níveis, classes, disciplinas, períodos, turnos e salas do seu tipo;
+     * sem ele (assistente interno antigo), fica a estrutura mínima de sempre.
+     */
+    profile?: InstitutionProfile;
   },
 ): Promise<{ seeded: string[] }> {
   const seeded: string[] = [];
+  const plan = input.profile ? buildInstitutionPlan(input.profile, new Date().getFullYear()) : null;
 
   const year = await bootstrapAcademicYearIfMissing(db, { schoolId: input.schoolId });
   seeded.push(...year.seeded);
@@ -426,7 +435,7 @@ export async function bootstrapSchoolDefaults(
       version: 1,
       value: {
         academic_year: `Ano Lectivo ${new Date().getFullYear()}`,
-        evaluation_periods: schoolSettingDefaults.evaluationPeriods,
+        evaluation_periods: plan?.evaluationPeriods ?? schoolSettingDefaults.evaluationPeriods,
         passing_grade: schoolSettingDefaults.passingGrade,
       },
       changed_by: input.adminUserId,
@@ -474,10 +483,16 @@ export async function bootstrapSchoolDefaults(
   await seedDefaultRolePermissions(db, input.schoolId);
   await seedDefaultDocumentSequences(db, input.schoolId);
 
-  const academic = await bootstrapAcademicStructure(db, {
-    schoolId: input.schoolId,
-    userId: input.adminUserId,
-  });
+  const academic = plan
+    ? await applyInstitutionPlan(db, {
+        schoolId: input.schoolId,
+        adminUserId: input.adminUserId,
+        plan,
+      })
+    : await bootstrapAcademicStructure(db, {
+        schoolId: input.schoolId,
+        userId: input.adminUserId,
+      });
   seeded.push(...academic.seeded);
 
   return { seeded };

@@ -37,3 +37,48 @@ export const SCHOOL_TYPES = [
 ] as const
 
 export type SchoolTypeId = (typeof SCHOOL_TYPES)[number]["id"]
+
+/**
+ * Níveis de ensino oferecidos. Mesma lista que `INSTITUTION_LEVELS` no SIGA
+ * (src/features/saas/institution-profile.ts): o servidor cria a partir dela as
+ * classes, disciplinas e períodos.
+ */
+export const TEACHING_LEVELS = [
+  { id: "pre_escolar", label: "Pré-escolar", detail: "Iniciação", grades: 1, semesters: false },
+  { id: "primario", label: "Primário", detail: "1ª à 6ª classe", grades: 6, semesters: false },
+  { id: "i_ciclo", label: "I Ciclo", detail: "7ª à 9ª classe", grades: 3, semesters: false },
+  { id: "ii_ciclo", label: "II Ciclo / Médio", detail: "10ª à 12ª classe", grades: 3, semesters: false },
+  { id: "tecnico", label: "Técnico-profissional", detail: "10ª à 13ª classe", grades: 4, semesters: false },
+  { id: "superior", label: "Ensino Superior", detail: "Cursos e semestres", grades: 0, semesters: true },
+] as const
+
+export const TEACHING_LEVEL_IDS = TEACHING_LEVELS.map((level) => level.id) as unknown as [
+  (typeof TEACHING_LEVELS)[number]["id"],
+  ...(typeof TEACHING_LEVELS)[number]["id"][],
+]
+
+export const SHIFT_OPTIONS = [
+  { id: "morning", label: "Manhã", detail: "07:00–12:30" },
+  { id: "afternoon", label: "Tarde", detail: "13:00–18:30" },
+  { id: "evening", label: "Noite", detail: "18:30–22:30" },
+] as const
+
+export const SHIFT_IDS = SHIFT_OPTIONS.map((shift) => shift.id) as unknown as [
+  (typeof SHIFT_OPTIONS)[number]["id"],
+  ...(typeof SHIFT_OPTIONS)[number]["id"][],
+]
+
+/** Frase curta com o que a escola recebe ao ser criada. */
+export function institutionSummary(levels: readonly string[], rooms: number): string[] {
+  const chosen = TEACHING_LEVELS.filter((level) => levels.includes(level.id))
+  if (!chosen.length) return []
+  const grades = chosen.reduce((total, level) => total + level.grades, 0)
+  const onlyHigher = chosen.every((level) => level.semesters)
+  const lines: string[] = []
+  if (chosen.length > 1) lines.push(`Complexo escolar com ${chosen.length} níveis de ensino`)
+  if (grades) lines.push(`${grades} classe(s) com as disciplinas do plano de estudos`)
+  if (chosen.some((level) => level.semesters)) lines.push("Ensino superior: os cursos criam-se no SIGA")
+  lines.push(onlyHigher ? "Ano lectivo em 2 semestres" : "Ano lectivo em 3 trimestres")
+  if (rooms > 0) lines.push(`${rooms} sala(s) prontas para o horário`)
+  return lines
+}
