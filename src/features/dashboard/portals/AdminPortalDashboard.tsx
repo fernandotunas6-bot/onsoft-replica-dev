@@ -36,6 +36,12 @@ import { SpotlightRail } from "@/features/spotlight/SpotlightRail";
 import { DashboardCalendarCard } from "@/features/dashboard/components/DashboardCalendarCard";
 import { TodayAtSchoolCard } from "@/features/dashboard/components/TodayAtSchoolCard";
 import { openSettingsPanel } from "@/lib/settings-deep-link";
+import { MetricGrid, type Metric } from "@/components/mobile/MetricGrid";
+import { MetricGridSkeleton } from "@/components/mobile/skeletons";
+import { QuickActions, type QuickAction } from "@/components/mobile/QuickActions";
+import { MobileTabs } from "@/components/mobile/MobileTabs";
+import { MobileOnly, ResponsiveEntityView } from "@/components/mobile/ResponsiveEntityView";
+import { useSchoolAlerts } from "@/features/dashboard/use-school-alerts";
 
 const DashboardCharts = lazy(() =>
   import("@/features/dashboard/DashboardCharts").then((module) => ({
@@ -185,6 +191,110 @@ export function AdminPortalDashboard({
     },
   ];
 
+  const { alerts } = useSchoolAlerts();
+
+  /*
+   * Ordem mobile da home (§13): primeiro o que exige atenção, depois os números,
+   * depois o que se faz. As quatro perguntas são "o que exige atenção / o que
+   * acontece hoje / o que preciso de fazer / como está a escola" — e é nessa
+   * ordem que o ecrã responde, em vez de abrir com um painel de BI.
+   *
+   * As métricas são as mesmas de `stats` e `miniStats`, sem números novos: o que
+   * muda é a hierarquia. O total de estudantes ocupa a largura toda porque é o
+   * número de que todos os outros dependem.
+   */
+  const mobileMetrics: Metric[] = [
+    {
+      id: "students",
+      label: "Total de estudantes",
+      value: capabilities.students ? String(totalStudents) : "—",
+      hint: capabilities.students
+        ? `${data?.totals.activeStudents ?? 0} com matrícula activa`
+        : "Sem permissão de leitura académica",
+      tone: "primary",
+      wide: true,
+      ...(capabilities.students && (data?.totals.applicants ?? 0) > 0
+        ? { to: "/alunos", search: { action: "confirmar" } }
+        : {}),
+    },
+    ...(capabilities.finance
+      ? [
+          {
+            id: "cash",
+            label: "Saldo de caixa",
+            value: kwanza(data?.finance?.cash_balance ?? 0),
+            hint: `${data?.finance?.open_invoice_count ?? 0} faturas em aberto`,
+            tone: "success" as const,
+            to: "/financeiro",
+          },
+        ]
+      : []),
+    {
+      id: "attendance",
+      label: "Taxa de presença",
+      value:
+        capabilities.students && data?.totals.attendanceAverage != null
+          ? `${data.totals.attendanceAverage}%`
+          : "—",
+      tone: "info",
+    },
+    {
+      id: "classes",
+      label: "Turmas activas",
+      value: capabilities.students ? String(data?.totals.classGroups ?? 0) : "—",
+      tone: "neutral",
+    },
+    {
+      id: "courses",
+      label: "Cursos",
+      value: capabilities.students ? String(data?.totals.courses ?? 0) : "—",
+      tone: "neutral",
+    },
+  ];
+
+  /* §16: só o que se faz várias vezes por dia, e só o que o papel permite (§53). */
+  const mobileActions: QuickAction[] = [
+    {
+      label: "Nova matrícula",
+      icon: UserRound,
+      to: "/alunos",
+      search: { action: "matricular" },
+      hidden: !canAccessPath("/alunos", currentUser.role, currentUser.grants),
+    },
+    {
+      label: "Receber pagamento",
+      icon: Receipt,
+      to: "/faturas",
+      hidden: !canAccessPath("/faturas", currentUser.role, currentUser.grants),
+    },
+    {
+      label: "Fazer chamada",
+      icon: UserCheck,
+      to: "/pedagogica",
+      search: { tab: "chamada" },
+      hidden: !canAccessPath("/pedagogica", currentUser.role, currentUser.grants),
+    },
+    {
+      label: "Lançar notas",
+      icon: GraduationCap,
+      to: "/pedagogica",
+      search: { tab: "notas" },
+      hidden: !canAccessPath("/pedagogica", currentUser.role, currentUser.grants),
+    },
+    {
+      label: "Emitir documento",
+      icon: FileText,
+      to: "/documentos",
+      hidden: !canAccessPath("/documentos", currentUser.role, currentUser.grants),
+    },
+    {
+      label: "Comunicar",
+      icon: Megaphone,
+      to: "/comunicacoes",
+      hidden: !canAccessPath("/comunicacoes", currentUser.role, currentUser.grants),
+    },
+  ];
+
   const printSchool = {
     name: school?.name ?? "Escola",
     nif: school?.nif,
@@ -218,8 +328,54 @@ export function AdminPortalDashboard({
 
   return (
     <div className="space-y-6">
-      {/* HEADER EXECUTIVO — RESUMO DE HOJE */}
-      <div className="flex flex-wrap items-center justify-between gap-4 rounded-xl border border-border/80 bg-card p-4 sm:p-5 shadow-card">
+      {/*
+        Home mobile. O header da aplicação já saúda e já diz a escola e o ano —
+        repetir isso aqui era gastar o primeiro ecrã em texto. Este bloco começa
+        onde o utilizador decide: alertas, números, acções.
+      */}
+      <MobileOnly>
+        <div className="space-y-4">
+          {alerts.length ? (
+            <section aria-label="Alertas da escola" className="space-y-1.5">
+              {alerts.slice(0, 3).map((alert) => (
+                <Link
+                  key={alert.id}
+                  to={
+                    alert.href === "/alunos"
+                      ? "/alunos"
+                      : alert.href === "/documentos"
+                        ? "/documentos"
+                        : "/faturas"
+                  }
+                  className="flex items-start gap-2.5 rounded-xl border border-warning/30 bg-warning/10 px-3 py-2.5"
+                >
+                  <span className="mt-1 size-1.5 shrink-0 rounded-full bg-warning" aria-hidden />
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate text-xs font-medium text-foreground">
+                      {alert.title}
+                    </span>
+                    <span className="mt-0.5 line-clamp-2 text-[11px] text-muted-foreground">
+                      {alert.detail}
+                    </span>
+                  </span>
+                </Link>
+              ))}
+            </section>
+          ) : null}
+
+          {isLoading ? <MetricGridSkeleton count={5} /> : <MetricGrid metrics={mobileMetrics} />}
+
+          <section>
+            <h2 className="pb-2 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+              Acções rápidas
+            </h2>
+            <QuickActions actions={mobileActions} />
+          </section>
+        </div>
+      </MobileOnly>
+
+      {/* HEADER EXECUTIVO — RESUMO DE HOJE (computador) */}
+      <div className="hidden flex-wrap items-center justify-between gap-4 rounded-xl border border-border/80 bg-card p-4 shadow-card md:flex sm:p-5">
         <div>
           <div className="flex items-center gap-2">
             <span className="inline-flex size-2 rounded-full bg-success" aria-hidden="true" />
@@ -257,47 +413,67 @@ export function AdminPortalDashboard({
         </div>
       </div>
 
-      {/* BARRA DE SUBOPÇÕES CLICÁVEIS DO DASHBOARD */}
-      <div className="flex flex-wrap items-center gap-2 border-b border-border pb-3">
-        <Button
-          type="button"
-          variant={activeTab === "geral" ? "default" : "secondary"}
-          size="sm"
-          onClick={() => setActiveTab("geral")}
-          className="rounded-full text-xs font-semibold px-3.5"
-        >
-          Visão Geral
-        </Button>
-        <Button
-          type="button"
-          variant={activeTab === "pedagogico" ? "default" : "secondary"}
-          size="sm"
-          onClick={() => setActiveTab("pedagogico")}
-          className="rounded-full text-xs font-semibold px-3.5"
-        >
-          Desempenho & Pautas
-        </Button>
-        {capabilities.finance ? (
-          <Button
-            type="button"
-            variant={activeTab === "financeiro" ? "default" : "secondary"}
-            size="sm"
-            onClick={() => setActiveTab("financeiro")}
-            className="rounded-full text-xs font-semibold px-3.5"
-          >
-            Projeção Financeira
-          </Button>
-        ) : null}
-        <Button
-          type="button"
-          variant={activeTab === "auditoria" ? "default" : "secondary"}
-          size="sm"
-          onClick={() => setActiveTab("auditoria")}
-          className="rounded-full text-xs font-semibold px-3.5"
-        >
-          Auditoria de Produtividade
-        </Button>
-      </div>
+      {/*
+        Os quatro separadores em pastilhas embrulham para duas linhas a 360px e
+        deixam de se ler como um grupo. No telemóvel são separadores que rolam na
+        horizontal (§10 do MobileTabs), com o activo sempre trazido à vista.
+      */}
+      <ResponsiveEntityView
+        mobile={
+          <MobileTabs
+            activeId={activeTab}
+            onSelect={(id) => setActiveTab(id as typeof activeTab)}
+            tabs={[
+              { id: "geral", label: "Visão geral" },
+              { id: "pedagogico", label: "Desempenho" },
+              ...(capabilities.finance ? [{ id: "financeiro", label: "Financeiro" }] : []),
+              { id: "auditoria", label: "Auditoria" },
+            ]}
+          />
+        }
+        desktop={
+          <div className="flex flex-wrap items-center gap-2 border-b border-border pb-3">
+            <Button
+              type="button"
+              variant={activeTab === "geral" ? "default" : "secondary"}
+              size="sm"
+              onClick={() => setActiveTab("geral")}
+              className="rounded-full text-xs font-semibold px-3.5"
+            >
+              Visão Geral
+            </Button>
+            <Button
+              type="button"
+              variant={activeTab === "pedagogico" ? "default" : "secondary"}
+              size="sm"
+              onClick={() => setActiveTab("pedagogico")}
+              className="rounded-full text-xs font-semibold px-3.5"
+            >
+              Desempenho & Pautas
+            </Button>
+            {capabilities.finance ? (
+              <Button
+                type="button"
+                variant={activeTab === "financeiro" ? "default" : "secondary"}
+                size="sm"
+                onClick={() => setActiveTab("financeiro")}
+                className="rounded-full text-xs font-semibold px-3.5"
+              >
+                Projeção Financeira
+              </Button>
+            ) : null}
+            <Button
+              type="button"
+              variant={activeTab === "auditoria" ? "default" : "secondary"}
+              size="sm"
+              onClick={() => setActiveTab("auditoria")}
+              className="rounded-full text-xs font-semibold px-3.5"
+            >
+              Auditoria de Produtividade
+            </Button>
+          </div>
+        }
+      />
 
       {activeTab === "geral" && capabilities.students && totalStudents === 0 ? (
         <section className="rounded-xl border border-primary/20 bg-primary/5 p-4">
@@ -467,7 +643,8 @@ export function AdminPortalDashboard({
         </div>
       </section>
 
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      {/* Os mesmos números já estão no `MetricGrid` acima, com hierarquia. */}
+      <div className="hidden gap-4 md:grid sm:grid-cols-2 xl:grid-cols-4">
         {stats.map((s) => {
           const card = (
             <>
@@ -504,7 +681,7 @@ export function AdminPortalDashboard({
         })}
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="hidden gap-4 md:grid sm:grid-cols-2 xl:grid-cols-4">
         {miniStats.map((s) => (
           <div
             key={s.label}
