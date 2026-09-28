@@ -25,6 +25,11 @@ import {
   updateSchoolBankingInputSchema,
   updateSchoolSettingsInputSchema,
 } from "./schemas";
+import {
+  higherEdRegulationSchema,
+  parseHigherEdRegulation,
+  type HigherEdRegulation,
+} from "@/features/academic/higher-ed-regulation";
 import { normalizeAngolaIban } from "@/lib/angola-banking";
 import { validateSchoolNif } from "@/lib/angola-identity";
 
@@ -540,6 +545,39 @@ export const updatePedagogySettings = createServerFn({ method: "POST" })
     );
     const settings = await loadSchoolSettingsBundle(db, membership.schoolId);
     return settings.pedagogy;
+  });
+
+/** Regulamento académico do ensino superior (domínio próprio em school_settings). */
+export const getHigherEdRegulation = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }): Promise<HigherEdRegulation> => {
+    const membership = await requireSgaWriterFor("pedagogica", context.supabase, context.userId, [
+      "Administrador",
+      "Secretaria",
+      "Professor",
+    ]);
+    const db = await loadSgaAdminClient();
+    const current = await readSettingDomain(db, membership.schoolId, "higher_education");
+    return parseHigherEdRegulation(current?.value ?? null);
+  });
+
+export const updateHigherEdRegulation = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .validator((input: unknown) => higherEdRegulationSchema.parse(input))
+  .handler(async ({ data, context }): Promise<HigherEdRegulation> => {
+    const membership = await requireSgaWriterForWrite("gestao", context.supabase, context.userId, [
+      "Administrador",
+    ]);
+    const db = await loadSgaAdminClient();
+    // A escrita passa pelo gatilho de auditoria de school_settings (antes/depois).
+    await upsertSettingDomain(
+      db,
+      membership.schoolId,
+      "higher_education",
+      data as unknown as JsonMap,
+      context.userId,
+    );
+    return data;
   });
 
 export const setTermLock = createServerFn({ method: "POST" })

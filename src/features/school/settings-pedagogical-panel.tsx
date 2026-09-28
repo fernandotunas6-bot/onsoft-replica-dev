@@ -11,6 +11,7 @@ import {
   resolveGradingProfile,
   DEFAULT_SUPERIOR_GRADING_PROFILE,
 } from "@/features/academic/grading-profiles";
+import { HigherEdRegulationPanel } from "@/features/school/HigherEdRegulationPanel";
 import { ProgramCurriculumPanel } from "@/features/school/ProgramCurriculumPanel";
 import {
   getSchoolSettings,
@@ -239,6 +240,19 @@ export function PedagogicalSettingsPanel() {
                   </label>
                 ))}
               </div>
+            </div>
+          </div>
+
+          <Separator />
+
+          <div>
+            <h4 className="font-display text-base font-extrabold">Regulamento académico</h4>
+            <p className="mt-1 text-sm text-muted-foreground">
+              As regras da instituição para aprovar, dispensar de exame, excluir e transitar por
+              créditos. Os valores sugeridos são os mais comuns; ajuste ao regulamento aprovado.
+            </p>
+            <div className="mt-3">
+              <HigherEdRegulationPanel canEdit={canEdit} />
             </div>
           </div>
 

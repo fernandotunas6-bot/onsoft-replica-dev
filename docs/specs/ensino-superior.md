@@ -35,10 +35,18 @@ cada instituição tem o seu regulamento académico.
    por ano: cada cadeira aprovada soma créditos.
 4. **Progressão por créditos.** A passagem de ano depende dos créditos obtidos
    (ex.: 2.º ano com pelo menos 45 de 60 ECTS), configurável no regulamento.
-5. **Regulamento académico da instituição.** Nota mínima (normalmente 10),
-   dispensa de exame por média de frequência, pesos contínua/exame, número de
-   épocas, limite de créditos por semestre e regra de progressão.
-   → reutilizar `assessment_rule_sets` com um `formula.superior` próprio.
+5. **Regulamento académico da instituição.** ✅ Feito (2026-09-28).
+   Nota de aprovação, pesos frequência/exame, dispensa, admissão a exame,
+   faltas, nota mínima no exame, épocas (recurso, especial, melhoria),
+   créditos por ano, limite de inscrição e percentagem para transitar.
+   → `school_settings`, domínio `higher_education` (sem migração; auditado pelo
+   gatilho da tabela). Regras e motor puro em
+   `src/features/academic/higher-ed-regulation.ts` (`unitOutcome`,
+   `yearProgression`, `canEnrollCredits`); ecrã em Definições → Pedagógico,
+   visível quando a escola tem o nível Ensino Superior. Não ficou em
+   `assessment_rule_sets` porque a publicação exige 2FA e versões pensadas para
+   a pauta do ensino geral; o regulamento muda raramente e aplica-se à
+   instituição inteira.
 6. **Trabalho de fim de curso / monografia.** Orientador, tema, defesa, júri e
    nota.
 7. **Documentos próprios.** Declaração de frequência, certificado de
