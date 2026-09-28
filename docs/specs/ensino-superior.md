@@ -39,9 +39,12 @@ cada instituição tem o seu regulamento académico.
    Descrição original: Uma cadeira só pode ser feita depois de outra ter sido
    aprovada (ex.: Análise II exige Análise I).
    → tabela `program_subject_prerequisites`; a inscrição recusa sem elas.
-3. **Aprovação por cadeira e créditos acumulados.** Não há "transita/reprova"
+3. **Aprovação por cadeira e créditos acumulados.** ✅ Feito (2026-09-28):
+   o resultado de cada cadeira segue o regulamento (`unitOutcome`) e só a
+   aprovação ou a dispensa dão créditos (garantido também na base). Não há "transita/reprova"
    por ano: cada cadeira aprovada soma créditos.
-4. **Progressão por créditos.** A passagem de ano depende dos créditos obtidos
+4. **Progressão por créditos.** ✅ Feito (2026-09-28): `yearProgression` e o
+   ano curricular calculado pelos créditos; mostrado na ficha do aluno. A passagem de ano depende dos créditos obtidos
    (ex.: 2.º ano com pelo menos 45 de 60 ECTS), configurável no regulamento.
 5. **Regulamento académico da instituição.** ✅ Feito (2026-09-28).
    Nota de aprovação, pesos frequência/exame, dispensa, admissão a exame,
