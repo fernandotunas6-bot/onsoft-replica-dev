@@ -5,7 +5,7 @@ import { Link } from "react-router-dom"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import { z } from "zod"
-import { ArrowLeft, ArrowRight, Check, Globe, Loader2 } from "lucide-react"
+import { ArrowLeft, ArrowRight, Check, Eye, EyeOff, Globe, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -139,6 +139,53 @@ const STEP_INTRO: Record<number, string> = {
 
 const LAST_STEP = STEPS.length
 
+const FIELDS_BY_STEP: Record<number, (keyof FormValues)[]> = {
+  1: ["name", "nif", "commercial_name"],
+  2: ["province", "municipality", "commune", "neighborhood", "address", "phone", "email"],
+  3: ["contact_name", "contact_role", "contact_phone", "contact_email"],
+  4: ["plan_code"],
+  5: ["admin_name", "admin_email", "admin_password", "admin_password_confirm"],
+  6: ["slug"],
+}
+
+/** Rascunho no navegador: quem fecha a página a meio retoma onde estava. Nunca a senha. */
+const DRAFT_KEY = "siga-web:start-draft:v1"
+const DRAFT_OMIT = new Set<keyof FormValues>(["admin_password", "admin_password_confirm", "website"])
+
+type Draft = { step: number; values: Partial<FormValues> }
+
+function readDraft(): Draft | null {
+  try {
+    const raw = window.localStorage.getItem(DRAFT_KEY)
+    if (!raw) return null
+    const parsed = JSON.parse(raw) as Draft
+    return parsed && typeof parsed === "object" && parsed.values ? parsed : null
+  } catch {
+    return null
+  }
+}
+
+function writeDraft(draft: Draft | null) {
+  try {
+    if (draft) window.localStorage.setItem(DRAFT_KEY, JSON.stringify(draft))
+    else window.localStorage.removeItem(DRAFT_KEY)
+  } catch {
+    /* navegador sem armazenamento: o registo continua, só sem rascunho */
+  }
+}
+
+/** 0 a 3: comprimento, letras e números, símbolo ou 14+ caracteres. */
+function passwordStrength(value: string) {
+  if (!value) return 0
+  let score = 0
+  if (value.length >= 10) score++
+  if (/[a-zA-Z]/.test(value) && /\d/.test(value)) score++
+  if (/[^a-zA-Z0-9]/.test(value) || value.length >= 14) score++
+  return score
+}
+
+const RECOMMENDED_PLAN: PlanCode = "professional"
+
 function formatAoa(value?: number) {
   if (value == null) return null
   return new Intl.NumberFormat("pt-AO", {
@@ -203,6 +250,28 @@ export function StartSchoolWizard() {
     },
   })
 
+  // Retomar o rascunho (uma vez, ao abrir).
+  const [resumed, setResumed] = useState(false)
+  useEffect(() => {
+    const draft = readDraft()
+    if (!draft) return
+    for (const [key, value] of Object.entries(draft.values)) {
+      if (!DRAFT_OMIT.has(key as keyof FormValues) && typeof value === "string") {
+        form.setValue(key as keyof FormValues, value as never, { shouldValidate: false })
+      }
+    }
+    // Sem a senha guardada, quem já ia além da conta volta ao passo da conta.
+    setStep(Math.min(Math.max(1, draft.step || 1), 5))
+    setResumed(true)
+  }, [form])
+
+  function restart() {
+    writeDraft(null)
+    form.reset()
+    setStep(1)
+    setResumed(false)
+  }
+
   useEffect(() => {
     void fetchSaasPlans().then((list) => {
       if (list.length) setPlans(list)
@@ -228,6 +297,18 @@ export function StartSchoolWizard() {
   }, [name, form])
 
   const values = form.watch()
+  const draftJson = JSON.stringify(
+    Object.fromEntries(
+      Object.entries(values).filter(([key]) => !DRAFT_OMIT.has(key as keyof FormValues)),
+    ),
+  )
+  useEffect(() => {
+    if (done) return
+    const timeout = setTimeout(() => {
+      writeDraft({ step, values: JSON.parse(draftJson) as Partial<FormValues> })
+    }, 400)
+    return () => clearTimeout(timeout)
+  }, [draftJson, step, done])
   const planLabel = useMemo(
     () => plans.find((p) => p.code === values.plan_code)?.name ?? values.plan_code,
     [plans, values.plan_code],
@@ -254,15 +335,7 @@ export function StartSchoolWizard() {
   }, [slug])
 
   async function validateStep() {
-    const fieldsByStep: Record<number, (keyof FormValues)[]> = {
-      1: ["name", "nif"],
-      2: ["province", "municipality", "phone", "email"],
-      3: ["contact_name", "contact_email"],
-      4: ["plan_code"],
-      5: ["admin_name", "admin_email", "admin_password", "admin_password_confirm"],
-      6: ["slug"],
-    }
-    const fields = fieldsByStep[step]
+    const fields = FIELDS_BY_STEP[step]
     if (!fields) return true
     return form.trigger(fields)
   }
@@ -278,6 +351,7 @@ export function StartSchoolWizard() {
       form.setValue("admin_name", form.getValues("contact_name"))
       form.setValue("admin_email", form.getValues("contact_email"))
     }
+    setResumed(false)
     setStep((s) => Math.min(LAST_STEP, s + 1))
   }
 
@@ -291,7 +365,15 @@ export function StartSchoolWizard() {
     if (isCreating) return
     setServerError(null)
     const ok = await form.trigger()
-    if (!ok) return
+    if (!ok) {
+      const errors = form.formState.errors
+      const firstBad = Object.entries(FIELDS_BY_STEP).find(([, fields]) =>
+        fields.some((field) => errors[field]),
+      )
+      if (firstBad) setStep(Number(firstBad[0]))
+      setServerError("Falta corrigir um campo. Levámo-lo ao passo onde está.")
+      return
+    }
     if (slugStatus === "taken") {
       setServerError("Este subdomínio já está em uso por outra escola. Volte ao passo 6 e escolha outro.")
       return
@@ -320,6 +402,7 @@ export function StartSchoolWizard() {
         setServerError(result.error || "Falha ao criar a escola.")
         return
       }
+      writeDraft(null)
       setDone({
         hostname: result.hostname || `${payload.slug}.${PLATFORM_DOMAIN}`,
         sigaUrl: result.sigaUrl || ECOSYSTEM_URLS.siga,
@@ -356,33 +439,8 @@ export function StartSchoolWizard() {
           </CardDescription>
         </CardHeader>
         <CardContent className="grid gap-5 text-center">
-          <div className="rounded-lg bg-muted p-4 space-y-3">
-            <h3 className="font-semibold text-sm">Estado da assinatura</h3>
-            <p className="text-sm font-medium">Pagamento pendente de validação</p>
-            <p className="text-xs text-muted-foreground">Plano seleccionado: {planLabel}</p>
-          </div>
-
-          {hasPaymentInstructions ? (
-            <div className="rounded-lg border p-4 space-y-2">
-              <h3 className="font-semibold text-sm">Dados para pagamento por IBAN</h3>
-              <p className="text-sm font-mono tracking-wider">{PAYMENT_IBAN}</p>
-              {PAYMENT_BANK ? <p className="text-xs text-muted-foreground">Banco: {PAYMENT_BANK}</p> : null}
-              {PAYMENT_ACCOUNT_NAME ? (
-                <p className="text-xs text-muted-foreground">Titular: {PAYMENT_ACCOUNT_NAME}</p>
-              ) : null}
-            </div>
-          ) : (
-            <p className="rounded-lg border p-4 text-sm text-muted-foreground">
-              Os dados oficiais para pagamento serão enviados pelos canais comerciais configurados. Nenhum IBAN de demonstração é apresentado.
-            </p>
-          )}
-
-          <p className="text-sm">
-            Ao enviar o comprovativo, identifique a instituição como <strong>{values.name}</strong> e informe o endereço <strong>{done.hostname}</strong>.
-          </p>
-
           <div className="rounded-lg border p-4 space-y-2 text-left">
-            <h3 className="font-semibold text-sm">Acesso do administrador</h3>
+            <h3 className="text-sm">Acesso do administrador</h3>
             {done.adminPasswordSet ? (
               <p className="text-sm text-muted-foreground">
                 A conta já está pronta. Entre no SIGA Plus com <strong>{values.admin_email}</strong> e a senha que definiu neste registo.
@@ -399,6 +457,62 @@ export function StartSchoolWizard() {
                 A conta de <strong>{values.admin_email}</strong> já está criada, mas o convite ainda não foi enviado. Use «Recuperar senha» no SIGA Plus com este e-mail, ou peça o link à equipa de suporte.
               </p>
             )}
+          </div>
+
+          <div className="rounded-lg border p-4 text-left">
+            <h3 className="text-sm">Primeiros passos no SIGA Plus</h3>
+            <ol className="mt-3 grid gap-2.5">
+              {[
+                ["Confirme os dados da escola", "Definições → Escola: logótipo, director e coordenadas."],
+                ["Publique o modelo de avaliação", "Pedagógica → Modelos de avaliação. Sem ele não há pautas."],
+                ["Crie o ano lectivo, as classes e as turmas", "Pedagógica → Estrutura académica."],
+                ["Convide a equipa", "Acessos: secretaria, tesouraria e professores."],
+              ].map(([title, hint], index) => (
+                <li key={title} className="flex gap-3">
+                  <span className="flex size-5 shrink-0 items-center justify-center rounded-full border text-[11px] text-muted-foreground">
+                    {index + 1}
+                  </span>
+                  <span className="text-sm">
+                    {title}
+                    <span className="block text-xs text-muted-foreground">{hint}</span>
+                  </span>
+                </li>
+              ))}
+            </ol>
+            <Button asChild className="mt-4 w-full">
+              <a href={done.sigaUrl}>
+                Entrar no SIGA Plus <ArrowRight className="size-4" />
+              </a>
+            </Button>
+          </div>
+
+          <div className="grid gap-3 border-t pt-5">
+            <p className="text-xs uppercase tracking-wide text-muted-foreground">Pagamento do plano</p>
+          <div className="rounded-lg bg-muted p-4 space-y-3">
+              <h3 className="text-sm">Estado da assinatura</h3>
+              <p className="text-sm font-medium">Pagamento pendente de validação</p>
+              <p className="text-xs text-muted-foreground">Plano seleccionado: {planLabel}</p>
+            </div>
+
+            {hasPaymentInstructions ? (
+              <div className="rounded-lg border p-4 space-y-2">
+                <h3 className="text-sm">Dados para pagamento por IBAN</h3>
+                <p className="text-sm font-mono tracking-wider">{PAYMENT_IBAN}</p>
+                {PAYMENT_BANK ? <p className="text-xs text-muted-foreground">Banco: {PAYMENT_BANK}</p> : null}
+                {PAYMENT_ACCOUNT_NAME ? (
+                  <p className="text-xs text-muted-foreground">Titular: {PAYMENT_ACCOUNT_NAME}</p>
+                ) : null}
+              </div>
+            ) : (
+              <p className="rounded-lg border p-4 text-sm text-muted-foreground">
+                Os dados oficiais para pagamento serão enviados pelos canais comerciais configurados. Nenhum IBAN de demonstração é apresentado.
+              </p>
+            )}
+
+            <p className="text-sm">
+              Ao enviar o comprovativo, identifique a instituição como <strong>{values.name}</strong> e informe o endereço <strong>{done.hostname}</strong>.
+            </p>
+
           </div>
 
           {whatsappUrl || emailUrl ? (
@@ -418,16 +532,13 @@ export function StartSchoolWizard() {
             </div>
           ) : null}
 
-          <div className="mt-4 flex flex-col items-center gap-1 border-t pt-4 text-sm">
-            <Button variant="link" asChild className="text-muted-foreground">
-              <a href={done.sigaUrl}>Entrar no SIGA Plus durante o período experimental &rarr;</a>
-            </Button>
-            {done.adminTenantsUrl ? (
+          {done.adminTenantsUrl ? (
+            <div className="flex justify-center border-t pt-3 text-sm">
               <Button variant="link" asChild className="text-muted-foreground">
                 <a href={done.adminTenantsUrl}>Ver no Control Center (ADMIN) &rarr;</a>
               </Button>
-            ) : null}
-          </div>
+            </div>
+          ) : null}
         </CardContent>
       </Card>
     )
@@ -568,6 +679,15 @@ export function StartSchoolWizard() {
                 {...form.register("website")}
               />
 
+              {resumed ? (
+                <p className="flex items-center justify-between gap-3 rounded-md bg-muted/60 px-3 py-2 text-xs text-muted-foreground">
+                  Retomámos o registo que deixou a meio neste navegador.
+                  <button type="button" className="shrink-0 underline" onClick={restart}>
+                    Recomeçar
+                  </button>
+                </p>
+              ) : null}
+
               {step === 1 ? (
                 <>
                   <Field form={form} name="name" label="Nome oficial da instituição" />
@@ -690,7 +810,14 @@ export function StartSchoolWizard() {
                         )}
                       >
                         <span className="flex items-center justify-between gap-2">
-                          <span className="text-sm">{plan.name}</span>
+                          <span className="flex items-center gap-2 text-sm">
+                            {plan.name}
+                            {plan.code === RECOMMENDED_PLAN ? (
+                              <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[11px] text-primary">
+                                Recomendado
+                              </span>
+                            ) : null}
+                          </span>
                           <span
                             className={cn(
                               "flex size-4 items-center justify-center rounded-full border",
@@ -729,20 +856,14 @@ export function StartSchoolWizard() {
                     label="E-mail da conta SIGA"
                     description="É o e-mail usado para entrar no SIGA Plus."
                   />
-                  <div className="grid gap-4 sm:grid-cols-2">
-                    <Field
+                  <div className="grid items-start gap-4 sm:grid-cols-2">
+                    <PasswordField
                       form={form}
                       name="admin_password"
                       label="Senha de acesso"
-                      type="password"
-                      description="10 ou mais caracteres, com letras e números."
+                      showStrength
                     />
-                    <Field
-                      form={form}
-                      name="admin_password_confirm"
-                      label="Confirmar senha"
-                      type="password"
-                    />
+                    <PasswordField form={form} name="admin_password_confirm" label="Confirmar senha" />
                   </div>
                 </>
               ) : null}
@@ -924,6 +1045,74 @@ function Field({
           <FormMessage />
         </FormItem>
       )}
+    />
+  )
+}
+
+function PasswordField({
+  form,
+  name,
+  label,
+  showStrength = false,
+}: {
+  form: ReturnType<typeof useForm<FormValues>>
+  name: "admin_password" | "admin_password_confirm"
+  label: string
+  showStrength?: boolean
+}) {
+  const [visible, setVisible] = useState(false)
+  return (
+    <FormField
+      control={form.control}
+      name={name}
+      render={({ field }) => {
+        const strength = passwordStrength(field.value ?? "")
+        return (
+          <FormItem>
+            <FormLabel>{label}</FormLabel>
+            <div className="relative">
+              <FormControl>
+                <Input
+                  type={visible ? "text" : "password"}
+                  autoComplete="new-password"
+                  className="pr-10"
+                  {...field}
+                  value={field.value ?? ""}
+                />
+              </FormControl>
+              <button
+                type="button"
+                onClick={() => setVisible((v) => !v)}
+                aria-label={visible ? "Esconder senha" : "Mostrar senha"}
+                className="absolute inset-y-0 right-0 flex w-10 items-center justify-center text-muted-foreground hover:text-foreground"
+              >
+                {visible ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+              </button>
+            </div>
+            {showStrength ? (
+              <div className="grid gap-1">
+                <div className="grid grid-cols-3 gap-1" aria-hidden>
+                  {[1, 2, 3].map((level) => (
+                    <span
+                      key={level}
+                      className={cn(
+                        "h-1 rounded-full bg-muted transition-colors",
+                        strength >= level && (strength === 1 ? "bg-amber-500" : "bg-emerald-500"),
+                      )}
+                    />
+                  ))}
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  {strength >= 3
+                    ? "Senha forte."
+                    : "10 ou mais caracteres, com letras e números. Um símbolo torna-a mais forte."}
+                </p>
+              </div>
+            ) : null}
+            <FormMessage />
+          </FormItem>
+        )
+      }}
     />
   )
 }
