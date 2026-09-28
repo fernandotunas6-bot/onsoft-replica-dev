@@ -2117,6 +2117,105 @@ export type Database = {
           },
         ]
       }
+      course_unit_enrollments: {
+        Row: {
+          academic_year_id: string
+          attempt: number
+          created_at: string
+          created_by: string | null
+          credits: number
+          credits_earned: number
+          final_grade: number | null
+          id: string
+          notes: string | null
+          program_id: string
+          program_subject_id: string
+          school_id: string
+          season: string | null
+          semester: number
+          status: string
+          student_id: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          academic_year_id: string
+          attempt?: number
+          created_at?: string
+          created_by?: string | null
+          credits: number
+          credits_earned?: number
+          final_grade?: number | null
+          id?: string
+          notes?: string | null
+          program_id: string
+          program_subject_id: string
+          school_id: string
+          season?: string | null
+          semester: number
+          status?: string
+          student_id: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          academic_year_id?: string
+          attempt?: number
+          created_at?: string
+          created_by?: string | null
+          credits?: number
+          credits_earned?: number
+          final_grade?: number | null
+          id?: string
+          notes?: string | null
+          program_id?: string
+          program_subject_id?: string
+          school_id?: string
+          season?: string | null
+          semester?: number
+          status?: string
+          student_id?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "course_unit_enrollments_program_fkey"
+            columns: ["school_id", "program_id"]
+            isOneToOne: false
+            referencedRelation: "programs"
+            referencedColumns: ["school_id", "id"]
+          },
+          {
+            foreignKeyName: "course_unit_enrollments_program_subject_fkey"
+            columns: ["school_id", "program_subject_id"]
+            isOneToOne: false
+            referencedRelation: "program_subjects"
+            referencedColumns: ["school_id", "id"]
+          },
+          {
+            foreignKeyName: "course_unit_enrollments_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "schools"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "course_unit_enrollments_student_fkey"
+            columns: ["school_id", "student_id"]
+            isOneToOne: false
+            referencedRelation: "students"
+            referencedColumns: ["school_id", "id"]
+          },
+          {
+            foreignKeyName: "course_unit_enrollments_year_fkey"
+            columns: ["school_id", "academic_year_id"]
+            isOneToOne: false
+            referencedRelation: "academic_years"
+            referencedColumns: ["school_id", "id"]
+          },
+        ]
+      }
       curricula: {
         Row: {
           academic_year_id: string
@@ -7059,6 +7158,55 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "schools"
             referencedColumns: ["id"]
+          },
+        ]
+      }
+      program_subject_prerequisites: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          program_subject_id: string
+          required_program_subject_id: string
+          school_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          program_subject_id: string
+          required_program_subject_id: string
+          school_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          program_subject_id?: string
+          required_program_subject_id?: string
+          school_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "program_subject_prerequisites_required_fkey"
+            columns: ["school_id", "required_program_subject_id"]
+            isOneToOne: false
+            referencedRelation: "program_subjects"
+            referencedColumns: ["school_id", "id"]
+          },
+          {
+            foreignKeyName: "program_subject_prerequisites_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "schools"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "program_subject_prerequisites_subject_fkey"
+            columns: ["school_id", "program_subject_id"]
+            isOneToOne: false
+            referencedRelation: "program_subjects"
+            referencedColumns: ["school_id", "id"]
           },
         ]
       }

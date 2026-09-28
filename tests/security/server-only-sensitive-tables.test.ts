@@ -22,6 +22,10 @@ const MIGRATIONS = {
     "siga_lesson_reminder_log",
   ],
   "supabase/migrations/20260926180000_tenant_mailboxes_server_only.sql": ["tenant_mailboxes"],
+  "supabase/migrations/20260929230000_course_unit_enrollments_prerequisites.sql": [
+    "course_unit_enrollments",
+    "program_subject_prerequisites",
+  ],
   "supabase/migrations/20260927170000_shared_rate_limit.sql": ["siga_rate_limit_hits"],
   "supabase/migrations/20260927150000_competencies.sql": [
     "siga_competencies",

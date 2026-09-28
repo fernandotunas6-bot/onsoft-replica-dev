@@ -1,11 +1,11 @@
 {
-  "capturadoEm": "2026-09-27T14:25:59.502399Z",
+  "capturadoEm": "2026-09-28T09:25:00Z",
   "resumo": {
-    "com_rls": 179,
-    "funcoes_private": 98,
+    "com_rls": 181,
+    "funcoes_private": 100,
     "politicas": 285,
-    "tabelas": 179,
-    "triggers": 190
+    "tabelas": 181,
+    "triggers": 196
   },
   "tabelas": [
     {
@@ -732,6 +732,34 @@
       "rls": true,
       "rls_forcada": false,
       "tabela": "contact_verification_profiles"
+    },
+    {
+      "anon_select": false,
+      "auth_select": false,
+      "colunas": [
+        "id",
+        "school_id",
+        "student_id",
+        "academic_year_id",
+        "program_id",
+        "program_subject_id",
+        "semester",
+        "credits",
+        "attempt",
+        "status",
+        "final_grade",
+        "season",
+        "credits_earned",
+        "notes",
+        "created_at",
+        "updated_at",
+        "created_by",
+        "updated_by"
+      ],
+      "politicas": 0,
+      "rls": true,
+      "rls_forcada": true,
+      "tabela": "course_unit_enrollments"
     },
     {
       "anon_select": true,
@@ -2514,6 +2542,22 @@
       "rls": true,
       "rls_forcada": false,
       "tabela": "profiles"
+    },
+    {
+      "anon_select": false,
+      "auth_select": false,
+      "colunas": [
+        "id",
+        "school_id",
+        "program_subject_id",
+        "required_program_subject_id",
+        "created_at",
+        "created_by"
+      ],
+      "politicas": 0,
+      "rls": true,
+      "rls_forcada": true,
+      "tabela": "program_subject_prerequisites"
     },
     {
       "anon_select": true,
@@ -6515,6 +6559,12 @@
       "security_definer": true
     },
     {
+      "args": "",
+      "funcao": "course_unit_enrollments_no_delete",
+      "schema": "private",
+      "security_definer": false
+    },
+    {
       "args": "target_school_id uuid, target_class_group_id uuid, target_academic_year_id uuid, minutes_title text, minutes_body text, target_term_id uuid, decided_on date",
       "funcao": "create_council_minutes",
       "schema": "private",
@@ -6703,6 +6753,12 @@
     {
       "args": "",
       "funcao": "prevent_audit_mutation",
+      "schema": "private",
+      "security_definer": false
+    },
+    {
+      "args": "",
+      "funcao": "program_subject_prerequisites_same_program",
       "schema": "private",
       "security_definer": false
     },
@@ -8011,6 +8067,30 @@
       "trigger": "contact_verification_profiles_set_updated_at"
     },
     {
+      "funcao": "audit_row_change",
+      "funcao_schema": "private",
+      "tabela": "course_unit_enrollments",
+      "trigger": "audit_course_unit_enrollments"
+    },
+    {
+      "funcao": "course_unit_enrollments_no_delete",
+      "funcao_schema": "private",
+      "tabela": "course_unit_enrollments",
+      "trigger": "course_unit_enrollments_no_delete"
+    },
+    {
+      "funcao": "reject_immutable_column_changes",
+      "funcao_schema": "private",
+      "tabela": "course_unit_enrollments",
+      "trigger": "course_unit_enrollments_protect_identity"
+    },
+    {
+      "funcao": "siga_touch_updated_at",
+      "funcao_schema": "public",
+      "tabela": "course_unit_enrollments",
+      "trigger": "trg_course_unit_enrollments_touch"
+    },
+    {
       "funcao": "set_updated_at_and_version",
       "funcao_schema": "public",
       "tabela": "curricula",
@@ -8621,6 +8701,18 @@
       "funcao_schema": "public",
       "tabela": "person_documents",
       "trigger": "person_documents_enforce_school"
+    },
+    {
+      "funcao": "audit_row_change",
+      "funcao_schema": "private",
+      "tabela": "program_subject_prerequisites",
+      "trigger": "audit_program_subject_prerequisites"
+    },
+    {
+      "funcao": "program_subject_prerequisites_same_program",
+      "funcao_schema": "private",
+      "tabela": "program_subject_prerequisites",
+      "trigger": "program_subject_prerequisites_same_program"
     },
     {
       "funcao": "reject_immutable_column_changes",
@@ -9365,6 +9457,31 @@
       "chave": "contact_verification_profiles_school_id_fkey",
       "de": "contact_verification_profiles",
       "para": "schools"
+    },
+    {
+      "chave": "course_unit_enrollments_program_fkey",
+      "de": "course_unit_enrollments",
+      "para": "programs"
+    },
+    {
+      "chave": "course_unit_enrollments_program_subject_fkey",
+      "de": "course_unit_enrollments",
+      "para": "program_subjects"
+    },
+    {
+      "chave": "course_unit_enrollments_school_id_fkey",
+      "de": "course_unit_enrollments",
+      "para": "schools"
+    },
+    {
+      "chave": "course_unit_enrollments_student_fkey",
+      "de": "course_unit_enrollments",
+      "para": "students"
+    },
+    {
+      "chave": "course_unit_enrollments_year_fkey",
+      "de": "course_unit_enrollments",
+      "para": "academic_years"
     },
     {
       "chave": "curricula_academic_year_id_fkey",
@@ -10140,6 +10257,21 @@
       "chave": "profiles_school_id_fkey",
       "de": "profiles",
       "para": "schools"
+    },
+    {
+      "chave": "program_subject_prerequisites_required_fkey",
+      "de": "program_subject_prerequisites",
+      "para": "program_subjects"
+    },
+    {
+      "chave": "program_subject_prerequisites_school_id_fkey",
+      "de": "program_subject_prerequisites",
+      "para": "schools"
+    },
+    {
+      "chave": "program_subject_prerequisites_subject_fkey",
+      "de": "program_subject_prerequisites",
+      "para": "program_subjects"
     },
     {
       "chave": "program_subjects_program_id_fkey",
