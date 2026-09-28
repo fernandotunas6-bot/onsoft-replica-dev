@@ -685,9 +685,6 @@ h6,
   .siga-mobile-content :is(input, select, textarea) {
     min-height: 44px;
   }
-  .siga-mobile-content :is(button, [role="button"]) {
-    min-height: 40px;
-  }
 }
 @media (prefers-reduced-motion: reduce) {
   .siga-mobile-tab { transition: none; }
