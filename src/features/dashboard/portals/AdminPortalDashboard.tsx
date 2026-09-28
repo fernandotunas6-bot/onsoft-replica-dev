@@ -258,7 +258,8 @@ export function AdminPortalDashboard({
       </div>
 
       {/* BARRA DE SUBOPÇÕES CLICÁVEIS DO DASHBOARD */}
-      <div className="flex flex-wrap items-center gap-2 border-b border-border pb-3">
+      {/* No telemóvel fica numa só linha que desliza, em vez de ocupar três. */}
+      <div className="-mx-1 flex items-center gap-2 overflow-x-auto border-b border-border px-1 pb-3 [scrollbar-width:none] sm:flex-wrap [&>*]:shrink-0">
         <Button
           type="button"
           variant={activeTab === "geral" ? "default" : "secondary"}
