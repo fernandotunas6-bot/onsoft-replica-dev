@@ -101,7 +101,7 @@ describe("inscrição por unidade curricular", () => {
     });
     expect(checkUnitEnrollment(REG, s, units, ["an2"], 70)).toEqual({
       ok: false,
-      reason: "Passa o limite de 75 ECTS por ano com Análise II.",
+      reason: "Passa o limite de 75 créditos por ano com Análise II.",
     });
     expect(checkUnitEnrollment(REG, s, units, ["an2"], 60)).toEqual({ ok: true });
   });
@@ -159,5 +159,52 @@ describe("inscrição por unidade curricular", () => {
     expect(hasPrerequisiteCycle(ok)).toBe(false);
     ok.set("an1", ["an3"]);
     expect(hasPrerequisiteCycle(ok)).toBe(true);
+  });
+
+  it("limite de inscrições na mesma cadeira", () => {
+    const reg = { ...REG, maxAttemptsPerUnit: 2 };
+    const enrollments = [
+      enrollment({ programSubjectId: "alg", academicYearId: "y0", status: "reprovado" }),
+      enrollment({
+        programSubjectId: "alg",
+        academicYearId: "y1",
+        status: "reprovado",
+        attempt: 2,
+      }),
+    ];
+    const s = unitSituations(reg, {
+      units,
+      enrollments,
+      academicYearId: "y2",
+      firstSemesterOfYear: 3,
+    });
+    expect(checkUnitEnrollment(reg, s, units, ["alg"], 0)).toEqual({
+      ok: false,
+      reason: "Álgebra: atingido o limite de 2 inscrições.",
+    });
+  });
+
+  it("média ponderada pela melhor nota de cada cadeira, GPA e menção", () => {
+    const enrollments = [
+      enrollment({ programSubjectId: "an1", status: "aprovado", finalGrade: 12, creditsEarned: 6 }),
+      enrollment({
+        programSubjectId: "an1",
+        academicYearId: "y2",
+        status: "aprovado",
+        finalGrade: 16,
+        creditsEarned: 6,
+      }),
+      enrollment({
+        programSubjectId: "alg",
+        status: "dispensado",
+        finalGrade: 14,
+        creditsEarned: 6,
+      }),
+      enrollment({ programSubjectId: "an2", status: "reprovado", finalGrade: 6 }),
+    ];
+    const progress = studentProgress(REG, units, enrollments, "y2");
+    expect(progress.average).toBe(15);
+    expect(progress.gpa).toBe(2.5);
+    expect(progress.mention).toBe("Bom");
   });
 });

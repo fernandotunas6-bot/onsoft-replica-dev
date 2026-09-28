@@ -15,6 +15,15 @@ import { z } from "zod";
 
 const grade = z.number().min(0).max(20);
 
+export const REGULATION_PRESET_IDS = [
+  "angola",
+  "bolonha",
+  "brasil",
+  "eua",
+  "personalizado",
+] as const;
+export type RegulationPresetId = (typeof REGULATION_PRESET_IDS)[number];
+
 export const higherEdRegulationSchema = z
   .object({
     /** Nota mínima de aprovação numa unidade curricular (0–20). */
@@ -46,6 +55,22 @@ export const higherEdRegulationSchema = z
     enforcePrerequisites: z.boolean().default(true),
     /** Casas decimais da nota final da unidade curricular (0 = inteira, como na pauta). */
     finalGradeDecimals: z.union([z.literal(0), z.literal(1)]).default(0),
+    /** Modelo de referência de onde partiu (só informativo; tudo continua editável). */
+    presetId: z.enum(REGULATION_PRESET_IDS).default("angola"),
+    /**
+     * Escala em que as notas se lançam e se mostram. Por dentro tudo é 0–20;
+     * 10 e 100 convertem-se (5/10 = 10/20; 60% = 12/20).
+     */
+    displayScale: z.union([z.literal(20), z.literal(10), z.literal(100)]).default(20),
+    /** Nome da unidade de crédito nos ecrãs e documentos. */
+    creditLabel: z.enum(["créditos", "ECTS", "UC"]).default("créditos"),
+    /** Máximo de inscrições na mesma cadeira (prescrição). `null`: sem limite. */
+    maxAttemptsPerUnit: z.number().int().min(1).max(20).nullable().default(null),
+    /** Classificação final do curso: menções qualitativas, honras latinas ou nenhuma. */
+    finalMentions: z.enum(["qualitativa", "latinas", "nenhuma"]).default("qualitativa"),
+    /** Mostrar a nota ECTS (A–F) e o equivalente GPA 0–4 ao lado da nota. */
+    showEctsGrade: z.boolean().default(false),
+    showGpa: z.boolean().default(false),
   })
   .refine((reg) => reg.maxCreditsPerYear >= reg.creditsPerYear, {
     message: "O máximo de créditos por ano não pode ser menor do que os créditos do ano.",
@@ -122,14 +147,16 @@ export function unitOutcome(
     return { status: "excluido_faltas", finalGrade: null, season: null };
   }
   if (continuous == null) return { status: "pendente", finalGrade: null, season: null };
-  if (continuous < reg.examAdmissionGrade) {
+  // Compara-se a nota já arredondada: com nota inteira, 9,5 conta como 10.
+  const shown = round(continuous, reg.finalGradeDecimals);
+  if (shown < reg.examAdmissionGrade) {
     return {
       status: "excluido_frequencia",
       finalGrade: round(continuous, reg.finalGradeDecimals),
       season: "frequencia",
     };
   }
-  if (reg.exemptionGrade != null && continuous >= reg.exemptionGrade) {
+  if (reg.exemptionGrade != null && shown >= reg.exemptionGrade) {
     return {
       status: "dispensado",
       finalGrade: round(continuous, reg.finalGradeDecimals),
@@ -171,26 +198,253 @@ export function canEnrollCredits(
   return alreadyEnrolled + unitCredits <= reg.maxCreditsPerYear;
 }
 
+/** Nota interna (0–20) na escala do regulamento, arredondada para mostrar. */
+export function toDisplayGrade(reg: HigherEdRegulation, grade20: number) {
+  const value = (grade20 * reg.displayScale) / 20;
+  return Math.round((value + Number.EPSILON) * 10) / 10;
+}
+
+/** Nota lançada na escala do regulamento → 0–20 interno. */
+export function fromDisplayGrade(reg: HigherEdRegulation, value: number) {
+  return Math.round(((value * 20) / reg.displayScale + Number.EPSILON) * 100) / 100;
+}
+
+/** "valores", "pontos" ou "%" consoante a escala. */
+export function gradeUnitLabel(reg: HigherEdRegulation) {
+  return reg.displayScale === 100 ? "%" : reg.displayScale === 10 ? "pontos" : "valores";
+}
+
+export function formatGrade(reg: HigherEdRegulation, grade20: number) {
+  const value = toDisplayGrade(reg, grade20).toLocaleString("pt-PT");
+  return reg.displayScale === 100 ? `${value}%` : `${value} ${gradeUnitLabel(reg)}`;
+}
+
+/**
+ * Nota ECTS de uma aprovação, pela tabela fixa usada nos suplementos ao
+ * diploma com a escala 0–20: A 18–20, B 16–17, C 14–15, D 12–13, E 10–11.
+ */
+export function ectsGrade(
+  reg: HigherEdRegulation,
+  grade20: number,
+): "A" | "B" | "C" | "D" | "E" | "F" {
+  if (grade20 < reg.passingGrade) return "F";
+  if (grade20 >= 18) return "A";
+  if (grade20 >= 16) return "B";
+  if (grade20 >= 14) return "C";
+  if (grade20 >= 12) return "D";
+  return "E";
+}
+
+/**
+ * Pontos GPA 0–4. Com honras latinas (modelo americano) usa as bandas
+ * percentuais A 90, B 80, C 70, D 60; nos outros, as bandas 0–20 do motor.
+ */
+export function gpaPoints(reg: HigherEdRegulation, grade20: number): number {
+  const percent = grade20 * 5;
+  const bands: Array<[number, number]> =
+    reg.finalMentions === "latinas"
+      ? [
+          [90, 4],
+          [80, 3],
+          [70, 2],
+          [60, 1],
+        ]
+      : [
+          [90, 4],
+          [80, 3],
+          [70, 2],
+          [reg.passingGrade * 5, 1],
+        ];
+  for (const [min, points] of bands) if (percent >= min) return points;
+  return 0;
+}
+
+/** Menção da classificação final do curso (média 0–20, ou GPA com honras latinas). */
+export function finalMention(
+  reg: HigherEdRegulation,
+  average20: number | null,
+  gpa: number | null,
+): string | null {
+  if (reg.finalMentions === "nenhuma") return null;
+  if (reg.finalMentions === "latinas") {
+    if (gpa == null) return null;
+    if (gpa >= 3.9) return "Summa cum laude";
+    if (gpa >= 3.7) return "Magna cum laude";
+    if (gpa >= 3.5) return "Cum laude";
+    return null;
+  }
+  if (average20 == null || average20 < reg.passingGrade) return null;
+  const rounded = Math.round(average20);
+  if (rounded >= 18) return "Excelente";
+  if (rounded >= 16) return "Muito Bom";
+  if (rounded >= 14) return "Bom";
+  return "Suficiente";
+}
+
+type PresetValues = Omit<HigherEdRegulation, "presetId">;
+
+/**
+ * Modelos de referência. São pontos de partida com os valores mais comuns em
+ * cada sistema, não a lei de nenhuma instituição: cada uma ajusta ao seu
+ * regulamento aprovado.
+ */
+export const REGULATION_PRESETS: Record<
+  Exclude<RegulationPresetId, "personalizado">,
+  { label: string; detail: string; values: PresetValues }
+> = {
+  angola: {
+    label: "Angola",
+    detail: "0–20, aprovação a 10, dispensa a 14, épocas normal, recurso e especial",
+    values: {
+      passingGrade: 10,
+      continuousWeight: 40,
+      exemptionGrade: 14,
+      examAdmissionGrade: 7,
+      maxAbsencePercentage: 33,
+      minimumExamGrade: null,
+      appealSeason: true,
+      specialSeason: true,
+      appealMaxUnits: null,
+      gradeImprovement: true,
+      creditsPerYear: 60,
+      maxCreditsPerYear: 75,
+      progressionPercentage: 75,
+      enforcePrerequisites: true,
+      finalGradeDecimals: 0,
+      displayScale: 20,
+      creditLabel: "créditos",
+      maxAttemptsPerUnit: null,
+      finalMentions: "qualitativa",
+      showEctsGrade: false,
+      showGpa: false,
+    },
+  },
+  bolonha: {
+    label: "Europa · Bolonha",
+    detail: "0–20 e ECTS, aprovação a 9,5 (arredonda a 10), nota ECTS A–F",
+    values: {
+      passingGrade: 10,
+      continuousWeight: 50,
+      exemptionGrade: 10,
+      examAdmissionGrade: 0,
+      maxAbsencePercentage: 25,
+      minimumExamGrade: null,
+      appealSeason: true,
+      specialSeason: true,
+      appealMaxUnits: null,
+      gradeImprovement: true,
+      creditsPerYear: 60,
+      maxCreditsPerYear: 84,
+      progressionPercentage: 50,
+      enforcePrerequisites: false,
+      finalGradeDecimals: 0,
+      displayScale: 20,
+      creditLabel: "ECTS",
+      maxAttemptsPerUnit: null,
+      finalMentions: "qualitativa",
+      showEctsGrade: true,
+      showGpa: false,
+    },
+  },
+  brasil: {
+    label: "Brasil",
+    detail: "0–10, aprovação directa com 7, exame final com média 5, 75% de presença",
+    values: {
+      passingGrade: 10,
+      continuousWeight: 50,
+      exemptionGrade: 14,
+      examAdmissionGrade: 8,
+      maxAbsencePercentage: 25,
+      minimumExamGrade: null,
+      appealSeason: false,
+      specialSeason: false,
+      appealMaxUnits: null,
+      gradeImprovement: false,
+      creditsPerYear: 60,
+      maxCreditsPerYear: 80,
+      progressionPercentage: 0,
+      enforcePrerequisites: true,
+      finalGradeDecimals: 1,
+      displayScale: 10,
+      creditLabel: "créditos",
+      maxAttemptsPerUnit: null,
+      finalMentions: "nenhuma",
+      showEctsGrade: false,
+      showGpa: false,
+    },
+  },
+  eua: {
+    label: "Estados Unidos",
+    detail: "0–100%, aprovação a 60%, GPA 0–4, 30 créditos por ano, honras latinas",
+    values: {
+      passingGrade: 12,
+      continuousWeight: 60,
+      exemptionGrade: null,
+      examAdmissionGrade: 0,
+      maxAbsencePercentage: 20,
+      minimumExamGrade: null,
+      appealSeason: false,
+      specialSeason: false,
+      appealMaxUnits: null,
+      gradeImprovement: true,
+      creditsPerYear: 30,
+      maxCreditsPerYear: 36,
+      progressionPercentage: 80,
+      enforcePrerequisites: true,
+      finalGradeDecimals: 0,
+      displayScale: 100,
+      creditLabel: "créditos",
+      maxAttemptsPerUnit: 3,
+      finalMentions: "latinas",
+      showEctsGrade: false,
+      showGpa: true,
+    },
+  },
+};
+
+export function applyRegulationPreset(
+  id: Exclude<RegulationPresetId, "personalizado">,
+): HigherEdRegulation {
+  return higherEdRegulationSchema.parse({ ...REGULATION_PRESETS[id].values, presetId: id });
+}
+
 /** O regulamento em frases curtas, para o resumo no ecrã e nos documentos. */
 export function describeHigherEdRegulation(reg: HigherEdRegulation): string[] {
+  const g = (grade20: number) => formatGrade(reg, grade20);
+  const credits = reg.creditLabel;
   const seasons = [
     "normal",
     reg.appealSeason ? "recurso" : null,
     reg.specialSeason ? "especial" : null,
   ].filter(Boolean);
   const progression = yearProgression(reg, 0).required;
+  const extras = [
+    reg.showEctsGrade ? "nota ECTS (A–F)" : null,
+    reg.showGpa ? "equivalente GPA 0–4" : null,
+  ].filter(Boolean);
   return [
-    `Aprovação com ${reg.passingGrade} valores; nota final ${reg.finalGradeDecimals ? "com uma casa decimal" : "inteira"}.`,
+    `Aprovação com ${g(reg.passingGrade)}; nota final ${reg.finalGradeDecimals ? "com uma casa decimal" : "inteira"}.`,
     `Frequência ${reg.continuousWeight}% e exame ${100 - reg.continuousWeight}%.`,
     reg.exemptionGrade != null
-      ? `Dispensa de exame com ${reg.exemptionGrade} valores de frequência.`
+      ? `Dispensa de exame com ${g(reg.exemptionGrade)} de frequência.`
       : "Sem dispensa de exame.",
-    `Admissão a exame com ${reg.examAdmissionGrade} valores; excluído com mais de ${reg.maxAbsencePercentage}% de faltas.`,
+    `${reg.examAdmissionGrade > 0 ? `Admissão a exame com ${g(reg.examAdmissionGrade)}; e` : "E"}xcluído com mais de ${reg.maxAbsencePercentage}% de faltas.`,
     reg.minimumExamGrade != null
-      ? `Nota mínima no exame: ${reg.minimumExamGrade} valores.`
+      ? `Nota mínima no exame: ${g(reg.minimumExamGrade)}.`
       : "Sem nota mínima no exame.",
-    `Épocas: ${seasons.join(", ")}${reg.appealSeason && reg.appealMaxUnits ? ` (até ${reg.appealMaxUnits} cadeiras em recurso)` : ""}.`,
-    `${reg.creditsPerYear} ECTS por ano, até ${reg.maxCreditsPerYear} com cadeiras em atraso; transita com ${progression} ECTS.`,
-    reg.enforcePrerequisites ? "Precedências obrigatórias." : "Precedências só indicativas.",
+    `Épocas: ${seasons.join(", ")}${reg.appealSeason && reg.appealMaxUnits ? ` (até ${reg.appealMaxUnits} cadeiras em recurso)` : ""}${reg.gradeImprovement ? "; melhoria de nota" : ""}.`,
+    `${reg.creditsPerYear} ${credits} por ano, até ${reg.maxCreditsPerYear} com cadeiras em atraso; ${progression ? `transita com ${progression} ${credits}` : "sem retenção por ano"}.`,
+    [
+      reg.enforcePrerequisites ? "Precedências obrigatórias" : "Precedências só indicativas",
+      reg.maxAttemptsPerUnit ? `até ${reg.maxAttemptsPerUnit} inscrições por cadeira` : null,
+    ]
+      .filter(Boolean)
+      .join("; ") + ".",
+    reg.finalMentions === "qualitativa"
+      ? "Classificação final: Suficiente, Bom, Muito Bom, Excelente."
+      : reg.finalMentions === "latinas"
+        ? "Classificação final com honras latinas pelo GPA."
+        : "Classificação final só com a média.",
+    ...(extras.length ? [`Mostra ${extras.join(" e ")}.`] : []),
   ];
 }

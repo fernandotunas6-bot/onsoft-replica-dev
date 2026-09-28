@@ -9,6 +9,8 @@
  */
 import {
   canEnrollCredits,
+  finalMention,
+  gpaPoints,
   unitOutcome,
   yearProgression,
   type HigherEdRegulation,
@@ -169,10 +171,20 @@ export function checkUnitEnrollment(
       const names = situation.missing.map((m) => byId.get(m)?.subjectName ?? "—").join(", ");
       return { ok: false, reason: `${unit.subjectName} exige aprovação em: ${names}.` };
     }
+    if (
+      reg.maxAttemptsPerUnit &&
+      situation?.kind === "disponivel" &&
+      situation.attempt > reg.maxAttemptsPerUnit
+    ) {
+      return {
+        ok: false,
+        reason: `${unit.subjectName}: atingido o limite de ${reg.maxAttemptsPerUnit} inscrições.`,
+      };
+    }
     if (!canEnrollCredits(reg, credits, unit.credits)) {
       return {
         ok: false,
-        reason: `Passa o limite de ${reg.maxCreditsPerYear} ECTS por ano com ${unit.subjectName}.`,
+        reason: `Passa o limite de ${reg.maxCreditsPerYear} ${reg.creditLabel} por ano com ${unit.subjectName}.`,
       };
     }
     credits += unit.credits;
@@ -213,11 +225,33 @@ export function studentProgress(
   const yearEarned = enrollments
     .filter((e) => e.academicYearId === academicYearId && isPassed(e.status))
     .reduce((total, e) => total + e.creditsEarned, 0);
+  // Média ponderada pelos créditos, com a melhor nota de cada cadeira aprovada.
+  const best = new Map<string, { grade: number; credits: number }>();
+  for (const e of enrollments) {
+    if (!isPassed(e.status) || e.finalGrade == null) continue;
+    const current = best.get(e.programSubjectId);
+    if (!current || e.finalGrade > current.grade) {
+      best.set(e.programSubjectId, { grade: e.finalGrade, credits: e.creditsEarned || e.credits });
+    }
+  }
+  const graded = [...best.values()];
+  const weight = graded.reduce((total, item) => total + item.credits, 0);
+  const average = weight
+    ? Math.round((graded.reduce((t, i) => t + i.grade * i.credits, 0) / weight) * 100) / 100
+    : null;
+  const gpa = weight
+    ? Math.round(
+        (graded.reduce((t, i) => t + gpaPoints(reg, i.grade) * i.credits, 0) / weight) * 100,
+      ) / 100
+    : null;
   return {
     earned,
     planCredits,
     enrolledThisYear: enrolledCredits(enrollments, academicYearId),
     progression: yearProgression(reg, yearEarned),
+    average,
+    gpa,
+    mention: finalMention(reg, average, gpa),
   };
 }
 

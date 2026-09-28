@@ -8,8 +8,12 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import {
   DEFAULT_HIGHER_ED_REGULATION,
+  REGULATION_PRESETS,
+  applyRegulationPreset,
   describeHigherEdRegulation,
+  fromDisplayGrade,
   higherEdRegulationSchema,
+  toDisplayGrade,
   type HigherEdRegulation,
 } from "@/features/academic/higher-ed-regulation";
 import { getHigherEdRegulation, updateHigherEdRegulation } from "@/features/school/server";
@@ -21,61 +25,88 @@ type NumberKey = {
 type BooleanKey = {
   [K in keyof HigherEdRegulation]: HigherEdRegulation[K] extends boolean ? K : never;
 }[keyof HigherEdRegulation];
+type FieldKey = Exclude<NumberKey, "finalGradeDecimals" | "displayScale">;
 
-/** Campos numéricos; `optional` aceita vazio (= sem esta regra). */
-const NUMBER_FIELDS: Array<{
-  key: Exclude<NumberKey, "finalGradeDecimals">;
-  label: string;
-  hint: string;
-  optional?: boolean;
-  step?: number;
+/** Notas: mostram-se e lançam-se na escala escolhida; guardam-se em 0–20. */
+const GRADE_KEYS = new Set<FieldKey>([
+  "passingGrade",
+  "exemptionGrade",
+  "examAdmissionGrade",
+  "minimumExamGrade",
+]);
+
+/** Campos numéricos por grupo; `optional` aceita vazio (= sem esta regra). */
+const GROUPS: Array<{
+  title: string;
+  fields: Array<{ key: FieldKey; label: string; hint: string; optional?: boolean }>;
 }> = [
-  { key: "passingGrade", label: "Aprovação", hint: "valores", step: 0.5 },
-  { key: "continuousWeight", label: "Peso da frequência", hint: "% (o exame fica com o resto)" },
   {
-    key: "exemptionGrade",
-    label: "Dispensa de exame",
-    hint: "valores · vazio: sem dispensa",
-    optional: true,
-    step: 0.5,
+    title: "Avaliação",
+    fields: [
+      { key: "passingGrade", label: "Aprovação", hint: "{nota}" },
+      {
+        key: "continuousWeight",
+        label: "Peso da frequência",
+        hint: "% · o exame fica com o resto",
+      },
+      {
+        key: "exemptionGrade",
+        label: "Dispensa de exame",
+        hint: "{nota} · vazio: sem dispensa",
+        optional: true,
+      },
+      { key: "examAdmissionGrade", label: "Admissão a exame", hint: "{nota} · 0: todos vão" },
+      {
+        key: "minimumExamGrade",
+        label: "Nota mínima no exame",
+        hint: "{nota} · vazio: sem mínimo",
+        optional: true,
+      },
+      { key: "maxAbsencePercentage", label: "Faltas máximas", hint: "% das aulas" },
+    ],
   },
-  { key: "examAdmissionGrade", label: "Admissão a exame", hint: "valores", step: 0.5 },
-  { key: "maxAbsencePercentage", label: "Faltas máximas", hint: "% das aulas" },
   {
-    key: "minimumExamGrade",
-    label: "Nota mínima no exame",
-    hint: "valores · vazio: sem mínimo",
-    optional: true,
-    step: 0.5,
-  },
-  { key: "creditsPerYear", label: "Créditos por ano", hint: "ECTS" },
-  { key: "maxCreditsPerYear", label: "Máximo por ano", hint: "ECTS, com cadeiras em atraso" },
-  { key: "progressionPercentage", label: "Para transitar", hint: "% dos créditos do ano" },
-  {
-    key: "appealMaxUnits",
-    label: "Cadeiras em recurso",
-    hint: "por semestre · vazio: sem limite",
-    optional: true,
+    title: "Créditos e percurso",
+    fields: [
+      { key: "creditsPerYear", label: "Créditos por ano", hint: "{creditos}" },
+      { key: "maxCreditsPerYear", label: "Máximo por ano", hint: "com cadeiras em atraso" },
+      { key: "progressionPercentage", label: "Para transitar", hint: "% · 0: sem retenção" },
+      {
+        key: "maxAttemptsPerUnit",
+        label: "Inscrições por cadeira",
+        hint: "vazio: sem limite",
+        optional: true,
+      },
+      {
+        key: "appealMaxUnits",
+        label: "Cadeiras em recurso",
+        hint: "por semestre · vazio: sem limite",
+        optional: true,
+      },
+    ],
   },
 ];
+const NUMBER_FIELDS = GROUPS.flatMap((group) => group.fields);
 
 const SWITCHES: Array<{ key: BooleanKey; label: string }> = [
   { key: "appealSeason", label: "Época de recurso" },
   { key: "specialSeason", label: "Época especial" },
-  { key: "gradeImprovement", label: "Exame de melhoria de nota" },
+  { key: "gradeImprovement", label: "Melhoria de nota" },
   { key: "enforcePrerequisites", label: "Precedências obrigatórias" },
+  { key: "showEctsGrade", label: "Mostrar nota ECTS (A–F)" },
+  { key: "showGpa", label: "Mostrar equivalente GPA 0–4" },
 ];
 
-type Draft = Record<Exclude<NumberKey, "finalGradeDecimals">, string> &
-  Pick<HigherEdRegulation, BooleanKey | "finalGradeDecimals">;
+type Draft = Record<FieldKey, string> & Omit<HigherEdRegulation, FieldKey>;
 
 function toDraft(reg: HigherEdRegulation): Draft {
-  const draft = { ...reg } as unknown as Draft;
+  const draft = { ...reg } as unknown as Record<string, unknown>;
   for (const field of NUMBER_FIELDS) {
     const value = reg[field.key];
-    (draft as Record<string, unknown>)[field.key] = value == null ? "" : String(value);
+    draft[field.key] =
+      value == null ? "" : String(GRADE_KEYS.has(field.key) ? toDisplayGrade(reg, value) : value);
   }
-  return draft;
+  return draft as Draft;
 }
 
 function fromDraft(
@@ -89,7 +120,13 @@ function fromDraft(
     if (value != null && !Number.isFinite(value)) {
       return { ok: false, message: `${field.label}: use só números.` };
     }
-    raw[field.key] = value;
+    if (value != null && GRADE_KEYS.has(field.key) && value > draft.displayScale) {
+      return { ok: false, message: `${field.label}: a escala vai até ${draft.displayScale}.` };
+    }
+    raw[field.key] =
+      value != null && GRADE_KEYS.has(field.key)
+        ? fromDisplayGrade(draft as unknown as HigherEdRegulation, value)
+        : value;
   }
   const parsed = higherEdRegulationSchema.safeParse(raw);
   if (parsed.success) return { ok: true, data: parsed.data };
@@ -105,9 +142,54 @@ function fromDraft(
   };
 }
 
+/** O regulamento difere do modelo de onde partiu? */
+function adjustedFromPreset(reg: HigherEdRegulation) {
+  if (reg.presetId === "personalizado") return false;
+  const base = applyRegulationPreset(reg.presetId);
+  return (Object.keys(base) as Array<keyof HigherEdRegulation>).some(
+    (key) => base[key] !== reg[key],
+  );
+}
+
+function Chips<T extends string | number>({
+  label,
+  value,
+  options,
+  disabled,
+  onChange,
+}: {
+  label: string;
+  value: T;
+  options: Array<{ id: T; label: string }>;
+  disabled: boolean;
+  onChange: (id: T) => void;
+}) {
+  return (
+    <div className="flex flex-wrap items-center gap-2 text-sm">
+      <span className="w-full text-xs text-muted-foreground sm:w-auto">{label}</span>
+      {options.map((option) => (
+        <button
+          key={String(option.id)}
+          type="button"
+          disabled={disabled}
+          onClick={() => onChange(option.id)}
+          className={cn(
+            "rounded-full border px-3 py-1 transition-colors",
+            value === option.id
+              ? "border-primary bg-primary/5"
+              : "text-muted-foreground hover:bg-muted/60",
+          )}
+        >
+          {option.label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
 /**
- * Regulamento académico da instituição de ensino superior: as regras que o
- * motor usa para aprovar, dispensar, excluir e fazer transitar por créditos.
+ * Regulamento académico da instituição de ensino superior: parte de um modelo
+ * nacional ou internacional e ajusta-se campo a campo.
  */
 export function HigherEdRegulationPanel({ canEdit }: { canEdit: boolean }) {
   const queryClient = useQueryClient();
@@ -128,6 +210,15 @@ export function HigherEdRegulationPanel({ canEdit }: { canEdit: boolean }) {
   const parsed = fromDraft(draft);
   const error = parsed.ok ? null : parsed.message;
   const summary = parsed.ok ? describeHigherEdRegulation(parsed.data) : [];
+  const adjusted = parsed.ok && adjustedFromPreset(parsed.data);
+  const set = <K extends keyof Draft>(key: K, value: Draft[K]) =>
+    setDraft((current) => ({ ...current, [key]: value }));
+
+  const changeScale = (scale: HigherEdRegulation["displayScale"]) => {
+    // As notas mantêm o valor; só muda a forma de as escrever.
+    if (parsed.ok) setDraft(toDraft({ ...parsed.data, displayScale: scale }));
+    else set("displayScale", scale);
+  };
 
   const save = async () => {
     if (!parsed.ok) return;
@@ -143,28 +234,116 @@ export function HigherEdRegulationPanel({ canEdit }: { canEdit: boolean }) {
     }
   };
 
+  const hint = (text: string) =>
+    text
+      .replace("{nota}", draft.displayScale === 100 ? "%" : `0–${draft.displayScale}`)
+      .replace("{creditos}", draft.creditLabel);
+
   return (
-    <div className="space-y-4">
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
-        {NUMBER_FIELDS.map((field) => (
-          <div key={field.key} className="space-y-1.5">
-            <Label htmlFor={`reg-${field.key}`} className="text-xs text-muted-foreground">
-              {field.label}
-            </Label>
-            <Input
-              id={`reg-${field.key}`}
-              inputMode="decimal"
-              value={draft[field.key]}
-              disabled={!canEdit}
-              placeholder={field.optional ? "—" : undefined}
-              onChange={(event) =>
-                setDraft((current) => ({ ...current, [field.key]: event.target.value }))
-              }
-            />
-            <p className="text-[11px] text-muted-foreground">{field.hint}</p>
-          </div>
-        ))}
+    <div className="space-y-5">
+      <div className="space-y-2">
+        <p className="text-xs text-muted-foreground">Modelo de referência</p>
+        <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+          {(Object.keys(REGULATION_PRESETS) as Array<keyof typeof REGULATION_PRESETS>).map((id) => {
+            const preset = REGULATION_PRESETS[id];
+            const active = draft.presetId === id;
+            return (
+              <button
+                key={id}
+                type="button"
+                disabled={!canEdit}
+                onClick={() => setDraft(toDraft(applyRegulationPreset(id)))}
+                className={cn(
+                  "rounded-lg border px-3 py-2.5 text-left transition-colors",
+                  active ? "border-primary bg-primary/5" : "hover:bg-muted/60",
+                )}
+              >
+                <span className="block text-sm">
+                  {preset.label}
+                  {active && adjusted ? (
+                    <span className="text-xs text-muted-foreground"> · ajustado</span>
+                  ) : null}
+                </span>
+                <span className="block text-xs text-muted-foreground">{preset.detail}</span>
+              </button>
+            );
+          })}
+        </div>
+        <p className="text-xs text-muted-foreground">
+          Os modelos trazem os valores mais comuns em cada sistema. Não substituem o regulamento
+          aprovado da instituição: confirme e ajuste abaixo.
+        </p>
       </div>
+
+      <div className="space-y-2">
+        <Chips
+          label="Escala de notas"
+          value={draft.displayScale}
+          disabled={!canEdit}
+          onChange={changeScale}
+          options={[
+            { id: 20, label: "0–20 valores" },
+            { id: 10, label: "0–10 pontos" },
+            { id: 100, label: "0–100%" },
+          ]}
+        />
+        <Chips
+          label="Unidade de crédito"
+          value={draft.creditLabel}
+          disabled={!canEdit}
+          onChange={(id) => set("creditLabel", id)}
+          options={[
+            { id: "créditos", label: "Créditos" },
+            { id: "ECTS", label: "ECTS" },
+            { id: "UC", label: "Unidades de crédito (UC)" },
+          ]}
+        />
+        <Chips
+          label="Classificação final"
+          value={draft.finalMentions}
+          disabled={!canEdit}
+          onChange={(id) => set("finalMentions", id)}
+          options={[
+            { id: "qualitativa", label: "Suficiente a Excelente" },
+            { id: "latinas", label: "Honras latinas (GPA)" },
+            { id: "nenhuma", label: "Só a média" },
+          ]}
+        />
+        <Chips
+          label="Nota final"
+          value={draft.finalGradeDecimals}
+          disabled={!canEdit}
+          onChange={(id) => set("finalGradeDecimals", id)}
+          options={[
+            { id: 0, label: "Inteira" },
+            { id: 1, label: "Uma casa decimal" },
+          ]}
+        />
+      </div>
+
+      {GROUPS.map((group) => (
+        <div key={group.title} className="space-y-2">
+          <p className="text-xs text-muted-foreground">{group.title}</p>
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+            {group.fields.map((field) => (
+              <div key={field.key} className="space-y-1.5">
+                <Label htmlFor={`reg-${field.key}`} className="text-xs">
+                  {field.label}
+                </Label>
+                <Input
+                  id={`reg-${field.key}`}
+                  inputMode="decimal"
+                  value={draft[field.key]}
+                  disabled={!canEdit}
+                  placeholder={field.optional ? "—" : undefined}
+                  onChange={(event) => set(field.key, event.target.value)}
+                />
+                <p className="text-[11px] text-muted-foreground">{hint(field.hint)}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      ))}
 
       <div className="grid gap-2 sm:grid-cols-2">
         {SWITCHES.map((item) => (
@@ -175,32 +354,10 @@ export function HigherEdRegulationPanel({ canEdit }: { canEdit: boolean }) {
             <Switch
               checked={draft[item.key]}
               disabled={!canEdit}
-              onCheckedChange={(checked) =>
-                setDraft((current) => ({ ...current, [item.key]: checked }))
-              }
+              onCheckedChange={(checked) => set(item.key, checked)}
             />
             <span className="text-sm">{item.label}</span>
           </label>
-        ))}
-      </div>
-
-      <div className="flex flex-wrap items-center gap-2 text-sm">
-        <span className="text-muted-foreground">Nota final</span>
-        {([0, 1] as const).map((decimals) => (
-          <button
-            key={decimals}
-            type="button"
-            disabled={!canEdit}
-            onClick={() => setDraft((current) => ({ ...current, finalGradeDecimals: decimals }))}
-            className={cn(
-              "rounded-full border px-3 py-1 transition-colors",
-              draft.finalGradeDecimals === decimals
-                ? "border-primary bg-primary/5"
-                : "text-muted-foreground hover:bg-muted/60",
-            )}
-          >
-            {decimals ? "Uma casa decimal" : "Inteira"}
-          </button>
         ))}
       </div>
 
@@ -218,13 +375,19 @@ export function HigherEdRegulationPanel({ canEdit }: { canEdit: boolean }) {
 
       {canEdit ? (
         <div className="flex justify-end gap-2">
-          <Button
-            type="button"
-            variant="ghost"
-            onClick={() => setDraft(toDraft(DEFAULT_HIGHER_ED_REGULATION))}
-          >
-            Repor sugestão
-          </Button>
+          {parsed.ok && parsed.data.presetId !== "personalizado" && adjusted ? (
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={() =>
+                parsed.ok &&
+                parsed.data.presetId !== "personalizado" &&
+                setDraft(toDraft(applyRegulationPreset(parsed.data.presetId)))
+              }
+            >
+              Repor o modelo
+            </Button>
+          ) : null}
           <Button type="button" onClick={save} disabled={saving || !parsed.ok}>
             {saving ? "A guardar…" : "Guardar regulamento"}
           </Button>

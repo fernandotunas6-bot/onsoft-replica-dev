@@ -14,6 +14,22 @@ import {
   type StudentCourseUnits,
 } from "./course-units-server";
 import { COURSE_UNIT_STATUS_LABELS } from "./course-units";
+import {
+  ectsGrade,
+  formatGrade,
+  fromDisplayGrade,
+  gpaPoints,
+  type HigherEdRegulation,
+} from "./higher-ed-regulation";
+
+/** Nota na escala da instituição, com nota ECTS ou GPA quando o regulamento pede. */
+function gradeText(reg: HigherEdRegulation, grade20: number) {
+  const extras = [
+    reg.showEctsGrade ? `ECTS ${ectsGrade(reg, grade20)}` : null,
+    reg.showGpa ? `GPA ${gpaPoints(reg, grade20).toFixed(1)}` : null,
+  ].filter(Boolean);
+  return [formatGrade(reg, grade20), ...extras].join(" · ");
+}
 import { cn } from "@/lib/utils";
 
 const errorText = (error: unknown) =>
@@ -79,6 +95,8 @@ export function CourseUnitsSection({
     .filter((u) => selected.includes(u.programSubjectId))
     .reduce((total, u) => total + u.credits, 0);
   const progress = data.progress;
+  const reg = data.regulation;
+  const cr = reg.creditLabel;
 
   return (
     <section className="rounded-xl border border-border bg-card p-6 shadow-soft lg:col-span-2">
@@ -112,18 +130,31 @@ export function CourseUnitsSection({
         <div className="mt-4 grid gap-3 sm:grid-cols-3">
           <Stat
             label="Créditos obtidos"
-            value={`${progress.earned} de ${progress.planCredits} ECTS`}
+            value={`${progress.earned} de ${progress.planCredits} ${cr}`}
+          />
+          <Stat
+            label="Média do curso"
+            value={
+              progress.average == null
+                ? "Sem cadeiras aprovadas"
+                : [
+                    reg.finalMentions === "latinas" && progress.gpa != null
+                      ? `GPA ${progress.gpa.toFixed(2)}`
+                      : formatGrade(reg, progress.average),
+                    progress.mention,
+                  ]
+                    .filter(Boolean)
+                    .join(" · ")
+            }
           />
           <Stat
             label={`${data.curricularYear}.º ano · ${data.academicYear?.name ?? ""}`}
-            value={`${progress.enrolledThisYear} ECTS inscritos (máx. ${data.regulation.maxCreditsPerYear})`}
-          />
-          <Stat
-            label="Para transitar"
             value={
-              progress.progression.advances
-                ? `Transita (${progress.progression.earned} ECTS)`
-                : `${progress.progression.earned} de ${progress.progression.required} ECTS`
+              reg.progressionPercentage === 0
+                ? `${progress.enrolledThisYear} ${cr} inscritos (máx. ${reg.maxCreditsPerYear})`
+                : progress.progression.advances
+                  ? `${progress.enrolledThisYear} ${cr} inscritos · transita`
+                  : `${progress.enrolledThisYear} ${cr} inscritos · transita com ${progress.progression.required}`
             }
           />
         </div>
@@ -145,6 +176,7 @@ export function CourseUnitsSection({
                     key={unit.programSubjectId}
                     unit={unit}
                     units={data.units}
+                    reg={reg}
                     canEdit={canEdit && Boolean(data.academicYear)}
                     selected={selected.includes(unit.programSubjectId)}
                     onToggle={() =>
@@ -169,7 +201,7 @@ export function CourseUnitsSection({
       {canEdit && selected.length ? (
         <div className="mt-4 flex items-center justify-between gap-3 border-t pt-4">
           <p className="text-sm text-muted-foreground">
-            {selected.length} cadeira(s) · {selectedCredits} ECTS
+            {selected.length} cadeira(s) · {selectedCredits} {cr}
           </p>
           <Button
             type="button"
@@ -196,6 +228,7 @@ function Stat({ label, value }: { label: string; value: string }) {
 function UnitLine({
   unit,
   units,
+  reg,
   canEdit,
   selected,
   onToggle,
@@ -207,6 +240,7 @@ function UnitLine({
 }: {
   unit: CourseUnitRow;
   units: CourseUnitRow[];
+  reg: HigherEdRegulation;
   canEdit: boolean;
   selected: boolean;
   onToggle: () => void;
@@ -221,12 +255,12 @@ function UnitLine({
 
   let detail: string;
   if (situation.kind === "aprovada") {
-    detail = situation.grade != null ? `Aprovada com ${situation.grade}` : "Aprovada";
+    detail = situation.grade != null ? `Aprovada · ${gradeText(reg, situation.grade)}` : "Aprovada";
   } else if (situation.kind === "bloqueada") {
     detail = `Exige: ${situation.missing.map(nameOf).join(", ")}`;
   } else if (situation.kind === "inscrita" && enrollment) {
     detail = `${COURSE_UNIT_STATUS_LABELS[enrollment.status]}${
-      enrollment.finalGrade != null ? ` · ${enrollment.finalGrade} valores` : ""
+      enrollment.finalGrade != null ? ` · ${gradeText(reg, enrollment.finalGrade)}` : ""
     }${enrollment.attempt > 1 ? ` · ${enrollment.attempt}.ª vez` : ""}`;
   } else if (situation.kind === "disponivel") {
     detail = [
@@ -267,7 +301,9 @@ function UnitLine({
           <span className="block text-sm">{unit.subjectName}</span>
           <span className="block text-xs text-muted-foreground">{detail}</span>
         </span>
-        <span className="shrink-0 text-xs text-muted-foreground">{unit.credits} ECTS</span>
+        <span className="shrink-0 text-xs text-muted-foreground">
+          {unit.credits} {reg.creditLabel}
+        </span>
         {canEdit && enrollment ? (
           <span className="ml-auto flex shrink-0 gap-1">
             <Button type="button" size="sm" variant="ghost" onClick={onGrade}>
@@ -282,7 +318,12 @@ function UnitLine({
         ) : null}
       </div>
       {grading && enrollment ? (
-        <GradeForm enrollmentId={enrollment.id} onClose={onCloseGrade} onSaved={onSaved} />
+        <GradeForm
+          enrollmentId={enrollment.id}
+          reg={reg}
+          onClose={onCloseGrade}
+          onSaved={onSaved}
+        />
       ) : null}
     </li>
   );
@@ -298,10 +339,12 @@ const GRADE_FIELDS = [
 
 function GradeForm({
   enrollmentId,
+  reg,
   onClose,
   onSaved,
 }: {
   enrollmentId: string;
+  reg: HigherEdRegulation;
   onClose: () => void;
   onSaved: () => Promise<unknown>;
 }) {
@@ -311,16 +354,21 @@ function GradeForm({
     const clean = (text ?? "").trim().replace(",", ".");
     return clean === "" ? null : Number(clean);
   };
+  // Lança-se na escala da instituição; o servidor recebe 0–20.
+  const parseGrade = (text: string | undefined) => {
+    const value = parse(text);
+    return value == null ? null : fromDisplayGrade(reg, value);
+  };
   const mutation = useMutation({
     mutationFn: () =>
       record({
         data: {
           enrollmentId,
-          continuous: parse(values["continuous"]),
+          continuous: parseGrade(values["continuous"]),
           absencePercentage: parse(values["absencePercentage"]),
-          normalExam: parse(values["normalExam"]),
-          appealExam: parse(values["appealExam"]),
-          specialExam: parse(values["specialExam"]),
+          normalExam: parseGrade(values["normalExam"]),
+          appealExam: parseGrade(values["appealExam"]),
+          specialExam: parseGrade(values["specialExam"]),
         },
       }),
     onSuccess: async (result) => {
@@ -328,7 +376,7 @@ function GradeForm({
       onClose();
       toast.success(
         `Resultado: ${COURSE_UNIT_STATUS_LABELS[result.status]}${
-          result.final_grade != null ? ` (${result.final_grade})` : ""
+          result.final_grade != null ? ` (${gradeText(reg, result.final_grade)})` : ""
         }.`,
       );
     },
@@ -337,7 +385,7 @@ function GradeForm({
   const invalid = GRADE_FIELDS.some((field) => {
     const value = parse(values[field.key]);
     if (value == null) return false;
-    const max = field.key === "absencePercentage" ? 100 : 20;
+    const max = field.key === "absencePercentage" ? 100 : reg.displayScale;
     return !Number.isFinite(value) || value < 0 || value > max;
   });
 
@@ -346,7 +394,12 @@ function GradeForm({
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-5">
         {GRADE_FIELDS.map((field) => (
           <label key={field.key} className="space-y-1">
-            <span className="text-xs text-muted-foreground">{field.label}</span>
+            <span className="text-xs text-muted-foreground">
+              {field.label}
+              {field.key === "absencePercentage"
+                ? ""
+                : ` (0–${reg.displayScale === 100 ? "100%" : reg.displayScale})`}
+            </span>
             <Input
               inputMode="decimal"
               value={values[field.key] ?? ""}
