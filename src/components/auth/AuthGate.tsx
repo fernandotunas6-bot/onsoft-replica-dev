@@ -509,7 +509,9 @@ export function AuthGate({ children }: { children: ReactNode }) {
           <AuthBackgroundVideo />
           <div
             aria-hidden
-            className="pointer-events-none absolute inset-0 bg-gradient-to-t from-primary/90 via-primary/60 to-primary/40"
+            // Só escurece em baixo, onde está o texto: o vídeo (sem logótipo por
+            // cima) fica visível no resto do painel.
+            className="pointer-events-none absolute inset-0 bg-gradient-to-t from-primary/85 via-primary/30 to-transparent"
           />
           <div />
           <AuthHeroSlides />
