@@ -8,9 +8,13 @@ import { toast } from "sonner";
 
 import {
   Bell,
+  CalendarDays,
   ChevronDown,
   CircleHelp,
   FileText,
+  GraduationCap,
+  Home,
+  LayoutGrid,
   Maximize2,
   Menu,
   Moon,
@@ -259,7 +263,7 @@ function AuthenticatedAppShell({ children }: { children: ReactNode }) {
         </Sheet>
 
         <div className="flex min-w-0 flex-1 flex-col lg:my-2 lg:mx-2 lg:overflow-clip lg:rounded-2xl lg:border lg:border-border/60 lg:shadow-sm">
-          <header className="sticky top-0 z-30 flex h-14 items-center gap-2.5 border-b border-border/70 bg-background/95 backdrop-blur-xs px-3.5 md:px-5">
+          <header className="siga-mobile-header sticky top-0 z-30 flex h-14 items-center gap-2.5 border-b border-border/70 bg-background/95 backdrop-blur-xs px-3.5 md:px-5">
             <Button
               variant="ghost"
               size="icon"
@@ -374,7 +378,7 @@ function AuthenticatedAppShell({ children }: { children: ReactNode }) {
               <Button
                 variant="ghost"
                 size="icon"
-                className="header-icon-btn"
+                className="header-icon-btn hidden sm:inline-flex"
                 aria-label={favorited ? "Remover dos favoritos" : "Adicionar aos favoritos"}
                 title={favorited ? "Remover dos favoritos" : "Favoritar página"}
                 onClick={() => {
@@ -581,7 +585,7 @@ function AuthenticatedAppShell({ children }: { children: ReactNode }) {
           <main
             id="conteudo-principal"
             tabIndex={-1}
-            className="mx-auto w-full max-w-[1400px] flex-1 px-3.5 py-4 md:px-5 md:py-5 lg:px-6 lg:py-5 [content-visibility:auto]"
+            className="siga-mobile-content mx-auto w-full max-w-[1400px] flex-1 px-3.5 py-4 md:px-5 md:py-5 lg:px-6 lg:py-5 [content-visibility:auto]"
           >
             {studentCapacity.nearLimit || studentCapacity.atLimit ? (
               <div
@@ -625,7 +629,36 @@ function AuthenticatedAppShell({ children }: { children: ReactNode }) {
             {children}
           </main>
 
-          <footer className="flex flex-wrap items-center justify-between gap-3 border-t border-border bg-card/40 px-3.5 py-3 text-xs text-muted-foreground backdrop-blur-xs md:px-5">
+          <nav className="siga-mobile-tabs lg:hidden" aria-label="Navegação principal">
+            <Link to="/" className={cn("siga-mobile-tab", pathname === "/" && "is-active")} aria-current={pathname === "/" ? "page" : undefined}>
+              <Home aria-hidden="true" className="size-5" />
+              <span>Início</span>
+            </Link>
+            {canAccessPath("/alunos", currentUser.role, currentUser.grants) && (!activePlan || planIncludesPath("/alunos", activePlan)) ? (
+              <Link to="/alunos" className={cn("siga-mobile-tab", pathname.startsWith("/alunos") && "is-active")} aria-current={pathname.startsWith("/alunos") ? "page" : undefined}>
+                <GraduationCap aria-hidden="true" className="size-5" />
+                <span>Alunos</span>
+              </Link>
+            ) : null}
+            {canAccessPath("/calendario", currentUser.role, currentUser.grants) && (!activePlan || planIncludesPath("/calendario", activePlan)) ? (
+              <Link to="/calendario" className={cn("siga-mobile-tab", pathname.startsWith("/calendario") && "is-active")} aria-current={pathname.startsWith("/calendario") ? "page" : undefined}>
+                <CalendarDays aria-hidden="true" className="size-5" />
+                <span>Agenda</span>
+              </Link>
+            ) : null}
+            {canAccessPath("/financeiro", currentUser.role, currentUser.grants) && (!activePlan || planIncludesPath("/financeiro", activePlan)) ? (
+              <Link to="/financeiro" className={cn("siga-mobile-tab", pathname.startsWith("/financeiro") && "is-active")} aria-current={pathname.startsWith("/financeiro") ? "page" : undefined}>
+                <Wallet aria-hidden="true" className="size-5" />
+                <span>Finanças</span>
+              </Link>
+            ) : null}
+            <button type="button" className={cn("siga-mobile-tab", open && "is-active")} onClick={() => setOpen(true)} aria-label="Abrir todos os módulos" aria-expanded={open}>
+              <LayoutGrid aria-hidden="true" className="size-5" />
+              <span>Mais</span>
+            </button>
+          </nav>
+
+          <footer className="hidden flex-wrap items-center justify-between gap-3 border-t border-border bg-card/40 px-3.5 py-3 text-xs text-muted-foreground backdrop-blur-xs md:flex md:px-5">
             <div className="flex items-center gap-4">
               <span className="inline-flex items-center gap-2 font-semibold text-foreground">
                 <span className="inline-flex size-6 items-center justify-center rounded-lg bg-primary-soft text-[11px] font-extrabold text-primary">
