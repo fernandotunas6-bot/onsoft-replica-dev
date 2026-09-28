@@ -24,6 +24,7 @@ import { Route as FaturasRouteImport } from './routes/faturas'
 import { Route as FinanceiroRouteImport } from './routes/financeiro'
 import { Route as ImportarRouteImport } from './routes/importar'
 import { Route as McpRouteImport } from './routes/mcp'
+import { Route as MinhasEscolasRouteImport } from './routes/minhas-escolas'
 import { Route as PedagogicaRouteImport } from './routes/pedagogica'
 import { Route as PerfilRouteImport } from './routes/perfil'
 import { Route as PlanosAulaRouteImport } from './routes/planos-aula'
@@ -174,6 +175,11 @@ const ImportarRoute = ImportarRouteImport.update({
 const McpRoute = McpRouteImport.update({
   id: '/mcp',
   path: '/mcp',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MinhasEscolasRoute = MinhasEscolasRouteImport.update({
+  id: '/minhas-escolas',
+  path: '/minhas-escolas',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PedagogicaRoute = PedagogicaRouteImport.update({
@@ -588,6 +594,7 @@ export interface FileRoutesByFullPath {
   '/financeiro': typeof FinanceiroRouteWithChildren
   '/importar': typeof ImportarRoute
   '/mcp': typeof McpRoute
+  '/minhas-escolas': typeof MinhasEscolasRoute
   '/pedagogica': typeof PedagogicaRoute
   '/perfil': typeof PerfilRoute
   '/planos-aula': typeof PlanosAulaRoute
@@ -681,6 +688,7 @@ export interface FileRoutesByTo {
   '/financeiro': typeof FinanceiroRouteWithChildren
   '/importar': typeof ImportarRoute
   '/mcp': typeof McpRoute
+  '/minhas-escolas': typeof MinhasEscolasRoute
   '/pedagogica': typeof PedagogicaRoute
   '/perfil': typeof PerfilRoute
   '/planos-aula': typeof PlanosAulaRoute
@@ -775,6 +783,7 @@ export interface FileRoutesById {
   '/financeiro': typeof FinanceiroRouteWithChildren
   '/importar': typeof ImportarRoute
   '/mcp': typeof McpRoute
+  '/minhas-escolas': typeof MinhasEscolasRoute
   '/pedagogica': typeof PedagogicaRoute
   '/perfil': typeof PerfilRoute
   '/planos-aula': typeof PlanosAulaRoute
@@ -870,6 +879,7 @@ export interface FileRouteTypes {
     | '/financeiro'
     | '/importar'
     | '/mcp'
+    | '/minhas-escolas'
     | '/pedagogica'
     | '/perfil'
     | '/planos-aula'
@@ -963,6 +973,7 @@ export interface FileRouteTypes {
     | '/financeiro'
     | '/importar'
     | '/mcp'
+    | '/minhas-escolas'
     | '/pedagogica'
     | '/perfil'
     | '/planos-aula'
@@ -1056,6 +1067,7 @@ export interface FileRouteTypes {
     | '/financeiro'
     | '/importar'
     | '/mcp'
+    | '/minhas-escolas'
     | '/pedagogica'
     | '/perfil'
     | '/planos-aula'
@@ -1150,6 +1162,7 @@ export interface RootRouteChildren {
   FinanceiroRoute: typeof FinanceiroRouteWithChildren
   ImportarRoute: typeof ImportarRoute
   McpRoute: typeof McpRoute
+  MinhasEscolasRoute: typeof MinhasEscolasRoute
   PedagogicaRoute: typeof PedagogicaRoute
   PerfilRoute: typeof PerfilRoute
   PlanosAulaRoute: typeof PlanosAulaRoute
@@ -1304,6 +1317,13 @@ declare module '@tanstack/react-router' {
       path: '/mcp'
       fullPath: '/mcp'
       preLoaderRoute: typeof McpRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/minhas-escolas': {
+      id: '/minhas-escolas'
+      path: '/minhas-escolas'
+      fullPath: '/minhas-escolas'
+      preLoaderRoute: typeof MinhasEscolasRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/pedagogica': {
@@ -2025,6 +2045,7 @@ const rootRouteChildren: RootRouteChildren = {
   FinanceiroRoute: FinanceiroRouteWithChildren,
   ImportarRoute: ImportarRoute,
   McpRoute: McpRoute,
+  MinhasEscolasRoute: MinhasEscolasRoute,
   PedagogicaRoute: PedagogicaRoute,
   PerfilRoute: PerfilRoute,
   PlanosAulaRoute: PlanosAulaRoute,

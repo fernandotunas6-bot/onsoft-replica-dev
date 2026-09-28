@@ -24,6 +24,7 @@ export const SIGA_AUTHENTICATED_ROUTE_PREFIXES = [
   "/catracas",
   "/professor/presenca",
   "/perfil",
+  "/minhas-escolas",
 ] as const;
 
 /** Rotas públicas ou semi-públicas (sem RBAC de módulo escolar). */

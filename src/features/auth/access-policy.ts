@@ -53,6 +53,8 @@ const accessRules: Array<{ prefixes: string[]; roles: ApplicationRole[] }> = [
   { prefixes: ["/alumni"], roles: ["Administrador", "Secretaria"] },
   { prefixes: ["/acessos", "/catracas"], roles: ["Administrador", "Secretaria"] },
   { prefixes: ["/configuracoes"], roles: ["Administrador"] },
+  // Visão das escolas que a conta administra; o servidor filtra por vínculo.
+  { prefixes: ["/minhas-escolas"], roles: ["Administrador"] },
   { prefixes: ["/tesouraria"], roles: ["Administrador", "Tesouraria"] },
   {
     prefixes: ["/faturas", "/relatorios/financeiros"],

@@ -61,6 +61,11 @@ const PRIVILEGIO_POR_DESENHO = new Set([
   // tenant da escola da sessão.
   "src/features/saas/subscription-server.ts",
 
+  // "As minhas escolas": conta vínculos e o estado da assinatura de VÁRIAS
+  // escolas de uma vez, e a sessão só tem RLS para a escola activa. Só lê as
+  // escolas onde a conta tem vínculo activo de Administrador.
+  "src/features/saas/my-schools-server.ts",
+
   // Regista cada documento oficial emitido (audit_logs, só o servidor grava) e
   // verifica-o publicamente, sem sessão, a partir do código impresso.
   "src/features/documents/verification.ts",

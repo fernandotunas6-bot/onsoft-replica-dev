@@ -7,6 +7,7 @@ import {
   CreditCard,
   Lock,
   LogOut,
+  LayoutGrid,
   PlusCircle,
   Settings,
   User,
@@ -210,6 +211,11 @@ export function AppSidebar({
                         </DropdownMenuItem>
                       );
                     })}
+                    <DropdownMenuItem asChild>
+                      <Link to={"/minhas-escolas" as never} className="text-xs">
+                        <LayoutGrid className="size-4 text-primary" /> Visão das minhas escolas
+                      </Link>
+                    </DropdownMenuItem>
                   </>
                 ) : null}
 
