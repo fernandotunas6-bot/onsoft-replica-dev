@@ -69,10 +69,11 @@ tabela temporária). Corrigido:
 - Importador de inscrições: sem `form_id`; usa o formulário da escola ou dá erro claro.
 - Importador de encarregados: `student_guardians` sem `created_by`.
 
-`import/engine/reference-resolver.ts` também insere `people` sem `created_by`/`updated_by`,
-mas a classe não é usada em lado nenhum. O retrato (`PRODUCTION_SNAPSHOT.json`) não guarda
-a nulidade das colunas, por isso nenhum teste apanha esta classe de defeito; o cliente
-tipado apanharia.
+Protecção: o retrato passou a guardar `obrigatorias` por tabela (`capture-db-snapshot.mjs`;
+preenchido a 2026-09-29 com a mesma consulta à produção) e
+`tests/security/colunas-obrigatorias.test.ts` verifica os insert/upsert literais. Colunas
+preenchidas por trigger BEFORE INSERT vão para `PREENCHIDAS_POR_TRIGGER`, com o trigger.
+`import/engine/reference-resolver.ts` (código morto, com o mesmo defeito) foi apagado.
 
 ## Centro de Avaliação: testes de caracterização e defeito encontrado (2026-09-29)
 

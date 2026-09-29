@@ -57,7 +57,15 @@ const QUERIES = {
       -- caracteres em vez de colunas.
       (select coalesce(to_jsonb(array_agg(a.attname order by a.attnum)), '[]'::jsonb)
          from pg_attribute a
-        where a.attrelid = c.oid and a.attnum > 0 and not a.attisdropped) as colunas
+        where a.attrelid = c.oid and a.attnum > 0 and not a.attisdropped) as colunas,
+      -- Colunas que um insert TEM de enviar: NOT NULL, sem valor por omissão, sem
+      -- identidade nem geradas. O Postgres verifica-as antes do ON CONFLICT, por
+      -- isso um upsert sem elas falha mesmo quando a linha existe. Ver
+      -- tests/security/colunas-obrigatorias.test.ts.
+      (select coalesce(to_jsonb(array_agg(a.attname order by a.attnum)), '[]'::jsonb)
+         from pg_attribute a
+        where a.attrelid = c.oid and a.attnum > 0 and not a.attisdropped
+          and a.attnotnull and not a.atthasdef and a.attidentity = '' and a.attgenerated = '') as obrigatorias
     from pg_class c join pg_namespace n on n.oid=c.relnamespace
     where n.nspname='public' and c.relkind='r' order by c.relname`,
 
