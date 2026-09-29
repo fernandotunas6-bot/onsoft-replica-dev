@@ -2,6 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { publicDatabaseError } from "@/integrations/supabase/server-error";
+import { reportSigaError } from "@/lib/ops-report";
 import { sgaClient } from "@/integrations/supabase/sga";
 import {
   loadSgaAdminClient,
@@ -884,19 +885,26 @@ export const confirmManualMulticaixaPayment = createServerFn({ method: "POST" })
 
     const db = await loadSgaAdminClient();
     const normRef = normalizePaymentReference(data.reference);
-    await db
-      .from("finance_payment_plans")
-      .update({ status: "settled", updated_at: new Date().toISOString() })
-      .eq("school_id", membership.schoolId)
-      .eq("invoice_id", data.invoiceId)
-      .in("status", ["pending_gateway", "scheduled"]);
-
-    await db
-      .from("finance_payment_plans")
-      .update({ status: "settled", updated_at: new Date().toISOString() })
-      .eq("school_id", membership.schoolId)
-      .eq("reference", normRef)
-      .in("status", ["pending_gateway", "scheduled"]);
+    // O pagamento já está registado e repetir podia duplicá-lo: não se lança,
+    // mas um plano que fica "pendente" com a fatura paga tem de ficar visível.
+    for (const [column, value] of [
+      ["invoice_id", data.invoiceId],
+      ["reference", normRef],
+    ] as const) {
+      const { error: planError } = await db
+        .from("finance_payment_plans")
+        .update({ status: "settled", updated_at: new Date().toISOString() })
+        .eq("school_id", membership.schoolId)
+        .eq(column, value)
+        .in("status", ["pending_gateway", "scheduled"]);
+      if (planError) {
+        reportSigaError("finance.payment_plan.settle_failed", planError, {
+          school_id: membership.schoolId,
+          invoice_id: data.invoiceId,
+          by: column,
+        });
+      }
+    }
 
     return {
       success: true,

@@ -55,12 +55,16 @@ async function linkGuardian(
   },
 ) {
   if (input.isPrimary) {
-    await db
+    // Se falhar, o aluno ficava com dois encarregados principais.
+    const { error: primaryError } = await db
       .from("student_guardians")
       .update({ is_primary: false })
       .eq("school_id", input.schoolId)
       .eq("student_id", input.studentId)
       .eq("is_primary", true);
+    if (primaryError) {
+      throw publicDatabaseError(primaryError, "Não foi possível trocar o encarregado principal.");
+    }
   }
 
   // SGA: id PK, is_pickup_authorized, created_by NOT NULL; no updated_by / authorized_pickup.
@@ -1062,11 +1066,14 @@ export const enrollStudentInClass = createServerFn({ method: "POST" })
         .single();
       if (error)
         throw publicDatabaseError(error, "Não foi possível actualizar a matrícula na turma.");
-      await db
+      const { error: activateError } = await db
         .from("students")
         .update({ status: "active", updated_by: context.userId })
         .eq("id", data.studentId)
         .eq("school_id", membership.schoolId);
+      if (activateError) {
+        throw publicDatabaseError(activateError, "Matrícula feita, mas o aluno não ficou activo.");
+      }
       if (previousStatus && previousStatus !== "active") {
         await recordStudentStatusHistory(db, {
           schoolId: membership.schoolId,

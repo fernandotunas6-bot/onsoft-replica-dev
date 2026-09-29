@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { publicDatabaseError } from "@/integrations/supabase/server-error";
+import { reportSigaError } from "@/lib/ops-report";
 import {
   assertModuleNotBlocked,
   loadSgaAdminClient,
@@ -46,6 +47,20 @@ function missingPaymentSchema(error: { code?: string; message?: string } | null)
       error.code === "PGRST205" ||
       /hr_(payment|payroll_payment)|schema cache|does not exist/i.test(error.message ?? "")),
   );
+}
+
+/**
+ * Estados que acompanham um pagamento já registado (lote, item da folha, folha).
+ * Se falharem não se lança: o pagamento está feito e repetir seria recusado.
+ * Mas a falha fica nos registos, em vez de desaparecer.
+ */
+async function syncPaymentStatus(
+  label: string,
+  write: PromiseLike<{ error: unknown }>,
+  fields: Record<string, unknown>,
+) {
+  const { error } = await write;
+  if (error) reportSigaError(`hr.payment.status_sync_failed.${label}`, error, fields);
 }
 
 export const upsertHrPaymentDestination = createServerFn({ method: "POST" })
@@ -345,11 +360,15 @@ export const confirmPayrollPaymentItem = createServerFn({ method: "POST" })
         throw publicDatabaseError(error, "Não foi possível registrar a falha do pagamento.");
       if (!failedRow)
         throw new Error("O estado do pagamento mudou; actualize a lista e tente de novo.");
-      await db
-        .from("hr_payroll_payment_batches")
-        .update({ status: "partial", updated_by: context.userId })
-        .eq("id", batch.id)
-        .eq("school_id", membership.schoolId);
+      await syncPaymentStatus(
+        "batch",
+        db
+          .from("hr_payroll_payment_batches")
+          .update({ status: "partial", updated_by: context.userId })
+          .eq("id", batch.id)
+          .eq("school_id", membership.schoolId),
+        { school_id: membership.schoolId, batch_id: batch.id },
+      );
       return { paid: false, failed: true };
     }
 
@@ -414,11 +433,15 @@ export const confirmPayrollPaymentItem = createServerFn({ method: "POST" })
     if (!paidRow)
       throw new Error("O estado do pagamento mudou; actualize a lista e tente de novo.");
 
-    await db
-      .from("hr_payroll_items")
-      .update({ status: "paid", updated_by: context.userId })
-      .eq("id", item.payroll_item_id)
-      .eq("school_id", membership.schoolId);
+    await syncPaymentStatus(
+      "payroll_item",
+      db
+        .from("hr_payroll_items")
+        .update({ status: "paid", updated_by: context.userId })
+        .eq("id", item.payroll_item_id)
+        .eq("school_id", membership.schoolId),
+      { school_id: membership.schoolId, payroll_item_id: item.payroll_item_id },
+    );
 
     const { data: remaining, error: remainingError } = await db
       .from("hr_payroll_payment_items")
@@ -436,20 +459,28 @@ export const confirmPayrollPaymentItem = createServerFn({ method: "POST" })
       (remaining ?? []).every((row) => String(row.status) === "paid");
     const anyPaid = (remaining ?? []).some((row) => String(row.status) === "paid");
 
-    await db
-      .from("hr_payroll_payment_batches")
-      .update({
-        status: allPaid ? "completed" : anyPaid ? "partial" : "processing",
-        updated_by: context.userId,
-      })
-      .eq("id", batch.id)
-      .eq("school_id", membership.schoolId);
+    await syncPaymentStatus(
+      "batch",
+      db
+        .from("hr_payroll_payment_batches")
+        .update({
+          status: allPaid ? "completed" : anyPaid ? "partial" : "processing",
+          updated_by: context.userId,
+        })
+        .eq("id", batch.id)
+        .eq("school_id", membership.schoolId),
+      { school_id: membership.schoolId, batch_id: batch.id },
+    );
     if (allPaid) {
-      await db
-        .from("hr_payroll_runs")
-        .update({ status: "paid", paid_at: now, updated_by: context.userId })
-        .eq("id", batch.payroll_run_id)
-        .eq("school_id", membership.schoolId);
+      await syncPaymentStatus(
+        "payroll_run",
+        db
+          .from("hr_payroll_runs")
+          .update({ status: "paid", paid_at: now, updated_by: context.userId })
+          .eq("id", batch.payroll_run_id)
+          .eq("school_id", membership.schoolId),
+        { school_id: membership.schoolId, payroll_run_id: batch.payroll_run_id },
+      );
     }
 
     return { paid: true, cashExpenseId, batchCompleted: allPaid };

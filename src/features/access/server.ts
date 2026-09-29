@@ -429,12 +429,24 @@ export const updateSystemAccountCargo = createServerFn({ method: "POST" })
       throw new Error("Apenas Administradores podem alterar contas de outros Administradores.");
     }
 
-    await admin.from("member_roles").delete().eq("membership_id", membership.id);
-    await admin.from("member_roles").insert({
-      school_id: schoolId,
-      membership_id: membership.id,
-      role_id: role.id,
-    });
+    // Primeiro o papel novo, depois retirar os outros, e com os erros vistos.
+    // Antes apagava tudo e inseria sem verificar: se a inserção falhasse, a
+    // conta ficava sem papel nenhum e o ecrã dizia que tinha corrido bem.
+    const { error: addRoleError } = await admin
+      .from("member_roles")
+      .upsert(
+        { school_id: schoolId, membership_id: membership.id, role_id: role.id },
+        { onConflict: "school_id,membership_id,role_id", ignoreDuplicates: true },
+      );
+    if (addRoleError) throw publicDatabaseError(addRoleError, "Não foi possível atribuir o papel.");
+    const { error: dropRolesError } = await admin
+      .from("member_roles")
+      .delete()
+      .eq("membership_id", membership.id)
+      .neq("role_id", role.id);
+    if (dropRolesError) {
+      throw publicDatabaseError(dropRolesError, "Não foi possível retirar o papel anterior.");
+    }
 
     if (!access.hasOtherActiveSchools) {
       const { error: profileError } = await admin
@@ -1030,7 +1042,7 @@ export const acceptSchoolInvitation = createServerFn({ method: "POST" })
     // 4. Criar ou recuperar membership
     const { data: existingMembership } = await admin
       .from("school_memberships")
-      .select("id")
+      .select("id, status")
       .eq("school_id", schoolId)
       .eq("user_id", userId)
       .maybeSingle();
@@ -1038,11 +1050,20 @@ export const acceptSchoolInvitation = createServerFn({ method: "POST" })
     let membershipId: string;
     if (existingMembership?.id) {
       membershipId = existingMembership.id as string;
-      // Reactivar se estava suspensa
-      await admin
-        .from("school_memberships")
-        .update({ status: "active", updated_at: new Date().toISOString() })
-        .eq("id", membershipId);
+      // Um convite não levanta uma suspensão (como na aprovação de pedidos): um
+      // convite antigo ainda pendente não pode contornar a decisão da escola.
+      if (existingMembership.status === "suspended") {
+        throw new Error("Esta conta está suspensa nesta escola. Fale com a Administração.");
+      }
+      if (existingMembership.status !== "active") {
+        const { error: activateError } = await admin
+          .from("school_memberships")
+          .update({ status: "active", updated_at: new Date().toISOString() })
+          .eq("id", membershipId);
+        if (activateError) {
+          throw publicDatabaseError(activateError, "Não foi possível activar o vínculo.");
+        }
+      }
     } else {
       const { data: newMembership, error: memErr } = await admin
         .from("school_memberships")

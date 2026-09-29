@@ -1,4 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
+import { reportSigaError } from "@/lib/ops-report";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
@@ -134,7 +135,7 @@ export const createInvoiceCharge = createServerFn({ method: "POST" })
         description: `Factura ${invoice.invoice_number ?? ""}`,
         phoneNumber: data.phoneNumber,
       });
-      await db
+      const { error: linkError } = await db
         .from("payment_gateway_charges")
         .update({
           provider_charge_id: charge.id || null,
@@ -143,6 +144,16 @@ export const createInvoiceCharge = createServerFn({ method: "POST" })
           status_message: charge.message,
         })
         .eq("id", row.id);
+      // A referência já existe na AppyPay e é válida: não se falha o pedido. O
+      // webhook encontra a cobrança pelo merchantTransactionId e liga-a; até lá a
+      // conciliação manual não a vê, por isso a falha fica nos registos.
+      if (linkError) {
+        reportSigaError("finance.appypay.charge_write_failed", linkError, {
+          status: "created",
+          charge_id: row.id,
+          provider_charge_id: charge.id || null,
+        });
+      }
       return {
         id: row.id,
         referenceEntity: charge.referenceEntity,
@@ -153,10 +164,16 @@ export const createInvoiceCharge = createServerFn({ method: "POST" })
             : "Referência criada. O pagamento é confirmado automaticamente.",
       };
     } catch (e) {
-      await db
+      const { error: failError } = await db
         .from("payment_gateway_charges")
         .update({ status: "failed", status_message: (e as Error).message.slice(0, 300) })
         .eq("id", row.id);
+      if (failError) {
+        reportSigaError("finance.appypay.charge_write_failed", failError, {
+          status: "failed",
+          charge_id: row.id,
+        });
+      }
       throw e;
     }
   });

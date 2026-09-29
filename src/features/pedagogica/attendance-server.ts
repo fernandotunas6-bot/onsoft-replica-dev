@@ -561,7 +561,9 @@ export const submitAttendanceCallBatch = createServerFn({ method: "POST" })
       data.records.map((item) => item.studentId),
     );
 
-    await db
+    // Sem isto a chamada ficava "pendente" com as presenças gravadas; repetir é
+    // seguro (o upsert acima é idempotente), por isso o erro sobe.
+    const { error: completeError } = await db
       .from("siga_attendance_sessions")
       .update({
         status: "completed",
@@ -569,6 +571,9 @@ export const submitAttendanceCallBatch = createServerFn({ method: "POST" })
         updated_by: context.userId,
       })
       .eq("id", session.id);
+    if (completeError) {
+      throw publicDatabaseError(completeError, "Presenças gravadas, mas a chamada não fechou.");
+    }
 
     return { ok: true, sessionId: session.id, count: data.records.length };
   });
@@ -739,7 +744,7 @@ export const reviewAttendanceJustification = createServerFn({ method: "POST" })
 
     if (!just) throw new Error("Justificativa não encontrada.");
 
-    await db
+    const { error: reviewError } = await db
       .from("siga_attendance_justifications")
       .update({
         status: data.status,
@@ -748,12 +753,18 @@ export const reviewAttendanceJustification = createServerFn({ method: "POST" })
         updated_at: new Date().toISOString(),
       })
       .eq("id", just.id);
+    if (reviewError) {
+      throw publicDatabaseError(reviewError, "Não foi possível registar a decisão.");
+    }
 
     if (data.status === "approved" && just.attendance_record_id) {
-      await db
+      const { error: excuseError } = await db
         .from("siga_attendance_records")
         .update({ status: "excused", updated_at: new Date().toISOString() })
         .eq("id", just.attendance_record_id);
+      if (excuseError) {
+        throw publicDatabaseError(excuseError, "Justificação aprovada, mas a falta não mudou.");
+      }
 
       await recomputeAttendanceRates(db, membership.schoolId, [just.student_id]);
     }
