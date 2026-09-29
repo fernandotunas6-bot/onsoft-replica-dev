@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Calculator,
@@ -41,6 +41,7 @@ import {
   buildTermCloseChecklist,
   changeHistoryLines,
   documentValidationCode,
+  mergeReloadedValues,
   rowsToTsv,
   selectIdRange,
 } from "@/features/academic/assessment-views";
@@ -356,8 +357,19 @@ export function AssessmentCenter({
   );
   const assessmentsAvailable = assessmentsQuery.data?.available !== false;
 
+  // Último carregamento: com o mesmo contexto (turma, disciplina, trimestre),
+  // um recarregamento não pode apagar o que o professor já escreveu — por
+  // exemplo, quando a lista de avaliações chega depois das notas.
+  const lastLoadRef = useRef<{
+    context: string;
+    values: Record<string, Record<string, string>>;
+  } | null>(null);
+
   useEffect(() => {
-    if (!open) return;
+    if (!open) {
+      lastLoadRef.current = null;
+      return;
+    }
     const next: Record<string, Record<string, string>> = {};
     for (const student of roster) {
       const grade = termGrades.find(
@@ -380,10 +392,17 @@ export function AssessmentCenter({
       }
       next[student.id] = row;
     }
+    const context = `${selectedGroup?.id ?? ""}|${selectedSubject?.id ?? ""}|${term}`;
+    const previous = lastLoadRef.current;
+    lastLoadRef.current = { context, values: next };
+    if (previous?.context === context) {
+      setValues((current) => mergeReloadedValues(next, current, previous.values));
+      return;
+    }
     setValues(next);
     setHistory([]);
     setFuture([]);
-  }, [items, open, roster, scores, selectedSubject?.id, term, termGrades]);
+  }, [items, open, roster, scores, selectedGroup?.id, selectedSubject?.id, term, termGrades]);
 
   const pushHistory = (snapshot: Record<string, Record<string, string>>) => {
     setHistory((current) => [...current.slice(-29), snapshot]);

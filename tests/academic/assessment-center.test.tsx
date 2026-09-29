@@ -225,11 +225,9 @@ describe("Centro de Avaliação — lançamento de notas", () => {
     expect(rowText("Bruno Costa")).toContain("—Pendente");
   });
 
-  // DEFEITO CONHECIDO (29/09): o que se escreve antes de a lista de avaliações
-  // chegar é apagado quando ela chega, porque o componente recarrega os valores.
-  // Este teste fixa o comportamento actual; quando o defeito for corrigido,
-  // inverte-se a expectativa final para "18".
-  it("edição feita antes de a lista de avaliações chegar é apagada (defeito conhecido)", async () => {
+  // Corrigido a 29/09: o que se escrevia antes de a lista de avaliações chegar
+  // era apagado quando ela chegava (o componente recarregava os valores).
+  it("edição feita antes de a lista de avaliações chegar não se perde", async () => {
     let resolveList: (value: unknown) => void = () => {};
     listAssessmentsMock.mockReturnValue(
       new Promise((resolve) => {
@@ -245,6 +243,33 @@ describe("Centro de Avaliação — lançamento de notas", () => {
     await act(async () => {
       resolveList({ available: true, items: [], scores: [] });
     });
+    await ready();
+    expect(cell("MAC", "Ana Silva").value).toBe("18");
+    // As células que não se tocaram continuam com o valor do servidor.
+    expect(cell("NPP", "Ana Silva").value).toBe("14");
+    // A edição continua a poder ser desfeita.
+    fireEvent.click(screen.getByRole("button", { name: "Desfazer" }));
+    await waitFor(() => expect(cell("MAC", "Ana Silva").value).toBe("12"));
+  });
+
+  it("mudar de disciplina recarrega as notas e descarta as edições da anterior", async () => {
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    const view = (props: Partial<Props>) => (
+      <QueryClientProvider client={client}>
+        <AssessmentCenter {...baseProps} {...props} />
+      </QueryClientProvider>
+    );
+    const subjects = [...baseProps.subjects, { id: "sub2", name: "Física", code: "FIS" }];
+    const { rerender } = render(view({ subjects }));
+    await waitFor(() => expect(cell("MAC", "Ana Silva").value).toBe("12"));
+    await ready();
+    fireEvent.change(cell("MAC", "Ana Silva"), { target: { value: "18" } });
+
+    rerender(view({ subjects, initialSubjectId: "sub2" }));
+    // Física não tem notas: a edição feita em Matemática não passa para cá.
+    await waitFor(() => expect(cell("MAC", "Ana Silva").value).toBe(""));
+
+    rerender(view({ subjects, initialSubjectId: "sub1" }));
     await waitFor(() => expect(cell("MAC", "Ana Silva").value).toBe("12"));
   });
 });

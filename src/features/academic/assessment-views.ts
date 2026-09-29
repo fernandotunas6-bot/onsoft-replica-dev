@@ -184,3 +184,29 @@ export function selectIdRange(ids: string[], fromId: string | null, toId: string
   const [from, to] = start < end ? [start, end] : [end, start];
   return ids.slice(from, to + 1);
 }
+
+type CellValues = Record<string, Record<string, string>>;
+
+/**
+ * Valores da grelha depois de recarregar do servidor, sem perder o que o
+ * professor escreveu. Uma célula conta como editada quando o valor actual
+ * difere do que foi carregado da última vez; essas ficam, as outras passam a
+ * ter o valor novo. Alunos que saíram da lista saem também.
+ */
+export function mergeReloadedValues(
+  reloaded: CellValues,
+  current: CellValues,
+  previouslyLoaded: CellValues,
+): CellValues {
+  const merged: CellValues = {};
+  for (const [studentId, row] of Object.entries(reloaded)) {
+    const currentRow = current[studentId] ?? {};
+    const loadedRow = previouslyLoaded[studentId] ?? {};
+    const next: Record<string, string> = { ...row };
+    for (const [key, value] of Object.entries(currentRow)) {
+      if (value !== (loadedRow[key] ?? "")) next[key] = value;
+    }
+    merged[studentId] = next;
+  }
+  return merged;
+}

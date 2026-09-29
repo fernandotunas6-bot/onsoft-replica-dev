@@ -11,13 +11,13 @@ Depois abrir o skill do módulo em `.cursor/skills/`.
 média (Decreto 424/25: MT = (MACT + NPT) ÷ 2), desfazer/refazer, gravação só de
 linhas completas, trimestre fechado e sem permissão só para leitura.
 
-**Defeito encontrado, ainda por corrigir:** o que o professor escreve antes de a
-lista de avaliações (`listAssessments`) chegar é apagado quando ela chega — o
-`useEffect` que carrega os valores depende de `items`/`scores` e faz
-`setValues(next)` por cima das edições. O teste "edição feita antes de a lista
-de avaliações chegar é apagada" fixa o comportamento actual; ao corrigir,
-inverte-se a expectativa final. Próximo passo: dividir o componente com estes
-testes a passar, e só depois corrigir o defeito.
+**Defeito encontrado e corrigido:** o que o professor escrevia antes de a lista
+de avaliações (`listAssessments`) chegar era apagado quando ela chegava — o
+`useEffect` que carrega os valores fazia `setValues(next)` por cima das edições.
+Agora, com o mesmo contexto (turma, disciplina, trimestre), junta o recarregado
+com o actual (`mergeReloadedValues` em `assessment-views.ts`): fica o que difere
+do último carregamento. Mudar de contexto continua a recarregar tudo. Próximo
+passo: dividir o componente com estes testes a passar.
 
 ## Tenants de teste arquivados na produção (2026-09-29)
 
