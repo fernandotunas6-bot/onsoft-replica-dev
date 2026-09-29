@@ -19,8 +19,8 @@ export async function POST(request: Request) {
       school_id?: string;
     };
 
-    let role: "finance_admin" | "treasurer" = "finance_admin";
-    let userId = "admin_user";
+    const role: "finance_admin" | "treasurer" = "finance_admin";
+    const userId = "admin_user";
     let tenantId = "default_tenant";
     let schoolId = body.school_id?.trim() || "";
 

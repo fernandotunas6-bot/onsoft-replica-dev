@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useState } from "react";
 import {
   ArrowLeft,
@@ -474,7 +475,7 @@ export function PayflowAdminDashboard() {
                 </a>
               </Button>
               <Button asChild variant="ghost" className="w-full text-xs text-muted-foreground">
-                <a href="/">Voltar à Página Inicial</a>
+                <Link href="/">Voltar à Página Inicial</Link>
               </Button>
             </div>
           </CardContent>
