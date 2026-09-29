@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
 
-
 /**
  * Vídeo de fundo leve: só carrega em ecrãs grandes, sem som, respeita "reduzir movimento".
  *
