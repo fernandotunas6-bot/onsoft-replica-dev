@@ -54,6 +54,26 @@ Ambos corrigidos. Fica por decidir: `subjects.weekly_hours`/`grade_from`/`grade_
 lidos em `server-secure-legacy.ts` (select `*`) não existem — o ecrã mostra "—".
 O cliente SGA continua `any`; tipá-lo é trabalho por ficheiro (103 erros).
 
+**Colunas obrigatórias em falta nas escritas** (NOT NULL sem valor por omissão, lidas de
+`information_schema` na produção). O Postgres verifica NOT NULL antes do `ON CONFLICT`,
+por isso um `upsert` sem a coluna falha mesmo quando a linha já existe (verificado numa
+tabela temporária). Corrigido:
+
+- `access/server.ts` `inviteSystemUser`: upsert em `profiles` sem `display_name` — criar
+  ou convidar contas em Acessos falhava sempre e a conta era apagada na reversão.
+- `auth/server.ts`: o mesmo, no ramo em que o perfil não existe.
+- `saas_audit_logs` sem `entity` em `phone-change-server.ts` e
+  `reset-password-otp-server.ts`: a auditoria perdia-se em silêncio.
+- Importador de matrículas: insert directo sem `enrollment_number`; passa por
+  `enroll_student` (gera `MAT-000123`, valida capacidade e ano).
+- Importador de inscrições: sem `form_id`; usa o formulário da escola ou dá erro claro.
+- Importador de encarregados: `student_guardians` sem `created_by`.
+
+`import/engine/reference-resolver.ts` também insere `people` sem `created_by`/`updated_by`,
+mas a classe não é usada em lado nenhum. O retrato (`PRODUCTION_SNAPSHOT.json`) não guarda
+a nulidade das colunas, por isso nenhum teste apanha esta classe de defeito; o cliente
+tipado apanharia.
+
 ## Centro de Avaliação: testes de caracterização e defeito encontrado (2026-09-29)
 
 `tests/academic/assessment-center.test.tsx` fixa o comportamento do

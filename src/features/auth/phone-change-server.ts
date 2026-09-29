@@ -149,6 +149,7 @@ export const confirmPhoneChangeWithOtpFn = createServerFn({ method: "POST" })
     try {
       await db.from("saas_audit_logs").insert({
         action: "profile_phone_changed_otp",
+        entity: "auth",
         user_id: context.userId,
         metadata: {
           new_phone: normalizedPhone,
