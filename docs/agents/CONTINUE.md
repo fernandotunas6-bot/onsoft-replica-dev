@@ -51,8 +51,10 @@ componente passou de 1883 para 1711 linhas.
 **Divisão, 2.ª parte (feita):** painéis de filtros, documentos e histórico em
 `AssessmentCenterPanels.tsx`; botões das integrações (Turnitin, Classroom,
 Moodle, Canvas, WhatsApp, Resend) em `AssessmentIntegrationActions.tsx`, que lê
-as capacidades instaladas sozinho. 1711 → 1524 linhas. Falta: a grelha e as
-vistas por âmbito (≈290 linhas dentro do `onPaste`), sempre com
+as capacidades instaladas sozinho; vistas de avaliações, recursos, exames e
+fecho do trimestre em `AssessmentModeViews.tsx` (o botão de fechar/reabrir usa
+um só `toggleTermLock`). 1711 → 1398 linhas. Falta: a barra de lançamento em
+lote e o detalhe MAC/NPP/NPT do aluno, sempre com
 `tests/academic/assessment-center.test.tsx` a passar.
 
 ## Tenants de teste arquivados na produção (2026-09-29)

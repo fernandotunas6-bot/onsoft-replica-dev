@@ -31,6 +31,12 @@ import { cellKey, useGradeEditor } from "@/features/academic/use-grade-editor";
 import { ClassCourseTable, StudentDossierTable } from "@/features/academic/AssessmentViewTables";
 import { CreateAssessmentDialog } from "@/features/academic/CreateAssessmentDialog";
 import {
+  AssessmentExamTable,
+  AssessmentItemsList,
+  AssessmentRecoveryTable,
+  AssessmentTermClosePanel,
+} from "@/features/academic/AssessmentModeViews";
+import {
   AssessmentDocumentsPanel,
   AssessmentFiltersPanel,
   AssessmentHistoryPanel,
@@ -469,6 +475,11 @@ export function AssessmentCenter({
       }).length
     );
   }, 0);
+  const toggleTermLock = () =>
+    void setTermLock({ data: { term, closed: !termClosed } }).then(() =>
+      queryClient.invalidateQueries({ queryKey: ["school", "settings"] }),
+    );
+
   const closeChecklist = buildTermCloseChecklist({
     total: visibleRows.length,
     pending: pendingCount,
@@ -1138,11 +1149,7 @@ export function AssessmentCenter({
                   ? `${termReadiness.notReady.length} turma(s) com pendências neste trimestre.`
                   : undefined
               }
-              onClick={() =>
-                void setTermLock({ data: { term, closed: !termClosed } }).then(() =>
-                  queryClient.invalidateQueries({ queryKey: ["school", "settings"] }),
-                )
-              }
+              onClick={toggleTermLock}
             >
               {termClosed ? <Unlock className="size-3.5" /> : <Lock className="size-3.5" />}
               {termClosed ? "Reabrir" : "Fechar trimestre"}
@@ -1205,160 +1212,27 @@ export function AssessmentCenter({
               />
             </div>
           ) : mode === "avaliacoes" ? (
-            <div className="space-y-2">
-              {!assessmentsAvailable ? (
-                <p className="text-sm text-muted-foreground">
-                  Aplique <code>APPLY_ENROLLMENT_AND_PREMIUM.sql</code> para criar avaliações
-                  detalhadas. <SqlChecklistLink />
-                </p>
-              ) : items.length === 0 ? (
-                <p className="text-sm text-muted-foreground">
-                  Ainda não há avaliações neste contexto. Use + Avaliação.
-                </p>
-              ) : (
-                items.map((item) => (
-                  <div key={String(item.id)} className="rounded-xl border px-3 py-2">
-                    <p className="font-semibold">{String(item.name)}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {String(item.kind)} · {String(item.component)} · conta para a pauta:{" "}
-                      {item.counts_toward_pauta ? "sim" : "não"}
-                    </p>
-                  </div>
-                ))
-              )}
-            </div>
+            <AssessmentItemsList available={assessmentsAvailable} items={items} />
           ) : mode === "recursos" ? (
-            <div className="overflow-auto rounded-lg border">
-              <table className="w-full text-sm">
-                <thead className="bg-muted/70">
-                  <tr>
-                    <th className="px-3 py-2 text-left">Aluno</th>
-                    <th className="px-3 py-2 text-left">Disciplina</th>
-                    <th className="px-3 py-2 text-right">Média anterior</th>
-                    <th className="px-3 py-2 text-right">Recurso</th>
-                    <th className="px-3 py-2 text-right">Nova nota</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {visibleRows.map((row) => (
-                    <tr key={row.student.id} className="border-t">
-                      <td className="px-3 py-2 font-semibold">{row.student.student_name}</td>
-                      <td className="px-3 py-2">{selectedSubject?.name ?? "—"}</td>
-                      <td className="px-3 py-2 text-right">{formatScore(row.average)}</td>
-                      <td className="px-3 py-2 text-right">{formatScore(row.recurso)}</td>
-                      <td className="px-3 py-2 text-right font-bold">
-                        {formatScore(afterRecovery(row.average, row.recurso))}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            <AssessmentRecoveryTable
+              rows={visibleRows}
+              subjectName={selectedSubject?.name ?? "—"}
+              afterRecovery={afterRecovery}
+            />
           ) : mode === "exames" ? (
-            <div className="overflow-auto rounded-lg border">
-              <table className="w-full text-sm">
-                <thead className="bg-muted/70">
-                  <tr>
-                    <th className="px-3 py-2 text-left">Aluno</th>
-                    <th className="px-3 py-2 text-left">Disciplina</th>
-                    <th className="px-3 py-2 text-left">Tipo</th>
-                    <th className="px-3 py-2 text-right">Nota</th>
-                    <th className="px-3 py-2 text-right">Resultado</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {visibleRows.map((row) => (
-                    <tr key={row.student.id} className="border-t">
-                      <td className="px-3 py-2 font-semibold">{row.student.student_name}</td>
-                      <td className="px-3 py-2">{selectedSubject?.name ?? "—"}</td>
-                      <td className="px-3 py-2">Exame</td>
-                      <td className="px-3 py-2 text-right">{formatScore(row.exame)}</td>
-                      <td className="px-3 py-2 text-right">
-                        {row.exame == null
-                          ? "Pendente"
-                          : row.exame >= passingGrade
-                            ? "Aprovado"
-                            : "Reprovado"}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            <AssessmentExamTable
+              rows={visibleRows}
+              subjectName={selectedSubject?.name ?? "—"}
+              passingGrade={passingGrade}
+            />
           ) : mode === "fecho" ? (
-            <div className="space-y-4">
-              <p className="text-sm text-muted-foreground">
-                {termClosed
-                  ? "Este trimestre está fechado. As células da pauta estão bloqueadas."
-                  : "Só feche quando a pauta estiver completa e guardada."}
-              </p>
-              <ul className="space-y-2">
-                {closeChecklist.items.map((item) => (
-                  <li
-                    key={item.id}
-                    className="flex items-center justify-between rounded-xl border px-3 py-2 text-sm"
-                  >
-                    <span>{item.label}</span>
-                    <span
-                      className={
-                        item.ok ? "font-semibold text-primary" : "font-semibold text-destructive"
-                      }
-                    >
-                      {item.ok ? "Pronto" : "Bloqueia"}
-                    </span>
-                  </li>
-                ))}
-                <li className="flex items-center justify-between rounded-xl border px-3 py-2 text-sm">
-                  <span>Todas as turmas com docentes atribuídos e sem notas pendentes</span>
-                  <span
-                    className={
-                      termReadiness.allReady
-                        ? "font-semibold text-primary"
-                        : "font-semibold text-destructive"
-                    }
-                  >
-                    {termReadiness.allReady
-                      ? "Pronto"
-                      : `Bloqueia (${termReadiness.notReady.length} turma(s))`}
-                  </span>
-                </li>
-              </ul>
-              {!termReadiness.allReady && termReadiness.notReady.length > 0 ? (
-                <ul className="space-y-1 rounded-xl border border-warning/30 bg-warning/5 p-3 text-xs text-muted-foreground">
-                  {termReadiness.notReady.slice(0, 6).map((report) => (
-                    <li key={report.classGroupId}>
-                      <b className="text-foreground">{report.classGroupName}:</b>{" "}
-                      {report.summary.unassignedSubjectsCount > 0
-                        ? `${report.summary.unassignedSubjectsCount} disciplina(s) sem docente. `
-                        : ""}
-                      {report.summary.pendingGradesCount > 0
-                        ? `${report.summary.pendingGradesCount} nota(s) pendente(s). `
-                        : ""}
-                      {report.issues.some((issue) => issue.code === "MULTIPLE_TEACHERS_MONODOCENTE")
-                        ? "Turma monodocente com mais do que um professor atribuído."
-                        : ""}
-                    </li>
-                  ))}
-                  {termReadiness.notReady.length > 6 ? (
-                    <li className="italic">
-                      + {termReadiness.notReady.length - 6} outra(s) turma(s).
-                    </li>
-                  ) : null}
-                </ul>
-              ) : null}
-              {canLockTerm ? (
-                <Button
-                  disabled={!termClosed && (!closeChecklist.ready || !termReadiness.allReady)}
-                  onClick={() =>
-                    void setTermLock({ data: { term, closed: !termClosed } }).then(() =>
-                      queryClient.invalidateQueries({ queryKey: ["school", "settings"] }),
-                    )
-                  }
-                >
-                  {termClosed ? "Reabrir trimestre" : "Fechar trimestre"}
-                </Button>
-              ) : null}
-            </div>
+            <AssessmentTermClosePanel
+              termClosed={termClosed}
+              checklist={closeChecklist}
+              readiness={termReadiness}
+              canLockTerm={canLockTerm}
+              onToggleLock={toggleTermLock}
+            />
           ) : (
             <>
               {canEdit && checkedIds.size > 0 ? (
