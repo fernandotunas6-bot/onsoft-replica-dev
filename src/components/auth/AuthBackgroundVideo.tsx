@@ -32,7 +32,9 @@ export function AuthBackgroundVideo() {
       {enabled ? (
         <video
           aria-hidden
-          className="pointer-events-none absolute inset-0 size-full object-cover animate-fade-in"
+          // `inset-px`: 1 px para dentro do poster. O 1.º frame (igual ao poster já pintado)
+          // media ~1 200 px² a mais por arredondamento e o Chrome promovia-o a LCP aos ~2 s.
+          className="pointer-events-none absolute left-px top-px h-[calc(100%-2px)] w-[calc(100%-2px)] object-cover animate-fade-in"
           src="/auth-classroom.mp4"
           autoPlay
           muted
