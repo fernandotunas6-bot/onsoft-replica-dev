@@ -34,6 +34,29 @@ Depois abrir o skill do módulo em `.cursor/skills/`.
   `NEXT_PUBLIC_SIGA_URL`; usa agora o `sigaUrl` do servidor e, em produção, o domínio
   da plataforma.
 
+## Fim de 29/09 — PRs #40 a #45
+
+- **Lighthouse na main verde** (0,96–0,98, LCP ~1 s nas 7 rotas). Três causas, por ordem:
+  1. o SSR mandava sempre "A verificar sessão…" → cookie-pista `siga-session-hint`
+     (`src/features/auth/session-hint.ts`) e o `AuthGate` desenha logo o ecrã de entrada;
+  2. o 1.º frame do vídeo de fundo era o LCP (o Chrome do CI tem H.264, o Chromium local
+     não — para reproduzir, converter o vídeo para VP9 e pô-lo só em `.output/public`) →
+     poster 1280×720 embutido em `.auth-hero-poster` (styles.css);
+  3. o vídeo media ~1 200 px² mais que o poster por arredondamento → fica 1 px para dentro.
+  O passo "Resumo das métricas Lighthouse" (`scripts/lighthouse-summary.mjs`) imprime FCP,
+  LCP e TTFB de cada relatório no log do CI.
+- **`types.ts` regenerado da base errada pelo Lovable** (34fdd7ce, 339c9384, 13812878: 85
+  tabelas, com invoices/payments/courses) partiu a main; reposto no #44. Se voltar a
+  acontecer: `git checkout <último bom> -- src/integrations/supabase/types.ts`.
+- Calendário: botão "Trimestres" em /calendario grava os 3 trimestres de uma vez
+  (`save_academic_calendar`). A função actualiza trimestre a trimestre: avançar muito as
+  datas pode bater no trigger de sobreposição (resolver com migração, se aparecer).
+- Disciplinas: formulário só com o que se grava (carga anual); código normalizado.
+- Salas: coluna "Turmas" (turmas activas com `room_id`).
+- PayFlow: `school_id` do login confirmado; limite de comprovativos antes de gravar.
+- ADMIN revisto: rotas `/api/saas/*` protegidas. Por decidir (dono): exigir MFA (AAL2) aos
+  administradores da plataforma — 3 de 4 ainda sem MFA ficariam bloqueados.
+
 ## Turmas, salas e campus (2026-09-29)
 
 - **Sala física da turma:** `class_groups.room_id` (migração `20260929250000`, **já
