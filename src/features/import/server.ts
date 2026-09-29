@@ -484,15 +484,26 @@ export const commitImportBatch = createServerFn({ method: "POST" })
       else if (result.status === "error") failed += 1;
 
       if (!data.dry_run) {
-        await db
-          .from("import_rows")
-          .update({
-            status: result.status,
-            target_record_id: result.target_record_id ?? null,
-            warnings: result.warnings,
-            errors: result.errors,
-          })
-          .eq("id", row.id);
+        // A linha tem de ficar marcada: é o que impede o lote seguinte de a
+        // importar outra vez (um aluno criado duas vezes). Tenta-se duas vezes e,
+        // se falhar, pára-se o lote em vez de continuar às cegas.
+        const rowPatch = {
+          status: result.status,
+          target_record_id: result.target_record_id ?? null,
+          warnings: result.warnings,
+          errors: result.errors,
+        };
+        let markError = (await db.from("import_rows").update(rowPatch).eq("id", row.id)).error;
+        if (markError) {
+          markError = (await db.from("import_rows").update(rowPatch).eq("id", row.id)).error;
+        }
+        if (markError) {
+          if (allAudits.length > 0) await db.from("import_audits").insert(allAudits);
+          throw publicDatabaseError(
+            markError,
+            `A linha ${String(row.row_number ?? "")} foi gravada, mas não ficou marcada. A importação parou para não a repetir; confirme o registo antes de continuar.`,
+          );
+        }
         for (const audit of result.audits) {
           allAudits.push({ import_job_id: job.id, row_id: row.id, ...audit });
         }
@@ -500,7 +511,14 @@ export const commitImportBatch = createServerFn({ method: "POST" })
     }
 
     if (allAudits.length > 0) {
-      await db.from("import_audits").insert(allAudits);
+      // Sem estes registos a importação não se pode reverter.
+      const { error: auditError } = await db.from("import_audits").insert(allAudits);
+      if (auditError) {
+        throw publicDatabaseError(
+          auditError,
+          "Linhas importadas, mas o registo para as reverter falhou. Não reverta este lote sem verificar.",
+        );
+      }
     }
 
     const remaining = (remainingAfterThis ?? 0) - (pendingRows?.length ?? 0);

@@ -69,3 +69,38 @@ describe("alunos", () => {
     expect(read("src/features/students/server.ts")).toMatch(/error: activateError/);
   });
 });
+
+describe("ano lectivo: um activo de cada vez", () => {
+  it("definições da escola fecham os outros antes de activar", () => {
+    const source = read("src/features/school/server.ts");
+    const close = source.indexOf("error: closeError");
+    const activate = source.indexOf("error: activateError");
+    expect(close).toBeGreaterThan(-1);
+    expect(activate).toBeGreaterThan(close);
+  });
+
+  it("calendário lectivo verifica o fecho do ano anterior", () => {
+    expect(read("src/features/calendar/server.ts")).toMatch(/error: closeError/);
+  });
+});
+
+describe("importação", () => {
+  const source = read("src/features/import/server.ts");
+
+  it("uma linha gravada e não marcada pára o lote (não se importa duas vezes)", () => {
+    expect(source).toMatch(/let markError = /);
+    expect(source).toMatch(/A importação parou para não a repetir/);
+  });
+
+  it("o registo para reverter é verificado", () => {
+    expect(source).toMatch(/error: auditError/);
+  });
+});
+
+describe("webhook de pagamento", () => {
+  it("fatura que não muda de estado depois do recibo fica registada", () => {
+    expect(read("src/features/finance/gateway-webhook-handler.ts")).toMatch(
+      /finance\.gateway\.invoice_status_failed/,
+    );
+  });
+});

@@ -383,11 +383,26 @@ export const updateSchoolSettings = createServerFn({ method: "POST" })
       .eq("name", data.academicYear)
       .maybeSingle();
     if (year?.id) {
-      await db
+      // Um ano activo de cada vez (como no Calendário Lectivo): o SIGA resolve o
+      // ano corrente por estado. Antes activava sem fechar o anterior e a escola
+      // podia ficar com vários anos activos.
+      const { error: closeError } = await db
+        .from("academic_years")
+        .update({ status: "closed" })
+        .eq("school_id", membership.schoolId)
+        .eq("status", "active")
+        .neq("id", year.id);
+      if (closeError) {
+        throw publicDatabaseError(closeError, "Não foi possível fechar o ano lectivo anterior.");
+      }
+      const { error: activateError } = await db
         .from("academic_years")
         .update({ status: "active" })
         .eq("id", year.id)
         .eq("school_id", membership.schoolId);
+      if (activateError) {
+        throw publicDatabaseError(activateError, "Não foi possível activar o ano lectivo.");
+      }
     }
 
     return loadSchoolSettingsBundle(db, membership.schoolId);

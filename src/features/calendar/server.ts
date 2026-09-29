@@ -248,11 +248,14 @@ export const createAcademicYear = createServerFn({ method: "POST" })
     }
 
     // Um ano activo de cada vez: o resto do SIGA resolve o ano por status.
-    await db
+    const { error: closeError } = await db
       .from("academic_years")
       .update({ status: "closed" })
       .eq("school_id", membership.schoolId)
       .eq("status", "active");
+    if (closeError) {
+      throw publicDatabaseError(closeError, "Não foi possível fechar o ano lectivo anterior.");
+    }
 
     if (existing?.id) {
       const { error } = await db
