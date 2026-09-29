@@ -30,6 +30,12 @@ import { cellKey, useGradeEditor } from "@/features/academic/use-grade-editor";
 import { ClassCourseTable, StudentDossierTable } from "@/features/academic/AssessmentViewTables";
 import { CreateAssessmentDialog } from "@/features/academic/CreateAssessmentDialog";
 import {
+  exportAssessmentDocument,
+  toPautaExportRows,
+  type AssessmentDocKind,
+  type AssessmentDocType,
+} from "@/features/academic/assessment-documents";
+import {
   AssessmentBatchBar,
   AssessmentStudentDetail,
 } from "@/features/academic/AssessmentGradeHelpers";
@@ -44,11 +50,7 @@ import {
   AssessmentFiltersPanel,
   AssessmentHistoryPanel,
 } from "@/features/academic/AssessmentCenterPanels";
-import {
-  AssessmentStat,
-  OfficialPautaView,
-  type PautaExportRow,
-} from "@/features/academic/OfficialPautaView";
+import { AssessmentStat, OfficialPautaView } from "@/features/academic/OfficialPautaView";
 import {
   buildClassCourseMap,
   buildStudentDossier,
@@ -65,17 +67,6 @@ import {
 import { runAcademicConsistencyCheck } from "@/features/academic/consistency-check";
 import { setTermLock } from "@/features/school/server";
 import { usePersistedListFilters } from "@/lib/list-filters";
-import { exportCsv } from "@/lib/export-csv";
-import { exportOfficialPautaPdf } from "@/lib/export-pdf-loader";
-import {
-  overlayActa,
-  overlayBoletim,
-  overlayMapa,
-  overlayPauta,
-  overlayServico,
-  overlayValidacao,
-} from "@/features/documents/print-overlays";
-import { issuePrintDocument } from "@/features/documents/print-issue-loader";
 import {
   annualAverage,
   formatScore,
@@ -97,8 +88,6 @@ import {
   workModes,
   type EnrollmentRow,
   type TermGradeRow,
-  type StudentListExportRow,
-  type ClassMapExportRow,
   type ClassGroupOption,
   type ClassSubjectRow,
   type SubjectOption,
@@ -585,16 +574,7 @@ export function AssessmentCenter({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [autosave, canEdit, dirtyCount]);
 
-  const officialRows: PautaExportRow[] = visibleRows.map((entry, index) => ({
-    n: String(index + 1).padStart(2, "0"),
-    aluno: entry.student.student_name,
-    proc: entry.student.registration_number ?? "",
-    mac: formatScore(entry.mac, 0),
-    npp: formatScore(entry.npp, 0),
-    npt: formatScore(entry.npt, 0),
-    media: formatScore(entry.average),
-    situacao: entry.situacao.label,
-  }));
+  const officialRows = toPautaExportRows(visibleRows);
 
   const officialMeta = {
     schoolName,
@@ -608,252 +588,23 @@ export function AssessmentCenter({
     validationCode,
   };
 
-  const pautaColumns = [
-    { label: "Nº", value: (row: PautaExportRow) => row.n },
-    { label: "Aluno", value: (row: PautaExportRow) => row.aluno },
-    { label: "Proc.", value: (row: PautaExportRow) => row.proc },
-    { label: "MAC", value: (row: PautaExportRow) => row.mac },
-    { label: "NPP", value: (row: PautaExportRow) => row.npp },
-    { label: "NPT", value: (row: PautaExportRow) => row.npt },
-    { label: "Média", value: (row: PautaExportRow) => row.media },
-    { label: "Situação", value: (row: PautaExportRow) => row.situacao },
-  ];
-
-  const printSchool = {
-    name: schoolName,
-    directorName: directorName ?? undefined,
-    academicYear,
-  };
-
-  const exportDocument = (
-    kind: "pdf" | "excel",
-    docType: "pauta" | "boletim" | "mapa" | "relacao" | "acta" | "validacao" = "pauta",
-  ) => {
-    const slug = selectedGroup?.name ?? "turma";
-    if (docType === "acta") {
-      void issuePrintDocument({
-        tipo: "Acta do conselho de notas",
-        school: printSchool,
-        overlay: overlayActa({
-          teacherName: directorName ?? undefined,
-          decisions: officialRows.map((row) => ({
-            student: String(row.aluno),
-            average: row.media,
-            decision: String(row.situacao),
-            observation: "",
-          })),
-        }),
-        fallback: () =>
-          exportOfficialPautaPdf(
-            `acta-${slug}`,
-            "Acta do conselho de notas",
-            officialMeta,
-            pautaColumns,
-            officialRows,
-          ),
-      });
-      return;
-    }
-    if (docType === "validacao") {
-      void issuePrintDocument({
-        tipo: "Relatório de validação",
-        school: printSchool,
-        overlay: overlayValidacao(
-          officialRows.map((row) => ({
-            item: `${row.aluno} · ${selectedSubject?.name ?? "Disciplina"}`,
-            status: String(row.situacao),
-            note: `MAC ${row.mac} · NPP ${row.npp} · NPT ${row.npt}`,
-          })),
-        ),
-        fallback: () =>
-          exportOfficialPautaPdf(
-            `validacao-${slug}`,
-            "Relatório de validação de notas",
-            officialMeta,
-            pautaColumns,
-            officialRows,
-          ),
-      });
-      return;
-    }
-    if (docType === "relacao") {
-      const columns = [
-        { label: "Nº", value: (row: StudentListExportRow) => row.n },
-        { label: "Aluno", value: (row: StudentListExportRow) => row.aluno },
-        { label: "Proc.", value: (row: StudentListExportRow) => row.proc },
-      ];
-      const rows: StudentListExportRow[] = officialRows.map(({ n, aluno, proc }) => ({
-        n,
-        aluno,
-        proc,
-      }));
-      if (kind === "excel") exportCsv(`relacao-${slug}`, columns, rows);
-      else {
-        void issuePrintDocument({
-          tipo: "Relação de alunos",
-          school: printSchool,
-          overlay: overlayServico({
-            name: "Relação de alunos",
-            areaLabel: "Pedagógica",
-            reference: `REL-${rows.length}`,
-            status: "Oficial",
-            parties: [
-              { label: "Turma", value: selectedGroup?.name ?? "Turma" },
-              { label: "Disciplina", value: selectedSubject?.name ?? "—" },
-            ],
-            sections: [
-              {
-                title: "Alunos",
-                rows: rows.map((row) => ({
-                  label: String(row.aluno),
-                  value: String(row.proc || "—"),
-                  note: String(row.n),
-                })),
-              },
-            ],
-          }),
-          fallback: () =>
-            exportOfficialPautaPdf(
-              `relacao-${slug}`,
-              "Relação de alunos",
-              officialMeta,
-              columns,
-              rows,
-            ),
-        });
-      }
-      return;
-    }
-    if (docType === "mapa") {
-      const columns = [
-        { label: "Classe", value: (row: ClassMapExportRow) => row.classe },
-        { label: "Curso", value: (row: ClassMapExportRow) => row.curso },
-        { label: "Turma", value: (row: ClassMapExportRow) => row.turma },
-        { label: "Alunos", value: (row: ClassMapExportRow) => row.alunos },
-        { label: "Média", value: (row: ClassMapExportRow) => row.media },
-        { label: "Transitam", value: (row: ClassMapExportRow) => row.transitam },
-        { label: "Pendentes", value: (row: ClassMapExportRow) => row.pendentes },
-      ];
-      const rows: ClassMapExportRow[] = classMap.map((row) => ({
-        classe: row.gradeName,
-        curso: row.courseName,
-        turma: row.name,
-        alunos: row.alunos,
-        media: formatScore(row.media),
-        transitam: row.transitam,
-        pendentes: row.pendentes,
-      }));
-      if (kind === "excel") exportCsv(`mapa-${slug}`, columns, rows);
-      else {
-        void issuePrintDocument({
-          tipo: "Mapa estatístico",
-          school: printSchool,
-          overlay: overlayMapa(
-            classMap.map((row) => ({
-              classGroup: row.name,
-              course: row.courseName,
-              total: row.alunos,
-              approved: row.transitam,
-              pending: row.pendentes,
-              average: formatScore(row.media),
-            })),
-          ),
-          fallback: () =>
-            exportOfficialPautaPdf(
-              `mapa-${slug}`,
-              "Mapa de aproveitamento",
-              officialMeta,
-              columns,
-              rows,
-            ),
-        });
-      }
-      return;
-    }
-    if (docType === "boletim" && selectedStudent) {
-      const columns = [
-        { label: "Disciplina", value: (row: Record<string, string | number>) => row["disciplina"] },
-        { label: "1º T", value: (row: Record<string, string | number>) => row["t1"] },
-        { label: "2º T", value: (row: Record<string, string | number>) => row["t2"] },
-        { label: "3º T", value: (row: Record<string, string | number>) => row["t3"] },
-        { label: "MFA", value: (row: Record<string, string | number>) => row["mfa"] },
-        { label: "Situação", value: (row: Record<string, string | number>) => row["situacao"] },
-      ];
-      const rows = dossier.map((row) => ({
-        disciplina: row.subjectName,
-        t1: formatScore(row.terms[0]),
-        t2: formatScore(row.terms[1]),
-        t3: formatScore(row.terms[2]),
-        mfa: formatScore(row.mfa),
-        situacao: row.situacao.label,
-      }));
-      if (kind === "excel") {
-        exportCsv(`boletim-${selectedStudent.student.student_name}`, columns, rows);
-      } else {
-        void issuePrintDocument({
-          tipo: "Boletim escolar",
-          school: printSchool,
-          student: {
-            fullName: selectedStudent.student.student_name,
-            academicNumber: selectedStudent.student.registration_number ?? "—",
-            className: selectedGroup?.name,
-            programName: selectedGroup?.grade_name,
-            validationCode,
-          },
-          overlay: overlayBoletim({
-            subjects: dossier.map((row) => ({
-              name: row.subjectName,
-              t1: formatScore(row.terms[0]),
-              t2: formatScore(row.terms[1]),
-              t3: formatScore(row.terms[2]),
-              mfa: formatScore(row.mfa),
-              status: row.situacao.label,
-            })),
-            status: selectedStudent.situacao.label,
-            average: formatScore(selectedStudent.average),
-          }),
-          fallback: () =>
-            exportOfficialPautaPdf(
-              `boletim-${selectedStudent.student.student_name}`,
-              "Boletim de avaliação",
-              { ...officialMeta, subjectName: undefined },
-              columns,
-              rows,
-            ),
-        });
-      }
-      return;
-    }
-    const title =
-      contextKind === "aluno"
-        ? "Pauta individual"
-        : contextKind === "disciplina"
-          ? "Pauta da disciplina"
-          : contextKind === "curso"
-            ? "Pauta da classe / curso"
-            : "Pauta da turma";
-    if (kind === "excel") exportCsv(`pauta-${slug}`, pautaColumns, officialRows);
-    else {
-      void issuePrintDocument({
-        tipo: contextKind === "disciplina" ? "Pauta disciplinar" : "Pauta geral da turma",
-        school: printSchool,
-        overlay: overlayPauta({
-          subjectName: selectedSubject?.name,
-          students: officialRows.map((row) => ({
-            fullName: String(row.aluno),
-            academicNumber: String(row.proc),
-            mac: row.mac,
-            npp: row.npp,
-            npt: row.npt,
-            average: row.media,
-            status: String(row.situacao),
-          })),
-        }),
-        fallback: () =>
-          exportOfficialPautaPdf(`pauta-${slug}`, title, officialMeta, pautaColumns, officialRows),
-      });
-    }
-  };
+  const exportDocument = (kind: AssessmentDocKind, docType: AssessmentDocType = "pauta") =>
+    exportAssessmentDocument(
+      {
+        contextKind,
+        group: selectedGroup,
+        subjectName: selectedSubject?.name,
+        school: { name: schoolName, directorName: directorName ?? undefined, academicYear },
+        meta: officialMeta,
+        rows: officialRows,
+        classMap,
+        dossier,
+        student: selectedStudent,
+        validationCode,
+      },
+      kind,
+      docType,
+    );
 
   const applyBatch = () => {
     const parsed = parseScore(batchValue);
