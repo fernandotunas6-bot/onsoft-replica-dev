@@ -269,6 +269,8 @@ function StudentDetail() {
   const peopleQuery = useQuery({
     queryKey: ["people", "search", ""],
     queryFn: () => searchPeople({ data: { query: "", limit: 50 } }),
+    // Só para escolher o encarregado, que é da Administração e da Secretaria.
+    enabled: canRequestDocument,
   });
   const invoicesQuery = useQuery({
     queryKey: ["finance", "invoices", "student", studentId],

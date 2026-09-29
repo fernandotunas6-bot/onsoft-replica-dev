@@ -255,8 +255,13 @@ export const searchPeople = createServerFn({ method: "GET" })
   .validator((input: unknown) => searchPeopleInputSchema.parse(input))
   .handler(async ({ data, context }) => {
     if (!context) throw new Error("Sessão inválida. Termine e volte a entrar.");
-    const membership = await resolveSgaMembershipAdmin(context.userId);
-    if (!membership) throw new Error("Sem membership activa nesta escola.");
+    // Lista toda a gente da escola com contactos, BI, data de nascimento e
+    // morada: é da Secretaria (como `findPersonDuplicates` e a ficha de pessoa).
+    // Antes bastava ser membro, e um aluno ou encarregado lia os dados de todos.
+    const membership = await requireSgaWriterFor("pessoas", context.supabase, context.userId, [
+      "Administrador",
+      "Secretaria",
+    ]);
     const db = await loadSgaAdminClient();
 
     const baseColumns =

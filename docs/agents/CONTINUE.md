@@ -4,6 +4,25 @@ Ler isto **antes** de alterar código. Ecossistema (5 apps):
 [ARCHITECTURE_HARMONIZATION.md](./ARCHITECTURE_HARMONIZATION.md).
 Depois abrir o skill do módulo em `.cursor/skills/`.
 
+## Funções do servidor só com "é membro" (2026-09-29)
+
+`resolveSgaMembershipAdmin` só confirma a pertença à escola, e isso inclui
+alunos e encarregados. Com a chave de serviço, uma função que fique por aí
+entrega tudo o que lê. Levantamento das ~90 chamadas:
+
+- **`searchPeople`** (/pessoas, ficha do aluno, matrícula) listava toda a gente
+  da escola com e-mail, telefone, BI, data de nascimento e morada a qualquer
+  membro. Passa a Administrador/Secretaria (`requireSgaWriterFor("pessoas")`,
+  como `findPersonDuplicates`). A ficha do aluno só a pede a quem pode escolher
+  encarregado.
+- **`listTeacherAttendanceSessions`**: ver a secção da auditoria de eficiência.
+- Cartões de acesso (`catracas`): já verificavam o papel, mas depois obtinham a
+  inscrição outra vez; passam a usar a da verificação.
+- As restantes 27 são estrutura da escola, dados da própria conta ou leituras
+  filtradas pelo utilizador. `tests/security/membership-only-reads.test.ts`
+  guarda a lista revista e falha com qualquer função nova que só verifique a
+  pertença.
+
 ## Escritas abertas a qualquer membro (2026-09-29)
 
 Cinco tabelas aceitavam escrita de qualquer conta da escola (aluno e
