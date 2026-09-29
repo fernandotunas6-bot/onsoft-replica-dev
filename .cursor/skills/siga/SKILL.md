@@ -52,6 +52,7 @@ Abrir o skill do módulo antes de editar (`.cursor/skills/siga-<id>/SKILL.md`).
 | Matrícula pública     | `siga-matricula`    |
 | Integrações           | `siga-integracoes`  |
 | Arquivos              | `siga-arquivos`     |
+| Desktop Tauri         | `siga-desktop`      |
 | Ecossistema 5 apps    | `siga-ecosystem`    |
 | WEB comercial         | `siga-web`          |
 | ADMIN SaaS            | `siga-admin`        |
