@@ -134,7 +134,8 @@ async function recomputeStudentAttendanceRateLegacy(
 
     if (!records || records.length === 0) return;
 
-    const rate = computeAttendanceRate(records);
+    // `status` é texto com CHECK na base; os valores são os de AttendanceStatus.
+    const rate = computeAttendanceRate(records as Array<{ status: AttendanceStatus }>);
     if (rate === null) return;
 
     await db

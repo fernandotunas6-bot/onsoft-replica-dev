@@ -158,7 +158,12 @@ async function runProvisioning(
    * ocupar o slug para sempre. Apagar por ordem inversa das dependências.
    */
   const cleanupTenant = async () => {
-    for (const table of ["saas_audit_logs", "tenant_usage", "tenant_domains", "subscriptions"]) {
+    for (const table of [
+      "saas_audit_logs",
+      "tenant_usage",
+      "tenant_domains",
+      "subscriptions",
+    ] as const) {
       await db.from(table).delete().eq("tenant_id", tenantId);
     }
     const { error } = await db.from("tenants").delete().eq("id", tenantId);

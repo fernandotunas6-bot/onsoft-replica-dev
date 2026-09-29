@@ -1,3 +1,4 @@
+import type { TablesUpdate } from "@/integrations/supabase/types";
 import { loadSgaAdminClient } from "@/integrations/supabase/sga-admin";
 import { hmacHex, signaturesMatch } from "./hmac";
 
@@ -60,8 +61,10 @@ export interface MetaWebhookEvent {
  * `read` vai para `opened`, não para `delivered`: o enum distingue os dois, e
  * colapsá-los perderia a informação mais interessante das duas.
  */
-export function mapWhatsAppStatus(metaStatus: string): string | null {
-  const map: Record<string, string> = {
+type DispatchStatus = NonNullable<TablesUpdate<"communication_dispatches">["status"]>;
+
+export function mapWhatsAppStatus(metaStatus: string): DispatchStatus | null {
+  const map: Record<string, DispatchStatus> = {
     sent: "sent",
     delivered: "delivered",
     read: "opened",
@@ -108,7 +111,7 @@ export async function handleWhatsAppWebhook(payload: MetaWebhookEvent): Promise<
         }
 
         // Preparar update
-        const updatePayload: Record<string, unknown> = {
+        const updatePayload: TablesUpdate<"communication_dispatches"> = {
           status: newStatus,
           updated_at: new Date().toISOString(),
         };

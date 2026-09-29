@@ -4,6 +4,28 @@ Ler isto **antes** de alterar código. Ecossistema (5 apps):
 [ARCHITECTURE_HARMONIZATION.md](./ARCHITECTURE_HARMONIZATION.md).
 Depois abrir o skill do módulo em `.cursor/skills/`.
 
+## Cliente do SGA tipado (2026-09-29)
+
+`sgaClient()` (`src/integrations/supabase/sga.ts`) devolve agora
+`SupabaseClient<Database>`: nomes de colunas, valores de CHECK e argumentos de RPC
+passam pelo `tsc` (103 erros corrigidos; 0 agora). Regras:
+- payloads com `TablesInsert<"t">` / `TablesUpdate<"t">`, não `Record<string, unknown>`;
+- RPC com `rpcArgs("fn", {...})` (aceita `null` nos argumentos opcionais);
+- tabela só conhecida em runtime (rollback do importador): `dynamicTablesClient(db)`.
+
+Bugs reais que a tipagem revelou (todos corrigidos):
+- criar turma falhava sem campus: `class_groups.campus_id` é NOT NULL e 49 de 91
+  escolas não têm campus. `defaultCampusId()` cria "SEDE / Campus Principal";
+- criar disciplina falhava sempre: gravava `subjects.weekly_hours`, que não existe.
+  A carga horária vive em `class_subjects.weekly_periods` e é calculada na lista;
+- desactivar turma gravava "inactive" (é "archived");
+- pedido de documento sem `purpose` (NOT NULL);
+- bootstrap da escola: turma e disciplinas de exemplo sem `created_by` / campus;
+- domínios da escola consultados com `schoolId` indefinido.
+
+Por decidir: o formulário de nova disciplina envia carga, classe de/até e professor,
+que não se guardam na disciplina (atribuem-se por turma em `class_subjects`).
+
 ## Auditoria de produção e correcções (2026-09-29)
 
 Repositório **público** desde 29/09 (minutos de Actions esgotados no plano grátis).

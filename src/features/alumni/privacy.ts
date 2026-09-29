@@ -1,3 +1,4 @@
+import type { TablesInsert } from "@/integrations/supabase/types";
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
@@ -113,7 +114,7 @@ export const updateMyAlumniPrivacy = createServerFn({ method: "POST" })
         "Não foi possível guardar as preferências de comunicação.",
       );
 
-    const auditRows: Array<Record<string, unknown>> = [
+    const auditRows: TablesInsert<"alumni_privacy_audit">[] = [
       {
         school_id: membership.schoolId,
         alumni_id: profile.id,

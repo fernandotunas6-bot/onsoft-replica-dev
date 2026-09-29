@@ -57,6 +57,8 @@ type TeacherAssignment = {
   class_group_id: string;
   subject_id: string;
   teacher_id: string;
+  /** Tempos lectivos por semana desta disciplina nesta turma. */
+  weekly_periods: number;
 };
 
 type TeacherScope = {
@@ -183,7 +185,7 @@ async function resolveTeacherScope(
 
   const { data: assignmentRows, error: assignmentError } = await db
     .from("class_subjects")
-    .select("id, class_group_id, subject_id, teacher_id")
+    .select("id, class_group_id, subject_id, teacher_id, weekly_periods")
     .eq("school_id", schoolId)
     .eq("teacher_id", teacherId)
     .eq("status", "active");
@@ -199,6 +201,7 @@ async function resolveTeacherScope(
     class_group_id: String(row.class_group_id),
     subject_id: String(row.subject_id),
     teacher_id: String(row.teacher_id),
+    weekly_periods: Number(row.weekly_periods ?? 0),
   }));
   const classGroupIds = [...new Set(assignments.map((row) => row.class_group_id))];
   const subjectIds = [...new Set(assignments.map((row) => row.subject_id))];
@@ -860,20 +863,34 @@ export const listPedagogicalWorkspace = createServerFn({ method: "GET" })
 
     const subjectRows = (subjects ?? []).map((subject) => {
       const stats = subjectPassRates.get(String(subject.id));
+      // `subjects` não tem carga semanal nem classes: vêm das turmas atribuídas ao
+      // professor (tempos lectivos em `class_subjects.weekly_periods`, classe pela
+      // `sequence` de `grade_levels`). Antes lia colunas inexistentes e mostrava "—".
+      const subjectAssignments = assignments.filter(
+        (assignment) => assignment.subject_id === String(subject.id),
+      );
+      const weeklyPeriods = subjectAssignments.reduce(
+        (total, assignment) => total + assignment.weekly_periods,
+        0,
+      );
+      const gradeSequences = subjectAssignments
+        .map((assignment) => groupById.get(assignment.class_group_id)?.grade_level_id)
+        .map((gradeId) => (gradeId ? gradeById.get(String(gradeId))?.sequence : undefined))
+        .filter((value): value is number => typeof value === "number" && Number.isFinite(value));
       return {
         id: String(subject.id),
         name: String(subject.name ?? ""),
         code: String(subject.code ?? ""),
         teacher_name: scope.teacherName || null,
-        weekly_hours: Number(subject.weekly_hours ?? 0),
-        grade_from: Number.isFinite(Number(subject.grade_from)) ? Number(subject.grade_from) : null,
-        grade_to: Number.isFinite(Number(subject.grade_to)) ? Number(subject.grade_to) : null,
+        weekly_hours: weeklyPeriods,
+        grade_from: gradeSequences.length ? Math.min(...gradeSequences) : null,
+        grade_to: gradeSequences.length ? Math.max(...gradeSequences) : null,
         classes_label:
           assignments
             .filter((assignment) => assignment.subject_id === String(subject.id))
             .map((assignment) => String(groupById.get(assignment.class_group_id)?.name ?? "Turma"))
             .join(", ") || "—",
-        weekly_hours_label: subject.weekly_hours ? `${Number(subject.weekly_hours)} h/semana` : "—",
+        weekly_hours_label: weeklyPeriods ? `${weeklyPeriods} tempos/semana` : "—",
         approval_rate:
           stats && stats.total > 0 ? Math.round((stats.pass / stats.total) * 100) : null,
       };

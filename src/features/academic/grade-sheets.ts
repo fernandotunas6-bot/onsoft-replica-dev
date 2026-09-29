@@ -14,7 +14,7 @@ import {
   requireSgaWriterFor,
   requireSgaWriterForWrite,
 } from "@/integrations/supabase/sga-admin";
-import { sgaClient } from "@/integrations/supabase/sga";
+import { sgaClient, rpcArgs } from "@/integrations/supabase/sga";
 import {
   GRADE_SHEET_STATUSES,
   PRE_PAUTA_GATED_STATUSES,
@@ -458,12 +458,15 @@ export const buildGradeSheet = createServerFn({ method: "POST" })
         "Esta pauta já foi homologada ou publicada: não se recalcula. Reabra-a para rectificação primeiro.",
       );
     }
-    const { data: result, error } = await sgaClient(context.supabase).rpc("build_grade_sheet", {
-      school_id: membership.schoolId,
-      class_group_id: data.classGroupId,
-      term_id: data.termId,
-      kind: data.kind,
-    });
+    const { data: result, error } = await sgaClient(context.supabase).rpc(
+      "build_grade_sheet",
+      rpcArgs("build_grade_sheet", {
+        school_id: membership.schoolId,
+        class_group_id: data.classGroupId,
+        term_id: data.termId,
+        kind: data.kind,
+      }),
+    );
     if (error) throw publicDatabaseError(error, "Não foi possível gerar a pauta.");
     return result as { gradeSheetId: string; status: string };
   });
@@ -513,12 +516,13 @@ export const transitionGradeSheet = createServerFn({ method: "POST" })
         );
       }
     }
-    const { error } = await sgaClient(context.supabase).rpc("transition_grade_sheet", {
+    const args = rpcArgs("transition_grade_sheet", {
       school_id: membership.schoolId,
       grade_sheet_id: data.sheetId,
       status: data.status,
       reason: data.reason ?? null,
     });
+    const { error } = await sgaClient(context.supabase).rpc("transition_grade_sheet", args);
     if (error) throw publicDatabaseError(error, "Não foi possível mudar o estado da pauta.");
 
     let notified = 0;

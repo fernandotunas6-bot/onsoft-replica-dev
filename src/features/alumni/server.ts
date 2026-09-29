@@ -1,3 +1,4 @@
+import type { TablesUpdate } from "@/integrations/supabase/types";
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { publicDatabaseError } from "@/integrations/supabase/server-error";
@@ -569,7 +570,7 @@ export const updateMentorshipStatus = createServerFn({ method: "POST" })
     if (!context) throw new Error("Sessão inválida. Termine e volte a entrar.");
     const membership = await requireSgaWriterForWrite("pessoas", context.userId);
     const db = await loadSgaAdminClient();
-    const patch: Record<string, unknown> = {
+    const patch: TablesUpdate<"alumni_mentorships"> = {
       status: data.status,
       updated_at: new Date().toISOString(),
     };

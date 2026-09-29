@@ -1,3 +1,4 @@
+import type { Json } from "@/integrations/supabase/types";
 import {
   IMessageDeliveryAdapter,
   OtpChannel,
@@ -238,7 +239,7 @@ export class OtpDispatcher {
         subject_or_template: "OTP Verification",
         status: params.status,
         error_details: params.errorDetails ?? null,
-        metadata: params.metadata ?? {},
+        metadata: (params.metadata ?? {}) as Json,
       });
     } catch {
       // Best-effort: não interromper o fluxo se a escrita de log falhar

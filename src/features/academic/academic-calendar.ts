@@ -1,3 +1,4 @@
+import { rpcArgs } from "@/integrations/supabase/sga";
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
@@ -141,15 +142,18 @@ export const saveAcademicCalendar = createServerFn({ method: "POST" })
     );
     const db = await loadSgaAdminClient();
 
-    const { data: academicYearId, error } = await db.rpc("save_academic_calendar", {
-      p_school_id: membership.schoolId,
-      p_actor_id: context.userId,
-      p_academic_year_id: data.academicYearId ?? null,
-      p_year_name: data.yearName,
-      p_starts_on: data.startsOn,
-      p_ends_on: data.endsOn,
-      p_terms: data.terms,
-    });
+    const { data: academicYearId, error } = await db.rpc(
+      "save_academic_calendar",
+      rpcArgs("save_academic_calendar", {
+        p_school_id: membership.schoolId,
+        p_actor_id: context.userId,
+        p_academic_year_id: data.academicYearId ?? null,
+        p_year_name: data.yearName,
+        p_starts_on: data.startsOn,
+        p_ends_on: data.endsOn,
+        p_terms: data.terms,
+      }),
+    );
     if (error) {
       throw publicDatabaseError(error, "Não foi possível guardar o calendário académico.");
     }
