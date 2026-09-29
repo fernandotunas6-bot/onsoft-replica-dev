@@ -44,7 +44,7 @@ import { InstalledModuleTools } from "@/features/integrations/InstalledModuleToo
 import { PickFileButton } from "@/features/arquivos/PickFileButton";
 import { meetingRoomLink } from "@/features/integrations/actions";
 import { useInstalledIntegrations } from "@/features/integrations/use-installed-integrations";
-import { ClassGroupSheet } from "@/features/academic/ClassGroupSheet";
+import { CAMPUS_AUTOMATICO, ClassGroupSheet } from "@/features/academic/ClassGroupSheet";
 import { TurmaProfileModal } from "@/features/academic/components/TurmaProfileModal";
 import { GradePautaSheet } from "@/features/academic/GradePautaSheet";
 import { ScheduleWorkspace } from "@/features/academic/schedule/ScheduleWorkspace";
@@ -329,7 +329,9 @@ function PedagogicaPage() {
   );
   const yearOptions = academicYears.map((year) => optionLabel(year.id, year.name));
   const gradeOptions = visibleGradeLevels.map((grade) => optionLabel(grade.id, grade.name));
-  const roomOptions = ["Sem sala", ...rooms.map((room) => optionLabel(room.id, room.name))];
+  // "rooms" do espaço pedagógico são os campus (`campuses`). A primeira opção deixa o
+  // servidor escolher: o primeiro campus activo, ou o "Campus Principal" criado na hora.
+  const roomOptions = [CAMPUS_AUTOMATICO, ...rooms.map((room) => optionLabel(room.id, room.name))];
   const subjectOptions = subjects.map((subject) => optionLabel(subject.id, subject.name));
   const teachers = teachersQuery.data ?? [];
   const teacherOptions = teachers.map((teacher) => optionLabel(teacher.id, teacher.full_name));

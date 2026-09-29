@@ -1,6 +1,15 @@
 import { useMemo, useState } from "react";
 import { Link } from "@tanstack/react-router";
-import { BookOpen, Calendar, GraduationCap, Pencil, Trash2, UserPlus, Users } from "lucide-react";
+import {
+  BookOpen,
+  Calendar,
+  GraduationCap,
+  Pencil,
+  RotateCcw,
+  Trash2,
+  UserPlus,
+  Users,
+} from "lucide-react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -21,6 +30,7 @@ import {
   type PedagogicalWorkspace,
 } from "@/features/academic/server";
 import { isClassTeacherLevel } from "@/lib/academic-nav";
+import { errorMessage } from "@/lib/error-message";
 import { useSchoolSettings } from "@/features/auth/use-school-settings";
 import { useDeclareEntityFocus } from "@/features/intelligence/entity-focus-context";
 import { mapClassGroupToSnapshot } from "@/features/intelligence/classes/class-relations-adapter";
@@ -58,6 +68,7 @@ export function TurmaProfileModal({
 }) {
   const [activeTab, setActiveTab] = useState("resumo");
   const [editOpen, setEditOpen] = useState(false);
+  const [reactivating, setReactivating] = useState(false);
   const [assignOpen, setAssignOpen] = useState(false);
   const [applyingCurriculum, setApplyingCurriculum] = useState(false);
   const { school } = useSchoolSettings();
@@ -205,18 +216,54 @@ export function TurmaProfileModal({
             >
               <Pencil className="size-3.5" /> Editar
             </Button>
+            {turma.status !== "active" ? (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="gap-1.5"
+                disabled={reactivating}
+                onClick={async () => {
+                  setReactivating(true);
+                  try {
+                    await updateClassGroup({
+                      data: {
+                        id: turma.id,
+                        code: turma.code,
+                        name: turma.name,
+                        shift: (["morning", "afternoon", "evening"].includes(turma.shift)
+                          ? turma.shift
+                          : "morning") as "morning" | "afternoon" | "evening",
+                        capacity: turma.capacity ?? undefined,
+                        status: "active",
+                      },
+                    });
+                    await onRefresh();
+                    toast.success("Turma reactivada.");
+                  } catch (err) {
+                    toast.error(errorMessage(err, "Não foi possível reactivar a turma."));
+                  } finally {
+                    setReactivating(false);
+                  }
+                }}
+              >
+                <RotateCcw className="size-3.5" /> Reactivar
+              </Button>
+            ) : null}
             <ConfirmActionModal
-              trigger={(openConfirm) => (
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  className="gap-1.5 text-destructive"
-                  onClick={openConfirm}
-                >
-                  <Trash2 className="size-3.5" /> Desactivar
-                </Button>
-              )}
+              trigger={(openConfirm) =>
+                turma.status === "active" ? (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="gap-1.5 text-destructive"
+                    onClick={openConfirm}
+                  >
+                    <Trash2 className="size-3.5" /> Desactivar
+                  </Button>
+                ) : null
+              }
               eyebrow="Turma"
               title="Desactivar esta turma?"
               description={`"${turma.name}" será marcada como inactiva. ${turma.enrolled_count > 0 ? `Tem ${turma.enrolled_count} aluno(s) matriculado(s) — a operação será recusada até transferir ou anular essas matrículas.` : "Não tem matrículas activas."}`}
@@ -284,8 +331,8 @@ export function TurmaProfileModal({
                     <dd className="mt-0.5 text-sm font-medium">{turma.code}</dd>
                   </div>
                   <div>
-                    <dt className="text-muted-foreground">Sala</dt>
-                    <dd className="mt-0.5 text-sm font-medium">{turma.room_name || "Sem sala"}</dd>
+                    <dt className="text-muted-foreground">Campus</dt>
+                    <dd className="mt-0.5 text-sm font-medium">{turma.room_name || "—"}</dd>
                   </div>
                   {turma.whatsapp_invite_url ? (
                     <div className="sm:col-span-2">
@@ -516,7 +563,6 @@ function TurmaEditSubModal({
           shift: (shiftValueMap[shift] ?? "morning") as "morning" | "afternoon" | "evening",
           capacity: Number(capacity) || undefined,
           roomId: turma.campus_id ?? undefined,
-          status: turma.status === "inactive" ? "inactive" : "active",
           whatsappInviteUrl: whatsappInviteUrl.trim() || undefined,
           whatsappGroupName: whatsappGroupName.trim() || undefined,
         },

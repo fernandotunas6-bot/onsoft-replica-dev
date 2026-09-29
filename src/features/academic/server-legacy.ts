@@ -772,16 +772,32 @@ export const updateClassGroup = createServerFn({ method: "POST" })
       ["Administrador", "Secretaria"],
     );
     const db = await loadSgaAdminClient();
+    // `normalize_class_group` torna o campus imutável ("Identidade académica da
+    // turma é imutável."): mudar de campus é criar outra turma. Recusar aqui com
+    // uma mensagem clara em vez do erro genérico da base.
+    if (data.roomId) {
+      const { data: current, error: currentError } = await db
+        .from("class_groups")
+        .select("campus_id")
+        .eq("id", data.id)
+        .eq("school_id", membership.schoolId)
+        .maybeSingle();
+      if (currentError) throw publicDatabaseError(currentError, "Não foi possível ler a turma.");
+      if (!current) throw new Error("Turma não encontrada.");
+      if (current.campus_id !== data.roomId) {
+        throw new Error(
+          "O campus de uma turma não pode mudar depois de criada. Crie a turma no outro campus e transfira as matrículas.",
+        );
+      }
+    }
     const payload = {
       code: data.code,
       name: data.name,
       shift: data.shift,
       capacity: data.capacity ?? 30,
-      // "Sem sala" mantém o campus actual: `campus_id` é NOT NULL.
-      ...(data.roomId ? { campus_id: data.roomId } : {}),
       // O formulário oferece activa/inactiva; `class_groups.status` só aceita
       // draft/active/closed/archived, e "inactive" era recusado.
-      status: data.status === "inactive" ? "archived" : data.status,
+      ...(data.status ? { status: data.status === "inactive" ? "archived" : "active" } : {}),
       whatsapp_invite_url: data.whatsappInviteUrl ?? null,
       whatsapp_group_name: data.whatsappGroupName ?? null,
       updated_by: context.userId,

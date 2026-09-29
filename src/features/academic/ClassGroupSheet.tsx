@@ -6,11 +6,15 @@ import {
   SheetGrid,
 } from "@/components/modals/SequentialSheetModal";
 import { createClassGroup } from "@/features/academic/server";
+import { normalizeClassGroupCode } from "@/features/academic/schemas";
 import { useInstalledIntegrations } from "@/features/integrations/use-installed-integrations";
+
+/** Primeira opção do campus: o servidor usa o campus principal (ou cria-o). */
+export const CAMPUS_AUTOMATICO = "Campus principal (automático)";
 
 const steps = [
   { id: "identidade", label: "Turma", description: "Nome, código e enquadramento lectivo." },
-  { id: "sala", label: "Sala e turno", description: "Capacidade, sala e período do dia." },
+  { id: "sala", label: "Campus e turno", description: "Campus, capacidade e período do dia." },
   { id: "whatsapp", label: "WhatsApp", description: "Sala da turma no WhatsApp (opcional)." },
   { id: "revisao", label: "Revisão", description: "Confirme antes de gravar." },
 ];
@@ -51,15 +55,21 @@ export function ClassGroupSheet({
     nome: "",
     codigo: "",
     classe: gradeOptions[0] ?? "",
-    sala: "Sem sala",
+    sala: CAMPUS_AUTOMATICO,
     turno: "Manhã",
     capacidade: "35",
     whatsappNome: "",
     whatsapp: "",
   });
 
+  // O código acompanha a designação até alguém o editar à mão ("10ª C" → "10-C").
+  const [codeTouched, setCodeTouched] = useState(false);
   const set = (key: keyof typeof values, value: string) =>
-    setValues((current) => ({ ...current, [key]: value }));
+    setValues((current) => ({
+      ...current,
+      [key]: value,
+      ...(key === "nome" && !codeTouched ? { codigo: normalizeClassGroupCode(value) } : {}),
+    }));
 
   const resolveId = (options: string[], selected: string, ids: string[]) => {
     const index = options.indexOf(selected);
@@ -87,15 +97,23 @@ export function ClassGroupSheet({
           const academicYearId = resolveId(yearOptions, values.ano, yearIds);
           const gradeLevelId = resolveId(gradeOptions, values.classe, gradeIds);
           const roomId =
-            values.sala === "Sem sala"
+            values.sala === CAMPUS_AUTOMATICO
               ? undefined
               : resolveId(
-                  roomOptions.filter((item) => item !== "Sem sala"),
+                  roomOptions.filter((item) => item !== CAMPUS_AUTOMATICO),
                   values.sala,
                   roomIds,
                 );
           if (!academicYearId || !gradeLevelId) {
             throw new Error("Seleccione ano lectivo e classe.");
+          }
+          if (values.nome.trim().length < 2) {
+            throw new Error("Indique a designação da turma (ex.: 10ª C).");
+          }
+          if (!/^[A-Z0-9_-]{2,30}$/.test(normalizeClassGroupCode(values.codigo))) {
+            throw new Error(
+              "Código da turma: 2 a 30 caracteres, só letras, números, - ou _ (ex.: 10C).",
+            );
           }
           const capacity = Number(values.capacidade || 35);
           await createClassGroup({
@@ -112,6 +130,7 @@ export function ClassGroupSheet({
             },
           });
           await onCreated();
+          setCodeTouched(false);
           setValues((current) => ({
             ...current,
             nome: "",
@@ -151,7 +170,11 @@ export function ClassGroupSheet({
                     aria-label="Código"
                     className={fieldClass}
                     value={values.codigo}
-                    onChange={(event) => set("codigo", event.target.value)}
+                    onChange={(event) => {
+                      setCodeTouched(true);
+                      set("codigo", event.target.value.toUpperCase());
+                    }}
+                    onBlur={() => set("codigo", normalizeClassGroupCode(values.codigo))}
                     placeholder="Ex.: 10C"
                   />
                 </SheetCell>
@@ -171,9 +194,9 @@ export function ClassGroupSheet({
             ) : null}
             {stepId === "sala" ? (
               <>
-                <SheetCell label="Sala">
+                <SheetCell label="Campus">
                   <select
-                    aria-label="Sala"
+                    aria-label="Campus"
                     className={fieldClass}
                     value={values.sala}
                     onChange={(event) => set("sala", event.target.value)}
@@ -244,13 +267,14 @@ export function ClassGroupSheet({
               <SheetCell label="Resumo" full>
                 <ul className="space-y-1 text-sm">
                   <li>
-                    <strong>{values.nome || "Sem nome"}</strong> · {values.codigo || "sem código"}
+                    <strong>{values.nome || "Sem nome"}</strong> ·{" "}
+                    {normalizeClassGroupCode(values.codigo) || "sem código"}
                   </li>
                   <li>
                     {values.classe} · {values.turno}
                   </li>
                   <li>
-                    Sala: {values.sala} · Capacidade: {values.capacidade}
+                    Campus: {values.sala} · Capacidade: {values.capacidade}
                   </li>
                   {whatsappOn ? (
                     <li>WhatsApp: {values.whatsappNome || values.whatsapp || "não ligado"}</li>
