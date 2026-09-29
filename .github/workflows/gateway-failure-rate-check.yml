@@ -1,9 +1,10 @@
-name: Gateway — taxa de falha (horário)
+name: Gateway — taxa de falha (6 em 6 horas)
 
 on:
   schedule:
-    # De hora a hora — alerta se taxa 24h exceder limiar (secrets opcionais)
-    - cron: "0 * * * *"
+    # De 6 em 6 horas: a taxa é calculada sobre 24 h, e de hora a hora gastava
+    # ~720 execuções por mês. Alerta se exceder o limiar (secrets opcionais).
+    - cron: "17 */6 * * *"
   workflow_dispatch:
 
 concurrency:

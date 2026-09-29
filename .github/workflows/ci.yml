@@ -5,7 +5,9 @@ on:
   # (evita double-run e minutos duplicados no plano Free).
   push:
     branches: [main]
+    paths-ignore: ["**/*.md", "docs/**"]
   pull_request:
+    paths-ignore: ["**/*.md", "docs/**"]
   schedule:
     # Scan de segurança semanal (segundas, 04:00 UTC)
     - cron: "0 4 * * 1"
@@ -18,10 +20,16 @@ on:
 env:
   BASE_URL: http://localhost:3006
 
+# Um push novo num PR cancela a execução anterior do mesmo PR (na main nunca).
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
   security:
     name: Auditoria de dependências (falha em alta/crítica)
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
 
@@ -50,6 +58,7 @@ jobs:
   quality:
     name: Estilo, acessibilidade e build
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
         with:
@@ -101,6 +110,7 @@ jobs:
   coverage:
     name: Cobertura IconChip / MediaFrame por rota
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     needs: quality
     steps:
       - uses: actions/checkout@v4
@@ -141,7 +151,10 @@ jobs:
   lighthouse:
     name: Lighthouse CI (FCP / LCP / INP) + PWA
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     needs: quality
+    # Pesado (browser + servidor): só na main e no agendamento, não em cada PR.
+    if: github.event_name != 'pull_request'
     steps:
       - uses: actions/checkout@v4
 
@@ -177,7 +190,10 @@ jobs:
   visual:
     name: Regressão visual (Minimals)
     runs-on: ubuntu-latest
+    timeout-minutes: 25
     needs: quality
+    # Pesado (browser + servidor): só na main e no agendamento, não em cada PR.
+    if: github.event_name != 'pull_request'
     steps:
       - uses: actions/checkout@v4
 
@@ -226,7 +242,10 @@ jobs:
   ecosystem-e2e:
     name: Ecossistema — smoke E2E (Fase 13)
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     needs: quality
+    # Pesado (browser + servidor): só na main e no agendamento, não em cada PR.
+    if: github.event_name != 'pull_request'
     steps:
       - uses: actions/checkout@v4
 
@@ -323,6 +342,7 @@ jobs:
     needs: ecosystem-e2e
     if: failure() && needs.ecosystem-e2e.result == 'failure'
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     steps:
       - uses: actions/checkout@v4
 
