@@ -268,7 +268,7 @@ export const recordClassFinalResults = createServerFn({ method: "POST" })
     // do índice único (vem de uma migração Lovable que pode não estar aplicada).
     const { data: existing, error: existingError } = await db
       .from("student_academic_history")
-      .select("id, student_id, outcome, final_average")
+      .select("id, student_id, outcome, final_average, created_by")
       .eq("school_id", schoolId)
       .eq("academic_year_label", ctx.yearLabel)
       .eq("grade_level", ctx.gradeLevel)
@@ -279,61 +279,89 @@ export const recordClassFinalResults = createServerFn({ method: "POST" })
     if (existingError) {
       throw publicDatabaseError(existingError, "Não foi possível ler o histórico académico.");
     }
-    const existingId = new Map(
-      ((existing ?? []) as Row[]).map((e) => [str(e.student_id), str(e.id)]),
-    );
-    const inserts = rows.filter((r) => !existingId.has(r.student_id));
+    const previous = new Map(((existing ?? []) as Row[]).map((e) => [str(e.student_id), e]));
+    const inserts = rows.filter((r) => !previous.has(r.student_id));
     if (inserts.length) {
       const { error } = await db.from("student_academic_history").insert(inserts);
       if (error) {
         throw publicDatabaseError(error, "Não foi possível registar no histórico académico.");
       }
     }
-    const previous = new Map(((existing ?? []) as Row[]).map((e) => [str(e.student_id), e]));
     const rectified: Parameters<typeof recordAuditBatch>[0] = [];
-    for (const r of rows.filter((row) => existingId.has(row.student_id))) {
+    const updates: Row[] = [];
+    for (const r of rows) {
       const before = previous.get(r.student_id);
-      const beforeAverage = numOrNull(before?.final_average);
-      if (str(before?.outcome) !== str(r.outcome) || beforeAverage !== r.final_average) {
+      if (!before) continue;
+      const beforeAverage = numOrNull(before.final_average);
+      if (str(before.outcome) !== str(r.outcome) || beforeAverage !== r.final_average) {
         rectified.push({
           schoolId,
           actorUserId: context.userId,
           action: "student_academic_history.rectified",
           entityType: "student_academic_history",
-          entityId: existingId.get(r.student_id)!,
+          entityId: str(before.id),
           metadata: {
-            before: { outcome: before?.outcome ?? null, final_average: beforeAverage },
+            before: { outcome: before.outcome ?? null, final_average: beforeAverage },
             after: { outcome: r.outcome, final_average: r.final_average },
             grade_sheet_id: r.grade_sheet_id,
           },
         });
       }
+      // Linha completa: o upsert verifica NOT NULL antes de ver o conflito.
+      // O autor original mantém-se; a rectificação fica em `updated_by`.
+      updates.push({
+        ...r,
+        id: str(before.id),
+        created_by: before.created_by ?? null,
+        updated_by: context.userId,
+      });
+    }
+    // Uma escrita para todos os registos já existentes (antes era uma por aluno).
+    if (updates.length) {
       const { error } = await db
         .from("student_academic_history")
-        .update({
-          final_average: r.final_average,
-          outcome: r.outcome,
-          notes: r.notes,
-          enrollment_id: r.enrollment_id,
-          grade_sheet_id: r.grade_sheet_id,
-          subject_results: r.subject_results,
-          absence_percentage: r.absence_percentage,
-          updated_by: context.userId,
-        })
-        .eq("school_id", schoolId)
-        .eq("id", existingId.get(r.student_id)!);
+        .upsert(updates, { onConflict: "id" });
       if (error) {
         throw publicDatabaseError(error, "Não foi possível actualizar o histórico académico.");
       }
     }
 
-    for (const l of lines) {
-      if (l.after.average == null) continue;
-      await db
+    // Média final na matrícula: só as que mudam (o gatilho de auditoria regista
+    // cada alteração) e uma escrita por valor distinto, com erro verificado.
+    const withAverage = lines.filter((l) => l.after.average != null && l.enrollmentId);
+    if (withAverage.length) {
+      const { data: current, error: currentError } = await db
         .from("enrollments")
-        .update({ final_average: l.after.average, updated_by: context.userId })
+        .select("id, final_average")
         .eq("school_id", schoolId)
-        .eq("id", l.enrollmentId);
+        .in(
+          "id",
+          withAverage.map((l) => l.enrollmentId),
+        );
+      if (currentError) {
+        throw publicDatabaseError(currentError, "Não foi possível ler as matrículas.");
+      }
+      const currentAverage = new Map(
+        ((current ?? []) as Row[]).map((e) => [str(e.id), numOrNull(e.final_average)]),
+      );
+      const byAverage = new Map<number, string[]>();
+      for (const l of withAverage) {
+        if (!currentAverage.has(l.enrollmentId)) continue;
+        if (currentAverage.get(l.enrollmentId) === l.after.average) continue;
+        const ids = byAverage.get(l.after.average!) ?? [];
+        ids.push(l.enrollmentId);
+        byAverage.set(l.after.average!, ids);
+      }
+      for (const [average, ids] of byAverage) {
+        const { error } = await db
+          .from("enrollments")
+          .update({ final_average: average, updated_by: context.userId })
+          .eq("school_id", schoolId)
+          .in("id", ids);
+        if (error) {
+          throw publicDatabaseError(error, "Não foi possível gravar a média final na matrícula.");
+        }
+      }
     }
     // Rectificações: o valor anterior fica no registo de auditoria.
     await recordAuditBatch(rectified);

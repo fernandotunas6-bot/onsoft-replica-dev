@@ -51,9 +51,18 @@ ignorava todos os erros. Agora:
 
 `tests/security/batch-writes.test.ts` guarda as duas correcções.
 
-A seguir: `final-results.ts:275/286`, `exams.ts:579` e
-`finance/server.ts:1660`. `batchUpdateStudentStatus` ainda actualiza aluno a
-aluno, mas verifica o histórico e está limitado a 100.
+Tratados a 2026-09-29 (`tests/security/batch-writes.test.ts`):
+- `recordClassFinalResults` (registar a pauta anual no histórico): as
+  rectificações passam a um upsert por `id` com a linha completa (o autor
+  original fica em `created_by`, quem rectifica em `updated_by`). A média na
+  matrícula só se escreve quando muda, uma escrita por valor distinto e com
+  erro verificado (antes era uma por aluno e os erros perdiam-se).
+- `saveExamScores`: valida todas as notas antes de escrever (antes gravava
+  metade e falhava a meio), lê as pautas numa consulta e grava num só upsert.
+  Faltas e notas apagadas já não exigem regra de avaliação.
+
+`finance/server.ts:1660` fica: são sempre dois itens. `batchUpdateStudentStatus`
+ainda actualiza aluno a aluno, mas verifica o histórico e está limitado a 100.
 
 ## Registos do Auth: Google e captcha (2026-09-28)
 

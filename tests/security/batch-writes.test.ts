@@ -82,3 +82,29 @@ describe("pedidos de acesso: a escola é avisada", () => {
     expect(body(source, "reviewAccessRequest")).toMatch(/access_request\.approved/);
   });
 });
+
+describe("histórico académico: registar a pauta anual", () => {
+  const fn = body(read("src/features/academic/final-results.ts"), "recordClassFinalResults");
+
+  it("rectificações numa só escrita, mantendo o autor original", () => {
+    expect(fn).not.toMatch(/for \(const r of rows[^\n]*\)[\s\S]{0,1500}\.update\(/);
+    expect(fn).toMatch(/\.upsert\(updates, \{ onConflict: "id" \}\)/);
+    expect(fn).toMatch(/created_by: before\.created_by/);
+  });
+
+  it("média da matrícula: só as que mudam, com erro verificado", () => {
+    expect(fn).not.toMatch(/for \(const l of lines\)/);
+    expect(fn).toMatch(/\.in\("id", ids\)/);
+    expect(fn).toMatch(/Não foi possível gravar a média final na matrícula/);
+  });
+});
+
+describe("notas de exame", () => {
+  const fn = body(read("src/features/academic/exams.ts"), "saveExamScores");
+
+  it("valida todas as notas antes de escrever e grava numa só escrita", () => {
+    expect(fn).toMatch(/\.upsert\(rows, \{ onConflict: "id" \}\)/);
+    expect(fn.indexOf("A nota do exame fica entre")).toBeLessThan(fn.indexOf(".upsert("));
+    expect(fn).not.toMatch(/for \(const entry of data\.entries\)/);
+  });
+});
