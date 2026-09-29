@@ -48,9 +48,11 @@ export function AuthHeroSlides() {
               aria-hidden={i !== index}
               className={`absolute inset-x-0 bottom-0 transition-all duration-700 ease-out ${offset}`}
             >
-              <p className="text-xs font-semibold opacity-80">{s.eyebrow}</p>
-              <h1 className="mt-4 font-display text-4xl font-extrabold leading-tight">{s.title}</h1>
-              <p className="mt-4 max-w-lg text-sm leading-6 opacity-85">{s.text}</p>
+              <p className="text-xs font-medium text-sidebar-muted">{s.eyebrow}</p>
+              <h1 className="mt-3 font-display text-3xl font-semibold leading-tight tracking-tight xl:text-4xl">
+                {s.title}
+              </h1>
+              <p className="mt-4 max-w-lg text-sm leading-6 text-sidebar-foreground/70">{s.text}</p>
             </div>
           );
         })}
@@ -66,7 +68,7 @@ export function AuthHeroSlides() {
             className="flex h-[24px] min-w-[24px] items-center justify-center"
           >
             <span
-              className={`block h-1.5 rounded-full bg-primary-foreground transition-all duration-500 ${i === index ? "w-6 opacity-90" : "w-1.5 opacity-40"}`}
+              className={`block h-1.5 rounded-full bg-sidebar-foreground transition-all duration-500 ${i === index ? "w-6 opacity-90" : "w-1.5 opacity-40"}`}
             />
           </button>
         ))}

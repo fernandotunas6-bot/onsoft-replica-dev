@@ -12,7 +12,7 @@ import {
   consumeSessionExpiredFlag,
   reportPossibleSessionError,
 } from "@/lib/session-expiry";
-import { SigaLogo } from "@/components/ui/siga-logo";
+import { SigaLogo, SigaMascotIcon } from "@/components/ui/siga-logo";
 import { AuthHeroSlides } from "./AuthHeroSlides";
 import { writeSessionHint } from "@/features/auth/session-hint";
 import { AuthBackgroundVideo } from "./AuthBackgroundVideo";
@@ -516,91 +516,49 @@ export function AuthGate({
 
   return (
     <AuthSessionContext.Provider value={null}>
-      <main className="grid min-h-screen bg-background lg:grid-cols-[1.15fr_0.85fr] lg:p-2">
-        <section className="relative hidden overflow-hidden flex-col justify-between rounded-2xl border border-border/60 bg-primary p-12 text-primary-foreground shadow-sm lg:flex">
+      <main className="grid min-h-[calc(100dvh-var(--titlebar-h,0px))] bg-background lg:grid-cols-[1.1fr_0.9fr] lg:p-2">
+        {/* Painel da marca: tinta escura (a do sidebar), vídeo por baixo, texto em baixo. */}
+        <section className="relative hidden flex-col justify-between overflow-hidden rounded-xl bg-sidebar p-10 text-sidebar-foreground lg:flex xl:p-12">
           <AuthBackgroundVideo />
           <div
             aria-hidden
-            // Só escurece em baixo, onde está o texto: o vídeo (sem logótipo por
-            // cima) fica visível no resto do painel.
-            className="pointer-events-none absolute inset-0 bg-gradient-to-t from-primary/85 via-primary/30 to-transparent"
+            // Escurece sobretudo em baixo, onde está o texto: o vídeo fica visível no resto.
+            className="pointer-events-none absolute inset-0 bg-gradient-to-t from-sidebar via-sidebar/60 to-sidebar/20"
           />
-          <div />
+          <div className="relative flex items-center gap-2.5">
+            <SigaMascotIcon size={28} />
+            <span className="text-sm font-semibold tracking-tight">SIGA Plus</span>
+          </div>
           <AuthHeroSlides />
-          <div className="relative flex items-center justify-between text-xs opacity-80">
+          <div className="relative flex items-center justify-between text-xs text-sidebar-muted">
             <div className="flex items-center gap-2">
-              <ShieldCheck className="size-4" /> Autenticação Segura
+              <ShieldCheck className="size-3.5" /> Autenticação segura
             </div>
             {isStandalone && (
-              <div className="flex items-center gap-1.5 rounded-md bg-primary-foreground/15 px-2.5 py-1 text-xs">
-                <Smartphone className="size-3.5" /> PWA Ativo
+              <div className="flex items-center gap-1.5 rounded-md bg-sidebar-accent px-2.5 py-1 text-xs">
+                <Smartphone className="size-3.5" /> PWA activo
               </div>
             )}
           </div>
         </section>
 
-        <section className="flex flex-col items-center justify-center bg-muted/20 px-5 py-10 sm:px-10">
-          {/* No telemóvel o painel da marca não aparece: sem isto, o ecrã não dizia onde se entra. */}
-          <SigaLogo className="mb-6 lg:hidden" />
-          <div className="w-full max-w-lg rounded-2xl border border-border bg-card p-8 shadow-sm sm:p-10 lg:[zoom:1.15]">
-            {installPrompt && (
-              <div className="mb-6 flex flex-col items-center justify-center text-center pb-4 border-b border-border">
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={handleInstallApp}
-                  className="h-8 gap-1.5 text-xs rounded-full"
-                >
-                  <Download className="size-3.5" /> Instalar App SIGA Plus
-                </Button>
-              </div>
-            )}
-
-            <h2 className="mt-1 font-display text-xl font-semibold tracking-tight text-center">
+        <section className="flex flex-col items-center justify-center px-6 py-12 sm:px-10">
+          {/* Sem cartão: o formulário assenta directamente na tela, como nos grandes produtos. */}
+          <div className="w-full max-w-[22rem] sm:max-w-sm">
+            <SigaLogo className="mb-8" />
+            <h2 className="font-display text-2xl font-semibold tracking-tight">
               {mode === "signup" ? "Criar conta SIGA Plus" : "Iniciar sessão"}
             </h2>
-            <p className="mt-1.5 text-xs text-muted-foreground text-center">
+            <p className="mt-1.5 text-sm text-muted-foreground">
               {mode === "signup"
                 ? "Uma só identidade para todas as escolas a que pertencer."
-                : "Entre com Google, e-mail ou Nº de BI."}
+                : "Entre com e-mail, Nº de BI ou Google."}
             </p>
-            <div
-              role="tablist"
-              aria-label="Modo de acesso"
-              className="mt-4 grid grid-cols-2 gap-1 rounded-xl bg-muted p-1 text-xs font-semibold"
-              hidden={Boolean(mfaFactorId)}
-            >
-              {(
-                [
-                  ["signin", "Já tenho conta"],
-                  ["signup", "Criar conta"],
-                ] as const
-              ).map(([value, label]) => (
-                <button
-                  key={value}
-                  type="button"
-                  role="tab"
-                  aria-selected={mode === value}
-                  onClick={() => {
-                    setMode(value);
-                    setError(null);
-                    setInfo(null);
-                  }}
-                  className={`rounded-lg px-3 py-1.5 transition-colors ${
-                    mode === value
-                      ? "bg-card text-foreground shadow-sm"
-                      : "text-foreground/75 hover:text-foreground"
-                  }`}
-                >
-                  {label}
-                </button>
-              ))}
-            </div>
 
             {error ? (
               <p
                 role="alert"
-                className="mt-4 rounded-lg bg-destructive/10 px-3 py-2 text-xs text-destructive"
+                className="mt-5 rounded-md border border-destructive/20 bg-destructive/[0.06] px-3 py-2 text-xs text-destructive"
               >
                 {error}
               </p>
@@ -608,7 +566,7 @@ export function AuthGate({
             {info ? (
               <p
                 role="status"
-                className="mt-4 rounded-lg bg-success/10 px-3 py-2 text-xs text-success"
+                className="mt-5 rounded-md border border-success/20 bg-success/[0.06] px-3 py-2 text-xs text-success-strong"
               >
                 {info}
               </p>
@@ -707,7 +665,7 @@ export function AuthGate({
                     autoComplete="username"
                     required
                     defaultValue={rememberedEmail}
-                    className="pl-9 h-10 text-sm"
+                    className="h-11 pl-9 text-sm sm:h-10"
                     placeholder="utilizador@escola.ao ou 004212984LA042"
                   />
                 </div>
@@ -719,7 +677,7 @@ export function AuthGate({
                   </Label>
                   <button
                     type="button"
-                    className="text-xs font-medium text-primary hover:underline disabled:opacity-60"
+                    className="text-xs font-medium text-muted-foreground underline-offset-4 hover:text-foreground hover:underline disabled:opacity-60"
                     onClick={() => void resetPassword()}
                     disabled={resetting || submitting || sendingMagicLink}
                   >
@@ -735,7 +693,7 @@ export function AuthGate({
                     autoComplete="current-password"
                     required
                     minLength={8}
-                    className="pr-11 pl-9 h-10 text-sm"
+                    className="h-11 pr-11 pl-9 text-sm sm:h-10"
                     placeholder="••••••••"
                   />
                   <button
@@ -760,14 +718,10 @@ export function AuthGate({
               </label>
               <Button
                 type="submit"
-                className="w-full gap-2 h-10 text-sm font-semibold"
+                className="h-11 w-full gap-2 text-sm font-medium sm:h-10"
                 disabled={submitting || resetting || sendingMagicLink}
               >
-                {submitting ? (
-                  <LoaderCircle className="size-4 animate-spin" />
-                ) : (
-                  <LockKeyhole className="size-4" />
-                )}
+                {submitting ? <LoaderCircle className="size-4 animate-spin" /> : null}
                 {submitting ? "A entrar…" : "Entrar no Portal"}
               </Button>
               <button
@@ -793,7 +747,7 @@ export function AuthGate({
                     required
                     minLength={3}
                     maxLength={160}
-                    className="h-10 text-sm"
+                    className="h-11 text-sm sm:h-10"
                   />
                 </div>
                 <div className="space-y-1.5">
@@ -806,7 +760,7 @@ export function AuthGate({
                     type="email"
                     autoComplete="email"
                     required
-                    className="h-10 text-sm"
+                    className="h-11 text-sm sm:h-10"
                     placeholder="nome@exemplo.ao"
                   />
                 </div>
@@ -822,7 +776,7 @@ export function AuthGate({
                       autoComplete="new-password"
                       required
                       minLength={8}
-                      className="h-10 text-sm"
+                      className="h-11 text-sm sm:h-10"
                     />
                   </div>
                   <div className="space-y-1.5">
@@ -836,7 +790,7 @@ export function AuthGate({
                       autoComplete="new-password"
                       required
                       minLength={8}
-                      className="h-10 text-sm"
+                      className="h-11 text-sm sm:h-10"
                     />
                   </div>
                 </div>
@@ -846,7 +800,7 @@ export function AuthGate({
                 </p>
                 <Button
                   type="submit"
-                  className="w-full gap-2 h-10 text-sm font-semibold"
+                  className="h-11 w-full gap-2 text-sm font-medium sm:h-10"
                   disabled={submitting}
                 >
                   {submitting ? <LoaderCircle className="size-4 animate-spin" /> : null}
@@ -855,7 +809,7 @@ export function AuthGate({
               </form>
             ) : null}
 
-            <div className="mt-4 flex items-center gap-3 text-[11px] text-muted-foreground">
+            <div className="mt-6 flex items-center gap-3 text-[11px] text-muted-foreground">
               <span className="h-px flex-1 bg-border" />
               ou
               <span className="h-px flex-1 bg-border" />
@@ -863,7 +817,7 @@ export function AuthGate({
             <Button
               type="button"
               variant="outline"
-              className="mt-4 w-full gap-2 h-10 text-sm font-medium"
+              className="mt-6 h-11 w-full gap-2 text-sm font-medium sm:h-10"
               onClick={() => void signInWithGoogle()}
               disabled={submitting || resetting || sendingMagicLink}
             >
@@ -888,16 +842,34 @@ export function AuthGate({
               {mode === "signup" ? "Continuar com Google" : "Entrar com Google"}
             </Button>
 
+            {!mfaFactorId ? (
+              <p className="mt-8 text-center text-xs text-muted-foreground">
+                {mode === "signup" ? "Já tem conta?" : "Ainda não tem conta?"}{" "}
+                <button
+                  type="button"
+                  className="font-medium text-foreground underline-offset-4 hover:underline"
+                  onClick={() => {
+                    setMode(mode === "signup" ? "signin" : "signup");
+                    setError(null);
+                    setInfo(null);
+                  }}
+                >
+                  {mode === "signup" ? "Iniciar sessão" : "Criar conta"}
+                </button>
+              </p>
+            ) : null}
+
             {installPrompt && (
-              <div className="mt-4 pt-3 border-t border-border/60">
+              <div className="mt-4 text-center">
                 <Button
                   type="button"
-                  variant="outline"
+                  variant="ghost"
+                  size="sm"
                   onClick={handleInstallApp}
-                  className="w-full gap-2 text-xs font-medium text-muted-foreground hover:text-foreground"
+                  className="gap-1.5 text-xs font-medium text-muted-foreground hover:text-foreground"
                 >
                   <Download className="size-3.5" />
-                  Instalar aplicação Web no dispositivo (PWA)
+                  Instalar a aplicação neste dispositivo
                 </Button>
               </div>
             )}
