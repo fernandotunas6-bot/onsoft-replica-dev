@@ -1,0 +1,241 @@
+<!doctype html>
+<html lang="pt">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>SIGA</title>
+    <!--
+      Arranque da app desktop (Tauri).
+
+      O SIGA é renderizado no servidor (Worker da Cloudflare, com server functions):
+      não existe build estático que se possa embutir. A app desktop abre por isso o
+      SIGA publicado. Esta página é a única coisa embutida: mostra o arranque, confirma
+      que há rede e segue para o portal; sem rede, mostra o ecrã "Sem ligação" e volta
+      a tentar sozinha quando a rede regressa.
+
+      Mudar o destino: SIGA_DESKTOP_URL abaixo (e `remote.urls` em capabilities).
+    -->
+    <style>
+      :root {
+        --bg: #fafafb;
+        --fg: #1c1b22;
+        --muted: #6e6c78;
+        --border: #e6e5ea;
+        --primary: #6d3ee6;
+        --primary-fg: #ffffff;
+        color-scheme: light dark;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --bg: #131218;
+          --fg: #f2f1f5;
+          --muted: #a09eaa;
+          --border: #2a2932;
+          --primary: #8f6cf0;
+          --primary-fg: #15131c;
+        }
+      }
+      * {
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        height: 100%;
+        margin: 0;
+      }
+      body {
+        display: flex;
+        flex-direction: column;
+        background: var(--bg);
+        color: var(--fg);
+        font:
+          14px/1.5 "Inter",
+          ui-sans-serif,
+          system-ui,
+          -apple-system,
+          "Segoe UI",
+          sans-serif;
+        -webkit-font-smoothing: antialiased;
+        user-select: none;
+      }
+      .drag {
+        display: flex;
+        justify-content: flex-end;
+        height: 36px;
+        flex: none;
+      }
+      .controls button {
+        width: 44px;
+        height: 36px;
+        padding: 0;
+        border-radius: 0;
+        background: transparent;
+        color: var(--muted);
+        font-size: 13px;
+      }
+      .controls button:hover {
+        background: color-mix(in srgb, var(--fg) 7%, transparent);
+        color: var(--fg);
+      }
+      .controls button.close:hover {
+        background: #c42b1c;
+        color: #fff;
+      }
+      main {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 20px;
+        padding: 24px;
+        text-align: center;
+      }
+      img {
+        width: 56px;
+        height: 56px;
+      }
+      h1 {
+        margin: 0;
+        font-size: 18px;
+        font-weight: 600;
+        letter-spacing: -0.01em;
+      }
+      p {
+        margin: 6px 0 0;
+        max-width: 22rem;
+        color: var(--muted);
+      }
+      .spinner {
+        width: 18px;
+        height: 18px;
+        border-radius: 50%;
+        border: 2px solid var(--border);
+        border-top-color: var(--fg);
+        animation: spin 0.8s linear infinite;
+      }
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .spinner {
+          animation-duration: 2.4s;
+        }
+      }
+      button {
+        appearance: none;
+        border: 0;
+        border-radius: 8px;
+        padding: 9px 16px;
+        background: var(--primary);
+        color: var(--primary-fg);
+        font: inherit;
+        font-weight: 500;
+        cursor: pointer;
+      }
+      button:focus-visible {
+        outline: 2px solid var(--primary);
+        outline-offset: 2px;
+      }
+      [hidden] {
+        display: none !important;
+      }
+      footer {
+        padding: 16px;
+        text-align: center;
+        font-size: 12px;
+        color: var(--muted);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="drag" data-tauri-drag-region>
+      <!-- Windows/Linux não têm barra nativa (tauri.windows/linux.conf.json). -->
+      <div class="controls" id="controls" hidden>
+        <button type="button" data-cmd="minimize" aria-label="Minimizar">&#x2013;</button>
+        <button type="button" data-cmd="toggle_maximize" aria-label="Maximizar">&#x25A1;</button>
+        <button type="button" data-cmd="close" class="close" aria-label="Fechar">&#x2715;</button>
+      </div>
+    </div>
+    <main>
+      <img src="icon.png" alt="" />
+      <section id="loading" aria-live="polite">
+        <h1>A abrir o SIGA…</h1>
+        <p>A ligar ao portal da sua escola.</p>
+      </section>
+      <div id="spinner" class="spinner" role="progressbar" aria-label="A carregar"></div>
+      <section id="offline" hidden aria-live="assertive">
+        <h1>Sem ligação à internet</h1>
+        <p>
+          O SIGA precisa de rede para abrir. Assim que a ligação voltar, a aplicação continua
+          sozinha.
+        </p>
+      </section>
+      <button id="retry" type="button" hidden>Tentar de novo</button>
+    </main>
+    <footer>SIGA · Sistema Integrado de Gestão Académica</footer>
+
+    <script>
+      const SIGA_DESKTOP_URL = "https://portal-siga.com/";
+      const TIMEOUT_MS = 8000;
+
+      const $ = (id) => document.getElementById(id);
+      let busy = false;
+
+      function show(state) {
+        const offline = state === "offline";
+        $("loading").hidden = offline;
+        $("spinner").hidden = offline;
+        $("offline").hidden = !offline;
+        $("retry").hidden = !offline;
+      }
+
+      async function reachable() {
+        if (!navigator.onLine) return false;
+        const controller = new AbortController();
+        const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
+        try {
+          // no-cors: só interessa saber se a rede responde, não ler a resposta.
+          await fetch(SIGA_DESKTOP_URL, {
+            mode: "no-cors",
+            cache: "no-store",
+            signal: controller.signal,
+          });
+          return true;
+        } catch {
+          return false;
+        } finally {
+          clearTimeout(timer);
+        }
+      }
+
+      async function open() {
+        if (busy) return;
+        busy = true;
+        show("loading");
+        if (await reachable()) {
+          window.location.replace(SIGA_DESKTOP_URL);
+          return;
+        }
+        busy = false;
+        show("offline");
+      }
+
+      const tauri = window.__TAURI_INTERNALS__;
+      if (tauri && !/Mac/i.test(navigator.userAgent)) {
+        $("controls").hidden = false;
+        for (const button of document.querySelectorAll("[data-cmd]")) {
+          button.addEventListener("click", () =>
+            tauri.invoke(`plugin:window|${button.dataset.cmd}`, { label: "main" }),
+          );
+        }
+      }
+
+      $("retry").addEventListener("click", open);
+      window.addEventListener("online", open);
+      open();
+    </script>
+  </body>
+</html>

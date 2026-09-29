@@ -3,6 +3,10 @@
   "identifier": "default",
   "description": "Default permissions for SIGA Desktop",
   "windows": ["main"],
+  "local": true,
+  "remote": {
+    "urls": ["https://portal-siga.com/*", "https://*.portal-siga.com/*"]
+  },
   "permissions": [
     "core:default",
     "opener:default",
@@ -12,6 +16,7 @@
     "core:window:allow-toggle-maximize",
     "core:window:allow-internal-toggle-maximize",
     "core:window:allow-close",
+    "core:webview:allow-set-webview-zoom",
     "store:default",
     "window-state:default",
     "stronghold:default",

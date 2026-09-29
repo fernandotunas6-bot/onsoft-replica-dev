@@ -1,0 +1,74 @@
+import { useEffect } from "react";
+import { isTauriDesktop, openExternalLink } from "@/lib/desktop-utils";
+import { isExternalHttpUrl, nextZoom, shortcutAction } from "@/lib/desktop-shortcuts";
+
+const ZOOM_KEY = "siga:desktop-zoom";
+
+/**
+ * Comportamentos de aplicação desktop (Tauri). Só actua dentro da app; no browser
+ * não faz nada.
+ *  - Links para fora do SIGA (target=_blank, window.open) abrem no browser do sistema:
+ *    o webview não abre separadores e esses cliques ficavam sem resposta.
+ *  - Atalhos: F5/Ctrl+R recarregar, Alt+←/→ histórico, Ctrl + / − / 0 zoom (lembrado).
+ */
+export function DesktopIntegration() {
+  useEffect(() => {
+    if (!isTauriDesktop()) return;
+
+    const onClick = (event: MouseEvent) => {
+      if (event.defaultPrevented || event.button !== 0) return;
+      const anchor = (event.target as Element | null)?.closest?.("a[href]");
+      if (!(anchor instanceof HTMLAnchorElement)) return;
+      if (anchor.hasAttribute("download")) return;
+      const external =
+        isExternalHttpUrl(anchor.href, window.location.origin) ||
+        /^(mailto|tel):/i.test(anchor.href);
+      if (!external) return; // mesma origem (mesmo com _blank): o webview trata.
+      event.preventDefault();
+      void openExternalLink(anchor.href);
+    };
+
+    const originalOpen = window.open.bind(window);
+    window.open = ((url?: string | URL, target?: string, features?: string) => {
+      const href = url ? new URL(String(url), window.location.href).href : "";
+      if (href && isExternalHttpUrl(href, window.location.origin)) {
+        void openExternalLink(href);
+        return null;
+      }
+      return originalOpen(url, target, features);
+    }) as typeof window.open;
+
+    let zoom = Number(localStorage.getItem(ZOOM_KEY)) || 1;
+    const applyZoom = async (value: number) => {
+      zoom = value;
+      try {
+        localStorage.setItem(ZOOM_KEY, String(value));
+        const { getCurrentWebview } = await import("@tauri-apps/api/webview");
+        await getCurrentWebview().setZoom(value);
+      } catch (error) {
+        console.warn("[desktop] zoom indisponível", error);
+      }
+    };
+    if (zoom !== 1) void applyZoom(zoom);
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      const action = shortcutAction(event);
+      if (!action) return;
+      event.preventDefault();
+      if (action === "reload") window.location.reload();
+      else if (action === "back") window.history.back();
+      else if (action === "forward") window.history.forward();
+      else void applyZoom(nextZoom(zoom, action));
+    };
+
+    document.addEventListener("click", onClick, true);
+    window.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.removeEventListener("click", onClick, true);
+      window.removeEventListener("keydown", onKeyDown);
+      window.open = originalOpen;
+    };
+  }, []);
+
+  return null;
+}

@@ -122,6 +122,8 @@ function RootShell({ children }: { children: ReactNode }) {
 }
 
 import { DesktopTitleBar } from "@/components/layout/DesktopTitleBar";
+import { DesktopIntegration } from "@/components/layout/DesktopIntegration";
+import { ConnectionStatus } from "@/components/layout/ConnectionStatus";
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
@@ -148,6 +150,7 @@ function RootComponent() {
       <TenantProvider>
         <AppearanceProvider>
           <DesktopTitleBar />
+          <DesktopIntegration />
           <div className="relative flex min-h-screen flex-col pt-[calc(env(safe-area-inset-top,0px)+var(--titlebar-h,0px))]">
             {isPublic ? (
               <Outlet />
@@ -166,6 +169,7 @@ function RootComponent() {
             )}
           </div>
           <Toaster position="top-right" richColors />
+          <ConnectionStatus />
         </AppearanceProvider>
       </TenantProvider>
     </QueryClientProvider>

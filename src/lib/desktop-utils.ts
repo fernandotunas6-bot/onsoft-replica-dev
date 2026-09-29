@@ -16,10 +16,6 @@ export interface SystemInfo {
   is_desktop_native: boolean;
 }
 
-interface OpenerModule {
-  open?: (url: string) => Promise<unknown> | unknown;
-}
-
 /**
  * Verifica se o SIGA está a ser executado dentro do runtime nativo do Tauri.
  */
@@ -33,19 +29,14 @@ export function isTauriDesktop(): boolean {
 export async function openExternalLink(url: string): Promise<void> {
   if (isTauriDesktop()) {
     try {
-      const openerModuleName = "@tauri-apps/plugin-opener";
-      const opener = (await import(/* @vite-ignore */ openerModuleName).catch(
-        () => null,
-      )) as OpenerModule | null;
-      if (opener?.open) {
-        await opener.open(url);
-        return;
-      }
+      // Comando do plugin opener (registado no Rust, `opener:default`). O pacote JS
+      // `@tauri-apps/plugin-opener` não está instalado: o import dinâmico falhava sempre
+      // e o fallback `window.open` não abre nada dentro do webview.
+      const { invoke } = await import("@tauri-apps/api/core");
+      await invoke("plugin:opener|open_url", { url });
+      return;
     } catch (e) {
-      console.warn(
-        "Falha ao abrir link via plugin nativo do Tauri, a usar fallback window.open",
-        e,
-      );
+      console.warn("Falha ao abrir link no browser do sistema", e);
     }
   }
 

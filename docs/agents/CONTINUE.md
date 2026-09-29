@@ -4,6 +4,17 @@ Ler isto **antes** de alterar código. Ecossistema (5 apps):
 [ARCHITECTURE_HARMONIZATION.md](./ARCHITECTURE_HARMONIZATION.md).
 Depois abrir o skill do módulo em `.cursor/skills/`.
 
+## Desktop Tauri e visual (2026-09-29)
+
+- **A app desktop rebentava ao abrir** (updater registado sem `plugins.updater`) e o build
+  embutia `.output/public`, que não tem interface (o SIGA é SSR). Agora abre o SIGA
+  publicado através de `src-tauri/shell/` (arranque + ecrã sem ligação). Detalhes, estado e
+  o que falta: skill `siga-desktop`.
+- Tinha três barras de título no Windows; agora só `DesktopTitleBar`.
+- Visual limpo (regra do dono: "igual às grandes empresas"): tokens, shell, dashboard e
+  ecrã de entrada revistos. Próximos ecrãs, um a um: Alunos → Financeiro/Faturas →
+  Pedagógica → Comunicações → Configurações.
+
 ## Turmas, salas e campus (2026-09-29)
 
 - **Sala física da turma:** `class_groups.room_id` (migração `20260929250000`, **já

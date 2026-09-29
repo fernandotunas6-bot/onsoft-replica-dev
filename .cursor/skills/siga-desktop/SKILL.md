@@ -3,8 +3,8 @@ name: siga-desktop
 description: >-
   PROMPT MASTER da aplicação Desktop Tauri do SIGA Plus: janelas, atalhos,
   offline-first, ficheiros, impressão, notificações, sincronização, ApiClient,
-  segurança e actualizações. Usar ao editar src-tauri/, TauriTitlebar,
-  DesktopTitleBar ou qualquer funcionalidade nativa desktop.
+  segurança e actualizações. Usar ao editar src-tauri/, DesktopTitleBar,
+  DesktopIntegration ou qualquer funcionalidade nativa desktop.
 ---
 
 # SIGA Desktop (Tauri)
@@ -13,6 +13,32 @@ description: >-
 - Tauri pertence **só ao SIGA escolar** (raiz). Nunca a ADMIN, WEB, DOC ou PAYFLOW.
 - Mesmo frontend web; o desktop acrescenta capacidades nativas, não substitui ecrãs.
 - Não alterar `src/components/layout/DesktopTitleBar.tsx` sem necessidade (corrige hidratação #418).
+
+## Estado actual (2026-09-29)
+- **A app abre o SIGA publicado.** O SIGA é SSR num Worker (server functions): não há
+  build estático para embutir. `frontendDist` = `src-tauri/shell/` — página de arranque que
+  confirma a rede e segue para `https://portal-siga.com/`; sem rede mostra "Sem ligação" e
+  continua sozinha quando a rede volta. Em `tauri dev` abre `devUrl` (localhost:3006).
+  Mudar o destino: `SIGA_DESKTOP_URL` no shell + `remote.urls` na capability.
+- **Capability** `default`: local + remoto só `portal-siga.com` e `*.portal-siga.com`.
+  Janela: arrastar, minimizar, maximizar, fechar, zoom. Tudo o resto nega-se.
+- **Uma só barra de título** (`DesktopTitleBar`, na raiz). macOS: semáforos nativos
+  (`titleBarStyle: Overlay`). Windows/Linux: sem decoração nativa
+  (`tauri.windows.conf.json` / `tauri.linux.conf.json`) e botões próprios.
+  `html[data-desktop]` liga `--titlebar-h` (36px), que o shell desconta.
+- **Updater** só é registado quando `plugins.updater` (pubkey + endpoints) existir no
+  `tauri.conf.json`. Registado sem configuração, a app rebentava ao abrir.
+- **Bandeja**: fechar a janela esconde-a; menu "Abrir o SIGA" / "Sair do SIGA".
+  **Instância única**: abrir de novo foca a janela existente.
+- **Frontend** (`DesktopIntegration`): links para fora do SIGA abrem no browser do sistema
+  (`plugin:opener|open_url`); F5/Ctrl+R, Alt+←/→, Ctrl + / − / 0 (zoom lembrado).
+  Regras puras em `src/lib/desktop-shortcuts.ts` (testes em `tests/tauri/`).
+- `ConnectionStatus` (desktop, PWA e web): aviso quando a rede cai.
+
+## Verificar
+- `cd src-tauri && cargo build` e correr `./target/debug/siga-desktop` (Linux: `xvfb-run`).
+- Em falta: pipeline de releases assinadas (updater), offline-first com fila local,
+  diálogos nativos de ficheiros, impressão directa, POST com `target=_blank` (PayFlow SSO).
 
 ## Janelas e produtividade
 - Janela principal + janelas secundárias (pauta, recibo, impressão) com estado lembrado (tamanho/posição).

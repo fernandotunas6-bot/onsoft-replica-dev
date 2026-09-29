@@ -6,13 +6,14 @@
   "build": {
     "beforeDevCommand": "npm run dev",
     "devUrl": "http://localhost:3006",
-    "beforeBuildCommand": "npm run build",
-    "frontendDist": "../.output/public"
+    "beforeBuildCommand": "",
+    "frontendDist": "shell"
   },
   "app": {
     "trayIcon": {
       "iconPath": "icons/32x32.png",
-      "tooltip": "SIGA Desktop"
+      "tooltip": "SIGA Desktop",
+      "id": "main"
     },
     "windows": [
       {

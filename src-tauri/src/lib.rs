@@ -162,9 +162,26 @@ fn get_system_info() -> SystemInfo {
     }
 }
 
+/// Mostra e foca a janela principal (tray, segunda instância).
+fn show_main_window<R: tauri::Runtime>(app: &tauri::AppHandle<R>) {
+    if let Some(window) = app.get_webview_window("main") {
+        let _ = window.unminimize();
+        let _ = window.show();
+        let _ = window.set_focus();
+    }
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-    let builder = tauri::Builder::default()
+    let builder = tauri::Builder::default();
+
+    // Tem de ser o primeiro plugin: abrir o SIGA outra vez só foca a janela que já existe.
+    #[cfg(desktop)]
+    let builder = builder.plugin(tauri_plugin_single_instance::init(|app, _argv, _cwd| {
+        show_main_window(app);
+    }));
+
+    let builder = builder
         .setup(|app| {
             let stronghold_salt_path = app
                 .path()
@@ -174,6 +191,16 @@ pub fn run() {
             app.handle().plugin(
                 tauri_plugin_stronghold::Builder::with_argon2(&stronghold_salt_path).build(),
             )?;
+
+            // O updater exige `plugins.updater` (pubkey + endpoints) no tauri.conf.json.
+            // Registado sem essa configuração, a app rebentava logo ao abrir
+            // ("invalid type: null, expected struct Config"). Só entra quando o
+            // pipeline de releases assinadas existir e a configuração for acrescentada.
+            #[cfg(desktop)]
+            if app.config().plugins.0.contains_key("updater") {
+                app.handle()
+                    .plugin(tauri_plugin_updater::Builder::new().build())?;
+            }
 
             #[cfg(target_os = "macos")]
             {
@@ -189,13 +216,33 @@ pub fn run() {
                 }
             }
 
+            // Menu do ícone da bandeja. Fechar a janela só a esconde (continua a receber
+            // notificações); sem este menu não havia forma de sair da aplicação.
+            #[cfg(desktop)]
+            {
+                use tauri::menu::{Menu, MenuItem, PredefinedMenuItem};
+
+                let open = MenuItem::with_id(app, "open", "Abrir o SIGA", true, None::<&str>)?;
+                let quit = MenuItem::with_id(app, "quit", "Sair do SIGA", true, None::<&str>)?;
+                let separator = PredefinedMenuItem::separator(app)?;
+                let menu = Menu::with_items(app, &[&open, &separator, &quit])?;
+                if let Some(tray) = app.tray_by_id("main") {
+                    tray.set_menu(Some(menu))?;
+                    tray.set_show_menu_on_left_click(false)?;
+                    tray.on_menu_event(|app, event| match event.id().as_ref() {
+                        "open" => show_main_window(app),
+                        "quit" => app.exit(0),
+                        _ => {}
+                    });
+                }
+            }
+
             Ok(())
         })
         .plugin(tauri_plugin_store::Builder::new().build())
         .plugin(tauri_plugin_window_state::Builder::new().build())
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_notification::init())
-        .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(tauri_plugin_process::init())
         .invoke_handler(tauri::generate_handler![
             pulse_turnstile_relay,
@@ -212,13 +259,15 @@ pub fn run() {
             }
         })
         .on_tray_icon_event(|tray, event| {
-            use tauri::tray::TrayIconEvent;
+            use tauri::tray::{MouseButton, MouseButtonState, TrayIconEvent};
 
-            if let TrayIconEvent::Click { .. } = event {
-                if let Some(window) = tray.app_handle().get_webview_window("main") {
-                    let _ = window.show();
-                    let _ = window.set_focus();
-                }
+            if let TrayIconEvent::Click {
+                button: MouseButton::Left,
+                button_state: MouseButtonState::Up,
+                ..
+            } = event
+            {
+                show_main_window(tray.app_handle());
             }
         });
 
