@@ -18,6 +18,15 @@ entrega tudo o que lê. Levantamento das ~90 chamadas:
 - **`listTeacherAttendanceSessions`**: ver a secção da auditoria de eficiência.
 - Cartões de acesso (`catracas`): já verificavam o papel, mas depois obtinham a
   inscrição outra vez; passam a usar a da verificação.
+- Superfície pública (sem sessão): entrada, registo, matrícula pública,
+  verificação de documentos (limite partilhado, nome mascarado) e feed do
+  calendário (só períodos e feriados). Nada a corrigir.
+- Ids do pedido sem filtro de escola: só nas funções do ADMIN da plataforma
+  (legítimo) e em leituras já cobertas por verificações anteriores.
+- `upsertAssessmentScores`: o professor já estava limitado à sua turma e
+  disciplina pelo gatilho `enforce_teacher_assessment_score_scope` (usa
+  `recorded_by`). Para a Administração e a Secretaria nada confirmava que a
+  matrícula era da turma da avaliação; o servidor passa a recusar.
 - As restantes 27 são estrutura da escola, dados da própria conta ou leituras
   filtradas pelo utilizador. `tests/security/membership-only-reads.test.ts`
   guarda a lista revista e falha com qualquer função nova que só verifique a

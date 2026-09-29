@@ -169,3 +169,13 @@ describe("mudar estado em lote (alunos)", () => {
     expect(fn).toMatch(/recordAuditBatch\([\s\S]{0,200}action: "student\.status_change"/);
   });
 });
+
+describe("lançar notas de avaliação", () => {
+  const fn = body(read("src/features/academic/server-legacy.ts"), "upsertAssessmentScores");
+
+  it("só aceita alunos da turma da avaliação, também para a Administração e a Secretaria", () => {
+    expect(fn).toMatch(/\.eq\("class_group_id", String\(item\.class_group_id\)\)/);
+    expect(fn).toMatch(/Há alunos que não são da turma desta avaliação/);
+    expect(fn.indexOf("Há alunos que não são da turma")).toBeLessThan(fn.indexOf(".insert("));
+  });
+});

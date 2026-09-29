@@ -1552,7 +1552,7 @@ export const upsertAssessmentScores = createServerFn({ method: "POST" })
     const db = await loadSgaAdminClient();
     const { data: item, error: itemError } = await db
       .from("siga_assessment_items")
-      .select("id, term")
+      .select("id, term, class_group_id")
       .eq("id", data.itemId)
       .eq("school_id", membership.schoolId)
       .maybeSingle();
@@ -1571,6 +1571,21 @@ export const upsertAssessmentScores = createServerFn({ method: "POST" })
     // paralelo — substitui o anterior select+insert/update sequencial por aluno, que
     // tornava lançar notas de uma turma inteira em dezenas de idas e vindas à base.
     const enrollmentIds = data.rows.map((row) => row.enrollmentId);
+    // Só alunos da turma da avaliação. Para o professor a base já o exige (gatilho
+    // `enforce_teacher_assessment_score_scope`); para a Administração e a
+    // Secretaria não, e uma nota podia ficar num aluno de outra turma.
+    const { data: classEnrollments, error: classError } = await db
+      .from("enrollments")
+      .select("id")
+      .eq("school_id", membership.schoolId)
+      .eq("class_group_id", String(item.class_group_id))
+      .in("id", enrollmentIds);
+    if (classError) {
+      throw publicDatabaseError(classError, "Não foi possível confirmar os alunos da turma.");
+    }
+    if ((classEnrollments ?? []).length !== new Set(enrollmentIds).size) {
+      throw new Error("Há alunos que não são da turma desta avaliação.");
+    }
     const { data: existingRows, error: existingError } = await db
       .from("siga_assessment_scores")
       .select("id, score, enrollment_id")
