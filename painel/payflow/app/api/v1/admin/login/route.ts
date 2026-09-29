@@ -1,3 +1,5 @@
+import { eq } from "drizzle-orm";
+
 import { getDb } from "@/db";
 import { adminSessions, schools } from "@/db/schema";
 import { permissionsForRole, sessionCookie } from "@/lib/admin-session";
@@ -55,10 +57,25 @@ export async function POST(request: Request) {
     }
 
     const db = getDb();
+    // O `school_id` do pedido tem de ser uma escola sincronizada: antes a sessão ficava
+    // presa a qualquer valor enviado, mesmo inexistente.
     const [existingSchool] = await db
       .select({ id: schools.id, tenantId: schools.tenantId })
       .from(schools)
+      .where(schoolId ? eq(schools.id, schoolId) : undefined)
       .limit(1);
+
+    if (schoolId && !existingSchool && !isSandboxRuntime()) {
+      return jsonResponse(
+        {
+          error: {
+            code: "school_not_found",
+            message: "Escola não sincronizada no PayFlow. Sincronize-a a partir do SIGA.",
+          },
+        },
+        { status: 404 },
+      );
+    }
 
     if (existingSchool) {
       schoolId = schoolId || existingSchool.id;
