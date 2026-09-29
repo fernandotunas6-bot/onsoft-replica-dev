@@ -4,6 +4,36 @@ Ler isto **antes** de alterar código. Ecossistema (5 apps):
 [ARCHITECTURE_HARMONIZATION.md](./ARCHITECTURE_HARMONIZATION.md).
 Depois abrir o skill do módulo em `.cursor/skills/`.
 
+## Permissões por módulo: ecrã igual ao servidor (2026-09-29)
+
+- `canAccessPath` (menu, launcher, guarda de rotas) abria com qualquer permissão por
+  módulo áreas que o servidor recusa: Professor com «Financeiro» via o RH/folha
+  salarial; Secretaria com «Acessos/Config» via `/configuracoes`; linhas antigas em
+  alunos/encarregados alargavam-lhes o acesso. Agora segue `grantElevates`:
+  - só Secretaria, Tesouraria e Professor são elevados (`GRANT_ELEVATABLE_ROLES`, uma
+    única lista em `access-policy.ts`, reexportada por `sga-admin.ts`);
+  - `/financeiro/rh` e `/configuracoes` só pelo cargo;
+  - em alunos e encarregados a permissão só retira («Nenhum»).
+- `/pedagogica/risco` herdava a regra de `/pedagogica` e abria a alunos e encarregados;
+  o servidor (`risk-followup.functions`) só aceita Administrador, Secretaria e Professor.
+  Regra própria acrescentada.
+- **Fuga de dados corrigida:** `searchPeople` só verificava «é membro»; um aluno ou
+  encarregado recebia a lista de todas as pessoas da escola (contactos, BI, morada,
+  data de nascimento). Aplica agora `loadStudentScope`, como `getPerson`, e entrou em
+  `tests/security/student-scope.test.ts`. As outras funções que só usam
+  `resolveSgaMembershipAdmin` foram revistas: devolvem dados estruturais da escola
+  (anos, turmas, salas) ou filtram pelo próprio utilizador.
+- **`types.ts` da base errada, outra vez:** os commits Lovable «Work in progress» /
+  «Changes» (34fdd7c, 795e7d5, 339c938) na `main` regeneraram
+  `src/integrations/supabase/types.ts` a partir da outra base (85 tabelas, com
+  `invoices`, `payments`, `courses`); faltavam 111 tabelas da produção,
+  `types-match-production` falhava e o `tsc` não terminava (>20 min). Reposta a versão
+  de 310e790 (179 tabelas); `tsc` 0 erros em ~47 s. Não aceitar regenerações do Lovable
+  deste ficheiro.
+- PayFlow: o botão «SIGA Plus» do painel usava `http://localhost:3006` quando faltava
+  `NEXT_PUBLIC_SIGA_URL`; usa agora o `sigaUrl` do servidor e, em produção, o domínio
+  da plataforma.
+
 ## Turmas, salas e campus (2026-09-29)
 
 - **Sala física da turma:** `class_groups.room_id` (migração `20260929250000`, **já
