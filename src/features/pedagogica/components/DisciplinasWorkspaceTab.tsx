@@ -103,21 +103,19 @@ export function DisciplinasWorkspaceTab({
             <QuickFormModal
               title="Nova disciplina"
               eyebrow="Pedagógica"
-              description="Adicione uma disciplina ao catálogo da escola com tipo e área curricular."
+              description="Adicione uma disciplina ao catálogo da escola. O professor e os tempos por semana definem-se em cada turma (Atribuir professor, currículo do curso)."
               icon={<Plus className="size-5" />}
               submitLabel="Criar disciplina"
               onSubmit={async (values) => {
-                const weeklyHours = Number(values["carga"] || 4);
-                const gradeFrom = values["classeDe"] ? Number(values["classeDe"]) : undefined;
-                const gradeTo = values["classeAte"] ? Number(values["classeAte"]) : undefined;
+                const annualHours = values["cargaAnual"] ? Number(values["cargaAnual"]) : undefined;
                 await createSubject({
                   data: {
                     code: values["codigo"] ?? "",
                     name: values["nome"] ?? "",
-                    teacherName: values["professor"] || undefined,
-                    weeklyHours: Number.isFinite(weeklyHours) ? weeklyHours : 4,
-                    gradeFrom: Number.isFinite(gradeFrom) ? gradeFrom : undefined,
-                    gradeTo: Number.isFinite(gradeTo) ? gradeTo : undefined,
+                    annualHours:
+                      annualHours && Number.isFinite(annualHours) && annualHours > 0
+                        ? Math.round(annualHours)
+                        : undefined,
                     subjectTypeId:
                       values["tipo"] && values["tipo"] !== "none" ? values["tipo"] : undefined,
                     curriculumAreaId:
@@ -126,6 +124,9 @@ export function DisciplinasWorkspaceTab({
                 });
                 await onRefresh();
               }}
+              // Docente, tempos por semana e classes não são da disciplina: definem-se em
+              // cada turma (`class_subjects`: professor e `weekly_periods`) — "Atribuir
+              // professor" e o currículo do curso. Os antigos campos aqui não se gravavam.
               fields={[
                 {
                   name: "nome",
@@ -153,29 +154,10 @@ export function DisciplinasWorkspaceTab({
                   ],
                 },
                 {
-                  name: "professor",
-                  label: "Docente padrão",
-                  placeholder: "Ex.: Prof.ª Ana Silva",
-                  required: false,
-                },
-                {
-                  name: "carga",
-                  label: "Horas/semana",
+                  name: "cargaAnual",
+                  label: "Carga anual (horas)",
                   type: "number",
-                  placeholder: "4",
-                },
-                {
-                  name: "classeDe",
-                  label: "Classe inicial",
-                  type: "number",
-                  placeholder: "7",
-                  required: false,
-                },
-                {
-                  name: "classeAte",
-                  label: "Classe final",
-                  type: "number",
-                  placeholder: "13",
+                  placeholder: "Ex.: 120",
                   required: false,
                 },
               ]}
