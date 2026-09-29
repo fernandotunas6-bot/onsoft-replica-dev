@@ -1,3 +1,5 @@
+import { CONTENT_SECURITY_POLICY } from "./csp";
+
 /**
  * Cabeçalhos de segurança em todas as respostas do Worker do SIGA (páginas e
  * API). As páginas são geradas no Worker, por isso o `_headers` dos ficheiros
@@ -9,8 +11,8 @@
  * - Permissions-Policy: câmara (fotografias) e GPS (presença dos professores)
  *   só para o próprio SIGA; microfone, pagamentos e USB desligados.
  *
- * Não inclui Content-Security-Policy: precisa de inventariar scripts e
- * ligações externas primeiro, e uma CSP errada parte a aplicação.
+ * - CSP em modo de relatório (ver `csp.ts`): não bloqueia nada, só regista o
+ *   que bloquearia, até os relatórios estarem limpos.
  */
 export const SECURITY_HEADERS: Readonly<Record<string, string>> = {
   "Strict-Transport-Security": "max-age=31536000; includeSubDomains",
@@ -18,6 +20,7 @@ export const SECURITY_HEADERS: Readonly<Record<string, string>> = {
   "X-Frame-Options": "SAMEORIGIN",
   "Referrer-Policy": "strict-origin-when-cross-origin",
   "Permissions-Policy": "camera=(self), geolocation=(self), microphone=(), payment=(), usb=()",
+  "Content-Security-Policy-Report-Only": CONTENT_SECURITY_POLICY,
 };
 
 /** Acrescenta os cabeçalhos em falta; os que uma rota já definiu ficam. */

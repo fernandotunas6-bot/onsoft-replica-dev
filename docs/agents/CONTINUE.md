@@ -18,7 +18,12 @@ Feito:
 - Cabeçalhos de segurança em todas as respostas do Worker do SIGA
   (`src/lib/security-headers.ts`, aplicado em `src/server.ts`): HSTS,
   nosniff, X-Frame-Options SAMEORIGIN, Referrer-Policy, Permissions-Policy
-  (câmara e GPS só `self`). Sem CSP ainda (precisa de inventário de scripts).
+  (câmara e GPS só `self`). CSP em `src/lib/csp.ts`, por agora em modo de
+  relatório (`Content-Security-Policy-Report-Only`): o browser não bloqueia, envia
+  para `/api/public/csp-report` e o Worker escreve `[csp] {...}` nos logs (URLs
+  sem query). Verificado no Chromium: 0 violações em `/`, `/auth.reset-password`,
+  `/alterar-senha`, `/acessos`. Quando os logs de produção estiverem limpos
+  (uma semana), passar o mesmo texto para `Content-Security-Policy`.
 - `next` 16.3.6 no ADMIN e no PayFlow (havia RCE crítico e bypass de
   middleware); `npm audit --omit=dev` 0 em ambos.
 
