@@ -121,34 +121,34 @@ export function TodayAtSchoolCard() {
 
   return (
     <section className="surface-card overflow-hidden">
-      <div className="flex flex-wrap items-start justify-between gap-3 border-b border-border/70 px-5 py-4">
-        <div className="flex items-start gap-3">
+      <div className="flex items-center justify-between gap-3 border-b border-border/70 px-4 py-3 sm:px-5">
+        <div className="flex min-w-0 items-center gap-3">
           <IconChip icon={CalendarDays} size="sm" label="Hoje na escola" />
-          <div>
-            <h2 className="text-base font-semibold">Hoje na escola</h2>
-            <p className="mt-0.5 text-sm capitalize text-muted-foreground">
+          <div className="min-w-0">
+            <h2 className="text-sm font-semibold">Hoje na escola</h2>
+            <p className="truncate text-xs capitalize text-muted-foreground">
               {loading ? "A carregar o dia…" : (ops?.dateLabel ?? "—")}
             </p>
           </div>
         </div>
         {canCalendario ? (
-          <Button asChild size="sm" variant="ghost">
-            <Link to="/calendario">Abrir calendário</Link>
+          <Button asChild size="sm" variant="ghost" className="shrink-0 text-muted-foreground">
+            <Link to="/calendario">Calendário</Link>
           </Button>
         ) : null}
       </div>
 
-      <ul className="grid gap-px bg-border/60 sm:grid-cols-2 xl:grid-cols-3">
+      <ul className="grid grid-cols-2 gap-px bg-border/60 xl:grid-cols-3">
         {stats.map((stat) => {
           const content = (
             <>
-              <span className="flex items-center gap-2 text-xs font-medium text-muted-foreground">
-                <stat.icon className="size-3.5 shrink-0" />
-                {stat.label}
+              <span className="flex min-w-0 items-center gap-1.5 text-xs font-medium text-muted-foreground">
+                <stat.icon className="size-3.5 shrink-0 opacity-70" />
+                <span className="truncate">{stat.label}</span>
               </span>
               <span
                 className={cn(
-                  "mt-1.5 block text-2xl font-bold tabular-nums",
+                  "mt-2 block text-xl font-semibold tabular-nums tracking-tight sm:text-2xl",
                   loading && "animate-pulse text-muted-foreground",
                   stat.tone === "warning" && "text-warning",
                   stat.tone === "success" && "text-success",
@@ -157,13 +157,15 @@ export function TodayAtSchoolCard() {
                 {loading ? "…" : stat.value}
               </span>
               {stat.hint ? (
-                <span className="mt-1 block text-[11px] text-muted-foreground">{stat.hint}</span>
+                <span className="mt-0.5 block truncate text-[11px] text-muted-foreground">
+                  {stat.hint}
+                </span>
               ) : null}
             </>
           );
 
           return (
-            <li key={stat.label} className="bg-card px-4 py-3.5">
+            <li key={stat.label} className="min-w-0 bg-card px-4 py-3.5 sm:px-5">
               {stat.href ? (
                 <Link
                   to={stat.href as "/calendario"}

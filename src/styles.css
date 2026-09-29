@@ -17,8 +17,8 @@
   font-display: swap;
   src: url("/fonts/inter/inter-latin.woff2") format("woff2");
   unicode-range:
-    U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308,
-    U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+    U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329,
+    U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
 }
 @font-face {
   font-family: "Inter";
@@ -28,8 +28,8 @@
   src: url("/fonts/inter/inter-latin-ext.woff2") format("woff2");
   unicode-range:
     U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329,
-    U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113,
-    U+2C60-2C7F, U+A720-A7FF;
+    U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F,
+    U+A720-A7FF;
 }
 
 /*
@@ -122,16 +122,17 @@
   --color-destructive-strong: var(--destructive-strong);
   --color-chart-2-strong: var(--chart-2-strong);
 
-  --shadow-subtle: 0 1px 2px oklch(0.2 0.04 285 / 4%);
-  --shadow-card: 0 1px 3px oklch(0.2 0.04 285 / 5%), 0 1px 2px -1px oklch(0.2 0.04 285 / 5%);
+  /* Sombras quase planas: a separação faz-se com a borda, a sombra só dá peso. */
+  --shadow-subtle: 0 1px 2px oklch(0.2 0.02 285 / 4%);
+  --shadow-card: 0 1px 2px oklch(0.2 0.02 285 / 4%), 0 0 0 0.5px oklch(0.2 0.02 285 / 2%);
   --shadow-float:
-    0 10px 25px -5px oklch(0.2 0.04 285 / 10%), 0 8px 10px -6px oklch(0.2 0.04 285 / 8%);
+    0 12px 32px -8px oklch(0.2 0.03 285 / 14%), 0 4px 8px -4px oklch(0.2 0.03 285 / 6%);
 }
 
 :root {
   --radius: 0.625rem;
 
-  --background: oklch(0.983 0.004 285);
+  --background: oklch(0.985 0.003 285);
   --foreground: oklch(0.216 0.021 285);
   --card: oklch(1 0 0);
   --card-foreground: oklch(0.216 0.021 285);
@@ -165,8 +166,8 @@
   --destructive-strong: oklch(0.492 0.196 22);
   --chart-2-strong: oklch(0.472 0.166 340);
 
-  --border: oklch(0.918 0.008 286);
-  --input: oklch(0.918 0.008 286);
+  --border: oklch(0.925 0.006 286);
+  --input: oklch(0.905 0.008 286);
   --ring: oklch(0.556 0.235 292.5);
 
   --chart-1: oklch(0.556 0.235 292.5);
@@ -269,7 +270,11 @@
     background-color: var(--color-background);
     color: var(--color-foreground);
     font-family: var(--font-sans);
+    /* Inter com os alternativos de leitura (l com cauda, a e g abertos). */
+    font-feature-settings: "cv11", "ss01", "ss03";
     -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
   }
 
   h1,
@@ -277,7 +282,8 @@
   h3,
   h4 {
     font-family: var(--font-display);
-    letter-spacing: -0.011em;
+    letter-spacing: -0.015em;
+    text-wrap: balance;
   }
 }
 
@@ -287,6 +293,11 @@
   border: 1px solid var(--color-border);
   border-radius: var(--radius-xl);
   box-shadow: var(--shadow-card);
+}
+
+/* App desktop (Tauri): altura da barra de título própria (DesktopTitleBar). */
+html[data-desktop] {
+  --titlebar-h: 36px;
 }
 
 /* Densidade da interface (data-density no <html>) */
@@ -392,19 +403,22 @@ html[data-density="spacious"] #conteudo-principal > .space-y-6 > :not([hidden]) 
   padding-left: 0.625rem;
 }
 
-/* Header icon button, circular like Minimals topbar. */
+/* Botão de ícone do topo: quadrado suave, cinza até ao hover (estilo Linear/Vercel). */
 @utility header-icon-btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  border-radius: 9999px;
+  border-radius: var(--radius-md);
+  color: var(--color-muted-foreground);
   transition:
     background-color 120ms ease,
     color 120ms ease,
     transform 75ms ease-out;
 
-  &:hover {
-    background-color: var(--color-secondary);
+  &:hover,
+  &[data-state="open"] {
+    background-color: color-mix(in oklch, var(--color-foreground) 6%, transparent);
+    color: var(--color-foreground);
   }
 
   &:active {
@@ -464,9 +478,9 @@ html[data-density="spacious"] #conteudo-principal > .space-y-6 > :not([hidden]) 
 @utility skip-link {
   position: absolute;
   left: 1rem;
-  top: 0.5rem;
-  z-index: 60;
-  transform: translateY(-200%);
+  top: calc(0.5rem + var(--titlebar-h, 0px));
+  z-index: 70;
+  transform: translateY(calc(-100% - 1rem - var(--titlebar-h, 0px)));
   border-radius: var(--radius-md);
   background-color: var(--color-primary);
   color: var(--color-primary-foreground);
@@ -616,12 +630,28 @@ summary,
     padding-right: env(safe-area-inset-right);
   }
   @media (max-width: 767px) {
-    input, select, textarea { font-size: 16px; }
-    button, a, [role="button"] { touch-action: manipulation; }
+    input,
+    select,
+    textarea {
+      font-size: 16px;
+    }
+    button,
+    a,
+    [role="button"] {
+      touch-action: manipulation;
+    }
   }
   @media (display-mode: standalone) {
-    body { padding-top: env(safe-area-inset-top); padding-bottom: env(safe-area-inset-bottom); user-select: none; }
-    input, textarea, [contenteditable="true"] { user-select: text; }
+    body {
+      padding-top: env(safe-area-inset-top);
+      padding-bottom: env(safe-area-inset-bottom);
+      user-select: none;
+    }
+    input,
+    textarea,
+    [contenteditable="true"] {
+      user-select: text;
+    }
   }
 }
 

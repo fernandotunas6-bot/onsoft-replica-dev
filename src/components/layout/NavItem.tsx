@@ -20,10 +20,10 @@ export const NAV_ROW_BASE =
   "group relative flex w-full items-center gap-3 rounded-lg font-medium outline-none transition-[color,background-color,transform,box-shadow] duration-75 ease-out active:scale-[0.99] focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:ring-offset-2 focus-visible:ring-offset-sidebar motion-reduce:active:scale-100 motion-reduce:transition-none";
 
 export const NAV_ROW_IDLE =
-  "text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground";
+  "text-sidebar-foreground/65 hover:bg-sidebar-accent/60 hover:text-sidebar-accent-foreground";
 
 export const NAV_ROW_ACTIVE =
-  "bg-primary/16 font-semibold text-sidebar-active shadow-nav-active hover:bg-primary/20 hover:text-sidebar-active";
+  "bg-sidebar-accent text-sidebar-accent-foreground shadow-nav-active hover:bg-sidebar-accent hover:text-sidebar-accent-foreground";
 
 export const NAV_DEPTH_CLASS: Record<NavDepth, string> = {
   root: "min-h-9 px-2.5 py-1.5 text-xs font-medium",
@@ -57,7 +57,7 @@ export function NavIcon({
             "block rounded-full transition-all duration-150",
             active
               ? "size-1.5 bg-sidebar-active"
-              : "size-1 bg-sidebar-foreground/40 group-hover:size-1.5 group-hover:bg-sidebar-active",
+              : "size-1 bg-sidebar-foreground/30 group-hover:bg-sidebar-foreground/60",
           )}
         />
       </span>
@@ -68,12 +68,12 @@ export function NavIcon({
     <span aria-hidden data-nav-icon="" className="flex size-6 shrink-0 items-center justify-center">
       <Icon
         className={cn(
-          "size-5 transition-colors duration-150",
+          "size-[18px] transition-colors duration-150",
           active
             ? "text-sidebar-active"
-            : "text-sidebar-foreground/70 group-hover:text-sidebar-active",
+            : "text-sidebar-foreground/55 group-hover:text-sidebar-accent-foreground",
         )}
-        strokeWidth={active ? 2.1 : 1.8}
+        strokeWidth={active ? 2 : 1.75}
       />
     </span>
   );
@@ -166,6 +166,8 @@ export function NavButtonRow(props: BaseProps & { onClick?: () => void; expanded
 export function NavSubheader({ title, collapsed = false }: { title: string; collapsed?: boolean }) {
   if (collapsed) return <div className="mx-3 my-3 h-px bg-sidebar-border" />;
   return (
-    <p className="px-3 pb-1 pt-4 text-[11px] font-bold leading-5 text-sidebar-muted">{title}</p>
+    <p className="px-2.5 pb-1 pt-5 text-[11px] font-medium leading-5 tracking-wide text-sidebar-muted/80">
+      {title}
+    </p>
   );
 }

@@ -9,6 +9,7 @@ import {
   DoorOpen,
   GraduationCap,
   Megaphone,
+  Plus,
   FileText,
   Receipt,
   TrendingUp,
@@ -218,85 +219,71 @@ export function AdminPortalDashboard({
 
   return (
     <div className="space-y-6">
-      {/* HEADER EXECUTIVO — RESUMO DE HOJE */}
-      <div className="flex flex-wrap items-center justify-between gap-4 rounded-xl border border-border/80 bg-card p-4 sm:p-5 shadow-card">
-        <div>
-          <div className="flex items-center gap-2">
-            <span className="inline-flex size-2 rounded-full bg-success" aria-hidden="true" />
-            <span className="text-[11px] font-semibold text-muted-foreground">
-              {school?.name ?? "Escola"} · Resumo de Hoje
+      {/* CABEÇALHO — RESUMO DE HOJE (sem cartão: título directo na tela) */}
+      <header className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+        <div className="min-w-0">
+          <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
+            <span className="inline-flex size-1.5 rounded-full bg-success" aria-hidden="true" />
+            <span className="truncate">{school?.name ?? "Escola"}</span>
+            <span aria-hidden="true">·</span>
+            <span className="truncate first-letter:uppercase">
+              {now
+                ? now.toLocaleDateString("pt-PT", {
+                    weekday: "long",
+                    day: "numeric",
+                    month: "long",
+                  })
+                : "Resumo de hoje"}
             </span>
-          </div>
-          <h1 className="mt-1 font-display text-xl sm:text-2xl font-bold tracking-tight text-foreground">
+          </p>
+          <h1 className="mt-1.5 font-display text-2xl font-semibold tracking-tight text-foreground sm:text-[1.75rem]">
             {greeting}, {currentUser.name.split(" ")[0]}
           </h1>
-          <p className="mt-0.5 text-xs text-muted-foreground capitalize">
-            {now
-              ? now.toLocaleDateString("pt-PT", {
-                  weekday: "long",
-                  day: "numeric",
-                  month: "long",
-                  year: "numeric",
-                })
-              : "Visão consolidada da operação escolar."}
-          </p>
         </div>
         <div className="flex items-center gap-2">
+          {canAccessPath("/financeiro", currentUser.role) ? (
+            <Button asChild size="sm" variant="outline" className="flex-1 sm:flex-none">
+              <Link to="/financeiro">Caixa &amp; pagamentos</Link>
+            </Button>
+          ) : null}
           {canAccessPath("/alunos", currentUser.role) ? (
-            <Button asChild size="sm" className="rounded-lg shadow-xs">
+            <Button asChild size="sm" className="flex-1 sm:flex-none">
               <Link to="/alunos" search={{ action: "matricular" }}>
-                + Nova Matrícula
+                <Plus className="size-4" aria-hidden="true" />
+                Nova matrícula
               </Link>
             </Button>
           ) : null}
-          {canAccessPath("/financeiro", currentUser.role) ? (
-            <Button asChild size="sm" variant="outline" className="rounded-lg shadow-xs">
-              <Link to="/financeiro">Caixa & Pagamentos</Link>
-            </Button>
-          ) : null}
         </div>
-      </div>
+      </header>
 
-      {/* BARRA DE SUBOPÇÕES CLICÁVEIS DO DASHBOARD */}
-      <div className="flex flex-wrap items-center gap-2 border-b border-border pb-3">
-        <Button
-          type="button"
-          variant={activeTab === "geral" ? "default" : "secondary"}
-          size="sm"
-          onClick={() => setActiveTab("geral")}
-          className="rounded-full text-xs font-semibold px-3.5"
-        >
-          Visão Geral
-        </Button>
-        <Button
-          type="button"
-          variant={activeTab === "pedagogico" ? "default" : "secondary"}
-          size="sm"
-          onClick={() => setActiveTab("pedagogico")}
-          className="rounded-full text-xs font-semibold px-3.5"
-        >
-          Desempenho & Pautas
-        </Button>
-        {capabilities.finance ? (
-          <Button
-            type="button"
-            variant={activeTab === "financeiro" ? "default" : "secondary"}
-            size="sm"
-            onClick={() => setActiveTab("financeiro")}
-            className="rounded-full text-xs font-semibold px-3.5"
-          >
-            Projeção Financeira
-          </Button>
-        ) : null}
-        <Button
-          type="button"
-          variant={activeTab === "auditoria" ? "default" : "secondary"}
-          size="sm"
-          onClick={() => setActiveTab("auditoria")}
-          className="rounded-full text-xs font-semibold px-3.5"
-        >
-          Auditoria de Produtividade
-        </Button>
+      {/* SEPARADORES — sublinhado, deslizam na horizontal no telemóvel */}
+      <div
+        role="tablist"
+        aria-label="Vistas do painel"
+        className="no-scrollbar -mx-4 flex gap-6 overflow-x-auto px-4 shadow-[inset_0_-1px_0_var(--color-border)] md:mx-0 md:px-0"
+      >
+        {(
+          [
+            { id: "geral", label: "Visão geral", show: true },
+            { id: "pedagogico", label: "Desempenho e pautas", show: true },
+            { id: "financeiro", label: "Projecção financeira", show: capabilities.finance },
+            { id: "auditoria", label: "Produtividade", show: true },
+          ] as const
+        )
+          .filter((tab) => tab.show)
+          .map((tab) => (
+            <button
+              key={tab.id}
+              type="button"
+              role="tab"
+              aria-selected={activeTab === tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className="relative shrink-0 whitespace-nowrap pb-3 pt-1 text-sm font-medium text-muted-foreground transition-colors after:absolute after:inset-x-0 after:bottom-0 after:h-0.5 after:rounded-full after:bg-transparent hover:text-foreground aria-selected:text-foreground aria-selected:after:bg-foreground"
+            >
+              {tab.label}
+            </button>
+          ))}
       </div>
 
       {activeTab === "geral" && capabilities.students && totalStudents === 0 ? (
@@ -431,13 +418,13 @@ export function AdminPortalDashboard({
         </section>
       ) : null}
 
-      <section className="surface-card p-5">
+      <section className="surface-card p-4 sm:p-5">
         <div className="flex items-center justify-between gap-3">
-          <div className="flex items-center gap-2 text-sm font-semibold">
-            <TrendingUp className="size-4 text-primary" />
-            Progresso do {yearName}
+          <div className="flex min-w-0 items-center gap-2 text-sm font-medium">
+            <TrendingUp className="size-4 shrink-0 text-muted-foreground" />
+            <span className="truncate">Progresso do {yearName}</span>
           </div>
-          <span className="text-sm font-bold text-primary">
+          <span className="shrink-0 text-sm font-semibold tabular-nums text-foreground">
             {data?.academicYear
               ? data.yearPhase === "not_started"
                 ? "Ainda não começou"
@@ -447,7 +434,7 @@ export function AdminPortalDashboard({
               : "—"}
           </span>
         </div>
-        <div className="mt-3 h-2 w-full overflow-hidden rounded-full bg-secondary">
+        <div className="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-secondary">
           <div
             className="h-full rounded-full bg-primary transition-all"
             style={{ width: `${data?.academicYear ? data.yearProgress : 0}%` }}
@@ -467,21 +454,22 @@ export function AdminPortalDashboard({
         </div>
       </section>
 
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-4">
         {stats.map((s) => {
           const card = (
             <>
-              <div className="flex items-start justify-between gap-3">
-                <p className="text-sm text-muted-foreground">{s.label}</p>
-                <IconChip
-                  icon={s.icon}
-                  size="md"
-                  tone={s.tone === "pink" ? "info" : s.tone}
-                  label={s.label}
+              <div className="flex items-center justify-between gap-2">
+                <p className="truncate text-xs font-medium text-muted-foreground">{s.label}</p>
+                <s.icon
+                  className="size-4 shrink-0 text-muted-foreground/70"
+                  aria-label={s.label}
+                  role="img"
                 />
               </div>
-              <p className="mt-3 text-4xl font-extrabold tracking-tight">{s.value}</p>
-              <p className="mt-1 text-xs text-muted-foreground">{s.hint}</p>
+              <p className="mt-3 text-2xl font-semibold tabular-nums tracking-tight sm:text-3xl">
+                {s.value}
+              </p>
+              <p className="mt-1 truncate text-xs text-muted-foreground">{s.hint}</p>
             </>
           );
           return s.href ? (
@@ -489,31 +477,25 @@ export function AdminPortalDashboard({
               key={s.label}
               to={s.href}
               {...(s.search ? { search: s.search } : {})}
-              className="surface-card block p-5 transition-all duration-200 ease-out hover:scale-[1.02] hover:border-primary/40 hover:shadow-card cursor-pointer"
+              className="surface-card block p-4 transition-colors hover:border-foreground/20 sm:p-5"
             >
               {card}
             </Link>
           ) : (
-            <div
-              key={s.label}
-              className="surface-card p-5 transition-all duration-200 ease-out hover:scale-[1.02] hover:shadow-card"
-            >
+            <div key={s.label} className="surface-card p-4 sm:p-5">
               {card}
             </div>
           );
         })}
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="surface-card grid grid-cols-2 gap-px overflow-hidden bg-border/60 p-0 xl:grid-cols-4">
         {miniStats.map((s) => (
-          <div
-            key={s.label}
-            className="surface-card flex items-center gap-4 p-4 transition-all duration-200 ease-out hover:scale-[1.02] hover:shadow-card"
-          >
-            <IconChip icon={s.icon} size="md" tone="primary" label={s.label} />
-            <div>
-              <p className="text-xs text-muted-foreground">{s.label}</p>
-              <p className="text-xl font-bold">{s.value}</p>
+          <div key={s.label} className="flex items-center gap-3 bg-card px-4 py-3.5 sm:px-5">
+            <IconChip icon={s.icon} size="sm" tone="muted" label={s.label} />
+            <div className="min-w-0">
+              <p className="truncate text-xs text-muted-foreground">{s.label}</p>
+              <p className="text-base font-semibold tabular-nums">{s.value}</p>
             </div>
           </div>
         ))}

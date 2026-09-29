@@ -25,7 +25,6 @@ import { AppSidebar } from "./AppSidebar";
 import { AccountDrawer } from "./AccountDrawer";
 import { AppLauncher } from "./AppLauncher";
 import { CommandPalette, requestOpenCommandPalette } from "./CommandPalette";
-import { DesktopTitleBar } from "./DesktopTitleBar";
 import { TopbarCalendar } from "./TopbarCalendar";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
@@ -228,15 +227,14 @@ function AuthenticatedAppShell({ children }: { children: ReactNode }) {
   };
 
   return (
-    <div className="flex flex-col min-h-screen bg-background">
-      <DesktopTitleBar />
+    <div className="flex min-h-full flex-1 flex-col bg-background">
       <div className="flex flex-1 min-h-0">
         <a href="#conteudo-principal" className="skip-link">
           Saltar para o conteúdo principal
         </a>
 
         <div
-          className="sticky top-0 z-40 hidden h-screen lg:block lg:py-2 lg:pl-2"
+          className="sticky top-[var(--titlebar-h,0px)] z-40 hidden h-[calc(100dvh-var(--titlebar-h,0px))] lg:block lg:py-2 lg:pl-2"
           onMouseEnter={() => {
             window.clearTimeout(hoverLeaveTimer.current);
             setHoverOpen(true);
@@ -253,13 +251,13 @@ function AuthenticatedAppShell({ children }: { children: ReactNode }) {
         </div>
 
         <Sheet open={open} onOpenChange={setOpen}>
-          <SheetContent side="left" className="w-[240px] border-none bg-sidebar p-0">
+          <SheetContent side="left" className="w-[272px] max-w-[85vw] border-none bg-sidebar p-0">
             <AppSidebar onOpenSettings={(panelId) => openSettings(panelId)} />
           </SheetContent>
         </Sheet>
 
-        <div className="flex min-w-0 flex-1 flex-col lg:my-2 lg:mx-2 lg:overflow-clip lg:rounded-2xl lg:border lg:border-border/60 lg:shadow-sm">
-          <header className="sticky top-0 z-30 flex h-14 items-center gap-2.5 border-b border-border/70 bg-background/95 backdrop-blur-xs px-3.5 md:px-5">
+        <div className="flex min-w-0 flex-1 flex-col lg:m-2 lg:overflow-clip lg:rounded-xl lg:border lg:border-border/70 lg:bg-card/40 lg:shadow-subtle">
+          <header className="sticky top-[var(--titlebar-h,0px)] z-30 flex h-14 items-center gap-1.5 border-b border-border/60 bg-background/80 px-3 backdrop-blur-md backdrop-saturate-150 sm:gap-2 md:px-4 lg:px-5">
             <Button
               variant="ghost"
               size="icon"
@@ -267,7 +265,7 @@ function AuthenticatedAppShell({ children }: { children: ReactNode }) {
               onClick={() => setOpen(true)}
               aria-label="Abrir menu"
             >
-              <Menu className="size-5" />
+              <Menu className="size-[18px]" />
             </Button>
 
             <Button
@@ -277,23 +275,25 @@ function AuthenticatedAppShell({ children }: { children: ReactNode }) {
               onClick={toggleCollapsed}
               aria-label={collapsed ? "Expandir menu" : "Recolher menu"}
             >
-              <Menu className="size-5" />
+              <Menu className="size-[18px]" />
             </Button>
 
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <button
                   type="button"
-                  className="flex min-w-0 max-w-[min(100%,18rem)] items-center gap-1.5 rounded-lg border border-border/80 bg-secondary/50 px-2.5 py-1 text-xs font-medium text-secondary-foreground transition-colors hover:border-primary/40"
+                  className="flex h-8 min-w-0 max-w-[min(100%,18rem)] items-center gap-1.5 rounded-md px-2 text-xs font-medium text-foreground transition-colors hover:bg-foreground/[0.05] data-[state=open]:bg-foreground/[0.05]"
                 >
                   <span className="hidden truncate text-muted-foreground sm:inline">
                     {school?.name ? `${school.name} · ` : ""}
                   </span>
-                  <span className="truncate whitespace-nowrap font-semibold">
-                    {selectedYearLabel}
-                    {selectedYearId && selectedYearId === activeYear?.id ? " (Atual)" : ""}
-                  </span>
-                  <ChevronDown className="size-3.5 shrink-0 opacity-60" />
+                  <span className="truncate whitespace-nowrap">{selectedYearLabel}</span>
+                  {selectedYearId && selectedYearId === activeYear?.id ? (
+                    <span className="hidden rounded-sm bg-success/12 px-1 py-px text-[11px] font-medium text-success-strong sm:inline">
+                      Actual
+                    </span>
+                  ) : null}
+                  <ChevronDown className="size-3.5 shrink-0 text-muted-foreground" />
                 </button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="start" className="w-56">
@@ -315,10 +315,10 @@ function AuthenticatedAppShell({ children }: { children: ReactNode }) {
                 <DropdownMenuTrigger asChild>
                   <button
                     type="button"
-                    className="hidden min-w-0 items-center gap-1.5 rounded-lg border border-border/80 bg-secondary/50 px-2.5 py-1 text-xs font-medium text-secondary-foreground transition-colors hover:border-primary/40 md:flex"
+                    className="hidden h-8 min-w-0 items-center gap-1.5 rounded-md px-2 text-xs font-medium text-muted-foreground transition-colors hover:bg-foreground/[0.05] hover:text-foreground data-[state=open]:bg-foreground/[0.05] md:flex"
                   >
                     <span className="truncate whitespace-nowrap">{selectedTermLabel}</span>
-                    <ChevronDown className="size-3.5 shrink-0 opacity-60" />
+                    <ChevronDown className="size-3.5 shrink-0 opacity-70" />
                   </button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="start" className="w-56">
@@ -337,28 +337,30 @@ function AuthenticatedAppShell({ children }: { children: ReactNode }) {
             <button
               type="button"
               onClick={() => requestOpenCommandPalette()}
-              className="hidden sm:flex items-center gap-2.5 rounded-lg border border-border/80 bg-secondary/40 px-3 py-1 text-xs text-muted-foreground transition-colors hover:border-primary/40 hover:bg-secondary/70 hover:text-foreground md:w-56 lg:w-72"
+              className="ml-1 hidden h-8 items-center gap-2 rounded-md border border-border/80 bg-background px-2.5 text-xs text-muted-foreground shadow-subtle transition-colors hover:border-border hover:bg-secondary/60 hover:text-foreground sm:flex md:w-56 lg:w-72"
               title="Pesquisa global e atalhos rápidos (Ctrl/⌘ K)"
             >
-              <Search className="size-3.5 opacity-60 shrink-0" />
+              <Search className="size-3.5 shrink-0" />
               <span className="truncate flex-1 text-left">Pesquisar no SIGA…</span>
-              <kbd className="pointer-events-none inline-flex h-4 select-none items-center gap-0.5 rounded border border-border/80 bg-muted/70 px-1 font-mono text-[11px] font-medium text-muted-foreground shrink-0">
-                <span className="text-[11px]">⌘</span>K
+              <kbd className="pointer-events-none hidden h-5 shrink-0 select-none items-center gap-0.5 rounded border border-border/70 bg-muted/60 px-1.5 font-sans text-[11px] font-medium text-muted-foreground md:inline-flex">
+                ⌘K
               </kbd>
             </button>
             <Button
               variant="ghost"
               size="icon"
-              className="header-icon-btn sm:hidden"
+              className="header-icon-btn ml-auto sm:hidden"
               onClick={() => requestOpenCommandPalette()}
               aria-label="Pesquisar"
               title="Pesquisar (Ctrl/⌘ K)"
             >
-              <Search className="size-5" />
+              <Search className="size-[18px]" />
             </Button>
 
-            <div className="ml-auto flex items-center gap-1">
-              <TopbarCalendar />
+            <div className="flex items-center gap-0.5 sm:ml-auto">
+              <div className="hidden sm:contents">
+                <TopbarCalendar />
+              </div>
               <Button
                 variant="ghost"
                 size="icon"
@@ -368,13 +370,13 @@ function AuthenticatedAppShell({ children }: { children: ReactNode }) {
                 title="Documentação e Ajuda"
               >
                 <a href={getSigaNavDocUrl()} target="_blank" rel="noreferrer">
-                  <CircleHelp className="size-5 text-muted-foreground hover:text-foreground" />
+                  <CircleHelp className="size-[18px]" />
                 </a>
               </Button>
               <Button
                 variant="ghost"
                 size="icon"
-                className="header-icon-btn"
+                className="header-icon-btn hidden md:inline-flex"
                 aria-label={favorited ? "Remover dos favoritos" : "Adicionar aos favoritos"}
                 title={favorited ? "Remover dos favoritos" : "Favoritar página"}
                 onClick={() => {
@@ -386,28 +388,21 @@ function AuthenticatedAppShell({ children }: { children: ReactNode }) {
                   );
                 }}
               >
-                <Star
-                  className={cn(
-                    "size-5",
-                    favorited ? "fill-warning text-warning" : "text-muted-foreground",
-                  )}
-                />
+                <Star className={cn("size-[18px]", favorited && "fill-warning text-warning")} />
               </Button>
-              <AppLauncher onOpenSettings={openSettings} />
+              <div className="hidden sm:contents">
+                <AppLauncher onOpenSettings={openSettings} />
+              </div>
               <CommandPalette />
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="header-icon-btn"
+                    className="header-icon-btn hidden sm:inline-flex"
                     aria-label="Seletor de tema"
                   >
-                    {isDark ? (
-                      <Sun className="size-5 text-warning" />
-                    ) : (
-                      <Moon className="size-5 text-primary" />
-                    )}
+                    {isDark ? <Sun className="size-[18px]" /> : <Moon className="size-[18px]" />}
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-40">
@@ -438,22 +433,23 @@ function AuthenticatedAppShell({ children }: { children: ReactNode }) {
                 aria-haspopup="dialog"
                 onClick={() => setNotificationsOpen(true)}
               >
-                <Bell className="size-5" />
+                <Bell className="size-[18px]" />
                 {noticeCount ? (
-                  <span className="absolute right-1.5 top-1.5 size-2 rounded-full bg-destructive ring-2 ring-background" />
+                  <span className="absolute right-2 top-2 size-1.5 rounded-full bg-destructive ring-2 ring-background" />
                 ) : null}
               </Button>
               <Button
                 variant="ghost"
                 size="icon"
-                className="header-icon-btn hidden sm:inline-flex"
+                className="header-icon-btn hidden lg:inline-flex"
                 aria-label={isFullscreen ? "Sair do ecrã inteiro" : "Ecrã inteiro"}
                 onClick={toggleFullscreen}
               >
-                <Maximize2 className="size-5" />
+                <Maximize2 className="size-[18px]" />
               </Button>
             </div>
 
+            <span aria-hidden className="mx-1 hidden h-5 w-px bg-border sm:block" />
             <button
               type="button"
               onClick={() => setAccountOpen(true)}
@@ -461,13 +457,13 @@ function AuthenticatedAppShell({ children }: { children: ReactNode }) {
               aria-label="Abrir painel da conta"
               aria-haspopup="dialog"
               aria-expanded={accountOpen}
-              className="flex items-center gap-3 rounded-full px-1.5 py-1 transition-colors hover:bg-secondary"
+              className="flex shrink-0 items-center gap-2.5 rounded-md p-1 transition-colors hover:bg-foreground/[0.05] lg:pr-2"
             >
               <span className="relative">
                 <UserAvatar
                   url={currentUser.avatarUrl}
                   initials={currentUser.initials}
-                  className="size-9 bg-primary text-sm font-semibold text-primary-foreground ring-2 ring-primary/20"
+                  className="size-8 bg-primary-soft text-xs font-semibold text-primary-strong"
                 />
                 {unreadCount ? (
                   <span className="absolute -right-1 -top-1 min-w-4 rounded-full bg-destructive px-1 text-center text-[11px] font-bold leading-4 text-destructive-foreground">
@@ -475,11 +471,12 @@ function AuthenticatedAppShell({ children }: { children: ReactNode }) {
                   </span>
                 ) : null}
               </span>
-              <span className="hidden text-left leading-tight sm:block">
-                <span className="block text-sm font-semibold">{currentUser.name}</span>
-                <span className="block text-xs text-muted-foreground">{currentUser.role}</span>
+              <span className="hidden max-w-[10rem] text-left leading-tight lg:block">
+                <span className="block truncate text-xs font-medium">{currentUser.name}</span>
+                <span className="block truncate text-[11px] text-muted-foreground">
+                  {currentUser.role}
+                </span>
               </span>
-              <ChevronDown className="hidden size-4 opacity-60 sm:block" />
             </button>
 
             <AccountDrawer
@@ -581,7 +578,7 @@ function AuthenticatedAppShell({ children }: { children: ReactNode }) {
           <main
             id="conteudo-principal"
             tabIndex={-1}
-            className="mx-auto w-full max-w-[1400px] flex-1 px-3.5 py-4 md:px-5 md:py-5 lg:px-6 lg:py-5 [content-visibility:auto]"
+            className="mx-auto w-full max-w-[1440px] flex-1 px-4 pb-8 pt-5 md:px-6 md:pt-6 lg:px-8 lg:pt-7 [content-visibility:auto]"
           >
             {studentCapacity.nearLimit || studentCapacity.atLimit ? (
               <div
@@ -625,15 +622,8 @@ function AuthenticatedAppShell({ children }: { children: ReactNode }) {
             {children}
           </main>
 
-          <footer className="flex flex-wrap items-center justify-between gap-3 border-t border-border bg-card/40 px-3.5 py-3 text-xs text-muted-foreground backdrop-blur-xs md:px-5">
+          <footer className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 border-t border-border/60 px-4 py-3 text-[11px] text-muted-foreground md:px-6 lg:px-8">
             <div className="flex items-center gap-4">
-              <span className="inline-flex items-center gap-2 font-semibold text-foreground">
-                <span className="inline-flex size-6 items-center justify-center rounded-lg bg-primary-soft text-[11px] font-extrabold text-primary">
-                  S
-                </span>
-                SIGA
-              </span>
-              <span aria-hidden className="hidden h-3 w-px bg-border sm:block" />
               <button
                 type="button"
                 onClick={() => setLegalDoc("politicas")}
@@ -649,7 +639,7 @@ function AuthenticatedAppShell({ children }: { children: ReactNode }) {
                 Termos de uso
               </button>
             </div>
-            <span>© SIGA — Sistema Integrado de Gestão Académica</span>
+            <span className="hidden sm:inline">© SIGA · Sistema Integrado de Gestão Académica</span>
           </footer>
         </div>
 

@@ -1,80 +1,113 @@
 import { useEffect, useState } from "react";
-import { Minus, Square, X, Shield, Cpu, Monitor } from "lucide-react";
+import { Minus, Square, X } from "lucide-react";
 import {
   isTauriDesktop,
   minimizeWindow,
   toggleMaximizeWindow,
   closeWindow,
-  getNativeSystemInfo,
 } from "@/lib/tauri-bridge";
-import { useSchoolSettings } from "@/features/auth/use-school-settings";
+import { cn } from "@/lib/utils";
+
+/**
+ * Barra de título única da app desktop (Tauri).
+ *
+ * Antes havia duas (TauriTitlebar na raiz e esta no shell), mais a nativa:
+ * três barras no Windows. Agora só esta, desenhada na raiz para cobrir também
+ * o ecrã de entrada.
+ *  - macOS: a janela usa `titleBarStyle: Overlay`; os semáforos nativos ficam
+ *    por cima, à esquerda. Deixamos-lhes espaço e não desenhamos botões.
+ *  - Windows/Linux: sem decoração nativa (tauri.windows/linux.conf.json); os
+ *    botões minimizar/maximizar/fechar são estes.
+ * O duplo clique na zona de arrasto maximiza (nativo do Tauri).
+ * `data-desktop` no <html> liga `--titlebar-h` (styles.css), que o shell
+ * desconta da altura do ecrã. Atributo e não estilo inline: a aparência limpa
+ * as variáveis inline sempre que muda de tema.
+ */
+const TITLEBAR_HEIGHT = 36;
 
 export function DesktopTitleBar() {
-  const { school } = useSchoolSettings();
-  const [osName, setOsName] = useState<string>("desktop");
-  // Decidido só depois de montar: o servidor não tem `window`. Antes, a
-  // condição com `typeof window` desenhava a barra no servidor e escondia-a no
-  // browser — erro de hidratação (#418) em todas as páginas, e o React deitava
-  // fora o HTML do servidor. Agora os dois lados começam sem barra.
+  // Decidido só depois de montar: o servidor não tem `window`. Desenhar a
+  // barra no servidor e escondê-la no browser dava erro de hidratação (#418).
   const [visible, setVisible] = useState(false);
+  const [isMac, setIsMac] = useState(false);
 
   useEffect(() => {
     const desktop = isTauriDesktop();
-    setVisible(desktop || window.location.search.includes("show_titlebar"));
-    if (desktop) void getNativeSystemInfo().then((info) => setOsName(info.os_type));
+    if (!desktop && !window.location.search.includes("show_titlebar")) return;
+    const mac = /Mac/i.test(navigator.userAgent);
+    setIsMac(mac);
+    setVisible(true);
+    const root = document.documentElement;
+    root.dataset["desktop"] = mac ? "macos" : "windows";
+    return () => {
+      delete root.dataset["desktop"];
+    };
   }, []);
 
-  // Em navegadores web padrão, só exibe a barra se for desktop ou para testes
   if (!visible) return null;
 
   return (
     <div
       data-tauri-drag-region
-      className="h-9 bg-neutral-900 text-foreground flex items-center justify-between px-3 select-none text-xs border-b border-neutral-800 z-50 shrink-0 font-sans"
+      className={cn(
+        "fixed inset-x-0 top-0 z-[60] flex select-none items-center justify-between",
+        "border-b border-border/60 bg-background/85 text-muted-foreground backdrop-blur-md",
+      )}
+      style={{ height: TITLEBAR_HEIGHT }}
+      data-titlebar=""
     >
-      {/* NOME DA APLICAÇÃO E ESCOLA */}
-      <div className="flex items-center gap-2 pointer-events-none">
-        <div className="size-5 rounded bg-primary/20 text-primary flex items-center justify-center font-bold text-[11px]">
-          <Shield className="size-3 text-primary" />
+      <div
+        data-tauri-drag-region
+        className={cn(
+          "pointer-events-none flex min-w-0 flex-1 items-center gap-2 text-xs font-medium",
+          isMac ? "justify-center" : "pl-3.5",
+        )}
+      >
+        <span className="text-foreground/80">SIGA</span>
+      </div>
+
+      {!isMac ? (
+        <div className="flex h-full items-stretch">
+          <TitleBarButton label="Minimizar" onClick={() => void minimizeWindow()}>
+            <Minus className="size-3.5" strokeWidth={1.75} />
+          </TitleBarButton>
+          <TitleBarButton label="Maximizar / Restaurar" onClick={() => void toggleMaximizeWindow()}>
+            <Square className="size-3" strokeWidth={1.75} />
+          </TitleBarButton>
+          <TitleBarButton label="Fechar" danger onClick={() => void closeWindow()}>
+            <X className="size-3.5" strokeWidth={1.75} />
+          </TitleBarButton>
         </div>
-        <span className="font-extrabold text-foreground tracking-tight">SIGA Desktop</span>
-        <span className="text-muted-foreground font-mono text-[11px]">v1.0 ({osName})</span>
-        {school?.name ? (
-          <span className="text-muted-foreground font-semibold text-[11px] ml-2 border-l border-neutral-700 pl-2">
-            {school.name}
-          </span>
-        ) : null}
-      </div>
-
-      {/* BOTÕES ESTILO WINDOWS DE MINIMIZAR, MAXIMIZAR E FECHAR */}
-      <div className="flex items-center -mr-3 h-full">
-        <button
-          type="button"
-          onClick={() => void minimizeWindow()}
-          title="Minimizar"
-          className="h-full px-3.5 hover:bg-neutral-800 text-muted-foreground hover:text-foreground transition-colors flex items-center justify-center"
-        >
-          <Minus className="size-3.5" />
-        </button>
-
-        <button
-          type="button"
-          onClick={() => void toggleMaximizeWindow()}
-          title="Maximizar / Restaurar"
-          className="h-full px-3.5 hover:bg-neutral-800 text-muted-foreground hover:text-foreground transition-colors flex items-center justify-center"
-        >
-          <Square className="size-3" />
-        </button>
-
-        <button
-          type="button"
-          onClick={() => void closeWindow()}
-          title="Fechar"
-          className="h-full px-4 hover:bg-destructive text-muted-foreground hover:text-destructive-foreground transition-colors flex items-center justify-center"
-        >
-          <X className="size-3.5" />
-        </button>
-      </div>
+      ) : null}
     </div>
+  );
+}
+
+function TitleBarButton({
+  label,
+  danger = false,
+  onClick,
+  children,
+}: {
+  label: string;
+  danger?: boolean;
+  onClick: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-label={label}
+      title={label}
+      className={cn(
+        "flex w-11 items-center justify-center transition-colors focus-visible:outline-none",
+        danger
+          ? "hover:bg-[#c42b1c] hover:text-white"
+          : "hover:bg-foreground/[0.06] hover:text-foreground",
+      )}
+    >
+      {children}
+    </button>
   );
 }

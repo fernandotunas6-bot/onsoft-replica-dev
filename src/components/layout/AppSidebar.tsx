@@ -118,7 +118,7 @@ export function AppSidebar({
         data-sidebar="siga"
         className={cn(
           "flex h-full shrink-0 flex-col overflow-hidden bg-sidebar text-sidebar-foreground transition-[width] duration-200",
-          "lg:rounded-2xl lg:border lg:border-border/60 lg:shadow-sm",
+          "lg:rounded-xl lg:border lg:border-sidebar-border/70",
           collapsed ? "w-[64px]" : "w-[240px]",
           className,
         )}
@@ -145,12 +145,12 @@ export function AppSidebar({
                     <MediaAvatar
                       src={schoolLogoUrl}
                       alt={school?.name ?? "Logótipo da escola"}
-                      className="size-9 shrink-0 ring-2 ring-primary/20 bg-background object-contain p-0.5"
+                      className="size-8 shrink-0 rounded-lg bg-background object-contain p-0.5 ring-1 ring-sidebar-border"
                     />
                   ) : (
                     <span
                       aria-hidden
-                      className="inline-flex size-9 shrink-0 items-center justify-center rounded-full bg-primary/15 text-xs font-bold text-primary ring-2 ring-primary/20"
+                      className="inline-flex size-8 shrink-0 items-center justify-center rounded-lg bg-sidebar-primary text-xs font-semibold text-sidebar-primary-foreground"
                     >
                       {schoolInitials || "E"}
                     </span>
@@ -158,7 +158,7 @@ export function AppSidebar({
                   {!collapsed ? (
                     <>
                       <span className="min-w-0 flex-1 leading-tight">
-                        <span className="block truncate text-sm font-bold text-sidebar-foreground">
+                        <span className="block truncate text-sm font-semibold text-sidebar-foreground">
                           {school?.name}
                         </span>
                         {schoolMotto ? (
@@ -251,16 +251,16 @@ export function AppSidebar({
               target="_blank"
               rel="noreferrer"
               className={cn(
-                "flex items-center gap-2 rounded-xl bg-primary/10 hover:bg-primary/20 text-primary font-bold text-xs transition-colors border border-primary/25 shadow-xs",
+                "flex items-center gap-2 rounded-lg border border-dashed border-sidebar-border text-xs font-medium text-sidebar-foreground/75 transition-colors hover:bg-sidebar-accent hover:text-sidebar-foreground",
                 collapsed ? "size-9 justify-center p-0" : "w-full justify-between px-3 py-2",
               )}
               title="Criar escola no portal WEB"
             >
               <div className="flex items-center gap-2 truncate">
-                <PlusCircle className="size-4 shrink-0 text-primary" />
+                <PlusCircle className="size-4 shrink-0" />
                 {!collapsed ? <span className="truncate">Criar escola (WEB)</span> : null}
               </div>
-              {!collapsed ? <Building2 className="size-3.5 shrink-0 opacity-70" /> : null}
+              {!collapsed ? <Building2 className="size-3.5 shrink-0 opacity-50" /> : null}
             </a>
           )}
         </div>
@@ -405,7 +405,7 @@ export function AppSidebar({
                 <UserAvatar
                   url={currentUser.avatarUrl}
                   initials={currentUser.initials}
-                  className="size-9 bg-sidebar-primary text-sm font-semibold text-sidebar-primary-foreground"
+                  className="size-8 bg-sidebar-accent text-xs font-semibold text-sidebar-foreground ring-1 ring-sidebar-border"
                 />
                 {!collapsed ? (
                   <>
@@ -492,7 +492,7 @@ export function AppSidebar({
             </DropdownMenuContent>
           </DropdownMenu>
           {!collapsed ? (
-            <p className="px-2 pt-2 text-[11px] text-sidebar-muted">{activeYearLabel}</p>
+            <p className="px-2 pt-1.5 text-[11px] text-sidebar-muted/80">{activeYearLabel}</p>
           ) : null}
         </div>
       </aside>

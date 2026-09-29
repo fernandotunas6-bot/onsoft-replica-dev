@@ -121,7 +121,7 @@ function RootShell({ children }: { children: ReactNode }) {
   );
 }
 
-import { TauriTitlebar } from "@/components/TauriTitlebar";
+import { DesktopTitleBar } from "@/components/layout/DesktopTitleBar";
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
@@ -147,8 +147,8 @@ function RootComponent() {
     <QueryClientProvider client={queryClient}>
       <TenantProvider>
         <AppearanceProvider>
-          <TauriTitlebar />
-          <div className="relative pt-[env(safe-area-inset-top,0)] flex min-h-screen flex-col">
+          <DesktopTitleBar />
+          <div className="relative flex min-h-screen flex-col pt-[calc(env(safe-area-inset-top,0px)+var(--titlebar-h,0px))]">
             {isPublic ? (
               <Outlet />
             ) : (
