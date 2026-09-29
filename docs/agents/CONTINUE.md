@@ -22,9 +22,12 @@ Depois abrir o skill do módulo em `.cursor/skills/`.
   `has_api_key` e `api_key_hint`, os últimos 4 caracteres). O botão "Key" pede-a
   a `revealTurnstileDeviceApiKey`, que exige escrita em Gestão.
   `20260929230000_turnstile_devices_server_only.sql` retira a política
-  `is_school_member` da tabela. **Por aplicar.** Hoje não há fuga, porque
-  `authenticated` não tem SELECT na tabela, mas um GRANT abria as chaves a
-  qualquer aluno.
+  `is_school_member` da tabela. **Já aplicada** a 29/09 pelo conector do
+  Supabase (registada como `20260929050707 turnstile_devices_server_only`).
+  Verificado depois: 0 políticas, RLS forçado, `authenticated` sem SELECT. Não
+  havia fuga antes, porque `authenticated` já não tinha SELECT, mas um GRANT
+  abria as chaves a qualquer aluno. O `PRODUCTION_SNAPSHOT.json` (27/09) ainda
+  mostra a política; sai na próxima recaptura.
 
 ## Escritas abertas a qualquer membro (2026-09-29)
 
