@@ -100,7 +100,9 @@ export const requestMagicLinkFn = createServerFn({ method: "POST" })
             .from("tenant_domains")
             .select("tenant_id")
             .eq("hostname", lookup.hostname)
-            .eq("status", "verified")
+            // Verificado = "active" (platform-ops.ts); "verified" não é um estado
+            // de `tenant_domains` e a consulta nunca encontrava o domínio.
+            .eq("status", "active")
             .maybeSingle();
           if (domainRow?.tenant_id) {
             const { data: tenant } = await db

@@ -11932,5 +11932,1849 @@
       "de": "verification_otps",
       "para": "schools"
     }
+  ],
+  "valores": [
+    {
+      "tabela": "academic_schedules",
+      "coluna": "status",
+      "valores": [
+        "approved",
+        "archived",
+        "draft",
+        "published",
+        "review"
+      ]
+    },
+    {
+      "tabela": "academic_years",
+      "coluna": "status",
+      "valores": [
+        "active",
+        "archived",
+        "closed",
+        "draft"
+      ]
+    },
+    {
+      "tabela": "alumni_contributions",
+      "coluna": "contribution_type",
+      "valores": [
+        "donation",
+        "in_kind",
+        "other",
+        "scholarship",
+        "sponsorship",
+        "volunteer_hours"
+      ]
+    },
+    {
+      "tabela": "alumni_education_stages",
+      "coluna": "education_level",
+      "valores": [
+        "higher",
+        "middle",
+        "primary"
+      ]
+    },
+    {
+      "tabela": "alumni_engagements",
+      "coluna": "kind",
+      "valores": [
+        "career",
+        "communication",
+        "donation",
+        "event",
+        "mentoring",
+        "other",
+        "survey",
+        "volunteer"
+      ]
+    },
+    {
+      "tabela": "alumni_event_registrations",
+      "coluna": "status",
+      "valores": [
+        "attended",
+        "cancelled",
+        "registered",
+        "waitlist"
+      ]
+    },
+    {
+      "tabela": "alumni_events",
+      "coluna": "event_type",
+      "valores": [
+        "career",
+        "fundraising",
+        "mentoring",
+        "networking",
+        "other",
+        "reunion",
+        "volunteer",
+        "webinar"
+      ]
+    },
+    {
+      "tabela": "alumni_events",
+      "coluna": "status",
+      "valores": [
+        "cancelled",
+        "completed",
+        "draft",
+        "published"
+      ]
+    },
+    {
+      "tabela": "alumni_experiences",
+      "coluna": "kind",
+      "valores": [
+        "award",
+        "business",
+        "certification",
+        "education",
+        "employment",
+        "volunteering"
+      ]
+    },
+    {
+      "tabela": "alumni_mentorships",
+      "coluna": "status",
+      "valores": [
+        "active",
+        "cancelled",
+        "completed",
+        "requested"
+      ]
+    },
+    {
+      "tabela": "alumni_opportunities",
+      "coluna": "opportunity_type",
+      "valores": [
+        "business",
+        "event",
+        "internship",
+        "job",
+        "mentoring",
+        "other",
+        "scholarship",
+        "volunteer"
+      ]
+    },
+    {
+      "tabela": "alumni_opportunities",
+      "coluna": "status",
+      "valores": [
+        "archived",
+        "closed",
+        "draft",
+        "published"
+      ]
+    },
+    {
+      "tabela": "alumni_opportunity_applications",
+      "coluna": "status",
+      "valores": [
+        "accepted",
+        "applied",
+        "interested",
+        "rejected",
+        "shortlisted",
+        "withdrawn"
+      ]
+    },
+    {
+      "tabela": "alumni_portfolio_items",
+      "coluna": "education_level",
+      "valores": [
+        "higher",
+        "middle",
+        "primary"
+      ]
+    },
+    {
+      "tabela": "alumni_portfolio_items",
+      "coluna": "item_type",
+      "valores": [
+        "award",
+        "case_study",
+        "certificate",
+        "link",
+        "media",
+        "other",
+        "project",
+        "publication"
+      ]
+    },
+    {
+      "tabela": "alumni_portfolio_items",
+      "coluna": "visibility",
+      "valores": [
+        "alumni",
+        "private",
+        "school"
+      ]
+    },
+    {
+      "tabela": "alumni_privacy_audit",
+      "coluna": "action",
+      "valores": [
+        "claim",
+        "communication_targeted",
+        "consent_update",
+        "export_included",
+        "profile_update",
+        "visibility_update"
+      ]
+    },
+    {
+      "tabela": "alumni_profiles",
+      "coluna": "directory_visibility",
+      "valores": [
+        "alumni",
+        "private",
+        "school"
+      ]
+    },
+    {
+      "tabela": "alumni_profiles",
+      "coluna": "employment_status",
+      "valores": [
+        "employed",
+        "seeking",
+        "self_employed",
+        "student",
+        "unavailable",
+        "unknown"
+      ]
+    },
+    {
+      "tabela": "alumni_surveys",
+      "coluna": "purpose",
+      "valores": [
+        "employment",
+        "impact",
+        "other",
+        "satisfaction",
+        "skills",
+        "tracer_study"
+      ]
+    },
+    {
+      "tabela": "alumni_surveys",
+      "coluna": "status",
+      "valores": [
+        "archived",
+        "closed",
+        "draft",
+        "published"
+      ]
+    },
+    {
+      "tabela": "announcements",
+      "coluna": "channel",
+      "valores": [
+        "email",
+        "portal",
+        "sms"
+      ]
+    },
+    {
+      "tabela": "announcements",
+      "coluna": "priority",
+      "valores": [
+        "high",
+        "low",
+        "normal",
+        "urgent"
+      ]
+    },
+    {
+      "tabela": "announcements",
+      "coluna": "status",
+      "valores": [
+        "archived",
+        "draft",
+        "published",
+        "scheduled"
+      ]
+    },
+    {
+      "tabela": "assessment_rule_sets",
+      "coluna": "rounding_method",
+      "valores": [
+        "down",
+        "nearest",
+        "none",
+        "up"
+      ]
+    },
+    {
+      "tabela": "assessment_rule_sets",
+      "coluna": "status",
+      "valores": [
+        "active",
+        "retired"
+      ]
+    },
+    {
+      "tabela": "attendance_records",
+      "coluna": "status",
+      "valores": [
+        "absent",
+        "excused",
+        "late",
+        "present"
+      ]
+    },
+    {
+      "tabela": "attendance_sessions",
+      "coluna": "status",
+      "valores": [
+        "draft",
+        "reopened",
+        "submitted"
+      ]
+    },
+    {
+      "tabela": "class_groups",
+      "coluna": "shift",
+      "valores": [
+        "afternoon",
+        "evening",
+        "full_day",
+        "morning"
+      ]
+    },
+    {
+      "tabela": "class_groups",
+      "coluna": "status",
+      "valores": [
+        "active",
+        "archived",
+        "closed",
+        "draft"
+      ]
+    },
+    {
+      "tabela": "class_subjects",
+      "coluna": "status",
+      "valores": [
+        "active",
+        "archived",
+        "inactive"
+      ]
+    },
+    {
+      "tabela": "course_unit_enrollments",
+      "coluna": "season",
+      "valores": [
+        "especial",
+        "frequencia",
+        "melhoria",
+        "normal",
+        "recurso"
+      ]
+    },
+    {
+      "tabela": "course_unit_enrollments",
+      "coluna": "status",
+      "valores": [
+        "anulado",
+        "aprovado",
+        "dispensado",
+        "excluido_faltas",
+        "excluido_frequencia",
+        "inscrito",
+        "reprovado"
+      ]
+    },
+    {
+      "tabela": "curricula",
+      "coluna": "status",
+      "valores": [
+        "active",
+        "draft",
+        "inactive"
+      ]
+    },
+    {
+      "tabela": "curriculum_areas",
+      "coluna": "status",
+      "valores": [
+        "active",
+        "inactive"
+      ]
+    },
+    {
+      "tabela": "document_requests",
+      "coluna": "request_type",
+      "valores": [
+        "certificate",
+        "declaration",
+        "other",
+        "term",
+        "transfer"
+      ]
+    },
+    {
+      "tabela": "document_requests",
+      "coluna": "status",
+      "valores": [
+        "approved",
+        "cancelled",
+        "fulfilled",
+        "in_review",
+        "rejected",
+        "submitted"
+      ]
+    },
+    {
+      "tabela": "document_sequences",
+      "coluna": "document_type",
+      "valores": [
+        "certificate",
+        "credit_note",
+        "declaration",
+        "expense",
+        "invoice",
+        "other",
+        "receipt",
+        "term",
+        "transfer"
+      ]
+    },
+    {
+      "tabela": "document_signatures",
+      "coluna": "signer_role",
+      "valores": [
+        "coordinator",
+        "director",
+        "other",
+        "secretary"
+      ]
+    },
+    {
+      "tabela": "document_signatures",
+      "coluna": "status",
+      "valores": [
+        "pending",
+        "rejected",
+        "signed"
+      ]
+    },
+    {
+      "tabela": "document_templates",
+      "coluna": "document_type",
+      "valores": [
+        "certificate",
+        "declaration",
+        "other",
+        "term",
+        "transfer"
+      ]
+    },
+    {
+      "tabela": "document_templates",
+      "coluna": "status",
+      "valores": [
+        "active",
+        "draft",
+        "retired"
+      ]
+    },
+    {
+      "tabela": "enrollment_applications",
+      "coluna": "status",
+      "valores": [
+        "accepted",
+        "pending",
+        "rejected"
+      ]
+    },
+    {
+      "tabela": "enrollments",
+      "coluna": "status",
+      "valores": [
+        "active",
+        "cancelled",
+        "completed",
+        "pending",
+        "transferred"
+      ]
+    },
+    {
+      "tabela": "fee_items",
+      "coluna": "frequency",
+      "valores": [
+        "annual",
+        "monthly",
+        "once",
+        "term"
+      ]
+    },
+    {
+      "tabela": "fee_items",
+      "coluna": "kind",
+      "valores": [
+        "enrollment",
+        "other",
+        "service",
+        "tuition"
+      ]
+    },
+    {
+      "tabela": "fee_plans",
+      "coluna": "status",
+      "valores": [
+        "active",
+        "draft",
+        "retired"
+      ]
+    },
+    {
+      "tabela": "finance_contracts",
+      "coluna": "status",
+      "valores": [
+        "active",
+        "cancelled"
+      ]
+    },
+    {
+      "tabela": "finance_invoices",
+      "coluna": "status",
+      "valores": [
+        "cancelled",
+        "open",
+        "paid",
+        "partially_paid"
+      ]
+    },
+    {
+      "tabela": "finance_payment_plans",
+      "coluna": "channel",
+      "valores": [
+        "cash",
+        "express",
+        "multicaixa",
+        "multicaixa_express",
+        "transfer",
+        "unitel_money"
+      ]
+    },
+    {
+      "tabela": "finance_payment_plans",
+      "coluna": "status",
+      "valores": [
+        "cancelled",
+        "pending_gateway",
+        "scheduled",
+        "settled"
+      ]
+    },
+    {
+      "tabela": "finance_receipts",
+      "coluna": "payment_method",
+      "valores": [
+        "bank_transfer",
+        "card",
+        "cash",
+        "other"
+      ]
+    },
+    {
+      "tabela": "finance_receipts",
+      "coluna": "status",
+      "valores": [
+        "issued",
+        "reversed"
+      ]
+    },
+    {
+      "tabela": "financial_rule_sets",
+      "coluna": "late_penalty_kind",
+      "valores": [
+        "fixed",
+        "none",
+        "percentage"
+      ]
+    },
+    {
+      "tabela": "financial_rule_sets",
+      "coluna": "status",
+      "valores": [
+        "active",
+        "draft",
+        "retired"
+      ]
+    },
+    {
+      "tabela": "grade_items",
+      "coluna": "kind",
+      "valores": [
+        "assignment",
+        "continuous",
+        "exam",
+        "informative",
+        "recovery",
+        "resit",
+        "term_exam",
+        "test"
+      ]
+    },
+    {
+      "tabela": "grade_score_history",
+      "coluna": "kind",
+      "valores": [
+        "change",
+        "launch",
+        "request_approved",
+        "request_rejected"
+      ]
+    },
+    {
+      "tabela": "grade_scores",
+      "coluna": "status",
+      "valores": [
+        "draft",
+        "locked",
+        "submitted"
+      ]
+    },
+    {
+      "tabela": "grade_sheet_rows",
+      "coluna": "result",
+      "valores": [
+        "fail",
+        "incomplete",
+        "pass",
+        "pending"
+      ]
+    },
+    {
+      "tabela": "grade_sheets",
+      "coluna": "kind",
+      "valores": [
+        "annual",
+        "term"
+      ]
+    },
+    {
+      "tabela": "grade_sheets",
+      "coluna": "status",
+      "valores": [
+        "closed",
+        "contested",
+        "draft",
+        "homologated",
+        "in_review",
+        "published",
+        "rectified",
+        "submitted"
+      ]
+    },
+    {
+      "tabela": "gradebooks",
+      "coluna": "status",
+      "valores": [
+        "closed",
+        "draft",
+        "open",
+        "submitted"
+      ]
+    },
+    {
+      "tabela": "hr_absence_events",
+      "coluna": "absence_type",
+      "valores": [
+        "justified_paid",
+        "justified_unpaid",
+        "unjustified"
+      ]
+    },
+    {
+      "tabela": "hr_absence_events",
+      "coluna": "validation_status",
+      "valores": [
+        "cancelled",
+        "pending",
+        "rejected",
+        "validated"
+      ]
+    },
+    {
+      "tabela": "hr_attendance_assurance_evidence",
+      "coluna": "decision",
+      "valores": [
+        "auto_approve",
+        "reject",
+        "review"
+      ]
+    },
+    {
+      "tabela": "hr_attendance_assurance_evidence",
+      "coluna": "device_integrity_provider",
+      "valores": [
+        "app_attest",
+        "none",
+        "play_integrity",
+        "webauthn"
+      ]
+    },
+    {
+      "tabela": "hr_attendance_assurance_evidence",
+      "coluna": "purpose",
+      "valores": [
+        "check_in",
+        "check_out"
+      ]
+    },
+    {
+      "tabela": "hr_compensation_events",
+      "coluna": "event_type",
+      "valores": [
+        "adjustment",
+        "allowance",
+        "bonus",
+        "lesson_hour",
+        "overtime",
+        "worked_hour"
+      ]
+    },
+    {
+      "tabela": "hr_compensation_events",
+      "coluna": "validation_status",
+      "valores": [
+        "cancelled",
+        "pending",
+        "rejected",
+        "validated"
+      ]
+    },
+    {
+      "tabela": "hr_contract_remuneration_policies",
+      "coluna": "policy_source",
+      "valores": [
+        "collective_agreement",
+        "contract",
+        "institution",
+        "other",
+        "public_service"
+      ]
+    },
+    {
+      "tabela": "hr_contract_remuneration_policies",
+      "coluna": "remuneration_model",
+      "valores": [
+        "fixed_deduct_absence",
+        "hybrid",
+        "validated_units"
+      ]
+    },
+    {
+      "tabela": "hr_contracts",
+      "coluna": "contract_type",
+      "valores": [
+        "fixed_term",
+        "intern",
+        "other",
+        "permanent",
+        "service_provider",
+        "temporary"
+      ]
+    },
+    {
+      "tabela": "hr_contracts",
+      "coluna": "salary_type",
+      "valores": [
+        "hourly",
+        "lesson_hour",
+        "monthly"
+      ]
+    },
+    {
+      "tabela": "hr_contracts",
+      "coluna": "status",
+      "valores": [
+        "active",
+        "cancelled",
+        "draft",
+        "ended",
+        "suspended"
+      ]
+    },
+    {
+      "tabela": "hr_employments",
+      "coluna": "employment_type",
+      "valores": [
+        "fixed_term",
+        "intern",
+        "other",
+        "permanent",
+        "service_provider",
+        "temporary"
+      ]
+    },
+    {
+      "tabela": "hr_employments",
+      "coluna": "status",
+      "valores": [
+        "active",
+        "draft",
+        "expired",
+        "suspended",
+        "terminated"
+      ]
+    },
+    {
+      "tabela": "hr_payment_destinations",
+      "coluna": "method",
+      "valores": [
+        "cash",
+        "other",
+        "transfer"
+      ]
+    },
+    {
+      "tabela": "hr_payment_settings",
+      "coluna": "default_method",
+      "valores": [
+        "cash",
+        "other",
+        "transfer"
+      ]
+    },
+    {
+      "tabela": "hr_payroll_item_components",
+      "coluna": "component_type",
+      "valores": [
+        "deduction",
+        "earning"
+      ]
+    },
+    {
+      "tabela": "hr_payroll_items",
+      "coluna": "status",
+      "valores": [
+        "approved",
+        "calculated",
+        "cancelled",
+        "draft",
+        "paid",
+        "processing"
+      ]
+    },
+    {
+      "tabela": "hr_payroll_payment_batches",
+      "coluna": "method",
+      "valores": [
+        "cash",
+        "other",
+        "transfer"
+      ]
+    },
+    {
+      "tabela": "hr_payroll_payment_batches",
+      "coluna": "status",
+      "valores": [
+        "authorized",
+        "awaiting_authorization",
+        "cancelled",
+        "completed",
+        "draft",
+        "failed",
+        "partial",
+        "processing"
+      ]
+    },
+    {
+      "tabela": "hr_payroll_payment_items",
+      "coluna": "status",
+      "valores": [
+        "authorized",
+        "blocked",
+        "cancelled",
+        "failed",
+        "paid",
+        "pending",
+        "processing"
+      ]
+    },
+    {
+      "tabela": "hr_payroll_runs",
+      "coluna": "status",
+      "valores": [
+        "approved",
+        "calculating",
+        "cancelled",
+        "draft",
+        "paid",
+        "processing",
+        "review"
+      ]
+    },
+    {
+      "tabela": "hr_positions",
+      "coluna": "category",
+      "valores": [
+        "director",
+        "management",
+        "other",
+        "staff",
+        "support",
+        "teacher"
+      ]
+    },
+    {
+      "tabela": "hr_salary_change_requests",
+      "coluna": "status",
+      "valores": [
+        "applied",
+        "approved",
+        "cancelled",
+        "pending",
+        "rejected"
+      ]
+    },
+    {
+      "tabela": "hr_salary_scale_versions",
+      "coluna": "status",
+      "valores": [
+        "approved",
+        "draft",
+        "retired"
+      ]
+    },
+    {
+      "tabela": "hr_teacher_attendance_policies",
+      "coluna": "outside_grace_mode",
+      "valores": [
+        "proportional",
+        "review"
+      ]
+    },
+    {
+      "tabela": "hr_teacher_employment_links",
+      "coluna": "status",
+      "valores": [
+        "active",
+        "inactive"
+      ]
+    },
+    {
+      "tabela": "hr_teacher_lesson_occurrences",
+      "coluna": "attendance_exception_status",
+      "valores": [
+        "approved",
+        "none",
+        "pending_review",
+        "proportional",
+        "rejected",
+        "within_grace"
+      ]
+    },
+    {
+      "tabela": "hr_teacher_lesson_occurrences",
+      "coluna": "evidence_method",
+      "valores": [
+        "attendance_import",
+        "manual",
+        "qr",
+        "system"
+      ]
+    },
+    {
+      "tabela": "hr_teacher_lesson_occurrences",
+      "coluna": "occurrence_kind",
+      "valores": [
+        "extra",
+        "scheduled",
+        "substitution"
+      ]
+    },
+    {
+      "tabela": "hr_teacher_lesson_occurrences",
+      "coluna": "review_decision",
+      "valores": [
+        "approved",
+        "rejected"
+      ]
+    },
+    {
+      "tabela": "hr_teacher_lesson_occurrences",
+      "coluna": "status",
+      "valores": [
+        "cancelled",
+        "confirmed",
+        "rejected",
+        "scheduled"
+      ]
+    },
+    {
+      "tabela": "hr_teacher_qr_sessions",
+      "coluna": "purpose",
+      "valores": [
+        "check_in",
+        "check_out"
+      ]
+    },
+    {
+      "tabela": "hr_teacher_qr_sessions",
+      "coluna": "status",
+      "valores": [
+        "active",
+        "expired",
+        "revoked",
+        "used"
+      ]
+    },
+    {
+      "tabela": "import_audits",
+      "coluna": "action_type",
+      "valores": [
+        "deleted",
+        "inserted",
+        "updated"
+      ]
+    },
+    {
+      "tabela": "import_jobs",
+      "coluna": "exchange_mode",
+      "valores": [
+        "human",
+        "siga_exchange"
+      ]
+    },
+    {
+      "tabela": "import_jobs",
+      "coluna": "source_format",
+      "valores": [
+        "csv",
+        "json",
+        "ods",
+        "xls",
+        "xlsx"
+      ]
+    },
+    {
+      "tabela": "import_jobs",
+      "coluna": "status",
+      "valores": [
+        "analyzing",
+        "cancelled",
+        "completed",
+        "failed",
+        "importing",
+        "mapping",
+        "ready",
+        "rolled_back",
+        "uploaded",
+        "validating"
+      ]
+    },
+    {
+      "tabela": "import_rows",
+      "coluna": "status",
+      "valores": [
+        "duplicate",
+        "error",
+        "ignored",
+        "imported",
+        "valid",
+        "warning",
+        "will_insert",
+        "will_update"
+      ]
+    },
+    {
+      "tabela": "import_rows",
+      "coluna": "validation_stage",
+      "valores": [
+        "business_rule",
+        "committed",
+        "duplicate",
+        "ready",
+        "reference",
+        "row"
+      ]
+    },
+    {
+      "tabela": "import_table_specs",
+      "coluna": "direct_import_policy",
+      "valores": [
+        "allow",
+        "controlled",
+        "deny",
+        "review"
+      ]
+    },
+    {
+      "tabela": "import_table_specs",
+      "coluna": "export_policy",
+      "valores": [
+        "allow",
+        "controlled",
+        "deny",
+        "review"
+      ]
+    },
+    {
+      "tabela": "import_table_specs",
+      "coluna": "sensitivity",
+      "valores": [
+        "internal",
+        "normal",
+        "secret",
+        "sensitive"
+      ]
+    },
+    {
+      "tabela": "import_templates",
+      "coluna": "mode",
+      "valores": [
+        "human",
+        "siga_exchange"
+      ]
+    },
+    {
+      "tabela": "issued_documents",
+      "coluna": "signature_status",
+      "valores": [
+        "not_required",
+        "pending",
+        "rejected",
+        "signed"
+      ]
+    },
+    {
+      "tabela": "issued_documents",
+      "coluna": "status",
+      "valores": [
+        "issued",
+        "revoked"
+      ]
+    },
+    {
+      "tabela": "mailboxes",
+      "coluna": "status",
+      "valores": [
+        "active",
+        "cancelled",
+        "suspended"
+      ]
+    },
+    {
+      "tabela": "notifications",
+      "coluna": "channel",
+      "valores": [
+        "email",
+        "in_app",
+        "sms",
+        "whatsapp"
+      ]
+    },
+    {
+      "tabela": "notifications",
+      "coluna": "status",
+      "valores": [
+        "delivered",
+        "failed",
+        "pending",
+        "read"
+      ]
+    },
+    {
+      "tabela": "people",
+      "coluna": "sex",
+      "valores": [
+        "female",
+        "male",
+        "other",
+        "undisclosed"
+      ]
+    },
+    {
+      "tabela": "people",
+      "coluna": "status",
+      "valores": [
+        "active",
+        "archived",
+        "inactive"
+      ]
+    },
+    {
+      "tabela": "person_roles",
+      "coluna": "role",
+      "valores": [
+        "aluno",
+        "contacto_institucional",
+        "coordenador",
+        "diretor",
+        "encarregado",
+        "fornecedor",
+        "funcionario",
+        "professor",
+        "utilizador"
+      ]
+    },
+    {
+      "tabela": "program_subjects",
+      "coluna": "status",
+      "valores": [
+        "active",
+        "inactive"
+      ]
+    },
+    {
+      "tabela": "programs",
+      "coluna": "grading_profile",
+      "valores": [
+        "20_ects",
+        "components",
+        "frequencia_exame",
+        "gpa4",
+        "scale",
+        "so_exame"
+      ]
+    },
+    {
+      "tabela": "programs",
+      "coluna": "kind",
+      "valores": [
+        "general",
+        "postgraduate",
+        "professional",
+        "technical",
+        "undergraduate"
+      ]
+    },
+    {
+      "tabela": "report_cards",
+      "coluna": "status",
+      "valores": [
+        "draft",
+        "issued",
+        "revoked"
+      ]
+    },
+    {
+      "tabela": "rooms",
+      "coluna": "status",
+      "valores": [
+        "active",
+        "inactive"
+      ]
+    },
+    {
+      "tabela": "school_access_requests",
+      "coluna": "requested_profile",
+      "valores": [
+        "aluno",
+        "encarregado",
+        "funcionario",
+        "outro",
+        "professor"
+      ]
+    },
+    {
+      "tabela": "school_access_requests",
+      "coluna": "status",
+      "valores": [
+        "approved",
+        "cancelled",
+        "in_review",
+        "info_requested",
+        "pending",
+        "rejected"
+      ]
+    },
+    {
+      "tabela": "school_announcements",
+      "coluna": "audience",
+      "valores": [
+        "all_guardians",
+        "alumni_all",
+        "alumni_events",
+        "alumni_fundraising",
+        "alumni_mentoring",
+        "alumni_opportunities",
+        "alumni_surveys",
+        "guardians_with_debt",
+        "students_finalists",
+        "students_secondary",
+        "teaching_staff"
+      ]
+    },
+    {
+      "tabela": "school_announcements",
+      "coluna": "channel",
+      "valores": [
+        "email",
+        "portal",
+        "sms",
+        "whatsapp"
+      ]
+    },
+    {
+      "tabela": "school_announcements",
+      "coluna": "status",
+      "valores": [
+        "draft",
+        "scheduled",
+        "sent"
+      ]
+    },
+    {
+      "tabela": "school_email_routes",
+      "coluna": "status",
+      "valores": [
+        "active",
+        "failed",
+        "pending",
+        "suspended"
+      ]
+    },
+    {
+      "tabela": "school_integrations",
+      "coluna": "status",
+      "valores": [
+        "configured",
+        "connected",
+        "disconnected",
+        "error"
+      ]
+    },
+    {
+      "tabela": "school_invitations",
+      "coluna": "status",
+      "valores": [
+        "accepted",
+        "expired",
+        "pending",
+        "revoked"
+      ]
+    },
+    {
+      "tabela": "school_memberships",
+      "coluna": "status",
+      "valores": [
+        "active",
+        "invited",
+        "revoked",
+        "suspended"
+      ]
+    },
+    {
+      "tabela": "school_modules",
+      "coluna": "status",
+      "valores": [
+        "active",
+        "archived",
+        "disabled",
+        "error",
+        "incompatible",
+        "installed",
+        "update_available"
+      ]
+    },
+    {
+      "tabela": "school_shifts",
+      "coluna": "status",
+      "valores": [
+        "active",
+        "inactive"
+      ]
+    },
+    {
+      "tabela": "schools",
+      "coluna": "status",
+      "valores": [
+        "active",
+        "archived",
+        "setup",
+        "suspended"
+      ]
+    },
+    {
+      "tabela": "siga_access_cards",
+      "coluna": "status",
+      "valores": [
+        "active",
+        "expired",
+        "lost",
+        "suspended"
+      ]
+    },
+    {
+      "tabela": "siga_access_logs",
+      "coluna": "direction",
+      "valores": [
+        "entry",
+        "exit"
+      ]
+    },
+    {
+      "tabela": "siga_access_logs",
+      "coluna": "status",
+      "valores": [
+        "denied",
+        "granted"
+      ]
+    },
+    {
+      "tabela": "siga_assessment_items",
+      "coluna": "purpose",
+      "valores": [
+        "diagnostic",
+        "formative",
+        "summative"
+      ]
+    },
+    {
+      "tabela": "siga_attendance_justifications",
+      "coluna": "status",
+      "valores": [
+        "approved",
+        "pending",
+        "rejected"
+      ]
+    },
+    {
+      "tabela": "siga_attendance_records",
+      "coluna": "status",
+      "valores": [
+        "absent",
+        "early_exit",
+        "excused",
+        "late",
+        "not_registered",
+        "present"
+      ]
+    },
+    {
+      "tabela": "siga_attendance_sessions",
+      "coluna": "status",
+      "valores": [
+        "cancelled",
+        "completed",
+        "pending"
+      ]
+    },
+    {
+      "tabela": "siga_cash_expenses",
+      "coluna": "method",
+      "valores": [
+        "cash",
+        "express",
+        "multicaixa",
+        "multicaixa_express",
+        "transfer",
+        "unitel_money"
+      ]
+    },
+    {
+      "tabela": "siga_cash_expenses",
+      "coluna": "status",
+      "valores": [
+        "posted",
+        "reversed"
+      ]
+    },
+    {
+      "tabela": "siga_class_tasks",
+      "coluna": "kind",
+      "valores": [
+        "leitura",
+        "outra",
+        "pesquisa",
+        "projecto",
+        "tpc",
+        "trabalho"
+      ]
+    },
+    {
+      "tabela": "siga_class_tasks",
+      "coluna": "status",
+      "valores": [
+        "archived",
+        "published"
+      ]
+    },
+    {
+      "tabela": "siga_competencies",
+      "coluna": "status",
+      "valores": [
+        "active",
+        "archived"
+      ]
+    },
+    {
+      "tabela": "siga_exam_registrations",
+      "coluna": "status",
+      "valores": [
+        "absent",
+        "cancelled",
+        "graded",
+        "registered"
+      ]
+    },
+    {
+      "tabela": "siga_exam_sessions",
+      "coluna": "kind",
+      "valores": [
+        "exame_especial",
+        "exame_final",
+        "melhoria",
+        "recurso"
+      ]
+    },
+    {
+      "tabela": "siga_exam_sessions",
+      "coluna": "result_method",
+      "valores": [
+        "average",
+        "max",
+        "replace"
+      ]
+    },
+    {
+      "tabela": "siga_exam_sessions",
+      "coluna": "status",
+      "valores": [
+        "closed",
+        "draft",
+        "open"
+      ]
+    },
+    {
+      "tabela": "siga_file_events",
+      "coluna": "action",
+      "valores": [
+        "access_denied",
+        "created",
+        "deleted",
+        "downloaded",
+        "folder_created",
+        "linked_class",
+        "metadata_updated",
+        "moved",
+        "opened",
+        "renamed",
+        "unlinked_class",
+        "visibility_changed"
+      ]
+    },
+    {
+      "tabela": "siga_files",
+      "coluna": "area",
+      "valores": [
+        "escola",
+        "pessoal",
+        "publico",
+        "secretaria"
+      ]
+    },
+    {
+      "tabela": "siga_files",
+      "coluna": "category",
+      "valores": [
+        "bilhete",
+        "certificado",
+        "comunicado",
+        "contrato",
+        "fatura",
+        "foto",
+        "material_aula",
+        "outro",
+        "pauta",
+        "recibo",
+        "talao"
+      ]
+    },
+    {
+      "tabela": "siga_files",
+      "coluna": "storage_backend",
+      "valores": [
+        "local",
+        "sga"
+      ]
+    },
+    {
+      "tabela": "siga_files",
+      "coluna": "visibility",
+      "valores": [
+        "private",
+        "public",
+        "school"
+      ]
+    },
+    {
+      "tabela": "siga_lesson_meetings",
+      "coluna": "status",
+      "valores": [
+        "active",
+        "cancelled",
+        "ended"
+      ]
+    },
+    {
+      "tabela": "siga_lesson_plan_components",
+      "coluna": "kind",
+      "valores": [
+        "avaliacao",
+        "prova"
+      ]
+    },
+    {
+      "tabela": "siga_lesson_plans",
+      "coluna": "status",
+      "valores": [
+        "draft",
+        "published"
+      ]
+    },
+    {
+      "tabela": "siga_lesson_reminder_log",
+      "coluna": "channel",
+      "valores": [
+        "email",
+        "in_app",
+        "sms"
+      ]
+    },
+    {
+      "tabela": "siga_lesson_reminder_log",
+      "coluna": "status",
+      "valores": [
+        "failed",
+        "sent",
+        "skipped"
+      ]
+    },
+    {
+      "tabela": "siga_timetable_slot_details",
+      "coluna": "delivery_mode",
+      "valores": [
+        "hibrido",
+        "online",
+        "presencial",
+        "zoom"
+      ]
+    },
+    {
+      "tabela": "siga_timetable_slot_details",
+      "coluna": "lesson_type",
+      "valores": [
+        "avaliacao",
+        "laboratorio",
+        "outra",
+        "pratica",
+        "revisao",
+        "teorica"
+      ]
+    },
+    {
+      "tabela": "siga_turnstile_devices",
+      "coluna": "device_type",
+      "valores": [
+        "door",
+        "gate",
+        "scanner_app",
+        "turnstile"
+      ]
+    },
+    {
+      "tabela": "siga_turnstile_devices",
+      "coluna": "direction_capability",
+      "valores": [
+        "bidirectional",
+        "entry",
+        "exit"
+      ]
+    },
+    {
+      "tabela": "siga_turnstile_devices",
+      "coluna": "status",
+      "valores": [
+        "maintenance",
+        "offline",
+        "online"
+      ]
+    },
+    {
+      "tabela": "staff_module_grants",
+      "coluna": "level",
+      "valores": [
+        "Escrita",
+        "Leitura",
+        "Nenhum",
+        "Total"
+      ]
+    },
+    {
+      "tabela": "student_guardians",
+      "coluna": "relationship",
+      "valores": [
+        "father",
+        "grandparent",
+        "guardian",
+        "mother",
+        "other",
+        "sibling"
+      ]
+    },
+    {
+      "tabela": "students",
+      "coluna": "status",
+      "valores": [
+        "active",
+        "applicant",
+        "cancelled",
+        "graduated",
+        "inactive",
+        "locked",
+        "suspended",
+        "transferred",
+        "withdrawn"
+      ]
+    },
+    {
+      "tabela": "subject_types",
+      "coluna": "status",
+      "valores": [
+        "active",
+        "inactive"
+      ]
+    },
+    {
+      "tabela": "subjects",
+      "coluna": "status",
+      "valores": [
+        "active",
+        "archived",
+        "inactive"
+      ]
+    },
+    {
+      "tabela": "subscription_addons",
+      "coluna": "status",
+      "valores": [
+        "active",
+        "cancelled",
+        "suspended"
+      ]
+    },
+    {
+      "tabela": "subscriptions",
+      "coluna": "status",
+      "valores": [
+        "active",
+        "canceled",
+        "past_due",
+        "trialing",
+        "unpaid"
+      ]
+    },
+    {
+      "tabela": "teachers",
+      "coluna": "employment_type",
+      "valores": [
+        "fixed_term",
+        "part_time",
+        "permanent",
+        "visiting"
+      ]
+    },
+    {
+      "tabela": "teachers",
+      "coluna": "highest_qualification",
+      "valores": [
+        "bachelor",
+        "doctorate",
+        "licentiate",
+        "master",
+        "other",
+        "secondary"
+      ]
+    },
+    {
+      "tabela": "teachers",
+      "coluna": "status",
+      "valores": [
+        "active",
+        "archived",
+        "inactive",
+        "leave"
+      ]
+    },
+    {
+      "tabela": "tenant_domains",
+      "coluna": "status",
+      "valores": [
+        "active",
+        "failed",
+        "pending"
+      ]
+    },
+    {
+      "tabela": "tenant_domains",
+      "coluna": "type",
+      "valores": [
+        "custom_domain",
+        "siga_subdomain"
+      ]
+    },
+    {
+      "tabela": "tenant_mailboxes",
+      "coluna": "provider",
+      "valores": [
+        "google",
+        "simulated",
+        "zoho"
+      ]
+    },
+    {
+      "tabela": "tenant_mailboxes",
+      "coluna": "status",
+      "valores": [
+        "active",
+        "deleted",
+        "suspended"
+      ]
+    },
+    {
+      "tabela": "tenant_provisioning",
+      "coluna": "provisioning_status",
+      "valores": [
+        "active",
+        "cancelled",
+        "failed",
+        "pending",
+        "processing",
+        "suspended"
+      ]
+    },
+    {
+      "tabela": "tenants",
+      "coluna": "status",
+      "valores": [
+        "active",
+        "archived",
+        "cancelled",
+        "past_due",
+        "provisioning",
+        "provisioning_failed",
+        "suspended",
+        "trial"
+      ]
+    },
+    {
+      "tabela": "timetable_slots",
+      "coluna": "status",
+      "valores": [
+        "active",
+        "archived",
+        "cancelled"
+      ]
+    }
   ]
 }

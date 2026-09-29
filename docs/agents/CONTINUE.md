@@ -75,6 +75,21 @@ preenchido a 2026-09-29 com a mesma consulta à produção) e
 preenchidas por trigger BEFORE INSERT vão para `PREENCHIDAS_POR_TRIGGER`, com o trigger.
 `import/engine/reference-resolver.ts` (código morto, com o mesmo defeito) foi apagado.
 
+## Valores fora do CHECK da produção (2026-09-29)
+
+O retrato guarda agora `valores` (listas de `CHECK coluna = ANY (ARRAY[...])`) e
+`tests/security/valores-permitidos.test.ts` verifica literais em insert/update/upsert e
+em `.eq()`. Defeitos corrigidos, todos recusados ou sem resultados na produção:
+
+- `cancelEnrollment`: "withdrawn" e depois "inactive" → `cancelled`, motivo em `end_reason`.
+- Desactivar turma (`class_groups`) e remover horário (`timetable_slots`): "inactive" →
+  `archived`. O directório de matrículas passa a esconder turmas `archived`.
+- Magic link, reposição de senha e mudança de e-mail procuravam `tenant_domains` com
+  "verified" (é `active`): o domínio próprio da escola nunca era usado no link.
+
+`.neq()` e `.in()` com valores impossíveis (`grade_scores` "reversed",
+`document_requests` "queued"/"processing") são inofensivos e ficam de fora.
+
 ## Centro de Avaliação: testes de caracterização e defeito encontrado (2026-09-29)
 
 `tests/academic/assessment-center.test.tsx` fixa o comportamento do

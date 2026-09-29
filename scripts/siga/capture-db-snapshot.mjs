@@ -93,6 +93,19 @@ const QUERIES = {
     join pg_class b on b.oid=c.confrelid join pg_namespace nb on nb.oid=b.relnamespace
     where c.contype='f' and na.nspname='public' and nb.nspname='public'
     order by 1, 2, 3`,
+
+  // Valores que um CHECK `coluna = ANY (ARRAY[...])` aceita. Um valor fora da lista
+  // é recusado pela base (escrita) ou nunca encontra nada (filtro): era assim que a
+  // anulação de matrículas gravava "withdrawn" e o login procurava domínios
+  // "verified". Ver tests/security/valores-permitidos.test.ts.
+  valores: `select t.relname as tabela, a.attname as coluna,
+      to_jsonb(array(select m[1] from regexp_matches(pg_get_constraintdef(c.oid), '''([^'']*)''::text', 'g') as m order by 1)) as valores
+    from pg_constraint c
+    join pg_class t on t.oid=c.conrelid join pg_namespace n on n.oid=t.relnamespace
+    join pg_attribute a on a.attrelid=t.oid and a.attnum = c.conkey[1]
+    where n.nspname='public' and c.contype='c' and array_length(c.conkey, 1) = 1
+      and pg_get_constraintdef(c.oid) ~ '= ANY \\(ARRAY\\['
+    order by 1, 2`,
 };
 
 console.log("A consultar a produção (só leitura)…\n");
