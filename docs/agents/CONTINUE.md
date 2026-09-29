@@ -4,6 +4,32 @@ Ler isto **antes** de alterar código. Ecossistema (5 apps):
 [ARCHITECTURE_HARMONIZATION.md](./ARCHITECTURE_HARMONIZATION.md).
 Depois abrir o skill do módulo em `.cursor/skills/`.
 
+## Registos da produção: registo de escolas e pedidos de acesso partidos (2026-09-29)
+
+Nos registos das últimas 24 h (conector Supabase) havia dois erros reais:
+
+- **Registo de escolas partido desde 27/09.** `findProvisioningGaps` contava
+  com `select("id")`, e `member_roles` não tem `id`. O PostgREST dava 400, a
+  contagem vinha nula e a escola era dada como "sem papel" e revertida no último
+  passo. A reversão ficava a meio, porque `school_settings`, `document_sequences`
+  e `enrollment_forms` bloqueiam apagar a conta e a escola, e `audit_logs` só
+  aceita acrescentar. A tentativa de 28/09 às 19:18 ("SIGA Plus - Web
+  Production") deixou uma escola, um tenant (slug `siga-plus-web-production`
+  ocupado) e uma conta. Agora a contagem usa `*`, um erro de leitura não conta
+  como falta, e a reversão apaga o que o bootstrap cria, lê o erro de
+  `deleteUser`, arquiva a escola que não se pode apagar e liberta o slug
+  (`<slug>-falhou-<id>`, estado `provisioning_failed`).
+- **Aprovar pedidos de acesso falhava sempre.** `member_roles` tem a chave
+  `(school_id, membership_id, role_id)` e o upsert pedia `membership_id,role_id`.
+  O vínculo era criado antes e ficava sem papel. Hoje às 14:38 ficou um vínculo
+  activo sem papel (`733609b9…`) de um pedido depois recusado. O aceitar convite
+  tinha o mesmo erro, ignorado em silêncio. Corrigido, e a aprovação desfaz o
+  vínculo se o papel falhar. `tests/security/upsert-on-conflict.test.ts`
+  confere todos os `onConflict` com as chaves únicas da produção.
+
+**Por limpar na produção (à espera do dono):** o vínculo `733609b9…` e a
+escola/tenant/conta de 28/09.
+
 ## Funções do servidor só com "é membro" (2026-09-29)
 
 `resolveSgaMembershipAdmin` só confirma a pertença à escola, e isso inclui

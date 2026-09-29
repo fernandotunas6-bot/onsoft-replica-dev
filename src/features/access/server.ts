@@ -1073,13 +1073,18 @@ export const acceptSchoolInvitation = createServerFn({ method: "POST" })
       .maybeSingle();
 
     if (role?.id) {
-      // Idempotente: só insere se ainda não tiver este role neste membership
-      await admin
+      // Idempotente: só insere se ainda não tiver este role neste membership.
+      // A chave é (school_id, membership_id, role_id); com "membership_id,role_id"
+      // falhava sempre e, sem verificar o erro, a conta entrava sem papel.
+      const { error: roleError } = await admin
         .from("member_roles")
         .upsert(
           { school_id: schoolId, membership_id: membershipId, role_id: role.id },
-          { onConflict: "membership_id,role_id", ignoreDuplicates: true },
+          { onConflict: "school_id,membership_id,role_id", ignoreDuplicates: true },
         );
+      if (roleError) {
+        throw publicDatabaseError(roleError, "Não foi possível atribuir o papel do convite.");
+      }
     }
 
     // 6. Ligar people.user_id por email (idempotente)
