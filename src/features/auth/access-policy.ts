@@ -13,6 +13,24 @@ export const applicationRoles = [
 
 export type ApplicationRole = (typeof applicationRoles)[number];
 
+/**
+ * Cargos que uma permissão por módulo pode elevar. Alunos e encarregados, nunca.
+ * A mesma lista decide no servidor (`grantElevates` em sga-admin) e no ecrã.
+ */
+export const GRANT_ELEVATABLE_ROLES: readonly ApplicationRole[] = [
+  "Secretaria",
+  "Tesouraria",
+  "Professor",
+];
+
+/**
+ * Áreas que só o cargo abre. A permissão por módulo alarga o departamento
+ * (p.ex. Financeiro a um Professor), mas não estas: o servidor também só as
+ * aceita pelo cargo — RH e folha salarial (`requireHrReader`,
+ * `requirePayrollAdmin`) e as configurações da escola (só Administrador).
+ */
+const roleOnlyPrefixes = ["/financeiro/rh", "/configuracoes"] as const;
+
 export const accessModules = [
   { key: "dashboard", label: "Dashboard", prefixes: ["/"] },
   {
@@ -147,7 +165,12 @@ export function canAccessPath(
     if (plan && !planIncludesModule(plan, module.key)) return false;
     const grant = grants[module.key];
     if (grant === "Nenhum") return false;
-    if (grant) return true;
+    const roleOnly = roleOnlyPrefixes.some(
+      (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`),
+    );
+    if (grant && !roleOnly && GRANT_ELEVATABLE_ROLES.some((allowed) => allowed === role)) {
+      return true;
+    }
   }
 
   const rule = accessRules.find(({ prefixes }) =>
@@ -163,7 +186,11 @@ export function accessLevelForRole(
   grants: ModuleGrantMap = {},
 ): AccessLevel {
   const granted = grants[moduleKey];
-  if (granted) return granted;
+  // Em alunos e encarregados a permissão só retira ("Nenhum"), nunca alarga.
+  if (granted === "Nenhum") return granted;
+  if (granted && (role === "Administrador" || GRANT_ELEVATABLE_ROLES.some((r) => r === role))) {
+    return granted;
+  }
   const module = accessModules.find((item) => item.key === moduleKey);
   if (!module) return "Nenhum";
   if (role === "Administrador") return "Total";

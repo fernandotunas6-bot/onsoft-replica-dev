@@ -4,6 +4,20 @@ Ler isto **antes** de alterar código. Ecossistema (5 apps):
 [ARCHITECTURE_HARMONIZATION.md](./ARCHITECTURE_HARMONIZATION.md).
 Depois abrir o skill do módulo em `.cursor/skills/`.
 
+## Permissões por módulo: ecrã igual ao servidor (2026-09-29)
+
+- `canAccessPath` (menu, launcher, guarda de rotas) abria com qualquer permissão por
+  módulo áreas que o servidor recusa: Professor com «Financeiro» via o RH/folha
+  salarial; Secretaria com «Acessos/Config» via `/configuracoes`; linhas antigas em
+  alunos/encarregados alargavam-lhes o acesso. Agora segue `grantElevates`:
+  - só Secretaria, Tesouraria e Professor são elevados (`GRANT_ELEVATABLE_ROLES`, uma
+    única lista em `access-policy.ts`, reexportada por `sga-admin.ts`);
+  - `/financeiro/rh` e `/configuracoes` só pelo cargo;
+  - em alunos e encarregados a permissão só retira («Nenhum»).
+- PayFlow: o botão «SIGA Plus» do painel usava `http://localhost:3006` quando faltava
+  `NEXT_PUBLIC_SIGA_URL`; usa agora o `sigaUrl` do servidor e, em produção, o domínio
+  da plataforma.
+
 ## Turmas, salas e campus (2026-09-29)
 
 - **Sala física da turma:** `class_groups.room_id` (migração `20260929250000`, **já

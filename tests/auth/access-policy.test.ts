@@ -77,6 +77,30 @@ describe("access policy", () => {
     expect(canAccessPath("/alunos", "Professor")).toBe(false);
   });
 
+  it("keeps role-only areas closed to module grants, as the server does", () => {
+    // RH e folha salarial: o servidor só aceita Administrador e Tesouraria.
+    expect(canAccessPath("/financeiro/rh", "Professor", { financeiro: "Total" })).toBe(false);
+    expect(canAccessPath("/financeiro/rh/folha", "Secretaria", { financeiro: "Escrita" })).toBe(
+      false,
+    );
+    expect(canAccessPath("/financeiro", "Professor", { financeiro: "Leitura" })).toBe(true);
+    // Configurações da escola: só Administrador, nenhuma permissão as abre.
+    expect(canAccessPath("/configuracoes", "Secretaria", { gestao: "Total" })).toBe(false);
+    expect(canAccessPath("/acessos", "Tesouraria", { gestao: "Leitura" })).toBe(true);
+    // A permissão não retira o cargo nem dá poderes a mais ao Administrador.
+    expect(canAccessPath("/financeiro/rh", "Tesouraria", { financeiro: "Leitura" })).toBe(true);
+    expect(canAccessPath("/configuracoes", "Administrador", { gestao: "Leitura" })).toBe(true);
+  });
+
+  it("never lets a grant widen access for students or guardians", () => {
+    expect(canAccessPath("/faturas", "Aluno", { financeiro: "Total" })).toBe(false);
+    expect(canAccessPath("/importar", "Encarregado", { importacao: "Total" })).toBe(false);
+    expect(canAccessPath("/professores", "Aluno", { pessoas: "Escrita" })).toBe(false);
+    expect(canWriteModule("Aluno", "pessoas", { pessoas: "Total" })).toBe(false);
+    // Retirar continua a valer para eles.
+    expect(canAccessPath("/financeiro", "Aluno", { financeiro: "Nenhum" })).toBe(false);
+  });
+
   it("distinguishes read vs write levels by role", () => {
     expect(canReadModule("Professor", "pedagogica")).toBe(true);
     expect(canWriteModule("Professor", "pedagogica")).toBe(false);
