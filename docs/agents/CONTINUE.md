@@ -4,6 +4,17 @@ Ler isto **antes** de alterar código. Ecossistema (5 apps):
 [ARCHITECTURE_HARMONIZATION.md](./ARCHITECTURE_HARMONIZATION.md).
 Depois abrir o skill do módulo em `.cursor/skills/`.
 
+## Tenants de teste arquivados na produção (2026-09-29)
+
+82 tenants criados pelos testes automáticos entre 08 e 10/09 (slugs
+`gw-|mat-|e2e-|web-|test-`, só contas `@siga-plus.test`) passaram a
+`status = 'archived'`; `tenant-access.ts` bloqueia-os. **Não foram apagados:**
+a limpeza precisa de desligar triggers (`audit_logs` é append-only; 40 tabelas
+auditam cada DELETE), e o conector do Supabase não pode definir
+`session_replication_role`. Para apagar de vez: `npm run siga:e2e-cleanup-stale`
+com `SUPABASE_ACCESS_TOKEN`. Ficam 8 tenants activos. As 83 contas de teste
+continuam no Auth, sem escola activa.
+
 ## PayFlow com base D1, publicação a partir do GitHub (2026-09-29)
 
 - **O PayFlow corria em produção sem base de dados.** `deploy-all.mjs` apagava
