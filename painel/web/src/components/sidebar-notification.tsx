@@ -5,6 +5,7 @@ import { X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Logo } from "./logo"
+import { ECOSYSTEM_URLS } from "@/lib/ecosystem-urls"
 
 export function SidebarNotification() {
   const [isVisible, setIsVisible] = React.useState(true)
@@ -30,7 +31,7 @@ export function SidebarNotification() {
             <div>
               Bem-vindo à{" "}
               <a 
-                href="https://portal-siga.com" 
+                href={ECOSYSTEM_URLS.web} 
                 target="_blank" 
                 rel="noopener noreferrer"
                 className="text-primary hover:underline"
