@@ -1,0 +1,6 @@
+---
+description: SIGA Desktop (Tauri) — ler skill siga-desktop antes de editar código nativo.
+globs: src-tauri/**,src/components/TauriTitlebar.tsx
+---
+
+Tauri só no SIGA escolar. Offline-first, capabilities mínimas, sem secrets no cliente, updater assinado. Detalhes: `.cursor/skills/siga-desktop/SKILL.md`.
