@@ -4,6 +4,30 @@ Ler isto **antes** de alterar código. Ecossistema (5 apps):
 [ARCHITECTURE_HARMONIZATION.md](./ARCHITECTURE_HARMONIZATION.md).
 Depois abrir o skill do módulo em `.cursor/skills/`.
 
+## Auditoria de produção e correcções (2026-09-29)
+
+Repositório **público** desde 29/09 (minutos de Actions esgotados no plano grátis).
+
+Feito:
+- `anon` (sem sessão) só com 4 permissões: SELECT em `enrollment_forms`,
+  `reserved_subdomains`, `school_branding`; INSERT em `enrollment_applications`.
+  Tinha ALL (incluindo TRUNCATE) em ~83 tabelas. Migração `20260929240000`,
+  **já aplicada**; `tests/security/anon-grants.test.ts` recusa GRANT novo a
+  `anon` fora da lista. Tabela nova com acesso público: GRANT explícito + entrar
+  na lista do teste.
+- Cabeçalhos de segurança em todas as respostas do Worker do SIGA
+  (`src/lib/security-headers.ts`, aplicado em `src/server.ts`): HSTS,
+  nosniff, X-Frame-Options SAMEORIGIN, Referrer-Policy, Permissions-Policy
+  (câmara e GPS só `self`). Sem CSP ainda (precisa de inventário de scripts).
+- `next` 16.3.6 no ADMIN e no PayFlow (havia RCE crítico e bypass de
+  middleware); `npm audit --omit=dev` 0 em ambos.
+
+Por fazer (dono): MFA obrigatório — 3 de 4 administradores da plataforma e 10
+de 11 donos de escola sem MFA; protecção de branch na `main`; secret scanning e
+push protection no GitHub; segredo OAuth do Google; ligar a D1 do PayFlow
+(merge + ambiente `production`). O `npm run lint` do ADMIN está partido desde o
+Next 16 (`next lint` já não existe): passar a `eslint .`.
+
 ## Centro de Avaliação: testes de caracterização e defeito encontrado (2026-09-29)
 
 `tests/academic/assessment-center.test.tsx` fixa o comportamento do
