@@ -154,3 +154,18 @@ describe("sessões de presença: uma por aula e por dia", () => {
     expect(fn).toMatch(/createError\?\.code === "23505"/);
   });
 });
+
+describe("mudar estado em lote (alunos)", () => {
+  const fn = body(read("src/features/students/server.ts"), "batchUpdateStudentStatus");
+
+  it("uma actualização para o lote, com erro verificado", () => {
+    expect(fn).not.toMatch(/for \(const s of students/);
+    expect(fn).toMatch(/\.in\("id", updatedIds\)/);
+    expect(fn).toMatch(/error: updateError/);
+  });
+
+  it("histórico numa só escrita e o mesmo rasto de auditoria que a mudança individual", () => {
+    expect(fn).toMatch(/recordStudentStatusHistoryBatch\(/);
+    expect(fn).toMatch(/recordAuditBatch\([\s\S]{0,200}action: "student\.status_change"/);
+  });
+});

@@ -31,7 +31,7 @@ import {
 import { deriveAcademicStatus, deriveFinancialSnapshot, type InvoiceLike } from "./academic-status";
 import { recordStudentStatusHistory, recordStudentStatusHistoryBatch } from "./status-history";
 import { assertCanSeeStudent, loadStudentScope } from "./student-scope";
-import { recordAccessAudit } from "@/features/audit/record-audit";
+import { recordAccessAudit, recordAuditBatch } from "@/features/audit/record-audit";
 import { queueTenantUsageSync } from "@/features/saas/usage-sync";
 import { assertCanAddStudentForSchool } from "@/features/saas/tenant-limits-server";
 
@@ -1736,35 +1736,53 @@ export const batchUpdateStudentStatus = createServerFn({ method: "POST" })
     ]);
     const db = await loadSgaAdminClient();
 
-    const { data: students } = await db
+    const { data: students, error: readError } = await db
       .from("students")
       .select("id, status")
       .in("id", data.studentIds)
       .eq("school_id", membership.schoolId);
+    if (readError) throw publicDatabaseError(readError, "Não foi possível ler os alunos.");
 
-    const updatedIds: string[] = [];
-    for (const s of students ?? []) {
-      await db
+    // Quem já está no estado pedido fica igual: sem escrita nem histórico.
+    const changes = ((students ?? []) as Array<{ id: string; status: string | null }>).filter(
+      (s) => s.status !== data.newStatus,
+    );
+    const updatedIds = changes.map((s) => s.id);
+    if (updatedIds.length) {
+      // Uma escrita para o lote, com erro verificado (antes era uma por aluno e
+      // as falhas passavam: o ecrã dizia "actualizado" sem ter mudado).
+      const { error: updateError } = await db
         .from("students")
         .update({ status: data.newStatus, updated_by: context.userId })
-        .eq("id", s.id)
+        .in("id", updatedIds)
         .eq("school_id", membership.schoolId);
-
-      try {
-        await recordStudentStatusHistory(db, {
-          schoolId: membership.schoolId,
-          studentId: s.id,
-          previousStatus: s.status,
-          newStatus: data.newStatus,
-          reason: data.reason || "Atualização em lote",
-          changedBy: context.userId,
-        });
-      } catch (error) {
-        if (error instanceof Error && /Não foi possível registar o histórico/.test(error.message)) {
-          throw error;
-        }
+      if (updateError) {
+        throw publicDatabaseError(updateError, "Não foi possível alterar o estado dos alunos.");
       }
-      updatedIds.push(s.id);
+      const reason = data.reason || "Atualização em lote";
+      await recordStudentStatusHistoryBatch(db, {
+        schoolId: membership.schoolId,
+        changes: changes.map((s) => ({ studentId: s.id, previousStatus: s.status })),
+        newStatus: data.newStatus,
+        reason,
+        changedBy: context.userId,
+      });
+      // O mesmo rasto que a mudança individual (`changeStudentStatus`).
+      await recordAuditBatch(
+        changes.map((s) => ({
+          schoolId: membership.schoolId,
+          actorUserId: context.userId,
+          action: "student.status_change",
+          entityType: "student",
+          entityId: s.id,
+          metadata: {
+            reason,
+            batch: true,
+            before: { status: s.status },
+            after: { status: data.newStatus },
+          },
+        })),
+      );
     }
 
     queueTenantUsageSync(membership.schoolId);

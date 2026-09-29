@@ -76,8 +76,13 @@ Tratados a 2026-09-29 (`tests/security/batch-writes.test.ts`):
   aplicar**. Se houver duplicados, pára e lista-os (não apaga). O servidor já
   trata o conflito (`23505`): lê as sessões que o outro pedido criou.
 
-`finance/server.ts:1660` fica: são sempre dois itens. `batchUpdateStudentStatus`
-ainda actualiza aluno a aluno, mas verifica o histórico e está limitado a 100.
+- `batchUpdateStudentStatus` (mudar estado em lote, /alunos): uma actualização
+  para o lote com erro verificado (antes era uma por aluno e as falhas não
+  apareciam), o histórico numa só escrita e o mesmo rasto `student.status_change`
+  em `audit_logs` que a mudança individual (antes não havia rasto). Quem já está
+  no estado pedido fica igual, e o ecrã diz quantos mudaram de facto.
+
+`finance/server.ts:1660` fica: são sempre dois itens.
 
 ## Registos do Auth: Google e captcha (2026-09-28)
 
@@ -194,7 +199,7 @@ as mesmas expressões, trocando essa parte por `is_school_office(school_id)`;
 pacote `docs/agents/SIGA_aplicar_politicas_papel_escola.sql`. Nenhum ecrã
 escreve estas tabelas com a sessão (só servidor e funções SECURITY DEFINER).
 
-**Leitura pelo papel na escola (24 políticas) — escrito, por aplicar:** as
+**Leitura pelo papel na escola (24 políticas) — aplicado (confirmado na produção a 2026-09-29):** as
 leituras usavam `can_read_students()`/`can_manage_students()`, que lêem
 `profiles.cargo` (global; o utilizador só pode alterar `full_name`, por isso
 não há auto-promoção, mas quem tem várias escolas lia os dados pessoais de
@@ -202,7 +207,7 @@ todas). Migração `20260928110000_core_read_policies_school_role.sql`, pacote
 `docs/agents/SIGA_aplicar_leitura_papel_escola.sql`. Depois dela, nenhuma
 política usa `can_*_students`.
 
-**Armazenamento — escrito, por aplicar:** `siga-files` ("Staff can read siga
+**Armazenamento — aplicado (confirmado na produção a 2026-09-29):** `siga-files` ("Staff can read siga
 files") só verificava a escola actual: alunos liam o arquivo (recibos,
 documentos, fotografias) pela API de Storage. `school-logos` aceitava envios de
 qualquer membro e SVG, e recusava a pasta do tenant usada pelo ecrã de
