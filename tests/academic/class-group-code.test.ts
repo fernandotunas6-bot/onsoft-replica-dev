@@ -59,3 +59,13 @@ describe("edição de sala", () => {
     expect(parsed.building).toBeUndefined();
   });
 });
+
+describe("código da disciplina", () => {
+  it("normaliza e aceita o que `subjects_code_check` aceita", async () => {
+    const { createSubjectInputSchema } = await import("@/features/academic/schemas");
+    expect(createSubjectInputSchema.parse({ code: "qui 1", name: "Química" }).code).toBe("QUI-1");
+    const longo = createSubjectInputSchema.safeParse({ code: "A".repeat(21), name: "Química" });
+    expect(longo.success).toBe(false);
+    expect(longo.error?.issues[0]?.message).toContain("Código da disciplina");
+  });
+});

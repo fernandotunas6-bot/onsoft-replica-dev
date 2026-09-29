@@ -3492,6 +3492,8 @@ quando o daemon estiver disponível, correr as suites em `supabase/tests/`.
 
 ## Skills (um por módulo)
 
+- Desktop Tauri → `siga-desktop` (só SIGA escolar).
+
 | Skill               | Quando                                                           |
 | ------------------- | ---------------------------------------------------------------- |
 | `siga`              | qualquer trabalho SIGA, scaffold, SQL, handoff                   |
