@@ -48,6 +48,19 @@ const classGroupCode = z
       ),
   );
 
+/** Código da disciplina: `subjects_code_check` exige `^[A-Z0-9_-]{2,20}$`. */
+const subjectCode = z
+  .string()
+  .transform(normalizeClassGroupCode)
+  .pipe(
+    z
+      .string()
+      .regex(
+        /^[A-Z0-9_-]{2,20}$/,
+        "Código da disciplina: 2 a 20 caracteres, só letras, números, - ou _ (ex.: QUI).",
+      ),
+  );
+
 const classGroupName = z
   .string()
   .trim()
@@ -104,7 +117,7 @@ export const ensureAcademicDefaultsInputSchema = z.object({
 export type EnsureAcademicDefaultsInput = z.infer<typeof ensureAcademicDefaultsInputSchema>;
 
 export const createSubjectInputSchema = z.object({
-  code: z.string().trim().min(1).max(40),
+  code: subjectCode,
   name: z.string().trim().min(2).max(120),
   teacherName: optionalText,
   weeklyHours: z.number().int().min(1).max(20).default(4),
@@ -130,7 +143,7 @@ export type CreateSubjectInput = z.infer<typeof createSubjectInputSchema>;
 
 export const updateSubjectInputSchema = z.object({
   subjectId: z.string().uuid(),
-  code: z.string().trim().min(1).max(40),
+  code: subjectCode,
   name: z.string().trim().min(2).max(120),
   weeklyHours: z.number().int().min(1).max(20).optional(),
   gradeFrom: z.number().int().min(1).max(99).optional().nullable(),
