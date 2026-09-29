@@ -25,6 +25,7 @@ import { isPublicAppPath } from "@/lib/public-paths";
 import { RouteErrorScreen } from "@/components/error/RouteErrorScreen";
 import { TenantProvider } from "@/features/saas/tenant-context";
 import { PageLoading } from "@/components/ui/page-loading";
+import { readSessionHint } from "@/features/auth/session-hint";
 
 function NotFoundComponent() {
   return (
@@ -97,6 +98,8 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { rel: "manifest", href: "/manifest.webmanifest" },
     ],
   }),
+  // Pista de sessão para o SSR desenhar logo o ecrã de entrada (ver session-hint.ts).
+  loader: async () => ({ sessionHint: await readSessionHint() }),
   shellComponent: RootShell,
   component: RootComponent,
   pendingComponent: () => <PageLoading />,
@@ -122,6 +125,7 @@ import { TauriTitlebar } from "@/components/TauriTitlebar";
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
+  const { sessionHint } = Route.useLoaderData();
   const pathname = useRouterState({ select: (state) => state.location.pathname });
   const isPublic = isPublicAppPath(pathname);
 
@@ -148,7 +152,7 @@ function RootComponent() {
             {isPublic ? (
               <Outlet />
             ) : (
-              <AuthGate>
+              <AuthGate sessionHint={sessionHint}>
                 <SchoolYearProvider>
                   <SchoolBrandAppearanceSync />
                   <EntityFocusProvider>
