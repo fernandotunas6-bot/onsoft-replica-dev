@@ -18,7 +18,6 @@ import { Button } from "@/components/ui/button";
 import { SqlChecklistLink } from "@/components/ui/sql-checklist-link";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
-import { ListFilterBar } from "@/components/filters/ListFilterBar";
 import { QuickModal } from "@/components/ui/modal-system";
 import { confirmDiscardChanges } from "@/components/ui/modal-system/confirm-close";
 import { AssessmentGrid, type GridColumn } from "@/features/academic/AssessmentGrid";
@@ -31,6 +30,11 @@ import { useActiveAssessmentRule } from "@/features/academic/use-passing-value";
 import { cellKey, useGradeEditor } from "@/features/academic/use-grade-editor";
 import { ClassCourseTable, StudentDossierTable } from "@/features/academic/AssessmentViewTables";
 import { CreateAssessmentDialog } from "@/features/academic/CreateAssessmentDialog";
+import {
+  AssessmentDocumentsPanel,
+  AssessmentFiltersPanel,
+  AssessmentHistoryPanel,
+} from "@/features/academic/AssessmentCenterPanels";
 import {
   AssessmentStat,
   OfficialPautaView,
@@ -71,7 +75,6 @@ import {
   getPeriodNoun,
   inferTeachingCycle,
   parsePautaScore,
-  pautaSituations,
   recursoFinal,
   scoreAverage,
   situacaoPauta,
@@ -1061,65 +1064,18 @@ export function AssessmentCenter({
         </div>
 
         {filtersOpen ? (
-          <div className="border-b px-5 py-3">
-            <ListFilterBar
-              values={filters}
-              onChange={(name, value) => setFilter(name as keyof typeof filterDefaults, value)}
-              onReset={resetFilters}
-              activeCount={activeCount}
-              fields={[
-                { name: "q", type: "search", placeholder: "Nome, nº ou processo…" },
-                {
-                  name: "classe",
-                  label: "Classe",
-                  type: "select",
-                  options: [
-                    { value: "todas", label: "Todas" },
-                    ...classes.map((item) => ({ value: String(item), label: String(item) })),
-                  ],
-                },
-                {
-                  name: "curso",
-                  label: "Curso",
-                  type: "select",
-                  options: [
-                    { value: "todos", label: "Todos" },
-                    ...courses.map((item) => ({ value: String(item), label: String(item) })),
-                  ],
-                },
-                {
-                  name: "turma",
-                  label: "Turma",
-                  type: "select",
-                  options: [
-                    { value: "todas", label: "Todas" },
-                    ...classGroups.map((group) => ({ value: group.id, label: group.name })),
-                  ],
-                },
-                {
-                  name: "disciplina",
-                  label: "Disciplina",
-                  type: "select",
-                  options: [
-                    { value: "todas", label: "Todas" },
-                    ...subjects.map((subject) => ({ value: subject.id, label: subject.name })),
-                  ],
-                },
-                {
-                  name: "trimestre",
-                  label: periodNoun,
-                  type: "select",
-                  options: periodOptions.map((p) => ({ value: String(p), label: `${p}º` })),
-                },
-                {
-                  name: "situacao",
-                  label: "Situação",
-                  type: "select",
-                  options: pautaSituations.map((item) => ({ value: item.id, label: item.label })),
-                },
-              ]}
-            />
-          </div>
+          <AssessmentFiltersPanel
+            filters={filters}
+            setFilter={setFilter}
+            resetFilters={resetFilters}
+            activeCount={activeCount}
+            classes={classes}
+            courses={courses}
+            classGroups={classGroups}
+            subjects={subjects}
+            periodNoun={periodNoun}
+            periodOptions={periodOptions}
+          />
         ) : null}
 
         <div className="flex flex-wrap items-center gap-2 border-b px-5 py-2 print:hidden">
@@ -1287,69 +1243,14 @@ export function AssessmentCenter({
         </div>
 
         {docsOpen ? (
-          <div className="border-b bg-muted/30 px-5 py-3 text-sm">
-            <p className="mb-2 text-xs font-bold text-muted-foreground">Gerar para {contextKind}</p>
-            <div className="flex flex-wrap gap-2">
-              <Button size="sm" variant="outline" onClick={() => exportDocument("pdf")}>
-                {contextKind === "aluno"
-                  ? "Pauta individual PDF"
-                  : contextKind === "disciplina"
-                    ? "Pauta da disciplina PDF"
-                    : "Pauta da turma PDF"}
-              </Button>
-              {selectedStudent ? (
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => exportDocument("pdf", "boletim")}
-                >
-                  Boletim do aluno
-                </Button>
-              ) : null}
-              <Button size="sm" variant="outline" onClick={() => exportDocument("pdf", "relacao")}>
-                Relação de alunos
-              </Button>
-              <Button size="sm" variant="outline" onClick={() => exportDocument("pdf", "mapa")}>
-                Mapa de aproveitamento
-              </Button>
-              <Button size="sm" variant="outline" onClick={() => exportDocument("pdf", "acta")}>
-                Acta do conselho
-              </Button>
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => exportDocument("pdf", "validacao")}
-              >
-                Validação de notas
-              </Button>
-              <Button size="sm" variant="outline" onClick={() => exportDocument("excel")}>
-                Exportar Excel
-              </Button>
-            </div>
-          </div>
+          <AssessmentDocumentsPanel
+            contextKind={contextKind}
+            hasSelectedStudent={Boolean(selectedStudent)}
+            exportDocument={exportDocument}
+          />
         ) : null}
 
-        {historyOpen ? (
-          <div className="border-b bg-muted/20 px-5 py-3">
-            <p className="mb-2 text-xs font-bold text-muted-foreground">
-              Histórico (nota original → nova)
-            </p>
-            {historyLines.length === 0 ? (
-              <p className="text-sm text-muted-foreground">
-                Ainda não há alterações gravadas neste contexto.
-              </p>
-            ) : (
-              <ul className="space-y-1 text-sm">
-                {historyLines.slice(0, 12).map((line) => (
-                  <li key={line.id}>
-                    <span className="font-semibold">{line.studentName}</span> · {line.itemName}:{" "}
-                    {formatScore(line.previous)} → {formatScore(line.current)}
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
-        ) : null}
+        {historyOpen ? <AssessmentHistoryPanel lines={historyLines} /> : null}
 
         <div className="min-h-0 flex-1 overflow-auto px-5 py-3" onPaste={onPaste}>
           {scope === "classes" || scope === "turmas" ? (
