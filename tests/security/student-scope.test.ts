@@ -54,7 +54,7 @@ describe("funções que lêem fichas de alunos e pessoas aplicam o âmbito", () 
       ["searchStudents", "getStudentProfile", "getStudentStatusHistory"],
     ],
     ["src/features/academic/server-legacy.ts", ["getStudentAcademicHistory"]],
-    ["src/features/people/server.ts", ["getPerson"]],
+    ["src/features/people/server.ts", ["getPerson", "searchPeople"]],
     ["src/features/documents/server.ts", ["listDocumentWorkspace"]],
     [
       "src/features/pedagogica/attendance-server.ts",

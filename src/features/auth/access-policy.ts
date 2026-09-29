@@ -89,6 +89,12 @@ const accessRules: Array<{ prefixes: string[]; roles: ApplicationRole[] }> = [
     prefixes: ["/financeiro"],
     roles: ["Administrador", "Tesouraria", "Encarregado", "Aluno"],
   },
+  // Casos de risco são dados sensíveis de menores: o servidor
+  // (risk-followup.functions) só aceita estes cargos.
+  {
+    prefixes: ["/pedagogica/risco"],
+    roles: ["Administrador", "Secretaria", "Professor"],
+  },
   {
     prefixes: ["/pessoas", "/alunos", "/documentos"],
     roles: ["Administrador", "Secretaria", "Encarregado", "Aluno"],

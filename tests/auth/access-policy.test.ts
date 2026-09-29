@@ -101,6 +101,14 @@ describe("access policy", () => {
     expect(canAccessPath("/financeiro", "Aluno", { financeiro: "Nenhum" })).toBe(false);
   });
 
+  it("keeps student risk cases away from students and guardians", () => {
+    expect(canAccessPath("/pedagogica", "Aluno")).toBe(true);
+    expect(canAccessPath("/pedagogica/risco", "Aluno")).toBe(false);
+    expect(canAccessPath("/pedagogica/risco", "Encarregado")).toBe(false);
+    expect(canAccessPath("/pedagogica/risco", "Professor")).toBe(true);
+    expect(canAccessPath("/pedagogica/risco", "Secretaria")).toBe(true);
+  });
+
   it("distinguishes read vs write levels by role", () => {
     expect(canReadModule("Professor", "pedagogica")).toBe(true);
     expect(canWriteModule("Professor", "pedagogica")).toBe(false);
