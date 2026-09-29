@@ -39,6 +39,7 @@ import type {
 } from "./types";
 import { detectScheduleConflicts } from "./utils/conflicts";
 import { toast } from "sonner";
+import { errorMessage } from "@/lib/error-message";
 
 const weekdays = ["Segunda", "Terça", "Quarta", "Quinta", "Sexta"] as const;
 const weekdayByLabel = new Map<string, number>(weekdays.map((label, index) => [label, index + 1]));
@@ -266,8 +267,8 @@ export function ScheduleWorkspace({
           ? `Horário publicado. ${notified} ${notified === 1 ? "pessoa avisada" : "pessoas avisadas"} no portal.`
           : "Horário publicado e sincronizado com o calendário escolar.",
       );
-    } catch (err: any) {
-      toast.error(err.message || "Erro ao publicar horário.");
+    } catch (err) {
+      toast.error(errorMessage(err, "Erro ao publicar horário."));
     } finally {
       setPublishing(false);
     }

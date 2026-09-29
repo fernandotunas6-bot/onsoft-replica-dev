@@ -11,6 +11,7 @@ import { WhatsAppOtpAdapter } from "./adapters/whatsapp-otp-adapter";
 import { SmsOtpAdapter } from "./adapters/sms-otp-adapter";
 import { loadSgaAdminClient } from "@/integrations/supabase/sga-admin";
 import { consumeRateLimit } from "@/lib/shared-rate-limit";
+import { errorMessage } from "@/lib/error-message";
 
 export interface RequestOtpOptions {
   targetIdentifier: string; // "+244923000000" ou "utilizador@escola.ao"
@@ -141,12 +142,12 @@ export class OtpDispatcher {
       });
       session = created.session;
       generatedCode = created.generatedCode;
-    } catch (err: any) {
+    } catch (err) {
       return {
         success: false,
         targetIdentifier: normalizedIdentifier,
         cooldownSeconds: 0,
-        error: err.message || "Erro ao iniciar sessão de verificação.",
+        error: errorMessage(err, "Erro ao iniciar sessão de verificação."),
       };
     }
 

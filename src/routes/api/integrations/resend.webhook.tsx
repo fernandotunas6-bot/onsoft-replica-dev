@@ -4,6 +4,7 @@ import {
   resolveResendWebhookSecret,
   verifyResendWebhookSignature,
 } from "@/features/integrations/resend-webhook-signature";
+import { errorMessage } from "@/lib/error-message";
 
 // style-check: route-exempt — webhook HTTP Resend para entrega, aberturas e bounces.
 
@@ -124,9 +125,9 @@ export const Route = createFileRoute("/api/integrations/resend/webhook")({
           }
 
           return Response.json({ ok: true, received: true });
-        } catch (err: any) {
+        } catch (err) {
           return Response.json(
-            { ok: false, message: err.message || "Erro ao processar webhook" },
+            { ok: false, message: errorMessage(err, "Erro ao processar webhook") },
             { status: 500 },
           );
         }

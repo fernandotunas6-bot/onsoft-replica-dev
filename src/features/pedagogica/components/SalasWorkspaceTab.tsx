@@ -25,6 +25,22 @@ import {
 import { listRooms, createRoom, updateRoom } from "@/features/academic/server";
 import { toast } from "sonner";
 import { EMPTY_LIST } from "@/lib/stable-empty";
+import { errorMessage } from "@/lib/error-message";
+import type { RoomType } from "@/features/academic/schemas";
+
+/** Colunas de `rooms` usadas aqui (confirmadas em supabase/PRODUCTION_SNAPSHOT.json). */
+type RoomRow = {
+  id: string;
+  code: string;
+  name: string;
+  capacity: number | null;
+  status: string | null;
+  room_type: string | null;
+  building: string | null;
+  block: string | null;
+  floor: string | null;
+  notes: string | null;
+};
 
 const roomTypeLabels: Record<string, string> = {
   standard: "Sala Comum",
@@ -50,10 +66,11 @@ export function SalasWorkspaceTab({ canManage }: { canManage: boolean }) {
     queryKey: ["academic", "rooms"],
     queryFn: () => listRooms(),
   });
-  const rooms = roomsQuery.data ?? EMPTY_LIST;
+  // O cliente do SGA não tem tipos gerados: `listRooms` devolve `any[]`.
+  const rooms: RoomRow[] = roomsQuery.data ?? EMPTY_LIST;
   const isLoading = roomsQuery.isLoading;
 
-  const filteredRooms = rooms.filter((room: any) => {
+  const filteredRooms = rooms.filter((room) => {
     const q = query.trim().toLowerCase();
     const matchQ =
       !q ||
@@ -64,9 +81,9 @@ export function SalasWorkspaceTab({ canManage }: { canManage: boolean }) {
     return matchQ && matchType;
   });
 
-  const totalCapacidade = rooms.reduce((sum: number, r: any) => sum + (r.capacity ?? 0), 0);
+  const totalCapacidade = rooms.reduce((sum: number, r) => sum + (r.capacity ?? 0), 0);
   const laboratoriosCount = rooms.filter(
-    (r: any) => r.room_type?.includes("lab") || r.room_type === "multimedia",
+    (r) => r.room_type?.includes("lab") || r.room_type === "multimedia",
   ).length;
 
   const handleCreateRoom = async (values: Record<string, string | undefined>) => {
@@ -84,7 +101,7 @@ export function SalasWorkspaceTab({ canManage }: { canManage: boolean }) {
           code,
           name,
           capacity,
-          roomType: roomType as any,
+          roomType: roomType as RoomType,
           block,
           building,
           floor,
@@ -95,12 +112,12 @@ export function SalasWorkspaceTab({ canManage }: { canManage: boolean }) {
 
       await queryClient.invalidateQueries({ queryKey: ["academic", "rooms"] });
       toast.success("Sala cadastrada com sucesso.");
-    } catch (err: any) {
-      toast.error(err.message || "Erro ao criar sala.");
+    } catch (err) {
+      toast.error(errorMessage(err, "Erro ao criar sala."));
     }
   };
 
-  const handleUpdateRoom = async (room: any, values: Record<string, string | undefined>) => {
+  const handleUpdateRoom = async (room: RoomRow, values: Record<string, string | undefined>) => {
     try {
       await updateRoom({
         data: {
@@ -108,7 +125,7 @@ export function SalasWorkspaceTab({ canManage }: { canManage: boolean }) {
           code: values["codigo"]?.trim() || room.code,
           name: values["nome"]?.trim() || room.name,
           capacity: Number(values["capacidade"] || room.capacity),
-          roomType: (values["tipo"] || room.room_type) as any,
+          roomType: (values["tipo"] || room.room_type) as RoomType,
           block: values["bloco"]?.trim() || undefined,
           building: values["edificio"]?.trim() || undefined,
           floor: values["piso"]?.trim() || undefined,
@@ -117,8 +134,8 @@ export function SalasWorkspaceTab({ canManage }: { canManage: boolean }) {
 
       await queryClient.invalidateQueries({ queryKey: ["academic", "rooms"] });
       toast.success("Sala atualizada com sucesso.");
-    } catch (err: any) {
-      toast.error(err.message || "Erro ao atualizar sala.");
+    } catch (err) {
+      toast.error(errorMessage(err, "Erro ao atualizar sala."));
     }
   };
 
@@ -286,7 +303,7 @@ export function SalasWorkspaceTab({ canManage }: { canManage: boolean }) {
                   </TableCell>
                 </TableRow>
               ) : (
-                filteredRooms.map((room: any) => (
+                filteredRooms.map((room) => (
                   <TableRow key={room.id} className="hover:bg-muted/30 transition-colors">
                     <TableCell className="font-mono text-xs font-bold text-foreground">
                       {room.code}
@@ -299,7 +316,7 @@ export function SalasWorkspaceTab({ canManage }: { canManage: boolean }) {
                     </TableCell>
                     <TableCell>
                       <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2.5 py-0.5 text-[11px] font-medium text-primary">
-                        {roomTypeLabels[room.room_type] ?? room.room_type}
+                        {room.room_type ? (roomTypeLabels[room.room_type] ?? room.room_type) : "—"}
                       </span>
                     </TableCell>
                     <TableCell className="text-center font-mono text-xs font-semibold">
@@ -353,7 +370,7 @@ export function SalasWorkspaceTab({ canManage }: { canManage: boolean }) {
                               name: "tipo",
                               label: "Tipo de Sala",
                               type: "select",
-                              defaultValue: room.room_type,
+                              defaultValue: room.room_type ?? undefined,
                               options: Object.entries(roomTypeLabels).map(([value, label]) => ({
                                 value,
                                 label,
