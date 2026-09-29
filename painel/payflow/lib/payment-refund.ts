@@ -1,4 +1,5 @@
 import { and, eq } from "drizzle-orm";
+import type { BatchItem } from "drizzle-orm/batch";
 
 import { getDb } from "@/db";
 import {
@@ -108,7 +109,7 @@ export async function executePaymentRefund(input: {
     payload: auditPayload,
     createdAt: now,
   });
-  const statements = [updatePayment, refundEvent];
+  const statements: BatchItem<"sqlite">[] = [updatePayment, refundEvent];
   if (record.instructionId && record.instructionStatus === "verified") {
     statements.push(
       db
@@ -125,7 +126,7 @@ export async function executePaymentRefund(input: {
         .where(eq(studentInvoices.id, record.invoiceId)),
     );
   }
-  await db.batch(statements as typeof statements & [typeof updatePayment, typeof refundEvent]);
+  await db.batch(statements as [BatchItem<"sqlite">, ...BatchItem<"sqlite">[]]);
 
   notifySigaSettlementBestEffort({
     event: "payment.refunded",

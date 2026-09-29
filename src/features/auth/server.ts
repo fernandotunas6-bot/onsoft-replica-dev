@@ -291,6 +291,7 @@ export const getCurrentAccountContext = createServerFn({ method: "GET" })
         } else {
           await db.from("profiles").upsert({
             id: context.userId,
+            display_name: fullName,
             full_name: fullName,
             updated_at: new Date().toISOString(),
           });

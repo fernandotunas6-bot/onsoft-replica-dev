@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import asyncio
 import os
+import secrets
 import subprocess
 import sys
 import time
@@ -33,8 +34,12 @@ def unique_slug(prefix: str = "e2e") -> str:
     return f"{prefix}-{int(time.time() * 1000):x}"
 
 
-# Igual à do helper TypeScript (tests/e2e/helpers/sga-live-admin.ts). Nunca em produção.
-E2E_LIVE_ADMIN_PASSWORD = "E2eAdminPass2026!"
+# Mesma regra do helper TypeScript (tests/e2e/helpers/sga-live-admin.ts): vem de
+# E2E_LIVE_ADMIN_PASSWORD ou é gerada ao acaso por execução; nunca fica no código.
+E2E_LIVE_ADMIN_PASSWORD = (
+    os.environ.get("E2E_LIVE_ADMIN_PASSWORD", "").strip()
+    or f"E2e-{secrets.token_urlsafe(12)}!9a"
+)
 
 
 def signup_payload(slug: str) -> dict:

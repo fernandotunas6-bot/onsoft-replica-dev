@@ -770,7 +770,9 @@ export const deleteClassGroup = createServerFn({ method: "POST" })
     }
     const { data: group, error } = await db
       .from("class_groups")
-      .update({ status: "inactive", updated_by: context.userId })
+      // `class_groups.status` só aceita draft/active/closed/archived: o antigo
+      // "inactive" era recusado pela base e a turma nunca era desactivada.
+      .update({ status: "archived", updated_by: context.userId })
       .eq("id", data.id)
       .eq("school_id", membership.schoolId)
       .select("id, status")

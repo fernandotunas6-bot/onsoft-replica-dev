@@ -1,6 +1,7 @@
 import { IMessageDeliveryAdapter, OtpChannel, OtpDeliveryResult, OtpPayload } from "../contracts";
 import { escapeHtml } from "@/features/auth/email-templates/reset-password.html";
 import { sendResendEmail, resolveSystemSender } from "@/features/integrations/resend-client";
+import { errorMessage } from "@/lib/error-message";
 
 export class ResendOtpAdapter implements IMessageDeliveryAdapter {
   public channel: OtpChannel = "email";
@@ -64,12 +65,12 @@ export class ResendOtpAdapter implements IMessageDeliveryAdapter {
         provider: this.providerName,
         externalMessageId: res.id || undefined,
       };
-    } catch (err: any) {
+    } catch (err) {
       return {
         success: false,
         channel: "email",
         provider: this.providerName,
-        error: err.message || "Falha no envio de e-mail com Resend",
+        error: errorMessage(err, "Falha no envio de e-mail com Resend"),
       };
     }
   }

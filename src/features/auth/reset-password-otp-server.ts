@@ -76,6 +76,7 @@ export const resetPasswordWithOtpFn = createServerFn({ method: "POST" })
     try {
       await db.from("saas_audit_logs").insert({
         action: "password_reset_otp_completed",
+        entity: "auth",
         user_id: userId,
         ip_address: ip,
         metadata: {

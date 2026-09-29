@@ -55,6 +55,19 @@ describe("permissões por módulo aplicadas no servidor", () => {
   it("tabela por aplicar não bloqueia (igual ao contexto da conta)", async () => {
     grantError = { code: "42P01", message: "relation does not exist" };
     await expect(assertModuleNotBlocked("s", "u", "gestao")).resolves.toBeUndefined();
+    grantError = { code: "PGRST205", message: "Could not find the table in the schema cache" };
+    await expect(assertModuleNotBlocked("s", "u", "gestao")).resolves.toBeUndefined();
+  });
+
+  it("outro erro de leitura falha fechado em vez de ignorar o bloqueio", async () => {
+    grantError = { code: "57014", message: "canceling statement due to statement timeout" };
+    await expect(assertModuleNotBlocked("s", "u", "financeiro")).rejects.toThrow(
+      /confirmar as permissões/,
+    );
+    grantError = { code: "42703", message: 'column "level" does not exist' };
+    await expect(assertModuleNotBlocked("s", "u", "financeiro")).rejects.toThrow(
+      /confirmar as permissões/,
+    );
   });
 });
 

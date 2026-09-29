@@ -161,7 +161,7 @@ export const getAlumniProfile = createServerFn({ method: "GET" })
         // `date_of_birth`, não `birth_date`: a coluna de `people` chama-se assim.
         // O nome errado faz o PostgREST recusar o select inteiro, e como o erro
         // não é lido aqui, o perfil Alumni ficava sem dados pessoais nenhuns.
-        .select("id, full_name, email, phone, photo_url, date_of_birth, gender")
+        .select("id, full_name, email, phone, photo_url, date_of_birth")
         .eq("school_id", membership.schoolId)
         .eq("id", profile.person_id)
         .maybeSingle(),

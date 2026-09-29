@@ -308,7 +308,8 @@ export async function POST(request: Request) {
       );
     }
 
-    const emis = initiateEmisSandbox(parsed.data.method);
+    // A transferência bancária respondeu acima (isBankTransfer); aqui só chegam métodos EMIS.
+    const emis = initiateEmisSandbox(parsed.data.method as (typeof emisMethods)[number]);
     const paymentId = createPaymentId();
     const now = new Date().toISOString();
 
