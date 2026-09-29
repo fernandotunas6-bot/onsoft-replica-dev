@@ -4,6 +4,21 @@ Ler isto **antes** de alterar código. Ecossistema (5 apps):
 [ARCHITECTURE_HARMONIZATION.md](./ARCHITECTURE_HARMONIZATION.md).
 Depois abrir o skill do módulo em `.cursor/skills/`.
 
+## Centro de Avaliação: testes de caracterização e defeito encontrado (2026-09-29)
+
+`tests/academic/assessment-center.test.tsx` fixa o comportamento do
+`AssessmentCenter.tsx` antes de o dividir: carregamento e ordem dos alunos,
+média (Decreto 424/25: MT = (MACT + NPT) ÷ 2), desfazer/refazer, gravação só de
+linhas completas, trimestre fechado e sem permissão só para leitura.
+
+**Defeito encontrado, ainda por corrigir:** o que o professor escreve antes de a
+lista de avaliações (`listAssessments`) chegar é apagado quando ela chega — o
+`useEffect` que carrega os valores depende de `items`/`scores` e faz
+`setValues(next)` por cima das edições. O teste "edição feita antes de a lista
+de avaliações chegar é apagada" fixa o comportamento actual; ao corrigir,
+inverte-se a expectativa final. Próximo passo: dividir o componente com estes
+testes a passar, e só depois corrigir o defeito.
+
 ## Tenants de teste arquivados na produção (2026-09-29)
 
 82 tenants criados pelos testes automáticos entre 08 e 10/09 (slugs
