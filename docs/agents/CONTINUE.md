@@ -4,6 +4,45 @@ Ler isto **antes** de alterar código. Ecossistema (5 apps):
 [ARCHITECTURE_HARMONIZATION.md](./ARCHITECTURE_HARMONIZATION.md).
 Depois abrir o skill do módulo em `.cursor/skills/`.
 
+## Turmas, salas e campus (2026-09-29)
+
+- **Sala física da turma:** `class_groups.room_id` (migração `20260929250000`, **já
+  aplicada**, FK `(school_id, room_id)` → `rooms`, `ON DELETE SET NULL (room_id)`).
+  Até aqui o campo "Sala" do formulário gravava o campus. Agora "Sala" lista as salas
+  reais activas (`listRooms`); o campus vem de `rooms.campus_id` ou do campus principal
+  (`defaultCampusId`). `room_name` nas listas de turmas é a sala; o campus está em
+  `campus_name`.
+- `loadSalaForClassGroup` (server-legacy): a sala tem de ser da escola, activa e ter
+  lugares para a capacidade da turma.
+- O campus de uma turma é imutável (`normalize_class_group`); mudar de sala não mexe nele.
+- Código da turma: `normalizeClassGroupCode` + regex de `class_groups_code_check`.
+- `updateClassGroup` sem `status` não mexe no estado (antes reactivava arquivadas).
+- Salas: estado Operacional/Inactiva editável; apagar bloco/piso/edifício grava `null`.
+- Períodos: `saveAcademicCalendar` (ano + 3 trimestres) não tem ecrã; só 2 de 51 anos
+  têm trimestres. Os períodos criam-se um a um em `/calendario`. Próximo passo sugerido.
+
+## Cliente do SGA tipado (2026-09-29)
+
+`sgaClient()` (`src/integrations/supabase/sga.ts`) devolve agora
+`SupabaseClient<Database>`: nomes de colunas, valores de CHECK e argumentos de RPC
+passam pelo `tsc` (103 erros corrigidos; 0 agora). Regras:
+- payloads com `TablesInsert<"t">` / `TablesUpdate<"t">`, não `Record<string, unknown>`;
+- RPC com `rpcArgs("fn", {...})` (aceita `null` nos argumentos opcionais);
+- tabela só conhecida em runtime (rollback do importador): `dynamicTablesClient(db)`.
+
+Bugs reais que a tipagem revelou (todos corrigidos):
+- criar turma falhava sem campus: `class_groups.campus_id` é NOT NULL e 49 de 91
+  escolas não têm campus. `defaultCampusId()` cria "SEDE / Campus Principal";
+- criar disciplina falhava sempre: gravava `subjects.weekly_hours`, que não existe.
+  A carga horária vive em `class_subjects.weekly_periods` e é calculada na lista;
+- desactivar turma gravava "inactive" (é "archived");
+- pedido de documento sem `purpose` (NOT NULL);
+- bootstrap da escola: turma e disciplinas de exemplo sem `created_by` / campus;
+- domínios da escola consultados com `schoolId` indefinido.
+
+Por decidir: o formulário de nova disciplina envia carga, classe de/até e professor,
+que não se guardam na disciplina (atribuem-se por turma em `class_subjects`).
+
 ## Auditoria de produção e correcções (2026-09-29)
 
 Repositório **público** desde 29/09 (minutos de Actions esgotados no plano grátis).

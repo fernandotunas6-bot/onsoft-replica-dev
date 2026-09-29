@@ -1,3 +1,4 @@
+import type { TablesInsert, TablesUpdate } from "@/integrations/supabase/types";
 import { createServerFn } from "@tanstack/react-start";
 import { normalizeStoredPhone } from "@/lib/angola-phone";
 import { sgaClient } from "@/integrations/supabase/sga";
@@ -763,7 +764,7 @@ export const enrollNewStudent = createServerFn({ method: "POST" })
     const fullName = personInput.full_name.trim();
     if (!fullName) throw new Error("Nome do aluno é obrigatório.");
 
-    const personPayload: Record<string, unknown> = {
+    const personPayload: TablesInsert<"people"> = {
       school_id: membership.schoolId,
       full_name: fullName,
       preferred_name:
@@ -985,7 +986,7 @@ export const updateStudentProfile = createServerFn({ method: "POST" })
       "Secretaria",
     ]);
     const db = await loadSgaAdminClient();
-    const personPatch: Record<string, unknown> = {
+    const personPatch: TablesUpdate<"people"> = {
       full_name: data.fullName,
       email: data.email || null,
       phone: data.phone ?? null,
@@ -1240,7 +1241,7 @@ export const updateEnrollment = createServerFn({ method: "POST" })
     if (classError) throw publicDatabaseError(classError, "Não foi possível validar a turma.");
     if (!classGroup) throw new Error("Turma não encontrada nesta escola.");
 
-    const patch: Record<string, unknown> = {
+    const patch: TablesUpdate<"enrollments"> = {
       class_group_id: data.classGroupId,
       status: data.status,
       updated_by: context.userId,

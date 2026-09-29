@@ -1,3 +1,4 @@
+import type { TablesUpdate } from "@/integrations/supabase/types";
 import { z } from "zod";
 import { resolveVerifiedAccountEmail } from "@/features/students/student-scope";
 import { createServerFn } from "@tanstack/react-start";
@@ -351,7 +352,7 @@ export const updateTurnstileDevice = createServerFn({ method: "POST" })
     if (!membership) throw new Error("Sem membership activa.");
     const db = await loadSgaAdminClient();
 
-    const patch: Record<string, unknown> = {};
+    const patch: TablesUpdate<"siga_turnstile_devices"> = {};
     if (data.status) patch.status = data.status;
     if (data.ipAddress !== undefined) patch.ip_address = data.ipAddress?.trim() || null;
     if (data.name) patch.name = data.name.trim();

@@ -1,3 +1,4 @@
+import type { Json, TablesUpdate } from "@/integrations/supabase/types";
 import { createFileRoute } from "@tanstack/react-router";
 import { loadSgaAdminClient } from "@/integrations/supabase/sga-admin";
 import {
@@ -80,7 +81,8 @@ export const Route = createFileRoute("/api/integrations/resend/webhook")({
             .eq("external_message_id", emailId)
             .maybeSingle();
 
-          let newStatus: string | null = null;
+          let newStatus: NonNullable<TablesUpdate<"communication_dispatches">["status"]> | null =
+            null;
           switch (eventType) {
             case "email.delivered":
               newStatus = "delivered";
@@ -119,7 +121,7 @@ export const Route = createFileRoute("/api/integrations/resend/webhook")({
               dispatch_id: dispatch.id,
               provider: "resend",
               event_type: eventType.replace("email.", ""),
-              payload: payload as unknown as Record<string, unknown>,
+              payload: payload as unknown as Json,
               occurred_at: payload.created_at || new Date().toISOString(),
             });
           }

@@ -1,10 +1,40 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import type { Database } from "@/integrations/supabase/types";
 import type { ApplicationRole } from "@/features/auth/access-policy";
 
-/** Untyped client for the remote SGA schema (diverges from local generated types). */
+/**
+ * Cliente do SGA com os tipos gerados da produção (`types.ts`, regenerado a partir
+ * do esquema real). Até 29/09 devolvia `SupabaseClient<any>`: um nome de coluna
+ * errado, uma coluna NOT NULL em falta ou um estado fora do CHECK passavam sem erro
+ * e só falhavam na base — foi assim que Acessos, o estorno PayFlow e três
+ * importadores ficaram partidos sem ninguém dar por isso.
+ */
 export function sgaClient(client: SupabaseClient) {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- remote SGA schema has no generated types
-  return client as SupabaseClient<any>;
+  return client as unknown as SupabaseClient<Database>;
+}
+
+/**
+ * Para operações sobre uma tabela escolhida em tempo de execução (por exemplo, a
+ * reversão de uma importação, que percorre a auditoria e desfaz em cada tabela):
+ * aí não há tipo possível, por isso o cliente perde-o de propósito — e só aí.
+ */
+export function dynamicTablesClient(db: SupabaseClient<Database>) {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- o nome da tabela só se sabe em runtime
+  return db as unknown as SupabaseClient<any>;
+}
+
+type SgaFunctions = Database["public"]["Functions"];
+
+/**
+ * Argumentos de uma RPC, aceitando `null`. O gerador de tipos do Supabase declara
+ * todos os argumentos de funções Postgres como não nulos, mas a base aceita NULL
+ * (e as funções do SGA contam com isso). Os nomes e os tipos continuam verificados.
+ */
+export function rpcArgs<F extends keyof SgaFunctions>(
+  _fn: F,
+  args: { [K in keyof SgaFunctions[F]["Args"]]: SgaFunctions[F]["Args"][K] | null },
+): SgaFunctions[F]["Args"] {
+  return args as SgaFunctions[F]["Args"];
 }
 
 const roleCodeToAppRole: Record<string, ApplicationRole> = {

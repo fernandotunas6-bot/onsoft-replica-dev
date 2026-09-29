@@ -7,6 +7,53 @@ const optionalText = z
   .transform((value) => (value.length === 0 ? undefined : value))
   .optional();
 
+/**
+ * Texto opcional que se pode apagar numa edição: "" passa a `null` (limpa a coluna);
+ * ausente fica `undefined` (não mexe). `optionalText` converte "" em `undefined`, e
+ * apagar o bloco ou o piso de uma sala nunca chegava à base.
+ */
+const clearableText = z
+  .string()
+  .trim()
+  .transform((value) => (value.length === 0 ? null : value))
+  .nullable()
+  .optional();
+
+/**
+ * Código da turma como a base o aceita: `class_groups_code_check` exige
+ * `^[A-Z0-9_-]{2,30}$` depois de `normalize_class_group` passar a maiúsculas.
+ * Espaços e barras viram "-" e caem os acentos e os ordinais ("10ª a" → "10-A").
+ */
+export function normalizeClassGroupCode(value: string) {
+  return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[ºª°]/g, "")
+    .trim()
+    .toUpperCase()
+    .replace(/[\s/.]+/g, "-")
+    .replace(/-{2,}/g, "-")
+    .replace(/^-|-$/g, "");
+}
+
+const classGroupCode = z
+  .string()
+  .transform(normalizeClassGroupCode)
+  .pipe(
+    z
+      .string()
+      .regex(
+        /^[A-Z0-9_-]{2,30}$/,
+        "Código da turma: 2 a 30 caracteres, só letras, números, - ou _ (ex.: 10A-CFB).",
+      ),
+  );
+
+const classGroupName = z
+  .string()
+  .trim()
+  .min(2, "A designação da turma precisa de pelo menos 2 caracteres.")
+  .max(120);
+
 export const classShiftOptions = ["morning", "afternoon", "evening"] as const;
 export type ClassShift = (typeof classShiftOptions)[number];
 
@@ -21,8 +68,8 @@ export const createClassGroupInputSchema = z.object({
   // turma directamente — ver comentário em createClassGroup() no server.ts.
   gradeLevelId: z.string().uuid(),
   roomId: z.string().uuid().optional(),
-  code: z.string().trim().min(1).max(40),
-  name: z.string().trim().min(1).max(80),
+  code: classGroupCode,
+  name: classGroupName,
   shift: z.enum(classShiftOptions),
   capacity: z.number().int().positive().max(200).optional(),
   whatsappInviteUrl: optionalText,
@@ -32,12 +79,14 @@ export type CreateClassGroupInput = z.infer<typeof createClassGroupInputSchema>;
 
 export const updateClassGroupInputSchema = z.object({
   id: z.string().uuid(),
-  code: z.string().trim().min(1).max(40),
-  name: z.string().trim().min(1).max(80),
+  code: classGroupCode,
+  name: classGroupName,
   shift: z.enum(classShiftOptions),
   capacity: z.number().int().positive().max(200).optional(),
   roomId: z.string().uuid().optional().nullable(),
-  status: z.enum(["active", "inactive"]).default("active"),
+  // Ausente = não mexe no estado. O antigo `.default("active")` reactivava sem
+  // aviso uma turma arquivada sempre que alguém lhe editava o nome.
+  status: z.enum(["active", "inactive"]).optional(),
   whatsappInviteUrl: optionalText,
   whatsappGroupName: optionalText,
 });
@@ -440,6 +489,10 @@ export type CreateRoomInput = z.infer<typeof createRoomInputSchema>;
 
 export const updateRoomInputSchema = createRoomInputSchema.partial().extend({
   id: z.string().uuid(),
+  building: clearableText,
+  block: clearableText,
+  floor: clearableText,
+  notes: clearableText,
   status: z.enum(["active", "inactive"]).optional(),
 });
 export type UpdateRoomInput = z.infer<typeof updateRoomInputSchema>;

@@ -48,6 +48,7 @@ export function DisciplinasWorkspaceTab({
     name: string;
     teacher_name?: string | null;
     classes_label?: string | null;
+    weekly_hours?: number | null;
     weekly_hours_label?: string | null;
     approval_rate?: number | null;
     subject_type_id?: string | null;
@@ -209,15 +210,18 @@ export function DisciplinasWorkspaceTab({
           <div className="rounded-xl border bg-card p-3 shadow-2xs">
             <span className="text-xs text-muted-foreground">Carga Média</span>
             <p className="text-xl font-black text-foreground">
-              {subjects.length > 0
-                ? Math.round(
-                    subjects.reduce((acc, s) => {
-                      const num = Number(s.weekly_hours_label?.replace(/[^\d]/g, "") || 4);
-                      return acc + (Number.isFinite(num) ? num : 4);
-                    }, 0) / subjects.length,
-                  )
-                : 0}
-              h/sem
+              {(() => {
+                // Só as disciplinas já atribuídas a turmas têm carga (tempos lectivos por
+                // semana, de `class_subjects`); antes lia os dígitos da etiqueta e contava
+                // 4 para as que não tinham nenhuma.
+                const loads = subjects
+                  .map((s) => Number(s.weekly_hours ?? 0))
+                  .filter((value) => value > 0);
+                return loads.length
+                  ? Math.round(loads.reduce((acc, value) => acc + value, 0) / loads.length)
+                  : "—";
+              })()}{" "}
+              tempos/sem
             </p>
           </div>
         </div>

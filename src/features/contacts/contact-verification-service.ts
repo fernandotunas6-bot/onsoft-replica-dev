@@ -1,3 +1,4 @@
+import type { Json, TablesUpdate } from "@/integrations/supabase/types";
 import { Database } from "@/integrations/supabase/types";
 import { loadSgaAdminClient } from "@/integrations/supabase/sga-admin";
 
@@ -39,7 +40,7 @@ interface UserCommunicationPreferencesRow {
   events_enabled: boolean;
   documents_enabled: boolean;
   marketing_enabled: boolean;
-  channel_preferences?: Record<string, unknown> | null;
+  channel_preferences: Json;
   created_at: string;
   updated_at: string;
   version: number;
@@ -187,7 +188,7 @@ export class ContactVerificationService {
    */
   private static async patchProfile(
     userId: string,
-    patch: Record<string, unknown>,
+    patch: TablesUpdate<"contact_verification_profiles">,
     falha: string,
   ): Promise<void> {
     const db = await loadSgaAdminClient();

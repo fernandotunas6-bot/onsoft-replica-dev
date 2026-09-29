@@ -1,3 +1,4 @@
+import type { TablesInsert, TablesUpdate } from "@/integrations/supabase/types";
 import { createServerFn } from "@tanstack/react-start";
 import { canSeePerson, loadStudentScope } from "@/features/students/student-scope";
 import {
@@ -544,7 +545,7 @@ export const createPerson = createServerFn({ method: "POST" })
     if (institutionRoles.length) await assertPersonRoleStoreAvailable(db);
 
     const normalizedNif = normalizePersonNif(personInput.nif);
-    const personPayload: Record<string, unknown> = {
+    const personPayload: TablesInsert<"people"> = {
       school_id: membership.schoolId,
       full_name: personInput.full_name,
       preferred_name:
@@ -766,7 +767,7 @@ export const mergePeople = createServerFn({ method: "POST" })
       }
     }
 
-    const survivorPatch: Record<string, unknown> = { updated_by: context.userId };
+    const survivorPatch: TablesUpdate<"people"> = { updated_by: context.userId };
     if (!survivor["email"] && duplicate["email"]) survivorPatch["email"] = duplicate["email"];
     if (!survivor["phone"] && duplicate["phone"]) survivorPatch["phone"] = duplicate["phone"];
     if (!survivor["national_id"] && duplicate["national_id"]) {
@@ -778,7 +779,7 @@ export const mergePeople = createServerFn({ method: "POST" })
 
     // Clear unique contact fields on the duplicate first so the survivor update
     // does not collide with school-level unique indexes (email / NIF / phone).
-    const duplicateClear: Record<string, unknown> = {
+    const duplicateClear: TablesUpdate<"people"> = {
       updated_by: context.userId,
       status: "inactive",
     };
@@ -1085,7 +1086,7 @@ export const updatePerson = createServerFn({ method: "POST" })
     ]);
     const db = await loadSgaAdminClient();
     const normalizedNif = normalizePersonNif(data.nif);
-    const personPatch: Record<string, unknown> = {
+    const personPatch: TablesUpdate<"people"> = {
       full_name: data.fullName,
       email: data.email || null,
       phone: normalizePersonPhone(data.phone),

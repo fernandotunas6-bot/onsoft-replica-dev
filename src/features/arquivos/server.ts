@@ -1,3 +1,4 @@
+import type { TablesUpdate } from "@/integrations/supabase/types";
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { publicDatabaseError } from "@/integrations/supabase/server-error";
@@ -622,7 +623,7 @@ export const moveSchoolFiles = createServerFn({ method: "POST" })
       }
     }
     const now = new Date().toISOString();
-    const payload: Record<string, unknown> = {
+    const payload: TablesUpdate<"siga_files"> = {
       parent_id: data.parentId,
       updated_at: now,
       updated_by: userId,
@@ -856,7 +857,7 @@ export const updateSchoolFileMeta = createServerFn({ method: "POST" })
       throw new Error("Sem permissão para editar metadados.");
     }
     const now = new Date().toISOString();
-    const payload: Record<string, unknown> = {
+    const payload: TablesUpdate<"siga_files"> = {
       updated_at: now,
       updated_by: userId,
       last_action: "metadata_updated",

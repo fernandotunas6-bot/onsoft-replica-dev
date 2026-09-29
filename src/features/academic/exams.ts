@@ -7,6 +7,7 @@
  * Tabelas só do servidor: lê e escreve com a chave de serviço depois de
  * validar o perfil (Administrador/Secretaria gerem; Professor consulta).
  */
+import type { TablesInsert } from "@/integrations/supabase/types";
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
@@ -410,7 +411,7 @@ export const registerEligibleStudents = createServerFn({ method: "POST" })
     if (!sheet.rule) throw new Error("A pauta anual não tem regra de avaliação.");
     const rule = sheet.rule;
 
-    const rows: Row[] = [];
+    const rows: TablesInsert<"siga_exam_registrations">[] = [];
     const registeredByEnrollment = new Map<string, string[]>();
     for (const line of sheet.rows) {
       const subjects = subjectFinalsFromBreakdown(line.breakdown, rule);
