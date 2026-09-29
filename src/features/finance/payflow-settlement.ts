@@ -3,6 +3,7 @@ import { z } from "zod";
 import { loadSgaAdminClient } from "@/integrations/supabase/sga-admin";
 import { settleGatewayPayment } from "@/features/finance/gateway-webhook-handler";
 import { minorUnitsToKz } from "@/features/finance/payflow-education-sync";
+import { invoiceNetTotal, invoiceStatusFromPaid } from "@/features/finance/invoice-settlement";
 import { timingSafeEqual } from "@/lib/timing-safe-equal";
 
 export const payflowSettlementInputSchema = z.object({
@@ -36,7 +37,7 @@ export async function applyPayflowSettlement(input: PayflowSettlementInput) {
 
   const { data: invoice, error } = await db
     .from("finance_invoices")
-    .select("id, status, school_id")
+    .select("id, status, school_id, amount, discount_amount")
     .eq("id", input.invoice_id)
     .eq("school_id", input.school_id)
     .maybeSingle();
@@ -112,19 +113,36 @@ export async function applyPayflowSettlement(input: PayflowSettlementInput) {
     }
   }
 
-  if (invoice.status === "paid") {
-    const { error: invoiceError } = await db
-      .from("finance_invoices")
-      .update({ status: "issued", updated_at: now })
-      .eq("id", input.invoice_id)
+  // Estado da fatura a partir dos recibos que continuam válidos, como no
+  // estorno manual (`finance/server.ts`). `finance_invoices` só aceita
+  // open/partially_paid/paid/cancelled e não tem `updated_at`: o antigo
+  // `{ status: "issued", updated_at }` era recusado sempre pela base.
+  if (invoice.status !== "cancelled") {
+    const { data: remaining, error: remainingError } = await db
+      .from("finance_receipts")
+      .select("amount")
+      .eq("invoice_id", input.invoice_id)
       .eq("school_id", input.school_id)
-      .eq("status", "paid");
-    if (invoiceError) {
-      return {
-        ok: false as const,
-        status: 500,
-        message: "Não foi possível reabrir a fatura no SIGA.",
-      };
+      .eq("status", "issued");
+    if (remainingError) {
+      return { ok: false as const, status: 500, message: "Não foi possível ler os recibos." };
+    }
+    const paid = (remaining ?? []).reduce((sum, row) => sum + Number(row.amount || 0), 0);
+    const status = invoiceStatusFromPaid(invoiceNetTotal(invoice), paid);
+    if (status !== invoice.status) {
+      const { error: invoiceError } = await db
+        .from("finance_invoices")
+        .update({ status })
+        .eq("id", input.invoice_id)
+        .eq("school_id", input.school_id)
+        .eq("status", invoice.status);
+      if (invoiceError) {
+        return {
+          ok: false as const,
+          status: 500,
+          message: "Não foi possível reabrir a fatura no SIGA.",
+        };
+      }
     }
   }
 

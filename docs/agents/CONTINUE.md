@@ -34,6 +34,26 @@ push protection no GitHub; segredo OAuth do Google; ligar a D1 do PayFlow
 com o flat config nativo do eslint-config-next 16 (0 erros); `set-state-in-effect`
 e `purity` do React Compiler ficam como aviso (30) até as páginas migrarem.
 
+## Defeitos escondidos pelo `any` do cliente SGA (2026-09-29)
+
+Tipar o cliente do SGA (`sgaClient` → `SupabaseClient<Database>`) à experiência deu
+103 erros de tipos; o `types.ts` coincide com a produção (179 de 181 tabelas; as duas
+em falta vêm da branch `claude/projeto-desenvolvimento-1a68je`). Entre eles, dois
+defeitos reais, confirmados na produção e corrigidos:
+
+- **Estorno PayFlow** (`finance/payflow-settlement.ts`): reabria a fatura com
+  `{ status: "issued", updated_at }`. `finance_invoices` não tem `updated_at` e só
+  aceita open/partially_paid/paid/cancelled — a base recusava sempre. Agora recalcula
+  o estado pelos recibos válidos (`invoiceStatusFromPaid`), como o estorno manual.
+- **Perfil Alumni** (`alumni/server.ts`): pedia `people.gender` (é `sex`); o select
+  inteiro falhava e o perfil ficava sem dados pessoais.
+
+`tests/security/colunas-inexistentes.test.ts` não os apanhava: não aceitava
+comentários entre `.from()` e `.select()`, e nas escritas só lia uma chave por linha.
+Ambos corrigidos. Fica por decidir: `subjects.weekly_hours`/`grade_from`/`grade_to`
+lidos em `server-secure-legacy.ts` (select `*`) não existem — o ecrã mostra "—".
+O cliente SGA continua `any`; tipá-lo é trabalho por ficheiro (103 erros).
+
 ## Centro de Avaliação: testes de caracterização e defeito encontrado (2026-09-29)
 
 `tests/academic/assessment-center.test.tsx` fixa o comportamento do
