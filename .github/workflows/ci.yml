@@ -107,46 +107,13 @@ jobs:
       - name: Build
         run: bun run build
 
-  coverage:
-    name: Cobertura IconChip / MediaFrame por rota
-    runs-on: ubuntu-latest
-    timeout-minutes: 20
-    needs: quality
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: oven-sh/setup-bun@v2
-        with:
-          bun-version: latest
-
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
-
-      - name: Instalar dependências
-        run: |
-          bun install --frozen-lockfile
-          python -m pip install --requirement requirements-dev.txt
-          python -m playwright install --with-deps chromium
-
-      - name: Arrancar servidor de desenvolvimento
-        run: |
-          bun run dev &
-          for i in $(seq 1 60); do
-            curl -sf -o /dev/null "$BASE_URL/" && echo "servidor pronto em $BASE_URL" && exit 0
-            sleep 2
-          done
-          echo "::error::servidor não respondeu em $BASE_URL após 120s"
-          exit 1
-
-      - name: Resumo de cobertura de estilo por rota
-        run: python scripts/style-coverage.py
-
-      - name: Navegação apenas por teclado (skip link, foco, aria-current)
-        run: python scripts/keyboard-nav.py
-
-      - name: Acessibilidade da sidebar e IconChip (contraste, foco, tabulação, ARIA)
-        run: python scripts/a11y-sidebar.py
+  # O job "Cobertura IconChip / MediaFrame por rota" saiu a 29/09. Abria 13
+  # páginas protegidas no servidor de desenvolvimento sem sessão iniciada e só
+  # via o ecrã de entrada (0/13 sempre). A cobertura de estilo continua no passo
+  # "Checklist de estilo" (scripts/style-checklist.mjs, 100% das rotas, estático).
+  # Navegação por teclado e acessibilidade da sidebar (scripts/keyboard-nav.py,
+  # scripts/a11y-sidebar.py) voltam quando o CI tiver uma conta de teste numa
+  # base de staging.
 
   lighthouse:
     name: Lighthouse CI (FCP / LCP / INP) + PWA
