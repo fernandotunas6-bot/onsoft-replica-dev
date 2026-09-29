@@ -4,6 +4,17 @@ Ler isto **antes** de alterar código. Ecossistema (5 apps):
 [ARCHITECTURE_HARMONIZATION.md](./ARCHITECTURE_HARMONIZATION.md).
 Depois abrir o skill do módulo em `.cursor/skills/`.
 
+## Ligações ADMIN → SIGA de cada escola (2026-09-29)
+
+- ADMIN `/tenants`, botão «SIGA»: `getSigaSchoolUrl` tirava o primeiro rótulo do host
+  do SIGA. Com o SIGA na raiz (`portal-siga.com`) abria `https://<slug>.com`, domínio
+  de terceiros. Agora `https://<slug>.${PLATFORM_DOMAIN}`, como `getPlatformSubdomain`
+  no SIGA; slug inválido ou dev → SIGA principal. Teste: `tests/saas/admin-school-url.test.ts`.
+- Rodapé e notificação da barra lateral do WEB e do ADMIN: `https://portal-siga.com`
+  à mão → `ECOSYSTEM_URLS.web`.
+- Revisão das leituras sensíveis no servidor (alunos, notas, faturas, RH, risco,
+  saúde): todas com cargo, âmbito ou dono verificados. Sem novas fugas.
+
 ## Permissões por módulo: ecrã igual ao servidor (2026-09-29)
 
 - `canAccessPath` (menu, launcher, guarda de rotas) abria com qualquer permissão por

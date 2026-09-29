@@ -34,16 +34,17 @@ export function getCreateSchoolUrl(): string {
   return `${ECOSYSTEM_URLS.web}/start`;
 }
 
+/**
+ * SIGA de uma escola: `<slug>.PLATFORM_DOMAIN`, a mesma regra do resolver do
+ * SIGA (`getPlatformSubdomain`). Antes tirava o primeiro rótulo do host do
+ * SIGA; com o SIGA na raiz (`portal-siga.com`) isso dava `escola.com`.
+ */
 export function getSigaSchoolUrl(slug?: string): string {
-  if (slug && !ECOSYSTEM_URLS.siga.includes("localhost")) {
-    try {
-      const host = new URL(ECOSYSTEM_URLS.siga).host.replace(/^[^.]+\./, "");
-      return `https://${slug}.${host}`;
-    } catch {
-      /* fall through */
-    }
+  const clean = (slug ?? "").trim().toLowerCase();
+  if (!clean || isLocal || !/^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$/.test(clean)) {
+    return ECOSYSTEM_URLS.siga;
   }
-  return ECOSYSTEM_URLS.siga;
+  return `https://${clean}.${PLATFORM_DOMAIN}`;
 }
 
 export function getSaasApiUrl(path: string): string {
