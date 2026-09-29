@@ -53,9 +53,10 @@ componente passou de 1883 para 1711 linhas.
 Moodle, Canvas, WhatsApp, Resend) em `AssessmentIntegrationActions.tsx`, que lê
 as capacidades instaladas sozinho; vistas de avaliações, recursos, exames e
 fecho do trimestre em `AssessmentModeViews.tsx` (o botão de fechar/reabrir usa
-um só `toggleTermLock`). 1711 → 1398 linhas. Falta: a barra de lançamento em
-lote e o detalhe MAC/NPP/NPT do aluno, sempre com
-`tests/academic/assessment-center.test.tsx` a passar.
+um só `toggleTermLock`); barra de notas em lote e detalhe MAC/NPP/NPT do aluno
+em `AssessmentGradeHelpers.tsx`. 1711 → 1342 linhas. O que resta no ficheiro é
+estado, cálculos e exportações; o passo seguinte seria mover a exportação de
+documentos (`exportDocument`) para um módulo sem React.
 
 ## Tenants de teste arquivados na produção (2026-09-29)
 

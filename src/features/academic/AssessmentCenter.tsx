@@ -16,7 +16,6 @@ import { toast } from "sonner";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { SqlChecklistLink } from "@/components/ui/sql-checklist-link";
-import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { QuickModal } from "@/components/ui/modal-system";
 import { confirmDiscardChanges } from "@/components/ui/modal-system/confirm-close";
@@ -30,6 +29,10 @@ import { useActiveAssessmentRule } from "@/features/academic/use-passing-value";
 import { cellKey, useGradeEditor } from "@/features/academic/use-grade-editor";
 import { ClassCourseTable, StudentDossierTable } from "@/features/academic/AssessmentViewTables";
 import { CreateAssessmentDialog } from "@/features/academic/CreateAssessmentDialog";
+import {
+  AssessmentBatchBar,
+  AssessmentStudentDetail,
+} from "@/features/academic/AssessmentGradeHelpers";
 import {
   AssessmentExamTable,
   AssessmentItemsList,
@@ -52,7 +55,6 @@ import {
   buildTermCloseChecklist,
   changeHistoryLines,
   documentValidationCode,
-  rowsToTsv,
   selectIdRange,
 } from "@/features/academic/assessment-views";
 import {
@@ -1236,54 +1238,14 @@ export function AssessmentCenter({
           ) : (
             <>
               {canEdit && checkedIds.size > 0 ? (
-                <div className="mb-3 flex flex-wrap items-end gap-2 rounded-xl border bg-card p-3">
-                  <p className="text-xs font-semibold text-muted-foreground">
-                    {checkedIds.size} seleccionado(s)
-                  </p>
-                  <select
-                    aria-label="Campo a aplicar em lote"
-                    className="h-9 rounded-lg border border-input bg-background px-3 text-sm"
-                    value={batchField}
-                    onChange={(event) => setBatchField(event.target.value as "mac" | "npp" | "npt")}
-                  >
-                    <option value="mac">MAC</option>
-                    <option value="npp">NPP</option>
-                    <option value="npt">NPT</option>
-                  </select>
-                  <Input
-                    aria-label="Nota a aplicar em lote"
-                    className="h-9 w-24"
-                    inputMode="decimal"
-                    placeholder="0–20"
-                    value={batchValue}
-                    onChange={(event) => setBatchValue(event.target.value)}
-                  />
-                  <Button size="sm" onClick={applyBatch}>
-                    Aplicar aos seleccionados
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => {
-                      const selected = visibleRows.filter((row) => checkedIds.has(row.student.id));
-                      const text = rowsToTsv([
-                        ["Aluno", "Proc.", "MAC", "NPP", "NPT", "Média"],
-                        ...selected.map((row) => [
-                          row.student.student_name,
-                          row.student.registration_number,
-                          row.mac,
-                          row.npp,
-                          row.npt,
-                          row.average,
-                        ]),
-                      ]);
-                      void navigator.clipboard.writeText(text);
-                      toast.success("Linhas copiadas para o Excel");
-                    }}
-                  >
-                    Copiar
-                  </Button>
-                </div>
+                <AssessmentBatchBar
+                  selectedRows={visibleRows.filter((row) => checkedIds.has(row.student.id))}
+                  field={batchField}
+                  onFieldChange={setBatchField}
+                  value={batchValue}
+                  onValueChange={setBatchValue}
+                  onApply={applyBatch}
+                />
               ) : null}
               <AssessmentGrid
                 students={visibleRows.map((row) => row.student)}
@@ -1303,30 +1265,12 @@ export function AssessmentCenter({
           )}
 
           {selectedStudent && mode === "lancamento" && scope !== "alunos" ? (
-            <div className="mt-4 rounded-xl border bg-card p-4 text-sm">
-              <p className="font-semibold">
-                {selectedStudent.student.student_name} · detalhe MAC/NPP/NPT
-              </p>
-              {(["MAC", "NPP", "NPT"] as const).map((component) => (
-                <div key={component} className="mt-2">
-                  <p className="text-xs font-bold text-muted-foreground">{component}</p>
-                  {items.filter((item) => item.component === component).length === 0 ? (
-                    <p className="text-xs text-muted-foreground">
-                      Sem avaliações neste componente.
-                    </p>
-                  ) : (
-                    items
-                      .filter((item) => item.component === component)
-                      .map((item) => (
-                        <p key={String(item.id)} className="text-xs">
-                          {String(item.name)} ………… {selectedStudent.row[String(item.id)] || "—"}
-                        </p>
-                      ))
-                  )}
-                </div>
-              ))}
-              <p className="mt-2 font-bold">Média ………… {formatScore(selectedStudent.average)}</p>
-            </div>
+            <AssessmentStudentDetail
+              studentName={selectedStudent.student.student_name}
+              items={items}
+              row={selectedStudent.row}
+              average={selectedStudent.average}
+            />
           ) : null}
         </div>
 
