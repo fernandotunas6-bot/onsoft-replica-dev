@@ -108,3 +108,27 @@ describe("notas de exame", () => {
     expect(fn).not.toMatch(/for \(const entry of data\.entries\)/);
   });
 });
+
+describe("aulas do dia (presença)", () => {
+  const fn = body(
+    read("src/features/pedagogica/attendance-server.ts"),
+    "listTeacherAttendanceSessions",
+  );
+
+  it("só o corpo docente: aluno e encarregado não vêem nem criam sessões", () => {
+    expect(fn).not.toMatch(/resolveSgaMembershipAdmin\(/);
+    expect(fn).toMatch(
+      /requireSgaWriterFor\("pedagogica"[\s\S]{0,120}"Administrador",\s*"Secretaria",\s*"Professor"/,
+    );
+  });
+
+  it("professor sem ficha de docente não vê as aulas da escola inteira", () => {
+    expect(fn).toMatch(/if \(!linked\.teacher_id\) return \{ sessions: \[\]/);
+  });
+
+  it("as sessões em falta criam-se numa só escrita, com erro verificado", () => {
+    const loop = fn.slice(fn.indexOf("for (const slot of slots"));
+    expect(loop).not.toMatch(/\.insert\(/);
+    expect(fn).toMatch(/error: createError/);
+  });
+});

@@ -61,6 +61,18 @@ Tratados a 2026-09-29 (`tests/security/batch-writes.test.ts`):
   metade e falhava a meio), lê as pautas numa consulta e grava num só upsert.
   Faltas e notas apagadas já não exigem regra de avaliação.
 
+- `listTeacherAttendanceSessions` (aulas do dia, painel do professor e
+  /pedagogica): só pedia ser membro da escola, por isso um aluno ou encarregado
+  via as aulas do dia da escola inteira e, ao abrir, criava sessões de
+  presença. Um professor sem ficha de docente ligada também via tudo. Agora
+  exige Administrador, Secretaria ou Professor (como `getAttendanceCallSheet`).
+  O professor sem ficha não vê nada. As sessões em falta criam-se numa só
+  escrita, com erro verificado (antes era uma por aula, com um `try/catch`
+  que nunca apanhava nada). Nota: `siga_attendance_sessions` não tem índice
+  único por (escola, aula, dia). Dois pedidos em simultâneo podem duplicar,
+  mas na produção a 2026-09-29 havia 36 sessões e nenhum duplicado. Não criei
+  migração.
+
 `finance/server.ts:1660` fica: são sempre dois itens. `batchUpdateStudentStatus`
 ainda actualiza aluno a aluno, mas verifica o histórico e está limitado a 100.
 
