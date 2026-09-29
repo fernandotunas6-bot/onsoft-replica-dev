@@ -154,6 +154,10 @@ jobs:
         # wrangler recusa correr no runtime do Bun.
         run: npx --yes @lhci/cli@0.14.x autorun --config=lighthouserc.json
 
+      - name: Resumo das métricas Lighthouse (no log)
+        if: always()
+        run: node scripts/lighthouse-summary.mjs reports/lighthouse
+
       - name: Publicar relatórios Lighthouse
         if: always()
         uses: actions/upload-artifact@v4
