@@ -144,10 +144,15 @@ jobs:
           npm run preview:prod &
           for i in $(seq 1 90); do curl -sf -o /dev/null http://127.0.0.1:3000/ && break; sleep 2; done
           node scripts/pwa-check.mjs http://127.0.0.1:3000
+          # `kill %1` só pára o npm; o workerd ficava com a porta 3000 e o
+          # Lighthouse a seguir não conseguia arrancar o seu servidor.
           kill %1 || true
+          pkill workerd || true
 
       - name: Correr Lighthouse CI (falha se o score descer)
-        run: bunx --bun @lhci/cli@0.14.x autorun --config=lighthouserc.json
+        # Com Node, não `bunx --bun`: o Lighthouse arranca `npm run preview:prod` e o
+        # wrangler recusa correr no runtime do Bun.
+        run: npx --yes @lhci/cli@0.14.x autorun --config=lighthouserc.json
 
       - name: Publicar relatórios Lighthouse
         if: always()

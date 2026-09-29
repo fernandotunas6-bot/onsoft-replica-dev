@@ -47,6 +47,17 @@ não corriam desde 03/09 (minutos esgotados) e estavam desactualizados:
   - o ADMIN recebe `NEXT_PUBLIC_SUPABASE_URL`/`_PUBLISHABLE_KEY` (públicos);
   - os testes do `/start` foram reescritos para os 7 passos.
 - **Regressão visual:** retirada por decisão do dono (baselines antigas, rotas sem sessão).
+- **Lighthouse:**
+  - corria com `bunx --bun`, e o wrangler recusa o Bun → `npx`;
+  - o `workerd` do passo PWA ficava com a porta 3000 → `pkill workerd`.
+  - Resultado local, antes → depois das correcções no ecrã de entrada:
+    - acessibilidade 0,92 → 1,0 (pontos do carrossel e "Mostrar senha" com 24/28 px em
+      px, porque a raiz reduzida faz `h-6` dar 16,5 px; separador inactivo com
+      contraste 4,44 → `text-foreground/75`);
+    - FCP ~1,3 s → ~0,7 s: a Inter passou a ser servida pelo SIGA
+      (`public/fonts/inter`, `@font-face` em `styles.css`); o CSS do Google Fonts
+      bloqueava ~400 ms, e a CSP deixa de o permitir.
+  - Desempenho 0,88–0,91 (mínimo 0,9): à justa, confirmar no runner do GitHub.
 
 Deploy: o primeiro "Deploy produção" passou a verificação e falhou a publicar por falta
 de `CLOUDFLARE_API_TOKEN` no ambiente `production` (esperado; nada publicado).
