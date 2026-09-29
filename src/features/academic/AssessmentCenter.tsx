@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Calculator,
@@ -28,6 +28,7 @@ import {
   termAverageByRule,
 } from "@/features/academic/assessment-model";
 import { useActiveAssessmentRule } from "@/features/academic/use-passing-value";
+import { cellKey, useGradeEditor } from "@/features/academic/use-grade-editor";
 import { ClassCourseTable, StudentDossierTable } from "@/features/academic/AssessmentViewTables";
 import { CreateAssessmentDialog } from "@/features/academic/CreateAssessmentDialog";
 import {
@@ -41,7 +42,6 @@ import {
   buildTermCloseChecklist,
   changeHistoryLines,
   documentValidationCode,
-  mergeReloadedValues,
   rowsToTsv,
   selectIdRange,
 } from "@/features/academic/assessment-views";
@@ -81,100 +81,20 @@ import { whatsappHref } from "@/features/integrations/actions";
 import { useSchoolSettings } from "@/features/auth/use-school-settings";
 import { cn } from "@/lib/utils";
 
-type EnrollmentRow = {
-  id: string;
-  student_name: string;
-  student_photo_url?: string | null;
-  registration_number?: string | null;
-  class_group_id?: string | null;
-  class_group_name: string;
-};
-
-type TermGradeRow = {
-  enrollment_id: string;
-  subject_id: string;
-  term: number;
-  mac: number;
-  npp: number;
-  npt: number;
-};
-
-type StudentListExportRow = Pick<PautaExportRow, "n" | "aluno" | "proc">;
-
-type ClassMapExportRow = {
-  classe: string;
-  curso: string;
-  turma: string;
-  alunos: number;
-  media: string;
-  transitam: number;
-  pendentes: number;
-};
-
-type ClassGroupOption = {
-  id: string;
-  name: string;
-  course_name?: string;
-  grade_name?: string;
-};
-
-type ClassSubjectRow = {
-  class_group_id: string;
-  subject_id: string;
-  teacher_id?: string | null;
-};
-
-type SubjectOption = {
-  id: string;
-  name: string;
-  code?: string | null;
-};
-
-type WorkMode =
-  | "lancamento"
-  | "avaliacoes"
-  | "recursos"
-  | "exames"
-  | "revisao"
-  | "fecho"
-  | "pauta"
-  | "estatisticas";
-
-type ScopeId = "alunos" | "disciplinas" | "turmas" | "classes" | "avaliacoes" | "exames";
-
-const filterDefaults = {
-  q: "",
-  classe: "todas",
-  curso: "todos",
-  turma: "todas",
-  disciplina: "todas",
-  trimestre: "1",
-  situacao: "todos",
-};
-
-const scopes: Array<{ id: ScopeId; label: string }> = [
-  { id: "alunos", label: "Alunos" },
-  { id: "disciplinas", label: "Disciplinas" },
-  { id: "turmas", label: "Turmas" },
-  { id: "classes", label: "Classes/Cursos" },
-  { id: "avaliacoes", label: "Avaliações" },
-  { id: "exames", label: "Exames" },
-];
-
-const workModes: Array<{ id: WorkMode; label: string }> = [
-  { id: "lancamento", label: "Lançamento" },
-  { id: "avaliacoes", label: "Avaliações" },
-  { id: "recursos", label: "Recursos" },
-  { id: "exames", label: "Exames" },
-  { id: "revisao", label: "Revisão" },
-  { id: "fecho", label: "Fecho" },
-  { id: "pauta", label: "Pauta" },
-  { id: "estatisticas", label: "Estatísticas" },
-];
-
-function cellKey(enrollmentId: string, field: string) {
-  return `${enrollmentId}:${field}`;
-}
+import {
+  filterDefaults,
+  scopes,
+  workModes,
+  type EnrollmentRow,
+  type TermGradeRow,
+  type StudentListExportRow,
+  type ClassMapExportRow,
+  type ClassGroupOption,
+  type ClassSubjectRow,
+  type SubjectOption,
+  type WorkMode,
+  type ScopeId,
+} from "@/features/academic/assessment-center-config";
 
 export function AssessmentCenter({
   open,
@@ -247,9 +167,6 @@ export function AssessmentCenter({
   const [batchField, setBatchField] = useState<"mac" | "npp" | "npt">("mac");
   const [batchValue, setBatchValue] = useState("");
   const [historyOpen, setHistoryOpen] = useState(false);
-  const [values, setValues] = useState<Record<string, Record<string, string>>>({});
-  const [history, setHistory] = useState<Array<Record<string, Record<string, string>>>>([]);
-  const [future, setFuture] = useState<Array<Record<string, Record<string, string>>>>([]);
   const [autosave, setAutosave] = useState(false);
   const [saving, setSaving] = useState(false);
   const [createOpen, setCreateOpen] = useState(false);
@@ -357,125 +274,17 @@ export function AssessmentCenter({
   );
   const assessmentsAvailable = assessmentsQuery.data?.available !== false;
 
-  // Último carregamento: com o mesmo contexto (turma, disciplina, trimestre),
-  // um recarregamento não pode apagar o que o professor já escreveu — por
-  // exemplo, quando a lista de avaliações chega depois das notas.
-  const lastLoadRef = useRef<{
-    context: string;
-    values: Record<string, Record<string, string>>;
-  } | null>(null);
-
-  useEffect(() => {
-    if (!open) {
-      lastLoadRef.current = null;
-      return;
-    }
-    const next: Record<string, Record<string, string>> = {};
-    for (const student of roster) {
-      const grade = termGrades.find(
-        (row) =>
-          row.enrollment_id === student.id &&
-          row.subject_id === selectedSubject?.id &&
-          row.term === term,
-      );
-      const row: Record<string, string> = {
-        mac: grade?.mac != null ? String(grade.mac) : "",
-        npp: grade?.npp != null ? String(grade.npp) : "",
-        npt: grade?.npt != null ? String(grade.npt) : "",
-      };
-      for (const item of items) {
-        const score = scores.find(
-          (entry) =>
-            String(entry.item_id) === String(item.id) && String(entry.enrollment_id) === student.id,
-        );
-        row[String(item.id)] = score?.score == null ? "" : String(score.score);
-      }
-      next[student.id] = row;
-    }
-    const context = `${selectedGroup?.id ?? ""}|${selectedSubject?.id ?? ""}|${term}`;
-    const previous = lastLoadRef.current;
-    lastLoadRef.current = { context, values: next };
-    if (previous?.context === context) {
-      setValues((current) => mergeReloadedValues(next, current, previous.values));
-      return;
-    }
-    setValues(next);
-    setHistory([]);
-    setFuture([]);
-  }, [items, open, roster, scores, selectedGroup?.id, selectedSubject?.id, term, termGrades]);
-
-  const pushHistory = (snapshot: Record<string, Record<string, string>>) => {
-    setHistory((current) => [...current.slice(-29), snapshot]);
-    setFuture([]);
-  };
-
-  const updateCell = (enrollmentId: string, key: string, value: string) => {
-    setValues((current) => {
-      pushHistory(current);
-      return {
-        ...current,
-        [enrollmentId]: { ...(current[enrollmentId] ?? {}), [key]: value },
-      };
+  const { values, setValues, history, future, pushHistory, updateCell, undo, redo, dirtyKeys } =
+    useGradeEditor({
+      open,
+      roster,
+      termGrades,
+      items,
+      scores,
+      classGroupId: selectedGroup?.id,
+      subjectId: selectedSubject?.id,
+      term,
     });
-  };
-
-  const undo = () => {
-    setHistory((current) => {
-      const previous = current[current.length - 1];
-      if (!previous) return current;
-      setFuture((next) => [values, ...next]);
-      setValues(previous);
-      return current.slice(0, -1);
-    });
-  };
-
-  const redo = () => {
-    setFuture((current) => {
-      const [next, ...rest] = current;
-      if (!next) return current;
-      setHistory((historyRows) => [...historyRows, values]);
-      setValues(next);
-      return rest;
-    });
-  };
-
-  const baseline = useMemo(() => {
-    const map = new Map<string, string>();
-    for (const student of roster) {
-      const grade = termGrades.find(
-        (row) =>
-          row.enrollment_id === student.id &&
-          row.subject_id === selectedSubject?.id &&
-          row.term === term,
-      );
-      map.set(cellKey(student.id, "mac"), grade?.mac != null ? String(grade.mac) : "");
-      map.set(cellKey(student.id, "npp"), grade?.npp != null ? String(grade.npp) : "");
-      map.set(cellKey(student.id, "npt"), grade?.npt != null ? String(grade.npt) : "");
-      for (const item of items) {
-        const score = scores.find(
-          (entry) =>
-            String(entry.item_id) === String(item.id) && String(entry.enrollment_id) === student.id,
-        );
-        map.set(
-          cellKey(student.id, String(item.id)),
-          score?.score == null ? "" : String(score.score),
-        );
-      }
-    }
-    return map;
-  }, [items, roster, scores, selectedSubject?.id, term, termGrades]);
-
-  const dirtyKeys = useMemo(() => {
-    const dirty = new Set<string>();
-    for (const student of roster) {
-      const row = values[student.id] ?? {};
-      for (const key of ["mac", "npp", "npt", ...items.map((item) => String(item.id))]) {
-        const id = cellKey(student.id, key);
-        if ((row[key] ?? "") !== (baseline.get(id) ?? "")) dirty.add(id);
-      }
-    }
-    return dirty;
-  }, [baseline, items, roster, values]);
 
   // Antes, cada linha de aluno fazia cinco `items.filter(...)` — MAC, NPP, NPT,
   // recurso e exame. Numa turma de 40 com meia dúzia de itens são duzentos

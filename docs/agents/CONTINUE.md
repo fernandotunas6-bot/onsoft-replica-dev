@@ -16,8 +16,14 @@ de avaliações (`listAssessments`) chegar era apagado quando ela chegava — o
 `useEffect` que carrega os valores fazia `setValues(next)` por cima das edições.
 Agora, com o mesmo contexto (turma, disciplina, trimestre), junta o recarregado
 com o actual (`mergeReloadedValues` em `assessment-views.ts`): fica o que difere
-do último carregamento. Mudar de contexto continua a recarregar tudo. Próximo
-passo: dividir o componente com estes testes a passar.
+do último carregamento. Mudar de contexto continua a recarregar tudo.
+
+**Divisão, 1.ª parte (feita):** o estado da edição (valores, histórico,
+desfazer/refazer, recarregamento, células alteradas) está em
+`use-grade-editor.ts`; tipos e constantes em `assessment-center-config.ts`. O
+componente passou de 1883 para 1711 linhas. A seguir: extrair as secções de
+apresentação (barra de acções, grelha, documentos, fecho do trimestre), sempre
+com `tests/academic/assessment-center.test.tsx` a passar.
 
 ## Tenants de teste arquivados na produção (2026-09-29)
 
