@@ -46,9 +46,14 @@ do último carregamento. Mudar de contexto continua a recarregar tudo.
 **Divisão, 1.ª parte (feita):** o estado da edição (valores, histórico,
 desfazer/refazer, recarregamento, células alteradas) está em
 `use-grade-editor.ts`; tipos e constantes em `assessment-center-config.ts`. O
-componente passou de 1883 para 1711 linhas. A seguir: extrair as secções de
-apresentação (barra de acções, grelha, documentos, fecho do trimestre), sempre
-com `tests/academic/assessment-center.test.tsx` a passar.
+componente passou de 1883 para 1711 linhas.
+
+**Divisão, 2.ª parte (feita):** painéis de filtros, documentos e histórico em
+`AssessmentCenterPanels.tsx`; botões das integrações (Turnitin, Classroom,
+Moodle, Canvas, WhatsApp, Resend) em `AssessmentIntegrationActions.tsx`, que lê
+as capacidades instaladas sozinho. 1711 → 1524 linhas. Falta: a grelha e as
+vistas por âmbito (≈290 linhas dentro do `onPaste`), sempre com
+`tests/academic/assessment-center.test.tsx` a passar.
 
 ## Tenants de teste arquivados na produção (2026-09-29)
 

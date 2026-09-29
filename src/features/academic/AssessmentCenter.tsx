@@ -79,8 +79,7 @@ import {
   scoreAverage,
   situacaoPauta,
 } from "@/lib/angola-academic";
-import { useInstalledIntegrations } from "@/features/integrations/use-installed-integrations";
-import { whatsappHref } from "@/features/integrations/actions";
+import { AssessmentIntegrationActions } from "@/features/academic/AssessmentIntegrationActions";
 import { useSchoolSettings } from "@/features/auth/use-school-settings";
 import { cn } from "@/lib/utils";
 
@@ -149,13 +148,6 @@ export function AssessmentCenter({
       ? recoveryResult(original, recovery, engine.calculation.recoveryMethod)
       : recursoFinal(original, recovery);
   const { selectedTerm: globalTerm, terms: academicTerms, setSelectedTermId } = useSchoolSettings();
-  const installed = useInstalledIntegrations();
-  const turnitinOn = installed.hasCapability("turnitin.originality");
-  const moodleGrades = installed.hasCapability("moodle.grades");
-  const canvasWork = installed.hasCapability("canvas.assignments");
-  const classroomWork = installed.hasCapability("classroom.work");
-  const resendDocuments = installed.hasCapability("resend.documents");
-  const whatsappOn = installed.hasCapability("whatsapp.notices");
   const { filters, setFilter, resetFilters, activeCount } = usePersistedListFilters(
     "avaliacao-centro",
     filterDefaults,
@@ -1112,93 +1104,13 @@ export function AssessmentCenter({
           >
             <FileDown className="size-3.5" /> Documentos
           </Button>
-          {turnitinOn ? (
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={async () => {
-                const payload = [
-                  schoolName,
-                  academicYear,
-                  `T${term}`,
-                  selectedGroup?.name ?? "turma",
-                  `${checkedIds.size || enrollments.length} trabalhos`,
-                ].join(" · ");
-                await navigator.clipboard.writeText(payload);
-                toast.success("Lote Turnitin copiado", {
-                  description: "Cole no Turnitin ou abra o guia oficial.",
-                });
-                window.open("https://developers.turnitin.com/", "_blank", "noopener,noreferrer");
-              }}
-            >
-              Turnitin
-            </Button>
-          ) : null}
-          {classroomWork ? (
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() =>
-                window.open("https://classroom.google.com/", "_blank", "noopener,noreferrer")
-              }
-            >
-              Trabalhos
-            </Button>
-          ) : null}
-          {moodleGrades ? (
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() =>
-                window.open("https://docs.moodle.org/en/Gradebook", "_blank", "noopener,noreferrer")
-              }
-            >
-              Notas Moodle
-            </Button>
-          ) : null}
-          {canvasWork ? (
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() =>
-                window.open(
-                  "https://canvas.instructure.com/doc/api/assignments.html",
-                  "_blank",
-                  "noopener,noreferrer",
-                )
-              }
-            >
-              Canvas
-            </Button>
-          ) : null}
-          {whatsappOn ? (
-            <Button size="sm" variant="outline" asChild>
-              <a
-                href={whatsappHref(
-                  "",
-                  `Centro de Avaliação · ${selectedGroup?.name ?? "turma"} · T${term} · ${academicYear}`,
-                )}
-                target="_blank"
-                rel="noreferrer"
-              >
-                WhatsApp
-              </a>
-            </Button>
-          ) : null}
-          {resendDocuments ? (
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={async () => {
-                await navigator.clipboard.writeText(
-                  `Centro de Avaliação · ${selectedGroup?.name ?? "turma"} · T${term} · ${academicYear}\n${schoolName}`,
-                );
-                toast.success("Resumo copiado para e-mail Resend");
-              }}
-            >
-              E-mail
-            </Button>
-          ) : null}
+          <AssessmentIntegrationActions
+            schoolName={schoolName}
+            academicYear={academicYear}
+            term={term}
+            groupName={selectedGroup?.name ?? "turma"}
+            workCount={checkedIds.size || enrollments.length}
+          />
           <Button
             size="sm"
             variant="outline"
