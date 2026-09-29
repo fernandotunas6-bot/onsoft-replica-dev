@@ -40,8 +40,9 @@ describe("Content-Security-Policy", () => {
     ]) {
       expect(connect).toContain(origin);
     }
-    expect(directive("font-src")).toContain("https://fonts.gstatic.com");
-    expect(directive("style-src")).toContain("https://fonts.googleapis.com");
+    // A letra é servida pelo próprio SIGA: nada de Google Fonts.
+    expect(directive("font-src")).toBe("'self' data:");
+    expect(directive("style-src")).not.toContain("googleapis");
   });
 
   it("lê o formato antigo e o da Reporting API, sem query strings", () => {

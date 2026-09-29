@@ -7,8 +7,8 @@
  * Ligações do browser para fora (levantadas no código):
  * - Supabase (REST, Auth, Storage e Realtime por WebSocket);
  * - Firebase Cloud Messaging (notificações push);
- * - api.pwnedpasswords.com (verificação de palavra-passe exposta, k-anonimato);
- * - Google Fonts (folha de estilo e ficheiros de letra).
+ * - api.pwnedpasswords.com (verificação de palavra-passe exposta, k-anonimato).
+ * A letra (Inter) é servida pelo próprio SIGA, em /fonts/inter.
  * As integrações (Zoom, Moodle, WhatsApp…) só abrem separadores, não precisam.
  *
  * `script-src` mantém 'unsafe-inline' porque o TanStack Start injecta scripts
@@ -19,8 +19,8 @@ export const CSP_REPORT_PATH = "/api/public/csp-report";
 const DIRECTIVES: ReadonlyArray<readonly [string, string]> = [
   ["default-src", "'self'"],
   ["script-src", "'self' 'unsafe-inline'"],
-  ["style-src", "'self' 'unsafe-inline' https://fonts.googleapis.com"],
-  ["font-src", "'self' data: https://fonts.gstatic.com"],
+  ["style-src", "'self' 'unsafe-inline'"],
+  ["font-src", "'self' data:"],
   ["img-src", "'self' data: blob: https:"],
   [
     "connect-src",
