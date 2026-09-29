@@ -24,6 +24,17 @@ export async function submitBankTransferProof(paymentId: string, file: File) {
     throw new Error("bank_transfer_expired");
   }
 
+  // O limite vem antes de gravar: antes cada pedido acima do limite escrevia até 5 MB no
+  // bucket privado e só depois os apagava.
+  const alreadySubmitted = await db
+    .select({ id: bankTransferProofs.id })
+    .from(bankTransferProofs)
+    .where(eq(bankTransferProofs.instructionId, instruction.id))
+    .limit(3);
+  if (alreadySubmitted.length >= 3) {
+    throw new Error("bank_transfer_proof_limit_reached");
+  }
+
   const stored = await storeTransferProof(paymentId, file);
   const [existing] = await db
     .select({ id: bankTransferProofs.id, status: bankTransferProofs.status })
