@@ -69,9 +69,12 @@ Tratados a 2026-09-29 (`tests/security/batch-writes.test.ts`):
   O professor sem ficha não vê nada. As sessões em falta criam-se numa só
   escrita, com erro verificado (antes era uma por aula, com um `try/catch`
   que nunca apanhava nada). Nota: `siga_attendance_sessions` não tem índice
-  único por (escola, aula, dia). Dois pedidos em simultâneo podem duplicar,
-  mas na produção a 2026-09-29 havia 36 sessões e nenhum duplicado. Não criei
-  migração.
+  único por (escola, aula, dia), e dois pedidos em simultâneo podiam
+  duplicar. Na produção a 2026-09-29 havia 36 sessões e nenhum duplicado.
+  Migração `20260929230000_attendance_sessions_unique_slot_day.sql`, pacote
+  `docs/agents/SIGA_aplicar_sessoes_presenca_unicas.sql` — **escrita, por
+  aplicar**. Se houver duplicados, pára e lista-os (não apaga). O servidor já
+  trata o conflito (`23505`): lê as sessões que o outro pedido criou.
 
 `finance/server.ts:1660` fica: são sempre dois itens. `batchUpdateStudentStatus`
 ainda actualiza aluno a aluno, mas verifica o histórico e está limitado a 100.

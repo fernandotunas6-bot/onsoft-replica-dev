@@ -253,7 +253,7 @@ export const listTeacherAttendanceSessions = createServerFn({ method: "GET" })
         csMap.has(slot.class_subject_id) && !sessionBySlotMap.has(slot.id),
     );
     if (missing.length) {
-      const { data: created, error: createError } = await db
+      let { data: created, error: createError } = await db
         .from("siga_attendance_sessions")
         .insert(
           missing.map((slot) => {
@@ -273,6 +273,19 @@ export const listTeacherAttendanceSessions = createServerFn({ method: "GET" })
           }),
         )
         .select("id, status, timetable_slot_id");
+      // Outro pedido criou-as entretanto (índice único por escola, aula e dia,
+      // migração 20260929230000): lêem-se as que ficaram.
+      if (createError?.code === "23505") {
+        ({ data: created, error: createError } = await db
+          .from("siga_attendance_sessions")
+          .select("id, status, timetable_slot_id")
+          .eq("school_id", membership.schoolId)
+          .eq("lesson_date", today)
+          .in(
+            "timetable_slot_id",
+            missing.map((slot) => slot.id),
+          ));
+      }
       if (createError) {
         throw publicDatabaseError(createError, "Não foi possível preparar as aulas do dia.");
       }

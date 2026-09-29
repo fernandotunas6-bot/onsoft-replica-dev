@@ -132,3 +132,25 @@ describe("aulas do dia (presença)", () => {
     expect(fn).toMatch(/error: createError/);
   });
 });
+
+describe("sessões de presença: uma por aula e por dia", () => {
+  const migration = read(
+    "supabase/migrations/20260929230000_attendance_sessions_unique_slot_day.sql",
+  );
+
+  it("índice único idempotente, sem apagar duplicados", () => {
+    expect(migration).toMatch(
+      /CREATE UNIQUE INDEX IF NOT EXISTS siga_attendance_sessions_school_slot_day_key\s+ON public\.siga_attendance_sessions \(school_id, timetable_slot_id, lesson_date\)/,
+    );
+    expect(migration).not.toMatch(/\bDELETE\b/i);
+    expect(migration).toMatch(/RAISE EXCEPTION/);
+  });
+
+  it("o servidor aceita o conflito de outro pedido e lê as sessões que ficaram", () => {
+    const fn = body(
+      read("src/features/pedagogica/attendance-server.ts"),
+      "listTeacherAttendanceSessions",
+    );
+    expect(fn).toMatch(/createError\?\.code === "23505"/);
+  });
+});
