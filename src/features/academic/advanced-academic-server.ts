@@ -206,7 +206,23 @@ export const listRooms = createServerFn({ method: "GET" })
       .order("name", { ascending: true });
 
     if (error) throw publicDatabaseError(error, "Não foi possível listar as salas.");
-    return data ?? [];
+
+    // Turmas activas com sala fixa (`class_groups.room_id`), para a coluna "Turmas".
+    const { data: groups, error: groupsError } = await db
+      .from("class_groups")
+      .select("id, name, room_id")
+      .eq("school_id", membership.schoolId)
+      .eq("status", "active")
+      .not("room_id", "is", null)
+      .order("name", { ascending: true });
+    if (groupsError) throw publicDatabaseError(groupsError, "Não foi possível listar as turmas.");
+    const turmasBySala = new Map<string, string[]>();
+    for (const group of groups ?? []) {
+      if (!group.room_id) continue;
+      turmasBySala.set(group.room_id, [...(turmasBySala.get(group.room_id) ?? []), group.name]);
+    }
+
+    return (data ?? []).map((room) => ({ ...room, turmas: turmasBySala.get(room.id) ?? [] }));
   });
 
 export const createRoom = createServerFn({ method: "POST" })
