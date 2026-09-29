@@ -6,13 +6,18 @@
  * 1. DOC    (painel/docs)  → Cloudflare Pages (siga-docs.pages.dev)
  * 2. WEB    (painel/web)   → Cloudflare Pages (siga-web.pages.dev)
  * 3. ADMIN  (painel/admin) → Cloudflare Pages (siga-admin.pages.dev)
- * 4. SIGA   (raiz)         → Cloudflare Workers (portal-siga.com)
+ * 4. PAYFLOW (painel/payflow) → Cloudflare Workers (payflow.portal-siga.com) + D1 siga-payflow
+ * 5. SIGA   (raiz)         → Cloudflare Workers (portal-siga.com)
  */
 
 import { execSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import {
+  PAYFLOW_D1_DATABASE_NAME,
+  applyPayflowProductionBindings,
+} from "./siga/payflow-bindings.mjs";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
@@ -141,15 +146,29 @@ runStep("Deploy PAYFLOW (painel/payflow → payflow.portal-siga.com)", () => {
   console.log("==> Building PAYFLOW (vinext)...");
   execSync("npm run build", { cwd: payflowDir, stdio: "inherit", env: mergedEnv });
   console.log("==> Deploying PAYFLOW to Cloudflare Workers...");
-  const wranglerDist = path.resolve(payflowDir, "dist/server/wrangler.json");
-  if (fs.existsSync(wranglerDist)) {
-    const cfg = JSON.parse(fs.readFileSync(wranglerDist, "utf-8"));
-    cfg.r2_buckets = [];
-    cfg.d1_databases = [];
-    fs.writeFileSync(wranglerDist, JSON.stringify(cfg, null, 2), "utf-8");
+  const serverDir = path.resolve(payflowDir, "dist/server");
+  const wranglerDist = path.resolve(serverDir, "wrangler.json");
+  if (!fs.existsSync(wranglerDist)) {
+    throw new Error(`PayFlow: ${wranglerDist} não existe; o build falhou?`);
   }
+  // Ligações de produção: D1 `siga-payflow` obrigatória, R2 só com
+  // PAYFLOW_R2_BUCKET. Antes eram apagadas aqui e o PayFlow corria sem base.
+  const cfg = applyPayflowProductionBindings(JSON.parse(fs.readFileSync(wranglerDist, "utf-8")), {
+    migrationsDir: path.relative(serverDir, path.resolve(payflowDir, "drizzle")),
+    env: mergedEnv,
+  });
+  fs.writeFileSync(wranglerDist, JSON.stringify(cfg, null, 2), "utf-8");
+  console.log(`==> Aplicando migrações D1 pendentes (${PAYFLOW_D1_DATABASE_NAME})...`);
+  execSync(
+    `npx wrangler d1 migrations apply ${PAYFLOW_D1_DATABASE_NAME} --remote --config wrangler.json`,
+    {
+      cwd: serverDir,
+      stdio: "inherit",
+      env: { ...mergedEnv, CI: "1" },
+    },
+  );
   execSync("npx wrangler deploy --config wrangler.json", {
-    cwd: path.resolve(payflowDir, "dist/server"),
+    cwd: serverDir,
     stdio: "inherit",
     env: mergedEnv,
   });

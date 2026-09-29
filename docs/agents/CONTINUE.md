@@ -4,6 +4,29 @@ Ler isto **antes** de alterar código. Ecossistema (5 apps):
 [ARCHITECTURE_HARMONIZATION.md](./ARCHITECTURE_HARMONIZATION.md).
 Depois abrir o skill do módulo em `.cursor/skills/`.
 
+## PayFlow com base D1, publicação a partir do GitHub (2026-09-29)
+
+- **O PayFlow corria em produção sem base de dados.** `deploy-all.mjs` apagava
+  as ligações D1 e R2 antes de publicar, e as 28 chamadas a `getDb()` falhavam
+  com "binding `DB` is unavailable". O `/api/v1/health` respondia "ok" na mesma.
+- **Base criada:** D1 `siga-payflow` (`bbfa8e07-48ad-4397-902b-bcb0b8da2948`,
+  WEUR). **Migrações aplicadas: 0000 e 0002.** A 0001, 0003, 0004 e 0005 foram
+  recusadas pelas permissões da sessão e ficam para o próximo deploy: o
+  `deploy-all.mjs` corre agora `wrangler d1 migrations apply` antes do Worker,
+  e a tabela `d1_migrations` diz o que falta.
+- `scripts/siga/payflow-bindings.mjs` declara as ligações de produção (D1
+  obrigatória; R2 `TRANSFER_PROOFS` só com `PAYFLOW_R2_BUCKET`, porque o R2 não
+  está activo na conta). Testes: `tests/saas/payflow-bindings.test.ts`.
+- `/api/v1/health` do PayFlow faz `SELECT 1` na D1 e responde 503 sem base
+  (`painel/payflow/lib/health.ts`, `tests/health.test.mjs`).
+- **`.github/workflows/deploy-production.yml`:** publica a partir da `main`
+  depois de tipos, lint e testes, no ambiente GitHub `production` (segredos e
+  aprovação), uma publicação de cada vez; no fim confirma o DNS e o health do
+  PayFlow e do SIGA. Precisa dos segredos no ambiente `production` e de o
+  GitHub Actions voltar a arrancar jobs.
+- Por decidir pelo dono: projecto Supabase de staging (o Lovable escreve na
+  produção) e limpeza das 23 escolas de teste na base de produção.
+
 ## Dependências, CI e chaves das catracas (2026-09-29)
 
 - **`package-lock.json` da raiz removido.** Estava dessincronizado (faltava
