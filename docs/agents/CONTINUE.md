@@ -25,8 +25,9 @@ Feito:
 Por fazer (dono): MFA obrigatório — 3 de 4 administradores da plataforma e 10
 de 11 donos de escola sem MFA; protecção de branch na `main`; secret scanning e
 push protection no GitHub; segredo OAuth do Google; ligar a D1 do PayFlow
-(merge + ambiente `production`). O `npm run lint` do ADMIN está partido desde o
-Next 16 (`next lint` já não existe): passar a `eslint .`.
+(merge + ambiente `production`). O `npm run lint` do ADMIN passou a `eslint .`
+com o flat config nativo do eslint-config-next 16 (0 erros); `set-state-in-effect`
+e `purity` do React Compiler ficam como aviso (30) até as páginas migrarem.
 
 ## Centro de Avaliação: testes de caracterização e defeito encontrado (2026-09-29)
 
