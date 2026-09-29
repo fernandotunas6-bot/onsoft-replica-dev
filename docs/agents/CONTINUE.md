@@ -34,6 +34,23 @@ push protection no GitHub; segredo OAuth do Google; ligar a D1 do PayFlow
 com o flat config nativo do eslint-config-next 16 (0 erros); `set-state-in-effect`
 e `purity` do React Compiler ficam como aviso (30) até as páginas migrarem.
 
+## CI na main depois do merge do #36 (2026-09-29)
+
+Os jobs que só correm na `main` (Lighthouse/PWA, regressão visual, E2E do ecossistema)
+não corriam desde 03/09 (minutos esgotados) e estavam desactualizados:
+
+- **PWA:** usava `vite preview`, que não serve o build do Worker → `preview:prod`
+  (wrangler dev), como o Lighthouse.
+- **E2E:**
+  - `wait-ecosystem.mjs` esperava pelo PayFlow, que o CI não arranca; passa a esperar
+    só pelas apps em `.e2e-ecosystem-pids.json`;
+  - o ADMIN recebe `NEXT_PUBLIC_SUPABASE_URL`/`_PUBLISHABLE_KEY` (públicos);
+  - os testes do `/start` foram reescritos para os 7 passos.
+- **Regressão visual:** retirada por decisão do dono (baselines antigas, rotas sem sessão).
+
+Deploy: o primeiro "Deploy produção" passou a verificação e falhou a publicar por falta
+de `CLOUDFLARE_API_TOKEN` no ambiente `production` (esperado; nada publicado).
+
 ## Defeitos escondidos pelo `any` do cliente SGA (2026-09-29)
 
 Tipar o cliente do SGA (`sgaClient` → `SupabaseClient<Database>`) à experiência deu

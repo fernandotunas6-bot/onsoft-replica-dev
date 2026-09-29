@@ -138,10 +138,12 @@ jobs:
         run: bun run build
 
       - name: Prontidão PWA (manifesto, ícones, service worker, offline)
+        # `vite preview` não serve o build do Worker (procura dist/server/server.js):
+        # o mesmo `preview:prod` (wrangler dev) que o Lighthouse usa a seguir.
         run: |
-          bun run preview &
-          for i in $(seq 1 60); do curl -sf -o /dev/null http://localhost:3000/ && break; sleep 2; done
-          node scripts/pwa-check.mjs http://localhost:3000
+          npm run preview:prod &
+          for i in $(seq 1 90); do curl -sf -o /dev/null http://127.0.0.1:3000/ && break; sleep 2; done
+          node scripts/pwa-check.mjs http://127.0.0.1:3000
           kill %1 || true
 
       - name: Correr Lighthouse CI (falha se o score descer)
@@ -154,57 +156,12 @@ jobs:
           name: lighthouse-report
           path: reports/lighthouse
 
-  visual:
-    name: Regressão visual (Minimals)
-    runs-on: ubuntu-latest
-    timeout-minutes: 25
-    needs: quality
-    # Pesado (browser + servidor): só na main e no agendamento, não em cada PR.
-    if: github.event_name != 'pull_request'
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: oven-sh/setup-bun@v2
-        with:
-          bun-version: latest
-
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
-
-      - name: Instalar dependências
-        run: |
-          bun install --frozen-lockfile
-          python -m pip install --upgrade pip
-          python -m pip install --requirement requirements-dev.txt
-          python -m playwright install --with-deps chromium
-
-      - name: Arrancar servidor de desenvolvimento
-        run: |
-          bun run dev &
-          for i in $(seq 1 60); do
-            curl -sf -o /dev/null "$BASE_URL/" && echo "servidor pronto em $BASE_URL" && exit 0
-            sleep 2
-          done
-          echo "::error::servidor não respondeu em $BASE_URL após 120s"
-          exit 1
-
-      - name: Comparar screenshots com as baselines
-        run: python scripts/visual-regression.py
-
-      - name: Comparar sidebar e drawer (multi-viewport)
-        run: python scripts/visual-sidebar.py
-
-      - name: Publicar diferenças
-        if: failure()
-        uses: actions/upload-artifact@v4
-        with:
-          name: visual-diff
-          path: |
-            tests/visual/current
-            tests/visual/diff
-            tests/visual-sidebar/current
-            tests/visual-sidebar/diff
+  # O job "Regressão visual (Minimals)" saiu a 29/09, por decisão do dono. Comparava
+  # 13 rotas protegidas com baselines antigas (dados de demonstração e menu antigo);
+  # sem sessão iniciada todas mostram o ecrã de entrada, por isso falhava sempre com
+  # ~60% de diferença. Os scripts continuam (scripts/visual-regression.py e
+  # visual-sidebar.py) para uso local com sessão; a Checklist de estilo estática
+  # continua no job quality.
 
   ecosystem-e2e:
     name: Ecossistema — smoke E2E (Fase 13)
@@ -246,6 +203,12 @@ jobs:
 
       - name: Arrancar ecossistema (4 apps)
         run: node scripts/siga/start-ecosystem-ci.mjs
+        env:
+          # Valores públicos (os mesmos por omissão de src/integrations/supabase/client.ts).
+          # Sem eles o ADMIN fecha as rotas protegidas com 503, de propósito, e o smoke
+          # e os testes de redirecção para /sign-in falham.
+          NEXT_PUBLIC_SUPABASE_URL: https://xodgfmxiaunpamctfeea.supabase.co
+          NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: sb_publishable_NSqtGz5zxP_EngLuNj00Og_y3V4D4td
 
       - name: Aguardar portas do ecossistema
         run: node scripts/siga/wait-ecosystem.mjs

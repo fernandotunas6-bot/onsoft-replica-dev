@@ -82,7 +82,7 @@ def cleanup_e2e_tenant(slug: str, admin_email: str | None = None) -> None:
 async def test_routes(page, failures: list[str]) -> None:
     cases = [
         ("WEB landing", WEB, None),
-        ("WEB /start", f"{WEB}/start", "Criar a minha escola"),
+        ("WEB /start", f"{WEB}/start", "Criar a sua escola"),
         ("DOC home", DOC, None),
         ("SIGA home", SIGA, None),
     ]
@@ -113,22 +113,53 @@ async def test_routes(page, failures: list[str]) -> None:
             failures.append(f"ADMIN {path}: {exc}")
 
 
+async def fill_wizard_until_review(
+    page, *, school: str, contact: str, email: str, slug: str | None = None
+) -> None:
+    """Assistente "Criar a sua escola" (7 passos) até à revisão, sem submeter."""
+    continuar = page.get_by_role("button", name="Continuar")
+    # 1. Instituição — NIF obrigatório (9–10 dígitos).
+    await page.get_by_label("Nome oficial da instituição").fill(school)
+    await page.get_by_label("NIF da instituição").fill("5417000001")
+    await continuar.click()
+    # 2. Localização.
+    await page.get_by_text("Passo 2 de 7").wait_for()
+    await page.get_by_role("combobox").first.click()
+    await page.get_by_role("option", name="Luanda", exact=True).click()
+    await page.get_by_label("Município").fill("Belas")
+    await continuar.click()
+    # 3. Responsável.
+    await page.get_by_text("Passo 3 de 7").wait_for()
+    await page.get_by_label("Nome do responsável").fill(contact)
+    await page.get_by_label("E-mail", exact=True).fill(email)
+    await continuar.click()
+    # 4. Plano (fica o recomendado).
+    await page.get_by_text("Passo 4 de 7").wait_for()
+    await continuar.click()
+    # 5. Conta — nome e e-mail vêm do responsável.
+    await page.get_by_text("Passo 5 de 7").wait_for()
+    await page.get_by_label("Senha de acesso").fill("Escola2026e2e")
+    await page.get_by_label("Confirmar senha").fill("Escola2026e2e")
+    await continuar.click()
+    # 6. Endereço.
+    await page.get_by_text("Passo 6 de 7").wait_for()
+    if slug:
+        await page.get_by_label("Subdomínio SIGA").fill(slug)
+    await continuar.click()
+    await page.get_by_text("Passo 7 de 7").wait_for()
+
+
 async def test_wizard_review(page, failures: list[str]) -> None:
     try:
         await page.goto(f"{WEB}/start", wait_until="domcontentloaded")
-        await page.get_by_label("Nome da instituição").fill("Colégio E2E Playwright")
-        await page.get_by_role("button", name="Continuar").click()
+        await fill_wizard_until_review(
+            page,
+            school="Colégio E2E Playwright",
+            contact="Ana Director",
+            email="ana.director@e2e.siga.test",
+        )
 
-        await page.get_by_label("Nome do responsável").fill("Ana Director")
-        await page.get_by_label("E-mail", exact=True).fill("ana.director@e2e.siga.test")
-        await page.get_by_role("button", name="Continuar").click()
-
-        await page.get_by_role("button", name="Start").click()
-        await page.get_by_role("button", name="Continuar").click()
-        await page.get_by_role("button", name="Continuar").click()
-        await page.get_by_role("button", name="Continuar").click()
-
-        if not await page.get_by_text("Colégio E2E Playwright").is_visible():
+        if not await page.get_by_text("Colégio E2E Playwright").first.is_visible():
             failures.append("Wizard: revisão não mostra nome da escola")
         if not await page.get_by_role("button", name="Criar escola").is_visible():
             failures.append("Wizard: botão «Criar escola» não visível na revisão")
@@ -186,16 +217,9 @@ async def test_live_wizard(page, failures: list[str]) -> None:
     email = f"e2e+{slug}@siga-plus.test"
     try:
         await page.goto(f"{WEB}/start", wait_until="domcontentloaded")
-        await page.get_by_label("Nome da instituição").fill(f"Escola Live {slug}")
-        await page.get_by_role("button", name="Continuar").click()
-        await page.get_by_label("Nome do responsável").fill("Live Director")
-        await page.get_by_label("E-mail", exact=True).fill(email)
-        await page.get_by_role("button", name="Continuar").click()
-        await page.get_by_role("button", name="Start").click()
-        await page.get_by_role("button", name="Continuar").click()
-        await page.get_by_role("button", name="Continuar").click()
-        await page.get_by_label("Subdomínio SIGA").fill(slug)
-        await page.get_by_role("button", name="Continuar").click()
+        await fill_wizard_until_review(
+            page, school=f"Escola Live {slug}", contact="Live Director", email=email, slug=slug
+        )
         await page.get_by_role("button", name="Criar escola").click()
 
         heading = page.get_by_role("heading", name="Escola criada")
