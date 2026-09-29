@@ -4,6 +4,28 @@ Ler isto **antes** de alterar código. Ecossistema (5 apps):
 [ARCHITECTURE_HARMONIZATION.md](./ARCHITECTURE_HARMONIZATION.md).
 Depois abrir o skill do módulo em `.cursor/skills/`.
 
+## Dependências, CI e chaves das catracas (2026-09-29)
+
+- **`package-lock.json` da raiz removido.** Estava dessincronizado (faltava
+  `@lovable.dev/mcp-js`) e o `npm ci` falhava. O ficheiro do projecto é o
+  `bun.lock`: instalar com `bun install`. `check:security` passou a `bun audit`
+  e `release-desktop.yml` instala e compila com bun. Os painéis
+  (`painel/*`) mantêm os seus `package-lock.json`.
+- **O CI verifica os tipos** (`bun run typecheck` = `tsc --noEmit`, ~70 s).
+- **Atenção:** o GitHub Actions não arranca nenhum job desde pelo menos 27/09
+  (falham em 3 s, `runner_id: 0`, sem passos). Não é o código. Ver faturação e
+  minutos do Actions na conta.
+- `readModuleGrant` (`sga-admin.ts`) falha fechado: só "tabela inexistente"
+  conta como "sem sobreposições". Antes, qualquer erro de leitura ignorava o
+  bloqueio "Nenhum".
+- **Catracas:** a `api_key` dos dispositivos deixou de sair nas listagens (só
+  `has_api_key` e `api_key_hint`, os últimos 4 caracteres). O botão "Key" pede-a
+  a `revealTurnstileDeviceApiKey`, que exige escrita em Gestão.
+  `20260929230000_turnstile_devices_server_only.sql` retira a política
+  `is_school_member` da tabela. **Por aplicar.** Hoje não há fuga, porque
+  `authenticated` não tem SELECT na tabela, mas um GRANT abria as chaves a
+  qualquer aluno.
+
 ## Escritas abertas a qualquer membro (2026-09-29)
 
 Cinco tabelas aceitavam escrita de qualquer conta da escola (aluno e

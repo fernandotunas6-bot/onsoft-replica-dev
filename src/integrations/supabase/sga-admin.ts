@@ -142,9 +142,22 @@ async function readModuleGrant(
     .eq("user_id", userId)
     .eq("module_key", moduleKey)
     .maybeSingle();
-  // Tabela ausente (SQL por aplicar) = sem sobreposições, como em getCurrentAccountContext.
-  if (error) return null;
+  if (error) {
+    // Tabela ausente (SQL por aplicar) = sem sobreposições, como em getCurrentAccountContext.
+    if (isMissingRelation(error)) return null;
+    // Qualquer outro erro falha fechado: devolver null aqui ignorava o bloqueio
+    // "Nenhum" sempre que a leitura falhasse.
+    throw new Error("Não foi possível confirmar as permissões desta conta. Tente novamente.");
+  }
   return data?.level ? String(data.level) : null;
+}
+
+function isMissingRelation(error: { code?: string; message?: string }): boolean {
+  return (
+    error.code === "42P01" ||
+    error.code === "PGRST205" ||
+    /relation .* does not exist|could not find the table/i.test(error.message ?? "")
+  );
 }
 
 /** Cargos que uma permissão por módulo pode elevar. Alunos e encarregados, nunca. */
