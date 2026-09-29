@@ -66,7 +66,6 @@ export function SalasWorkspaceTab({ canManage }: { canManage: boolean }) {
     queryKey: ["academic", "rooms"],
     queryFn: () => listRooms(),
   });
-  // O cliente do SGA não tem tipos gerados: `listRooms` devolve `any[]`.
   const rooms: RoomRow[] = roomsQuery.data ?? EMPTY_LIST;
   const isLoading = roomsQuery.isLoading;
 
@@ -105,7 +104,7 @@ export function SalasWorkspaceTab({ canManage }: { canManage: boolean }) {
           block,
           building,
           floor,
-          resources: values["projetor"] === "true" ? ["projector"] : [],
+          resources: [],
           accessibility: true,
         },
       });
@@ -126,9 +125,11 @@ export function SalasWorkspaceTab({ canManage }: { canManage: boolean }) {
           name: values["nome"]?.trim() || room.name,
           capacity: Number(values["capacidade"] || room.capacity),
           roomType: (values["tipo"] || room.room_type) as RoomType,
-          block: values["bloco"]?.trim() || undefined,
-          building: values["edificio"]?.trim() || undefined,
-          floor: values["piso"]?.trim() || undefined,
+          // "" apaga o valor (o servidor grava null); antes ficava o antigo.
+          block: values["bloco"] ?? "",
+          building: values["edificio"] ?? "",
+          floor: values["piso"] ?? "",
+          status: values["estado"] === "inactive" ? "inactive" : "active",
         },
       });
 
@@ -185,7 +186,7 @@ export function SalasWorkspaceTab({ canManage }: { canManage: boolean }) {
             Anti-Superlotação
           </p>
           <p className="mt-1 text-xs text-muted-foreground">
-            Bloqueio ativo contra sobrecarga de lotação
+            Uma turma só fica numa sala onde cabe
           </p>
         </div>
       </div>
@@ -375,6 +376,17 @@ export function SalasWorkspaceTab({ canManage }: { canManage: boolean }) {
                                 value,
                                 label,
                               })),
+                              required: true,
+                            },
+                            {
+                              name: "estado",
+                              label: "Estado",
+                              type: "select",
+                              defaultValue: room.status === "inactive" ? "inactive" : "active",
+                              options: [
+                                { value: "active", label: "Operacional" },
+                                { value: "inactive", label: "Inactiva (fora de uso)" },
+                              ],
                               required: true,
                             },
                             {

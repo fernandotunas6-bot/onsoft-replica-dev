@@ -85,7 +85,10 @@ type ClassGroupSummary = {
   course_id: string | null;
   course_name: string;
   grade_name: string;
+  /** Sala física (`rooms`); até 29/09 este campo levava o nome do campus. */
+  room_id: string | null;
   room_name: string;
+  campus_name: string;
   academic_year_name: string;
   enrolled_count: number;
   average_score: number | null;
@@ -391,6 +394,14 @@ export const listPedagogicalWorkspace = createServerFn({ method: "GET" })
       (classSubjects ?? []).map((row: Record<string, unknown>) => [String(row["id"]), row]),
     );
 
+    const salaIds = [
+      ...new Set((groups.data ?? []).map((group) => String(group.room_id ?? "")).filter(Boolean)),
+    ];
+    const { data: salas } = salaIds.length
+      ? await db.from("rooms").select("id, name").in("id", salaIds)
+      : { data: [] as Array<{ id: string; name: string }> };
+    const salaNameById = new Map((salas ?? []).map((row) => [row.id, row.name]));
+
     const classGroups: ClassGroupSummary[] = (groups.data ?? []).map(
       (group: Record<string, unknown>) => {
         const grade = gradeById.get(String(group["grade_level_id"]));
@@ -416,7 +427,9 @@ export const listPedagogicalWorkspace = createServerFn({ method: "GET" })
           course_id: program ? String(program["id"] ?? "") : null,
           course_name: (program?.["name"] as string) ?? "—",
           grade_name: (grade?.["name"] as string) ?? "—",
-          room_name: (campus?.["name"] as string) ?? "—",
+          room_id: group["room_id"] ? String(group["room_id"]) : null,
+          room_name: salaNameById.get(String(group["room_id"] ?? "")) ?? "—",
+          campus_name: (campus?.["name"] as string) ?? "—",
           academic_year_name: (year?.["name"] as string) ?? "—",
           enrolled_count: stats?.count ?? 0,
           average_score: classAverage(String(group["id"])),
@@ -674,7 +687,7 @@ export const listPedagogicalWorkspace = createServerFn({ method: "GET" })
   });
 
 /**
- * Campus da turma quando o formulário fica em "Sem sala". `class_groups.campus_id` é
+ * Campus da turma quando não há sala (ou a sala não tem campus). `class_groups.campus_id` é
  * NOT NULL (e chave estrangeira para `campuses`): o antigo `?? null` fazia a base
  * recusar a turma. Usa o primeiro campus activo da escola; se não houver nenhum
  * (49 das 91 escolas a 29/09 — o arranque da escola não cria campus), cria o
@@ -708,6 +721,34 @@ async function defaultCampusId(
   return created.id;
 }
 
+/**
+ * Sala física escolhida para a turma: tem de ser da escola, estar activa e caber a
+ * turma (o cartão "Anti-Superlotação" das Salas prometia isto e nada o verificava).
+ */
+async function loadSalaForClassGroup(
+  db: Awaited<ReturnType<typeof loadSgaAdminClient>>,
+  schoolId: string,
+  roomId: string,
+  capacity: number,
+) {
+  const { data: sala, error } = await db
+    .from("rooms")
+    .select("id, name, capacity, status, campus_id")
+    .eq("id", roomId)
+    .eq("school_id", schoolId)
+    .is("deleted_at", null)
+    .maybeSingle();
+  if (error) throw publicDatabaseError(error, "Não foi possível ler a sala.");
+  if (!sala) throw new Error("Sala não encontrada nesta escola.");
+  if (sala.status !== "active") throw new Error(`A sala ${sala.name} está inactiva.`);
+  if (sala.capacity && capacity > sala.capacity) {
+    throw new Error(
+      `A sala ${sala.name} tem ${sala.capacity} lugares e a turma pede ${capacity}. Reduza a capacidade da turma ou escolha outra sala.`,
+    );
+  }
+  return sala;
+}
+
 export const createClassGroup = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((input: unknown) => createClassGroupInputSchema.parse(input))
@@ -725,13 +766,17 @@ export const createClassGroup = createServerFn({ method: "POST" })
       ["Administrador", "Secretaria"],
     );
     const db = await loadSgaAdminClient();
+    const sala = data.roomId
+      ? await loadSalaForClassGroup(db, membership.schoolId, data.roomId, data.capacity ?? 30)
+      : null;
 
     const payload = {
       school_id: membership.schoolId,
       academic_year_id: data.academicYearId,
       grade_level_id: data.gradeLevelId,
-      // "Sala" no formulário é o campus (workspace.rooms vem de `campuses`).
-      campus_id: data.roomId ?? (await defaultCampusId(db, membership.schoolId)),
+      // O campus vem da sala; sem sala (ou sala sem campus), o campus principal.
+      campus_id: sala?.campus_id ?? (await defaultCampusId(db, membership.schoolId)),
+      room_id: sala?.id ?? null,
       code: data.code,
       name: data.name,
       shift: data.shift,
@@ -772,29 +817,17 @@ export const updateClassGroup = createServerFn({ method: "POST" })
       ["Administrador", "Secretaria"],
     );
     const db = await loadSgaAdminClient();
-    // `normalize_class_group` torna o campus imutável ("Identidade académica da
-    // turma é imutável."): mudar de campus é criar outra turma. Recusar aqui com
-    // uma mensagem clara em vez do erro genérico da base.
-    if (data.roomId) {
-      const { data: current, error: currentError } = await db
-        .from("class_groups")
-        .select("campus_id")
-        .eq("id", data.id)
-        .eq("school_id", membership.schoolId)
-        .maybeSingle();
-      if (currentError) throw publicDatabaseError(currentError, "Não foi possível ler a turma.");
-      if (!current) throw new Error("Turma não encontrada.");
-      if (current.campus_id !== data.roomId) {
-        throw new Error(
-          "O campus de uma turma não pode mudar depois de criada. Crie a turma no outro campus e transfira as matrículas.",
-        );
-      }
-    }
+    // `roomId`: string = mudar de sala, null = tirar a sala, ausente = não mexer.
+    // O campus não muda com a sala: `normalize_class_group` torna-o imutável.
+    const sala = data.roomId
+      ? await loadSalaForClassGroup(db, membership.schoolId, data.roomId, data.capacity ?? 30)
+      : null;
     const payload = {
       code: data.code,
       name: data.name,
       shift: data.shift,
       capacity: data.capacity ?? 30,
+      ...(data.roomId !== undefined ? { room_id: sala?.id ?? null } : {}),
       // O formulário oferece activa/inactiva; `class_groups.status` só aceita
       // draft/active/closed/archived, e "inactive" era recusado.
       ...(data.status ? { status: data.status === "inactive" ? "archived" : "active" } : {}),

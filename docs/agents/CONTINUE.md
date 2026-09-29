@@ -4,6 +4,23 @@ Ler isto **antes** de alterar código. Ecossistema (5 apps):
 [ARCHITECTURE_HARMONIZATION.md](./ARCHITECTURE_HARMONIZATION.md).
 Depois abrir o skill do módulo em `.cursor/skills/`.
 
+## Turmas, salas e campus (2026-09-29)
+
+- **Sala física da turma:** `class_groups.room_id` (migração `20260929250000`, **já
+  aplicada**, FK `(school_id, room_id)` → `rooms`, `ON DELETE SET NULL (room_id)`).
+  Até aqui o campo "Sala" do formulário gravava o campus. Agora "Sala" lista as salas
+  reais activas (`listRooms`); o campus vem de `rooms.campus_id` ou do campus principal
+  (`defaultCampusId`). `room_name` nas listas de turmas é a sala; o campus está em
+  `campus_name`.
+- `loadSalaForClassGroup` (server-legacy): a sala tem de ser da escola, activa e ter
+  lugares para a capacidade da turma.
+- O campus de uma turma é imutável (`normalize_class_group`); mudar de sala não mexe nele.
+- Código da turma: `normalizeClassGroupCode` + regex de `class_groups_code_check`.
+- `updateClassGroup` sem `status` não mexe no estado (antes reactivava arquivadas).
+- Salas: estado Operacional/Inactiva editável; apagar bloco/piso/edifício grava `null`.
+- Períodos: `saveAcademicCalendar` (ano + 3 trimestres) não tem ecrã; só 2 de 51 anos
+  têm trimestres. Os períodos criam-se um a um em `/calendario`. Próximo passo sugerido.
+
 ## Cliente do SGA tipado (2026-09-29)
 
 `sgaClient()` (`src/integrations/supabase/sga.ts`) devolve agora

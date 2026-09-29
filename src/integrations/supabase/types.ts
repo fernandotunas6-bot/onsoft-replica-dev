@@ -1782,6 +1782,7 @@ export type Database = {
           homeroom_teacher_id: string | null
           id: string
           name: string
+          room_id: string | null
           school_id: string
           shift: string
           status: string
@@ -1802,6 +1803,7 @@ export type Database = {
           homeroom_teacher_id?: string | null
           id?: string
           name: string
+          room_id?: string | null
           school_id: string
           shift: string
           status?: string
@@ -1822,6 +1824,7 @@ export type Database = {
           homeroom_teacher_id?: string | null
           id?: string
           name?: string
+          room_id?: string | null
           school_id?: string
           shift?: string
           status?: string
@@ -1864,6 +1867,13 @@ export type Database = {
             columns: ["school_id", "grade_level_id"]
             isOneToOne: false
             referencedRelation: "grade_levels"
+            referencedColumns: ["school_id", "id"]
+          },
+          {
+            foreignKeyName: "class_groups_school_id_room_id_fkey"
+            columns: ["school_id", "room_id"]
+            isOneToOne: false
+            referencedRelation: "rooms"
             referencedColumns: ["school_id", "id"]
           },
           {

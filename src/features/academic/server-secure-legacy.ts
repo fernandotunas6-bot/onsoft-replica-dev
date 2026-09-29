@@ -668,15 +668,24 @@ export const listPedagogicalWorkspace = createServerFn({ method: "GET" })
     const campusIds = [
       ...new Set(groups.map((group) => String(group.campus_id ?? "")).filter(Boolean)),
     ];
-    const [{ data: gradeLevels, error: gradeError }, { data: campuses, error: campusError }] =
-      await Promise.all([
-        gradeLevelIds.length
-          ? db.from("grade_levels").select("*").in("id", gradeLevelIds)
-          : Promise.resolve({ data: [], error: null }),
-        campusIds.length
-          ? db.from("campuses").select("*").in("id", campusIds)
-          : Promise.resolve({ data: [], error: null }),
-      ]);
+    const roomIds = [
+      ...new Set(groups.map((group) => String(group.room_id ?? "")).filter(Boolean)),
+    ];
+    const [
+      { data: gradeLevels, error: gradeError },
+      { data: campuses, error: campusError },
+      { data: salas },
+    ] = await Promise.all([
+      gradeLevelIds.length
+        ? db.from("grade_levels").select("*").in("id", gradeLevelIds)
+        : Promise.resolve({ data: [], error: null }),
+      campusIds.length
+        ? db.from("campuses").select("*").in("id", campusIds)
+        : Promise.resolve({ data: [], error: null }),
+      roomIds.length
+        ? db.from("rooms").select("id, name").in("id", roomIds)
+        : Promise.resolve({ data: [] as Array<{ id: string; name: string }>, error: null }),
+    ]);
     if (gradeError) throw publicDatabaseError(gradeError, "Não foi possível carregar as classes.");
     if (campusError) throw publicDatabaseError(campusError, "Não foi possível carregar as salas.");
 
@@ -749,6 +758,7 @@ export const listPedagogicalWorkspace = createServerFn({ method: "GET" })
     const programById = new Map((programs ?? []).map((row) => [String(row.id), row]));
     const gradeById = new Map((gradeLevels ?? []).map((row) => [String(row.id), row]));
     const campusById = new Map((campuses ?? []).map((row) => [String(row.id), row]));
+    const salaNameById = new Map((salas ?? []).map((row) => [String(row.id), String(row.name)]));
     const groupById = new Map(groups.map((row) => [String(row.id), row]));
     const subjectById = new Map((subjects ?? []).map((row) => [String(row.id), row]));
     const assignmentById = new Map(assignments.map((row) => [row.id, row]));
@@ -802,7 +812,10 @@ export const listPedagogicalWorkspace = createServerFn({ method: "GET" })
         course_id: program ? String(program.id ?? "") : null,
         course_name: String(program?.name ?? "—"),
         grade_name: String(grade?.name ?? "—"),
-        room_name: String(campus?.name ?? "—"),
+        // Sala física (`rooms`). Até 29/09 este campo levava o nome do campus.
+        room_id: group.room_id ? String(group.room_id) : null,
+        room_name: (group.room_id && salaNameById.get(String(group.room_id))) || "—",
+        campus_name: String(campus?.name ?? "—"),
         academic_year_name: String(year?.name ?? "—"),
         enrolled_count: stats?.count ?? 0,
         average_score: classAverage(String(group.id)),

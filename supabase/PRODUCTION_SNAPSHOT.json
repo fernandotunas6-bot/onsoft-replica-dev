@@ -784,7 +784,8 @@
         "updated_at",
         "delegate_student_id",
         "whatsapp_invite_url",
-        "whatsapp_group_name"
+        "whatsapp_group_name",
+        "room_id"
       ],
       "obrigatorias": [
         "school_id",
@@ -10366,6 +10367,11 @@
       "chave": "class_groups_school_id_fkey",
       "de": "class_groups",
       "para": "schools"
+    },
+    {
+      "chave": "class_groups_school_id_room_id_fkey",
+      "de": "class_groups",
+      "para": "rooms"
     },
     {
       "chave": "class_groups_delegate_student_fk",
