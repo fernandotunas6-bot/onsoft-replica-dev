@@ -38,6 +38,8 @@ export async function activeYearId(db: Db, schoolId: string, requested?: string)
     .eq("school_id", schoolId)
     .eq("status", "active")
     .order("starts_on", { ascending: false })
+    .order("created_at", { ascending: true })
+    .order("id", { ascending: true })
     .limit(1)
     .maybeSingle();
   return data?.id ? String(data.id) : null;

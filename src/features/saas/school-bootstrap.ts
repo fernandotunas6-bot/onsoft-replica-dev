@@ -338,6 +338,9 @@ export async function bootstrapSchoolDefaults(
     .select("id")
     .eq("school_id", input.schoolId)
     .eq("status", "active")
+    .order("starts_on", { ascending: false })
+    .order("created_at", { ascending: true })
+    .order("id", { ascending: true })
     .limit(1)
     .maybeSingle();
 

@@ -113,6 +113,9 @@ export async function loadSchoolSettingsBundle(db: AdminDb, schoolId: string) {
       .select("name, status")
       .eq("school_id", schoolId)
       .eq("status", "active")
+      .order("starts_on", { ascending: false })
+      .order("created_at", { ascending: true })
+      .order("id", { ascending: true })
       .limit(1)
       .maybeSingle(),
     readSettingDomain(db, schoolId, "academic"),
@@ -261,7 +264,11 @@ export const listAcademicYears = createServerFn({ method: "GET" })
       .from("academic_years")
       .select("id, name, status, starts_on, ends_on")
       .eq("school_id", membership.schoolId)
-      .order("starts_on", { ascending: false });
+      // A mesma ordem que o servidor usa para o ano activo: o browser escolhe o
+      // primeiro "active" desta lista e tem de concordar com o servidor.
+      .order("starts_on", { ascending: false })
+      .order("created_at", { ascending: true })
+      .order("id", { ascending: true });
     if (error) throw publicDatabaseError(error, "Não foi possível carregar os anos lectivos.");
     return (data ?? []).map((year: { id: string; name: string; status: string }) => ({
       id: year.id,

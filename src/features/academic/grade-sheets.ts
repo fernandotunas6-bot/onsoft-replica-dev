@@ -66,6 +66,8 @@ export const getGradeSheetBoard = createServerFn({ method: "GET" })
         .eq("school_id", schoolId)
         .eq("status", "active")
         .order("starts_on", { ascending: false })
+        .order("created_at", { ascending: true })
+        .order("id", { ascending: true })
         .limit(1)
         .maybeSingle();
       yearId = year?.id ? String(year.id) : null;
