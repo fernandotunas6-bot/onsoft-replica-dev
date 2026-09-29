@@ -9,7 +9,7 @@ test.describe("Ecossistema — rotas públicas (Fase 13)", () => {
 
   test("WEB wizard /start abre", async ({ page }) => {
     await page.goto(`${ECOSYSTEM_E2E_URLS.web}/start`);
-    await expect(page.getByRole("heading", { name: "Criar a minha escola" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Criar a sua escola" })).toBeVisible();
   });
 
   test("DOC home responde", async ({ page }) => {
