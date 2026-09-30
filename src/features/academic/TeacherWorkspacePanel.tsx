@@ -9,7 +9,6 @@ import { getTeacherWorkspace, unassignClassSubjectTeacher } from "@/features/aca
 import { TeacherClassMaterialsBlock } from "@/features/arquivos/ClassMaterialsPanel";
 import { getOrCreateCalendarFeedToken } from "@/features/calendar/feed";
 import { calendarIcsFeedUrl } from "@/features/calendar/ics";
-import { meetingRoomLink } from "@/features/integrations/actions";
 import { ZoomMeetingButton } from "@/features/integrations/ZoomMeetingButton";
 import { InstalledModuleTools } from "@/features/integrations/InstalledModuleTools";
 import { useInstalledIntegrations } from "@/features/integrations/use-installed-integrations";
@@ -397,10 +396,11 @@ export function TeacherWorkspacePanel({
                         <button
                           type="button"
                           className="text-[11px] font-semibold text-primary hover:underline"
-                          onClick={async () => {
-                            const link = meetingRoomLink("teams");
-                            await navigator.clipboard.writeText(link);
-                            toast.success("Link Teams copiado", { description: link });
+                          onClick={() => {
+                            toast.info("Reunião Teams por configurar", {
+                              description:
+                                "Associe uma reunião real à aula antes de partilhar o link.",
+                            });
                           }}
                         >
                           Abrir Teams

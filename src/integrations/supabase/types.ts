@@ -44,6 +44,8 @@
  * `notification_preferences`, que já não existe na produção.
  */
 
+/** Regenerado da produção em 2026-09-30: 183 tabelas e RPCs verificadas. */
+
 export type Json =
   | string
   | number
@@ -7640,6 +7642,104 @@ export type Database = {
           },
         ]
       }
+      saas_billing_settings: {
+        Row: {
+          charging_enabled: boolean
+          created_at: string
+          id: number
+          notice: string | null
+          periods: Json
+          trial_days: number
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          charging_enabled?: boolean
+          created_at?: string
+          id?: number
+          notice?: string | null
+          periods?: Json
+          trial_days?: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          charging_enabled?: boolean
+          created_at?: string
+          id?: number
+          notice?: string | null
+          periods?: Json
+          trial_days?: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
+      saas_signup_leads: {
+        Row: {
+          completed_at: string | null
+          contact_name: string | null
+          contact_phone: string | null
+          created_at: string
+          email: string | null
+          email_verified_at: string | null
+          id: string
+          last_reminder_at: string | null
+          last_step: number
+          plan_code: string | null
+          reminder_count: number
+          school_name: string | null
+          session_id: string
+          tenant_id: string | null
+          unsubscribed_at: string | null
+          updated_at: string
+        }
+        Insert: {
+          completed_at?: string | null
+          contact_name?: string | null
+          contact_phone?: string | null
+          created_at?: string
+          email?: string | null
+          email_verified_at?: string | null
+          id?: string
+          last_reminder_at?: string | null
+          last_step?: number
+          plan_code?: string | null
+          reminder_count?: number
+          school_name?: string | null
+          session_id: string
+          tenant_id?: string | null
+          unsubscribed_at?: string | null
+          updated_at?: string
+        }
+        Update: {
+          completed_at?: string | null
+          contact_name?: string | null
+          contact_phone?: string | null
+          created_at?: string
+          email?: string | null
+          email_verified_at?: string | null
+          id?: string
+          last_reminder_at?: string | null
+          last_step?: number
+          plan_code?: string | null
+          reminder_count?: number
+          school_name?: string | null
+          session_id?: string
+          tenant_id?: string | null
+          unsubscribed_at?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "saas_signup_leads_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       school_access_requests: {
         Row: {
           contact_phone: string | null
@@ -10902,6 +11002,7 @@ export type Database = {
       }
       subscriptions: {
         Row: {
+          billing_period: string | null
           cancel_at_period_end: boolean
           created_at: string
           current_period_end: string
@@ -10913,6 +11014,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          billing_period?: string | null
           cancel_at_period_end?: boolean
           created_at?: string
           current_period_end?: string
@@ -10924,6 +11026,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          billing_period?: string | null
           cancel_at_period_end?: boolean
           created_at?: string
           current_period_end?: string
@@ -11332,6 +11435,8 @@ export type Database = {
       }
       tenants: {
         Row: {
+          billing_exempt: boolean
+          billing_exempt_reason: string | null
           contact_email: string | null
           contact_name: string | null
           contact_phone: string | null
@@ -11348,6 +11453,8 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          billing_exempt?: boolean
+          billing_exempt_reason?: string | null
           contact_email?: string | null
           contact_name?: string | null
           contact_phone?: string | null
@@ -11364,6 +11471,8 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          billing_exempt?: boolean
+          billing_exempt_reason?: string | null
           contact_email?: string | null
           contact_name?: string | null
           contact_phone?: string | null
@@ -12475,6 +12584,16 @@ export type Database = {
         Args: { target: Database["public"]["Tables"]["alumni_profiles"]["Row"] }
         Returns: number
       }
+      siga_create_person_bundle: {
+        Args: {
+          p_documents: Json
+          p_guardian: Json
+          p_person: Json
+          p_roles: string[]
+          p_school_id: string
+        }
+        Returns: Json
+      }
       siga_publish_assessment_rule: {
         Args: {
           actor: string
@@ -12501,6 +12620,10 @@ export type Database = {
       siga_recompute_attendance_rates: {
         Args: { p_school_id: string; p_student_ids: string[] }
         Returns: number
+      }
+      siga_reverse_finance_receipt: {
+        Args: { p_reason: string; p_receipt_id: string; p_school_id: string }
+        Returns: Json
       }
       submit_approved_school_enrollment: {
         Args: { p_payload: Json; p_request_id: string; p_user_id: string }

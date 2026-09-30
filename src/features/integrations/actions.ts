@@ -89,14 +89,32 @@ export function officialUrlForCapability(capabilityId: string): string {
   return pack?.installUrl || pack?.docsUrl || "https://siga.escola.ao/";
 }
 
-export function paymentReference(kind: "EMIS" | "UML") {
-  const stamp = Date.now().toString().slice(-9);
-  return `${kind}${stamp}`;
-}
-
-export function meetingRoomLink(provider: "zoom" | "teams") {
-  if (provider === "zoom") return "https://zoom.us/j/90011122233";
-  return "https://teams.microsoft.com/l/meetup-join/siga-aula-virtual";
+/** Only a provider-issued or school-configured meeting URL may be opened. */
+export function meetingRoomLink(
+  provider: "zoom" | "teams",
+  configuredUrl?: string | null,
+): string | null {
+  if (!configuredUrl?.trim()) return null;
+  try {
+    const url = new URL(configuredUrl.trim());
+    if (url.protocol !== "https:" || url.username || url.password) return null;
+    const host = url.hostname.toLowerCase();
+    if (
+      provider === "zoom" &&
+      (host === "zoom.us" || host.endsWith(".zoom.us")) &&
+      /^\/j\/\d+/.test(url.pathname)
+    )
+      return url.href;
+    if (
+      provider === "teams" &&
+      ["teams.microsoft.com", "teams.live.com", "teams.cloud.microsoft"].includes(host) &&
+      /^\/(l\/meetup-join\/|meet\/)/.test(url.pathname)
+    )
+      return url.href;
+    return null;
+  } catch {
+    return null;
+  }
 }
 
 export function whatsappHref(phoneRaw: string, message?: string) {

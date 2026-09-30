@@ -1,5 +1,5 @@
 /* SIGA runtime cache. This file lives in public so Nitro publishes it at /sw.js. */
-const CACHE_VERSION = "v3";
+const CACHE_VERSION = "v4";
 const CACHES = {
   pages: `siga-pages-${CACHE_VERSION}`,
   assets: `siga-assets-${CACHE_VERSION}`,
@@ -9,7 +9,11 @@ const CACHES = {
 const OFFLINE_PAGE = "/offline.html";
 
 const cacheResponse = async (cacheName, request, response) => {
-  if (response && response.ok) {
+  if (
+    response &&
+    response.ok &&
+    !/(private|no-store)/i.test(response.headers.get("cache-control") || "")
+  ) {
     await caches.open(cacheName).then((cache) => cache.put(request, response.clone()));
   }
   return response;
@@ -17,10 +21,9 @@ const cacheResponse = async (cacheName, request, response) => {
 
 const networkFirst = async (request) => {
   try {
-    return await cacheResponse(CACHES.pages, request, await fetch(request));
+    return await fetch(request);
   } catch {
-    const cached = await caches.match(request);
-    return cached ?? (await caches.match(OFFLINE_PAGE)) ?? Response.error();
+    return (await caches.match(OFFLINE_PAGE)) ?? Response.error();
   }
 };
 
@@ -71,7 +74,11 @@ self.addEventListener("fetch", (event) => {
     event.respondWith(cacheFirst(CACHES.assets, request));
     return;
   }
-  if (request.destination === "image") {
+  if (
+    request.destination === "image" &&
+    url.origin === self.location.origin &&
+    /^(\/icons\/|\/images\/|\/favicon)/.test(url.pathname)
+  ) {
     event.respondWith(staleWhileRevalidate(CACHES.images, request));
     return;
   }
