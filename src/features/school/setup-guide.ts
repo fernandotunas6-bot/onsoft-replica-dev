@@ -10,7 +10,7 @@
  * A ordem aqui segue as dependências reais do SIGA:
  *   - sem ano lectivo activo não há trimestres, turmas nem planos de propina
  *     (`fee_plans.academic_year_id` e `class_groups.academic_year_id`);
- *   - «Preparar estrutura académica» só corre com os três trimestres gravados;
+ *   - o modelo de estrutura cria as turmas no ano lectivo activo;
  *   - sem modelo de avaliação não há pautas;
  *   - a matrícula põe o aluno numa turma e gera as propinas.
  *
@@ -143,16 +143,18 @@ export function buildSetupGuide(counts: SetupCounts): SetupGuide {
       id: "estrutura",
       phase: "Pedagógica",
       title: "Preparar cursos e classes",
-      why: "As turmas pertencem a uma classe; a classe diz que disciplinas o aluno tem.",
+      why: "Um modelo do MED cria classes (1ª–13ª), cursos, disciplinas, turmas e salas de uma vez.",
       detail:
         counts.programs || counts.gradeLevels
           ? `${plural(counts.programs, "curso", "cursos")} · ${plural(counts.gradeLevels, "classe", "classes")}.`
           : "Ainda sem cursos nem classes.",
       done: counts.programs > 0 && counts.gradeLevels > 0,
       optional: false,
-      requires: ["trimestres"],
+      // O modelo de estrutura cria classes, cursos, disciplinas, turmas e salas
+      // de uma vez; as turmas precisam do ano lectivo activo.
+      requires: ["ano"],
       action: { kind: "route", to: "/pedagogica", search: { tab: "estrutura" } },
-      actionLabel: "Abrir estrutura académica",
+      actionLabel: "Usar modelo de estrutura",
     },
     {
       id: "disciplinas",

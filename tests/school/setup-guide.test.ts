@@ -54,7 +54,7 @@ describe("guia de arranque da escola", () => {
     const alunos = step(NOVA, "alunos");
     expect(alunos.blockedBy).toEqual(["turmas", "propinas"]);
     expect(step(NOVA, "trimestres").blockedBy).toEqual(["ano"]);
-    expect(step(NOVA, "estrutura").blockedBy).toEqual(["trimestres"]);
+    expect(step(NOVA, "estrutura").blockedBy).toEqual(["ano"]);
     expect(step(NOVA, "propinas").blockedBy).toEqual(["ano"]);
   });
 

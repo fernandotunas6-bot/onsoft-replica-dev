@@ -66,6 +66,12 @@ const PRIVILEGIO_POR_DESENHO = new Set([
   // com o cliente privilegiado, pelo tenant da escola da sessão do Administrador.
   "src/features/school/setup-guide-server.ts",
 
+  // Modelo de estrutura académica: `academic_levels`, `programs` e `campuses`
+  // não têm política de escrita para utilizadores e `subjects` exige aal2. O
+  // servidor exige Administrador/Secretaria com escrita na Pedagógica e grava
+  // só na escola da membership.
+  "src/features/academic/curriculum-templates-server.ts",
+
   // Regista cada documento oficial emitido (audit_logs, só o servidor grava) e
   // verifica-o publicamente, sem sessão, a partir do código impresso.
   "src/features/documents/verification.ts",
