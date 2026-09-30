@@ -23,8 +23,10 @@ Causa: as Definições da escola activavam o ano escolhido sem fechar o anterior
   este activo» (`setActiveAcademicYear`, fecha os outros sem apagar nada).
 - Migração `20260930090000_one_active_academic_year.sql` (índice único parcial,
   um activo por escola), pacote `docs/agents/SIGA_aplicar_um_ano_activo.sql` —
-  **escrita, por aplicar**. Pára e lista as escolas com vários anos activos; só
-  se aplica depois de o Huambo ficar com um.
+  **escrita, por aplicar**. Pára e lista as escolas com vários anos activos.
+  A 2026-09-30, com autorização do dono, os três anos de teste do Huambo
+  passaram a `closed` (sem turmas nem matrículas; nada apagado). Nenhuma escola
+  tem agora mais de um ano activo, por isso o pacote já se pode aplicar.
 
 ## Escritas com o erro ignorado (2026-09-29/30)
 
