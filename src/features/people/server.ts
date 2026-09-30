@@ -1261,7 +1261,7 @@ export const addPersonDocument = createServerFn({ method: "POST" })
       row = first.data as Record<string, unknown>;
     }
     if (data.document.document_type === "bi") {
-      await db
+      const { error: biError } = await db
         .from("people")
         .update({
           national_id: documentNumber,
@@ -1269,6 +1269,14 @@ export const addPersonDocument = createServerFn({ method: "POST" })
         })
         .eq("id", data.personId)
         .eq("school_id", membership.schoolId);
+      // O documento já ficou guardado; a ficha é que não mudou (por exemplo,
+      // o BI já está noutra pessoa da escola). Diz-se, em vez de calar.
+      if (biError) {
+        throw publicDatabaseError(
+          biError,
+          "Documento guardado, mas o BI da ficha não foi actualizado. Verifique se o número já está noutra pessoa.",
+        );
+      }
     }
     if (!row) throw new Error("Não foi possível adicionar o documento.");
     return toPersonDocumentSummary(row);

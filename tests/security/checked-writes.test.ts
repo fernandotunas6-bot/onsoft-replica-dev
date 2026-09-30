@@ -104,3 +104,26 @@ describe("webhook de pagamento", () => {
     );
   });
 });
+
+describe("planos de aula: avaliações a mais", () => {
+  const source = read("src/features/lesson-plans/server.ts");
+
+  it("não apaga avaliações com notas se não conseguir ler as notas", () => {
+    expect(source).toMatch(/error: scoresError/);
+    expect(source.indexOf("error: scoresError")).toBeLessThan(source.indexOf("error: removeError"));
+  });
+
+  it("não duplica avaliações se não conseguir contar as existentes", () => {
+    expect(source).toMatch(/error: itemsError/);
+  });
+});
+
+describe("QR do professor e BI da ficha", () => {
+  it("o QR anterior é anulado antes do novo, com erro visto", () => {
+    expect(read("src/features/hr/teacher-lessons.ts")).toMatch(/error: revokeError/);
+  });
+
+  it("o BI que não passa para a ficha é dito", () => {
+    expect(read("src/features/people/server.ts")).toMatch(/error: biError/);
+  });
+});
