@@ -4,6 +4,19 @@ Ler isto **antes** de alterar código. Ecossistema (5 apps):
 [ARCHITECTURE_HARMONIZATION.md](./ARCHITECTURE_HARMONIZATION.md).
 Depois abrir o skill do módulo em `.cursor/skills/`.
 
+## CORS e domínios próprios seguem PLATFORM_DOMAIN (2026-09-30)
+
+- `src/lib/ecosystem-cors.ts`: as origens de produção (raiz, www, admin, docs, app,
+  payflow) e o curinga das escolas saem de `getPlatformDomain()`. Antes estavam
+  escritos com `portal-siga.com`: noutro domínio o WEB/ADMIN ficavam sem API e o
+  domínio antigo continuava aceite. Projectos `*.pages.dev` continuam explícitos.
+- `registerTenantDomain` (ADMIN → domínio próprio): só recusava `*.portal-siga.com`,
+  a raiz `portal-siga.com` passava, e noutro domínio passavam `admin.<domínio>` e
+  subdomínios de outras escolas. Usa agora `isPlatformOwnedHostname` (domínio
+  configurado + legado, raiz e subdomínios).
+- Os restantes `portal-siga.com` no código são intencionais: legado no
+  `tenant-resolver`, valores por omissão dos e-mails, CSP.
+
 ## Dependências das outras apps (2026-09-30)
 
 - ADMIN e WEB: `brace-expansion` (mesmos avisos de 29/09 do SIGA, ferramentas de lint)

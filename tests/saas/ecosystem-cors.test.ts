@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { isAllowedEcosystemOrigin } from "@/lib/ecosystem-cors";
 import { isPublicAppPath } from "@/lib/public-paths";
 
@@ -27,5 +27,28 @@ describe("public ecosystem paths", () => {
   it("treats SaaS and create-school bridges as public", () => {
     expect(isPublicAppPath("/saas-admin")).toBe(true);
     expect(isPublicAppPath("/criar-escola")).toBe(true);
+  });
+});
+
+describe("CORS segue PLATFORM_DOMAIN", () => {
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
+  it("aceita as apps e as escolas do domínio configurado", () => {
+    vi.stubEnv("PLATFORM_DOMAIN", "escolas.ao");
+    expect(isAllowedEcosystemOrigin("https://escolas.ao")).toBe(true);
+    expect(isAllowedEcosystemOrigin("https://www.escolas.ao")).toBe(true);
+    expect(isAllowedEcosystemOrigin("https://admin.escolas.ao")).toBe(true);
+    expect(isAllowedEcosystemOrigin("https://liceu.escolas.ao")).toBe(true);
+  });
+
+  it("deixa de aceitar o domínio antigo quando o domínio muda", () => {
+    vi.stubEnv("PLATFORM_DOMAIN", "escolas.ao");
+    expect(isAllowedEcosystemOrigin("https://admin.portal-siga.com")).toBe(false);
+    expect(isAllowedEcosystemOrigin("https://liceu.portal-siga.com")).toBe(false);
+    expect(isAllowedEcosystemOrigin("https://escolas.ao.evil.example")).toBe(false);
+    // Os projectos Pages explícitos mantêm-se.
+    expect(isAllowedEcosystemOrigin("https://siga-admin.pages.dev")).toBe(true);
   });
 });
