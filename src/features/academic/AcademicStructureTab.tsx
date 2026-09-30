@@ -72,25 +72,35 @@ export function AcademicStructureTab({
 
   return (
     <div className="space-y-5">
-      <section className="surface-card space-y-3 p-5">
-        <h2 className="text-sm font-medium">Percurso da informação</h2>
-        <ol className="flex flex-wrap items-center gap-x-1.5 gap-y-2 text-xs text-muted-foreground">
-          {ACADEMIC_PIPELINE.map((step, index) => (
-            <li key={step} className="flex items-center gap-1.5">
-              <span className="rounded-full border border-border px-2.5 py-1 text-foreground">
-                {step}
-              </span>
-              {index < ACADEMIC_PIPELINE.length - 1 ? (
-                <ChevronRight className="size-3.5" aria-hidden />
-              ) : null}
-            </li>
-          ))}
-        </ol>
-        <p className="text-xs text-muted-foreground">
-          Cada informação nasce no seu módulo. Nenhum limiar de aprovação fica no código: vem da
-          regra de avaliação da escola (Decreto Executivo n.º 424/25 por omissão).
-        </p>
-      </section>
+      {/* Explicação, não trabalho: fica recolhida para não empurrar o estado do ano. */}
+      <details className="group surface-card p-0 [&_summary::-webkit-details-marker]:hidden">
+        <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-5 py-3.5 text-sm font-medium">
+          Como a informação circula no ano lectivo
+          <ChevronDown
+            aria-hidden
+            className="size-4 text-muted-foreground transition-transform group-open:rotate-180"
+          />
+        </summary>
+        <div className="space-y-3 border-t border-border/70 px-5 py-4">
+          <ol className="flex flex-wrap items-center gap-x-1.5 gap-y-2 text-xs text-muted-foreground">
+            {ACADEMIC_PIPELINE.map((step, index) => (
+              <li key={step} className="flex items-center gap-1.5">
+                <span className="rounded-full border border-border px-2.5 py-1 text-foreground">
+                  {step}
+                </span>
+                {index < ACADEMIC_PIPELINE.length - 1 ? (
+                  <ChevronRight className="size-3.5" aria-hidden />
+                ) : null}
+              </li>
+            ))}
+          </ol>
+          <p className="text-xs text-muted-foreground">
+            Cada informação é lançada uma vez, no seu separador, e segue para o seguinte. Os limites
+            de aprovação vêm da regra de avaliação da escola (Decreto Executivo n.º 424/25 por
+            omissão).
+          </p>
+        </div>
+      </details>
 
       <section className="surface-card space-y-4 p-5">
         <div className="flex flex-wrap items-baseline justify-between gap-2">

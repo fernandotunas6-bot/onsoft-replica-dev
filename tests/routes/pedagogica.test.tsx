@@ -232,7 +232,8 @@ describe("/pedagogica — render", () => {
     await waitFor(() => {
       expect(screen.getByText("3 sem professor")).toBeDefined();
     });
-    expect(screen.getByText("Percurso da informação")).toBeDefined();
+    // Explicação do percurso: recolhida por omissão, mas presente.
+    expect(screen.getByText("Como a informação circula no ano lectivo")).toBeDefined();
     expect(screen.getByText("Sem épocas de exame")).toBeDefined();
   });
 

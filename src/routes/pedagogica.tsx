@@ -640,13 +640,21 @@ function PedagogicaPage() {
         <PageHeader
           group="Académico"
           title="Área Pedagógica"
-          description="Turmas, disciplinas, notas e horários ligados ao Supabase."
+          description="Turmas, disciplinas, horários, presenças, notas e pautas da escola."
           actions={
             <>
+              <PickFileButton
+                area="escola"
+                variant="ghost"
+                size="sm"
+                onPick={(file) =>
+                  toast.success(file.name, { description: "Material da biblioteca pedagógica." })
+                }
+              />
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="outline" className="gap-1.5 text-xs shadow-2xs">
-                    <Sparkles className="size-3.5 text-primary" /> Ferramentas{" "}
+                  <Button variant="outline" size="sm" className="gap-1.5">
+                    <Sparkles className="size-3.5 text-muted-foreground" /> Ferramentas
                     <ChevronDown className="size-3.5 text-muted-foreground" />
                   </Button>
                 </DropdownMenuTrigger>
@@ -761,7 +769,7 @@ function PedagogicaPage() {
                     onTabChange("turmas");
                   }}
                   trigger={(open) => (
-                    <Button className="gap-2" onClick={open}>
+                    <Button size="sm" className="gap-1.5" onClick={open}>
                       <Plus className="size-4" /> Nova turma
                     </Button>
                   )}
@@ -772,8 +780,6 @@ function PedagogicaPage() {
         />
 
         <StatGrid
-          collapsible
-          storageKey="pedagogica"
           items={[
             {
               label: "Turmas activas",
@@ -833,7 +839,7 @@ function PedagogicaPage() {
               linhas empurrava (e tapava) o conteúdo. */}
           <TabsList
             ref={tabsListRef}
-            className="no-scrollbar flex h-auto w-full max-w-full flex-nowrap justify-start gap-1 overflow-x-auto"
+            className="no-scrollbar flex h-auto w-full max-w-full flex-nowrap justify-start gap-1 overflow-x-auto max-lg:[mask-image:linear-gradient(to_right,black_calc(100%-2rem),transparent)]"
           >
             {/* Pela ordem do ano lectivo (academic-architecture.ts): cada
                 informação nasce numa etapa e segue para a seguinte. */}
@@ -869,14 +875,6 @@ function PedagogicaPage() {
                 if (kind === "sige_classes") exportarTurmasCsv();
               }}
             />
-            <div className="mt-3">
-              <PickFileButton
-                area="escola"
-                onPick={(file) =>
-                  toast.success(file.name, { description: "Material da biblioteca pedagógica." })
-                }
-              />
-            </div>
           </div>
 
           {canReadAcademic ? (
