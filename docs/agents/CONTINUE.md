@@ -4,6 +4,24 @@ Ler isto **antes** de alterar código. Ecossistema (5 apps):
 [ARCHITECTURE_HARMONIZATION.md](./ARCHITECTURE_HARMONIZATION.md).
 Depois abrir o skill do módulo em `.cursor/skills/`.
 
+## Arranque: MED, modelos de estrutura, e-mail confirmado, pagamentos e desistências (2026-09-30)
+
+Detalhe em [docs/provisioning/ARRANQUE_ESCOLA.md](../provisioning/ARRANQUE_ESCOLA.md) §4–7.
+
+- `med-calendar.ts`: ano/trimestres do MED (Decreto Executivo n.º 686/25 + regra testada).
+- `curriculum-templates*.ts` + `CurriculumTemplateDialog.tsx`: modelos por nível (1ª–13ª,
+  superior). Escrita privilegiada justificada em `rls-client-migration.test.ts`.
+- Registo público exige e-mail confirmado (`signup-verification.ts`; chave derivada da chave de
+  serviço, sem configuração nova). WEB `/start` passo «Conta» com código.
+- Migração **aplicada na produção** `20260930180000_signup_leads_and_billing_proofs`:
+  `saas_signup_leads` (FORCE RLS, só servidor) e bucket privado `billing-proofs`. Retrato e
+  `types.ts` actualizados à mão para esta tabela.
+- `commercial-lifecycle.ts`: progresso, lembretes e avisos de trial; cron
+  `/api/cron/saas-lifecycle` + workflow diário. ADMIN: `/signups` e comprovativos em
+  `/subscriptions` (confirmar pagamento = `confirm_payment_billing`).
+- Rotas novas geradas com `@tanstack/router-generator`; o bloco `Register` do Start no fim
+  de `routeTree.gen.ts` tem de ficar (o gerador sozinho não o escreve).
+
 ## Arranque da escola: guia no painel do Administrador (2026-09-30)
 
 Plano completo: [docs/provisioning/ARRANQUE_ESCOLA.md](../provisioning/ARRANQUE_ESCOLA.md).

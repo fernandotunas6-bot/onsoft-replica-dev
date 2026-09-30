@@ -7492,6 +7492,71 @@ export type Database = {
           },
         ]
       }
+      saas_signup_leads: {
+        Row: {
+          completed_at: string | null
+          contact_name: string | null
+          contact_phone: string | null
+          created_at: string
+          email: string | null
+          email_verified_at: string | null
+          id: string
+          last_reminder_at: string | null
+          last_step: number
+          plan_code: string | null
+          reminder_count: number
+          school_name: string | null
+          session_id: string
+          tenant_id: string | null
+          unsubscribed_at: string | null
+          updated_at: string
+        }
+        Insert: {
+          completed_at?: string | null
+          contact_name?: string | null
+          contact_phone?: string | null
+          created_at?: string
+          email?: string | null
+          email_verified_at?: string | null
+          id?: string
+          last_reminder_at?: string | null
+          last_step?: number
+          plan_code?: string | null
+          reminder_count?: number
+          school_name?: string | null
+          session_id: string
+          tenant_id?: string | null
+          unsubscribed_at?: string | null
+          updated_at?: string
+        }
+        Update: {
+          completed_at?: string | null
+          contact_name?: string | null
+          contact_phone?: string | null
+          created_at?: string
+          email?: string | null
+          email_verified_at?: string | null
+          id?: string
+          last_reminder_at?: string | null
+          last_step?: number
+          plan_code?: string | null
+          reminder_count?: number
+          school_name?: string | null
+          session_id?: string
+          tenant_id?: string | null
+          unsubscribed_at?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "saas_signup_leads_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       school_access_requests: {
         Row: {
           contact_phone: string | null

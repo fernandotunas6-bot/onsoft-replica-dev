@@ -38,6 +38,9 @@ export interface SchoolSignupPayload {
   admin_name: string
   admin_password: string
   website?: string
+  /** Comprovativo devolvido por verifySignupEmailCode — o servidor recusa o registo sem ele. */
+  email_verification_token?: string
+  session_id?: string
 }
 
 export function formatAoaPrice(value?: number | null): string | null {
@@ -143,4 +146,75 @@ export async function signupSchool(payload: SchoolSignupPayload): Promise<{
     adminExistingAccount: data.adminExistingAccount ?? false,
     adminLoginUrl: data.adminLoginUrl ?? null,
   }
+}
+
+async function postJson<T>(path: string, body: unknown): Promise<{ ok: boolean; status: number; data: T & { error?: string } }> {
+  const res = await fetch(getSaasApiUrl(path), {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  })
+  const data = (await res.json().catch(() => ({}))) as T & { error?: string }
+  return { ok: res.ok, status: res.status, data }
+}
+
+/** Envia o código de 6 dígitos para o e-mail do administrador. */
+export async function requestSignupEmailCode(email: string, sessionId: string) {
+  try {
+    const { ok, data } = await postJson<{ cooldownSeconds?: number }>("/api/saas/signup/email-code", {
+      email,
+      session_id: sessionId,
+    })
+    return ok
+      ? { ok: true as const, cooldownSeconds: data.cooldownSeconds ?? 60 }
+      : { ok: false as const, error: data.error || "Não foi possível enviar o código.", cooldownSeconds: data.cooldownSeconds ?? 0 }
+  } catch {
+    return { ok: false as const, error: "Sem ligação ao servidor. Tente de novo.", cooldownSeconds: 0 }
+  }
+}
+
+/** Confirma o código; devolve o comprovativo que o registo exige. */
+export async function verifySignupEmailCode(input: {
+  email: string
+  code: string
+  sessionId: string
+  contactName?: string
+  contactPhone?: string
+  schoolName?: string
+  planCode?: PlanCode
+}) {
+  try {
+    const { ok, data } = await postJson<{ token?: string }>("/api/saas/signup/email-verify", {
+      email: input.email,
+      code: input.code,
+      session_id: input.sessionId,
+      contact_name: input.contactName || undefined,
+      contact_phone: input.contactPhone || undefined,
+      school_name: input.schoolName || undefined,
+      plan_code: input.planCode,
+    })
+    return ok && data.token
+      ? { ok: true as const, token: data.token }
+      : { ok: false as const, error: data.error || "Código incorrecto." }
+  } catch {
+    return { ok: false as const, error: "Sem ligação ao servidor. Tente de novo." }
+  }
+}
+
+/**
+ * Passo atingido no assistente (sem dados pessoais), para a equipa ver onde as
+ * escolas desistem. Nunca atrapalha o registo: erros são ignorados.
+ */
+export function recordSignupProgress(input: {
+  sessionId: string
+  step: number
+  planCode?: PlanCode
+  schoolName?: string
+}) {
+  void postJson("/api/saas/signup/progress", {
+    session_id: input.sessionId,
+    step: input.step,
+    plan_code: input.planCode,
+    school_name: input.schoolName?.trim() || undefined,
+  }).catch(() => undefined)
 }

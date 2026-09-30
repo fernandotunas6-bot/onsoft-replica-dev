@@ -72,6 +72,12 @@ const PRIVILEGIO_POR_DESENHO = new Set([
   // só na escola da membership.
   "src/features/academic/curriculum-templates-server.ts",
 
+  // Ciclo comercial: `saas_signup_leads` é só do servidor (FORCE RLS, sem
+  // políticas) e `tenants`/`saas_audit_logs` só têm política da plataforma. As
+  // rotas públicas gravam apenas o progresso da própria sessão; a tarefa diária
+  // exige SIGA_CRON_SECRET; a listagem exige admin da plataforma com MFA.
+  "src/features/saas/commercial-lifecycle.ts",
+
   // Regista cada documento oficial emitido (audit_logs, só o servidor grava) e
   // verifica-o publicamente, sem sessão, a partir do código impresso.
   "src/features/documents/verification.ts",

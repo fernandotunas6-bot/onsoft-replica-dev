@@ -25,6 +25,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { MarketingFormPage } from "@/components/marketing/marketing-form-page"
+import { EmailVerification } from "./email-verification"
 import { ANGOLA_PROVINCES, SCHOOL_TYPES } from "@/lib/angola"
 import { cn } from "@/lib/utils"
 import { ECOSYSTEM_URLS, PLATFORM_DOMAIN } from "@/lib/ecosystem-urls"
@@ -32,6 +33,7 @@ import {
   checkSlugAvailability,
   fetchSaasPlans,
   signupSchool,
+  recordSignupProgress,
   type PlanCode,
   type SaasPlan,
 } from "@/lib/saas-api"
@@ -181,6 +183,48 @@ function writeDraft(draft: Draft | null) {
   }
 }
 
+/**
+ * Sessão deste registo: um id aleatório, guardado no navegador, que permite à
+ * equipa ver até onde o assistente chegou (sem dados pessoais até o e-mail ser
+ * confirmado) e fechar o acompanhamento quando a escola é criada.
+ */
+const SESSION_KEY = "siga-web:start-session:v1"
+const VERIFICATION_KEY = "siga-web:start-verification:v1"
+
+function readSessionId(): string {
+  try {
+    const existing = window.localStorage.getItem(SESSION_KEY)
+    if (existing && /^[0-9a-f-]{36}$/i.test(existing)) return existing
+    const created = crypto.randomUUID()
+    window.localStorage.setItem(SESSION_KEY, created)
+    return created
+  } catch {
+    return crypto.randomUUID()
+  }
+}
+
+type Verification = { email: string; token: string }
+
+/** O comprovativo vale 2 h no servidor; guardado só nesta aba (sessionStorage). */
+function readVerification(): Verification | null {
+  try {
+    const raw = window.sessionStorage.getItem(VERIFICATION_KEY)
+    const parsed = raw ? (JSON.parse(raw) as Verification) : null
+    return parsed?.email && parsed.token ? parsed : null
+  } catch {
+    return null
+  }
+}
+
+function writeVerification(value: Verification | null) {
+  try {
+    if (value) window.sessionStorage.setItem(VERIFICATION_KEY, JSON.stringify(value))
+    else window.sessionStorage.removeItem(VERIFICATION_KEY)
+  } catch {
+    /* sem armazenamento: vale enquanto a página estiver aberta */
+  }
+}
+
 /** 0 a 3: comprimento, letras e números, símbolo ou 14+ caracteres. */
 function passwordStrength(value: string) {
   if (!value) return 0
@@ -220,6 +264,10 @@ export function StartSchoolWizard() {
   // <form onSubmit> aqui chama onNext/onCreate directamente, então nunca acendia.
   // Sem isto, um duplo clique em "Criar escola" disparava dois pedidos de signup.
   const [isCreating, setIsCreating] = useState(false)
+  const [sessionId] = useState(() => (typeof window === "undefined" ? "" : readSessionId()))
+  const [verification, setVerification] = useState<Verification | null>(() =>
+    typeof window === "undefined" ? null : readVerification(),
+  )
   const [done, setDone] = useState<{
     hostname: string
     sigaUrl: string
@@ -321,6 +369,17 @@ export function StartSchoolWizard() {
     }, 400)
     return () => clearTimeout(timeout)
   }, [draftJson, step, done])
+
+  // Passo atingido, para a equipa ver onde as escolas desistem.
+  useEffect(() => {
+    if (done || !sessionId) return
+    recordSignupProgress({
+      sessionId,
+      step,
+      planCode: form.getValues("plan_code"),
+      schoolName: form.getValues("name"),
+    })
+  }, [step, done, sessionId, form])
   const planLabel = useMemo(
     () => plans.find((p) => p.code === values.plan_code)?.name ?? values.plan_code,
     [plans, values.plan_code],
@@ -346,6 +405,13 @@ export function StartSchoolWizard() {
     return () => clearTimeout(timeout)
   }, [slug])
 
+  const adminEmail = (values.admin_email ?? "").trim().toLowerCase()
+  // Domínios reservados (.test, .example…) não recebem e-mail: o servidor
+  // dispensa-os da confirmação (testes E2E), e o assistente também.
+  const reservedTestEmail = /\.(test|example|invalid|localhost)$/i.test(adminEmail)
+  const emailVerified =
+    reservedTestEmail || Boolean(verification && verification.email === adminEmail)
+
   async function validateStep() {
     const fields = FIELDS_BY_STEP[step]
     if (!fields) return true
@@ -357,6 +423,10 @@ export function StartSchoolWizard() {
     if (!(await validateStep())) return
     if (step === 6 && slugStatus === "taken") {
       form.setError("slug", { message: "Este subdomínio já está em uso por outra escola." })
+      return
+    }
+    if (step === 5 && !emailVerified) {
+      setServerError("Confirme o e-mail com o código que lhe enviámos antes de continuar.")
       return
     }
     if (step === 3 && !form.getValues("admin_name")) {
@@ -390,6 +460,11 @@ export function StartSchoolWizard() {
       setServerError("Este subdomínio já está em uso por outra escola. Volte ao passo 6 e escolha outro.")
       return
     }
+    if (!emailVerified) {
+      setStep(FIELD_STEP.admin_email)
+      setServerError("Confirme o e-mail do administrador com o código antes de criar a escola.")
+      return
+    }
     setIsCreating(true)
     try {
       const { admin_password_confirm: _confirm, ...payload } = form.getValues()
@@ -400,6 +475,8 @@ export function StartSchoolWizard() {
           city: payload.municipality || payload.city,
           commercial_name: payload.commercial_name || undefined,
           email: payload.email || payload.contact_email,
+          email_verification_token: verification?.token,
+          session_id: sessionId || undefined,
         })
       } catch {
         // Falha de rede (servidor em baixo, sem ligação) — signupSchool() não
@@ -425,7 +502,11 @@ export function StartSchoolWizard() {
           setServerError("O servidor recusou um campo. Levámo-lo ao passo onde está.")
           return
         }
-        if (/e-mail/i.test(message) && /conta|acesso/i.test(message)) {
+        if (/Confirme o e-mail/i.test(message)) {
+          setVerification(null)
+          writeVerification(null)
+          setStep(FIELD_STEP.admin_email)
+        } else if (/e-mail/i.test(message) && /conta|acesso/i.test(message)) {
           form.setError("admin_email", { message })
           setStep(FIELD_STEP.admin_email)
         } else if (/subdomínio/i.test(message)) {
@@ -437,6 +518,12 @@ export function StartSchoolWizard() {
         return
       }
       writeDraft(null)
+      writeVerification(null)
+      try {
+        window.localStorage.removeItem(SESSION_KEY)
+      } catch {
+        /* ignorar */
+      }
       setDone({
         hostname: result.hostname || `${payload.slug}.${PLATFORM_DOMAIN}`,
         sigaUrl: result.sigaUrl || ECOSYSTEM_URLS.siga,
@@ -942,6 +1029,23 @@ export function StartSchoolWizard() {
                     />
                     <PasswordField form={form} name="admin_password_confirm" label="Confirmar senha" />
                   </div>
+                  {reservedTestEmail ? null : <EmailVerification
+                    email={values.admin_email ?? ""}
+                    sessionId={sessionId}
+                    verifiedEmail={verification?.email ?? null}
+                    onVerified={(email, token) => {
+                      const value = { email, token }
+                      setVerification(value)
+                      writeVerification(value)
+                      setServerError(null)
+                    }}
+                    context={{
+                      contactName: values.contact_name,
+                      contactPhone: values.contact_phone,
+                      schoolName: values.name,
+                      planCode: values.plan_code,
+                    }}
+                  />}
                 </>
               ) : null}
 

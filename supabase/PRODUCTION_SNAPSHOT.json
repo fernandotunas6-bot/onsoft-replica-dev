@@ -1,11 +1,11 @@
 {
   "capturadoEm": "2026-09-27T14:25:59.502399Z",
   "resumo": {
-    "com_rls": 179,
+    "com_rls": 180,
     "funcoes_private": 98,
     "politicas": 285,
-    "tabelas": 179,
-    "triggers": 190
+    "tabelas": 180,
+    "triggers": 191
   },
   "tabelas": [
     {
@@ -3354,6 +3354,35 @@
       "rls": true,
       "rls_forcada": false,
       "tabela": "saas_audit_logs"
+    },
+    {
+      "anon_select": false,
+      "auth_select": false,
+      "colunas": [
+        "id",
+        "session_id",
+        "last_step",
+        "plan_code",
+        "school_name",
+        "email",
+        "contact_name",
+        "contact_phone",
+        "email_verified_at",
+        "completed_at",
+        "tenant_id",
+        "reminder_count",
+        "last_reminder_at",
+        "unsubscribed_at",
+        "created_at",
+        "updated_at"
+      ],
+      "obrigatorias": [
+        "session_id"
+      ],
+      "politicas": 0,
+      "rls": true,
+      "rls_forcada": true,
+      "tabela": "saas_signup_leads"
     },
     {
       "anon_select": false,
