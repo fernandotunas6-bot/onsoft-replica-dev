@@ -1,4 +1,5 @@
 import { IMessageDeliveryAdapter, OtpChannel, OtpDeliveryResult, OtpPayload } from "../contracts";
+import { errorMessage } from "@/lib/error-message";
 
 export class SmsOtpAdapter implements IMessageDeliveryAdapter {
   public channel: OtpChannel = "sms";
@@ -70,12 +71,12 @@ export class SmsOtpAdapter implements IMessageDeliveryAdapter {
         provider: this.providerName,
         externalMessageId,
       };
-    } catch (err: any) {
+    } catch (err) {
       return {
         success: false,
         channel: "sms",
         provider: this.providerName,
-        error: err.message || "Falha na chamada ao Gateway SMS",
+        error: errorMessage(err, "Falha na chamada ao Gateway SMS"),
       };
     }
   }

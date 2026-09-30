@@ -44,7 +44,7 @@ import { InstalledModuleTools } from "@/features/integrations/InstalledModuleToo
 import { PickFileButton } from "@/features/arquivos/PickFileButton";
 import { meetingRoomLink } from "@/features/integrations/actions";
 import { useInstalledIntegrations } from "@/features/integrations/use-installed-integrations";
-import { ClassGroupSheet } from "@/features/academic/ClassGroupSheet";
+import { ClassGroupSheet, SEM_SALA } from "@/features/academic/ClassGroupSheet";
 import { TurmaProfileModal } from "@/features/academic/components/TurmaProfileModal";
 import { GradePautaSheet } from "@/features/academic/GradePautaSheet";
 import { ScheduleWorkspace } from "@/features/academic/schedule/ScheduleWorkspace";
@@ -313,7 +313,6 @@ function PedagogicaPage() {
   const academicYears = workspace?.academicYears ?? [];
   const courses = workspace?.courses ?? [];
   const gradeLevels = workspace?.gradeLevels ?? [];
-  const rooms = workspace?.rooms ?? [];
   const classrooms = classroomsQuery.data ?? [];
   const subjects = workspace?.subjects ?? [];
   const termGrades = useMemo(() => workspace?.termGrades ?? [], [workspace?.termGrades]);
@@ -329,7 +328,14 @@ function PedagogicaPage() {
   );
   const yearOptions = academicYears.map((year) => optionLabel(year.id, year.name));
   const gradeOptions = visibleGradeLevels.map((grade) => optionLabel(grade.id, grade.name));
-  const roomOptions = ["Sem sala", ...rooms.map((room) => optionLabel(room.id, room.name))];
+  // Salas físicas activas (`rooms`). O campus da turma vem da sala escolhida.
+  const activeClassrooms = classrooms.filter((room) => room.status === "active");
+  const roomOptions = [
+    SEM_SALA,
+    ...activeClassrooms.map((room) =>
+      optionLabel(room.id, room.capacity ? `${room.name} (${room.capacity} lugares)` : room.name),
+    ),
+  ];
   const subjectOptions = subjects.map((subject) => optionLabel(subject.id, subject.name));
   const teachers = teachersQuery.data ?? [];
   const teacherOptions = teachers.map((teacher) => optionLabel(teacher.id, teacher.full_name));
@@ -747,7 +753,7 @@ function PedagogicaPage() {
                   roomOptions={roomOptions}
                   yearIds={academicYears.map((year) => year.id)}
                   gradeIds={visibleGradeLevels.map((grade) => grade.id)}
-                  roomIds={rooms.map((room) => room.id)}
+                  roomIds={activeClassrooms.map((room) => room.id)}
                   onCreated={async () => {
                     await queryClient.invalidateQueries({
                       queryKey: ["academic", "pedagogical-workspace"],
@@ -1293,6 +1299,7 @@ function PedagogicaPage() {
         workspace={workspace}
         teacherOptions={teacherOptions}
         teacherIds={teachers.map((teacher) => teacher.id)}
+        salas={activeClassrooms}
         onRefresh={refreshAcademic}
       />
     </AppShell>

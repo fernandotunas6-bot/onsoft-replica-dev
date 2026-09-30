@@ -24,6 +24,8 @@ import { suggestModule } from "./engine/suggest";
 import { getImporter, isModuleImplemented } from "./engine/registry";
 import { assertImportModuleGoverned } from "./engine/governance";
 import type { ImportCommitContext } from "./engine/types";
+import { dynamicTablesClient } from "@/integrations/supabase/sga";
+import type { Json, TablesInsert } from "@/integrations/supabase/types";
 
 /**
  * Quem pode importar cada módulo — espelha as responsabilidades já usadas
@@ -191,8 +193,8 @@ export const createImportJob = createServerFn({ method: "POST" })
         source_format: data.source_format,
         dry_run: data.dry_run,
         idempotency_key: data.idempotency_key ?? null,
-        manifest: data.manifest,
-        dependency_plan: data.dependency_plan,
+        manifest: data.manifest as Json,
+        dependency_plan: data.dependency_plan as Json,
       })
       .select("*")
       .single();
@@ -261,8 +263,8 @@ export const stageImportRows = createServerFn({ method: "POST" })
         import_job_id: job.id,
         sheet_name: data.sheet_name,
         row_number: startingRowNumber + idx + 1,
-        raw_data: raw,
-        normalized_data: normalized,
+        raw_data: raw as Json,
+        normalized_data: normalized as Json,
         status: analysis.status,
         warnings: analysis.warnings,
         errors: analysis.errors,
@@ -370,7 +372,10 @@ export const updateStagingRowField = createServerFn({ method: "POST" })
       row.import_job_id,
     );
 
-    const normalized = { ...row.normalized_data, [data.field_name]: data.new_value };
+    const normalized = {
+      ...(row.normalized_data as Record<string, unknown>),
+      [data.field_name]: data.new_value,
+    };
     const importer = getImporter(job.module);
     const cache = await importer.loadRefCache({
       db,
@@ -498,7 +503,9 @@ export const commitImportBatch = createServerFn({ method: "POST" })
           markError = (await db.from("import_rows").update(rowPatch).eq("id", row.id)).error;
         }
         if (markError) {
-          if (allAudits.length > 0) await db.from("import_audits").insert(allAudits);
+          if (allAudits.length > 0) {
+            await db.from("import_audits").insert(allAudits as TablesInsert<"import_audits">[]);
+          }
           throw publicDatabaseError(
             markError,
             `A linha ${String(row.row_number ?? "")} foi gravada, mas não ficou marcada. A importação parou para não a repetir; confirme o registo antes de continuar.`,
@@ -512,7 +519,9 @@ export const commitImportBatch = createServerFn({ method: "POST" })
 
     if (allAudits.length > 0) {
       // Sem estes registos a importação não se pode reverter.
-      const { error: auditError } = await db.from("import_audits").insert(allAudits);
+      const { error: auditError } = await db
+        .from("import_audits")
+        .insert(allAudits as TablesInsert<"import_audits">[]);
       if (auditError) {
         throw publicDatabaseError(
           auditError,
@@ -635,7 +644,7 @@ export const rollbackImportJob = createServerFn({ method: "POST" })
             continue;
           }
         } else if (audit.action_type === "inserted") {
-          const result = await db
+          const result = await dynamicTablesClient(db)
             .from(audit.table_name)
             .delete()
             .eq("id", audit.target_id)
@@ -644,7 +653,7 @@ export const rollbackImportJob = createServerFn({ method: "POST" })
         } else if (audit.action_type === "updated" && beforeData) {
           const safeBefore: Record<string, unknown> = { ...beforeData, school_id: job.school_id };
           delete safeBefore["id"];
-          const result = await db
+          const result = await dynamicTablesClient(db)
             .from(audit.table_name)
             .update(safeBefore)
             .eq("id", audit.target_id)

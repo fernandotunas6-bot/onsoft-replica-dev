@@ -1,5 +1,6 @@
 import { Heart } from "lucide-react"
 import { Link } from "react-router-dom"
+import { ECOSYSTEM_URLS } from "@/lib/ecosystem-urls"
 
 export function SiteFooter() {
   return (
@@ -11,7 +12,7 @@ export function SiteFooter() {
             <Heart className="h-4 w-4 fill-red-500 text-red-500" />
             <span>pela</span>
             <Link
-              to="https://portal-siga.com"
+              to={ECOSYSTEM_URLS.web}
               target="_blank"
               rel="noopener noreferrer"
               className="font-medium text-foreground hover:text-primary transition-colors"

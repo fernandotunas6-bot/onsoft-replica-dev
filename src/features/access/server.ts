@@ -225,6 +225,9 @@ export const inviteSystemUser = createServerFn({ method: "POST" })
       const { error: profileError } = await admin.from("profiles").upsert(
         {
           id: userId,
+          // `display_name` é NOT NULL e o Postgres verifica-o antes do ON CONFLICT:
+          // sem ele o upsert falhava sempre, e a conta acabada de criar era apagada.
+          display_name: data.fullName,
           full_name: data.fullName,
           cargo: data.cargo,
         },

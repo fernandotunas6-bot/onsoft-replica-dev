@@ -1,3 +1,4 @@
+import type { TablesInsert, TablesUpdate } from "@/integrations/supabase/types";
 import { createServerFn } from "@tanstack/react-start";
 import { normalizeStoredPhone } from "@/lib/angola-phone";
 import { sgaClient } from "@/integrations/supabase/sga";
@@ -767,7 +768,7 @@ export const enrollNewStudent = createServerFn({ method: "POST" })
     const fullName = personInput.full_name.trim();
     if (!fullName) throw new Error("Nome do aluno é obrigatório.");
 
-    const personPayload: Record<string, unknown> = {
+    const personPayload: TablesInsert<"people"> = {
       school_id: membership.schoolId,
       full_name: fullName,
       preferred_name:
@@ -989,7 +990,7 @@ export const updateStudentProfile = createServerFn({ method: "POST" })
       "Secretaria",
     ]);
     const db = await loadSgaAdminClient();
-    const personPatch: Record<string, unknown> = {
+    const personPatch: TablesUpdate<"people"> = {
       full_name: data.fullName,
       email: data.email || null,
       phone: data.phone ?? null,
@@ -1247,7 +1248,7 @@ export const updateEnrollment = createServerFn({ method: "POST" })
     if (classError) throw publicDatabaseError(classError, "Não foi possível validar a turma.");
     if (!classGroup) throw new Error("Turma não encontrada nesta escola.");
 
-    const patch: Record<string, unknown> = {
+    const patch: TablesUpdate<"enrollments"> = {
       class_group_id: data.classGroupId,
       status: data.status,
       updated_by: context.userId,
@@ -1308,33 +1309,25 @@ export const cancelEnrollment = createServerFn({ method: "POST" })
       "Secretaria",
     ]);
     const db = await loadSgaAdminClient();
-    let { data: enrollment, error } = await db
+    // `enrollments.status` só aceita pending/active/transferred/completed/cancelled.
+    // Antes tentava "withdrawn" e depois "inactive" — ambos recusados pela base, por
+    // isso nenhuma matrícula era anulada. O motivo vai para `end_reason` (3–300
+    // caracteres pela regra da tabela); `ended_on` fica vazio, o que a base aceita
+    // num estado final e evita a regra `ended_on >= enrolled_on`.
+    const reason = data.reason?.trim() ?? "";
+    const { data: enrollment, error } = await db
       .from("enrollments")
       .update({
-        status: "withdrawn",
+        status: "cancelled",
+        ...(reason.length >= 3 ? { end_reason: reason.slice(0, 300) } : {}),
         updated_by: context.userId,
       })
       .eq("id", data.enrollmentId)
       .eq("school_id", membership.schoolId)
       .select("id, status, student_id")
       .maybeSingle();
-    if (error && /status|check/i.test(error.message)) {
-      const retry = await db
-        .from("enrollments")
-        .update({
-          status: "inactive",
-          updated_by: context.userId,
-        })
-        .eq("id", data.enrollmentId)
-        .eq("school_id", membership.schoolId)
-        .select("id, status, student_id")
-        .maybeSingle();
-      enrollment = retry.data;
-      error = retry.error;
-    }
     if (error) throw publicDatabaseError(error, "Não foi possível anular a matrícula.");
     if (!enrollment) throw new Error("Matrícula não encontrada.");
-    void data.reason;
     return enrollment;
   });
 

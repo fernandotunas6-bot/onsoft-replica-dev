@@ -64,7 +64,8 @@ function leiturasDoCodigo(): { ficheiro: string; tabela: string; colunas: string
       }
       if (!/\.tsx?$/.test(entry)) continue;
       const código = readFileSync(full, "utf8");
-      const padrão = /\.from\(\s*["'`]([a-z_]+)["'`]\s*\)\s*\n?\s*\.select\(\s*"([^"]+)"/g;
+      const padrão =
+        /\.from\(\s*["'`]([a-z_]+)["'`]\s*\)(?:\s|\/\/[^\n]*\n)*\.select\(\s*"([^"]+)"/g;
       for (const m of código.matchAll(padrão)) {
         const [, tabela, lista] = m;
         if (lista.includes("(") || lista.includes("*")) continue; // embeds e select(*)
@@ -78,6 +79,42 @@ function leiturasDoCodigo(): { ficheiro: string; tabela: string; colunas: string
   };
   walk(resolve(REPO, "src"));
   return achados;
+}
+
+/**
+ * Chaves de topo de um objecto literal (sem as chavetas). Também em objectos numa só
+ * linha — `update({ status: "issued", updated_at: now })` passou por aqui porque só se lia
+ * uma chave por linha, e a base recusava a escrita (a coluna não existe).
+ */
+function chavesDeTopo(corpo: string): string[] {
+  const chaves: string[] = [];
+  let nível = 0;
+  let aspas: string | null = null;
+  let segmento = "";
+  const fecharSegmento = () => {
+    const chave = segmento.match(/^\s*(?:\/\/[^\n]*\n\s*)*([a-z_][a-z0-9_]*)\s*:/i);
+    if (chave) chaves.push(chave[1]);
+    segmento = "";
+  };
+  for (let i = 0; i < corpo.length; i++) {
+    const ch = corpo[i]!;
+    if (aspas) {
+      if (ch === "\\") i++;
+      else if (ch === aspas) aspas = null;
+      if (nível === 0) segmento += ch;
+      continue;
+    }
+    if (ch === '"' || ch === "'" || ch === "`") aspas = ch;
+    else if ("{[(".includes(ch)) nível++;
+    else if ("}])".includes(ch)) nível--;
+    else if (ch === "," && nível === 0) {
+      fecharSegmento();
+      continue;
+    }
+    if (nível === 0 || "{[(".includes(ch)) segmento += ch;
+  }
+  fecharSegmento();
+  return chaves;
 }
 
 /**
@@ -108,7 +145,8 @@ function escritasDoCodigo(): {
       }
       if (!/\.tsx?$/.test(entry)) continue;
       const código = readFileSync(full, "utf8");
-      const padrão = /\.from\(\s*["'`]([a-z_]+)["'`]\s*\)\s*\n?\s*\.(insert|update|upsert)\(\s*\{/g;
+      const padrão =
+        /\.from\(\s*["'`]([a-z_]+)["'`]\s*\)(?:\s|\/\/[^\n]*\n)*\.(insert|update|upsert)\(\s*\{/g;
       for (const m of código.matchAll(padrão)) {
         const [, tabela, operacao] = m;
         const início = (m.index ?? 0) + m[0].length - 1;
@@ -125,13 +163,7 @@ function escritasDoCodigo(): {
         }
         const corpo = código.slice(início + 1, fim);
 
-        const colunas: string[] = [];
-        let nível = 0;
-        for (const linha of corpo.split("\n")) {
-          const chave = linha.match(/^\s*([a-z_][a-z0-9_]*)\s*:/i);
-          if (nível === 0 && chave) colunas.push(chave[1]);
-          nível += (linha.match(/[{[(]/g) || []).length - (linha.match(/[}\])]/g) || []).length;
-        }
+        const colunas = chavesDeTopo(corpo);
 
         achados.push({ ficheiro: relative(REPO, full), tabela, operacao, colunas });
       }

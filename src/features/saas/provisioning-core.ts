@@ -158,7 +158,12 @@ async function runProvisioning(
    * ocupar o slug para sempre. Apagar por ordem inversa das dependências.
    */
   const cleanupTenant = async () => {
-    for (const table of ["saas_audit_logs", "tenant_usage", "tenant_domains", "subscriptions"]) {
+    for (const table of [
+      "saas_audit_logs",
+      "tenant_usage",
+      "tenant_domains",
+      "subscriptions",
+    ] as const) {
       await db.from(table).delete().eq("tenant_id", tenantId);
     }
     const { error } = await db.from("tenants").delete().eq("id", tenantId);
@@ -201,16 +206,12 @@ async function runProvisioning(
     // `enrollment_forms.created_by` apontam para a conta do administrador e,
     // sem os apagar, a conta ficava presa e o e-mail não servia para tentar
     // de novo (a 2026-09-28 foi o que aconteceu). Ordem das dependências.
-    for (const table of [
-      "school_settings",
-      "document_sequences",
-      "enrollment_forms",
-      "fee_items",
-      "fee_plans",
-      "academic_years",
-    ]) {
-      await db.from(table).delete().eq("school_id", schoolId);
-    }
+    await db.from("school_settings").delete().eq("school_id", schoolId);
+    await db.from("document_sequences").delete().eq("school_id", schoolId);
+    await db.from("enrollment_forms").delete().eq("school_id", schoolId);
+    await db.from("fee_items").delete().eq("school_id", schoolId);
+    await db.from("fee_plans").delete().eq("school_id", schoolId);
+    await db.from("academic_years").delete().eq("school_id", schoolId);
     if (adminUserId) {
       await db.from("profiles").delete().eq("id", adminUserId);
       try {

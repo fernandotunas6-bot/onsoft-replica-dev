@@ -11,6 +11,10 @@ import {
   type StudentRef,
 } from "./academic-core";
 
+function rpcAuthError(error: { code?: string; message?: string }) {
+  return error.code === "42501" || /is_aal2|autorização|autorizacao/i.test(error.message ?? "");
+}
+
 type EnrollmentRef = {
   id: string;
   student_id: string;
@@ -192,34 +196,35 @@ export const matriculasImporter: RowImporter = {
     }
 
     if (ctx.dryRun) return { status: "will_insert", warnings: [], errors: [], audits: [] };
-    const { data: created, error } = await ctx.db
-      .from("enrollments")
-      .insert({
-        school_id: ctx.schoolId,
-        student_id: student.id,
-        academic_year_id: ctx.academicYearId,
-        class_group_id: group.id,
-        status: "active",
-        enrolled_on: enrolledOn,
-        created_by: ctx.userId,
-        updated_by: ctx.userId,
-      })
-      .select("id, student_id, academic_year_id, class_group_id, status, enrolled_on")
-      .single();
-    if (error || !created)
+    // A matrícula nova passa por `enroll_student` (a mesma função do ecrã e do
+    // importador de alunos): gera o `enrollment_number` (MAT-000123), que é
+    // obrigatório, e valida capacidade, ano activo e data. O insert directo que
+    // estava aqui omitia o número e a base recusava todas as linhas.
+    const { data: enrolled, error } = await ctx.sessionSupabase.rpc("enroll_student", {
+      school_id: ctx.schoolId,
+      student_id: student.id,
+      class_group_id: group.id,
+      enrolled_on: enrolledOn,
+    });
+    const outcome = enrolled as { enrollmentId?: string; status?: string } | null;
+    if (error || !outcome?.enrollmentId)
       return {
         status: "error",
         warnings: [],
-        errors: [error?.message ?? "Não foi possível criar a matrícula."],
+        errors: [
+          error && rpcAuthError(error)
+            ? "Esta conta precisa de verificação em duas etapas (2FA) activa para matricular alunos."
+            : (error?.message ?? "Não foi possível criar a matrícula."),
+        ],
         audits: [],
       };
     const ref: EnrollmentRef = {
-      id: String(created.id),
-      student_id: String(created.student_id),
-      academic_year_id: String(created.academic_year_id),
-      class_group_id: String(created.class_group_id),
-      status: String(created.status ?? "active"),
-      enrolled_on: String(created.enrolled_on ?? enrolledOn),
+      id: String(outcome.enrollmentId),
+      student_id: student.id,
+      academic_year_id: group.academic_year_id ?? ctx.academicYearId,
+      class_group_id: group.id,
+      status: String(outcome.status ?? "active"),
+      enrolled_on: enrolledOn,
     };
     cache.enrollmentByStudent.set(student.id, ref);
     return {

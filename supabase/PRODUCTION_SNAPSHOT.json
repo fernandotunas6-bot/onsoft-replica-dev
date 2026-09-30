@@ -20,6 +20,12 @@
         "is_active",
         "created_at"
       ],
+      "obrigatorias": [
+        "school_id",
+        "code",
+        "name",
+        "sequence"
+      ],
       "politicas": 1,
       "rls": true,
       "rls_forcada": false,
@@ -48,6 +54,12 @@
         "deleted_at",
         "version"
       ],
+      "obrigatorias": [
+        "school_id",
+        "academic_year_id",
+        "class_group_id",
+        "name"
+      ],
       "politicas": 3,
       "rls": true,
       "rls_forcada": true,
@@ -66,6 +78,12 @@
         "created_at",
         "created_by",
         "updated_by"
+      ],
+      "obrigatorias": [
+        "school_id",
+        "name",
+        "starts_on",
+        "ends_on"
       ],
       "politicas": 4,
       "rls": true,
@@ -89,6 +107,10 @@
         "fundraising_enabled",
         "updated_at"
       ],
+      "obrigatorias": [
+        "school_id",
+        "alumni_id"
+      ],
       "politicas": 0,
       "rls": true,
       "rls_forcada": false,
@@ -111,6 +133,11 @@
         "notes",
         "metadata",
         "created_at"
+      ],
+      "obrigatorias": [
+        "school_id",
+        "alumni_id",
+        "contribution_type"
       ],
       "politicas": 0,
       "rls": true,
@@ -140,6 +167,12 @@
         "created_at",
         "updated_at"
       ],
+      "obrigatorias": [
+        "school_id",
+        "alumni_id",
+        "education_level",
+        "institution_name"
+      ],
       "politicas": 0,
       "rls": true,
       "rls_forcada": false,
@@ -160,6 +193,12 @@
         "metadata",
         "created_at"
       ],
+      "obrigatorias": [
+        "school_id",
+        "alumni_id",
+        "kind",
+        "title"
+      ],
       "politicas": 0,
       "rls": true,
       "rls_forcada": false,
@@ -177,6 +216,11 @@
         "registered_at",
         "checked_in_at",
         "metadata"
+      ],
+      "obrigatorias": [
+        "school_id",
+        "event_id",
+        "alumni_id"
       ],
       "politicas": 0,
       "rls": true,
@@ -202,6 +246,11 @@
         "created_at",
         "updated_at"
       ],
+      "obrigatorias": [
+        "school_id",
+        "title",
+        "starts_at"
+      ],
       "politicas": 0,
       "rls": true,
       "rls_forcada": false,
@@ -226,6 +275,12 @@
         "created_at",
         "updated_at"
       ],
+      "obrigatorias": [
+        "school_id",
+        "alumni_id",
+        "kind",
+        "organization"
+      ],
       "politicas": 0,
       "rls": true,
       "rls_forcada": false,
@@ -248,6 +303,12 @@
         "metadata",
         "created_at",
         "updated_at"
+      ],
+      "obrigatorias": [
+        "school_id",
+        "mentor_alumni_id",
+        "mentee_alumni_id",
+        "focus_area"
       ],
       "politicas": 0,
       "rls": true,
@@ -275,6 +336,10 @@
         "created_at",
         "updated_at"
       ],
+      "obrigatorias": [
+        "school_id",
+        "title"
+      ],
       "politicas": 0,
       "rls": true,
       "rls_forcada": false,
@@ -294,6 +359,11 @@
         "metadata",
         "created_at",
         "updated_at"
+      ],
+      "obrigatorias": [
+        "school_id",
+        "opportunity_id",
+        "alumni_id"
       ],
       "politicas": 0,
       "rls": true,
@@ -328,6 +398,12 @@
         "education_level",
         "education_stage_id"
       ],
+      "obrigatorias": [
+        "school_id",
+        "alumni_id",
+        "item_type",
+        "title"
+      ],
       "politicas": 0,
       "rls": true,
       "rls_forcada": false,
@@ -346,6 +422,11 @@
         "new_value",
         "occurred_at",
         "metadata"
+      ],
+      "obrigatorias": [
+        "school_id",
+        "alumni_id",
+        "action"
       ],
       "politicas": 0,
       "rls": true,
@@ -391,6 +472,11 @@
         "self_service_enabled",
         "self_service_claimed_at"
       ],
+      "obrigatorias": [
+        "school_id",
+        "student_id",
+        "person_id"
+      ],
       "politicas": 0,
       "rls": true,
       "rls_forcada": false,
@@ -406,6 +492,11 @@
         "alumni_id",
         "response_json",
         "submitted_at"
+      ],
+      "obrigatorias": [
+        "school_id",
+        "survey_id",
+        "alumni_id"
       ],
       "politicas": 0,
       "rls": true,
@@ -427,6 +518,10 @@
         "closes_at",
         "created_at",
         "updated_at"
+      ],
+      "obrigatorias": [
+        "school_id",
+        "title"
       ],
       "politicas": 0,
       "rls": true,
@@ -455,6 +550,12 @@
         "scheduled_for",
         "updated_by"
       ],
+      "obrigatorias": [
+        "school_id",
+        "title",
+        "body",
+        "created_by"
+      ],
       "politicas": 4,
       "rls": true,
       "rls_forcada": true,
@@ -469,6 +570,11 @@
         "rule_set_id",
         "subject_id",
         "created_at"
+      ],
+      "obrigatorias": [
+        "school_id",
+        "rule_set_id",
+        "subject_id"
       ],
       "politicas": 1,
       "rls": true,
@@ -497,6 +603,15 @@
         "created_by",
         "created_at"
       ],
+      "obrigatorias": [
+        "school_id",
+        "grading_scale_id",
+        "name",
+        "continuous_weight",
+        "exam_weight",
+        "passing_value",
+        "maximum_absence_percentage"
+      ],
       "politicas": 1,
       "rls": true,
       "rls_forcada": false,
@@ -517,6 +632,13 @@
         "created_at",
         "updated_at"
       ],
+      "obrigatorias": [
+        "school_id",
+        "attendance_session_id",
+        "enrollment_id",
+        "status",
+        "recorded_by"
+      ],
       "politicas": 1,
       "rls": true,
       "rls_forcada": false,
@@ -530,6 +652,11 @@
         "attendance_session_id",
         "enrollment_id",
         "captured_at"
+      ],
+      "obrigatorias": [
+        "school_id",
+        "attendance_session_id",
+        "enrollment_id"
       ],
       "politicas": 1,
       "rls": true,
@@ -556,6 +683,13 @@
         "reopened_at",
         "reopen_reason"
       ],
+      "obrigatorias": [
+        "school_id",
+        "timetable_slot_id",
+        "class_subject_id",
+        "session_date",
+        "opened_by"
+      ],
       "politicas": 1,
       "rls": true,
       "rls_forcada": false,
@@ -575,6 +709,11 @@
         "metadata",
         "occurred_at"
       ],
+      "obrigatorias": [
+        "school_id",
+        "action",
+        "entity_type"
+      ],
       "politicas": 1,
       "rls": true,
       "rls_forcada": false,
@@ -589,6 +728,11 @@
         "user_id",
         "token",
         "created_at"
+      ],
+      "obrigatorias": [
+        "school_id",
+        "user_id",
+        "token"
       ],
       "politicas": 2,
       "rls": true,
@@ -608,6 +752,11 @@
         "is_active",
         "created_at",
         "address"
+      ],
+      "obrigatorias": [
+        "school_id",
+        "code",
+        "name"
       ],
       "politicas": 1,
       "rls": true,
@@ -635,7 +784,20 @@
         "updated_at",
         "delegate_student_id",
         "whatsapp_invite_url",
-        "whatsapp_group_name"
+        "whatsapp_group_name",
+        "room_id"
+      ],
+      "obrigatorias": [
+        "school_id",
+        "academic_year_id",
+        "campus_id",
+        "grade_level_id",
+        "code",
+        "name",
+        "shift",
+        "capacity",
+        "created_by",
+        "updated_by"
       ],
       "politicas": 7,
       "rls": true,
@@ -657,6 +819,14 @@
         "updated_by",
         "created_at",
         "updated_at"
+      ],
+      "obrigatorias": [
+        "school_id",
+        "class_group_id",
+        "subject_id",
+        "weekly_periods",
+        "created_by",
+        "updated_by"
       ],
       "politicas": 4,
       "rls": true,
@@ -682,6 +852,12 @@
         "created_at",
         "updated_at"
       ],
+      "obrigatorias": [
+        "channel",
+        "provider",
+        "sender_address",
+        "recipient"
+      ],
       "politicas": 1,
       "rls": true,
       "rls_forcada": false,
@@ -697,6 +873,11 @@
         "event_type",
         "payload",
         "occurred_at"
+      ],
+      "obrigatorias": [
+        "provider",
+        "event_type",
+        "payload"
       ],
       "politicas": 1,
       "rls": true,
@@ -728,6 +909,9 @@
         "updated_at",
         "version"
       ],
+      "obrigatorias": [
+        "user_id"
+      ],
       "politicas": 2,
       "rls": true,
       "rls_forcada": false,
@@ -752,6 +936,13 @@
         "deleted_at",
         "version"
       ],
+      "obrigatorias": [
+        "school_id",
+        "academic_year_id",
+        "course_id",
+        "grade_level_id",
+        "name"
+      ],
       "politicas": 3,
       "rls": true,
       "rls_forcada": true,
@@ -775,6 +966,11 @@
         "updated_by",
         "deleted_at",
         "version"
+      ],
+      "obrigatorias": [
+        "school_id",
+        "code",
+        "name"
       ],
       "politicas": 3,
       "rls": true,
@@ -801,6 +997,11 @@
         "deleted_at",
         "version"
       ],
+      "obrigatorias": [
+        "school_id",
+        "curriculum_id",
+        "subject_id"
+      ],
       "politicas": 3,
       "rls": true,
       "rls_forcada": true,
@@ -824,6 +1025,13 @@
         "created_at",
         "updated_at"
       ],
+      "obrigatorias": [
+        "school_id",
+        "student_id",
+        "request_type",
+        "purpose",
+        "requested_by"
+      ],
       "politicas": 3,
       "rls": true,
       "rls_forcada": false,
@@ -840,6 +1048,11 @@
         "next_number",
         "padding",
         "updated_at"
+      ],
+      "obrigatorias": [
+        "school_id",
+        "document_type",
+        "prefix"
       ],
       "politicas": 1,
       "rls": true,
@@ -860,6 +1073,12 @@
         "acted_at",
         "note",
         "created_at"
+      ],
+      "obrigatorias": [
+        "school_id",
+        "issued_document_id",
+        "signer_role",
+        "requested_by"
       ],
       "politicas": 3,
       "rls": true,
@@ -882,6 +1101,15 @@
         "created_by",
         "created_at"
       ],
+      "obrigatorias": [
+        "school_id",
+        "code",
+        "name",
+        "document_type",
+        "version",
+        "body_template",
+        "created_by"
+      ],
       "politicas": 3,
       "rls": true,
       "rls_forcada": false,
@@ -895,6 +1123,10 @@
         "mailbox_id",
         "alias_address",
         "created_at"
+      ],
+      "obrigatorias": [
+        "mailbox_id",
+        "alias_address"
       ],
       "politicas": 1,
       "rls": true,
@@ -920,6 +1152,11 @@
         "deleted_at",
         "version",
         "student_id"
+      ],
+      "obrigatorias": [
+        "school_id",
+        "form_id",
+        "full_name"
       ],
       "politicas": 2,
       "rls": true,
@@ -947,6 +1184,11 @@
         "deleted_at",
         "version"
       ],
+      "obrigatorias": [
+        "school_id",
+        "slug",
+        "title"
+      ],
       "politicas": 2,
       "rls": true,
       "rls_forcada": true,
@@ -973,6 +1215,16 @@
         "attendance_rate",
         "final_average"
       ],
+      "obrigatorias": [
+        "school_id",
+        "academic_year_id",
+        "class_group_id",
+        "student_id",
+        "enrollment_number",
+        "enrolled_on",
+        "created_by",
+        "updated_by"
+      ],
       "politicas": 6,
       "rls": true,
       "rls_forcada": true,
@@ -993,6 +1245,15 @@
         "is_active",
         "created_at"
       ],
+      "obrigatorias": [
+        "school_id",
+        "fee_plan_id",
+        "code",
+        "name",
+        "kind",
+        "amount",
+        "frequency"
+      ],
       "politicas": 1,
       "rls": true,
       "rls_forcada": false,
@@ -1011,6 +1272,12 @@
         "status",
         "created_at"
       ],
+      "obrigatorias": [
+        "school_id",
+        "academic_year_id",
+        "code",
+        "name"
+      ],
       "politicas": 1,
       "rls": true,
       "rls_forcada": false,
@@ -1028,6 +1295,12 @@
         "status",
         "created_by",
         "created_at"
+      ],
+      "obrigatorias": [
+        "school_id",
+        "enrollment_id",
+        "fee_plan_id",
+        "created_by"
       ],
       "politicas": 1,
       "rls": true,
@@ -1052,6 +1325,11 @@
         "external_id",
         "created_at"
       ],
+      "obrigatorias": [
+        "channel",
+        "http_status",
+        "ok"
+      ],
       "politicas": 1,
       "rls": true,
       "rls_forcada": true,
@@ -1069,6 +1347,11 @@
         "reason",
         "changed_by",
         "created_at"
+      ],
+      "obrigatorias": [
+        "school_id",
+        "invoice_id",
+        "to_status"
       ],
       "politicas": 1,
       "rls": true,
@@ -1096,6 +1379,15 @@
         "created_at",
         "penalty_amount"
       ],
+      "obrigatorias": [
+        "school_id",
+        "contract_id",
+        "fee_item_id",
+        "invoice_number",
+        "amount",
+        "due_date",
+        "issued_by"
+      ],
       "politicas": 1,
       "rls": true,
       "rls_forcada": false,
@@ -1118,6 +1410,9 @@
         "updated_at",
         "created_by",
         "updated_by"
+      ],
+      "obrigatorias": [
+        "school_id"
       ],
       "politicas": 2,
       "rls": true,
@@ -1143,6 +1438,15 @@
         "created_at",
         "external_id"
       ],
+      "obrigatorias": [
+        "school_id",
+        "invoice_id",
+        "receipt_number",
+        "amount",
+        "paid_on",
+        "payment_method",
+        "received_by"
+      ],
       "politicas": 1,
       "rls": true,
       "rls_forcada": false,
@@ -1164,6 +1468,17 @@
         "maximum_discount_percentage",
         "created_by",
         "created_at"
+      ],
+      "obrigatorias": [
+        "school_id",
+        "code",
+        "version",
+        "status",
+        "monthly_due_day",
+        "late_penalty_kind",
+        "late_penalty_value",
+        "maximum_discount_percentage",
+        "created_by"
       ],
       "politicas": 1,
       "rls": true,
@@ -1187,6 +1502,14 @@
         "revoked_at",
         "google_sub"
       ],
+      "obrigatorias": [
+        "user_id",
+        "school_id",
+        "encrypted_access_token",
+        "encrypted_refresh_token",
+        "expires_at",
+        "google_sub"
+      ],
       "politicas": 0,
       "rls": true,
       "rls_forcada": false,
@@ -1205,6 +1528,16 @@
         "created_at",
         "expires_at",
         "consumed_at",
+        "session_id"
+      ],
+      "obrigatorias": [
+        "state_hash",
+        "user_id",
+        "school_id",
+        "encrypted_verifier",
+        "requested_services",
+        "redirect_uri",
+        "expires_at",
         "session_id"
       ],
       "politicas": 0,
@@ -1229,6 +1562,15 @@
         "created_by",
         "created_at"
       ],
+      "obrigatorias": [
+        "school_id",
+        "gradebook_id",
+        "code",
+        "name",
+        "kind",
+        "max_score",
+        "created_by"
+      ],
       "politicas": 4,
       "rls": true,
       "rls_forcada": true,
@@ -1246,6 +1588,12 @@
         "sequence",
         "is_active",
         "created_at"
+      ],
+      "obrigatorias": [
+        "school_id",
+        "program_id",
+        "code",
+        "name"
       ],
       "politicas": 4,
       "rls": true,
@@ -1266,6 +1614,10 @@
         "approved_by",
         "kind",
         "created_at"
+      ],
+      "obrigatorias": [
+        "school_id",
+        "grade_score_id"
       ],
       "politicas": 0,
       "rls": true,
@@ -1292,6 +1644,14 @@
         "pending_requested_by",
         "pending_requested_at"
       ],
+      "obrigatorias": [
+        "school_id",
+        "grade_item_id",
+        "enrollment_id",
+        "score",
+        "recorded_by",
+        "updated_by"
+      ],
       "politicas": 4,
       "rls": true,
       "rls_forcada": true,
@@ -1315,6 +1675,11 @@
         "created_at",
         "updated_at"
       ],
+      "obrigatorias": [
+        "school_id",
+        "grade_sheet_id",
+        "enrollment_id"
+      ],
       "politicas": 2,
       "rls": true,
       "rls_forcada": false,
@@ -1335,6 +1700,13 @@
         "snapshot",
         "archived_by",
         "archived_at"
+      ],
+      "obrigatorias": [
+        "school_id",
+        "grade_sheet_id",
+        "version",
+        "status",
+        "snapshot"
       ],
       "politicas": 0,
       "rls": true,
@@ -1364,6 +1736,16 @@
         "created_at",
         "updated_at"
       ],
+      "obrigatorias": [
+        "school_id",
+        "academic_year_id",
+        "class_group_id",
+        "rule_set_id",
+        "kind",
+        "title",
+        "created_by",
+        "updated_by"
+      ],
       "politicas": 3,
       "rls": true,
       "rls_forcada": false,
@@ -1389,6 +1771,16 @@
         "created_at",
         "updated_at"
       ],
+      "obrigatorias": [
+        "school_id",
+        "academic_year_id",
+        "term_id",
+        "class_subject_id",
+        "class_group_id",
+        "rule_set_id",
+        "created_by",
+        "updated_by"
+      ],
       "politicas": 4,
       "rls": true,
       "rls_forcada": true,
@@ -1409,6 +1801,14 @@
         "decimal_places",
         "is_active",
         "created_at"
+      ],
+      "obrigatorias": [
+        "school_id",
+        "code",
+        "name",
+        "minimum_value",
+        "maximum_value",
+        "passing_value"
       ],
       "politicas": 1,
       "rls": true,
@@ -1441,6 +1841,13 @@
         "deleted_at",
         "version"
       ],
+      "obrigatorias": [
+        "school_id",
+        "employment_id",
+        "absence_date",
+        "absence_type",
+        "duration_minutes"
+      ],
       "politicas": 3,
       "rls": true,
       "rls_forcada": true,
@@ -1471,6 +1878,13 @@
         "decision",
         "reasons",
         "metadata"
+      ],
+      "obrigatorias": [
+        "school_id",
+        "occurrence_id",
+        "purpose",
+        "actor_user_id",
+        "decision"
       ],
       "politicas": 1,
       "rls": true,
@@ -1505,6 +1919,9 @@
         "updated_by",
         "version"
       ],
+      "obrigatorias": [
+        "school_id"
+      ],
       "politicas": 1,
       "rls": true,
       "rls_forcada": true,
@@ -1535,6 +1952,12 @@
         "updated_by",
         "deleted_at",
         "version"
+      ],
+      "obrigatorias": [
+        "school_id",
+        "employment_id",
+        "event_date",
+        "event_type"
       ],
       "politicas": 3,
       "rls": true,
@@ -1567,6 +1990,11 @@
         "updated_by",
         "version"
       ],
+      "obrigatorias": [
+        "school_id",
+        "contract_id",
+        "remuneration_model"
+      ],
       "politicas": 3,
       "rls": true,
       "rls_forcada": true,
@@ -1586,6 +2014,15 @@
         "salary_scale_step_id",
         "applied_by",
         "created_at"
+      ],
+      "obrigatorias": [
+        "school_id",
+        "contract_id",
+        "request_id",
+        "effective_on",
+        "previous_base_salary_kz",
+        "new_base_salary_kz",
+        "applied_by"
       ],
       "politicas": 0,
       "rls": true,
@@ -1620,6 +2057,13 @@
         "salary_scale_step_id",
         "salary_scale_snapshot_kz"
       ],
+      "obrigatorias": [
+        "school_id",
+        "employment_id",
+        "contract_type",
+        "salary_type",
+        "starts_on"
+      ],
       "politicas": 3,
       "rls": true,
       "rls_forcada": false,
@@ -1642,6 +2086,10 @@
         "updated_by",
         "deleted_at",
         "version"
+      ],
+      "obrigatorias": [
+        "school_id",
+        "name"
       ],
       "politicas": 3,
       "rls": true,
@@ -1672,6 +2120,12 @@
         "deleted_at",
         "version"
       ],
+      "obrigatorias": [
+        "school_id",
+        "person_id",
+        "employment_type",
+        "hire_date"
+      ],
       "politicas": 3,
       "rls": true,
       "rls_forcada": false,
@@ -1699,6 +2153,11 @@
         "deleted_at",
         "version"
       ],
+      "obrigatorias": [
+        "school_id",
+        "employment_id",
+        "beneficiary_name"
+      ],
       "politicas": 1,
       "rls": true,
       "rls_forcada": true,
@@ -1716,6 +2175,9 @@
         "updated_at",
         "updated_by",
         "version"
+      ],
+      "obrigatorias": [
+        "school_id"
       ],
       "politicas": 1,
       "rls": true,
@@ -1738,6 +2200,14 @@
         "metadata",
         "created_at",
         "created_by"
+      ],
+      "obrigatorias": [
+        "school_id",
+        "payroll_item_id",
+        "component_type",
+        "code",
+        "name",
+        "amount_kz"
       ],
       "politicas": 2,
       "rls": true,
@@ -1769,6 +2239,11 @@
         "updated_by",
         "version"
       ],
+      "obrigatorias": [
+        "school_id",
+        "payroll_run_id",
+        "employment_id"
+      ],
       "politicas": 3,
       "rls": true,
       "rls_forcada": false,
@@ -1798,6 +2273,12 @@
         "created_by",
         "updated_by",
         "version"
+      ],
+      "obrigatorias": [
+        "school_id",
+        "payroll_run_id",
+        "batch_number",
+        "prepared_by"
       ],
       "politicas": 1,
       "rls": true,
@@ -1831,6 +2312,14 @@
         "version",
         "cash_expense_id"
       ],
+      "obrigatorias": [
+        "school_id",
+        "batch_id",
+        "payroll_item_id",
+        "employment_id",
+        "beneficiary_name",
+        "amount_kz"
+      ],
       "politicas": 1,
       "rls": true,
       "rls_forcada": true,
@@ -1860,6 +2349,13 @@
         "updated_by",
         "version"
       ],
+      "obrigatorias": [
+        "school_id",
+        "competence_year",
+        "competence_month",
+        "period_start",
+        "period_end"
+      ],
       "politicas": 3,
       "rls": true,
       "rls_forcada": false,
@@ -1883,6 +2379,10 @@
         "updated_by",
         "deleted_at",
         "version"
+      ],
+      "obrigatorias": [
+        "school_id",
+        "name"
       ],
       "politicas": 3,
       "rls": true,
@@ -1909,6 +2409,13 @@
         "created_at",
         "updated_at"
       ],
+      "obrigatorias": [
+        "school_id",
+        "contract_id",
+        "proposed_base_salary_kz",
+        "effective_on",
+        "reason"
+      ],
       "politicas": 0,
       "rls": true,
       "rls_forcada": false,
@@ -1925,6 +2432,13 @@
         "grade",
         "monthly_base_kz",
         "created_at"
+      ],
+      "obrigatorias": [
+        "version_id",
+        "category_code",
+        "category_name",
+        "grade",
+        "monthly_base_kz"
       ],
       "politicas": 0,
       "rls": true,
@@ -1944,6 +2458,11 @@
         "approved_at",
         "created_at"
       ],
+      "obrigatorias": [
+        "scale_id",
+        "version_label",
+        "effective_from"
+      ],
       "politicas": 0,
       "rls": true,
       "rls_forcada": false,
@@ -1962,6 +2481,11 @@
         "source_reference",
         "source_url",
         "created_at"
+      ],
+      "obrigatorias": [
+        "code",
+        "name",
+        "sector"
       ],
       "politicas": 0,
       "rls": true,
@@ -1987,6 +2511,9 @@
         "deleted_at",
         "version"
       ],
+      "obrigatorias": [
+        "school_id"
+      ],
       "politicas": 3,
       "rls": true,
       "rls_forcada": true,
@@ -2009,6 +2536,11 @@
         "updated_by",
         "deleted_at",
         "version"
+      ],
+      "obrigatorias": [
+        "school_id",
+        "teacher_id",
+        "employment_id"
       ],
       "politicas": 3,
       "rls": true,
@@ -2058,6 +2590,15 @@
         "reviewed_by",
         "reviewed_at"
       ],
+      "obrigatorias": [
+        "school_id",
+        "class_subject_id",
+        "teacher_id",
+        "employment_id",
+        "lesson_date",
+        "scheduled_starts_at",
+        "scheduled_ends_at"
+      ],
       "politicas": 3,
       "rls": true,
       "rls_forcada": true,
@@ -2083,6 +2624,13 @@
         "revoked_by",
         "metadata"
       ],
+      "obrigatorias": [
+        "school_id",
+        "occurrence_id",
+        "purpose",
+        "token_hash",
+        "expires_at"
+      ],
       "politicas": 3,
       "rls": true,
       "rls_forcada": true,
@@ -2104,6 +2652,12 @@
         "sequence_no",
         "reversible",
         "source_hash"
+      ],
+      "obrigatorias": [
+        "import_job_id",
+        "table_name",
+        "target_id",
+        "action_type"
       ],
       "politicas": 1,
       "rls": true,
@@ -2143,6 +2697,11 @@
         "dependency_plan",
         "error_summary"
       ],
+      "obrigatorias": [
+        "school_id",
+        "module",
+        "file_name"
+      ],
       "politicas": 1,
       "rls": true,
       "rls_forcada": true,
@@ -2170,6 +2729,10 @@
         "resolution",
         "source_hash"
       ],
+      "obrigatorias": [
+        "import_job_id",
+        "row_number"
+      ],
       "politicas": 1,
       "rls": true,
       "rls_forcada": true,
@@ -2195,6 +2758,9 @@
         "created_at",
         "updated_at"
       ],
+      "obrigatorias": [
+        "table_name"
+      ],
       "politicas": 0,
       "rls": true,
       "rls_forcada": true,
@@ -2218,6 +2784,11 @@
         "dependencies",
         "checksum",
         "is_system"
+      ],
+      "obrigatorias": [
+        "school_id",
+        "module",
+        "name"
       ],
       "politicas": 0,
       "rls": true,
@@ -2253,6 +2824,18 @@
         "archived_at",
         "archived_by"
       ],
+      "obrigatorias": [
+        "school_id",
+        "student_id",
+        "template_id",
+        "template_version",
+        "document_number",
+        "document_type",
+        "title",
+        "body_snapshot",
+        "validation_code",
+        "issued_by"
+      ],
       "politicas": 3,
       "rls": true,
       "rls_forcada": false,
@@ -2273,6 +2856,11 @@
         "created_at",
         "updated_at"
       ],
+      "obrigatorias": [
+        "school_id",
+        "address",
+        "provider"
+      ],
       "politicas": 0,
       "rls": true,
       "rls_forcada": true,
@@ -2286,6 +2874,11 @@
         "membership_id",
         "role_id",
         "created_at"
+      ],
+      "obrigatorias": [
+        "school_id",
+        "membership_id",
+        "role_id"
       ],
       "politicas": 4,
       "rls": true,
@@ -2303,6 +2896,12 @@
         "is_essential",
         "created_at",
         "updated_at"
+      ],
+      "obrigatorias": [
+        "code",
+        "name",
+        "version",
+        "manifest"
       ],
       "politicas": 1,
       "rls": true,
@@ -2325,6 +2924,13 @@
         "status",
         "read_at",
         "created_at"
+      ],
+      "obrigatorias": [
+        "school_id",
+        "user_id",
+        "event_type",
+        "title",
+        "body"
       ],
       "politicas": 2,
       "rls": true,
@@ -2356,6 +2962,13 @@
         "created_by",
         "created_at",
         "updated_at"
+      ],
+      "obrigatorias": [
+        "school_id",
+        "invoice_id",
+        "method",
+        "merchant_transaction_id",
+        "amount"
       ],
       "politicas": 0,
       "rls": true,
@@ -2389,6 +3002,12 @@
         "commune",
         "address"
       ],
+      "obrigatorias": [
+        "school_id",
+        "full_name",
+        "created_by",
+        "updated_by"
+      ],
       "politicas": 7,
       "rls": true,
       "rls_forcada": true,
@@ -2399,6 +3018,10 @@
       "auth_select": true,
       "colunas": [
         "id",
+        "code",
+        "description"
+      ],
+      "obrigatorias": [
         "code",
         "description"
       ],
@@ -2426,6 +3049,12 @@
         "file_id",
         "file_name"
       ],
+      "obrigatorias": [
+        "school_id",
+        "person_id",
+        "document_type",
+        "document_number"
+      ],
       "politicas": 3,
       "rls": true,
       "rls_forcada": true,
@@ -2445,6 +3074,11 @@
         "created_by",
         "updated_by",
         "deleted_at"
+      ],
+      "obrigatorias": [
+        "school_id",
+        "person_id",
+        "role"
       ],
       "politicas": 1,
       "rls": true,
@@ -2469,6 +3103,10 @@
         "created_at",
         "updated_at"
       ],
+      "obrigatorias": [
+        "name",
+        "code"
+      ],
       "politicas": 1,
       "rls": true,
       "rls_forcada": false,
@@ -2480,6 +3118,9 @@
       "colunas": [
         "user_id",
         "created_at"
+      ],
+      "obrigatorias": [
+        "user_id"
       ],
       "politicas": 1,
       "rls": true,
@@ -2510,6 +3151,10 @@
         "onboarding_status",
         "last_active_at"
       ],
+      "obrigatorias": [
+        "id",
+        "display_name"
+      ],
       "politicas": 3,
       "rls": true,
       "rls_forcada": false,
@@ -2533,6 +3178,12 @@
         "deleted_at",
         "version"
       ],
+      "obrigatorias": [
+        "school_id",
+        "program_id",
+        "subject_id",
+        "semester"
+      ],
       "politicas": 3,
       "rls": true,
       "rls_forcada": true,
@@ -2551,6 +3202,12 @@
         "is_active",
         "created_at",
         "grading_profile"
+      ],
+      "obrigatorias": [
+        "school_id",
+        "academic_level_id",
+        "code",
+        "name"
       ],
       "politicas": 1,
       "rls": true,
@@ -2573,6 +3230,13 @@
         "created_by",
         "created_at"
       ],
+      "obrigatorias": [
+        "school_id",
+        "enrollment_id",
+        "grade_sheet_id",
+        "academic_year_id",
+        "created_by"
+      ],
       "politicas": 3,
       "rls": true,
       "rls_forcada": false,
@@ -2586,6 +3250,9 @@
         "reason",
         "created_at"
       ],
+      "obrigatorias": [
+        "slug"
+      ],
       "politicas": 2,
       "rls": true,
       "rls_forcada": false,
@@ -2595,6 +3262,11 @@
       "anon_select": false,
       "auth_select": true,
       "colunas": [
+        "school_id",
+        "role_id",
+        "permission_id"
+      ],
+      "obrigatorias": [
         "school_id",
         "role_id",
         "permission_id"
@@ -2614,6 +3286,11 @@
         "name",
         "is_system",
         "created_at"
+      ],
+      "obrigatorias": [
+        "school_id",
+        "code",
+        "name"
       ],
       "politicas": 2,
       "rls": true,
@@ -2645,6 +3322,11 @@
         "accessibility",
         "notes"
       ],
+      "obrigatorias": [
+        "school_id",
+        "code",
+        "name"
+      ],
       "politicas": 3,
       "rls": true,
       "rls_forcada": true,
@@ -2663,6 +3345,10 @@
         "metadata",
         "ip_address",
         "created_at"
+      ],
+      "obrigatorias": [
+        "action",
+        "entity"
       ],
       "politicas": 1,
       "rls": true,
@@ -2696,6 +3382,12 @@
         "info_request_note",
         "requester_reply"
       ],
+      "obrigatorias": [
+        "school_id",
+        "user_id",
+        "full_name",
+        "requested_profile"
+      ],
       "politicas": 1,
       "rls": true,
       "rls_forcada": true,
@@ -2721,6 +3413,11 @@
         "deleted_at",
         "version"
       ],
+      "obrigatorias": [
+        "school_id",
+        "title",
+        "body"
+      ],
       "politicas": 1,
       "rls": true,
       "rls_forcada": true,
@@ -2741,6 +3438,9 @@
         "created_by",
         "updated_by",
         "version"
+      ],
+      "obrigatorias": [
+        "school_id"
       ],
       "politicas": 2,
       "rls": true,
@@ -2764,6 +3464,9 @@
         "created_at",
         "updated_at"
       ],
+      "obrigatorias": [
+        "school_id"
+      ],
       "politicas": 1,
       "rls": true,
       "rls_forcada": false,
@@ -2784,6 +3487,11 @@
         "updated_at",
         "cloudflare_route_id"
       ],
+      "obrigatorias": [
+        "school_id",
+        "source_address",
+        "destination_address"
+      ],
       "politicas": 0,
       "rls": true,
       "rls_forcada": true,
@@ -2801,6 +3509,12 @@
         "expires_at",
         "created_at",
         "updated_at"
+      ],
+      "obrigatorias": [
+        "school_id",
+        "provider",
+        "secret_key",
+        "secret_value"
       ],
       "politicas": 0,
       "rls": true,
@@ -2820,6 +3534,10 @@
         "updated_at",
         "created_by",
         "updated_by"
+      ],
+      "obrigatorias": [
+        "school_id",
+        "provider"
       ],
       "politicas": 1,
       "rls": true,
@@ -2843,6 +3561,11 @@
         "created_at",
         "updated_at"
       ],
+      "obrigatorias": [
+        "school_id",
+        "email",
+        "token_hash"
+      ],
       "politicas": 1,
       "rls": true,
       "rls_forcada": true,
@@ -2864,6 +3587,10 @@
         "suspended_at",
         "last_access_at"
       ],
+      "obrigatorias": [
+        "school_id",
+        "user_id"
+      ],
       "politicas": 2,
       "rls": true,
       "rls_forcada": true,
@@ -2883,6 +3610,13 @@
         "installed_at",
         "updated_at"
       ],
+      "obrigatorias": [
+        "school_id",
+        "module_code",
+        "installed_version",
+        "status",
+        "installed_by"
+      ],
       "politicas": 1,
       "rls": true,
       "rls_forcada": false,
@@ -2899,6 +3633,13 @@
         "value",
         "changed_by",
         "created_at"
+      ],
+      "obrigatorias": [
+        "school_id",
+        "domain",
+        "version",
+        "value",
+        "changed_by"
       ],
       "politicas": 2,
       "rls": true,
@@ -2923,6 +3664,14 @@
         "updated_by",
         "deleted_at",
         "version"
+      ],
+      "obrigatorias": [
+        "school_id",
+        "shift_id",
+        "slot_number",
+        "name",
+        "starts_at",
+        "ends_at"
       ],
       "politicas": 3,
       "rls": true,
@@ -2951,6 +3700,13 @@
         "deleted_at",
         "version"
       ],
+      "obrigatorias": [
+        "school_id",
+        "code",
+        "name",
+        "starts_at",
+        "ends_at"
+      ],
       "politicas": 3,
       "rls": true,
       "rls_forcada": true,
@@ -2967,6 +3723,11 @@
         "changed_by",
         "redirect_until",
         "created_at"
+      ],
+      "obrigatorias": [
+        "tenant_id",
+        "old_slug",
+        "new_slug"
       ],
       "politicas": 1,
       "rls": true,
@@ -3007,6 +3768,10 @@
         "latitude",
         "longitude"
       ],
+      "obrigatorias": [
+        "public_code",
+        "name"
+      ],
       "politicas": 2,
       "rls": true,
       "rls_forcada": false,
@@ -3030,6 +3795,12 @@
         "created_at",
         "updated_at"
       ],
+      "obrigatorias": [
+        "school_id",
+        "person_id",
+        "card_number",
+        "barcode"
+      ],
       "politicas": 1,
       "rls": true,
       "rls_forcada": true,
@@ -3051,6 +3822,11 @@
         "device_name",
         "created_at"
       ],
+      "obrigatorias": [
+        "school_id",
+        "direction",
+        "status"
+      ],
       "politicas": 1,
       "rls": true,
       "rls_forcada": true,
@@ -3066,6 +3842,11 @@
         "competency_id",
         "created_by",
         "created_at"
+      ],
+      "obrigatorias": [
+        "school_id",
+        "item_id",
+        "competency_id"
       ],
       "politicas": 0,
       "rls": true,
@@ -3098,6 +3879,11 @@
         "duration_minutes",
         "purpose"
       ],
+      "obrigatorias": [
+        "school_id",
+        "term",
+        "name"
+      ],
       "politicas": 3,
       "rls": true,
       "rls_forcada": true,
@@ -3116,6 +3902,11 @@
         "status",
         "recorded_by",
         "updated_at"
+      ],
+      "obrigatorias": [
+        "school_id",
+        "item_id",
+        "enrollment_id"
       ],
       "politicas": 3,
       "rls": true,
@@ -3137,6 +3928,15 @@
         "changed_by",
         "device_info",
         "created_at"
+      ],
+      "obrigatorias": [
+        "school_id",
+        "session_id",
+        "student_id",
+        "old_status",
+        "new_status",
+        "reason",
+        "changed_by"
       ],
       "politicas": 0,
       "rls": true,
@@ -3162,6 +3962,12 @@
         "created_at",
         "updated_at"
       ],
+      "obrigatorias": [
+        "school_id",
+        "student_id",
+        "reason",
+        "submitted_by"
+      ],
       "politicas": 2,
       "rls": true,
       "rls_forcada": true,
@@ -3180,6 +3986,11 @@
         "recorded_by",
         "created_at",
         "updated_at"
+      ],
+      "obrigatorias": [
+        "school_id",
+        "session_id",
+        "student_id"
       ],
       "politicas": 2,
       "rls": true,
@@ -3208,6 +4019,11 @@
         "updated_at",
         "updated_by"
       ],
+      "obrigatorias": [
+        "school_id",
+        "class_group_id",
+        "subject_id"
+      ],
       "politicas": 2,
       "rls": true,
       "rls_forcada": true,
@@ -3235,6 +4051,13 @@
         "updated_at",
         "updated_by"
       ],
+      "obrigatorias": [
+        "school_id",
+        "document_number",
+        "description",
+        "category",
+        "amount"
+      ],
       "politicas": 0,
       "rls": true,
       "rls_forcada": true,
@@ -3258,6 +4081,11 @@
         "created_at",
         "updated_at"
       ],
+      "obrigatorias": [
+        "school_id",
+        "class_subject_id",
+        "title"
+      ],
       "politicas": 0,
       "rls": true,
       "rls_forcada": true,
@@ -3280,6 +4108,12 @@
         "created_at",
         "updated_at"
       ],
+      "obrigatorias": [
+        "school_id",
+        "subject_id",
+        "code",
+        "description"
+      ],
       "politicas": 0,
       "rls": true,
       "rls_forcada": true,
@@ -3298,6 +4132,11 @@
         "created_by",
         "attachment_file_id",
         "attachment_file_name"
+      ],
+      "obrigatorias": [
+        "school_id",
+        "sender_id",
+        "recipient_id"
       ],
       "politicas": 1,
       "rls": true,
@@ -3328,6 +4167,13 @@
         "created_at",
         "updated_at"
       ],
+      "obrigatorias": [
+        "school_id",
+        "session_id",
+        "enrollment_id",
+        "subject_id",
+        "class_group_id"
+      ],
       "politicas": 0,
       "rls": true,
       "rls_forcada": true,
@@ -3352,6 +4198,12 @@
         "created_at",
         "updated_at"
       ],
+      "obrigatorias": [
+        "school_id",
+        "academic_year_id",
+        "kind",
+        "name"
+      ],
       "politicas": 0,
       "rls": true,
       "rls_forcada": true,
@@ -3368,6 +4220,12 @@
         "action",
         "detail",
         "created_at"
+      ],
+      "obrigatorias": [
+        "school_id",
+        "file_id",
+        "actor_user_id",
+        "action"
       ],
       "politicas": 0,
       "rls": true,
@@ -3408,6 +4266,16 @@
         "is_system",
         "deleted_at"
       ],
+      "obrigatorias": [
+        "school_id",
+        "owner_user_id",
+        "name",
+        "mime",
+        "size_bytes",
+        "area",
+        "visibility",
+        "storage_path"
+      ],
       "politicas": 4,
       "rls": true,
       "rls_forcada": true,
@@ -3432,6 +4300,12 @@
         "created_at",
         "updated_at"
       ],
+      "obrigatorias": [
+        "school_id",
+        "attendance_session_id",
+        "external_meeting_id",
+        "join_url"
+      ],
       "politicas": 2,
       "rls": true,
       "rls_forcada": false,
@@ -3449,6 +4323,12 @@
         "planned_count",
         "sequence",
         "created_at"
+      ],
+      "obrigatorias": [
+        "school_id",
+        "lesson_plan_id",
+        "kind",
+        "name"
       ],
       "politicas": 0,
       "rls": true,
@@ -3474,6 +4354,13 @@
         "created_by",
         "updated_by"
       ],
+      "obrigatorias": [
+        "school_id",
+        "class_group_id",
+        "subject_id",
+        "term",
+        "title"
+      ],
       "politicas": 0,
       "rls": true,
       "rls_forcada": true,
@@ -3492,6 +4379,12 @@
         "status",
         "error",
         "created_at"
+      ],
+      "obrigatorias": [
+        "school_id",
+        "user_id",
+        "lesson_date",
+        "channel"
       ],
       "politicas": 0,
       "rls": true,
@@ -3516,6 +4409,9 @@
         "created_at",
         "updated_at"
       ],
+      "obrigatorias": [
+        "school_id"
+      ],
       "politicas": 0,
       "rls": true,
       "rls_forcada": true,
@@ -3528,6 +4424,9 @@
         "id",
         "key_hash",
         "hit_at"
+      ],
+      "obrigatorias": [
+        "key_hash"
       ],
       "politicas": 0,
       "rls": true,
@@ -3551,6 +4450,10 @@
         "created_at",
         "updated_at"
       ],
+      "obrigatorias": [
+        "school_id",
+        "timetable_slot_id"
+      ],
       "politicas": 0,
       "rls": true,
       "rls_forcada": true,
@@ -3573,6 +4476,11 @@
         "last_ping_at",
         "created_at"
       ],
+      "obrigatorias": [
+        "school_id",
+        "name",
+        "location"
+      ],
       "politicas": 1,
       "rls": true,
       "rls_forcada": true,
@@ -3588,6 +4496,10 @@
         "user_id",
         "expires_at",
         "created_at"
+      ],
+      "obrigatorias": [
+        "slug",
+        "expires_at"
       ],
       "politicas": 0,
       "rls": true,
@@ -3607,6 +4519,12 @@
         "updated_at",
         "created_by",
         "updated_by"
+      ],
+      "obrigatorias": [
+        "school_id",
+        "user_id",
+        "module_key",
+        "level"
       ],
       "politicas": 6,
       "rls": true,
@@ -3635,6 +4553,12 @@
         "absence_percentage",
         "updated_by"
       ],
+      "obrigatorias": [
+        "school_id",
+        "student_id",
+        "academic_year_label",
+        "grade_level"
+      ],
       "politicas": 1,
       "rls": true,
       "rls_forcada": true,
@@ -3656,6 +4580,13 @@
         "valid_until",
         "created_by",
         "created_at"
+      ],
+      "obrigatorias": [
+        "school_id",
+        "student_id",
+        "guardian_person_id",
+        "relationship",
+        "created_by"
       ],
       "politicas": 4,
       "rls": true,
@@ -3682,6 +4613,11 @@
         "created_at",
         "updated_at"
       ],
+      "obrigatorias": [
+        "school_id",
+        "enrollment_id",
+        "student_name"
+      ],
       "politicas": 0,
       "rls": true,
       "rls_forcada": true,
@@ -3702,6 +4638,11 @@
         "created_by",
         "created_at"
       ],
+      "obrigatorias": [
+        "case_id",
+        "school_id",
+        "description"
+      ],
       "politicas": 0,
       "rls": true,
       "rls_forcada": true,
@@ -3720,6 +4661,11 @@
         "changed_by",
         "created_at"
       ],
+      "obrigatorias": [
+        "school_id",
+        "student_id",
+        "to_status"
+      ],
       "politicas": 1,
       "rls": true,
       "rls_forcada": true,
@@ -3737,6 +4683,11 @@
         "reason",
         "changed_by",
         "created_at"
+      ],
+      "obrigatorias": [
+        "school_id",
+        "student_id",
+        "new_status"
       ],
       "politicas": 1,
       "rls": true,
@@ -3758,6 +4709,13 @@
         "created_at",
         "updated_at",
         "deleted_at"
+      ],
+      "obrigatorias": [
+        "school_id",
+        "person_id",
+        "student_number",
+        "created_by",
+        "updated_by"
       ],
       "politicas": 6,
       "rls": true,
@@ -3790,6 +4748,11 @@
         "updated_by",
         "deleted_at",
         "version"
+      ],
+      "obrigatorias": [
+        "school_id",
+        "code",
+        "name"
       ],
       "politicas": 3,
       "rls": true,
@@ -3828,6 +4791,13 @@
         "deleted_at",
         "version"
       ],
+      "obrigatorias": [
+        "school_id",
+        "code",
+        "name",
+        "created_by",
+        "updated_by"
+      ],
       "politicas": 4,
       "rls": true,
       "rls_forcada": true,
@@ -3845,6 +4815,10 @@
         "expires_at",
         "metadata",
         "created_at"
+      ],
+      "obrigatorias": [
+        "subscription_id",
+        "addon_code"
       ],
       "politicas": 1,
       "rls": true,
@@ -3864,6 +4838,10 @@
         "cancel_at_period_end",
         "created_at",
         "updated_at"
+      ],
+      "obrigatorias": [
+        "tenant_id",
+        "plan_id"
       ],
       "politicas": 1,
       "rls": true,
@@ -3891,6 +4869,13 @@
         "deleted_at",
         "version"
       ],
+      "obrigatorias": [
+        "school_id",
+        "teacher_id",
+        "weekday",
+        "starts_at",
+        "ends_at"
+      ],
       "politicas": 3,
       "rls": true,
       "rls_forcada": true,
@@ -3908,6 +4893,13 @@
         "valid_until",
         "created_by",
         "created_at"
+      ],
+      "obrigatorias": [
+        "school_id",
+        "teacher_id",
+        "subject_id",
+        "valid_from",
+        "created_by"
       ],
       "politicas": 1,
       "rls": true,
@@ -3932,6 +4924,16 @@
         "updated_at",
         "user_id"
       ],
+      "obrigatorias": [
+        "school_id",
+        "person_id",
+        "employee_number",
+        "hired_on",
+        "employment_type",
+        "highest_qualification",
+        "created_by",
+        "updated_by"
+      ],
       "politicas": 3,
       "rls": true,
       "rls_forcada": true,
@@ -3953,6 +4955,11 @@
         "check_count",
         "updated_at"
       ],
+      "obrigatorias": [
+        "tenant_id",
+        "hostname",
+        "type"
+      ],
       "politicas": 1,
       "rls": true,
       "rls_forcada": false,
@@ -3971,6 +4978,9 @@
         "status",
         "created_at",
         "updated_at"
+      ],
+      "obrigatorias": [
+        "email"
       ],
       "politicas": 0,
       "rls": true,
@@ -3993,6 +5003,9 @@
         "updated_at",
         "completed_at"
       ],
+      "obrigatorias": [
+        "school_id"
+      ],
       "politicas": 1,
       "rls": true,
       "rls_forcada": false,
@@ -4009,6 +5022,9 @@
         "storage_bytes_used",
         "api_calls_count",
         "last_calculated_at"
+      ],
+      "obrigatorias": [
+        "tenant_id"
       ],
       "politicas": 1,
       "rls": true,
@@ -4034,6 +5050,10 @@
         "created_at",
         "updated_at"
       ],
+      "obrigatorias": [
+        "name",
+        "slug"
+      ],
       "politicas": 1,
       "rls": true,
       "rls_forcada": false,
@@ -4053,6 +5073,14 @@
         "created_at",
         "created_by",
         "updated_by"
+      ],
+      "obrigatorias": [
+        "school_id",
+        "academic_year_id",
+        "name",
+        "sequence",
+        "starts_on",
+        "ends_on"
       ],
       "politicas": 4,
       "rls": true,
@@ -4080,6 +5108,15 @@
         "day_period_number",
         "notes"
       ],
+      "obrigatorias": [
+        "school_id",
+        "class_subject_id",
+        "weekday",
+        "starts_at",
+        "ends_at",
+        "room",
+        "created_by"
+      ],
       "politicas": 4,
       "rls": true,
       "rls_forcada": true,
@@ -4106,6 +5143,9 @@
         "updated_at",
         "version"
       ],
+      "obrigatorias": [
+        "user_id"
+      ],
       "politicas": 2,
       "rls": true,
       "rls_forcada": false,
@@ -4128,6 +5168,13 @@
         "requested_ip",
         "user_agent",
         "created_at"
+      ],
+      "obrigatorias": [
+        "target_identifier",
+        "channel_sent",
+        "purpose",
+        "code_hash",
+        "expires_at"
       ],
       "politicas": 1,
       "rls": true,
@@ -9322,6 +10369,11 @@
       "para": "schools"
     },
     {
+      "chave": "class_groups_school_id_room_id_fkey",
+      "de": "class_groups",
+      "para": "rooms"
+    },
+    {
       "chave": "class_groups_delegate_student_fk",
       "de": "class_groups",
       "para": "students"
@@ -10885,6 +11937,1850 @@
       "chave": "verification_otps_school_id_fkey",
       "de": "verification_otps",
       "para": "schools"
+    }
+  ],
+  "valores": [
+    {
+      "tabela": "academic_schedules",
+      "coluna": "status",
+      "valores": [
+        "approved",
+        "archived",
+        "draft",
+        "published",
+        "review"
+      ]
+    },
+    {
+      "tabela": "academic_years",
+      "coluna": "status",
+      "valores": [
+        "active",
+        "archived",
+        "closed",
+        "draft"
+      ]
+    },
+    {
+      "tabela": "alumni_contributions",
+      "coluna": "contribution_type",
+      "valores": [
+        "donation",
+        "in_kind",
+        "other",
+        "scholarship",
+        "sponsorship",
+        "volunteer_hours"
+      ]
+    },
+    {
+      "tabela": "alumni_education_stages",
+      "coluna": "education_level",
+      "valores": [
+        "higher",
+        "middle",
+        "primary"
+      ]
+    },
+    {
+      "tabela": "alumni_engagements",
+      "coluna": "kind",
+      "valores": [
+        "career",
+        "communication",
+        "donation",
+        "event",
+        "mentoring",
+        "other",
+        "survey",
+        "volunteer"
+      ]
+    },
+    {
+      "tabela": "alumni_event_registrations",
+      "coluna": "status",
+      "valores": [
+        "attended",
+        "cancelled",
+        "registered",
+        "waitlist"
+      ]
+    },
+    {
+      "tabela": "alumni_events",
+      "coluna": "event_type",
+      "valores": [
+        "career",
+        "fundraising",
+        "mentoring",
+        "networking",
+        "other",
+        "reunion",
+        "volunteer",
+        "webinar"
+      ]
+    },
+    {
+      "tabela": "alumni_events",
+      "coluna": "status",
+      "valores": [
+        "cancelled",
+        "completed",
+        "draft",
+        "published"
+      ]
+    },
+    {
+      "tabela": "alumni_experiences",
+      "coluna": "kind",
+      "valores": [
+        "award",
+        "business",
+        "certification",
+        "education",
+        "employment",
+        "volunteering"
+      ]
+    },
+    {
+      "tabela": "alumni_mentorships",
+      "coluna": "status",
+      "valores": [
+        "active",
+        "cancelled",
+        "completed",
+        "requested"
+      ]
+    },
+    {
+      "tabela": "alumni_opportunities",
+      "coluna": "opportunity_type",
+      "valores": [
+        "business",
+        "event",
+        "internship",
+        "job",
+        "mentoring",
+        "other",
+        "scholarship",
+        "volunteer"
+      ]
+    },
+    {
+      "tabela": "alumni_opportunities",
+      "coluna": "status",
+      "valores": [
+        "archived",
+        "closed",
+        "draft",
+        "published"
+      ]
+    },
+    {
+      "tabela": "alumni_opportunity_applications",
+      "coluna": "status",
+      "valores": [
+        "accepted",
+        "applied",
+        "interested",
+        "rejected",
+        "shortlisted",
+        "withdrawn"
+      ]
+    },
+    {
+      "tabela": "alumni_portfolio_items",
+      "coluna": "education_level",
+      "valores": [
+        "higher",
+        "middle",
+        "primary"
+      ]
+    },
+    {
+      "tabela": "alumni_portfolio_items",
+      "coluna": "item_type",
+      "valores": [
+        "award",
+        "case_study",
+        "certificate",
+        "link",
+        "media",
+        "other",
+        "project",
+        "publication"
+      ]
+    },
+    {
+      "tabela": "alumni_portfolio_items",
+      "coluna": "visibility",
+      "valores": [
+        "alumni",
+        "private",
+        "school"
+      ]
+    },
+    {
+      "tabela": "alumni_privacy_audit",
+      "coluna": "action",
+      "valores": [
+        "claim",
+        "communication_targeted",
+        "consent_update",
+        "export_included",
+        "profile_update",
+        "visibility_update"
+      ]
+    },
+    {
+      "tabela": "alumni_profiles",
+      "coluna": "directory_visibility",
+      "valores": [
+        "alumni",
+        "private",
+        "school"
+      ]
+    },
+    {
+      "tabela": "alumni_profiles",
+      "coluna": "employment_status",
+      "valores": [
+        "employed",
+        "seeking",
+        "self_employed",
+        "student",
+        "unavailable",
+        "unknown"
+      ]
+    },
+    {
+      "tabela": "alumni_surveys",
+      "coluna": "purpose",
+      "valores": [
+        "employment",
+        "impact",
+        "other",
+        "satisfaction",
+        "skills",
+        "tracer_study"
+      ]
+    },
+    {
+      "tabela": "alumni_surveys",
+      "coluna": "status",
+      "valores": [
+        "archived",
+        "closed",
+        "draft",
+        "published"
+      ]
+    },
+    {
+      "tabela": "announcements",
+      "coluna": "channel",
+      "valores": [
+        "email",
+        "portal",
+        "sms"
+      ]
+    },
+    {
+      "tabela": "announcements",
+      "coluna": "priority",
+      "valores": [
+        "high",
+        "low",
+        "normal",
+        "urgent"
+      ]
+    },
+    {
+      "tabela": "announcements",
+      "coluna": "status",
+      "valores": [
+        "archived",
+        "draft",
+        "published",
+        "scheduled"
+      ]
+    },
+    {
+      "tabela": "assessment_rule_sets",
+      "coluna": "rounding_method",
+      "valores": [
+        "down",
+        "nearest",
+        "none",
+        "up"
+      ]
+    },
+    {
+      "tabela": "assessment_rule_sets",
+      "coluna": "status",
+      "valores": [
+        "active",
+        "retired"
+      ]
+    },
+    {
+      "tabela": "attendance_records",
+      "coluna": "status",
+      "valores": [
+        "absent",
+        "excused",
+        "late",
+        "present"
+      ]
+    },
+    {
+      "tabela": "attendance_sessions",
+      "coluna": "status",
+      "valores": [
+        "draft",
+        "reopened",
+        "submitted"
+      ]
+    },
+    {
+      "tabela": "class_groups",
+      "coluna": "shift",
+      "valores": [
+        "afternoon",
+        "evening",
+        "full_day",
+        "morning"
+      ]
+    },
+    {
+      "tabela": "class_groups",
+      "coluna": "status",
+      "valores": [
+        "active",
+        "archived",
+        "closed",
+        "draft"
+      ]
+    },
+    {
+      "tabela": "class_subjects",
+      "coluna": "status",
+      "valores": [
+        "active",
+        "archived",
+        "inactive"
+      ]
+    },
+    {
+      "tabela": "course_unit_enrollments",
+      "coluna": "season",
+      "valores": [
+        "especial",
+        "frequencia",
+        "melhoria",
+        "normal",
+        "recurso"
+      ]
+    },
+    {
+      "tabela": "course_unit_enrollments",
+      "coluna": "status",
+      "valores": [
+        "anulado",
+        "aprovado",
+        "dispensado",
+        "excluido_faltas",
+        "excluido_frequencia",
+        "inscrito",
+        "reprovado"
+      ]
+    },
+    {
+      "tabela": "curricula",
+      "coluna": "status",
+      "valores": [
+        "active",
+        "draft",
+        "inactive"
+      ]
+    },
+    {
+      "tabela": "curriculum_areas",
+      "coluna": "status",
+      "valores": [
+        "active",
+        "inactive"
+      ]
+    },
+    {
+      "tabela": "document_requests",
+      "coluna": "request_type",
+      "valores": [
+        "certificate",
+        "declaration",
+        "other",
+        "term",
+        "transfer"
+      ]
+    },
+    {
+      "tabela": "document_requests",
+      "coluna": "status",
+      "valores": [
+        "approved",
+        "cancelled",
+        "fulfilled",
+        "in_review",
+        "rejected",
+        "submitted"
+      ]
+    },
+    {
+      "tabela": "document_sequences",
+      "coluna": "document_type",
+      "valores": [
+        "certificate",
+        "credit_note",
+        "declaration",
+        "expense",
+        "invoice",
+        "other",
+        "receipt",
+        "term",
+        "transfer"
+      ]
+    },
+    {
+      "tabela": "document_signatures",
+      "coluna": "signer_role",
+      "valores": [
+        "coordinator",
+        "director",
+        "other",
+        "secretary"
+      ]
+    },
+    {
+      "tabela": "document_signatures",
+      "coluna": "status",
+      "valores": [
+        "pending",
+        "rejected",
+        "signed"
+      ]
+    },
+    {
+      "tabela": "document_templates",
+      "coluna": "document_type",
+      "valores": [
+        "certificate",
+        "declaration",
+        "other",
+        "term",
+        "transfer"
+      ]
+    },
+    {
+      "tabela": "document_templates",
+      "coluna": "status",
+      "valores": [
+        "active",
+        "draft",
+        "retired"
+      ]
+    },
+    {
+      "tabela": "enrollment_applications",
+      "coluna": "status",
+      "valores": [
+        "accepted",
+        "pending",
+        "rejected"
+      ]
+    },
+    {
+      "tabela": "enrollments",
+      "coluna": "status",
+      "valores": [
+        "active",
+        "cancelled",
+        "completed",
+        "pending",
+        "transferred"
+      ]
+    },
+    {
+      "tabela": "fee_items",
+      "coluna": "frequency",
+      "valores": [
+        "annual",
+        "monthly",
+        "once",
+        "term"
+      ]
+    },
+    {
+      "tabela": "fee_items",
+      "coluna": "kind",
+      "valores": [
+        "enrollment",
+        "other",
+        "service",
+        "tuition"
+      ]
+    },
+    {
+      "tabela": "fee_plans",
+      "coluna": "status",
+      "valores": [
+        "active",
+        "draft",
+        "retired"
+      ]
+    },
+    {
+      "tabela": "finance_contracts",
+      "coluna": "status",
+      "valores": [
+        "active",
+        "cancelled"
+      ]
+    },
+    {
+      "tabela": "finance_invoices",
+      "coluna": "status",
+      "valores": [
+        "cancelled",
+        "open",
+        "paid",
+        "partially_paid"
+      ]
+    },
+    {
+      "tabela": "finance_payment_plans",
+      "coluna": "channel",
+      "valores": [
+        "cash",
+        "express",
+        "multicaixa",
+        "multicaixa_express",
+        "transfer",
+        "unitel_money"
+      ]
+    },
+    {
+      "tabela": "finance_payment_plans",
+      "coluna": "status",
+      "valores": [
+        "cancelled",
+        "pending_gateway",
+        "scheduled",
+        "settled"
+      ]
+    },
+    {
+      "tabela": "finance_receipts",
+      "coluna": "payment_method",
+      "valores": [
+        "bank_transfer",
+        "card",
+        "cash",
+        "other"
+      ]
+    },
+    {
+      "tabela": "finance_receipts",
+      "coluna": "status",
+      "valores": [
+        "issued",
+        "reversed"
+      ]
+    },
+    {
+      "tabela": "financial_rule_sets",
+      "coluna": "late_penalty_kind",
+      "valores": [
+        "fixed",
+        "none",
+        "percentage"
+      ]
+    },
+    {
+      "tabela": "financial_rule_sets",
+      "coluna": "status",
+      "valores": [
+        "active",
+        "draft",
+        "retired"
+      ]
+    },
+    {
+      "tabela": "grade_items",
+      "coluna": "kind",
+      "valores": [
+        "assignment",
+        "continuous",
+        "exam",
+        "informative",
+        "recovery",
+        "resit",
+        "term_exam",
+        "test"
+      ]
+    },
+    {
+      "tabela": "grade_score_history",
+      "coluna": "kind",
+      "valores": [
+        "change",
+        "launch",
+        "request_approved",
+        "request_rejected"
+      ]
+    },
+    {
+      "tabela": "grade_scores",
+      "coluna": "status",
+      "valores": [
+        "draft",
+        "locked",
+        "submitted"
+      ]
+    },
+    {
+      "tabela": "grade_sheet_rows",
+      "coluna": "result",
+      "valores": [
+        "fail",
+        "incomplete",
+        "pass",
+        "pending"
+      ]
+    },
+    {
+      "tabela": "grade_sheets",
+      "coluna": "kind",
+      "valores": [
+        "annual",
+        "term"
+      ]
+    },
+    {
+      "tabela": "grade_sheets",
+      "coluna": "status",
+      "valores": [
+        "closed",
+        "contested",
+        "draft",
+        "homologated",
+        "in_review",
+        "published",
+        "rectified",
+        "submitted"
+      ]
+    },
+    {
+      "tabela": "gradebooks",
+      "coluna": "status",
+      "valores": [
+        "closed",
+        "draft",
+        "open",
+        "submitted"
+      ]
+    },
+    {
+      "tabela": "hr_absence_events",
+      "coluna": "absence_type",
+      "valores": [
+        "justified_paid",
+        "justified_unpaid",
+        "unjustified"
+      ]
+    },
+    {
+      "tabela": "hr_absence_events",
+      "coluna": "validation_status",
+      "valores": [
+        "cancelled",
+        "pending",
+        "rejected",
+        "validated"
+      ]
+    },
+    {
+      "tabela": "hr_attendance_assurance_evidence",
+      "coluna": "decision",
+      "valores": [
+        "auto_approve",
+        "reject",
+        "review"
+      ]
+    },
+    {
+      "tabela": "hr_attendance_assurance_evidence",
+      "coluna": "device_integrity_provider",
+      "valores": [
+        "app_attest",
+        "none",
+        "play_integrity",
+        "webauthn"
+      ]
+    },
+    {
+      "tabela": "hr_attendance_assurance_evidence",
+      "coluna": "purpose",
+      "valores": [
+        "check_in",
+        "check_out"
+      ]
+    },
+    {
+      "tabela": "hr_compensation_events",
+      "coluna": "event_type",
+      "valores": [
+        "adjustment",
+        "allowance",
+        "bonus",
+        "lesson_hour",
+        "overtime",
+        "worked_hour"
+      ]
+    },
+    {
+      "tabela": "hr_compensation_events",
+      "coluna": "validation_status",
+      "valores": [
+        "cancelled",
+        "pending",
+        "rejected",
+        "validated"
+      ]
+    },
+    {
+      "tabela": "hr_contract_remuneration_policies",
+      "coluna": "policy_source",
+      "valores": [
+        "collective_agreement",
+        "contract",
+        "institution",
+        "other",
+        "public_service"
+      ]
+    },
+    {
+      "tabela": "hr_contract_remuneration_policies",
+      "coluna": "remuneration_model",
+      "valores": [
+        "fixed_deduct_absence",
+        "hybrid",
+        "validated_units"
+      ]
+    },
+    {
+      "tabela": "hr_contracts",
+      "coluna": "contract_type",
+      "valores": [
+        "fixed_term",
+        "intern",
+        "other",
+        "permanent",
+        "service_provider",
+        "temporary"
+      ]
+    },
+    {
+      "tabela": "hr_contracts",
+      "coluna": "salary_type",
+      "valores": [
+        "hourly",
+        "lesson_hour",
+        "monthly"
+      ]
+    },
+    {
+      "tabela": "hr_contracts",
+      "coluna": "status",
+      "valores": [
+        "active",
+        "cancelled",
+        "draft",
+        "ended",
+        "suspended"
+      ]
+    },
+    {
+      "tabela": "hr_employments",
+      "coluna": "employment_type",
+      "valores": [
+        "fixed_term",
+        "intern",
+        "other",
+        "permanent",
+        "service_provider",
+        "temporary"
+      ]
+    },
+    {
+      "tabela": "hr_employments",
+      "coluna": "status",
+      "valores": [
+        "active",
+        "draft",
+        "expired",
+        "suspended",
+        "terminated"
+      ]
+    },
+    {
+      "tabela": "hr_payment_destinations",
+      "coluna": "method",
+      "valores": [
+        "cash",
+        "other",
+        "transfer"
+      ]
+    },
+    {
+      "tabela": "hr_payment_settings",
+      "coluna": "default_method",
+      "valores": [
+        "cash",
+        "other",
+        "transfer"
+      ]
+    },
+    {
+      "tabela": "hr_payroll_item_components",
+      "coluna": "component_type",
+      "valores": [
+        "deduction",
+        "earning"
+      ]
+    },
+    {
+      "tabela": "hr_payroll_items",
+      "coluna": "status",
+      "valores": [
+        "approved",
+        "calculated",
+        "cancelled",
+        "draft",
+        "paid",
+        "processing"
+      ]
+    },
+    {
+      "tabela": "hr_payroll_payment_batches",
+      "coluna": "method",
+      "valores": [
+        "cash",
+        "other",
+        "transfer"
+      ]
+    },
+    {
+      "tabela": "hr_payroll_payment_batches",
+      "coluna": "status",
+      "valores": [
+        "authorized",
+        "awaiting_authorization",
+        "cancelled",
+        "completed",
+        "draft",
+        "failed",
+        "partial",
+        "processing"
+      ]
+    },
+    {
+      "tabela": "hr_payroll_payment_items",
+      "coluna": "status",
+      "valores": [
+        "authorized",
+        "blocked",
+        "cancelled",
+        "failed",
+        "paid",
+        "pending",
+        "processing"
+      ]
+    },
+    {
+      "tabela": "hr_payroll_runs",
+      "coluna": "status",
+      "valores": [
+        "approved",
+        "calculating",
+        "cancelled",
+        "draft",
+        "paid",
+        "processing",
+        "review"
+      ]
+    },
+    {
+      "tabela": "hr_positions",
+      "coluna": "category",
+      "valores": [
+        "director",
+        "management",
+        "other",
+        "staff",
+        "support",
+        "teacher"
+      ]
+    },
+    {
+      "tabela": "hr_salary_change_requests",
+      "coluna": "status",
+      "valores": [
+        "applied",
+        "approved",
+        "cancelled",
+        "pending",
+        "rejected"
+      ]
+    },
+    {
+      "tabela": "hr_salary_scale_versions",
+      "coluna": "status",
+      "valores": [
+        "approved",
+        "draft",
+        "retired"
+      ]
+    },
+    {
+      "tabela": "hr_teacher_attendance_policies",
+      "coluna": "outside_grace_mode",
+      "valores": [
+        "proportional",
+        "review"
+      ]
+    },
+    {
+      "tabela": "hr_teacher_employment_links",
+      "coluna": "status",
+      "valores": [
+        "active",
+        "inactive"
+      ]
+    },
+    {
+      "tabela": "hr_teacher_lesson_occurrences",
+      "coluna": "attendance_exception_status",
+      "valores": [
+        "approved",
+        "none",
+        "pending_review",
+        "proportional",
+        "rejected",
+        "within_grace"
+      ]
+    },
+    {
+      "tabela": "hr_teacher_lesson_occurrences",
+      "coluna": "evidence_method",
+      "valores": [
+        "attendance_import",
+        "manual",
+        "qr",
+        "system"
+      ]
+    },
+    {
+      "tabela": "hr_teacher_lesson_occurrences",
+      "coluna": "occurrence_kind",
+      "valores": [
+        "extra",
+        "scheduled",
+        "substitution"
+      ]
+    },
+    {
+      "tabela": "hr_teacher_lesson_occurrences",
+      "coluna": "review_decision",
+      "valores": [
+        "approved",
+        "rejected"
+      ]
+    },
+    {
+      "tabela": "hr_teacher_lesson_occurrences",
+      "coluna": "status",
+      "valores": [
+        "cancelled",
+        "confirmed",
+        "rejected",
+        "scheduled"
+      ]
+    },
+    {
+      "tabela": "hr_teacher_qr_sessions",
+      "coluna": "purpose",
+      "valores": [
+        "check_in",
+        "check_out"
+      ]
+    },
+    {
+      "tabela": "hr_teacher_qr_sessions",
+      "coluna": "status",
+      "valores": [
+        "active",
+        "expired",
+        "revoked",
+        "used"
+      ]
+    },
+    {
+      "tabela": "import_audits",
+      "coluna": "action_type",
+      "valores": [
+        "deleted",
+        "inserted",
+        "updated"
+      ]
+    },
+    {
+      "tabela": "import_jobs",
+      "coluna": "exchange_mode",
+      "valores": [
+        "human",
+        "siga_exchange"
+      ]
+    },
+    {
+      "tabela": "import_jobs",
+      "coluna": "source_format",
+      "valores": [
+        "csv",
+        "json",
+        "ods",
+        "xls",
+        "xlsx"
+      ]
+    },
+    {
+      "tabela": "import_jobs",
+      "coluna": "status",
+      "valores": [
+        "analyzing",
+        "cancelled",
+        "completed",
+        "failed",
+        "importing",
+        "mapping",
+        "ready",
+        "rolled_back",
+        "uploaded",
+        "validating"
+      ]
+    },
+    {
+      "tabela": "import_rows",
+      "coluna": "status",
+      "valores": [
+        "duplicate",
+        "error",
+        "ignored",
+        "imported",
+        "valid",
+        "warning",
+        "will_insert",
+        "will_update"
+      ]
+    },
+    {
+      "tabela": "import_rows",
+      "coluna": "validation_stage",
+      "valores": [
+        "business_rule",
+        "committed",
+        "duplicate",
+        "ready",
+        "reference",
+        "row"
+      ]
+    },
+    {
+      "tabela": "import_table_specs",
+      "coluna": "direct_import_policy",
+      "valores": [
+        "allow",
+        "controlled",
+        "deny",
+        "review"
+      ]
+    },
+    {
+      "tabela": "import_table_specs",
+      "coluna": "export_policy",
+      "valores": [
+        "allow",
+        "controlled",
+        "deny",
+        "review"
+      ]
+    },
+    {
+      "tabela": "import_table_specs",
+      "coluna": "sensitivity",
+      "valores": [
+        "internal",
+        "normal",
+        "secret",
+        "sensitive"
+      ]
+    },
+    {
+      "tabela": "import_templates",
+      "coluna": "mode",
+      "valores": [
+        "human",
+        "siga_exchange"
+      ]
+    },
+    {
+      "tabela": "issued_documents",
+      "coluna": "signature_status",
+      "valores": [
+        "not_required",
+        "pending",
+        "rejected",
+        "signed"
+      ]
+    },
+    {
+      "tabela": "issued_documents",
+      "coluna": "status",
+      "valores": [
+        "issued",
+        "revoked"
+      ]
+    },
+    {
+      "tabela": "mailboxes",
+      "coluna": "status",
+      "valores": [
+        "active",
+        "cancelled",
+        "suspended"
+      ]
+    },
+    {
+      "tabela": "notifications",
+      "coluna": "channel",
+      "valores": [
+        "email",
+        "in_app",
+        "sms",
+        "whatsapp"
+      ]
+    },
+    {
+      "tabela": "notifications",
+      "coluna": "status",
+      "valores": [
+        "delivered",
+        "failed",
+        "pending",
+        "read"
+      ]
+    },
+    {
+      "tabela": "people",
+      "coluna": "sex",
+      "valores": [
+        "female",
+        "male",
+        "other",
+        "undisclosed"
+      ]
+    },
+    {
+      "tabela": "people",
+      "coluna": "status",
+      "valores": [
+        "active",
+        "archived",
+        "inactive"
+      ]
+    },
+    {
+      "tabela": "person_roles",
+      "coluna": "role",
+      "valores": [
+        "aluno",
+        "contacto_institucional",
+        "coordenador",
+        "diretor",
+        "encarregado",
+        "fornecedor",
+        "funcionario",
+        "professor",
+        "utilizador"
+      ]
+    },
+    {
+      "tabela": "program_subjects",
+      "coluna": "status",
+      "valores": [
+        "active",
+        "inactive"
+      ]
+    },
+    {
+      "tabela": "programs",
+      "coluna": "grading_profile",
+      "valores": [
+        "20_ects",
+        "components",
+        "frequencia_exame",
+        "gpa4",
+        "scale",
+        "so_exame"
+      ]
+    },
+    {
+      "tabela": "programs",
+      "coluna": "kind",
+      "valores": [
+        "general",
+        "postgraduate",
+        "professional",
+        "technical",
+        "undergraduate"
+      ]
+    },
+    {
+      "tabela": "report_cards",
+      "coluna": "status",
+      "valores": [
+        "draft",
+        "issued",
+        "revoked"
+      ]
+    },
+    {
+      "tabela": "rooms",
+      "coluna": "status",
+      "valores": [
+        "active",
+        "inactive"
+      ]
+    },
+    {
+      "tabela": "school_access_requests",
+      "coluna": "requested_profile",
+      "valores": [
+        "aluno",
+        "encarregado",
+        "funcionario",
+        "outro",
+        "professor"
+      ]
+    },
+    {
+      "tabela": "school_access_requests",
+      "coluna": "status",
+      "valores": [
+        "approved",
+        "cancelled",
+        "in_review",
+        "info_requested",
+        "pending",
+        "rejected"
+      ]
+    },
+    {
+      "tabela": "school_announcements",
+      "coluna": "audience",
+      "valores": [
+        "all_guardians",
+        "alumni_all",
+        "alumni_events",
+        "alumni_fundraising",
+        "alumni_mentoring",
+        "alumni_opportunities",
+        "alumni_surveys",
+        "guardians_with_debt",
+        "students_finalists",
+        "students_secondary",
+        "teaching_staff"
+      ]
+    },
+    {
+      "tabela": "school_announcements",
+      "coluna": "channel",
+      "valores": [
+        "email",
+        "portal",
+        "sms",
+        "whatsapp"
+      ]
+    },
+    {
+      "tabela": "school_announcements",
+      "coluna": "status",
+      "valores": [
+        "draft",
+        "scheduled",
+        "sent"
+      ]
+    },
+    {
+      "tabela": "school_email_routes",
+      "coluna": "status",
+      "valores": [
+        "active",
+        "failed",
+        "pending",
+        "suspended"
+      ]
+    },
+    {
+      "tabela": "school_integrations",
+      "coluna": "status",
+      "valores": [
+        "configured",
+        "connected",
+        "disconnected",
+        "error"
+      ]
+    },
+    {
+      "tabela": "school_invitations",
+      "coluna": "status",
+      "valores": [
+        "accepted",
+        "expired",
+        "pending",
+        "revoked"
+      ]
+    },
+    {
+      "tabela": "school_memberships",
+      "coluna": "status",
+      "valores": [
+        "active",
+        "invited",
+        "revoked",
+        "suspended"
+      ]
+    },
+    {
+      "tabela": "school_modules",
+      "coluna": "status",
+      "valores": [
+        "active",
+        "archived",
+        "disabled",
+        "error",
+        "incompatible",
+        "installed",
+        "update_available"
+      ]
+    },
+    {
+      "tabela": "school_shifts",
+      "coluna": "status",
+      "valores": [
+        "active",
+        "inactive"
+      ]
+    },
+    {
+      "tabela": "schools",
+      "coluna": "status",
+      "valores": [
+        "active",
+        "archived",
+        "setup",
+        "suspended"
+      ]
+    },
+    {
+      "tabela": "siga_access_cards",
+      "coluna": "status",
+      "valores": [
+        "active",
+        "expired",
+        "lost",
+        "suspended"
+      ]
+    },
+    {
+      "tabela": "siga_access_logs",
+      "coluna": "direction",
+      "valores": [
+        "entry",
+        "exit"
+      ]
+    },
+    {
+      "tabela": "siga_access_logs",
+      "coluna": "status",
+      "valores": [
+        "denied",
+        "granted"
+      ]
+    },
+    {
+      "tabela": "siga_assessment_items",
+      "coluna": "purpose",
+      "valores": [
+        "diagnostic",
+        "formative",
+        "summative"
+      ]
+    },
+    {
+      "tabela": "siga_attendance_justifications",
+      "coluna": "status",
+      "valores": [
+        "approved",
+        "pending",
+        "rejected"
+      ]
+    },
+    {
+      "tabela": "siga_attendance_records",
+      "coluna": "status",
+      "valores": [
+        "absent",
+        "early_exit",
+        "excused",
+        "late",
+        "not_registered",
+        "present"
+      ]
+    },
+    {
+      "tabela": "siga_attendance_sessions",
+      "coluna": "status",
+      "valores": [
+        "cancelled",
+        "completed",
+        "pending"
+      ]
+    },
+    {
+      "tabela": "siga_cash_expenses",
+      "coluna": "method",
+      "valores": [
+        "cash",
+        "express",
+        "multicaixa",
+        "multicaixa_express",
+        "transfer",
+        "unitel_money"
+      ]
+    },
+    {
+      "tabela": "siga_cash_expenses",
+      "coluna": "status",
+      "valores": [
+        "posted",
+        "reversed"
+      ]
+    },
+    {
+      "tabela": "siga_class_tasks",
+      "coluna": "kind",
+      "valores": [
+        "leitura",
+        "outra",
+        "pesquisa",
+        "projecto",
+        "tpc",
+        "trabalho"
+      ]
+    },
+    {
+      "tabela": "siga_class_tasks",
+      "coluna": "status",
+      "valores": [
+        "archived",
+        "published"
+      ]
+    },
+    {
+      "tabela": "siga_competencies",
+      "coluna": "status",
+      "valores": [
+        "active",
+        "archived"
+      ]
+    },
+    {
+      "tabela": "siga_exam_registrations",
+      "coluna": "status",
+      "valores": [
+        "absent",
+        "cancelled",
+        "graded",
+        "registered"
+      ]
+    },
+    {
+      "tabela": "siga_exam_sessions",
+      "coluna": "kind",
+      "valores": [
+        "exame_especial",
+        "exame_final",
+        "melhoria",
+        "recurso"
+      ]
+    },
+    {
+      "tabela": "siga_exam_sessions",
+      "coluna": "result_method",
+      "valores": [
+        "average",
+        "max",
+        "replace"
+      ]
+    },
+    {
+      "tabela": "siga_exam_sessions",
+      "coluna": "status",
+      "valores": [
+        "closed",
+        "draft",
+        "open"
+      ]
+    },
+    {
+      "tabela": "siga_file_events",
+      "coluna": "action",
+      "valores": [
+        "access_denied",
+        "created",
+        "deleted",
+        "downloaded",
+        "folder_created",
+        "linked_class",
+        "metadata_updated",
+        "moved",
+        "opened",
+        "renamed",
+        "unlinked_class",
+        "visibility_changed"
+      ]
+    },
+    {
+      "tabela": "siga_files",
+      "coluna": "area",
+      "valores": [
+        "escola",
+        "pessoal",
+        "publico",
+        "secretaria"
+      ]
+    },
+    {
+      "tabela": "siga_files",
+      "coluna": "category",
+      "valores": [
+        "bilhete",
+        "certificado",
+        "comunicado",
+        "contrato",
+        "fatura",
+        "foto",
+        "material_aula",
+        "outro",
+        "pauta",
+        "recibo",
+        "talao"
+      ]
+    },
+    {
+      "tabela": "siga_files",
+      "coluna": "storage_backend",
+      "valores": [
+        "local",
+        "sga"
+      ]
+    },
+    {
+      "tabela": "siga_files",
+      "coluna": "visibility",
+      "valores": [
+        "private",
+        "public",
+        "school"
+      ]
+    },
+    {
+      "tabela": "siga_lesson_meetings",
+      "coluna": "status",
+      "valores": [
+        "active",
+        "cancelled",
+        "ended"
+      ]
+    },
+    {
+      "tabela": "siga_lesson_plan_components",
+      "coluna": "kind",
+      "valores": [
+        "avaliacao",
+        "prova"
+      ]
+    },
+    {
+      "tabela": "siga_lesson_plans",
+      "coluna": "status",
+      "valores": [
+        "draft",
+        "published"
+      ]
+    },
+    {
+      "tabela": "siga_lesson_reminder_log",
+      "coluna": "channel",
+      "valores": [
+        "email",
+        "in_app",
+        "sms"
+      ]
+    },
+    {
+      "tabela": "siga_lesson_reminder_log",
+      "coluna": "status",
+      "valores": [
+        "failed",
+        "sent",
+        "skipped"
+      ]
+    },
+    {
+      "tabela": "siga_timetable_slot_details",
+      "coluna": "delivery_mode",
+      "valores": [
+        "hibrido",
+        "online",
+        "presencial",
+        "zoom"
+      ]
+    },
+    {
+      "tabela": "siga_timetable_slot_details",
+      "coluna": "lesson_type",
+      "valores": [
+        "avaliacao",
+        "laboratorio",
+        "outra",
+        "pratica",
+        "revisao",
+        "teorica"
+      ]
+    },
+    {
+      "tabela": "siga_turnstile_devices",
+      "coluna": "device_type",
+      "valores": [
+        "door",
+        "gate",
+        "scanner_app",
+        "turnstile"
+      ]
+    },
+    {
+      "tabela": "siga_turnstile_devices",
+      "coluna": "direction_capability",
+      "valores": [
+        "bidirectional",
+        "entry",
+        "exit"
+      ]
+    },
+    {
+      "tabela": "siga_turnstile_devices",
+      "coluna": "status",
+      "valores": [
+        "maintenance",
+        "offline",
+        "online"
+      ]
+    },
+    {
+      "tabela": "staff_module_grants",
+      "coluna": "level",
+      "valores": [
+        "Escrita",
+        "Leitura",
+        "Nenhum",
+        "Total"
+      ]
+    },
+    {
+      "tabela": "student_guardians",
+      "coluna": "relationship",
+      "valores": [
+        "father",
+        "grandparent",
+        "guardian",
+        "mother",
+        "other",
+        "sibling"
+      ]
+    },
+    {
+      "tabela": "students",
+      "coluna": "status",
+      "valores": [
+        "active",
+        "applicant",
+        "cancelled",
+        "graduated",
+        "inactive",
+        "locked",
+        "suspended",
+        "transferred",
+        "withdrawn"
+      ]
+    },
+    {
+      "tabela": "subject_types",
+      "coluna": "status",
+      "valores": [
+        "active",
+        "inactive"
+      ]
+    },
+    {
+      "tabela": "subjects",
+      "coluna": "status",
+      "valores": [
+        "active",
+        "archived",
+        "inactive"
+      ]
+    },
+    {
+      "tabela": "subscription_addons",
+      "coluna": "status",
+      "valores": [
+        "active",
+        "cancelled",
+        "suspended"
+      ]
+    },
+    {
+      "tabela": "subscriptions",
+      "coluna": "status",
+      "valores": [
+        "active",
+        "canceled",
+        "past_due",
+        "trialing",
+        "unpaid"
+      ]
+    },
+    {
+      "tabela": "teachers",
+      "coluna": "employment_type",
+      "valores": [
+        "fixed_term",
+        "part_time",
+        "permanent",
+        "visiting"
+      ]
+    },
+    {
+      "tabela": "teachers",
+      "coluna": "highest_qualification",
+      "valores": [
+        "bachelor",
+        "doctorate",
+        "licentiate",
+        "master",
+        "other",
+        "secondary"
+      ]
+    },
+    {
+      "tabela": "teachers",
+      "coluna": "status",
+      "valores": [
+        "active",
+        "archived",
+        "inactive",
+        "leave"
+      ]
+    },
+    {
+      "tabela": "tenant_domains",
+      "coluna": "status",
+      "valores": [
+        "active",
+        "failed",
+        "pending"
+      ]
+    },
+    {
+      "tabela": "tenant_domains",
+      "coluna": "type",
+      "valores": [
+        "custom_domain",
+        "siga_subdomain"
+      ]
+    },
+    {
+      "tabela": "tenant_mailboxes",
+      "coluna": "provider",
+      "valores": [
+        "google",
+        "simulated",
+        "zoho"
+      ]
+    },
+    {
+      "tabela": "tenant_mailboxes",
+      "coluna": "status",
+      "valores": [
+        "active",
+        "deleted",
+        "suspended"
+      ]
+    },
+    {
+      "tabela": "tenant_provisioning",
+      "coluna": "provisioning_status",
+      "valores": [
+        "active",
+        "cancelled",
+        "failed",
+        "pending",
+        "processing",
+        "suspended"
+      ]
+    },
+    {
+      "tabela": "tenants",
+      "coluna": "status",
+      "valores": [
+        "active",
+        "archived",
+        "cancelled",
+        "past_due",
+        "provisioning",
+        "provisioning_failed",
+        "suspended",
+        "trial"
+      ]
+    },
+    {
+      "tabela": "timetable_slots",
+      "coluna": "status",
+      "valores": [
+        "active",
+        "archived",
+        "cancelled"
+      ]
     }
   ]
 }

@@ -1,3 +1,4 @@
+import type { TablesUpdate } from "@/integrations/supabase/types";
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { publicDatabaseError } from "@/integrations/supabase/server-error";
@@ -161,7 +162,7 @@ export const getAlumniProfile = createServerFn({ method: "GET" })
         // `date_of_birth`, não `birth_date`: a coluna de `people` chama-se assim.
         // O nome errado faz o PostgREST recusar o select inteiro, e como o erro
         // não é lido aqui, o perfil Alumni ficava sem dados pessoais nenhuns.
-        .select("id, full_name, email, phone, photo_url, date_of_birth, gender")
+        .select("id, full_name, email, phone, photo_url, date_of_birth")
         .eq("school_id", membership.schoolId)
         .eq("id", profile.person_id)
         .maybeSingle(),
@@ -569,7 +570,7 @@ export const updateMentorshipStatus = createServerFn({ method: "POST" })
     if (!context) throw new Error("Sessão inválida. Termine e volte a entrar.");
     const membership = await requireSgaWriterForWrite("pessoas", context.userId);
     const db = await loadSgaAdminClient();
-    const patch: Record<string, unknown> = {
+    const patch: TablesUpdate<"alumni_mentorships"> = {
       status: data.status,
       updated_at: new Date().toISOString(),
     };

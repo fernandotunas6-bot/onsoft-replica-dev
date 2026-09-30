@@ -25,6 +25,7 @@ import {
   type FinalResult,
   type SubjectFinal,
 } from "./exam-engine";
+import type { TablesInsert } from "@/integrations/supabase/types";
 import { recordAuditBatch } from "@/features/audit/record-audit";
 import { OFFICIAL_SHEET_STATUSES, activeYearId, loadAnnualSheet, studentNames } from "./exam-data";
 
@@ -320,7 +321,9 @@ export const recordClassFinalResults = createServerFn({ method: "POST" })
     if (updates.length) {
       const { error } = await db
         .from("student_academic_history")
-        .upsert(updates, { onConflict: "id" });
+        .upsert(updates as unknown as TablesInsert<"student_academic_history">[], {
+          onConflict: "id",
+        });
       if (error) {
         throw publicDatabaseError(error, "Não foi possível actualizar o histórico académico.");
       }

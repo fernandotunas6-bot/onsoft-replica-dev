@@ -16,9 +16,7 @@ import { toast } from "sonner";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { SqlChecklistLink } from "@/components/ui/sql-checklist-link";
-import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
-import { ListFilterBar } from "@/components/filters/ListFilterBar";
 import { QuickModal } from "@/components/ui/modal-system";
 import { confirmDiscardChanges } from "@/components/ui/modal-system/confirm-close";
 import { AssessmentGrid, type GridColumn } from "@/features/academic/AssessmentGrid";
@@ -28,20 +26,37 @@ import {
   termAverageByRule,
 } from "@/features/academic/assessment-model";
 import { useActiveAssessmentRule } from "@/features/academic/use-passing-value";
+import { cellKey, useGradeEditor } from "@/features/academic/use-grade-editor";
 import { ClassCourseTable, StudentDossierTable } from "@/features/academic/AssessmentViewTables";
 import { CreateAssessmentDialog } from "@/features/academic/CreateAssessmentDialog";
 import {
-  AssessmentStat,
-  OfficialPautaView,
-  type PautaExportRow,
-} from "@/features/academic/OfficialPautaView";
+  exportAssessmentDocument,
+  toPautaExportRows,
+  type AssessmentDocKind,
+  type AssessmentDocType,
+} from "@/features/academic/assessment-documents";
+import {
+  AssessmentBatchBar,
+  AssessmentStudentDetail,
+} from "@/features/academic/AssessmentGradeHelpers";
+import {
+  AssessmentExamTable,
+  AssessmentItemsList,
+  AssessmentRecoveryTable,
+  AssessmentTermClosePanel,
+} from "@/features/academic/AssessmentModeViews";
+import {
+  AssessmentDocumentsPanel,
+  AssessmentFiltersPanel,
+  AssessmentHistoryPanel,
+} from "@/features/academic/AssessmentCenterPanels";
+import { AssessmentStat, OfficialPautaView } from "@/features/academic/OfficialPautaView";
 import {
   buildClassCourseMap,
   buildStudentDossier,
   buildTermCloseChecklist,
   changeHistoryLines,
   documentValidationCode,
-  rowsToTsv,
   selectIdRange,
 } from "@/features/academic/assessment-views";
 import {
@@ -52,17 +67,6 @@ import {
 import { runAcademicConsistencyCheck } from "@/features/academic/consistency-check";
 import { setTermLock } from "@/features/school/server";
 import { usePersistedListFilters } from "@/lib/list-filters";
-import { exportCsv } from "@/lib/export-csv";
-import { exportOfficialPautaPdf } from "@/lib/export-pdf-loader";
-import {
-  overlayActa,
-  overlayBoletim,
-  overlayMapa,
-  overlayPauta,
-  overlayServico,
-  overlayValidacao,
-} from "@/features/documents/print-overlays";
-import { issuePrintDocument } from "@/features/documents/print-issue-loader";
 import {
   annualAverage,
   formatScore,
@@ -70,110 +74,26 @@ import {
   getPeriodNoun,
   inferTeachingCycle,
   parsePautaScore,
-  pautaSituations,
   recursoFinal,
   scoreAverage,
   situacaoPauta,
 } from "@/lib/angola-academic";
-import { useInstalledIntegrations } from "@/features/integrations/use-installed-integrations";
-import { whatsappHref } from "@/features/integrations/actions";
+import { AssessmentIntegrationActions } from "@/features/academic/AssessmentIntegrationActions";
 import { useSchoolSettings } from "@/features/auth/use-school-settings";
 import { cn } from "@/lib/utils";
 
-type EnrollmentRow = {
-  id: string;
-  student_name: string;
-  student_photo_url?: string | null;
-  registration_number?: string | null;
-  class_group_id?: string | null;
-  class_group_name: string;
-};
-
-type TermGradeRow = {
-  enrollment_id: string;
-  subject_id: string;
-  term: number;
-  mac: number;
-  npp: number;
-  npt: number;
-};
-
-type StudentListExportRow = Pick<PautaExportRow, "n" | "aluno" | "proc">;
-
-type ClassMapExportRow = {
-  classe: string;
-  curso: string;
-  turma: string;
-  alunos: number;
-  media: string;
-  transitam: number;
-  pendentes: number;
-};
-
-type ClassGroupOption = {
-  id: string;
-  name: string;
-  course_name?: string;
-  grade_name?: string;
-};
-
-type ClassSubjectRow = {
-  class_group_id: string;
-  subject_id: string;
-  teacher_id?: string | null;
-};
-
-type SubjectOption = {
-  id: string;
-  name: string;
-  code?: string | null;
-};
-
-type WorkMode =
-  | "lancamento"
-  | "avaliacoes"
-  | "recursos"
-  | "exames"
-  | "revisao"
-  | "fecho"
-  | "pauta"
-  | "estatisticas";
-
-type ScopeId = "alunos" | "disciplinas" | "turmas" | "classes" | "avaliacoes" | "exames";
-
-const filterDefaults = {
-  q: "",
-  classe: "todas",
-  curso: "todos",
-  turma: "todas",
-  disciplina: "todas",
-  trimestre: "1",
-  situacao: "todos",
-};
-
-const scopes: Array<{ id: ScopeId; label: string }> = [
-  { id: "alunos", label: "Alunos" },
-  { id: "disciplinas", label: "Disciplinas" },
-  { id: "turmas", label: "Turmas" },
-  { id: "classes", label: "Classes/Cursos" },
-  { id: "avaliacoes", label: "Avaliações" },
-  { id: "exames", label: "Exames" },
-];
-
-const workModes: Array<{ id: WorkMode; label: string }> = [
-  { id: "lancamento", label: "Lançamento" },
-  { id: "avaliacoes", label: "Avaliações" },
-  { id: "recursos", label: "Recursos" },
-  { id: "exames", label: "Exames" },
-  { id: "revisao", label: "Revisão" },
-  { id: "fecho", label: "Fecho" },
-  { id: "pauta", label: "Pauta" },
-  { id: "estatisticas", label: "Estatísticas" },
-];
-
-function cellKey(enrollmentId: string, field: string) {
-  return `${enrollmentId}:${field}`;
-}
+import {
+  filterDefaults,
+  scopes,
+  workModes,
+  type EnrollmentRow,
+  type TermGradeRow,
+  type ClassGroupOption,
+  type ClassSubjectRow,
+  type SubjectOption,
+  type WorkMode,
+  type ScopeId,
+} from "@/features/academic/assessment-center-config";
 
 export function AssessmentCenter({
   open,
@@ -225,13 +145,6 @@ export function AssessmentCenter({
       ? recoveryResult(original, recovery, engine.calculation.recoveryMethod)
       : recursoFinal(original, recovery);
   const { selectedTerm: globalTerm, terms: academicTerms, setSelectedTermId } = useSchoolSettings();
-  const installed = useInstalledIntegrations();
-  const turnitinOn = installed.hasCapability("turnitin.originality");
-  const moodleGrades = installed.hasCapability("moodle.grades");
-  const canvasWork = installed.hasCapability("canvas.assignments");
-  const classroomWork = installed.hasCapability("classroom.work");
-  const resendDocuments = installed.hasCapability("resend.documents");
-  const whatsappOn = installed.hasCapability("whatsapp.notices");
   const { filters, setFilter, resetFilters, activeCount } = usePersistedListFilters(
     "avaliacao-centro",
     filterDefaults,
@@ -246,9 +159,6 @@ export function AssessmentCenter({
   const [batchField, setBatchField] = useState<"mac" | "npp" | "npt">("mac");
   const [batchValue, setBatchValue] = useState("");
   const [historyOpen, setHistoryOpen] = useState(false);
-  const [values, setValues] = useState<Record<string, Record<string, string>>>({});
-  const [history, setHistory] = useState<Array<Record<string, Record<string, string>>>>([]);
-  const [future, setFuture] = useState<Array<Record<string, Record<string, string>>>>([]);
   const [autosave, setAutosave] = useState(false);
   const [saving, setSaving] = useState(false);
   const [createOpen, setCreateOpen] = useState(false);
@@ -356,107 +266,17 @@ export function AssessmentCenter({
   );
   const assessmentsAvailable = assessmentsQuery.data?.available !== false;
 
-  useEffect(() => {
-    if (!open) return;
-    const next: Record<string, Record<string, string>> = {};
-    for (const student of roster) {
-      const grade = termGrades.find(
-        (row) =>
-          row.enrollment_id === student.id &&
-          row.subject_id === selectedSubject?.id &&
-          row.term === term,
-      );
-      const row: Record<string, string> = {
-        mac: grade?.mac != null ? String(grade.mac) : "",
-        npp: grade?.npp != null ? String(grade.npp) : "",
-        npt: grade?.npt != null ? String(grade.npt) : "",
-      };
-      for (const item of items) {
-        const score = scores.find(
-          (entry) =>
-            String(entry.item_id) === String(item.id) && String(entry.enrollment_id) === student.id,
-        );
-        row[String(item.id)] = score?.score == null ? "" : String(score.score);
-      }
-      next[student.id] = row;
-    }
-    setValues(next);
-    setHistory([]);
-    setFuture([]);
-  }, [items, open, roster, scores, selectedSubject?.id, term, termGrades]);
-
-  const pushHistory = (snapshot: Record<string, Record<string, string>>) => {
-    setHistory((current) => [...current.slice(-29), snapshot]);
-    setFuture([]);
-  };
-
-  const updateCell = (enrollmentId: string, key: string, value: string) => {
-    setValues((current) => {
-      pushHistory(current);
-      return {
-        ...current,
-        [enrollmentId]: { ...(current[enrollmentId] ?? {}), [key]: value },
-      };
+  const { values, setValues, history, future, pushHistory, updateCell, undo, redo, dirtyKeys } =
+    useGradeEditor({
+      open,
+      roster,
+      termGrades,
+      items,
+      scores,
+      classGroupId: selectedGroup?.id,
+      subjectId: selectedSubject?.id,
+      term,
     });
-  };
-
-  const undo = () => {
-    setHistory((current) => {
-      const previous = current[current.length - 1];
-      if (!previous) return current;
-      setFuture((next) => [values, ...next]);
-      setValues(previous);
-      return current.slice(0, -1);
-    });
-  };
-
-  const redo = () => {
-    setFuture((current) => {
-      const [next, ...rest] = current;
-      if (!next) return current;
-      setHistory((historyRows) => [...historyRows, values]);
-      setValues(next);
-      return rest;
-    });
-  };
-
-  const baseline = useMemo(() => {
-    const map = new Map<string, string>();
-    for (const student of roster) {
-      const grade = termGrades.find(
-        (row) =>
-          row.enrollment_id === student.id &&
-          row.subject_id === selectedSubject?.id &&
-          row.term === term,
-      );
-      map.set(cellKey(student.id, "mac"), grade?.mac != null ? String(grade.mac) : "");
-      map.set(cellKey(student.id, "npp"), grade?.npp != null ? String(grade.npp) : "");
-      map.set(cellKey(student.id, "npt"), grade?.npt != null ? String(grade.npt) : "");
-      for (const item of items) {
-        const score = scores.find(
-          (entry) =>
-            String(entry.item_id) === String(item.id) && String(entry.enrollment_id) === student.id,
-        );
-        map.set(
-          cellKey(student.id, String(item.id)),
-          score?.score == null ? "" : String(score.score),
-        );
-      }
-    }
-    return map;
-  }, [items, roster, scores, selectedSubject?.id, term, termGrades]);
-
-  const dirtyKeys = useMemo(() => {
-    const dirty = new Set<string>();
-    for (const student of roster) {
-      const row = values[student.id] ?? {};
-      for (const key of ["mac", "npp", "npt", ...items.map((item) => String(item.id))]) {
-        const id = cellKey(student.id, key);
-        if ((row[key] ?? "") !== (baseline.get(id) ?? "")) dirty.add(id);
-      }
-    }
-    return dirty;
-  }, [baseline, items, roster, values]);
 
   // Antes, cada linha de aluno fazia cinco `items.filter(...)` — MAC, NPP, NPT,
   // recurso e exame. Numa turma de 40 com meia dúzia de itens são duzentos
@@ -646,6 +466,11 @@ export function AssessmentCenter({
       }).length
     );
   }, 0);
+  const toggleTermLock = () =>
+    void setTermLock({ data: { term, closed: !termClosed } }).then(() =>
+      queryClient.invalidateQueries({ queryKey: ["school", "settings"] }),
+    );
+
   const closeChecklist = buildTermCloseChecklist({
     total: visibleRows.length,
     pending: pendingCount,
@@ -749,16 +574,7 @@ export function AssessmentCenter({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [autosave, canEdit, dirtyCount]);
 
-  const officialRows: PautaExportRow[] = visibleRows.map((entry, index) => ({
-    n: String(index + 1).padStart(2, "0"),
-    aluno: entry.student.student_name,
-    proc: entry.student.registration_number ?? "",
-    mac: formatScore(entry.mac, 0),
-    npp: formatScore(entry.npp, 0),
-    npt: formatScore(entry.npt, 0),
-    media: formatScore(entry.average),
-    situacao: entry.situacao.label,
-  }));
+  const officialRows = toPautaExportRows(visibleRows);
 
   const officialMeta = {
     schoolName,
@@ -772,252 +588,23 @@ export function AssessmentCenter({
     validationCode,
   };
 
-  const pautaColumns = [
-    { label: "Nº", value: (row: PautaExportRow) => row.n },
-    { label: "Aluno", value: (row: PautaExportRow) => row.aluno },
-    { label: "Proc.", value: (row: PautaExportRow) => row.proc },
-    { label: "MAC", value: (row: PautaExportRow) => row.mac },
-    { label: "NPP", value: (row: PautaExportRow) => row.npp },
-    { label: "NPT", value: (row: PautaExportRow) => row.npt },
-    { label: "Média", value: (row: PautaExportRow) => row.media },
-    { label: "Situação", value: (row: PautaExportRow) => row.situacao },
-  ];
-
-  const printSchool = {
-    name: schoolName,
-    directorName: directorName ?? undefined,
-    academicYear,
-  };
-
-  const exportDocument = (
-    kind: "pdf" | "excel",
-    docType: "pauta" | "boletim" | "mapa" | "relacao" | "acta" | "validacao" = "pauta",
-  ) => {
-    const slug = selectedGroup?.name ?? "turma";
-    if (docType === "acta") {
-      void issuePrintDocument({
-        tipo: "Acta do conselho de notas",
-        school: printSchool,
-        overlay: overlayActa({
-          teacherName: directorName ?? undefined,
-          decisions: officialRows.map((row) => ({
-            student: String(row.aluno),
-            average: row.media,
-            decision: String(row.situacao),
-            observation: "",
-          })),
-        }),
-        fallback: () =>
-          exportOfficialPautaPdf(
-            `acta-${slug}`,
-            "Acta do conselho de notas",
-            officialMeta,
-            pautaColumns,
-            officialRows,
-          ),
-      });
-      return;
-    }
-    if (docType === "validacao") {
-      void issuePrintDocument({
-        tipo: "Relatório de validação",
-        school: printSchool,
-        overlay: overlayValidacao(
-          officialRows.map((row) => ({
-            item: `${row.aluno} · ${selectedSubject?.name ?? "Disciplina"}`,
-            status: String(row.situacao),
-            note: `MAC ${row.mac} · NPP ${row.npp} · NPT ${row.npt}`,
-          })),
-        ),
-        fallback: () =>
-          exportOfficialPautaPdf(
-            `validacao-${slug}`,
-            "Relatório de validação de notas",
-            officialMeta,
-            pautaColumns,
-            officialRows,
-          ),
-      });
-      return;
-    }
-    if (docType === "relacao") {
-      const columns = [
-        { label: "Nº", value: (row: StudentListExportRow) => row.n },
-        { label: "Aluno", value: (row: StudentListExportRow) => row.aluno },
-        { label: "Proc.", value: (row: StudentListExportRow) => row.proc },
-      ];
-      const rows: StudentListExportRow[] = officialRows.map(({ n, aluno, proc }) => ({
-        n,
-        aluno,
-        proc,
-      }));
-      if (kind === "excel") exportCsv(`relacao-${slug}`, columns, rows);
-      else {
-        void issuePrintDocument({
-          tipo: "Relação de alunos",
-          school: printSchool,
-          overlay: overlayServico({
-            name: "Relação de alunos",
-            areaLabel: "Pedagógica",
-            reference: `REL-${rows.length}`,
-            status: "Oficial",
-            parties: [
-              { label: "Turma", value: selectedGroup?.name ?? "Turma" },
-              { label: "Disciplina", value: selectedSubject?.name ?? "—" },
-            ],
-            sections: [
-              {
-                title: "Alunos",
-                rows: rows.map((row) => ({
-                  label: String(row.aluno),
-                  value: String(row.proc || "—"),
-                  note: String(row.n),
-                })),
-              },
-            ],
-          }),
-          fallback: () =>
-            exportOfficialPautaPdf(
-              `relacao-${slug}`,
-              "Relação de alunos",
-              officialMeta,
-              columns,
-              rows,
-            ),
-        });
-      }
-      return;
-    }
-    if (docType === "mapa") {
-      const columns = [
-        { label: "Classe", value: (row: ClassMapExportRow) => row.classe },
-        { label: "Curso", value: (row: ClassMapExportRow) => row.curso },
-        { label: "Turma", value: (row: ClassMapExportRow) => row.turma },
-        { label: "Alunos", value: (row: ClassMapExportRow) => row.alunos },
-        { label: "Média", value: (row: ClassMapExportRow) => row.media },
-        { label: "Transitam", value: (row: ClassMapExportRow) => row.transitam },
-        { label: "Pendentes", value: (row: ClassMapExportRow) => row.pendentes },
-      ];
-      const rows: ClassMapExportRow[] = classMap.map((row) => ({
-        classe: row.gradeName,
-        curso: row.courseName,
-        turma: row.name,
-        alunos: row.alunos,
-        media: formatScore(row.media),
-        transitam: row.transitam,
-        pendentes: row.pendentes,
-      }));
-      if (kind === "excel") exportCsv(`mapa-${slug}`, columns, rows);
-      else {
-        void issuePrintDocument({
-          tipo: "Mapa estatístico",
-          school: printSchool,
-          overlay: overlayMapa(
-            classMap.map((row) => ({
-              classGroup: row.name,
-              course: row.courseName,
-              total: row.alunos,
-              approved: row.transitam,
-              pending: row.pendentes,
-              average: formatScore(row.media),
-            })),
-          ),
-          fallback: () =>
-            exportOfficialPautaPdf(
-              `mapa-${slug}`,
-              "Mapa de aproveitamento",
-              officialMeta,
-              columns,
-              rows,
-            ),
-        });
-      }
-      return;
-    }
-    if (docType === "boletim" && selectedStudent) {
-      const columns = [
-        { label: "Disciplina", value: (row: Record<string, string | number>) => row["disciplina"] },
-        { label: "1º T", value: (row: Record<string, string | number>) => row["t1"] },
-        { label: "2º T", value: (row: Record<string, string | number>) => row["t2"] },
-        { label: "3º T", value: (row: Record<string, string | number>) => row["t3"] },
-        { label: "MFA", value: (row: Record<string, string | number>) => row["mfa"] },
-        { label: "Situação", value: (row: Record<string, string | number>) => row["situacao"] },
-      ];
-      const rows = dossier.map((row) => ({
-        disciplina: row.subjectName,
-        t1: formatScore(row.terms[0]),
-        t2: formatScore(row.terms[1]),
-        t3: formatScore(row.terms[2]),
-        mfa: formatScore(row.mfa),
-        situacao: row.situacao.label,
-      }));
-      if (kind === "excel") {
-        exportCsv(`boletim-${selectedStudent.student.student_name}`, columns, rows);
-      } else {
-        void issuePrintDocument({
-          tipo: "Boletim escolar",
-          school: printSchool,
-          student: {
-            fullName: selectedStudent.student.student_name,
-            academicNumber: selectedStudent.student.registration_number ?? "—",
-            className: selectedGroup?.name,
-            programName: selectedGroup?.grade_name,
-            validationCode,
-          },
-          overlay: overlayBoletim({
-            subjects: dossier.map((row) => ({
-              name: row.subjectName,
-              t1: formatScore(row.terms[0]),
-              t2: formatScore(row.terms[1]),
-              t3: formatScore(row.terms[2]),
-              mfa: formatScore(row.mfa),
-              status: row.situacao.label,
-            })),
-            status: selectedStudent.situacao.label,
-            average: formatScore(selectedStudent.average),
-          }),
-          fallback: () =>
-            exportOfficialPautaPdf(
-              `boletim-${selectedStudent.student.student_name}`,
-              "Boletim de avaliação",
-              { ...officialMeta, subjectName: undefined },
-              columns,
-              rows,
-            ),
-        });
-      }
-      return;
-    }
-    const title =
-      contextKind === "aluno"
-        ? "Pauta individual"
-        : contextKind === "disciplina"
-          ? "Pauta da disciplina"
-          : contextKind === "curso"
-            ? "Pauta da classe / curso"
-            : "Pauta da turma";
-    if (kind === "excel") exportCsv(`pauta-${slug}`, pautaColumns, officialRows);
-    else {
-      void issuePrintDocument({
-        tipo: contextKind === "disciplina" ? "Pauta disciplinar" : "Pauta geral da turma",
-        school: printSchool,
-        overlay: overlayPauta({
-          subjectName: selectedSubject?.name,
-          students: officialRows.map((row) => ({
-            fullName: String(row.aluno),
-            academicNumber: String(row.proc),
-            mac: row.mac,
-            npp: row.npp,
-            npt: row.npt,
-            average: row.media,
-            status: String(row.situacao),
-          })),
-        }),
-        fallback: () =>
-          exportOfficialPautaPdf(`pauta-${slug}`, title, officialMeta, pautaColumns, officialRows),
-      });
-    }
-  };
+  const exportDocument = (kind: AssessmentDocKind, docType: AssessmentDocType = "pauta") =>
+    exportAssessmentDocument(
+      {
+        contextKind,
+        group: selectedGroup,
+        subjectName: selectedSubject?.name,
+        school: { name: schoolName, directorName: directorName ?? undefined, academicYear },
+        meta: officialMeta,
+        rows: officialRows,
+        classMap,
+        dossier,
+        student: selectedStudent,
+        validationCode,
+      },
+      kind,
+      docType,
+    );
 
   const applyBatch = () => {
     const parsed = parseScore(batchValue);
@@ -1233,65 +820,18 @@ export function AssessmentCenter({
         </div>
 
         {filtersOpen ? (
-          <div className="border-b px-5 py-3">
-            <ListFilterBar
-              values={filters}
-              onChange={(name, value) => setFilter(name as keyof typeof filterDefaults, value)}
-              onReset={resetFilters}
-              activeCount={activeCount}
-              fields={[
-                { name: "q", type: "search", placeholder: "Nome, nº ou processo…" },
-                {
-                  name: "classe",
-                  label: "Classe",
-                  type: "select",
-                  options: [
-                    { value: "todas", label: "Todas" },
-                    ...classes.map((item) => ({ value: String(item), label: String(item) })),
-                  ],
-                },
-                {
-                  name: "curso",
-                  label: "Curso",
-                  type: "select",
-                  options: [
-                    { value: "todos", label: "Todos" },
-                    ...courses.map((item) => ({ value: String(item), label: String(item) })),
-                  ],
-                },
-                {
-                  name: "turma",
-                  label: "Turma",
-                  type: "select",
-                  options: [
-                    { value: "todas", label: "Todas" },
-                    ...classGroups.map((group) => ({ value: group.id, label: group.name })),
-                  ],
-                },
-                {
-                  name: "disciplina",
-                  label: "Disciplina",
-                  type: "select",
-                  options: [
-                    { value: "todas", label: "Todas" },
-                    ...subjects.map((subject) => ({ value: subject.id, label: subject.name })),
-                  ],
-                },
-                {
-                  name: "trimestre",
-                  label: periodNoun,
-                  type: "select",
-                  options: periodOptions.map((p) => ({ value: String(p), label: `${p}º` })),
-                },
-                {
-                  name: "situacao",
-                  label: "Situação",
-                  type: "select",
-                  options: pautaSituations.map((item) => ({ value: item.id, label: item.label })),
-                },
-              ]}
-            />
-          </div>
+          <AssessmentFiltersPanel
+            filters={filters}
+            setFilter={setFilter}
+            resetFilters={resetFilters}
+            activeCount={activeCount}
+            classes={classes}
+            courses={courses}
+            classGroups={classGroups}
+            subjects={subjects}
+            periodNoun={periodNoun}
+            periodOptions={periodOptions}
+          />
         ) : null}
 
         <div className="flex flex-wrap items-center gap-2 border-b px-5 py-2 print:hidden">
@@ -1328,93 +868,13 @@ export function AssessmentCenter({
           >
             <FileDown className="size-3.5" /> Documentos
           </Button>
-          {turnitinOn ? (
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={async () => {
-                const payload = [
-                  schoolName,
-                  academicYear,
-                  `T${term}`,
-                  selectedGroup?.name ?? "turma",
-                  `${checkedIds.size || enrollments.length} trabalhos`,
-                ].join(" · ");
-                await navigator.clipboard.writeText(payload);
-                toast.success("Lote Turnitin copiado", {
-                  description: "Cole no Turnitin ou abra o guia oficial.",
-                });
-                window.open("https://developers.turnitin.com/", "_blank", "noopener,noreferrer");
-              }}
-            >
-              Turnitin
-            </Button>
-          ) : null}
-          {classroomWork ? (
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() =>
-                window.open("https://classroom.google.com/", "_blank", "noopener,noreferrer")
-              }
-            >
-              Trabalhos
-            </Button>
-          ) : null}
-          {moodleGrades ? (
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() =>
-                window.open("https://docs.moodle.org/en/Gradebook", "_blank", "noopener,noreferrer")
-              }
-            >
-              Notas Moodle
-            </Button>
-          ) : null}
-          {canvasWork ? (
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() =>
-                window.open(
-                  "https://canvas.instructure.com/doc/api/assignments.html",
-                  "_blank",
-                  "noopener,noreferrer",
-                )
-              }
-            >
-              Canvas
-            </Button>
-          ) : null}
-          {whatsappOn ? (
-            <Button size="sm" variant="outline" asChild>
-              <a
-                href={whatsappHref(
-                  "",
-                  `Centro de Avaliação · ${selectedGroup?.name ?? "turma"} · T${term} · ${academicYear}`,
-                )}
-                target="_blank"
-                rel="noreferrer"
-              >
-                WhatsApp
-              </a>
-            </Button>
-          ) : null}
-          {resendDocuments ? (
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={async () => {
-                await navigator.clipboard.writeText(
-                  `Centro de Avaliação · ${selectedGroup?.name ?? "turma"} · T${term} · ${academicYear}\n${schoolName}`,
-                );
-                toast.success("Resumo copiado para e-mail Resend");
-              }}
-            >
-              E-mail
-            </Button>
-          ) : null}
+          <AssessmentIntegrationActions
+            schoolName={schoolName}
+            academicYear={academicYear}
+            term={term}
+            groupName={selectedGroup?.name ?? "turma"}
+            workCount={checkedIds.size || enrollments.length}
+          />
           <Button
             size="sm"
             variant="outline"
@@ -1442,11 +902,7 @@ export function AssessmentCenter({
                   ? `${termReadiness.notReady.length} turma(s) com pendências neste trimestre.`
                   : undefined
               }
-              onClick={() =>
-                void setTermLock({ data: { term, closed: !termClosed } }).then(() =>
-                  queryClient.invalidateQueries({ queryKey: ["school", "settings"] }),
-                )
-              }
+              onClick={toggleTermLock}
             >
               {termClosed ? <Unlock className="size-3.5" /> : <Lock className="size-3.5" />}
               {termClosed ? "Reabrir" : "Fechar trimestre"}
@@ -1459,69 +915,14 @@ export function AssessmentCenter({
         </div>
 
         {docsOpen ? (
-          <div className="border-b bg-muted/30 px-5 py-3 text-sm">
-            <p className="mb-2 text-xs font-bold text-muted-foreground">Gerar para {contextKind}</p>
-            <div className="flex flex-wrap gap-2">
-              <Button size="sm" variant="outline" onClick={() => exportDocument("pdf")}>
-                {contextKind === "aluno"
-                  ? "Pauta individual PDF"
-                  : contextKind === "disciplina"
-                    ? "Pauta da disciplina PDF"
-                    : "Pauta da turma PDF"}
-              </Button>
-              {selectedStudent ? (
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => exportDocument("pdf", "boletim")}
-                >
-                  Boletim do aluno
-                </Button>
-              ) : null}
-              <Button size="sm" variant="outline" onClick={() => exportDocument("pdf", "relacao")}>
-                Relação de alunos
-              </Button>
-              <Button size="sm" variant="outline" onClick={() => exportDocument("pdf", "mapa")}>
-                Mapa de aproveitamento
-              </Button>
-              <Button size="sm" variant="outline" onClick={() => exportDocument("pdf", "acta")}>
-                Acta do conselho
-              </Button>
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => exportDocument("pdf", "validacao")}
-              >
-                Validação de notas
-              </Button>
-              <Button size="sm" variant="outline" onClick={() => exportDocument("excel")}>
-                Exportar Excel
-              </Button>
-            </div>
-          </div>
+          <AssessmentDocumentsPanel
+            contextKind={contextKind}
+            hasSelectedStudent={Boolean(selectedStudent)}
+            exportDocument={exportDocument}
+          />
         ) : null}
 
-        {historyOpen ? (
-          <div className="border-b bg-muted/20 px-5 py-3">
-            <p className="mb-2 text-xs font-bold text-muted-foreground">
-              Histórico (nota original → nova)
-            </p>
-            {historyLines.length === 0 ? (
-              <p className="text-sm text-muted-foreground">
-                Ainda não há alterações gravadas neste contexto.
-              </p>
-            ) : (
-              <ul className="space-y-1 text-sm">
-                {historyLines.slice(0, 12).map((line) => (
-                  <li key={line.id}>
-                    <span className="font-semibold">{line.studentName}</span> · {line.itemName}:{" "}
-                    {formatScore(line.previous)} → {formatScore(line.current)}
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
-        ) : null}
+        {historyOpen ? <AssessmentHistoryPanel lines={historyLines} /> : null}
 
         <div className="min-h-0 flex-1 overflow-auto px-5 py-3" onPaste={onPaste}>
           {scope === "classes" || scope === "turmas" ? (
@@ -1564,211 +965,38 @@ export function AssessmentCenter({
               />
             </div>
           ) : mode === "avaliacoes" ? (
-            <div className="space-y-2">
-              {!assessmentsAvailable ? (
-                <p className="text-sm text-muted-foreground">
-                  Aplique <code>APPLY_ENROLLMENT_AND_PREMIUM.sql</code> para criar avaliações
-                  detalhadas. <SqlChecklistLink />
-                </p>
-              ) : items.length === 0 ? (
-                <p className="text-sm text-muted-foreground">
-                  Ainda não há avaliações neste contexto. Use + Avaliação.
-                </p>
-              ) : (
-                items.map((item) => (
-                  <div key={String(item.id)} className="rounded-xl border px-3 py-2">
-                    <p className="font-semibold">{String(item.name)}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {String(item.kind)} · {String(item.component)} · conta para a pauta:{" "}
-                      {item.counts_toward_pauta ? "sim" : "não"}
-                    </p>
-                  </div>
-                ))
-              )}
-            </div>
+            <AssessmentItemsList available={assessmentsAvailable} items={items} />
           ) : mode === "recursos" ? (
-            <div className="overflow-auto rounded-lg border">
-              <table className="w-full text-sm">
-                <thead className="bg-muted/70">
-                  <tr>
-                    <th className="px-3 py-2 text-left">Aluno</th>
-                    <th className="px-3 py-2 text-left">Disciplina</th>
-                    <th className="px-3 py-2 text-right">Média anterior</th>
-                    <th className="px-3 py-2 text-right">Recurso</th>
-                    <th className="px-3 py-2 text-right">Nova nota</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {visibleRows.map((row) => (
-                    <tr key={row.student.id} className="border-t">
-                      <td className="px-3 py-2 font-semibold">{row.student.student_name}</td>
-                      <td className="px-3 py-2">{selectedSubject?.name ?? "—"}</td>
-                      <td className="px-3 py-2 text-right">{formatScore(row.average)}</td>
-                      <td className="px-3 py-2 text-right">{formatScore(row.recurso)}</td>
-                      <td className="px-3 py-2 text-right font-bold">
-                        {formatScore(afterRecovery(row.average, row.recurso))}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            <AssessmentRecoveryTable
+              rows={visibleRows}
+              subjectName={selectedSubject?.name ?? "—"}
+              afterRecovery={afterRecovery}
+            />
           ) : mode === "exames" ? (
-            <div className="overflow-auto rounded-lg border">
-              <table className="w-full text-sm">
-                <thead className="bg-muted/70">
-                  <tr>
-                    <th className="px-3 py-2 text-left">Aluno</th>
-                    <th className="px-3 py-2 text-left">Disciplina</th>
-                    <th className="px-3 py-2 text-left">Tipo</th>
-                    <th className="px-3 py-2 text-right">Nota</th>
-                    <th className="px-3 py-2 text-right">Resultado</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {visibleRows.map((row) => (
-                    <tr key={row.student.id} className="border-t">
-                      <td className="px-3 py-2 font-semibold">{row.student.student_name}</td>
-                      <td className="px-3 py-2">{selectedSubject?.name ?? "—"}</td>
-                      <td className="px-3 py-2">Exame</td>
-                      <td className="px-3 py-2 text-right">{formatScore(row.exame)}</td>
-                      <td className="px-3 py-2 text-right">
-                        {row.exame == null
-                          ? "Pendente"
-                          : row.exame >= passingGrade
-                            ? "Aprovado"
-                            : "Reprovado"}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            <AssessmentExamTable
+              rows={visibleRows}
+              subjectName={selectedSubject?.name ?? "—"}
+              passingGrade={passingGrade}
+            />
           ) : mode === "fecho" ? (
-            <div className="space-y-4">
-              <p className="text-sm text-muted-foreground">
-                {termClosed
-                  ? "Este trimestre está fechado. As células da pauta estão bloqueadas."
-                  : "Só feche quando a pauta estiver completa e guardada."}
-              </p>
-              <ul className="space-y-2">
-                {closeChecklist.items.map((item) => (
-                  <li
-                    key={item.id}
-                    className="flex items-center justify-between rounded-xl border px-3 py-2 text-sm"
-                  >
-                    <span>{item.label}</span>
-                    <span
-                      className={
-                        item.ok ? "font-semibold text-primary" : "font-semibold text-destructive"
-                      }
-                    >
-                      {item.ok ? "Pronto" : "Bloqueia"}
-                    </span>
-                  </li>
-                ))}
-                <li className="flex items-center justify-between rounded-xl border px-3 py-2 text-sm">
-                  <span>Todas as turmas com docentes atribuídos e sem notas pendentes</span>
-                  <span
-                    className={
-                      termReadiness.allReady
-                        ? "font-semibold text-primary"
-                        : "font-semibold text-destructive"
-                    }
-                  >
-                    {termReadiness.allReady
-                      ? "Pronto"
-                      : `Bloqueia (${termReadiness.notReady.length} turma(s))`}
-                  </span>
-                </li>
-              </ul>
-              {!termReadiness.allReady && termReadiness.notReady.length > 0 ? (
-                <ul className="space-y-1 rounded-xl border border-warning/30 bg-warning/5 p-3 text-xs text-muted-foreground">
-                  {termReadiness.notReady.slice(0, 6).map((report) => (
-                    <li key={report.classGroupId}>
-                      <b className="text-foreground">{report.classGroupName}:</b>{" "}
-                      {report.summary.unassignedSubjectsCount > 0
-                        ? `${report.summary.unassignedSubjectsCount} disciplina(s) sem docente. `
-                        : ""}
-                      {report.summary.pendingGradesCount > 0
-                        ? `${report.summary.pendingGradesCount} nota(s) pendente(s). `
-                        : ""}
-                      {report.issues.some((issue) => issue.code === "MULTIPLE_TEACHERS_MONODOCENTE")
-                        ? "Turma monodocente com mais do que um professor atribuído."
-                        : ""}
-                    </li>
-                  ))}
-                  {termReadiness.notReady.length > 6 ? (
-                    <li className="italic">
-                      + {termReadiness.notReady.length - 6} outra(s) turma(s).
-                    </li>
-                  ) : null}
-                </ul>
-              ) : null}
-              {canLockTerm ? (
-                <Button
-                  disabled={!termClosed && (!closeChecklist.ready || !termReadiness.allReady)}
-                  onClick={() =>
-                    void setTermLock({ data: { term, closed: !termClosed } }).then(() =>
-                      queryClient.invalidateQueries({ queryKey: ["school", "settings"] }),
-                    )
-                  }
-                >
-                  {termClosed ? "Reabrir trimestre" : "Fechar trimestre"}
-                </Button>
-              ) : null}
-            </div>
+            <AssessmentTermClosePanel
+              termClosed={termClosed}
+              checklist={closeChecklist}
+              readiness={termReadiness}
+              canLockTerm={canLockTerm}
+              onToggleLock={toggleTermLock}
+            />
           ) : (
             <>
               {canEdit && checkedIds.size > 0 ? (
-                <div className="mb-3 flex flex-wrap items-end gap-2 rounded-xl border bg-card p-3">
-                  <p className="text-xs font-semibold text-muted-foreground">
-                    {checkedIds.size} seleccionado(s)
-                  </p>
-                  <select
-                    aria-label="Campo a aplicar em lote"
-                    className="h-9 rounded-lg border border-input bg-background px-3 text-sm"
-                    value={batchField}
-                    onChange={(event) => setBatchField(event.target.value as "mac" | "npp" | "npt")}
-                  >
-                    <option value="mac">MAC</option>
-                    <option value="npp">NPP</option>
-                    <option value="npt">NPT</option>
-                  </select>
-                  <Input
-                    aria-label="Nota a aplicar em lote"
-                    className="h-9 w-24"
-                    inputMode="decimal"
-                    placeholder="0–20"
-                    value={batchValue}
-                    onChange={(event) => setBatchValue(event.target.value)}
-                  />
-                  <Button size="sm" onClick={applyBatch}>
-                    Aplicar aos seleccionados
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => {
-                      const selected = visibleRows.filter((row) => checkedIds.has(row.student.id));
-                      const text = rowsToTsv([
-                        ["Aluno", "Proc.", "MAC", "NPP", "NPT", "Média"],
-                        ...selected.map((row) => [
-                          row.student.student_name,
-                          row.student.registration_number,
-                          row.mac,
-                          row.npp,
-                          row.npt,
-                          row.average,
-                        ]),
-                      ]);
-                      void navigator.clipboard.writeText(text);
-                      toast.success("Linhas copiadas para o Excel");
-                    }}
-                  >
-                    Copiar
-                  </Button>
-                </div>
+                <AssessmentBatchBar
+                  selectedRows={visibleRows.filter((row) => checkedIds.has(row.student.id))}
+                  field={batchField}
+                  onFieldChange={setBatchField}
+                  value={batchValue}
+                  onValueChange={setBatchValue}
+                  onApply={applyBatch}
+                />
               ) : null}
               <AssessmentGrid
                 students={visibleRows.map((row) => row.student)}
@@ -1788,30 +1016,12 @@ export function AssessmentCenter({
           )}
 
           {selectedStudent && mode === "lancamento" && scope !== "alunos" ? (
-            <div className="mt-4 rounded-xl border bg-card p-4 text-sm">
-              <p className="font-semibold">
-                {selectedStudent.student.student_name} · detalhe MAC/NPP/NPT
-              </p>
-              {(["MAC", "NPP", "NPT"] as const).map((component) => (
-                <div key={component} className="mt-2">
-                  <p className="text-xs font-bold text-muted-foreground">{component}</p>
-                  {items.filter((item) => item.component === component).length === 0 ? (
-                    <p className="text-xs text-muted-foreground">
-                      Sem avaliações neste componente.
-                    </p>
-                  ) : (
-                    items
-                      .filter((item) => item.component === component)
-                      .map((item) => (
-                        <p key={String(item.id)} className="text-xs">
-                          {String(item.name)} ………… {selectedStudent.row[String(item.id)] || "—"}
-                        </p>
-                      ))
-                  )}
-                </div>
-              ))}
-              <p className="mt-2 font-bold">Média ………… {formatScore(selectedStudent.average)}</p>
-            </div>
+            <AssessmentStudentDetail
+              studentName={selectedStudent.student.student_name}
+              items={items}
+              row={selectedStudent.row}
+              average={selectedStudent.average}
+            />
           ) : null}
         </div>
 

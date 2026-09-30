@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useState } from "react";
 import {
   ArrowLeft,
@@ -133,7 +134,14 @@ type RuntimeStatus = {
   sigaUrl?: string | null;
 };
 
-const SIGA_FINANCE_URL = `${process.env.NEXT_PUBLIC_SIGA_URL || "http://localhost:3006"}/financeiro`;
+// Sem PAYFLOW_SIGA_URL no servidor: variável pública, depois o domínio da
+// plataforma (como no WEB e no ADMIN). localhost só em desenvolvimento.
+const SIGA_FINANCE_URL = `${
+  process.env.NEXT_PUBLIC_SIGA_URL ||
+  (process.env.NODE_ENV === "production"
+    ? `https://${(process.env.NEXT_PUBLIC_PLATFORM_DOMAIN || "portal-siga.com").trim().toLowerCase()}`
+    : "http://localhost:3006")
+}/financeiro`;
 const STATEMENT_TEMPLATE = `data;referencia;valor;moeda;movimento;descricao
 05/09/2026;PF-TF-20260905-XXXXXXXXXX;15.000,00;AOA;MOV-001;Propina Setembro
 `;
@@ -474,7 +482,7 @@ export function PayflowAdminDashboard() {
                 </a>
               </Button>
               <Button asChild variant="ghost" className="w-full text-xs text-muted-foreground">
-                <a href="/">Voltar à Página Inicial</a>
+                <Link href="/">Voltar à Página Inicial</Link>
               </Button>
             </div>
           </CardContent>
@@ -525,7 +533,7 @@ export function PayflowAdminDashboard() {
             </Button>
 
             <Button asChild variant="outline" size="sm">
-              <a href={SIGA_FINANCE_URL} target="_blank" rel="noreferrer">
+              <a href={sigaFinanceHref} target="_blank" rel="noreferrer">
                 <ExternalLink className="size-3.5 mr-1" />
                 <span className="hidden sm:inline">SIGA Plus</span>
               </a>

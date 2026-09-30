@@ -5,6 +5,7 @@ import {
   buildTermCloseChecklist,
   changeHistoryLines,
   documentValidationCode,
+  mergeReloadedValues,
   rowsToTsv,
   selectIdRange,
 } from "@/features/academic/assessment-views";
@@ -91,5 +92,30 @@ describe("assessment context views", () => {
   it("gera código de validação e selecciona intervalos na grelha", () => {
     expect(documentValidationCode(["Escola", "10ª A", "1"])).toMatch(/^SIGA-[0-9A-F]{8}$/);
     expect(selectIdRange(["a", "b", "c", "d"], "b", "d")).toEqual(["b", "c", "d"]);
+  });
+});
+
+describe("mergeReloadedValues", () => {
+  const loaded = { e1: { mac: "12", npp: "14" }, e2: { mac: "" } };
+
+  it("mantém o que o professor escreveu e actualiza o resto", () => {
+    const current = { e1: { mac: "18", npp: "14" }, e2: { mac: "" } };
+    const reloaded = { e1: { mac: "12", npp: "15", item1: "9" }, e2: { mac: "10" } };
+    expect(mergeReloadedValues(reloaded, current, loaded)).toEqual({
+      e1: { mac: "18", npp: "15", item1: "9" },
+      e2: { mac: "10" },
+    });
+  });
+
+  it("apagar uma nota também conta como edição", () => {
+    const current = { e1: { mac: "", npp: "14" } };
+    expect(mergeReloadedValues({ e1: { mac: "12", npp: "14" } }, current, loaded).e1.mac).toBe("");
+  });
+
+  it("alunos que saíram da lista saem também", () => {
+    const current = { e1: { mac: "12" }, e2: { mac: "7" } };
+    expect(Object.keys(mergeReloadedValues({ e1: { mac: "12" } }, current, loaded))).toEqual([
+      "e1",
+    ]);
   });
 });

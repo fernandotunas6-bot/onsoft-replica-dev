@@ -63,7 +63,10 @@ export function buildEnrollmentDirectory(
   groups: EnrollmentClassGroup[],
   filters: EnrollmentDirectoryFilters,
 ) {
-  const active = groups.filter((group) => group.status !== "closed" && group.status !== "inactive");
+  const active = groups.filter(
+    (group) =>
+      group.status !== "closed" && group.status !== "archived" && group.status !== "inactive",
+  );
 
   const academicYears = uniqueOptions(
     active,

@@ -48,6 +48,7 @@ export function DisciplinasWorkspaceTab({
     name: string;
     teacher_name?: string | null;
     classes_label?: string | null;
+    weekly_hours?: number | null;
     weekly_hours_label?: string | null;
     approval_rate?: number | null;
     subject_type_id?: string | null;
@@ -102,21 +103,19 @@ export function DisciplinasWorkspaceTab({
             <QuickFormModal
               title="Nova disciplina"
               eyebrow="Pedagógica"
-              description="Adicione uma disciplina ao catálogo da escola com tipo e área curricular."
+              description="Adicione uma disciplina ao catálogo da escola. O professor e os tempos por semana definem-se em cada turma (Atribuir professor, currículo do curso)."
               icon={<Plus className="size-5" />}
               submitLabel="Criar disciplina"
               onSubmit={async (values) => {
-                const weeklyHours = Number(values["carga"] || 4);
-                const gradeFrom = values["classeDe"] ? Number(values["classeDe"]) : undefined;
-                const gradeTo = values["classeAte"] ? Number(values["classeAte"]) : undefined;
+                const annualHours = values["cargaAnual"] ? Number(values["cargaAnual"]) : undefined;
                 await createSubject({
                   data: {
                     code: values["codigo"] ?? "",
                     name: values["nome"] ?? "",
-                    teacherName: values["professor"] || undefined,
-                    weeklyHours: Number.isFinite(weeklyHours) ? weeklyHours : 4,
-                    gradeFrom: Number.isFinite(gradeFrom) ? gradeFrom : undefined,
-                    gradeTo: Number.isFinite(gradeTo) ? gradeTo : undefined,
+                    annualHours:
+                      annualHours && Number.isFinite(annualHours) && annualHours > 0
+                        ? Math.round(annualHours)
+                        : undefined,
                     subjectTypeId:
                       values["tipo"] && values["tipo"] !== "none" ? values["tipo"] : undefined,
                     curriculumAreaId:
@@ -125,6 +124,9 @@ export function DisciplinasWorkspaceTab({
                 });
                 await onRefresh();
               }}
+              // Docente, tempos por semana e classes não são da disciplina: definem-se em
+              // cada turma (`class_subjects`: professor e `weekly_periods`) — "Atribuir
+              // professor" e o currículo do curso. Os antigos campos aqui não se gravavam.
               fields={[
                 {
                   name: "nome",
@@ -152,29 +154,10 @@ export function DisciplinasWorkspaceTab({
                   ],
                 },
                 {
-                  name: "professor",
-                  label: "Docente padrão",
-                  placeholder: "Ex.: Prof.ª Ana Silva",
-                  required: false,
-                },
-                {
-                  name: "carga",
-                  label: "Horas/semana",
+                  name: "cargaAnual",
+                  label: "Carga anual (horas)",
                   type: "number",
-                  placeholder: "4",
-                },
-                {
-                  name: "classeDe",
-                  label: "Classe inicial",
-                  type: "number",
-                  placeholder: "7",
-                  required: false,
-                },
-                {
-                  name: "classeAte",
-                  label: "Classe final",
-                  type: "number",
-                  placeholder: "13",
+                  placeholder: "Ex.: 120",
                   required: false,
                 },
               ]}
@@ -209,15 +192,18 @@ export function DisciplinasWorkspaceTab({
           <div className="rounded-xl border bg-card p-3 shadow-2xs">
             <span className="text-xs text-muted-foreground">Carga Média</span>
             <p className="text-xl font-black text-foreground">
-              {subjects.length > 0
-                ? Math.round(
-                    subjects.reduce((acc, s) => {
-                      const num = Number(s.weekly_hours_label?.replace(/[^\d]/g, "") || 4);
-                      return acc + (Number.isFinite(num) ? num : 4);
-                    }, 0) / subjects.length,
-                  )
-                : 0}
-              h/sem
+              {(() => {
+                // Só as disciplinas já atribuídas a turmas têm carga (tempos lectivos por
+                // semana, de `class_subjects`); antes lia os dígitos da etiqueta e contava
+                // 4 para as que não tinham nenhuma.
+                const loads = subjects
+                  .map((s) => Number(s.weekly_hours ?? 0))
+                  .filter((value) => value > 0);
+                return loads.length
+                  ? Math.round(loads.reduce((acc, value) => acc + value, 0) / loads.length)
+                  : "—";
+              })()}{" "}
+              tempos/sem
             </p>
           </div>
         </div>

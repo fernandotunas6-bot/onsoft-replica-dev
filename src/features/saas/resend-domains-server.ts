@@ -7,6 +7,7 @@ import {
   requireSgaWriterFor,
   requireSgaWriterForWrite,
 } from "@/integrations/supabase/sga-admin";
+import { errorMessage } from "@/lib/error-message";
 
 export const listResendDomainsFn = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
@@ -30,10 +31,10 @@ export const listResendDomainsFn = createServerFn({ method: "GET" })
           };
         }),
       };
-    } catch (err: any) {
+    } catch (err) {
       return {
         success: false,
-        error: err.message || "Erro ao consultar domínios no Resend.",
+        error: errorMessage(err, "Erro ao consultar domínios no Resend."),
         domains: [],
       };
     }
@@ -56,10 +57,10 @@ export const verifyResendDomainFn = createServerFn({ method: "POST" })
           ? "Verificação solicitada com sucesso. Os registos DNS serão validados em minutos."
           : "Não foi possível validar o domínio no Resend.",
       };
-    } catch (err: any) {
+    } catch (err) {
       return {
         success: false,
-        message: err.message || "Erro ao verificar domínio.",
+        message: errorMessage(err, "Erro ao verificar domínio."),
       };
     }
   });
@@ -97,10 +98,10 @@ export const createResendDomainFn = createServerFn({ method: "POST" })
         domain: created,
         message: `Domínio ${data.domainName} registado. Configure os registos DNS DKIM e SPF no seu provedor.`,
       };
-    } catch (err: any) {
+    } catch (err) {
       return {
         success: false,
-        message: err.message || "Erro ao criar domínio no Resend.",
+        message: errorMessage(err, "Erro ao criar domínio no Resend."),
       };
     }
   });

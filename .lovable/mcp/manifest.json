@@ -43,22 +43,22 @@
           "openWorldHint": false
         },
         "inputSchema": {
-          "$schema": "https://json-schema.org/draft/2020-12/schema",
           "type": "object",
           "properties": {
             "search": {
-              "description": "Filtrar pelo nome ou código da turma.",
               "type": "string",
-              "maxLength": 80
+              "maxLength": 80,
+              "description": "Filtrar pelo nome ou código da turma."
             },
             "limit": {
-              "description": "Máximo de turmas (por omissão 50).",
               "type": "integer",
               "minimum": 1,
-              "maximum": 200
+              "maximum": 200,
+              "description": "Máximo de turmas (por omissão 50)."
             }
           },
-          "additionalProperties": false
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
         },
         "outputSchema": null
       }

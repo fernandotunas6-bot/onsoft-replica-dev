@@ -56,7 +56,7 @@ function constantTimeEqual(left: Uint8Array, right: Uint8Array) {
   return difference === 0;
 }
 
-async function derivePaymentPin(pin: string, salt: Uint8Array, iterations: number) {
+async function derivePaymentPin(pin: string, salt: Uint8Array<ArrayBuffer>, iterations: number) {
   const key = await crypto.subtle.importKey(
     "raw",
     new TextEncoder().encode(pin),

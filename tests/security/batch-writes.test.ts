@@ -88,7 +88,7 @@ describe("histórico académico: registar a pauta anual", () => {
 
   it("rectificações numa só escrita, mantendo o autor original", () => {
     expect(fn).not.toMatch(/for \(const r of rows[^\n]*\)[\s\S]{0,1500}\.update\(/);
-    expect(fn).toMatch(/\.upsert\(updates, \{ onConflict: "id" \}\)/);
+    expect(fn).toMatch(/\.upsert\(updates[\s\S]{0,80}onConflict: "id"/);
     expect(fn).toMatch(/created_by: before\.created_by/);
   });
 
@@ -103,7 +103,7 @@ describe("notas de exame", () => {
   const fn = body(read("src/features/academic/exams.ts"), "saveExamScores");
 
   it("valida todas as notas antes de escrever e grava numa só escrita", () => {
-    expect(fn).toMatch(/\.upsert\(rows, \{ onConflict: "id" \}\)/);
+    expect(fn).toMatch(/\.upsert\(rows[\s\S]{0,80}onConflict: "id"/);
     expect(fn.indexOf("A nota do exame fica entre")).toBeLessThan(fn.indexOf(".upsert("));
     expect(fn).not.toMatch(/for \(const entry of data\.entries\)/);
   });

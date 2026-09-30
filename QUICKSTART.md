@@ -80,7 +80,7 @@ await updateCommunicationPreferencesFn({
 ```
 POST /api/webhooks/twilio-sms          — Webhook SMS
 GET/POST /api/webhooks/whatsapp-status — Webhook WhatsApp
-GET /app/account/communication-settings — UI de configurações
+Configurações > Identidade — estado de verificação dos contactos (UI)
 ```
 
 ## Testes

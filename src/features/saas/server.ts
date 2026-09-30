@@ -87,7 +87,7 @@ export const getIsPlatformAdmin = createServerFn({ method: "GET" })
   .handler(async ({ context }) => {
     if (!context) return { isPlatformAdmin: false };
     try {
-      await requirePlatformAdmin(context.userId);
+      await requirePlatformAdmin(context.userId, context.claims["aal"]);
       return { isPlatformAdmin: true };
     } catch {
       return { isPlatformAdmin: false };
@@ -98,7 +98,7 @@ export const getSaaSStats = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }): Promise<SaaSStats> => {
     if (!context) throw new Error("Unauthorized");
-    await requirePlatformAdmin(context.userId);
+    await requirePlatformAdmin(context.userId, context.claims["aal"]);
     return fetchSaaSStats();
   });
 
@@ -106,7 +106,7 @@ export const listTenants = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }): Promise<Tenant[]> => {
     if (!context) throw new Error("Unauthorized");
-    await requirePlatformAdmin(context.userId);
+    await requirePlatformAdmin(context.userId, context.claims["aal"]);
     return fetchAllTenants();
   });
 
@@ -115,7 +115,7 @@ export const updateTenantStatusFn = createServerFn({ method: "POST" })
   .validator((input: unknown) => updateTenantStatusInputSchema.parse(input))
   .handler(async ({ data, context }) => {
     if (!context) throw new Error("Unauthorized");
-    await requirePlatformAdmin(context.userId);
+    await requirePlatformAdmin(context.userId, context.claims["aal"]);
     return updateTenantStatus({ ...data, userId: context.userId });
   });
 
@@ -124,7 +124,7 @@ export const provisionSchoolTenant = createServerFn({ method: "POST" })
   .validator((input: unknown) => createSchoolWizardInputSchema.parse(input))
   .handler(async ({ data, context }) => {
     if (!context) throw new Error("Unauthorized");
-    await requirePlatformAdmin(context.userId);
+    await requirePlatformAdmin(context.userId, context.claims["aal"]);
     return provisionTenantCore(data, { auditUserId: context.userId, source: "platform_admin" });
   });
 
@@ -159,10 +159,12 @@ export const getSchoolDomain = createServerFn({ method: "GET" })
   )
   .handler(async ({ data, context }) => {
     if (!context) throw new Error("Unauthorized");
-    const tenant = await requireTenantAccess(context.userId, data.tenantId, [
-      "Administrador",
-      "Secretaria",
-    ]);
+    const tenant = await requireTenantAccess(
+      context.userId,
+      data.tenantId,
+      ["Administrador", "Secretaria"],
+      context.claims["aal"],
+    );
     return getSchoolDomainStatus(tenant.tenantId, tenant.tenantSlug);
   });
 
@@ -189,7 +191,12 @@ export const requestDomainVerification = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     if (!context) throw new Error("Unauthorized");
-    const tenant = await requireTenantAccess(context.userId, data.tenantId);
+    const tenant = await requireTenantAccess(
+      context.userId,
+      data.tenantId,
+      undefined,
+      context.claims["aal"],
+    );
     return requestCustomDomainVerification({
       ...data,
       tenantId: tenant.tenantId,
@@ -213,7 +220,12 @@ export const updateEmailForwarding = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     if (!context) throw new Error("Unauthorized");
-    const tenant = await requireTenantAccess(context.userId, data.tenantId);
+    const tenant = await requireTenantAccess(
+      context.userId,
+      data.tenantId,
+      undefined,
+      context.claims["aal"],
+    );
     return saveEmailForwardingRoute({
       ...data,
       tenantId: tenant.tenantId,
@@ -244,7 +256,12 @@ export const updateSchoolBranding = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     if (!context) throw new Error("Unauthorized");
-    const tenant = await requireTenantAccess(context.userId, data.tenantId);
+    const tenant = await requireTenantAccess(
+      context.userId,
+      data.tenantId,
+      undefined,
+      context.claims["aal"],
+    );
     return saveSchoolBranding({ ...data, tenantId: tenant.tenantId });
   });
 
@@ -266,7 +283,12 @@ export const provisionMailbox = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     if (!context) throw new Error("Unauthorized");
-    const tenant = await requireTenantAccess(context.userId, data.tenantId);
+    const tenant = await requireTenantAccess(
+      context.userId,
+      data.tenantId,
+      undefined,
+      context.claims["aal"],
+    );
 
     // O endereço é derivado do slug do tenant, nunca aceite do cliente: caso
     // contrário provisionava-se uma caixa no domínio de outra escola.

@@ -9,6 +9,7 @@
  * Nunca cria matrícula, contrato ou cadastro novo. Nunca devolve ao requerente
  * dados do cadastro encontrado. Toda a decisão fica em `audit_logs`.
  */
+import type { Json, TablesUpdate } from "@/integrations/supabase/types";
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { publicDatabaseError } from "@/integrations/supabase/server-error";
@@ -126,7 +127,7 @@ async function writeAudit(
       action: entry.action,
       entity_type: "school_access_request",
       entity_id: entry.requestId,
-      metadata: entry.metadata,
+      metadata: entry.metadata as Json,
     });
   } catch (error) {
     // A auditoria não pode derrubar a decisão já gravada, mas não fica em silêncio.
@@ -672,7 +673,10 @@ export const actOnMyAccessRequest = createServerFn({ method: "POST" })
       );
     }
 
-    const patch: Record<string, unknown> = { status: next, updated_at: new Date().toISOString() };
+    const patch: TablesUpdate<"school_access_requests"> = {
+      status: next,
+      updated_at: new Date().toISOString(),
+    };
     if (data.action === "reply") patch["requester_reply"] = data.reply;
 
     const { data: updated, error: updateError } = await db
@@ -959,7 +963,7 @@ export const reviewAccessRequest = createServerFn({ method: "POST" })
     }
 
     const now = new Date().toISOString();
-    const patch: Record<string, unknown> = { status: next, updated_at: now };
+    const patch: TablesUpdate<"school_access_requests"> = { status: next, updated_at: now };
     const audit: Record<string, unknown> = {
       before: { status: request.status },
       after: { status: next },

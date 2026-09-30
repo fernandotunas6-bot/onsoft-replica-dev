@@ -1,4 +1,5 @@
 import { IMessageDeliveryAdapter, OtpChannel, OtpDeliveryResult, OtpPayload } from "../contracts";
+import { errorMessage } from "@/lib/error-message";
 
 /**
  * WhatsAppOtpAdapter — Envia códigos OTP via WhatsApp usando Meta Cloud API.
@@ -113,12 +114,12 @@ export class WhatsAppOtpAdapter implements IMessageDeliveryAdapter {
         provider: this.providerName,
         externalMessageId: data.messages[0].id,
       };
-    } catch (err: any) {
+    } catch (err) {
       return {
         success: false,
         channel: "whatsapp",
         provider: this.providerName,
-        error: err.message || "Falha ao enviar mensagem WhatsApp",
+        error: errorMessage(err, "Falha ao enviar mensagem WhatsApp"),
       };
     }
   }

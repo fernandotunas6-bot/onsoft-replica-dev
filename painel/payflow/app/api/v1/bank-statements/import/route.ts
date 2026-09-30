@@ -120,7 +120,8 @@ export async function POST(request: Request) {
       .innerJoin(payments, eq(payments.id, bankTransferInstructions.paymentId))
       .where(and(eq(payments.schoolId, requestedSchoolId), eq(payments.provider, "bank_transfer")));
 
-    const matches = matchStatementMovements(movements, pending, { schoolId: requestedSchoolId });
+    const scopedPending = pending.flatMap((row) => (row.schoolId ? [{ ...row, schoolId: row.schoolId }] : []));
+    const matches = matchStatementMovements(movements, scopedPending, { schoolId: requestedSchoolId });
     const applied: Array<ReturnType<typeof verifiedPayload>> = [];
     const applyErrors: Array<{ line: number; code: string; message: string }> = [];
 

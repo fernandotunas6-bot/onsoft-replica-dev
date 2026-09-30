@@ -6,6 +6,7 @@
  * em silêncio (com log): a auditoria não deve impedir uma acção que já
  * aconteceu.
  */
+import type { Json } from "@/integrations/supabase/types";
 import { loadSgaAdminClient } from "@/integrations/supabase/sga-admin";
 
 export type AccessAuditEntry = {
@@ -34,7 +35,7 @@ export async function recordAuditBatch(entries: AccessAuditEntry[]): Promise<voi
         action: entry.action,
         entity_type: entry.entityType,
         entity_id: entry.entityId,
-        metadata: entry.metadata ?? {},
+        metadata: (entry.metadata ?? {}) as Json,
       })),
     );
     if (error) console.error(`[audit] ${label}:`, error.message);

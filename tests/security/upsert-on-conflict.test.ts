@@ -18,6 +18,7 @@ const UNICOS_PRODUCAO: Record<string, string[]> = {
   alumni_opportunity_applications: ["id", "alumni_id,opportunity_id"],
   alumni_profiles: ["id", "school_id,student_id"],
   alumni_survey_responses: ["id", "alumni_id,survey_id"],
+  campuses: ["id", "code,school_id", "id,school_id"],
   curricula: ["id", "id,school_id", "academic_year_id,course_id,grade_level_id,school_id"],
   document_sequences: ["id", "document_type,school_id", "id,school_id"],
   hr_attendance_assurance_policies: ["school_id"],

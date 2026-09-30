@@ -1,3 +1,4 @@
+import type { Json } from "@/integrations/supabase/types";
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { publicDatabaseError } from "@/integrations/supabase/server-error";
@@ -137,7 +138,7 @@ export const submitAlumniSurveyResponse = createServerFn({ method: "POST" })
         school_id: membership.schoolId,
         survey_id: data.surveyId,
         alumni_id: data.alumniId,
-        response_json: data.responseJson,
+        response_json: data.responseJson as Json,
         submitted_at: new Date().toISOString(),
       },
       { onConflict: "survey_id,alumni_id" },

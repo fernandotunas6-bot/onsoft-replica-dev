@@ -1,3 +1,4 @@
+import type { TablesInsert, TablesUpdate } from "@/integrations/supabase/types";
 import { createServerFn } from "@tanstack/react-start";
 import { canSeePerson, loadStudentScope } from "@/features/students/student-scope";
 import {
@@ -263,6 +264,11 @@ export const searchPeople = createServerFn({ method: "GET" })
       "Secretaria",
     ]);
     const db = await loadSgaAdminClient();
+    // Alunos e encarregados também são membros: sem este âmbito recebiam a
+    // lista da escola inteira, com contactos, BI e moradas. Como em getPerson,
+    // só vêem a própria ficha (e a dos educandos).
+    const scope = await loadStudentScope(db, membership, context.userId);
+    if (!scope.all && scope.personIds.length === 0) return [];
 
     const baseColumns =
       "id, full_name, preferred_name, email, phone, national_id, status, date_of_birth, photo_url, updated_at";
@@ -274,6 +280,7 @@ export const searchPeople = createServerFn({ method: "GET" })
       .eq("school_id", membership.schoolId)
       .order("full_name")
       .limit(Math.max(data.limit * 3, 50));
+    if (!scope.all) peopleQuery = peopleQuery.in("id", scope.personIds);
     if (data.province) peopleQuery = peopleQuery.eq("province", data.province);
     if (data.municipality) peopleQuery = peopleQuery.eq("municipality", data.municipality);
     if (data.commune) peopleQuery = peopleQuery.eq("commune", data.commune);
@@ -285,12 +292,14 @@ export const searchPeople = createServerFn({ method: "GET" })
           "Os filtros territoriais ainda não estão activos nesta base. Aplique a migration de localização de Pessoas.",
         );
       }
-      const fallback = await db
+      let fallbackQuery = db
         .from("people")
         .select(baseColumns)
         .eq("school_id", membership.schoolId)
         .order("full_name")
         .limit(Math.max(data.limit * 3, 50));
+      if (!scope.all) fallbackQuery = fallbackQuery.in("id", scope.personIds);
+      const fallback = await fallbackQuery;
       people = (fallback.data as typeof people) ?? null;
       error = fallback.error;
     }
@@ -549,7 +558,7 @@ export const createPerson = createServerFn({ method: "POST" })
     if (institutionRoles.length) await assertPersonRoleStoreAvailable(db);
 
     const normalizedNif = normalizePersonNif(personInput.nif);
-    const personPayload: Record<string, unknown> = {
+    const personPayload: TablesInsert<"people"> = {
       school_id: membership.schoolId,
       full_name: personInput.full_name,
       preferred_name:
@@ -771,7 +780,7 @@ export const mergePeople = createServerFn({ method: "POST" })
       }
     }
 
-    const survivorPatch: Record<string, unknown> = { updated_by: context.userId };
+    const survivorPatch: TablesUpdate<"people"> = { updated_by: context.userId };
     if (!survivor["email"] && duplicate["email"]) survivorPatch["email"] = duplicate["email"];
     if (!survivor["phone"] && duplicate["phone"]) survivorPatch["phone"] = duplicate["phone"];
     if (!survivor["national_id"] && duplicate["national_id"]) {
@@ -783,7 +792,7 @@ export const mergePeople = createServerFn({ method: "POST" })
 
     // Clear unique contact fields on the duplicate first so the survivor update
     // does not collide with school-level unique indexes (email / NIF / phone).
-    const duplicateClear: Record<string, unknown> = {
+    const duplicateClear: TablesUpdate<"people"> = {
       updated_by: context.userId,
       status: "inactive",
     };
@@ -1090,7 +1099,7 @@ export const updatePerson = createServerFn({ method: "POST" })
     ]);
     const db = await loadSgaAdminClient();
     const normalizedNif = normalizePersonNif(data.nif);
-    const personPatch: Record<string, unknown> = {
+    const personPatch: TablesUpdate<"people"> = {
       full_name: data.fullName,
       email: data.email || null,
       phone: normalizePersonPhone(data.phone),

@@ -49,6 +49,10 @@ export const updateTurnstileDeviceInputSchema = z.object({
   location: z.string().min(2).max(160).optional(),
 });
 
+export const revealTurnstileDeviceApiKeyInputSchema = z.object({
+  deviceId: z.string().uuid(),
+});
+
 export const linkAccessCardRfidInputSchema = z.object({
   cardId: z.string().uuid(),
   rfidTag: z.string().max(64).nullable().optional(),

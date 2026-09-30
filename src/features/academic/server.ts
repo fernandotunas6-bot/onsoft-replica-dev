@@ -26,7 +26,9 @@ export const deleteScheduleSlot = createServerFn({ method: "POST" })
 
     const { data: slot, error } = await db
       .from("timetable_slots")
-      .update({ status: "inactive", updated_by: context.userId })
+      // `timetable_slots.status` só aceita active/cancelled/archived: o antigo
+      // "inactive" era recusado pela base e o slot nunca era removido.
+      .update({ status: "archived", updated_by: context.userId })
       .eq("id", data.slotId)
       .eq("school_id", membership.schoolId)
       .eq("status", "active")

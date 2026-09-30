@@ -35,6 +35,8 @@ import {
   type TermLifecycle,
 } from "@/features/calendar/dates";
 import { getOrCreateCalendarFeedToken } from "@/features/calendar/feed";
+import { listAcademicCalendar, saveAcademicCalendar } from "@/features/academic/academic-calendar";
+import { termDrafts } from "@/features/academic/calendar-terms";
 import { calendarIcsFeedUrl, calendarWebcalFeedUrl } from "@/features/calendar/ics";
 import { AppShell } from "@/components/layout/AppShell";
 import { PageHeader, Panel, StatGrid, badgeBase, toneClass } from "@/components/layout/PageHeader";
@@ -213,6 +215,39 @@ function CalendarioPage() {
     });
     await refreshCalendar();
     await queryClient.invalidateQueries({ queryKey: ["school", "settings"] });
+  };
+
+  // Os três trimestres do ano activo, gravados de uma vez (`save_academic_calendar`).
+  const academicCalendarQuery = useQuery({
+    queryKey: ["calendar", "academic-calendar"],
+    queryFn: () => listAcademicCalendar(),
+    enabled: canManage && Boolean(activeYear),
+    retry: false,
+  });
+  const savedTerms = academicCalendarQuery.data?.terms ?? [];
+  const drafts = activeYear
+    ? termDrafts({ startsOn: activeYear.starts_on, endsOn: activeYear.ends_on }, savedTerms)
+    : [];
+  const missingTerms =
+    Boolean(activeYear) && academicCalendarQuery.isSuccess && savedTerms.length < 3;
+
+  const saveTerms = async (values: Record<string, string>) => {
+    if (!activeYear) throw new Error("Defina primeiro o ano lectivo.");
+    await saveAcademicCalendar({
+      data: {
+        academicYearId: activeYear.id,
+        yearName: activeYear.name,
+        startsOn: activeYear.starts_on,
+        endsOn: activeYear.ends_on,
+        terms: drafts.map((term) => ({
+          sequence: term.sequence,
+          name: values[`nome${term.sequence}`]?.trim() || term.name,
+          startsOn: values[`inicio${term.sequence}`] ?? term.startsOn,
+          endsOn: values[`fim${term.sequence}`] ?? term.endsOn,
+        })),
+      },
+    });
+    await refreshCalendar();
   };
 
   const refreshCalendar = async () => {
@@ -553,6 +588,47 @@ function CalendarioPage() {
                   trigger={(open) => (
                     <Button className="gap-2" onClick={open}>
                       <CalendarDays className="size-4" /> Definir ano lectivo
+                    </Button>
+                  )}
+                />
+              ) : null}
+              {canManage && activeYear ? (
+                <QuickFormModal
+                  title={`Trimestres de ${activeYear.name}`}
+                  description={`Os três trimestres do ano lectivo (${activeYear.starts_on} a ${activeYear.ends_on}), gravados de uma vez. Pautas, notas e fecho de trimestre dependem deles. As datas sugeridas dividem o ano em três: acerte-as às pausas e exames da escola.`}
+                  icon={<CalendarDays className="size-5" />}
+                  submitLabel="Guardar trimestres"
+                  successDescription="Trimestres guardados."
+                  onSubmit={saveTerms}
+                  fields={drafts.flatMap((term) => [
+                    {
+                      name: `nome${term.sequence}`,
+                      label: `${term.sequence}º trimestre — nome`,
+                      defaultValue: term.name,
+                      full: true,
+                    },
+                    {
+                      name: `inicio${term.sequence}`,
+                      label: "Início",
+                      type: "date" as const,
+                      defaultValue: term.startsOn,
+                    },
+                    {
+                      name: `fim${term.sequence}`,
+                      label: "Fim",
+                      type: "date" as const,
+                      defaultValue: term.endsOn,
+                    },
+                  ])}
+                  trigger={(open) => (
+                    <Button
+                      variant={missingTerms ? "default" : "outline"}
+                      className="gap-2"
+                      onClick={open}
+                      disabled={!academicCalendarQuery.isSuccess}
+                    >
+                      <CalendarDays className="size-4" />
+                      {missingTerms ? "Configurar trimestres" : "Trimestres"}
                     </Button>
                   )}
                 />

@@ -112,6 +112,342 @@ entrega tudo o que lê. Levantamento das ~90 chamadas:
   guarda a lista revista e falha com qualquer função nova que só verifique a
   pertença.
 
+## Dependências das outras apps (2026-09-30)
+
+- ADMIN e WEB: `brace-expansion` (mesmos avisos de 29/09 do SIGA, ferramentas de lint)
+  → `npm audit` limpo. Lockfiles com **npm 11** (`npx npm@11 …`): o npm 10 deste
+  ambiente apagava os campos `libc` do lockfile do WEB (escolha glibc/musl dos binários).
+- PayFlow: `react`, `react-dom` e `react-server-dom-webpack` 19.2.6 → 19.2.8
+  (GHSA-wx67-qw84-cm4g, DoS nas Server Functions; o vinext põe o RSC no Worker, logo
+  corre em produção) e `vite` 8.0.13 → 8.0.16. Lint 0 erros, build e 48 testes ok.
+- Fica por fazer (exige versão principal nova, testar à parte): PayFlow `vinext` 1.0
+  (via `image-size`), `@cloudflare/vite-plugin`/`wrangler` (miniflare, undici, ws,
+  sharp) — só ferramentas de build/dev. DOC: `vite` dentro do VitePress, sem correcção
+  publicada.
+- WEB: os 17 erros de lint (React Compiler `set-state-in-effect`/`purity` e
+  `only-export-components`, sobretudo no kit `ui/*`, sidebar e chat) passam a aviso,
+  como no ADMIN e no SIGA (`painel/web/eslint.config.js`). 0 erros, 21 avisos.
+
+## Arrumação: fixtures e tipos (2026-09-30)
+
+- `pautas-demo.ts` já não era usado pela aplicação (sem turma real a pauta fica vazia),
+  só por `tests/pedagogica/pautas.test.ts`. Passou a `tests/pedagogica/pautas-fixtures.ts`.
+  Item 5 de `CRITICAL_REVIEW_2026-09.md` marcado como resolvido.
+- `any` retirados onde o servidor já devolve tipos (lint 65 → 51 avisos): callbacks
+  `map` em Currículo, ficha do aluno, painel do Administrador e Alumni; a Ficha Alumni
+  360º deixou de converter perfil/pessoa/aluno em `Record<string, any>`. O compilador
+  confirmou os tipos e não encontrou campos inexistentes. Ficam os `any` de JSON
+  arbitrário (importação) e da API OAuth do Supabase sem tipos.
+
+## Ligações ADMIN → SIGA de cada escola (2026-09-29)
+
+- ADMIN `/tenants`, botão «SIGA»: `getSigaSchoolUrl` tirava o primeiro rótulo do host
+  do SIGA. Com o SIGA na raiz (`portal-siga.com`) abria `https://<slug>.com`, domínio
+  de terceiros. Agora `https://<slug>.${PLATFORM_DOMAIN}`, como `getPlatformSubdomain`
+  no SIGA; slug inválido ou dev → SIGA principal. Teste: `tests/saas/admin-school-url.test.ts`.
+- Rodapé e notificação da barra lateral do WEB e do ADMIN: `https://portal-siga.com`
+  à mão → `ECOSYSTEM_URLS.web`.
+- Revisão das leituras sensíveis no servidor (alunos, notas, faturas, RH, risco,
+  saúde): todas com cargo, âmbito ou dono verificados. Sem novas fugas.
+
+## Permissões por módulo: ecrã igual ao servidor (2026-09-29)
+
+- `canAccessPath` (menu, launcher, guarda de rotas) abria com qualquer permissão por
+  módulo áreas que o servidor recusa: Professor com «Financeiro» via o RH/folha
+  salarial; Secretaria com «Acessos/Config» via `/configuracoes`; linhas antigas em
+  alunos/encarregados alargavam-lhes o acesso. Agora segue `grantElevates`:
+  - só Secretaria, Tesouraria e Professor são elevados (`GRANT_ELEVATABLE_ROLES`, uma
+    única lista em `access-policy.ts`, reexportada por `sga-admin.ts`);
+  - `/financeiro/rh` e `/configuracoes` só pelo cargo;
+  - em alunos e encarregados a permissão só retira («Nenhum»).
+- `/pedagogica/risco` herdava a regra de `/pedagogica` e abria a alunos e encarregados;
+  o servidor (`risk-followup.functions`) só aceita Administrador, Secretaria e Professor.
+  Regra própria acrescentada.
+- **Fuga de dados corrigida:** `searchPeople` só verificava «é membro»; um aluno ou
+  encarregado recebia a lista de todas as pessoas da escola (contactos, BI, morada,
+  data de nascimento). Aplica agora `loadStudentScope`, como `getPerson`, e entrou em
+  `tests/security/student-scope.test.ts`. As outras funções que só usam
+  `resolveSgaMembershipAdmin` foram revistas: devolvem dados estruturais da escola
+  (anos, turmas, salas) ou filtram pelo próprio utilizador.
+- **`types.ts` da base errada, outra vez:** os commits Lovable «Work in progress» /
+  «Changes» (34fdd7c, 795e7d5, 339c938) na `main` regeneraram
+  `src/integrations/supabase/types.ts` a partir da outra base (85 tabelas, com
+  `invoices`, `payments`, `courses`); faltavam 111 tabelas da produção,
+  `types-match-production` falhava e o `tsc` não terminava (>20 min). Reposta a versão
+  de 310e790 (179 tabelas); `tsc` 0 erros em ~47 s. Não aceitar regenerações do Lovable
+  deste ficheiro.
+- PayFlow: o botão «SIGA Plus» do painel usava `http://localhost:3006` quando faltava
+  `NEXT_PUBLIC_SIGA_URL`; usa agora o `sigaUrl` do servidor e, em produção, o domínio
+  da plataforma.
+
+## Fim de 29/09 — PRs #40 a #45
+
+- **Lighthouse na main verde** (0,96–0,98, LCP ~1 s nas 7 rotas). Três causas, por ordem:
+  1. o SSR mandava sempre "A verificar sessão…" → cookie-pista `siga-session-hint`
+     (`src/features/auth/session-hint.ts`) e o `AuthGate` desenha logo o ecrã de entrada;
+  2. o 1.º frame do vídeo de fundo era o LCP (o Chrome do CI tem H.264, o Chromium local
+     não — para reproduzir, converter o vídeo para VP9 e pô-lo só em `.output/public`) →
+     poster 1280×720 embutido em `.auth-hero-poster` (styles.css);
+  3. o vídeo media ~1 200 px² mais que o poster por arredondamento → fica 1 px para dentro.
+     O passo "Resumo das métricas Lighthouse" (`scripts/lighthouse-summary.mjs`) imprime FCP,
+     LCP e TTFB de cada relatório no log do CI.
+- **`types.ts` regenerado da base errada pelo Lovable** (34fdd7ce, 339c9384, 13812878: 85
+  tabelas, com invoices/payments/courses) partiu a main; reposto no #44. Se voltar a
+  acontecer: `git checkout <último bom> -- src/integrations/supabase/types.ts`.
+- Calendário: botão "Trimestres" em /calendario grava os 3 trimestres de uma vez
+  (`save_academic_calendar`). A função actualiza trimestre a trimestre: avançar muito as
+  datas pode bater no trigger de sobreposição (resolver com migração, se aparecer).
+- Disciplinas: formulário só com o que se grava (carga anual); código normalizado.
+- Salas: coluna "Turmas" (turmas activas com `room_id`).
+- PayFlow: `school_id` do login confirmado; limite de comprovativos antes de gravar.
+- ADMIN revisto: rotas `/api/saas/*` protegidas. Por decidir (dono): exigir MFA (AAL2) aos
+  administradores da plataforma — 3 de 4 ainda sem MFA ficariam bloqueados.
+
+## Turmas, salas e campus (2026-09-29)
+
+- **Sala física da turma:** `class_groups.room_id` (migração `20260929250000`, **já
+  aplicada**, FK `(school_id, room_id)` → `rooms`, `ON DELETE SET NULL (room_id)`).
+  Até aqui o campo "Sala" do formulário gravava o campus. Agora "Sala" lista as salas
+  reais activas (`listRooms`); o campus vem de `rooms.campus_id` ou do campus principal
+  (`defaultCampusId`). `room_name` nas listas de turmas é a sala; o campus está em
+  `campus_name`.
+- `loadSalaForClassGroup` (server-legacy): a sala tem de ser da escola, activa e ter
+  lugares para a capacidade da turma.
+- O campus de uma turma é imutável (`normalize_class_group`); mudar de sala não mexe nele.
+- Código da turma: `normalizeClassGroupCode` + regex de `class_groups_code_check`.
+- `updateClassGroup` sem `status` não mexe no estado (antes reactivava arquivadas).
+- Salas: estado Operacional/Inactiva editável; apagar bloco/piso/edifício grava `null`.
+- Períodos: `saveAcademicCalendar` (ano + 3 trimestres) não tem ecrã; só 2 de 51 anos
+  têm trimestres. Os períodos criam-se um a um em `/calendario`. Próximo passo sugerido.
+
+## Cliente do SGA tipado (2026-09-29)
+
+`sgaClient()` (`src/integrations/supabase/sga.ts`) devolve agora
+`SupabaseClient<Database>`: nomes de colunas, valores de CHECK e argumentos de RPC
+passam pelo `tsc` (103 erros corrigidos; 0 agora). Regras:
+
+- payloads com `TablesInsert<"t">` / `TablesUpdate<"t">`, não `Record<string, unknown>`;
+- RPC com `rpcArgs("fn", {...})` (aceita `null` nos argumentos opcionais);
+- tabela só conhecida em runtime (rollback do importador): `dynamicTablesClient(db)`.
+
+Bugs reais que a tipagem revelou (todos corrigidos):
+
+- criar turma falhava sem campus: `class_groups.campus_id` é NOT NULL e 49 de 91
+  escolas não têm campus. `defaultCampusId()` cria "SEDE / Campus Principal";
+- criar disciplina falhava sempre: gravava `subjects.weekly_hours`, que não existe.
+  A carga horária vive em `class_subjects.weekly_periods` e é calculada na lista;
+- desactivar turma gravava "inactive" (é "archived");
+- pedido de documento sem `purpose` (NOT NULL);
+- bootstrap da escola: turma e disciplinas de exemplo sem `created_by` / campus;
+- domínios da escola consultados com `schoolId` indefinido.
+
+Por decidir: o formulário de nova disciplina envia carga, classe de/até e professor,
+que não se guardam na disciplina (atribuem-se por turma em `class_subjects`).
+
+## Auditoria de produção e correcções (2026-09-29)
+
+Repositório **público** desde 29/09 (minutos de Actions esgotados no plano grátis).
+
+Feito:
+
+- `anon` (sem sessão) só com 4 permissões: SELECT em `enrollment_forms`,
+  `reserved_subdomains`, `school_branding`; INSERT em `enrollment_applications`.
+  Tinha ALL (incluindo TRUNCATE) em ~83 tabelas. Migração `20260929240000`,
+  **já aplicada**; `tests/security/anon-grants.test.ts` recusa GRANT novo a
+  `anon` fora da lista. Tabela nova com acesso público: GRANT explícito + entrar
+  na lista do teste.
+- Cabeçalhos de segurança em todas as respostas do Worker do SIGA
+  (`src/lib/security-headers.ts`, aplicado em `src/server.ts`): HSTS,
+  nosniff, X-Frame-Options SAMEORIGIN, Referrer-Policy, Permissions-Policy
+  (câmara e GPS só `self`). CSP em `src/lib/csp.ts`, por agora em modo de
+  relatório (`Content-Security-Policy-Report-Only`): o browser não bloqueia, envia
+  para `/api/public/csp-report` e o Worker escreve `[csp] {...}` nos logs (URLs
+  sem query). Verificado no Chromium: 0 violações em `/`, `/auth.reset-password`,
+  `/alterar-senha`, `/acessos`. Quando os logs de produção estiverem limpos
+  (uma semana), passar o mesmo texto para `Content-Security-Policy`.
+- `next` 16.3.6 no ADMIN e no PayFlow (havia RCE crítico e bypass de
+  middleware); `npm audit --omit=dev` 0 em ambos.
+
+Por fazer (dono): MFA obrigatório — 3 de 4 administradores da plataforma e 10
+de 11 donos de escola sem MFA; protecção de branch na `main`; secret scanning e
+push protection no GitHub; segredo OAuth do Google; ligar a D1 do PayFlow
+(merge + ambiente `production`). O `npm run lint` do ADMIN passou a `eslint .`
+com o flat config nativo do eslint-config-next 16 (0 erros); `set-state-in-effect`
+e `purity` do React Compiler ficam como aviso (30) até as páginas migrarem.
+
+## CI na main depois do merge do #36 (2026-09-29)
+
+Os jobs que só correm na `main` (Lighthouse/PWA, regressão visual, E2E do ecossistema)
+não corriam desde 03/09 (minutos esgotados) e estavam desactualizados:
+
+- **PWA:** usava `vite preview`, que não serve o build do Worker → `preview:prod`
+  (wrangler dev), como o Lighthouse.
+- **E2E:**
+  - `wait-ecosystem.mjs` esperava pelo PayFlow, que o CI não arranca; passa a esperar
+    só pelas apps em `.e2e-ecosystem-pids.json`;
+  - o ADMIN recebe `NEXT_PUBLIC_SUPABASE_URL`/`_PUBLISHABLE_KEY` (públicos);
+  - os testes do `/start` foram reescritos para os 7 passos.
+- **Regressão visual:** retirada por decisão do dono (baselines antigas, rotas sem sessão).
+- **Lighthouse:**
+  - corria com `bunx --bun`, e o wrangler recusa o Bun → `npx`;
+  - o `workerd` do passo PWA ficava com a porta 3000 → `pkill workerd`.
+  - Resultado local, antes → depois das correcções no ecrã de entrada:
+    - acessibilidade 0,92 → 1,0 (pontos do carrossel e "Mostrar senha" com 24/28 px em
+      px, porque a raiz reduzida faz `h-6` dar 16,5 px; separador inactivo com
+      contraste 4,44 → `text-foreground/75`);
+    - FCP ~1,3 s → ~0,7 s: a Inter passou a ser servida pelo SIGA
+      (`public/fonts/inter`, `@font-face` em `styles.css`); o CSS do Google Fonts
+      bloqueava ~400 ms, e a CSP deixa de o permitir.
+  - Desempenho 0,88–0,91 (mínimo 0,9): à justa, confirmar no runner do GitHub.
+
+Deploy: o primeiro "Deploy produção" passou a verificação e falhou a publicar por falta
+de `CLOUDFLARE_API_TOKEN` no ambiente `production` (esperado; nada publicado).
+
+## Defeitos escondidos pelo `any` do cliente SGA (2026-09-29)
+
+Tipar o cliente do SGA (`sgaClient` → `SupabaseClient<Database>`) à experiência deu
+103 erros de tipos; o `types.ts` coincide com a produção (179 de 181 tabelas; as duas
+em falta vêm da branch `claude/projeto-desenvolvimento-1a68je`). Entre eles, dois
+defeitos reais, confirmados na produção e corrigidos:
+
+- **Estorno PayFlow** (`finance/payflow-settlement.ts`): reabria a fatura com
+  `{ status: "issued", updated_at }`. `finance_invoices` não tem `updated_at` e só
+  aceita open/partially_paid/paid/cancelled — a base recusava sempre. Agora recalcula
+  o estado pelos recibos válidos (`invoiceStatusFromPaid`), como o estorno manual.
+- **Perfil Alumni** (`alumni/server.ts`): pedia `people.gender` (é `sex`); o select
+  inteiro falhava e o perfil ficava sem dados pessoais.
+
+`tests/security/colunas-inexistentes.test.ts` não os apanhava: não aceitava
+comentários entre `.from()` e `.select()`, e nas escritas só lia uma chave por linha.
+Ambos corrigidos. Fica por decidir: `subjects.weekly_hours`/`grade_from`/`grade_to`
+lidos em `server-secure-legacy.ts` (select `*`) não existem — o ecrã mostra "—".
+O cliente SGA continua `any`; tipá-lo é trabalho por ficheiro (103 erros).
+
+**Colunas obrigatórias em falta nas escritas** (NOT NULL sem valor por omissão, lidas de
+`information_schema` na produção). O Postgres verifica NOT NULL antes do `ON CONFLICT`,
+por isso um `upsert` sem a coluna falha mesmo quando a linha já existe (verificado numa
+tabela temporária). Corrigido:
+
+- `access/server.ts` `inviteSystemUser`: upsert em `profiles` sem `display_name` — criar
+  ou convidar contas em Acessos falhava sempre e a conta era apagada na reversão.
+- `auth/server.ts`: o mesmo, no ramo em que o perfil não existe.
+- `saas_audit_logs` sem `entity` em `phone-change-server.ts` e
+  `reset-password-otp-server.ts`: a auditoria perdia-se em silêncio.
+- Importador de matrículas: insert directo sem `enrollment_number`; passa por
+  `enroll_student` (gera `MAT-000123`, valida capacidade e ano).
+- Importador de inscrições: sem `form_id`; usa o formulário da escola ou dá erro claro.
+- Importador de encarregados: `student_guardians` sem `created_by`.
+
+Protecção: o retrato passou a guardar `obrigatorias` por tabela (`capture-db-snapshot.mjs`;
+preenchido a 2026-09-29 com a mesma consulta à produção) e
+`tests/security/colunas-obrigatorias.test.ts` verifica os insert/upsert literais. Colunas
+preenchidas por trigger BEFORE INSERT vão para `PREENCHIDAS_POR_TRIGGER`, com o trigger.
+`import/engine/reference-resolver.ts` (código morto, com o mesmo defeito) foi apagado.
+
+## Valores fora do CHECK da produção (2026-09-29)
+
+O retrato guarda agora `valores` (listas de `CHECK coluna = ANY (ARRAY[...])`) e
+`tests/security/valores-permitidos.test.ts` verifica literais em insert/update/upsert e
+em `.eq()`. Defeitos corrigidos, todos recusados ou sem resultados na produção:
+
+- `cancelEnrollment`: "withdrawn" e depois "inactive" → `cancelled`, motivo em `end_reason`.
+- Desactivar turma (`class_groups`) e remover horário (`timetable_slots`): "inactive" →
+  `archived`. O directório de matrículas passa a esconder turmas `archived`.
+- Magic link, reposição de senha e mudança de e-mail procuravam `tenant_domains` com
+  "verified" (é `active`): o domínio próprio da escola nunca era usado no link.
+
+`.neq()` e `.in()` com valores impossíveis (`grade_scores` "reversed",
+`document_requests` "queued"/"processing") são inofensivos e ficam de fora.
+
+## Centro de Avaliação: testes de caracterização e defeito encontrado (2026-09-29)
+
+`tests/academic/assessment-center.test.tsx` fixa o comportamento do
+`AssessmentCenter.tsx` antes de o dividir: carregamento e ordem dos alunos,
+média (Decreto 424/25: MT = (MACT + NPT) ÷ 2), desfazer/refazer, gravação só de
+linhas completas, trimestre fechado e sem permissão só para leitura.
+
+**Defeito encontrado e corrigido:** o que o professor escrevia antes de a lista
+de avaliações (`listAssessments`) chegar era apagado quando ela chegava — o
+`useEffect` que carrega os valores fazia `setValues(next)` por cima das edições.
+Agora, com o mesmo contexto (turma, disciplina, trimestre), junta o recarregado
+com o actual (`mergeReloadedValues` em `assessment-views.ts`): fica o que difere
+do último carregamento. Mudar de contexto continua a recarregar tudo.
+
+**Divisão, 1.ª parte (feita):** o estado da edição (valores, histórico,
+desfazer/refazer, recarregamento, células alteradas) está em
+`use-grade-editor.ts`; tipos e constantes em `assessment-center-config.ts`. O
+componente passou de 1883 para 1711 linhas.
+
+**Divisão, 2.ª parte (feita):** painéis de filtros, documentos e histórico em
+`AssessmentCenterPanels.tsx`; botões das integrações (Turnitin, Classroom,
+Moodle, Canvas, WhatsApp, Resend) em `AssessmentIntegrationActions.tsx`, que lê
+as capacidades instaladas sozinho; vistas de avaliações, recursos, exames e
+fecho do trimestre em `AssessmentModeViews.tsx` (o botão de fechar/reabrir usa
+um só `toggleTermLock`); barra de notas em lote e detalhe MAC/NPP/NPT do aluno
+em `AssessmentGradeHelpers.tsx`; documentos (pauta, boletim, relação, mapa,
+acta, validação) em `assessment-documents.ts`, sem React, com testes próprios
+em `tests/academic/assessment-documents.test.ts`. 1711 → 1093 linhas. O que
+resta no ficheiro é estado, cálculos das notas e gravação.
+
+## Tenants de teste arquivados na produção (2026-09-29)
+
+82 tenants criados pelos testes automáticos entre 08 e 10/09 (slugs
+`gw-|mat-|e2e-|web-|test-`, só contas `@siga-plus.test`) passaram a
+`status = 'archived'`; `tenant-access.ts` bloqueia-os. **Não foram apagados:**
+a limpeza precisa de desligar triggers (`audit_logs` é append-only; 40 tabelas
+auditam cada DELETE), e o conector do Supabase não pode definir
+`session_replication_role`. Para apagar de vez: `npm run siga:e2e-cleanup-stale`
+com `SUPABASE_ACCESS_TOKEN`. Ficam 8 tenants activos. As 83 contas de teste
+continuam no Auth, sem escola activa.
+
+## PayFlow com base D1, publicação a partir do GitHub (2026-09-29)
+
+- **O PayFlow corria em produção sem base de dados.** `deploy-all.mjs` apagava
+  as ligações D1 e R2 antes de publicar, e as 28 chamadas a `getDb()` falhavam
+  com "binding `DB` is unavailable". O `/api/v1/health` respondia "ok" na mesma.
+- **Base criada:** D1 `siga-payflow` (`bbfa8e07-48ad-4397-902b-bcb0b8da2948`,
+  WEUR). **Migrações aplicadas: 0000 e 0002.** A 0001, 0003, 0004 e 0005 foram
+  recusadas pelas permissões da sessão e ficam para o próximo deploy: o
+  `deploy-all.mjs` corre agora `wrangler d1 migrations apply` antes do Worker,
+  e a tabela `d1_migrations` diz o que falta.
+- `scripts/siga/payflow-bindings.mjs` declara as ligações de produção (D1
+  obrigatória; R2 `TRANSFER_PROOFS` só com `PAYFLOW_R2_BUCKET`, porque o R2 não
+  está activo na conta). Testes: `tests/saas/payflow-bindings.test.ts`.
+- `/api/v1/health` do PayFlow faz `SELECT 1` na D1 e responde 503 sem base
+  (`painel/payflow/lib/health.ts`, `tests/health.test.mjs`).
+- **`.github/workflows/deploy-production.yml`:** publica a partir da `main`
+  depois de tipos, lint e testes, no ambiente GitHub `production` (segredos e
+  aprovação), uma publicação de cada vez; no fim confirma o DNS e o health do
+  PayFlow e do SIGA. Precisa dos segredos no ambiente `production` e de o
+  GitHub Actions voltar a arrancar jobs.
+- Por decidir pelo dono: projecto Supabase de staging (o Lovable escreve na
+  produção) e limpeza das 23 escolas de teste na base de produção.
+
+## Dependências, CI e chaves das catracas (2026-09-29)
+
+- **`package-lock.json` da raiz removido.** Estava dessincronizado (faltava
+  `@lovable.dev/mcp-js`) e o `npm ci` falhava. O ficheiro do projecto é o
+  `bun.lock`: instalar com `bun install`. `check:security` passou a `bun audit`
+  e `release-desktop.yml` instala e compila com bun. Os painéis
+  (`painel/*`) mantêm os seus `package-lock.json`.
+- **O CI verifica os tipos** (`bun run typecheck` = `tsc --noEmit`, ~70 s).
+- **Atenção:** o GitHub Actions não arranca nenhum job desde pelo menos 27/09
+  (falham em 3 s, `runner_id: 0`, sem passos). Não é o código. Ver faturação e
+  minutos do Actions na conta.
+- `readModuleGrant` (`sga-admin.ts`) falha fechado: só "tabela inexistente"
+  conta como "sem sobreposições". Antes, qualquer erro de leitura ignorava o
+  bloqueio "Nenhum".
+- **Catracas:** a `api_key` dos dispositivos deixou de sair nas listagens (só
+  `has_api_key` e `api_key_hint`, os últimos 4 caracteres). O botão "Key" pede-a
+  a `revealTurnstileDeviceApiKey`, que exige escrita em Gestão.
+  `20260929230000_turnstile_devices_server_only.sql` retira a política
+  `is_school_member` da tabela. **Já aplicada** a 29/09 pelo conector do
+  Supabase (registada como `20260929050707 turnstile_devices_server_only`).
+  Verificado depois: 0 políticas, RLS forçado, `authenticated` sem SELECT. Não
+  havia fuga antes, porque `authenticated` já não tinha SELECT, mas um GRANT
+  abria as chaves a qualquer aluno. O `PRODUCTION_SNAPSHOT.json` (27/09) ainda
+  mostra a política; sai na próxima recaptura.
+
 ## Escritas abertas a qualquer membro (2026-09-29)
 
 Cinco tabelas aceitavam escrita de qualquer conta da escola (aluno e
@@ -135,6 +471,7 @@ na conversa; a heurística olha para o corpo de cada `for … of`). A maioria é
 limitada: webhooks, tarefas agendadas, poucas iterações.
 
 Tratado o mais pesado, a **chamada de presença**:
+
 - `submitAttendanceCallBatch` fazia por aluno um upsert, a leitura do histórico e
   a actualização da taxa, ~120 consultas em série numa turma de 40. Os upserts
   não verificavam erro, por isso respondia "ok" com linhas recusadas.
@@ -150,6 +487,7 @@ Tratado o mais pesado, a **chamada de presença**:
 serviço e **saltava `enroll_student`**, ou seja, 2FA, capacidade, ano lectivo
 e número de matrícula. Reactivava matrículas transferidas ou concluídas e
 ignorava todos os erros. Agora:
+
 - confirma que a turma é do ano pedido;
 - verifica a lotação antes de mexer (tudo ou nada);
 - muda de turma, numa só actualização, quem já tem matrícula corrente no ano;
@@ -160,6 +498,7 @@ ignorava todos os erros. Agora:
 `tests/security/batch-writes.test.ts` guarda as duas correcções.
 
 Tratados a 2026-09-29 (`tests/security/batch-writes.test.ts`):
+
 - `recordClassFinalResults` (registar a pauta anual no histórico): as
   rectificações passam a um upsert por `id` com a linha completa (o autor
   original fica em `created_by`, quem rectifica em `updated_by`). A média na
@@ -464,6 +803,7 @@ pendente, em análise, informação pedida, aprovado, rejeitado e cancelado. A a
 ou activa **só** o vínculo e o papel. Não cria matrícula, contrato nem cadastro. Só liga
 `people.user_id` quando o revisor marca a opção e o cadastro não tem conta. Regras (puras,
 em `institutional-link.ts`):
+
 - "Administrador" nunca se concede por pedido.
 - Secretaria/Tesouraria só se concedem por um Administrador.
 - Ninguém decide o próprio pedido.
@@ -3386,6 +3726,8 @@ de produção e TypeScript concluídos. Os testes SQL pgTAP exigem Docker local;
 quando o daemon estiver disponível, correr as suites em `supabase/tests/`.
 
 ## Skills (um por módulo)
+
+- Desktop Tauri → `siga-desktop` (só SIGA escolar).
 
 | Skill               | Quando                                                           |
 | ------------------- | ---------------------------------------------------------------- |
