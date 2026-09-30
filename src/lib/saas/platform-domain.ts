@@ -95,6 +95,21 @@ export function getEcosystemPlatformOrigin(app: EcosystemPlatformApp): string {
   return `https://${getEcosystemPlatformHost(app)}`;
 }
 
+/** Domínio histórico da plataforma, ainda aceite pelo resolver de hostnames. */
+export const LEGACY_PLATFORM_DOMAIN = "portal-siga.com";
+
+/**
+ * O hostname é da plataforma (o domínio configurado, o legado, ou um subdomínio
+ * deles)? Estes endereços são atribuídos no provisionamento e nunca podem ser
+ * registados como domínio próprio de uma escola.
+ */
+export function isPlatformOwnedHostname(hostname: string): boolean {
+  const host = hostname.trim().toLowerCase().replace(/\.+$/, "");
+  return [getPlatformDomain(), LEGACY_PLATFORM_DOMAIN].some(
+    (domain) => host === domain || host.endsWith(`.${domain}`),
+  );
+}
+
 /**
  * Retorna o subdomínio completo da plataforma para um slug dado.
  * Ex.: `esperanca` → `esperanca.portal-siga.com` (ou `esperanca.siga.ao`)

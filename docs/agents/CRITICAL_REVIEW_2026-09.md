@@ -21,20 +21,18 @@ com o que a equipa realmente mantém neste repositório.
 
 ## 2. Riscos por ordem de importância
 
-1. **RPCs sem tipos gerados** — `src/integrations/supabase/types.ts:72` expõe
-   `Functions: { [_ in never]: never }`, logo todas as chamadas
-   `register_student` / `enroll_student` / `register_payment` passam pelo cliente
-   não tipado `sgaClient` (`src/integrations/supabase/sga.ts`). Consequência: erros
-   de assinatura só aparecem em execução. Mitigação actual: validação Zod nas
-   entradas dos server functions (`src/features/*/schemas.ts`).
+1. ~~**RPCs sem tipos gerados**~~ — **resolvido**: `sgaClient()` devolve
+   `SupabaseClient<Database>` e as RPC passam por `rpcArgs` com tipos da produção
+   (2026-09-29). Nomes de colunas e argumentos passam pelo `tsc`.
 2. **Convenção de SQL fora do fluxo automático** — o schema é aplicado à mão
    (`supabase/APPLY_IN_SQL_EDITOR.sql`, `APPLY_ENROLLMENT_AND_PREMIUM.sql`;
    ver `supabase/DO_NOT_APPLY_TO_SGA.txt`). Qualquer nova coluna exige passo manual;
    é a maior fonte de divergência entre ambiente e código.
-3. **Dependências vulneráveis indirectas** — `js-yaml` via
-   `@tanstack/react-start@1.168.32` (alta) e `uuid` via `exceljs@4.4.0` (moderada).
-   Nenhuma tem correcção directa disponível; nenhuma é usada em caminho exposto a
-   entrada de utilizador não autenticado.
+3. **Dependências vulneráveis** (`bun audit`, 2026-09-30) — `js-yaml` já não aparece.
+   Ficam `uuid` via `exceljs@4.4.0` (moderada, só `v3/v5/v6` com `buf`, que o exceljs
+   não usa) e `esbuild` 0.18 via `drizzle-kit` → `@esbuild-kit` (moderada/baixa, só no
+   servidor de desenvolvimento do esbuild, que o drizzle-kit não arranca). `vitest`
+   4.1.10 → 4.1.11 (GHSA-82fw-gwwq-j7x9) corrigido. Nenhuma chega a produção.
 4. **Componentes muito grandes** — `src/features/academic/AssessmentCenter.tsx`
    (>1 000 linhas) e `src/features/pedagogica/components/pautas/PautasWorkspaceModule.tsx`
    (~940 linhas) concentram estado, cálculo e apresentação. São o ponto mais provável

@@ -69,8 +69,10 @@ const QUERIES = {
     from pg_class c join pg_namespace n on n.oid=c.relnamespace
     where n.nspname='public' and c.relkind='r' order by c.relname`,
 
+  // `modo`: PERMISSIVE ou RESTRICTIVE. Uma restritiva só retira acesso (AND com as
+  // permissivas); sem este campo, um teste lia-a como se concedesse escrita.
   politicas: `select tablename as tabela, policyname as politica, cmd, roles::text as papeis,
-      coalesce(qual,'') as usando, coalesce(with_check,'') as verificando
+      coalesce(qual,'') as usando, coalesce(with_check,'') as verificando, permissive as modo
     from pg_policies where schemaname='public' order by tablename, policyname`,
 
   funcoes: `select n.nspname as schema, p.proname as funcao,

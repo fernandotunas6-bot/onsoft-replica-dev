@@ -7,6 +7,7 @@ import {
   resolveSgaMembershipAdmin,
 } from "@/integrations/supabase/sga-admin";
 import type { Json } from "@/integrations/supabase/types";
+import { requireAal2 } from "@/features/hr/require-aal2";
 import { createPayrollRunInputSchema, payrollRunIdInputSchema } from "@/features/hr/schemas";
 
 const PAYROLL_ROLES = new Set(["Administrador", "Tesouraria"]);
@@ -38,6 +39,7 @@ export const createPayrollRun = createServerFn({ method: "POST" })
   .validator((input: unknown) => createPayrollRunInputSchema.parse(input))
   .handler(async ({ data, context }) => {
     await requirePayrollAdmin(context.userId, "write");
+    requireAal2(context.claims, "Criar a folha salarial");
     const { data: result, error } = await context.supabase.rpc("hr_create_payroll_run", {
       p_year: data.year,
       p_month: data.month,
@@ -53,6 +55,7 @@ export const calculatePayrollRun = createServerFn({ method: "POST" })
   .validator((input: unknown) => payrollRunIdInputSchema.parse(input))
   .handler(async ({ data, context }) => {
     await requirePayrollAdmin(context.userId, "write");
+    requireAal2(context.claims, "Calcular a folha salarial");
     const { data: result, error } = await context.supabase.rpc("hr_calculate_payroll_run", {
       p_payroll_run_id: data.payrollRunId,
     });
@@ -66,6 +69,7 @@ export const approvePayrollRun = createServerFn({ method: "POST" })
   .validator((input: unknown) => payrollRunIdInputSchema.parse(input))
   .handler(async ({ data, context }) => {
     await requirePayrollAdmin(context.userId, "write");
+    requireAal2(context.claims, "Aprovar a folha salarial");
     const { data: result, error } = await context.supabase.rpc("hr_approve_payroll_run", {
       p_payroll_run_id: data.payrollRunId,
     });

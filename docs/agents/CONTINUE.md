@@ -111,6 +111,173 @@ entrega tudo o que lê. Levantamento das ~90 chamadas:
   filtradas pelo utilizador. `tests/security/membership-only-reads.test.ts`
   guarda a lista revista e falha com qualquer função nova que só verifique a
   pertença.
+## Dinheiro com 2FA; RH não funciona com os papéis actuais (2026-09-30)
+
+- `20260930190000` (aplicada; decisão do dono: «só dinheiro»): três políticas
+  RESTRICTIVE (INSERT/UPDATE/DELETE, `private.is_aal2()`) em 12 tabelas: `hr_contracts`,
+  `hr_contract_remuneration_policies`, `hr_compensation_events`, `hr_absence_events`,
+  `hr_payroll_runs|items|item_components`, `hr_payroll_payment_batches|items`,
+  `hr_payment_destinations|settings`, `school_billing_settings`. 333 políticas.
+- Sem aal2, UPDATE/DELETE **não dão erro, afectam 0 linhas** (ensaio PGlite). Por isso o
+  servidor verifica aal2 antes das 6 acções da folha/lotes (`hr/require-aal2.ts`), com
+  mensagem que abre «Activar 2FA». `tests/security/hr-money-mfa.test.ts` exige a
+  verificação antes de cada `rpc("hr_…")` que mexa em dinheiro.
+- **Achado, por corrigir (decisão/trabalho à parte):** as políticas e funções de RH
+  comparam `current_profile_role()` com 'Administrador'/'Tesouraria', mas a função devolve
+  o **código** do papel (`owner`, `admin`, `treasury`). Nunca coincidem: um dono com 2FA
+  recebe «Insufficient payroll permission» em `hr_create_payroll_run`, e as políticas
+  `hr_*` e de `school_billing_settings` recusam-no (lê 0 linhas). A produção tem 0
+  vínculos, 0 contratos e 0 folhas: o RH não está em uso. Corrigir é trocar essa
+  comparação por `private.sga_app_role(school_id)` (ou `is_school_finance`) em ~30
+  políticas e nas funções `hr_*`, e `current_school_id()` pela escola da linha.
+  Enquanto não for corrigido, o risco «folha pela API sem 2FA» era latente, não aberto.
+
+## Escrita directa pela API passa a exigir 2FA (2026-09-30)
+
+- `20260930180000` (aplicada, por decisão do dono): saem as 8 políticas antigas
+  «Create/Update … in own school» (só `is_school_office`) de `people`, `students`,
+  `enrollments` e `class_groups`. Somavam-se às actuais com `is_aal2` e anulavam o
+  2FA: quem tivesse só a senha de um Administrador escrevia pela API REST. Os INSERT
+  de `students`/`enrollments` não tinham substituta e saem também (a app insere pelo
+  servidor e por `register_student`/`enroll_student`, SECURITY DEFINER).
+- Verificado na produção (transacções desfeitas): com aal1 o dono actualiza 0 turmas
+  e não insere alunos; com aal2 actualiza 1/1. 297 políticas; retrato actualizado.
+- Nenhum caminho da app dependia delas: escritas pelo servidor (chave de serviço);
+  funções INVOKER que escrevem nestas tabelas não são executáveis por
+  `authenticated`; nenhum trigger escreve nelas.
+
+## Pauta oficial: ensaio completo e mensagens (2026-09-30)
+
+- **Cadeia provada na produção** (uma transacção desfeita no fim): o servidor publica
+  o modelo (`siga_publish_assessment_rule`) → o dono, com aal2, gera a pauta
+  (`build_grade_sheet`: 2 linhas para os 2 alunos da turma) → submete
+  (`transition_grade_sheet`: `submitted`). Depois: 0 modelos, 0 pautas, 0
+  notificações. Basta a escola publicar o modelo.
+- `grade-sheets.ts` verifica antes de chamar a base: 2FA (`aal2`) para gerar e para
+  mudar de estado, e modelo DEFAULT activo para gerar (mesma condição da função).
+  Antes, sem modelo aparecia «Não foi possível gerar a pauta.» e sem 2FA «Não tem
+  permissão».
+- Mensagens das duas funções chegam ao ecrã por uma lista fechada
+  (`gradeSheetDbMessage`, `grade-sheet-workflow.ts`); o teste falha se a base
+  passar a lançar uma mensagem que não esteja na lista. Só a de 2FA abre o aviso
+  com «Activar 2FA».
+
+## Deploy de produção bloqueado por segredos (2026-09-30)
+
+- «Deploy produção» falhou em todos os merges de #49 a #53: faltava
+  `CLOUDFLARE_API_TOKEN` no ambiente GitHub `production`. Tipos, lint e testes
+  passavam; o wrangler parava no primeiro serviço (DOC). **Nada desses merges chegou
+  à Cloudflare.**
+- Novo primeiro passo do job: confirma `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID`,
+  `VITE_SUPABASE_URL`, `VITE_SUPABASE_PUBLISHABLE_KEY` e `SUPABASE_SERVICE_ROLE_KEY`
+  e diz quais faltam (só nomes). `tests/security/deploy-preflight.test.ts` mantém a
+  lista igual aos `requireEnv` de `deploy-cf.mjs` e a `REQUIRED_WORKER_SECRETS`.
+- **Por fazer (dono):** criar esses segredos em Settings → Environments →
+  `production` e correr o workflow («Run workflow»). A publicação leva a `main`
+  inteira (DOC, WEB, ADMIN, PayFlow, SIGA).
+
+## Advisors de desempenho (2026-09-30)
+
+- **Duplicadas exactas retiradas** (`20260930170000`, aplicada): cinco SELECT
+  «Read … in own school» iguais aos «Members read …» versionados, em `siga_assessment_*`
+  e `siga_attendance_*`, criados à mão na base. Sem mudança de acesso (verificado: dono
+  vê 9/9 sessões, 1/1 item). 305 políticas. Teste: nenhuma duplicada exacta no retrato.
+- **Não feito, de propósito:** 158 chaves estrangeiras sem índice (fora as de
+  auditoria) e 123 índices nunca usados. Com os volumes actuais (a maior escola tem 2
+  alunos) não há consulta lenta para medir; indexar às cegas só encarece escritas.
+  Rever quando houver escolas com dados reais, a partir de `pg_stat_statements`.
+- As restantes «multiple permissive policies» são pares com expressões diferentes (papel
+  antigo + permissão nova); fundi-las é mudança de acesso, não de desempenho.
+
+## Pautas oficiais e leituras só do pessoal — APLICADAS (2026-09-30)
+
+Duas migrações, **aplicadas na produção a 2026-09-30** (pelo MCP do Supabase, com
+autorização do dono, por esta ordem) depois de ensaiadas em Postgres local (PGlite).
+Verificado depois: EXECUTE só para `authenticated` nas 4 funções; 27 políticas
+RESTRICTIVE; «Members read finance_payment_plans» retirada; `build_grade_sheet` já
+passa as permissões e pára em «Regra de avaliação ativa em falta» (nenhuma escola
+publicou modelo); um dono vê exactamente as linhas reais da sua escola (2 alunos, 4
+faturas, 16 trabalhos, 4400 linhas de importação) e 0 de outra escola; advisors sem
+achados novos.
+
+1. `20260930120000_grade_sheet_functions_execute.sql` — «Gerar pauta» e as mudanças de
+   estado **nunca funcionaram**: `public.build_grade_sheet`/`transition_grade_sheet` são
+   INVOKER e chamam funções `private.*` que só o `postgres` executa → «permission denied
+   for function build_grade_sheet» (reproduzido como `authenticated` numa transacção
+   desfeita). 0 pautas na produção. EXECUTE a `authenticated` na árvore inteira:
+   `build_grade_sheet`, `transition_grade_sheet`, `compute_subject_averages`,
+   `round_grade`. As de topo verificam aal2 + `has_permission`; todas são INVOKER (RLS
+   aplica-se). Depois de aplicar, a pauta ainda precisa de um modelo de avaliação
+   publicado (Pedagógica → Modelos de avaliação): hoje **nenhuma escola tem**
+   `assessment_rule_sets`, e o 2FA é obrigatório (aal2).
+   Outras 29 `public.*` com o mesmo defeito (open_gradebook, create_document_request,
+   publish_assessment_rule_version…) ficam: a app não as usa.
+2. `20260930130000_sensitive_tables_school_staff_only.sql` — `student`/`guardian` têm
+   nas 89 escolas permissões de leitura (`students.records.read`, `finance.invoices.read`,
+   `assessment.grades.read`, `attendance.records.read`, `documents.*`…) e as políticas
+   não limitam ao próprio aluno; `siga_assessment_scores`, `siga_attendance_*`,
+   `finance_payment_plans`, `siga_access_*`, `import_*` liam com `is_school_member`. Um
+   aluno lia pela API REST todos os alunos, faturas, notas, faltas e documentos da escola
+   e alterava qualquer pedido de documento. **Latente:** hoje só há membros `owner`.
+   Correcção: `private.is_school_staff(school_id)` (códigos de pessoal iguais a
+   `roleCodeToAppRole`) + política RESTRICTIVE «School staff only» em 27 tabelas; sai
+   «Members read finance_payment_plans». O servidor (chave de serviço) não é afectado; o
+   painel lê com JWT só para pessoal. Teste: `tests/security/staff-only-sensitive-tables.test.ts`
+   (deriva do retrato as tabelas expostas; mutações verificadas).
+
+**Retrato recapturado** (`PRODUCTION_SNAPSHOT.json`, 30/09 15:49 UTC; 181 tabelas, 310
+políticas) com as consultas de `capture-db-snapshot.mjs` pelo MCP (o CLI não tem rede
+neste ambiente). O retrato passa a guardar `modo` (PERMISSIVE/RESTRICTIVE) de cada
+política; `write-policies-need-role` ignora as restritivas (só retiram acesso). O
+teste de concessões a `anon` deixou de exigir que haja alguma: hoje não há.
+
+O retrato mostrou 2 tabelas criadas na produção sem migração nem tipos:
+`course_unit_enrollments` e `program_subject_prerequisites` (vazias; RLS forçado, só
+`service_role`). DDL real em `20260930155158_capture_undeclared_production_tables.sql`
+(gerado por `capture-table-ddl.mjs`, validado duas vezes no PGlite) e `types.ts`
+regenerado da produção (+154/−6: as duas tabelas e a ordem de duas FK de
+`class_groups`; cabeçalho mantido). Nenhum código as usa ainda.
+
+Por fazer (dono, no painel do Supabase — não há ferramenta para isto aqui): ligar
+«Leaked password protection» (Authentication → Attack protection).
+
+Decidido (dono, 30/09): `school_memberships`/`member_roles` ficam legíveis por qualquer
+membro (só ids e papéis; políticas de avatares, `module_catalog` e `permissions`
+dependem disso).
+
+## Advisors do Supabase e vitest (2026-09-30)
+
+- `vitest`/`@vitest/ui` 4.1.10 → 4.1.11 (GHSA-82fw-gwwq-j7x9, leitura de ficheiros via
+  mock redireccionado; só desenvolvimento/CI). 336 ficheiros de teste passam.
+  `bun audit`: ficam `uuid` (exceljs) e `esbuild` 0.18 (drizzle-kit), ambos sem uso
+  em produção — ver `CRITICAL_REVIEW_2026-09.md` §2.
+- Advisors de segurança da produção (`Sga`, leitura só): **0 erros**.
+  - 62 × «RLS sem políticas»: tabelas só-servidor (alumni, RH salarial, segredos,
+    risco, `academic_evidence.*`, sequências `private.*`). Intencional; não abrir.
+  - 18 × `SECURITY DEFINER` executável por `authenticated`: helpers de RLS
+    (`is_school_*`, `current_*`, `has_school_permission`…) e as RPC de presença do
+    professor. Revistas `hr_evaluate_teacher_attendance_assurance` e
+    `hr_redeem_teacher_qr`: ambas exigem que `auth.uid()` seja o professor da aula; o
+    resgate exige ainda evidência recente válida. Sem fuga.
+  - **Por fazer (dono):** ligar «Leaked password protection» (Authentication →
+    Passwords/Attack protection) — recusa senhas que aparecem no HaveIBeenPwned.
+- O aviso de 29/09 «avançar muito as datas pode bater no trigger de sobreposição» já
+  está resolvido pela migração `20260930090000` (verificação adiada para o fim).
+  Também a tabela `school_access_requests` já está no retrato
+  (`TABELAS_AUSENTES_DA_PRODUCAO` vazia).
+
+## CORS e domínios próprios seguem PLATFORM_DOMAIN (2026-09-30)
+
+- `src/lib/ecosystem-cors.ts`: as origens de produção (raiz, www, admin, docs, app,
+  payflow) e o curinga das escolas saem de `getPlatformDomain()`. Antes estavam
+  escritos com `portal-siga.com`: noutro domínio o WEB/ADMIN ficavam sem API e o
+  domínio antigo continuava aceite. Projectos `*.pages.dev` continuam explícitos.
+- `registerTenantDomain` (ADMIN → domínio próprio): só recusava `*.portal-siga.com`,
+  a raiz `portal-siga.com` passava, e noutro domínio passavam `admin.<domínio>` e
+  subdomínios de outras escolas. Usa agora `isPlatformOwnedHostname` (domínio
+  configurado + legado, raiz e subdomínios).
+- Os restantes `portal-siga.com` no código são intencionais: legado no
+  `tenant-resolver`, valores por omissão dos e-mails, CSP.
 
 ## Dependências das outras apps (2026-09-30)
 
