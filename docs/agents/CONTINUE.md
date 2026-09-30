@@ -4,11 +4,16 @@ Ler isto **antes** de alterar código. Ecossistema (5 apps):
 [ARCHITECTURE_HARMONIZATION.md](./ARCHITECTURE_HARMONIZATION.md).
 Depois abrir o skill do módulo em `.cursor/skills/`.
 
-## Pautas oficiais e leituras só do pessoal — POR APLICAR (2026-09-30)
+## Pautas oficiais e leituras só do pessoal — APLICADAS (2026-09-30)
 
-Duas migrações no repositório, **não aplicadas** (aplicar no SQL Editor, por esta ordem;
-ambas idempotentes). Investigação só de leitura na produção; o ensaio foi em Postgres
-local (PGlite), com as duas aplicadas duas vezes.
+Duas migrações, **aplicadas na produção a 2026-09-30** (pelo MCP do Supabase, com
+autorização do dono, por esta ordem) depois de ensaiadas em Postgres local (PGlite).
+Verificado depois: EXECUTE só para `authenticated` nas 4 funções; 27 políticas
+RESTRICTIVE; «Members read finance_payment_plans» retirada; `build_grade_sheet` já
+passa as permissões e pára em «Regra de avaliação ativa em falta» (nenhuma escola
+publicou modelo); um dono vê exactamente as linhas reais da sua escola (2 alunos, 4
+faturas, 16 trabalhos, 4400 linhas de importação) e 0 de outra escola; advisors sem
+achados novos.
 
 1. `20260930120000_grade_sheet_functions_execute.sql` — «Gerar pauta» e as mudanças de
    estado **nunca funcionaram**: `public.build_grade_sheet`/`transition_grade_sheet` são
@@ -35,11 +40,25 @@ local (PGlite), com as duas aplicadas duas vezes.
    painel lê com JWT só para pessoal. Teste: `tests/security/staff-only-sensitive-tables.test.ts`
    (deriva do retrato as tabelas expostas; mutações verificadas).
 
-Depois de aplicar: recapturar o retrato (`npm run siga:db-snapshot`) e ligar
-«Leaked password protection» no Supabase Auth.
+**Retrato recapturado** (`PRODUCTION_SNAPSHOT.json`, 30/09 15:49 UTC; 181 tabelas, 310
+políticas) com as consultas de `capture-db-snapshot.mjs` pelo MCP (o CLI não tem rede
+neste ambiente). O retrato passa a guardar `modo` (PERMISSIVE/RESTRICTIVE) de cada
+política; `write-policies-need-role` ignora as restritivas (só retiram acesso). O
+teste de concessões a `anon` deixou de exigir que haja alguma: hoje não há.
 
-Por decidir: `school_memberships`/`member_roles` continuam legíveis por qualquer membro
-(só ids e papéis; políticas de avatares, `module_catalog` e `permissions` dependem disso).
+O retrato mostrou 2 tabelas criadas na produção sem migração nem tipos:
+`course_unit_enrollments` e `program_subject_prerequisites` (vazias; RLS forçado, só
+`service_role`). DDL real em `20260930155158_capture_undeclared_production_tables.sql`
+(gerado por `capture-table-ddl.mjs`, validado duas vezes no PGlite) e `types.ts`
+regenerado da produção (+154/−6: as duas tabelas e a ordem de duas FK de
+`class_groups`; cabeçalho mantido). Nenhum código as usa ainda.
+
+Por fazer (dono, no painel do Supabase — não há ferramenta para isto aqui): ligar
+«Leaked password protection» (Authentication → Attack protection).
+
+Decidido (dono, 30/09): `school_memberships`/`member_roles` ficam legíveis por qualquer
+membro (só ids e papéis; políticas de avatares, `module_catalog` e `permissions`
+dependem disso).
 
 ## Advisors do Supabase e vitest (2026-09-30)
 

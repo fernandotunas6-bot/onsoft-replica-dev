@@ -1,11 +1,11 @@
 {
-  "capturadoEm": "2026-09-27T14:25:59.502399Z",
+  "capturadoEm": "2026-09-30T15:49:10.291228Z",
   "resumo": {
-    "com_rls": 179,
-    "funcoes_private": 98,
-    "politicas": 285,
-    "tabelas": 179,
-    "triggers": 190
+    "com_rls": 181,
+    "funcoes_private": 101,
+    "politicas": 310,
+    "tabelas": 181,
+    "triggers": 196
   },
   "tabelas": [
     {
@@ -32,7 +32,7 @@
       "tabela": "academic_levels"
     },
     {
-      "anon_select": true,
+      "anon_select": false,
       "auth_select": true,
       "colunas": [
         "id",
@@ -91,7 +91,7 @@
       "tabela": "academic_years"
     },
     {
-      "anon_select": true,
+      "anon_select": false,
       "auth_select": true,
       "colunas": [
         "id",
@@ -117,7 +117,7 @@
       "tabela": "alumni_communication_preferences"
     },
     {
-      "anon_select": true,
+      "anon_select": false,
       "auth_select": true,
       "colunas": [
         "id",
@@ -145,7 +145,7 @@
       "tabela": "alumni_contributions"
     },
     {
-      "anon_select": true,
+      "anon_select": false,
       "auth_select": true,
       "colunas": [
         "id",
@@ -179,7 +179,7 @@
       "tabela": "alumni_education_stages"
     },
     {
-      "anon_select": true,
+      "anon_select": false,
       "auth_select": true,
       "colunas": [
         "id",
@@ -205,7 +205,7 @@
       "tabela": "alumni_engagements"
     },
     {
-      "anon_select": true,
+      "anon_select": false,
       "auth_select": true,
       "colunas": [
         "id",
@@ -228,7 +228,7 @@
       "tabela": "alumni_event_registrations"
     },
     {
-      "anon_select": true,
+      "anon_select": false,
       "auth_select": true,
       "colunas": [
         "id",
@@ -257,7 +257,7 @@
       "tabela": "alumni_events"
     },
     {
-      "anon_select": true,
+      "anon_select": false,
       "auth_select": true,
       "colunas": [
         "id",
@@ -287,7 +287,7 @@
       "tabela": "alumni_experiences"
     },
     {
-      "anon_select": true,
+      "anon_select": false,
       "auth_select": true,
       "colunas": [
         "id",
@@ -316,7 +316,7 @@
       "tabela": "alumni_mentorships"
     },
     {
-      "anon_select": true,
+      "anon_select": false,
       "auth_select": true,
       "colunas": [
         "id",
@@ -346,7 +346,7 @@
       "tabela": "alumni_opportunities"
     },
     {
-      "anon_select": true,
+      "anon_select": false,
       "auth_select": true,
       "colunas": [
         "id",
@@ -371,7 +371,7 @@
       "tabela": "alumni_opportunity_applications"
     },
     {
-      "anon_select": true,
+      "anon_select": false,
       "auth_select": true,
       "colunas": [
         "id",
@@ -410,7 +410,7 @@
       "tabela": "alumni_portfolio_items"
     },
     {
-      "anon_select": true,
+      "anon_select": false,
       "auth_select": true,
       "colunas": [
         "id",
@@ -434,7 +434,7 @@
       "tabela": "alumni_privacy_audit"
     },
     {
-      "anon_select": true,
+      "anon_select": false,
       "auth_select": true,
       "colunas": [
         "id",
@@ -483,7 +483,7 @@
       "tabela": "alumni_profiles"
     },
     {
-      "anon_select": true,
+      "anon_select": false,
       "auth_select": true,
       "colunas": [
         "id",
@@ -504,7 +504,7 @@
       "tabela": "alumni_survey_responses"
     },
     {
-      "anon_select": true,
+      "anon_select": false,
       "auth_select": true,
       "colunas": [
         "id",
@@ -562,7 +562,7 @@
       "tabela": "announcements"
     },
     {
-      "anon_select": true,
+      "anon_select": false,
       "auth_select": true,
       "colunas": [
         "id",
@@ -582,7 +582,7 @@
       "tabela": "assessment_key_subjects"
     },
     {
-      "anon_select": true,
+      "anon_select": false,
       "auth_select": true,
       "colunas": [
         "id",
@@ -639,7 +639,7 @@
         "status",
         "recorded_by"
       ],
-      "politicas": 1,
+      "politicas": 2,
       "rls": true,
       "rls_forcada": false,
       "tabela": "attendance_records"
@@ -658,7 +658,7 @@
         "attendance_session_id",
         "enrollment_id"
       ],
-      "politicas": 1,
+      "politicas": 2,
       "rls": true,
       "rls_forcada": false,
       "tabela": "attendance_session_roster"
@@ -690,7 +690,7 @@
         "session_date",
         "opened_by"
       ],
-      "politicas": 1,
+      "politicas": 2,
       "rls": true,
       "rls_forcada": false,
       "tabela": "attendance_sessions"
@@ -720,7 +720,7 @@
       "tabela": "audit_logs"
     },
     {
-      "anon_select": true,
+      "anon_select": false,
       "auth_select": true,
       "colunas": [
         "id",
@@ -834,7 +834,7 @@
       "tabela": "class_subjects"
     },
     {
-      "anon_select": true,
+      "anon_select": false,
       "auth_select": true,
       "colunas": [
         "id",
@@ -864,7 +864,7 @@
       "tabela": "communication_dispatches"
     },
     {
-      "anon_select": true,
+      "anon_select": false,
       "auth_select": true,
       "colunas": [
         "id",
@@ -885,7 +885,7 @@
       "tabela": "communication_events"
     },
     {
-      "anon_select": true,
+      "anon_select": false,
       "auth_select": true,
       "colunas": [
         "id",
@@ -918,7 +918,44 @@
       "tabela": "contact_verification_profiles"
     },
     {
-      "anon_select": true,
+      "anon_select": false,
+      "auth_select": false,
+      "colunas": [
+        "id",
+        "school_id",
+        "student_id",
+        "academic_year_id",
+        "program_id",
+        "program_subject_id",
+        "semester",
+        "credits",
+        "attempt",
+        "status",
+        "final_grade",
+        "season",
+        "credits_earned",
+        "notes",
+        "created_at",
+        "updated_at",
+        "created_by",
+        "updated_by"
+      ],
+      "obrigatorias": [
+        "school_id",
+        "student_id",
+        "academic_year_id",
+        "program_id",
+        "program_subject_id",
+        "semester",
+        "credits"
+      ],
+      "politicas": 0,
+      "rls": true,
+      "rls_forcada": true,
+      "tabela": "course_unit_enrollments"
+    },
+    {
+      "anon_select": false,
       "auth_select": true,
       "colunas": [
         "id",
@@ -949,7 +986,7 @@
       "tabela": "curricula"
     },
     {
-      "anon_select": true,
+      "anon_select": false,
       "auth_select": true,
       "colunas": [
         "id",
@@ -978,7 +1015,7 @@
       "tabela": "curriculum_areas"
     },
     {
-      "anon_select": true,
+      "anon_select": false,
       "auth_select": true,
       "colunas": [
         "id",
@@ -1032,7 +1069,7 @@
         "purpose",
         "requested_by"
       ],
-      "politicas": 3,
+      "politicas": 4,
       "rls": true,
       "rls_forcada": false,
       "tabela": "document_requests"
@@ -1080,7 +1117,7 @@
         "signer_role",
         "requested_by"
       ],
-      "politicas": 3,
+      "politicas": 4,
       "rls": true,
       "rls_forcada": false,
       "tabela": "document_signatures"
@@ -1116,7 +1153,7 @@
       "tabela": "document_templates"
     },
     {
-      "anon_select": true,
+      "anon_select": false,
       "auth_select": true,
       "colunas": [
         "id",
@@ -1134,7 +1171,7 @@
       "tabela": "email_aliases"
     },
     {
-      "anon_select": true,
+      "anon_select": false,
       "auth_select": true,
       "colunas": [
         "id",
@@ -1302,13 +1339,13 @@
         "fee_plan_id",
         "created_by"
       ],
-      "politicas": 1,
+      "politicas": 2,
       "rls": true,
       "rls_forcada": false,
       "tabela": "finance_contracts"
     },
     {
-      "anon_select": true,
+      "anon_select": false,
       "auth_select": true,
       "colunas": [
         "id",
@@ -1388,7 +1425,7 @@
         "due_date",
         "issued_by"
       ],
-      "politicas": 1,
+      "politicas": 2,
       "rls": true,
       "rls_forcada": false,
       "tabela": "finance_invoices"
@@ -1447,7 +1484,7 @@
         "payment_method",
         "received_by"
       ],
-      "politicas": 1,
+      "politicas": 2,
       "rls": true,
       "rls_forcada": false,
       "tabela": "finance_receipts"
@@ -1571,7 +1608,7 @@
         "max_score",
         "created_by"
       ],
-      "politicas": 4,
+      "politicas": 5,
       "rls": true,
       "rls_forcada": true,
       "tabela": "grade_items"
@@ -1652,7 +1689,7 @@
         "recorded_by",
         "updated_by"
       ],
-      "politicas": 4,
+      "politicas": 5,
       "rls": true,
       "rls_forcada": true,
       "tabela": "grade_scores"
@@ -1680,7 +1717,7 @@
         "grade_sheet_id",
         "enrollment_id"
       ],
-      "politicas": 2,
+      "politicas": 3,
       "rls": true,
       "rls_forcada": false,
       "tabela": "grade_sheet_rows"
@@ -1746,7 +1783,7 @@
         "created_by",
         "updated_by"
       ],
-      "politicas": 3,
+      "politicas": 4,
       "rls": true,
       "rls_forcada": false,
       "tabela": "grade_sheets"
@@ -1781,7 +1818,7 @@
         "created_by",
         "updated_by"
       ],
-      "politicas": 4,
+      "politicas": 5,
       "rls": true,
       "rls_forcada": true,
       "tabela": "gradebooks"
@@ -1816,7 +1853,7 @@
       "tabela": "grading_scales"
     },
     {
-      "anon_select": true,
+      "anon_select": false,
       "auth_select": true,
       "colunas": [
         "id",
@@ -1854,7 +1891,7 @@
       "tabela": "hr_absence_events"
     },
     {
-      "anon_select": true,
+      "anon_select": false,
       "auth_select": true,
       "colunas": [
         "id",
@@ -1892,7 +1929,7 @@
       "tabela": "hr_attendance_assurance_evidence"
     },
     {
-      "anon_select": true,
+      "anon_select": false,
       "auth_select": true,
       "colunas": [
         "school_id",
@@ -1928,7 +1965,7 @@
       "tabela": "hr_attendance_assurance_policies"
     },
     {
-      "anon_select": true,
+      "anon_select": false,
       "auth_select": true,
       "colunas": [
         "id",
@@ -1965,7 +2002,7 @@
       "tabela": "hr_compensation_events"
     },
     {
-      "anon_select": true,
+      "anon_select": false,
       "auth_select": true,
       "colunas": [
         "id",
@@ -2030,7 +2067,7 @@
       "tabela": "hr_contract_salary_amendments"
     },
     {
-      "anon_select": true,
+      "anon_select": false,
       "auth_select": true,
       "colunas": [
         "id",
@@ -2097,7 +2134,7 @@
       "tabela": "hr_departments"
     },
     {
-      "anon_select": true,
+      "anon_select": false,
       "auth_select": true,
       "colunas": [
         "id",
@@ -2132,7 +2169,7 @@
       "tabela": "hr_employments"
     },
     {
-      "anon_select": true,
+      "anon_select": false,
       "auth_select": true,
       "colunas": [
         "id",
@@ -2164,7 +2201,7 @@
       "tabela": "hr_payment_destinations"
     },
     {
-      "anon_select": true,
+      "anon_select": false,
       "auth_select": true,
       "colunas": [
         "school_id",
@@ -2185,7 +2222,7 @@
       "tabela": "hr_payment_settings"
     },
     {
-      "anon_select": true,
+      "anon_select": false,
       "auth_select": true,
       "colunas": [
         "id",
@@ -2215,7 +2252,7 @@
       "tabela": "hr_payroll_item_components"
     },
     {
-      "anon_select": true,
+      "anon_select": false,
       "auth_select": true,
       "colunas": [
         "id",
@@ -2250,7 +2287,7 @@
       "tabela": "hr_payroll_items"
     },
     {
-      "anon_select": true,
+      "anon_select": false,
       "auth_select": true,
       "colunas": [
         "id",
@@ -2286,7 +2323,7 @@
       "tabela": "hr_payroll_payment_batches"
     },
     {
-      "anon_select": true,
+      "anon_select": false,
       "auth_select": true,
       "colunas": [
         "id",
@@ -2326,7 +2363,7 @@
       "tabela": "hr_payroll_payment_items"
     },
     {
-      "anon_select": true,
+      "anon_select": false,
       "auth_select": true,
       "colunas": [
         "id",
@@ -2493,7 +2530,7 @@
       "tabela": "hr_salary_scales"
     },
     {
-      "anon_select": true,
+      "anon_select": false,
       "auth_select": true,
       "colunas": [
         "id",
@@ -2520,7 +2557,7 @@
       "tabela": "hr_teacher_attendance_policies"
     },
     {
-      "anon_select": true,
+      "anon_select": false,
       "auth_select": true,
       "colunas": [
         "id",
@@ -2548,7 +2585,7 @@
       "tabela": "hr_teacher_employment_links"
     },
     {
-      "anon_select": true,
+      "anon_select": false,
       "auth_select": true,
       "colunas": [
         "id",
@@ -2605,7 +2642,7 @@
       "tabela": "hr_teacher_lesson_occurrences"
     },
     {
-      "anon_select": true,
+      "anon_select": false,
       "auth_select": true,
       "colunas": [
         "id",
@@ -2659,7 +2696,7 @@
         "target_id",
         "action_type"
       ],
-      "politicas": 1,
+      "politicas": 2,
       "rls": true,
       "rls_forcada": true,
       "tabela": "import_audits"
@@ -2702,7 +2739,7 @@
         "module",
         "file_name"
       ],
-      "politicas": 1,
+      "politicas": 2,
       "rls": true,
       "rls_forcada": true,
       "tabela": "import_jobs"
@@ -2733,7 +2770,7 @@
         "import_job_id",
         "row_number"
       ],
-      "politicas": 1,
+      "politicas": 2,
       "rls": true,
       "rls_forcada": true,
       "tabela": "import_rows"
@@ -2836,7 +2873,7 @@
         "validation_code",
         "issued_by"
       ],
-      "politicas": 3,
+      "politicas": 4,
       "rls": true,
       "rls_forcada": false,
       "tabela": "issued_documents"
@@ -3031,7 +3068,7 @@
       "tabela": "permissions"
     },
     {
-      "anon_select": true,
+      "anon_select": false,
       "auth_select": true,
       "colunas": [
         "id",
@@ -3086,7 +3123,7 @@
       "tabela": "person_roles"
     },
     {
-      "anon_select": true,
+      "anon_select": false,
       "auth_select": true,
       "colunas": [
         "id",
@@ -3113,7 +3150,7 @@
       "tabela": "plans"
     },
     {
-      "anon_select": true,
+      "anon_select": false,
       "auth_select": true,
       "colunas": [
         "user_id",
@@ -3161,7 +3198,28 @@
       "tabela": "profiles"
     },
     {
-      "anon_select": true,
+      "anon_select": false,
+      "auth_select": false,
+      "colunas": [
+        "id",
+        "school_id",
+        "program_subject_id",
+        "required_program_subject_id",
+        "created_at",
+        "created_by"
+      ],
+      "obrigatorias": [
+        "school_id",
+        "program_subject_id",
+        "required_program_subject_id"
+      ],
+      "politicas": 0,
+      "rls": true,
+      "rls_forcada": true,
+      "tabela": "program_subject_prerequisites"
+    },
+    {
+      "anon_select": false,
       "auth_select": true,
       "colunas": [
         "id",
@@ -3237,7 +3295,7 @@
         "academic_year_id",
         "created_by"
       ],
-      "politicas": 3,
+      "politicas": 4,
       "rls": true,
       "rls_forcada": false,
       "tabela": "report_cards"
@@ -3298,7 +3356,7 @@
       "tabela": "roles"
     },
     {
-      "anon_select": true,
+      "anon_select": false,
       "auth_select": true,
       "colunas": [
         "id",
@@ -3333,7 +3391,7 @@
       "tabela": "rooms"
     },
     {
-      "anon_select": true,
+      "anon_select": false,
       "auth_select": true,
       "colunas": [
         "id",
@@ -3424,7 +3482,7 @@
       "tabela": "school_announcements"
     },
     {
-      "anon_select": true,
+      "anon_select": false,
       "auth_select": true,
       "colunas": [
         "id",
@@ -3647,7 +3705,7 @@
       "tabela": "school_settings"
     },
     {
-      "anon_select": true,
+      "anon_select": false,
       "auth_select": true,
       "colunas": [
         "id",
@@ -3679,7 +3737,7 @@
       "tabela": "school_shift_slots"
     },
     {
-      "anon_select": true,
+      "anon_select": false,
       "auth_select": true,
       "colunas": [
         "id",
@@ -3713,7 +3771,7 @@
       "tabela": "school_shifts"
     },
     {
-      "anon_select": true,
+      "anon_select": false,
       "auth_select": true,
       "colunas": [
         "id",
@@ -3801,13 +3859,13 @@
         "card_number",
         "barcode"
       ],
-      "politicas": 1,
+      "politicas": 2,
       "rls": true,
       "rls_forcada": true,
       "tabela": "siga_access_cards"
     },
     {
-      "anon_select": true,
+      "anon_select": false,
       "auth_select": true,
       "colunas": [
         "id",
@@ -3827,7 +3885,7 @@
         "direction",
         "status"
       ],
-      "politicas": 1,
+      "politicas": 2,
       "rls": true,
       "rls_forcada": true,
       "tabela": "siga_access_logs"
@@ -3854,7 +3912,7 @@
       "tabela": "siga_assessment_item_competencies"
     },
     {
-      "anon_select": true,
+      "anon_select": false,
       "auth_select": true,
       "colunas": [
         "id",
@@ -3890,7 +3948,7 @@
       "tabela": "siga_assessment_items"
     },
     {
-      "anon_select": true,
+      "anon_select": false,
       "auth_select": true,
       "colunas": [
         "id",
@@ -3908,13 +3966,13 @@
         "item_id",
         "enrollment_id"
       ],
-      "politicas": 3,
+      "politicas": 4,
       "rls": true,
       "rls_forcada": true,
       "tabela": "siga_assessment_scores"
     },
     {
-      "anon_select": true,
+      "anon_select": false,
       "auth_select": true,
       "colunas": [
         "id",
@@ -3944,7 +4002,7 @@
       "tabela": "siga_attendance_audits"
     },
     {
-      "anon_select": true,
+      "anon_select": false,
       "auth_select": true,
       "colunas": [
         "id",
@@ -3968,13 +4026,13 @@
         "reason",
         "submitted_by"
       ],
-      "politicas": 2,
+      "politicas": 3,
       "rls": true,
       "rls_forcada": true,
       "tabela": "siga_attendance_justifications"
     },
     {
-      "anon_select": true,
+      "anon_select": false,
       "auth_select": true,
       "colunas": [
         "id",
@@ -3992,13 +4050,13 @@
         "session_id",
         "student_id"
       ],
-      "politicas": 2,
+      "politicas": 3,
       "rls": true,
       "rls_forcada": true,
       "tabela": "siga_attendance_records"
     },
     {
-      "anon_select": true,
+      "anon_select": false,
       "auth_select": true,
       "colunas": [
         "id",
@@ -4024,7 +4082,7 @@
         "class_group_id",
         "subject_id"
       ],
-      "politicas": 2,
+      "politicas": 3,
       "rls": true,
       "rls_forcada": true,
       "tabela": "siga_attendance_sessions"
@@ -4120,7 +4178,7 @@
       "tabela": "siga_competencies"
     },
     {
-      "anon_select": true,
+      "anon_select": false,
       "auth_select": true,
       "colunas": [
         "id",
@@ -4210,7 +4268,7 @@
       "tabela": "siga_exam_sessions"
     },
     {
-      "anon_select": true,
+      "anon_select": false,
       "auth_select": true,
       "colunas": [
         "id",
@@ -4282,7 +4340,7 @@
       "tabela": "siga_files"
     },
     {
-      "anon_select": true,
+      "anon_select": false,
       "auth_select": true,
       "colunas": [
         "id",
@@ -4481,13 +4539,13 @@
         "name",
         "location"
       ],
-      "politicas": 1,
+      "politicas": 0,
       "rls": true,
       "rls_forcada": true,
       "tabela": "siga_turnstile_devices"
     },
     {
-      "anon_select": true,
+      "anon_select": false,
       "auth_select": true,
       "colunas": [
         "id",
@@ -4507,7 +4565,7 @@
       "tabela": "slug_reservations"
     },
     {
-      "anon_select": true,
+      "anon_select": false,
       "auth_select": true,
       "colunas": [
         "id",
@@ -4588,7 +4646,7 @@
         "relationship",
         "created_by"
       ],
-      "politicas": 4,
+      "politicas": 5,
       "rls": true,
       "rls_forcada": true,
       "tabela": "student_guardians"
@@ -4717,13 +4775,13 @@
         "created_by",
         "updated_by"
       ],
-      "politicas": 6,
+      "politicas": 7,
       "rls": true,
       "rls_forcada": true,
       "tabela": "students"
     },
     {
-      "anon_select": true,
+      "anon_select": false,
       "auth_select": true,
       "colunas": [
         "id",
@@ -4804,7 +4862,7 @@
       "tabela": "subjects"
     },
     {
-      "anon_select": true,
+      "anon_select": false,
       "auth_select": true,
       "colunas": [
         "id",
@@ -4826,7 +4884,7 @@
       "tabela": "subscription_addons"
     },
     {
-      "anon_select": true,
+      "anon_select": false,
       "auth_select": true,
       "colunas": [
         "id",
@@ -4849,7 +4907,7 @@
       "tabela": "subscriptions"
     },
     {
-      "anon_select": true,
+      "anon_select": false,
       "auth_select": true,
       "colunas": [
         "id",
@@ -4940,7 +4998,7 @@
       "tabela": "teachers"
     },
     {
-      "anon_select": true,
+      "anon_select": false,
       "auth_select": true,
       "colunas": [
         "id",
@@ -4988,7 +5046,7 @@
       "tabela": "tenant_mailboxes"
     },
     {
-      "anon_select": true,
+      "anon_select": false,
       "auth_select": true,
       "colunas": [
         "id",
@@ -5012,7 +5070,7 @@
       "tabela": "tenant_provisioning"
     },
     {
-      "anon_select": true,
+      "anon_select": false,
       "auth_select": true,
       "colunas": [
         "id",
@@ -5032,7 +5090,7 @@
       "tabela": "tenant_usage"
     },
     {
-      "anon_select": true,
+      "anon_select": false,
       "auth_select": true,
       "colunas": [
         "id",
@@ -5123,7 +5181,7 @@
       "tabela": "timetable_slots"
     },
     {
-      "anon_select": true,
+      "anon_select": false,
       "auth_select": true,
       "colunas": [
         "id",
@@ -5152,7 +5210,7 @@
       "tabela": "user_communication_preferences"
     },
     {
-      "anon_select": true,
+      "anon_select": false,
       "auth_select": true,
       "colunas": [
         "id",
@@ -5185,6 +5243,7 @@
   "politicas": [
     {
       "cmd": "SELECT",
+      "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
       "politica": "academic_levels_select_authorized",
       "tabela": "academic_levels",
@@ -5193,6 +5252,7 @@
     },
     {
       "cmd": "INSERT",
+      "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
       "politica": "Create academic_schedules in own school",
       "tabela": "academic_schedules",
@@ -5201,6 +5261,7 @@
     },
     {
       "cmd": "SELECT",
+      "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
       "politica": "Read academic_schedules in own school",
       "tabela": "academic_schedules",
@@ -5209,6 +5270,7 @@
     },
     {
       "cmd": "UPDATE",
+      "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
       "politica": "Update academic_schedules in own school",
       "tabela": "academic_schedules",
@@ -5217,6 +5279,7 @@
     },
     {
       "cmd": "INSERT",
+      "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
       "politica": "Create academic_years in own school",
       "tabela": "academic_years",
@@ -5225,6 +5288,7 @@
     },
     {
       "cmd": "SELECT",
+      "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
       "politica": "Read academic_years in own school",
       "tabela": "academic_years",
@@ -5233,6 +5297,7 @@
     },
     {
       "cmd": "UPDATE",
+      "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
       "politica": "Update academic_years in own school",
       "tabela": "academic_years",
@@ -5241,6 +5306,7 @@
     },
     {
       "cmd": "SELECT",
+      "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
       "politica": "academic_years_select_authorized",
       "tabela": "academic_years",
@@ -5249,6 +5315,7 @@
     },
     {
       "cmd": "SELECT",
+      "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
       "politica": "Read school announcements",
       "tabela": "announcements",
@@ -5257,6 +5324,7 @@
     },
     {
       "cmd": "INSERT",
+      "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
       "politica": "announcements_insert",
       "tabela": "announcements",
@@ -5265,6 +5333,7 @@
     },
     {
       "cmd": "SELECT",
+      "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
       "politica": "announcements_select",
       "tabela": "announcements",
@@ -5273,6 +5342,7 @@
     },
     {
       "cmd": "UPDATE",
+      "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
       "politica": "announcements_update",
       "tabela": "announcements",
@@ -5281,6 +5351,7 @@
     },
     {
       "cmd": "SELECT",
+      "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
       "politica": "assessment_key_subjects_select_authorized",
       "tabela": "assessment_key_subjects",
@@ -5289,6 +5360,7 @@
     },
     {
       "cmd": "SELECT",
+      "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
       "politica": "assessment_rule_sets_select_authorized",
       "tabela": "assessment_rule_sets",
@@ -5296,7 +5368,17 @@
       "verificando": ""
     },
     {
+      "cmd": "ALL",
+      "modo": "RESTRICTIVE",
+      "papeis": "{authenticated}",
+      "politica": "School staff only",
+      "tabela": "attendance_records",
+      "usando": "private.is_school_staff(school_id)",
+      "verificando": "private.is_school_staff(school_id)"
+    },
+    {
       "cmd": "SELECT",
+      "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
       "politica": "attendance_records_select_authorized",
       "tabela": "attendance_records",
@@ -5304,7 +5386,17 @@
       "verificando": ""
     },
     {
+      "cmd": "ALL",
+      "modo": "RESTRICTIVE",
+      "papeis": "{authenticated}",
+      "politica": "School staff only",
+      "tabela": "attendance_session_roster",
+      "usando": "private.is_school_staff(school_id)",
+      "verificando": "private.is_school_staff(school_id)"
+    },
+    {
       "cmd": "SELECT",
+      "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
       "politica": "attendance_session_roster_select_authorized",
       "tabela": "attendance_session_roster",
@@ -5312,7 +5404,17 @@
       "verificando": ""
     },
     {
+      "cmd": "ALL",
+      "modo": "RESTRICTIVE",
+      "papeis": "{authenticated}",
+      "politica": "School staff only",
+      "tabela": "attendance_sessions",
+      "usando": "private.is_school_staff(school_id)",
+      "verificando": "private.is_school_staff(school_id)"
+    },
+    {
       "cmd": "SELECT",
+      "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
       "politica": "attendance_sessions_select_authorized",
       "tabela": "attendance_sessions",
@@ -5321,6 +5423,7 @@
     },
     {
       "cmd": "SELECT",
+      "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
       "politica": "audit_select_authorized",
       "tabela": "audit_logs",
@@ -5329,6 +5432,7 @@
     },
     {
       "cmd": "SELECT",
+      "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
       "politica": "Read own calendar feed token",
       "tabela": "calendar_feed_tokens",
@@ -5337,6 +5441,7 @@
     },
     {
       "cmd": "DELETE",
+      "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
       "politica": "Revoke own calendar feed token",
       "tabela": "calendar_feed_tokens",
@@ -5345,6 +5450,7 @@
     },
     {
       "cmd": "SELECT",
+      "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
       "politica": "campuses_select_authorized",
       "tabela": "campuses",
@@ -5353,6 +5459,7 @@
     },
     {
       "cmd": "INSERT",
+      "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
       "politica": "Create class_groups in own school",
       "tabela": "class_groups",
@@ -5361,6 +5468,7 @@
     },
     {
       "cmd": "SELECT",
+      "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
       "politica": "Professor reads assigned class groups",
       "tabela": "class_groups",
@@ -5369,6 +5477,7 @@
     },
     {
       "cmd": "SELECT",
+      "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
       "politica": "Read class_groups in own school",
       "tabela": "class_groups",
@@ -5377,6 +5486,7 @@
     },
     {
       "cmd": "UPDATE",
+      "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
       "politica": "Update class_groups in own school",
       "tabela": "class_groups",
@@ -5385,6 +5495,7 @@
     },
     {
       "cmd": "INSERT",
+      "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
       "politica": "class_groups_insert_authorized",
       "tabela": "class_groups",
@@ -5393,6 +5504,7 @@
     },
     {
       "cmd": "SELECT",
+      "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
       "politica": "class_groups_select_authorized",
       "tabela": "class_groups",
@@ -5401,6 +5513,7 @@
     },
     {
       "cmd": "UPDATE",
+      "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
       "politica": "class_groups_update_authorized",
       "tabela": "class_groups",
@@ -5409,6 +5522,7 @@
     },
     {
       "cmd": "INSERT",
+      "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
       "politica": "Academic create class subjects",
       "tabela": "class_subjects",
@@ -5417,6 +5531,7 @@
     },
     {
       "cmd": "SELECT",
+      "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
       "politica": "Academic read class subjects",
       "tabela": "class_subjects",
@@ -5425,6 +5540,7 @@
     },
     {
       "cmd": "UPDATE",
+      "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
       "politica": "Academic update class subjects",
       "tabela": "class_subjects",
@@ -5433,6 +5549,7 @@
     },
     {
       "cmd": "SELECT",
+      "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
       "politica": "class_subjects_select_authorized",
       "tabela": "class_subjects",
@@ -5441,6 +5558,7 @@
     },
     {
       "cmd": "ALL",
+      "modo": "PERMISSIVE",
       "papeis": "{service_role}",
       "politica": "service_role_full_dispatches",
       "tabela": "communication_dispatches",
@@ -5449,6 +5567,7 @@
     },
     {
       "cmd": "ALL",
+      "modo": "PERMISSIVE",
       "papeis": "{service_role}",
       "politica": "service_role_full_events",
       "tabela": "communication_events",
@@ -5457,6 +5576,7 @@
     },
     {
       "cmd": "SELECT",
+      "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
       "politica": "auth_view_own_contact_profile",
       "tabela": "contact_verification_profiles",
@@ -5465,6 +5585,7 @@
     },
     {
       "cmd": "ALL",
+      "modo": "PERMISSIVE",
       "papeis": "{service_role}",
       "politica": "service_role_full_contact_profiles",
       "tabela": "contact_verification_profiles",
@@ -5473,6 +5594,7 @@
     },
     {
       "cmd": "INSERT",
+      "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
       "politica": "Create curricula in own school",
       "tabela": "curricula",
@@ -5481,6 +5603,7 @@
     },
     {
       "cmd": "SELECT",
+      "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
       "politica": "Read curricula in own school",
       "tabela": "curricula",
@@ -5489,6 +5612,7 @@
     },
     {
       "cmd": "UPDATE",
+      "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
       "politica": "Update curricula in own school",
       "tabela": "curricula",
@@ -5497,6 +5621,7 @@
     },
     {
       "cmd": "INSERT",
+      "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
       "politica": "Create curriculum_areas in own school",
       "tabela": "curriculum_areas",
@@ -5505,6 +5630,7 @@
     },
     {
       "cmd": "SELECT",
+      "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
       "politica": "Read curriculum_areas in own school",
       "tabela": "curriculum_areas",
@@ -5513,6 +5639,7 @@
     },
     {
       "cmd": "UPDATE",
+      "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
       "politica": "Update curriculum_areas in own school",
       "tabela": "curriculum_areas",
@@ -5521,6 +5648,7 @@
     },
     {
       "cmd": "INSERT",
+      "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
       "politica": "Create curriculum_subjects in own school",
       "tabela": "curriculum_subjects",
@@ -5529,6 +5657,7 @@
     },
     {
       "cmd": "SELECT",
+      "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
       "politica": "Read curriculum_subjects in own school",
       "tabela": "curriculum_subjects",
@@ -5537,6 +5666,7 @@
     },
     {
       "cmd": "UPDATE",
+      "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
       "politica": "Update curriculum_subjects in own school",
       "tabela": "curriculum_subjects",
@@ -5544,7 +5674,17 @@
       "verificando": "((school_id = ( SELECT current_school_id() AS current_school_id)) AND is_school_office(school_id))"
     },
     {
+      "cmd": "ALL",
+      "modo": "RESTRICTIVE",
+      "papeis": "{authenticated}",
+      "politica": "School staff only",
+      "tabela": "document_requests",
+      "usando": "private.is_school_staff(school_id)",
+      "verificando": "private.is_school_staff(school_id)"
+    },
+    {
       "cmd": "INSERT",
+      "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
       "politica": "document_requests_insert",
       "tabela": "document_requests",
@@ -5553,6 +5693,7 @@
     },
     {
       "cmd": "SELECT",
+      "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
       "politica": "document_requests_select",
       "tabela": "document_requests",
@@ -5561,6 +5702,7 @@
     },
     {
       "cmd": "UPDATE",
+      "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
       "politica": "document_requests_update",
       "tabela": "document_requests",
@@ -5569,6 +5711,7 @@
     },
     {
       "cmd": "SELECT",
+      "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
       "politica": "document_sequences_select_authorized",
       "tabela": "document_sequences",
@@ -5576,7 +5719,17 @@
       "verificando": ""
     },
     {
+      "cmd": "ALL",
+      "modo": "RESTRICTIVE",
+      "papeis": "{authenticated}",
+      "politica": "School staff only",
+      "tabela": "document_signatures",
+      "usando": "private.is_school_staff(school_id)",
+      "verificando": "private.is_school_staff(school_id)"
+    },
+    {
       "cmd": "INSERT",
+      "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
       "politica": "document_signatures_insert",
       "tabela": "document_signatures",
@@ -5585,6 +5738,7 @@
     },
     {
       "cmd": "SELECT",
+      "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
       "politica": "document_signatures_select",
       "tabela": "document_signatures",
@@ -5593,6 +5747,7 @@
     },
     {
       "cmd": "UPDATE",
+      "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
       "politica": "document_signatures_update",
       "tabela": "document_signatures",
@@ -5601,6 +5756,7 @@
     },
     {
       "cmd": "INSERT",
+      "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
       "politica": "document_templates_insert",
       "tabela": "document_templates",
@@ -5609,6 +5765,7 @@
     },
     {
       "cmd": "SELECT",
+      "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
       "politica": "document_templates_select",
       "tabela": "document_templates",
@@ -5617,6 +5774,7 @@
     },
     {
       "cmd": "UPDATE",
+      "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
       "politica": "document_templates_update",
       "tabela": "document_templates",
@@ -5625,6 +5783,7 @@
     },
     {
       "cmd": "ALL",
+      "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
       "politica": "platform_admin_all_aliases",
       "tabela": "email_aliases",
@@ -5633,6 +5792,7 @@
     },
     {
       "cmd": "SELECT",
+      "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
       "politica": "Office reads enrollment applications",
       "tabela": "enrollment_applications",
@@ -5641,6 +5801,7 @@
     },
     {
       "cmd": "INSERT",
+      "modo": "PERMISSIVE",
       "papeis": "{anon}",
       "politica": "Public insert open enrollment applications",
       "tabela": "enrollment_applications",
@@ -5649,6 +5810,7 @@
     },
     {
       "cmd": "SELECT",
+      "modo": "PERMISSIVE",
       "papeis": "{anon}",
       "politica": "Public read open enrollment forms",
       "tabela": "enrollment_forms",
@@ -5657,6 +5819,7 @@
     },
     {
       "cmd": "SELECT",
+      "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
       "politica": "Read enrollment forms in own school",
       "tabela": "enrollment_forms",
@@ -5665,6 +5828,7 @@
     },
     {
       "cmd": "INSERT",
+      "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
       "politica": "Create enrollments in own school",
       "tabela": "enrollments",
@@ -5673,6 +5837,7 @@
     },
     {
       "cmd": "SELECT",
+      "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
       "politica": "Professor reads assigned enrollments",
       "tabela": "enrollments",
@@ -5681,6 +5846,7 @@
     },
     {
       "cmd": "SELECT",
+      "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
       "politica": "Read enrollments in own school",
       "tabela": "enrollments",
@@ -5689,6 +5855,7 @@
     },
     {
       "cmd": "UPDATE",
+      "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
       "politica": "Update enrollments in own school",
       "tabela": "enrollments",
@@ -5697,6 +5864,7 @@
     },
     {
       "cmd": "SELECT",
+      "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
       "politica": "enrollments_select_authorized",
       "tabela": "enrollments",
@@ -5705,6 +5873,7 @@
     },
     {
       "cmd": "UPDATE",
+      "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
       "politica": "enrollments_update_authorized",
       "tabela": "enrollments",
@@ -5713,6 +5882,7 @@
     },
     {
       "cmd": "SELECT",
+      "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
       "politica": "fee_items_select_authorized",
       "tabela": "fee_items",
@@ -5721,6 +5891,7 @@
     },
     {
       "cmd": "SELECT",
+      "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
       "politica": "fee_plans_select_authorized",
       "tabela": "fee_plans",
@@ -5728,7 +5899,17 @@
       "verificando": ""
     },
     {
+      "cmd": "ALL",
+      "modo": "RESTRICTIVE",
+      "papeis": "{authenticated}",
+      "politica": "School staff only",
+      "tabela": "finance_contracts",
+      "usando": "private.is_school_staff(school_id)",
+      "verificando": "private.is_school_staff(school_id)"
+    },
+    {
       "cmd": "SELECT",
+      "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
       "politica": "finance_contracts_select_authorized",
       "tabela": "finance_contracts",
@@ -5737,6 +5918,7 @@
     },
     {
       "cmd": "SELECT",
+      "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
       "politica": "Read gateway webhook events in own school",
       "tabela": "finance_gateway_webhook_events",
@@ -5745,6 +5927,7 @@
     },
     {
       "cmd": "SELECT",
+      "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
       "politica": "Read own school invoice events",
       "tabela": "finance_invoice_events",
@@ -5752,7 +5935,17 @@
       "verificando": ""
     },
     {
+      "cmd": "ALL",
+      "modo": "RESTRICTIVE",
+      "papeis": "{authenticated}",
+      "politica": "School staff only",
+      "tabela": "finance_invoices",
+      "usando": "private.is_school_staff(school_id)",
+      "verificando": "private.is_school_staff(school_id)"
+    },
+    {
       "cmd": "SELECT",
+      "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
       "politica": "finance_invoices_select_authorized",
       "tabela": "finance_invoices",
@@ -5760,15 +5953,17 @@
       "verificando": ""
     },
     {
-      "cmd": "SELECT",
+      "cmd": "ALL",
+      "modo": "RESTRICTIVE",
       "papeis": "{authenticated}",
-      "politica": "Members read finance_payment_plans",
+      "politica": "School staff only",
       "tabela": "finance_payment_plans",
-      "usando": "is_school_member(school_id)",
-      "verificando": ""
+      "usando": "private.is_school_staff(school_id)",
+      "verificando": "private.is_school_staff(school_id)"
     },
     {
       "cmd": "SELECT",
+      "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
       "politica": "finance_payment_plans_select_finance",
       "tabela": "finance_payment_plans",
@@ -5776,7 +5971,17 @@
       "verificando": ""
     },
     {
+      "cmd": "ALL",
+      "modo": "RESTRICTIVE",
+      "papeis": "{authenticated}",
+      "politica": "School staff only",
+      "tabela": "finance_receipts",
+      "usando": "private.is_school_staff(school_id)",
+      "verificando": "private.is_school_staff(school_id)"
+    },
+    {
       "cmd": "SELECT",
+      "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
       "politica": "finance_receipts_select_authorized",
       "tabela": "finance_receipts",
@@ -5785,6 +5990,7 @@
     },
     {
       "cmd": "SELECT",
+      "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
       "politica": "financial_rules_select_authorized",
       "tabela": "financial_rule_sets",
@@ -5793,6 +5999,7 @@
     },
     {
       "cmd": "SELECT",
+      "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
       "politica": "Academic read grade items",
       "tabela": "grade_items",
@@ -5800,7 +6007,17 @@
       "verificando": ""
     },
     {
+      "cmd": "ALL",
+      "modo": "RESTRICTIVE",
+      "papeis": "{authenticated}",
+      "politica": "School staff only",
+      "tabela": "grade_items",
+      "usando": "private.is_school_staff(school_id)",
+      "verificando": "private.is_school_staff(school_id)"
+    },
+    {
       "cmd": "INSERT",
+      "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
       "politica": "grade_items_insert",
       "tabela": "grade_items",
@@ -5809,6 +6026,7 @@
     },
     {
       "cmd": "SELECT",
+      "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
       "politica": "grade_items_select",
       "tabela": "grade_items",
@@ -5817,6 +6035,7 @@
     },
     {
       "cmd": "UPDATE",
+      "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
       "politica": "grade_items_update",
       "tabela": "grade_items",
@@ -5825,6 +6044,7 @@
     },
     {
       "cmd": "INSERT",
+      "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
       "politica": "Create grade_levels in own school",
       "tabela": "grade_levels",
@@ -5833,6 +6053,7 @@
     },
     {
       "cmd": "SELECT",
+      "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
       "politica": "Read grade_levels in own school",
       "tabela": "grade_levels",
@@ -5841,6 +6062,7 @@
     },
     {
       "cmd": "UPDATE",
+      "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
       "politica": "Update grade_levels in own school",
       "tabela": "grade_levels",
@@ -5849,6 +6071,7 @@
     },
     {
       "cmd": "SELECT",
+      "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
       "politica": "grade_levels_select_authorized",
       "tabela": "grade_levels",
@@ -5857,6 +6080,7 @@
     },
     {
       "cmd": "SELECT",
+      "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
       "politica": "Academic read grade scores",
       "tabela": "grade_scores",
@@ -5864,7 +6088,17 @@
       "verificando": ""
     },
     {
+      "cmd": "ALL",
+      "modo": "RESTRICTIVE",
+      "papeis": "{authenticated}",
+      "politica": "School staff only",
+      "tabela": "grade_scores",
+      "usando": "private.is_school_staff(school_id)",
+      "verificando": "private.is_school_staff(school_id)"
+    },
+    {
       "cmd": "INSERT",
+      "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
       "politica": "grade_scores_insert",
       "tabela": "grade_scores",
@@ -5873,6 +6107,7 @@
     },
     {
       "cmd": "SELECT",
+      "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
       "politica": "grade_scores_select",
       "tabela": "grade_scores",
@@ -5881,6 +6116,7 @@
     },
     {
       "cmd": "UPDATE",
+      "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
       "politica": "grade_scores_update",
       "tabela": "grade_scores",
@@ -5888,7 +6124,17 @@
       "verificando": "(private.is_aal2() AND private.has_permission(school_id, 'assessment.grades.manage'::text) AND (updated_by = ( SELECT auth.uid() AS uid)))"
     },
     {
+      "cmd": "ALL",
+      "modo": "RESTRICTIVE",
+      "papeis": "{authenticated}",
+      "politica": "School staff only",
+      "tabela": "grade_sheet_rows",
+      "usando": "private.is_school_staff(school_id)",
+      "verificando": "private.is_school_staff(school_id)"
+    },
+    {
       "cmd": "SELECT",
+      "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
       "politica": "grade_sheet_rows_select",
       "tabela": "grade_sheet_rows",
@@ -5897,6 +6143,7 @@
     },
     {
       "cmd": "ALL",
+      "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
       "politica": "grade_sheet_rows_write",
       "tabela": "grade_sheet_rows",
@@ -5904,7 +6151,17 @@
       "verificando": "(private.is_aal2() AND private.has_permission(school_id, 'assessment.grades.manage'::text))"
     },
     {
+      "cmd": "ALL",
+      "modo": "RESTRICTIVE",
+      "papeis": "{authenticated}",
+      "politica": "School staff only",
+      "tabela": "grade_sheets",
+      "usando": "private.is_school_staff(school_id)",
+      "verificando": "private.is_school_staff(school_id)"
+    },
+    {
       "cmd": "INSERT",
+      "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
       "politica": "grade_sheets_insert",
       "tabela": "grade_sheets",
@@ -5913,6 +6170,7 @@
     },
     {
       "cmd": "SELECT",
+      "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
       "politica": "grade_sheets_select",
       "tabela": "grade_sheets",
@@ -5921,6 +6179,7 @@
     },
     {
       "cmd": "UPDATE",
+      "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
       "politica": "grade_sheets_update",
       "tabela": "grade_sheets",
@@ -5929,6 +6188,7 @@
     },
     {
       "cmd": "SELECT",
+      "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
       "politica": "Academic read gradebooks",
       "tabela": "gradebooks",
@@ -5936,7 +6196,17 @@
       "verificando": ""
     },
     {
+      "cmd": "ALL",
+      "modo": "RESTRICTIVE",
+      "papeis": "{authenticated}",
+      "politica": "School staff only",
+      "tabela": "gradebooks",
+      "usando": "private.is_school_staff(school_id)",
+      "verificando": "private.is_school_staff(school_id)"
+    },
+    {
       "cmd": "INSERT",
+      "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
       "politica": "gradebooks_insert",
       "tabela": "gradebooks",
@@ -5945,6 +6215,7 @@
     },
     {
       "cmd": "SELECT",
+      "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
       "politica": "gradebooks_select",
       "tabela": "gradebooks",
@@ -5953,6 +6224,7 @@
     },
     {
       "cmd": "UPDATE",
+      "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
       "politica": "gradebooks_update",
       "tabela": "gradebooks",
@@ -5961,6 +6233,7 @@
     },
     {
       "cmd": "SELECT",
+      "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
       "politica": "grading_scales_select_authorized",
       "tabela": "grading_scales",
@@ -5969,6 +6242,7 @@
     },
     {
       "cmd": "INSERT",
+      "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
       "politica": "HR creates absence events in own school",
       "tabela": "hr_absence_events",
@@ -5977,6 +6251,7 @@
     },
     {
       "cmd": "SELECT",
+      "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
       "politica": "HR reads absence events in own school",
       "tabela": "hr_absence_events",
@@ -5985,6 +6260,7 @@
     },
     {
       "cmd": "UPDATE",
+      "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
       "politica": "HR updates absence events in own school",
       "tabela": "hr_absence_events",
@@ -5993,6 +6269,7 @@
     },
     {
       "cmd": "SELECT",
+      "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
       "politica": "HR reads attendance assurance evidence",
       "tabela": "hr_attendance_assurance_evidence",
@@ -6001,6 +6278,7 @@
     },
     {
       "cmd": "SELECT",
+      "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
       "politica": "HR reads attendance assurance policy",
       "tabela": "hr_attendance_assurance_policies",
@@ -6009,6 +6287,7 @@
     },
     {
       "cmd": "INSERT",
+      "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
       "politica": "Create hr_compensation_events finance role",
       "tabela": "hr_compensation_events",
@@ -6017,6 +6296,7 @@
     },
     {
       "cmd": "SELECT",
+      "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
       "politica": "Read hr_compensation_events in own school",
       "tabela": "hr_compensation_events",
@@ -6025,6 +6305,7 @@
     },
     {
       "cmd": "UPDATE",
+      "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
       "politica": "Update hr_compensation_events finance role",
       "tabela": "hr_compensation_events",
@@ -6033,6 +6314,7 @@
     },
     {
       "cmd": "INSERT",
+      "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
       "politica": "HR creates remuneration policies in own school",
       "tabela": "hr_contract_remuneration_policies",
@@ -6041,6 +6323,7 @@
     },
     {
       "cmd": "SELECT",
+      "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
       "politica": "HR reads remuneration policies in own school",
       "tabela": "hr_contract_remuneration_policies",
@@ -6049,6 +6332,7 @@
     },
     {
       "cmd": "UPDATE",
+      "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
       "politica": "HR updates remuneration policies in own school",
       "tabela": "hr_contract_remuneration_policies",
@@ -6057,6 +6341,7 @@
     },
     {
       "cmd": "INSERT",
+      "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
       "politica": "Create hr_contracts finance role",
       "tabela": "hr_contracts",
@@ -6065,6 +6350,7 @@
     },
     {
       "cmd": "SELECT",
+      "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
       "politica": "Read hr_contracts in own school",
       "tabela": "hr_contracts",
@@ -6073,6 +6359,7 @@
     },
     {
       "cmd": "UPDATE",
+      "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
       "politica": "Update hr_contracts finance role",
       "tabela": "hr_contracts",
@@ -6081,6 +6368,7 @@
     },
     {
       "cmd": "INSERT",
+      "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
       "politica": "Create hr_departments in own school",
       "tabela": "hr_departments",
@@ -6089,6 +6377,7 @@
     },
     {
       "cmd": "SELECT",
+      "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
       "politica": "Read hr_departments in own school",
       "tabela": "hr_departments",
@@ -6097,6 +6386,7 @@
     },
     {
       "cmd": "UPDATE",
+      "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
       "politica": "Update hr_departments in own school",
       "tabela": "hr_departments",
@@ -6105,6 +6395,7 @@
     },
     {
       "cmd": "INSERT",
+      "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
       "politica": "Create hr_employments finance role",
       "tabela": "hr_employments",
@@ -6113,6 +6404,7 @@
     },
     {
       "cmd": "SELECT",
+      "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
       "politica": "Read hr_employments in own school",
       "tabela": "hr_employments",
@@ -6121,6 +6413,7 @@
     },
     {
       "cmd": "UPDATE",
+      "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
       "politica": "Update hr_employments finance role",
       "tabela": "hr_employments",
@@ -6129,6 +6422,7 @@
     },
     {
       "cmd": "ALL",
+      "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
       "politica": "HR payment destinations own school",
       "tabela": "hr_payment_destinations",
@@ -6137,6 +6431,7 @@
     },
     {
       "cmd": "ALL",
+      "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
       "politica": "HR payment settings own school",
       "tabela": "hr_payment_settings",
@@ -6145,6 +6440,7 @@
     },
     {
       "cmd": "INSERT",
+      "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
       "politica": "Create hr_payroll_item_components finance role",
       "tabela": "hr_payroll_item_components",
@@ -6153,6 +6449,7 @@
     },
     {
       "cmd": "SELECT",
+      "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
       "politica": "Read hr_payroll_item_components in own school",
       "tabela": "hr_payroll_item_components",
@@ -6161,6 +6458,7 @@
     },
     {
       "cmd": "INSERT",
+      "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
       "politica": "Create hr_payroll_items finance role",
       "tabela": "hr_payroll_items",
@@ -6169,6 +6467,7 @@
     },
     {
       "cmd": "SELECT",
+      "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
       "politica": "Read hr_payroll_items in own school",
       "tabela": "hr_payroll_items",
@@ -6177,6 +6476,7 @@
     },
     {
       "cmd": "UPDATE",
+      "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
       "politica": "Update hr_payroll_items finance role",
       "tabela": "hr_payroll_items",
@@ -6185,6 +6485,7 @@
     },
     {
       "cmd": "ALL",
+      "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
       "politica": "HR payment batches own school",
       "tabela": "hr_payroll_payment_batches",
@@ -6193,6 +6494,7 @@
     },
     {
       "cmd": "ALL",
+      "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
       "politica": "HR payment items own school",
       "tabela": "hr_payroll_payment_items",
@@ -6201,6 +6503,7 @@
     },
     {
       "cmd": "INSERT",
+      "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
       "politica": "Create hr_payroll_runs finance role",
       "tabela": "hr_payroll_runs",
@@ -6209,6 +6512,7 @@
     },
     {
       "cmd": "SELECT",
+      "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
       "politica": "Read hr_payroll_runs in own school",
       "tabela": "hr_payroll_runs",
@@ -6217,6 +6521,7 @@
     },
     {
       "cmd": "UPDATE",
+      "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
       "politica": "Update hr_payroll_runs finance role",
       "tabela": "hr_payroll_runs",
@@ -6225,6 +6530,7 @@
     },
     {
       "cmd": "INSERT",
+      "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
       "politica": "Create hr_positions in own school",
       "tabela": "hr_positions",
@@ -6233,6 +6539,7 @@
     },
     {
       "cmd": "SELECT",
+      "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
       "politica": "Read hr_positions in own school",
       "tabela": "hr_positions",
@@ -6241,6 +6548,7 @@
     },
     {
       "cmd": "UPDATE",
+      "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
       "politica": "Update hr_positions in own school",
       "tabela": "hr_positions",
@@ -6249,6 +6557,7 @@
     },
     {
       "cmd": "INSERT",
+      "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
       "politica": "HR creates teacher attendance policy in own school",
       "tabela": "hr_teacher_attendance_policies",
@@ -6257,6 +6566,7 @@
     },
     {
       "cmd": "SELECT",
+      "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
       "politica": "HR reads teacher attendance policy in own school",
       "tabela": "hr_teacher_attendance_policies",
@@ -6265,6 +6575,7 @@
     },
     {
       "cmd": "UPDATE",
+      "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
       "politica": "HR updates teacher attendance policy in own school",
       "tabela": "hr_teacher_attendance_policies",
@@ -6273,6 +6584,7 @@
     },
     {
       "cmd": "INSERT",
+      "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
       "politica": "HR creates teacher employment links in own school",
       "tabela": "hr_teacher_employment_links",
@@ -6281,6 +6593,7 @@
     },
     {
       "cmd": "SELECT",
+      "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
       "politica": "HR reads teacher employment links in own school",
       "tabela": "hr_teacher_employment_links",
@@ -6289,6 +6602,7 @@
     },
     {
       "cmd": "UPDATE",
+      "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
       "politica": "HR updates teacher employment links in own school",
       "tabela": "hr_teacher_employment_links",
@@ -6297,6 +6611,7 @@
     },
     {
       "cmd": "INSERT",
+      "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
       "politica": "HR creates teacher lesson occurrences in own school",
       "tabela": "hr_teacher_lesson_occurrences",
@@ -6305,6 +6620,7 @@
     },
     {
       "cmd": "SELECT",
+      "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
       "politica": "HR reads teacher lesson occurrences in own school",
       "tabela": "hr_teacher_lesson_occurrences",
@@ -6313,6 +6629,7 @@
     },
     {
       "cmd": "UPDATE",
+      "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
       "politica": "HR updates teacher lesson occurrences in own school",
       "tabela": "hr_teacher_lesson_occurrences",
@@ -6321,6 +6638,7 @@
     },
     {
       "cmd": "INSERT",
+      "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
       "politica": "HR creates teacher QR sessions in own school",
       "tabela": "hr_teacher_qr_sessions",
@@ -6329,6 +6647,7 @@
     },
     {
       "cmd": "SELECT",
+      "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
       "politica": "HR reads teacher QR sessions in own school",
       "tabela": "hr_teacher_qr_sessions",
@@ -6337,6 +6656,7 @@
     },
     {
       "cmd": "UPDATE",
+      "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
       "politica": "HR updates teacher QR sessions in own school",
       "tabela": "hr_teacher_qr_sessions",
@@ -6345,6 +6665,7 @@
     },
     {
       "cmd": "SELECT",
+      "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
       "politica": "Read school import audits",
       "tabela": "import_audits",
@@ -6352,7 +6673,17 @@
       "verificando": ""
     },
     {
+      "cmd": "ALL",
+      "modo": "RESTRICTIVE",
+      "papeis": "{authenticated}",
+      "politica": "School staff only",
+      "tabela": "import_audits",
+      "usando": "(EXISTS ( SELECT 1\n   FROM import_jobs j\n  WHERE ((j.id = import_audits.import_job_id) AND private.is_school_staff(j.school_id))))",
+      "verificando": "(EXISTS ( SELECT 1\n   FROM import_jobs j\n  WHERE ((j.id = import_audits.import_job_id) AND private.is_school_staff(j.school_id))))"
+    },
+    {
       "cmd": "SELECT",
+      "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
       "politica": "Read school import jobs",
       "tabela": "import_jobs",
@@ -6360,7 +6691,17 @@
       "verificando": ""
     },
     {
+      "cmd": "ALL",
+      "modo": "RESTRICTIVE",
+      "papeis": "{authenticated}",
+      "politica": "School staff only",
+      "tabela": "import_jobs",
+      "usando": "private.is_school_staff(school_id)",
+      "verificando": "private.is_school_staff(school_id)"
+    },
+    {
       "cmd": "SELECT",
+      "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
       "politica": "Read school import rows",
       "tabela": "import_rows",
@@ -6368,7 +6709,26 @@
       "verificando": ""
     },
     {
+      "cmd": "ALL",
+      "modo": "RESTRICTIVE",
+      "papeis": "{authenticated}",
+      "politica": "School staff only",
+      "tabela": "import_rows",
+      "usando": "(EXISTS ( SELECT 1\n   FROM import_jobs j\n  WHERE ((j.id = import_rows.import_job_id) AND private.is_school_staff(j.school_id))))",
+      "verificando": "(EXISTS ( SELECT 1\n   FROM import_jobs j\n  WHERE ((j.id = import_rows.import_job_id) AND private.is_school_staff(j.school_id))))"
+    },
+    {
+      "cmd": "ALL",
+      "modo": "RESTRICTIVE",
+      "papeis": "{authenticated}",
+      "politica": "School staff only",
+      "tabela": "issued_documents",
+      "usando": "private.is_school_staff(school_id)",
+      "verificando": "private.is_school_staff(school_id)"
+    },
+    {
       "cmd": "INSERT",
+      "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
       "politica": "issued_documents_insert",
       "tabela": "issued_documents",
@@ -6377,6 +6737,7 @@
     },
     {
       "cmd": "SELECT",
+      "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
       "politica": "issued_documents_select",
       "tabela": "issued_documents",
@@ -6385,6 +6746,7 @@
     },
     {
       "cmd": "UPDATE",
+      "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
       "politica": "issued_documents_update",
       "tabela": "issued_documents",
@@ -6393,6 +6755,7 @@
     },
     {
       "cmd": "SELECT",
+      "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
       "politica": "Read member_roles in own school",
       "tabela": "member_roles",
@@ -6401,6 +6764,7 @@
     },
     {
       "cmd": "DELETE",
+      "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
       "politica": "member_roles_delete_authorized",
       "tabela": "member_roles",
@@ -6409,6 +6773,7 @@
     },
     {
       "cmd": "INSERT",
+      "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
       "politica": "member_roles_insert_authorized",
       "tabela": "member_roles",
@@ -6417,6 +6782,7 @@
     },
     {
       "cmd": "SELECT",
+      "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
       "politica": "member_roles_select_member",
       "tabela": "member_roles",
@@ -6425,6 +6791,7 @@
     },
     {
       "cmd": "SELECT",
+      "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
       "politica": "module_catalog_select_member",
       "tabela": "module_catalog",
@@ -6433,6 +6800,7 @@
     },
     {
       "cmd": "SELECT",
+      "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
       "politica": "notifications_select",
       "tabela": "notifications",
@@ -6441,6 +6809,7 @@
     },
     {
       "cmd": "UPDATE",
+      "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
       "politica": "notifications_update",
       "tabela": "notifications",
@@ -6449,6 +6818,7 @@
     },
     {
       "cmd": "INSERT",
+      "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
       "politica": "Create people in own school",
       "tabela": "people",
@@ -6457,6 +6827,7 @@
     },
     {
       "cmd": "SELECT",
+      "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
       "politica": "Professor reads people for assigned students",
       "tabela": "people",
@@ -6465,6 +6836,7 @@
     },
     {
       "cmd": "SELECT",
+      "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
       "politica": "Read people in own school",
       "tabela": "people",
@@ -6473,6 +6845,7 @@
     },
     {
       "cmd": "UPDATE",
+      "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
       "politica": "Update people in own school",
       "tabela": "people",
@@ -6481,6 +6854,7 @@
     },
     {
       "cmd": "INSERT",
+      "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
       "politica": "people_insert_authorized",
       "tabela": "people",
@@ -6489,6 +6863,7 @@
     },
     {
       "cmd": "SELECT",
+      "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
       "politica": "people_select_authorized",
       "tabela": "people",
@@ -6497,6 +6872,7 @@
     },
     {
       "cmd": "UPDATE",
+      "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
       "politica": "people_update_authorized",
       "tabela": "people",
@@ -6505,6 +6881,7 @@
     },
     {
       "cmd": "SELECT",
+      "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
       "politica": "Read permissions authenticated",
       "tabela": "permissions",
@@ -6513,6 +6890,7 @@
     },
     {
       "cmd": "SELECT",
+      "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
       "politica": "permissions_select_member",
       "tabela": "permissions",
@@ -6521,6 +6899,7 @@
     },
     {
       "cmd": "INSERT",
+      "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
       "politica": "Create person_documents in own school",
       "tabela": "person_documents",
@@ -6529,6 +6908,7 @@
     },
     {
       "cmd": "SELECT",
+      "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
       "politica": "Read person_documents in own school",
       "tabela": "person_documents",
@@ -6537,6 +6917,7 @@
     },
     {
       "cmd": "UPDATE",
+      "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
       "politica": "Update person_documents in own school",
       "tabela": "person_documents",
@@ -6545,6 +6926,7 @@
     },
     {
       "cmd": "SELECT",
+      "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
       "politica": "Read person roles in own school",
       "tabela": "person_roles",
@@ -6553,6 +6935,7 @@
     },
     {
       "cmd": "ALL",
+      "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
       "politica": "platform_admin_all_plans",
       "tabela": "plans",
@@ -6561,6 +6944,7 @@
     },
     {
       "cmd": "SELECT",
+      "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
       "politica": "platform_admin_read_self",
       "tabela": "platform_admins",
@@ -6569,6 +6953,7 @@
     },
     {
       "cmd": "SELECT",
+      "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
       "politica": "profiles_select_membership_managers",
       "tabela": "profiles",
@@ -6577,6 +6962,7 @@
     },
     {
       "cmd": "SELECT",
+      "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
       "politica": "profiles_select_own",
       "tabela": "profiles",
@@ -6585,6 +6971,7 @@
     },
     {
       "cmd": "UPDATE",
+      "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
       "politica": "profiles_update_own",
       "tabela": "profiles",
@@ -6593,6 +6980,7 @@
     },
     {
       "cmd": "INSERT",
+      "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
       "politica": "Create program subjects in own school",
       "tabela": "program_subjects",
@@ -6601,6 +6989,7 @@
     },
     {
       "cmd": "SELECT",
+      "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
       "politica": "Read program subjects in own school",
       "tabela": "program_subjects",
@@ -6609,6 +6998,7 @@
     },
     {
       "cmd": "UPDATE",
+      "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
       "politica": "Update program subjects in own school",
       "tabela": "program_subjects",
@@ -6617,6 +7007,7 @@
     },
     {
       "cmd": "SELECT",
+      "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
       "politica": "programs_select_authorized",
       "tabela": "programs",
@@ -6624,7 +7015,17 @@
       "verificando": ""
     },
     {
+      "cmd": "ALL",
+      "modo": "RESTRICTIVE",
+      "papeis": "{authenticated}",
+      "politica": "School staff only",
+      "tabela": "report_cards",
+      "usando": "private.is_school_staff(school_id)",
+      "verificando": "private.is_school_staff(school_id)"
+    },
+    {
       "cmd": "INSERT",
+      "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
       "politica": "report_cards_insert",
       "tabela": "report_cards",
@@ -6633,6 +7034,7 @@
     },
     {
       "cmd": "SELECT",
+      "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
       "politica": "report_cards_select",
       "tabela": "report_cards",
@@ -6641,6 +7043,7 @@
     },
     {
       "cmd": "UPDATE",
+      "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
       "politica": "report_cards_update",
       "tabela": "report_cards",
@@ -6649,6 +7052,7 @@
     },
     {
       "cmd": "ALL",
+      "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
       "politica": "platform_admin_manage_reserved_subdomains",
       "tabela": "reserved_subdomains",
@@ -6657,6 +7061,7 @@
     },
     {
       "cmd": "SELECT",
+      "modo": "PERMISSIVE",
       "papeis": "{anon,authenticated}",
       "politica": "public_read_reserved_subdomains",
       "tabela": "reserved_subdomains",
@@ -6665,6 +7070,7 @@
     },
     {
       "cmd": "SELECT",
+      "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
       "politica": "role_permissions_select_member",
       "tabela": "role_permissions",
@@ -6673,6 +7079,7 @@
     },
     {
       "cmd": "SELECT",
+      "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
       "politica": "Read roles authenticated",
       "tabela": "roles",
@@ -6681,6 +7088,7 @@
     },
     {
       "cmd": "SELECT",
+      "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
       "politica": "roles_select_member",
       "tabela": "roles",
@@ -6689,6 +7097,7 @@
     },
     {
       "cmd": "INSERT",
+      "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
       "politica": "Create rooms in own school",
       "tabela": "rooms",
@@ -6697,6 +7106,7 @@
     },
     {
       "cmd": "SELECT",
+      "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
       "politica": "Read rooms in own school",
       "tabela": "rooms",
@@ -6705,6 +7115,7 @@
     },
     {
       "cmd": "UPDATE",
+      "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
       "politica": "Update rooms in own school",
       "tabela": "rooms",
@@ -6713,6 +7124,7 @@
     },
     {
       "cmd": "ALL",
+      "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
       "politica": "platform_admin_all_saas_audit_logs",
       "tabela": "saas_audit_logs",
@@ -6721,6 +7133,7 @@
     },
     {
       "cmd": "SELECT",
+      "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
       "politica": "Requester reads own access requests",
       "tabela": "school_access_requests",
@@ -6729,6 +7142,7 @@
     },
     {
       "cmd": "SELECT",
+      "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
       "politica": "Read school announcements",
       "tabela": "school_announcements",
@@ -6737,6 +7151,7 @@
     },
     {
       "cmd": "SELECT",
+      "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
       "politica": "Finance roles can read billing settings",
       "tabela": "school_billing_settings",
@@ -6745,6 +7160,7 @@
     },
     {
       "cmd": "UPDATE",
+      "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
       "politica": "Finance roles can update billing settings",
       "tabela": "school_billing_settings",
@@ -6753,6 +7169,7 @@
     },
     {
       "cmd": "SELECT",
+      "modo": "PERMISSIVE",
       "papeis": "{anon,authenticated}",
       "politica": "school_members_view_branding",
       "tabela": "school_branding",
@@ -6761,6 +7178,7 @@
     },
     {
       "cmd": "SELECT",
+      "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
       "politica": "school_integrations_select_admin",
       "tabela": "school_integrations",
@@ -6769,6 +7187,7 @@
     },
     {
       "cmd": "SELECT",
+      "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
       "politica": "Read invitations with membership permission",
       "tabela": "school_invitations",
@@ -6777,6 +7196,7 @@
     },
     {
       "cmd": "SELECT",
+      "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
       "politica": "Users can read own memberships",
       "tabela": "school_memberships",
@@ -6785,6 +7205,7 @@
     },
     {
       "cmd": "SELECT",
+      "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
       "politica": "memberships_select_member",
       "tabela": "school_memberships",
@@ -6793,6 +7214,7 @@
     },
     {
       "cmd": "SELECT",
+      "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
       "politica": "school_modules_select_authorized",
       "tabela": "school_modules",
@@ -6801,6 +7223,7 @@
     },
     {
       "cmd": "INSERT",
+      "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
       "politica": "settings_insert_authorized",
       "tabela": "school_settings",
@@ -6809,6 +7232,7 @@
     },
     {
       "cmd": "SELECT",
+      "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
       "politica": "settings_select_member",
       "tabela": "school_settings",
@@ -6817,6 +7241,7 @@
     },
     {
       "cmd": "INSERT",
+      "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
       "politica": "Create school_shift_slots in own school",
       "tabela": "school_shift_slots",
@@ -6825,6 +7250,7 @@
     },
     {
       "cmd": "SELECT",
+      "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
       "politica": "Read school_shift_slots in own school",
       "tabela": "school_shift_slots",
@@ -6833,6 +7259,7 @@
     },
     {
       "cmd": "UPDATE",
+      "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
       "politica": "Update school_shift_slots in own school",
       "tabela": "school_shift_slots",
@@ -6841,6 +7268,7 @@
     },
     {
       "cmd": "INSERT",
+      "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
       "politica": "Create school_shifts in own school",
       "tabela": "school_shifts",
@@ -6849,6 +7277,7 @@
     },
     {
       "cmd": "SELECT",
+      "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
       "politica": "Read school_shifts in own school",
       "tabela": "school_shifts",
@@ -6857,6 +7286,7 @@
     },
     {
       "cmd": "UPDATE",
+      "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
       "politica": "Update school_shifts in own school",
       "tabela": "school_shifts",
@@ -6865,6 +7295,7 @@
     },
     {
       "cmd": "ALL",
+      "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
       "politica": "platform_admin_all_slug_history",
       "tabela": "school_slug_history",
@@ -6873,6 +7304,7 @@
     },
     {
       "cmd": "UPDATE",
+      "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
       "politica": "Administrators can update their own school",
       "tabela": "schools",
@@ -6881,6 +7313,7 @@
     },
     {
       "cmd": "SELECT",
+      "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
       "politica": "schools_select_member",
       "tabela": "schools",
@@ -6889,6 +7322,7 @@
     },
     {
       "cmd": "SELECT",
+      "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
       "politica": "Members read siga_access_cards",
       "tabela": "siga_access_cards",
@@ -6896,7 +7330,17 @@
       "verificando": ""
     },
     {
+      "cmd": "ALL",
+      "modo": "RESTRICTIVE",
+      "papeis": "{authenticated}",
+      "politica": "School staff only",
+      "tabela": "siga_access_cards",
+      "usando": "private.is_school_staff(school_id)",
+      "verificando": "private.is_school_staff(school_id)"
+    },
+    {
       "cmd": "SELECT",
+      "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
       "politica": "Members read siga_access_logs",
       "tabela": "siga_access_logs",
@@ -6905,6 +7349,16 @@
     },
     {
       "cmd": "ALL",
+      "modo": "RESTRICTIVE",
+      "papeis": "{authenticated}",
+      "politica": "School staff only",
+      "tabela": "siga_access_logs",
+      "usando": "private.is_school_staff(school_id)",
+      "verificando": "private.is_school_staff(school_id)"
+    },
+    {
+      "cmd": "ALL",
+      "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
       "politica": "Manage assigned assessment items",
       "tabela": "siga_assessment_items",
@@ -6913,6 +7367,7 @@
     },
     {
       "cmd": "SELECT",
+      "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
       "politica": "Members read siga_assessment_items",
       "tabela": "siga_assessment_items",
@@ -6921,6 +7376,7 @@
     },
     {
       "cmd": "SELECT",
+      "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
       "politica": "Read assessment items in own school",
       "tabela": "siga_assessment_items",
@@ -6929,6 +7385,7 @@
     },
     {
       "cmd": "ALL",
+      "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
       "politica": "Manage assigned assessment scores",
       "tabela": "siga_assessment_scores",
@@ -6937,6 +7394,7 @@
     },
     {
       "cmd": "SELECT",
+      "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
       "politica": "Members read siga_assessment_scores",
       "tabela": "siga_assessment_scores",
@@ -6945,6 +7403,7 @@
     },
     {
       "cmd": "SELECT",
+      "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
       "politica": "Read assessment scores in own school",
       "tabela": "siga_assessment_scores",
@@ -6952,7 +7411,17 @@
       "verificando": ""
     },
     {
+      "cmd": "ALL",
+      "modo": "RESTRICTIVE",
+      "papeis": "{authenticated}",
+      "politica": "School staff only",
+      "tabela": "siga_assessment_scores",
+      "usando": "private.is_school_staff(school_id)",
+      "verificando": "private.is_school_staff(school_id)"
+    },
+    {
       "cmd": "SELECT",
+      "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
       "politica": "Members read siga_attendance_justifications",
       "tabela": "siga_attendance_justifications",
@@ -6961,6 +7430,7 @@
     },
     {
       "cmd": "SELECT",
+      "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
       "politica": "Read attendance justifications in own school",
       "tabela": "siga_attendance_justifications",
@@ -6968,7 +7438,17 @@
       "verificando": ""
     },
     {
+      "cmd": "ALL",
+      "modo": "RESTRICTIVE",
+      "papeis": "{authenticated}",
+      "politica": "School staff only",
+      "tabela": "siga_attendance_justifications",
+      "usando": "private.is_school_staff(school_id)",
+      "verificando": "private.is_school_staff(school_id)"
+    },
+    {
       "cmd": "SELECT",
+      "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
       "politica": "Members read siga_attendance_records",
       "tabela": "siga_attendance_records",
@@ -6977,6 +7457,7 @@
     },
     {
       "cmd": "SELECT",
+      "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
       "politica": "Read attendance records in own school",
       "tabela": "siga_attendance_records",
@@ -6984,7 +7465,17 @@
       "verificando": ""
     },
     {
+      "cmd": "ALL",
+      "modo": "RESTRICTIVE",
+      "papeis": "{authenticated}",
+      "politica": "School staff only",
+      "tabela": "siga_attendance_records",
+      "usando": "private.is_school_staff(school_id)",
+      "verificando": "private.is_school_staff(school_id)"
+    },
+    {
       "cmd": "SELECT",
+      "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
       "politica": "Members read siga_attendance_sessions",
       "tabela": "siga_attendance_sessions",
@@ -6993,6 +7484,7 @@
     },
     {
       "cmd": "SELECT",
+      "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
       "politica": "Read attendance sessions in own school",
       "tabela": "siga_attendance_sessions",
@@ -7000,7 +7492,17 @@
       "verificando": ""
     },
     {
+      "cmd": "ALL",
+      "modo": "RESTRICTIVE",
+      "papeis": "{authenticated}",
+      "politica": "School staff only",
+      "tabela": "siga_attendance_sessions",
+      "usando": "private.is_school_staff(school_id)",
+      "verificando": "private.is_school_staff(school_id)"
+    },
+    {
       "cmd": "SELECT",
+      "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
       "politica": "Read own school direct messages",
       "tabela": "siga_direct_messages",
@@ -7009,6 +7511,7 @@
     },
     {
       "cmd": "DELETE",
+      "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
       "politica": "siga_files_delete_admin",
       "tabela": "siga_files",
@@ -7017,6 +7520,7 @@
     },
     {
       "cmd": "INSERT",
+      "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
       "politica": "siga_files_insert_scoped",
       "tabela": "siga_files",
@@ -7025,6 +7529,7 @@
     },
     {
       "cmd": "SELECT",
+      "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
       "politica": "siga_files_select_scoped",
       "tabela": "siga_files",
@@ -7033,6 +7538,7 @@
     },
     {
       "cmd": "UPDATE",
+      "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
       "politica": "siga_files_update_scoped",
       "tabela": "siga_files",
@@ -7041,6 +7547,7 @@
     },
     {
       "cmd": "SELECT",
+      "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
       "politica": "Members read lesson meetings in own school",
       "tabela": "siga_lesson_meetings",
@@ -7049,6 +7556,7 @@
     },
     {
       "cmd": "ALL",
+      "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
       "politica": "Staff manage lesson meetings in own school",
       "tabela": "siga_lesson_meetings",
@@ -7056,15 +7564,8 @@
       "verificando": "((school_id = ( SELECT current_school_id() AS current_school_id)) AND is_school_member(school_id) AND current_school_role_is(ARRAY['owner'::text, 'admin'::text, 'administrator'::text, 'administrador'::text, 'diretor geral'::text, 'director geral'::text, 'professor'::text, 'teacher'::text]))"
     },
     {
-      "cmd": "SELECT",
-      "papeis": "{authenticated}",
-      "politica": "Members read siga_turnstile_devices",
-      "tabela": "siga_turnstile_devices",
-      "usando": "is_school_member(school_id)",
-      "verificando": ""
-    },
-    {
       "cmd": "ALL",
+      "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
       "politica": "Admins manage staff grants",
       "tabela": "staff_module_grants",
@@ -7073,6 +7574,7 @@
     },
     {
       "cmd": "SELECT",
+      "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
       "politica": "Read own or admin staff grants",
       "tabela": "staff_module_grants",
@@ -7081,6 +7583,7 @@
     },
     {
       "cmd": "DELETE",
+      "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
       "politica": "staff_module_grants_delete_admin",
       "tabela": "staff_module_grants",
@@ -7089,6 +7592,7 @@
     },
     {
       "cmd": "INSERT",
+      "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
       "politica": "staff_module_grants_insert_admin",
       "tabela": "staff_module_grants",
@@ -7097,6 +7601,7 @@
     },
     {
       "cmd": "SELECT",
+      "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
       "politica": "staff_module_grants_select_own_or_admin",
       "tabela": "staff_module_grants",
@@ -7105,6 +7610,7 @@
     },
     {
       "cmd": "UPDATE",
+      "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
       "politica": "staff_module_grants_update_admin",
       "tabela": "staff_module_grants",
@@ -7113,6 +7619,7 @@
     },
     {
       "cmd": "SELECT",
+      "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
       "politica": "School members can read student academic history",
       "tabela": "student_academic_history",
@@ -7121,6 +7628,7 @@
     },
     {
       "cmd": "INSERT",
+      "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
       "politica": "Create student_guardians in own school",
       "tabela": "student_guardians",
@@ -7129,6 +7637,7 @@
     },
     {
       "cmd": "SELECT",
+      "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
       "politica": "Read student_guardians in own school",
       "tabela": "student_guardians",
@@ -7136,7 +7645,17 @@
       "verificando": ""
     },
     {
+      "cmd": "ALL",
+      "modo": "RESTRICTIVE",
+      "papeis": "{authenticated}",
+      "politica": "School staff only",
+      "tabela": "student_guardians",
+      "usando": "private.is_school_staff(school_id)",
+      "verificando": "private.is_school_staff(school_id)"
+    },
+    {
       "cmd": "UPDATE",
+      "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
       "politica": "Update student_guardians in own school",
       "tabela": "student_guardians",
@@ -7145,6 +7664,7 @@
     },
     {
       "cmd": "SELECT",
+      "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
       "politica": "student_guardians_select_authorized",
       "tabela": "student_guardians",
@@ -7153,6 +7673,7 @@
     },
     {
       "cmd": "SELECT",
+      "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
       "politica": "Read own school student status events",
       "tabela": "student_status_events",
@@ -7161,6 +7682,7 @@
     },
     {
       "cmd": "SELECT",
+      "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
       "politica": "School members can read student status history",
       "tabela": "student_status_history",
@@ -7169,6 +7691,7 @@
     },
     {
       "cmd": "INSERT",
+      "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
       "politica": "Create students in own school",
       "tabela": "students",
@@ -7177,6 +7700,7 @@
     },
     {
       "cmd": "SELECT",
+      "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
       "politica": "Professor reads students in assigned classes",
       "tabela": "students",
@@ -7185,6 +7709,7 @@
     },
     {
       "cmd": "SELECT",
+      "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
       "politica": "Read students in own school",
       "tabela": "students",
@@ -7192,7 +7717,17 @@
       "verificando": ""
     },
     {
+      "cmd": "ALL",
+      "modo": "RESTRICTIVE",
+      "papeis": "{authenticated}",
+      "politica": "School staff only",
+      "tabela": "students",
+      "usando": "private.is_school_staff(school_id)",
+      "verificando": "private.is_school_staff(school_id)"
+    },
+    {
       "cmd": "UPDATE",
+      "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
       "politica": "Update students in own school",
       "tabela": "students",
@@ -7201,6 +7736,7 @@
     },
     {
       "cmd": "SELECT",
+      "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
       "politica": "students_select_authorized",
       "tabela": "students",
@@ -7209,6 +7745,7 @@
     },
     {
       "cmd": "UPDATE",
+      "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
       "politica": "students_update_authorized",
       "tabela": "students",
@@ -7217,6 +7754,7 @@
     },
     {
       "cmd": "INSERT",
+      "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
       "politica": "Create subject_types in own school",
       "tabela": "subject_types",
@@ -7225,6 +7763,7 @@
     },
     {
       "cmd": "SELECT",
+      "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
       "politica": "Read subject_types in own school",
       "tabela": "subject_types",
@@ -7233,6 +7772,7 @@
     },
     {
       "cmd": "UPDATE",
+      "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
       "politica": "Update subject_types in own school",
       "tabela": "subject_types",
@@ -7241,6 +7781,7 @@
     },
     {
       "cmd": "SELECT",
+      "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
       "politica": "Professor reads assigned subjects",
       "tabela": "subjects",
@@ -7249,6 +7790,7 @@
     },
     {
       "cmd": "INSERT",
+      "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
       "politica": "subjects_insert_authorized",
       "tabela": "subjects",
@@ -7257,6 +7799,7 @@
     },
     {
       "cmd": "SELECT",
+      "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
       "politica": "subjects_select_authorized",
       "tabela": "subjects",
@@ -7265,6 +7808,7 @@
     },
     {
       "cmd": "UPDATE",
+      "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
       "politica": "subjects_update_authorized",
       "tabela": "subjects",
@@ -7273,6 +7817,7 @@
     },
     {
       "cmd": "ALL",
+      "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
       "politica": "platform_admin_all_addons",
       "tabela": "subscription_addons",
@@ -7281,6 +7826,7 @@
     },
     {
       "cmd": "ALL",
+      "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
       "politica": "platform_admin_all_subscriptions",
       "tabela": "subscriptions",
@@ -7289,6 +7835,7 @@
     },
     {
       "cmd": "INSERT",
+      "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
       "politica": "Create teacher_availability in own school",
       "tabela": "teacher_availability",
@@ -7297,6 +7844,7 @@
     },
     {
       "cmd": "SELECT",
+      "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
       "politica": "Read teacher_availability in own school",
       "tabela": "teacher_availability",
@@ -7305,6 +7853,7 @@
     },
     {
       "cmd": "UPDATE",
+      "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
       "politica": "Update teacher_availability in own school",
       "tabela": "teacher_availability",
@@ -7313,6 +7862,7 @@
     },
     {
       "cmd": "SELECT",
+      "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
       "politica": "teacher_subjects_select_authorized",
       "tabela": "teacher_subjects",
@@ -7321,6 +7871,7 @@
     },
     {
       "cmd": "SELECT",
+      "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
       "politica": "Professor reads own teacher record",
       "tabela": "teachers",
@@ -7329,6 +7880,7 @@
     },
     {
       "cmd": "SELECT",
+      "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
       "politica": "teachers_select_authorized",
       "tabela": "teachers",
@@ -7337,6 +7889,7 @@
     },
     {
       "cmd": "UPDATE",
+      "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
       "politica": "teachers_update_authorized",
       "tabela": "teachers",
@@ -7345,6 +7898,7 @@
     },
     {
       "cmd": "ALL",
+      "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
       "politica": "platform_admin_all_tenant_domains",
       "tabela": "tenant_domains",
@@ -7353,6 +7907,7 @@
     },
     {
       "cmd": "ALL",
+      "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
       "politica": "platform_admin_all_provisioning",
       "tabela": "tenant_provisioning",
@@ -7361,6 +7916,7 @@
     },
     {
       "cmd": "ALL",
+      "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
       "politica": "platform_admin_all_tenant_usage",
       "tabela": "tenant_usage",
@@ -7369,6 +7925,7 @@
     },
     {
       "cmd": "ALL",
+      "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
       "politica": "platform_admin_all_tenants",
       "tabela": "tenants",
@@ -7377,6 +7934,7 @@
     },
     {
       "cmd": "INSERT",
+      "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
       "politica": "Academic create terms",
       "tabela": "terms",
@@ -7385,6 +7943,7 @@
     },
     {
       "cmd": "SELECT",
+      "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
       "politica": "Academic read terms",
       "tabela": "terms",
@@ -7393,6 +7952,7 @@
     },
     {
       "cmd": "UPDATE",
+      "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
       "politica": "Academic update terms",
       "tabela": "terms",
@@ -7401,6 +7961,7 @@
     },
     {
       "cmd": "SELECT",
+      "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
       "politica": "terms_select_authorized",
       "tabela": "terms",
@@ -7409,6 +7970,7 @@
     },
     {
       "cmd": "INSERT",
+      "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
       "politica": "Academic create timetable slots",
       "tabela": "timetable_slots",
@@ -7417,6 +7979,7 @@
     },
     {
       "cmd": "SELECT",
+      "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
       "politica": "Academic read timetable slots",
       "tabela": "timetable_slots",
@@ -7425,6 +7988,7 @@
     },
     {
       "cmd": "UPDATE",
+      "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
       "politica": "Academic update timetable slots",
       "tabela": "timetable_slots",
@@ -7433,6 +7997,7 @@
     },
     {
       "cmd": "SELECT",
+      "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
       "politica": "timetable_slots_select_authorized",
       "tabela": "timetable_slots",
@@ -7441,6 +8006,7 @@
     },
     {
       "cmd": "SELECT",
+      "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
       "politica": "auth_view_own_communication_prefs",
       "tabela": "user_communication_preferences",
@@ -7449,6 +8015,7 @@
     },
     {
       "cmd": "ALL",
+      "modo": "PERMISSIVE",
       "papeis": "{service_role}",
       "politica": "service_role_full_communication_prefs",
       "tabela": "user_communication_preferences",
@@ -7457,6 +8024,7 @@
     },
     {
       "cmd": "ALL",
+      "modo": "PERMISSIVE",
       "papeis": "{service_role}",
       "politica": "service_role_full_otps",
       "tabela": "verification_otps",
@@ -7560,6 +8128,12 @@
       "funcao": "configure_class_subject",
       "schema": "private",
       "security_definer": true
+    },
+    {
+      "args": "",
+      "funcao": "course_unit_enrollments_no_delete",
+      "schema": "private",
+      "security_definer": false
     },
     {
       "args": "target_school_id uuid, target_class_group_id uuid, target_academic_year_id uuid, minutes_title text, minutes_body text, target_term_id uuid, decided_on date",
@@ -7694,6 +8268,12 @@
       "security_definer": true
     },
     {
+      "args": "p_school_id uuid",
+      "funcao": "is_school_staff",
+      "schema": "private",
+      "security_definer": true
+    },
+    {
       "args": "target_school_id uuid, target_grade_sheet_id uuid",
       "funcao": "issue_report_cards",
       "schema": "private",
@@ -7750,6 +8330,12 @@
     {
       "args": "",
       "funcao": "prevent_audit_mutation",
+      "schema": "private",
+      "security_definer": false
+    },
+    {
+      "args": "",
+      "funcao": "program_subject_prerequisites_same_program",
       "schema": "private",
       "security_definer": false
     },
@@ -9058,6 +9644,30 @@
       "trigger": "contact_verification_profiles_set_updated_at"
     },
     {
+      "funcao": "audit_row_change",
+      "funcao_schema": "private",
+      "tabela": "course_unit_enrollments",
+      "trigger": "audit_course_unit_enrollments"
+    },
+    {
+      "funcao": "course_unit_enrollments_no_delete",
+      "funcao_schema": "private",
+      "tabela": "course_unit_enrollments",
+      "trigger": "course_unit_enrollments_no_delete"
+    },
+    {
+      "funcao": "reject_immutable_column_changes",
+      "funcao_schema": "private",
+      "tabela": "course_unit_enrollments",
+      "trigger": "course_unit_enrollments_protect_identity"
+    },
+    {
+      "funcao": "siga_touch_updated_at",
+      "funcao_schema": "public",
+      "tabela": "course_unit_enrollments",
+      "trigger": "trg_course_unit_enrollments_touch"
+    },
+    {
       "funcao": "set_updated_at_and_version",
       "funcao_schema": "public",
       "tabela": "curricula",
@@ -9668,6 +10278,18 @@
       "funcao_schema": "public",
       "tabela": "person_documents",
       "trigger": "person_documents_enforce_school"
+    },
+    {
+      "funcao": "audit_row_change",
+      "funcao_schema": "private",
+      "tabela": "program_subject_prerequisites",
+      "trigger": "audit_program_subject_prerequisites"
+    },
+    {
+      "funcao": "program_subject_prerequisites_same_program",
+      "funcao_schema": "private",
+      "tabela": "program_subject_prerequisites",
+      "trigger": "program_subject_prerequisites_same_program"
     },
     {
       "funcao": "reject_immutable_column_changes",
@@ -10364,14 +10986,14 @@
       "para": "grade_levels"
     },
     {
-      "chave": "class_groups_school_id_fkey",
-      "de": "class_groups",
-      "para": "schools"
-    },
-    {
       "chave": "class_groups_school_id_room_id_fkey",
       "de": "class_groups",
       "para": "rooms"
+    },
+    {
+      "chave": "class_groups_school_id_fkey",
+      "de": "class_groups",
+      "para": "schools"
     },
     {
       "chave": "class_groups_delegate_student_fk",
@@ -10417,6 +11039,31 @@
       "chave": "contact_verification_profiles_school_id_fkey",
       "de": "contact_verification_profiles",
       "para": "schools"
+    },
+    {
+      "chave": "course_unit_enrollments_year_fkey",
+      "de": "course_unit_enrollments",
+      "para": "academic_years"
+    },
+    {
+      "chave": "course_unit_enrollments_program_subject_fkey",
+      "de": "course_unit_enrollments",
+      "para": "program_subjects"
+    },
+    {
+      "chave": "course_unit_enrollments_program_fkey",
+      "de": "course_unit_enrollments",
+      "para": "programs"
+    },
+    {
+      "chave": "course_unit_enrollments_school_id_fkey",
+      "de": "course_unit_enrollments",
+      "para": "schools"
+    },
+    {
+      "chave": "course_unit_enrollments_student_fkey",
+      "de": "course_unit_enrollments",
+      "para": "students"
     },
     {
       "chave": "curricula_academic_year_id_fkey",
@@ -11194,6 +11841,21 @@
       "para": "schools"
     },
     {
+      "chave": "program_subject_prerequisites_required_fkey",
+      "de": "program_subject_prerequisites",
+      "para": "program_subjects"
+    },
+    {
+      "chave": "program_subject_prerequisites_subject_fkey",
+      "de": "program_subject_prerequisites",
+      "para": "program_subjects"
+    },
+    {
+      "chave": "program_subject_prerequisites_school_id_fkey",
+      "de": "program_subject_prerequisites",
+      "para": "schools"
+    },
+    {
       "chave": "program_subjects_program_id_fkey",
       "de": "program_subjects",
       "para": "programs"
@@ -11714,16 +12376,6 @@
       "para": "schools"
     },
     {
-      "chave": "student_academic_history_school_id_fkey",
-      "de": "student_academic_history",
-      "para": "schools"
-    },
-    {
-      "chave": "student_academic_history_student_fkey",
-      "de": "student_academic_history",
-      "para": "students"
-    },
-    {
       "chave": "student_academic_history_enrollment_id_fkey",
       "de": "student_academic_history",
       "para": "enrollments"
@@ -11732,6 +12384,16 @@
       "chave": "student_academic_history_grade_sheet_id_fkey",
       "de": "student_academic_history",
       "para": "grade_sheets"
+    },
+    {
+      "chave": "student_academic_history_school_id_fkey",
+      "de": "student_academic_history",
+      "para": "schools"
+    },
+    {
+      "chave": "student_academic_history_student_fkey",
+      "de": "student_academic_history",
+      "para": "students"
     },
     {
       "chave": "student_guardians_school_id_guardian_person_id_fkey",
@@ -11941,8 +12603,8 @@
   ],
   "valores": [
     {
-      "tabela": "academic_schedules",
       "coluna": "status",
+      "tabela": "academic_schedules",
       "valores": [
         "approved",
         "archived",
@@ -11952,8 +12614,8 @@
       ]
     },
     {
-      "tabela": "academic_years",
       "coluna": "status",
+      "tabela": "academic_years",
       "valores": [
         "active",
         "archived",
@@ -11962,8 +12624,8 @@
       ]
     },
     {
-      "tabela": "alumni_contributions",
       "coluna": "contribution_type",
+      "tabela": "alumni_contributions",
       "valores": [
         "donation",
         "in_kind",
@@ -11974,8 +12636,8 @@
       ]
     },
     {
-      "tabela": "alumni_education_stages",
       "coluna": "education_level",
+      "tabela": "alumni_education_stages",
       "valores": [
         "higher",
         "middle",
@@ -11983,8 +12645,8 @@
       ]
     },
     {
-      "tabela": "alumni_engagements",
       "coluna": "kind",
+      "tabela": "alumni_engagements",
       "valores": [
         "career",
         "communication",
@@ -11997,8 +12659,8 @@
       ]
     },
     {
-      "tabela": "alumni_event_registrations",
       "coluna": "status",
+      "tabela": "alumni_event_registrations",
       "valores": [
         "attended",
         "cancelled",
@@ -12007,8 +12669,8 @@
       ]
     },
     {
-      "tabela": "alumni_events",
       "coluna": "event_type",
+      "tabela": "alumni_events",
       "valores": [
         "career",
         "fundraising",
@@ -12021,8 +12683,8 @@
       ]
     },
     {
-      "tabela": "alumni_events",
       "coluna": "status",
+      "tabela": "alumni_events",
       "valores": [
         "cancelled",
         "completed",
@@ -12031,8 +12693,8 @@
       ]
     },
     {
-      "tabela": "alumni_experiences",
       "coluna": "kind",
+      "tabela": "alumni_experiences",
       "valores": [
         "award",
         "business",
@@ -12043,8 +12705,8 @@
       ]
     },
     {
-      "tabela": "alumni_mentorships",
       "coluna": "status",
+      "tabela": "alumni_mentorships",
       "valores": [
         "active",
         "cancelled",
@@ -12053,8 +12715,8 @@
       ]
     },
     {
-      "tabela": "alumni_opportunities",
       "coluna": "opportunity_type",
+      "tabela": "alumni_opportunities",
       "valores": [
         "business",
         "event",
@@ -12067,8 +12729,8 @@
       ]
     },
     {
-      "tabela": "alumni_opportunities",
       "coluna": "status",
+      "tabela": "alumni_opportunities",
       "valores": [
         "archived",
         "closed",
@@ -12077,8 +12739,8 @@
       ]
     },
     {
-      "tabela": "alumni_opportunity_applications",
       "coluna": "status",
+      "tabela": "alumni_opportunity_applications",
       "valores": [
         "accepted",
         "applied",
@@ -12089,8 +12751,8 @@
       ]
     },
     {
-      "tabela": "alumni_portfolio_items",
       "coluna": "education_level",
+      "tabela": "alumni_portfolio_items",
       "valores": [
         "higher",
         "middle",
@@ -12098,8 +12760,8 @@
       ]
     },
     {
-      "tabela": "alumni_portfolio_items",
       "coluna": "item_type",
+      "tabela": "alumni_portfolio_items",
       "valores": [
         "award",
         "case_study",
@@ -12112,8 +12774,8 @@
       ]
     },
     {
-      "tabela": "alumni_portfolio_items",
       "coluna": "visibility",
+      "tabela": "alumni_portfolio_items",
       "valores": [
         "alumni",
         "private",
@@ -12121,8 +12783,8 @@
       ]
     },
     {
-      "tabela": "alumni_privacy_audit",
       "coluna": "action",
+      "tabela": "alumni_privacy_audit",
       "valores": [
         "claim",
         "communication_targeted",
@@ -12133,8 +12795,8 @@
       ]
     },
     {
-      "tabela": "alumni_profiles",
       "coluna": "directory_visibility",
+      "tabela": "alumni_profiles",
       "valores": [
         "alumni",
         "private",
@@ -12142,8 +12804,8 @@
       ]
     },
     {
-      "tabela": "alumni_profiles",
       "coluna": "employment_status",
+      "tabela": "alumni_profiles",
       "valores": [
         "employed",
         "seeking",
@@ -12154,8 +12816,8 @@
       ]
     },
     {
-      "tabela": "alumni_surveys",
       "coluna": "purpose",
+      "tabela": "alumni_surveys",
       "valores": [
         "employment",
         "impact",
@@ -12166,8 +12828,8 @@
       ]
     },
     {
-      "tabela": "alumni_surveys",
       "coluna": "status",
+      "tabela": "alumni_surveys",
       "valores": [
         "archived",
         "closed",
@@ -12176,8 +12838,8 @@
       ]
     },
     {
-      "tabela": "announcements",
       "coluna": "channel",
+      "tabela": "announcements",
       "valores": [
         "email",
         "portal",
@@ -12185,8 +12847,8 @@
       ]
     },
     {
-      "tabela": "announcements",
       "coluna": "priority",
+      "tabela": "announcements",
       "valores": [
         "high",
         "low",
@@ -12195,8 +12857,8 @@
       ]
     },
     {
-      "tabela": "announcements",
       "coluna": "status",
+      "tabela": "announcements",
       "valores": [
         "archived",
         "draft",
@@ -12205,8 +12867,8 @@
       ]
     },
     {
-      "tabela": "assessment_rule_sets",
       "coluna": "rounding_method",
+      "tabela": "assessment_rule_sets",
       "valores": [
         "down",
         "nearest",
@@ -12215,16 +12877,16 @@
       ]
     },
     {
-      "tabela": "assessment_rule_sets",
       "coluna": "status",
+      "tabela": "assessment_rule_sets",
       "valores": [
         "active",
         "retired"
       ]
     },
     {
-      "tabela": "attendance_records",
       "coluna": "status",
+      "tabela": "attendance_records",
       "valores": [
         "absent",
         "excused",
@@ -12233,8 +12895,8 @@
       ]
     },
     {
-      "tabela": "attendance_sessions",
       "coluna": "status",
+      "tabela": "attendance_sessions",
       "valores": [
         "draft",
         "reopened",
@@ -12242,8 +12904,8 @@
       ]
     },
     {
-      "tabela": "class_groups",
       "coluna": "shift",
+      "tabela": "class_groups",
       "valores": [
         "afternoon",
         "evening",
@@ -12252,8 +12914,8 @@
       ]
     },
     {
-      "tabela": "class_groups",
       "coluna": "status",
+      "tabela": "class_groups",
       "valores": [
         "active",
         "archived",
@@ -12262,8 +12924,8 @@
       ]
     },
     {
-      "tabela": "class_subjects",
       "coluna": "status",
+      "tabela": "class_subjects",
       "valores": [
         "active",
         "archived",
@@ -12271,8 +12933,8 @@
       ]
     },
     {
-      "tabela": "course_unit_enrollments",
       "coluna": "season",
+      "tabela": "course_unit_enrollments",
       "valores": [
         "especial",
         "frequencia",
@@ -12282,8 +12944,8 @@
       ]
     },
     {
-      "tabela": "course_unit_enrollments",
       "coluna": "status",
+      "tabela": "course_unit_enrollments",
       "valores": [
         "anulado",
         "aprovado",
@@ -12295,8 +12957,8 @@
       ]
     },
     {
-      "tabela": "curricula",
       "coluna": "status",
+      "tabela": "curricula",
       "valores": [
         "active",
         "draft",
@@ -12304,16 +12966,16 @@
       ]
     },
     {
-      "tabela": "curriculum_areas",
       "coluna": "status",
+      "tabela": "curriculum_areas",
       "valores": [
         "active",
         "inactive"
       ]
     },
     {
-      "tabela": "document_requests",
       "coluna": "request_type",
+      "tabela": "document_requests",
       "valores": [
         "certificate",
         "declaration",
@@ -12323,8 +12985,8 @@
       ]
     },
     {
-      "tabela": "document_requests",
       "coluna": "status",
+      "tabela": "document_requests",
       "valores": [
         "approved",
         "cancelled",
@@ -12335,8 +12997,8 @@
       ]
     },
     {
-      "tabela": "document_sequences",
       "coluna": "document_type",
+      "tabela": "document_sequences",
       "valores": [
         "certificate",
         "credit_note",
@@ -12350,8 +13012,8 @@
       ]
     },
     {
-      "tabela": "document_signatures",
       "coluna": "signer_role",
+      "tabela": "document_signatures",
       "valores": [
         "coordinator",
         "director",
@@ -12360,8 +13022,8 @@
       ]
     },
     {
-      "tabela": "document_signatures",
       "coluna": "status",
+      "tabela": "document_signatures",
       "valores": [
         "pending",
         "rejected",
@@ -12369,8 +13031,8 @@
       ]
     },
     {
-      "tabela": "document_templates",
       "coluna": "document_type",
+      "tabela": "document_templates",
       "valores": [
         "certificate",
         "declaration",
@@ -12380,8 +13042,8 @@
       ]
     },
     {
-      "tabela": "document_templates",
       "coluna": "status",
+      "tabela": "document_templates",
       "valores": [
         "active",
         "draft",
@@ -12389,8 +13051,8 @@
       ]
     },
     {
-      "tabela": "enrollment_applications",
       "coluna": "status",
+      "tabela": "enrollment_applications",
       "valores": [
         "accepted",
         "pending",
@@ -12398,8 +13060,8 @@
       ]
     },
     {
-      "tabela": "enrollments",
       "coluna": "status",
+      "tabela": "enrollments",
       "valores": [
         "active",
         "cancelled",
@@ -12409,8 +13071,8 @@
       ]
     },
     {
-      "tabela": "fee_items",
       "coluna": "frequency",
+      "tabela": "fee_items",
       "valores": [
         "annual",
         "monthly",
@@ -12419,8 +13081,8 @@
       ]
     },
     {
-      "tabela": "fee_items",
       "coluna": "kind",
+      "tabela": "fee_items",
       "valores": [
         "enrollment",
         "other",
@@ -12429,8 +13091,8 @@
       ]
     },
     {
-      "tabela": "fee_plans",
       "coluna": "status",
+      "tabela": "fee_plans",
       "valores": [
         "active",
         "draft",
@@ -12438,16 +13100,16 @@
       ]
     },
     {
-      "tabela": "finance_contracts",
       "coluna": "status",
+      "tabela": "finance_contracts",
       "valores": [
         "active",
         "cancelled"
       ]
     },
     {
-      "tabela": "finance_invoices",
       "coluna": "status",
+      "tabela": "finance_invoices",
       "valores": [
         "cancelled",
         "open",
@@ -12456,8 +13118,8 @@
       ]
     },
     {
-      "tabela": "finance_payment_plans",
       "coluna": "channel",
+      "tabela": "finance_payment_plans",
       "valores": [
         "cash",
         "express",
@@ -12468,8 +13130,8 @@
       ]
     },
     {
-      "tabela": "finance_payment_plans",
       "coluna": "status",
+      "tabela": "finance_payment_plans",
       "valores": [
         "cancelled",
         "pending_gateway",
@@ -12478,8 +13140,8 @@
       ]
     },
     {
-      "tabela": "finance_receipts",
       "coluna": "payment_method",
+      "tabela": "finance_receipts",
       "valores": [
         "bank_transfer",
         "card",
@@ -12488,16 +13150,16 @@
       ]
     },
     {
-      "tabela": "finance_receipts",
       "coluna": "status",
+      "tabela": "finance_receipts",
       "valores": [
         "issued",
         "reversed"
       ]
     },
     {
-      "tabela": "financial_rule_sets",
       "coluna": "late_penalty_kind",
+      "tabela": "financial_rule_sets",
       "valores": [
         "fixed",
         "none",
@@ -12505,8 +13167,8 @@
       ]
     },
     {
-      "tabela": "financial_rule_sets",
       "coluna": "status",
+      "tabela": "financial_rule_sets",
       "valores": [
         "active",
         "draft",
@@ -12514,8 +13176,8 @@
       ]
     },
     {
-      "tabela": "grade_items",
       "coluna": "kind",
+      "tabela": "grade_items",
       "valores": [
         "assignment",
         "continuous",
@@ -12528,8 +13190,8 @@
       ]
     },
     {
-      "tabela": "grade_score_history",
       "coluna": "kind",
+      "tabela": "grade_score_history",
       "valores": [
         "change",
         "launch",
@@ -12538,8 +13200,8 @@
       ]
     },
     {
-      "tabela": "grade_scores",
       "coluna": "status",
+      "tabela": "grade_scores",
       "valores": [
         "draft",
         "locked",
@@ -12547,8 +13209,8 @@
       ]
     },
     {
-      "tabela": "grade_sheet_rows",
       "coluna": "result",
+      "tabela": "grade_sheet_rows",
       "valores": [
         "fail",
         "incomplete",
@@ -12557,16 +13219,16 @@
       ]
     },
     {
-      "tabela": "grade_sheets",
       "coluna": "kind",
+      "tabela": "grade_sheets",
       "valores": [
         "annual",
         "term"
       ]
     },
     {
-      "tabela": "grade_sheets",
       "coluna": "status",
+      "tabela": "grade_sheets",
       "valores": [
         "closed",
         "contested",
@@ -12579,8 +13241,8 @@
       ]
     },
     {
-      "tabela": "gradebooks",
       "coluna": "status",
+      "tabela": "gradebooks",
       "valores": [
         "closed",
         "draft",
@@ -12589,8 +13251,8 @@
       ]
     },
     {
-      "tabela": "hr_absence_events",
       "coluna": "absence_type",
+      "tabela": "hr_absence_events",
       "valores": [
         "justified_paid",
         "justified_unpaid",
@@ -12598,8 +13260,8 @@
       ]
     },
     {
-      "tabela": "hr_absence_events",
       "coluna": "validation_status",
+      "tabela": "hr_absence_events",
       "valores": [
         "cancelled",
         "pending",
@@ -12608,8 +13270,8 @@
       ]
     },
     {
-      "tabela": "hr_attendance_assurance_evidence",
       "coluna": "decision",
+      "tabela": "hr_attendance_assurance_evidence",
       "valores": [
         "auto_approve",
         "reject",
@@ -12617,8 +13279,8 @@
       ]
     },
     {
-      "tabela": "hr_attendance_assurance_evidence",
       "coluna": "device_integrity_provider",
+      "tabela": "hr_attendance_assurance_evidence",
       "valores": [
         "app_attest",
         "none",
@@ -12627,16 +13289,16 @@
       ]
     },
     {
-      "tabela": "hr_attendance_assurance_evidence",
       "coluna": "purpose",
+      "tabela": "hr_attendance_assurance_evidence",
       "valores": [
         "check_in",
         "check_out"
       ]
     },
     {
-      "tabela": "hr_compensation_events",
       "coluna": "event_type",
+      "tabela": "hr_compensation_events",
       "valores": [
         "adjustment",
         "allowance",
@@ -12647,8 +13309,8 @@
       ]
     },
     {
-      "tabela": "hr_compensation_events",
       "coluna": "validation_status",
+      "tabela": "hr_compensation_events",
       "valores": [
         "cancelled",
         "pending",
@@ -12657,8 +13319,8 @@
       ]
     },
     {
-      "tabela": "hr_contract_remuneration_policies",
       "coluna": "policy_source",
+      "tabela": "hr_contract_remuneration_policies",
       "valores": [
         "collective_agreement",
         "contract",
@@ -12668,8 +13330,8 @@
       ]
     },
     {
-      "tabela": "hr_contract_remuneration_policies",
       "coluna": "remuneration_model",
+      "tabela": "hr_contract_remuneration_policies",
       "valores": [
         "fixed_deduct_absence",
         "hybrid",
@@ -12677,8 +13339,8 @@
       ]
     },
     {
-      "tabela": "hr_contracts",
       "coluna": "contract_type",
+      "tabela": "hr_contracts",
       "valores": [
         "fixed_term",
         "intern",
@@ -12689,8 +13351,8 @@
       ]
     },
     {
-      "tabela": "hr_contracts",
       "coluna": "salary_type",
+      "tabela": "hr_contracts",
       "valores": [
         "hourly",
         "lesson_hour",
@@ -12698,8 +13360,8 @@
       ]
     },
     {
-      "tabela": "hr_contracts",
       "coluna": "status",
+      "tabela": "hr_contracts",
       "valores": [
         "active",
         "cancelled",
@@ -12709,8 +13371,8 @@
       ]
     },
     {
-      "tabela": "hr_employments",
       "coluna": "employment_type",
+      "tabela": "hr_employments",
       "valores": [
         "fixed_term",
         "intern",
@@ -12721,8 +13383,8 @@
       ]
     },
     {
-      "tabela": "hr_employments",
       "coluna": "status",
+      "tabela": "hr_employments",
       "valores": [
         "active",
         "draft",
@@ -12732,8 +13394,8 @@
       ]
     },
     {
-      "tabela": "hr_payment_destinations",
       "coluna": "method",
+      "tabela": "hr_payment_destinations",
       "valores": [
         "cash",
         "other",
@@ -12741,8 +13403,8 @@
       ]
     },
     {
-      "tabela": "hr_payment_settings",
       "coluna": "default_method",
+      "tabela": "hr_payment_settings",
       "valores": [
         "cash",
         "other",
@@ -12750,16 +13412,16 @@
       ]
     },
     {
-      "tabela": "hr_payroll_item_components",
       "coluna": "component_type",
+      "tabela": "hr_payroll_item_components",
       "valores": [
         "deduction",
         "earning"
       ]
     },
     {
-      "tabela": "hr_payroll_items",
       "coluna": "status",
+      "tabela": "hr_payroll_items",
       "valores": [
         "approved",
         "calculated",
@@ -12770,8 +13432,8 @@
       ]
     },
     {
-      "tabela": "hr_payroll_payment_batches",
       "coluna": "method",
+      "tabela": "hr_payroll_payment_batches",
       "valores": [
         "cash",
         "other",
@@ -12779,8 +13441,8 @@
       ]
     },
     {
-      "tabela": "hr_payroll_payment_batches",
       "coluna": "status",
+      "tabela": "hr_payroll_payment_batches",
       "valores": [
         "authorized",
         "awaiting_authorization",
@@ -12793,8 +13455,8 @@
       ]
     },
     {
-      "tabela": "hr_payroll_payment_items",
       "coluna": "status",
+      "tabela": "hr_payroll_payment_items",
       "valores": [
         "authorized",
         "blocked",
@@ -12806,8 +13468,8 @@
       ]
     },
     {
-      "tabela": "hr_payroll_runs",
       "coluna": "status",
+      "tabela": "hr_payroll_runs",
       "valores": [
         "approved",
         "calculating",
@@ -12819,8 +13481,8 @@
       ]
     },
     {
-      "tabela": "hr_positions",
       "coluna": "category",
+      "tabela": "hr_positions",
       "valores": [
         "director",
         "management",
@@ -12831,8 +13493,8 @@
       ]
     },
     {
-      "tabela": "hr_salary_change_requests",
       "coluna": "status",
+      "tabela": "hr_salary_change_requests",
       "valores": [
         "applied",
         "approved",
@@ -12842,8 +13504,8 @@
       ]
     },
     {
-      "tabela": "hr_salary_scale_versions",
       "coluna": "status",
+      "tabela": "hr_salary_scale_versions",
       "valores": [
         "approved",
         "draft",
@@ -12851,24 +13513,24 @@
       ]
     },
     {
-      "tabela": "hr_teacher_attendance_policies",
       "coluna": "outside_grace_mode",
+      "tabela": "hr_teacher_attendance_policies",
       "valores": [
         "proportional",
         "review"
       ]
     },
     {
-      "tabela": "hr_teacher_employment_links",
       "coluna": "status",
+      "tabela": "hr_teacher_employment_links",
       "valores": [
         "active",
         "inactive"
       ]
     },
     {
-      "tabela": "hr_teacher_lesson_occurrences",
       "coluna": "attendance_exception_status",
+      "tabela": "hr_teacher_lesson_occurrences",
       "valores": [
         "approved",
         "none",
@@ -12879,8 +13541,8 @@
       ]
     },
     {
-      "tabela": "hr_teacher_lesson_occurrences",
       "coluna": "evidence_method",
+      "tabela": "hr_teacher_lesson_occurrences",
       "valores": [
         "attendance_import",
         "manual",
@@ -12889,8 +13551,8 @@
       ]
     },
     {
-      "tabela": "hr_teacher_lesson_occurrences",
       "coluna": "occurrence_kind",
+      "tabela": "hr_teacher_lesson_occurrences",
       "valores": [
         "extra",
         "scheduled",
@@ -12898,16 +13560,16 @@
       ]
     },
     {
-      "tabela": "hr_teacher_lesson_occurrences",
       "coluna": "review_decision",
+      "tabela": "hr_teacher_lesson_occurrences",
       "valores": [
         "approved",
         "rejected"
       ]
     },
     {
-      "tabela": "hr_teacher_lesson_occurrences",
       "coluna": "status",
+      "tabela": "hr_teacher_lesson_occurrences",
       "valores": [
         "cancelled",
         "confirmed",
@@ -12916,16 +13578,16 @@
       ]
     },
     {
-      "tabela": "hr_teacher_qr_sessions",
       "coluna": "purpose",
+      "tabela": "hr_teacher_qr_sessions",
       "valores": [
         "check_in",
         "check_out"
       ]
     },
     {
-      "tabela": "hr_teacher_qr_sessions",
       "coluna": "status",
+      "tabela": "hr_teacher_qr_sessions",
       "valores": [
         "active",
         "expired",
@@ -12934,8 +13596,8 @@
       ]
     },
     {
-      "tabela": "import_audits",
       "coluna": "action_type",
+      "tabela": "import_audits",
       "valores": [
         "deleted",
         "inserted",
@@ -12943,16 +13605,16 @@
       ]
     },
     {
-      "tabela": "import_jobs",
       "coluna": "exchange_mode",
+      "tabela": "import_jobs",
       "valores": [
         "human",
         "siga_exchange"
       ]
     },
     {
-      "tabela": "import_jobs",
       "coluna": "source_format",
+      "tabela": "import_jobs",
       "valores": [
         "csv",
         "json",
@@ -12962,8 +13624,8 @@
       ]
     },
     {
-      "tabela": "import_jobs",
       "coluna": "status",
+      "tabela": "import_jobs",
       "valores": [
         "analyzing",
         "cancelled",
@@ -12978,8 +13640,8 @@
       ]
     },
     {
-      "tabela": "import_rows",
       "coluna": "status",
+      "tabela": "import_rows",
       "valores": [
         "duplicate",
         "error",
@@ -12992,8 +13654,8 @@
       ]
     },
     {
-      "tabela": "import_rows",
       "coluna": "validation_stage",
+      "tabela": "import_rows",
       "valores": [
         "business_rule",
         "committed",
@@ -13004,8 +13666,8 @@
       ]
     },
     {
-      "tabela": "import_table_specs",
       "coluna": "direct_import_policy",
+      "tabela": "import_table_specs",
       "valores": [
         "allow",
         "controlled",
@@ -13014,8 +13676,8 @@
       ]
     },
     {
-      "tabela": "import_table_specs",
       "coluna": "export_policy",
+      "tabela": "import_table_specs",
       "valores": [
         "allow",
         "controlled",
@@ -13024,8 +13686,8 @@
       ]
     },
     {
-      "tabela": "import_table_specs",
       "coluna": "sensitivity",
+      "tabela": "import_table_specs",
       "valores": [
         "internal",
         "normal",
@@ -13034,16 +13696,16 @@
       ]
     },
     {
-      "tabela": "import_templates",
       "coluna": "mode",
+      "tabela": "import_templates",
       "valores": [
         "human",
         "siga_exchange"
       ]
     },
     {
-      "tabela": "issued_documents",
       "coluna": "signature_status",
+      "tabela": "issued_documents",
       "valores": [
         "not_required",
         "pending",
@@ -13052,16 +13714,16 @@
       ]
     },
     {
-      "tabela": "issued_documents",
       "coluna": "status",
+      "tabela": "issued_documents",
       "valores": [
         "issued",
         "revoked"
       ]
     },
     {
-      "tabela": "mailboxes",
       "coluna": "status",
+      "tabela": "mailboxes",
       "valores": [
         "active",
         "cancelled",
@@ -13069,8 +13731,8 @@
       ]
     },
     {
-      "tabela": "notifications",
       "coluna": "channel",
+      "tabela": "notifications",
       "valores": [
         "email",
         "in_app",
@@ -13079,8 +13741,8 @@
       ]
     },
     {
-      "tabela": "notifications",
       "coluna": "status",
+      "tabela": "notifications",
       "valores": [
         "delivered",
         "failed",
@@ -13089,8 +13751,8 @@
       ]
     },
     {
-      "tabela": "people",
       "coluna": "sex",
+      "tabela": "people",
       "valores": [
         "female",
         "male",
@@ -13099,8 +13761,8 @@
       ]
     },
     {
-      "tabela": "people",
       "coluna": "status",
+      "tabela": "people",
       "valores": [
         "active",
         "archived",
@@ -13108,8 +13770,8 @@
       ]
     },
     {
-      "tabela": "person_roles",
       "coluna": "role",
+      "tabela": "person_roles",
       "valores": [
         "aluno",
         "contacto_institucional",
@@ -13123,28 +13785,30 @@
       ]
     },
     {
-      "tabela": "program_subjects",
       "coluna": "status",
+      "tabela": "program_subjects",
       "valores": [
         "active",
         "inactive"
       ]
     },
     {
-      "tabela": "programs",
       "coluna": "grading_profile",
+      "tabela": "programs",
       "valores": [
         "20_ects",
         "components",
+        "components",
         "frequencia_exame",
         "gpa4",
+        "scale",
         "scale",
         "so_exame"
       ]
     },
     {
-      "tabela": "programs",
       "coluna": "kind",
+      "tabela": "programs",
       "valores": [
         "general",
         "postgraduate",
@@ -13154,8 +13818,8 @@
       ]
     },
     {
-      "tabela": "report_cards",
       "coluna": "status",
+      "tabela": "report_cards",
       "valores": [
         "draft",
         "issued",
@@ -13163,16 +13827,16 @@
       ]
     },
     {
-      "tabela": "rooms",
       "coluna": "status",
+      "tabela": "rooms",
       "valores": [
         "active",
         "inactive"
       ]
     },
     {
-      "tabela": "school_access_requests",
       "coluna": "requested_profile",
+      "tabela": "school_access_requests",
       "valores": [
         "aluno",
         "encarregado",
@@ -13182,8 +13846,8 @@
       ]
     },
     {
-      "tabela": "school_access_requests",
       "coluna": "status",
+      "tabela": "school_access_requests",
       "valores": [
         "approved",
         "cancelled",
@@ -13194,8 +13858,8 @@
       ]
     },
     {
-      "tabela": "school_announcements",
       "coluna": "audience",
+      "tabela": "school_announcements",
       "valores": [
         "all_guardians",
         "alumni_all",
@@ -13211,8 +13875,8 @@
       ]
     },
     {
-      "tabela": "school_announcements",
       "coluna": "channel",
+      "tabela": "school_announcements",
       "valores": [
         "email",
         "portal",
@@ -13221,8 +13885,8 @@
       ]
     },
     {
-      "tabela": "school_announcements",
       "coluna": "status",
+      "tabela": "school_announcements",
       "valores": [
         "draft",
         "scheduled",
@@ -13230,8 +13894,8 @@
       ]
     },
     {
-      "tabela": "school_email_routes",
       "coluna": "status",
+      "tabela": "school_email_routes",
       "valores": [
         "active",
         "failed",
@@ -13240,8 +13904,8 @@
       ]
     },
     {
-      "tabela": "school_integrations",
       "coluna": "status",
+      "tabela": "school_integrations",
       "valores": [
         "configured",
         "connected",
@@ -13250,8 +13914,8 @@
       ]
     },
     {
-      "tabela": "school_invitations",
       "coluna": "status",
+      "tabela": "school_invitations",
       "valores": [
         "accepted",
         "expired",
@@ -13260,8 +13924,8 @@
       ]
     },
     {
-      "tabela": "school_memberships",
       "coluna": "status",
+      "tabela": "school_memberships",
       "valores": [
         "active",
         "invited",
@@ -13270,8 +13934,8 @@
       ]
     },
     {
-      "tabela": "school_modules",
       "coluna": "status",
+      "tabela": "school_modules",
       "valores": [
         "active",
         "archived",
@@ -13283,16 +13947,16 @@
       ]
     },
     {
-      "tabela": "school_shifts",
       "coluna": "status",
+      "tabela": "school_shifts",
       "valores": [
         "active",
         "inactive"
       ]
     },
     {
-      "tabela": "schools",
       "coluna": "status",
+      "tabela": "schools",
       "valores": [
         "active",
         "archived",
@@ -13301,8 +13965,8 @@
       ]
     },
     {
-      "tabela": "siga_access_cards",
       "coluna": "status",
+      "tabela": "siga_access_cards",
       "valores": [
         "active",
         "expired",
@@ -13311,24 +13975,24 @@
       ]
     },
     {
-      "tabela": "siga_access_logs",
       "coluna": "direction",
+      "tabela": "siga_access_logs",
       "valores": [
         "entry",
         "exit"
       ]
     },
     {
-      "tabela": "siga_access_logs",
       "coluna": "status",
+      "tabela": "siga_access_logs",
       "valores": [
         "denied",
         "granted"
       ]
     },
     {
-      "tabela": "siga_assessment_items",
       "coluna": "purpose",
+      "tabela": "siga_assessment_items",
       "valores": [
         "diagnostic",
         "formative",
@@ -13336,8 +14000,8 @@
       ]
     },
     {
-      "tabela": "siga_attendance_justifications",
       "coluna": "status",
+      "tabela": "siga_attendance_justifications",
       "valores": [
         "approved",
         "pending",
@@ -13345,8 +14009,8 @@
       ]
     },
     {
-      "tabela": "siga_attendance_records",
       "coluna": "status",
+      "tabela": "siga_attendance_records",
       "valores": [
         "absent",
         "early_exit",
@@ -13357,8 +14021,8 @@
       ]
     },
     {
-      "tabela": "siga_attendance_sessions",
       "coluna": "status",
+      "tabela": "siga_attendance_sessions",
       "valores": [
         "cancelled",
         "completed",
@@ -13366,8 +14030,8 @@
       ]
     },
     {
-      "tabela": "siga_cash_expenses",
       "coluna": "method",
+      "tabela": "siga_cash_expenses",
       "valores": [
         "cash",
         "express",
@@ -13378,16 +14042,16 @@
       ]
     },
     {
-      "tabela": "siga_cash_expenses",
       "coluna": "status",
+      "tabela": "siga_cash_expenses",
       "valores": [
         "posted",
         "reversed"
       ]
     },
     {
-      "tabela": "siga_class_tasks",
       "coluna": "kind",
+      "tabela": "siga_class_tasks",
       "valores": [
         "leitura",
         "outra",
@@ -13398,24 +14062,24 @@
       ]
     },
     {
-      "tabela": "siga_class_tasks",
       "coluna": "status",
+      "tabela": "siga_class_tasks",
       "valores": [
         "archived",
         "published"
       ]
     },
     {
-      "tabela": "siga_competencies",
       "coluna": "status",
+      "tabela": "siga_competencies",
       "valores": [
         "active",
         "archived"
       ]
     },
     {
-      "tabela": "siga_exam_registrations",
       "coluna": "status",
+      "tabela": "siga_exam_registrations",
       "valores": [
         "absent",
         "cancelled",
@@ -13424,8 +14088,8 @@
       ]
     },
     {
-      "tabela": "siga_exam_sessions",
       "coluna": "kind",
+      "tabela": "siga_exam_sessions",
       "valores": [
         "exame_especial",
         "exame_final",
@@ -13434,8 +14098,8 @@
       ]
     },
     {
-      "tabela": "siga_exam_sessions",
       "coluna": "result_method",
+      "tabela": "siga_exam_sessions",
       "valores": [
         "average",
         "max",
@@ -13443,8 +14107,8 @@
       ]
     },
     {
-      "tabela": "siga_exam_sessions",
       "coluna": "status",
+      "tabela": "siga_exam_sessions",
       "valores": [
         "closed",
         "draft",
@@ -13452,8 +14116,8 @@
       ]
     },
     {
-      "tabela": "siga_file_events",
       "coluna": "action",
+      "tabela": "siga_file_events",
       "valores": [
         "access_denied",
         "created",
@@ -13470,8 +14134,8 @@
       ]
     },
     {
-      "tabela": "siga_files",
       "coluna": "area",
+      "tabela": "siga_files",
       "valores": [
         "escola",
         "pessoal",
@@ -13480,8 +14144,8 @@
       ]
     },
     {
-      "tabela": "siga_files",
       "coluna": "category",
+      "tabela": "siga_files",
       "valores": [
         "bilhete",
         "certificado",
@@ -13497,16 +14161,16 @@
       ]
     },
     {
-      "tabela": "siga_files",
       "coluna": "storage_backend",
+      "tabela": "siga_files",
       "valores": [
         "local",
         "sga"
       ]
     },
     {
-      "tabela": "siga_files",
       "coluna": "visibility",
+      "tabela": "siga_files",
       "valores": [
         "private",
         "public",
@@ -13514,8 +14178,8 @@
       ]
     },
     {
-      "tabela": "siga_lesson_meetings",
       "coluna": "status",
+      "tabela": "siga_lesson_meetings",
       "valores": [
         "active",
         "cancelled",
@@ -13523,24 +14187,24 @@
       ]
     },
     {
-      "tabela": "siga_lesson_plan_components",
       "coluna": "kind",
+      "tabela": "siga_lesson_plan_components",
       "valores": [
         "avaliacao",
         "prova"
       ]
     },
     {
-      "tabela": "siga_lesson_plans",
       "coluna": "status",
+      "tabela": "siga_lesson_plans",
       "valores": [
         "draft",
         "published"
       ]
     },
     {
-      "tabela": "siga_lesson_reminder_log",
       "coluna": "channel",
+      "tabela": "siga_lesson_reminder_log",
       "valores": [
         "email",
         "in_app",
@@ -13548,8 +14212,8 @@
       ]
     },
     {
-      "tabela": "siga_lesson_reminder_log",
       "coluna": "status",
+      "tabela": "siga_lesson_reminder_log",
       "valores": [
         "failed",
         "sent",
@@ -13557,8 +14221,8 @@
       ]
     },
     {
-      "tabela": "siga_timetable_slot_details",
       "coluna": "delivery_mode",
+      "tabela": "siga_timetable_slot_details",
       "valores": [
         "hibrido",
         "online",
@@ -13567,8 +14231,8 @@
       ]
     },
     {
-      "tabela": "siga_timetable_slot_details",
       "coluna": "lesson_type",
+      "tabela": "siga_timetable_slot_details",
       "valores": [
         "avaliacao",
         "laboratorio",
@@ -13579,8 +14243,8 @@
       ]
     },
     {
-      "tabela": "siga_turnstile_devices",
       "coluna": "device_type",
+      "tabela": "siga_turnstile_devices",
       "valores": [
         "door",
         "gate",
@@ -13589,8 +14253,8 @@
       ]
     },
     {
-      "tabela": "siga_turnstile_devices",
       "coluna": "direction_capability",
+      "tabela": "siga_turnstile_devices",
       "valores": [
         "bidirectional",
         "entry",
@@ -13598,8 +14262,8 @@
       ]
     },
     {
-      "tabela": "siga_turnstile_devices",
       "coluna": "status",
+      "tabela": "siga_turnstile_devices",
       "valores": [
         "maintenance",
         "offline",
@@ -13607,8 +14271,8 @@
       ]
     },
     {
-      "tabela": "staff_module_grants",
       "coluna": "level",
+      "tabela": "staff_module_grants",
       "valores": [
         "Escrita",
         "Leitura",
@@ -13617,8 +14281,8 @@
       ]
     },
     {
-      "tabela": "student_guardians",
       "coluna": "relationship",
+      "tabela": "student_guardians",
       "valores": [
         "father",
         "grandparent",
@@ -13629,8 +14293,8 @@
       ]
     },
     {
-      "tabela": "students",
       "coluna": "status",
+      "tabela": "students",
       "valores": [
         "active",
         "applicant",
@@ -13644,16 +14308,16 @@
       ]
     },
     {
-      "tabela": "subject_types",
       "coluna": "status",
+      "tabela": "subject_types",
       "valores": [
         "active",
         "inactive"
       ]
     },
     {
-      "tabela": "subjects",
       "coluna": "status",
+      "tabela": "subjects",
       "valores": [
         "active",
         "archived",
@@ -13661,8 +14325,8 @@
       ]
     },
     {
-      "tabela": "subscription_addons",
       "coluna": "status",
+      "tabela": "subscription_addons",
       "valores": [
         "active",
         "cancelled",
@@ -13670,8 +14334,8 @@
       ]
     },
     {
-      "tabela": "subscriptions",
       "coluna": "status",
+      "tabela": "subscriptions",
       "valores": [
         "active",
         "canceled",
@@ -13681,8 +14345,8 @@
       ]
     },
     {
-      "tabela": "teachers",
       "coluna": "employment_type",
+      "tabela": "teachers",
       "valores": [
         "fixed_term",
         "part_time",
@@ -13691,8 +14355,8 @@
       ]
     },
     {
-      "tabela": "teachers",
       "coluna": "highest_qualification",
+      "tabela": "teachers",
       "valores": [
         "bachelor",
         "doctorate",
@@ -13703,8 +14367,8 @@
       ]
     },
     {
-      "tabela": "teachers",
       "coluna": "status",
+      "tabela": "teachers",
       "valores": [
         "active",
         "archived",
@@ -13713,8 +14377,8 @@
       ]
     },
     {
-      "tabela": "tenant_domains",
       "coluna": "status",
+      "tabela": "tenant_domains",
       "valores": [
         "active",
         "failed",
@@ -13722,16 +14386,16 @@
       ]
     },
     {
-      "tabela": "tenant_domains",
       "coluna": "type",
+      "tabela": "tenant_domains",
       "valores": [
         "custom_domain",
         "siga_subdomain"
       ]
     },
     {
-      "tabela": "tenant_mailboxes",
       "coluna": "provider",
+      "tabela": "tenant_mailboxes",
       "valores": [
         "google",
         "simulated",
@@ -13739,8 +14403,8 @@
       ]
     },
     {
-      "tabela": "tenant_mailboxes",
       "coluna": "status",
+      "tabela": "tenant_mailboxes",
       "valores": [
         "active",
         "deleted",
@@ -13748,8 +14412,8 @@
       ]
     },
     {
-      "tabela": "tenant_provisioning",
       "coluna": "provisioning_status",
+      "tabela": "tenant_provisioning",
       "valores": [
         "active",
         "cancelled",
@@ -13760,8 +14424,8 @@
       ]
     },
     {
-      "tabela": "tenants",
       "coluna": "status",
+      "tabela": "tenants",
       "valores": [
         "active",
         "archived",
@@ -13774,8 +14438,8 @@
       ]
     },
     {
-      "tabela": "timetable_slots",
       "coluna": "status",
+      "tabela": "timetable_slots",
       "valores": [
         "active",
         "archived",
