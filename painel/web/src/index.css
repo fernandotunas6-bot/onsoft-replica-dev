@@ -340,6 +340,34 @@ h6,
   animation: text-aurora 9s ease-in-out infinite;
 }
 
+/* Contorno em gradiente animado — só para o destaque de uma página (plano recomendado). */
+.aurora-ring {
+  position: relative;
+}
+
+.aurora-ring::before {
+  content: "";
+  position: absolute;
+  inset: -1px;
+  border-radius: inherit;
+  padding: 1.5px;
+  background: linear-gradient(
+    120deg,
+    var(--tone-ink-a),
+    var(--tone-ink-b),
+    var(--tone-ink-c),
+    var(--tone-ink-a)
+  );
+  background-size: 300% 100%;
+  -webkit-mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  animation: text-aurora 9s ease-in-out infinite;
+  pointer-events: none;
+}
+
 /* Brilho discreto por trás do cabeçalho das páginas, na cor da área. */
 .page-header-glow {
   position: absolute;
@@ -608,7 +636,8 @@ h6,
 
 @media (prefers-reduced-motion: reduce) {
   .text-aurora,
-  .page-header-glow {
+  .page-header-glow,
+  .aurora-ring::before {
     animation: none;
   }
 }

@@ -42,6 +42,15 @@ Onde o tom aparece:
   principal — «completa», «a trabalhar», «trabalhar todos os dias», «da sua escola», «sua escola»,
   o nome na saudação do painel e «Arranque». Nunca em títulos de páginas de trabalho.
 
+Outros usos, cada um num só componente:
+
+- **Estados vazios** (`EmptyState`): nos grandes, o ícone é uma peça de vidro na cor da área.
+  Com `firstUse` («Ainda não há comunicados / planos de aula / contas / membros») aparece a
+  mascote — nunca em «nenhum resultado neste filtro».
+- **Plano recomendado** (preços do site): contorno em gradiente animado, só nesse cartão.
+- **E-mail do código do registo**: texto próprio («Confirme o seu e-mail…») e aviso claro a quem
+  não pediu.
+
 ## Regras
 
 - Decorativo: `aria-hidden`, sem eventos; o conteúdo continua legível sem ele.

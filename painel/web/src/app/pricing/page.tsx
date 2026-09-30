@@ -18,8 +18,12 @@ export default function PricingPage() {
       <div className="container mx-auto space-y-16 px-4 py-12 sm:px-6 lg:px-8">
         {/* Tom «financeiro» (verde): a página de preços fala de dinheiro; o
             resto do site fica no tom da marca. */}
-        <section id="pricing" className="relative overflow-hidden rounded-3xl px-4 py-10 sm:px-8">
-          <Aurora tone="financeiro" variant="soft" fade={false} />
+        <section
+          id="pricing"
+          data-tone="financeiro"
+          className="relative overflow-hidden rounded-3xl px-4 py-10 sm:px-8"
+        >
+          <Aurora variant="soft" fade={false} />
           <div className="relative">
           <PricingPlans
             mode="pricing"
