@@ -4,6 +4,20 @@ Ler isto **antes** de alterar código. Ecossistema (5 apps):
 [ARCHITECTURE_HARMONIZATION.md](./ARCHITECTURE_HARMONIZATION.md).
 Depois abrir o skill do módulo em `.cursor/skills/`.
 
+## Deploy de produção bloqueado por segredos (2026-09-30)
+
+- «Deploy produção» falhou em todos os merges de #49 a #53: faltava
+  `CLOUDFLARE_API_TOKEN` no ambiente GitHub `production`. Tipos, lint e testes
+  passavam; o wrangler parava no primeiro serviço (DOC). **Nada desses merges chegou
+  à Cloudflare.**
+- Novo primeiro passo do job: confirma `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID`,
+  `VITE_SUPABASE_URL`, `VITE_SUPABASE_PUBLISHABLE_KEY` e `SUPABASE_SERVICE_ROLE_KEY`
+  e diz quais faltam (só nomes). `tests/security/deploy-preflight.test.ts` mantém a
+  lista igual aos `requireEnv` de `deploy-cf.mjs` e a `REQUIRED_WORKER_SECRETS`.
+- **Por fazer (dono):** criar esses segredos em Settings → Environments →
+  `production` e correr o workflow («Run workflow»). A publicação leva a `main`
+  inteira (DOC, WEB, ADMIN, PayFlow, SIGA).
+
 ## Advisors de desempenho (2026-09-30)
 
 - **Duplicadas exactas retiradas** (`20260930170000`, aplicada): cinco SELECT
