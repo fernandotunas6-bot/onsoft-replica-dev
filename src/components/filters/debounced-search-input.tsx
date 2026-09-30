@@ -28,9 +28,8 @@ function DebouncedSearchInput({
 
   return (
     <div className="min-w-full flex-1 sm:min-w-[220px]">
-      {field.label ? (
-        <p className="mb-1 text-xs font-semibold text-muted-foreground">{field.label}</p>
-      ) : null}
+      {/* Rótulo só para leitores de ecrã, como nos seletores: por cima desalinhava a barra. */}
+      {field.label ? <span className="sr-only">{field.label}</span> : null}
       <div className="relative">
         <Search className="pointer-events-none absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
         <Input

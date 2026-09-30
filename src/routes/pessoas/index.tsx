@@ -7,6 +7,7 @@ import {
   FileBadge,
   FileDown,
   FileText,
+  ChevronDown,
   FileUp,
   FolderOpen,
   GitMerge,
@@ -31,6 +32,14 @@ import { Button } from "@/components/ui/button";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { MediaAvatar } from "@/components/ui/media-frame";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { IconChip } from "@/components/ui/icon-chip";
 import { DocHelpButton } from "@/components/ui/doc-help-button";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -315,48 +324,94 @@ function PeoplePage() {
     <AppShell>
       <div className="space-y-6">
         <InstalledModuleTools module="pessoas" />
-        <div className="flex flex-wrap items-end justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <IconChip icon={UserCog} size="lg" label="Pessoas" />
-            <div>
-              <h1 className="font-display text-2xl font-extrabold tracking-tight md:text-3xl">
-                Pessoas
-              </h1>
-              <p className="mt-1 text-sm text-muted-foreground">
-                Registo central — cada pessoa existe uma única vez, com os papéis que acumula.
-              </p>
-            </div>
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+          <div className="min-w-0 lg:max-w-md">
+            <h1 className="font-display text-2xl font-semibold tracking-tight sm:text-[1.75rem]">
+              Pessoas
+            </h1>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Cada pessoa existe uma só vez, com os papéis que acumula: aluno, encarregado,
+              professor, funcionário.
+            </p>
           </div>
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <DocHelpButton title="Navegação — Pessoas e permissões" />
-            <Button
-              variant="outline"
-              className="gap-2"
-              onClick={() => exportCsv("professores-filtrados", teacherExportColumns, teachers)}
-            >
-              <Download className="size-4" /> Prof. CSV
-            </Button>
-            <Button
-              variant="outline"
-              className="gap-2"
-              onClick={() =>
-                exportPdfTable(
-                  "professores-filtrados",
-                  "Professores",
-                  teacherExportColumns,
-                  teachers,
-                  `Filtros activos: ${activeCount || "nenhum"}`,
-                )
-              }
-            >
-              <FileDown className="size-4" /> Prof. PDF
-            </Button>
-            <Button variant="outline" className="gap-2" onClick={exportarProfessoresOficial}>
-              <FileBadge className="size-4" /> Oficial
-            </Button>
-            <Button variant="outline" className="gap-2" asChild>
+            {/* Eram seis botões de exportação (três aqui, três no Registo central). */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm" className="gap-1.5">
+                  <Download className="size-3.5" /> Exportar
+                  <ChevronDown className="size-3.5 text-muted-foreground" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56">
+                <DropdownMenuLabel className="text-xs font-medium text-muted-foreground">
+                  Professores
+                </DropdownMenuLabel>
+                <DropdownMenuItem
+                  onClick={exportarProfessoresOficial}
+                  className="cursor-pointer gap-2"
+                >
+                  <FileBadge className="size-3.5" /> Relatório oficial (PDF)
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  className="cursor-pointer gap-2"
+                  onClick={() =>
+                    exportPdfTable(
+                      "professores-filtrados",
+                      "Professores",
+                      teacherExportColumns,
+                      teachers,
+                      `Filtros activos: ${activeCount || "nenhum"}`,
+                    )
+                  }
+                >
+                  <FileDown className="size-3.5" /> Lista simples (PDF)
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  className="cursor-pointer gap-2"
+                  onClick={() => exportCsv("professores-filtrados", teacherExportColumns, teachers)}
+                >
+                  <Download className="size-3.5" /> Ficheiro CSV
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuLabel className="text-xs font-medium text-muted-foreground">
+                  Registo central
+                </DropdownMenuLabel>
+                <DropdownMenuItem
+                  onClick={exportarRegistoOficial}
+                  disabled={!people.length}
+                  className="cursor-pointer gap-2"
+                >
+                  <FileBadge className="size-3.5" /> Relatório oficial (PDF)
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  disabled={!people.length}
+                  className="cursor-pointer gap-2"
+                  onClick={() =>
+                    exportPdfTable(
+                      "pessoas-filtradas",
+                      "Registo de pessoas",
+                      peopleExportColumns,
+                      people,
+                      `Filtros activos: ${activeCount || "nenhum"}`,
+                    )
+                  }
+                >
+                  <FileDown className="size-3.5" /> Lista simples (PDF)
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  disabled={!people.length}
+                  className="cursor-pointer gap-2"
+                  onClick={() => exportCsv("pessoas-filtradas", peopleExportColumns, people)}
+                >
+                  <Download className="size-3.5" /> Ficheiro CSV
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+            <Button variant="outline" size="sm" className="gap-1.5" asChild>
               <Link to="/importar" search={{ tab: "novo", modulo: "professores" }}>
-                <FileUp className="size-4 text-primary" /> Importar Docentes
+                <FileUp className="size-3.5" /> Importar
               </Link>
             </Button>
             <QuickFormModal
@@ -396,13 +451,17 @@ function PeoplePage() {
                 },
               ]}
               trigger={(open) => (
-                <Button variant="outline" className="gap-2" onClick={open}>
+                <Button variant="outline" size="sm" className="gap-1.5" onClick={open}>
                   <GraduationCap className="size-4" /> Novo professor
                 </Button>
               )}
             />
-            <Button className="gap-2 shadow-sm" onClick={() => setWizardOpen(true)}>
-              <UserPlus className="size-4" /> Nova Pessoa
+            <Button
+              size="sm"
+              className="order-last w-full gap-1.5 sm:w-auto"
+              onClick={() => setWizardOpen(true)}
+            >
+              <UserPlus className="size-4" /> Nova pessoa
             </Button>
             <QuickFormModal
               title="Mesclar duplicado"
@@ -468,8 +527,9 @@ function PeoplePage() {
               ]}
               trigger={(open) => (
                 <Button
-                  variant="outline"
-                  className="gap-2"
+                  variant="ghost"
+                  size="sm"
+                  className="gap-1.5"
                   onClick={open}
                   disabled={people.length < 2}
                 >
@@ -550,10 +610,8 @@ function PeoplePage() {
 
         <div className="rounded-xl border border-border bg-card shadow-soft">
           <div className="border-b border-border px-4 py-3">
-            <h2 className="font-display text-base font-bold">Professores</h2>
-            <p className="text-xs text-muted-foreground">
-              Criar, editar e desactivar docentes — filtros persistentes entre rotas.
-            </p>
+            <h2 className="font-display text-base font-semibold">Professores</h2>
+            <p className="text-xs text-muted-foreground">Criar, editar e desactivar docentes.</p>
           </div>
           <div className="overflow-x-auto">
             <Table mobileCards>
@@ -723,47 +781,10 @@ function PeoplePage() {
         <div className="rounded-xl border border-border bg-card shadow-soft">
           <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border px-4 py-3">
             <div>
-              <h2 className="font-display text-base font-bold">Registo central</h2>
+              <h2 className="font-display text-base font-semibold">Registo central</h2>
               <p className="text-xs text-muted-foreground">
                 Pessoas da escola — clique numa linha para ver a ficha.
               </p>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              <Button
-                size="sm"
-                variant="outline"
-                className="gap-1.5"
-                onClick={() => exportCsv("pessoas-filtradas", peopleExportColumns, people)}
-                disabled={!people.length}
-              >
-                <Download className="size-3.5" /> CSV
-              </Button>
-              <Button
-                size="sm"
-                variant="outline"
-                className="gap-1.5"
-                onClick={() =>
-                  exportPdfTable(
-                    "pessoas-filtradas",
-                    "Registo de pessoas",
-                    peopleExportColumns,
-                    people,
-                    `Filtros activos: ${activeCount || "nenhum"}`,
-                  )
-                }
-                disabled={!people.length}
-              >
-                <FileDown className="size-3.5" /> PDF
-              </Button>
-              <Button
-                size="sm"
-                variant="outline"
-                className="gap-1.5"
-                onClick={exportarRegistoOficial}
-                disabled={!people.length}
-              >
-                <FileBadge className="size-3.5" /> Oficial
-              </Button>
             </div>
           </div>
           <div className="overflow-x-auto">

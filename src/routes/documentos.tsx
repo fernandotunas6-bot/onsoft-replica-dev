@@ -3,7 +3,22 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Download, FileBadge, FileCheck2, FileDown, FilePlus2, FileStack, X } from "lucide-react";
+import {
+  ChevronDown,
+  Download,
+  FileBadge,
+  FileCheck2,
+  FileDown,
+  FilePlus2,
+  FileStack,
+  X,
+} from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { whatsappHref } from "@/features/integrations/actions";
 import { InstalledModuleTools } from "@/features/integrations/InstalledModuleTools";
 import { PickFileButton } from "@/features/arquivos/PickFileButton";
@@ -409,26 +424,47 @@ function DocumentosPage() {
           actions={
             <>
               <DocHelpButton title="Navegação — Documentos e permissões" />
-              <Button variant="outline" className="gap-2" asChild>
-                <a href="#modelos">
-                  <FileStack className="size-4" /> Modelos
-                </a>
-              </Button>
-              <Button variant="outline" className="gap-2" onClick={exportarDocumentosCsv}>
-                <Download className="size-4" /> CSV
-              </Button>
-              <Button variant="outline" className="gap-2" onClick={exportarDocumentosPdf}>
-                <FileDown className="size-4" /> PDF
-              </Button>
-              <Button variant="outline" className="gap-2" onClick={exportarDocumentosOficial}>
-                <FileBadge className="size-4" /> Oficial
-              </Button>
               <PickFileButton
                 area="secretaria"
+                variant="ghost"
+                size="sm"
                 onPick={(file) =>
                   toast.success(file.name, { description: "Ficheiro da secretaria seleccionado." })
                 }
               />
+              <Button variant="outline" size="sm" className="gap-1.5" asChild>
+                <a href="#modelos">
+                  <FileStack className="size-3.5" /> Modelos
+                </a>
+              </Button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" size="sm" className="gap-1.5">
+                    <Download className="size-3.5" /> Exportar
+                    <ChevronDown className="size-3.5 text-muted-foreground" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-52">
+                  <DropdownMenuItem
+                    onClick={exportarDocumentosOficial}
+                    className="cursor-pointer gap-2"
+                  >
+                    <FileBadge className="size-3.5" /> Relatório oficial (PDF)
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={exportarDocumentosPdf}
+                    className="cursor-pointer gap-2"
+                  >
+                    <FileDown className="size-3.5" /> Lista simples (PDF)
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={exportarDocumentosCsv}
+                    className="cursor-pointer gap-2"
+                  >
+                    <Download className="size-3.5" /> Ficheiro CSV
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
               <QuickFormModal
                 title="Novo pedido de documento"
                 eyebrow="Secretaria"
@@ -482,7 +518,8 @@ function DocumentosPage() {
                 }}
                 trigger={(open) => (
                   <Button
-                    className="gap-2"
+                    size="sm"
+                    className="gap-1.5"
                     onClick={open}
                     disabled={!students.length || !templates.length}
                   >
@@ -520,9 +557,8 @@ function DocumentosPage() {
 
         <InstalledModuleTools module="documentos" />
 
+        {/* Números principais à vista; os restantes recolhem (eram dois "Ver estatísticas"). */}
         <StatGrid
-          collapsible
-          storageKey="documentos-1"
           items={[
             {
               label: "Pedidos registados",
@@ -549,6 +585,7 @@ function DocumentosPage() {
 
         <StatGrid
           collapsible
+          toggleLabel="Mais indicadores"
           storageKey="documentos-2"
           items={[
             {
