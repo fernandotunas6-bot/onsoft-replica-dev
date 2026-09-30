@@ -39,10 +39,9 @@ com o que a equipa realmente mantém neste repositório.
    (>1 000 linhas) e `src/features/pedagogica/components/pautas/PautasWorkspaceModule.tsx`
    (~940 linhas) concentram estado, cálculo e apresentação. São o ponto mais provável
    de regressões e de lentidão percebida na digitação de notas.
-5. **Dados de demonstração misturados com dados reais** — as pautas caem em
-   `pautas-demo.ts` quando não existe turma real seleccionada
-   (`PautasWorkspaceModule.tsx`, ramo `isRealClass === false`). Correcto para
-   apresentação, mas exige rótulo visível para não ser confundido com dados da escola.
+5. ~~**Dados de demonstração misturados com dados reais**~~ — **resolvido**: sem turma
+   real a pauta fica vazia e mostra o estado "sem turma/sem alunos". Os documentos
+   fictícios passaram para `tests/pedagogica/pautas-fixtures.ts` (2026-09-29).
 
 ## 3. Dívida técnica remanescente (39 avisos)
 
@@ -78,7 +77,6 @@ com o que a equipa realmente mantém neste repositório.
 
 - Dividir `AssessmentCenter.tsx` e `PautasWorkspaceModule.tsx` em módulos de estado,
   cálculo e apresentação.
-- Rótulo permanente "dados de demonstração" em qualquer pauta gerada sem turma real.
 - Medir FCP/INP nas páginas de pautas, avaliações e financeiro e carregar sob demanda
   os gráficos, PDF e Excel.
 

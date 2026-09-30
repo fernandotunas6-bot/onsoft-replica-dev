@@ -15,7 +15,7 @@ import {
   finalPautaDemo,
   trimesterPautaDemo,
   examPautaDemo,
-} from "@/features/pedagogica/components/pautas/pautas-demo";
+} from "./pautas-fixtures";
 
 describe("isGrade", () => {
   it("aceita notas válidas (0-20)", () => {

@@ -11,9 +11,22 @@ Depois abrir o skill do módulo em `.cursor/skills/`.
   publicado através de `src-tauri/shell/` (arranque + ecrã sem ligação). Detalhes, estado e
   o que falta: skill `siga-desktop`.
 - Tinha três barras de título no Windows; agora só `DesktopTitleBar`.
+- 30/09: comandos da app com ACL (origem remota), exportações pelo "Guardar como"
+  nativo, impressão e documentos oficiais no macOS (janela `sigaprint://` sem scripts).
 - Visual limpo (regra do dono: "igual às grandes empresas"): tokens, shell, dashboard e
   ecrã de entrada revistos. Próximos ecrãs, um a um: Alunos → Financeiro/Faturas →
   Pedagógica → Comunicações → Configurações.
+
+## Arrumação: fixtures e tipos (2026-09-30)
+
+- `pautas-demo.ts` já não era usado pela aplicação (sem turma real a pauta fica vazia),
+  só por `tests/pedagogica/pautas.test.ts`. Passou a `tests/pedagogica/pautas-fixtures.ts`.
+  Item 5 de `CRITICAL_REVIEW_2026-09.md` marcado como resolvido.
+- `any` retirados onde o servidor já devolve tipos (lint 65 → 51 avisos): callbacks
+  `map` em Currículo, ficha do aluno, painel do Administrador e Alumni; a Ficha Alumni
+  360º deixou de converter perfil/pessoa/aluno em `Record<string, any>`. O compilador
+  confirmou os tipos e não encontrou campos inexistentes. Ficam os `any` de JSON
+  arbitrário (importação) e da API OAuth do Supabase sem tipos.
 
 ## Ligações ADMIN → SIGA de cada escola (2026-09-29)
 
