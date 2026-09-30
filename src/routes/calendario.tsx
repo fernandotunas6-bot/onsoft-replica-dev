@@ -4,6 +4,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   CalendarDays,
   CheckSquare,
+  ChevronDown,
   Download,
   FileBadge,
   FileDown,
@@ -42,6 +43,12 @@ import { PageHeader, Panel, StatGrid, badgeBase, toneClass } from "@/components/
 import { StatusBadge } from "@/components/ui/status-badge";
 import { DocHelpButton } from "@/components/ui/doc-help-button";
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { EmptyState } from "@/components/ui/empty-state";
 import { ConfirmActionModal } from "@/components/modals/ConfirmActionModal";
 import { QuickFormModal } from "@/components/modals/QuickFormModal";
@@ -135,10 +142,10 @@ function CalendarioPage() {
     await navigator.clipboard.writeText(url);
     toast.success(
       kind === "google"
-        ? "Feed ICS copiado. Abra o Google Calendar e adicione por URL."
+        ? "Link copiado. No Google Calendar: Outros calendários → A partir de URL."
         : kind === "apple"
-          ? "Feed ICS copiado. No iPhone: Definições → Calendário → Conta subscrita."
-          : "Link ICS copiado. Cole no calendário do telemóvel ou do email.",
+          ? "Link copiado. No iPhone: Definições → Calendário → Contas → Adicionar calendário subscrito."
+          : "Link copiado. Cole-o no calendário do telemóvel ou do e-mail.",
     );
     if (kind === "google") {
       window.open(
@@ -463,83 +470,84 @@ function CalendarioPage() {
     );
   };
 
+  const subscribe = (kind: "plain" | "google" | "apple") =>
+    void copyCalendarFeed(kind).catch((error) =>
+      toast.error(error instanceof Error ? error.message : "Não foi possível criar o link."),
+    );
+
   return (
     <AppShell>
       <div className="space-y-6">
         <PageHeader
           group="Académico"
           title="Calendário Lectivo"
-          description="Períodos lectivos, feriados nacionais (Luanda) e o mesmo feed ICS do telemóvel."
+          description="Trimestres, pausas e feriados nacionais do ano lectivo."
           actions={
             <>
               <DocHelpButton title="Navegação — Calendário lectivo" />
-              <Button
-                variant="outline"
-                className="gap-2"
-                onClick={exportarCsv}
-                disabled={!exportRows.length}
-              >
-                <Download className="size-4" /> CSV
-              </Button>
-              <Button
-                variant="outline"
-                className="gap-2"
-                onClick={exportarPdf}
-                disabled={!exportRows.length}
-              >
-                <FileDown className="size-4" /> PDF
-              </Button>
-              <Button
-                variant="outline"
-                className="gap-2"
-                onClick={exportarOficial}
-                disabled={!filtered.length && !holidays.length}
-              >
-                <FileBadge className="size-4" /> Oficial
-              </Button>
-              <Button
-                variant="outline"
-                className="gap-2"
-                onClick={() =>
-                  void copyCalendarFeed("plain").catch((error) =>
-                    toast.error(
-                      error instanceof Error ? error.message : "Não foi possível criar o feed.",
-                    ),
-                  )
-                }
-              >
-                <Smartphone className="size-4" /> Subscrever ICS
-              </Button>
-              {gcalOn ? (
-                <Button
-                  variant="outline"
-                  className="gap-2"
-                  onClick={() =>
-                    void copyCalendarFeed("google").catch((error) =>
-                      toast.error(
-                        error instanceof Error ? error.message : "Não foi possível criar o feed.",
-                      ),
-                    )
-                  }
-                >
-                  Google
-                </Button>
-              ) : null}
-              {appleOn ? (
-                <Button
-                  variant="outline"
-                  className="gap-2"
-                  onClick={() =>
-                    void copyCalendarFeed("apple").catch((error) =>
-                      toast.error(
-                        error instanceof Error ? error.message : "Não foi possível criar o feed.",
-                      ),
-                    )
-                  }
-                >
-                  Apple
-                </Button>
-              ) : null}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" size="sm" className="gap-1.5">
+                    Exportar
+                    <ChevronDown className="size-3.5 text-muted-foreground" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-56">
+                  <DropdownMenuItem
+                    onClick={exportarOficial}
+                    disabled={!filtered.length && !holidays.length}
+                    className="cursor-pointer gap-2"
+                  >
+                    <FileBadge className="size-4" /> Documento oficial
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={exportarPdf}
+                    disabled={!exportRows.length}
+                    className="cursor-pointer gap-2"
+                  >
+                    <FileDown className="size-4" /> Lista em PDF
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={exportarCsv}
+                    disabled={!exportRows.length}
+                    className="cursor-pointer gap-2"
+                  >
+                    <Download className="size-4" /> Folha de cálculo (CSV)
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" size="sm" className="gap-1.5">
+                    Subscrever
+                    <ChevronDown className="size-3.5 text-muted-foreground" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-60">
+                  <DropdownMenuItem
+                    onClick={() => subscribe("plain")}
+                    className="cursor-pointer gap-2"
+                  >
+                    <Smartphone className="size-4" /> Telemóvel ou e-mail
+                  </DropdownMenuItem>
+                  {gcalOn ? (
+                    <DropdownMenuItem
+                      onClick={() => subscribe("google")}
+                      className="cursor-pointer gap-2"
+                    >
+                      <CalendarDays className="size-4" /> Google Calendar
+                    </DropdownMenuItem>
+                  ) : null}
+                  {appleOn ? (
+                    <DropdownMenuItem
+                      onClick={() => subscribe("apple")}
+                      className="cursor-pointer gap-2"
+                    >
+                      <CalendarDays className="size-4" /> Calendário do iPhone
+                    </DropdownMenuItem>
+                  ) : null}
+                </DropdownMenuContent>
+              </DropdownMenu>
               {canManage && needsAcademicYear ? (
                 <QuickFormModal
                   title="Definir ano lectivo"
@@ -565,7 +573,7 @@ function CalendarioPage() {
                     { name: "fim", label: "Fim", type: "date", defaultValue: suggestedYearEnd },
                   ]}
                   trigger={(open) => (
-                    <Button className="gap-2" onClick={open}>
+                    <Button size="sm" className="order-last gap-1.5" onClick={open}>
                       <CalendarDays className="size-4" /> Definir ano lectivo
                     </Button>
                   )}
@@ -602,7 +610,8 @@ function CalendarioPage() {
                   trigger={(open) => (
                     <Button
                       variant={missingTerms ? "default" : "outline"}
-                      className="gap-2"
+                      size="sm"
+                      className={cn("gap-1.5", missingTerms && "order-last")}
                       onClick={open}
                       disabled={!academicCalendarQuery.isSuccess}
                     >
@@ -615,10 +624,10 @@ function CalendarioPage() {
               {canManage && !needsAcademicYear ? (
                 <QuickFormModal
                   title="Novo período lectivo"
-                  description="No SGA o calendário são períodos (terms), não eventos livres."
+                  description="Um período do ano lectivo — por exemplo um trimestre ou uma pausa."
                   icon={<Plus className="size-5" />}
                   submitLabel="Criar período"
-                  successDescription="Período lectivo criado no SGA."
+                  successDescription="Período lectivo criado."
                   onSubmit={createPeriod}
                   fields={[
                     { name: "nome", label: "Nome", placeholder: "1º Trimestre", full: true },
@@ -636,7 +645,12 @@ function CalendarioPage() {
                     },
                   ]}
                   trigger={(open) => (
-                    <Button className="gap-2" onClick={open}>
+                    <Button
+                      size="sm"
+                      variant={missingTerms ? "outline" : "default"}
+                      className={cn("gap-1.5", !missingTerms && "order-last")}
+                      onClick={open}
+                    >
                       <Plus className="size-4" /> Novo período
                     </Button>
                   )}
@@ -649,8 +663,6 @@ function CalendarioPage() {
         <InstalledModuleTools module="calendario" />
 
         <StatGrid
-          collapsible
-          storageKey="calendario"
           items={[
             {
               label: "Período actual",
@@ -664,24 +676,19 @@ function CalendarioPage() {
             {
               label: "Períodos do ano",
               value: String(events.length),
-              hint: selectedYearLabel.replace(/^Ano Lectivo\s+/i, "") || "terms",
+              hint: selectedYearLabel.replace(/^Ano Lectivo\s+/i, "") || "Ano lectivo",
             },
             {
               label: "Feriados no mês",
               value: String(monthHolidays.length),
               hint: "Calendário nacional",
             },
-            {
-              label: "Gestão",
-              value: canManage ? "Escrita" : "Leitura",
-              hint: canManage ? "Cria períodos na tabela terms" : "Somente consulta",
-            },
           ]}
         />
 
         <Panel
           title="Calendário da escola"
-          description="Grelha mensal com trimestres e feriados nacionais (Africa/Luanda)"
+          description="Mês a mês, com trimestres e feriados nacionais"
           icon={CalendarDays}
         >
           <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_16rem]">
@@ -869,7 +876,7 @@ function CalendarioPage() {
                   description="As datas partem do dia seleccionado na grelha."
                   icon={<Plus className="size-5" />}
                   submitLabel="Criar período"
-                  successDescription="Período lectivo criado no SGA."
+                  successDescription="Período lectivo criado."
                   onSubmit={createPeriod}
                   fields={[
                     { name: "nome", label: "Nome", placeholder: "1º Trimestre", full: true },
@@ -923,7 +930,7 @@ function CalendarioPage() {
 
         <Panel
           title="Períodos lectivos"
-          description="Fonte SGA: tabela terms (não eventos livres)"
+          description="Os períodos que definem o ano lectivo"
           action={
             <span className="flex items-center gap-2 text-xs text-muted-foreground">
               <CalendarDays className="size-4" /> Calendário da escola

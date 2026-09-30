@@ -163,7 +163,9 @@ export function AcademicMonthCalendar({
       ) : null}
 
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <p className="font-display text-base font-semibold capitalize">{monthLabel(yearMonth)}</p>
+        <p className="font-display text-base font-semibold first-letter:uppercase">
+          {monthLabel(yearMonth)}
+        </p>
         <div className="flex items-center gap-1">
           <Button
             type="button"

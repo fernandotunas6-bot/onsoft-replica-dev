@@ -172,13 +172,23 @@ export function StatGrid({
   const grid = children ? (
     <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">{children}</div>
   ) : items && items.length > 0 ? (
-    <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
-      {items.map((item) => {
+    // Com 3 números: três colunas (sem buraco à direita); no telemóvel o primeiro
+    // ocupa a linha inteira em vez de sobrar um cartão sozinho no fim.
+    <div
+      className={cn(
+        "grid grid-cols-2 gap-3",
+        items.length === 3 ? "sm:grid-cols-3" : "xl:grid-cols-4",
+      )}
+    >
+      {items.map((item, index) => {
         const tone = item.tone ?? "primary";
         return (
           <div
             key={item.label}
-            className="relative min-w-0 overflow-hidden rounded-xl border border-border/80 bg-card p-3.5 shadow-card sm:p-4"
+            className={cn(
+              "relative min-w-0 overflow-hidden rounded-xl border border-border/80 bg-card p-3.5 shadow-card sm:p-4",
+              index === 0 && items.length % 2 === 1 && "col-span-2 sm:col-span-1",
+            )}
           >
             <div className="flex items-start justify-between gap-2.5">
               <div className="min-w-0">
