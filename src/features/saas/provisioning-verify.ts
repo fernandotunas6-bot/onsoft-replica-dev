@@ -14,38 +14,46 @@
  * Esta função diz o que falta, em vez de deixar descobrir mais tarde.
  */
 
+import { reportSigaEvent } from "@/lib/ops-report";
+
 export type ProvisioningGap = {
   peca: string;
   detalhe: string;
 };
 
+type CountResult = { count: number | null; error?: { message: string } | null };
+
 type Db = {
   from: (table: string) => {
-    select: (
-      columns: string,
-      options?: { count?: "exact"; head?: boolean },
-    ) => {
-      eq: (
-        column: string,
-        value: string,
-      ) => {
-        eq?: (column: string, value: string) => Promise<{ count: number | null }>;
-      } & Promise<{ count: number | null }>;
-    };
+    select: (columns: string, options?: { count?: "exact"; head?: boolean }) => unknown;
   };
 };
 
-async function contar(db: Db, table: string, filters: Array<[string, string]>): Promise<number> {
-  let query = db.from(table).select("id", { count: "exact", head: true }) as unknown as {
+/**
+ * Número de linhas, ou `null` se a contagem não pôde ser feita.
+ *
+ * Conta com `*`, não com `id`: `member_roles` não tem coluna `id` (a chave é
+ * membership + papel). Contar `id` dava erro 42703, o erro era lido como
+ * «zero linhas», e **todas** as escolas eram revertidas por «papel atribuído
+ * em falta» — com o domínio e a conta do director presos a uma escola que não
+ * se consegue apagar.
+ */
+async function contar(
+  db: Db,
+  table: string,
+  filters: Array<[string, string]>,
+): Promise<number | null> {
+  let query = db.from(table).select("*", { count: "exact", head: true }) as {
     eq: (c: string, v: string) => unknown;
   };
   for (const [column, value] of filters) {
     query = query.eq(column, value) as typeof query;
   }
-  const { count } = (await (query as unknown as Promise<{ count: number | null }>)) ?? {
+  const result = ((await (query as unknown as Promise<CountResult>)) ?? {
     count: 0,
-  };
-  return count ?? 0;
+  }) as CountResult;
+  if (result.error) return null;
+  return result.count ?? 0;
 }
 
 /**
@@ -110,6 +118,17 @@ export async function findProvisioningGaps(
 
   for (const check of checks) {
     const total = await contar(client, check.table, check.filters);
+    // Uma consulta que falha não prova que a peça falta. Reverter por isso
+    // desfazia uma escola completa — e a reversão não é total (ver
+    // provisioning-core). Fica registado como não verificado.
+    if (total === null) {
+      reportSigaEvent("tenant.provisioning.verify.unavailable", {
+        tenant_id: ids.tenantId,
+        school_id: ids.schoolId,
+        entity: check.table,
+      });
+      continue;
+    }
     if (total < (check.minimo ?? 1)) {
       gaps.push({ peca: check.peca, detalhe: check.detalhe });
     }

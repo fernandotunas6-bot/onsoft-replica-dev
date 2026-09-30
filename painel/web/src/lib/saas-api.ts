@@ -93,6 +93,8 @@ export async function checkSlugAvailability(slug: string): Promise<boolean | nul
 export async function signupSchool(payload: SchoolSignupPayload): Promise<{
   ok: boolean
   error?: string
+  /** Erros de validação do servidor, por campo do formulário. */
+  fieldErrors?: Record<string, string[]>
   tenantId?: string
   slug?: string
   hostname?: string
@@ -100,6 +102,9 @@ export async function signupSchool(payload: SchoolSignupPayload): Promise<{
   adminTenantsUrl?: string
   adminInviteDelivered?: boolean
   adminPasswordSet?: boolean
+  adminExistingAccount?: boolean
+  /** Entrada directa no painel da escola, já com sessão. Uso único. */
+  adminLoginUrl?: string | null
 }> {
   const res = await fetch(getSaasApiUrl("/api/saas/signup"), {
     method: "POST",
@@ -108,6 +113,7 @@ export async function signupSchool(payload: SchoolSignupPayload): Promise<{
   })
   const data = (await res.json().catch(() => ({}))) as {
     error?: string
+    issues?: Record<string, string[]>
     tenantId?: string
     slug?: string
     hostname?: string
@@ -115,8 +121,16 @@ export async function signupSchool(payload: SchoolSignupPayload): Promise<{
     adminTenantsUrl?: string
     adminInviteDelivered?: boolean
     adminPasswordSet?: boolean
+    adminExistingAccount?: boolean
+    adminLoginUrl?: string | null
   }
-  if (!res.ok) return { ok: false, error: data.error || "Não foi possível criar a escola." }
+  if (!res.ok) {
+    return {
+      ok: false,
+      error: data.error || "Não foi possível criar a escola.",
+      fieldErrors: data.issues,
+    }
+  }
   return {
     ok: true,
     tenantId: data.tenantId,
@@ -126,5 +140,7 @@ export async function signupSchool(payload: SchoolSignupPayload): Promise<{
     adminTenantsUrl: data.adminTenantsUrl,
     adminInviteDelivered: data.adminInviteDelivered ?? false,
     adminPasswordSet: data.adminPasswordSet ?? false,
+    adminExistingAccount: data.adminExistingAccount ?? false,
+    adminLoginUrl: data.adminLoginUrl ?? null,
   }
 }

@@ -4,6 +4,35 @@ Ler isto **antes** de alterar código. Ecossistema (5 apps):
 [ARCHITECTURE_HARMONIZATION.md](./ARCHITECTURE_HARMONIZATION.md).
 Depois abrir o skill do módulo em `.cursor/skills/`.
 
+## Criar escola: e-mail «já usado», domínio preso e sem entrada no painel (2026-09-30)
+
+Diagnóstico na produção (só leitura): as duas últimas criações (24/09 e 28/09) falharam
+e ficaram meio-feitas; hoje uma conta Google sem escola não conseguia registar a sua.
+
+- **Todas as criações eram revertidas:** `findProvisioningGaps` contava `select("id")`, e
+  `member_roles` não tem coluna `id` (chave = membership + papel). O erro 42703 era lido
+  como «0 linhas» → «papel atribuído em falta» → reversão. Conta agora com `*`, e uma
+  consulta que falha não é peça em falta (evento `tenant.provisioning.verify.unavailable`).
+- **A reversão não conseguia reverter:** `audit_logs` é imutável e aponta para a escola, logo
+  a escola (e o tenant) já não se apagam; `school_settings.changed_by` e
+  `enrollment_forms.created_by` impediam `deleteUser`. Resultado: conta presa ao e-mail e
+  o cliente recebia «já existe uma conta com este e-mail». Agora: apaga os registos do
+  bootstrap antes da conta; se o tenant não sai, fica `provisioning_failed` com o slug
+  libertado (`<slug>-falhou-<id8>`).
+- **Verificação prévia** (`preflight` em `provisioning-core.ts`): subdomínio e e-mail são
+  verificados antes de escrever. E-mail com membership activa → recusa sem criar nada.
+  Conta sem escola (Google, ou tentativa falhada) → é ligada à escola nova; se nunca
+  iniciou sessão recebe a senha do registo, senão as credenciais ficam intactas.
+- **Entrada directa:** com senha definida no registo público, o servidor devolve
+  `adminLoginUrl` (`/auth/magic-link?token_hash=…&type=recovery`, uso único). O WEB
+  `/start` entra sozinho no painel da escola ao fim de 8 s (cancelável). O admin de
+  plataforma nunca recebe este link; uma conta Google reaproveitada também não.
+- WEB `/start`: erros do servidor levam ao passo/campo certo (e-mail, subdomínio, campos
+  recusados pela validação).
+- **Por arrumar na produção** (não mexido): tenant `epatuloko` (activo, sem domínio nem
+  membros, slug ocupado) e `siga-plus-web-production-falhou-986ba240`; a conta do
+  administrador de `epatuloko` ficou sem escola (é reaproveitada numa nova tentativa).
+
 ## CORS e domínios próprios seguem PLATFORM_DOMAIN (2026-09-30)
 
 - `src/lib/ecosystem-cors.ts`: as origens de produção (raiz, www, admin, docs, app,

@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import {
@@ -78,6 +78,49 @@ describe("findProvisioningGaps", () => {
       IDS,
     );
     expect(gaps.map((g) => g.peca)).toEqual(["domínio", "membership activa"]);
+  });
+
+  it("conta com `*`: member_roles não tem coluna id, e contar `id` revertia todas as escolas", async () => {
+    const colunas: string[] = [];
+    const db = {
+      from(table: string) {
+        const chain: Record<string, unknown> = {
+          select: (col: string) => {
+            colunas.push(col);
+            const result =
+              table === "member_roles" && col === "id"
+                ? { count: null, error: { message: 'column "id" does not exist' } }
+                : { count: (COMPLETO as Record<string, number>)[table] ?? 0, error: null };
+            chain.then = (...args: unknown[]) => {
+              const p = Promise.resolve(result);
+              return (p.then as (...a: unknown[]) => unknown).apply(p, args);
+            };
+            return chain;
+          },
+          eq: () => chain,
+        };
+        return chain;
+      },
+    };
+    expect(await findProvisioningGaps(db, IDS)).toEqual([]);
+    expect(colunas.every((c) => c === "*")).toBe(true);
+  });
+
+  it("uma consulta que falha não conta como peça em falta", async () => {
+    const db = {
+      from() {
+        const result = Promise.resolve({ count: null, error: { message: "timeout" } });
+        const chain: Record<string, unknown> = {
+          select: () => chain,
+          eq: () => chain,
+          then: (...args: unknown[]) =>
+            (result.then as (...a: unknown[]) => unknown).apply(result, args),
+        };
+        return chain;
+      },
+    };
+    vi.spyOn(console, "info").mockImplementation(() => {});
+    expect(await findProvisioningGaps(db, IDS)).toEqual([]);
   });
 
   it("a mensagem diz o que falta e que foi revertido", async () => {

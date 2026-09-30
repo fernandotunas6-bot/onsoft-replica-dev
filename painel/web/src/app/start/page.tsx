@@ -148,6 +148,13 @@ const FIELDS_BY_STEP: Record<number, (keyof FormValues)[]> = {
   6: ["slug"],
 }
 
+/** Passo de cada campo — para levar a pessoa ao campo que o servidor recusou. */
+const FIELD_STEP = Object.fromEntries(
+  Object.entries(FIELDS_BY_STEP).flatMap(([step, fields]) => fields.map((field) => [field, Number(step)])),
+) as Record<keyof FormValues, number>
+
+const AUTO_ENTER_SECONDS = 8
+
 /** Rascunho no navegador: quem fecha a página a meio retoma onde estava. Nunca a senha. */
 const DRAFT_KEY = "siga-web:start-draft:v1"
 const DRAFT_OMIT = new Set<keyof FormValues>(["admin_password", "admin_password_confirm", "website"])
@@ -219,7 +226,12 @@ export function StartSchoolWizard() {
     adminTenantsUrl?: string
     adminInviteDelivered: boolean
     adminPasswordSet: boolean
+    adminExistingAccount: boolean
+    adminLoginUrl: string | null
   } | null>(null)
+  // Com entrada directa disponível, segue sozinho para o painel da escola ao fim
+  // de uns segundos — dá tempo de ler o essencial e pode ser cancelado.
+  const [redirectIn, setRedirectIn] = useState<number | null>(null)
 
   const form = useForm<FormValues>({
     resolver: zodResolver(schema),
@@ -399,7 +411,29 @@ export function StartSchoolWizard() {
         return
       }
       if (!result.ok) {
-        setServerError(result.error || "Falha ao criar a escola.")
+        const message = result.error || "Falha ao criar a escola."
+        // Levar a pessoa ao campo que o servidor recusou, em vez de a deixar
+        // no último passo a adivinhar qual era.
+        const serverFields = Object.entries(result.fieldErrors ?? {}).filter(
+          ([field, errors]) => field in FIELD_STEP && errors?.length,
+        )
+        if (serverFields.length) {
+          for (const [field, errors] of serverFields) {
+            form.setError(field as keyof FormValues, { message: errors[0] })
+          }
+          setStep(FIELD_STEP[serverFields[0][0] as keyof FormValues])
+          setServerError("O servidor recusou um campo. Levámo-lo ao passo onde está.")
+          return
+        }
+        if (/e-mail/i.test(message) && /conta|acesso/i.test(message)) {
+          form.setError("admin_email", { message })
+          setStep(FIELD_STEP.admin_email)
+        } else if (/subdomínio/i.test(message)) {
+          form.setError("slug", { message })
+          setSlugStatus("taken")
+          setStep(FIELD_STEP.slug)
+        }
+        setServerError(message)
         return
       }
       writeDraft(null)
@@ -409,13 +443,27 @@ export function StartSchoolWizard() {
         adminTenantsUrl: result.adminTenantsUrl,
         adminInviteDelivered: result.adminInviteDelivered ?? false,
         adminPasswordSet: result.adminPasswordSet ?? false,
+        adminExistingAccount: result.adminExistingAccount ?? false,
+        adminLoginUrl: result.adminLoginUrl ?? null,
       })
+      if (result.adminLoginUrl) setRedirectIn(AUTO_ENTER_SECONDS)
     } finally {
       setIsCreating(false)
     }
   }
 
+  useEffect(() => {
+    if (redirectIn == null || !done?.adminLoginUrl) return
+    if (redirectIn <= 0) {
+      window.location.assign(done.adminLoginUrl)
+      return
+    }
+    const timeout = setTimeout(() => setRedirectIn((s) => (s == null ? null : s - 1)), 1000)
+    return () => clearTimeout(timeout)
+  }, [redirectIn, done])
+
   if (done) {
+    const enterUrl = done.adminLoginUrl || done.sigaUrl
     const paymentMessage = encodeURIComponent(
       `Olá, registei a escola ${values.name} no SIGA Plus. Pretendo enviar o comprovativo do plano ${planLabel}. Endereço: ${done.hostname}.`,
     )
@@ -441,7 +489,18 @@ export function StartSchoolWizard() {
         <CardContent className="grid gap-5 text-center">
           <div className="rounded-lg border p-4 space-y-2 text-left">
             <h3 className="text-sm">Acesso do administrador</h3>
-            {done.adminPasswordSet ? (
+            {done.adminLoginUrl ? (
+              <p className="text-sm text-muted-foreground">
+                A conta de <strong>{values.admin_email}</strong> está pronta e a sessão já vai aberta: entra
+                directamente no painel da escola. Nas próximas vezes, entre com este e-mail e a senha que definiu.
+              </p>
+            ) : done.adminExistingAccount && !done.adminPasswordSet ? (
+              <p className="text-sm text-muted-foreground">
+                <strong>{values.admin_email}</strong> já tinha conta no SIGA Plus (por exemplo, entrada com o Google).
+                A escola ficou ligada a essa conta: entre como de costume. A senha escolhida neste registo não
+                substituiu a sua.
+              </p>
+            ) : done.adminPasswordSet ? (
               <p className="text-sm text-muted-foreground">
                 A conta já está pronta. Entre no SIGA Plus com <strong>{values.admin_email}</strong> e a senha que definiu neste registo.
                 {done.adminInviteDelivered
@@ -457,6 +516,23 @@ export function StartSchoolWizard() {
                 A conta de <strong>{values.admin_email}</strong> já está criada, mas o convite ainda não foi enviado. Use «Recuperar senha» no SIGA Plus com este e-mail, ou peça o link à equipa de suporte.
               </p>
             )}
+            <Button asChild className="mt-2 w-full">
+              <a href={enterUrl}>
+                Entrar no painel da escola <ArrowRight className="size-4" />
+              </a>
+            </Button>
+            {redirectIn != null && done.adminLoginUrl ? (
+              <p className="text-center text-xs text-muted-foreground">
+                A entrar automaticamente em {Math.max(redirectIn, 0)} s…{" "}
+                <button
+                  type="button"
+                  className="underline underline-offset-4"
+                  onClick={() => setRedirectIn(null)}
+                >
+                  Ficar nesta página
+                </button>
+              </p>
+            ) : null}
           </div>
 
           <div className="rounded-lg border p-4 text-left">
@@ -479,11 +555,6 @@ export function StartSchoolWizard() {
                 </li>
               ))}
             </ol>
-            <Button asChild className="mt-4 w-full">
-              <a href={done.sigaUrl}>
-                Entrar no SIGA Plus <ArrowRight className="size-4" />
-              </a>
-            </Button>
           </div>
 
           <div className="grid gap-3 border-t pt-5">

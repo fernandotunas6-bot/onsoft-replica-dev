@@ -25,6 +25,9 @@ export async function runPublicSchoolSignup(
   bootstrapSeeded: string[];
   adminInviteDelivered: boolean;
   adminPasswordSet: boolean;
+  adminExistingAccount: boolean;
+  /** Entrada directa no SIGA com sessão; só existe quando a senha foi definida neste registo. */
+  adminLoginUrl: string | null;
 }> {
   const { website: _honeypot, ...wizardData } = data;
   const emailKey = wizardData.contact_email.trim().toLowerCase();
