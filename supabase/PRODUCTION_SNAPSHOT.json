@@ -3,7 +3,7 @@
   "resumo": {
     "com_rls": 181,
     "funcoes_private": 101,
-    "politicas": 305,
+    "politicas": 297,
     "tabelas": 181,
     "triggers": 196
   },
@@ -799,7 +799,7 @@
         "created_by",
         "updated_by"
       ],
-      "politicas": 7,
+      "politicas": 5,
       "rls": true,
       "rls_forcada": true,
       "tabela": "class_groups"
@@ -1262,7 +1262,7 @@
         "created_by",
         "updated_by"
       ],
-      "politicas": 6,
+      "politicas": 4,
       "rls": true,
       "rls_forcada": true,
       "tabela": "enrollments"
@@ -3045,7 +3045,7 @@
         "created_by",
         "updated_by"
       ],
-      "politicas": 7,
+      "politicas": 5,
       "rls": true,
       "rls_forcada": true,
       "tabela": "people"
@@ -4775,7 +4775,7 @@
         "created_by",
         "updated_by"
       ],
-      "politicas": 7,
+      "politicas": 5,
       "rls": true,
       "rls_forcada": true,
       "tabela": "students"
@@ -5458,15 +5458,6 @@
       "verificando": ""
     },
     {
-      "cmd": "INSERT",
-      "modo": "PERMISSIVE",
-      "papeis": "{authenticated}",
-      "politica": "Create class_groups in own school",
-      "tabela": "class_groups",
-      "usando": "",
-      "verificando": "(is_school_member(school_id) AND (created_by = ( SELECT auth.uid() AS uid)) AND is_school_office(school_id))"
-    },
-    {
       "cmd": "SELECT",
       "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
@@ -5483,15 +5474,6 @@
       "tabela": "class_groups",
       "usando": "(is_school_member(school_id) AND is_school_office(school_id))",
       "verificando": ""
-    },
-    {
-      "cmd": "UPDATE",
-      "modo": "PERMISSIVE",
-      "papeis": "{authenticated}",
-      "politica": "Update class_groups in own school",
-      "tabela": "class_groups",
-      "usando": "(is_school_member(school_id) AND is_school_office(school_id))",
-      "verificando": "(is_school_member(school_id) AND is_school_office(school_id))"
     },
     {
       "cmd": "INSERT",
@@ -5827,15 +5809,6 @@
       "verificando": ""
     },
     {
-      "cmd": "INSERT",
-      "modo": "PERMISSIVE",
-      "papeis": "{authenticated}",
-      "politica": "Create enrollments in own school",
-      "tabela": "enrollments",
-      "usando": "",
-      "verificando": "(is_school_member(school_id) AND (created_by = ( SELECT auth.uid() AS uid)) AND is_school_office(school_id))"
-    },
-    {
       "cmd": "SELECT",
       "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
@@ -5852,15 +5825,6 @@
       "tabela": "enrollments",
       "usando": "(is_school_member(school_id) AND is_school_office(school_id))",
       "verificando": ""
-    },
-    {
-      "cmd": "UPDATE",
-      "modo": "PERMISSIVE",
-      "papeis": "{authenticated}",
-      "politica": "Update enrollments in own school",
-      "tabela": "enrollments",
-      "usando": "(is_school_member(school_id) AND is_school_office(school_id))",
-      "verificando": "(is_school_member(school_id) AND is_school_office(school_id))"
     },
     {
       "cmd": "SELECT",
@@ -6817,15 +6781,6 @@
       "verificando": "((user_id = ( SELECT auth.uid() AS uid)) AND private.is_active_member(school_id))"
     },
     {
-      "cmd": "INSERT",
-      "modo": "PERMISSIVE",
-      "papeis": "{authenticated}",
-      "politica": "Create people in own school",
-      "tabela": "people",
-      "usando": "",
-      "verificando": "(is_school_member(school_id) AND (created_by = ( SELECT auth.uid() AS uid)) AND is_school_office(school_id))"
-    },
-    {
       "cmd": "SELECT",
       "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
@@ -6842,15 +6797,6 @@
       "tabela": "people",
       "usando": "(is_school_member(school_id) AND is_school_office(school_id))",
       "verificando": ""
-    },
-    {
-      "cmd": "UPDATE",
-      "modo": "PERMISSIVE",
-      "papeis": "{authenticated}",
-      "politica": "Update people in own school",
-      "tabela": "people",
-      "usando": "(is_school_member(school_id) AND is_school_office(school_id))",
-      "verificando": "(is_school_member(school_id) AND is_school_office(school_id))"
     },
     {
       "cmd": "INSERT",
@@ -7645,15 +7591,6 @@
       "verificando": ""
     },
     {
-      "cmd": "INSERT",
-      "modo": "PERMISSIVE",
-      "papeis": "{authenticated}",
-      "politica": "Create students in own school",
-      "tabela": "students",
-      "usando": "",
-      "verificando": "(is_school_member(school_id) AND (created_by = ( SELECT auth.uid() AS uid)) AND is_school_office(school_id))"
-    },
-    {
       "cmd": "SELECT",
       "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
@@ -7679,15 +7616,6 @@
       "tabela": "students",
       "usando": "private.is_school_staff(school_id)",
       "verificando": "private.is_school_staff(school_id)"
-    },
-    {
-      "cmd": "UPDATE",
-      "modo": "PERMISSIVE",
-      "papeis": "{authenticated}",
-      "politica": "Update students in own school",
-      "tabela": "students",
-      "usando": "(is_school_member(school_id) AND is_school_office(school_id))",
-      "verificando": "(is_school_member(school_id) AND is_school_office(school_id))"
     },
     {
       "cmd": "SELECT",

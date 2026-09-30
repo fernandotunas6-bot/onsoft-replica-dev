@@ -279,3 +279,31 @@ describe("políticas duplicadas", () => {
     expect(duplicates).toEqual([]);
   });
 });
+
+describe("escrita com 2FA", () => {
+  const writes = (snapshot.politicas as Array<Policy & { modo?: string }>).filter(
+    (p) => p.cmd !== "SELECT" && p.modo !== "RESTRICTIVE",
+  );
+  const needsMfa = (p: Policy) => /is_aal2\(\)/.test(`${p.usando} ${p.verificando}`);
+
+  it("onde uma política de escrita exige aal2, nenhuma outra do mesmo comando a dispensa", () => {
+    // 20260930180000: as antigas «Create/Update … in own school» (só is_school_office)
+    // somavam-se às actuais com aal2 e anulavam o 2FA na API REST.
+    const bypass: string[] = [];
+    for (const p of writes.filter((w) => !needsMfa(w))) {
+      const covers = (cmd: string) => cmd === p.cmd || cmd === "ALL" || p.cmd === "ALL";
+      if (writes.some((w) => w.tabela === p.tabela && covers(w.cmd) && needsMfa(w))) {
+        bypass.push(`${p.tabela}: ${p.politica} (${p.cmd})`);
+      }
+    }
+    expect(bypass).toEqual([]);
+  });
+
+  it("alunos e matrículas não aceitam inserção directa pela API", () => {
+    const inserts = writes
+      .filter((p) => ["students", "enrollments"].includes(p.tabela))
+      .filter((p) => p.cmd === "INSERT" || p.cmd === "ALL")
+      .map((p) => `${p.tabela}: ${p.politica}`);
+    expect(inserts).toEqual([]);
+  });
+});
