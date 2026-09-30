@@ -60,3 +60,4 @@ public/turmas/*.zip
 src-tauri/target/
 src-tauri/gen/
 target/
+src-tauri/tauri.release.conf.json

@@ -1,55 +1,95 @@
-name: SIGA Desktop Release (macOS & Windows)
+name: SIGA Desktop — publicar versão
 
+# Instaladores Windows, macOS (universal) e Linux num rascunho de release.
+# Publicar: `git tag desktop-v1.0.1 && git push origin desktop-v1.0.1`, ou correr à mão
+# com a versão. O rascunho só chega às escolas quando alguém o publicar no GitHub.
+# Actualizações automáticas: ver docs/desktop/PUBLICAR_VERSOES.md (chave de assinatura).
 on:
   push:
     tags:
-      - "v*"
+      - "desktop-v*"
   workflow_dispatch:
+    inputs:
+      version:
+        description: "Versão (ex.: 1.0.1)"
+        required: true
+
+concurrency:
+  group: desktop-release-${{ github.ref }}
+  cancel-in-progress: false
 
 jobs:
-  build-tauri:
+  build:
+    name: Instalador (${{ matrix.platform }})
     permissions:
       contents: write
     strategy:
       fail-fast: false
       matrix:
         include:
-          - platform: "macos-latest"
+          - platform: macos-latest
             args: "--target universal-apple-darwin"
-          - platform: "windows-latest"
+          - platform: windows-latest
             args: ""
-
+          - platform: ubuntu-22.04
+            args: ""
     runs-on: ${{ matrix.platform }}
 
     steps:
       - uses: actions/checkout@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - name: Dependências do sistema (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev patchelf
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - uses: actions/setup-node@v4
         with:
           node-version: 22
 
-      - name: Install Rust stable
-        uses: dtolnay/rust-toolchain@stable
+      - uses: dtolnay/rust-toolchain@stable
         with:
-          targets: ${{ matrix.platform == 'macos-latest' && 'aarch64-apple-darwin,x86_64-apple-darwin' || '' }}
+          targets: ${{ runner.os == 'macOS' && 'aarch64-apple-darwin,x86_64-apple-darwin' || '' }}
 
-      - name: Rust cache
-        uses: swatinem/rust-cache@v2
+      - uses: swatinem/rust-cache@v2
         with:
           workspaces: "./src-tauri -> target"
 
-      - name: Install frontend dependencies
-        run: npm install --legacy-peer-deps
+      # Só para a CLI do Tauri (devDependency). A app abre o SIGA publicado: o site
+      # não se constrói aqui (`beforeBuildCommand` vazio, `frontendDist` = src-tauri/shell).
+      - name: Dependências (bun)
+        run: bun install --frozen-lockfile
 
-      - name: Build Desktop App
+      - name: Configuração da versão
+        env:
+          VERSION: ${{ inputs.version }}
+          UPDATER_PUBKEY: ${{ vars.TAURI_UPDATER_PUBKEY }}
+          HAS_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY != '' }}
+          REPO: ${{ github.repository }}
+        run: node scripts/desktop/release-config.mjs
+
+      - name: Construir e juntar ao rascunho
         uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # Assinatura das actualizações (opcional até existir a chave).
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         with:
-          tagName: v__VERSION__
-          releaseName: "SIGA Desktop v__VERSION__"
-          releaseBody: "Verifique as alterações para a versão nativa do SIGA."
+          tauriScript: bun run tauri
+          tagName: desktop-v__VERSION__
+          releaseName: "SIGA Desktop __VERSION__"
+          releaseBody: |
+            Instaladores da app desktop do SIGA.
+            - Windows: ficheiro `.msi` ou `-setup.exe`
+            - macOS (Intel e Apple Silicon): ficheiro `.dmg`
+            - Linux: `.AppImage`, `.deb` ou `.rpm`
           releaseDraft: true
           prerelease: false
-          args: ${{ matrix.args }}
+          includeUpdaterJson: true
+          args: ${{ matrix.args }} --config src-tauri/tauri.release.conf.json

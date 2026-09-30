@@ -9,24 +9,33 @@ export interface NativeUpdateInfo {
   body?: string;
 }
 
-function isNativeUpdaterEnabled(): boolean {
-  return import.meta.env["VITE_SIGA_NATIVE_UPDATER_ENABLED"] === "true";
+/**
+ * O updater só existe nas versões publicadas com chave de assinatura: o Rust só regista
+ * o plugin quando o `tauri.conf.json` traz `plugins.updater` (o workflow
+ * `desktop-release.yml` acrescenta-o quando há `TAURI_UPDATER_PUBKEY`). Sem ele, o
+ * `check()` falha com "plugin not found" — isso quer dizer "não configurado", não erro.
+ *
+ * Antes dependia de `VITE_SIGA_NATIVE_UPDATER_ENABLED`, uma variável da build web: como a
+ * app abre o SIGA publicado, era o site que decidia, e a variável nunca foi definida.
+ */
+async function checkOrNull() {
+  const { check } = await import("@tauri-apps/plugin-updater");
+  try {
+    return { configured: true, update: await check() };
+  } catch (error) {
+    if (/not found|not allowed|plugin/i.test(String(error))) {
+      return { configured: false, update: null };
+    }
+    throw error;
+  }
 }
 
-/**
- * Consulta atualizações apenas quando o updater nativo foi explicitamente ativado.
- *
- * A ativação exige também `plugins.updater.pubkey`, `plugins.updater.endpoints`
- * e artefactos assinados no pipeline de release. Enquanto essa infraestrutura
- * não estiver configurada, esta função não faz chamadas de rede nem falha o app.
- */
+/** Consulta se há versão nova. Fora da app, ou sem updater configurado, não faz nada. */
 export async function checkNativeUpdate(): Promise<NativeUpdateInfo> {
-  if (!isTauri() || !isNativeUpdaterEnabled()) {
-    return { configured: false, available: false };
-  }
+  if (!isTauri()) return { configured: false, available: false };
 
-  const { check } = await import("@tauri-apps/plugin-updater");
-  const update = await check();
+  const { configured, update } = await checkOrNull();
+  if (!configured) return { configured: false, available: false };
 
   if (!update) {
     return { configured: true, available: false };
@@ -48,10 +57,9 @@ export async function checkNativeUpdate(): Promise<NativeUpdateInfo> {
  * Em macOS/Linux, a execução continua e o SIGA relança explicitamente o app.
  */
 export async function installNativeUpdate(): Promise<boolean> {
-  if (!isTauri() || !isNativeUpdaterEnabled()) return false;
+  if (!isTauri()) return false;
 
-  const { check } = await import("@tauri-apps/plugin-updater");
-  const update = await check();
+  const { update } = await checkOrNull();
   if (!update) return false;
 
   await update.downloadAndInstall();

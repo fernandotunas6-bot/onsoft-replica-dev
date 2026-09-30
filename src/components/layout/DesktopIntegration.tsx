@@ -12,6 +12,7 @@ const ZOOM_KEY = "siga:desktop-zoom";
  *    o webview não abre separadores e esses cliques ficavam sem resposta.
  *  - Exportações (`<a download>`) abrem o diálogo nativo "Guardar como" (desktop-downloads).
  *  - macOS: `window.print()` passa pelo comando Rust `print_page`.
+ *  - Versão nova publicada (updater assinado): aviso com "Instalar e reiniciar".
  *  - Atalhos: F5/Ctrl+R recarregar, Alt+←/→ histórico, Ctrl + / − / 0 zoom (lembrado).
  */
 export function DesktopIntegration() {
@@ -79,7 +80,35 @@ export function DesktopIntegration() {
 
     document.addEventListener("click", onClick, true);
     window.addEventListener("keydown", onKeyDown);
+
+    // Versão nova da app: avisa uma vez, 15 s depois de abrir. Só instala quando a
+    // pessoa carrega (nunca a meio de um trabalho por gravar).
+    const updateTimer = window.setTimeout(() => {
+      void import("@/lib/native-updater")
+        .then(async ({ checkNativeUpdate, installNativeUpdate }) => {
+          const info = await checkNativeUpdate();
+          if (!info.available) return;
+          const { toast } = await import("sonner");
+          toast.message(`Nova versão do SIGA (${info.version})`, {
+            description: "Grave o que estiver a fazer antes de instalar.",
+            duration: Infinity,
+            action: {
+              label: "Instalar e reiniciar",
+              onClick: () => {
+                void installNativeUpdate().catch((error) =>
+                  toast.error("Não foi possível instalar a actualização.", {
+                    description: error instanceof Error ? error.message : undefined,
+                  }),
+                );
+              },
+            },
+          });
+        })
+        .catch((error) => console.warn("[desktop] verificação de versão falhou", error));
+    }, 15_000);
+
     return () => {
+      window.clearTimeout(updateTimer);
       document.removeEventListener("click", onClick, true);
       window.removeEventListener("keydown", onKeyDown);
       window.open = originalOpen;

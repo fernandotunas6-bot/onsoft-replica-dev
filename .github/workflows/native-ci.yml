@@ -1,14 +1,22 @@
 name: SIGA Native CI
 
-# macOS/Windows runners are ~10× Linux cost. Keep them off feature PRs;
-# validate Tauri/Rust on main (and manual dispatch) only.
+# Linux em cada PR que toque na app desktop (barato). Windows e macOS custam ~10×:
+# só na main e à mão.
 on:
+  pull_request:
+    paths:
+      - "src-tauri/**"
+      - "scripts/desktop/**"
+      - ".github/workflows/native-ci.yml"
+      - ".github/workflows/desktop-release.yml"
   push:
     branches:
       - main
     paths:
-      - 'src-tauri/**'
-      - '.github/workflows/native-ci.yml'
+      - "src-tauri/**"
+      - "scripts/desktop/**"
+      - ".github/workflows/native-ci.yml"
+      - ".github/workflows/desktop-release.yml"
   workflow_dispatch:
 
 concurrency:
@@ -16,74 +24,57 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  linux:
+    name: Rust (Linux) — testes, clippy e arranque
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Dependências do sistema
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
+
+      - uses: swatinem/rust-cache@v2
+        with:
+          workspaces: "./src-tauri -> target"
+
+      # A app embute só a página de arranque (o SIGA é SSR e abre-se publicado).
+      - name: Página de arranque presente
+        run: |
+          test -f src-tauri/shell/index.html
+          grep -q 'SIGA_DESKTOP_URL = "https://portal-siga.com/"' src-tauri/shell/index.html
+
+      # O build valida também as permissões (build.rs + capabilities/allow-*).
+      - name: Testes
+        working-directory: src-tauri
+        run: cargo test --locked
+
+      - name: Clippy
+        working-directory: src-tauri
+        run: cargo clippy --locked --all-targets
+
   rust-check:
     name: Rust check (${{ matrix.os }})
+    if: github.event_name != 'pull_request'
     strategy:
       fail-fast: false
       matrix:
         os: [windows-latest, macos-latest]
     runs-on: ${{ matrix.os }}
-
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Install Rust stable
-        uses: dtolnay/rust-toolchain@stable
+      - uses: dtolnay/rust-toolchain@stable
 
-      - name: Cache Rust
-        uses: swatinem/rust-cache@v2
+      - uses: swatinem/rust-cache@v2
         with:
-          workspaces: './src-tauri -> target'
-
-      - name: Report Cargo lockfile state
-        shell: bash
-        run: |
-          if [ -f src-tauri/Cargo.lock ]; then
-            echo 'src-tauri/Cargo.lock present: reproducible Cargo resolution enabled.'
-          else
-            echo '::warning::src-tauri/Cargo.lock is missing. Compile validation will resolve dependencies dynamically; add and commit the lockfile before release.'
-          fi
+          workspaces: "./src-tauri -> target"
 
       - name: Cargo check
         working-directory: src-tauri
-        run: cargo check
-
-  frontend-build:
-    name: Frontend build for Tauri
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup Bun
-        uses: oven-sh/setup-bun@v2
-        with:
-          bun-version: latest
-
-      - name: Check Bun lockfile consistency
-        id: bun-lock
-        continue-on-error: true
-        run: bun install --frozen-lockfile
-
-      - name: Report Bun lockfile drift
-        if: steps.bun-lock.outcome == 'failure'
-        run: echo '::warning::bun.lock is out of sync with package.json. Installing without --frozen-lockfile only to continue native build validation.'
-
-      - name: Install dependencies for compile validation
-        if: steps.bun-lock.outcome == 'failure'
-        run: bun install
-
-      - name: Build frontend
-        run: bun run build
-
-      - name: Verify Tauri frontendDist
-        shell: bash
-        run: |
-          test -d .output/public || {
-            echo 'Expected Tauri frontendDist .output/public was not generated.'
-            echo 'Generated top-level directories:'
-            find . -maxdepth 2 -type d | sort | head -120
-            exit 1
-          }
+        run: cargo check --locked

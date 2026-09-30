@@ -61,12 +61,21 @@ description: >-
   Tauri com HTML e CSP próprios, apagada da memória quando a janela fecha. Usar para
   qualquer janela nova com conteúdo gerado pela app.
 
+- **Publicar versões**: `desktop-release.yml` (tag `desktop-v1.2.3` ou à mão) → rascunho
+  com Windows, macOS universal e Linux. `scripts/desktop/release-config.mjs` põe a versão
+  da tag e, só com `TAURI_UPDATER_PUBKEY` + `TAURI_SIGNING_PRIVATE_KEY`, o updater
+  (`latest.json` da release publicada). Guia do dono: `docs/desktop/PUBLICAR_VERSOES.md`.
+  A app verifica versões 15 s depois de abrir e só instala quando a pessoa carrega
+  ("Instalar e reiniciar"). Versão nova da app só quando muda `src-tauri/`.
+- `native-ci.yml`: Linux (testes, clippy, build com validação das permissões) em PRs
+  que toquem na app; Windows/macOS `cargo check` só na main.
+
 ## Verificar
 - `cd src-tauri && cargo build` e correr `./target/debug/siga-desktop` (Linux: `xvfb-run`).
 - Testar um comando na app real sem login: `TAURI_CONFIG='{"build":{"devUrl":"http://localhost:8765/teste.html"}}' cargo build`
   e uma página local que chame `window.__TAURI_INTERNALS__.invoke(...)`.
-- Em falta: pipeline de releases assinadas (updater); offline-first com fila local;
-  testar em macOS e Windows reais.
+- Em falta: chave de assinatura (dono, ver guia); offline-first com fila local;
+  testar em macOS e Windows reais; assinatura de código Windows/Apple (opcional).
 
 ## Janelas e produtividade
 - Janela principal + janelas secundárias (pauta, recibo, impressão) com estado lembrado (tamanho/posição).
