@@ -19,13 +19,39 @@ o cursor). Só CSS e SVG de ícones: sem vídeo nem imagens, não pesa no carreg
 | Primeiro uso (activar) | SIGA → «Arranque da escola» | O guia usa o mesmo fundo: a escola reconhece o sítio de onde veio e o guia destaca-se do resto do painel. Pronto → peça de vidro com visto. |
 | Voltar (reter) | E-mails de fim do período experimental e de registo por concluir | Faixa com o gradiente da marca (os e-mails não animam). |
 
+## Tons por área
+
+Um tom por área, escolhido pelo caminho da página (`src/lib/area-tone.ts`) e aplicado uma vez
+em `<html data-tone>` (`__root.tsx`). As cores vêm só de `[data-tone=…]` em `styles.css`: mesma
+luminosidade e saturação para todos, muda só a tonalidade.
+
+| Tom | Áreas | Cor |
+| --- | --- | --- |
+| `marca` | Painel, site, registo | azul → violeta |
+| `pedagogica` | Pedagógica, professores, planos de aula, calendário, relatórios académicos | violeta → magenta |
+| `financeiro` | Financeiro, faturas, tesouraria, relatórios financeiros; página de preços do site | verde → turquesa |
+| `secretaria` | Alunos, pessoas, matrículas, documentos, acessos, importação | azul-céu |
+| `rh` | RH e folha salarial, presença dos professores | âmbar |
+| `comunicacao` | Comunicações, arquivos, alumni | rosa → fúcsia |
+| `sistema` | Configurações, perfil, assinatura | índigo acinzentado |
+
+Onde o tom aparece:
+
+- **Cabeçalho de todas as páginas do SIGA** (`PageHeader`): brilho suave por trás do título.
+- **Texto em gradiente** (`.text-aurora`): no máximo uma palavra ou expressão por título
+  principal — «completa», «a trabalhar», «trabalhar todos os dias», «da sua escola», «sua escola»,
+  o nome na saudação do painel e «Arranque». Nunca em títulos de páginas de trabalho.
+
 ## Regras
 
 - Decorativo: `aria-hidden`, sem eventos; o conteúdo continua legível sem ele.
 - `prefers-reduced-motion`: tudo parado. Ecrãs tácteis: sem paralaxe, desfoque mais leve.
 - Sem estado React na paralaxe (variáveis CSS num `requestAnimationFrame`).
 - No telemóvel, as peças de vidro do topo não aparecem por cima do título.
-- Não usar em ecrãs de trabalho diário (notas, caixa, pautas): lá o foco é a tarefa.
+- Não usar o fundo Aurora em ecrãs de trabalho diário (notas, caixa, pautas): lá o foco é a
+  tarefa. Nesses ecrãs só existe o brilho do cabeçalho.
+- Nada de novos tons por página: uma área nova entra em `area-tone.ts` com um dos sete tons.
+- O texto em gradiente anima em 9 s e o brilho em 16 s: movimento que se nota, não que chama.
 
 ## Como medir
 

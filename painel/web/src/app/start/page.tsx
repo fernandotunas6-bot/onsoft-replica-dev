@@ -723,7 +723,9 @@ export function StartSchoolWizard() {
       <aside className="hidden lg:flex lg:flex-col lg:gap-6">
         <div>
           <p className="text-xs uppercase tracking-wide text-muted-foreground">Nova escola</p>
-          <h1 className="mt-1 text-2xl font-semibold tracking-tight">Criar a sua escola</h1>
+          <h1 className="mt-1 text-2xl font-semibold tracking-tight">
+            Criar a <span className="text-aurora">sua escola</span>
+          </h1>
           <p className="mt-2 text-sm text-muted-foreground">
             Cerca de cinco minutos. A escola fica pronta a usar no fim.
           </p>

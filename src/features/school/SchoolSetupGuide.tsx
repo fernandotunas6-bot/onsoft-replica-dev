@@ -141,7 +141,7 @@ export function SchoolSetupGuide() {
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="min-w-0">
             <h2 id="setup-guide-title" className="text-sm font-bold">
-              Arranque da escola
+              <span className="text-aurora">Arranque</span> da escola
             </h2>
             <p className="mt-0.5 text-xs text-muted-foreground">
               {guide.completed} de {guide.total} passos feitos. A ordem segue o que cada passo

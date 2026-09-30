@@ -229,7 +229,7 @@ export function AdminPortalDashboard({
             </span>
           </div>
           <h1 className="mt-1 font-display text-xl sm:text-2xl font-bold tracking-tight text-foreground">
-            {greeting}, {currentUser.name.split(" ")[0]}
+            {greeting}, <span className="text-aurora">{currentUser.name.split(" ")[0]}</span>
           </h1>
           <p className="mt-0.5 text-xs text-muted-foreground capitalize">
             {now

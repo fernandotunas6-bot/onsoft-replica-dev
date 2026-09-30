@@ -42,7 +42,7 @@ export function HeroSection() {
 
           <h1 className="mb-6 text-4xl font-bold tracking-tight sm:text-6xl lg:text-7xl">
             Gestão escolar
-            <span className="bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
+            <span className="text-aurora">
               {" "}completa{" "}
             </span>
             para a sua instituição

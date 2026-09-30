@@ -9,15 +9,19 @@ import { cn } from "@/lib/utils";
 export function Aurora({
   variant = "hero",
   fade = true,
+  tone,
   className,
 }: {
   variant?: "hero" | "soft";
+  /** Tom da área (`[data-tone]` no CSS). Sem tom, herda o da página (ou a marca). */
+  tone?: "marca" | "pedagogica" | "financeiro" | "secretaria" | "rh" | "comunicacao" | "sistema";
   fade?: boolean;
   className?: string;
 }) {
   return (
     <div
       aria-hidden="true"
+      data-tone={tone}
       className={cn("aurora", variant === "soft" && "aurora--soft", className)}
     >
       <span className="aurora__blob aurora__blob--a" />

@@ -7,14 +7,14 @@
   },
   {
     "id": 2,
-    "name": "Dados isolados",
-    "description": "Uma base, N escolas. Cada instituição vê só os seus alunos e pagamentos.",
+    "name": "Dados protegidos",
+    "description": "Cada escola vê só os seus alunos, notas e pagamentos. Contas com verificação em dois passos para quem administra.",
     "icon": "Shield"
   },
   {
     "id": 3,
     "name": "Arranque em minutos",
-    "description": "Crie a escola no WEB e comece a operar no SIGA no mesmo dia.",
+    "description": "Crie a escola, confirme o e-mail e entre logo no painel, com o calendário do MED e as classes já sugeridos.",
     "icon": "Zap"
   },
   {
@@ -26,13 +26,13 @@
   {
     "id": 5,
     "name": "Suporte em português",
-    "description": "Manuais no DOC e contacto no portal comercial, no idioma da escola.",
+    "description": "Manuais passo a passo e ajuda por WhatsApp e e-mail, no idioma da escola.",
     "icon": "Headphones"
   },
   {
     "id": 6,
-    "name": "Métricas SaaS",
-    "description": "O ADMIN mostra alunos, trials e estado das escolas clientes.",
-    "icon": "Clock"
+    "name": "Tudo à vista do director",
+    "description": "Alunos, turmas, pagamentos em atraso e o dia na escola num só painel.",
+    "icon": "LayoutDashboard"
   }
 ]

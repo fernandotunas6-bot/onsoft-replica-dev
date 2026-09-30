@@ -61,7 +61,7 @@ describe("guia de arranque no painel", () => {
 
   it("escola nova: destaca o primeiro passo e mostra o plano experimental", async () => {
     await renderGuide(NOVA);
-    expect(await screen.findByText("Arranque da escola")).toBeTruthy();
+    expect(await screen.findByRole("heading", { name: "Arranque da escola" })).toBeTruthy();
     expect(screen.getByText("Próximo passo")).toBeTruthy();
     expect(screen.getAllByText("Confirmar os dados da escola").length).toBeGreaterThan(0);
     expect(screen.getByText(/Plano Professional · experimental até 14\/10\/2026/)).toBeTruthy();
