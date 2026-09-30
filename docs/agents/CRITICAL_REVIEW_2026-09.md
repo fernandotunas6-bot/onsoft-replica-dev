@@ -81,6 +81,8 @@ com o que a equipa realmente mantém neste repositório.
   2026-09-30.
 - Medir FCP/INP nas páginas de pautas, avaliações e financeiro e carregar sob demanda
   os gráficos, PDF e Excel.
+  Carregamento sob demanda verificado e protegido por teste (2026-09-30): só o painel
+  inicial trazia o recharts no pacote, corrigido. Falta medir FCP/INP.
 
 **Vigiar**
 

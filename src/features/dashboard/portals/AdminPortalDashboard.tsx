@@ -24,7 +24,7 @@ import { useInstalledIntegrations } from "@/features/integrations/use-installed-
 import { InstalledModuleTools } from "@/features/integrations/InstalledModuleTools";
 import { DisciplinePerformanceHeatmap } from "@/features/dashboard/components/DisciplinePerformanceHeatmap";
 import { CashFlowForecastChart } from "@/features/dashboard/components/CashFlowForecastChart";
-import { DashboardChartsSkeleton } from "@/features/dashboard/DashboardCharts";
+import { DashboardChartsSkeleton } from "@/features/dashboard/DashboardChartsSkeleton";
 import { overlayServico } from "@/features/documents/print-overlays";
 import { issuePrintDocument } from "@/features/documents/print-issue-loader";
 import { Button } from "@/components/ui/button";

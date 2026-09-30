@@ -37,7 +37,6 @@ import { warmDashboardCharts } from "@/lib/warm-charts";
 import { schoolYear as fallbackSchoolYear } from "@/lib/school-config";
 import { canAccessPath } from "@/features/auth/access-policy";
 import { TeacherWorkspaceHint } from "@/features/academic/TeacherWorkspacePanel";
-import { DashboardChartsSkeleton } from "@/features/dashboard/DashboardCharts";
 import { resolvePortalMode } from "@/features/auth/portal-engine";
 import { StudentPortalDashboard } from "@/features/dashboard/portals/StudentPortalDashboard";
 import { GuardianPortalDashboard } from "@/features/dashboard/portals/GuardianPortalDashboard";

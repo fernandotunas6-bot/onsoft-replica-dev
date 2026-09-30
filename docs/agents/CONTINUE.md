@@ -4,6 +4,19 @@ Ler isto **antes** de alterar código. Ecossistema (5 apps):
 [ARCHITECTURE_HARMONIZATION.md](./ARCHITECTURE_HARMONIZATION.md).
 Depois abrir o skill do módulo em `.cursor/skills/`.
 
+## Painel inicial sem recharts no pacote da página (2026-09-30)
+
+- `routes/index.tsx` e `AdminPortalDashboard.tsx` importavam `DashboardChartsSkeleton`
+  estaticamente de `DashboardCharts.tsx`: o `lazy()` dos gráficos não servia e o
+  recharts (~110 KB gzip: `BarChart`, `PieChart`, `DashboardCharts`) ia no pacote do
+  painel, a primeira página depois de entrar. O esqueleto passou para
+  `DashboardChartsSkeleton.tsx`; no `index.tsx` o import nem era usado.
+- Guarda: `tests/architecture/heavy-libs-lazy.test.ts` — recharts, jspdf, exceljs e
+  html2canvas só podem ser importados pelos módulos da lista, e esses só com `import()`
+  (ou `import type`). Ao criar um novo gráfico/exportador, acrescentá-lo à lista.
+- Os restantes gráficos, o PDF (`export-pdf-loader`) e o Excel (importador no
+  servidor) já eram carregados sob demanda.
+
 ## Centro de Avaliação: cálculo fora do componente (2026-09-30)
 
 - O cálculo das linhas de `AssessmentCenter.tsx` (MAC/NPP/NPT, média pelo modelo

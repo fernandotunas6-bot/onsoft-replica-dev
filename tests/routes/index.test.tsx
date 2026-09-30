@@ -89,7 +89,6 @@ vi.mock("@/features/spotlight/server", () => ({
 vi.mock("@/features/dashboard/DashboardCharts", () => ({
   DashboardCharts: () => <div data-testid="dashboard-charts-mock" />,
   DashboardAgeChart: () => <div data-testid="dashboard-age-chart-mock" />,
-  DashboardChartsSkeleton: () => <div />,
 }));
 
 vi.mock("@/features/dashboard/components/CashFlowForecastChart", () => ({
