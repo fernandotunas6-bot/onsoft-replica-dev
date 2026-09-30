@@ -23,7 +23,8 @@ function layout(input: {
 <html lang="pt"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>${escapeHtml(input.title)}</title></head>
 <body style="margin:0; padding:24px 12px; background:#f1f5f9; font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td align="center">
-    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:560px; background:#ffffff; border:1px solid #e2e8f0; border-radius:14px;">
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:560px; background:#ffffff; border:1px solid #e2e8f0; border-radius:14px; overflow:hidden;">
+      <tr><td style="height:8px; line-height:8px; font-size:0; background-color:#6d5dfc; background-image:linear-gradient(90deg, #4f7cff, #8b5cf6, #c4b5fd);">&nbsp;</td></tr>
       <tr><td style="padding:28px 28px 8px;">
         <p style="margin:0 0 6px; font-size:12px; letter-spacing:.04em; text-transform:uppercase; color:#64748b;">${escapeHtml(input.platformName)}</p>
         <h1 style="margin:0 0 18px; font-size:20px; line-height:1.3; color:#0f172a;">${escapeHtml(input.title)}</h1>

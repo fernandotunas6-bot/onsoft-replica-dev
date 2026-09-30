@@ -3,6 +3,7 @@ import { Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { ArrowRight, Check, ChevronDown, ChevronUp, Circle, CreditCard, Lock } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Aurora, GlassTile } from "@/components/brand/aurora";
 import { cn } from "@/lib/utils";
 import { openSettingsPanel } from "@/lib/settings-deep-link";
 import { getSchoolSetupGuide, type SchoolSetupOverview } from "./setup-guide-server";
@@ -110,8 +111,12 @@ export function SchoolSetupGuide() {
   if (guide.ready) {
     return (
       <section className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-success/30 bg-success/5 p-4">
-        <div className="flex items-center gap-2 text-sm">
-          <Check className="size-4 text-success" />
+        <div className="flex items-center gap-3 text-sm">
+          <span className="relative size-10 shrink-0" aria-hidden="true">
+            <GlassTile tone="sky" size={40} tilt={-8} depth={0} className="left-0 top-0">
+              <Check className="size-5 drop-shadow" strokeWidth={3} />
+            </GlassTile>
+          </span>
           <span className="font-semibold">A escola está pronta a operar.</span>
           <span className="text-muted-foreground">Todos os passos de arranque estão feitos.</span>
         </div>
@@ -128,127 +133,131 @@ export function SchoolSetupGuide() {
   return (
     <section
       aria-labelledby="setup-guide-title"
-      className="rounded-xl border border-primary/20 bg-primary/5 p-4 sm:p-5"
+      className="relative overflow-hidden rounded-xl border border-primary/20 p-4 sm:p-5"
     >
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div className="min-w-0">
-          <h2 id="setup-guide-title" className="text-sm font-bold">
-            Arranque da escola
-          </h2>
-          <p className="mt-0.5 text-xs text-muted-foreground">
-            {guide.completed} de {guide.total} passos feitos. A ordem segue o que cada passo precisa
-            do anterior.
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          <SubscriptionLine subscription={guide.subscription} />
-          <Button
-            type="button"
-            size="sm"
-            variant="ghost"
-            aria-expanded={current !== "min"}
-            onClick={() => choose(current === "min" ? "open" : "min")}
-          >
-            {current === "min" ? (
-              <>
-                Mostrar <ChevronDown className="size-3.5" />
-              </>
-            ) : (
-              <>
-                Minimizar <ChevronUp className="size-3.5" />
-              </>
-            )}
-          </Button>
-        </div>
-      </div>
-
-      <div
-        className="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-primary/10"
-        role="progressbar"
-        aria-valuemin={0}
-        aria-valuemax={100}
-        aria-valuenow={percent}
-        aria-label="Progresso do arranque"
-      >
-        <div
-          className="h-full rounded-full bg-primary transition-all"
-          style={{ width: `${percent}%` }}
-        />
-      </div>
-
-      {next ? (
-        <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-primary/30 bg-card p-3">
+      {/* Mesmo fundo da marca que o site: a escola reconhece o sítio de onde veio. */}
+      <Aurora variant="soft" fade={false} />
+      <div className="relative">
+        <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="min-w-0">
-            <p className="text-[11px] font-semibold uppercase tracking-wide text-primary">
-              Próximo passo
+            <h2 id="setup-guide-title" className="text-sm font-bold">
+              Arranque da escola
+            </h2>
+            <p className="mt-0.5 text-xs text-muted-foreground">
+              {guide.completed} de {guide.total} passos feitos. A ordem segue o que cada passo
+              precisa do anterior.
             </p>
-            <p className="text-sm font-semibold">{next.title}</p>
-            <p className="text-xs text-muted-foreground">{next.why}</p>
           </div>
-          <StepAction step={next} primary />
+          <div className="flex items-center gap-2">
+            <SubscriptionLine subscription={guide.subscription} />
+            <Button
+              type="button"
+              size="sm"
+              variant="ghost"
+              aria-expanded={current !== "min"}
+              onClick={() => choose(current === "min" ? "open" : "min")}
+            >
+              {current === "min" ? (
+                <>
+                  Mostrar <ChevronDown className="size-3.5" />
+                </>
+              ) : (
+                <>
+                  Minimizar <ChevronUp className="size-3.5" />
+                </>
+              )}
+            </Button>
+          </div>
         </div>
-      ) : null}
 
-      {current === "min" ? null : (
-        <div className="mt-4 grid gap-4 lg:grid-cols-2">
-          {PHASES.map((phase) => {
-            const steps = guide.steps.filter((step) => step.phase === phase);
-            if (!steps.length) return null;
-            return (
-              <div key={phase}>
-                <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
-                  {phase}
-                </p>
-                <ol className="grid gap-1.5">
-                  {steps.map((step) => {
-                    const blocked = !step.done && step.blockedBy.length > 0;
-                    return (
-                      <li
-                        key={step.id}
-                        className={cn(
-                          "flex items-start gap-2.5 rounded-lg border border-border/60 bg-card p-2.5",
-                          step.id === guide.nextStepId && "border-primary/40",
-                        )}
-                      >
-                        <span className="mt-0.5 shrink-0" aria-hidden="true">
-                          {step.done ? (
-                            <Check className="size-4 text-success" />
-                          ) : blocked ? (
-                            <Lock className="size-4 text-muted-foreground" />
-                          ) : (
-                            <Circle className="size-4 text-muted-foreground" />
-                          )}
-                        </span>
-                        <div className="min-w-0 flex-1">
-                          <p className={cn("text-sm", step.done && "text-muted-foreground")}>
-                            {step.title}
-                            {step.optional ? (
-                              <span className="ml-1.5 text-[11px] text-muted-foreground">
-                                (opcional)
-                              </span>
-                            ) : null}
-                            <span className="sr-only">
-                              {step.done ? " — feito" : blocked ? " — bloqueado" : " — por fazer"}
-                            </span>
-                          </p>
-                          <p className="text-xs text-muted-foreground">
-                            {blocked
-                              ? `Primeiro: ${step.blockedBy.map((id) => setupStepTitle(guide, id)).join(" e ")}.`
-                              : step.detail}
-                          </p>
-                        </div>
-                        {!step.done && !blocked && step.id !== guide.nextStepId ? (
-                          <StepAction step={step} />
-                        ) : null}
-                      </li>
-                    );
-                  })}
-                </ol>
-              </div>
-            );
-          })}
+        <div
+          className="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-primary/10"
+          role="progressbar"
+          aria-valuemin={0}
+          aria-valuemax={100}
+          aria-valuenow={percent}
+          aria-label="Progresso do arranque"
+        >
+          <div
+            className="h-full rounded-full bg-primary transition-all"
+            style={{ width: `${percent}%` }}
+          />
         </div>
-      )}
+
+        {next ? (
+          <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-primary/30 bg-card p-3">
+            <div className="min-w-0">
+              <p className="text-[11px] font-semibold uppercase tracking-wide text-primary">
+                Próximo passo
+              </p>
+              <p className="text-sm font-semibold">{next.title}</p>
+              <p className="text-xs text-muted-foreground">{next.why}</p>
+            </div>
+            <StepAction step={next} primary />
+          </div>
+        ) : null}
+
+        {current === "min" ? null : (
+          <div className="mt-4 grid gap-4 lg:grid-cols-2">
+            {PHASES.map((phase) => {
+              const steps = guide.steps.filter((step) => step.phase === phase);
+              if (!steps.length) return null;
+              return (
+                <div key={phase}>
+                  <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                    {phase}
+                  </p>
+                  <ol className="grid gap-1.5">
+                    {steps.map((step) => {
+                      const blocked = !step.done && step.blockedBy.length > 0;
+                      return (
+                        <li
+                          key={step.id}
+                          className={cn(
+                            "flex items-start gap-2.5 rounded-lg border border-border/60 bg-card p-2.5",
+                            step.id === guide.nextStepId && "border-primary/40",
+                          )}
+                        >
+                          <span className="mt-0.5 shrink-0" aria-hidden="true">
+                            {step.done ? (
+                              <Check className="size-4 text-success" />
+                            ) : blocked ? (
+                              <Lock className="size-4 text-muted-foreground" />
+                            ) : (
+                              <Circle className="size-4 text-muted-foreground" />
+                            )}
+                          </span>
+                          <div className="min-w-0 flex-1">
+                            <p className={cn("text-sm", step.done && "text-muted-foreground")}>
+                              {step.title}
+                              {step.optional ? (
+                                <span className="ml-1.5 text-[11px] text-muted-foreground">
+                                  (opcional)
+                                </span>
+                              ) : null}
+                              <span className="sr-only">
+                                {step.done ? " — feito" : blocked ? " — bloqueado" : " — por fazer"}
+                              </span>
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              {blocked
+                                ? `Primeiro: ${step.blockedBy.map((id) => setupStepTitle(guide, id)).join(" e ")}.`
+                                : step.detail}
+                            </p>
+                          </div>
+                          {!step.done && !blocked && step.id !== guide.nextStepId ? (
+                            <StepAction step={step} />
+                          ) : null}
+                        </li>
+                      );
+                    })}
+                  </ol>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
     </section>
   );
 }

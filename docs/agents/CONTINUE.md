@@ -4,6 +4,14 @@ Ler isto **antes** de alterar código. Ecossistema (5 apps):
 [ARCHITECTURE_HARMONIZATION.md](./ARCHITECTURE_HARMONIZATION.md).
 Depois abrir o skill do módulo em `.cursor/skills/`.
 
+## Visual «Aurora» da marca (2026-09-30)
+
+Ver [docs/design/VISUAL_AURORA.md](../design/VISUAL_AURORA.md). Fundo animado azul→violeta,
+peças de vidro com paralaxe, mascote com olhos e telemóvel com o SIGA em demonstração.
+Aplicado: topo e chamada final da página inicial, `/start`, «está criada», guia de arranque do
+SIGA, faixa nos e-mails. Estilos em `@layer components` (senão sobrepõem o `hidden` do
+Tailwind). Capturas verificadas em claro, escuro e telemóvel.
+
 ## Arranque: MED, modelos de estrutura, e-mail confirmado, pagamentos e desistências (2026-09-30)
 
 Detalhe em [docs/provisioning/ARRANQUE_ESCOLA.md](../provisioning/ARRANQUE_ESCOLA.md) §4–7.

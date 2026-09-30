@@ -26,6 +26,7 @@ import {
 } from "@/components/ui/select"
 import { MarketingFormPage } from "@/components/marketing/marketing-form-page"
 import { EmailVerification } from "./email-verification"
+import { GlassTile, SigaMascot } from "@/components/brand/aurora"
 import { ANGOLA_PROVINCES, SCHOOL_TYPES } from "@/lib/angola"
 import { cn } from "@/lib/utils"
 import { ECOSYSTEM_URLS, PLATFORM_DOMAIN } from "@/lib/ecosystem-urls"
@@ -563,8 +564,12 @@ export function StartSchoolWizard() {
     return (
       <Card className="mx-auto w-full max-w-xl">
         <CardHeader className="text-center">
-          <div className="mx-auto mb-2 flex h-12 w-12 items-center justify-center rounded-full bg-emerald-500/10">
-            <Check className="h-6 w-6 text-emerald-600" />
+          {/* Celebração: a mascote recebe a escola nova (decorativo). */}
+          <div className="relative mx-auto mb-3 h-24 w-40" aria-hidden="true">
+            <GlassTile tone="sky" size={64} tilt={-10} depth={6} className="left-2 top-4">
+              <Check className="size-8 drop-shadow" strokeWidth={3} />
+            </GlassTile>
+            <SigaMascot size={80} tilt={8} className="right-2 top-0" />
           </div>
           <CardTitle className="text-xl font-semibold tracking-tight">
             {values.name} está criada
@@ -1314,7 +1319,7 @@ function Row({ label, value }: { label: string; value: string }) {
 
 export default function StartSchoolPage() {
   return (
-    <MarketingFormPage maxWidth="5xl">
+    <MarketingFormPage maxWidth="5xl" aurora>
       <StartSchoolWizard />
     </MarketingFormPage>
   )
