@@ -37,4 +37,17 @@ describe("modelos de impressão sem código activo", () => {
     );
     expect(studio).toMatch(/sandbox=""/);
   });
+
+  it("na app desktop (macOS) o documento abre servido sem scripts e sem permissões Tauri", () => {
+    const rust = readFileSync(join(process.cwd(), "src-tauri/src/lib.rs"), "utf8");
+    const csp = rust.match(/const PRINT_CSP: &str = "([^;]+;[\s\S]*?)";/)?.[1] ?? "";
+    expect(csp).toContain("default-src 'none'");
+    expect(csp).toContain("script-src 'none'");
+    expect(rust).toMatch(/header\("Content-Security-Policy", PRINT_CSP\)/);
+    // As janelas de impressão ("print-…") não entram em nenhuma capability.
+    const capability = JSON.parse(
+      readFileSync(join(process.cwd(), "src-tauri/capabilities/default.json"), "utf8"),
+    ) as { windows: string[] };
+    expect(capability.windows).toEqual(["main"]);
+  });
 });

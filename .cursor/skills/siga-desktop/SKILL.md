@@ -44,17 +44,20 @@ description: >-
   "Guardar como" nativo — comando `save_file`: bytes no corpo, nome em `x-file-name`;
   o diálogo abre no Rust e só se escreve no caminho que a pessoa escolheu.
 - **Impressão**: no macOS o `window.print()` do WKWebView não faz nada → comando
-  `print_page`. Windows/Linux usam o do webview. Os documentos oficiais
-  (`printOfficialHtml`) continuam no iframe sem scripts.
+  `print_page`. Windows/Linux usam o do webview.
+- **Documentos oficiais** (`printOfficialHtml`): no browser, Windows e Linux, iframe com
+  `sandbox` sem scripts. No macOS (o `iframe.print()` não funciona no WKWebView) → comando
+  `print_html`: janela "Imprimir — SIGA" (`print-<id>`) servida pelo protocolo
+  `sigaprint://` com `script-src 'none'` (`PRINT_CSP`), sem capability, e diálogo nativo ao
+  carregar. Verificado na app real (Linux): modelo com `<script>` e `onerror` — nada corre.
+  Fechar só esconde a janela `main`; as de impressão fecham de verdade.
 
 ## Verificar
 - `cd src-tauri && cargo build` e correr `./target/debug/siga-desktop` (Linux: `xvfb-run`).
 - Testar um comando na app real sem login: `TAURI_CONFIG='{"build":{"devUrl":"http://localhost:8765/teste.html"}}' cargo build`
   e uma página local que chame `window.__TAURI_INTERNALS__.invoke(...)`.
 - Em falta: pipeline de releases assinadas (updater); offline-first com fila local;
-  documentos oficiais no macOS (`iframe.print()` não funciona no WKWebView — precisa de
-  janela de pré-visualização própria, com o HTML sem scripts); POST com `target=_blank`
-  (PayFlow SSO) dentro da app.
+  POST com `target=_blank` (PayFlow SSO) dentro da app; testar em macOS e Windows reais.
 
 ## Janelas e produtividade
 - Janela principal + janelas secundárias (pauta, recibo, impressão) com estado lembrado (tamanho/posição).

@@ -10,6 +10,7 @@ fn main() {
             "print_thermal_receipt_native",
             "save_file",
             "print_page",
+            "print_html",
         ]),
     ))
     .expect("falha no tauri-build");

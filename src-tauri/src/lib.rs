@@ -213,6 +213,97 @@ fn print_page<R: tauri::Runtime>(webview: tauri::Webview<R>) -> Result<(), Strin
     webview.print().map_err(|e| format!("Não foi possível imprimir: {e}"))
 }
 
+/// Documentos à espera de impressão, servidos por `sigaprint://` (id → HTML).
+#[derive(Default)]
+struct PrintDocs(std::sync::Mutex<std::collections::HashMap<String, String>>);
+
+/// Política da janela de impressão: os modelos são editáveis pela escola, por isso nenhum
+/// script corre (um `<script>` num modelo não pode tocar em nada). Imagens, estilos e
+/// fontes podem vir de fora (logótipo da escola no armazenamento).
+const PRINT_CSP: &str = "default-src 'none'; script-src 'none'; img-src * data: blob:; \
+    style-src 'unsafe-inline' *; font-src * data:";
+
+/// Serve o HTML de um documento à janela de impressão.
+fn serve_print_doc<R: tauri::Runtime>(
+    app: &tauri::AppHandle<R>,
+    request: &tauri::http::Request<Vec<u8>>,
+) -> tauri::http::Response<Vec<u8>> {
+    let id = request.uri().path().trim_start_matches('/');
+    let html = app
+        .state::<PrintDocs>()
+        .0
+        .lock()
+        .ok()
+        .and_then(|docs| docs.get(id).cloned());
+    let builder = tauri::http::Response::builder()
+        .header("Content-Security-Policy", PRINT_CSP)
+        .header("Content-Type", "text/html; charset=utf-8");
+    match html {
+        Some(html) => builder.status(200).body(html.into_bytes()),
+        None => builder
+            .status(404)
+            .body("Documento já não está disponível.".as_bytes().to_vec()),
+    }
+    .unwrap_or_default()
+}
+
+/// Imprime um documento oficial numa janela de pré-visualização própria.
+///
+/// O `iframe.print()` que o SIGA usa no browser não funciona no WKWebView (macOS). Aqui o
+/// documento abre numa janela sem permissões Tauri, servido com `script-src 'none'`, e o
+/// diálogo de impressão nativo abre assim que carrega. Assíncrono: criar janelas num
+/// comando síncrono bloqueia no Windows.
+#[tauri::command]
+async fn print_html<R: tauri::Runtime>(
+    app: tauri::AppHandle<R>,
+    html: String,
+) -> Result<(), String> {
+    let id = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|d| d.as_millis())
+        .unwrap_or_default()
+        .to_string();
+    app.state::<PrintDocs>()
+        .0
+        .lock()
+        .map_err(|_| "Impressão indisponível.".to_string())?
+        .insert(id.clone(), html);
+
+    // Protocolos próprios: `http://<esquema>.localhost` no Windows, `<esquema>://` no resto.
+    let url = if cfg!(windows) {
+        format!("http://sigaprint.localhost/{id}")
+    } else {
+        format!("sigaprint://localhost/{id}")
+    };
+    let url = url.parse().map_err(|_| "Endereço de impressão inválido.".to_string())?;
+
+    let window = tauri::WebviewWindowBuilder::new(
+        &app,
+        format!("print-{id}"),
+        tauri::WebviewUrl::External(url),
+    )
+    .title("Imprimir — SIGA")
+    .inner_size(880.0, 1000.0)
+    .center()
+    .on_page_load(|webview, payload| {
+        if matches!(payload.event(), tauri::webview::PageLoadEvent::Finished) {
+            let _ = webview.print();
+        }
+    })
+    .build()
+    .map_err(|e| format!("Não foi possível abrir a impressão: {e}"))?;
+
+    let handle = app.clone();
+    window.on_window_event(move |event| {
+        if let tauri::WindowEvent::Destroyed = event {
+            if let Ok(mut docs) = handle.state::<PrintDocs>().0.lock() {
+                docs.remove(&id);
+            }
+        }
+    });
+    Ok(())
+}
+
 /// Descodifica `%XX` (o nome vem em `encodeURIComponent`, os cabeçalhos são ASCII).
 fn percent_decode(value: &str) -> String {
     let bytes = value.as_bytes();
@@ -310,7 +401,12 @@ pub fn run() {
             Ok(())
         })
         .plugin(tauri_plugin_store::Builder::new().build())
-        .plugin(tauri_plugin_window_state::Builder::new().build())
+        // Só a janela principal lembra tamanho/posição (as de impressão são descartáveis).
+        .plugin(
+            tauri_plugin_window_state::Builder::new()
+                .with_filter(|label| label == "main")
+                .build(),
+        )
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_notification::init())
         .plugin(tauri_plugin_process::init())
@@ -320,15 +416,23 @@ pub fn run() {
             print_thermal_receipt_native,
             get_system_info,
             save_file,
-            print_page
-        ]);
+            print_page,
+            print_html
+        ])
+        .manage(PrintDocs::default())
+        .register_uri_scheme_protocol("sigaprint", |ctx, request| {
+            serve_print_doc(ctx.app_handle(), &request)
+        });
 
     #[cfg(desktop)]
     let builder = builder
         .on_window_event(|window, event| {
+            // Só a janela principal vai para a bandeja; as de impressão fecham de verdade.
             if let tauri::WindowEvent::CloseRequested { api, .. } = event {
-                let _ = window.hide();
-                api.prevent_close();
+                if window.label() == "main" {
+                    let _ = window.hide();
+                    api.prevent_close();
+                }
             }
         })
         .on_tray_icon_event(|tray, event| {
