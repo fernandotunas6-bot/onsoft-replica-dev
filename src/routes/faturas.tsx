@@ -22,7 +22,7 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { AppShell } from "@/components/layout/AppShell";
 import { PageHeader, Panel, StatGrid, badgeBase, toneClass } from "@/components/layout/PageHeader";
-import { DocHelpButton, DocPathHelpButton } from "@/components/ui/doc-help-button";
+import { DocHelpMenu } from "@/components/ui/doc-help-button";
 import { DOC_PATHS, getPayflowPayerUrl } from "@/lib/ecosystem-urls";
 import { PayflowAdminLaunchButton } from "@/features/finance/components/PayflowAdminLaunchButton";
 import { PayflowBrandIcon } from "@/features/finance/components/PayflowBrandIcon";
@@ -572,21 +572,17 @@ function FaturasPage() {
           description="Documentos de cobrança emitidos, com vencimento, valor e estado de liquidação."
           actions={
             <>
-              <DocHelpButton title="Navegação — Faturas e tesouraria" />
-              <DocPathHelpButton
-                path={DOC_PATHS.financePayflow}
-                label="PayFlow"
-                title="PayFlow — cobrança e conciliação"
-              />
-              <DocPathHelpButton
-                path={DOC_PATHS.financeSaft}
-                label="SAFT-AO"
-                title="Exportação SAFT-AO / AGT"
+              <DocHelpMenu
+                items={[
+                  { label: "Faturas e tesouraria" },
+                  { label: "PayFlow — cobrança e conciliação", path: DOC_PATHS.financePayflow },
+                  { label: "SAFT-AO / AGT", path: DOC_PATHS.financeSaft },
+                ]}
               />
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="outline" className="gap-1.5 text-xs shadow-2xs">
-                    <Download className="size-3.5" /> Exportar & SAFT-AO{" "}
+                  <Button variant="outline" size="sm" className="gap-1.5">
+                    <Download className="size-3.5" /> Exportar
                     <ChevronDown className="size-3.5 text-muted-foreground" />
                   </Button>
                 </DropdownMenuTrigger>
@@ -694,8 +690,8 @@ function FaturasPage() {
                 ]}
                 onSubmit={handleIssueProforma}
                 trigger={(open) => (
-                  <Button variant="outline" className="gap-2" onClick={open}>
-                    <FileText className="size-4" /> Proforma
+                  <Button variant="outline" size="sm" className="gap-1.5" onClick={open}>
+                    <FileText className="size-3.5" /> Proforma
                   </Button>
                 )}
               />
@@ -760,7 +756,8 @@ function FaturasPage() {
                 }}
                 trigger={(open) => (
                   <Button
-                    className="gap-2"
+                    size="sm"
+                    className="gap-1.5"
                     onClick={open}
                     disabled={!financeStudents.length || financeInvoiceBlocked}
                   >
@@ -826,9 +823,9 @@ function FaturasPage() {
           </Alert>
         ) : null}
 
+        {/* Os quatro números principais ficam sempre à vista; os restantes recolhem.
+            Antes as duas grelhas estavam fechadas, com dois "Ver estatísticas" iguais. */}
         <StatGrid
-          collapsible
-          storageKey="faturas-1"
           items={[
             { label: "Facturado", value: kwanza(total), hint: `${invoiceCount} documentos` },
             { label: "Liquidado", value: kwanza(pago), hint: "Recebido em caixa" },
@@ -847,6 +844,7 @@ function FaturasPage() {
 
         <StatGrid
           collapsible
+          toggleLabel="Mais indicadores"
           storageKey="faturas-2"
           items={[
             {

@@ -98,8 +98,8 @@ export function PageHeader({
           </BreadcrumbList>
         </Breadcrumb>
       ) : null}
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <div className="flex items-center gap-3">
+      <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end sm:justify-between">
+        <div className="flex min-w-0 items-center gap-3">
           {headerMark}
           <div>
             {/* O grupo já aparece no caminho de navegação; repeti-lo em
@@ -107,16 +107,16 @@ export function PageHeader({
             {hideBreadcrumb ? (
               <p className="text-xs font-medium text-muted-foreground">{group}</p>
             ) : null}
-            <h1 className="font-display text-lg font-semibold tracking-tight md:text-xl">
+            <h1 className="font-display text-xl font-semibold tracking-tight sm:text-2xl">
               {title}
             </h1>
             <ShortDescription
               text={description}
-              className="mt-0.5 max-w-2xl text-xs text-muted-foreground md:text-sm"
+              className="mt-1 max-w-2xl text-sm text-muted-foreground"
             />
           </div>
         </div>
-        {actions ? <div className="flex flex-wrap gap-2">{actions}</div> : null}
+        {actions ? <div className="flex flex-wrap items-center gap-2">{actions}</div> : null}
       </div>
     </div>
   );
@@ -126,6 +126,7 @@ export function StatGrid({
   items,
   children,
   collapsible = false,
+  toggleLabel = "Ver estatísticas",
   storageKey,
 }: {
   items?: {
@@ -137,6 +138,8 @@ export function StatGrid({
   }[];
   children?: ReactNode;
   collapsible?: boolean;
+  /** Texto do botão quando recolhida. */
+  toggleLabel?: string;
   storageKey?: string;
 }) {
   const lsKey = collapsible && storageKey ? `siga:stats-${storageKey}` : null;
@@ -167,35 +170,30 @@ export function StatGrid({
   };
 
   const grid = children ? (
-    <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">{children}</div>
+    <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">{children}</div>
   ) : items && items.length > 0 ? (
-    <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+    <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
       {items.map((item) => {
         const tone = item.tone ?? "primary";
         return (
           <div
             key={item.label}
-            className="hover-lift group relative overflow-hidden rounded-xl border border-border/80 bg-card p-3.5 shadow-card hover:border-primary/30"
+            className="relative min-w-0 overflow-hidden rounded-xl border border-border/80 bg-card p-3.5 shadow-card sm:p-4"
           >
-            <span className="absolute inset-x-0 top-0 h-0.5 bg-gradient-to-r from-primary/70 to-primary/0 opacity-0 transition-opacity group-hover:opacity-100" />
             <div className="flex items-start justify-between gap-2.5">
               <div className="min-w-0">
-                <p className="text-xs font-medium text-muted-foreground">{item.label}</p>
-                <p className="mt-1 font-display text-xl font-bold tracking-tight tabular-nums sm:text-2xl">
+                <p className="truncate text-xs font-medium text-muted-foreground">{item.label}</p>
+                <p className="mt-1.5 truncate font-display text-xl font-semibold tracking-tight tabular-nums sm:text-2xl">
                   {item.value}
                 </p>
                 {item.hint ? (
-                  <p className="mt-0.5 text-[11px] text-muted-foreground">{item.hint}</p>
+                  <p className="mt-0.5 line-clamp-2 text-[11px] text-muted-foreground">
+                    {item.hint}
+                  </p>
                 ) : null}
               </div>
               {item.icon ? (
-                <IconChip
-                  icon={item.icon}
-                  tone={tone}
-                  size="sm"
-                  label={item.label}
-                  className="transition-transform duration-150 group-hover:scale-105"
-                />
+                <IconChip icon={item.icon} tone={tone} size="xs" label={item.label} />
               ) : null}
             </div>
           </div>
@@ -214,7 +212,7 @@ export function StatGrid({
           type="button"
           onClick={toggle}
           aria-expanded={visible}
-          aria-label={visible ? "Ocultar estatísticas" : "Ver estatísticas"}
+          aria-label={visible ? `Ocultar: ${toggleLabel}` : toggleLabel}
           className="flex items-center gap-1.5 rounded-md px-2 py-1 text-xs font-medium text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
         >
           <ChevronDown
@@ -223,7 +221,7 @@ export function StatGrid({
               visible ? "rotate-0" : "-rotate-90",
             )}
           />
-          {visible ? "Ocultar" : "Ver estatísticas"}
+          {visible ? "Ocultar" : toggleLabel}
         </button>
       </div>
       <div
@@ -263,8 +261,8 @@ export function Panel({
   ) : null;
 
   return (
-    <section className="overflow-hidden rounded-xl border border-border bg-card shadow-card transition-shadow hover:shadow-soft">
-      <div className="flex flex-wrap items-center justify-between gap-2.5 border-b border-border bg-muted/30 px-4 py-3">
+    <section className="overflow-hidden rounded-xl border border-border bg-card shadow-card">
+      <div className="flex flex-wrap items-center justify-between gap-2.5 border-b border-border/70 px-4 py-3">
         <div className="flex min-w-0 items-center gap-2.5">
           {panelMark}
           <div className="min-w-0">
