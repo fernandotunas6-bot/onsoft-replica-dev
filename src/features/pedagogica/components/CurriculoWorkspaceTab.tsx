@@ -672,7 +672,7 @@ export function CurriculoWorkspaceTab({
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {subjectTypes.map((type: any) => (
+                {subjectTypes.map((type) => (
                   <TableRow key={type.id} className="hover:bg-muted/30">
                     <TableCell className="font-mono text-xs font-bold text-foreground">
                       {type.code}
@@ -758,7 +758,7 @@ export function CurriculoWorkspaceTab({
           }
         >
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            {curriculumAreas.map((area: any) => (
+            {curriculumAreas.map((area) => (
               <div
                 key={area.id}
                 className="rounded-xl border border-border bg-card p-4 shadow-soft"
@@ -847,7 +847,7 @@ export function CurriculoWorkspaceTab({
           }
         >
           <div className="grid gap-4 sm:grid-cols-3">
-            {shifts.map((shift: any) => (
+            {shifts.map((shift) => (
               <div
                 key={shift.id}
                 className="rounded-xl border border-border bg-card p-5 shadow-soft"
