@@ -29,8 +29,10 @@ Depois abrir o skill do módulo em `.cursor/skills/`.
 - Fica por fazer (exige versão principal nova, testar à parte): PayFlow `vinext` 1.0
   (via `image-size`), `@cloudflare/vite-plugin`/`wrangler` (miniflare, undici, ws,
   sharp) — só ferramentas de build/dev. DOC: `vite` dentro do VitePress, sem correcção
-  publicada. WEB: 17 erros de lint anteriores (React Compiler: setState em efeito,
-  função impura no render; `only-export-components`).
+  publicada.
+- WEB: os 17 erros de lint (React Compiler `set-state-in-effect`/`purity` e
+  `only-export-components`, sobretudo no kit `ui/*`, sidebar e chat) passam a aviso,
+  como no ADMIN e no SIGA (`painel/web/eslint.config.js`). 0 erros, 21 avisos.
 
 ## Arrumação: fixtures e tipos (2026-09-30)
 
