@@ -9,7 +9,7 @@ import {
 } from "@/features/saas/email-routing";
 import { getPlatformDomain } from "@/lib/saas/platform-domain";
 import { loadSgaAdminClient } from "@/integrations/supabase/sga-admin";
-import { requireTenantAccess, resolveBearerUserId } from "@/features/saas/platform-guard";
+import { requireTenantAccess, resolveBearerSession } from "@/features/saas/platform-guard";
 
 // style-check: route-exempt — gestão de rotas de e-mail institucional.
 
@@ -21,8 +21,8 @@ const APPS = ["web", "admin"] as const;
 // sessão e confirma que ela manda mesmo nesse tenant (Administrador da escola ou
 // administrador da plataforma).
 async function authorizeTenant(request: Request, tenantId: string) {
-  const userId = await resolveBearerUserId(request.headers.get("Authorization"));
-  return requireTenantAccess(userId, tenantId);
+  const { userId, aal } = await resolveBearerSession(request.headers.get("Authorization"));
+  return requireTenantAccess(userId, tenantId, undefined, aal);
 }
 
 function authErrorStatus(message: string): number {
