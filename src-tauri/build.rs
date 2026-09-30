@@ -1,3 +1,10 @@
 fn main() {
-    tauri_build::build();
+    let attributes =
+        tauri_build::Attributes::new().app_manifest(tauri_build::AppManifest::new().commands(&[
+            "get_system_info",
+            "pulse_turnstile_relay",
+            "print_thermal_receipt_native",
+            "open_external_url",
+        ]));
+    tauri_build::try_build(attributes).expect("falha na configuração de permissões SIGA");
 }

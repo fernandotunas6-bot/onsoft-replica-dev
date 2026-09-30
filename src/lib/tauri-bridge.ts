@@ -1,4 +1,4 @@
-import { invoke } from "@tauri-apps/api/core";
+import { invoke, isTauri } from "@tauri-apps/api/core";
 
 const PYTHON_BRIDGE_BASE = "http://127.0.0.1:8088";
 
@@ -55,10 +55,7 @@ export interface LocalHardwareAllowlist {
 
 /** Detecta se o SIGA está a ser executado dentro do Tauri 2 Desktop Nativo */
 export function isTauriDesktop(): boolean {
-  return (
-    typeof window !== "undefined" &&
-    Boolean((window as unknown as { __TAURI_INTERNALS__?: unknown }).__TAURI_INTERNALS__)
-  );
+  return isTauri();
 }
 
 /** dispara relé de catraca usando Rust nativo no Tauri 2 ou fallback HTTP Python */
@@ -67,25 +64,23 @@ export async function triggerTurnstileRelay(options: HardwarePulseOptions) {
   const gate = options.gate ?? 1;
   const direction = options.direction ?? "entry";
 
-  if (isTauriDesktop()) {
-    try {
-      const res = await invoke<{ success: boolean; message: string; bytes_sent: number }>(
-        "pulse_turnstile_relay",
-        {
-          ipAddress: ip,
-          gate,
-          direction,
-        },
-      );
-      return { source: "tauri_rust_native", ...res };
-    } catch (err) {
-      console.warn("Tauri Native call failed, attempting Python HTTP fallback", err);
-    }
+  if (!Number.isInteger(gate) || gate < 1 || gate > 255 || !["entry", "exit"].includes(direction)) {
+    throw new Error("Catraca ou direcção inválida.");
+  }
+  // Um deviceId local exige a allowlist do daemon; nunca contornar essa autorização.
+  if (isTauriDesktop() && !options.deviceId) {
+    const res = await invoke<{ success: boolean; message: string; bytes_sent: number }>(
+      "pulse_turnstile_relay",
+      { ipAddress: ip, gate, direction },
+    );
+    if (!res.success) throw new Error(res.message);
+    return { source: "tauri_rust_native", ...res };
   }
 
   // Fallback para Daemon Python HTTP local (só 127.0.0.1)
   const response = await fetch(`${PYTHON_BRIDGE_BASE}/hardware/turnstile/open`, {
     method: "POST",
+    signal: AbortSignal.timeout(5000),
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       ip_address: ip,
@@ -98,37 +93,54 @@ export async function triggerTurnstileRelay(options: HardwarePulseOptions) {
   if (!response.ok) {
     throw new Error(data?.error || `Bridge HTTP ${response.status}`);
   }
+  if (data.result?.status !== "success") {
+    throw new Error(
+      data.result?.error ||
+        data.result?.note ||
+        data.result?.message ||
+        "Nenhum pulso físico confirmado pelo daemon.",
+    );
+  }
   return { source: "python_http_daemon", ...data.result };
 }
 
 /** Imprime recibo térmico via Rust nativo no Tauri 2 ou fallback HTTP Python */
 export async function printThermalReceiptNative(options: ThermalPrintOptions) {
+  if (!options.receiptText.trim() || new TextEncoder().encode(options.receiptText).length > 65536) {
+    throw new Error("Texto de impressão vazio ou demasiado longo.");
+  }
   if (isTauriDesktop()) {
-    try {
-      const res = await invoke<{ success: boolean; message: string; bytes_sent: number }>(
-        "print_thermal_receipt_native",
-        {
-          printerIp: options.printerIp,
-          text: options.receiptText,
-        },
-      );
-      return { source: "tauri_rust_native", ...res };
-    } catch (err) {
-      console.warn("Tauri Native print failed, attempting Python HTTP fallback", err);
-    }
+    const res = await invoke<{ success: boolean; message: string; bytes_sent: number }>(
+      "print_thermal_receipt_native",
+      { printerIp: options.printerIp, text: options.receiptText },
+    );
+    if (!res.success) throw new Error(res.message);
+    return { source: "tauri_rust_native", ...res };
   }
 
   const response = await fetch(`${PYTHON_BRIDGE_BASE}/hardware/printer/thermal`, {
     method: "POST",
+    signal: AbortSignal.timeout(5000),
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       printer_ip: options.printerIp,
-      receipt_no: "REC-NATIVE",
-      amount: "0,00",
+      receipt_text: options.receiptText,
     }),
   });
   const data = await response.json();
-  return { source: "python_http_daemon", ...data };
+  if (!response.ok || data.printer_result?.status !== "success") {
+    throw new Error(
+      data.error ||
+        data.printer_result?.error ||
+        data.printer_result?.note ||
+        "A impressão física não foi confirmada pelo daemon.",
+    );
+  }
+  return {
+    source: "python_http_daemon",
+    ...data,
+    message: "Dados de impressão enviados à impressora.",
+  };
 }
 
 /** Descobre USB-série + impressoras CUPS via daemon Python local (sem sair do host). */
@@ -137,6 +149,7 @@ export async function discoverLocalHardwareDevices(): Promise<LocalHardwareDisco
     const response = await fetch(`${PYTHON_BRIDGE_BASE}/hardware/discover`, {
       method: "GET",
       headers: { Accept: "application/json" },
+      signal: AbortSignal.timeout(5000),
     });
     if (!response.ok) {
       return {
@@ -162,6 +175,7 @@ export async function getLocalHardwareAllowlist(): Promise<LocalHardwareAllowlis
     const response = await fetch(`${PYTHON_BRIDGE_BASE}/hardware/allowlist`, {
       method: "GET",
       headers: { Accept: "application/json" },
+      signal: AbortSignal.timeout(5000),
     });
     if (!response.ok) {
       return { devices: [], error: `HTTP ${response.status}` };
@@ -178,6 +192,7 @@ export async function saveLocalHardwareAllowlist(
 ): Promise<LocalHardwareAllowlist> {
   const response = await fetch(`${PYTHON_BRIDGE_BASE}/hardware/allowlist`, {
     method: "POST",
+    signal: AbortSignal.timeout(5000),
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       devices: devices.map((d) => ({
@@ -210,6 +225,7 @@ export async function getLocalHardwareBridgeConfig(): Promise<LocalHardwareBridg
     const response = await fetch(`${PYTHON_BRIDGE_BASE}/hardware/bridge-config`, {
       method: "GET",
       headers: { Accept: "application/json" },
+      signal: AbortSignal.timeout(5000),
     });
     if (!response.ok) {
       return { error: `HTTP ${response.status}` };
@@ -226,6 +242,7 @@ export async function saveLocalHardwareBridgeConfig(
 ): Promise<LocalHardwareBridgeConfig> {
   const response = await fetch(`${PYTHON_BRIDGE_BASE}/hardware/bridge-config`, {
     method: "POST",
+    signal: AbortSignal.timeout(5000),
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(config),
   });
@@ -287,8 +304,16 @@ export async function getNativeSystemInfo(): Promise<SystemInfoResult> {
   }
   return {
     os_type:
-      typeof window !== "undefined" && navigator.userAgent.includes("Win") ? "windows" : "macos",
-    arch: "x86_64",
+      typeof navigator === "undefined"
+        ? "web"
+        : /Win/i.test(navigator.userAgent)
+          ? "windows"
+          : /Mac/i.test(navigator.userAgent)
+            ? "macos"
+            : /Linux/i.test(navigator.userAgent)
+              ? "linux"
+              : "web",
+    arch: "unknown",
     is_desktop_native: false,
   };
 }

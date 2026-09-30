@@ -6,17 +6,13 @@
   "build": {
     "beforeDevCommand": "npm run dev",
     "devUrl": "http://localhost:3006",
-    "beforeBuildCommand": "npm run build",
-    "frontendDist": "../.output/public"
+    "beforeBuildCommand": "node scripts/check-desktop.mjs",
+    "frontendDist": "../desktop"
   },
   "app": {
-    "trayIcon": {
-      "iconPath": "icons/32x32.png",
-      "tooltip": "SIGA Desktop"
-    },
     "windows": [
       {
-        "title": "SIGA - Sistema Integrado de Gestão Académica",
+        "title": "SIGA - Sistema Integrado de Gest\u00e3o Acad\u00e9mica",
         "width": 1280,
         "height": 832,
         "minWidth": 1024,
@@ -25,15 +21,15 @@
         "fullscreen": false,
         "center": true,
         "decorations": true,
-        "titleBarStyle": "Overlay",
-        "hiddenTitle": true,
-        "transparent": true
+        "titleBarStyle": "Visible",
+        "hiddenTitle": false,
+        "transparent": false,
+        "label": "main"
       }
     ],
     "security": {
-      "csp": null
-    },
-    "macOSPrivateApi": true
+      "csp": "default-src 'self'; script-src 'self'; style-src 'self'; connect-src https://portal-siga.com; img-src 'self' data:; object-src 'none'; base-uri 'self'; form-action 'none'; frame-src 'none'"
+    }
   },
   "bundle": {
     "active": true,

@@ -16,10 +16,6 @@ export interface SystemInfo {
   is_desktop_native: boolean;
 }
 
-interface OpenerModule {
-  open?: (url: string) => Promise<unknown> | unknown;
-}
-
 /**
  * Verifica se o SIGA está a ser executado dentro do runtime nativo do Tauri.
  */
@@ -31,22 +27,18 @@ export function isTauriDesktop(): boolean {
  * Abre links externos no navegador padrão do sistema operativo (macOS / Windows).
  */
 export async function openExternalLink(url: string): Promise<void> {
+  const target = new URL(url);
+  if (
+    !["https:", "http:", "mailto:", "tel:"].includes(target.protocol) ||
+    target.username ||
+    target.password
+  ) {
+    throw new Error("Ligação externa não permitida.");
+  }
   if (isTauriDesktop()) {
-    try {
-      const openerModuleName = "@tauri-apps/plugin-opener";
-      const opener = (await import(/* @vite-ignore */ openerModuleName).catch(
-        () => null,
-      )) as OpenerModule | null;
-      if (opener?.open) {
-        await opener.open(url);
-        return;
-      }
-    } catch (e) {
-      console.warn(
-        "Falha ao abrir link via plugin nativo do Tauri, a usar fallback window.open",
-        e,
-      );
-    }
+    const { invoke } = await import("@tauri-apps/api/core");
+    await invoke("open_external_url", { url: target.href });
+    return;
   }
 
   if (typeof window !== "undefined") {
@@ -102,9 +94,10 @@ export async function pulseTurnstileRelay(
     }
   }
   return {
-    success: true,
-    message: `Modo Web: Simulação de pulso de ${direction.toUpperCase()} na catraca ${gate} (${ipAddress}).`,
-    bytes_sent: 5,
+    success: false,
+    message:
+      "O comando de catraca exige o SIGA Desktop ou o daemon local. Nenhum pulso foi enviado.",
+    bytes_sent: 0,
   };
 }
 
@@ -128,9 +121,10 @@ export async function printThermalReceiptNative(
     }
   }
   return {
-    success: true,
-    message: `Modo Web: Simulação de recibo térmico impresso em ${printerIp}.`,
-    bytes_sent: text.length,
+    success: false,
+    message:
+      "A impressão térmica exige o SIGA Desktop ou o daemon local. Nenhum recibo foi enviado.",
+    bytes_sent: 0,
   };
 }
 

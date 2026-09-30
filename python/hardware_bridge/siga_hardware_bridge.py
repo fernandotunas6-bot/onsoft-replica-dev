@@ -67,7 +67,7 @@ class TurnstileHardwareController:
             if self.ip_address in ["127.0.0.1", "localhost"]:
                 sock.close()
                 return {
-                    "status": "success",
+                    "status": "simulated",
                     "direction": direction,
                     "relay_channel": 1 if direction == "entry" else 2,
                     "message": f"Relé de {direction.upper()} (Braço {gate_number}) ativado por {duration_ms}ms (Simulado)"
@@ -87,10 +87,10 @@ class TurnstileHardwareController:
                 sock.close()
         except Exception as e:
             return {
-                "status": "simulated",
+                "status": "error",
                 "direction": direction,
                 "gate": gate_number,
-                "note": f"Modo demonstração/fallback: {str(e)}"
+                "error": str(e)
             }
 
 class ZkTecoProtocolHelper:
@@ -159,6 +159,14 @@ class EscPosThermalPrinter:
         buffer.extend(b"Obrigado! Documento processado por computador.\n\n\n")
         buffer.extend(GS + b"V" + b"\x41" + b"\x03") # Paper Cut
         return bytes(buffer)
+
+    @staticmethod
+    def format_text_bytes(text):
+        if not isinstance(text, str) or not text.strip() or len(text.encode("utf-8")) > 65536:
+            raise ValueError("Texto de impressão vazio ou demasiado longo.")
+        if any(ord(char) < 32 and char not in "\n\r\t" or 127 <= ord(char) <= 159 for char in text):
+            raise ValueError("Caracteres de controlo não permitidos no recibo.")
+        return b"\x1b\x40\x1b\x61\x01" + text.encode("utf-8") + b"\n\n\n\x1d\x56\x41\x03"
 
     @staticmethod
     def send_to_network_printer(ip_address, raw_bytes, port=9100):
@@ -329,7 +337,14 @@ class HardwareBridgeRequestHandler(BaseHTTPRequestHandler):
             receipt_no = payload.get("receipt_no", "REC-001")
             printer_ip = payload.get("printer_ip", "127.0.0.1")
             
-            raw_bytes = EscPosThermalPrinter.format_receipt_bytes(school, student, amount, nif, receipt_no)
+            try:
+                if "receipt_text" in payload:
+                    raw_bytes = EscPosThermalPrinter.format_text_bytes(payload["receipt_text"])
+                else:
+                    raw_bytes = EscPosThermalPrinter.format_receipt_bytes(school, student, amount, nif, receipt_no)
+            except ValueError as error:
+                self._send_json({"error": str(error)}, 400)
+                return
             res = EscPosThermalPrinter.send_to_network_printer(printer_ip, raw_bytes)
             
             self._send_json({

@@ -1,8 +1,9 @@
 use serde::{Deserialize, Serialize};
 use std::io::Write;
-use std::net::{SocketAddr, TcpStream};
+use std::net::{IpAddr, SocketAddr, TcpStream};
 use std::time::Duration;
 use tauri::Manager;
+use tauri_plugin_opener::OpenerExt;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct HardwareCommandResult {
@@ -19,18 +20,22 @@ pub struct SystemInfo {
 }
 
 fn resolve_socket_address(ip_address: &str, port: u16) -> Result<SocketAddr, String> {
-    format!("{}:{}", ip_address.trim(), port)
-        .parse::<SocketAddr>()
-        .map_err(|_| format!("Endereço de rede inválido: {}", ip_address))
+    let ip = ip_address
+        .trim()
+        .parse::<IpAddr>()
+        .map_err(|_| "Indique um endereço IP de rede local válido.".to_string())?;
+    let allowed = match ip {
+        IpAddr::V4(v4) => v4.is_private(),
+        IpAddr::V6(v6) => (v6.segments()[0] & 0xfe00) == 0xfc00,
+    };
+    if !allowed {
+        return Err("O hardware exige um IP privado configurado; simulação e endereços públicos não são aceites.".to_string());
+    }
+    Ok(SocketAddr::new(ip, port))
 }
 
 /// Comando nativo Tauri 2 para disparo direto de relé de catraca via TCP Socket em Rust.
-#[tauri::command]
-fn pulse_turnstile_relay(
-    ip_address: String,
-    gate: u8,
-    direction: String,
-) -> HardwareCommandResult {
+fn send_turnstile_pulse(ip_address: String, gate: u8, direction: String) -> HardwareCommandResult {
     let normalized_direction = direction.trim().to_ascii_lowercase();
     let dir_byte = match normalized_direction.as_str() {
         "entry" => 0x01,
@@ -46,15 +51,11 @@ fn pulse_turnstile_relay(
 
     let payload: [u8; 5] = [0x55, 0xAA, dir_byte, gate, 0x03];
 
-    if ip_address == "127.0.0.1" || ip_address == "localhost" {
+    if gate == 0 {
         return HardwareCommandResult {
-            success: true,
-            message: format!(
-                "Rust Native: Relé de {} (Catraca {}) ativado com sucesso em modo simulação.",
-                normalized_direction.to_uppercase(),
-                gate
-            ),
-            bytes_sent: payload.len(),
+            success: false,
+            message: "A catraca deve estar entre 1 e 255.".to_string(),
+            bytes_sent: 0,
         };
     }
 
@@ -71,6 +72,16 @@ fn pulse_turnstile_relay(
 
     match TcpStream::connect_timeout(&socket_addr, Duration::from_millis(2000)) {
         Ok(mut stream) => {
+            if stream
+                .set_write_timeout(Some(Duration::from_secs(3)))
+                .is_err()
+            {
+                return HardwareCommandResult {
+                    success: false,
+                    message: "Não foi possível limitar o tempo de envio.".to_string(),
+                    bytes_sent: 0,
+                };
+            }
             if stream.write_all(&payload).is_ok() {
                 HardwareCommandResult {
                     success: true,
@@ -98,24 +109,25 @@ fn pulse_turnstile_relay(
 }
 
 /// Comando nativo Tauri 2 para impressão térmica ESC/POS direta em Rust.
-#[tauri::command]
-fn print_thermal_receipt_native(
-    printer_ip: String,
-    text: String,
-) -> HardwareCommandResult {
+fn send_thermal_receipt(printer_ip: String, text: String) -> HardwareCommandResult {
+    if text.trim().is_empty()
+        || text.len() > 65536
+        || text
+            .chars()
+            .any(|c| c.is_control() && c != '\n' && c != '\r' && c != '\t')
+    {
+        return HardwareCommandResult {
+            success: false,
+            message: "Texto de impressão inválido ou demasiado longo.".to_string(),
+            bytes_sent: 0,
+        };
+    }
+
     let mut buffer = Vec::new();
     buffer.extend_from_slice(b"\x1b\x40");
     buffer.extend_from_slice(b"\x1b\x61\x01");
     buffer.extend_from_slice(text.as_bytes());
     buffer.extend_from_slice(b"\n\n\n\x1d\x56\x41\x03");
-
-    if printer_ip == "127.0.0.1" || printer_ip == "localhost" {
-        return HardwareCommandResult {
-            success: true,
-            message: "Rust Native: Recibo térmico impresso em modo simulação.".to_string(),
-            bytes_sent: buffer.len(),
-        };
-    }
 
     let socket_addr = match resolve_socket_address(&printer_ip, 9100) {
         Ok(addr) => addr,
@@ -130,10 +142,20 @@ fn print_thermal_receipt_native(
 
     match TcpStream::connect_timeout(&socket_addr, Duration::from_millis(3000)) {
         Ok(mut stream) => {
+            if stream
+                .set_write_timeout(Some(Duration::from_secs(3)))
+                .is_err()
+            {
+                return HardwareCommandResult {
+                    success: false,
+                    message: "Não foi possível limitar o tempo de envio.".to_string(),
+                    bytes_sent: 0,
+                };
+            }
             if stream.write_all(&buffer).is_ok() {
                 HardwareCommandResult {
                     success: true,
-                    message: format!("Rust Native: Recibo impresso na impressora {}", printer_ip),
+                    message: format!("Rust Native: Dados enviados à impressora {}", printer_ip),
                     bytes_sent: buffer.len(),
                 }
             } else {
@@ -152,6 +174,41 @@ fn print_thermal_receipt_native(
     }
 }
 
+#[tauri::command]
+async fn pulse_turnstile_relay(
+    ip_address: String,
+    gate: u8,
+    direction: String,
+) -> Result<HardwareCommandResult, String> {
+    tauri::async_runtime::spawn_blocking(move || send_turnstile_pulse(ip_address, gate, direction))
+        .await
+        .map_err(|_| "Falha na operação nativa da catraca.".to_string())
+}
+
+#[tauri::command]
+async fn print_thermal_receipt_native(
+    printer_ip: String,
+    text: String,
+) -> Result<HardwareCommandResult, String> {
+    tauri::async_runtime::spawn_blocking(move || send_thermal_receipt(printer_ip, text))
+        .await
+        .map_err(|_| "Falha na operação nativa de impressão.".to_string())
+}
+
+#[tauri::command]
+fn open_external_url(app: tauri::AppHandle, url: String) -> Result<(), String> {
+    let parsed = tauri::Url::parse(&url).map_err(|_| "Ligação inválida.".to_string())?;
+    if !matches!(parsed.scheme(), "https" | "http" | "mailto" | "tel")
+        || !parsed.username().is_empty()
+        || parsed.password().is_some()
+    {
+        return Err("Ligação externa não permitida.".to_string());
+    }
+    app.opener()
+        .open_url(parsed.as_str(), None::<&str>)
+        .map_err(|e| e.to_string())
+}
+
 /// Retorna informações nativas da plataforma em execução.
 #[tauri::command]
 fn get_system_info() -> SystemInfo {
@@ -166,10 +223,11 @@ fn get_system_info() -> SystemInfo {
 pub fn run() {
     let builder = tauri::Builder::default()
         .setup(|app| {
-            let stronghold_salt_path = app
-                .path()
-                .app_local_data_dir()?
-                .join("stronghold-salt.txt");
+            let stronghold_salt_path = app.path().app_local_data_dir()?.join("stronghold-salt.txt");
+
+            if let Some(parent) = stronghold_salt_path.parent() {
+                std::fs::create_dir_all(parent)?;
+            }
 
             app.handle().plugin(
                 tauri_plugin_stronghold::Builder::with_argon2(&stronghold_salt_path).build(),
@@ -182,11 +240,32 @@ pub fn run() {
                 }
             }
 
-            #[cfg(target_os = "windows")]
+            #[cfg(desktop)]
             {
-                if let Some(window) = app.get_webview_window("main") {
-                    let _ = window.set_decorations(false);
-                }
+                use tauri::menu::{Menu, MenuItem};
+                use tauri::tray::TrayIconBuilder;
+                let show = MenuItem::with_id(app, "show", "Abrir SIGA", true, None::<&str>)?;
+                let quit = MenuItem::with_id(app, "quit", "Sair do SIGA", true, None::<&str>)?;
+                let menu = Menu::with_items(app, &[&show, &quit])?;
+                let icon = app
+                    .default_window_icon()
+                    .ok_or("Ícone da aplicação em falta")?
+                    .clone();
+                TrayIconBuilder::with_id("siga-tray")
+                    .icon(icon)
+                    .tooltip("SIGA Desktop")
+                    .menu(&menu)
+                    .on_menu_event(|app, event| match event.id.as_ref() {
+                        "show" => {
+                            if let Some(window) = app.get_webview_window("main") {
+                                let _ = window.show();
+                                let _ = window.set_focus();
+                            }
+                        }
+                        "quit" => app.exit(0),
+                        _ => {}
+                    })
+                    .build(app)?;
             }
 
             Ok(())
@@ -200,29 +279,40 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             pulse_turnstile_relay,
             print_thermal_receipt_native,
-            get_system_info
+            get_system_info,
+            open_external_url
         ]);
 
     #[cfg(desktop)]
-    let builder = builder
-        .on_window_event(|window, event| {
-            if let tauri::WindowEvent::CloseRequested { api, .. } = event {
-                let _ = window.hide();
-                api.prevent_close();
-            }
-        })
-        .on_tray_icon_event(|tray, event| {
-            use tauri::tray::TrayIconEvent;
+    let builder = builder.on_tray_icon_event(|tray, event| {
+        use tauri::tray::TrayIconEvent;
 
-            if let TrayIconEvent::Click { .. } = event {
-                if let Some(window) = tray.app_handle().get_webview_window("main") {
-                    let _ = window.show();
-                    let _ = window.set_focus();
-                }
+        if let TrayIconEvent::Click { .. } = event {
+            if let Some(window) = tray.app_handle().get_webview_window("main") {
+                let _ = window.show();
+                let _ = window.set_focus();
             }
-        });
+        }
+    });
 
     builder
         .run(tauri::generate_context!())
         .expect("erro ao iniciar a aplicação SIGA Native");
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn hardware_rejects_simulation_and_public_networks() {
+        for ip in ["127.0.0.1", "localhost", "8.8.8.8", "::1", "not-an-ip"] {
+            assert!(resolve_socket_address(ip, 9100).is_err());
+        }
+        assert!(resolve_socket_address("192.168.1.20", 9100).is_ok());
+        assert!(resolve_socket_address("fd00::20", 9100).is_ok());
+    }
+    #[test]
+    fn empty_receipt_cannot_report_success() {
+        assert!(!send_thermal_receipt("192.168.1.20".into(), " ".into()).success);
+    }
 }

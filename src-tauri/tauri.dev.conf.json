@@ -1,0 +1,32 @@
+{
+  "app": {
+    "security": {
+      "capabilities": [
+        "default",
+        "school-portal",
+        {
+          "$schema": "../gen/schemas/desktop-schema.json",
+          "identifier": "development",
+          "description": "Local development server only",
+          "local": false,
+          "remote": {
+            "urls": ["http://localhost:3006/*"]
+          },
+          "windows": ["main"],
+          "permissions": [
+            "core:default",
+            "core:window:allow-minimize",
+            "core:window:allow-toggle-maximize",
+            "core:window:allow-close",
+            "core:window:allow-start-dragging",
+            "allow-get-system-info",
+            "allow-open-external-url",
+            "allow-pulse-turnstile-relay",
+            "allow-print-thermal-receipt-native",
+            "notification:default"
+          ]
+        }
+      ]
+    }
+  }
+}

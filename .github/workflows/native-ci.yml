@@ -7,8 +7,10 @@ on:
     branches:
       - main
     paths:
-      - 'src-tauri/**'
-      - '.github/workflows/native-ci.yml'
+      - "src-tauri/**"
+      - "desktop/**"
+      - "scripts/check-desktop.mjs"
+      - ".github/workflows/native-ci.yml"
   workflow_dispatch:
 
 concurrency:
@@ -34,20 +36,13 @@ jobs:
       - name: Cache Rust
         uses: swatinem/rust-cache@v2
         with:
-          workspaces: './src-tauri -> target'
+          workspaces: "./src-tauri -> target"
 
-      - name: Report Cargo lockfile state
-        shell: bash
-        run: |
-          if [ -f src-tauri/Cargo.lock ]; then
-            echo 'src-tauri/Cargo.lock present: reproducible Cargo resolution enabled.'
-          else
-            echo '::warning::src-tauri/Cargo.lock is missing. Compile validation will resolve dependencies dynamically; add and commit the lockfile before release.'
-          fi
-
-      - name: Cargo check
+      - name: Cargo check and unit tests (locked)
         working-directory: src-tauri
-        run: cargo check
+        run: |
+          cargo check --locked
+          cargo test --locked --lib
 
   frontend-build:
     name: Frontend build for Tauri
@@ -62,28 +57,11 @@ jobs:
         with:
           bun-version: latest
 
-      - name: Check Bun lockfile consistency
-        id: bun-lock
-        continue-on-error: true
+      - name: Install locked dependencies
         run: bun install --frozen-lockfile
 
-      - name: Report Bun lockfile drift
-        if: steps.bun-lock.outcome == 'failure'
-        run: echo '::warning::bun.lock is out of sync with package.json. Installing without --frozen-lockfile only to continue native build validation.'
+      - name: Check desktop launcher
+        run: bun run desktop:check
 
-      - name: Install dependencies for compile validation
-        if: steps.bun-lock.outcome == 'failure'
-        run: bun install
-
-      - name: Build frontend
+      - name: Build server frontend
         run: bun run build
-
-      - name: Verify Tauri frontendDist
-        shell: bash
-        run: |
-          test -d .output/public || {
-            echo 'Expected Tauri frontendDist .output/public was not generated.'
-            echo 'Generated top-level directories:'
-            find . -maxdepth 2 -type d | sort | head -120
-            exit 1
-          }
