@@ -96,7 +96,8 @@ vi.mock("@/features/saas/provisioning-verify", () => ({
   describeProvisioningGaps: (list: string[]) => `faltou: ${list.join(", ")}`,
 }));
 
-const { provisionTenantCore } = await import("@/features/saas/provisioning-core");
+const { provisionTenantCore, directorFromContact } =
+  await import("@/features/saas/provisioning-core");
 
 const INPUT = {
   name: "Colégio Teste",
@@ -329,6 +330,23 @@ describe("observabilidade do provisionamento", () => {
       "5417000000",
     ]) {
       expect(emitted, `o evento não pode arrastar "${leak}"`).not.toContain(leak);
+    }
+  });
+});
+
+describe("director(a) a partir do responsável do registo", () => {
+  it("só quem se identifica como director(a) geral passa à ficha da escola", () => {
+    for (const role of [
+      "Director",
+      "directora",
+      "Diretor Geral",
+      "A Directora Geral",
+      " DIRECTOR ",
+    ]) {
+      expect(directorFromContact(role, "Ana Diretora"), role).toBe("Ana Diretora");
+    }
+    for (const role of ["Director Pedagógico", "Secretário", "Proprietário", "", undefined]) {
+      expect(directorFromContact(role, "Ana Diretora"), String(role)).toBeNull();
     }
   });
 });

@@ -4,6 +4,23 @@ Ler isto **antes** de alterar código. Ecossistema (5 apps):
 [ARCHITECTURE_HARMONIZATION.md](./ARCHITECTURE_HARMONIZATION.md).
 Depois abrir o skill do módulo em `.cursor/skills/`.
 
+## Arranque da escola: guia no painel do Administrador (2026-09-30)
+
+Plano completo: [docs/provisioning/ARRANQUE_ESCOLA.md](../provisioning/ARRANQUE_ESCOLA.md).
+
+- Na produção, as escolas recentes ficavam paradas logo após a criação (sem ano lectivo,
+  turmas nem modelo). O bloco «Primeiros passos» mandava matricular antes de haver turmas.
+- `src/features/school/setup-guide.ts`: 11 passos em 4 fases, ordenados pelas dependências
+  reais, cada um decidido pelo que está na base. `setup-guide-server.ts` conta com
+  `context.supabase` (RLS); só o plano (`tenants`) usa o cliente privilegiado — por isso está
+  em `PRIVILEGIO_POR_DESENHO`. `SchoolSetupGuide.tsx` substitui o bloco antigo para o
+  Administrador (a Secretaria mantém os atalhos simples).
+- Provisionamento: `director_name` a partir do responsável quando a função é «Director(a)»;
+  formulário público de matrícula nasce fechado.
+- WEB `/start`: «Primeiros passos» na mesma ordem do guia.
+- Testes: `tests/school/setup-guide.test.ts` (regras e rotas/painéis existentes),
+  `tests/school/setup-guide-ui.test.tsx` (ecrã).
+
 ## Criar escola: e-mail «já usado», domínio preso e sem entrada no painel (2026-09-30)
 
 Diagnóstico na produção (só leitura): as duas últimas criações (24/09 e 28/09) falharam

@@ -537,12 +537,18 @@ export function StartSchoolWizard() {
 
           <div className="rounded-lg border p-4 text-left">
             <h3 className="text-sm">Primeiros passos no SIGA Plus</h3>
+            <p className="mt-1 text-xs text-muted-foreground">
+              O painel da escola mostra estes passos com o que já está feito e o próximo a fazer.
+            </p>
             <ol className="mt-3 grid gap-2.5">
+              {/* Mesma ordem do guia «Arranque da escola» no painel do SIGA
+                  (src/features/school/setup-guide.ts): cada passo precisa do anterior. */}
               {[
-                ["Confirme os dados da escola", "Definições → Escola: logótipo, director e coordenadas."],
-                ["Publique o modelo de avaliação", "Pedagógica → Modelos de avaliação. Sem ele não há pautas."],
-                ["Crie o ano lectivo, as classes e as turmas", "Pedagógica → Estrutura académica."],
-                ["Convide a equipa", "Acessos: secretaria, tesouraria e professores."],
+                ["Confirme os dados da escola", "NIF, director(a), contactos e logótipo — saem nos documentos."],
+                ["Defina o ano lectivo e os três trimestres", "Calendário. Sem ano activo não há turmas nem propinas."],
+                ["Prepare classes, disciplinas e turmas", "Pedagógica → Estrutura académica."],
+                ["Publique o modelo de avaliação e as propinas", "Sem modelo não há pautas; sem propinas não há facturas."],
+                ["Convide a equipa e matricule os alunos", "Acessos: secretaria, tesouraria e professores."],
               ].map(([title, hint], index) => (
                 <li key={title} className="flex gap-3">
                   <span className="flex size-5 shrink-0 items-center justify-center rounded-full border text-[11px] text-muted-foreground">

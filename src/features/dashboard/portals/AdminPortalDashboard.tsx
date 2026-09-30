@@ -36,6 +36,7 @@ import { SpotlightRail } from "@/features/spotlight/SpotlightRail";
 import { DashboardCalendarCard } from "@/features/dashboard/components/DashboardCalendarCard";
 import { TodayAtSchoolCard } from "@/features/dashboard/components/TodayAtSchoolCard";
 import { openSettingsPanel } from "@/lib/settings-deep-link";
+import { SchoolSetupGuide } from "@/features/school/SchoolSetupGuide";
 
 const DashboardCharts = lazy(() =>
   import("@/features/dashboard/DashboardCharts").then((module) => ({
@@ -299,7 +300,14 @@ export function AdminPortalDashboard({
         </Button>
       </div>
 
-      {activeTab === "geral" && capabilities.students && totalStudents === 0 ? (
+      {/* O Administrador tem o guia de arranque completo, lido da base; os
+          outros papéis com acesso académico mantêm os atalhos simples. */}
+      {activeTab === "geral" && currentUser.role === "Administrador" ? <SchoolSetupGuide /> : null}
+
+      {activeTab === "geral" &&
+      currentUser.role !== "Administrador" &&
+      capabilities.students &&
+      totalStudents === 0 ? (
         <section className="rounded-xl border border-primary/20 bg-primary/5 p-4">
           <h2 className="text-sm font-bold">Primeiros passos da escola</h2>
           <p className="mt-1 text-xs text-muted-foreground">

@@ -396,7 +396,11 @@ export async function bootstrapSchoolDefaults(
       subtitle: input.schoolName,
       hero_text: "Preencha os dados do aluno para a secretaria confirmar a matrícula.",
       accent_color: "#1d4ed8",
-      is_open: true,
+      // Fechado à nascença: sem ano lectivo, classes nem turmas, as famílias
+      // candidatavam-se a uma escola que ainda não tem onde as pôr. O guia de
+      // arranque (src/features/school/setup-guide.ts) propõe abri-lo depois
+      // das turmas; basta um clique em Definições → Matrícula pública.
+      is_open: false,
     };
     if (input.adminUserId) {
       formPayload.created_by = input.adminUserId;

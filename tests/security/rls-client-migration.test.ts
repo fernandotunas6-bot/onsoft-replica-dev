@@ -61,6 +61,11 @@ const PRIVILEGIO_POR_DESENHO = new Set([
   // tenant da escola da sessão.
   "src/features/saas/subscription-server.ts",
 
+  // Guia de arranque da escola: as contagens já usam `context.supabase`; só o
+  // plano da escola (`tenants`, política apenas `is_platform_admin()`) é lido
+  // com o cliente privilegiado, pelo tenant da escola da sessão do Administrador.
+  "src/features/school/setup-guide-server.ts",
+
   // Regista cada documento oficial emitido (audit_logs, só o servidor grava) e
   // verifica-o publicamente, sem sessão, a partir do código impresso.
   "src/features/documents/verification.ts",

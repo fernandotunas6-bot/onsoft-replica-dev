@@ -77,6 +77,22 @@ async function preflight(
   return { existingAdmin: { userId: existing.id, neverSignedIn: !existing.lastSignInAt } };
 }
 
+/**
+ * O responsável que se identifica como director(a) da escola passa a ser o
+ * director(a) na ficha — o nome que sai assinado em declarações e pautas.
+ * Só a direcção geral: «Director Pedagógico» ou «Director Financeiro» não são
+ * quem assina pela escola.
+ */
+export function directorFromContact(role: string | undefined, name: string): string | null {
+  const normalized = (role ?? "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, " ");
+  return /^(o |a )?direc?tora?( geral)?$/.test(normalized) ? name.trim() || null : null;
+}
+
 /** Sufixo que liberta um slug preso a uma escola que não chegou a nascer. */
 export function releasedSlug(slug: string, tenantId: string): string {
   return `${slug}-falhou-${tenantId.slice(0, 8)}`;
@@ -342,6 +358,7 @@ async function runProvisioning(
       phone: data.phone || data.contact_phone || null,
       email: data.email || data.contact_email,
       logo_url: data.logo_url || null,
+      director_name: directorFromContact(data.contact_role, data.contact_name),
     })
     .select("id")
     .single();
