@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { isTauriDesktop, openExternalLink } from "@/lib/desktop-utils";
 import { isExternalHttpUrl, nextZoom, shortcutAction } from "@/lib/desktop-shortcuts";
+import { installDesktopDownloads } from "@/lib/desktop-downloads";
 
 const ZOOM_KEY = "siga:desktop-zoom";
 
@@ -9,11 +10,15 @@ const ZOOM_KEY = "siga:desktop-zoom";
  * não faz nada.
  *  - Links para fora do SIGA (target=_blank, window.open) abrem no browser do sistema:
  *    o webview não abre separadores e esses cliques ficavam sem resposta.
+ *  - Exportações (`<a download>`) abrem o diálogo nativo "Guardar como" (desktop-downloads).
+ *  - macOS: `window.print()` passa pelo comando Rust `print_page`.
  *  - Atalhos: F5/Ctrl+R recarregar, Alt+←/→ histórico, Ctrl + / − / 0 zoom (lembrado).
  */
 export function DesktopIntegration() {
   useEffect(() => {
     if (!isTauriDesktop()) return;
+
+    const uninstallDownloads = installDesktopDownloads();
 
     const onClick = (event: MouseEvent) => {
       if (event.defaultPrevented || event.button !== 0) return;
@@ -37,6 +42,17 @@ export function DesktopIntegration() {
       }
       return originalOpen(url, target, features);
     }) as typeof window.open;
+
+    // macOS: o window.print() do WKWebView não faz nada; imprime-se pelo Rust.
+    // Windows e Linux imprimem bem com o do próprio webview.
+    const originalPrint = window.print.bind(window);
+    if (/Mac/i.test(navigator.userAgent)) {
+      window.print = () => {
+        void import("@tauri-apps/api/core")
+          .then(({ invoke }) => invoke("print_page"))
+          .catch((error) => console.warn("[desktop] impressão falhou", error));
+      };
+    }
 
     let zoom = Number(localStorage.getItem(ZOOM_KEY)) || 1;
     const applyZoom = async (value: number) => {
@@ -67,6 +83,8 @@ export function DesktopIntegration() {
       document.removeEventListener("click", onClick, true);
       window.removeEventListener("keydown", onKeyDown);
       window.open = originalOpen;
+      window.print = originalPrint;
+      uninstallDownloads();
     };
   }, []);
 

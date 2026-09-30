@@ -22,6 +22,11 @@
     "stronghold:default",
     "notification:default",
     "updater:default",
-    "process:default"
+    "process:default",
+    "allow-get-system-info",
+    "allow-pulse-turnstile-relay",
+    "allow-print-thermal-receipt-native",
+    "allow-save-file",
+    "allow-print-page"
   ]
 }

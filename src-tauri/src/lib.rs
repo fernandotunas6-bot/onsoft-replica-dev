@@ -162,6 +162,76 @@ fn get_system_info() -> SystemInfo {
     }
 }
 
+/// Grava um ficheiro exportado pelo SIGA (CSV, XLSX, PDF…) onde o utilizador escolher.
+///
+/// O corpo do pedido traz os bytes; o cabeçalho `x-file-name` o nome sugerido. O diálogo
+/// abre aqui, no Rust: o webview nunca indica um caminho, por isso só se escreve na pasta
+/// que a pessoa escolheu. Devolve o caminho gravado, ou `None` se cancelar.
+#[tauri::command]
+async fn save_file<R: tauri::Runtime>(
+    app: tauri::AppHandle<R>,
+    request: tauri::ipc::Request<'_>,
+) -> Result<Option<String>, String> {
+    use tauri_plugin_dialog::DialogExt;
+
+    let tauri::ipc::InvokeBody::Raw(bytes) = request.body() else {
+        return Err("Pedido inválido: esperava o conteúdo do ficheiro.".into());
+    };
+    let suggested = request
+        .headers()
+        .get("x-file-name")
+        .and_then(|value| value.to_str().ok())
+        .map(|value| {
+            percent_decode(value)
+                .replace(['/', '\\', ':', '*', '?', '"', '<', '>', '|'], "-")
+        })
+        .filter(|name| !name.trim().is_empty())
+        .unwrap_or_else(|| "exportacao-siga".to_string());
+
+    let mut dialog = app.dialog().file().set_file_name(&suggested);
+    if let Some(ext) = std::path::Path::new(&suggested)
+        .extension()
+        .and_then(|ext| ext.to_str())
+    {
+        dialog = dialog.add_filter(ext.to_uppercase(), &[ext]);
+    }
+
+    let Some(chosen) = dialog.blocking_save_file() else {
+        return Ok(None);
+    };
+    let path = chosen
+        .into_path()
+        .map_err(|_| "Caminho de destino inválido.".to_string())?;
+    std::fs::write(&path, bytes).map_err(|e| format!("Não foi possível gravar: {e}"))?;
+    Ok(Some(path.display().to_string()))
+}
+
+/// Imprime a página actual pelo diálogo nativo. No macOS o `window.print()` do WKWebView
+/// não faz nada; o frontend chama isto em vez dele (DesktopIntegration).
+#[tauri::command]
+fn print_page<R: tauri::Runtime>(webview: tauri::Webview<R>) -> Result<(), String> {
+    webview.print().map_err(|e| format!("Não foi possível imprimir: {e}"))
+}
+
+/// Descodifica `%XX` (o nome vem em `encodeURIComponent`, os cabeçalhos são ASCII).
+fn percent_decode(value: &str) -> String {
+    let bytes = value.as_bytes();
+    let mut out = Vec::with_capacity(bytes.len());
+    let mut i = 0;
+    while i < bytes.len() {
+        if bytes[i] == b'%' && i + 2 < bytes.len() {
+            if let Ok(byte) = u8::from_str_radix(&value[i + 1..i + 3], 16) {
+                out.push(byte);
+                i += 3;
+                continue;
+            }
+        }
+        out.push(bytes[i]);
+        i += 1;
+    }
+    String::from_utf8_lossy(&out).into_owned()
+}
+
 /// Mostra e foca a janela principal (tray, segunda instância).
 fn show_main_window<R: tauri::Runtime>(app: &tauri::AppHandle<R>) {
     if let Some(window) = app.get_webview_window("main") {
@@ -244,10 +314,13 @@ pub fn run() {
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_notification::init())
         .plugin(tauri_plugin_process::init())
+        .plugin(tauri_plugin_dialog::init())
         .invoke_handler(tauri::generate_handler![
             pulse_turnstile_relay,
             print_thermal_receipt_native,
-            get_system_info
+            get_system_info,
+            save_file,
+            print_page
         ]);
 
     #[cfg(desktop)]
