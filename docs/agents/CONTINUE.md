@@ -4,6 +4,43 @@ Ler isto **antes** de alterar código. Ecossistema (5 apps):
 [ARCHITECTURE_HARMONIZATION.md](./ARCHITECTURE_HARMONIZATION.md).
 Depois abrir o skill do módulo em `.cursor/skills/`.
 
+## Pautas oficiais e leituras só do pessoal — POR APLICAR (2026-09-30)
+
+Duas migrações no repositório, **não aplicadas** (aplicar no SQL Editor, por esta ordem;
+ambas idempotentes). Investigação só de leitura na produção; o ensaio foi em Postgres
+local (PGlite), com as duas aplicadas duas vezes.
+
+1. `20260930120000_grade_sheet_functions_execute.sql` — «Gerar pauta» e as mudanças de
+   estado **nunca funcionaram**: `public.build_grade_sheet`/`transition_grade_sheet` são
+   INVOKER e chamam funções `private.*` que só o `postgres` executa → «permission denied
+   for function build_grade_sheet» (reproduzido como `authenticated` numa transacção
+   desfeita). 0 pautas na produção. EXECUTE a `authenticated` na árvore inteira:
+   `build_grade_sheet`, `transition_grade_sheet`, `compute_subject_averages`,
+   `round_grade`. As de topo verificam aal2 + `has_permission`; todas são INVOKER (RLS
+   aplica-se). Depois de aplicar, a pauta ainda precisa de um modelo de avaliação
+   publicado (Pedagógica → Modelos de avaliação): hoje **nenhuma escola tem**
+   `assessment_rule_sets`, e o 2FA é obrigatório (aal2).
+   Outras 29 `public.*` com o mesmo defeito (open_gradebook, create_document_request,
+   publish_assessment_rule_version…) ficam: a app não as usa.
+2. `20260930130000_sensitive_tables_school_staff_only.sql` — `student`/`guardian` têm
+   nas 89 escolas permissões de leitura (`students.records.read`, `finance.invoices.read`,
+   `assessment.grades.read`, `attendance.records.read`, `documents.*`…) e as políticas
+   não limitam ao próprio aluno; `siga_assessment_scores`, `siga_attendance_*`,
+   `finance_payment_plans`, `siga_access_*`, `import_*` liam com `is_school_member`. Um
+   aluno lia pela API REST todos os alunos, faturas, notas, faltas e documentos da escola
+   e alterava qualquer pedido de documento. **Latente:** hoje só há membros `owner`.
+   Correcção: `private.is_school_staff(school_id)` (códigos de pessoal iguais a
+   `roleCodeToAppRole`) + política RESTRICTIVE «School staff only» em 27 tabelas; sai
+   «Members read finance_payment_plans». O servidor (chave de serviço) não é afectado; o
+   painel lê com JWT só para pessoal. Teste: `tests/security/staff-only-sensitive-tables.test.ts`
+   (deriva do retrato as tabelas expostas; mutações verificadas).
+
+Depois de aplicar: recapturar o retrato (`npm run siga:db-snapshot`) e ligar
+«Leaked password protection» no Supabase Auth.
+
+Por decidir: `school_memberships`/`member_roles` continuam legíveis por qualquer membro
+(só ids e papéis; políticas de avatares, `module_catalog` e `permissions` dependem disso).
+
 ## Advisors do Supabase e vitest (2026-09-30)
 
 - `vitest`/`@vitest/ui` 4.1.10 → 4.1.11 (GHSA-82fw-gwwq-j7x9, leitura de ficheiros via
