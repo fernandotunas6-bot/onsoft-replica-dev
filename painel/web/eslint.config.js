@@ -32,6 +32,12 @@ export default tseslint.config([
       // deliberadamente ignorado (ex.: descartar um campo antes de enviar a
       // um endpoint) sem desligar a regra para o resto do ficheiro.
       '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_', varsIgnorePattern: '^_' }],
+      // Iguais ao ADMIN e ao SIGA: regras novas do React Compiler e do fast refresh
+      // ficam como aviso. São sobretudo componentes do kit (ui/*, sidebar, chat) e
+      // hooks que sincronizam com o browser; migram página a página.
+      'react-hooks/set-state-in-effect': 'warn',
+      'react-hooks/purity': 'warn',
+      'react-refresh/only-export-components': ['warn', { allowConstantExport: true }],
     },
   },
 ])
