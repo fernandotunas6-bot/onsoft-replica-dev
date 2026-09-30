@@ -3,7 +3,7 @@
   "resumo": {
     "com_rls": 181,
     "funcoes_private": 101,
-    "politicas": 297,
+    "politicas": 333,
     "tabelas": 181,
     "triggers": 196
   },
@@ -1885,7 +1885,7 @@
         "absence_type",
         "duration_minutes"
       ],
-      "politicas": 3,
+      "politicas": 6,
       "rls": true,
       "rls_forcada": true,
       "tabela": "hr_absence_events"
@@ -1996,7 +1996,7 @@
         "event_date",
         "event_type"
       ],
-      "politicas": 3,
+      "politicas": 6,
       "rls": true,
       "rls_forcada": false,
       "tabela": "hr_compensation_events"
@@ -2032,7 +2032,7 @@
         "contract_id",
         "remuneration_model"
       ],
-      "politicas": 3,
+      "politicas": 6,
       "rls": true,
       "rls_forcada": true,
       "tabela": "hr_contract_remuneration_policies"
@@ -2101,7 +2101,7 @@
         "salary_type",
         "starts_on"
       ],
-      "politicas": 3,
+      "politicas": 6,
       "rls": true,
       "rls_forcada": false,
       "tabela": "hr_contracts"
@@ -2195,7 +2195,7 @@
         "employment_id",
         "beneficiary_name"
       ],
-      "politicas": 1,
+      "politicas": 4,
       "rls": true,
       "rls_forcada": true,
       "tabela": "hr_payment_destinations"
@@ -2216,7 +2216,7 @@
       "obrigatorias": [
         "school_id"
       ],
-      "politicas": 1,
+      "politicas": 4,
       "rls": true,
       "rls_forcada": true,
       "tabela": "hr_payment_settings"
@@ -2246,7 +2246,7 @@
         "name",
         "amount_kz"
       ],
-      "politicas": 2,
+      "politicas": 5,
       "rls": true,
       "rls_forcada": false,
       "tabela": "hr_payroll_item_components"
@@ -2281,7 +2281,7 @@
         "payroll_run_id",
         "employment_id"
       ],
-      "politicas": 3,
+      "politicas": 6,
       "rls": true,
       "rls_forcada": false,
       "tabela": "hr_payroll_items"
@@ -2317,7 +2317,7 @@
         "batch_number",
         "prepared_by"
       ],
-      "politicas": 1,
+      "politicas": 4,
       "rls": true,
       "rls_forcada": true,
       "tabela": "hr_payroll_payment_batches"
@@ -2357,7 +2357,7 @@
         "beneficiary_name",
         "amount_kz"
       ],
-      "politicas": 1,
+      "politicas": 4,
       "rls": true,
       "rls_forcada": true,
       "tabela": "hr_payroll_payment_items"
@@ -2393,7 +2393,7 @@
         "period_start",
         "period_end"
       ],
-      "politicas": 3,
+      "politicas": 6,
       "rls": true,
       "rls_forcada": false,
       "tabela": "hr_payroll_runs"
@@ -3500,7 +3500,7 @@
       "obrigatorias": [
         "school_id"
       ],
-      "politicas": 2,
+      "politicas": 5,
       "rls": true,
       "rls_forcada": true,
       "tabela": "school_billing_settings"
@@ -6232,6 +6232,33 @@
       "verificando": "((school_id = ( SELECT current_school_id() AS current_school_id)) AND (( SELECT current_profile_role() AS current_profile_role) = ANY (ARRAY['Administrador'::text, 'Tesouraria'::text])))"
     },
     {
+      "cmd": "DELETE",
+      "modo": "RESTRICTIVE",
+      "papeis": "{authenticated}",
+      "politica": "Money writes require MFA (delete)",
+      "tabela": "hr_absence_events",
+      "usando": "private.is_aal2()",
+      "verificando": ""
+    },
+    {
+      "cmd": "INSERT",
+      "modo": "RESTRICTIVE",
+      "papeis": "{authenticated}",
+      "politica": "Money writes require MFA (insert)",
+      "tabela": "hr_absence_events",
+      "usando": "",
+      "verificando": "private.is_aal2()"
+    },
+    {
+      "cmd": "UPDATE",
+      "modo": "RESTRICTIVE",
+      "papeis": "{authenticated}",
+      "politica": "Money writes require MFA (update)",
+      "tabela": "hr_absence_events",
+      "usando": "private.is_aal2()",
+      "verificando": "private.is_aal2()"
+    },
+    {
       "cmd": "SELECT",
       "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
@@ -6257,6 +6284,33 @@
       "tabela": "hr_compensation_events",
       "usando": "",
       "verificando": "((school_id = ( SELECT current_school_id() AS current_school_id)) AND (( SELECT current_profile_role() AS current_profile_role) = ANY (ARRAY['Administrador'::text, 'Tesouraria'::text])) AND (created_by = ( SELECT auth.uid() AS uid)))"
+    },
+    {
+      "cmd": "DELETE",
+      "modo": "RESTRICTIVE",
+      "papeis": "{authenticated}",
+      "politica": "Money writes require MFA (delete)",
+      "tabela": "hr_compensation_events",
+      "usando": "private.is_aal2()",
+      "verificando": ""
+    },
+    {
+      "cmd": "INSERT",
+      "modo": "RESTRICTIVE",
+      "papeis": "{authenticated}",
+      "politica": "Money writes require MFA (insert)",
+      "tabela": "hr_compensation_events",
+      "usando": "",
+      "verificando": "private.is_aal2()"
+    },
+    {
+      "cmd": "UPDATE",
+      "modo": "RESTRICTIVE",
+      "papeis": "{authenticated}",
+      "politica": "Money writes require MFA (update)",
+      "tabela": "hr_compensation_events",
+      "usando": "private.is_aal2()",
+      "verificando": "private.is_aal2()"
     },
     {
       "cmd": "SELECT",
@@ -6304,6 +6358,33 @@
       "verificando": "((school_id = ( SELECT current_school_id() AS current_school_id)) AND (( SELECT current_profile_role() AS current_profile_role) = ANY (ARRAY['Administrador'::text, 'Tesouraria'::text])))"
     },
     {
+      "cmd": "DELETE",
+      "modo": "RESTRICTIVE",
+      "papeis": "{authenticated}",
+      "politica": "Money writes require MFA (delete)",
+      "tabela": "hr_contract_remuneration_policies",
+      "usando": "private.is_aal2()",
+      "verificando": ""
+    },
+    {
+      "cmd": "INSERT",
+      "modo": "RESTRICTIVE",
+      "papeis": "{authenticated}",
+      "politica": "Money writes require MFA (insert)",
+      "tabela": "hr_contract_remuneration_policies",
+      "usando": "",
+      "verificando": "private.is_aal2()"
+    },
+    {
+      "cmd": "UPDATE",
+      "modo": "RESTRICTIVE",
+      "papeis": "{authenticated}",
+      "politica": "Money writes require MFA (update)",
+      "tabela": "hr_contract_remuneration_policies",
+      "usando": "private.is_aal2()",
+      "verificando": "private.is_aal2()"
+    },
+    {
       "cmd": "INSERT",
       "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
@@ -6311,6 +6392,33 @@
       "tabela": "hr_contracts",
       "usando": "",
       "verificando": "((school_id = ( SELECT current_school_id() AS current_school_id)) AND (( SELECT current_profile_role() AS current_profile_role) = ANY (ARRAY['Administrador'::text, 'Tesouraria'::text])) AND (created_by = ( SELECT auth.uid() AS uid)))"
+    },
+    {
+      "cmd": "DELETE",
+      "modo": "RESTRICTIVE",
+      "papeis": "{authenticated}",
+      "politica": "Money writes require MFA (delete)",
+      "tabela": "hr_contracts",
+      "usando": "private.is_aal2()",
+      "verificando": ""
+    },
+    {
+      "cmd": "INSERT",
+      "modo": "RESTRICTIVE",
+      "papeis": "{authenticated}",
+      "politica": "Money writes require MFA (insert)",
+      "tabela": "hr_contracts",
+      "usando": "",
+      "verificando": "private.is_aal2()"
+    },
+    {
+      "cmd": "UPDATE",
+      "modo": "RESTRICTIVE",
+      "papeis": "{authenticated}",
+      "politica": "Money writes require MFA (update)",
+      "tabela": "hr_contracts",
+      "usando": "private.is_aal2()",
+      "verificando": "private.is_aal2()"
     },
     {
       "cmd": "SELECT",
@@ -6394,6 +6502,33 @@
       "verificando": "((school_id = ( SELECT current_school_id() AS current_school_id)) AND (( SELECT current_profile_role() AS current_profile_role) = ANY (ARRAY['Administrador'::text, 'Tesouraria'::text])))"
     },
     {
+      "cmd": "DELETE",
+      "modo": "RESTRICTIVE",
+      "papeis": "{authenticated}",
+      "politica": "Money writes require MFA (delete)",
+      "tabela": "hr_payment_destinations",
+      "usando": "private.is_aal2()",
+      "verificando": ""
+    },
+    {
+      "cmd": "INSERT",
+      "modo": "RESTRICTIVE",
+      "papeis": "{authenticated}",
+      "politica": "Money writes require MFA (insert)",
+      "tabela": "hr_payment_destinations",
+      "usando": "",
+      "verificando": "private.is_aal2()"
+    },
+    {
+      "cmd": "UPDATE",
+      "modo": "RESTRICTIVE",
+      "papeis": "{authenticated}",
+      "politica": "Money writes require MFA (update)",
+      "tabela": "hr_payment_destinations",
+      "usando": "private.is_aal2()",
+      "verificando": "private.is_aal2()"
+    },
+    {
       "cmd": "ALL",
       "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
@@ -6403,6 +6538,33 @@
       "verificando": "((school_id = ( SELECT current_school_id() AS current_school_id)) AND (( SELECT current_profile_role() AS current_profile_role) = ANY (ARRAY['Administrador'::text, 'Tesouraria'::text])))"
     },
     {
+      "cmd": "DELETE",
+      "modo": "RESTRICTIVE",
+      "papeis": "{authenticated}",
+      "politica": "Money writes require MFA (delete)",
+      "tabela": "hr_payment_settings",
+      "usando": "private.is_aal2()",
+      "verificando": ""
+    },
+    {
+      "cmd": "INSERT",
+      "modo": "RESTRICTIVE",
+      "papeis": "{authenticated}",
+      "politica": "Money writes require MFA (insert)",
+      "tabela": "hr_payment_settings",
+      "usando": "",
+      "verificando": "private.is_aal2()"
+    },
+    {
+      "cmd": "UPDATE",
+      "modo": "RESTRICTIVE",
+      "papeis": "{authenticated}",
+      "politica": "Money writes require MFA (update)",
+      "tabela": "hr_payment_settings",
+      "usando": "private.is_aal2()",
+      "verificando": "private.is_aal2()"
+    },
+    {
       "cmd": "INSERT",
       "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
@@ -6410,6 +6572,33 @@
       "tabela": "hr_payroll_item_components",
       "usando": "",
       "verificando": "((school_id = ( SELECT current_school_id() AS current_school_id)) AND (( SELECT current_profile_role() AS current_profile_role) = ANY (ARRAY['Administrador'::text, 'Tesouraria'::text])) AND (created_by = ( SELECT auth.uid() AS uid)))"
+    },
+    {
+      "cmd": "DELETE",
+      "modo": "RESTRICTIVE",
+      "papeis": "{authenticated}",
+      "politica": "Money writes require MFA (delete)",
+      "tabela": "hr_payroll_item_components",
+      "usando": "private.is_aal2()",
+      "verificando": ""
+    },
+    {
+      "cmd": "INSERT",
+      "modo": "RESTRICTIVE",
+      "papeis": "{authenticated}",
+      "politica": "Money writes require MFA (insert)",
+      "tabela": "hr_payroll_item_components",
+      "usando": "",
+      "verificando": "private.is_aal2()"
+    },
+    {
+      "cmd": "UPDATE",
+      "modo": "RESTRICTIVE",
+      "papeis": "{authenticated}",
+      "politica": "Money writes require MFA (update)",
+      "tabela": "hr_payroll_item_components",
+      "usando": "private.is_aal2()",
+      "verificando": "private.is_aal2()"
     },
     {
       "cmd": "SELECT",
@@ -6428,6 +6617,33 @@
       "tabela": "hr_payroll_items",
       "usando": "",
       "verificando": "((school_id = ( SELECT current_school_id() AS current_school_id)) AND (( SELECT current_profile_role() AS current_profile_role) = ANY (ARRAY['Administrador'::text, 'Tesouraria'::text])) AND (created_by = ( SELECT auth.uid() AS uid)))"
+    },
+    {
+      "cmd": "DELETE",
+      "modo": "RESTRICTIVE",
+      "papeis": "{authenticated}",
+      "politica": "Money writes require MFA (delete)",
+      "tabela": "hr_payroll_items",
+      "usando": "private.is_aal2()",
+      "verificando": ""
+    },
+    {
+      "cmd": "INSERT",
+      "modo": "RESTRICTIVE",
+      "papeis": "{authenticated}",
+      "politica": "Money writes require MFA (insert)",
+      "tabela": "hr_payroll_items",
+      "usando": "",
+      "verificando": "private.is_aal2()"
+    },
+    {
+      "cmd": "UPDATE",
+      "modo": "RESTRICTIVE",
+      "papeis": "{authenticated}",
+      "politica": "Money writes require MFA (update)",
+      "tabela": "hr_payroll_items",
+      "usando": "private.is_aal2()",
+      "verificando": "private.is_aal2()"
     },
     {
       "cmd": "SELECT",
@@ -6457,6 +6673,33 @@
       "verificando": "((school_id = ( SELECT current_school_id() AS current_school_id)) AND (( SELECT current_profile_role() AS current_profile_role) = ANY (ARRAY['Administrador'::text, 'Tesouraria'::text])))"
     },
     {
+      "cmd": "DELETE",
+      "modo": "RESTRICTIVE",
+      "papeis": "{authenticated}",
+      "politica": "Money writes require MFA (delete)",
+      "tabela": "hr_payroll_payment_batches",
+      "usando": "private.is_aal2()",
+      "verificando": ""
+    },
+    {
+      "cmd": "INSERT",
+      "modo": "RESTRICTIVE",
+      "papeis": "{authenticated}",
+      "politica": "Money writes require MFA (insert)",
+      "tabela": "hr_payroll_payment_batches",
+      "usando": "",
+      "verificando": "private.is_aal2()"
+    },
+    {
+      "cmd": "UPDATE",
+      "modo": "RESTRICTIVE",
+      "papeis": "{authenticated}",
+      "politica": "Money writes require MFA (update)",
+      "tabela": "hr_payroll_payment_batches",
+      "usando": "private.is_aal2()",
+      "verificando": "private.is_aal2()"
+    },
+    {
       "cmd": "ALL",
       "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
@@ -6466,6 +6709,33 @@
       "verificando": "((school_id = ( SELECT current_school_id() AS current_school_id)) AND (( SELECT current_profile_role() AS current_profile_role) = ANY (ARRAY['Administrador'::text, 'Tesouraria'::text])))"
     },
     {
+      "cmd": "DELETE",
+      "modo": "RESTRICTIVE",
+      "papeis": "{authenticated}",
+      "politica": "Money writes require MFA (delete)",
+      "tabela": "hr_payroll_payment_items",
+      "usando": "private.is_aal2()",
+      "verificando": ""
+    },
+    {
+      "cmd": "INSERT",
+      "modo": "RESTRICTIVE",
+      "papeis": "{authenticated}",
+      "politica": "Money writes require MFA (insert)",
+      "tabela": "hr_payroll_payment_items",
+      "usando": "",
+      "verificando": "private.is_aal2()"
+    },
+    {
+      "cmd": "UPDATE",
+      "modo": "RESTRICTIVE",
+      "papeis": "{authenticated}",
+      "politica": "Money writes require MFA (update)",
+      "tabela": "hr_payroll_payment_items",
+      "usando": "private.is_aal2()",
+      "verificando": "private.is_aal2()"
+    },
+    {
       "cmd": "INSERT",
       "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
@@ -6473,6 +6743,33 @@
       "tabela": "hr_payroll_runs",
       "usando": "",
       "verificando": "((school_id = ( SELECT current_school_id() AS current_school_id)) AND (( SELECT current_profile_role() AS current_profile_role) = ANY (ARRAY['Administrador'::text, 'Tesouraria'::text])) AND (created_by = ( SELECT auth.uid() AS uid)))"
+    },
+    {
+      "cmd": "DELETE",
+      "modo": "RESTRICTIVE",
+      "papeis": "{authenticated}",
+      "politica": "Money writes require MFA (delete)",
+      "tabela": "hr_payroll_runs",
+      "usando": "private.is_aal2()",
+      "verificando": ""
+    },
+    {
+      "cmd": "INSERT",
+      "modo": "RESTRICTIVE",
+      "papeis": "{authenticated}",
+      "politica": "Money writes require MFA (insert)",
+      "tabela": "hr_payroll_runs",
+      "usando": "",
+      "verificando": "private.is_aal2()"
+    },
+    {
+      "cmd": "UPDATE",
+      "modo": "RESTRICTIVE",
+      "papeis": "{authenticated}",
+      "politica": "Money writes require MFA (update)",
+      "tabela": "hr_payroll_runs",
+      "usando": "private.is_aal2()",
+      "verificando": "private.is_aal2()"
     },
     {
       "cmd": "SELECT",
@@ -7112,6 +7409,33 @@
       "tabela": "school_billing_settings",
       "usando": "((school_id = ( SELECT current_school_id() AS current_school_id)) AND (( SELECT current_profile_role() AS current_profile_role) = ANY (ARRAY['Administrador'::text, 'Tesouraria'::text])))",
       "verificando": "((school_id = ( SELECT current_school_id() AS current_school_id)) AND (( SELECT current_profile_role() AS current_profile_role) = ANY (ARRAY['Administrador'::text, 'Tesouraria'::text])))"
+    },
+    {
+      "cmd": "DELETE",
+      "modo": "RESTRICTIVE",
+      "papeis": "{authenticated}",
+      "politica": "Money writes require MFA (delete)",
+      "tabela": "school_billing_settings",
+      "usando": "private.is_aal2()",
+      "verificando": ""
+    },
+    {
+      "cmd": "INSERT",
+      "modo": "RESTRICTIVE",
+      "papeis": "{authenticated}",
+      "politica": "Money writes require MFA (insert)",
+      "tabela": "school_billing_settings",
+      "usando": "",
+      "verificando": "private.is_aal2()"
+    },
+    {
+      "cmd": "UPDATE",
+      "modo": "RESTRICTIVE",
+      "papeis": "{authenticated}",
+      "politica": "Money writes require MFA (update)",
+      "tabela": "school_billing_settings",
+      "usando": "private.is_aal2()",
+      "verificando": "private.is_aal2()"
     },
     {
       "cmd": "SELECT",

@@ -6,6 +6,7 @@ import {
   loadSgaAdminClient,
   resolveSgaMembershipAdmin,
 } from "@/integrations/supabase/sga-admin";
+import { requireAal2 } from "@/features/hr/require-aal2";
 import {
   canConfirmPaymentItem,
   confirmPayrollPaymentItemInputSchema,
@@ -27,16 +28,6 @@ async function requirePaymentAdmin(userId: string, mode: "read" | "write" = "rea
   // Permissões por módulo (Nenhum/Leitura) também valem no RH.
   await assertModuleNotBlocked(membership.schoolId, userId, "financeiro", mode);
   return membership;
-}
-
-/**
- * Mudar para onde vai um salário e confirmar que foi pago mexem em dinheiro:
- * o mesmo 2FA que registar um pagamento de propina (register_payment).
- */
-function requireAal2(claims: Record<string, unknown>, action: string) {
-  if (claims["aal"] !== "aal2") {
-    throw new Error(`${action} exige 2FA activo nesta sessão.`);
-  }
 }
 
 function missingPaymentSchema(error: { code?: string; message?: string } | null) {
@@ -201,6 +192,7 @@ export const createPayrollPaymentBatch = createServerFn({ method: "POST" })
   .validator((input: unknown) => payrollRunIdInputSchema.parse(input))
   .handler(async ({ data, context }) => {
     await requirePaymentAdmin(context.userId, "write");
+    requireAal2(context.claims, "Preparar uma ordem de pagamento salarial");
     const { data: result, error } = await context.supabase.rpc("hr_create_payroll_payment_batch", {
       p_payroll_run_id: data.payrollRunId,
     });
@@ -213,6 +205,7 @@ export const refreshPayrollPaymentBatch = createServerFn({ method: "POST" })
   .validator((input: unknown) => paymentBatchIdInputSchema.parse(input))
   .handler(async ({ data, context }) => {
     await requirePaymentAdmin(context.userId, "write");
+    requireAal2(context.claims, "Sincronizar uma ordem de pagamento salarial");
     const { data: result, error } = await context.supabase.rpc("hr_refresh_payroll_payment_batch", {
       p_batch_id: data.batchId,
     });
@@ -226,6 +219,7 @@ export const authorizePayrollPaymentBatch = createServerFn({ method: "POST" })
   .validator((input: unknown) => paymentBatchIdInputSchema.parse(input))
   .handler(async ({ data, context }) => {
     await requirePaymentAdmin(context.userId, "write");
+    requireAal2(context.claims, "Autorizar uma ordem de pagamento salarial");
     const { data: result, error } = await context.supabase.rpc(
       "hr_authorize_payroll_payment_batch",
       { p_batch_id: data.batchId },

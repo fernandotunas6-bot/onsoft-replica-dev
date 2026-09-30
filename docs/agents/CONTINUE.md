@@ -4,6 +4,27 @@ Ler isto **antes** de alterar código. Ecossistema (5 apps):
 [ARCHITECTURE_HARMONIZATION.md](./ARCHITECTURE_HARMONIZATION.md).
 Depois abrir o skill do módulo em `.cursor/skills/`.
 
+## Dinheiro com 2FA; RH não funciona com os papéis actuais (2026-09-30)
+
+- `20260930190000` (aplicada; decisão do dono: «só dinheiro»): três políticas
+  RESTRICTIVE (INSERT/UPDATE/DELETE, `private.is_aal2()`) em 12 tabelas: `hr_contracts`,
+  `hr_contract_remuneration_policies`, `hr_compensation_events`, `hr_absence_events`,
+  `hr_payroll_runs|items|item_components`, `hr_payroll_payment_batches|items`,
+  `hr_payment_destinations|settings`, `school_billing_settings`. 333 políticas.
+- Sem aal2, UPDATE/DELETE **não dão erro, afectam 0 linhas** (ensaio PGlite). Por isso o
+  servidor verifica aal2 antes das 6 acções da folha/lotes (`hr/require-aal2.ts`), com
+  mensagem que abre «Activar 2FA». `tests/security/hr-money-mfa.test.ts` exige a
+  verificação antes de cada `rpc("hr_…")` que mexa em dinheiro.
+- **Achado, por corrigir (decisão/trabalho à parte):** as políticas e funções de RH
+  comparam `current_profile_role()` com 'Administrador'/'Tesouraria', mas a função devolve
+  o **código** do papel (`owner`, `admin`, `treasury`). Nunca coincidem: um dono com 2FA
+  recebe «Insufficient payroll permission» em `hr_create_payroll_run`, e as políticas
+  `hr_*` e de `school_billing_settings` recusam-no (lê 0 linhas). A produção tem 0
+  vínculos, 0 contratos e 0 folhas: o RH não está em uso. Corrigir é trocar essa
+  comparação por `private.sga_app_role(school_id)` (ou `is_school_finance`) em ~30
+  políticas e nas funções `hr_*`, e `current_school_id()` pela escola da linha.
+  Enquanto não for corrigido, o risco «folha pela API sem 2FA» era latente, não aberto.
+
 ## Escrita directa pela API passa a exigir 2FA (2026-09-30)
 
 - `20260930180000` (aplicada, por decisão do dono): saem as 8 políticas antigas
