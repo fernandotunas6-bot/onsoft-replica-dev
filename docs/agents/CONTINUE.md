@@ -4,6 +4,24 @@ Ler isto **antes** de alterar código. Ecossistema (5 apps):
 [ARCHITECTURE_HARMONIZATION.md](./ARCHITECTURE_HARMONIZATION.md).
 Depois abrir o skill do módulo em `.cursor/skills/`.
 
+## RH e faturação a funcionar: papel pela escola da linha (2026-09-30)
+
+- `20260930200000` (aplicada, com autorização do dono): nas 35 políticas `hr_*` e de
+  `school_billing_settings`, `current_profile_role()` → `private.sga_app_role(school_id)` e
+  `school_id = current_school_id()` → `is_school_member(school_id)`; nas 10 funções `hr_*`
+  INVOKER, `current_profile_role()` → `sga_app_role(current_school_id())`. Texto lido da
+  base e trocado só nessas expressões (como `20260928110000`).
+- Ensaiada na base real numa transacção desfeita antes de aplicar; depois, com o JWT do
+  dono: aal2 cria folha (`draft`) e lê a faturação da própria escola (1) e 0 de outras;
+  aal1 não altera faturação e criar folha é recusado pela restritiva de 2FA. 0 folhas
+  gravadas. Retrato: 333 políticas, 0 do RH com `current_profile_role`.
+- Testes (`hr-money-mfa`): nenhuma política do RH/faturação usa `current_profile_role()`;
+  em toda a base, `sga_app_role(school_id)` só com `is_school_member(school_id)`.
+  DATABASE_RULES 6d.
+- Fora de âmbito (mistura códigos e nomes; mexer muda acessos fora do RH):
+  `can_manage_students`, `can_read_students`, `current_school_role_is`, UPDATE de
+  `schools` (compara com 'Administrador': hoje nunca passa), `finance_gateway_webhook_events`.
+
 ## Dinheiro com 2FA; RH não funciona com os papéis actuais (2026-09-30)
 
 - `20260930190000` (aplicada; decisão do dono: «só dinheiro»): três políticas
@@ -15,7 +33,7 @@ Depois abrir o skill do módulo em `.cursor/skills/`.
   servidor verifica aal2 antes das 6 acções da folha/lotes (`hr/require-aal2.ts`), com
   mensagem que abre «Activar 2FA». `tests/security/hr-money-mfa.test.ts` exige a
   verificação antes de cada `rpc("hr_…")` que mexa em dinheiro.
-- **Achado, por corrigir (decisão/trabalho à parte):** as políticas e funções de RH
+- **Achado, corrigido a seguir em `20260930200000` (ver abaixo):** as políticas e funções de RH
   comparam `current_profile_role()` com 'Administrador'/'Tesouraria', mas a função devolve
   o **código** do papel (`owner`, `admin`, `treasury`). Nunca coincidem: um dono com 2FA
   recebe «Insufficient payroll permission» em `hr_create_payroll_run`, e as políticas

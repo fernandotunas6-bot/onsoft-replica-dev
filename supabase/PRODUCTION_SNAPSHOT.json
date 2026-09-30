@@ -6211,7 +6211,7 @@
       "politica": "HR creates absence events in own school",
       "tabela": "hr_absence_events",
       "usando": "",
-      "verificando": "((school_id = ( SELECT current_school_id() AS current_school_id)) AND (created_by = ( SELECT auth.uid() AS uid)) AND (( SELECT current_profile_role() AS current_profile_role) = ANY (ARRAY['Administrador'::text, 'Tesouraria'::text])))"
+      "verificando": "(is_school_member(school_id) AND (created_by = ( SELECT auth.uid() AS uid)) AND (private.sga_app_role(school_id) = ANY (ARRAY['Administrador'::text, 'Tesouraria'::text])))"
     },
     {
       "cmd": "SELECT",
@@ -6219,7 +6219,7 @@
       "papeis": "{authenticated}",
       "politica": "HR reads absence events in own school",
       "tabela": "hr_absence_events",
-      "usando": "((school_id = ( SELECT current_school_id() AS current_school_id)) AND (( SELECT current_profile_role() AS current_profile_role) = ANY (ARRAY['Administrador'::text, 'Tesouraria'::text])) AND (deleted_at IS NULL))",
+      "usando": "(is_school_member(school_id) AND (private.sga_app_role(school_id) = ANY (ARRAY['Administrador'::text, 'Tesouraria'::text])) AND (deleted_at IS NULL))",
       "verificando": ""
     },
     {
@@ -6228,8 +6228,8 @@
       "papeis": "{authenticated}",
       "politica": "HR updates absence events in own school",
       "tabela": "hr_absence_events",
-      "usando": "((school_id = ( SELECT current_school_id() AS current_school_id)) AND (( SELECT current_profile_role() AS current_profile_role) = ANY (ARRAY['Administrador'::text, 'Tesouraria'::text])))",
-      "verificando": "((school_id = ( SELECT current_school_id() AS current_school_id)) AND (( SELECT current_profile_role() AS current_profile_role) = ANY (ARRAY['Administrador'::text, 'Tesouraria'::text])))"
+      "usando": "(is_school_member(school_id) AND (private.sga_app_role(school_id) = ANY (ARRAY['Administrador'::text, 'Tesouraria'::text])))",
+      "verificando": "(is_school_member(school_id) AND (private.sga_app_role(school_id) = ANY (ARRAY['Administrador'::text, 'Tesouraria'::text])))"
     },
     {
       "cmd": "DELETE",
@@ -6264,7 +6264,7 @@
       "papeis": "{authenticated}",
       "politica": "HR reads attendance assurance evidence",
       "tabela": "hr_attendance_assurance_evidence",
-      "usando": "((school_id = ( SELECT current_school_id() AS current_school_id)) AND ((( SELECT current_profile_role() AS current_profile_role) = ANY (ARRAY['Administrador'::text, 'Tesouraria'::text])) OR (actor_user_id = ( SELECT auth.uid() AS uid))))",
+      "usando": "(is_school_member(school_id) AND ((private.sga_app_role(school_id) = ANY (ARRAY['Administrador'::text, 'Tesouraria'::text])) OR (actor_user_id = ( SELECT auth.uid() AS uid))))",
       "verificando": ""
     },
     {
@@ -6283,7 +6283,7 @@
       "politica": "Create hr_compensation_events finance role",
       "tabela": "hr_compensation_events",
       "usando": "",
-      "verificando": "((school_id = ( SELECT current_school_id() AS current_school_id)) AND (( SELECT current_profile_role() AS current_profile_role) = ANY (ARRAY['Administrador'::text, 'Tesouraria'::text])) AND (created_by = ( SELECT auth.uid() AS uid)))"
+      "verificando": "(is_school_member(school_id) AND (private.sga_app_role(school_id) = ANY (ARRAY['Administrador'::text, 'Tesouraria'::text])) AND (created_by = ( SELECT auth.uid() AS uid)))"
     },
     {
       "cmd": "DELETE",
@@ -6327,8 +6327,8 @@
       "papeis": "{authenticated}",
       "politica": "Update hr_compensation_events finance role",
       "tabela": "hr_compensation_events",
-      "usando": "((school_id = ( SELECT current_school_id() AS current_school_id)) AND (( SELECT current_profile_role() AS current_profile_role) = ANY (ARRAY['Administrador'::text, 'Tesouraria'::text])))",
-      "verificando": "((school_id = ( SELECT current_school_id() AS current_school_id)) AND (( SELECT current_profile_role() AS current_profile_role) = ANY (ARRAY['Administrador'::text, 'Tesouraria'::text])))"
+      "usando": "(is_school_member(school_id) AND (private.sga_app_role(school_id) = ANY (ARRAY['Administrador'::text, 'Tesouraria'::text])))",
+      "verificando": "(is_school_member(school_id) AND (private.sga_app_role(school_id) = ANY (ARRAY['Administrador'::text, 'Tesouraria'::text])))"
     },
     {
       "cmd": "INSERT",
@@ -6337,7 +6337,7 @@
       "politica": "HR creates remuneration policies in own school",
       "tabela": "hr_contract_remuneration_policies",
       "usando": "",
-      "verificando": "((school_id = ( SELECT current_school_id() AS current_school_id)) AND (created_by = ( SELECT auth.uid() AS uid)) AND (( SELECT current_profile_role() AS current_profile_role) = ANY (ARRAY['Administrador'::text, 'Tesouraria'::text])))"
+      "verificando": "(is_school_member(school_id) AND (created_by = ( SELECT auth.uid() AS uid)) AND (private.sga_app_role(school_id) = ANY (ARRAY['Administrador'::text, 'Tesouraria'::text])))"
     },
     {
       "cmd": "SELECT",
@@ -6345,7 +6345,7 @@
       "papeis": "{authenticated}",
       "politica": "HR reads remuneration policies in own school",
       "tabela": "hr_contract_remuneration_policies",
-      "usando": "((school_id = ( SELECT current_school_id() AS current_school_id)) AND (( SELECT current_profile_role() AS current_profile_role) = ANY (ARRAY['Administrador'::text, 'Tesouraria'::text])))",
+      "usando": "(is_school_member(school_id) AND (private.sga_app_role(school_id) = ANY (ARRAY['Administrador'::text, 'Tesouraria'::text])))",
       "verificando": ""
     },
     {
@@ -6354,8 +6354,8 @@
       "papeis": "{authenticated}",
       "politica": "HR updates remuneration policies in own school",
       "tabela": "hr_contract_remuneration_policies",
-      "usando": "((school_id = ( SELECT current_school_id() AS current_school_id)) AND (( SELECT current_profile_role() AS current_profile_role) = ANY (ARRAY['Administrador'::text, 'Tesouraria'::text])))",
-      "verificando": "((school_id = ( SELECT current_school_id() AS current_school_id)) AND (( SELECT current_profile_role() AS current_profile_role) = ANY (ARRAY['Administrador'::text, 'Tesouraria'::text])))"
+      "usando": "(is_school_member(school_id) AND (private.sga_app_role(school_id) = ANY (ARRAY['Administrador'::text, 'Tesouraria'::text])))",
+      "verificando": "(is_school_member(school_id) AND (private.sga_app_role(school_id) = ANY (ARRAY['Administrador'::text, 'Tesouraria'::text])))"
     },
     {
       "cmd": "DELETE",
@@ -6391,7 +6391,7 @@
       "politica": "Create hr_contracts finance role",
       "tabela": "hr_contracts",
       "usando": "",
-      "verificando": "((school_id = ( SELECT current_school_id() AS current_school_id)) AND (( SELECT current_profile_role() AS current_profile_role) = ANY (ARRAY['Administrador'::text, 'Tesouraria'::text])) AND (created_by = ( SELECT auth.uid() AS uid)))"
+      "verificando": "(is_school_member(school_id) AND (private.sga_app_role(school_id) = ANY (ARRAY['Administrador'::text, 'Tesouraria'::text])) AND (created_by = ( SELECT auth.uid() AS uid)))"
     },
     {
       "cmd": "DELETE",
@@ -6435,8 +6435,8 @@
       "papeis": "{authenticated}",
       "politica": "Update hr_contracts finance role",
       "tabela": "hr_contracts",
-      "usando": "((school_id = ( SELECT current_school_id() AS current_school_id)) AND (( SELECT current_profile_role() AS current_profile_role) = ANY (ARRAY['Administrador'::text, 'Tesouraria'::text])))",
-      "verificando": "((school_id = ( SELECT current_school_id() AS current_school_id)) AND (( SELECT current_profile_role() AS current_profile_role) = ANY (ARRAY['Administrador'::text, 'Tesouraria'::text])))"
+      "usando": "(is_school_member(school_id) AND (private.sga_app_role(school_id) = ANY (ARRAY['Administrador'::text, 'Tesouraria'::text])))",
+      "verificando": "(is_school_member(school_id) AND (private.sga_app_role(school_id) = ANY (ARRAY['Administrador'::text, 'Tesouraria'::text])))"
     },
     {
       "cmd": "INSERT",
@@ -6472,7 +6472,7 @@
       "politica": "Create hr_employments finance role",
       "tabela": "hr_employments",
       "usando": "",
-      "verificando": "((school_id = ( SELECT current_school_id() AS current_school_id)) AND (( SELECT current_profile_role() AS current_profile_role) = ANY (ARRAY['Administrador'::text, 'Tesouraria'::text])) AND (created_by = ( SELECT auth.uid() AS uid)))"
+      "verificando": "(is_school_member(school_id) AND (private.sga_app_role(school_id) = ANY (ARRAY['Administrador'::text, 'Tesouraria'::text])) AND (created_by = ( SELECT auth.uid() AS uid)))"
     },
     {
       "cmd": "SELECT",
@@ -6489,8 +6489,8 @@
       "papeis": "{authenticated}",
       "politica": "Update hr_employments finance role",
       "tabela": "hr_employments",
-      "usando": "((school_id = ( SELECT current_school_id() AS current_school_id)) AND (( SELECT current_profile_role() AS current_profile_role) = ANY (ARRAY['Administrador'::text, 'Tesouraria'::text])))",
-      "verificando": "((school_id = ( SELECT current_school_id() AS current_school_id)) AND (( SELECT current_profile_role() AS current_profile_role) = ANY (ARRAY['Administrador'::text, 'Tesouraria'::text])))"
+      "usando": "(is_school_member(school_id) AND (private.sga_app_role(school_id) = ANY (ARRAY['Administrador'::text, 'Tesouraria'::text])))",
+      "verificando": "(is_school_member(school_id) AND (private.sga_app_role(school_id) = ANY (ARRAY['Administrador'::text, 'Tesouraria'::text])))"
     },
     {
       "cmd": "ALL",
@@ -6498,8 +6498,8 @@
       "papeis": "{authenticated}",
       "politica": "HR payment destinations own school",
       "tabela": "hr_payment_destinations",
-      "usando": "((school_id = ( SELECT current_school_id() AS current_school_id)) AND (( SELECT current_profile_role() AS current_profile_role) = ANY (ARRAY['Administrador'::text, 'Tesouraria'::text])))",
-      "verificando": "((school_id = ( SELECT current_school_id() AS current_school_id)) AND (( SELECT current_profile_role() AS current_profile_role) = ANY (ARRAY['Administrador'::text, 'Tesouraria'::text])))"
+      "usando": "(is_school_member(school_id) AND (private.sga_app_role(school_id) = ANY (ARRAY['Administrador'::text, 'Tesouraria'::text])))",
+      "verificando": "(is_school_member(school_id) AND (private.sga_app_role(school_id) = ANY (ARRAY['Administrador'::text, 'Tesouraria'::text])))"
     },
     {
       "cmd": "DELETE",
@@ -6534,8 +6534,8 @@
       "papeis": "{authenticated}",
       "politica": "HR payment settings own school",
       "tabela": "hr_payment_settings",
-      "usando": "((school_id = ( SELECT current_school_id() AS current_school_id)) AND (( SELECT current_profile_role() AS current_profile_role) = ANY (ARRAY['Administrador'::text, 'Tesouraria'::text])))",
-      "verificando": "((school_id = ( SELECT current_school_id() AS current_school_id)) AND (( SELECT current_profile_role() AS current_profile_role) = ANY (ARRAY['Administrador'::text, 'Tesouraria'::text])))"
+      "usando": "(is_school_member(school_id) AND (private.sga_app_role(school_id) = ANY (ARRAY['Administrador'::text, 'Tesouraria'::text])))",
+      "verificando": "(is_school_member(school_id) AND (private.sga_app_role(school_id) = ANY (ARRAY['Administrador'::text, 'Tesouraria'::text])))"
     },
     {
       "cmd": "DELETE",
@@ -6571,7 +6571,7 @@
       "politica": "Create hr_payroll_item_components finance role",
       "tabela": "hr_payroll_item_components",
       "usando": "",
-      "verificando": "((school_id = ( SELECT current_school_id() AS current_school_id)) AND (( SELECT current_profile_role() AS current_profile_role) = ANY (ARRAY['Administrador'::text, 'Tesouraria'::text])) AND (created_by = ( SELECT auth.uid() AS uid)))"
+      "verificando": "(is_school_member(school_id) AND (private.sga_app_role(school_id) = ANY (ARRAY['Administrador'::text, 'Tesouraria'::text])) AND (created_by = ( SELECT auth.uid() AS uid)))"
     },
     {
       "cmd": "DELETE",
@@ -6616,7 +6616,7 @@
       "politica": "Create hr_payroll_items finance role",
       "tabela": "hr_payroll_items",
       "usando": "",
-      "verificando": "((school_id = ( SELECT current_school_id() AS current_school_id)) AND (( SELECT current_profile_role() AS current_profile_role) = ANY (ARRAY['Administrador'::text, 'Tesouraria'::text])) AND (created_by = ( SELECT auth.uid() AS uid)))"
+      "verificando": "(is_school_member(school_id) AND (private.sga_app_role(school_id) = ANY (ARRAY['Administrador'::text, 'Tesouraria'::text])) AND (created_by = ( SELECT auth.uid() AS uid)))"
     },
     {
       "cmd": "DELETE",
@@ -6660,8 +6660,8 @@
       "papeis": "{authenticated}",
       "politica": "Update hr_payroll_items finance role",
       "tabela": "hr_payroll_items",
-      "usando": "((school_id = ( SELECT current_school_id() AS current_school_id)) AND (( SELECT current_profile_role() AS current_profile_role) = ANY (ARRAY['Administrador'::text, 'Tesouraria'::text])))",
-      "verificando": "((school_id = ( SELECT current_school_id() AS current_school_id)) AND (( SELECT current_profile_role() AS current_profile_role) = ANY (ARRAY['Administrador'::text, 'Tesouraria'::text])))"
+      "usando": "(is_school_member(school_id) AND (private.sga_app_role(school_id) = ANY (ARRAY['Administrador'::text, 'Tesouraria'::text])))",
+      "verificando": "(is_school_member(school_id) AND (private.sga_app_role(school_id) = ANY (ARRAY['Administrador'::text, 'Tesouraria'::text])))"
     },
     {
       "cmd": "ALL",
@@ -6669,8 +6669,8 @@
       "papeis": "{authenticated}",
       "politica": "HR payment batches own school",
       "tabela": "hr_payroll_payment_batches",
-      "usando": "((school_id = ( SELECT current_school_id() AS current_school_id)) AND (( SELECT current_profile_role() AS current_profile_role) = ANY (ARRAY['Administrador'::text, 'Tesouraria'::text])))",
-      "verificando": "((school_id = ( SELECT current_school_id() AS current_school_id)) AND (( SELECT current_profile_role() AS current_profile_role) = ANY (ARRAY['Administrador'::text, 'Tesouraria'::text])))"
+      "usando": "(is_school_member(school_id) AND (private.sga_app_role(school_id) = ANY (ARRAY['Administrador'::text, 'Tesouraria'::text])))",
+      "verificando": "(is_school_member(school_id) AND (private.sga_app_role(school_id) = ANY (ARRAY['Administrador'::text, 'Tesouraria'::text])))"
     },
     {
       "cmd": "DELETE",
@@ -6705,8 +6705,8 @@
       "papeis": "{authenticated}",
       "politica": "HR payment items own school",
       "tabela": "hr_payroll_payment_items",
-      "usando": "((school_id = ( SELECT current_school_id() AS current_school_id)) AND (( SELECT current_profile_role() AS current_profile_role) = ANY (ARRAY['Administrador'::text, 'Tesouraria'::text])))",
-      "verificando": "((school_id = ( SELECT current_school_id() AS current_school_id)) AND (( SELECT current_profile_role() AS current_profile_role) = ANY (ARRAY['Administrador'::text, 'Tesouraria'::text])))"
+      "usando": "(is_school_member(school_id) AND (private.sga_app_role(school_id) = ANY (ARRAY['Administrador'::text, 'Tesouraria'::text])))",
+      "verificando": "(is_school_member(school_id) AND (private.sga_app_role(school_id) = ANY (ARRAY['Administrador'::text, 'Tesouraria'::text])))"
     },
     {
       "cmd": "DELETE",
@@ -6742,7 +6742,7 @@
       "politica": "Create hr_payroll_runs finance role",
       "tabela": "hr_payroll_runs",
       "usando": "",
-      "verificando": "((school_id = ( SELECT current_school_id() AS current_school_id)) AND (( SELECT current_profile_role() AS current_profile_role) = ANY (ARRAY['Administrador'::text, 'Tesouraria'::text])) AND (created_by = ( SELECT auth.uid() AS uid)))"
+      "verificando": "(is_school_member(school_id) AND (private.sga_app_role(school_id) = ANY (ARRAY['Administrador'::text, 'Tesouraria'::text])) AND (created_by = ( SELECT auth.uid() AS uid)))"
     },
     {
       "cmd": "DELETE",
@@ -6786,8 +6786,8 @@
       "papeis": "{authenticated}",
       "politica": "Update hr_payroll_runs finance role",
       "tabela": "hr_payroll_runs",
-      "usando": "((school_id = ( SELECT current_school_id() AS current_school_id)) AND (( SELECT current_profile_role() AS current_profile_role) = ANY (ARRAY['Administrador'::text, 'Tesouraria'::text])))",
-      "verificando": "((school_id = ( SELECT current_school_id() AS current_school_id)) AND (( SELECT current_profile_role() AS current_profile_role) = ANY (ARRAY['Administrador'::text, 'Tesouraria'::text])))"
+      "usando": "(is_school_member(school_id) AND (private.sga_app_role(school_id) = ANY (ARRAY['Administrador'::text, 'Tesouraria'::text])))",
+      "verificando": "(is_school_member(school_id) AND (private.sga_app_role(school_id) = ANY (ARRAY['Administrador'::text, 'Tesouraria'::text])))"
     },
     {
       "cmd": "INSERT",
@@ -6823,7 +6823,7 @@
       "politica": "HR creates teacher attendance policy in own school",
       "tabela": "hr_teacher_attendance_policies",
       "usando": "",
-      "verificando": "((school_id = ( SELECT current_school_id() AS current_school_id)) AND (created_by = ( SELECT auth.uid() AS uid)) AND (( SELECT current_profile_role() AS current_profile_role) = ANY (ARRAY['Administrador'::text, 'Tesouraria'::text])))"
+      "verificando": "(is_school_member(school_id) AND (created_by = ( SELECT auth.uid() AS uid)) AND (private.sga_app_role(school_id) = ANY (ARRAY['Administrador'::text, 'Tesouraria'::text])))"
     },
     {
       "cmd": "SELECT",
@@ -6840,8 +6840,8 @@
       "papeis": "{authenticated}",
       "politica": "HR updates teacher attendance policy in own school",
       "tabela": "hr_teacher_attendance_policies",
-      "usando": "((school_id = ( SELECT current_school_id() AS current_school_id)) AND (( SELECT current_profile_role() AS current_profile_role) = ANY (ARRAY['Administrador'::text, 'Tesouraria'::text])))",
-      "verificando": "((school_id = ( SELECT current_school_id() AS current_school_id)) AND (( SELECT current_profile_role() AS current_profile_role) = ANY (ARRAY['Administrador'::text, 'Tesouraria'::text])))"
+      "usando": "(is_school_member(school_id) AND (private.sga_app_role(school_id) = ANY (ARRAY['Administrador'::text, 'Tesouraria'::text])))",
+      "verificando": "(is_school_member(school_id) AND (private.sga_app_role(school_id) = ANY (ARRAY['Administrador'::text, 'Tesouraria'::text])))"
     },
     {
       "cmd": "INSERT",
@@ -6850,7 +6850,7 @@
       "politica": "HR creates teacher employment links in own school",
       "tabela": "hr_teacher_employment_links",
       "usando": "",
-      "verificando": "((school_id = ( SELECT current_school_id() AS current_school_id)) AND (created_by = ( SELECT auth.uid() AS uid)) AND (( SELECT current_profile_role() AS current_profile_role) = ANY (ARRAY['Administrador'::text, 'Tesouraria'::text])))"
+      "verificando": "(is_school_member(school_id) AND (created_by = ( SELECT auth.uid() AS uid)) AND (private.sga_app_role(school_id) = ANY (ARRAY['Administrador'::text, 'Tesouraria'::text])))"
     },
     {
       "cmd": "SELECT",
@@ -6858,7 +6858,7 @@
       "papeis": "{authenticated}",
       "politica": "HR reads teacher employment links in own school",
       "tabela": "hr_teacher_employment_links",
-      "usando": "((school_id = ( SELECT current_school_id() AS current_school_id)) AND (( SELECT current_profile_role() AS current_profile_role) = ANY (ARRAY['Administrador'::text, 'Tesouraria'::text])) AND (deleted_at IS NULL))",
+      "usando": "(is_school_member(school_id) AND (private.sga_app_role(school_id) = ANY (ARRAY['Administrador'::text, 'Tesouraria'::text])) AND (deleted_at IS NULL))",
       "verificando": ""
     },
     {
@@ -6867,8 +6867,8 @@
       "papeis": "{authenticated}",
       "politica": "HR updates teacher employment links in own school",
       "tabela": "hr_teacher_employment_links",
-      "usando": "((school_id = ( SELECT current_school_id() AS current_school_id)) AND (( SELECT current_profile_role() AS current_profile_role) = ANY (ARRAY['Administrador'::text, 'Tesouraria'::text])))",
-      "verificando": "((school_id = ( SELECT current_school_id() AS current_school_id)) AND (( SELECT current_profile_role() AS current_profile_role) = ANY (ARRAY['Administrador'::text, 'Tesouraria'::text])))"
+      "usando": "(is_school_member(school_id) AND (private.sga_app_role(school_id) = ANY (ARRAY['Administrador'::text, 'Tesouraria'::text])))",
+      "verificando": "(is_school_member(school_id) AND (private.sga_app_role(school_id) = ANY (ARRAY['Administrador'::text, 'Tesouraria'::text])))"
     },
     {
       "cmd": "INSERT",
@@ -6877,7 +6877,7 @@
       "politica": "HR creates teacher lesson occurrences in own school",
       "tabela": "hr_teacher_lesson_occurrences",
       "usando": "",
-      "verificando": "((school_id = ( SELECT current_school_id() AS current_school_id)) AND (created_by = ( SELECT auth.uid() AS uid)) AND (( SELECT current_profile_role() AS current_profile_role) = ANY (ARRAY['Administrador'::text, 'Tesouraria'::text])))"
+      "verificando": "(is_school_member(school_id) AND (created_by = ( SELECT auth.uid() AS uid)) AND (private.sga_app_role(school_id) = ANY (ARRAY['Administrador'::text, 'Tesouraria'::text])))"
     },
     {
       "cmd": "SELECT",
@@ -6885,7 +6885,7 @@
       "papeis": "{authenticated}",
       "politica": "HR reads teacher lesson occurrences in own school",
       "tabela": "hr_teacher_lesson_occurrences",
-      "usando": "((school_id = ( SELECT current_school_id() AS current_school_id)) AND (( SELECT current_profile_role() AS current_profile_role) = ANY (ARRAY['Administrador'::text, 'Tesouraria'::text])) AND (deleted_at IS NULL))",
+      "usando": "(is_school_member(school_id) AND (private.sga_app_role(school_id) = ANY (ARRAY['Administrador'::text, 'Tesouraria'::text])) AND (deleted_at IS NULL))",
       "verificando": ""
     },
     {
@@ -6894,8 +6894,8 @@
       "papeis": "{authenticated}",
       "politica": "HR updates teacher lesson occurrences in own school",
       "tabela": "hr_teacher_lesson_occurrences",
-      "usando": "((school_id = ( SELECT current_school_id() AS current_school_id)) AND (( SELECT current_profile_role() AS current_profile_role) = ANY (ARRAY['Administrador'::text, 'Tesouraria'::text])))",
-      "verificando": "((school_id = ( SELECT current_school_id() AS current_school_id)) AND (( SELECT current_profile_role() AS current_profile_role) = ANY (ARRAY['Administrador'::text, 'Tesouraria'::text])))"
+      "usando": "(is_school_member(school_id) AND (private.sga_app_role(school_id) = ANY (ARRAY['Administrador'::text, 'Tesouraria'::text])))",
+      "verificando": "(is_school_member(school_id) AND (private.sga_app_role(school_id) = ANY (ARRAY['Administrador'::text, 'Tesouraria'::text])))"
     },
     {
       "cmd": "INSERT",
@@ -6904,7 +6904,7 @@
       "politica": "HR creates teacher QR sessions in own school",
       "tabela": "hr_teacher_qr_sessions",
       "usando": "",
-      "verificando": "((school_id = ( SELECT current_school_id() AS current_school_id)) AND (created_by = ( SELECT auth.uid() AS uid)) AND (( SELECT current_profile_role() AS current_profile_role) = ANY (ARRAY['Administrador'::text, 'Tesouraria'::text])))"
+      "verificando": "(is_school_member(school_id) AND (created_by = ( SELECT auth.uid() AS uid)) AND (private.sga_app_role(school_id) = ANY (ARRAY['Administrador'::text, 'Tesouraria'::text])))"
     },
     {
       "cmd": "SELECT",
@@ -6912,7 +6912,7 @@
       "papeis": "{authenticated}",
       "politica": "HR reads teacher QR sessions in own school",
       "tabela": "hr_teacher_qr_sessions",
-      "usando": "((school_id = ( SELECT current_school_id() AS current_school_id)) AND (( SELECT current_profile_role() AS current_profile_role) = ANY (ARRAY['Administrador'::text, 'Tesouraria'::text])))",
+      "usando": "(is_school_member(school_id) AND (private.sga_app_role(school_id) = ANY (ARRAY['Administrador'::text, 'Tesouraria'::text])))",
       "verificando": ""
     },
     {
@@ -6921,8 +6921,8 @@
       "papeis": "{authenticated}",
       "politica": "HR updates teacher QR sessions in own school",
       "tabela": "hr_teacher_qr_sessions",
-      "usando": "((school_id = ( SELECT current_school_id() AS current_school_id)) AND (( SELECT current_profile_role() AS current_profile_role) = ANY (ARRAY['Administrador'::text, 'Tesouraria'::text])))",
-      "verificando": "((school_id = ( SELECT current_school_id() AS current_school_id)) AND (( SELECT current_profile_role() AS current_profile_role) = ANY (ARRAY['Administrador'::text, 'Tesouraria'::text])))"
+      "usando": "(is_school_member(school_id) AND (private.sga_app_role(school_id) = ANY (ARRAY['Administrador'::text, 'Tesouraria'::text])))",
+      "verificando": "(is_school_member(school_id) AND (private.sga_app_role(school_id) = ANY (ARRAY['Administrador'::text, 'Tesouraria'::text])))"
     },
     {
       "cmd": "SELECT",
@@ -7398,7 +7398,7 @@
       "papeis": "{authenticated}",
       "politica": "Finance roles can read billing settings",
       "tabela": "school_billing_settings",
-      "usando": "((school_id = ( SELECT current_school_id() AS current_school_id)) AND (( SELECT current_profile_role() AS current_profile_role) = ANY (ARRAY['Administrador'::text, 'Tesouraria'::text])))",
+      "usando": "(is_school_member(school_id) AND (private.sga_app_role(school_id) = ANY (ARRAY['Administrador'::text, 'Tesouraria'::text])))",
       "verificando": ""
     },
     {
@@ -7407,8 +7407,8 @@
       "papeis": "{authenticated}",
       "politica": "Finance roles can update billing settings",
       "tabela": "school_billing_settings",
-      "usando": "((school_id = ( SELECT current_school_id() AS current_school_id)) AND (( SELECT current_profile_role() AS current_profile_role) = ANY (ARRAY['Administrador'::text, 'Tesouraria'::text])))",
-      "verificando": "((school_id = ( SELECT current_school_id() AS current_school_id)) AND (( SELECT current_profile_role() AS current_profile_role) = ANY (ARRAY['Administrador'::text, 'Tesouraria'::text])))"
+      "usando": "(is_school_member(school_id) AND (private.sga_app_role(school_id) = ANY (ARRAY['Administrador'::text, 'Tesouraria'::text])))",
+      "verificando": "(is_school_member(school_id) AND (private.sga_app_role(school_id) = ANY (ARRAY['Administrador'::text, 'Tesouraria'::text])))"
     },
     {
       "cmd": "DELETE",
