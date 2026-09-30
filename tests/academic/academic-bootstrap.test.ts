@@ -28,6 +28,7 @@ describe("academic-bootstrap", () => {
     const query = {
       select: vi.fn(() => query),
       eq: vi.fn(() => query),
+      order: vi.fn(() => query),
       limit: vi.fn(() => query),
       maybeSingle: vi.fn(async () => ({ data: null, error: null })),
       insert,

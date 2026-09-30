@@ -94,6 +94,8 @@ export const listAcademicCalendar = createServerFn({ method: "GET" })
       .eq("school_id", membership.schoolId)
       .eq("status", "active")
       .order("starts_on", { ascending: false })
+      .order("created_at", { ascending: true })
+      .order("id", { ascending: true })
       .limit(1)
       .maybeSingle();
     if (yearError) {

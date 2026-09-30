@@ -256,8 +256,13 @@ export const searchPeople = createServerFn({ method: "GET" })
   .validator((input: unknown) => searchPeopleInputSchema.parse(input))
   .handler(async ({ data, context }) => {
     if (!context) throw new Error("Sessão inválida. Termine e volte a entrar.");
-    const membership = await resolveSgaMembershipAdmin(context.userId);
-    if (!membership) throw new Error("Sem membership activa nesta escola.");
+    // Lista toda a gente da escola com contactos, BI, data de nascimento e
+    // morada: é da Secretaria (como `findPersonDuplicates` e a ficha de pessoa).
+    // Antes bastava ser membro, e um aluno ou encarregado lia os dados de todos.
+    const membership = await requireSgaWriterFor("pessoas", context.supabase, context.userId, [
+      "Administrador",
+      "Secretaria",
+    ]);
     const db = await loadSgaAdminClient();
     // Alunos e encarregados também são membros: sem este âmbito recebiam a
     // lista da escola inteira, com contactos, BI e moradas. Como em getPerson,
@@ -1265,7 +1270,7 @@ export const addPersonDocument = createServerFn({ method: "POST" })
       row = first.data as Record<string, unknown>;
     }
     if (data.document.document_type === "bi") {
-      await db
+      const { error: biError } = await db
         .from("people")
         .update({
           national_id: documentNumber,
@@ -1273,6 +1278,14 @@ export const addPersonDocument = createServerFn({ method: "POST" })
         })
         .eq("id", data.personId)
         .eq("school_id", membership.schoolId);
+      // O documento já ficou guardado; a ficha é que não mudou (por exemplo,
+      // o BI já está noutra pessoa da escola). Diz-se, em vez de calar.
+      if (biError) {
+        throw publicDatabaseError(
+          biError,
+          "Documento guardado, mas o BI da ficha não foi actualizado. Verifique se o número já está noutra pessoa.",
+        );
+      }
     }
     if (!row) throw new Error("Não foi possível adicionar o documento.");
     return toPersonDocumentSummary(row);

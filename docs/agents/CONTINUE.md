@@ -4,6 +4,113 @@ Ler isto **antes** de alterar código. Ecossistema (5 apps):
 [ARCHITECTURE_HARMONIZATION.md](./ARCHITECTURE_HARMONIZATION.md).
 Depois abrir o skill do módulo em `.cursor/skills/`.
 
+## Ano lectivo activo (2026-09-30)
+
+O SIGA resolve o ano corrente pelo estado `active`. A 2026-09-29 a escola
+"Colegio Adventista - Huambo" tinha **quatro anos activos**, todos a começar a
+2026-09-01: o verdadeiro "2026/2027" (1 turma, 2 matrículas) e três de testes de
+09/09 ("2026/2027 Test Admin" e dois "TESTE-TMP-…", sem turmas nem matrículas).
+Causa: as Definições da escola activavam o ano escolhido sem fechar o anterior.
+
+- As Definições e o Calendário fecham os outros anos antes de activar, com erros
+  verificados.
+- As 12 consultas do ano activo e a lista do browser (`listAcademicYears`)
+  escolhem da mesma maneira: `starts_on` desc, `created_at` asc, `id` asc. No
+  Huambo isto dá o "2026/2027" verdadeiro. `tests/security/active-academic-year.test.ts`
+  exige esta ordem.
+- Calendário Lectivo: com mais de um ano activo, aviso para Administração e
+  Secretaria com turmas e matrículas de cada um; a Administração tem «Manter
+  este activo» (`setActiveAcademicYear`, fecha os outros sem apagar nada).
+- Migração `20260930090000_one_active_academic_year.sql` (índice único parcial,
+  um activo por escola), pacote `docs/agents/SIGA_aplicar_um_ano_activo.sql` —
+  **escrita, por aplicar**. Pára e lista as escolas com vários anos activos.
+  A 2026-09-30, com autorização do dono, os três anos de teste do Huambo
+  passaram a `closed` (sem turmas nem matrículas; nada apagado). Nenhuma escola
+  tem agora mais de um ano activo, por isso o pacote já se pode aplicar.
+
+## Escritas com o erro ignorado (2026-09-29/30)
+
+O Supabase devolve o erro em vez de o lançar; muitas escritas não o liam.
+`tests/security/checked-writes.test.ts` guarda as correcções:
+
+- Mudar o cargo: primeiro o papel novo, depois retirar os outros (antes apagava
+  tudo e podia deixar a conta sem papel). Aceitar convite recusa vínculos
+  suspensos.
+- Presenças (fechar chamada, decidir justificação), alunos (encarregado
+  principal, activar após matrícula), planos de aula (não apaga avaliações com
+  notas nem as duplica se uma leitura falhar), QR do professor, BI da ficha.
+- Importação: uma linha gravada e não marcada pára o lote (não se importa duas
+  vezes); o registo para reverter é verificado.
+- Pagamentos (RH, AppyPay, gateway, planos de pagamento): o pagamento já está
+  registado, por isso não se lança; as falhas de estado vão para `reportSigaError`.
+- Pedidos de acesso: o `onConflict` de `member_roles` estava errado (ver abaixo).
+
+Ficam de propósito sem verificar: registos de auditoria, limpezas, contadores,
+o painel da plataforma e a ligação do professor à conta.
+
+Também nesta sessão: `searchPeople` passou a Administração/Secretaria (dava
+contactos, BI e morada de toda a escola a qualquer membro); as aulas do dia só
+para o corpo docente, com a migração `20260929230000` (sessões de presença
+únicas, pacote `SIGA_aplicar_sessoes_presenca_unicas.sql`, **por aplicar**);
+notas de avaliação só para alunos da turma; histórico da pauta anual, notas de
+exame e mudança de estado em lote numa só escrita.
+
+## Registos da produção: registo de escolas e pedidos de acesso partidos (2026-09-29)
+
+Nos registos das últimas 24 h (conector Supabase) havia dois erros reais:
+
+- **Registo de escolas partido desde 27/09.** `findProvisioningGaps` contava
+  com `select("id")`, e `member_roles` não tem `id`. O PostgREST dava 400, a
+  contagem vinha nula e a escola era dada como "sem papel" e revertida no último
+  passo. A reversão ficava a meio, porque `school_settings`, `document_sequences`
+  e `enrollment_forms` bloqueiam apagar a conta e a escola, e `audit_logs` só
+  aceita acrescentar. A tentativa de 28/09 às 19:18 ("SIGA Plus - Web
+  Production") deixou uma escola, um tenant (slug `siga-plus-web-production`
+  ocupado) e uma conta. Agora a contagem usa `*`, um erro de leitura não conta
+  como falta, e a reversão apaga o que o bootstrap cria, lê o erro de
+  `deleteUser`, arquiva a escola que não se pode apagar e liberta o slug
+  (`<slug>-falhou-<id>`, estado `provisioning_failed`).
+- **Aprovar pedidos de acesso falhava sempre.** `member_roles` tem a chave
+  `(school_id, membership_id, role_id)` e o upsert pedia `membership_id,role_id`.
+  O vínculo era criado antes e ficava sem papel. Hoje às 14:38 ficou um vínculo
+  activo sem papel (`733609b9…`) de um pedido depois recusado. O aceitar convite
+  tinha o mesmo erro, ignorado em silêncio. Corrigido, e a aprovação desfaz o
+  vínculo se o papel falhar. `tests/security/upsert-on-conflict.test.ts`
+  confere todos os `onConflict` com as chaves únicas da produção.
+
+**Limpo na produção a 2026-09-29, com autorização do dono:** o vínculo
+`733609b9…` passou a `revoked`; a escola de 28/09 ficou `archived` sem
+definições, sequências nem formulário (os registos de auditoria ficam); o tenant
+passou a `provisioning_failed` com o slug `siga-plus-web-production-falhou-986ba240`,
+libertando `siga-plus-web-production`; a conta do administrador foi apagada.
+
+## Funções do servidor só com "é membro" (2026-09-29)
+
+`resolveSgaMembershipAdmin` só confirma a pertença à escola, e isso inclui
+alunos e encarregados. Com a chave de serviço, uma função que fique por aí
+entrega tudo o que lê. Levantamento das ~90 chamadas:
+
+- **`searchPeople`** (/pessoas, ficha do aluno, matrícula) listava toda a gente
+  da escola com e-mail, telefone, BI, data de nascimento e morada a qualquer
+  membro. Passa a Administrador/Secretaria (`requireSgaWriterFor("pessoas")`,
+  como `findPersonDuplicates`). A ficha do aluno só a pede a quem pode escolher
+  encarregado.
+- **`listTeacherAttendanceSessions`**: ver a secção da auditoria de eficiência.
+- Cartões de acesso (`catracas`): já verificavam o papel, mas depois obtinham a
+  inscrição outra vez; passam a usar a da verificação.
+- Superfície pública (sem sessão): entrada, registo, matrícula pública,
+  verificação de documentos (limite partilhado, nome mascarado) e feed do
+  calendário (só períodos e feriados). Nada a corrigir.
+- Ids do pedido sem filtro de escola: só nas funções do ADMIN da plataforma
+  (legítimo) e em leituras já cobertas por verificações anteriores.
+- `upsertAssessmentScores`: o professor já estava limitado à sua turma e
+  disciplina pelo gatilho `enforce_teacher_assessment_score_scope` (usa
+  `recorded_by`). Para a Administração e a Secretaria nada confirmava que a
+  matrícula era da turma da avaliação; o servidor passa a recusar.
+- As restantes 27 são estrutura da escola, dados da própria conta ou leituras
+  filtradas pelo utilizador. `tests/security/membership-only-reads.test.ts`
+  guarda a lista revista e falha com qualquer função nova que só verifique a
+  pertença.
 ## Dinheiro com 2FA; RH não funciona com os papéis actuais (2026-09-30)
 
 - `20260930190000` (aplicada; decisão do dono: «só dinheiro»): três políticas
@@ -249,8 +356,8 @@ dependem disso).
      não — para reproduzir, converter o vídeo para VP9 e pô-lo só em `.output/public`) →
      poster 1280×720 embutido em `.auth-hero-poster` (styles.css);
   3. o vídeo media ~1 200 px² mais que o poster por arredondamento → fica 1 px para dentro.
-  O passo "Resumo das métricas Lighthouse" (`scripts/lighthouse-summary.mjs`) imprime FCP,
-  LCP e TTFB de cada relatório no log do CI.
+     O passo "Resumo das métricas Lighthouse" (`scripts/lighthouse-summary.mjs`) imprime FCP,
+     LCP e TTFB de cada relatório no log do CI.
 - **`types.ts` regenerado da base errada pelo Lovable** (34fdd7ce, 339c9384, 13812878: 85
   tabelas, com invoices/payments/courses) partiu a main; reposto no #44. Se voltar a
   acontecer: `git checkout <último bom> -- src/integrations/supabase/types.ts`.
@@ -285,11 +392,13 @@ dependem disso).
 `sgaClient()` (`src/integrations/supabase/sga.ts`) devolve agora
 `SupabaseClient<Database>`: nomes de colunas, valores de CHECK e argumentos de RPC
 passam pelo `tsc` (103 erros corrigidos; 0 agora). Regras:
+
 - payloads com `TablesInsert<"t">` / `TablesUpdate<"t">`, não `Record<string, unknown>`;
 - RPC com `rpcArgs("fn", {...})` (aceita `null` nos argumentos opcionais);
 - tabela só conhecida em runtime (rollback do importador): `dynamicTablesClient(db)`.
 
 Bugs reais que a tipagem revelou (todos corrigidos):
+
 - criar turma falhava sem campus: `class_groups.campus_id` é NOT NULL e 49 de 91
   escolas não têm campus. `defaultCampusId()` cria "SEDE / Campus Principal";
 - criar disciplina falhava sempre: gravava `subjects.weekly_hours`, que não existe.
@@ -307,6 +416,7 @@ que não se guardam na disciplina (atribuem-se por turma em `class_subjects`).
 Repositório **público** desde 29/09 (minutos de Actions esgotados no plano grátis).
 
 Feito:
+
 - `anon` (sem sessão) só com 4 permissões: SELECT em `enrollment_forms`,
   `reserved_subdomains`, `school_branding`; INSERT em `enrollment_applications`.
   Tinha ALL (incluindo TRUNCATE) em ~83 tabelas. Migração `20260929240000`,
@@ -528,6 +638,7 @@ na conversa; a heurística olha para o corpo de cada `for … of`). A maioria é
 limitada: webhooks, tarefas agendadas, poucas iterações.
 
 Tratado o mais pesado, a **chamada de presença**:
+
 - `submitAttendanceCallBatch` fazia por aluno um upsert, a leitura do histórico e
   a actualização da taxa, ~120 consultas em série numa turma de 40. Os upserts
   não verificavam erro, por isso respondia "ok" com linhas recusadas.
@@ -543,6 +654,7 @@ Tratado o mais pesado, a **chamada de presença**:
 serviço e **saltava `enroll_student`**, ou seja, 2FA, capacidade, ano lectivo
 e número de matrícula. Reactivava matrículas transferidas ou concluídas e
 ignorava todos os erros. Agora:
+
 - confirma que a turma é do ano pedido;
 - verifica a lotação antes de mexer (tudo ou nada);
 - muda de turma, numa só actualização, quem já tem matrícula corrente no ano;
@@ -552,9 +664,39 @@ ignorava todos os erros. Agora:
 
 `tests/security/batch-writes.test.ts` guarda as duas correcções.
 
-A seguir: `final-results.ts:275/286`, `exams.ts:579` e
-`finance/server.ts:1660`. `batchUpdateStudentStatus` ainda actualiza aluno a
-aluno, mas verifica o histórico e está limitado a 100.
+Tratados a 2026-09-29 (`tests/security/batch-writes.test.ts`):
+
+- `recordClassFinalResults` (registar a pauta anual no histórico): as
+  rectificações passam a um upsert por `id` com a linha completa (o autor
+  original fica em `created_by`, quem rectifica em `updated_by`). A média na
+  matrícula só se escreve quando muda, uma escrita por valor distinto e com
+  erro verificado (antes era uma por aluno e os erros perdiam-se).
+- `saveExamScores`: valida todas as notas antes de escrever (antes gravava
+  metade e falhava a meio), lê as pautas numa consulta e grava num só upsert.
+  Faltas e notas apagadas já não exigem regra de avaliação.
+
+- `listTeacherAttendanceSessions` (aulas do dia, painel do professor e
+  /pedagogica): só pedia ser membro da escola, por isso um aluno ou encarregado
+  via as aulas do dia da escola inteira e, ao abrir, criava sessões de
+  presença. Um professor sem ficha de docente ligada também via tudo. Agora
+  exige Administrador, Secretaria ou Professor (como `getAttendanceCallSheet`).
+  O professor sem ficha não vê nada. As sessões em falta criam-se numa só
+  escrita, com erro verificado (antes era uma por aula, com um `try/catch`
+  que nunca apanhava nada). Nota: `siga_attendance_sessions` não tem índice
+  único por (escola, aula, dia), e dois pedidos em simultâneo podiam
+  duplicar. Na produção a 2026-09-29 havia 36 sessões e nenhum duplicado.
+  Migração `20260929230000_attendance_sessions_unique_slot_day.sql`, pacote
+  `docs/agents/SIGA_aplicar_sessoes_presenca_unicas.sql` — **escrita, por
+  aplicar**. Se houver duplicados, pára e lista-os (não apaga). O servidor já
+  trata o conflito (`23505`): lê as sessões que o outro pedido criou.
+
+- `batchUpdateStudentStatus` (mudar estado em lote, /alunos): uma actualização
+  para o lote com erro verificado (antes era uma por aluno e as falhas não
+  apareciam), o histórico numa só escrita e o mesmo rasto `student.status_change`
+  em `audit_logs` que a mudança individual (antes não havia rasto). Quem já está
+  no estado pedido fica igual, e o ecrã diz quantos mudaram de facto.
+
+`finance/server.ts:1660` fica: são sempre dois itens.
 
 ## Registos do Auth: Google e captcha (2026-09-28)
 
@@ -671,7 +813,7 @@ as mesmas expressões, trocando essa parte por `is_school_office(school_id)`;
 pacote `docs/agents/SIGA_aplicar_politicas_papel_escola.sql`. Nenhum ecrã
 escreve estas tabelas com a sessão (só servidor e funções SECURITY DEFINER).
 
-**Leitura pelo papel na escola (24 políticas) — escrito, por aplicar:** as
+**Leitura pelo papel na escola (24 políticas) — aplicado (confirmado na produção a 2026-09-29):** as
 leituras usavam `can_read_students()`/`can_manage_students()`, que lêem
 `profiles.cargo` (global; o utilizador só pode alterar `full_name`, por isso
 não há auto-promoção, mas quem tem várias escolas lia os dados pessoais de
@@ -679,7 +821,7 @@ todas). Migração `20260928110000_core_read_policies_school_role.sql`, pacote
 `docs/agents/SIGA_aplicar_leitura_papel_escola.sql`. Depois dela, nenhuma
 política usa `can_*_students`.
 
-**Armazenamento — escrito, por aplicar:** `siga-files` ("Staff can read siga
+**Armazenamento — aplicado (confirmado na produção a 2026-09-29):** `siga-files` ("Staff can read siga
 files") só verificava a escola actual: alunos liam o arquivo (recibos,
 documentos, fotografias) pela API de Storage. `school-logos` aceitava envios de
 qualquer membro e SVG, e recusava a pasta do tenant usada pelo ecrã de
@@ -828,6 +970,7 @@ pendente, em análise, informação pedida, aprovado, rejeitado e cancelado. A a
 ou activa **só** o vínculo e o papel. Não cria matrícula, contrato nem cadastro. Só liga
 `people.user_id` quando o revisor marca a opção e o cadastro não tem conta. Regras (puras,
 em `institutional-link.ts`):
+
 - "Administrador" nunca se concede por pedido.
 - Secretaria/Tesouraria só se concedem por um Administrador.
 - Ninguém decide o próprio pedido.

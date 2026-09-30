@@ -121,3 +121,82 @@ describe("o script de auditoria da frota não se separa da verificação em runt
     ).toEqual([]);
   });
 });
+
+describe("findProvisioningGaps contra as colunas da produção", () => {
+  /** Como o PostgREST: pedir uma coluna que a tabela não tem dá erro. */
+  function strictDb(counts: Record<string, number>) {
+    const snapshot = JSON.parse(
+      readFileSync(resolve(process.cwd(), "supabase/PRODUCTION_SNAPSHOT.json"), "utf8"),
+    ) as { tabelas: Array<{ tabela: string; colunas: string[] }> };
+    const columns = new Map(snapshot.tabelas.map((t) => [t.tabela, t.colunas]));
+    return {
+      from(table: string) {
+        let result: Promise<{ count: number | null; error: { message: string } | null }> =
+          Promise.resolve({ count: counts[table] ?? 0, error: null });
+        const chain: Record<string, unknown> = {
+          select: (cols: string) => {
+            const missing = cols
+              .split(",")
+              .map((c) => c.trim())
+              .filter((c) => c !== "*" && !(columns.get(table) ?? []).includes(c));
+            if (missing.length) {
+              result = Promise.resolve({
+                count: null,
+                error: { message: `column ${table}.${missing[0]} does not exist` },
+              });
+            }
+            return chain;
+          },
+          eq: () => chain,
+          then: (...args: unknown[]) =>
+            (result.then as (...a: unknown[]) => unknown).apply(result, args),
+        };
+        return chain;
+      },
+    };
+  }
+
+  it("uma escola completa não tem falhas (member_roles não tem coluna id)", async () => {
+    expect(await findProvisioningGaps(strictDb(COMPLETO), IDS)).toEqual([]);
+  });
+
+  it("um erro de leitura não é uma peça em falta", async () => {
+    const failing = {
+      from() {
+        const result = Promise.resolve({ count: null, error: { message: "timeout" } });
+        const chain: Record<string, unknown> = {
+          select: () => chain,
+          eq: () => chain,
+          then: (...args: unknown[]) =>
+            (result.then as (...a: unknown[]) => unknown).apply(result, args),
+        };
+        return chain;
+      },
+    };
+    expect(await findProvisioningGaps(failing, IDS)).toEqual([]);
+  });
+});
+
+describe("reversão do provisionamento", () => {
+  const source = readFileSync(
+    resolve(process.cwd(), "src/features/saas/provisioning-core.ts"),
+    "utf8",
+  );
+
+  it("apaga o que o bootstrap cria antes da conta, e lê o erro de deleteUser", () => {
+    const cleanup = source.slice(source.indexOf("const cleanupSchool"));
+    for (const table of ["school_settings", "document_sequences", "enrollment_forms"]) {
+      expect(cleanup.indexOf(`"${table}"`)).toBeGreaterThan(-1);
+      expect(cleanup.indexOf(`"${table}"`)).toBeLessThan(cleanup.indexOf("deleteUser("));
+    }
+    expect(cleanup).toMatch(
+      /const \{ error: deleteErr \} = await supabaseAdmin\.auth\.admin\.deleteUser/,
+    );
+  });
+
+  it("escola que não se apaga fica arquivada e o endereço é libertado", () => {
+    expect(source).toMatch(/update\(\{ status: "archived" \}\)/);
+    expect(source).toMatch(/status: "provisioning_failed"/);
+    expect(source).toMatch(/slug: `\$\{data\.slug\}-falhou-/);
+  });
+});

@@ -101,6 +101,9 @@ export async function bootstrapAcademicStructure(
     .select("id")
     .eq("school_id", schoolId)
     .eq("status", "active")
+    .order("starts_on", { ascending: false })
+    .order("created_at", { ascending: true })
+    .order("id", { ascending: true })
     .limit(1)
     .maybeSingle();
   yearId = (yearRow?.id as string | undefined) ?? null;

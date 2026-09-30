@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
+  AlertCircle,
   CalendarDays,
   CheckSquare,
   Download,
@@ -42,6 +43,7 @@ import { PageHeader, Panel, StatGrid, badgeBase, toneClass } from "@/components/
 import { StatusBadge } from "@/components/ui/status-badge";
 import { DocHelpButton } from "@/components/ui/doc-help-button";
 import { Button } from "@/components/ui/button";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { EmptyState } from "@/components/ui/empty-state";
 import { ConfirmActionModal } from "@/components/modals/ConfirmActionModal";
 import { QuickFormModal } from "@/components/modals/QuickFormModal";
@@ -55,6 +57,8 @@ import {
 } from "@/components/ui/table";
 import {
   createAcademicYear,
+  listActiveAcademicYears,
+  setActiveAcademicYear,
   createCalendarEvent,
   deleteCalendarEvent,
   getActiveAcademicYear,
@@ -183,6 +187,23 @@ function CalendarioPage() {
   });
   const activeYear = activeYearQuery.data ?? null;
   const needsAcademicYear = !activeYearQuery.isLoading && !activeYear;
+
+  // Mais de um ano activo é um erro de dados: cada ecrã podia escolher um ano
+  // diferente. Só a Administração e a Secretaria o vêem e o podem corrigir.
+  const activeYearsQuery = useQuery({
+    queryKey: ["calendar", "active-years"],
+    queryFn: () => listActiveAcademicYears(),
+    enabled: canManage && !!activeYear,
+    retry: false,
+  });
+  const duplicateActiveYears =
+    (activeYearsQuery.data?.length ?? 0) > 1 ? (activeYearsQuery.data ?? []) : [];
+
+  const keepOnlyActiveYear = async (yearId: string) => {
+    await setActiveAcademicYear({ data: { yearId } });
+    await refreshCalendar();
+    await queryClient.invalidateQueries({ queryKey: ["school"] });
+  };
 
   const defineAcademicYear = async (values: Record<string, string>) => {
     await createAcademicYear({
@@ -647,6 +668,51 @@ function CalendarioPage() {
         />
 
         <InstalledModuleTools module="calendario" />
+
+        {duplicateActiveYears.length > 0 ? (
+          <Alert variant="destructive">
+            <AlertCircle className="size-4" />
+            <AlertTitle>Há {duplicateActiveYears.length} anos lectivos activos</AlertTitle>
+            <AlertDescription className="space-y-3">
+              <p>
+                Só um ano pode estar activo: turmas, pautas, propinas e o calendário escolhem o ano
+                activo e, com vários, podem não concordar. Escolha o ano que fica activo; os outros
+                são fechados (os dados deles não se apagam).
+              </p>
+              <ul className="space-y-2">
+                {duplicateActiveYears.map((year) => (
+                  <li
+                    key={year.id}
+                    className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-border bg-card px-3 py-2 text-foreground"
+                  >
+                    <span className="min-w-0">
+                      <span className="font-medium">{year.name}</span>{" "}
+                      <span className="text-xs text-muted-foreground">
+                        {year.classGroups} turma(s) · {year.enrollments} matrícula(s)
+                      </span>
+                    </span>
+                    {account.role === "Administrador" ? (
+                      <ConfirmActionModal
+                        title="Manter só este ano activo"
+                        description={`«${year.name}» fica como ano lectivo activo. Os outros ${duplicateActiveYears.length - 1} passam a fechados; turmas, matrículas e notas deles ficam guardadas.`}
+                        confirmLabel="Manter este activo"
+                        onConfirm={() => keepOnlyActiveYear(year.id)}
+                        trigger={(open) => (
+                          <Button size="sm" variant="outline" onClick={open}>
+                            Manter este activo
+                          </Button>
+                        )}
+                      />
+                    ) : null}
+                  </li>
+                ))}
+              </ul>
+              {account.role !== "Administrador" ? (
+                <p className="text-xs">Só a Administração pode escolher o ano activo.</p>
+              ) : null}
+            </AlertDescription>
+          </Alert>
+        ) : null}
 
         <StatGrid
           collapsible

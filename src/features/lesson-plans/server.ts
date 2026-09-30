@@ -184,11 +184,16 @@ async function saveComponents(
         .eq("school_id", schoolId);
       if (error) throw publicDatabaseError(error, "Não foi possível actualizar um componente.");
 
-      const { data: items } = await db
+      const { data: items, error: itemsError } = await db
         .from("siga_assessment_items")
         .select("id")
         .eq("lesson_plan_component_id", existingRow.id)
         .eq("school_id", schoolId);
+      // Sem esta contagem criava de novo todas as avaliações (duplicadas) ou
+      // decidia mal quais sobram.
+      if (itemsError) {
+        throw publicDatabaseError(itemsError, "Não foi possível ler as avaliações do componente.");
+      }
       const currentCount = items?.length ?? 0;
       if (component.plannedCount > currentCount) {
         const missing = component.plannedCount - currentCount;
@@ -204,16 +209,31 @@ async function saveComponents(
           .slice(component.plannedCount)
           .map((row: { id: string }) => row.id);
         if (excessIds.length) {
-          const { data: scores } = await db
+          const { data: scores, error: scoresError } = await db
             .from("siga_assessment_scores")
             .select("item_id")
+            .eq("school_id", schoolId)
             .in("item_id", excessIds);
+          // Se a leitura falhar não se sabe quais têm notas: não se apaga nada.
+          if (scoresError) {
+            throw publicDatabaseError(scoresError, "Não foi possível confirmar as notas lançadas.");
+          }
           const scoredItemIds = new Set(
             (scores ?? []).map((row: { item_id: string }) => row.item_id),
           );
           const removable = excessIds.filter((id: string) => !scoredItemIds.has(id));
           if (removable.length) {
-            await db.from("siga_assessment_items").delete().in("id", removable);
+            const { error: removeError } = await db
+              .from("siga_assessment_items")
+              .delete()
+              .eq("school_id", schoolId)
+              .in("id", removable);
+            if (removeError) {
+              throw publicDatabaseError(
+                removeError,
+                "Não foi possível retirar as avaliações a mais.",
+              );
+            }
           }
         }
       }
