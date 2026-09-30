@@ -11,6 +11,7 @@ fn main() {
             "save_file",
             "print_page",
             "print_html",
+            "open_payflow",
         ]),
     ))
     .expect("falha no tauri-build");

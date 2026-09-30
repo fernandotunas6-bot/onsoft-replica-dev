@@ -28,6 +28,7 @@
     "allow-print-thermal-receipt-native",
     "allow-save-file",
     "allow-print-page",
-    "allow-print-html"
+    "allow-print-html",
+    "allow-open-payflow"
   ]
 }

@@ -47,17 +47,26 @@ description: >-
   `print_page`. Windows/Linux usam o do webview.
 - **Documentos oficiais** (`printOfficialHtml`): no browser, Windows e Linux, iframe com
   `sandbox` sem scripts. No macOS (o `iframe.print()` não funciona no WKWebView) → comando
-  `print_html`: janela "Imprimir — SIGA" (`print-<id>`) servida pelo protocolo
-  `sigaprint://` com `script-src 'none'` (`PRINT_CSP`), sem capability, e diálogo nativo ao
+  `print_html`: janela "Imprimir — SIGA" (`print-<id>`) servida pelo protocolo interno
+  `sigapage://` com `script-src 'none'` (`PRINT_CSP`), sem capability, e diálogo nativo ao
   carregar. Verificado na app real (Linux): modelo com `<script>` e `onerror` — nada corre.
   Fechar só esconde a janela `main`; as de impressão fecham de verdade.
+- **PayFlow** (`PayflowAdminLaunchButton`): no browser é um POST com `target="_blank"`, que
+  o webview não abre. Na app → comando `open_payflow`: janela "PayFlow — SIGA"
+  (`payflow-<id>`, sem capability) carrega uma página interna `sigapage://` com o formulário
+  SSO e submete-o (CSP `form-action` só para a origem do PayFlow; só HTTPS ou localhost).
+  O cookie de sessão fica nessa janela; abrir de novo fecha a anterior (a asserção só
+  serve uma vez). Verificado na app real com um PayFlow falso local: sessão activa em /admin.
+- **Páginas internas** (`open_internal_window` + `InternalPages`): janela sem permissões
+  Tauri com HTML e CSP próprios, apagada da memória quando a janela fecha. Usar para
+  qualquer janela nova com conteúdo gerado pela app.
 
 ## Verificar
 - `cd src-tauri && cargo build` e correr `./target/debug/siga-desktop` (Linux: `xvfb-run`).
 - Testar um comando na app real sem login: `TAURI_CONFIG='{"build":{"devUrl":"http://localhost:8765/teste.html"}}' cargo build`
   e uma página local que chame `window.__TAURI_INTERNALS__.invoke(...)`.
 - Em falta: pipeline de releases assinadas (updater); offline-first com fila local;
-  POST com `target=_blank` (PayFlow SSO) dentro da app; testar em macOS e Windows reais.
+  testar em macOS e Windows reais.
 
 ## Janelas e produtividade
 - Janela principal + janelas secundárias (pauta, recibo, impressão) com estado lembrado (tamanho/posição).

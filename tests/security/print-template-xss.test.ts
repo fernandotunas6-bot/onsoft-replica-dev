@@ -43,7 +43,9 @@ describe("modelos de impressão sem código activo", () => {
     const csp = rust.match(/const PRINT_CSP: &str = "([^;]+;[\s\S]*?)";/)?.[1] ?? "";
     expect(csp).toContain("default-src 'none'");
     expect(csp).toContain("script-src 'none'");
-    expect(rust).toMatch(/header\("Content-Security-Policy", PRINT_CSP\)/);
+    // print_html passa a PRINT_CSP à página interna, que a envia como cabeçalho.
+    expect(rust).toMatch(/"Imprimir — SIGA",[\s\S]{0,80}PRINT_CSP\.to_string\(\)/);
+    expect(rust).toMatch(/\.header\("Content-Security-Policy", csp\)/);
     // As janelas de impressão ("print-…") não entram em nenhuma capability.
     const capability = JSON.parse(
       readFileSync(join(process.cwd(), "src-tauri/capabilities/default.json"), "utf8"),

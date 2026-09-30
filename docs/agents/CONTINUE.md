@@ -12,7 +12,8 @@ Depois abrir o skill do módulo em `.cursor/skills/`.
   o que falta: skill `siga-desktop`.
 - Tinha três barras de título no Windows; agora só `DesktopTitleBar`.
 - 30/09: comandos da app com ACL (origem remota), exportações pelo "Guardar como"
-  nativo, impressão e documentos oficiais no macOS (janela `sigaprint://` sem scripts).
+  nativo, impressão e documentos oficiais no macOS (janela `sigapage://` sem scripts) e
+  PayFlow numa janela própria com SSO (`open_payflow`).
 - Visual limpo (regra do dono: "igual às grandes empresas"): tokens, shell, dashboard e
   ecrã de entrada revistos. Próximos ecrãs, um a um: Alunos → Financeiro/Faturas →
   Pedagógica → Comunicações → Configurações.

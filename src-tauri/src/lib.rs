@@ -213,9 +213,10 @@ fn print_page<R: tauri::Runtime>(webview: tauri::Webview<R>) -> Result<(), Strin
     webview.print().map_err(|e| format!("Não foi possível imprimir: {e}"))
 }
 
-/// Documentos à espera de impressão, servidos por `sigaprint://` (id → HTML).
+/// Páginas internas servidas por `sigapage://` (id → HTML + política de segurança):
+/// documentos a imprimir e o arranque do PayFlow. Cada uma vive enquanto a sua janela.
 #[derive(Default)]
-struct PrintDocs(std::sync::Mutex<std::collections::HashMap<String, String>>);
+struct InternalPages(std::sync::Mutex<std::collections::HashMap<String, (String, String)>>);
 
 /// Política da janela de impressão: os modelos são editáveis pela escola, por isso nenhum
 /// script corre (um `<script>` num modelo não pode tocar em nada). Imagens, estilos e
@@ -223,28 +224,91 @@ struct PrintDocs(std::sync::Mutex<std::collections::HashMap<String, String>>);
 const PRINT_CSP: &str = "default-src 'none'; script-src 'none'; img-src * data: blob:; \
     style-src 'unsafe-inline' *; font-src * data:";
 
-/// Serve o HTML de um documento à janela de impressão.
-fn serve_print_doc<R: tauri::Runtime>(
+/// Serve uma página interna, com a política de segurança dela.
+fn serve_internal_page<R: tauri::Runtime>(
     app: &tauri::AppHandle<R>,
     request: &tauri::http::Request<Vec<u8>>,
 ) -> tauri::http::Response<Vec<u8>> {
     let id = request.uri().path().trim_start_matches('/');
-    let html = app
-        .state::<PrintDocs>()
+    let page = app
+        .state::<InternalPages>()
         .0
         .lock()
         .ok()
-        .and_then(|docs| docs.get(id).cloned());
-    let builder = tauri::http::Response::builder()
-        .header("Content-Security-Policy", PRINT_CSP)
-        .header("Content-Type", "text/html; charset=utf-8");
-    match html {
-        Some(html) => builder.status(200).body(html.into_bytes()),
+        .and_then(|pages| pages.get(id).cloned());
+    let builder =
+        tauri::http::Response::builder().header("Content-Type", "text/html; charset=utf-8");
+    match page {
+        Some((html, csp)) => builder
+            .header("Content-Security-Policy", csp)
+            .status(200)
+            .body(html.into_bytes()),
         None => builder
+            .header("Content-Security-Policy", "default-src 'none'")
             .status(404)
-            .body("Documento já não está disponível.".as_bytes().to_vec()),
+            .body("Esta página já não está disponível.".as_bytes().to_vec()),
     }
     .unwrap_or_default()
+}
+
+/// Abre uma janela sem permissões Tauri (nenhuma capability cobre `<prefixo>-…`) com uma
+/// página interna. Devolve a janela; a página sai da memória quando a janela fecha.
+fn open_internal_window<R: tauri::Runtime>(
+    app: &tauri::AppHandle<R>,
+    prefix: &str,
+    title: &str,
+    size: (f64, f64),
+    html: String,
+    csp: String,
+    print_on_load: bool,
+) -> Result<tauri::WebviewWindow<R>, String> {
+    let id = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|d| d.as_nanos())
+        .unwrap_or_default()
+        .to_string();
+    app.state::<InternalPages>()
+        .0
+        .lock()
+        .map_err(|_| "Janela indisponível.".to_string())?
+        .insert(id.clone(), (html, csp));
+
+    // Protocolos próprios: `http://<esquema>.localhost` no Windows, `<esquema>://` no resto.
+    let url = if cfg!(windows) {
+        format!("http://sigapage.localhost/{id}")
+    } else {
+        format!("sigapage://localhost/{id}")
+    };
+    let url = url.parse().map_err(|_| "Endereço interno inválido.".to_string())?;
+
+    let mut builder = tauri::WebviewWindowBuilder::new(
+        app,
+        format!("{prefix}-{id}"),
+        tauri::WebviewUrl::External(url),
+    )
+    .title(title)
+    .inner_size(size.0, size.1)
+    .center();
+    if print_on_load {
+        builder = builder.on_page_load(|webview, payload| {
+            if matches!(payload.event(), tauri::webview::PageLoadEvent::Finished) {
+                let _ = webview.print();
+            }
+        });
+    }
+    let window = builder
+        .build()
+        .map_err(|e| format!("Não foi possível abrir a janela: {e}"))?;
+
+    let handle = app.clone();
+    window.on_window_event(move |event| {
+        if let tauri::WindowEvent::Destroyed = event {
+            if let Ok(mut pages) = handle.state::<InternalPages>().0.lock() {
+                pages.remove(&id);
+            }
+        }
+    });
+    Ok(window)
 }
 
 /// Imprime um documento oficial numa janela de pré-visualização própria.
@@ -258,50 +322,88 @@ async fn print_html<R: tauri::Runtime>(
     app: tauri::AppHandle<R>,
     html: String,
 ) -> Result<(), String> {
-    let id = std::time::SystemTime::now()
-        .duration_since(std::time::UNIX_EPOCH)
-        .map(|d| d.as_millis())
-        .unwrap_or_default()
-        .to_string();
-    app.state::<PrintDocs>()
-        .0
-        .lock()
-        .map_err(|_| "Impressão indisponível.".to_string())?
-        .insert(id.clone(), html);
-
-    // Protocolos próprios: `http://<esquema>.localhost` no Windows, `<esquema>://` no resto.
-    let url = if cfg!(windows) {
-        format!("http://sigaprint.localhost/{id}")
-    } else {
-        format!("sigaprint://localhost/{id}")
-    };
-    let url = url.parse().map_err(|_| "Endereço de impressão inválido.".to_string())?;
-
-    let window = tauri::WebviewWindowBuilder::new(
+    open_internal_window(
         &app,
-        format!("print-{id}"),
-        tauri::WebviewUrl::External(url),
+        "print",
+        "Imprimir — SIGA",
+        (880.0, 1000.0),
+        html,
+        PRINT_CSP.to_string(),
+        true,
     )
-    .title("Imprimir — SIGA")
-    .inner_size(880.0, 1000.0)
-    .center()
-    .on_page_load(|webview, payload| {
-        if matches!(payload.event(), tauri::webview::PageLoadEvent::Finished) {
-            let _ = webview.print();
-        }
-    })
-    .build()
-    .map_err(|e| format!("Não foi possível abrir a impressão: {e}"))?;
+    .map(|_| ())
+}
 
-    let handle = app.clone();
-    window.on_window_event(move |event| {
-        if let tauri::WindowEvent::Destroyed = event {
-            if let Ok(mut docs) = handle.state::<PrintDocs>().0.lock() {
-                docs.remove(&id);
-            }
+/// Aceita só o PayFlow em HTTPS (ou localhost no desenvolvimento): a asserção assinada
+/// não pode ir parar a outro sítio.
+fn payflow_exchange_url(raw: &str) -> Result<tauri::Url, String> {
+    let url: tauri::Url = raw
+        .parse()
+        .map_err(|_| "Endereço do PayFlow inválido.".to_string())?;
+    let local = matches!(url.host_str(), Some("localhost") | Some("127.0.0.1"));
+    match url.scheme() {
+        "https" => Ok(url),
+        "http" if local => Ok(url),
+        _ => Err("O PayFlow tem de usar HTTPS.".into()),
+    }
+}
+
+fn escape_html(value: &str) -> String {
+    value
+        .replace('&', "&amp;")
+        .replace('"', "&quot;")
+        .replace('<', "&lt;")
+        .replace('>', "&gt;")
+}
+
+/// Abre o PayFlow (administração) numa janela própria, já com sessão.
+///
+/// No browser o SIGA faz um POST com `target="_blank"` para a troca SSO; dentro do webview
+/// essa janela nova não abre. Aqui a janela do PayFlow carrega uma página interna com o
+/// mesmo formulário e submete-o sozinha: o cookie de sessão fica nessa janela e o SIGA
+/// não sai do sítio. Abrir de novo fecha a janela anterior (cada asserção só serve uma vez).
+#[tauri::command]
+async fn open_payflow<R: tauri::Runtime>(
+    app: tauri::AppHandle<R>,
+    exchange_url: String,
+    assertion: String,
+    redirect_to: Option<String>,
+) -> Result<(), String> {
+    let url = payflow_exchange_url(&exchange_url)?;
+    let origin = url.origin().ascii_serialization();
+
+    for (label, window) in app.webview_windows() {
+        if label.starts_with("payflow-") {
+            let _ = window.destroy();
         }
-    });
-    Ok(())
+    }
+
+    let html = format!(
+        r#"<!doctype html><html lang="pt"><head><meta charset="utf-8"><title>PayFlow</title>
+<style>body{{margin:0;display:grid;place-items:center;height:100vh;font:14px system-ui,sans-serif;color:#6e6c78}}</style>
+</head><body><p>A abrir o PayFlow…</p>
+<form id="f" method="post" action="{action}">
+<input type="hidden" name="assertion" value="{assertion}">
+<input type="hidden" name="redirect_to" value="{redirect}">
+</form><script>document.getElementById("f").submit();</script></body></html>"#,
+        action = escape_html(url.as_str()),
+        assertion = escape_html(&assertion),
+        redirect = escape_html(redirect_to.as_deref().unwrap_or("/admin")),
+    );
+    // O único script é o nosso (submeter); o formulário só pode ir para o PayFlow.
+    let csp = format!(
+        "default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; form-action {origin}"
+    );
+    open_internal_window(
+        &app,
+        "payflow",
+        "PayFlow — SIGA",
+        (1280.0, 860.0),
+        html,
+        csp,
+        false,
+    )
+    .map(|_| ())
 }
 
 /// Descodifica `%XX` (o nome vem em `encodeURIComponent`, os cabeçalhos são ASCII).
@@ -417,11 +519,12 @@ pub fn run() {
             get_system_info,
             save_file,
             print_page,
-            print_html
+            print_html,
+            open_payflow
         ])
-        .manage(PrintDocs::default())
-        .register_uri_scheme_protocol("sigaprint", |ctx, request| {
-            serve_print_doc(ctx.app_handle(), &request)
+        .manage(InternalPages::default())
+        .register_uri_scheme_protocol("sigapage", |ctx, request| {
+            serve_internal_page(ctx.app_handle(), &request)
         });
 
     #[cfg(desktop)]
@@ -451,4 +554,33 @@ pub fn run() {
     builder
         .run(tauri::generate_context!())
         .expect("erro ao iniciar a aplicação SIGA Native");
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn payflow_so_aceita_https_ou_localhost() {
+        assert!(payflow_exchange_url("https://payflow.portal-siga.com/api/v1/sso/exchange").is_ok());
+        assert!(payflow_exchange_url("http://localhost:3007/api/v1/sso/exchange").is_ok());
+        assert!(payflow_exchange_url("http://payflow.portal-siga.com/api").is_err());
+        assert!(payflow_exchange_url("javascript:alert(1)").is_err());
+        assert!(payflow_exchange_url("file:///etc/passwd").is_err());
+        assert!(payflow_exchange_url("não é url").is_err());
+    }
+
+    #[test]
+    fn escape_impede_sair_do_atributo() {
+        assert_eq!(
+            escape_html(r#"a"><script>x</script>&"#),
+            "a&quot;&gt;&lt;script&gt;x&lt;/script&gt;&amp;"
+        );
+    }
+
+    #[test]
+    fn nomes_de_ficheiro_percent_decode() {
+        assert_eq!(percent_decode("alunos%2010%C2%AA%20A.csv"), "alunos 10ª A.csv");
+        assert_eq!(percent_decode("fim%4"), "fim%4");
+    }
 }
