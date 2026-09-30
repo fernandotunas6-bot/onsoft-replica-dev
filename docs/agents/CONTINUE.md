@@ -4,6 +4,55 @@ Ler isto **antes** de alterar código. Ecossistema (5 apps):
 [ARCHITECTURE_HARMONIZATION.md](./ARCHITECTURE_HARMONIZATION.md).
 Depois abrir o skill do módulo em `.cursor/skills/`.
 
+## Ano lectivo activo (2026-09-30)
+
+O SIGA resolve o ano corrente pelo estado `active`. A 2026-09-29 a escola
+"Colegio Adventista - Huambo" tinha **quatro anos activos**, todos a começar a
+2026-09-01: o verdadeiro "2026/2027" (1 turma, 2 matrículas) e três de testes de
+09/09 ("2026/2027 Test Admin" e dois "TESTE-TMP-…", sem turmas nem matrículas).
+Causa: as Definições da escola activavam o ano escolhido sem fechar o anterior.
+
+- As Definições e o Calendário fecham os outros anos antes de activar, com erros
+  verificados.
+- As 12 consultas do ano activo e a lista do browser (`listAcademicYears`)
+  escolhem da mesma maneira: `starts_on` desc, `created_at` asc, `id` asc. No
+  Huambo isto dá o "2026/2027" verdadeiro. `tests/security/active-academic-year.test.ts`
+  exige esta ordem.
+- Calendário Lectivo: com mais de um ano activo, aviso para Administração e
+  Secretaria com turmas e matrículas de cada um; a Administração tem «Manter
+  este activo» (`setActiveAcademicYear`, fecha os outros sem apagar nada).
+- Migração `20260930090000_one_active_academic_year.sql` (índice único parcial,
+  um activo por escola), pacote `docs/agents/SIGA_aplicar_um_ano_activo.sql` —
+  **escrita, por aplicar**. Pára e lista as escolas com vários anos activos; só
+  se aplica depois de o Huambo ficar com um.
+
+## Escritas com o erro ignorado (2026-09-29/30)
+
+O Supabase devolve o erro em vez de o lançar; muitas escritas não o liam.
+`tests/security/checked-writes.test.ts` guarda as correcções:
+
+- Mudar o cargo: primeiro o papel novo, depois retirar os outros (antes apagava
+  tudo e podia deixar a conta sem papel). Aceitar convite recusa vínculos
+  suspensos.
+- Presenças (fechar chamada, decidir justificação), alunos (encarregado
+  principal, activar após matrícula), planos de aula (não apaga avaliações com
+  notas nem as duplica se uma leitura falhar), QR do professor, BI da ficha.
+- Importação: uma linha gravada e não marcada pára o lote (não se importa duas
+  vezes); o registo para reverter é verificado.
+- Pagamentos (RH, AppyPay, gateway, planos de pagamento): o pagamento já está
+  registado, por isso não se lança; as falhas de estado vão para `reportSigaError`.
+- Pedidos de acesso: o `onConflict` de `member_roles` estava errado (ver abaixo).
+
+Ficam de propósito sem verificar: registos de auditoria, limpezas, contadores,
+o painel da plataforma e a ligação do professor à conta.
+
+Também nesta sessão: `searchPeople` passou a Administração/Secretaria (dava
+contactos, BI e morada de toda a escola a qualquer membro); as aulas do dia só
+para o corpo docente, com a migração `20260929230000` (sessões de presença
+únicas, pacote `SIGA_aplicar_sessoes_presenca_unicas.sql`, **por aplicar**);
+notas de avaliação só para alunos da turma; histórico da pauta anual, notas de
+exame e mudança de estado em lote numa só escrita.
+
 ## Registos da produção: registo de escolas e pedidos de acesso partidos (2026-09-29)
 
 Nos registos das últimas 24 h (conector Supabase) havia dois erros reais:
@@ -27,8 +76,11 @@ Nos registos das últimas 24 h (conector Supabase) havia dois erros reais:
   vínculo se o papel falhar. `tests/security/upsert-on-conflict.test.ts`
   confere todos os `onConflict` com as chaves únicas da produção.
 
-**Por limpar na produção (à espera do dono):** o vínculo `733609b9…` e a
-escola/tenant/conta de 28/09.
+**Limpo na produção a 2026-09-29, com autorização do dono:** o vínculo
+`733609b9…` passou a `revoked`; a escola de 28/09 ficou `archived` sem
+definições, sequências nem formulário (os registos de auditoria ficam); o tenant
+passou a `provisioning_failed` com o slug `siga-plus-web-production-falhou-986ba240`,
+libertando `siga-plus-web-production`; a conta do administrador foi apagada.
 
 ## Funções do servidor só com "é membro" (2026-09-29)
 
