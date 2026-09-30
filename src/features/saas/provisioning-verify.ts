@@ -36,15 +36,26 @@ type Db = {
 };
 
 async function contar(db: Db, table: string, filters: Array<[string, string]>): Promise<number> {
-  let query = db.from(table).select("id", { count: "exact", head: true }) as unknown as {
+  // `*` e não `id`: `member_roles` não tem coluna `id` (a chave é
+  // school_id, membership_id, role_id). Com `id` o PostgREST respondia 400, a
+  // contagem vinha nula, e todas as escolas novas eram dadas como sem papel e
+  // revertidas no último passo do registo.
+  let query = db.from(table).select("*", { count: "exact", head: true }) as unknown as {
     eq: (c: string, v: string) => unknown;
   };
   for (const [column, value] of filters) {
     query = query.eq(column, value) as typeof query;
   }
-  const { count } = (await (query as unknown as Promise<{ count: number | null }>)) ?? {
-    count: 0,
-  };
+  const { count, error } = ((await (query as unknown as Promise<{
+    count: number | null;
+    error?: { message?: string } | null;
+  }>)) ?? { count: 0 }) as { count: number | null; error?: { message?: string } | null };
+  // Uma consulta que falha não é uma peça em falta: dizê-lo seria reverter uma
+  // escola completa por um erro de leitura. Fica o aviso nos registos.
+  if (error) {
+    console.warn(`[provisioning] verificação de ${table} falhou:`, error.message ?? error);
+    return Number.POSITIVE_INFINITY;
+  }
   return count ?? 0;
 }
 

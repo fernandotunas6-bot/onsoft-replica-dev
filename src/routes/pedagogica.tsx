@@ -42,7 +42,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { STAGE_LABELS } from "@/features/academic/academic-architecture";
 import { InstalledModuleTools } from "@/features/integrations/InstalledModuleTools";
 import { PickFileButton } from "@/features/arquivos/PickFileButton";
-import { meetingRoomLink } from "@/features/integrations/actions";
 import { useInstalledIntegrations } from "@/features/integrations/use-installed-integrations";
 import { ClassGroupSheet, SEM_SALA } from "@/features/academic/ClassGroupSheet";
 import { TurmaProfileModal } from "@/features/academic/components/TurmaProfileModal";
@@ -65,6 +64,7 @@ import {
   type PedagogicalWorkspace,
 } from "@/features/academic/server";
 import { listAcademicCalendar } from "@/features/academic/academic-calendar";
+import { academicCalendarKey, configuredTrimesters } from "@/features/academic/calendar-status";
 import { listTeachers } from "@/features/people/server";
 import { UserAvatar } from "@/components/ui/user-avatar";
 import { gradeMatchesTeachingLevels, initialsFromName } from "@/lib/angola-academic";
@@ -180,8 +180,6 @@ function PedagogicaPage() {
   const queryClient = useQueryClient();
   const account = useCurrentAccount();
   const installed = useInstalledIntegrations();
-  const zoomOn = installed.hasCapability("zoom.rooms");
-  const teamsOn = installed.hasCapability("teams.meetings");
   const classroomOn = installed.hasCapability("classroom.classes");
   const classroomWork = installed.hasCapability("classroom.work");
   const moodleOn = installed.hasCapability("moodle.courses");
@@ -214,7 +212,7 @@ function PedagogicaPage() {
     pedagogicaFilterDefaults,
   );
 
-  const canManageAcademic = canWriteModule(account.role, "pedagogica");
+  const canManageAcademic = canWriteModule(account.role, "pedagogica", account.grants);
   const canLaunchGrades = canManageAcademic || account.role === "Professor";
   const canReadAcademic =
     account.role === "Administrador" ||
@@ -236,16 +234,21 @@ function PedagogicaPage() {
   });
   // Mesma chave do /calendario: gravar lá os trimestres actualiza este aviso.
   const academicCalendarQuery = useQuery({
-    queryKey: ["calendar", "academic-calendar"],
-    queryFn: () => listAcademicCalendar(),
-    enabled: canLaunchGrades,
+    queryKey: academicCalendarKey(account.schoolId, selectedYearId),
+    queryFn: () => listAcademicCalendar({ data: { academicYearId: selectedYearId ?? undefined } }),
+    enabled: canReadAcademic && Boolean(account.schoolId),
     retry: false,
   });
   const calendarYear = academicCalendarQuery.data?.academicYear ?? null;
-  const configuredTerms = academicCalendarQuery.data?.terms.length ?? 0;
+  const termStatus = configuredTrimesters(academicCalendarQuery.data?.terms ?? []);
+  const configuredTerms = termStatus.count;
   // As notas gravam-se por trimestre (sga-grades.ts recusa sem o período configurado).
-  const missingTerms = Boolean(calendarYear) && configuredTerms < 3;
-  const canConfigureTerms = account.role === "Administrador" || account.role === "Secretaria";
+  const missingTerms =
+    Boolean(calendarYear) && (termStatus.missing.length > 0 || termStatus.duplicated.length > 0);
+  const canConfigureTerms =
+    ["Administrador", "Secretaria"].includes(account.role) &&
+    canManageAcademic &&
+    calendarYear?.status === "active";
 
   const teachersQuery = useQuery({
     queryKey: ["people", "teachers", "assign"],
@@ -842,16 +845,47 @@ function PedagogicaPage() {
           </div>
         ) : null}
 
-        {canLaunchGrades && missingTerms && calendarYear ? (
+        {canReadAcademic && academicCalendarQuery.isError ? (
+          <div role="alert" className="rounded-lg border border-destructive/40 p-4 text-sm">
+            <p>Não foi possível verificar os trimestres do ano lectivo.</p>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => void academicCalendarQuery.refetch()}
+            >
+              Tentar novamente
+            </Button>
+          </div>
+        ) : canReadAcademic && academicCalendarQuery.isSuccess && !calendarYear ? (
+          <div
+            role="status"
+            className="rounded-lg border border-warning/40 bg-warning/10 p-4 text-sm"
+          >
+            Ano lectivo não encontrado neste contexto. Peça à Secretaria que verifique o calendário.
+          </div>
+        ) : null}
+        {canReadAcademic && academicCalendarQuery.isSuccess && missingTerms && calendarYear ? (
           <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-warning/40 bg-warning/10 px-4 py-3 text-sm">
             <p>
               O ano lectivo {calendarYear.name} tem {configuredTerms} de 3 trimestres configurados.
+              {termStatus.missing.length
+                ? ` Faltam os trimestres: ${termStatus.missing.join(", ")}.`
+                : ""}
+              {termStatus.duplicated.length
+                ? " Existem trimestres duplicados; peça à Secretaria que corrija os dados."
+                : ""}{" "}
               Sem o trimestre no calendário não se lançam as notas desse período.
-              {canConfigureTerms ? "" : " Peça à Secretaria que configure o calendário."}
+              {calendarYear.status !== "active"
+                ? " Este ano está inactivo; qualquer reabertura deve ser autorizada pela Direcção."
+                : canConfigureTerms
+                  ? ""
+                  : " Peça à Secretaria que configure o calendário."}
             </p>
             {canConfigureTerms ? (
               <Button size="sm" variant="outline" asChild>
-                <Link to="/calendario">Configurar trimestres</Link>
+                <Link to="/calendario" search={{ ano: calendarYear.id }}>
+                  Configurar trimestres
+                </Link>
               </Button>
             ) : null}
           </div>
@@ -1219,10 +1253,7 @@ function PedagogicaPage() {
                 name: t.full_name || "Docente",
               }))}
               slots={scheduleSlots}
-              virtualRooms={[
-                ...(zoomOn ? [{ label: "Zoom", url: meetingRoomLink("zoom") }] : []),
-                ...(teamsOn ? [{ label: "Teams", url: meetingRoomLink("teams") }] : []),
-              ]}
+              virtualRooms={[]}
               onCreateSlot={async (data) => {
                 const { warnings } = await createAdvancedScheduleSlot({ data });
                 for (const warning of warnings) {

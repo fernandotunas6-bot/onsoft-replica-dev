@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
+  AlertCircle,
   CalendarDays,
   CheckSquare,
   Download,
@@ -35,6 +36,7 @@ import {
 } from "@/features/calendar/dates";
 import { getOrCreateCalendarFeedToken } from "@/features/calendar/feed";
 import { listAcademicCalendar, saveAcademicCalendar } from "@/features/academic/academic-calendar";
+import { academicCalendarKey, configuredTrimesters } from "@/features/academic/calendar-status";
 import { termDrafts } from "@/features/academic/calendar-terms";
 import { calendarIcsFeedUrl, calendarWebcalFeedUrl } from "@/features/calendar/ics";
 import { AppShell } from "@/components/layout/AppShell";
@@ -42,6 +44,7 @@ import { PageHeader, Panel, StatGrid, badgeBase, toneClass } from "@/components/
 import { StatusBadge } from "@/components/ui/status-badge";
 import { DocHelpButton } from "@/components/ui/doc-help-button";
 import { Button } from "@/components/ui/button";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { EmptyState } from "@/components/ui/empty-state";
 import { ConfirmActionModal } from "@/components/modals/ConfirmActionModal";
 import { QuickFormModal } from "@/components/modals/QuickFormModal";
@@ -55,6 +58,8 @@ import {
 } from "@/components/ui/table";
 import {
   createAcademicYear,
+  listActiveAcademicYears,
+  setActiveAcademicYear,
   createCalendarEvent,
   deleteCalendarEvent,
   getActiveAcademicYear,
@@ -66,7 +71,7 @@ import {
 import type { DayAgendaLesson } from "@/features/calendar/day-lessons";
 import { useCurrentAccount } from "@/features/auth/use-current-account";
 import { useSchoolSettings } from "@/features/auth/use-school-settings";
-import { canAccessPath } from "@/features/auth/access-policy";
+import { canAccessPath, canWriteModule } from "@/features/auth/access-policy";
 import { agendaLessonActions } from "@/features/hr/teacher-classroom-links";
 import { documentValidationCode } from "@/features/academic/assessment-views";
 import { overlayServico } from "@/features/documents/print-overlays";
@@ -91,7 +96,12 @@ type CalendarExportRow = {
 };
 
 export const Route = createFileRoute("/calendario")({
-  validateSearch: (search: Record<string, unknown>): { dia?: string } => ({
+  validateSearch: (search: Record<string, unknown>): { dia?: string; ano?: string } => ({
+    ano:
+      typeof search["ano"] === "string" &&
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(search["ano"])
+        ? search["ano"]
+        : undefined,
     dia:
       typeof search["dia"] === "string" && /^\d{4}-\d{2}-\d{2}$/.test(search["dia"])
         ? search["dia"]
@@ -116,11 +126,14 @@ function lifecycleTone(life: TermLifecycle) {
 }
 
 function CalendarioPage() {
-  const { dia } = Route.useSearch();
+  const { dia, ano } = Route.useSearch();
   const account = useCurrentAccount();
   const queryClient = useQueryClient();
   const { selectedYearId, selectedYearLabel, school } = useSchoolSettings();
-  const canManage = account.role === "Administrador" || account.role === "Secretaria";
+  const calendarYearId = ano ?? selectedYearId;
+  const canManage =
+    ["Administrador", "Secretaria"].includes(account.role) &&
+    canWriteModule(account.role, "pedagogica", account.grants);
   const canCall = canAccessPath("/pedagogica", account.role, account.grants);
   const canQr = canAccessPath("/professor/presenca", account.role, account.grants);
   const installed = useInstalledIntegrations();
@@ -160,13 +173,13 @@ function CalendarioPage() {
   const today = todayInLuanda();
 
   const eventsQuery = useQuery({
-    queryKey: ["calendar", "events", selectedYearId],
+    queryKey: ["calendar", "events", account.schoolId, calendarYearId],
     queryFn: () =>
       listCalendarEvents({
         data: {
           limit: 50,
-          academicYearId: selectedYearId ?? undefined,
-          includePast: Boolean(selectedYearId),
+          academicYearId: calendarYearId ?? undefined,
+          includePast: Boolean(calendarYearId),
         },
       }) as Promise<CalendarEventSummary[]>,
     retry: false,
@@ -177,12 +190,29 @@ function CalendarioPage() {
   // Sem ano lectivo activo nada se destranca: nem períodos, nem planos de
   // propina (fee_plans.academic_year_id é NOT NULL), nem estrutura pedagógica.
   const activeYearQuery = useQuery({
-    queryKey: ["calendar", "active-year"],
+    queryKey: ["calendar", "active-year", account.schoolId],
     queryFn: () => getActiveAcademicYear(),
     retry: false,
   });
   const activeYear = activeYearQuery.data ?? null;
   const needsAcademicYear = !activeYearQuery.isLoading && !activeYear;
+
+  // Mais de um ano activo é um erro de dados: cada ecrã podia escolher um ano
+  // diferente. Só a Administração e a Secretaria o vêem e o podem corrigir.
+  const activeYearsQuery = useQuery({
+    queryKey: ["calendar", "active-years", account.schoolId],
+    queryFn: () => listActiveAcademicYears(),
+    enabled: canManage && !!activeYear,
+    retry: false,
+  });
+  const duplicateActiveYears =
+    (activeYearsQuery.data?.length ?? 0) > 1 ? (activeYearsQuery.data ?? []) : [];
+
+  const keepOnlyActiveYear = async (yearId: string) => {
+    await setActiveAcademicYear({ data: { yearId } });
+    await refreshCalendar();
+    await queryClient.invalidateQueries({ queryKey: ["school"] });
+  };
 
   const defineAcademicYear = async (values: Record<string, string>) => {
     await createAcademicYear({
@@ -198,26 +228,31 @@ function CalendarioPage() {
 
   // Os três trimestres do ano activo, gravados de uma vez (`save_academic_calendar`).
   const academicCalendarQuery = useQuery({
-    queryKey: ["calendar", "academic-calendar"],
-    queryFn: () => listAcademicCalendar(),
-    enabled: canManage && Boolean(activeYear),
+    queryKey: academicCalendarKey(account.schoolId, calendarYearId),
+    queryFn: () => listAcademicCalendar({ data: { academicYearId: calendarYearId ?? undefined } }),
+    enabled: Boolean(account.schoolId),
     retry: false,
   });
   const savedTerms = academicCalendarQuery.data?.terms ?? [];
-  const drafts = activeYear
-    ? termDrafts({ startsOn: activeYear.starts_on, endsOn: activeYear.ends_on }, savedTerms)
+  const calendarYear = academicCalendarQuery.data?.academicYear ?? null;
+  const canConfigureTerms = canManage && calendarYear?.status === "active";
+  const drafts = calendarYear
+    ? termDrafts({ startsOn: calendarYear.startsOn, endsOn: calendarYear.endsOn }, savedTerms)
     : [];
   const missingTerms =
-    Boolean(activeYear) && academicCalendarQuery.isSuccess && savedTerms.length < 3;
+    Boolean(calendarYear) &&
+    academicCalendarQuery.isSuccess &&
+    configuredTrimesters(savedTerms).missing.length > 0;
 
   const saveTerms = async (values: Record<string, string>) => {
-    if (!activeYear) throw new Error("Defina primeiro o ano lectivo.");
+    if (!calendarYear || !canConfigureTerms)
+      throw new Error("Só pode configurar o ano lectivo activo.");
     await saveAcademicCalendar({
       data: {
-        academicYearId: activeYear.id,
-        yearName: activeYear.name,
-        startsOn: activeYear.starts_on,
-        endsOn: activeYear.ends_on,
+        academicYearId: calendarYear.id,
+        yearName: calendarYear.name,
+        startsOn: calendarYear.startsOn,
+        endsOn: calendarYear.endsOn,
         terms: drafts.map((term) => ({
           sequence: term.sequence,
           name: values[`nome${term.sequence}`]?.trim() || term.name,
@@ -250,7 +285,7 @@ function CalendarioPage() {
         title: values["nome"] ?? "",
         eventDate: inicio,
         endsOn: fim,
-        academicYearId: selectedYearId ?? undefined,
+        academicYearId: calendarYearId ?? undefined,
         category: "academic",
       },
     });
@@ -571,10 +606,10 @@ function CalendarioPage() {
                   )}
                 />
               ) : null}
-              {canManage && activeYear ? (
+              {canConfigureTerms && calendarYear ? (
                 <QuickFormModal
-                  title={`Trimestres de ${activeYear.name}`}
-                  description={`Os três trimestres do ano lectivo (${activeYear.starts_on} a ${activeYear.ends_on}), gravados de uma vez. Pautas, notas e fecho de trimestre dependem deles. As datas sugeridas dividem o ano em três: acerte-as às pausas e exames da escola.`}
+                  title={`Trimestres de ${calendarYear.name}`}
+                  description={`Os três trimestres do ano lectivo (${calendarYear.startsOn} a ${calendarYear.endsOn}), gravados de uma vez. Pautas, notas e fecho de trimestre dependem deles. As datas sugeridas dividem o ano em três: acerte-as às pausas e exames da escola.`}
                   icon={<CalendarDays className="size-5" />}
                   submitLabel="Guardar trimestres"
                   successDescription="Trimestres guardados."
@@ -647,6 +682,77 @@ function CalendarioPage() {
         />
 
         <InstalledModuleTools module="calendario" />
+        {academicCalendarQuery.isError ? (
+          <Alert variant="destructive">
+            <AlertTitle>Não foi possível verificar os trimestres</AlertTitle>
+            <AlertDescription>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => void academicCalendarQuery.refetch()}
+              >
+                Tentar novamente
+              </Button>
+            </AlertDescription>
+          </Alert>
+        ) : academicCalendarQuery.isSuccess && calendarYear?.status !== "active" && calendarYear ? (
+          <Alert>
+            <AlertTitle>Calendário histórico: {calendarYear.name}</AlertTitle>
+            <AlertDescription>
+              A configuração conjunta de trimestres só está disponível no ano activo. Qualquer
+              reabertura exige uma operação própria da Direcção.
+            </AlertDescription>
+          </Alert>
+        ) : academicCalendarQuery.isSuccess && !calendarYear ? (
+          <Alert>
+            <AlertTitle>Ano lectivo não encontrado neste contexto</AlertTitle>
+          </Alert>
+        ) : null}
+
+        {duplicateActiveYears.length > 0 ? (
+          <Alert variant="destructive">
+            <AlertCircle className="size-4" />
+            <AlertTitle>Há {duplicateActiveYears.length} anos lectivos activos</AlertTitle>
+            <AlertDescription className="space-y-3">
+              <p>
+                Só um ano pode estar activo: turmas, pautas, propinas e o calendário escolhem o ano
+                activo e, com vários, podem não concordar. Escolha o ano que fica activo; os outros
+                são fechados (os dados deles não se apagam).
+              </p>
+              <ul className="space-y-2">
+                {duplicateActiveYears.map((year) => (
+                  <li
+                    key={year.id}
+                    className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-border bg-card px-3 py-2 text-foreground"
+                  >
+                    <span className="min-w-0">
+                      <span className="font-medium">{year.name}</span>{" "}
+                      <span className="text-xs text-muted-foreground">
+                        {year.classGroups} turma(s) · {year.enrollments} matrícula(s)
+                      </span>
+                    </span>
+                    {account.role === "Administrador" ? (
+                      <ConfirmActionModal
+                        title="Manter só este ano activo"
+                        description={`«${year.name}» fica como ano lectivo activo. Os outros ${duplicateActiveYears.length - 1} passam a fechados; turmas, matrículas e notas deles ficam guardadas.`}
+                        confirmLabel="Manter este activo"
+                        onConfirm={() => keepOnlyActiveYear(year.id)}
+                        trigger={(open) => (
+                          <Button size="sm" variant="outline" onClick={open}>
+                            Manter este activo
+                          </Button>
+                        )}
+                      />
+                    ) : null}
+                  </li>
+                ))}
+              </ul>
+              {account.role !== "Administrador" ? (
+                <p className="text-xs">Só a Administração pode escolher o ano activo.</p>
+              ) : null}
+            </AlertDescription>
+          </Alert>
+        ) : null}
 
         <StatGrid
           collapsible

@@ -223,6 +223,9 @@ export const getDashboardOverview = createServerFn({ method: "GET" })
       .select("id, name, starts_on, ends_on, status")
       .eq("school_id", schoolId)
       .eq("status", "active")
+      .order("starts_on", { ascending: false })
+      .order("created_at", { ascending: true })
+      .order("id", { ascending: true })
       .limit(1)
       .maybeSingle();
     if (yearRow) {

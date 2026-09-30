@@ -222,14 +222,15 @@ describe("produção vs repositório", () => {
   it("as tabelas sensíveis com concessão a anon continuam todas cobertas por política", () => {
     // A concessão só é inofensiva enquanto houver RLS a recusar. Uma tabela
     // com SELECT para `anon` e sem política nenhuma seria leitura livre.
-    const comConcessao = snap.tabelas.filter(
-      (t) =>
-        t.anon_select &&
-        /^(students|people|profiles|school_memberships|finance_|fee_|hr_|.*secret)/.test(t.tabela),
+    const sensiveis = snap.tabelas.filter((t) =>
+      /^(students|people|profiles|school_memberships|finance_|fee_|hr_|.*secret)/.test(t.tabela),
     );
+    const comConcessao = sensiveis.filter((t) => t.anon_select);
     const desprotegidas = comConcessao.filter((t) => t.politicas === 0).map((t) => t.tabela);
 
-    expect(comConcessao.length).toBeGreaterThan(0);
+    // O padrão tem de apanhar tabelas; que nenhuma tenha concessão a anon é o estado
+    // desejado (20260929240000 retirou-as), não um retrato vazio.
+    expect(sensiveis.length).toBeGreaterThan(0);
     expect(
       desprotegidas,
       `Tabelas sensíveis com SELECT para anon e sem política: ${desprotegidas.join(", ")}. ` +

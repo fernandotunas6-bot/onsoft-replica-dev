@@ -344,12 +344,10 @@ export const updateTurnstileDevice = createServerFn({ method: "POST" })
   .validator((input: unknown) => updateTurnstileDeviceInputSchema.parse(input))
   .handler(async ({ data, context }) => {
     if (!context) throw new Error("Não autenticado.");
-    await requireSgaWriterForWrite("gestao", context.supabase, context.userId, [
+    const membership = await requireSgaWriterForWrite("gestao", context.supabase, context.userId, [
       "Administrador",
       "Secretaria",
     ]);
-    const membership = await resolveSgaMembershipAdmin(context.userId);
-    if (!membership) throw new Error("Sem membership activa.");
     const db = await loadSgaAdminClient();
 
     const patch: TablesUpdate<"siga_turnstile_devices"> = {};
@@ -377,12 +375,10 @@ export const setAccessCardStatus = createServerFn({ method: "POST" })
   .validator((input: unknown) => setAccessCardStatusInputSchema.parse(input))
   .handler(async ({ data, context }) => {
     if (!context) throw new Error("Não autenticado.");
-    await requireSgaWriterForWrite("gestao", context.supabase, context.userId, [
+    const membership = await requireSgaWriterForWrite("gestao", context.supabase, context.userId, [
       "Administrador",
       "Secretaria",
     ]);
-    const membership = await resolveSgaMembershipAdmin(context.userId);
-    if (!membership) throw new Error("Sem membership activa.");
     const db = await loadSgaAdminClient();
 
     const { data: updated, error } = await db
@@ -402,12 +398,10 @@ export const linkAccessCardRfid = createServerFn({ method: "POST" })
   .validator((input: unknown) => linkAccessCardRfidInputSchema.parse(input))
   .handler(async ({ data, context }) => {
     if (!context) throw new Error("Não autenticado.");
-    await requireSgaWriterForWrite("gestao", context.supabase, context.userId, [
+    const membership = await requireSgaWriterForWrite("gestao", context.supabase, context.userId, [
       "Administrador",
       "Secretaria",
     ]);
-    const membership = await resolveSgaMembershipAdmin(context.userId);
-    if (!membership) throw new Error("Sem membership activa.");
     const db = await loadSgaAdminClient();
 
     const raw = data.rfidTag == null ? "" : String(data.rfidTag);
@@ -446,12 +440,10 @@ export const rotateAccessCardQr = createServerFn({ method: "POST" })
   .validator((input: unknown) => rotateAccessCardQrInputSchema.parse(input))
   .handler(async ({ data, context }) => {
     if (!context) throw new Error("Não autenticado.");
-    await requireSgaWriterForWrite("gestao", context.supabase, context.userId, [
+    const membership = await requireSgaWriterForWrite("gestao", context.supabase, context.userId, [
       "Administrador",
       "Secretaria",
     ]);
-    const membership = await resolveSgaMembershipAdmin(context.userId);
-    if (!membership) throw new Error("Sem membership activa.");
     const db = await loadSgaAdminClient();
 
     const { data: updated, error } = await db
@@ -474,12 +466,10 @@ export const issueAccessCard = createServerFn({ method: "POST" })
   .validator((input: unknown) => issueAccessCardInputSchema.parse(input))
   .handler(async ({ data, context }) => {
     if (!context) throw new Error("Não autenticado.");
-    await requireSgaWriterForWrite("gestao", context.supabase, context.userId, [
+    const membership = await requireSgaWriterForWrite("gestao", context.supabase, context.userId, [
       "Administrador",
       "Secretaria",
     ]);
-    const membership = await resolveSgaMembershipAdmin(context.userId);
-    if (!membership) throw new Error("Sem membership activa.");
     const db = await loadSgaAdminClient();
 
     const { data: existing } = await db

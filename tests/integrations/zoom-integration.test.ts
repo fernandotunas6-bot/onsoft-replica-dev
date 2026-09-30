@@ -15,8 +15,10 @@ const zoomServer = readFileSync(
 describe("SIGA Integrations — Zoom Meetings & Class Integration", () => {
   it("deve fornecer link de sala e rota oficial da integração", () => {
     const link = meetingRoomLink("zoom");
-    expect(link).toBeDefined();
-    expect(link).toContain("zoom.us");
+    expect(link).toBeNull();
+    expect(meetingRoomLink("zoom", "https://zoom.us/j/123456789")).toBe(
+      "https://zoom.us/j/123456789",
+    );
   });
 
   it("deve preservar o título da aula independente da plataforma Zoom", () => {

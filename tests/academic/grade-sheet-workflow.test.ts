@@ -1,6 +1,13 @@
+import { readFileSync, readdirSync } from "node:fs";
+import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
+import { publicErrorMessage } from "@/lib/public-error";
+import { isTwoFactorRequiredMessage } from "@/lib/two-factor-error";
 import {
+  GRADE_SHEET_MFA_MESSAGE,
+  MISSING_ASSESSMENT_MODEL_MESSAGE,
   buildPrePautaChecks,
+  gradeSheetDbMessage,
   canRebuildGradeSheet,
   gradeSheetActions,
   isGradeSheetLocked,
@@ -118,5 +125,72 @@ describe("pré-pauta", () => {
       subjects: [subject()],
     });
     expect(fallback.find((c) => c.id === "scale")!.label).toBe("Notas dentro da escala 0–20");
+  });
+});
+
+describe("mensagens da base na pauta oficial", () => {
+  it("troca as conhecidas por texto que diz o que fazer", () => {
+    expect(gradeSheetDbMessage({ message: "Regra de avaliação ativa em falta." })).toBe(
+      MISSING_ASSESSMENT_MODEL_MESSAGE,
+    );
+    expect(gradeSheetDbMessage({ message: "MFA obrigatório." })).toBe(GRADE_SHEET_MFA_MESSAGE);
+    expect(gradeSheetDbMessage({ message: "  Reabertura exige motivo. " })).toMatch(/motivo/);
+  });
+
+  it("não deixa passar mais nada (estrutura, SQL, desconhecidas)", () => {
+    for (const message of [
+      'duplicate key value violates unique constraint "grade_sheets_pkey"',
+      "permission denied for function build_grade_sheet",
+      "Regra de avaliação ativa em falta",
+      "",
+      undefined,
+    ]) {
+      expect(gradeSheetDbMessage({ message }), String(message)).toBeNull();
+    }
+  });
+
+  it("cobre exactamente as mensagens de build_grade_sheet e transition_grade_sheet", () => {
+    const dir = resolve(__dirname, "../../supabase/migrations");
+    const latest = (fn: string) => {
+      let body = "";
+      for (const file of readdirSync(dir).sort()) {
+        const sql = readFileSync(resolve(dir, file), "utf8");
+        const start = sql.indexOf(`CREATE OR REPLACE FUNCTION private.${fn}(`);
+        if (start < 0) continue;
+        const rest = sql.slice(start);
+        body = rest.slice(0, rest.indexOf("$function$;", rest.indexOf("$function$") + 10));
+      }
+      return body;
+    };
+    const raised = new Set(
+      ["build_grade_sheet", "transition_grade_sheet"].flatMap((fn) =>
+        [...latest(fn).matchAll(/message = '([^']+)'/g)].map((m) => m[1]!),
+      ),
+    );
+    expect(raised.size).toBeGreaterThan(5);
+    for (const message of raised) {
+      expect(gradeSheetDbMessage({ message }), message).not.toBeNull();
+    }
+    for (const message of [
+      "Regra de avaliação ativa em falta.",
+      "MFA obrigatório.",
+      "Sem autorização para construir pauta.",
+    ]) {
+      expect(raised.has(message), message).toBe(true);
+    }
+  });
+
+  it("chegam ao ecrã; só a de 2FA abre o aviso com «Activar 2FA»", () => {
+    const shown = [
+      "Regra de avaliação ativa em falta.",
+      "MFA obrigatório.",
+      "Sem autorização para construir pauta.",
+      "Transição de estado da pauta não permitida.",
+      "Reabertura exige motivo.",
+    ].map((message) => gradeSheetDbMessage({ message })!);
+    for (const text of [...shown, GRADE_SHEET_MFA_MESSAGE, MISSING_ASSESSMENT_MODEL_MESSAGE]) {
+      expect(publicErrorMessage(new Error(text), "genérica"), text).toBe(text);
+      expect(isTwoFactorRequiredMessage(text), text).toBe(text === GRADE_SHEET_MFA_MESSAGE);
+    }
   });
 });

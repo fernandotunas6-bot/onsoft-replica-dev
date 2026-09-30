@@ -22,6 +22,7 @@ const retrato = JSON.parse(
     papeis: string;
     usando: string;
     verificando: string;
+    modo?: "PERMISSIVE" | "RESTRICTIVE";
   }[];
 };
 
@@ -39,6 +40,8 @@ describe("políticas de escrita", () => {
   it("exigem mais do que ser membro da escola", () => {
     const fracas = retrato.politicas
       .filter((p) => p.cmd !== "SELECT" && /authenticated|public|anon/.test(p.papeis))
+      // Uma política RESTRICTIVE só retira acesso: nunca abre escrita a ninguém.
+      .filter((p) => p.modo !== "RESTRICTIVE")
       .filter((p) => !VERIFICA_QUEM.test(`${p.usando} ${p.verificando}`))
       .filter((p) => !EXCEPCOES.has(`${p.tabela}:${p.politica}`))
       .map((p) => `${p.tabela}: ${p.politica} (${p.cmd})`);

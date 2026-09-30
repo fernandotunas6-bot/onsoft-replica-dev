@@ -1,4 +1,5 @@
-import type { TablesInsert, TablesUpdate } from "@/integrations/supabase/types";
+import { requireAal2 } from "@/features/hr/require-aal2";
+import type { Database, TablesInsert, TablesUpdate } from "@/integrations/supabase/types";
 import { createServerFn } from "@tanstack/react-start";
 import { canSeePerson, loadStudentScope } from "@/features/students/student-scope";
 import {
@@ -256,8 +257,13 @@ export const searchPeople = createServerFn({ method: "GET" })
   .validator((input: unknown) => searchPeopleInputSchema.parse(input))
   .handler(async ({ data, context }) => {
     if (!context) throw new Error("Sessão inválida. Termine e volte a entrar.");
-    const membership = await resolveSgaMembershipAdmin(context.userId);
-    if (!membership) throw new Error("Sem membership activa nesta escola.");
+    // Lista toda a gente da escola com contactos, BI, data de nascimento e
+    // morada: é da Secretaria (como `findPersonDuplicates` e a ficha de pessoa).
+    // Antes bastava ser membro, e um aluno ou encarregado lia os dados de todos.
+    const membership = await requireSgaWriterFor("pessoas", context.supabase, context.userId, [
+      "Administrador",
+      "Secretaria",
+    ]);
     const db = await loadSgaAdminClient();
     // Alunos e encarregados também são membros: sem este âmbito recebiam a
     // lista da escola inteira, com contactos, BI e moradas. Como em getPerson,
@@ -540,17 +546,14 @@ export const createPerson = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((input: unknown) => createPersonInputSchema.parse(input))
   .handler(async ({ data, context }) => {
+    requireAal2(context.claims, "Cadastrar a pessoa");
     if (!context) throw new Error("Sessão inválida. Termine e volte a entrar.");
     const membership = await requireSgaWriterForWrite("pessoas", context.supabase, context.userId, [
       "Administrador",
       "Secretaria",
     ]);
-    const db = await loadSgaAdminClient();
-
     const personInput = data.person;
     const roles = data.roles ?? [];
-    const institutionRoles = roles.filter((role) => institutionRoleSet.has(role));
-    if (institutionRoles.length) await assertPersonRoleStoreAvailable(db);
 
     const normalizedNif = normalizePersonNif(personInput.nif);
     const personPayload: TablesInsert<"people"> = {
@@ -582,106 +585,33 @@ export const createPerson = createServerFn({ method: "POST" })
       personPayload["address"] = personInput.address || null;
     }
 
-    const { data: person, error } = await db
-      .from("people")
-      .insert(personPayload)
-      .select("*")
-      .single();
-    if (error && hasGeography && isMissingPeopleGeography(error)) {
-      throw new Error(
-        "A localização não pôde ser guardada porque a migration de Pessoas ainda não foi aplicada.",
+    const firstRelationship = data.relationships[0];
+    const { data: result, error } = await context.supabase.rpc("siga_create_person_bundle", {
+      p_school_id: membership.schoolId,
+      p_person: personPayload,
+      p_documents: data.documents.map((doc) => ({
+        ...doc,
+        document_number:
+          doc.document_type === "bi"
+            ? (normalizePersonNif(doc.document_number) ?? doc.document_number)
+            : doc.document_number,
+      })),
+      p_roles: roles,
+      p_guardian: firstRelationship
+        ? {
+            person_id: firstRelationship.related_person_id,
+            relationship: mapSgaGuardianRelationship(firstRelationship.relationship_type),
+            primary: true,
+            financial: firstRelationship.relationship_type === "responsavel_financeiro",
+          }
+        : {},
+    });
+    if (error)
+      throw publicDatabaseError(
+        error,
+        "Não foi possível concluir o cadastro. Nenhum registo foi criado.",
       );
-    }
-    if (error) throw publicDatabaseError(error, "Não foi possível criar a pessoa.");
-
-    if (data.documents.length) {
-      await insertPersonDocuments(
-        db,
-        membership.schoolId,
-        person.id,
-        context.userId,
-        data.documents.map((document) => ({
-          document_type: document.document_type,
-          document_number:
-            document.document_type === "bi"
-              ? (normalizePersonNif(document.document_number) ?? document.document_number)
-              : document.document_number,
-          issued_at: document.issued_at,
-          expires_at: document.expires_at,
-        })),
-      );
-    }
-    await syncBiDocumentFromNif(db, membership.schoolId, person.id, normalizedNif, context.userId);
-
-    if (institutionRoles.length) {
-      await syncPersonInstitutionRoles(db, {
-        schoolId: membership.schoolId,
-        personId: person.id,
-        roles: institutionRoles,
-        userId: context.userId,
-      });
-    }
-
-    if (roles.includes("professor")) {
-      const { count } = await db
-        .from("teachers")
-        .select("id", { count: "exact", head: true })
-        .eq("school_id", membership.schoolId);
-      const seq = String((count ?? 0) + 1).padStart(6, "0");
-      const { error: teacherError } = await db.from("teachers").insert({
-        school_id: membership.schoolId,
-        person_id: person.id,
-        employee_number: `DOC-${seq}`,
-        hired_on: new Date().toISOString().slice(0, 10),
-        employment_type: "permanent",
-        highest_qualification: "bachelor",
-        status: "active",
-        created_by: context.userId,
-        updated_by: context.userId,
-      });
-      if (teacherError) {
-        throw publicDatabaseError(
-          teacherError,
-          "Pessoa criada, mas falhou o registo de professor.",
-        );
-      }
-    }
-    if (roles.includes("aluno")) {
-      // 1º vínculo em data.relationships (se o wizard tiver ligado um
-      // encarregado já existente) — antes disto ia sempre null, mesmo
-      // quando o utilizador escolhia um encarregado no passo "Relações".
-      const firstRelationship = data.relationships[0];
-      // register_student gera o número de processo por sequência própria (nunca
-      // duplica sob pedidos simultâneos, ao contrário do `EST-${Date.now()}` anterior,
-      // que podia colidir em dois pedidos no mesmo milissegundo).
-      const { error: registerError } = await sgaClient(context.supabase).rpc("register_student", {
-        school_id: membership.schoolId,
-        person_id: person.id,
-        admission_date: new Date().toISOString().slice(0, 10),
-        // `undefined` e não `null`: os parâmetros `guardian_person_id` e
-        // `relationship` de `register_student` têm `DEFAULT NULL` na base, pelo
-        // que omitir e passar NULL dão o mesmo resultado — e os tipos gerados da
-        // produção declaram-nos opcionais, não nulláveis.
-        guardian_person_id: firstRelationship?.related_person_id ?? undefined,
-        relationship: firstRelationship
-          ? mapSgaGuardianRelationship(firstRelationship.relationship_type)
-          : undefined,
-        primary_guardian: Boolean(firstRelationship),
-        financial_responsibility: firstRelationship?.relationship_type === "responsavel_financeiro",
-        pickup_authorization: true,
-      });
-      if (registerError) {
-        if (
-          registerError.code === "42501" ||
-          /is_aal2|autorização|autorizacao/i.test(registerError.message ?? "")
-        ) {
-          throw new Error(
-            "Pessoa criada, mas esta conta precisa de 2FA activo para a matricular como aluno.",
-          );
-        }
-        throw publicDatabaseError(registerError, "Pessoa criada, mas falhou o registo de aluno.");
-      }
-    }
+    const person = result as unknown as Database["public"]["Tables"]["people"]["Row"];
 
     return {
       ...person,
@@ -1265,7 +1195,7 @@ export const addPersonDocument = createServerFn({ method: "POST" })
       row = first.data as Record<string, unknown>;
     }
     if (data.document.document_type === "bi") {
-      await db
+      const { error: biError } = await db
         .from("people")
         .update({
           national_id: documentNumber,
@@ -1273,6 +1203,14 @@ export const addPersonDocument = createServerFn({ method: "POST" })
         })
         .eq("id", data.personId)
         .eq("school_id", membership.schoolId);
+      // O documento já ficou guardado; a ficha é que não mudou (por exemplo,
+      // o BI já está noutra pessoa da escola). Diz-se, em vez de calar.
+      if (biError) {
+        throw publicDatabaseError(
+          biError,
+          "Documento guardado, mas o BI da ficha não foi actualizado. Verifique se o número já está noutra pessoa.",
+        );
+      }
     }
     if (!row) throw new Error("Não foi possível adicionar o documento.");
     return toPersonDocumentSummary(row);

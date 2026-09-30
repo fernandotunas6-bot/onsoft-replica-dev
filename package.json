@@ -157,7 +157,7 @@
     "@types/react": "^19.2.0",
     "@types/react-dom": "^19.2.0",
     "@vitejs/plugin-react": "^5.2.0",
-    "@vitest/ui": "^4.1.10",
+    "@vitest/ui": "^4.1.11",
     "drizzle-kit": "^0.31.10",
     "drizzle-orm": "^0.45.2",
     "eslint": "^9.32.0",
@@ -175,6 +175,9 @@
     "typescript": "^5.8.3",
     "typescript-eslint": "^8.56.1",
     "vite": "^8.2.0",
-    "vitest": "^4.1.10"
+    "vitest": "^4.1.11"
+  },
+  "overrides": {
+    "@grpc/grpc-js": "1.14.5"
   }
 }

@@ -80,20 +80,30 @@ export const saveAcademicCalendarInputSchema = z
     }
   });
 
+export const listAcademicCalendarInputSchema = z.object({
+  academicYearId: z.string().uuid().optional(),
+});
+
 export const listAcademicCalendar = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
-  .handler(async ({ context }) => {
+  .validator((input: unknown) => listAcademicCalendarInputSchema.parse(input ?? {}))
+  .handler(async ({ data, context }) => {
     if (!context) throw new Error("Não autenticado.");
     const membership = await resolveSgaMembershipAdmin(context.userId);
     if (!membership) throw new Error("Sem membership activa nesta escola.");
     const db = await loadSgaAdminClient();
 
-    const { data: year, error: yearError } = await db
+    let yearQuery = db
       .from("academic_years")
       .select("id, name, status, starts_on, ends_on")
-      .eq("school_id", membership.schoolId)
-      .eq("status", "active")
+      .eq("school_id", membership.schoolId);
+    yearQuery = data.academicYearId
+      ? yearQuery.eq("id", data.academicYearId)
+      : yearQuery.eq("status", "active");
+    const { data: year, error: yearError } = await yearQuery
       .order("starts_on", { ascending: false })
+      .order("created_at", { ascending: true })
+      .order("id", { ascending: true })
       .limit(1)
       .maybeSingle();
     if (yearError) {
@@ -141,6 +151,23 @@ export const saveAcademicCalendar = createServerFn({ method: "POST" })
       ["Administrador", "Secretaria"],
     );
     const db = await loadSgaAdminClient();
+
+    // This RPC activates its year: never let a calendar edit reopen an archive.
+    if (data.academicYearId) {
+      const { data: year, error: yearError } = await db
+        .from("academic_years")
+        .select("id, status")
+        .eq("school_id", membership.schoolId)
+        .eq("id", data.academicYearId)
+        .maybeSingle();
+      if (yearError)
+        throw publicDatabaseError(yearError, "Não foi possível validar o ano lectivo.");
+      if (!year || year.status !== "active") {
+        throw new Error(
+          "Só pode configurar os trimestres do ano lectivo activo. A reabertura de um ano histórico exige uma operação própria da Direcção.",
+        );
+      }
+    }
 
     const { data: academicYearId, error } = await db.rpc(
       "save_academic_calendar",

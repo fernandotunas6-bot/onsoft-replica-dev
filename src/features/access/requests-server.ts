@@ -875,6 +875,9 @@ async function grantMembership(db: Db, schoolId: string, userId: string, roleCod
     .maybeSingle();
 
   let membershipId: string;
+  // Para desfazer se o papel falhar: um vínculo activo sem papel deixava a
+  // conta dentro da escola mesmo com o pedido depois recusado.
+  let undo: (() => Promise<unknown>) | null = null;
   if (existing?.id) {
     if (existing.status === "suspended") {
       throw new Error(
@@ -888,6 +891,13 @@ async function grantMembership(db: Db, schoolId: string, userId: string, roleCod
         .update({ status: "active", activated_at: now, updated_at: now })
         .eq("id", membershipId);
       if (error) throw publicDatabaseError(error, "Não foi possível activar o vínculo.");
+      const previousStatus = existing.status;
+      const id = membershipId;
+      undo = async () =>
+        db
+          .from("school_memberships")
+          .update({ status: previousStatus, updated_at: new Date().toISOString() })
+          .eq("id", id);
     }
   } else {
     const { data: created, error } = await db
@@ -903,15 +913,23 @@ async function grantMembership(db: Db, schoolId: string, userId: string, roleCod
       .single();
     if (error || !created) throw publicDatabaseError(error, "Não foi possível criar o vínculo.");
     membershipId = created.id as string;
+    const id = membershipId;
+    undo = async () => db.from("school_memberships").delete().eq("id", id);
   }
 
+  // A chave de `member_roles` é (school_id, membership_id, role_id). Com
+  // "membership_id,role_id" o PostgREST recusava sempre (sem índice que bata
+  // certo) e aprovar um pedido de acesso falhava depois de criar o vínculo.
   const { error: roleError } = await db
     .from("member_roles")
     .upsert(
       { school_id: schoolId, membership_id: membershipId, role_id: role.id },
-      { onConflict: "membership_id,role_id", ignoreDuplicates: true },
+      { onConflict: "school_id,membership_id,role_id", ignoreDuplicates: true },
     );
-  if (roleError) throw publicDatabaseError(roleError, "Não foi possível atribuir o papel.");
+  if (roleError) {
+    if (undo) await undo();
+    throw publicDatabaseError(roleError, "Não foi possível atribuir o papel.");
+  }
 
   return { membershipId, roleCode: String(role.code) };
 }

@@ -1,3 +1,4 @@
+import { clearSigaCaches } from "@/lib/pwa";
 import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -16,6 +17,7 @@ export function useSignOut() {
       return;
     }
     queryClient.clear();
+    await clearSigaCaches().catch(() => undefined);
   };
 
   return { signOut, signingOut };

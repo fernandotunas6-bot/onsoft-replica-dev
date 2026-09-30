@@ -150,11 +150,15 @@ export const requireSupabaseAuth = createMiddleware({
     unauthorized("Unauthorized: token JWT inválido.");
   }
 
+  const { readActiveSchoolCookie } = await import("@/features/auth/active-school-cookie.server");
+  const activeSchoolId = await readActiveSchoolCookie();
+
   const supabase = createClient<Database>(SUPABASE_URL!, SUPABASE_PUBLISHABLE_KEY!, {
     global: {
       fetch: createSupabaseFetch(SUPABASE_PUBLISHABLE_KEY!),
       headers: {
         Authorization: `Bearer ${token}`,
+        ...(activeSchoolId ? { "x-siga-school-id": activeSchoolId } : {}),
       },
     },
     auth: {

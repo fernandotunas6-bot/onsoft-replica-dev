@@ -8,6 +8,8 @@ import {
   resetRouteLocation,
   routeComponentOf,
   setRouteSearch,
+  setCurrentAccount,
+  resetCurrentAccount,
 } from "./_harness";
 import type { PedagogicalWorkspace } from "@/features/academic/server";
 
@@ -23,7 +25,18 @@ import type { PedagogicalWorkspace } from "@/features/academic/server";
 // testes: fica a medir o render, não a fila de CPU.
 vi.setConfig({ testTimeout: 20_000 });
 
-vi.mock("@tanstack/react-router", async () => (await import("./_harness")).reactRouterMock());
+vi.mock("@tanstack/react-router", async () => ({
+  ...(await import("./_harness")).reactRouterMock(),
+  Link: ({
+    children,
+    to,
+    search,
+  }: {
+    children?: import("react").ReactNode;
+    to: string;
+    search?: { ano?: string };
+  }) => <a href={`${to}${search?.ano ? `?ano=${search.ano}` : ""}`}>{children}</a>,
+}));
 vi.mock("@/components/layout/AppShell", async () => (await import("./_harness")).appShellMock());
 vi.mock("@/features/auth/use-current-account", async () =>
   (await import("./_harness")).currentAccountMock(),
@@ -50,7 +63,7 @@ vi.mock("@/features/academic/server", () => ({
 
 const listAcademicCalendarMock = vi.fn();
 vi.mock("@/features/academic/academic-calendar", () => ({
-  listAcademicCalendar: () => listAcademicCalendarMock(),
+  listAcademicCalendar: (args: unknown) => listAcademicCalendarMock(args),
 }));
 
 vi.mock("@/features/academic/academic-structure", () => ({
@@ -175,6 +188,18 @@ function seed(workspace: Partial<PedagogicalWorkspace> = {}) {
   listAcademicCalendarMock.mockResolvedValue({ academicYear: null, terms: [] });
 }
 
+const schoolContext = vi.hoisted(() => ({ selectedYearId: null as string | null }));
+vi.mock("@/features/auth/use-school-settings", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/features/auth/use-school-settings")>();
+  return {
+    ...actual,
+    useSchoolSettings: () => ({
+      ...actual.useSchoolSettings(),
+      selectedYearId: schoolContext.selectedYearId,
+    }),
+  };
+});
+
 let Pedagogica: ComponentType;
 
 beforeAll(async () => {
@@ -186,6 +211,8 @@ afterEach(() => {
   vi.clearAllMocks();
   resetRouteLocation();
   resetPersistedFilters();
+  resetCurrentAccount();
+  schoolContext.selectedYearId = null;
 });
 
 describe("/pedagogica — render", () => {
@@ -296,7 +323,9 @@ describe("/pedagogica — render", () => {
     await waitFor(() => {
       expect(screen.getByText(/tem 1 de 3 trimestres configurados/)).toBeDefined();
     });
-    expect(screen.getByRole("link", { name: "Configurar trimestres" })).toBeDefined();
+    expect(screen.getByRole("link", { name: "Configurar trimestres" }).getAttribute("href")).toBe(
+      "/calendario?ano=ano-1",
+    );
   });
 
   it("não avisa quando os três trimestres estão configurados", async () => {
@@ -327,5 +356,53 @@ describe("/pedagogica — render", () => {
       expect(screen.getByRole("heading", { name: /Área Pedagógica/i })).toBeDefined();
     });
     expect(screen.queryByText(/trimestres configurados/)).toBeNull();
+  });
+  it.each([
+    ["Professor", {}, "active"],
+    ["Secretaria", { pedagogica: "Leitura" }, "active"],
+    ["Administrador", {}, "closed"],
+  ])(
+    "não oferece configuração a %s sem permissão ou em ano histórico",
+    async (role, grants, status) => {
+      seed();
+      setCurrentAccount({ role, grants });
+      listAcademicCalendarMock.mockResolvedValue({
+        academicYear: { id: "ano-1", name: "2025/2026", status },
+        terms: [],
+      });
+      renderRoute(Pedagogica);
+      await waitFor(() => expect(screen.getByText(/tem 0 de 3 trimestres/)).toBeDefined());
+      expect(screen.queryByRole("link", { name: "Configurar trimestres" })).toBeNull();
+    },
+  );
+
+  it("mostra falha de carregamento sem a confundir com calendário completo", async () => {
+    seed();
+    listAcademicCalendarMock.mockRejectedValue(new Error("Indisponível"));
+    renderRoute(Pedagogica);
+    await waitFor(() =>
+      expect(screen.getByText(/Não foi possível verificar os trimestres/)).toBeDefined(),
+    );
+    expect(screen.getByRole("button", { name: "Tentar novamente" })).toBeDefined();
+  });
+
+  it("avisa que falta o 3º trimestre mesmo com três períodos", async () => {
+    seed();
+    listAcademicCalendarMock.mockResolvedValue({
+      academicYear: { id: "ano-1", name: "2025/2026", status: "active" },
+      terms: [1, 2, 4].map((sequence) => ({ sequence })),
+    });
+    renderRoute(Pedagogica);
+    await waitFor(() => expect(screen.getByText(/Faltam os trimestres: 3/)).toBeDefined());
+  });
+  it("consulta o ano seleccionado no workspace", async () => {
+    seed();
+    schoolContext.selectedYearId = "a0000000-0000-4000-8000-000000000001";
+    renderRoute(Pedagogica);
+    await waitFor(() =>
+      expect(listAcademicCalendarMock).toHaveBeenCalledWith({
+        data: { academicYearId: schoolContext.selectedYearId },
+      }),
+    );
   });
 });
