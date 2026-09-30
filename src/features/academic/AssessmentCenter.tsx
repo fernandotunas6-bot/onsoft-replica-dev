@@ -21,12 +21,15 @@ import { QuickModal } from "@/components/ui/modal-system";
 import { confirmDiscardChanges } from "@/components/ui/modal-system/confirm-close";
 import { AssessmentGrid, type GridColumn } from "@/features/academic/AssessmentGrid";
 import {
-  continuousComponent,
-  recoveryResult,
-  termAverageByRule,
-} from "@/features/academic/assessment-model";
+  computeAssessmentRows,
+  countInvalidCells,
+  filterAssessmentRows,
+  groupItemsByComponent,
+  recoveryCombiner,
+  scoreParser,
+} from "@/features/academic/assessment-center-rows";
 import { useActiveAssessmentRule } from "@/features/academic/use-passing-value";
-import { cellKey, useGradeEditor } from "@/features/academic/use-grade-editor";
+import { useGradeEditor } from "@/features/academic/use-grade-editor";
 import { ClassCourseTable, StudentDossierTable } from "@/features/academic/AssessmentViewTables";
 import { CreateAssessmentDialog } from "@/features/academic/CreateAssessmentDialog";
 import {
@@ -73,10 +76,6 @@ import {
   getPeriodsForCycle,
   getPeriodNoun,
   inferTeachingCycle,
-  parsePautaScore,
-  recursoFinal,
-  scoreAverage,
-  situacaoPauta,
 } from "@/lib/angola-academic";
 import { AssessmentIntegrationActions } from "@/features/academic/AssessmentIntegrationActions";
 import { useSchoolSettings } from "@/features/auth/use-school-settings";
@@ -139,11 +138,8 @@ export function AssessmentCenter({
   // pauta oficial. Sem modelo (Pedagógica avisa), fica o cálculo do Decreto
   // 424/25 e a escala 0–20.
   const { engine } = useActiveAssessmentRule();
-  const parseScore = (value: string) => parsePautaScore(value, engine?.scale);
-  const afterRecovery = (original: number | null, recovery: number | null) =>
-    engine
-      ? recoveryResult(original, recovery, engine.calculation.recoveryMethod)
-      : recursoFinal(original, recovery);
+  const parseScore = scoreParser(engine);
+  const afterRecovery = recoveryCombiner(engine);
   const { selectedTerm: globalTerm, terms: academicTerms, setSelectedTermId } = useSchoolSettings();
   const { filters, setFilter, resetFilters, activeCount } = usePersistedListFilters(
     "avaliacao-centro",
@@ -278,99 +274,20 @@ export function AssessmentCenter({
       term,
     });
 
-  // Antes, cada linha de aluno fazia cinco `items.filter(...)` — MAC, NPP, NPT,
-  // recurso e exame. Numa turma de 40 com meia dúzia de itens são duzentos
-  // varrimentos do array **a cada tecla digitada**, porque `computedRows` corria
-  // sem memo. Agrupar uma vez troca esses varrimentos por consultas a um mapa.
-  //
-  // São dois mapas e não um: MAC/NPP/NPT só contam itens com
-  // `counts_toward_pauta`, recurso e exame contam todos.
-  const itensPorComponente = useMemo(() => {
-    type Item = (typeof items)[number];
-    const contam = new Map<string, Item[]>();
-    const todos = new Map<string, Item[]>();
-    for (const item of items) {
-      const componente = String(item.component ?? "");
-      if (!todos.has(componente)) todos.set(componente, []);
-      todos.get(componente)!.push(item);
-      if (item.counts_toward_pauta) {
-        if (!contam.has(componente)) contam.set(componente, []);
-        contam.get(componente)!.push(item);
-      }
-    }
-    return { contam, todos };
-  }, [items]);
+  const itemsByComponent = useMemo(() => groupItemsByComponent(items), [items]);
 
-  const computedRows = useMemo(() => {
-    const notasDe = (
-      mapa: Map<string, (typeof items)[number][]>,
-      componente: string,
-      row: Record<string, string>,
-    ) => (mapa.get(componente) ?? []).map((item) => parseScore(row[String(item.id)] ?? ""));
-
-    return roster.map((student) => {
-      const row = values[student.id] ?? {};
-      const fromItems = (component: string) => notasDe(itensPorComponente.contam, component, row);
-      const mac =
-        parseScore(row["mac"] ?? "") ??
-        annualAverage(fromItems("MAC").filter((value) => value != null && !Number.isNaN(value)));
-      const npp =
-        parseScore(row["npp"] ?? "") ??
-        annualAverage(fromItems("NPP").filter((value) => value != null && !Number.isNaN(value)));
-      const npt =
-        parseScore(row["npt"] ?? "") ??
-        annualAverage(fromItems("NPT").filter((value) => value != null && !Number.isNaN(value)));
-      const average =
-        mac != null && npp != null && npt != null
-          ? engine
-            ? termAverageByRule(
-                continuousComponent(mac, npp, engine.calculation.nppMode),
-                npt,
-                engine,
-                engine.scale.decimalPlaces,
-              )
-            : scoreAverage(mac, npp, npt)
-          : null;
-      const recurso = annualAverage(
-        notasDe(itensPorComponente.todos, "recurso", row).filter(
-          (value): value is number => value != null && !Number.isNaN(value),
-        ),
-      );
-      const exame = annualAverage(
-        notasDe(itensPorComponente.todos, "exame", row).filter(
-          (value): value is number => value != null && !Number.isNaN(value),
-        ),
-      );
-      const finalScore = exame ?? afterRecovery(average, recurso);
-      const situacao =
-        finalScore == null
-          ? { label: "Pendente", tone: "muted" as const }
-          : situacaoPauta(finalScore, passingGrade);
-      return { student, mac, npp, npt, average, recurso, exame, finalScore, situacao, row };
-    });
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- parseScore deriva de engine
-  }, [roster, values, itensPorComponente, passingGrade, engine]);
+  const computedRows = useMemo(
+    () => computeAssessmentRows({ roster, values, itemsByComponent, engine, passingGrade }),
+    [roster, values, itemsByComponent, engine, passingGrade],
+  );
 
   const visibleRows = useMemo(
     () =>
-      computedRows.filter((entry) => {
-        if (mode === "revisao") {
-          const dirty = ["mac", "npp", "npt"].some((key) =>
-            dirtyKeys.has(cellKey(entry.student.id, key)),
-          );
-          return entry.average == null || dirty;
-        }
-        if (filters.situacao === "todos") return true;
-        if (filters.situacao === "pendente") return entry.average == null;
-        if (filters.situacao === "completo") return entry.average != null;
-        if (filters.situacao === "transita") return entry.situacao.label === "Transita";
-        if (filters.situacao === "nao_transita") return entry.situacao.label === "Não transita";
-        if (filters.situacao === "em_recurso") return entry.recurso != null;
-        if (filters.situacao === "aprovado")
-          return (entry.exame ?? entry.finalScore ?? 0) >= passingGrade;
-        if (filters.situacao === "reprovado")
-          return entry.finalScore != null && entry.finalScore < passingGrade;
-        return true;
+      filterAssessmentRows(computedRows, {
+        mode,
+        situacao: filters.situacao,
+        dirtyKeys,
+        passingGrade,
       }),
     [computedRows, mode, dirtyKeys, filters.situacao, passingGrade],
   );
@@ -457,15 +374,7 @@ export function AssessmentCenter({
   const pendingCount = visibleRows.filter((row) => row.average == null).length;
   const classAverage = annualAverage(visibleRows.map((row) => row.average));
   const dirtyCount = dirtyKeys.size;
-  const invalidCount = visibleRows.reduce((count, entry) => {
-    return (
-      count +
-      ["mac", "npp", "npt"].filter((key) => {
-        const value = entry.row[key] ?? "";
-        return value.trim() !== "" && Number.isNaN(parseScore(value));
-      }).length
-    );
-  }, 0);
+  const invalidCount = countInvalidCells(visibleRows, parseScore);
   const toggleTermLock = () =>
     void setTermLock({ data: { term, closed: !termClosed } }).then(() =>
       queryClient.invalidateQueries({ queryKey: ["school", "settings"] }),

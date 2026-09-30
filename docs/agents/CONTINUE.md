@@ -4,6 +4,16 @@ Ler isto **antes** de alterar código. Ecossistema (5 apps):
 [ARCHITECTURE_HARMONIZATION.md](./ARCHITECTURE_HARMONIZATION.md).
 Depois abrir o skill do módulo em `.cursor/skills/`.
 
+## Centro de Avaliação: cálculo fora do componente (2026-09-30)
+
+- O cálculo das linhas de `AssessmentCenter.tsx` (MAC/NPP/NPT, média pelo modelo
+  activo, recurso, exame, situação, filtro de situação/Revisão e células inválidas)
+  passou para `src/features/academic/assessment-center-rows.ts`, sem React.
+  Comportamento igual. Testes novos em `tests/academic/assessment-center-rows.test.ts`
+  (pesos e arredondamento do modelo, Decreto 424/25 sem modelo, itens que não contam,
+  recurso «max», exame, Revisão).
+- Próximo passo da mesma recomendação: `PautasWorkspaceModule.tsx` (~940 linhas).
+
 ## CORS e domínios próprios seguem PLATFORM_DOMAIN (2026-09-30)
 
 - `src/lib/ecosystem-cors.ts`: as origens de produção (raiz, www, admin, docs, app,

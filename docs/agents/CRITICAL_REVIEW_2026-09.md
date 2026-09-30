@@ -76,7 +76,8 @@ com o que a equipa realmente mantém neste repositório.
 **Corrigir a seguir**
 
 - Dividir `AssessmentCenter.tsx` e `PautasWorkspaceModule.tsx` em módulos de estado,
-  cálculo e apresentação.
+  cálculo e apresentação. Feito no `AssessmentCenter` (cálculo em
+  `assessment-center-rows.ts`, 2026-09-30); falta o `PautasWorkspaceModule`.
 - Medir FCP/INP nas páginas de pautas, avaliações e financeiro e carregar sob demanda
   os gráficos, PDF e Excel.
 
