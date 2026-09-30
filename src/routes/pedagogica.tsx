@@ -64,6 +64,7 @@ import {
   upsertTermGrade,
   type PedagogicalWorkspace,
 } from "@/features/academic/server";
+import { listAcademicCalendar } from "@/features/academic/academic-calendar";
 import { listTeachers } from "@/features/people/server";
 import { UserAvatar } from "@/components/ui/user-avatar";
 import { gradeMatchesTeachingLevels, initialsFromName } from "@/lib/angola-academic";
@@ -233,6 +234,19 @@ function PedagogicaPage() {
     enabled: canReadAcademic,
     retry: false,
   });
+  // Mesma chave do /calendario: gravar lá os trimestres actualiza este aviso.
+  const academicCalendarQuery = useQuery({
+    queryKey: ["calendar", "academic-calendar"],
+    queryFn: () => listAcademicCalendar(),
+    enabled: canLaunchGrades,
+    retry: false,
+  });
+  const calendarYear = academicCalendarQuery.data?.academicYear ?? null;
+  const configuredTerms = academicCalendarQuery.data?.terms.length ?? 0;
+  // As notas gravam-se por trimestre (sga-grades.ts recusa sem o período configurado).
+  const missingTerms = Boolean(calendarYear) && configuredTerms < 3;
+  const canConfigureTerms = account.role === "Administrador" || account.role === "Secretaria";
+
   const teachersQuery = useQuery({
     queryKey: ["people", "teachers", "assign"],
     queryFn: () => listTeachers({ data: { status: "active", limit: 200 } }),
@@ -823,6 +837,21 @@ function PedagogicaPage() {
             {canPublishModel ? (
               <Button size="sm" variant="outline" onClick={() => onTabChange("modelos")}>
                 Publicar modelo
+              </Button>
+            ) : null}
+          </div>
+        ) : null}
+
+        {canLaunchGrades && missingTerms && calendarYear ? (
+          <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-warning/40 bg-warning/10 px-4 py-3 text-sm">
+            <p>
+              O ano lectivo {calendarYear.name} tem {configuredTerms} de 3 trimestres configurados.
+              Sem o trimestre no calendário não se lançam as notas desse período.
+              {canConfigureTerms ? "" : " Peça à Secretaria que configure o calendário."}
+            </p>
+            {canConfigureTerms ? (
+              <Button size="sm" variant="outline" asChild>
+                <Link to="/calendario">Configurar trimestres</Link>
               </Button>
             ) : null}
           </div>

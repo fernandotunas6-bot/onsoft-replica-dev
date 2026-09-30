@@ -48,6 +48,11 @@ vi.mock("@/features/academic/server", () => ({
   upsertTermGrade: vi.fn(),
 }));
 
+const listAcademicCalendarMock = vi.fn();
+vi.mock("@/features/academic/academic-calendar", () => ({
+  listAcademicCalendar: () => listAcademicCalendarMock(),
+}));
+
 vi.mock("@/features/academic/academic-structure", () => ({
   getAcademicStructureStatus: () =>
     Promise.resolve({
@@ -167,6 +172,7 @@ function seed(workspace: Partial<PedagogicalWorkspace> = {}) {
   listSubjectTypesMock.mockResolvedValue([]);
   listCurriculumAreasMock.mockResolvedValue([]);
   listTeachersMock.mockResolvedValue([]);
+  listAcademicCalendarMock.mockResolvedValue({ academicYear: null, terms: [] });
 }
 
 let Pedagogica: ComponentType;
@@ -262,5 +268,64 @@ describe("/pedagogica — render", () => {
     });
     const horarios = screen.getByRole("tab", { name: /Horários/i });
     expect(horarios.getAttribute("data-state")).toBe("active");
+  });
+
+  it("avisa quando o ano lectivo não tem os três trimestres e liga ao calendário", async () => {
+    seed();
+    listAcademicCalendarMock.mockResolvedValue({
+      academicYear: {
+        id: "ano-1",
+        name: "2025/2026",
+        status: "active",
+        startsOn: "2025-09-01",
+        endsOn: "2026-07-31",
+      },
+      terms: [
+        {
+          id: "t1",
+          name: "1º Trimestre",
+          sequence: 1,
+          startsOn: "2025-09-01",
+          endsOn: "2025-12-15",
+        },
+      ],
+    });
+
+    renderRoute(Pedagogica);
+
+    await waitFor(() => {
+      expect(screen.getByText(/tem 1 de 3 trimestres configurados/)).toBeDefined();
+    });
+    expect(screen.getByRole("link", { name: "Configurar trimestres" })).toBeDefined();
+  });
+
+  it("não avisa quando os três trimestres estão configurados", async () => {
+    seed();
+    listAcademicCalendarMock.mockResolvedValue({
+      academicYear: {
+        id: "ano-1",
+        name: "2025/2026",
+        status: "active",
+        startsOn: "2025-09-01",
+        endsOn: "2026-07-31",
+      },
+      terms: [1, 2, 3].map((sequence) => ({
+        id: `t${sequence}`,
+        name: `${sequence}º Trimestre`,
+        sequence,
+        startsOn: "2025-09-01",
+        endsOn: "2025-12-15",
+      })),
+    });
+
+    renderRoute(Pedagogica);
+
+    await waitFor(() => {
+      expect(listAcademicCalendarMock).toHaveBeenCalled();
+    });
+    await waitFor(() => {
+      expect(screen.getByRole("heading", { name: /Área Pedagógica/i })).toBeDefined();
+    });
+    expect(screen.queryByText(/trimestres configurados/)).toBeNull();
   });
 });
