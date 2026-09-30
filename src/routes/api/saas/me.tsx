@@ -21,6 +21,8 @@ export const Route = createFileRoute("/api/saas/me")({
             userId: session.userId,
             email: session.email ?? null,
             platformAdmin: session.platformAdmin,
+            // Sem MFA (aal2) o ADMIN pede o 2.º passo; as rotas /api/saas/* exigem-no.
+            mfa: session.mfa,
           },
           { apps: [...APPS] },
         );

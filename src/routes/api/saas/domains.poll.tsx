@@ -4,7 +4,7 @@ import { corsPreflight, jsonWithCors } from "@/lib/ecosystem-cors";
 import { pollCustomDomainDns, persistPollResult } from "@/features/saas/domain-polling";
 import { domainDnsInstructions } from "@/features/saas/platform-ops";
 import { loadSgaAdminClient } from "@/integrations/supabase/sga-admin";
-import { requireTenantAccess, resolveBearerUserId } from "@/features/saas/platform-guard";
+import { requireTenantAccess, resolveBearerSession } from "@/features/saas/platform-guard";
 
 // style-check: route-exempt — polling DNS de domínio personalizado.
 
@@ -49,8 +49,9 @@ export const Route = createFileRoute("/api/saas/domains/poll")({
         // arbitrário lia e escrevia `tenant_domains` de qualquer escola, porque
         // o cliente admin ignora RLS.
         let userId: string;
+        let aal: string | null;
         try {
-          userId = await resolveBearerUserId(request.headers.get("Authorization"));
+          ({ userId, aal } = await resolveBearerSession(request.headers.get("Authorization")));
         } catch {
           return jsonWithCors(request, { error: "Unauthorized" }, { status: 401, apps: [...APPS] });
         }
@@ -71,7 +72,7 @@ export const Route = createFileRoute("/api/saas/domains/poll")({
         }
 
         try {
-          await requireTenantAccess(userId, String(domain.tenant_id));
+          await requireTenantAccess(userId, String(domain.tenant_id), undefined, aal);
         } catch (error) {
           const message =
             error instanceof Error ? error.message : "Sem permissão para gerir esta escola.";
