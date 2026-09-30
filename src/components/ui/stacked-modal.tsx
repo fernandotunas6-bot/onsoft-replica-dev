@@ -156,9 +156,19 @@ export function StackedModal({
       }}
     >
       <DialogContent
+        // O Radix focava o 1.º botão da navegação e desenhava-lhe o anel de foco, como se
+        // estivesse seleccionado por teclado. O foco vai para o painel (anunciado na mesma).
+        onOpenAutoFocus={(event) => {
+          event.preventDefault();
+          (event.currentTarget as HTMLElement | null)?.focus?.();
+        }}
         className={cn(
           "flex h-[min(700px,85vh)] flex-col gap-0 overflow-hidden border-border/70 p-0 shadow-2xl sm:rounded-2xl",
           width,
+          // Telemóvel: ecrã inteiro (a janela flutuante sobrava pouco espaço ao conteúdo).
+          "max-sm:inset-0 max-sm:top-0 max-sm:left-0 max-sm:h-[100dvh] max-sm:max-h-none max-sm:w-full max-sm:max-w-none max-sm:translate-x-0 max-sm:translate-y-0 max-sm:rounded-none max-sm:border-0",
+          // O foco vai para o painel ao abrir: sem contorno à volta do diálogo inteiro.
+          "focus-visible:outline-none",
         )}
       >
         <DialogTitle className="sr-only">
@@ -166,12 +176,13 @@ export function StackedModal({
         </DialogTitle>
 
         <NavContext.Provider value={nav}>
-          <div className="flex min-h-0 flex-1">
+          {/* Telemóvel: categorias com nome numa linha que desliza (eram só ícones). */}
+          <div className="flex min-h-0 flex-1 flex-col sm:flex-row">
             <nav
               aria-label="Categorias de configurações"
-              className="no-scrollbar flex w-16 shrink-0 flex-col items-center gap-1 overflow-y-auto border-r border-border/70 bg-secondary/20 py-4 sm:w-64 sm:items-stretch sm:p-3"
+              className="no-scrollbar flex shrink-0 gap-1 overflow-x-auto border-b border-border/70 bg-secondary/20 px-3 py-2 pr-12 sm:w-64 sm:flex-col sm:overflow-y-auto sm:border-b-0 sm:border-r sm:p-3"
             >
-              <p className="hidden px-3 pb-2 text-[11px] font-bold text-muted-foreground sm:block">
+              <p className="hidden px-3 pb-2 text-[11px] font-medium text-muted-foreground sm:block">
                 {eyebrow ?? "Configurações"}
               </p>
               {topRows.map((row) => {
@@ -184,14 +195,14 @@ export function StackedModal({
                     aria-current={isActive}
                     onClick={() => row.to && setActiveId(row.to)}
                     className={cn(
-                      "flex w-full items-center justify-center gap-2.5 rounded-xl px-3 py-2.5 text-left text-sm font-medium outline-none transition-colors focus-visible:ring-2 focus-visible:ring-primary/60 sm:justify-start",
+                      "flex shrink-0 items-center gap-2 rounded-lg px-3 py-2 text-left text-sm font-medium outline-none transition-colors focus-visible:ring-2 focus-visible:ring-primary/60 sm:w-full sm:gap-2.5 sm:py-2.5",
                       isActive
                         ? "bg-secondary text-foreground"
                         : "text-muted-foreground hover:bg-secondary/60 hover:text-foreground",
                     )}
                   >
                     <row.icon className="size-4 shrink-0" aria-hidden />
-                    <span className="hidden truncate sm:inline">{row.label}</span>
+                    <span className="truncate whitespace-nowrap">{row.label}</span>
                   </button>
                 );
               })}
@@ -204,7 +215,7 @@ export function StackedModal({
                     <active.icon className="size-4.5" aria-hidden />
                   </span>
                   <div className="min-w-0">
-                    <h3 className="font-display text-lg font-extrabold tracking-tight md:text-xl">
+                    <h3 className="font-display text-lg font-semibold tracking-tight md:text-xl">
                       {active.title}
                     </h3>
                     {active.description ? (

@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { Camera, FolderOpen, LoaderCircle, Shield, Sliders, Upload } from "lucide-react";
+import { Camera, FolderOpen, LoaderCircle, Shield, Upload } from "lucide-react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -330,13 +330,7 @@ export function ProfileSettingsPanel() {
         O seu endereço de e-mail e nível de acesso são configurados pela administração central.
       </p>
 
-      <div className="flex items-center justify-between pt-2">
-        {currentUser.role === "Administrador" && (
-          <div className="flex items-center gap-2 text-xs text-muted-foreground">
-            <Sliders className="size-3.5 text-primary" />
-            <span>Centro de Definições avançadas ativo</span>
-          </div>
-        )}
+      <div className="flex items-center justify-end pt-2">
         <div className="flex justify-end">
           <Button type="submit" disabled={saving || currentUser.profile.isLoading}>
             {saving ? <LoaderCircle className="mr-2 size-4 animate-spin" /> : null}
