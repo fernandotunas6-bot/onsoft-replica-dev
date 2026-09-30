@@ -62,3 +62,28 @@ describe("ano lectivo activo", () => {
     expect(migration).toMatch(/RAISE EXCEPTION/);
   });
 });
+
+describe("escolher o ano activo (Calendário Lectivo)", () => {
+  const source = readFileSync("src/features/calendar/server.ts", "utf8");
+  const fn = (name: string) => {
+    const start = source.indexOf(`export const ${name} `);
+    expect(start, `${name} não encontrado`).toBeGreaterThan(-1);
+    return source.slice(start, source.indexOf("export const ", start + 1));
+  };
+
+  it("só a Administração torna um ano activo; fecha os outros antes de activar", () => {
+    const set = fn("setActiveAcademicYear");
+    expect(set).toMatch(
+      /requireSgaWriterForWrite\(\s*"pedagogica",[\s\S]{0,80}\["Administrador"\]/,
+    );
+    expect(set).toMatch(/\.eq\("school_id", membership\.schoolId\)\s*\.maybeSingle\(\)/);
+    expect(set.indexOf("error: closeError")).toBeGreaterThan(-1);
+    expect(set.indexOf("error: closeError")).toBeLessThan(set.indexOf("error: activateError"));
+  });
+
+  it("a lista dos anos activos é da Administração e da Secretaria", () => {
+    expect(fn("listActiveAcademicYears")).toMatch(
+      /requireSgaWriterFor\("pedagogica"[\s\S]{0,80}"Administrador",\s*"Secretaria"/,
+    );
+  });
+});

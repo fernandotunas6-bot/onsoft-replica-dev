@@ -3,6 +3,7 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { publicDatabaseError } from "@/integrations/supabase/server-error";
 import {
   loadSgaAdminClient,
+  requireSgaWriterFor,
   requireSgaWriterForWrite,
   resolveSgaMembershipAdmin,
 } from "@/integrations/supabase/sga-admin";
@@ -12,6 +13,7 @@ import {
   deleteCalendarEventInputSchema,
   listCalendarEventsInputSchema,
   listDayAgendaLessonsInputSchema,
+  setActiveAcademicYearInputSchema,
   updateCalendarEventInputSchema,
 } from "./schemas";
 import { todayInLuanda, inclusiveRangesOverlap } from "./dates";
@@ -217,6 +219,107 @@ export const getActiveAcademicYear = createServerFn({ method: "GET" })
       .maybeSingle();
     if (error) throw publicDatabaseError(error, "Não foi possível carregar o ano lectivo.");
     return data ?? null;
+  });
+
+/**
+ * Anos lectivos marcados como activos. Deve ser um; mais do que um é um erro de
+ * dados (a 2026-09-29 uma escola tinha quatro, três deles de testes) e o ecrã
+ * mostra-os para a escola escolher. Leva as turmas e matrículas de cada um para
+ * se ver qual é o verdadeiro.
+ */
+export const listActiveAcademicYears = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const membership = await requireSgaWriterFor("pedagogica", context.supabase, context.userId, [
+      "Administrador",
+      "Secretaria",
+    ]);
+    const db = await loadSgaAdminClient();
+    const { data: years, error } = await db
+      .from("academic_years")
+      .select("id, name, starts_on, ends_on")
+      .eq("school_id", membership.schoolId)
+      .eq("status", "active")
+      .order("starts_on", { ascending: false })
+      .order("created_at", { ascending: true })
+      .order("id", { ascending: true });
+    if (error) throw publicDatabaseError(error, "Não foi possível carregar os anos lectivos.");
+    const rows = (years ?? []) as Array<{
+      id: string;
+      name: string;
+      starts_on: string | null;
+      ends_on: string | null;
+    }>;
+    if (rows.length < 2) {
+      return rows.map((year) => ({ ...year, classGroups: 0, enrollments: 0 }));
+    }
+    const ids = rows.map((year) => year.id);
+    const [groups, enrollments] = await Promise.all([
+      db
+        .from("class_groups")
+        .select("academic_year_id")
+        .eq("school_id", membership.schoolId)
+        .in("academic_year_id", ids),
+      db
+        .from("enrollments")
+        .select("academic_year_id")
+        .eq("school_id", membership.schoolId)
+        .in("academic_year_id", ids),
+    ]);
+    if (groups.error) throw publicDatabaseError(groups.error, "Não foi possível contar as turmas.");
+    if (enrollments.error) {
+      throw publicDatabaseError(enrollments.error, "Não foi possível contar as matrículas.");
+    }
+    const count = (list: Array<{ academic_year_id: string | null }> | null, id: string) =>
+      (list ?? []).filter((row) => row.academic_year_id === id).length;
+    return rows.map((year) => ({
+      ...year,
+      classGroups: count(groups.data, year.id),
+      enrollments: count(enrollments.data, year.id),
+    }));
+  });
+
+/** Torna um ano o activo e fecha os outros (um ano activo de cada vez). */
+export const setActiveAcademicYear = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .validator((input: unknown) => setActiveAcademicYearInputSchema.parse(input))
+  .handler(async ({ data, context }) => {
+    const membership = await requireSgaWriterForWrite(
+      "pedagogica",
+      context.supabase,
+      context.userId,
+      ["Administrador"],
+    );
+    const db = await loadSgaAdminClient();
+    const { data: year, error: yearError } = await db
+      .from("academic_years")
+      .select("id, name")
+      .eq("id", data.yearId)
+      .eq("school_id", membership.schoolId)
+      .maybeSingle();
+    if (yearError) throw publicDatabaseError(yearError, "Não foi possível ler o ano lectivo.");
+    if (!year) throw new Error("Ano lectivo não encontrado.");
+
+    // Fechar primeiro: com o índice de um ano activo por escola, activar antes
+    // de fechar seria recusado.
+    const { error: closeError } = await db
+      .from("academic_years")
+      .update({ status: "closed", updated_by: context.userId })
+      .eq("school_id", membership.schoolId)
+      .eq("status", "active")
+      .neq("id", year.id);
+    if (closeError) {
+      throw publicDatabaseError(closeError, "Não foi possível fechar os outros anos lectivos.");
+    }
+    const { error: activateError } = await db
+      .from("academic_years")
+      .update({ status: "active", updated_by: context.userId })
+      .eq("id", year.id)
+      .eq("school_id", membership.schoolId);
+    if (activateError) {
+      throw publicDatabaseError(activateError, "Não foi possível activar o ano lectivo.");
+    }
+    return { id: String(year.id), name: String(year.name) };
   });
 
 /**
