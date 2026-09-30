@@ -12,7 +12,12 @@ Depois abrir o skill do módulo em `.cursor/skills/`.
   Comportamento igual. Testes novos em `tests/academic/assessment-center-rows.test.ts`
   (pesos e arredondamento do modelo, Decreto 424/25 sem modelo, itens que não contam,
   recurso «max», exame, Revisão).
-- Próximo passo da mesma recomendação: `PautasWorkspaceModule.tsx` (~940 linhas).
+- Pautas (Pedagógica): as linhas dos modelos Mini-pauta, Trimestral e Final, o
+  cabeçalho/contexto e o filtro Aprovados/Não transitam de `PautasWorkspaceModule.tsx`
+  passaram para `src/features/pedagogica/components/pautas/pauta-documents.ts`
+  (1 025 → 858 linhas). A mini-pauta procura as notas num mapa em vez de três `find`
+  por aluno. Os estados "APTO"/"NÃO APTO" do filtro não existiam em `StudentStatus`
+  e saíram. Testes: `tests/pedagogica/pauta-documents.test.ts`.
 
 ## CORS e domínios próprios seguem PLATFORM_DOMAIN (2026-09-30)
 

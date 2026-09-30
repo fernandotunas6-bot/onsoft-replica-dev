@@ -24,7 +24,7 @@ import type { PedagogicalWorkspace } from "@/features/academic/server";
 import { exportCsv } from "@/lib/export-csv";
 import { documentValidationCode } from "@/features/academic/assessment-views";
 import { whatsappHref } from "@/features/integrations/actions";
-import { useSchoolSettings, type SchoolSettingsRow } from "@/features/auth/use-school-settings";
+import { useSchoolSettings } from "@/features/auth/use-school-settings";
 import { getSigaNavDocUrl } from "@/lib/ecosystem-urls";
 import {
   inferTeachingCycle,
@@ -35,7 +35,6 @@ import {
 import { useActiveAssessmentRule } from "@/features/academic/use-passing-value";
 import {
   buildClassAcademicSummaries,
-  decidePromotionStatus,
   type StudentAcademicSummary,
 } from "@/features/academic/assessment-engine";
 import {
@@ -49,78 +48,26 @@ import { ExamPautaView } from "./ExamPautaView";
 import type {
   FinalPautaDocument,
   MiniPautaDocument,
-  MiniPautaStudent,
-  FinalPautaStudent,
-  TrimesterPautaStudent,
   PautaMode,
   AngolaTeachingCycle,
   TrimesterPautaDocument,
   ExamPautaDocument,
-  SchoolIdentity,
-  ClassContext,
-  StudentStatus,
-  Gender,
 } from "./types";
-import type { PromotionStatus } from "@/features/academic/assessment-engine";
-
-/** PromotionStatus tem "PENDENTE" (sem notas ainda), que a Pauta impressa mostra como estado vazio. */
-function toStudentStatus(status: PromotionStatus): StudentStatus {
-  return status === "PENDENTE" ? "" : status;
-}
-
-/** people.sex guarda "male"/"female" em inglês; a Pauta usa a inicial em português (M/F). */
-function toGender(sex: string | null | undefined): Gender {
-  if (sex === "male") return "M";
-  if (sex === "female") return "F";
-  return "";
-}
+import {
+  buildClassContext,
+  buildFinalPautaStudents,
+  buildMiniPautaStudents,
+  buildSchoolIdentity,
+  buildTrimesterPautaStudents,
+  filterPautaStudents,
+  isPassingStatus,
+  toGender,
+  type PautaStatusFilter,
+} from "./pauta-documents";
 
 interface PautasWorkspaceModuleProps {
   workspace?: PedagogicalWorkspace | null | undefined;
   onSelectClassGroup?: ((classGroupId: string) => void) | undefined;
-}
-
-type WorkspaceClassGroup = PedagogicalWorkspace["classGroups"][number];
-
-const shiftLabels: Record<string, string> = {
-  morning: "Manhã",
-  afternoon: "Tarde",
-  evening: "Noite",
-};
-
-/** Cabeçalho da escola — fonte única para os quatro modelos de pauta. */
-function buildSchoolIdentity(school: SchoolSettingsRow | null): SchoolIdentity {
-  return {
-    republic: "REPÚBLICA DE ANGOLA",
-    province: "GOVERNO PROVINCIAL",
-    municipality: "ADMINISTRAÇÃO MUNICIPAL",
-    educationOffice: "DIRECÇÃO MUNICIPAL DA EDUCAÇÃO",
-    schoolName: school?.name || "COMPLEXO ESCOLAR",
-  };
-}
-
-/** Contexto de turma — fonte única para os quatro modelos de pauta. */
-function buildClassContext(params: {
-  currentClass?: WorkspaceClassGroup | undefined;
-  academicYear: string;
-  cycle: AngolaTeachingCycle;
-  pautaNumber: string;
-  teacherName?: string | undefined;
-  term?: number | undefined;
-  periodCount?: number | undefined;
-}): ClassContext {
-  return {
-    academicYear: params.academicYear,
-    className: params.currentClass?.grade_name || "Classe",
-    classGroup: params.currentClass?.name || "Turma",
-    period: (params.currentClass?.shift && shiftLabels[params.currentClass.shift]) || "Manhã",
-    pautaNumber: params.pautaNumber,
-    cycle: params.cycle,
-    ...(params.periodCount !== undefined ? { periodCount: params.periodCount } : {}),
-    ...(params.currentClass?.course_name ? { courseName: params.currentClass.course_name } : {}),
-    ...(params.teacherName ? { teacher: params.teacherName } : {}),
-    ...(params.term !== undefined ? { term: params.term } : {}),
-  };
 }
 
 export function PautasWorkspaceModule({
@@ -163,7 +110,7 @@ export function PautasWorkspaceModule({
   const [selectedClassId, setSelectedClassId] = useState<string>(() => classGroups[0]?.id ?? "");
   const [selectedSubjectId, setSelectedSubjectId] = useState<string>("");
   const [searchQuery, setSearchQuery] = useState<string>("");
-  const [statusFilter, setStatusFilter] = useState<"all" | "pass" | "fail">("all");
+  const [statusFilter, setStatusFilter] = useState<PautaStatusFilter>("all");
 
   // Mantém selectedClassId atualizado quando as turmas do workspace forem carregadas
   useEffect(() => {
@@ -316,47 +263,12 @@ export function PautasWorkspaceModule({
       classSubjectsForSelected.find((cs) => cs.subject_id === effectiveSubjectId)?.teacher_name ??
       "";
 
-    const students: MiniPautaStudent[] = isRealClass
-      ? classSummaries.map((summary, index) => {
-          const subjSummary = summary.subjects.find((s) => s.subjectId === effectiveSubjectId);
-          const rawFor = (term: number) =>
-            termGradesForClass.find(
-              (g) =>
-                g.enrollment_id === summary.enrollmentId &&
-                g.subject_id === effectiveSubjectId &&
-                g.term === term,
-            );
-          const g1 = rawFor(1);
-          const g2 = rawFor(2);
-          const g3 = rawFor(3);
-          return {
-            id: summary.enrollmentId,
-            code: summary.registrationNumber ?? `EST-${index + 1}`,
-            number: index + 1,
-            name: summary.studentName,
-            gender: genderByEnrollmentId.get(summary.enrollmentId) ?? "",
-            t1: {
-              mact: g1?.mac ?? null,
-              npp: g1?.npp ?? null,
-              npt: g1?.npt ?? null,
-              mt: subjSummary?.mt1 ?? null,
-            },
-            t2: {
-              mact: g2?.mac ?? null,
-              npp: g2?.npp ?? null,
-              npt: g2?.npt ?? null,
-              mt: subjSummary?.mt2 ?? null,
-            },
-            t3: {
-              mact: g3?.mac ?? null,
-              npp: g3?.npp ?? null,
-              npt: g3?.npt ?? null,
-              mt: subjSummary?.mt3 ?? null,
-            },
-            mfd: subjSummary?.mfd ?? null,
-            status: toStudentStatus(summary.status),
-            observation: "",
-          };
+    const students = isRealClass
+      ? buildMiniPautaStudents({
+          summaries: classSummaries,
+          subjectId: effectiveSubjectId,
+          termGrades: termGradesForClass,
+          genderByEnrollmentId,
         })
       : [];
 
@@ -391,45 +303,14 @@ export function PautasWorkspaceModule({
 
   // Trimester Pauta Document
   const rawTrimesterDocument: TrimesterPautaDocument = useMemo(() => {
-    const students: TrimesterPautaStudent[] = isRealClass
-      ? classSummaries.map((summary, index) => {
-          const gradesMap: Record<string, number | null> = {};
-          let total = 0;
-          let count = 0;
-          let failing = 0;
-          realSubjectsForClass.forEach((sub) => {
-            const subjSummary = summary.subjects.find((s) => s.subjectId === sub.id);
-            const mt =
-              selectedTerm === 1
-                ? subjSummary?.mt1
-                : selectedTerm === 2
-                  ? subjSummary?.mt2
-                  : subjSummary?.mt3;
-            gradesMap[sub.id] = mt ?? null;
-            if (mt !== null && mt !== undefined) {
-              total += mt;
-              count += 1;
-              if (mt < promotionOptions.passing) failing += 1;
-            }
-          });
-          const avg = count > 0 ? Math.round((total / count) * 10) / 10 : null;
-          const status: StudentStatus =
-            avg === null
-              ? ""
-              : toStudentStatus(
-                  decidePromotionStatus(avg, failing, selectedCycle, undefined, promotionOptions),
-                );
-
-          return {
-            id: summary.enrollmentId,
-            code: summary.registrationNumber ?? `EST-${index + 1}`,
-            number: index + 1,
-            name: summary.studentName,
-            gender: genderByEnrollmentId.get(summary.enrollmentId) ?? "",
-            subjectGrades: gradesMap,
-            average: avg,
-            status,
-          };
+    const students = isRealClass
+      ? buildTrimesterPautaStudents({
+          summaries: classSummaries,
+          subjects: realSubjectsForClass,
+          term: selectedTerm,
+          cycle: selectedCycle,
+          promotionOptions,
+          genderByEnrollmentId,
         })
       : [];
 
@@ -467,23 +348,8 @@ export function PautasWorkspaceModule({
 
   // Final Pauta Document
   const rawFinalDocument: FinalPautaDocument = useMemo(() => {
-    const students: FinalPautaStudent[] = isRealClass
-      ? classSummaries.map((summary, index) => ({
-          id: summary.enrollmentId,
-          code: summary.registrationNumber ?? `EST-${index + 1}`,
-          number: index + 1,
-          name: summary.studentName,
-          gender: genderByEnrollmentId.get(summary.enrollmentId) ?? "",
-          subjects: summary.subjects.map((s) => ({
-            subjectId: s.subjectId,
-            subjectName: s.subjectName,
-            mt1: s.mt1,
-            mt2: s.mt2,
-            mt3: s.mt3,
-            mfd: s.mfd,
-          })),
-          status: toStudentStatus(summary.status),
-        }))
+    const students = isRealClass
+      ? buildFinalPautaStudents({ summaries: classSummaries, genderByEnrollmentId })
       : [];
 
     return {
@@ -536,42 +402,11 @@ export function PautasWorkspaceModule({
     };
   }, [selectedCycle, schoolSettings, currentClass, activeYearLabel, configuredPeriodCount]);
 
-  // Filtered Documents based on search query and status filter.
   // `useCallback` para que os quatro useMemo abaixo possam depender desta
-  // função directamente: antes listavam à mão `searchQuery`/`statusFilter`
-  // (o que ela fecha por dentro), e bastava alguém acrescentar aqui outro
-  // valor e esquecer os quatro arrays para nascer uma closure obsoleta.
+  // função directamente, sem listar à mão o que ela fecha por dentro.
   const filterStudentList = useCallback(
-    <T extends { name: string; code?: string; status?: string }>(list: T[]): T[] => {
-      return list.filter((item) => {
-        const q = searchQuery.toLowerCase().trim();
-        const matchSearch =
-          !q ||
-          item.name.toLowerCase().includes(q) ||
-          (item.code && item.code.toLowerCase().includes(q));
-
-        if (!matchSearch) return false;
-
-        if (statusFilter === "pass") {
-          return (
-            item.status === "TRANSITA" ||
-            item.status === "APROVADO" ||
-            item.status === "APTO" ||
-            item.status === "APTO (PAP)"
-          );
-        }
-        if (statusFilter === "fail") {
-          return (
-            item.status === "NÃO TRANSITA" ||
-            item.status === "REPROVADO" ||
-            item.status === "NÃO APTO" ||
-            item.status === "NÃO APTO (PAP)" ||
-            item.status === "RECURSO"
-          );
-        }
-        return true;
-      });
-    },
+    <T extends { name: string; code?: string; status?: string }>(list: T[]): T[] =>
+      filterPautaStudents(list, searchQuery, statusFilter),
     [searchQuery, statusFilter],
   );
 
@@ -606,9 +441,7 @@ export function PautasWorkspaceModule({
     filteredExamDocument,
   ]);
 
-  const passCount = currentStudents.filter(
-    (s) => s.status === "TRANSITA" || s.status === "APROVADO" || s.status === "APTO (PAP)",
-  ).length;
+  const passCount = currentStudents.filter((s) => isPassingStatus(s.status)).length;
   const passRate =
     currentStudents.length > 0 ? Math.round((passCount / currentStudents.length) * 100) : 0;
 
