@@ -263,3 +263,19 @@ describe("tabelas sensíveis: só o pessoal da escola pela API", () => {
     );
   });
 });
+
+describe("políticas duplicadas", () => {
+  it("nenhuma tabela tem duas políticas com o mesmo comando, papéis, modo e expressões", () => {
+    // 20260930170000 retirou cinco cópias exactas de `is_school_member`; uma cópia
+    // não muda o acesso, só duplica o custo por linha e esconde qual é a versionada.
+    const seen = new Map<string, string>();
+    const duplicates: string[] = [];
+    for (const p of snapshot.politicas as Array<Policy & { modo?: string }>) {
+      const key = [p.tabela, p.cmd, p.papeis, p.modo ?? "", p.usando, p.verificando].join("\u0000");
+      const other = seen.get(key);
+      if (other) duplicates.push(`${p.tabela}: «${other}» = «${p.politica}»`);
+      else seen.set(key, p.politica);
+    }
+    expect(duplicates).toEqual([]);
+  });
+});

@@ -4,6 +4,19 @@ Ler isto **antes** de alterar código. Ecossistema (5 apps):
 [ARCHITECTURE_HARMONIZATION.md](./ARCHITECTURE_HARMONIZATION.md).
 Depois abrir o skill do módulo em `.cursor/skills/`.
 
+## Advisors de desempenho (2026-09-30)
+
+- **Duplicadas exactas retiradas** (`20260930170000`, aplicada): cinco SELECT
+  «Read … in own school» iguais aos «Members read …» versionados, em `siga_assessment_*`
+  e `siga_attendance_*`, criados à mão na base. Sem mudança de acesso (verificado: dono
+  vê 9/9 sessões, 1/1 item). 305 políticas. Teste: nenhuma duplicada exacta no retrato.
+- **Não feito, de propósito:** 158 chaves estrangeiras sem índice (fora as de
+  auditoria) e 123 índices nunca usados. Com os volumes actuais (a maior escola tem 2
+  alunos) não há consulta lenta para medir; indexar às cegas só encarece escritas.
+  Rever quando houver escolas com dados reais, a partir de `pg_stat_statements`.
+- As restantes «multiple permissive policies» são pares com expressões diferentes (papel
+  antigo + permissão nova); fundi-las é mudança de acesso, não de desempenho.
+
 ## Pautas oficiais e leituras só do pessoal — APLICADAS (2026-09-30)
 
 Duas migrações, **aplicadas na produção a 2026-09-30** (pelo MCP do Supabase, com

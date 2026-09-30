@@ -3,7 +3,7 @@
   "resumo": {
     "com_rls": 181,
     "funcoes_private": 101,
-    "politicas": 310,
+    "politicas": 305,
     "tabelas": 181,
     "triggers": 196
   },
@@ -3942,7 +3942,7 @@
         "term",
         "name"
       ],
-      "politicas": 3,
+      "politicas": 2,
       "rls": true,
       "rls_forcada": true,
       "tabela": "siga_assessment_items"
@@ -3966,7 +3966,7 @@
         "item_id",
         "enrollment_id"
       ],
-      "politicas": 4,
+      "politicas": 3,
       "rls": true,
       "rls_forcada": true,
       "tabela": "siga_assessment_scores"
@@ -4026,7 +4026,7 @@
         "reason",
         "submitted_by"
       ],
-      "politicas": 3,
+      "politicas": 2,
       "rls": true,
       "rls_forcada": true,
       "tabela": "siga_attendance_justifications"
@@ -4050,7 +4050,7 @@
         "session_id",
         "student_id"
       ],
-      "politicas": 3,
+      "politicas": 2,
       "rls": true,
       "rls_forcada": true,
       "tabela": "siga_attendance_records"
@@ -4082,7 +4082,7 @@
         "class_group_id",
         "subject_id"
       ],
-      "politicas": 3,
+      "politicas": 2,
       "rls": true,
       "rls_forcada": true,
       "tabela": "siga_attendance_sessions"
@@ -7375,15 +7375,6 @@
       "verificando": ""
     },
     {
-      "cmd": "SELECT",
-      "modo": "PERMISSIVE",
-      "papeis": "{authenticated}",
-      "politica": "Read assessment items in own school",
-      "tabela": "siga_assessment_items",
-      "usando": "is_school_member(school_id)",
-      "verificando": ""
-    },
-    {
       "cmd": "ALL",
       "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
@@ -7397,15 +7388,6 @@
       "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
       "politica": "Members read siga_assessment_scores",
-      "tabela": "siga_assessment_scores",
-      "usando": "is_school_member(school_id)",
-      "verificando": ""
-    },
-    {
-      "cmd": "SELECT",
-      "modo": "PERMISSIVE",
-      "papeis": "{authenticated}",
-      "politica": "Read assessment scores in own school",
       "tabela": "siga_assessment_scores",
       "usando": "is_school_member(school_id)",
       "verificando": ""
@@ -7429,15 +7411,6 @@
       "verificando": ""
     },
     {
-      "cmd": "SELECT",
-      "modo": "PERMISSIVE",
-      "papeis": "{authenticated}",
-      "politica": "Read attendance justifications in own school",
-      "tabela": "siga_attendance_justifications",
-      "usando": "is_school_member(school_id)",
-      "verificando": ""
-    },
-    {
       "cmd": "ALL",
       "modo": "RESTRICTIVE",
       "papeis": "{authenticated}",
@@ -7456,15 +7429,6 @@
       "verificando": ""
     },
     {
-      "cmd": "SELECT",
-      "modo": "PERMISSIVE",
-      "papeis": "{authenticated}",
-      "politica": "Read attendance records in own school",
-      "tabela": "siga_attendance_records",
-      "usando": "is_school_member(school_id)",
-      "verificando": ""
-    },
-    {
       "cmd": "ALL",
       "modo": "RESTRICTIVE",
       "papeis": "{authenticated}",
@@ -7478,15 +7442,6 @@
       "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
       "politica": "Members read siga_attendance_sessions",
-      "tabela": "siga_attendance_sessions",
-      "usando": "is_school_member(school_id)",
-      "verificando": ""
-    },
-    {
-      "cmd": "SELECT",
-      "modo": "PERMISSIVE",
-      "papeis": "{authenticated}",
-      "politica": "Read attendance sessions in own school",
       "tabela": "siga_attendance_sessions",
       "usando": "is_school_member(school_id)",
       "verificando": ""
