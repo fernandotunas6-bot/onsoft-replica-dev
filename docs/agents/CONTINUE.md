@@ -4,6 +4,17 @@ Ler isto **antes** de alterar código. Ecossistema (5 apps):
 [ARCHITECTURE_HARMONIZATION.md](./ARCHITECTURE_HARMONIZATION.md).
 Depois abrir o skill do módulo em `.cursor/skills/`.
 
+## Arrumação: fixtures e tipos (2026-09-30)
+
+- `pautas-demo.ts` já não era usado pela aplicação (sem turma real a pauta fica vazia),
+  só por `tests/pedagogica/pautas.test.ts`. Passou a `tests/pedagogica/pautas-fixtures.ts`.
+  Item 5 de `CRITICAL_REVIEW_2026-09.md` marcado como resolvido.
+- `any` retirados onde o servidor já devolve tipos (lint 65 → 51 avisos): callbacks
+  `map` em Currículo, ficha do aluno, painel do Administrador e Alumni; a Ficha Alumni
+  360º deixou de converter perfil/pessoa/aluno em `Record<string, any>`. O compilador
+  confirmou os tipos e não encontrou campos inexistentes. Ficam os `any` de JSON
+  arbitrário (importação) e da API OAuth do Supabase sem tipos.
+
 ## Ligações ADMIN → SIGA de cada escola (2026-09-29)
 
 - ADMIN `/tenants`, botão «SIGA»: `getSigaSchoolUrl` tirava o primeiro rótulo do host

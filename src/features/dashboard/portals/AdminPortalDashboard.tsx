@@ -535,7 +535,7 @@ export function AdminPortalDashboard({
               ) : null}
             </div>
             <ul className="space-y-3">
-              {data?.announcements.map((item: any) => (
+              {data?.announcements.map((item) => (
                 <li key={item.id} className="rounded-xl bg-secondary p-3">
                   <p className="text-sm font-semibold">{item.title}</p>
                   <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">{item.body}</p>
