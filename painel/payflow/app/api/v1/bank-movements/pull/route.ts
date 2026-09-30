@@ -123,7 +123,6 @@ export async function POST(request: Request) {
           booked_at: mapped.movement.booked_at,
           source: "bank_api",
           verified_by: adminSession?.userId ?? "bank_connector_pull",
-          school_id: scope.schoolId,
         },
         {
           adminSession,

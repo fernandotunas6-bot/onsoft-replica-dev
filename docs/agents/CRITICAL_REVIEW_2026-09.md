@@ -21,28 +21,25 @@ com o que a equipa realmente mantém neste repositório.
 
 ## 2. Riscos por ordem de importância
 
-1. **RPCs sem tipos gerados** — `src/integrations/supabase/types.ts:72` expõe
-   `Functions: { [_ in never]: never }`, logo todas as chamadas
-   `register_student` / `enroll_student` / `register_payment` passam pelo cliente
-   não tipado `sgaClient` (`src/integrations/supabase/sga.ts`). Consequência: erros
-   de assinatura só aparecem em execução. Mitigação actual: validação Zod nas
-   entradas dos server functions (`src/features/*/schemas.ts`).
+1. ~~**RPCs sem tipos gerados**~~ — **resolvido**: `sgaClient()` devolve
+   `SupabaseClient<Database>` e as RPC passam por `rpcArgs` com tipos da produção
+   (2026-09-29). Nomes de colunas e argumentos passam pelo `tsc`.
 2. **Convenção de SQL fora do fluxo automático** — o schema é aplicado à mão
    (`supabase/APPLY_IN_SQL_EDITOR.sql`, `APPLY_ENROLLMENT_AND_PREMIUM.sql`;
    ver `supabase/DO_NOT_APPLY_TO_SGA.txt`). Qualquer nova coluna exige passo manual;
    é a maior fonte de divergência entre ambiente e código.
-3. **Dependências vulneráveis indirectas** — `js-yaml` via
-   `@tanstack/react-start@1.168.32` (alta) e `uuid` via `exceljs@4.4.0` (moderada).
-   Nenhuma tem correcção directa disponível; nenhuma é usada em caminho exposto a
-   entrada de utilizador não autenticado.
+3. **Dependências vulneráveis** (`bun audit`, 2026-09-30) — `js-yaml` já não aparece.
+   Ficam `uuid` via `exceljs@4.4.0` (moderada, só `v3/v5/v6` com `buf`, que o exceljs
+   não usa) e `esbuild` 0.18 via `drizzle-kit` → `@esbuild-kit` (moderada/baixa, só no
+   servidor de desenvolvimento do esbuild, que o drizzle-kit não arranca). `vitest`
+   4.1.10 → 4.1.11 (GHSA-82fw-gwwq-j7x9) corrigido. Nenhuma chega a produção.
 4. **Componentes muito grandes** — `src/features/academic/AssessmentCenter.tsx`
    (>1 000 linhas) e `src/features/pedagogica/components/pautas/PautasWorkspaceModule.tsx`
    (~940 linhas) concentram estado, cálculo e apresentação. São o ponto mais provável
    de regressões e de lentidão percebida na digitação de notas.
-5. **Dados de demonstração misturados com dados reais** — as pautas caem em
-   `pautas-demo.ts` quando não existe turma real seleccionada
-   (`PautasWorkspaceModule.tsx`, ramo `isRealClass === false`). Correcto para
-   apresentação, mas exige rótulo visível para não ser confundido com dados da escola.
+5. ~~**Dados de demonstração misturados com dados reais**~~ — **resolvido**: sem turma
+   real a pauta fica vazia e mostra o estado "sem turma/sem alunos". Os documentos
+   fictícios passaram para `tests/pedagogica/pautas-fixtures.ts` (2026-09-29).
 
 ## 3. Dívida técnica remanescente (39 avisos)
 
@@ -78,7 +75,6 @@ com o que a equipa realmente mantém neste repositório.
 
 - Dividir `AssessmentCenter.tsx` e `PautasWorkspaceModule.tsx` em módulos de estado,
   cálculo e apresentação.
-- Rótulo permanente "dados de demonstração" em qualquer pauta gerada sem turma real.
 - Medir FCP/INP nas páginas de pautas, avaliações e financeiro e carregar sob demanda
   os gráficos, PDF e Excel.
 

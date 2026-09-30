@@ -1,3 +1,4 @@
+import type { TablesInsert, TablesUpdate } from "@/integrations/supabase/types";
 import { createServerFn } from "@tanstack/react-start";
 import { assertCanSeeStudent, loadStudentScope } from "@/features/students/student-scope";
 import { loadActivePassingValue, loadActiveRuleSummary } from "./exam-data";
@@ -84,7 +85,10 @@ type ClassGroupSummary = {
   course_id: string | null;
   course_name: string;
   grade_name: string;
+  /** Sala física (`rooms`); até 29/09 este campo levava o nome do campus. */
+  room_id: string | null;
   room_name: string;
+  campus_name: string;
   academic_year_name: string;
   enrolled_count: number;
   average_score: number | null;
@@ -390,6 +394,14 @@ export const listPedagogicalWorkspace = createServerFn({ method: "GET" })
       (classSubjects ?? []).map((row: Record<string, unknown>) => [String(row["id"]), row]),
     );
 
+    const salaIds = [
+      ...new Set((groups.data ?? []).map((group) => String(group.room_id ?? "")).filter(Boolean)),
+    ];
+    const { data: salas } = salaIds.length
+      ? await db.from("rooms").select("id, name").in("id", salaIds)
+      : { data: [] as Array<{ id: string; name: string }> };
+    const salaNameById = new Map((salas ?? []).map((row) => [row.id, row.name]));
+
     const classGroups: ClassGroupSummary[] = (groups.data ?? []).map(
       (group: Record<string, unknown>) => {
         const grade = gradeById.get(String(group["grade_level_id"]));
@@ -415,7 +427,9 @@ export const listPedagogicalWorkspace = createServerFn({ method: "GET" })
           course_id: program ? String(program["id"] ?? "") : null,
           course_name: (program?.["name"] as string) ?? "—",
           grade_name: (grade?.["name"] as string) ?? "—",
-          room_name: (campus?.["name"] as string) ?? "—",
+          room_id: group["room_id"] ? String(group["room_id"]) : null,
+          room_name: salaNameById.get(String(group["room_id"] ?? "")) ?? "—",
+          campus_name: (campus?.["name"] as string) ?? "—",
           academic_year_name: (year?.["name"] as string) ?? "—",
           enrolled_count: stats?.count ?? 0,
           average_score: classAverage(String(group["id"])),
@@ -462,26 +476,56 @@ export const listPedagogicalWorkspace = createServerFn({ method: "GET" })
       }
     }
 
+    // Carga e classes vêm das turmas: `subjects` não tem `weekly_hours` (lia-se uma
+    // coluna inexistente e a lista mostrava sempre "—"). Tempos lectivos em
+    // `class_subjects.weekly_periods`; classe pela `sequence` de `grade_levels`.
+    const loadBySubject = new Map<
+      string,
+      { periods: number[]; grades: number[]; groups: string[] }
+    >();
+    for (const row of (classSubjects ?? []) as Array<Record<string, unknown>>) {
+      const subjectId = String(row["subject_id"] ?? "");
+      const entry = loadBySubject.get(subjectId) ?? { periods: [], grades: [], groups: [] };
+      const periods = Number(row["weekly_periods"]);
+      if (Number.isFinite(periods) && periods > 0) entry.periods.push(periods);
+      const group = groupById.get(String(row["class_group_id"] ?? ""));
+      if (group) {
+        entry.groups.push(String(group["name"] ?? "Turma"));
+        const sequence = Number(gradeById.get(String(group["grade_level_id"] ?? ""))?.["sequence"]);
+        if (Number.isFinite(sequence)) entry.grades.push(sequence);
+      }
+      loadBySubject.set(subjectId, entry);
+    }
+    const periodsLabel = (periods: number[]) => {
+      if (periods.length === 0) return "—";
+      const min = Math.min(...periods);
+      const max = Math.max(...periods);
+      return min === max ? `${min} tempos/sem` : `${min}–${max} tempos/sem`;
+    };
+
     const subjectRows = subjectsMissing
       ? []
-      : ((subjects.data ?? []) as Array<Record<string, unknown>>).map((subject) => ({
-          id: String(subject["id"] ?? ""),
-          name: String(subject["name"] ?? ""),
-          code: String(subject["code"] ?? ""),
-          teacher_name: null,
-          weekly_hours: Number(subject["weekly_hours"] ?? 0),
-          grade_from: null,
-          grade_to: null,
-          classes_label: "—",
-          weekly_hours_label: subject["weekly_hours"] ? `${subject["weekly_hours"]}h/sem` : "—",
-          approval_rate: null,
-          subject_type_id: (subject["subject_type_id"] as string) ?? null,
-          curriculum_area_id: (subject["curriculum_area_id"] as string) ?? null,
-          is_mandatory: Boolean(subject["is_mandatory"] ?? true),
-          is_practical: Boolean(subject["is_practical"] ?? false),
-          annual_hours: subject["annual_hours"] ? Number(subject["annual_hours"]) : null,
-          color: (subject["color"] as string) ?? null,
-        }));
+      : ((subjects.data ?? []) as Array<Record<string, unknown>>).map((subject) => {
+          const load = loadBySubject.get(String(subject["id"] ?? ""));
+          return {
+            id: String(subject["id"] ?? ""),
+            name: String(subject["name"] ?? ""),
+            code: String(subject["code"] ?? ""),
+            teacher_name: null,
+            weekly_hours: load?.periods.length ? Math.max(...load.periods) : 0,
+            grade_from: load?.grades.length ? Math.min(...load.grades) : null,
+            grade_to: load?.grades.length ? Math.max(...load.grades) : null,
+            classes_label: load?.groups.length ? load.groups.join(", ") : "—",
+            weekly_hours_label: periodsLabel(load?.periods ?? []),
+            approval_rate: null,
+            subject_type_id: (subject["subject_type_id"] as string) ?? null,
+            curriculum_area_id: (subject["curriculum_area_id"] as string) ?? null,
+            is_mandatory: Boolean(subject["is_mandatory"] ?? true),
+            is_practical: Boolean(subject["is_practical"] ?? false),
+            annual_hours: subject["annual_hours"] ? Number(subject["annual_hours"]) : null,
+            color: (subject["color"] as string) ?? null,
+          };
+        });
 
     const enrollmentOptions = (enrollments.data ?? []).map((enrollment) => {
       const group = groupById.get(String(enrollment.class_group_id));
@@ -642,6 +686,69 @@ export const listPedagogicalWorkspace = createServerFn({ method: "GET" })
     };
   });
 
+/**
+ * Campus da turma quando não há sala (ou a sala não tem campus). `class_groups.campus_id` é
+ * NOT NULL (e chave estrangeira para `campuses`): o antigo `?? null` fazia a base
+ * recusar a turma. Usa o primeiro campus activo da escola; se não houver nenhum
+ * (49 das 91 escolas a 29/09 — o arranque da escola não cria campus), cria o
+ * "SEDE / Campus Principal", o mesmo que o instalador cria.
+ */
+async function defaultCampusId(
+  db: Awaited<ReturnType<typeof loadSgaAdminClient>>,
+  schoolId: string,
+): Promise<string> {
+  const { data: existing, error } = await db
+    .from("campuses")
+    .select("id")
+    .eq("school_id", schoolId)
+    .eq("is_active", true)
+    .order("created_at", { ascending: true })
+    .limit(1)
+    .maybeSingle();
+  if (error) throw publicDatabaseError(error, "Não foi possível ler os campus da escola.");
+  if (existing?.id) return existing.id;
+  const { data: created, error: createError } = await db
+    .from("campuses")
+    .upsert(
+      { school_id: schoolId, code: "SEDE", name: "Campus Principal", is_active: true },
+      { onConflict: "school_id,code" },
+    )
+    .select("id")
+    .single();
+  if (createError || !created) {
+    throw publicDatabaseError(createError, "Não foi possível criar o campus principal da escola.");
+  }
+  return created.id;
+}
+
+/**
+ * Sala física escolhida para a turma: tem de ser da escola, estar activa e caber a
+ * turma (o cartão "Anti-Superlotação" das Salas prometia isto e nada o verificava).
+ */
+async function loadSalaForClassGroup(
+  db: Awaited<ReturnType<typeof loadSgaAdminClient>>,
+  schoolId: string,
+  roomId: string,
+  capacity: number,
+) {
+  const { data: sala, error } = await db
+    .from("rooms")
+    .select("id, name, capacity, status, campus_id")
+    .eq("id", roomId)
+    .eq("school_id", schoolId)
+    .is("deleted_at", null)
+    .maybeSingle();
+  if (error) throw publicDatabaseError(error, "Não foi possível ler a sala.");
+  if (!sala) throw new Error("Sala não encontrada nesta escola.");
+  if (sala.status !== "active") throw new Error(`A sala ${sala.name} está inactiva.`);
+  if (sala.capacity && capacity > sala.capacity) {
+    throw new Error(
+      `A sala ${sala.name} tem ${sala.capacity} lugares e a turma pede ${capacity}. Reduza a capacidade da turma ou escolha outra sala.`,
+    );
+  }
+  return sala;
+}
+
 export const createClassGroup = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((input: unknown) => createClassGroupInputSchema.parse(input))
@@ -659,12 +766,17 @@ export const createClassGroup = createServerFn({ method: "POST" })
       ["Administrador", "Secretaria"],
     );
     const db = await loadSgaAdminClient();
+    const sala = data.roomId
+      ? await loadSalaForClassGroup(db, membership.schoolId, data.roomId, data.capacity ?? 30)
+      : null;
 
     const payload = {
       school_id: membership.schoolId,
       academic_year_id: data.academicYearId,
       grade_level_id: data.gradeLevelId,
-      campus_id: data.roomId ?? null,
+      // O campus vem da sala; sem sala (ou sala sem campus), o campus principal.
+      campus_id: sala?.campus_id ?? (await defaultCampusId(db, membership.schoolId)),
+      room_id: sala?.id ?? null,
       code: data.code,
       name: data.name,
       shift: data.shift,
@@ -705,13 +817,20 @@ export const updateClassGroup = createServerFn({ method: "POST" })
       ["Administrador", "Secretaria"],
     );
     const db = await loadSgaAdminClient();
+    // `roomId`: string = mudar de sala, null = tirar a sala, ausente = não mexer.
+    // O campus não muda com a sala: `normalize_class_group` torna-o imutável.
+    const sala = data.roomId
+      ? await loadSalaForClassGroup(db, membership.schoolId, data.roomId, data.capacity ?? 30)
+      : null;
     const payload = {
       code: data.code,
       name: data.name,
       shift: data.shift,
       capacity: data.capacity ?? 30,
-      campus_id: data.roomId ?? null,
-      status: data.status,
+      ...(data.roomId !== undefined ? { room_id: sala?.id ?? null } : {}),
+      // O formulário oferece activa/inactiva; `class_groups.status` só aceita
+      // draft/active/closed/archived, e "inactive" era recusado.
+      ...(data.status ? { status: data.status === "inactive" ? "archived" : "active" } : {}),
       whatsapp_invite_url: data.whatsappInviteUrl ?? null,
       whatsapp_group_name: data.whatsappGroupName ?? null,
       updated_by: context.userId,
@@ -770,7 +889,9 @@ export const deleteClassGroup = createServerFn({ method: "POST" })
     }
     const { data: group, error } = await db
       .from("class_groups")
-      .update({ status: "inactive", updated_by: context.userId })
+      // `class_groups.status` só aceita draft/active/closed/archived: o antigo
+      // "inactive" era recusado pela base e a turma nunca era desactivada.
+      .update({ status: "archived", updated_by: context.userId })
       .eq("id", data.id)
       .eq("school_id", membership.schoolId)
       .select("id, status")
@@ -793,7 +914,7 @@ export const createSubject = createServerFn({ method: "POST" })
     );
     const db = await loadSgaAdminClient();
 
-    const insertPayload: Record<string, unknown> = {
+    const insertPayload: TablesInsert<"subjects"> = {
       school_id: membership.schoolId,
       code: data.code,
       name: data.name,
@@ -805,7 +926,9 @@ export const createSubject = createServerFn({ method: "POST" })
     if (data.subjectTypeId) insertPayload.subject_type_id = data.subjectTypeId;
     if (data.curriculumAreaId) insertPayload.curriculum_area_id = data.curriculumAreaId;
     if (data.annualHours !== undefined) insertPayload.annual_hours = data.annualHours;
-    if (data.weeklyHours !== undefined) insertPayload.weekly_hours = data.weeklyHours;
+    // `subjects` não tem carga semanal: os tempos por semana são de cada turma
+    // (`class_subjects.weekly_periods`). Gravar `weekly_hours` fazia a base recusar
+    // todas as disciplinas novas (nenhuma criada desde 08/09).
     if (data.isMandatory !== undefined) insertPayload.is_mandatory = data.isMandatory;
     if (data.isPractical !== undefined) insertPayload.is_practical = data.isPractical;
     if (data.hasExam !== undefined) insertPayload.has_exam = data.hasExam;
@@ -834,7 +957,7 @@ export const updateSubject = createServerFn({ method: "POST" })
     );
     const db = await loadSgaAdminClient();
 
-    const updatePayload: Record<string, unknown> = {
+    const updatePayload: TablesUpdate<"subjects"> = {
       code: data.code,
       name: data.name,
       short_name: data.shortName || data.name.slice(0, 20),
@@ -844,7 +967,6 @@ export const updateSubject = createServerFn({ method: "POST" })
     if (data.curriculumAreaId !== undefined)
       updatePayload.curriculum_area_id = data.curriculumAreaId;
     if (data.annualHours !== undefined) updatePayload.annual_hours = data.annualHours;
-    if (data.weeklyHours !== undefined) updatePayload.weekly_hours = data.weeklyHours;
     if (data.isMandatory !== undefined) updatePayload.is_mandatory = data.isMandatory;
     if (data.isPractical !== undefined) updatePayload.is_practical = data.isPractical;
     if (data.hasExam !== undefined) updatePayload.has_exam = data.hasExam;
@@ -1552,7 +1674,7 @@ export const upsertAssessmentScores = createServerFn({ method: "POST" })
     const db = await loadSgaAdminClient();
     const { data: item, error: itemError } = await db
       .from("siga_assessment_items")
-      .select("id, term")
+      .select("id, term, class_group_id")
       .eq("id", data.itemId)
       .eq("school_id", membership.schoolId)
       .maybeSingle();
@@ -1571,6 +1693,21 @@ export const upsertAssessmentScores = createServerFn({ method: "POST" })
     // paralelo — substitui o anterior select+insert/update sequencial por aluno, que
     // tornava lançar notas de uma turma inteira em dezenas de idas e vindas à base.
     const enrollmentIds = data.rows.map((row) => row.enrollmentId);
+    // Só alunos da turma da avaliação. Para o professor a base já o exige (gatilho
+    // `enforce_teacher_assessment_score_scope`); para a Administração e a
+    // Secretaria não, e uma nota podia ficar num aluno de outra turma.
+    const { data: classEnrollments, error: classError } = await db
+      .from("enrollments")
+      .select("id")
+      .eq("school_id", membership.schoolId)
+      .eq("class_group_id", String(item.class_group_id))
+      .in("id", enrollmentIds);
+    if (classError) {
+      throw publicDatabaseError(classError, "Não foi possível confirmar os alunos da turma.");
+    }
+    if ((classEnrollments ?? []).length !== new Set(enrollmentIds).size) {
+      throw new Error("Há alunos que não são da turma desta avaliação.");
+    }
     const { data: existingRows, error: existingError } = await db
       .from("siga_assessment_scores")
       .select("id, score, enrollment_id")
@@ -1580,10 +1717,7 @@ export const upsertAssessmentScores = createServerFn({ method: "POST" })
       throw publicDatabaseError(existingError, "Não foi possível verificar as notas existentes.");
     }
     const existingByEnrollment = new Map(
-      (existingRows ?? []).map((row: { id: string; score: number; enrollment_id: string }) => [
-        row.enrollment_id,
-        row,
-      ]),
+      (existingRows ?? []).map((row) => [row.enrollment_id, row] as const),
     );
     const toInsert = data.rows.filter((row) => !existingByEnrollment.has(row.enrollmentId));
     const toUpdate = data.rows.filter((row) => existingByEnrollment.has(row.enrollmentId));

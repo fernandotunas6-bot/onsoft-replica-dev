@@ -6,6 +6,7 @@ import {
   type RequestPhoneChangeInput,
   type ConfirmPhoneChangeInput,
 } from "./phone-change-server";
+import { errorMessage } from "@/lib/error-message";
 
 export interface PhoneChangeState {
   step: "idle" | "requesting" | "confirming" | "success" | "error";
@@ -56,11 +57,11 @@ export function usePhoneChange() {
         }));
       }
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
       setState((prev) => ({
         ...prev,
         step: "error",
-        message: error?.message || "Erro ao solicitar código de verificação",
+        message: errorMessage(error, "Erro ao solicitar código de verificação"),
       }));
     },
   });
@@ -88,11 +89,11 @@ export function usePhoneChange() {
         }));
       }
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
       setState((prev) => ({
         ...prev,
         step: "error",
-        message: error?.message || "Erro ao confirmar código de verificação",
+        message: errorMessage(error, "Erro ao confirmar código de verificação"),
       }));
     },
   });

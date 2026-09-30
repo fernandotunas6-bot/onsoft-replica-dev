@@ -1,6 +1,15 @@
 import { useMemo, useState } from "react";
 import { Link } from "@tanstack/react-router";
-import { BookOpen, Calendar, GraduationCap, Pencil, Trash2, UserPlus, Users } from "lucide-react";
+import {
+  BookOpen,
+  Calendar,
+  GraduationCap,
+  Pencil,
+  RotateCcw,
+  Trash2,
+  UserPlus,
+  Users,
+} from "lucide-react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -21,11 +30,14 @@ import {
   type PedagogicalWorkspace,
 } from "@/features/academic/server";
 import { isClassTeacherLevel } from "@/lib/academic-nav";
+import { errorMessage } from "@/lib/error-message";
 import { useSchoolSettings } from "@/features/auth/use-school-settings";
 import { useDeclareEntityFocus } from "@/features/intelligence/entity-focus-context";
 import { mapClassGroupToSnapshot } from "@/features/intelligence/classes/class-relations-adapter";
 import { useRelations } from "@/features/intelligence/use-relations";
 import { useSuggestions } from "@/features/intelligence/use-suggestions";
+
+type SalaOption = { id: string; name: string; capacity: number | null };
 
 const weekdayLabels = ["Domingo", "Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado"];
 const shiftLabelMap: Record<string, string> = {
@@ -46,6 +58,7 @@ export function TurmaProfileModal({
   workspace,
   teacherOptions,
   teacherIds,
+  salas = [],
   onRefresh,
 }: {
   open: boolean;
@@ -54,10 +67,13 @@ export function TurmaProfileModal({
   workspace: PedagogicalWorkspace | undefined;
   teacherOptions: string[];
   teacherIds: string[];
+  /** Salas físicas activas (`rooms`) para escolher na edição. */
+  salas?: SalaOption[];
   onRefresh: () => Promise<void>;
 }) {
   const [activeTab, setActiveTab] = useState("resumo");
   const [editOpen, setEditOpen] = useState(false);
+  const [reactivating, setReactivating] = useState(false);
   const [assignOpen, setAssignOpen] = useState(false);
   const [applyingCurriculum, setApplyingCurriculum] = useState(false);
   const { school } = useSchoolSettings();
@@ -205,18 +221,54 @@ export function TurmaProfileModal({
             >
               <Pencil className="size-3.5" /> Editar
             </Button>
+            {turma.status !== "active" ? (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="gap-1.5"
+                disabled={reactivating}
+                onClick={async () => {
+                  setReactivating(true);
+                  try {
+                    await updateClassGroup({
+                      data: {
+                        id: turma.id,
+                        code: turma.code,
+                        name: turma.name,
+                        shift: (["morning", "afternoon", "evening"].includes(turma.shift)
+                          ? turma.shift
+                          : "morning") as "morning" | "afternoon" | "evening",
+                        capacity: turma.capacity ?? undefined,
+                        status: "active",
+                      },
+                    });
+                    await onRefresh();
+                    toast.success("Turma reactivada.");
+                  } catch (err) {
+                    toast.error(errorMessage(err, "Não foi possível reactivar a turma."));
+                  } finally {
+                    setReactivating(false);
+                  }
+                }}
+              >
+                <RotateCcw className="size-3.5" /> Reactivar
+              </Button>
+            ) : null}
             <ConfirmActionModal
-              trigger={(openConfirm) => (
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  className="gap-1.5 text-destructive"
-                  onClick={openConfirm}
-                >
-                  <Trash2 className="size-3.5" /> Desactivar
-                </Button>
-              )}
+              trigger={(openConfirm) =>
+                turma.status === "active" ? (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="gap-1.5 text-destructive"
+                    onClick={openConfirm}
+                  >
+                    <Trash2 className="size-3.5" /> Desactivar
+                  </Button>
+                ) : null
+              }
               eyebrow="Turma"
               title="Desactivar esta turma?"
               description={`"${turma.name}" será marcada como inactiva. ${turma.enrolled_count > 0 ? `Tem ${turma.enrolled_count} aluno(s) matriculado(s) — a operação será recusada até transferir ou anular essas matrículas.` : "Não tem matrículas activas."}`}
@@ -285,7 +337,15 @@ export function TurmaProfileModal({
                   </div>
                   <div>
                     <dt className="text-muted-foreground">Sala</dt>
-                    <dd className="mt-0.5 text-sm font-medium">{turma.room_name || "Sem sala"}</dd>
+                    <dd className="mt-0.5 text-sm font-medium">
+                      {turma.room_name && turma.room_name !== "—"
+                        ? turma.room_name
+                        : "Sem sala fixa"}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt className="text-muted-foreground">Campus</dt>
+                    <dd className="mt-0.5 text-sm font-medium">{turma.campus_name || "—"}</dd>
                   </div>
                   {turma.whatsapp_invite_url ? (
                     <div className="sm:col-span-2">
@@ -458,6 +518,7 @@ export function TurmaProfileModal({
         open={editOpen}
         onOpenChange={setEditOpen}
         turma={turma}
+        salas={salas}
         onSaved={onRefresh}
       />
       <TurmaAssignTeacherSubModal
@@ -479,10 +540,12 @@ function TurmaEditSubModal({
   open,
   onOpenChange,
   turma,
+  salas,
   onSaved,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  salas: SalaOption[];
   turma: {
     id: string;
     code: string;
@@ -490,6 +553,7 @@ function TurmaEditSubModal({
     shift: string;
     capacity: number | null;
     campus_id: string | null;
+    room_id: string | null;
     status: string;
     whatsapp_invite_url?: string | null;
     whatsapp_group_name?: string | null;
@@ -501,6 +565,7 @@ function TurmaEditSubModal({
   const [name, setName] = useState(turma.name);
   const [shift, setShift] = useState(shiftLabelMap[turma.shift] ?? "Manhã");
   const [capacity, setCapacity] = useState(String(turma.capacity ?? 35));
+  const [roomId, setRoomId] = useState(turma.room_id ?? "");
   const [whatsappGroupName, setWhatsappGroupName] = useState(turma.whatsapp_group_name ?? "");
   const [whatsappInviteUrl, setWhatsappInviteUrl] = useState(turma.whatsapp_invite_url ?? "");
   const [saving, setSaving] = useState(false);
@@ -515,8 +580,8 @@ function TurmaEditSubModal({
           name,
           shift: (shiftValueMap[shift] ?? "morning") as "morning" | "afternoon" | "evening",
           capacity: Number(capacity) || undefined,
-          roomId: turma.campus_id ?? undefined,
-          status: turma.status === "inactive" ? "inactive" : "active",
+          // Só envia a sala quando muda: "" tira a sala fixa.
+          ...(roomId !== (turma.room_id ?? "") ? { roomId: roomId || null } : {}),
           whatsappInviteUrl: whatsappInviteUrl.trim() || undefined,
           whatsappGroupName: whatsappGroupName.trim() || undefined,
         },
@@ -536,13 +601,14 @@ function TurmaEditSubModal({
       open={open}
       onOpenChange={onOpenChange}
       title="Editar turma"
-      subtitle="Código, nome, turno e capacidade."
+      subtitle="Código, nome, sala, turno e capacidade."
       icon={Pencil}
       submitLabel="Guardar"
       isSubmitting={saving}
       hasUnsavedChanges={
         code !== turma.code ||
         name !== turma.name ||
+        roomId !== (turma.room_id ?? "") ||
         whatsappGroupName !== (turma.whatsapp_group_name ?? "") ||
         whatsappInviteUrl !== (turma.whatsapp_invite_url ?? "")
       }
@@ -568,6 +634,23 @@ function TurmaEditSubModal({
             value={code}
             onChange={(e) => setCode(e.target.value)}
           />
+        </label>
+        <label htmlFor="turma-edit-room" className="space-y-1 text-xs sm:col-span-2">
+          <span className="font-semibold text-muted-foreground">Sala</span>
+          <select
+            id="turma-edit-room"
+            aria-label="Sala da turma"
+            className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
+            value={roomId}
+            onChange={(e) => setRoomId(e.target.value)}
+          >
+            <option value="">Sem sala fixa</option>
+            {salas.map((sala) => (
+              <option key={sala.id} value={sala.id}>
+                {sala.capacity ? `${sala.name} (${sala.capacity} lugares)` : sala.name}
+              </option>
+            ))}
+          </select>
         </label>
         <label htmlFor="turma-edit-shift" className="space-y-1 text-xs">
           <span className="font-semibold text-muted-foreground">Turno</span>

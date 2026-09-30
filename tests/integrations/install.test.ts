@@ -3,7 +3,6 @@ import { academicIntegrationCatalog } from "@/features/integrations/catalog";
 import {
   capabilityActionKind,
   meetingRoomLink,
-  paymentReference,
   whatsappHref,
 } from "@/features/integrations/actions";
 import {
@@ -46,11 +45,9 @@ describe("integration install packages", () => {
     expect(ids.every((id) => Boolean(capabilityActionKind[id]))).toBe(true);
   });
 
-  it("builds catalog-ready payment refs and meeting links", () => {
-    expect(paymentReference("EMIS")).toMatch(/^EMIS\d{9}$/);
-    expect(paymentReference("UML")).toMatch(/^UML\d{9}$/);
-    expect(meetingRoomLink("zoom")).toContain("zoom.us/j/");
-    expect(meetingRoomLink("teams")).toContain("teams.microsoft.com");
+  it("requires real meeting URLs", () => {
+    expect(meetingRoomLink("zoom")).toBeNull();
+    expect(meetingRoomLink("teams")).toBeNull();
     expect(whatsappHref("923 000 111", "Olá")).toBe("https://wa.me/923000111?text=Ol%C3%A1");
   });
 

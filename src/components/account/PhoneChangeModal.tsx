@@ -136,7 +136,7 @@ export function PhoneChangeModal({ open, onOpenChange, currentPhone }: PhoneChan
                 <label className="text-sm font-medium">Canal Preferido</label>
                 <Select
                   value={preferredChannel}
-                  onValueChange={(value: any) => setPreferredChannel(value)}
+                  onValueChange={(value) => setPreferredChannel(value as "whatsapp" | "sms")}
                 >
                   <SelectTrigger className="mt-1.5">
                     <SelectValue />

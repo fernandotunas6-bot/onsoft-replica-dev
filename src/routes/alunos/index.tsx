@@ -1615,14 +1615,19 @@ function StudentsPage() {
                     },
                   ]}
                   onSubmit={async (values) => {
-                    await batchUpdateStudentStatus({
+                    const result = await batchUpdateStudentStatus({
                       data: {
                         studentIds: selectedIds,
                         newStatus: values["estado"] as (typeof studentStatusOptions)[number],
                         reason: values["motivo"] || undefined,
                       },
                     });
-                    toast.success(`Estado de ${selectedIds.length} alunos actualizado.`);
+                    const unchanged = selectedIds.length - result.count;
+                    toast.success(
+                      unchanged > 0
+                        ? `Estado de ${result.count} aluno(s) actualizado; ${unchanged} já estava(m) nesse estado.`
+                        : `Estado de ${result.count} aluno(s) actualizado.`,
+                    );
                     setSelectedIds([]);
                     await queryClient.invalidateQueries({ queryKey: ["students", "search"] });
                   }}

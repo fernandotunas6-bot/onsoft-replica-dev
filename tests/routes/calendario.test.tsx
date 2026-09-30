@@ -9,6 +9,7 @@ import {
   resetRouteLocation,
   routeComponentOf,
   setCurrentAccount,
+  setRouteSearch,
 } from "./_harness";
 import type { CalendarEventSummary, getActiveAcademicYear } from "@/features/calendar/server";
 
@@ -39,9 +40,16 @@ vi.mock("@/features/auth/use-current-account", async () =>
 const listCalendarEventsMock = vi.fn();
 const getActiveAcademicYearMock = vi.fn();
 const listDayAgendaLessonsMock = vi.fn();
+const listAcademicCalendarMock = vi.fn();
+vi.mock("@/features/academic/academic-calendar", () => ({
+  listAcademicCalendar: (args: unknown) => listAcademicCalendarMock(args),
+  saveAcademicCalendar: vi.fn(),
+}));
 
 vi.mock("@/features/calendar/server", () => ({
-  listCalendarEvents: () => listCalendarEventsMock(),
+  listCalendarEvents: (args: unknown) => listCalendarEventsMock(args),
+  listActiveAcademicYears: async () => [],
+  setActiveAcademicYear: vi.fn(),
   getActiveAcademicYear: () => getActiveAcademicYearMock(),
   listDayAgendaLessons: () => listDayAgendaLessonsMock(),
   createAcademicYear: vi.fn(),
@@ -81,6 +89,18 @@ function seed({
   listCalendarEventsMock.mockResolvedValue(events);
   getActiveAcademicYearMock.mockResolvedValue(activeYear);
   listDayAgendaLessonsMock.mockResolvedValue([]);
+  listAcademicCalendarMock.mockResolvedValue({
+    academicYear: activeYear
+      ? {
+          id: activeYear.id,
+          name: activeYear.name,
+          status: activeYear.status,
+          startsOn: activeYear.starts_on,
+          endsOn: activeYear.ends_on,
+        }
+      : null,
+    terms: [],
+  });
 }
 
 let Calendario: ComponentType;
@@ -167,5 +187,42 @@ describe("/calendario — render", () => {
       expect(screen.getByText("Sem membership activa nesta escola.")).toBeDefined();
     });
     expect(screen.queryByText("Ainda não existem períodos neste ano lectivo")).toBeNull();
+  });
+  it("o destino da Pedagógica consulta o mesmo ano pelo parâmetro ano", async () => {
+    seed();
+    const id = "a0000000-0000-4000-8000-000000000001";
+    setRouteSearch({ ano: id });
+    renderRoute(Calendario);
+    await waitFor(() =>
+      expect(listAcademicCalendarMock).toHaveBeenCalledWith({ data: { academicYearId: id } }),
+    );
+    expect(listCalendarEventsMock).toHaveBeenCalledWith({
+      data: { limit: 50, academicYearId: id, includePast: true },
+    });
+  });
+
+  it("não oferece configuração conjunta para um ano histórico", async () => {
+    seed();
+    listAcademicCalendarMock.mockResolvedValue({
+      academicYear: {
+        id: "historic",
+        name: "2025/2026",
+        status: "closed",
+        startsOn: "2025-09-01",
+        endsOn: "2026-07-31",
+      },
+      terms: [],
+    });
+    renderRoute(Calendario);
+    await waitFor(() => expect(screen.getByText("Calendário histórico: 2025/2026")).toBeDefined());
+    expect(screen.queryByRole("button", { name: "Configurar trimestres" })).toBeNull();
+  });
+
+  it("a Secretaria com leitura não recebe o botão de configuração", async () => {
+    seed();
+    setCurrentAccount({ role: "Secretaria", grants: { pedagogica: "Leitura" } });
+    renderRoute(Calendario);
+    await waitFor(() => expect(listAcademicCalendarMock).toHaveBeenCalled());
+    expect(screen.queryByRole("button", { name: "Configurar trimestres" })).toBeNull();
   });
 });

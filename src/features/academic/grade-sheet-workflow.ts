@@ -227,3 +227,37 @@ export const GRADE_RESULT_LABELS: Record<string, string> = {
   fail: "Não transita",
   incomplete: "Incompleto",
 };
+
+/** Sem modelo de avaliação activo não há pauta: a base recusa com 55000. */
+export const MISSING_ASSESSMENT_MODEL_MESSAGE =
+  "A escola ainda não tem modelo de avaliação publicado. O Administrador publica-o em Pedagógica → Modelos de avaliação; só depois se gera a pauta.";
+
+/** A base exige 2FA (private.is_aal2) para gerar e para mudar o estado da pauta. */
+export const GRADE_SHEET_MFA_MESSAGE =
+  "A pauta oficial exige 2FA activo nesta sessão. Active a verificação em dois passos e volte a entrar.";
+
+/**
+ * Mensagens escritas em `build_grade_sheet` / `transition_grade_sheet` que
+ * podem chegar ao ecrã (não revelam estrutura e dizem o que corrigir). Lista
+ * fechada: qualquer outra mensagem da base continua a passar por
+ * `publicDatabaseError`, que a troca por uma genérica.
+ */
+const GRADE_SHEET_DB_MESSAGES: Record<string, string> = {
+  "Regra de avaliação ativa em falta.": MISSING_ASSESSMENT_MODEL_MESSAGE,
+  "MFA obrigatório.": GRADE_SHEET_MFA_MESSAGE,
+  "Sem autorização para construir pauta.":
+    "Gerar a pauta exige a permissão de gerir notas, que o Administrador tem.",
+  "Transição de estado da pauta não permitida.":
+    "Esta mudança de estado não é permitida no estado actual da pauta, ou o seu papel não a pode fazer.",
+  "Reabertura exige motivo.": "Indique o motivo da reabertura.",
+  "Pauta não encontrada.": "Pauta não encontrada.",
+  "Turma não encontrada.": "Turma não encontrada.",
+  "Período não encontrado.": "Período não encontrado.",
+  "Tipo de pauta inválido.": "Tipo de pauta inválido.",
+};
+
+/** Texto para o ecrã, se a mensagem da base for uma das conhecidas; senão `null`. */
+export function gradeSheetDbMessage(error: { message?: string | undefined }): string | null {
+  const message = String(error.message ?? "").trim();
+  return GRADE_SHEET_DB_MESSAGES[message] ?? null;
+}

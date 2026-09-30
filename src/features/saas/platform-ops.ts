@@ -1,4 +1,6 @@
+import type { Json, TablesUpdate } from "@/integrations/supabase/types";
 import { loadSgaAdminClient } from "@/integrations/supabase/sga-admin";
+import { isPlatformOwnedHostname } from "@/lib/saas/platform-domain";
 import { publicDatabaseError } from "@/integrations/supabase/server-error";
 import { sumTenantUsageStudents, usageFromTenantRow } from "@/features/saas/tenant-access";
 import type {
@@ -179,7 +181,7 @@ export async function updateTenantSubscription(input: {
   if (tenantErr) throw publicDatabaseError(tenantErr, "Não foi possível carregar a escola.");
   if (!tenant) throw new Error("Escola não encontrada.");
 
-  const patch: Record<string, unknown> = { updated_at: new Date().toISOString() };
+  const patch: TablesUpdate<"tenants"> = { updated_at: new Date().toISOString() };
   const metadata: Record<string, unknown> = {};
 
   if (input.plan_code) {
@@ -220,7 +222,7 @@ export async function updateTenantSubscription(input: {
     action: "TENANT_SUBSCRIPTION_UPDATED",
     entity: "tenant",
     entity_id: input.tenantId,
-    metadata,
+    metadata: metadata as Json,
   });
 
   const { data: updatedTenant, error: reloadErr } = await db
@@ -530,8 +532,10 @@ export async function registerTenantDomain(input: {
   if (!tenant) throw new Error("Escola não encontrada.");
 
   const hostname = input.hostname.trim().toLowerCase();
-  if (hostname.endsWith(".portal-siga.com")) {
-    throw new Error("Subdomínios portal-siga.com são criados no provisionamento.");
+  if (isPlatformOwnedHostname(hostname)) {
+    throw new Error(
+      "Os endereços da plataforma são criados no provisionamento, não como domínio próprio.",
+    );
   }
 
   const { data: domain, error } = await db
@@ -578,7 +582,7 @@ export async function updateTenantDomainStatus(input: {
     throw new Error("Não pode desactivar o subdomínio SIGA principal.");
   }
 
-  const patch: Record<string, unknown> = {
+  const patch: TablesUpdate<"tenant_domains"> = {
     status: input.status,
     ssl_status: input.status === "active" ? "active" : "pending",
     verified_at: input.status === "active" ? new Date().toISOString() : null,

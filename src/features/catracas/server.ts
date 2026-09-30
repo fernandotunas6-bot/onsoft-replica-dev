@@ -1,3 +1,4 @@
+import type { TablesUpdate } from "@/integrations/supabase/types";
 import { z } from "zod";
 import { resolveVerifiedAccountEmail } from "@/features/students/student-scope";
 import { createServerFn } from "@tanstack/react-start";
@@ -21,6 +22,7 @@ import {
   rotateAccessCardQrInputSchema,
   listAccessCardsInputSchema,
   validateGatePassDeviceInputSchema,
+  revealTurnstileDeviceApiKeyInputSchema,
 } from "./schemas";
 import {
   gatePassLookupTokens,
@@ -243,6 +245,19 @@ export const validateGatePassByDeviceApiKey = createServerFn({ method: "POST" })
   .validator((input: unknown) => validateGatePassDeviceInputSchema.parse(input))
   .handler(async ({ data }) => runDeviceGatePassWebhook(data));
 
+/** Colunas de `siga_turnstile_devices` que podem sair para o browser (sem `api_key`). */
+const TURNSTILE_DEVICE_COLUMNS =
+  "id, school_id, name, location, device_type, direction_capability, ip_address, mac_address, status, last_ping_at, created_at";
+
+type TurnstileDeviceWithKey = Record<string, unknown> & { api_key?: string | null };
+
+/** Tira a chave e deixa só os últimos 4 caracteres para a identificar. */
+export function withoutApiKey<T extends TurnstileDeviceWithKey>(row: T) {
+  const { api_key: apiKey, ...rest } = row;
+  const key = typeof apiKey === "string" ? apiKey : "";
+  return { ...rest, has_api_key: key.length > 0, api_key_hint: key ? key.slice(-4) : null };
+}
+
 export const listTurnstileDevices = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
@@ -255,12 +270,41 @@ export const listTurnstileDevices = createServerFn({ method: "GET" })
 
     const { data: devices, error } = await db
       .from("siga_turnstile_devices")
-      .select("*")
+      .select(`${TURNSTILE_DEVICE_COLUMNS}, api_key`)
       .eq("school_id", membership.schoolId)
       .order("created_at", { ascending: false });
 
     if (error) throw publicDatabaseError(error, "Não foi possível listar as catracas.");
-    return devices ?? [];
+    return (devices ?? []).map(withoutApiKey);
+  });
+
+/**
+ * Chave completa de um dispositivo, só a pedido (botão "Key"). A listagem
+ * devolve apenas os últimos 4 caracteres, para a chave não andar em todas as
+ * respostas nem na cache do browser. Exige escrita: quem só tem "Leitura" em
+ * Gestão vê a lista mas não leva a chave.
+ */
+export const revealTurnstileDeviceApiKey = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .validator((input: unknown) => revealTurnstileDeviceApiKeyInputSchema.parse(input))
+  .handler(async ({ data, context }) => {
+    if (!context) throw new Error("Não autenticado.");
+    const membership = await requireSgaWriterForWrite("gestao", context.supabase, context.userId, [
+      "Administrador",
+      "Secretaria",
+    ]);
+    const db = await loadSgaAdminClient();
+
+    const { data: device, error } = await db
+      .from("siga_turnstile_devices")
+      .select("api_key")
+      .eq("id", data.deviceId)
+      .eq("school_id", membership.schoolId)
+      .maybeSingle();
+
+    if (error) throw publicDatabaseError(error, "Não foi possível ler a chave do dispositivo.");
+    if (!device?.api_key) throw new Error("Este dispositivo não tem API key.");
+    return { apiKey: String(device.api_key) };
   });
 
 export const registerTurnstileDevice = createServerFn({ method: "POST" })
@@ -288,11 +332,11 @@ export const registerTurnstileDevice = createServerFn({ method: "POST" })
         status: "online",
         last_ping_at: new Date().toISOString(),
       })
-      .select("*")
+      .select(`${TURNSTILE_DEVICE_COLUMNS}, api_key`)
       .single();
 
     if (error) throw publicDatabaseError(error, "Não foi possível registar o dispositivo.");
-    return created;
+    return withoutApiKey(created);
   });
 
 export const updateTurnstileDevice = createServerFn({ method: "POST" })
@@ -300,15 +344,13 @@ export const updateTurnstileDevice = createServerFn({ method: "POST" })
   .validator((input: unknown) => updateTurnstileDeviceInputSchema.parse(input))
   .handler(async ({ data, context }) => {
     if (!context) throw new Error("Não autenticado.");
-    await requireSgaWriterForWrite("gestao", context.supabase, context.userId, [
+    const membership = await requireSgaWriterForWrite("gestao", context.supabase, context.userId, [
       "Administrador",
       "Secretaria",
     ]);
-    const membership = await resolveSgaMembershipAdmin(context.userId);
-    if (!membership) throw new Error("Sem membership activa.");
     const db = await loadSgaAdminClient();
 
-    const patch: Record<string, unknown> = {};
+    const patch: TablesUpdate<"siga_turnstile_devices"> = {};
     if (data.status) patch.status = data.status;
     if (data.ipAddress !== undefined) patch.ip_address = data.ipAddress?.trim() || null;
     if (data.name) patch.name = data.name.trim();
@@ -321,11 +363,11 @@ export const updateTurnstileDevice = createServerFn({ method: "POST" })
       .update(patch)
       .eq("id", data.deviceId)
       .eq("school_id", membership.schoolId)
-      .select("*")
+      .select(`${TURNSTILE_DEVICE_COLUMNS}, api_key`)
       .single();
 
     if (error) throw publicDatabaseError(error, "Não foi possível actualizar o dispositivo.");
-    return updated;
+    return withoutApiKey(updated);
   });
 
 export const setAccessCardStatus = createServerFn({ method: "POST" })
@@ -333,12 +375,10 @@ export const setAccessCardStatus = createServerFn({ method: "POST" })
   .validator((input: unknown) => setAccessCardStatusInputSchema.parse(input))
   .handler(async ({ data, context }) => {
     if (!context) throw new Error("Não autenticado.");
-    await requireSgaWriterForWrite("gestao", context.supabase, context.userId, [
+    const membership = await requireSgaWriterForWrite("gestao", context.supabase, context.userId, [
       "Administrador",
       "Secretaria",
     ]);
-    const membership = await resolveSgaMembershipAdmin(context.userId);
-    if (!membership) throw new Error("Sem membership activa.");
     const db = await loadSgaAdminClient();
 
     const { data: updated, error } = await db
@@ -358,12 +398,10 @@ export const linkAccessCardRfid = createServerFn({ method: "POST" })
   .validator((input: unknown) => linkAccessCardRfidInputSchema.parse(input))
   .handler(async ({ data, context }) => {
     if (!context) throw new Error("Não autenticado.");
-    await requireSgaWriterForWrite("gestao", context.supabase, context.userId, [
+    const membership = await requireSgaWriterForWrite("gestao", context.supabase, context.userId, [
       "Administrador",
       "Secretaria",
     ]);
-    const membership = await resolveSgaMembershipAdmin(context.userId);
-    if (!membership) throw new Error("Sem membership activa.");
     const db = await loadSgaAdminClient();
 
     const raw = data.rfidTag == null ? "" : String(data.rfidTag);
@@ -402,12 +440,10 @@ export const rotateAccessCardQr = createServerFn({ method: "POST" })
   .validator((input: unknown) => rotateAccessCardQrInputSchema.parse(input))
   .handler(async ({ data, context }) => {
     if (!context) throw new Error("Não autenticado.");
-    await requireSgaWriterForWrite("gestao", context.supabase, context.userId, [
+    const membership = await requireSgaWriterForWrite("gestao", context.supabase, context.userId, [
       "Administrador",
       "Secretaria",
     ]);
-    const membership = await resolveSgaMembershipAdmin(context.userId);
-    if (!membership) throw new Error("Sem membership activa.");
     const db = await loadSgaAdminClient();
 
     const { data: updated, error } = await db
@@ -430,12 +466,10 @@ export const issueAccessCard = createServerFn({ method: "POST" })
   .validator((input: unknown) => issueAccessCardInputSchema.parse(input))
   .handler(async ({ data, context }) => {
     if (!context) throw new Error("Não autenticado.");
-    await requireSgaWriterForWrite("gestao", context.supabase, context.userId, [
+    const membership = await requireSgaWriterForWrite("gestao", context.supabase, context.userId, [
       "Administrador",
       "Secretaria",
     ]);
-    const membership = await resolveSgaMembershipAdmin(context.userId);
-    if (!membership) throw new Error("Sem membership activa.");
     const db = await loadSgaAdminClient();
 
     const { data: existing } = await db

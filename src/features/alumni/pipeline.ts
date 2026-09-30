@@ -1,3 +1,4 @@
+import type { TablesUpdate } from "@/integrations/supabase/types";
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
@@ -122,7 +123,7 @@ export const updateOpportunityApplicationStatus = createServerFn({ method: "POST
       throw publicDatabaseError(existingError, "Não foi possível validar a candidatura.");
     if (!existing) throw new Error("Candidatura não encontrada nesta escola.");
 
-    const patch: Record<string, unknown> = {
+    const patch: TablesUpdate<"alumni_opportunity_applications"> = {
       status: data.status,
       notes: data.notes,
       updated_at: new Date().toISOString(),
@@ -173,7 +174,7 @@ export const updateEventRegistrationStatus = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     if (!context) throw new Error("Sessão inválida.");
     const { membership, db } = await adminContext(context.userId, "write");
-    const patch: Record<string, unknown> = { status: data.status };
+    const patch: TablesUpdate<"alumni_event_registrations"> = { status: data.status };
     if (data.status === "attended") patch.checked_in_at = new Date().toISOString();
     if (data.status !== "attended") patch.checked_in_at = null;
     const { error } = await db
@@ -256,7 +257,7 @@ export const updateMentorshipPipelineStatus = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     if (!context) throw new Error("Sessão inválida.");
     const { membership, db } = await adminContext(context.userId, "write");
-    const patch: Record<string, unknown> = {
+    const patch: TablesUpdate<"alumni_mentorships"> = {
       status: data.status,
       updated_at: new Date().toISOString(),
     };

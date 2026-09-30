@@ -1,0 +1,143 @@
+name: Deploy produção
+
+# Publica o ecossistema (DOC, WEB, ADMIN, PAYFLOW, SIGA) na Cloudflare a partir
+# da `main`. Até aqui a publicação era feita à mão, e a produção podia correr
+# código que não estava na `main` (28/09: deploy às 19h, último commit às 07h).
+#
+# Regras:
+# - só publica depois de tipos, lint e testes passarem sobre o mesmo commit;
+# - uma publicação de cada vez, e nunca cancelada a meio (concurrency);
+# - corre no ambiente GitHub `production`: é lá que ficam os segredos, e é lá
+#   que se pode exigir aprovação antes de publicar (Settings → Environments);
+# - as migrações D1 do PayFlow correm antes do Worker novo (deploy-all.mjs).
+#
+# Segredos esperados no ambiente `production` (os opcionais podem faltar; um
+# segredo vazio não apaga o que já está na Cloudflare, ver worker-secrets.mjs):
+#   CLOUDFLARE_API_TOKEN, CLOUDFLARE_ACCOUNT_ID,
+#   VITE_SUPABASE_URL, VITE_SUPABASE_PUBLISHABLE_KEY, SUPABASE_SERVICE_ROLE_KEY,
+#   e os de scripts/worker-secrets.mjs.
+# Variável opcional: PAYFLOW_R2_BUCKET (quando o R2 estiver activo).
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+jobs:
+  verify:
+    name: Verificar antes de publicar
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      - run: bun install --frozen-lockfile
+      - run: bun run typecheck
+      - run: bun run lint
+      - run: bun run test
+
+  deploy:
+    name: Publicar na Cloudflare
+    needs: verify
+    runs-on: ubuntu-latest
+    environment:
+      name: production
+      url: https://portal-siga.com
+    timeout-minutes: 45
+    steps:
+      # Falha em segundos, com o nome do que falta, antes de instalar e construir.
+      # Sem isto, a falta do token só aparecia a meio da publicação, dita pelo
+      # wrangler (foi assim de #49 a #53: nada chegou à Cloudflare). Só nomes,
+      # nunca valores.
+      - name: Confirmar segredos obrigatórios do ambiente production
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          missing=0
+          for name in CLOUDFLARE_API_TOKEN CLOUDFLARE_ACCOUNT_ID VITE_SUPABASE_URL VITE_SUPABASE_PUBLISHABLE_KEY SUPABASE_SERVICE_ROLE_KEY; do
+            if [ -z "${!name}" ]; then
+              echo "::error::Falta o segredo $name no ambiente GitHub 'production' (Settings → Environments → production)."
+              missing=1
+            fi
+          done
+          exit $missing
+
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Instalar dependências (SIGA e painéis)
+        run: |
+          bun install --frozen-lockfile
+          npm ci --prefix painel/web
+          npm ci --prefix painel/admin
+          npm ci --prefix painel/docs
+          npm ci --prefix painel/payflow
+
+      - name: Publicar (DOC, WEB, ADMIN, PAYFLOW + D1, SIGA)
+        run: node scripts/deploy-all.mjs
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
+          SUPABASE_JWT_SECRET: ${{ secrets.SUPABASE_JWT_SECRET }}
+          SIGA_CRON_SECRET: ${{ secrets.SIGA_CRON_SECRET }}
+          OTP_PEPPER_SECRET: ${{ secrets.OTP_PEPPER_SECRET }}
+          PAYFLOW_INTEGRATION_API_KEY: ${{ secrets.PAYFLOW_INTEGRATION_API_KEY }}
+          PAYFLOW_SSO_SECRET: ${{ secrets.PAYFLOW_SSO_SECRET }}
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          RESEND_WEBHOOK_SECRET: ${{ secrets.RESEND_WEBHOOK_SECRET }}
+          APPYPAY_WEBHOOK_TOKEN: ${{ secrets.APPYPAY_WEBHOOK_TOKEN }}
+          LOVABLE_API_KEY: ${{ secrets.LOVABLE_API_KEY }}
+          SMS_API_KEY: ${{ secrets.SMS_API_KEY }}
+          TWILIO_ACCOUNT_SID: ${{ secrets.TWILIO_ACCOUNT_SID }}
+          TWILIO_AUTH_TOKEN: ${{ secrets.TWILIO_AUTH_TOKEN }}
+          TWILIO_FROM_NUMBER: ${{ secrets.TWILIO_FROM_NUMBER }}
+          TWILIO_WEBHOOK_AUTH_TOKEN: ${{ secrets.TWILIO_WEBHOOK_AUTH_TOKEN }}
+          WHATSAPP_ACCESS_TOKEN: ${{ secrets.WHATSAPP_ACCESS_TOKEN }}
+          WHATSAPP_CLOUD_TOKEN: ${{ secrets.WHATSAPP_CLOUD_TOKEN }}
+          WHATSAPP_WEBHOOK_VERIFY_TOKEN: ${{ secrets.WHATSAPP_WEBHOOK_VERIFY_TOKEN }}
+          META_APP_SECRET: ${{ secrets.META_APP_SECRET }}
+          GOOGLE_OAUTH_TOKEN: ${{ secrets.GOOGLE_OAUTH_TOKEN }}
+          GOOGLE_SERVICE_ACCOUNT_KEY: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_KEY }}
+          ZOHO_MAIL_CLIENT_SECRET: ${{ secrets.ZOHO_MAIL_CLIENT_SECRET }}
+          ZOHO_MAIL_REFRESH_TOKEN: ${{ secrets.ZOHO_MAIL_REFRESH_TOKEN }}
+          PAYFLOW_R2_BUCKET: ${{ vars.PAYFLOW_R2_BUCKET }}
+
+      - name: Confirmar DNS da plataforma (raiz, app e wildcard)
+        run: npm run siga:check-dns
+
+      # O health do PayFlow responde 503 quando a base D1 não responde; foi a
+      # falta desta verificação que deixou o PayFlow semanas sem base.
+      - name: Confirmar que os serviços publicados respondem
+        run: |
+          for attempt in 1 2 3 4 5; do
+            if curl -fsS --max-time 15 https://payflow.portal-siga.com/api/v1/health \
+              && curl -fsS --max-time 15 -o /dev/null https://portal-siga.com/; then
+              exit 0
+            fi
+            sleep $((attempt * 10))
+          done
+          echo "::error::PayFlow ou SIGA não respondem depois da publicação."
+          exit 1

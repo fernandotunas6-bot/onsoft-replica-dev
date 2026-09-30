@@ -1,7 +1,9 @@
+import { requireAal2 } from "@/features/hr/require-aal2";
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { publicDatabaseError } from "@/integrations/supabase/server-error";
+import { reportSigaError } from "@/lib/ops-report";
 import { sgaClient } from "@/integrations/supabase/sga";
 import {
   loadSgaAdminClient,
@@ -24,7 +26,7 @@ import {
 // Só o schema (zod puro, sem dependências pesadas) entra estaticamente; o
 // gerador de XML continua a ser carregado dinamicamente dentro do handler.
 import { generateSaftInputSchema } from "./saft-generator";
-import { invoiceNetTotal, invoiceStatusFromPaid } from "./invoice-settlement";
+import { invoiceNetTotal } from "./invoice-settlement";
 import { insertFinanceArchive } from "@/features/arquivos/archive-finance-core";
 import { stableDocumentCode } from "@/features/arquivos/document-code";
 import { canWriteFileArea } from "@/features/arquivos/kinds";
@@ -884,19 +886,26 @@ export const confirmManualMulticaixaPayment = createServerFn({ method: "POST" })
 
     const db = await loadSgaAdminClient();
     const normRef = normalizePaymentReference(data.reference);
-    await db
-      .from("finance_payment_plans")
-      .update({ status: "settled", updated_at: new Date().toISOString() })
-      .eq("school_id", membership.schoolId)
-      .eq("invoice_id", data.invoiceId)
-      .in("status", ["pending_gateway", "scheduled"]);
-
-    await db
-      .from("finance_payment_plans")
-      .update({ status: "settled", updated_at: new Date().toISOString() })
-      .eq("school_id", membership.schoolId)
-      .eq("reference", normRef)
-      .in("status", ["pending_gateway", "scheduled"]);
+    // O pagamento já está registado e repetir podia duplicá-lo: não se lança,
+    // mas um plano que fica "pendente" com a fatura paga tem de ficar visível.
+    for (const [column, value] of [
+      ["invoice_id", data.invoiceId],
+      ["reference", normRef],
+    ] as const) {
+      const { error: planError } = await db
+        .from("finance_payment_plans")
+        .update({ status: "settled", updated_at: new Date().toISOString() })
+        .eq("school_id", membership.schoolId)
+        .eq(column, value)
+        .in("status", ["pending_gateway", "scheduled"]);
+      if (planError) {
+        reportSigaError("finance.payment_plan.settle_failed", planError, {
+          school_id: membership.schoolId,
+          invoice_id: data.invoiceId,
+          by: column,
+        });
+      }
+    }
 
     return {
       success: true,
@@ -911,6 +920,7 @@ export const cancelInvoice = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((input: unknown) => cancelInvoiceInputSchema.parse(input))
   .handler(async ({ data, context }) => {
+    requireAal2(context.claims, "Esta operação financeira");
     const membership = await requireSgaWriterForWrite(
       "financeiro",
       context.supabase,
@@ -1139,6 +1149,7 @@ export const recordCashExpense = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((input: unknown) => recordCashExpenseInputSchema.parse(input))
   .handler(async ({ data, context }) => {
+    requireAal2(context.claims, "Esta operação financeira");
     const membership = await requireSgaWriterForWrite(
       "financeiro",
       context.supabase,
@@ -1188,6 +1199,7 @@ export const reverseCashEntry = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((input: unknown) => reverseCashEntryInputSchema.parse(input))
   .handler(async ({ data, context }) => {
+    requireAal2(context.claims, "Esta operação financeira");
     const membership = await requireSgaWriterForWrite(
       "financeiro",
       context.supabase,
@@ -1215,60 +1227,16 @@ export const reverseCashEntry = createServerFn({ method: "POST" })
         // Nunca reescrever quem estornou, quando e porquê.
         throw new Error("Este recibo já foi estornado.");
       }
-      const { data: receipt, error } = await db
-        .from("finance_receipts")
-        .update({
-          status: "reversed",
-          reversed_at: new Date().toISOString(),
-          reversed_by: context.userId,
-          reversal_reason: data.reason,
-        })
-        .eq("id", data.cashEntryId)
-        .eq("school_id", membership.schoolId)
-        .eq("status", "issued")
-        .select("*")
-        .maybeSingle();
-      if (error) throw publicDatabaseError(error, "Não foi possível anular o lançamento.");
-      if (!receipt) throw new Error("Este recibo já foi estornado.");
-
-      // A fatura volta ao estado que tem sem este recibo (paga → parcial/aberta).
-      if (existingReceipt.invoice_id) {
-        const invoiceId = String(existingReceipt.invoice_id);
-        const [{ data: invoice }, { data: valid }] = await Promise.all([
-          db
-            .from("finance_invoices")
-            .select("id, amount, discount_amount, status")
-            .eq("id", invoiceId)
-            .eq("school_id", membership.schoolId)
-            .maybeSingle(),
-          db
-            .from("finance_receipts")
-            .select("amount")
-            .eq("school_id", membership.schoolId)
-            .eq("invoice_id", invoiceId)
-            .eq("status", "issued"),
-        ]);
-        if (invoice && invoice.status !== "cancelled") {
-          const paid = (valid ?? []).reduce(
-            (sum: number, row: { amount: unknown }) => sum + Number(row.amount || 0),
-            0,
-          );
-          const status = invoiceStatusFromPaid(invoiceNetTotal(invoice), paid);
-          if (status !== invoice.status) {
-            const { error: statusError } = await db
-              .from("finance_invoices")
-              .update({ status })
-              .eq("id", invoiceId)
-              .eq("school_id", membership.schoolId);
-            if (statusError) {
-              throw publicDatabaseError(
-                statusError,
-                "O recibo foi estornado, mas não foi possível actualizar o estado da fatura.",
-              );
-            }
-          }
-        }
-      }
+      const { data: receipt, error } = await context.supabase.rpc("siga_reverse_finance_receipt", {
+        p_school_id: membership.schoolId,
+        p_receipt_id: data.cashEntryId,
+        p_reason: data.reason,
+      });
+      if (error)
+        throw publicDatabaseError(
+          error,
+          "Não foi possível estornar o recibo. O lançamento permanece inalterado.",
+        );
       return receipt;
     }
 
@@ -1295,6 +1263,7 @@ export const createPaymentPlan = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((input: unknown) => createPaymentPlanInputSchema.parse(input))
   .handler(async ({ data, context }) => {
+    requireAal2(context.claims, "Esta operação financeira");
     const membership = await requireSgaWriterForWrite(
       "financeiro",
       context.supabase,
@@ -1480,6 +1449,7 @@ export const cancelPaymentPlan = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((input: unknown) => cancelPaymentPlanInputSchema.parse(input))
   .handler(async ({ data, context }) => {
+    requireAal2(context.claims, "Esta operação financeira");
     const membership = await requireSgaWriterForWrite(
       "financeiro",
       context.supabase,
@@ -1612,6 +1582,8 @@ export const upsertFeePlanSettings = createServerFn({ method: "POST" })
         .eq("school_id", membership.schoolId)
         .eq("status", "active")
         .order("starts_on", { ascending: false })
+        .order("created_at", { ascending: true })
+        .order("id", { ascending: true })
         .limit(1)
         .maybeSingle();
       if (yearErr) throw publicDatabaseError(yearErr, "Não foi possível resolver o ano lectivo.");

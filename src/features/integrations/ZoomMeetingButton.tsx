@@ -45,7 +45,7 @@ export function ZoomMeetingButton({
           });
         }
 
-        const joinUrl = meeting?.join_url;
+        const joinUrl = meetingRoomLink("zoom", meeting?.join_url);
         if (joinUrl) {
           window.open(joinUrl, "_blank", "noopener,noreferrer");
           toast.success("A abrir reunião Zoom da aula", {
@@ -62,10 +62,10 @@ export function ZoomMeetingButton({
         }
       }
 
-      // Fallback gracioso se não houver attendanceSessionId fornecida
-      const fallbackUrl = meetingRoomLink("zoom");
-      window.open(fallbackUrl, "_blank", "noopener,noreferrer");
-      toast.success("A abrir sala Zoom", { description: fallbackUrl });
+      toast.info("Reunião por configurar", {
+        description:
+          "Abra uma aula com sessão de presença e ligue a conta Zoom da escola para criar a reunião.",
+      });
     } catch (err) {
       // Se o Zoom corporativo ainda não estiver ligado via OAuth, orientar o utilizador
       const msg = (err as Error)?.message || "";
@@ -74,8 +74,6 @@ export function ZoomMeetingButton({
           description:
             "Conecte o Zoom da escola em Definições → Integrações para gerar reuniões automáticas.",
         });
-        const fallbackUrl = meetingRoomLink("zoom");
-        window.open(fallbackUrl, "_blank", "noopener,noreferrer");
       } else {
         toast.error("Não foi possível gerar a reunião Zoom", {
           description: msg || "Tente novamente ou use o link manual.",

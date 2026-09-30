@@ -1,3 +1,4 @@
+import type { TablesInsert } from "@/integrations/supabase/types";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import {
   DEFAULT_FEE_ITEMS,
@@ -338,6 +339,9 @@ export async function bootstrapSchoolDefaults(
     .select("id")
     .eq("school_id", input.schoolId)
     .eq("status", "active")
+    .order("starts_on", { ascending: false })
+    .order("created_at", { ascending: true })
+    .order("id", { ascending: true })
     .limit(1)
     .maybeSingle();
 
@@ -388,7 +392,7 @@ export async function bootstrapSchoolDefaults(
     .limit(1)
     .maybeSingle();
   if (!existingForm?.id) {
-    const formPayload: Record<string, unknown> = {
+    const formPayload: TablesInsert<"enrollment_forms"> = {
       school_id: input.schoolId,
       slug: input.slug,
       title: "Candidatura a matrícula",

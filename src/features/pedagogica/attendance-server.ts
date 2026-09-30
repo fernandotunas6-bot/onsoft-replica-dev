@@ -134,7 +134,8 @@ async function recomputeStudentAttendanceRateLegacy(
 
     if (!records || records.length === 0) return;
 
-    const rate = computeAttendanceRate(records);
+    // `status` é texto com CHECK na base; os valores são os de AttendanceStatus.
+    const rate = computeAttendanceRate(records as Array<{ status: AttendanceStatus }>);
     if (rate === null) return;
 
     await db
@@ -153,18 +154,18 @@ export const listTeacherAttendanceSessions = createServerFn({ method: "GET" })
   .validator((input: unknown) => listTeacherAttendanceSessionsInputSchema.parse(input ?? {}))
   .handler(async ({ data, context }) => {
     if (!context) throw new Error("Não autenticado.");
-    const membership = await resolveSgaMembershipAdmin(context.userId);
-    if (!membership) throw new Error("Sem membership activa nesta escola.");
+    // As aulas do dia (e as sessões que se criam para elas) são do corpo
+    // docente: aluno e encarregado não chegam aqui, como na folha de chamada.
+    const membership = await requireSgaWriterFor("pedagogica", context.supabase, context.userId, [
+      "Administrador",
+      "Secretaria",
+      "Professor",
+    ]);
     const db = await loadSgaAdminClient();
 
     const today = data.date || new Date().toISOString().slice(0, 10);
     const dateObj = new Date(`${today}T12:00:00Z`);
     const weekday = dateObj.getDay(); // 0 = Domingo, 1 = Segunda...
-
-    const linked = await resolveUserLinkedEntities(db, membership.schoolId, context.userId);
-    const isTeacherOnly =
-      membership.appRole === "Professor" &&
-      !["Administrador", "Secretaria"].includes(membership.appRole);
 
     let classSubjectQuery = db
       .from("class_subjects")
@@ -172,7 +173,11 @@ export const listTeacherAttendanceSessions = createServerFn({ method: "GET" })
       .eq("school_id", membership.schoolId)
       .eq("status", "active");
 
-    if (isTeacherOnly && linked.teacher_id) {
+    // O professor vê só as suas aulas; sem ficha de docente ligada, nenhuma
+    // (antes via as da escola inteira).
+    if (membership.appRole === "Professor") {
+      const linked = await resolveUserLinkedEntities(db, membership.schoolId, context.userId);
+      if (!linked.teacher_id) return { sessions: [], date: today, pendingCount: 0 };
       classSubjectQuery = classSubjectQuery.eq("teacher_id", linked.teacher_id);
     }
     if (data.classGroupId) {
@@ -233,14 +238,66 @@ export const listTeacherAttendanceSessions = createServerFn({ method: "GET" })
       .eq("school_id", membership.schoolId)
       .eq("lesson_date", today);
 
-    const sessionBySlotMap = new Map(
-      (existingSessions ?? []).map(
-        (s: { timetable_slot_id: string | null; id: string; status: string }) => [
-          s.timetable_slot_id,
+    const sessionBySlotMap = new Map<string, { id: string; status: string }>(
+      (existingSessions ?? [])
+        .filter((s: { timetable_slot_id: string | null }) => s.timetable_slot_id)
+        .map((s: { timetable_slot_id: string | null; id: string; status: string }) => [
+          s.timetable_slot_id!,
           s,
-        ],
-      ),
+        ]),
     );
+
+    // Sessões que faltam para as aulas do dia: uma só escrita, com erro
+    // verificado (antes era uma por aula e as falhas passavam em silêncio).
+    const missing = (slots ?? []).filter(
+      (slot: { id: string; class_subject_id: string }) =>
+        csMap.has(slot.class_subject_id) && !sessionBySlotMap.has(slot.id),
+    );
+    if (missing.length) {
+      let { data: created, error: createError } = await db
+        .from("siga_attendance_sessions")
+        .insert(
+          missing.map((slot) => {
+            const cs = csMap.get(slot.class_subject_id)!;
+            return {
+              school_id: membership.schoolId,
+              class_group_id: cs.class_group_id,
+              subject_id: cs.subject_id,
+              teacher_id: cs.teacher_id,
+              timetable_slot_id: slot.id,
+              lesson_date: today,
+              starts_at: slot.starts_at,
+              ends_at: slot.ends_at,
+              status: "pending",
+              created_by: context.userId,
+            };
+          }),
+        )
+        .select("id, status, timetable_slot_id");
+      // Outro pedido criou-as entretanto (índice único por escola, aula e dia,
+      // migração 20260929230000): lêem-se as que ficaram.
+      if (createError?.code === "23505") {
+        ({ data: created, error: createError } = await db
+          .from("siga_attendance_sessions")
+          .select("id, status, timetable_slot_id")
+          .eq("school_id", membership.schoolId)
+          .eq("lesson_date", today)
+          .in(
+            "timetable_slot_id",
+            missing.map((slot) => slot.id),
+          ));
+      }
+      if (createError) {
+        throw publicDatabaseError(createError, "Não foi possível preparar as aulas do dia.");
+      }
+      for (const row of (created ?? []) as Array<{
+        id: string;
+        status: string;
+        timetable_slot_id: string | null;
+      }>) {
+        if (row.timetable_slot_id) sessionBySlotMap.set(row.timetable_slot_id, row);
+      }
+    }
 
     const sessionsList: Array<{
       id: string;
@@ -263,37 +320,9 @@ export const listTeacherAttendanceSessions = createServerFn({ method: "GET" })
       if (!cs) continue;
 
       const existing = sessionBySlotMap.get(slot.id);
-      let sessionId = existing?.id;
-      let status: "pending" | "completed" | "cancelled" =
+      const sessionId = existing?.id;
+      const status: "pending" | "completed" | "cancelled" =
         (existing?.status as "pending" | "completed" | "cancelled" | undefined) ?? "pending";
-
-      if (!existing) {
-        try {
-          const { data: created } = await db
-            .from("siga_attendance_sessions")
-            .insert({
-              school_id: membership.schoolId,
-              class_group_id: cs.class_group_id,
-              subject_id: cs.subject_id,
-              teacher_id: cs.teacher_id,
-              timetable_slot_id: slot.id,
-              lesson_date: today,
-              starts_at: slot.starts_at,
-              ends_at: slot.ends_at,
-              status: "pending",
-              created_by: context.userId,
-            })
-            .select("id, status")
-            .single();
-
-          if (created) {
-            sessionId = created.id;
-            status = "pending";
-          }
-        } catch {
-          /* ignore duplicate insert */
-        }
-      }
 
       if (status === "pending") pendingCount += 1;
 
@@ -533,7 +562,9 @@ export const submitAttendanceCallBatch = createServerFn({ method: "POST" })
       data.records.map((item) => item.studentId),
     );
 
-    await db
+    // Sem isto a chamada ficava "pendente" com as presenças gravadas; repetir é
+    // seguro (o upsert acima é idempotente), por isso o erro sobe.
+    const { error: completeError } = await db
       .from("siga_attendance_sessions")
       .update({
         status: "completed",
@@ -541,6 +572,9 @@ export const submitAttendanceCallBatch = createServerFn({ method: "POST" })
         updated_by: context.userId,
       })
       .eq("id", session.id);
+    if (completeError) {
+      throw publicDatabaseError(completeError, "Presenças gravadas, mas a chamada não fechou.");
+    }
 
     return { ok: true, sessionId: session.id, count: data.records.length };
   });
@@ -711,7 +745,7 @@ export const reviewAttendanceJustification = createServerFn({ method: "POST" })
 
     if (!just) throw new Error("Justificativa não encontrada.");
 
-    await db
+    const { error: reviewError } = await db
       .from("siga_attendance_justifications")
       .update({
         status: data.status,
@@ -720,12 +754,18 @@ export const reviewAttendanceJustification = createServerFn({ method: "POST" })
         updated_at: new Date().toISOString(),
       })
       .eq("id", just.id);
+    if (reviewError) {
+      throw publicDatabaseError(reviewError, "Não foi possível registar a decisão.");
+    }
 
     if (data.status === "approved" && just.attendance_record_id) {
-      await db
+      const { error: excuseError } = await db
         .from("siga_attendance_records")
         .update({ status: "excused", updated_at: new Date().toISOString() })
         .eq("id", just.attendance_record_id);
+      if (excuseError) {
+        throw publicDatabaseError(excuseError, "Justificação aprovada, mas a falta não mudou.");
+      }
 
       await recomputeAttendanceRates(db, membership.schoolId, [just.student_id]);
     }

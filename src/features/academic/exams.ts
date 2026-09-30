@@ -7,6 +7,7 @@
  * Tabelas só do servidor: lê e escreve com a chave de serviço depois de
  * validar o perfil (Administrador/Secretaria gerem; Professor consulta).
  */
+import type { TablesInsert } from "@/integrations/supabase/types";
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
@@ -410,7 +411,7 @@ export const registerEligibleStudents = createServerFn({ method: "POST" })
     if (!sheet.rule) throw new Error("A pauta anual não tem regra de avaliação.");
     const rule = sheet.rule;
 
-    const rows: Row[] = [];
+    const rows: TablesInsert<"siga_exam_registrations">[] = [];
     const registeredByEnrollment = new Map<string, string[]>();
     for (const line of sheet.rows) {
       const subjects = subjectFinalsFromBreakdown(line.breakdown, rule);
@@ -553,9 +554,12 @@ export const saveExamScores = createServerFn({ method: "POST" })
       throw new Error("Só se lançam notas com a época aberta.");
     }
     const ids = data.entries.map((e) => e.registrationId);
+    // Linha completa: o upsert por id verifica NOT NULL antes de ver o conflito.
     const { data: regs, error } = await db
       .from("siga_exam_registrations")
-      .select("id, grade_sheet_id, original_average, status")
+      .select(
+        "id, school_id, session_id, enrollment_id, subject_id, class_group_id, grade_sheet_id, original_average, exam_date, status, created_by",
+      )
       .eq("school_id", schoolId)
       .eq("session_id", session.id)
       .in("id", ids);
@@ -574,38 +578,51 @@ export const saveExamScores = createServerFn({ method: "POST" })
     const min = Number(scale.minimum_value);
     const max = Number(scale.maximum_value);
 
-    const rules = new Map<string, EngineRule | null>();
-    let saved = 0;
-    for (const entry of data.entries) {
+    const entries = data.entries.filter((entry) => {
       const reg = byId.get(entry.registrationId);
-      if (!reg || str(reg.status) === "cancelled") continue;
-      const sheetId = str(reg.grade_sheet_id);
-      if (!rules.has(sheetId)) {
-        const { data: sheet } = sheetId
-          ? await db
-              .from("grade_sheets")
-              .select("rule_set_id")
-              .eq("school_id", schoolId)
-              .eq("id", sheetId)
-              .maybeSingle()
-          : { data: null };
-        rules.set(
-          sheetId,
-          await loadEngineRule(db, schoolId, sheet?.rule_set_id ? str(sheet.rule_set_id) : null),
-        );
+      return reg && str(reg.status) !== "cancelled";
+    });
+    for (const entry of entries) {
+      if (!entry.absent && entry.score != null && (entry.score < min || entry.score > max)) {
+        throw new Error(`A nota do exame fica entre ${min} e ${max}.`);
       }
-      const rule = rules.get(sheetId);
-      if (!rule) throw new Error("Sem regra de avaliação para calcular a média.");
+    }
 
+    // Regras das pautas envolvidas: uma leitura das pautas e uma por regra.
+    const sheetIds = [
+      ...new Set(entries.map((e) => str(byId.get(e.registrationId)!.grade_sheet_id))),
+    ].filter(Boolean);
+    const { data: sheets, error: sheetsError } = sheetIds.length
+      ? await db
+          .from("grade_sheets")
+          .select("id, rule_set_id")
+          .eq("school_id", schoolId)
+          .in("id", sheetIds)
+      : { data: [], error: null };
+    if (sheetsError) throw examDbError(sheetsError, "Não foi possível ler as pautas.");
+    const ruleSetOf = new Map(
+      ((sheets ?? []) as Row[]).map((s) => [str(s.id), s.rule_set_id ? str(s.rule_set_id) : null]),
+    );
+    const rulesBySet = new Map<string, EngineRule | null>();
+    const ruleFor = async (sheetId: string) => {
+      const ruleSetId = ruleSetOf.get(sheetId) ?? null;
+      const key = ruleSetId ?? "";
+      if (!rulesBySet.has(key)) rulesBySet.set(key, await loadEngineRule(db, schoolId, ruleSetId));
+      return rulesBySet.get(key);
+    };
+
+    // Tudo calculado e validado antes de escrever: ou gravam todas, ou nenhuma.
+    const rows: Row[] = [];
+    for (const entry of entries) {
+      const reg = byId.get(entry.registrationId)!;
       let update: Row;
       if (entry.absent) {
         update = { status: "absent", score: null, final_average: null };
       } else if (entry.score == null) {
         update = { status: "registered", score: null, final_average: null };
       } else {
-        if (entry.score < min || entry.score > max) {
-          throw new Error(`A nota do exame fica entre ${min} e ${max}.`);
-        }
+        const rule = await ruleFor(str(reg.grade_sheet_id));
+        if (!rule) throw new Error("Sem regra de avaliação para calcular a média.");
         update = {
           status: "graded",
           score: entry.score,
@@ -617,19 +634,22 @@ export const saveExamScores = createServerFn({ method: "POST" })
           ),
         };
       }
+      rows.push({
+        ...reg,
+        ...update,
+        exam_date: entry.examDate !== undefined ? entry.examDate : (reg.exam_date ?? null),
+        updated_by: context.userId,
+      });
+    }
+    if (rows.length) {
       const { error: upErr } = await db
         .from("siga_exam_registrations")
-        .update({
-          ...update,
-          ...(entry.examDate !== undefined ? { exam_date: entry.examDate } : {}),
-          updated_by: context.userId,
-        })
-        .eq("school_id", schoolId)
-        .eq("id", entry.registrationId);
+        .upsert(rows as unknown as TablesInsert<"siga_exam_registrations">[], {
+          onConflict: "id",
+        });
       if (upErr) throw examDbError(upErr, "Não foi possível gravar a nota do exame.");
-      saved += 1;
     }
-    return { saved };
+    return { saved: rows.length };
   });
 
 export const cancelExamRegistration = createServerFn({ method: "POST" })

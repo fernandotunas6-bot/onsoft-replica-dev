@@ -8,8 +8,6 @@ on:
       - main
     paths:
       - 'src-tauri/**'
-      - 'package.json'
-      - 'bun.lock'
       - '.github/workflows/native-ci.yml'
   workflow_dispatch:
 

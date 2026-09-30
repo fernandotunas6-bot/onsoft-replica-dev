@@ -1,3 +1,4 @@
+import type { TablesInsert, TablesUpdate } from "@/integrations/supabase/types";
 import { createServerFn } from "@tanstack/react-start";
 import { normalizeStoredPhone } from "@/lib/angola-phone";
 import { getRequestIP } from "@tanstack/react-start/server";
@@ -327,7 +328,7 @@ export const decideEnrollmentApplication = createServerFn({ method: "POST" })
       const person = payload.person ?? {};
       const fullName = String(person.full_name ?? application.full_name).trim();
       const normalizedNif = normalizePersonNif(person.nif);
-      const personPayload: Record<string, unknown> = {
+      const personPayload: TablesInsert<"people"> = {
         school_id: membership.schoolId,
         full_name: fullName,
         preferred_name: fullName.split(/\s+/)[0],
@@ -482,7 +483,7 @@ export const decideEnrollmentApplication = createServerFn({ method: "POST" })
       });
     }
 
-    const updatePayload: Record<string, unknown> = {
+    const updatePayload: TablesUpdate<"enrollment_applications"> = {
       status: data.decision,
       decided_at: new Date().toISOString(),
       decided_by: context.userId,

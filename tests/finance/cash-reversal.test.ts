@@ -23,13 +23,9 @@ describe("estorno de recibos (reverseCashEntry)", () => {
   it("exige 2FA, como registar o pagamento", () => {
     expect(handler).toMatch(/context\.claims\["aal"\] !== "aal2"/);
   });
-  it("só estorna recibos ainda válidos (não reescreve um estorno anterior)", () => {
-    expect(handler).toMatch(
-      /\.from\("finance_receipts"\)\s*\.update\([\s\S]*?\.eq\("status", "issued"\)/,
-    );
-  });
-  it("repõe o estado da fatura a partir dos recibos que ficam", () => {
-    expect(handler).toContain("invoiceStatusFromPaid(");
+  it("uses the atomic, authenticated database transaction", () => {
+    expect(handler).toContain('context.supabase.rpc("siga_reverse_finance_receipt"');
+    expect(handler).not.toMatch(/\.from\("finance_receipts"\)\s*\.update/);
   });
 });
 

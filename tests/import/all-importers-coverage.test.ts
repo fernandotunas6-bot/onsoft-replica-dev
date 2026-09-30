@@ -30,12 +30,24 @@ describe("All 22 Importers Completeness & Coverage", () => {
     });
 
     it("valida candidato correcto", () => {
-      const cache = { existingApplicantNumbers: new Set() };
+      const cache = { existingApplicantNumbers: new Set(), formId: "form-1" };
       const res = inscricoesImporter.analyzeRow(
         { full_name: "Benedito Calei", application_number: "CAND-001" },
         cache as any,
       );
       expect(res.status).toBe("valid");
+    });
+
+    // `enrollment_applications.form_id` é NOT NULL: sem formulário de matrícula a
+    // base recusava todas as candidaturas importadas.
+    it("sem formulário de matrícula a linha fica em erro, com a explicação", () => {
+      const cache = { existingApplicantNumbers: new Set(), formId: null };
+      const res = inscricoesImporter.analyzeRow(
+        { full_name: "Benedito Calei", application_number: "CAND-001" },
+        cache as any,
+      );
+      expect(res.status).toBe("error");
+      expect(res.errors.join(" ")).toContain("formulário de matrícula");
     });
   });
 

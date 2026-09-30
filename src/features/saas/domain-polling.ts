@@ -6,6 +6,7 @@
  * A tabela de estado vive em `tenant_domains` e `tenant_provisioning`.
  */
 
+import type { TablesUpdate } from "@/integrations/supabase/types";
 import { verifyCustomDomainDns } from "@/features/saas/domain-verify";
 import { loadSgaAdminClient } from "@/integrations/supabase/sga-admin";
 
@@ -95,7 +96,7 @@ export async function pollCustomDomainDns(state: DomainPollState): Promise<PollR
 export async function persistPollResult(domainId: string, result: PollResult): Promise<void> {
   const db = await loadSgaAdminClient();
 
-  const domainUpdate: Record<string, unknown> = {
+  const domainUpdate: TablesUpdate<"tenant_domains"> = {
     last_checked_at: result.checkedAt,
     updated_at: result.checkedAt,
   };

@@ -1,3 +1,4 @@
+import type { TablesInsert } from "@/integrations/supabase/types";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { publicDatabaseError } from "@/integrations/supabase/server-error";
 import { ensureDefaultTeacher } from "@/features/academic/sga-grades";
@@ -100,6 +101,9 @@ export async function bootstrapAcademicStructure(
     .select("id")
     .eq("school_id", schoolId)
     .eq("status", "active")
+    .order("starts_on", { ascending: false })
+    .order("created_at", { ascending: true })
+    .order("id", { ascending: true })
     .limit(1)
     .maybeSingle();
   yearId = (yearRow?.id as string | undefined) ?? null;
@@ -198,14 +202,16 @@ export async function bootstrapAcademicStructure(
     .select("id")
     .eq("school_id", schoolId)
     .limit(1);
-  if ((existingSubjects ?? []).length === 0) {
+  // `subjects.created_by`/`updated_by` são NOT NULL: sem utilizador a base recusava.
+  if ((existingSubjects ?? []).length === 0 && auditUser) {
     const subjectRows = DEFAULT_ACADEMIC_SUBJECTS.map((subject) => ({
       school_id: schoolId,
       code: subject.code,
       name: subject.name,
       short_name: subject.short_name,
       status: "active",
-      ...(auditUser ? { created_by: auditUser, updated_by: auditUser } : {}),
+      created_by: auditUser,
+      updated_by: auditUser,
     }));
     const { error } = await db.from("subjects").insert(subjectRows);
     if (!error) seeded.push("disciplinas");
@@ -281,7 +287,10 @@ export async function bootstrapAcademicStructure(
     }
   }
 
-  if (yearId && gradeLevelId) {
+  // `class_groups.campus_id` é NOT NULL: sem campus não há turma de exemplo.
+  const groupCampusId = campusId;
+  // `created_by`/`updated_by` também são NOT NULL: sem utilizador não há turma.
+  if (yearId && gradeLevelId && groupCampusId && auditUser) {
     const { data: existingGroup } = await db
       .from("class_groups")
       .select("id")
@@ -289,23 +298,22 @@ export async function bootstrapAcademicStructure(
       .limit(1)
       .maybeSingle();
     if (!existingGroup?.id) {
-      const groupPayload: Record<string, unknown> = {
+      const groupPayload: TablesInsert<"class_groups"> = {
         school_id: schoolId,
         academic_year_id: yearId,
         grade_level_id: gradeLevelId,
-        campus_id: campusId,
+        campus_id: groupCampusId,
         code: "10A-M",
         name: "10ª A — Manhã",
         shift: "morning",
         capacity: 35,
         status: "active",
-        ...(auditUser ? { created_by: auditUser, updated_by: auditUser } : {}),
+        created_by: auditUser,
+        updated_by: auditUser,
       };
-      let { error } = await db.from("class_groups").insert(groupPayload);
-      if (error && /whatsapp_/i.test(error.message)) {
-        const { campus_id: _c, ...withoutWhatsapp } = groupPayload;
-        ({ error } = await db.from("class_groups").insert(withoutWhatsapp));
-      }
+      // A antiga segunda tentativa "sem WhatsApp" tirava o `campus_id` (NOT NULL) e
+      // falhava sempre; o payload nem tem colunas de WhatsApp.
+      const { error } = await db.from("class_groups").insert(groupPayload);
       if (!error) seeded.push("turma inicial");
       else handleBootstrapError(error, "Não foi possível criar a turma inicial.", strict);
     }

@@ -43,6 +43,7 @@ import { Label } from "@/components/ui/label";
 import {
   listTurnstileDevices,
   registerTurnstileDevice,
+  revealTurnstileDeviceApiKey,
   updateTurnstileDevice,
   validateGatePassToken,
   listAccessLogs,
@@ -74,7 +75,8 @@ type TurnstileDeviceRow = {
   direction_capability: string;
   ip_address?: string | null;
   status?: string | null;
-  api_key?: string | null;
+  has_api_key?: boolean;
+  api_key_hint?: string | null;
 };
 
 export function TurnstileAccessPanel() {
@@ -220,17 +222,26 @@ export function TurnstileAccessPanel() {
   };
 
   const copyDeviceApiKey = async (device: TurnstileDeviceRow) => {
-    if (!device.api_key) {
+    if (!device.has_api_key) {
       toast.error("Este dispositivo não tem API key.");
       return;
     }
+    let apiKey: string;
     try {
-      await navigator.clipboard.writeText(device.api_key);
+      ({ apiKey } = await revealTurnstileDeviceApiKey({ data: { deviceId: device.id } }));
+    } catch (err) {
+      toast.error("Não foi possível obter a API key", {
+        description: err instanceof Error ? err.message : "Tente novamente.",
+      });
+      return;
+    }
+    try {
+      await navigator.clipboard.writeText(apiKey);
       toast.success("API key copiada", {
         description: "Use nos controladores offline — não partilhe fora da escola.",
       });
     } catch {
-      toast.message(device.api_key);
+      toast.message(apiKey);
     }
   };
 
@@ -529,10 +540,14 @@ export function TurnstileAccessPanel() {
                       type="button"
                       variant="ghost"
                       size="sm"
-                      disabled={!dev.api_key}
+                      disabled={!dev.has_api_key}
                       onClick={() => void copyDeviceApiKey(dev)}
                       className="h-7 text-[11px] gap-1"
-                      title="Copiar API key do controlador offline"
+                      title={
+                        dev.api_key_hint
+                          ? `Copiar API key do controlador offline (…${dev.api_key_hint})`
+                          : "Copiar API key do controlador offline"
+                      }
                     >
                       <Copy className="size-3" /> Key
                     </Button>

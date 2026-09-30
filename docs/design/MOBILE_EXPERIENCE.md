@@ -50,3 +50,15 @@ Referência de produto: a aplicação mobile do Lovable permite continuar tarefa
 - Papel com poucos módulos, papel administrativo, plano restrito e sessão sem escola.
 - Filtros, formulários com erro, loading, listas vazias, títulos longos e dados reais.
 - Fluxo voltar → restaurar filtros/posição sem repetir gravações.
+
+## Correcções da base — 30/09/2026
+
+- Destinos mobile derivados do catálogo autorizado do portal, incluindo grants e plano. Professor, aluno e encarregado recebem um atalho académico.
+- Finanças reconhece facturas, tesouraria e relatórios financeiros; Mais indica secções fora dos destinos rápidos.
+- Menu com título acessível; escola/ano e selector de período disponíveis no telefone; controlos secundários do cabeçalho preservados nos menus existentes.
+- Espaço da navegação reservado no contentor inteiro, incluindo rodapé; acções flutuantes usam a mesma altura com área segura.
+- Regra de campos exclui checkbox/radio/hidden/range; Input, SelectTrigger e Button adaptam áreas de toque também nos portais dos modais.
+- Card declara o atributo usado pelo CSS; diálogos usam altura dinâmica e botões de fecho com área de toque maior.
+- A adaptação de listas, filtros, fichas e formulários específicos continua pendente. Estas correcções não implementam sincronização offline ou continuidade entre dispositivos.
+
+A validação local desta revisão inclui typecheck, lint sem erros (51 avisos), build Cloudflare, 2328 testes aprovados/19 ignorados e verificadores estáticos de estilo/acessibilidade. Não equivale a validação visual autenticada de todos os módulos.

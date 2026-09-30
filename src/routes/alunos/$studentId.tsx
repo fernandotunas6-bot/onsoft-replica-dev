@@ -58,7 +58,7 @@ import {
   uploadPersonPhotoToLibrary,
 } from "@/features/arquivos/apply-person-photo";
 import { StudentRelatedFilesPanel } from "@/features/arquivos/StudentRelatedFilesPanel";
-import { paymentReference, whatsappHref } from "@/features/integrations/actions";
+import { whatsappHref } from "@/features/integrations/actions";
 import { InstalledModuleTools } from "@/features/integrations/InstalledModuleTools";
 import { useInstalledIntegrations } from "@/features/integrations/use-installed-integrations";
 import { useSchoolSettings } from "@/features/auth/use-school-settings";
@@ -269,6 +269,8 @@ function StudentDetail() {
   const peopleQuery = useQuery({
     queryKey: ["people", "search", ""],
     queryFn: () => searchPeople({ data: { query: "", limit: 50 } }),
+    // Só para escolher o encarregado, que é da Administração e da Secretaria.
+    enabled: canRequestDocument,
   });
   const invoicesQuery = useQuery({
     queryKey: ["finance", "invoices", "student", studentId],
@@ -1783,13 +1785,7 @@ function StudentDetail() {
                                 methodMap[
                                   (values["metodo"] as keyof typeof methodMap) ?? "Numerário"
                                 ] ?? "cash";
-                              const reference =
-                                values["referencia"] ||
-                                (method === "multicaixa_express"
-                                  ? paymentReference("EMIS")
-                                  : method === "unitel_money"
-                                    ? paymentReference("UML")
-                                    : undefined);
+                              const reference = values["referencia"] || undefined;
                               const paid = await recordInvoicePayment({
                                 data: {
                                   invoiceId: invoice.id,

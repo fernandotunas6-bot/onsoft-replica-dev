@@ -30,6 +30,10 @@ function first<T>(value: T | T[] | null | undefined): T | null {
   return Array.isArray(value) ? (value[0] ?? null) : value;
 }
 
+/** Linha devolvida pelo PostgREST sem tipos gerados (cliente `sgaClient`). */
+type DbRow = Record<string, unknown>;
+type DbEmbed = DbRow | DbRow[] | null | undefined;
+
 type PersonEmbed = { full_name?: string | null; national_id?: string | null };
 type StudentEmbed = { student_number?: string | null; people?: PersonEmbed | PersonEmbed[] | null };
 type EnrollmentEmbed = { students?: StudentEmbed | StudentEmbed[] | null };
@@ -175,7 +179,7 @@ export async function exportSchoolData(
         const p = Array.isArray(s.people) ? s.people[0] : s.people;
         const enr = s.enrollments && s.enrollments.length > 0 ? s.enrollments[0] : null;
         const cg = enr?.class_groups;
-        const className = Array.isArray(cg) ? (cg[0] as any)?.name : (cg as any)?.name;
+        const className = first(cg as DbEmbed)?.name;
 
         sheet.addRow([
           s.student_number || "",
@@ -528,8 +532,8 @@ export async function exportSchoolData(
       styleHeaderRow(hRow, options.mode);
 
       for (const app of rows) {
-        const payload = (app.payload ?? {}) as Record<string, any>;
-        const person = payload.person ?? {};
+        const payload = (app.payload ?? {}) as DbRow;
+        const person = (payload.person ?? {}) as DbRow;
         sheet.addRow([
           app.full_name || person.full_name || "",
           app.status || "",
@@ -550,7 +554,7 @@ export async function exportSchoolData(
         .eq("school_id", options.schoolId)
         .order("created_at", { ascending: false });
 
-      let rows = (items || []).map((item: any) => ({
+      let rows: DbRow[] = (items || []).map((item: DbRow) => ({
         id: item.id,
         title: item.name,
         code: item.component || item.kind || "",
@@ -565,7 +569,7 @@ export async function exportSchoolData(
           .from("grade_items")
           .select("id, name, code, max_score, weight, created_at")
           .eq("school_id", options.schoolId);
-        rows = (gradeItems || []).map((gi: any) => ({
+        rows = (gradeItems || []).map((gi: DbRow) => ({
           id: gi.id,
           title: gi.name,
           code: gi.code,
@@ -622,8 +626,8 @@ export async function exportSchoolData(
       }
 
       const rows = records || [];
-      const studentIds = [...new Set(rows.map((r: any) => String(r.student_id)))];
-      const sessionRows = rows.map((r: any) =>
+      const studentIds = [...new Set(rows.map((r: DbRow) => String(r.student_id)))];
+      const sessionRows = rows.map((r: DbRow) =>
         Array.isArray(r.siga_attendance_sessions)
           ? r.siga_attendance_sessions[0]
           : r.siga_attendance_sessions,
@@ -631,7 +635,7 @@ export async function exportSchoolData(
       const groupIds = [
         ...new Set(
           sessionRows
-            .map((r: any) => r?.class_group_id)
+            .map((r: DbRow) => r?.class_group_id)
             .filter(Boolean)
             .map(String),
         ),
@@ -639,7 +643,7 @@ export async function exportSchoolData(
       const subjectIds = [
         ...new Set(
           sessionRows
-            .map((r: any) => r?.subject_id)
+            .map((r: DbRow) => r?.subject_id)
             .filter(Boolean)
             .map(String),
         ),
@@ -648,23 +652,23 @@ export async function exportSchoolData(
       const [{ data: students }, { data: groups }, { data: subjects }] = await Promise.all([
         studentIds.length
           ? db.from("students").select("id, student_number").in("id", studentIds)
-          : Promise.resolve({ data: [], error: null } as any),
+          : Promise.resolve({ data: [] as DbRow[], error: null }),
         groupIds.length
           ? db.from("class_groups").select("id, name").in("id", groupIds)
-          : Promise.resolve({ data: [], error: null } as any),
+          : Promise.resolve({ data: [] as DbRow[], error: null }),
         subjectIds.length
           ? db.from("subjects").select("id, name").in("id", subjectIds)
-          : Promise.resolve({ data: [], error: null } as any),
+          : Promise.resolve({ data: [] as DbRow[], error: null }),
       ]);
 
       const studentById = new Map(
-        (students || []).map((s: any) => [String(s.id), String(s.student_number || "")]),
+        (students || []).map((s: DbRow) => [String(s.id), String(s.student_number || "")]),
       );
       const groupById = new Map(
-        (groups || []).map((g: any) => [String(g.id), String(g.name || "")]),
+        (groups || []).map((g: DbRow) => [String(g.id), String(g.name || "")]),
       );
       const subjectById = new Map(
-        (subjects || []).map((s: any) => [String(s.id), String(s.name || "")]),
+        (subjects || []).map((s: DbRow) => [String(s.id), String(s.name || "")]),
       );
 
       counts["presencas"] = rows.length;
@@ -686,7 +690,7 @@ export async function exportSchoolData(
       const hRow = sheet.addRow(headers);
       styleHeaderRow(hRow, options.mode);
 
-      rows.forEach((record: any, index: number) => {
+      rows.forEach((record: DbRow, index: number) => {
         const session = sessionRows[index] || {};
         sheet.addRow([
           studentById.get(String(record.student_id)) || "",
@@ -727,9 +731,9 @@ export async function exportSchoolData(
       ];
       styleHeaderRow(sheet.addRow(headers), options.mode);
       for (const r of rows) {
-        const p = first(r.people as any);
-        const pos = first(r.hr_positions as any);
-        const dep = first(r.hr_departments as any);
+        const p = first(r.people as DbEmbed);
+        const pos = first(r.hr_positions as DbEmbed);
+        const dep = first(r.hr_departments as DbEmbed);
         sheet.addRow([
           p?.full_name || "",
           p?.national_id || "",
@@ -767,7 +771,7 @@ export async function exportSchoolData(
         options.mode,
       );
       for (const r of rows) {
-        const p = first(r.programs as any);
+        const p = first(r.programs as DbEmbed);
         sheet.addRow([r.code || "", r.name || "", p?.code || p?.name || "", r.sequence ?? ""]);
       }
       autoFitColumns(sheet);
@@ -783,11 +787,11 @@ export async function exportSchoolData(
       const rows = data || [];
       counts["cursos"] = rows.length;
       totalRecords += rows.length;
-      const levelIds = [...new Set(rows.map((r: any) => String(r.academic_level_id)))];
+      const levelIds = [...new Set(rows.map((r: DbRow) => String(r.academic_level_id)))];
       const { data: levels } = levelIds.length
         ? await db.from("academic_levels").select("id,name").in("id", levelIds)
         : { data: [] };
-      const lm = new Map((levels || []).map((r: any) => [String(r.id), r.name]));
+      const lm = new Map((levels || []).map((r: DbRow) => [String(r.id), r.name]));
       const sheet = workbook.addWorksheet("CURSOS");
       sheet.views = [{ state: "frozen", ySplit: 1, showGridLines: true }];
       styleHeaderRow(
@@ -812,7 +816,7 @@ export async function exportSchoolData(
       const campusIds = [
         ...new Set(
           rows
-            .map((r: any) => r.campus_id)
+            .map((r: DbRow) => r.campus_id)
             .filter(Boolean)
             .map(String),
         ),
@@ -820,7 +824,7 @@ export async function exportSchoolData(
       const { data: campuses } = campusIds.length
         ? await db.from("campuses").select("id,name").in("id", campusIds)
         : { data: [] };
-      const cm = new Map((campuses || []).map((r: any) => [String(r.id), r.name]));
+      const cm = new Map((campuses || []).map((r: DbRow) => [String(r.id), r.name]));
       const sheet = workbook.addWorksheet("SALAS");
       sheet.views = [{ state: "frozen", ySplit: 1, showGridLines: true }];
       styleHeaderRow(
@@ -855,11 +859,11 @@ export async function exportSchoolData(
       const rows = data || [];
       counts["horarios"] = rows.length;
       totalRecords += rows.length;
-      const csIds = [...new Set(rows.map((r: any) => String(r.class_subject_id)))];
+      const csIds = [...new Set(rows.map((r: DbRow) => String(r.class_subject_id)))];
       const roomIds = [
         ...new Set(
           rows
-            .map((r: any) => r.room_id)
+            .map((r: DbRow) => r.room_id)
             .filter(Boolean)
             .map(String),
         ),
@@ -870,12 +874,12 @@ export async function exportSchoolData(
             .select("id,class_group_id,subject_id,teacher_id")
             .in("id", csIds)
         : { data: [] };
-      const groupIds = [...new Set((css || []).map((r: any) => String(r.class_group_id)))];
-      const subjectIds = [...new Set((css || []).map((r: any) => String(r.subject_id)))];
+      const groupIds = [...new Set((css || []).map((r: DbRow) => String(r.class_group_id)))];
+      const subjectIds = [...new Set((css || []).map((r: DbRow) => String(r.subject_id)))];
       const teacherIds = [
         ...new Set(
           (css || [])
-            .map((r: any) => r.teacher_id)
+            .map((r: DbRow) => r.teacher_id)
             .filter(Boolean)
             .map(String),
         ),
@@ -884,25 +888,25 @@ export async function exportSchoolData(
         await Promise.all([
           groupIds.length
             ? db.from("class_groups").select("id,name,code").in("id", groupIds)
-            : Promise.resolve({ data: [] as any[] }),
+            : Promise.resolve({ data: [] as DbRow[] }),
           subjectIds.length
             ? db.from("subjects").select("id,name,code").in("id", subjectIds)
-            : Promise.resolve({ data: [] as any[] }),
+            : Promise.resolve({ data: [] as DbRow[] }),
           teacherIds.length
             ? db
                 .from("teachers")
                 .select("id,employee_number,people(full_name)")
                 .in("id", teacherIds)
-            : Promise.resolve({ data: [] as any[] }),
+            : Promise.resolve({ data: [] as DbRow[] }),
           roomIds.length
             ? db.from("rooms").select("id,name,code").in("id", roomIds)
-            : Promise.resolve({ data: [] as any[] }),
+            : Promise.resolve({ data: [] as DbRow[] }),
         ]);
-      const csm = new Map((css || []).map((r: any) => [String(r.id), r]));
-      const gm = new Map((groups || []).map((r: any) => [String(r.id), r]));
-      const sm = new Map((subjects || []).map((r: any) => [String(r.id), r]));
-      const tm = new Map((teachers || []).map((r: any) => [String(r.id), r]));
-      const rm = new Map((rooms || []).map((r: any) => [String(r.id), r]));
+      const csm = new Map((css || []).map((r: DbRow) => [String(r.id), r]));
+      const gm = new Map((groups || []).map((r: DbRow) => [String(r.id), r]));
+      const sm = new Map((subjects || []).map((r: DbRow) => [String(r.id), r]));
+      const tm = new Map((teachers || []).map((r: DbRow) => [String(r.id), r]));
+      const rm = new Map((rooms || []).map((r: DbRow) => [String(r.id), r]));
       const days = [
         "",
         "Segunda-feira",
@@ -932,7 +936,7 @@ export async function exportSchoolData(
         const g = gm.get(String(cs?.class_group_id));
         const s = sm.get(String(cs?.subject_id));
         const t = tm.get(String(cs?.teacher_id));
-        const p = first(t?.people as any);
+        const p = first(t?.people as DbEmbed);
         const room = rm.get(String(r.room_id));
         sheet.addRow([
           g?.code || g?.name || "",
@@ -959,44 +963,45 @@ export async function exportSchoolData(
       const rows = data || [];
       // A nota liga-se ao diário pelo item de avaliação: `grade_scores` não
       // tem `gradebook_id` (a relação directa dava 400 no PostgREST).
-      const gradebookOf = (r: any) => first(first(r.grade_items as any)?.gradebooks as any);
+      const gradebookOf = (r: DbRow) =>
+        first(first(r.grade_items as DbEmbed)?.gradebooks as DbEmbed);
       counts["notas"] = rows.length;
       totalRecords += rows.length;
-      const enrIds = [...new Set(rows.map((r: any) => String(r.enrollment_id)))];
-      const csIds = [...new Set(rows.map((r: any) => String(gradebookOf(r)?.class_subject_id)))];
+      const enrIds = [...new Set(rows.map((r: DbRow) => String(r.enrollment_id)))];
+      const csIds = [...new Set(rows.map((r: DbRow) => String(gradebookOf(r)?.class_subject_id)))];
       const { data: enrollments } = enrIds.length
         ? await db.from("enrollments").select("id,student_id,class_group_id").in("id", enrIds)
         : { data: [] };
       const { data: css } = csIds.length
         ? await db.from("class_subjects").select("id,subject_id").in("id", csIds)
         : { data: [] };
-      const studentIds = [...new Set((enrollments || []).map((r: any) => String(r.student_id)))];
-      const subjectIds = [...new Set((css || []).map((r: any) => String(r.subject_id)))];
-      const termIds = [...new Set(rows.map((r: any) => String(gradebookOf(r)?.term_id)))];
+      const studentIds = [...new Set((enrollments || []).map((r: DbRow) => String(r.student_id)))];
+      const subjectIds = [...new Set((css || []).map((r: DbRow) => String(r.subject_id)))];
+      const termIds = [...new Set(rows.map((r: DbRow) => String(gradebookOf(r)?.term_id)))];
       const groupIds = [
-        ...new Set((enrollments || []).map((r: any) => String(r.class_group_id))),
+        ...new Set((enrollments || []).map((r: DbRow) => String(r.class_group_id))),
       ].filter((id) => id && id !== "null");
       const [{ data: students }, { data: subjects }, { data: terms }, { data: groups }] =
         await Promise.all([
           studentIds.length
             ? db.from("students").select("id,student_number").in("id", studentIds)
-            : Promise.resolve({ data: [] as any[] }),
+            : Promise.resolve({ data: [] as DbRow[] }),
           subjectIds.length
             ? db.from("subjects").select("id,name,code").in("id", subjectIds)
-            : Promise.resolve({ data: [] as any[] }),
+            : Promise.resolve({ data: [] as DbRow[] }),
           termIds.length
             ? db.from("terms").select("id,sequence,name").in("id", termIds)
-            : Promise.resolve({ data: [] as any[] }),
+            : Promise.resolve({ data: [] as DbRow[] }),
           groupIds.length
             ? db.from("class_groups").select("id,code,name").in("id", groupIds)
-            : Promise.resolve({ data: [] as any[] }),
+            : Promise.resolve({ data: [] as DbRow[] }),
         ]);
-      const gm = new Map((groups || []).map((r: any) => [String(r.id), r]));
-      const em = new Map((enrollments || []).map((r: any) => [String(r.id), r]));
-      const cm = new Map((css || []).map((r: any) => [String(r.id), r]));
-      const sm = new Map((students || []).map((r: any) => [String(r.id), r.student_number]));
-      const subm = new Map((subjects || []).map((r: any) => [String(r.id), r]));
-      const termm = new Map((terms || []).map((r: any) => [String(r.id), r.sequence ?? r.name]));
+      const gm = new Map((groups || []).map((r: DbRow) => [String(r.id), r]));
+      const em = new Map((enrollments || []).map((r: DbRow) => [String(r.id), r]));
+      const cm = new Map((css || []).map((r: DbRow) => [String(r.id), r]));
+      const sm = new Map((students || []).map((r: DbRow) => [String(r.id), r.student_number]));
+      const subm = new Map((subjects || []).map((r: DbRow) => [String(r.id), r]));
+      const termm = new Map((terms || []).map((r: DbRow) => [String(r.id), r.sequence ?? r.name]));
       const sheet = workbook.addWorksheet("NOTAS");
       sheet.views = [{ state: "frozen", ySplit: 1, showGridLines: true }];
       styleHeaderRow(
@@ -1017,7 +1022,7 @@ export async function exportSchoolData(
         const group = gm.get(String(e?.class_group_id));
         const cs = cm.get(String(gb?.class_subject_id));
         const sub = subm.get(String(cs?.subject_id));
-        const gi = first(r.grade_items as any);
+        const gi = first(r.grade_items as DbEmbed);
         sheet.addRow([
           sm.get(String(e?.student_id)) || "",
           group?.code || group?.name || "",
@@ -1042,30 +1047,30 @@ export async function exportSchoolData(
       const rows = data || [];
       counts["dividas"] = rows.length;
       totalRecords += rows.length;
-      const contractIds = [...new Set(rows.map((r: any) => String(r.contract_id)))];
-      const feeItemIds = [...new Set(rows.map((r: any) => String(r.fee_item_id)))];
+      const contractIds = [...new Set(rows.map((r: DbRow) => String(r.contract_id)))];
+      const feeItemIds = [...new Set(rows.map((r: DbRow) => String(r.fee_item_id)))];
       const [{ data: contracts }, { data: feeItems }] = await Promise.all([
         contractIds.length
           ? db.from("finance_contracts").select("id,enrollment_id").in("id", contractIds)
-          : Promise.resolve({ data: [] as any[] }),
+          : Promise.resolve({ data: [] as DbRow[] }),
         feeItemIds.length
           ? db.from("fee_items").select("id,name").in("id", feeItemIds)
-          : Promise.resolve({ data: [] as any[] }),
+          : Promise.resolve({ data: [] as DbRow[] }),
       ]);
       const enrollmentIds = [
-        ...new Set((contracts || []).map((r: any) => String(r.enrollment_id))),
+        ...new Set((contracts || []).map((r: DbRow) => String(r.enrollment_id))),
       ];
       const { data: enrollments } = enrollmentIds.length
         ? await db.from("enrollments").select("id,student_id").in("id", enrollmentIds)
         : { data: [] };
-      const studentIds = [...new Set((enrollments || []).map((r: any) => String(r.student_id)))];
+      const studentIds = [...new Set((enrollments || []).map((r: DbRow) => String(r.student_id)))];
       const { data: students } = studentIds.length
         ? await db.from("students").select("id,student_number").in("id", studentIds)
         : { data: [] };
-      const cm = new Map((contracts || []).map((r: any) => [String(r.id), r]));
-      const fm = new Map((feeItems || []).map((r: any) => [String(r.id), r.name]));
-      const em = new Map((enrollments || []).map((r: any) => [String(r.id), r]));
-      const stm = new Map((students || []).map((r: any) => [String(r.id), r.student_number]));
+      const cm = new Map((contracts || []).map((r: DbRow) => [String(r.id), r]));
+      const fm = new Map((feeItems || []).map((r: DbRow) => [String(r.id), r.name]));
+      const em = new Map((enrollments || []).map((r: DbRow) => [String(r.id), r]));
+      const stm = new Map((students || []).map((r: DbRow) => [String(r.id), r.student_number]));
       const sheet = workbook.addWorksheet("DIVIDAS");
       sheet.views = [{ state: "frozen", ySplit: 1, showGridLines: true }];
       styleHeaderRow(
@@ -1111,7 +1116,7 @@ export async function exportSchoolData(
         .eq("school_id", options.schoolId)
         .order("academic_year_label", { ascending: false });
 
-      let rows: any[] = historyRows || [];
+      let rows: DbRow[] = historyRows || [];
 
       if (!rows.length) {
         const { data: enrollments } = await db
@@ -1129,7 +1134,7 @@ export async function exportSchoolData(
           .eq("school_id", options.schoolId)
           .order("enrolled_on", { ascending: false });
 
-        rows = (enrollments || []).map((enr: any) => {
+        rows = (enrollments || []).map((enr: DbRow) => {
           const std = Array.isArray(enr.students) ? enr.students[0] : enr.students;
           const person = std?.people
             ? Array.isArray(std.people)

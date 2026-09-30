@@ -1,3 +1,4 @@
+import type { TablesUpdate } from "@/integrations/supabase/types";
 import { hmacBase64, signaturesMatch } from "./hmac";
 import { loadSgaAdminClient } from "@/integrations/supabase/sga-admin";
 
@@ -38,8 +39,10 @@ export interface TwilioWebhookPayload {
  * for enum» e o erro morria num `console.error`. Não se notava porque a tabela
  * também não existia; passa a notar-se, por isso tem de estar certo.
  */
-export function mapTwilioStatus(twilioStatus: string): string | null {
-  const map: Record<string, string> = {
+type DispatchStatus = NonNullable<TablesUpdate<"communication_dispatches">["status"]>;
+
+export function mapTwilioStatus(twilioStatus: string): DispatchStatus | null {
+  const map: Record<string, DispatchStatus> = {
     sent: "sent",
     delivered: "delivered",
     failed: "failed",
@@ -81,7 +84,7 @@ export async function handleTwilioSmsWebhook(payload: TwilioWebhookPayload): Pro
   }
 
   // Atualizar dispatch com novo status
-  const updatePayload: Record<string, unknown> = {
+  const updatePayload: TablesUpdate<"communication_dispatches"> = {
     status: newStatus,
     updated_at: new Date().toISOString(),
   };

@@ -8,13 +8,9 @@ import { toast } from "sonner";
 
 import {
   Bell,
-  CalendarDays,
   ChevronDown,
   CircleHelp,
   FileText,
-  GraduationCap,
-  Home,
-  LayoutGrid,
   Maximize2,
   Menu,
   Moon,
@@ -25,6 +21,7 @@ import {
   Users,
   Wallet,
 } from "lucide-react";
+import { MobileNavigation } from "./MobileNavigation";
 import { AppSidebar } from "./AppSidebar";
 import { AccountDrawer } from "./AccountDrawer";
 import { AppLauncher } from "./AppLauncher";
@@ -257,12 +254,17 @@ function AuthenticatedAppShell({ children }: { children: ReactNode }) {
         </div>
 
         <Sheet open={open} onOpenChange={setOpen}>
-          <SheetContent side="left" className="w-[240px] border-none bg-sidebar p-0">
+          <SheetContent
+            id="siga-mobile-menu"
+            side="left"
+            className="w-[min(85vw,280px)] border-none bg-sidebar p-0"
+          >
+            <SheetTitle className="sr-only">Módulos do SIGA</SheetTitle>
             <AppSidebar onOpenSettings={(panelId) => openSettings(panelId)} />
           </SheetContent>
         </Sheet>
 
-        <div className="flex min-w-0 flex-1 flex-col lg:my-2 lg:mx-2 lg:overflow-clip lg:rounded-2xl lg:border lg:border-border/60 lg:shadow-sm">
+        <div className="siga-mobile-frame flex min-w-0 flex-1 flex-col lg:my-2 lg:mx-2 lg:overflow-clip lg:rounded-2xl lg:border lg:border-border/60 lg:shadow-sm">
           <header className="siga-mobile-header sticky top-0 z-30 flex h-14 items-center gap-2.5 border-b border-border/70 bg-background/95 backdrop-blur-xs px-3.5 md:px-5">
             <Button
               variant="ghost"
@@ -362,7 +364,9 @@ function AuthenticatedAppShell({ children }: { children: ReactNode }) {
             </Button>
 
             <div className="ml-auto flex items-center gap-1">
-              <TopbarCalendar />
+              <div className="hidden sm:block">
+                <TopbarCalendar />
+              </div>
               <Button
                 variant="ghost"
                 size="icon"
@@ -397,14 +401,16 @@ function AuthenticatedAppShell({ children }: { children: ReactNode }) {
                   )}
                 />
               </Button>
-              <AppLauncher onOpenSettings={openSettings} />
+              <div className="hidden sm:block">
+                <AppLauncher onOpenSettings={openSettings} />
+              </div>
               <CommandPalette />
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="header-icon-btn"
+                    className="header-icon-btn hidden sm:inline-flex"
                     aria-label="Seletor de tema"
                   >
                     {isDark ? (
@@ -581,6 +587,28 @@ function AuthenticatedAppShell({ children }: { children: ReactNode }) {
               </Suspense>
             ) : null}
           </header>
+          <div className="flex min-w-0 flex-wrap items-center gap-2 border-b border-border px-4 py-2 md:hidden">
+            <span
+              className="min-w-0 flex-1 truncate text-xs text-muted-foreground"
+              title={school?.name ?? ""}
+            >
+              {school?.name ?? "SIGA Plus"} · {selectedYearLabel}
+            </span>
+            {terms.length > 0 ? (
+              <select
+                aria-label="Período lectivo"
+                className="min-h-11 max-w-full rounded-lg border border-input bg-background px-2 text-sm"
+                value={selectedTermId ?? ""}
+                onChange={(event) => setSelectedTermId(event.target.value)}
+              >
+                {terms.map((term) => (
+                  <option key={term.id} value={term.id}>
+                    {term.label}
+                  </option>
+                ))}
+              </select>
+            ) : null}
+          </div>
 
           <main
             id="conteudo-principal"
@@ -629,36 +657,16 @@ function AuthenticatedAppShell({ children }: { children: ReactNode }) {
             {children}
           </main>
 
-          <nav className="siga-mobile-tabs lg:hidden" aria-label="Navegação principal">
-            <Link to="/" className={cn("siga-mobile-tab", pathname === "/" && "is-active")} aria-current={pathname === "/" ? "page" : undefined}>
-              <Home aria-hidden="true" className="size-5" />
-              <span>Início</span>
-            </Link>
-            {canAccessPath("/alunos", currentUser.role, currentUser.grants) && (!activePlan || planIncludesPath("/alunos", activePlan)) ? (
-              <Link to="/alunos" className={cn("siga-mobile-tab", pathname.startsWith("/alunos") && "is-active")} aria-current={pathname.startsWith("/alunos") ? "page" : undefined}>
-                <GraduationCap aria-hidden="true" className="size-5" />
-                <span>Alunos</span>
-              </Link>
-            ) : null}
-            {canAccessPath("/calendario", currentUser.role, currentUser.grants) && (!activePlan || planIncludesPath("/calendario", activePlan)) ? (
-              <Link to="/calendario" className={cn("siga-mobile-tab", pathname.startsWith("/calendario") && "is-active")} aria-current={pathname.startsWith("/calendario") ? "page" : undefined}>
-                <CalendarDays aria-hidden="true" className="size-5" />
-                <span>Agenda</span>
-              </Link>
-            ) : null}
-            {canAccessPath("/financeiro", currentUser.role, currentUser.grants) && (!activePlan || planIncludesPath("/financeiro", activePlan)) ? (
-              <Link to="/financeiro" className={cn("siga-mobile-tab", pathname.startsWith("/financeiro") && "is-active")} aria-current={pathname.startsWith("/financeiro") ? "page" : undefined}>
-                <Wallet aria-hidden="true" className="size-5" />
-                <span>Finanças</span>
-              </Link>
-            ) : null}
-            <button type="button" className={cn("siga-mobile-tab", open && "is-active")} onClick={() => setOpen(true)} aria-label="Abrir todos os módulos" aria-expanded={open}>
-              <LayoutGrid aria-hidden="true" className="size-5" />
-              <span>Mais</span>
-            </button>
-          </nav>
+          <MobileNavigation
+            role={currentUser.role}
+            grants={currentUser.grants}
+            plan={activePlan}
+            pathname={pathname}
+            menuOpen={open}
+            onOpenMenu={() => setOpen(true)}
+          />
 
-          <footer className="hidden flex-wrap items-center justify-between gap-3 border-t border-border bg-card/40 px-3.5 py-3 text-xs text-muted-foreground backdrop-blur-xs md:flex md:px-5">
+          <footer className="flex flex-wrap items-center justify-between gap-3 border-t border-border bg-card/40 px-3.5 py-3 text-xs text-muted-foreground backdrop-blur-xs md:px-5">
             <div className="flex items-center gap-4">
               <span className="inline-flex items-center gap-2 font-semibold text-foreground">
                 <span className="inline-flex size-6 items-center justify-center rounded-lg bg-primary-soft text-[11px] font-extrabold text-primary">

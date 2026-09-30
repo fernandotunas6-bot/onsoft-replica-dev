@@ -232,11 +232,21 @@ export async function settleGatewayPayment(
         );
 
       const newStatus = invoiceStatusFromPaid(invoiceNetTotal(invoice), alreadyPaid + input.amount);
-      await db
+      // O recibo já existe: não se lança (repetir emitia outro). Mas uma fatura
+      // paga que fica "pendente" leva a cobrar de novo, por isso fica registado.
+      const { error: statusError } = await db
         .from("finance_invoices")
         .update({ status: newStatus })
         .eq("school_id", input.schoolId)
         .eq("id", input.invoiceId);
+      if (statusError) {
+        reportSigaError("finance.gateway.invoice_status_failed", statusError, {
+          school_id: input.schoolId,
+          invoice_id: input.invoiceId,
+          receipt_number: receiptNumber,
+          status: newStatus,
+        });
+      }
 
       result = {
         receiptId: newReceipt.id,

@@ -82,3 +82,100 @@ describe("pedidos de acesso: a escola é avisada", () => {
     expect(body(source, "reviewAccessRequest")).toMatch(/access_request\.approved/);
   });
 });
+
+describe("histórico académico: registar a pauta anual", () => {
+  const fn = body(read("src/features/academic/final-results.ts"), "recordClassFinalResults");
+
+  it("rectificações numa só escrita, mantendo o autor original", () => {
+    expect(fn).not.toMatch(/for \(const r of rows[^\n]*\)[\s\S]{0,1500}\.update\(/);
+    expect(fn).toMatch(/\.upsert\(updates[\s\S]{0,80}onConflict: "id"/);
+    expect(fn).toMatch(/created_by: before\.created_by/);
+  });
+
+  it("média da matrícula: só as que mudam, com erro verificado", () => {
+    expect(fn).not.toMatch(/for \(const l of lines\)/);
+    expect(fn).toMatch(/\.in\("id", ids\)/);
+    expect(fn).toMatch(/Não foi possível gravar a média final na matrícula/);
+  });
+});
+
+describe("notas de exame", () => {
+  const fn = body(read("src/features/academic/exams.ts"), "saveExamScores");
+
+  it("valida todas as notas antes de escrever e grava numa só escrita", () => {
+    expect(fn).toMatch(/\.upsert\(rows[\s\S]{0,80}onConflict: "id"/);
+    expect(fn.indexOf("A nota do exame fica entre")).toBeLessThan(fn.indexOf(".upsert("));
+    expect(fn).not.toMatch(/for \(const entry of data\.entries\)/);
+  });
+});
+
+describe("aulas do dia (presença)", () => {
+  const fn = body(
+    read("src/features/pedagogica/attendance-server.ts"),
+    "listTeacherAttendanceSessions",
+  );
+
+  it("só o corpo docente: aluno e encarregado não vêem nem criam sessões", () => {
+    expect(fn).not.toMatch(/resolveSgaMembershipAdmin\(/);
+    expect(fn).toMatch(
+      /requireSgaWriterFor\("pedagogica"[\s\S]{0,120}"Administrador",\s*"Secretaria",\s*"Professor"/,
+    );
+  });
+
+  it("professor sem ficha de docente não vê as aulas da escola inteira", () => {
+    expect(fn).toMatch(/if \(!linked\.teacher_id\) return \{ sessions: \[\]/);
+  });
+
+  it("as sessões em falta criam-se numa só escrita, com erro verificado", () => {
+    const loop = fn.slice(fn.indexOf("for (const slot of slots"));
+    expect(loop).not.toMatch(/\.insert\(/);
+    expect(fn).toMatch(/error: createError/);
+  });
+});
+
+describe("sessões de presença: uma por aula e por dia", () => {
+  const migration = read(
+    "supabase/migrations/20260929230000_attendance_sessions_unique_slot_day.sql",
+  );
+
+  it("índice único idempotente, sem apagar duplicados", () => {
+    expect(migration).toMatch(
+      /CREATE UNIQUE INDEX IF NOT EXISTS siga_attendance_sessions_school_slot_day_key\s+ON public\.siga_attendance_sessions \(school_id, timetable_slot_id, lesson_date\)/,
+    );
+    expect(migration).not.toMatch(/\bDELETE\b/i);
+    expect(migration).toMatch(/RAISE EXCEPTION/);
+  });
+
+  it("o servidor aceita o conflito de outro pedido e lê as sessões que ficaram", () => {
+    const fn = body(
+      read("src/features/pedagogica/attendance-server.ts"),
+      "listTeacherAttendanceSessions",
+    );
+    expect(fn).toMatch(/createError\?\.code === "23505"/);
+  });
+});
+
+describe("mudar estado em lote (alunos)", () => {
+  const fn = body(read("src/features/students/server.ts"), "batchUpdateStudentStatus");
+
+  it("uma actualização para o lote, com erro verificado", () => {
+    expect(fn).not.toMatch(/for \(const s of students/);
+    expect(fn).toMatch(/\.in\("id", updatedIds\)/);
+    expect(fn).toMatch(/error: updateError/);
+  });
+
+  it("histórico numa só escrita e o mesmo rasto de auditoria que a mudança individual", () => {
+    expect(fn).toMatch(/recordStudentStatusHistoryBatch\(/);
+    expect(fn).toMatch(/recordAuditBatch\([\s\S]{0,200}action: "student\.status_change"/);
+  });
+});
+
+describe("lançar notas de avaliação", () => {
+  const fn = body(read("src/features/academic/server-legacy.ts"), "upsertAssessmentScores");
+
+  it("só aceita alunos da turma da avaliação, também para a Administração e a Secretaria", () => {
+    expect(fn).toMatch(/\.eq\("class_group_id", String\(item\.class_group_id\)\)/);
+    expect(fn).toMatch(/Há alunos que não são da turma desta avaliação/);
+    expect(fn.indexOf("Há alunos que não são da turma")).toBeLessThan(fn.indexOf(".insert("));
+  });
+});

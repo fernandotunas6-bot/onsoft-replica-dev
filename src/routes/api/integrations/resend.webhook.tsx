@@ -1,9 +1,11 @@
+import type { Json, TablesUpdate } from "@/integrations/supabase/types";
 import { createFileRoute } from "@tanstack/react-router";
 import { loadSgaAdminClient } from "@/integrations/supabase/sga-admin";
 import {
   resolveResendWebhookSecret,
   verifyResendWebhookSignature,
 } from "@/features/integrations/resend-webhook-signature";
+import { errorMessage } from "@/lib/error-message";
 
 // style-check: route-exempt — webhook HTTP Resend para entrega, aberturas e bounces.
 
@@ -79,7 +81,8 @@ export const Route = createFileRoute("/api/integrations/resend/webhook")({
             .eq("external_message_id", emailId)
             .maybeSingle();
 
-          let newStatus: string | null = null;
+          let newStatus: NonNullable<TablesUpdate<"communication_dispatches">["status"]> | null =
+            null;
           switch (eventType) {
             case "email.delivered":
               newStatus = "delivered";
@@ -118,15 +121,15 @@ export const Route = createFileRoute("/api/integrations/resend/webhook")({
               dispatch_id: dispatch.id,
               provider: "resend",
               event_type: eventType.replace("email.", ""),
-              payload: payload as unknown as Record<string, unknown>,
+              payload: payload as unknown as Json,
               occurred_at: payload.created_at || new Date().toISOString(),
             });
           }
 
           return Response.json({ ok: true, received: true });
-        } catch (err: any) {
+        } catch (err) {
           return Response.json(
-            { ok: false, message: err.message || "Erro ao processar webhook" },
+            { ok: false, message: errorMessage(err, "Erro ao processar webhook") },
             { status: 500 },
           );
         }

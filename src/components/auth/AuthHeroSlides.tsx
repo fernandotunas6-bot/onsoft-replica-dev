@@ -55,15 +55,20 @@ export function AuthHeroSlides() {
           );
         })}
       </div>
-      <div className="mt-6 flex gap-1.5">
+      {/* 24×24 px de área clicável (WCAG 2.5.8) em px: a raiz reduzida faz h-6 dar 16,5 px. */}
+      <div className="mt-4 flex">
         {slides.map((s, i) => (
           <button
             key={s.title}
             type="button"
             aria-label={`Mostrar: ${s.eyebrow}`}
             onClick={() => setIndex(i)}
-            className={`h-1.5 rounded-full bg-primary-foreground transition-all duration-500 ${i === index ? "w-6 opacity-90" : "w-1.5 opacity-40"}`}
-          />
+            className="flex h-[24px] min-w-[24px] items-center justify-center"
+          >
+            <span
+              className={`block h-1.5 rounded-full bg-primary-foreground transition-all duration-500 ${i === index ? "w-6 opacity-90" : "w-1.5 opacity-40"}`}
+            />
+          </button>
         ))}
       </div>
     </div>
