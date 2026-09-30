@@ -13,6 +13,8 @@ Aplicação baseada na main 32a3bdde, preservando as alterações concorrentes. 
 | RPCs legadas inutilizáveis        | EXECUTE retirado a 29 wrappers sem chamadas actuais que falhavam nos helpers privados. Definições preservadas; não receberam privilégios adicionais. Consulta ao catálogo confirmou zero wrappers expostos com esta falha. |
 | Esquema divergente                | Inventário recapturado: 183 tabelas públicas, todas com RLS, 333 políticas. Tipos gerados da produção. DDL real das duas tabelas em falta e migrações de RH/facturação já aplicadas capturados no repositório.             |
 
+Dependências: @grpc/grpc-js transitivo do Firebase actualizado de 1.9.16 para 1.14.5 por override, com lockfile Bun regenerado. Corrige GHSA-m9gg-hp2v-232j (confirmado no advisory do fornecedor). Auditoria local sem vulnerabilidades altas/críticas; inicialização e encerramento do Firestore verificados.
+
 Validação: typecheck, compilação de produção, suite completa e testes adicionais de privacidade; lint sem erros (avisos preexistentes de fast refresh/any). Testes SQL locais usam PGlite, executam a migração duas vezes e verificam isolamento, 2FA, rollback de cadastro/estorno e sequências. Fixture e limites descritos em tests/sql/README.md. Não substituem ensaios de carga e aceitação numa escola.
 
 ## Pendências externas e operacionais
