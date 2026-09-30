@@ -16,8 +16,11 @@ import {
 } from "@/integrations/supabase/sga-admin";
 import { sgaClient, rpcArgs } from "@/integrations/supabase/sga";
 import {
+  GRADE_SHEET_MFA_MESSAGE,
   GRADE_SHEET_STATUSES,
+  MISSING_ASSESSMENT_MODEL_MESSAGE,
   PRE_PAUTA_GATED_STATUSES,
+  gradeSheetDbMessage,
   buildPrePautaChecks,
   canRebuildGradeSheet,
   type GradeSheetStatus,
@@ -444,7 +447,19 @@ export const buildGradeSheet = createServerFn({ method: "POST" })
       [...MANAGE_ROLES],
     );
     if (data.kind === "term" && !data.termId) throw new Error("Escolha o período.");
+    // A base exige 2FA; sem esta verificação o erro chegava como «sem permissão».
+    if (context.claims["aal"] !== "aal2") throw new Error(GRADE_SHEET_MFA_MESSAGE);
     const db = await loadSgaAdminClient();
+    // Mesma condição que build_grade_sheet: modelo DEFAULT activo da escola.
+    const { data: activeRule } = await db
+      .from("assessment_rule_sets")
+      .select("id")
+      .eq("school_id", membership.schoolId)
+      .eq("status", "active")
+      .eq("code", "DEFAULT")
+      .limit(1)
+      .maybeSingle();
+    if (!activeRule) throw new Error(MISSING_ASSESSMENT_MODEL_MESSAGE);
     let existingQuery = db
       .from("grade_sheets")
       .select("status")
@@ -467,7 +482,11 @@ export const buildGradeSheet = createServerFn({ method: "POST" })
         kind: data.kind,
       }),
     );
-    if (error) throw publicDatabaseError(error, "Não foi possível gerar a pauta.");
+    if (error) {
+      const known = gradeSheetDbMessage(error);
+      if (known) throw new Error(known);
+      throw publicDatabaseError(error, "Não foi possível gerar a pauta.");
+    }
     return result as { gradeSheetId: string; status: string };
   });
 
@@ -487,6 +506,7 @@ export const transitionGradeSheet = createServerFn({ method: "POST" })
       context.userId,
       [...READ_ROLES],
     );
+    if (context.claims["aal"] !== "aal2") throw new Error(GRADE_SHEET_MFA_MESSAGE);
     // Pré-pauta obrigatória: submeter e homologar só com todas as verificações
     // limpas. Antes eram só informativas — homologava-se com notas em falta,
     // alterações pendentes ou uma pauta gerada antes das últimas notas.
@@ -523,7 +543,11 @@ export const transitionGradeSheet = createServerFn({ method: "POST" })
       reason: data.reason ?? null,
     });
     const { error } = await sgaClient(context.supabase).rpc("transition_grade_sheet", args);
-    if (error) throw publicDatabaseError(error, "Não foi possível mudar o estado da pauta.");
+    if (error) {
+      const known = gradeSheetDbMessage(error);
+      if (known) throw new Error(known);
+      throw publicDatabaseError(error, "Não foi possível mudar o estado da pauta.");
+    }
 
     let notified = 0;
     if (data.status === "published") {
