@@ -47,6 +47,7 @@ export const hrPayrollItemStatusSchema = z.enum([
   "draft",
   "calculated",
   "approved",
+  "processing",
   "paid",
   "cancelled",
 ]);
@@ -57,11 +58,12 @@ export type HrPaymentMethod = z.infer<typeof hrPaymentMethodSchema>;
 
 export const hrPaymentBatchStatusSchema = z.enum([
   "draft",
-  "ready",
+  "awaiting_authorization",
   "authorized",
   "processing",
   "partial",
   "completed",
+  "failed",
   "cancelled",
 ]);
 export type HrPaymentBatchStatus = z.infer<typeof hrPaymentBatchStatusSchema>;
@@ -102,11 +104,12 @@ export const HR_PAYMENT_BATCH_TRANSITIONS: Record<
   HrPaymentBatchStatus,
   readonly HrPaymentBatchStatus[]
 > = {
-  draft: ["ready", "cancelled"],
-  ready: ["authorized", "draft", "cancelled"],
-  authorized: ["processing", "cancelled"],
+  draft: ["awaiting_authorization", "authorized", "cancelled"],
+  awaiting_authorization: ["authorized", "draft", "cancelled"],
+  authorized: ["processing", "partial", "completed", "cancelled"],
   processing: ["partial", "completed"],
   partial: ["processing", "completed"],
+  failed: [],
   completed: [],
   cancelled: [],
 };

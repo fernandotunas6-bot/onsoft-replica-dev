@@ -2,6 +2,8 @@ import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import {
   canConfirmPaymentItem,
+  hrPaymentBatchStatusSchema,
+  hrPayrollItemStatusSchema,
   canTransitionPaymentBatch,
   canTransitionPayrollRun,
   compensationValidationFromAssurance,
@@ -40,12 +42,20 @@ describe("HR schemas — máquina de estados", () => {
   });
 
   it("allows payment batch dual-control path", () => {
-    expect(canTransitionPaymentBatch("draft", "ready")).toBe(true);
-    expect(canTransitionPaymentBatch("ready", "authorized")).toBe(true);
+    expect(canTransitionPaymentBatch("draft", "awaiting_authorization")).toBe(true);
+    expect(canTransitionPaymentBatch("awaiting_authorization", "authorized")).toBe(true);
     expect(canTransitionPaymentBatch("authorized", "processing")).toBe(true);
     expect(canTransitionPaymentBatch("processing", "partial")).toBe(true);
     expect(canTransitionPaymentBatch("partial", "completed")).toBe(true);
     expect(canTransitionPaymentBatch("completed", "draft")).toBe(false);
+  });
+
+  it("accepts database payment states and rejects the obsolete ready state", () => {
+    expect(hrPaymentBatchStatusSchema.safeParse("awaiting_authorization").success).toBe(true);
+    expect(hrPaymentBatchStatusSchema.safeParse("failed").success).toBe(true);
+    expect(hrPaymentBatchStatusSchema.safeParse("ready").success).toBe(false);
+    expect(hrPayrollItemStatusSchema.safeParse("processing").success).toBe(true);
+    expect(canTransitionPaymentBatch("authorized", "completed")).toBe(true);
   });
 
   it("only confirms payment items in authorized/processing/failed", () => {
@@ -145,8 +155,10 @@ describe("HR schemas — inputs Zod", () => {
 describe("HR schemas — wiring nos server fns", () => {
   it("payroll/payments/absences importam schemas centrais", () => {
     expect(source("src/features/hr/payroll.ts")).toContain('from "@/features/hr/schemas"');
-    expect(source("src/features/hr/payments.ts")).toContain("canConfirmPaymentItem");
-    expect(source("src/features/hr/payments.ts")).toContain("HR_PAYMENT_CONFIRMABLE_STATUSES");
+    expect(source("src/features/hr/payments.ts")).toContain("confirmPayrollPaymentItemInputSchema");
+    expect(source("src/features/hr/payments.ts")).toContain(
+      'rpc("hr_confirm_payroll_payment_item"',
+    );
     expect(source("src/features/hr/absences.ts")).toContain("reviewHrAbsenceInputSchema");
     expect(source("src/features/hr/teacher-lessons.ts")).toContain(
       "createTeacherLessonQrInputSchema",

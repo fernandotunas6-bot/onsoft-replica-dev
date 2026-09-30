@@ -11771,6 +11771,17 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      hr_confirm_payroll_payment_item: {
+        Args: {
+          p_school_id: string
+          p_payment_item_id: string
+          p_result: string
+          p_reference: string
+          p_failure_reason?: string
+        }
+        Returns: Json
+      }
+
       act_on_document_signature: {
         Args: {
           note?: string
