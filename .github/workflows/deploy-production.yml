@@ -53,6 +53,27 @@ jobs:
       url: https://portal-siga.com
     timeout-minutes: 45
     steps:
+      # Falha em segundos, com o nome do que falta, antes de instalar e construir.
+      # Sem isto, a falta do token só aparecia a meio da publicação, dita pelo
+      # wrangler (foi assim de #49 a #53: nada chegou à Cloudflare). Só nomes,
+      # nunca valores.
+      - name: Confirmar segredos obrigatórios do ambiente production
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          missing=0
+          for name in CLOUDFLARE_API_TOKEN CLOUDFLARE_ACCOUNT_ID VITE_SUPABASE_URL VITE_SUPABASE_PUBLISHABLE_KEY SUPABASE_SERVICE_ROLE_KEY; do
+            if [ -z "${!name}" ]; then
+              echo "::error::Falta o segredo $name no ambiente GitHub 'production' (Settings → Environments → production)."
+              missing=1
+            fi
+          done
+          exit $missing
+
       - uses: actions/checkout@v4
 
       - uses: actions/setup-node@v4
