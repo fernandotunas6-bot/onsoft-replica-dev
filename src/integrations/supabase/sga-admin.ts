@@ -1,6 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { resolveSgaMembership, sgaClient, type SgaMembershipContext } from "./sga";
-import type { ApplicationRole } from "@/features/auth/access-policy";
+import { GRANT_ELEVATABLE_ROLES, type ApplicationRole } from "@/features/auth/access-policy";
 import { ACTIVE_SCHOOL_UNAVAILABLE } from "@/features/auth/active-school";
 
 export async function loadSgaAdminClient() {
@@ -160,12 +160,7 @@ function isMissingRelation(error: { code?: string; message?: string }): boolean 
   );
 }
 
-/** Cargos que uma permissão por módulo pode elevar. Alunos e encarregados, nunca. */
-export const GRANT_ELEVATABLE_ROLES: readonly ApplicationRole[] = [
-  "Secretaria",
-  "Tesouraria",
-  "Professor",
-];
+export { GRANT_ELEVATABLE_ROLES };
 
 /**
  * A permissão por módulo dá acesso a quem não tem o cargo da função?

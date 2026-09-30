@@ -40,6 +40,8 @@ type RoomRow = {
   block: string | null;
   floor: string | null;
   notes: string | null;
+  /** Turmas activas com esta sala fixa (`class_groups.room_id`). */
+  turmas: string[];
 };
 
 const roomTypeLabels: Record<string, string> = {
@@ -289,6 +291,7 @@ export function SalasWorkspaceTab({ canManage }: { canManage: boolean }) {
                 <TableHead className="text-xs font-semibold">Nome da Sala</TableHead>
                 <TableHead className="text-xs font-semibold">Tipo de Espaço</TableHead>
                 <TableHead className="text-xs font-semibold text-center">Capacidade</TableHead>
+                <TableHead className="text-xs font-semibold">Turmas</TableHead>
                 <TableHead className="text-xs font-semibold">Localização</TableHead>
                 <TableHead className="text-xs font-semibold">Estado</TableHead>
                 {canManage && (
@@ -299,7 +302,7 @@ export function SalasWorkspaceTab({ canManage }: { canManage: boolean }) {
             <TableBody>
               {filteredRooms.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={7} className="py-8 text-center text-xs text-muted-foreground">
+                  <TableCell colSpan={8} className="py-8 text-center text-xs text-muted-foreground">
                     {isLoading ? "A carregar salas…" : "Nenhuma sala encontrada."}
                   </TableCell>
                 </TableRow>
@@ -322,6 +325,9 @@ export function SalasWorkspaceTab({ canManage }: { canManage: boolean }) {
                     </TableCell>
                     <TableCell className="text-center font-mono text-xs font-semibold">
                       {room.capacity ? `${room.capacity} alunos` : "—"}
+                    </TableCell>
+                    <TableCell className="text-xs text-muted-foreground">
+                      {room.turmas.length ? room.turmas.join(", ") : "Livre"}
                     </TableCell>
                     <TableCell className="text-xs text-muted-foreground">
                       {[room.building, room.block, room.floor].filter(Boolean).join(" · ") || "—"}

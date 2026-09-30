@@ -15,6 +15,70 @@ Depois abrir o skill do módulo em `.cursor/skills/`.
   ecrã de entrada revistos. Próximos ecrãs, um a um: Alunos → Financeiro/Faturas →
   Pedagógica → Comunicações → Configurações.
 
+## Ligações ADMIN → SIGA de cada escola (2026-09-29)
+
+- ADMIN `/tenants`, botão «SIGA»: `getSigaSchoolUrl` tirava o primeiro rótulo do host
+  do SIGA. Com o SIGA na raiz (`portal-siga.com`) abria `https://<slug>.com`, domínio
+  de terceiros. Agora `https://<slug>.${PLATFORM_DOMAIN}`, como `getPlatformSubdomain`
+  no SIGA; slug inválido ou dev → SIGA principal. Teste: `tests/saas/admin-school-url.test.ts`.
+- Rodapé e notificação da barra lateral do WEB e do ADMIN: `https://portal-siga.com`
+  à mão → `ECOSYSTEM_URLS.web`.
+- Revisão das leituras sensíveis no servidor (alunos, notas, faturas, RH, risco,
+  saúde): todas com cargo, âmbito ou dono verificados. Sem novas fugas.
+
+## Permissões por módulo: ecrã igual ao servidor (2026-09-29)
+
+- `canAccessPath` (menu, launcher, guarda de rotas) abria com qualquer permissão por
+  módulo áreas que o servidor recusa: Professor com «Financeiro» via o RH/folha
+  salarial; Secretaria com «Acessos/Config» via `/configuracoes`; linhas antigas em
+  alunos/encarregados alargavam-lhes o acesso. Agora segue `grantElevates`:
+  - só Secretaria, Tesouraria e Professor são elevados (`GRANT_ELEVATABLE_ROLES`, uma
+    única lista em `access-policy.ts`, reexportada por `sga-admin.ts`);
+  - `/financeiro/rh` e `/configuracoes` só pelo cargo;
+  - em alunos e encarregados a permissão só retira («Nenhum»).
+- `/pedagogica/risco` herdava a regra de `/pedagogica` e abria a alunos e encarregados;
+  o servidor (`risk-followup.functions`) só aceita Administrador, Secretaria e Professor.
+  Regra própria acrescentada.
+- **Fuga de dados corrigida:** `searchPeople` só verificava «é membro»; um aluno ou
+  encarregado recebia a lista de todas as pessoas da escola (contactos, BI, morada,
+  data de nascimento). Aplica agora `loadStudentScope`, como `getPerson`, e entrou em
+  `tests/security/student-scope.test.ts`. As outras funções que só usam
+  `resolveSgaMembershipAdmin` foram revistas: devolvem dados estruturais da escola
+  (anos, turmas, salas) ou filtram pelo próprio utilizador.
+- **`types.ts` da base errada, outra vez:** os commits Lovable «Work in progress» /
+  «Changes» (34fdd7c, 795e7d5, 339c938) na `main` regeneraram
+  `src/integrations/supabase/types.ts` a partir da outra base (85 tabelas, com
+  `invoices`, `payments`, `courses`); faltavam 111 tabelas da produção,
+  `types-match-production` falhava e o `tsc` não terminava (>20 min). Reposta a versão
+  de 310e790 (179 tabelas); `tsc` 0 erros em ~47 s. Não aceitar regenerações do Lovable
+  deste ficheiro.
+- PayFlow: o botão «SIGA Plus» do painel usava `http://localhost:3006` quando faltava
+  `NEXT_PUBLIC_SIGA_URL`; usa agora o `sigaUrl` do servidor e, em produção, o domínio
+  da plataforma.
+
+## Fim de 29/09 — PRs #40 a #45
+
+- **Lighthouse na main verde** (0,96–0,98, LCP ~1 s nas 7 rotas). Três causas, por ordem:
+  1. o SSR mandava sempre "A verificar sessão…" → cookie-pista `siga-session-hint`
+     (`src/features/auth/session-hint.ts`) e o `AuthGate` desenha logo o ecrã de entrada;
+  2. o 1.º frame do vídeo de fundo era o LCP (o Chrome do CI tem H.264, o Chromium local
+     não — para reproduzir, converter o vídeo para VP9 e pô-lo só em `.output/public`) →
+     poster 1280×720 embutido em `.auth-hero-poster` (styles.css);
+  3. o vídeo media ~1 200 px² mais que o poster por arredondamento → fica 1 px para dentro.
+  O passo "Resumo das métricas Lighthouse" (`scripts/lighthouse-summary.mjs`) imprime FCP,
+  LCP e TTFB de cada relatório no log do CI.
+- **`types.ts` regenerado da base errada pelo Lovable** (34fdd7ce, 339c9384, 13812878: 85
+  tabelas, com invoices/payments/courses) partiu a main; reposto no #44. Se voltar a
+  acontecer: `git checkout <último bom> -- src/integrations/supabase/types.ts`.
+- Calendário: botão "Trimestres" em /calendario grava os 3 trimestres de uma vez
+  (`save_academic_calendar`). A função actualiza trimestre a trimestre: avançar muito as
+  datas pode bater no trigger de sobreposição (resolver com migração, se aparecer).
+- Disciplinas: formulário só com o que se grava (carga anual); código normalizado.
+- Salas: coluna "Turmas" (turmas activas com `room_id`).
+- PayFlow: `school_id` do login confirmado; limite de comprovativos antes de gravar.
+- ADMIN revisto: rotas `/api/saas/*` protegidas. Por decidir (dono): exigir MFA (AAL2) aos
+  administradores da plataforma — 3 de 4 ainda sem MFA ficariam bloqueados.
+
 ## Turmas, salas e campus (2026-09-29)
 
 - **Sala física da turma:** `class_groups.room_id` (migração `20260929250000`, **já

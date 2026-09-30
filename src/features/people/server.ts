@@ -259,6 +259,11 @@ export const searchPeople = createServerFn({ method: "GET" })
     const membership = await resolveSgaMembershipAdmin(context.userId);
     if (!membership) throw new Error("Sem membership activa nesta escola.");
     const db = await loadSgaAdminClient();
+    // Alunos e encarregados também são membros: sem este âmbito recebiam a
+    // lista da escola inteira, com contactos, BI e moradas. Como em getPerson,
+    // só vêem a própria ficha (e a dos educandos).
+    const scope = await loadStudentScope(db, membership, context.userId);
+    if (!scope.all && scope.personIds.length === 0) return [];
 
     const baseColumns =
       "id, full_name, preferred_name, email, phone, national_id, status, date_of_birth, photo_url, updated_at";
@@ -270,6 +275,7 @@ export const searchPeople = createServerFn({ method: "GET" })
       .eq("school_id", membership.schoolId)
       .order("full_name")
       .limit(Math.max(data.limit * 3, 50));
+    if (!scope.all) peopleQuery = peopleQuery.in("id", scope.personIds);
     if (data.province) peopleQuery = peopleQuery.eq("province", data.province);
     if (data.municipality) peopleQuery = peopleQuery.eq("municipality", data.municipality);
     if (data.commune) peopleQuery = peopleQuery.eq("commune", data.commune);
@@ -281,12 +287,14 @@ export const searchPeople = createServerFn({ method: "GET" })
           "Os filtros territoriais ainda não estão activos nesta base. Aplique a migration de localização de Pessoas.",
         );
       }
-      const fallback = await db
+      let fallbackQuery = db
         .from("people")
         .select(baseColumns)
         .eq("school_id", membership.schoolId)
         .order("full_name")
         .limit(Math.max(data.limit * 3, 50));
+      if (!scope.all) fallbackQuery = fallbackQuery.in("id", scope.personIds);
+      const fallback = await fallbackQuery;
       people = (fallback.data as typeof people) ?? null;
       error = fallback.error;
     }
