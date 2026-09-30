@@ -39,6 +39,16 @@ aluno, e duas nem chegavam a correr na base SGA (função e colunas inexistentes
    (`private.has_permission(school_id, '<permissão>')` ou `public.current_school_role_is(...)`),
    nunca apenas "é membro".
 
+6a. **Permissão não é âmbito.** Os papéis `student` e `guardian` têm permissões de leitura
+   (`students.records.read`, `finance.invoices.read`, `assessment.grades.read`…) que as
+   políticas `*_select_authorized` não limitam ao próprio aluno. Tabela nova com dados de
+   alunos, notas, faltas, pagamentos ou documentos → acrescentá-la à lista de
+   `20260930130000_sensitive_tables_school_staff_only.sql` (política RESTRICTIVE
+   `private.is_school_staff(school_id)`) e o teste `staff-only-sensitive-tables` exige-o.
+6b. **Função `public.*` INVOKER que chama `private.*`:** `authenticated` precisa de EXECUTE
+   em toda a árvore privada que ela percorre (`CREATE OR REPLACE` mantém as permissões
+   antigas). Sem isso a função responde sempre «permission denied for function».
+
 ## Processo
 
 7. **Nunca aprovar no Lovable uma migração que falhe estas regras.** Em dúvida, rejeitar e
