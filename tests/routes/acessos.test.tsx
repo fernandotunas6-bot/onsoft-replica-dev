@@ -140,7 +140,7 @@ describe("/acessos — render", () => {
     renderRoute(Acessos);
 
     await waitFor(() => {
-      expect(screen.getByText("Gestão Auth indisponível neste ambiente")).toBeDefined();
+      expect(screen.getByText("Gestão de contas indisponível")).toBeDefined();
     });
     expect(screen.queryByText(/Missing Supabase/)).toBeNull();
   });

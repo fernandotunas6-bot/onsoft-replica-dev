@@ -41,7 +41,7 @@ const sceneCopy: Record<
     eyebrow: "SIGA Plus",
     title: "Dados organizados desde a origem",
     description:
-      "A instituição mantém uma experiência simples sem perder rigor académico e multi-tenant.",
+      "A instituição mantém uma experiência simples sem perder rigor académico, com os dados de cada escola separados.",
   },
   success: {
     eyebrow: "Concluído",

@@ -44,7 +44,6 @@ import {
   applicationRoles,
   type ApplicationRole,
 } from "@/features/auth/access-policy";
-import { useCurrentAccount } from "@/features/auth/use-current-account";
 import { useSchoolSettings } from "@/features/auth/use-school-settings";
 import { overlayCredenciais, overlayServico } from "@/features/documents/print-overlays";
 import { issuePrintDocument } from "@/features/documents/print-issue-loader";
@@ -117,7 +116,6 @@ const roleLabels: Record<string, string> = {
 
 function AcessosPage() {
   const queryClient = useQueryClient();
-  const currentUser = useCurrentAccount();
   const { school, selectedYearLabel } = useSchoolSettings();
   const { filters, setFilter, resetFilters, activeCount } = usePersistedListFilters(
     "acessos",
@@ -409,49 +407,48 @@ function AcessosPage() {
               <DocHelpButton title="Navegação — Acessos e permissões" />
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="outline" className="gap-1.5 text-xs shadow-2xs">
-                    <Download className="size-3.5" /> Exportar Acessos{" "}
+                  <Button variant="outline" size="sm" className="gap-1.5">
+                    Exportar
                     <ChevronDown className="size-3.5 text-muted-foreground" />
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-52">
+                <DropdownMenuContent align="end" className="w-60">
                   <DropdownMenuItem
                     onClick={exportarContasOficial}
                     disabled={!filteredAccounts.length}
-                    className="gap-2 text-xs cursor-pointer"
+                    className="cursor-pointer gap-2"
                   >
-                    <FileBadge className="size-3.5 text-primary" /> Relatório Contas PDF
+                    <FileBadge className="size-4" /> Contas — documento oficial
                   </DropdownMenuItem>
                   <DropdownMenuItem
                     onClick={exportarContas}
                     disabled={!filteredAccounts.length}
-                    className="gap-2 text-xs cursor-pointer"
+                    className="cursor-pointer gap-2"
                   >
-                    <Download className="size-3.5" /> Ficheiro CSV Contas
+                    <Download className="size-4" /> Contas — folha de cálculo (CSV)
                   </DropdownMenuItem>
                   <DropdownMenuItem
                     onClick={exportarEquipaOficial}
                     disabled={!filteredStaff.length}
-                    className="gap-2 text-xs cursor-pointer"
+                    className="cursor-pointer gap-2"
                   >
-                    <FileBadge className="size-3.5 text-primary" /> Relatório Equipa PDF
+                    <FileBadge className="size-4" /> Equipa — documento oficial
                   </DropdownMenuItem>
                   <DropdownMenuItem
                     onClick={exportarEquipa}
                     disabled={!filteredStaff.length}
-                    className="gap-2 text-xs cursor-pointer"
+                    className="cursor-pointer gap-2"
                   >
-                    <Download className="size-3.5" /> Ficheiro CSV Equipa
+                    <Download className="size-4" /> Equipa — folha de cálculo (CSV)
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
               <QuickFormModal
                 title="Convidar utilizador"
                 eyebrow="Contas de sistema"
-                description="Envia um convite por email via Supabase Auth e atribui o cargo no SIGA."
+                description="A pessoa recebe um e-mail para criar a senha e entra com o cargo escolhido."
                 icon={<MailPlus className="size-5" />}
                 submitLabel="Enviar convite"
-                note="Requer SUPABASE_SECRET_KEY no ambiente do servidor."
                 successDescription="Convite enviado. O utilizador define a senha pelo email recebido."
                 onSubmit={async (values) => {
                   await inviteSystemUser({
@@ -479,7 +476,12 @@ function AcessosPage() {
                   },
                 ]}
                 trigger={(open) => (
-                  <Button className="gap-2" onClick={open} disabled={secretMissing}>
+                  <Button
+                    size="sm"
+                    className="order-last gap-1.5"
+                    onClick={open}
+                    disabled={secretMissing}
+                  >
                     <MailPlus className="size-4" /> Convidar utilizador
                   </Button>
                 )}
@@ -543,7 +545,7 @@ function AcessosPage() {
                   },
                 ]}
                 trigger={(open) => (
-                  <Button variant="outline" className="gap-2" onClick={open}>
+                  <Button variant="outline" size="sm" className="gap-1.5" onClick={open}>
                     <UserPlus className="size-4" /> Novo membro
                   </Button>
                 )}
@@ -557,28 +559,21 @@ function AcessosPage() {
         <AccessRequestsPanel />
 
         <StatGrid
-          collapsible
-          storageKey="acessos"
           items={[
             {
               label: "Contas de login",
               value: accountsQuery.isError ? "—" : String(accounts.length),
-              hint: secretMissing ? "Secret key em falta" : "Perfis na escola",
+              hint: secretMissing ? "Indisponível" : "Pessoas que entram no SIGA",
             },
             {
               label: "Activas",
               value: accountsQuery.isError ? "—" : String(activos.length),
-              hint: "Sem suspensão Auth",
+              hint: "Não suspensas",
             },
             {
               label: "Equipa escolar",
               value: String(staff.length),
-              hint: "Pessoas com papéis de staff",
-            },
-            {
-              label: "Sessão actual",
-              value: currentUser.role,
-              hint: currentUser.email,
+              hint: "Professores e funcionários",
             },
           ]}
         />
@@ -620,15 +615,14 @@ function AcessosPage() {
 
         <Panel
           title="Contas de sistema"
-          description="Utilizadores com login no SIGA (Supabase Auth + profiles)"
+          description="Pessoas que entram no SIGA com e-mail e senha"
         >
           {secretMissing ? (
             <div className="rounded-2xl border border-warning/30 bg-warning/10 px-4 py-4 text-sm">
-              <p className="font-semibold">Gestão Auth indisponível neste ambiente</p>
+              <p className="font-semibold">Gestão de contas indisponível</p>
               <p className="mt-1 text-muted-foreground">
-                Configure <code className="font-mono">SUPABASE_SECRET_KEY</code> (ou{" "}
-                <code className="font-mono">SUPABASE_SERVICE_ROLE_KEY</code>) apenas no servidor
-                para listar, convidar e suspender contas.
+                O servidor ainda não tem a chave para gerir contas, por isso não é possível listar,
+                convidar nem suspender. Peça à equipa técnica do SIGA para a configurar.
               </p>
             </div>
           ) : accountsQuery.isLoading ? (
@@ -641,7 +635,7 @@ function AcessosPage() {
             </p>
           ) : (
             <div className="overflow-x-auto">
-              <Table>
+              <Table mobileCards>
                 <TableHeader>
                   <TableRow>
                     <TableHead>Utilizador</TableHead>
@@ -1015,7 +1009,7 @@ function AcessosPage() {
 
         <Panel
           title="Convites institucionais"
-          description="Convites formais de acesso e vinculação multi-tenant à escola"
+          description="Convites formais para entrar nesta escola"
           action={
             <QuickFormModal
               eyebrow="Acessos"
@@ -1072,7 +1066,7 @@ function AcessosPage() {
             </p>
           ) : (
             <div className="overflow-x-auto">
-              <Table>
+              <Table mobileCards>
                 <TableHeader>
                   <TableRow>
                     <TableHead>Email Convidado</TableHead>
@@ -1168,7 +1162,7 @@ function AcessosPage() {
 
         <Panel title="Equipa escolar" description="Professores e funcionários no registo central">
           <div className="overflow-x-auto">
-            <Table>
+            <Table mobileCards>
               <TableHeader>
                 <TableRow>
                   <TableHead>Pessoa</TableHead>
@@ -1300,7 +1294,7 @@ function AcessosPage() {
           }
         >
           <div className="overflow-x-auto">
-            <Table>
+            <Table mobileCards>
               <TableHeader>
                 <TableRow>
                   <TableHead>Perfil</TableHead>
