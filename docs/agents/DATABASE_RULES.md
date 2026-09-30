@@ -49,6 +49,11 @@ aluno, e duas nem chegavam a correr na base SGA (função e colunas inexistentes
    em toda a árvore privada que ela percorre (`CREATE OR REPLACE` mantém as permissões
    antigas). Sem isso a função responde sempre «permission denied for function».
 
+6c. **Escrita pela API exige 2FA.** Política de INSERT/UPDATE/DELETE para `authenticated`
+   leva `private.is_aal2()` e a permissão da acção. Uma permissiva sem `is_aal2` ao lado
+   de outra que o exige anula o 2FA (somam-se por OR); o teste `staff-only-sensitive-tables`
+   recusa-a. `students` e `enrollments` não aceitam INSERT directo: só pelo servidor.
+
 ## Processo
 
 7. **Nunca aprovar no Lovable uma migração que falhe estas regras.** Em dúvida, rejeitar e

@@ -4,6 +4,20 @@ Ler isto **antes** de alterar código. Ecossistema (5 apps):
 [ARCHITECTURE_HARMONIZATION.md](./ARCHITECTURE_HARMONIZATION.md).
 Depois abrir o skill do módulo em `.cursor/skills/`.
 
+## Escrita directa pela API passa a exigir 2FA (2026-09-30)
+
+- `20260930180000` (aplicada, por decisão do dono): saem as 8 políticas antigas
+  «Create/Update … in own school» (só `is_school_office`) de `people`, `students`,
+  `enrollments` e `class_groups`. Somavam-se às actuais com `is_aal2` e anulavam o
+  2FA: quem tivesse só a senha de um Administrador escrevia pela API REST. Os INSERT
+  de `students`/`enrollments` não tinham substituta e saem também (a app insere pelo
+  servidor e por `register_student`/`enroll_student`, SECURITY DEFINER).
+- Verificado na produção (transacções desfeitas): com aal1 o dono actualiza 0 turmas
+  e não insere alunos; com aal2 actualiza 1/1. 297 políticas; retrato actualizado.
+- Nenhum caminho da app dependia delas: escritas pelo servidor (chave de serviço);
+  funções INVOKER que escrevem nestas tabelas não são executáveis por
+  `authenticated`; nenhum trigger escreve nelas.
+
 ## Pauta oficial: ensaio completo e mensagens (2026-09-30)
 
 - **Cadeia provada na produção** (uma transacção desfeita no fim): o servidor publica
