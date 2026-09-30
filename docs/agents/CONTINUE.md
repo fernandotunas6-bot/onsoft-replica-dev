@@ -14,9 +14,14 @@ Depois abrir o skill do módulo em `.cursor/skills/`.
 - 30/09: comandos da app com ACL (origem remota), exportações pelo "Guardar como"
   nativo, impressão e documentos oficiais no macOS (janela `sigapage://` sem scripts) e
   PayFlow numa janela própria com SSO (`open_payflow`).
-- Visual limpo (regra do dono: "igual às grandes empresas"): tokens, shell, dashboard e
-  ecrã de entrada revistos. Próximos ecrãs, um a um: Alunos → Financeiro/Faturas →
-  Pedagógica → Comunicações → Configurações.
+- Visual limpo (regra do dono: "igual às grandes empresas"): revistos tokens, shell,
+  painel, entrada, Estudantes, Faturas, Área Pedagógica, Comunicações e Definições.
+  Peças partilhadas para ecrãs novos: `PageHeader` (título + acções), `StatGrid` (números
+  principais à vista; `collapsible` só para os secundários, com `toggleLabel`),
+  `ListFilterBar`, `UnderlineTabs`, `DocHelpMenu` (várias ajudas num botão), `StatCard`.
+  Regras: uma acção principal por ecrã; exportações num menu "Exportar"; sem jargão
+  técnico nem nomes de fornecedores no texto; os `<select>` têm estilo global
+  (styles.css). Falta: tabelas em cartões no telemóvel; restantes ecrãs.
 
 ## Dependências das outras apps (2026-09-30)
 
