@@ -1,13 +1,13 @@
 import type { ReactNode } from "react";
-import { ChevronDown, X } from "lucide-react";
+import { X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { DebouncedSearchInput } from "@/components/filters/debounced-search-input";
 
 /*
- * Seletor com o aspecto dos campos de texto: sem seta nativa (a do sistema muda de SO para
- * SO), peso normal (o `<select>` herdava o negrito do rótulo) e a mesma altura da pesquisa.
+ * Seletor com o aspecto dos campos de texto e a mesma altura da pesquisa. A seta e o
+ * peso normal vêm da regra global de `select` (styles.css).
  */
 const selectClass =
   "h-9 w-full appearance-none rounded-md border border-input bg-background pl-3 pr-8 text-sm font-normal text-foreground shadow-subtle transition-colors hover:border-foreground/25 focus-visible:border-ring";
@@ -71,10 +71,6 @@ export function ListFilterBar({
                     </option>
                   ))}
                 </select>
-                <ChevronDown
-                  aria-hidden
-                  className="pointer-events-none absolute right-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
-                />
               </label>
             );
           }

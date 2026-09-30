@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import {
   Archive,
+  ChevronDown,
   Download,
   FileBadge,
   FileDown,
@@ -23,6 +24,13 @@ import { AppShell } from "@/components/layout/AppShell";
 import { PageHeader, Panel, StatGrid, badgeBase, toneClass } from "@/components/layout/PageHeader";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { DocHelpButton } from "@/components/ui/doc-help-button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { UnderlineTabs } from "@/components/ui/underline-tabs";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { ConfirmActionModal } from "@/components/modals/ConfirmActionModal";
@@ -486,47 +494,51 @@ function ComunicacoesPage() {
           actions={
             <>
               <DocHelpButton title="Navegação — Comunicações" />
-              <Button
-                variant="outline"
-                className="gap-2"
-                onClick={() => setTemplatesModalOpen(true)}
-              >
-                <FileText className="size-4" /> Templates
-              </Button>
-              <Button
-                variant="outline"
-                className="gap-2"
-                onClick={exportarCsv}
-                disabled={!filtered.length}
-              >
-                <Download className="size-4" /> CSV
-              </Button>
-              <Button
-                variant="outline"
-                className="gap-2"
-                onClick={exportarPdf}
-                disabled={!filtered.length}
-              >
-                <FileDown className="size-4" /> PDF
-              </Button>
-              <Button
-                variant="outline"
-                className="gap-2"
-                onClick={exportarOficial}
-                disabled={!filtered.length}
-              >
-                <FileBadge className="size-4" /> Oficial
-              </Button>
               <PickFileButton
                 area="escola"
+                variant="ghost"
+                size="sm"
                 onPick={(file) =>
                   toast.success(file.name, {
                     description: "Ficheiro da biblioteca para o comunicado.",
                   })
                 }
               />
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-1.5"
+                onClick={() => setTemplatesModalOpen(true)}
+              >
+                <FileText className="size-3.5" /> Modelos
+              </Button>
+              {/* CSV, PDF e Oficial eram três botões lado a lado. */}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="gap-1.5"
+                    disabled={!filtered.length}
+                  >
+                    <Download className="size-3.5" /> Exportar
+                    <ChevronDown className="size-3.5 text-muted-foreground" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-52">
+                  <DropdownMenuItem onClick={exportarOficial} className="cursor-pointer gap-2">
+                    <FileBadge className="size-3.5" /> Relatório oficial (PDF)
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={exportarPdf} className="cursor-pointer gap-2">
+                    <FileDown className="size-3.5" /> Lista simples (PDF)
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={exportarCsv} className="cursor-pointer gap-2">
+                    <Download className="size-3.5" /> Ficheiro CSV
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
               {canManage && !migrationMissing ? (
-                <Button className="gap-2" onClick={abrirFormulario}>
+                <Button size="sm" className="gap-1.5" onClick={abrirFormulario}>
                   <Send className="size-4" /> Novo comunicado
                 </Button>
               ) : null}
@@ -536,32 +548,21 @@ function ComunicacoesPage() {
 
         <InstalledModuleTools module="comunicacoes" />
 
-        <div className="flex gap-2 border-b border-border pb-3">
-          <Button
-            variant={activeTab === "announcements" ? "default" : "ghost"}
-            size="sm"
-            onClick={() => setActiveTab("announcements")}
-            className="gap-2 text-xs"
-          >
-            <MessageSquare className="size-3.5" /> Comunicados da Escola
-          </Button>
-          <Button
-            variant={activeTab === "dispatches" ? "default" : "ghost"}
-            size="sm"
-            onClick={() => setActiveTab("dispatches")}
-            className="gap-2 text-xs"
-          >
-            <Radio className="size-3.5" /> Entregas &amp; Histórico Multicanal
-          </Button>
-        </div>
+        <UnderlineTabs
+          label="Comunicações"
+          value={activeTab}
+          onChange={setActiveTab}
+          tabs={[
+            { id: "announcements", label: "Comunicados", icon: MessageSquare },
+            { id: "dispatches", label: "Entregas e histórico", icon: Radio },
+          ]}
+        />
 
         {activeTab === "dispatches" ? (
           <DispatchesTrackingPanel />
         ) : (
           <>
             <StatGrid
-              collapsible
-              storageKey="comunicacoes"
               items={[
                 {
                   label: "Comunicados",
@@ -925,7 +926,7 @@ function ComunicacoesPage() {
                 title="Redigir comunicado"
                 description={
                   canManage
-                    ? "Registo no portal. Envio externo: instale Resend/WhatsApp em Definições → Integrações."
+                    ? "Fica registado no portal. Para enviar por e-mail ou WhatsApp, active-os em Definições → Integrações."
                     : "Somente leitura para o seu perfil"
                 }
               >
@@ -941,7 +942,7 @@ function ComunicacoesPage() {
                   <>
                     {!resendOn && !whatsappNotices ? (
                       <p className="mb-3 rounded-lg border border-dashed border-border bg-muted/30 px-3 py-2 text-xs text-muted-foreground">
-                        Sem Resend/WhatsApp instalados, o comunicado fica só no portal.{" "}
+                        Sem e-mail nem WhatsApp activos, o comunicado fica só no portal.{" "}
                         <Link
                           to="/configuracoes"
                           search={{ painel: "integracoes" }}
@@ -956,7 +957,7 @@ function ComunicacoesPage() {
                           rel="noreferrer"
                           className="font-medium text-primary underline-offset-2 hover:underline"
                         >
-                          Manual DOC
+                          Como activar
                         </a>
                       </p>
                     ) : null}
@@ -1004,7 +1005,7 @@ function ComunicacoesPage() {
                         {resendOn || whatsappNotices ? (
                           <p className="text-xs text-muted-foreground">
                             {resendOn
-                              ? "Canal E-mail: envio HTTP Resend (ou cópia se faltar API key). "
+                              ? "E-mail: enviado automaticamente (ou copiado, se o envio não estiver configurado). "
                               : ""}
                             {whatsappNotices ? "Use WhatsApp nos cartões depois de publicar." : ""}
                           </p>

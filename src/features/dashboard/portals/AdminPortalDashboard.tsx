@@ -28,6 +28,7 @@ import { CashFlowForecastChart } from "@/features/dashboard/components/CashFlowF
 import { DashboardChartsSkeleton } from "@/features/dashboard/DashboardCharts";
 import { overlayServico } from "@/features/documents/print-overlays";
 import { issuePrintDocument } from "@/features/documents/print-issue-loader";
+import { UnderlineTabs } from "@/components/ui/underline-tabs";
 import { Button } from "@/components/ui/button";
 import { IconChip } from "@/components/ui/icon-chip";
 import { kwanza } from "@/lib/currency";
@@ -258,33 +259,19 @@ export function AdminPortalDashboard({
       </header>
 
       {/* SEPARADORES — sublinhado, deslizam na horizontal no telemóvel */}
-      <div
-        role="tablist"
-        aria-label="Vistas do painel"
-        className="no-scrollbar -mx-4 flex gap-6 overflow-x-auto px-4 shadow-[inset_0_-1px_0_var(--color-border)] md:mx-0 md:px-0"
-      >
-        {(
-          [
-            { id: "geral", label: "Visão geral", show: true },
-            { id: "pedagogico", label: "Desempenho e pautas", show: true },
-            { id: "financeiro", label: "Projecção financeira", show: capabilities.finance },
-            { id: "auditoria", label: "Produtividade", show: true },
-          ] as const
-        )
-          .filter((tab) => tab.show)
-          .map((tab) => (
-            <button
-              key={tab.id}
-              type="button"
-              role="tab"
-              aria-selected={activeTab === tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              className="relative shrink-0 whitespace-nowrap pb-3 pt-1 text-sm font-medium text-muted-foreground transition-colors after:absolute after:inset-x-0 after:bottom-0 after:h-0.5 after:rounded-full after:bg-transparent hover:text-foreground aria-selected:text-foreground aria-selected:after:bg-foreground"
-            >
-              {tab.label}
-            </button>
-          ))}
-      </div>
+      <UnderlineTabs
+        label="Vistas do painel"
+        value={activeTab}
+        onChange={setActiveTab}
+        tabs={[
+          { id: "geral" as const, label: "Visão geral" },
+          { id: "pedagogico" as const, label: "Desempenho e pautas" },
+          ...(capabilities.finance
+            ? [{ id: "financeiro" as const, label: "Projecção financeira" }]
+            : []),
+          { id: "auditoria" as const, label: "Produtividade" },
+        ]}
+      />
 
       {activeTab === "geral" && capabilities.students && totalStudents === 0 ? (
         <section className="rounded-xl border border-primary/20 bg-primary/5 p-4">
