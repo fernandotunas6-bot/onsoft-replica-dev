@@ -4,6 +4,27 @@ Ler isto **antes** de alterar código. Ecossistema (5 apps):
 [ARCHITECTURE_HARMONIZATION.md](./ARCHITECTURE_HARMONIZATION.md).
 Depois abrir o skill do módulo em `.cursor/skills/`.
 
+## Advisors do Supabase e vitest (2026-09-30)
+
+- `vitest`/`@vitest/ui` 4.1.10 → 4.1.11 (GHSA-82fw-gwwq-j7x9, leitura de ficheiros via
+  mock redireccionado; só desenvolvimento/CI). 336 ficheiros de teste passam.
+  `bun audit`: ficam `uuid` (exceljs) e `esbuild` 0.18 (drizzle-kit), ambos sem uso
+  em produção — ver `CRITICAL_REVIEW_2026-09.md` §2.
+- Advisors de segurança da produção (`Sga`, leitura só): **0 erros**.
+  - 62 × «RLS sem políticas»: tabelas só-servidor (alumni, RH salarial, segredos,
+    risco, `academic_evidence.*`, sequências `private.*`). Intencional; não abrir.
+  - 18 × `SECURITY DEFINER` executável por `authenticated`: helpers de RLS
+    (`is_school_*`, `current_*`, `has_school_permission`…) e as RPC de presença do
+    professor. Revistas `hr_evaluate_teacher_attendance_assurance` e
+    `hr_redeem_teacher_qr`: ambas exigem que `auth.uid()` seja o professor da aula; o
+    resgate exige ainda evidência recente válida. Sem fuga.
+  - **Por fazer (dono):** ligar «Leaked password protection» (Authentication →
+    Passwords/Attack protection) — recusa senhas que aparecem no HaveIBeenPwned.
+- O aviso de 29/09 «avançar muito as datas pode bater no trigger de sobreposição» já
+  está resolvido pela migração `20260930090000` (verificação adiada para o fim).
+  Também a tabela `school_access_requests` já está no retrato
+  (`TABELAS_AUSENTES_DA_PRODUCAO` vazia).
+
 ## CORS e domínios próprios seguem PLATFORM_DOMAIN (2026-09-30)
 
 - `src/lib/ecosystem-cors.ts`: as origens de produção (raiz, www, admin, docs, app,
