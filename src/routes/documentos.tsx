@@ -611,7 +611,7 @@ function DocumentosPage() {
           }
         >
           <div className="overflow-x-auto">
-            <Table>
+            <Table mobileCards>
               <TableHeader>
                 <TableRow>
                   <TableHead>Documento</TableHead>

@@ -905,7 +905,7 @@ function FaturasPage() {
           }
         >
           <div className="overflow-x-auto">
-            <Table>
+            <Table mobileCards>
               <TableHeader>
                 <TableRow>
                   <TableHead>Número</TableHead>

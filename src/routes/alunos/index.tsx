@@ -1033,7 +1033,7 @@ function StudentsPage() {
           </div>
 
           <div className="overflow-x-auto">
-            <Table className="min-w-[880px]">
+            <Table mobileCards className="min-w-[880px]">
               <TableHeader>
                 <TableRow>
                   <TableHead className="w-10 px-3">

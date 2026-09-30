@@ -1,13 +1,46 @@
 import * as React from "react";
 
 import { cn } from "@/lib/utils";
+import { labelTableCells } from "@/lib/table-labels";
 
-const Table = React.forwardRef<HTMLTableElement, React.HTMLAttributes<HTMLTableElement>>(
-  ({ className, ...props }, ref) => (
-    <div className="relative w-full overflow-auto">
-      <table ref={ref} className={cn("w-full caption-bottom text-sm", className)} {...props} />
-    </div>
-  ),
+type TableProps = React.HTMLAttributes<HTMLTableElement> & {
+  /**
+   * No telemóvel (< 640px) cada linha vira um cartão "rótulo … valor", em vez de a
+   * tabela deslizar para o lado. Para listas (alunos, faturas, pessoas); não para grelhas
+   * de muitas colunas numéricas (pautas), onde a tabela continua a deslizar.
+   */
+  mobileCards?: boolean;
+};
+
+const Table = React.forwardRef<HTMLTableElement, TableProps>(
+  ({ className, mobileCards = false, ...props }, ref) => {
+    const innerRef = React.useRef<HTMLTableElement | null>(null);
+
+    React.useEffect(() => {
+      const table = innerRef.current;
+      if (!mobileCards || !table) return;
+      labelTableCells(table);
+      // As linhas mudam com a pesquisa, a paginação e os dados que chegam depois.
+      const observer = new MutationObserver(() => labelTableCells(table));
+      observer.observe(table, { childList: true, subtree: true, characterData: true });
+      return () => observer.disconnect();
+    }, [mobileCards]);
+
+    return (
+      <div className="relative w-full overflow-auto">
+        <table
+          ref={(node) => {
+            innerRef.current = node;
+            if (typeof ref === "function") ref(node);
+            else if (ref) ref.current = node;
+          }}
+          data-mobile-cards={mobileCards ? "" : undefined}
+          className={cn("w-full caption-bottom text-sm", className)}
+          {...props}
+        />
+      </div>
+    );
+  },
 );
 Table.displayName = "Table";
 

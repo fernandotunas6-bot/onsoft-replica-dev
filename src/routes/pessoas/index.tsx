@@ -556,7 +556,7 @@ function PeoplePage() {
             </p>
           </div>
           <div className="overflow-x-auto">
-            <Table>
+            <Table mobileCards>
               <TableHeader>
                 <TableRow>
                   <TableHead>Nº</TableHead>
@@ -767,7 +767,7 @@ function PeoplePage() {
             </div>
           </div>
           <div className="overflow-x-auto">
-            <Table>
+            <Table mobileCards>
               <TableHeader>
                 <TableRow>
                   <TableHead>Nome</TableHead>
