@@ -3,6 +3,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { toast } from "sonner";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
+  ChevronDown,
   AlertCircle,
   ArrowDownRight,
   ArrowUpRight,
@@ -37,7 +38,14 @@ import { InstalledModuleTools } from "@/features/integrations/InstalledModuleToo
 import { useInstalledIntegrations } from "@/features/integrations/use-installed-integrations";
 import { AppShell } from "@/components/layout/AppShell";
 import { DOC_PATHS } from "@/lib/ecosystem-urls";
-import { DocHelpButton, DocPathHelpButton } from "@/components/ui/doc-help-button";
+import { DocHelpMenu } from "@/components/ui/doc-help-button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { PageHeader, Panel, StatGrid, badgeBase, toneClass } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/button";
 import { StatusBadge } from "@/components/ui/status-badge";
@@ -429,64 +437,90 @@ function FinanceiroPage() {
           description="Registo diário de entradas e saídas, métodos de pagamento e evolução da cobrança."
           actions={
             <>
-              <Button variant="outline" className="gap-2" onClick={exportarCaixaCsv}>
-                <Download className="size-4" /> CSV
-              </Button>
-              <Button variant="outline" className="gap-2" onClick={exportarCaixaPdf}>
-                <FileDown className="size-4" /> PDF
-              </Button>
-              <Button variant="outline" className="gap-2" onClick={exportarCaixaOficial}>
-                <FileBadge className="size-4" /> Oficial
-              </Button>
-              <Button variant="outline" className="gap-2" asChild>
-                <Link to="/importar" search={{ tab: "novo", modulo: "pagamentos" }}>
-                  <FileUp className="size-4 text-primary" /> Importar Pagamentos
-                </Link>
-              </Button>
-              <Button variant="outline" className="gap-2" asChild>
-                <a
-                  href={getPayflowPayerUrl() ?? "http://localhost:3007/aluno/pagar"}
-                  target="_blank"
-                  rel="noreferrer"
-                >
-                  <PayflowBrandIcon size={16} /> Portal PayFlow
-                </a>
-              </Button>
-              <PayflowAdminLaunchButton variant="outline" className="gap-2">
-                Conciliação PayFlow
-              </PayflowAdminLaunchButton>
-              <Button variant="outline" className="gap-2" asChild>
-                <Link to="/relatorios/financeiros">
-                  <Banknote className="size-4" /> Resumo do caixa
-                </Link>
-              </Button>
-              <Button variant="outline" className="gap-2" asChild>
-                <Link to="/financeiro/rh">
-                  <BriefcaseBusiness className="size-4" /> RH e Folha
-                </Link>
-              </Button>
-              {financeInvoiceBlocked ? (
-                <Button variant="outline" className="gap-2" disabled>
-                  <Banknote className="size-4" /> Emitir fatura
-                </Button>
-              ) : (
-                <Button variant="outline" className="gap-2" asChild>
-                  <Link to="/faturas">
-                    <Banknote className="size-4" /> Emitir fatura
-                  </Link>
-                </Button>
-              )}
-              <DocHelpButton title="Navegação e permissões — tesouraria" />
-              <DocPathHelpButton
-                path={DOC_PATHS.financePayflow}
-                label="PayFlow"
-                title="PayFlow — cobrança e conciliação"
+              {/* Eram 16 botões em duas linhas: ajuda, exportações e atalhos passam a menus;
+                  ficam à vista as operações do dia (formulários, que não podem viver dentro
+                  de um menu — fechá-lo desmontava o formulário). */}
+              <DocHelpMenu
+                items={[
+                  { label: "Tesouraria e permissões" },
+                  { label: "PayFlow — cobrança e conciliação", path: DOC_PATHS.financePayflow },
+                  { label: "Multicaixa, Unitel e gateway", path: DOC_PATHS.integracoesEmis },
+                ]}
               />
-              <DocPathHelpButton
-                path={DOC_PATHS.integracoesEmis}
-                label="Pagamentos"
-                title="Multicaixa, Unitel e gateway"
-              />
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" size="sm" className="gap-1.5">
+                    <Download className="size-3.5" /> Exportar
+                    <ChevronDown className="size-3.5 text-muted-foreground" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-56">
+                  <DropdownMenuItem onClick={exportarCaixaOficial} className="cursor-pointer gap-2">
+                    <FileBadge className="size-3.5" /> Relatório oficial (PDF)
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={exportarCaixaPdf} className="cursor-pointer gap-2">
+                    <FileDown className="size-3.5" /> Lista simples (PDF)
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={exportarCaixaCsv} className="cursor-pointer gap-2">
+                    <Download className="size-3.5" /> Ficheiro CSV
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem asChild className="cursor-pointer gap-2">
+                    <Link to="/relatorios/financeiros">
+                      <Banknote className="size-3.5" /> Resumo do caixa
+                    </Link>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" size="sm" className="gap-1.5">
+                    Mais
+                    <ChevronDown className="size-3.5 text-muted-foreground" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-60">
+                  <DropdownMenuItem asChild className="cursor-pointer gap-2">
+                    <Link to="/importar" search={{ tab: "novo", modulo: "pagamentos" }}>
+                      <FileUp className="size-3.5" /> Importar pagamentos (Excel)
+                    </Link>
+                  </DropdownMenuItem>
+                  {financeInvoiceBlocked ? (
+                    <DropdownMenuItem disabled className="gap-2">
+                      <Banknote className="size-3.5" /> Emitir fatura
+                    </DropdownMenuItem>
+                  ) : (
+                    <DropdownMenuItem asChild className="cursor-pointer gap-2">
+                      <Link to="/faturas">
+                        <Banknote className="size-3.5" /> Emitir fatura
+                      </Link>
+                    </DropdownMenuItem>
+                  )}
+                  <DropdownMenuItem asChild className="cursor-pointer gap-2">
+                    <Link to="/financeiro/rh">
+                      <BriefcaseBusiness className="size-3.5" /> RH e folha salarial
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem asChild className="cursor-pointer gap-2">
+                    <a
+                      href={getPayflowPayerUrl() ?? "http://localhost:3007/aluno/pagar"}
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      <PayflowBrandIcon size={14} /> Portal PayFlow (pagamentos)
+                    </a>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    className="cursor-pointer gap-2 p-0"
+                    onSelect={(event) => event.preventDefault()}
+                  >
+                    <PayflowAdminLaunchButton asMenuItem className="px-2 py-1.5">
+                      Conciliação PayFlow
+                    </PayflowAdminLaunchButton>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
               <QuickFormModal
                 eyebrow="Tesouraria"
                 title="Pagamento avançado"
@@ -571,8 +605,8 @@ function FinanceiroPage() {
                   },
                 ]}
                 trigger={(open) => (
-                  <Button variant="outline" className="gap-2" onClick={open}>
-                    <Wallet className="size-4" /> Pagamento avançado
+                  <Button variant="outline" size="sm" className="gap-1.5" onClick={open}>
+                    <Wallet className="size-3.5" /> Pagamento avançado
                   </Button>
                 )}
               />
@@ -672,7 +706,12 @@ function FinanceiroPage() {
                   });
                 }}
                 trigger={(open) => (
-                  <Button className="gap-2" onClick={open} disabled={!payableInvoices.length}>
+                  <Button
+                    size="sm"
+                    className="order-last gap-1.5"
+                    onClick={open}
+                    disabled={!payableInvoices.length}
+                  >
                     <Plus className="size-4" /> Registar pagamento
                   </Button>
                 )}
@@ -713,12 +752,13 @@ function FinanceiroPage() {
                 }}
                 trigger={(open) => (
                   <Button
-                    variant="outline"
-                    className="gap-2"
+                    variant="ghost"
+                    size="sm"
+                    className="gap-1.5"
                     onClick={open}
                     disabled={!reversibleEntries.length}
                   >
-                    <Undo2 className="size-4" /> Anular lançamento
+                    <Undo2 className="size-3.5" /> Anular lançamento
                   </Button>
                 )}
               />
@@ -801,7 +841,8 @@ function FinanceiroPage() {
                 trigger={(open) => (
                   <Button
                     variant="outline"
-                    className="gap-2"
+                    size="sm"
+                    className="gap-1.5"
                     onClick={open}
                     disabled={!cashExpensesAvailable}
                     title={
@@ -810,7 +851,7 @@ function FinanceiroPage() {
                         : "A actualizar a estrutura financeira do SGA"
                     }
                   >
-                    <ArrowDownRight className="size-4" /> Despesa
+                    <ArrowDownRight className="size-3.5" /> Despesa
                   </Button>
                 )}
               />
@@ -863,8 +904,6 @@ function FinanceiroPage() {
         ) : null}
 
         <StatGrid
-          collapsible
-          storageKey="financeiro"
           items={[
             { label: "Saldo actual", value: kwanza(saldo), hint: "Caixa + banco" },
             {
