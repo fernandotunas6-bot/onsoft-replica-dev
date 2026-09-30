@@ -18,6 +18,20 @@ Depois abrir o skill do módulo em `.cursor/skills/`.
   ecrã de entrada revistos. Próximos ecrãs, um a um: Alunos → Financeiro/Faturas →
   Pedagógica → Comunicações → Configurações.
 
+## Dependências das outras apps (2026-09-30)
+
+- ADMIN e WEB: `brace-expansion` (mesmos avisos de 29/09 do SIGA, ferramentas de lint)
+  → `npm audit` limpo. Lockfiles com **npm 11** (`npx npm@11 …`): o npm 10 deste
+  ambiente apagava os campos `libc` do lockfile do WEB (escolha glibc/musl dos binários).
+- PayFlow: `react`, `react-dom` e `react-server-dom-webpack` 19.2.6 → 19.2.8
+  (GHSA-wx67-qw84-cm4g, DoS nas Server Functions; o vinext põe o RSC no Worker, logo
+  corre em produção) e `vite` 8.0.13 → 8.0.16. Lint 0 erros, build e 48 testes ok.
+- Fica por fazer (exige versão principal nova, testar à parte): PayFlow `vinext` 1.0
+  (via `image-size`), `@cloudflare/vite-plugin`/`wrangler` (miniflare, undici, ws,
+  sharp) — só ferramentas de build/dev. DOC: `vite` dentro do VitePress, sem correcção
+  publicada. WEB: 17 erros de lint anteriores (React Compiler: setState em efeito,
+  função impura no render; `only-export-components`).
+
 ## Arrumação: fixtures e tipos (2026-09-30)
 
 - `pautas-demo.ts` já não era usado pela aplicação (sem turma real a pauta fica vazia),
