@@ -4,6 +4,22 @@ Ler isto **antes** de alterar código. Ecossistema (5 apps):
 [ARCHITECTURE_HARMONIZATION.md](./ARCHITECTURE_HARMONIZATION.md).
 Depois abrir o skill do módulo em `.cursor/skills/`.
 
+## Pauta oficial: ensaio completo e mensagens (2026-09-30)
+
+- **Cadeia provada na produção** (uma transacção desfeita no fim): o servidor publica
+  o modelo (`siga_publish_assessment_rule`) → o dono, com aal2, gera a pauta
+  (`build_grade_sheet`: 2 linhas para os 2 alunos da turma) → submete
+  (`transition_grade_sheet`: `submitted`). Depois: 0 modelos, 0 pautas, 0
+  notificações. Basta a escola publicar o modelo.
+- `grade-sheets.ts` verifica antes de chamar a base: 2FA (`aal2`) para gerar e para
+  mudar de estado, e modelo DEFAULT activo para gerar (mesma condição da função).
+  Antes, sem modelo aparecia «Não foi possível gerar a pauta.» e sem 2FA «Não tem
+  permissão».
+- Mensagens das duas funções chegam ao ecrã por uma lista fechada
+  (`gradeSheetDbMessage`, `grade-sheet-workflow.ts`); o teste falha se a base
+  passar a lançar uma mensagem que não esteja na lista. Só a de 2FA abre o aviso
+  com «Activar 2FA».
+
 ## Deploy de produção bloqueado por segredos (2026-09-30)
 
 - «Deploy produção» falhou em todos os merges de #49 a #53: faltava
