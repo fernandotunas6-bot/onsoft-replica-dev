@@ -582,24 +582,21 @@ function StudentsPage() {
             if (kind === "sige_students") exportarAlunosSige();
           }}
         />
-        <div className="flex flex-wrap items-end justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <IconChip icon={GraduationCap} size="lg" label="Gestão de Estudantes" />
-            <div>
-              <h1 className="font-display text-2xl font-extrabold tracking-tight md:text-3xl">
-                Gestão de Estudantes
-              </h1>
-              <p className="mt-1 text-sm text-muted-foreground">
-                Gerencie matrículas e informações dos estudantes
-              </p>
-            </div>
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+          <div className="min-w-0">
+            <h1 className="font-display text-2xl font-semibold tracking-tight sm:text-[1.75rem]">
+              Estudantes
+            </h1>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Matrículas, estado e contactos dos estudantes da escola.
+            </p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
             <DocHelpButton title="Navegação — Gestão de alunos" />
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="outline" className="gap-1.5 text-xs shadow-2xs">
-                  <Download className="size-3.5" /> Exportar Lista{" "}
+                <Button variant="outline" size="sm" className="gap-1.5">
+                  <Download className="size-3.5" /> Exportar
                   <ChevronDown className="size-3.5 text-muted-foreground" />
                 </Button>
               </DropdownMenuTrigger>
@@ -637,6 +634,8 @@ function StudentsPage() {
 
             <PickFileButton
               area="secretaria"
+              variant="ghost"
+              size="sm"
               onPick={(file) =>
                 toast.success(file.name, { description: "Ficheiro da ficha / matrícula." })
               }
@@ -666,7 +665,8 @@ function StudentsPage() {
               }}
               trigger={(open) => (
                 <Button
-                  className="gap-2"
+                  size="sm"
+                  className="order-last w-full gap-1.5 sm:w-auto"
                   disabled={Boolean(capacityBlocked)}
                   onClick={() => {
                     if (capacityBlocked) {
@@ -678,13 +678,18 @@ function StudentsPage() {
                     open();
                   }}
                 >
-                  <UserPlus className="size-4" /> Nova Matrícula
+                  <UserPlus className="size-4" /> Nova matrícula
                 </Button>
               )}
             />
             <Link to="/importar" search={{ tab: "novo", modulo: "alunos" }}>
-              <Button variant="outline" className="gap-1.5">
-                <FileUp className="size-4" /> Importar Alunos (Excel)
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-1.5"
+                title="Importar alunos de Excel"
+              >
+                <FileUp className="size-3.5" /> Importar
               </Button>
             </Link>
           </div>
@@ -732,7 +737,7 @@ function StudentsPage() {
           </div>
         ) : null}
 
-        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <div className="grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-4">
           <StatCard
             title="Total de estudantes"
             value={allStudents.length}
@@ -741,7 +746,7 @@ function StudentsPage() {
             tone="primary"
           />
           <StatCard
-            title="Estudantes Activos"
+            title="Activos"
             value={
               allStudents.filter(
                 (s) => ["active", "applicant"].includes(s.student_status) || Boolean(s.class_name),
@@ -752,7 +757,7 @@ function StudentsPage() {
             tone="success"
           />
           <StatCard
-            title="Pagamentos em dívida"
+            title="Com dívida"
             value={allStudents.filter((s) => s.payment_status === "overdue").length}
             subtitle="Requer regularização"
             icon={ArrowDown}
@@ -787,7 +792,11 @@ function StudentsPage() {
           onReset={() => {
             resetFilters();
           }}
-          extras={<span className={selectClass}>{activeYearLabel}</span>}
+          extras={
+            <span className="inline-flex h-9 items-center rounded-md px-2 text-xs text-muted-foreground">
+              {activeYearLabel}
+            </span>
+          }
           chips={[
             ...(query ? [{ name: "q", label: "Pesquisa", value: query }] : []),
             ...(estado !== "todos"
@@ -855,158 +864,58 @@ function StudentsPage() {
           ]}
         />
 
-        <div className="surface-card rounded-2xl border border-border p-4 shadow-soft space-y-4">
-          <div className="flex flex-wrap items-center justify-between gap-3 pb-2 border-b border-border">
-            <div className="relative flex-1 min-w-[240px] max-w-md">
-              <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                id="search-alunos"
-                aria-label="Pesquisar aluno em tempo real"
-                type="search"
-                placeholder="Pesquisar aluno em tempo real..."
-                value={query}
-                onChange={(e) => {
-                  setFilter("q", e.target.value);
-                  setPage(1);
-                }}
-                className="pl-9 h-9 text-sm rounded-xl"
-              />
-            </div>
-            <div className="flex items-center gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                className="h-9 gap-2 rounded-xl text-xs font-semibold"
-                onClick={exportarAlunosOficial}
-                disabled={!filtered.length}
-              >
-                <FileText className="size-4 text-primary" />
-                Exportar PDF
-              </Button>
-            </div>
-          </div>
-
-          {/* Barra de Filtros Rápidos com Contadores Dinâmicos & Selector de Tamanho Premium */}
-          <div className="flex flex-col gap-2 rounded-xl bg-secondary/30 p-2.5 border border-border/70">
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <div className="flex flex-wrap items-center gap-1.5">
-                <span className="text-xs font-semibold text-muted-foreground mr-1 hidden sm:inline">
-                  Filtrar:
-                </span>
+        <div className="surface-card space-y-3 p-3 sm:p-4">
+          {/* Filtros rápidos: um grupo neutro com contagens; a dívida destaca-se só no número. */}
+          <div className="flex flex-col gap-2">
+            <div
+              role="tablist"
+              aria-label="Filtrar estudantes"
+              className="no-scrollbar -mx-1 flex items-center gap-1 overflow-x-auto px-1"
+            >
+              {(
+                [
+                  { id: "todos", label: "Todos", count: quickCounts.all },
+                  { id: "activos", label: "Activos", count: quickCounts.active },
+                  { id: "candidatos", label: "Candidatos", count: quickCounts.applicant },
+                  { id: "divida", label: "Com dívida", count: quickCounts.overdue },
+                  { id: "inactivos", label: "Inactivos e outros", count: quickCounts.other },
+                ] as const
+              ).map((tab) => (
                 <button
+                  key={tab.id}
                   type="button"
+                  role="tab"
+                  aria-selected={categoria === tab.id}
                   onClick={() => {
-                    setFilter("categoria", "todos");
+                    setFilter("categoria", tab.id);
                     setPage(1);
                   }}
                   className={cn(
-                    "px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer",
-                    categoria === "todos"
-                      ? "bg-primary text-primary-foreground shadow-xs"
-                      : "bg-background text-foreground hover:bg-muted border border-border/60",
+                    "inline-flex h-8 shrink-0 items-center gap-1.5 rounded-md px-2.5 text-sm font-medium transition-colors",
+                    categoria === tab.id
+                      ? "bg-secondary text-foreground shadow-[inset_0_0_0_1px_var(--color-border)]"
+                      : "text-muted-foreground hover:bg-secondary/60 hover:text-foreground",
                   )}
                 >
-                  Todos ({quickCounts.all})
+                  {tab.label}
+                  <span
+                    className={cn(
+                      "rounded px-1.5 text-xs tabular-nums",
+                      tab.id === "divida" && tab.count > 0
+                        ? "bg-destructive/10 text-destructive-strong"
+                        : "bg-muted text-muted-foreground",
+                    )}
+                  >
+                    {tab.count}
+                  </span>
                 </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setFilter("categoria", "activos");
-                    setPage(1);
-                  }}
-                  className={cn(
-                    "px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer",
-                    categoria === "activos"
-                      ? "bg-primary text-primary-foreground shadow-xs"
-                      : "bg-background text-foreground hover:bg-muted border border-border/60",
-                  )}
-                >
-                  Activos ({quickCounts.active})
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setFilter("categoria", "candidatos");
-                    setPage(1);
-                  }}
-                  className={cn(
-                    "px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer",
-                    categoria === "candidatos"
-                      ? "bg-primary text-primary-foreground shadow-xs"
-                      : "bg-background text-foreground hover:bg-muted border border-border/60",
-                  )}
-                >
-                  Candidatos ({quickCounts.applicant})
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setFilter("categoria", "divida");
-                    setPage(1);
-                  }}
-                  className={cn(
-                    "px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer",
-                    categoria === "divida"
-                      ? "bg-destructive text-destructive-foreground shadow-xs"
-                      : "bg-destructive/10 text-destructive hover:bg-destructive/20 border border-destructive/20",
-                  )}
-                >
-                  Com Dívida ({quickCounts.overdue})
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setFilter("categoria", "inactivos");
-                    setPage(1);
-                  }}
-                  className={cn(
-                    "px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer",
-                    categoria === "inactivos"
-                      ? "bg-primary text-primary-foreground shadow-xs"
-                      : "bg-background text-foreground hover:bg-muted border border-border/60",
-                  )}
-                >
-                  Inactivos/Outros ({quickCounts.other})
-                </button>
-              </div>
-
-              {/* Controlo de Tamanho de Lista Premium */}
-              <div className="flex items-center gap-2 text-xs text-muted-foreground ml-auto">
-                <span className="hidden md:inline font-medium text-[11px]">Linhas por página:</span>
-                <div className="inline-flex rounded-lg border border-border bg-background p-0.5">
-                  {[10, 25, 50, 100].map((size) => (
-                    <button
-                      key={size}
-                      type="button"
-                      onClick={() => {
-                        setFilter("pageSize", String(size));
-                        setPage(1);
-                      }}
-                      className={cn(
-                        "px-2.5 py-1 rounded-md text-xs font-semibold transition-colors cursor-pointer",
-                        pageSize === size
-                          ? "bg-primary text-primary-foreground shadow-2xs"
-                          : "text-muted-foreground hover:text-foreground",
-                      )}
-                    >
-                      {size}
-                    </button>
-                  ))}
-                </div>
-                <span className="font-mono text-[11px] font-semibold text-foreground hidden xl:inline">
-                  {filtered.length > 0
-                    ? `${start + 1}–${Math.min(start + pageSize, filtered.length)} de ${filtered.length}`
-                    : "0 alunos"}
-                </span>
-              </div>
+              ))}
             </div>
 
             {/* Subfiltros contextuais para Inactivos */}
             {categoria === "inactivos" ? (
               <div className="flex flex-wrap items-center gap-1.5 pt-2 border-t border-border/60">
-                <span className="text-[11px] font-semibold text-muted-foreground mr-1">
-                  Sub-estado:
-                </span>
+                <span className="text-xs font-medium text-muted-foreground mr-1">Sub-estado:</span>
                 <button
                   type="button"
                   onClick={() => {
@@ -1014,7 +923,7 @@ function StudentsPage() {
                     setPage(1);
                   }}
                   className={cn(
-                    "px-2.5 py-1 rounded-md text-[11px] font-semibold transition-all cursor-pointer",
+                    "px-2.5 py-1 rounded-md text-xs font-medium transition-all cursor-pointer",
                     subInactivos === "todos"
                       ? "bg-foreground text-background"
                       : "bg-muted text-muted-foreground hover:bg-muted/80",
@@ -1029,9 +938,9 @@ function StudentsPage() {
                     setPage(1);
                   }}
                   className={cn(
-                    "px-2.5 py-1 rounded-md text-[11px] font-semibold transition-all cursor-pointer",
+                    "px-2.5 py-1 rounded-md text-xs font-medium transition-all cursor-pointer",
                     subInactivos === "transferred"
-                      ? "bg-primary text-primary-foreground"
+                      ? "bg-foreground text-background"
                       : "bg-muted text-muted-foreground hover:bg-muted/80",
                   )}
                 >
@@ -1044,9 +953,9 @@ function StudentsPage() {
                     setPage(1);
                   }}
                   className={cn(
-                    "px-2.5 py-1 rounded-md text-[11px] font-semibold transition-all cursor-pointer",
+                    "px-2.5 py-1 rounded-md text-xs font-medium transition-all cursor-pointer",
                     subInactivos === "inactive"
-                      ? "bg-primary text-primary-foreground"
+                      ? "bg-foreground text-background"
                       : "bg-muted text-muted-foreground hover:bg-muted/80",
                   )}
                 >
@@ -1059,9 +968,9 @@ function StudentsPage() {
                     setPage(1);
                   }}
                   className={cn(
-                    "px-2.5 py-1 rounded-md text-[11px] font-semibold transition-all cursor-pointer",
+                    "px-2.5 py-1 rounded-md text-xs font-medium transition-all cursor-pointer",
                     subInactivos === "graduated"
-                      ? "bg-primary text-primary-foreground"
+                      ? "bg-foreground text-background"
                       : "bg-muted text-muted-foreground hover:bg-muted/80",
                   )}
                 >
@@ -1074,7 +983,7 @@ function StudentsPage() {
                     setPage(1);
                   }}
                   className={cn(
-                    "px-2.5 py-1 rounded-md text-[11px] font-semibold transition-all cursor-pointer",
+                    "px-2.5 py-1 rounded-md text-xs font-medium transition-all cursor-pointer",
                     subInactivos === "cancelled"
                       ? "bg-destructive text-destructive-foreground"
                       : "bg-destructive/10 text-destructive hover:bg-destructive/20",

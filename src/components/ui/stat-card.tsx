@@ -21,31 +21,17 @@ export interface StatCardProps extends React.HTMLAttributes<HTMLDivElement> {
   action?: React.ReactNode;
 }
 
-const toneStyles: Record<StatCardTone, { iconWrap: string; iconColor: string }> = {
-  primary: {
-    iconWrap: "bg-primary-soft/80 border-primary/20",
-    iconColor: "text-primary",
-  },
-  success: {
-    iconWrap: "bg-emerald-500/10 border-emerald-500/20",
-    iconColor: "text-emerald-600 dark:text-emerald-400",
-  },
-  warning: {
-    iconWrap: "bg-amber-500/10 border-amber-500/20",
-    iconColor: "text-amber-600 dark:text-amber-400",
-  },
-  info: {
-    iconWrap: "bg-sky-500/10 border-sky-500/20",
-    iconColor: "text-sky-600 dark:text-sky-400",
-  },
-  destructive: {
-    iconWrap: "bg-destructive/10 border-destructive/20",
-    iconColor: "text-destructive",
-  },
-  neutral: {
-    iconWrap: "bg-muted/60 border-border",
-    iconColor: "text-muted-foreground",
-  },
+/*
+ * Indicadores discretos: o ícone é só uma pista, em cinza; a cor fica para quando o
+ * número pede atenção (dívida, alertas). Tokens do tema, não cores Tailwind cruas.
+ */
+const toneStyles: Record<StatCardTone, { iconColor: string }> = {
+  primary: { iconColor: "text-muted-foreground/70" },
+  success: { iconColor: "text-muted-foreground/70" },
+  info: { iconColor: "text-muted-foreground/70" },
+  neutral: { iconColor: "text-muted-foreground/70" },
+  warning: { iconColor: "text-warning-strong" },
+  destructive: { iconColor: "text-destructive-strong" },
 };
 
 export const StatCard = React.forwardRef<HTMLDivElement, StatCardProps>(
@@ -70,30 +56,23 @@ export const StatCard = React.forwardRef<HTMLDivElement, StatCardProps>(
     const content = (
       <div
         className={cn(
-          "relative overflow-hidden rounded-xl border border-border/80 bg-card p-4 sm:p-5 shadow-card transition-all duration-150",
-          to && "hover:border-primary/40 hover:shadow-subtle cursor-pointer",
+          "relative overflow-hidden rounded-xl border border-border/80 bg-card p-4 shadow-card transition-colors duration-150 sm:p-5",
+          to && "cursor-pointer hover:border-foreground/20",
           className,
         )}
       >
         <div className="flex items-center justify-between gap-2">
-          <span className="text-xs font-medium text-muted-foreground">{title}</span>
+          <span className="truncate text-xs font-medium text-muted-foreground">{title}</span>
           <div className="flex items-center gap-1.5">
             {action ? <div>{action}</div> : null}
             {Icon ? (
-              <div
-                className={cn(
-                  "flex size-8 shrink-0 items-center justify-center rounded-lg border",
-                  toneConfig.iconWrap,
-                )}
-              >
-                <Icon className={cn("size-4", toneConfig.iconColor)} aria-hidden="true" />
-              </div>
+              <Icon className={cn("size-4 shrink-0", toneConfig.iconColor)} aria-hidden="true" />
             ) : null}
           </div>
         </div>
 
         <div className="mt-3 flex items-baseline justify-between gap-2">
-          <div className="font-display text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
+          <div className="font-display text-2xl font-semibold tabular-nums tracking-tight text-foreground sm:text-3xl">
             {value}
           </div>
           {trend ? (
@@ -103,8 +82,8 @@ export const StatCard = React.forwardRef<HTMLDivElement, StatCardProps>(
                 trend.neutral
                   ? "bg-muted text-muted-foreground"
                   : trend.positive
-                    ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300"
-                    : "bg-rose-500/10 text-rose-700 dark:text-rose-300",
+                    ? "bg-success/10 text-success-strong"
+                    : "bg-destructive/10 text-destructive-strong",
               )}
             >
               {trend.neutral ? (

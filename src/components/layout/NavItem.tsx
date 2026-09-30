@@ -26,8 +26,10 @@ export const NAV_ROW_ACTIVE =
   "bg-sidebar-accent text-sidebar-accent-foreground shadow-nav-active hover:bg-sidebar-accent hover:text-sidebar-accent-foreground";
 
 export const NAV_DEPTH_CLASS: Record<NavDepth, string> = {
-  root: "min-h-9 px-2.5 py-1.5 text-xs font-medium",
-  sub: "h-8 min-h-8 gap-2 px-2 py-0.5 text-[0.6875rem] leading-4 font-medium",
+  // Com a raiz a 11px no computador, 0.6875rem dava 7,5px nos sub-itens (ilegível).
+  // `text-sm`/`text-xs` têm mínimos em px (styles.css): 12px e 11px.
+  root: "min-h-9 px-2.5 py-1.5 text-sm font-medium",
+  sub: "h-8 min-h-8 gap-2 px-2 py-0.5 text-xs leading-4 font-medium",
 };
 
 /** Lista aninhada: rail esquerdo (spec SidebarMenuSub) sem alterar os itens-pai. */
