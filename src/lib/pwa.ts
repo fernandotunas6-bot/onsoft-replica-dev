@@ -47,3 +47,10 @@ export function registerServiceWorker() {
 
   navigator.serviceWorker.register(SW_URL, { scope: "/" }).catch(() => {});
 }
+
+/** Remove persistent resources when an account leaves a shared device. */
+export async function clearSigaCaches(): Promise<void> {
+  if (typeof caches === "undefined") return;
+  const keys = await caches.keys();
+  await Promise.all(keys.filter((key) => key.startsWith("siga-")).map((key) => caches.delete(key)));
+}

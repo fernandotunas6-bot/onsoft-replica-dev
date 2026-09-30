@@ -1,3 +1,4 @@
+import { requireAal2 } from "@/features/hr/require-aal2";
 import { createServerFn } from "@tanstack/react-start";
 import { reportSigaError } from "@/lib/ops-report";
 import { z } from "zod";
@@ -72,6 +73,7 @@ export const createInvoiceCharge = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => createSchema.parse(input))
   .handler(async ({ data, context }) => {
+    requireAal2(context.claims, "Esta operação financeira");
     const { schoolId, db } = await treasury(context.userId, "write");
     if (data.method === "GPO" && !data.phoneNumber) {
       throw new Error("Indique o número Multicaixa Express do encarregado.");
@@ -182,6 +184,7 @@ export const createInvoiceCharge = createServerFn({ method: "POST" })
 export const reconcileOpenCharges = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
+    requireAal2(context.claims, "A conciliação financeira");
     const { schoolId, db } = await treasury(context.userId, "write");
     const { data: rows } = await db
       .from("payment_gateway_charges")

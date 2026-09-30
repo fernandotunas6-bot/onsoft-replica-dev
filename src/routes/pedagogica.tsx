@@ -42,7 +42,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { STAGE_LABELS } from "@/features/academic/academic-architecture";
 import { InstalledModuleTools } from "@/features/integrations/InstalledModuleTools";
 import { PickFileButton } from "@/features/arquivos/PickFileButton";
-import { meetingRoomLink } from "@/features/integrations/actions";
 import { useInstalledIntegrations } from "@/features/integrations/use-installed-integrations";
 import { ClassGroupSheet, SEM_SALA } from "@/features/academic/ClassGroupSheet";
 import { TurmaProfileModal } from "@/features/academic/components/TurmaProfileModal";
@@ -179,8 +178,6 @@ function PedagogicaPage() {
   const queryClient = useQueryClient();
   const account = useCurrentAccount();
   const installed = useInstalledIntegrations();
-  const zoomOn = installed.hasCapability("zoom.rooms");
-  const teamsOn = installed.hasCapability("teams.meetings");
   const classroomOn = installed.hasCapability("classroom.classes");
   const classroomWork = installed.hasCapability("classroom.work");
   const moodleOn = installed.hasCapability("moodle.courses");
@@ -1190,10 +1187,7 @@ function PedagogicaPage() {
                 name: t.full_name || "Docente",
               }))}
               slots={scheduleSlots}
-              virtualRooms={[
-                ...(zoomOn ? [{ label: "Zoom", url: meetingRoomLink("zoom") }] : []),
-                ...(teamsOn ? [{ label: "Teams", url: meetingRoomLink("teams") }] : []),
-              ]}
+              virtualRooms={[]}
               onCreateSlot={async (data) => {
                 const { warnings } = await createAdvancedScheduleSlot({ data });
                 for (const warning of warnings) {
