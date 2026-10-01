@@ -1,12 +1,12 @@
-import type { ReactNode } from "react";
-import { X } from "lucide-react";
+import { useId, useState, type ReactNode } from "react";
+import { SlidersHorizontal, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { DebouncedSearchInput } from "@/components/filters/debounced-search-input";
 
 const selectClass =
-  "h-9 rounded-md border border-input bg-background px-3 text-xs md:text-sm text-foreground";
+  "h-11 min-w-0 w-full rounded-md border border-input bg-background px-3 text-base text-foreground sm:h-9 md:text-sm";
 
 export type ListFilterOption = { value: string; label: string };
 
@@ -39,6 +39,10 @@ export function ListFilterBar({
   chips?: Array<{ name: string; label: string; value: string; emptyValue?: string }>;
   className?: string;
 }) {
+  const advancedId = useId();
+  const [showAdvanced, setShowAdvanced] = useState(false);
+  const advancedFields = fields.filter((field) => field.type === "select" || field.type === "date");
+
   return (
     <div
       className={cn("rounded-lg border border-border bg-card p-3 sm:p-3.5 shadow-soft", className)}
@@ -50,14 +54,18 @@ export function ListFilterBar({
             return (
               <label
                 key={field.name}
-                className="space-y-1 text-xs font-semibold text-muted-foreground"
+                id={`${advancedId}-${field.name}`}
+                className={cn(
+                  "block min-w-0 w-full space-y-1 text-xs font-medium text-muted-foreground sm:w-auto",
+                  !showAdvanced && "max-sm:hidden",
+                )}
               >
-                {field.label ?? "\u00a0"}
+                <span className="block">{field.label ?? "\u00a0"}</span>
                 <select
                   value={value}
                   onChange={(event) => onChange(field.name, event.target.value)}
                   aria-label={field["aria-label"] ?? field.label ?? field.name}
-                  className={cn(selectClass, "min-w-[140px]")}
+                  className={cn(selectClass, "sm:min-w-[140px] sm:max-w-72")}
                 >
                   {(field.options ?? []).map((option) => (
                     <option key={option.value} value={option.value}>
@@ -72,15 +80,19 @@ export function ListFilterBar({
             return (
               <label
                 key={field.name}
-                className="space-y-1 text-xs font-semibold text-muted-foreground"
+                id={`${advancedId}-${field.name}`}
+                className={cn(
+                  "block min-w-0 w-full space-y-1 text-xs font-medium text-muted-foreground sm:w-auto",
+                  !showAdvanced && "max-sm:hidden",
+                )}
               >
-                {field.label ?? "Data"}
+                <span className="block">{field.label ?? "Data"}</span>
                 <Input
                   type="date"
                   value={value}
                   onChange={(event) => onChange(field.name, event.target.value)}
                   aria-label={field["aria-label"] ?? field.label ?? field.name}
-                  className="h-9 w-[10.5rem]"
+                  className="h-9 min-w-0 w-full sm:w-[10.5rem]"
                 />
               </label>
             );
@@ -94,8 +106,23 @@ export function ListFilterBar({
             />
           );
         })}
+        {advancedFields.length > 0 ? (
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="sm:hidden"
+            aria-expanded={showAdvanced}
+            aria-controls={advancedFields.map((field) => `${advancedId}-${field.name}`).join(" ")}
+            onClick={() => setShowAdvanced((previous) => !previous)}
+          >
+            <SlidersHorizontal aria-hidden="true" />
+            {showAdvanced ? "Ocultar filtros" : "Filtros"}
+            {activeCount ? ` (${activeCount})` : ""}
+          </Button>
+        ) : null}
         {extras}
-        <Button variant="ghost" size="sm" onClick={onReset} disabled={!activeCount}>
+        <Button type="button" variant="ghost" size="sm" onClick={onReset} disabled={!activeCount}>
           Limpar{activeCount ? ` (${activeCount})` : ""}
         </Button>
       </div>
@@ -105,11 +132,14 @@ export function ListFilterBar({
             <button
               key={chip.name}
               type="button"
+              aria-label={`Remover filtro ${chip.label}: ${chip.value}`}
               onClick={() => onChange(chip.name, chip.emptyValue ?? "")}
-              className="inline-flex items-center gap-1 rounded-full border border-primary/20 bg-primary/10 px-2.5 py-1 text-[11px] font-semibold text-primary"
+              className="inline-flex min-w-0 max-w-full min-h-11 items-center gap-1.5 rounded-full border border-primary/20 bg-primary/10 px-2.5 py-1 text-xs font-medium text-primary md:min-h-0"
             >
-              {chip.label}: {chip.value}
-              <X className="size-3" />
+              <span className="[overflow-wrap:anywhere]">
+                {chip.label}: {chip.value}
+              </span>
+              <X className="size-3 shrink-0" aria-hidden="true" />
             </button>
           ))}
         </div>

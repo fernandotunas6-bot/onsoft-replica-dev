@@ -26,7 +26,7 @@ export type PageCrumb = {
 function ShortDescription({ text, className }: { text: string; className?: string }) {
   const { lead, rest } = splitDescription(text);
   return (
-    <div className={className}>
+    <div className={cn("[overflow-wrap:anywhere]", className)}>
       <p>{lead}</p>
       {rest ? <MoreInfo className="mt-0.5">{rest}</MoreInfo> : null}
     </div>
@@ -67,7 +67,7 @@ export function PageHeader({
     ([{ label: "Início", to: "/" }, { label: group }, { label: title }] satisfies PageCrumb[]);
 
   return (
-    <div className="space-y-3">
+    <div className="min-w-0 space-y-3">
       {!hideBreadcrumb ? (
         <Breadcrumb>
           <BreadcrumbList className="max-w-full flex-nowrap overflow-x-auto whitespace-nowrap text-[11px] sm:text-xs">
@@ -80,10 +80,10 @@ export function PageHeader({
                 <Fragment key={`${crumb.label}-${index}`}>
                   {index > 0 ? <BreadcrumbSeparator className="[&>svg]:size-3" /> : null}
                   <BreadcrumbItem className="gap-1.5">
-                    {isLast || !crumb.to ? (
-                      <BreadcrumbPage className={cn(!isLast && "text-muted-foreground")}>
-                        {crumb.label}
-                      </BreadcrumbPage>
+                    {isLast ? (
+                      <BreadcrumbPage>{crumb.label}</BreadcrumbPage>
+                    ) : !crumb.to ? (
+                      <span className="text-muted-foreground">{crumb.label}</span>
                     ) : (
                       <BreadcrumbLink asChild>
                         <Link to={crumb.to} search={crumb.search}>
@@ -215,7 +215,7 @@ export function StatGrid({
           onClick={toggle}
           aria-expanded={visible}
           aria-label={visible ? "Ocultar estatísticas" : "Ver estatísticas"}
-          className="flex items-center gap-1.5 rounded-md px-2 py-1 text-xs font-medium text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+          className="flex min-h-11 items-center gap-1.5 rounded-md px-2 py-1 text-xs font-medium text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground md:min-h-0"
         >
           <ChevronDown
             className={cn(
@@ -228,6 +228,7 @@ export function StatGrid({
       </div>
       <div
         aria-hidden={!visible}
+        inert={!visible}
         className={cn(
           "grid transition-all duration-200 ease-in-out",
           visible ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0 pointer-events-none",

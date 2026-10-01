@@ -46,6 +46,7 @@ import { StudentEnrollmentSheet } from "@/features/students/StudentEnrollmentShe
 import { StudentExtensiveModal } from "@/features/students/components/StudentExtensiveModal";
 import { StudentStatusBadge } from "@/features/students/components/StudentStatusBadge";
 import { StudentFinanceBadge } from "@/features/students/components/StudentFinanceBadge";
+import { StudentMobileList } from "@/features/students/components/StudentMobileList";
 import {
   computeDynamicCounters,
   matchesQuickCategory,
@@ -130,6 +131,7 @@ import { overlayServico } from "@/features/documents/print-overlays";
 import { issuePrintDocument } from "@/features/documents/print-issue-loader";
 import { ListFilterBar } from "@/components/filters/ListFilterBar";
 import { usePersistedListFilters } from "@/lib/list-filters";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 const alunosSearchSchema = z
   .object({
@@ -230,6 +232,7 @@ type StudentRow = {
 type SortKey = "processo" | "nome" | "email" | "telefone" | "estado";
 
 function StudentsPage() {
+  const isMobile = useIsMobile();
   const realtimeInstanceId = useId();
   const queryClient = useQueryClient();
   const { activePlan, activeTenant, refreshTenant } = useTenant();
@@ -254,6 +257,7 @@ function StudentsPage() {
   const setPage = (next: number) => setFilter("page", String(next));
   const [extensiveModalStudent, setExtensiveModalStudent] = useState<StudentRow | null>(null);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [showFullTable, setShowFullTable] = useState(false);
   const installed = useInstalledIntegrations();
   const whatsappOn = installed.hasCapability("whatsapp.notices");
   const sigeOn = installed.hasCapability("sige.export_students");
@@ -437,6 +441,24 @@ function StudentsPage() {
   const currentPage = Math.min(page, totalPages);
   const start = (currentPage - 1) * pageSize;
   const paged = filtered.slice(start, start + pageSize);
+  const allOnPageSelected =
+    paged.length > 0 && paged.every((student) => selectedIds.includes(student.id));
+  const someOnPageSelected = paged.some((student) => selectedIds.includes(student.id));
+  const setStudentSelected = (id: string, selected: boolean) => {
+    setSelectedIds((previous) =>
+      selected
+        ? [...new Set([...previous, id])]
+        : previous.filter((selectedId) => selectedId !== id),
+    );
+  };
+  const setPageSelected = (selected: boolean) => {
+    const pageIds = new Set(paged.map((student) => student.id));
+    setSelectedIds((previous) =>
+      selected
+        ? [...new Set([...previous, ...pageIds])]
+        : previous.filter((id) => !pageIds.has(id)),
+    );
+  };
 
   const pagedPhotoUrls = paged.map((s) => s.photo_url).filter(Boolean) as string[];
   const pagedPhotoKey = pagedPhotoUrls.join("|");
@@ -583,10 +605,10 @@ function StudentsPage() {
           }}
         />
         <div className="flex flex-wrap items-end justify-between gap-4">
-          <div className="flex items-center gap-3">
+          <div className="flex min-w-0 items-center gap-3">
             <IconChip icon={GraduationCap} size="lg" label="Gestão de Estudantes" />
-            <div>
-              <h1 className="font-display text-2xl font-extrabold tracking-tight md:text-3xl">
+            <div className="min-w-0">
+              <h1 className="break-words font-display text-xl font-semibold tracking-tight md:text-2xl">
                 Gestão de Estudantes
               </h1>
               <p className="mt-1 text-sm text-muted-foreground">
@@ -1123,7 +1145,123 @@ function StudentsPage() {
             ) : null}
           </div>
 
-          <div className="overflow-x-auto">
+          {isMobile ? (
+            <div
+              className="space-y-3 md:hidden print:hidden"
+              role="region"
+              aria-label="Lista resumida de alunos"
+            >
+              <div className="flex flex-wrap items-end gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  aria-pressed={showFullTable}
+                  onClick={() => setShowFullTable((previous) => !previous)}
+                >
+                  {showFullTable ? "Ver cartões" : "Tabela completa"}
+                </Button>
+                <label className="min-w-0 flex-1 space-y-1 text-xs font-medium text-muted-foreground">
+                  <span className="block">Ordenar por</span>
+                  <select
+                    aria-label="Ordenar alunos"
+                    value={sortKey}
+                    onChange={(event) => {
+                      setFilter("sortKey", event.target.value);
+                      setPage(1);
+                    }}
+                    className="h-11 min-w-0 w-full rounded-md border border-input bg-background px-3 text-base text-foreground"
+                  >
+                    <option value="nome">Nome</option>
+                    <option value="processo">Nº estudante</option>
+                    <option value="email">E-mail</option>
+                    <option value="telefone">Telefone</option>
+                    <option value="estado">Estado</option>
+                  </select>
+                </label>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  aria-label={
+                    sortDir === "asc"
+                      ? "Ordenação crescente; mudar para decrescente"
+                      : "Ordenação decrescente; mudar para crescente"
+                  }
+                  onClick={() => {
+                    setFilter("sortDir", sortDir === "asc" ? "desc" : "asc");
+                    setPage(1);
+                  }}
+                >
+                  {sortDir === "asc" ? (
+                    <ArrowUp aria-hidden="true" />
+                  ) : (
+                    <ArrowDown aria-hidden="true" />
+                  )}
+                </Button>
+              </div>
+              {paged.length > 0 && !studentsQuery.isLoading && !studentsQuery.isError ? (
+                <label className="flex min-h-11 items-center gap-3 rounded-lg px-2 text-xs font-medium">
+                  <input
+                    type="checkbox"
+                    className="size-4 accent-primary"
+                    aria-label="Seleccionar todos nesta página"
+                    checked={allOnPageSelected}
+                    ref={(node) => {
+                      if (node) node.indeterminate = someOnPageSelected && !allOnPageSelected;
+                    }}
+                    onChange={(event) => setPageSelected(event.target.checked)}
+                  />
+                  Seleccionar todos nesta página
+                </label>
+              ) : null}
+              {showFullTable ? null : studentsQuery.isLoading ? (
+                <p role="status" className="py-6 text-center text-sm text-muted-foreground">
+                  A carregar alunos…
+                </p>
+              ) : studentsQuery.isError ? (
+                <div
+                  role="alert"
+                  className="space-y-2 rounded-xl border border-destructive/30 p-4 text-sm"
+                >
+                  <p>Não foi possível carregar os alunos.</p>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => void studentsQuery.refetch()}
+                  >
+                    Tentar novamente
+                  </Button>
+                </div>
+              ) : paged.length > 0 ? (
+                <StudentMobileList
+                  students={paged}
+                  selectedIds={selectedIds}
+                  onSelect={setStudentSelected}
+                  onView={setExtensiveModalStudent}
+                  renderAvatar={(student) => (
+                    <StudentAvatar photoUrl={student.photo_url} name={student.full_name} />
+                  )}
+                />
+              ) : (
+                <EmptyState
+                  icon={categoria === "divida" ? CheckCircle2 : GraduationCap}
+                  title={
+                    categoria === "divida"
+                      ? "Nenhum aluno com dívida"
+                      : categoria === "candidatos"
+                        ? "Nenhum candidato pendente"
+                        : "Nenhum aluno encontrado"
+                  }
+                  description="Não existem alunos para os filtros actuais."
+                  actionLabel="Limpar filtros"
+                  onAction={resetFilters}
+                  compact
+                />
+              )}
+            </div>
+          ) : null}
+          <div className={cn("overflow-x-auto md:block print:block", !showFullTable && "hidden")}>
             <Table className="min-w-[880px]">
               <TableHeader>
                 <TableRow>
@@ -1132,15 +1270,11 @@ function StudentsPage() {
                       type="checkbox"
                       aria-label="Seleccionar todos nesta página"
                       className="size-4 rounded border-border text-primary cursor-pointer accent-primary"
-                      checked={paged.length > 0 && selectedIds.length >= paged.length}
-                      onChange={(e) => {
-                        if (e.target.checked) {
-                          setSelectedIds([...new Set([...selectedIds, ...paged.map((s) => s.id)])]);
-                        } else {
-                          const pagedIdSet = new Set(paged.map((s) => s.id));
-                          setSelectedIds(selectedIds.filter((id) => !pagedIdSet.has(id)));
-                        }
+                      checked={allOnPageSelected}
+                      ref={(node) => {
+                        if (node) node.indeterminate = someOnPageSelected && !allOnPageSelected;
                       }}
+                      onChange={(event) => setPageSelected(event.target.checked)}
                     />
                   </TableHead>
                   <SortHead label="Nº Estudante" colKey="processo" />
@@ -1188,13 +1322,7 @@ function StudentsPage() {
                           aria-label={`Seleccionar ${s.full_name}`}
                           className="size-4 rounded border-border text-primary cursor-pointer accent-primary"
                           checked={selectedIds.includes(s.id)}
-                          onChange={(e) => {
-                            if (e.target.checked) {
-                              setSelectedIds((prev) => [...prev, s.id]);
-                            } else {
-                              setSelectedIds((prev) => prev.filter((id) => id !== s.id));
-                            }
-                          }}
+                          onChange={(event) => setStudentSelected(s.id, event.target.checked)}
                         />
                       </TableCell>
                       <TableCell className="font-mono text-xs font-semibold text-primary">

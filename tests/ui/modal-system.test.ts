@@ -1,15 +1,20 @@
 import * as React from "react";
 import { describe, it, expect } from "vitest";
 import { renderToString } from "react-dom/server";
+import { Root } from "@radix-ui/react-dialog";
 import { ModalHeader, ModalFooter, ModalContent } from "@/components/ui/modal-system";
 
 describe("Unified Modal System Subcomponents", () => {
   it("renders ModalHeader cleanly", () => {
     const html = renderToString(
-      React.createElement(ModalHeader, {
-        title: "Criar Matrícula de Aluno",
-        subtitle: "Ano Letivo 2026",
-      }),
+      React.createElement(
+        Root,
+        null,
+        React.createElement(ModalHeader, {
+          title: "Criar Matrícula de Aluno",
+          subtitle: "Ano Letivo 2026",
+        }),
+      ),
     );
     expect(html).toContain("Criar Matrícula de Aluno");
     expect(html).toContain("Ano Letivo 2026");

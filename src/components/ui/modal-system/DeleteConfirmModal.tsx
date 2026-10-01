@@ -44,7 +44,10 @@ export function DeleteConfirmModal({
 
   return (
     <ModalShell open={open} onOpenChange={onOpenChange} size="sm">
-      <form onSubmit={handleSubmit} className="flex flex-col">
+      <form
+        onSubmit={handleSubmit}
+        className="flex min-h-0 max-h-[inherit] flex-col overflow-hidden"
+      >
         <ModalHeader
           icon={Trash2}
           title={title}

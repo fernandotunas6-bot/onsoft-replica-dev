@@ -99,7 +99,7 @@ export function QuickFormModal({
       {trigger(() => setOpen(true))}
 
       <ModalShell open={open} onOpenChange={setOpen} size={size} hasUnsavedChanges={dirty}>
-        <div className="flex flex-col h-full">
+        <div className="flex min-h-0 max-h-[inherit] flex-col overflow-hidden">
           <ModalHeader title={title} subtitle={description ?? eyebrow} onClose={guardedClose} />
           <ModalContent>
             <form

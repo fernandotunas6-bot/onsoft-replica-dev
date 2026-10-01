@@ -24,6 +24,7 @@
     "check:lighthouse": "lhci autorun --config=lighthouserc.json",
     "check:pwa": "node scripts/pwa-check.mjs",
     "check:visual": "python3 scripts/visual-regression.py",
+    "check:responsive": "node scripts/siga/responsive-ui-review.mjs",
     "check:visual:sidebar": "python3 scripts/visual-sidebar.py",
     "check:visual:sidebar:update": "python3 scripts/visual-sidebar.py --update",
     "check:visual:update": "python3 scripts/visual-regression.py --update",

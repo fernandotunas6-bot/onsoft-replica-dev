@@ -253,6 +253,14 @@
     font-size: 75%;
   }
 
+  /* No telefone, 1 rem conserva os 16 px do browser: size-11/min-h-11
+     correspondem a 44 px e os campos não provocam zoom ao receber foco. */
+  @media (max-width: 767px) {
+    html {
+      font-size: 100%;
+    }
+  }
+
   @media (min-width: 1024px) {
     html {
       font-size: 68.75%;

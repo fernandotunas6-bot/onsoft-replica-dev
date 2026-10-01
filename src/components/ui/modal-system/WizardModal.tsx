@@ -89,8 +89,8 @@ export function WizardModal({
         onSubmit={handleSubmit}
         className={
           visualPanel
-            ? "grid min-h-[78vh] max-h-[90vh] overflow-hidden lg:grid-cols-[minmax(300px,0.9fr)_minmax(0,1.1fr)]"
-            : "flex flex-col"
+            ? "grid min-h-0 max-h-[inherit] grid-rows-[auto_auto_minmax(0,1fr)_auto] overflow-hidden lg:min-h-[min(78dvh,40rem)] lg:grid-cols-[minmax(300px,0.9fr)_minmax(0,1.1fr)]"
+            : "flex min-h-0 max-h-[inherit] flex-col overflow-hidden"
         }
       >
         {visualPanel ? (
@@ -106,16 +106,23 @@ export function WizardModal({
         />
 
         {/* Stepper Progress Bar */}
-        <div className="border-b border-border bg-muted/10 px-6 py-2.5">
-          <div className="flex items-center justify-between gap-2 overflow-x-auto">
+        <div className="min-w-0 shrink-0 border-b border-border bg-muted/10 px-4 py-2.5 sm:px-6">
+          <div
+            className="flex items-center justify-between gap-2 overflow-x-auto overscroll-x-contain"
+            aria-label="Etapas do formulário"
+          >
             {steps.map((step, idx) => {
               const isCompleted = idx < currentStepIndex;
               const isCurrent = idx === currentStepIndex;
               return (
                 <React.Fragment key={step.id}>
-                  <div
+                  <button
+                    type="button"
+                    disabled={!isCompleted || isSubmitting}
+                    aria-current={isCurrent ? "step" : undefined}
+                    aria-label={`Etapa ${idx + 1}: ${step.label}`}
                     onClick={() => isCompleted && onStepChange(idx)}
-                    className={`flex items-center gap-2 ${
+                    className={`flex min-h-11 shrink-0 items-center gap-2 rounded-md px-1 disabled:cursor-default ${
                       isCompleted ? "cursor-pointer hover:opacity-80" : ""
                     }`}
                   >
@@ -141,7 +148,7 @@ export function WizardModal({
                     >
                       {step.label}
                     </span>
-                  </div>
+                  </button>
                   {idx < steps.length - 1 && (
                     <div
                       className={`h-0.5 min-w-4 flex-1 ${

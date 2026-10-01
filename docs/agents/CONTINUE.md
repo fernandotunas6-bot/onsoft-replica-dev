@@ -4,6 +4,24 @@ Ler isto **antes** de alterar código. Ecossistema (5 apps):
 [ARCHITECTURE_HARMONIZATION.md](./ARCHITECTURE_HARMONIZATION.md).
 Depois abrir o skill do módulo em `.cursor/skills/`.
 
+## Revisão visual mobile/desktop (2026-10-01)
+
+PR #35, branch `feat/mobile-clean-shell-20260928`: base mobile de 16 px,
+filtros/paginação responsivos, cartões em Alunos e selecção correcta entre
+páginas. Modais com rodapé acessível em ecrãs baixos, validação nativa antes de
+guardar, foco restaurado e `preventOutsideClose` respeitado. A tabela completa
+e os fluxos existentes continuam disponíveis.
+
+Validação local: 2352 testes aprovados/19 ignorados, typecheck/build aprovados,
+lint 0 erros/51 avisos, `siga:check`, estilo e acessibilidade estática aprovados.
+`npm run check:responsive` passou em 16 combinações de dimensões e tema, com
+componentes reais e dados fictícios, sem acesso ao SGA. Capturas e reprodução:
+[UI_REVIEW_2026-10-01.md](../design/UI_REVIEW_2026-10-01.md).
+
+Manter draft: falta percorrer todos os módulos numa sessão autenticada e
+validar Safari/dispositivos reais/teclado virtual. Sem deploy nesta revisão;
+commit com `[skip ci]` para evitar novas execuções de Actions.
+
 ## Ano lectivo activo (2026-09-30)
 
 O SIGA resolve o ano corrente pelo estado `active`. A 2026-09-29 a escola

@@ -29,13 +29,15 @@ export function ModalFooter({
   return (
     <div
       className={cn(
-        "flex items-center justify-between border-t border-border bg-muted/10 px-5 py-3 gap-3",
+        "flex shrink-0 flex-col items-stretch justify-between gap-2 border-t border-border bg-muted/10 px-4 py-3 sm:flex-row sm:items-center sm:gap-3 sm:px-5",
         className,
       )}
     >
-      <div className="flex items-center gap-2">{extraActions}</div>
+      {extraActions ? (
+        <div className="flex min-w-0 flex-wrap items-center gap-2">{extraActions}</div>
+      ) : null}
 
-      <div className="flex items-center gap-2">
+      <div className="flex min-w-0 flex-col-reverse gap-2 sm:ml-auto sm:flex-row sm:items-center">
         {onCancel && (
           <Button
             type="button"
@@ -43,7 +45,7 @@ export function ModalFooter({
             size="sm"
             onClick={onCancel}
             disabled={isSubmitting}
-            className="text-xs"
+            className="min-w-0 whitespace-normal text-xs"
           >
             {cancelLabel}
           </Button>
@@ -54,9 +56,15 @@ export function ModalFooter({
             type="submit"
             variant={submitVariant}
             size="sm"
-            onClick={onSubmit}
+            onClick={(event) => {
+              // Dentro de um formulário, a submissão nativa valida os campos
+              // obrigatórios antes de chamar onSubmit. QuickForm mantém o
+              // rodapé fora do formulário e trata a sua própria validação.
+              if (!event.currentTarget.form) onSubmit(event);
+            }}
             disabled={disabled || isSubmitting}
-            className="gap-1.5 text-xs min-w-[90px]"
+            className="min-w-0 gap-1.5 whitespace-normal text-xs sm:min-w-[90px]"
+            aria-busy={isSubmitting}
           >
             {isSubmitting && <LoaderCircle className="size-3.5 animate-spin" />}
             {submitLabel}

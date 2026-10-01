@@ -41,7 +41,7 @@ export function ModalSidebar({
             <TabsTrigger
               key={item.value}
               value={item.value}
-              className="w-full shrink-0 justify-start gap-2 rounded-lg px-3 py-2 text-xs font-medium data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"
+              className="w-auto shrink-0 justify-start gap-2 rounded-lg px-3 py-2 text-xs font-medium data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm sm:w-full"
             >
               {Icon ? <Icon className="size-3.5 shrink-0" /> : null}
               <span className="truncate">{item.label}</span>

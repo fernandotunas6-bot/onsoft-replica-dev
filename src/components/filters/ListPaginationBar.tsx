@@ -31,11 +31,12 @@ export function ListPaginationBar({
   }
 
   return (
-    <div
-      className={`flex flex-wrap items-center justify-between gap-3 border-t border-border bg-card/40 px-4 py-3 text-xs text-muted-foreground ${className}`}
+    <nav
+      aria-label="Paginação da lista"
+      className={`flex min-w-0 flex-col gap-3 border-t border-border bg-card/40 px-3 py-3 text-xs text-muted-foreground sm:flex-row sm:flex-wrap sm:items-center sm:justify-between sm:px-4 ${className}`}
     >
-      <div className="flex items-center gap-4">
-        <span>
+      <div className="flex min-w-0 flex-wrap items-center justify-between gap-x-4 gap-y-2">
+        <span role="status" aria-live="polite" aria-atomic="true">
           Mostrando{" "}
           <strong className="font-semibold text-foreground">{`${startItem}–${endItem}`}</strong> de{" "}
           <strong className="font-semibold text-foreground">{totalItems}</strong> registo
@@ -48,7 +49,7 @@ export function ListPaginationBar({
             <select
               value={pageSize}
               onChange={(e) => onPageSizeChange(Number(e.target.value))}
-              className="h-7 rounded-md border border-input bg-background px-2 text-xs font-medium text-foreground"
+              className="h-11 rounded-md border border-input bg-background px-2 text-base font-medium text-foreground md:h-7 md:text-xs"
               aria-label="Itens por página"
             >
               {pageSizeOptions.map((opt) => (
@@ -61,11 +62,12 @@ export function ListPaginationBar({
         ) : null}
       </div>
 
-      <div className="flex items-center gap-1">
+      <div className="flex items-center justify-center gap-1 sm:justify-end">
         <Button
           variant="outline"
           size="icon"
-          className="size-7"
+          type="button"
+          className="size-11 md:size-7"
           onClick={() => onPageChange(1)}
           disabled={currentPage <= 1}
           aria-label="Primeira página"
@@ -75,7 +77,8 @@ export function ListPaginationBar({
         <Button
           variant="outline"
           size="icon"
-          className="size-7"
+          type="button"
+          className="size-11 md:size-7"
           onClick={() => onPageChange(currentPage - 1)}
           disabled={currentPage <= 1}
           aria-label="Página anterior"
@@ -83,14 +86,18 @@ export function ListPaginationBar({
           <ChevronLeft className="size-3.5" />
         </Button>
 
-        <span className="px-2 font-medium text-foreground">
+        <span
+          className="whitespace-nowrap px-2 font-medium tabular-nums text-foreground"
+          aria-label={`Página ${currentPage} de ${totalPages}`}
+        >
           {currentPage} / {totalPages}
         </span>
 
         <Button
           variant="outline"
           size="icon"
-          className="size-7"
+          type="button"
+          className="size-11 md:size-7"
           onClick={() => onPageChange(currentPage + 1)}
           disabled={currentPage >= totalPages}
           aria-label="Página seguinte"
@@ -100,7 +107,8 @@ export function ListPaginationBar({
         <Button
           variant="outline"
           size="icon"
-          className="size-7"
+          type="button"
+          className="size-11 md:size-7"
           onClick={() => onPageChange(totalPages)}
           disabled={currentPage >= totalPages}
           aria-label="Última página"
@@ -108,6 +116,6 @@ export function ListPaginationBar({
           <ChevronsRight className="size-3.5" />
         </Button>
       </div>
-    </div>
+    </nav>
   );
 }
