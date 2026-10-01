@@ -43,3 +43,11 @@ reviewHrAbsence já condicionava a escrita ao estado pending, mas não verificav
 O handler mantém as guardas de papel e grant de escrita, escola, estado pendente e actor. Não altera fórmulas nem recalcula folhas antigas. Não requer migração. Oito testes do handler cobrem validar/rejeitar, retorno vazio, MFA, decisões anteriores, registo inexistente, erro da base e grant de leitura. Quatro testes falharam antes da correcção; passaram 68 testes RH/segurança após a correcção. Concorrência real PostgreSQL não foi ensaiada; o teste simula o retorno vazio da actualização condicional.
 
 Verificação de tipos, lint e build de produção aprovados nesta continuação. Nenhuma escrita de teste realizada na produção.
+
+## Preparação para produção — erros de leitura e validação global (01/10/2026)
+
+Os cinco classificadores de tabelas ausentes em RH tratavam mensagens com nomes hr_* como ausência de schema. Um 42501 («permission denied for table hr_payroll_runs») podia tornar-se null/lista vazia. A classificação é agora central e aceita apenas 42P01/PGRST205. Erros de permissão, timeout, coluna/função inexistente e rede seguem o tratamento explícito da consulta. Foram acrescentados testes do classificador e do handler de detalhe salarial.
+
+O retrato da produção recebeu actualização parcial das cinco funções novas verificadas em READ ONLY (wrappers públicos, helpers privados e máscara); a contagem de funções privadas passa de 103 para 106. A data geral de captura foi preservada, pois não se recapturou a base inteira. O teste de escritas verificadas passou a reconhecer a confirmação atómica em vez de exigir o sincronizador antigo. Não se relaxaram as verificações de erros.
+
+Validação global: 349 ficheiros aprovados, três ignorados; 2.390 testes aprovados e 19 ignorados. Tipos, lint global, build de produção, inventário/navegação e ambos os ensaios SQL PGlite aprovados. Sem Actions adicionais nem dados financeiros de teste na produção. Limites de publicação em HR_PRODUCTION_READINESS_2026-10-01.md.

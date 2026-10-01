@@ -1,3 +1,4 @@
+import { isMissingHrTable } from "@/features/hr/missing-table";
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { publicDatabaseError } from "@/integrations/supabase/server-error";
@@ -21,17 +22,6 @@ async function requirePayrollAdmin(userId: string, mode: "read" | "write" = "rea
   // Permissões por módulo (Nenhum/Leitura) também valem no RH.
   await assertModuleNotBlocked(membership.schoolId, userId, "financeiro", mode);
   return membership;
-}
-
-function missingPayrollSchema(error: { code?: string; message?: string } | null) {
-  return Boolean(
-    error &&
-    (error.code === "42P01" ||
-      error.code === "PGRST205" ||
-      /hr_payroll|hr_employments|hr_contracts|schema cache|does not exist/i.test(
-        error.message ?? "",
-      )),
-  );
 }
 
 export const createPayrollRun = createServerFn({ method: "POST" })
@@ -112,7 +102,7 @@ export const getPayrollRunDetail = createServerFn({ method: "GET" })
       .eq("school_id", membership.schoolId)
       .maybeSingle();
     if (runError) {
-      if (missingPayrollSchema(runError)) return null;
+      if (isMissingHrTable(runError)) return null;
       throw publicDatabaseError(runError, "Não foi possível carregar a folha salarial.");
     }
     if (!run) return null;

@@ -1,3 +1,4 @@
+import { isMissingHrTable } from "@/features/hr/missing-table";
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { publicDatabaseError } from "@/integrations/supabase/server-error";
@@ -26,15 +27,6 @@ async function requirePaymentAdmin(userId: string, mode: "read" | "write" = "rea
   // Permissões por módulo (Nenhum/Leitura) também valem no RH.
   await assertModuleNotBlocked(membership.schoolId, userId, "financeiro", mode);
   return membership;
-}
-
-function missingPaymentSchema(error: { code?: string; message?: string } | null) {
-  return Boolean(
-    error &&
-    (error.code === "42P01" ||
-      error.code === "PGRST205" ||
-      /hr_(payment|payroll_payment)|schema cache|does not exist/i.test(error.message ?? "")),
-  );
 }
 
 export const upsertHrPaymentDestination = createServerFn({ method: "POST" })
@@ -77,7 +69,7 @@ export const listHrPaymentDestinations = createServerFn({ method: "GET" })
       .eq("active", true)
       .is("deleted_at", null);
     if (error) {
-      if (missingPaymentSchema(error)) return [];
+      if (isMissingHrTable(error)) return [];
       throw publicDatabaseError(error, "Não foi possível carregar os destinos de pagamento.");
     }
     return (data ?? []).map((row) => ({
@@ -150,7 +142,7 @@ export const listPayrollPaymentBatches = createServerFn({ method: "GET" })
       .order("created_at", { ascending: false })
       .limit(36);
     if (error) {
-      if (missingPaymentSchema(error)) return [];
+      if (isMissingHrTable(error)) return [];
       throw publicDatabaseError(error, "Não foi possível carregar as ordens salariais.");
     }
     return data ?? [];

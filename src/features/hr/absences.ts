@@ -1,3 +1,4 @@
+import { isMissingHrTable } from "@/features/hr/missing-table";
 import { createServerFn } from "@tanstack/react-start";
 import { requireAal2 } from "@/features/hr/require-aal2";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
@@ -26,17 +27,6 @@ async function requireAbsenceAdmin(userId: string, mode: "read" | "write" = "rea
   // Permissões por módulo (Nenhum/Leitura) também valem no RH.
   await assertModuleNotBlocked(membership.schoolId, userId, "financeiro", mode);
   return membership;
-}
-
-function missingAbsenceSchema(error: { code?: string; message?: string } | null) {
-  return Boolean(
-    error &&
-    (error.code === "42P01" ||
-      error.code === "PGRST205" ||
-      /hr_absence_events|hr_contract_remuneration_policies|schema cache|does not exist/i.test(
-        error.message ?? "",
-      )),
-  );
 }
 
 export type HrAbsenceReviewRow = {
@@ -72,7 +62,7 @@ export const listHrAbsencesForReview = createServerFn({ method: "GET" })
       .limit(250);
 
     if (error) {
-      if (missingAbsenceSchema(error)) return [];
+      if (isMissingHrTable(error)) return [];
       throw publicDatabaseError(error, "Não foi possível carregar as faltas.");
     }
     if (!absences?.length) return [];
@@ -122,7 +112,7 @@ export const listHrAbsencesForReview = createServerFn({ method: "GET" })
         .eq("school_id", membership.schoolId)
         .in("contract_id", contractIds)
         .eq("active", true);
-      if (policyError && !missingAbsenceSchema(policyError)) {
+      if (policyError && !isMissingHrTable(policyError)) {
         throw publicDatabaseError(
           policyError,
           "Não foi possível carregar as políticas remuneratórias.",

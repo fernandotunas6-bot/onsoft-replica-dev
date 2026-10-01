@@ -42,6 +42,7 @@ const readDetail = () =>
 let details: Json;
 let run: Record<string, unknown> | null;
 let itemError: { code: string } | null;
+let runError: { code: string; message: string } | null;
 let filters: Array<[string, string, unknown]>;
 beforeEach(() => {
   vi.clearAllMocks();
@@ -49,6 +50,7 @@ beforeEach(() => {
   details = { salary_type: "monthly", remuneration_model: "fixed_deduct_absence" };
   run = { id: "run-a", status: "paid" };
   itemError = null;
+  runError = null;
   filters = [];
   mocks.db.from.mockImplementation((table: string) => {
     const data = () => {
@@ -69,7 +71,11 @@ beforeEach(() => {
         return [{ contract_id: "contract-a", remuneration_model: "validated_units" }];
       throw new Error(`Unexpected table: ${table}`);
     };
-    const result = () => ({ data: data(), error: table === "hr_payroll_items" ? itemError : null });
+    const result = () => ({
+      data: data(),
+      error:
+        table === "hr_payroll_items" ? itemError : table === "hr_payroll_runs" ? runError : null,
+    });
     const query = {
       select: () => query,
       eq: (column: string, value: unknown) => {
@@ -118,6 +124,17 @@ describe("historical payroll detail", () => {
 
   it("does not load payroll items for a missing or inaccessible run", async () => {
     run = null;
+    expect(await readDetail()).toBeNull();
+    expect(mocks.db.from).not.toHaveBeenCalledWith("hr_payroll_items");
+  });
+
+  it("does not hide permission errors mentioning the payroll table", async () => {
+    runError = { code: "42501", message: "permission denied for table hr_payroll_runs" };
+    await expect(readDetail()).rejects.toThrow("Não foi possível carregar a folha salarial.");
+  });
+
+  it("preserves the legacy fallback for an absent payroll table", async () => {
+    runError = { code: "42P01", message: 'relation "public.hr_payroll_runs" does not exist' };
     expect(await readDetail()).toBeNull();
     expect(mocks.db.from).not.toHaveBeenCalledWith("hr_payroll_items");
   });
