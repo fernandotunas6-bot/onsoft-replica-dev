@@ -367,11 +367,11 @@ export function maskPaymentDestinationLabel(
   destinationReference: string | null | undefined,
   method: string,
 ): string {
-  const source = (iban || accountNumber || "").replace(/\s/g, "");
-  if (source.length >= 4) {
-    return `${iban ? "IBAN" : "Conta"} ••••${source.slice(-4)}`;
+  const source = (iban || accountNumber || destinationReference || "").replace(/\s/g, "");
+  if (source) {
+    const prefix = iban ? "IBAN" : accountNumber ? "Conta" : "Referência";
+    return `${prefix} ••••${source.length > 4 ? source.slice(-4) : ""}`;
   }
-  if (destinationReference) return destinationReference;
   if (method === "cash") return "Numerário";
   return "Outro";
 }

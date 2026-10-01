@@ -149,6 +149,10 @@ describe("HR schemas — inputs Zod", () => {
       "IBAN ••••0102",
     );
     expect(maskPaymentDestinationLabel(null, null, null, "cash")).toBe("Numerário");
+    expect(maskPaymentDestinationLabel(null, null, "PRIVATE-12345678", "other")).toBe(
+      "Referência ••••5678",
+    );
+    expect(maskPaymentDestinationLabel(null, "1234", null, "transfer")).toBe("Conta ••••");
   });
 });
 

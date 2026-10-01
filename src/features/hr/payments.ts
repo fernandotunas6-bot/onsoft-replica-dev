@@ -43,114 +43,24 @@ export const upsertHrPaymentDestination = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const membership = await requirePaymentAdmin(context.userId, "write");
     requireAal2(context.claims, "Alterar o destino de pagamento de um salário");
-    const db = await loadSgaAdminClient();
-    const { data: employment, error: employmentError } = await db
-      .from("hr_employments")
-      .select("id")
-      .eq("id", data.employmentId)
-      .eq("school_id", membership.schoolId)
-      .is("deleted_at", null)
-      .maybeSingle();
-    if (employmentError)
-      throw publicDatabaseError(employmentError, "Não foi possível validar o vínculo.");
-    if (!employment) throw new Error("Vínculo funcional não encontrado.");
-
-    const { data: existing, error: existingError } = await db
-      .from("hr_payment_destinations")
-      .select("id, method, iban, account_number, destination_reference, beneficiary_name")
-      .eq("school_id", membership.schoolId)
-      .eq("employment_id", data.employmentId)
-      .eq("is_primary", true)
-      .eq("active", true)
-      .is("deleted_at", null)
-      .maybeSingle();
-    if (existingError && !missingPaymentSchema(existingError))
-      throw publicDatabaseError(existingError, "Não foi possível carregar o destino de pagamento.");
-
-    const payload = {
-      school_id: membership.schoolId,
-      employment_id: data.employmentId,
-      method: data.method,
-      beneficiary_name: data.beneficiaryName,
-      bank_name: data.bankName || null,
-      iban: data.iban || null,
-      account_number: data.accountNumber || null,
-      destination_reference: data.destinationReference || null,
-      is_primary: true,
-      active: true,
-      updated_by: context.userId,
-    };
-
-    const label = (row: {
-      method?: unknown;
-      iban?: unknown;
-      account_number?: unknown;
-      destination_reference?: unknown;
-    }) =>
-      maskPaymentDestinationLabel(
-        row.iban ? String(row.iban) : null,
-        row.account_number ? String(row.account_number) : null,
-        row.destination_reference ? String(row.destination_reference) : null,
-        String(row.method ?? ""),
+    const { data: result, error } = await context.supabase.rpc("hr_upsert_payment_destination", {
+      p_school_id: membership.schoolId,
+      p_employment_id: data.employmentId,
+      p_destination: {
+        method: data.method,
+        beneficiaryName: data.beneficiaryName,
+        bankName: data.bankName,
+        iban: data.iban,
+        accountNumber: data.accountNumber,
+        destinationReference: data.destinationReference,
+      },
+    });
+    if (error)
+      throw publicDatabaseError(
+        error,
+        "Não foi possível guardar o destino salarial e a auditoria.",
       );
-    // Quem mudou, quando, de onde para onde (sempre mascarado): a troca de
-    // IBAN é o caminho clássico para desviar um salário.
-    const audit = async (destinationId: string) => {
-      const { error: auditError } = await db.from("audit_logs").insert({
-        school_id: membership.schoolId,
-        actor_user_id: context.userId,
-        action: "hr.payment_destination.changed",
-        entity_type: "hr_payment_destination",
-        entity_id: destinationId,
-        metadata: {
-          employment_id: data.employmentId,
-          before: existing
-            ? {
-                method: String(existing.method ?? ""),
-                destination: label(existing),
-                beneficiary: String(existing.beneficiary_name ?? ""),
-              }
-            : null,
-          after: {
-            method: data.method,
-            destination: label({
-              method: data.method,
-              iban: data.iban,
-              account_number: data.accountNumber,
-              destination_reference: data.destinationReference,
-            }),
-            beneficiary: data.beneficiaryName,
-          },
-        },
-      });
-      if (auditError) {
-        throw publicDatabaseError(
-          auditError,
-          "O destino foi guardado, mas não foi possível registar a alteração na auditoria.",
-        );
-      }
-    };
-
-    if (existing?.id) {
-      const { error } = await db
-        .from("hr_payment_destinations")
-        .update(payload)
-        .eq("id", existing.id)
-        .eq("school_id", membership.schoolId);
-      if (error)
-        throw publicDatabaseError(error, "Não foi possível actualizar o destino de pagamento.");
-      await audit(String(existing.id));
-      return { saved: true, id: String(existing.id) };
-    }
-
-    const { data: created, error } = await db
-      .from("hr_payment_destinations")
-      .insert({ ...payload, created_by: context.userId })
-      .select("id")
-      .single();
-    if (error) throw publicDatabaseError(error, "Não foi possível guardar o destino de pagamento.");
-    await audit(String(created.id));
-    return { saved: true, id: String(created.id) };
+    return result as { saved: boolean; id: string; unchanged?: boolean };
   });
 
 export const listHrPaymentDestinations = createServerFn({ method: "GET" })
