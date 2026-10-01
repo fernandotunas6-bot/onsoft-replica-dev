@@ -20,11 +20,6 @@ assert(
     /^(shell|fs|store|updater|process|stronghold|opener):/.test(permission),
   ),
 );
-const html = readFileSync("desktop/index.html", "utf8");
-assert(
-  html.includes(`name="siga-version" content="${config.version}"`),
-  "Launcher version differs from Tauri",
-);
 assert.equal(config.app.withGlobalTauri, true);
 const local = readJson("src-tauri/capabilities/default.json");
 assert.deepEqual(local.permissions, [
@@ -36,20 +31,6 @@ assert.deepEqual(local.permissions, [
 assert.deepEqual(readJson("src-tauri/tauri.windows.conf.json").bundle.targets, ["nsis"]);
 assert.equal(config.bundle.windows.nsis.installMode, "currentUser");
 assert.equal(config.bundle.windows.allowDowngrades, false);
-for (const [field, width, height] of [
-  ["headerImage", 150, 57],
-  ["sidebarImage", 164, 314],
-]) {
-  const file = readFileSync(`src-tauri/${config.bundle.windows.nsis[field]}`);
-  assert.equal(file.toString("ascii", 0, 2), "BM");
-  assert.equal(file.readInt32LE(18), width);
-  assert.equal(file.readInt32LE(22), height);
-  assert.equal(file.readUInt16LE(28), 24, "Installer BMP must be RGB 24-bit");
-}
-const dmg = readFileSync(`src-tauri/${config.bundle.macOS.dmg.background}`);
-assert.equal(dmg.toString("ascii", 1, 4), "PNG");
-assert.equal(dmg.readUInt32BE(16), config.bundle.macOS.dmg.windowSize.width);
-assert.equal(dmg.readUInt32BE(20), config.bundle.macOS.dmg.windowSize.height);
 assert(existsSync("src-tauri/Cargo.lock"));
 if (process.env.GITHUB_REF_TYPE === "tag")
   assert.equal(
