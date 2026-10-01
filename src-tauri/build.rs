@@ -6,6 +6,8 @@ fn main() {
             "print_thermal_receipt_native",
             "open_external_url",
             "hardware_bridge_request",
+            "get_desktop_diagnostics",
+            "open_school_portal",
         ]));
     tauri_build::try_build(attributes).expect("falha na configuração de permissões SIGA");
 }

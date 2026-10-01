@@ -57,7 +57,7 @@ pub async fn hardware_bridge_request(
     request_daemon(path, method, body, 8088).await
 }
 
-async fn request_daemon(
+pub(crate) async fn request_daemon(
     path: String,
     method: String,
     body: Option<String>,

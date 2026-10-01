@@ -2,6 +2,8 @@
 
 O desktop pertence ao SIGA escolar. Windows é a prioridade; macOS usa o mesmo projecto. A aplicação TanStack Start requer servidor: `.output/public` não é uma aplicação autónoma. O instalador inclui `desktop/index.html`, um ecrã local que abre o portal HTTPS `https://portal-siga.com`. Não inclui ADMIN, WEB, DOC ou PAYFLOW.
 
+O ecrã inclui ligação com cancelamento, diagnóstico sem dados pessoais, abertura no navegador, tema claro/escuro e guia. As regras e capturas estão em [DESKTOP_EXPERIENCE_SPEC.md](DESKTOP_EXPERIENCE_SPEC.md).
+
 ## Desenvolvimento
 
 - `npm run desktop:dev`: arranca Vite em localhost:3006 com permissões de desenvolvimento explícitas.

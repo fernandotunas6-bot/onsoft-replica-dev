@@ -3,21 +3,191 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <title>SIGA Desktop</title>
+    <meta name="siga-version" content="1.0.0" />
+    <title>SIGA Desktop · Bem-vindo</title>
     <link rel="stylesheet" href="launcher.css" />
     <script src="launcher.js" defer></script>
   </head>
   <body>
-    <main>
-      <p class="brand">OnSoft · SIGA Desktop</p>
-      <h1>A sua escola, num só lugar.</h1>
-      <p>Entre no portal seguro para continuar o trabalho académico.</p>
-      <p id="status" role="status" aria-live="polite">Pronto para ligar ao SIGA.</p>
-      <button id="connect" type="button">Abrir SIGA</button>
-      <p class="note">
-        O portal exige ligação à Internet. Este ecrã permanece disponível offline; não guarda nem
-        sincroniza operações académicas.
-      </p>
+    <header class="topbar">
+      <a class="brand" href="#workspace" aria-label="SIGA Desktop, início"
+        ><span class="brand-mark" aria-hidden="true">S</span
+        ><span>SIGA<span class="brand-sub">DESKTOP · ONSOFT</span></span></a
+      >
+      <div class="top-actions">
+        <span class="version" id="version">v1.0.0</span
+        ><button
+          id="theme"
+          class="icon-button"
+          type="button"
+          aria-label="Alternar tema claro e escuro"
+          title="Alternar tema"
+        >
+          ◐</button
+        ><button id="help" class="text-button" type="button">
+          Guia de instalação <span aria-hidden="true">↗</span>
+        </button>
+      </div>
+    </header>
+    <main id="workspace" class="workspace">
+      <section class="intro" aria-labelledby="welcome-title">
+        <div class="eyebrow">
+          <span class="small-dot" aria-hidden="true"></span> O SEU ESPAÇO DE TRABALHO
+        </div>
+        <h1 id="welcome-title">Um novo dia.<br /><span>Uma escola ligada.</span></h1>
+        <p class="lead">
+          A gestão académica, as pessoas e os documentos da sua escola, num só lugar.
+        </p>
+        <div class="school-card" aria-hidden="true">
+          <div class="card-top">
+            <span class="mini-mark">S</span
+            ><span>SIGA PLUS<small>Organização que acompanha a sua escola.</small></span
+            ><span class="card-star">✦</span>
+          </div>
+          <div class="preview-grid">
+            <div>
+              <span class="feature-symbol">▦</span><strong>Calendário</strong
+              ><small>Períodos e horários</small>
+            </div>
+            <div>
+              <span class="feature-symbol">◎</span><strong>Pessoas</strong
+              ><small>Alunos e docentes</small>
+            </div>
+            <div>
+              <span class="feature-symbol">▤</span><strong>Documentos</strong
+              ><small>Pautas e recibos</small>
+            </div>
+          </div>
+          <div class="card-bottom">
+            <span class="small-dot"></span> A sua sessão e escola são verificadas no portal.
+          </div>
+        </div>
+        <div class="intro-footer">
+          <span class="secure-symbol" aria-hidden="true">◇</span>
+          <p>
+            Ligação segura ao portal escolar.<br /><span
+              >As permissões são definidas pela sua escola.</span
+            >
+          </p>
+        </div>
+      </section>
+      <section class="access-panel" aria-labelledby="access-title">
+        <div class="panel-heading">
+          <span class="step">01 / COMEÇAR</span><span class="platform" id="platform">Desktop</span>
+        </div>
+        <h2 id="access-title">Tudo pronto para entrar.</h2>
+        <p class="panel-description">Abra o SIGA e continue com a sua conta escolar.</p>
+        <div class="connection" id="connection" data-state="idle">
+          <span class="connection-dot" aria-hidden="true"></span>
+          <div>
+            <strong id="connection-title">Ligação por verificar</strong
+            ><span id="status" role="status" aria-live="polite"
+              >Verifique a Internet antes de abrir o portal.</span
+            >
+          </div>
+        </div>
+        <div class="primary-actions">
+          <button id="connect" class="primary-button" type="button">
+            <span id="connect-label">Abrir SIGA</span><span aria-hidden="true">→</span></button
+          ><button id="cancel" class="cancel-button" type="button" hidden>
+            Cancelar verificação
+          </button>
+        </div>
+        <div class="secondary-actions">
+          <button id="diagnose" class="secondary-button" type="button">
+            <span aria-hidden="true">⌁</span> Verificar ligação</button
+          ><button id="browser" class="secondary-button" type="button">
+            <span aria-hidden="true">↗</span> Abrir no navegador
+          </button>
+        </div>
+        <details class="diagnostics" id="diagnostics">
+          <summary>Diagnóstico do dispositivo <span aria-hidden="true">+</span></summary>
+          <dl>
+            <div>
+              <dt>Aplicação</dt>
+              <dd id="app-detail">SIGA Desktop</dd>
+            </div>
+            <div>
+              <dt>Ligação ao portal</dt>
+              <dd id="portal-detail">Por verificar</dd>
+            </div>
+            <div>
+              <dt>Hardware local</dt>
+              <dd id="daemon-detail">Por verificar</dd>
+            </div>
+            <div>
+              <dt>Última verificação</dt>
+              <dd id="checked-detail">Ainda não executada</dd>
+            </div>
+          </dl>
+          <button id="copy" class="text-button" type="button">Copiar diagnóstico</button>
+          <pre id="report" tabindex="0" hidden></pre>
+          <p id="copy-status" role="status" class="copy-status"></p>
+        </details>
+        <div class="offline-note">
+          <span aria-hidden="true">i</span>
+          <p>
+            O portal exige Internet. Este ecrã funciona offline, mas não guarda nem sincroniza
+            operações académicas.
+          </p>
+        </div>
+        <noscript
+          ><p class="offline-note">
+            O JavaScript é necessário para abrir o portal e executar o diagnóstico.
+          </p></noscript
+        >
+      </section>
     </main>
+    <footer class="footer">
+      <span>SIGA Plus · Sistema Integrado de Gestão Académica</span
+      ><span>portal-siga.com <span aria-hidden="true">↗</span></span>
+    </footer>
+    <dialog id="help-dialog" aria-labelledby="help-title">
+      <div class="dialog-heading">
+        <span class="step">INSTALAÇÃO E PRIMEIRO ACESSO</span
+        ><button id="close-help" class="icon-button" type="button" aria-label="Fechar guia">
+          ×
+        </button>
+      </div>
+      <h2 id="help-title">Comece com confiança.</h2>
+      <p>
+        Use os instaladores oficiais publicados pela OnSoft. A aplicação não pede a senha da escola
+        durante a instalação.
+      </p>
+      <ol class="install-steps">
+        <li>
+          <strong>Windows</strong>
+          <p>
+            Execute o instalador, confirme a origem do ficheiro e siga as instruções. A instalação é
+            feita para o utilizador actual. Se necessário, o instalador obtém o Microsoft WebView2
+            pela Internet.
+          </p>
+        </li>
+        <li>
+          <strong>macOS</strong>
+          <p>
+            Abra o ficheiro DMG e arraste o SIGA Desktop para Aplicações. Não ignore avisos de
+            assinatura ou segurança do sistema.
+          </p>
+        </li>
+        <li>
+          <strong>Entrar na escola</strong>
+          <p>
+            Abra o SIGA, verifique a ligação e autentique-se no portal. O acesso depende do seu
+            vínculo e das permissões escolares.
+          </p>
+        </li>
+      </ol>
+      <div class="requirements">
+        <strong>Antes de começar</strong>
+        <p>
+          Precisa de Internet para o portal e de uma conta escolar autorizada. Catracas e
+          impressoras exigem configuração própria; o daemon Python é instalado separadamente.
+        </p>
+      </div>
+      <button id="done-help" class="primary-button" type="button">
+        Entendido <span aria-hidden="true">✓</span>
+      </button>
+    </dialog>
   </body>
 </html>

@@ -211,6 +211,50 @@ fn open_external_url(app: tauri::AppHandle, url: String) -> Result<(), String> {
         .map_err(|e| e.to_string())
 }
 
+#[derive(Serialize)]
+struct DesktopDiagnostics {
+    version: String,
+    os_type: String,
+    arch: String,
+    daemon_online: bool,
+    daemon_message: String,
+}
+
+#[tauri::command]
+async fn get_desktop_diagnostics(app: tauri::AppHandle) -> DesktopDiagnostics {
+    let online = match hardware_bridge::request_daemon("/health".into(), "GET".into(), None, 8088)
+        .await
+    {
+        Ok(response) if response.status == 200 => {
+            serde_json::from_str::<serde_json::Value>(&response.body)
+                .map(|data| {
+                    data["service"] == "SIGA Python Hardware Bridge" && data["status"] == "online"
+                })
+                .unwrap_or(false)
+        }
+        _ => false,
+    };
+    DesktopDiagnostics {
+        version: app.package_info().version.to_string(),
+        os_type: std::env::consts::OS.into(),
+        arch: std::env::consts::ARCH.into(),
+        daemon_online: online,
+        daemon_message: if online {
+            "Daemon SIGA ligado"
+        } else {
+            "Daemon SIGA não iniciado ou sem resposta"
+        }
+        .into(),
+    }
+}
+
+#[tauri::command]
+fn open_school_portal(app: tauri::AppHandle) -> Result<(), String> {
+    app.opener()
+        .open_url("https://portal-siga.com", None::<&str>)
+        .map_err(|_| "Não foi possível abrir o portal no navegador.".into())
+}
+
 /// Retorna informações nativas da plataforma em execução.
 #[tauri::command]
 fn get_system_info() -> SystemInfo {
@@ -283,7 +327,9 @@ pub fn run() {
             print_thermal_receipt_native,
             get_system_info,
             open_external_url,
-            hardware_bridge::hardware_bridge_request
+            hardware_bridge::hardware_bridge_request,
+            get_desktop_diagnostics,
+            open_school_portal
         ]);
 
     #[cfg(desktop)]

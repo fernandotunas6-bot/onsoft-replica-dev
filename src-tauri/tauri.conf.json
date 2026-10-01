@@ -12,7 +12,7 @@
   "app": {
     "windows": [
       {
-        "title": "SIGA - Sistema Integrado de Gest\u00e3o Acad\u00e9mica",
+        "title": "SIGA - Sistema Integrado de Gestão Académica",
         "width": 1280,
         "height": 832,
         "minWidth": 1024,
@@ -29,7 +29,8 @@
     ],
     "security": {
       "csp": "default-src 'self'; script-src 'self'; style-src 'self'; connect-src https://portal-siga.com; img-src 'self' data:; object-src 'none'; base-uri 'self'; form-action 'none'; frame-src 'none'"
-    }
+    },
+    "withGlobalTauri": true
   },
   "bundle": {
     "active": true,
@@ -40,6 +41,42 @@
       "icons/128x128@2x.png",
       "icons/icon.icns",
       "icons/icon.ico"
-    ]
+    ],
+    "publisher": "OnSoft",
+    "shortDescription": "Gestão académica da sua escola",
+    "windows": {
+      "allowDowngrades": false,
+      "webviewInstallMode": {
+        "type": "downloadBootstrapper",
+        "silent": false
+      },
+      "nsis": {
+        "installMode": "currentUser",
+        "languages": ["Portuguese", "English"],
+        "displayLanguageSelector": true,
+        "headerImage": "installer/header.bmp",
+        "sidebarImage": "installer/sidebar.bmp",
+        "installerIcon": "icons/icon.ico",
+        "startMenuFolder": "OnSoft",
+        "compression": "lzma"
+      }
+    },
+    "macOS": {
+      "dmg": {
+        "background": "installer/dmg-background.png",
+        "windowSize": {
+          "width": 660,
+          "height": 400
+        },
+        "appPosition": {
+          "x": 180,
+          "y": 170
+        },
+        "applicationFolderPosition": {
+          "x": 480,
+          "y": 170
+        }
+      }
+    }
   }
 }

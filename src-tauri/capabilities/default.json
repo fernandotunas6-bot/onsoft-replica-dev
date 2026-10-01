@@ -3,5 +3,10 @@
   "identifier": "default",
   "description": "Local launcher permissions only",
   "windows": ["main"],
-  "permissions": ["core:default", "allow-get-system-info"]
+  "permissions": [
+    "core:default",
+    "allow-get-system-info",
+    "allow-get-desktop-diagnostics",
+    "allow-open-school-portal"
+  ]
 }
