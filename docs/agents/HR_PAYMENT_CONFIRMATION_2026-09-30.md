@@ -27,3 +27,11 @@ Migração do destino aplicada no SGA em 01/10/2026. Chamada sem identidade recu
 A sincronização do horário aceitava dias inexistentes porque Date.parse normaliza, por exemplo, 30 de Fevereiro para Março. A criação de aulas extra apenas verificava o formato textual e aceitava horas fora de 00:00–23:59. Os schemas centrais passam a verificar o dia real do calendário (incluindo anos bissextos e excluindo o ano zero) e os limites de horas/minutos antes das RPCs. Mantêm o limite de 31 dias entre as extremidades da sincronização e a obrigação de a aula terminar depois de começar.
 
 Os testes de regressão reproduziram nove falhas antes da correcção. Após a correcção passaram 50 testes RH/segurança e 13 testes de navegação; lint e inventário aprovados. Não requer migração de base de dados.
+
+## Continuação — detalhe histórico da folha (01/10/2026)
+
+getPayrollRunDetail lia o tipo salarial e o modelo de remuneração dos contratos/políticas actuais, embora o cálculo já os guarde em calculation_details. Uma alteração posterior ao contrato fazia o detalhe histórico mostrar regras diferentes das usadas para obter os valores. A consulta passa a usar exclusivamente os metadados guardados no cálculo. Foram removidas as duas leituras aos contratos/políticas actuais, incluindo a leitura que ignorava erros.
+
+Registos antigos sem metadados devolvem null (a UI existente apresenta «—»); não se infere o passado a partir do contrato actual. JSON não objecto é normalizado para um objecto vazio. Valores monetários, aprovações e dados pessoais não foram alterados. Confirmada em READ ONLY na produção a presença de salary_type e remuneration_model na função de cálculo. Não requer migração.
+
+Os testes do handler reproduziram seis falhas antes da correcção. Após a correcção passaram 60 testes RH/segurança. Cobrem alterações posteriores do contrato, metadados ausentes/malformados, escola em todas as leituras, ordem de autorização, competência inacessível e erro na leitura de itens. Lint e build de produção aprovados.
