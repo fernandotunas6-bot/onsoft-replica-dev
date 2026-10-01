@@ -35,3 +35,11 @@ getPayrollRunDetail lia o tipo salarial e o modelo de remuneração dos contrato
 Registos antigos sem metadados devolvem null (a UI existente apresenta «—»); não se infere o passado a partir do contrato actual. JSON não objecto é normalizado para um objecto vazio. Valores monetários, aprovações e dados pessoais não foram alterados. Confirmada em READ ONLY na produção a presença de salary_type e remuneration_model na função de cálculo. Não requer migração.
 
 Os testes do handler reproduziram seis falhas antes da correcção. Após a correcção passaram 60 testes RH/segurança. Cobrem alterações posteriores do contrato, metadados ausentes/malformados, escola em todas as leituras, ordem de autorização, competência inacessível e erro na leitura de itens. Lint e build de produção aprovados.
+
+## Continuação — revisão de faltas (01/10/2026)
+
+reviewHrAbsence já condicionava a escrita ao estado pending, mas não verificava se alguma linha tinha sido alterada. Duas revisões concorrentes podiam receber saved: true embora só a primeira persistisse. A decisão exige agora retorno da linha actualizada; zero linhas devolve conflito explícito com pedido de actualização da lista. A escrita também exclui registos removidos entretanto (deleted_at). A verificação de 2FA precede o carregamento do cliente privilegiado, pois a classificação validada pode influenciar descontos salariais.
+
+O handler mantém as guardas de papel e grant de escrita, escola, estado pendente e actor. Não altera fórmulas nem recalcula folhas antigas. Não requer migração. Oito testes do handler cobrem validar/rejeitar, retorno vazio, MFA, decisões anteriores, registo inexistente, erro da base e grant de leitura. Quatro testes falharam antes da correcção; passaram 68 testes RH/segurança após a correcção. Concorrência real PostgreSQL não foi ensaiada; o teste simula o retorno vazio da actualização condicional.
+
+Verificação de tipos, lint e build de produção aprovados nesta continuação. Nenhuma escrita de teste realizada na produção.

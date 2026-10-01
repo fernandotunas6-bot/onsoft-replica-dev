@@ -1,4 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
+import { requireAal2 } from "@/features/hr/require-aal2";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { publicDatabaseError } from "@/integrations/supabase/server-error";
 import {
@@ -208,6 +209,7 @@ export const reviewHrAbsence = createServerFn({ method: "POST" })
   .validator((input: unknown) => reviewHrAbsenceInputSchema.parse(input))
   .handler(async ({ data, context }) => {
     const membership = await requireAbsenceAdmin(context.userId, "write");
+    requireAal2(context.claims, "Rever faltas com impacto salarial");
     const db = await loadSgaAdminClient();
     const now = new Date().toISOString();
 
@@ -224,7 +226,7 @@ export const reviewHrAbsence = createServerFn({ method: "POST" })
       throw new Error("Esta falta já foi revista e não pode ser validada novamente.");
     }
 
-    const { error } = await db
+    const { data: updated, error } = await db
       .from("hr_absence_events")
       .update({
         absence_type: data.absenceType,
@@ -236,8 +238,16 @@ export const reviewHrAbsence = createServerFn({ method: "POST" })
       })
       .eq("id", data.absenceId)
       .eq("school_id", membership.schoolId)
-      .eq("validation_status", "pending");
+      .eq("validation_status", "pending")
+      .is("deleted_at", null)
+      .select("id")
+      .maybeSingle();
     if (error) throw publicDatabaseError(error, "Não foi possível guardar a decisão da falta.");
+    if (!updated) {
+      throw new Error(
+        "A falta foi alterada ou removida entretanto. Actualize a lista antes de decidir.",
+      );
+    }
 
     return { saved: true };
   });
