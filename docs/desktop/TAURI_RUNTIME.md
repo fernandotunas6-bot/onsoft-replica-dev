@@ -18,7 +18,9 @@ O Rust envia TCP em tarefas de fundo, com limites de ligação e escrita, para I
 
 O modo navegador não simula sucesso. Resultados `simulated` do daemon são rejeitados pelo frontend. A impressão transmite o texto solicitado, limitado a 64 KiB, sem permitir comandos de controlo inseridos no texto. Sucesso de envio TCP não comprova impressão em papel nem abertura mecânica; é necessário validar protocolo e resposta do modelo concreto antes de uso operacional. O pacote de relé existente não constitui certificação de compatibilidade com todos os fabricantes.
 
-O daemon Python permanece um componente instalado e iniciado separadamente. A integração HTTP local depende das políticas CORS/mixed-content do WebView; não é considerada validada no portal HTTPS apenas por passar nos testes unitários.
+O daemon Python permanece um componente instalado e iniciado separadamente. No Tauri, a UI comunica por IPC com `hardware_bridge_request`: o Rust faz HTTP apenas para `127.0.0.1:8088`, com lista fechada de métodos/endpoints, sem proxy, redireccionamentos ou retries, e com limites de pedido/resposta. Assim, a ligação ao daemon não depende de pedidos HTTP directos do WebView HTTPS. No navegador, o HTTP directo continua limitado às origens locais de desenvolvimento/preview.
+
+O daemon rejeita origens desconhecidas (incluindo `null`), Host diferente do endereço local, escrita sem Content-Type JSON, corpos inválidos ou acima de 256 KiB e pedidos de hardware a IPs públicos. Ferramentas locais sem Origin continuam autorizadas: estas protecções impedem chamadas de páginas de terceiros, mas não substituem autenticação de processos locais. A rota de impressão também valida campos dos recibos antigos para impedir inserção de comandos ESC/POS.
 
 ## Release
 

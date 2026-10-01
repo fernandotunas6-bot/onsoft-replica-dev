@@ -14,6 +14,7 @@
     "core:window:allow-close",
     "core:window:allow-start-dragging",
     "allow-get-system-info",
+    "allow-hardware-bridge-request",
     "allow-open-external-url",
     "allow-pulse-turnstile-relay",
     "allow-print-thermal-receipt-native",

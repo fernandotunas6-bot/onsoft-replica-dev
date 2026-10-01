@@ -13,6 +13,7 @@ import sys
 import json
 import time
 import socket
+import ipaddress
 from http.server import HTTPServer, BaseHTTPRequestHandler
 
 from device_discovery import (
@@ -29,8 +30,8 @@ BIND_HOST = "127.0.0.1"  # nunca expor na LAN
 ALLOWED_ORIGINS = (
     "http://localhost:3000",
     "http://127.0.0.1:3000",
-    "http://localhost:5173",
-    "http://127.0.0.1:5173",
+    "http://localhost:3006",
+    "http://127.0.0.1:3006",
     "tauri://localhost",
     "http://tauri.localhost",
 )
@@ -40,13 +41,24 @@ def _cors_origin(handler: BaseHTTPRequestHandler) -> str:
     origin = handler.headers.get("Origin", "")
     if origin in ALLOWED_ORIGINS:
         return origin
-    # Pedidos same-origin / ferramentas locais sem Origin
-    return "http://127.0.0.1:3000"
+    return ""
+
+MAX_REQUEST_BYTES = 256 * 1024
+
+
+def _hardware_ip(value):
+    address = ipaddress.ip_address(value)
+    private_v4 = (ipaddress.ip_network("10.0.0.0/8"), ipaddress.ip_network("172.16.0.0/12"), ipaddress.ip_network("192.168.0.0/16"))
+    allowed = any(address in network for network in private_v4) if address.version == 4 else address in ipaddress.ip_network("fc00::/7")
+    if not allowed:
+        raise ValueError("Configure um IP privado para o hardware físico.")
+    return address
+
 
 class TurnstileHardwareController:
     """
     Controlador de Hardware de Catracas via Socket TCP/IP ou Protocolo de Relé.
-    Suporta placas ZKTeco C3, Intelbras CT5000, Control iD iDFace e Topdata.
+    O protocolo deve ser homologado para o modelo físico antes de uso operacional.
     """
     def __init__(self, ip_address="192.168.1.201", port=4370):
         self.ip_address = ip_address
@@ -59,9 +71,14 @@ class TurnstileHardwareController:
         Direção 'exit'  (Saída)   -> Relé 2 (Braço Azul/Laranja)
         Protocolo padrão Wiegand/Relé: 0x55 0xAA [DIRECTION_BYTE] [GATE] [DURATION]
         """
+        if direction not in ("entry", "exit") or type(gate_number) is not int or not 1 <= gate_number <= 255:
+            return {"status": "error", "error": "Catraca ou direcção inválida."}
+        if type(duration_ms) is not int or not 1000 <= duration_ms <= 255000:
+            return {"status": "error", "error": "Duração do pulso inválida."}
         dir_byte = 0x01 if direction == "entry" else 0x02
         try:
-            sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            address = None if self.ip_address in ("127.0.0.1", "localhost") else _hardware_ip(self.ip_address)
+            sock = socket.socket(socket.AF_INET6 if address and address.version == 6 else socket.AF_INET, socket.SOCK_STREAM)
             sock.settimeout(2.0)
             command_payload = bytes([0x55, 0xAA, dir_byte, gate_number, (duration_ms // 1000) & 0xFF])
             if self.ip_address in ["127.0.0.1", "localhost"]:
@@ -137,6 +154,7 @@ class EscPosThermalPrinter:
     """
     @staticmethod
     def format_receipt_bytes(school_name, student_name, amount_kwanza, nif, receipt_no):
+        EscPosThermalPrinter.format_text_bytes("\n".join(str(value) for value in (school_name, student_name, amount_kwanza, nif, receipt_no)))
         ESC = b"\x1b"
         GS = b"\x1d"
         
@@ -171,7 +189,8 @@ class EscPosThermalPrinter:
     @staticmethod
     def send_to_network_printer(ip_address, raw_bytes, port=9100):
         try:
-            sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            address = None if ip_address in ("127.0.0.1", "localhost") else _hardware_ip(ip_address)
+            sock = socket.socket(socket.AF_INET6 if address and address.version == 6 else socket.AF_INET, socket.SOCK_STREAM)
             sock.settimeout(3.0)
             if ip_address in ["127.0.0.1", "localhost"]:
                 sock.close()
@@ -186,35 +205,62 @@ class EscPosThermalPrinter:
             return {"status": "error", "message": str(e)}
 
 class HardwareBridgeRequestHandler(BaseHTTPRequestHandler):
+    def setup(self):
+        super().setup()
+        self.connection.settimeout(5)
+
+    def _accept_request(self):
+        port = self.server.server_address[1]
+        if self.headers.get("Host", "") not in (f"127.0.0.1:{port}", f"localhost:{port}"):
+            self._send_json({"error": "Host local inválido."}, 403)
+            return False
+        origin = self.headers.get("Origin")
+        if origin is not None and origin not in ALLOWED_ORIGINS:
+            self._send_json({"error": "Origem não autorizada pelo daemon local."}, 403)
+            return False
+        if origin is None and self.headers.get("Sec-Fetch-Site") == "cross-site":
+            self._send_json({"error": "Pedido cross-site não autorizado."}, 403)
+            return False
+        return True
+
     def _send_json(self, data, code=200):
         self.send_response(code)
         self.send_header("Content-Type", "application/json")
-        self.send_header("Access-Control-Allow-Origin", _cors_origin(self))
+        if _cors_origin(self):
+            self.send_header("Access-Control-Allow-Origin", _cors_origin(self))
         self.send_header("Access-Control-Allow-Headers", "Content-Type")
         self.send_header("Vary", "Origin")
+        encoded = json.dumps(data).encode("utf-8")
+        self.send_header("Content-Length", str(len(encoded)))
+        self.send_header("Cache-Control", "no-store")
         self.end_headers()
-        self.wfile.write(json.dumps(data).encode("utf-8"))
+        self.wfile.write(encoded)
 
     def do_OPTIONS(self):
+        if not self._accept_request():
+            return
         self.send_response(200)
-        self.send_header("Access-Control-Allow-Origin", _cors_origin(self))
+        if _cors_origin(self):
+            self.send_header("Access-Control-Allow-Origin", _cors_origin(self))
         self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
         self.send_header("Access-Control-Allow-Headers", "Content-Type")
         self.send_header("Vary", "Origin")
         self.end_headers()
 
     def do_GET(self):
+        if not self._accept_request():
+            return
         if self.path == "/health":
             self._send_json({
                 "service": "SIGA Python Hardware Bridge",
                 "status": "online",
                 "bind": BIND_HOST,
                 "hardware": {
-                    "turnstiles": "ready",
-                    "zkteco_protocol": "supported",
-                    "intelbras_webhook": "supported",
-                    "esc_pos_printers": "ready",
-                    "pvc_card_printers": "ready",
+                    "turnstiles": "tcp_transport_available",
+                    "zkteco_protocol": "command_builder_available",
+                    "intelbras_webhook": "cloud_validation_route_available",
+                    "esc_pos_printers": "tcp_transport_available",
+                    "pvc_card_printers": "not_implemented",
                     "local_discovery": "serial_usb_and_cups",
                 },
             })
@@ -228,13 +274,29 @@ class HardwareBridgeRequestHandler(BaseHTTPRequestHandler):
             self._send_json({"error": "Endpoint não encontrado"}, 404)
 
     def do_POST(self):
-        content_length = int(self.headers.get("Content-Length", 0))
-        post_data = self.rfile.read(content_length)
-        
+        if not self._accept_request():
+            return
+        if self.headers.get_content_type() != "application/json":
+            self._send_json({"error": "Envie Content-Type application/json."}, 415)
+            return
         try:
-            payload = json.loads(post_data.decode("utf-8")) if post_data else {}
-        except Exception:
-            payload = {}
+            content_length = int(self.headers.get("Content-Length", ""))
+        except ValueError:
+            self._send_json({"error": "Content-Length inválido ou em falta."}, 400)
+            return
+        if self.headers.get("Transfer-Encoding") or not 0 < content_length <= MAX_REQUEST_BYTES:
+            self._send_json({"error": "Tamanho do pedido não permitido."}, 413)
+            return
+        try:
+            post_data = self.rfile.read(content_length)
+            if len(post_data) != content_length:
+                raise ValueError("Pedido incompleto")
+            payload = json.loads(post_data.decode("utf-8"))
+            if not isinstance(payload, dict):
+                raise ValueError("Envie um objecto JSON")
+        except (ValueError, UnicodeError, TimeoutError):
+            self._send_json({"error": "Pedido JSON inválido ou incompleto."}, 400)
+            return
 
         if self.path == "/hardware/allowlist":
             devices = payload.get("devices") if isinstance(payload, dict) else None
@@ -311,7 +373,7 @@ class HardwareBridgeRequestHandler(BaseHTTPRequestHandler):
 
             if granted:
                 ctrl = TurnstileHardwareController(ip_address=str(turnstile_ip))
-                pulse_result = ctrl.send_pulse_relay(gate_number=int(gate), direction=str(direction))
+                pulse_result = ctrl.send_pulse_relay(gate_number=gate, direction=direction)
 
             self._send_json({
                 "result": {

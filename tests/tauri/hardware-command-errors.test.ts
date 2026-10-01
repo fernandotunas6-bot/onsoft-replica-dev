@@ -33,19 +33,23 @@ describe("native physical command failures", () => {
     expect(open).not.toHaveBeenCalled();
   });
 
-  it("retains device allowlist checks when a device id is supplied", async () => {
-    const invoke = vi.fn();
+  it("retains device allowlist checks using the native daemon transport", async () => {
     vi.stubGlobal("isTauri", true);
-    mockIPC(invoke);
-    const fetchMock = vi
+    const invoke = vi
       .fn()
-      .mockResolvedValue({ ok: false, json: async () => ({ error: "not allowed" }) });
+      .mockReturnValue({ status: 403, body: JSON.stringify({ error: "not allowed" }) });
+    mockIPC(invoke);
+    const fetchMock = vi.fn();
     vi.stubGlobal("fetch", fetchMock);
     await expect(
       triggerTurnstileRelay({ ipAddress: "192.168.1.20", deviceId: "serial:test" }),
     ).rejects.toThrow("not allowed");
-    expect(invoke).not.toHaveBeenCalled();
-    expect(JSON.parse(fetchMock.mock.calls[0][1].body).device_id).toBe("serial:test");
+    expect(invoke).toHaveBeenCalledWith(
+      "hardware_bridge_request",
+      expect.objectContaining({ path: "/hardware/turnstile/open", method: "POST" }),
+    );
+    expect(JSON.parse(invoke.mock.calls[0][1].body).device_id).toBe("serial:test");
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 
   it("rejects simulated daemon results and transmits the exact receipt", async () => {

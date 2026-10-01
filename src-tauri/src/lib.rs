@@ -1,3 +1,5 @@
+mod hardware_bridge;
+
 use serde::{Deserialize, Serialize};
 use std::io::Write;
 use std::net::{IpAddr, SocketAddr, TcpStream};
@@ -280,7 +282,8 @@ pub fn run() {
             pulse_turnstile_relay,
             print_thermal_receipt_native,
             get_system_info,
-            open_external_url
+            open_external_url,
+            hardware_bridge::hardware_bridge_request
         ]);
 
     #[cfg(desktop)]

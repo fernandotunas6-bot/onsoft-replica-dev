@@ -2,6 +2,22 @@ import { invoke, isTauri } from "@tauri-apps/api/core";
 
 const PYTHON_BRIDGE_BASE = "http://127.0.0.1:8088";
 
+/** O WebView HTTPS usa IPC; só o navegador de desenvolvimento faz HTTP directo. */
+async function requestHardwareBridge(path: string, options: RequestInit): Promise<Response> {
+  if (isTauriDesktop()) {
+    const result = await invoke<{ status: number; body: string }>("hardware_bridge_request", {
+      path,
+      method: options.method ?? "GET",
+      body: typeof options.body === "string" ? options.body : null,
+    });
+    return new Response(result.body, {
+      status: result.status,
+      headers: { "Content-Type": "application/json" },
+    });
+  }
+  return fetch(`${PYTHON_BRIDGE_BASE}${path}`, options);
+}
+
 export interface HardwarePulseOptions {
   ipAddress: string;
   gate?: number;
@@ -78,7 +94,7 @@ export async function triggerTurnstileRelay(options: HardwarePulseOptions) {
   }
 
   // Fallback para Daemon Python HTTP local (só 127.0.0.1)
-  const response = await fetch(`${PYTHON_BRIDGE_BASE}/hardware/turnstile/open`, {
+  const response = await requestHardwareBridge("/hardware/turnstile/open", {
     method: "POST",
     signal: AbortSignal.timeout(5000),
     headers: { "Content-Type": "application/json" },
@@ -118,7 +134,7 @@ export async function printThermalReceiptNative(options: ThermalPrintOptions) {
     return { source: "tauri_rust_native", ...res };
   }
 
-  const response = await fetch(`${PYTHON_BRIDGE_BASE}/hardware/printer/thermal`, {
+  const response = await requestHardwareBridge("/hardware/printer/thermal", {
     method: "POST",
     signal: AbortSignal.timeout(5000),
     headers: { "Content-Type": "application/json" },
@@ -146,7 +162,7 @@ export async function printThermalReceiptNative(options: ThermalPrintOptions) {
 /** Descobre USB-série + impressoras CUPS via daemon Python local (sem sair do host). */
 export async function discoverLocalHardwareDevices(): Promise<LocalHardwareDiscoverResult> {
   try {
-    const response = await fetch(`${PYTHON_BRIDGE_BASE}/hardware/discover`, {
+    const response = await requestHardwareBridge("/hardware/discover", {
       method: "GET",
       headers: { Accept: "application/json" },
       signal: AbortSignal.timeout(5000),
@@ -172,7 +188,7 @@ export async function discoverLocalHardwareDevices(): Promise<LocalHardwareDisco
 /** Lê a allowlist local do daemon (ficheiro JSON no PC, nunca na cloud). */
 export async function getLocalHardwareAllowlist(): Promise<LocalHardwareAllowlist> {
   try {
-    const response = await fetch(`${PYTHON_BRIDGE_BASE}/hardware/allowlist`, {
+    const response = await requestHardwareBridge("/hardware/allowlist", {
       method: "GET",
       headers: { Accept: "application/json" },
       signal: AbortSignal.timeout(5000),
@@ -190,7 +206,7 @@ export async function getLocalHardwareAllowlist(): Promise<LocalHardwareAllowlis
 export async function saveLocalHardwareAllowlist(
   devices: LocalHardwareDevice[],
 ): Promise<LocalHardwareAllowlist> {
-  const response = await fetch(`${PYTHON_BRIDGE_BASE}/hardware/allowlist`, {
+  const response = await requestHardwareBridge("/hardware/allowlist", {
     method: "POST",
     signal: AbortSignal.timeout(5000),
     headers: { "Content-Type": "application/json" },
@@ -222,7 +238,7 @@ export interface LocalHardwareBridgeConfig {
 /** Lê URL SIGA + API key do dispositivo guardados no daemon local. */
 export async function getLocalHardwareBridgeConfig(): Promise<LocalHardwareBridgeConfig> {
   try {
-    const response = await fetch(`${PYTHON_BRIDGE_BASE}/hardware/bridge-config`, {
+    const response = await requestHardwareBridge("/hardware/bridge-config", {
       method: "GET",
       headers: { Accept: "application/json" },
       signal: AbortSignal.timeout(5000),
@@ -240,7 +256,7 @@ export async function getLocalHardwareBridgeConfig(): Promise<LocalHardwareBridg
 export async function saveLocalHardwareBridgeConfig(
   config: Pick<LocalHardwareBridgeConfig, "siga_app_url" | "device_api_key" | "turnstile_ip">,
 ): Promise<LocalHardwareBridgeConfig> {
-  const response = await fetch(`${PYTHON_BRIDGE_BASE}/hardware/bridge-config`, {
+  const response = await requestHardwareBridge("/hardware/bridge-config", {
     method: "POST",
     signal: AbortSignal.timeout(5000),
     headers: { "Content-Type": "application/json" },
@@ -264,7 +280,7 @@ export type HardwareBridgeHealth = {
 /** Estado do daemon Python em 127.0.0.1:8088 (nunca sai do host). */
 export async function checkPythonHardwareBridgeHealth(): Promise<HardwareBridgeHealth> {
   try {
-    const response = await fetch(`${PYTHON_BRIDGE_BASE}/health`, {
+    const response = await requestHardwareBridge("/health", {
       method: "GET",
       headers: { Accept: "application/json" },
       signal: AbortSignal.timeout(2500),
@@ -277,6 +293,9 @@ export async function checkPythonHardwareBridgeHealth(): Promise<HardwareBridgeH
       bind?: string;
       hardware?: { local_discovery?: string };
     };
+    if (data.service !== "SIGA Python Hardware Bridge") {
+      return { online: false, error: "O serviço local não é o daemon SIGA esperado." };
+    }
     return {
       online: true,
       ...(data.service !== undefined ? { service: data.service } : {}),

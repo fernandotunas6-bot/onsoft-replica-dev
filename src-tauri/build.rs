@@ -5,6 +5,7 @@ fn main() {
             "pulse_turnstile_relay",
             "print_thermal_receipt_native",
             "open_external_url",
+            "hardware_bridge_request",
         ]));
     tauri_build::try_build(attributes).expect("falha na configuração de permissões SIGA");
 }
