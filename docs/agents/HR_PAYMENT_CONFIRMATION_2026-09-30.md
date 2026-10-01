@@ -21,3 +21,9 @@ As referências e números de conta curtos deixam de aparecer completos nas list
 Validação desta continuação: 36 testes Vitest; ensaio SQL PGlite com falha de auditoria injectada na criação e actualização, máscaras, reenvio, isolamento/MFA/grants e permissões. Concorrência PostgreSQL real permanece por ensaiar. Nenhum destino de teste criado na produção.
 
 Migração do destino aplicada no SGA em 01/10/2026. Chamada sem identidade recusada em READ ONLY; permissões do wrapper/helper verificadas e helper de máscara não executável por authenticated. Types e lint aprovados. Deploy não executado.
+
+## Continuação — datas e horas de aulas (01/10/2026)
+
+A sincronização do horário aceitava dias inexistentes porque Date.parse normaliza, por exemplo, 30 de Fevereiro para Março. A criação de aulas extra apenas verificava o formato textual e aceitava horas fora de 00:00–23:59. Os schemas centrais passam a verificar o dia real do calendário (incluindo anos bissextos e excluindo o ano zero) e os limites de horas/minutos antes das RPCs. Mantêm o limite de 31 dias entre as extremidades da sincronização e a obrigação de a aula terminar depois de começar.
+
+Os testes de regressão reproduziram nove falhas antes da correcção. Após a correcção passaram 50 testes RH/segurança e 13 testes de navegação; lint e inventário aprovados. Não requer migração de base de dados.

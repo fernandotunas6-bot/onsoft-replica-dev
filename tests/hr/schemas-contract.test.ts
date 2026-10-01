@@ -9,6 +9,7 @@ import {
   compensationValidationFromAssurance,
   confirmPayrollPaymentItemInputSchema,
   createPayrollRunInputSchema,
+  createExtraTeacherLessonInputSchema,
   createTeacherLessonQrInputSchema,
   isPayrollFinanciallyLocked,
   maskPaymentDestinationLabel,
@@ -142,6 +143,87 @@ describe("HR schemas — inputs Zod", () => {
         to: "2026-03-01",
       }),
     ).toThrow(/31 dias/);
+  });
+
+  it.each(["2026-02-29", "2026-02-30", "2026-04-31", "1900-02-29", "0000-01-01"])(
+    "rejects nonexistent date %s in synchronization and extra lessons",
+    (date) => {
+      const fromResult = materializeTeacherLessonsInputSchema.safeParse({ from: date, to: date });
+      expect(fromResult.success).toBe(false);
+      if (!fromResult.success) {
+        expect(fromResult.error.issues.some((issue) => issue.path[0] === "from")).toBe(true);
+        expect(fromResult.error.issues.some((issue) => issue.path[0] === "to")).toBe(true);
+      }
+      expect(
+        createExtraTeacherLessonInputSchema.safeParse({
+          classSubjectId: "11111111-1111-4111-8111-111111111111",
+          lessonDate: date,
+          startsAt: "08:00",
+          endsAt: "09:00",
+          reason: "Aula extra",
+        }).success,
+      ).toBe(false);
+    },
+  );
+
+  it.each(["2000-02-29", "2028-02-29", "2026-04-30", "2026-12-31"])(
+    "accepts real calendar date %s",
+    (date) => {
+      expect(materializeTeacherLessonsInputSchema.safeParse({ from: date, to: date }).success).toBe(
+        true,
+      );
+      expect(
+        createExtraTeacherLessonInputSchema.safeParse({
+          classSubjectId: "11111111-1111-4111-8111-111111111111",
+          lessonDate: date,
+          startsAt: "00:00",
+          endsAt: "23:59",
+          reason: "Aula extra",
+        }).success,
+      ).toBe(true);
+    },
+  );
+
+  it.each(["24:00", "25:00", "09:60", "99:99"])("rejects invalid lesson time %s", (time) => {
+    const lesson = {
+      classSubjectId: "11111111-1111-4111-8111-111111111111",
+      lessonDate: "2026-10-01",
+      startsAt: "00:00",
+      endsAt: "23:59",
+      reason: "Aula extra",
+    };
+    expect(
+      createExtraTeacherLessonInputSchema.safeParse({ ...lesson, startsAt: time }).success,
+    ).toBe(false);
+    expect(createExtraTeacherLessonInputSchema.safeParse({ ...lesson, endsAt: time }).success).toBe(
+      false,
+    );
+  });
+
+  it("preserves synchronization bounds and lesson ordering", () => {
+    expect(
+      materializeTeacherLessonsInputSchema.safeParse({ from: "2026-01-01", to: "2026-02-01" })
+        .success,
+    ).toBe(true);
+    expect(
+      materializeTeacherLessonsInputSchema.safeParse({ from: "2026-01-01", to: "2026-02-02" })
+        .success,
+    ).toBe(false);
+    expect(
+      materializeTeacherLessonsInputSchema.safeParse({ from: "2026-10-02", to: "2026-10-01" })
+        .success,
+    ).toBe(false);
+    for (const endsAt of ["08:00", "07:59"]) {
+      expect(
+        createExtraTeacherLessonInputSchema.safeParse({
+          classSubjectId: "11111111-1111-4111-8111-111111111111",
+          lessonDate: "2026-10-01",
+          startsAt: "08:00",
+          endsAt,
+          reason: "Aula extra",
+        }).success,
+      ).toBe(false);
+    }
   });
 
   it("masks payment destinations for UI", () => {

@@ -296,10 +296,19 @@ export const redeemTeacherLessonQrInputSchema = z
   });
 export type RedeemTeacherLessonQrInput = z.infer<typeof redeemTeacherLessonQrInputSchema>;
 
+/** Reject Date.parse's rollover of nonexistent days before sending PostgreSQL dates. */
+function calendarDateSchema(message: string) {
+  return z.string().refine((value) => {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(value) || value.startsWith("0000-")) return false;
+    const timestamp = Date.parse(`${value}T00:00:00Z`);
+    return Number.isFinite(timestamp) && new Date(timestamp).toISOString().slice(0, 10) === value;
+  }, message);
+}
+
 export const materializeTeacherLessonsInputSchema = z
   .object({
-    from: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Data inicial inválida."),
-    to: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Data final inválida."),
+    from: calendarDateSchema("Data inicial inválida."),
+    to: calendarDateSchema("Data final inválida."),
   })
   .superRefine((value, ctx) => {
     const start = Date.parse(`${value.from}T00:00:00Z`);
@@ -330,9 +339,9 @@ export type AssignTeacherSubstituteInput = z.infer<typeof assignTeacherSubstitut
 export const createExtraTeacherLessonInputSchema = z
   .object({
     classSubjectId: z.string().uuid(),
-    lessonDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Data da aula inválida."),
-    startsAt: z.string().regex(/^\d{2}:\d{2}$/, "Hora inicial inválida."),
-    endsAt: z.string().regex(/^\d{2}:\d{2}$/, "Hora final inválida."),
+    lessonDate: calendarDateSchema("Data da aula inválida."),
+    startsAt: z.string().regex(/^(?:[01]\d|2[0-3]):[0-5]\d$/, "Hora inicial inválida."),
+    endsAt: z.string().regex(/^(?:[01]\d|2[0-3]):[0-5]\d$/, "Hora final inválida."),
     reason: z.string().trim().min(3).max(1000),
   })
   .superRefine((value, ctx) => {
