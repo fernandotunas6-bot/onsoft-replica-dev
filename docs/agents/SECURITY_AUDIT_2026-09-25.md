@@ -372,3 +372,53 @@ de `anon`/`authenticated` sobre `storage.objects`, quantos objectos há fora do 
 `school-logos` (as fotografias antigas) e quantos caminhos a `private.storage_school_id`
 reconhece. Enquanto isso não chegar, os cinco achados acima são hipóteses fundamentadas no
 repositório, não factos sobre a produção.
+
+## Servidor MCP e consentimento OAuth (sexta passagem, 2026-09-28)
+
+A integração do Lovable acrescentou ao SIGA Plus uma **superfície nova alcançável da
+Internet**: `/mcp` (`src/routes/mcp.ts`), o metadado `/.well-known/oauth-protected-resource`
+e o ecrã de consentimento `/.lovable/oauth/consent`. Um agente de IA externo liga-se à conta
+de um utilizador e chama ferramentas em nome dele. Revisto antes de ir para produção.
+
+**O desenho está certo onde mais importa.** `supabaseForUser` (`src/lib/mcp/supabase.ts`)
+usa a **chave publicável** com o token do utilizador no cabeçalho — a RLS corre como quem
+ligou o agente, não como chave de serviço. As duas ferramentas são de leitura
+(`readOnlyHint`), verificam `ctx.isAuthenticated()` e não recebem `school_id` por argumento:
+o alcance vem da RLS. É a decisão difícil, e foi tomada bem.
+
+**Achado (P1): `trustForwardedHost` está ligado, e este sítio não corre onde isso é seguro.**
+O próprio ficheiro gerado avisa, em `src/routes/[.well-known]/oauth-protected-resource.ts`:
+
+> Trusting X-Forwarded-Host/-Proto is safe on Lovable hosting only (its proxies overwrite
+> both headers); remove these options behind other proxies.
+
+O SIGA Plus é publicado em **Cloudflare Workers**, em `portal-siga.com`
+(`scripts/deploy-all.mjs:159`, `scripts/deploy-cf.mjs`). A Cloudflare **não** reescreve
+`X-Forwarded-Host`: um cabeçalho posto pelo cliente atravessa-a. Com `trustForwardedHost`,
+o identificador do recurso anunciado no metadado OAuth passa a ser escolhido por quem faz o
+pedido, e um cliente MCP que confie nesse metadado pede ao Supabase um token para um recurso
+que não é este. `src/routes/mcp.ts` tem as mesmas duas opções.
+
+Os dois ficheiros são gerados pelo plugin do Vite e trazem `AUTO-GENERATED … do not edit` —
+tomar conta deles é apagar essa linha, e passam a não receber actualizações do plugin. É uma
+escolha de manutenção que não é do agente: **fica aqui registada para o dono decidir**, e
+não foi alterada. A correcção é retirar `trustForwardedHost`/`trustForwardedProto` dos dois
+ficheiros, ou confirmar na Cloudflare que existe uma regra que apaga esses cabeçalhos à
+entrada.
+
+**Achado (P3): o ecrã de consentimento não diz quem é o agente.**
+`src/routes/[.]lovable.oauth.consent.tsx:63` mostra `details.client.name` — um nome escolhido
+por quem registou o cliente OAuth. Nada no ecrã mostra o domínio de regresso, e um cliente
+registado com o nome «SIGA Plus» é indistinguível do próprio sistema. Mostrar o anfitrião do
+`redirect_url` ao lado do nome fecha isto.
+
+**Revisto sem alteração.** `list_class_groups` limpa `%,()` antes de montar o filtro `or=`
+do PostgREST, o que chega para não abrir um segundo filtro. `whoami` devolve só o `id` e o
+e-mail da própria conta. A migração `20260927190000_register_payment_net_of_discount.sql`
+mantém as duas verificações (`is_aal2` e `finance.payments.create`) e o `FOR UPDATE` da
+versão capturada — corrige o desconto sem afrouxar nada.
+
+**Por confirmar (não é achado):** nessa mesma função, uma fatura com desconto igual ao valor
+fica com total zero, e aí **qualquer** pagamento é recusado por «excede o saldo» e a fatura
+nunca passa a `paid`. Uma bolsa de 100% ficaria em dívida para sempre. Saber se isso é
+alcançável é decidir o que o produto faz com um desconto total — não é correcção de agente.

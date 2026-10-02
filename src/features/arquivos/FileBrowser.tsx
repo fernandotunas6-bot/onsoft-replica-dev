@@ -623,6 +623,12 @@ export function FileBrowser({
     setUploading(true);
     setUploadProgress(files.reduce((acc, f) => ({ ...acc, [f.name]: 0 }), {}));
     let appliedProfilePhoto = false;
+    // Um envio recusado pelo Storage cai para o IndexedDB deste browser. Isso é
+    // deliberado (serve para trabalhar sem rede), mas até 2026-09-28 o ecrã dizia
+    // «organizados» à mesma: o ficheiro existia na lista, não existia na escola, e
+    // desaparecia ao limpar os dados do site ou ao abrir noutro computador. Quem
+    // ficar por aqui tem de ser dito em voz alta.
+    const ficaramNesteBrowser: string[] = [];
     try {
       if (targetArea !== area) setArea(targetArea);
       for (const file of files) {
@@ -653,9 +659,10 @@ export function FileBrowser({
           const { error } = await supabase.storage
             .from(FILES_BUCKET)
             .upload(storagePath, file, { upsert: false, cacheControl: "3600" });
-          if (!error) backend = "sga";
+          if (error) ficaramNesteBrowser.push(file.name);
+          else backend = "sga";
         } catch {
-          backend = "local";
+          ficaramNesteBrowser.push(file.name);
         } finally {
           clearInterval(ramp);
         }
@@ -716,6 +723,7 @@ export function FileBrowser({
             : record;
         if (registered.storage === "local" && backend === "sga") {
           await saveLocalFile({ record: storedRecord, blob: file });
+          ficaramNesteBrowser.push(file.name);
         }
         if (
           meta.category === "foto" &&
@@ -735,11 +743,26 @@ export function FileBrowser({
         }
         setUploadProgress((prev) => ({ ...prev, [file.name]: 100 }));
       }
-      toast.success(
-        appliedProfilePhoto
-          ? "Fotografia guardada e aplicada no perfil do aluno"
-          : `Ficheiros organizados em ${fileAreaMeta[targetArea].label}`,
-      );
+      if (ficaramNesteBrowser.length) {
+        const nomes = [...new Set(ficaramNesteBrowser)];
+        toast.warning(
+          nomes.length === 1
+            ? `${nomes[0]} ficou só neste computador`
+            : `${nomes.length} ficheiros ficaram só neste computador`,
+          {
+            description:
+              "Não foi possível enviá-los para a escola. Ficam guardados neste browser e " +
+              "desaparecem se limpar os dados do site. Verifique a ligação e envie outra vez.",
+            duration: 10000,
+          },
+        );
+      } else {
+        toast.success(
+          appliedProfilePhoto
+            ? "Fotografia guardada e aplicada no perfil do aluno"
+            : `Ficheiros organizados em ${fileAreaMeta[targetArea].label}`,
+        );
+      }
       await refresh();
     } catch (error) {
       toast.error("Não foi possível guardar", {
