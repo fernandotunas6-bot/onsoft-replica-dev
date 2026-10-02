@@ -5,11 +5,15 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
 import { getCreateSchoolUrl, getDocsUrl } from '@/lib/ecosystem-urls'
+import { Aurora, SigaMascot, usePointerParallax } from '@/components/brand/aurora'
 
 export function CTASection() {
+  const ref = usePointerParallax<HTMLElement>()
   return (
-    <section className='py-16 lg:py-24 bg-muted/80'>
-      <div className='container mx-auto px-4 lg:px-8'>
+    <section ref={ref} className='relative overflow-hidden py-16 lg:py-24'>
+      <Aurora fade={false} />
+      <SigaMascot size={88} tilt={-8} className='hidden md:grid right-[8%] top-16' />
+      <div className='container relative mx-auto px-4 lg:px-8'>
         <div className='mx-auto max-w-4xl'>
           <div className='text-center'>
             <div className='space-y-8'>
@@ -36,7 +40,7 @@ export function CTASection() {
                   Ponha a sua escola
                   <span className='flex sm:inline-flex justify-center'>
                     <span className='relative mx-2'>
-                      <span className='bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent'>
+                      <span className='text-aurora'>
                         a trabalhar
                       </span>
                       <div className='absolute start-0 -bottom-2 h-1 w-full bg-gradient-to-r from-primary/30 to-secondary/30' />
@@ -46,8 +50,8 @@ export function CTASection() {
                 </h1>
 
                 <p className='text-muted-foreground mx-auto max-w-2xl text-balance lg:text-xl'>
-                  Crie a escola no portal, o ADMIN regista o cliente e a equipa passa a operar
-                  no SIGA — sem migrar dados à mão.
+                  Crie a escola em cinco minutos, entre logo no painel e comece com as classes,
+                  turmas e o calendário do MED já preparados.
                 </p>
               </div>
 

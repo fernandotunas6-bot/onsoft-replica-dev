@@ -18,6 +18,8 @@ type Fail = { table: string; op: Op } | null;
 let failAt: Fail = null;
 const selectRows: Record<string, unknown> = {};
 const deletedTables: string[] = [];
+const insertedTables: string[] = [];
+const updates: Array<{ table: string; values: Record<string, unknown> }> = [];
 const deleteUser = vi.fn(async () => ({ error: null }));
 
 function makeQuery(table: string) {
@@ -31,9 +33,13 @@ function makeQuery(table: string) {
     return { data: selectRows[table] ?? null, error: null };
   };
   const q: Record<string, unknown> = {
-    insert: () => ((op = "insert"), q),
+    insert: () => ((op = "insert"), insertedTables.push(table), q),
     upsert: () => ((op = "upsert"), q),
-    update: () => ((op = "update"), q),
+    update: (values: Record<string, unknown>) => (
+      (op = "update"),
+      updates.push({ table, values }),
+      q
+    ),
     delete: () => ((op = "delete"), deletedTables.push(table), q),
     select: () => q,
     eq: () => q,
@@ -65,10 +71,18 @@ vi.mock("@/features/saas/usage-sync", () => ({
 vi.mock("@/features/saas/school-bootstrap", () => ({
   bootstrapSchoolDefaults: async () => ({ seeded: ["academic_year", "roles"] }),
 }));
+let existingAuthUser: { id: string; lastSignInAt: string | null } | null = null;
 vi.mock("@/features/saas/admin-account", () => ({
-  createSchoolAdminAccount: async (_db: unknown, input: { password?: string }) => ({
-    userId: "admin-user-id",
+  EMAIL_LINKED_TO_SCHOOL_MESSAGE: "Este e-mail já tem acesso a uma escola no SIGA Plus.",
+  findAuthUserByEmail: async () => existingAuthUser,
+  createSchoolAdminAccount: async (
+    _db: unknown,
+    input: { password?: string; existing?: { userId: string } | null },
+  ) => ({
+    userId: input.existing?.userId ?? "admin-user-id",
     passwordSet: Boolean(input.password),
+    reusedAccount: Boolean(input.existing),
+    loginUrl: input.password ? "https://portal.test/auth/magic-link?token_hash=t" : null,
     inviteDelivered: false,
     inviteChannel: null,
     setupUrl: null,
@@ -82,7 +96,8 @@ vi.mock("@/features/saas/provisioning-verify", () => ({
   describeProvisioningGaps: (list: string[]) => `faltou: ${list.join(", ")}`,
 }));
 
-const { provisionTenantCore } = await import("@/features/saas/provisioning-core");
+const { provisionTenantCore, directorFromContact } =
+  await import("@/features/saas/provisioning-core");
 
 const INPUT = {
   name: "Colégio Teste",
@@ -122,6 +137,9 @@ describe("observabilidade do provisionamento", () => {
     failAt = null;
     gaps = [];
     deletedTables.length = 0;
+    insertedTables.length = 0;
+    updates.length = 0;
+    existingAuthUser = null;
     deleteUser.mockClear();
     for (const key of Object.keys(selectRows)) delete selectRows[key];
     selectRows["plans"] = { id: "plan-id", max_students: 500, max_storage_gb: 10 };
@@ -229,6 +247,76 @@ describe("observabilidade do provisionamento", () => {
     const rollback = evento(spy.mock.calls, "tenant.provisioning.rollback.failed");
     expect(rollback.entity).toBe("tenant");
     expect(rollback.tenant_id).toBe("tenants-id");
+    // …e o slug fica livre: o tenant preso é marcado e renomeado.
+    expect(updates).toContainEqual({
+      table: "tenants",
+      values: { status: "provisioning_failed", slug: "colegio-teste-falhou-tenants-" },
+    });
+    expect(rollback.reason).toBe("slug_released");
+  });
+
+  it("e-mail que já pertence a uma escola: recusa antes de escrever o que quer que seja", async () => {
+    existingAuthUser = { id: "outro-user", lastSignInAt: "2026-09-01T00:00:00Z" };
+    selectRows["school_memberships"] = { id: "membership-existente" };
+    await expect(
+      provisionTenantCore(INPUT, { auditUserId: null, source: "public_signup" }),
+    ).rejects.toThrow(/já tem acesso a uma escola/);
+    expect(insertedTables).toEqual([]);
+    expect(evento(spy.mock.calls, "tenant.provisioning.failed").stage).toBe("preflight");
+  });
+
+  it("subdomínio já usado: recusa antes de escrever", async () => {
+    selectRows["tenants"] = { id: "tenant-existente" };
+    await expect(
+      provisionTenantCore(INPUT, { auditUserId: null, source: "public_signup" }),
+    ).rejects.toThrow(/subdomínio já está em uso/);
+    expect(insertedTables).toEqual([]);
+  });
+
+  it("conta sem escola (ex.: Google) é ligada à escola nova em vez de recusada", async () => {
+    existingAuthUser = { id: "conta-google", lastSignInAt: "2026-09-30T13:11:00Z" };
+    const result = await provisionTenantCore(INPUT, {
+      auditUserId: null,
+      source: "public_signup",
+    });
+    expect(result.adminExistingAccount).toBe(true);
+    expect(insertedTables).toContain("school_memberships");
+  });
+
+  it("reversão não apaga uma conta que já existia — só a desliga da escola", async () => {
+    existingAuthUser = { id: "conta-google", lastSignInAt: "2026-09-30T13:11:00Z" };
+    gaps = ["membership activa"];
+    await expect(
+      provisionTenantCore(INPUT, { auditUserId: null, source: "public_signup" }),
+    ).rejects.toThrow(/faltou/);
+    expect(deleteUser).not.toHaveBeenCalled();
+    expect(updates).toContainEqual({
+      table: "profiles",
+      values: { school_id: null, cargo: null },
+    });
+  });
+
+  it("reversão apaga a conta criada e antes os registos que a referenciam", async () => {
+    gaps = ["membership activa"];
+    await expect(
+      provisionTenantCore(INPUT, { auditUserId: null, source: "public_signup" }),
+    ).rejects.toThrow(/faltou/);
+    expect(deleteUser).toHaveBeenCalledWith("admin-user-id");
+    // school_settings.changed_by e enrollment_forms.created_by bloqueavam o deleteUser.
+    expect(deletedTables).toEqual(expect.arrayContaining(["school_settings", "enrollment_forms"]));
+  });
+
+  it("entrada directa só no registo público; o admin de plataforma nunca a recebe", async () => {
+    const publico = await provisionTenantCore(INPUT, {
+      auditUserId: null,
+      source: "public_signup",
+    });
+    expect(publico.adminLoginUrl).toContain("token_hash=");
+    const interno = await provisionTenantCore(INPUT, {
+      auditUserId: "platform-admin",
+      source: "platform_admin",
+    });
+    expect(interno.adminLoginUrl).toBeNull();
   });
 
   it("nenhum evento leva dados da escola ou do administrador", async () => {
@@ -242,6 +330,23 @@ describe("observabilidade do provisionamento", () => {
       "5417000000",
     ]) {
       expect(emitted, `o evento não pode arrastar "${leak}"`).not.toContain(leak);
+    }
+  });
+});
+
+describe("director(a) a partir do responsável do registo", () => {
+  it("só quem se identifica como director(a) geral passa à ficha da escola", () => {
+    for (const role of [
+      "Director",
+      "directora",
+      "Diretor Geral",
+      "A Directora Geral",
+      " DIRECTOR ",
+    ]) {
+      expect(directorFromContact(role, "Ana Diretora"), role).toBe("Ana Diretora");
+    }
+    for (const role of ["Director Pedagógico", "Secretário", "Proprietário", "", undefined]) {
+      expect(directorFromContact(role, "Ana Diretora"), String(role)).toBeNull();
     }
   });
 });

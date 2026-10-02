@@ -38,6 +38,7 @@ import { getOrCreateCalendarFeedToken } from "@/features/calendar/feed";
 import { listAcademicCalendar, saveAcademicCalendar } from "@/features/academic/academic-calendar";
 import { academicCalendarKey, configuredTrimesters } from "@/features/academic/calendar-status";
 import { termDrafts } from "@/features/academic/calendar-terms";
+import { currentSchoolStartYear, medCalendar } from "@/features/academic/med-calendar";
 import { calendarIcsFeedUrl, calendarWebcalFeedUrl } from "@/features/calendar/ics";
 import { AppShell } from "@/components/layout/AppShell";
 import { PageHeader, Panel, StatGrid, badgeBase, toneClass } from "@/components/layout/PageHeader";
@@ -341,12 +342,11 @@ function CalendarioPage() {
     setMonthOverride(day.slice(0, 7));
   };
   const suggestedEnd = suggestTermEnd(selectedDay ?? today, events);
-  // Setembro→Julho é o ano lectivo padrão em Angola; a escola confirma ou ajusta.
-  const suggestedYearStartYear =
-    Number(today.slice(0, 4)) - (Number(today.slice(5, 7)) < 9 ? 1 : 0);
-  const suggestedYearName = `${suggestedYearStartYear}/${suggestedYearStartYear + 1}`;
-  const suggestedYearStart = `${suggestedYearStartYear}-09-01`;
-  const suggestedYearEnd = `${suggestedYearStartYear + 1}-07-31`;
+  // Sugestão do calendário escolar nacional (MED); a escola confirma ou ajusta.
+  const suggestedCalendar = medCalendar(currentSchoolStartYear(today));
+  const suggestedYearName = suggestedCalendar.name;
+  const suggestedYearStart = suggestedCalendar.startsOn;
+  const suggestedYearEnd = suggestedCalendar.endsOn;
   const daysLeft = currentTerm
     ? inclusiveDaysLeft(currentTerm.ends_on || currentTerm.event_date, today)
     : 0;
@@ -580,7 +580,7 @@ function CalendarioPage() {
               {canManage && needsAcademicYear ? (
                 <QuickFormModal
                   title="Definir ano lectivo"
-                  description="Os períodos, as turmas e os planos de propina dependem de um ano lectivo activo. A escola indica as datas — o SIGA não as inventa."
+                  description={`Os períodos, as turmas e os planos de propina dependem de um ano lectivo activo. Datas sugeridas: ${suggestedCalendar.source.label}. Confirme antes de criar.`}
                   icon={<CalendarDays className="size-5" />}
                   submitLabel="Criar ano lectivo"
                   successDescription="Ano lectivo activo criado."
@@ -611,7 +611,7 @@ function CalendarioPage() {
               {canConfigureTerms && calendarYear ? (
                 <QuickFormModal
                   title={`Trimestres de ${calendarYear.name}`}
-                  description={`Os três trimestres do ano lectivo (${calendarYear.startsOn} a ${calendarYear.endsOn}), gravados de uma vez. Pautas, notas e fecho de trimestre dependem deles. As datas sugeridas dividem o ano em três: acerte-as às pausas e exames da escola.`}
+                  description={`Os três trimestres do ano lectivo (${calendarYear.startsOn} a ${calendarYear.endsOn}), gravados de uma vez. Pautas, notas e fecho de trimestre dependem deles. As datas sugeridas seguem o calendário escolar nacional (MED), com as pausas de Natal e da Páscoa; acerte-as ao calendário da escola.`}
                   icon={<CalendarDays className="size-5" />}
                   submitLabel="Guardar trimestres"
                   successDescription="Trimestres guardados."

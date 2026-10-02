@@ -154,7 +154,13 @@ export async function syncSaasUsage(accessToken: string | undefined | null): Pro
 
 export async function updateTenantSubscription(
   accessToken: string | undefined | null,
-  input: { tenantId: string; plan_code?: string; extend_trial_days?: number },
+  input: {
+    tenantId: string
+    plan_code?: string
+    extend_trial_days?: number
+    /** Pagamento confirmado: activa a assinatura por um mês ou um ano. */
+    confirm_payment_billing?: "monthly" | "yearly"
+  },
 ): Promise<{ ok: boolean; error?: string }> {
   if (!accessToken) return { ok: false, error: "Sessão em falta." };
   const res = await apiFetch(getSaasApiUrl("/api/saas/tenants/subscription"), {
@@ -420,4 +426,58 @@ export async function fetchPayflowPublicHealth(): Promise<
       error: err instanceof Error ? err.message : "PayFlow indisponível.",
     };
   }
+}
+
+/** Link temporário (5 min) para abrir um comprovativo de pagamento enviado por uma escola. */
+export async function fetchBillingProofUrl(
+  accessToken: string | undefined | null,
+  path: string,
+): Promise<{ ok: boolean; url?: string; error?: string }> {
+  if (!accessToken) return { ok: false, error: "Sessão em falta." }
+  const res = await fetch(getSaasApiUrl(`/api/saas/billing-proofs?path=${encodeURIComponent(path)}`), {
+    headers: authHeaders(accessToken),
+  })
+  const data = (await res.json().catch(() => ({}))) as { url?: string; error?: string }
+  if (!res.ok || !data.url) return { ok: false, error: data.error || "Comprovativo indisponível." }
+  return { ok: true, url: data.url }
+}
+
+export interface SignupLeadRow {
+  id: string
+  lastStep: number
+  lastStepLabel: string
+  planCode: string | null
+  schoolName: string | null
+  email: string | null
+  contactName: string | null
+  contactPhone: string | null
+  emailVerifiedAt: string | null
+  completedAt: string | null
+  tenantId: string | null
+  reminderCount: number
+  lastReminderAt: string | null
+  unsubscribedAt: string | null
+  createdAt: string
+  updatedAt: string
+}
+
+export interface SignupLeadsResult {
+  leads: SignupLeadRow[]
+  funnel: Array<{ step: number; label: string; reached: number }>
+  started: number
+  completed: number
+}
+
+/** Registos do assistente WEB /start (funil e quem parou a meio). */
+export async function fetchSignupLeads(
+  accessToken: string | undefined | null,
+  days = 30,
+): Promise<{ ok: boolean; data?: SignupLeadsResult; error?: string }> {
+  if (!accessToken) return { ok: false, error: "Sessão em falta." }
+  const res = await fetch(getSaasApiUrl(`/api/saas/signup-leads?days=${days}`), {
+    headers: authHeaders(accessToken),
+  })
+  const data = (await res.json().catch(() => ({}))) as SignupLeadsResult & { error?: string }
+  if (!res.ok) return { ok: false, error: data.error || "Não foi possível ler os registos." }
+  return { ok: true, data }
 }

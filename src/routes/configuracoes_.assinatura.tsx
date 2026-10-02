@@ -17,6 +17,7 @@ import {
 } from "@/features/saas/subscription-server";
 import { describeSubscription, formatBytes, usageShare } from "@/features/saas/subscription-view";
 import { cn } from "@/lib/utils";
+import { PlanPaymentPanel } from "@/features/saas/PlanPaymentPanel";
 
 export const Route = createFileRoute("/configuracoes_/assinatura")({
   head: () => ({
@@ -152,7 +153,7 @@ export function SubscriptionDetail({ data }: { data: SubscriptionOverview }) {
       </div>
 
       <div className="grid min-w-0 content-start gap-6">
-        <PaymentPanel data={data} />
+        <PlanPaymentPanel data={data} />
         <Panel title="Endereço da escola">
           <ul className="grid min-w-0 gap-2 text-sm">
             <li className="flex min-w-0 items-center gap-2">
@@ -373,60 +374,6 @@ function PlanComparison({ data }: { data: SubscriptionOverview }) {
             </div>
           );
         })}
-      </div>
-    </Panel>
-  );
-}
-
-function PaymentPanel({ data }: { data: SubscriptionOverview }) {
-  const message = encodeURIComponent(
-    `Olá, sou da escola ${data.schoolName} (${data.subdomain}). Envio o comprovativo do plano ${data.plan?.name ?? ""}.`,
-  );
-  return (
-    <Panel title="Pagamento">
-      <p className="text-sm text-muted-foreground">
-        Pague por transferência e envie o comprovativo. A equipa valida e o plano fica activo.
-      </p>
-      {PAYMENT_IBAN ? (
-        <dl className="mt-3 grid gap-1 rounded-md bg-muted/60 p-3 text-sm">
-          <dt className="text-xs text-muted-foreground">IBAN</dt>
-          <dd className="break-all font-mono text-xs tracking-wide">{PAYMENT_IBAN}</dd>
-          {PAYMENT_BANK ? (
-            <dd className="text-xs text-muted-foreground">Banco: {PAYMENT_BANK}</dd>
-          ) : null}
-          {PAYMENT_ACCOUNT_NAME ? (
-            <dd className="text-xs text-muted-foreground">Titular: {PAYMENT_ACCOUNT_NAME}</dd>
-          ) : null}
-        </dl>
-      ) : (
-        <p className="mt-3 rounded-md bg-muted/60 p-3 text-xs text-muted-foreground">
-          Os dados bancários são enviados pela equipa comercial.
-        </p>
-      )}
-      <p className="mt-3 text-xs text-muted-foreground">
-        Na descrição, indique <span className="text-foreground">{data.subdomain}</span>.
-      </p>
-      <div className="mt-4 grid gap-2">
-        {SUPPORT_WHATSAPP ? (
-          <Button asChild size="sm">
-            <a
-              href={`https://wa.me/${SUPPORT_WHATSAPP}?text=${message}`}
-              target="_blank"
-              rel="noreferrer"
-            >
-              Enviar comprovativo por WhatsApp <ExternalLink className="size-3.5" />
-            </a>
-          </Button>
-        ) : null}
-        {SUPPORT_EMAIL ? (
-          <Button asChild size="sm" variant="outline">
-            <a
-              href={`mailto:${SUPPORT_EMAIL}?subject=${encodeURIComponent(`Comprovativo — ${data.schoolName}`)}&body=${message}`}
-            >
-              Enviar por e-mail
-            </a>
-          </Button>
-        ) : null}
       </div>
     </Panel>
   );
