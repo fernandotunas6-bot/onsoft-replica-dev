@@ -13,13 +13,13 @@ isso é dito explicitamente.
 ## 1. Resumo executivo
 
 A branch actual e o `origin/main` **não têm uma relação simples de "atrás" ou
-"à frente"**: divergiram do mesmo commit (`d83689b8`, 23/09) e cada lado andou
-sozinho sem o outro.
+"à frente"**: divergiram do mesmo commit (`84bf1d1e`, 28/09 — o `merge-base` real;
+`d83689b8` é só o `main` *local*, desactualizado) e cada lado andou sozinho sem o outro.
 
 | | Commits únicos | Ficheiros tocados | Autores principais | Janela de datas |
 |---|---:|---:|---|---|
-| Só nesta branch | **459** | 1592 | Valentino (351), Fernando (104) | 23/09 → 28/09 |
-| Só no `origin/main` | **121** | 1437 | **Claude (81)**, Valentino (29), gpt-engineer-app\[bot\] (11) | 29/09 → 30/09 |
+| Só nesta branch | **459** | 372 (diff contra a base) | Valentino (351), Fernando (104) | 23/09 → 28/09 |
+| Só no `origin/main` | **121** | 279 (diff contra a base) | **Claude (81)**, Valentino (29), gpt-engineer-app\[bot\] (11) | 29/09 → 30/09 |
 
 Net entre as duas pontas: **367 ficheiros, +30440/-4844 linhas**.
 
@@ -32,10 +32,11 @@ merges automáticos. Isto é o mesmo padrão já registado em memória
 enquanto este trabalho ficava parado nesta branch, produção seguiu caminho
 próprio.
 
-Um merge directo hoje encontraria **93 ficheiros com conflito textual real**
-(verificado com `git merge-tree`, não estimado) — a maior parte são os
-`server.ts` de quase todos os módulos do SIGA, porque os dois lados
-reescreveram segurança/validação nos mesmos ficheiros de lados diferentes.
+Um merge directo hoje encontra **23 ficheiros com conflito textual real**
+(verificado com um `git merge --no-commit` de teste, abortado a seguir). Uma
+primeira versão deste relatório dizia 93: usou o `main` local como base e não
+o `merge-base` real, o que inflacionou tudo o que tinha mudado entre os dois
+pontos. O número certo é 23 — ver §4.
 
 ---
 
@@ -147,34 +148,33 @@ rápido nesse trecho não é legível sem agrupar.
 
 ## 4. Risco real de merge/rebase (medido, não estimado)
 
-`git merge-tree d83689b8 HEAD origin/main` (merge de 3 vias em memória, sem
-tocar a árvore de trabalho) devolve **128 ficheiros "changed in both"**, dos
-quais **93 têm marcador de conflito real** (`<<<<<<<`) — os outros 35 resolvem-se
-sozinhos.
+> **Correcção (02/10):** a versão inicial usou `d83689b8` (o `main` local) como
+> base do `merge-tree` e deu 93 conflitos. A base real é
+> `git merge-base HEAD origin/main` = `84bf1d1e`. Com ela, `merge-tree` dá 52
+> ficheiros "changed/added in both" e **22 com marcador de conflito**; um
+> `git merge --no-commit origin/main` de teste (abortado) deu **23** (22 + o
+> `package-lock.json`).
 
-Os 93 agrupam-se assim:
+Os 23 ficheiros em conflito num merge directo:
 
-| Área | Ficheiros | Nota |
-|---|---:|---|
-| `src/features/*/server.ts` | ~20 | academic, finance, saas, people, students, school, documents, import, calendar, enrollment, catracas, access, arquivos, pedagogica, lesson-plans — isto é "quase todos os módulos" |
-| `src/routes/*` | 11 | alunos, calendario, comunicacoes, documentos, faturas, financeiro, pedagogica, pessoas, `__root.tsx`, `routeTree.gen.ts` (gerado — refazer, não resolver à mão) |
-| Config/infra | 9 | `package.json`, `bun.lock`, `.github/workflows/ci.yml`, `.github/workflows/native-ci.yml`, eslint configs (admin/web), `public/sw.js`, `scripts/deploy-cf.mjs` |
-| Testes | 7 | `bi-login`, `commercial-wizard` (e2e), `sga-live-admin` (helper), `install`, `zoom-integration`, `actions`, `pautas` |
-| Componentes de UI partilhados | ~15 | `AppShell`, `AuthGate`, `RouteErrorScreen`, `QuickFormModal`, painéis de catracas/integrações, `AssessmentCenter`, `TeacherWorkspacePanel` |
-| Supabase SQL aplicável à mão | 2 | `APPLY_ENROLLMENT_AND_PREMIUM.sql`, `APPLY_MISSING_FROM_VERIFY.sql` |
-| ADMIN | 4 | `eslint.config.mjs`, `package.json`, `login-form-1.tsx`, `saas-api.ts` |
+| Área | Ficheiros |
+|---|---|
+| Finance | `finance/server.ts`, `gateway-webhook-handler.ts`, `payflow-settlement.ts`, `tests/finance/cash-reversal.test.ts` |
+| Academic / pedagógica | `academic/server-secure-legacy.ts`, `academic/TeacherWorkspacePanel.tsx`, `pedagogica/attendance-server.ts`, `routes/pedagogica.tsx`, `tests/pedagogica/pautas.test.ts`, `hr/teacher-lessons.ts` |
+| Pessoas / auth | `people/server.ts`, `auth/use-sign-out.ts`, `routes/faturas.tsx` |
+| Integrações | `InstalledModuleTools.tsx`, `tests/integrations/actions.test.ts`, `tests/integrations/install.test.ts` |
+| ADMIN | `eslint.config.mjs`, `package.json`, `login-form-1.tsx`, `saas-api.ts` |
+| Outros | `src/styles.css`, `docs/agents/DATABASE_RULES.md`, `package-lock.json` (regenerar, não resolver à mão) |
 
-**Um detalhe estrutural, não de conteúdo:** o `main` renomeou
-`painel/admin/src/proxy.ts` → `painel/admin/src/middleware.ts` (mesma função,
-nome diferente). Um merge ingénuo por caminho de ficheiro não vê isto como
-"o mesmo ficheiro" — qualquer resolução manual tem de reparar que é uma
-renomeação, não duas versões concorrentes.
+**Detalhe estrutural:** o `main` renomeou `painel/admin/src/proxy.ts` →
+`painel/admin/src/middleware.ts` (mesma função, nome diferente). Um merge por
+caminho não vê isto como "o mesmo ficheiro".
 
-**Leitura:** o conflito não está disperso — está concentrado onde os dois
-lados fizeram a mesma coisa (endurecer `server.ts`) de formas diferentes e
-independentes. Resolver isto ficheiro a ficheiro vai exigir decidir, por
-módulo, qual das duas validações/guardas prevalece — não é um merge
-automatizável.
+**Leitura:** 23 é um merge trabalhoso mas viável de uma vez, em vez da
+operação módulo a módulo que a versão anterior sugeria. `finance/` (4
+ficheiros) e `academic`/`pedagogica` são onde a decisão é de conteúdo, não de
+formatação — `login-form-1.tsx`/`saas-api.ts` eram só reformatação
+(ponto e vírgula) mais as alterações reais.
 
 ---
 
@@ -253,15 +253,17 @@ Isto não corrige nada; só ordena pelo que mais pesa:
 
 1. **Comitar ou descartar deliberadamente** o estado não comitado do §7 antes
    de qualquer operação que toque o working tree (merge, rebase, checkout).
-2. **Trazer §2.1 (segurança)** desta branch isoladamente — MFA, 2FA, CSP —
+2. *(a rever depois da correcção do §4: com 23 conflitos, um merge único pode ser
+   mais simples do que cherry-picks isolados — cada cherry-pick de §2.1 conflitou
+   em `CONTINUE.md`/`PRODUCTION_SNAPSHOT.json`, que um merge resolve uma só vez.)*
+   **Trazer §2.1 (segurança)** desta branch isoladamente — MFA, 2FA, CSP —
    antes de continuar a desenvolver aqui, para não construir contra um
    modelo de segurança mais antigo que o de produção.
 3. **Decidir a ordem das migrações do §5** manualmente (as 47 daqui + as 18
    reais do `main`, ignorando as 26 de Agosto) antes de as aplicar em
    qualquer base — nenhum dos dois lados testou a combinação.
-4. Só depois disso, atacar os 93 ficheiros do §4 — e fazê-lo módulo a
-   módulo (ex.: `finance/server.ts` de um lado contra o outro), não com um
-   `git merge` de uma vez só.
+4. Só depois disso, atacar os 23 ficheiros do §4 (merge de teste mostrado lá);
+   `finance/` e `academic/` exigem decisão de conteúdo, o resto é mecânico.
 5. O SIGA Mobile (§3.1) e a auditoria (§3.2) são a parte mais isolada e mais
    segura de trazer primeiro, já que quase não aparecem na lista de conflito
    real do §4.
@@ -270,5 +272,5 @@ Isto não corrige nada; só ordena pelo que mais pesa:
 
 **Comandos usados** (reprodutíveis): `git merge-base main HEAD`,
 `git log origin/main..HEAD` / `HEAD..origin/main`, `git diff origin/main...HEAD
---stat`, `git merge-tree <merge-base> HEAD origin/main`, `git ls-tree -r
+--stat`, `git merge-tree $(git merge-base HEAD origin/main) HEAD origin/main`, `git ls-tree -r
 --name-only` comparado entre `HEAD` e `origin/main` para estrutura e migrações.
