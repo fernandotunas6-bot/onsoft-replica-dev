@@ -153,6 +153,15 @@ CREATE POLICY "Autor apaga a própria mensagem"
   USING (sender_id = (SELECT auth.uid()))
   WITH CHECK (sender_id = (SELECT auth.uid()));
 
+-- Visitantes sem sessão: as permissões por omissão do Supabase dão ao `anon`
+-- tudo em cada tabela nova, e 20260929240000_revoke_default_anon_table_grants.sql
+-- só limpou as que existiam nessa data. O RLS forçado já recusa as linhas (não
+-- há política nenhuma para `anon`), mas o TRUNCATE não passa pelo RLS — sem
+-- isto, quem tivesse a chave pública podia esvaziar as três tabelas.
+REVOKE ALL ON public.siga_chat_conversations FROM anon, PUBLIC;
+REVOKE ALL ON public.siga_chat_members FROM anon, PUBLIC;
+REVOKE ALL ON public.siga_chat_messages FROM anon, PUBLIC;
+
 -- Privilégios por coluna: sem isto, um membro podia reescrever `created_at`,
 -- `conversation_id` ou `sender_id` de uma mensagem sua e fazê-la passar por
 -- outra coisa. Entrar e sair de conversas é decidido no servidor.

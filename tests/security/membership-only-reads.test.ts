@@ -47,6 +47,11 @@ const REVISTAS: Record<string, string> = {
   // verificam mais do que a pertença e por isso não entram aqui.
   listSchoolColleagues:
     "casca de loadSchoolColleagues, que filtra o directório por papel (ver messaging-scope)",
+  listChatContacts:
+    "casca de loadSchoolColleagues, como listSchoolColleagues (ver messaging-scope)",
+  // Filtra por `sender_id`, que o VERIFICA acima não reconhece — e alargá-lo a
+  // `sender_id` em geral deixaria passar funções que só o usam para escrever.
+  deleteChatMessage: 'apaga só a própria mensagem: .eq("sender_id", context.userId)',
 };
 
 // Sinais de que a função verifica mais do que a pertença.

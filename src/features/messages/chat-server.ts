@@ -17,24 +17,6 @@ import {
 
 const MISSING_TABLE = /schema cache|does not exist|42P01|PGRST/i;
 
-/**
- * As três tabelas do chat ainda não existem na produção — a migração
- * `20261002093000_chat_conversations.sql` é corrida à mão. Enquanto isso,
- * `src/integrations/supabase/types.ts` não as pode declarar: o teste
- * `types-vs-producao` recusa tipos de tabelas que a base não tem, e com razão
- * (foi assim que cinco importadores ficaram a escrever para um modelo de dados
- * substituído sem que nada objectasse).
- *
- * Por isso o acesso a elas — e só a elas — passa por um cliente sem tipos.
- * Depois de aplicar a migração e regenerar os tipos
- * (`npx supabase gen types typescript --linked`), apagar esta função e usar
- * `db` directamente.
- */
-function chatTables(db: Db) {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- tabelas ainda ausentes dos tipos gerados
-  return db as unknown as import("@supabase/supabase-js").SupabaseClient<any>;
-}
-
 /** As tabelas do chat podem ainda não estar aplicadas em produção (ver memória:
  *  as migrações são corridas à mão). Nesse caso a UI mostra um aviso honesto em
  *  vez de rebentar. */
@@ -83,7 +65,7 @@ function nameOf(profile: ProfileRow | undefined) {
 /** Confirma que a pessoa é membro da conversa — o servidor usa a chave de
  *  serviço (BYPASSRLS), por isso esta verificação não é redundante. */
 async function assertMember(db: Db, conversationId: string, userId: string) {
-  const { data, error } = await chatTables(db)
+  const { data, error } = await db
     .from("siga_chat_members")
     .select("conversation_id")
     .eq("conversation_id", conversationId)
@@ -153,7 +135,7 @@ export const listChatConversations = createServerFn({ method: "GET" })
     if (!membership) throw new Error("Sem membership activa nesta escola.");
     const db = await loadSgaAdminClient();
 
-    const { data: memberRows, error: memberError } = await chatTables(db)
+    const { data: memberRows, error: memberError } = await db
       .from("siga_chat_members")
       .select("conversation_id, last_read_at")
       .eq("user_id", context.userId);
@@ -169,7 +151,7 @@ export const listChatConversations = createServerFn({ method: "GET" })
       (memberRows ?? []).map((row) => [String(row.conversation_id), String(row.last_read_at)]),
     );
 
-    const { data: convRows, error: convError } = await chatTables(db)
+    const { data: convRows, error: convError } = await db
       .from("siga_chat_conversations")
       .select("id, type, title, student_id, school_id")
       .eq("school_id", membership.schoolId)
@@ -180,7 +162,7 @@ export const listChatConversations = createServerFn({ method: "GET" })
 
     // Todos os participantes de uma vez: o nome de uma conversa directa é o da
     // outra pessoa, e sem isto seria uma consulta por conversa.
-    const { data: allMembers } = await chatTables(db)
+    const { data: allMembers } = await db
       .from("siga_chat_members")
       .select("conversation_id, user_id")
       .in("conversation_id", visibleIds);
@@ -192,7 +174,7 @@ export const listChatConversations = createServerFn({ method: "GET" })
       peersByConv.set(cid, [...(peersByConv.get(cid) ?? []), uid]);
     }
 
-    const { data: lastRows } = await chatTables(db)
+    const { data: lastRows } = await db
       .from("siga_chat_messages")
       .select("id, conversation_id, sender_id, body, attachment_file_name, deleted_at, created_at")
       .in("conversation_id", visibleIds)
@@ -272,7 +254,7 @@ export const listChatMessages = createServerFn({ method: "GET" })
     const db = await loadSgaAdminClient();
     await assertMember(db, data.conversationId, context.userId);
 
-    let query = chatTables(db)
+    let query = db
       .from("siga_chat_messages")
       .select(
         "id, sender_id, body, reply_to, attachment_file_id, attachment_file_name, deleted_at, created_at",
@@ -285,7 +267,7 @@ export const listChatMessages = createServerFn({ method: "GET" })
 
     const [{ data: rows, error }, { data: peers }] = await Promise.all([
       query.order("created_at", { ascending: false }).limit(data.limit),
-      chatTables(db)
+      db
         .from("siga_chat_members")
         .select("last_read_at")
         .eq("conversation_id", data.conversationId)
@@ -304,7 +286,7 @@ export const listChatMessages = createServerFn({ method: "GET" })
 
     const replyIds = [...new Set(ordered.map((row) => row.reply_to).filter(Boolean))] as string[];
     const { data: replyRows } = replyIds.length
-      ? await chatTables(db)
+      ? await db
           .from("siga_chat_messages")
           .select("id, sender_id, body, deleted_at, created_at")
           .in("id", replyIds)
@@ -334,7 +316,7 @@ export const sendChatMessage = createServerFn({ method: "POST" })
     const db = await loadSgaAdminClient();
     await assertMember(db, data.conversationId, context.userId);
 
-    const { data: row, error } = await chatTables(db)
+    const { data: row, error } = await db
       .from("siga_chat_messages")
       .insert({
         conversation_id: data.conversationId,
@@ -352,7 +334,7 @@ export const sendChatMessage = createServerFn({ method: "POST" })
     if (error) throw publicDatabaseError(error, "Não foi possível enviar a mensagem.");
 
     // Quem envia acabou de ler o que lá estava.
-    await chatTables(db)
+    await db
       .from("siga_chat_members")
       .update({ last_read_at: new Date().toISOString() })
       .eq("conversation_id", data.conversationId)
@@ -361,7 +343,7 @@ export const sendChatMessage = createServerFn({ method: "POST" })
     const names = await loadProfiles(db, [String(row.sender_id)]);
     const replies = new Map<string, MessageRow>();
     if (row.reply_to) {
-      const { data: parent } = await chatTables(db)
+      const { data: parent } = await db
         .from("siga_chat_messages")
         .select("id, sender_id, body, deleted_at, created_at")
         .eq("id", row.reply_to)
@@ -380,7 +362,7 @@ export const deleteChatMessage = createServerFn({ method: "POST" })
     if (!membership) throw new Error("Sem membership activa nesta escola.");
     const db = await loadSgaAdminClient();
     // `sender_id` no filtro: apagar é só para o autor, nunca para quem recebeu.
-    const { error } = await chatTables(db)
+    const { error } = await db
       .from("siga_chat_messages")
       .update({ deleted_at: new Date().toISOString(), body: "", attachment_file_id: null })
       .eq("id", data.messageId)
@@ -401,7 +383,7 @@ export const markChatRead = createServerFn({ method: "POST" })
     const db = await loadSgaAdminClient();
     // Sem coluna de escola em siga_chat_members: o par conversa+utilizador já
     // basta — ninguém move o marcador de leitura de outra pessoa.
-    const { error } = await chatTables(db)
+    const { error } = await db
       .from("siga_chat_members")
       .update({ last_read_at: new Date().toISOString() })
       .eq("conversation_id", data.conversationId)
@@ -448,7 +430,7 @@ export const startDirectConversation = createServerFn({ method: "POST" })
     const [a, b] = [context.userId, data.peerId].sort();
     const directKey = `${membership.schoolId}:${a}:${b}`;
 
-    const { data: existing, error: findError } = await chatTables(db)
+    const { data: existing, error: findError } = await db
       .from("siga_chat_conversations")
       .select("id")
       .eq("direct_key", directKey)
@@ -456,7 +438,7 @@ export const startDirectConversation = createServerFn({ method: "POST" })
     if (findError && missingChatTables(findError)) throw new ChatSchemaMissing();
     if (existing) return { conversationId: String(existing.id) };
 
-    const { data: created, error: createError } = await chatTables(db)
+    const { data: created, error: createError } = await db
       .from("siga_chat_conversations")
       .insert({
         school_id: membership.schoolId,
@@ -468,7 +450,7 @@ export const startDirectConversation = createServerFn({ method: "POST" })
       .single();
     // Corrida entre dois cliques: o índice único resolve, basta reler.
     if (createError) {
-      const { data: raced } = await chatTables(db)
+      const { data: raced } = await db
         .from("siga_chat_conversations")
         .select("id")
         .eq("direct_key", directKey)
@@ -477,7 +459,7 @@ export const startDirectConversation = createServerFn({ method: "POST" })
       throw publicDatabaseError(createError, "Não foi possível iniciar a conversa.");
     }
 
-    const { error: memberError } = await chatTables(db).from("siga_chat_members").insert([
+    const { error: memberError } = await db.from("siga_chat_members").insert([
       { conversation_id: created.id, user_id: context.userId },
       { conversation_id: created.id, user_id: data.peerId },
     ]);
