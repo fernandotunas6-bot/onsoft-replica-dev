@@ -34,7 +34,7 @@ const MIGRATIONS = {
   "supabase/migrations/20260929230000_turnstile_devices_server_only.sql": [
     "siga_turnstile_devices",
   ],
-  "supabase/migrations/20260930180000_signup_leads_and_billing_proofs.sql": ["saas_signup_leads"],
+  "supabase/migrations/20260930162029_signup_leads_and_billing_proofs.sql": ["saas_signup_leads"],
   "supabase/migrations/20260926220000_exam_sessions_registrations.sql": [
     "siga_exam_sessions",
     "siga_exam_registrations",

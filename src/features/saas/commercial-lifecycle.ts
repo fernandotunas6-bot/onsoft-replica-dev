@@ -23,7 +23,7 @@ import {
 import { renderSignupReminderEmail, renderTrialEndingEmail } from "./lifecycle-emails";
 
 type Db = Awaited<ReturnType<typeof loadSgaAdminClient>>;
-// Tabela nova (20260930180000): lida sem o tipo gerado, como as outras fora de types.ts.
+// Tabela nova (20260930162029): lida sem o tipo gerado, como as outras fora de types.ts.
 type LooseDb = { from: (table: string) => any }; // eslint-disable-line @typescript-eslint/no-explicit-any
 
 async function leadsDb(): Promise<LooseDb> {

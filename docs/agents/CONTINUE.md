@@ -283,7 +283,7 @@ Detalhe em [docs/provisioning/ARRANQUE_ESCOLA.md](../provisioning/ARRANQUE_ESCOL
   superior). Escrita privilegiada justificada em `rls-client-migration.test.ts`.
 - Registo público exige e-mail confirmado (`signup-verification.ts`; chave derivada da chave de
   serviço, sem configuração nova). WEB `/start` passo «Conta» com código.
-- Migração **aplicada na produção** `20260930180000_signup_leads_and_billing_proofs`:
+- Migração **aplicada na produção** `20260930162029_signup_leads_and_billing_proofs`:
   `saas_signup_leads` (FORCE RLS, só servidor) e bucket privado `billing-proofs`. Retrato e
   `types.ts` actualizados à mão para esta tabela.
 - `commercial-lifecycle.ts`: progresso, lembretes e avisos de trial; cron

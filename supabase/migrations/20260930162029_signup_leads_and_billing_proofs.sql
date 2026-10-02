@@ -1,16 +1,7 @@
--- Registo comercial: acompanhamento de quem não conclui o registo, e
--- comprovativos de pagamento do plano enviados pela escola.
---
--- saas_signup_leads: uma linha por visita ao assistente WEB /start (id de sessão
--- gerado no navegador). Até a pessoa confirmar o e-mail só guarda o passo e o
--- plano — sem dados pessoais. Depois da confirmação guarda e-mail, nome e
--- telefone para lhe lembrar de terminar (com ligação para deixar de receber).
---
--- billing-proofs: comprovativos de transferência do plano (PDF/imagem). Bucket
--- privado sem políticas: só o servidor (chave de serviço) lê e escreve.
---
--- Idempotente; tabela sensível só para o servidor (DATABASE_RULES.md, regra 5).
-
+-- CAPTURADA da produção (supabase_migrations.schema_migrations, versão 20260930162029).
+-- Aplicada a 2026-09-30 16:20 UTC fora do repositório; trazida para cá a 2026-10-02
+-- (auditoria 11, O4). Corpo sem alterações, confirmado por md5 contra o registo.
+-- @@corpo-capturado@@
 CREATE TABLE IF NOT EXISTS public.saas_signup_leads (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   session_id uuid NOT NULL,
@@ -37,7 +28,6 @@ CREATE INDEX IF NOT EXISTS saas_signup_leads_email_idx
   ON public.saas_signup_leads (email)
   WHERE email IS NOT NULL;
 
--- Lembretes: leads confirmados, por concluir, a ordenar pela última actividade.
 CREATE INDEX IF NOT EXISTS saas_signup_leads_followup_idx
   ON public.saas_signup_leads (updated_at)
   WHERE completed_at IS NULL AND email_verified_at IS NOT NULL AND unsubscribed_at IS NULL;
