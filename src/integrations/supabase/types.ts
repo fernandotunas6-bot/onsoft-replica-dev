@@ -46,6 +46,14 @@
 
 /** Regenerado da produção em 2026-09-30: 183 tabelas e RPCs verificadas. */
 
+/**
+ * Regenerado da produção a 2026-10-02 (conector Supabase, `generate_typescript_types`):
+ * 186 tabelas (eram 183). Entram `siga_chat_conversations`, `siga_chat_members` e
+ * `siga_chat_messages` (migrações 20261002062355/062506, trazidas para o repositório no
+ * mesmo dia) e as funções `settle_gateway_payment_service`, `hr_confirm_payroll_payment_item`,
+ * `hr_upsert_payment_destination` e `hr_redeem_teacher_qr_secure`. Nada saiu.
+ */
+
 export type Json =
   | string
   | number
@@ -9331,6 +9339,151 @@ export type Database = {
           },
         ]
       }
+      siga_chat_conversations: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          direct_key: string | null
+          id: string
+          school_id: string
+          student_id: string | null
+          title: string | null
+          type: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          direct_key?: string | null
+          id?: string
+          school_id: string
+          student_id?: string | null
+          title?: string | null
+          type?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          direct_key?: string | null
+          id?: string
+          school_id?: string
+          student_id?: string | null
+          title?: string | null
+          type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "siga_chat_conversations_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "schools"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "siga_chat_conversations_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "students"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      siga_chat_members: {
+        Row: {
+          conversation_id: string
+          joined_at: string
+          last_read_at: string
+          user_id: string
+        }
+        Insert: {
+          conversation_id: string
+          joined_at?: string
+          last_read_at?: string
+          user_id: string
+        }
+        Update: {
+          conversation_id?: string
+          joined_at?: string
+          last_read_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "siga_chat_members_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "siga_chat_conversations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      siga_chat_messages: {
+        Row: {
+          attachment_file_id: string | null
+          attachment_file_name: string | null
+          body: string
+          conversation_id: string
+          created_at: string
+          deleted_at: string | null
+          id: string
+          reply_to: string | null
+          school_id: string
+          sender_id: string
+        }
+        Insert: {
+          attachment_file_id?: string | null
+          attachment_file_name?: string | null
+          body?: string
+          conversation_id: string
+          created_at?: string
+          deleted_at?: string | null
+          id?: string
+          reply_to?: string | null
+          school_id: string
+          sender_id: string
+        }
+        Update: {
+          attachment_file_id?: string | null
+          attachment_file_name?: string | null
+          body?: string
+          conversation_id?: string
+          created_at?: string
+          deleted_at?: string | null
+          id?: string
+          reply_to?: string | null
+          school_id?: string
+          sender_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "siga_chat_messages_attachment_file_id_fkey"
+            columns: ["attachment_file_id"]
+            isOneToOne: false
+            referencedRelation: "siga_files"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "siga_chat_messages_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "siga_chat_conversations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "siga_chat_messages_reply_to_fkey"
+            columns: ["reply_to"]
+            isOneToOne: false
+            referencedRelation: "siga_chat_messages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "siga_chat_messages_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "schools"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       siga_class_tasks: {
         Row: {
           class_subject_id: string
@@ -12126,6 +12279,16 @@ export type Database = {
           total_net_kz: number
         }[]
       }
+      hr_confirm_payroll_payment_item: {
+        Args: {
+          p_failure_reason?: string
+          p_payment_item_id: string
+          p_reference: string
+          p_result: string
+          p_school_id: string
+        }
+        Returns: Json
+      }
       hr_confirm_teacher_lesson: {
         Args: {
           p_evidence_method: string
@@ -12284,6 +12447,24 @@ export type Database = {
           purpose: string
         }[]
       }
+      hr_redeem_teacher_qr_secure: {
+        Args: {
+          p_accuracy_m?: number
+          p_latitude?: number
+          p_longitude?: number
+          p_token_hash: string
+        }
+        Returns: {
+          assurance_score: number
+          compensation_event_id: string
+          decision: string
+          distance_from_school_m: number
+          inside_geofence: boolean
+          occurrence_id: string
+          occurrence_status: string
+          purpose: string
+        }[]
+      }
       hr_refresh_payroll_payment_batch: {
         Args: { p_batch_id: string }
         Returns: {
@@ -12323,6 +12504,14 @@ export type Database = {
           p_reason: string
         }
         Returns: string
+      }
+      hr_upsert_payment_destination: {
+        Args: {
+          p_destination: Json
+          p_employment_id: string
+          p_school_id: string
+        }
+        Returns: Json
       }
       is_platform_admin: { Args: never; Returns: boolean }
       is_school_admin: { Args: { p_school_id: string }; Returns: boolean }
@@ -12580,6 +12769,18 @@ export type Database = {
         Returns: Json
       }
       school_logo_folder_ok: { Args: { p_folder: string }; Returns: boolean }
+      settle_gateway_payment_service: {
+        Args: {
+          amount: number
+          external_id: string
+          invoice_id: string
+          paid_on?: string
+          payment_method: string
+          received_by: string
+          school_id: string
+        }
+        Returns: Json
+      }
       siga_alumni_profile_completion: {
         Args: { target: Database["public"]["Tables"]["alumni_profiles"]["Row"] }
         Returns: number
