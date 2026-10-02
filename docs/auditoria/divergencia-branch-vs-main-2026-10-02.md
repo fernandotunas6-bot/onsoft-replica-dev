@@ -205,7 +205,7 @@ sessão e ainda não está no git). Das 17 migrações que o `origin/main` mexeu
 | `20260926203852_harden_teacher_qr_attendance` | `src/features/hr/teacher-lessons.ts:695` chama `hr_redeem_teacher_qr_secure`; a produção só tem `hr_redeem_teacher_qr(p_token_hash)` | **O código novo falha com "função inexistente" enquanto isto não for aplicado.** O ficheiro tem uma decisão aberta sobre o rasto de auditoria — decidir antes. |
 | `20260929230000_attendance_sessions_unique_slot_day` (main) | índice único por turno/dia | 0 duplicados ao vivo → aplica-se limpo. |
 | `20260930090000_one_active_academic_year` (main) | um ano lectivo activo por escola | 0 escolas com mais de um activo ao vivo → aplica-se limpo. |
-| `20260927120000_reclose_physical_access_secrets`, `20260924230000_close_access_card_and_device_secrets`, `20260927090000_student_history_server_only` | só retiram políticas mortas | Os privilégios de tabela **já** estão revogados (`authenticated`/`anon` sem `SELECT` em `siga_access_cards`; `siga_lesson_plans` idem), por isso não há exposição hoje — é higiene. Mantém `tests/security/segredos-de-acesso-fisico.test.ts` a vermelho até serem aplicadas (`siga_access_cards` ainda tem `Members read siga_access_cards`). |
+| `20260927120000_reclose_physical_access_secrets`, `20260924230000_close_access_card_and_device_secrets`, `20260927090000_student_history_server_only` | só retiram políticas mortas | Os privilégios de tabela **já** estão revogados (`authenticated`/`anon` sem `SELECT` em `siga_access_cards`; `siga_lesson_plans` idem), por isso não há exposição hoje — é higiene. `20260927120000_reclose_physical_access_secrets` foi **aplicada em produção a 2026-10-02** (migração `reclose_physical_access_secrets_20261002`): `siga_access_cards` ficou só com a RESTRICTIVE `School staff only`, `siga_turnstile_devices` sem políticas, `anon`/`authenticated` sem `SELECT`. As outras duas continuam por aplicar. |
 
 ### B. O efeito já está na produção — não reaplicar (confiança: verificado ao vivo, salvo nota)
 
@@ -353,7 +353,7 @@ Os §1–§4, §7 e §8 descrevem o estado **antes** do merge e ficam como regis
     `can_manage_students()` incluía; hoje esses papéis deixam de ler documentos de identidade.
   - `create-table-vs-producao` — o parser não lia o estilo compacto das migrações de 24/09 e
     reportava falsos conflitos; passou a partir nas vírgulas de topo.
-- **Continua vermelho de propósito:** `segredos-de-acesso-fisico` (ver §5.A, última linha).
+- **`segredos-de-acesso-fisico`:** esteve vermelho de propósito até 2026-10-02, quando `20260927120000_reclose_physical_access_secrets` foi aplicada em produção (autorizado pelo utilizador); agora passa. O retrato foi corrigido à mão (política removida, contagens 333→332) porque o CLI do Supabase não correu — disco cheio (ENOSPC). `funcoes_private` está desactualizado no retrato (103 vs 106 ao vivo): recapturar com `npm run siga:db-snapshot` quando houver espaço.
 - **Falham por trabalho em curso de outra sessão** neste directório (ficheiros que apareceram
   durante a sessão: `src/features/messages/chat-*.ts`, `supabase/migrations/20261002093000_chat_conversations.sql`,
   `src/features/messages/server.ts` modificado): `membership-only-reads`, `messaging-scope`,
