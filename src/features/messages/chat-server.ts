@@ -17,9 +17,10 @@ import {
 
 const MISSING_TABLE = /schema cache|does not exist|42P01|PGRST/i;
 
-/** As tabelas do chat podem ainda não estar aplicadas em produção (ver memória:
- *  as migrações são corridas à mão). Nesse caso a UI mostra um aviso honesto em
- *  vez de rebentar. */
+/** Aplicada em produção a 2026-10-02. A guarda fica porque as migrações deste
+ *  projecto são corridas à mão, uma a uma: num ambiente onde
+ *  20261002093000_chat_conversations.sql não tenha corrido, a UI mostra um aviso
+ *  honesto em vez de rebentar. */
 export class ChatSchemaMissing extends Error {
   constructor() {
     super("CHAT_SCHEMA_MISSING");
