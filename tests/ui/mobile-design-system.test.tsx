@@ -69,7 +69,8 @@ describe("hub «Mais»", () => {
   it("cada papel tem módulos no hub e nenhum grupo vazio", () => {
     for (const role of applicationRoles) {
       const groups = getMoreHubGroups(role);
-      for (const group of groups) expect(group.items.length, `${role}/${group.title}`).toBeGreaterThan(0);
+      for (const group of groups)
+        expect(group.items.length, `${role}/${group.title}`).toBeGreaterThan(0);
     }
   });
 

@@ -45,7 +45,15 @@ const ficheiros = readdirSync(MIGRACOES)
   .filter((f) => f.endsWith(".sql"))
   .sort();
 
-const NAO_E_COLUNA = new Set(["constraint", "primary", "unique", "check", "foreign", "exclude", "like"]);
+const NAO_E_COLUNA = new Set([
+  "constraint",
+  "primary",
+  "unique",
+  "check",
+  "foreign",
+  "exclude",
+  "like",
+]);
 
 /**
  * Colunas de um corpo de `CREATE TABLE`: parte nas vírgulas de topo (as de dentro de

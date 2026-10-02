@@ -66,11 +66,9 @@ export function applyPendingUpdate() {
   }
   // `controllerchange` dispara quando o novo worker assume; só então vale a pena
   // recarregar, ou a página volta a ser servida pelo worker antigo.
-  navigator.serviceWorker.addEventListener(
-    "controllerchange",
-    () => window.location.reload(),
-    { once: true },
-  );
+  navigator.serviceWorker.addEventListener("controllerchange", () => window.location.reload(), {
+    once: true,
+  });
   waitingWorker.postMessage({ type: "SKIP_WAITING" });
 }
 
