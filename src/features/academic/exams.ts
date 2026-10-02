@@ -26,6 +26,7 @@ import {
   computeFinalResult,
   examEligibility,
   subjectFinalsFromBreakdown,
+  subjectsBeforeSession,
   type EngineRule,
   type Eligibility,
   type ExamKind,
@@ -247,12 +248,15 @@ type LoadedSession = {
   maxFailedSubjects: number | null;
   resultMethod: ExamResultMethod;
   status: ExamSessionStatus;
+  createdAt: string;
 };
 
 async function loadSession(db: Db, schoolId: string, sessionId: string): Promise<LoadedSession> {
   const { data, error } = await db
     .from("siga_exam_sessions")
-    .select("id, kind, name, academic_year_id, max_failed_subjects, result_method, status")
+    .select(
+      "id, kind, name, academic_year_id, max_failed_subjects, result_method, status, created_at",
+    )
     .eq("school_id", schoolId)
     .eq("id", sessionId)
     .maybeSingle();
@@ -266,7 +270,58 @@ async function loadSession(db: Db, schoolId: string, sessionId: string): Promise
     maxFailedSubjects: numOrNull(data.max_failed_subjects),
     resultMethod: str(data.result_method) as ExamResultMethod,
     status: str(data.status) as ExamSessionStatus,
+    createdAt: str(data.created_at),
   };
+}
+
+/**
+ * Notas das outras épocas do mesmo ano para a turma, por matrícula (ver
+ * `subjectsBeforeSession`: só contam as épocas anteriores a esta).
+ */
+async function otherSessionResults(
+  db: Db,
+  schoolId: string,
+  session: LoadedSession,
+  classGroupId: string,
+) {
+  const { data: sessions, error } = await db
+    .from("siga_exam_sessions")
+    .select("id, created_at")
+    .eq("school_id", schoolId)
+    .eq("academic_year_id", session.academicYearId)
+    .neq("id", session.id);
+  if (error) throw examDbError(error, "Não foi possível ler as épocas de exames.");
+  const sessionAt = new Map(((sessions ?? []) as Row[]).map((s) => [str(s.id), str(s.created_at)]));
+  const byEnrollment = new Map<
+    string,
+    Array<{
+      sessionId: string;
+      subjectId: string;
+      status: string;
+      finalAverage: number | null;
+      sessionCreatedAt: string;
+    }>
+  >();
+  if (!sessionAt.size) return byEnrollment;
+  const { data: regs, error: regsError } = await db
+    .from("siga_exam_registrations")
+    .select("session_id, enrollment_id, subject_id, status, final_average")
+    .eq("school_id", schoolId)
+    .eq("class_group_id", classGroupId)
+    .in("session_id", [...sessionAt.keys()]);
+  if (regsError) throw examDbError(regsError, "Não foi possível ler as inscrições anteriores.");
+  for (const r of (regs ?? []) as Row[]) {
+    const list = byEnrollment.get(str(r.enrollment_id)) ?? [];
+    list.push({
+      sessionId: str(r.session_id),
+      subjectId: str(r.subject_id),
+      status: str(r.status),
+      finalAverage: numOrNull(r.final_average),
+      sessionCreatedAt: sessionAt.get(str(r.session_id)) ?? "",
+    });
+    byEnrollment.set(str(r.enrollment_id), list);
+  }
+  return byEnrollment;
 }
 
 export type ExamRegistration = {
@@ -334,14 +389,21 @@ export const getExamClassDetail = createServerFn({ method: "GET" })
       .eq("session_id", session.id)
       .eq("class_group_id", data.classGroupId);
     if (error) throw examDbError(error, "Não foi possível ler as inscrições.");
-    const names = await studentNames(
-      db,
-      schoolId,
-      sheet.rows.map((r) => r.enrollmentId),
-    );
+    const [names, earlier] = await Promise.all([
+      studentNames(
+        db,
+        schoolId,
+        sheet.rows.map((r) => r.enrollmentId),
+      ),
+      otherSessionResults(db, schoolId, session, data.classGroupId),
+    ]);
 
     const students = sheet.rows.map((row): ExamStudentLine => {
-      const subjects = subjectFinalsFromBreakdown(row.breakdown, rule);
+      const subjects = subjectsBeforeSession(
+        subjectFinalsFromBreakdown(row.breakdown, rule),
+        earlier.get(row.enrollmentId) ?? [],
+        session,
+      );
       const subjectName = new Map(subjects.map((s) => [s.subjectId, s.subjectName]));
       const registrations = ((regs ?? []) as Row[])
         .filter((r) => str(r.enrollment_id) === row.enrollmentId)
@@ -410,11 +472,16 @@ export const registerEligibleStudents = createServerFn({ method: "POST" })
     }
     if (!sheet.rule) throw new Error("A pauta anual não tem regra de avaliação.");
     const rule = sheet.rule;
+    const earlier = await otherSessionResults(db, schoolId, session, data.classGroupId);
 
     const rows: TablesInsert<"siga_exam_registrations">[] = [];
     const registeredByEnrollment = new Map<string, string[]>();
     for (const line of sheet.rows) {
-      const subjects = subjectFinalsFromBreakdown(line.breakdown, rule);
+      const subjects = subjectsBeforeSession(
+        subjectFinalsFromBreakdown(line.breakdown, rule),
+        earlier.get(line.enrollmentId) ?? [],
+        session,
+      );
       const eligibility = examEligibility(
         { subjects, absencePercentage: line.absencePercentage },
         rule,
@@ -631,6 +698,7 @@ export const saveExamScores = createServerFn({ method: "POST" })
             entry.score,
             session.resultMethod,
             rule,
+            session.kind,
           ),
         };
       }

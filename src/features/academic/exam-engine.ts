@@ -160,12 +160,16 @@ export const ELIGIBILITY_REASON_LABELS: Record<
   "no-grades": "Sem notas na pauta anual",
 };
 
-/** Média da disciplina depois do exame, pelo método da época e o arredondamento da regra. */
+/**
+ * Média da disciplina depois do exame, pelo método da época e o arredondamento da regra.
+ * Na melhoria a nota nunca desce: um exame pior deixa a média que o aluno já tinha.
+ */
 export function averageAfterExam(
   original: number | null,
   score: number,
   method: ExamResultMethod,
   rule: Pick<EngineRule, "roundingMethod" | "decimalPlaces">,
+  kind?: ExamKind,
 ) {
   const base = original ?? score;
   const raw =
@@ -174,7 +178,8 @@ export function averageAfterExam(
       : method === "average"
         ? (base + score) / 2
         : Math.max(base, score);
-  return roundGrade(raw, rule.roundingMethod, rule.decimalPlaces);
+  const rounded = roundGrade(raw, rule.roundingMethod, rule.decimalPlaces);
+  return kind === "melhoria" && original != null ? Math.max(original, rounded) : rounded;
 }
 
 export type FinalResultCode = "pass" | "fail" | "incomplete";
@@ -296,4 +301,31 @@ export function absencePercentageFromStatuses(statuses: string[]): number | null
   if (!counted.length) return null;
   const absent = counted.filter((s) => s === "absent").length;
   return Math.round((absent * 10000) / counted.length) / 100;
+}
+
+/**
+ * Médias que uma época encontra: as da pauta anual com as notas das épocas
+ * anteriores já aplicadas. Sem isto, uma segunda época partia outra vez da
+ * pauta — quem passou no recurso voltava a ser inscrito no exame especial com
+ * a negativa antiga e, com «substitui», uma nota pior apagava o recurso; e a
+ * melhoria não via as disciplinas recuperadas no recurso.
+ */
+export function subjectsBeforeSession(
+  subjects: SubjectFinal[],
+  registrations: Array<{
+    sessionId: string;
+    subjectId: string;
+    status: string;
+    finalAverage: number | null;
+    sessionCreatedAt: string;
+  }>,
+  session: { id: string; createdAt: string },
+): SubjectFinal[] {
+  const earlier = registrations.filter(
+    (r) =>
+      r.sessionId !== session.id &&
+      (r.sessionCreatedAt < session.createdAt ||
+        (r.sessionCreatedAt === session.createdAt && r.sessionId < session.id)),
+  );
+  return applyExamResults(subjects, latestGradedBySubject(earlier));
 }
