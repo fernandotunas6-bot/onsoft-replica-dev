@@ -122,6 +122,7 @@ function RootShell({ children }: { children: ReactNode }) {
 }
 
 import { TauriTitlebar } from "@/components/TauriTitlebar";
+import { areaToneForPath } from "@/lib/area-tone";
 
 function ClientOnlyToaster() {
   const [hydrated, setHydrated] = useState(false);
@@ -165,6 +166,13 @@ function RootComponent() {
     window.addEventListener(SW_UPDATE_READY_EVENT, onUpdateReady);
     return () => window.removeEventListener(SW_UPDATE_READY_EVENT, onUpdateReady);
   }, []);
+
+  // Tom visual da área (Pedagógica, Financeiro…) em <html data-tone>: o brilho
+  // dos cabeçalhos e o texto em gradiente leem-no em CSS. Depois de montar,
+  // para não haver diferença entre o HTML do servidor e o do navegador.
+  useEffect(() => {
+    document.documentElement.dataset.tone = areaToneForPath(pathname);
+  }, [pathname]);
 
   return (
     <QueryClientProvider client={queryClient}>

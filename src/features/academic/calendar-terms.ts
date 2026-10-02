@@ -6,6 +6,8 @@
  * pautas, notas por período nem fecho de trimestre.
  */
 
+import { medTermsForYear } from "./med-calendar";
+
 export type TermDraft = { sequence: 1 | 2 | 3; name: string; startsOn: string; endsOn: string };
 
 const DAY = 86_400_000;
@@ -35,12 +37,16 @@ export function suggestTerms(yearStartsOn: string, yearEndsOn: string): TermDraf
   ];
 }
 
-/** Os trimestres gravados, completados pela sugestão onde faltam. */
+/**
+ * Os trimestres gravados, completados pela sugestão onde faltam. A sugestão é a
+ * do calendário escolar nacional (MED) quando o ano segue Setembro→Julho; senão,
+ * o ano dividido em três.
+ */
 export function termDrafts(
   year: { startsOn: string; endsOn: string },
   saved: Array<{ sequence: number; name: string; startsOn: string; endsOn: string }>,
 ): TermDraft[] {
-  const suggested = suggestTerms(year.startsOn, year.endsOn);
+  const suggested = medTermsForYear(year) ?? suggestTerms(year.startsOn, year.endsOn);
   return suggested.map((term) => {
     const existing = saved.find((row) => row.sequence === term.sequence);
     return existing

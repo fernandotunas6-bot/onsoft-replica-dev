@@ -266,6 +266,78 @@ dependem disso).
   Também a tabela `school_access_requests` já está no retrato
   (`TABELAS_AUSENTES_DA_PRODUCAO` vazia).
 
+## Visual «Aurora» da marca (2026-09-30)
+
+Ver [docs/design/VISUAL_AURORA.md](../design/VISUAL_AURORA.md). Fundo animado azul→violeta,
+peças de vidro com paralaxe, mascote com olhos e telemóvel com o SIGA em demonstração.
+Aplicado: topo e chamada final da página inicial, `/start`, «está criada», guia de arranque do
+SIGA, faixa nos e-mails. Estilos em `@layer components` (senão sobrepõem o `hidden` do
+Tailwind). Capturas verificadas em claro, escuro e telemóvel.
+
+## Arranque: MED, modelos de estrutura, e-mail confirmado, pagamentos e desistências (2026-09-30)
+
+Detalhe em [docs/provisioning/ARRANQUE_ESCOLA.md](../provisioning/ARRANQUE_ESCOLA.md) §4–7.
+
+- `med-calendar.ts`: ano/trimestres do MED (Decreto Executivo n.º 686/25 + regra testada).
+- `curriculum-templates*.ts` + `CurriculumTemplateDialog.tsx`: modelos por nível (1ª–13ª,
+  superior). Escrita privilegiada justificada em `rls-client-migration.test.ts`.
+- Registo público exige e-mail confirmado (`signup-verification.ts`; chave derivada da chave de
+  serviço, sem configuração nova). WEB `/start` passo «Conta» com código.
+- Migração **aplicada na produção** `20260930162029_signup_leads_and_billing_proofs`:
+  `saas_signup_leads` (FORCE RLS, só servidor) e bucket privado `billing-proofs`. Retrato e
+  `types.ts` actualizados à mão para esta tabela.
+- `commercial-lifecycle.ts`: progresso, lembretes e avisos de trial; cron
+  `/api/cron/saas-lifecycle` + workflow diário. ADMIN: `/signups` e comprovativos em
+  `/subscriptions` (confirmar pagamento = `confirm_payment_billing`).
+- Rotas novas geradas com `@tanstack/router-generator`; o bloco `Register` do Start no fim
+  de `routeTree.gen.ts` tem de ficar (o gerador sozinho não o escreve).
+
+## Arranque da escola: guia no painel do Administrador (2026-09-30)
+
+Plano completo: [docs/provisioning/ARRANQUE_ESCOLA.md](../provisioning/ARRANQUE_ESCOLA.md).
+
+- Na produção, as escolas recentes ficavam paradas logo após a criação (sem ano lectivo,
+  turmas nem modelo). O bloco «Primeiros passos» mandava matricular antes de haver turmas.
+- `src/features/school/setup-guide.ts`: 11 passos em 4 fases, ordenados pelas dependências
+  reais, cada um decidido pelo que está na base. `setup-guide-server.ts` conta com
+  `context.supabase` (RLS); só o plano (`tenants`) usa o cliente privilegiado — por isso está
+  em `PRIVILEGIO_POR_DESENHO`. `SchoolSetupGuide.tsx` substitui o bloco antigo para o
+  Administrador (a Secretaria mantém os atalhos simples).
+- Provisionamento: `director_name` a partir do responsável quando a função é «Director(a)»;
+  formulário público de matrícula nasce fechado.
+- WEB `/start`: «Primeiros passos» na mesma ordem do guia.
+- Testes: `tests/school/setup-guide.test.ts` (regras e rotas/painéis existentes),
+  `tests/school/setup-guide-ui.test.tsx` (ecrã).
+
+## Criar escola: e-mail «já usado», domínio preso e sem entrada no painel (2026-09-30)
+
+Diagnóstico na produção (só leitura): as duas últimas criações (24/09 e 28/09) falharam
+e ficaram meio-feitas; hoje uma conta Google sem escola não conseguia registar a sua.
+
+- **Todas as criações eram revertidas:** `findProvisioningGaps` contava `select("id")`, e
+  `member_roles` não tem coluna `id` (chave = membership + papel). O erro 42703 era lido
+  como «0 linhas» → «papel atribuído em falta» → reversão. Conta agora com `*`, e uma
+  consulta que falha não é peça em falta (evento `tenant.provisioning.verify.unavailable`).
+- **A reversão não conseguia reverter:** `audit_logs` é imutável e aponta para a escola, logo
+  a escola (e o tenant) já não se apagam; `school_settings.changed_by` e
+  `enrollment_forms.created_by` impediam `deleteUser`. Resultado: conta presa ao e-mail e
+  o cliente recebia «já existe uma conta com este e-mail». Agora: apaga os registos do
+  bootstrap antes da conta; se o tenant não sai, fica `provisioning_failed` com o slug
+  libertado (`<slug>-falhou-<id8>`).
+- **Verificação prévia** (`preflight` em `provisioning-core.ts`): subdomínio e e-mail são
+  verificados antes de escrever. E-mail com membership activa → recusa sem criar nada.
+  Conta sem escola (Google, ou tentativa falhada) → é ligada à escola nova; se nunca
+  iniciou sessão recebe a senha do registo, senão as credenciais ficam intactas.
+- **Entrada directa:** com senha definida no registo público, o servidor devolve
+  `adminLoginUrl` (`/auth/magic-link?token_hash=…&type=recovery`, uso único). O WEB
+  `/start` entra sozinho no painel da escola ao fim de 8 s (cancelável). O admin de
+  plataforma nunca recebe este link; uma conta Google reaproveitada também não.
+- WEB `/start`: erros do servidor levam ao passo/campo certo (e-mail, subdomínio, campos
+  recusados pela validação).
+- **Por arrumar na produção** (não mexido): tenant `epatuloko` (activo, sem domínio nem
+  membros, slug ocupado) e `siga-plus-web-production-falhou-986ba240`; a conta do
+  administrador de `epatuloko` ficou sem escola (é reaproveitada numa nova tentativa).
+
 ## CORS e domínios próprios seguem PLATFORM_DOMAIN (2026-09-30)
 
 - `src/lib/ecosystem-cors.ts`: as origens de produção (raiz, www, admin, docs, app,

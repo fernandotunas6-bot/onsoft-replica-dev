@@ -220,6 +220,7 @@ function LessonPlansPage() {
         {grouped.length === 0 && plansQuery.data?.available !== false ? (
           <EmptyState
             icon={BookOpenCheck}
+            firstUse
             title="Ainda não há planos de aula"
             description="Crie um plano com a estrutura de avaliações e provas para alimentar o Centro de Avaliação."
             compact

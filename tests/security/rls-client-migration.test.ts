@@ -61,6 +61,23 @@ const PRIVILEGIO_POR_DESENHO = new Set([
   // tenant da escola da sessão.
   "src/features/saas/subscription-server.ts",
 
+  // Guia de arranque da escola: as contagens já usam `context.supabase`; só o
+  // plano da escola (`tenants`, política apenas `is_platform_admin()`) é lido
+  // com o cliente privilegiado, pelo tenant da escola da sessão do Administrador.
+  "src/features/school/setup-guide-server.ts",
+
+  // Modelo de estrutura académica: `academic_levels`, `programs` e `campuses`
+  // não têm política de escrita para utilizadores e `subjects` exige aal2. O
+  // servidor exige Administrador/Secretaria com escrita na Pedagógica e grava
+  // só na escola da membership.
+  "src/features/academic/curriculum-templates-server.ts",
+
+  // Ciclo comercial: `saas_signup_leads` é só do servidor (FORCE RLS, sem
+  // políticas) e `tenants`/`saas_audit_logs` só têm política da plataforma. As
+  // rotas públicas gravam apenas o progresso da própria sessão; a tarefa diária
+  // exige SIGA_CRON_SECRET; a listagem exige admin da plataforma com MFA.
+  "src/features/saas/commercial-lifecycle.ts",
+
   // Regista cada documento oficial emitido (audit_logs, só o servidor grava) e
   // verifica-o publicamente, sem sessão, a partir do código impresso.
   "src/features/documents/verification.ts",

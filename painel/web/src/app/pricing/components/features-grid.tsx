@@ -1,5 +1,5 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Rocket, Shield, Zap, Users, Headphones, Clock } from "lucide-react"
+import { Rocket, Shield, Zap, Users, Headphones, Clock, LayoutDashboard } from "lucide-react"
 
 // Icon mapping
 const iconMap = {
@@ -9,6 +9,7 @@ const iconMap = {
   Users,
   Headphones,
   Clock,
+  LayoutDashboard,
 }
 
 interface Feature {

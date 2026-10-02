@@ -1,6 +1,15 @@
 import { describe, expect, it, beforeEach, vi, afterEach } from "vitest";
 import { runPublicSchoolSignup } from "@/features/saas/public-signup";
 import { provisionTenantCore } from "@/features/saas/provisioning-core";
+import { issueSignupVerificationToken } from "@/features/saas/signup-verification";
+import { markLeadCompleted } from "@/features/saas/commercial-lifecycle";
+
+// A chave de serviço assina o comprovativo de e-mail confirmado.
+process.env["SUPABASE_SECRET_KEY"] = "chave-de-servico-de-teste-com-comprimento";
+
+vi.mock("@/features/saas/commercial-lifecycle", () => ({
+  markLeadCompleted: vi.fn().mockResolvedValue(undefined),
+}));
 
 // Mock provisionTenantCore to avoid actually touching DB during these logic tests.
 // O mock devolve `slug`/`hostname` porque é o núcleo que os resolve (via
@@ -36,11 +45,14 @@ describe("runPublicSchoolSignup logic", () => {
     admin_name: "Administrador",
     admin_password: "senha-forte-123",
     website: "", // Honeypot must be empty
+    email_verification_token: "",
+    session_id: "22222222-2222-4222-8222-222222222222",
   };
 
   beforeEach(() => {
     vi.useFakeTimers();
     vi.clearAllMocks();
+    baseData.email_verification_token = issueSignupVerificationToken("admin@example.com");
   });
 
   afterEach(() => {
@@ -71,6 +83,47 @@ describe("runPublicSchoolSignup logic", () => {
       },
       { auditUserId: null, source: "public_signup" },
     );
+    // A escola nasceu: o acompanhamento do registo fecha-se.
+    expect(markLeadCompleted).toHaveBeenCalledWith({
+      sessionId: "22222222-2222-4222-8222-222222222222",
+      email: "admin@example.com",
+      tenantId: "11111111-1111-1111-1111-111111111111",
+    });
+  });
+
+  it("recusa sem o e-mail confirmado, antes de criar o que quer que seja", async () => {
+    await expect(
+      runPublicSchoolSignup({ ...baseData, email_verification_token: undefined }, "10.9.0.1"),
+    ).rejects.toThrow(/Confirme o e-mail/);
+    expect(provisionTenantCore).not.toHaveBeenCalled();
+  });
+
+  it("recusa um comprovativo emitido para outro e-mail", async () => {
+    await expect(
+      runPublicSchoolSignup(
+        {
+          ...baseData,
+          email_verification_token: issueSignupVerificationToken("outro@example.com"),
+        },
+        "10.9.0.2",
+      ),
+    ).rejects.toThrow(/Confirme o e-mail/);
+  });
+
+  it("recusa um comprovativo expirado (mais de 2 h)", async () => {
+    const token = issueSignupVerificationToken("admin@example.com");
+    vi.advanceTimersByTime(2 * 60 * 60 * 1000 + 1000);
+    await expect(
+      runPublicSchoolSignup({ ...baseData, email_verification_token: token }, "10.9.0.3"),
+    ).rejects.toThrow(/Confirme o e-mail/);
+  });
+
+  it("domínios reservados (.test) dos testes E2E não precisam de código", async () => {
+    const res = await runPublicSchoolSignup(
+      { ...baseData, admin_email: "e2e+x@siga-plus.test", email_verification_token: undefined },
+      "10.9.0.4",
+    );
+    expect(res.success).toBe(true);
   });
 
   it("bloqueia tentativas de rate-limit por IP", async () => {

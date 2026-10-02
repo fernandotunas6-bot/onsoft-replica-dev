@@ -121,6 +121,15 @@ export function pendingPlanRequestFrom(
   return null;
 }
 
+/** Preço do plano em kwanzas para a periodicidade escolhida; 0 quando não há preço. */
+export function planPriceKz(
+  plan: { price_aoa_monthly?: number | null; price_aoa_yearly?: number | null },
+  billing: "monthly" | "yearly",
+): number {
+  const value = billing === "yearly" ? plan.price_aoa_yearly : plan.price_aoa_monthly;
+  return typeof value === "number" && value > 0 ? value : 0;
+}
+
 /** Fracção usada do limite; null quando o plano não tem limite. */
 export function usageShare(used: number, limit: number | null): number | null {
   if (!limit || limit <= 0) return null;

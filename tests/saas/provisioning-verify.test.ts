@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import {
@@ -78,6 +78,49 @@ describe("findProvisioningGaps", () => {
       IDS,
     );
     expect(gaps.map((g) => g.peca)).toEqual(["domínio", "membership activa"]);
+  });
+
+  it("conta com `*`: member_roles não tem coluna id, e contar `id` revertia todas as escolas", async () => {
+    const colunas: string[] = [];
+    const db = {
+      from(table: string) {
+        const chain: Record<string, unknown> = {
+          select: (col: string) => {
+            colunas.push(col);
+            const result =
+              table === "member_roles" && col === "id"
+                ? { count: null, error: { message: 'column "id" does not exist' } }
+                : { count: (COMPLETO as Record<string, number>)[table] ?? 0, error: null };
+            chain.then = (...args: unknown[]) => {
+              const p = Promise.resolve(result);
+              return (p.then as (...a: unknown[]) => unknown).apply(p, args);
+            };
+            return chain;
+          },
+          eq: () => chain,
+        };
+        return chain;
+      },
+    };
+    expect(await findProvisioningGaps(db, IDS)).toEqual([]);
+    expect(colunas.every((c) => c === "*")).toBe(true);
+  });
+
+  it("uma consulta que falha não conta como peça em falta", async () => {
+    const db = {
+      from() {
+        const result = Promise.resolve({ count: null, error: { message: "timeout" } });
+        const chain: Record<string, unknown> = {
+          select: () => chain,
+          eq: () => chain,
+          then: (...args: unknown[]) =>
+            (result.then as (...a: unknown[]) => unknown).apply(result, args),
+        };
+        return chain;
+      },
+    };
+    vi.spyOn(console, "info").mockImplementation(() => {});
+    expect(await findProvisioningGaps(db, IDS)).toEqual([]);
   });
 
   it("a mensagem diz o que falta e que foi revertido", async () => {
@@ -189,14 +232,13 @@ describe("reversão do provisionamento", () => {
       expect(cleanup.indexOf(`"${table}"`)).toBeGreaterThan(-1);
       expect(cleanup.indexOf(`"${table}"`)).toBeLessThan(cleanup.indexOf("deleteUser("));
     }
-    expect(cleanup).toMatch(
-      /const \{ error: deleteErr \} = await supabaseAdmin\.auth\.admin\.deleteUser/,
-    );
+    expect(cleanup).toMatch(/const \{ error: deleteErr \} = await db\.auth\.admin\.deleteUser/);
   });
 
   it("escola que não se apaga fica arquivada e o endereço é libertado", () => {
     expect(source).toMatch(/update\(\{ status: "archived" \}\)/);
     expect(source).toMatch(/status: "provisioning_failed"/);
-    expect(source).toMatch(/slug: `\$\{data\.slug\}-falhou-/);
+    expect(source).toMatch(/slug: releasedSlug\(data\.slug, tenantId\)/);
+    expect(source).toMatch(/return `\$\{slug\}-falhou-/);
   });
 });
