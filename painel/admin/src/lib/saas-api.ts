@@ -355,6 +355,7 @@ export async function fetchSaasSession(
       userId: data.userId,
       email: data.email ?? null,
       platformAdmin: data.platformAdmin,
+      mfa: data.mfa,
     },
   };
 }
