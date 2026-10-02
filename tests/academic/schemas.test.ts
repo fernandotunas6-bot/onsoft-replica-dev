@@ -107,6 +107,20 @@ describe("academic subject/grade schemas", () => {
     expect(parsed.countsTowardPauta).toBe(true);
     expect(parsed.maxScore).toBe(20);
   });
+
+  it("aceita componentes próprios de PAP e estágio", () => {
+    for (const component of ["pap", "estagio"] as const) {
+      const parsed = createAssessmentInputSchema.parse({
+        classGroupId: "11111111-1111-1111-1111-111111111111",
+        subjectId: "22222222-2222-2222-2222-222222222222",
+        term: 3,
+        name: component === "pap" ? "Defesa da PAP" : "Estágio curricular",
+        kind: component === "pap" ? "projecto" : "continua",
+        component,
+      });
+      expect(parsed.component).toBe(component);
+    }
+  });
 });
 
 describe("academic schedule schemas", () => {

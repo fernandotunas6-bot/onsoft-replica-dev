@@ -42,19 +42,59 @@ import {
 } from "./print-catalog";
 import { parsePrintSettings } from "./print-settings";
 
-/** SGA check constraint: submitted | in_review | approved | rejected | cancelled */
-const statusToUi: Record<string, string> = {
+/**
+ * Há dois vocabulários de estado, e só o servidor deve conhecer os dois.
+ *
+ * Na base, `document_requests_status_check` admite exactamente:
+ *   submitted | in_review | approved | rejected | fulfilled | cancelled
+ * Na interface, os rótulos e as acções são indexados por:
+ *   queued | processing | ready | delivered | rejected | cancelled
+ *
+ * A tradução existia só num sentido — base → interface. Faltava a inversa, e sem ela o
+ * avanço de um pedido estava partido em quatro sítios ao mesmo tempo:
+ *
+ *   · `next_status` saía daqui em vocabulário da BASE, mas `advanceActionLabel` em
+ *     documentos.tsx é indexado pelo da INTERFACE, pelo que o botão nunca encontrava o
+ *     rótulo certo e mostrava sempre o genérico "Avançar";
+ *   · `updateDocumentRequestStatusInputSchema` aceitava só o vocabulário da INTERFACE,
+ *     por isso recusava no zod o valor que esta função lhe mandava ("in_review", "approved");
+ *   · e se lá chegasse, a base recusava-o na mesma com 23514 (verificado em produção);
+ *   · `documentos.tsx` dispara o download com `nextStatus === "ready"`, que nunca era
+ *     verdade porque recebia "approved".
+ *
+ * Passa tudo a sair daqui em vocabulário da interface, e a ser traduzido de volta à
+ * entrada. Quem chama nunca vê o vocabulário da base.
+ */
+/** Exportado para o teste que verifica que os dois vocabulários são inversos. */
+export const statusToUi: Record<string, string> = {
   submitted: "queued",
   in_review: "processing",
   approved: "ready",
+  fulfilled: "delivered",
   rejected: "rejected",
   cancelled: "cancelled",
 };
 
-const nextSgaStatus: Record<string, string | null> = {
+/** Inversa de `statusToUi`. É o que faltava. */
+export const uiStatusToSga: Record<string, string> = {
+  queued: "submitted",
+  processing: "in_review",
+  ready: "approved",
+  delivered: "fulfilled",
+  rejected: "rejected",
+  cancelled: "cancelled",
+};
+
+/**
+ * Próximo passo, em vocabulário da base. `approved → fulfilled` fecha o circuito: a base
+ * admite `fulfilled`, a interface já tem o rótulo "Entregar" e o estado "Emitido" para ele,
+ * e sem este passo um documento aprovado nunca podia ser dado como entregue.
+ */
+export const nextSgaStatus: Record<string, string | null> = {
   submitted: "in_review",
   in_review: "approved",
-  approved: null,
+  approved: "fulfilled",
+  fulfilled: null,
   rejected: null,
   cancelled: null,
 };
@@ -206,7 +246,11 @@ export const listDocumentWorkspace = createServerFn({ method: "GET" })
             class_name: classNameByStudentId.get(request.student_id) ?? null,
             request_number: request.purpose || request.id.slice(0, 8),
             status: statusToUi[request.status] ?? "queued",
-            next_status: nextSgaStatus[request.status] ?? null,
+            // Em vocabulário da interface, como o resto do que sai daqui.
+            next_status: (() => {
+              const proximo = nextSgaStatus[request.status];
+              return proximo ? (statusToUi[proximo] ?? null) : null;
+            })(),
             requested_at: request.created_at,
             assigned_to: request.requested_by,
             priority: "normal",
@@ -284,12 +328,22 @@ export const updateDocumentRequestStatus = createServerFn({ method: "POST" })
     }
     if (!existing) throw new Error("Pedido de documento não encontrado.");
 
+    // O chamador fala o vocabulário da interface; a base só entende o seu.
+    const estadoSga = uiStatusToSga[data.status];
+    if (!estadoSga) {
+      throw new Error(`Estado de pedido desconhecido: ${data.status}.`);
+    }
+
+    const agora = new Date().toISOString();
     const { data: updated, error } = await db
       .from("document_requests")
       .update({
-        status: data.status,
+        status: estadoSga,
         reviewed_by: context.userId,
-        updated_at: new Date().toISOString(),
+        // `reviewed_at` existe na tabela e nunca era escrito: ficava-se a saber quem
+        // reviu, mas não quando.
+        reviewed_at: agora,
+        updated_at: agora,
       })
       .eq("id", data.requestId)
       .eq("school_id", membership.schoolId)

@@ -40,6 +40,7 @@ export function ExamPautaView({ data }: { data: ExamPautaDocument }) {
               ) : (
                 <>
                   <th className="border border-border p-2 font-bold">Nota do Exame</th>
+                  <th className="border border-border p-2 font-bold">Recurso</th>
                   <th className="border border-border p-2 font-bold bg-muted/60">
                     Nota Final (NF)
                   </th>
@@ -75,6 +76,9 @@ export function ExamPautaView({ data }: { data: ExamPautaDocument }) {
                   <>
                     <td className="border border-border p-1.5 font-semibold">
                       {formatGrade(student.examGrade)}
+                    </td>
+                    <td className="border border-border p-1.5 font-semibold">
+                      {formatGrade(student.resourceGrade)}
                     </td>
                     <td className="border border-border p-1.5 font-bold bg-muted/30">
                       {formatGrade(student.finalGrade)}

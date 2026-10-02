@@ -1,4 +1,6 @@
 import { describe, expect, it, beforeEach, afterEach } from "vitest";
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import { isRateLimitBypassed, checkRateLimit, recordRateLimitAttempt } from "@/lib/rate-limit";
 import { clientIpFromRequest } from "@/lib/request-ip";
 
@@ -40,6 +42,18 @@ describe("Rate Limit Security Hardening", () => {
 
     // Exceeded max=2
     expect(checkRateLimit([key], opts)).toBe(false);
+  });
+});
+
+describe("Static ADMIN defence in depth", () => {
+  it("keeps the full dashboard shell behind the platform-admin client gate", () => {
+    const source = readFileSync(
+      resolve(__dirname, "../../painel/admin/src/app/(dashboard)/layout.tsx"),
+      "utf8",
+    );
+
+    expect(source).toContain("const dashboard = (");
+    expect(source).toContain("<PlatformAdminGate>{dashboard}</PlatformAdminGate>");
   });
 });
 

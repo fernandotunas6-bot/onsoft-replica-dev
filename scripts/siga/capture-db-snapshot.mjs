@@ -41,7 +41,10 @@ const QUERIES = {
       'com_rls', (select count(*) from pg_class c join pg_namespace n on n.oid=c.relnamespace where n.nspname='public' and c.relkind='r' and c.relrowsecurity),
       'politicas', (select count(*) from pg_policies where schemaname='public'),
       'funcoes_private', (select count(*) from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='private'),
-      'triggers', (select count(*) from pg_trigger where not tgisinternal)
+      'triggers', (select count(*) from pg_trigger where not tgisinternal),
+      'buckets', (select count(*) from storage.buckets),
+      'buckets_publicos', (select count(*) from storage.buckets where public),
+      'politicas_storage', (select count(*) from pg_policies where schemaname='storage')
     ) as v`,
 
   tabelas: `select c.relname as tabela, c.relrowsecurity as rls, c.relforcerowsecurity as rls_forcada,
@@ -74,6 +77,22 @@ const QUERIES = {
   politicas: `select tablename as tabela, policyname as politica, cmd, roles::text as papeis,
       coalesce(qual,'') as usando, coalesce(with_check,'') as verificando, permissive as modo
     from pg_policies where schemaname='public' order by tablename, policyname`,
+
+  // O esquema `storage` ficou fora do retrato até 2026-09-28, e isso custou: o
+  // ponto 5 da auditoria de segurança esteve dias sem se poder responder, porque
+  // as políticas dos buckets não estavam em lado nenhum que se pudesse ler. As
+  // leituras de ficheiros saem por URL assinada da chave de serviço e não
+  // dependem destas políticas, mas as quatro escritas do browser (FileBrowser,
+  // fotografia de pessoa, os dois envios de logótipo) dependem — e para essas a
+  // política do bucket é a única fronteira que existe.
+  // Entram como chaves próprias: `politicas` continua a ser só `public`, para não
+  // mudar o que os catorze testes que lêem este ficheiro esperam encontrar.
+  storage_buckets: `select id, public, file_size_limit, allowed_mime_types::text as tipos_aceites
+    from storage.buckets order by id`,
+
+  storage_politicas: `select tablename as tabela, policyname as politica, cmd, roles::text as papeis,
+      coalesce(qual,'') as usando, coalesce(with_check,'') as verificando
+    from pg_policies where schemaname='storage' order by tablename, policyname`,
 
   funcoes: `select n.nspname as schema, p.proname as funcao,
       pg_get_function_identity_arguments(p.oid) as args,

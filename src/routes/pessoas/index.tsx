@@ -68,6 +68,10 @@ import { AngolaPhoneField } from "@/components/forms/AngolaPhoneField";
 import { useSchoolSettings } from "@/features/auth/use-school-settings";
 import { ListFilterBar } from "@/components/filters/ListFilterBar";
 import { usePersistedListFilters } from "@/lib/list-filters";
+import { ResponsiveEntityView } from "@/components/mobile/ResponsiveEntityView";
+import { EntityAvatar, EntityList, type EntityListItem } from "@/components/mobile/EntityList";
+import { EntityListSkeleton } from "@/components/mobile/skeletons";
+import { MobileEmptyState, MobileErrorState } from "@/components/mobile/states";
 import { PersonProfile360Modal } from "@/features/people/components/PersonProfile360Modal";
 import { PersonWizardModal } from "@/features/people/components/PersonWizardModal";
 import { angolaProvinces } from "@/lib/angola-territory";
@@ -555,169 +559,221 @@ function PeoplePage() {
               Criar, editar e desactivar docentes — filtros persistentes entre rotas.
             </p>
           </div>
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Nº</TableHead>
-                  <TableHead>Nome</TableHead>
-                  <TableHead>Contacto</TableHead>
-                  <TableHead>Estado</TableHead>
-                  <TableHead className="text-right">Acções</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {teachersQuery.isLoading ? (
-                  <TableRow>
-                    <TableCell
-                      colSpan={5}
-                      className="py-8 text-center text-sm text-muted-foreground"
-                    >
-                      <div className="space-y-3 p-4">
-                        <Skeleton className="h-6 w-full" />
-                        <Skeleton className="h-6 w-[90%]" />
-                        <Skeleton className="h-6 w-[95%]" />
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ) : teachers.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={5} className="p-4">
-                      <EmptyState
-                        icon={GraduationCap}
-                        title="Nenhum professor neste filtro"
-                        description="Ajuste a pesquisa ou o estado para encontrar docentes, ou registe um novo professor."
-                        compact
+          {/*
+            No telemóvel os professores são uma lista de entidades: a linha leva
+            à ficha, onde editar e desactivar já existem com o mesmo caminho de
+            dados. A tabela de cinco colunas continua no computador (§19).
+          */}
+          <ResponsiveEntityView
+            mobile={
+              teachersQuery.isLoading ? (
+                <EntityListSkeleton rows={5} />
+              ) : teachers.length === 0 ? (
+                <MobileEmptyState
+                  icon={GraduationCap}
+                  title="Nenhum professor neste filtro"
+                  description="Ajuste a pesquisa ou o estado para encontrar docentes."
+                />
+              ) : (
+                <EntityList
+                  items={teachers.map<EntityListItem>((teacher) => ({
+                    id: teacher.id,
+                    title: teacher.full_name,
+                    subtitle: (
+                      <>
+                        <span className="tnum">{teacher.employee_number}</span>
+                        {teacher.email || teacher.phone
+                          ? ` · ${teacher.email ?? teacher.phone}`
+                          : ""}
+                      </>
+                    ),
+                    status: (
+                      <StatusBadge
+                        status={teacher.status === "active" ? "active" : "inactive"}
+                        label={statusLabels[teacher.status] ?? teacher.status}
+                        size="sm"
                       />
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  teachers.map((teacher) => (
-                    <TableRow key={teacher.id}>
-                      <TableCell className="font-mono text-xs">{teacher.employee_number}</TableCell>
-                      <TableCell className="font-semibold">{teacher.full_name}</TableCell>
-                      <TableCell className="text-sm text-muted-foreground">
-                        <span className="inline-flex items-center gap-2">
-                          {teacher.email ?? teacher.phone ?? "—"}
-                          {whatsappOn && teacher.phone ? (
-                            <a
-                              href={whatsappHref(teacher.phone)}
-                              target="_blank"
-                              rel="noreferrer"
-                              className="text-[11px] font-semibold text-primary hover:underline"
-                            >
-                              WhatsApp
-                            </a>
-                          ) : null}
-                          {resendOn && teacher.email ? (
-                            <button
-                              type="button"
-                              className="text-[11px] font-semibold text-primary hover:underline"
-                              onClick={() =>
-                                void copyResendEmail(teacher.full_name, teacher.email!)
-                              }
-                            >
-                              E-mail
-                            </button>
-                          ) : null}
-                        </span>
-                      </TableCell>
-                      <TableCell>
-                        <StatusBadge
-                          status={teacher.status === "active" ? "active" : "inactive"}
-                          label={statusLabels[teacher.status] ?? teacher.status}
-                          size="sm"
-                        />
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex justify-end gap-1">
-                          <Button asChild size="sm" variant="ghost">
-                            <Link to="/professores/$teacherId" params={{ teacherId: teacher.id }}>
-                              Ficha
-                            </Link>
-                          </Button>
-                          <QuickFormModal
-                            title="Editar professor"
-                            eyebrow="Corpo docente"
-                            description="Actualize nome, contacto e estado."
-                            icon={<Pencil className="size-5" />}
-                            submitLabel="Guardar"
-                            onSubmit={async (values) => {
-                              await updateTeacher({
-                                data: {
-                                  teacherId: teacher.id,
-                                  fullName: values["nome"] ?? teacher.full_name,
-                                  email: values["email"] || undefined,
-                                  phone: values["telefone"] || undefined,
-                                  status: values["estado"] === "Inactivo" ? "inactive" : "active",
-                                },
-                              });
-                              await queryClient.invalidateQueries({
-                                queryKey: ["people", "teachers"],
-                              });
-                            }}
-                            fields={[
-                              {
-                                name: "nome",
-                                label: "Nome",
-                                defaultValue: teacher.full_name,
-                                full: true,
-                              },
-                              {
-                                name: "email",
-                                label: "Email",
-                                defaultValue: teacher.email ?? "",
-                                required: false,
-                              },
-                              {
-                                name: "telefone",
-                                label: "Telefone",
-                                defaultValue: teacher.phone ?? "",
-                                required: false,
-                              },
-                              {
-                                name: "estado",
-                                label: "Estado",
-                                type: "select",
-                                options: ["Activo", "Inactivo"],
-                                defaultValue: teacher.status === "inactive" ? "Inactivo" : "Activo",
-                              },
-                            ]}
-                            trigger={(open) => (
-                              <Button size="sm" variant="ghost" onClick={open}>
-                                <Pencil className="size-3.5" />
-                              </Button>
-                            )}
-                          />
-                          <ConfirmActionModal
-                            title="Desactivar professor"
-                            description={`${teacher.full_name} será marcado como inactivo.`}
-                            confirmLabel="Desactivar"
-                            onConfirm={async () => {
-                              await deleteTeacher({ data: { teacherId: teacher.id } });
-                              await queryClient.invalidateQueries({
-                                queryKey: ["people", "teachers"],
-                              });
-                            }}
-                            trigger={(open) => (
-                              <Button
-                                size="sm"
-                                variant="ghost"
-                                className="text-destructive"
-                                onClick={open}
-                              >
-                                <Trash2 className="size-3.5" />
-                              </Button>
-                            )}
-                          />
-                        </div>
-                      </TableCell>
+                    ),
+                    leading: <EntityAvatar name={teacher.full_name} />,
+                    to: "/professores/$teacherId",
+                    params: { teacherId: teacher.id },
+                  }))}
+                />
+              )
+            }
+            desktop={
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Nº</TableHead>
+                      <TableHead>Nome</TableHead>
+                      <TableHead>Contacto</TableHead>
+                      <TableHead>Estado</TableHead>
+                      <TableHead className="text-right">Acções</TableHead>
                     </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
-          </div>
+                  </TableHeader>
+                  <TableBody>
+                    {teachersQuery.isLoading ? (
+                      <TableRow>
+                        <TableCell
+                          colSpan={5}
+                          className="py-8 text-center text-sm text-muted-foreground"
+                        >
+                          <div className="space-y-3 p-4">
+                            <Skeleton className="h-6 w-full" />
+                            <Skeleton className="h-6 w-[90%]" />
+                            <Skeleton className="h-6 w-[95%]" />
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ) : teachers.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={5} className="p-4">
+                          <EmptyState
+                            icon={GraduationCap}
+                            title="Nenhum professor neste filtro"
+                            description="Ajuste a pesquisa ou o estado para encontrar docentes, ou registe um novo professor."
+                            compact
+                          />
+                        </TableCell>
+                      </TableRow>
+                    ) : (
+                      teachers.map((teacher) => (
+                        <TableRow key={teacher.id}>
+                          <TableCell className="font-mono text-xs">
+                            {teacher.employee_number}
+                          </TableCell>
+                          <TableCell className="font-semibold">{teacher.full_name}</TableCell>
+                          <TableCell className="text-sm text-muted-foreground">
+                            <span className="inline-flex items-center gap-2">
+                              {teacher.email ?? teacher.phone ?? "—"}
+                              {whatsappOn && teacher.phone ? (
+                                <a
+                                  href={whatsappHref(teacher.phone)}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  className="text-[11px] font-semibold text-primary hover:underline"
+                                >
+                                  WhatsApp
+                                </a>
+                              ) : null}
+                              {resendOn && teacher.email ? (
+                                <button
+                                  type="button"
+                                  className="text-[11px] font-semibold text-primary hover:underline"
+                                  onClick={() =>
+                                    void copyResendEmail(teacher.full_name, teacher.email!)
+                                  }
+                                >
+                                  E-mail
+                                </button>
+                              ) : null}
+                            </span>
+                          </TableCell>
+                          <TableCell>
+                            <StatusBadge
+                              status={teacher.status === "active" ? "active" : "inactive"}
+                              label={statusLabels[teacher.status] ?? teacher.status}
+                              size="sm"
+                            />
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <div className="flex justify-end gap-1">
+                              <Button asChild size="sm" variant="ghost">
+                                <Link
+                                  to="/professores/$teacherId"
+                                  params={{ teacherId: teacher.id }}
+                                >
+                                  Ficha
+                                </Link>
+                              </Button>
+                              <QuickFormModal
+                                title="Editar professor"
+                                eyebrow="Corpo docente"
+                                description="Actualize nome, contacto e estado."
+                                icon={<Pencil className="size-5" />}
+                                submitLabel="Guardar"
+                                onSubmit={async (values) => {
+                                  await updateTeacher({
+                                    data: {
+                                      teacherId: teacher.id,
+                                      fullName: values["nome"] ?? teacher.full_name,
+                                      email: values["email"] || undefined,
+                                      phone: values["telefone"] || undefined,
+                                      status:
+                                        values["estado"] === "Inactivo" ? "inactive" : "active",
+                                    },
+                                  });
+                                  await queryClient.invalidateQueries({
+                                    queryKey: ["people", "teachers"],
+                                  });
+                                }}
+                                fields={[
+                                  {
+                                    name: "nome",
+                                    label: "Nome",
+                                    defaultValue: teacher.full_name,
+                                    full: true,
+                                  },
+                                  {
+                                    name: "email",
+                                    label: "Email",
+                                    defaultValue: teacher.email ?? "",
+                                    required: false,
+                                  },
+                                  {
+                                    name: "telefone",
+                                    label: "Telefone",
+                                    defaultValue: teacher.phone ?? "",
+                                    required: false,
+                                  },
+                                  {
+                                    name: "estado",
+                                    label: "Estado",
+                                    type: "select",
+                                    options: ["Activo", "Inactivo"],
+                                    defaultValue:
+                                      teacher.status === "inactive" ? "Inactivo" : "Activo",
+                                  },
+                                ]}
+                                trigger={(open) => (
+                                  <Button size="sm" variant="ghost" onClick={open}>
+                                    <Pencil className="size-3.5" />
+                                  </Button>
+                                )}
+                              />
+                              <ConfirmActionModal
+                                title="Desactivar professor"
+                                description={`${teacher.full_name} será marcado como inactivo.`}
+                                confirmLabel="Desactivar"
+                                onConfirm={async () => {
+                                  await deleteTeacher({ data: { teacherId: teacher.id } });
+                                  await queryClient.invalidateQueries({
+                                    queryKey: ["people", "teachers"],
+                                  });
+                                }}
+                                trigger={(open) => (
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    className="text-destructive"
+                                    onClick={open}
+                                  >
+                                    <Trash2 className="size-3.5" />
+                                  </Button>
+                                )}
+                              />
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    )}
+                  </TableBody>
+                </Table>
+              </div>
+            }
+          />
         </div>
 
         <div className="rounded-xl border border-border bg-card shadow-soft">
@@ -766,123 +822,169 @@ function PeoplePage() {
               </Button>
             </div>
           </div>
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Nome</TableHead>
-                  <TableHead>Email</TableHead>
-                  <TableHead>Telefone</TableHead>
-                  <TableHead>Estado</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {peopleQuery.isLoading ? (
-                  <TableRow>
-                    <TableCell
-                      colSpan={4}
-                      className="py-10 text-center text-sm text-muted-foreground"
-                    >
-                      <div className="space-y-3 p-4">
-                        <Skeleton className="h-6 w-full" />
-                        <Skeleton className="h-6 w-[90%]" />
-                        <Skeleton className="h-6 w-[95%]" />
-                        <Skeleton className="h-6 w-[80%]" />
-                        <Skeleton className="h-6 w-[85%]" />
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ) : peopleQuery.isError ? (
-                  <TableRow>
-                    <TableCell colSpan={4} className="py-10 text-center text-sm text-destructive">
-                      Não foi possível pesquisar pessoas:{" "}
-                      {peopleQuery.error instanceof Error
-                        ? peopleQuery.error.message
-                        : "erro desconhecido"}
-                    </TableCell>
-                  </TableRow>
-                ) : (peopleQuery.data ?? []).length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={4} className="p-4">
-                      <EmptyState
-                        icon={User}
-                        title="Nenhuma pessoa encontrada"
-                        description="Ajuste a pesquisa ou o tipo de pessoa, ou registe alguém novo no botão «Nova pessoa»."
-                        compact
+          <ResponsiveEntityView
+            mobile={
+              peopleQuery.isLoading ? (
+                <EntityListSkeleton rows={7} />
+              ) : peopleQuery.isError ? (
+                <MobileErrorState
+                  what="as pessoas"
+                  error={peopleQuery.error}
+                  onRetry={() => void peopleQuery.refetch()}
+                />
+              ) : (peopleQuery.data ?? []).length === 0 ? (
+                <MobileEmptyState
+                  icon={User}
+                  title="Nenhuma pessoa encontrada"
+                  description="Ajuste a pesquisa ou o tipo de pessoa, ou registe alguém novo."
+                />
+              ) : (
+                <EntityList
+                  items={(peopleQuery.data ?? []).map<EntityListItem>((row) => ({
+                    id: row.id,
+                    title: row.full_name,
+                    subtitle: row.email ?? row.phone_primary ?? "Sem contacto",
+                    status: (
+                      <StatusBadge
+                        status={row.status === "active" ? "active" : "inactive"}
+                        label={statusLabels[row.status] ?? row.status}
+                        size="sm"
                       />
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  (peopleQuery.data ?? []).map((row) => (
-                    <TableRow
-                      key={row.id}
-                      className="cursor-pointer transition-colors hover:bg-secondary/50"
-                      onClick={() => setProfile360Id(row.id)}
-                      tabIndex={0}
-                      onKeyDown={(event) => {
-                        if (event.key === "Enter" || event.key === " ") {
-                          event.preventDefault();
-                          setProfile360Id(row.id);
-                        }
-                      }}
-                    >
-                      <TableCell>
-                        <div className="flex items-center gap-3">
-                          <MediaAvatar
-                            src={typeof row.photo_url === "string" ? row.photo_url : null}
-                            alt={row.full_name}
-                            fallback={row.full_name.slice(0, 2).toUpperCase()}
-                            className="size-9 rounded-xl object-cover shadow-2xs"
-                          />
-                          <p className="font-semibold text-foreground">{row.full_name}</p>
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-sm text-muted-foreground">
-                        <span className="inline-flex items-center gap-2">
-                          {row.email ?? "—"}
-                          {resendOn && row.email ? (
-                            <button
-                              type="button"
-                              className="text-[11px] font-semibold text-primary hover:underline"
-                              onClick={(event) => {
-                                event.stopPropagation();
-                                void copyResendEmail(row.full_name, row.email!);
-                              }}
-                            >
-                              E-mail
-                            </button>
-                          ) : null}
-                        </span>
-                      </TableCell>
-                      <TableCell className="text-sm">
-                        <span className="inline-flex items-center gap-2">
-                          {row.phone_primary ?? "—"}
-                          {whatsappOn && row.phone_primary ? (
-                            <a
-                              href={whatsappHref(row.phone_primary)}
-                              target="_blank"
-                              rel="noreferrer"
-                              className="text-[11px] font-semibold text-primary hover:underline"
-                              onClick={(event) => event.stopPropagation()}
-                            >
-                              WhatsApp
-                            </a>
-                          ) : null}
-                        </span>
-                      </TableCell>
-                      <TableCell className="text-sm">
-                        <StatusBadge
-                          status={row.status === "active" ? "active" : "inactive"}
-                          label={statusLabels[row.status] ?? row.status}
-                          size="sm"
-                        />
-                      </TableCell>
+                    ),
+                    leading: (
+                      <EntityAvatar
+                        name={row.full_name}
+                        photoUrl={typeof row.photo_url === "string" ? row.photo_url : null}
+                      />
+                    ),
+                    onSelect: () => setProfile360Id(row.id),
+                  }))}
+                />
+              )
+            }
+            desktop={
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Nome</TableHead>
+                      <TableHead>Email</TableHead>
+                      <TableHead>Telefone</TableHead>
+                      <TableHead>Estado</TableHead>
                     </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
-          </div>
+                  </TableHeader>
+                  <TableBody>
+                    {peopleQuery.isLoading ? (
+                      <TableRow>
+                        <TableCell
+                          colSpan={4}
+                          className="py-10 text-center text-sm text-muted-foreground"
+                        >
+                          <div className="space-y-3 p-4">
+                            <Skeleton className="h-6 w-full" />
+                            <Skeleton className="h-6 w-[90%]" />
+                            <Skeleton className="h-6 w-[95%]" />
+                            <Skeleton className="h-6 w-[80%]" />
+                            <Skeleton className="h-6 w-[85%]" />
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ) : peopleQuery.isError ? (
+                      <TableRow>
+                        <TableCell
+                          colSpan={4}
+                          className="py-10 text-center text-sm text-destructive"
+                        >
+                          Não foi possível pesquisar pessoas:{" "}
+                          {peopleQuery.error instanceof Error
+                            ? peopleQuery.error.message
+                            : "erro desconhecido"}
+                        </TableCell>
+                      </TableRow>
+                    ) : (peopleQuery.data ?? []).length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={4} className="p-4">
+                          <EmptyState
+                            icon={User}
+                            title="Nenhuma pessoa encontrada"
+                            description="Ajuste a pesquisa ou o tipo de pessoa, ou registe alguém novo no botão «Nova pessoa»."
+                            compact
+                          />
+                        </TableCell>
+                      </TableRow>
+                    ) : (
+                      (peopleQuery.data ?? []).map((row) => (
+                        <TableRow
+                          key={row.id}
+                          className="cursor-pointer transition-colors hover:bg-secondary/50"
+                          onClick={() => setProfile360Id(row.id)}
+                          tabIndex={0}
+                          onKeyDown={(event) => {
+                            if (event.key === "Enter" || event.key === " ") {
+                              event.preventDefault();
+                              setProfile360Id(row.id);
+                            }
+                          }}
+                        >
+                          <TableCell>
+                            <div className="flex items-center gap-3">
+                              <MediaAvatar
+                                src={typeof row.photo_url === "string" ? row.photo_url : null}
+                                alt={row.full_name}
+                                fallback={row.full_name.slice(0, 2).toUpperCase()}
+                                className="size-9 rounded-xl object-cover shadow-2xs"
+                              />
+                              <p className="font-semibold text-foreground">{row.full_name}</p>
+                            </div>
+                          </TableCell>
+                          <TableCell className="text-sm text-muted-foreground">
+                            <span className="inline-flex items-center gap-2">
+                              {row.email ?? "—"}
+                              {resendOn && row.email ? (
+                                <button
+                                  type="button"
+                                  className="text-[11px] font-semibold text-primary hover:underline"
+                                  onClick={(event) => {
+                                    event.stopPropagation();
+                                    void copyResendEmail(row.full_name, row.email!);
+                                  }}
+                                >
+                                  E-mail
+                                </button>
+                              ) : null}
+                            </span>
+                          </TableCell>
+                          <TableCell className="text-sm">
+                            <span className="inline-flex items-center gap-2">
+                              {row.phone_primary ?? "—"}
+                              {whatsappOn && row.phone_primary ? (
+                                <a
+                                  href={whatsappHref(row.phone_primary)}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  className="text-[11px] font-semibold text-primary hover:underline"
+                                  onClick={(event) => event.stopPropagation()}
+                                >
+                                  WhatsApp
+                                </a>
+                              ) : null}
+                            </span>
+                          </TableCell>
+                          <TableCell className="text-sm">
+                            <StatusBadge
+                              status={row.status === "active" ? "active" : "inactive"}
+                              label={statusLabels[row.status] ?? row.status}
+                              size="sm"
+                            />
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    )}
+                  </TableBody>
+                </Table>
+              </div>
+            }
+          />
         </div>
       </div>
 

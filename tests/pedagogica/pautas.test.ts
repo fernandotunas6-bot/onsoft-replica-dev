@@ -16,6 +16,54 @@ import {
   trimesterPautaDemo,
   examPautaDemo,
 } from "./pautas-fixtures";
+import { buildOfficialPautaSummaries } from "@/features/pedagogica/components/pautas/official-pauta";
+import { buildExamPautaStudents } from "@/features/pedagogica/components/pautas/exam-pauta";
+import {
+  buildPautaClassContext,
+  buildPautaSchoolIdentity,
+} from "@/features/pedagogica/components/pautas/document-context";
+
+describe("contexto institucional da pauta", () => {
+  it("usa a ficha real da escola, incluindo localização e logótipo", () => {
+    expect(
+      buildPautaSchoolIdentity({
+        name: "Complexo Escolar Horizonte",
+        province: "Luanda",
+        municipality: "Talatona",
+        branding: { logo_url: "https://escola.ao/logo.png" },
+      }),
+    ).toEqual({
+      republic: "REPÚBLICA DE ANGOLA",
+      province: "GOVERNO PROVINCIAL DE Luanda",
+      municipality: "ADMINISTRAÇÃO MUNICIPAL DE Talatona",
+      schoolName: "Complexo Escolar Horizonte",
+      logoUrl: "https://escola.ao/logo.png",
+    });
+  });
+
+  it("não inventa província, município, direcção de educação ou número de pauta", () => {
+    const school = buildPautaSchoolIdentity({ name: "Escola 42" });
+    const context = buildPautaClassContext({
+      currentClass: {
+        grade_name: "9.ª Classe",
+        name: "A",
+        shift: "afternoon",
+        room_name: "Sala 7",
+      },
+      academicYear: "2026",
+      cycle: "i_ciclo",
+    });
+
+    expect(school).toEqual({ republic: "REPÚBLICA DE ANGOLA", schoolName: "Escola 42" });
+    expect(context).toMatchObject({
+      className: "9.ª Classe",
+      classGroup: "A",
+      period: "Tarde",
+      room: "Sala 7",
+    });
+    expect(context.pautaNumber).toBeUndefined();
+  });
+});
 
 describe("isGrade", () => {
   it("aceita notas válidas (0-20)", () => {
@@ -120,6 +168,120 @@ describe("SIGA Pautas Angola - Contextos de Ensino e Decreto 424/25", () => {
     expect(calculateFinalDisciplineAverage(null, 14, null, 2)).toBeNull();
     // periodCount 2 ignora mt3 mesmo se vier preenchido (não deve entrar no cálculo).
     expect(calculateFinalDisciplineAverage(12, 14, 20, 2)).toBe(13);
+  });
+});
+
+describe("projecção oficial da pauta", () => {
+  it("não leva médias ou resultado final parciais da grelha viva para o documento", () => {
+    const summaries = buildOfficialPautaSummaries({
+      enrollments: [{ id: "e-1" }],
+      subjects: [{ id: "lp" }],
+      periodCount: 3,
+      termGrades: [
+        { enrollment_id: "e-1", subject_id: "lp", term: 1, mac: 14, npt: null },
+        { enrollment_id: "e-1", subject_id: "lp", term: 2, mac: 15, npt: 13 },
+        { enrollment_id: "e-1", subject_id: "lp", term: 3, mac: 16, npt: 14 },
+      ],
+    });
+
+    const summary = summaries.get("e-1");
+    expect(summary?.subjects[0]).toMatchObject({ mt1: null, mt2: 14, mt3: 15, mfd: null });
+    expect(summary?.isComplete).toBe(false);
+  });
+
+  it("fecha a pauta semestral quando os dois períodos exigidos estão completos", () => {
+    const summaries = buildOfficialPautaSummaries({
+      enrollments: [{ id: "e-1" }],
+      subjects: [{ id: "lp" }],
+      periodCount: 2,
+      termGrades: [
+        { enrollment_id: "e-1", subject_id: "lp", term: 1, mac: 14, npt: 12 },
+        { enrollment_id: "e-1", subject_id: "lp", term: 2, mac: 16, npt: 14 },
+      ],
+    });
+
+    expect(summaries.get("e-1")?.subjects[0]?.mfd).toBe(14);
+    expect(summaries.get("e-1")?.isComplete).toBe(true);
+  });
+});
+
+describe("pauta de exames e PAP com dados reais", () => {
+  const enrollments = [
+    {
+      id: "e-1",
+      student_name: "Ana Manuel",
+      student_gender: "female",
+      registration_number: "2026001",
+    },
+  ];
+  const officialSummaries = new Map([
+    [
+      "e-1",
+      {
+        subjects: [
+          { subjectId: "lp", mt1: 12, mt2: 14, mt3: 13, mfd: 13 },
+          { subjectId: "mat", mt1: 14, mt2: 14, mt3: 14, mfd: 14 },
+        ],
+        isComplete: true,
+      },
+    ],
+  ]);
+
+  it("usa a nota de exame da disciplina e calcula NF 60/40", () => {
+    const students = buildExamPautaStudents({
+      enrollments,
+      subjectId: "lp",
+      isTechnical: false,
+      officialSummaries,
+      items: [{ id: "exam-1", component: "exame" }],
+      scores: [{ item_id: "exam-1", enrollment_id: "e-1", score: 15 }],
+    });
+
+    expect(students).toHaveLength(1);
+    expect(students[0]).toMatchObject({
+      mfd: 13,
+      examGrade: 15,
+      finalGrade: 13.8,
+      status: "APROVADO",
+    });
+  });
+
+  it("não emite resultado técnico enquanto faltar PAP ou estágio", () => {
+    const students = buildExamPautaStudents({
+      enrollments,
+      subjectId: "lp",
+      isTechnical: true,
+      officialSummaries,
+      items: [{ id: "pap-1", component: "pap" }],
+      scores: [{ item_id: "pap-1", enrollment_id: "e-1", score: 16 }],
+    });
+
+    expect(students[0]).toMatchObject({
+      mfd: 13.5,
+      papGrade: 16,
+      internshipGrade: null,
+      finalGrade: null,
+      status: "",
+    });
+  });
+
+  it("fecha PAP com MFD, defesa e estágio completos", () => {
+    const students = buildExamPautaStudents({
+      enrollments,
+      subjectId: "lp",
+      isTechnical: true,
+      officialSummaries,
+      items: [
+        { id: "pap-1", component: "pap" },
+        { id: "internship-1", component: "estagio" },
+      ],
+      scores: [
+        { item_id: "pap-1", enrollment_id: "e-1", score: 16 },
+        { item_id: "internship-1", enrollment_id: "e-1", score: 17 },
+      ],
+    });
+
+    expect(students[0]).toMatchObject({ finalGrade: 15.5, status: "APTO (PAP)" });
   });
 });
 

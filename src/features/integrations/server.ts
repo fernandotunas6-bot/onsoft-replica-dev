@@ -28,6 +28,7 @@ import {
   resolveWhatsAppCredentials,
   sendWhatsAppCloudMessage,
 } from "./whatsapp-client";
+import { normalizeSmsRecipients, resolveTwilioCredentials, sendTwilioSms } from "./sms-client";
 
 const upsertIntegrationInputSchema = z.object({
   provider: z.string().trim().min(2).max(80),
@@ -64,6 +65,11 @@ const PLATFORM_EMAIL_RATE_LIMIT = { windowMs: 60 * 60 * 1000, max: 20 };
 const sendSchoolWhatsAppInputSchema = z.object({
   to: z.array(z.string().trim().min(6).max(32)).min(1).max(50).optional(),
   text: z.string().trim().min(1).max(4096),
+});
+
+const sendSchoolSmsInputSchema = z.object({
+  to: z.array(z.string().trim().min(6).max(32)).min(1).max(50).optional(),
+  text: z.string().trim().min(1).max(1600),
 });
 
 type IntegrationConfig = { [key: string]: Json | undefined };
@@ -584,6 +590,73 @@ export const sendSchoolWhatsAppMessage = createServerFn({ method: "POST" })
       return {
         mode: "deeplink" as const,
         reason: errors[0] || "Falha no envio WhatsApp Cloud API.",
+      };
+    }
+    return {
+      mode: "sent" as const,
+      recipientCount: sent,
+      partialErrors: errors.length ? errors.slice(0, 3) : undefined,
+    };
+  });
+
+/**
+ * Envio HTTP SMS via Twilio. Credenciais globais (TWILIO_ACCOUNT_SID/TWILIO_AUTH_TOKEN/
+ * TWILIO_FROM_NUMBER), não por escola -- não há UI de configuração de SMS em
+ * Definições → Integrações, ao contrário do WhatsApp Business. Sem credenciais →
+ * mode "unavailable" (caller decide o que fazer, ex. copiar texto para a área de
+ * transferência).
+ */
+export const sendSchoolSmsMessage = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .validator((input: unknown) => sendSchoolSmsInputSchema.parse(input))
+  .handler(async ({ data, context }) => {
+    if (!context) throw new Error("Unauthorized");
+    const membership = await requireSgaWriterForWrite("gestao", context.supabase, context.userId, [
+      "Administrador",
+      "Secretaria",
+    ]);
+    const db = await loadSgaAdminClient();
+
+    const credentials = resolveTwilioCredentials();
+    if (!credentials) {
+      return {
+        mode: "unavailable" as const,
+        reason: "Twilio não está configurado no servidor (faltam variáveis de ambiente).",
+      };
+    }
+
+    let recipients = normalizeSmsRecipients(data.to ?? []);
+    if (!recipients.length) {
+      recipients = await listSchoolStaffPhones(db, membership.schoolId);
+    }
+    if (!recipients.length) {
+      return {
+        mode: "unavailable" as const,
+        reason: "Sem destinatários: indique telemóveis ou cadastre phones na equipa.",
+      };
+    }
+
+    let sent = 0;
+    const errors: string[] = [];
+    for (const to of recipients) {
+      try {
+        await sendTwilioSms({
+          accountSid: credentials.accountSid,
+          authToken: credentials.authToken,
+          fromNumber: credentials.fromNumber,
+          toE164: to,
+          text: data.text,
+        });
+        sent += 1;
+      } catch (error) {
+        errors.push(error instanceof Error ? error.message : "Falha SMS");
+      }
+    }
+
+    if (sent === 0) {
+      return {
+        mode: "unavailable" as const,
+        reason: errors[0] || "Falha no envio SMS via Twilio.",
       };
     }
     return {

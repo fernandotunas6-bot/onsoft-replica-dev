@@ -103,7 +103,12 @@ export async function applyPayflowSettlement(input: PayflowSettlementInput) {
         reversal_reason: reason,
       })
       .eq("id", receipt.id)
-      .eq("school_id", input.school_id);
+      .eq("school_id", input.school_id)
+      // Filtrar pelo estado na própria condição, e não só pelo `active` calculado
+      // acima: duas entregas simultâneas do mesmo estorno passariam ambas pelo
+      // filtro em memória e a segunda sobrescreveria `reversed_at`/`reversal_reason`
+      // da primeira, apagando o rasto de quando e porquê foi anulado.
+      .eq("status", "issued");
     if (reverseError) {
       return {
         ok: false as const,

@@ -3,7 +3,6 @@ import { FolderOpen, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ListFilterBar } from "@/components/filters/ListFilterBar";
 import { ClassMaterialsPanel } from "@/features/arquivos/ClassMaterialsPanel";
-import { classroomCourseHref } from "@/features/integrations/actions";
 import { badgeBase, toneClass } from "@/components/layout/PageHeader";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { cn } from "@/lib/utils";
@@ -71,14 +70,7 @@ export function TurmasWorkspaceTab({
   turmasComDados,
   workspace,
   teacherNameById,
-  classroomOn,
-  moodleOn,
-  canvasOn,
-  classroomWork,
-  moodleGrades,
   canvasWork,
-  teamsClasses,
-  onedriveOn,
   onOpenTurma,
 }: {
   canReadAcademic: boolean;
@@ -97,14 +89,7 @@ export function TurmasWorkspaceTab({
   turmasComDados: TurmaViewItem[];
   workspace?: PedagogicalWorkspace;
   teacherNameById: Map<string, string>;
-  classroomOn: boolean;
-  moodleOn: boolean;
-  canvasOn: boolean;
-  classroomWork: boolean;
-  moodleGrades: boolean;
   canvasWork: boolean;
-  teamsClasses: boolean;
-  onedriveOn: boolean;
   onOpenTurma: (turmaId: string) => void;
 }) {
   if (!canReadAcademic) {
@@ -311,57 +296,6 @@ export function TurmasWorkspaceTab({
                         </a>
                       </Button>
                     ) : null}
-                    {classroomOn ? (
-                      <Button size="sm" variant="outline" className="gap-1.5" asChild>
-                        <a
-                          href={classroomCourseHref(t.code || undefined)}
-                          target="_blank"
-                          rel="noreferrer"
-                        >
-                          Classroom
-                        </a>
-                      </Button>
-                    ) : null}
-                    {moodleOn ? (
-                      <Button size="sm" variant="outline" asChild>
-                        <a
-                          href="https://docs.moodle.org/en/Web_services"
-                          target="_blank"
-                          rel="noreferrer"
-                        >
-                          Moodle
-                        </a>
-                      </Button>
-                    ) : null}
-                    {canvasOn ? (
-                      <Button size="sm" variant="outline" asChild>
-                        <a
-                          href="https://www.instructure.com/canvas"
-                          target="_blank"
-                          rel="noreferrer"
-                        >
-                          Canvas
-                        </a>
-                      </Button>
-                    ) : null}
-                    {classroomWork ? (
-                      <Button size="sm" variant="outline" asChild>
-                        <a href="https://classroom.google.com/" target="_blank" rel="noreferrer">
-                          Trabalhos
-                        </a>
-                      </Button>
-                    ) : null}
-                    {moodleGrades ? (
-                      <Button size="sm" variant="outline" asChild>
-                        <a
-                          href="https://docs.moodle.org/en/Gradebook"
-                          target="_blank"
-                          rel="noreferrer"
-                        >
-                          Notas Moodle
-                        </a>
-                      </Button>
-                    ) : null}
                     {canvasWork ? (
                       <Button size="sm" variant="outline" asChild>
                         <a
@@ -370,24 +304,6 @@ export function TurmasWorkspaceTab({
                           rel="noreferrer"
                         >
                           Trabalhos Canvas
-                        </a>
-                      </Button>
-                    ) : null}
-                    {teamsClasses ? (
-                      <Button size="sm" variant="outline" asChild>
-                        <a href="https://teams.microsoft.com/" target="_blank" rel="noreferrer">
-                          Equipa Teams
-                        </a>
-                      </Button>
-                    ) : null}
-                    {onedriveOn ? (
-                      <Button size="sm" variant="outline" asChild>
-                        <a
-                          href="https://www.microsoft.com/microsoft-365/onedrive/online-cloud-storage"
-                          target="_blank"
-                          rel="noreferrer"
-                        >
-                          OneDrive
                         </a>
                       </Button>
                     ) : null}

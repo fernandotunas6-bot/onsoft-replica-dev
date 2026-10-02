@@ -1,15 +1,12 @@
-"use client"
+"use client";
 
-import { cn } from "@/lib/utils"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Checkbox } from "@/components/ui/checkbox"
+import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
 
-export function SignupForm2({
-  className,
-  ...props
-}: React.ComponentProps<"form">) {
+export function SignupForm2({ className, ...props }: React.ComponentProps<"form">) {
   return (
     <form className={cn("flex flex-col gap-6", className)} {...props}>
       <div className="flex flex-col items-center gap-2 text-center">
@@ -74,10 +71,10 @@ export function SignupForm2({
       </div>
       <div className="text-center text-sm">
         Já tem conta?{" "}
-        <a href="/auth/sign-in-2" className="underline underline-offset-4">
+        <a href="/sign-in" className="underline underline-offset-4">
           Entrar
         </a>
       </div>
     </form>
-  )
+  );
 }

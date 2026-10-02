@@ -103,6 +103,9 @@ function HrPayrollPage() {
                 <Link to="/financeiro/rh/folha">Processar folha</Link>
               </Button>
               <Button asChild variant="outline">
+                <Link to="/financeiro/rh/salarios">Alterações salariais</Link>
+              </Button>
+              <Button asChild variant="outline">
                 <Link to="/financeiro/rh/presenca">Validação de presença</Link>
               </Button>
               <Button asChild variant="outline">

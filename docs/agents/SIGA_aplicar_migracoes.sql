@@ -11,6 +11,16 @@
 -- Testado em 2026-09-27 num Postgres 16 com o esquema da produção
 -- (supabase/PRODUCTION_SNAPSHOT.json): três corridas seguidas sem erros.
 -- Depois de aplicar, confirmar com docs/agents/SIGA_confirmar_migracoes.sql.
+--
+-- A ordem não se inverte, e há duas dependências a saber:
+--   · `20260925190000` cria `public.is_school_admin`, e `20260926120000` usa-a em quatro
+--     políticas de RH. Trocadas, a segunda falha.
+--   · `20260927120000` larga duas políticas que `20260925190000` cria. Invertidas,
+--     ficariam criadas.
+--
+-- Falta aqui, de propósito, `20260925170000_timetable_builder_shifts_versions.sql`
+-- (451 linhas, construtor de horários): é grande e independente, e merece ser aplicada
+-- e verificada à parte.
 
 
 -- ══════════ 20260925090000_school_access_requests.sql ══════════
@@ -1600,3 +1610,558 @@ REVOKE ALL ON FUNCTION public.siga_rate_limit_consume(text[], integer, integer)
   FROM PUBLIC, anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.siga_rate_limit_consume(text[], integer, integer)
   TO service_role;
+
+
+-- ══════════ 20260927100000_reconcile_school_access_requests.sql ══════════
+-- Vem no fim de propósito. O bloco de `20260925090000` acima abre com
+-- `CREATE TABLE IF NOT EXISTS` e, numa base onde a tabela já existe com a forma
+-- antiga, não faz nada e não dá erro -- foi exactamente isso que aconteceu na
+-- produção. Este bloco reconcilia o que lá estiver, tenha a migração de cima
+-- criado a tabela agora ou sido saltada.
+
+-- Reconciliar `school_access_requests` com o esquema que o código espera.
+--
+-- A tabela existe na produção com nomes de coluna diferentes dos que
+-- `src/features/access/requests-server.ts` grava e lê. O pedido de acesso a uma
+-- escola nunca funcionou, e não há nada nos registos que o diga.
+--
+-- Como se chegou aqui, porque importa para não repetir: uma versão inicial da
+-- tabela foi aplicada à mão (ver `docs/agents/CONTINUE.md`, 2026-09-25). A
+-- migração `20260925090000_school_access_requests.sql` foi depois reescrita com
+-- outros nomes -- `institutional_number` em vez de `institutional_id`,
+-- `requested_profile` em vez de `requested_role`, e mais sete colunas novas. Essa
+-- migração abre com `CREATE TABLE IF NOT EXISTS`, que sobre uma tabela existente
+-- não faz nada e não devolve erro. Correu, foi saltada, e ninguém soube.
+--
+-- A prova de que correu está nos índices: a produção tem HOJE os três índices da
+-- migração nova (`school_access_requests_open_uidx`, `_school_status_idx`,
+-- `_user_idx`) ao lado dos três da versão antiga (`_one_open`, `_school_status`,
+-- `_user`). Os índices criaram-se porque só tocam em colunas que as duas versões
+-- partilham; a tabela não mudou porque o `IF NOT EXISTS` a protegeu. Seis índices
+-- onde deviam estar três é o rasto do mesmo acidente.
+--
+-- Há ainda uma segunda definição da mesma tabela no repositório, com a forma
+-- ANTIGA: `20260925120220_capture_undeclared_production_tables.sql`, gerada por
+-- captura do catálogo. Duas migrações a declarar a mesma tabela de formas
+-- diferentes, ambas com `IF NOT EXISTS`, e a captura com carimbo mais recente.
+-- Qualquer uma que corra primeiro ganha, em silêncio. Esta migração resolve o
+-- estado; a duplicação em si fica anotada em `docs/agents/DATABASE_RULES.md`.
+--
+-- Porque é `ALTER` e não `DROP`+`CREATE`: a tabela está vazia hoje (zero linhas,
+-- verificado a 2026-09-27) e nada lhe aponta uma chave estrangeira, logo apagá-la
+-- seria seguro AGORA. Mas uma migração que apaga uma tabela é uma mina para quem
+-- a correr mais tarde, quando já houver pedidos submetidos. O caminho por `ALTER`
+-- dá o mesmo resultado hoje e continua correcto depois.
+--
+-- Idempotente: pode correr mais do que uma vez. Cada passo confirma o estado
+-- antes de agir.
+-- NUNCA aplicar via Lovable. Colar no SQL Editor do projecto SGA.
+
+-- ---------------------------------------------------------------------------
+-- 1) Renomear as colunas que mudaram de nome, preservando o que lá estiver.
+--    Renomear em vez de criar-e-copiar: mantém tipo, NOT NULL e as chaves
+--    estrangeiras já existentes (`person_id` → people, `reviewed_by` → auth.users)
+--    sem as ter de recriar.
+-- ---------------------------------------------------------------------------
+DO $$
+DECLARE
+  par record;
+BEGIN
+  IF to_regclass('public.school_access_requests') IS NULL THEN
+    RAISE NOTICE 'school_access_requests não existe; nada a reconciliar.';
+    RETURN;
+  END IF;
+
+  FOR par IN
+    SELECT * FROM (VALUES
+      ('institutional_id'::text, 'institutional_number'::text),
+      ('requested_role',         'requested_profile'),
+      ('person_id',              'matched_person_id'),
+      ('reviewed_by',            'reviewer_id'),
+      ('review_note',            'decision_note')
+    ) AS t(antigo, novo)
+  LOOP
+    IF EXISTS (
+      SELECT 1 FROM information_schema.columns
+      WHERE table_schema = 'public' AND table_name = 'school_access_requests'
+        AND column_name = par.antigo
+    ) AND NOT EXISTS (
+      SELECT 1 FROM information_schema.columns
+      WHERE table_schema = 'public' AND table_name = 'school_access_requests'
+        AND column_name = par.novo
+    ) THEN
+      EXECUTE format(
+        'ALTER TABLE public.school_access_requests RENAME COLUMN %I TO %I',
+        par.antigo, par.novo
+      );
+      RAISE NOTICE 'school_access_requests: % → %', par.antigo, par.novo;
+    END IF;
+  END LOOP;
+END $$;
+
+-- ---------------------------------------------------------------------------
+-- 2) Colunas que não existiam de forma nenhuma.
+--    `contact_phone` e `message` vêm do formulário; `match_kind` diz COMO o
+--    cadastro foi encontrado; `granted_role_code` e `membership_id` registam o
+--    que a aprovação criou; `info_request_note` e `requester_reply` são a
+--    conversa entre a secretaria e o requerente.
+-- ---------------------------------------------------------------------------
+ALTER TABLE public.school_access_requests
+  ADD COLUMN IF NOT EXISTS contact_phone     text,
+  ADD COLUMN IF NOT EXISTS message           text,
+  ADD COLUMN IF NOT EXISTS match_kind        text,
+  ADD COLUMN IF NOT EXISTS granted_role_code text,
+  ADD COLUMN IF NOT EXISTS membership_id     uuid,
+  ADD COLUMN IF NOT EXISTS info_request_note text,
+  ADD COLUMN IF NOT EXISTS requester_reply   text;
+
+-- ---------------------------------------------------------------------------
+-- 3) Largar as restrições de valor antigas ANTES de traduzir os valores.
+--    Pela ordem inversa nada passaria: a antiga recusa 'aluno' e a nova recusa
+--    'student', logo a tradução tem de correr sem nenhuma das duas a vigiar.
+-- ---------------------------------------------------------------------------
+ALTER TABLE public.school_access_requests
+  DROP CONSTRAINT IF EXISTS school_access_requests_requested_role_check,
+  DROP CONSTRAINT IF EXISTS school_access_requests_requested_profile_check,
+  DROP CONSTRAINT IF EXISTS school_access_requests_status_check;
+
+-- ---------------------------------------------------------------------------
+-- 4) Traduzir os valores. A produção usava inglês e nove estados; o código usa
+--    português e seis.
+--
+--    Hoje isto não toca em linha nenhuma -- a tabela está vazia. Fica escrito
+--    porque a migração pode ser aplicada depois de alguém submeter um pedido, e
+--    então o mapeamento decide o que acontece a esse pedido.
+--
+--    Três estados antigos não têm equivalente directo, e a escolha é deliberada:
+--    `preapproved` e `enrollment_pending` são pedidos a meio de uma decisão, não
+--    decididos -- vão para `in_review`, que é onde a secretaria os volta a ver.
+--    `enrollment_rejected` é uma decisão tomada, e negativa: `rejected`. Nenhum
+--    deles vira `approved`, porque aprovar é o que cria o acesso à escola e isso
+--    não se faz por conversão de texto.
+-- ---------------------------------------------------------------------------
+UPDATE public.school_access_requests
+   SET requested_profile = CASE requested_profile
+         WHEN 'student'  THEN 'aluno'
+         WHEN 'teacher'  THEN 'professor'
+         WHEN 'guardian' THEN 'encarregado'
+         WHEN 'user'     THEN 'outro'
+         ELSE requested_profile
+       END
+ WHERE requested_profile IN ('student', 'teacher', 'guardian', 'user');
+
+UPDATE public.school_access_requests
+   SET status = CASE status
+         WHEN 'under_review'        THEN 'in_review'
+         WHEN 'needs_information'   THEN 'info_requested'
+         WHEN 'preapproved'         THEN 'in_review'
+         WHEN 'enrollment_pending'  THEN 'in_review'
+         WHEN 'enrollment_rejected' THEN 'rejected'
+         ELSE status
+       END
+ WHERE status IN (
+   'under_review', 'needs_information', 'preapproved',
+   'enrollment_pending', 'enrollment_rejected'
+ );
+
+-- ---------------------------------------------------------------------------
+-- 5) Pôr as restrições que o código pressupõe.
+--    Os limites de comprimento não são decoração: `message` sem limite é um
+--    campo de texto livre que qualquer pessoa autenticada grava.
+-- ---------------------------------------------------------------------------
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint
+    WHERE conrelid = 'public.school_access_requests'::regclass
+      AND conname = 'school_access_requests_requested_profile_check'
+  ) THEN
+    ALTER TABLE public.school_access_requests
+      ADD CONSTRAINT school_access_requests_requested_profile_check
+      CHECK (requested_profile IN ('aluno', 'professor', 'funcionario', 'encarregado', 'outro'));
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint
+    WHERE conrelid = 'public.school_access_requests'::regclass
+      AND conname = 'school_access_requests_status_check'
+  ) THEN
+    ALTER TABLE public.school_access_requests
+      ADD CONSTRAINT school_access_requests_status_check
+      CHECK (status IN ('pending', 'in_review', 'info_requested', 'approved', 'rejected', 'cancelled'));
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint
+    WHERE conrelid = 'public.school_access_requests'::regclass
+      AND conname = 'school_access_requests_texto_limitado_check'
+  ) THEN
+    ALTER TABLE public.school_access_requests
+      ADD CONSTRAINT school_access_requests_texto_limitado_check
+      CHECK (
+        (national_id        IS NULL OR char_length(national_id)        <= 40)
+        AND (institutional_number IS NULL OR char_length(institutional_number) <= 60)
+        AND (contact_phone   IS NULL OR char_length(contact_phone)     <= 30)
+        AND (message         IS NULL OR char_length(message)           <= 1000)
+        AND (decision_note   IS NULL OR char_length(decision_note)     <= 1000)
+        AND (info_request_note IS NULL OR char_length(info_request_note) <= 1000)
+        AND (requester_reply IS NULL OR char_length(requester_reply)   <= 1000)
+      );
+  END IF;
+
+  -- `membership_id` é coluna nova, logo a chave estrangeira também não existia.
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint
+    WHERE conrelid = 'public.school_access_requests'::regclass
+      AND conname = 'school_access_requests_membership_id_fkey'
+  ) AND to_regclass('public.school_memberships') IS NOT NULL THEN
+    ALTER TABLE public.school_access_requests
+      ADD CONSTRAINT school_access_requests_membership_id_fkey
+      FOREIGN KEY (membership_id) REFERENCES public.school_memberships(id) ON DELETE SET NULL;
+  END IF;
+END $$;
+
+-- Nota sobre `full_name`: a produção tem
+-- `school_access_requests_full_name_check`, que exige 3 a 160 caracteres DEPOIS
+-- de cortar espaços. A migração canónica pede o mesmo sem o corte. Fica a da
+-- produção, que é a mais exigente -- um nome de três espaços passaria na
+-- canónica e não passa nesta. Trocá-la por uma versão mais frouxa seria perder
+-- uma verificação sem ganhar nada.
+
+-- ---------------------------------------------------------------------------
+-- 6) Largar os três índices da versão antiga.
+--    Ficam a par dos da versão nova, sobre as mesmas colunas: custo de escrita a
+--    dobrar, e uma unicidade a mais cujo predicado fala de estados que já não
+--    existem. Um índice único sobre valores que o CHECK agora recusa nunca
+--    dispara -- parece proteger e não protege.
+-- ---------------------------------------------------------------------------
+DROP INDEX IF EXISTS public.school_access_requests_one_open;
+DROP INDEX IF EXISTS public.school_access_requests_school_status;
+DROP INDEX IF EXISTS public.school_access_requests_user;
+
+-- ---------------------------------------------------------------------------
+-- 7) Garantir os índices, o RLS e a política canónicos, tal como em
+--    `20260925090000_school_access_requests.sql`. Já existem se essa migração
+--    correu; repetem-se aqui para que esta possa correr sozinha.
+-- ---------------------------------------------------------------------------
+CREATE UNIQUE INDEX IF NOT EXISTS school_access_requests_open_uidx
+  ON public.school_access_requests (school_id, user_id)
+  WHERE status IN ('pending', 'in_review', 'info_requested');
+
+CREATE INDEX IF NOT EXISTS school_access_requests_school_status_idx
+  ON public.school_access_requests (school_id, status, created_at DESC);
+
+CREATE INDEX IF NOT EXISTS school_access_requests_user_idx
+  ON public.school_access_requests (user_id, created_at DESC);
+
+ALTER TABLE public.school_access_requests ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.school_access_requests FORCE ROW LEVEL SECURITY;
+
+-- Escrita só pelo servidor, que valida a autorização em `requests-server.ts`.
+-- O requerente lê os seus pedidos e mais nada: `matched_person_id` e
+-- `match_kind` dizem que cadastro a escola encontrou, e isso é da secretaria.
+REVOKE ALL ON public.school_access_requests FROM anon;
+REVOKE ALL ON public.school_access_requests FROM authenticated;
+GRANT SELECT ON public.school_access_requests TO authenticated;
+GRANT ALL ON public.school_access_requests TO service_role;
+
+DROP POLICY IF EXISTS "Requester reads own access requests" ON public.school_access_requests;
+CREATE POLICY "Requester reads own access requests"
+  ON public.school_access_requests
+  FOR SELECT TO authenticated
+  USING (user_id = (SELECT auth.uid()));
+
+
+-- ══════════ 20260927120000_reclose_physical_access_secrets.sql ══════════
+-- Também no fim, e por uma razão de ordem: o bloco de `20260925190000` acima cria
+-- `Members read siga_access_cards` e `Members read siga_turnstile_devices`. Este
+-- larga-as. Invertida a ordem, ficariam criadas.
+
+-- Voltar a fechar `siga_access_cards` e `siga_turnstile_devices` ao cliente.
+--
+-- Estas duas tabelas guardam credenciais, não referências a credenciais:
+--
+--   · `siga_turnstile_devices.api_key` É a autenticação do leitor físico.
+--     `catracas/gate-pass-validation.ts` identifica o dispositivo por
+--     `.eq("api_key", apiKey)`, e é só isso que separa uma catraca legítima de um
+--     pedido HTTP qualquer.
+--   · `siga_access_cards.qr_secret` e `rfid_tag` SÃO o passe. A validação aceita um
+--     token que case com `card_number`, `barcode`, `qr_secret` ou `rfid_tag`. Saber
+--     qualquer um destes valores de outra pessoa é entrar como ela.
+--
+-- `20260924230000_close_access_card_and_device_secrets.sql` fechou-as: sem política
+-- nenhuma, leitura só por `service_role`, que é como toda a aplicação lhes acede.
+-- Deliberadamente sem política de leitura, ao contrário das outras tabelas — uma
+-- política de linha não esconde uma coluna, e qualquer SELECT que deixasse listar
+-- cartões entregaria o `qr_secret` junto.
+--
+-- `20260925190000_harden_member_wide_policies.sql`, aplicada a 2026-09-27, criou
+-- `Members read siga_access_cards` e `Members read siga_turnstile_devices` com
+-- `USING (is_school_member(school_id))`. Para essa migração isto é endurecimento:
+-- substitui uma política `FOR ALL` por uma de leitura. Para estas duas tabelas em
+-- concreto é um passo atrás, porque o destino certo não era leitura-para-membros —
+-- era nenhuma leitura. E `is_school_member` é verdadeiro para alunos e
+-- encarregados (regra 4 de `docs/agents/DATABASE_RULES.md`).
+--
+-- Hoje NÃO há exposição: o retrato mostra `auth_select=false` e `anon_select=false`
+-- nas duas. O `REVOKE ALL ... FROM authenticated` de 20260924230000 continua em
+-- vigor, e uma política de RLS não concede privilégios — sem o GRANT, a política
+-- não é alcançável por ninguém. A política está inerte.
+--
+-- Inerte não é inofensiva. Fica à espera do primeiro `APPLY_*.sql` que reconceda
+-- `SELECT` a `authenticated` — e esses ficheiros existem, correm-se à mão, e já
+-- desfizeram endurecimentos antes. Nesse momento a política acorda a entregar
+-- números de cartão e chaves de catraca a qualquer aluno da escola, sem que
+-- ninguém tenha tocado em política nenhuma. Uma porta trancada com a chave na
+-- fechadura.
+--
+-- Se algum dia um ecrã precisar de listar cartões, o caminho é uma vista sem as
+-- colunas de segredo. Não é alargar a política destas tabelas.
+--
+-- `tests/security/segredos-de-acesso-fisico.test.ts` exige zero políticas aqui, e
+-- foi ele que apanhou isto.
+--
+-- Idempotente. NUNCA aplicar via Lovable. Colar no SQL Editor do projecto SGA.
+
+DROP POLICY IF EXISTS "Members read siga_access_cards" ON public.siga_access_cards;
+DROP POLICY IF EXISTS "Access cards in own school" ON public.siga_access_cards;
+
+DROP POLICY IF EXISTS "Members read siga_turnstile_devices" ON public.siga_turnstile_devices;
+DROP POLICY IF EXISTS "Turnstile devices in own school" ON public.siga_turnstile_devices;
+
+-- Repetir o fecho de 20260924230000, para que esta migração se sustente sozinha e
+-- para que a ordem entre as duas deixe de importar.
+ALTER TABLE public.siga_access_cards ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.siga_access_cards FORCE ROW LEVEL SECURITY;
+REVOKE ALL ON public.siga_access_cards FROM PUBLIC, anon, authenticated;
+GRANT ALL ON public.siga_access_cards TO service_role;
+
+ALTER TABLE public.siga_turnstile_devices ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.siga_turnstile_devices FORCE ROW LEVEL SECURITY;
+REVOKE ALL ON public.siga_turnstile_devices FROM PUBLIC, anon, authenticated;
+GRANT ALL ON public.siga_turnstile_devices TO service_role;
+
+
+-- ══════════ 20260927140000_close_last_member_wide_writes.sql ══════════
+-- As últimas quatro escritas abertas a qualquer membro da escola. Independente dos
+-- blocos acima; vem por último porque `20260925190000` também mexe em políticas e
+-- convém que a palavra final sobre estas quatro tabelas seja esta.
+
+-- As últimas quatro escritas abertas a qualquer membro da escola.
+--
+-- `public.is_school_member(school_id)` é verdadeiro para alunos e encarregados
+-- (regra 4 de `docs/agents/DATABASE_RULES.md`). Depois de aplicadas as migrações de
+-- 25 e 26/09, o retrato de 2026-09-27 mostrava seis políticas de ESCRITA cuja única
+-- condição era essa. Duas fecharam com `20260926120000` (departamentos e cargos de
+-- RH). Estas são as outras quatro, e nenhuma tinha correcção escrita em lado nenhum.
+--
+-- Em todas, a aplicação escreve por `service_role`. Confirmado ficheiro a ficheiro:
+-- `enrollment/server.ts` chama `requireSgaWriterForWrite("pessoas", …)` e só depois
+-- `loadSgaAdminClient()`; o motor de importação recebe o cliente privilegiado em
+-- `import/server.ts`; `saas/school-bootstrap.ts` corre no arranque de escola. Não há
+-- um único caminho em que o browser escreva nestas tabelas -- a política servia
+-- apenas para permitir o que ninguém faz.
+--
+-- Idempotente. NUNCA aplicar via Lovable. Colar no SQL Editor do projecto SGA.
+
+-- ---------------------------------------------------------------------------
+-- 1) enrollment_applications
+--
+-- O UPDATE por membro sai. Fica a inserção pública -- `TO anon`, e guardada por
+-- `status = 'pending'` mais um EXISTS sobre um formulário aberto: é o formulário de
+-- matrícula no sítio público, e tem de continuar a funcionar.
+--
+-- A LEITURA também aperta, e não é arrumação. O `payload` de uma candidatura tem
+-- `person: { full_name, national_id, phone, email, birth_date, gender }` -- dados
+-- pessoais de menores. Com `is_school_member` sozinho, qualquer aluno ou encarregado
+-- da escola listava todas as candidaturas com esses campos dentro. A regra 4 proíbe
+-- `is_school_member` sozinho precisamente em dados de alunos.
+--
+-- A guarda passa a ser a mesma que `students` e `people` já usam para os mesmos
+-- dados: `can_read_students()`, que é Administrador, Secretaria, Direcção,
+-- Coordenação ou Professor.
+--
+-- `src/routes/alunos/index.tsx` subscreve alterações desta tabela por realtime. O
+-- realtime respeita o RLS: quem não pode ler a linha não recebe o evento. A
+-- subscrição existe só para invalidar a contagem de candidaturas pendentes, que é um
+-- indicador de secretaria -- deixar de chegar a alunos é o comportamento correcto,
+-- não uma regressão.
+-- ---------------------------------------------------------------------------
+DROP POLICY IF EXISTS "Update enrollment applications in own school" ON public.enrollment_applications;
+
+DROP POLICY IF EXISTS "Read enrollment applications in own school" ON public.enrollment_applications;
+CREATE POLICY "Read enrollment applications in own school"
+  ON public.enrollment_applications
+  FOR SELECT TO authenticated
+  USING (
+    public.is_school_member(school_id)
+    AND deleted_at IS NULL
+    AND (SELECT public.can_read_students())
+  );
+
+-- Escrita fora do browser. `anon` mantém o INSERT, que é o da matrícula pública;
+-- `authenticated` não tinha política de INSERT nenhuma, logo já estava recusado --
+-- revogar o privilégio só torna isso explícito em vez de implícito.
+REVOKE INSERT, UPDATE, DELETE ON public.enrollment_applications FROM authenticated;
+REVOKE UPDATE, DELETE ON public.enrollment_applications FROM anon;
+
+-- ---------------------------------------------------------------------------
+-- 2) enrollment_forms
+--
+-- `Manage enrollment forms in own school` era `FOR ALL`: um aluno podia apagar o
+-- formulário de matrícula da escola, ou abri-lo e fechá-lo. Sai por inteiro. A parte
+-- de leitura que ela também dava já está coberta por `Read enrollment forms in own
+-- school`, que fica.
+--
+-- As duas políticas de leitura ficam como estão, e `anon` mantém o SELECT: é assim
+-- que a página pública mostra um formulário aberto. Aqui `is_school_member` sozinho
+-- na leitura é aceitável -- um formulário de matrícula é para ser visto, tanto que
+-- há uma política que o mostra ao público.
+-- ---------------------------------------------------------------------------
+DROP POLICY IF EXISTS "Manage enrollment forms in own school" ON public.enrollment_forms;
+
+REVOKE INSERT, UPDATE, DELETE ON public.enrollment_forms FROM authenticated;
+REVOKE INSERT, UPDATE, DELETE ON public.enrollment_forms FROM anon;
+
+-- ---------------------------------------------------------------------------
+-- 3) finance_invoice_events e student_status_events
+--
+-- Estas duas não são escritas por código nenhum: `grep` em `src/` não devolve uma
+-- única referência fora dos tipos gerados. São alimentadas por triggers, que correm
+-- como o dono da tabela e não dependem destes privilégios.
+--
+-- A política de INSERT era `school_id = current_school_id()` -- sem papel, sem
+-- permissão. Servia só para permitir a alguém autenticado forjar eventos de factura
+-- e de mudança de estado de aluno directamente pelo PostgREST, sem passar pela
+-- operação que os devia ter gerado. Uma trilha de auditoria que o auditado pode
+-- escrever deixa de ser trilha.
+--
+-- A leitura fica: são registos de auditoria por escola, e há ecrãs que os podem vir
+-- a mostrar. `anon` perde tudo -- tinha o privilégio de SELECT sem nenhuma política
+-- que lho permitisse usar, o que dava zero linhas hoje e um problema no dia em que
+-- alguém acrescentasse uma política sem olhar para os privilégios.
+-- ---------------------------------------------------------------------------
+DROP POLICY IF EXISTS "Write own school invoice events" ON public.finance_invoice_events;
+DROP POLICY IF EXISTS "Write own school student status events" ON public.student_status_events;
+
+REVOKE INSERT, UPDATE, DELETE ON public.finance_invoice_events FROM authenticated;
+REVOKE ALL ON public.finance_invoice_events FROM anon;
+
+REVOKE INSERT, UPDATE, DELETE ON public.student_status_events FROM authenticated;
+REVOKE ALL ON public.student_status_events FROM anon;
+
+-- ---------------------------------------------------------------------------
+-- 4) Confirmar que o RLS continua activo nas quatro.
+--    Sem RLS, a ausência de política deixa de negar seja o que for -- passa a
+--    permitir tudo a quem tenha o privilégio.
+-- ---------------------------------------------------------------------------
+ALTER TABLE public.enrollment_applications ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.enrollment_applications FORCE ROW LEVEL SECURITY;
+ALTER TABLE public.enrollment_forms ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.enrollment_forms FORCE ROW LEVEL SECURITY;
+ALTER TABLE public.finance_invoice_events ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.finance_invoice_events FORCE ROW LEVEL SECURITY;
+ALTER TABLE public.student_status_events ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.student_status_events FORCE ROW LEVEL SECURITY;
+
+GRANT ALL ON public.enrollment_applications TO service_role;
+GRANT ALL ON public.enrollment_forms TO service_role;
+GRANT ALL ON public.finance_invoice_events TO service_role;
+GRANT ALL ON public.student_status_events TO service_role;
+
+
+-- ══════════ 20260926203852_harden_teacher_qr_attendance.sql ══════════
+-- Faltava aqui. `src/features/hr/teacher-lessons.ts` chama
+-- `hr_redeem_teacher_qr_secure`, que não existe na produção: a leitura do QR do
+-- docente devolve PGRST202 e a presença não é registada. Independente dos blocos
+-- acima.
+
+-- Presença docente por QR: avaliar a confiança ANTES de gastar o token.
+--
+-- Porquê: `redeemTeacherLessonQr` fazia três idas à base — ler a sessão, avaliar a
+-- confiança, resgatar. Entre a avaliação e o resgate havia uma janela em que o mesmo
+-- token podia ser usado, e a avaliação que autorizou o resgate não era a mesma
+-- transacção que o executou. O código em produção desde 26/09 já chama
+-- `hr_redeem_teacher_qr_secure`, que não existe: a leitura de QR falha desde então.
+--
+-- Como: compõe as duas funções existentes numa só transacção, em vez de reescrever a
+-- lógica de resgate. O `hr_redeem_teacher_qr` já valida o que tem de validar — sessão
+-- activa e não expirada com `FOR UPDATE`, ocorrência elegível, e que o `auth.uid()` é
+-- mesmo o professor daquela aula («QR challenge belongs to another teacher»). Duplicar
+-- essas regras aqui seria criar uma segunda verdade que amanhã diverge.
+--
+-- POR DECIDIR, e deliberadamente não resolvido: antes, a avaliação de confiança corria
+-- numa chamada própria e a evidência de uma tentativa recusada ficava gravada. Agora,
+-- como tudo corre numa transacção, o `RAISE` de uma recusa desfaz também a evidência
+-- que a `hr_evaluate_teacher_attendance_assurance` grava. Ganha-se atomicidade e
+-- perde-se o rasto das tentativas recusadas. Se esse rasto importar para auditoria,
+-- tem de ser gravado fora desta transacção — não o fiz por ser decisão de quem manda
+-- na auditoria, não minha.
+
+CREATE OR REPLACE FUNCTION public.hr_redeem_teacher_qr_secure(
+  p_token_hash text,
+  p_latitude double precision DEFAULT NULL,
+  p_longitude double precision DEFAULT NULL,
+  p_accuracy_m double precision DEFAULT NULL
+)
+RETURNS TABLE (
+  occurrence_id uuid,
+  purpose text,
+  compensation_event_id uuid,
+  occurrence_status text,
+  assurance_score integer,
+  decision text,
+  inside_geofence boolean,
+  distance_from_school_m numeric
+)
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = ''
+AS $$
+DECLARE
+  v_user_id uuid := (SELECT auth.uid());
+  v_session public.hr_teacher_qr_sessions%ROWTYPE;
+  v_assurance record;
+  v_redeem record;
+BEGIN
+  IF v_user_id IS NULL THEN RAISE EXCEPTION 'Authentication required'; END IF;
+  IF p_token_hash IS NULL OR char_length(p_token_hash) < 32 THEN RAISE EXCEPTION 'Invalid QR token'; END IF;
+
+  -- Só para saber o que avaliar: a ocorrência e o propósito. Sem bloqueio e sem
+  -- decidir nada — quem valida estado, validade e dono é o resgate, logo a seguir.
+  SELECT * INTO v_session
+  FROM public.hr_teacher_qr_sessions
+  WHERE token_hash = p_token_hash;
+  IF NOT FOUND THEN RAISE EXCEPTION 'QR challenge not found'; END IF;
+
+  SELECT * INTO v_assurance
+  FROM public.hr_evaluate_teacher_attendance_assurance(
+    v_session.occurrence_id,
+    v_session.purpose,
+    p_latitude,
+    p_longitude,
+    p_accuracy_m
+  );
+  IF NOT FOUND THEN RAISE EXCEPTION 'Attendance assurance produced no evaluation'; END IF;
+  IF v_assurance.decision = 'reject' THEN
+    RAISE EXCEPTION 'Attendance assurance rejected';
+  END IF;
+
+  SELECT * INTO v_redeem FROM public.hr_redeem_teacher_qr(p_token_hash);
+  IF NOT FOUND THEN RAISE EXCEPTION 'QR redemption produced no attendance record'; END IF;
+
+  RETURN QUERY
+  SELECT
+    v_redeem.occurrence_id,
+    v_redeem.purpose,
+    v_redeem.compensation_event_id,
+    v_redeem.occurrence_status,
+    v_assurance.assurance_score,
+    v_assurance.decision,
+    v_assurance.inside_geofence,
+    v_assurance.distance_from_school_m;
+END;
+$$;
+
+REVOKE ALL ON FUNCTION public.hr_redeem_teacher_qr_secure(text,double precision,double precision,double precision) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.hr_redeem_teacher_qr_secure(text,double precision,double precision,double precision) TO authenticated;

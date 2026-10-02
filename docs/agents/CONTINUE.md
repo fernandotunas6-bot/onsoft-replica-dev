@@ -900,6 +900,252 @@ O webhook do gateway, o estorno e a importação de pagamentos já usam o mesmo
 total (`invoiceNetTotal` em `invoice-settlement.ts`). Escolas criadas antes desta data podem ter o plano com
 45 000 / 25 000 Kz semeados; não há forma de distinguir de preços reais.
 
+## `tenant_mailboxes` (2026-09-23)
+
+### O SQL que estava à espera de ser aplicado falharia se o fosse
+
+`tenant_mailboxes` é a última tabela que o código consulta e a produção não tem. Quatro
+sítios escrevem ou lêem dela (`saas/server.ts`, `saas/school-domain-ops.ts`,
+`api/saas/mailboxes.tsx` ×2), pelo que o aprovisionamento de caixas institucionais no
+Control Center devolve o erro de tabela inexistente — não um ecrã vazio.
+
+`supabase/APPLY_MAILBOXES.sql` está por aplicar desde 2026-09-02, e **ao verificá-lo antes
+de o dar como pronto descobri que rebentaria**: a segunda política que declara faz
+`SELECT tenant_id FROM tenant_members`, e **`tenant_members` não existe em produção**
+(verificado contra o retrato). Quem o corresse ficava com a tabela criada, a primeira
+política aplicada e a segunda a falhar com 42P01 — o pior dos estados, porque parece meio
+feito.
+
+O papel de `tenant_members` é desempenhado por `school_memberships`, e a ponte para o
+tenant é `schools.tenant_id`. Escrita a migração
+`20260923120000_tenant_mailboxes.sql` com esse caminho real, e **por aplicar** — é escrita
+na base, decisão do dono.
+
+Verificado antes de a propor:
+
+- as colunas cobrem o que o código **escreve** (`tenant_id`, `email`, `display_name`,
+  `provider`, `provider_account_id`, `status`) e o que **lê** (incluindo `created_at`, que
+  é usado no `order`);
+- o embed `tenants(name, slug)` que o endpoint faz precisa da chave estrangeira
+  `tenant_mailboxes → tenants`, que a migração declara;
+- validada com o parser real do Postgres (pglast): 7 instruções, 0 erros.
+
+Depois de aplicar: `npm run siga:db-snapshot` e retirar a entrada de
+`TABELAS_AUSENTES_DA_PRODUCAO`, que fica então **vazia**.
+
+## Hidratação (2026-09-23)
+
+### `/calendario/ics`: a página e o handler contradizem-se — decisão por tomar
+
+Descoberto ao verificar o alcance das correcções de hidratação, e **não resolvido de
+propósito**.
+
+O `server.handlers.GET` da rota responde a *todos* os pedidos, pelo que o componente
+`CalendarFeedPage` (57 linhas: endereço do feed, contagem de eventos, botão de descarga)
+**nunca renderiza**. Medido contra um build de produção nas três variantes: 368 bytes do
+handler (token curto ou ausente), 404 do `servePublicCalendarIcs` (token válido), zero
+ocorrências de `/assets/index-` em qualquer delas. Por dentro da aplicação também não há
+caminho: nenhum `Link` nem `navigate` para a rota, e as **cinco** utilizações de
+`calendarIcsFeedUrl` chamam todas `navigator.clipboard.writeText` — o endereço é para ser
+**copiado**, não navegado. (Escrevi «quatro» numa primeira versão: a contagem saiu de um
+`grep | head` e faltava o `calendario.tsx`. A conclusão não muda; a contagem estava errada.)
+
+Mas o componente tem `tests/routes/calendario-ics.test.tsx` — dois testes deliberados, que
+montam a página, verificam a contagem de eventos e clicam no botão de descarga. Alguém quis
+aquilo a funcionar.
+
+**Cheguei a removê-lo** (commit `70e9446`) por o dar como código morto, e **revertê-lo foi a
+decisão certa**: a minha verificação de que não havia testes usou `grep … | head -5`, e o
+ficheiro de testes ficou de fora do corte. Foi o mesmo erro que ando a apanhar noutros
+sítios — uma verificação que inspecciona menos do que aparenta. Apagar UI com testes
+intencionais por trás, com base só na minha leitura, não é decisão de quem passa a corrigir
+outra coisa.
+
+A escolha é entre duas, e é do dono:
+
+  a) **a página é para existir** → o handler tem de deixar passar os pedidos com
+     `Accept: text/html` e só servir `.ics` a quem pede `.ics`;
+  b) **não é para existir** → removem-se o componente e os testes, e fica o componente
+     mínimo que as outras 14 rotas com handler já usam.
+
+Enquanto não se decidir, o estado é este: os testes passam, mas testam código que o produto
+não corre. Fica uma nota no topo do ficheiro da rota a dizer isto mesmo, para ninguém
+repetir o meu caminho.
+
+### Nota de método: `head` num comando de verificação é mentir a si próprio
+
+Registado porque me custou três vezes no mesmo dia, sempre da mesma maneira: o comando
+parece verificar, devolve um resultado tranquilizador, e o corte escondeu o que importava.
+
+- `grep -rln "calendario" tests/ | head -5` → concluí que o componente não tinha testes e
+  **removi-o**. Tinha dois, em `tests/routes/calendario-ics.test.tsx`, fora do corte. Só
+  apareceu ao correr a suite completa; se eu tivesse parado no «tsc e eslint limpos», a
+  remoção ficava.
+- `grep -rn "calendarIcsFeedUrl" … | head` → escrevi «as quatro utilizações» num comentário
+  de código. São cinco.
+- `ls src/routes/*.tsx` com um `case` → conclusão sobre o alcance do defeito tirada de uma
+  listagem que ignora subdirectórios e não cobria o prefixo `/auth`.
+
+Mais duas da mesma família, noutras frentes desta sessão: um varrimento de bundles com o
+padrão de caminho errado que inspeccionou **zero** ficheiros e reportou «0 fugas», e um
+`for` em `zsh` que iterou uma vez sobre 73 caminhos colados num só argumento.
+
+A regra que fica: **em exploração, `head` à vontade; em verificação, nunca.** Um comando
+que decide «está limpo» tem de contar o que inspeccionou e falhar se esse número for zero
+ou implausível — é o que os testes desta pasta fazem com os limiares mínimos e os casos de
+controlo, e é por isso que os têm.
+
+### Balanço honesto: das três ocorrências, só uma era defeito
+
+Verificadas uma a uma, depois de as ter corrigido às três e de ter descrito as três como
+bugs. **Estava a dar-lhes crédito a mais**, e a distinção importa para quem vier a seguir:
+
+| ocorrência | veredicto | como foi verificado |
+|---|---|---|
+| `DesktopTitleBar` | **defeito real, em produção** | controlo: revertendo-o o #418 volta, com ele desaparece |
+| `appearance.tsx` (`isDark`) | não podia morder | `mode` nasce em `"light"`; com `isDark` revertido, `mode:"system"` semeado e SO escuro → sem #418 |
+| `calendario.ics.tsx` | código inalcançável | o `server.handlers.GET` responde a todos os pedidos; nenhuma variante devolve o shell da app |
+
+**E o alcance do único defeito real era menor do que eu disse.** Escrevi «em todas as
+páginas com `AppShell`» e «em todas as páginas de quem tem sessão». Nenhuma das duas é
+verdade: nas rotas autenticadas o servidor **nunca** renderiza o `AppShell`, porque o
+`AuthGate` tem `checking = true` no SSR — a sessão vive no cliente — e por isso manda
+sempre o `PageLoading` (medido: `/` e `/alunos` em produção trazem o `PageLoading` e zero
+`data-tauri-drag-region`). Das rotas públicas, só `alterar-senha.tsx` usa `AppShell`;
+`convite.$token.tsx`, `saas-admin.tsx` e `matricula/$slug.tsx` têm zero referências.
+
+**O alcance real era uma rota: `/alterar-senha`.** Reverificado a sério depois de eu ter
+usado uma listagem parcial (`ls src/routes/*.tsx`, que ignora subdirectórios, e sem cobrir
+o prefixo `/auth`): com `find` sobre todos os prefixos públicos, as dez rotas dão
+`alterar-senha.tsx` com três referências a `AppShell` e **zero** em todas as outras —
+`auth.email-change`, `auth.magic-link`, `auth.reset-password`, `calendario.ics`,
+`convite.$token`, `criar-escola`, `matricula/$slug`, `saas-admin`. O `calendario.tsx` usa
+`AppShell`, mas `/calendario` **não** é público (só `/calendario/ics` está na lista), logo
+passa pelo `AuthGate` e o servidor manda `PageLoading`. A conclusão aguentou-se; a
+evidência que eu tinha para ela é que era fraca. O que fecha o círculo — era a única que
+dava #418 porque era a única que podia dar. A medição e o mecanismo passam a concordar.
+
+O `calendario.ics.tsx` foi o pior dos meus exageros: anunciei-o como «terceira instância da
+mesma falha» encontrada pelo guarda, quando o componente `CalendarFeedPage` **nunca
+renderiza** — a rota tem um handler de GET que devolve HTML fixo (token curto ou ausente)
+ou o ficheiro ICS (token válido). Medido: 368 bytes do handler, zero ocorrências de
+`/assets/index-` em qualquer das variantes.
+
+As duas correcções ficam, e o guarda continua a justificá-las: ler `window` numa expressão
+de render é a forma que causou o defeito real, e não se quer distinguir caso a caso de cada
+vez. Mas são **higiene com teste a suportá-la**, não correcções de sintomas observados.
+
+
+### Duas das causas do React #418, e o que falta saber
+
+O registo de 20/09 deixou o #418 em `/`, `/alunos` e `/alterar-senha` como «achado novo, em
+produção e por resolver», com a intuição certa de que vinha do que embrulha tudo.
+Reproduzido hoje na versão no ar, nos três caminhos. Corrigidas duas causas (`1963804`),
+ambas do mesmo feitio: **uma condição que lê `window` durante o render**.
+
+- **`DesktopTitleBar`** — `!isDesktop && typeof window !== "undefined" && !search.includes(…)`.
+  No servidor `typeof window` é `"undefined"`, a condição dá falsa, e a barra inteira vai no
+  HTML; no primeiro render do cliente dá verdadeira e devolve `null`. A guarda estava lá
+  para não ler `window.location` no SSR — o efeito dela era inverter o resultado.
+- **`appearance.tsx`** — `isDark` calculado com `matchMedia` no corpo do provider, valor
+  que vai para o JSX do `AppShell` (ícone e rótulo do botão de tema).
+
+  **Correcção ao que eu escrevi no commit `1963804`:** disse que com o modo em `system` e o
+  SO em escuro o servidor dava `false` e o cliente `true`. **É falso.** O provider faz
+  `useState(defaults)` e `defaults.mode` é `"light"`; o valor guardado em `localStorage` só
+  é lido num `useEffect`, portanto no primeiro render do cliente o modo é sempre `"light"`
+  e `isDark` dá `false` dos dois lados. Nunca podia haver desencontro aqui.
+
+  Verificado por controlo a 2026-09-23: build com **só** o `isDark` revertido (mantendo a
+  correcção do `DesktopTitleBar`), `localStorage` semeado com `mode: "system"` e o browser
+  a emular SO escuro → **sem #418**.
+
+  A alteração fica na mesma, mas por outra razão: ler `window` numa expressão de render é a
+  forma que já causou dois defeitos reais aqui, e o guarda em
+  `tests/security/hidratacao-window-no-render.test.ts` reprova-a. É higiene com um teste a
+  suportá-la, não a correcção de um defeito observado.
+
+**Correcção a uma leitura minha, registada porque custou tempo.** Concluí a meio que o
+defeito «só acontecia no build de produção», porque em desenvolvimento a consola estava
+limpa. Está errado: o SSR de desenvolvimento trazia a barra exactamente como o de produção
+(verificado antes da correcção). O que é exclusivo da produção é o **relato** — nesta
+montagem o React em dev não imprime aviso nenhum de hidratação. É por isso que isto
+sobreviveu desde 20/09: a única consola que o diz é a da versão construída.
+
+**Resolvido, e a terceira causa não existia.** O build de produção corre nesta máquina com
+o preset `node-server` em vez do `cloudflare-module` — o `workerd` é que exige macOS 13.5+,
+o Node não. Trocar o preset (temporariamente, reposto a seguir) dá um servidor local que
+reproduz o #418 fielmente, e com ele fez-se o que faltava: um **controlo**.
+
+- Build de controlo, com as duas correcções revertidas → #418 em `/alterar-senha`.
+- Build com as correcções → **limpo**, em separador novo, nas duas rotas.
+
+E a medição contra a produção, que ainda corre o código sem correcções, num **único
+separador e em sequência**: `/` (duas vezes) limpo, `/alunos` limpo, `/alterar-senha`
+**#418**. Ou seja: o erro vinha só da rota que renderiza o `AppShell` — e portanto o
+`DesktopTitleBar` — estando deslogado. O `/` e o `/alunos` mostram apenas o ecrã de sessão
+do `AuthGate` e estão limpos.
+
+**A afirmação de que estava nas três rotas era um artefacto de medição**, tanto no registo
+de 20/09 como nas minhas próprias leituras de hoje: a consola do painel **acumula mensagens
+entre navegações**, e a primeira leitura a seguir a abrir um separador vem quase sempre
+vazia porque ainda não ligou. Quem navega `/alterar-senha` → `/` e lê a consola vê o #418 e
+atribui-o ao `/`. Caí nisto duas vezes antes de desconfiar. Para medir isto: separador
+novo, uma rota de cada vez, e uma navegação de aquecimento antes da que conta.
+
+**Por consequência, não há terceira causa por identificar** — o que havia era uma causa
+(`DesktopTitleBar`) mal localizada. A correcção do `isDark` em `appearance.tsx` continua a
+valer: é o mesmo defeito, e manifestar-se-ia no `AppShell` de quem tem o SO em escuro.
+
+## Deploy (2026-09-23)
+
+### As chaves saíram do texto simples — e o deploy deixou de mentir quando falha
+
+Fecha o ponto que o registo de 20/09 deixou em aberto como «a registar e a decidir, não
+tocado»: `SUPABASE_SERVICE_ROLE_KEY` e `RESEND_API_KEY` iam como `vars` em texto simples.
+Dois commits: `3e71de8` passa-as a `wrangler secret put`, e `5dc7d36` corrige o que esse
+primeiro deploy destapou.
+
+**O que correu mal na primeira tentativa, hoje.** O `secret put` falhou com 10053 —
+«Binding name already in use»: o worker no ar ainda tinha o nome como `var`, e o Cloudflare
+não deixa criar um segredo por cima. O `catch` era vazio e assumia sempre a mesma causa,
+por isso anunciou «Worker not found yet» e deployou na mesma. Como é esse deploy que remove
+a `var`, a versão nova esteve no ar **alguns segundos sem chave de serviço nenhuma**, e o
+script imprimiu «successfully updated!» no fim. O 10053 resolvia-se sozinho no passo
+seguinte; o que não se resolvia era o caso geral — um token revogado dava o mesmo caminho,
+sem remendo a seguir.
+
+**A segunda tentativa correu pelo caminho limpo.** Os dois segredos entraram **antes** do
+deploy, sem 10053 — a `var` já tinha sido removida pela tentativa anterior. Não houve
+janela sem chave. Versão `da6f88d2-43fa-44b5-ae6f-339b90081d88`, worker
+`fernandotunas6-bot-onsoft-replica-dev`. Os Pages e o `siga-plus-payflow` não foram
+tocados.
+
+**Verificado depois, contra a produção a sério:**
+
+- `GET /api/saas/plans` a **200 com dados reais**, em `portal-siga.com` e no `workers.dev`.
+  Não é um ping: `fetchActivePlans` passa por `loadSgaAdminClient()`, logo um 200 aqui é a
+  prova de que o runtime lê a chave de serviço a partir do **segredo cifrado**. Sem ela,
+  seria 500.
+- **73 bundles de cliente + o HTML** (1,6 MB de JS) varridos à procura das duas chaves:
+  zero ocorrências. O detector foi validado primeiro contra um ficheiro de controlo que
+  continha a chave — sem isso, «0 fugas» não distingue «está limpo» de «não procurei».
+
+**Nota metodológica, porque custou três tentativas.** A varredura dos bundles reportou
+«0 fugas» três vezes **sem ter inspeccionado ficheiro nenhum**: primeiro o padrão dos
+caminhos estava errado (`/_build/assets/` em vez de `/assets/`); depois o `grep` tratou o
+HTML como binário e o `-o` devolveu vazio (precisa de `-a`); por fim, a shell é **zsh**,
+que não faz word-splitting de variáveis não citadas, e o `for a in $ASSETS` iterou uma vez
+sobre os 73 caminhos colados num só argumento. As três davam o mesmo verde tranquilizador.
+É o mesmo modo de falha que os testes deste repositório já apanharam duas vezes — um
+teste que inspecciona menos do que diz é pior do que não existir.
+
+**Por provar em campo.** O `process.exit(1)` perante uma falha não reconhecida é o ponto
+do `5dc7d36` e **não foi exercitado ao vivo** — nesta corrida os segredos subiram à
+primeira. Está provado pelo teste que lê o script, não por uma falha real. Só se saberá no
+dia em que o token estiver revogado ou a conta errada, que é exactamente o dia em que
+interessa.
+
 ## Deploy (2026-09-20)
 
 ### Produção actualizada — dez dias de uma vez
@@ -923,11 +1169,19 @@ build de produção com saída 0. A árvore publicada é bit a bit a de `origin/
 a 200; `scripts/pwa-check.mjs` contra `https://portal-siga.com` com os 8 controlos verdes
 (manifesto, 4 ícones, apple-touch-icon, viewport, theme-color, service worker, offline).
 
-**Resolvido a 2026-09-25 (por publicar):** a causa era `DesktopTitleBar`. A condição
+**Resolvido a 2026-09-25 (por publicar):** a causa era o `DesktopTitleBar`. A condição
 `typeof window !== "undefined"` desenhava a barra no servidor e escondia-a no browser. A
 visibilidade passou a ser decidida depois de montar, e `tests/ui/desktop-titlebar-ssr.test.tsx`
 protege a correcção. Em modo de desenvolvimento, `/`, `/alterar-senha`, `/matricula`,
-`/criar-escola` e `/auth/reset-password` deixaram de dar erro de hidratação. Texto original:
+`/criar-escola` e `/auth/reset-password` deixaram de dar erro de hidratação.
+
+**Ressalva ao texto original, que ficou registado como facto e está errado:** a parte de
+«está em `/`, `/alunos` e `/alterar-senha`» era um **artefacto de medição** — a consola do
+painel acumula mensagens entre navegações, e o #418 do `/alterar-senha` era lido como se
+fosse da página seguinte. Medido em separador limpo, o erro vinha **só do
+`/alterar-senha`**, a única das três que renderiza o `AppShell` estando deslogado. A
+suspeita do `AuthGate` registada abaixo também não se confirmou. Texto original:
+
 **Achado novo, em produção e por resolver.** O erro de hidratação que o Ciclo 101 viu em
 `/alterar-senha` **não é dessa página**: está em `/`, `/alunos` e `/alterar-senha` — React
 #418 em todas, portanto vem do que embrulha tudo. A suspeita registada era o `AuthGate`,
@@ -1106,10 +1360,12 @@ também ao clicar com o rato, que não é para quem ele existe.
 **Resultados:** `vitest run` — 251 ficheiros, **1699 testes verdes, 0 falhas**, 3 saltados.
 `tsc --noEmit` 0 erros. `a11y`, `check:style` e `lint` os três a zero.
 
-**Achado por resolver:** `/alterar-senha` dá erro de hidratação no browser (o HTML do
-servidor não bate certo com o do cliente). Não vem deste ciclo — nessa página não há
-imagens nem `MediaFrame`, só os `aria-label` que são atributos estáticos. A suspeita é a
-porta de autenticação, que rende "A verificar sessão…" só no cliente.
+**~~Achado por resolver~~ — RESOLVIDO a 2026-09-23** (`1963804`): `/alterar-senha` dava
+erro de hidratação porque é a única rota que renderiza o `AppShell` estando deslogado, e o
+`DesktopTitleBar` decidia o que mostrar com `typeof window` — o servidor mandava a barra,
+o cliente não a desenhava. A suspeita registada aqui (a porta de autenticação) estava
+errada: o `AuthGate` rende `checking = true` dos dois lados. Ver a secção «Hidratação» no
+topo deste ficheiro.
 
 ### Ciclo 100 — O CI não corre desde 3 de Setembro, e só uma das causas era código (2026-09-20)
 

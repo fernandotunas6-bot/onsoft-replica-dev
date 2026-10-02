@@ -324,10 +324,18 @@ const funcoesPublicas = new Set(
  * ESPERA_MIGRACAO: a lista só encolhe, e o teste obriga a tirar a entrada
  * quando o retrato a mostrar.
  */
-// Vazia desde 2026-09-28: `siga_publish_assessment_rule` e
-// `siga_rate_limit_consume` foram aplicadas e o retrato recapturado.
-const FUNCOES_ESPERA_MIGRACAO = new Set<string>([]);
-
+/**
+ * Funções que o código chama e a produção ainda não tem. Existe para encolher.
+ *
+ * O `siga_publish_assessment_rule` e o `siga_rate_limit_consume` saíram a 2026-09-28:
+ * foram aplicados e o retrato recapturado mostra-os.
+ */
+const FUNCOES_ESPERA_MIGRACAO = new Set<string>([
+  // `20260926203852_harden_teacher_qr_attendance.sql`, por aplicar.
+  // `hr/teacher-lessons.ts` chama-a desde eaceb8f2; sondada na produção a 2026-09-28
+  // devolve PGRST202, e a presença do docente por QR não é registada enquanto assim for.
+  "hr_redeem_teacher_qr_secure",
+]);
 /**
  * Colunas que o código grava e a produção ainda não tem porque há uma migração escrita e
  * por aplicar. Aplicar SQL à base é decisão do dono do projecto, não do agente — esta

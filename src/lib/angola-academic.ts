@@ -111,6 +111,17 @@ export const angolaGradeScale = {
 } as const;
 
 /**
+ * Arredonda à décima. O `Number.EPSILON` está aqui porque `Math.round(x * 10) / 10` sozinho
+ * erra em valores como 10.45, que em binário fica ligeiramente abaixo e desce para 10.4.
+ *
+ * Existe como função e não inline porque a mesma linha estava copiada em três cálculos deste
+ * ficheiro, e o motor de avaliação precisa dela para as médias que calcula por fora.
+ */
+export function roundToOneDecimal(value: number): number {
+  return Math.round((value + Number.EPSILON) * 10) / 10;
+}
+
+/**
  * Fonte única de cálculo de médias (Decreto Executivo n.º 424/25). Usada tanto pelo motor de
  * avaliação (`assessment-engine.ts`) como pelas pautas (`pautas/assessment.ts`) — não duplicar
  * esta fórmula noutro sítio.
@@ -119,7 +130,7 @@ export function normalizeScore(value: unknown): number | null {
   if (value === null || value === undefined) return null;
   const num = Number(value);
   if (!Number.isFinite(num) || num < 0 || num > 20) return null;
-  return Math.round((num + Number.EPSILON) * 10) / 10;
+  return roundToOneDecimal(num);
 }
 
 /**
@@ -138,7 +149,7 @@ export function calculateTrimesterAverage(
 
   // Decreto 424/25: MT = (MACT + NPT) / 2. A NPP já entra na MACT.
   if (normMac !== null && normNpt !== null) {
-    return Math.round(((normMac + normNpt) / 2 + Number.EPSILON) * 10) / 10;
+    return roundToOneDecimal((normMac + normNpt) / 2);
   }
   if (normMac !== null) return normMac;
   if (normNpt !== null) return normNpt;
@@ -157,7 +168,7 @@ export function calculateDisciplineFinalAverage(
   const valid = [v1, v2, v3].filter((x): x is number => x !== null);
   if (valid.length === 0) return null;
   const sum = valid.reduce((a, b) => a + b, 0);
-  return Math.round((sum / valid.length + Number.EPSILON) * 10) / 10;
+  return roundToOneDecimal(sum / valid.length);
 }
 
 export function scoreAverage(mac: number, npp: number, npt: number) {

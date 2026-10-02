@@ -15,6 +15,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { ResponsiveEntityView } from "@/components/mobile/ResponsiveEntityView";
 import { badgeBase, toneClass } from "@/components/layout/PageHeader";
 import { documentValidationCode } from "@/features/academic/assessment-views";
 import { upsertTermGradesBatch } from "@/features/academic/server";
@@ -91,8 +92,20 @@ function termAverage(
   return grade ? scoreAverage(grade.mac, grade.npp, grade.npt) : null;
 }
 
+/**
+ * `Enter` salta para o mesmo campo do aluno seguinte — lançar uma pauta é
+ * percorrer uma coluna, não uma linha.
+ *
+ * Procura nos dois marcadores porque a mesma pauta tem duas vistas: a tabela do
+ * computador (`data-pauta`) e os cartões do telemóvel (`data-pauta-mobile`). Só
+ * uma delas está montada de cada vez, por isso não há ambiguidade — mas fixar
+ * apenas a do computador deixava o salto morto no telemóvel, que é precisamente
+ * onde ele poupa mais toques.
+ */
 function focusNextCell(index: number, field: keyof Draft) {
-  const next = document.querySelector<HTMLInputElement>(`[data-pauta="${index + 1}-${field}"]`);
+  const next =
+    document.querySelector<HTMLInputElement>(`[data-pauta="${index + 1}-${field}"]`) ??
+    document.querySelector<HTMLInputElement>(`[data-pauta-mobile="${index + 1}-${field}"]`);
   next?.focus();
   next?.select();
 }
@@ -820,23 +833,17 @@ export function GradePautaSheet({
           Esta turma ainda não tem matrículas activas.
         </p>
       ) : view === "geral" ? (
-        <div className="overflow-x-auto">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="w-10">Nº</TableHead>
-                <TableHead>Aluno</TableHead>
-                {geralSubjects.map((subject) => (
-                  <TableHead key={subject.id} className="text-right" title={subject.name}>
-                    {subjectShortCode(subject.name, subject.code)}
-                  </TableHead>
-                ))}
-                <TableHead className="text-right">MG</TableHead>
-                <TableHead className="text-right">Situação</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {roster.map((student, index) => {
+        <ResponsiveEntityView
+          mobile={
+            /*
+             * §38: a pauta geral é uma matriz aluno × disciplina. A 360px
+             * nenhuma matriz se lê. Aqui a matriz é transposta por aluno: um
+             * cartão por aluno com as suas disciplinas, a média e a situação —
+             * a mesma informação, na ordem em que um director a lê no telemóvel
+             * ("como está este aluno?" e não "como está esta célula?").
+             */
+            <ul className="space-y-2.5">
+              {roster.map((student) => {
                 const averages = geralSubjects.map((subject) =>
                   termAverage(termGrades, student.id, subject.id, term),
                 );
@@ -846,97 +853,140 @@ export function GradePautaSheet({
                     ? { label: "Pendente", tone: "muted" as const }
                     : situacaoPauta(mediaGeral, passingGrade);
                 return (
-                  <TableRow key={student.id}>
-                    <TableCell className="text-xs text-muted-foreground">{index + 1}</TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2.5">
-                        <UserAvatar
-                          {...(student.student_photo_url ? { url: student.student_photo_url } : {})}
-                          initials={initialsFromName(student.student_name)}
-                          className="size-9 bg-primary-soft text-[11px] font-extrabold text-primary"
-                        />
-                        <span className="font-semibold">{student.student_name}</span>
-                      </div>
-                    </TableCell>
-                    {averages.map((average, subjectIndex) => (
-                      <TableCell key={geralSubjects[subjectIndex]?.id} className="text-right">
-                        {formatScore(average)}
-                      </TableCell>
-                    ))}
-                    <TableCell className="text-right font-bold">
-                      {formatScore(mediaGeral)}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <span
-                        className={cn(
-                          badgeBase,
-                          situacao.tone === "success"
-                            ? toneClass.success
-                            : situacao.tone === "danger"
-                              ? toneClass.danger
-                              : toneClass.muted,
-                        )}
-                      >
-                        {situacao.label}
+                  <li key={student.id} className="rounded-xl border border-border bg-card p-3.5">
+                    <div className="flex items-center justify-between gap-3">
+                      <p className="min-w-0 truncate text-sm font-medium">{student.student_name}</p>
+                      <span className="tnum shrink-0 text-lg leading-none">
+                        {formatScore(mediaGeral)}
                       </span>
-                    </TableCell>
-                  </TableRow>
+                    </div>
+                    <dl className="mt-2.5 space-y-1 border-t border-border pt-2.5">
+                      {geralSubjects.map((subject, subjectIndex) => (
+                        <div key={subject.id} className="flex items-baseline justify-between gap-3">
+                          <dt className="min-w-0 truncate text-xs text-muted-foreground">
+                            {subject.name}
+                          </dt>
+                          <dd className="tnum shrink-0 text-xs">
+                            {formatScore(averages[subjectIndex])}
+                          </dd>
+                        </div>
+                      ))}
+                    </dl>
+                    <span
+                      className={cn(
+                        badgeBase,
+                        "mt-2.5",
+                        situacao.tone === "success"
+                          ? toneClass.success
+                          : situacao.tone === "danger"
+                            ? toneClass.danger
+                            : toneClass.muted,
+                      )}
+                    >
+                      {situacao.label}
+                    </span>
+                  </li>
                 );
               })}
-            </TableBody>
-          </Table>
-        </div>
+            </ul>
+          }
+          desktop={
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="w-10">Nº</TableHead>
+                    <TableHead>Aluno</TableHead>
+                    {geralSubjects.map((subject) => (
+                      <TableHead key={subject.id} className="text-right" title={subject.name}>
+                        {subjectShortCode(subject.name, subject.code)}
+                      </TableHead>
+                    ))}
+                    <TableHead className="text-right">MG</TableHead>
+                    <TableHead className="text-right">Situação</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {roster.map((student, index) => {
+                    const averages = geralSubjects.map((subject) =>
+                      termAverage(termGrades, student.id, subject.id, term),
+                    );
+                    const mediaGeral = annualAverage(averages);
+                    const situacao =
+                      mediaGeral == null
+                        ? { label: "Pendente", tone: "muted" as const }
+                        : situacaoPauta(mediaGeral, passingGrade);
+                    return (
+                      <TableRow key={student.id}>
+                        <TableCell className="text-xs text-muted-foreground">{index + 1}</TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-2.5">
+                            <UserAvatar
+                              {...(student.student_photo_url
+                                ? { url: student.student_photo_url }
+                                : {})}
+                              initials={initialsFromName(student.student_name)}
+                              className="size-9 bg-primary-soft text-[11px] font-extrabold text-primary"
+                            />
+                            <span className="font-semibold">{student.student_name}</span>
+                          </div>
+                        </TableCell>
+                        {averages.map((average, subjectIndex) => (
+                          <TableCell key={geralSubjects[subjectIndex]?.id} className="text-right">
+                            {formatScore(average)}
+                          </TableCell>
+                        ))}
+                        <TableCell className="text-right font-bold">
+                          {formatScore(mediaGeral)}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <span
+                            className={cn(
+                              badgeBase,
+                              situacao.tone === "success"
+                                ? toneClass.success
+                                : situacao.tone === "danger"
+                                  ? toneClass.danger
+                                  : toneClass.muted,
+                            )}
+                          >
+                            {situacao.label}
+                          </span>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </div>
+          }
+        />
       ) : view === "anual" ? (
-        <div className="overflow-x-auto">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="w-10">Nº</TableHead>
-                <TableHead>Aluno</TableHead>
-                <TableHead className="text-right">1º T</TableHead>
-                <TableHead className="text-right">2º T</TableHead>
-                <TableHead className="text-right">3º T</TableHead>
-                <TableHead className="text-right">MFA</TableHead>
-                <TableHead className="text-right">Situação</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {roster.map((student, index) => {
-                const terms = ([1, 2, 3] as const).map((item) =>
+        <ResponsiveEntityView
+          mobile={
+            /* Anual: três períodos e a MFA cabem num cartão sem transpor nada. */
+            <ul className="space-y-2.5">
+              {roster.map((student) => {
+                const termValues = ([1, 2, 3] as const).map((item) =>
                   annualAverage(
                     subjects.map((subject) =>
                       termAverage(termGrades, student.id, subject.id, item),
                     ),
                   ),
                 );
-                const mfa = annualAverage(terms);
+                const mfa = annualAverage(termValues);
                 const situacao =
                   mfa == null
                     ? { label: "Pendente", tone: "muted" as const }
                     : situacaoPauta(mfa, passingGrade);
                 return (
-                  <TableRow key={student.id}>
-                    <TableCell className="text-xs text-muted-foreground">{index + 1}</TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2.5">
-                        <UserAvatar
-                          {...(student.student_photo_url ? { url: student.student_photo_url } : {})}
-                          initials={initialsFromName(student.student_name)}
-                          className="size-9 bg-primary-soft text-[11px] font-extrabold text-primary"
-                        />
-                        <span className="font-semibold">{student.student_name}</span>
-                      </div>
-                    </TableCell>
-                    {terms.map((value, termIndex) => (
-                      <TableCell key={termIndex} className="text-right">
-                        {formatScore(value)}
-                      </TableCell>
-                    ))}
-                    <TableCell className="text-right font-bold">{formatScore(mfa)}</TableCell>
-                    <TableCell className="text-right">
+                  <li key={student.id} className="rounded-xl border border-border bg-card p-3.5">
+                    <div className="flex items-center justify-between gap-3">
+                      <p className="min-w-0 truncate text-sm font-medium">{student.student_name}</p>
                       <span
                         className={cn(
                           badgeBase,
+                          "shrink-0",
                           situacao.tone === "success"
                             ? toneClass.success
                             : situacao.tone === "danger"
@@ -946,35 +996,111 @@ export function GradePautaSheet({
                       >
                         {situacao.label}
                       </span>
-                    </TableCell>
-                  </TableRow>
+                    </div>
+                    <div className="mt-2.5 grid grid-cols-4 gap-2 border-t border-border pt-2.5 text-center">
+                      {termValues.map((value, termIndex) => (
+                        <div key={termIndex}>
+                          <p className="text-[10px] text-muted-foreground">{termIndex + 1}º T</p>
+                          <p className="tnum text-sm">{formatScore(value)}</p>
+                        </div>
+                      ))}
+                      <div>
+                        <p className="text-[10px] text-muted-foreground">MFA</p>
+                        <p className="tnum text-sm font-medium">{formatScore(mfa)}</p>
+                      </div>
+                    </div>
+                  </li>
                 );
               })}
-            </TableBody>
-          </Table>
-        </div>
+            </ul>
+          }
+          desktop={
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="w-10">Nº</TableHead>
+                    <TableHead>Aluno</TableHead>
+                    <TableHead className="text-right">1º T</TableHead>
+                    <TableHead className="text-right">2º T</TableHead>
+                    <TableHead className="text-right">3º T</TableHead>
+                    <TableHead className="text-right">MFA</TableHead>
+                    <TableHead className="text-right">Situação</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {roster.map((student, index) => {
+                    const terms = ([1, 2, 3] as const).map((item) =>
+                      annualAverage(
+                        subjects.map((subject) =>
+                          termAverage(termGrades, student.id, subject.id, item),
+                        ),
+                      ),
+                    );
+                    const mfa = annualAverage(terms);
+                    const situacao =
+                      mfa == null
+                        ? { label: "Pendente", tone: "muted" as const }
+                        : situacaoPauta(mfa, passingGrade);
+                    return (
+                      <TableRow key={student.id}>
+                        <TableCell className="text-xs text-muted-foreground">{index + 1}</TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-2.5">
+                            <UserAvatar
+                              {...(student.student_photo_url
+                                ? { url: student.student_photo_url }
+                                : {})}
+                              initials={initialsFromName(student.student_name)}
+                              className="size-9 bg-primary-soft text-[11px] font-extrabold text-primary"
+                            />
+                            <span className="font-semibold">{student.student_name}</span>
+                          </div>
+                        </TableCell>
+                        {terms.map((value, termIndex) => (
+                          <TableCell key={termIndex} className="text-right">
+                            {formatScore(value)}
+                          </TableCell>
+                        ))}
+                        <TableCell className="text-right font-bold">{formatScore(mfa)}</TableCell>
+                        <TableCell className="text-right">
+                          <span
+                            className={cn(
+                              badgeBase,
+                              situacao.tone === "success"
+                                ? toneClass.success
+                                : situacao.tone === "danger"
+                                  ? toneClass.danger
+                                  : toneClass.muted,
+                            )}
+                          >
+                            {situacao.label}
+                          </span>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </div>
+          }
+        />
       ) : (
-        <div className="overflow-x-auto">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="w-10">Nº</TableHead>
-                <TableHead>Aluno</TableHead>
-                <TableHead>Proc.</TableHead>
-                <TableHead className="w-24 text-right" title={angolaGradeScale.components[0].label}>
-                  MAC
-                </TableHead>
-                <TableHead className="w-24 text-right" title={angolaGradeScale.components[1].label}>
-                  NPP
-                </TableHead>
-                <TableHead className="w-24 text-right" title={angolaGradeScale.components[2].label}>
-                  NPT
-                </TableHead>
-                <TableHead className="text-right">Média</TableHead>
-                <TableHead className="text-right">Situação</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
+        <ResponsiveEntityView
+          mobile={
+            /*
+             * Lançamento de notas no telemóvel (§38). A tabela tem três campos
+             * por aluno; a 360px os três `Input` de 80px ficavam com 40px cada e
+             * o teclado tapava a linha seguinte.
+             *
+             * Aqui cada aluno é um cartão com os três campos em grelha, à altura
+             * de toque, com `inputMode="decimal"` (teclado numérico com vírgula)
+             * e a média a calcular-se em cima. O `Enter` continua a saltar para o
+             * campo seguinte — é o mesmo `focusNextCell` e o mesmo `updateDraft`,
+             * por isso o botão "Guardar pauta (n)" conta as mesmas linhas
+             * pendentes em qualquer dos dois ecrãs.
+             */
+            <ul className="space-y-2.5">
               {roster.map((student, index) => {
                 const draft = drafts[student.id] ?? { mac: "", npp: "", npt: "" };
                 const mac = parseScore(draft.mac);
@@ -987,67 +1113,182 @@ export function GradePautaSheet({
                     ? { label: "Pendente", tone: "muted" as const }
                     : situacaoPauta(average, passingGrade);
                 return (
-                  <TableRow key={student.id}>
-                    <TableCell className="text-xs text-muted-foreground">{index + 1}</TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2.5">
-                        <UserAvatar
-                          {...(student.student_photo_url ? { url: student.student_photo_url } : {})}
-                          initials={initialsFromName(student.student_name)}
-                          className="size-9 bg-primary-soft text-[11px] font-extrabold text-primary"
-                        />
-                        <span className="font-semibold">{student.student_name}</span>
+                  <li key={student.id} className="rounded-xl border border-border bg-card p-3.5">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="truncate text-sm font-medium">{student.student_name}</p>
+                        <p className="tnum mt-0.5 text-xs text-muted-foreground">
+                          {student.registration_number ?? "—"}
+                        </p>
                       </div>
-                    </TableCell>
-                    <TableCell className="text-xs text-muted-foreground">
-                      {student.registration_number ?? "—"}
-                    </TableCell>
-                    {(["mac", "npp", "npt"] as const).map((field) => (
-                      <TableCell key={field} className="text-right">
-                        {canEdit ? (
-                          <Input
-                            aria-label={`${field.toUpperCase()} de ${student.student_name}`}
-                            inputMode="decimal"
-                            data-pauta={`${index}-${field}`}
-                            className="ml-auto h-8 w-20 text-right"
-                            value={draft[field]}
-                            placeholder="—"
-                            onChange={(event) => updateDraft(student.id, field, event.target.value)}
-                            onKeyDown={(event) => {
-                              if (event.key === "Enter") {
-                                event.preventDefault();
-                                focusNextCell(index, field);
+                      <div className="shrink-0 text-right">
+                        <p className="tnum text-lg leading-none">
+                          {average == null ? "—" : average.toFixed(1)}
+                        </p>
+                        <span
+                          className={cn(
+                            badgeBase,
+                            "mt-1",
+                            situacao.tone === "success"
+                              ? toneClass.success
+                              : situacao.tone === "danger"
+                                ? toneClass.danger
+                                : toneClass.muted,
+                          )}
+                        >
+                          {situacao.label}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="mt-3 grid grid-cols-3 gap-2 border-t border-border pt-3">
+                      {(["mac", "npp", "npt"] as const).map((field) => (
+                        <label key={field} className="block">
+                          <span className="mb-1 block text-[10px] font-medium uppercase text-muted-foreground">
+                            {field}
+                          </span>
+                          {canEdit ? (
+                            <Input
+                              aria-label={`${field.toUpperCase()} de ${student.student_name}`}
+                              inputMode="decimal"
+                              data-pauta-mobile={`${index}-${field}`}
+                              className="h-11 text-center text-base"
+                              value={draft[field]}
+                              placeholder="—"
+                              onChange={(event) =>
+                                updateDraft(student.id, field, event.target.value)
                               }
-                            }}
-                          />
-                        ) : (
-                          draft[field] || "—"
-                        )}
-                      </TableCell>
-                    ))}
-                    <TableCell className="text-right font-bold">
-                      {average == null ? "—" : average.toFixed(1)}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <span
-                        className={cn(
-                          badgeBase,
-                          situacao.tone === "success"
-                            ? toneClass.success
-                            : situacao.tone === "danger"
-                              ? toneClass.danger
-                              : toneClass.muted,
-                        )}
-                      >
-                        {situacao.label}
-                      </span>
-                    </TableCell>
-                  </TableRow>
+                              onKeyDown={(event) => {
+                                if (event.key === "Enter") {
+                                  event.preventDefault();
+                                  focusNextCell(index, field);
+                                }
+                              }}
+                            />
+                          ) : (
+                            <span className="tnum block py-2 text-center text-sm">
+                              {draft[field] || "—"}
+                            </span>
+                          )}
+                        </label>
+                      ))}
+                    </div>
+                  </li>
                 );
               })}
-            </TableBody>
-          </Table>
-        </div>
+            </ul>
+          }
+          desktop={
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="w-10">Nº</TableHead>
+                    <TableHead>Aluno</TableHead>
+                    <TableHead>Proc.</TableHead>
+                    <TableHead
+                      className="w-24 text-right"
+                      title={angolaGradeScale.components[0].label}
+                    >
+                      MAC
+                    </TableHead>
+                    <TableHead
+                      className="w-24 text-right"
+                      title={angolaGradeScale.components[1].label}
+                    >
+                      NPP
+                    </TableHead>
+                    <TableHead
+                      className="w-24 text-right"
+                      title={angolaGradeScale.components[2].label}
+                    >
+                      NPT
+                    </TableHead>
+                    <TableHead className="text-right">Média</TableHead>
+                    <TableHead className="text-right">Situação</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {roster.map((student, index) => {
+                    const draft = drafts[student.id] ?? { mac: "", npp: "", npt: "" };
+                    const mac = parseScore(draft.mac);
+                    const npp = parseScore(draft.npp);
+                    const npt = parseScore(draft.npt);
+                    const average =
+                      mac != null && npp != null && npt != null
+                        ? scoreAverage(mac, npp, npt)
+                        : null;
+                    const situacao =
+                      average == null
+                        ? { label: "Pendente", tone: "muted" as const }
+                        : situacaoPauta(average, passingGrade);
+                    return (
+                      <TableRow key={student.id}>
+                        <TableCell className="text-xs text-muted-foreground">{index + 1}</TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-2.5">
+                            <UserAvatar
+                              {...(student.student_photo_url
+                                ? { url: student.student_photo_url }
+                                : {})}
+                              initials={initialsFromName(student.student_name)}
+                              className="size-9 bg-primary-soft text-[11px] font-extrabold text-primary"
+                            />
+                            <span className="font-semibold">{student.student_name}</span>
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-xs text-muted-foreground">
+                          {student.registration_number ?? "—"}
+                        </TableCell>
+                        {(["mac", "npp", "npt"] as const).map((field) => (
+                          <TableCell key={field} className="text-right">
+                            {canEdit ? (
+                              <Input
+                                aria-label={`${field.toUpperCase()} de ${student.student_name}`}
+                                inputMode="decimal"
+                                data-pauta={`${index}-${field}`}
+                                className="ml-auto h-8 w-20 text-right"
+                                value={draft[field]}
+                                placeholder="—"
+                                onChange={(event) =>
+                                  updateDraft(student.id, field, event.target.value)
+                                }
+                                onKeyDown={(event) => {
+                                  if (event.key === "Enter") {
+                                    event.preventDefault();
+                                    focusNextCell(index, field);
+                                  }
+                                }}
+                              />
+                            ) : (
+                              draft[field] || "—"
+                            )}
+                          </TableCell>
+                        ))}
+                        <TableCell className="text-right font-bold">
+                          {average == null ? "—" : average.toFixed(1)}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <span
+                            className={cn(
+                              badgeBase,
+                              situacao.tone === "success"
+                                ? toneClass.success
+                                : situacao.tone === "danger"
+                                  ? toneClass.danger
+                                  : toneClass.muted,
+                            )}
+                          >
+                            {situacao.label}
+                          </span>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </div>
+          }
+        />
       )}
     </div>
   );

@@ -23,6 +23,9 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { ResponsiveEntityView } from "@/components/mobile/ResponsiveEntityView";
+import { EntityList, type EntityListItem } from "@/components/mobile/EntityList";
+import { StatusBadge } from "@/components/ui/status-badge";
 import {
   listTeacherAttendanceSessions,
   getStudentAttendanceHistory,
@@ -264,82 +267,128 @@ export function AttendanceWorkspaceModule({
             compact
           />
         ) : (
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="text-xs">Data</TableHead>
-                <TableHead className="text-xs">Disciplina / Aula</TableHead>
-                <TableHead className="text-xs">Horário</TableHead>
-                <TableHead className="text-xs">Estado de Presença</TableHead>
-                <TableHead className="text-xs text-right">Ação</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredHistory.map((rec) => (
-                <TableRow key={rec.id}>
-                  <TableCell className="text-xs font-mono font-medium">{rec.date}</TableCell>
-                  <TableCell className="text-xs font-bold text-foreground">
-                    {rec.subject_name}
-                  </TableCell>
-                  <TableCell className="text-xs font-mono text-muted-foreground">
-                    {rec.time || "—"}
-                  </TableCell>
-                  <TableCell className="text-xs">
-                    {rec.status === "present" ? (
-                      <Badge
-                        variant="outline"
-                        className="bg-success/10 text-success border-success/30 text-[11px]"
-                      >
-                        <Check className="size-3 mr-1" /> Presente
-                      </Badge>
-                    ) : rec.status === "absent" ? (
-                      <Badge
-                        variant="outline"
-                        className="bg-destructive/10 text-destructive border-destructive/30 text-[11px]"
-                      >
-                        <X className="size-3 mr-1" /> Falta
-                      </Badge>
-                    ) : rec.status === "excused" ? (
-                      <Badge
-                        variant="outline"
-                        className="bg-info/10 text-info border-info/30 text-[11px]"
-                      >
-                        Justificada
-                      </Badge>
-                    ) : (
-                      <Badge
-                        variant="outline"
-                        className="bg-warning/10 text-warning-foreground border-warning/30 text-[11px]"
-                      >
-                        Atrasado
-                      </Badge>
-                    )}
-                  </TableCell>
-                  <TableCell className="text-xs text-right">
-                    {rec.notes ? (
-                      <Button
-                        type="button"
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => {
-                          setSelectedJustification({
-                            id: rec.id,
-                            reason: rec.notes ?? "",
-                          });
+          <ResponsiveEntityView
+            mobile={
+              <EntityList
+                items={filteredHistory.map<EntityListItem>((rec) => ({
+                  id: rec.id,
+                  title: rec.subject_name,
+                  subtitle: `${rec.date}${rec.time ? ` · ${rec.time}` : ""}`,
+                  status: (
+                    <StatusBadge
+                      status={
+                        rec.status === "present"
+                          ? "active"
+                          : rec.status === "absent"
+                            ? "rejected"
+                            : rec.status === "excused"
+                              ? "approved"
+                              : "pending"
+                      }
+                      label={
+                        rec.status === "present"
+                          ? "Presente"
+                          : rec.status === "absent"
+                            ? "Falta"
+                            : rec.status === "excused"
+                              ? "Justificada"
+                              : "Atrasado"
+                      }
+                      size="sm"
+                    />
+                  ),
+                  // Só há acção quando há justificação para analisar — uma linha
+                  // sem nota não abre nada e não finge que abre.
+                  ...(rec.notes
+                    ? {
+                        onSelect: () => {
+                          setSelectedJustification({ id: rec.id, reason: rec.notes ?? "" });
                           setReviewJustificationModalOpen(true);
-                        }}
-                        className="h-7 text-[11px] gap-1 text-primary"
-                      >
-                        <FileText className="size-3.5" /> Analisar
-                      </Button>
-                    ) : (
-                      <span className="text-muted-foreground text-[11px]">—</span>
-                    )}
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+                        },
+                      }
+                    : {}),
+                }))}
+              />
+            }
+            desktop={
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="text-xs">Data</TableHead>
+                    <TableHead className="text-xs">Disciplina / Aula</TableHead>
+                    <TableHead className="text-xs">Horário</TableHead>
+                    <TableHead className="text-xs">Estado de Presença</TableHead>
+                    <TableHead className="text-xs text-right">Ação</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredHistory.map((rec) => (
+                    <TableRow key={rec.id}>
+                      <TableCell className="text-xs font-mono font-medium">{rec.date}</TableCell>
+                      <TableCell className="text-xs font-bold text-foreground">
+                        {rec.subject_name}
+                      </TableCell>
+                      <TableCell className="text-xs font-mono text-muted-foreground">
+                        {rec.time || "—"}
+                      </TableCell>
+                      <TableCell className="text-xs">
+                        {rec.status === "present" ? (
+                          <Badge
+                            variant="outline"
+                            className="bg-success/10 text-success border-success/30 text-[11px]"
+                          >
+                            <Check className="size-3 mr-1" /> Presente
+                          </Badge>
+                        ) : rec.status === "absent" ? (
+                          <Badge
+                            variant="outline"
+                            className="bg-destructive/10 text-destructive border-destructive/30 text-[11px]"
+                          >
+                            <X className="size-3 mr-1" /> Falta
+                          </Badge>
+                        ) : rec.status === "excused" ? (
+                          <Badge
+                            variant="outline"
+                            className="bg-info/10 text-info border-info/30 text-[11px]"
+                          >
+                            Justificada
+                          </Badge>
+                        ) : (
+                          <Badge
+                            variant="outline"
+                            className="bg-warning/10 text-warning-foreground border-warning/30 text-[11px]"
+                          >
+                            Atrasado
+                          </Badge>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-xs text-right">
+                        {rec.notes ? (
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => {
+                              setSelectedJustification({
+                                id: rec.id,
+                                reason: rec.notes ?? "",
+                              });
+                              setReviewJustificationModalOpen(true);
+                            }}
+                            className="h-7 text-[11px] gap-1 text-primary"
+                          >
+                            <FileText className="size-3.5" /> Analisar
+                          </Button>
+                        ) : (
+                          <span className="text-muted-foreground text-[11px]">—</span>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            }
+          />
         )}
       </div>
 

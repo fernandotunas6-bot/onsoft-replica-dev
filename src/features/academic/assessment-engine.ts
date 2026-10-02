@@ -13,6 +13,7 @@ import {
   getPeriodNoun,
   getPeriodLabel,
   getPeriodLabelUpper,
+  roundToOneDecimal,
   type AngolaTeachingCycle,
 } from "@/lib/angola-academic";
 import { DEFAULT_PROMOTION_RULES, promotionRuleFor, type PromotionRules } from "./assessment-model";
@@ -22,6 +23,7 @@ import { DEFAULT_PROMOTION_RULES, promotionRuleFor, type PromotionRules } from "
 // src/features/pedagogica/components/pautas/assessment.ts) para nunca reimplementar a fórmula do
 // Decreto 424/25 nem a lista de ciclos em vários sítios.
 export { normalizeScore, calculateTrimesterAverage, calculateDisciplineFinalAverage };
+export { roundToOneDecimal };
 export {
   getPeriodCountForCycle,
   getPeriodsForCycle,
@@ -135,7 +137,23 @@ export function evaluateStudentPromotion({
   const failingCount = subjectResults.filter(
     (s) => s.mfd !== null && s.mfd < (options.passing ?? angolaGradeScale.passing),
   ).length;
-  const overallAvg = mfds.reduce((a, b) => a + b, 0) / mfds.length;
+
+  // A média decide **arredondada**, que é a mesma que a pauta imprime.
+  //
+  // Antes decidia sobre o valor bruto enquanto `buildClassAcademicSummaries` imprimia o
+  // arredondado, e os dois saem no mesmo objecto, lado a lado no documento. Com MFDs de
+  // 9,9 e 10,0 a média bruta é 9,95: a pauta dizia **"Média 10,0 — NÃO TRANSITA"**. Numa
+  // faixa estreita ([9,95 ; 10,0[) mas nada rara numa turma inteira, e num documento
+  // oficial que a escola tem de defender perante um encarregado.
+  //
+  // Qual das duas corrigir não é indiferente: um documento tem de ser reproduzível a
+  // partir do que nele está escrito. Quem lê "10,0" tem de chegar ao mesmo resultado que
+  // a escola chegou. Por isso alinha-se a decisão pelo número impresso, e não o contrário.
+  //
+  // A regra de arredondamento devia vir de `assessment_rule_sets.rounding_method`, que
+  // existe na base e não é lida por ninguém (docs/auditoria/05-auditoria.md, 5.1). Até lá,
+  // uma casa decimal — a mesma de `normalizeScore` e de `calculateDisciplineFinalAverage`.
+  const overallAvg = roundToOneDecimal(mfds.reduce((a, b) => a + b, 0) / mfds.length);
 
   return {
     status: decidePromotionStatus(overallAvg, failingCount, cycle, papGrade, options),
@@ -187,11 +205,11 @@ export function buildClassAcademicSummaries({
     const validMfds = studentSubjectSummaries
       .map((s) => s.mfd)
       .filter((x): x is number => x !== null);
+    // Mesmo helper que `evaluateStudentPromotion` usa para decidir: é o que garante que
+    // o número impresso e o estado impresso nunca se contradizem.
     const overallMfd =
       validMfds.length > 0
-        ? Math.round(
-            (validMfds.reduce((a, b) => a + b, 0) / validMfds.length + Number.EPSILON) * 10,
-          ) / 10
+        ? roundToOneDecimal(validMfds.reduce((a, b) => a + b, 0) / validMfds.length)
         : null;
 
     const { status, failingCount } = evaluateStudentPromotion({

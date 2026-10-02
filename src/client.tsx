@@ -1,6 +1,7 @@
 import { StrictMode, startTransition } from "react";
 import { hydrateRoot } from "react-dom/client";
 import { StartClient } from "@tanstack/react-start/client";
+import { attachStaleBuildRecovery } from "@/lib/stale-build";
 
 /**
  * Entrada do cliente.
@@ -11,6 +12,10 @@ import { StartClient } from "@tanstack/react-start/client";
  * Com o Vite 8 essa resolução falha (500) e a app nunca hidrata: fica presa
  * no ecrã «A verificar sessão…». Declarar a entrada aqui evita o fallback.
  */
+// Um deploy apaga os activos da build anterior; quem tem a app aberta rebenta na
+// primeira importação em diferido. Ver `stale-build.ts`.
+attachStaleBuildRecovery();
+
 startTransition(() => {
   hydrateRoot(
     document,

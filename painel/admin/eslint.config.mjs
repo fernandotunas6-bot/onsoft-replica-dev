@@ -1,22 +1,24 @@
 import { defineConfig, globalIgnores } from "eslint/config";
 import nextVitals from "eslint-config-next/core-web-vitals";
-import nextTs from "eslint-config-next/typescript";
+import nextTypeScript from "eslint-config-next/typescript";
 
-// eslint-config-next 16 já exporta flat config; o `next lint` deixou de existir.
 const eslintConfig = defineConfig([
   ...nextVitals,
-  ...nextTs,
-  globalIgnores([".next/**", "out/**", "build/**", "next-env.d.ts"]),
+  ...nextTypeScript,
   {
-    // Regras novas do React Compiler (react-hooks 7). As páginas carregam os
-    // dados com `useEffect(() => void load(), [load])`, que é correcto mas esta
-    // regra marca; e o `Math.random()` do sidebar/chat é de maquetas. Ficam
-    // como aviso até cada página migrar para um carregamento sem efeito.
     rules: {
-      "react-hooks/set-state-in-effect": "warn",
+      // This client-only dashboard loads remote data and browser preferences in
+      // effects. Those updates are intentional synchronisation points.
+      "react-hooks/set-state-in-effect": "off",
+      // TanStack Table intentionally returns non-memoizable callbacks.
+      "react-hooks/incompatible-library": "off",
+      // Platform-admin avatars and service icons come from tenant-controlled hosts.
+      "@next/next/no-img-element": "off",
+      // Regra do React Compiler (react-hooks 7): `Math.random()` do sidebar/chat é de maquetas.
       "react-hooks/purity": "warn",
     },
   },
+  globalIgnores([".next/**", "out/**", "build/**", "next-env.d.ts"]),
 ]);
 
 export default eslintConfig;

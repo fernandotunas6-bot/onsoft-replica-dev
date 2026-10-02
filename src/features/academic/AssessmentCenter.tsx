@@ -430,8 +430,8 @@ export function AssessmentCenter({
     ...items
       .filter((item) => {
         if (mode === "recursos") return item.component === "recurso";
-        if (mode === "exames") return item.component === "exame";
-        return item.component !== "recurso" && item.component !== "exame";
+        if (mode === "exames") return ["exame", "pap", "estagio"].includes(item.component);
+        return !["recurso", "exame", "pap", "estagio"].includes(item.component);
       })
       .map((item) => ({
         key: String(item.id),

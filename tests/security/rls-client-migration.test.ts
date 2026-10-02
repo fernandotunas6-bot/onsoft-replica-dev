@@ -165,6 +165,19 @@ const PRIVILEGIO_POR_DESENHO = new Set([
   "src/routes/api/saas/domains.poll.tsx",
   "src/routes/api/saas/email.routes.tsx",
   "src/routes/api/saas/mailboxes.tsx",
+
+  // Catálogo salarial (entrou a 2026-09-24). As cinco tabelas -- `hr_salary_scales`,
+  // `hr_salary_scale_versions`, `hr_salary_scale_steps`, `hr_salary_change_requests`
+  // e `hr_contract_salary_amendments` -- têm RLS activo e **zero políticas**: o
+  // cliente da sessão não consegue lê-las de todo.
+  //
+  // Isto é privilégio por ausência de regra, não por desenho. Fecha em segurança
+  // na base, mas deixa toda a autorização em código de aplicação, sem segunda
+  // camada — e são dados salariais. Quando as políticas existirem, migrar e tirar
+  // estes três daqui.
+  "src/features/hr/salary-amendments.ts",
+  "src/features/hr/salary-catalog.ts",
+  "src/features/hr/salary-changes.ts",
 ]);
 
 /**

@@ -7,10 +7,10 @@ import {
   HeadContent,
   Scripts,
 } from "@tanstack/react-router";
-import { useEffect, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 
 import appCss from "../styles.css?url";
-import { registerServiceWorker } from "@/lib/pwa";
+import { applyPendingUpdate, registerServiceWorker, SW_UPDATE_READY_EVENT } from "@/lib/pwa";
 import { measureVitals } from "@/lib/vitals";
 
 import { toast } from "sonner";
@@ -123,6 +123,16 @@ function RootShell({ children }: { children: ReactNode }) {
 
 import { TauriTitlebar } from "@/components/TauriTitlebar";
 
+function ClientOnlyToaster() {
+  const [hydrated, setHydrated] = useState(false);
+
+  useEffect(() => {
+    setHydrated(true);
+  }, []);
+
+  return hydrated ? <Toaster position="top-right" richColors /> : null;
+}
+
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
   const { sessionHint } = Route.useLoaderData();
@@ -141,6 +151,19 @@ function RootComponent() {
       }
     });
     registerServiceWorker();
+
+    const onUpdateReady = () => {
+      toast.message("Há uma versão nova do SIGA Plus", {
+        description: "As suas alterações em curso não se perdem — actualize quando quiser.",
+        duration: Infinity,
+        action: {
+          label: "Actualizar",
+          onClick: applyPendingUpdate,
+        },
+      });
+    };
+    window.addEventListener(SW_UPDATE_READY_EVENT, onUpdateReady);
+    return () => window.removeEventListener(SW_UPDATE_READY_EVENT, onUpdateReady);
   }, []);
 
   return (
@@ -165,7 +188,7 @@ function RootComponent() {
               </AuthGate>
             )}
           </div>
-          <Toaster position="top-right" richColors />
+          <ClientOnlyToaster />
         </AppearanceProvider>
       </TenantProvider>
     </QueryClientProvider>

@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { getPublicCalendarFeed } from "@/features/calendar/feed";
@@ -5,6 +6,35 @@ import { calendarIcsFeedUrl, toIcsCalendar } from "@/features/calendar/ics";
 import { servePublicCalendarIcs } from "@/features/calendar/ics-serve";
 
 // style-check: route-exempt - endpoint público de subscrição, sem shell administrativo.
+
+/**
+ * ATENÇÃO, antes de mexer aqui: o `CalendarFeedPage` lá em baixo **não é alcançável hoje**.
+ *
+ * O `server.handlers.GET` responde a *todos* os pedidos — HTML fixo quando o token é curto
+ * ou ausente, ficheiro `.ics` quando é válido — por isso nunca se chega ao componente.
+ * Medido a 2026-09-23 contra um build de produção, nas três variantes de pedido: 368 bytes
+ * do handler, 404 do `servePublicCalendarIcs`, e **zero** ocorrências de `/assets/index-`
+ * em qualquer delas (o shell da aplicação nunca é servido). Por dentro também não: não há
+ * `Link` nem `navigate` para esta rota em lado nenhum, e as **cinco** utilizações de
+ * `calendarIcsFeedUrl` (`AppLauncher`, `TeacherWorkspacePanel`, `InstalledModuleTools`,
+ * `calendario.tsx` e `professores/$teacherId`) constroem o endereço para o **copiar** para
+ * a área de transferência — todas elas chamam `navigator.clipboard.writeText`. As únicas
+ * outras referências à rota são listas de configuração (`public-paths`, `route-inventory`,
+ * `access-policy`), não navegação.
+ *
+ * O componente tem testes deliberados (`tests/routes/calendario-ics.test.tsx`), o que diz
+ * que alguém quis que a página funcionasse. São duas coisas incompatíveis, e a escolha não
+ * é de quem passa por aqui a corrigir outra coisa:
+ *
+ *   a) a página é para existir → o handler tem de deixar passar os pedidos que aceitam
+ *      HTML (`Accept: text/html`) e só servir `.ics` a quem pede `.ics`;
+ *   b) a página não é para existir → removem-se o componente e os testes, e fica o
+ *      componente mínimo que as outras 14 rotas com handler já usam.
+ *
+ * Enquanto não se decidir, fica como está: os testes passam, mas testam código que o
+ * produto não corre — o que é pior do que não haver teste nenhum, porque dá confiança
+ * falsa. Registado em `docs/agents/CONTINUE.md`, 2026-09-23.
+ */
 
 export const Route = createFileRoute("/calendario/ics")({
   validateSearch: (search: Record<string, unknown>) => ({
@@ -37,8 +67,16 @@ function CalendarFeedPage() {
   });
   const feed = feedQuery.data;
   const events = feed?.events ?? [];
-  const url =
-    typeof window !== "undefined" ? calendarIcsFeedUrl(window.location.origin, token) : token;
+  // A origem vem por estado, não lida durante o render.
+  //
+  // Estava `typeof window !== "undefined" ? calendarIcsFeedUrl(origin, token) : token`, e
+  // `url` vai para o JSX: o servidor renderizava o token cru e o cliente o endereço
+  // completo. Texto diferente dos dois lados é desencontro de hidratação — a mesma falha
+  // que o `DesktopTitleBar` tinha. Assim, ambos começam no token e o endereço aparece
+  // assim que montar.
+  const [origem, setOrigem] = useState("");
+  useEffect(() => setOrigem(window.location.origin), []);
+  const url = origem ? calendarIcsFeedUrl(origem, token) : token;
 
   return (
     <main className="mx-auto max-w-lg px-5 py-16 text-center">

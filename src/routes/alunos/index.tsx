@@ -130,6 +130,8 @@ import { overlayServico } from "@/features/documents/print-overlays";
 import { issuePrintDocument } from "@/features/documents/print-issue-loader";
 import { ListFilterBar } from "@/components/filters/ListFilterBar";
 import { usePersistedListFilters } from "@/lib/list-filters";
+import { ResponsiveEntityView } from "@/components/mobile/ResponsiveEntityView";
+import { StudentMobileList } from "@/features/students/components/StudentMobileList";
 
 const alunosSearchSchema = z
   .object({
@@ -1123,404 +1125,454 @@ function StudentsPage() {
             ) : null}
           </div>
 
-          <div className="overflow-x-auto">
-            <Table className="min-w-[880px]">
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="w-10 px-3">
-                    <input
-                      type="checkbox"
-                      aria-label="Seleccionar todos nesta página"
-                      className="size-4 rounded border-border text-primary cursor-pointer accent-primary"
-                      checked={paged.length > 0 && selectedIds.length >= paged.length}
-                      onChange={(e) => {
-                        if (e.target.checked) {
-                          setSelectedIds([...new Set([...selectedIds, ...paged.map((s) => s.id)])]);
-                        } else {
-                          const pagedIdSet = new Set(paged.map((s) => s.id));
-                          setSelectedIds(selectedIds.filter((id) => !pagedIdSet.has(id)));
-                        }
-                      }}
-                    />
-                  </TableHead>
-                  <SortHead label="Nº Estudante" colKey="processo" />
-                  <SortHead label="Nome" colKey="nome" />
-                  <TableHead className="hidden lg:table-cell">Encarregado</TableHead>
-                  <SortHead label="Email" colKey="email" />
-                  <SortHead label="Telefone" colKey="telefone" />
-                  <TableHead className="hidden xl:table-cell">Ano Lectivo</TableHead>
-                  <SortHead label="Estado" colKey="estado" />
-                  <TableHead className="text-right">Ações</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {studentsQuery.isLoading ? (
-                  <TableRow>
-                    <TableCell
-                      colSpan={9}
-                      className="py-10 text-center text-sm text-muted-foreground"
-                    >
-                      A carregar estudantes…
-                    </TableCell>
-                  </TableRow>
-                ) : studentsQuery.isError ? (
-                  <TableRow>
-                    <TableCell colSpan={9} className="py-10 text-center text-sm text-destructive">
-                      Não foi possível carregar os estudantes:{" "}
-                      {studentsQuery.error instanceof Error
-                        ? studentsQuery.error.message
-                        : "erro desconhecido"}
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  paged.map((s) => (
-                    <TableRow
-                      key={s.id}
-                      className={cn(
-                        "cursor-pointer transition-colors hover:bg-muted/60 group",
-                        selectedIds.includes(s.id) && "bg-primary/5",
-                      )}
-                      onClick={() => setExtensiveModalStudent(s)}
-                    >
-                      <TableCell className="w-10 px-3" onClick={(e) => e.stopPropagation()}>
+          {/*
+            A tabela de nove colunas fica para o computador; no telemóvel a
+            mesma lista é uma lista de entidades (§19). Os dados, os filtros e a
+            paginação são os mesmos — muda só a forma de os ler.
+          */}
+          <ResponsiveEntityView
+            mobile={
+              <StudentMobileList
+                students={paged}
+                loading={studentsQuery.isLoading}
+                error={studentsQuery.isError ? studentsQuery.error : undefined}
+                onRetry={() => void studentsQuery.refetch()}
+                onOpenStudent={(student) =>
+                  setExtensiveModalStudent(paged.find((row) => row.id === student.id) ?? null)
+                }
+                onClearFilters={resetFilters}
+                emptyTitle={
+                  categoria === "divida"
+                    ? "Nenhum aluno com dívida"
+                    : categoria === "candidatos"
+                      ? "Nenhum candidato pendente"
+                      : "Nenhum aluno encontrado"
+                }
+                emptyDescription={
+                  categoria === "divida"
+                    ? "As propinas deste conjunto de estudantes estão regularizadas."
+                    : categoria === "candidatos"
+                      ? "Não há candidatos a aguardar colocação em turma."
+                      : "Experimente alterar os filtros ou limpar os critérios."
+                }
+                selectedIds={selectedIds}
+                onToggleSelect={(id) =>
+                  setSelectedIds((prev) =>
+                    prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id],
+                  )
+                }
+                whatsappEnabled={whatsappOn}
+                whatsappHref={whatsappHref}
+              />
+            }
+            desktop={
+              <div className="overflow-x-auto">
+                <Table className="min-w-[880px]">
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="w-10 px-3">
                         <input
                           type="checkbox"
-                          aria-label={`Seleccionar ${s.full_name}`}
+                          aria-label="Seleccionar todos nesta página"
                           className="size-4 rounded border-border text-primary cursor-pointer accent-primary"
-                          checked={selectedIds.includes(s.id)}
+                          checked={paged.length > 0 && selectedIds.length >= paged.length}
                           onChange={(e) => {
                             if (e.target.checked) {
-                              setSelectedIds((prev) => [...prev, s.id]);
+                              setSelectedIds([
+                                ...new Set([...selectedIds, ...paged.map((s) => s.id)]),
+                              ]);
                             } else {
-                              setSelectedIds((prev) => prev.filter((id) => id !== s.id));
+                              const pagedIdSet = new Set(paged.map((s) => s.id));
+                              setSelectedIds(selectedIds.filter((id) => !pagedIdSet.has(id)));
                             }
                           }}
                         />
-                      </TableCell>
-                      <TableCell className="font-mono text-xs font-semibold text-primary">
-                        {s.registration_number}
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-3">
-                          <StudentAvatar photoUrl={s.photo_url} name={s.full_name} />
-                          <div className="min-w-0">
-                            <p className="whitespace-nowrap font-semibold group-hover:text-primary transition-colors">
-                              {s.full_name}
-                            </p>
-                            <p className="text-xs text-muted-foreground">
-                              {s.grade_name ?? "Sem classe"}
-                              {s.class_name ? (
-                                <>
-                                  {" · "}
-                                  {s.class_group_id ? (
-                                    <Link
-                                      to="/pedagogica"
-                                      search={{ tab: "turmas", turma: s.class_group_id }}
-                                      onClick={(event) => event.stopPropagation()}
-                                      className="rounded font-medium text-primary underline-offset-2 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
-                                    >
-                                      Turma {s.class_name}
-                                    </Link>
-                                  ) : (
-                                    `Turma ${s.class_name}`
-                                  )}
-                                </>
-                              ) : null}
-                            </p>
-                          </div>
-                        </div>
-                      </TableCell>
-
-                      <TableCell className="hidden max-w-[180px] truncate text-sm text-muted-foreground lg:table-cell">
-                        {s.primary_guardian_name ?? "—"}
-                      </TableCell>
-                      <TableCell className="max-w-[200px] truncate text-sm text-muted-foreground">
-                        {s.email ?? "—"}
-                      </TableCell>
-                      <TableCell className="whitespace-nowrap text-sm">
-                        <span className="inline-flex items-center gap-2">
-                          {s.phone ?? "—"}
-                          {whatsappOn && s.phone ? (
-                            <a
-                              href={whatsappHref(s.phone)}
-                              target="_blank"
-                              rel="noreferrer"
-                              className="text-[11px] font-semibold text-primary hover:underline"
-                              onClick={(event) => event.stopPropagation()}
-                            >
-                              WhatsApp
-                            </a>
-                          ) : null}
-                        </span>
-                      </TableCell>
-                      <TableCell className="hidden xl:table-cell">
-                        <span className="inline-flex rounded-lg bg-secondary px-2 py-1 font-mono text-[11px] text-secondary-foreground">
-                          {s.academic_year ?? "—"}
-                        </span>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex flex-col gap-1 items-start">
-                          <StudentStatusBadge status={s.student_status} size="sm" />
-                          {s.payment_status ? (
-                            <StudentFinanceBadge
-                              status={s.payment_status}
-                              debtAmount={s.debt_amount}
-                              overdueCount={s.overdue_count}
-                              size="sm"
-                            />
-                          ) : null}
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex justify-end gap-2">
-                          <Button
-                            type="button"
-                            variant="outline"
-                            size="sm"
-                            className="h-8 gap-1 px-2.5 text-xs font-semibold text-primary hover:bg-primary/10"
-                            onClick={(event) => {
-                              event.stopPropagation();
-                              setExtensiveModalStudent(s);
-                            }}
-                          >
-                            <Eye className="size-3.5" /> Visualizar
-                          </Button>
-                          <Button
-                            asChild
-                            variant="outline"
-                            size="sm"
-                            className="h-8 gap-1 px-2 text-xs"
-                            onClick={(event) => event.stopPropagation()}
-                          >
-                            <Link to="/alunos/$studentId" params={{ studentId: s.id }}>
-                              <FileText className="size-3.5" /> Ficha
-                            </Link>
-                          </Button>
-                          {s.student_status === "applicant" &&
-                          !s.class_name &&
-                          turmaOptions.length > 0 ? (
-                            <QuickFormModal
-                              title={`Colocar ${s.full_name} na turma`}
-                              description="Confirma a matrícula e activa o aluno na turma escolhida."
-                              submitLabel="Colocar na turma"
-                              successDescription="Aluno colocado na turma e estado actualizado para activo."
-                              fields={[
-                                {
-                                  name: "turma",
-                                  label: "Turma",
-                                  type: "select",
-                                  required: true,
-                                  options: turmaOptions,
-                                },
-                              ]}
-                              onSubmit={async (values) => {
-                                const group = classGroups.find(
-                                  (item) =>
-                                    `${item.name}${item.grade_name ? ` · ${item.grade_name}` : ""}` ===
-                                    values["turma"],
-                                );
-                                const yearId = String(group?.academic_year_id ?? "");
-                                if (!group || !yearId) {
-                                  throw new Error("Seleccione uma turma com ano lectivo.");
-                                }
-                                await enrollStudentInClass({
-                                  data: {
-                                    studentId: s.id,
-                                    classGroupId: group.id,
-                                    academicYearId: yearId,
-                                  },
-                                });
-                                await Promise.all([
-                                  queryClient.invalidateQueries({
-                                    queryKey: ["students", "search"],
-                                  }),
-                                  queryClient.invalidateQueries({
-                                    queryKey: ["academic", "pedagogical-workspace"],
-                                  }),
-                                  queryClient.invalidateQueries({
-                                    queryKey: ["dashboard", "overview"],
-                                  }),
-                                ]);
-                              }}
-                              trigger={(open) => (
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  className="h-8 gap-1 px-2 text-xs"
-                                  onClick={(event) => {
-                                    event.stopPropagation();
-                                    open();
-                                  }}
-                                >
-                                  <Users className="size-3.5" /> Turma
-                                </Button>
-                              )}
-                            />
-                          ) : null}
-                          {s.student_status === "active" &&
-                          s.class_name &&
-                          turmaOptions.length > 0 ? (
-                            <QuickFormModal
-                              title={`Mudar turma de ${s.full_name}`}
-                              description="Actualiza a matrícula do ano lectivo da turma escolhida."
-                              submitLabel="Mudar turma"
-                              successDescription="Aluno transferido para a nova turma."
-                              fields={[
-                                {
-                                  name: "turma",
-                                  label: "Nova turma",
-                                  type: "select",
-                                  required: true,
-                                  options: turmaOptions.filter((option) => option !== s.class_name),
-                                },
-                              ]}
-                              onSubmit={async (values) => {
-                                const group = classGroups.find(
-                                  (item) =>
-                                    `${item.name}${item.grade_name ? ` · ${item.grade_name}` : ""}` ===
-                                    values["turma"],
-                                );
-                                const yearId = String(group?.academic_year_id ?? "");
-                                if (!group || !yearId) {
-                                  throw new Error("Seleccione uma turma com ano lectivo.");
-                                }
-                                await enrollStudentInClass({
-                                  data: {
-                                    studentId: s.id,
-                                    classGroupId: group.id,
-                                    academicYearId: yearId,
-                                  },
-                                });
-                                await Promise.all([
-                                  queryClient.invalidateQueries({
-                                    queryKey: ["students", "search"],
-                                  }),
-                                  queryClient.invalidateQueries({
-                                    queryKey: ["academic", "pedagogical-workspace"],
-                                  }),
-                                  queryClient.invalidateQueries({
-                                    queryKey: ["dashboard", "overview"],
-                                  }),
-                                ]);
-                              }}
-                              trigger={(open) => (
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  className="h-8 gap-1 px-2 text-xs"
-                                  onClick={(event) => {
-                                    event.stopPropagation();
-                                    open();
-                                  }}
-                                >
-                                  <ArrowRightLeft className="size-3.5" /> Mudar
-                                </Button>
-                              )}
-                            />
-                          ) : null}
-                          {s.student_status !== "applicant" ? (
-                            <QuickFormModal
-                              title={`Estado de ${s.full_name}`}
-                              description="Altera o estado académico sem abrir a ficha."
-                              submitLabel="Actualizar estado"
-                              successDescription="Estado do aluno actualizado."
-                              fields={[
-                                {
-                                  name: "estado",
-                                  label: "Estado",
-                                  type: "select",
-                                  required: true,
-                                  defaultValue: estadoLabels[s.student_status] ?? "Activo",
-                                  options: ["Activo", "Inactivo", "Transferido", "Concluído"],
-                                },
-                                {
-                                  name: "motivo",
-                                  label: "Motivo",
-                                  type: "textarea",
-                                  required: false,
-                                  full: true,
-                                },
-                              ]}
-                              onSubmit={async (values) => {
-                                const statusMap: Record<
-                                  string,
-                                  "active" | "inactive" | "transferred" | "graduated"
-                                > = {
-                                  Activo: "active",
-                                  Inactivo: "inactive",
-                                  Transferido: "transferred",
-                                  Concluído: "graduated",
-                                };
-                                const newStatus = statusMap[values["estado"] ?? ""] ?? "active";
-                                await changeStudentStatus({
-                                  data: {
-                                    studentId: s.id,
-                                    newStatus,
-                                    reason: values["motivo"] || undefined,
-                                  },
-                                });
-                                await Promise.all([
-                                  queryClient.invalidateQueries({
-                                    queryKey: ["students", "search"],
-                                  }),
-                                  queryClient.invalidateQueries({
-                                    queryKey: ["dashboard", "overview"],
-                                  }),
-                                ]);
-                              }}
-                              trigger={(open) => (
-                                <Button
-                                  size="sm"
-                                  variant="ghost"
-                                  className="h-8 gap-1 px-2 text-xs"
-                                  onClick={(event) => {
-                                    event.stopPropagation();
-                                    open();
-                                  }}
-                                >
-                                  Estado
-                                </Button>
-                              )}
-                            />
-                          ) : null}
-                        </div>
-                      </TableCell>
+                      </TableHead>
+                      <SortHead label="Nº Estudante" colKey="processo" />
+                      <SortHead label="Nome" colKey="nome" />
+                      <TableHead className="hidden lg:table-cell">Encarregado</TableHead>
+                      <SortHead label="Email" colKey="email" />
+                      <SortHead label="Telefone" colKey="telefone" />
+                      <TableHead className="hidden xl:table-cell">Ano Lectivo</TableHead>
+                      <SortHead label="Estado" colKey="estado" />
+                      <TableHead className="text-right">Ações</TableHead>
                     </TableRow>
-                  ))
-                )}
-                {!studentsQuery.isLoading && !studentsQuery.isError && filtered.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={9} className="p-4">
-                      {categoria === "divida" ? (
-                        <EmptyState
-                          icon={CheckCircle2}
-                          title="Nenhum aluno com dívida"
-                          description="Todas as propinas e faturas emitidas para este conjunto de estudantes encontram-se regularizadas."
-                          compact
-                        />
-                      ) : categoria === "candidatos" ? (
-                        <EmptyState
-                          icon={UserPlus}
-                          title="Nenhum candidato pendente"
-                          description="Não existem candidatos ou alunos aguardando colocação em turma para os filtros actuais."
-                          compact
-                        />
-                      ) : (
-                        <EmptyState
-                          icon={GraduationCap}
-                          title="Nenhum aluno encontrado"
-                          description="Ajuste os filtros de pesquisa ou limpe os critérios para ver todos os alunos."
-                          actionLabel="Limpar filtros"
-                          onAction={resetFilters}
-                          compact
-                        />
-                      )}
-                    </TableCell>
-                  </TableRow>
-                ) : null}
-              </TableBody>
-            </Table>
-          </div>
+                  </TableHeader>
+                  <TableBody>
+                    {studentsQuery.isLoading ? (
+                      <TableRow>
+                        <TableCell
+                          colSpan={9}
+                          className="py-10 text-center text-sm text-muted-foreground"
+                        >
+                          A carregar estudantes…
+                        </TableCell>
+                      </TableRow>
+                    ) : studentsQuery.isError ? (
+                      <TableRow>
+                        <TableCell
+                          colSpan={9}
+                          className="py-10 text-center text-sm text-destructive"
+                        >
+                          Não foi possível carregar os estudantes:{" "}
+                          {studentsQuery.error instanceof Error
+                            ? studentsQuery.error.message
+                            : "erro desconhecido"}
+                        </TableCell>
+                      </TableRow>
+                    ) : (
+                      paged.map((s) => (
+                        <TableRow
+                          key={s.id}
+                          className={cn(
+                            "cursor-pointer transition-colors hover:bg-muted/60 group",
+                            selectedIds.includes(s.id) && "bg-primary/5",
+                          )}
+                          onClick={() => setExtensiveModalStudent(s)}
+                        >
+                          <TableCell className="w-10 px-3" onClick={(e) => e.stopPropagation()}>
+                            <input
+                              type="checkbox"
+                              aria-label={`Seleccionar ${s.full_name}`}
+                              className="size-4 rounded border-border text-primary cursor-pointer accent-primary"
+                              checked={selectedIds.includes(s.id)}
+                              onChange={(e) => {
+                                if (e.target.checked) {
+                                  setSelectedIds((prev) => [...prev, s.id]);
+                                } else {
+                                  setSelectedIds((prev) => prev.filter((id) => id !== s.id));
+                                }
+                              }}
+                            />
+                          </TableCell>
+                          <TableCell className="font-mono text-xs font-semibold text-primary">
+                            {s.registration_number}
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex items-center gap-3">
+                              <StudentAvatar photoUrl={s.photo_url} name={s.full_name} />
+                              <div className="min-w-0">
+                                <p className="whitespace-nowrap font-semibold group-hover:text-primary transition-colors">
+                                  {s.full_name}
+                                </p>
+                                <p className="text-xs text-muted-foreground">
+                                  {s.grade_name ?? "Sem classe"}
+                                  {s.class_name ? (
+                                    <>
+                                      {" · "}
+                                      {s.class_group_id ? (
+                                        <Link
+                                          to="/pedagogica"
+                                          search={{ tab: "turmas", turma: s.class_group_id }}
+                                          onClick={(event) => event.stopPropagation()}
+                                          className="rounded font-medium text-primary underline-offset-2 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+                                        >
+                                          Turma {s.class_name}
+                                        </Link>
+                                      ) : (
+                                        `Turma ${s.class_name}`
+                                      )}
+                                    </>
+                                  ) : null}
+                                </p>
+                              </div>
+                            </div>
+                          </TableCell>
+
+                          <TableCell className="hidden max-w-[180px] truncate text-sm text-muted-foreground lg:table-cell">
+                            {s.primary_guardian_name ?? "—"}
+                          </TableCell>
+                          <TableCell className="max-w-[200px] truncate text-sm text-muted-foreground">
+                            {s.email ?? "—"}
+                          </TableCell>
+                          <TableCell className="whitespace-nowrap text-sm">
+                            <span className="inline-flex items-center gap-2">
+                              {s.phone ?? "—"}
+                              {whatsappOn && s.phone ? (
+                                <a
+                                  href={whatsappHref(s.phone)}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  className="text-[11px] font-semibold text-primary hover:underline"
+                                  onClick={(event) => event.stopPropagation()}
+                                >
+                                  WhatsApp
+                                </a>
+                              ) : null}
+                            </span>
+                          </TableCell>
+                          <TableCell className="hidden xl:table-cell">
+                            <span className="inline-flex rounded-lg bg-secondary px-2 py-1 font-mono text-[11px] text-secondary-foreground">
+                              {s.academic_year ?? "—"}
+                            </span>
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex flex-col gap-1 items-start">
+                              <StudentStatusBadge status={s.student_status} size="sm" />
+                              {s.payment_status ? (
+                                <StudentFinanceBadge
+                                  status={s.payment_status}
+                                  debtAmount={s.debt_amount}
+                                  overdueCount={s.overdue_count}
+                                  size="sm"
+                                />
+                              ) : null}
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex justify-end gap-2">
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                className="h-8 gap-1 px-2.5 text-xs font-semibold text-primary hover:bg-primary/10"
+                                onClick={(event) => {
+                                  event.stopPropagation();
+                                  setExtensiveModalStudent(s);
+                                }}
+                              >
+                                <Eye className="size-3.5" /> Visualizar
+                              </Button>
+                              <Button
+                                asChild
+                                variant="outline"
+                                size="sm"
+                                className="h-8 gap-1 px-2 text-xs"
+                                onClick={(event) => event.stopPropagation()}
+                              >
+                                <Link to="/alunos/$studentId" params={{ studentId: s.id }}>
+                                  <FileText className="size-3.5" /> Ficha
+                                </Link>
+                              </Button>
+                              {s.student_status === "applicant" &&
+                              !s.class_name &&
+                              turmaOptions.length > 0 ? (
+                                <QuickFormModal
+                                  title={`Colocar ${s.full_name} na turma`}
+                                  description="Confirma a matrícula e activa o aluno na turma escolhida."
+                                  submitLabel="Colocar na turma"
+                                  successDescription="Aluno colocado na turma e estado actualizado para activo."
+                                  fields={[
+                                    {
+                                      name: "turma",
+                                      label: "Turma",
+                                      type: "select",
+                                      required: true,
+                                      options: turmaOptions,
+                                    },
+                                  ]}
+                                  onSubmit={async (values) => {
+                                    const group = classGroups.find(
+                                      (item) =>
+                                        `${item.name}${item.grade_name ? ` · ${item.grade_name}` : ""}` ===
+                                        values["turma"],
+                                    );
+                                    const yearId = String(group?.academic_year_id ?? "");
+                                    if (!group || !yearId) {
+                                      throw new Error("Seleccione uma turma com ano lectivo.");
+                                    }
+                                    await enrollStudentInClass({
+                                      data: {
+                                        studentId: s.id,
+                                        classGroupId: group.id,
+                                        academicYearId: yearId,
+                                      },
+                                    });
+                                    await Promise.all([
+                                      queryClient.invalidateQueries({
+                                        queryKey: ["students", "search"],
+                                      }),
+                                      queryClient.invalidateQueries({
+                                        queryKey: ["academic", "pedagogical-workspace"],
+                                      }),
+                                      queryClient.invalidateQueries({
+                                        queryKey: ["dashboard", "overview"],
+                                      }),
+                                    ]);
+                                  }}
+                                  trigger={(open) => (
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      className="h-8 gap-1 px-2 text-xs"
+                                      onClick={(event) => {
+                                        event.stopPropagation();
+                                        open();
+                                      }}
+                                    >
+                                      <Users className="size-3.5" /> Turma
+                                    </Button>
+                                  )}
+                                />
+                              ) : null}
+                              {s.student_status === "active" &&
+                              s.class_name &&
+                              turmaOptions.length > 0 ? (
+                                <QuickFormModal
+                                  title={`Mudar turma de ${s.full_name}`}
+                                  description="Actualiza a matrícula do ano lectivo da turma escolhida."
+                                  submitLabel="Mudar turma"
+                                  successDescription="Aluno transferido para a nova turma."
+                                  fields={[
+                                    {
+                                      name: "turma",
+                                      label: "Nova turma",
+                                      type: "select",
+                                      required: true,
+                                      options: turmaOptions.filter(
+                                        (option) => option !== s.class_name,
+                                      ),
+                                    },
+                                  ]}
+                                  onSubmit={async (values) => {
+                                    const group = classGroups.find(
+                                      (item) =>
+                                        `${item.name}${item.grade_name ? ` · ${item.grade_name}` : ""}` ===
+                                        values["turma"],
+                                    );
+                                    const yearId = String(group?.academic_year_id ?? "");
+                                    if (!group || !yearId) {
+                                      throw new Error("Seleccione uma turma com ano lectivo.");
+                                    }
+                                    await enrollStudentInClass({
+                                      data: {
+                                        studentId: s.id,
+                                        classGroupId: group.id,
+                                        academicYearId: yearId,
+                                      },
+                                    });
+                                    await Promise.all([
+                                      queryClient.invalidateQueries({
+                                        queryKey: ["students", "search"],
+                                      }),
+                                      queryClient.invalidateQueries({
+                                        queryKey: ["academic", "pedagogical-workspace"],
+                                      }),
+                                      queryClient.invalidateQueries({
+                                        queryKey: ["dashboard", "overview"],
+                                      }),
+                                    ]);
+                                  }}
+                                  trigger={(open) => (
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      className="h-8 gap-1 px-2 text-xs"
+                                      onClick={(event) => {
+                                        event.stopPropagation();
+                                        open();
+                                      }}
+                                    >
+                                      <ArrowRightLeft className="size-3.5" /> Mudar
+                                    </Button>
+                                  )}
+                                />
+                              ) : null}
+                              {s.student_status !== "applicant" ? (
+                                <QuickFormModal
+                                  title={`Estado de ${s.full_name}`}
+                                  description="Altera o estado académico sem abrir a ficha."
+                                  submitLabel="Actualizar estado"
+                                  successDescription="Estado do aluno actualizado."
+                                  fields={[
+                                    {
+                                      name: "estado",
+                                      label: "Estado",
+                                      type: "select",
+                                      required: true,
+                                      defaultValue: estadoLabels[s.student_status] ?? "Activo",
+                                      options: ["Activo", "Inactivo", "Transferido", "Concluído"],
+                                    },
+                                    {
+                                      name: "motivo",
+                                      label: "Motivo",
+                                      type: "textarea",
+                                      required: false,
+                                      full: true,
+                                    },
+                                  ]}
+                                  onSubmit={async (values) => {
+                                    const statusMap: Record<
+                                      string,
+                                      "active" | "inactive" | "transferred" | "graduated"
+                                    > = {
+                                      Activo: "active",
+                                      Inactivo: "inactive",
+                                      Transferido: "transferred",
+                                      Concluído: "graduated",
+                                    };
+                                    const newStatus = statusMap[values["estado"] ?? ""] ?? "active";
+                                    await changeStudentStatus({
+                                      data: {
+                                        studentId: s.id,
+                                        newStatus,
+                                        reason: values["motivo"] || undefined,
+                                      },
+                                    });
+                                    await Promise.all([
+                                      queryClient.invalidateQueries({
+                                        queryKey: ["students", "search"],
+                                      }),
+                                      queryClient.invalidateQueries({
+                                        queryKey: ["dashboard", "overview"],
+                                      }),
+                                    ]);
+                                  }}
+                                  trigger={(open) => (
+                                    <Button
+                                      size="sm"
+                                      variant="ghost"
+                                      className="h-8 gap-1 px-2 text-xs"
+                                      onClick={(event) => {
+                                        event.stopPropagation();
+                                        open();
+                                      }}
+                                    >
+                                      Estado
+                                    </Button>
+                                  )}
+                                />
+                              ) : null}
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    )}
+                    {!studentsQuery.isLoading && !studentsQuery.isError && filtered.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={9} className="p-4">
+                          {categoria === "divida" ? (
+                            <EmptyState
+                              icon={CheckCircle2}
+                              title="Nenhum aluno com dívida"
+                              description="Todas as propinas e faturas emitidas para este conjunto de estudantes encontram-se regularizadas."
+                              compact
+                            />
+                          ) : categoria === "candidatos" ? (
+                            <EmptyState
+                              icon={UserPlus}
+                              title="Nenhum candidato pendente"
+                              description="Não existem candidatos ou alunos aguardando colocação em turma para os filtros actuais."
+                              compact
+                            />
+                          ) : (
+                            <EmptyState
+                              icon={GraduationCap}
+                              title="Nenhum aluno encontrado"
+                              description="Ajuste os filtros de pesquisa ou limpe os critérios para ver todos os alunos."
+                              actionLabel="Limpar filtros"
+                              onAction={resetFilters}
+                              compact
+                            />
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    ) : null}
+                  </TableBody>
+                </Table>
+              </div>
+            }
+          />
 
           {/* Barra Flutuante de Ações em Massa */}
           {selectedIds.length > 0 ? (

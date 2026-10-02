@@ -15,6 +15,16 @@ import {
 } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { IconChip } from "@/components/ui/icon-chip";
@@ -97,12 +107,13 @@ export function AccountDrawer({
 }) {
   const currentUser = useCurrentAccount();
   const { activePlan } = useTenant();
-  const { signOut, signingOut } = useSignOut();
+  const { signOut, signOutAllDevices, signingOut } = useSignOut();
   const { colleagues } = useFrequentColleagues();
   const [view, setView] = useState<MessengerView>("menu");
   const [peer, setPeer] = useState<SchoolColleague | null>(null);
   const [pendingPeerId, setPendingPeerId] = useState<string | null>(null);
   const [profileModalOpen, setProfileModalOpen] = useState(false);
+  const [globalSignOutOpen, setGlobalSignOutOpen] = useState(false);
   const [profileModalTab, setProfileModalTab] = useState<
     "perfil" | "foto" | "seguranca" | "instituicoes"
   >("perfil");
@@ -139,7 +150,15 @@ export function AccountDrawer({
   }, [colleagues, pendingPeerId, openThread]);
 
   const handleSignOut = async () => {
-    await signOut();
+    if (!(await signOut())) return;
+    onOpenChange(false);
+    setView("menu");
+    setPeer(null);
+  };
+
+  const handleGlobalSignOut = async () => {
+    if (!(await signOutAllDevices())) return;
+    setGlobalSignOutOpen(false);
     onOpenChange(false);
     setView("menu");
     setPeer(null);
@@ -305,7 +324,7 @@ export function AccountDrawer({
           )}
 
           {view === "menu" ? (
-            <div className="px-4 pb-6 pt-3">
+            <div className="space-y-2 px-4 pb-6 pt-3">
               <Button
                 variant="ghost"
                 className="w-full justify-center gap-2 rounded-2xl bg-destructive/10 py-5 font-semibold text-destructive hover:bg-destructive/15 hover:text-destructive"
@@ -314,6 +333,14 @@ export function AccountDrawer({
               >
                 <LogOut className="size-4" />
                 {signingOut ? "A sair…" : "Sair"}
+              </Button>
+              <Button
+                variant="outline"
+                className="w-full justify-center rounded-2xl text-xs"
+                onClick={() => setGlobalSignOutOpen(true)}
+                disabled={signingOut}
+              >
+                Terminar sessão em todos os dispositivos
               </Button>
             </div>
           ) : null}
@@ -325,6 +352,26 @@ export function AccountDrawer({
         onOpenChange={setProfileModalOpen}
         defaultTab={profileModalTab}
       />
+      <AlertDialog open={globalSignOutOpen} onOpenChange={setGlobalSignOutOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Terminar todas as sessões?</AlertDialogTitle>
+            <AlertDialogDescription>
+              A sua conta será desconectada neste e nos outros dispositivos.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={signingOut}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={() => void handleGlobalSignOut()}
+              disabled={signingOut}
+            >
+              {signingOut ? "A terminar…" : "Terminar todas"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }

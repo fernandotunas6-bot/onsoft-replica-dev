@@ -184,7 +184,20 @@ describe("RH respeita as permissões do módulo Financeiro", () => {
       "teacher-lessons.ts",
       "materialize-lessons.ts",
     ]) {
-      expect(read(file), file).toMatch(/assertModuleNotBlocked\([^)]*"financeiro"/);
+      // Duas afirmações e não um regex só. Ficava
+      // `/assertModuleNotBlocked\([^)]*"financeiro"/`, que exige o literal DENTRO da
+      // chamada — e `materialize-lessons.ts` passou a calcular o módulo antes:
+      // `const moduleKey = membership.appRole === "Secretaria" ? "pedagogica" : "financeiro"`.
+      // A imposição continua lá, e melhor: uma Secretaria a sincronizar horários é
+      // barrada pelo módulo pedagógico, não pelo financeiro. O regex não vê através de
+      // uma variável e dava o ficheiro por desprotegido.
+      //
+      // O que importa verificar é que a chamada existe e que o módulo Financeiro está
+      // em jogo no ficheiro. Um ficheiro que salte a verificação falha na primeira;
+      // um que a faça para outro módulo qualquer falha na segunda.
+      const fonte = read(file);
+      expect(fonte, `${file}: sem assertModuleNotBlocked`).toMatch(/assertModuleNotBlocked\(/);
+      expect(fonte, `${file}: não menciona o módulo financeiro`).toMatch(/"financeiro"/);
     }
   });
 

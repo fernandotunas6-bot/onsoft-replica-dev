@@ -18,7 +18,7 @@
   "sqlNeverApplyToSga": [
     "all_migrations_combined.sql",
     "supabase/pending_feature_migrations.sql",
-    "supabase/migrations/20260810122022_foundation_schema.sql"
+    "supabase/migrations-lovable-nao-aplicar/20260810122022_foundation_schema.sql"
   ],
   "modules": [
     {

@@ -3,7 +3,7 @@
   "resumo": {
     "tabelas": 183,
     "com_rls": 183,
-    "politicas": 333,
+    "politicas": 332,
     "funcoes_private": 103,
     "triggers": 198
   },
@@ -3889,7 +3889,7 @@
       "rls_forcada": true,
       "anon_select": false,
       "auth_select": false,
-      "politicas": 2,
+      "politicas": 1,
       "colunas": [
         "id",
         "school_id",
@@ -7638,15 +7638,6 @@
       "cmd": "SELECT",
       "papeis": "{authenticated}",
       "usando": "private.is_active_member(id)",
-      "verificando": "",
-      "modo": "PERMISSIVE"
-    },
-    {
-      "tabela": "siga_access_cards",
-      "politica": "Members read siga_access_cards",
-      "cmd": "SELECT",
-      "papeis": "{authenticated}",
-      "usando": "is_school_member(school_id)",
       "verificando": "",
       "modo": "PERMISSIVE"
     },

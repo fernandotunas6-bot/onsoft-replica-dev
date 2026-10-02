@@ -20,8 +20,8 @@ describe("estorno de recibos (reverseCashEntry)", () => {
   const start = source.indexOf("export const reverseCashEntry");
   const handler = source.slice(start, source.indexOf("export const createPaymentPlan", start));
 
-  it("exige 2FA, como registar o pagamento", () => {
-    expect(handler).toMatch(/context\.claims\["aal"\] !== "aal2"/);
+  it("exige 2FA na aplicação e delega o estorno numa transacção da base", () => {
+    expect(handler).toContain("requireAal2(context.claims");
   });
   it("uses the atomic, authenticated database transaction", () => {
     expect(handler).toContain('context.supabase.rpc("siga_reverse_finance_receipt"');

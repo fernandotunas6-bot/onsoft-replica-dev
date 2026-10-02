@@ -15,6 +15,7 @@ const HR_DIR = resolve(REPO, "src/features/hr");
 /** Funções hr_* chamadas com o JWT que não mexem em dinheiro (e porquê). */
 const NOT_MONEY: Record<string, string> = {
   hr_redeem_teacher_qr: "SECURITY DEFINER; presença do professor por QR",
+  hr_redeem_teacher_qr_secure: "SECURITY DEFINER; presença do professor por QR (versão endurecida)",
   hr_evaluate_teacher_attendance_assurance: "SECURITY DEFINER; prova de presença",
   hr_materialize_teacher_lessons: "escreve aulas previstas, não valores",
   // As três abaixo só escrevem hr_teacher_lesson_occurrences (verificado na base a
@@ -45,6 +46,7 @@ describe("folha salarial e pagamentos com 2FA", () => {
   it("encontra as chamadas (se ficar vazio, o teste passaria em branco)", () => {
     expect(moneyCalls.map((c) => c.fn).sort()).toEqual(
       [
+        "hr_apply_approved_salary_change",
         "hr_approve_payroll_run",
         "hr_authorize_payroll_payment_batch",
         "hr_calculate_payroll_run",

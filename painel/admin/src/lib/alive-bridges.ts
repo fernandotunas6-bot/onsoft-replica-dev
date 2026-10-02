@@ -3,17 +3,13 @@
  * Rotas vivas (dashboard, tasks, mail, chat, calendar, pricing, faqs, users)
  * NÃO entram aqui — renderizam páginas reais.
  */
-import {
-  getCreateSchoolUrl,
-  getDocsUrl,
-  getWebUrl,
-} from "@/lib/ecosystem-urls"
+import { getCreateSchoolUrl, getDocsUrl, getWebUrl } from "@/lib/ecosystem-urls";
 
 export type AliveBridge = {
-  to: string
-  external?: boolean
-  label: string
-}
+  to: string;
+  external?: boolean;
+  label: string;
+};
 
 export const ADMIN_ALIVE_BRIDGES: Record<string, AliveBridge> = {
   "/landing": {
@@ -38,9 +34,8 @@ export const ADMIN_ALIVE_BRIDGES: Record<string, AliveBridge> = {
   },
   "/sign-in-2": { to: "/sign-in", label: "Entrar no Control Center" },
   "/sign-in-3": { to: "/sign-in", label: "Entrar no Control Center" },
-  "/forgot-password": { to: "/sign-in", label: "Entrar no Control Center" },
-  "/forgot-password-2": { to: "/sign-in", label: "Entrar no Control Center" },
-  "/forgot-password-3": { to: "/sign-in", label: "Entrar no Control Center" },
+  "/forgot-password-2": { to: "/forgot-password", label: "Recuperar acesso" },
+  "/forgot-password-3": { to: "/forgot-password", label: "Recuperar acesso" },
   "/settings/appearance": { to: "/settings/billing", label: "Catálogo SaaS" },
   "/settings/notifications": { to: "/mail", label: "Avisos da plataforma" },
   "/settings/connections": {
@@ -55,16 +50,14 @@ export const ADMIN_ALIVE_BRIDGES: Record<string, AliveBridge> = {
     external: true,
     label: "Criar escola (WEB)",
   },
-}
+};
 
 export function resolveAdminAliveBridge(pathname: string): AliveBridge | null {
-  const entries = Object.entries(ADMIN_ALIVE_BRIDGES).sort(
-    (a, b) => b[0].length - a[0].length,
-  )
+  const entries = Object.entries(ADMIN_ALIVE_BRIDGES).sort((a, b) => b[0].length - a[0].length);
   for (const [prefix, bridge] of entries) {
     if (pathname === prefix || pathname.startsWith(`${prefix}/`)) {
-      return bridge
+      return bridge;
     }
   }
-  return null
+  return null;
 }

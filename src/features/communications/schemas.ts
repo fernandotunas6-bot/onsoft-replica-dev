@@ -23,7 +23,7 @@ export const alumniAnnouncementAudienceOptions = [
   "alumni_fundraising",
 ] as const;
 
-export const announcementChannelOptions = ["sms", "email", "portal"] as const;
+export const announcementChannelOptions = ["sms", "whatsapp", "email", "portal"] as const;
 export const announcementStatusOptions = ["draft", "scheduled", "sent"] as const;
 
 const optionalDate = z

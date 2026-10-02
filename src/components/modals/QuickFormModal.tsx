@@ -15,10 +15,39 @@ export type QuickField = {
   type?:
     "text" | "number" | "date" | "time" | "textarea" | "select" | "angola-identity" | "password";
   options?: string[] | { value: string; label: string }[] | undefined;
+  /**
+   * Teclado do telemóvel (§28). Deixar em branco na maioria dos casos: o
+   * `inferInputMode` abaixo acerta a partir do tipo e do nome do campo. Só vale
+   * a pena fixar aqui quando o nome do campo não diz o que se escreve nele.
+   */
+  inputMode?: "text" | "numeric" | "decimal" | "tel" | "email" | "url" | "search" | undefined;
   full?: boolean | undefined;
   required?: boolean | undefined;
   defaultValue?: string | number | undefined;
 };
+
+/**
+ * Que teclado abrir para cada campo (§28).
+ *
+ * Num telemóvel, escrever um número de telefone com o teclado alfabético é
+ * quatro toques a mais por dígito, e um valor em kwanzas sem tecla de vírgula
+ * obriga a mudar de painel. O tipo do campo não chega para decidir — quase tudo
+ * neste formulário é `text` —, por isso o nome e o rótulo também contam.
+ *
+ * Fica deliberadamente conservador: quando não reconhece o campo devolve
+ * `undefined` e o browser decide, que é melhor do que forçar um teclado errado.
+ */
+function inferInputMode(field: QuickField): QuickField["inputMode"] {
+  if (field.inputMode) return field.inputMode;
+  if (field.type === "number") return "decimal";
+  const hint = `${field.name} ${field.label}`.toLowerCase();
+  if (/(telefone|telem|celular|contacto|phone|whatsapp)/.test(hint)) return "tel";
+  if (/(email|e-mail)/.test(hint)) return "email";
+  if (/(valor|montante|preço|preco|kz|kwanza|salário|salario|propina|taxa)/.test(hint))
+    return "decimal";
+  if (/(nif|bi\b|número|numero|quantidade|capacidade|nº)/.test(hint)) return "numeric";
+  return undefined;
+}
 
 /** Modal de criação e edição rápida com validação nativa dos campos. */
 export function QuickFormModal({
@@ -132,7 +161,7 @@ export function QuickFormModal({
                           id={field.name}
                           name={field.name}
                           required={field.required ?? true}
-                          className="mt-1 h-9 w-full rounded-md border border-input bg-background px-3 text-xs md:text-sm"
+                          className="mt-1 h-11 w-full rounded-md border border-input bg-background px-3 text-sm md:h-9 md:text-sm"
                           defaultValue={
                             field.defaultValue ??
                             (field.required === false ? "" : (normalizedOptions[0]?.value ?? ""))
@@ -161,6 +190,7 @@ export function QuickFormModal({
                       id={field.name}
                       name={field.name}
                       type={field.type ?? "text"}
+                      {...(inferInputMode(field) ? { inputMode: inferInputMode(field) } : {})}
                       placeholder={field.placeholder}
                       required={field.required ?? true}
                       defaultValue={field.defaultValue}

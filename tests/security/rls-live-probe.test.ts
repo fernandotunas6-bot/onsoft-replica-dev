@@ -57,20 +57,13 @@ const canProbe = Boolean(SUPABASE_URL && ANON_KEY);
  * memberships e contas — devolve `42501`: o papel anónimo não tem privilégio
  * nenhum sobre essas tabelas. É a postura mais forte, e não depende de RLS.
  *
- * As quatro abaixo são a excepção: a consulta passa e vem vazia. Não houve
- * fuga, mas a concessão é mais larga do que em tudo o resto, e o que hoje as
- * protege pode ser apenas não haver linhas — o processamento salarial ainda
- * não está em uso. Quando estiver, a diferença deixa de ser académica.
- *
- * `supabase/HARDEN_UNPROTECTED_SCHOOL_TABLES.sql` faz `REVOKE ALL ... FROM anon`
- * e acrescenta política. Depois de aplicado, esta lista fica vazia.
+ * Já houve quatro excepções (hr_contracts, hr_employments, hr_payroll_items,
+ * hr_payroll_runs): a consulta passava e vinha vazia, sem fuga mas com a concessão
+ * mais larga do que em tudo o resto. Confirmado a 2026-10-02, com a sonda anónima e
+ * com `has_table_privilege('anon', …)` na produção: nenhuma é alcançável. A lista
+ * fica vazia, e qualquer tabela que volte a aparecer aqui falha o teste.
  */
-const ANON_REACHABLE_TODAY = [
-  "hr_contracts",
-  "hr_employments",
-  "hr_payroll_items",
-  "hr_payroll_runs",
-].sort();
+const ANON_REACHABLE_TODAY: string[] = [];
 
 /**
  * Tabelas que nunca devem devolver uma linha a quem não se autenticou.
@@ -119,7 +112,12 @@ describe.skipIf(!canProbe)("sonda de isolamento contra a base real", () => {
           `por isso isto é acessível a qualquer pessoa. Aplicar ` +
           `supabase/HARDEN_UNPROTECTED_SCHOOL_TABLES.sql e confirmar RLS nesta tabela.`,
       ).toEqual([]);
-    });
+      // 20s, não os 5s por omissão: isto é uma chamada de rede à produção. A 5s
+      // a sonda falhava por latência, e uma falha de latência aqui lê-se como
+      // "fuga de dados de vencimentos" — o alarme mais caro que este ficheiro
+      // pode dar em falso. Lento não é inseguro; quem grita por tudo deixa de
+      // ser ouvido quando gritar por alguma coisa.
+    }, 20_000);
   }
 
   it("regista o que a sonda conseguiu observar", async () => {
@@ -150,7 +148,7 @@ describe.skipIf(!canProbe)("sonda de isolamento contra a base real", () => {
       .filter(([, state]) => state === "devolveu_dados")
       .map(([table]) => table);
     expect(leaking, `fuga confirmada sem autenticação: ${leaking.join(", ")}`).toEqual([]);
-  });
+  }, 30_000);
 
   it("as funções de que as políticas dependem existem mesmo na produção", async () => {
     // Esta era uma pergunta sem resposta: os ficheiros HARDEN_* não constavam de
@@ -227,7 +225,7 @@ describe.skipIf(!canProbe)("sonda de isolamento contra a base real", () => {
             `alcançáveis pelo papel anónimo. Actualize ANON_REACHABLE_TODAY — a ` +
             `lista existe para encolher até ficar vazia.`,
     ).toEqual(ANON_REACHABLE_TODAY);
-  });
+  }, 30_000);
 });
 
 describe.skipIf(canProbe)("sonda de isolamento (saltada)", () => {

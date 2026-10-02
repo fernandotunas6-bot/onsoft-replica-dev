@@ -138,6 +138,63 @@ async function personIdForStudent(
   };
 }
 
+/**
+ * Desconto de irmãos: a escola configura a percentagem em Definições → Cobrança
+ * (school_settings, domain "billing", campo sibling_discount_percent — ver
+ * school/server.ts:174). Até aqui essa percentagem nunca era lida ao criar o
+ * contrato financeiro, que gravava discount_percentage sempre a 0
+ * (docs/auditoria/06-auditoria.md, achado P1).
+ *
+ * "Irmão" = outro aluno com matrícula activa na escola que partilha pelo menos
+ * um encarregado (student_guardians.guardian_person_id) com o aluno da fatura.
+ */
+async function resolveSiblingDiscountPercent(
+  db: Awaited<ReturnType<typeof loadSgaAdminClient>>,
+  schoolId: string,
+  studentId: string,
+): Promise<number> {
+  const { data: guardians } = await db
+    .from("student_guardians")
+    .select("guardian_person_id")
+    .eq("school_id", schoolId)
+    .eq("student_id", studentId);
+  const guardianIds = (guardians ?? [])
+    .map((g) => g.guardian_person_id)
+    .filter((id): id is string => Boolean(id));
+  if (guardianIds.length === 0) return 0;
+
+  const { data: siblingLinks } = await db
+    .from("student_guardians")
+    .select("student_id")
+    .eq("school_id", schoolId)
+    .in("guardian_person_id", guardianIds)
+    .neq("student_id", studentId);
+  const siblingIds = [...new Set((siblingLinks ?? []).map((s) => s.student_id))];
+  if (siblingIds.length === 0) return 0;
+
+  const { data: activeSibling } = await db
+    .from("enrollments")
+    .select("id")
+    .eq("school_id", schoolId)
+    .eq("status", "active")
+    .in("student_id", siblingIds)
+    .limit(1)
+    .maybeSingle();
+  if (!activeSibling) return 0;
+
+  const { data: billingSettings } = await db
+    .from("school_settings")
+    .select("value")
+    .eq("school_id", schoolId)
+    .eq("domain", "billing")
+    .maybeSingle();
+  const configured = (billingSettings?.value as Record<string, unknown> | null)?.[
+    "sibling_discount_percent"
+  ];
+  const percent = Number(configured ?? 0);
+  return Number.isFinite(percent) && percent > 0 ? Math.min(percent, 100) : 0;
+}
+
 async function personIdForInvoice(
   db: Awaited<ReturnType<typeof loadSgaAdminClient>>,
   schoolId: string,
@@ -1024,29 +1081,39 @@ export const issueInvoice = createServerFn({ method: "POST" })
 
     let { data: contract } = await db
       .from("finance_contracts")
-      .select("id")
+      .select("id, discount_percentage")
       .eq("enrollment_id", enrollment.id)
       .eq("status", "active")
       .limit(1)
       .maybeSingle();
     if (!contract) {
+      const siblingDiscountPercent = await resolveSiblingDiscountPercent(
+        db,
+        membership.schoolId,
+        data.studentId,
+      );
       const { data: createdContract, error: contractError } = await db
         .from("finance_contracts")
         .insert({
           school_id: membership.schoolId,
           enrollment_id: enrollment.id,
           fee_plan_id: plan.id,
-          discount_percentage: 0,
+          discount_percentage: siblingDiscountPercent,
           status: "active",
           created_by: context.userId,
         })
-        .select("id")
+        .select("id, discount_percentage")
         .single();
       if (contractError) {
         throw publicDatabaseError(contractError, "Não foi possível criar o contrato financeiro.");
       }
       contract = createdContract;
     }
+    const contractDiscountPercent = Number(contract.discount_percentage ?? 0);
+    const discountAmount =
+      contractDiscountPercent > 0
+        ? Math.round(((data.amount * contractDiscountPercent) / 100) * 100) / 100
+        : 0;
 
     const kind = categoryToFeeKind(data.category);
     let feeQuery = db
@@ -1086,7 +1153,7 @@ export const issueInvoice = createServerFn({ method: "POST" })
           invoice_number: invoiceNumber,
           competence_month: competenceMonth,
           amount: data.amount,
-          discount_amount: 0,
+          discount_amount: discountAmount,
           penalty_amount: 0,
           due_date: data.dueOn,
           status: "open",
@@ -1208,23 +1275,23 @@ export const reverseCashEntry = createServerFn({ method: "POST" })
     );
     const db = await loadSgaAdminClient();
 
-    const { data: existingReceipt, error: lookupError } = await db
+    // Saber primeiro de que tipo é o movimento, para não confundir "não é um recibo" com
+    // "recibo já estornado" — a RPC devolve a mesma mensagem nos dois casos.
+    const { data: existente, error: leituraError } = await db
       .from("finance_receipts")
-      .select("id, status, invoice_id")
+      .select("id, status")
       .eq("id", data.cashEntryId)
       .eq("school_id", membership.schoolId)
       .maybeSingle();
-    if (lookupError)
-      throw publicDatabaseError(lookupError, "Não foi possível localizar o lançamento.");
+    if (leituraError) {
+      throw publicDatabaseError(leituraError, "Não foi possível localizar o lançamento.");
+    }
 
-    if (existingReceipt) {
-      // Estornar um recibo tira dinheiro à fatura: o mesmo 2FA que registar o
-      // pagamento (register_payment exige private.is_aal2).
-      if (context.claims["aal"] !== "aal2") {
-        throw new Error("Estornar um recibo exige 2FA activo nesta sessão.");
-      }
-      if (existingReceipt.status === "reversed") {
-        // Nunca reescrever quem estornou, quando e porquê.
+    if (existente?.id) {
+      // Do main: sem isto, estornar duas vezes devolvia a mensagem genérica da RPC e
+      // ninguém percebia que o recibo já tinha sido anulado. A RPC continua a ser a
+      // guarda a sério — esta verificação é só para a mensagem ser útil.
+      if (existente.status === "reversed") {
         throw new Error("Este recibo já foi estornado.");
       }
       const { data: receipt, error } = await context.supabase.rpc("siga_reverse_finance_receipt", {

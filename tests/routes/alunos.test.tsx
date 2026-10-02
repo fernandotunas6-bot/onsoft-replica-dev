@@ -214,3 +214,65 @@ describe("/alunos — render", () => {
     });
   });
 });
+
+/**
+ * A mesma rota a 375px.
+ *
+ * Isto não é um teste de aparência: se a troca de vista deixar de acontecer, o
+ * telemóvel volta a receber a tabela de nove colunas — que existe, responde e
+ * parece funcionar, enquanto nenhum nome se lê por inteiro. É uma regressão que
+ * nenhum teste de lógica apanha e que ninguém nota até abrir o telefone.
+ */
+describe("/alunos — render no telemóvel", () => {
+  const setViewport = (width: number) =>
+    Object.defineProperty(window, "innerWidth", {
+      value: width,
+      configurable: true,
+      writable: true,
+    });
+
+  afterEach(() => setViewport(1024));
+
+  it("a 375px lista os alunos como entidades e não monta a tabela", async () => {
+    setViewport(375);
+    seed({ students: [aluno] });
+
+    renderRoute(Alunos);
+
+    await waitFor(() => {
+      expect(screen.getByText("Nzola Miguel")).toBeDefined();
+    });
+
+    // A linha traz o que decide uma acção: nº, classe e turma.
+    expect(screen.getByText(/2026-0001/)).toBeDefined();
+    expect(screen.getByText(/10ª Classe/)).toBeDefined();
+
+    // E o cabeçalho da tabela de computador não existe no DOM — se existisse,
+    // era porque as duas vistas estavam montadas ao mesmo tempo.
+    expect(screen.queryByText("Encarregado")).toBeNull();
+    expect(screen.queryByRole("table")).toBeNull();
+  });
+
+  it("cada aluno tem um menu de acções identificado pelo nome", async () => {
+    setViewport(375);
+    seed({ students: [aluno] });
+
+    renderRoute(Alunos);
+
+    await waitFor(() => {
+      expect(screen.getByLabelText("Acções de Nzola Miguel")).toBeDefined();
+    });
+  });
+
+  it("a 1280px continua a montar a tabela", async () => {
+    setViewport(1280);
+    seed({ students: [aluno] });
+
+    renderRoute(Alunos);
+
+    await waitFor(() => {
+      expect(screen.getByRole("table")).toBeDefined();
+    });
+    expect(screen.getByText("Encarregado")).toBeDefined();
+  });
+});

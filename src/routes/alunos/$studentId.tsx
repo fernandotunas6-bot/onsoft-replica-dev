@@ -570,6 +570,27 @@ function StudentDetail() {
   };
 
   /**
+   * `enrollments.final_average` é lida aqui e no portal do encarregado, e **só o importador
+   * de Excel a escreve** — nada no sistema a calcula a partir das notas lançadas
+   * (docs/auditoria/05-auditoria.md, 5.8). Em produção: 36 matrículas, zero com valor.
+   * O cartão mostrava "—" a toda a gente, mesmo com o ano inteiro de notas lançado.
+   *
+   * O histórico desta mesma página já traz a média calculada pelo motor que alimenta a
+   * Pauta Final, e vem ordenado por ano lectivo. Enquanto a coluna não for mantida, o ano
+   * mais recente serve — e a legenda do cartão diz de onde veio o número, para não parecer
+   * um dado guardado que não é.
+   */
+  const mediaFinal = (() => {
+    if (student.final_average != null) return student.final_average;
+    const years = historyQuery.data?.years ?? [];
+    for (let i = years.length - 1; i >= 0; i -= 1) {
+      const media = years[i]?.overallMfd;
+      if (media != null) return media;
+    }
+    return null;
+  })();
+
+  /**
    * Histórico multi-ano: um período por ano lectivo (matrícula), a partir do mesmo motor de
    * cálculo (assessment-engine.ts) que alimenta a Pauta Final — nunca diverge dela.
    */
@@ -1400,16 +1421,14 @@ function StudentDetail() {
         <div className="grid gap-4 sm:grid-cols-3">
           <StatCard
             title="Média final"
-            value={student.final_average != null ? student.final_average.toFixed(1) : "—"}
-            subtitle="Escala curricular 0–20 valores"
-            icon={GraduationCap}
-            tone={
-              student.final_average != null
-                ? student.final_average >= 10
-                  ? "success"
-                  : "destructive"
-                : "neutral"
+            value={mediaFinal != null ? mediaFinal.toFixed(1) : "—"}
+            subtitle={
+              student.final_average == null && mediaFinal != null
+                ? "Calculada das notas lançadas · 0–20 valores"
+                : "Escala curricular 0–20 valores"
             }
+            icon={GraduationCap}
+            tone={mediaFinal != null ? (mediaFinal >= 10 ? "success" : "destructive") : "neutral"}
           />
           <StatCard
             title="Taxa de presença"

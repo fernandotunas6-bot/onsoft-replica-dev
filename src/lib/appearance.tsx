@@ -373,10 +373,25 @@ export function AppearanceProvider({ children }: { children: ReactNode }) {
     }
   }, [state]);
 
+  /**
+   * A preferência do sistema operativo, seguida em estado em vez de lida durante o
+   * render.
+   *
+   * `isDark` chega ao JSX do `AppShell` (ícone e rótulo do botão de tema). Lido
+   * directamente com `matchMedia` no corpo do componente, dava `false` no servidor —
+   * onde não há `window` — e `true` no primeiro render de quem tem o SO em escuro:
+   * servidor e cliente discordavam e a hidratação falhava (React #418). Em estado,
+   * nasce `false` nos dois lados e só muda depois de montar.
+   */
+  const [prefereEscuro, setPrefereEscuro] = useState(false);
+
   useEffect(() => {
-    if (state.mode !== "system") return;
     const mq = window.matchMedia("(prefers-color-scheme: dark)");
-    const onChange = () => applyAppearance(state);
+    setPrefereEscuro(mq.matches);
+    const onChange = () => {
+      setPrefereEscuro(mq.matches);
+      if (state.mode === "system") applyAppearance(state);
+    };
     mq.addEventListener("change", onChange);
     return () => mq.removeEventListener("change", onChange);
   }, [state]);
@@ -390,11 +405,7 @@ export function AppearanceProvider({ children }: { children: ReactNode }) {
     setState(defaults);
   }, []);
 
-  const isDark =
-    state.mode === "dark" ||
-    (state.mode === "system" &&
-      typeof window !== "undefined" &&
-      window.matchMedia?.("(prefers-color-scheme: dark)").matches === true);
+  const isDark = state.mode === "dark" || (state.mode === "system" && prefereEscuro);
 
   const toggleDark = useCallback(
     (event?: React.MouseEvent) => {
