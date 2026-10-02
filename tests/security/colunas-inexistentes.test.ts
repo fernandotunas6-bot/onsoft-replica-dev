@@ -335,6 +335,9 @@ const FUNCOES_ESPERA_MIGRACAO = new Set<string>([
   // `hr/teacher-lessons.ts` chama-a desde eaceb8f2; sondada na produção a 2026-09-28
   // devolve PGRST202, e a presença do docente por QR não é registada enquanto assim for.
   "hr_redeem_teacher_qr_secure",
+  // `20261002120000_gateway_settlement_atomic.sql`, por aplicar. Até lá o código
+  // recebe PGRST202 e segue o caminho em passos (gateway-webhook-handler.ts).
+  "settle_gateway_payment_service",
 ]);
 /**
  * Colunas que o código grava e a produção ainda não tem porque há uma migração escrita e

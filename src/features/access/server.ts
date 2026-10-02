@@ -17,6 +17,8 @@ import {
 import { isRateLimitBypassed } from "@/lib/rate-limit";
 import { signInWithIdentifierInputSchema } from "./bi-login";
 import { recordAccessAudit } from "@/features/audit/record-audit";
+import { requireAal2 } from "@/features/hr/require-aal2";
+import { reportSigaError } from "@/lib/ops-report";
 import {
   inviteUserInputSchema,
   resendSystemInviteInputSchema,
@@ -772,6 +774,10 @@ export const resetStaffPasswordDirect = createServerFn({ method: "POST" })
   .validator((input: unknown) => resetStaffPasswordInputSchema.parse(input))
   .handler(async ({ data, context }) => {
     if (!context) throw new Error("Unauthorized");
+    // Definir a senha de outra pessoa é tomar a conta dela: só com 2FA nesta sessão.
+    // Sem isto, a senha de um Administrador bastava para entrar como Tesouraria e
+    // inscrever lá um 2FA próprio.
+    requireAal2(context.claims ?? {}, "Redefinir a senha de um funcionário");
     const { schoolId, isAdministrator } = await requireAdminContext(context);
     if (!isAdministrator) {
       throw new Error(
@@ -821,6 +827,10 @@ export const resetStaffPasswordDirect = createServerFn({ method: "POST" })
       throw new Error(error.message || "Não foi possível redefinir a senha do funcionário.");
     }
 
+    if (data.userId !== context.userId) {
+      await notifyPasswordResetByAdmin(admin, schoolId, data.userId);
+    }
+
     await recordAccessAudit({
       schoolId,
       actorUserId: context.userId,
@@ -831,6 +841,50 @@ export const resetStaffPasswordDirect = createServerFn({ method: "POST" })
     });
     return { success: true, userId: data.userId };
   });
+
+function escapeHtml(value: string) {
+  return value.replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
+}
+
+/**
+ * Avisa o funcionário de que a senha foi mudada pela Administração: se não foi
+ * ele a pedir, fica a saber. Um aviso que falha não desfaz a redefinição.
+ */
+async function notifyPasswordResetByAdmin(
+  admin: Awaited<ReturnType<typeof loadAdminClient>>,
+  schoolId: string,
+  userId: string,
+) {
+  try {
+    const apiKey = process.env["RESEND_API_KEY"]?.trim();
+    const { data: authData } = await admin.auth.admin.getUserById(userId);
+    const email = authData.user?.email;
+    if (!apiKey || !email) return;
+    const { data: school } = await admin
+      .from("schools")
+      .select("name")
+      .eq("id", schoolId)
+      .maybeSingle();
+    const schoolName = school?.name || getAppName();
+    const text =
+      `A senha da sua conta ${getAppName()} na ${schoolName} foi redefinida pela Administração da escola.\n\n` +
+      "Se não pediu esta alteração, contacte a Administração de imediato.";
+    await sendResendEmail({
+      apiKey,
+      from: resolveSystemSender("auth", { schoolName }),
+      to: [email],
+      subject: `A sua senha foi redefinida — ${schoolName}`,
+      html: `<p>${escapeHtml(text).replace(/\n\n/g, "</p><p>")}</p>`,
+      text,
+    });
+  } catch (error) {
+    reportSigaError("access.password_reset_notice.failed", error, {
+      module: "access",
+      school_id: schoolId,
+      entity_id: userId,
+    });
+  }
+}
 
 /** Papéis reais da escola (para preencher o cargo do convite institucional). */
 export const listSchoolRoles = createServerFn({ method: "GET" })

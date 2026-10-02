@@ -6,12 +6,12 @@ Modelo para a **escola** ou **operador SIGA Plus** solicitar credenciais e confi
 
 ## O que a escola obtém no banco
 
-| Credencial | Quem emite | Onde entra no SIGA |
-| --- | --- | --- |
-| Entidade EMIS (4–6 dígitos) | Banco / EMIS | Definições → Integrações → **Merchant EMIS / Multicaixa** |
-| Conta merchant Unitel | Unitel Money | Contrato comercial (sem campo directo no SIGA além da integração) |
-| URL de notificação | **Copiada do SIGA** | Portal banco (não inventar) |
-| API key de webhook | **Gerada pelo SIGA** na instalação da integração | Portal banco — campo `apiKey` no JSON |
+| Credencial                  | Quem emite                                       | Onde entra no SIGA                                                |
+| --------------------------- | ------------------------------------------------ | ----------------------------------------------------------------- |
+| Entidade EMIS (4–6 dígitos) | Banco / EMIS                                     | Definições → Integrações → **Merchant EMIS / Multicaixa**         |
+| Conta merchant Unitel       | Unitel Money                                     | Contrato comercial (sem campo directo no SIGA além da integração) |
+| URL de notificação          | **Copiada do SIGA**                              | Portal banco (não inventar)                                       |
+| API key de webhook          | **Gerada pelo SIGA** na instalação da integração | Portal banco — chave da assinatura HMAC (não vai no pedido)       |
 
 **Não confundir:** entidade EMIS ≠ API key. A entidade aparece no terminal; a API key autentica o POST de confirmação.
 
@@ -21,10 +21,10 @@ Modelo para a **escola** ou **operador SIGA Plus** solicitar credenciais e confi
 2. Definições → Integrações → instalar Multicaixa e/ou Unitel.
 3. Copiar da secção «Webhook de confirmação»:
 
-| Canal | URL |
-| --- | --- |
-| EMIS / Multicaixa | `https://{hostname}/api/finance/gateway/confirm` |
-| Unitel Money | `https://{hostname}/api/finance/gateway/unitel/confirm` |
+| Canal             | URL                                                     |
+| ----------------- | ------------------------------------------------------- |
+| EMIS / Multicaixa | `https://{hostname}/api/finance/gateway/confirm`        |
+| Unitel Money      | `https://{hostname}/api/finance/gateway/unitel/confirm` |
 
 4. Copiar **API key** (`webhookApiKey`) — uma por canal, por escola.
 5. Anotar **Merchant EMIS** (Multicaixa) — valor que o banco vai confirmar ou atribuir.
@@ -44,11 +44,12 @@ Dados para callback automático (liquidação de propinas):
   URL de notificação (POST, JSON):
     https://[hostname]/api/finance/gateway/confirm
 
-  Autenticação: campo "apiKey" no corpo JSON (valor que forneceremos
+  Autenticação: assinatura HMAC-SHA256 com a chave que forneceremos
   após confirmação da entidade EMIS).
 
   Corpo esperado:
-    { "apiKey": "…", "reference": "123456789", "amount": 45000, "invoiceId": "…" }
+    { "reference": "123456789", "amount": 45000, "externalId": "…" }
+    Cabeçalhos: X-SIGA-Timestamp e X-SIGA-Signature (ver emis-multicaixa-unitel.md)
 
   Entidade EMIS atribuída à escola: [4–6 dígitos — confirmar com o banco]
 
@@ -75,7 +76,7 @@ e mencionar integração **Unitel Money** (API key separada da Multicaixa).
 - [ ] Entidade EMIS confirmada = valor no SIGA (Integrações → Merchant EMIS)
 - [ ] URL exacta no portal (HTTPS, hostname público activo)
 - [ ] Método POST, Content-Type `application/json`
-- [ ] Campo de autenticação = `apiKey` (valor do SIGA, **não** entidade EMIS)
+- [ ] Pedidos assinados com a key do SIGA (`X-SIGA-Signature`), **não** a entidade EMIS
 - [ ] Teste sandbox ou pagamento mínimo → fatura SIGA passa a `paid`
 - [ ] Unitel: URL `/unitel/confirm`, integração Unitel instalada no SIGA
 

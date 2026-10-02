@@ -106,7 +106,10 @@ function GatewayWebhookHint({
       <p className="text-muted-foreground">
         Configure no portal {provider === "unitel_money" ? "Unitel Money" : "EMIS/Multicaixa"} o
         POST abaixo. Corpo JSON:{" "}
-        <code className="text-[11px]">{`{ apiKey, reference, amount, invoiceId? }`}</code>
+        <code className="text-[11px]">{`{ reference, amount, externalId }`}</code>. A API key não
+        vai no pedido: assina-o, com os cabeçalhos{" "}
+        <code className="text-[11px]">X-SIGA-Timestamp</code> e{" "}
+        <code className="text-[11px]">X-SIGA-Signature: sha256=HMAC(key, timestamp.corpo)</code>.
       </p>
       {keyMasked ? (
         <p className="text-[11px] text-muted-foreground">
