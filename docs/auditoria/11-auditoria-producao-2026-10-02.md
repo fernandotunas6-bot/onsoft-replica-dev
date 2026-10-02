@@ -114,6 +114,17 @@ crítica; 2503 testes, incluindo guardas de segurança que falham quando alguém
 
 Nenhuma migração escrita nem aplicada; nenhuma escrita na base de produção.
 
+### 3.ª entrega — esquema alinhado e revisão das migrações trazidas
+
+- 7 migrações só-produção trazidas do registo (md5 conferido); retrato e tipos
+  recapturados (186 tabelas, só acréscimos); `FUNCOES_ESPERA_MIGRACAO` vazia.
+- Revisão contra `DATABASE_RULES.md`: `save_academic_calendar` confia em `p_actor_id`,
+  mas só `service_role` a executa (seguro); funções de RH com aal2, papel e permissão
+  (seguras). **Chat:** INSERT aceitava escola e anexo de outra escola, resposta a outra
+  conversa, e quem saía da escola continuava a ler (1 caso na produção); `created_by`
+  bloqueava apagar contas. Correcção `20261002100000_chat_integrity.sql`, ensaiada em
+  PGlite (`tests/sql/chat-integrity.mjs`, que falha sem ela) — **por aplicar**.
+
 ### 2.ª entrega (mesmo dia)
 
 | Ficheiro                                                                                              | Mudança                                                                |
