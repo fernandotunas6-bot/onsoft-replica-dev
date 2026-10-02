@@ -237,7 +237,8 @@ export const validateGatePassToken = createServerFn({ method: "POST" })
       };
     }
 
-    return evaluateGatePassAccess(db, membership.schoolId, tokens, data.direction, device);
+    // Funcionário com sessão: pode também escrever o número impresso no cartão.
+    return evaluateGatePassAccess(db, membership.schoolId, tokens, data.direction, device, "staff");
   });
 
 /** Webhook para leitores físicos — autenticação via api_key (sem login SIGA). */

@@ -36,6 +36,8 @@ export const OPTIONAL_WORKER_SECRETS = [
   // URL de webhook (Slack ou outro) dos alertas de `reportSigaEvent`: quem a tem
   // escreve no canal, por isso vai cifrada. Sem ela nenhum alerta sai.
   "SIGA_ALERT_WEBHOOK_URL",
+  // Par da VITE_HCAPTCHA_SITE_KEY: com ela, o registo público de escolas exige captcha.
+  "HCAPTCHA_SECRET_KEY",
 ];
 
 /** Lidas pelo código mas que não são segredos do worker (e porquê). */

@@ -68,6 +68,53 @@ export function cargoRequiresAdministrator(cargoOrRoleCode: string): boolean {
   );
 }
 
+type SchoolBanPlan = {
+  update: boolean;
+  banDuration?: "876000h" | "none";
+  schoolBans: string[];
+  notice: string | null;
+};
+
+/**
+ * Decide o que fazer ao bloqueio global da conta quando uma escola a suspende
+ * ou reactiva. `siga_school_bans` (app_metadata) lista as escolas que a bloquearam.
+ */
+export function planSchoolBan(input: {
+  disabled: boolean;
+  schoolId: string;
+  hasOtherActiveSchools: boolean;
+  bannedUntil: string | null;
+  schoolBans: unknown;
+  now?: number;
+}): SchoolBanPlan {
+  const bans = Array.isArray(input.schoolBans)
+    ? input.schoolBans.filter((v): v is string => typeof v === "string")
+    : [];
+  const banned =
+    Boolean(input.bannedUntil) && Date.parse(String(input.bannedUntil)) > (input.now ?? Date.now());
+
+  if (input.disabled) {
+    // Com outra escola activa, só a membership desta é suspensa.
+    if (input.hasOtherActiveSchools) return { update: false, schoolBans: bans, notice: null };
+    const schoolBans = bans.includes(input.schoolId) ? bans : [...bans, input.schoolId];
+    return { update: true, banDuration: "876000h", schoolBans, notice: null };
+  }
+
+  const remaining = bans.filter((id) => id !== input.schoolId);
+  if (!banned) {
+    return { update: remaining.length !== bans.length, schoolBans: remaining, notice: null };
+  }
+  if (bans.includes(input.schoolId) && remaining.length === 0) {
+    return { update: true, banDuration: "none", schoolBans: remaining, notice: null };
+  }
+  return {
+    update: remaining.length !== bans.length,
+    schoolBans: remaining,
+    notice:
+      "A conta voltou a esta escola, mas continua bloqueada por outra escola ou pela plataforma.",
+  };
+}
+
 async function requireAdminContext(context: AuthedContext) {
   const membership = await resolveSgaMembershipAdmin(context.userId);
   if (!membership) throw new Error("Não foi possível determinar a escola actual.");
@@ -559,12 +606,31 @@ export const setSystemAccountDisabled = createServerFn({ method: "POST" })
 
     // O bloqueio de auth.users vale para todas as escolas. Com acesso activo a
     // outra escola, suspende-se só a membership desta — as outras escolas
-    // decidem por si. Ao reactivar, o bloqueio global é levantado.
+    // decidem por si. Cada escola que bloqueia fica anotada na conta; ao
+    // reactivar, só se levanta o bloqueio global se foi esta escola que o pôs e
+    // nenhuma outra o mantém. Um bloqueio da plataforma (ou de outra escola)
+    // não é desfeito por aqui.
     const access = await otherSchoolAccess(admin, data.userId, schoolId);
-    if (!data.disabled || !access.hasOtherActiveSchools) {
-      await admin.auth.admin.updateUserById(data.userId, {
-        ban_duration: data.disabled ? "876000h" : "none",
+    const { data: authUser, error: authUserError } = await admin.auth.admin.getUserById(
+      data.userId,
+    );
+    if (authUserError || !authUser.user) {
+      throw new Error("Não foi possível ler a conta de acesso.");
+    }
+    const appMetadata = (authUser.user.app_metadata ?? {}) as Record<string, unknown>;
+    const plan = planSchoolBan({
+      disabled: data.disabled,
+      schoolId,
+      hasOtherActiveSchools: access.hasOtherActiveSchools,
+      bannedUntil: (authUser.user as { banned_until?: string | null }).banned_until ?? null,
+      schoolBans: appMetadata["siga_school_bans"],
+    });
+    if (plan.update) {
+      const { error: banError } = await admin.auth.admin.updateUserById(data.userId, {
+        ...(plan.banDuration ? { ban_duration: plan.banDuration } : {}),
+        app_metadata: { ...appMetadata, siga_school_bans: plan.schoolBans },
       });
+      if (banError) throw new Error("Não foi possível actualizar o bloqueio da conta.");
     }
 
     await recordAccessAudit({
@@ -575,7 +641,7 @@ export const setSystemAccountDisabled = createServerFn({ method: "POST" })
       entityId: data.userId,
       metadata: {},
     });
-    return { id: data.userId, disabled: data.disabled };
+    return { id: data.userId, disabled: data.disabled, notice: plan.notice };
   });
 
 export const resendSystemInvite = createServerFn({ method: "POST" })

@@ -38,6 +38,8 @@ export interface SchoolSignupPayload {
   admin_name: string
   admin_password: string
   website?: string
+  /** hCaptcha (quando o build tem VITE_HCAPTCHA_SITE_KEY). */
+  captcha_token?: string
 }
 
 export function formatAoaPrice(value?: number | null): string | null {

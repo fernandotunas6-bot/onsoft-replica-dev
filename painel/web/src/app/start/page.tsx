@@ -35,6 +35,7 @@ import {
   type PlanCode,
   type SaasPlan,
 } from "@/lib/saas-api"
+import { SIGNUP_CAPTCHA_SITE_KEY, SignupCaptcha } from "@/components/signup-captcha"
 
 const FALLBACK_PLANS: SaasPlan[] = [
   { code: "start", name: "Start", description: "Escolas pequenas" },
@@ -209,6 +210,9 @@ export function StartSchoolWizard() {
   const [step, setStep] = useState(1)
   const [plans, setPlans] = useState<SaasPlan[]>(FALLBACK_PLANS)
   const [serverError, setServerError] = useState<string | null>(null)
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null)
+  // Cada tentativa gasta o sinal; incrementar pede um novo ao widget.
+  const [captchaReset, setCaptchaReset] = useState(0)
   // `form.formState.isSubmitting` só activa dentro de `form.handleSubmit(...)` — o
   // <form onSubmit> aqui chama onNext/onCreate directamente, então nunca acendia.
   // Sem isto, um duplo clique em "Criar escola" disparava dois pedidos de signup.
@@ -378,6 +382,10 @@ export function StartSchoolWizard() {
       setServerError("Este subdomínio já está em uso por outra escola. Volte ao passo 6 e escolha outro.")
       return
     }
+    if (SIGNUP_CAPTCHA_SITE_KEY && !captchaToken) {
+      setServerError("Confirme que não é um robô antes de criar a escola.")
+      return
+    }
     setIsCreating(true)
     try {
       const { admin_password_confirm: _confirm, ...payload } = form.getValues()
@@ -388,6 +396,7 @@ export function StartSchoolWizard() {
           city: payload.municipality || payload.city,
           commercial_name: payload.commercial_name || undefined,
           email: payload.email || payload.contact_email,
+          captcha_token: captchaToken ?? undefined,
         })
       } catch {
         // Falha de rede (servidor em baixo, sem ligação) — signupSchool() não
@@ -400,6 +409,7 @@ export function StartSchoolWizard() {
       }
       if (!result.ok) {
         setServerError(result.error || "Falha ao criar a escola.")
+        setCaptchaReset((value) => value + 1)
         return
       }
       writeDraft(null)
@@ -938,6 +948,10 @@ export function StartSchoolWizard() {
                     <Row label="Endereço" value={`${values.slug}.${PLATFORM_DOMAIN}`} />
                   </ReviewSection>
                 </div>
+              ) : null}
+
+              {step === LAST_STEP ? (
+                <SignupCaptcha onToken={setCaptchaToken} resetSignal={captchaReset} />
               ) : null}
 
               {serverError ? (

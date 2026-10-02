@@ -255,6 +255,8 @@ export const publicSchoolSignupInputSchema = createSchoolWizardInputSchema
   .extend({
     website: z.string().max(0, "Pedido inválido.").optional().or(z.literal("")),
     admin_password: adminPasswordSchema,
+    /** hCaptcha do WEB; exigido quando o Worker tem `HCAPTCHA_SECRET_KEY`. */
+    captcha_token: z.string().trim().max(4000).optional(),
   });
 
 export type PublicSchoolSignupInput = z.infer<typeof publicSchoolSignupInputSchema>;

@@ -111,6 +111,7 @@ jobs:
           APPYPAY_WEBHOOK_TOKEN: ${{ secrets.APPYPAY_WEBHOOK_TOKEN }}
           LOVABLE_API_KEY: ${{ secrets.LOVABLE_API_KEY }}
           SIGA_ALERT_WEBHOOK_URL: ${{ secrets.SIGA_ALERT_WEBHOOK_URL }}
+          HCAPTCHA_SECRET_KEY: ${{ secrets.HCAPTCHA_SECRET_KEY }}
           SMS_API_KEY: ${{ secrets.SMS_API_KEY }}
           TWILIO_ACCOUNT_SID: ${{ secrets.TWILIO_ACCOUNT_SID }}
           TWILIO_AUTH_TOKEN: ${{ secrets.TWILIO_AUTH_TOKEN }}
@@ -125,6 +126,10 @@ jobs:
           ZOHO_MAIL_CLIENT_SECRET: ${{ secrets.ZOHO_MAIL_CLIENT_SECRET }}
           ZOHO_MAIL_REFRESH_TOKEN: ${{ secrets.ZOHO_MAIL_REFRESH_TOKEN }}
           PAYFLOW_R2_BUCKET: ${{ vars.PAYFLOW_R2_BUCKET }}
+          # Chave pública do hCaptcha (vai no bundle). Sem ela, o SIGA publicado não
+          # mostra o widget e o Supabase Auth (captcha activo) recusa todos os logins
+          # por senha; o WEB também a usa no registo de escolas.
+          VITE_HCAPTCHA_SITE_KEY: ${{ vars.VITE_HCAPTCHA_SITE_KEY }}
 
       - name: Confirmar DNS da plataforma (raiz, app e wildcard)
         run: npm run siga:check-dns

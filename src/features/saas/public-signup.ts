@@ -2,6 +2,7 @@ import { provisionTenantCore } from "@/features/saas/provisioning-core";
 import type { PublicSchoolSignupInput } from "@/features/saas/schemas";
 import { isRateLimitBypassed } from "@/lib/rate-limit";
 import { consumeRateLimit } from "@/lib/shared-rate-limit";
+import { verifyHcaptcha } from "@/lib/hcaptcha-verify.server";
 
 const SIGNUP_RATE_LIMIT = { windowMs: 60 * 60 * 1000, max: 3 };
 
@@ -26,13 +27,18 @@ export async function runPublicSchoolSignup(
   adminInviteDelivered: boolean;
   adminPasswordSet: boolean;
 }> {
-  const { website: _honeypot, ...wizardData } = data;
+  const { website: _honeypot, captcha_token: captchaToken, ...wizardData } = data;
   const emailKey = wizardData.contact_email.trim().toLowerCase();
   const rateLimitKeys = [`ip:${ip}`, `email:${emailKey}`];
   if (!(await consumeSignupRateLimit(...rateLimitKeys))) {
     throw new Error(
       "Muitos pedidos recentes a partir deste e-mail/IP. Tente novamente daqui a algumas horas.",
     );
+  }
+
+  // Depois do limite (que trava a repetição barata), antes de criar seja o que for.
+  if (!(await verifyHcaptcha(captchaToken, ip))) {
+    throw new Error("Confirme que não é um robô e tente de novo.");
   }
 
   const result = await provisionTenantCore(
