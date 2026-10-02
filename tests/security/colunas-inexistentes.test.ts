@@ -328,18 +328,11 @@ const funcoesPublicas = new Set(
  * Funções que o código chama e a produção ainda não tem. Existe para encolher.
  *
  * O `siga_publish_assessment_rule` e o `siga_rate_limit_consume` saíram a 2026-09-28:
- * foram aplicados e o retrato recapturado mostra-os.
+ * foram aplicados e o retrato recapturado mostra-os. A 2026-10-02 saíram
+ * `settle_gateway_payment_service` (20261002090137) e `hr_redeem_teacher_qr_secure`
+ * (20260926203852, aplicada na produção como 20261002091121), pelo mesmo motivo.
  */
-const FUNCOES_ESPERA_MIGRACAO = new Set<string>([
-  // `20260926203852_harden_teacher_qr_attendance.sql`, por aplicar.
-  // `hr/teacher-lessons.ts` chama-a desde eaceb8f2; sondada na produção a 2026-09-28
-  // devolve PGRST202, e a presença do docente por QR não é registada enquanto assim for.
-  "hr_redeem_teacher_qr_secure",
-  // `20261002090137_gateway_settlement_atomic.sql`: APLICADA a 2026-10-02. Sai daqui na
-  // próxima recaptura do retrato (o teste abaixo obriga). A recaptura ficou adiada
-  // porque a produção tem 3 tabelas de chat sem migração no repositório (auditoria 11, O4).
-  "settle_gateway_payment_service",
-]);
+const FUNCOES_ESPERA_MIGRACAO = new Set<string>([]);
 /**
  * Colunas que o código grava e a produção ainda não tem porque há uma migração escrita e
  * por aplicar. Aplicar SQL à base é decisão do dono do projecto, não do agente — esta

@@ -10,10 +10,12 @@ Relatório: `docs/auditoria/11-auditoria-producao-2026-10-02.md` (PR #65).
 
 - **Aplicada na produção**, com autorização do dono: `20261002090137_gateway_settlement_atomic.sql`
   (`settle_gateway_payment_service`, só `service_role`). Ensaiada numa transacção desfeita.
-  O retrato **não** foi recapturado: a produção tem 3 tabelas `siga_chat_*` (migrações de
-  02/10 06:23–06:25, de outro agente) que não estão no repositório. Trazê-las, depois
-  `npm run siga:db-snapshot` + `npm run siga:gen-types`, e tirar a função de
-  `FUNCOES_ESPERA_MIGRACAO`.
+- **Migrações só-produção trazidas** (versão do registo, corpo copiado do registo e
+  conferido por md5): chat (`20261002062355`, `20261002062506`), RH atómico
+  (`20260930193133`, `20261001070135`), `20260930070505`, `20260930162029` e
+  `20261002051817`. Retrato e tipos recapturados a seguir: 186 tabelas, só acréscimos.
+  `FUNCOES_ESPERA_MIGRACAO` ficou vazia. Um ficheiro capturado leva a marca
+  `-- @@corpo-capturado@@`: não se edita; correcções vão numa migração nova.
 - **2FA na sessão:** `requireSupabaseAuth` recusa o token aal1 de contas com 2FA activo
   (`session-mfa.ts`). Função nova que precise de servidor continua a ter de pedir
   `requireAal2` se mexer em dinheiro — isto só impede entrar sem o código.
