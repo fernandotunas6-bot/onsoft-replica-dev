@@ -6,7 +6,7 @@ import { cn } from "@/lib/utils";
 import { DebouncedSearchInput } from "@/components/filters/debounced-search-input";
 
 const selectClass =
-  "h-11 min-w-0 w-full rounded-md border border-input bg-background px-3 text-base text-foreground sm:h-9 md:text-sm";
+  "h-11 min-w-0 w-full overflow-hidden text-ellipsis rounded-md border border-input bg-background px-3 text-base text-foreground sm:h-9 md:text-sm";
 
 export type ListFilterOption = { value: string; label: string };
 
@@ -56,7 +56,7 @@ export function ListFilterBar({
                 key={field.name}
                 id={`${advancedId}-${field.name}`}
                 className={cn(
-                  "block min-w-0 w-full space-y-1 text-xs font-medium text-muted-foreground sm:w-auto",
+                  "block min-w-0 w-full overflow-hidden space-y-1 text-xs font-medium text-muted-foreground sm:w-auto",
                   !showAdvanced && "max-sm:hidden",
                 )}
               >

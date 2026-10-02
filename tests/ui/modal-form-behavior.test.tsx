@@ -2,12 +2,46 @@
 import * as React from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
-import { ModalFooter, FormModal } from "@/components/ui/modal-system";
+import { ModalFooter, FormModal, DeleteConfirmModal } from "@/components/ui/modal-system";
 import { Input } from "@/components/ui/input";
 
 afterEach(cleanup);
 
 describe("Submissão dos modais", () => {
+  it("mostra a confirmação de eliminação e executa a acção uma única vez", () => {
+    const confirm = vi.fn();
+    render(
+      <DeleteConfirmModal
+        open
+        onOpenChange={vi.fn()}
+        title="Eliminar registo"
+        itemName="Exemplo"
+        onConfirm={confirm}
+      />,
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Eliminar definitivamente" }));
+    expect(confirm).toHaveBeenCalledTimes(1);
+  });
+
+  it("não elimina quando a operação está bloqueada", () => {
+    const confirm = vi.fn();
+    render(
+      <DeleteConfirmModal
+        open
+        onOpenChange={vi.fn()}
+        title="Eliminar registo"
+        itemName="Exemplo"
+        onConfirm={confirm}
+        cannotDeleteReason="Tem vínculos activos"
+      />,
+    );
+    const button = screen.getByRole("button", {
+      name: "Eliminar definitivamente",
+    }) as HTMLButtonElement;
+    expect(button.disabled).toBe(true);
+    fireEvent.click(button);
+    expect(confirm).not.toHaveBeenCalled();
+  });
   it("respeita campos obrigatórios e submete uma única vez", () => {
     const submit = vi.fn();
     render(

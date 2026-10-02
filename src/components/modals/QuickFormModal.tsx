@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 import { toast } from "sonner";
 import { ModalShell, ModalHeader, ModalContent, ModalFooter } from "@/components/ui/modal-system";
 import { confirmDiscardChanges } from "@/components/ui/modal-system/confirm-close";
@@ -54,6 +54,8 @@ export function QuickFormModal({
   const [saving, setSaving] = useState(false);
   const [dirty, setDirty] = useState(false);
   const formRef = useRef<HTMLFormElement>(null);
+  const formId = useId();
+  const submittingRef = useRef(false);
   const didAutoOpen = useRef(false);
 
   useEffect(() => {
@@ -71,7 +73,7 @@ export function QuickFormModal({
   };
 
   async function submit() {
-    if (!formRef.current) return;
+    if (!formRef.current || submittingRef.current) return;
     if (!formRef.current.reportValidity()) return;
 
     const data = new FormData(formRef.current);
@@ -80,6 +82,7 @@ export function QuickFormModal({
       values[key] = String(val ?? "").trim();
     }
 
+    submittingRef.current = true;
     setSaving(true);
     try {
       await onSubmit(values);
@@ -90,6 +93,7 @@ export function QuickFormModal({
         description: err instanceof Error ? err.message : "Ocorreu uma falha ao guardar.",
       });
     } finally {
+      submittingRef.current = false;
       setSaving(false);
     }
   }
@@ -103,13 +107,17 @@ export function QuickFormModal({
           <ModalHeader title={title} subtitle={description ?? eyebrow} onClose={guardedClose} />
           <ModalContent>
             <form
+              id={formId}
               ref={formRef}
               className="grid gap-3 sm:grid-cols-2"
-              onSubmit={(event) => event.preventDefault()}
+              onSubmit={(event) => {
+                event.preventDefault();
+                void submit();
+              }}
               onChange={() => setDirty(true)}
             >
               {fields.map((field) => (
-                <div key={field.name} className={field.full ? "sm:col-span-2" : undefined}>
+                <div key={field.name} className={`min-w-0 ${field.full ? "sm:col-span-2" : ""}`}>
                   <Label htmlFor={field.name} className="text-xs font-semibold">
                     {field.label}
                   </Label>
@@ -132,7 +140,7 @@ export function QuickFormModal({
                           id={field.name}
                           name={field.name}
                           required={field.required ?? true}
-                          className="mt-1 h-9 w-full rounded-md border border-input bg-background px-3 text-xs md:text-sm"
+                          className="mt-1 h-9 max-md:min-h-11 min-w-0 w-full overflow-hidden text-ellipsis rounded-md border border-input bg-background px-3 text-base md:text-sm"
                           defaultValue={
                             field.defaultValue ??
                             (field.required === false ? "" : (normalizedOptions[0]?.value ?? ""))
@@ -173,6 +181,7 @@ export function QuickFormModal({
             {note ? <p className="mt-4 text-xs text-muted-foreground">{note}</p> : null}
           </ModalContent>
           <ModalFooter
+            formId={formId}
             onCancel={guardedClose}
             onSubmit={submit}
             submitLabel={submitLabel}

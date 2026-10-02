@@ -230,7 +230,7 @@ export function PrintTemplateStudio() {
         size="full"
         hasUnsavedChanges={hasUnsavedChanges}
       >
-        <div className="flex flex-col h-full">
+        <div className="flex min-h-0 max-h-[inherit] flex-col overflow-hidden">
           <ModalHeader
             icon={FileStack}
             title={templateQuery.data?.title ?? "Modelo de impressão"}

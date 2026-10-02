@@ -37,7 +37,7 @@ export function DeleteConfirmModal({
 }: DeleteConfirmModalProps) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!cannotDeleteReason) {
+    if (!cannotDeleteReason && !isDeleting) {
       await onConfirm();
     }
   };
@@ -86,6 +86,7 @@ export function DeleteConfirmModal({
           )}
         </ModalContent>
         <ModalFooter
+          onSubmit={handleSubmit}
           onCancel={() => onOpenChange(false)}
           submitLabel="Eliminar definitivamente"
           submitVariant="destructive"

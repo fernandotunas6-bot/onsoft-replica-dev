@@ -122,7 +122,7 @@ export function StudentDigitalCardModal({
 
   return (
     <ModalShell open={open} onOpenChange={onOpenChange} size="md">
-      <div className="flex flex-col h-full">
+      <div className="flex min-h-0 max-h-[inherit] flex-col overflow-hidden">
         <ModalHeader
           icon={GraduationCap}
           title="Cartão Digital de Estudante"

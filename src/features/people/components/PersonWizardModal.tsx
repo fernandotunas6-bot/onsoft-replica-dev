@@ -275,7 +275,7 @@ export function PersonWizardModal({
       size="2xl"
       hasUnsavedChanges={hasUnsavedChanges}
     >
-      <div className="relative flex h-full min-h-[78vh] flex-col lg:pl-[38%]">
+      <div className="relative flex min-h-0 max-h-[inherit] flex-col overflow-hidden lg:min-h-[min(78dvh,40rem)] lg:pl-[38%]">
         <aside className="absolute inset-y-0 left-0 hidden w-[38%] overflow-hidden border-r border-border bg-muted/20 lg:block">
           <EducationWorkflowVisual
             scene={visualScene}

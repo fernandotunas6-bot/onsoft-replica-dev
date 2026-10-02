@@ -13,6 +13,7 @@ export interface ModalFooterProps {
   disabled?: boolean;
   extraActions?: React.ReactNode;
   className?: string;
+  formId?: string;
 }
 
 export function ModalFooter({
@@ -25,6 +26,7 @@ export function ModalFooter({
   disabled = false,
   extraActions,
   className,
+  formId,
 }: ModalFooterProps) {
   return (
     <div
@@ -54,12 +56,13 @@ export function ModalFooter({
         {onSubmit && (
           <Button
             type="submit"
+            form={formId}
             variant={submitVariant}
             size="sm"
             onClick={(event) => {
               // Dentro de um formulário, a submissão nativa valida os campos
-              // obrigatórios antes de chamar onSubmit. QuickForm mantém o
-              // rodapé fora do formulário e trata a sua própria validação.
+              // obrigatórios antes de chamar onSubmit. formId associa um
+              // rodapé exterior ao formulário; sem associação, chama a acção.
               if (!event.currentTarget.form) onSubmit(event);
             }}
             disabled={disabled || isSubmitting}

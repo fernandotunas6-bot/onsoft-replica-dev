@@ -74,3 +74,13 @@ A validação local desta revisão inclui typecheck, lint sem erros (51 avisos),
 Validação: 2352 testes aprovados/19 ignorados, typecheck e build aprovados, lint com 0 erros/51 avisos, verificadores estáticos de estilo/acessibilidade e `siga:check` aprovados. A revisão Playwright dos componentes passou em 16 combinações de dimensão e tema. Reprodução, capturas e limites em [UI_REVIEW_2026-10-01.md](./UI_REVIEW_2026-10-01.md).
 
 Continuam pendentes a revisão visual autenticada de todas as famílias de páginas e a validação em dispositivos reais, incluindo Safari e teclado virtual. As capturas usam componentes reais com dados fictícios; não representam uma sessão de produção. Esta revisão não foi publicada.
+
+## Correcções finais — 02/10/2026
+
+Formulário rápido com Enter, associação nativa do botão exterior ao formulário,
+validação e guarda de pedidos simultâneos. Botão de confirmação de eliminação
+restaurado. Selectores contêm textos longos no WebKit e acompanham o tema
+claro/escuro nos controlos nativos; fichas e formulários
+extensos herdam o limite de altura do diálogo. Matriz Chromium/WebKit e comando
+opt-in de pré-verificação autenticada. Resultados e pendências de merge em
+[UI_REVIEW_2026-10-02.md](./UI_REVIEW_2026-10-02.md).

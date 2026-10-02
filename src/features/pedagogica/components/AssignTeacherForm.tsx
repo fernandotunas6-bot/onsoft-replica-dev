@@ -123,7 +123,7 @@ export function AssignTeacherForm({
         size="2xl"
         hasUnsavedChanges={Boolean(classGroupId || subjectId || teacherId)}
       >
-        <div className="grid min-h-[70vh] lg:grid-cols-[minmax(300px,0.9fr)_minmax(0,1.1fr)]">
+        <div className="grid min-h-0 max-h-[inherit] overflow-hidden lg:min-h-[min(70dvh,35rem)] lg:grid-cols-[minmax(300px,0.9fr)_minmax(0,1.1fr)]">
           <aside className="hidden overflow-hidden border-r border-border bg-muted/20 lg:block">
             <EducationWorkflowVisual
               scene="teacher"
@@ -132,7 +132,7 @@ export function AssignTeacherForm({
               description="A disciplina é filtrada pela turma escolhida. O vínculo final usa apenas IDs reais do SGA."
             />
           </aside>
-          <div className="flex min-h-0 flex-col">
+          <div className="flex min-h-0 max-h-[inherit] flex-col overflow-hidden">
             <ModalHeader
               icon={UserPlus}
               title="Atribuir professor"

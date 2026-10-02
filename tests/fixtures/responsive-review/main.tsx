@@ -53,6 +53,8 @@ import {
   type StudentMobileRecord,
 } from "@/features/students/components/StudentMobileList";
 import { StudentStatusBadge } from "@/features/students/components/StudentStatusBadge";
+import { QuickFormModal } from "@/components/modals/QuickFormModal";
+import { DeleteConfirmModal, ModalFooter } from "@/components/ui/modal-system";
 
 const records: StudentMobileRecord[] = Array.from({ length: 57 }, (_, index) => ({
   id: `example-${index}`,
@@ -81,6 +83,10 @@ export function Review() {
   const [locked, setLocked] = useState(false);
   const [step, setStep] = useState(0);
   const [saved, setSaved] = useState(0);
+  const [quickSaved, setQuickSaved] = useState(0);
+  const [deleting, setDeleting] = useState(false);
+  const [deleted, setDeleted] = useState(0);
+  const [detail, setDetail] = useState(false);
   const paged = records.slice((page - 1) * pageSize, page * pageSize);
   const activeCount =
     Object.entries(values).filter(
@@ -236,6 +242,52 @@ export function Review() {
       <Button variant="ghost" onClick={() => setLocked(true)}>
         Abrir painel protegido
       </Button>
+      <QuickFormModal
+        title="Configurar trimestre — amostra local"
+        fields={[
+          { name: "nome", label: "Nome do trimestre" },
+          { name: "turno", label: "Turno", type: "select", options: ["Manhã", "Tarde"] },
+          { name: "inicio", label: "Início do trimestre", type: "date" },
+        ]}
+        trigger={(open) => <Button onClick={open}>Formulário rápido</Button>}
+        onSubmit={async () => {
+          setQuickSaved((previous) => previous + 1);
+        }}
+      />
+      <Button onClick={() => setDeleting(true)}>Rever eliminação</Button>
+      <Button onClick={() => setDetail(true)}>Rever ficha longa</Button>
+      <output data-testid="quick-saved" className="sr-only">
+        {quickSaved}
+      </output>
+      <output data-testid="deleted" className="sr-only">
+        {deleted}
+      </output>
+      <DeleteConfirmModal
+        open={deleting}
+        onOpenChange={setDeleting}
+        title="Eliminar exemplo local"
+        itemName="Registo fictício"
+        onConfirm={() => {
+          setDeleted((previous) => previous + 1);
+          setDeleting(false);
+        }}
+      />
+      <ModalShell open={detail} onOpenChange={setDetail} size="lg">
+        <div className="flex min-h-0 max-h-[inherit] flex-col overflow-hidden">
+          <ModalHeader
+            title="Ficha longa — estrutura de consulta"
+            onClose={() => setDetail(false)}
+          />
+          <ModalContent>
+            {Array.from({ length: 20 }, (_, index) => (
+              <p key={index}>
+                Secção de consulta {index + 1}: informação de exemplo com conteúdo longo.
+              </p>
+            ))}
+          </ModalContent>
+          <ModalFooter onCancel={() => setDetail(false)} cancelLabel="Fechar ficha" />
+        </div>
+      </ModalShell>
       <output data-testid="saved" className="sr-only">
         {saved}
       </output>

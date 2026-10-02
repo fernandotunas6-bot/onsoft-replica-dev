@@ -896,7 +896,7 @@ function PeoplePage() {
         }}
         size="lg"
       >
-        <div className="flex flex-col h-full">
+        <div className="flex min-h-0 max-h-[inherit] flex-col overflow-hidden">
           <ModalHeader
             icon={User}
             title={person?.full_name ?? "Ficha da pessoa"}
