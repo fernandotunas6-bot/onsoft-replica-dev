@@ -43,6 +43,10 @@ const REVISTAS: Record<string, string> = {
   getActiveAcademicYear: "ano lectivo em vigor",
   listPrintTemplates: "modelos de impressão",
   getPrintTemplate: "modelos de impressão",
+  // Chat escolar (2026-10-02): as restantes funções de chat-server.ts já
+  // verificam mais do que a pertença e por isso não entram aqui.
+  listSchoolColleagues:
+    "casca de loadSchoolColleagues, que filtra o directório por papel (ver messaging-scope)",
 };
 
 // Sinais de que a função verifica mais do que a pertença.

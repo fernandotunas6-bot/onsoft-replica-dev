@@ -151,7 +151,15 @@ const ANON_POLICIES_ESPERADAS = [
 // caixas de correio, pedidos de vinculação, alunos em risco e cobranças
 // AppyPay) já existem na produção — confirmado no retrato recapturado nesse dia
 // pelo conector Supabase.
-const TABELAS_AUSENTES_DA_PRODUCAO = new Set<string>([]);
+const TABELAS_AUSENTES_DA_PRODUCAO = new Set<string>([
+  // Chat escolar — 20261002093000_chat_conversations.sql ainda não aplicada em
+  // produção (as migrações são corridas à mão). A ChatDock trata o erro de
+  // tabela inexistente e mostra a lista vazia em vez de rebentar; sair daqui
+  // quando o retrato for recapturado depois de aplicar.
+  "siga_chat_conversations",
+  "siga_chat_members",
+  "siga_chat_messages",
+]);
 
 /** Tabelas consultadas pelo código — `.from("x")`, excluindo buckets de storage. */
 function tabelasUsadasPelaApp(): string[] {
