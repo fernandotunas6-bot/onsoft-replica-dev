@@ -112,6 +112,28 @@ jobs:
           LOVABLE_API_KEY: ${{ secrets.LOVABLE_API_KEY }}
           SIGA_ALERT_WEBHOOK_URL: ${{ secrets.SIGA_ALERT_WEBHOOK_URL }}
           HCAPTCHA_SECRET_KEY: ${{ secrets.HCAPTCHA_SECRET_KEY }}
+          APPYPAY_CLIENT_SECRET: ${{ secrets.APPYPAY_CLIENT_SECRET }}
+          ZOOM_CLIENT_SECRET: ${{ secrets.ZOOM_CLIENT_SECRET }}
+          SIGA_GATEWAY_ALERT_SLACK_URL: ${{ secrets.SIGA_GATEWAY_ALERT_SLACK_URL }}
+          # Configuração não secreta (scripts/worker-secrets.mjs → OPTIONAL_WORKER_VARS);
+          # vazias não são enviadas e o que está no painel da Cloudflare mantém-se.
+          PLATFORM_DOMAIN: ${{ vars.PLATFORM_DOMAIN }}
+          APPYPAY_ENV: ${{ vars.APPYPAY_ENV }}
+          APPYPAY_CLIENT_ID: ${{ vars.APPYPAY_CLIENT_ID }}
+          APPYPAY_RESOURCE: ${{ vars.APPYPAY_RESOURCE }}
+          APPYPAY_GPO_METHOD: ${{ vars.APPYPAY_GPO_METHOD }}
+          APPYPAY_REF_METHOD: ${{ vars.APPYPAY_REF_METHOD }}
+          CLOUDFLARE_ZONE_ID: ${{ vars.CLOUDFLARE_ZONE_ID }}
+          GOOGLE_WORKSPACE_DOMAIN: ${{ vars.GOOGLE_WORKSPACE_DOMAIN }}
+          MAILBOX_PROVIDER: ${{ vars.MAILBOX_PROVIDER }}
+          PAYFLOW_AUTO_SYNC: ${{ vars.PAYFLOW_AUTO_SYNC }}
+          SMS_API_URL: ${{ vars.SMS_API_URL }}
+          WHATSAPP_OTP_TEMPLATE_NAME: ${{ vars.WHATSAPP_OTP_TEMPLATE_NAME }}
+          WHATSAPP_PHONE_NUMBER_ID: ${{ vars.WHATSAPP_PHONE_NUMBER_ID }}
+          ZOHO_MAIL_CLIENT_ID: ${{ vars.ZOHO_MAIL_CLIENT_ID }}
+          ZOHO_MAIL_ORG_ID: ${{ vars.ZOHO_MAIL_ORG_ID }}
+          ZOOM_CLIENT_ID: ${{ vars.ZOOM_CLIENT_ID }}
+          ZOOM_REDIRECT_URI: ${{ vars.ZOOM_REDIRECT_URI }}
           SMS_API_KEY: ${{ secrets.SMS_API_KEY }}
           TWILIO_ACCOUNT_SID: ${{ secrets.TWILIO_ACCOUNT_SID }}
           TWILIO_AUTH_TOKEN: ${{ secrets.TWILIO_AUTH_TOKEN }}
