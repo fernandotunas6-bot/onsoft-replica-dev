@@ -4,6 +4,23 @@ Ler isto **antes** de alterar código. Ecossistema (5 apps):
 [ARCHITECTURE_HARMONIZATION.md](./ARCHITECTURE_HARMONIZATION.md).
 Depois abrir o skill do módulo em `.cursor/skills/`.
 
+## Auditoria de produção 11 (2026-10-02)
+
+Relatório: `docs/auditoria/11-auditoria-producao-2026-10-02.md` (PR #65).
+
+- **Aplicada na produção**, com autorização do dono: `20261002090137_gateway_settlement_atomic.sql`
+  (`settle_gateway_payment_service`, só `service_role`). Ensaiada numa transacção desfeita.
+  O retrato **não** foi recapturado: a produção tem 3 tabelas `siga_chat_*` (migrações de
+  02/10 06:23–06:25, de outro agente) que não estão no repositório. Trazê-las, depois
+  `npm run siga:db-snapshot` + `npm run siga:gen-types`, e tirar a função de
+  `FUNCOES_ESPERA_MIGRACAO`.
+- **2FA na sessão:** `requireSupabaseAuth` recusa o token aal1 de contas com 2FA activo
+  (`session-mfa.ts`). Função nova que precise de servidor continua a ter de pedir
+  `requireAal2` se mexer em dinheiro — isto só impede entrar sem o código.
+- **Webhook EMIS/Unitel:** pedidos assinados (`X-SIGA-Timestamp`, `X-SIGA-Signature`),
+  sem `apiKey` no corpo, `externalId` obrigatório. Contrato em
+  `painel/docs/integracoes/emis-multicaixa-unitel.md`.
+
 ## Ano lectivo activo (2026-09-30)
 
 O SIGA resolve o ano corrente pelo estado `active`. A 2026-09-29 a escola
@@ -111,6 +128,7 @@ entrega tudo o que lê. Levantamento das ~90 chamadas:
   filtradas pelo utilizador. `tests/security/membership-only-reads.test.ts`
   guarda a lista revista e falha com qualquer função nova que só verifique a
   pertença.
+
 ## Dinheiro com 2FA; RH não funciona com os papéis actuais (2026-09-30)
 
 - `20260930190000` (aplicada; decisão do dono: «só dinheiro»): três políticas
@@ -940,7 +958,7 @@ Depois de aplicar: `npm run siga:db-snapshot` e retirar a entrada de
 Descoberto ao verificar o alcance das correcções de hidratação, e **não resolvido de
 propósito**.
 
-O `server.handlers.GET` da rota responde a *todos* os pedidos, pelo que o componente
+O `server.handlers.GET` da rota responde a _todos_ os pedidos, pelo que o componente
 `CalendarFeedPage` (57 linhas: endereço do feed, contagem de eventos, botão de descarga)
 **nunca renderiza**. Medido contra um build de produção nas três variantes: 368 bytes do
 handler (token curto ou ausente), 404 do `servePublicCalendarIcs` (token válido), zero
@@ -963,10 +981,10 @@ outra coisa.
 
 A escolha é entre duas, e é do dono:
 
-  a) **a página é para existir** → o handler tem de deixar passar os pedidos com
-     `Accept: text/html` e só servir `.ics` a quem pede `.ics`;
-  b) **não é para existir** → removem-se o componente e os testes, e fica o componente
-     mínimo que as outras 14 rotas com handler já usam.
+a) **a página é para existir** → o handler tem de deixar passar os pedidos com
+`Accept: text/html` e só servir `.ics` a quem pede `.ics`;
+b) **não é para existir** → removem-se o componente e os testes, e fica o componente
+mínimo que as outras 14 rotas com handler já usam.
 
 Enquanto não se decidir, o estado é este: os testes passam, mas testam código que o produto
 não corre. Fica uma nota no topo do ficheiro da rota a dizer isto mesmo, para ninguém
@@ -1000,11 +1018,11 @@ controlo, e é por isso que os têm.
 Verificadas uma a uma, depois de as ter corrigido às três e de ter descrito as três como
 bugs. **Estava a dar-lhes crédito a mais**, e a distinção importa para quem vier a seguir:
 
-| ocorrência | veredicto | como foi verificado |
-|---|---|---|
-| `DesktopTitleBar` | **defeito real, em produção** | controlo: revertendo-o o #418 volta, com ele desaparece |
-| `appearance.tsx` (`isDark`) | não podia morder | `mode` nasce em `"light"`; com `isDark` revertido, `mode:"system"` semeado e SO escuro → sem #418 |
-| `calendario.ics.tsx` | código inalcançável | o `server.handlers.GET` responde a todos os pedidos; nenhuma variante devolve o shell da app |
+| ocorrência                  | veredicto                     | como foi verificado                                                                               |
+| --------------------------- | ----------------------------- | ------------------------------------------------------------------------------------------------- |
+| `DesktopTitleBar`           | **defeito real, em produção** | controlo: revertendo-o o #418 volta, com ele desaparece                                           |
+| `appearance.tsx` (`isDark`) | não podia morder              | `mode` nasce em `"light"`; com `isDark` revertido, `mode:"system"` semeado e SO escuro → sem #418 |
+| `calendario.ics.tsx`        | código inalcançável           | o `server.handlers.GET` responde a todos os pedidos; nenhuma variante devolve o shell da app      |
 
 **E o alcance do único defeito real era menor do que eu disse.** Escrevi «em todas as
 páginas com `AppShell`» e «em todas as páginas de quem tem sessão». Nenhuma das duas é
@@ -1034,7 +1052,6 @@ ou o ficheiro ICS (token válido). Medido: 368 bytes do handler, zero ocorrênci
 As duas correcções ficam, e o guarda continua a justificá-las: ler `window` numa expressão
 de render é a forma que causou o defeito real, e não se quer distinguir caso a caso de cada
 vez. Mas são **higiene com teste a suportá-la**, não correcções de sintomas observados.
-
 
 ### Duas das causas do React #418, e o que falta saber
 

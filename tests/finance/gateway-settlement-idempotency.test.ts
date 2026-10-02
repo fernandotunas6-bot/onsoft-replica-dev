@@ -60,7 +60,7 @@ function construirDb(): SupabaseClient {
         proximoNumeroRecibo += 1;
         return { data: numero, error: null };
       }
-      // A liquidação atómica (20261002120000) ainda não está aplicada na produção:
+      // Base sem a liquidação atómica (20261002090137), ex.: ambiente local:
       // estes testes cobrem o caminho em passos que corre até lá.
       if (nome === "settle_gateway_payment_service") {
         return {

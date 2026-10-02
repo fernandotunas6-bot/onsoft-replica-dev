@@ -1,4 +1,4 @@
-// Ensaio local (PGlite) de 20261002120000_gateway_settlement_atomic.sql. Sem produção.
+// Ensaio local (PGlite) de 20261002090137_gateway_settlement_atomic.sql. Sem produção.
 // Executar: SIGA_SQL_TEST_MODULE_PATH=<.../pglite/dist/index.js> node tests/sql/gateway-settlement.mjs
 const { PGlite } = await import(process.env["SIGA_SQL_TEST_MODULE_PATH"] || "@electric-sql/pglite");
 import { readFileSync } from "node:fs";
@@ -19,7 +19,7 @@ CREATE FUNCTION private.next_document_number_service(s uuid, t text, p text) RET
 `);
 const migration = readFileSync(
   new URL(
-    "../../supabase/migrations/20261002120000_gateway_settlement_atomic.sql",
+    "../../supabase/migrations/20261002090137_gateway_settlement_atomic.sql",
     import.meta.url,
   ),
   "utf8",

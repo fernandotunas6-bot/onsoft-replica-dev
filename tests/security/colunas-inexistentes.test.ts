@@ -335,8 +335,9 @@ const FUNCOES_ESPERA_MIGRACAO = new Set<string>([
   // `hr/teacher-lessons.ts` chama-a desde eaceb8f2; sondada na produção a 2026-09-28
   // devolve PGRST202, e a presença do docente por QR não é registada enquanto assim for.
   "hr_redeem_teacher_qr_secure",
-  // `20261002120000_gateway_settlement_atomic.sql`, por aplicar. Até lá o código
-  // recebe PGRST202 e segue o caminho em passos (gateway-webhook-handler.ts).
+  // `20261002090137_gateway_settlement_atomic.sql`: APLICADA a 2026-10-02. Sai daqui na
+  // próxima recaptura do retrato (o teste abaixo obriga). A recaptura ficou adiada
+  // porque a produção tem 3 tabelas de chat sem migração no repositório (auditoria 11, O4).
   "settle_gateway_payment_service",
 ]);
 /**

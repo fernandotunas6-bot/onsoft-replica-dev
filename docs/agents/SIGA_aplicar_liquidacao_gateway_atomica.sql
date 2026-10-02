@@ -1,6 +1,6 @@
--- Pacote para aplicar no SQL Editor do projecto xodgfmxiaunpamctfeea (produção).
--- Liquidação atómica de pagamentos de gateway. Idempotente; só service_role executa.
--- Ensaio local: node tests/sql/gateway-settlement.mjs (PGlite). Depois: npm run siga:db-snapshot.
+-- Pacote da liquidação atómica de pagamentos de gateway. JÁ APLICADO na produção
+-- (xodgfmxiaunpamctfeea) a 2026-10-02, versão 20261002090137. Idempotente; só service_role
+-- executa. Ensaio local: node tests/sql/gateway-settlement.mjs (PGlite).
 
 -- Liquidação de pagamentos de gateway (EMIS/Unitel, AppyPay, PayFlow) numa só transacção.
 --

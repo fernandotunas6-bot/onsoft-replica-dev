@@ -250,9 +250,9 @@ export async function settleGatewayPayment(
       // Liquidação direta com o client de serviço da escola.
       const today = new Date().toISOString().slice(0, 10);
 
-      // Caminho atómico (20261002120000): fatura bloqueada, saldo, recibo e estado
-      // numa só transacção. Enquanto a migração não estiver aplicada, a função não
-      // existe e segue-se o caminho em passos, abaixo.
+      // Caminho atómico (20261002090137, aplicada a 2026-10-02): fatura bloqueada,
+      // saldo, recibo e estado numa só transacção. Se a função faltar (base sem a
+      // migração, ex.: ambiente local), segue-se o caminho em passos, abaixo.
       if (input.externalId) {
         const receiver = await resolveGatewayReceiver(
           db,
