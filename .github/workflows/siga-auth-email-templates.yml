@@ -1,0 +1,40 @@
+name: SIGA Auth Email Templates
+
+on:
+  pull_request:
+    paths:
+      - 'supabase/email-templates/**'
+      - '.github/workflows/siga-auth-email-templates.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'supabase/email-templates/**'
+      - '.github/workflows/siga-auth-email-templates.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    name: Verify templates and safe deployment behavior
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Validate source syntax
+        run: |
+          python -m py_compile supabase/email-templates/deploy.py supabase/email-templates/deploy_auth.py supabase/email-templates/deploy_notifications.py supabase/email-templates/restore.py supabase/email-templates/test_deploy.py supabase/email-templates/test_restore.py
+      - name: Run isolated unit tests
+        run: python -m unittest discover -s supabase/email-templates -p 'test_*.py' -v
+      - name: Verify offline dry runs
+        run: |
+          python supabase/email-templates/deploy.py
+          python supabase/email-templates/deploy_notifications.py
