@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
+import { MediaFrame } from "@/components/ui/media-frame";
 import { UserAvatar } from "@/components/ui/user-avatar";
 import { CameraCaptureModal } from "@/components/modals/CameraCaptureModal";
 import { useOptionalStackNav } from "@/components/ui/stacked-modal";
@@ -332,10 +333,14 @@ function MfaSecurityPanel() {
             tema escuro um fundo escuro torna o código ilegível. `siga-official-paper`
             é o utilitário que o sistema já tem para "papel branco invariável".
           */}
-          <img
+          <MediaFrame
             src={pending.qrCode}
             alt="QR code para configurar autenticação de dois fatores"
-            className="siga-official-paper size-40 rounded-md border p-2"
+            ratio="1/1"
+            rounded="rounded-md"
+            priority
+            className="size-40 border"
+            imgClassName="siga-official-paper object-contain p-2"
           />
           <Label htmlFor="mfa-setup-code">Código da aplicação autenticadora</Label>
           <div className="flex flex-col gap-2 sm:flex-row">
