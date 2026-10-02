@@ -33,6 +33,9 @@ export const OPTIONAL_WORKER_SECRETS = [
   "GOOGLE_SERVICE_ACCOUNT_KEY",
   "GOOGLE_OAUTH_TOKEN",
   "LOVABLE_API_KEY",
+  // URL de webhook (Slack ou outro) dos alertas de `reportSigaEvent`: quem a tem
+  // escreve no canal, por isso vai cifrada. Sem ela nenhum alerta sai.
+  "SIGA_ALERT_WEBHOOK_URL",
 ];
 
 /** Lidas pelo código mas que não são segredos do worker (e porquê). */

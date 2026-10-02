@@ -15,7 +15,12 @@ import {
   type CatalogIntegrationId,
 } from "./catalog";
 import { capabilityIdsFor, installPackageFor, parseGrantedCapabilities } from "./install";
-import { generateWebhookApiKey, buildRotatedWebhookConfig } from "./gateway-webhook-key";
+import {
+  generateWebhookApiKey,
+  buildRotatedWebhookConfig,
+  maskGatewayWebhookKeys,
+} from "./gateway-webhook-key";
+import { requireAal2 } from "@/features/hr/require-aal2";
 import {
   normalizeResendRecipients,
   resolveResendCredentials,
@@ -109,7 +114,15 @@ export const listSchoolIntegrations = createServerFn({ method: "GET" })
         .select("provider, status, config, updated_at")
         .eq("school_id", membership.schoolId);
       if (error) throw error;
-      const byProvider = new Map((data ?? []).map((row) => [row.provider, row]));
+      // A API key do gateway emite recibos (POST /api/finance/gateway/confirm):
+      // só sai em claro para uma sessão com 2FA, como o resto do dinheiro.
+      const revealKeys = context.claims?.["aal"] === "aal2";
+      const byProvider = new Map(
+        (data ?? []).map((row) => [
+          row.provider,
+          { ...row, config: maskGatewayWebhookKeys(row.config, revealKeys) },
+        ]),
+      );
       return academicIntegrationCatalog.map((item) =>
         integrationPublicRow(item, byProvider.get(item.id)),
       );
@@ -272,6 +285,7 @@ export const rotateGatewayWebhookApiKey = createServerFn({ method: "POST" })
   .validator((input: unknown) => rotateGatewayWebhookKeyInputSchema.parse(input))
   .handler(async ({ data, context }) => {
     if (!context) throw new Error("Unauthorized");
+    requireAal2(context.claims ?? {}, "Gerar a API key do gateway de pagamentos");
     const membership = await requireSgaWriterForWrite("gestao", context.supabase, context.userId, [
       "Administrador",
     ]);

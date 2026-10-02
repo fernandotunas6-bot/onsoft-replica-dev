@@ -110,6 +110,7 @@ jobs:
           RESEND_WEBHOOK_SECRET: ${{ secrets.RESEND_WEBHOOK_SECRET }}
           APPYPAY_WEBHOOK_TOKEN: ${{ secrets.APPYPAY_WEBHOOK_TOKEN }}
           LOVABLE_API_KEY: ${{ secrets.LOVABLE_API_KEY }}
+          SIGA_ALERT_WEBHOOK_URL: ${{ secrets.SIGA_ALERT_WEBHOOK_URL }}
           SMS_API_KEY: ${{ secrets.SMS_API_KEY }}
           TWILIO_ACCOUNT_SID: ${{ secrets.TWILIO_ACCOUNT_SID }}
           TWILIO_AUTH_TOKEN: ${{ secrets.TWILIO_AUTH_TOKEN }}

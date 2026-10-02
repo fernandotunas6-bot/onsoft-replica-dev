@@ -1,0 +1,126 @@
+# Auditoria de prontidão para produção — 2026-10-02
+
+**Âmbito:** SIGA (raiz), base de produção `xodgfmxiaunpamctfeea` (só leituras), CI/CD e
+publicação, dependências das cinco aplicações. **Método:** tudo o que tem número foi medido
+hoje (comandos locais, consultas à base, GitHub Actions, Cloudflare). Não repete as
+auditorias 01–10: confirma o que delas ainda vale e acrescenta o que é novo.
+
+**Limites, ditos à partida.** A rede deste ambiente bloqueia os domínios de produção
+(`portal-siga.com` responde 403 ao proxy), por isso não verifiquei cabeçalhos nem a versão
+servida. ADMIN, WEB, DOC e PayFlow foram auditados nas dependências e nas fronteiras com o
+SIGA (webhooks, API SaaS), não por dentro. Backups e restauro continuam não verificáveis a
+partir do repositório (ver 10.5).
+
+---
+
+## 1. Veredicto
+
+**O código está mais maduro do que a operação.** As portas de qualidade passam todas e a
+base tem RLS em todas as tabelas, funções privilegiadas com `search_path` fixo e o dinheiro
+protegido por 2FA nas tabelas. O que impede chamar a isto "produção" está à volta do código:
+
+1. **Nenhum merge chega à produção pelo caminho verificado.** As últimas 30 execuções de
+   «Deploy produção» falharam, todas por faltarem os 5 segredos do ambiente `production`
+   (hoje, `ac7bcca`, incluído). Mesmo assim o Worker do SIGA foi alterado hoje às 06:22 —
+   existe um segundo caminho de publicação, sem tipos, lint nem testes à frente.
+2. **A base de produção é também a base de testes.** 77 das 91 escolas e 86 das 104 contas
+   são de testes E2E/«Live». Só uma escola tem uso real (Huambo: 2 alunos, 6 membros,
+   4 facturas).
+3. **O esquema da produção anda à frente do repositório.** 5 migrações aplicadas depois de
+   30/09 não existem em `supabase/migrations/` — duas delas criadas hoje (tabelas
+   `siga_chat_*`, sem código que as use).
+4. **O 2FA protege as tabelas, não a sessão.** Uma conta com 2FA activo continua acessível
+   só com a senha em todas as server functions que não chamam `requireAal2`. Um caminho
+   concreto contornava o 2FA do dinheiro (achado S1, **corrigido**).
+
+Recomendação: **não acrescentar escolas reais** enquanto os pontos 1–3 não estiverem
+fechados; são trabalho de operação (dias), não de código.
+
+## 2. Medições
+
+| Indicador                        | Resultado                                                                                                                                                                                                          |
+| -------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Tipos (`tsc --noEmit`)           | **0 erros**                                                                                                                                                                                                        |
+| ESLint                           | **0 erros**, 46 avisos (react-refresh)                                                                                                                                                                             |
+| Testes (Vitest)                  | **2503 passam**, 19 ignorados, 0 falhas (375 ficheiros) — 2494 antes das correcções                                                                                                                                |
+| Build de produção                | OK em 29 s; 4,6 MB de JS no cliente (1,3 MB gzip); maior pedaço 491 kB (`index`), PDF 432 kB, gráficos 370 kB                                                                                                      |
+| Dependências (alta/crítica)      | **0** nas 5 apps; raiz com 2 moderadas + 2 baixas só em ferramentas de desenvolvimento (`esbuild` via drizzle-kit, `uuid` via exceljs)                                                                             |
+| Segredos no repositório          | **0** (só exemplos `sb_secret_your_server_key`; a chave Firebase web é pública por desenho)                                                                                                                        |
+| Advisors Supabase (segurança)    | 64 tabelas RLS sem política (só-servidor, intencional), 18 funções `SECURITY DEFINER` executáveis por `authenticated` (predicados de RLS + 2 RPC de presença), protecção contra senhas comprometidas **desligada** |
+| Advisors Supabase (desempenho)   | 337 FK sem índice, 128 índices nunca usados, 30 pares de políticas permissivas múltiplas                                                                                                                           |
+| Migrações registadas na produção | 156 (última `20261002062506`); repositório: 182 ficheiros                                                                                                                                                          |
+| Contas com 2FA verificado        | **3 de 104**; 4 administradores da plataforma                                                                                                                                                                      |
+
+## 3. Achados
+
+Severidade: **P0** bloqueia produção · **P1** corrigir antes de escolas reais · **P2** planear · **P3** higiene.
+
+### Segurança da aplicação
+
+| #   | Sev.   | Achado                                                                                                                                                                                                                                                                                                                                                                                                                                | Estado                                                                                                                                                   |
+| --- | ------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| S1  | **P1** | **2FA do dinheiro contornável pela API key do gateway.** `listSchoolIntegrations` devolvia a `webhookApiKey` em claro a um Administrador com sessão só de senha (aal1), e `rotateGatewayWebhookApiKey` não pedia 2FA. Com essa key, `POST /api/finance/gateway/confirm` com `{apiKey, invoiceId, amount}` emite recibo e marca a factura paga — exactamente o que a tesouraria só faz com 2FA.                                        | **Corrigido**: sem aal2 a key segue mascarada (`••••c5d6`), a anterior nunca sai, rodar exige aal2. Teste `gateway-key-requires-mfa`.                    |
+| S2  | **P1** | **O webhook de gateway acredita no chamador.** Ao contrário da AppyPay (que confirma cada cobrança na API do provedor), `gateway/confirm` emite recibos oficiais só com a key estática, sem confirmar o pagamento junto da EMIS/Unitel, e atribui o recibo a quem emitiu a factura. O comentário no código fala de «assinatura HMAC» que não existe. Quem tiver a key (incluindo o Administrador legítimo) gera recibos sem dinheiro. | Por decidir: assinatura do provedor ou consulta de confirmação, como na AppyPay.                                                                         |
+| S3  | **P1** | **2FA não é imposto na sessão.** `requireSupabaseAuth` não olha para `aal`. Uma conta com 2FA inscrito entra só com a senha (o token aal1 que o Supabase emite antes do desafio) em tudo o que não chama `requireAal2`: gestão de acessos, redefinição directa de senhas, integrações, leitura de dados de alunos.                                                                                                                    | Proposta: no middleware, recusar aal1 quando o utilizador tem factor verificado (uma consulta a `auth.mfa_factors`).                                     |
+| S4  | **P1** | **Tomada de conta pela redefinição directa de senha.** `resetStaffPasswordDirect` (Administrador, sem 2FA) muda a senha de qualquer funcionário não-administrador sem o avisar nem terminar as sessões dele. Encadeado com S3: senha do Administrador → senha da Tesouraria → inscrever um TOTP próprio → aal2 no dinheiro.                                                                                                           | Proposta: exigir aal2, notificar por e-mail, revogar sessões; ou só envio de ligação de recuperação.                                                     |
+| S5  | **P2** | **Segregação de funções:** a Secretaria criava contas com cargo Tesouraria (num e-mail seu) e mudava cargos para Tesouraria.                                                                                                                                                                                                                                                                                                          | **Corrigido**: Tesouraria e Administrador só por um Administrador (convite, convite institucional e mudança de cargo). Teste `treasury-role-admin-only`. |
+| S6  | P2     | Reactivar uma conta numa escola levanta o bloqueio global (`ban_duration: "none"`), mesmo que tenha sido posto pela plataforma por outro motivo.                                                                                                                                                                                                                                                                                      | Por corrigir.                                                                                                                                            |
+| S7  | P2     | `POST /api/catracas/device-scan` sem limite de pedidos; com a key de um dispositivo (que vive num daemon na portaria) enumera cartões e recebe nome e fotografia de menores. Os números de cartão e códigos de barras aceites como passe estão impressos no cartão.                                                                                                                                                                   | Limite por dispositivo; aceitar só `qr_secret`/RFID.                                                                                                     |
+| S8  | P2     | Registo público de escolas sem CAPTCHA (honeypot + 3/h por IP e e-mail). Com IPs rotativos cria inquilinos e envia e-mails da plataforma.                                                                                                                                                                                                                                                                                             | hCaptcha já existe para o login (`VITE_HCAPTCHA_SITE_KEY`).                                                                                              |
+| S9  | P3     | CSP só em modo de relatório (`script-src 'unsafe-inline'`). Superfície XSS pequena (só `chart.tsx` e um iframe `sandbox=""`), mas sem segunda barreira.                                                                                                                                                                                                                                                                               | Seguir o plano de `csp.ts`.                                                                                                                              |
+| S10 | P3     | Endpoint `/mcp` + ecrã de consentimento OAuth em produção: o cliente OAuth escolhe o nome mostrado ao utilizador; confia em `X-Forwarded-Host` (seguro só no alojamento Lovable, não na Cloudflare); nome «Edu's Code Mirror».                                                                                                                                                                                                        | Desligar se não for usado.                                                                                                                               |
+| S11 | P3     | Supabase Auth: protecção contra senhas comprometidas desligada (advisor).                                                                                                                                                                                                                                                                                                                                                             | Activar na consola.                                                                                                                                      |
+
+### Dinheiro
+
+| #   | Sev.   | Achado                                                                                                                                                                                                                                                                                                | Estado                                                                                                                                |
+| --- | ------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| F1  | **P1** | **Estorno PayFlow anulava todos os recibos da factura**, incluindo os pagos em caixa. Um estorno de um pagamento parcial apagava dinheiro que tinha entrado.                                                                                                                                          | **Corrigido**: só o recibo com `external_id = payment_id`; sem correspondência responde 409 e alerta (`finance.settlement.mismatch`). |
+| F2  | **P1** | **Reenvio PayFlow duplicava recibos** em facturas parcialmente pagas: o `payment_id` não era passado como `externalId`, e o índice único `(school_id, external_id)` — que existe na produção — nunca era usado.                                                                                       | **Corrigido** + teste.                                                                                                                |
+| F3  | P1     | Os webhooks liquidam **sempre** pelo caminho alternativo não atómico: `register_payment` com a chave de serviço exige aal2 e falha, e o código cai em «somar recibos → validar saldo → inserir → actualizar factura» sem bloqueio. Dois avisos simultâneos sem `externalId` passam ambos a validação. | Função SQL própria para serviço (`FOR UPDATE` na factura), como `next_document_number_service`.                                       |
+| F4  | P2     | Cobrança AppyPay pode ficar presa em `settling` se o Worker morrer entre reclamar e liquidar; nada a recupera.                                                                                                                                                                                        | Varrimento periódico de `settling` antigos.                                                                                           |
+
+### Operação, publicação e dados
+
+| #   | Sev.   | Achado                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
+| --- | ------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| O1  | **P0** | **Publicação verificada parada.** 30 execuções falhadas; faltam `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID`, `VITE_SUPABASE_URL`, `VITE_SUPABASE_PUBLISHABLE_KEY`, `SUPABASE_SERVICE_ROLE_KEY` em Settings → Environments → production. Não se sabe que versão está no ar.                                                                                                                                                                                                               |
+| O2  | **P0** | **Segundo caminho de publicação sem portas.** Worker `fernandotunas6-bot-onsoft-replica-dev` alterado hoje 06:22 sem deploy do GitHub bem-sucedido; Worker órfão `tanstack-start-ts` parado desde 16/08 (código antigo, possivelmente com segredos e URL `workers.dev` activa). Decidir um único caminho e apagar o órfão.                                                                                                                                                                   |
+| O3  | **P1** | **Produção = ambiente de testes.** 77/91 escolas e 86/104 contas de teste; os E2E «live» do CI criam inquilinos na base real. Criar um projecto Supabase de staging para os E2E e limpar os inquilinos de teste (com autorização).                                                                                                                                                                                                                                                           |
+| O4  | **P1** | **Esquema fora do repositório.** 5 migrações em produção sem ficheiro (`hr_atomic_payment_confirmation`, `hr_atomic_payment_destination`, `reclose_physical_access_secrets_20261002`, `chat_conversations`, `chat_tables_revoke_anon_grants`). O retrato e os testes de segurança deixam de descrever a produção. As tabelas de chat foram revistas: RLS forçada, sem `anon`, privilégios por coluna — mas `school_id` e `attachment_file_id` do INSERT não são validados contra a conversa. |
+| O5  | P1     | **Alertas não saem.** `SIGA_ALERT_WEBHOOK_URL` não era publicada (**corrigido no pipeline**; falta criar o segredo). Mesmo com ela, `reportSigaEvent` dispara o `fetch` sem `ctx.waitUntil`: no Workers pode ser cancelado ao devolver a resposta.                                                                                                                                                                                                                                           |
+| O6  | P2     | Configuração de produção fora do código: o Worker lê `APPYPAY_CLIENT_ID/SECRET/RESOURCE`, `CLOUDFLARE_ZONE_ID`, `PLATFORM_DOMAIN`, `MAILBOX_PROVIDER`, `WHATSAPP_PHONE_NUMBER_ID`… que o pipeline nunca define. AppyPay e encaminhamento de e-mail não funcionam após uma publicação limpa. O teste `worker-secrets` não apanha `env("…")`, só `process.env.…`.                                                                                                                              |
+| O7  | P2     | Workflows mortos com `contents: write` que fazem commits sozinhos (`apply-production-fixes.yml`, `lockfile-sync.yml`, ligados a uma branch de 03/09). Acções por etiqueta, não por SHA; `bun-version: latest`.                                                                                                                                                                                                                                                                               |
+| O8  | P2     | Backups/restauro: continua por provar (10.5). Com escolas reais é o primeiro ponto.                                                                                                                                                                                                                                                                                                                                                                                                          |
+| O9  | P3     | 337 FK sem índice e 128 índices sem uso: irrelevante com os volumes actuais, rever com `pg_stat_statements` quando houver dados.                                                                                                                                                                                                                                                                                                                                                             |
+
+### O que está bem
+
+RLS activa em todas as tabelas; tabelas sensíveis só-servidor; storage privado com políticas
+por escola; CSRF nas server functions; webhooks Resend com assinatura svix, cron e PayFlow
+com comparação em tempo constante; limite de pedidos partilhado na base; erros operacionais
+com lista branca de campos (sem dados de menores nos alertas); nenhuma dependência alta ou
+crítica; 2503 testes, incluindo guardas de segurança que falham quando alguém regride.
+
+## 4. Correcções desta entrega
+
+| Ficheiro                                                                                           | Mudança                                                                                                      |
+| -------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------ |
+| `src/features/finance/payflow-settlement.ts`                                                       | `externalId = payment_id` no pagamento; estorno só do recibo desse pagamento, 409 + alerta quando não existe |
+| `src/features/integrations/gateway-webhook-key.ts`, `server.ts`, `settings-integrations-panel.tsx` | key do gateway mascarada sem 2FA; rotação exige aal2; ecrã explica porquê                                    |
+| `src/features/access/server.ts`                                                                    | Tesouraria e Administrador só atribuídos por Administrador                                                   |
+| `scripts/worker-secrets.mjs`, `deploy-production.yml`                                              | `SIGA_ALERT_WEBHOOK_URL` publicada como segredo                                                              |
+| `tests/…`                                                                                          | 3 ficheiros novos, 2 ajustados ao comportamento correcto                                                     |
+
+Nenhuma migração escrita nem aplicada; nenhuma escrita na base de produção.
+
+## 5. Ordem proposta
+
+1. **Dono, hoje:** criar os 5 segredos no ambiente `production` (+ `SIGA_ALERT_WEBHOOK_URL`),
+   correr «Deploy produção», desligar a publicação automática paralela e apagar o Worker
+   `tanstack-start-ts` (O1, O2).
+2. **Esta semana:** projecto Supabase de staging para E2E; trazer as 5 migrações para o
+   repositório e recapturar o retrato (O3, O4); provar um restauro (O8).
+3. **Antes da 2.ª escola:** S2, S3, S4 e F3 (2FA na sessão, webhook confirmado no
+   provedor, redefinição de senha segura, liquidação atómica).
+4. Depois: S6–S8, F4, O5–O7.

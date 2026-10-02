@@ -45,6 +45,27 @@ function isAdministratorRole(role: string): boolean {
   );
 }
 
+/**
+ * Cargos que só um Administrador atribui. A Secretaria gere contas, mas dar
+ * acesso ao dinheiro (Tesouraria) a uma conta que ela própria cria seria
+ * juntar as duas funções na mesma pessoa.
+ */
+const ADMIN_ONLY_ROLE_CODES = new Set([
+  ...mapAppRoleToSgaCodes("Administrador"),
+  ...mapAppRoleToSgaCodes("Tesouraria"),
+  "diretor geral",
+  "director geral",
+]);
+
+export function cargoRequiresAdministrator(cargoOrRoleCode: string): boolean {
+  const normalized = cargoOrRoleCode.trim().toLowerCase();
+  return (
+    normalized === "administrador" ||
+    normalized === "tesouraria" ||
+    ADMIN_ONLY_ROLE_CODES.has(normalized)
+  );
+}
+
 async function requireAdminContext(context: AuthedContext) {
   const membership = await resolveSgaMembershipAdmin(context.userId);
   if (!membership) throw new Error("Não foi possível determinar a escola actual.");
@@ -201,9 +222,9 @@ export const inviteSystemUser = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     if (!context) throw new Error("Unauthorized");
     const { schoolId, isAdministrator } = await requireAdminContext(context);
-    if (data.cargo === "Administrador" && !isAdministrator) {
+    if (cargoRequiresAdministrator(data.cargo) && !isAdministrator) {
       throw new Error(
-        "Apenas um Administrador pode convidar ou criar contas com cargo de Administrador.",
+        `Apenas um Administrador pode convidar ou criar contas com cargo de ${data.cargo}.`,
       );
     }
     const admin = await loadAdminClient();
@@ -398,8 +419,8 @@ export const updateSystemAccountCargo = createServerFn({ method: "POST" })
     if (data.userId === context.userId && !isAdministrator) {
       throw new Error("Não tem permissão para alterar o seu próprio cargo.");
     }
-    if (data.cargo === "Administrador" && !isAdministrator) {
-      throw new Error("Apenas um Administrador pode atribuir o cargo de Administrador.");
+    if (cargoRequiresAdministrator(data.cargo) && !isAdministrator) {
+      throw new Error(`Apenas um Administrador pode atribuir o cargo de ${data.cargo}.`);
     }
 
     const admin = await loadAdminClient();
@@ -860,8 +881,13 @@ export const createSchoolInvitation = createServerFn({ method: "POST" })
     // Igual a inviteSystemUser: só um Administrador convida administradores.
     // Sem isto, a Secretaria criava um convite owner/admin (por exemplo para
     // um segundo e-mail seu), aceitava-o e tornava-se administradora.
-    if (isAdministratorRole(data.roleCode) && !isAdministrator) {
-      throw new Error("Apenas um Administrador pode convidar com cargo de Administrador.");
+    if (
+      (isAdministratorRole(data.roleCode) || cargoRequiresAdministrator(data.roleCode)) &&
+      !isAdministrator
+    ) {
+      throw new Error(
+        "Apenas um Administrador pode convidar com cargo de Administrador ou Tesouraria.",
+      );
     }
     const admin = await loadAdminClient();
 

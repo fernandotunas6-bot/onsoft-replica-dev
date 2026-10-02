@@ -55,6 +55,8 @@ function GatewayWebhookHint({
   const [rotating, setRotating] = useState(false);
   const isGateway = provider === "multicaixa_express" || provider === "unitel_money";
   const apiKey = String(config.webhookApiKey ?? "").trim();
+  // Sem 2FA nesta sessão o servidor só envia os últimos 4 caracteres.
+  const keyMasked = config.webhookApiKeyMasked === true;
   const previousActive = gatewayWebhookPreviousKeyActive(config);
   const previousExpires = String(config.webhookApiKeyPreviousExpiresAt ?? "");
 
@@ -106,6 +108,11 @@ function GatewayWebhookHint({
         POST abaixo. Corpo JSON:{" "}
         <code className="text-[11px]">{`{ apiKey, reference, amount, invoiceId? }`}</code>
       </p>
+      {keyMasked ? (
+        <p className="text-[11px] text-muted-foreground">
+          A API key confirma pagamentos, por isso só aparece completa numa sessão com 2FA.
+        </p>
+      ) : null}
       {provider === "multicaixa_express" ? (
         <p className="text-[11px] text-muted-foreground">
           Entidade EMIS: preencha o campo «Merchant EMIS / Multicaixa» acima (4–6 dígitos). Sem ela,
@@ -124,7 +131,14 @@ function GatewayWebhookHint({
         <code className="flex-1 min-w-0 truncate rounded bg-background px-2 py-1 font-mono text-[11px]">
           {apiKey}
         </code>
-        <Button type="button" size="sm" variant="outline" onClick={() => copy("API key", apiKey)}>
+        <Button
+          type="button"
+          size="sm"
+          variant="outline"
+          disabled={keyMasked}
+          title={keyMasked ? "Active 2FA nesta sessão para ver e copiar a API key." : undefined}
+          onClick={() => copy("API key", apiKey)}
+        >
           Copiar API key
         </Button>
         <AlertDialog>
