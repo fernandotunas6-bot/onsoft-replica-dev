@@ -57,20 +57,13 @@ const canProbe = Boolean(SUPABASE_URL && ANON_KEY);
  * memberships e contas — devolve `42501`: o papel anónimo não tem privilégio
  * nenhum sobre essas tabelas. É a postura mais forte, e não depende de RLS.
  *
- * As quatro abaixo são a excepção: a consulta passa e vem vazia. Não houve
- * fuga, mas a concessão é mais larga do que em tudo o resto, e o que hoje as
- * protege pode ser apenas não haver linhas — o processamento salarial ainda
- * não está em uso. Quando estiver, a diferença deixa de ser académica.
- *
- * `supabase/HARDEN_UNPROTECTED_SCHOOL_TABLES.sql` faz `REVOKE ALL ... FROM anon`
- * e acrescenta política. Depois de aplicado, esta lista fica vazia.
+ * Já houve quatro excepções (hr_contracts, hr_employments, hr_payroll_items,
+ * hr_payroll_runs): a consulta passava e vinha vazia, sem fuga mas com a concessão
+ * mais larga do que em tudo o resto. Confirmado a 2026-10-02, com a sonda anónima e
+ * com `has_table_privilege('anon', …)` na produção: nenhuma é alcançável. A lista
+ * fica vazia, e qualquer tabela que volte a aparecer aqui falha o teste.
  */
-const ANON_REACHABLE_TODAY = [
-  "hr_contracts",
-  "hr_employments",
-  "hr_payroll_items",
-  "hr_payroll_runs",
-].sort();
+const ANON_REACHABLE_TODAY: string[] = [];
 
 /**
  * Tabelas que nunca devem devolver uma linha a quem não se autenticou.

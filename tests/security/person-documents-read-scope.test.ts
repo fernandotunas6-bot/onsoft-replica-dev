@@ -6,7 +6,8 @@
  * documento de identidade de qualquer pessoa.
  *
  * Decisão de produto: leitura restrita a Administrador/Secretaria
- * (`can_manage_students()`), não `can_read_students()` (que também inclui Professor) --
+ * (`can_manage_students()`, hoje `is_school_office(school_id)` -- o mesmo conjunto por
+ * escola, sem "diretor geral" nem "coordenação pedagógica"), não `can_read_students()` (que também inclui Professor) --
  * BI e passaporte são dados de matrícula, não pedagógicos. Migração
  * 20260924160000, testada contra produção em transacção revertida (administrador
  * continua a ver, professor deixa de ver) antes de aplicar.
@@ -43,12 +44,14 @@ describe("leitura de person_documents restrita a quem gere matrículas", () => {
     ).toHaveLength(1);
   });
 
-  it("a política de SELECT exige can_manage_students(), não apenas is_school_member()", () => {
+  it("a política de SELECT exige um papel de gestão, não apenas is_school_member()", () => {
     const select = snap.politicas.find(
       (p) => p.tabela === "person_documents" && p.cmd === "SELECT",
     );
     expect(select).toBeDefined();
-    expect(select?.usando).toContain("can_manage_students()");
+    // `is_school_office(school_id)` (owner/admin/administrador/secretary/secretaria, por escola)
+    // é o guarda em produção desde a 28/09; `can_manage_students()` era o da migração original.
+    expect(select?.usando).toMatch(/can_manage_students\(\)|is_school_office\(school_id\)/);
   });
 
   it("nenhuma política de person_documents usa is_school_member() sozinho", () => {

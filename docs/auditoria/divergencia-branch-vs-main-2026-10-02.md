@@ -178,27 +178,89 @@ formatação — `login-form-1.tsx`/`saas-api.ts` eram só reformatação
 
 ---
 
-## 5. Migrações Supabase: dois lados hardening em paralelo
+## 5. Migrações Supabase — o que a produção já tem e o que falta (corrigido a 2026-10-02)
 
-- **44 migrações só em `origin/main`**, divididas em dois grupos:
-  - 26 datadas **09/08–11/08** — estas são as "migrações de Agosto" já
-    registadas como **não aplicáveis** (`[[nao-aplicar-migracoes-agosto]]`):
-    descrevem um modelo de dados substituído. O `main` trouxe-as de volta;
-    aplicá-las cegamente criaria o modelo paralelo vazio já avisado.
-  - 18 datadas **29/09–30/09** — estas são reais e novas: MFA/2FA, ano
-    lectivo activo único, políticas duplicadas, QR com garantia, tabelas
-    sensíveis só para pessoal da escola.
-- **47 migrações só nesta branch**, datadas 23/09–27/09 — toda a
-  versão/aprovação de escalões salariais do RH (17 migrações
-  `hr_salary_*`/`hr_payroll_*`), idempotência de recibos financeiros, fecho
-  de políticas de escrita por pertença, RLS de `siga-arquivos`, triggers de
-  sobreposição de horário.
+> **Correcção.** A versão anterior desta secção dizia "44 só no `main` / 47 só nesta
+> branch, ordem por decidir" e tratava as 17 migrações `hr_salary_*` como por aplicar.
+> Estava errada: comparou nomes de ficheiro contra nomes de ficheiro. A produção regista
+> as migrações com timestamp próprio e muitas com sufixo `_YYYYMMDD`, e muito do que está
+> no repositório foi aplicado por outras vias (editor SQL, scripts) sem entrar no
+> histórico. **"Não está no histórico" não quer dizer "não está aplicado".**
 
-Nenhum dos dois ficheiros de migração se repete por nome — não há conflito de
-*merge* aqui, mas há um problema de **ordem e dependência**: aplicar as 47
-desta branch sem as 18 reais do `main` (ou vice-versa) deixa a base num
-estado que nenhum dos dois lados testou. Juntar as duas listas exige revisão
-humana da ordem de aplicação, não só `cat` dos ficheiros.
+**Método.** `list_migrations` da produção (projecto `xodgfmxiaunpamctfeea`) comparado por
+nome sem o prefixo de data e sem o sufixo `_YYYYMMDD`; depois, para cada ficheiro sem
+correspondência, uma consulta de **só leitura** ao efeito (`pg_policies`, `pg_proc`,
+`pg_constraint`, `has_table_privilege`). Nada foi aplicado.
+
+**Números.** Dos 122 ficheiros datados desde 24/09, **52 não têm correspondência por nome**
+(51 sem a migração `20261002093000_chat_conversations`, que é trabalho em curso de outra
+sessão e ainda não está no git). Das 17 migrações que o `origin/main` mexeu desde a base,
+**só 2** não estão no histórico de produção. As 26 de Agosto continuam **não aplicáveis**
+(`[[nao-aplicar-migracoes-agosto]]`).
+
+### A. Falta mesmo — a aplicar, com revisão (confiança: verificado ao vivo)
+
+| Migração | Porquê | Notas |
+|---|---|---|
+| `20260926203852_harden_teacher_qr_attendance` | `src/features/hr/teacher-lessons.ts:695` chama `hr_redeem_teacher_qr_secure`; a produção só tem `hr_redeem_teacher_qr(p_token_hash)` | **O código novo falha com "função inexistente" enquanto isto não for aplicado.** O ficheiro tem uma decisão aberta sobre o rasto de auditoria — decidir antes. |
+| `20260929230000_attendance_sessions_unique_slot_day` (main) | índice único por turno/dia | 0 duplicados ao vivo → aplica-se limpo. |
+| `20260930090000_one_active_academic_year` (main) | um ano lectivo activo por escola | 0 escolas com mais de um activo ao vivo → aplica-se limpo. |
+| `20260927120000_reclose_physical_access_secrets`, `20260924230000_close_access_card_and_device_secrets`, `20260927090000_student_history_server_only` | só retiram políticas mortas | Os privilégios de tabela **já** estão revogados (`authenticated`/`anon` sem `SELECT` em `siga_access_cards`; `siga_lesson_plans` idem), por isso não há exposição hoje — é higiene. Mantém `tests/security/segredos-de-acesso-fisico.test.ts` a vermelho até serem aplicadas (`siga_access_cards` ainda tem `Members read siga_access_cards`). |
+
+### B. O efeito já está na produção — não reaplicar (confiança: verificado ao vivo, salvo nota)
+
+| Migração(ões) | Evidência |
+|---|---|
+| `register_payment_respects_discount_and_penalty`, `…applies_late_fee`, `…net_of_discount` | O corpo de `private.register_payment` em produção é **idêntico** ao de `20260927190000_register_payment_net_of_discount` (a última da série). As duas anteriores ficaram superadas — a de multa por atraso não está no corpo final. |
+| `next_document_number_service_variant` | `private.next_document_number(uuid,text,text)` existe. |
+| `person_documents_close_member_write`, `…close_read_to_admin_secretaria` | `person_documents` só tem `INSERT/SELECT/UPDATE` com `is_school_member AND is_school_office`. |
+| `close_school_member_write_policies`, `close_school_invitations_write`, `close_last_member_wide_writes`, `harden_member_wide_policies`, `hr_structure_admin_only_writes`, `school_integrations_secrets_off_the_client`, `drop_dead_installation_wizard` | Políticas de escrita largas ausentes (verificado no retrato de 30/09 e por amostra ao vivo). |
+| `direct_messages_server_only_insert` | `siga_direct_messages` só tem política de `SELECT`; o `INSERT` é só servidor. |
+| `payroll_history_read_by_school_role` | `hr_payroll_items`, `hr_payroll_runs`, `hr_contracts`, `hr_employments` lêem por `is_school_finance(school_id)`; `finance_invoice_events` por finanças/escritório; `student_status_events` por `is_school_office`; `is_school_office` existe com o corpo do ficheiro. |
+| `school_announcements_whatsapp_channel` | `school_announcements_channel_check` já inclui `whatsapp`. |
+| `close_access_log_and_lesson_component_writes`, `close_payment_plans_and_lesson_plans` | `siga_access_logs` só tem `SELECT` permissiva; `finance_payment_plans` só `SELECT` de finanças; `siga_lesson_plans`/`siga_lesson_plan_components` sem privilégios para `authenticated` e sem políticas. |
+| `finance_receipt_idempotency`, `timetable_slot_overlap_trigger`, `person_documents_close_*` | Objectos presentes (trigger, índice, função). |
+| Série `hr_salary_*` de 24/09 (17) + `20260928190000_capture_google_workspace_and_hr_salary_tables` | **Aplicadas, com nome sufixado** (`…_20260924`). A de 28/09 só documenta tabelas que já existiam. |
+| `school_access_requests`, `reconcile_school_access_requests`, `assessment_rule_*`, `exam_sessions_registrations`, `competencies`, `shared_rate_limit`, `grade_score_history`, `consolidate_communication_preferences`, `tenant_mailboxes_server_only`, `timetable_*` (guardas) | **Confiança menor:** os objectos existem em produção; **não comparei corpo a corpo**. Antes de as dar por fechadas, comparar `pg_get_functiondef` com o ficheiro. |
+
+### C. Obsoleta
+
+- `20260924160000_close_legacy_grade_write_policies` — apaga políticas que já não existem.
+
+### D. Por aplicar mas sem uso no código
+
+- `20260925170000_timetable_builder_shifts_versions` — as tabelas/funções não existem em produção e nada no código as chama. Decidir se o recurso vai avante antes de aplicar.
+
+### E. Risco operacional que não é de conteúdo
+
+Cinco pares de ficheiros partilham o mesmo prefixo de versão:
+`20260924160000`, `20260924180000`, `20260925090000`, `20260929230000`, `20260930090000`.
+`supabase db push` identifica a migração pela versão, por isso rejeitaria o segundo de cada
+par. Em produção entraram com versões distintas (por MCP/editor SQL), o que explica o
+desencontro de nomes. Se alguma vez se passar a usar o CLI, estes pares têm de ser
+renumerados primeiro.
+
+### Ordem proposta (não executada — para o dono escolher)
+
+1. Decidir o rasto de auditoria do QR → aplicar `harden_teacher_qr_attendance` (§A, 1.ª linha).
+2. Reconfirmar 0 duplicados e aplicar as duas do `main` (§A, linhas 2–3).
+3. Aplicar as três de higiene de políticas mortas (§A, última linha).
+4. Recapturar o retrato (`npm run siga:db-snapshot`) e voltar a correr `tests/security`
+   — `segredos-de-acesso-fisico` deve passar.
+5. Fazer o §B de menor confiança (comparar corpos) e só então decidir se o histórico se
+   regulariza (`migration repair`) ou se fica documentado.
+6. Não aplicar: Agosto (§5 acima), §C, e §D sem decisão.
+
+Nenhum SQL foi posto em `supabase/migrations/` nem executado em produção para este relatório.
+
+### Sobre "School staff only"
+
+A política `School staff only` aparece em 27 tabelas como **ALL, RESTRICTIVE**
+(`private.is_school_staff`: owner/admin/administrador/secretary/secretaria/treasury/
+tesouraria/finance/teacher/professor). Políticas restritivas combinam-se com **AND** e só
+estreitam o acesso; não abrem nada. Uma leitura anterior, de que seriam um buraco por
+terem `ALL`, estava errada — e fez falhar dois testes por má leitura, não por falha de
+segurança (ver §9).
 
 ---
 
@@ -267,6 +329,38 @@ Isto não corrige nada; só ordena pelo que mais pesa:
 5. O SIGA Mobile (§3.1) e a auditoria (§3.2) são a parte mais isolada e mais
    segura de trazer primeiro, já que quase não aparecem na lista de conflito
    real do §4.
+
+---
+
+## 9. Actualização pós-merge (2026-10-02, depois de §1–§8)
+
+Os §1–§4, §7 e §8 descrevem o estado **antes** do merge e ficam como registo. Entretanto:
+
+- A branch de trabalho foi avançada (fast-forward) para o merge `c37079c5`: **464 à frente,
+  0 atrás** de `origin/main`. O trabalho de ChatGPT/Claude dos últimos 5 dias está nela
+  (verificado). Nada foi enviado para o remoto; a PR #28 deve ficar sem conflitos quando se fizer push.
+- O estado não comitado do §7 foi tratado: 3 ficheiros comitados, `pwa.ts` ligado ao aviso de
+  actualização, `chat/` no `.gitignore`.
+- **Testes de segurança que falhavam por leitura errada, corrigidos** (nenhum código de
+  produção mudou; todos são sondas contra o retrato/produção):
+  - `escrita-de-notas-exige-mfa` — ignorava a `School staff only`, que é RESTRICTIVE.
+  - `escrita-por-pertenca-vs-producao` — não reconhecia `is_school_finance`/`is_school_office`
+    e listava 4 lacunas "por aplicar" que a produção já fechou.
+  - `rls-live-probe` — as 4 tabelas de RH deixaram de ser alcançáveis pelo `anon`
+    (confirmado com a sonda e com `has_table_privilege`); `ANON_REACHABLE_TODAY` ficou vazia.
+  - `person-documents-read-scope` — aceita `is_school_office(school_id)`. Nota de produto: este
+    guarda **não** inclui "diretor geral" nem "coordenação pedagógica", que o antigo
+    `can_manage_students()` incluía; hoje esses papéis deixam de ler documentos de identidade.
+  - `create-table-vs-producao` — o parser não lia o estilo compacto das migrações de 24/09 e
+    reportava falsos conflitos; passou a partir nas vírgulas de topo.
+- **Continua vermelho de propósito:** `segredos-de-acesso-fisico` (ver §5.A, última linha).
+- **Falham por trabalho em curso de outra sessão** neste directório (ficheiros que apareceram
+  durante a sessão: `src/features/messages/chat-*.ts`, `supabase/migrations/20261002093000_chat_conversations.sql`,
+  `src/features/messages/server.ts` modificado): `membership-only-reads`, `messaging-scope`,
+  `production-snapshot`, `rls-client-migration` (73 ficheiros com o cliente privilegiado, tecto 72),
+  `selects-vs-producao-live`. Não são desta tarefa e não foram tocados; voltam a correr
+  quando essa sessão acabar. A nova migração de chat **não** está aplicada e não deve sê-lo
+  sem passar por estas sondas.
 
 ---
 

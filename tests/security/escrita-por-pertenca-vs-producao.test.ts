@@ -73,6 +73,8 @@ const GUARDAS_REAIS = [
   "current_user_can_manage",
   "is_platform_admin",
   "is_school_admin",
+  "is_school_finance",
+  "is_school_office",
   "sga_app_role",
   "sga_file_role",
   "sga_file_can_write_area",
@@ -83,12 +85,7 @@ const GUARDAS_REAIS = [
  * Por aplicar, não por tolerar. Cada entrada aponta a migração que a fecha, e sai
  * daqui quando essa migração correr e o retrato for recapturado. Só pode encolher.
  */
-const POR_APLICAR = new Map<string, string>([
-  ["enrollment_applications UPDATE", "20260927140000_close_last_member_wide_writes.sql"],
-  ["enrollment_forms ALL", "20260927140000_close_last_member_wide_writes.sql"],
-  ["finance_invoice_events INSERT", "20260927140000_close_last_member_wide_writes.sql"],
-  ["student_status_events INSERT", "20260927140000_close_last_member_wide_writes.sql"],
-]);
+const POR_APLICAR = new Map<string, string>([]);
 
 const ESCRITA = new Set(["INSERT", "UPDATE", "DELETE", "ALL"]);
 

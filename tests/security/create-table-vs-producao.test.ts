@@ -45,6 +45,41 @@ const ficheiros = readdirSync(MIGRACOES)
   .filter((f) => f.endsWith(".sql"))
   .sort();
 
+const NAO_E_COLUNA = new Set(["constraint", "primary", "unique", "check", "foreign", "exclude", "like"]);
+
+/**
+ * Colunas de um corpo de `CREATE TABLE`: parte nas vírgulas de topo (as de dentro de
+ * parêntesis — `numeric(16,2)`, `check(a in (…))`, `unique(a,b)` — não contam) e fica
+ * com o primeiro identificador de cada elemento que não seja uma restrição.
+ *
+ * A versão anterior exigia uma linha por coluna, com dois espaços de indentação e um
+ * tipo de uma lista fixa. Não lia as migrações compactas de 24/09 (várias colunas por
+ * linha, um espaço de indentação): devolvia `[]`, e a comparação entre duas
+ * declarações da mesma tabela falhava por o parser não ler, não por divergirem.
+ */
+function colunasDoCorpo(corpo: string): string[] {
+  const limpo = corpo.replace(/--[^\n]*/g, "");
+  const elementos: string[] = [];
+  let profundidade = 0;
+  let atual = "";
+  for (const c of limpo) {
+    if (c === "(") profundidade++;
+    else if (c === ")") profundidade--;
+    if (c === "," && profundidade === 0) {
+      elementos.push(atual);
+      atual = "";
+    } else atual += c;
+  }
+  elementos.push(atual);
+
+  const colunas: string[] = [];
+  for (const el of elementos) {
+    const m = /^\s*"?([a-z_][a-z_0-9]*)"?\s+\S/i.exec(el);
+    if (m && !NAO_E_COLUNA.has(m[1].toLowerCase())) colunas.push(m[1]);
+  }
+  return colunas;
+}
+
 /** Colunas declaradas por cada `CREATE TABLE`, por tabela e por ficheiro. */
 function declaracoes() {
   const saida: Array<{ ficheiro: string; tabela: string; colunas: string[] }> = [];
@@ -54,20 +89,7 @@ function declaracoes() {
       /CREATE TABLE(?:\s+IF NOT EXISTS)?\s+(?:public\.)?"?([a-z_][a-z_0-9]*)"?\s*\(([\s\S]*?)\n\);/gi;
     for (const m of sql.matchAll(re)) {
       const corpo = m[2];
-      // Uma coluna é uma linha com dois espaços de indentação, um nome, e um TIPO.
-      // Exigir o tipo é o que distingue uma coluna de tudo o mais que aparece
-      // indentado igual: `CONSTRAINT …`, `PRIMARY KEY (…)`, e as linhas de
-      // continuação de um CHECK multilinha, que começam por `or`, `and`, `when`.
-      // A primeira versão deste teste filtrava por lista de palavras-chave e
-      // deixou passar 242 falsos positivos — `CONSTRAINT` não estava na lista em
-      // maiúsculas, e `or` nem era palavra-chave que eu tivesse previsto.
-      const TIPOS =
-        "uuid|text|citext|integer|int|int4|int8|bigint|smallint|boolean|bool|numeric|decimal|" +
-        "real|double|date|timestamptz|timestamp|time|timetz|interval|jsonb|json|bytea|inet|" +
-        "serial|bigserial|char|varchar|money|tsvector|xml";
-      const reColuna = new RegExp(`^ {2}("?)([a-z_][a-z_0-9]*)\\1\\s+(?:${TIPOS})\\b`, "gim");
-      const colunas = [...corpo.matchAll(reColuna)].map((c) => c[2]);
-      saida.push({ ficheiro, tabela: m[1], colunas });
+      saida.push({ ficheiro, tabela: m[1], colunas: colunasDoCorpo(corpo) });
     }
   }
   return saida;

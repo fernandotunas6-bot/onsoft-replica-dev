@@ -9,6 +9,7 @@ type Politica = {
   papeis: string;
   usando: string;
   verificando: string;
+  modo?: string;
 };
 
 const retrato = JSON.parse(
@@ -24,8 +25,11 @@ const retrato = JSON.parse(
 const TABELAS_DE_NOTAS = ["gradebooks", "grade_items", "grade_scores"];
 const ESCRITA = ["INSERT", "UPDATE", "DELETE", "ALL"];
 
+// RESTRICTIVE combina-se com AND e só estreita o acesso (ex.: "School staff only"); só as permissivas podem abri-lo.
 function escritaEm(tabela: string) {
-  return retrato.politicas.filter((p) => p.tabela === tabela && ESCRITA.includes(p.cmd));
+  return retrato.politicas.filter(
+    (p) => p.tabela === tabela && ESCRITA.includes(p.cmd) && p.modo !== "RESTRICTIVE",
+  );
 }
 
 describe("escrita no modelo de notas", () => {
