@@ -67,10 +67,10 @@ export function PremiumModal({
           className={cn(
             "overflow-y-auto px-6 py-5",
             size === "full"
-              ? "max-h-[calc(96vh-10rem)]"
+              ? "max-h-[calc(96dvh-10rem)]"
               : size === "xl"
-                ? "max-h-[78vh]"
-                : "max-h-[60vh]",
+                ? "max-h-[78dvh]"
+                : "max-h-[60dvh]",
           )}
         >
           {children}

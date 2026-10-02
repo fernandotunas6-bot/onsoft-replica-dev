@@ -26,7 +26,7 @@ export type PageCrumb = {
 function ShortDescription({ text, className }: { text: string; className?: string }) {
   const { lead, rest } = splitDescription(text);
   return (
-    <div className={className}>
+    <div className={cn("[overflow-wrap:anywhere]", className)}>
       <p>{lead}</p>
       {rest ? <MoreInfo className="mt-0.5">{rest}</MoreInfo> : null}
     </div>
@@ -67,10 +67,10 @@ export function PageHeader({
     ([{ label: "Início", to: "/" }, { label: group }, { label: title }] satisfies PageCrumb[]);
 
   return (
-    <div className="space-y-2.5">
+    <div className="min-w-0 space-y-3">
       {!hideBreadcrumb ? (
         <Breadcrumb>
-          <BreadcrumbList className="text-[11px] sm:text-xs">
+          <BreadcrumbList className="max-w-full flex-nowrap overflow-x-auto whitespace-nowrap text-[11px] sm:text-xs">
             {trail.map((crumb, index) => {
               const isLast = index === trail.length - 1;
               // O separador é `<li>`: tem de ser irmão do item, não filho —
@@ -80,10 +80,10 @@ export function PageHeader({
                 <Fragment key={`${crumb.label}-${index}`}>
                   {index > 0 ? <BreadcrumbSeparator className="[&>svg]:size-3" /> : null}
                   <BreadcrumbItem className="gap-1.5">
-                    {isLast || !crumb.to ? (
-                      <BreadcrumbPage className={cn(!isLast && "text-muted-foreground")}>
-                        {crumb.label}
-                      </BreadcrumbPage>
+                    {isLast ? (
+                      <BreadcrumbPage>{crumb.label}</BreadcrumbPage>
+                    ) : !crumb.to ? (
+                      <span className="text-muted-foreground">{crumb.label}</span>
                     ) : (
                       <BreadcrumbLink asChild>
                         <Link to={crumb.to} search={crumb.search}>
@@ -98,16 +98,16 @@ export function PageHeader({
           </BreadcrumbList>
         </Breadcrumb>
       ) : null}
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <div className="flex items-center gap-3">
+      <div className="flex flex-col items-stretch justify-between gap-4 sm:flex-row sm:flex-wrap sm:items-end">
+        <div className="flex min-w-0 items-center gap-3">
           {headerMark}
-          <div>
+          <div className="min-w-0">
             {/* O grupo já aparece no caminho de navegação; repeti-lo em
                 maiúsculas por cima do título era ruído. */}
             {hideBreadcrumb ? (
               <p className="text-xs font-medium text-muted-foreground">{group}</p>
             ) : null}
-            <h1 className="font-display text-lg font-semibold tracking-tight md:text-xl">
+            <h1 className="break-words font-display text-xl font-semibold tracking-tight md:text-xl">
               {title}
             </h1>
             <ShortDescription
@@ -116,7 +116,7 @@ export function PageHeader({
             />
           </div>
         </div>
-        {actions ? <div className="flex flex-wrap gap-2">{actions}</div> : null}
+        {actions ? <div className="flex w-full flex-wrap gap-2 sm:w-auto">{actions}</div> : null}
       </div>
     </div>
   );
@@ -215,7 +215,7 @@ export function StatGrid({
           onClick={toggle}
           aria-expanded={visible}
           aria-label={visible ? "Ocultar estatísticas" : "Ver estatísticas"}
-          className="flex items-center gap-1.5 rounded-md px-2 py-1 text-xs font-medium text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+          className="flex min-h-11 items-center gap-1.5 rounded-md px-2 py-1 text-xs font-medium text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground md:min-h-0"
         >
           <ChevronDown
             className={cn(
@@ -228,6 +228,7 @@ export function StatGrid({
       </div>
       <div
         aria-hidden={!visible}
+        inert={!visible}
         className={cn(
           "grid transition-all duration-200 ease-in-out",
           visible ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0 pointer-events-none",

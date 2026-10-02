@@ -21,6 +21,7 @@ import {
   Users,
   Wallet,
 } from "lucide-react";
+import { MobileNavigation } from "./MobileNavigation";
 import { AppSidebar } from "./AppSidebar";
 import { AccountDrawer } from "./AccountDrawer";
 import { AppLauncher } from "./AppLauncher";
@@ -253,13 +254,18 @@ function AuthenticatedAppShell({ children }: { children: ReactNode }) {
         </div>
 
         <Sheet open={open} onOpenChange={setOpen}>
-          <SheetContent side="left" className="w-[240px] border-none bg-sidebar p-0">
+          <SheetContent
+            id="siga-mobile-menu"
+            side="left"
+            className="w-[min(85vw,280px)] border-none bg-sidebar p-0"
+          >
+            <SheetTitle className="sr-only">Módulos do SIGA</SheetTitle>
             <AppSidebar onOpenSettings={(panelId) => openSettings(panelId)} />
           </SheetContent>
         </Sheet>
 
-        <div className="flex min-w-0 flex-1 flex-col lg:my-2 lg:mx-2 lg:overflow-clip lg:rounded-2xl lg:border lg:border-border/60 lg:shadow-sm">
-          <header className="sticky top-0 z-30 flex h-14 items-center gap-2.5 border-b border-border/70 bg-background/95 backdrop-blur-xs px-3.5 md:px-5">
+        <div className="siga-mobile-frame flex min-w-0 flex-1 flex-col lg:my-2 lg:mx-2 lg:overflow-clip lg:rounded-2xl lg:border lg:border-border/60 lg:shadow-sm">
+          <header className="siga-mobile-header sticky top-0 z-30 flex h-14 items-center gap-2.5 border-b border-border/70 bg-background/95 backdrop-blur-xs px-3.5 md:px-5">
             <Button
               variant="ghost"
               size="icon"
@@ -358,7 +364,9 @@ function AuthenticatedAppShell({ children }: { children: ReactNode }) {
             </Button>
 
             <div className="ml-auto flex items-center gap-1">
-              <TopbarCalendar />
+              <div className="hidden sm:block">
+                <TopbarCalendar />
+              </div>
               <Button
                 variant="ghost"
                 size="icon"
@@ -374,7 +382,7 @@ function AuthenticatedAppShell({ children }: { children: ReactNode }) {
               <Button
                 variant="ghost"
                 size="icon"
-                className="header-icon-btn"
+                className="header-icon-btn hidden sm:inline-flex"
                 aria-label={favorited ? "Remover dos favoritos" : "Adicionar aos favoritos"}
                 title={favorited ? "Remover dos favoritos" : "Favoritar página"}
                 onClick={() => {
@@ -393,14 +401,16 @@ function AuthenticatedAppShell({ children }: { children: ReactNode }) {
                   )}
                 />
               </Button>
-              <AppLauncher onOpenSettings={openSettings} />
+              <div className="hidden sm:block">
+                <AppLauncher onOpenSettings={openSettings} />
+              </div>
               <CommandPalette />
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="header-icon-btn"
+                    className="header-icon-btn hidden sm:inline-flex"
                     aria-label="Seletor de tema"
                   >
                     {isDark ? (
@@ -577,11 +587,33 @@ function AuthenticatedAppShell({ children }: { children: ReactNode }) {
               </Suspense>
             ) : null}
           </header>
+          <div className="flex min-w-0 flex-wrap items-center gap-2 border-b border-border px-4 py-2 md:hidden">
+            <span
+              className="min-w-0 flex-1 truncate text-xs text-muted-foreground"
+              title={school?.name ?? ""}
+            >
+              {school?.name ?? "SIGA Plus"} · {selectedYearLabel}
+            </span>
+            {terms.length > 0 ? (
+              <select
+                aria-label="Período lectivo"
+                className="min-h-11 max-w-full rounded-lg border border-input bg-background px-2 text-sm"
+                value={selectedTermId ?? ""}
+                onChange={(event) => setSelectedTermId(event.target.value)}
+              >
+                {terms.map((term) => (
+                  <option key={term.id} value={term.id}>
+                    {term.label}
+                  </option>
+                ))}
+              </select>
+            ) : null}
+          </div>
 
           <main
             id="conteudo-principal"
             tabIndex={-1}
-            className="mx-auto w-full max-w-[1400px] flex-1 px-3.5 py-4 md:px-5 md:py-5 lg:px-6 lg:py-5 [content-visibility:auto]"
+            className="siga-mobile-content mx-auto w-full max-w-[1400px] flex-1 px-3.5 py-4 md:px-5 md:py-5 lg:px-6 lg:py-5 [content-visibility:auto]"
           >
             {studentCapacity.nearLimit || studentCapacity.atLimit ? (
               <div
@@ -624,6 +656,15 @@ function AuthenticatedAppShell({ children }: { children: ReactNode }) {
             ) : null}
             {children}
           </main>
+
+          <MobileNavigation
+            role={currentUser.role}
+            grants={currentUser.grants}
+            plan={activePlan}
+            pathname={pathname}
+            menuOpen={open}
+            onOpenMenu={() => setOpen(true)}
+          />
 
           <footer className="flex flex-wrap items-center justify-between gap-3 border-t border-border bg-card/40 px-3.5 py-3 text-xs text-muted-foreground backdrop-blur-xs md:px-5">
             <div className="flex items-center gap-4">

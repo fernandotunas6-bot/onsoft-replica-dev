@@ -37,14 +37,17 @@ export function DeleteConfirmModal({
 }: DeleteConfirmModalProps) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!cannotDeleteReason) {
+    if (!cannotDeleteReason && !isDeleting) {
       await onConfirm();
     }
   };
 
   return (
     <ModalShell open={open} onOpenChange={onOpenChange} size="sm">
-      <form onSubmit={handleSubmit} className="flex flex-col">
+      <form
+        onSubmit={handleSubmit}
+        className="flex min-h-0 max-h-[inherit] flex-col overflow-hidden"
+      >
         <ModalHeader
           icon={Trash2}
           title={title}
@@ -83,6 +86,7 @@ export function DeleteConfirmModal({
           )}
         </ModalContent>
         <ModalFooter
+          onSubmit={handleSubmit}
           onCancel={() => onOpenChange(false)}
           submitLabel="Eliminar definitivamente"
           submitVariant="destructive"

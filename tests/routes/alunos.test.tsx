@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
-import { cleanup, screen, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, screen, waitFor, within } from "@testing-library/react";
 import type { ComponentType } from "react";
 import {
   emitRealtime,
@@ -46,6 +46,8 @@ const searchStudentsMock = vi.fn();
 const searchPeopleMock = vi.fn();
 const listEnrollmentApplicationsMock = vi.fn();
 const listPedagogicalWorkspaceMock = vi.fn();
+const responsive = vi.hoisted(() => ({ isMobile: false }));
+vi.mock("@/hooks/use-mobile", () => ({ useIsMobile: () => responsive.isMobile }));
 
 vi.mock("@/features/students/server", () => ({
   searchStudents: () => searchStudentsMock(),
@@ -130,9 +132,53 @@ afterEach(() => {
   resetCurrentAccount();
   resetRealtime();
   resetPersistedFilters();
+  responsive.isMobile = false;
 });
 
 describe("/alunos — render", () => {
+  it("mantém o contexto de candidatos no telefone e permite consultar a tabela completa", async () => {
+    responsive.isMobile = true;
+    seed({ students: [aluno] });
+    setRouteSearch({ action: "confirmar" });
+    renderRoute(Alunos);
+    const mobile = within(screen.getByRole("region", { name: "Lista resumida de alunos" }));
+    await waitFor(() => expect(mobile.getByText("Nenhum candidato pendente")).toBeDefined());
+    expect(mobile.queryByText("Nenhum aluno encontrado")).toBeNull();
+    fireEvent.click(mobile.getByRole("button", { name: "Tabela completa" }));
+    expect(mobile.queryByText("Nenhum candidato pendente")).toBeNull();
+    expect(within(screen.getByRole("table")).getByText("Nenhum candidato pendente")).toBeDefined();
+  });
+
+  it("não marca outra página como seleccionada só pelo número de alunos seleccionados", async () => {
+    seed({
+      students: Array.from({ length: 21 }, (_, index) => ({
+        ...aluno,
+        id: `aluno-${index}`,
+        full_name: `Aluno ${index + 1}`,
+        registration_number: String(1000001 + index),
+      })),
+    });
+    renderRoute(Alunos);
+    const table = within(screen.getByRole("table"));
+    await waitFor(() => expect(table.getByText("Aluno 1")).toBeDefined());
+    fireEvent.click(table.getByRole("checkbox", { name: "Seleccionar todos nesta página" }));
+    expect(
+      (table.getByRole("checkbox", { name: "Seleccionar todos nesta página" }) as HTMLInputElement)
+        .checked,
+    ).toBe(true);
+    fireEvent.click(screen.getByRole("button", { name: "Página seguinte" }));
+    await waitFor(() => expect(table.getByText("Aluno 11")).toBeDefined());
+    expect(
+      (table.getByRole("checkbox", { name: "Seleccionar todos nesta página" }) as HTMLInputElement)
+        .checked,
+    ).toBe(false);
+    fireEvent.click(screen.getByRole("button", { name: "Última página" }));
+    await waitFor(() => expect(table.getByText("Aluno 21")).toBeDefined());
+    expect(
+      (table.getByRole("checkbox", { name: "Seleccionar todos nesta página" }) as HTMLInputElement)
+        .checked,
+    ).toBe(false);
+  });
   it("atravessa a transição loading → carregado e lista o aluno", async () => {
     seed({ students: [aluno] });
 

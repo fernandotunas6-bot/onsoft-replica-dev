@@ -1,4 +1,5 @@
 import * as React from "react";
+import * as DialogPrimitive from "@radix-ui/react-dialog";
 import { X, HelpCircle, type LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -24,7 +25,7 @@ export function ModalHeader({
   return (
     <div
       className={cn(
-        "flex items-center justify-between border-b border-border bg-muted/20 px-5 py-3.5",
+        "flex shrink-0 items-start justify-between gap-2 border-b border-border bg-muted/20 px-4 py-3.5 sm:items-center sm:px-5",
         className,
       )}
     >
@@ -36,12 +37,16 @@ export function ModalHeader({
         )}
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
-            <h2 className="font-semibold text-sm tracking-tight text-foreground truncate">
-              {title}
-            </h2>
+            <DialogPrimitive.Title asChild>
+              <h2 className="break-words font-semibold text-sm tracking-tight text-foreground">
+                {title}
+              </h2>
+            </DialogPrimitive.Title>
             {badge}
           </div>
-          {subtitle && <p className="text-[11px] text-muted-foreground truncate">{subtitle}</p>}
+          {subtitle && (
+            <p className="[overflow-wrap:anywhere] text-xs text-muted-foreground">{subtitle}</p>
+          )}
         </div>
       </div>
 
@@ -51,7 +56,8 @@ export function ModalHeader({
             type="button"
             onClick={onHelp}
             title="Ajuda contextual"
-            className="flex size-8 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+            aria-label="Ajuda contextual"
+            className="flex size-11 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground transition-colors md:size-8"
           >
             <HelpCircle className="size-4" />
           </button>
@@ -61,7 +67,8 @@ export function ModalHeader({
             type="button"
             onClick={onClose}
             title="Fechar (Esc)"
-            className="flex size-8 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+            aria-label="Fechar"
+            className="flex size-11 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground transition-colors md:size-8"
           >
             <X className="size-4" />
           </button>

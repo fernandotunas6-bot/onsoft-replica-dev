@@ -42,7 +42,7 @@ export function ContextualActionsPanelHost() {
           type="button"
           onClick={() => setMobileOpen(true)}
           aria-label="Abrir ações relacionadas"
-          className="fixed bottom-20 right-4 z-40 flex items-center gap-2 rounded-full bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground shadow-lg lg:hidden"
+          className="fixed bottom-[calc(var(--siga-mobile-nav-height,65px)+16px)] right-4 z-40 flex items-center gap-2 rounded-full bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground shadow-lg lg:hidden"
         >
           <Sparkles className="size-4" />
           Ações · {suggestions.length}

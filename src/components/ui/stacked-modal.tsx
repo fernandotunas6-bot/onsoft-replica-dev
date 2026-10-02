@@ -157,7 +157,7 @@ export function StackedModal({
     >
       <DialogContent
         className={cn(
-          "flex h-[min(700px,85vh)] flex-col gap-0 overflow-hidden border-border/70 p-0 shadow-2xl sm:rounded-2xl",
+          "flex h-[min(700px,85dvh)] flex-col gap-0 overflow-hidden border-border/70 p-0 shadow-2xl sm:rounded-2xl",
           width,
         )}
       >

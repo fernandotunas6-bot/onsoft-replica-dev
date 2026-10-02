@@ -6,7 +6,7 @@ import { LoaderCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const buttonVariants = cva(
-  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium cursor-pointer transition-[color,background-color,transform,box-shadow] duration-75 ease-out active:scale-[0.98] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 disabled:cursor-not-allowed [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 motion-reduce:active:scale-100 motion-reduce:transition-none",
+  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium cursor-pointer max-md:min-h-11 transition-[color,background-color,transform,box-shadow] duration-75 ease-out active:scale-[0.98] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 disabled:cursor-not-allowed [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 motion-reduce:active:scale-100 motion-reduce:transition-none",
   {
     variants: {
       variant: {
@@ -22,7 +22,7 @@ const buttonVariants = cva(
         default: "h-9 px-3.5 py-2",
         sm: "h-8 rounded-md px-3 text-xs",
         lg: "h-10 rounded-md px-6",
-        icon: "h-9 w-9",
+        icon: "h-9 w-9 max-md:min-w-11",
       },
     },
     defaultVariants: {
