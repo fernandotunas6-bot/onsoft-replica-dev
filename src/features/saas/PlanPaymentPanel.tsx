@@ -218,6 +218,7 @@ export function PlanPaymentPanel({ data }: { data: SubscriptionOverview }) {
               <div className="grid gap-2 sm:grid-cols-2">
                 <Input
                   placeholder="Referência da transferência (opcional)"
+                  aria-label="Referência da transferência (opcional)"
                   value={reference}
                   maxLength={80}
                   onChange={(e) => setReference(e.target.value)}
