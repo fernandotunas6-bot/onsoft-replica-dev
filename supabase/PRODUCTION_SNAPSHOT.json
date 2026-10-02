@@ -1,10 +1,10 @@
 {
-  "capturadoEm": "2026-10-02T07:19:12.450Z",
+  "capturadoEm": "2026-10-02T09:13:52.813Z",
   "resumo": {
     "tabelas": 186,
     "com_rls": 186,
     "politicas": 338,
-    "funcoes_private": 107,
+    "funcoes_private": 108,
     "triggers": 198,
     "buckets": 6,
     "buckets_publicos": 1,
@@ -9043,6 +9043,12 @@
     },
     {
       "schema": "private",
+      "funcao": "settle_gateway_payment_service",
+      "args": "target_school_id uuid, target_invoice_id uuid, target_amount numeric, target_payment_method text, target_received_by uuid, target_external_id text, target_paid_on date",
+      "security_definer": true
+    },
+    {
+      "schema": "private",
       "funcao": "sga_actor_has_role",
       "args": "p_user_id uuid, p_school_id uuid, p_codes text[]",
       "security_definer": true
@@ -9691,6 +9697,12 @@
     },
     {
       "schema": "public",
+      "funcao": "hr_redeem_teacher_qr_secure",
+      "args": "p_token_hash text, p_latitude double precision, p_longitude double precision, p_accuracy_m double precision",
+      "security_definer": true
+    },
+    {
+      "schema": "public",
       "funcao": "hr_refresh_payroll_payment_batch",
       "args": "p_batch_id uuid",
       "security_definer": false
@@ -9952,6 +9964,12 @@
       "funcao": "set_updated_at_and_version",
       "args": "",
       "security_definer": false
+    },
+    {
+      "schema": "public",
+      "funcao": "settle_gateway_payment_service",
+      "args": "school_id uuid, invoice_id uuid, amount numeric, payment_method text, received_by uuid, external_id text, paid_on date",
+      "security_definer": true
     },
     {
       "schema": "public",

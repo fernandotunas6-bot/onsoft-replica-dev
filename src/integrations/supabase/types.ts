@@ -12399,6 +12399,24 @@ export type Database = {
           purpose: string
         }[]
       }
+      hr_redeem_teacher_qr_secure: {
+        Args: {
+          p_accuracy_m?: number
+          p_latitude?: number
+          p_longitude?: number
+          p_token_hash: string
+        }
+        Returns: {
+          assurance_score: number
+          compensation_event_id: string
+          decision: string
+          distance_from_school_m: number
+          inside_geofence: boolean
+          occurrence_id: string
+          occurrence_status: string
+          purpose: string
+        }[]
+      }
       hr_refresh_payroll_payment_batch: {
         Args: { p_batch_id: string }
         Returns: {
@@ -12703,6 +12721,18 @@ export type Database = {
         Returns: Json
       }
       school_logo_folder_ok: { Args: { p_folder: string }; Returns: boolean }
+      settle_gateway_payment_service: {
+        Args: {
+          amount: number
+          external_id: string
+          invoice_id: string
+          paid_on?: string
+          payment_method: string
+          received_by: string
+          school_id: string
+        }
+        Returns: Json
+      }
       siga_alumni_profile_completion: {
         Args: { target: Database["public"]["Tables"]["alumni_profiles"]["Row"] }
         Returns: number
