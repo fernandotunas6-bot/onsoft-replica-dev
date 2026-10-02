@@ -22,7 +22,13 @@ import { resolve } from "node:path";
  */
 
 type Retrato = {
-  politicas: Array<{ cmd: string; politica: string; tabela: string; usando: string | null }>;
+  politicas: Array<{
+    cmd: string;
+    modo?: string;
+    politica: string;
+    tabela: string;
+    usando: string | null;
+  }>;
   tabelas: Array<{ tabela: string; rls: boolean; anon_select: boolean; auth_select: boolean }>;
 };
 
@@ -34,7 +40,11 @@ const COFRES = ["siga_access_cards", "siga_turnstile_devices"];
 
 describe("segredos de acesso físico", () => {
   it.each(COFRES)("%s não é alcançável pelo cliente do utilizador", (nome) => {
-    const politicas = retrato.politicas.filter((p) => p.tabela === nome);
+    // Só as PERMISSIVE contam: uma RESTRICTIVE (`School staff only`) apenas estreita o
+    // acesso — sozinha, sem nenhuma permissiva, não entrega linha a ninguém.
+    const politicas = retrato.politicas.filter(
+      (p) => p.tabela === nome && p.modo !== "RESTRICTIVE",
+    );
 
     expect(
       politicas.map((p) => `${p.cmd} ${p.politica}`),
