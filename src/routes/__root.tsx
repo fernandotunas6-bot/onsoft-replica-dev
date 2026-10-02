@@ -10,7 +10,7 @@ import {
 import { useEffect, useState, type ReactNode } from "react";
 
 import appCss from "../styles.css?url";
-import { registerServiceWorker } from "@/lib/pwa";
+import { applyPendingUpdate, registerServiceWorker, SW_UPDATE_READY_EVENT } from "@/lib/pwa";
 import { measureVitals } from "@/lib/vitals";
 
 import { toast } from "sonner";
@@ -145,6 +145,19 @@ function RootComponent() {
       }
     });
     registerServiceWorker();
+
+    const onUpdateReady = () => {
+      toast.message("Há uma versão nova do SIGA Plus", {
+        description: "As suas alterações em curso não se perdem — actualize quando quiser.",
+        duration: Infinity,
+        action: {
+          label: "Actualizar",
+          onClick: applyPendingUpdate,
+        },
+      });
+    };
+    window.addEventListener(SW_UPDATE_READY_EVENT, onUpdateReady);
+    return () => window.removeEventListener(SW_UPDATE_READY_EVENT, onUpdateReady);
   }, []);
 
   return (

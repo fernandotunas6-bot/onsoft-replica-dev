@@ -37,7 +37,13 @@ const staleWhileRevalidate = async (cacheName, request) => {
 
 self.addEventListener("install", (event) => {
   event.waitUntil(caches.open(CACHES.pages).then((cache) => cache.add(OFFLINE_PAGE)));
-  self.skipWaiting();
+});
+
+/* Fica em espera até o cliente confirmar (botão "Actualizar" do aviso em pwa.ts) —
+   sem isto, skipWaiting corre logo no install e a versão nova nunca fica "em espera"
+   para ser aceite. */
+self.addEventListener("message", (event) => {
+  if (event.data?.type === "SKIP_WAITING") self.skipWaiting();
 });
 
 self.addEventListener("activate", (event) => {

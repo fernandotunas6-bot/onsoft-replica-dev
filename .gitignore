@@ -61,6 +61,9 @@ src-tauri/target/
 src-tauri/gen/
 target/
 
+# Template de chat de referência (não integrado; o schema.sql traz tabelas próprias que colidem com as do SIGA)
+chat/
+
 # Credenciais descarregadas de consolas de provedores -- nunca versionar
 client_secret_*.json
 *-service-account.json

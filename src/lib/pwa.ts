@@ -37,6 +37,43 @@ async function unregisterAppWorkers() {
   );
 }
 
+/**
+ * Evento disparado quando existe uma versão nova em espera (§120).
+ *
+ * Não se recarrega a página sozinho: quem está a meio de uma pauta ou de uma
+ * matrícula perde o que escreveu. O aviso fica visível, discreto, e a troca
+ * acontece quando o utilizador disser.
+ */
+export const SW_UPDATE_READY_EVENT = "siga:sw-update-ready";
+
+/** O worker em espera, guardado para o botão "Actualizar" o activar. */
+let waitingWorker: ServiceWorker | null = null;
+
+function announceUpdate(worker: ServiceWorker | null) {
+  if (!worker) return;
+  waitingWorker = worker;
+  window.dispatchEvent(new CustomEvent(SW_UPDATE_READY_EVENT));
+}
+
+/**
+ * Activa a versão em espera e recarrega. Chamado pelo botão do aviso — nunca
+ * automaticamente.
+ */
+export function applyPendingUpdate() {
+  if (!waitingWorker) {
+    window.location.reload();
+    return;
+  }
+  // `controllerchange` dispara quando o novo worker assume; só então vale a pena
+  // recarregar, ou a página volta a ser servida pelo worker antigo.
+  navigator.serviceWorker.addEventListener(
+    "controllerchange",
+    () => window.location.reload(),
+    { once: true },
+  );
+  waitingWorker.postMessage({ type: "SKIP_WAITING" });
+}
+
 export function registerServiceWorker() {
   if (typeof navigator === "undefined" || !("serviceWorker" in navigator)) return;
 
@@ -45,5 +82,24 @@ export function registerServiceWorker() {
     return;
   }
 
-  navigator.serviceWorker.register(SW_URL, { scope: "/" }).catch(() => {});
+  navigator.serviceWorker
+    .register(SW_URL, { scope: "/" })
+    .then((registration) => {
+      // Já havia uma versão em espera antes desta carga da página.
+      if (registration.waiting && navigator.serviceWorker.controller) {
+        announceUpdate(registration.waiting);
+      }
+      registration.addEventListener("updatefound", () => {
+        const installing = registration.installing;
+        if (!installing) return;
+        installing.addEventListener("statechange", () => {
+          // `controller` nulo significa primeira instalação: não há nada a
+          // actualizar e mostrar o aviso aí só confundia.
+          if (installing.state === "installed" && navigator.serviceWorker.controller) {
+            announceUpdate(registration.waiting ?? installing);
+          }
+        });
+      });
+    })
+    .catch(() => {});
 }
