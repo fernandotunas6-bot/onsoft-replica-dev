@@ -1,9 +1,17 @@
+import { randomBytes } from "node:crypto";
 import { readFileSync, existsSync } from "node:fs";
 import { resolve } from "node:path";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
-/** Password fixa para admins criados em testes @live (nunca usar em produção). */
-export const E2E_LIVE_ADMIN_PASSWORD = "E2eAdminPass2026!";
+/**
+ * Senha dos admins que os testes @live criam na produção. Vem de
+ * `E2E_LIVE_ADMIN_PASSWORD` ou é gerada ao acaso em cada processo: cada teste
+ * cria a conta e entra com ela no mesmo processo, por isso não precisa de ser
+ * fixa. Esteve escrita aqui até 29/09 — o repositório passou a público e as
+ * contas de teste antigas foram bloqueadas.
+ */
+export const E2E_LIVE_ADMIN_PASSWORD =
+  process.env.E2E_LIVE_ADMIN_PASSWORD?.trim() || `E2e-${randomBytes(12).toString("base64url")}!9a`;
 
 function loadRootEnv() {
   const envPath = resolve(process.cwd(), ".env");

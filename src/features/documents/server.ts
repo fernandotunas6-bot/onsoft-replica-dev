@@ -1,3 +1,4 @@
+import type { Json } from "@/integrations/supabase/types";
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { publicDatabaseError } from "@/integrations/supabase/server-error";
@@ -296,7 +297,8 @@ export const createDocumentRequest = createServerFn({ method: "POST" })
         template_id: data.templateId,
         request_type: template.document_type || template.name,
         status: "submitted",
-        purpose: purposeParts.join(" · ") || null,
+        // `purpose` é NOT NULL: sem nº, prazo nem notas a base recusava o pedido.
+        purpose: purposeParts.join(" · ") || `Pedido de ${template.name}`,
         requested_by: context.userId,
       })
       .select("*")
@@ -382,7 +384,7 @@ async function upsertSettingDomain(
     const { data, error } = await db
       .from("school_settings")
       .update({
-        value,
+        value: value as Json,
         version: Number(existing.version ?? 1) + 1,
         changed_by: userId,
       })
@@ -400,7 +402,7 @@ async function upsertSettingDomain(
       school_id: schoolId,
       domain,
       version: 1,
-      value,
+      value: value as Json,
       changed_by: userId,
     })
     .select("id")

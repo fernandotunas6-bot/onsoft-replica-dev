@@ -1,4 +1,5 @@
 import { IMessageDeliveryAdapter, OtpChannel, OtpDeliveryResult, OtpPayload } from "../contracts";
+import { errorMessage } from "@/lib/error-message";
 
 /**
  * TwilioSmsAdapter — Envia códigos OTP via SMS usando Twilio.
@@ -87,12 +88,12 @@ export class TwilioSmsAdapter implements IMessageDeliveryAdapter {
         provider: this.providerName,
         externalMessageId: data.sid,
       };
-    } catch (err: any) {
+    } catch (err) {
       return {
         success: false,
         channel: "sms",
         provider: this.providerName,
-        error: err.message || "Falha ao enviar SMS com Twilio",
+        error: errorMessage(err, "Falha ao enviar SMS com Twilio"),
       };
     }
   }

@@ -31,6 +31,9 @@ const MIGRATIONS = {
     "student_academic_history",
     "student_status_history",
   ],
+  "supabase/migrations/20260929230000_turnstile_devices_server_only.sql": [
+    "siga_turnstile_devices",
+  ],
   "supabase/migrations/20260926220000_exam_sessions_registrations.sql": [
     "siga_exam_sessions",
     "siga_exam_registrations",

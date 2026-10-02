@@ -1,5 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
+import { requireAal2 } from "@/features/hr/require-aal2";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { loadSgaAdminClient, resolveSgaMembershipAdmin } from "@/integrations/supabase/sga-admin";
 import { publicDatabaseError } from "@/integrations/supabase/server-error";
@@ -15,6 +16,7 @@ export const applyApprovedHrSalaryChange = createServerFn({ method: "POST" })
     if (!membership || membership.appRole !== "Administrador") {
       throw new Error("A aplicação salarial exige autorização administrativa.");
     }
+    requireAal2(context.claims, "Aplicar uma alteração salarial");
     const db = await loadSgaAdminClient();
     const { data: amendmentId, error } = await db.rpc("hr_apply_approved_salary_change", {
       p_request_id: data.requestId,

@@ -354,17 +354,26 @@ export async function settleGatewayPayment(
           "Não foi possível emitir recibo do gateway.",
         );
 
-      // `invoiceStatusFromPaid` veio do main e é melhor do que a comparação que estava
-      // aqui: arredonda a cêntimos, logo não deixa um pagamento exacto ficar
-      // "partially_paid" por erro de vírgula flutuante. Mas a base tem de ser
-      // `invoiceAmountDue`, não `invoiceNetTotal`: só a primeira soma a multa, e uma
-      // fatura com multa nunca chegaria a "paid" pagando o valor devido.
+      // `invoiceStatusFromPaid` arredonda a cêntimos (um pagamento exacto não fica
+      // "partially_paid" por vírgula flutuante). A base é `invoiceAmountDue`, não
+      // `invoiceNetTotal`: só a primeira soma a multa, e uma fatura com multa nunca
+      // chegaria a "paid" pagando o valor devido.
       const newStatus = invoiceStatusFromPaid(invoiceAmountDue, alreadyPaid + input.amount);
-      await db
+      // O recibo já existe: não se lança (repetir emitia outro). Mas uma fatura
+      // paga que fica "pendente" leva a cobrar de novo, por isso fica registado.
+      const { error: statusError } = await db
         .from("finance_invoices")
         .update({ status: newStatus })
         .eq("school_id", input.schoolId)
         .eq("id", input.invoiceId);
+      if (statusError) {
+        reportSigaError("finance.gateway.invoice_status_failed", statusError, {
+          school_id: input.schoolId,
+          invoice_id: input.invoiceId,
+          receipt_number: receiptNumber,
+          status: newStatus,
+        });
+      }
 
       result = {
         receiptId: newReceipt.id,

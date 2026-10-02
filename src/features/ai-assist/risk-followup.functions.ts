@@ -1,3 +1,4 @@
+import type { TablesInsert } from "@/integrations/supabase/types";
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
@@ -143,7 +144,7 @@ export const saveRiskAnalysis = createServerFn({ method: "POST" })
       .in("enrollment_id", enrollmentIds);
     const existingBy = new Map(
       (existing ?? []).map(
-        (e: { enrollment_id: string; id: string; baseline_average: unknown }) => [
+        (e: { enrollment_id: string; id: string; baseline_average: number | null }) => [
           e.enrollment_id,
           e,
         ],
@@ -289,7 +290,7 @@ export const saveAutomaticRiskSignals = createServerFn({ method: "POST" })
       (existing ?? []).map((e: { id: string; enrollment_id: string }) => [e.enrollment_id, e.id]),
     );
 
-    const log: Array<Record<string, unknown>> = [];
+    const log: TablesInsert<"student_risk_interventions">[] = [];
     for (const s of students) {
       const common = {
         risk_level: s.risk,

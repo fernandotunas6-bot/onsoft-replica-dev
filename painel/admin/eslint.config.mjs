@@ -14,6 +14,8 @@ const eslintConfig = defineConfig([
       "react-hooks/incompatible-library": "off",
       // Platform-admin avatars and service icons come from tenant-controlled hosts.
       "@next/next/no-img-element": "off",
+      // Regra do React Compiler (react-hooks 7): `Math.random()` do sidebar/chat é de maquetas.
+      "react-hooks/purity": "warn",
     },
   },
   globalIgnores([".next/**", "out/**", "build/**", "next-env.d.ts"]),

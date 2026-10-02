@@ -56,12 +56,14 @@ function createMockCtx(db: any, overrides: Partial<ImportCommitContext> = {}): I
  */
 function createCache(
   applications: Array<{ id: string; application_number: string | null; full_name: string }> = [],
+  formId: string | null = "form-1",
 ) {
   return {
     existingPeople: [] as any[],
     classGroups: [],
     studentByPersonId: new Map(),
     applications,
+    formId,
   };
 }
 
@@ -73,6 +75,15 @@ describe("inscricoesImporter", () => {
   });
 
   describe("analyzeRow", () => {
+    it("recusa a linha quando a escola não tem formulário de matrícula", () => {
+      const analysis = inscricoesImporter.analyzeRow(
+        { full_name: "Beatriz Fernandes" },
+        createCache([], null) as any,
+      );
+      expect(analysis.status).toBe("error");
+      expect(analysis.errors[0]).toContain("formulário de matrícula");
+    });
+
     it("exige nome completo do candidato", () => {
       const analysis = inscricoesImporter.analyzeRow({}, createCache() as any);
       expect(analysis.status).toBe("error");

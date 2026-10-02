@@ -73,7 +73,7 @@ import {
 import { officialReceiptBody } from "@/features/finance/schemas";
 import { buildProformaInvoice } from "@/features/finance/proforma-receipts";
 import { documentValidationCode } from "@/features/academic/assessment-views";
-import { paymentReference, whatsappHref } from "@/features/integrations/actions";
+import { whatsappHref } from "@/features/integrations/actions";
 import { useInstalledIntegrations } from "@/features/integrations/use-installed-integrations";
 import { useSchoolSettings } from "@/features/auth/use-school-settings";
 import { useDeclareEntityFocus } from "@/features/intelligence/entity-focus-context";
@@ -345,9 +345,7 @@ function FaturasPage() {
                 label: "Referência",
                 required: false,
                 full: true,
-                placeholder: installed.isInstalled("multicaixa_express")
-                  ? "Vazio gera referência EMIS"
-                  : undefined,
+                placeholder: "Referência do comprovativo ou do fornecedor",
               },
             ]}
             onSubmit={async (values) => {
@@ -360,13 +358,7 @@ function FaturasPage() {
               } as const;
               const method =
                 methodMap[(values["metodo"] as keyof typeof methodMap) ?? "Numerário"] ?? "cash";
-              const reference =
-                values["referencia"] ||
-                (method === "multicaixa_express"
-                  ? paymentReference("EMIS")
-                  : method === "unitel_money"
-                    ? paymentReference("UML")
-                    : undefined);
+              const reference = values["referencia"] || undefined;
               const paid = await recordInvoicePayment({
                 data: {
                   invoiceId: f.id,

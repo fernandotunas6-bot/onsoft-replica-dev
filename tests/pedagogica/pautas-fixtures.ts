@@ -1,15 +1,16 @@
+/** Documentos de pauta fictícios, só para testes. A aplicação nunca os mostra. */
 import type {
   FinalPautaDocument,
   MiniPautaDocument,
   MiniPautaStudent,
   TrimesterPautaDocument,
   ExamPautaDocument,
-} from "./types";
+} from "@/features/pedagogica/components/pautas/types";
 import {
   calculateFinalDisciplineAverage,
   calculateTrimesterAverage,
   calculateExamFinalGrade,
-} from "./assessment";
+} from "@/features/pedagogica/components/pautas/assessment";
 
 export const demoSchool = {
   republic: "REPÚBLICA DE ANGOLA",

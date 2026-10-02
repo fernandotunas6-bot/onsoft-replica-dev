@@ -9,7 +9,6 @@ import {
   copyText,
   meetingRoomLink,
   officialUrlForCapability,
-  paymentReference,
   providerIdFromCapability,
 } from "./actions";
 import { capabilitiesForModule, type SigaHostModule } from "./install";
@@ -51,11 +50,11 @@ export function InstalledModuleTools({
         return;
       }
       if (kind === "copy-payment-ref" || kind === "copy-unitel-ref") {
-        const reference = paymentReference(kind === "copy-unitel-ref" ? "UML" : "EMIS");
-        await copyText(reference);
-        toast.success(`${label}: referência ${reference}`, {
-          description: "Cole no plano de pagamento ou no comprovativo.",
+        toast.info("Referência emitida pelo fornecedor", {
+          description:
+            "Abra a factura e use Cobrar para obter uma referência real. Para pagamento manual, indique a referência do comprovativo.",
         });
+        void navigate({ href: "/faturas" });
         return;
       }
       if (kind === "copy-nif") {
@@ -86,6 +85,12 @@ export function InstalledModuleTools({
       }
       if (kind === "copy-meeting-zoom") {
         const link = meetingRoomLink("zoom");
+        if (!link) {
+          toast.info("Reunião por configurar", {
+            description: "Associe uma reunião real à aula antes de partilhar o link.",
+          });
+          return;
+        }
         await copyText(link);
         toast.success("Link da sala copiado", { description: link });
         return;

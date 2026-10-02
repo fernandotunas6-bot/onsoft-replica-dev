@@ -158,11 +158,25 @@ async function runProvisioning(
    * ocupar o slug para sempre. Apagar por ordem inversa das dependências.
    */
   const cleanupTenant = async () => {
-    for (const table of ["saas_audit_logs", "tenant_usage", "tenant_domains", "subscriptions"]) {
+    for (const table of [
+      "saas_audit_logs",
+      "tenant_usage",
+      "tenant_domains",
+      "subscriptions",
+    ] as const) {
       await db.from(table).delete().eq("tenant_id", tenantId);
     }
     const { error } = await db.from("tenants").delete().eq("id", tenantId);
     if (error) {
+      // A escola que ficou (ver cleanupSchool) ainda o referencia. Marca-se como
+      // falhado e liberta-se o endereço, para a escola poder tentar de novo.
+      await db
+        .from("tenants")
+        .update({
+          status: "provisioning_failed",
+          slug: `${data.slug}-falhou-${tenantId.slice(0, 8)}`,
+        })
+        .eq("id", tenantId);
       // Alertável de propósito: um tenant que não é apagado fica a ocupar o
       // slug para sempre, e a escola que tentar o mesmo endereço a seguir
       // recebe "já está em uso" sem ninguém perceber porquê.
@@ -185,13 +199,26 @@ async function runProvisioning(
    */
   const cleanupSchool = async (schoolId: string, adminUserId: string | null) => {
     await db.from("member_roles").delete().eq("school_id", schoolId);
+    await db.from("role_permissions").delete().eq("school_id", schoolId);
     await db.from("roles").delete().eq("school_id", schoolId);
     await db.from("school_memberships").delete().eq("school_id", schoolId);
+    // O que o bootstrap cria. `school_settings.changed_by` e
+    // `enrollment_forms.created_by` apontam para a conta do administrador e,
+    // sem os apagar, a conta ficava presa e o e-mail não servia para tentar
+    // de novo (a 2026-09-28 foi o que aconteceu). Ordem das dependências.
+    await db.from("school_settings").delete().eq("school_id", schoolId);
+    await db.from("document_sequences").delete().eq("school_id", schoolId);
+    await db.from("enrollment_forms").delete().eq("school_id", schoolId);
+    await db.from("fee_items").delete().eq("school_id", schoolId);
+    await db.from("fee_plans").delete().eq("school_id", schoolId);
+    await db.from("academic_years").delete().eq("school_id", schoolId);
     if (adminUserId) {
       await db.from("profiles").delete().eq("id", adminUserId);
       try {
         const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-        await supabaseAdmin.auth.admin.deleteUser(adminUserId);
+        // `deleteUser` devolve o erro, não o lança.
+        const { error: deleteErr } = await supabaseAdmin.auth.admin.deleteUser(adminUserId);
+        if (deleteErr) throw deleteErr;
       } catch (deleteErr) {
         reportSigaError("tenant.provisioning.rollback.failed", deleteErr, {
           school_id: schoolId,
@@ -203,6 +230,9 @@ async function runProvisioning(
     }
     const { error } = await db.from("schools").delete().eq("id", schoolId);
     if (error) {
+      // Depois do bootstrap há linhas em `audit_logs` (só se acrescenta; não se
+      // apagam) e a escola já não se pode apagar. Fica arquivada.
+      await db.from("schools").update({ status: "archived" }).eq("id", schoolId);
       reportSigaError("tenant.provisioning.rollback.failed", error, {
         school_id: schoolId,
         entity: "school",

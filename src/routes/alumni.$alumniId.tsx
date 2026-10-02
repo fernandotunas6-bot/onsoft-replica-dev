@@ -82,14 +82,14 @@ function AlumniProfilePage() {
   }
 
   const data = profileQuery.data;
-  const profile = data.profile as Record<string, any>;
-  const person = (data.person ?? {}) as Record<string, any>;
-  const student = (data.student ?? {}) as Record<string, any>;
-  const experiences = data.experiences as Array<Record<string, any>>;
-  const engagements = data.engagements as Array<Record<string, any>>;
-  const mentorships = data.mentorships as Array<Record<string, any>>;
-  const applications = data.applications as Array<Record<string, any>>;
-  const eventRegistrations = data.eventRegistrations as Array<Record<string, any>>;
+  const profile = data.profile;
+  const person = data.person;
+  const student = data.student;
+  const experiences = data.experiences;
+  const engagements = data.engagements;
+  const mentorships = data.mentorships;
+  const applications = data.applications;
+  const eventRegistrations = data.eventRegistrations;
 
   return (
     <AppShell>
@@ -149,14 +149,14 @@ function AlumniProfilePage() {
             </div>
             <div className="relative flex flex-col gap-5 md:flex-row md:items-center">
               <MediaAvatar
-                src={person.photo_url ?? null}
-                alt={person.full_name ?? "Alumni"}
+                src={person?.photo_url ?? null}
+                alt={person?.full_name ?? "Alumni"}
                 className="size-24 rounded-[26px] object-cover ring-4 ring-background"
               />
               <div className="min-w-0 flex-1">
                 <div className="flex flex-wrap items-center gap-2">
                   <h1 className="text-2xl font-black tracking-tight md:text-3xl">
-                    {person.full_name ?? "Alumni"}
+                    {person?.full_name ?? "Alumni"}
                   </h1>
                   {profile.verified_at ? <ShieldCheck className="size-5 text-primary" /> : null}
                 </div>
@@ -166,7 +166,7 @@ function AlumniProfilePage() {
                 <div className="mt-3 flex flex-wrap gap-x-5 gap-y-2 text-xs text-muted-foreground">
                   <span className="inline-flex items-center gap-1.5">
                     <GraduationCap className="size-3.5" />
-                    {student.student_number || "Sem processo"}
+                    {student?.student_number || "Sem processo"}
                     {profile.graduation_year ? ` · Turma ${profile.graduation_year}` : ""}
                   </span>
                   {profile.current_company ? (
@@ -209,8 +209,8 @@ function AlumniProfilePage() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <InfoRow label="E-mail" value={person.email} />
-                <InfoRow label="Telefone" value={person.phone} />
+                <InfoRow label="E-mail" value={person?.email} />
+                <InfoRow label="Telefone" value={person?.phone} />
                 <InfoRow label="Estado" value={profile.employment_status} />
                 <InfoRow label="Área" value={profile.industry} />
                 <InfoRow label="Curso" value={profile.graduation_course} />
@@ -310,7 +310,7 @@ function AlumniProfilePage() {
                 </CardHeader>
                 <CardContent className="space-y-3">
                   {data.enrollments.length ? (
-                    data.enrollments.map((item: any) => (
+                    data.enrollments.map((item) => (
                       <div
                         key={item.id}
                         className="flex items-center justify-between rounded-xl bg-muted/50 px-4 py-3 text-sm"

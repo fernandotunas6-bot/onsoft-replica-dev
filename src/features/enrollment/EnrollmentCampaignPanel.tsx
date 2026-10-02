@@ -249,7 +249,8 @@ export function EnrollmentCampaignPanel() {
             {(applicationsQuery.data ?? []).map((row) => (
               <ApplicationRow
                 key={row.id}
-                row={row}
+                // `payload` é jsonb (Json nos tipos gerados); a forma é a de ApplicationListRow.
+                row={row as ApplicationListRow}
                 classGroups={classGroups}
                 onChanged={async () => {
                   await queryClient.invalidateQueries({ queryKey: ["enrollment", "applications"] });

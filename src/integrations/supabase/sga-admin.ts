@@ -1,6 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { resolveSgaMembership, sgaClient, type SgaMembershipContext } from "./sga";
-import type { ApplicationRole } from "@/features/auth/access-policy";
+import { GRANT_ELEVATABLE_ROLES, type ApplicationRole } from "@/features/auth/access-policy";
 import { ACTIVE_SCHOOL_UNAVAILABLE } from "@/features/auth/active-school";
 
 export async function loadSgaAdminClient() {
@@ -142,17 +142,25 @@ async function readModuleGrant(
     .eq("user_id", userId)
     .eq("module_key", moduleKey)
     .maybeSingle();
-  // Tabela ausente (SQL por aplicar) = sem sobreposições, como em getCurrentAccountContext.
-  if (error) return null;
+  if (error) {
+    // Tabela ausente (SQL por aplicar) = sem sobreposições, como em getCurrentAccountContext.
+    if (isMissingRelation(error)) return null;
+    // Qualquer outro erro falha fechado: devolver null aqui ignorava o bloqueio
+    // "Nenhum" sempre que a leitura falhasse.
+    throw new Error("Não foi possível confirmar as permissões desta conta. Tente novamente.");
+  }
   return data?.level ? String(data.level) : null;
 }
 
-/** Cargos que uma permissão por módulo pode elevar. Alunos e encarregados, nunca. */
-export const GRANT_ELEVATABLE_ROLES: readonly ApplicationRole[] = [
-  "Secretaria",
-  "Tesouraria",
-  "Professor",
-];
+function isMissingRelation(error: { code?: string; message?: string }): boolean {
+  return (
+    error.code === "42P01" ||
+    error.code === "PGRST205" ||
+    /relation .* does not exist|could not find the table/i.test(error.message ?? "")
+  );
+}
+
+export { GRANT_ELEVATABLE_ROLES };
 
 /**
  * A permissão por módulo dá acesso a quem não tem o cargo da função?

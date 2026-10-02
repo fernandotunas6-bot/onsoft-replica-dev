@@ -1184,8 +1184,8 @@ function PeoplePage() {
                               document_number: string;
                               issued_at: string | null;
                               expires_at: string | null;
-                              file_id: string | null;
-                              file_name: string | null;
+                              file_id?: string | null;
+                              file_name?: string | null;
                             }) => (
                               <li
                                 key={document.id}

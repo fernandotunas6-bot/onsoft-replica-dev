@@ -113,6 +113,9 @@ export async function loadSchoolSettingsBundle(db: AdminDb, schoolId: string) {
       .select("name, status")
       .eq("school_id", schoolId)
       .eq("status", "active")
+      .order("starts_on", { ascending: false })
+      .order("created_at", { ascending: true })
+      .order("id", { ascending: true })
       .limit(1)
       .maybeSingle(),
     readSettingDomain(db, schoolId, "academic"),
@@ -263,7 +266,11 @@ export const listAcademicYears = createServerFn({ method: "GET" })
       .from("academic_years")
       .select("id, name, status, starts_on, ends_on")
       .eq("school_id", membership.schoolId)
-      .order("starts_on", { ascending: false });
+      // A mesma ordem que o servidor usa para o ano activo: o browser escolhe o
+      // primeiro "active" desta lista e tem de concordar com o servidor.
+      .order("starts_on", { ascending: false })
+      .order("created_at", { ascending: true })
+      .order("id", { ascending: true });
     if (error) throw publicDatabaseError(error, "Não foi possível carregar os anos lectivos.");
     return (data ?? []).map((year: { id: string; name: string; status: string }) => ({
       id: year.id,
@@ -385,11 +392,26 @@ export const updateSchoolSettings = createServerFn({ method: "POST" })
       .eq("name", data.academicYear)
       .maybeSingle();
     if (year?.id) {
-      await db
+      // Um ano activo de cada vez (como no Calendário Lectivo): o SIGA resolve o
+      // ano corrente por estado. Antes activava sem fechar o anterior e a escola
+      // podia ficar com vários anos activos.
+      const { error: closeError } = await db
+        .from("academic_years")
+        .update({ status: "closed" })
+        .eq("school_id", membership.schoolId)
+        .eq("status", "active")
+        .neq("id", year.id);
+      if (closeError) {
+        throw publicDatabaseError(closeError, "Não foi possível fechar o ano lectivo anterior.");
+      }
+      const { error: activateError } = await db
         .from("academic_years")
         .update({ status: "active" })
         .eq("id", year.id)
         .eq("school_id", membership.schoolId);
+      if (activateError) {
+        throw publicDatabaseError(activateError, "Não foi possível activar o ano lectivo.");
+      }
     }
 
     return loadSchoolSettingsBundle(db, membership.schoolId);

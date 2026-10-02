@@ -22,6 +22,7 @@ import {
   getCommunicationDispatchStats,
 } from "./dispatches-server";
 import { syncSchoolContactsToResendFn } from "./contacts-sync-server";
+import { errorMessage } from "@/lib/error-message";
 
 export function DispatchesTrackingPanel() {
   const queryClient = useQueryClient();
@@ -54,8 +55,8 @@ export function DispatchesTrackingPanel() {
       } else {
         toast.error(res.message);
       }
-    } catch (err: any) {
-      toast.error(err.message || "Erro ao sincronizar contactos.");
+    } catch (err) {
+      toast.error(errorMessage(err, "Erro ao sincronizar contactos."));
     } finally {
       setIsSyncing(false);
     }

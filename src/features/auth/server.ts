@@ -1,3 +1,4 @@
+import type { TablesUpdate } from "@/integrations/supabase/types";
 import { z } from "zod";
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
@@ -294,6 +295,7 @@ export const getCurrentAccountContext = createServerFn({ method: "GET" })
         } else {
           await db.from("profiles").upsert({
             id: context.userId,
+            display_name: fullName,
             full_name: fullName,
             updated_at: new Date().toISOString(),
           });
@@ -377,7 +379,7 @@ export const updateCurrentProfile = createServerFn({ method: "POST" })
   .validator((input: unknown) => updateCurrentProfileInputSchema.parse(input))
   .handler(async ({ data, context }) => {
     const db = await loadSgaAdminClient();
-    const updatePayload: Record<string, unknown> = {
+    const updatePayload: TablesUpdate<"profiles"> = {
       full_name: data.fullName,
       updated_at: new Date().toISOString(),
     };

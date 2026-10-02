@@ -14,6 +14,7 @@ import {
 } from "@/lib/session-expiry";
 import { SigaLogo } from "@/components/ui/siga-logo";
 import { AuthHeroSlides } from "./AuthHeroSlides";
+import { writeSessionHint } from "@/features/auth/session-hint";
 import { AuthBackgroundVideo } from "./AuthBackgroundVideo";
 import { AuthCaptcha } from "./AuthCaptcha";
 import { authCaptchaConfigured } from "@/lib/auth-captcha-config";
@@ -127,9 +128,18 @@ export function useAuthSession(): Session | null {
   return useContext(AuthSessionContext);
 }
 
-export function AuthGate({ children }: { children: ReactNode }) {
+export function AuthGate({
+  children,
+  sessionHint,
+}: {
+  children: ReactNode;
+  /** Cookie-pista lido no SSR: `false` = sem sessão, desenha logo o ecrã de entrada. */
+  sessionHint?: boolean;
+}) {
   const [session, setSession] = useState<Session | null>(null);
-  const [checking, setChecking] = useState(true);
+  // Sem pista de sessão o ecrã de entrada sai já no HTML do servidor (LCP): se afinal
+  // houver sessão, o `getSession` abaixo troca para a app logo após a hidratação.
+  const [checking, setChecking] = useState(sessionHint !== false);
   const [submitting, setSubmitting] = useState(false);
   const [resetting, setResetting] = useState(false);
   const [sendingMagicLink, setSendingMagicLink] = useState(false);
@@ -190,6 +200,7 @@ export function AuthGate({ children }: { children: ReactNode }) {
       try {
         const { data } = await supabase.auth.getSession();
         if (!active) return;
+        writeSessionHint(Boolean(data.session));
         if (data.session) {
           setSession(data.session);
           setChecking(false);
@@ -237,6 +248,7 @@ export function AuthGate({ children }: { children: ReactNode }) {
       if (event === "SIGNED_OUT" && consumeSessionExpiredFlag()) {
         setError(SESSION_EXPIRED_MESSAGE);
       }
+      writeSessionHint(Boolean(nextSession));
       setSession(nextSession);
       setChecking(false);
       setSubmitting(false);
@@ -603,7 +615,7 @@ export function AuthGate({ children }: { children: ReactNode }) {
                   className={`rounded-lg px-3 py-1.5 transition-colors ${
                     mode === value
                       ? "bg-card text-foreground shadow-sm"
-                      : "text-muted-foreground hover:text-foreground"
+                      : "text-foreground/75 hover:text-foreground"
                   }`}
                 >
                   {label}
@@ -754,7 +766,7 @@ export function AuthGate({ children }: { children: ReactNode }) {
                   />
                   <button
                     type="button"
-                    className="absolute top-1/2 right-3 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                    className="absolute top-1/2 right-1.5 flex size-[28px] -translate-y-1/2 items-center justify-center rounded-md text-muted-foreground hover:text-foreground"
                     onClick={() => setShowPassword((value) => !value)}
                     aria-label={showPassword ? "Ocultar senha" : "Mostrar senha"}
                   >

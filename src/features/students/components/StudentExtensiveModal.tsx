@@ -486,7 +486,7 @@ export function StudentExtensiveModal({
 
               {guardians.length > 0 ? (
                 <div className="divide-y divide-border/50 pt-2">
-                  {guardians.map((g: any, i: number) => (
+                  {guardians.map((g, i) => (
                     <div
                       key={i}
                       className="py-2 flex items-center justify-between text-xs sm:text-sm"

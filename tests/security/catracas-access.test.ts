@@ -5,7 +5,7 @@ import { describe, expect, it, vi } from "vitest";
 vi.mock("@/integrations/supabase/sga-admin", () => ({}));
 vi.mock("@/features/auth/server", () => ({}));
 
-const { virtualCardScope } = await import("@/features/catracas/server");
+const { virtualCardScope, withoutApiKey } = await import("@/features/catracas/server");
 
 const linked = {
   person_id: "p-own",
@@ -53,6 +53,7 @@ describe("catracas: funções da escola inteira só para secretaria e administra
   for (const name of [
     "validateGatePassToken",
     "listTurnstileDevices",
+    "revealTurnstileDeviceApiKey",
     "listAccessCards",
     "listAccessLogs",
     "exportGatePassOfflineList",
@@ -65,7 +66,35 @@ describe("catracas: funções da escola inteira só para secretaria e administra
     });
   }
 
+  it("a chave completa só sai pela função própria, e com escrita", () => {
+    expect(body("revealTurnstileDeviceApiKey")).toMatch(/requireSgaWriterForWrite\(\s*"gestao"/);
+    for (const name of [
+      "listTurnstileDevices",
+      "registerTurnstileDevice",
+      "updateTurnstileDevice",
+    ]) {
+      expect(body(name)).not.toMatch(/\.select\("\*"\)/);
+      expect(body(name)).toMatch(/withoutApiKey/);
+    }
+  });
+
   it("chaves novas de dispositivo têm 128 bits, não 32", () => {
     expect(source).not.toMatch(/randomUUID\(\)\.slice\(0, 8\)/);
+  });
+});
+
+describe("catracas: a listagem não leva a chave do dispositivo", () => {
+  it("tira a chave e deixa só os últimos 4 caracteres", () => {
+    const row = withoutApiKey({ id: "d1", name: "Portão", api_key: "KEY-ABCDEF0123459F3A" });
+    expect(row).toEqual({ id: "d1", name: "Portão", has_api_key: true, api_key_hint: "9F3A" });
+    expect(JSON.stringify(row)).not.toContain("ABCDEF");
+  });
+
+  it("dispositivo sem chave", () => {
+    expect(withoutApiKey({ id: "d2", api_key: null })).toEqual({
+      id: "d2",
+      has_api_key: false,
+      api_key_hint: null,
+    });
   });
 });

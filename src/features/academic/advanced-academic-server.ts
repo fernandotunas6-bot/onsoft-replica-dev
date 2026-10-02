@@ -6,6 +6,8 @@ import {
   requireSgaWriterForWrite,
   resolveSgaMembershipAdmin,
 } from "@/integrations/supabase/sga-admin";
+import { rpcArgs } from "@/integrations/supabase/sga";
+import type { TablesUpdate } from "@/integrations/supabase/types";
 import {
   createSubjectTypeInputSchema,
   updateSubjectTypeInputSchema,
@@ -105,7 +107,7 @@ export const updateSubjectType = createServerFn({ method: "POST" })
     );
     const db = await loadSgaAdminClient();
 
-    const updatePayload: Record<string, unknown> = {
+    const updatePayload: TablesUpdate<"subject_types"> = {
       updated_by: context.userId,
     };
     if (data.code !== undefined) updatePayload.code = data.code;
@@ -204,7 +206,23 @@ export const listRooms = createServerFn({ method: "GET" })
       .order("name", { ascending: true });
 
     if (error) throw publicDatabaseError(error, "Não foi possível listar as salas.");
-    return data ?? [];
+
+    // Turmas activas com sala fixa (`class_groups.room_id`), para a coluna "Turmas".
+    const { data: groups, error: groupsError } = await db
+      .from("class_groups")
+      .select("id, name, room_id")
+      .eq("school_id", membership.schoolId)
+      .eq("status", "active")
+      .not("room_id", "is", null)
+      .order("name", { ascending: true });
+    if (groupsError) throw publicDatabaseError(groupsError, "Não foi possível listar as turmas.");
+    const turmasBySala = new Map<string, string[]>();
+    for (const group of groups ?? []) {
+      if (!group.room_id) continue;
+      turmasBySala.set(group.room_id, [...(turmasBySala.get(group.room_id) ?? []), group.name]);
+    }
+
+    return (data ?? []).map((room) => ({ ...room, turmas: turmasBySala.get(room.id) ?? [] }));
   });
 
 export const createRoom = createServerFn({ method: "POST" })
@@ -255,7 +273,7 @@ export const updateRoom = createServerFn({ method: "POST" })
     );
     const db = await loadSgaAdminClient();
 
-    const updatePayload: Record<string, unknown> = {
+    const updatePayload: TablesUpdate<"rooms"> = {
       updated_by: context.userId,
     };
     if (data.code !== undefined) updatePayload.code = data.code;
@@ -497,20 +515,23 @@ export const saveTeacherAvailability = createServerFn({ method: "POST" })
     // Limpar anteriores e inserir novos — numa única chamada RPC, para que
     // fique atómico (uma falha na inserção não pode deixar o professor sem
     // nenhuma disponibilidade registada).
-    const { error } = await db.rpc("replace_teacher_availability", {
-      p_school_id: membership.schoolId,
-      p_teacher_id: data.teacherId,
-      p_academic_year_id: data.academicYearId ?? null,
-      p_max_weekly_hours: data.maxWeeklyHours,
-      p_rows: data.slots.map((s) => ({
-        weekday: s.weekday,
-        startsAt: s.startsAt.length === 5 ? `${s.startsAt}:00` : s.startsAt,
-        endsAt: s.endsAt.length === 5 ? `${s.endsAt}:00` : s.endsAt,
-        isAvailable: s.isAvailable,
-        notes: s.notes ?? null,
-      })),
-      p_actor: context.userId,
-    });
+    const { error } = await db.rpc(
+      "replace_teacher_availability",
+      rpcArgs("replace_teacher_availability", {
+        p_school_id: membership.schoolId,
+        p_teacher_id: data.teacherId,
+        p_academic_year_id: data.academicYearId ?? null,
+        p_max_weekly_hours: data.maxWeeklyHours,
+        p_rows: data.slots.map((s) => ({
+          weekday: s.weekday,
+          startsAt: s.startsAt.length === 5 ? `${s.startsAt}:00` : s.startsAt,
+          endsAt: s.endsAt.length === 5 ? `${s.endsAt}:00` : s.endsAt,
+          isAvailable: s.isAvailable,
+          notes: s.notes ?? null,
+        })),
+        p_actor: context.userId,
+      }),
+    );
     if (error)
       throw publicDatabaseError(error, "Não foi possível guardar a disponibilidade docente.");
 
@@ -712,22 +733,25 @@ export const createAdvancedScheduleSlot = createServerFn({ method: "POST" })
       })
     ).filter((c) => c.severity === "warning");
 
-    const { data: slot, error } = await db.rpc("create_timetable_slot_guarded", {
-      p_school_id: membership.schoolId,
-      p_class_group_id: data.classGroupId,
-      p_subject_id: data.subjectId,
-      p_teacher_id: data.teacherId ?? null,
-      p_room_id: data.roomId ?? null,
-      p_weekday: data.weekday,
-      p_starts_at: startsAt,
-      p_ends_at: endsAt,
-      p_room_label: room,
-      p_shift_id: data.shiftId ?? null,
-      p_schedule_id: data.scheduleId ?? null,
-      p_day_period_number: data.dayPeriodNumber ?? null,
-      p_notes: data.notes ?? null,
-      p_actor: context.userId,
-    });
+    const { data: slot, error } = await db.rpc(
+      "create_timetable_slot_guarded",
+      rpcArgs("create_timetable_slot_guarded", {
+        p_school_id: membership.schoolId,
+        p_class_group_id: data.classGroupId,
+        p_subject_id: data.subjectId,
+        p_teacher_id: data.teacherId ?? null,
+        p_room_id: data.roomId ?? null,
+        p_weekday: data.weekday,
+        p_starts_at: startsAt,
+        p_ends_at: endsAt,
+        p_room_label: room,
+        p_shift_id: data.shiftId ?? null,
+        p_schedule_id: data.scheduleId ?? null,
+        p_day_period_number: data.dayPeriodNumber ?? null,
+        p_notes: data.notes ?? null,
+        p_actor: context.userId,
+      }),
+    );
 
     if (error) {
       if (error.code === "23505") throw new Error(error.message);
@@ -793,22 +817,25 @@ export const updateAdvancedScheduleSlot = createServerFn({ method: "POST" })
       })
     ).filter((c) => c.severity === "warning");
 
-    const { data: slot, error } = await db.rpc("update_timetable_slot_guarded", {
-      p_school_id: membership.schoolId,
-      p_slot_id: data.slotId,
-      p_subject_id: data.subjectId ?? null,
-      p_teacher_id: data.teacherId ?? null,
-      p_room_id: data.roomId ?? null,
-      p_weekday: data.weekday,
-      p_starts_at: startsAt,
-      p_ends_at: endsAt,
-      p_room_label: room,
-      p_shift_id: data.shiftId ?? null,
-      p_schedule_id: data.scheduleId ?? null,
-      p_day_period_number: data.dayPeriodNumber ?? null,
-      p_notes: data.notes ?? null,
-      p_actor: context.userId,
-    });
+    const { data: slot, error } = await db.rpc(
+      "update_timetable_slot_guarded",
+      rpcArgs("update_timetable_slot_guarded", {
+        p_school_id: membership.schoolId,
+        p_slot_id: data.slotId,
+        p_subject_id: data.subjectId ?? null,
+        p_teacher_id: data.teacherId ?? null,
+        p_room_id: data.roomId ?? null,
+        p_weekday: data.weekday,
+        p_starts_at: startsAt,
+        p_ends_at: endsAt,
+        p_room_label: room,
+        p_shift_id: data.shiftId ?? null,
+        p_schedule_id: data.scheduleId ?? null,
+        p_day_period_number: data.dayPeriodNumber ?? null,
+        p_notes: data.notes ?? null,
+        p_actor: context.userId,
+      }),
+    );
 
     if (error) {
       if (error.code === "23505") throw new Error(error.message);

@@ -177,6 +177,7 @@ export const encarregadosImporter: RowImporter = {
       // tem coluna própria — estava só a alimentar `is_primary`.
       is_financially_responsible: isFinancial,
       is_pickup_authorized: true,
+      created_by: ctx.userId,
     });
 
     if (relError) {

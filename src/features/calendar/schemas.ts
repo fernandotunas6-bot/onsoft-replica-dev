@@ -72,3 +72,7 @@ export const deleteCalendarEventInputSchema = z.object({
   id: z.string().uuid(),
 });
 export type DeleteCalendarEventInput = z.infer<typeof deleteCalendarEventInputSchema>;
+
+export const setActiveAcademicYearInputSchema = z.object({
+  yearId: z.string().uuid(),
+});

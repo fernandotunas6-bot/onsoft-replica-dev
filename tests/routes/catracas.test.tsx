@@ -12,6 +12,7 @@ vi.mock("@/components/layout/AppShell", async () => (await import("./_harness"))
 const listTurnstileDevicesMock = vi.fn();
 const registerTurnstileDeviceMock = vi.fn();
 const updateTurnstileDeviceMock = vi.fn();
+const revealTurnstileDeviceApiKeyMock = vi.fn();
 const validateGatePassTokenMock = vi.fn();
 const listAccessLogsMock = vi.fn();
 const exportGatePassOfflineListMock = vi.fn();
@@ -23,6 +24,7 @@ vi.mock("@/features/catracas/server", () => ({
   listTurnstileDevices: () => listTurnstileDevicesMock(),
   registerTurnstileDevice: (args: unknown) => registerTurnstileDeviceMock(args),
   updateTurnstileDevice: (args: unknown) => updateTurnstileDeviceMock(args),
+  revealTurnstileDeviceApiKey: (args: unknown) => revealTurnstileDeviceApiKeyMock(args),
   validateGatePassToken: (args: unknown) => validateGatePassTokenMock(args),
   listAccessLogs: (args: unknown) => listAccessLogsMock(args),
   exportGatePassOfflineList: () => exportGatePassOfflineListMock(),
@@ -39,7 +41,8 @@ const sampleDevice = {
   direction_capability: "bidirectional",
   ip_address: "192.168.1.100",
   status: "online",
-  api_key: "key-12345",
+  has_api_key: true,
+  api_key_hint: "2345",
   school_id: "escola-teste",
 };
 
@@ -193,6 +196,29 @@ describe("/catracas — render", () => {
           }),
         }),
       );
+    });
+  });
+
+  it("o botão Key pede a chave ao servidor, que não vem na listagem", async () => {
+    listTurnstileDevicesMock.mockResolvedValue([sampleDevice]);
+    listAccessLogsMock.mockResolvedValue([]);
+    listAccessCardsMock.mockResolvedValue([]);
+    getCampusVsClassroomReconciliationMock.mockResolvedValue(emptyRecon);
+    revealTurnstileDeviceApiKeyMock.mockResolvedValue({ apiKey: "KEY-ABCDEF0123452345" });
+    const writeText = vi.fn().mockResolvedValue(undefined);
+    Object.defineProperty(navigator, "clipboard", { value: { writeText }, configurable: true });
+
+    const CatracasPage = await loadCatracasPage();
+    renderRoute(CatracasPage);
+
+    const keyButton = await screen.findByTitle(/Copiar API key .*…2345/);
+    fireEvent.click(keyButton);
+
+    await waitFor(() => {
+      expect(revealTurnstileDeviceApiKeyMock).toHaveBeenCalledWith({
+        data: { deviceId: "dev-1" },
+      });
+      expect(writeText).toHaveBeenCalledWith("KEY-ABCDEF0123452345");
     });
   });
 });

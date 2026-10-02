@@ -25,6 +25,24 @@ import {
 import { listRooms, createRoom, updateRoom } from "@/features/academic/server";
 import { toast } from "sonner";
 import { EMPTY_LIST } from "@/lib/stable-empty";
+import { errorMessage } from "@/lib/error-message";
+import type { RoomType } from "@/features/academic/schemas";
+
+/** Colunas de `rooms` usadas aqui (confirmadas em supabase/PRODUCTION_SNAPSHOT.json). */
+type RoomRow = {
+  id: string;
+  code: string;
+  name: string;
+  capacity: number | null;
+  status: string | null;
+  room_type: string | null;
+  building: string | null;
+  block: string | null;
+  floor: string | null;
+  notes: string | null;
+  /** Turmas activas com esta sala fixa (`class_groups.room_id`). */
+  turmas: string[];
+};
 
 const roomTypeLabels: Record<string, string> = {
   standard: "Sala Comum",
@@ -50,10 +68,10 @@ export function SalasWorkspaceTab({ canManage }: { canManage: boolean }) {
     queryKey: ["academic", "rooms"],
     queryFn: () => listRooms(),
   });
-  const rooms = roomsQuery.data ?? EMPTY_LIST;
+  const rooms: RoomRow[] = roomsQuery.data ?? EMPTY_LIST;
   const isLoading = roomsQuery.isLoading;
 
-  const filteredRooms = rooms.filter((room: any) => {
+  const filteredRooms = rooms.filter((room) => {
     const q = query.trim().toLowerCase();
     const matchQ =
       !q ||
@@ -64,9 +82,9 @@ export function SalasWorkspaceTab({ canManage }: { canManage: boolean }) {
     return matchQ && matchType;
   });
 
-  const totalCapacidade = rooms.reduce((sum: number, r: any) => sum + (r.capacity ?? 0), 0);
+  const totalCapacidade = rooms.reduce((sum: number, r) => sum + (r.capacity ?? 0), 0);
   const laboratoriosCount = rooms.filter(
-    (r: any) => r.room_type?.includes("lab") || r.room_type === "multimedia",
+    (r) => r.room_type?.includes("lab") || r.room_type === "multimedia",
   ).length;
 
   const handleCreateRoom = async (values: Record<string, string | undefined>) => {
@@ -84,23 +102,23 @@ export function SalasWorkspaceTab({ canManage }: { canManage: boolean }) {
           code,
           name,
           capacity,
-          roomType: roomType as any,
+          roomType: roomType as RoomType,
           block,
           building,
           floor,
-          resources: values["projetor"] === "true" ? ["projector"] : [],
+          resources: [],
           accessibility: true,
         },
       });
 
       await queryClient.invalidateQueries({ queryKey: ["academic", "rooms"] });
       toast.success("Sala cadastrada com sucesso.");
-    } catch (err: any) {
-      toast.error(err.message || "Erro ao criar sala.");
+    } catch (err) {
+      toast.error(errorMessage(err, "Erro ao criar sala."));
     }
   };
 
-  const handleUpdateRoom = async (room: any, values: Record<string, string | undefined>) => {
+  const handleUpdateRoom = async (room: RoomRow, values: Record<string, string | undefined>) => {
     try {
       await updateRoom({
         data: {
@@ -108,17 +126,19 @@ export function SalasWorkspaceTab({ canManage }: { canManage: boolean }) {
           code: values["codigo"]?.trim() || room.code,
           name: values["nome"]?.trim() || room.name,
           capacity: Number(values["capacidade"] || room.capacity),
-          roomType: (values["tipo"] || room.room_type) as any,
-          block: values["bloco"]?.trim() || undefined,
-          building: values["edificio"]?.trim() || undefined,
-          floor: values["piso"]?.trim() || undefined,
+          roomType: (values["tipo"] || room.room_type) as RoomType,
+          // "" apaga o valor (o servidor grava null); antes ficava o antigo.
+          block: values["bloco"] ?? "",
+          building: values["edificio"] ?? "",
+          floor: values["piso"] ?? "",
+          status: values["estado"] === "inactive" ? "inactive" : "active",
         },
       });
 
       await queryClient.invalidateQueries({ queryKey: ["academic", "rooms"] });
       toast.success("Sala atualizada com sucesso.");
-    } catch (err: any) {
-      toast.error(err.message || "Erro ao atualizar sala.");
+    } catch (err) {
+      toast.error(errorMessage(err, "Erro ao atualizar sala."));
     }
   };
 
@@ -168,7 +188,7 @@ export function SalasWorkspaceTab({ canManage }: { canManage: boolean }) {
             Anti-Superlotação
           </p>
           <p className="mt-1 text-xs text-muted-foreground">
-            Bloqueio ativo contra sobrecarga de lotação
+            Uma turma só fica numa sala onde cabe
           </p>
         </div>
       </div>
@@ -271,6 +291,7 @@ export function SalasWorkspaceTab({ canManage }: { canManage: boolean }) {
                 <TableHead className="text-xs font-semibold">Nome da Sala</TableHead>
                 <TableHead className="text-xs font-semibold">Tipo de Espaço</TableHead>
                 <TableHead className="text-xs font-semibold text-center">Capacidade</TableHead>
+                <TableHead className="text-xs font-semibold">Turmas</TableHead>
                 <TableHead className="text-xs font-semibold">Localização</TableHead>
                 <TableHead className="text-xs font-semibold">Estado</TableHead>
                 {canManage && (
@@ -281,12 +302,12 @@ export function SalasWorkspaceTab({ canManage }: { canManage: boolean }) {
             <TableBody>
               {filteredRooms.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={7} className="py-8 text-center text-xs text-muted-foreground">
+                  <TableCell colSpan={8} className="py-8 text-center text-xs text-muted-foreground">
                     {isLoading ? "A carregar salas…" : "Nenhuma sala encontrada."}
                   </TableCell>
                 </TableRow>
               ) : (
-                filteredRooms.map((room: any) => (
+                filteredRooms.map((room) => (
                   <TableRow key={room.id} className="hover:bg-muted/30 transition-colors">
                     <TableCell className="font-mono text-xs font-bold text-foreground">
                       {room.code}
@@ -299,11 +320,14 @@ export function SalasWorkspaceTab({ canManage }: { canManage: boolean }) {
                     </TableCell>
                     <TableCell>
                       <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2.5 py-0.5 text-[11px] font-medium text-primary">
-                        {roomTypeLabels[room.room_type] ?? room.room_type}
+                        {room.room_type ? (roomTypeLabels[room.room_type] ?? room.room_type) : "—"}
                       </span>
                     </TableCell>
                     <TableCell className="text-center font-mono text-xs font-semibold">
                       {room.capacity ? `${room.capacity} alunos` : "—"}
+                    </TableCell>
+                    <TableCell className="text-xs text-muted-foreground">
+                      {room.turmas.length ? room.turmas.join(", ") : "Livre"}
                     </TableCell>
                     <TableCell className="text-xs text-muted-foreground">
                       {[room.building, room.block, room.floor].filter(Boolean).join(" · ") || "—"}
@@ -353,11 +377,22 @@ export function SalasWorkspaceTab({ canManage }: { canManage: boolean }) {
                               name: "tipo",
                               label: "Tipo de Sala",
                               type: "select",
-                              defaultValue: room.room_type,
+                              defaultValue: room.room_type ?? undefined,
                               options: Object.entries(roomTypeLabels).map(([value, label]) => ({
                                 value,
                                 label,
                               })),
+                              required: true,
+                            },
+                            {
+                              name: "estado",
+                              label: "Estado",
+                              type: "select",
+                              defaultValue: room.status === "inactive" ? "inactive" : "active",
+                              options: [
+                                { value: "active", label: "Operacional" },
+                                { value: "inactive", label: "Inactiva (fora de uso)" },
+                              ],
                               required: true,
                             },
                             {

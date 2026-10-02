@@ -26,6 +26,7 @@ import {
 } from "@/features/academic/server";
 import { toast } from "sonner";
 import { EMPTY_LIST } from "@/lib/stable-empty";
+import { errorMessage } from "@/lib/error-message";
 
 const availabilityWeekdays = [
   "Segunda",
@@ -211,8 +212,8 @@ export function CurriculoWorkspaceTab({
       });
       await queryClient.invalidateQueries({ queryKey: ["academic", "curricula"] });
       toast.success("Matriz curricular guardada com sucesso.");
-    } catch (err: any) {
-      toast.error(err.message || "Erro ao guardar a matriz curricular.");
+    } catch (err) {
+      toast.error(errorMessage(err, "Erro ao guardar a matriz curricular."));
     } finally {
       setSavingMatrix(false);
     }
@@ -291,8 +292,8 @@ export function CurriculoWorkspaceTab({
         queryKey: ["academic", "teacher-availability", availabilityTeacherId],
       });
       toast.success("Disponibilidade guardada com sucesso.");
-    } catch (err: any) {
-      toast.error(err.message || "Erro ao guardar a disponibilidade.");
+    } catch (err) {
+      toast.error(errorMessage(err, "Erro ao guardar a disponibilidade."));
     } finally {
       setSavingAvailability(false);
     }
@@ -317,8 +318,8 @@ export function CurriculoWorkspaceTab({
       });
       await queryClient.invalidateQueries({ queryKey: ["academic", "subject-types"] });
       toast.success("Tipo de disciplina criado com sucesso.");
-    } catch (err: any) {
-      toast.error(err.message || "Erro ao criar tipo de disciplina.");
+    } catch (err) {
+      toast.error(errorMessage(err, "Erro ao criar tipo de disciplina."));
     }
   };
 
@@ -335,8 +336,8 @@ export function CurriculoWorkspaceTab({
       });
       await queryClient.invalidateQueries({ queryKey: ["academic", "curriculum-areas"] });
       toast.success("Área curricular criada com sucesso.");
-    } catch (err: any) {
-      toast.error(err.message || "Erro ao criar área curricular.");
+    } catch (err) {
+      toast.error(errorMessage(err, "Erro ao criar área curricular."));
     }
   };
 
@@ -356,8 +357,8 @@ export function CurriculoWorkspaceTab({
       });
       await queryClient.invalidateQueries({ queryKey: ["academic", "school-shifts"] });
       toast.success("Turno salvo com sucesso.");
-    } catch (err: any) {
-      toast.error(err.message || "Erro ao salvar turno.");
+    } catch (err) {
+      toast.error(errorMessage(err, "Erro ao salvar turno."));
     }
   };
 
@@ -671,7 +672,7 @@ export function CurriculoWorkspaceTab({
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {subjectTypes.map((type: any) => (
+                {subjectTypes.map((type) => (
                   <TableRow key={type.id} className="hover:bg-muted/30">
                     <TableCell className="font-mono text-xs font-bold text-foreground">
                       {type.code}
@@ -757,7 +758,7 @@ export function CurriculoWorkspaceTab({
           }
         >
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            {curriculumAreas.map((area: any) => (
+            {curriculumAreas.map((area) => (
               <div
                 key={area.id}
                 className="rounded-xl border border-border bg-card p-4 shadow-soft"
@@ -846,7 +847,7 @@ export function CurriculoWorkspaceTab({
           }
         >
           <div className="grid gap-4 sm:grid-cols-3">
-            {shifts.map((shift: any) => (
+            {shifts.map((shift) => (
               <div
                 key={shift.id}
                 className="rounded-xl border border-border bg-card p-5 shadow-soft"

@@ -60,12 +60,22 @@ const QUERIES = {
       -- caracteres em vez de colunas.
       (select coalesce(to_jsonb(array_agg(a.attname order by a.attnum)), '[]'::jsonb)
          from pg_attribute a
-        where a.attrelid = c.oid and a.attnum > 0 and not a.attisdropped) as colunas
+        where a.attrelid = c.oid and a.attnum > 0 and not a.attisdropped) as colunas,
+      -- Colunas que um insert TEM de enviar: NOT NULL, sem valor por omissão, sem
+      -- identidade nem geradas. O Postgres verifica-as antes do ON CONFLICT, por
+      -- isso um upsert sem elas falha mesmo quando a linha existe. Ver
+      -- tests/security/colunas-obrigatorias.test.ts.
+      (select coalesce(to_jsonb(array_agg(a.attname order by a.attnum)), '[]'::jsonb)
+         from pg_attribute a
+        where a.attrelid = c.oid and a.attnum > 0 and not a.attisdropped
+          and a.attnotnull and not a.atthasdef and a.attidentity = '' and a.attgenerated = '') as obrigatorias
     from pg_class c join pg_namespace n on n.oid=c.relnamespace
     where n.nspname='public' and c.relkind='r' order by c.relname`,
 
+  // `modo`: PERMISSIVE ou RESTRICTIVE. Uma restritiva só retira acesso (AND com as
+  // permissivas); sem este campo, um teste lia-a como se concedesse escrita.
   politicas: `select tablename as tabela, policyname as politica, cmd, roles::text as papeis,
-      coalesce(qual,'') as usando, coalesce(with_check,'') as verificando
+      coalesce(qual,'') as usando, coalesce(with_check,'') as verificando, permissive as modo
     from pg_policies where schemaname='public' order by tablename, policyname`,
 
   // O esquema `storage` ficou fora do retrato até 2026-09-28, e isso custou: o
@@ -104,6 +114,19 @@ const QUERIES = {
     join pg_class b on b.oid=c.confrelid join pg_namespace nb on nb.oid=b.relnamespace
     where c.contype='f' and na.nspname='public' and nb.nspname='public'
     order by 1, 2, 3`,
+
+  // Valores que um CHECK `coluna = ANY (ARRAY[...])` aceita. Um valor fora da lista
+  // é recusado pela base (escrita) ou nunca encontra nada (filtro): era assim que a
+  // anulação de matrículas gravava "withdrawn" e o login procurava domínios
+  // "verified". Ver tests/security/valores-permitidos.test.ts.
+  valores: `select t.relname as tabela, a.attname as coluna,
+      to_jsonb(array(select m[1] from regexp_matches(pg_get_constraintdef(c.oid), '''([^'']*)''::text', 'g') as m order by 1)) as valores
+    from pg_constraint c
+    join pg_class t on t.oid=c.conrelid join pg_namespace n on n.oid=t.relnamespace
+    join pg_attribute a on a.attrelid=t.oid and a.attnum = c.conkey[1]
+    where n.nspname='public' and c.contype='c' and array_length(c.conkey, 1) = 1
+      and pg_get_constraintdef(c.oid) ~ '= ANY \\(ARRAY\\['
+    order by 1, 2`,
 };
 
 console.log("A consultar a produção (só leitura)…\n");

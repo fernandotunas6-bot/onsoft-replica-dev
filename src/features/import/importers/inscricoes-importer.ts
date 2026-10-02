@@ -5,6 +5,8 @@ import { loadExistingPeople, personCandidateFromRow, resolveOrCreatePerson } fro
 type ApplicationRef = { id: string; application_number: string | null; full_name: string };
 type InscricoesCache = ImportRefCache & {
   applications: ApplicationRef[];
+  /** Formulário de matrícula da escola: `enrollment_applications.form_id` é obrigatório. */
+  formId: string | null;
 };
 
 function valueOf(row: Record<string, unknown>, ...keys: string[]) {
@@ -19,13 +21,22 @@ export const inscricoesImporter: RowImporter = {
   module: "inscricoes",
 
   async loadRefCache(ctx) {
-    const [existingPeople, applicationsResult] = await Promise.all([
+    const [existingPeople, applicationsResult, formResult] = await Promise.all([
       loadExistingPeople(ctx.db, ctx.schoolId),
       ctx.db
         .from("enrollment_applications")
         .select("id, full_name, payload")
         .eq("school_id", ctx.schoolId)
         .is("deleted_at", null),
+      // O mesmo formulário que o arranque da escola cria (school-bootstrap.ts).
+      ctx.db
+        .from("enrollment_forms")
+        .select("id")
+        .eq("school_id", ctx.schoolId)
+        .is("deleted_at", null)
+        .order("created_at", { ascending: true })
+        .limit(1)
+        .maybeSingle(),
     ]);
 
     if (applicationsResult.error) {
@@ -48,6 +59,7 @@ export const inscricoesImporter: RowImporter = {
       classGroups: [],
       studentByPersonId: new Map(),
       applications,
+      formId: formResult.data?.id ? String(formResult.data.id) : null,
     } as InscricoesCache;
   },
 
@@ -71,6 +83,12 @@ export const inscricoesImporter: RowImporter = {
         );
         return { status: "duplicate", warnings, errors: [], duplicate_of: existing.id };
       }
+    }
+
+    if (!cache.formId) {
+      errors.push(
+        "A escola não tem formulário de matrícula. Crie-o em Matrículas antes de importar candidaturas.",
+      );
     }
 
     if (errors.length) return { status: "error", warnings, errors };
@@ -217,6 +235,7 @@ export const inscricoesImporter: RowImporter = {
       .from("enrollment_applications")
       .insert({
         school_id: ctx.schoolId,
+        form_id: cache.formId,
         full_name: candidate.full_name,
         payload,
         status: "pending",

@@ -1,3 +1,4 @@
+import type { TablesUpdate } from "@/integrations/supabase/types";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { findBestPersonMatch, type DuplicateMatch } from "../engine/dedupe";
 import {
@@ -100,11 +101,11 @@ export async function resolveOrCreatePerson(
     if (ctx.dryRun) {
       return { personId: match.record.id, created: false, match, audits: [] };
     }
-    const dbPatch: Record<string, unknown> = { updated_by: ctx.userId };
-    if ("email" in patch) dbPatch["email"] = patch["email"];
-    if ("phone" in patch) dbPatch["phone"] = patch["phone"];
-    if ("national_id" in patch) dbPatch["national_id"] = patch["national_id"];
-    if ("birth_date" in patch) dbPatch["date_of_birth"] = patch["birth_date"];
+    const dbPatch: TablesUpdate<"people"> = { updated_by: ctx.userId };
+    if ("email" in patch) dbPatch["email"] = patch["email"] as string | null;
+    if ("phone" in patch) dbPatch["phone"] = patch["phone"] as string | null;
+    if ("national_id" in patch) dbPatch["national_id"] = patch["national_id"] as string | null;
+    if ("birth_date" in patch) dbPatch["date_of_birth"] = patch["birth_date"] as string | null;
     const { error } = await ctx.db.from("people").update(dbPatch).eq("id", match.record.id);
     if (error) throw new Error(`Não foi possível actualizar a pessoa existente: ${error.message}`);
     return {

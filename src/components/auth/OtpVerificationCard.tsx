@@ -17,6 +17,7 @@ import {
   Smartphone,
 } from "lucide-react";
 import { requestOtpVerificationFn, verifyOtpCodeFn } from "@/features/otp/server";
+import { errorMessage as messageOf } from "@/lib/error-message";
 
 export interface OtpVerificationCardProps {
   targetIdentifier: string;
@@ -85,8 +86,8 @@ export function OtpVerificationCard({
       } else {
         setErrorMessage(res.message);
       }
-    } catch (err: any) {
-      setErrorMessage(err.message || "Erro ao solicitar código de verificação.");
+    } catch (err) {
+      setErrorMessage(messageOf(err, "Erro ao solicitar código de verificação."));
     } finally {
       setIsLoading(false);
     }
@@ -112,8 +113,8 @@ export function OtpVerificationCard({
         setErrorMessage(res.message);
         setCode("");
       }
-    } catch (err: any) {
-      setErrorMessage(err.message || "Erro ao validar o código.");
+    } catch (err) {
+      setErrorMessage(messageOf(err, "Erro ao validar o código."));
       setCode("");
     } finally {
       setIsVerifying(false);

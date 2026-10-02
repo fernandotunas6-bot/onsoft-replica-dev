@@ -81,7 +81,7 @@ describe("movimentos de dinheiro passam pelas funções da base", () => {
     ).toEqual([]);
   });
 
-  it("reverseCashEntry chama reverse_receipt", () => {
+  it("reverseCashEntry chama siga_reverse_finance_receipt", () => {
     const servidor = ficheiros.find(({ caminho }) => caminho === "src/features/finance/server.ts")!;
     const bloco = servidor.fonte.slice(
       servidor.fonte.indexOf("export const reverseCashEntry"),
@@ -89,9 +89,9 @@ describe("movimentos de dinheiro passam pelas funções da base", () => {
     );
 
     expect(bloco, "o bloco de reverseCashEntry não foi encontrado").not.toHaveLength(0);
-    expect(bloco).toContain('rpc("reverse_receipt"');
+    expect(bloco).toContain('rpc("siga_reverse_finance_receipt"');
     // A intenção, não a grafia: a RPC tem de sair do client da SESSÃO, porque
-    // `reverse_receipt` exige `auth.uid()` e `is_aal2()`. Pelo client de serviço
+    // `siga_reverse_finance_receipt` exige `auth.uid()` e `is_aal2()`. Pelo client de serviço
     // (`loadSgaAdminClient`) nenhum dos dois resolve e a função recusa sempre.
     expect(
       bloco,

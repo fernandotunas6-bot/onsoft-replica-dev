@@ -2,6 +2,10 @@
 import { handleImageOptimization, DEFAULT_DEVICE_SIZES, DEFAULT_IMAGE_SIZES } from "vinext/server/image-optimization";
 import handler from "vinext/server/app-router-entry";
 
+// Tipos mínimos do runtime dos Workers (sem depender de @cloudflare/workers-types).
+type Fetcher = { fetch(request: Request): Promise<Response> };
+type D1Database = { prepare(sql: string): unknown };
+
 interface Env {
   ASSETS: Fetcher;
   DB: D1Database;

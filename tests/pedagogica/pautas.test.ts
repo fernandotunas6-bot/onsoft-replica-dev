@@ -15,7 +15,7 @@ import {
   finalPautaDemo,
   trimesterPautaDemo,
   examPautaDemo,
-} from "@/features/pedagogica/components/pautas/pautas-demo";
+} from "./pautas-fixtures";
 import { buildOfficialPautaSummaries } from "@/features/pedagogica/components/pautas/official-pauta";
 import { buildExamPautaStudents } from "@/features/pedagogica/components/pautas/exam-pauta";
 import {

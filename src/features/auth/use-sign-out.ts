@@ -1,3 +1,4 @@
+import { clearSigaCaches } from "@/lib/pwa";
 import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -17,6 +18,7 @@ export function useSignOut() {
         return false;
       }
       queryClient.clear();
+      await clearSigaCaches().catch(() => undefined);
       return true;
     } catch {
       toast.error("Não foi possível contactar o serviço de autenticação.");

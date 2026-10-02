@@ -75,7 +75,6 @@ export async function POST(request: Request) {
         booked_at: parsed.data.booked_at,
         source: "bank_api",
         verified_by: parsed.data.verified_by,
-        school_id: scope.schoolId,
       },
       {
         adminSession: null,

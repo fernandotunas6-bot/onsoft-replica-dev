@@ -9,7 +9,6 @@ import { getTeacherWorkspace, unassignClassSubjectTeacher } from "@/features/aca
 import { TeacherClassMaterialsBlock } from "@/features/arquivos/ClassMaterialsPanel";
 import { getOrCreateCalendarFeedToken } from "@/features/calendar/feed";
 import { calendarIcsFeedUrl } from "@/features/calendar/ics";
-import { meetingRoomLink } from "@/features/integrations/actions";
 import { ZoomMeetingButton } from "@/features/integrations/ZoomMeetingButton";
 import { InstalledModuleTools } from "@/features/integrations/InstalledModuleTools";
 import { useInstalledIntegrations } from "@/features/integrations/use-installed-integrations";

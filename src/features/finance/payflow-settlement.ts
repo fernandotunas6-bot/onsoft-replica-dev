@@ -3,6 +3,7 @@ import { z } from "zod";
 import { loadSgaAdminClient } from "@/integrations/supabase/sga-admin";
 import { settleGatewayPayment } from "@/features/finance/gateway-webhook-handler";
 import { minorUnitsToKz } from "@/features/finance/payflow-education-sync";
+import { invoiceNetTotal, invoiceStatusFromPaid } from "@/features/finance/invoice-settlement";
 import { timingSafeEqual } from "@/lib/timing-safe-equal";
 
 export const payflowSettlementInputSchema = z.object({
@@ -36,7 +37,7 @@ export async function applyPayflowSettlement(input: PayflowSettlementInput) {
 
   const { data: invoice, error } = await db
     .from("finance_invoices")
-    .select("id, status, school_id")
+    .select("id, status, school_id, amount, discount_amount")
     .eq("id", input.invoice_id)
     .eq("school_id", input.school_id)
     .maybeSingle();
@@ -117,33 +118,36 @@ export async function applyPayflowSettlement(input: PayflowSettlementInput) {
     }
   }
 
-  // Todos os recibos activos foram estornados, logo o valor liquidado é zero e a fatura
-  // volta a `open` — é o mesmo cálculo que `private.reverse_receipt` faz
-  // (`remaining_paid <= 0 then 'open'`). Uma fatura `partially_paid` também tem de ser
-  // reaberta: deixá-la como está fazia o aluno aparecer com parte da dívida saldada por
-  // um pagamento que já não existe.
-  //
-  // `"issued"` não é um estado admitido por `finance_invoices_status_check`
-  // ('open','partially_paid','paid','cancelled') e `finance_invoices` não tem coluna
-  // `updated_at` — a versão anterior falhava sempre, e falhava *depois* de já ter
-  // estornado os recibos, deixando a fatura presa em `paid` sem recibos activos.
-  // A condição é o estado em que a fatura tem de ficar, não o que esta chamada fez: assim
-  // também repõe as faturas que a versão anterior deixou presas em `paid` com todos os
-  // recibos já estornados — nesses casos `active` vem vazio e um `active.length > 0`
-  // deixaria o estado partido para sempre.
-  if (invoice.status !== "cancelled" && invoice.status !== "open") {
-    const { error: invoiceError } = await db
-      .from("finance_invoices")
-      .update({ status: "open" })
-      .eq("id", input.invoice_id)
+  // Estado da fatura a partir dos recibos que continuam válidos, como no
+  // estorno manual (`finance/server.ts`). `finance_invoices` só aceita
+  // open/partially_paid/paid/cancelled e não tem `updated_at`: o antigo
+  // `{ status: "issued", updated_at }` era recusado sempre pela base.
+  if (invoice.status !== "cancelled") {
+    const { data: remaining, error: remainingError } = await db
+      .from("finance_receipts")
+      .select("amount")
+      .eq("invoice_id", input.invoice_id)
       .eq("school_id", input.school_id)
-      .neq("status", "cancelled");
-    if (invoiceError) {
-      return {
-        ok: false as const,
-        status: 500,
-        message: "Não foi possível reabrir a fatura no SIGA.",
-      };
+      .eq("status", "issued");
+    if (remainingError) {
+      return { ok: false as const, status: 500, message: "Não foi possível ler os recibos." };
+    }
+    const paid = (remaining ?? []).reduce((sum, row) => sum + Number(row.amount || 0), 0);
+    const status = invoiceStatusFromPaid(invoiceNetTotal(invoice), paid);
+    if (status !== invoice.status) {
+      const { error: invoiceError } = await db
+        .from("finance_invoices")
+        .update({ status })
+        .eq("id", input.invoice_id)
+        .eq("school_id", input.school_id)
+        .eq("status", invoice.status);
+      if (invoiceError) {
+        return {
+          ok: false as const,
+          status: 500,
+          message: "Não foi possível reabrir a fatura no SIGA.",
+        };
+      }
     }
   }
 

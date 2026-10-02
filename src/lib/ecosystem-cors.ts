@@ -1,4 +1,5 @@
 import { ECOSYSTEM_URLS } from "@/lib/ecosystem-urls";
+import { ECOSYSTEM_PLATFORM_SUBDOMAINS, getPlatformDomain } from "@/lib/saas/platform-domain";
 
 export type EcosystemApp = keyof typeof ECOSYSTEM_URLS;
 
@@ -10,15 +11,27 @@ function originOf(url: string): string | null {
   }
 }
 
-const PRODUCTION_ORIGINS: string[] = [
-  "https://portal-siga.com",
-  "https://www.portal-siga.com",
-  "https://admin.portal-siga.com",
-  "https://docs.portal-siga.com",
+/** Projectos Cloudflare Pages explícitos; nenhum `*.pages.dev` genérico. */
+const PAGES_ORIGINS: string[] = [
   "https://siga-web.pages.dev",
   "https://siga-admin.pages.dev",
   "https://siga-docs.pages.dev",
 ];
+
+/**
+ * Origens de produção a partir de PLATFORM_DOMAIN (raiz + www/admin/docs/…),
+ * como o resto do ecossistema. Antes estavam escritas com `portal-siga.com`:
+ * noutro domínio as apps ficavam sem acesso à API e o antigo continuava aceite.
+ */
+function productionOrigins(): string[] {
+  const domain = getPlatformDomain();
+  const subdomains = Object.values(ECOSYSTEM_PLATFORM_SUBDOMAINS);
+  return [
+    `https://${domain}`,
+    ...subdomains.map((sub) => `https://${sub}.${domain}`),
+    ...PAGES_ORIGINS,
+  ];
+}
 
 export function getEcosystemOrigins(apps?: EcosystemApp[]): string[] {
   const keys = apps ?? (Object.keys(ECOSYSTEM_URLS) as EcosystemApp[]);
@@ -29,7 +42,7 @@ export function getEcosystemOrigins(apps?: EcosystemApp[]): string[] {
     origin.replace("localhost", "127.0.0.1"),
     origin.replace("127.0.0.1", "localhost"),
   ]);
-  return [...new Set([...origins, ...aliases, ...PRODUCTION_ORIGINS])];
+  return [...new Set([...origins, ...aliases, ...productionOrigins()])];
 }
 
 export function isAllowedEcosystemOrigin(
@@ -44,8 +57,8 @@ export function isAllowedEcosystemOrigin(
 
     // Tenant portals are allowed only on the controlled platform domain.
     // Cloudflare preview domains are intentionally NOT wildcarded: only the
-    // explicit projects listed in PRODUCTION_ORIGINS may call these endpoints.
-    if (url.protocol === "https:" && url.hostname.endsWith(".portal-siga.com")) {
+    // explicit projects listed in PAGES_ORIGINS may call these endpoints.
+    if (url.protocol === "https:" && url.hostname.endsWith(`.${getPlatformDomain()}`)) {
       return true;
     }
   } catch {

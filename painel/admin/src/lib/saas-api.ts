@@ -4,6 +4,8 @@ export interface SaasSessionProfile {
   userId: string;
   email: string | null;
   platformAdmin: boolean;
+  /** Sessão com verificação em dois passos (aal2). As rotas /api/saas/* exigem-na. */
+  mfa: boolean;
 }
 
 export interface SaasPlanRow {

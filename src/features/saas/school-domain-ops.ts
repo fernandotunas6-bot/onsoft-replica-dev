@@ -107,13 +107,17 @@ export async function getSchoolDomainStatus(
   }
 
   // E-mail institucional
-  const { data: emailRouteRow } = await db
-    .from("school_email_routes")
-    .select("source_address, destination_address, status, provider")
-    .eq("school_id", schoolId)
-    .order("created_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
+  // Sem escola ligada ao tenant não há rota nem marca: antes consultava com
+  // `school_id = undefined`.
+  const { data: emailRouteRow } = schoolId
+    ? await db
+        .from("school_email_routes")
+        .select("source_address, destination_address, status, provider")
+        .eq("school_id", schoolId)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle()
+    : { data: null };
 
   let emailRoute: EmailRouteInfo | null = null;
   if (emailRouteRow) {
@@ -154,11 +158,13 @@ export async function getSchoolDomainStatus(
   }
 
   // Branding Institucional
-  const { data: brandingRow } = await db
-    .from("school_branding")
-    .select("primary_color, secondary_color, portal_title, logo_url, favicon_url")
-    .eq("school_id", schoolId)
-    .maybeSingle();
+  const { data: brandingRow } = schoolId
+    ? await db
+        .from("school_branding")
+        .select("primary_color, secondary_color, portal_title, logo_url, favicon_url")
+        .eq("school_id", schoolId)
+        .maybeSingle()
+    : { data: null };
 
   let branding: BrandingInfo | null = null;
   if (brandingRow) {

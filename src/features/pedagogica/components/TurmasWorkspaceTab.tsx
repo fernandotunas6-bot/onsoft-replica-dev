@@ -255,7 +255,7 @@ export function TurmasWorkspaceTab({
                     </dd>
                   </div>
                   <div>
-                    <dt className="text-xs text-muted-foreground">Campus</dt>
+                    <dt className="text-xs text-muted-foreground">Sala</dt>
                     <dd className="font-medium">{t.sala}</dd>
                   </div>
                   <div>

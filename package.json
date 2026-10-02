@@ -15,6 +15,7 @@
     "test": "vitest run",
     "test:routes": "vitest run tests/routes/ --fileParallelism=false",
     "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
     "check:style": "node scripts/style-checklist.mjs",
     "check:a11y": "node scripts/a11y-check.mjs",
     "check:a11y:report": "node scripts/a11y-check.mjs --html reports/a11y.html",
@@ -28,7 +29,7 @@
     "check:visual:update": "python3 scripts/visual-regression.py --update",
     "check": "npm run check:style && npm run check:a11y:report",
     "format": "prettier --write .",
-    "check:security": "npm audit --audit-level=high",
+    "check:security": "bun audit --audit-level=high",
     "check:a11y:sidebar": "python3 scripts/a11y-sidebar.py",
     "siga:check": "node scripts/siga/check-modules.mjs && npm run siga:check-nav",
     "siga:check-nav": "vitest run tests/auth/navigation-catalog.test.ts",
@@ -158,7 +159,7 @@
     "@types/react": "^19.2.0",
     "@types/react-dom": "^19.2.0",
     "@vitejs/plugin-react": "^5.2.0",
-    "@vitest/ui": "^4.1.10",
+    "@vitest/ui": "^4.1.11",
     "drizzle-kit": "^0.31.10",
     "drizzle-orm": "^0.45.2",
     "eslint": "^9.32.0",
@@ -176,6 +177,9 @@
     "typescript": "^5.8.3",
     "typescript-eslint": "^8.56.1",
     "vite": "^8.2.0",
-    "vitest": "^4.1.10"
+    "vitest": "^4.1.11"
+  },
+  "overrides": {
+    "@grpc/grpc-js": "1.14.5"
   }
 }
