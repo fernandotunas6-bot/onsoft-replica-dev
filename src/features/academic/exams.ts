@@ -400,7 +400,7 @@ export const getExamClassDetail = createServerFn({ method: "GET" })
 
     const students = sheet.rows.map((row): ExamStudentLine => {
       const subjects = subjectsBeforeSession(
-        subjectFinalsFromBreakdown(row.breakdown, rule),
+        subjectFinalsFromBreakdown(row.breakdown, rule, sheet.expectedTerms),
         earlier.get(row.enrollmentId) ?? [],
         session,
       );
@@ -427,13 +427,22 @@ export const getExamClassDetail = createServerFn({ method: "GET" })
         absencePercentage: row.absencePercentage,
         subjects,
         eligibility: examEligibility(
-          { subjects, absencePercentage: row.absencePercentage },
+          {
+            subjects,
+            absencePercentage: row.absencePercentage,
+            sheetIncomplete: row.sheetIncomplete,
+          },
           rule,
           session,
         ),
         registrations,
-        before: computeFinalResult(subjects, row.absencePercentage, rule),
-        after: computeFinalResult(applyExamResults(subjects, graded), row.absencePercentage, rule),
+        before: computeFinalResult(subjects, row.absencePercentage, rule, row.sheetIncomplete),
+        after: computeFinalResult(
+          applyExamResults(subjects, graded),
+          row.absencePercentage,
+          rule,
+          row.sheetIncomplete,
+        ),
       };
     });
     students.sort((a, b) => a.studentName.localeCompare(b.studentName, "pt"));
@@ -478,12 +487,16 @@ export const registerEligibleStudents = createServerFn({ method: "POST" })
     const registeredByEnrollment = new Map<string, string[]>();
     for (const line of sheet.rows) {
       const subjects = subjectsBeforeSession(
-        subjectFinalsFromBreakdown(line.breakdown, rule),
+        subjectFinalsFromBreakdown(line.breakdown, rule, sheet.expectedTerms),
         earlier.get(line.enrollmentId) ?? [],
         session,
       );
       const eligibility = examEligibility(
-        { subjects, absencePercentage: line.absencePercentage },
+        {
+          subjects,
+          absencePercentage: line.absencePercentage,
+          sheetIncomplete: line.sheetIncomplete,
+        },
         rule,
         session,
       );
