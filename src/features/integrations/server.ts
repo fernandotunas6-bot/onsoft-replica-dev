@@ -98,6 +98,10 @@ function integrationPublicRow(
   };
 }
 
+/** Gateways de pagamento: o comerciante decide para onde vai o dinheiro e a
+ * chave do webhook emite recibos — mexer neles exige 2FA, como o IBAN. */
+const PAYMENT_PROVIDERS = new Set(["multicaixa_express", "unitel_money"]);
+
 export type SchoolIntegrationSummary = ReturnType<typeof integrationPublicRow>;
 
 export const listSchoolIntegrations = createServerFn({ method: "GET" })
@@ -179,8 +183,29 @@ export const upsertSchoolIntegration = createServerFn({ method: "POST" })
     if (!isCatalogIntegrationId(data.provider)) {
       throw new Error("Integração desconhecida no catálogo SIGA.");
     }
+    if (PAYMENT_PROVIDERS.has(data.provider)) {
+      requireAal2(context.claims ?? {}, "Configurar um gateway de pagamentos");
+    }
     const db = await loadSgaAdminClient();
     const existing = await readIntegrationConfig(db, membership.schoolId, data.provider);
+    const previousMerchant = String(existing["merchantId"] ?? "");
+    const nextMerchant = String(data.merchantId ?? existing["merchantId"] ?? "");
+    if (PAYMENT_PROVIDERS.has(data.provider) && nextMerchant !== previousMerchant) {
+      const { error: auditError } = await db.from("audit_logs").insert({
+        school_id: membership.schoolId,
+        actor_user_id: context.userId,
+        action: "integration.payment_merchant.changed",
+        entity_type: "school_integration",
+        entity_id: null,
+        metadata: { provider: data.provider, before: previousMerchant, after: nextMerchant },
+      });
+      if (auditError) {
+        throw publicDatabaseError(
+          auditError,
+          "Não foi possível registar a alteração na auditoria.",
+        );
+      }
+    }
     const { error } = await db.from("school_integrations").upsert(
       {
         school_id: membership.schoolId,
@@ -211,6 +236,9 @@ export const installSchoolIntegration = createServerFn({ method: "POST" })
     ]);
     if (!isCatalogIntegrationId(data.provider)) {
       throw new Error("Integração desconhecida no catálogo SIGA.");
+    }
+    if (PAYMENT_PROVIDERS.has(data.provider)) {
+      requireAal2(context.claims ?? {}, "Instalar um gateway de pagamentos");
     }
     const pack = installPackageFor(data.provider);
     if (!pack) throw new Error("Pacote de instalação em falta.");

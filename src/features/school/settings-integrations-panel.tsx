@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Check, Mail } from "lucide-react";
 import { toast } from "sonner";
+import { toastActionError } from "@/lib/action-error-toast";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -369,11 +370,7 @@ function AcademicIntegrationsCatalog() {
                               queryKey: ["school", "integrations"],
                             });
                           })
-                          .catch((error) =>
-                            toast.error(
-                              error instanceof Error ? error.message : "Falha ao guardar.",
-                            ),
-                          );
+                          .catch((error) => toastActionError(error, "Falha ao guardar."));
                       }}
                     >
                       <Input
