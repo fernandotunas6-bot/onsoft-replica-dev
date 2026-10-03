@@ -4,6 +4,27 @@ Ler isto **antes** de alterar código. Ecossistema (5 apps):
 [ARCHITECTURE_HARMONIZATION.md](./ARCHITECTURE_HARMONIZATION.md).
 Depois abrir o skill do módulo em `.cursor/skills/`.
 
+## Pendentes de decisão do dono (2026-10-03)
+
+- **Multas por atraso.** O pagamento por referência (EMIS/Unitel) cobra
+  `amount - discount + penalty`; a tesouraria (`register_payment`) e a referência
+  gerada no ecrã cobram `amount - discount`. O dono pediu regra universal **ou**
+  opção por escola («multa entra em todos os pagamentos» / «só nos electrónicos»).
+  Implementar como definição em `school_settings` (domínio finance) e usar o mesmo
+  total nos três caminhos.
+- **Anular um salário pago por engano.** O caixa já recusa anular a saída de um
+  salário (`reverseCashEntry`). Falta, nos RH, a anulação com motivo que reponha
+  o item, a ordem e a folha e anule a saída de caixa numa transacção (migração).
+  O dono pediu regra universal ou opções de escolha.
+- **Professor em várias escolas do sistema** (ex.: colégio + escola pública): o
+  professor só vê os alunos das turmas onde dá aulas (`loadStudentScope`, igual às
+  turmas da árvore da barra lateral). Ver no mesmo portal as turmas das outras
+  escolas onde trabalha — com vínculo pedido e aprovado em cada escola — fica
+  **pendente** (pedido do dono).
+- **Migração `20261002160000_annual_sheet_requires_all_terms` por aplicar** na
+  produção (a aplicação pela ferramenta é cancelada; o dono aplica no SQL Editor
+  do projecto `xodgfmxiaunpamctfeea`, que tem 91 escolas).
+
 ## Auditoria de produção 11 (2026-10-02)
 
 Relatório: `docs/auditoria/11-auditoria-producao-2026-10-02.md` (PR #65).
