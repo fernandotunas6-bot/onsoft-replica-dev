@@ -71,19 +71,37 @@ describe("recuperação de senha: o contacto tem de ser da conta", () => {
   it("telefone confirmado por código pela própria conta recupera", async () => {
     const db = fakeDb({
       profiles: [{ id: "u1", phone: "244923000000" }],
-      verification_otps: [
+      saas_audit_logs: [
         {
+          id: "a1",
+          action: "profile_phone_changed_otp",
           user_id: "u1",
-          purpose: "phone_change",
-          target_identifier: "244923000000",
-          attempts_left: 4,
-          expires_at: future,
-          consumed_at: "2026-09-26T10:00:00Z",
+          "metadata->>new_phone": "244923000000",
         },
       ],
     });
     const admin = fakeAdmin([{ id: "u1", email: "u1@escola.ao" }]);
     expect(await resolveResetAccount(db, admin, "244923000000")).toBe("u1");
+  });
+
+  it("código de mudança de telefone substituído (nunca acertado) não conta", async () => {
+    const db = fakeDb({
+      profiles: [{ id: "u1", phone: "244923000000" }],
+      // Consumido por um pedido novo, com as 5 tentativas intactas.
+      verification_otps: [
+        {
+          user_id: "u1",
+          purpose: "phone_change",
+          target_identifier: "244923000000",
+          attempts_left: 5,
+          expires_at: future,
+          consumed_at: "2026-09-26T10:00:00Z",
+        },
+      ],
+      saas_audit_logs: [],
+    });
+    const admin = fakeAdmin([{ id: "u1", email: "u1@escola.ao" }]);
+    expect(await resolveResetAccount(db, admin, "244923000000")).toBeNull();
   });
 
   it("código expirado ou esgotado não conta como verificação", () => {
