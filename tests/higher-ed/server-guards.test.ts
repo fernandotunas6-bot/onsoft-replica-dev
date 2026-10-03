@@ -29,7 +29,9 @@ describe("Ensino Superior no servidor", () => {
     for (const match of source.matchAll(/\.from\("([a-z_]+)"\)/g)) {
       const end = source.indexOf(";", match.index);
       const chain = source.slice(match.index, end);
-      if (!chain.includes("school_id")) unfiltered.push(match[1]!);
+      // A própria escola filtra-se pelo id, que vem da sessão.
+      const ownSchool = match[1] === "schools" && chain.includes('.eq("id", schoolId)');
+      if (!chain.includes("school_id") && !ownSchool) unfiltered.push(match[1]!);
     }
     expect(unfiltered).toEqual([]);
   });
@@ -78,5 +80,12 @@ describe("Ensino Superior no servidor", () => {
     const body = fn("recordUnitResult");
     expect(body).toContain('.eq("status", latestRecord.status)');
     expect(body).toContain("Esta inscrição mudou entretanto");
+  });
+
+  it("histórico académico: só secretaria, estudante da escola", () => {
+    const body = fn("getStudentTranscript");
+    expect(body).toContain('officeMembership(context, "read")');
+    expect(body).toContain("Estudante não encontrado nesta escola.");
+    expect(body).toContain("transcriptLines(");
   });
 });

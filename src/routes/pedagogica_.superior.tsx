@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { AlertTriangle, GraduationCap, Trash2 } from "lucide-react";
@@ -493,6 +493,11 @@ function StudentPanel({ programId, studentId }: { programId: string; studentId: 
           {enroll.isPending
             ? "A inscrever…"
             : `Inscrever nas ${selected.length} cadeira(s) escolhidas`}
+        </Button>
+        <Button asChild variant="outline">
+          <Link to="/pedagogica/superior/historico" search={{ programId, studentId }}>
+            Histórico académico
+          </Link>
         </Button>
         {!student.data.activeYearId ? (
           <span className="text-xs text-destructive">

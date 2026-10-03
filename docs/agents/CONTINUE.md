@@ -25,6 +25,31 @@ Depois abrir o skill do módulo em `.cursor/skills/`.
   produção (a aplicação pela ferramenta é cancelada; o dono aplica no SQL Editor
   do projecto `xodgfmxiaunpamctfeea`, que tem 91 escolas).
 
+## Ensino Superior (2026-10-03)
+
+Sem migrações: usa as tabelas que já existiam na produção (vazias) —
+`program_subjects` (plano: semestre, créditos), `program_subject_prerequisites`
+e `course_unit_enrollments` (estas duas sem política para `authenticated`: só o
+servidor lhes toca, ver `PRIVILEGIO_POR_DESENHO`).
+
+- **Motor puro:** `src/features/higher-ed/engine.ts` (plano, precedências com
+  detecção de ciclos, inscrição com limites de créditos, épocas, resultados,
+  progressão, `transcriptLines`). Testes em `tests/higher-ed/`.
+- **Regulamento:** domínio `higher_ed` em `settings-domains.ts`
+  (`HIGHER_ED_DEFAULTS`), editável pelo Administrador.
+- **Épocas:** frequência → normal (só admitidos) → recurso (reprovado) →
+  especial (finalista, até N cadeiras, reprovado/excluído por frequência) →
+  melhoria (aprovado, uma vez). Convenção: admitido = `status inscrito`,
+  `season frequencia`, `final_grade` = média de frequência.
+- **Servidor:** `src/features/higher-ed/server.ts`. O lançamento
+  (`recordUnitResult`) tem bloqueio optimista e auditoria; creditação exige 2FA;
+  o professor só lança e vê pautas das cadeiras que dá numa turma do curso.
+- **Ecrãs:** `/pedagogica/superior` (secretaria: plano, estudantes,
+  regulamento), `/pedagogica/pautas-superior` (professor e secretaria),
+  `/pedagogica/superior/historico` (documento imprimível).
+- **Assistente** `/configuracoes/inicio`: passos de regulamento e planos quando a
+  escola tem o nível `superior`.
+
 ## Auditoria de produção 11 (2026-10-02)
 
 Relatório: `docs/auditoria/11-auditoria-producao-2026-10-02.md` (PR #65).

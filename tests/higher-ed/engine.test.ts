@@ -9,6 +9,7 @@ import {
   seasonEligibility,
   seasonResult,
   studentProgress,
+  transcriptLines,
   validatePlan,
   type PlanUnit,
   type Prerequisite,
@@ -346,5 +347,32 @@ describe("regulamento do Ensino Superior", () => {
     });
     expect(parsed.exam_exemption_min).toBe(10);
     expect(parsed.max_credits_per_semester).toBe(40);
+  });
+});
+
+describe("histórico académico", () => {
+  it("melhor aprovação, creditação, em curso e por fazer, pela ordem do plano", () => {
+    const lines = transcriptLines(plan, [
+      rec("mat1", "reprovado", { attempt: 1, academicYearId: "y1" }),
+      rec("mat1", "aprovado", { attempt: 2, finalGrade: 11, academicYearId: "y2" }),
+      rec("prog1", "aprovado", { finalGrade: 13, season: "normal" }),
+      rec("prog1", "aprovado", { finalGrade: 16, season: "melhoria", updatedAt: "2" }),
+      rec("fis1", "dispensado", { season: null }),
+      rec("mat2", "inscrito", { season: "frequencia", finalGrade: 9 }),
+      rec("prog2", "anulado", { season: null }),
+    ]);
+    const byId = new Map(lines.map((line) => [line.unit.id, line]));
+    expect(lines.map((line) => line.unit.id).slice(0, 3)).toEqual(["fis1", "mat1", "prog1"]);
+    expect(byId.get("mat1")).toMatchObject({
+      state: "concluida",
+      grade: 11,
+      attempts: 2,
+      academicYearId: "y2",
+    });
+    expect(byId.get("prog1")).toMatchObject({ state: "concluida", grade: 16, season: "melhoria" });
+    expect(byId.get("fis1")).toMatchObject({ state: "creditada", grade: null });
+    expect(byId.get("mat2")).toMatchObject({ state: "em_curso", lastStatus: "inscrito" });
+    expect(byId.get("prog2")).toMatchObject({ state: "por_fazer", attempts: 0 });
+    expect(byId.get("tfc")).toMatchObject({ state: "por_fazer", lastStatus: null });
   });
 });

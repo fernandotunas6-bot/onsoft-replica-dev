@@ -483,3 +483,65 @@ export function studentProgress(params: {
     completed: plan.length > 0 && pendingUnits.length === 0,
   };
 }
+
+export type TranscriptLine = {
+  unit: PlanUnit;
+  state: "concluida" | "creditada" | "em_curso" | "por_fazer";
+  grade: number | null;
+  season: ExamSeason | null;
+  academicYearId: string | null;
+  attempts: number;
+  /** Último estado registado, quando a cadeira ainda não está concluída. */
+  lastStatus: EnrollmentStatus | null;
+};
+
+/**
+ * Linhas do histórico académico, pela ordem do plano: a melhor aprovação de
+ * cada cadeira (ou a creditação), senão o último estado. As anuladas não contam
+ * como tentativa.
+ */
+export function transcriptLines(plan: PlanUnit[], records: UnitRecord[]): TranscriptLine[] {
+  const latest = latestRecordByUnit(records);
+  return [...plan]
+    .sort((a, b) => a.semester - b.semester || a.name.localeCompare(b.name, "pt"))
+    .map((unit) => {
+      const unitRecords = records.filter((r) => r.unitId === unit.id);
+      const attempts = unitRecords.filter((r) => r.status !== "anulado").length;
+      const best = unitRecords
+        .filter((r) => r.status === "aprovado")
+        .sort((a, b) => (b.finalGrade ?? 0) - (a.finalGrade ?? 0))[0];
+      if (best) {
+        return {
+          unit,
+          state: "concluida" as const,
+          grade: best.finalGrade,
+          season: best.season,
+          academicYearId: best.academicYearId,
+          attempts,
+          lastStatus: null,
+        };
+      }
+      const credited = unitRecords.find((r) => r.status === "dispensado");
+      if (credited) {
+        return {
+          unit,
+          state: "creditada" as const,
+          grade: null,
+          season: null,
+          academicYearId: credited.academicYearId,
+          attempts,
+          lastStatus: null,
+        };
+      }
+      const last = latest.get(unit.id);
+      return {
+        unit,
+        state: last && last.status !== "anulado" ? ("em_curso" as const) : ("por_fazer" as const),
+        grade: null,
+        season: last?.season ?? null,
+        academicYearId: last?.academicYearId ?? null,
+        attempts,
+        lastStatus: last?.status ?? null,
+      };
+    });
+}

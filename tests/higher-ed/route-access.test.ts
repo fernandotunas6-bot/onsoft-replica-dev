@@ -16,4 +16,10 @@ describe("acesso ao Ensino Superior", () => {
     expect(canAccessPath("/pedagogica/pautas-superior", "Aluno")).toBe(false);
     expect(canAccessPath("/pedagogica/pautas-superior", "Encarregado")).toBe(false);
   });
+
+  it("histórico académico é da secretaria", () => {
+    expect(canAccessPath("/pedagogica/superior/historico", "Secretaria")).toBe(true);
+    expect(canAccessPath("/pedagogica/superior/historico", "Professor")).toBe(false);
+    expect(canAccessPath("/pedagogica/superior/historico", "Aluno")).toBe(false);
+  });
 });

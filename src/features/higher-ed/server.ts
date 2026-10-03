@@ -38,6 +38,7 @@ import {
   seasonEligibility,
   seasonResult,
   studentProgress,
+  transcriptLines,
   validatePlan,
   type EnrollmentStatus,
   type ExamSeason,
@@ -550,6 +551,80 @@ export const getStudentHigherEd = createServerFn({ method: "GET" })
       progress: { ...progress, pendingUnits: progress.pendingUnits.map((u) => u.id) },
       units: unitsView,
       prerequisites,
+    };
+  });
+
+/** Histórico académico (documento): uma linha por cadeira do plano, com o ano em que a fez. */
+export const getStudentTranscript = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .validator((input: unknown) =>
+    z.object({ programId: z.string().uuid(), studentId: z.string().uuid() }).parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    const membership = await officeMembership(context, "read");
+    const db = await loadSgaAdminClient();
+    const schoolId = membership.schoolId;
+    const program = await requireProgram(db, schoolId, data.programId);
+    const { data: student } = await db
+      .from("students")
+      .select("id, person_id, student_number")
+      .eq("school_id", schoolId)
+      .eq("id", data.studentId)
+      .maybeSingle();
+    if (!student) throw new Error("Estudante não encontrado nesta escola.");
+    const [{ units }, rows, regulation, personResult, schoolResult] = await Promise.all([
+      loadPlan(db, schoolId, data.programId),
+      loadRecords(db, schoolId, data.studentId, data.programId),
+      regulationOf(db, schoolId),
+      db
+        .from("people")
+        .select("full_name, national_id")
+        .eq("school_id", schoolId)
+        .eq("id", str(student.person_id))
+        .maybeSingle(),
+      db
+        .from("schools")
+        .select("name, commercial_name, nif, address, director_name, logo_url")
+        .eq("id", schoolId)
+        .maybeSingle(),
+    ]);
+    // Só há histórico de quem tem registos no curso (ou matrícula nele).
+    if (!rows.length) await requireStudentInProgram(db, schoolId, data.studentId, data.programId);
+    const records = rows.map((row) => row.record);
+    const lines = transcriptLines(units, records);
+    const yearIds = [...new Set(lines.map((l) => l.academicYearId).filter(Boolean))] as string[];
+    const { data: years } = yearIds.length
+      ? await db
+          .from("academic_years")
+          .select("id, name")
+          .eq("school_id", schoolId)
+          .in("id", yearIds)
+      : { data: [] as Row[] };
+    const yearName = new Map(((years ?? []) as Row[]).map((y) => [str(y.id), str(y.name)]));
+    const progress = studentProgress({ plan: units, records, regulation });
+    const school = (schoolResult.data ?? {}) as Row;
+    const person = (personResult.data ?? {}) as Row;
+    return {
+      school: {
+        name: str(school.commercial_name) || str(school.name),
+        nif: school.nif ? str(school.nif) : null,
+        address: school.address ? str(school.address) : null,
+        director: school.director_name ? str(school.director_name) : null,
+        logoUrl: school.logo_url ? str(school.logo_url) : null,
+      },
+      program: { name: str(program.name), code: str(program.code), kind: str(program.kind) },
+      student: {
+        name: str(person.full_name) || "Estudante",
+        number: student.student_number ? str(student.student_number) : null,
+        document: person.national_id ? str(person.national_id) : null,
+      },
+      lines: lines.map((line) => ({
+        ...line,
+        yearName: line.academicYearId ? (yearName.get(line.academicYearId) ?? null) : null,
+      })),
+      progress: { ...progress, pendingUnits: progress.pendingUnits.length },
+      passingGrade: regulation.passing_grade,
+      issuedAt: new Date().toISOString(),
     };
   });
 
