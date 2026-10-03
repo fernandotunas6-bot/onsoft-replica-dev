@@ -38,6 +38,7 @@ import {
   savePlanUnit,
   setUnitPrerequisites,
 } from "@/features/higher-ed/server";
+import { SEASON_LABEL, STATUS_LABEL } from "@/features/higher-ed/labels";
 import type { HigherEdRegulation } from "@/features/school/settings-domains";
 import { toastActionError } from "@/lib/action-error-toast";
 
@@ -53,24 +54,6 @@ export const Route = createFileRoute("/pedagogica_/superior")({
   }),
   component: HigherEdPage,
 });
-
-const STATUS_LABEL: Record<EnrollmentStatus, string> = {
-  inscrito: "Inscrito",
-  aprovado: "Aprovado",
-  reprovado: "Reprovado",
-  dispensado: "Creditada",
-  anulado: "Anulada",
-  excluido_faltas: "Excluído por faltas",
-  excluido_frequencia: "Excluído por frequência",
-};
-
-const SEASON_LABEL: Record<ExamSeason, string> = {
-  frequencia: "Frequência",
-  normal: "Época normal",
-  recurso: "Recurso",
-  especial: "Época especial",
-  melhoria: "Melhoria",
-};
 
 function HigherEdPage() {
   const account = useCurrentAccount();

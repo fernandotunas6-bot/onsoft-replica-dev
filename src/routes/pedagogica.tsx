@@ -661,6 +661,14 @@ function PedagogicaPage() {
                   <Link to="/pedagogica/superior">Ensino Superior</Link>
                 </Button>
               ) : null}
+              {teachingLevels.includes("superior") &&
+              (account.role === "Administrador" ||
+                account.role === "Secretaria" ||
+                account.role === "Professor") ? (
+                <Button asChild variant="outline" className="gap-1.5 text-xs shadow-2xs">
+                  <Link to="/pedagogica/pautas-superior">Pautas do Superior</Link>
+                </Button>
+              ) : null}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="outline" className="gap-1.5 text-xs shadow-2xs">

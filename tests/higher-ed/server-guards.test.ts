@@ -62,4 +62,21 @@ describe("Ensino Superior no servidor", () => {
   it("cadeira com inscrições não sai do plano", () => {
     expect(fn("removePlanUnit")).toContain("Esta cadeira já tem inscrições de estudantes.");
   });
+
+  it("pauta da cadeira: professor só vê as cadeiras que dá", () => {
+    const list = fn("listLaunchableUnits");
+    expect(list).toContain("isOfficeRole(membership)");
+    expect(list).toContain("teacherUnitKeys(");
+    const sheet = fn("getUnitSheet");
+    expect(sheet.indexOf("canLaunchUnit(")).toBeLessThan(
+      sheet.indexOf('.from("course_unit_enrollments")'),
+    );
+    expect(sheet).toContain("seasonEligibility(");
+  });
+
+  it("lançamento com bloqueio optimista: não sobrepõe uma inscrição que mudou", () => {
+    const body = fn("recordUnitResult");
+    expect(body).toContain('.eq("status", latestRecord.status)');
+    expect(body).toContain("Esta inscrição mudou entretanto");
+  });
 });

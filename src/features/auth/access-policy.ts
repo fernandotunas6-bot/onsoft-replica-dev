@@ -97,6 +97,11 @@ const accessRules: Array<{ prefixes: string[]; roles: ApplicationRole[] }> = [
     roles: ["Administrador", "Secretaria"],
   },
   {
+    // Pauta por cadeira: o professor lança nas cadeiras que dá (o servidor confirma).
+    prefixes: ["/pedagogica/pautas-superior"],
+    roles: ["Administrador", "Secretaria", "Professor"],
+  },
+  {
     prefixes: ["/pedagogica/risco"],
     roles: ["Administrador", "Secretaria", "Professor"],
   },

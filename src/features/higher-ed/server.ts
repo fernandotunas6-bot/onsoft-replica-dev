@@ -129,31 +129,33 @@ async function loadPlan(db: Db, schoolId: string, programId: string) {
   return { units, prerequisites };
 }
 
+const RECORD_COLUMNS =
+  "id, student_id, program_subject_id, academic_year_id, semester, credits, attempt, status, final_grade, season, credits_earned, updated_at";
+
+function toRecord(row: Row): UnitRecord {
+  return {
+    unitId: str(row.program_subject_id),
+    academicYearId: str(row.academic_year_id),
+    attempt: Number(row.attempt ?? 1),
+    status: str(row.status) as EnrollmentStatus,
+    season: (row.season ? str(row.season) : null) as ExamSeason | null,
+    finalGrade: row.final_grade == null ? null : Number(row.final_grade),
+    credits: Number(row.credits ?? 0),
+    creditsEarned: Number(row.credits_earned ?? 0),
+    updatedAt: str(row.updated_at),
+  } as UnitRecord;
+}
+
 async function loadRecords(db: Db, schoolId: string, studentId: string, programId: string) {
   const { data, error } = await db
     .from("course_unit_enrollments")
-    .select(
-      "id, program_subject_id, academic_year_id, semester, credits, attempt, status, final_grade, season, credits_earned, updated_at",
-    )
+    .select(RECORD_COLUMNS)
     .eq("school_id", schoolId)
     .eq("student_id", studentId)
     .eq("program_id", programId);
   if (error)
     throw publicDatabaseError(error, "Não foi possível carregar o histórico do estudante.");
-  return ((data ?? []) as Row[]).map((row) => ({
-    id: str(row.id),
-    record: {
-      unitId: str(row.program_subject_id),
-      academicYearId: str(row.academic_year_id),
-      attempt: Number(row.attempt ?? 1),
-      status: str(row.status) as EnrollmentStatus,
-      season: (row.season ? str(row.season) : null) as ExamSeason | null,
-      finalGrade: row.final_grade == null ? null : Number(row.final_grade),
-      credits: Number(row.credits ?? 0),
-      creditsEarned: Number(row.credits_earned ?? 0),
-      updatedAt: str(row.updated_at),
-    } as UnitRecord,
-  }));
+  return ((data ?? []) as Row[]).map((row) => ({ id: str(row.id), record: toRecord(row) }));
 }
 
 async function regulationOf(db: Db, schoolId: string): Promise<HigherEdRegulation> {
@@ -908,6 +910,215 @@ export const recordUnitResult = createServerFn({ method: "POST" })
       },
     });
     return { status: str(patch.status), finalGrade: (patch.final_grade as number | null) ?? null };
+  });
+
+// ── Pauta da cadeira (professor e secretaria) ──────────────────────────────
+
+const LAUNCHERS = ["Administrador", "Secretaria", "Professor"] as const;
+
+function isOfficeRole(membership: { appRole: string; allAppRoles?: string[] }) {
+  const roles = membership.allAppRoles ?? [membership.appRole];
+  return roles.some((role) => (OFFICE as readonly string[]).includes(role));
+}
+
+/** Pares curso:disciplina que o professor dá numa turma do curso. */
+async function teacherUnitKeys(db: Db, schoolId: string, userId: string) {
+  const keys = new Set<string>();
+  const { data: teacher } = await db
+    .from("teachers")
+    .select("id")
+    .eq("school_id", schoolId)
+    .eq("user_id", userId)
+    .eq("status", "active")
+    .maybeSingle();
+  if (!teacher?.id) return keys;
+  const { data: assignments } = await db
+    .from("class_subjects")
+    .select("class_group_id, subject_id")
+    .eq("school_id", schoolId)
+    .eq("teacher_id", str(teacher.id));
+  const groupIds = [...new Set((assignments ?? []).map((a) => str(a.class_group_id)))];
+  if (!groupIds.length) return keys;
+  const { data: groups } = await db
+    .from("class_groups")
+    .select("id, grade_level_id")
+    .eq("school_id", schoolId)
+    .in("id", groupIds);
+  const gradeIds = [...new Set((groups ?? []).map((g) => str(g.grade_level_id)))];
+  const { data: grades } = gradeIds.length
+    ? await db
+        .from("grade_levels")
+        .select("id, program_id")
+        .eq("school_id", schoolId)
+        .in("id", gradeIds)
+    : { data: [] as Row[] };
+  const programOfGrade = new Map(
+    ((grades ?? []) as Row[]).map((g) => [str(g.id), str(g.program_id)]),
+  );
+  const programOfGroup = new Map(
+    (groups ?? []).map((g) => [str(g.id), programOfGrade.get(str(g.grade_level_id)) ?? ""]),
+  );
+  for (const assignment of assignments ?? []) {
+    const programId = programOfGroup.get(str(assignment.class_group_id));
+    if (programId) keys.add(`${programId}:${str(assignment.subject_id)}`);
+  }
+  return keys;
+}
+
+/** Cadeiras em que a pessoa pode lançar: todas (secretaria) ou as suas (professor). */
+export const listLaunchableUnits = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const membership = await requireSgaWriterFor("pedagogica", context.supabase, context.userId, [
+      ...LAUNCHERS,
+    ]);
+    const db = await loadSgaAdminClient();
+    const schoolId = membership.schoolId;
+    const { data: programs, error } = await db
+      .from("programs")
+      .select("id, name")
+      .eq("school_id", schoolId)
+      .in("kind", ["undergraduate", "postgraduate"])
+      .order("name");
+    if (error) throw publicDatabaseError(error, "Não foi possível carregar os cursos.");
+    if (!programs?.length) return [];
+    const programName = new Map(programs.map((p) => [str(p.id), str(p.name)]));
+    const { data: rows, error: unitsError } = await db
+      .from("program_subjects")
+      .select("id, program_id, subject_id, semester, credits")
+      .eq("school_id", schoolId)
+      .eq("status", "active")
+      .is("deleted_at", null)
+      .in("program_id", [...programName.keys()]);
+    if (unitsError) throw publicDatabaseError(unitsError, "Não foi possível carregar as cadeiras.");
+    const allowed = isOfficeRole(membership)
+      ? null
+      : await teacherUnitKeys(db, schoolId, context.userId);
+    const visible = ((rows ?? []) as Row[]).filter(
+      (row) => !allowed || allowed.has(`${str(row.program_id)}:${str(row.subject_id)}`),
+    );
+    const subjectIds = [...new Set(visible.map((row) => str(row.subject_id)))];
+    const { data: subjects } = subjectIds.length
+      ? await db.from("subjects").select("id, name").eq("school_id", schoolId).in("id", subjectIds)
+      : { data: [] as Row[] };
+    const subjectName = new Map(((subjects ?? []) as Row[]).map((s) => [str(s.id), str(s.name)]));
+    return visible
+      .map((row) => ({
+        programId: str(row.program_id),
+        programName: programName.get(str(row.program_id)) ?? "Curso",
+        unitId: str(row.id),
+        name: subjectName.get(str(row.subject_id)) || "Cadeira",
+        semester: Number(row.semester),
+        credits: Number(row.credits),
+      }))
+      .sort(
+        (a, b) =>
+          a.programName.localeCompare(b.programName, "pt") ||
+          a.semester - b.semester ||
+          a.name.localeCompare(b.name, "pt"),
+      );
+  });
+
+/**
+ * Pauta de uma cadeira: os estudantes inscritos, o último resultado de cada um
+ * e as épocas a que vai — calculadas pelo mesmo motor que valida o lançamento.
+ */
+export const getUnitSheet = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .validator((input: unknown) =>
+    z.object({ programId: z.string().uuid(), unitId: z.string().uuid() }).parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    const membership = await requireSgaWriterFor("pedagogica", context.supabase, context.userId, [
+      ...LAUNCHERS,
+    ]);
+    const db = await loadSgaAdminClient();
+    const schoolId = membership.schoolId;
+    const program = await requireProgram(db, schoolId, data.programId);
+    const [{ units }, regulation] = await Promise.all([
+      loadPlan(db, schoolId, data.programId),
+      regulationOf(db, schoolId),
+    ]);
+    const unit = units.find((u) => u.id === data.unitId);
+    if (!unit) throw new Error("Cadeira não encontrada no plano deste curso.");
+    if (!(await canLaunchUnit(db, membership, context.userId, data.programId, unit.subjectId))) {
+      throw new Error("Só a coordenação ou o professor desta cadeira vê esta pauta.");
+    }
+    const { data: inUnit, error: inUnitError } = await db
+      .from("course_unit_enrollments")
+      .select("student_id")
+      .eq("school_id", schoolId)
+      .eq("program_id", data.programId)
+      .eq("program_subject_id", unit.id)
+      .limit(5000);
+    if (inUnitError) throw publicDatabaseError(inUnitError, "Não foi possível carregar a pauta.");
+    const studentIds = [...new Set((inUnit ?? []).map((row) => str(row.student_id)))];
+    const base = {
+      program: { id: str(program.id), name: str(program.name) },
+      unit,
+      regulation,
+    };
+    if (!studentIds.length) return { ...base, rows: [] };
+
+    // O histórico completo de cada estudante no curso: a época especial depende
+    // de quantas cadeiras lhe faltam no plano, não só desta.
+    const { data: recordRows, error } = await db
+      .from("course_unit_enrollments")
+      .select(RECORD_COLUMNS)
+      .eq("school_id", schoolId)
+      .eq("program_id", data.programId)
+      .in("student_id", studentIds);
+    if (error) throw publicDatabaseError(error, "Não foi possível carregar a pauta.");
+    const byStudent = new Map<string, UnitRecord[]>();
+    for (const row of (recordRows ?? []) as Row[]) {
+      const list = byStudent.get(str(row.student_id)) ?? [];
+      list.push(toRecord(row));
+      byStudent.set(str(row.student_id), list);
+    }
+    const { data: students } = await db
+      .from("students")
+      .select("id, person_id, student_number")
+      .eq("school_id", schoolId)
+      .in("id", studentIds);
+    const personIds = (students ?? []).map((s) => str(s.person_id));
+    const { data: people } = personIds.length
+      ? await db
+          .from("people")
+          .select("id, full_name")
+          .eq("school_id", schoolId)
+          .in("id", personIds)
+      : { data: [] as Row[] };
+    const nameOf = new Map(((people ?? []) as Row[]).map((p) => [str(p.id), str(p.full_name)]));
+
+    const rows = (students ?? [])
+      .map((student) => {
+        const records = byStudent.get(str(student.id)) ?? [];
+        const latest = latestRecordByUnit(records).get(unit.id) ?? null;
+        const eligible = seasonEligibility({ unitId: unit.id, records, plan: units, regulation });
+        return {
+          studentId: str(student.id),
+          name: nameOf.get(str(student.person_id)) || "Estudante",
+          number: student.student_number ? str(student.student_number) : null,
+          latest: latest
+            ? {
+                status: latest.status,
+                season: latest.season,
+                finalGrade: latest.finalGrade,
+                attempt: latest.attempt,
+              }
+            : null,
+          seasons: {
+            frequencia: latest?.status === "inscrito",
+            normal: eligible.normal,
+            recurso: eligible.recurso,
+            especial: eligible.especial,
+            melhoria: eligible.melhoria,
+          } satisfies Record<ExamSeason, boolean>,
+        };
+      })
+      .filter((row) => row.latest && row.latest.status !== "anulado")
+      .sort((a, b) => a.name.localeCompare(b.name, "pt"));
+    return { ...base, rows };
   });
 
 // ── Regulamento ────────────────────────────────────────────────────────────

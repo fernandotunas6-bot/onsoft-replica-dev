@@ -9,4 +9,11 @@ describe("acesso ao Ensino Superior", () => {
     expect(canAccessPath("/pedagogica/superior", "Aluno")).toBe(false);
     expect(canAccessPath("/pedagogica/superior", "Encarregado")).toBe(false);
   });
+
+  it("pauta do Superior: professor e secretaria; aluno e encarregado não", () => {
+    expect(canAccessPath("/pedagogica/pautas-superior", "Professor")).toBe(true);
+    expect(canAccessPath("/pedagogica/pautas-superior", "Secretaria")).toBe(true);
+    expect(canAccessPath("/pedagogica/pautas-superior", "Aluno")).toBe(false);
+    expect(canAccessPath("/pedagogica/pautas-superior", "Encarregado")).toBe(false);
+  });
 });
