@@ -368,6 +368,9 @@ export const confirmPayrollPaymentItem = createServerFn({ method: "POST" })
 
     const documentNumber = `${String(batch.batch_number)}-${String(item.id).replace(/-/g, "").slice(0, 8).toUpperCase()}`;
     let cashExpenseId: string | null = item.cash_expense_id ? String(item.cash_expense_id) : null;
+    // Saída lançada por este pedido: se outro pedido confirmar o item primeiro
+    // (duplo clique, dois separadores), é retirada para o caixa não pagar duas vezes.
+    let createdExpenseId: string | null = null;
 
     if (!cashExpenseId) {
       const { data: existingExpense } = await db
@@ -402,6 +405,7 @@ export const confirmPayrollPaymentItem = createServerFn({ method: "POST" })
             "Não foi possível lançar a saída salarial no caixa.",
           );
         cashExpenseId = String(expense.id);
+        createdExpenseId = cashExpenseId;
       }
     }
 
@@ -422,10 +426,25 @@ export const confirmPayrollPaymentItem = createServerFn({ method: "POST" })
       .in("status", [...HR_PAYMENT_CONFIRMABLE_STATUSES])
       .select("id")
       .maybeSingle();
-    if (payError)
-      throw publicDatabaseError(payError, "Não foi possível confirmar o pagamento salarial.");
-    if (!paidRow)
+    if (payError || !paidRow) {
+      if (createdExpenseId) {
+        const { error: discardError } = await db
+          .from("siga_cash_expenses")
+          .delete()
+          .eq("id", createdExpenseId)
+          .eq("school_id", membership.schoolId);
+        if (discardError) {
+          reportSigaError("hr.payment.orphan_cash_expense", discardError, {
+            school_id: membership.schoolId,
+            cash_expense_id: createdExpenseId,
+            payment_item_id: item.id,
+          });
+        }
+      }
+      if (payError)
+        throw publicDatabaseError(payError, "Não foi possível confirmar o pagamento salarial.");
       throw new Error("O estado do pagamento mudou; actualize a lista e tente de novo.");
+    }
 
     await syncPaymentStatus(
       "payroll_item",
