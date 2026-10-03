@@ -1719,23 +1719,41 @@ export const saveHigherEdRegulation = createServerFn({ method: "POST" })
     const value = parseSettingsDomain("higher_ed", data);
     const { data: existing } = await db
       .from("school_settings")
-      .select("id, version")
+      .select("id, version, value")
       .eq("school_id", membership.schoolId)
       .eq("domain", "higher_ed")
       .maybeSingle();
-    const { error } = existing?.id
-      ? await db
-          .from("school_settings")
-          .update({ value, version: Number(existing.version ?? 1) + 1, changed_by: context.userId })
-          .eq("id", existing.id)
-          .eq("school_id", membership.schoolId)
-      : await db.from("school_settings").insert({
-          school_id: membership.schoolId,
-          domain: "higher_ed",
-          version: 1,
-          value,
-          changed_by: context.userId,
-        });
-    if (error) throw publicDatabaseError(error, "Não foi possível guardar o regulamento.");
+    if (existing?.id) {
+      // Só grava sobre a versão lida: duas edições em simultâneo não se apagam.
+      const { data: saved, error } = await db
+        .from("school_settings")
+        .update({ value, version: Number(existing.version ?? 1) + 1, changed_by: context.userId })
+        .eq("id", existing.id)
+        .eq("school_id", membership.schoolId)
+        .eq("version", existing.version)
+        .select("id");
+      if (error) throw publicDatabaseError(error, "Não foi possível guardar o regulamento.");
+      if (!saved?.length) {
+        throw new Error("O regulamento mudou entretanto. Actualize a página e guarde de novo.");
+      }
+    } else {
+      const { error } = await db.from("school_settings").insert({
+        school_id: membership.schoolId,
+        domain: "higher_ed",
+        version: 1,
+        value,
+        changed_by: context.userId,
+      });
+      if (error) throw publicDatabaseError(error, "Não foi possível guardar o regulamento.");
+    }
+    // O regulamento decide aprovações: cada alteração fica na auditoria.
+    await db.from("audit_logs").insert({
+      school_id: membership.schoolId,
+      actor_user_id: context.userId,
+      action: "higher_ed.regulation.saved",
+      entity_type: "school_settings",
+      entity_id: existing?.id ? str(existing.id) : null,
+      metadata: { before: existing?.value ?? null, after: value } as never,
+    });
     return { regulation: value };
   });

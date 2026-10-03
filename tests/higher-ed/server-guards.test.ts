@@ -118,4 +118,10 @@ describe("Ensino Superior no servidor", () => {
     expect(body).toContain('officeMembership(context, "read")');
     expect(body).toContain('.neq("academic_year_id", yearId)');
   });
+
+  it("regulamento: bloqueio por versão e auditoria", () => {
+    const body = fn("saveHigherEdRegulation");
+    expect(body).toContain('.eq("version", existing.version)');
+    expect(body).toContain('action: "higher_ed.regulation.saved"');
+  });
 });

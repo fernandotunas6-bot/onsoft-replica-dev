@@ -1754,12 +1754,13 @@ export const exportSaftAoXml = createServerFn({ method: "POST" })
     ]);
     const db = await loadSgaAdminClient();
 
-    const [{ data: schoolSetting }, { data: agtSetting }] = await Promise.all([
+    // Os dados fiscais da escola vivem na tabela `schools` (não há domínio
+    // «school» em school_settings: lê-lo deixava a exportação sempre bloqueada).
+    const [{ data: schoolRow }, { data: agtSetting }] = await Promise.all([
       db
-        .from("school_settings")
-        .select("value")
-        .eq("school_id", membership.schoolId)
-        .eq("domain", "school")
+        .from("schools")
+        .select("name, nif, address, city, municipality")
+        .eq("id", membership.schoolId)
         .maybeSingle(),
       db
         .from("school_settings")
@@ -1769,15 +1770,14 @@ export const exportSaftAoXml = createServerFn({ method: "POST" })
         .maybeSingle(),
     ]);
 
-    const schoolVal = (schoolSetting?.value as Record<string, unknown>) ?? {};
     const agtVal = (agtSetting?.value as Record<string, unknown>) ?? {};
     const text = (v: unknown) => (typeof v === "string" ? v.trim() : "");
     // Sem valores inventados: o que faltar fica vazio e aparece nos avisos.
     const schoolInfo = {
-      nif: text(schoolVal["nif"]) || text(schoolVal["taxId"]),
-      name: text(schoolVal["name"]) || text(schoolVal["schoolName"]),
-      address: text(schoolVal["address"]),
-      city: text(schoolVal["city"]),
+      nif: text(schoolRow?.nif),
+      name: text(schoolRow?.name),
+      address: text(schoolRow?.address),
+      city: text(schoolRow?.city) || text(schoolRow?.municipality),
     };
 
     const readiness = validateSaftSchoolReadiness(schoolInfo);
