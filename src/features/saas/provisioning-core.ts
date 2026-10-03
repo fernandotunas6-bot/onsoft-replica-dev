@@ -2,6 +2,7 @@ import { loadSgaAdminClient } from "@/integrations/supabase/sga-admin";
 import { publicDatabaseError } from "@/integrations/supabase/server-error";
 import type { CreateSchoolWizardInput } from "@/features/saas/schemas";
 import { syncTenantUsageForSchool } from "@/features/saas/usage-sync";
+import { seedSchoolStructureFromSettings } from "@/features/academic/school-structure-seed";
 import { bootstrapSchoolDefaults } from "@/features/saas/school-bootstrap";
 import {
   describeProvisioningGaps,
@@ -399,6 +400,54 @@ async function runProvisioning(
     });
     if (institutionErr) {
       console.warn("[provisioning] natureza da instituição:", institutionErr.message);
+    }
+  }
+
+  // Níveis e cursos escolhidos no registo: vão para Definições → Pedagógico,
+  // que é onde «Preparar estrutura académica» os lê para criar as classes,
+  // cursos e disciplinas desta escola. Falhar aqui não desfaz a escola.
+  if (data.teaching_levels?.length && adminUserId) {
+    const courses = data.teaching_levels.includes("ii_ciclo") ? (data.secondary_courses ?? []) : [];
+    const { data: existingPedagogy } = await db
+      .from("school_settings")
+      .select("id, version, value")
+      .eq("school_id", schoolId)
+      .eq("domain", "pedagogy")
+      .maybeSingle();
+    const value = {
+      ...((existingPedagogy?.value as Record<string, unknown> | null) ?? {}),
+      teachingLevels: data.teaching_levels,
+      courses,
+    };
+    const { error: pedagogyErr } = existingPedagogy?.id
+      ? await db
+          .from("school_settings")
+          .update({
+            value,
+            version: Number(existingPedagogy.version ?? 1) + 1,
+            changed_by: adminUserId,
+          })
+          .eq("id", existingPedagogy.id)
+      : await db.from("school_settings").insert({
+          school_id: schoolId,
+          domain: "pedagogy",
+          version: 1,
+          value: { closedTerms: [], gradingProfile: null, ...value },
+          changed_by: adminUserId,
+        });
+    if (pedagogyErr) {
+      console.warn("[provisioning] níveis de ensino:", pedagogyErr.message);
+    } else {
+      // A escola entra já com os níveis, cursos, classes e disciplinas do seu
+      // contexto. Sem turmas nem períodos: esses são decisão e datas da escola.
+      const structure = await seedSchoolStructureFromSettings(db, {
+        schoolId,
+        userId: adminUserId,
+      }).catch((error: unknown) => {
+        console.warn("[provisioning] estrutura académica:", error);
+        return { seeded: [] as string[], hasContext: true };
+      });
+      bootstrapSeeded.push(...structure.seeded);
     }
   }
 

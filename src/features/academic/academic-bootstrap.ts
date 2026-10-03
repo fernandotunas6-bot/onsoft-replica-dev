@@ -1,6 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { ensureDefaultTeacher } from "@/features/academic/sga-grades";
 import * as legacy from "./academic-bootstrap-legacy";
+import { seedSchoolStructureFromSettings } from "./school-structure-seed";
 
 export * from "./academic-bootstrap-legacy";
 
@@ -155,6 +156,29 @@ export async function ensureAcademicDefaultsCore(
   input: { schoolId: string; userId: string; yearName?: string },
   options: BootstrapAcademicOptions = { strict: true },
 ): Promise<{ created: string[] }> {
+  // Escola com níveis/cursos definidos (registo ou Definições → Pedagógico):
+  // cria a estrutura desse contexto. Não precisa do calendário — classes,
+  // cursos e disciplinas não dependem das datas dos períodos.
+  const planned = await seedSchoolStructureFromSettings(
+    db,
+    { schoolId: input.schoolId, userId: input.userId },
+    options,
+  );
+  if (planned.hasContext) {
+    const created = [...planned.seeded];
+    const { data: activeTeachers } = await db
+      .from("teachers")
+      .select("id")
+      .eq("school_id", input.schoolId)
+      .eq("status", "active")
+      .limit(1);
+    if ((activeTeachers ?? []).length === 0) {
+      await ensureDefaultTeacher(db, input.schoolId, input.userId);
+      created.push("professor");
+    }
+    return { created };
+  }
+
   await requireConfiguredAcademicCalendar(db, input.schoolId, options);
 
   const academic = await bootstrapAcademicStructure(
