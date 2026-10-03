@@ -18,6 +18,7 @@ Ver também [Arquitetura do ecossistema](/arquitetura/).
 ## Onde começar
 
 - [Mapa de navegação](/siga/navegacao) — sidebar, launcher e permissões por papel
+- [Ensino Superior](/siga/ensino-superior) — cursos, planos com créditos, inscrições por cadeira e épocas
 - [Funcionalidades](/guide/features) — visão geral dos módulos
 - [Integrações](/integracoes/) — Multicaixa, WhatsApp, Resend, AGT
 
