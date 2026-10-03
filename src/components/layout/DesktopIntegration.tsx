@@ -1,7 +1,9 @@
 import { useEffect } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { isTauriDesktop, openExternalLink } from "@/lib/desktop-utils";
 import { installDesktopDownloads } from "@/lib/desktop-downloads";
 import { isExternalUrl, nextZoom, shortcutAction, storedZoom } from "@/lib/desktop-shortcuts";
+import { pausedWriteCount, writesLabel } from "@/lib/pending-writes";
 
 const ZOOM_KEY = "siga:desktop-zoom";
 
@@ -15,8 +17,11 @@ const ZOOM_KEY = "siga:desktop-zoom";
  *  - macOS: `window.print()` passa pelo comando Rust `print_page` (o do WKWebView não
  *    faz nada). Windows e Linux imprimem com o do próprio webview.
  *  - Atalhos: F5/Ctrl+R recarregar, Alt+←/→ histórico, Ctrl + / − / 0 zoom (lembrado).
+ *    Recarregar com gravações à espera de rede pede confirmação (perdiam-se).
  */
 export function DesktopIntegration() {
+  const queryClient = useQueryClient();
+
   useEffect(() => {
     if (!isTauriDesktop()) return;
 
@@ -83,8 +88,18 @@ export function DesktopIntegration() {
       const action = shortcutAction(event);
       if (!action) return;
       event.preventDefault();
-      if (action === "reload") window.location.reload();
-      else if (action === "back") window.history.back();
+      if (action === "reload") {
+        // O webview pode não mostrar o aviso do beforeunload: pergunta-se aqui.
+        const waiting = pausedWriteCount(queryClient);
+        if (
+          waiting === 0 ||
+          window.confirm(
+            `Há ${writesLabel(waiting)} à espera de rede. Se recarregar, perdem-se. Recarregar mesmo assim?`,
+          )
+        ) {
+          window.location.reload();
+        }
+      } else if (action === "back") window.history.back();
       else if (action === "forward") window.history.forward();
       else void applyZoom(nextZoom(zoom, action));
     };
@@ -99,7 +114,7 @@ export function DesktopIntegration() {
       window.print = originalPrint;
       uninstallDownloads();
     };
-  }, []);
+  }, [queryClient]);
 
   return null;
 }
