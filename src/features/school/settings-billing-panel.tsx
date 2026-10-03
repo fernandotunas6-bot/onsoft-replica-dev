@@ -139,8 +139,8 @@ export function BillingSettingsForm() {
       }
       queryClient.setQueryData(["school", "billing-settings"], data);
       toast.success("Regras de cobrança actualizadas.");
-    } catch {
-      toast.error("Não foi possível actualizar as regras de cobrança.");
+    } catch (error) {
+      toastActionError(error, "Não foi possível actualizar as regras de cobrança.");
     } finally {
       setSaving(false);
     }

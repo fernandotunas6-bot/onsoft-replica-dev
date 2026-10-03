@@ -26,6 +26,7 @@ import {
   updateSchoolSettingsInputSchema,
 } from "./schemas";
 import { normalizeAngolaIban } from "@/lib/angola-banking";
+import { requireAal2 } from "@/features/hr/require-aal2";
 import { validateSchoolNif } from "@/lib/angola-identity";
 
 type JsonValue = string | number | boolean | null | JsonMap | JsonValue[];
@@ -475,6 +476,7 @@ export const updateBillingSettings = createServerFn({ method: "POST" })
       "Administrador",
       "Tesouraria",
     ]);
+    requireAal2(context.claims, "Alterar as regras de cobrança");
     const db = await loadSgaAdminClient();
     await upsertSettingDomain(
       db,
@@ -500,8 +502,17 @@ export const updateSchoolBanking = createServerFn({ method: "POST" })
       "Administrador",
       "Tesouraria",
     ]);
+    // O IBAN da escola é para onde os encarregados pagam: trocá-lo é o caminho
+    // clássico para desviar propinas. 2FA e registo de quem mudou, de onde para onde.
+    requireAal2(context.claims, "Alterar os dados bancários da escola");
     const db = await loadSgaAdminClient();
     const iban = normalizeAngolaIban(data.iban);
+    const previous = await readSettingDomain(db, membership.schoolId, "banking");
+    const previousValue = (previous?.value ?? {}) as Record<string, unknown>;
+    const maskIban = (value: unknown) => {
+      const text = String(value ?? "").replace(/\s+/g, "");
+      return text ? `…${text.slice(-4)}` : "";
+    };
     await upsertSettingDomain(
       db,
       membership.schoolId,
@@ -515,6 +526,33 @@ export const updateSchoolBanking = createServerFn({ method: "POST" })
       },
       context.userId,
     );
+    const { error: auditError } = await db.from("audit_logs").insert({
+      school_id: membership.schoolId,
+      actor_user_id: context.userId,
+      action: "school.banking.changed",
+      entity_type: "school_settings",
+      entity_id: previous?.id ? String(previous.id) : null,
+      metadata: {
+        before: previous
+          ? {
+              bank_name: String(previousValue["bank_name"] ?? ""),
+              account_holder: String(previousValue["account_holder"] ?? ""),
+              iban: maskIban(previousValue["iban"]),
+            }
+          : null,
+        after: {
+          bank_name: data.bankName.trim(),
+          account_holder: data.accountHolder.trim(),
+          iban: maskIban(iban),
+        },
+      },
+    });
+    if (auditError) {
+      throw publicDatabaseError(
+        auditError,
+        "Os dados bancários foram guardados, mas não foi possível registar a alteração na auditoria.",
+      );
+    }
     const settings = await loadSchoolSettingsBundle(db, membership.schoolId);
     return settings.banking;
   });
