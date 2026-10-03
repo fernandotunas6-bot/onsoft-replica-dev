@@ -65,6 +65,8 @@ export type SetupStep = {
   actionLabel: string;
 };
 
+import { isHigherEdOnly, periodModelFor } from "@/features/academic/period-model";
+
 const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
 
 export function buildSetupSteps(s: SchoolSetupSnapshot): SetupStep[] {
@@ -74,6 +76,9 @@ export function buildSetupSteps(s: SchoolSetupSnapshot): SetupStep[] {
     !s.school.email && "e-mail",
     !s.school.address && "morada",
   ].filter(Boolean) as string[];
+
+  const periods = periodModelFor(s.teachingLevels);
+  const higherOnly = isHigherEdOnly(s.teachingLevels);
 
   return [
     {
@@ -114,14 +119,16 @@ export function buildSetupSteps(s: SchoolSetupSnapshot): SetupStep[] {
     {
       id: "periodos",
       group: "Ano lectivo",
-      title: "Períodos (trimestres)",
+      title: `Períodos (${periods.plural.toLowerCase()})`,
       description:
-        "Datas de cada período. A pauta anual só fica completa com nota em todos os períodos.",
-      done: s.termsInActiveYear >= 3,
+        periods.kind === "semestre"
+          ? "Datas do 1.º e do 2.º semestre: as cadeiras do plano e as épocas de exame seguem-nos."
+          : "Datas de cada período. A pauta anual só fica completa com nota em todos os períodos.",
+      done: s.termsInActiveYear >= periods.count,
       essential: true,
       detail: s.activeYearName
         ? s.termsInActiveYear
-          ? `${plural(s.termsInActiveYear, "período", "períodos")} no ano activo${s.termsInActiveYear < 3 ? " — normalmente são 3." : "."}`
+          ? `${plural(s.termsInActiveYear, "período", "períodos")} no ano activo${s.termsInActiveYear < periods.count ? ` — normalmente são ${periods.count}.` : "."}`
           : "Nenhum período criado."
         : "Defina primeiro o ano lectivo.",
       action: { type: "route", to: "/calendario" },
@@ -144,8 +151,10 @@ export function buildSetupSteps(s: SchoolSetupSnapshot): SetupStep[] {
     {
       id: "classes",
       group: "Ensino",
-      title: "Classes, cursos e disciplinas",
-      description: "Criados a partir dos níveis escolhidos; só se acrescenta o que falta.",
+      title: higherOnly ? "Cursos e anos curriculares" : "Classes, cursos e disciplinas",
+      description: higherOnly
+        ? "A Licenciatura de partida com os anos 1.º a 5.º; os restantes cursos criam-se em Ensino Superior."
+        : "Criados a partir dos níveis escolhidos; só se acrescenta o que falta.",
       done: s.gradeLevels > 0 && s.pendingStructureGrades === 0,
       essential: true,
       detail: !s.teachingLevels.length
@@ -182,8 +191,10 @@ export function buildSetupSteps(s: SchoolSetupSnapshot): SetupStep[] {
     {
       id: "disciplinas",
       group: "Ensino",
-      title: "Disciplinas por turma",
-      description: "Que disciplinas cada turma tem — base das cadernetas, pautas e horários.",
+      title: higherOnly ? "Cadeiras por turma" : "Disciplinas por turma",
+      description: higherOnly
+        ? "Que cadeiras cada turma tem e quem as lecciona — é isso que dá ao docente a pauta da cadeira."
+        : "Que disciplinas cada turma tem — base das cadernetas, pautas e horários.",
       done: s.classSubjects > 0,
       essential: true,
       detail: s.classSubjects
@@ -239,19 +250,25 @@ export function buildSetupSteps(s: SchoolSetupSnapshot): SetupStep[] {
           },
         ] satisfies SetupStep[])
       : []),
-    {
-      id: "avaliacao",
-      group: "Ensino",
-      title: "Regras de avaliação",
-      description: "Pesos MAC/NPP/NPT, nota mínima e limite de faltas — usados em todas as pautas.",
-      done: s.hasActiveAssessmentRule,
-      essential: true,
-      detail: s.hasActiveAssessmentRule
-        ? "Modelo de avaliação activo."
-        : "Sem modelo activo: as pautas não se calculam.",
-      action: { type: "route", to: "/pedagogica", search: { tab: "modelos" } },
-      actionLabel: "Abrir modelos de avaliação",
-    },
+    // O ensino geral avalia por MAC/NPP/NPT; o Superior pelo regulamento (passo acima).
+    ...(higherOnly
+      ? []
+      : ([
+          {
+            id: "avaliacao",
+            group: "Ensino",
+            title: "Regras de avaliação",
+            description:
+              "Pesos MAC/NPP/NPT, nota mínima e limite de faltas — usados em todas as pautas.",
+            done: s.hasActiveAssessmentRule,
+            essential: true,
+            detail: s.hasActiveAssessmentRule
+              ? "Modelo de avaliação activo."
+              : "Sem modelo activo: as pautas não se calculam.",
+            action: { type: "route", to: "/pedagogica", search: { tab: "modelos" } },
+            actionLabel: "Abrir modelos de avaliação",
+          },
+        ] satisfies SetupStep[])),
     {
       id: "propinas",
       group: "Finanças",
@@ -315,11 +332,15 @@ export function buildSetupSteps(s: SchoolSetupSnapshot): SetupStep[] {
     {
       id: "alunos",
       group: "Arranque",
-      title: "Alunos",
+      title: higherOnly ? "Estudantes" : "Alunos",
       description: "Matricule um a um ou importe a lista existente (Excel) de uma vez.",
       done: s.students > 0,
       essential: false,
-      detail: s.students ? `${plural(s.students, "aluno", "alunos")} registados.` : "Sem alunos.",
+      detail: s.students
+        ? `${plural(s.students, higherOnly ? "estudante" : "aluno", higherOnly ? "estudantes" : "alunos")} registados.`
+        : higherOnly
+          ? "Sem estudantes."
+          : "Sem alunos.",
       action: { type: "route", to: "/importar" },
       actionLabel: "Importar alunos",
     },

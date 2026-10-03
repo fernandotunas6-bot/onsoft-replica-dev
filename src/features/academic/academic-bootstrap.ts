@@ -1,7 +1,11 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { ensureDefaultTeacher } from "@/features/academic/sga-grades";
 import * as legacy from "./academic-bootstrap-legacy";
-import { seedSchoolStructureFromSettings } from "./school-structure-seed";
+import { periodModelFor } from "./period-model";
+import {
+  loadSchoolTeachingContext,
+  seedSchoolStructureFromSettings,
+} from "./school-structure-seed";
 
 export * from "./academic-bootstrap-legacy";
 
@@ -57,13 +61,16 @@ async function requireConfiguredAcademicCalendar(
     return null;
   }
 
+  // Trimestres no ensino geral; dois semestres numa escola só de Ensino Superior.
+  const { teachingLevels } = await loadSchoolTeachingContext(db, schoolId);
+  const periods = periodModelFor(teachingLevels);
   const bySequence = new Map((terms ?? []).map((term) => [Number(term.sequence), term] as const));
-  for (const sequence of [1, 2, 3]) {
+  for (let sequence = 1; sequence <= periods.count; sequence += 1) {
     const term = bySequence.get(sequence);
     if (!term?.starts_on || !term?.ends_on) {
       if (options?.strict) {
         throw new Error(
-          `Configure as datas reais do ${sequence}º trimestre antes de preparar a estrutura académica.`,
+          `Configure as datas reais do ${sequence}º ${periods.kind} antes de preparar a estrutura académica.`,
         );
       }
       return null;

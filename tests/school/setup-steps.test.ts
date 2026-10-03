@@ -165,3 +165,35 @@ describe("passos do ensino superior", () => {
     expect(steps.find((step) => step.id === "superior-planos")?.done).toBe(false);
   });
 });
+
+describe("escola só de Ensino Superior", () => {
+  const superior = {
+    ...complete,
+    teachingLevels: ["superior"],
+    termsInActiveYear: 2,
+    hasActiveAssessmentRule: false,
+    higherEd: { regulationConfigured: true, programs: 1, programsWithPlan: 1 },
+  };
+
+  it("trabalha por semestres: 2 períodos chegam", () => {
+    const step = buildSetupSteps(superior).find((s) => s.id === "periodos")!;
+    expect(step.title).toContain("semestres");
+    expect(step.done).toBe(true);
+    const mixed = buildSetupSteps({ ...superior, teachingLevels: ["ii_ciclo", "superior"] });
+    expect(mixed.find((s) => s.id === "periodos")!.done).toBe(false);
+  });
+
+  it("não pede o modelo MAC/NPP/NPT do ensino geral", () => {
+    const ids = buildSetupSteps(superior).map((s) => s.id);
+    expect(ids).not.toContain("avaliacao");
+    expect(ids).toContain("superior-regulamento");
+    expect(summarizeSetup(buildSetupSteps(superior)).ready).toBe(true);
+  });
+
+  it("fala de cursos, cadeiras e estudantes", () => {
+    const byId = new Map(buildSetupSteps(superior).map((s) => [s.id, s]));
+    expect(byId.get("classes")!.title).toBe("Cursos e anos curriculares");
+    expect(byId.get("disciplinas")!.title).toBe("Cadeiras por turma");
+    expect(byId.get("alunos")!.title).toBe("Estudantes");
+  });
+});
