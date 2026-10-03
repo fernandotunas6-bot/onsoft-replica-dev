@@ -93,7 +93,16 @@ export async function assertGradesNotLocked(
     .eq("school_id", schoolId)
     .eq("class_group_id", classGroupId)
     .in("status", LOCKED_SHEET_STATUSES);
-  if (error) return; // tabela ausente: sem pautas oficiais, nada a bloquear
+  if (error) {
+    // Tabela ausente: sem pautas oficiais, nada a bloquear. Qualquer outro erro
+    // recusa — não se sabe se a pauta já é oficial.
+    const missing =
+      error.code === "42P01" ||
+      error.code === "PGRST205" ||
+      /does not exist|schema cache/i.test(String(error.message ?? ""));
+    if (missing) return;
+    throw publicDatabaseError(error, "Não foi possível confirmar se a pauta já é oficial.");
+  }
   const locked = (sheets ?? []).find(
     (sheet: { kind: string; term_id: string | null }) =>
       sheet.kind === "annual" || String(sheet.term_id) === termId,
@@ -103,6 +112,36 @@ export async function assertGradesNotLocked(
       `A pauta deste período está ${SHEET_STATUS_PT[String(locked.status)] ?? "fechada"}: as notas já não se alteram aqui. Peça a alteração na pauta (Pedagógica → Pautas), com o motivo.`,
     );
   }
+}
+
+/**
+ * Para as avaliações (testes, trabalhos) que alimentam o MAC: o mesmo bloqueio
+ * da pauta oficial, a partir da turma e do número do período.
+ */
+export async function assertAssessmentTermNotLocked(
+  db: Db,
+  schoolId: string,
+  classGroupId: string,
+  term: number,
+) {
+  const { data: group, error } = await db
+    .from("class_groups")
+    .select("academic_year_id")
+    .eq("school_id", schoolId)
+    .eq("id", classGroupId)
+    .maybeSingle();
+  if (error) throw publicDatabaseError(error, "Não foi possível validar a turma da avaliação.");
+  if (!group?.academic_year_id) return;
+  const { data: termRow, error: termError } = await db
+    .from("terms")
+    .select("id")
+    .eq("school_id", schoolId)
+    .eq("academic_year_id", String(group.academic_year_id))
+    .eq("sequence", term)
+    .maybeSingle();
+  if (termError) throw publicDatabaseError(termError, "Não foi possível validar o período.");
+  if (!termRow?.id) return;
+  await assertGradesNotLocked(db, schoolId, classGroupId, String(termRow.id));
 }
 
 /**

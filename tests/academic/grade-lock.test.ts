@@ -55,8 +55,8 @@ describe("notas bloqueadas com a pauta oficial", () => {
     ).rejects.toThrow(/homologada/);
   });
 
-  it("os dois caminhos de lançamento verificam o bloqueio", () => {
+  it("os caminhos de lançamento verificam o bloqueio (MAC/NPP/NPT e avaliações)", () => {
     const source = readFileSync("src/features/academic/sga-grades.ts", "utf8");
-    expect(source.match(/await assertGradesNotLocked\(/g)).toHaveLength(2);
+    expect(source.match(/await assertGradesNotLocked\(/g)).toHaveLength(3);
   });
 });
