@@ -94,4 +94,14 @@ describe("Ensino Superior no servidor", () => {
     expect(body).toContain("resolveVisibleStudent(context.userId, data.studentId)");
     expect(body).toContain("if (!visible) return { programs: [] };");
   });
+
+  it("cursos: só o Administrador cria e altera; anos nunca se apagam", () => {
+    for (const name of ["createHigherEdProgram", "updateHigherEdProgram"]) {
+      expect(fn(name), name).toContain("adminMembership(context)");
+      expect(fn(name), name).toContain("ensureProgramYears(");
+    }
+    expect(fn("createHigherEdProgram")).toContain("Já existe um curso com o código");
+    expect(fn("updateHigherEdProgram")).toContain("Este curso não é do Ensino Superior.");
+    expect(source).not.toMatch(/from\("grade_levels"\)\s*\.delete\(/);
+  });
 });

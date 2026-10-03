@@ -28,6 +28,7 @@ import {
 } from "@/features/school/settings-domains";
 import { requireAal2 } from "@/features/hr/require-aal2";
 import { resolveVisibleStudent } from "@/features/dashboard/student-access";
+import { HIGHER_ED_LEVEL, normalizeProgramCode, programYears } from "./program-shape";
 import {
   academicSemesterOf,
   checkEnrollmentBatch,
@@ -239,6 +240,20 @@ export const listHigherEdPrograms = createServerFn({ method: "GET" })
             programs.map((p) => str(p.id)),
           )
       : { data: [] as Row[] };
+    const { data: years } = programs.length
+      ? await db
+          .from("grade_levels")
+          .select("program_id")
+          .eq("school_id", membership.schoolId)
+          .in(
+            "program_id",
+            programs.map((p) => str(p.id)),
+          )
+      : { data: [] as Row[] };
+    const yearCount = new Map<string, number>();
+    for (const row of (years ?? []) as Row[]) {
+      yearCount.set(str(row.program_id), (yearCount.get(str(row.program_id)) ?? 0) + 1);
+    }
     const totals = new Map<string, { units: number; credits: number }>();
     for (const unit of (units ?? []) as Row[]) {
       const current = totals.get(str(unit.program_id)) ?? { units: 0, credits: 0 };
@@ -255,7 +270,171 @@ export const listHigherEdPrograms = createServerFn({ method: "GET" })
       active: Boolean(program.is_active),
       units: totals.get(str(program.id))?.units ?? 0,
       credits: totals.get(str(program.id))?.credits ?? 0,
+      years: yearCount.get(str(program.id)) ?? 0,
     }));
+  });
+
+const programInput = z.object({
+  name: z.string().trim().min(3, "Indique o nome do curso.").max(120),
+  code: z.string().trim().max(16).optional(),
+  kind: z.enum(["undergraduate", "postgraduate"]),
+  years: z.number().int().min(1).max(7),
+});
+
+/** Cursos são estrutura da instituição: só o Administrador os cria e altera. */
+async function adminMembership(context: {
+  supabase: Parameters<typeof requireSgaWriterFor>[1];
+  userId: string;
+}) {
+  return requireSgaWriterForWrite("pedagogica", context.supabase, context.userId, [
+    "Administrador",
+  ]);
+}
+
+async function ensureHigherLevel(db: Db, schoolId: string) {
+  const { data: existing } = await db
+    .from("academic_levels")
+    .select("id")
+    .eq("school_id", schoolId)
+    .eq("code", HIGHER_ED_LEVEL.code)
+    .maybeSingle();
+  if (existing?.id) return str(existing.id);
+  const { data, error } = await db
+    .from("academic_levels")
+    .insert({ school_id: schoolId, ...HIGHER_ED_LEVEL, is_active: true })
+    .select("id")
+    .single();
+  if (error) throw publicDatabaseError(error, "Não foi possível criar o nível Ensino Superior.");
+  return str(data.id);
+}
+
+/** Acrescenta os anos curriculares em falta (nunca apaga: podem ter turmas). */
+async function ensureProgramYears(
+  db: Db,
+  schoolId: string,
+  programId: string,
+  code: string,
+  years: number,
+) {
+  const wanted = programYears(code, years);
+  const { data: existing } = await db
+    .from("grade_levels")
+    .select("code")
+    .eq("school_id", schoolId)
+    .in(
+      "code",
+      wanted.map((grade) => grade.code),
+    );
+  const have = new Set((existing ?? []).map((row) => str(row.code)));
+  const missing = wanted.filter((grade) => !have.has(grade.code));
+  if (!missing.length) return 0;
+  const { error } = await db.from("grade_levels").insert(
+    missing.map((grade) => ({
+      school_id: schoolId,
+      program_id: programId,
+      ...grade,
+      is_active: true,
+    })),
+  );
+  if (error) throw publicDatabaseError(error, "Não foi possível criar os anos do curso.");
+  return missing.length;
+}
+
+export const createHigherEdProgram = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .validator((input: unknown) => programInput.parse(input))
+  .handler(async ({ data, context }) => {
+    const membership = await adminMembership(context);
+    const db = await loadSgaAdminClient();
+    const schoolId = membership.schoolId;
+    const code = normalizeProgramCode(data.code || data.name);
+    if (code.length < 2) throw new Error("Indique um código com pelo menos 2 letras.");
+    const { data: clash } = await db
+      .from("programs")
+      .select("id")
+      .eq("school_id", schoolId)
+      .eq("code", code)
+      .maybeSingle();
+    if (clash) throw new Error(`Já existe um curso com o código ${code}.`);
+    const levelId = await ensureHigherLevel(db, schoolId);
+    const { data: program, error } = await db
+      .from("programs")
+      .insert({
+        school_id: schoolId,
+        academic_level_id: levelId,
+        code,
+        name: data.name,
+        kind: data.kind,
+        is_active: true,
+      })
+      .select("id")
+      .single();
+    if (error) throw publicDatabaseError(error, "Não foi possível criar o curso.");
+    const programId = str(program.id);
+    try {
+      await ensureProgramYears(db, schoolId, programId, code, data.years);
+    } catch (yearsError) {
+      // Sem anos o curso não serve: desfaz para não deixar um curso a meio.
+      await db.from("programs").delete().eq("school_id", schoolId).eq("id", programId);
+      throw yearsError;
+    }
+    await db.from("audit_logs").insert({
+      school_id: schoolId,
+      actor_user_id: context.userId,
+      action: "higher_ed.program.created",
+      entity_type: "program",
+      entity_id: programId,
+      metadata: { code, name: data.name, kind: data.kind, years: data.years } as never,
+    });
+    return { id: programId, code };
+  });
+
+export const updateHigherEdProgram = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .validator((input: unknown) =>
+    z
+      .object({
+        programId: z.string().uuid(),
+        name: z.string().trim().min(3).max(120),
+        active: z.boolean(),
+        years: z.number().int().min(1).max(7),
+      })
+      .parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    const membership = await adminMembership(context);
+    const db = await loadSgaAdminClient();
+    const schoolId = membership.schoolId;
+    const program = await requireProgram(db, schoolId, data.programId);
+    if (!["undergraduate", "postgraduate"].includes(str(program.kind))) {
+      throw new Error("Este curso não é do Ensino Superior.");
+    }
+    const { error } = await db
+      .from("programs")
+      .update({ name: data.name, is_active: data.active })
+      .eq("school_id", schoolId)
+      .eq("id", data.programId);
+    if (error) throw publicDatabaseError(error, "Não foi possível guardar o curso.");
+    const added = await ensureProgramYears(
+      db,
+      schoolId,
+      data.programId,
+      str(program.code),
+      data.years,
+    );
+    await db.from("audit_logs").insert({
+      school_id: schoolId,
+      actor_user_id: context.userId,
+      action: "higher_ed.program.updated",
+      entity_type: "program",
+      entity_id: data.programId,
+      metadata: {
+        before: { name: str(program.name) },
+        after: { name: data.name, active: data.active },
+        yearsAdded: added,
+      } as never,
+    });
+    return { yearsAdded: added };
   });
 
 export const listSchoolSubjectsForPlan = createServerFn({ method: "GET" })

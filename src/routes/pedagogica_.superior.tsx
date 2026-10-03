@@ -32,6 +32,8 @@ import {
   listHigherEdPrograms,
   listProgramStudents,
   listSchoolSubjectsForPlan,
+  createHigherEdProgram,
+  updateHigherEdProgram,
   recordUnitResult,
   removePlanUnit,
   saveHigherEdRegulation,
@@ -39,6 +41,7 @@ import {
   setUnitPrerequisites,
 } from "@/features/higher-ed/server";
 import { SEASON_LABEL, STATUS_LABEL } from "@/features/higher-ed/labels";
+import { defaultYearsFor, normalizeProgramCode } from "@/features/higher-ed/program-shape";
 import type { HigherEdRegulation } from "@/features/school/settings-domains";
 import { toastActionError } from "@/lib/action-error-toast";
 
@@ -58,6 +61,7 @@ export const Route = createFileRoute("/pedagogica_/superior")({
 function HigherEdPage() {
   const account = useCurrentAccount();
   const isOffice = account.role === "Administrador" || account.role === "Secretaria";
+  const isAdmin = account.role === "Administrador";
   const listPrograms = useServerFn(listHigherEdPrograms);
   const programs = useQuery({
     queryKey: ["higher-ed", "programs"],
@@ -101,30 +105,217 @@ function HigherEdPage() {
         ) : programs.isLoading ? (
           <p className="text-sm text-muted-foreground">A carregar cursos…</p>
         ) : !programs.data?.length ? (
-          <EmptyState
-            title="Ainda não há cursos do Ensino Superior"
-            description="Escolha o nível «Ensino Superior» em Definições → Pedagógico e use «Criar classes e disciplinas»: o SIGA cria a Licenciatura com os anos 1.º a 5.º. Depois monte aqui o plano de cada curso."
-          />
+          <>
+            <EmptyState
+              title="Ainda não há cursos do Ensino Superior"
+              description="Crie aqui cada curso (licenciatura, mestrado…) com os seus anos curriculares; depois monte o plano de cada um."
+            />
+            {isAdmin ? <ProgramEditor onSaved={setProgramId} /> : null}
+          </>
         ) : (
-          <Tabs defaultValue="plano">
-            <TabsList>
-              <TabsTrigger value="plano">Cursos e plano</TabsTrigger>
-              <TabsTrigger value="estudantes">Estudantes</TabsTrigger>
-              <TabsTrigger value="regulamento">Regulamento</TabsTrigger>
-            </TabsList>
-            <TabsContent value="plano" className="mt-4">
-              <PlanTab programId={selected} />
-            </TabsContent>
-            <TabsContent value="estudantes" className="mt-4">
-              <StudentsTab programId={selected} />
-            </TabsContent>
-            <TabsContent value="regulamento" className="mt-4">
-              <RegulationTab canEdit={account.role === "Administrador"} />
-            </TabsContent>
-          </Tabs>
+          <>
+            {isAdmin ? (
+              <ProgramEditor
+                program={programs.data.find((p) => p.id === selected) ?? null}
+                onSaved={setProgramId}
+              />
+            ) : null}
+            <Tabs defaultValue="plano">
+              <TabsList>
+                <TabsTrigger value="plano">Cursos e plano</TabsTrigger>
+                <TabsTrigger value="estudantes">Estudantes</TabsTrigger>
+                <TabsTrigger value="regulamento">Regulamento</TabsTrigger>
+              </TabsList>
+              <TabsContent value="plano" className="mt-4">
+                <PlanTab programId={selected} />
+              </TabsContent>
+              <TabsContent value="estudantes" className="mt-4">
+                <StudentsTab programId={selected} />
+              </TabsContent>
+              <TabsContent value="regulamento" className="mt-4">
+                <RegulationTab canEdit={isAdmin} />
+              </TabsContent>
+            </Tabs>
+          </>
         )}
       </div>
     </AppShell>
+  );
+}
+
+// ── Cursos ──────────────────────────────────────────────────────────────────
+
+type ProgramSummary = {
+  id: string;
+  code: string;
+  name: string;
+  kind: "undergraduate" | "postgraduate";
+  active: boolean;
+  years: number;
+};
+
+const KIND_LABEL = { undergraduate: "Licenciatura", postgraduate: "Pós-graduação" } as const;
+
+/** Criar um curso novo ou alterar o curso escolhido (só o Administrador). */
+function ProgramEditor({
+  program,
+  onSaved,
+}: {
+  program?: ProgramSummary | null;
+  onSaved: (programId: string) => void;
+}) {
+  const queryClient = useQueryClient();
+  const [mode, setMode] = useState<"closed" | "new" | "edit">("closed");
+  const [form, setForm] = useState({
+    name: "",
+    code: "",
+    kind: "undergraduate" as ProgramSummary["kind"],
+    years: "4",
+    active: true,
+  });
+  const open = (next: "new" | "edit") => {
+    setForm(
+      next === "edit" && program
+        ? {
+            name: program.name,
+            code: program.code,
+            kind: program.kind,
+            years: String(program.years || defaultYearsFor(program.kind)),
+            active: program.active,
+          }
+        : { name: "", code: "", kind: "undergraduate", years: "4", active: true },
+    );
+    setMode(next);
+  };
+  const save = useMutation({
+    mutationFn: async () => {
+      const years = Number(form.years);
+      if (mode === "edit" && program) {
+        await updateHigherEdProgram({
+          data: { programId: program.id, name: form.name, active: form.active, years },
+        });
+        return { id: program.id };
+      }
+      return createHigherEdProgram({
+        data: { name: form.name, code: form.code || undefined, kind: form.kind, years },
+      });
+    },
+    onSuccess: async (result) => {
+      toast.success(mode === "edit" ? "Curso actualizado." : "Curso criado.");
+      setMode("closed");
+      await queryClient.invalidateQueries({ queryKey: ["higher-ed", "programs"] });
+      onSaved(result.id);
+    },
+    onError: (error) => toastActionError(error, "Não foi possível guardar o curso."),
+  });
+
+  if (mode === "closed") {
+    return (
+      <div className="flex flex-wrap items-center gap-2">
+        <Button size="sm" variant="secondary" onClick={() => open("new")}>
+          Novo curso
+        </Button>
+        {program ? (
+          <Button size="sm" variant="ghost" onClick={() => open("edit")}>
+            Editar «{program.name}»
+          </Button>
+        ) : null}
+        {program && !program.active ? <Badge variant="outline">Curso inactivo</Badge> : null}
+      </div>
+    );
+  }
+  const editing = mode === "edit";
+  return (
+    <Panel title={editing ? "Editar curso" : "Novo curso"}>
+      <form
+        className="grid gap-3 sm:grid-cols-4 sm:items-end"
+        onSubmit={(event) => {
+          event.preventDefault();
+          save.mutate();
+        }}
+      >
+        <div className="space-y-1 sm:col-span-2">
+          <Label htmlFor="program-name">Nome</Label>
+          <Input
+            id="program-name"
+            required
+            minLength={3}
+            maxLength={120}
+            placeholder="Licenciatura em Direito"
+            value={form.name}
+            onChange={(e) => setForm({ ...form, name: e.target.value })}
+          />
+        </div>
+        <div className="space-y-1">
+          <Label htmlFor="program-code">Código</Label>
+          <Input
+            id="program-code"
+            disabled={editing}
+            maxLength={16}
+            placeholder={normalizeProgramCode(form.name) || "DIR"}
+            value={form.code}
+            onChange={(e) => setForm({ ...form, code: e.target.value })}
+          />
+        </div>
+        <div className="space-y-1">
+          <Label htmlFor="program-years">Anos curriculares</Label>
+          <Input
+            id="program-years"
+            type="number"
+            min={editing ? Math.max(1, program?.years ?? 1) : 1}
+            max={7}
+            required
+            value={form.years}
+            onChange={(e) => setForm({ ...form, years: e.target.value })}
+          />
+        </div>
+        {editing ? (
+          <label className="flex items-center gap-2 text-sm">
+            <Switch
+              checked={form.active}
+              onCheckedChange={(value) => setForm({ ...form, active: value })}
+              aria-label="Curso activo"
+            />
+            Curso activo
+          </label>
+        ) : (
+          <div className="space-y-1">
+            <Label htmlFor="program-kind">Grau</Label>
+            <Select
+              value={form.kind}
+              onValueChange={(value) =>
+                setForm({
+                  ...form,
+                  kind: value as ProgramSummary["kind"],
+                  years: String(defaultYearsFor(value as ProgramSummary["kind"])),
+                })
+              }
+            >
+              <SelectTrigger id="program-kind">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="undergraduate">{KIND_LABEL.undergraduate}</SelectItem>
+                <SelectItem value="postgraduate">{KIND_LABEL.postgraduate}</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        )}
+        <p className="text-xs text-muted-foreground sm:col-span-4">
+          {editing
+            ? "Os anos só se acrescentam: um ano com turmas não se apaga."
+            : "O SIGA cria o curso com os anos 1.º a N.º; depois monte o plano curricular."}
+        </p>
+        <div className="flex gap-2 sm:col-span-4">
+          <Button type="submit" size="sm" disabled={save.isPending}>
+            {save.isPending ? "A guardar…" : editing ? "Guardar" : "Criar curso"}
+          </Button>
+          <Button type="button" size="sm" variant="ghost" onClick={() => setMode("closed")}>
+            Cancelar
+          </Button>
+        </div>
+      </form>
+    </Panel>
   );
 }
 
