@@ -39,6 +39,7 @@ import {
   correctUnitResult,
   createHigherEdProgram,
   enrollCohort,
+  exportSisiesWorkbook,
   updateHigherEdProgram,
   recordUnitResult,
   removePlanUnit,
@@ -99,6 +100,7 @@ function HigherEdPage() {
           actions={
             <div className="flex flex-wrap items-center gap-2">
               <DocPathHelpButton path={DOC_PATHS.sigaHigherEd} title="Manual do Ensino Superior" />
+              {isOffice ? <SisiesExportButton /> : null}
               {programs.data?.length ? (
                 <Select value={selected} onValueChange={setProgramId}>
                   <SelectTrigger className="w-64" aria-label="Curso">
@@ -168,6 +170,33 @@ function HigherEdPage() {
         )}
       </div>
     </AppShell>
+  );
+}
+
+/** Excel com Vagas, Acesso, Matrículas e Graduados para o SISIES (MESCTI). */
+function SisiesExportButton() {
+  const run = useMutation({
+    mutationFn: () => exportSisiesWorkbook(),
+    onSuccess: (file) => {
+      const bytes = Uint8Array.from(atob(file.base64), (char) => char.charCodeAt(0));
+      const url = URL.createObjectURL(
+        new Blob([bytes], {
+          type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        }),
+      );
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = file.fileName;
+      link.click();
+      URL.revokeObjectURL(url);
+      toast.success("Ficheiro SISIES gerado.");
+    },
+    onError: (error) => toastActionError(error, "Não foi possível gerar o ficheiro SISIES."),
+  });
+  return (
+    <Button size="sm" variant="outline" onClick={() => run.mutate()} disabled={run.isPending}>
+      {run.isPending ? "A gerar…" : "Exportar SISIES"}
+    </Button>
   );
 }
 

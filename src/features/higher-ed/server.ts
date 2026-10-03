@@ -34,6 +34,8 @@ import { HIGHER_ED_LEVEL, normalizeProgramCode, programYears } from "./program-s
 import { HIGHER_ED_FEES } from "./fees";
 import { rankAccessCandidates } from "./access";
 import {
+  completedUnitIds,
+  finalClassification,
   academicStanding,
   cancellationIsLate,
   enrollmentWindowError,
@@ -2010,6 +2012,256 @@ export const setApplicationAccessScore = createServerFn({ method: "POST" })
       metadata: { before: payload.accessScore ?? null, after: score } as never,
     });
     return { score };
+  });
+
+// ── Exportação SISIES / GEPE (MESCTI) ───────────────────────────────────────
+
+const DEGREE_TEXT = {
+  licenciatura: "Licenciatura",
+  mestrado: "Mestrado",
+  doutoramento: "Doutoramento",
+  especializacao: "Especialização",
+} as const;
+const MODALITY_TEXT = {
+  presencial: "Presencial",
+  semipresencial: "Semipresencial",
+  distancia: "A distância",
+} as const;
+const REGIME_TEXT = { regular: "Regular", pos_laboral: "Pós-laboral" } as const;
+
+/**
+ * Ficheiro Excel com as bases que o GEPE/MESCTI recolhe pelo SISIES e que o
+ * SIGA conhece: Vagas, Acesso, Matrículas e Graduados (por curso, no ano activo).
+ */
+export const exportSisiesWorkbook = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const membership = await officeMembership(context, "read");
+    const db = await loadSgaAdminClient();
+    const schoolId = membership.schoolId;
+    const yearId = await activeYearId(db, schoolId);
+    const [{ data: school }, { data: year }, { data: programRows }, profiles] = await Promise.all([
+      db.from("schools").select("name, nif").eq("id", schoolId).maybeSingle(),
+      yearId
+        ? db
+            .from("academic_years")
+            .select("name")
+            .eq("school_id", schoolId)
+            .eq("id", yearId)
+            .maybeSingle()
+        : Promise.resolve({ data: null }),
+      db
+        .from("programs")
+        .select("id, code, name")
+        .eq("school_id", schoolId)
+        .in("kind", ["undergraduate", "postgraduate"])
+        .order("name"),
+      readSettingsDomain(db, schoolId, "higher_ed_programs"),
+    ]);
+    const programs = (programRows ?? []) as Row[];
+    const programIds = programs.map((p) => str(p.id));
+
+    // Matrículas no ano activo, por curso e ano curricular, com o sexo.
+    const { data: grades } = programIds.length
+      ? await db
+          .from("grade_levels")
+          .select("id, program_id, sequence")
+          .eq("school_id", schoolId)
+          .in("program_id", programIds)
+      : { data: [] as Row[] };
+    const gradeById = new Map(((grades ?? []) as Row[]).map((g) => [str(g.id), g]));
+    let groupsQuery = db
+      .from("class_groups")
+      .select("id, grade_level_id")
+      .eq("school_id", schoolId)
+      .in("grade_level_id", [...gradeById.keys()]);
+    if (yearId) groupsQuery = groupsQuery.eq("academic_year_id", yearId);
+    const { data: groups } = gradeById.size ? await groupsQuery : { data: [] as Row[] };
+    const gradeOfGroup = new Map((groups ?? []).map((g) => [str(g.id), str(g.grade_level_id)]));
+    const { data: enrollments } = gradeOfGroup.size
+      ? await db
+          .from("enrollments")
+          .select("student_id, class_group_id")
+          .eq("school_id", schoolId)
+          .in("class_group_id", [...gradeOfGroup.keys()])
+          .in("status", ["active", "pending"])
+          .limit(20000)
+      : { data: [] as Row[] };
+    const studentIds = [...new Set(((enrollments ?? []) as Row[]).map((e) => str(e.student_id)))];
+    const { data: students } = studentIds.length
+      ? await db
+          .from("students")
+          .select("id, person_id")
+          .eq("school_id", schoolId)
+          .in("id", studentIds)
+      : { data: [] as Row[] };
+    const personIds = ((students ?? []) as Row[]).map((s) => str(s.person_id));
+    const { data: people } = personIds.length
+      ? await db.from("people").select("id, sex").eq("school_id", schoolId).in("id", personIds)
+      : { data: [] as Row[] };
+    const sexOfPerson = new Map(((people ?? []) as Row[]).map((p) => [str(p.id), str(p.sex)]));
+    const sexOfStudent = new Map(
+      ((students ?? []) as Row[]).map((s) => [str(s.id), sexOfPerson.get(str(s.person_id)) ?? ""]),
+    );
+    type Count = { total: number; m: number; f: number; byYear: Map<number, number> };
+    const enrolledBy = new Map<string, Count>();
+    for (const enrollment of (enrollments ?? []) as Row[]) {
+      const grade = gradeById.get(gradeOfGroup.get(str(enrollment.class_group_id)) ?? "");
+      if (!grade) continue;
+      const programId = str(grade.program_id);
+      const count = enrolledBy.get(programId) ?? { total: 0, m: 0, f: 0, byYear: new Map() };
+      const sex = sexOfStudent.get(str(enrollment.student_id));
+      count.total += 1;
+      if (sex === "M") count.m += 1;
+      if (sex === "F") count.f += 1;
+      const sequence = Number(grade.sequence ?? 0);
+      count.byYear.set(sequence, (count.byYear.get(sequence) ?? 0) + 1);
+      enrolledBy.set(programId, count);
+    }
+
+    // Acesso: candidaturas pelo curso pretendido.
+    const { data: applications } = await db
+      .from("enrollment_applications")
+      .select("status, payload")
+      .eq("school_id", schoolId)
+      .is("deleted_at", null)
+      .limit(20000);
+    const accessBy = new Map<string, { candidates: number; scored: number; accepted: number }>();
+    for (const application of (applications ?? []) as Row[]) {
+      const payload = (application.payload ?? {}) as ApplicationPayload;
+      const programId = payload.desiredProgram?.id;
+      if (!programId) continue;
+      const entry = accessBy.get(programId) ?? { candidates: 0, scored: 0, accepted: 0 };
+      entry.candidates += 1;
+      if (typeof payload.accessScore === "number") entry.scored += 1;
+      if (str(application.status) === "accepted") entry.accepted += 1;
+      accessBy.set(programId, entry);
+    }
+
+    // Graduados: estudantes com todas as cadeiras do plano concluídas.
+    const regulation = await regulationOf(db, schoolId);
+    const graduatesBy = new Map<string, { total: number; averages: number[] }>();
+    for (const programId of programIds) {
+      const { units } = await loadPlan(db, schoolId, programId);
+      if (!units.length) continue;
+      const { data: recordRows } = await db
+        .from("course_unit_enrollments")
+        .select(RECORD_COLUMNS)
+        .eq("school_id", schoolId)
+        .eq("program_id", programId)
+        .limit(50000);
+      const byStudent = new Map<string, UnitRecord[]>();
+      for (const row of (recordRows ?? []) as Row[]) {
+        const list = byStudent.get(str(row.student_id)) ?? [];
+        list.push(toRecord(row));
+        byStudent.set(str(row.student_id), list);
+      }
+      const entry = { total: 0, averages: [] as number[] };
+      for (const records of byStudent.values()) {
+        const done = completedUnitIds(records);
+        if (!units.every((unit) => done.has(unit.id))) continue;
+        entry.total += 1;
+        const final = finalClassification(
+          studentProgress({ plan: units, records, regulation }).average,
+        );
+        if (final) entry.averages.push(final.value);
+      }
+      graduatesBy.set(programId, entry);
+    }
+
+    const ExcelJS = (await import("exceljs")).default;
+    const workbook = new ExcelJS.Workbook();
+    workbook.creator = "SIGA";
+    const header = (sheet: import("exceljs").Worksheet, columns: string[]) => {
+      sheet.addRow([
+        str(school?.name),
+        `NIF ${str(school?.nif)}`,
+        `Ano lectivo ${str(year?.name)}`,
+      ]);
+      sheet.addRow([]);
+      const row = sheet.addRow(columns);
+      row.font = { bold: true };
+      sheet.columns.forEach((column) => (column.width = 22));
+    };
+    const profileOf = (id: string) => parseProgramProfile(profiles[id]);
+    const vagas = workbook.addWorksheet("Vagas");
+    header(vagas, ["Código", "Curso", "Grau", "Modalidade", "Regime", "Vagas"]);
+    const acesso = workbook.addWorksheet("Acesso");
+    header(acesso, ["Código", "Curso", "Vagas", "Candidatos", "Com nota de acesso", "Admitidos"]);
+    const matriculas = workbook.addWorksheet("Matrículas");
+    header(matriculas, [
+      "Código",
+      "Curso",
+      "Grau",
+      "Total",
+      "Masculino",
+      "Feminino",
+      "1.º ano",
+      "2.º ano",
+      "3.º ano",
+      "4.º ano",
+      "5.º ano ou mais",
+    ]);
+    const graduados = workbook.addWorksheet("Graduados");
+    header(graduados, ["Código", "Curso", "Grau", "Graduados", "Classificação média"]);
+    for (const program of programs) {
+      const id = str(program.id);
+      const profile = profileOf(id);
+      const code = str(program.code);
+      const name = str(program.name);
+      vagas.addRow([
+        code,
+        name,
+        DEGREE_TEXT[profile.degree],
+        MODALITY_TEXT[profile.modality],
+        REGIME_TEXT[profile.regime],
+        profile.seats,
+      ]);
+      const access = accessBy.get(id) ?? { candidates: 0, scored: 0, accepted: 0 };
+      acesso.addRow([code, name, profile.seats, access.candidates, access.scored, access.accepted]);
+      const enrolled = enrolledBy.get(id) ?? { total: 0, m: 0, f: 0, byYear: new Map() };
+      const fifthPlus = [...enrolled.byYear.entries()]
+        .filter(([sequence]) => sequence >= 5)
+        .reduce((sum, [, n]) => sum + n, 0);
+      matriculas.addRow([
+        code,
+        name,
+        DEGREE_TEXT[profile.degree],
+        enrolled.total,
+        enrolled.m,
+        enrolled.f,
+        enrolled.byYear.get(1) ?? 0,
+        enrolled.byYear.get(2) ?? 0,
+        enrolled.byYear.get(3) ?? 0,
+        enrolled.byYear.get(4) ?? 0,
+        fifthPlus,
+      ]);
+      const graduates = graduatesBy.get(id) ?? { total: 0, averages: [] };
+      graduados.addRow([
+        code,
+        name,
+        DEGREE_TEXT[profile.degree],
+        graduates.total,
+        graduates.averages.length
+          ? Math.round(
+              (graduates.averages.reduce((a, b) => a + b, 0) / graduates.averages.length) * 10,
+            ) / 10
+          : "",
+      ]);
+    }
+    const buffer = await workbook.xlsx.writeBuffer();
+    await db.from("audit_logs").insert({
+      school_id: schoolId,
+      actor_user_id: context.userId,
+      action: "higher_ed.sisies.exported",
+      entity_type: "school",
+      entity_id: schoolId,
+      metadata: { programs: programs.length, year: year?.name ?? null } as never,
+    });
+    return {
+      fileName: `SISIES_${normalizeProgramCode(str(school?.name) || "IES")}_${str(year?.name).replace(/\W+/g, "-") || "ano"}.xlsx`,
+      base64: Buffer.from(buffer as ArrayBuffer).toString("base64"),
+    };
   });
 
 // ── Emolumentos ────────────────────────────────────────────────────────────

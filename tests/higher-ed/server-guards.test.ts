@@ -156,4 +156,13 @@ describe("Ensino Superior no servidor", () => {
       'requireAal2(context.claims, "Anular uma inscrição fora do prazo")',
     );
   });
+
+  it("exportação SISIES: secretaria, ano activo, auditada", () => {
+    const body = fn("exportSisiesWorkbook");
+    expect(body).toContain('officeMembership(context, "read")');
+    for (const sheet of ["Vagas", "Acesso", "Matrículas", "Graduados"]) {
+      expect(body).toContain(`addWorksheet("${sheet}")`);
+    }
+    expect(body).toContain('action: "higher_ed.sisies.exported"');
+  });
 });
