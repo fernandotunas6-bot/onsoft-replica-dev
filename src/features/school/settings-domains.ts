@@ -129,6 +129,44 @@ export const HIGHER_ED_DEFAULTS: HigherEdRegulation = {
   max_extra_years: 0,
 };
 
+export type HigherEdDegree = "licenciatura" | "mestrado" | "doutoramento" | "especializacao";
+export type HigherEdModality = "presencial" | "semipresencial" | "distancia";
+export type HigherEdRegime = "regular" | "pos_laboral";
+
+/** Perfil de um curso do Ensino Superior (grau, modalidade, regime e vagas). */
+export type HigherEdProgramProfile = {
+  degree: HigherEdDegree;
+  modality: HigherEdModality;
+  regime: HigherEdRegime;
+  /** Vagas anuais para novos estudantes (Decreto Presidencial 5/19). 0 = não definido. */
+  seats: number;
+};
+
+export const HIGHER_ED_PROGRAM_DEFAULT: HigherEdProgramProfile = {
+  degree: "licenciatura",
+  modality: "presencial",
+  regime: "regular",
+  seats: 0,
+};
+
+const oneOf = <T extends string>(value: unknown, options: readonly T[], fallback: T): T =>
+  options.includes(value as T) ? (value as T) : fallback;
+
+export function parseProgramProfile(value: unknown): HigherEdProgramProfile {
+  const v = asRecord(value);
+  const d = HIGHER_ED_PROGRAM_DEFAULT;
+  return {
+    degree: oneOf(
+      v["degree"],
+      ["licenciatura", "mestrado", "doutoramento", "especializacao"],
+      d.degree,
+    ),
+    modality: oneOf(v["modality"], ["presencial", "semipresencial", "distancia"], d.modality),
+    regime: oneOf(v["regime"], ["regular", "pos_laboral"], d.regime),
+    seats: bounded(v["seats"], d.seats, 0, 100_000, true),
+  };
+}
+
 export type AcademicSettings = {
   director_name: string | null;
   /** 2 (semestres) ou 3 (trimestres). */
@@ -259,6 +297,16 @@ export const SETTINGS_DOMAINS = {
         max_extra_years: bounded(v["max_extra_years"], d.max_extra_years, 0, 10, true),
       };
     },
+  },
+  higher_ed_programs: {
+    label: "Cursos do Ensino Superior",
+    /** { [programId]: perfil } — só ids com forma de uuid. */
+    parse: (value: unknown): Record<string, HigherEdProgramProfile> =>
+      Object.fromEntries(
+        Object.entries(asRecord(value))
+          .filter(([id]) => /^[0-9a-f-]{36}$/i.test(id))
+          .map(([id, profile]) => [id, parseProgramProfile(profile)]),
+      ),
   },
   preferences: {
     label: "Preferências",

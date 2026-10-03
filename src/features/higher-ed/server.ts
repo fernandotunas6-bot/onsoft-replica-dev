@@ -22,6 +22,8 @@ import {
 } from "@/integrations/supabase/sga-admin";
 import {
   HIGHER_ED_DEFAULTS,
+  parseProgramProfile,
+  updateSettingsDomainValue,
   parseSettingsDomain,
   readSettingsDomain,
   type HigherEdRegulation,
@@ -265,7 +267,9 @@ export const listHigherEdPrograms = createServerFn({ method: "GET" })
         credits: current.credits + Number(unit.credits ?? 0),
       });
     }
+    const profiles = await readSettingsDomain(db, membership.schoolId, "higher_ed_programs");
     return programs.map((program) => ({
+      profile: parseProgramProfile(profiles[str(program.id)]),
       id: str(program.id),
       code: str(program.code),
       name: str(program.name),
@@ -277,12 +281,43 @@ export const listHigherEdPrograms = createServerFn({ method: "GET" })
     }));
   });
 
+const profileInput = z.object({
+  degree: z.enum(["licenciatura", "mestrado", "doutoramento", "especializacao"]),
+  modality: z.enum(["presencial", "semipresencial", "distancia"]),
+  regime: z.enum(["regular", "pos_laboral"]),
+  seats: z.number().int().min(0).max(100_000),
+});
+
 const programInput = z.object({
   name: z.string().trim().min(3, "Indique o nome do curso.").max(120),
   code: z.string().trim().max(16).optional(),
   kind: z.enum(["undergraduate", "postgraduate"]),
   years: z.number().int().min(1).max(7),
+  profile: profileInput.optional(),
 });
+
+/** Grau ↔ tipo do curso na base: só a licenciatura é graduação. */
+const kindForDegree = (degree: z.infer<typeof profileInput>["degree"]) =>
+  degree === "licenciatura" ? ("undergraduate" as const) : ("postgraduate" as const);
+
+async function saveProgramProfile(
+  db: Db,
+  schoolId: string,
+  programId: string,
+  profile: z.infer<typeof profileInput>,
+  userId: string,
+) {
+  await updateSettingsDomainValue(
+    db,
+    schoolId,
+    "higher_ed_programs",
+    (current) => ({
+      ...((current && typeof current === "object" ? current : {}) as Record<string, unknown>),
+      [programId]: parseProgramProfile(profile),
+    }),
+    userId,
+  );
+}
 
 /** Cursos são estrutura da instituição: só o Administrador os cria e altera. */
 async function adminMembership(context: {
@@ -367,13 +402,15 @@ export const createHigherEdProgram = createServerFn({ method: "POST" })
         academic_level_id: levelId,
         code,
         name: data.name,
-        kind: data.kind,
+        kind: data.profile ? kindForDegree(data.profile.degree) : data.kind,
         is_active: true,
       })
       .select("id")
       .single();
     if (error) throw publicDatabaseError(error, "Não foi possível criar o curso.");
     const programId = str(program.id);
+    if (data.profile)
+      await saveProgramProfile(db, schoolId, programId, data.profile, context.userId);
     try {
       await ensureProgramYears(db, schoolId, programId, code, data.years);
     } catch (yearsError) {
@@ -401,6 +438,7 @@ export const updateHigherEdProgram = createServerFn({ method: "POST" })
         name: z.string().trim().min(3).max(120),
         active: z.boolean(),
         years: z.number().int().min(1).max(7),
+        profile: profileInput.optional(),
       })
       .parse(input),
   )
@@ -414,7 +452,11 @@ export const updateHigherEdProgram = createServerFn({ method: "POST" })
     }
     const { error } = await db
       .from("programs")
-      .update({ name: data.name, is_active: data.active })
+      .update({
+        name: data.name,
+        is_active: data.active,
+        ...(data.profile ? { kind: kindForDegree(data.profile.degree) } : {}),
+      })
       .eq("school_id", schoolId)
       .eq("id", data.programId);
     if (error) throw publicDatabaseError(error, "Não foi possível guardar o curso.");
@@ -425,6 +467,9 @@ export const updateHigherEdProgram = createServerFn({ method: "POST" })
       str(program.code),
       data.years,
     );
+    if (data.profile) {
+      await saveProgramProfile(db, schoolId, data.programId, data.profile, context.userId);
+    }
     await db.from("audit_logs").insert({
       school_id: schoolId,
       actor_user_id: context.userId,
@@ -433,7 +478,7 @@ export const updateHigherEdProgram = createServerFn({ method: "POST" })
       entity_id: data.programId,
       metadata: {
         before: { name: str(program.name) },
-        after: { name: data.name, active: data.active },
+        after: { name: data.name, active: data.active, profile: data.profile ?? null },
         yearsAdded: added,
       } as never,
     });

@@ -47,8 +47,14 @@ import {
   setUnitPrerequisites,
 } from "@/features/higher-ed/server";
 import { SEASON_LABEL, STATUS_LABEL } from "@/features/higher-ed/labels";
-import { defaultYearsFor, normalizeProgramCode } from "@/features/higher-ed/program-shape";
-import type { HigherEdRegulation } from "@/features/school/settings-domains";
+import { normalizeProgramCode } from "@/features/higher-ed/program-shape";
+import type {
+  HigherEdDegree,
+  HigherEdModality,
+  HigherEdProgramProfile,
+  HigherEdRegime,
+  HigherEdRegulation,
+} from "@/features/school/settings-domains";
 import { toastActionError } from "@/lib/action-error-toast";
 import { DocPathHelpButton } from "@/components/ui/doc-help-button";
 import { DOC_PATHS } from "@/lib/ecosystem-urls";
@@ -167,9 +173,52 @@ type ProgramSummary = {
   kind: "undergraduate" | "postgraduate";
   active: boolean;
   years: number;
+  profile: HigherEdProgramProfile;
 };
 
-const KIND_LABEL = { undergraduate: "Licenciatura", postgraduate: "Pós-graduação" } as const;
+const DEGREE_LABEL: Record<HigherEdDegree, string> = {
+  licenciatura: "Licenciatura",
+  mestrado: "Mestrado",
+  doutoramento: "Doutoramento",
+  especializacao: "Especialização (pós-graduação)",
+};
+const MODALITY_LABEL: Record<HigherEdModality, string> = {
+  presencial: "Presencial",
+  semipresencial: "Semipresencial",
+  distancia: "A distância",
+};
+const REGIME_LABEL: Record<HigherEdRegime, string> = {
+  regular: "Regular",
+  pos_laboral: "Pós-laboral",
+};
+const DEGREE_YEARS: Record<HigherEdDegree, number> = {
+  licenciatura: 4,
+  mestrado: 2,
+  doutoramento: 3,
+  especializacao: 1,
+};
+
+type ProgramForm = {
+  name: string;
+  code: string;
+  years: string;
+  active: boolean;
+  degree: HigherEdDegree;
+  modality: HigherEdModality;
+  regime: HigherEdRegime;
+  seats: string;
+};
+
+const EMPTY_PROGRAM: ProgramForm = {
+  name: "",
+  code: "",
+  years: "4",
+  active: true,
+  degree: "licenciatura",
+  modality: "presencial",
+  regime: "regular",
+  seats: "0",
+};
 
 /** Criar um curso novo ou alterar o curso escolhido (só o Administrador). */
 function ProgramEditor({
@@ -181,38 +230,47 @@ function ProgramEditor({
 }) {
   const queryClient = useQueryClient();
   const [mode, setMode] = useState<"closed" | "new" | "edit">("closed");
-  const [form, setForm] = useState({
-    name: "",
-    code: "",
-    kind: "undergraduate" as ProgramSummary["kind"],
-    years: "4",
-    active: true,
-  });
+  const [form, setForm] = useState<ProgramForm>(EMPTY_PROGRAM);
   const open = (next: "new" | "edit") => {
     setForm(
       next === "edit" && program
         ? {
             name: program.name,
             code: program.code,
-            kind: program.kind,
-            years: String(program.years || defaultYearsFor(program.kind)),
+            years: String(program.years || DEGREE_YEARS[program.profile.degree]),
             active: program.active,
+            degree: program.profile.degree,
+            modality: program.profile.modality,
+            regime: program.profile.regime,
+            seats: String(program.profile.seats),
           }
-        : { name: "", code: "", kind: "undergraduate", years: "4", active: true },
+        : EMPTY_PROGRAM,
     );
     setMode(next);
   };
   const save = useMutation({
     mutationFn: async () => {
       const years = Number(form.years);
+      const profile = {
+        degree: form.degree,
+        modality: form.modality,
+        regime: form.regime,
+        seats: Math.max(0, Math.trunc(Number(form.seats) || 0)),
+      };
       if (mode === "edit" && program) {
         await updateHigherEdProgram({
-          data: { programId: program.id, name: form.name, active: form.active, years },
+          data: { programId: program.id, name: form.name, active: form.active, years, profile },
         });
         return { id: program.id };
       }
       return createHigherEdProgram({
-        data: { name: form.name, code: form.code || undefined, kind: form.kind, years },
+        data: {
+          name: form.name,
+          code: form.code || undefined,
+          kind: form.degree === "licenciatura" ? "undergraduate" : "postgraduate",
+          years,
+          profile,
+        },
       });
     },
     onSuccess: async (result) => {
@@ -231,15 +289,55 @@ function ProgramEditor({
           Novo curso
         </Button>
         {program ? (
-          <Button size="sm" variant="ghost" onClick={() => open("edit")}>
-            Editar «{program.name}»
-          </Button>
+          <>
+            <Button size="sm" variant="ghost" onClick={() => open("edit")}>
+              Editar «{program.name}»
+            </Button>
+            <Badge variant="outline">{DEGREE_LABEL[program.profile.degree]}</Badge>
+            <Badge variant="outline">{MODALITY_LABEL[program.profile.modality]}</Badge>
+            <Badge variant="outline">{REGIME_LABEL[program.profile.regime]}</Badge>
+            {program.profile.seats ? (
+              <Badge variant="outline">{program.profile.seats} vagas</Badge>
+            ) : null}
+          </>
         ) : null}
         {program && !program.active ? <Badge variant="outline">Curso inactivo</Badge> : null}
       </div>
     );
   }
   const editing = mode === "edit";
+  const select = <K extends "degree" | "modality" | "regime">(
+    key: K,
+    label: string,
+    options: Record<string, string>,
+  ) => (
+    <div className="space-y-1">
+      <Label htmlFor={`program-${key}`}>{label}</Label>
+      <Select
+        value={form[key]}
+        onValueChange={(value) =>
+          setForm({
+            ...form,
+            [key]: value,
+            ...(key === "degree" && !editing
+              ? { years: String(DEGREE_YEARS[value as HigherEdDegree]) }
+              : {}),
+          })
+        }
+      >
+        <SelectTrigger id={`program-${key}`}>
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          {Object.entries(options).map(([value, text]) => (
+            <SelectItem key={value} value={value}>
+              {text}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    </div>
+  );
   return (
     <Panel title={editing ? "Editar curso" : "Novo curso"}>
       <form
@@ -284,6 +382,19 @@ function ProgramEditor({
             onChange={(e) => setForm({ ...form, years: e.target.value })}
           />
         </div>
+        {select("degree", "Grau", DEGREE_LABEL)}
+        {select("modality", "Modalidade", MODALITY_LABEL)}
+        {select("regime", "Regime", REGIME_LABEL)}
+        <div className="space-y-1">
+          <Label htmlFor="program-seats">Vagas por ano</Label>
+          <Input
+            id="program-seats"
+            type="number"
+            min={0}
+            value={form.seats}
+            onChange={(e) => setForm({ ...form, seats: e.target.value })}
+          />
+        </div>
         {editing ? (
           <label className="flex items-center gap-2 text-sm">
             <Switch
@@ -293,33 +404,11 @@ function ProgramEditor({
             />
             Curso activo
           </label>
-        ) : (
-          <div className="space-y-1">
-            <Label htmlFor="program-kind">Grau</Label>
-            <Select
-              value={form.kind}
-              onValueChange={(value) =>
-                setForm({
-                  ...form,
-                  kind: value as ProgramSummary["kind"],
-                  years: String(defaultYearsFor(value as ProgramSummary["kind"])),
-                })
-              }
-            >
-              <SelectTrigger id="program-kind">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="undergraduate">{KIND_LABEL.undergraduate}</SelectItem>
-                <SelectItem value="postgraduate">{KIND_LABEL.postgraduate}</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-        )}
+        ) : null}
         <p className="text-xs text-muted-foreground sm:col-span-4">
           {editing
-            ? "Os anos só se acrescentam: um ano com turmas não se apaga."
-            : "O SIGA cria o curso com os anos 1.º a N.º; depois monte o plano curricular."}
+            ? "Os anos só se acrescentam: um ano com turmas não se apaga. Vagas: 0 = sem limite definido."
+            : "O SIGA cria o curso com os anos 1.º a N.º; depois monte o plano curricular. Vagas: 0 = sem limite definido."}
         </p>
         <div className="flex gap-2 sm:col-span-4">
           <Button type="submit" size="sm" disabled={save.isPending}>
