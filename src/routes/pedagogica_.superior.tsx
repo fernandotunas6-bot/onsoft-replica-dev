@@ -32,6 +32,8 @@ import {
   listHigherEdPrograms,
   listProgramStudents,
   listSchoolSubjectsForPlan,
+  listStalePendingEnrollments,
+  cancelUnitEnrollment,
   createHigherEdProgram,
   enrollCohort,
   updateHigherEdProgram,
@@ -552,6 +554,7 @@ function StudentsTab({ programId }: { programId: string }) {
   return (
     <div className="space-y-4">
       <CohortEnrollment programId={programId} students={students.data} />
+      <StalePending programId={programId} />
       <div className="grid gap-4 lg:grid-cols-[18rem_minmax(0,1fr)]">
         <Panel title="Estudantes">
           <Input
@@ -587,6 +590,61 @@ function StudentsTab({ programId }: { programId: string }) {
         )}
       </div>
     </div>
+  );
+}
+
+/** Inscrições sem resultado de anos anteriores: fechar antes de reinscrever. */
+function StalePending({ programId }: { programId: string }) {
+  const queryClient = useQueryClient();
+  const fetchStale = useServerFn(listStalePendingEnrollments);
+  const stale = useQuery({
+    queryKey: ["higher-ed", "stale", programId],
+    queryFn: () => fetchStale({ data: { programId } }),
+  });
+  const cancel = useMutation({
+    mutationFn: (row: { id: string; yearName: string }) =>
+      cancelUnitEnrollment({
+        data: { enrollmentId: row.id, reason: `Sem resultado no ano lectivo ${row.yearName}.` },
+      }),
+    onSuccess: async () => {
+      toast.success("Inscrição fechada.");
+      await queryClient.invalidateQueries({ queryKey: ["higher-ed", "stale", programId] });
+      await queryClient.invalidateQueries({ queryKey: ["higher-ed", "student"] });
+    },
+    onError: (error) => toastActionError(error, "Não foi possível fechar."),
+  });
+  const rows = stale.data ?? [];
+  if (!rows.length) return null;
+  return (
+    <Panel
+      title={`Inscrições sem resultado de anos anteriores (${rows.length})`}
+      description="Lance o resultado na pauta da cadeira ou anule a inscrição; só depois o estudante deve voltar a inscrever-se."
+    >
+      <ul className="max-h-72 divide-y overflow-y-auto">
+        {rows.map((row) => (
+          <li
+            key={row.id}
+            className="flex flex-wrap items-center justify-between gap-2 py-2 text-sm"
+          >
+            <span className="min-w-0">
+              <span className="font-medium">{row.studentName}</span> · {row.unitName}
+              <span className="ml-2 text-xs text-muted-foreground">
+                {row.yearName}
+                {row.admitted ? " · admitido a exame" : ""}
+              </span>
+            </span>
+            <Button
+              size="sm"
+              variant="ghost"
+              disabled={cancel.isPending}
+              onClick={() => cancel.mutate(row)}
+            >
+              Anular
+            </Button>
+          </li>
+        ))}
+      </ul>
+    </Panel>
   );
 }
 
@@ -751,6 +809,17 @@ function StudentPanel({ programId, studentId }: { programId: string; studentId: 
     },
     onError: (error) => toastActionError(error, "Não foi possível lançar."),
   });
+  const [cancelling, setCancelling] = useState<{ id: string; reason: string } | null>(null);
+  const cancel = useMutation({
+    mutationFn: (current: { id: string; reason: string }) =>
+      cancelUnitEnrollment({ data: { enrollmentId: current.id, reason: current.reason } }),
+    onSuccess: async () => {
+      toast.success("Inscrição anulada.");
+      setCancelling(null);
+      await refresh();
+    },
+    onError: (error) => toastActionError(error, "Não foi possível anular."),
+  });
   const exempt = useMutation({
     mutationFn: (unitId: string) =>
       grantUnitExemption({
@@ -870,6 +939,20 @@ function StudentPanel({ programId, studentId }: { programId: string; studentId: 
                             {SEASON_LABEL[season]}
                           </Button>
                         ))}
+                        {last?.status === "inscrito" && last.id ? (
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() =>
+                              setCancelling({
+                                id: last.id as string,
+                                reason: "Desistência da cadeira.",
+                              })
+                            }
+                          >
+                            Anular
+                          </Button>
+                        ) : null}
                         {!last || (last.status !== "aprovado" && last.status !== "dispensado") ? (
                           <Button
                             size="sm"
@@ -886,6 +969,45 @@ function StudentPanel({ programId, studentId }: { programId: string; studentId: 
                       <p className="text-xs text-muted-foreground">
                         {unit.enrollReasons.join(" ")}
                       </p>
+                    ) : null}
+                    {cancelling && last?.id === cancelling.id ? (
+                      <form
+                        className="flex flex-wrap items-end gap-2 rounded-md border p-3"
+                        onSubmit={(event) => {
+                          event.preventDefault();
+                          cancel.mutate(cancelling);
+                        }}
+                      >
+                        <div className="min-w-[16rem] flex-1 space-y-1">
+                          <Label htmlFor={`cancel-${unit.id}`}>Motivo da anulação</Label>
+                          <Input
+                            id={`cancel-${unit.id}`}
+                            required
+                            minLength={3}
+                            maxLength={300}
+                            value={cancelling.reason}
+                            onChange={(e) =>
+                              setCancelling({ ...cancelling, reason: e.target.value })
+                            }
+                          />
+                        </div>
+                        <Button
+                          size="sm"
+                          type="submit"
+                          variant="destructive"
+                          disabled={cancel.isPending}
+                        >
+                          {cancel.isPending ? "A anular…" : "Anular inscrição"}
+                        </Button>
+                        <Button
+                          size="sm"
+                          type="button"
+                          variant="ghost"
+                          onClick={() => setCancelling(null)}
+                        >
+                          Cancelar
+                        </Button>
+                      </form>
                     ) : null}
                     {launch?.unitId === unit.id ? (
                       <div className="grid gap-2 rounded-md border p-3 sm:grid-cols-4 sm:items-end">

@@ -268,6 +268,15 @@ export function checkUnitEnrollment(params: {
   ) {
     reasons.push(`Já está inscrito em «${unit.name}» neste ano lectivo.`);
   }
+  if (
+    records.some(
+      (r) => r.unitId === unit.id && r.academicYearId !== academicYearId && r.status === "inscrito",
+    )
+  ) {
+    reasons.push(
+      `«${unit.name}» tem uma inscrição de outro ano lectivo sem resultado: lance-o ou anule-a primeiro.`,
+    );
+  }
   const missing = prerequisites
     .filter((link) => link.unitId === unit.id && !completed.has(link.requiresUnitId))
     .map((link) => names.get(link.requiresUnitId) ?? "cadeira do plano");

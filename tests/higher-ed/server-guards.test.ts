@@ -112,4 +112,10 @@ describe("Ensino Superior no servidor", () => {
     expect(body.indexOf("planCohortEnrollment(")).toBeLessThan(body.indexOf(".insert(inserts"));
     expect(body).toContain('action: "higher_ed.cohort.enrolled"');
   });
+
+  it("inscrições sem resultado de anos anteriores: só leitura da secretaria", () => {
+    const body = fn("listStalePendingEnrollments");
+    expect(body).toContain('officeMembership(context, "read")');
+    expect(body).toContain('.neq("academic_year_id", yearId)');
+  });
 });

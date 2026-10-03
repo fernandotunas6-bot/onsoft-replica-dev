@@ -408,3 +408,18 @@ describe("inscrição em lote por semestre", () => {
     expect(result.skipped[0]!.reasons[0]).toContain("ultrapassam");
   });
 });
+
+describe("inscrição com outra por fechar", () => {
+  it("recusa reinscrever enquanto a inscrição de outro ano não tem resultado", () => {
+    const check = checkUnitEnrollment({
+      unit: plan.find((u) => u.id === "mat1")!,
+      plan,
+      prerequisites: prereqs,
+      records: [rec("mat1", "inscrito", { academicYearId: "y1", season: null })],
+      regulation: reg,
+      academicYearId: "y2",
+    });
+    expect(check.ok).toBe(false);
+    expect(check.reasons.join(" ")).toContain("sem resultado");
+  });
+});

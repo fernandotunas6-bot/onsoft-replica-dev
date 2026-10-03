@@ -1043,6 +1043,74 @@ export const cancelUnitEnrollment = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
+/**
+ * Inscrições que ficaram sem resultado em anos lectivos anteriores: a
+ * secretaria fecha-as (anula com motivo) antes de o estudante voltar a inscrever-se.
+ */
+export const listStalePendingEnrollments = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .validator((input: unknown) => z.object({ programId: z.string().uuid() }).parse(input))
+  .handler(async ({ data, context }) => {
+    const membership = await officeMembership(context, "read");
+    const db = await loadSgaAdminClient();
+    const schoolId = membership.schoolId;
+    await requireProgram(db, schoolId, data.programId);
+    const yearId = await activeYearId(db, schoolId);
+    let query = db
+      .from("course_unit_enrollments")
+      .select("id, student_id, program_subject_id, academic_year_id, season, final_grade")
+      .eq("school_id", schoolId)
+      .eq("program_id", data.programId)
+      .eq("status", "inscrito")
+      .limit(500);
+    if (yearId) query = query.neq("academic_year_id", yearId);
+    const { data: rows, error } = await query;
+    if (error) throw publicDatabaseError(error, "Não foi possível carregar as inscrições.");
+    const list = (rows ?? []) as Row[];
+    if (!list.length) return [];
+    const unique = (key: string) => [...new Set(list.map((row) => str(row[key])))];
+    const [{ data: students }, { data: years }, { units }] = await Promise.all([
+      db
+        .from("students")
+        .select("id, person_id, student_number")
+        .eq("school_id", schoolId)
+        .in("id", unique("student_id")),
+      db
+        .from("academic_years")
+        .select("id, name")
+        .eq("school_id", schoolId)
+        .in("id", unique("academic_year_id")),
+      loadPlan(db, schoolId, data.programId),
+    ]);
+    const personIds = (students ?? []).map((s) => str(s.person_id));
+    const { data: people } = personIds.length
+      ? await db
+          .from("people")
+          .select("id, full_name")
+          .eq("school_id", schoolId)
+          .in("id", personIds)
+      : { data: [] as Row[] };
+    const personName = new Map(((people ?? []) as Row[]).map((p) => [str(p.id), str(p.full_name)]));
+    const studentName = new Map(
+      (students ?? []).map((s) => [str(s.id), personName.get(str(s.person_id)) || "Estudante"]),
+    );
+    const yearName = new Map(((years ?? []) as Row[]).map((y) => [str(y.id), str(y.name)]));
+    const unitName = new Map(units.map((u) => [u.id, u.name]));
+    return list
+      .map((row) => ({
+        id: str(row.id),
+        studentName: studentName.get(str(row.student_id)) ?? "Estudante",
+        unitName: unitName.get(str(row.program_subject_id)) ?? "Cadeira",
+        yearName: yearName.get(str(row.academic_year_id)) ?? "Ano anterior",
+        admitted: row.season === "frequencia",
+      }))
+      .sort(
+        (a, b) =>
+          a.yearName.localeCompare(b.yearName, "pt") ||
+          a.studentName.localeCompare(b.studentName, "pt"),
+      );
+  });
+
 /** Creditação/equivalência: a cadeira fica concluída sem nota (não entra na média). */
 export const grantUnitExemption = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
