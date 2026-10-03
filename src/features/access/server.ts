@@ -1279,16 +1279,37 @@ export const acceptSchoolInvitation = createServerFn({ method: "POST" })
       }
     }
 
-    // 6. Ligar people.user_id por email (idempotente)
+    // 6. Ligar people.user_id por email (idempotente). Em ILIKE, «_» e «%» são
+    // curingas: «ana_silva@…» também apanhava «ana.silva@…» e ligava esta conta
+    // à ficha de outra pessoa. Compara-se o e-mail exacto e só se liga quando há
+    // uma única ficha sem conta.
     try {
-      await admin
+      const { data: candidates } = await admin
         .from("people")
-        .update({ user_id: userId })
+        .select("id, email")
         .eq("school_id", schoolId)
-        .ilike("email", invitedEmail)
-        .is("user_id", null);
+        .ilike(
+          "email",
+          invitedEmail.replace(/[\\%_]/g, (c) => `\\${c}`),
+        )
+        .is("user_id", null)
+        .limit(5);
+      const exact = (candidates ?? []).filter(
+        (row) =>
+          String(row.email ?? "")
+            .toLowerCase()
+            .trim() === invitedEmail,
+      );
+      if (exact.length === 1) {
+        await admin
+          .from("people")
+          .update({ user_id: userId })
+          .eq("school_id", schoolId)
+          .eq("id", String(exact[0].id))
+          .is("user_id", null);
+      }
     } catch {
-      // Não crítico — falha silenciosa se people não tiver coluna email ou user_id
+      // Não crítico — o vínculo à ficha pode ser feito depois em Pessoas.
     }
 
     // 7. Marcar como aceite
@@ -1300,7 +1321,8 @@ export const acceptSchoolInvitation = createServerFn({ method: "POST" })
         accepted_by: userId,
         updated_at: new Date().toISOString(),
       })
-      .eq("id", invitation.id);
+      .eq("id", invitation.id)
+      .eq("status", "pending");
 
     if (updateErr) {
       throw publicDatabaseError(updateErr, "Não foi possível confirmar a aceitação do convite.");
