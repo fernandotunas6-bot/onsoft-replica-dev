@@ -27,4 +27,10 @@ describe("acesso ao Ensino Superior", () => {
     expect(canAccessPath("/pedagogica/pautas-superior/imprimir", "Professor")).toBe(true);
     expect(canAccessPath("/pedagogica/pautas-superior/imprimir", "Aluno")).toBe(false);
   });
+
+  it("certificado de conclusão é da secretaria", () => {
+    expect(canAccessPath("/pedagogica/superior/certificado", "Secretaria")).toBe(true);
+    expect(canAccessPath("/pedagogica/superior/certificado", "Professor")).toBe(false);
+    expect(canAccessPath("/pedagogica/superior/certificado", "Aluno")).toBe(false);
+  });
 });

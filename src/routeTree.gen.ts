@@ -86,6 +86,7 @@ import { Route as FinanceiroRhPagamentosRouteImport } from './routes/financeiro.
 import { Route as FinanceiroRhPresencaRouteImport } from './routes/financeiro.rh.presenca'
 import { Route as FinanceiroRhSalariosRouteImport } from './routes/financeiro.rh.salarios'
 import { Route as PedagogicaPautasSuperiorImprimirRouteImport } from './routes/pedagogica_.pautas-superior_.imprimir'
+import { Route as PedagogicaSuperiorCertificadoRouteImport } from './routes/pedagogica_.superior_.certificado'
 import { Route as PedagogicaSuperiorHistoricoRouteImport } from './routes/pedagogica_.superior_.historico'
 import { Route as AlumniPortalPortfolioEducationRouteImport } from './routes/alumni.portal.portfolio.education'
 import { Route as AlumniPortalPortfolioPrintRouteImport } from './routes/alumni.portal.portfolio.print'
@@ -499,6 +500,12 @@ const PedagogicaPautasSuperiorImprimirRoute =
     path: '/pedagogica/pautas-superior/imprimir',
     getParentRoute: () => rootRouteImport,
   } as any)
+const PedagogicaSuperiorCertificadoRoute =
+  PedagogicaSuperiorCertificadoRouteImport.update({
+    id: '/pedagogica_/superior_/certificado',
+    path: '/pedagogica/superior/certificado',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const PedagogicaSuperiorHistoricoRoute =
   PedagogicaSuperiorHistoricoRouteImport.update({
     id: '/pedagogica_/superior_/historico',
@@ -696,6 +703,7 @@ export interface FileRoutesByFullPath {
   '/financeiro/rh/presenca': typeof FinanceiroRhPresencaRoute
   '/financeiro/rh/salarios': typeof FinanceiroRhSalariosRoute
   '/pedagogica/pautas-superior/imprimir': typeof PedagogicaPautasSuperiorImprimirRoute
+  '/pedagogica/superior/certificado': typeof PedagogicaSuperiorCertificadoRoute
   '/pedagogica/superior/historico': typeof PedagogicaSuperiorHistoricoRoute
   '/alumni/portal/portfolio/education': typeof AlumniPortalPortfolioEducationRoute
   '/alumni/portal/portfolio/print': typeof AlumniPortalPortfolioPrintRoute
@@ -796,6 +804,7 @@ export interface FileRoutesByTo {
   '/financeiro/rh/presenca': typeof FinanceiroRhPresencaRoute
   '/financeiro/rh/salarios': typeof FinanceiroRhSalariosRoute
   '/pedagogica/pautas-superior/imprimir': typeof PedagogicaPautasSuperiorImprimirRoute
+  '/pedagogica/superior/certificado': typeof PedagogicaSuperiorCertificadoRoute
   '/pedagogica/superior/historico': typeof PedagogicaSuperiorHistoricoRoute
   '/alumni/portal/portfolio/education': typeof AlumniPortalPortfolioEducationRoute
   '/alumni/portal/portfolio/print': typeof AlumniPortalPortfolioPrintRoute
@@ -897,6 +906,7 @@ export interface FileRoutesById {
   '/financeiro/rh/presenca': typeof FinanceiroRhPresencaRoute
   '/financeiro/rh/salarios': typeof FinanceiroRhSalariosRoute
   '/pedagogica_/pautas-superior_/imprimir': typeof PedagogicaPautasSuperiorImprimirRoute
+  '/pedagogica_/superior_/certificado': typeof PedagogicaSuperiorCertificadoRoute
   '/pedagogica_/superior_/historico': typeof PedagogicaSuperiorHistoricoRoute
   '/alumni/portal/portfolio/education': typeof AlumniPortalPortfolioEducationRoute
   '/alumni/portal/portfolio/print': typeof AlumniPortalPortfolioPrintRoute
@@ -999,6 +1009,7 @@ export interface FileRouteTypes {
     | '/financeiro/rh/presenca'
     | '/financeiro/rh/salarios'
     | '/pedagogica/pautas-superior/imprimir'
+    | '/pedagogica/superior/certificado'
     | '/pedagogica/superior/historico'
     | '/alumni/portal/portfolio/education'
     | '/alumni/portal/portfolio/print'
@@ -1099,6 +1110,7 @@ export interface FileRouteTypes {
     | '/financeiro/rh/presenca'
     | '/financeiro/rh/salarios'
     | '/pedagogica/pautas-superior/imprimir'
+    | '/pedagogica/superior/certificado'
     | '/pedagogica/superior/historico'
     | '/alumni/portal/portfolio/education'
     | '/alumni/portal/portfolio/print'
@@ -1199,6 +1211,7 @@ export interface FileRouteTypes {
     | '/financeiro/rh/presenca'
     | '/financeiro/rh/salarios'
     | '/pedagogica_/pautas-superior_/imprimir'
+    | '/pedagogica_/superior_/certificado'
     | '/pedagogica_/superior_/historico'
     | '/alumni/portal/portfolio/education'
     | '/alumni/portal/portfolio/print'
@@ -1282,6 +1295,7 @@ export interface RootRouteChildren {
   ApiWebhooksTwilioSmsRoute: typeof ApiWebhooksTwilioSmsRoute
   ApiWebhooksWhatsappStatusRoute: typeof ApiWebhooksWhatsappStatusRoute
   PedagogicaPautasSuperiorImprimirRoute: typeof PedagogicaPautasSuperiorImprimirRoute
+  PedagogicaSuperiorCertificadoRoute: typeof PedagogicaSuperiorCertificadoRoute
   PedagogicaSuperiorHistoricoRoute: typeof PedagogicaSuperiorHistoricoRoute
   ApiFinanceGatewayConfirmRoute: typeof ApiFinanceGatewayConfirmRoute
   ApiFinancePayflowSettlementRoute: typeof ApiFinancePayflowSettlementRoute
@@ -1834,6 +1848,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PedagogicaPautasSuperiorImprimirRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/pedagogica_/superior_/certificado': {
+      id: '/pedagogica_/superior_/certificado'
+      path: '/pedagogica/superior/certificado'
+      fullPath: '/pedagogica/superior/certificado'
+      preLoaderRoute: typeof PedagogicaSuperiorCertificadoRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/pedagogica_/superior_/historico': {
       id: '/pedagogica_/superior_/historico'
       path: '/pedagogica/superior/historico'
@@ -2215,6 +2236,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiWebhooksTwilioSmsRoute: ApiWebhooksTwilioSmsRoute,
   ApiWebhooksWhatsappStatusRoute: ApiWebhooksWhatsappStatusRoute,
   PedagogicaPautasSuperiorImprimirRoute: PedagogicaPautasSuperiorImprimirRoute,
+  PedagogicaSuperiorCertificadoRoute: PedagogicaSuperiorCertificadoRoute,
   PedagogicaSuperiorHistoricoRoute: PedagogicaSuperiorHistoricoRoute,
   ApiFinanceGatewayConfirmRoute: ApiFinanceGatewayConfirmRoute,
   ApiFinancePayflowSettlementRoute: ApiFinancePayflowSettlementRoute,

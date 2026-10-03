@@ -879,6 +879,13 @@ function StudentPanel({ programId, studentId }: { programId: string; studentId: 
             Histórico académico
           </Link>
         </Button>
+        {progress.completed ? (
+          <Button asChild variant="outline">
+            <Link to="/pedagogica/superior/certificado" search={{ programId, studentId }}>
+              Certificado de conclusão
+            </Link>
+          </Button>
+        ) : null}
         {!student.data.activeYearId ? (
           <span className="text-xs text-destructive">
             Sem ano lectivo activo: não há inscrições.
