@@ -1,61 +1,66 @@
-"use client"
+"use client";
 
-import Link from "next/link"
-import { useRouter } from "next/navigation"
-import { useEffect, useState } from "react"
-import { ShieldAlert } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { createClient, isSupabaseConfigured } from "@/lib/supabase/client"
-import { fetchSaasSession } from "@/lib/saas-api"
-import { getCreateSchoolUrl, getDocsUrl } from "@/lib/ecosystem-urls"
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+import { ShieldAlert } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { createClient, isSupabaseConfigured } from "@/lib/supabase/client";
+import { fetchSaasSession } from "@/lib/saas-api";
+import { getCreateSchoolUrl, getDocsUrl } from "@/lib/ecosystem-urls";
 
-type GateState = "loading" | "ok" | "denied" | "unconfigured"
+type GateState = "loading" | "ok" | "denied" | "unconfigured" | "unavailable";
 
 export function PlatformAdminGate({ children }: { children: React.ReactNode }) {
-  const router = useRouter()
-  const [state, setState] = useState<GateState>("loading")
+  const router = useRouter();
+  const [state, setState] = useState<GateState>("loading");
 
   useEffect(() => {
-    let cancelled = false
+    let cancelled = false;
 
     async function verify() {
       if (!isSupabaseConfigured()) {
-        if (!cancelled) setState("unconfigured")
-        return
+        if (!cancelled) setState("unconfigured");
+        return;
       }
 
-      const supabase = createClient()
-      const { data } = await supabase.auth.getSession()
-      const token = data.session?.access_token
+      const supabase = createClient();
+      const { data } = await supabase.auth.getSession();
+      const token = data.session?.access_token;
 
       if (!token) {
-        router.replace("/sign-in?next=/tenants")
-        return
+        router.replace("/sign-in?next=/tenants");
+        return;
       }
 
-      const saasSession = await fetchSaasSession(token)
+      const saasSession = await fetchSaasSession(token);
+      if (!saasSession.ok && saasSession.status !== 401 && saasSession.status !== 403) {
+        if (!cancelled) setState("unavailable");
+        return;
+      }
+
       if (!saasSession.ok || !saasSession.profile.platformAdmin) {
-        await supabase.auth.signOut()
-        if (!cancelled) setState("denied")
-        return
+        await supabase.auth.signOut();
+        if (!cancelled) setState("denied");
+        return;
       }
 
-      if (!cancelled) setState("ok")
+      if (!cancelled) setState("ok");
     }
 
-    void verify()
+    void verify();
     return () => {
-      cancelled = true
-    }
-  }, [router])
+      cancelled = true;
+    };
+  }, [router]);
 
   if (state === "loading") {
     return (
       <div className="flex min-h-[40vh] items-center justify-center px-4 text-sm text-muted-foreground">
         A verificar permissões de administrador da plataforma…
       </div>
-    )
+    );
   }
 
   if (state === "unconfigured") {
@@ -71,7 +76,7 @@ export function PlatformAdminGate({ children }: { children: React.ReactNode }) {
           </CardHeader>
         </Card>
       </div>
-    )
+    );
   }
 
   if (state === "denied") {
@@ -105,8 +110,28 @@ export function PlatformAdminGate({ children }: { children: React.ReactNode }) {
           </CardContent>
         </Card>
       </div>
-    )
+    );
   }
 
-  return <>{children}</>
+  if (state === "unavailable") {
+    return (
+      <div className="px-4 lg:px-6">
+        <Card className="mx-auto max-w-lg border-amber-500/30">
+          <CardHeader>
+            <CardTitle>Serviço temporariamente indisponível</CardTitle>
+            <CardDescription>
+              Não foi possível confirmar as permissões da plataforma. A sua sessão foi preservada.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button type="button" onClick={() => window.location.reload()}>
+              Tentar novamente
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  return <>{children}</>;
 }

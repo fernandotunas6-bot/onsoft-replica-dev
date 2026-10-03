@@ -143,12 +143,18 @@ ALTER TABLE public.siga_attendance_sessions FORCE ROW LEVEL SECURITY;
 GRANT SELECT, INSERT, UPDATE ON public.siga_attendance_sessions TO authenticated;
 GRANT ALL ON public.siga_attendance_sessions TO service_role;
 
+-- SÓ LEITURA. Com `FOR ALL`, esta política deixava qualquer membro da escola -- incluindo
+-- um utilizador cujo único papel é Aluno ou Encarregado -- escrever nesta tabela, porque
+-- `is_school_member` não olha ao papel e o PostgreSQL combina políticas permissivas com OR
+-- (anulando a política estrita que existisse ao lado). Ver
+-- migrations/20260924123000_close_school_member_write_policies.sql e docs/auditoria/05-auditoria.md.
+-- Nenhuma escrita da aplicação passa por aqui: todas correm por service_role.
 DROP POLICY IF EXISTS "Manage attendance sessions in own school" ON public.siga_attendance_sessions;
-CREATE POLICY "Manage attendance sessions in own school"
+DROP POLICY IF EXISTS "Read attendance sessions in own school" ON public.siga_attendance_sessions;
+CREATE POLICY "Read attendance sessions in own school"
   ON public.siga_attendance_sessions
-  FOR ALL TO authenticated
-  USING (public.is_school_member(school_id))
-  WITH CHECK (public.is_school_member(school_id));
+  FOR SELECT TO authenticated
+  USING (public.is_school_member(school_id));
 
 CREATE TABLE IF NOT EXISTS public.siga_attendance_records (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -171,12 +177,18 @@ ALTER TABLE public.siga_attendance_records FORCE ROW LEVEL SECURITY;
 GRANT SELECT, INSERT, UPDATE ON public.siga_attendance_records TO authenticated;
 GRANT ALL ON public.siga_attendance_records TO service_role;
 
+-- SÓ LEITURA. Com `FOR ALL`, esta política deixava qualquer membro da escola -- incluindo
+-- um utilizador cujo único papel é Aluno ou Encarregado -- escrever nesta tabela, porque
+-- `is_school_member` não olha ao papel e o PostgreSQL combina políticas permissivas com OR
+-- (anulando a política estrita que existisse ao lado). Ver
+-- migrations/20260924123000_close_school_member_write_policies.sql e docs/auditoria/05-auditoria.md.
+-- Nenhuma escrita da aplicação passa por aqui: todas correm por service_role.
 DROP POLICY IF EXISTS "Manage attendance records in own school" ON public.siga_attendance_records;
-CREATE POLICY "Manage attendance records in own school"
+DROP POLICY IF EXISTS "Read attendance records in own school" ON public.siga_attendance_records;
+CREATE POLICY "Read attendance records in own school"
   ON public.siga_attendance_records
-  FOR ALL TO authenticated
-  USING (public.is_school_member(school_id))
-  WITH CHECK (public.is_school_member(school_id));
+  FOR SELECT TO authenticated
+  USING (public.is_school_member(school_id));
 
 CREATE TABLE IF NOT EXISTS public.siga_attendance_audits (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -231,12 +243,18 @@ ALTER TABLE public.siga_attendance_justifications FORCE ROW LEVEL SECURITY;
 GRANT SELECT, INSERT, UPDATE ON public.siga_attendance_justifications TO authenticated;
 GRANT ALL ON public.siga_attendance_justifications TO service_role;
 
+-- SÓ LEITURA. Com `FOR ALL`, esta política deixava qualquer membro da escola -- incluindo
+-- um utilizador cujo único papel é Aluno ou Encarregado -- escrever nesta tabela, porque
+-- `is_school_member` não olha ao papel e o PostgreSQL combina políticas permissivas com OR
+-- (anulando a política estrita que existisse ao lado). Ver
+-- migrations/20260924123000_close_school_member_write_policies.sql e docs/auditoria/05-auditoria.md.
+-- Nenhuma escrita da aplicação passa por aqui: todas correm por service_role.
 DROP POLICY IF EXISTS "Manage attendance justifications in own school" ON public.siga_attendance_justifications;
-CREATE POLICY "Manage attendance justifications in own school"
+DROP POLICY IF EXISTS "Read attendance justifications in own school" ON public.siga_attendance_justifications;
+CREATE POLICY "Read attendance justifications in own school"
   ON public.siga_attendance_justifications
-  FOR ALL TO authenticated
-  USING (public.is_school_member(school_id))
-  WITH CHECK (public.is_school_member(school_id));
+  FOR SELECT TO authenticated
+  USING (public.is_school_member(school_id));
 
 -- ---------------------------------------------------------------------------
 -- 3) Catracas / cartões (bloco APPLY_ENROLLMENT_AND_PREMIUM.sql)
@@ -268,12 +286,18 @@ ALTER TABLE public.siga_access_cards FORCE ROW LEVEL SECURITY;
 GRANT SELECT, INSERT, UPDATE ON public.siga_access_cards TO authenticated;
 GRANT ALL ON public.siga_access_cards TO service_role;
 
+-- SEM POLÍTICA PARA `authenticated`, de propósito. Esta tabela guarda credenciais:
+--   · siga_turnstile_devices.api_key É a autenticação do leitor físico
+--     (gate-pass-validation.ts:64 procura o dispositivo por .eq("api_key", ...));
+--   · siga_access_cards.qr_secret / rfid_tag SÃO o passe (gate-pass-validation.ts:85
+--     aceita qualquer um dos quatro identificadores como válido).
+-- Com `ALL → is_school_member`, um aluno lia o segredo de qualquer colega e passava a
+-- catraca como ele, ou forjava entradas com o api_key do leitor. Uma política de LINHA não
+-- esconde uma COLUNA, por isso nem sequer se deixa SELECT: toda a aplicação lê estas
+-- tabelas por service_role (catracas/server.ts, gate-pass-validation.ts,
+-- device-webhook-handler.ts -- 18 ocorrências, todas em loadSgaAdminClient).
+-- Ver migrations/20260924230000_close_access_card_and_device_secrets.sql.
 DROP POLICY IF EXISTS "Access cards in own school" ON public.siga_access_cards;
-CREATE POLICY "Access cards in own school"
-  ON public.siga_access_cards
-  FOR ALL TO authenticated
-  USING (public.is_school_member(school_id))
-  WITH CHECK (public.is_school_member(school_id));
 
 CREATE TABLE IF NOT EXISTS public.siga_turnstile_devices (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -298,12 +322,18 @@ ALTER TABLE public.siga_turnstile_devices FORCE ROW LEVEL SECURITY;
 GRANT SELECT, INSERT, UPDATE, DELETE ON public.siga_turnstile_devices TO authenticated;
 GRANT ALL ON public.siga_turnstile_devices TO service_role;
 
+-- SEM POLÍTICA PARA `authenticated`, de propósito. Esta tabela guarda credenciais:
+--   · siga_turnstile_devices.api_key É a autenticação do leitor físico
+--     (gate-pass-validation.ts:64 procura o dispositivo por .eq("api_key", ...));
+--   · siga_access_cards.qr_secret / rfid_tag SÃO o passe (gate-pass-validation.ts:85
+--     aceita qualquer um dos quatro identificadores como válido).
+-- Com `ALL → is_school_member`, um aluno lia o segredo de qualquer colega e passava a
+-- catraca como ele, ou forjava entradas com o api_key do leitor. Uma política de LINHA não
+-- esconde uma COLUNA, por isso nem sequer se deixa SELECT: toda a aplicação lê estas
+-- tabelas por service_role (catracas/server.ts, gate-pass-validation.ts,
+-- device-webhook-handler.ts -- 18 ocorrências, todas em loadSgaAdminClient).
+-- Ver migrations/20260924230000_close_access_card_and_device_secrets.sql.
 DROP POLICY IF EXISTS "Turnstile devices in own school" ON public.siga_turnstile_devices;
-CREATE POLICY "Turnstile devices in own school"
-  ON public.siga_turnstile_devices
-  FOR ALL TO authenticated
-  USING (public.is_school_member(school_id))
-  WITH CHECK (public.is_school_member(school_id));
 
 CREATE TABLE IF NOT EXISTS public.siga_access_logs (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -329,12 +359,13 @@ ALTER TABLE public.siga_access_logs FORCE ROW LEVEL SECURITY;
 GRANT SELECT, INSERT ON public.siga_access_logs TO authenticated;
 GRANT ALL ON public.siga_access_logs TO service_role;
 
+-- `FOR SELECT`, nao `FOR ALL`: ver 20260924180000. Um registo de passagem na
+-- catraca nao se altera nem se apaga pelo browser. A aplicacao so escreve aqui com
+-- `loadSgaAdminClient()`.
 DROP POLICY IF EXISTS "Access logs in own school" ON public.siga_access_logs;
-CREATE POLICY "Access logs in own school"
-  ON public.siga_access_logs
-  FOR ALL TO authenticated
-  USING (public.is_school_member(school_id))
-  WITH CHECK (public.is_school_member(school_id));
+CREATE POLICY "Access logs in own school" ON public.siga_access_logs
+  FOR SELECT TO authenticated
+  USING (public.is_school_member(school_id));
 
 -- Smoke: deve listar as 5 tabelas alvo (+ relacionadas de presença)
 SELECT c.relname AS tabela
@@ -388,8 +419,11 @@ GRANT ALL ON public.school_invitations TO service_role;
 ALTER TABLE public.school_invitations ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.school_invitations FORCE ROW LEVEL SECURITY;
 
+-- `FOR SELECT`, nao `FOR ALL`: ver 20260924170000. `school_invitations` tem uma
+-- coluna `role_code`. Com escrita por simples pertenca a escola, qualquer membro
+-- criava um convite `role_code = 'owner'` e aceitava-o a seguir. A aplicacao so
+-- lhe toca com `loadAdminClient()`, que ignora RLS -- nao perde nada.
 DROP POLICY IF EXISTS "Manage invitations in own school" ON public.school_invitations;
 CREATE POLICY "Manage invitations in own school" ON public.school_invitations
-  FOR ALL TO authenticated
-  USING (public.is_school_member(school_id))
-  WITH CHECK (public.is_school_member(school_id));
+  FOR SELECT TO authenticated
+  USING (public.is_school_member(school_id));

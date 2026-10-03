@@ -25,8 +25,8 @@ export type PautaMode = "mini" | "trimestre" | "final" | "exames";
 
 export interface SchoolIdentity {
   republic?: string;
-  province: string;
-  municipality: string;
+  province?: string;
+  municipality?: string;
   educationOffice?: string;
   schoolName: string;
   schoolCode?: string;
@@ -145,6 +145,7 @@ export interface ExamPautaStudent {
   gender: Gender;
   mfd?: number | null;
   examGrade?: number | null;
+  resourceGrade?: number | null;
   finalGrade?: number | null;
   papGrade?: number | null; // Prova de Aptidão Profissional
   internshipGrade?: number | null; // Estágio Curricular

@@ -83,8 +83,8 @@ export function InstalledModuleTools({
         );
         return;
       }
-      if (kind === "copy-meeting-zoom" || kind === "copy-meeting-teams") {
-        const link = meetingRoomLink(kind === "copy-meeting-zoom" ? "zoom" : "teams");
+      if (kind === "copy-meeting-zoom") {
+        const link = meetingRoomLink("zoom");
         if (!link) {
           toast.info("Reunião por configurar", {
             description: "Associe uma reunião real à aula antes de partilhar o link.",

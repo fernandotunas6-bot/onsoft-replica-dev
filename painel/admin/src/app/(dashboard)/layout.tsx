@@ -17,13 +17,6 @@ import {
 import { UpgradeToProButton } from "@/components/upgrade-to-pro-button";
 import { useSidebarConfig } from "@/hooks/use-sidebar-config";
 
-function DashboardBody({ children }: { children: React.ReactNode }) {
-  const pathname = usePathname();
-  // Mesma lista que o middleware — inclui /gateway-webhooks e /settings/*
-  const needsGate = isPlatformRoute(pathname);
-  return needsGate ? <PlatformAdminGate>{children}</PlatformAdminGate> : <>{children}</>;
-}
-
 export default function DashboardLayout({
   children,
 }: {
@@ -31,8 +24,12 @@ export default function DashboardLayout({
 }) {
   const [themeCustomizerOpen, setThemeCustomizerOpen] = React.useState(false);
   const { config } = useSidebarConfig();
+  const pathname = usePathname();
+  // A exportação Pages é estática: proteger também a moldura do painel no
+  // cliente evita expor navegação administrativa antes da confirmação remota.
+  const needsGate = isPlatformRoute(pathname);
 
-  return (
+  const dashboard = (
     <SidebarProvider
       style={{
         "--sidebar-width": "16rem",
@@ -53,7 +50,7 @@ export default function DashboardLayout({
             <div className="flex flex-1 flex-col">
               <div className="@container/main flex flex-1 flex-col gap-2">
                 <div className="flex flex-col gap-4 py-4 md:gap-6 md:py-6">
-                  <DashboardBody>{children}</DashboardBody>
+                  {children}
                 </div>
               </div>
             </div>
@@ -67,7 +64,7 @@ export default function DashboardLayout({
             <div className="flex flex-1 flex-col">
               <div className="@container/main flex flex-1 flex-col gap-2">
                 <div className="flex flex-col gap-4 py-4 md:gap-6 md:py-6">
-                  <DashboardBody>{children}</DashboardBody>
+                  {children}
                 </div>
               </div>
             </div>
@@ -95,4 +92,6 @@ export default function DashboardLayout({
       {SHOW_UPGRADE_BUTTON ? <UpgradeToProButton /> : null}
     </SidebarProvider>
   );
+
+  return needsGate ? <PlatformAdminGate>{dashboard}</PlatformAdminGate> : dashboard;
 }

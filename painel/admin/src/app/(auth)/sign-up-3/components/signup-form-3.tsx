@@ -1,19 +1,16 @@
-"use client"
+"use client";
 
-import { cn } from "@/lib/utils"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Checkbox } from "@/components/ui/checkbox"
-import { Logo } from "@/components/logo"
-import Link from "next/link"
-import Image from "next/image"
+import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Logo } from "@/components/logo";
+import Link from "next/link";
+import Image from "next/image";
 
-export function SignupForm3({
-  className,
-  ...props
-}: React.ComponentProps<"div">) {
+export function SignupForm3({ className, ...props }: React.ComponentProps<"div">) {
   return (
     <div className={cn("flex flex-col gap-6", className)} {...props}>
       <Card className="overflow-hidden p-0">
@@ -37,29 +34,16 @@ export function SignupForm3({
               <div className="grid grid-cols-2 gap-3">
                 <div className="grid gap-3">
                   <Label htmlFor="firstName">Nome</Label>
-                  <Input
-                    id="firstName"
-                    placeholder="John"
-                    required
-                  />
+                  <Input id="firstName" placeholder="John" required />
                 </div>
                 <div className="grid gap-3">
                   <Label htmlFor="lastName">Apelido</Label>
-                  <Input
-                    id="lastName"
-                    placeholder="Doe"
-                    required
-                  />
+                  <Input id="lastName" placeholder="Doe" required />
                 </div>
               </div>
               <div className="grid gap-3">
                 <Label htmlFor="email">E-mail</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  placeholder="m@example.com"
-                  required
-                />
+                <Input id="email" type="email" placeholder="m@example.com" required />
               </div>
               <div className="grid gap-3">
                 <Label htmlFor="password">Senha</Label>
@@ -121,7 +105,7 @@ export function SignupForm3({
               </div>
               <div className="text-center text-sm">
                 Já tem conta?{" "}
-                <a href="/auth/sign-in-3" className="underline underline-offset-4">
+                <a href="/sign-in" className="underline underline-offset-4">
                   Entrar
                 </a>
               </div>
@@ -138,9 +122,9 @@ export function SignupForm3({
         </CardContent>
       </Card>
       <div className="text-muted-foreground *:[a]:hover:text-primary text-center text-xs text-balance *:[a]:underline *:[a]:underline-offset-4">
-        Ao continuar, concorda com os nossos <a href="#">Termos de serviço</a>{" "}
-        e <a href="#">Política de privacidade</a>.
+        Ao continuar, concorda com os nossos <a href="#">Termos de serviço</a> e{" "}
+        <a href="#">Política de privacidade</a>.
       </div>
     </div>
-  )
+  );
 }

@@ -15,18 +15,10 @@ const integrationTargets: Record<
   multicaixa_express: { type: "route", to: "/financeiro" },
   unitel_money: { type: "route", to: "/financeiro" },
   whatsapp_business: { type: "route", to: "/pedagogica", search: { tab: "turmas" } },
-  gmail_workspace: { type: "route", to: "/comunicacoes" },
-  google_classroom: { type: "route", to: "/pedagogica", search: { tab: "turmas" } },
-  moodle: { type: "route", to: "/pedagogica", search: { tab: "turmas" } },
-  canvas: { type: "route", to: "/pedagogica", search: { tab: "turmas" } },
-  microsoft_365_education: { type: "route", to: "/arquivos" },
   google_calendar: { type: "ics" },
   apple_calendar: { type: "ics" },
   resend_email: { type: "route", to: "/comunicacoes" },
-  firebase_analytics: { type: "settings", panelId: "integracoes" },
   zoom: { type: "route", to: "/pedagogica", search: { tab: "horarios" } },
-  teams: { type: "route", to: "/pedagogica", search: { tab: "horarios" } },
-  turnitin: { type: "route", to: "/pedagogica", search: { tab: "notas" } },
   sige: { type: "settings", panelId: "integracoes" },
   agt: { type: "route", to: "/faturas" },
 };
@@ -37,13 +29,9 @@ const integrationShortNames: Partial<
   multicaixa_express: "Multicaixa",
   unitel_money: "Unitel Money",
   whatsapp_business: "WhatsApp",
-  gmail_workspace: "Gmail",
-  google_classroom: "Classroom",
-  microsoft_365_education: "Microsoft 365",
   google_calendar: "Google Calendar",
   apple_calendar: "Calendário Apple",
   resend_email: "Email",
-  firebase_analytics: "Firebase",
   agt: "AGT",
 };
 
@@ -115,27 +103,9 @@ const COMPACT_SERVICE_IDS = [
   "resend_email",
 ] as const;
 
-const COMPACT_TEACHING_IDS = [
-  "zoom",
-  "teams",
-  "google_classroom",
-  "moodle",
-  "canvas",
-  "microsoft_365_education",
-  "google_calendar",
-  "apple_calendar",
-  "turnitin",
-  "sige",
-] as const;
+const COMPACT_TEACHING_IDS = ["zoom", "google_calendar", "apple_calendar", "sige"] as const;
 
-export const teachingBundleIds = [
-  "zoom",
-  "teams",
-  "google_classroom",
-  "moodle",
-  "canvas",
-  "turnitin",
-] as const;
+export const teachingBundleIds = ["zoom"] as const;
 
 const INTEGRATION_FOCUS_KEY = "siga:focus-integration";
 

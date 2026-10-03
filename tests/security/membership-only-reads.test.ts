@@ -24,6 +24,8 @@ const REVISTAS: Record<string, string> = {
   listAcademicCalendar: "calendário lectivo",
   listLessonPlans: "alunos e encarregados só vêem os planos publicados",
   getLessonPlan: "alunos e encarregados só vêem os planos publicados",
+  redeemTeacherLessonQr:
+    "o professor regista a própria presença; a base valida o token do QR e a ligação conta↔professor",
   listSpotlightConfig: "configuração da pesquisa",
   getSchoolSettings: "definições públicas da escola",
   listAcademicYears: "anos lectivos",

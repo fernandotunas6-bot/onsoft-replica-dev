@@ -16,6 +16,8 @@ import { SigaLogo } from "@/components/ui/siga-logo";
 import { AuthHeroSlides } from "./AuthHeroSlides";
 import { writeSessionHint } from "@/features/auth/session-hint";
 import { AuthBackgroundVideo } from "./AuthBackgroundVideo";
+import { AuthCaptcha } from "./AuthCaptcha";
+import { authCaptchaConfigured } from "@/lib/auth-captcha-config";
 import {
   createContext,
   useContext,
@@ -66,6 +68,14 @@ function warnToChangePassword(message: string) {
 
 function mapSignInError(message: string) {
   const value = message.toLowerCase();
+  // O projecto tem captcha activa: o servidor recusa ANTES de olhar para a senha, e a
+  // mensagem não casava com nenhum caso abaixo — saía o genérico, que faz parecer
+  // problema de credenciais. Ver AuthCaptcha.tsx.
+  if (value.includes("captcha")) {
+    return authCaptchaConfigured
+      ? "Confirme que não é um robô e tente novamente."
+      : "A verificação anti-robô está activa no servidor mas não está configurada nesta aplicação. Avise a administração: falta VITE_HCAPTCHA_SITE_KEY.";
+  }
   if (value.includes("invalid login credentials") || value.includes("invalid_credentials")) {
     return "Email ou senha incorrectos. Confirme os dados e tente novamente.";
   }
@@ -87,6 +97,7 @@ function mapSignInError(message: string) {
 }
 
 const identifierSignInErrors = {
+  captcha_failed: "captcha",
   invalid_credentials: "Invalid login credentials",
   email_not_confirmed: "Email not confirmed",
   rate_limited: "Too many requests",
@@ -94,9 +105,15 @@ const identifierSignInErrors = {
 } as const;
 
 /** Entra com B.I./telefone pelo servidor e instala a sessão devolvida. */
-async function signInWithIdentifier(identifier: string, password: string) {
+async function signInWithIdentifier(
+  identifier: string,
+  password: string,
+  captchaToken: string | null,
+) {
   const { signInWithIdentifierFn } = await import("@/features/access/server");
-  const result = await signInWithIdentifierFn({ data: { identifier, password } });
+  const result = await signInWithIdentifierFn({
+    data: { identifier, password, captchaToken: captchaToken ?? undefined },
+  });
   if (!result.ok) {
     return { data: { user: null }, error: { message: identifierSignInErrors[result.error] } };
   }
@@ -127,6 +144,9 @@ export function AuthGate({
   const [resetting, setResetting] = useState(false);
   const [sendingMagicLink, setSendingMagicLink] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
+  // Cada tentativa gasta o sinal; incrementar isto devolve um widget limpo.
+  const [captchaReset, setCaptchaReset] = useState(0);
   const [info, setInfo] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
   const [rememberedEmail, setRememberedEmail] = useState("");
@@ -317,8 +337,12 @@ export function AuthGate({
       // B.I. ou telefone: a senha é verificada no servidor, e o e-mail da
       // conta nunca chega ao browser.
       const { data, error: signInError } = email.includes("@")
-        ? await supabase.auth.signInWithPassword({ email, password })
-        : await signInWithIdentifier(inputIdentifier.trim(), password);
+        ? await supabase.auth.signInWithPassword({
+            email,
+            password,
+            options: captchaToken ? { captchaToken } : undefined,
+          })
+        : await signInWithIdentifier(inputIdentifier.trim(), password, captchaToken);
       if (!signInError) {
         if (data.user) localStorage.setItem(activityKey(data.user.id), String(Date.now()));
         const weakNotice = weakSignInPasswordNotice(
@@ -349,6 +373,7 @@ export function AuthGate({
       setError("Não foi possível contactar o serviço de autenticação.");
     } finally {
       setSubmitting(false);
+      setCaptchaReset((value) => value + 1);
     }
   };
 
@@ -473,6 +498,7 @@ export function AuthGate({
         options: {
           data: { full_name: fullName },
           emailRedirectTo: typeof window !== "undefined" ? window.location.origin : undefined,
+          ...(captchaToken ? { captchaToken } : {}),
         },
       });
       if (signUpError) {
@@ -758,6 +784,7 @@ export function AuthGate({
                 />
                 Lembrar email neste dispositivo
               </label>
+              <AuthCaptcha onToken={setCaptchaToken} resetSignal={captchaReset} />
               <Button
                 type="submit"
                 className="w-full gap-2 h-10 text-sm font-semibold"
@@ -844,6 +871,7 @@ export function AuthGate({
                   Criar conta não dá acesso a nenhuma escola. Depois de entrar, poderá configurar a
                   sua escola ou pedir acesso à secretaria da escola a que pertence.
                 </p>
+                <AuthCaptcha onToken={setCaptchaToken} resetSignal={captchaReset} />
                 <Button
                   type="submit"
                   className="w-full gap-2 h-10 text-sm font-semibold"

@@ -35,19 +35,19 @@ describe("alive-bridges (ecossistema)", () => {
     expect(src).toContain("getDocsUrl");
   });
 
-  it("middleware ADMIN resolve pontes quando template está off", () => {
-    const mw = readBridgeMap("painel/admin/src/middleware.ts");
-    expect(mw).toContain("resolveAdminAliveBridge");
-    expect(mw).toContain("SHOW_TEMPLATE_SURFACES");
+  it("proxy ADMIN resolve pontes quando template está off", () => {
+    const proxy = readBridgeMap("painel/admin/src/proxy.ts");
+    expect(proxy).toContain("resolveAdminAliveBridge");
+    expect(proxy).toContain("SHOW_TEMPLATE_SURFACES");
   });
 
-  it("middleware ADMIN exige platform_admins em rotas SaaS (Fase 10)", () => {
-    const mw = readBridgeMap("painel/admin/src/middleware.ts");
-    expect(mw).toContain("assertPlatformAdmin");
-    expect(mw).toContain("/api/saas/me");
-    expect(mw).toContain("platformAdmin");
-    expect(mw).toContain("error");
-    expect(mw).toContain("platform");
+  it("proxy ADMIN exige platform_admins em rotas SaaS (Fase 10)", () => {
+    const proxy = readBridgeMap("painel/admin/src/proxy.ts");
+    expect(proxy).toContain("assertPlatformAdmin");
+    expect(proxy).toContain("/api/saas/me");
+    expect(proxy).toContain("platformAdmin");
+    expect(proxy).toContain("error");
+    expect(proxy).toContain("platform");
   });
 
   it("WEB routes usam AliveBridgeRedirect", () => {

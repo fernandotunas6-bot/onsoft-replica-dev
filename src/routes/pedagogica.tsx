@@ -181,13 +181,8 @@ function PedagogicaPage() {
   const account = useCurrentAccount();
   const installed = useInstalledIntegrations();
   const classroomOn = installed.hasCapability("classroom.classes");
-  const classroomWork = installed.hasCapability("classroom.work");
   const moodleOn = installed.hasCapability("moodle.courses");
-  const moodleGrades = installed.hasCapability("moodle.grades");
-  const canvasOn = installed.hasCapability("canvas.courses");
   const canvasWork = installed.hasCapability("canvas.assignments");
-  const teamsClasses = installed.hasCapability("teams.classes");
-  const onedriveOn = installed.hasCapability("m365.onedrive");
   const { activeYearLabel, selectedYearId, school } = useSchoolSettings();
   const { passing, hasModel } = useActiveAssessmentRule();
   // Publicar o modelo é só do Administrador (com 2FA), como em Modelos de avaliação.
@@ -978,20 +973,15 @@ function PedagogicaPage() {
               turmasComDados={turmasComDados}
               workspace={workspace}
               teacherNameById={teacherNameById}
-              classroomOn={classroomOn}
-              moodleOn={moodleOn}
-              canvasOn={canvasOn}
-              classroomWork={classroomWork}
-              moodleGrades={moodleGrades}
               canvasWork={canvasWork}
-              teamsClasses={teamsClasses}
-              onedriveOn={onedriveOn}
               onOpenTurma={(id) => setOpenTurmaId(id)}
             />
           </TabsContent>
 
           <TabsContent value="disciplinas" className="mt-5">
             <DisciplinasWorkspaceTab
+              classroomOn={classroomOn}
+              moodleOn={moodleOn}
               canManageAcademic={canManageAcademic}
               subjectsAvailable={subjectsAvailable}
               subjects={subjects}
@@ -1003,8 +993,6 @@ function PedagogicaPage() {
               teachers={teachers}
               teacherNameById={teacherNameById}
               teachingLevels={teachingLevels}
-              classroomOn={classroomOn}
-              moodleOn={moodleOn}
               subjectTypes={subjectTypesQuery.data ?? []}
               curriculumAreas={curriculumAreasQuery.data ?? []}
               onRefresh={refreshAcademic}
@@ -1241,6 +1229,7 @@ function PedagogicaPage() {
               scheduleAvailable={scheduleAvailable}
               classGroups={classGroups}
               subjects={subjects}
+              classSubjects={classSubjects}
               rooms={classrooms.map((r) => ({
                 id: r.id,
                 name: r.name,

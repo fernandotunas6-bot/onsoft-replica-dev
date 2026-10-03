@@ -22,7 +22,7 @@ Todos comunicam. Nenhum substitui o outro. Nenhum precisa do mesmo frontend.
 | App | Pasta | Framework | Entrypoint | Porta dest. | Auth actual |
 | --- | ----- | --------- | ---------- | ----------- | ----------- |
 | **WEB** | `painel/web` | Vite 7 + React 19 + React Router 7 + Tailwind 4 | `src/main.tsx` → `AppRouter` | **5174** | Sem auth de produto (template) |
-| **ADMIN** | `painel/admin` | Next.js 16 App Router + Tailwind 4 | `src/app/page.tsx` | **3005** | Supabase SSR + `platform_admins` (middleware + gate) |
+| **ADMIN** | `painel/admin` | Next.js 16 App Router + Tailwind 4 | `src/app/page.tsx` | **3005** | Supabase Auth + `platform_admins` (gate cliente + guardas na API SIGA) |
 | **SIGA PLUS** | raiz `/` | TanStack Start + Vite + React Query + Zod | `src/routes/__root.tsx` | **3006** | Supabase Auth + `AuthGate` + MFA TOTP |
 | **PAYFLOW** | `painel/payflow` | Vinext + React + Cloudflare D1 | `app/page.tsx` | **3007** | Portal do pagador; SSO administrativo por integrar |
 | **DOC** | `painel/docs` | VitePress + Vue 3 | `.vitepress/config.ts` | **5173** | Público |
@@ -51,6 +51,15 @@ omissão. A porta canónica do WEB é **5174** (`src/lib/ecosystem-urls.ts`).
 
 Backend partilhado: **um** Postgres Supabase SGA (`xodgfmxiaunpamctfeea`),
 **N** tenants / escolas. Não criar um PostgreSQL por escola.
+
+> **Segurança do ADMIN em produção:** `siga-admin` é publicado no Cloudflare
+> Pages como exportação estática. O `middleware.ts` do Next ajuda no servidor
+> de desenvolvimento, mas não acompanha `out/` para produção. O limite de
+> segurança efectivo é `PlatformAdminGate` no cliente, como defesa de UX, e
+> sobretudo as guardas `requirePlatformAdmin*` nas APIs SIGA, que não podem
+> confiar na interface. Migrar o ADMIN para SSR/Workers exige uma decisão de
+> infraestrutura explícita; nunca assumir que esconder uma rota estática é
+> autorização.
 
 ---
 

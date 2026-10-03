@@ -20,7 +20,11 @@ CREATE TABLE IF NOT EXISTS public.school_settings (
   version integer NOT NULL DEFAULT 1,
   changed_by uuid REFERENCES auth.users(id),
   created_at timestamptz NOT NULL DEFAULT now(),
-  updated_at timestamptz NOT NULL DEFAULT now(),
+  -- Sem `updated_at`: esta tabela guarda versões, não o estado actual. Cada
+  -- alteração acrescenta uma linha com `version` mais alto e o seu `changed_by`;
+  -- uma linha nunca é editada, logo não há o que actualizar. A declaração tinha
+  -- a coluna e a produção não, e como `CREATE TABLE IF NOT EXISTS` não altera
+  -- uma tabela existente, a divergência nunca se resolveria por aqui.
   UNIQUE (school_id, domain)
 );
 

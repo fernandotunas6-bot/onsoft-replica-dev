@@ -50,6 +50,10 @@ const RLS_PENDING = new Set<string>([
   "hr_payroll_items",
   "hr_payroll_runs",
   "hr_positions",
+  // Eliminada da produção pela migração 20260925090000 (docs/auditoria/08-auditoria.md,
+  // 8.5/8.6 -- RLS activa e zero políticas, 0 linhas, confundia-se com `notifications`).
+  // Fica na lista só porque o CREATE TABLE original (20260911120000) continua no
+  // histórico de migrações que este teste varre -- não se edita migração já aplicada.
   "notification_preferences",
   "school_shift_slots",
   "school_shifts",
@@ -88,6 +92,18 @@ const RLS_PENDING = new Set<string>([
  * insere, coluna a coluna. Enquanto a migração não for aplicada, essa função e
  * `configure_assessment_rules` falham com 42P01, e uma escola nova não consegue
  * abrir o primeiro diário de notas (`gradebooks.rule_set_id` é NOT NULL).
+ */
+/**
+ * `tenant_mailboxes` saiu a 2026-09-23 com `20260923120000_tenant_mailboxes.sql`, e foi
+ * aplicada a 2026-09-27 — confirmada no retrato.
+ *
+ * Não foi o `supabase/APPLY_MAILBOXES.sql` que estava à espera desde Setembro: esse
+ * declarava a política de leitura por `tenant_members`, tabela que **não existe em
+ * produção**, e teria falhado com 42P01 a meio — tabela criada, uma política aplicada e a
+ * outra não. A migração seguiu o caminho real, `school_memberships` → `schools.tenant_id`.
+ *
+ * Sobra `avatars`, que é o falso positivo do conjunto: é um bucket de storage, não uma
+ * tabela. É por isso que a lista abaixo não está vazia.
  */
 const SCHEMA_ONLY_IN_PRODUCTION = new Set(["avatars"]);
 

@@ -100,16 +100,48 @@ const workerCwd = path.resolve(".output/server");
  * ficam visíveis na tabela de processos da máquina e no histórico da shell.
  *
  * Os segredos persistem entre deploys, por isso são postos ANTES — assim a
- * versão nova nunca chega a subir sem eles. Num worker que ainda não exista,
- * `wrangler secret put` falha; nesse caso põem-se depois do primeiro deploy.
+ * versão nova nunca chega a subir sem eles.
+ *
+ * O stderr é capturado em vez de herdado, porque há duas falhas que se têm de
+ * distinguir uma da outra e de todas as restantes (ver `classificarFalha`). É
+ * reemitido tal e qual, para não se perder nada no terminal.
  */
 function porSegredo(nome, valor) {
-  execSync(`npx wrangler secret put ${nome} --config wrangler.json`, {
-    cwd: workerCwd,
-    input: valor,
-    stdio: ["pipe", "inherit", "inherit"],
-    env: cfEnv,
-  });
+  try {
+    execSync(`npx wrangler secret put ${nome} --config wrangler.json`, {
+      cwd: workerCwd,
+      input: valor,
+      stdio: ["pipe", "inherit", "pipe"],
+      env: cfEnv,
+    });
+  } catch (erro) {
+    const stderr = String(erro.stderr ?? "");
+    if (stderr) process.stderr.write(stderr);
+    erro.stderrTexto = stderr;
+    throw erro;
+  }
+}
+
+/**
+ * Duas falhas são esperadas e resolvem-se pondo os segredos DEPOIS do deploy.
+ * Qualquer outra — token sem permissão, conta errada, rede — não se engole: um
+ * deploy que continua a seguir a uma falha que não percebeu põe no ar uma versão
+ * sem as chaves que precisa.
+ *
+ *  · 10053 «Binding name already in use» — o worker no ar ainda tem o nome como
+ *    `var` em texto simples, e o Cloudflare não deixa criar um segredo por cima.
+ *    É a transição de `vars` para segredos, uma vez por worker. **O deploy que
+ *    se segue tira a `var` e a chave fica em falta até o segredo subir, poucos
+ *    segundos depois** — é inevitável num só deploy, e por isso é dito em voz
+ *    alta em vez de ficar escondido.
+ *  · 10007 / `script_not_found` — o worker ainda não existe. Nasce no deploy.
+ */
+function classificarFalha(erro) {
+  const texto = String(erro.stderrTexto ?? erro.stderr ?? erro.message ?? "");
+  if (/10053|already in use/i.test(texto)) return "var-em-texto-simples";
+  if (/10007|script_not_found|workers\.api\.error\.script_not_found/i.test(texto))
+    return "sem-worker";
+  return null;
 }
 
 // Todas as chaves sensíveis definidas (lista em worker-secrets.mjs). Os nomes
@@ -123,8 +155,22 @@ try {
   for (const [nome, valor] of segredos) porSegredo(nome, valor);
   segredosPostos = true;
   console.log(`==> ${segredos.length} secret(s) stored encrypted (not visible as vars)`);
-} catch {
-  console.log("==> Worker not found yet; secrets will be set after the first deploy.");
+} catch (erro) {
+  const causa = classificarFalha(erro);
+  if (causa === null) {
+    console.error("==> `wrangler secret put` failed for a reason this script does not");
+    console.error("    recognise (see the error above). Refusing to deploy a version that");
+    console.error("    would go live without its keys.");
+    process.exit(1);
+  }
+  if (causa === "var-em-texto-simples") {
+    console.log("==> A plain-text var still holds this name on the live Worker, so the secret");
+    console.log("    cannot be created yet. The deploy below removes the var; the secrets go");
+    console.log("    in right after. EXPECT A FEW SECONDS WITH THE KEY ABSENT — this happens");
+    console.log("    once per Worker, on the migration from vars to secrets.");
+  } else {
+    console.log("==> Worker does not exist yet; secrets will be set after the first deploy.");
+  }
 }
 
 console.log("==> Deploying to Cloudflare Workers...");

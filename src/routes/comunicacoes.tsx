@@ -10,6 +10,7 @@ import {
   FileDown,
   FileText,
   Mail,
+  MessageCircle,
   MessageSquare,
   Monitor,
   Pencil,
@@ -33,7 +34,11 @@ import { Textarea } from "@/components/ui/textarea";
 import { InstalledModuleTools } from "@/features/integrations/InstalledModuleTools";
 import { PickFileButton } from "@/features/arquivos/PickFileButton";
 import { useInstalledIntegrations } from "@/features/integrations/use-installed-integrations";
-import { sendSchoolResendEmail, sendSchoolWhatsAppMessage } from "@/features/integrations/server";
+import {
+  sendSchoolResendEmail,
+  sendSchoolSmsMessage,
+  sendSchoolWhatsAppMessage,
+} from "@/features/integrations/server";
 import { whatsappHref } from "@/features/integrations/actions";
 import { useCurrentAccount } from "@/features/auth/use-current-account";
 import { useSchoolSettings } from "@/features/auth/use-school-settings";
@@ -101,12 +106,14 @@ type AnnouncementExportRow = {
 
 const canalIcon = {
   sms: MessageSquare,
+  whatsapp: MessageCircle,
   email: Mail,
   portal: Monitor,
 } as const;
 
 const canalLabel: Record<Channel, string> = {
   sms: "SMS",
+  whatsapp: "WhatsApp",
   email: "E-mail",
   portal: "Portal",
 };
@@ -396,11 +403,7 @@ function ComunicacoesPage() {
           dispatchNote = `${dispatch.reason} Texto copiado para colar no Resend.`;
         }
       }
-      if (
-        status === "sent" &&
-        (values.channel === "sms" || values.channel === "portal") &&
-        whatsappNotices
-      ) {
+      if (status === "sent" && values.channel === "whatsapp" && whatsappNotices) {
         const dispatch = await sendSchoolWhatsAppMessage({
           data: { text },
         });
@@ -422,6 +425,27 @@ function ComunicacoesPage() {
             dispatchNote,
             `${dispatch.reason} Abriu wa.me (sem token ou sem telemóveis).`,
           ]
+            .filter(Boolean)
+            .join(" ");
+        }
+      }
+      // O canal "sms" chamava sendSchoolWhatsAppMessage por engano -- um director via
+      // "SMS" na interface e a mensagem saía por WhatsApp. Passa a chamar Twilio de
+      // facto (credenciais globais no servidor, sem UI de instalação por escola).
+      if (status === "sent" && values.channel === "sms") {
+        const dispatch = await sendSchoolSmsMessage({
+          data: { text },
+        });
+        if (dispatch.mode === "sent") {
+          dispatchNote = [
+            dispatchNote,
+            `SMS via Twilio: ${dispatch.recipientCount} destinatário(s).`,
+          ]
+            .filter(Boolean)
+            .join(" ");
+        } else {
+          await navigator.clipboard.writeText(text);
+          dispatchNote = [dispatchNote, `${dispatch.reason} Texto copiado para colar manualmente.`]
             .filter(Boolean)
             .join(" ");
         }
@@ -998,6 +1022,7 @@ function ComunicacoesPage() {
                           defaultValue="portal"
                         >
                           <option value="sms">SMS</option>
+                          <option value="whatsapp">WhatsApp</option>
                           <option value="email">E-mail</option>
                           <option value="portal">Portal</option>
                         </select>
@@ -1006,7 +1031,10 @@ function ComunicacoesPage() {
                             {resendOn
                               ? "Canal E-mail: envio HTTP Resend (ou cópia se faltar API key). "
                               : ""}
-                            {whatsappNotices ? "Use WhatsApp nos cartões depois de publicar." : ""}
+                            {whatsappNotices
+                              ? "Canal WhatsApp: envio via WhatsApp Cloud API. "
+                              : ""}
+                            Canal SMS: envio via Twilio (ou cópia se não estiver configurado).
                           </p>
                         ) : null}
                       </div>

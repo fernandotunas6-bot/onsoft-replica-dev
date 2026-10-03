@@ -38,6 +38,8 @@ describe("finance-print", () => {
         director_name: null,
         phone: null,
         email: null,
+        province: null,
+        municipality: null,
         address: null,
         academic_year: "2025/2026",
         currency: "AOA",

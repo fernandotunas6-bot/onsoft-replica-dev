@@ -112,10 +112,38 @@ export const inscricoesImporter: RowImporter = {
       };
     }
 
-    const personRes = await resolveOrCreatePerson(candidate, cache.existingPeople, ctx);
+    // O número e o duplicado são resolvidos ANTES de a pessoa ser criada. Estava ao
+    // contrário: `resolveOrCreatePerson` corria primeiro, e uma candidatura repetida com
+    // estratégia "ignorar" deixava atrás de si uma pessoa criada que ninguém pediu — e com
+    // "create_new" devolvia erro depois de já a ter gravado. Ignorar uma linha tem de não
+    // tocar em nada.
     const appNumber = normalizeText(
       valueOf(normalized, "application_number", "numero_candidatura", "processo", "inscricao"),
     );
+    const existing = appNumber
+      ? ((cache.applications ?? []).find((a) => a.application_number === appNumber) ?? null)
+      : null;
+
+    if (existing && ctx.duplicateStrategy === "ignore") {
+      return {
+        status: "ignored",
+        warnings: analysis.warnings,
+        errors: [],
+        audits: [],
+        target_record_id: existing.id,
+      };
+    }
+    if (existing && ctx.duplicateStrategy === "create_new") {
+      return {
+        status: "error",
+        warnings: analysis.warnings,
+        errors: ["Não é permitido criar uma segunda candidatura com o mesmo número."],
+        audits: [],
+        target_record_id: existing.id,
+      };
+    }
+
+    const personRes = await resolveOrCreatePerson(candidate, cache.existingPeople, ctx);
 
     const payload = {
       application_number: appNumber || null,
@@ -135,29 +163,6 @@ export const inscricoesImporter: RowImporter = {
         valueOf(normalized, "application_date", "data_inscricao", "data"),
       ),
     };
-
-    const existing = appNumber
-      ? ((cache.applications ?? []).find((a) => a.application_number === appNumber) ?? null)
-      : null;
-
-    if (existing && ctx.duplicateStrategy === "ignore") {
-      return {
-        status: "ignored",
-        warnings: analysis.warnings,
-        errors: [],
-        audits: personRes.audits,
-        target_record_id: existing.id,
-      };
-    }
-    if (existing && ctx.duplicateStrategy === "create_new") {
-      return {
-        status: "error",
-        warnings: analysis.warnings,
-        errors: ["Não é permitido criar uma segunda candidatura com o mesmo número."],
-        audits: personRes.audits,
-        target_record_id: existing.id,
-      };
-    }
 
     if (ctx.dryRun) {
       return {
@@ -249,9 +254,12 @@ export const inscricoesImporter: RowImporter = {
       };
     }
 
+    // `appNumber || null` e não `appNumber`: sem número, `normalizeText` devolve string
+    // vazia, e a cache ficava a afirmar `""` enquanto a linha gravada tem `null` no
+    // payload. Duas respostas para a mesma pergunta, dependendo de onde se perguntasse.
     (cache.applications ??= []).push({
       id: String(created.id),
-      application_number: appNumber,
+      application_number: appNumber || null,
       full_name: candidate.full_name,
     });
 

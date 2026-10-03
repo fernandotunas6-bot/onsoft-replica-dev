@@ -3,6 +3,19 @@ export type ScheduleClassGroup = {
   name: string;
   enrolled_count: number;
   capacity?: number | null;
+  code?: string;
+  shift?: string | null;
+  grade_name?: string | null;
+  course_name?: string | null;
+  academic_year_name?: string | null;
+  room_name?: string | null;
+  status?: string;
+};
+
+export type ScheduleClassSubject = {
+  class_group_id: string;
+  subject_id: string;
+  weekly_periods?: number | null;
 };
 
 export type ScheduleSubject = {

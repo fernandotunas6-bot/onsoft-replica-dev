@@ -51,6 +51,7 @@ import { Route as ConfiguracoesDiagnosticoRouteImport } from './routes/configura
 import { Route as ConviteTokenRouteImport } from './routes/convite.$token'
 import { Route as FinanceiroRhRouteImport } from './routes/financeiro.rh'
 import { Route as MatriculaSlugRouteImport } from './routes/matricula/$slug'
+import { Route as PedagogicaPresencaDocenteRouteImport } from './routes/pedagogica_.presenca-docente'
 import { Route as PedagogicaRiscoRouteImport } from './routes/pedagogica_.risco'
 import { Route as PessoasIndexRouteImport } from './routes/pessoas/index'
 import { Route as ProfessorPresencaRouteImport } from './routes/professor.presenca'
@@ -80,6 +81,7 @@ import { Route as FinanceiroRhFaltasRouteImport } from './routes/financeiro.rh.f
 import { Route as FinanceiroRhFolhaRouteImport } from './routes/financeiro.rh.folha'
 import { Route as FinanceiroRhPagamentosRouteImport } from './routes/financeiro.rh.pagamentos'
 import { Route as FinanceiroRhPresencaRouteImport } from './routes/financeiro.rh.presenca'
+import { Route as FinanceiroRhSalariosRouteImport } from './routes/financeiro.rh.salarios'
 import { Route as AlumniPortalPortfolioEducationRouteImport } from './routes/alumni.portal.portfolio.education'
 import { Route as AlumniPortalPortfolioPrintRouteImport } from './routes/alumni.portal.portfolio.print'
 import { Route as AlumniPortalPortfolioShowcaseRouteImport } from './routes/alumni.portal.portfolio.showcase'
@@ -313,6 +315,12 @@ const MatriculaSlugRoute = MatriculaSlugRouteImport.update({
   path: '/matricula/$slug',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PedagogicaPresencaDocenteRoute =
+  PedagogicaPresencaDocenteRouteImport.update({
+    id: '/pedagogica_/presenca-docente',
+    path: '/pedagogica/presenca-docente',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const PedagogicaRiscoRoute = PedagogicaRiscoRouteImport.update({
   id: '/pedagogica_/risco',
   path: '/pedagogica/risco',
@@ -457,6 +465,11 @@ const FinanceiroRhPagamentosRoute = FinanceiroRhPagamentosRouteImport.update({
 const FinanceiroRhPresencaRoute = FinanceiroRhPresencaRouteImport.update({
   id: '/presenca',
   path: '/presenca',
+  getParentRoute: () => FinanceiroRhRoute,
+} as any)
+const FinanceiroRhSalariosRoute = FinanceiroRhSalariosRouteImport.update({
+  id: '/salarios',
+  path: '/salarios',
   getParentRoute: () => FinanceiroRhRoute,
 } as any)
 const AlumniPortalPortfolioEducationRoute =
@@ -614,6 +627,7 @@ export interface FileRoutesByFullPath {
   '/convite/$token': typeof ConviteTokenRoute
   '/financeiro/rh': typeof FinanceiroRhRouteWithChildren
   '/matricula/$slug': typeof MatriculaSlugRoute
+  '/pedagogica/presenca-docente': typeof PedagogicaPresencaDocenteRoute
   '/pedagogica/risco': typeof PedagogicaRiscoRoute
   '/professor/presenca': typeof ProfessorPresencaRoute
   '/professores/$teacherId': typeof ProfessoresTeacherIdRoute
@@ -644,6 +658,7 @@ export interface FileRoutesByFullPath {
   '/financeiro/rh/folha': typeof FinanceiroRhFolhaRoute
   '/financeiro/rh/pagamentos': typeof FinanceiroRhPagamentosRoute
   '/financeiro/rh/presenca': typeof FinanceiroRhPresencaRoute
+  '/financeiro/rh/salarios': typeof FinanceiroRhSalariosRoute
   '/alumni/portal/portfolio/education': typeof AlumniPortalPortfolioEducationRoute
   '/alumni/portal/portfolio/print': typeof AlumniPortalPortfolioPrintRoute
   '/alumni/portal/portfolio/showcase': typeof AlumniPortalPortfolioShowcaseRoute
@@ -707,6 +722,7 @@ export interface FileRoutesByTo {
   '/convite/$token': typeof ConviteTokenRoute
   '/financeiro/rh': typeof FinanceiroRhRouteWithChildren
   '/matricula/$slug': typeof MatriculaSlugRoute
+  '/pedagogica/presenca-docente': typeof PedagogicaPresencaDocenteRoute
   '/pedagogica/risco': typeof PedagogicaRiscoRoute
   '/professor/presenca': typeof ProfessorPresencaRoute
   '/professores/$teacherId': typeof ProfessoresTeacherIdRoute
@@ -737,6 +753,7 @@ export interface FileRoutesByTo {
   '/financeiro/rh/folha': typeof FinanceiroRhFolhaRoute
   '/financeiro/rh/pagamentos': typeof FinanceiroRhPagamentosRoute
   '/financeiro/rh/presenca': typeof FinanceiroRhPresencaRoute
+  '/financeiro/rh/salarios': typeof FinanceiroRhSalariosRoute
   '/alumni/portal/portfolio/education': typeof AlumniPortalPortfolioEducationRoute
   '/alumni/portal/portfolio/print': typeof AlumniPortalPortfolioPrintRoute
   '/alumni/portal/portfolio/showcase': typeof AlumniPortalPortfolioShowcaseRoute
@@ -801,6 +818,7 @@ export interface FileRoutesById {
   '/convite/$token': typeof ConviteTokenRoute
   '/financeiro/rh': typeof FinanceiroRhRouteWithChildren
   '/matricula/$slug': typeof MatriculaSlugRoute
+  '/pedagogica_/presenca-docente': typeof PedagogicaPresencaDocenteRoute
   '/pedagogica_/risco': typeof PedagogicaRiscoRoute
   '/professor/presenca': typeof ProfessorPresencaRoute
   '/professores/$teacherId': typeof ProfessoresTeacherIdRoute
@@ -831,6 +849,7 @@ export interface FileRoutesById {
   '/financeiro/rh/folha': typeof FinanceiroRhFolhaRoute
   '/financeiro/rh/pagamentos': typeof FinanceiroRhPagamentosRoute
   '/financeiro/rh/presenca': typeof FinanceiroRhPresencaRoute
+  '/financeiro/rh/salarios': typeof FinanceiroRhSalariosRoute
   '/alumni/portal/portfolio/education': typeof AlumniPortalPortfolioEducationRoute
   '/alumni/portal/portfolio/print': typeof AlumniPortalPortfolioPrintRoute
   '/alumni/portal/portfolio/showcase': typeof AlumniPortalPortfolioShowcaseRoute
@@ -896,6 +915,7 @@ export interface FileRouteTypes {
     | '/convite/$token'
     | '/financeiro/rh'
     | '/matricula/$slug'
+    | '/pedagogica/presenca-docente'
     | '/pedagogica/risco'
     | '/professor/presenca'
     | '/professores/$teacherId'
@@ -926,6 +946,7 @@ export interface FileRouteTypes {
     | '/financeiro/rh/folha'
     | '/financeiro/rh/pagamentos'
     | '/financeiro/rh/presenca'
+    | '/financeiro/rh/salarios'
     | '/alumni/portal/portfolio/education'
     | '/alumni/portal/portfolio/print'
     | '/alumni/portal/portfolio/showcase'
@@ -989,6 +1010,7 @@ export interface FileRouteTypes {
     | '/convite/$token'
     | '/financeiro/rh'
     | '/matricula/$slug'
+    | '/pedagogica/presenca-docente'
     | '/pedagogica/risco'
     | '/professor/presenca'
     | '/professores/$teacherId'
@@ -1019,6 +1041,7 @@ export interface FileRouteTypes {
     | '/financeiro/rh/folha'
     | '/financeiro/rh/pagamentos'
     | '/financeiro/rh/presenca'
+    | '/financeiro/rh/salarios'
     | '/alumni/portal/portfolio/education'
     | '/alumni/portal/portfolio/print'
     | '/alumni/portal/portfolio/showcase'
@@ -1082,6 +1105,7 @@ export interface FileRouteTypes {
     | '/convite/$token'
     | '/financeiro/rh'
     | '/matricula/$slug'
+    | '/pedagogica_/presenca-docente'
     | '/pedagogica_/risco'
     | '/professor/presenca'
     | '/professores/$teacherId'
@@ -1112,6 +1136,7 @@ export interface FileRouteTypes {
     | '/financeiro/rh/folha'
     | '/financeiro/rh/pagamentos'
     | '/financeiro/rh/presenca'
+    | '/financeiro/rh/salarios'
     | '/alumni/portal/portfolio/education'
     | '/alumni/portal/portfolio/print'
     | '/alumni/portal/portfolio/showcase'
@@ -1165,6 +1190,7 @@ export interface RootRouteChildren {
   ConfiguracoesDiagnosticoRoute: typeof ConfiguracoesDiagnosticoRoute
   ConviteTokenRoute: typeof ConviteTokenRoute
   MatriculaSlugRoute: typeof MatriculaSlugRoute
+  PedagogicaPresencaDocenteRoute: typeof PedagogicaPresencaDocenteRoute
   PedagogicaRiscoRoute: typeof PedagogicaRiscoRoute
   ProfessorPresencaRoute: typeof ProfessorPresencaRoute
   ProfessoresTeacherIdRoute: typeof ProfessoresTeacherIdRoute
@@ -1495,6 +1521,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof MatriculaSlugRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/pedagogica_/presenca-docente': {
+      id: '/pedagogica_/presenca-docente'
+      path: '/pedagogica/presenca-docente'
+      fullPath: '/pedagogica/presenca-docente'
+      preLoaderRoute: typeof PedagogicaPresencaDocenteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/pedagogica_/risco': {
       id: '/pedagogica_/risco'
       path: '/pedagogica/risco'
@@ -1696,6 +1729,13 @@ declare module '@tanstack/react-router' {
       path: '/presenca'
       fullPath: '/financeiro/rh/presenca'
       preLoaderRoute: typeof FinanceiroRhPresencaRouteImport
+      parentRoute: typeof FinanceiroRhRoute
+    }
+    '/financeiro/rh/salarios': {
+      id: '/financeiro/rh/salarios'
+      path: '/salarios'
+      fullPath: '/financeiro/rh/salarios'
+      preLoaderRoute: typeof FinanceiroRhSalariosRouteImport
       parentRoute: typeof FinanceiroRhRoute
     }
     '/alumni/portal/portfolio/education': {
@@ -1926,6 +1966,7 @@ interface FinanceiroRhRouteChildren {
   FinanceiroRhFolhaRoute: typeof FinanceiroRhFolhaRoute
   FinanceiroRhPagamentosRoute: typeof FinanceiroRhPagamentosRoute
   FinanceiroRhPresencaRoute: typeof FinanceiroRhPresencaRoute
+  FinanceiroRhSalariosRoute: typeof FinanceiroRhSalariosRoute
 }
 
 const FinanceiroRhRouteChildren: FinanceiroRhRouteChildren = {
@@ -1933,6 +1974,7 @@ const FinanceiroRhRouteChildren: FinanceiroRhRouteChildren = {
   FinanceiroRhFolhaRoute: FinanceiroRhFolhaRoute,
   FinanceiroRhPagamentosRoute: FinanceiroRhPagamentosRoute,
   FinanceiroRhPresencaRoute: FinanceiroRhPresencaRoute,
+  FinanceiroRhSalariosRoute: FinanceiroRhSalariosRoute,
 }
 
 const FinanceiroRhRouteWithChildren = FinanceiroRhRoute._addFileChildren(
@@ -2041,6 +2083,7 @@ const rootRouteChildren: RootRouteChildren = {
   ConfiguracoesDiagnosticoRoute: ConfiguracoesDiagnosticoRoute,
   ConviteTokenRoute: ConviteTokenRoute,
   MatriculaSlugRoute: MatriculaSlugRoute,
+  PedagogicaPresencaDocenteRoute: PedagogicaPresencaDocenteRoute,
   PedagogicaRiscoRoute: PedagogicaRiscoRoute,
   ProfessorPresencaRoute: ProfessorPresencaRoute,
   ProfessoresTeacherIdRoute: ProfessoresTeacherIdRoute,

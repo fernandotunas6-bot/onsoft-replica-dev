@@ -67,7 +67,8 @@ describe("integration install packages", () => {
       "comunicacoes",
       "alunos",
       "documentos",
-      "arquivos",
+      // "arquivos" saiu: a unica capacidade que o estendia era m365.onedrive, do
+      // Microsoft 365 -- integracao de fachada removida em 20260925110000.
     ] as const;
     const allCaps = allInstallPackages().flatMap((pack) => pack.capabilities);
     for (const module of modules) {

@@ -57,8 +57,8 @@ describe("HR schemas — máquina de estados", () => {
     expect(canConfirmPaymentItem("pending")).toBe(false);
   });
 
-  it("maps assurance decisions to compensation validation", () => {
-    expect(compensationValidationFromAssurance("auto_approve")).toBe("validated");
+  it("keeps compensation pending until HR validates it", () => {
+    expect(compensationValidationFromAssurance("auto_approve")).toBe("pending");
     expect(compensationValidationFromAssurance("review")).toBe("pending");
     expect(compensationValidationFromAssurance("reject")).toBe("pending");
     expect(compensationValidationFromAssurance(null)).toBe("pending");

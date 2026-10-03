@@ -41,6 +41,10 @@ import { DocHelpButton, DocPathHelpButton } from "@/components/ui/doc-help-butto
 import { PageHeader, Panel, StatGrid, badgeBase, toneClass } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/button";
 import { StatusBadge } from "@/components/ui/status-badge";
+import { ResponsiveEntityView } from "@/components/mobile/ResponsiveEntityView";
+import { MoneyValue } from "@/components/ui/money-value";
+import { EntityListSkeleton } from "@/components/mobile/skeletons";
+import { MobileEmptyState, MobileErrorState } from "@/components/mobile/states";
 import { EmptyState } from "@/components/ui/empty-state";
 import { ConfirmActionModal } from "@/components/modals/ConfirmActionModal";
 import { QuickFormModal } from "@/components/modals/QuickFormModal";
@@ -939,80 +943,71 @@ function FinanceiroPage() {
               { name: "ate", type: "date", label: "Até" },
             ]}
           />
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Data</TableHead>
-                  <TableHead>Descrição</TableHead>
-                  <TableHead>Categoria</TableHead>
-                  <TableHead>Método</TableHead>
-                  <TableHead>Tipo</TableHead>
-                  <TableHead className="text-right">Valor</TableHead>
-                  <TableHead className="text-right">Acção</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {lista.map((m) => (
-                  <TableRow key={m.id}>
-                    <TableCell className="whitespace-nowrap text-sm text-muted-foreground">
-                      {new Date(m.data).toLocaleDateString("pt-PT")}
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex flex-wrap items-center gap-2">
-                        <p
-                          className={cn(
-                            "font-semibold",
-                            m.status === "reversed" && "line-through opacity-60",
-                          )}
-                        >
-                          {m.descricao}
-                        </p>
-                        {m.status === "reversed" ? (
-                          <StatusBadge status="cancelled" label="Anulado" size="sm" />
-                        ) : null}
+          {/*
+            Movimentos de caixa no telemóvel (§39): o que importa numa linha de
+            caixa é o sinal e o valor, e é o que fica em evidência. Data,
+            categoria e método descem para a linha de contexto; as acções de
+            recibo passam para o cartão sem perder nenhuma.
+          */}
+          <ResponsiveEntityView
+            mobile={
+              cashQuery.isLoading ? (
+                <EntityListSkeleton rows={6} />
+              ) : cashQuery.isError ? (
+                <MobileErrorState
+                  what="os movimentos de caixa"
+                  error={cashQuery.error}
+                  onRetry={() => void cashQuery.refetch()}
+                />
+              ) : lista.length === 0 ? (
+                <MobileEmptyState
+                  icon={Wallet}
+                  title="Nenhum movimento neste filtro"
+                  description="Ajuste o período ou o tipo de movimento, ou registe uma entrada/saída de caixa."
+                />
+              ) : (
+                <ul className="divide-y divide-border">
+                  {lista.map((m) => (
+                    <li key={m.id} className="px-4 py-3">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <p
+                            className={cn(
+                              "truncate text-sm font-medium text-foreground",
+                              m.status === "reversed" && "line-through opacity-60",
+                            )}
+                          >
+                            {m.descricao}
+                          </p>
+                          <p className="mt-0.5 truncate text-xs text-muted-foreground">
+                            {new Date(m.data).toLocaleDateString("pt-PT")} · {m.categoria} ·{" "}
+                            {m.metodo}
+                          </p>
+                        </div>
+                        <div className="shrink-0 text-right">
+                          <MoneyValue
+                            amount={m.tipo === "Entrada" ? m.valor : -m.valor}
+                            tone={m.tipo === "Entrada" ? "positive" : "negative"}
+                            signed
+                          />
+                          {m.status === "reversed" ? (
+                            <span className="mt-1 block">
+                              <StatusBadge status="cancelled" label="Anulado" size="sm" />
+                            </span>
+                          ) : null}
+                        </div>
                       </div>
-                    </TableCell>
-                    <TableCell className="text-sm text-muted-foreground">{m.categoria}</TableCell>
-                    <TableCell>
-                      <span className={cn(badgeBase, toneClass.muted)}>{m.metodo}</span>
-                    </TableCell>
-                    <TableCell>
-                      <StatusBadge
-                        status={m.tipo === "Entrada" ? "paid" : "overdue"}
-                        label={m.tipo}
-                        size="sm"
-                      />
-                    </TableCell>
-                    <TableCell
-                      className={cn(
-                        "text-right font-bold",
-                        m.tipo === "Entrada" ? "text-success" : "text-destructive",
-                      )}
-                    >
-                      {m.tipo === "Entrada" ? "+" : "−"} {kwanza(m.valor)}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex justify-end gap-1">
-                        <Button size="sm" variant="ghost" onClick={() => void printCashMovement(m)}>
+                      <div className="mt-1.5 flex flex-wrap gap-1">
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="h-9 px-2 text-xs"
+                          onClick={() => void printCashMovement(m)}
+                        >
                           Recibo
                         </Button>
-                        {resendInvoices ? (
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            onClick={async () => {
-                              await navigator.clipboard.writeText(
-                                `${m.tipo} · ${kwanza(m.valor)} · ${m.descricao ?? m.categoria ?? "caixa"}`,
-                              );
-                              toast.success("Texto do recibo copiado para e-mail Resend");
-                            }}
-                          >
-                            E-mail
-                          </Button>
-                        ) : null}
                         {whatsappOn ? (
-                          <Button size="sm" variant="ghost" asChild>
+                          <Button size="sm" variant="ghost" className="h-9 px-2 text-xs" asChild>
                             <a
                               href={whatsappHref("", `Recibo SIGA: ${m.tipo} ${kwanza(m.valor)}`)}
                               target="_blank"
@@ -1023,30 +1018,134 @@ function FinanceiroPage() {
                           </Button>
                         ) : null}
                       </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
-                {cashQuery.isError ? (
-                  <TableRow>
-                    <TableCell colSpan={7} className="py-8 text-center text-sm text-destructive">
-                      Não foi possível carregar os movimentos de caixa.
-                    </TableCell>
-                  </TableRow>
-                ) : lista.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={7} className="p-4">
-                      <EmptyState
-                        icon={Wallet}
-                        title="Nenhum movimento neste filtro"
-                        description="Ajuste o período ou o tipo de movimento, ou registe uma entrada/saída de caixa."
-                        compact
-                      />
-                    </TableCell>
-                  </TableRow>
-                ) : null}
-              </TableBody>
-            </Table>
-          </div>
+                    </li>
+                  ))}
+                </ul>
+              )
+            }
+            desktop={
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Data</TableHead>
+                      <TableHead>Descrição</TableHead>
+                      <TableHead>Categoria</TableHead>
+                      <TableHead>Método</TableHead>
+                      <TableHead>Tipo</TableHead>
+                      <TableHead className="text-right">Valor</TableHead>
+                      <TableHead className="text-right">Acção</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {lista.map((m) => (
+                      <TableRow key={m.id}>
+                        <TableCell className="whitespace-nowrap text-sm text-muted-foreground">
+                          {new Date(m.data).toLocaleDateString("pt-PT")}
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex flex-wrap items-center gap-2">
+                            <p
+                              className={cn(
+                                "font-semibold",
+                                m.status === "reversed" && "line-through opacity-60",
+                              )}
+                            >
+                              {m.descricao}
+                            </p>
+                            {m.status === "reversed" ? (
+                              <StatusBadge status="cancelled" label="Anulado" size="sm" />
+                            ) : null}
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-sm text-muted-foreground">
+                          {m.categoria}
+                        </TableCell>
+                        <TableCell>
+                          <span className={cn(badgeBase, toneClass.muted)}>{m.metodo}</span>
+                        </TableCell>
+                        <TableCell>
+                          <StatusBadge
+                            status={m.tipo === "Entrada" ? "paid" : "overdue"}
+                            label={m.tipo}
+                            size="sm"
+                          />
+                        </TableCell>
+                        <TableCell
+                          className={cn(
+                            "text-right font-bold",
+                            m.tipo === "Entrada" ? "text-success" : "text-destructive",
+                          )}
+                        >
+                          {m.tipo === "Entrada" ? "+" : "−"} {kwanza(m.valor)}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex justify-end gap-1">
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => void printCashMovement(m)}
+                            >
+                              Recibo
+                            </Button>
+                            {resendInvoices ? (
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={async () => {
+                                  await navigator.clipboard.writeText(
+                                    `${m.tipo} · ${kwanza(m.valor)} · ${m.descricao ?? m.categoria ?? "caixa"}`,
+                                  );
+                                  toast.success("Texto do recibo copiado para e-mail Resend");
+                                }}
+                              >
+                                E-mail
+                              </Button>
+                            ) : null}
+                            {whatsappOn ? (
+                              <Button size="sm" variant="ghost" asChild>
+                                <a
+                                  href={whatsappHref(
+                                    "",
+                                    `Recibo SIGA: ${m.tipo} ${kwanza(m.valor)}`,
+                                  )}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                >
+                                  WhatsApp
+                                </a>
+                              </Button>
+                            ) : null}
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                    {cashQuery.isError ? (
+                      <TableRow>
+                        <TableCell
+                          colSpan={7}
+                          className="py-8 text-center text-sm text-destructive"
+                        >
+                          Não foi possível carregar os movimentos de caixa.
+                        </TableCell>
+                      </TableRow>
+                    ) : lista.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={7} className="p-4">
+                          <EmptyState
+                            icon={Wallet}
+                            title="Nenhum movimento neste filtro"
+                            description="Ajuste o período ou o tipo de movimento, ou registe uma entrada/saída de caixa."
+                            compact
+                          />
+                        </TableCell>
+                      </TableRow>
+                    ) : null}
+                  </TableBody>
+                </Table>
+              </div>
+            }
+          />
         </Panel>
 
         <Panel

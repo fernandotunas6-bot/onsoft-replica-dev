@@ -63,6 +63,13 @@ import { useInboxUnread } from "@/features/messages/use-inbox-unread";
 import { initialsFromName } from "@/features/messages/recent-contacts";
 import { requestOpenDirectMessage } from "@/features/messages/unread";
 import { useSchoolAlerts } from "@/features/dashboard/use-school-alerts";
+import {
+  BottomNavigation,
+  MobileHeader,
+  MoreHub,
+  OfflineBanner,
+  SchoolSwitcherSheet,
+} from "@/components/mobile";
 import type { SchoolAlert } from "@/features/dashboard/alerts";
 
 const COLLAPSE_KEY = "siga:sidebar-collapsed";
@@ -128,6 +135,13 @@ function AuthenticatedAppShell({ children }: { children: ReactNode }) {
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [legalDoc, setLegalDoc] = useState<"politicas" | "termos" | null>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  /*
+   * Shell mobile (§7). O telemóvel não usa a barra lateral do computador: tem
+   * header próprio, barra inferior e o hub "Mais". Estes três estados são o que
+   * a barra inferior e o header abrem.
+   */
+  const [moreOpen, setMoreOpen] = useState(false);
+  const [contextOpen, setContextOpen] = useState(false);
 
   useEffect(() => {
     // O sidebar deve sempre iniciar expandido
@@ -164,6 +178,10 @@ function AuthenticatedAppShell({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     setOpen(false);
+    // As folhas mobile têm de fechar na navegação: um toque no hub "Mais"
+    // navega, e sem isto a folha ficava aberta por cima da página nova.
+    setMoreOpen(false);
+    setContextOpen(false);
   }, [pathname]);
 
   useEffect(() => {
@@ -230,6 +248,7 @@ function AuthenticatedAppShell({ children }: { children: ReactNode }) {
   return (
     <div className="flex flex-col min-h-screen bg-background">
       <DesktopTitleBar />
+      <OfflineBanner />
       <div className="flex flex-1 min-h-0">
         <a href="#conteudo-principal" className="skip-link">
           Saltar para o conteúdo principal
@@ -253,13 +272,34 @@ function AuthenticatedAppShell({ children }: { children: ReactNode }) {
         </div>
 
         <Sheet open={open} onOpenChange={setOpen}>
-          <SheetContent side="left" className="w-[240px] border-none bg-sidebar p-0">
+          {/* Cantos só do lado que fica dentro do ecrã: à esquerda a folha encosta
+              à margem, e arredondar aí abriria uma fresta contra o bordo. */}
+          <SheetContent
+            side="left"
+            className="w-[240px] overflow-hidden rounded-r-xl border-none bg-sidebar p-0"
+          >
             <AppSidebar onOpenSettings={(panelId) => openSettings(panelId)} />
           </SheetContent>
         </Sheet>
 
         <div className="flex min-w-0 flex-1 flex-col lg:my-2 lg:mx-2 lg:overflow-clip lg:rounded-2xl lg:border lg:border-border/60 lg:shadow-sm">
-          <header className="sticky top-0 z-30 flex h-14 items-center gap-2.5 border-b border-border/70 bg-background/95 backdrop-blur-xs px-3.5 md:px-5">
+          {/*
+              Header mobile (§10): substitui o header de computador abaixo de
+              768px. O de computador continua igual — os dez controlos do topo
+              não cabem num telemóvel e nenhum deles é o que se vem fazer.
+          */}
+          <MobileHeader
+            title={navCurrent.label}
+            noticeCount={noticeCount}
+            onOpenContext={() => setContextOpen(true)}
+            onOpenSearch={() => requestOpenCommandPalette()}
+            onOpenNotifications={() => setNotificationsOpen(true)}
+            onOpenAccount={() => setAccountOpen(true)}
+          />
+
+          <header className="sticky top-0 z-30 hidden h-14 items-center gap-2.5 border-b border-border/70 bg-background/95 backdrop-blur-xs px-3.5 md:flex md:px-5">
+            {/* Tablet: sem barra lateral fixa e sem hub — o hambúrguer dá
+                acesso à árvore completa. No telemóvel esse papel é do "Mais". */}
             <Button
               variant="ghost"
               size="icon"
@@ -581,7 +621,7 @@ function AuthenticatedAppShell({ children }: { children: ReactNode }) {
           <main
             id="conteudo-principal"
             tabIndex={-1}
-            className="mx-auto w-full max-w-[1400px] flex-1 px-3.5 py-4 md:px-5 md:py-5 lg:px-6 lg:py-5 [content-visibility:auto]"
+            className="page-enter mx-auto w-full max-w-[1400px] flex-1 px-4 py-4 pb-bottom-nav md:px-5 md:py-5 lg:px-6 lg:py-5 lg:pb-5 [content-visibility:auto]"
           >
             {studentCapacity.nearLimit || studentCapacity.atLimit ? (
               <div
@@ -625,7 +665,10 @@ function AuthenticatedAppShell({ children }: { children: ReactNode }) {
             {children}
           </main>
 
-          <footer className="flex flex-wrap items-center justify-between gap-3 border-t border-border bg-card/40 px-3.5 py-3 text-xs text-muted-foreground backdrop-blur-xs md:px-5">
+          {/* O rodapé institucional é ruído num ecrã de 360px: as duas ligações
+              legais vivem no hub "Mais" e o crédito não precisa de estar em todos
+              os ecrãs. */}
+          <footer className="hidden flex-wrap items-center justify-between gap-3 border-t border-border bg-card/40 px-3.5 py-3 text-xs text-muted-foreground backdrop-blur-xs md:flex md:px-5">
             <div className="flex items-center gap-4">
               <span className="inline-flex items-center gap-2 font-semibold text-foreground">
                 <span className="inline-flex size-6 items-center justify-center rounded-lg bg-primary-soft text-[11px] font-extrabold text-primary">
@@ -656,6 +699,10 @@ function AuthenticatedAppShell({ children }: { children: ReactNode }) {
         <Suspense fallback={null}>
           <ContextualActionsPanelHost />
         </Suspense>
+
+        <BottomNavigation onOpenMore={() => setMoreOpen(true)} />
+        <MoreHub open={moreOpen} onOpenChange={setMoreOpen} onOpenSettings={() => openSettings()} />
+        <SchoolSwitcherSheet open={contextOpen} onOpenChange={setContextOpen} />
       </div>
     </div>
   );

@@ -42,6 +42,8 @@ import { calendarIcsFeedUrl, calendarWebcalFeedUrl } from "@/features/calendar/i
 import { AppShell } from "@/components/layout/AppShell";
 import { PageHeader, Panel, StatGrid, badgeBase, toneClass } from "@/components/layout/PageHeader";
 import { StatusBadge } from "@/components/ui/status-badge";
+import { ResponsiveEntityView } from "@/components/mobile/ResponsiveEntityView";
+import { EntityList, type EntityListItem } from "@/components/mobile/EntityList";
 import { DocHelpButton } from "@/components/ui/doc-help-button";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -790,6 +792,13 @@ function CalendarioPage() {
           description="Grelha mensal com trimestres e feriados nacionais (Africa/Luanda)"
           icon={CalendarDays}
         >
+          {/*
+            §35: no telemóvel o calendário abre em agenda, não em grelha mensal.
+            Uma grelha de 7×5 a 360px dá células de 45px onde não cabe o nome de
+            um feriado; o dia escolhido, com as suas aulas, é o que se vem ver.
+            A grelha continua abaixo para navegar entre dias, e no computador
+            volta ao seu lugar à esquerda.
+          */}
           <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_16rem]">
             <AcademicMonthCalendar
               events={events}
@@ -799,7 +808,7 @@ function CalendarioPage() {
               onYearMonthChange={setMonthOverride}
               onSelectDay={jumpToDay}
             />
-            <aside className="space-y-3 rounded-xl border border-border bg-muted/20 p-4 shadow-card">
+            <aside className="order-first space-y-3 rounded-xl border border-border bg-muted/20 p-4 shadow-card xl:order-none">
               <p className="text-xs font-semibold text-muted-foreground">
                 {selectedDay
                   ? new Date(`${selectedDay}T12:00:00`).toLocaleDateString("pt-PT", {
@@ -1095,194 +1104,229 @@ function CalendarioPage() {
               compact
             />
           ) : (
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Evento</TableHead>
-                    <TableHead>Estado</TableHead>
-                    <TableHead>Início</TableHead>
-                    <TableHead>Fim</TableHead>
-                    <TableHead className="text-right">Acções</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filtered.map((event) => (
-                    <TableRow
-                      key={event.id}
-                      className={cn(
-                        "cursor-pointer",
-                        selectedTerms.some((term) => term.id === event.id) && "bg-primary/6",
-                      )}
-                      onClick={() => jumpToDay(event.event_date)}
-                    >
-                      <TableCell>
-                        <p className="font-semibold">{event.title}</p>
-                        {event.description ? (
-                          <p className="text-xs text-muted-foreground">{event.description}</p>
-                        ) : null}
-                      </TableCell>
-                      <TableCell>
-                        {(() => {
-                          const life = termLifecycle(event.event_date, event.ends_on, today);
-                          return (
-                            <StatusBadge
-                              status={
-                                life === "em_curso"
-                                  ? "active"
-                                  : life === "futuro"
-                                    ? "pending"
-                                    : "inactive"
-                              }
-                              label={termLifecycleLabels[life]}
-                            />
-                          );
-                        })()}
-                      </TableCell>
-                      <TableCell>
-                        {new Date(`${event.event_date}T00:00:00`).toLocaleDateString("pt-PT")}
-                      </TableCell>
-                      <TableCell>
-                        {event.ends_on
-                          ? new Date(`${event.ends_on}T00:00:00`).toLocaleDateString("pt-PT")
-                          : "—"}
-                      </TableCell>
-                      <TableCell
-                        className="text-right"
-                        onClick={(event) => event.stopPropagation()}
-                      >
-                        <div className="inline-flex items-center justify-end gap-1">
-                          {whatsappOn ? (
-                            <Button size="sm" variant="ghost" asChild>
-                              <a
-                                href={whatsappHref(
-                                  "",
-                                  `${event.title}: ${new Date(`${event.event_date}T00:00:00`).toLocaleDateString("pt-PT")}${event.ends_on ? ` a ${new Date(`${event.ends_on}T00:00:00`).toLocaleDateString("pt-PT")}` : ""}`,
-                                )}
-                                target="_blank"
-                                rel="noreferrer"
-                              >
-                                WhatsApp
-                              </a>
-                            </Button>
-                          ) : null}
-                          {resendOn ? (
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              onClick={async () => {
-                                await navigator.clipboard.writeText(
-                                  `${event.title} · ${event.event_date}${event.ends_on ? ` a ${event.ends_on}` : ""}`,
-                                );
-                                toast.success("Período copiado para e-mail Resend");
-                              }}
-                            >
-                              E-mail
-                            </Button>
-                          ) : null}
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            className="gap-1.5"
-                            onClick={() => printPeriod(event)}
-                          >
-                            <FileDown className="size-3.5" /> Imprimir
-                          </Button>
-                          {canManage ? (
-                            <>
-                              <QuickFormModal
-                                title="Editar período"
-                                description="Actualiza o nome e as datas deste período lectivo."
-                                icon={<Pencil className="size-5" />}
-                                submitLabel="Guardar"
-                                successDescription="Período actualizado."
-                                onSubmit={async (values) => {
-                                  const inicio = values["inicio"] ?? "";
-                                  const fim = values["fim"] ?? "";
-                                  const overlap = events.find(
-                                    (other) =>
-                                      other.id !== event.id &&
-                                      inclusiveRangesOverlap(
-                                        inicio,
-                                        fim,
-                                        other.event_date,
-                                        other.ends_on || other.event_date,
-                                      ),
-                                  );
-                                  if (overlap) {
-                                    throw new Error(
-                                      `Este intervalo sobrepõe-se a «${overlap.title}».`,
-                                    );
+            <ResponsiveEntityView
+              mobile={
+                <EntityList
+                  items={filtered.map<EntityListItem>((event) => {
+                    const life = termLifecycle(event.event_date, event.ends_on, today);
+                    return {
+                      id: event.id,
+                      title: event.title,
+                      subtitle: `${new Date(`${event.event_date}T00:00:00`).toLocaleDateString("pt-PT")}${
+                        event.ends_on
+                          ? ` → ${new Date(`${event.ends_on}T00:00:00`).toLocaleDateString("pt-PT")}`
+                          : ""
+                      }`,
+                      status: (
+                        <StatusBadge
+                          status={
+                            life === "em_curso"
+                              ? "active"
+                              : life === "futuro"
+                                ? "pending"
+                                : "inactive"
+                          }
+                          label={termLifecycleLabels[life]}
+                          size="sm"
+                        />
+                      ),
+                      selected: selectedTerms.some((term) => term.id === event.id),
+                      onSelect: () => jumpToDay(event.event_date),
+                    };
+                  })}
+                />
+              }
+              desktop={
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Evento</TableHead>
+                        <TableHead>Estado</TableHead>
+                        <TableHead>Início</TableHead>
+                        <TableHead>Fim</TableHead>
+                        <TableHead className="text-right">Acções</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {filtered.map((event) => (
+                        <TableRow
+                          key={event.id}
+                          className={cn(
+                            "cursor-pointer",
+                            selectedTerms.some((term) => term.id === event.id) && "bg-primary/6",
+                          )}
+                          onClick={() => jumpToDay(event.event_date)}
+                        >
+                          <TableCell>
+                            <p className="font-semibold">{event.title}</p>
+                            {event.description ? (
+                              <p className="text-xs text-muted-foreground">{event.description}</p>
+                            ) : null}
+                          </TableCell>
+                          <TableCell>
+                            {(() => {
+                              const life = termLifecycle(event.event_date, event.ends_on, today);
+                              return (
+                                <StatusBadge
+                                  status={
+                                    life === "em_curso"
+                                      ? "active"
+                                      : life === "futuro"
+                                        ? "pending"
+                                        : "inactive"
                                   }
-                                  await updateCalendarEvent({
-                                    data: {
-                                      id: String(event.id),
-                                      title: values["nome"] ?? "",
-                                      eventDate: inicio,
-                                      endsOn: fim,
-                                    },
-                                  });
-                                  await refreshCalendar();
-                                }}
-                                fields={[
-                                  {
-                                    name: "nome",
-                                    label: "Nome",
-                                    defaultValue: event.title,
-                                    full: true,
-                                  },
-                                  {
-                                    name: "inicio",
-                                    label: "Início",
-                                    type: "date",
-                                    defaultValue: String(event.event_date ?? ""),
-                                  },
-                                  {
-                                    name: "fim",
-                                    label: "Fim",
-                                    type: "date",
-                                    defaultValue: String(event.ends_on ?? ""),
-                                  },
-                                ]}
-                                trigger={(open) => (
-                                  <Button
-                                    size="sm"
-                                    variant="ghost"
-                                    className="gap-1.5"
-                                    onClick={open}
+                                  label={termLifecycleLabels[life]}
+                                />
+                              );
+                            })()}
+                          </TableCell>
+                          <TableCell>
+                            {new Date(`${event.event_date}T00:00:00`).toLocaleDateString("pt-PT")}
+                          </TableCell>
+                          <TableCell>
+                            {event.ends_on
+                              ? new Date(`${event.ends_on}T00:00:00`).toLocaleDateString("pt-PT")
+                              : "—"}
+                          </TableCell>
+                          <TableCell
+                            className="text-right"
+                            onClick={(event) => event.stopPropagation()}
+                          >
+                            <div className="inline-flex items-center justify-end gap-1">
+                              {whatsappOn ? (
+                                <Button size="sm" variant="ghost" asChild>
+                                  <a
+                                    href={whatsappHref(
+                                      "",
+                                      `${event.title}: ${new Date(`${event.event_date}T00:00:00`).toLocaleDateString("pt-PT")}${event.ends_on ? ` a ${new Date(`${event.ends_on}T00:00:00`).toLocaleDateString("pt-PT")}` : ""}`,
+                                    )}
+                                    target="_blank"
+                                    rel="noreferrer"
                                   >
-                                    <Pencil className="size-3.5" /> Editar
-                                  </Button>
-                                )}
-                              />
-                              <ConfirmActionModal
-                                title="Apagar período"
-                                description={`O período «${event.title}» será removido do calendário. Notas ligadas a este período impedem a operação.`}
-                                confirmLabel="Apagar"
-                                onConfirm={async () => {
-                                  await deleteCalendarEvent({ data: { id: String(event.id) } });
-                                  await refreshCalendar();
-                                }}
-                                trigger={(open) => (
-                                  <Button
-                                    size="sm"
-                                    variant="ghost"
-                                    className="gap-1.5 text-destructive"
-                                    onClick={open}
-                                  >
-                                    <Trash2 className="size-3.5" /> Apagar
-                                  </Button>
-                                )}
-                              />
-                            </>
-                          ) : null}
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
+                                    WhatsApp
+                                  </a>
+                                </Button>
+                              ) : null}
+                              {resendOn ? (
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  onClick={async () => {
+                                    await navigator.clipboard.writeText(
+                                      `${event.title} · ${event.event_date}${event.ends_on ? ` a ${event.ends_on}` : ""}`,
+                                    );
+                                    toast.success("Período copiado para e-mail Resend");
+                                  }}
+                                >
+                                  E-mail
+                                </Button>
+                              ) : null}
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                className="gap-1.5"
+                                onClick={() => printPeriod(event)}
+                              >
+                                <FileDown className="size-3.5" /> Imprimir
+                              </Button>
+                              {canManage ? (
+                                <>
+                                  <QuickFormModal
+                                    title="Editar período"
+                                    description="Actualiza o nome e as datas deste período lectivo."
+                                    icon={<Pencil className="size-5" />}
+                                    submitLabel="Guardar"
+                                    successDescription="Período actualizado."
+                                    onSubmit={async (values) => {
+                                      const inicio = values["inicio"] ?? "";
+                                      const fim = values["fim"] ?? "";
+                                      const overlap = events.find(
+                                        (other) =>
+                                          other.id !== event.id &&
+                                          inclusiveRangesOverlap(
+                                            inicio,
+                                            fim,
+                                            other.event_date,
+                                            other.ends_on || other.event_date,
+                                          ),
+                                      );
+                                      if (overlap) {
+                                        throw new Error(
+                                          `Este intervalo sobrepõe-se a «${overlap.title}».`,
+                                        );
+                                      }
+                                      await updateCalendarEvent({
+                                        data: {
+                                          id: String(event.id),
+                                          title: values["nome"] ?? "",
+                                          eventDate: inicio,
+                                          endsOn: fim,
+                                        },
+                                      });
+                                      await refreshCalendar();
+                                    }}
+                                    fields={[
+                                      {
+                                        name: "nome",
+                                        label: "Nome",
+                                        defaultValue: event.title,
+                                        full: true,
+                                      },
+                                      {
+                                        name: "inicio",
+                                        label: "Início",
+                                        type: "date",
+                                        defaultValue: String(event.event_date ?? ""),
+                                      },
+                                      {
+                                        name: "fim",
+                                        label: "Fim",
+                                        type: "date",
+                                        defaultValue: String(event.ends_on ?? ""),
+                                      },
+                                    ]}
+                                    trigger={(open) => (
+                                      <Button
+                                        size="sm"
+                                        variant="ghost"
+                                        className="gap-1.5"
+                                        onClick={open}
+                                      >
+                                        <Pencil className="size-3.5" /> Editar
+                                      </Button>
+                                    )}
+                                  />
+                                  <ConfirmActionModal
+                                    title="Apagar período"
+                                    description={`O período «${event.title}» será removido do calendário. Notas ligadas a este período impedem a operação.`}
+                                    confirmLabel="Apagar"
+                                    onConfirm={async () => {
+                                      await deleteCalendarEvent({ data: { id: String(event.id) } });
+                                      await refreshCalendar();
+                                    }}
+                                    trigger={(open) => (
+                                      <Button
+                                        size="sm"
+                                        variant="ghost"
+                                        className="gap-1.5 text-destructive"
+                                        onClick={open}
+                                      >
+                                        <Trash2 className="size-3.5" /> Apagar
+                                      </Button>
+                                    )}
+                                  />
+                                </>
+                              ) : null}
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              }
+            />
           )}
         </Panel>
       </div>

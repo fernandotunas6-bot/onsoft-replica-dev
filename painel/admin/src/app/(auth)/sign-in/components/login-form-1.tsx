@@ -1,18 +1,18 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import Link from "next/link"
-import { useRouter } from "next/navigation"
-import { zodResolver } from "@hookform/resolvers/zod"
-import { useForm } from "react-hook-form"
-import { z } from "zod"
-import { cn } from "@/lib/utils"
-import { createClient } from "@/lib/supabase/client"
-import { fetchSaasSession } from "@/lib/saas-api"
-import { getCreateSchoolUrl } from "@/lib/ecosystem-urls"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
+import { useEffect, useState } from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useForm } from "react-hook-form";
+import { z } from "zod";
+import { cn } from "@/lib/utils";
+import { createClient } from "@/lib/supabase/client";
+import { fetchSaasSession } from "@/lib/saas-api";
+import { getCreateSchoolUrl } from "@/lib/ecosystem-urls";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import {
   Form,
   FormControl,
@@ -20,16 +20,21 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-} from "@/components/ui/form"
+} from "@/components/ui/form";
 
 const loginFormSchema = z.object({
   email: z.string().email("Endereço de e-mail inválido"),
   password: z.string().min(6, "A senha deve ter pelo menos 6 caracteres"),
-})
+});
 
-type LoginFormValues = z.infer<typeof loginFormSchema>
+type LoginFormValues = z.infer<typeof loginFormSchema>;
 
 const SAFE_ADMIN_PREFIXES = [
+  "/dashboard",
+  "/tasks",
+  "/calendar",
+  "/mail",
+  "/chat",
   "/tenants",
   "/subscriptions",
   "/platform-admins",
@@ -37,30 +42,33 @@ const SAFE_ADMIN_PREFIXES = [
   "/domains",
   "/gateway-webhooks",
   "/settings",
-] as const
+] as const;
 
 function isSafeAdminNext(path: string | null): path is string {
-  if (!path || !path.startsWith("/")) return false
-  if (path.startsWith("//")) return false
-  return SAFE_ADMIN_PREFIXES.some((prefix) => path === prefix || path.startsWith(`${prefix}/`))
+  if (!path || !path.startsWith("/")) return false;
+  if (path.startsWith("//")) return false;
+  return SAFE_ADMIN_PREFIXES.some((prefix) => path === prefix || path.startsWith(`${prefix}/`));
 }
 
 export function LoginForm1({ className, ...props }: React.ComponentProps<"div">) {
-  const router = useRouter()
-  const [serverError, setServerError] = useState<string | null>(() => {
-    if (typeof window === "undefined") return null
-    return new URLSearchParams(window.location.search).get("error") === "platform"
-      ? "Esta conta não é administrador da plataforma. Contas escolares entram no SIGA Plus."
-      : null
-  })
-  const [isSubmitting, setIsSubmitting] = useState(false)
+  const router = useRouter();
+  const [serverError, setServerError] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   // 2.º passo (MFA). As rotas /api/saas/* do SIGA recusam sessões sem aal2.
   const [mfa, setMfa] = useState<
     | { step: "verify"; factorId: string }
     | { step: "enroll"; factorId: string; qrCode: string; secret: string }
     | null
-  >(null)
-  const [mfaCode, setMfaCode] = useState("")
+  >(null);
+  const [mfaCode, setMfaCode] = useState("");
+
+  useEffect(() => {
+    if (new URLSearchParams(window.location.search).get("error") === "platform") {
+      setServerError(
+        "Esta conta não é administrador da plataforma. Contas escolares entram no SIGA Plus.",
+      );
+    }
+  }, []);
 
   const form = useForm<LoginFormValues>({
     resolver: zodResolver(loginFormSchema),
@@ -68,111 +76,113 @@ export function LoginForm1({ className, ...props }: React.ComponentProps<"div">)
       email: "",
       password: "",
     },
-  })
+  });
 
   async function onSubmit(values: LoginFormValues) {
-    setServerError(null)
-    setIsSubmitting(true)
+    setServerError(null);
+    setIsSubmitting(true);
 
-    const supabase = createClient()
+    const supabase = createClient();
     const { error } = await supabase.auth.signInWithPassword({
       email: values.email,
       password: values.password,
-    })
+    });
 
     if (error) {
-      setServerError(error.message)
-      setIsSubmitting(false)
-      return
+      setServerError(error.message);
+      setIsSubmitting(false);
+      return;
     }
 
     try {
-      const { data: aal } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel()
+      const { data: aal } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
       if (aal?.currentLevel === "aal2") {
-        await finishLogin()
-        return
+        await finishLogin();
+        return;
       }
-      const { data: factors } = await supabase.auth.mfa.listFactors()
-      const verified = factors?.totp?.find((factor) => factor.status === "verified")
+      const { data: factors } = await supabase.auth.mfa.listFactors();
+      const verified = factors?.totp?.find((factor) => factor.status === "verified");
       if (verified) {
-        setMfa({ step: "verify", factorId: verified.id })
-        setIsSubmitting(false)
-        return
+        setMfa({ step: "verify", factorId: verified.id });
+        setIsSubmitting(false);
+        return;
       }
       // Sem autenticador: regista um agora (QR). Factores por confirmar de uma
       // tentativa anterior impediriam um novo registo com o mesmo nome.
       for (const factor of factors?.all ?? []) {
-        if (factor.status !== "verified") await supabase.auth.mfa.unenroll({ factorId: factor.id })
+        if (factor.status !== "verified") await supabase.auth.mfa.unenroll({ factorId: factor.id });
       }
       const { data: enrolled, error: enrollError } = await supabase.auth.mfa.enroll({
         factorType: "totp",
         friendlyName: "SIGA Plus — administração",
-      })
+      });
       if (enrollError || !enrolled)
-        throw enrollError ?? new Error("Não foi possível iniciar o MFA.")
+        throw enrollError ?? new Error("Não foi possível iniciar o MFA.");
       setMfa({
         step: "enroll",
         factorId: enrolled.id,
         qrCode: enrolled.totp.qr_code,
         secret: enrolled.totp.secret,
-      })
+      });
     } catch (mfaError) {
-      await supabase.auth.signOut()
+      await supabase.auth.signOut();
       setServerError(
         mfaError instanceof Error && mfaError.message
           ? mfaError.message
           : "Não foi possível preparar a verificação em dois passos.",
-      )
+      );
     }
-    setIsSubmitting(false)
+    setIsSubmitting(false);
   }
 
   async function onVerifyCode(event: React.FormEvent) {
-    event.preventDefault()
-    if (!mfa) return
-    setServerError(null)
-    setIsSubmitting(true)
-    const supabase = createClient()
+    event.preventDefault();
+    if (!mfa) return;
+    setServerError(null);
+    setIsSubmitting(true);
+    const supabase = createClient();
     const { error } = await supabase.auth.mfa.challengeAndVerify({
       factorId: mfa.factorId,
       code: mfaCode.trim(),
-    })
+    });
     if (error) {
-      setServerError("Código inválido ou expirado. Use o código actual da aplicação autenticadora.")
-      setIsSubmitting(false)
-      return
+      setServerError(
+        "Código inválido ou expirado. Use o código actual da aplicação autenticadora.",
+      );
+      setIsSubmitting(false);
+      return;
     }
-    await finishLogin()
+    await finishLogin();
   }
 
   /** Sessão já com MFA: confirma que é administrador da plataforma e entra. */
   async function finishLogin() {
-    const supabase = createClient()
-    const { data } = await supabase.auth.getSession()
-    const saasSession = await fetchSaasSession(data.session?.access_token)
+    const supabase = createClient();
+    const { data } = await supabase.auth.getSession();
+    const saasSession = await fetchSaasSession(data.session?.access_token);
     if (!saasSession.ok || !saasSession.profile.platformAdmin) {
-      await supabase.auth.signOut()
-      setMfa(null)
-      setServerError("Esta conta não tem permissão de administrador da plataforma SIGA Plus.")
-      setIsSubmitting(false)
-      return
+      await supabase.auth.signOut();
+      setMfa(null);
+      setServerError("Esta conta não tem permissão de administrador da plataforma SIGA Plus.");
+      setIsSubmitting(false);
+      return;
     }
-    router.push(safeNext())
-    router.refresh()
+    router.push(safeNext());
+    router.refresh();
   }
 
   async function cancelMfa() {
-    await createClient().auth.signOut()
-    setMfa(null)
-    setMfaCode("")
-    setServerError(null)
+    await createClient().auth.signOut();
+    setMfa(null);
+    setMfaCode("");
+    setServerError(null);
   }
 
   function safeNext() {
-    if (typeof window === "undefined") return "/tenants"
-    const next = new URLSearchParams(window.location.search).get("next")
-    if (isSafeAdminNext(next)) return next
-    return "/tenants"
+    if (typeof window === "undefined") return "/tenants";
+    const next = new URLSearchParams(window.location.search).get("next");
+    if (isSafeAdminNext(next)) return next;
+    return "/tenants";
   }
 
   return (
@@ -299,5 +309,5 @@ export function LoginForm1({ className, ...props }: React.ComponentProps<"div">)
         Operação escolar (alunos, notas, propinas) vive no SIGA Plus — não nesta consola.
       </div>
     </div>
-  )
+  );
 }

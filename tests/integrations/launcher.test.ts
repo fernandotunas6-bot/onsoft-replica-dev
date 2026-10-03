@@ -46,11 +46,9 @@ describe("app launcher catalog", () => {
       "unitel_money",
       "whatsapp_business",
     ]);
-    expect(compact[2]?.apps.map((app) => app.id)).toEqual(
-      expect.arrayContaining(["zoom", "teams", "google_classroom", "moodle", "turnitin", "sige"]),
-    );
+    expect(compact[2]?.apps.map((app) => app.id)).toEqual(expect.arrayContaining(["zoom", "sige"]));
     expect(appsForHubSection("academic").map((app) => app.id)).toEqual(
-      expect.arrayContaining(["zoom", "teams", "moodle"]),
+      expect.arrayContaining(["zoom"]),
     );
     expect(appsForHubSection("workspace").length).toBe(launcherWorkspaceApps.length);
   });
@@ -64,11 +62,9 @@ describe("app launcher catalog", () => {
     expect(ids).not.toContain("agt");
   });
 
-  it("opens payment apps in tesouraria and LMS apps in pedagógica", () => {
+  it("opens payment apps in tesouraria and communication apps in pedagógica", () => {
     const multicaixa = launcherIntegrationApps.find((app) => app.id === "multicaixa_express");
-    const moodle = launcherIntegrationApps.find((app) => app.id === "moodle");
     expect(multicaixa && launcherAppPath(multicaixa)).toBe("/financeiro");
-    expect(moodle && hrefForLauncherApp(moodle)).toBe("/pedagogica?tab=turmas");
     const whatsapp = launcherIntegrationApps.find((app) => app.id === "whatsapp_business");
     const calendar = launcherIntegrationApps.find((app) => app.id === "google_calendar");
     expect(whatsapp && hrefForLauncherApp(whatsapp)).toBe("/pedagogica?tab=turmas");
@@ -100,10 +96,10 @@ describe("app launcher catalog", () => {
   it("searches across modules and marks the current pedagógica tab", () => {
     const hits = searchLauncherApps("whats", "Administrador");
     expect(hits.map((app) => app.id)).toContain("whatsapp_business");
-    const classroom = launcherIntegrationApps.find((app) => app.id === "google_classroom");
-    expect(classroom && isLauncherAppCurrent(classroom, "/pedagogica", "tab=turmas")).toBe(true);
-    expect(classroom && isLauncherAppCurrent(classroom, "/pedagogica", "tab=horarios")).toBe(false);
-    expect(teachingBundleApps().map((app) => app.id)).toContain("moodle");
+    const whats = launcherIntegrationApps.find((app) => app.id === "whatsapp_business");
+    expect(whats && isLauncherAppCurrent(whats, "/pedagogica", "tab=turmas")).toBe(true);
+    expect(whats && isLauncherAppCurrent(whats, "/pedagogica", "tab=horarios")).toBe(false);
+    expect(teachingBundleApps().map((app) => app.id)).toContain("zoom");
   });
 
   it("groups the catalog and uses AGT fiscal field labels", () => {
@@ -111,10 +107,8 @@ describe("app launcher catalog", () => {
     expect(groups.map((entry) => entry.group)).toEqual([
       "Pagamentos",
       "Comunicação",
-      "Académico",
       "Aulas",
       "Calendário",
-      "Monitorização",
       "Estado",
     ]);
     expect(groups.at(-1)?.items.map((item) => item.id)).toEqual(["sige", "agt"]);
@@ -125,12 +119,11 @@ describe("app launcher catalog", () => {
     expect(searchLauncherApps("faturação", "Administrador").map((app) => app.id)).toContain("agt");
   });
 
-  it("keeps Zoom and Teams in the teaching waffle even when disconnected", () => {
+  it("keeps Zoom in the teaching waffle even when disconnected", () => {
     const compact = compactLauncherSections({ role: "Administrador" });
     const teaching = compact
       .find((section) => section.id === "academic")
       ?.apps.map((app) => app.id);
     expect(teaching).toContain("zoom");
-    expect(teaching).toContain("teams");
   });
 });

@@ -51,7 +51,17 @@ function fakeDb(tables: { invoice: Row; receipts?: Row[]; memberships?: Row[] })
   const db = {
     from: builder,
     // Webhook sem sessão AAL2: a função oficial recusa e entra a liquidação directa.
-    rpc: async () => ({ data: null, error: { message: "requires aal2", code: "42501" } }),
+    //
+    // Recusa só `register_payment`, que é a que exige AAL2. Antes recusava TODAS,
+    // e a liquidação directa pede `next_document_number_service` para numerar o
+    // recibo — essa vinha 42501 também, o caminho de recurso morria no passo
+    // seguinte e o teste do caminho feliz falhava por uma razão que não estava a
+    // testar. Um duplo que recusa tudo não representa a base: representa uma base
+    // onde nada funciona.
+    rpc: async (fn: string) =>
+      fn === "register_payment"
+        ? { data: null, error: { message: "requires aal2", code: "42501" } }
+        : { data: "REC-0001/2026", error: null },
   };
   return { db: db as never, writes };
 }

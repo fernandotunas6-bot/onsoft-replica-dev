@@ -30,6 +30,10 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { SqlChecklistLink } from "@/components/ui/sql-checklist-link";
 import { Button } from "@/components/ui/button";
 import { StatusBadge } from "@/components/ui/status-badge";
+import { ResponsiveEntityView } from "@/components/mobile/ResponsiveEntityView";
+import { MoneyValue } from "@/components/ui/money-value";
+import { EntityListSkeleton } from "@/components/mobile/skeletons";
+import { MobileEmptyState, MobileErrorState } from "@/components/mobile/states";
 import { EmptyState } from "@/components/ui/empty-state";
 import {
   DropdownMenu,
@@ -275,6 +279,191 @@ function FaturasPage() {
     const start = (page - 1) * pageSize;
     return filtered.slice(start, start + pageSize);
   }, [filtered, page, pageSize]);
+
+  /**
+   * Acções de uma fatura (§85). Vive num componente só para a tabela de
+   * computador e o cartão de telemóvel usarem **as mesmas** — incluindo os
+   * modais de receber e anular, com o mesmo caminho de dados e a mesma
+   * invalidação de queries. Duplicar isto era garantir que uma das duas vistas
+   * ficava atrás da outra no primeiro ajuste de regra financeira.
+   */
+  function FaturaActions({ f }: { f: (typeof pagedFaturas)[number] }) {
+    return (
+      <div className="flex flex-wrap justify-end gap-2">
+        <Button
+          size="sm"
+          variant="ghost"
+          onClick={() => void downloadReceipt(f, f.numero, f.valor, "fatura")}
+        >
+          <FileDown className="size-3.5" /> Fatura
+        </Button>
+        {multicaixaOn && f.estado !== "Paga" ? (
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={() =>
+              setEmisInvoice({
+                id: f.id,
+                numero: f.numero,
+                valor: Math.max(f.valor - f.recebido, 0) || f.valor,
+              })
+            }
+          >
+            <QrCode className="size-3.5" /> Referência EMIS
+          </Button>
+        ) : null}
+        {f.estado !== "Paga" ? (
+          <QuickFormModal
+            eyebrow={f.numero}
+            title={`Receber ${f.aluno}`}
+            description="Liquida esta fatura e lança o recibo no caixa."
+            icon={<Wallet className="size-5" />}
+            submitLabel="Confirmar pagamento"
+            successDescription="Pagamento registado."
+            fields={[
+              {
+                name: "valor",
+                label: "Valor (Kz)",
+                type: "number",
+                defaultValue: String(Math.max(f.valor - f.recebido, 0) || f.valor),
+              },
+              {
+                name: "recibo",
+                label: "Referência interna (opcional)",
+                defaultValue: `RC-${f.numero.replace(/^FT-?/i, "")}`,
+                required: false,
+              },
+              { name: "data", label: "Data", type: "date", required: false },
+              {
+                name: "metodo",
+                label: "Método",
+                type: "select",
+                options: receiveMethods,
+              },
+              {
+                name: "referencia",
+                label: "Referência",
+                required: false,
+                full: true,
+                placeholder: "Referência do comprovativo ou do fornecedor",
+              },
+            ]}
+            onSubmit={async (values) => {
+              const amount = Number(values["valor"]);
+              const methodMap = {
+                Numerário: "cash",
+                Transferência: "transfer",
+                "Multicaixa Express": "multicaixa_express",
+                "Unitel Money": "unitel_money",
+              } as const;
+              const method =
+                methodMap[(values["metodo"] as keyof typeof methodMap) ?? "Numerário"] ?? "cash";
+              const reference = values["referencia"] || undefined;
+              const paid = await recordInvoicePayment({
+                data: {
+                  invoiceId: f.id,
+                  receiptNumber: values["recibo"],
+                  amount,
+                  method,
+                  reference,
+                  paidAt: values["data"]
+                    ? new Date(`${values["data"]}T12:00:00Z`).toISOString()
+                    : undefined,
+                },
+              });
+              await Promise.all([
+                queryClient.invalidateQueries({
+                  queryKey: ["finance", "invoices"],
+                }),
+                queryClient.invalidateQueries({
+                  queryKey: ["finance", "reporting"],
+                }),
+                queryClient.invalidateQueries({ queryKey: ["arquivos"] }),
+              ]);
+              // Número oficial vem do servidor (gerado atomicamente) — nunca do
+              // valor digitado, para o PDF impresso bater sempre com a base de dados.
+              await downloadReceipt(f, paid.receipt_number, amount);
+              if (paid?.library_document_code) {
+                toast.success(`Recibo arquivado · ${paid.library_document_code}`);
+              }
+            }}
+            trigger={(open) => (
+              <Button size="sm" variant="outline" onClick={open}>
+                <Wallet className="size-3.5" /> Receber
+              </Button>
+            )}
+          />
+        ) : (
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() =>
+              void downloadReceipt(f, `RC-${f.numero.replace(/^FT-?/i, "")}`, f.recebido || f.valor)
+            }
+          >
+            <FileDown className="size-3.5" /> Recibo
+          </Button>
+        )}
+        {resendInvoices ? (
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={async () => {
+              await navigator.clipboard.writeText(
+                `${f.numero} · ${f.aluno} · ${kwanza(f.valor)} · ${f.estado}`,
+              );
+              toast.success("Texto da fatura copiado para e-mail Resend");
+            }}
+          >
+            E-mail
+          </Button>
+        ) : null}
+        {whatsappOn ? (
+          <Button size="sm" variant="ghost" asChild>
+            <a
+              href={whatsappHref(
+                "",
+                `Fatura ${f.numero} de ${f.aluno}: ${kwanza(f.valor)} (${f.estado})`,
+              )}
+              target="_blank"
+              rel="noreferrer"
+            >
+              WhatsApp
+            </a>
+          </Button>
+        ) : null}
+        {f.estado !== "Paga" && f.recebido === 0 ? (
+          <ConfirmActionModal
+            title="Cancelar fatura"
+            description={`A fatura ${f.numero} de ${f.aluno} sai da lista de cobrança. Recibos existentes impedem esta operação.`}
+            confirmLabel="Cancelar fatura"
+            reasonLabel="Motivo da anulação"
+            onConfirm={async (reason) => {
+              await cancelInvoice({
+                data: { invoiceId: f.id, reason: reason ?? "" },
+              });
+              await Promise.all([
+                queryClient.invalidateQueries({
+                  queryKey: ["finance", "invoices"],
+                }),
+                queryClient.invalidateQueries({
+                  queryKey: ["finance", "reporting"],
+                }),
+                queryClient.invalidateQueries({
+                  queryKey: ["dashboard", "overview"],
+                }),
+              ]);
+            }}
+            trigger={(open) => (
+              <Button size="sm" variant="ghost" className="text-destructive" onClick={open}>
+                <X className="size-3.5" /> Anular
+              </Button>
+            )}
+          />
+        ) : null}
+      </div>
+    );
+  }
 
   const summary = reportingQuery.data?.summary;
   const total = Number(summary?.billed ?? 0);
@@ -907,257 +1096,147 @@ function FaturasPage() {
           }
         >
           <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Número</TableHead>
-                  <TableHead>Aluno</TableHead>
-                  <TableHead>Processo</TableHead>
-                  <TableHead>Descrição</TableHead>
-                  <TableHead>Emitida</TableHead>
-                  <TableHead>Vencimento</TableHead>
-                  <TableHead className="text-right">Valor</TableHead>
-                  <TableHead className="text-right">Estado</TableHead>
-                  <TableHead className="text-right">Acção</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {pagedFaturas.map((f) => (
-                  <TableRow key={f.id}>
-                    <TableCell className="font-mono text-xs">
-                      <span className="flex items-center gap-2">
-                        <FileText className="size-4 text-primary" />
-                        {f.numero}
-                      </span>
-                    </TableCell>
-                    <TableCell className="font-semibold">{f.aluno}</TableCell>
-                    <TableCell className="font-mono text-xs text-muted-foreground">
-                      {f.processo}
-                    </TableCell>
-                    <TableCell className="text-sm text-muted-foreground">{f.descricao}</TableCell>
-                    <TableCell>{new Date(f.emitida).toLocaleDateString("pt-PT")}</TableCell>
-                    <TableCell>{new Date(f.vencimento).toLocaleDateString("pt-PT")}</TableCell>
-                    <TableCell className="text-right font-bold">{kwanza(f.valor)}</TableCell>
-                    <TableCell className="text-right">
-                      <StatusBadge
-                        status={
-                          f.estado === "Paga"
-                            ? "paid"
-                            : f.estado === "Vencida"
-                              ? "overdue"
-                              : "pending"
-                        }
-                        label={f.estado}
-                      />
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex justify-end gap-2">
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => void downloadReceipt(f, f.numero, f.valor, "fatura")}
-                        >
-                          <FileDown className="size-3.5" /> Fatura
-                        </Button>
-                        {multicaixaOn && f.estado !== "Paga" ? (
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            onClick={() =>
-                              setEmisInvoice({
-                                id: f.id,
-                                numero: f.numero,
-                                valor: Math.max(f.valor - f.recebido, 0) || f.valor,
-                              })
-                            }
-                          >
-                            <QrCode className="size-3.5" /> Referência EMIS
-                          </Button>
-                        ) : null}
-                        {f.estado !== "Paga" ? (
-                          <QuickFormModal
-                            eyebrow={f.numero}
-                            title={`Receber ${f.aluno}`}
-                            description="Liquida esta fatura e lança o recibo no caixa."
-                            icon={<Wallet className="size-5" />}
-                            submitLabel="Confirmar pagamento"
-                            successDescription="Pagamento registado."
-                            fields={[
-                              {
-                                name: "valor",
-                                label: "Valor (Kz)",
-                                type: "number",
-                                defaultValue: String(Math.max(f.valor - f.recebido, 0) || f.valor),
-                              },
-                              {
-                                name: "recibo",
-                                label: "Referência interna (opcional)",
-                                defaultValue: `RC-${f.numero.replace(/^FT-?/i, "")}`,
-                                required: false,
-                              },
-                              { name: "data", label: "Data", type: "date", required: false },
-                              {
-                                name: "metodo",
-                                label: "Método",
-                                type: "select",
-                                options: receiveMethods,
-                              },
-                              {
-                                name: "referencia",
-                                label: "Referência",
-                                required: false,
-                                full: true,
-                                placeholder: "Referência do comprovativo ou do fornecedor",
-                              },
-                            ]}
-                            onSubmit={async (values) => {
-                              const amount = Number(values["valor"]);
-                              const methodMap = {
-                                Numerário: "cash",
-                                Transferência: "transfer",
-                                "Multicaixa Express": "multicaixa_express",
-                                "Unitel Money": "unitel_money",
-                              } as const;
-                              const method =
-                                methodMap[
-                                  (values["metodo"] as keyof typeof methodMap) ?? "Numerário"
-                                ] ?? "cash";
-                              const reference = values["referencia"] || undefined;
-                              const paid = await recordInvoicePayment({
-                                data: {
-                                  invoiceId: f.id,
-                                  receiptNumber: values["recibo"],
-                                  amount,
-                                  method,
-                                  reference,
-                                  paidAt: values["data"]
-                                    ? new Date(`${values["data"]}T12:00:00Z`).toISOString()
-                                    : undefined,
-                                },
-                              });
-                              await Promise.all([
-                                queryClient.invalidateQueries({
-                                  queryKey: ["finance", "invoices"],
-                                }),
-                                queryClient.invalidateQueries({
-                                  queryKey: ["finance", "reporting"],
-                                }),
-                                queryClient.invalidateQueries({ queryKey: ["arquivos"] }),
-                              ]);
-                              // Número oficial vem do servidor (gerado atomicamente) — nunca do
-                              // valor digitado, para o PDF impresso bater sempre com a base de dados.
-                              await downloadReceipt(f, paid.receipt_number, amount);
-                              if (paid?.library_document_code) {
-                                toast.success(`Recibo arquivado · ${paid.library_document_code}`);
-                              }
-                            }}
-                            trigger={(open) => (
-                              <Button size="sm" variant="outline" onClick={open}>
-                                <Wallet className="size-3.5" /> Receber
-                              </Button>
-                            )}
-                          />
-                        ) : (
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() =>
-                              void downloadReceipt(
-                                f,
-                                `RC-${f.numero.replace(/^FT-?/i, "")}`,
-                                f.recebido || f.valor,
-                              )
-                            }
-                          >
-                            <FileDown className="size-3.5" /> Recibo
-                          </Button>
-                        )}
-                        {resendInvoices ? (
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            onClick={async () => {
-                              await navigator.clipboard.writeText(
-                                `${f.numero} · ${f.aluno} · ${kwanza(f.valor)} · ${f.estado}`,
-                              );
-                              toast.success("Texto da fatura copiado para e-mail Resend");
-                            }}
-                          >
-                            E-mail
-                          </Button>
-                        ) : null}
-                        {whatsappOn ? (
-                          <Button size="sm" variant="ghost" asChild>
-                            <a
-                              href={whatsappHref(
-                                "",
-                                `Fatura ${f.numero} de ${f.aluno}: ${kwanza(f.valor)} (${f.estado})`,
-                              )}
-                              target="_blank"
-                              rel="noreferrer"
-                            >
-                              WhatsApp
-                            </a>
-                          </Button>
-                        ) : null}
-                        {f.estado !== "Paga" && f.recebido === 0 ? (
-                          <ConfirmActionModal
-                            title="Cancelar fatura"
-                            description={`A fatura ${f.numero} de ${f.aluno} sai da lista de cobrança. Recibos existentes impedem esta operação.`}
-                            confirmLabel="Cancelar fatura"
-                            reasonLabel="Motivo da anulação"
-                            onConfirm={async (reason) => {
-                              await cancelInvoice({
-                                data: { invoiceId: f.id, reason: reason ?? "" },
-                              });
-                              await Promise.all([
-                                queryClient.invalidateQueries({
-                                  queryKey: ["finance", "invoices"],
-                                }),
-                                queryClient.invalidateQueries({
-                                  queryKey: ["finance", "reporting"],
-                                }),
-                                queryClient.invalidateQueries({
-                                  queryKey: ["dashboard", "overview"],
-                                }),
-                              ]);
-                            }}
-                            trigger={(open) => (
-                              <Button
-                                size="sm"
-                                variant="ghost"
-                                className="text-destructive"
-                                onClick={open}
-                              >
-                                <X className="size-3.5" /> Anular
-                              </Button>
-                            )}
-                          />
-                        ) : null}
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
-                {invoicesQuery.isError ? (
-                  <TableRow>
-                    <TableCell colSpan={9} className="py-8 text-center text-sm text-destructive">
-                      Não foi possível carregar as faturas.
-                    </TableCell>
-                  </TableRow>
+            {/*
+              A fatura é a entidade do SIGA em que a acção vive na própria linha
+              (receber, anular, referência EMIS). Por isso o telemóvel usa cartão
+              e não linha simples — §17 e §73: cartão quando há acções, linha
+              quando só há navegação. A paginação abaixo é partilhada.
+            */}
+            <ResponsiveEntityView
+              mobile={
+                invoicesQuery.isLoading ? (
+                  <EntityListSkeleton rows={5} />
+                ) : invoicesQuery.isError ? (
+                  <MobileErrorState
+                    what="as faturas"
+                    error={invoicesQuery.error}
+                    onRetry={() => void invoicesQuery.refetch()}
+                  />
                 ) : filtered.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={9} className="p-4">
-                      <EmptyState
-                        icon={FileText}
-                        title="Nenhuma factura neste filtro"
-                        description="Altere o estado, o período ou a pesquisa — ou emita uma nova factura na tesouraria."
-                        compact
-                      />
-                    </TableCell>
-                  </TableRow>
-                ) : null}
-              </TableBody>
-            </Table>
+                  <MobileEmptyState
+                    icon={FileText}
+                    title="Nenhuma factura neste filtro"
+                    description="Altere o estado, o período ou a pesquisa — ou emita uma nova factura na tesouraria."
+                  />
+                ) : (
+                  <ul className="space-y-2.5 p-3">
+                    {pagedFaturas.map((f) => (
+                      <li key={f.id} className="rounded-xl border border-border bg-card p-3.5">
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="min-w-0">
+                            <p className="truncate text-sm font-medium text-foreground">
+                              {f.aluno}
+                            </p>
+                            <p className="mt-0.5 truncate text-xs text-muted-foreground">
+                              <span className="tnum">{f.numero}</span> · {f.descricao}
+                            </p>
+                          </div>
+                          <StatusBadge
+                            status={
+                              f.estado === "Paga"
+                                ? "paid"
+                                : f.estado === "Vencida"
+                                  ? "overdue"
+                                  : "pending"
+                            }
+                            label={f.estado}
+                            size="sm"
+                          />
+                        </div>
+                        <div className="mt-2.5 border-t border-border pt-2.5">
+                          <MoneyValue
+                            amount={f.valor}
+                            size="lg"
+                            tone={f.estado === "Vencida" ? "negative" : "default"}
+                          />
+                          <p className="mt-0.5 text-[11px] text-muted-foreground">
+                            Vence {new Date(f.vencimento).toLocaleDateString("pt-PT")}
+                          </p>
+                        </div>
+                        <div className="mt-2.5">
+                          <FaturaActions f={f} />
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                )
+              }
+              desktop={
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Número</TableHead>
+                      <TableHead>Aluno</TableHead>
+                      <TableHead>Processo</TableHead>
+                      <TableHead>Descrição</TableHead>
+                      <TableHead>Emitida</TableHead>
+                      <TableHead>Vencimento</TableHead>
+                      <TableHead className="text-right">Valor</TableHead>
+                      <TableHead className="text-right">Estado</TableHead>
+                      <TableHead className="text-right">Acção</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {pagedFaturas.map((f) => (
+                      <TableRow key={f.id}>
+                        <TableCell className="font-mono text-xs">
+                          <span className="flex items-center gap-2">
+                            <FileText className="size-4 text-primary" />
+                            {f.numero}
+                          </span>
+                        </TableCell>
+                        <TableCell className="font-semibold">{f.aluno}</TableCell>
+                        <TableCell className="font-mono text-xs text-muted-foreground">
+                          {f.processo}
+                        </TableCell>
+                        <TableCell className="text-sm text-muted-foreground">
+                          {f.descricao}
+                        </TableCell>
+                        <TableCell>{new Date(f.emitida).toLocaleDateString("pt-PT")}</TableCell>
+                        <TableCell>{new Date(f.vencimento).toLocaleDateString("pt-PT")}</TableCell>
+                        <TableCell className="text-right font-bold">{kwanza(f.valor)}</TableCell>
+                        <TableCell className="text-right">
+                          <StatusBadge
+                            status={
+                              f.estado === "Paga"
+                                ? "paid"
+                                : f.estado === "Vencida"
+                                  ? "overdue"
+                                  : "pending"
+                            }
+                            label={f.estado}
+                          />
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <FaturaActions f={f} />
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                    {invoicesQuery.isError ? (
+                      <TableRow>
+                        <TableCell
+                          colSpan={9}
+                          className="py-8 text-center text-sm text-destructive"
+                        >
+                          Não foi possível carregar as faturas.
+                        </TableCell>
+                      </TableRow>
+                    ) : filtered.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={9} className="p-4">
+                          <EmptyState
+                            icon={FileText}
+                            title="Nenhuma factura neste filtro"
+                            description="Altere o estado, o período ou a pesquisa — ou emita uma nova factura na tesouraria."
+                            compact
+                          />
+                        </TableCell>
+                      </TableRow>
+                    ) : null}
+                  </TableBody>
+                </Table>
+              }
+            />
             <ListPaginationBar
               page={page}
               pageSize={pageSize}

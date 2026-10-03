@@ -21,7 +21,7 @@ describe("integration actions", () => {
 
   it("resolves provider ids from capability prefixes", () => {
     expect(providerIdFromCapability("whatsapp.notices")).toBe("whatsapp_business");
-    expect(providerIdFromCapability("m365.outlook")).toBe("microsoft_365_education");
+    expect(providerIdFromCapability("sige.export_students")).toBe("sige");
     expect(providerIdFromCapability("agt.einvoice")).toBe("agt");
   });
 

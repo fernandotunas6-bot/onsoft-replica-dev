@@ -1,0 +1,66 @@
+-- Continuacao de `20260924123000_close_school_member_write_policies.sql`.
+--
+-- Essa migracao fechou sete tabelas cujo `FOR ALL TO authenticated` tinha como
+-- unica condicao `public.is_school_member(school_id)` -- pertenca a escola, sem
+-- olhar ao papel. `person_documents` cumpre exactamente esse criterio e ficou de
+-- fora. Guarda numeros de BI e passaporte.
+--
+-- O que a producao tem hoje (retrato de 2026-09-24):
+--
+--   ALL    → is_school_member(school_id)                       ← larga
+--   SELECT → is_school_member(school_id)                       ← larga
+--   SELECT → is_school_member AND can_read_students()          ← estrita
+--   INSERT → is_school_member AND can_manage_students()
+--            AND created_by = auth.uid()                       ← estrita
+--   UPDATE → is_school_member AND can_manage_students()        ← estrita
+--
+-- Politicas permissivas combinam-se com OR, portanto as duas largas vencem as
+-- tres estritas: qualquer membro activo da escola le, altera e apaga o documento
+-- de identidade de qualquer pessoa.
+--
+-- ---------------------------------------------------------------------------
+-- PORQUE E SEGURO
+--
+-- Pela mesma verificacao da migracao anterior, feita ficheiro a ficheiro. A
+-- aplicacao toca `person_documents` em dois ficheiros, e sempre com `service_role`
+-- (`loadSgaAdminClient()`), que ignora RLS:
+--
+--   · src/features/people/server.ts     -- :113 (`syncBiDocumentFromNif`, que
+--     recebe `db: AdminDb`, logo nunca e o cliente da sessao), :468, :485,
+--     :1218, :1224, sob `loadSgaAdminClient()` em :458 e :1175
+--   · src/features/enrollment/server.ts -- :348, sob `loadSgaAdminClient()` em :279
+--
+-- Nenhum `context.supabase` em nenhum dos handlers. Largar as politicas largas
+-- nao alcanca nenhum caminho da aplicacao: alcanca o acesso directo pelo
+-- PostgREST com o token do utilizador, que e o buraco.
+--
+-- Idempotente. NAO foi aplicada -- e escrita na base, decisao do dono.
+-- Depois de aplicar: `npm run siga:db-snapshot`.
+-- ---------------------------------------------------------------------------
+
+-- 1. A escrita sai do cliente do browser. As politicas estritas de INSERT e
+--    UPDATE ja existem e passam a ser as unicas. Nao havia politica de DELETE, e
+--    continua a nao haver: a aplicacao usa `deleted_at` (apagamento suave), e um
+--    DELETE verdadeiro fica fora do alcance do cliente.
+DROP POLICY IF EXISTS "Manage school person documents" ON public.person_documents;
+
+-- 2. A leitura NAO e apertada aqui, pela mesma razao que a migracao anterior deu
+--    para as suas sete tabelas: qualquer membro continua a ler o documento de
+--    identidade de qualquer pessoa da escola, e isso e um problema real -- mas
+--    apertar exige mapear primeiro o que os portais do aluno e do encarregado
+--    precisam de ver. Fica separado de proposito.
+--
+--    `Read school person documents` (USING is_school_member) mantem-se, e ao lado
+--    dela a estrita `Read person_documents in own school` (que acrescenta
+--    `can_read_students()`) continua sem decidir nada. Quando a leitura for
+--    tratada, e a larga que sai.
+
+-- Ficam, todas ja existentes antes desta migracao:
+--   SELECT "Read school person documents"       USING (is_school_member(school_id))
+--   SELECT "Read person_documents in own school"
+--            USING (is_school_member(school_id) AND can_read_students())
+--   INSERT "Create person_documents in own school"
+--            WITH CHECK (is_school_member AND can_manage_students()
+--                        AND created_by = auth.uid())
+--   UPDATE "Update person_documents in own school"
+--            USING/CHECK (is_school_member AND can_manage_students())

@@ -139,96 +139,6 @@ export const integrationInstallPackages: Record<CatalogIntegrationId, Integratio
       ),
     ],
   },
-  gmail_workspace: {
-    provider: "gmail_workspace",
-    installUrl: "https://workspace.google.com/",
-    docsUrl: "https://developers.google.com/gmail/api",
-    summary: "Instala envio automático de boas-vindas e credenciais com a API oficial do Gmail.",
-    capabilities: [
-      cap(
-        "gmail.welcome",
-        "E-mail de boas-vindas",
-        "Enviar convite institucional de matrícula via Gmail.",
-        "comunicacoes",
-      ),
-      cap(
-        "gmail.credentials",
-        "Credenciais por Gmail",
-        "Disparar e-mail com senha temporária ao criar conta.",
-        "documentos",
-      ),
-    ],
-  },
-  google_classroom: {
-    provider: "google_classroom",
-    installUrl: "https://classroom.google.com/",
-    docsUrl: "https://developers.google.com/classroom",
-    summary: "Instala ligação às turmas do Google Classroom.",
-    capabilities: [
-      cap(
-        "classroom.classes",
-        "Turmas Classroom",
-        "Abrir o painel da turma no Google Classroom.",
-        "pedagogica",
-      ),
-      cap("classroom.work", "Trabalhos de turma", "Organizar entregas no Classroom.", "pedagogica"),
-    ],
-  },
-  moodle: {
-    provider: "moodle",
-    installUrl: "https://moodle.org/",
-    docsUrl: "https://docs.moodle.org/",
-    summary: "Instala disciplinas e notas integradas no Moodle.",
-    capabilities: [
-      cap(
-        "moodle.courses",
-        "Disciplinas Moodle",
-        "Navegar para a disciplina no LMS Moodle.",
-        "pedagogica",
-      ),
-      cap(
-        "moodle.grades",
-        "Notas do Moodle",
-        "Importar notas de trabalhos do Moodle.",
-        "pedagogica",
-      ),
-    ],
-  },
-  canvas: {
-    provider: "canvas",
-    installUrl: "https://www.instructure.com/canvas",
-    docsUrl: "https://canvas.instructure.com/doc/api/",
-    summary: "Instala apoio ao ensino híbrido com Canvas LMS.",
-    capabilities: [
-      cap(
-        "canvas.courses",
-        "Cursos Canvas",
-        "Abrir o curso correspondente no Canvas LMS.",
-        "pedagogica",
-      ),
-      cap(
-        "canvas.assignments",
-        "Tarefas Canvas",
-        "Lançar pontuações na pauta do SIGA.",
-        "pedagogica",
-      ),
-    ],
-  },
-  microsoft_365_education: {
-    provider: "microsoft_365_education",
-    installUrl: "https://www.microsoft.com/education",
-    docsUrl: "https://learn.microsoft.com/graph/overview",
-    summary: "Instala canal institucional no Outlook e biblioteca no OneDrive.",
-    capabilities: [
-      cap(
-        "m365.outlook",
-        "Outlook Institucional",
-        "Abrir nova mensagem no Outlook Web.",
-        "comunicacoes",
-      ),
-      cap("m365.onedrive", "OneDrive da Escola", "Navegar na biblioteca de ficheiros.", "arquivos"),
-    ],
-  },
   google_calendar: {
     provider: "google_calendar",
     installUrl: "https://calendar.google.com/",
@@ -257,27 +167,6 @@ export const integrationInstallPackages: Record<CatalogIntegrationId, Integratio
       ),
     ],
   },
-  firebase_analytics: {
-    provider: "firebase_analytics",
-    installUrl: "https://firebase.google.com/docs/analytics",
-    docsUrl: "https://firebase.google.com/docs",
-    summary:
-      "Opcional e desligado no núcleo (VITE_FIREBASE_ANALYTICS). Crashlytics / telemetria híbrida sob consentimento.",
-    capabilities: [
-      cap(
-        "firebase.crashlytics",
-        "Crashlytics Log",
-        "Registar excepções e relatórios na consola de monitorização.",
-        "pedagogica",
-      ),
-      cap(
-        "firebase.telemetry",
-        "Telemetria de App",
-        "Métricas de desempenho e uso híbrido.",
-        "comunicacoes",
-      ),
-    ],
-  },
   zoom: {
     provider: "zoom",
     installUrl: "https://developers.zoom.us/",
@@ -295,41 +184,6 @@ export const integrationInstallPackages: Record<CatalogIntegrationId, Integratio
         "Convites de aula",
         "Enviar o link Zoom nos comunicados da escola.",
         "comunicacoes",
-      ),
-    ],
-  },
-  teams: {
-    provider: "teams",
-    installUrl:
-      "https://learn.microsoft.com/microsoftteams/platform/concepts/build-and-test/apps-package",
-    docsUrl: "https://learn.microsoft.com/graph/api/resources/onlinemeeting",
-    summary: "Instala reuniões e turmas Microsoft Teams nos horários.",
-    capabilities: [
-      cap(
-        "teams.meetings",
-        "Reuniões Teams",
-        "Criar reunião Teams a partir do horário.",
-        "pedagogica",
-      ),
-      cap(
-        "teams.classes",
-        "Turma Teams",
-        "Abrir a equipa da turma no Microsoft Teams.",
-        "pedagogica",
-      ),
-    ],
-  },
-  turnitin: {
-    provider: "turnitin",
-    installUrl: "https://developers.turnitin.com/",
-    docsUrl: "https://developers.turnitin.com/",
-    summary: "Instala verificação de originalidade na pauta e nos trabalhos.",
-    capabilities: [
-      cap(
-        "turnitin.originality",
-        "Originalidade",
-        "Enviar trabalhos da pauta para o Turnitin.",
-        "pedagogica",
       ),
     ],
   },
@@ -407,11 +261,7 @@ export function publicSchoolEmail(
   email: string | null | undefined,
   installedProviders: readonly string[],
 ) {
-  if (
-    !installedProviders.includes("resend_email") &&
-    !installedProviders.includes("gmail_workspace")
-  )
-    return null;
+  if (!installedProviders.includes("resend_email")) return null;
   const trimmed = email?.trim();
   return trimmed || null;
 }

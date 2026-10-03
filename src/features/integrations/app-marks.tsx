@@ -1,6 +1,5 @@
 import type { ElementType } from "react";
 import {
-  Activity,
   BookOpen,
   CalendarDays,
   FileText,
@@ -10,7 +9,6 @@ import {
   KeyRound,
   Landmark,
   LayoutGrid,
-  Mail,
   Megaphone,
   Network,
   NotebookPen,
@@ -30,16 +28,10 @@ import { toneClass } from "@/components/ui/icon-chip-styles";
 
 const brandLogos: Record<string, { src: string; label: string; bleed?: boolean }> = {
   zoom: { src: "/brands/zoom.png", label: "Zoom" },
-  teams: { src: "/brands/teams.png", label: "Microsoft Teams" },
   whatsapp_business: { src: "/brands/whatsapp.png", label: "WhatsApp" },
-  google_classroom: { src: "/brands/classroom.png", label: "Google Classroom" },
   google_calendar: { src: "/brands/gcal.png", label: "Google Calendar" },
-  moodle: { src: "/brands/moodle.png", label: "Moodle" },
-  microsoft_365_education: { src: "/brands/microsoft365.png", label: "Microsoft 365" },
   apple_calendar: { src: "/brands/apple-calendar.svg", label: "Apple Calendar", bleed: true },
   resend_email: { src: "/brands/resend-mark.svg", label: "Resend", bleed: true },
-  turnitin: { src: "/brands/turnitin.svg", label: "Turnitin", bleed: true },
-  canvas: { src: "/brands/canvas-color.svg", label: "Canvas LMS", bleed: true },
   multicaixa_express: { src: "/brands/multicaixa.svg", label: "Multicaixa Express", bleed: true },
   unitel_money: { src: "/brands/unitel.svg", label: "Unitel Money", bleed: true },
   agt: { src: "/brands/agt.svg", label: "AGT", bleed: true },
@@ -51,8 +43,6 @@ type SigaMark = { icon: ElementType; tone: ChipTone; label: string };
 // mesmo padrão dos módulos internos do SIGA (sigaModuleMarks) em vez de
 // tentar carregar um ficheiro de marca que não existe em public/brands/.
 const genericIntegrationMarks: Record<string, SigaMark> = {
-  gmail_workspace: { icon: Mail, tone: "info", label: "Gmail Workspace" },
-  firebase_analytics: { icon: Activity, tone: "warning", label: "Firebase & Crashlytics" },
   sige: { icon: Landmark, tone: "muted", label: "SIGE" },
 };
 

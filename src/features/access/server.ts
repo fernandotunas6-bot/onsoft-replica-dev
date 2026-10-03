@@ -79,18 +79,27 @@ export async function otherSchoolAccess(
 
   let adminAnywhere = false;
   if (rows.length) {
-    // `member_roles` tem duas chaves para `roles`: sem indicar qual, o
-    // PostgREST recusa o embed (PGRST201) e, com o erro ignorado, a conta
-    // passava por não-administrador — a protecção ficava desligada.
+    // `roles!member_roles_school_id_role_id_fkey`: `member_roles` tem DUAS chaves
+    // estrangeiras para `roles` -- `role_id → roles(id)` e a composta
+    // `(school_id, role_id) → roles(school_id, id)`. Sem dizer qual, o PostgREST
+    // recusa a consulta inteira com PGRST201. Escolhida a composta, que é a que
+    // garante que o cargo é da mesma escola que o vínculo.
+    //
+    // O erro tem de ser lançado, não engolido. Estava `(roleRows ?? [])`, e uma
+    // consulta recusada dava lista vazia, logo `adminAnywhere = false`: um
+    // administrador deixava de ser reconhecido como tal. As três verificações que
+    // dependem disto -- quem pode alterar cargos de um administrador, quem entra
+    // pela ligação directa, quem lhe redefine a senha -- passavam todas.
     const { data: roleRows, error: roleError } = await admin
       .from("member_roles")
-      .select("roles!member_roles_role_id_fkey(code)")
+      .select("roles!member_roles_school_id_role_id_fkey(code)")
       .in(
         "membership_id",
         rows.map((m) => m.id),
       );
     // Sem conseguir ler os papéis, recusa-se (como se fosse administrador).
     if (roleError) return { hasOtherActiveSchools: otherActive.length > 0, adminAnywhere: true };
+
     adminAnywhere = ((roleRows ?? []) as Array<{ roles?: { code?: string } | null }>).some((r) =>
       isAdministratorRole(String(r.roles?.code ?? "")),
     );
@@ -578,9 +587,11 @@ export const resendSystemInvite = createServerFn({ method: "POST" })
       throw new Error("Esta conta também dá acesso a outra escola. Use Enviar E-mail.");
     }
     if (!isAdministrator) {
+      // Mesma desambiguação e mesma razão de não engolir o erro: com ele engolido,
+      // `isStaff` dava falso e o bloqueio abaixo nunca chegava a acontecer.
       const { data: targetRoles, error: targetRolesError } = await admin
         .from("member_roles")
-        .select("roles!member_roles_role_id_fkey(code)")
+        .select("roles!member_roles_school_id_role_id_fkey(code)")
         .eq("membership_id", membership.id);
       if (targetRolesError) {
         throw new Error("Não foi possível confirmar o perfil desta conta. Use Enviar E-mail.");
@@ -732,7 +743,7 @@ export const signInWithIdentifierFn = createServerFn({ method: "POST" })
     const email = await resolveBiOrEmailToUserEmail(data.identifier);
     if (!email.includes("@")) return { ok: false as const, error: "invalid_credentials" as const };
 
-    return passwordGrant(email, data.password);
+    return passwordGrant(email, data.password, fetch, data.captchaToken);
   });
 
 export const resetStaffPasswordDirect = createServerFn({ method: "POST" })

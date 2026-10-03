@@ -1,5 +1,6 @@
 import type { ClassContext, SchoolIdentity } from "./types";
 import { AngolaEmblem } from "@/features/academic/AngolaEmblem";
+import { MediaFrame } from "@/components/ui/media-frame";
 
 type Props = {
   school: SchoolIdentity;
@@ -11,13 +12,26 @@ type Props = {
 export function DocumentHeader({ school, title, context, subject }: Props) {
   return (
     <header className="text-center font-sans space-y-2">
-      <div className="flex justify-center mb-1">
+      <div className="grid grid-cols-[1fr_auto_1fr] items-center mb-1">
+        <span aria-hidden="true" />
         <AngolaEmblem className="h-14 w-auto" />
+        {school.logoUrl ? (
+          <MediaFrame
+            src={school.logoUrl}
+            alt={`Logótipo de ${school.schoolName}`}
+            ratio="1/1"
+            rounded="rounded-none"
+            className="ml-auto size-14 bg-transparent"
+            imgClassName="object-contain"
+          />
+        ) : (
+          <span aria-hidden="true" />
+        )}
       </div>
       <div className="flex flex-col gap-0.5 text-[11px] font-bold text-muted-foreground">
         <span>{school.republic ?? "REPÚBLICA DE ANGOLA"}</span>
-        <span>{school.province}</span>
-        <span>{school.municipality}</span>
+        {school.province && <span>{school.province}</span>}
+        {school.municipality && <span>{school.municipality}</span>}
         {school.educationOffice && <span>{school.educationOffice}</span>}
         <span className="text-foreground text-xs">{school.schoolName}</span>
       </div>

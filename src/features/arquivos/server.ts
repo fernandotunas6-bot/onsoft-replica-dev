@@ -137,7 +137,13 @@ function mapRow(row: Record<string, unknown>): SchoolFileRecord {
   };
 }
 
-function canSeeRow(row: SchoolFileRecord, userId: string, role: string) {
+/**
+ * Quem pode ver um ficheiro. Exportada para teste: a mesma regra vive em
+ * `supabase/migrations/20260924072000_siga_files_rls_visibility.sql`, e as duas
+ * tem de continuar a dizer o mesmo -- `tests/security/siga-files-rls.test.ts`
+ * compara-as.
+ */
+export function canSeeRow(row: SchoolFileRecord, userId: string, role: string) {
   if (!canReadFileArea(role, row.area)) return false;
   if (row.area === "pessoal" && row.ownerUserId !== userId) return false;
   if (row.visibility === "private" && row.ownerUserId !== userId) {

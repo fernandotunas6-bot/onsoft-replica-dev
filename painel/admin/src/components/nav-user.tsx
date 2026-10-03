@@ -1,15 +1,10 @@
-"use client"
+"use client";
 
-import {
-  CreditCard,
-  EllipsisVertical,
-  LogOut,
-} from "lucide-react"
-import Link from "next/link"
-import { useRouter } from "next/navigation"
+import { CreditCard, EllipsisVertical, LogOut } from "lucide-react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 
-import { Logo } from "@/components/logo"
-import { createClient, isSupabaseConfigured } from "@/lib/supabase/client"
+import { createClient, isSupabaseConfigured } from "@/lib/supabase/client";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -18,33 +13,33 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
+} from "@/components/ui/dropdown-menu";
 import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
   useSidebar,
-} from "@/components/ui/sidebar"
+} from "@/components/ui/sidebar";
 
 export function NavUser({
   user,
 }: {
   user: {
-    name: string
-    email: string
-    avatar: string
-  }
+    name: string;
+    email: string;
+    avatar: string;
+  };
 }) {
-  const { isMobile } = useSidebar()
-  const router = useRouter()
+  const { isMobile } = useSidebar();
+  const router = useRouter();
 
   async function handleSignOut() {
     if (isSupabaseConfigured()) {
-      const supabase = createClient()
-      await supabase.auth.signOut()
+      const supabase = createClient();
+      await supabase.auth.signOut();
     }
-    router.push("/sign-in")
-    router.refresh()
+    router.push("/sign-in");
+    router.refresh();
   }
 
   const initials =
@@ -52,7 +47,7 @@ export function NavUser({
       .split(/\s+/)
       .slice(0, 2)
       .map((n) => n[0]?.toUpperCase() ?? "")
-      .join("") || "A"
+      .join("") || "A";
 
   return (
     <SidebarMenu>
@@ -76,9 +71,7 @@ export function NavUser({
               )}
               <div className="grid flex-1 text-left text-sm leading-tight">
                 <span className="truncate font-medium">{user.name}</span>
-                <span className="text-muted-foreground truncate text-xs">
-                  {user.email}
-                </span>
+                <span className="text-muted-foreground truncate text-xs">{user.email}</span>
               </div>
               <EllipsisVertical className="ml-auto size-4" />
             </SidebarMenuButton>
@@ -104,9 +97,7 @@ export function NavUser({
                 )}
                 <div className="grid flex-1 text-left text-sm leading-tight">
                   <span className="truncate font-medium">{user.name}</span>
-                  <span className="text-muted-foreground truncate text-xs">
-                    {user.email}
-                  </span>
+                  <span className="text-muted-foreground truncate text-xs">{user.email}</span>
                 </div>
               </div>
             </DropdownMenuLabel>
@@ -128,5 +119,5 @@ export function NavUser({
         </DropdownMenu>
       </SidebarMenuItem>
     </SidebarMenu>
-  )
+  );
 }

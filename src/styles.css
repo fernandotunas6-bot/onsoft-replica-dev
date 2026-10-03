@@ -658,6 +658,148 @@ h6,
   font-weight: 500;
 }
 
+/* ---------------------------------------------------------------------------
+ * SIGA Mobile Design System — tokens de composição mobile.
+ *
+ * Tudo o que é decisão visual do telemóvel vive aqui: alturas de controlo,
+ * margem do ecrã, altura da barra inferior e a escala de z-index. Um ecrã que
+ * precise de um valor novo acrescenta-o aqui, não inventa um número no JSX.
+ * ------------------------------------------------------------------------- */
+
+:root {
+  /* Espaço — a mesma escala do Tailwind, nomeada para uso em CSS puro. */
+  --siga-space-1: 0.25rem;
+  --siga-space-2: 0.5rem;
+  --siga-space-3: 0.75rem;
+  --siga-space-4: 1rem;
+  --siga-space-5: 1.25rem;
+  --siga-space-6: 1.5rem;
+  --siga-space-8: 2rem;
+
+  /* Margem lateral do conteúdo no telemóvel. */
+  --siga-mobile-pad: 1rem;
+
+  /*
+   * Alturas de controlo. `md` é 44px porque é o alvo mínimo de toque das WCAG
+   * (2.5.8) e da HIG: qualquer botão que se toque com o dedo usa este ou o lg.
+   */
+  --siga-control-sm: 2.25rem;
+  --siga-control-md: 2.75rem;
+  --siga-control-lg: 3rem;
+  --siga-touch-min: 2.75rem;
+
+  /* Cromo da aplicação mobile. */
+  --siga-mobile-header-h: 3.5rem;
+  --siga-mobile-context-h: 2.25rem;
+  --siga-bottom-nav-h: 3.75rem;
+
+  /*
+   * Z-index com nomes. Antes havia z-30/z-40/z-50 espalhados e nada dizia qual
+   * ficava por cima de qual quando se abriam dois ao mesmo tempo.
+   */
+  --siga-z-content: 0;
+  --siga-z-sticky: 20;
+  --siga-z-header: 30;
+  --siga-z-bottom-nav: 35;
+  --siga-z-overlay: 50;
+  --siga-z-sheet: 55;
+  --siga-z-toast: 60;
+
+  /* Movimento — curto e sem salto; ver §49 da especificação. */
+  --siga-motion-fast: 120ms;
+  --siga-motion-base: 180ms;
+  --siga-motion-slow: 220ms;
+  --siga-ease: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Áreas seguras: o entalhe e a barra de gestos do iOS/Android. */
+@utility pb-safe {
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+@utility pt-safe {
+  padding-top: env(safe-area-inset-top);
+}
+
+/* Espaço para a barra inferior não tapar o fim do conteúdo nem o último botão. */
+@utility pb-bottom-nav {
+  padding-bottom: calc(var(--siga-bottom-nav-h) + env(safe-area-inset-bottom) + 0.5rem);
+}
+
+/*
+ * Alvo de toque mínimo. Usar em botões só-ícone: mantém o glifo pequeno e a
+ * área tocável em 44px, sem inchar o desenho.
+ */
+@utility touch-target {
+  min-height: var(--siga-touch-min);
+  min-width: var(--siga-touch-min);
+}
+
+/* Números alinhados em coluna — dinheiro, notas, contagens. */
+@utility tnum {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum";
+}
+
+/*
+ * Transição de rota no telemóvel: opacidade + 4px, nada mais. Uma animação
+ * maior faz a aplicação parecer lenta em vez de nativa.
+ */
+@utility page-enter {
+  animation: siga-page-enter var(--siga-motion-base) var(--siga-ease);
+}
+
+@keyframes siga-page-enter {
+  from {
+    opacity: 0;
+    transform: translateX(4px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .page-enter {
+    animation: none;
+  }
+}
+
+/*
+ * O telemóvel usa densidade `default`: as listas administrativas são densas o
+ * suficiente para caberem, os formulários ficam confortáveis. A densidade
+ * `compact` do utilizador continua a valer — isto só define o ponto de partida.
+ */
+@media (max-width: 767px) {
+  :root {
+    --siga-mobile-pad: 1rem;
+  }
+}
+
+/*
+ * Véu das folhas e diálogos. Token porque o valor não é o mesmo nos dois temas:
+ * no claro basta escurecer, no escuro um preto a 55% já não separa a folha do
+ * fundo — é preciso mais opacidade para o painel se ler como estando à frente.
+ */
+:root {
+  --siga-overlay: oklch(0.18 0.02 285 / 55%);
+}
+
+.dark {
+  --siga-overlay: oklch(0.08 0.01 285 / 72%);
+}
+
+/*
+ * Moldura do visor da câmara (leitura de QR). É escura nos dois temas de
+ * propósito: é a área onde ainda não há imagem, e um fundo claro a piscar antes
+ * do primeiro fotograma lê-se como falha do leitor.
+ */
+:root,
+.dark {
+  --siga-camera-bezel: oklch(0.14 0.01 285);
+}
+
 /*
  * Poster do vídeo do ecrã de entrada (1.º frame de public/auth-classroom.mp4, 1280×720,
  * WebP ~16 KB) embutido no CSS, só em ecrãs ≥ 1024 px. É o maior elemento do ecrã de

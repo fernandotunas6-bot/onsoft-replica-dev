@@ -55,6 +55,7 @@ vi.mock("@/features/communications/server", () => ({
 vi.mock("@/features/integrations/server", () => ({
   sendSchoolResendEmail: vi.fn(),
   sendSchoolWhatsAppMessage: vi.fn(),
+  sendSchoolSmsMessage: vi.fn(),
 }));
 
 /** Sem cast: tem de satisfazer a forma real devolvida pela server function. */
