@@ -754,6 +754,15 @@ export const exportSchoolDataFn = createServerFn({ method: "POST" })
       "Secretaria",
       "Tesouraria",
     ]);
+    // Cada módulo com os mesmos cargos da importação: a Tesouraria não leva os
+    // dados pessoais de alunos e encarregados, nem a Secretaria os financeiros.
+    const roles = membership.allAppRoles ?? [membership.appRole];
+    const denied = data.modules.filter(
+      (module) => !rolesForModule(module).some((role) => roles.includes(role)),
+    );
+    if (denied.length) {
+      throw new Error(`Sem permissão para exportar: ${denied.join(", ")}.`);
+    }
 
     // Carregar nome da escola
     const { data: school } = await db
@@ -771,6 +780,25 @@ export const exportSchoolDataFn = createServerFn({ method: "POST" })
       modules: data.modules,
       mode: data.mode,
     });
+
+    // Uma exportação leva dados pessoais da escola inteira: fica registada.
+    const { error: auditError } = await db.from("audit_logs").insert({
+      school_id: membership.schoolId,
+      actor_user_id: context.userId,
+      action: "school_data.exported",
+      entity_type: "school",
+      entity_id: membership.schoolId,
+      metadata: {
+        modules: data.modules,
+        mode: data.mode,
+        academic_year_id: data.academic_year_id ?? null,
+        class_group_id: data.class_group_id ?? null,
+        record_count: result.recordCount,
+      },
+    });
+    if (auditError) {
+      throw publicDatabaseError(auditError, "Não foi possível registar a exportação na auditoria.");
+    }
 
     return {
       fileName: result.fileName,
