@@ -14,14 +14,16 @@ export const angolaTeachingLevels = [
     cycle: "Primário",
     classes: ["1ª", "2ª", "3ª", "4ª", "5ª", "6ª"],
     // Aceita "1ª"/"1.ª"/"1a" — os dados reais das turmas usam o formato com ponto ("1.ª Classe").
-    match: /prim[aá]r|[123456]\.?\s?[ªa]/i,
+    // `(?<!\d)`: sem ele, «11ª» e «12ª» (II Ciclo) contavam como «1ª»/«2ª» do primário
+    // nas pautas e no histórico, que pegam no primeiro nível que coincide.
+    match: /prim[aá]r|(?<!\d)[123456]\.?\s?[ªa]/i,
   },
   {
     id: "i_ciclo",
     label: "I Ciclo do Ensino Secundário (7ª–9ª)",
     cycle: "I Ciclo",
     classes: ["7ª", "8ª", "9ª"],
-    match: /i\s*ciclo|[789]\.?\s?[ªa]|primeiro ciclo/i,
+    match: /(?<!i)i\s*ciclo|(?<!\d)[789]\.?\s?[ªa]|primeiro ciclo/i,
   },
   {
     id: "ii_ciclo",
