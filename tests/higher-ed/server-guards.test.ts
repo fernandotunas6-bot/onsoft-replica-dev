@@ -88,4 +88,10 @@ describe("Ensino Superior no servidor", () => {
     expect(body).toContain("Estudante não encontrado nesta escola.");
     expect(body).toContain("transcriptLines(");
   });
+
+  it("portal: estudante e encarregado só vêem o próprio percurso", () => {
+    const body = fn("getMyHigherEd");
+    expect(body).toContain("resolveVisibleStudent(context.userId, data.studentId)");
+    expect(body).toContain("if (!visible) return { programs: [] };");
+  });
 });

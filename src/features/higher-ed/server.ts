@@ -27,6 +27,7 @@ import {
   type HigherEdRegulation,
 } from "@/features/school/settings-domains";
 import { requireAal2 } from "@/features/hr/require-aal2";
+import { resolveVisibleStudent } from "@/features/dashboard/student-access";
 import {
   academicSemesterOf,
   checkEnrollmentBatch,
@@ -1194,6 +1195,98 @@ export const getUnitSheet = createServerFn({ method: "GET" })
       .filter((row) => row.latest && row.latest.status !== "anulado")
       .sort((a, b) => a.name.localeCompare(b.name, "pt"));
     return { ...base, rows };
+  });
+
+// ── Portal do estudante e do encarregado ───────────────────────────────────
+
+/**
+ * O percurso no Ensino Superior do próprio estudante (ou do educando): créditos,
+ * média e o estado de cada cadeira do plano. Só leitura; vazio para quem não
+ * tem curso superior.
+ */
+export const getMyHigherEd = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .validator((input: unknown) =>
+    z.object({ studentId: z.string().uuid().optional() }).parse(input ?? {}),
+  )
+  .handler(async ({ data, context }) => {
+    const visible = await resolveVisibleStudent(context.userId, data.studentId);
+    if (!visible) return { programs: [] };
+    const { db, schoolId, studentId } = visible;
+
+    const { data: recordPrograms } = await db
+      .from("course_unit_enrollments")
+      .select("program_id")
+      .eq("school_id", schoolId)
+      .eq("student_id", studentId)
+      .limit(1000);
+    const { data: enrollments } = await db
+      .from("enrollments")
+      .select("class_group_id")
+      .eq("school_id", schoolId)
+      .eq("student_id", studentId)
+      .in("status", ["active", "pending"]);
+    const groupIds = [...new Set((enrollments ?? []).map((e) => str(e.class_group_id)))];
+    const { data: groups } = groupIds.length
+      ? await db
+          .from("class_groups")
+          .select("grade_level_id")
+          .eq("school_id", schoolId)
+          .in("id", groupIds)
+      : { data: [] as Row[] };
+    const gradeIds = [...new Set(((groups ?? []) as Row[]).map((g) => str(g.grade_level_id)))];
+    const { data: grades } = gradeIds.length
+      ? await db
+          .from("grade_levels")
+          .select("program_id")
+          .eq("school_id", schoolId)
+          .in("id", gradeIds)
+      : { data: [] as Row[] };
+    const candidateIds = [
+      ...new Set(
+        [...(recordPrograms ?? []), ...((grades ?? []) as Row[])]
+          .map((row) => str(row.program_id))
+          .filter(Boolean),
+      ),
+    ];
+    if (!candidateIds.length) return { programs: [] };
+    const { data: programs } = await db
+      .from("programs")
+      .select("id, name")
+      .eq("school_id", schoolId)
+      .in("kind", ["undergraduate", "postgraduate"])
+      .in("id", candidateIds)
+      .order("name");
+    if (!programs?.length) return { programs: [] };
+
+    const regulation = await regulationOf(db, schoolId);
+    const result = [];
+    for (const program of programs) {
+      const programId = str(program.id);
+      const [{ units }, rows] = await Promise.all([
+        loadPlan(db, schoolId, programId),
+        loadRecords(db, schoolId, studentId, programId),
+      ]);
+      const records = rows.map((row) => row.record);
+      const lines = transcriptLines(units, records);
+      const progress = studentProgress({ plan: units, records, regulation });
+      result.push({
+        program: { id: programId, name: str(program.name) },
+        progress: { ...progress, pendingUnits: progress.pendingUnits.length },
+        lines: lines.map((line) => ({
+          unitId: line.unit.id,
+          name: line.unit.name,
+          semester: line.unit.semester,
+          credits: line.unit.credits,
+          state: line.state,
+          grade: line.grade,
+          season: line.season,
+          lastStatus: line.lastStatus,
+          attempts: line.attempts,
+        })),
+      });
+    }
+    return { programs: result };
   });
 
 // ── Regulamento ────────────────────────────────────────────────────────────
