@@ -276,6 +276,11 @@ export const inviteSystemUser = createServerFn({ method: "POST" })
         `Apenas um Administrador pode convidar ou criar contas com cargo de ${data.cargo}.`,
       );
     }
+    // Dar administração ou tesouraria a alguém vale mais do que pagar um salário,
+    // que já exige 2FA: a mesma exigência aqui.
+    if (cargoRequiresAdministrator(data.cargo)) {
+      requireAal2(context.claims ?? {}, `Criar uma conta com cargo de ${data.cargo}`);
+    }
     const admin = await loadAdminClient();
 
     // Não usar inviteUserByEmail: o mailer nativo da Supabase (sem SMTP próprio)
@@ -470,6 +475,9 @@ export const updateSystemAccountCargo = createServerFn({ method: "POST" })
     }
     if (cargoRequiresAdministrator(data.cargo) && !isAdministrator) {
       throw new Error(`Apenas um Administrador pode atribuir o cargo de ${data.cargo}.`);
+    }
+    if (cargoRequiresAdministrator(data.cargo)) {
+      requireAal2(context.claims ?? {}, `Atribuir o cargo de ${data.cargo}`);
     }
 
     const admin = await loadAdminClient();
@@ -1008,6 +1016,9 @@ export const createSchoolInvitation = createServerFn({ method: "POST" })
       throw new Error(
         "Apenas um Administrador pode convidar com cargo de Administrador ou Tesouraria.",
       );
+    }
+    if (isAdministratorRole(data.roleCode) || cargoRequiresAdministrator(data.roleCode)) {
+      requireAal2(context.claims ?? {}, "Convidar com cargo de Administrador ou Tesouraria");
     }
     const admin = await loadAdminClient();
 

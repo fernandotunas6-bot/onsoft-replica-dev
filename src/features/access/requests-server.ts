@@ -12,6 +12,7 @@
 import type { Json, TablesUpdate } from "@/integrations/supabase/types";
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { requireAal2 } from "@/features/hr/require-aal2";
 import { publicDatabaseError } from "@/integrations/supabase/server-error";
 import { mapAppRoleToSgaCodes } from "@/integrations/supabase/sga";
 import { loadSgaAdminClient, resolveSgaMembershipAdmin } from "@/integrations/supabase/sga-admin";
@@ -985,6 +986,10 @@ export const reviewAccessRequest = createServerFn({ method: "POST" })
     } else {
       const decision = canGrantRole(membership.appRole, request.requested_profile, data.role);
       if (!decision.ok) throw new Error(decision.reason);
+      // Como nos convites: conceder administração ou tesouraria exige 2FA.
+      if (data.role === "Administrador" || data.role === "Tesouraria") {
+        requireAal2(context.claims ?? {}, `Aprovar o acesso com cargo de ${data.role}`);
+      }
 
       const codes = mapAppRoleToSgaCodes(data.role);
       const granted = await grantMembership(db, membership.schoolId, request.user_id, codes);
