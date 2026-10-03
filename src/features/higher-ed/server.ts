@@ -254,6 +254,26 @@ export const listHigherEdPrograms = createServerFn({ method: "GET" })
     }));
   });
 
+export const listSchoolSubjectsForPlan = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const membership = await officeMembership(context, "read");
+    const db = await loadSgaAdminClient();
+    const { data, error } = await db
+      .from("subjects")
+      .select("id, code, name")
+      .eq("school_id", membership.schoolId)
+      .eq("status", "active")
+      .is("deleted_at", null)
+      .order("name");
+    if (error) throw publicDatabaseError(error, "Não foi possível carregar as cadeiras.");
+    return (data ?? []).map((row) => ({
+      id: str(row.id),
+      code: str(row.code),
+      name: str(row.name),
+    }));
+  });
+
 export const getProgramPlan = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .validator((input: unknown) => z.object({ programId: z.string().uuid() }).parse(input))

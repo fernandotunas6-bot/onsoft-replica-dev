@@ -54,6 +54,7 @@ import { Route as FinanceiroRhRouteImport } from './routes/financeiro.rh'
 import { Route as MatriculaSlugRouteImport } from './routes/matricula/$slug'
 import { Route as PedagogicaPresencaDocenteRouteImport } from './routes/pedagogica_.presenca-docente'
 import { Route as PedagogicaRiscoRouteImport } from './routes/pedagogica_.risco'
+import { Route as PedagogicaSuperiorRouteImport } from './routes/pedagogica_.superior'
 import { Route as PessoasIndexRouteImport } from './routes/pessoas/index'
 import { Route as ProfessorPresencaRouteImport } from './routes/professor.presenca'
 import { Route as ProfessoresTeacherIdRouteImport } from './routes/professores/$teacherId'
@@ -330,6 +331,11 @@ const PedagogicaPresencaDocenteRoute =
 const PedagogicaRiscoRoute = PedagogicaRiscoRouteImport.update({
   id: '/pedagogica_/risco',
   path: '/pedagogica/risco',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PedagogicaSuperiorRoute = PedagogicaSuperiorRouteImport.update({
+  id: '/pedagogica_/superior',
+  path: '/pedagogica/superior',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PessoasIndexRoute = PessoasIndexRouteImport.update({
@@ -636,6 +642,7 @@ export interface FileRoutesByFullPath {
   '/matricula/$slug': typeof MatriculaSlugRoute
   '/pedagogica/presenca-docente': typeof PedagogicaPresencaDocenteRoute
   '/pedagogica/risco': typeof PedagogicaRiscoRoute
+  '/pedagogica/superior': typeof PedagogicaSuperiorRoute
   '/professor/presenca': typeof ProfessorPresencaRoute
   '/professores/$teacherId': typeof ProfessoresTeacherIdRoute
   '/relatorios/academicos': typeof RelatoriosAcademicosRoute
@@ -732,6 +739,7 @@ export interface FileRoutesByTo {
   '/matricula/$slug': typeof MatriculaSlugRoute
   '/pedagogica/presenca-docente': typeof PedagogicaPresencaDocenteRoute
   '/pedagogica/risco': typeof PedagogicaRiscoRoute
+  '/pedagogica/superior': typeof PedagogicaSuperiorRoute
   '/professor/presenca': typeof ProfessorPresencaRoute
   '/professores/$teacherId': typeof ProfessoresTeacherIdRoute
   '/relatorios/academicos': typeof RelatoriosAcademicosRoute
@@ -829,6 +837,7 @@ export interface FileRoutesById {
   '/matricula/$slug': typeof MatriculaSlugRoute
   '/pedagogica_/presenca-docente': typeof PedagogicaPresencaDocenteRoute
   '/pedagogica_/risco': typeof PedagogicaRiscoRoute
+  '/pedagogica_/superior': typeof PedagogicaSuperiorRoute
   '/professor/presenca': typeof ProfessorPresencaRoute
   '/professores/$teacherId': typeof ProfessoresTeacherIdRoute
   '/relatorios/academicos': typeof RelatoriosAcademicosRoute
@@ -927,6 +936,7 @@ export interface FileRouteTypes {
     | '/matricula/$slug'
     | '/pedagogica/presenca-docente'
     | '/pedagogica/risco'
+    | '/pedagogica/superior'
     | '/professor/presenca'
     | '/professores/$teacherId'
     | '/relatorios/academicos'
@@ -1023,6 +1033,7 @@ export interface FileRouteTypes {
     | '/matricula/$slug'
     | '/pedagogica/presenca-docente'
     | '/pedagogica/risco'
+    | '/pedagogica/superior'
     | '/professor/presenca'
     | '/professores/$teacherId'
     | '/relatorios/academicos'
@@ -1119,6 +1130,7 @@ export interface FileRouteTypes {
     | '/matricula/$slug'
     | '/pedagogica_/presenca-docente'
     | '/pedagogica_/risco'
+    | '/pedagogica_/superior'
     | '/professor/presenca'
     | '/professores/$teacherId'
     | '/relatorios/academicos'
@@ -1205,6 +1217,7 @@ export interface RootRouteChildren {
   MatriculaSlugRoute: typeof MatriculaSlugRoute
   PedagogicaPresencaDocenteRoute: typeof PedagogicaPresencaDocenteRoute
   PedagogicaRiscoRoute: typeof PedagogicaRiscoRoute
+  PedagogicaSuperiorRoute: typeof PedagogicaSuperiorRoute
   ProfessorPresencaRoute: typeof ProfessorPresencaRoute
   ProfessoresTeacherIdRoute: typeof ProfessoresTeacherIdRoute
   RelatoriosAcademicosRoute: typeof RelatoriosAcademicosRoute
@@ -1553,6 +1566,13 @@ declare module '@tanstack/react-router' {
       path: '/pedagogica/risco'
       fullPath: '/pedagogica/risco'
       preLoaderRoute: typeof PedagogicaRiscoRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/pedagogica_/superior': {
+      id: '/pedagogica_/superior'
+      path: '/pedagogica/superior'
+      fullPath: '/pedagogica/superior'
+      preLoaderRoute: typeof PedagogicaSuperiorRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/pessoas/': {
@@ -2106,6 +2126,7 @@ const rootRouteChildren: RootRouteChildren = {
   MatriculaSlugRoute: MatriculaSlugRoute,
   PedagogicaPresencaDocenteRoute: PedagogicaPresencaDocenteRoute,
   PedagogicaRiscoRoute: PedagogicaRiscoRoute,
+  PedagogicaSuperiorRoute: PedagogicaSuperiorRoute,
   ProfessorPresencaRoute: ProfessorPresencaRoute,
   ProfessoresTeacherIdRoute: ProfessoresTeacherIdRoute,
   RelatoriosAcademicosRoute: RelatoriosAcademicosRoute,

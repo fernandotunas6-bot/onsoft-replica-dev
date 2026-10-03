@@ -1,0 +1,12 @@
+import { describe, expect, it } from "vitest";
+import { canAccessPath } from "@/features/auth/access-policy";
+
+describe("acesso ao Ensino Superior", () => {
+  it("Administração e Secretaria entram; professor, aluno e encarregado não", () => {
+    expect(canAccessPath("/pedagogica/superior", "Administrador")).toBe(true);
+    expect(canAccessPath("/pedagogica/superior", "Secretaria")).toBe(true);
+    expect(canAccessPath("/pedagogica/superior", "Professor")).toBe(false);
+    expect(canAccessPath("/pedagogica/superior", "Aluno")).toBe(false);
+    expect(canAccessPath("/pedagogica/superior", "Encarregado")).toBe(false);
+  });
+});
