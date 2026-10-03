@@ -7,6 +7,7 @@ import { z } from "zod";
 import { AppShell } from "@/components/layout/AppShell";
 import { Button } from "@/components/ui/button";
 import { LogoChip } from "@/components/ui/logo-chip";
+import { finalClassification } from "@/features/higher-ed/engine";
 import { getStudentTranscript } from "@/features/higher-ed/server";
 import { gradeInWords } from "@/lib/grade-words";
 
@@ -37,7 +38,9 @@ function CertificatePage() {
     queryFn: () => fetchTranscript({ data: { programId, studentId } }),
   });
   const data = transcript.data;
-  const completed = Boolean(data?.progress.completed && data.progress.average !== null);
+  // Decreto 257/25: classificação final inteira (10–20) com menção qualitativa.
+  const final = data?.progress.completed ? finalClassification(data.progress.average) : null;
+  const completed = Boolean(final);
   // Ano lectivo de conclusão: o mais recente entre as cadeiras feitas.
   const lastYear = data?.lines
     .map((line) => line.yearName)
@@ -97,12 +100,14 @@ function CertificatePage() {
               curso de <strong>{data.program.name}</strong>
               {lastYear ? <> no ano lectivo de {lastYear}</> : null}, tendo obtido{" "}
               {data.progress.creditsEarned} créditos, com a classificação final de{" "}
-              <strong>{gradeInWords(data.progress.average!).text}</strong>.
+              <strong>{gradeInWords(final!.value).text}</strong>, com a menção de{" "}
+              <strong>{final!.mention}</strong>.
             </p>
             <p className="mt-4 text-justify">
               A classificação final é a média das cadeiras do plano curricular ponderada pelos
-              respectivos créditos; as cadeiras creditadas contam créditos mas não entram na média.
-              Por ser verdade, passa-se o presente certificado.
+              respectivos créditos, arredondada às unidades (Decreto Presidencial n.º 257/25); as
+              cadeiras creditadas contam créditos mas não entram na média. Por ser verdade, passa-se
+              o presente certificado.
             </p>
             <p className="mt-8 text-right">
               {new Date(data.issuedAt).toLocaleDateString("pt-AO", {

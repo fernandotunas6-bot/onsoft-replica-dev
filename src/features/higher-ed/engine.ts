@@ -96,12 +96,13 @@ export function validatePlan(units: PlanUnit[], prerequisites: Prerequisite[]): 
   const seenSubjects = new Map<string, PlanUnit>();
 
   for (const unit of units) {
-    if (!(unit.credits > 0)) {
+    // Decreto Presidencial 193/18: cada unidade curricular tem de 1 a 20 unidades de crédito.
+    if (!(unit.credits >= 1 && unit.credits <= 20)) {
       issues.push({
         level: "error",
         code: "invalid_credits",
         unitId: unit.id,
-        message: `«${unit.name}» precisa de créditos maiores que zero.`,
+        message: `«${unit.name}» tem ${unit.credits} créditos; cada cadeira tem de 1 a 20 (Decreto Presidencial 193/18).`,
       });
     }
     if (!Number.isInteger(unit.semester) || unit.semester < 1 || unit.semester > 14) {
@@ -586,4 +587,31 @@ export function planCohortEnrollment(params: {
     selected.push(unit);
   }
   return { selected, skipped };
+}
+
+export type FinalMention = "Suficiente" | "Bom" | "Bom com distinção" | "Muito Bom" | "Excelente";
+
+/**
+ * Classificação final de curso (Decreto Presidencial 257/25): a média ponderada
+ * das unidades curriculares, expressa em número inteiro de 10 a 20, com a menção
+ * qualitativa correspondente (10–13 Suficiente, 14–15 Bom, 16–17 Bom com
+ * distinção, 18–19 Muito Bom, 20 Excelente). Arredonda às unidades (x,5 sobe).
+ */
+export function finalClassification(average: number | null): {
+  value: number;
+  mention: FinalMention;
+} | null {
+  if (average === null || !Number.isFinite(average)) return null;
+  const value = Math.min(20, Math.max(10, Math.floor(average + 0.5)));
+  const mention: FinalMention =
+    value >= 20
+      ? "Excelente"
+      : value >= 18
+        ? "Muito Bom"
+        : value >= 16
+          ? "Bom com distinção"
+          : value >= 14
+            ? "Bom"
+            : "Suficiente";
+  return { value, mention };
 }

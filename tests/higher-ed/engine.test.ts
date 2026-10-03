@@ -3,6 +3,7 @@ import {
   academicSemesterOf,
   checkEnrollmentBatch,
   checkUnitEnrollment,
+  finalClassification,
   findPrerequisiteCycles,
   frequencyOutcome,
   planCohortEnrollment,
@@ -421,5 +422,21 @@ describe("inscrição com outra por fechar", () => {
     });
     expect(check.ok).toBe(false);
     expect(check.reasons.join(" ")).toContain("sem resultado");
+  });
+});
+
+describe("classificação final (Decreto Presidencial 257/25)", () => {
+  it("inteiro de 10 a 20 com menção qualitativa", () => {
+    expect(finalClassification(13.49)).toEqual({ value: 13, mention: "Suficiente" });
+    expect(finalClassification(13.5)).toEqual({ value: 14, mention: "Bom" });
+    expect(finalClassification(16.2)).toEqual({ value: 16, mention: "Bom com distinção" });
+    expect(finalClassification(18.6)).toEqual({ value: 19, mention: "Muito Bom" });
+    expect(finalClassification(19.5)).toEqual({ value: 20, mention: "Excelente" });
+    expect(finalClassification(null)).toBeNull();
+  });
+
+  it("cadeiras com mais de 20 ou menos de 1 crédito são erro no plano", () => {
+    const issues = validatePlan([unit("x", 1, 25), unit("y", 1, 0.5)], []);
+    expect(issues.filter((i) => i.code === "invalid_credits")).toHaveLength(2);
   });
 });

@@ -8,6 +8,7 @@ import { AppShell } from "@/components/layout/AppShell";
 import { Button } from "@/components/ui/button";
 import { LogoChip } from "@/components/ui/logo-chip";
 import { SEASON_LABEL, STATUS_LABEL } from "@/features/higher-ed/labels";
+import { finalClassification } from "@/features/higher-ed/engine";
 import { getStudentTranscript } from "@/features/higher-ed/server";
 
 const searchSchema = z.object({
@@ -161,9 +162,19 @@ function TranscriptPage() {
                 </dd>
               </div>
               <div>
-                <dt className="inline text-muted-foreground">Média ponderada: </dt>
+                <dt className="inline text-muted-foreground">
+                  {data.progress.completed ? "Classificação final: " : "Média ponderada: "}
+                </dt>
                 <dd className="inline font-semibold">
-                  {data.progress.average === null ? "—" : `${data.progress.average} valores`}
+                  {(() => {
+                    if (data.progress.average === null) return "—";
+                    const final = data.progress.completed
+                      ? finalClassification(data.progress.average)
+                      : null;
+                    return final
+                      ? `${final.value} valores (${final.mention})`
+                      : `${data.progress.average} valores`;
+                  })()}
                 </dd>
               </div>
               <div>

@@ -480,7 +480,8 @@ const planUnitInput = z.object({
   programId: z.string().uuid(),
   subjectId: z.string().uuid(),
   semester: z.number().int().min(1).max(14),
-  credits: z.number().min(0.5).max(60),
+  // Decreto Presidencial 193/18: de 1 a 20 unidades de crédito por cadeira.
+  credits: z.number().min(1).max(20),
 });
 
 export const savePlanUnit = createServerFn({ method: "POST" })

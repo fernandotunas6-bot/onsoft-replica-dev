@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { GraduationCap } from "lucide-react";
+import { finalClassification } from "@/features/higher-ed/engine";
 import { SEASON_LABEL, STATUS_LABEL } from "@/features/higher-ed/labels";
 import { getMyHigherEd } from "@/features/higher-ed/server";
 import { cn } from "@/lib/utils";
@@ -43,8 +44,15 @@ export function StudentHigherEdCard({ studentId }: { studentId?: string | null }
                 </dd>
               </div>
               <div>
-                <dt className="text-xs text-muted-foreground">Média</dt>
-                <dd className="font-semibold tabular-nums">{progress.average ?? "—"}</dd>
+                <dt className="text-xs text-muted-foreground">
+                  {progress.completed ? "Classificação final" : "Média"}
+                </dt>
+                <dd className="font-semibold tabular-nums">
+                  {(() => {
+                    const final = progress.completed ? finalClassification(progress.average) : null;
+                    return final ? `${final.value} · ${final.mention}` : (progress.average ?? "—");
+                  })()}
+                </dd>
               </div>
               <div>
                 <dt className="text-xs text-muted-foreground">Situação</dt>

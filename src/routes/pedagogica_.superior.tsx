@@ -454,7 +454,8 @@ function PlanTab({ programId }: { programId: string }) {
             <Input
               id="plan-credits"
               type="number"
-              min={0.5}
+              min={1}
+              max={20}
               step={0.5}
               value={credits}
               onChange={(event) => setCredits(event.target.value)}
