@@ -22,4 +22,9 @@ describe("acesso ao Ensino Superior", () => {
     expect(canAccessPath("/pedagogica/superior/historico", "Professor")).toBe(false);
     expect(canAccessPath("/pedagogica/superior/historico", "Aluno")).toBe(false);
   });
+
+  it("pauta imprimível segue a regra das pautas", () => {
+    expect(canAccessPath("/pedagogica/pautas-superior/imprimir", "Professor")).toBe(true);
+    expect(canAccessPath("/pedagogica/pautas-superior/imprimir", "Aluno")).toBe(false);
+  });
 });

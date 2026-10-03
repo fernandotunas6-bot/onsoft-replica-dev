@@ -1443,10 +1443,27 @@ export const getUnitSheet = createServerFn({ method: "GET" })
       .limit(5000);
     if (inUnitError) throw publicDatabaseError(inUnitError, "Não foi possível carregar a pauta.");
     const studentIds = [...new Set((inUnit ?? []).map((row) => str(row.student_id)))];
+    const yearId = await activeYearId(db, schoolId);
+    const [{ data: school }, { data: year }] = await Promise.all([
+      db.from("schools").select("name, commercial_name, logo_url").eq("id", schoolId).maybeSingle(),
+      yearId
+        ? db
+            .from("academic_years")
+            .select("name")
+            .eq("school_id", schoolId)
+            .eq("id", yearId)
+            .maybeSingle()
+        : Promise.resolve({ data: null }),
+    ]);
     const base = {
       program: { id: str(program.id), name: str(program.name) },
       unit,
       regulation,
+      school: {
+        name: str(school?.commercial_name) || str(school?.name),
+        logoUrl: school?.logo_url ? str(school.logo_url) : null,
+      },
+      yearName: year?.name ? str(year.name) : null,
     };
     if (!studentIds.length) return { ...base, rows: [] };
 

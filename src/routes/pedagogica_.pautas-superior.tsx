@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { ClipboardList } from "lucide-react";
@@ -179,6 +179,13 @@ function UnitSheet({ programId, unitId }: { programId: string; unitId: string })
         regulation.max_absence_percent ? ` · faltas até ${regulation.max_absence_percent}%` : ""
       }.`}
     >
+      <div className="mb-3 flex justify-end">
+        <Button asChild size="sm" variant="outline">
+          <Link to="/pedagogica/pautas-superior/imprimir" search={{ programId, unitId }}>
+            Imprimir pauta
+          </Link>
+        </Button>
+      </div>
       {!rows.length ? (
         <p className="text-sm text-muted-foreground">
           Ainda não há estudantes inscritos nesta cadeira. A inscrição por cadeira é feita pela
