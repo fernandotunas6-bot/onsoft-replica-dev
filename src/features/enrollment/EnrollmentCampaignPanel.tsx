@@ -278,6 +278,8 @@ type ApplicationListRow = {
     person?: { full_name?: string; email?: string; phone_primary?: string };
     guardianName?: string;
     guardianPhone?: string;
+    /** Ensino Superior: curso escolhido no formulário público. */
+    desiredProgram?: { id: string; name: string };
   } | null;
   created_at?: string;
 };
@@ -400,6 +402,9 @@ function ApplicationRow({
         <span className="ml-2 text-xs text-muted-foreground">
           {applicationStatusLabel(row.status)}
         </span>
+        {row.payload?.desiredProgram?.name ? (
+          <span className="ml-2 text-xs font-medium">· {row.payload.desiredProgram.name}</span>
+        ) : null}
       </span>
       {row.status === "pending" ? (
         <span className="flex flex-wrap items-center gap-1">

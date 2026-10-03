@@ -191,8 +191,17 @@ export const getPublicEnrollmentForm = createServerFn({ method: "GET" })
     } catch {
       installedProviders = [];
     }
+    // Ensino Superior: o candidato escolhe o curso (nome e id são públicos).
+    const { data: programRows } = await db
+      .from("programs")
+      .select("id, name")
+      .eq("school_id", form.school_id)
+      .in("kind", ["undergraduate", "postgraduate"])
+      .eq("is_active", true)
+      .order("name");
     return {
       ...form,
+      programs: (programRows ?? []).map((row) => ({ id: String(row.id), name: String(row.name) })),
       school_name: schoolName,
       school_phone: publicSchoolPhone(schoolPhone, installedProviders),
       school_email: publicSchoolEmail(schoolEmail, installedProviders),
@@ -224,6 +233,20 @@ export const submitPublicEnrollment = createServerFn({ method: "POST" })
     if (formError) throw publicDatabaseError(formError, "Não foi possível validar o formulário.");
     if (!form) throw new Error("Este link de matrícula está fechado.");
 
+    let desiredProgram: { id: string; name: string } | null = null;
+    if (data.desiredProgramId) {
+      const { data: program } = await db
+        .from("programs")
+        .select("id, name")
+        .eq("school_id", form.school_id)
+        .eq("id", data.desiredProgramId)
+        .in("kind", ["undergraduate", "postgraduate"])
+        .eq("is_active", true)
+        .maybeSingle();
+      if (!program) throw new Error("O curso escolhido não está disponível nesta instituição.");
+      desiredProgram = { id: String(program.id), name: String(program.name) };
+    }
+
     const { data: inserted, error } = await db
       .from("enrollment_applications")
       .insert({
@@ -236,6 +259,7 @@ export const submitPublicEnrollment = createServerFn({ method: "POST" })
           guardianName: data.guardianName,
           guardianPhone: data.guardianPhone,
           guardianRelationship: data.guardianRelationship,
+          ...(desiredProgram ? { desiredProgram } : {}),
         },
       })
       .select("id, created_at")
