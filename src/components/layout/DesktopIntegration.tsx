@@ -1,9 +1,11 @@
 import { useEffect } from "react";
 import { useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
 import { isTauriDesktop, openExternalLink } from "@/lib/desktop-utils";
 import { installDesktopDownloads } from "@/lib/desktop-downloads";
 import { isExternalUrl, nextZoom, shortcutAction, storedZoom } from "@/lib/desktop-shortcuts";
-import { pausedWriteCount, writesLabel } from "@/lib/pending-writes";
+import { checkNativeUpdate, installNativeUpdateWhenSafe } from "@/lib/native-updater";
+import { pausedWriteCount, pendingWriteCount, writesLabel } from "@/lib/pending-writes";
 
 const ZOOM_KEY = "siga:desktop-zoom";
 
@@ -18,6 +20,8 @@ const ZOOM_KEY = "siga:desktop-zoom";
  *    faz nada). Windows e Linux imprimem com o do próprio webview.
  *  - Atalhos: F5/Ctrl+R recarregar, Alt+←/→ histórico, Ctrl + / − / 0 zoom (lembrado).
  *    Recarregar com gravações à espera de rede pede confirmação (perdiam-se).
+ *  - Versão nova publicada (release assinada): aviso com "Instalar e reiniciar", que
+ *    nunca instala com gravações por enviar.
  */
 export function DesktopIntegration() {
   const queryClient = useQueryClient();
@@ -107,7 +111,38 @@ export function DesktopIntegration() {
     document.addEventListener("click", onClick, true);
     window.addEventListener("keydown", onKeyDown);
 
+    // Versão nova da app: avisa uma vez, 15 s depois de abrir. Só instala quando a
+    // pessoa carrega, e nunca a meio de gravações por enviar.
+    const install = () => {
+      void installNativeUpdateWhenSafe(pendingWriteCount(queryClient))
+        .then(({ waiting }) => {
+          if (waiting > 0) {
+            toast.error(`Há ${writesLabel(waiting)} por enviar.`, {
+              description: "Instale a versão nova depois de serem enviadas.",
+            });
+          }
+        })
+        .catch((error) =>
+          toast.error("Não foi possível instalar a versão nova.", {
+            description: error instanceof Error ? error.message : String(error),
+          }),
+        );
+    };
+    const updateTimer = window.setTimeout(() => {
+      void checkNativeUpdate()
+        .then((update) => {
+          if (!update.available) return;
+          toast.message(`Nova versão do SIGA (${update.version ?? "nova"})`, {
+            description: "Grave o que estiver a fazer antes de instalar.",
+            duration: Infinity,
+            action: { label: "Instalar e reiniciar", onClick: install },
+          });
+        })
+        .catch((error) => console.warn("[desktop] verificação de versão falhou", error));
+    }, 15_000);
+
     return () => {
+      window.clearTimeout(updateTimer);
       document.removeEventListener("click", onClick, true);
       window.removeEventListener("keydown", onKeyDown);
       window.open = originalOpen;

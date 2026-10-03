@@ -370,6 +370,70 @@ fn updater_configured(plugins: &tauri::utils::config::PluginConfig) -> bool {
         .is_some_and(|pubkey| !pubkey.trim().is_empty())
 }
 
+/// Estado das actualizações da app, para o aviso «Nova versão do SIGA».
+#[derive(Serialize)]
+struct AppUpdate {
+    configured: bool,
+    available: bool,
+    version: Option<String>,
+    notes: Option<String>,
+}
+
+/// Procura uma versão nova (release publicada e assinada). Sem chave pública
+/// configurada nesta versão da app, responde `configured: false` sem ir à rede.
+#[tauri::command]
+async fn check_app_update(app: tauri::AppHandle) -> Result<AppUpdate, String> {
+    let none = |configured| AppUpdate {
+        configured,
+        available: false,
+        version: None,
+        notes: None,
+    };
+    if !updater_configured(&app.config().plugins) {
+        return Ok(none(false));
+    }
+    use tauri_plugin_updater::UpdaterExt;
+    let update = app
+        .updater()
+        .map_err(|e| format!("Actualizações indisponíveis: {e}"))?
+        .check()
+        .await
+        .map_err(|e| format!("Não foi possível verificar se há versão nova: {e}"))?;
+    Ok(match update {
+        Some(update) => AppUpdate {
+            configured: true,
+            available: true,
+            version: Some(update.version.clone()),
+            notes: update.body.clone(),
+        },
+        None => none(true),
+    })
+}
+
+/// Descarrega, verifica a assinatura, instala e reinicia. Só quando a pessoa
+/// carrega em «Instalar e reiniciar»; o frontend recusa com gravações por enviar.
+#[tauri::command]
+async fn install_app_update(app: tauri::AppHandle) -> Result<(), String> {
+    if !updater_configured(&app.config().plugins) {
+        return Err("As actualizações automáticas não estão configuradas nesta versão.".into());
+    }
+    use tauri_plugin_updater::UpdaterExt;
+    let Some(update) = app
+        .updater()
+        .map_err(|e| format!("Actualizações indisponíveis: {e}"))?
+        .check()
+        .await
+        .map_err(|e| format!("Não foi possível verificar se há versão nova: {e}"))?
+    else {
+        return Err("Já tem a versão mais recente do SIGA.".into());
+    };
+    update
+        .download_and_install(|_, _| {}, || {})
+        .await
+        .map_err(|e| format!("Não foi possível instalar a versão nova: {e}"))?;
+    app.restart()
+}
+
 /// Mostra e foca a janela principal (bandeja, segunda instância).
 fn show_main_window<R: tauri::Runtime>(app: &tauri::AppHandle<R>) {
     if let Some(window) = app.get_webview_window("main") {
@@ -466,7 +530,9 @@ pub fn run() {
             save_file,
             internal_pages::print_page,
             internal_pages::print_html,
-            internal_pages::open_payflow
+            internal_pages::open_payflow,
+            check_app_update,
+            install_app_update
         ])
         .manage(internal_pages::InternalPages::default())
         .register_uri_scheme_protocol("sigapage", |ctx, request| {

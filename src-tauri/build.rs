@@ -12,6 +12,8 @@ fn main() {
             "print_page",
             "print_html",
             "open_payflow",
+            "check_app_update",
+            "install_app_update",
         ]));
     tauri_build::try_build(attributes).expect("falha na configuração de permissões SIGA");
 }

@@ -30,9 +30,9 @@ jobs:
       matrix:
         include:
           - platform: "macos-latest" # Apple Silicon & Intel
-            args: "--target universal-apple-darwin -- --locked"
+            args: "--target universal-apple-darwin"
           - platform: "windows-latest"
-            args: "-- --locked"
+            args: ""
 
     runs-on: ${{ matrix.platform }}
     steps:
@@ -61,14 +61,26 @@ jobs:
       - name: Validate launcher and release tag
         run: bun run desktop:check
 
+      # Actualizações automáticas só com as duas chaves (docs/desktop/PUBLICAR_VERSOES.md).
+      # Sem elas a versão sai sem updater e a app continua a abrir.
+      - name: Configure signed updates
+        env:
+          UPDATER_PUBKEY: ${{ vars.TAURI_UPDATER_PUBKEY }}
+          HAS_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY != '' }}
+          REPO: ${{ github.repository }}
+        run: node scripts/desktop/release-config.mjs
+
       - name: Build Tauri app
         uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         with:
           tagName: ${{ github.ref_name }}
           releaseName: "SIGA Desktop ${{ github.ref_name }}"
           releaseBody: "Nova versão instalável do SIGA Desktop."
           releaseDraft: true
           prerelease: false
-          args: ${{ matrix.args }}
+          includeUpdaterJson: true
+          args: --config src-tauri/tauri.release.conf.json ${{ matrix.args }} -- --locked
