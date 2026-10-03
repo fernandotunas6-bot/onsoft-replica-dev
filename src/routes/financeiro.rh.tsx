@@ -15,6 +15,28 @@ import {
 } from "@/features/hr/teacher-lessons";
 import { kwanza } from "@/lib/currency";
 
+/**
+ * Estados de hr_payroll_runs na base: draft, calculating, review, processing,
+ * approved, paid, cancelled. O ecrã testava «processed» (que não existe), pelo
+ * que uma folha em revisão ou em processamento aparecia como «cancelada».
+ */
+const PAYROLL_RUN_BADGE: Record<
+  string,
+  { status: "paid" | "pending" | "inactive" | "cancelled"; label: string }
+> = {
+  draft: { status: "inactive", label: "Rascunho" },
+  calculating: { status: "pending", label: "Em cálculo" },
+  review: { status: "pending", label: "Em revisão" },
+  processing: { status: "pending", label: "Em processamento" },
+  approved: { status: "paid", label: "Aprovada" },
+  paid: { status: "paid", label: "Paga" },
+  cancelled: { status: "cancelled", label: "Cancelada" },
+};
+
+function payrollRunBadge(status: string) {
+  return PAYROLL_RUN_BADGE[status] ?? { status: "pending" as const, label: status };
+}
+
 export const Route = createFileRoute("/financeiro/rh")({
   head: () => ({
     meta: [
@@ -344,26 +366,8 @@ function HrPayrollPage() {
                           </td>
                           <td className="py-3 pr-4">
                             <StatusBadge
-                              status={
-                                run.status === "paid" || run.status === "approved"
-                                  ? "paid"
-                                  : run.status === "processed"
-                                    ? "pending"
-                                    : run.status === "draft"
-                                      ? "inactive"
-                                      : "cancelled"
-                              }
-                              label={
-                                run.status === "draft"
-                                  ? "Rascunho"
-                                  : run.status === "processed"
-                                    ? "Processada"
-                                    : run.status === "approved"
-                                      ? "Aprovada"
-                                      : run.status === "paid"
-                                        ? "Paga"
-                                        : String(run.status)
-                              }
+                              status={payrollRunBadge(String(run.status)).status}
+                              label={payrollRunBadge(String(run.status)).label}
                             />
                           </td>
                           <td className="py-3 pr-4 text-right">
