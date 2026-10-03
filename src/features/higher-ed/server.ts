@@ -36,6 +36,7 @@ import {
   findPrerequisiteCycles,
   frequencyOutcome,
   latestRecordByUnit,
+  planCohortEnrollment,
   planTotals,
   seasonEligibility,
   seasonResult,
@@ -875,6 +876,140 @@ export const enrollStudentUnits = createServerFn({ method: "POST" })
     );
     if (error) throw publicDatabaseError(error, "Não foi possível inscrever o estudante.");
     return { enrolled: selected.length, credits: batch.yearCredits };
+  });
+
+/** Estudantes com matrícula activa (ou pendente) numa turma de um ano do curso. */
+async function programStudentIds(db: Db, schoolId: string, programId: string) {
+  const { data: grades } = await db
+    .from("grade_levels")
+    .select("id")
+    .eq("school_id", schoolId)
+    .eq("program_id", programId);
+  const gradeIds = (grades ?? []).map((g) => str(g.id));
+  if (!gradeIds.length) return new Set<string>();
+  const { data: groups } = await db
+    .from("class_groups")
+    .select("id")
+    .eq("school_id", schoolId)
+    .in("grade_level_id", gradeIds);
+  const groupIds = (groups ?? []).map((g) => str(g.id));
+  if (!groupIds.length) return new Set<string>();
+  const { data: enrollments } = await db
+    .from("enrollments")
+    .select("student_id")
+    .eq("school_id", schoolId)
+    .in("class_group_id", groupIds)
+    .in("status", ["active", "pending"])
+    .limit(5000);
+  return new Set((enrollments ?? []).map((e) => str(e.student_id)));
+}
+
+/**
+ * Inscrição em lote: cada estudante escolhido fica nas cadeiras do semestre que
+ * pode fazer (mesmas regras da inscrição individual); o resto volta com motivo.
+ */
+export const enrollCohort = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .validator((input: unknown) =>
+    z
+      .object({
+        programId: z.string().uuid(),
+        semester: z.number().int().min(1).max(14),
+        studentIds: z.array(z.string().uuid()).min(1).max(400),
+      })
+      .parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    const membership = await officeMembership(context, "write");
+    const db = await loadSgaAdminClient();
+    const schoolId = membership.schoolId;
+    await requireProgram(db, schoolId, data.programId);
+    const yearId = await activeYearId(db, schoolId);
+    if (!yearId) throw new Error("Não há ano lectivo activo para inscrever.");
+    const studentIds = [...new Set(data.studentIds)];
+    const inProgram = await programStudentIds(db, schoolId, data.programId);
+    if (studentIds.some((id) => !inProgram.has(id))) {
+      throw new Error("Há estudantes escolhidos que não estão matriculados neste curso.");
+    }
+    const [{ units, prerequisites }, regulation] = await Promise.all([
+      loadPlan(db, schoolId, data.programId),
+      regulationOf(db, schoolId),
+    ]);
+    const candidates = units.filter((unit) => unit.semester === data.semester);
+    if (!candidates.length) throw new Error("O plano não tem cadeiras neste semestre.");
+    const { data: recordRows, error: recordsError } = await db
+      .from("course_unit_enrollments")
+      .select(RECORD_COLUMNS)
+      .eq("school_id", schoolId)
+      .eq("program_id", data.programId)
+      .in("student_id", studentIds);
+    if (recordsError)
+      throw publicDatabaseError(recordsError, "Não foi possível carregar os históricos.");
+    const recordsByStudent = new Map<string, UnitRecord[]>();
+    for (const row of (recordRows ?? []) as Row[]) {
+      const list = recordsByStudent.get(str(row.student_id)) ?? [];
+      list.push(toRecord(row));
+      recordsByStudent.set(str(row.student_id), list);
+    }
+
+    const inserts: Row[] = [];
+    const skipped: Array<{ studentId: string; unit: string; reasons: string[] }> = [];
+    let studentsEnrolled = 0;
+    for (const studentId of studentIds) {
+      const records = recordsByStudent.get(studentId) ?? [];
+      const result = planCohortEnrollment({
+        candidates,
+        plan: units,
+        prerequisites,
+        records,
+        regulation,
+        academicYearId: yearId,
+      });
+      for (const item of result.skipped) {
+        skipped.push({ studentId, unit: item.unit.name, reasons: item.reasons });
+      }
+      if (!result.selected.length) continue;
+      studentsEnrolled += 1;
+      for (const unit of result.selected) {
+        const attempt = records
+          .filter((record) => record.unitId === unit.id)
+          .reduce((max, record) => Math.max(max, record.attempt), 0);
+        inserts.push({
+          school_id: schoolId,
+          student_id: studentId,
+          academic_year_id: yearId,
+          program_id: data.programId,
+          program_subject_id: unit.id,
+          semester: academicSemesterOf(unit.semester),
+          credits: unit.credits,
+          attempt: attempt + 1,
+          status: "inscrito",
+          credits_earned: 0,
+          created_by: context.userId,
+          updated_by: context.userId,
+        });
+      }
+    }
+    if (inserts.length) {
+      const { error } = await db
+        .from("course_unit_enrollments")
+        .insert(inserts.map((row) => ({ ...row, school_id: schoolId })) as never);
+      if (error) throw publicDatabaseError(error, "Não foi possível inscrever os estudantes.");
+      await db.from("audit_logs").insert({
+        school_id: schoolId,
+        actor_user_id: context.userId,
+        action: "higher_ed.cohort.enrolled",
+        entity_type: "program",
+        entity_id: data.programId,
+        metadata: {
+          semester: data.semester,
+          students: studentsEnrolled,
+          enrollments: inserts.length,
+          skipped: skipped.length,
+        } as never,
+      });
+    }
+    return { studentsEnrolled, enrollments: inserts.length, skipped };
   });
 
 export const cancelUnitEnrollment = createServerFn({ method: "POST" })

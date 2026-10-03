@@ -33,6 +33,7 @@ import {
   listProgramStudents,
   listSchoolSubjectsForPlan,
   createHigherEdProgram,
+  enrollCohort,
   updateHigherEdProgram,
   recordUnitResult,
   removePlanUnit,
@@ -549,40 +550,148 @@ function StudentsTab({ programId }: { programId: string }) {
     );
   }
   return (
-    <div className="grid gap-4 lg:grid-cols-[18rem_minmax(0,1fr)]">
-      <Panel title="Estudantes">
-        <Input
-          placeholder="Procurar por nome ou número"
-          aria-label="Procurar estudante"
-          value={search}
-          onChange={(event) => setSearch(event.target.value)}
-        />
-        <ul className="mt-3 max-h-[60vh] space-y-1 overflow-y-auto">
-          {list.map((student) => (
-            <li key={student.id}>
-              <button
-                type="button"
-                onClick={() => setStudentId(student.id)}
-                aria-current={student.id === studentId ? "true" : undefined}
-                className={`w-full rounded-md px-2 py-1.5 text-left text-sm hover:bg-muted ${
-                  student.id === studentId ? "bg-muted font-semibold" : ""
-                }`}
-              >
-                {student.name}
-                <span className="block text-xs text-muted-foreground">
-                  {[student.number, student.className].filter(Boolean).join(" · ")}
-                </span>
-              </button>
-            </li>
-          ))}
-        </ul>
-      </Panel>
-      {studentId ? (
-        <StudentPanel programId={programId} studentId={studentId} />
-      ) : (
-        <EmptyState title="Escolha um estudante" description="Para ver o percurso e inscrever." />
-      )}
+    <div className="space-y-4">
+      <CohortEnrollment programId={programId} students={students.data} />
+      <div className="grid gap-4 lg:grid-cols-[18rem_minmax(0,1fr)]">
+        <Panel title="Estudantes">
+          <Input
+            placeholder="Procurar por nome ou número"
+            aria-label="Procurar estudante"
+            value={search}
+            onChange={(event) => setSearch(event.target.value)}
+          />
+          <ul className="mt-3 max-h-[60vh] space-y-1 overflow-y-auto">
+            {list.map((student) => (
+              <li key={student.id}>
+                <button
+                  type="button"
+                  onClick={() => setStudentId(student.id)}
+                  aria-current={student.id === studentId ? "true" : undefined}
+                  className={`w-full rounded-md px-2 py-1.5 text-left text-sm hover:bg-muted ${
+                    student.id === studentId ? "bg-muted font-semibold" : ""
+                  }`}
+                >
+                  {student.name}
+                  <span className="block text-xs text-muted-foreground">
+                    {[student.number, student.className].filter(Boolean).join(" · ")}
+                  </span>
+                </button>
+              </li>
+            ))}
+          </ul>
+        </Panel>
+        {studentId ? (
+          <StudentPanel programId={programId} studentId={studentId} />
+        ) : (
+          <EmptyState title="Escolha um estudante" description="Para ver o percurso e inscrever." />
+        )}
+      </div>
     </div>
+  );
+}
+
+/** Inscrever uma turma (ou todo o curso) nas cadeiras de um semestre. */
+function CohortEnrollment({
+  programId,
+  students,
+}: {
+  programId: string;
+  students: Array<{ id: string; name: string; className: string | null }>;
+}) {
+  const queryClient = useQueryClient();
+  const fetchPlan = useServerFn(getProgramPlan);
+  const plan = useQuery({
+    queryKey: ["higher-ed", "plan", programId],
+    queryFn: () => fetchPlan({ data: { programId } }),
+  });
+  const semesters = [...new Set((plan.data?.units ?? []).map((u) => u.semester))].sort(
+    (a, b) => a - b,
+  );
+  const classes = [...new Set(students.map((s) => s.className).filter(Boolean))] as string[];
+  const [className, setClassName] = useState("__all");
+  const [semester, setSemester] = useState("");
+  const chosenSemester = semester || (semesters[0] ? String(semesters[0]) : "");
+  const targets = students.filter((s) => className === "__all" || s.className === className);
+  const nameOf = new Map(students.map((s) => [s.id, s.name]));
+  const run = useMutation({
+    mutationFn: () =>
+      enrollCohort({
+        data: {
+          programId,
+          semester: Number(chosenSemester),
+          studentIds: targets.map((s) => s.id),
+        },
+      }),
+    onSuccess: async (result) => {
+      toast.success(
+        `${result.studentsEnrolled} estudante(s) inscritos · ${result.enrollments} inscrição(ões).`,
+      );
+      await queryClient.invalidateQueries({ queryKey: ["higher-ed", "student"] });
+    },
+    onError: (error) => toastActionError(error, "Não foi possível inscrever em lote."),
+  });
+
+  if (!semesters.length) return null;
+  return (
+    <Panel
+      title="Inscrição em lote"
+      description="Cada estudante fica nas cadeiras do semestre que pode fazer, com as mesmas regras da inscrição individual."
+    >
+      <div className="flex flex-wrap items-end gap-3">
+        <div className="space-y-1">
+          <Label htmlFor="cohort-class">Turma</Label>
+          <Select value={className} onValueChange={setClassName}>
+            <SelectTrigger id="cohort-class" className="w-56">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="__all">Todo o curso ({students.length})</SelectItem>
+              {classes.map((name) => (
+                <SelectItem key={name} value={name}>
+                  {name} ({students.filter((s) => s.className === name).length})
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="space-y-1">
+          <Label htmlFor="cohort-semester">Semestre do plano</Label>
+          <Select value={chosenSemester} onValueChange={setSemester}>
+            <SelectTrigger id="cohort-semester" className="w-40">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {semesters.map((sem) => (
+                <SelectItem key={sem} value={String(sem)}>
+                  {sem}.º semestre
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <Button
+          onClick={() => run.mutate()}
+          disabled={run.isPending || !targets.length || targets.length > 400}
+        >
+          {run.isPending ? "A inscrever…" : `Inscrever ${targets.length} estudante(s)`}
+        </Button>
+      </div>
+      {run.data?.skipped.length ? (
+        <details className="mt-3 text-sm">
+          <summary className="cursor-pointer text-muted-foreground">
+            {run.data.skipped.length} cadeira(s) ficaram de fora — ver motivos
+          </summary>
+          <ul className="mt-2 max-h-64 space-y-1 overflow-y-auto text-xs">
+            {run.data.skipped.map((item, index) => (
+              <li key={`${item.studentId}-${index}`}>
+                <span className="font-medium">{nameOf.get(item.studentId) ?? "Estudante"}</span> ·{" "}
+                {item.unit}: {item.reasons.join(" ")}
+              </li>
+            ))}
+          </ul>
+        </details>
+      ) : null}
+    </Panel>
   );
 }
 

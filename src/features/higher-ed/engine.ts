@@ -545,3 +545,36 @@ export function transcriptLines(plan: PlanUnit[], records: UnitRecord[]): Transc
       };
     });
 }
+
+/**
+ * Inscrição em lote de um estudante nas cadeiras de um semestre do plano: fica
+ * com as que pode fazer (precedências, tentativas, não concluídas nem já em
+ * curso) até onde os limites de créditos deixam; o resto vem com o motivo.
+ */
+export function planCohortEnrollment(params: {
+  candidates: PlanUnit[];
+  plan: PlanUnit[];
+  prerequisites: Prerequisite[];
+  records: UnitRecord[];
+  regulation: HigherEdRegulation;
+  academicYearId: string;
+}) {
+  const { candidates, ...rest } = params;
+  const first = checkEnrollmentBatch({ ...rest, selected: candidates });
+  const selected: PlanUnit[] = [];
+  const skipped: Array<{ unit: PlanUnit; reasons: string[] }> = [];
+  for (const unit of candidates) {
+    const check = first.perUnit.get(unit.id);
+    if (!check?.ok) {
+      skipped.push({ unit, reasons: check?.reasons ?? [] });
+      continue;
+    }
+    const attempt = checkEnrollmentBatch({ ...rest, selected: [...selected, unit] });
+    if (attempt.limits.length) {
+      skipped.push({ unit, reasons: attempt.limits });
+      continue;
+    }
+    selected.push(unit);
+  }
+  return { selected, skipped };
+}

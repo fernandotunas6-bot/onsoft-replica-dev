@@ -5,6 +5,7 @@ import {
   checkUnitEnrollment,
   findPrerequisiteCycles,
   frequencyOutcome,
+  planCohortEnrollment,
   planTotals,
   seasonEligibility,
   seasonResult,
@@ -374,5 +375,36 @@ describe("histórico académico", () => {
     expect(byId.get("mat2")).toMatchObject({ state: "em_curso", lastStatus: "inscrito" });
     expect(byId.get("prog2")).toMatchObject({ state: "por_fazer", attempts: 0 });
     expect(byId.get("tfc")).toMatchObject({ state: "por_fazer", lastStatus: null });
+  });
+});
+
+describe("inscrição em lote por semestre", () => {
+  it("inscreve o que pode e explica o resto", () => {
+    const sem2 = plan.filter((u) => u.semester === 2);
+    const result = planCohortEnrollment({
+      candidates: sem2,
+      plan,
+      prerequisites: prereqs,
+      records: [rec("mat1", "aprovado")],
+      regulation: reg,
+      academicYearId: "y2",
+    });
+    expect(result.selected.map((u) => u.id)).toEqual(["mat2"]);
+    expect(result.skipped.map((s) => s.unit.id)).toEqual(["prog2"]);
+    expect(result.skipped[0]!.reasons.length).toBeGreaterThan(0);
+  });
+
+  it("pára nos limites de créditos do semestre", () => {
+    const result = planCohortEnrollment({
+      candidates: plan.filter((u) => u.semester === 1),
+      plan,
+      prerequisites: prereqs,
+      records: [],
+      regulation: { ...reg, max_credits_per_semester: 12 },
+      academicYearId: "y1",
+    });
+    expect(result.selected).toHaveLength(2);
+    expect(result.skipped).toHaveLength(1);
+    expect(result.skipped[0]!.reasons[0]).toContain("ultrapassam");
   });
 });

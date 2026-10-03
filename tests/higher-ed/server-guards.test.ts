@@ -104,4 +104,12 @@ describe("Ensino Superior no servidor", () => {
     expect(fn("updateHigherEdProgram")).toContain("Este curso não é do Ensino Superior.");
     expect(source).not.toMatch(/from\("grade_levels"\)\s*\.delete\(/);
   });
+
+  it("inscrição em lote: secretaria, estudantes do curso, mesmas regras", () => {
+    const body = fn("enrollCohort");
+    expect(body).toContain('officeMembership(context, "write")');
+    expect(body).toContain("programStudentIds(");
+    expect(body.indexOf("planCohortEnrollment(")).toBeLessThan(body.indexOf(".insert(inserts"));
+    expect(body).toContain('action: "higher_ed.cohort.enrolled"');
+  });
 });
