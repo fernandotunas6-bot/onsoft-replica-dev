@@ -2,6 +2,7 @@ import { useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { toastActionError } from "@/lib/action-error-toast";
 import { AppShell } from "@/components/layout/AppShell";
 import { PageHeader, Panel } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/button";
@@ -73,7 +74,7 @@ function SalaryOperationsPage() {
       setReason("");
       await refresh();
     },
-    onError: (error) => toast.error(errorText(error)),
+    onError: (error) => toastActionError(error, "Não foi possível concluir a acção."),
   });
   const review = useMutation({
     mutationFn: ({ id, decision }: { id: string; decision: "approved" | "rejected" }) =>
@@ -82,7 +83,7 @@ function SalaryOperationsPage() {
       toast.success("Decisão registada.");
       await refresh();
     },
-    onError: (error) => toast.error(errorText(error)),
+    onError: (error) => toastActionError(error, "Não foi possível concluir a acção."),
   });
   const apply = useMutation({
     mutationFn: (id: string) => applyApprovedHrSalaryChange({ data: { requestId: id } }),
@@ -90,7 +91,7 @@ function SalaryOperationsPage() {
       toast.success("Alteração registada no histórico salarial.");
       await refresh();
     },
-    onError: (error) => toast.error(errorText(error)),
+    onError: (error) => toastActionError(error, "Não foi possível concluir a acção."),
   });
   const options = (scales.data ?? []).flatMap((scale) =>
     scale.versions.flatMap((version) =>

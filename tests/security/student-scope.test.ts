@@ -97,7 +97,11 @@ describe("leituras da escola inteira só para o pessoal", () => {
       ["listLessonPlans", "getLessonPlan"],
       /isLessonPlanStaff\(/,
     ],
-    ["src/features/communications/server.ts", ["listSchoolAnnouncements"], /"teaching_staff"/],
+    [
+      "src/features/communications/server.ts",
+      ["listSchoolAnnouncements"],
+      /visibleAnnouncementAudiences\(/,
+    ],
     [
       "src/features/pedagogica/attendance-server.ts",
       ["getAttendanceCallSheet"],

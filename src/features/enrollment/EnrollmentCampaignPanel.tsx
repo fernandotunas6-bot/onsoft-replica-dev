@@ -25,6 +25,7 @@ import { useInstalledIntegrations } from "@/features/integrations/use-installed-
 import { useSchoolSettings } from "@/features/auth/use-school-settings";
 import { overlayTalao } from "@/features/documents/print-overlays";
 import { issuePrintDocument } from "@/features/documents/print-issue-loader";
+import { orderGroupsForCandidate, type CandidateGrade } from "./candidate-groups";
 
 const fieldLabels: Record<EnrollmentVisibleField, string> = {
   birth_date: "Data de nascimento",
@@ -252,6 +253,7 @@ export function EnrollmentCampaignPanel() {
                 // `payload` é jsonb (Json nos tipos gerados); a forma é a de ApplicationListRow.
                 row={row as ApplicationListRow}
                 classGroups={classGroups}
+                gradeLevels={(directoryQuery.data?.gradeLevels ?? []) as CandidateGrade[]}
                 onChanged={async () => {
                   await queryClient.invalidateQueries({ queryKey: ["enrollment", "applications"] });
                   await queryClient.invalidateQueries({ queryKey: ["students"] });
@@ -278,6 +280,8 @@ type ApplicationListRow = {
     person?: { full_name?: string; email?: string; phone_primary?: string };
     guardianName?: string;
     guardianPhone?: string;
+    /** Ensino Superior: curso escolhido no formulário público. */
+    desiredProgram?: { id: string; name: string };
   } | null;
   created_at?: string;
 };
@@ -286,17 +290,26 @@ type ClassGroupRow = {
   id: string;
   name?: string | null;
   academic_year_id?: string | null;
+  grade_level_id?: string | null;
 };
 
 function ApplicationRow({
   row,
-  classGroups,
+  classGroups: allClassGroups,
+  gradeLevels,
   onChanged,
 }: {
   row: ApplicationListRow;
   classGroups: ClassGroupRow[];
+  gradeLevels: CandidateGrade[];
   onChanged: () => Promise<void>;
 }) {
+  // Curso pretendido (Superior): as turmas desse curso primeiro e já escolhidas.
+  const { ordered: classGroups, preferredCount } = orderGroupsForCandidate(
+    allClassGroups,
+    gradeLevels,
+    row.payload?.desiredProgram?.id,
+  );
   const [classGroupId, setClassGroupId] = useState(classGroups[0]?.id ?? "");
   const [busy, setBusy] = useState(false);
   const { school, selectedYearLabel } = useSchoolSettings();
@@ -400,6 +413,9 @@ function ApplicationRow({
         <span className="ml-2 text-xs text-muted-foreground">
           {applicationStatusLabel(row.status)}
         </span>
+        {row.payload?.desiredProgram?.name ? (
+          <span className="ml-2 text-xs font-medium">· {row.payload.desiredProgram.name}</span>
+        ) : null}
       </span>
       {row.status === "pending" ? (
         <span className="flex flex-wrap items-center gap-1">
@@ -410,9 +426,10 @@ function ApplicationRow({
               onChange={(event) => setClassGroupId(event.target.value)}
               aria-label={`Turma para ${row.full_name}`}
             >
-              {classGroups.map((group) => (
+              {classGroups.map((group, index) => (
                 <option key={group.id} value={group.id}>
                   {group.name ?? group.id}
+                  {index < preferredCount ? " · curso pretendido" : ""}
                 </option>
               ))}
             </select>

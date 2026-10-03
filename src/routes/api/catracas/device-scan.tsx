@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { validateGatePassDeviceInputSchema } from "@/features/catracas/schemas";
 import { runDeviceGatePassWebhook } from "@/features/catracas/device-webhook-handler";
+import { clientIpFromRequest } from "@/lib/request-ip";
 
 // style-check: route-exempt — endpoint HTTP para leitores físicos (sem shell administrativo).
 
@@ -28,8 +29,8 @@ export const Route = createFileRoute("/api/catracas/device-scan")({
         }
 
         try {
-          const result = await runDeviceGatePassWebhook(parsed.data);
-          return Response.json(result);
+          const result = await runDeviceGatePassWebhook(parsed.data, clientIpFromRequest(request));
+          return Response.json(result, { status: result.rateLimited ? 429 : 200 });
         } catch (error) {
           console.error("[api/catracas/device-scan]", error);
           return Response.json(

@@ -5,6 +5,7 @@ import { IconChip } from "@/components/ui/icon-chip";
 import { LogoChip } from "@/components/ui/logo-chip";
 import type { ChipTone } from "@/components/ui/icon-chip";
 import type { SpotlightItem, SpotlightTone } from "./schemas";
+import { safeHref } from "@/lib/safe-url";
 
 const wash: Record<SpotlightTone, string> = {
   primary: "bg-primary-soft/50",
@@ -57,7 +58,12 @@ export function SpotlightCard({
   let action: ReactNode = <span className={ctaClass}>{item.cta}</span>;
   if (item.link.type === "external") {
     action = (
-      <a href={item.link.href} target="_blank" rel="noopener noreferrer" className={ctaClass}>
+      <a
+        href={safeHref(item.link.href)}
+        target="_blank"
+        rel="noopener noreferrer"
+        className={ctaClass}
+      >
         {item.cta}
       </a>
     );

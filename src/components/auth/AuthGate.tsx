@@ -15,6 +15,7 @@ import {
 import { SigaLogo } from "@/components/ui/siga-logo";
 import { AuthHeroSlides } from "./AuthHeroSlides";
 import { writeSessionHint } from "@/features/auth/session-hint";
+import { pendingMfaFactorId } from "@/features/auth/pending-mfa";
 import { AuthBackgroundVideo } from "./AuthBackgroundVideo";
 import { AuthCaptcha } from "./AuthCaptcha";
 import { authCaptchaConfigured } from "@/lib/auth-captcha-config";
@@ -196,14 +197,32 @@ export function AuthGate({
   useEffect(() => {
     let active = true;
 
+    // Qualquer via de entrada (senha, B.I., link mágico, Google, sessão
+    // restaurada) passa por aqui: uma conta com 2FA só entra com aal2. O
+    // servidor recusa os tokens aal1 dessas contas (`requireSupabaseAuth`).
+    const adoptSession = async (nextSession: Session | null) => {
+      if (nextSession) {
+        const factorId = await pendingMfaFactorId();
+        if (!active) return;
+        if (factorId) {
+          setMfaFactorId(factorId);
+          setSession(null);
+          setChecking(false);
+          return;
+        }
+      }
+      setMfaFactorId(null);
+      setSession(nextSession);
+      setChecking(false);
+    };
+
     const bootstrap = async () => {
       try {
         const { data } = await supabase.auth.getSession();
         if (!active) return;
         writeSessionHint(Boolean(data.session));
         if (data.session) {
-          setSession(data.session);
-          setChecking(false);
+          await adoptSession(data.session);
           return;
         }
 
@@ -249,9 +268,14 @@ export function AuthGate({
         setError(SESSION_EXPIRED_MESSAGE);
       }
       writeSessionHint(Boolean(nextSession));
-      setSession(nextSession);
-      setChecking(false);
       setSubmitting(false);
+      if (!nextSession) {
+        setSession(null);
+        setChecking(false);
+        return;
+      }
+      // Fora do callback: o supabase-js bloqueia se se aguardar o Auth dentro dele.
+      window.setTimeout(() => void adoptSession(nextSession), 0);
     });
     // Erros de sessão não tratados (ex.: server function chamada num evento).
     const onRejection = (event: PromiseRejectionEvent) => {
@@ -356,15 +380,10 @@ export function AuthGate({
             if (count) warnToChangePassword(PWNED_SIGN_IN_NOTICE);
           });
         }
-        const assurance = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
-        if (assurance.data?.nextLevel === "aal2" && assurance.data.currentLevel !== "aal2") {
-          const factors = await supabase.auth.mfa.listFactors();
-          const totp = factors.data?.totp[0];
-          if (totp) {
-            setMfaFactorId(totp.id);
-            setSession(null);
-            return;
-          }
+        const factorId = await pendingMfaFactorId();
+        if (factorId) {
+          setMfaFactorId(factorId);
+          setSession(null);
         }
         return;
       }
@@ -710,6 +729,19 @@ export function AuthGate({
                   disabled={submitting || mfaCode.length < 6}
                 >
                   {submitting ? "A verificar…" : "Confirmar 2FA"}
+                </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  className="w-full"
+                  disabled={submitting}
+                  onClick={() => {
+                    setMfaFactorId(null);
+                    setMfaCode("");
+                    void supabase.auth.signOut({ scope: "local" });
+                  }}
+                >
+                  Usar outra conta
                 </Button>
               </form>
             ) : null}

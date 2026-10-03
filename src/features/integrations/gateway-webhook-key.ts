@@ -52,3 +52,23 @@ export function gatewayWebhookPreviousKeyActive(
   const expires = Date.parse(String(config.webhookApiKeyPreviousExpiresAt ?? ""));
   return Number.isFinite(expires) && nowMs <= expires;
 }
+
+function maskKey(value: unknown): string {
+  const key = String(value ?? "").trim();
+  return key ? `••••${key.slice(-4)}` : "";
+}
+
+/**
+ * Configuração a enviar ao browser. A key anterior nunca sai em claro (só serve
+ * ao servidor durante o período de graça); a activa só com `reveal` (sessão 2FA).
+ */
+export function maskGatewayWebhookKeys(config: unknown, reveal: boolean): Record<string, unknown> {
+  if (!config || typeof config !== "object" || Array.isArray(config)) return {};
+  const out: Record<string, unknown> = { ...(config as Record<string, unknown>) };
+  if (out.webhookApiKeyPrevious) out.webhookApiKeyPrevious = maskKey(out.webhookApiKeyPrevious);
+  if (out.webhookApiKey && !reveal) {
+    out.webhookApiKey = maskKey(out.webhookApiKey);
+    out.webhookApiKeyMasked = true;
+  }
+  return out;
+}

@@ -34,6 +34,14 @@ function reportChargeWrite(
   });
 }
 
+/**
+ * Uma cobrança fica em "settling" entre reclamar e liquidar. Se o Worker morrer
+ * nesse intervalo, ninguém a retomava. Passados estes minutos, pode ser reclamada
+ * de novo: a liquidação usa o `provider_charge_id` como chave de idempotência, por
+ * isso um recibo já emitido não se repete.
+ */
+export const STALE_SETTLING_MINUTES = 10;
+
 export async function reconcileAppyPayCharge(
   db: SupabaseClient,
   row: ChargeRow,
@@ -61,11 +69,14 @@ export async function reconcileAppyPayCharge(
   if (remote.successful && s === "success") {
     // Marca primeiro como "a liquidar" só se ainda estiver pendente: evita recibos em dobro
     // quando a AppyPay repete o aviso em simultâneo.
+    const staleBefore = new Date(Date.now() - STALE_SETTLING_MINUTES * 60_000).toISOString();
     const { data: claimed, error: claimError } = await db
       .from("payment_gateway_charges")
       .update({ status: "settling", last_webhook_at: now, raw_last_payload: payload ?? remote.raw })
       .eq("id", row.id)
-      .in("status", ["pending", "failed", "expired"])
+      .or(
+        `status.in.(pending,failed,expired),and(status.eq.settling,last_webhook_at.lt.${staleBefore})`,
+      )
       .select("id");
     // Sem reclamar não se liquida (evita recibos em dobro); mas um erro aqui não
     // é "outro pedido já está a liquidar" e tem de ficar visível.
@@ -90,7 +101,8 @@ export async function reconcileAppyPayCharge(
         .update({
           status: "paid",
           status_message: remote.message,
-          receipt_number: settled.receiptNumber,
+          // Retomada de um "settling" já liquidado: o recibo existe e não vem de novo.
+          ...(settled.receiptNumber ? { receipt_number: settled.receiptNumber } : {}),
           reconciled_at: now,
         })
         .eq("id", row.id);

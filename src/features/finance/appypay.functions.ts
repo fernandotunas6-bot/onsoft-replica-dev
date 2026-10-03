@@ -190,7 +190,8 @@ export const reconcileOpenCharges = createServerFn({ method: "POST" })
       .from("payment_gateway_charges")
       .select("*")
       .eq("school_id", schoolId)
-      .in("status", ["pending", "needs_review"])
+      // "settling" parado (o Worker morreu a meio) também se retoma; ver STALE_SETTLING_MINUTES.
+      .in("status", ["pending", "needs_review", "settling"])
       .not("provider_charge_id", "is", null)
       .limit(50);
     const { reconcileAppyPayCharge } = await import("@/features/finance/appypay-reconcile.server");

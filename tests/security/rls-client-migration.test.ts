@@ -55,6 +55,12 @@ const MIGRADOS = [
  * na contagem de dívida abaixo.
  */
 const PRIVILEGIO_POR_DESENHO = new Set([
+  // Ensino Superior: `program_subject_prerequisites` e `course_unit_enrollments`
+  // não têm política nenhuma para `authenticated` (só o servidor lhes toca). Cada
+  // função exige Administrador/Secretaria (ou o professor da cadeira, para lançar
+  // notas) e filtra pela escola da sessão.
+  "src/features/higher-ed/server.ts",
+
   // Assinatura da escola (Configurações → Assinatura). `tenants`,
   // `subscriptions`, `tenant_usage` e `saas_audit_logs` só têm política para a
   // equipa da plataforma. O servidor exige o Administrador e lê apenas o

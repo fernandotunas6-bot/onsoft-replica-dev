@@ -1,8 +1,13 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { loadSgaAdminClient, resolveSgaMembershipAdmin } from "@/integrations/supabase/sga-admin";
+import {
+  assertModuleNotBlocked,
+  loadSgaAdminClient,
+  resolveSgaMembershipAdmin,
+} from "@/integrations/supabase/sga-admin";
 import { publicDatabaseError } from "@/integrations/supabase/server-error";
+import { requireAal2 } from "@/features/hr/require-aal2";
 
 const salaryRequestSchema = z.object({
   contractId: z.string().uuid(),
@@ -21,6 +26,9 @@ async function requireHrWriter(userId: string) {
   if (!membership || !["Administrador", "Tesouraria"].includes(membership.appRole)) {
     throw new Error("Sem permissão para gerir remunerações.");
   }
+  // Como nas ordens salariais: o módulo financeiro em «Nenhum/Leitura» também
+  // bloqueia propostas e decisões de salário.
+  await assertModuleNotBlocked(membership.schoolId, userId, "financeiro", "write");
   return membership;
 }
 /** Creates a proposal only; contract and payroll remain unchanged. */
@@ -29,6 +37,7 @@ export const requestHrSalaryChange = createServerFn({ method: "POST" })
   .validator((input: unknown) => salaryRequestSchema.parse(input))
   .handler(async ({ context, data }) => {
     const membership = await requireHrWriter(context.userId);
+    requireAal2(context.claims, "Propor uma alteração salarial");
     const db = await loadSgaAdminClient();
     const { data: contract, error: contractError } = await db
       .from("hr_contracts")
@@ -82,6 +91,7 @@ export const reviewHrSalaryChange = createServerFn({ method: "POST" })
   .validator((input: unknown) => reviewSchema.parse(input))
   .handler(async ({ context, data }) => {
     const membership = await requireHrWriter(context.userId);
+    requireAal2(context.claims, "Decidir uma alteração salarial");
     const db = await loadSgaAdminClient();
     const { data: request, error: readError } = await db
       .from("hr_salary_change_requests")

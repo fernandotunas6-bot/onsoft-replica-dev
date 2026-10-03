@@ -26,6 +26,10 @@ export interface SchoolSignupPayload {
   commune?: string
   neighborhood?: string
   school_type?: string
+  /** Níveis que a escola lecciona (ids de TEACHING_LEVELS). */
+  teaching_levels?: string[]
+  /** Cursos do II Ciclo (ids de SECONDARY_COURSES), só com ii_ciclo. */
+  secondary_courses?: string[]
   phone?: string
   email?: string
   contact_name: string
@@ -38,6 +42,8 @@ export interface SchoolSignupPayload {
   admin_name: string
   admin_password: string
   website?: string
+  /** hCaptcha (quando o build tem VITE_HCAPTCHA_SITE_KEY). */
+  captcha_token?: string
 }
 
 export function formatAoaPrice(value?: number | null): string | null {

@@ -8,6 +8,7 @@
  *
  * Requer SIGA a correr (npm run dev:ecosystem) e SIGA_GATEWAY_DEV_API_KEY no .env
  */
+import { createHmac } from "node:crypto";
 import { readFileSync, existsSync } from "node:fs";
 import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -122,8 +123,8 @@ const endpoint = unitel
   ? `${sigaUrl}/api/finance/gateway/unitel/confirm`
   : `${sigaUrl}/api/finance/gateway/confirm`;
 
+// A key nunca vai no corpo: assina "<timestamp>.<corpo>" (gateway-webhook-signature.ts).
 const body = {
-  apiKey,
   reference,
   amount,
   invoiceId,
@@ -136,10 +137,17 @@ console.log(`→ POST ${endpoint}`);
 console.log(`  reference=${reference} amount=${amount} invoiceId=${invoiceId}`);
 
 try {
+  const rawBody = JSON.stringify(body);
+  const timestamp = String(Math.floor(Date.now() / 1000));
+  const signature = `sha256=${createHmac("sha256", apiKey).update(`${timestamp}.${rawBody}`).digest("hex")}`;
   const res = await fetch(endpoint, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
+    headers: {
+      "Content-Type": "application/json",
+      "X-SIGA-Timestamp": timestamp,
+      "X-SIGA-Signature": signature,
+    },
+    body: rawBody,
   });
   const payload = await res.json().catch(() => ({}));
   const mark = res.ok ? "✅" : "❌";

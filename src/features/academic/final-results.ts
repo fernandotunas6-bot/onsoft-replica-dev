@@ -141,7 +141,7 @@ async function buildClassFinalResults(
   const recordedBy = new Map(((history ?? []) as Row[]).map((h) => [str(h.student_id), h]));
 
   const lines = sheet.rows.map((row): FinalResultLine => {
-    const subjects = subjectFinalsFromBreakdown(row.breakdown, rule);
+    const subjects = subjectFinalsFromBreakdown(row.breakdown, rule, sheet.expectedTerms);
     const graded = latestGradedBySubject(
       ((regs ?? []) as Row[])
         .filter((r) => str(r.enrollment_id) === row.enrollmentId)
@@ -159,8 +159,8 @@ async function buildClassFinalResults(
       enrollmentId: row.enrollmentId,
       studentId: who?.studentId ?? "",
       studentName: who?.name ?? "Aluno",
-      before: computeFinalResult(subjects, row.absencePercentage, rule),
-      after: computeFinalResult(finals, row.absencePercentage, rule),
+      before: computeFinalResult(subjects, row.absencePercentage, rule, row.sheetIncomplete),
+      after: computeFinalResult(finals, row.absencePercentage, rule, row.sheetIncomplete),
       examSubjects: graded.length,
       subjects: finals,
       absencePercentage: row.absencePercentage,

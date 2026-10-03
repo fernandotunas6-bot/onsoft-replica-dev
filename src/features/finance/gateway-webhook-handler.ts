@@ -6,16 +6,24 @@ import {
   referencesMatch,
   type GatewayConfirmInput,
 } from "@/features/finance/gateway-webhook-schemas";
-import { gatewayWebhookApiKeyMatches } from "@/features/integrations/gateway-webhook-key";
+import { gatewayWebhookPreviousKeyActive } from "@/features/integrations/gateway-webhook-key";
+import {
+  checkGatewayTimestamp,
+  gatewaySignatureMatches,
+} from "@/features/finance/gateway-webhook-signature";
+import {
+  gatewayConfirmInputSchema,
+  type GatewayConfirmInput as ParsedGatewayInput,
+} from "@/features/finance/gateway-webhook-schemas";
 import {
   recordGatewayWebhookEvent,
   type GatewayWebhookEventMeta,
   type GatewayWebhookHandlerResult,
 } from "@/features/finance/gateway-webhook-telemetry";
-import { timingSafeEqual } from "@/lib/timing-safe-equal";
 import { isRateLimitBypassed } from "@/lib/rate-limit";
 import { consumeRateLimit } from "@/lib/shared-rate-limit";
 import { reportSigaError } from "@/lib/ops-report";
+import { readSettingsDomain } from "@/features/school/settings-domains";
 
 function mapPaymentMethodForLedger(method: string): "cash" | "bank_transfer" | "card" | "other" {
   if (method === "cash") return "cash";
@@ -45,14 +53,26 @@ function resolveGatewayDevApiKey(): string | null {
   return key;
 }
 
-export async function resolveGatewaySchoolByApiKey(db: SupabaseClient, apiKey: string) {
+export type ResolvedGatewaySchool = {
+  schoolId: string | null;
+  provider: (typeof GATEWAY_PROVIDERS)[number];
+  devMode: boolean;
+};
+
+/**
+ * Descobre a escola pela assinatura: a key de cada integração configurada (e a
+ * anterior, durante as 24 h de graça da rotação) é testada contra o HMAC.
+ */
+export async function resolveGatewaySchoolBySignature(
+  db: SupabaseClient,
+  signed: { timestamp: string; rawBody: string; signature: string | null },
+): Promise<ResolvedGatewaySchool | null> {
   const devKey = resolveGatewayDevApiKey();
-  if (devKey && timingSafeEqual(devKey, apiKey)) {
-    return {
-      schoolId: null as string | null,
-      provider: "multicaixa_express" as const,
-      devMode: true,
-    };
+  if (
+    devKey &&
+    (await gatewaySignatureMatches(devKey, signed.timestamp, signed.rawBody, signed.signature))
+  ) {
+    return { schoolId: null, provider: "multicaixa_express", devMode: true };
   }
 
   const { data: rows, error } = await db
@@ -60,16 +80,25 @@ export async function resolveGatewaySchoolByApiKey(db: SupabaseClient, apiKey: s
     .select("school_id, provider, config, status")
     .in("provider", [...GATEWAY_PROVIDERS])
     .in("status", ["configured", "connected"]);
-  if (error) throw publicDatabaseError(error, "Não foi possível validar a API key do gateway.");
+  if (error) throw publicDatabaseError(error, "Não foi possível validar a assinatura do gateway.");
 
   for (const row of rows ?? []) {
     const config = (row.config ?? {}) as Record<string, unknown>;
-    if (gatewayWebhookApiKeyMatches(config, apiKey)) {
-      return {
-        schoolId: String(row.school_id),
-        provider: row.provider as (typeof GATEWAY_PROVIDERS)[number],
-        devMode: false,
-      };
+    const keys = [String(config.webhookApiKey ?? "").trim()];
+    if (gatewayWebhookPreviousKeyActive(config)) {
+      keys.push(String(config.webhookApiKeyPrevious ?? "").trim());
+    }
+    for (const key of keys) {
+      if (
+        key &&
+        (await gatewaySignatureMatches(key, signed.timestamp, signed.rawBody, signed.signature))
+      ) {
+        return {
+          schoolId: String(row.school_id),
+          provider: row.provider as (typeof GATEWAY_PROVIDERS)[number],
+          devMode: false,
+        };
+      }
     }
   }
   return null;
@@ -128,15 +157,9 @@ export async function settleGatewayPayment(
   // tesouraria manual.
   let invoicePenaltyAmount = Number(invoice.penalty_amount ?? 0);
   if (invoicePenaltyAmount === 0 && invoice.due_date) {
-    const { data: billing } = await db
-      .from("school_settings")
-      .select("value")
-      .eq("school_id", input.schoolId)
-      .eq("domain", "billing")
-      .maybeSingle();
-    const billingValue = (billing?.value as Record<string, unknown> | null) ?? {};
-    const graceDays = Number(billingValue["grace_days"] ?? 0);
-    const lateFeePercent = Number(billingValue["late_fee_percent"] ?? 0);
+    const billing = await readSettingsDomain(db, input.schoolId, "billing");
+    const graceDays = billing.grace_days;
+    const lateFeePercent = billing.late_fee_percent;
     const dueDate = new Date(`${invoice.due_date}T00:00:00Z`);
     const graceDeadline = new Date(dueDate.getTime() + graceDays * 86_400_000);
     if (lateFeePercent > 0 && Date.now() > graceDeadline.getTime()) {
@@ -221,6 +244,55 @@ export async function settleGatewayPayment(
       // Chamada de webhook server-to-server (sem sessão AAL2 interactiva).
       // Liquidação direta com o client de serviço da escola.
       const today = new Date().toISOString().slice(0, 10);
+
+      // Caminho atómico (20261002090137, aplicada a 2026-10-02): fatura bloqueada,
+      // saldo, recibo e estado numa só transacção. Se a função faltar (base sem a
+      // migração, ex.: ambiente local), segue-se o caminho em passos, abaixo.
+      if (input.externalId) {
+        const receiver = await resolveGatewayReceiver(
+          db,
+          input.schoolId,
+          (invoice as { issued_by?: string | null }).issued_by ?? null,
+        );
+        const { data: atomic, error: atomicError } = await db.rpc(
+          "settle_gateway_payment_service" as never,
+          {
+            school_id: input.schoolId,
+            invoice_id: input.invoiceId,
+            amount: input.amount,
+            payment_method: mapPaymentMethodForLedger(input.method),
+            received_by: receiver,
+            external_id: input.externalId,
+            paid_on: today,
+          } as never,
+        );
+        if (!atomicError) {
+          const settled = atomic as unknown as {
+            alreadyPaid: boolean;
+            receiptId?: string;
+            receiptNumber?: string;
+            invoiceStatus?: string;
+          };
+          if (settled.alreadyPaid) {
+            return {
+              alreadyPaid: true as const,
+              receiptId: null,
+              receiptNumber: null,
+              planSettled: false,
+            };
+          }
+          result = {
+            receiptId: String(settled.receiptId),
+            receiptNumber: String(settled.receiptNumber),
+            invoiceStatus: String(settled.invoiceStatus),
+          };
+          return finishGatewaySettlement(db, input, normRef, result);
+        }
+        if (!isMissingFunction(atomicError)) {
+          throw new Error(atomicError.message || "Não foi possível liquidar o pagamento.");
+        }
+      }
+
       const { data: receipts, error: receiptsError } = await db
         .from("finance_receipts")
         .select("amount")
@@ -391,6 +463,18 @@ export async function settleGatewayPayment(
     };
   }
 
+  return finishGatewaySettlement(db, input, normRef, result);
+}
+
+type SettleInput = Parameters<typeof settleGatewayPayment>[1];
+
+/** Plano de pagamento liquidado depois do recibo (comum aos dois caminhos). */
+async function finishGatewaySettlement(
+  db: SupabaseClient,
+  input: SettleInput,
+  normRef: string,
+  result: { receiptId: string; receiptNumber: string; invoiceStatus: string },
+) {
   let planSettled = false;
   const planFilters = db
     .from("finance_payment_plans")
@@ -438,6 +522,34 @@ export async function settleGatewayPayment(
   };
 }
 
+function isMissingFunction(error: { code?: string; message?: string }) {
+  return (
+    error.code === "PGRST202" ||
+    error.code === "42883" ||
+    /could not find the function|function .* does not exist/i.test(error.message ?? "")
+  );
+}
+
+/**
+ * Quem assina o recibo de um webhook: quem emitiu a fatura, ou um membro activo
+ * da mesma escola. Nunca alguém de outra escola.
+ */
+async function resolveGatewayReceiver(
+  db: SupabaseClient,
+  schoolId: string,
+  issuedBy: string | null,
+): Promise<string | null> {
+  if (issuedBy) return issuedBy;
+  const { data: member } = await db
+    .from("school_memberships")
+    .select("user_id")
+    .eq("school_id", schoolId)
+    .eq("status", "active")
+    .limit(1)
+    .maybeSingle();
+  return member?.user_id ?? null;
+}
+
 function buildEventMeta(input: GatewayConfirmInput): GatewayWebhookEventMeta {
   return {
     channel: input.channel,
@@ -455,12 +567,8 @@ async function executeFinanceGatewayWebhook(
   db: SupabaseClient,
   input: GatewayConfirmInput,
   meta: GatewayWebhookEventMeta,
+  resolved: ResolvedGatewaySchool,
 ): Promise<GatewayWebhookHandlerResult> {
-  const resolved = await resolveGatewaySchoolByApiKey(db, input.apiKey);
-  if (!resolved) {
-    return { ok: false, status: 401, message: "API key de gateway inválida." };
-  }
-
   meta.devMode = resolved.devMode;
   meta.provider = resolved.provider;
 
@@ -491,7 +599,33 @@ async function executeFinanceGatewayWebhook(
   meta.schoolId = schoolId;
 
   const plan = await loadPaymentPlan(db, schoolId, input);
-  const invoiceId = input.invoiceId ?? (plan?.invoice_id ? String(plan.invoice_id) : null);
+  // Fora do modo de desenvolvimento só se liquida uma referência que o SIGA
+  // emitiu e ainda está pendente. Um `invoiceId` solto no corpo já não chega:
+  // era assim que quem tivesse a key marcava como paga qualquer fatura da escola.
+  if (!resolved.devMode && !plan) {
+    return {
+      ok: false,
+      status: 404,
+      message: "Nenhum plano de pagamento pendente com esta referência.",
+    };
+  }
+  if (
+    !resolved.devMode &&
+    plan?.invoice_id &&
+    input.invoiceId &&
+    String(plan.invoice_id) !== input.invoiceId
+  ) {
+    return {
+      ok: false,
+      status: 409,
+      message: "A fatura indicada não é a do plano desta referência.",
+    };
+  }
+  const invoiceId = resolved.devMode
+    ? (input.invoiceId ?? (plan?.invoice_id ? String(plan.invoice_id) : null))
+    : plan?.invoice_id
+      ? String(plan.invoice_id)
+      : null;
   if (!invoiceId) {
     return {
       ok: false,
@@ -562,8 +696,23 @@ async function executeFinanceGatewayWebhook(
 // um gateway real com retries, apertado o suficiente para travar automação.
 const GATEWAY_WEBHOOK_RATE_LIMIT = { windowMs: 5 * 60 * 1000, max: 30 };
 
-/** Webhook EMIS / simulador — liquida fatura + plano quando a referência coincide. */
-export async function runFinanceGatewayWebhook(input: GatewayConfirmInput, requestIp = "unknown") {
+export type GatewayWebhookRequest = {
+  rawBody: string;
+  timestamp: string | null;
+  signature: string | null;
+  /** O endereço `/unitel/confirm` fixa o canal. */
+  channel?: GatewayConfirmInput["channel"];
+};
+
+type GatewayRunResult =
+  | GatewayWebhookHandlerResult
+  | { ok: false; status: number; message: string; issues?: Record<string, string[] | undefined> };
+
+/** Webhook EMIS / Unitel — pedido assinado; liquida a fatura do plano da referência. */
+export async function runFinanceGatewayWebhook(
+  request: GatewayWebhookRequest,
+  requestIp = "unknown",
+): Promise<GatewayRunResult> {
   const rateLimitKey = `ip:${requestIp}`;
   if (
     !isRateLimitBypassed(rateLimitKey) &&
@@ -572,13 +721,51 @@ export async function runFinanceGatewayWebhook(input: GatewayConfirmInput, reque
     return { ok: false as const, status: 429, message: "Demasiados pedidos. Tente mais tarde." };
   }
 
+  let body: unknown;
+  try {
+    body = JSON.parse(request.rawBody);
+  } catch {
+    return { ok: false, status: 400, message: "Corpo JSON inválido." };
+  }
+  if (body && typeof body === "object" && "apiKey" in body) {
+    return {
+      ok: false,
+      status: 400,
+      message:
+        "A API key já não viaja no corpo: assine o pedido (X-SIGA-Timestamp e X-SIGA-Signature).",
+    };
+  }
+  const parsed = gatewayConfirmInputSchema.safeParse(
+    request.channel && body && typeof body === "object"
+      ? { ...body, channel: request.channel }
+      : body,
+  );
+  if (!parsed.success) {
+    return {
+      ok: false,
+      status: 400,
+      message: "Pedido inválido.",
+      issues: parsed.error.flatten().fieldErrors,
+    };
+  }
+  const input: ParsedGatewayInput = parsed.data;
+
+  const clock = checkGatewayTimestamp(request.timestamp);
+  if (!clock.ok) return { ok: false, status: 401, message: clock.message };
+
   const { loadSgaAdminClient } = await import("@/integrations/supabase/sga-admin");
   const db = await loadSgaAdminClient();
+  const resolved = await resolveGatewaySchoolBySignature(db, {
+    timestamp: request.timestamp!,
+    rawBody: request.rawBody,
+    signature: request.signature,
+  });
+  if (!resolved) {
+    return { ok: false, status: 401, message: "Assinatura de gateway inválida." };
+  }
+
   const meta = buildEventMeta(input);
-
-  const result = await executeFinanceGatewayWebhook(db, input, meta);
-
+  const result = await executeFinanceGatewayWebhook(db, input, meta, resolved);
   await recordGatewayWebhookEvent(db, meta, result).catch(() => undefined);
-
   return result;
 }

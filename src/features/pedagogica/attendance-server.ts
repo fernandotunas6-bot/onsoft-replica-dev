@@ -534,6 +534,12 @@ export const submitAttendanceCallBatch = createServerFn({ method: "POST" })
       .single();
 
     if (sErr || !session) throw new Error("Sessão de chamada não encontrada.");
+    // Chamada já fechada: mudar presenças é uma correcção, com motivo e
+    // auditoria (editFinalizedAttendanceCall). Antes, reenviar a chamada
+    // reescrevia-a sem rasto.
+    if (session.status === "completed") {
+      throw new Error("Esta chamada já foi fechada. Use «Corrigir chamada» e indique o motivo.");
+    }
 
     if (membership.appRole === "Professor") {
       const linked = await resolveUserLinkedEntities(db, membership.schoolId, context.userId);
@@ -755,12 +761,50 @@ export const reviewAttendanceJustification = createServerFn({ method: "POST" })
 
     const { data: just } = await db
       .from("siga_attendance_justifications")
-      .select("id, school_id, student_id, attendance_record_id, session_id")
+      .select("id, school_id, student_id, attendance_record_id, session_id, status")
       .eq("id", data.justificationId)
       .eq("school_id", membership.schoolId)
       .single();
 
     if (!just) throw new Error("Justificativa não encontrada.");
+    // Uma decisão por justificação: aprovar e depois rejeitar deixava a falta
+    // justificada (a rejeição não a repunha).
+    if (just.status && just.status !== "pending") {
+      throw new Error("Esta justificativa já foi decidida.");
+    }
+
+    // A justificação aprovada tira a falta da contagem (e da exclusão por
+    // faltas). O professor só decide as das suas próprias aulas; as outras são
+    // da Direcção ou da Secretaria.
+    const managesAll = membership.allAppRoles.some(
+      (role) => role === "Administrador" || role === "Secretaria",
+    );
+    if (!managesAll) {
+      let sessionId = just.session_id ? String(just.session_id) : null;
+      if (!sessionId && just.attendance_record_id) {
+        const { data: record } = await db
+          .from("siga_attendance_records")
+          .select("session_id")
+          .eq("school_id", membership.schoolId)
+          .eq("id", just.attendance_record_id)
+          .maybeSingle();
+        sessionId = record?.session_id ? String(record.session_id) : null;
+      }
+      const { data: ownSession } = sessionId
+        ? await db
+            .from("siga_attendance_sessions")
+            .select("teacher_id")
+            .eq("school_id", membership.schoolId)
+            .eq("id", sessionId)
+            .maybeSingle()
+        : { data: null };
+      const linked = await resolveUserLinkedEntities(db, membership.schoolId, context.userId);
+      if (!teacherOwnsAttendanceSession(linked.teacher_id, ownSession?.teacher_id)) {
+        throw new Error(
+          "Só pode decidir justificativas das suas aulas. As restantes são da Direcção ou da Secretaria.",
+        );
+      }
+    }
 
     const { error: reviewError } = await db
       .from("siga_attendance_justifications")
@@ -779,6 +823,7 @@ export const reviewAttendanceJustification = createServerFn({ method: "POST" })
       const { error: excuseError } = await db
         .from("siga_attendance_records")
         .update({ status: "excused", updated_at: new Date().toISOString() })
+        .eq("school_id", membership.schoolId)
         .eq("id", just.attendance_record_id);
       if (excuseError) {
         throw publicDatabaseError(excuseError, "Justificação aprovada, mas a falta não mudou.");

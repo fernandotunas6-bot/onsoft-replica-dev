@@ -36,7 +36,7 @@ type Escrita = {
 const escritas: Escrita[] = [];
 const estado = {
   fatura: { id: "inv-1", school_id: "school-1", status: "paid" } as Record<string, unknown> | null,
-  recibos: [] as Array<{ id: string; status: string }>,
+  recibos: [] as Array<{ id: string; status: string; external_id?: string | null }>,
 };
 
 function construirConsulta(tabela: string, dados: unknown) {
@@ -90,7 +90,7 @@ describe("estorno PayFlow", () => {
   beforeEach(() => {
     escritas.length = 0;
     estado.fatura = { id: "inv-1", school_id: "school-1", status: "paid" };
-    estado.recibos = [{ id: "rec-1", status: "issued" }];
+    estado.recibos = [{ id: "rec-1", status: "issued", external_id: "pay-000123" }];
   });
 
   it("reabre a fatura com um estado que o CHECK da base admite", async () => {
@@ -121,7 +121,7 @@ describe("estorno PayFlow", () => {
   });
 
   it("repõe uma fatura que o bug anterior deixou presa em paid sem recibos activos", async () => {
-    estado.recibos = [{ id: "rec-1", status: "reversed" }];
+    estado.recibos = [{ id: "rec-1", status: "reversed", external_id: "pay-000123" }];
 
     const resultado = await estornar();
 
@@ -133,7 +133,7 @@ describe("estorno PayFlow", () => {
 
   it("é idempotente depois de o estorno já estar reflectido", async () => {
     estado.fatura = { id: "inv-1", school_id: "school-1", status: "open" };
-    estado.recibos = [{ id: "rec-1", status: "reversed" }];
+    estado.recibos = [{ id: "rec-1", status: "reversed", external_id: "pay-000123" }];
 
     const resultado = await estornar();
 
@@ -143,10 +143,32 @@ describe("estorno PayFlow", () => {
 
   it("não reabre uma fatura cancelada", async () => {
     estado.fatura = { id: "inv-1", school_id: "school-1", status: "cancelled" };
-    estado.recibos = [{ id: "rec-1", status: "issued" }];
+    estado.recibos = [{ id: "rec-1", status: "issued", external_id: "pay-000123" }];
 
     await estornar();
 
     expect(escritas.find((e) => e.tabela === "finance_invoices")).toBeUndefined();
+  });
+
+  it("não anula recibos pagos por outro canal (caixa) da mesma fatura", async () => {
+    estado.recibos = [
+      { id: "rec-caixa", status: "issued", external_id: null },
+      { id: "rec-payflow", status: "issued", external_id: "pay-000123" },
+    ];
+
+    await estornar();
+
+    const anulados = escritas.filter((e) => e.tabela === "finance_receipts");
+    expect(anulados).toHaveLength(1);
+    expect(anulados[0]!.filtros).toContainEqual(["eq", "id", "rec-payflow"]);
+  });
+
+  it("sem recibo do pagamento PayFlow, recusa em vez de anular os outros", async () => {
+    estado.recibos = [{ id: "rec-caixa", status: "issued", external_id: null }];
+
+    const resultado = await estornar();
+
+    expect(resultado).toMatchObject({ ok: false, status: 409 });
+    expect(escritas, "nenhum recibo nem fatura alterados").toHaveLength(0);
   });
 });

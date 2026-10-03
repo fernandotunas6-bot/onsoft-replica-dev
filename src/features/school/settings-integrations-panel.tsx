@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Check, Mail } from "lucide-react";
 import { toast } from "sonner";
+import { toastActionError } from "@/lib/action-error-toast";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -55,6 +56,8 @@ function GatewayWebhookHint({
   const [rotating, setRotating] = useState(false);
   const isGateway = provider === "multicaixa_express" || provider === "unitel_money";
   const apiKey = String(config.webhookApiKey ?? "").trim();
+  // Sem 2FA nesta sessão o servidor só envia os últimos 4 caracteres.
+  const keyMasked = config.webhookApiKeyMasked === true;
   const previousActive = gatewayWebhookPreviousKeyActive(config);
   const previousExpires = String(config.webhookApiKeyPreviousExpiresAt ?? "");
 
@@ -104,8 +107,16 @@ function GatewayWebhookHint({
       <p className="text-muted-foreground">
         Configure no portal {provider === "unitel_money" ? "Unitel Money" : "EMIS/Multicaixa"} o
         POST abaixo. Corpo JSON:{" "}
-        <code className="text-[11px]">{`{ apiKey, reference, amount, invoiceId? }`}</code>
+        <code className="text-[11px]">{`{ reference, amount, externalId }`}</code>. A API key não
+        vai no pedido: assina-o, com os cabeçalhos{" "}
+        <code className="text-[11px]">X-SIGA-Timestamp</code> e{" "}
+        <code className="text-[11px]">X-SIGA-Signature: sha256=HMAC(key, timestamp.corpo)</code>.
       </p>
+      {keyMasked ? (
+        <p className="text-[11px] text-muted-foreground">
+          A API key confirma pagamentos, por isso só aparece completa numa sessão com 2FA.
+        </p>
+      ) : null}
       {provider === "multicaixa_express" ? (
         <p className="text-[11px] text-muted-foreground">
           Entidade EMIS: preencha o campo «Merchant EMIS / Multicaixa» acima (4–6 dígitos). Sem ela,
@@ -124,7 +135,14 @@ function GatewayWebhookHint({
         <code className="flex-1 min-w-0 truncate rounded bg-background px-2 py-1 font-mono text-[11px]">
           {apiKey}
         </code>
-        <Button type="button" size="sm" variant="outline" onClick={() => copy("API key", apiKey)}>
+        <Button
+          type="button"
+          size="sm"
+          variant="outline"
+          disabled={keyMasked}
+          title={keyMasked ? "Active 2FA nesta sessão para ver e copiar a API key." : undefined}
+          onClick={() => copy("API key", apiKey)}
+        >
           Copiar API key
         </Button>
         <AlertDialog>
@@ -352,11 +370,7 @@ function AcademicIntegrationsCatalog() {
                               queryKey: ["school", "integrations"],
                             });
                           })
-                          .catch((error) =>
-                            toast.error(
-                              error instanceof Error ? error.message : "Falha ao guardar.",
-                            ),
-                          );
+                          .catch((error) => toastActionError(error, "Falha ao guardar."));
                       }}
                     >
                       <Input

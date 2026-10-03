@@ -89,14 +89,14 @@ const endpoints = [
     label: "API finance gateway (anon POST)",
     url: "http://localhost:3006/api/finance/gateway/confirm",
     method: "POST",
-    body: JSON.stringify({ apiKey: "invalid-key", reference: "123456789", amount: 1 }),
+    body: JSON.stringify({ reference: "123456789", amount: 1, externalId: "smoke-unsigned" }),
     expect: [401],
   },
   {
     label: "API finance gateway unitel (anon POST)",
     url: "http://localhost:3006/api/finance/gateway/unitel/confirm",
     method: "POST",
-    body: JSON.stringify({ apiKey: "invalid-key", reference: "123456789", amount: 1 }),
+    body: JSON.stringify({ reference: "123456789", amount: 1, externalId: "smoke-unsigned" }),
     expect: [401],
   },
   {

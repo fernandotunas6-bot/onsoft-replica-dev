@@ -38,6 +38,7 @@ import { getOrCreateCalendarFeedToken } from "@/features/calendar/feed";
 import { listAcademicCalendar, saveAcademicCalendar } from "@/features/academic/academic-calendar";
 import { academicCalendarKey, configuredTrimesters } from "@/features/academic/calendar-status";
 import { termDrafts } from "@/features/academic/calendar-terms";
+import { periodModelFor, suggestSemesters } from "@/features/academic/period-model";
 import { calendarIcsFeedUrl, calendarWebcalFeedUrl } from "@/features/calendar/ics";
 import { AppShell } from "@/components/layout/AppShell";
 import { PageHeader, Panel, StatGrid, badgeBase, toneClass } from "@/components/layout/PageHeader";
@@ -241,10 +242,37 @@ function CalendarioPage() {
   const drafts = calendarYear
     ? termDrafts({ startsOn: calendarYear.startsOn, endsOn: calendarYear.endsOn }, savedTerms)
     : [];
+  // Escola só de Ensino Superior: o ano divide-se em dois semestres.
+  const periodModel = periodModelFor(school?.pedagogy?.teachingLevels ?? []);
+  const semesterDrafts = calendarYear
+    ? suggestSemesters(calendarYear.startsOn, calendarYear.endsOn).filter(
+        (draft) => !savedTerms.some((term) => term.sequence === draft.sequence),
+      )
+    : [];
   const missingTerms =
     Boolean(calendarYear) &&
     academicCalendarQuery.isSuccess &&
-    configuredTrimesters(savedTerms).missing.length > 0;
+    (periodModel.kind === "semestre"
+      ? semesterDrafts.length > 0
+      : configuredTrimesters(savedTerms).missing.length > 0);
+
+  const saveSemesters = async (values: Record<string, string>) => {
+    if (!calendarYear || !canConfigureTerms)
+      throw new Error("Só pode configurar o ano lectivo activo.");
+    for (const draft of semesterDrafts) {
+      await createCalendarEvent({
+        data: {
+          title: values[`nome${draft.sequence}`]?.trim() || draft.name,
+          eventDate: values[`inicio${draft.sequence}`] ?? draft.startsOn,
+          endsOn: values[`fim${draft.sequence}`] ?? draft.endsOn,
+          academicYearId: calendarYear.id,
+          category: "academic",
+          sequence: draft.sequence,
+        },
+      });
+    }
+    await refreshCalendar();
+  };
 
   const saveTerms = async (values: Record<string, string>) => {
     if (!calendarYear || !canConfigureTerms)
@@ -608,7 +636,49 @@ function CalendarioPage() {
                   )}
                 />
               ) : null}
-              {canConfigureTerms && calendarYear ? (
+              {canConfigureTerms && calendarYear && periodModel.kind === "semestre" ? (
+                semesterDrafts.length ? (
+                  <QuickFormModal
+                    title={`Semestres de ${calendarYear.name}`}
+                    description={`Os semestres do ano lectivo (${calendarYear.startsOn} a ${calendarYear.endsOn}). As datas sugeridas dividem o ano em dois: acerte-as às épocas de exame da instituição.`}
+                    icon={<CalendarDays className="size-5" />}
+                    submitLabel="Criar semestres"
+                    successDescription="Semestres criados."
+                    onSubmit={saveSemesters}
+                    fields={semesterDrafts.flatMap((term) => [
+                      {
+                        name: `nome${term.sequence}`,
+                        label: `${term.sequence}º semestre — nome`,
+                        defaultValue: term.name,
+                        full: true,
+                      },
+                      {
+                        name: `inicio${term.sequence}`,
+                        label: "Início",
+                        type: "date" as const,
+                        defaultValue: term.startsOn,
+                      },
+                      {
+                        name: `fim${term.sequence}`,
+                        label: "Fim",
+                        type: "date" as const,
+                        defaultValue: term.endsOn,
+                      },
+                    ])}
+                    trigger={(open) => (
+                      <Button
+                        className="gap-2"
+                        onClick={open}
+                        disabled={!academicCalendarQuery.isSuccess}
+                      >
+                        <CalendarDays className="size-4" />
+                        Configurar semestres
+                      </Button>
+                    )}
+                  />
+                ) : null
+              ) : null}
+              {canConfigureTerms && calendarYear && periodModel.kind === "trimestre" ? (
                 <QuickFormModal
                   title={`Trimestres de ${calendarYear.name}`}
                   description={`Os três trimestres do ano lectivo (${calendarYear.startsOn} a ${calendarYear.endsOn}), gravados de uma vez. Pautas, notas e fecho de trimestre dependem deles. As datas sugeridas dividem o ano em três: acerte-as às pausas e exames da escola.`}
