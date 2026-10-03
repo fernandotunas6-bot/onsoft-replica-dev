@@ -18,6 +18,7 @@ import {
   saveMyAlumniPortfolioItem,
 } from "@/features/alumni/portfolio";
 import { getMyAlumniEducationHistory } from "@/features/alumni/education-history";
+import { safeHref } from "@/lib/safe-url";
 
 export const Route = createFileRoute("/alumni/portal/portfolio")({
   head: () => ({ meta: [{ title: "Meu Portfólio Alumni · SIGA" }] }),
@@ -412,7 +413,7 @@ function AlumniPortfolioPage() {
                       <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-border/60 pt-3">
                         {item.external_url ? (
                           <a
-                            href={item.external_url}
+                            href={safeHref(item.external_url)}
                             target="_blank"
                             rel="noreferrer"
                             className="inline-flex items-center text-xs font-semibold text-primary"

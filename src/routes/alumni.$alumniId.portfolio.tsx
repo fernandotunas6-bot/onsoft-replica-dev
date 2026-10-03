@@ -9,6 +9,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { MediaAvatar } from "@/components/ui/media-frame";
 import { getAlumniProfile } from "@/features/alumni/server";
 import { listAlumniPortfolioAdmin, setAlumniPortfolioFeatured } from "@/features/alumni/portfolio";
+import { safeHref } from "@/lib/safe-url";
 
 type AdminPortfolioItem = Awaited<ReturnType<typeof listAlumniPortfolioAdmin>>[number];
 
@@ -259,7 +260,7 @@ function PortfolioAdminCard({
         <div className="mt-4 flex flex-wrap items-center gap-3 border-t border-border/60 pt-3">
           {item.external_url ? (
             <a
-              href={item.external_url}
+              href={safeHref(item.external_url)}
               target="_blank"
               rel="noreferrer"
               className="inline-flex items-center text-xs font-bold text-primary"

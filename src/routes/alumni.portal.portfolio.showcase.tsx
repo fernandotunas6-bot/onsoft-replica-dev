@@ -8,6 +8,7 @@ import { MediaAvatar } from "@/components/ui/media-frame";
 import { getMyAlumniPortal } from "@/features/alumni/self-service";
 import { getMyAlumniPortfolio } from "@/features/alumni/portfolio";
 import { getMyAlumniEducationHistory } from "@/features/alumni/education-history";
+import { safeHref } from "@/lib/safe-url";
 
 export const Route = createFileRoute("/alumni/portal/portfolio/showcase")({
   head: () => ({
@@ -324,7 +325,7 @@ function AlumniPortfolioShowcasePage() {
                       ) : null}
                       {item.external_url ? (
                         <a
-                          href={item.external_url}
+                          href={safeHref(item.external_url)}
                           target="_blank"
                           rel="noreferrer"
                           className="mt-6 inline-flex items-center text-sm font-semibold underline underline-offset-4"

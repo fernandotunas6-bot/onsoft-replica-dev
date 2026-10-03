@@ -1,5 +1,9 @@
 import { z } from "zod";
+import { optionalHttpUrlSchema } from "@/lib/safe-url";
 import { gradingProfileSchema } from "@/features/school/schemas";
+
+// Convite do grupo da turma: mostrado a quem vê a turma, por isso só http(s).
+const optionalHttpUrl = optionalHttpUrlSchema;
 
 const optionalText = z
   .string()
@@ -85,7 +89,7 @@ export const createClassGroupInputSchema = z.object({
   name: classGroupName,
   shift: z.enum(classShiftOptions),
   capacity: z.number().int().positive().max(200).optional(),
-  whatsappInviteUrl: optionalText,
+  whatsappInviteUrl: optionalHttpUrl,
   whatsappGroupName: optionalText,
 });
 export type CreateClassGroupInput = z.infer<typeof createClassGroupInputSchema>;
@@ -100,7 +104,7 @@ export const updateClassGroupInputSchema = z.object({
   // Ausente = não mexe no estado. O antigo `.default("active")` reactivava sem
   // aviso uma turma arquivada sempre que alguém lhe editava o nome.
   status: z.enum(["active", "inactive"]).optional(),
-  whatsappInviteUrl: optionalText,
+  whatsappInviteUrl: optionalHttpUrl,
   whatsappGroupName: optionalText,
 });
 export type UpdateClassGroupInput = z.infer<typeof updateClassGroupInputSchema>;

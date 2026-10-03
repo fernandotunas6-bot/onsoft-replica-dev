@@ -1,6 +1,7 @@
 import type { Json } from "@/integrations/supabase/types";
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
+import { nullableHttpUrlSchema } from "@/lib/safe-url";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { publicDatabaseError } from "@/integrations/supabase/server-error";
 import { loadSgaAdminClient, resolveSgaMembershipAdmin } from "@/integrations/supabase/sga-admin";
@@ -17,8 +18,8 @@ const updateSelfProfileSchema = z.object({
   city: z.string().trim().max(120).nullable().optional(),
   province: z.string().trim().max(120).nullable().optional(),
   country: z.string().trim().max(120).nullable().optional(),
-  linkedinUrl: z.union([z.string().trim().url(), z.literal(""), z.null()]).optional(),
-  websiteUrl: z.union([z.string().trim().url(), z.literal(""), z.null()]).optional(),
+  linkedinUrl: nullableHttpUrlSchema,
+  websiteUrl: nullableHttpUrlSchema,
   skills: z.array(z.string().trim().min(1).max(80)).max(30).optional(),
   interests: z.array(z.string().trim().min(1).max(80)).max(30).optional(),
   availableForMentoring: z.boolean().optional(),
