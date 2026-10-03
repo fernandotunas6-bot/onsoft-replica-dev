@@ -9,7 +9,10 @@ import { describe, expect, it } from "vitest";
  * pior, uma leitura sempre vazia. Coluna nova → migração aplicada e retrato
  * recapturado antes do código que a usa.
  */
-type Snapshot = { tabelas: Array<{ tabela: string; colunas: string[] }> };
+type Snapshot = {
+  tabelas: Array<{ tabela: string; colunas: string[] }>;
+  funcoes: Array<{ schema: string; funcao: string }>;
+};
 const snapshot = JSON.parse(readFileSync("supabase/PRODUCTION_SNAPSHOT.json", "utf8")) as Snapshot;
 const columns = new Map(snapshot.tabelas.map((t) => [t.tabela, new Set(t.colunas)]));
 
@@ -59,5 +62,19 @@ describe("colunas usadas existem na produção", () => {
 
   it("select e filtros", () => {
     expect(problems).toEqual([]);
+  });
+
+  it("funções chamadas por .rpc() existem na produção", () => {
+    const functions = new Set(
+      snapshot.funcoes.filter((f) => f.schema === "public").map((f) => f.funcao),
+    );
+    const missing: string[] = [];
+    for (const file of walk("src")) {
+      const source = readFileSync(file, "utf8");
+      for (const match of source.matchAll(/\.rpc\(\s*"([a-z_0-9]+)"/g)) {
+        if (!functions.has(match[1]!)) missing.push(`${file}: ${match[1]}`);
+      }
+    }
+    expect(missing).toEqual([]);
   });
 });
