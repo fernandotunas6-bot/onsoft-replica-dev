@@ -1307,6 +1307,25 @@ export const reverseCashEntry = createServerFn({ method: "POST" })
       return receipt;
     }
 
+    // Uma saída de caixa que pagou um salário não se anula aqui: o salário
+    // ficava «pago» com o dinheiro devolvido ao caixa, e a ordem e a folha
+    // diziam o contrário do caixa.
+    const { data: payrollLink, error: payrollLinkError } = await db
+      .from("hr_payroll_payment_items")
+      .select("id, status")
+      .eq("school_id", membership.schoolId)
+      .eq("cash_expense_id", data.cashEntryId)
+      .limit(1)
+      .maybeSingle();
+    if (payrollLinkError && !isMissingSgaTable(payrollLinkError)) {
+      throw publicDatabaseError(payrollLinkError, "Não foi possível verificar a despesa.");
+    }
+    if (payrollLink?.id) {
+      throw new Error(
+        "Esta saída pagou um salário e não se anula no caixa: a folha continuaria a dar o salário como pago. A correcção tem de ser feita no pagamento salarial (Recursos Humanos).",
+      );
+    }
+
     const { data: expense, error: expenseError } = await db
       .from("siga_cash_expenses")
       .update({
