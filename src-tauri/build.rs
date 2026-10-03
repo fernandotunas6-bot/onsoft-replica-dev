@@ -8,6 +8,7 @@ fn main() {
             "hardware_bridge_request",
             "get_desktop_diagnostics",
             "open_school_portal",
+            "save_file",
         ]));
     tauri_build::try_build(attributes).expect("falha na configuração de permissões SIGA");
 }

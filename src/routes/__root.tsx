@@ -122,6 +122,7 @@ function RootShell({ children }: { children: ReactNode }) {
 }
 
 import { TauriTitlebar } from "@/components/TauriTitlebar";
+import { DesktopIntegration } from "@/components/layout/DesktopIntegration";
 
 function ClientOnlyToaster() {
   const [hydrated, setHydrated] = useState(false);
@@ -171,6 +172,7 @@ function RootComponent() {
       <TenantProvider>
         <AppearanceProvider>
           <TauriTitlebar />
+          <DesktopIntegration />
           <div className="relative pt-[env(safe-area-inset-top,0)] flex min-h-screen flex-col">
             {isPublic ? (
               <Outlet />

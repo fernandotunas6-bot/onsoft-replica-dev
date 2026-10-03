@@ -18,6 +18,7 @@
     "allow-open-external-url",
     "allow-pulse-turnstile-relay",
     "allow-print-thermal-receipt-native",
+    "allow-save-file",
     "notification:default"
   ]
 }

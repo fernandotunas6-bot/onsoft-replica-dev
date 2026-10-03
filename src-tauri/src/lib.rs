@@ -265,6 +265,97 @@ fn get_system_info() -> SystemInfo {
     }
 }
 
+/// Maior ficheiro exportado que a app grava (CSV, XLSX, PDF, ICS…).
+const MAX_SAVE_BYTES: usize = 50 * 1024 * 1024;
+
+/// Descodifica `%XX` (o nome chega em `encodeURIComponent`; os cabeçalhos são ASCII).
+fn percent_decode(value: &str) -> String {
+    let bytes = value.as_bytes();
+    let mut out = Vec::with_capacity(bytes.len());
+    let mut i = 0;
+    while i < bytes.len() {
+        if bytes[i] == b'%' && i + 2 < bytes.len() {
+            if let Ok(byte) = u8::from_str_radix(&value[i + 1..i + 3], 16) {
+                out.push(byte);
+                i += 3;
+                continue;
+            }
+        }
+        out.push(bytes[i]);
+        i += 1;
+    }
+    String::from_utf8_lossy(&out).into_owned()
+}
+
+/// Nome sugerido no «Guardar como»: sem separadores de caminho, sem caracteres que o
+/// Windows recusa e sem pontos ou espaços nas pontas.
+fn safe_file_name(raw: Option<&str>) -> String {
+    let decoded = raw.map(percent_decode).unwrap_or_default();
+    let cleaned: String = decoded
+        .chars()
+        .map(|c| match c {
+            '/' | '\\' | ':' | '*' | '?' | '"' | '<' | '>' | '|' => '-',
+            c if c.is_control() => '-',
+            c => c,
+        })
+        .take(180)
+        .collect();
+    let trimmed = cleaned.trim_matches(|c: char| c == '.' || c.is_whitespace());
+    if trimmed.is_empty() {
+        "exportacao-siga".to_string()
+    } else {
+        trimmed.to_string()
+    }
+}
+
+/// Grava um ficheiro exportado pelo SIGA onde a pessoa escolher.
+///
+/// O WKWebView (macOS) e o WebKitGTK (Linux) ignoram `<a download href="blob:…">`, por
+/// isso o frontend envia os bytes no corpo e o nome no cabeçalho `x-file-name`. O
+/// diálogo abre aqui, no Rust: a página nunca indica um caminho, só se escreve no sítio
+/// que a pessoa escolheu. Devolve o caminho gravado, ou `None` se cancelar.
+#[tauri::command]
+async fn save_file(
+    app: tauri::AppHandle,
+    request: tauri::ipc::Request<'_>,
+) -> Result<Option<String>, String> {
+    use tauri_plugin_dialog::DialogExt;
+
+    let tauri::ipc::InvokeBody::Raw(bytes) = request.body() else {
+        return Err("Pedido inválido: esperava o conteúdo do ficheiro.".into());
+    };
+    if bytes.is_empty() || bytes.len() > MAX_SAVE_BYTES {
+        return Err("O ficheiro está vazio ou é demasiado grande para guardar.".into());
+    }
+    let bytes = bytes.clone();
+    let name = safe_file_name(
+        request
+            .headers()
+            .get("x-file-name")
+            .and_then(|value| value.to_str().ok()),
+    );
+    let mut dialog = app.dialog().file().set_file_name(&name);
+    if let Some(ext) = std::path::Path::new(&name)
+        .extension()
+        .and_then(|ext| ext.to_str())
+    {
+        dialog = dialog.add_filter(ext.to_uppercase(), &[ext]);
+    }
+    // O diálogo bloqueia até a pessoa escolher: fora das threads assíncronas.
+    tauri::async_runtime::spawn_blocking(move || {
+        let Some(chosen) = dialog.blocking_save_file() else {
+            return Ok(None);
+        };
+        let path = chosen
+            .into_path()
+            .map_err(|_| "Caminho de destino inválido.".to_string())?;
+        std::fs::write(&path, bytes).map_err(|e| format!("Não foi possível gravar: {e}"))?;
+        Ok(Some(path.display().to_string()))
+    })
+    .await
+    .map_err(|_| "Falha ao guardar o ficheiro.".to_string())?
+}
+
 /// O plugin do updater só arranca com `plugins.updater` preenchido (chave pública).
 /// Sem isso, registá-lo faz a app terminar logo ao abrir.
 fn updater_configured(plugins: &tauri::utils::config::PluginConfig) -> bool {
@@ -342,6 +433,8 @@ pub fn run() {
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_notification::init())
         .plugin(tauri_plugin_process::init())
+        // Só o Rust abre diálogos (save_file); a página não recebe permissões `dialog:`.
+        .plugin(tauri_plugin_dialog::init())
         .invoke_handler(tauri::generate_handler![
             pulse_turnstile_relay,
             print_thermal_receipt_native,
@@ -349,7 +442,8 @@ pub fn run() {
             open_external_url,
             hardware_bridge::hardware_bridge_request,
             get_desktop_diagnostics,
-            open_school_portal
+            open_school_portal,
+            save_file
         ]);
 
     #[cfg(desktop)]
@@ -399,5 +493,23 @@ mod tests {
             serde_json::json!({ "pubkey": "chave", "endpoints": ["https://exemplo/latest.json"] }),
         );
         assert!(updater_configured(&plugins));
+    }
+    #[test]
+    fn saved_file_names_cannot_escape_the_chosen_folder() {
+        assert_eq!(
+            safe_file_name(Some("alunos%2010%C2%AA%20A.csv")),
+            "alunos 10ª A.csv"
+        );
+        assert_eq!(
+            safe_file_name(Some("..%2F..%2Fetc%2Fpasswd")),
+            "-..-etc-passwd"
+        );
+        assert_eq!(
+            safe_file_name(Some("C:\\Windows\\x.exe")),
+            "C--Windows-x.exe"
+        );
+        assert_eq!(safe_file_name(Some(" ... ")), "exportacao-siga");
+        assert_eq!(safe_file_name(None), "exportacao-siga");
+        assert_eq!(percent_decode("fim%4"), "fim%4");
     }
 }
