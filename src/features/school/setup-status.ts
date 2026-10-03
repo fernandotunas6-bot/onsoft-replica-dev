@@ -5,8 +5,18 @@
  */
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { loadSgaAdminClient, requireSgaWriterFor } from "@/integrations/supabase/sga-admin";
+import {
+  loadSgaAdminClient,
+  requireSgaWriterFor,
+  requireSgaWriterForWrite,
+} from "@/integrations/supabase/sga-admin";
 import { readSettingsDomain } from "./settings-domains";
+import { planSchoolStructure } from "@/features/academic/school-structure-plan";
+import {
+  countPendingStructure,
+  loadSchoolTeachingContext,
+  seedSchoolStructure,
+} from "@/features/academic/school-structure-seed";
 import {
   buildSetupSteps,
   summarizeSetup,
@@ -88,6 +98,7 @@ export async function loadSchoolSetupSnapshot(
     openForms,
     students,
     banking,
+    structure,
   ] = await Promise.all([
     yearId
       ? countRows(
@@ -161,6 +172,7 @@ export async function loadSchoolSetupSnapshot(
     ),
     countRows(db.from("students").select("id", head).eq("school_id", schoolId)),
     readSettingsDomain(db, schoolId, "banking"),
+    countPendingStructure(db, schoolId),
   ]);
 
   return {
@@ -173,6 +185,8 @@ export async function loadSchoolSetupSnapshot(
       hasLogo: Boolean(filled(branding?.logo_url) ?? filled(school?.logo_url)),
     },
     activeYearName: activeYear ? (filled(activeYear.name) ?? "Ano lectivo") : null,
+    teachingLevels: structure.teachingLevels,
+    pendingStructureGrades: structure.pendingGrades,
     termsInActiveYear,
     gradeLevels,
     classGroupsInActiveYear: groupIds.length,
@@ -209,4 +223,29 @@ export const getSchoolSetupStatus = createServerFn({ method: "GET" })
     );
     const steps = buildSetupSteps(snapshot);
     return { steps, summary: summarizeSetup(steps) };
+  });
+
+/**
+ * Aplicar à base a estrutura académica do contexto da escola (níveis e cursos
+ * guardados em Definições → Pedagógico). Usado pelo assistente e pelo painel
+ * Pedagógico depois de mudar os níveis. Só acrescenta o que falta.
+ */
+export const applySchoolStructure = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const membership = await requireSgaWriterForWrite("gestao", context.supabase, context.userId, [
+      "Administrador",
+    ]);
+    const db = await loadSgaAdminClient();
+    const teaching = await loadSchoolTeachingContext(db, membership.schoolId);
+    if (!teaching.teachingLevels.length) {
+      throw new Error("Escolha primeiro os níveis de ensino da escola em Definições → Pedagógico.");
+    }
+    const plan = planSchoolStructure(teaching.teachingLevels, teaching.courses);
+    const { seeded } = await seedSchoolStructure(
+      db,
+      { schoolId: membership.schoolId, userId: context.userId, plan },
+      { strict: true },
+    );
+    return { seeded };
   });

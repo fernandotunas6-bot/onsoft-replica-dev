@@ -15,6 +15,8 @@ const empty: SchoolSetupSnapshot = {
     hasLogo: false,
   },
   activeYearName: null,
+  teachingLevels: [],
+  pendingStructureGrades: 0,
   termsInActiveYear: 0,
   gradeLevels: 0,
   classGroupsInActiveYear: 0,
@@ -40,6 +42,8 @@ const complete: SchoolSetupSnapshot = {
     hasLogo: true,
   },
   activeYearName: "2026/2027",
+  teachingLevels: ["primario", "i_ciclo"],
+  pendingStructureGrades: 0,
   termsInActiveYear: 3,
   gradeLevels: 6,
   classGroupsInActiveYear: 12,
@@ -56,6 +60,25 @@ const complete: SchoolSetupSnapshot = {
 };
 
 describe("assistente de configuração da escola", () => {
+  it("níveis escolhidos mas classes em falta: o passo cria-as no próprio assistente", () => {
+    const step = buildSetupSteps({ ...complete, pendingStructureGrades: 4 }).find(
+      (s) => s.id === "classes",
+    );
+    expect(step?.done).toBe(false);
+    expect(step?.action).toEqual({ type: "apply-structure" });
+    expect(step?.detail).toBe("Faltam 4 classes dos níveis escolhidos.");
+  });
+
+  it("sem níveis escolhidos: primeiro escolher os níveis", () => {
+    const steps = buildSetupSteps({ ...complete, teachingLevels: [] });
+    expect(steps.find((s) => s.id === "niveis")?.done).toBe(false);
+    expect(steps.find((s) => s.id === "classes")?.action).toEqual({
+      type: "route",
+      to: "/pedagogica",
+      search: { tab: "estrutura" },
+    });
+  });
+
   it("escola acabada de criar: começa pelos dados da escola e não está pronta", () => {
     const summary = summarizeSetup(buildSetupSteps(empty));
     expect(summary.ready).toBe(false);

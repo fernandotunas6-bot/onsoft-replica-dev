@@ -1,12 +1,18 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
+import { toastActionError } from "@/lib/action-error-toast";
 import { useServerFn } from "@tanstack/react-start";
 import { ArrowRight, CheckCircle2, Circle, LoaderCircle, RefreshCw, Star } from "lucide-react";
 import { AppShell } from "@/components/layout/AppShell";
 import { PageHeader, Panel } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/button";
 import { useCurrentAccount } from "@/features/auth/use-current-account";
-import { getSchoolSetupStatus, type SchoolSetupStatus } from "@/features/school/setup-status";
+import {
+  applySchoolStructure,
+  getSchoolSetupStatus,
+  type SchoolSetupStatus,
+} from "@/features/school/setup-status";
 import type { SetupStep } from "@/features/school/setup-steps";
 import { moduleIcons } from "@/lib/app-icons";
 import { openSettingsPanel } from "@/lib/settings-deep-link";
@@ -187,14 +193,33 @@ function SetupContent({ status }: { status: SchoolSetupStatus }) {
 
 function StepActionButton({ step, primary }: { step: SetupStep; primary?: boolean }) {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  const applyStructure = useServerFn(applySchoolStructure);
+  const apply = useMutation({
+    mutationFn: () => applyStructure(),
+    onSuccess: async (result) => {
+      toast.success(
+        result.seeded.length
+          ? `Criado: ${result.seeded.join(", ")}.`
+          : "A estrutura já estava completa.",
+      );
+      await queryClient.invalidateQueries({ queryKey: SCHOOL_SETUP_QUERY_KEY });
+    },
+    onError: (error) => toastActionError(error, "Não foi possível criar a estrutura."),
+  });
+  const action = step.action;
   const run = () => {
-    if (step.action.type === "panel") {
-      openSettingsPanel(step.action.panel);
+    if (action.type === "panel") {
+      openSettingsPanel(action.panel);
+      return;
+    }
+    if (action.type === "apply-structure") {
+      apply.mutate();
       return;
     }
     void navigate({
-      to: step.action.to as never,
-      search: (step.action.search ?? {}) as never,
+      to: action.to as never,
+      search: (action.search ?? {}) as never,
     });
   };
   return (
@@ -203,8 +228,9 @@ function StepActionButton({ step, primary }: { step: SetupStep; primary?: boolea
       size="sm"
       variant={primary ? "default" : step.done ? "ghost" : "secondary"}
       onClick={run}
+      disabled={apply.isPending}
     >
-      {step.done ? "Rever" : step.actionLabel}
+      {apply.isPending ? "A criar…" : step.done ? "Rever" : step.actionLabel}
       <ArrowRight className="size-4" aria-hidden />
     </Button>
   );

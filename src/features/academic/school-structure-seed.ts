@@ -196,3 +196,19 @@ export async function seedSchoolStructureFromSettings(
   const result = await seedSchoolStructure(db, { ...input, plan }, options);
   return { ...result, hasContext: true };
 }
+
+/** Quantas classes do plano ainda não existem (0 = estrutura em dia). */
+export async function countPendingStructure(
+  db: SupabaseClient,
+  schoolId: string,
+): Promise<{ teachingLevels: string[]; pendingGrades: number }> {
+  const teaching = await loadSchoolTeachingContext(db, schoolId);
+  if (!teaching.teachingLevels.length) return { teachingLevels: [], pendingGrades: 0 };
+  const plan = planSchoolStructure(teaching.teachingLevels, teaching.courses);
+  const { data } = await db.from("grade_levels").select("code").eq("school_id", schoolId);
+  const existing = new Set((data ?? []).map((row: { code: string }) => String(row.code)));
+  return {
+    teachingLevels: teaching.teachingLevels,
+    pendingGrades: plan.grades.filter((grade) => !existing.has(grade.code)).length,
+  };
+}

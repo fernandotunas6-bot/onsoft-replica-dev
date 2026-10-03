@@ -17,6 +17,10 @@ export type SchoolSetupSnapshot = {
     hasLogo: boolean;
   };
   activeYearName: string | null;
+  /** Níveis de ensino escolhidos (Definições → Pedagógico ou registo). */
+  teachingLevels: string[];
+  /** Classes do plano desses níveis que ainda não existem. */
+  pendingStructureGrades: number;
   termsInActiveYear: number;
   gradeLevels: number;
   classGroupsInActiveYear: number;
@@ -36,7 +40,10 @@ export type SchoolSetupSnapshot = {
 };
 
 export type SetupStepAction =
-  { type: "panel"; panel: string } | { type: "route"; to: string; search?: Record<string, string> };
+  | { type: "panel"; panel: string }
+  | { type: "route"; to: string; search?: Record<string, string> }
+  /** Cria no próprio assistente as classes, cursos e disciplinas em falta. */
+  | { type: "apply-structure" };
 
 export type SetupStep = {
   id: string;
@@ -115,16 +122,54 @@ export function buildSetupSteps(s: SchoolSetupSnapshot): SetupStep[] {
       actionLabel: "Abrir calendário",
     },
     {
+      id: "niveis",
+      group: "Ensino",
+      title: "Níveis de ensino e cursos",
+      description:
+        "Que níveis a escola lecciona (Iniciação, Primário, I e II Ciclo, Superior) e os cursos do II Ciclo. Daqui saem as classes e disciplinas.",
+      done: s.teachingLevels.length > 0,
+      essential: true,
+      detail: s.teachingLevels.length
+        ? `${plural(s.teachingLevels.length, "nível escolhido", "níveis escolhidos")}.`
+        : "Nenhum nível escolhido.",
+      action: { type: "panel", panel: "pedagogico" },
+      actionLabel: "Escolher níveis",
+    },
+    {
+      id: "classes",
+      group: "Ensino",
+      title: "Classes, cursos e disciplinas",
+      description: "Criados a partir dos níveis escolhidos; só se acrescenta o que falta.",
+      done: s.gradeLevels > 0 && s.pendingStructureGrades === 0,
+      essential: true,
+      detail: !s.teachingLevels.length
+        ? s.gradeLevels
+          ? `${plural(s.gradeLevels, "classe", "classes")}. Escolha os níveis para completar a estrutura.`
+          : "Escolha primeiro os níveis de ensino."
+        : s.pendingStructureGrades
+          ? `Faltam ${plural(s.pendingStructureGrades, "classe", "classes")} dos níveis escolhidos.`
+          : `${plural(s.gradeLevels, "classe", "classes")} criadas.`,
+      action:
+        s.teachingLevels.length && s.pendingStructureGrades
+          ? { type: "apply-structure" }
+          : { type: "route", to: "/pedagogica", search: { tab: "estrutura" } },
+      actionLabel:
+        s.teachingLevels.length && s.pendingStructureGrades
+          ? "Criar classes e disciplinas"
+          : "Abrir estrutura",
+    },
+    {
       id: "estrutura",
       group: "Ensino",
-      title: "Classes e turmas",
-      description: "As classes que a escola lecciona e as turmas deste ano lectivo.",
-      done: s.gradeLevels > 0 && s.classGroupsInActiveYear > 0,
+      title: "Turmas do ano lectivo",
+      description: "Quantas turmas por classe e em que turno — decisão da escola.",
+      done: s.classGroupsInActiveYear > 0,
       essential: true,
-      detail:
-        s.gradeLevels === 0
-          ? "Sem classes. «Preparar estrutura académica» cria a base a partir dos níveis da escola."
-          : `${plural(s.gradeLevels, "classe", "classes")} · ${plural(s.classGroupsInActiveYear, "turma", "turmas")} no ano activo.`,
+      detail: !s.activeYearName
+        ? "Defina primeiro o ano lectivo."
+        : s.classGroupsInActiveYear
+          ? `${plural(s.classGroupsInActiveYear, "turma", "turmas")} no ano activo.`
+          : "Nenhuma turma no ano activo.",
       action: { type: "route", to: "/pedagogica", search: { tab: "turmas" } },
       actionLabel: "Abrir turmas",
     },
