@@ -368,9 +368,26 @@ fn updater_configured(plugins: &tauri::utils::config::PluginConfig) -> bool {
         .is_some_and(|pubkey| !pubkey.trim().is_empty())
 }
 
+/// Mostra e foca a janela principal (bandeja, segunda instância).
+fn show_main_window<R: tauri::Runtime>(app: &tauri::AppHandle<R>) {
+    if let Some(window) = app.get_webview_window("main") {
+        let _ = window.unminimize();
+        let _ = window.show();
+        let _ = window.set_focus();
+    }
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-    let builder = tauri::Builder::default()
+    let builder = tauri::Builder::default();
+
+    // Tem de ser o primeiro plugin: abrir o SIGA outra vez só foca a janela que já existe.
+    #[cfg(desktop)]
+    let builder = builder.plugin(tauri_plugin_single_instance::init(|app, _argv, _cwd| {
+        show_main_window(app);
+    }));
+
+    let builder = builder
         .setup(|app| {
             let stronghold_salt_path = app.path().app_local_data_dir()?.join("stronghold-salt.txt");
 
@@ -415,12 +432,7 @@ pub fn run() {
                     .tooltip("SIGA Desktop")
                     .menu(&menu)
                     .on_menu_event(|app, event| match event.id.as_ref() {
-                        "show" => {
-                            if let Some(window) = app.get_webview_window("main") {
-                                let _ = window.show();
-                                let _ = window.set_focus();
-                            }
-                        }
+                        "show" => show_main_window(app),
                         "quit" => app.exit(0),
                         _ => {}
                     })
@@ -470,10 +482,7 @@ pub fn run() {
         use tauri::tray::TrayIconEvent;
 
         if let TrayIconEvent::Click { .. } = event {
-            if let Some(window) = tray.app_handle().get_webview_window("main") {
-                let _ = window.show();
-                let _ = window.set_focus();
-            }
+            show_main_window(tray.app_handle());
         }
     });
 

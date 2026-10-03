@@ -121,7 +121,6 @@ function RootShell({ children }: { children: ReactNode }) {
   );
 }
 
-import { TauriTitlebar } from "@/components/TauriTitlebar";
 import { DesktopIntegration } from "@/components/layout/DesktopIntegration";
 
 function ClientOnlyToaster() {
@@ -171,7 +170,6 @@ function RootComponent() {
     <QueryClientProvider client={queryClient}>
       <TenantProvider>
         <AppearanceProvider>
-          <TauriTitlebar />
           <DesktopIntegration />
           <div className="relative pt-[env(safe-area-inset-top,0)] flex min-h-screen flex-col">
             {isPublic ? (

@@ -25,7 +25,6 @@ import { AppSidebar } from "./AppSidebar";
 import { AccountDrawer } from "./AccountDrawer";
 import { AppLauncher } from "./AppLauncher";
 import { CommandPalette, requestOpenCommandPalette } from "./CommandPalette";
-import { DesktopTitleBar } from "./DesktopTitleBar";
 import { TopbarCalendar } from "./TopbarCalendar";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
@@ -247,7 +246,6 @@ function AuthenticatedAppShell({ children }: { children: ReactNode }) {
 
   return (
     <div className="flex flex-col min-h-screen bg-background">
-      <DesktopTitleBar />
       <OfflineBanner />
       <div className="flex flex-1 min-h-0">
         <a href="#conteudo-principal" className="skip-link">
