@@ -265,6 +265,17 @@ fn get_system_info() -> SystemInfo {
     }
 }
 
+/// O plugin do updater só arranca com `plugins.updater` preenchido (chave pública).
+/// Sem isso, registá-lo faz a app terminar logo ao abrir.
+fn updater_configured(plugins: &tauri::utils::config::PluginConfig) -> bool {
+    plugins
+        .0
+        .get("updater")
+        .and_then(|updater| updater.get("pubkey"))
+        .and_then(|pubkey| pubkey.as_str())
+        .is_some_and(|pubkey| !pubkey.trim().is_empty())
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     let builder = tauri::Builder::default()
@@ -278,6 +289,16 @@ pub fn run() {
             app.handle().plugin(
                 tauri_plugin_stronghold::Builder::with_argon2(&stronghold_salt_path).build(),
             )?;
+
+            // O updater exige `plugins.updater` (pubkey + endpoints) no tauri.conf.json.
+            // Registado sem essa configuração, a app rebenta logo ao abrir
+            // ("invalid type: null, expected struct Config"). Só entra quando a
+            // configuração da release assinada existir.
+            #[cfg(desktop)]
+            if updater_configured(&app.config().plugins) {
+                app.handle()
+                    .plugin(tauri_plugin_updater::Builder::new().build())?;
+            }
 
             #[cfg(target_os = "macos")]
             {
@@ -320,7 +341,6 @@ pub fn run() {
         .plugin(tauri_plugin_window_state::Builder::new().build())
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_notification::init())
-        .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(tauri_plugin_process::init())
         .invoke_handler(tauri::generate_handler![
             pulse_turnstile_relay,
@@ -363,5 +383,21 @@ mod tests {
     #[test]
     fn empty_receipt_cannot_report_success() {
         assert!(!send_thermal_receipt("192.168.1.20".into(), " ".into()).success);
+    }
+    #[test]
+    fn updater_only_with_public_key() {
+        use tauri::utils::config::PluginConfig;
+        let mut plugins = PluginConfig::default();
+        assert!(!updater_configured(&plugins));
+        plugins.0.insert(
+            "updater".into(),
+            serde_json::json!({ "pubkey": " ", "endpoints": [] }),
+        );
+        assert!(!updater_configured(&plugins));
+        plugins.0.insert(
+            "updater".into(),
+            serde_json::json!({ "pubkey": "chave", "endpoints": ["https://exemplo/latest.json"] }),
+        );
+        assert!(updater_configured(&plugins));
     }
 }

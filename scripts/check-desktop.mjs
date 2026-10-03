@@ -28,6 +28,15 @@ assert.deepEqual(local.permissions, [
   "allow-get-desktop-diagnostics",
   "allow-open-school-portal",
 ]);
+// Updater registado sem `plugins.updater` (chave pública) faz a app terminar ao abrir.
+const lib = readFileSync("src-tauri/src/lib.rs", "utf8");
+for (const match of lib.matchAll(/tauri_plugin_updater::Builder/g)) {
+  const before = lib.slice(Math.max(0, match.index - 200), match.index);
+  assert(
+    before.includes("if updater_configured("),
+    "O updater só pode ser registado depois de verificar plugins.updater (updater_configured)",
+  );
+}
 assert.deepEqual(readJson("src-tauri/tauri.windows.conf.json").bundle.targets, ["nsis"]);
 assert.equal(config.bundle.windows.nsis.installMode, "currentUser");
 assert.equal(config.bundle.windows.allowDowngrades, false);
