@@ -12,6 +12,7 @@ import { describe, expect, it } from "vitest";
 type Snapshot = {
   tabelas: Array<{ tabela: string; colunas: string[] }>;
   funcoes: Array<{ schema: string; funcao: string }>;
+  valores: Array<{ tabela: string; coluna: string; valores: string[] }>;
 };
 const snapshot = JSON.parse(readFileSync("supabase/PRODUCTION_SNAPSHOT.json", "utf8")) as Snapshot;
 const columns = new Map(snapshot.tabelas.map((t) => [t.tabela, new Set(t.colunas)]));
@@ -76,5 +77,38 @@ describe("colunas usadas existem na produção", () => {
       }
     }
     expect(missing).toEqual([]);
+  });
+
+  it("valores literais de estado são os que a base aceita", () => {
+    const allowed = new Map(
+      snapshot.valores.map((v) => [`${v.tabela}.${v.coluna}`, new Set(v.valores)]),
+    );
+    const wrong: string[] = [];
+    const check = (where: string, key: string, value: string) => {
+      const values = allowed.get(key);
+      if (values && !values.has(value)) wrong.push(`${where} ${key}=${value}`);
+    };
+    for (const file of walk("src")) {
+      const source = readFileSync(file, "utf8");
+      for (const match of source.matchAll(/(?<!storage)\.from\("([a-z_0-9]+)"\)/g)) {
+        const table = match[1]!;
+        const chain = chainAfter(source, match.index! + match[0].length);
+        const where = `${file}:${source.slice(0, match.index).split("\n").length}`;
+        if (/^\s*\.(insert|update|upsert)\(/.test(chain)) {
+          for (const pair of chain.matchAll(/\b([a-z_]+):\s*"([a-z_]+)"/g)) {
+            check(where, `${table}.${pair[1]}`, pair[2]!);
+          }
+        }
+        for (const filter of chain.matchAll(/\.(?:eq|neq)\(\s*"([a-z_]+)",\s*"([a-z_]+)"\)/g)) {
+          check(where, `${table}.${filter[1]}`, filter[2]!);
+        }
+        for (const filter of chain.matchAll(/\.in\(\s*"([a-z_]+)",\s*\[([^\]]*)\]/g)) {
+          for (const value of filter[2]!.matchAll(/"([a-z_]+)"/g)) {
+            check(where, `${table}.${filter[1]}`, value[1]!);
+          }
+        }
+      }
+    }
+    expect(wrong).toEqual([]);
   });
 });

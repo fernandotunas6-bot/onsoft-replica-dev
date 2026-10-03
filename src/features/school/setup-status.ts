@@ -71,7 +71,8 @@ export async function loadSchoolSetupSnapshot(
         .select("id")
         .eq("school_id", schoolId)
         .eq("academic_year_id", yearId)
-        .neq("status", "inactive")
+        // Estados válidos: active, draft, archived, closed — arquivadas e fechadas não contam.
+        .in("status", ["active", "draft"])
         .limit(1000)
     : { data: [] as Array<{ id: string }> };
   const groupIds = (groups ?? []).map((row) => String(row.id));
