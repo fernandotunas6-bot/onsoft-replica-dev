@@ -1,4 +1,5 @@
--- Pauta final anual: uma disciplina sem nota em algum período fica «incompleta».
+-- Pauta final anual: uma disciplina sem nota em algum período fica «incompleta»;
+-- faltas sem contar alunos não registados na chamada.
 --
 -- Antes, a média anual de cada disciplina era a dos períodos que tinham nota:
 -- um aluno sem a nota do 3.º trimestre (ou que entrou a meio do ano) recebia
@@ -6,7 +7,11 @@
 -- a situação fica «incompleta» até haver nota em todos os períodos do ano
 -- lectivo (`terms` do ano da turma). Excluído por faltas continua «não transita».
 --
--- Só muda a pauta anual; a do período fica igual. Cada entrada do
+-- Também (pauta do período e anual): a percentagem de faltas deixa de contar
+-- `not_registered` (aluno que a chamada não marcou) como aula assistida — diluía
+-- as faltas e podia esconder uma exclusão. Igual a absencePercentageFromStatuses.
+--
+-- A exigência de todos os períodos só muda a pauta anual. Cada entrada do
 -- `subject_breakdown` passa a levar `termId`. Corpo igual a
 -- 20260929130000_grade_sheet_versions.sql (igual à produção: md5 do corpo sem
 -- espaços 497ec9e2fc7de6e1dbfc5f0ccd62b9cf, conferido a 2026-10-02) mais estas linhas.
@@ -180,7 +185,7 @@ begin
         where sr.school_id = target_school_id
           and en.id = enrollment_row.id
           and ss.class_group_id = target_class_group_id
-          and sr.status <> 'excused'
+          and sr.status not in ('excused', 'not_registered')
       ),
       (
         select (count(*) filter (where ar.status in ('absent'))::numeric * 100)
@@ -191,7 +196,7 @@ begin
         where ar.school_id = target_school_id
           and ar.enrollment_id = enrollment_row.id
           and cs.class_group_id = target_class_group_id
-          and ar.status <> 'excused'
+          and ar.status not in ('excused', 'not_registered')
       ),
       0
     ) into absence_pct;

@@ -118,4 +118,22 @@ const term = await db.query(
 );
 assert.equal(term.rows[0].result, "pass");
 
+// Faltas: «not_registered» não conta como aula assistida (1 falta em 1 aula = 100%).
+await db.exec(`DELETE FROM siga_attendance_records;
+INSERT INTO siga_attendance_sessions VALUES
+  ('00000000-0000-0000-0000-0000000000b2','${school}','${group}'),
+  ('00000000-0000-0000-0000-0000000000b3','${school}','${group}');
+INSERT INTO siga_attendance_records SELECT '${school}', s, student_id, st FROM enrollments,
+  (VALUES ('00000000-0000-0000-0000-0000000000b1'::uuid, 'absent'),
+          ('00000000-0000-0000-0000-0000000000b2'::uuid, 'not_registered'),
+          ('00000000-0000-0000-0000-0000000000b3'::uuid, 'not_registered')) v(s, st)
+  WHERE id = '${ana}';`);
+await build();
+const pct = await db.query(
+  `select r.absence_percentage::float p from grade_sheet_rows r
+     join grade_sheets s on s.id = r.grade_sheet_id where s.kind = 'annual' and r.enrollment_id = $1`,
+  [ana],
+);
+assert.equal(pct.rows[0].p, 100, "não registados não diluem as faltas");
+
 console.log("annual-sheet-terms: OK");

@@ -332,10 +332,12 @@ export function latestGradedBySubject(
 
 /**
  * Percentagem de faltas como a pauta a calcula: faltas ÷ aulas registadas,
- * sem contar as justificadas. `null` se não houver registos.
+ * sem contar as justificadas nem as de aluno sem registo (`not_registered`:
+ * a chamada não o marcou — contá-lo como aula diluía as faltas e escondia uma
+ * exclusão). `null` se não houver registos.
  */
 export function absencePercentageFromStatuses(statuses: string[]): number | null {
-  const counted = statuses.filter((s) => s !== "excused");
+  const counted = statuses.filter((s) => s !== "excused" && s !== "not_registered");
   if (!counted.length) return null;
   const absent = counted.filter((s) => s === "absent").length;
   return Math.round((absent * 10000) / counted.length) / 100;
