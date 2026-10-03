@@ -54,6 +54,21 @@ skill `siga-desktop`.
 - **Por decidir (dono):** modo totalmente offline (análise entregue em 03/10: interface
   embutida, base local cifrada, sincronização; dinheiro e 2FA sempre online); chaves de
   assinatura; testes reais em Windows/macOS.
+- **Notificações do sistema** (depois do PR verde): mensagem nova (só o remetente),
+  comunicado publicado (regra da lista) e «Alterações enviadas», só com a app em segundo
+  plano. Verificado com D-Bus e dunst.
+- **Achados fora do desktop, por decidir (mexem na base de produção):**
+  - O ecrã de faturas e o painel subscrevem tempo real em `invoices` e `payments`, que não
+    existem na produção (as reais: `finance_invoices`, `finance_receipts`,
+    `payment_gateway_charges`); a migração `20260901091600_enable_app_realtime.sql`
+    publica esses nomes. Esses ecrãs não se actualizam sozinhos. Corrigir é publicar as
+    tabelas reais (migração; confirmar antes com
+    `select * from pg_publication_tables where pubname = 'supabase_realtime'`) e trocar os
+    nomes no cliente. Por isso as notificações de pagamentos ficaram de fora.
+  - `school_announcements`: a política de leitura é `is_school_member` (inclui alunos e
+    encarregados), por isso a API devolve-lhes rascunhos e avisos ao corpo docente, que a
+    lista do servidor esconde. Corrigir é restringir a leitura de quem não é do pessoal a
+    `status = 'sent'` e `audience <> 'teaching_staff'` (migração).
 
 ## Escritas com o erro ignorado (2026-09-29/30)
 
