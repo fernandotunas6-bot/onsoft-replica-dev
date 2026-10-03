@@ -1,4 +1,5 @@
 mod hardware_bridge;
+mod internal_pages;
 
 use serde::{Deserialize, Serialize};
 use std::io::Write;
@@ -429,7 +430,12 @@ pub fn run() {
             Ok(())
         })
         .plugin(tauri_plugin_store::Builder::new().build())
-        .plugin(tauri_plugin_window_state::Builder::new().build())
+        // Só a janela principal lembra tamanho e posição (as de impressão são descartáveis).
+        .plugin(
+            tauri_plugin_window_state::Builder::new()
+                .with_filter(|label| label == "main")
+                .build(),
+        )
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_notification::init())
         .plugin(tauri_plugin_process::init())
@@ -443,8 +449,20 @@ pub fn run() {
             hardware_bridge::hardware_bridge_request,
             get_desktop_diagnostics,
             open_school_portal,
-            save_file
-        ]);
+            save_file,
+            internal_pages::print_page,
+            internal_pages::print_html
+        ])
+        .manage(internal_pages::InternalPages::default())
+        .register_uri_scheme_protocol("sigapage", |ctx, request| {
+            internal_pages::serve(ctx.app_handle(), &request)
+        })
+        // Fechar a janela principal fecha a aplicação, mesmo com janelas de impressão abertas.
+        .on_window_event(|window, event| {
+            if window.label() == "main" && matches!(event, tauri::WindowEvent::Destroyed) {
+                window.app_handle().exit(0);
+            }
+        });
 
     #[cfg(desktop)]
     let builder = builder.on_tray_icon_event(|tray, event| {

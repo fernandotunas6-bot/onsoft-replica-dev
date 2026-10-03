@@ -22,6 +22,8 @@
             "allow-pulse-turnstile-relay",
             "allow-print-thermal-receipt-native",
             "allow-save-file",
+            "allow-print-page",
+            "allow-print-html",
             "notification:default"
           ]
         }
