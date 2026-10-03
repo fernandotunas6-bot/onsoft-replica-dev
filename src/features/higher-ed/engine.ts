@@ -1,0 +1,482 @@
+/**
+ * Motor de regras do Ensino Superior — funções puras, sem base de dados.
+ *
+ * Modelo (tabelas que já existem na produção):
+ * - program_subjects: o plano curricular do curso — cada unidade curricular
+ *   (cadeira) com o semestre curricular (1.º, 2.º, … do curso) e os créditos.
+ * - program_subject_prerequisites: precedências entre cadeiras do plano.
+ * - course_unit_enrollments: cada inscrição numa cadeira (ano lectivo,
+ *   semestre, tentativa, época, estado, nota final, créditos obtidos).
+ *
+ * As regras numéricas vêm do regulamento da instituição (HigherEdRegulation,
+ * em Definições), nunca fixas aqui.
+ */
+import {
+  calculateComponentGrade,
+  calculateCreditWeightedAverage,
+  calculateGpa,
+} from "@/features/academic/grading-profiles";
+import type { HigherEdRegulation } from "@/features/school/settings-domains";
+import { normalizeScore } from "@/lib/angola-academic";
+
+export type PlanUnit = {
+  /** program_subjects.id */
+  id: string;
+  subjectId: string;
+  name: string;
+  /** Semestre curricular no curso (1, 2, 3, …). */
+  semester: number;
+  credits: number;
+};
+
+export type Prerequisite = { unitId: string; requiresUnitId: string };
+
+export const ENROLLMENT_STATUSES = [
+  "inscrito",
+  "aprovado",
+  "reprovado",
+  "dispensado",
+  "anulado",
+  "excluido_faltas",
+  "excluido_frequencia",
+] as const;
+export type EnrollmentStatus = (typeof ENROLLMENT_STATUSES)[number];
+
+export const EXAM_SEASONS = ["frequencia", "normal", "recurso", "especial", "melhoria"] as const;
+export type ExamSeason = (typeof EXAM_SEASONS)[number];
+
+export type UnitRecord = {
+  unitId: string;
+  academicYearId: string;
+  attempt: number;
+  status: EnrollmentStatus;
+  season: ExamSeason | null;
+  finalGrade: number | null;
+  credits: number;
+  creditsEarned: number;
+  /** Para ordenar tentativas da mesma cadeira; ISO. */
+  updatedAt?: string;
+};
+
+/** Aprovada (com nota) ou dispensada (creditação/equivalência): conta para o curso. */
+export const isCompleted = (status: EnrollmentStatus) =>
+  status === "aprovado" || status === "dispensado";
+
+/** Uma tentativa que conta para o limite: terminou sem aprovação. */
+const isFailedAttempt = (status: EnrollmentStatus) =>
+  status === "reprovado" || status === "excluido_faltas" || status === "excluido_frequencia";
+
+/** Semestre lectivo (1.º ou 2.º do ano) a partir do semestre curricular do curso. */
+export const academicSemesterOf = (curricularSemester: number) =>
+  curricularSemester % 2 === 1 ? 1 : 2;
+
+/** Ano curricular (1.º ano = semestres 1 e 2, …). */
+export const curricularYearOf = (curricularSemester: number) =>
+  Math.ceil(Math.max(1, curricularSemester) / 2);
+
+// ── Plano curricular ───────────────────────────────────────────────────────
+
+export type PlanIssue = {
+  level: "error" | "warning";
+  code:
+    | "duplicate_subject"
+    | "invalid_credits"
+    | "invalid_semester"
+    | "unknown_prerequisite"
+    | "self_prerequisite"
+    | "prerequisite_not_earlier"
+    | "prerequisite_cycle";
+  message: string;
+  unitId?: string;
+};
+
+export function validatePlan(units: PlanUnit[], prerequisites: Prerequisite[]): PlanIssue[] {
+  const issues: PlanIssue[] = [];
+  const byId = new Map(units.map((unit) => [unit.id, unit]));
+  const seenSubjects = new Map<string, PlanUnit>();
+
+  for (const unit of units) {
+    if (!(unit.credits > 0)) {
+      issues.push({
+        level: "error",
+        code: "invalid_credits",
+        unitId: unit.id,
+        message: `«${unit.name}» precisa de créditos maiores que zero.`,
+      });
+    }
+    if (!Number.isInteger(unit.semester) || unit.semester < 1 || unit.semester > 14) {
+      issues.push({
+        level: "error",
+        code: "invalid_semester",
+        unitId: unit.id,
+        message: `«${unit.name}» tem um semestre inválido.`,
+      });
+    }
+    const previous = seenSubjects.get(unit.subjectId);
+    if (previous) {
+      issues.push({
+        level: "error",
+        code: "duplicate_subject",
+        unitId: unit.id,
+        message: `«${unit.name}» aparece duas vezes no plano (semestres ${previous.semester} e ${unit.semester}).`,
+      });
+    } else {
+      seenSubjects.set(unit.subjectId, unit);
+    }
+  }
+
+  for (const link of prerequisites) {
+    const unit = byId.get(link.unitId);
+    const required = byId.get(link.requiresUnitId);
+    if (!unit || !required) {
+      issues.push({
+        level: "error",
+        code: "unknown_prerequisite",
+        unitId: link.unitId,
+        message: "Há uma precedência para uma cadeira que já não está no plano.",
+      });
+      continue;
+    }
+    if (unit.id === required.id) {
+      issues.push({
+        level: "error",
+        code: "self_prerequisite",
+        unitId: unit.id,
+        message: `«${unit.name}» não pode ser precedência de si própria.`,
+      });
+      continue;
+    }
+    if (required.semester >= unit.semester) {
+      issues.push({
+        level: "warning",
+        code: "prerequisite_not_earlier",
+        unitId: unit.id,
+        message: `«${unit.name}» (semestre ${unit.semester}) exige «${required.name}», que não é de um semestre anterior (${required.semester}).`,
+      });
+    }
+  }
+
+  for (const cycle of findPrerequisiteCycles(units, prerequisites)) {
+    issues.push({
+      level: "error",
+      code: "prerequisite_cycle",
+      unitId: cycle[0],
+      message: `Precedências em círculo: ${cycle.map((id) => byId.get(id)?.name ?? id).join(" → ")}.`,
+    });
+  }
+  return issues;
+}
+
+/** Ciclos no grafo de precedências (cada ciclo devolvido uma vez). */
+export function findPrerequisiteCycles(units: PlanUnit[], prerequisites: Prerequisite[]) {
+  const edges = new Map<string, string[]>();
+  for (const link of prerequisites) {
+    if (link.unitId === link.requiresUnitId) continue;
+    edges.set(link.unitId, [...(edges.get(link.unitId) ?? []), link.requiresUnitId]);
+  }
+  const state = new Map<string, "visiting" | "done">();
+  const cycles: string[][] = [];
+  const seen = new Set<string>();
+  const stack: string[] = [];
+
+  const visit = (id: string) => {
+    state.set(id, "visiting");
+    stack.push(id);
+    for (const next of edges.get(id) ?? []) {
+      if (state.get(next) === "visiting") {
+        const cycle = [...stack.slice(stack.indexOf(next)), next];
+        const key = [...new Set(cycle)].sort().join("|");
+        if (!seen.has(key)) {
+          seen.add(key);
+          cycles.push(cycle);
+        }
+      } else if (!state.has(next)) {
+        visit(next);
+      }
+    }
+    stack.pop();
+    state.set(id, "done");
+  };
+  for (const unit of units) if (!state.has(unit.id)) visit(unit.id);
+  return cycles;
+}
+
+export function planTotals(units: PlanUnit[]) {
+  const bySemester = new Map<number, number>();
+  for (const unit of units) {
+    bySemester.set(unit.semester, (bySemester.get(unit.semester) ?? 0) + unit.credits);
+  }
+  const semesters = [...bySemester.entries()]
+    .sort((a, b) => a[0] - b[0])
+    .map(([semester, credits]) => ({ semester, credits }));
+  return {
+    totalCredits: units.reduce((sum, unit) => sum + unit.credits, 0),
+    semesters,
+    years: Math.max(0, ...units.map((unit) => curricularYearOf(unit.semester))),
+  };
+}
+
+// ── Histórico do estudante ────────────────────────────────────────────────
+
+/** A última tentativa de cada cadeira (por ordem de tentativa, depois de data). */
+export function latestRecordByUnit(records: UnitRecord[]) {
+  const latest = new Map<string, UnitRecord>();
+  for (const record of records) {
+    const current = latest.get(record.unitId);
+    if (
+      !current ||
+      record.attempt > current.attempt ||
+      (record.attempt === current.attempt && (record.updatedAt ?? "") > (current.updatedAt ?? ""))
+    ) {
+      latest.set(record.unitId, record);
+    }
+  }
+  return latest;
+}
+
+/** Cadeiras concluídas: qualquer tentativa aprovada ou dispensada conta. */
+export function completedUnitIds(records: UnitRecord[]) {
+  return new Set(records.filter((r) => isCompleted(r.status)).map((r) => r.unitId));
+}
+
+// ── Inscrição ──────────────────────────────────────────────────────────────
+
+export type EnrollmentCheck = { ok: boolean; reasons: string[] };
+
+/**
+ * Pode inscrever-se nesta cadeira? Não pode se já a concluiu, se está inscrito
+ * nela agora, se faltam precedências ou se esgotou as tentativas.
+ */
+export function checkUnitEnrollment(params: {
+  unit: PlanUnit;
+  plan: PlanUnit[];
+  prerequisites: Prerequisite[];
+  records: UnitRecord[];
+  regulation: HigherEdRegulation;
+  academicYearId: string;
+}): EnrollmentCheck {
+  const { unit, plan, prerequisites, records, regulation, academicYearId } = params;
+  const reasons: string[] = [];
+  const completed = completedUnitIds(records);
+  const names = new Map(plan.map((u) => [u.id, u.name]));
+
+  if (completed.has(unit.id)) reasons.push(`«${unit.name}» já está concluída.`);
+  if (
+    records.some(
+      (r) => r.unitId === unit.id && r.academicYearId === academicYearId && r.status === "inscrito",
+    )
+  ) {
+    reasons.push(`Já está inscrito em «${unit.name}» neste ano lectivo.`);
+  }
+  const missing = prerequisites
+    .filter((link) => link.unitId === unit.id && !completed.has(link.requiresUnitId))
+    .map((link) => names.get(link.requiresUnitId) ?? "cadeira do plano");
+  if (missing.length) reasons.push(`Precedências por concluir: ${missing.join(", ")}.`);
+
+  if (regulation.max_attempts > 0) {
+    const failed = records.filter((r) => r.unitId === unit.id && isFailedAttempt(r.status)).length;
+    if (failed >= regulation.max_attempts) {
+      reasons.push(
+        `Esgotou as ${regulation.max_attempts} tentativas permitidas em «${unit.name}».`,
+      );
+    }
+  }
+  return { ok: reasons.length === 0, reasons };
+}
+
+/**
+ * Valida um conjunto de inscrições de um ano lectivo: cada cadeira e os
+ * limites de créditos por ano e por semestre lectivo (contando o que o
+ * estudante já tem inscrito nesse ano).
+ */
+export function checkEnrollmentBatch(params: {
+  selected: PlanUnit[];
+  plan: PlanUnit[];
+  prerequisites: Prerequisite[];
+  records: UnitRecord[];
+  regulation: HigherEdRegulation;
+  academicYearId: string;
+}) {
+  const { selected, records, regulation, academicYearId, plan } = params;
+  const perUnit = new Map(
+    selected.map((unit) => [unit.id, checkUnitEnrollment({ ...params, unit })] as const),
+  );
+
+  const alreadyThisYear = records.filter(
+    (r) => r.academicYearId === academicYearId && r.status === "inscrito",
+  );
+  const unitById = new Map(plan.map((u) => [u.id, u]));
+  const creditsBySemester = { 1: 0, 2: 0 } as Record<1 | 2, number>;
+  for (const record of alreadyThisYear) {
+    const unit = unitById.get(record.unitId);
+    if (unit) creditsBySemester[academicSemesterOf(unit.semester) as 1 | 2] += record.credits;
+  }
+  for (const unit of selected) {
+    creditsBySemester[academicSemesterOf(unit.semester) as 1 | 2] += unit.credits;
+  }
+  const yearCredits = creditsBySemester[1] + creditsBySemester[2];
+
+  const limits: string[] = [];
+  if (yearCredits > regulation.max_credits_per_year) {
+    limits.push(
+      `${yearCredits} créditos no ano ultrapassam o máximo de ${regulation.max_credits_per_year}.`,
+    );
+  }
+  for (const semester of [1, 2] as const) {
+    if (creditsBySemester[semester] > regulation.max_credits_per_semester) {
+      limits.push(
+        `${creditsBySemester[semester]} créditos no ${semester}.º semestre ultrapassam o máximo de ${regulation.max_credits_per_semester}.`,
+      );
+    }
+  }
+  const ok = limits.length === 0 && [...perUnit.values()].every((check) => check.ok);
+  return { ok, perUnit, limits, yearCredits, creditsBySemester };
+}
+
+// ── Avaliação e épocas ────────────────────────────────────────────────────
+
+export type FrequencyOutcome =
+  | { kind: "excluido_faltas" }
+  | { kind: "excluido_frequencia"; frequency: number }
+  | { kind: "dispensado_exame"; grade: number }
+  | { kind: "admitido"; frequency: number }
+  | { kind: "sem_nota" };
+
+/**
+ * Depois da frequência: excluído por faltas, excluído por frequência
+ * insuficiente, dispensado de exame (aprovado com a nota de frequência) ou
+ * admitido a exame.
+ */
+export function frequencyOutcome(
+  frequency: number | null | undefined,
+  absencePercent: number | null | undefined,
+  regulation: HigherEdRegulation,
+): FrequencyOutcome {
+  if (
+    regulation.max_absence_percent > 0 &&
+    (absencePercent ?? 0) > regulation.max_absence_percent
+  ) {
+    return { kind: "excluido_faltas" };
+  }
+  const value = normalizeScore(frequency);
+  if (value === null) return { kind: "sem_nota" };
+  if (value < regulation.exam_admission_min)
+    return { kind: "excluido_frequencia", frequency: value };
+  if (regulation.exam_exemption_min > 0 && value >= regulation.exam_exemption_min) {
+    return { kind: "dispensado_exame", grade: value };
+  }
+  return { kind: "admitido", frequency: value };
+}
+
+/**
+ * A que épocas pode ir o estudante nesta cadeira.
+ * - normal: admitido a exame (não excluído nem dispensado);
+ * - recurso: reprovou na época normal (os excluídos não vão a recurso);
+ * - especial: finalista — no máximo `special_season_max_units` cadeiras por concluir;
+ * - melhoria: já aprovou e a instituição permite melhoria (uma vez por cadeira).
+ */
+export function seasonEligibility(params: {
+  unitId: string;
+  records: UnitRecord[];
+  plan: PlanUnit[];
+  regulation: HigherEdRegulation;
+}) {
+  const { unitId, records, plan, regulation } = params;
+  const unitRecords = records.filter((r) => r.unitId === unitId);
+  const latest = latestRecordByUnit(unitRecords).get(unitId);
+  const completed = completedUnitIds(records);
+  const pending = plan.filter((unit) => !completed.has(unit.id)).length;
+  const done = completed.has(unitId);
+
+  const normal = latest?.status === "inscrito" && !done;
+  const recurso =
+    !done &&
+    latest?.status === "reprovado" &&
+    (latest.season === "normal" || latest.season === "frequencia");
+  const especial =
+    !done &&
+    pending > 0 &&
+    pending <= regulation.special_season_max_units &&
+    latest !== undefined &&
+    latest.status !== "excluido_faltas";
+  const melhoria =
+    regulation.improvement_enabled &&
+    unitRecords.some((r) => r.status === "aprovado") &&
+    !unitRecords.some((r) => r.season === "melhoria");
+  return { normal, recurso, especial, melhoria, pendingUnits: pending };
+}
+
+/**
+ * Nota final e estado de uma época.
+ * - normal: média ponderada frequência/exame (peso do regulamento);
+ * - recurso e especial: a nota do exame;
+ * - melhoria: a melhor entre a nota anterior e a do exame (nunca baixa).
+ */
+export function seasonResult(params: {
+  season: Exclude<ExamSeason, "frequencia">;
+  frequency: number | null | undefined;
+  exam: number | null | undefined;
+  previousGrade?: number | null;
+  regulation: HigherEdRegulation;
+}): { status: "aprovado" | "reprovado"; finalGrade: number | null } {
+  const { season, frequency, exam, previousGrade, regulation } = params;
+  let grade: number | null;
+  if (season === "normal") {
+    grade = calculateComponentGrade("frequencia_exame", frequency, exam, {
+      frequencia: regulation.frequency_weight,
+      exame: 1 - regulation.frequency_weight,
+    });
+  } else {
+    grade = normalizeScore(exam);
+  }
+  if (season === "melhoria") {
+    const previous = normalizeScore(previousGrade);
+    if (previous !== null && (grade === null || grade < previous)) grade = previous;
+  }
+  const status = grade !== null && grade >= regulation.passing_grade ? "aprovado" : "reprovado";
+  return { status, finalGrade: grade };
+}
+
+// ── Progressão ─────────────────────────────────────────────────────────────
+
+export function studentProgress(params: {
+  plan: PlanUnit[];
+  records: UnitRecord[];
+  regulation: HigherEdRegulation;
+}) {
+  const { plan, records, regulation } = params;
+  const completed = completedUnitIds(records);
+  const creditsTotal = plan.reduce((sum, unit) => sum + unit.credits, 0);
+  const creditsEarned = plan
+    .filter((unit) => completed.has(unit.id))
+    .reduce((sum, unit) => sum + unit.credits, 0);
+
+  // Média: melhor nota aprovada de cada cadeira, ponderada pelos créditos.
+  // As dispensadas (creditação) contam créditos mas não entram na média.
+  const bestGrade = new Map<string, number>();
+  for (const record of records) {
+    if (record.status !== "aprovado" || record.finalGrade === null) continue;
+    bestGrade.set(record.unitId, Math.max(bestGrade.get(record.unitId) ?? 0, record.finalGrade));
+  }
+  const graded = plan
+    .filter((unit) => bestGrade.has(unit.id))
+    .map((unit) => ({ score: bestGrade.get(unit.id)!, credits: unit.credits }));
+
+  const pendingUnits = plan.filter((unit) => !completed.has(unit.id));
+  const yearsInPlan = Math.max(1, ...plan.map((unit) => curricularYearOf(unit.semester)));
+  const curricularYear = Math.min(
+    yearsInPlan,
+    Math.floor(creditsEarned / Math.max(1, regulation.max_credits_per_year)) + 1,
+  );
+  return {
+    creditsEarned,
+    creditsTotal,
+    percent: creditsTotal ? Math.round((creditsEarned / creditsTotal) * 100) : 0,
+    average: calculateCreditWeightedAverage(graded),
+    gpa: calculateGpa(graded),
+    curricularYear,
+    pendingUnits,
+    finalist: pendingUnits.length > 0 && pendingUnits.length <= regulation.special_season_max_units,
+    completed: plan.length > 0 && pendingUnits.length === 0,
+  };
+}

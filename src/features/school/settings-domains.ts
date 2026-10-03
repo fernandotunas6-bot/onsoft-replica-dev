@@ -73,6 +73,47 @@ export type InstitutionSettings = {
 
 export type BrandingSettings = { logo_url: string | null; motto: string | null };
 
+/**
+ * Regulamento académico do Ensino Superior. Cada instituição tem o seu: estes
+ * valores por omissão são só o ponto de partida (prática comum em Angola e
+ * Portugal, escala 0–20) e a escola edita-os em Definições.
+ */
+export type HigherEdRegulation = {
+  /** Créditos máximos a que o estudante se pode inscrever por ano lectivo. */
+  max_credits_per_year: number;
+  /** Créditos máximos por semestre. */
+  max_credits_per_semester: number;
+  /** Peso da frequência na nota final (o exame tem 1 − peso). */
+  frequency_weight: number;
+  /** Abaixo desta média de frequência o estudante fica excluído (não vai a exame). */
+  exam_admission_min: number;
+  /** A partir desta média de frequência fica dispensado de exame. 0 = sem dispensa. */
+  exam_exemption_min: number;
+  /** Nota mínima de aprovação. */
+  passing_grade: number;
+  /** Faltas acima desta percentagem excluem por faltas. 0 = sem limite. */
+  max_absence_percent: number;
+  /** Época especial: só para quem tem até este número de cadeiras em falta para concluir. */
+  special_season_max_units: number;
+  /** Tentativas máximas por cadeira. 0 = sem limite. */
+  max_attempts: number;
+  /** Época de melhoria disponível (nunca baixa a nota). */
+  improvement_enabled: boolean;
+};
+
+export const HIGHER_ED_DEFAULTS: HigherEdRegulation = {
+  max_credits_per_year: 60,
+  max_credits_per_semester: 36,
+  frequency_weight: 0.4,
+  exam_admission_min: 7,
+  exam_exemption_min: 14,
+  passing_grade: 10,
+  max_absence_percent: 25,
+  special_season_max_units: 2,
+  max_attempts: 0,
+  improvement_enabled: true,
+};
+
 export type AcademicSettings = {
   director_name: string | null;
   /** 2 (semestres) ou 3 (trimestres). */
@@ -156,6 +197,41 @@ export const SETTINGS_DOMAINS = {
         closedTerms: [],
         gradingProfile: null,
       },
+  },
+  higher_ed: {
+    label: "Ensino Superior",
+    parse: (value: unknown): HigherEdRegulation => {
+      const v = asRecord(value);
+      const d = HIGHER_ED_DEFAULTS;
+      const admission = bounded(v["exam_admission_min"], d.exam_admission_min, 0, 20);
+      const exemption = bounded(v["exam_exemption_min"], d.exam_exemption_min, 0, 20);
+      const perYear = bounded(v["max_credits_per_year"], d.max_credits_per_year, 1, 120, true);
+      return {
+        max_credits_per_year: perYear,
+        max_credits_per_semester: Math.min(
+          bounded(v["max_credits_per_semester"], d.max_credits_per_semester, 1, 120, true),
+          perYear,
+        ),
+        frequency_weight: bounded(v["frequency_weight"], d.frequency_weight, 0, 1),
+        exam_admission_min: admission,
+        // Dispensa abaixo da admissão não faz sentido: 0 desliga a dispensa.
+        exam_exemption_min: exemption > 0 && exemption < admission ? admission : exemption,
+        passing_grade: bounded(v["passing_grade"], d.passing_grade, 0, 20),
+        max_absence_percent: bounded(v["max_absence_percent"], d.max_absence_percent, 0, 100),
+        special_season_max_units: bounded(
+          v["special_season_max_units"],
+          d.special_season_max_units,
+          0,
+          20,
+          true,
+        ),
+        max_attempts: bounded(v["max_attempts"], d.max_attempts, 0, 20, true),
+        improvement_enabled:
+          typeof v["improvement_enabled"] === "boolean"
+            ? v["improvement_enabled"]
+            : d.improvement_enabled,
+      };
+    },
   },
   preferences: {
     label: "Preferências",
