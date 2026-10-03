@@ -26,6 +26,8 @@ export type SchoolSetupSnapshot = {
     regulationConfigured: boolean;
     programs: number;
     programsWithPlan: number;
+    /** Algum emolumento (recurso, especial, melhoria, certidão) com valor. */
+    feesConfigured?: boolean;
   };
   termsInActiveYear: number;
   gradeLevels: number;
@@ -282,6 +284,24 @@ export function buildSetupSteps(s: SchoolSetupSnapshot): SetupStep[] {
       action: { type: "panel", panel: "financeiro" },
       actionLabel: "Definir valores",
     },
+    ...(s.higherEd
+      ? ([
+          {
+            id: "superior-emolumentos",
+            group: "Finanças",
+            title: "Emolumentos do Ensino Superior",
+            description:
+              "Exame de recurso, época especial, melhoria e certidões — 0 Kz se a instituição não cobra.",
+            done: Boolean(s.higherEd.feesConfigured),
+            essential: false,
+            detail: s.higherEd.feesConfigured
+              ? "Emolumentos com valor definido."
+              : "Nenhum emolumento com valor.",
+            action: { type: "route", to: "/pedagogica/superior" },
+            actionLabel: "Definir emolumentos",
+          },
+        ] satisfies SetupStep[])
+      : []),
     {
       id: "iban",
       group: "Finanças",

@@ -53,6 +53,7 @@ import {
   saftPeriodBounds,
   validateSaftSchoolReadiness,
 } from "./saft-export";
+import { higherEdFeeCodeForCategory } from "@/features/higher-ed/fees";
 
 const REPORTING_PAGE_SIZE = 1000;
 const REPORTING_MAX_PAGES = 30;
@@ -1107,16 +1108,27 @@ export const issueInvoice = createServerFn({ method: "POST" })
         ? Math.round(((data.amount * contractDiscountPercent) / 100) * 100) / 100
         : 0;
 
-    const kind = categoryToFeeKind(data.category);
+    // Emolumento do Ensino Superior: o item certo pelo código, não o primeiro activo.
+    const feeCode = higherEdFeeCodeForCategory(data.category);
+    const kind = feeCode ? null : categoryToFeeKind(data.category);
     let feeQuery = db
       .from("fee_items")
       .select("id, name, amount")
       .eq("school_id", membership.schoolId)
       .eq("fee_plan_id", plan.id)
       .eq("is_active", true);
-    if (kind) feeQuery = feeQuery.eq("kind", kind);
+    if (feeCode) feeQuery = feeQuery.eq("code", feeCode);
+    else if (kind) feeQuery = feeQuery.eq("kind", kind);
+    // «Documento»/«Outro» não se ligam a um emolumento do Superior por acaso.
+    else feeQuery = feeQuery.neq("kind", "service");
     const { data: feeItem } = await feeQuery.limit(1).maybeSingle();
-    if (!feeItem?.id) throw new Error("Não há item de taxa activo para esta categoria.");
+    if (!feeItem?.id) {
+      throw new Error(
+        feeCode
+          ? "Este emolumento ainda não está definido. Defina o valor em Ensino Superior → Emolumentos."
+          : "Não há item de taxa activo para esta categoria.",
+      );
+    }
 
     const competenceMonth =
       (data.issuedOn ?? new Date().toISOString().slice(0, 10)).slice(0, 7) + "-01";

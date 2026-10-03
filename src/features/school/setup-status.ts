@@ -23,6 +23,7 @@ import {
   type SchoolSetupSnapshot,
   type SetupStep,
 } from "./setup-steps";
+import { HIGHER_ED_FEES } from "@/features/higher-ed/fees";
 
 type Db = Awaited<ReturnType<typeof loadSgaAdminClient>>;
 
@@ -232,10 +233,23 @@ async function loadHigherEdSetup(db: Db, schoolId: string) {
         .is("deleted_at", null)
         .in("program_id", programIds)
     : { data: [] as Array<{ program_id: string }> };
+  const { data: fees } = await db
+    .from("fee_items")
+    .select("id")
+    .eq("school_id", schoolId)
+    .eq("kind", "service")
+    .eq("is_active", true)
+    .in(
+      "code",
+      HIGHER_ED_FEES.map((fee) => fee.code),
+    )
+    .gt("amount", 0)
+    .limit(1);
   return {
     regulationConfigured: Boolean(settings?.id),
     programs: programIds.length,
     programsWithPlan: new Set((units ?? []).map((row) => String(row.program_id))).size,
+    feesConfigured: (fees ?? []).length > 0,
   };
 }
 

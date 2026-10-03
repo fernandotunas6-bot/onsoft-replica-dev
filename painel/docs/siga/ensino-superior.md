@@ -16,6 +16,13 @@ a escola no WEB, ou em Definições → Pedagógico).
 | Professor | `/pedagogica/pautas-superior` | Lança frequência e exames **só nas cadeiras que lecciona** |
 | Estudante / Encarregado | Portal (início) | Vê créditos, média e o estado de cada cadeira |
 
+## 0. Ano lectivo por semestres
+
+Uma instituição **só de Ensino Superior** trabalha por **dois semestres** (não trimestres):
+em Calendário, o botão **Configurar semestres** sugere o 1.º e o 2.º semestre dentro do
+ano lectivo; acerte as datas às épocas de exame. Se a escola tiver também ensino geral,
+mantém os três trimestres (as pautas MAC/NPP/NPT são trimestrais).
+
 ## 1. Cursos
 
 Em **Ensino Superior → Novo curso** (só Administrador):
@@ -89,7 +96,14 @@ entretanto» e nada se sobrepõe. Cada lançamento fica na auditoria.
 
 **Imprimir pauta** — documento com resultados, totais e assinaturas (docente e secretaria).
 
-## 6. Histórico e progressão
+## 6. Emolumentos
+
+Separador **Emolumentos** (o Administrador altera): valores do exame de recurso, exame de
+época especial, exame de melhoria e certidão de notas. Ficam no plano financeiro activo
+(defina primeiro a propina em Definições → Financeiro). Cobram-se em **Faturas → Emitir
+fatura**, escolhendo a categoria com o mesmo nome; 0 Kz = a instituição não cobra.
+
+## 7. Histórico e progressão
 
 - **Histórico académico** (botão na ficha do estudante) — uma linha por cadeira do plano
   com nota, época, ano lectivo e situação; créditos, média ponderada pelos créditos e
@@ -102,4 +116,6 @@ entretanto» e nada se sobrepõe. Cada lançamento fica na auditoria.
 ## Assistente de configuração
 
 Em **Configurar a escola** (`/configuracoes/inicio`), uma escola com Ensino Superior
-tem dois passos próprios: **regulamento definido** e **plano em todos os cursos**.
+tem passos próprios: **regulamento definido**, **plano em todos os cursos** e
+**emolumentos**; os períodos contam como semestres e o modelo MAC/NPP/NPT do ensino geral
+não é pedido.

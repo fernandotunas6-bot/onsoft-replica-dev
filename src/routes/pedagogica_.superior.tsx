@@ -25,6 +25,7 @@ import { useCurrentAccount } from "@/features/auth/use-current-account";
 import type { EnrollmentStatus, ExamSeason } from "@/features/higher-ed/engine";
 import {
   enrollStudentUnits,
+  getHigherEdFees,
   getHigherEdRegulation,
   getProgramPlan,
   getStudentHigherEd,
@@ -39,6 +40,7 @@ import {
   updateHigherEdProgram,
   recordUnitResult,
   removePlanUnit,
+  saveHigherEdFees,
   saveHigherEdRegulation,
   savePlanUnit,
   setUnitPrerequisites,
@@ -133,6 +135,7 @@ function HigherEdPage() {
                 <TabsTrigger value="plano">Cursos e plano</TabsTrigger>
                 <TabsTrigger value="estudantes">Estudantes</TabsTrigger>
                 <TabsTrigger value="regulamento">Regulamento</TabsTrigger>
+                <TabsTrigger value="emolumentos">Emolumentos</TabsTrigger>
               </TabsList>
               <TabsContent value="plano" className="mt-4">
                 <PlanTab programId={selected} />
@@ -142,6 +145,9 @@ function HigherEdPage() {
               </TabsContent>
               <TabsContent value="regulamento" className="mt-4">
                 <RegulationTab canEdit={isAdmin} />
+              </TabsContent>
+              <TabsContent value="emolumentos" className="mt-4">
+                <FeesTab canEdit={isAdmin} />
               </TabsContent>
             </Tabs>
           </>
@@ -1082,6 +1088,80 @@ function StudentPanel({ programId, studentId }: { programId: string; studentId: 
         </Panel>
       ))}
     </div>
+  );
+}
+
+// ── Emolumentos ─────────────────────────────────────────────────────────────
+
+function FeesTab({ canEdit }: { canEdit: boolean }) {
+  const queryClient = useQueryClient();
+  const fetchFees = useServerFn(getHigherEdFees);
+  const fees = useQuery({ queryKey: ["higher-ed", "fees"], queryFn: () => fetchFees() });
+  const [draft, setDraft] = useState<Record<string, string>>({});
+  const save = useMutation({
+    mutationFn: () =>
+      saveHigherEdFees({
+        data: {
+          fees: (fees.data?.fees ?? []).map((fee) => ({
+            code: fee.code,
+            amount: Number(draft[fee.code] ?? fee.amount) || 0,
+          })),
+        },
+      }),
+    onSuccess: async (result) => {
+      toast.success(result.changed ? "Emolumentos guardados." : "Nada mudou.");
+      setDraft({});
+      await queryClient.invalidateQueries({ queryKey: ["higher-ed", "fees"] });
+    },
+    onError: (error) => toastActionError(error, "Não foi possível guardar os emolumentos."),
+  });
+
+  if (!fees.data) return <p className="text-sm text-muted-foreground">A carregar…</p>;
+  return (
+    <Panel
+      title="Emolumentos académicos"
+      description="Taxas por acto académico, cobradas em «Emitir fatura» com a categoria do mesmo nome. 0 Kz = a instituição não cobra."
+    >
+      {!fees.data.hasPlan ? (
+        <p className="text-sm text-muted-foreground">
+          Defina primeiro a propina em Definições → Financeiro: os emolumentos ficam no mesmo plano
+          financeiro.
+        </p>
+      ) : (
+        <form
+          className="space-y-3"
+          onSubmit={(event) => {
+            event.preventDefault();
+            save.mutate();
+          }}
+        >
+          <div className="grid gap-3 sm:grid-cols-2">
+            {fees.data.fees.map((fee) => (
+              <div key={fee.code} className="space-y-1">
+                <Label htmlFor={`fee-${fee.code}`}>{fee.name} (Kz)</Label>
+                <Input
+                  id={`fee-${fee.code}`}
+                  type="number"
+                  min={0}
+                  step={50}
+                  disabled={!canEdit}
+                  value={draft[fee.code] ?? String(fee.amount)}
+                  onChange={(e) => setDraft({ ...draft, [fee.code]: e.target.value })}
+                />
+                <p className="text-xs text-muted-foreground">{fee.hint}</p>
+              </div>
+            ))}
+          </div>
+          {canEdit ? (
+            <Button type="submit" size="sm" disabled={save.isPending}>
+              {save.isPending ? "A guardar…" : "Guardar emolumentos"}
+            </Button>
+          ) : (
+            <p className="text-xs text-muted-foreground">Só o Administrador altera os valores.</p>
+          )}
+        </form>
+      )}
+    </Panel>
   );
 }
 

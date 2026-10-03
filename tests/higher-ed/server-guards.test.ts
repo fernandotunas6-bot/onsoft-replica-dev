@@ -124,4 +124,12 @@ describe("Ensino Superior no servidor", () => {
     expect(body).toContain('.eq("version", existing.version)');
     expect(body).toContain('action: "higher_ed.regulation.saved"');
   });
+
+  it("emolumentos: tesouraria/administração gravam, auditado, só códigos do catálogo", () => {
+    const body = fn("saveHigherEdFees");
+    expect(body).toContain('requireSgaWriterForWrite(\n      "financeiro"');
+    expect(body).toContain('action: "higher_ed.fees.saved"');
+    expect(body).toContain('kind: "service"');
+    expect(fn("getHigherEdFees")).toContain('requireSgaWriterFor("financeiro"');
+  });
 });

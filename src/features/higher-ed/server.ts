@@ -29,6 +29,7 @@ import {
 import { requireAal2 } from "@/features/hr/require-aal2";
 import { resolveVisibleStudent } from "@/features/dashboard/student-access";
 import { HIGHER_ED_LEVEL, normalizeProgramCode, programYears } from "./program-shape";
+import { HIGHER_ED_FEES } from "./fees";
 import {
   academicSemesterOf,
   checkEnrollmentBatch,
@@ -1686,6 +1687,134 @@ export const getMyHigherEd = createServerFn({ method: "GET" })
       });
     }
     return { programs: result };
+  });
+
+// ── Emolumentos ────────────────────────────────────────────────────────────
+
+const FINANCE_READERS = ["Administrador", "Secretaria", "Tesouraria"] as const;
+const FINANCE_WRITERS = ["Administrador", "Tesouraria"] as const;
+
+async function activeFeePlanId(db: Db, schoolId: string) {
+  const { data } = await db
+    .from("fee_plans")
+    .select("id")
+    .eq("school_id", schoolId)
+    .eq("status", "active")
+    .limit(1)
+    .maybeSingle();
+  return data?.id ? str(data.id) : null;
+}
+
+/** Valores dos emolumentos no plano financeiro activo (0 = ainda não definido). */
+export const getHigherEdFees = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const membership = await requireSgaWriterFor("financeiro", context.supabase, context.userId, [
+      ...FINANCE_READERS,
+    ]);
+    const db = await loadSgaAdminClient();
+    const planId = await activeFeePlanId(db, membership.schoolId);
+    const { data: items } = planId
+      ? await db
+          .from("fee_items")
+          .select("code, amount, is_active")
+          .eq("school_id", membership.schoolId)
+          .eq("fee_plan_id", planId)
+          .in(
+            "code",
+            HIGHER_ED_FEES.map((fee) => fee.code),
+          )
+      : { data: [] as Row[] };
+    const byCode = new Map(((items ?? []) as Row[]).map((item) => [str(item.code), item]));
+    return {
+      hasPlan: Boolean(planId),
+      fees: HIGHER_ED_FEES.map((fee) => {
+        const item = byCode.get(fee.code);
+        return {
+          ...fee,
+          amount: item && item.is_active ? Number(item.amount ?? 0) : 0,
+        };
+      }),
+    };
+  });
+
+export const saveHigherEdFees = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .validator((input: unknown) =>
+    z
+      .object({
+        fees: z
+          .array(
+            z.object({
+              code: z.enum(HIGHER_ED_FEES.map((fee) => fee.code) as [string, ...string[]]),
+              amount: z.number().min(0).max(999_999_999),
+            }),
+          )
+          .min(1)
+          .max(HIGHER_ED_FEES.length),
+      })
+      .parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    const membership = await requireSgaWriterForWrite(
+      "financeiro",
+      context.supabase,
+      context.userId,
+      [...FINANCE_WRITERS],
+    );
+    const db = await loadSgaAdminClient();
+    const schoolId = membership.schoolId;
+    const planId = await activeFeePlanId(db, schoolId);
+    if (!planId) {
+      throw new Error(
+        "Não há plano financeiro activo. Defina primeiro a propina em Definições → Financeiro.",
+      );
+    }
+    const changes: Row[] = [];
+    for (const fee of data.fees) {
+      const meta = HIGHER_ED_FEES.find((item) => item.code === fee.code)!;
+      const { data: existing } = await db
+        .from("fee_items")
+        .select("id, amount")
+        .eq("school_id", schoolId)
+        .eq("fee_plan_id", planId)
+        .eq("code", fee.code)
+        .maybeSingle();
+      if (existing?.id) {
+        if (Number(existing.amount ?? 0) === fee.amount) continue;
+        const { error } = await db
+          .from("fee_items")
+          .update({ amount: fee.amount, name: meta.name, is_active: fee.amount > 0 })
+          .eq("school_id", schoolId)
+          .eq("id", existing.id);
+        if (error) throw publicDatabaseError(error, "Não foi possível guardar o emolumento.");
+      } else {
+        if (fee.amount === 0) continue;
+        const { error } = await db.from("fee_items").insert({
+          school_id: schoolId,
+          fee_plan_id: planId,
+          code: fee.code,
+          name: meta.name,
+          kind: "service",
+          frequency: "once",
+          amount: fee.amount,
+          is_active: true,
+        });
+        if (error) throw publicDatabaseError(error, "Não foi possível criar o emolumento.");
+      }
+      changes.push({ code: fee.code, before: existing?.amount ?? null, after: fee.amount });
+    }
+    if (changes.length) {
+      await db.from("audit_logs").insert({
+        school_id: schoolId,
+        actor_user_id: context.userId,
+        action: "higher_ed.fees.saved",
+        entity_type: "fee_plan",
+        entity_id: planId,
+        metadata: { changes } as never,
+      });
+    }
+    return { changed: changes.length };
   });
 
 // ── Regulamento ────────────────────────────────────────────────────────────
