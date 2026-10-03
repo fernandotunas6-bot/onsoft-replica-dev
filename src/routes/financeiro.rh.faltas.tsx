@@ -14,6 +14,7 @@ import {
 } from "@/features/hr/absences";
 import { kwanza } from "@/lib/currency";
 import { toast } from "sonner";
+import { toastActionError } from "@/lib/action-error-toast";
 
 export const Route = createFileRoute("/financeiro/rh/faltas")({
   head: () => ({
@@ -77,8 +78,7 @@ function HrAbsencesPage() {
       toast.success("Decisão de assiduidade guardada.");
       await queryClient.invalidateQueries({ queryKey: ["hr", "absences"] });
     },
-    onError: (error) =>
-      toast.error(error instanceof Error ? error.message : "Não foi possível guardar a decisão."),
+    onError: (error) => toastActionError(error, "Não foi possível guardar a decisão."),
   });
 
   const rows = useMemo(() => absences.data ?? [], [absences.data]);
