@@ -26,6 +26,7 @@ import {
   updateSchoolSettingsInputSchema,
 } from "./schemas";
 import { normalizeAngolaIban } from "@/lib/angola-banking";
+import { parseSettingsDomain } from "./settings-domains";
 import { requireAal2 } from "@/features/hr/require-aal2";
 import { validateSchoolNif } from "@/lib/angola-identity";
 
@@ -136,16 +137,15 @@ export async function loadSchoolSettingsBundle(db: AdminDb, schoolId: string) {
     .maybeSingle();
   const schoolBrandingRow = brandingTableResult.error ? null : brandingTableResult.data;
 
-  const academicValue = (academicSettings?.value ?? {}) as JsonMap;
-  const preferencesValue = (preferenceSettings?.value ?? {}) as JsonMap;
-  const billingValue = (billingSettings?.value ?? {}) as JsonMap;
-  const brandingValue = (brandingSettings?.value ?? {}) as JsonMap;
-  const institutionValue = (institutionSettings?.value ?? {}) as JsonMap;
-  const bankingValue = (bankingSettings?.value ?? {}) as JsonMap;
-  const agtValue = (agtSettings?.value ?? {}) as JsonMap;
+  const academic = parseSettingsDomain("academic", academicSettings?.value);
+  const preferencesValue = parseSettingsDomain("preferences", preferenceSettings?.value);
+  const billing = parseSettingsDomain("billing", billingSettings?.value);
+  const brandingValue = parseSettingsDomain("branding", brandingSettings?.value);
+  const institution = parseSettingsDomain("institution", institutionSettings?.value);
+  const banking = parseSettingsDomain("banking", bankingSettings?.value);
+  const agt = parseSettingsDomain("agt", agtSettings?.value);
 
-  const brandingLogoFromSettings =
-    typeof brandingValue["logo_url"] === "string" ? brandingValue["logo_url"] : null;
+  const brandingLogoFromSettings = brandingValue.logo_url;
   const brandingLogoFromTable =
     typeof schoolBrandingRow?.logo_url === "string" ? schoolBrandingRow.logo_url : null;
 
@@ -153,7 +153,7 @@ export async function loadSchoolSettingsBundle(db: AdminDb, schoolId: string) {
     id: school.id as string,
     name: school.name as string,
     nif: (school.nif as string | null) ?? null,
-    director_name: (academicValue["director_name"] as string | undefined) ?? null,
+    director_name: academic.director_name,
     phone: (school.phone as string | null) ?? null,
     email: (school.email as string | null) ?? null,
     address: (school.address as string | null) ?? null,
@@ -165,43 +165,27 @@ export async function loadSchoolSettingsBundle(db: AdminDb, schoolId: string) {
     neighborhood: (school.neighborhood as string | null) ?? null,
     latitude: school.latitude == null ? null : Number(school.latitude),
     longitude: school.longitude == null ? null : Number(school.longitude),
-    academic_year:
-      (academicValue["academic_year"] as string | undefined) ??
-      (activeYear?.name as string | undefined) ??
-      schoolSettingDefaults.academicYear,
+    // O ano lectivo é o activo em academic_years. O rótulo antigo em
+    // school_settings/academic («Ano Lectivo 2026») estava desfasado em 89
+    // escolas (2026-10-03) e deixou de ser lido.
+    academic_year: (activeYear?.name as string | undefined) ?? null,
     currency: (school.currency_code as string | undefined) || schoolSettingDefaults.currency,
-    evaluation_periods:
-      Number(academicValue["evaluation_periods"] ?? schoolSettingDefaults.evaluationPeriods) ||
-      schoolSettingDefaults.evaluationPeriods,
-    passing_grade:
-      Number(academicValue["passing_grade"] ?? schoolSettingDefaults.passingGrade) ||
-      schoolSettingDefaults.passingGrade,
+    evaluation_periods: academic.evaluation_periods,
+    passing_grade: academic.passing_grade,
     preferences: preferencesValue,
-    pedagogy: pedagogySettingsSchema.safeParse(pedagogySettings?.value ?? {}).data ?? {
-      teachingLevels: [],
-      courses: [],
-      closedTerms: [],
-      gradingProfile: null,
-    },
+    pedagogy: parseSettingsDomain("pedagogy", pedagogySettings?.value),
     version: Number(academicSettings?.version ?? 1),
     billing: {
       id: billingSettings?.id ?? "billing",
-      due_day: Number(billingValue["due_day"] ?? 10),
-      late_fee_percent: Number(billingValue["late_fee_percent"] ?? 2),
-      grace_days: Number(billingValue["grace_days"] ?? 5),
-      sibling_discount_percent: Number(billingValue["sibling_discount_percent"] ?? 10),
+      ...billing,
+      /** A escola ainda não gravou regras: os valores são os por omissão (sem multa nem desconto). */
+      configured: Boolean(billingSettings?.id),
       version: Number(billingSettings?.version ?? 1),
     },
-    institution: {
-      school_type: isSchoolTypeId(institutionValue["school_type"])
-        ? institutionValue["school_type"]
-        : null,
-      philosophy:
-        typeof institutionValue["philosophy"] === "string" ? institutionValue["philosophy"] : null,
-    },
+    institution,
     branding: {
       logo_url: brandingLogoFromSettings || brandingLogoFromTable,
-      motto: typeof brandingValue["motto"] === "string" ? brandingValue["motto"] : null,
+      motto: brandingValue.motto,
       primary_color:
         typeof schoolBrandingRow?.primary_color === "string"
           ? schoolBrandingRow.primary_color
@@ -213,24 +197,8 @@ export async function loadSchoolSettingsBundle(db: AdminDb, schoolId: string) {
       portal_title:
         typeof schoolBrandingRow?.portal_title === "string" ? schoolBrandingRow.portal_title : null,
     },
-    banking: {
-      bank_name: typeof bankingValue["bank_name"] === "string" ? bankingValue["bank_name"] : "",
-      account_holder:
-        typeof bankingValue["account_holder"] === "string" ? bankingValue["account_holder"] : "",
-      iban: typeof bankingValue["iban"] === "string" ? bankingValue["iban"] : "",
-      swift: typeof bankingValue["swift"] === "string" ? bankingValue["swift"] : "",
-      multicaixa_merchant:
-        typeof bankingValue["multicaixa_merchant"] === "string"
-          ? bankingValue["multicaixa_merchant"]
-          : "",
-    },
-    agt: {
-      software_certified:
-        typeof agtValue["software_certified"] === "string" ? agtValue["software_certified"] : "",
-      invoice_series:
-        typeof agtValue["invoice_series"] === "string" ? agtValue["invoice_series"] : "",
-      fiscal_notes: typeof agtValue["fiscal_notes"] === "string" ? agtValue["fiscal_notes"] : "",
-    },
+    banking,
+    agt,
   };
 }
 

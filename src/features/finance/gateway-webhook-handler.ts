@@ -23,6 +23,7 @@ import {
 import { isRateLimitBypassed } from "@/lib/rate-limit";
 import { consumeRateLimit } from "@/lib/shared-rate-limit";
 import { reportSigaError } from "@/lib/ops-report";
+import { readSettingsDomain } from "@/features/school/settings-domains";
 
 function mapPaymentMethodForLedger(method: string): "cash" | "bank_transfer" | "card" | "other" {
   if (method === "cash") return "cash";
@@ -156,15 +157,9 @@ export async function settleGatewayPayment(
   // tesouraria manual.
   let invoicePenaltyAmount = Number(invoice.penalty_amount ?? 0);
   if (invoicePenaltyAmount === 0 && invoice.due_date) {
-    const { data: billing } = await db
-      .from("school_settings")
-      .select("value")
-      .eq("school_id", input.schoolId)
-      .eq("domain", "billing")
-      .maybeSingle();
-    const billingValue = (billing?.value as Record<string, unknown> | null) ?? {};
-    const graceDays = Number(billingValue["grace_days"] ?? 0);
-    const lateFeePercent = Number(billingValue["late_fee_percent"] ?? 0);
+    const billing = await readSettingsDomain(db, input.schoolId, "billing");
+    const graceDays = billing.grace_days;
+    const lateFeePercent = billing.late_fee_percent;
     const dueDate = new Date(`${invoice.due_date}T00:00:00Z`);
     const graceDeadline = new Date(dueDate.getTime() + graceDays * 86_400_000);
     if (lateFeePercent > 0 && Date.now() > graceDeadline.getTime()) {

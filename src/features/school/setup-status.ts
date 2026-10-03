@@ -6,6 +6,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { loadSgaAdminClient, requireSgaWriterFor } from "@/integrations/supabase/sga-admin";
+import { readSettingsDomain } from "./settings-domains";
 import {
   buildSetupSteps,
   summarizeSetup,
@@ -86,7 +87,7 @@ export async function loadSchoolSetupSnapshot(
     activeMembers,
     openForms,
     students,
-    { data: banking },
+    banking,
   ] = await Promise.all([
     yearId
       ? countRows(
@@ -159,15 +160,8 @@ export async function loadSchoolSetupSnapshot(
         .is("deleted_at", null),
     ),
     countRows(db.from("students").select("id", head).eq("school_id", schoolId)),
-    db
-      .from("school_settings")
-      .select("value")
-      .eq("school_id", schoolId)
-      .eq("domain", "banking")
-      .maybeSingle(),
+    readSettingsDomain(db, schoolId, "banking"),
   ]);
-
-  const bankValue = (banking?.value ?? {}) as Record<string, unknown>;
 
   return {
     school: {
@@ -187,7 +181,7 @@ export async function loadSchoolSetupSnapshot(
     activeTeachers,
     hasActiveAssessmentRule: activeRules > 0,
     pricedFeeItems,
-    hasBankIban: Boolean(filled(bankValue["iban"])),
+    hasBankIban: Boolean(banking.iban),
     otherActiveMembers: activeMembers,
     adminHasTwoFactor: hasTwoFactor,
     enrollmentFormOpen: openForms > 0,

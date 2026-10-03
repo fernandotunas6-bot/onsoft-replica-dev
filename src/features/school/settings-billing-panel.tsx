@@ -41,22 +41,40 @@ export function BillingParametersSummary() {
     return <p className="text-sm text-destructive">Parâmetros financeiros indisponíveis.</p>;
   }
 
+  const billing = billingQuery.data;
   const items = [
-    { label: "Dia de vencimento", valor: `${billingQuery.data.due_day} de cada mês` },
-    { label: "Multa por atraso", valor: `${billingQuery.data.late_fee_percent}%` },
-    { label: "Tolerância", valor: `${billingQuery.data.grace_days} dias` },
-    { label: "Desconto irmãos", valor: `${billingQuery.data.sibling_discount_percent}%` },
+    { label: "Dia de vencimento", valor: `${billing.due_day} de cada mês` },
+    {
+      label: "Multa por atraso",
+      valor: billing.late_fee_percent > 0 ? `${billing.late_fee_percent}%` : "Sem multa",
+    },
+    { label: "Tolerância", valor: `${billing.grace_days} dias` },
+    {
+      label: "Desconto irmãos",
+      valor:
+        billing.sibling_discount_percent > 0
+          ? `${billing.sibling_discount_percent}%`
+          : "Sem desconto",
+    },
   ];
 
   return (
-    <ul className="divide-y divide-border">
-      {items.map((item) => (
-        <li key={item.label} className="flex items-center justify-between py-2.5 text-sm">
-          <span className="text-muted-foreground">{item.label}</span>
-          <span className="font-semibold tabular-nums">{item.valor}</span>
-        </li>
-      ))}
-    </ul>
+    <>
+      {billing.configured ? null : (
+        <p className="mb-2 rounded-md bg-muted px-3 py-2 text-xs text-muted-foreground">
+          Regras ainda não definidas pela escola: até as guardar, não há multa nem desconto de
+          irmãos.
+        </p>
+      )}
+      <ul className="divide-y divide-border">
+        {items.map((item) => (
+          <li key={item.label} className="flex items-center justify-between py-2.5 text-sm">
+            <span className="text-muted-foreground">{item.label}</span>
+            <span className="font-semibold tabular-nums">{item.valor}</span>
+          </li>
+        ))}
+      </ul>
+    </>
   );
 }
 
@@ -68,7 +86,8 @@ export function BillingSettingsForm() {
   const multicaixaOn = installed.isInstalled("multicaixa_express");
   const unitelOn = installed.isInstalled("unitel_money");
   const canManage = ["Administrador", "Tesouraria"].includes(currentUser.role);
-  const [values, setValues] = useState({ due: "10", fee: "2", grace: "5", discount: "10" });
+  // Iguais aos valores por omissão de settings-domains.ts (sem multa nem desconto).
+  const [values, setValues] = useState({ due: "10", fee: "0", grace: "0", discount: "0" });
   const [saving, setSaving] = useState(false);
   const billingQuery = useQuery({
     queryKey: ["school", "billing-settings"],

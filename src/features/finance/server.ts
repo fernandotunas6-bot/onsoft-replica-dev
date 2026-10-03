@@ -1,5 +1,6 @@
 import { requireAal2 } from "@/features/hr/require-aal2";
 import { createServerFn } from "@tanstack/react-start";
+import { readSettingsDomain } from "@/features/school/settings-domains";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { publicDatabaseError } from "@/integrations/supabase/server-error";
@@ -182,17 +183,8 @@ async function resolveSiblingDiscountPercent(
     .maybeSingle();
   if (!activeSibling) return 0;
 
-  const { data: billingSettings } = await db
-    .from("school_settings")
-    .select("value")
-    .eq("school_id", schoolId)
-    .eq("domain", "billing")
-    .maybeSingle();
-  const configured = (billingSettings?.value as Record<string, unknown> | null)?.[
-    "sibling_discount_percent"
-  ];
-  const percent = Number(configured ?? 0);
-  return Number.isFinite(percent) && percent > 0 ? Math.min(percent, 100) : 0;
+  const billing = await readSettingsDomain(db, schoolId, "billing");
+  return billing.sibling_discount_percent;
 }
 
 async function personIdForInvoice(
