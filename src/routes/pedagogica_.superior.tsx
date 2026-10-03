@@ -25,6 +25,7 @@ import { useCurrentAccount } from "@/features/auth/use-current-account";
 import type { EnrollmentStatus, ExamSeason } from "@/features/higher-ed/engine";
 import {
   enrollStudentUnits,
+  getAccessRanking,
   getHigherEdFees,
   getHigherEdRegulation,
   getProgramPlan,
@@ -42,11 +43,13 @@ import {
   recordUnitResult,
   removePlanUnit,
   saveHigherEdFees,
+  setApplicationAccessScore,
   saveHigherEdRegulation,
   savePlanUnit,
   setUnitPrerequisites,
 } from "@/features/higher-ed/server";
 import { SEASON_LABEL, STATUS_LABEL } from "@/features/higher-ed/labels";
+import type { AccessPlacement } from "@/features/higher-ed/access";
 import { normalizeProgramCode } from "@/features/higher-ed/program-shape";
 import type {
   HigherEdDegree,
@@ -142,6 +145,7 @@ function HigherEdPage() {
                 <TabsTrigger value="plano">Cursos e plano</TabsTrigger>
                 <TabsTrigger value="estudantes">Estudantes</TabsTrigger>
                 <TabsTrigger value="regulamento">Regulamento</TabsTrigger>
+                <TabsTrigger value="acesso">Acesso</TabsTrigger>
                 <TabsTrigger value="emolumentos">Emolumentos</TabsTrigger>
               </TabsList>
               <TabsContent value="plano" className="mt-4">
@@ -152,6 +156,9 @@ function HigherEdPage() {
               </TabsContent>
               <TabsContent value="regulamento" className="mt-4">
                 <RegulationTab canEdit={isAdmin} />
+              </TabsContent>
+              <TabsContent value="acesso" className="mt-4">
+                <AccessTab programId={selected} />
               </TabsContent>
               <TabsContent value="emolumentos" className="mt-4">
                 <FeesTab canEdit={isAdmin} />
@@ -1284,6 +1291,107 @@ function StudentPanel({ programId, studentId }: { programId: string; studentId: 
   );
 }
 
+// ── Acesso ──────────────────────────────────────────────────────────────────
+
+const PLACEMENT_LABEL: Record<
+  AccessPlacement,
+  { label: string; tone: "default" | "secondary" | "outline" | "destructive" }
+> = {
+  aceite: { label: "Aceite", tone: "default" },
+  dentro_das_vagas: { label: "Dentro das vagas", tone: "default" },
+  suplente: { label: "Suplente", tone: "secondary" },
+  excluido: { label: "Abaixo do mínimo", tone: "destructive" },
+  sem_nota: { label: "Sem nota", tone: "outline" },
+};
+
+/** Seriação dos candidatos ao curso pela nota do exame de acesso (Decreto 5/19). */
+function AccessTab({ programId }: { programId: string }) {
+  const queryClient = useQueryClient();
+  const fetchRanking = useServerFn(getAccessRanking);
+  const ranking = useQuery({
+    queryKey: ["higher-ed", "access", programId],
+    enabled: Boolean(programId),
+    queryFn: () => fetchRanking({ data: { programId } }),
+  });
+  const [scores, setScores] = useState<Record<string, string>>({});
+  const save = useMutation({
+    mutationFn: (input: { id: string; value: string }) =>
+      setApplicationAccessScore({
+        data: {
+          applicationId: input.id,
+          score: input.value.trim() === "" ? null : Number(input.value),
+        },
+      }),
+    onSuccess: async (_result, input) => {
+      setScores((current) => {
+        const next = { ...current };
+        delete next[input.id];
+        return next;
+      });
+      await queryClient.invalidateQueries({ queryKey: ["higher-ed", "access", programId] });
+    },
+    onError: (error) => toastActionError(error, "Não foi possível guardar a nota."),
+  });
+
+  if (!ranking.data) return <p className="text-sm text-muted-foreground">A carregar…</p>;
+  const { seats, minimumScore, ranking: rows } = ranking.data;
+  return (
+    <Panel
+      title="Seriação do acesso"
+      description={`Candidatos que escolheram este curso no formulário público, ordenados pela nota do exame de acesso. ${seats ? `${seats} vagas` : "Vagas por definir (editar curso)"} · mínimo ${minimumScore || "—"}. A aceitação faz-se em Alunos → Candidaturas.`}
+    >
+      {!rows.length ? (
+        <p className="text-sm text-muted-foreground">Ainda não há candidatos a este curso.</p>
+      ) : (
+        <ul className="divide-y">
+          {rows.map((row) => {
+            const meta = PLACEMENT_LABEL[row.placement];
+            const draft = scores[row.id];
+            return (
+              <li key={row.id} className="flex flex-wrap items-center justify-between gap-2 py-2">
+                <span className="min-w-0 text-sm">
+                  {row.position ? (
+                    <span className="mr-2 tabular-nums text-muted-foreground">
+                      {row.position}.º
+                    </span>
+                  ) : null}
+                  <span className="font-medium">{row.name}</span>
+                </span>
+                <span className="flex items-center gap-2">
+                  <Badge variant={meta.tone}>{meta.label}</Badge>
+                  {row.status === "pending" ? (
+                    <form
+                      className="flex items-center gap-1"
+                      onSubmit={(event) => {
+                        event.preventDefault();
+                        save.mutate({ id: row.id, value: draft ?? String(row.score ?? "") });
+                      }}
+                    >
+                      <Input
+                        aria-label={`Nota de acesso de ${row.name}`}
+                        type="number"
+                        min={0}
+                        max={20}
+                        step={0.1}
+                        className="h-8 w-20"
+                        value={draft ?? (row.score === null ? "" : String(row.score))}
+                        onChange={(e) => setScores({ ...scores, [row.id]: e.target.value })}
+                      />
+                      <Button size="sm" type="submit" variant="secondary" disabled={save.isPending}>
+                        Guardar
+                      </Button>
+                    </form>
+                  ) : null}
+                </span>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+    </Panel>
+  );
+}
+
 // ── Emolumentos ─────────────────────────────────────────────────────────────
 
 function FeesTab({ canEdit }: { canEdit: boolean }) {
@@ -1461,6 +1569,12 @@ const REGULATION_FIELDS: Array<{
     hint: "Finalista com até N cadeiras em falta.",
   },
   { key: "max_attempts", label: "Tentativas por cadeira", hint: "0 = sem limite." },
+  {
+    key: "access_min_score",
+    label: "Nota mínima no exame de acesso",
+    hint: "Abaixo disto o candidato fica excluído da seriação. 0 = sem mínimo.",
+    step: 0.5,
+  },
   {
     key: "standing_delay_percent",
     label: "Em atraso abaixo de (%)",

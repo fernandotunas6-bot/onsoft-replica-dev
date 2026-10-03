@@ -111,6 +111,8 @@ export type HigherEdRegulation = {
    * excede o prazo máximo. 0 = sem prescrição.
    */
   max_extra_years: number;
+  /** Nota mínima no exame de acesso para entrar na seriação. 0 = sem mínimo. */
+  access_min_score: number;
 };
 
 export const HIGHER_ED_DEFAULTS: HigherEdRegulation = {
@@ -127,6 +129,7 @@ export const HIGHER_ED_DEFAULTS: HigherEdRegulation = {
   standing_delay_percent: 75,
   standing_risk_percent: 50,
   max_extra_years: 0,
+  access_min_score: 10,
 };
 
 export type HigherEdDegree = "licenciatura" | "mestrado" | "doutoramento" | "especializacao";
@@ -295,6 +298,7 @@ export const SETTINGS_DOMAINS = {
           bounded(v["standing_delay_percent"], d.standing_delay_percent, 0, 100, true) || 100,
         ),
         max_extra_years: bounded(v["max_extra_years"], d.max_extra_years, 0, 10, true),
+        access_min_score: bounded(v["access_min_score"], d.access_min_score, 0, 20),
       };
     },
   },

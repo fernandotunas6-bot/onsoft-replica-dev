@@ -140,4 +140,12 @@ describe("Ensino Superior no servidor", () => {
     expect(body).toContain('.eq("status", status)');
     expect(body).toContain('action: "higher_ed.result.corrected"');
   });
+
+  it("acesso: seriação só leitura da secretaria; nota com versão e auditoria", () => {
+    expect(fn("getAccessRanking")).toContain('officeMembership(context, "read")');
+    const body = fn("setApplicationAccessScore");
+    expect(body).toContain('officeMembership(context, "write")');
+    expect(body).toContain('.eq("version", version)');
+    expect(body).toContain('action: "higher_ed.access.score"');
+  });
 });

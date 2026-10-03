@@ -32,6 +32,7 @@ import { requireAal2 } from "@/features/hr/require-aal2";
 import { resolveVisibleStudent } from "@/features/dashboard/student-access";
 import { HIGHER_ED_LEVEL, normalizeProgramCode, programYears } from "./program-shape";
 import { HIGHER_ED_FEES } from "./fees";
+import { rankAccessCandidates } from "./access";
 import {
   academicStanding,
   academicSemesterOf,
@@ -1806,6 +1807,112 @@ export const getMyHigherEd = createServerFn({ method: "GET" })
       });
     }
     return { programs: result };
+  });
+
+// ── Acesso (exame de acesso e seriação) ─────────────────────────────────────
+
+type ApplicationPayload = {
+  desiredProgram?: { id?: string; name?: string };
+  accessScore?: number | null;
+  person?: { email?: string; phone_primary?: string };
+} & Record<string, unknown>;
+
+/** Candidatos a um curso, seriados pela nota do exame de acesso e cortados nas vagas. */
+export const getAccessRanking = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .validator((input: unknown) => z.object({ programId: z.string().uuid() }).parse(input))
+  .handler(async ({ data, context }) => {
+    const membership = await officeMembership(context, "read");
+    const db = await loadSgaAdminClient();
+    const schoolId = membership.schoolId;
+    await requireProgram(db, schoolId, data.programId);
+    const [profiles, regulation, { data: rows, error }] = await Promise.all([
+      readSettingsDomain(db, schoolId, "higher_ed_programs"),
+      regulationOf(db, schoolId),
+      db
+        .from("enrollment_applications")
+        .select("id, full_name, status, payload, created_at")
+        .eq("school_id", schoolId)
+        .in("status", ["pending", "accepted"])
+        .is("deleted_at", null)
+        .order("created_at")
+        .limit(2000),
+    ]);
+    if (error) throw publicDatabaseError(error, "Não foi possível carregar as candidaturas.");
+    const seats = parseProgramProfile(profiles[data.programId]).seats;
+    const candidates = ((rows ?? []) as Row[])
+      .filter((row) => (row.payload as ApplicationPayload)?.desiredProgram?.id === data.programId)
+      .map((row) => {
+        const payload = (row.payload ?? {}) as ApplicationPayload;
+        return {
+          id: str(row.id),
+          name: str(row.full_name),
+          status: str(row.status),
+          score: typeof payload.accessScore === "number" ? payload.accessScore : null,
+          createdAt: str(row.created_at),
+        };
+      });
+    return {
+      seats,
+      minimumScore: regulation.access_min_score,
+      ranking: rankAccessCandidates(candidates, seats, regulation.access_min_score),
+    };
+  });
+
+/** Regista (ou apaga) a nota do exame de acesso de uma candidatura. */
+export const setApplicationAccessScore = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .validator((input: unknown) =>
+    z
+      .object({
+        applicationId: z.string().uuid(),
+        score: z.number().min(0).max(20).nullable(),
+      })
+      .parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    const membership = await officeMembership(context, "write");
+    const db = await loadSgaAdminClient();
+    const schoolId = membership.schoolId;
+    const { data: row, error: readError } = await db
+      .from("enrollment_applications")
+      .select("id, payload, version, status")
+      .eq("school_id", schoolId)
+      .eq("id", data.applicationId)
+      .is("deleted_at", null)
+      .maybeSingle();
+    if (readError) throw publicDatabaseError(readError, "Não foi possível ler a candidatura.");
+    if (!row) throw new Error("Candidatura não encontrada nesta escola.");
+    if (str(row.status) !== "pending") {
+      throw new Error("Só se lança a nota de acesso numa candidatura pendente.");
+    }
+    const payload = (row.payload ?? {}) as ApplicationPayload;
+    const score = data.score === null ? null : Math.round(data.score * 10) / 10;
+    const version = Number(row.version ?? 1);
+    const { data: saved, error } = await db
+      .from("enrollment_applications")
+      .update({
+        payload: { ...payload, accessScore: score } as never,
+        version: version + 1,
+        updated_by: context.userId,
+      })
+      .eq("school_id", schoolId)
+      .eq("id", data.applicationId)
+      .eq("version", version)
+      .select("id");
+    if (error) throw publicDatabaseError(error, "Não foi possível guardar a nota de acesso.");
+    if (!saved?.length) {
+      throw new Error("A candidatura mudou entretanto. Actualize a página e tente de novo.");
+    }
+    await db.from("audit_logs").insert({
+      school_id: schoolId,
+      actor_user_id: context.userId,
+      action: "higher_ed.access.score",
+      entity_type: "enrollment_application",
+      entity_id: data.applicationId,
+      metadata: { before: payload.accessScore ?? null, after: score } as never,
+    });
+    return { score };
   });
 
 // ── Emolumentos ────────────────────────────────────────────────────────────
