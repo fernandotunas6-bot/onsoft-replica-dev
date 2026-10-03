@@ -67,6 +67,11 @@ export const claimMyAlumniProfile = createServerFn({ method: "POST" })
     const { membership, db } = await resolveSchool(context.userId);
     const { data: authResult, error: authError } = await db.auth.admin.getUserById(context.userId);
     if (authError) throw new Error("Não foi possível validar a conta autenticada.");
+    // Só um e-mail confirmado liga a conta à ficha (como resolveVerifiedAccountEmail):
+    // uma conta criada com o e-mail de outra pessoa ficava com o perfil dela.
+    if (!authResult.user?.email_confirmed_at) {
+      throw new Error("Confirme o e-mail da conta antes de activar o portal Alumni.");
+    }
     const email = authResult.user?.email?.trim().toLowerCase();
     if (!email)
       throw new Error("A conta precisa de um e-mail válido para activar o portal Alumni.");
@@ -75,7 +80,11 @@ export const claimMyAlumniProfile = createServerFn({ method: "POST" })
       .from("people")
       .select("id, email")
       .eq("school_id", membership.schoolId)
-      .ilike("email", email)
+      // ilike sem curingas: «_» e «%» no e-mail são letras, não padrões.
+      .ilike(
+        "email",
+        email.replace(/[\\%_]/g, (char) => `\\${char}`),
+      )
       .maybeSingle();
     if (personError)
       throw publicDatabaseError(personError, "Não foi possível validar a identidade na escola.");
