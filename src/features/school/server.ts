@@ -326,7 +326,6 @@ export const updateSchoolSettings = createServerFn({ method: "POST" })
       "academic",
       {
         director_name: data.directorName,
-        academic_year: data.academicYear,
         evaluation_periods: data.evaluationPeriods,
         passing_grade: data.passingGrade,
       },
@@ -354,34 +353,10 @@ export const updateSchoolSettings = createServerFn({ method: "POST" })
       context.userId,
     );
 
-    const { data: year } = await db
-      .from("academic_years")
-      .select("id, name")
-      .eq("school_id", membership.schoolId)
-      .eq("name", data.academicYear)
-      .maybeSingle();
-    if (year?.id) {
-      // Um ano activo de cada vez (como no Calendário Lectivo): o SIGA resolve o
-      // ano corrente por estado. Antes activava sem fechar o anterior e a escola
-      // podia ficar com vários anos activos.
-      const { error: closeError } = await db
-        .from("academic_years")
-        .update({ status: "closed" })
-        .eq("school_id", membership.schoolId)
-        .eq("status", "active")
-        .neq("id", year.id);
-      if (closeError) {
-        throw publicDatabaseError(closeError, "Não foi possível fechar o ano lectivo anterior.");
-      }
-      const { error: activateError } = await db
-        .from("academic_years")
-        .update({ status: "active" })
-        .eq("id", year.id)
-        .eq("school_id", membership.schoolId);
-      if (activateError) {
-        throw publicDatabaseError(activateError, "Não foi possível activar o ano lectivo.");
-      }
-    }
+    // Guardar os dados da escola já não mexe no ano lectivo. Antes activava o
+    // ano cujo nome coincidisse com um rótulo escolhido numa lista fixa — guardar
+    // o painel com «2025/2026» reactivava o ano anterior e fechava o actual.
+    // Activar anos faz-se só no calendário (setActiveAcademicYear).
 
     return loadSchoolSettingsBundle(db, membership.schoolId);
   });
