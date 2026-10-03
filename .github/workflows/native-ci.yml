@@ -1,11 +1,18 @@
 name: SIGA Native CI
 
 # macOS/Windows runners are ~10× Linux cost. Keep them off feature PRs;
-# validate Tauri/Rust on main (and manual dispatch) only.
+# validate Tauri/Rust on main (and manual dispatch) only. PRs that touch the
+# desktop app run the Linux job: build it like the installer and open it.
 on:
   push:
     branches:
       - main
+    paths:
+      - "src-tauri/**"
+      - "desktop/**"
+      - "scripts/check-desktop.mjs"
+      - ".github/workflows/native-ci.yml"
+  pull_request:
     paths:
       - "src-tauri/**"
       - "desktop/**"
@@ -20,6 +27,7 @@ concurrency:
 jobs:
   rust-check:
     name: Rust check (${{ matrix.os }})
+    if: github.event_name != 'pull_request'
     strategy:
       fail-fast: false
       matrix:
@@ -44,8 +52,57 @@ jobs:
           cargo check --locked
           cargo test --locked --lib
 
+  # A app registava o updater sem configuração e terminava ao abrir, com o CI
+  # verde: nada compilava nem abria a app numa PR.
+  linux-app:
+    name: App Linux (testes, build e arranque)
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: System dependencies (WebKitGTK)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libgtk-3-dev libsoup-3.0-dev libayatana-appindicator3-dev librsvg2-dev xvfb
+
+      - name: Install Rust stable
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt
+
+      - name: Cache Rust
+        uses: swatinem/rust-cache@v2
+        with:
+          workspaces: "./src-tauri -> target"
+
+      - name: Check desktop launcher and permissions
+        run: node scripts/check-desktop.mjs
+
+      - name: Rust format and unit tests (locked)
+        working-directory: src-tauri
+        run: |
+          cargo fmt --check
+          cargo test --locked --lib
+
+      - name: Build like the installer (embedded launcher)
+        working-directory: src-tauri
+        run: cargo build --locked --features tauri/custom-protocol
+
+      - name: The app opens and stays open
+        run: |
+          set +e
+          timeout 20 xvfb-run -a src-tauri/target/debug/siga-desktop
+          code=$?
+          if [ "$code" -ne 124 ]; then
+            echo "::error::A app terminou com o código $code antes de 20 s (devia continuar aberta)."
+            exit 1
+          fi
+
   frontend-build:
     name: Frontend build for Tauri
+    if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
 
     steps:
