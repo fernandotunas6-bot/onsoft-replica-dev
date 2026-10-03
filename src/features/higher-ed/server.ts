@@ -872,12 +872,22 @@ export const recordUnitResult = createServerFn({ method: "POST" })
       };
     }
 
-    const { error } = await db
+    // Só grava se a inscrição não mudou desde que foi lida: dois lançamentos em
+    // simultâneo não se sobrepõem em silêncio.
+    let update = db
       .from("course_unit_enrollments")
       .update({ ...patch, updated_by: context.userId })
       .eq("school_id", schoolId)
-      .eq("id", latestRow.id);
+      .eq("id", latestRow.id)
+      .eq("status", latestRecord.status);
+    update = latestRecord.season
+      ? update.eq("season", latestRecord.season)
+      : update.is("season", null);
+    const { data: saved, error } = await update.select("id");
     if (error) throw publicDatabaseError(error, "Não foi possível lançar o resultado.");
+    if (!saved?.length) {
+      throw new Error("Esta inscrição mudou entretanto. Actualize a página e lance de novo.");
+    }
     await audit(db, {
       schoolId,
       actor: context.userId,

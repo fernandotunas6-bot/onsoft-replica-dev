@@ -370,9 +370,10 @@ export function frequencyOutcome(
 
 /**
  * A que épocas pode ir o estudante nesta cadeira.
- * - normal: admitido a exame (não excluído nem dispensado);
+ * - normal: admitido a exame (frequência lançada, inscrição em curso);
  * - recurso: reprovou na época normal (os excluídos não vão a recurso);
- * - especial: finalista — no máximo `special_season_max_units` cadeiras por concluir;
+ * - especial: finalista (até `special_season_max_units` cadeiras por concluir), em
+ *   cadeira reprovada ou com exclusão por frequência;
  * - melhoria: já aprovou e a instituição permite melhoria (uma vez por cadeira).
  */
 export function seasonEligibility(params: {
@@ -388,17 +389,19 @@ export function seasonEligibility(params: {
   const pending = plan.filter((unit) => !completed.has(unit.id)).length;
   const done = completed.has(unitId);
 
-  const normal = latest?.status === "inscrito" && !done;
+  // Normal: admitido a exame — frequência já lançada e a inscrição ainda em curso.
+  const normal = !done && latest?.status === "inscrito" && latest.season === "frequencia";
   const recurso =
     !done &&
     latest?.status === "reprovado" &&
     (latest.season === "normal" || latest.season === "frequencia");
+  // Especial: finalista, numa cadeira que reprovou (ou de que foi excluído por
+  // frequência). Excluído por faltas não vai; uma cadeira ainda em curso também não.
   const especial =
     !done &&
     pending > 0 &&
     pending <= regulation.special_season_max_units &&
-    latest !== undefined &&
-    latest.status !== "excluido_faltas";
+    (latest?.status === "reprovado" || latest?.status === "excluido_frequencia");
   const melhoria =
     regulation.improvement_enabled &&
     unitRecords.some((r) => r.status === "aprovado") &&

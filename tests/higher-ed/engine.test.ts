@@ -272,6 +272,37 @@ describe("frequência e épocas", () => {
   });
 });
 
+describe("épocas: alinhamento com o servidor", () => {
+  it("normal só depois de lançada a frequência", () => {
+    const base = { plan, regulation: reg, unitId: "mat1" };
+    expect(
+      seasonEligibility({ ...base, records: [rec("mat1", "inscrito", { season: null })] }).normal,
+    ).toBe(false);
+    expect(
+      seasonEligibility({
+        ...base,
+        records: [rec("mat1", "inscrito", { season: "frequencia", finalGrade: 9 })],
+      }).normal,
+    ).toBe(true);
+  });
+
+  it("especial não serve para cadeira em curso nem para excluído por faltas", () => {
+    const allButOne = plan.filter((u) => u.id !== "tfc").map((u) => rec(u.id, "aprovado"));
+    const base = { plan, regulation: reg, unitId: "tfc" };
+    expect(
+      seasonEligibility({ ...base, records: [...allButOne, rec("tfc", "inscrito")] }).especial,
+    ).toBe(false);
+    expect(
+      seasonEligibility({ ...base, records: [...allButOne, rec("tfc", "excluido_faltas")] })
+        .especial,
+    ).toBe(false);
+    expect(
+      seasonEligibility({ ...base, records: [...allButOne, rec("tfc", "excluido_frequencia")] })
+        .especial,
+    ).toBe(true);
+  });
+});
+
 describe("progressão do estudante", () => {
   it("créditos, média ponderada (melhor nota), ano curricular, finalista e conclusão", () => {
     const records = [

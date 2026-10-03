@@ -21,6 +21,12 @@ export type SchoolSetupSnapshot = {
   teachingLevels: string[];
   /** Classes do plano desses níveis que ainda não existem. */
   pendingStructureGrades: number;
+  /** Ensino Superior (só quando a escola o lecciona). */
+  higherEd?: {
+    regulationConfigured: boolean;
+    programs: number;
+    programsWithPlan: number;
+  };
   termsInActiveYear: number;
   gradeLevels: number;
   classGroupsInActiveYear: number;
@@ -201,6 +207,38 @@ export function buildSetupSteps(s: SchoolSetupSnapshot): SetupStep[] {
       action: { type: "route", to: "/pedagogica", search: { tab: "disciplinas" } },
       actionLabel: "Atribuir professores",
     },
+    ...(s.higherEd
+      ? ([
+          {
+            id: "superior-regulamento",
+            group: "Ensino",
+            title: "Regulamento do Ensino Superior",
+            description:
+              "Créditos por ano e semestre, admissão e dispensa de exame, épocas, faltas e tentativas — as regras da instituição.",
+            done: s.higherEd.regulationConfigured,
+            essential: true,
+            detail: s.higherEd.regulationConfigured
+              ? "Regulamento guardado."
+              : "Ainda com os valores de partida — confirme-os.",
+            action: { type: "route", to: "/pedagogica/superior" },
+            actionLabel: "Rever regulamento",
+          },
+          {
+            id: "superior-planos",
+            group: "Ensino",
+            title: "Planos curriculares dos cursos",
+            description:
+              "Para cada curso: cadeiras por semestre, créditos e precedências. Sem plano não há inscrições por cadeira.",
+            done: s.higherEd.programs > 0 && s.higherEd.programsWithPlan >= s.higherEd.programs,
+            essential: true,
+            detail: s.higherEd.programs
+              ? `${s.higherEd.programsWithPlan} de ${plural(s.higherEd.programs, "curso", "cursos")} com plano.`
+              : "Sem cursos do Ensino Superior. Crie a estrutura a partir dos níveis.",
+            action: { type: "route", to: "/pedagogica/superior" },
+            actionLabel: "Abrir planos",
+          },
+        ] satisfies SetupStep[])
+      : []),
     {
       id: "avaliacao",
       group: "Ensino",

@@ -525,11 +525,7 @@ function StudentPanel({ programId, studentId }: { programId: string; studentId: 
               .map((unit) => {
                 const last = unit.latest;
                 const seasons = (Object.keys(SEASON_LABEL) as ExamSeason[]).filter((season) =>
-                  season === "frequencia"
-                    ? last?.status === "inscrito"
-                    : season === "normal"
-                      ? last?.status === "inscrito" && last.season === "frequencia"
-                      : unit.seasons[season],
+                  season === "frequencia" ? last?.status === "inscrito" : unit.seasons[season],
                 );
                 return (
                   <li key={unit.id} className="flex flex-col gap-2 py-3">

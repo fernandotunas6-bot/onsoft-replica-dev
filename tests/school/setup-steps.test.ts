@@ -127,3 +127,41 @@ describe("assistente de configuração da escola", () => {
     expect(summary.percent).toBeLessThan(100);
   });
 });
+
+describe("passos do ensino superior", () => {
+  it("só aparecem quando a escola tem ensino superior", () => {
+    const ids = buildSetupSteps(complete).map((step) => step.id);
+    expect(ids).not.toContain("superior-regulamento");
+    expect(ids).not.toContain("superior-planos");
+  });
+
+  it("pedem regulamento e plano para cada curso", () => {
+    const steps = buildSetupSteps({
+      ...complete,
+      teachingLevels: ["superior"],
+      higherEd: { regulationConfigured: false, programs: 2, programsWithPlan: 1 },
+    });
+    const byId = new Map(steps.map((step) => [step.id, step]));
+    expect(byId.get("superior-regulamento")?.done).toBe(false);
+    expect(byId.get("superior-planos")?.done).toBe(false);
+    expect(byId.get("superior-planos")?.detail).toContain("1 de 2");
+
+    const done = buildSetupSteps({
+      ...complete,
+      teachingLevels: ["superior"],
+      higherEd: { regulationConfigured: true, programs: 2, programsWithPlan: 2 },
+    });
+    const doneById = new Map(done.map((step) => [step.id, step]));
+    expect(doneById.get("superior-regulamento")?.done).toBe(true);
+    expect(doneById.get("superior-planos")?.done).toBe(true);
+  });
+
+  it("sem cursos o passo do plano fica pendente", () => {
+    const steps = buildSetupSteps({
+      ...complete,
+      teachingLevels: ["superior"],
+      higherEd: { regulationConfigured: true, programs: 0, programsWithPlan: 0 },
+    });
+    expect(steps.find((step) => step.id === "superior-planos")?.done).toBe(false);
+  });
+});

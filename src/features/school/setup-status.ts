@@ -187,6 +187,9 @@ export async function loadSchoolSetupSnapshot(
     activeYearName: activeYear ? (filled(activeYear.name) ?? "Ano lectivo") : null,
     teachingLevels: structure.teachingLevels,
     pendingStructureGrades: structure.pendingGrades,
+    higherEd: structure.teachingLevels.includes("superior")
+      ? await loadHigherEdSetup(db, schoolId)
+      : undefined,
     termsInActiveYear,
     gradeLevels,
     classGroupsInActiveYear: groupIds.length,
@@ -200,6 +203,38 @@ export async function loadSchoolSetupSnapshot(
     adminHasTwoFactor: hasTwoFactor,
     enrollmentFormOpen: openForms > 0,
     students,
+  };
+}
+
+async function loadHigherEdSetup(db: Db, schoolId: string) {
+  const [{ data: settings }, { data: programs }] = await Promise.all([
+    db
+      .from("school_settings")
+      .select("id")
+      .eq("school_id", schoolId)
+      .eq("domain", "higher_ed")
+      .maybeSingle(),
+    db
+      .from("programs")
+      .select("id")
+      .eq("school_id", schoolId)
+      .in("kind", ["undergraduate", "postgraduate"])
+      .eq("is_active", true),
+  ]);
+  const programIds = (programs ?? []).map((row) => String(row.id));
+  const { data: units } = programIds.length
+    ? await db
+        .from("program_subjects")
+        .select("program_id")
+        .eq("school_id", schoolId)
+        .eq("status", "active")
+        .is("deleted_at", null)
+        .in("program_id", programIds)
+    : { data: [] as Array<{ program_id: string }> };
+  return {
+    regulationConfigured: Boolean(settings?.id),
+    programs: programIds.length,
+    programsWithPlan: new Set((units ?? []).map((row) => String(row.program_id))).size,
   };
 }
 
