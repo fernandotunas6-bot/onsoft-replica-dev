@@ -1,0 +1,37 @@
+{
+  "app": {
+    "security": {
+      "capabilities": [
+        "default",
+        "school-portal",
+        {
+          "$schema": "../gen/schemas/desktop-schema.json",
+          "identifier": "development",
+          "description": "Local development server only (tauri dev serves devUrl as the local origin)",
+          "local": true,
+          "windows": ["main"],
+          "permissions": [
+            "core:default",
+            "core:window:allow-minimize",
+            "core:window:allow-toggle-maximize",
+            "core:window:allow-close",
+            "core:window:allow-start-dragging",
+            "core:webview:allow-set-webview-zoom",
+            "allow-get-system-info",
+            "allow-hardware-bridge-request",
+            "allow-open-external-url",
+            "allow-pulse-turnstile-relay",
+            "allow-print-thermal-receipt-native",
+            "allow-save-file",
+            "allow-print-page",
+            "allow-print-html",
+            "allow-open-payflow",
+            "allow-check-app-update",
+            "allow-install-app-update",
+            "notification:default"
+          ]
+        }
+      ]
+    }
+  }
+}
