@@ -54,11 +54,11 @@ describe("estrutura académica pelo contexto da escola", () => {
     const plan = planSchoolStructure(["superior"]);
     expect(plan.programs[0]).toMatchObject({ code: "LIC", kind: "undergraduate" });
     expect(plan.grades.map((g) => g.name)).toEqual([
-      "1º Ano",
-      "2º Ano",
-      "3º Ano",
-      "4º Ano",
-      "5º Ano",
+      "1º Ano · LIC",
+      "2º Ano · LIC",
+      "3º Ano · LIC",
+      "4º Ano · LIC",
+      "5º Ano · LIC",
     ]);
     expect(plan.subjects).toEqual([]);
   });

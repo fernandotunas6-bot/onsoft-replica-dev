@@ -25,7 +25,9 @@ export function programYears(code: string, years: number) {
   const count = Math.max(1, Math.min(7, Math.trunc(years)));
   return Array.from({ length: count }, (_, index) => ({
     code: `${index + 1}ANO-${code}`,
-    name: `${index + 1}º Ano`,
+    // Com o código do curso: vários cursos têm «1º Ano» e as listas de turmas e
+    // de matrícula ficavam com nomes repetidos (como «10ª Classe · CFB» no II Ciclo).
+    name: `${index + 1}º Ano · ${code}`,
     sequence: index + 1,
   }));
 }

@@ -28,4 +28,11 @@ describe("forma do curso superior", () => {
     expect(defaultYearsFor("undergraduate")).toBe(4);
     expect(defaultYearsFor("postgraduate")).toBe(2);
   });
+
+  it("o nome do ano leva o código do curso e continua a ser reconhecido como Superior", () => {
+    expect(programYears("DIREITO", 2).map((g) => g.name)).toEqual([
+      "1º Ano · DIREITO",
+      "2º Ano · DIREITO",
+    ]);
+  });
 });

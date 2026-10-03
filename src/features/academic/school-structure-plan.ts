@@ -139,7 +139,7 @@ export function planSchoolStructure(
       for (let year = 1; year <= 5; year += 1) {
         grades.push({
           code: `${year}ANO-LIC`,
-          name: `${year}º Ano`,
+          name: `${year}º Ano · LIC`,
           sequence: year,
           programCode: "LIC",
         });
