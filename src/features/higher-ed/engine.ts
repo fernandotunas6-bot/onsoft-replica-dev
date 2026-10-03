@@ -343,6 +343,45 @@ export function checkEnrollmentBatch(params: {
   return { ok, perUnit, limits, yearCredits, creditsBySemester };
 }
 
+export type OfferedUnit = {
+  unit: PlanUnit;
+  state: "inscrita" | "disponivel" | "bloqueada";
+  reasons: string[];
+};
+
+/**
+ * O que o estudante vê para se inscrever (matrícula on-line): as cadeiras do
+ * plano ainda por concluir, já inscritas neste ano, disponíveis ou bloqueadas
+ * com o motivo. As concluídas e creditadas não aparecem.
+ */
+export function enrollmentOffer(params: {
+  plan: PlanUnit[];
+  prerequisites: Prerequisite[];
+  records: UnitRecord[];
+  regulation: HigherEdRegulation;
+  academicYearId: string;
+}): OfferedUnit[] {
+  const completed = completedUnitIds(params.records);
+  return params.plan
+    .filter((unit) => !completed.has(unit.id))
+    .sort((a, b) => a.semester - b.semester || a.name.localeCompare(b.name, "pt"))
+    .map((unit) => {
+      const enrolledNow = params.records.some(
+        (r) =>
+          r.unitId === unit.id &&
+          r.academicYearId === params.academicYearId &&
+          r.status === "inscrito",
+      );
+      if (enrolledNow) return { unit, state: "inscrita" as const, reasons: [] };
+      const check = checkUnitEnrollment({ ...params, unit });
+      return {
+        unit,
+        state: check.ok ? ("disponivel" as const) : ("bloqueada" as const),
+        reasons: check.reasons,
+      };
+    });
+}
+
 // ── Avaliação e épocas ────────────────────────────────────────────────────
 
 export type FrequencyOutcome =

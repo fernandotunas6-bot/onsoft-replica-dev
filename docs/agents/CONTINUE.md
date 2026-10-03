@@ -49,6 +49,18 @@ servidor lhes toca, ver `PRIVILEGIO_POR_DESENHO`).
   `/pedagogica/superior/historico` (documento imprimível).
 - **Assistente** `/configuracoes/inicio`: passos de regulamento e planos quando a
   escola tem o nível `superior`.
+- **Também feito a 03/10:** perfil do curso (grau, modalidade, regime, vagas),
+  exame de acesso e seriação, exportação SISIES, regras opcionais (dívida,
+  período de inscrições, prazo de anulação com 2FA), correcção de nota e
+  situação académica.
+- **Matrícula on-line** (regra `student_self_enrollment`, desligada por omissão):
+  cartão «Inscrição em cadeiras» no portal do estudante
+  (`StudentSelfEnrollmentCard`), `getMyEnrollmentOffer` / `enrollMyUnits`. Só a
+  conta `Aluno` (o encarregado não inscreve); mesmas regras da secretaria porque
+  ambas passam por `enrollUnitsFor`; auditoria `higher_ed.enrollment.self`.
+  Anular continua só na secretaria.
+- **Por fazer:** ver «Próximos passos» em `docs/higher-ed/ANALISE_REQUISITOS_ANGOLA.md`
+  (trabalhador-estudante, diploma com QR, doutoramento, turnos/lista de espera).
 
 ## Auditoria de produção 11 (2026-10-02)
 

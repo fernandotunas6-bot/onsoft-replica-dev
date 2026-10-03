@@ -42,9 +42,28 @@ describe("Ensino Superior no servidor", () => {
   });
 
   it("inscrição: motor e regulamento validam antes de inserir; estudante tem de ser do curso", () => {
-    const body = fn("enrollStudentUnits");
+    const start = source.indexOf("async function enrollUnitsFor");
+    const body = source.slice(start, source.indexOf("export const ", start));
     expect(body).toContain("requireStudentInProgram(");
+    expect(body).toContain("assertEnrollmentAllowed(");
     expect(body.indexOf("checkEnrollmentBatch(")).toBeLessThan(body.indexOf(".insert("));
+    expect(fn("enrollStudentUnits")).toContain("enrollUnitsFor(db");
+  });
+
+  it("matrícula on-line: só o próprio estudante, só com o regulamento aberto, auditada", () => {
+    const own = source.slice(
+      source.indexOf("async function ownStudent"),
+      source.indexOf("async function enrolledProgramsOf"),
+    );
+    expect(own).toContain('appRole !== "Aluno"');
+    const body = fn("enrollMyUnits");
+    expect(body).toContain("ownStudent(context.userId)");
+    expect(body).not.toContain("studentId: z.");
+    expect(body.indexOf("regulation.student_self_enrollment")).toBeLessThan(
+      body.indexOf("enrollUnitsFor(db"),
+    );
+    expect(body).toContain('action: "higher_ed.enrollment.self"');
+    expect(fn("getMyEnrollmentOffer")).toContain("regulation.student_self_enrollment");
   });
 
   it("resultados: só professor da cadeira ou coordenação, época validada, auditoria", () => {
@@ -150,7 +169,9 @@ describe("Ensino Superior no servidor", () => {
   });
 
   it("regras opcionais: inscrições verificam período e dívida; anulação tardia exige 2FA", () => {
-    expect(fn("enrollStudentUnits")).toContain("assertEnrollmentAllowed(");
+    // Individual e matrícula on-line passam por enrollUnitsFor (ver acima).
+    expect(fn("enrollStudentUnits")).toContain("enrollUnitsFor(db");
+    expect(fn("enrollMyUnits")).toContain("enrollUnitsFor(db");
     expect(fn("enrollCohort")).toContain("assertEnrollmentAllowed(");
     expect(fn("cancelUnitEnrollment")).toContain(
       'requireAal2(context.claims, "Anular uma inscrição fora do prazo")',

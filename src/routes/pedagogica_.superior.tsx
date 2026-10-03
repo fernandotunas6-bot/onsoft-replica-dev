@@ -1694,6 +1694,17 @@ function RegulationTab({ canEdit }: { canEdit: boolean }) {
           />
           <Label htmlFor="reg-debt">Propinas vencidas impedem a inscrição em cadeiras</Label>
         </div>
+        <div className="flex items-center gap-3 sm:col-span-2">
+          <Switch
+            id="reg-self"
+            checked={current.student_self_enrollment}
+            disabled={!canEdit}
+            onCheckedChange={(value) => setDraft({ ...current, student_self_enrollment: value })}
+          />
+          <Label htmlFor="reg-self">
+            Estudantes inscrevem-se nas cadeiras no portal (dentro do período de inscrições)
+          </Label>
+        </div>
         <div className="space-y-1.5">
           <Label htmlFor="reg-opens">Inscrições abrem a</Label>
           <Input

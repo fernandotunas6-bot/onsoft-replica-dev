@@ -126,6 +126,12 @@ export type HigherEdRegulation = {
   /** Período de inscrições em cadeiras (AAAA-MM-DD). Vazio = sempre aberto. */
   enrollment_opens_on: string | null;
   enrollment_closes_on: string | null;
+  /**
+   * Como a matrícula on-line do SIGAA: o estudante inscreve-se nas cadeiras no
+   * portal, com as mesmas regras da secretaria (período, dívida, precedências,
+   * créditos). Desligado: só a secretaria inscreve.
+   */
+  student_self_enrollment: boolean;
 };
 
 export const HIGHER_ED_DEFAULTS: HigherEdRegulation = {
@@ -147,6 +153,7 @@ export const HIGHER_ED_DEFAULTS: HigherEdRegulation = {
   cancel_deadline_days: 0,
   enrollment_opens_on: null,
   enrollment_closes_on: null,
+  student_self_enrollment: false,
 };
 
 export type HigherEdDegree = "licenciatura" | "mestrado" | "doutoramento" | "especializacao";
@@ -329,6 +336,10 @@ export const SETTINGS_DOMAINS = {
         ),
         enrollment_opens_on: isoDate(v["enrollment_opens_on"]),
         enrollment_closes_on: isoDate(v["enrollment_closes_on"]),
+        student_self_enrollment:
+          typeof v["student_self_enrollment"] === "boolean"
+            ? v["student_self_enrollment"]
+            : d.student_self_enrollment,
       };
     },
   },

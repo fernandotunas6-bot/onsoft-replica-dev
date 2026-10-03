@@ -25,6 +25,7 @@ import { DashboardCalendarCard } from "@/features/dashboard/components/Dashboard
 import { StudentTimetableCard } from "@/features/dashboard/components/StudentTimetableCard";
 import { StudentGradesCard } from "@/features/dashboard/components/StudentGradesCard";
 import { StudentHigherEdCard } from "@/features/dashboard/components/StudentHigherEdCard";
+import { StudentSelfEnrollmentCard } from "@/features/dashboard/components/StudentSelfEnrollmentCard";
 import { StudentCompetenciesCard } from "@/features/dashboard/components/StudentCompetenciesCard";
 import { assessmentCalendarItems } from "@/features/dashboard/student-calendar-items";
 import { openSettingsPanel } from "@/lib/settings-deep-link";
@@ -205,6 +206,8 @@ export function StudentPortalDashboard() {
       <StudentTimetableCard />
 
       <StudentGradesCard />
+
+      <StudentSelfEnrollmentCard />
 
       <StudentHigherEdCard />
 

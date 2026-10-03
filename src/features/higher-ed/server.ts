@@ -18,6 +18,7 @@ import { publicDatabaseError } from "@/integrations/supabase/server-error";
 import {
   loadSgaAdminClient,
   requireSgaWriterFor,
+  resolveSgaMembershipAdmin,
   requireSgaWriterForWrite,
 } from "@/integrations/supabase/sga-admin";
 import {
@@ -39,6 +40,7 @@ import {
   academicStanding,
   cancellationIsLate,
   enrollmentWindowError,
+  enrollmentOffer,
   academicSemesterOf,
   checkEnrollmentBatch,
   EXAM_SEASONS,
@@ -916,6 +918,90 @@ async function assertEnrollmentAllowed(
   return studentsWithOverdueDebt(db, schoolId, studentIds);
 }
 
+/**
+ * Inscreve um estudante em cadeiras do ano activo com as regras do regulamento
+ * (período, dívida, precedências, tentativas e créditos). Usada pela secretaria
+ * e pela matrícula on-line do próprio estudante.
+ */
+async function enrollUnitsFor(
+  db: Db,
+  params: {
+    schoolId: string;
+    studentId: string;
+    programId: string;
+    unitIds: string[];
+    actor: string;
+    regulation: HigherEdRegulation;
+  },
+) {
+  const { schoolId, studentId, programId, regulation } = params;
+  await requireProgram(db, schoolId, programId);
+  await requireStudentInProgram(db, schoolId, studentId, programId);
+  const yearId = await activeYearId(db, schoolId);
+  if (!yearId) throw new Error("Não há ano lectivo activo para inscrever o estudante.");
+  const [{ units, prerequisites }, rows] = await Promise.all([
+    loadPlan(db, schoolId, programId),
+    loadRecords(db, schoolId, studentId, programId),
+  ]);
+  const indebted = await assertEnrollmentAllowed(db, schoolId, regulation, [studentId]);
+  if (indebted.has(studentId)) {
+    throw new Error(
+      "O estudante tem propinas vencidas por pagar: o regulamento não permite a inscrição.",
+    );
+  }
+  const records = rows.map((row) => row.record);
+  const selected = [...new Set(params.unitIds)].map((id) => {
+    const unit = units.find((u) => u.id === id);
+    if (!unit) throw new Error("Uma das cadeiras não pertence ao plano deste curso.");
+    return unit;
+  });
+  const batch = checkEnrollmentBatch({
+    selected,
+    plan: units,
+    prerequisites,
+    records,
+    regulation,
+    academicYearId: yearId,
+  });
+  if (!batch.ok) {
+    const reasons = [
+      ...batch.limits,
+      ...[...batch.perUnit.values()].flatMap((check) => check.reasons),
+    ];
+    throw new Error(reasons.join(" "));
+  }
+  const attempts = new Map<string, number>();
+  for (const record of records) {
+    attempts.set(record.unitId, Math.max(attempts.get(record.unitId) ?? 0, record.attempt));
+  }
+  const { data: inserted, error } = await db
+    .from("course_unit_enrollments")
+    .insert(
+      selected.map((unit) => ({
+        school_id: schoolId,
+        student_id: studentId,
+        academic_year_id: yearId,
+        program_id: programId,
+        program_subject_id: unit.id,
+        semester: academicSemesterOf(unit.semester),
+        credits: unit.credits,
+        attempt: (attempts.get(unit.id) ?? 0) + 1,
+        status: "inscrito",
+        credits_earned: 0,
+        created_by: params.actor,
+        updated_by: params.actor,
+      })),
+    )
+    .select("id");
+  if (error) throw publicDatabaseError(error, "Não foi possível inscrever o estudante.");
+  return {
+    enrolled: selected.length,
+    credits: batch.yearCredits,
+    ids: ((inserted ?? []) as Row[]).map((row) => str(row.id)),
+    units: selected.map((unit) => unit.name),
+  };
+}
+
 export const enrollStudentUnits = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((input: unknown) =>
@@ -930,65 +1016,16 @@ export const enrollStudentUnits = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const membership = await officeMembership(context, "write");
     const db = await loadSgaAdminClient();
-    const schoolId = membership.schoolId;
-    await requireProgram(db, schoolId, data.programId);
-    await requireStudentInProgram(db, schoolId, data.studentId, data.programId);
-    const yearId = await activeYearId(db, schoolId);
-    if (!yearId) throw new Error("Não há ano lectivo activo para inscrever o estudante.");
-    const [{ units, prerequisites }, rows, regulation] = await Promise.all([
-      loadPlan(db, schoolId, data.programId),
-      loadRecords(db, schoolId, data.studentId, data.programId),
-      regulationOf(db, schoolId),
-    ]);
-    const indebted = await assertEnrollmentAllowed(db, schoolId, regulation, [data.studentId]);
-    if (indebted.has(data.studentId)) {
-      throw new Error(
-        "O estudante tem propinas vencidas por pagar: o regulamento não permite a inscrição.",
-      );
-    }
-    const records = rows.map((row) => row.record);
-    const selected = [...new Set(data.unitIds)].map((id) => {
-      const unit = units.find((u) => u.id === id);
-      if (!unit) throw new Error("Uma das cadeiras não pertence ao plano deste curso.");
-      return unit;
-    });
-    const batch = checkEnrollmentBatch({
-      selected,
-      plan: units,
-      prerequisites,
-      records,
+    const regulation = await regulationOf(db, membership.schoolId);
+    const result = await enrollUnitsFor(db, {
+      schoolId: membership.schoolId,
+      studentId: data.studentId,
+      programId: data.programId,
+      unitIds: data.unitIds,
+      actor: context.userId,
       regulation,
-      academicYearId: yearId,
     });
-    if (!batch.ok) {
-      const reasons = [
-        ...batch.limits,
-        ...[...batch.perUnit.values()].flatMap((check) => check.reasons),
-      ];
-      throw new Error(reasons.join(" "));
-    }
-    const attempts = new Map<string, number>();
-    for (const record of records) {
-      attempts.set(record.unitId, Math.max(attempts.get(record.unitId) ?? 0, record.attempt));
-    }
-    const { error } = await db.from("course_unit_enrollments").insert(
-      selected.map((unit) => ({
-        school_id: schoolId,
-        student_id: data.studentId,
-        academic_year_id: yearId,
-        program_id: data.programId,
-        program_subject_id: unit.id,
-        semester: academicSemesterOf(unit.semester),
-        credits: unit.credits,
-        attempt: (attempts.get(unit.id) ?? 0) + 1,
-        status: "inscrito",
-        credits_earned: 0,
-        created_by: context.userId,
-        updated_by: context.userId,
-      })),
-    );
-    if (error) throw publicDatabaseError(error, "Não foi possível inscrever o estudante.");
-    return { enrolled: selected.length, credits: batch.yearCredits };
+    return { enrolled: result.enrolled, credits: result.credits };
   });
 
 /** Estudantes com matrícula activa (ou pendente) numa turma de um ano do curso. */
@@ -1906,6 +1943,165 @@ export const getMyHigherEd = createServerFn({ method: "GET" })
       });
     }
     return { programs: result };
+  });
+
+// ── Matrícula on-line (o estudante inscreve-se) ──────────────────────────────
+
+/** Só a conta do próprio estudante; o encarregado vê o percurso mas não inscreve. */
+async function ownStudent(userId: string) {
+  const membership = await resolveSgaMembershipAdmin(userId);
+  if (membership?.appRole !== "Aluno") return null;
+  return resolveVisibleStudent(userId);
+}
+
+/** Cursos superiores em que o estudante tem matrícula activa (ou pendente). */
+async function enrolledProgramsOf(db: Db, schoolId: string, studentId: string) {
+  const { data: enrollments } = await db
+    .from("enrollments")
+    .select("class_group_id")
+    .eq("school_id", schoolId)
+    .eq("student_id", studentId)
+    .in("status", ["active", "pending"]);
+  const groupIds = [...new Set((enrollments ?? []).map((e) => str(e.class_group_id)))];
+  if (!groupIds.length) return [];
+  const { data: groups } = await db
+    .from("class_groups")
+    .select("grade_level_id")
+    .eq("school_id", schoolId)
+    .in("id", groupIds);
+  const gradeIds = [...new Set(((groups ?? []) as Row[]).map((g) => str(g.grade_level_id)))];
+  if (!gradeIds.length) return [];
+  const { data: grades } = await db
+    .from("grade_levels")
+    .select("program_id")
+    .eq("school_id", schoolId)
+    .in("id", gradeIds);
+  const programIds = [
+    ...new Set(((grades ?? []) as Row[]).map((g) => str(g.program_id)).filter(Boolean)),
+  ];
+  if (!programIds.length) return [];
+  const { data: programs } = await db
+    .from("programs")
+    .select("id, name")
+    .eq("school_id", schoolId)
+    .in("kind", ["undergraduate", "postgraduate"])
+    .in("id", programIds)
+    .order("name");
+  return ((programs ?? []) as Row[]).map((p) => ({ id: str(p.id), name: str(p.name) }));
+}
+
+/**
+ * Cadeiras que o estudante pode escolher no portal, com o motivo das que estão
+ * bloqueadas. `enabled: false` quando a escola não abriu a matrícula on-line.
+ */
+export const getMyEnrollmentOffer = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const own = await ownStudent(context.userId);
+    if (!own) return { enabled: false as const };
+    const { db, schoolId, studentId } = own;
+    const regulation = await regulationOf(db, schoolId);
+    if (!regulation.student_self_enrollment) return { enabled: false as const };
+    const programs = await enrolledProgramsOf(db, schoolId, studentId);
+    if (!programs.length) return { enabled: false as const };
+    const yearId = await activeYearId(db, schoolId);
+    const blocked: string[] = [];
+    if (!yearId) blocked.push("Não há ano lectivo activo.");
+    const windowError = enrollmentWindowError(regulation, todayIso());
+    if (windowError) blocked.push(windowError);
+    if (regulation.block_enrollment_with_debt) {
+      const indebted = await studentsWithOverdueDebt(db, schoolId, [studentId]);
+      if (indebted.has(studentId)) {
+        blocked.push("Tem propinas vencidas por pagar: regularize-as na tesouraria.");
+      }
+    }
+    const offers = [];
+    for (const program of programs) {
+      const [{ units, prerequisites }, rows] = await Promise.all([
+        loadPlan(db, schoolId, program.id),
+        loadRecords(db, schoolId, studentId, program.id),
+      ]);
+      const records = rows.map((row) => row.record);
+      const offered = yearId
+        ? enrollmentOffer({
+            plan: units,
+            prerequisites,
+            records,
+            regulation,
+            academicYearId: yearId,
+          })
+        : [];
+      const creditsThisYear = yearId
+        ? records
+            .filter((r) => r.academicYearId === yearId && r.status === "inscrito")
+            .reduce((sum, r) => sum + r.credits, 0)
+        : 0;
+      offers.push({
+        program,
+        creditsThisYear,
+        units: offered.map((offer) => ({
+          id: offer.unit.id,
+          name: offer.unit.name,
+          semester: offer.unit.semester,
+          credits: offer.unit.credits,
+          state: offer.state,
+          reasons: offer.reasons,
+        })),
+      });
+    }
+    return {
+      enabled: true as const,
+      blocked,
+      limits: {
+        perYear: regulation.max_credits_per_year,
+        perSemester: regulation.max_credits_per_semester,
+      },
+      closesOn: regulation.enrollment_closes_on,
+      offers,
+    };
+  });
+
+/** O estudante inscreve-se em cadeiras: mesmas regras da secretaria, com auditoria. */
+export const enrollMyUnits = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .validator((input: unknown) =>
+    z
+      .object({
+        programId: z.string().uuid(),
+        unitIds: z.array(z.string().uuid()).min(1).max(30),
+      })
+      .parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    const own = await ownStudent(context.userId);
+    if (!own) throw new Error("Só o próprio estudante se inscreve nas cadeiras.");
+    const { db, schoolId, studentId } = own;
+    const regulation = await regulationOf(db, schoolId);
+    if (!regulation.student_self_enrollment) {
+      throw new Error("A inscrição em cadeiras faz-se na secretaria.");
+    }
+    const result = await enrollUnitsFor(db, {
+      schoolId,
+      studentId,
+      programId: data.programId,
+      unitIds: data.unitIds,
+      actor: context.userId,
+      regulation,
+    });
+    await audit(db, {
+      schoolId,
+      actor: context.userId,
+      action: "higher_ed.enrollment.self",
+      entityId: result.ids[0] ?? studentId,
+      metadata: {
+        student_id: studentId,
+        program_id: data.programId,
+        enrollment_ids: result.ids,
+        units: result.units,
+        credits: result.credits,
+      },
+    });
+    return { enrolled: result.enrolled, credits: result.credits };
   });
 
 // ── Acesso (exame de acesso e seriação) ─────────────────────────────────────

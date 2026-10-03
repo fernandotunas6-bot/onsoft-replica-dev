@@ -4,6 +4,7 @@ import {
   academicStanding,
   cancellationIsLate,
   enrollmentWindowError,
+  enrollmentOffer,
   checkEnrollmentBatch,
   checkUnitEnrollment,
   finalClassification,
@@ -519,5 +520,38 @@ describe("regras opcionais (calendário de inscrições e prazo de anulação)",
     expect(cancellationIsLate(42, "2026-09-01", "2026-10-14")).toBe(true);
     expect(cancellationIsLate(0, "2026-09-01", "2027-01-01")).toBe(false);
     expect(cancellationIsLate(42, null, "2027-01-01")).toBe(false);
+  });
+});
+
+describe("matrícula on-line: oferta de cadeiras", () => {
+  it("esconde as concluídas, marca as inscritas e explica as bloqueadas", () => {
+    const records = [
+      rec("mat1", "aprovado", { academicYearId: "y0" }),
+      rec("prog1", "inscrito", { academicYearId: "y1", season: null }),
+    ];
+    const offer = enrollmentOffer({
+      plan,
+      prerequisites: prereqs,
+      records,
+      regulation: reg,
+      academicYearId: "y1",
+    });
+    const byId = new Map(offer.map((o) => [o.unit.id, o]));
+    expect(byId.has("mat1")).toBe(false);
+    expect(byId.get("prog1")?.state).toBe("inscrita");
+    expect(byId.get("mat2")?.state).toBe("disponivel");
+    expect(byId.get("prog2")?.state).toBe("bloqueada");
+    expect(byId.get("prog2")?.reasons.join(" ")).toContain("PROG1");
+    expect(offer.map((o) => o.unit.semester)).toEqual(
+      [...offer.map((o) => o.unit.semester)].sort((a, b) => a - b),
+    );
+  });
+
+  it("regulamento: matrícula on-line desligada por omissão", () => {
+    expect(HIGHER_ED_DEFAULTS.student_self_enrollment).toBe(false);
+    expect(parseSettingsDomain("higher_ed", {}).student_self_enrollment).toBe(false);
+    expect(
+      parseSettingsDomain("higher_ed", { student_self_enrollment: true }).student_self_enrollment,
+    ).toBe(true);
   });
 });

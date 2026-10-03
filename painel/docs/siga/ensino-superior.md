@@ -14,7 +14,7 @@ a escola no WEB, ou em Definições → Pedagógico).
 | Administrador | `/pedagogica/superior` | Cria e edita cursos, define o regulamento, tudo o que a secretaria faz |
 | Secretaria | `/pedagogica/superior` | Monta planos, inscreve estudantes, credita cadeiras, emite históricos |
 | Professor | `/pedagogica/pautas-superior` | Lança frequência e exames **só nas cadeiras que lecciona** |
-| Estudante / Encarregado | Portal (início) | Vê créditos, média e o estado de cada cadeira |
+| Estudante / Encarregado | Portal (início) | Vê créditos, média e o estado de cada cadeira; o estudante inscreve-se nas cadeiras se a escola abrir a matrícula on-line |
 
 ## 0. Ano lectivo por semestres
 
@@ -58,6 +58,7 @@ Separador **Regulamento** (só Administrador edita). Valores por omissão:
 | Cadeiras em falta para época especial | até 2 |
 | Tentativas por cadeira | sem limite (0) |
 | Melhoria de nota | permitida |
+| Matrícula on-line (o estudante inscreve-se no portal) | desligada |
 
 ## 4. Inscrições por cadeira
 
@@ -68,6 +69,13 @@ Separador **Regulamento** (só Administrador edita). Valores por omissão:
 O SIGA recusa uma inscrição quando a cadeira já está concluída, já está em curso no ano,
 tem uma inscrição de **outro ano sem resultado**, faltam precedências, se esgotaram as
 tentativas, ou os créditos passam os limites do regulamento.
+
+- **Pelo estudante (matrícula on-line)** — com a regra ligada no regulamento, o portal do
+  estudante mostra o cartão **Inscrição em cadeiras**: as cadeiras por concluir, as que
+  pode escolher e o motivo das bloqueadas. Valem as mesmas regras da secretaria, o
+  **período de inscrições** e, se ligada, a regra das **propinas vencidas**. O
+  encarregado não inscreve. Cada inscrição fica na auditoria; anular continua a ser na
+  secretaria.
 
 **Anular** — na ficha, numa cadeira em curso, com motivo. O painel **Inscrições sem
 resultado de anos anteriores** lista as que ficaram abertas para lançar ou anular.
