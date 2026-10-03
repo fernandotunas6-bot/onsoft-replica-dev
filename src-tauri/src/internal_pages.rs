@@ -1,4 +1,5 @@
-//! Janelas com páginas geradas pela app (`sigapage://`): documentos a imprimir.
+//! Janelas com páginas geradas pela app (`sigapage://`): documentos a imprimir e o
+//! arranque do PayFlow com sessão.
 //!
 //! Cada janela tem o rótulo `<prefixo>-<id>` e nenhuma capability a cobre (todas
 //! listam só `main`): as páginas não chamam comandos da app. Cada página é servida
@@ -157,9 +158,157 @@ pub async fn print_html(app: tauri::AppHandle, html: String) -> Result<(), Strin
     .map(|_| ())
 }
 
+/// Origem do PayFlow em produção (`https://payflow.<PLATFORM_DOMAIN>`).
+const PAYFLOW_ORIGIN: &str = "https://payflow.portal-siga.com";
+const PAYFLOW_EXCHANGE_PATH: &str = "/api/v1/sso/exchange";
+/// Maior asserção SSO aceite (as do SIGA têm poucas centenas de caracteres).
+const MAX_ASSERTION_LEN: usize = 8192;
+
+/// A asserção assinada só pode ir para a troca SSO do PayFlow oficial (em
+/// desenvolvimento, também para o PayFlow local).
+fn payflow_exchange_url(raw: &str) -> Result<tauri::Url, String> {
+    let invalid = || "Endereço do PayFlow inválido.".to_string();
+    let url: tauri::Url = raw.parse().map_err(|_| invalid())?;
+    if url.path() != PAYFLOW_EXCHANGE_PATH
+        || url.query().is_some()
+        || url.fragment().is_some()
+        || !url.username().is_empty()
+        || url.password().is_some()
+    {
+        return Err(invalid());
+    }
+    let local = cfg!(debug_assertions)
+        && url.scheme() == "http"
+        && matches!(url.host_str(), Some("localhost") | Some("127.0.0.1"));
+    if url.origin().ascii_serialization() == PAYFLOW_ORIGIN || local {
+        Ok(url)
+    } else {
+        Err("O PayFlow só abre no endereço oficial.".into())
+    }
+}
+
+/// Destino depois da troca: só um caminho dentro do PayFlow.
+fn payflow_redirect(path: Option<&str>) -> String {
+    match path {
+        Some(p)
+            if p.starts_with('/')
+                && !p.starts_with("//")
+                && !p.contains('\\')
+                && p.len() <= 200 =>
+        {
+            p.to_string()
+        }
+        _ => "/admin".to_string(),
+    }
+}
+
+fn escape_html(value: &str) -> String {
+    value
+        .replace('&', "&amp;")
+        .replace('"', "&quot;")
+        .replace('<', "&lt;")
+        .replace('>', "&gt;")
+}
+
+/// Abre o PayFlow (administração) numa janela própria, já com sessão.
+///
+/// No browser o SIGA faz um POST com `target="_blank"` para a troca SSO; dentro do
+/// webview essa janela nova não abre. Aqui a janela do PayFlow carrega uma página
+/// interna com o mesmo formulário e submete-o: o cookie de sessão fica nessa janela
+/// e o SIGA não sai do sítio. Abrir de novo fecha a anterior (cada asserção só
+/// serve uma vez).
+#[tauri::command]
+pub async fn open_payflow(
+    app: tauri::AppHandle,
+    exchange_url: String,
+    assertion: String,
+    redirect_to: Option<String>,
+) -> Result<(), String> {
+    let url = payflow_exchange_url(&exchange_url)?;
+    if assertion.trim().is_empty() || assertion.len() > MAX_ASSERTION_LEN {
+        return Err("Sessão do PayFlow inválida.".into());
+    }
+    let origin = url.origin().ascii_serialization();
+
+    for (label, window) in app.webview_windows() {
+        if label.starts_with("payflow-") {
+            let _ = window.destroy();
+        }
+    }
+
+    let html = format!(
+        r#"<!doctype html><html lang="pt"><head><meta charset="utf-8"><title>PayFlow</title>
+<style>body{{margin:0;display:grid;place-items:center;height:100vh;font:14px system-ui,sans-serif;color:#6e6c78}}</style>
+</head><body><p>A abrir o PayFlow…</p>
+<form id="f" method="post" action="{action}">
+<input type="hidden" name="assertion" value="{assertion}">
+<input type="hidden" name="redirect_to" value="{redirect}">
+</form><script>document.getElementById("f").submit();</script></body></html>"#,
+        action = escape_html(url.as_str()),
+        assertion = escape_html(&assertion),
+        redirect = escape_html(&payflow_redirect(redirect_to.as_deref())),
+    );
+    // O único script é o nosso (submeter); o formulário só pode ir para o PayFlow.
+    let csp = format!(
+        "default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; form-action {origin}"
+    );
+    open_window(
+        &app,
+        "payflow",
+        "PayFlow — SIGA",
+        (1280.0, 860.0),
+        html,
+        csp,
+        false,
+    )
+    .map(|_| ())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn payflow_assertion_only_goes_to_the_official_exchange() {
+        assert!(
+            payflow_exchange_url("https://payflow.portal-siga.com/api/v1/sso/exchange").is_ok()
+        );
+        for bad in [
+            "http://payflow.portal-siga.com/api/v1/sso/exchange",
+            "https://payflow.portal-siga.com.mal.example/api/v1/sso/exchange",
+            "https://mal.example/api/v1/sso/exchange",
+            "https://payflow.portal-siga.com/admin",
+            "https://payflow.portal-siga.com/api/v1/sso/exchange?x=1",
+            "https://user@payflow.portal-siga.com/api/v1/sso/exchange",
+            "javascript:alert(1)",
+            "file:///etc/passwd",
+            "não é url",
+        ] {
+            assert!(payflow_exchange_url(bad).is_err(), "{bad}");
+        }
+        // O PayFlow local só nas builds de desenvolvimento.
+        assert_eq!(
+            payflow_exchange_url("http://localhost:3007/api/v1/sso/exchange").is_ok(),
+            cfg!(debug_assertions)
+        );
+    }
+
+    #[test]
+    fn payflow_redirect_stays_inside_payflow() {
+        assert_eq!(payflow_redirect(Some("/admin/caixa")), "/admin/caixa");
+        assert_eq!(payflow_redirect(Some("//mal.example")), "/admin");
+        assert_eq!(payflow_redirect(Some("https://mal.example")), "/admin");
+        assert_eq!(payflow_redirect(Some("/\\mal.example")), "/admin");
+        assert_eq!(payflow_redirect(None), "/admin");
+    }
+
+    #[test]
+    fn escaped_values_cannot_leave_the_attribute() {
+        assert_eq!(
+            escape_html(r#"a"><script>x</script>&"#),
+            "a&quot;&gt;&lt;script&gt;x&lt;/script&gt;&amp;"
+        );
+    }
 
     #[test]
     fn print_pages_run_no_scripts() {

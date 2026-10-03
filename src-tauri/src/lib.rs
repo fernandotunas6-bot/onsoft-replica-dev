@@ -451,7 +451,8 @@ pub fn run() {
             open_school_portal,
             save_file,
             internal_pages::print_page,
-            internal_pages::print_html
+            internal_pages::print_html,
+            internal_pages::open_payflow
         ])
         .manage(internal_pages::InternalPages::default())
         .register_uri_scheme_protocol("sigapage", |ctx, request| {

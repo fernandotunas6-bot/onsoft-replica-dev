@@ -21,6 +21,7 @@
     "allow-save-file",
     "allow-print-page",
     "allow-print-html",
+    "allow-open-payflow",
     "notification:default"
   ]
 }
