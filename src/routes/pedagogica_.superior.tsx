@@ -47,6 +47,8 @@ import { SEASON_LABEL, STATUS_LABEL } from "@/features/higher-ed/labels";
 import { defaultYearsFor, normalizeProgramCode } from "@/features/higher-ed/program-shape";
 import type { HigherEdRegulation } from "@/features/school/settings-domains";
 import { toastActionError } from "@/lib/action-error-toast";
+import { DocPathHelpButton } from "@/components/ui/doc-help-button";
+import { DOC_PATHS } from "@/lib/ecosystem-urls";
 
 export const Route = createFileRoute("/pedagogica_/superior")({
   head: () => ({
@@ -83,20 +85,23 @@ function HigherEdPage() {
           description="Planos curriculares com créditos e precedências, inscrições por cadeira, épocas de avaliação e o regulamento da instituição."
           icon={GraduationCap}
           actions={
-            programs.data?.length ? (
-              <Select value={selected} onValueChange={setProgramId}>
-                <SelectTrigger className="w-64" aria-label="Curso">
-                  <SelectValue placeholder="Escolha o curso" />
-                </SelectTrigger>
-                <SelectContent>
-                  {programs.data.map((program) => (
-                    <SelectItem key={program.id} value={program.id}>
-                      {program.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            ) : undefined
+            <div className="flex flex-wrap items-center gap-2">
+              <DocPathHelpButton path={DOC_PATHS.sigaHigherEd} title="Manual do Ensino Superior" />
+              {programs.data?.length ? (
+                <Select value={selected} onValueChange={setProgramId}>
+                  <SelectTrigger className="w-64" aria-label="Curso">
+                    <SelectValue placeholder="Escolha o curso" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {programs.data.map((program) => (
+                      <SelectItem key={program.id} value={program.id}>
+                        {program.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              ) : null}
+            </div>
           }
         />
         {!account.profile.isLoading && !isOffice ? (

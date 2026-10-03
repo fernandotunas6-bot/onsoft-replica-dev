@@ -23,6 +23,8 @@ import type { EnrollmentStatus, ExamSeason } from "@/features/higher-ed/engine";
 import { SEASON_LABEL, STATUS_LABEL } from "@/features/higher-ed/labels";
 import { getUnitSheet, listLaunchableUnits, recordUnitResult } from "@/features/higher-ed/server";
 import { toastActionError } from "@/lib/action-error-toast";
+import { DocPathHelpButton } from "@/components/ui/doc-help-button";
+import { DOC_PATHS } from "@/lib/ecosystem-urls";
 
 export const Route = createFileRoute("/pedagogica_/pautas-superior")({
   head: () => ({
@@ -63,20 +65,23 @@ function UnitSheetsPage() {
           description="Lance a frequência e os exames de cada cadeira. As épocas disponíveis seguem o regulamento da instituição."
           icon={ClipboardList}
           actions={
-            units.data?.length ? (
-              <Select value={selected?.unitId ?? ""} onValueChange={setChoice}>
-                <SelectTrigger className="w-80" aria-label="Cadeira">
-                  <SelectValue placeholder="Escolha a cadeira" />
-                </SelectTrigger>
-                <SelectContent>
-                  {units.data.map((unit) => (
-                    <SelectItem key={unit.unitId} value={unit.unitId}>
-                      {unit.programName} · {unit.semester}.º sem. · {unit.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            ) : undefined
+            <div className="flex flex-wrap items-center gap-2">
+              <DocPathHelpButton path={DOC_PATHS.sigaHigherEd} title="Manual do Ensino Superior" />
+              {units.data?.length ? (
+                <Select value={selected?.unitId ?? ""} onValueChange={setChoice}>
+                  <SelectTrigger className="w-80" aria-label="Cadeira">
+                    <SelectValue placeholder="Escolha a cadeira" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {units.data.map((unit) => (
+                      <SelectItem key={unit.unitId} value={unit.unitId}>
+                        {unit.programName} · {unit.semester}.º sem. · {unit.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              ) : null}
+            </div>
           }
         />
         {!account.profile.isLoading && !allowed ? (
