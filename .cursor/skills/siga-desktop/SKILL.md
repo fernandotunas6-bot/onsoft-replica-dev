@@ -31,6 +31,9 @@ Ler primeiro `docs/desktop/TAURI_RUNTIME.md` (comandos, permissões, hardware, r
   `save_file` (exportações), `print_page`/`print_html` (macOS; `print_html` em janela
   `sigapage://` sem scripts), `open_payflow` (SSO numa janela própria, só para o PayFlow
   oficial), `open_external_url`, `check_app_update`/`install_app_update`.
+- **Notificações do sistema** (`DesktopNotifications` no AppShell): mensagem nova (só o
+  remetente), comunicado publicado (regra da lista) e «Alterações enviadas», só com a app
+  em segundo plano; regras em `src/lib/desktop-notifications.ts`.
 - **Frontend:** `DesktopIntegration` (exportações, links fora do portal no browser do
   sistema, impressão no macOS, atalhos e zoom, aviso de versão nova). Sem rede — fase 1
   no `OfflineBanner` (`src/lib/pending-writes.ts`).

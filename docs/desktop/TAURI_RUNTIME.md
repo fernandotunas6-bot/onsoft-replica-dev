@@ -46,6 +46,10 @@ O daemon Python permanece um componente instalado e iniciado separadamente. No T
 
 O daemon rejeita origens desconhecidas (incluindo `null`), Host diferente do endereço local, escrita sem Content-Type JSON, corpos inválidos ou acima de 256 KiB e pedidos de hardware a IPs públicos. Ferramentas locais sem Origin continuam autorizadas: estas protecções impedem chamadas de páginas de terceiros, mas não substituem autenticação de processos locais. A rota de impressão também valida campos dos recibos antigos para impedir inserção de comandos ESC/POS.
 
+## Notificações do sistema
+
+`DesktopNotifications` (no `AppShell`, só na app) subscreve em tempo real as mensagens directas recebidas pela conta e os comunicados da escola, e avisa pelo sistema **só com a app em segundo plano** (com a janela à frente, o próprio ecrã mostra). Uma mensagem nova mostra só o remetente, nunca o texto: o aviso pode aparecer no ecrã bloqueado ou com o ecrã projectado. Um comunicado avisa com o título, pela mesma regra da lista (o pessoal vê todos; alunos e encarregados só os enviados e não os do corpo docente), só acabado de publicar e uma vez. Rajadas juntam-se num aviso («3 mensagens novas»). O aviso de ligação também avisa «Alterações enviadas» quando acaba de enviar o que ficou à espera. Usa o plugin de notificações (`notification:default` já na capability do portal); regras em `src/lib/desktop-notifications.ts`.
+
 ## Sem rede
 
 Fase 1 (desktop, PWA e web): sem rede, as gravações feitas com `useMutation` ficam em pausa e seguem quando a rede volta, mas só em memória. O aviso de ligação (`OfflineBanner`) diz quantas estão à espera, mostra «A enviar…» e confirma «Alterações enviadas.»; fechar ou recarregar com gravações por enviar pede confirmação. Gravações que chamam a função do servidor directamente continuam a falhar com erro.

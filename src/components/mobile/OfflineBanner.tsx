@@ -3,6 +3,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { CheckCircle2, CloudOff, LoaderCircle, Wifi } from "lucide-react";
 
 import { useOnlineStatus } from "@/hooks/use-breakpoint";
+import { notifyInBackground } from "@/lib/desktop-notifications";
 import { usePendingWrites, writesLabel } from "@/lib/pending-writes";
 import { cn } from "@/lib/utils";
 
@@ -48,6 +49,10 @@ export function OfflineBanner() {
       return;
     }
     setSent(hadPending.current);
+    // Na app desktop em segundo plano, avisa também pelo sistema (fim do envio).
+    if (hadPending.current) {
+      void notifyInBackground("Alterações enviadas", "O que gravou sem rede já está no SIGA.");
+    }
     hadPending.current = false;
     const timer = window.setTimeout(() => {
       setPhase("online");
