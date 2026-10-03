@@ -615,3 +615,53 @@ export function finalClassification(average: number | null): {
             : "Suficiente";
   return { value, mention };
 }
+
+export type AcademicStanding =
+  "regular" | "em_atraso" | "em_risco" | "prazo_excedido" | "concluido";
+
+/**
+ * Situação académica (como o «academic standing» do Banner e a prescrição do
+ * SIGARRA): créditos obtidos face aos esperados para os anos já frequentados
+ * (as cadeiras do plano até ao semestre 2 × anos), e anos além da duração do
+ * curso. Os limites vêm do regulamento; 0 desliga cada regra.
+ */
+export function academicStanding(params: {
+  plan: PlanUnit[];
+  records: UnitRecord[];
+  regulation: HigherEdRegulation;
+}) {
+  const { plan, records, regulation } = params;
+  const progress = studentProgress({ plan, records, regulation });
+  const yearsAttended = new Set(
+    records.filter((r) => r.status !== "anulado" && r.academicYearId).map((r) => r.academicYearId),
+  ).size;
+  const planYears = Math.max(1, ...plan.map((unit) => curricularYearOf(unit.semester)));
+  const expectedCredits = plan
+    .filter((unit) => unit.semester <= yearsAttended * 2)
+    .reduce((sum, unit) => sum + unit.credits, 0);
+  const ratio = expectedCredits > 0 ? (progress.creditsEarned / expectedCredits) * 100 : 100;
+  let standing: AcademicStanding = "regular";
+  if (progress.completed) standing = "concluido";
+  else if (regulation.max_extra_years > 0 && yearsAttended > planYears + regulation.max_extra_years)
+    standing = "prazo_excedido";
+  else if (regulation.standing_risk_percent > 0 && ratio < regulation.standing_risk_percent)
+    standing = "em_risco";
+  else if (regulation.standing_delay_percent > 0 && ratio < regulation.standing_delay_percent)
+    standing = "em_atraso";
+  return {
+    standing,
+    yearsAttended,
+    planYears,
+    expectedCredits,
+    creditsEarned: progress.creditsEarned,
+    percentOfExpected: Math.round(ratio),
+    /** «O que falta para concluir» (degree audit): cadeiras e créditos em falta. */
+    missing: progress.pendingUnits.map((unit) => ({
+      id: unit.id,
+      name: unit.name,
+      semester: unit.semester,
+      credits: unit.credits,
+    })),
+    missingCredits: progress.pendingUnits.reduce((sum, unit) => sum + unit.credits, 0),
+  };
+}

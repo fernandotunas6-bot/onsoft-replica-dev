@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   academicSemesterOf,
+  academicStanding,
   checkEnrollmentBatch,
   checkUnitEnrollment,
   finalClassification,
@@ -438,5 +439,61 @@ describe("classificação final (Decreto Presidencial 257/25)", () => {
   it("cadeiras com mais de 20 ou menos de 1 crédito são erro no plano", () => {
     const issues = validatePlan([unit("x", 1, 25), unit("y", 1, 0.5)], []);
     expect(issues.filter((i) => i.code === "invalid_credits")).toHaveLength(2);
+  });
+});
+
+describe("situação académica (standing / prescrição)", () => {
+  it("regular, em atraso, em risco, prazo excedido e concluído", () => {
+    const y1 = (id: string, status: UnitRecord["status"]) =>
+      rec(id, status, { academicYearId: "y1" });
+    const y2 = (id: string, status: UnitRecord["status"]) =>
+      rec(id, status, { academicYearId: "y2" });
+    // 1 ano frequentado: esperados 30 créditos (sem. 1 e 2).
+    expect(
+      academicStanding({
+        plan,
+        records: [
+          y1("mat1", "aprovado"),
+          y1("fis1", "aprovado"),
+          y1("prog1", "aprovado"),
+          y1("mat2", "aprovado"),
+        ],
+        regulation: reg,
+      }).standing,
+    ).toBe("regular");
+    expect(
+      academicStanding({
+        plan,
+        records: [
+          y1("mat1", "aprovado"),
+          y1("fis1", "aprovado"),
+          y1("prog1", "aprovado"),
+          y1("mat2", "reprovado"),
+        ],
+        regulation: reg,
+      }).standing,
+    ).toBe("em_atraso");
+    const risk = academicStanding({
+      plan,
+      records: [y1("mat1", "aprovado"), y2("fis1", "reprovado")],
+      regulation: reg,
+    });
+    expect(risk.standing).toBe("em_risco");
+    expect(risk.missing.length).toBe(plan.length - 1);
+    const late = academicStanding({
+      plan,
+      records: ["a", "b", "c", "d"].map((year) =>
+        rec("mat1", "reprovado", { academicYearId: year }),
+      ),
+      regulation: { ...reg, max_extra_years: 1 },
+    });
+    expect(late.standing).toBe("prazo_excedido");
+    expect(
+      academicStanding({
+        plan,
+        records: [y1("mat1", "aprovado")],
+        regulation: { ...reg, standing_delay_percent: 0, standing_risk_percent: 0 },
+      }).standing,
+    ).toBe("regular");
   });
 });

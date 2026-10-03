@@ -35,6 +35,7 @@ import {
   listSchoolSubjectsForPlan,
   listStalePendingEnrollments,
   cancelUnitEnrollment,
+  correctUnitResult,
   createHigherEdProgram,
   enrollCohort,
   updateHigherEdProgram,
@@ -821,6 +822,29 @@ function StudentPanel({ programId, studentId }: { programId: string; studentId: 
     },
     onError: (error) => toastActionError(error, "Não foi possível lançar."),
   });
+  const [correcting, setCorrecting] = useState<{
+    id: string;
+    grade: string;
+    reason: string;
+  } | null>(null);
+  const correct = useMutation({
+    mutationFn: (current: { id: string; grade: string; reason: string }) =>
+      correctUnitResult({
+        data: {
+          enrollmentId: current.id,
+          finalGrade: Number(current.grade),
+          reason: current.reason,
+        },
+      }),
+    onSuccess: async (result) => {
+      toast.success(
+        `Corrigido: ${STATUS_LABEL[result.status as EnrollmentStatus] ?? result.status} · ${result.finalGrade} valores.`,
+      );
+      setCorrecting(null);
+      await refresh();
+    },
+    onError: (error) => toastActionError(error, "Não foi possível corrigir."),
+  });
   const [cancelling, setCancelling] = useState<{ id: string; reason: string } | null>(null);
   const cancel = useMutation({
     mutationFn: (current: { id: string; reason: string }) =>
@@ -845,7 +869,7 @@ function StudentPanel({ programId, studentId }: { programId: string; studentId: 
   });
 
   if (!student.data) return <p className="text-sm text-muted-foreground">A carregar…</p>;
-  const { progress, units } = student.data;
+  const { progress, units, standing } = student.data;
   const bySemester = [...new Set(units.map((u) => u.semester))].sort((a, b) => a - b);
 
   return (
@@ -869,6 +893,7 @@ function StudentPanel({ programId, studentId }: { programId: string; studentId: 
           },
         ]}
       />
+      <StandingSummary standing={standing} />
       <div className="flex flex-wrap items-center gap-2">
         <Button onClick={() => enroll.mutate()} disabled={!selected.length || enroll.isPending}>
           {enroll.isPending
@@ -958,6 +983,23 @@ function StudentPanel({ programId, studentId }: { programId: string; studentId: 
                             {SEASON_LABEL[season]}
                           </Button>
                         ))}
+                        {last?.id &&
+                        last.season &&
+                        ["aprovado", "reprovado", "excluido_frequencia"].includes(last.status) ? (
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() =>
+                              setCorrecting({
+                                id: last.id as string,
+                                grade: last.finalGrade === null ? "" : String(last.finalGrade),
+                                reason: "",
+                              })
+                            }
+                          >
+                            Corrigir nota
+                          </Button>
+                        ) : null}
                         {last?.status === "inscrito" && last.id ? (
                           <Button
                             size="sm"
@@ -988,6 +1030,60 @@ function StudentPanel({ programId, studentId }: { programId: string; studentId: 
                       <p className="text-xs text-muted-foreground">
                         {unit.enrollReasons.join(" ")}
                       </p>
+                    ) : null}
+                    {correcting && last?.id === correcting.id ? (
+                      <form
+                        className="grid gap-2 rounded-md border p-3 sm:grid-cols-[8rem_minmax(0,1fr)_auto] sm:items-end"
+                        onSubmit={(event) => {
+                          event.preventDefault();
+                          correct.mutate(correcting);
+                        }}
+                      >
+                        <div className="space-y-1">
+                          <Label htmlFor={`fix-grade-${unit.id}`}>Nota correcta</Label>
+                          <Input
+                            id={`fix-grade-${unit.id}`}
+                            type="number"
+                            min={0}
+                            max={20}
+                            step={0.1}
+                            required
+                            value={correcting.grade}
+                            onChange={(e) =>
+                              setCorrecting({ ...correcting, grade: e.target.value })
+                            }
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <Label htmlFor={`fix-reason-${unit.id}`}>
+                            Motivo (fica na auditoria)
+                          </Label>
+                          <Input
+                            id={`fix-reason-${unit.id}`}
+                            required
+                            minLength={5}
+                            maxLength={500}
+                            placeholder="Erro de lançamento na pauta de…"
+                            value={correcting.reason}
+                            onChange={(e) =>
+                              setCorrecting({ ...correcting, reason: e.target.value })
+                            }
+                          />
+                        </div>
+                        <div className="flex gap-2">
+                          <Button size="sm" type="submit" disabled={correct.isPending}>
+                            {correct.isPending ? "A corrigir…" : "Corrigir"}
+                          </Button>
+                          <Button
+                            size="sm"
+                            type="button"
+                            variant="ghost"
+                            onClick={() => setCorrecting(null)}
+                          >
+                            Cancelar
+                          </Button>
+                        </div>
+                      </form>
                     ) : null}
                     {cancelling && last?.id === cancelling.id ? (
                       <form
@@ -1173,6 +1269,61 @@ function FeesTab({ canEdit }: { canEdit: boolean }) {
   );
 }
 
+const STANDING_LABEL: Record<
+  string,
+  { label: string; tone: "default" | "secondary" | "destructive" }
+> = {
+  regular: { label: "Situação regular", tone: "default" },
+  concluido: { label: "Curso concluído", tone: "default" },
+  em_atraso: { label: "Em atraso", tone: "secondary" },
+  em_risco: { label: "Em risco", tone: "destructive" },
+  prazo_excedido: { label: "Prazo do curso excedido", tone: "destructive" },
+};
+
+/** Situação académica e «o que falta para concluir» (degree audit). */
+function StandingSummary({
+  standing,
+}: {
+  standing: {
+    standing: string;
+    yearsAttended: number;
+    planYears: number;
+    expectedCredits: number;
+    creditsEarned: number;
+    percentOfExpected: number;
+    missing: Array<{ id: string; name: string; semester: number; credits: number }>;
+    missingCredits: number;
+  };
+}) {
+  const meta = STANDING_LABEL[standing.standing] ?? STANDING_LABEL.regular!;
+  return (
+    <div className="rounded-md border p-3 text-sm">
+      <div className="flex flex-wrap items-center gap-2">
+        <Badge variant={meta.tone}>{meta.label}</Badge>
+        <span className="text-xs text-muted-foreground">
+          {standing.yearsAttended} ano(s) frequentado(s) de {standing.planYears} ·{" "}
+          {standing.creditsEarned} de {standing.expectedCredits} créditos esperados (
+          {standing.percentOfExpected}%)
+        </span>
+      </div>
+      {standing.missing.length ? (
+        <details className="mt-2">
+          <summary className="cursor-pointer text-xs text-muted-foreground">
+            Para concluir: {standing.missing.length} cadeira(s), {standing.missingCredits} créditos
+          </summary>
+          <ul className="mt-1 grid gap-1 text-xs sm:grid-cols-2">
+            {standing.missing.map((unit) => (
+              <li key={unit.id}>
+                {unit.semester}.º sem. · {unit.name} ({unit.credits} cr.)
+              </li>
+            ))}
+          </ul>
+        </details>
+      ) : null}
+    </div>
+  );
+}
+
 // ── Regulamento ─────────────────────────────────────────────────────────────
 
 const REGULATION_FIELDS: Array<{
@@ -1221,6 +1372,21 @@ const REGULATION_FIELDS: Array<{
     hint: "Finalista com até N cadeiras em falta.",
   },
   { key: "max_attempts", label: "Tentativas por cadeira", hint: "0 = sem limite." },
+  {
+    key: "standing_delay_percent",
+    label: "Em atraso abaixo de (%)",
+    hint: "Créditos obtidos face aos esperados para os anos frequentados. 0 = não avalia.",
+  },
+  {
+    key: "standing_risk_percent",
+    label: "Em risco abaixo de (%)",
+    hint: "Não pode ser maior do que o limite de atraso. 0 = não avalia.",
+  },
+  {
+    key: "max_extra_years",
+    label: "Anos além da duração (prescrição)",
+    hint: "Depois disto o estudante excede o prazo do curso. 0 = sem prescrição.",
+  },
 ];
 
 function RegulationTab({ canEdit }: { canEdit: boolean }) {

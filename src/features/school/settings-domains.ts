@@ -99,6 +99,18 @@ export type HigherEdRegulation = {
   max_attempts: number;
   /** Época de melhoria disponível (nunca baixa a nota). */
   improvement_enabled: boolean;
+  /**
+   * Situação académica: abaixo desta percentagem dos créditos esperados para os
+   * anos já frequentados o estudante fica «em atraso». 0 = não avalia.
+   */
+  standing_delay_percent: number;
+  /** Abaixo desta percentagem fica «em risco». 0 = não avalia. */
+  standing_risk_percent: number;
+  /**
+   * Prescrição: anos além da duração do curso a partir dos quais o estudante
+   * excede o prazo máximo. 0 = sem prescrição.
+   */
+  max_extra_years: number;
 };
 
 export const HIGHER_ED_DEFAULTS: HigherEdRegulation = {
@@ -112,6 +124,9 @@ export const HIGHER_ED_DEFAULTS: HigherEdRegulation = {
   special_season_max_units: 2,
   max_attempts: 0,
   improvement_enabled: true,
+  standing_delay_percent: 75,
+  standing_risk_percent: 50,
+  max_extra_years: 0,
 };
 
 export type AcademicSettings = {
@@ -230,6 +245,18 @@ export const SETTINGS_DOMAINS = {
           typeof v["improvement_enabled"] === "boolean"
             ? v["improvement_enabled"]
             : d.improvement_enabled,
+        standing_delay_percent: bounded(
+          v["standing_delay_percent"],
+          d.standing_delay_percent,
+          0,
+          100,
+          true,
+        ),
+        standing_risk_percent: Math.min(
+          bounded(v["standing_risk_percent"], d.standing_risk_percent, 0, 100, true),
+          bounded(v["standing_delay_percent"], d.standing_delay_percent, 0, 100, true) || 100,
+        ),
+        max_extra_years: bounded(v["max_extra_years"], d.max_extra_years, 0, 10, true),
       };
     },
   },

@@ -132,4 +132,12 @@ describe("Ensino Superior no servidor", () => {
     expect(body).toContain('kind: "service"');
     expect(fn("getHigherEdFees")).toContain('requireSgaWriterFor("financeiro"');
   });
+
+  it("correcção de nota: secretaria, 2FA, motivo, bloqueio optimista e auditoria", () => {
+    const body = fn("correctUnitResult");
+    expect(body).toContain('officeMembership(context, "write")');
+    expect(body).toContain('requireAal2(context.claims, "Corrigir uma nota lançada")');
+    expect(body).toContain('.eq("status", status)');
+    expect(body).toContain('action: "higher_ed.result.corrected"');
+  });
 });

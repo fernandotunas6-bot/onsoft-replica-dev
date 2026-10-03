@@ -55,3 +55,28 @@ injustificadas às aulas dadas no semestre.
 2. Exportação SISIES/GEPE: Matrículas e Graduados por curso, em Excel.
 3. Vagas por curso e nota do exame de acesso na candidatura, com seriação.
 4. Grau de pós-graduação (mestrado / doutoramento / especialização) por curso.
+
+## Comparação com outros sistemas académicos
+
+| Lógica | Onde existe | No SIGA |
+| --- | --- | --- |
+| Plano curricular com créditos e precedências | Banner (prerequisites), FenixEdu (curricular plans), SIGAA | ✅ |
+| Inscrição online em cadeiras por período | SIGAA (matrícula on-line), FenixEdu | ✅ pela secretaria (individual e em lote); pelo estudante — por fazer |
+| Trancamento/anulação de cadeira com prazo | SIGAA (até 6 semanas) | ✅ anulação com motivo; prazo — por decidir |
+| Aproveitamento de estudos / equivalência | SIGAA, SIGARRA | ✅ «Creditar» com 2FA |
+| Degree audit: o que falta para concluir | Banner (degree audit) | ✅ «Para concluir: N cadeiras, X créditos» |
+| Situação académica (regular / atraso / risco) | Banner (academic standing: good standing, probation) | ✅ configurável no regulamento |
+| Prescrição / prazo máximo de integralização | SIGARRA (prescrição), SIGAA (prazo de conclusão) | ✅ «anos além da duração» (0 = desligado) |
+| Fluxo de correcção de notas | Banner (grade change workflow) | ✅ «Corrigir nota»: secretaria, 2FA, motivo, auditoria |
+| Holds: dívida bloqueia inscrição/documentos | Banner (registration holds) | ❌ regra financeira — por decidir |
+| Estatuto trabalhador-estudante (faltas, prescrição a 50 %) | SIGARRA | ❌ por decidir |
+| Turnos/vagas por turma e lista de espera | FenixEdu (turnos), Banner (capacity, waitlist) | ❌ |
+| Calendário de inscrições e épocas | FenixEdu (curricular calendars), SIGAA | ➖ semestres; janelas de inscrição/época por fazer |
+| Sistemas angolanos (SIGU, SkyGnova, SIGA.ao) | candidatura → certificado num só sistema | ✅ mesmo ciclo |
+
+Fontes: [SIGAA — trancamento](https://sigaa.ufrn.br/sigaa/public/curso/secao_extra.jsf?lc=en_US&id=111635057&extra=1677436146),
+[SIGAA — matrícula on-line](https://docs.info.ufrn.br/doku.php?id=suporte%3Amanuais%3Asigaa%3Aportal_do_discente%3Aensino%3Amatricula_on_line%3Arealizar_matricula),
+[SIGARRA — trabalhador-estudante](https://sigarra.up.pt/up/pt/legislacao_geral.legislacao_ver_ficheiro?pct_gdoc_id=789515&pct_nr_id=16273&pct_codigo=1),
+[FenixEdu Academic](https://confluence.fenixedu.org/display/ACADEMIC/Getting+Started),
+[Banner Student User Guide](https://banner.jcu.edu/ellucian/user/Banner_Student_8.14_and_9.3.7_User_Guide.pdf),
+[Expansão — sistemas nacionais](https://expansao.co.ao/universidade/detalhe/universidades-preferem-sistemas-de-gestao-academica-nacionais-65228.html).

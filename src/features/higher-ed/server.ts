@@ -31,6 +31,7 @@ import { resolveVisibleStudent } from "@/features/dashboard/student-access";
 import { HIGHER_ED_LEVEL, normalizeProgramCode, programYears } from "./program-shape";
 import { HIGHER_ED_FEES } from "./fees";
 import {
+  academicStanding,
   academicSemesterOf,
   checkEnrollmentBatch,
   EXAM_SEASONS,
@@ -731,6 +732,7 @@ export const getStudentHigherEd = createServerFn({ method: "GET" })
     return {
       activeYearId: yearId,
       regulation,
+      standing: academicStanding({ plan: units, records, regulation }),
       progress: { ...progress, pendingUnits: progress.pendingUnits.map((u) => u.id) },
       units: unitsView,
       prerequisites,
@@ -1111,6 +1113,77 @@ export const listStalePendingEnrollments = createServerFn({ method: "GET" })
           a.yearName.localeCompare(b.yearName, "pt") ||
           a.studentName.localeCompare(b.studentName, "pt"),
       );
+  });
+
+/**
+ * Correcção de um resultado já lançado (erro de lançamento): só a coordenação,
+ * com 2FA e motivo; o estado volta a sair da nota e do regulamento, e fica a
+ * nota anterior na auditoria. Não muda a época nem cria tentativa nova.
+ */
+export const correctUnitResult = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .validator((input: unknown) =>
+    z
+      .object({
+        enrollmentId: z.string().uuid(),
+        finalGrade: z.number().min(0).max(20),
+        reason: z.string().trim().min(5).max(500),
+      })
+      .parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    const membership = await officeMembership(context, "write");
+    requireAal2(context.claims, "Corrigir uma nota lançada");
+    const db = await loadSgaAdminClient();
+    const schoolId = membership.schoolId;
+    const { data: row, error: readError } = await db
+      .from("course_unit_enrollments")
+      .select("id, status, season, final_grade, credits")
+      .eq("school_id", schoolId)
+      .eq("id", data.enrollmentId)
+      .maybeSingle();
+    if (readError) throw publicDatabaseError(readError, "Não foi possível ler o resultado.");
+    if (!row) throw new Error("Inscrição não encontrada nesta escola.");
+    const status = str(row.status);
+    if (!["aprovado", "reprovado", "excluido_frequencia"].includes(status) || !row.season) {
+      throw new Error("Só se corrige um resultado já lançado (aprovado ou reprovado).");
+    }
+    const regulation = await regulationOf(db, schoolId);
+    const grade = Math.round(data.finalGrade * 10) / 10;
+    const approved = grade >= regulation.passing_grade;
+    const patch = {
+      final_grade: grade,
+      status: approved ? "aprovado" : "reprovado",
+      credits_earned: approved ? Number(row.credits ?? 0) : 0,
+      updated_by: context.userId,
+    };
+    let update = db
+      .from("course_unit_enrollments")
+      .update(patch)
+      .eq("school_id", schoolId)
+      .eq("id", data.enrollmentId)
+      .eq("status", status);
+    update =
+      row.final_grade == null
+        ? update.is("final_grade", null)
+        : update.eq("final_grade", row.final_grade);
+    const { data: saved, error } = await update.select("id");
+    if (error) throw publicDatabaseError(error, "Não foi possível corrigir o resultado.");
+    if (!saved?.length) {
+      throw new Error("Este resultado mudou entretanto. Actualize a página e tente de novo.");
+    }
+    await audit(db, {
+      schoolId,
+      actor: context.userId,
+      action: "higher_ed.result.corrected",
+      entityId: data.enrollmentId,
+      metadata: {
+        reason: data.reason,
+        before: { status, final_grade: row.final_grade },
+        after: { status: patch.status, final_grade: grade },
+      },
+    });
+    return { status: patch.status, finalGrade: grade };
   });
 
 /** Creditação/equivalência: a cadeira fica concluída sem nota (não entra na média). */
