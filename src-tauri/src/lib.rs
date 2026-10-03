@@ -276,7 +276,9 @@ fn percent_decode(value: &str) -> String {
     let mut i = 0;
     while i < bytes.len() {
         if bytes[i] == b'%' && i + 2 < bytes.len() {
-            if let Ok(byte) = u8::from_str_radix(&value[i + 1..i + 3], 16) {
+            // Pelos bytes: cortar a `str` a meio de um carácter fazia o Rust parar.
+            let hex = std::str::from_utf8(&bytes[i + 1..i + 3]).ok();
+            if let Some(byte) = hex.and_then(|hex| u8::from_str_radix(hex, 16).ok()) {
                 out.push(byte);
                 i += 3;
                 continue;
@@ -539,5 +541,6 @@ mod tests {
         assert_eq!(safe_file_name(Some(" ... ")), "exportacao-siga");
         assert_eq!(safe_file_name(None), "exportacao-siga");
         assert_eq!(percent_decode("fim%4"), "fim%4");
+        assert_eq!(percent_decode("%aé%é"), "%aé%é");
     }
 }
