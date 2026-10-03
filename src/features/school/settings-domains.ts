@@ -270,3 +270,55 @@ export async function readSettingsDomain<D extends SettingsDomainId>(
     .maybeSingle();
   return parseSettingsDomain(domain, data?.value);
 }
+
+type SettingsRow = { id: string; version: number; value: unknown };
+
+async function readSettingsRow(db: SupabaseClient, schoolId: string, domain: string) {
+  const { data, error } = await db
+    .from("school_settings")
+    .select("id, version, value")
+    .eq("school_id", schoolId)
+    .eq("domain", domain)
+    .maybeSingle();
+  if (error) throw new Error(`Não foi possível ler as definições (${domain}).`);
+  return (data as SettingsRow | null) ?? null;
+}
+
+/**
+ * Lê–altera–grava um domínio sem perder edições alheias: grava só sobre a
+ * versão lida e, se outra pessoa gravou entretanto, volta a ler e aplica a
+ * alteração de novo (até 3 vezes). `change` recebe o valor actual (ou null).
+ */
+export async function updateSettingsDomainValue<T>(
+  db: SupabaseClient,
+  schoolId: string,
+  domain: string,
+  change: (current: unknown) => T,
+  userId: string,
+): Promise<T> {
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    const row = await readSettingsRow(db, schoolId, domain);
+    const next = change(row?.value ?? null);
+    if (row) {
+      const { data, error } = await db
+        .from("school_settings")
+        .update({ value: next, version: Number(row.version ?? 1) + 1, changed_by: userId })
+        .eq("id", row.id)
+        .eq("school_id", schoolId)
+        .eq("version", row.version)
+        .select("id");
+      if (error) throw new Error(`Não foi possível guardar as definições (${domain}).`);
+      if (data?.length) return next;
+      continue; // outra gravação passou à frente: reler e reaplicar
+    }
+    const { error } = await db
+      .from("school_settings")
+      .insert({ school_id: schoolId, domain, version: 1, value: next, changed_by: userId });
+    if (!error) return next;
+    // Corrida na primeira gravação (linha criada entretanto): tentar como update.
+    if (!/duplicate|unique|23505/i.test(error.message)) {
+      throw new Error(`Não foi possível criar as definições (${domain}).`);
+    }
+  }
+  throw new Error("As definições mudaram várias vezes entretanto. Tente de novo.");
+}

@@ -26,7 +26,7 @@ import {
   updateSchoolSettingsInputSchema,
 } from "./schemas";
 import { normalizeAngolaIban } from "@/lib/angola-banking";
-import { parseSettingsDomain } from "./settings-domains";
+import { parseSettingsDomain, updateSettingsDomainValue } from "./settings-domains";
 import { requireAal2 } from "@/features/hr/require-aal2";
 import { validateSchoolNif } from "@/lib/angola-identity";
 
@@ -56,36 +56,9 @@ async function upsertSettingDomain(
   value: JsonMap,
   userId: string,
 ) {
-  const existing = await readSettingDomain(db, schoolId, domain);
-  if (existing?.id) {
-    const { data, error } = await db
-      .from("school_settings")
-      .update({
-        value,
-        version: Number(existing.version ?? 1) + 1,
-        changed_by: userId,
-      })
-      .eq("id", existing.id)
-      .eq("school_id", schoolId)
-      .select("id, domain, version, value")
-      .single();
-    if (error) throw publicDatabaseError(error, `Não foi possível guardar settings:${domain}.`);
-    return data;
-  }
-
-  const { data, error } = await db
-    .from("school_settings")
-    .insert({
-      school_id: schoolId,
-      domain,
-      version: 1,
-      value,
-      changed_by: userId,
-    })
-    .select("id, domain, version, value")
-    .single();
-  if (error) throw publicDatabaseError(error, `Não foi possível criar settings:${domain}.`);
-  return data;
+  // Valor inteiro (o formulário envia o domínio completo): grava com bloqueio
+  // de versão, sem sobrepor uma gravação que entrou entre a leitura e a escrita.
+  return updateSettingsDomainValue(db, schoolId, domain, () => value, userId);
 }
 
 export async function loadSchoolSettingsBundle(db: AdminDb, schoolId: string) {
