@@ -48,6 +48,7 @@ import { Route as AuthResetPasswordRouteImport } from './routes/auth.reset-passw
 import { Route as CalendarioIcsRouteImport } from './routes/calendario.ics'
 import { Route as ConfiguracoesAssinaturaRouteImport } from './routes/configuracoes_.assinatura'
 import { Route as ConfiguracoesDiagnosticoRouteImport } from './routes/configuracoes_.diagnostico'
+import { Route as ConfiguracoesInicioRouteImport } from './routes/configuracoes_.inicio'
 import { Route as ConviteTokenRouteImport } from './routes/convite.$token'
 import { Route as FinanceiroRhRouteImport } from './routes/financeiro.rh'
 import { Route as MatriculaSlugRouteImport } from './routes/matricula/$slug'
@@ -300,6 +301,11 @@ const ConfiguracoesDiagnosticoRoute =
     path: '/configuracoes/diagnostico',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ConfiguracoesInicioRoute = ConfiguracoesInicioRouteImport.update({
+  id: '/configuracoes_/inicio',
+  path: '/configuracoes/inicio',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ConviteTokenRoute = ConviteTokenRouteImport.update({
   id: '/convite/$token',
   path: '/convite/$token',
@@ -624,6 +630,7 @@ export interface FileRoutesByFullPath {
   '/calendario/ics': typeof CalendarioIcsRoute
   '/configuracoes/assinatura': typeof ConfiguracoesAssinaturaRoute
   '/configuracoes/diagnostico': typeof ConfiguracoesDiagnosticoRoute
+  '/configuracoes/inicio': typeof ConfiguracoesInicioRoute
   '/convite/$token': typeof ConviteTokenRoute
   '/financeiro/rh': typeof FinanceiroRhRouteWithChildren
   '/matricula/$slug': typeof MatriculaSlugRoute
@@ -719,6 +726,7 @@ export interface FileRoutesByTo {
   '/calendario/ics': typeof CalendarioIcsRoute
   '/configuracoes/assinatura': typeof ConfiguracoesAssinaturaRoute
   '/configuracoes/diagnostico': typeof ConfiguracoesDiagnosticoRoute
+  '/configuracoes/inicio': typeof ConfiguracoesInicioRoute
   '/convite/$token': typeof ConviteTokenRoute
   '/financeiro/rh': typeof FinanceiroRhRouteWithChildren
   '/matricula/$slug': typeof MatriculaSlugRoute
@@ -815,6 +823,7 @@ export interface FileRoutesById {
   '/calendario/ics': typeof CalendarioIcsRoute
   '/configuracoes_/assinatura': typeof ConfiguracoesAssinaturaRoute
   '/configuracoes_/diagnostico': typeof ConfiguracoesDiagnosticoRoute
+  '/configuracoes_/inicio': typeof ConfiguracoesInicioRoute
   '/convite/$token': typeof ConviteTokenRoute
   '/financeiro/rh': typeof FinanceiroRhRouteWithChildren
   '/matricula/$slug': typeof MatriculaSlugRoute
@@ -912,6 +921,7 @@ export interface FileRouteTypes {
     | '/calendario/ics'
     | '/configuracoes/assinatura'
     | '/configuracoes/diagnostico'
+    | '/configuracoes/inicio'
     | '/convite/$token'
     | '/financeiro/rh'
     | '/matricula/$slug'
@@ -1007,6 +1017,7 @@ export interface FileRouteTypes {
     | '/calendario/ics'
     | '/configuracoes/assinatura'
     | '/configuracoes/diagnostico'
+    | '/configuracoes/inicio'
     | '/convite/$token'
     | '/financeiro/rh'
     | '/matricula/$slug'
@@ -1102,6 +1113,7 @@ export interface FileRouteTypes {
     | '/calendario/ics'
     | '/configuracoes_/assinatura'
     | '/configuracoes_/diagnostico'
+    | '/configuracoes_/inicio'
     | '/convite/$token'
     | '/financeiro/rh'
     | '/matricula/$slug'
@@ -1188,6 +1200,7 @@ export interface RootRouteChildren {
   AuthResetPasswordRoute: typeof AuthResetPasswordRoute
   ConfiguracoesAssinaturaRoute: typeof ConfiguracoesAssinaturaRoute
   ConfiguracoesDiagnosticoRoute: typeof ConfiguracoesDiagnosticoRoute
+  ConfiguracoesInicioRoute: typeof ConfiguracoesInicioRoute
   ConviteTokenRoute: typeof ConviteTokenRoute
   MatriculaSlugRoute: typeof MatriculaSlugRoute
   PedagogicaPresencaDocenteRoute: typeof PedagogicaPresencaDocenteRoute
@@ -1498,6 +1511,13 @@ declare module '@tanstack/react-router' {
       path: '/configuracoes/diagnostico'
       fullPath: '/configuracoes/diagnostico'
       preLoaderRoute: typeof ConfiguracoesDiagnosticoRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/configuracoes_/inicio': {
+      id: '/configuracoes_/inicio'
+      path: '/configuracoes/inicio'
+      fullPath: '/configuracoes/inicio'
+      preLoaderRoute: typeof ConfiguracoesInicioRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/convite/$token': {
@@ -2081,6 +2101,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthResetPasswordRoute: AuthResetPasswordRoute,
   ConfiguracoesAssinaturaRoute: ConfiguracoesAssinaturaRoute,
   ConfiguracoesDiagnosticoRoute: ConfiguracoesDiagnosticoRoute,
+  ConfiguracoesInicioRoute: ConfiguracoesInicioRoute,
   ConviteTokenRoute: ConviteTokenRoute,
   MatriculaSlugRoute: MatriculaSlugRoute,
   PedagogicaPresencaDocenteRoute: PedagogicaPresencaDocenteRoute,
