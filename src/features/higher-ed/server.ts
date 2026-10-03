@@ -35,6 +35,8 @@ import { HIGHER_ED_FEES } from "./fees";
 import { rankAccessCandidates } from "./access";
 import {
   academicStanding,
+  cancellationIsLate,
+  enrollmentWindowError,
   academicSemesterOf,
   checkEnrollmentBatch,
   EXAM_SEASONS,
@@ -859,6 +861,59 @@ export const getStudentTranscript = createServerFn({ method: "GET" })
     };
   });
 
+const todayIso = () => new Date().toISOString().slice(0, 10);
+
+/** Estudantes com propinas vencidas por pagar (para o bloqueio por dívida). */
+async function studentsWithOverdueDebt(db: Db, schoolId: string, studentIds: string[]) {
+  if (!studentIds.length) return new Set<string>();
+  const { data: enrollments } = await db
+    .from("enrollments")
+    .select("id, student_id")
+    .eq("school_id", schoolId)
+    .in("student_id", studentIds);
+  const studentOfEnrollment = new Map(
+    (enrollments ?? []).map((row) => [str(row.id), str(row.student_id)]),
+  );
+  if (!studentOfEnrollment.size) return new Set<string>();
+  const { data: contracts } = await db
+    .from("finance_contracts")
+    .select("id, enrollment_id")
+    .eq("school_id", schoolId)
+    .in("enrollment_id", [...studentOfEnrollment.keys()]);
+  const studentOfContract = new Map(
+    (contracts ?? []).map((row) => [
+      str(row.id),
+      studentOfEnrollment.get(str(row.enrollment_id)) ?? "",
+    ]),
+  );
+  if (!studentOfContract.size) return new Set<string>();
+  const { data: invoices } = await db
+    .from("finance_invoices")
+    .select("contract_id")
+    .eq("school_id", schoolId)
+    .in("contract_id", [...studentOfContract.keys()])
+    .in("status", ["open", "partially_paid"])
+    .lt("due_date", todayIso());
+  return new Set(
+    (invoices ?? [])
+      .map((row) => studentOfContract.get(str(row.contract_id)) ?? "")
+      .filter(Boolean),
+  );
+}
+
+/** Regras opcionais do regulamento antes de qualquer inscrição em cadeiras. */
+async function assertEnrollmentAllowed(
+  db: Db,
+  schoolId: string,
+  regulation: HigherEdRegulation,
+  studentIds: string[],
+) {
+  const windowError = enrollmentWindowError(regulation, todayIso());
+  if (windowError) throw new Error(windowError);
+  if (!regulation.block_enrollment_with_debt) return new Set<string>();
+  return studentsWithOverdueDebt(db, schoolId, studentIds);
+}
+
 export const enrollStudentUnits = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((input: unknown) =>
@@ -883,6 +938,12 @@ export const enrollStudentUnits = createServerFn({ method: "POST" })
       loadRecords(db, schoolId, data.studentId, data.programId),
       regulationOf(db, schoolId),
     ]);
+    const indebted = await assertEnrollmentAllowed(db, schoolId, regulation, [data.studentId]);
+    if (indebted.has(data.studentId)) {
+      throw new Error(
+        "O estudante tem propinas vencidas por pagar: o regulamento não permite a inscrição.",
+      );
+    }
     const records = rows.map((row) => row.record);
     const selected = [...new Set(data.unitIds)].map((id) => {
       const unit = units.find((u) => u.id === id);
@@ -987,6 +1048,7 @@ export const enrollCohort = createServerFn({ method: "POST" })
     ]);
     const candidates = units.filter((unit) => unit.semester === data.semester);
     if (!candidates.length) throw new Error("O plano não tem cadeiras neste semestre.");
+    const indebted = await assertEnrollmentAllowed(db, schoolId, regulation, studentIds);
     const { data: recordRows, error: recordsError } = await db
       .from("course_unit_enrollments")
       .select(RECORD_COLUMNS)
@@ -1006,6 +1068,14 @@ export const enrollCohort = createServerFn({ method: "POST" })
     const skipped: Array<{ studentId: string; unit: string; reasons: string[] }> = [];
     let studentsEnrolled = 0;
     for (const studentId of studentIds) {
+      if (indebted.has(studentId)) {
+        skipped.push({
+          studentId,
+          unit: "todas",
+          reasons: ["Propinas vencidas por pagar (regulamento)."],
+        });
+        continue;
+      }
       const records = recordsByStudent.get(studentId) ?? [];
       const result = planCohortEnrollment({
         candidates,
@@ -1072,6 +1142,33 @@ export const cancelUnitEnrollment = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const membership = await officeMembership(context, "write");
     const db = await loadSgaAdminClient();
+    const regulation = await regulationOf(db, membership.schoolId);
+    if (regulation.cancel_deadline_days > 0) {
+      const { data: target } = await db
+        .from("course_unit_enrollments")
+        .select("academic_year_id, semester")
+        .eq("school_id", membership.schoolId)
+        .eq("id", data.enrollmentId)
+        .maybeSingle();
+      const { data: term } = target
+        ? await db
+            .from("terms")
+            .select("starts_on")
+            .eq("school_id", membership.schoolId)
+            .eq("academic_year_id", str(target.academic_year_id))
+            .eq("sequence", Number(target.semester ?? 1))
+            .maybeSingle()
+        : { data: null };
+      if (
+        cancellationIsLate(
+          regulation.cancel_deadline_days,
+          term?.starts_on ? str(term.starts_on) : null,
+          todayIso(),
+        )
+      ) {
+        requireAal2(context.claims, "Anular uma inscrição fora do prazo");
+      }
+    }
     // Só se anula uma inscrição ainda sem resultado.
     const { data: updated, error } = await db
       .from("course_unit_enrollments")

@@ -34,6 +34,9 @@ const optionalText = (value: unknown) => {
   return t ? t : null;
 };
 
+const isoDate = (value: unknown) =>
+  typeof value === "string" && /^\d{4}-\d{2}-\d{2}$/.test(value.trim()) ? value.trim() : null;
+
 function bounded(value: unknown, fallback: number, min: number, max: number, integer = false) {
   const n = typeof value === "string" && value.trim() ? Number(value) : value;
   if (typeof n !== "number" || !Number.isFinite(n)) return fallback;
@@ -113,6 +116,16 @@ export type HigherEdRegulation = {
   max_extra_years: number;
   /** Nota mínima no exame de acesso para entrar na seriação. 0 = sem mínimo. */
   access_min_score: number;
+  /** Como os «holds» do Banner: propinas vencidas impedem a inscrição em cadeiras. */
+  block_enrollment_with_debt: boolean;
+  /**
+   * Como o trancamento do SIGAA: dias após o início do semestre até quando a
+   * secretaria anula uma inscrição sem 2FA. Depois disso exige 2FA. 0 = sem prazo.
+   */
+  cancel_deadline_days: number;
+  /** Período de inscrições em cadeiras (AAAA-MM-DD). Vazio = sempre aberto. */
+  enrollment_opens_on: string | null;
+  enrollment_closes_on: string | null;
 };
 
 export const HIGHER_ED_DEFAULTS: HigherEdRegulation = {
@@ -130,6 +143,10 @@ export const HIGHER_ED_DEFAULTS: HigherEdRegulation = {
   standing_risk_percent: 50,
   max_extra_years: 0,
   access_min_score: 10,
+  block_enrollment_with_debt: false,
+  cancel_deadline_days: 0,
+  enrollment_opens_on: null,
+  enrollment_closes_on: null,
 };
 
 export type HigherEdDegree = "licenciatura" | "mestrado" | "doutoramento" | "especializacao";
@@ -299,6 +316,19 @@ export const SETTINGS_DOMAINS = {
         ),
         max_extra_years: bounded(v["max_extra_years"], d.max_extra_years, 0, 10, true),
         access_min_score: bounded(v["access_min_score"], d.access_min_score, 0, 20),
+        block_enrollment_with_debt:
+          typeof v["block_enrollment_with_debt"] === "boolean"
+            ? v["block_enrollment_with_debt"]
+            : d.block_enrollment_with_debt,
+        cancel_deadline_days: bounded(
+          v["cancel_deadline_days"],
+          d.cancel_deadline_days,
+          0,
+          365,
+          true,
+        ),
+        enrollment_opens_on: isoDate(v["enrollment_opens_on"]),
+        enrollment_closes_on: isoDate(v["enrollment_closes_on"]),
       };
     },
   },

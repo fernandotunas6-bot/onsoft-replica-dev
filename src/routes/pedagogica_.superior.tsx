@@ -1523,8 +1523,12 @@ function StandingSummary({
 
 // ── Regulamento ─────────────────────────────────────────────────────────────
 
+type NumericRegulationKey = {
+  [K in keyof HigherEdRegulation]: HigherEdRegulation[K] extends number ? K : never;
+}[keyof HigherEdRegulation];
+
 const REGULATION_FIELDS: Array<{
-  key: Exclude<keyof HigherEdRegulation, "improvement_enabled">;
+  key: NumericRegulationKey;
   label: string;
   hint: string;
   step?: number;
@@ -1584,6 +1588,11 @@ const REGULATION_FIELDS: Array<{
     key: "standing_risk_percent",
     label: "Em risco abaixo de (%)",
     hint: "Não pode ser maior do que o limite de atraso. 0 = não avalia.",
+  },
+  {
+    key: "cancel_deadline_days",
+    label: "Prazo de anulação (dias)",
+    hint: "Dias após o início do semestre; depois a anulação exige 2FA. 0 = sem prazo.",
   },
   {
     key: "max_extra_years",
@@ -1646,6 +1655,41 @@ function RegulationTab({ canEdit }: { canEdit: boolean }) {
             onCheckedChange={(value) => setDraft({ ...current, improvement_enabled: value })}
           />
           <Label htmlFor="reg-improvement">Época de melhoria (nunca baixa a nota)</Label>
+        </div>
+        <div className="flex items-center gap-3 sm:col-span-2">
+          <Switch
+            id="reg-debt"
+            checked={current.block_enrollment_with_debt}
+            disabled={!canEdit}
+            onCheckedChange={(value) => setDraft({ ...current, block_enrollment_with_debt: value })}
+          />
+          <Label htmlFor="reg-debt">Propinas vencidas impedem a inscrição em cadeiras</Label>
+        </div>
+        <div className="space-y-1.5">
+          <Label htmlFor="reg-opens">Inscrições abrem a</Label>
+          <Input
+            id="reg-opens"
+            type="date"
+            disabled={!canEdit}
+            value={current.enrollment_opens_on ?? ""}
+            onChange={(event) =>
+              setDraft({ ...current, enrollment_opens_on: event.target.value || null })
+            }
+          />
+          <p className="text-xs text-muted-foreground">Vazio = sempre abertas.</p>
+        </div>
+        <div className="space-y-1.5">
+          <Label htmlFor="reg-closes">Inscrições fecham a</Label>
+          <Input
+            id="reg-closes"
+            type="date"
+            disabled={!canEdit}
+            value={current.enrollment_closes_on ?? ""}
+            onChange={(event) =>
+              setDraft({ ...current, enrollment_closes_on: event.target.value || null })
+            }
+          />
+          <p className="text-xs text-muted-foreground">Vazio = sem data de fecho.</p>
         </div>
       </div>
       {canEdit ? (

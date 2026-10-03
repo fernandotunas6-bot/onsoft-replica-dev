@@ -148,4 +148,12 @@ describe("Ensino Superior no servidor", () => {
     expect(body).toContain('.eq("version", version)');
     expect(body).toContain('action: "higher_ed.access.score"');
   });
+
+  it("regras opcionais: inscrições verificam período e dívida; anulação tardia exige 2FA", () => {
+    expect(fn("enrollStudentUnits")).toContain("assertEnrollmentAllowed(");
+    expect(fn("enrollCohort")).toContain("assertEnrollmentAllowed(");
+    expect(fn("cancelUnitEnrollment")).toContain(
+      'requireAal2(context.claims, "Anular uma inscrição fora do prazo")',
+    );
+  });
 });

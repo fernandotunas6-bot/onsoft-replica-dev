@@ -2,6 +2,8 @@ import { describe, expect, it } from "vitest";
 import {
   academicSemesterOf,
   academicStanding,
+  cancellationIsLate,
+  enrollmentWindowError,
   checkEnrollmentBatch,
   checkUnitEnrollment,
   finalClassification,
@@ -495,5 +497,27 @@ describe("situação académica (standing / prescrição)", () => {
         regulation: { ...reg, standing_delay_percent: 0, standing_risk_percent: 0 },
       }).standing,
     ).toBe("regular");
+  });
+});
+
+describe("regras opcionais (calendário de inscrições e prazo de anulação)", () => {
+  it("período de inscrições", () => {
+    const window = { enrollment_opens_on: "2026-09-01", enrollment_closes_on: "2026-09-30" };
+    expect(enrollmentWindowError(window, "2026-08-31")).toContain("abrem");
+    expect(enrollmentWindowError(window, "2026-09-15")).toBeNull();
+    expect(enrollmentWindowError(window, "2026-10-01")).toContain("fecharam");
+    expect(
+      enrollmentWindowError(
+        { enrollment_opens_on: null, enrollment_closes_on: null },
+        "2030-01-01",
+      ),
+    ).toBeNull();
+  });
+
+  it("anulação fora do prazo", () => {
+    expect(cancellationIsLate(42, "2026-09-01", "2026-10-13")).toBe(false);
+    expect(cancellationIsLate(42, "2026-09-01", "2026-10-14")).toBe(true);
+    expect(cancellationIsLate(0, "2026-09-01", "2027-01-01")).toBe(false);
+    expect(cancellationIsLate(42, null, "2027-01-01")).toBe(false);
   });
 });

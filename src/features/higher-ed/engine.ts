@@ -665,3 +665,29 @@ export function academicStanding(params: {
     missingCredits: progress.pendingUnits.reduce((sum, unit) => sum + unit.credits, 0),
   };
 }
+
+/** Período de inscrições (como os calendários de inscrição do FenixEdu/SIGAA). */
+export function enrollmentWindowError(
+  regulation: Pick<HigherEdRegulation, "enrollment_opens_on" | "enrollment_closes_on">,
+  today: string,
+): string | null {
+  if (regulation.enrollment_opens_on && today < regulation.enrollment_opens_on) {
+    return `As inscrições em cadeiras abrem a ${regulation.enrollment_opens_on}.`;
+  }
+  if (regulation.enrollment_closes_on && today > regulation.enrollment_closes_on) {
+    return `As inscrições em cadeiras fecharam a ${regulation.enrollment_closes_on}.`;
+  }
+  return null;
+}
+
+/** Anulação fora do prazo (dias após o início do semestre da inscrição). */
+export function cancellationIsLate(
+  deadlineDays: number,
+  semesterStartsOn: string | null,
+  today: string,
+): boolean {
+  if (!deadlineDays || !semesterStartsOn) return false;
+  const limit = new Date(`${semesterStartsOn}T00:00:00Z`);
+  limit.setUTCDate(limit.getUTCDate() + deadlineDays);
+  return today > limit.toISOString().slice(0, 10);
+}
