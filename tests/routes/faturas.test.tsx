@@ -25,7 +25,7 @@ import type {
  * 2. Estado vazio com mensagem amigável quando não há registos.
  * 3. Alerta de contingência de esquema quando colunas essenciais faltam no Postgres.
  * 4. Alerta para configuração de plano de propinas.
- * 5. Registo e integridade das subscrições realtime (tabelas invoices e payments).
+ * 5. Registo e integridade das subscrições realtime (finance_invoices e finance_receipts).
  * 6. Ramo de erro de API com feedback visual seguro.
  */
 
@@ -208,7 +208,7 @@ describe("/faturas — render", () => {
     });
   });
 
-  it("subscreve actualizações em tempo real para invoices e payments", async () => {
+  it("subscreve actualizações em tempo real para finance_invoices e finance_receipts", async () => {
     seed({ invoices: [sampleInvoice] });
     renderRoute(FaturasRouteComponent);
 
@@ -216,11 +216,14 @@ describe("/faturas — render", () => {
       expect(screen.getByText("FT-2025/001")).toBeDefined();
     });
 
-    const invoiceBindings = realtimeBindingsFor("invoices");
-    const paymentBindings = realtimeBindingsFor("payments");
+    const invoiceBindings = realtimeBindingsFor("finance_invoices");
+    const receiptBindings = realtimeBindingsFor("finance_receipts");
 
     expect(invoiceBindings.length).toBeGreaterThanOrEqual(2); // INSERT e UPDATE
-    expect(paymentBindings.length).toBeGreaterThanOrEqual(1); // INSERT
+    expect(receiptBindings.length).toBeGreaterThanOrEqual(1); // INSERT (cada pagamento)
+    // Esquema antigo: não existem no SIGA (tests/security/tempo-real-vs-producao.test.ts).
+    expect(realtimeBindingsFor("invoices")).toEqual([]);
+    expect(realtimeBindingsFor("payments")).toEqual([]);
   });
 
   it("trata falha de rede ou de base de dados com mensagem de erro na tabela", async () => {

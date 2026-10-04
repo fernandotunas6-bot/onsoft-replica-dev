@@ -2,6 +2,7 @@ import { useEffect, useId, useMemo, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { realtimeInvalidator } from "@/lib/realtime-invalidate";
 import { ListPaginationBar } from "@/components/filters/ListPaginationBar";
 import {
   AlertCircle,
@@ -250,27 +251,38 @@ function FaturasPage() {
     setPage(1);
   }, [query, estado, de, ate]);
 
-  // Realtime — actualiza faturas e relatório ao vivo quando há novos pagamentos ou faturas
+  // Realtime — actualiza faturas e relatório ao vivo quando há novos pagamentos ou faturas.
+  // As tabelas do SIGA são finance_invoices e finance_receipts (cada pagamento gera um
+  // recibo); `invoices` e `payments` são do esquema antigo e não existem.
   useEffect(() => {
+    const realtime = realtimeInvalidator(queryClient);
+    const created = () =>
+      realtime.invalidate(
+        ["finance", "invoices"],
+        ["finance", "reporting"],
+        ["dashboard", "overview"],
+      );
     const channel = supabase
       .channel(`faturas_realtime:${realtimeInstanceId}`)
-      .on("postgres_changes", { event: "INSERT", schema: "public", table: "invoices" }, () => {
-        void queryClient.invalidateQueries({ queryKey: ["finance", "invoices"] });
-        void queryClient.invalidateQueries({ queryKey: ["finance", "reporting"] });
-        void queryClient.invalidateQueries({ queryKey: ["dashboard", "overview"] });
-      })
-      .on("postgres_changes", { event: "INSERT", schema: "public", table: "payments" }, () => {
-        void queryClient.invalidateQueries({ queryKey: ["finance", "invoices"] });
-        void queryClient.invalidateQueries({ queryKey: ["finance", "reporting"] });
-        void queryClient.invalidateQueries({ queryKey: ["dashboard", "overview"] });
-      })
-      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "invoices" }, () => {
-        void queryClient.invalidateQueries({ queryKey: ["finance", "invoices"] });
-        void queryClient.invalidateQueries({ queryKey: ["finance", "reporting"] });
-      })
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "finance_invoices" },
+        created,
+      )
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "finance_receipts" },
+        created,
+      )
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "finance_invoices" },
+        () => realtime.invalidate(["finance", "invoices"], ["finance", "reporting"]),
+      )
       .subscribe();
 
     return () => {
+      realtime.dispose();
       supabase.removeChannel(channel);
     };
   }, [queryClient, realtimeInstanceId]);

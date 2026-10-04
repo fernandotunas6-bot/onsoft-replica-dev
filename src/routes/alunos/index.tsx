@@ -2,6 +2,7 @@ import { useEffect, useId, useMemo, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { realtimeInvalidator } from "@/lib/realtime-invalidate";
 import { toast } from "sonner";
 import { z } from "zod";
 import {
@@ -288,34 +289,34 @@ function StudentsPage() {
 
   // Realtime — atualiza a lista de alunos quando há novidades
   useEffect(() => {
+    const realtime = realtimeInvalidator(queryClient);
     const channel = supabase
       .channel(`alunos_realtime:${realtimeInstanceId}`)
-      .on("postgres_changes", { event: "*", schema: "public", table: "students" }, () => {
-        void queryClient.invalidateQueries({ queryKey: ["students", "search"] });
-        void queryClient.invalidateQueries({ queryKey: ["dashboard", "overview"] });
-      })
-      .on("postgres_changes", { event: "*", schema: "public", table: "enrollments" }, () => {
-        void queryClient.invalidateQueries({ queryKey: ["students", "search"] });
-      })
-      .on("postgres_changes", { event: "*", schema: "public", table: "finance_invoices" }, () => {
-        void queryClient.invalidateQueries({ queryKey: ["students", "search"] });
-      })
-      .on("postgres_changes", { event: "*", schema: "public", table: "finance_receipts" }, () => {
-        void queryClient.invalidateQueries({ queryKey: ["students", "search"] });
-      })
+      .on("postgres_changes", { event: "*", schema: "public", table: "students" }, () =>
+        realtime.invalidate(["students", "search"], ["dashboard", "overview"]),
+      )
+      .on("postgres_changes", { event: "*", schema: "public", table: "enrollments" }, () =>
+        realtime.invalidate(["students", "search"]),
+      )
+      .on("postgres_changes", { event: "*", schema: "public", table: "finance_invoices" }, () =>
+        realtime.invalidate(["students", "search"]),
+      )
+      .on("postgres_changes", { event: "*", schema: "public", table: "finance_receipts" }, () =>
+        realtime.invalidate(["students", "search"]),
+      )
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "enrollment_applications" },
-        () => {
-          void queryClient.invalidateQueries({
-            queryKey: ["enrollment", "applications", "pending-count"],
-          });
-          void queryClient.invalidateQueries({ queryKey: ["dashboard", "overview"] });
-        },
+        () =>
+          realtime.invalidate(
+            ["enrollment", "applications", "pending-count"],
+            ["dashboard", "overview"],
+          ),
       )
       .subscribe();
 
     return () => {
+      realtime.dispose();
       supabase.removeChannel(channel);
     };
   }, [queryClient, realtimeInstanceId]);

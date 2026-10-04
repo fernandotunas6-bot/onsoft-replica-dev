@@ -4,6 +4,37 @@ Ler isto **antes** de alterar código. Ecossistema (5 apps):
 [ARCHITECTURE_HARMONIZATION.md](./ARCHITECTURE_HARMONIZATION.md).
 Depois abrir o skill do módulo em `.cursor/skills/`.
 
+## Comunicados por papel e tempo real — POR APLICAR (2026-10-04)
+
+Dois achados na produção (só leitura, conector Supabase):
+
+- **Comunicados.** A única leitura de `school_announcements` era «Read school
+  announcements» (`is_school_member(school_id) AND deleted_at IS NULL`). Pela API
+  e pelo tempo real, alunos e encarregados liam rascunhos, agendados e avisos ao
+  corpo docente, que a lista do servidor lhes esconde. A 2026-10-04 as 2 linhas
+  estavam enviadas e não eram do corpo docente: nada exposto ainda. Migração
+  `20261004100000_announcements_read_by_role.sql`: RESTRICTIVE «Announcements
+  visible by role»; o pessoal lê todos, os outros só `status = 'sent'` e
+  `audience <> 'teaching_staff'` (a regra de `features/communications/server.ts`).
+  A tabela antiga `announcements` (SGA; 2 linhas, todas publicadas; nenhum ecrã do
+  SIGA a lê) tem a mesma leitura por `is_school_member` e ficou de fora.
+- **Tempo real.** A publicação `supabase_realtime` só tinha `document_requests`,
+  `school_announcements`, `siga_chat_members` e `siga_chat_messages`: as mensagens
+  (contador e notificações do desktop), o /alunos, o painel e o /faturas nunca
+  recebiam eventos, e o /faturas e o painel ouviam `invoices`/`payments`, que não
+  existem. O cliente passa a `finance_invoices`/`finance_receipts`, e a migração
+  `20261004101000_realtime_publish_school_screens.sql` publica as 6 tabelas. O
+  tempo real aplica as políticas de leitura (alunos e faturas só chegam ao
+  pessoal). Como cada linha chega como um evento, os ecrãs juntam as
+  invalidações numa janela de 300 ms (`src/lib/realtime-invalidate.ts`): uma
+  importação ou a geração das propinas não dispara um pedido por linha.
+
+Pacote: `docs/agents/SIGA_aplicar_comunicados_tempo_real.sql` (confirmação no
+fim; as sondas também estão em `SIGA_confirmar_migracoes.sql`). Ensaios PGlite em
+`tests/sql/` (`announcements-rls.mjs`, `realtime-package.mjs`).
+`tests/security/tempo-real-vs-producao.test.ts` recusa subscrições a tabelas que
+não existem na produção ou que nenhuma migração publica.
+
 ## Ano lectivo activo (2026-09-30)
 
 O SIGA resolve o ano corrente pelo estado `active`. A 2026-09-29 a escola
