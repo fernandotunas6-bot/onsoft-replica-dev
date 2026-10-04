@@ -30,6 +30,7 @@ import {
   type HigherEdRegulation,
 } from "@/features/school/settings-domains";
 import { requireAal2 } from "@/features/hr/require-aal2";
+import { dynamicTablesClient } from "@/integrations/supabase/sga";
 import {
   ISSUED_DOCUMENT_ACTION,
   generateVerificationCode,
@@ -224,16 +225,84 @@ async function requireStudentInProgram(
 
 async function audit(
   db: Db,
-  entry: { schoolId: string; actor: string; action: string; entityId: string; metadata: Row },
+  entry: {
+    schoolId: string;
+    actor: string;
+    action: string;
+    entityId: string;
+    metadata: Row;
+    entityType?: string;
+  },
 ) {
   await db.from("audit_logs").insert({
     school_id: entry.schoolId,
     actor_user_id: entry.actor,
     action: entry.action,
-    entity_type: "course_unit_enrollment",
+    entity_type: entry.entityType ?? "course_unit_enrollment",
     entity_id: entry.entityId,
     metadata: entry.metadata as never,
   });
+}
+
+// ── Estatutos especiais (trabalhador-estudante) ─────────────────────────────
+
+const WORKER_STUDENT = "trabalhador_estudante";
+const MISSING_STATUS_TABLE =
+  "O estatuto de trabalhador-estudante ainda não está disponível nesta base: falta aplicar docs/agents/SIGA_aplicar_trabalhador_estudante.sql.";
+
+/** A tabela ainda não existe (migração 20261004150000 por aplicar). */
+function isMissingTable(error: { code?: string; message?: string } | null) {
+  return Boolean(
+    error &&
+    (error.code === "42P01" ||
+      error.code === "PGRST205" ||
+      /does not exist|schema cache/i.test(error.message ?? "")),
+  );
+}
+
+type WorkerStudentRow = {
+  studentId: string;
+  academicYearId: string;
+  evidence: string;
+  grantedAt: string;
+};
+
+/** Estatutos activos destes estudantes; vazio enquanto a tabela não existir. */
+async function workerStudentRows(
+  db: Db,
+  schoolId: string,
+  studentIds: string[],
+): Promise<WorkerStudentRow[]> {
+  if (!studentIds.length) return [];
+  const { data, error } = await dynamicTablesClient(db)
+    .from("higher_ed_student_statuses")
+    .select("student_id, academic_year_id, evidence, granted_at")
+    .eq("school_id", schoolId)
+    .eq("status", WORKER_STUDENT)
+    .is("revoked_at", null)
+    .in("student_id", studentIds);
+  if (error) {
+    if (isMissingTable(error)) return [];
+    throw publicDatabaseError(error, "Não foi possível ler o estatuto dos estudantes.");
+  }
+  return ((data ?? []) as Row[]).map((row) => ({
+    studentId: str(row.student_id),
+    academicYearId: str(row.academic_year_id),
+    evidence: str(row.evidence),
+    grantedAt: str(row.granted_at),
+  }));
+}
+
+/** Trabalhador-estudante neste ano lectivo (o da inscrição, ou o activo). */
+function isWorkerStudent(
+  rows: WorkerStudentRow[],
+  studentId: string,
+  academicYearId: string | null | undefined,
+) {
+  return Boolean(
+    academicYearId &&
+    rows.some((row) => row.studentId === studentId && row.academicYearId === academicYearId),
+  );
 }
 
 // ── Cursos e plano ─────────────────────────────────────────────────────────
@@ -774,6 +843,7 @@ export const getStudentHigherEd = createServerFn({ method: "GET" })
     const latest = latestRecordByUnit(records);
     const rowIdByRecord = new Map(rows.map((row) => [row.record, row.id]));
     const progress = studentProgress({ plan: units, records, regulation });
+    const statuses = await workerStudentRows(db, schoolId, [data.studentId]);
     const unitsView = units.map((unit) => {
       const last = latest.get(unit.id) ?? null;
       const check = yearId
@@ -791,9 +861,16 @@ export const getStudentHigherEd = createServerFn({ method: "GET" })
         latest: last ? { ...last, id: rowIdByRecord.get(last) ?? null } : null,
         canEnroll: Boolean(check?.ok),
         enrollReasons: check?.reasons ?? ["Não há ano lectivo activo."],
-        seasons: seasonEligibility({ unitId: unit.id, records, plan: units, regulation }),
+        seasons: seasonEligibility({
+          unitId: unit.id,
+          records,
+          plan: units,
+          regulation,
+          workerStudent: isWorkerStudent(statuses, data.studentId, last?.academicYearId ?? yearId),
+        }),
       };
     });
+    const workerStudent = statuses.find((row) => yearId && row.academicYearId === yearId) ?? null;
     const profiles = await readSettingsDomain(db, schoolId, "higher_ed_programs");
     return {
       activeYearId: yearId,
@@ -803,6 +880,10 @@ export const getStudentHigherEd = createServerFn({ method: "GET" })
       progress: { ...progress, pendingUnits: progress.pendingUnits.map((u) => u.id) },
       units: unitsView,
       prerequisites,
+      /** Estatuto de trabalhador-estudante no ano lectivo activo. */
+      workerStudent: workerStudent
+        ? { evidence: workerStudent.evidence, grantedAt: workerStudent.grantedAt }
+        : null,
     };
   });
 
@@ -902,6 +983,131 @@ export const getStudentTranscript = createServerFn({ method: "GET" })
     const membership = await officeMembership(context, "read");
     const db = await loadSgaAdminClient();
     return buildTranscript(db, membership.schoolId, data);
+  });
+
+// ── Estatuto de trabalhador-estudante: atribuir e retirar ──────────────────
+
+const workerStudentGrantInput = z.object({
+  studentId: z.string().uuid(),
+  /** Comprovativo (ex.: declaração da entidade empregadora, com data). */
+  evidence: z.string().trim().min(3).max(500),
+});
+
+/** O ano lectivo activo e o estudante, ambos desta escola. */
+async function workerStudentTarget(db: Db, schoolId: string, studentId: string) {
+  const yearId = await activeYearId(db, schoolId);
+  if (!yearId) throw new Error("Não há ano lectivo activo.");
+  const { data: student } = await db
+    .from("students")
+    .select("id")
+    .eq("school_id", schoolId)
+    .eq("id", studentId)
+    .maybeSingle();
+  if (!student) throw new Error("Estudante não encontrado nesta escola.");
+  return yearId;
+}
+
+/**
+ * Atribui o estatuto de trabalhador-estudante no ano lectivo activo (Direcção ou
+ * Secretaria, 2FA, com o comprovativo). Muda as regras de faltas e de época especial,
+ * por isso fica na auditoria. Atribuir de novo actualiza o comprovativo.
+ */
+export const grantWorkerStudentStatus = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .validator((input: unknown) => workerStudentGrantInput.parse(input))
+  .handler(async ({ data, context }) => {
+    const membership = await officeMembership(context, "write");
+    requireAal2(context.claims, "Atribuir o estatuto de trabalhador-estudante");
+    const db = await loadSgaAdminClient();
+    const schoolId = membership.schoolId;
+    const yearId = await workerStudentTarget(db, schoolId, data.studentId);
+    const table = dynamicTablesClient(db);
+    const { data: existing, error: readError } = await table
+      .from("higher_ed_student_statuses")
+      .select("id")
+      .eq("school_id", schoolId)
+      .eq("student_id", data.studentId)
+      .eq("academic_year_id", yearId)
+      .eq("status", WORKER_STUDENT)
+      .maybeSingle();
+    if (readError) {
+      if (isMissingTable(readError)) throw new Error(MISSING_STATUS_TABLE);
+      throw publicDatabaseError(readError, "Não foi possível ler o estatuto do estudante.");
+    }
+    const values = {
+      evidence: data.evidence,
+      granted_by: context.userId,
+      granted_at: new Date().toISOString(),
+      revoked_at: null,
+      revoked_by: null,
+      revocation_reason: null,
+    };
+    const { error } = existing
+      ? await table
+          .from("higher_ed_student_statuses")
+          .update(values)
+          .eq("school_id", schoolId)
+          .eq("id", str((existing as Row).id))
+      : await table.from("higher_ed_student_statuses").insert({
+          school_id: schoolId,
+          student_id: data.studentId,
+          academic_year_id: yearId,
+          status: WORKER_STUDENT,
+          ...values,
+        });
+    if (error) throw publicDatabaseError(error, "Não foi possível atribuir o estatuto.");
+    await audit(db, {
+      schoolId,
+      actor: context.userId,
+      action: "higher_ed.worker_student.granted",
+      entityId: data.studentId,
+      entityType: "student",
+      metadata: { academic_year_id: yearId, evidence: data.evidence },
+    });
+    return { academicYearId: yearId };
+  });
+
+/** Retira o estatuto no ano lectivo activo, com o motivo. A linha fica, revogada. */
+export const revokeWorkerStudentStatus = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .validator((input: unknown) =>
+    z
+      .object({ studentId: z.string().uuid(), reason: z.string().trim().min(3).max(500) })
+      .parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    const membership = await officeMembership(context, "write");
+    requireAal2(context.claims, "Retirar o estatuto de trabalhador-estudante");
+    const db = await loadSgaAdminClient();
+    const schoolId = membership.schoolId;
+    const yearId = await workerStudentTarget(db, schoolId, data.studentId);
+    const { data: revoked, error } = await dynamicTablesClient(db)
+      .from("higher_ed_student_statuses")
+      .update({
+        revoked_at: new Date().toISOString(),
+        revoked_by: context.userId,
+        revocation_reason: data.reason,
+      })
+      .eq("school_id", schoolId)
+      .eq("student_id", data.studentId)
+      .eq("academic_year_id", yearId)
+      .eq("status", WORKER_STUDENT)
+      .is("revoked_at", null)
+      .select("id");
+    if (error) {
+      if (isMissingTable(error)) throw new Error(MISSING_STATUS_TABLE);
+      throw publicDatabaseError(error, "Não foi possível retirar o estatuto.");
+    }
+    if (!revoked?.length) throw new Error("O estudante não tem o estatuto neste ano lectivo.");
+    await audit(db, {
+      schoolId,
+      actor: context.userId,
+      action: "higher_ed.worker_student.revoked",
+      entityId: data.studentId,
+      entityType: "student",
+      metadata: { academic_year_id: yearId, reason: data.reason },
+    });
+    return { academicYearId: yearId };
   });
 
 // ── Certificado de conclusão (carta de curso) com registo e QR ──────────────
@@ -1731,13 +1937,21 @@ export const recordUnitResult = createServerFn({ method: "POST" })
     const latestRow = unitRows.find((row) => row.record === latestRecord);
     if (!latestRow || !latestRecord)
       throw new Error("O estudante não está inscrito nesta cadeira.");
+    // Estatuto no ano lectivo da inscrição: faltas e época especial (regulamento).
+    const workerStudent = isWorkerStudent(
+      await workerStudentRows(db, schoolId, [data.studentId]),
+      data.studentId,
+      latestRecord.academicYearId,
+    );
 
     let patch: Row;
     if (data.season === "frequencia") {
       if (latestRecord.status !== "inscrito") {
         throw new Error("A frequência só se lança numa inscrição ainda em curso.");
       }
-      const outcome = frequencyOutcome(data.frequency, data.absencePercent, regulation);
+      const outcome = frequencyOutcome(data.frequency, data.absencePercent, regulation, {
+        workerStudent,
+      });
       if (outcome.kind === "sem_nota") throw new Error("Indique a média de frequência.");
       patch =
         outcome.kind === "excluido_faltas"
@@ -1768,7 +1982,13 @@ export const recordUnitResult = createServerFn({ method: "POST" })
                   credits_earned: 0,
                 };
     } else {
-      const eligible = seasonEligibility({ unitId: unit.id, records, plan: units, regulation });
+      const eligible = seasonEligibility({
+        unitId: unit.id,
+        records,
+        plan: units,
+        regulation,
+        workerStudent,
+      });
       const season = data.season;
       if (season === "normal") {
         if (!(latestRecord.status === "inscrito" && latestRecord.season === "frequencia")) {
@@ -1779,7 +1999,7 @@ export const recordUnitResult = createServerFn({ method: "POST" })
           season === "recurso"
             ? "Só vai a recurso quem reprovou na época normal."
             : season === "especial"
-              ? `A época especial é só para finalistas (até ${regulation.special_season_max_units} cadeiras em falta).`
+              ? `A época especial é só para finalistas (até ${regulation.special_season_max_units} cadeiras em falta)${regulation.worker_student_special_season ? " e trabalhadores-estudantes" : ""}.`
               : "Melhoria só depois de aprovar a cadeira, uma vez, se o regulamento a permitir.",
         );
       }
@@ -2032,16 +2252,29 @@ export const getUnitSheet = createServerFn({ method: "GET" })
           .in("id", personIds)
       : { data: [] as Row[] };
     const nameOf = new Map(((people ?? []) as Row[]).map((p) => [str(p.id), str(p.full_name)]));
+    const statuses = await workerStudentRows(db, schoolId, studentIds);
 
     const rows = (students ?? [])
       .map((student) => {
         const records = byStudent.get(str(student.id)) ?? [];
         const latest = latestRecordByUnit(records).get(unit.id) ?? null;
-        const eligible = seasonEligibility({ unitId: unit.id, records, plan: units, regulation });
+        const workerStudent = isWorkerStudent(
+          statuses,
+          str(student.id),
+          latest?.academicYearId ?? yearId,
+        );
+        const eligible = seasonEligibility({
+          unitId: unit.id,
+          records,
+          plan: units,
+          regulation,
+          workerStudent,
+        });
         return {
           studentId: str(student.id),
           name: nameOf.get(str(student.person_id)) || "Estudante",
           number: student.student_number ? str(student.student_number) : null,
+          workerStudent,
           latest: latest
             ? {
                 status: latest.status,

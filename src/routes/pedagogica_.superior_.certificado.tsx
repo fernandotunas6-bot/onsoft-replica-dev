@@ -50,17 +50,16 @@ function CertificatePage() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: transcriptKey }),
     onError: (error) => toastActionError(error, "Não foi possível emitir o certificado."),
   });
-  const verifyUrl =
-    certificate && typeof window !== "undefined"
-      ? `${window.location.origin}/verificar?codigo=${encodeURIComponent(certificate.code)}`
-      : null;
+  // O endereço de verificação depende da origem do browser: calcula-se na query (só no
+  // cliente), nunca no render, para o HTML do servidor e o do browser serem iguais.
   const qr = useQuery({
-    queryKey: ["higher-ed", "certificate-qr", verifyUrl],
-    enabled: Boolean(verifyUrl),
+    queryKey: ["higher-ed", "certificate-qr", certificate?.code ?? null],
+    enabled: Boolean(certificate),
     staleTime: Infinity,
     queryFn: async () => {
+      const url = `${window.location.origin}/verificar?codigo=${encodeURIComponent(certificate!.code)}`;
       const { default: QRCode } = await import("qrcode");
-      return QRCode.toDataURL(verifyUrl!, { margin: 1, width: 160 });
+      return { url, image: await QRCode.toDataURL(url, { margin: 1, width: 160 }) };
     },
   });
   // Decreto 257/25: classificação final inteira (10–20) com menção qualitativa.
@@ -184,12 +183,12 @@ function CertificatePage() {
                     Código de verificação <strong className="font-mono">{certificate.code}</strong>
                   </p>
                   <p className="text-muted-foreground">
-                    Confirme a autenticidade em {verifyUrl ?? "/verificar"}
+                    Confirme a autenticidade em {qr.data?.url ?? "/verificar"}
                   </p>
                 </div>
                 {qr.data ? (
                   <MediaFrame
-                    src={qr.data}
+                    src={qr.data.image}
                     alt="QR de verificação"
                     ratio="1/1"
                     rounded="rounded-none"

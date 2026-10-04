@@ -257,6 +257,48 @@ describe("frequência e épocas", () => {
     ).toBe(false);
   });
 
+  it("trabalhador-estudante: faltas não excluem e época especial sem ser finalista", () => {
+    // Faltas acima do limite: só exclui quem não tem o estatuto (ou se o regulamento o desligar).
+    expect(frequencyOutcome(15, 30, reg).kind).toBe("excluido_faltas");
+    expect(frequencyOutcome(15, 30, reg, { workerStudent: true }).kind).toBe("dispensado_exame");
+    expect(
+      frequencyOutcome(
+        15,
+        30,
+        { ...reg, worker_student_absence_exempt: false },
+        {
+          workerStudent: true,
+        },
+      ).kind,
+    ).toBe("excluido_faltas");
+    // Longe de concluir (não é finalista), reprovado numa cadeira do 1.º semestre.
+    const records = [rec("mat1", "reprovado")];
+    const base = { unitId: "mat1", records, plan, regulation: reg };
+    expect(seasonEligibility(base).especial).toBe(false);
+    expect(seasonEligibility({ ...base, workerStudent: true }).especial).toBe(true);
+    expect(
+      seasonEligibility({
+        ...base,
+        workerStudent: true,
+        regulation: { ...reg, worker_student_special_season: false },
+      }).especial,
+    ).toBe(false);
+    // Só em cadeira reprovada ou excluída por frequência; nunca numa já aprovada.
+    expect(
+      seasonEligibility({ ...base, records: [rec("mat1", "aprovado")], workerStudent: true })
+        .especial,
+    ).toBe(false);
+  });
+
+  it("regulamento: estatuto de trabalhador-estudante com os dois efeitos ligados por omissão", () => {
+    expect(HIGHER_ED_DEFAULTS.worker_student_absence_exempt).toBe(true);
+    expect(HIGHER_ED_DEFAULTS.worker_student_special_season).toBe(true);
+    expect(
+      parseSettingsDomain("higher_ed", { worker_student_special_season: false })
+        .worker_student_special_season,
+    ).toBe(false);
+  });
+
   it("melhoria: só depois de aprovar, uma vez, e se a instituição a permitir", () => {
     const approved = [rec("mat1", "aprovado")];
     expect(

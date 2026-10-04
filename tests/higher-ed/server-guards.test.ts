@@ -113,6 +113,38 @@ describe("Ensino Superior no servidor", () => {
     expect(build).toContain("transcriptLines(");
   });
 
+  it("trabalhador-estudante: secretaria com 2FA, auditado, e a base sem a tabela não parte nada", () => {
+    for (const [name, label, action] of [
+      [
+        "grantWorkerStudentStatus",
+        "Atribuir o estatuto de trabalhador-estudante",
+        "higher_ed.worker_student.granted",
+      ],
+      [
+        "revokeWorkerStudentStatus",
+        "Retirar o estatuto de trabalhador-estudante",
+        "higher_ed.worker_student.revoked",
+      ],
+    ] as const) {
+      const body = fn(name);
+      expect(body, name).toContain('officeMembership(context, "write")');
+      expect(body, name).toContain(`requireAal2(context.claims, "${label}")`);
+      expect(body, name).toContain(`action: "${action}"`);
+      expect(body, name).toContain("throw new Error(MISSING_STATUS_TABLE)");
+    }
+    // Ler o estatuto com a tabela por criar devolve «sem estatuto», não um erro.
+    const rows = source.slice(
+      source.indexOf("async function workerStudentRows"),
+      source.indexOf("function isWorkerStudent"),
+    );
+    expect(rows).toContain("if (isMissingTable(error)) return [];");
+    // O lançamento e a pauta aplicam o estatuto do ano da inscrição.
+    expect(fn("recordUnitResult")).toContain(
+      "frequencyOutcome(data.frequency, data.absencePercent, regulation, {",
+    );
+    expect(fn("recordUnitResult")).toContain("latestRecord.academicYearId");
+  });
+
   it("certificado de conclusão: secretaria com 2FA, só concluído, número e código, uma vez", () => {
     const body = fn("issueHigherEdCertificate");
     expect(body).toContain('officeMembership(context, "write")');

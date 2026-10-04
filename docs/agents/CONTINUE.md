@@ -102,8 +102,18 @@ servidor lhes toca, ver `PRIVILEGIO_POR_DESENHO`).
   `certificado-conclusao-superior`), por isso `/verificar` confirma-o sem mudanças.
   Uma vez por estudante e curso: repetir devolve o mesmo número e código. Sem anulação
   (o registo de verificação em `audit_logs` não a tem).
+- **Trabalhador-estudante — POR APLICAR** (2026-10-04): tabela
+  `higher_ed_student_statuses` só do servidor (migração `20261004150000`, pacote
+  `docs/agents/SIGA_aplicar_trabalhador_estudante.sql`, sonda em
+  `SIGA_confirmar_migracoes.sql`). Um estatuto por estudante e ano lectivo, com
+  comprovativo; atribuir/retirar com 2FA e auditoria (`higher_ed.worker_student.*`).
+  Efeitos no regulamento: `worker_student_absence_exempt` (faltas não excluem) e
+  `worker_student_special_season` (época especial sem ser finalista), aplicados no
+  lançamento, na pauta e na ficha pelo estatuto do ano da inscrição. Enquanto a tabela
+  não existir, ninguém tem o estatuto e atribuí-lo pede o pacote
+  (`TABELAS_AUSENTES_DA_PRODUCAO`).
 - **Por fazer:** ver «Pendente» em `docs/higher-ed/ANALISE_REQUISITOS_ANGOLA.md`
-  (trabalhador-estudante, bacharelato, bolsas, turnos/lista de espera).
+  (bacharelato, bolsas, turnos/lista de espera; prescrição do trabalhador-estudante).
 
 ## Auditoria de produção 11 (2026-10-02)
 

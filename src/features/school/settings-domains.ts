@@ -132,6 +132,13 @@ export type HigherEdRegulation = {
    * créditos). Desligado: só a secretaria inscreve.
    */
   student_self_enrollment: boolean;
+  /**
+   * Estatuto de trabalhador-estudante (atribuído pela secretaria, por ano lectivo, com
+   * comprovativo): as faltas não excluem da avaliação (como no SIGARRA).
+   */
+  worker_student_absence_exempt: boolean;
+  /** Trabalhador-estudante vai à época especial mesmo sem ser finalista. */
+  worker_student_special_season: boolean;
 };
 
 export const HIGHER_ED_DEFAULTS: HigherEdRegulation = {
@@ -154,6 +161,8 @@ export const HIGHER_ED_DEFAULTS: HigherEdRegulation = {
   enrollment_opens_on: null,
   enrollment_closes_on: null,
   student_self_enrollment: false,
+  worker_student_absence_exempt: true,
+  worker_student_special_season: true,
 };
 
 export type HigherEdDegree = "licenciatura" | "mestrado" | "doutoramento" | "especializacao";
@@ -340,6 +349,14 @@ export const SETTINGS_DOMAINS = {
           typeof v["student_self_enrollment"] === "boolean"
             ? v["student_self_enrollment"]
             : d.student_self_enrollment,
+        worker_student_absence_exempt:
+          typeof v["worker_student_absence_exempt"] === "boolean"
+            ? v["worker_student_absence_exempt"]
+            : d.worker_student_absence_exempt,
+        worker_student_special_season:
+          typeof v["worker_student_special_season"] === "boolean"
+            ? v["worker_student_special_season"]
+            : d.worker_student_special_season,
       };
     },
   },

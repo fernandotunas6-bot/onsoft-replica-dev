@@ -72,6 +72,11 @@ from (values
      (select count(*) from pg_publication_tables
       where pubname = 'supabase_realtime' and schemaname = 'public'
         and tablename in ('siga_direct_messages', 'students', 'enrollments',
-                          'enrollment_applications', 'finance_invoices', 'finance_receipts')) = 6)
+                          'enrollment_applications', 'finance_invoices', 'finance_receipts')) = 6),
+  -- Esta está no pacote docs/agents/SIGA_aplicar_trabalhador_estudante.sql.
+  ('20261004150000_higher_ed_student_statuses',
+     to_regclass('public.higher_ed_student_statuses') is not null
+     and not coalesce(has_table_privilege('authenticated',
+       to_regclass('public.higher_ed_student_statuses'), 'SELECT'), true))
 ) as m(migracao, ok)
 order by migracao;

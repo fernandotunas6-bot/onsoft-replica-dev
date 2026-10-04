@@ -59,6 +59,14 @@ Separador **Regulamento** (só Administrador edita). Valores por omissão:
 | Tentativas por cadeira | sem limite (0) |
 | Melhoria de nota | permitida |
 | Matrícula on-line (o estudante inscreve-se no portal) | desligada |
+| Trabalhador-estudante: faltas não excluem | ligado |
+| Trabalhador-estudante: época especial sem ser finalista | ligado |
+
+**Trabalhador-estudante.** Na ficha do estudante, a Secretaria ou a Direcção carrega em
+**Atribuir estatuto**, indica o comprovativo (ex.: declaração da entidade empregadora) e
+confirma com a verificação em duas etapas. O estatuto vale para o ano lectivo activo e
+aplica as duas regras acima (cada uma desliga-se no regulamento). Retirá-lo pede o
+motivo. Na pauta da cadeira, o estudante aparece com «Trabalhador-estudante».
 
 ## 4. Inscrições por cadeira
 
