@@ -101,6 +101,20 @@ jobs:
       - name: Testes (Vitest)
         run: bun run test
 
+      # Ensaios das migrações em Postgres local (PGlite): liquidação de pagamentos,
+      # integridade do chat, comunicados por papel, pauta anual e tempo real. Cada
+      # um corre a migração real duas vezes e falha sem ela. O PGlite instala-se
+      # fora do projecto (tests/sql/README.md), por isso o bun.lock não muda.
+      - name: Ensaios SQL das migrações (PGlite)
+        run: |
+          npm install --no-save --silent --prefix "$RUNNER_TEMP/pglite" @electric-sql/pglite@0.3.14
+          export SIGA_SQL_TEST_MODULE_PATH="$RUNNER_TEMP/pglite/node_modules/@electric-sql/pglite/dist/index.js"
+          for t in tests/sql/*.mjs; do
+            echo "::group::$t"
+            node "$t"
+            echo "::endgroup::"
+          done
+
       - name: Inventário SIGA (módulos e infra de navegação)
         run: node scripts/siga/check-modules.mjs
 
