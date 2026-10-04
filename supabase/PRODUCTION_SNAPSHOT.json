@@ -1,11 +1,11 @@
 {
-  "capturadoEm": "2026-10-04T11:52:18.267Z",
+  "capturadoEm": "2026-10-04T22:27:59.000Z",
   "resumo": {
     "tabelas": 186,
     "com_rls": 186,
-    "politicas": 338,
-    "funcoes_private": 110,
-    "triggers": 199,
+    "politicas": 321,
+    "funcoes_private": 121,
+    "triggers": 201,
     "buckets": 6,
     "buckets_publicos": 1,
     "politicas_storage": 14
@@ -74,7 +74,7 @@
       "rls_forcada": true,
       "anon_select": false,
       "auth_select": true,
-      "politicas": 4,
+      "politicas": 3,
       "colunas": [
         "id",
         "school_id",
@@ -98,7 +98,7 @@
       "rls": true,
       "rls_forcada": false,
       "anon_select": false,
-      "auth_select": true,
+      "auth_select": false,
       "politicas": 0,
       "colunas": [
         "id",
@@ -124,7 +124,7 @@
       "rls": true,
       "rls_forcada": false,
       "anon_select": false,
-      "auth_select": true,
+      "auth_select": false,
       "politicas": 0,
       "colunas": [
         "id",
@@ -152,7 +152,7 @@
       "rls": true,
       "rls_forcada": false,
       "anon_select": false,
-      "auth_select": true,
+      "auth_select": false,
       "politicas": 0,
       "colunas": [
         "id",
@@ -186,7 +186,7 @@
       "rls": true,
       "rls_forcada": false,
       "anon_select": false,
-      "auth_select": true,
+      "auth_select": false,
       "politicas": 0,
       "colunas": [
         "id",
@@ -212,7 +212,7 @@
       "rls": true,
       "rls_forcada": false,
       "anon_select": false,
-      "auth_select": true,
+      "auth_select": false,
       "politicas": 0,
       "colunas": [
         "id",
@@ -235,7 +235,7 @@
       "rls": true,
       "rls_forcada": false,
       "anon_select": false,
-      "auth_select": true,
+      "auth_select": false,
       "politicas": 0,
       "colunas": [
         "id",
@@ -264,7 +264,7 @@
       "rls": true,
       "rls_forcada": false,
       "anon_select": false,
-      "auth_select": true,
+      "auth_select": false,
       "politicas": 0,
       "colunas": [
         "id",
@@ -294,7 +294,7 @@
       "rls": true,
       "rls_forcada": false,
       "anon_select": false,
-      "auth_select": true,
+      "auth_select": false,
       "politicas": 0,
       "colunas": [
         "id",
@@ -323,7 +323,7 @@
       "rls": true,
       "rls_forcada": false,
       "anon_select": false,
-      "auth_select": true,
+      "auth_select": false,
       "politicas": 0,
       "colunas": [
         "id",
@@ -353,7 +353,7 @@
       "rls": true,
       "rls_forcada": false,
       "anon_select": false,
-      "auth_select": true,
+      "auth_select": false,
       "politicas": 0,
       "colunas": [
         "id",
@@ -378,7 +378,7 @@
       "rls": true,
       "rls_forcada": false,
       "anon_select": false,
-      "auth_select": true,
+      "auth_select": false,
       "politicas": 0,
       "colunas": [
         "id",
@@ -417,7 +417,7 @@
       "rls": true,
       "rls_forcada": false,
       "anon_select": false,
-      "auth_select": true,
+      "auth_select": false,
       "politicas": 0,
       "colunas": [
         "id",
@@ -441,7 +441,7 @@
       "rls": true,
       "rls_forcada": false,
       "anon_select": false,
-      "auth_select": true,
+      "auth_select": false,
       "politicas": 0,
       "colunas": [
         "id",
@@ -490,7 +490,7 @@
       "rls": true,
       "rls_forcada": false,
       "anon_select": false,
-      "auth_select": true,
+      "auth_select": false,
       "politicas": 0,
       "colunas": [
         "id",
@@ -511,7 +511,7 @@
       "rls": true,
       "rls_forcada": false,
       "anon_select": false,
-      "auth_select": true,
+      "auth_select": false,
       "politicas": 0,
       "colunas": [
         "id",
@@ -537,7 +537,7 @@
       "rls_forcada": true,
       "anon_select": false,
       "auth_select": true,
-      "politicas": 4,
+      "politicas": 3,
       "colunas": [
         "id",
         "school_id",
@@ -772,7 +772,7 @@
       "rls_forcada": true,
       "anon_select": false,
       "auth_select": true,
-      "politicas": 5,
+      "politicas": 3,
       "colunas": [
         "id",
         "school_id",
@@ -813,7 +813,7 @@
       "rls_forcada": true,
       "anon_select": false,
       "auth_select": true,
-      "politicas": 4,
+      "politicas": 3,
       "colunas": [
         "id",
         "school_id",
@@ -1240,7 +1240,7 @@
       "rls_forcada": true,
       "anon_select": false,
       "auth_select": true,
-      "politicas": 4,
+      "politicas": 2,
       "colunas": [
         "id",
         "school_id",
@@ -1591,7 +1591,7 @@
       "rls_forcada": true,
       "anon_select": false,
       "auth_select": true,
-      "politicas": 5,
+      "politicas": 4,
       "colunas": [
         "id",
         "school_id",
@@ -1622,7 +1622,7 @@
       "rls_forcada": true,
       "anon_select": false,
       "auth_select": true,
-      "politicas": 4,
+      "politicas": 3,
       "colunas": [
         "id",
         "school_id",
@@ -1670,7 +1670,7 @@
       "rls_forcada": true,
       "anon_select": false,
       "auth_select": true,
-      "politicas": 5,
+      "politicas": 4,
       "colunas": [
         "id",
         "school_id",
@@ -1703,7 +1703,7 @@
       "rls_forcada": false,
       "anon_select": false,
       "auth_select": true,
-      "politicas": 3,
+      "politicas": 5,
       "colunas": [
         "id",
         "school_id",
@@ -1797,7 +1797,7 @@
       "rls_forcada": true,
       "anon_select": false,
       "auth_select": true,
-      "politicas": 5,
+      "politicas": 4,
       "colunas": [
         "id",
         "school_id",
@@ -2811,7 +2811,7 @@
       "rls": true,
       "rls_forcada": true,
       "anon_select": false,
-      "auth_select": true,
+      "auth_select": false,
       "politicas": 0,
       "colunas": [
         "id",
@@ -2912,7 +2912,7 @@
       "rls_forcada": false,
       "anon_select": false,
       "auth_select": true,
-      "politicas": 4,
+      "politicas": 3,
       "colunas": [
         "school_id",
         "membership_id",
@@ -3021,7 +3021,7 @@
       "rls_forcada": true,
       "anon_select": false,
       "auth_select": true,
-      "politicas": 5,
+      "politicas": 3,
       "colunas": [
         "id",
         "school_id",
@@ -3059,7 +3059,7 @@
       "rls_forcada": false,
       "anon_select": false,
       "auth_select": true,
-      "politicas": 2,
+      "politicas": 1,
       "colunas": [
         "id",
         "code",
@@ -3173,7 +3173,7 @@
       "rls_forcada": false,
       "anon_select": false,
       "auth_select": true,
-      "politicas": 3,
+      "politicas": 2,
       "colunas": [
         "id",
         "display_name",
@@ -3309,7 +3309,7 @@
       "rls_forcada": false,
       "anon_select": true,
       "auth_select": true,
-      "politicas": 2,
+      "politicas": 4,
       "colunas": [
         "slug",
         "reason",
@@ -3343,7 +3343,7 @@
       "rls_forcada": false,
       "anon_select": false,
       "auth_select": true,
-      "politicas": 2,
+      "politicas": 1,
       "colunas": [
         "id",
         "school_id",
@@ -3686,7 +3686,7 @@
       "rls_forcada": true,
       "anon_select": false,
       "auth_select": true,
-      "politicas": 2,
+      "politicas": 1,
       "colunas": [
         "id",
         "school_id",
@@ -3968,7 +3968,7 @@
       "rls_forcada": true,
       "anon_select": false,
       "auth_select": true,
-      "politicas": 2,
+      "politicas": 4,
       "colunas": [
         "id",
         "school_id",
@@ -4004,7 +4004,7 @@
       "rls_forcada": true,
       "anon_select": false,
       "auth_select": true,
-      "politicas": 3,
+      "politicas": 5,
       "colunas": [
         "id",
         "school_id",
@@ -4027,7 +4027,7 @@
       "rls": true,
       "rls_forcada": true,
       "anon_select": false,
-      "auth_select": true,
+      "auth_select": false,
       "politicas": 0,
       "colunas": [
         "id",
@@ -4143,7 +4143,7 @@
       "rls": true,
       "rls_forcada": true,
       "anon_select": false,
-      "auth_select": true,
+      "auth_select": false,
       "politicas": 0,
       "colunas": [
         "id",
@@ -4387,7 +4387,7 @@
       "rls": true,
       "rls_forcada": true,
       "anon_select": false,
-      "auth_select": true,
+      "auth_select": false,
       "politicas": 0,
       "colunas": [
         "id",
@@ -4460,7 +4460,7 @@
       "rls_forcada": false,
       "anon_select": false,
       "auth_select": true,
-      "politicas": 2,
+      "politicas": 4,
       "colunas": [
         "id",
         "school_id",
@@ -4664,7 +4664,7 @@
       "rls": true,
       "rls_forcada": false,
       "anon_select": false,
-      "auth_select": true,
+      "auth_select": false,
       "politicas": 0,
       "colunas": [
         "id",
@@ -4685,7 +4685,7 @@
       "rls_forcada": true,
       "anon_select": false,
       "auth_select": true,
-      "politicas": 6,
+      "politicas": 4,
       "colunas": [
         "id",
         "school_id",
@@ -4743,7 +4743,7 @@
       "rls_forcada": true,
       "anon_select": false,
       "auth_select": true,
-      "politicas": 5,
+      "politicas": 4,
       "colunas": [
         "id",
         "school_id",
@@ -4873,7 +4873,7 @@
       "rls_forcada": true,
       "anon_select": false,
       "auth_select": true,
-      "politicas": 5,
+      "politicas": 3,
       "colunas": [
         "id",
         "school_id",
@@ -4938,7 +4938,7 @@
       "rls_forcada": true,
       "anon_select": false,
       "auth_select": true,
-      "politicas": 4,
+      "politicas": 3,
       "colunas": [
         "id",
         "school_id",
@@ -5086,7 +5086,7 @@
       "rls_forcada": true,
       "anon_select": false,
       "auth_select": true,
-      "politicas": 3,
+      "politicas": 2,
       "colunas": [
         "id",
         "school_id",
@@ -5241,7 +5241,7 @@
       "rls_forcada": true,
       "anon_select": false,
       "auth_select": true,
-      "politicas": 4,
+      "politicas": 3,
       "colunas": [
         "id",
         "school_id",
@@ -5269,7 +5269,7 @@
       "rls_forcada": true,
       "anon_select": false,
       "auth_select": true,
-      "politicas": 4,
+      "politicas": 3,
       "colunas": [
         "id",
         "school_id",
@@ -5364,7 +5364,7 @@
       "politica": "academic_levels_select_authorized",
       "cmd": "SELECT",
       "papeis": "{authenticated}",
-      "usando": "private.has_permission(school_id, 'academic.structure.read'::text)",
+      "usando": "((school_id IS NOT NULL) AND (school_id IN ( SELECT private.user_permission_school_ids('academic.structure.read'::text) AS user_permission_school_ids)))",
       "verificando": "",
       "modo": "PERMISSIVE"
     },
@@ -5382,7 +5382,7 @@
       "politica": "Read academic_schedules in own school",
       "cmd": "SELECT",
       "papeis": "{authenticated}",
-      "usando": "((school_id = ( SELECT current_school_id() AS current_school_id)) AND (deleted_at IS NULL) AND is_school_office(school_id))",
+      "usando": "((school_id = ( SELECT current_school_id() AS current_school_id)) AND (deleted_at IS NULL) AND ((school_id IS NOT NULL) AND (school_id IN ( SELECT private.user_role_school_ids(ARRAY['owner'::text, 'admin'::text, 'administrador'::text, 'secretary'::text, 'secretaria'::text]) AS user_role_school_ids))))",
       "verificando": "",
       "modo": "PERMISSIVE"
     },
@@ -5406,15 +5406,6 @@
     },
     {
       "tabela": "academic_years",
-      "politica": "Read academic_years in own school",
-      "cmd": "SELECT",
-      "papeis": "{authenticated}",
-      "usando": "(is_school_member(school_id) AND is_school_office(school_id))",
-      "verificando": "",
-      "modo": "PERMISSIVE"
-    },
-    {
-      "tabela": "academic_years",
       "politica": "Update academic_years in own school",
       "cmd": "UPDATE",
       "papeis": "{authenticated}",
@@ -5424,19 +5415,10 @@
     },
     {
       "tabela": "academic_years",
-      "politica": "academic_years_select_authorized",
+      "politica": "academic_years_read",
       "cmd": "SELECT",
       "papeis": "{authenticated}",
-      "usando": "private.has_permission(school_id, 'academic.structure.read'::text)",
-      "verificando": "",
-      "modo": "PERMISSIVE"
-    },
-    {
-      "tabela": "announcements",
-      "politica": "Read school announcements",
-      "cmd": "SELECT",
-      "papeis": "{authenticated}",
-      "usando": "is_school_member(school_id)",
+      "usando": "(((school_id IS NOT NULL) AND (school_id IN ( SELECT private.user_member_school_ids() AS user_member_school_ids)) AND ((school_id IS NOT NULL) AND (school_id IN ( SELECT private.user_role_school_ids(ARRAY['owner'::text, 'admin'::text, 'administrador'::text, 'secretary'::text, 'secretaria'::text]) AS user_role_school_ids)))) OR ((school_id IS NOT NULL) AND (school_id IN ( SELECT private.user_permission_school_ids('academic.structure.read'::text) AS user_permission_school_ids))))",
       "verificando": "",
       "modo": "PERMISSIVE"
     },
@@ -5451,10 +5433,10 @@
     },
     {
       "tabela": "announcements",
-      "politica": "announcements_select",
+      "politica": "announcements_read",
       "cmd": "SELECT",
       "papeis": "{authenticated}",
-      "usando": "(private.has_permission(school_id, 'communication.announcements.manage'::text) OR ((status = 'published'::text) AND private.is_active_member(school_id)) OR private.has_permission(school_id, 'communication.announcements.read'::text))",
+      "usando": "(((school_id IS NOT NULL) AND (school_id IN ( SELECT private.user_member_school_ids() AS user_member_school_ids))) OR (((school_id IS NOT NULL) AND (school_id IN ( SELECT private.user_permission_school_ids('communication.announcements.manage'::text) AS user_permission_school_ids))) OR ((status = 'published'::text) AND ((school_id IS NOT NULL) AND (school_id IN ( SELECT private.user_member_school_ids() AS user_member_school_ids)))) OR ((school_id IS NOT NULL) AND (school_id IN ( SELECT private.user_permission_school_ids('communication.announcements.read'::text) AS user_permission_school_ids)))))",
       "verificando": "",
       "modo": "PERMISSIVE"
     },
@@ -5472,7 +5454,7 @@
       "politica": "assessment_key_subjects_select_authorized",
       "cmd": "SELECT",
       "papeis": "{authenticated}",
-      "usando": "private.has_permission(school_id, 'academic.structure.read'::text)",
+      "usando": "((school_id IS NOT NULL) AND (school_id IN ( SELECT private.user_permission_school_ids('academic.structure.read'::text) AS user_permission_school_ids)))",
       "verificando": "",
       "modo": "PERMISSIVE"
     },
@@ -5481,7 +5463,7 @@
       "politica": "assessment_rule_sets_select_authorized",
       "cmd": "SELECT",
       "papeis": "{authenticated}",
-      "usando": "private.has_permission(school_id, 'academic.structure.read'::text)",
+      "usando": "((school_id IS NOT NULL) AND (school_id IN ( SELECT private.user_permission_school_ids('academic.structure.read'::text) AS user_permission_school_ids)))",
       "verificando": "",
       "modo": "PERMISSIVE"
     },
@@ -5490,8 +5472,8 @@
       "politica": "School staff only",
       "cmd": "ALL",
       "papeis": "{authenticated}",
-      "usando": "private.is_school_staff(school_id)",
-      "verificando": "private.is_school_staff(school_id)",
+      "usando": "(school_id IN ( SELECT private.user_role_school_ids(ARRAY['owner'::text, 'admin'::text, 'administrador'::text, 'secretary'::text, 'secretaria'::text, 'treasury'::text, 'tesouraria'::text, 'finance'::text, 'teacher'::text, 'professor'::text]) AS user_role_school_ids))",
+      "verificando": "(school_id IN ( SELECT private.user_role_school_ids(ARRAY['owner'::text, 'admin'::text, 'administrador'::text, 'secretary'::text, 'secretaria'::text, 'treasury'::text, 'tesouraria'::text, 'finance'::text, 'teacher'::text, 'professor'::text]) AS user_role_school_ids))",
       "modo": "RESTRICTIVE"
     },
     {
@@ -5499,7 +5481,7 @@
       "politica": "attendance_records_select_authorized",
       "cmd": "SELECT",
       "papeis": "{authenticated}",
-      "usando": "private.has_permission(school_id, 'attendance.records.read'::text)",
+      "usando": "((school_id IS NOT NULL) AND (school_id IN ( SELECT private.user_permission_school_ids('attendance.records.read'::text) AS user_permission_school_ids)))",
       "verificando": "",
       "modo": "PERMISSIVE"
     },
@@ -5508,8 +5490,8 @@
       "politica": "School staff only",
       "cmd": "ALL",
       "papeis": "{authenticated}",
-      "usando": "private.is_school_staff(school_id)",
-      "verificando": "private.is_school_staff(school_id)",
+      "usando": "(school_id IN ( SELECT private.user_role_school_ids(ARRAY['owner'::text, 'admin'::text, 'administrador'::text, 'secretary'::text, 'secretaria'::text, 'treasury'::text, 'tesouraria'::text, 'finance'::text, 'teacher'::text, 'professor'::text]) AS user_role_school_ids))",
+      "verificando": "(school_id IN ( SELECT private.user_role_school_ids(ARRAY['owner'::text, 'admin'::text, 'administrador'::text, 'secretary'::text, 'secretaria'::text, 'treasury'::text, 'tesouraria'::text, 'finance'::text, 'teacher'::text, 'professor'::text]) AS user_role_school_ids))",
       "modo": "RESTRICTIVE"
     },
     {
@@ -5517,7 +5499,7 @@
       "politica": "attendance_session_roster_select_authorized",
       "cmd": "SELECT",
       "papeis": "{authenticated}",
-      "usando": "private.has_permission(school_id, 'attendance.records.read'::text)",
+      "usando": "((school_id IS NOT NULL) AND (school_id IN ( SELECT private.user_permission_school_ids('attendance.records.read'::text) AS user_permission_school_ids)))",
       "verificando": "",
       "modo": "PERMISSIVE"
     },
@@ -5526,8 +5508,8 @@
       "politica": "School staff only",
       "cmd": "ALL",
       "papeis": "{authenticated}",
-      "usando": "private.is_school_staff(school_id)",
-      "verificando": "private.is_school_staff(school_id)",
+      "usando": "(school_id IN ( SELECT private.user_role_school_ids(ARRAY['owner'::text, 'admin'::text, 'administrador'::text, 'secretary'::text, 'secretaria'::text, 'treasury'::text, 'tesouraria'::text, 'finance'::text, 'teacher'::text, 'professor'::text]) AS user_role_school_ids))",
+      "verificando": "(school_id IN ( SELECT private.user_role_school_ids(ARRAY['owner'::text, 'admin'::text, 'administrador'::text, 'secretary'::text, 'secretaria'::text, 'treasury'::text, 'tesouraria'::text, 'finance'::text, 'teacher'::text, 'professor'::text]) AS user_role_school_ids))",
       "modo": "RESTRICTIVE"
     },
     {
@@ -5535,7 +5517,7 @@
       "politica": "attendance_sessions_select_authorized",
       "cmd": "SELECT",
       "papeis": "{authenticated}",
-      "usando": "private.has_permission(school_id, 'attendance.records.read'::text)",
+      "usando": "((school_id IS NOT NULL) AND (school_id IN ( SELECT private.user_permission_school_ids('attendance.records.read'::text) AS user_permission_school_ids)))",
       "verificando": "",
       "modo": "PERMISSIVE"
     },
@@ -5544,7 +5526,7 @@
       "politica": "audit_select_authorized",
       "cmd": "SELECT",
       "papeis": "{authenticated}",
-      "usando": "private.has_permission(school_id, 'audit.logs.read'::text)",
+      "usando": "((school_id IS NOT NULL) AND (school_id IN ( SELECT private.user_permission_school_ids('audit.logs.read'::text) AS user_permission_school_ids)))",
       "verificando": "",
       "modo": "PERMISSIVE"
     },
@@ -5571,25 +5553,7 @@
       "politica": "campuses_select_authorized",
       "cmd": "SELECT",
       "papeis": "{authenticated}",
-      "usando": "private.has_permission(school_id, 'academic.structure.read'::text)",
-      "verificando": "",
-      "modo": "PERMISSIVE"
-    },
-    {
-      "tabela": "class_groups",
-      "politica": "Professor reads assigned class groups",
-      "cmd": "SELECT",
-      "papeis": "{authenticated}",
-      "usando": "(is_school_member(school_id) AND (EXISTS ( SELECT 1\n   FROM (class_subjects cs\n     JOIN teachers t ON (((t.id = cs.teacher_id) AND (t.school_id = cs.school_id))))\n  WHERE ((cs.school_id = class_groups.school_id) AND (cs.class_group_id = class_groups.id) AND (cs.status = 'active'::text) AND (t.status = 'active'::text) AND (t.user_id = ( SELECT auth.uid() AS uid))))))",
-      "verificando": "",
-      "modo": "PERMISSIVE"
-    },
-    {
-      "tabela": "class_groups",
-      "politica": "Read class_groups in own school",
-      "cmd": "SELECT",
-      "papeis": "{authenticated}",
-      "usando": "(is_school_member(school_id) AND is_school_office(school_id))",
+      "usando": "((school_id IS NOT NULL) AND (school_id IN ( SELECT private.user_permission_school_ids('academic.structure.read'::text) AS user_permission_school_ids)))",
       "verificando": "",
       "modo": "PERMISSIVE"
     },
@@ -5604,10 +5568,10 @@
     },
     {
       "tabela": "class_groups",
-      "politica": "class_groups_select_authorized",
+      "politica": "class_groups_read",
       "cmd": "SELECT",
       "papeis": "{authenticated}",
-      "usando": "private.has_permission(school_id, 'academic.classes.read'::text)",
+      "usando": "((school_id IN ( SELECT private.user_permission_school_ids('academic.classes.read'::text) AS user_permission_school_ids)) OR ((school_id IN ( SELECT private.user_member_school_ids() AS user_member_school_ids)) AND ((school_id IN ( SELECT private.user_role_school_ids(ARRAY['owner'::text, 'admin'::text, 'administrador'::text, 'secretary'::text, 'secretaria'::text]) AS user_role_school_ids)) OR ((school_id, id) IN ( SELECT tc.school_id,\n    tc.class_group_id\n   FROM private.teacher_class_subjects(true) tc(school_id, class_subject_id, class_group_id, subject_id))))))",
       "verificando": "",
       "modo": "PERMISSIVE"
     },
@@ -5631,15 +5595,6 @@
     },
     {
       "tabela": "class_subjects",
-      "politica": "Academic read class subjects",
-      "cmd": "SELECT",
-      "papeis": "{authenticated}",
-      "usando": "(is_school_member(school_id) AND (is_school_office(school_id) OR (EXISTS ( SELECT 1\n   FROM teachers t\n  WHERE ((t.id = class_subjects.teacher_id) AND (t.school_id = class_subjects.school_id) AND (t.status = 'active'::text) AND (t.user_id = ( SELECT auth.uid() AS uid))))) OR (NOT (EXISTS ( SELECT 1\n   FROM teachers self_teacher\n  WHERE ((self_teacher.school_id = class_subjects.school_id) AND (self_teacher.status = 'active'::text) AND (self_teacher.user_id = ( SELECT auth.uid() AS uid))))))))",
-      "verificando": "",
-      "modo": "PERMISSIVE"
-    },
-    {
-      "tabela": "class_subjects",
       "politica": "Academic update class subjects",
       "cmd": "UPDATE",
       "papeis": "{authenticated}",
@@ -5649,10 +5604,10 @@
     },
     {
       "tabela": "class_subjects",
-      "politica": "class_subjects_select_authorized",
+      "politica": "class_subjects_read",
       "cmd": "SELECT",
       "papeis": "{authenticated}",
-      "usando": "private.has_permission(school_id, 'academic.timetable.read'::text)",
+      "usando": "((school_id IN ( SELECT private.user_permission_school_ids('academic.timetable.read'::text) AS user_permission_school_ids)) OR ((school_id IN ( SELECT private.user_member_school_ids() AS user_member_school_ids)) AND ((school_id IN ( SELECT private.user_role_school_ids(ARRAY['owner'::text, 'admin'::text, 'administrador'::text, 'secretary'::text, 'secretaria'::text]) AS user_role_school_ids)) OR ((school_id, teacher_id) IN ( SELECT ct.school_id,\n    ct.teacher_id\n   FROM private.current_teacher_rows() ct(school_id, teacher_id))) OR (NOT (school_id IN ( SELECT ct.school_id\n   FROM private.current_teacher_rows() ct(school_id, teacher_id)))))))",
       "verificando": "",
       "modo": "PERMISSIVE"
     },
@@ -5706,7 +5661,7 @@
       "politica": "Read curricula in own school",
       "cmd": "SELECT",
       "papeis": "{authenticated}",
-      "usando": "((school_id = ( SELECT current_school_id() AS current_school_id)) AND (deleted_at IS NULL) AND is_school_office(school_id))",
+      "usando": "((school_id = ( SELECT current_school_id() AS current_school_id)) AND (deleted_at IS NULL) AND ((school_id IS NOT NULL) AND (school_id IN ( SELECT private.user_role_school_ids(ARRAY['owner'::text, 'admin'::text, 'administrador'::text, 'secretary'::text, 'secretaria'::text]) AS user_role_school_ids))))",
       "verificando": "",
       "modo": "PERMISSIVE"
     },
@@ -5733,7 +5688,7 @@
       "politica": "Read curriculum_areas in own school",
       "cmd": "SELECT",
       "papeis": "{authenticated}",
-      "usando": "((school_id = ( SELECT current_school_id() AS current_school_id)) AND (deleted_at IS NULL) AND is_school_office(school_id))",
+      "usando": "((school_id = ( SELECT current_school_id() AS current_school_id)) AND (deleted_at IS NULL) AND ((school_id IS NOT NULL) AND (school_id IN ( SELECT private.user_role_school_ids(ARRAY['owner'::text, 'admin'::text, 'administrador'::text, 'secretary'::text, 'secretaria'::text]) AS user_role_school_ids))))",
       "verificando": "",
       "modo": "PERMISSIVE"
     },
@@ -5760,7 +5715,7 @@
       "politica": "Read curriculum_subjects in own school",
       "cmd": "SELECT",
       "papeis": "{authenticated}",
-      "usando": "((school_id = ( SELECT current_school_id() AS current_school_id)) AND (deleted_at IS NULL) AND is_school_office(school_id))",
+      "usando": "((school_id = ( SELECT current_school_id() AS current_school_id)) AND (deleted_at IS NULL) AND ((school_id IS NOT NULL) AND (school_id IN ( SELECT private.user_role_school_ids(ARRAY['owner'::text, 'admin'::text, 'administrador'::text, 'secretary'::text, 'secretaria'::text]) AS user_role_school_ids))))",
       "verificando": "",
       "modo": "PERMISSIVE"
     },
@@ -5778,8 +5733,8 @@
       "politica": "School staff only",
       "cmd": "ALL",
       "papeis": "{authenticated}",
-      "usando": "private.is_school_staff(school_id)",
-      "verificando": "private.is_school_staff(school_id)",
+      "usando": "(school_id IN ( SELECT private.user_role_school_ids(ARRAY['owner'::text, 'admin'::text, 'administrador'::text, 'secretary'::text, 'secretaria'::text, 'treasury'::text, 'tesouraria'::text, 'finance'::text, 'teacher'::text, 'professor'::text]) AS user_role_school_ids))",
+      "verificando": "(school_id IN ( SELECT private.user_role_school_ids(ARRAY['owner'::text, 'admin'::text, 'administrador'::text, 'secretary'::text, 'secretaria'::text, 'treasury'::text, 'tesouraria'::text, 'finance'::text, 'teacher'::text, 'professor'::text]) AS user_role_school_ids))",
       "modo": "RESTRICTIVE"
     },
     {
@@ -5796,7 +5751,7 @@
       "politica": "document_requests_select",
       "cmd": "SELECT",
       "papeis": "{authenticated}",
-      "usando": "private.has_permission(school_id, 'documents.requests.read'::text)",
+      "usando": "((school_id IS NOT NULL) AND (school_id IN ( SELECT private.user_permission_school_ids('documents.requests.read'::text) AS user_permission_school_ids)))",
       "verificando": "",
       "modo": "PERMISSIVE"
     },
@@ -5814,7 +5769,7 @@
       "politica": "document_sequences_select_authorized",
       "cmd": "SELECT",
       "papeis": "{authenticated}",
-      "usando": "private.has_permission(school_id, 'finance.settings.read'::text)",
+      "usando": "((school_id IS NOT NULL) AND (school_id IN ( SELECT private.user_permission_school_ids('finance.settings.read'::text) AS user_permission_school_ids)))",
       "verificando": "",
       "modo": "PERMISSIVE"
     },
@@ -5823,8 +5778,8 @@
       "politica": "School staff only",
       "cmd": "ALL",
       "papeis": "{authenticated}",
-      "usando": "private.is_school_staff(school_id)",
-      "verificando": "private.is_school_staff(school_id)",
+      "usando": "(school_id IN ( SELECT private.user_role_school_ids(ARRAY['owner'::text, 'admin'::text, 'administrador'::text, 'secretary'::text, 'secretaria'::text, 'treasury'::text, 'tesouraria'::text, 'finance'::text, 'teacher'::text, 'professor'::text]) AS user_role_school_ids))",
+      "verificando": "(school_id IN ( SELECT private.user_role_school_ids(ARRAY['owner'::text, 'admin'::text, 'administrador'::text, 'secretary'::text, 'secretaria'::text, 'treasury'::text, 'tesouraria'::text, 'finance'::text, 'teacher'::text, 'professor'::text]) AS user_role_school_ids))",
       "modo": "RESTRICTIVE"
     },
     {
@@ -5841,7 +5796,7 @@
       "politica": "document_signatures_select",
       "cmd": "SELECT",
       "papeis": "{authenticated}",
-      "usando": "(private.has_permission(school_id, 'documents.signatures.read'::text) OR private.has_permission(school_id, 'documents.issued.read'::text))",
+      "usando": "(((school_id IS NOT NULL) AND (school_id IN ( SELECT private.user_permission_school_ids('documents.signatures.read'::text) AS user_permission_school_ids))) OR ((school_id IS NOT NULL) AND (school_id IN ( SELECT private.user_permission_school_ids('documents.issued.read'::text) AS user_permission_school_ids))))",
       "verificando": "",
       "modo": "PERMISSIVE"
     },
@@ -5868,7 +5823,7 @@
       "politica": "document_templates_select",
       "cmd": "SELECT",
       "papeis": "{authenticated}",
-      "usando": "(private.has_permission(school_id, 'documents.templates.read'::text) OR private.has_permission(school_id, 'documents.issued.issue'::text))",
+      "usando": "(((school_id IS NOT NULL) AND (school_id IN ( SELECT private.user_permission_school_ids('documents.templates.read'::text) AS user_permission_school_ids))) OR ((school_id IS NOT NULL) AND (school_id IN ( SELECT private.user_permission_school_ids('documents.issued.issue'::text) AS user_permission_school_ids))))",
       "verificando": "",
       "modo": "PERMISSIVE"
     },
@@ -5895,7 +5850,7 @@
       "politica": "Office reads enrollment applications",
       "cmd": "SELECT",
       "papeis": "{authenticated}",
-      "usando": "(is_school_office(school_id) AND (deleted_at IS NULL))",
+      "usando": "((school_id IS NOT NULL) AND (school_id IN ( SELECT private.user_role_school_ids(ARRAY['owner'::text, 'admin'::text, 'administrador'::text, 'secretary'::text, 'secretaria'::text]) AS user_role_school_ids)) AND (deleted_at IS NULL))",
       "verificando": "",
       "modo": "PERMISSIVE"
     },
@@ -5905,7 +5860,7 @@
       "cmd": "INSERT",
       "papeis": "{anon}",
       "usando": "",
-      "verificando": "((status = 'pending'::text) AND (EXISTS ( SELECT 1\n   FROM enrollment_forms forms\n  WHERE ((forms.id = enrollment_applications.form_id) AND (forms.school_id = forms.school_id) AND (forms.is_open = true) AND (forms.deleted_at IS NULL)))))",
+      "verificando": "((status = 'pending'::text) AND (decided_at IS NULL) AND (decided_by IS NULL) AND (student_id IS NULL) AND (deleted_at IS NULL) AND (EXISTS ( SELECT 1\n   FROM enrollment_forms forms\n  WHERE ((forms.id = enrollment_applications.form_id) AND (forms.school_id = enrollment_applications.school_id) AND (forms.is_open = true) AND (forms.deleted_at IS NULL)))))",
       "modo": "PERMISSIVE"
     },
     {
@@ -5922,34 +5877,16 @@
       "politica": "Read enrollment forms in own school",
       "cmd": "SELECT",
       "papeis": "{authenticated}",
-      "usando": "(is_school_member(school_id) AND (deleted_at IS NULL))",
+      "usando": "((school_id IS NOT NULL) AND (school_id IN ( SELECT private.user_member_school_ids() AS user_member_school_ids)) AND (deleted_at IS NULL))",
       "verificando": "",
       "modo": "PERMISSIVE"
     },
     {
       "tabela": "enrollments",
-      "politica": "Professor reads assigned enrollments",
+      "politica": "enrollments_read",
       "cmd": "SELECT",
       "papeis": "{authenticated}",
-      "usando": "(is_school_member(school_id) AND (status = ANY (ARRAY['active'::text, 'pending'::text])) AND (EXISTS ( SELECT 1\n   FROM (class_subjects cs\n     JOIN teachers t ON (((t.id = cs.teacher_id) AND (t.school_id = cs.school_id))))\n  WHERE ((cs.school_id = enrollments.school_id) AND (cs.class_group_id = enrollments.class_group_id) AND (cs.status = 'active'::text) AND (t.status = 'active'::text) AND (t.user_id = ( SELECT auth.uid() AS uid))))))",
-      "verificando": "",
-      "modo": "PERMISSIVE"
-    },
-    {
-      "tabela": "enrollments",
-      "politica": "Read enrollments in own school",
-      "cmd": "SELECT",
-      "papeis": "{authenticated}",
-      "usando": "(is_school_member(school_id) AND is_school_office(school_id))",
-      "verificando": "",
-      "modo": "PERMISSIVE"
-    },
-    {
-      "tabela": "enrollments",
-      "politica": "enrollments_select_authorized",
-      "cmd": "SELECT",
-      "papeis": "{authenticated}",
-      "usando": "private.has_permission(school_id, 'students.enrollments.read'::text)",
+      "usando": "((school_id IN ( SELECT private.user_permission_school_ids('students.enrollments.read'::text) AS user_permission_school_ids)) OR ((school_id IN ( SELECT private.user_member_school_ids() AS user_member_school_ids)) AND ((school_id IN ( SELECT private.user_role_school_ids(ARRAY['owner'::text, 'admin'::text, 'administrador'::text, 'secretary'::text, 'secretaria'::text]) AS user_role_school_ids)) OR ((status = ANY (ARRAY['active'::text, 'pending'::text])) AND ((school_id, class_group_id) IN ( SELECT tc.school_id,\n    tc.class_group_id\n   FROM private.teacher_class_subjects(true) tc(school_id, class_subject_id, class_group_id, subject_id)))))))",
       "verificando": "",
       "modo": "PERMISSIVE"
     },
@@ -5967,7 +5904,7 @@
       "politica": "fee_items_select_authorized",
       "cmd": "SELECT",
       "papeis": "{authenticated}",
-      "usando": "private.has_permission(school_id, 'finance.settings.read'::text)",
+      "usando": "((school_id IS NOT NULL) AND (school_id IN ( SELECT private.user_permission_school_ids('finance.settings.read'::text) AS user_permission_school_ids)))",
       "verificando": "",
       "modo": "PERMISSIVE"
     },
@@ -5976,7 +5913,7 @@
       "politica": "fee_plans_select_authorized",
       "cmd": "SELECT",
       "papeis": "{authenticated}",
-      "usando": "private.has_permission(school_id, 'finance.settings.read'::text)",
+      "usando": "((school_id IS NOT NULL) AND (school_id IN ( SELECT private.user_permission_school_ids('finance.settings.read'::text) AS user_permission_school_ids)))",
       "verificando": "",
       "modo": "PERMISSIVE"
     },
@@ -5985,8 +5922,8 @@
       "politica": "School staff only",
       "cmd": "ALL",
       "papeis": "{authenticated}",
-      "usando": "private.is_school_staff(school_id)",
-      "verificando": "private.is_school_staff(school_id)",
+      "usando": "(school_id IN ( SELECT private.user_role_school_ids(ARRAY['owner'::text, 'admin'::text, 'administrador'::text, 'secretary'::text, 'secretaria'::text, 'treasury'::text, 'tesouraria'::text, 'finance'::text, 'teacher'::text, 'professor'::text]) AS user_role_school_ids))",
+      "verificando": "(school_id IN ( SELECT private.user_role_school_ids(ARRAY['owner'::text, 'admin'::text, 'administrador'::text, 'secretary'::text, 'secretaria'::text, 'treasury'::text, 'tesouraria'::text, 'finance'::text, 'teacher'::text, 'professor'::text]) AS user_role_school_ids))",
       "modo": "RESTRICTIVE"
     },
     {
@@ -5994,7 +5931,7 @@
       "politica": "finance_contracts_select_authorized",
       "cmd": "SELECT",
       "papeis": "{authenticated}",
-      "usando": "private.has_permission(school_id, 'finance.contracts.read'::text)",
+      "usando": "((school_id IS NOT NULL) AND (school_id IN ( SELECT private.user_permission_school_ids('finance.contracts.read'::text) AS user_permission_school_ids)))",
       "verificando": "",
       "modo": "PERMISSIVE"
     },
@@ -6003,7 +5940,7 @@
       "politica": "Read gateway webhook events in own school",
       "cmd": "SELECT",
       "papeis": "{authenticated}",
-      "usando": "(is_school_member(school_id) AND ((( SELECT current_profile_role() AS current_profile_role) = ANY (ARRAY['Administrador'::text, 'Tesouraria'::text, 'owner'::text, 'admin'::text, 'treasury'::text, 'finance'::text])) OR (EXISTS ( SELECT 1\n   FROM profiles\n  WHERE ((profiles.id = ( SELECT auth.uid() AS uid)) AND (profiles.cargo = ANY (ARRAY['Administrador'::text, 'Tesouraria'::text])))))))",
+      "usando": "((school_id IS NOT NULL) AND (school_id IN ( SELECT private.user_member_school_ids() AS user_member_school_ids)) AND ((( SELECT current_profile_role() AS current_profile_role) = ANY (ARRAY['Administrador'::text, 'Tesouraria'::text, 'owner'::text, 'admin'::text, 'treasury'::text, 'finance'::text])) OR (EXISTS ( SELECT 1\n   FROM profiles\n  WHERE ((profiles.id = ( SELECT auth.uid() AS uid)) AND (profiles.cargo = ANY (ARRAY['Administrador'::text, 'Tesouraria'::text])))))))",
       "verificando": "",
       "modo": "PERMISSIVE"
     },
@@ -6012,7 +5949,7 @@
       "politica": "Read own school invoice events",
       "cmd": "SELECT",
       "papeis": "{authenticated}",
-      "usando": "((school_id = ( SELECT current_school_id() AS current_school_id)) AND (is_school_finance(school_id) OR is_school_office(school_id)))",
+      "usando": "((school_id = ( SELECT current_school_id() AS current_school_id)) AND (is_school_finance(school_id) OR ((school_id IS NOT NULL) AND (school_id IN ( SELECT private.user_role_school_ids(ARRAY['owner'::text, 'admin'::text, 'administrador'::text, 'secretary'::text, 'secretaria'::text]) AS user_role_school_ids)))))",
       "verificando": "",
       "modo": "PERMISSIVE"
     },
@@ -6021,8 +5958,8 @@
       "politica": "School staff only",
       "cmd": "ALL",
       "papeis": "{authenticated}",
-      "usando": "private.is_school_staff(school_id)",
-      "verificando": "private.is_school_staff(school_id)",
+      "usando": "(school_id IN ( SELECT private.user_role_school_ids(ARRAY['owner'::text, 'admin'::text, 'administrador'::text, 'secretary'::text, 'secretaria'::text, 'treasury'::text, 'tesouraria'::text, 'finance'::text, 'teacher'::text, 'professor'::text]) AS user_role_school_ids))",
+      "verificando": "(school_id IN ( SELECT private.user_role_school_ids(ARRAY['owner'::text, 'admin'::text, 'administrador'::text, 'secretary'::text, 'secretaria'::text, 'treasury'::text, 'tesouraria'::text, 'finance'::text, 'teacher'::text, 'professor'::text]) AS user_role_school_ids))",
       "modo": "RESTRICTIVE"
     },
     {
@@ -6030,7 +5967,7 @@
       "politica": "finance_invoices_select_authorized",
       "cmd": "SELECT",
       "papeis": "{authenticated}",
-      "usando": "private.has_permission(school_id, 'finance.invoices.read'::text)",
+      "usando": "((school_id IS NOT NULL) AND (school_id IN ( SELECT private.user_permission_school_ids('finance.invoices.read'::text) AS user_permission_school_ids)))",
       "verificando": "",
       "modo": "PERMISSIVE"
     },
@@ -6039,8 +5976,8 @@
       "politica": "School staff only",
       "cmd": "ALL",
       "papeis": "{authenticated}",
-      "usando": "private.is_school_staff(school_id)",
-      "verificando": "private.is_school_staff(school_id)",
+      "usando": "(school_id IN ( SELECT private.user_role_school_ids(ARRAY['owner'::text, 'admin'::text, 'administrador'::text, 'secretary'::text, 'secretaria'::text, 'treasury'::text, 'tesouraria'::text, 'finance'::text, 'teacher'::text, 'professor'::text]) AS user_role_school_ids))",
+      "verificando": "(school_id IN ( SELECT private.user_role_school_ids(ARRAY['owner'::text, 'admin'::text, 'administrador'::text, 'secretary'::text, 'secretaria'::text, 'treasury'::text, 'tesouraria'::text, 'finance'::text, 'teacher'::text, 'professor'::text]) AS user_role_school_ids))",
       "modo": "RESTRICTIVE"
     },
     {
@@ -6048,7 +5985,7 @@
       "politica": "finance_payment_plans_select_finance",
       "cmd": "SELECT",
       "papeis": "{authenticated}",
-      "usando": "(is_school_member(school_id) AND (private.sga_app_role(school_id) = ANY (ARRAY['Administrador'::text, 'Tesouraria'::text])))",
+      "usando": "((school_id IS NOT NULL) AND (school_id IN ( SELECT private.user_member_school_ids() AS user_member_school_ids)) AND (private.sga_app_role(school_id) = ANY (ARRAY['Administrador'::text, 'Tesouraria'::text])))",
       "verificando": "",
       "modo": "PERMISSIVE"
     },
@@ -6057,8 +5994,8 @@
       "politica": "School staff only",
       "cmd": "ALL",
       "papeis": "{authenticated}",
-      "usando": "private.is_school_staff(school_id)",
-      "verificando": "private.is_school_staff(school_id)",
+      "usando": "(school_id IN ( SELECT private.user_role_school_ids(ARRAY['owner'::text, 'admin'::text, 'administrador'::text, 'secretary'::text, 'secretaria'::text, 'treasury'::text, 'tesouraria'::text, 'finance'::text, 'teacher'::text, 'professor'::text]) AS user_role_school_ids))",
+      "verificando": "(school_id IN ( SELECT private.user_role_school_ids(ARRAY['owner'::text, 'admin'::text, 'administrador'::text, 'secretary'::text, 'secretaria'::text, 'treasury'::text, 'tesouraria'::text, 'finance'::text, 'teacher'::text, 'professor'::text]) AS user_role_school_ids))",
       "modo": "RESTRICTIVE"
     },
     {
@@ -6066,7 +6003,7 @@
       "politica": "finance_receipts_select_authorized",
       "cmd": "SELECT",
       "papeis": "{authenticated}",
-      "usando": "private.has_permission(school_id, 'finance.invoices.read'::text)",
+      "usando": "((school_id IS NOT NULL) AND (school_id IN ( SELECT private.user_permission_school_ids('finance.invoices.read'::text) AS user_permission_school_ids)))",
       "verificando": "",
       "modo": "PERMISSIVE"
     },
@@ -6075,16 +6012,7 @@
       "politica": "financial_rules_select_authorized",
       "cmd": "SELECT",
       "papeis": "{authenticated}",
-      "usando": "private.has_permission(school_id, 'finance.settings.read'::text)",
-      "verificando": "",
-      "modo": "PERMISSIVE"
-    },
-    {
-      "tabela": "grade_items",
-      "politica": "Academic read grade items",
-      "cmd": "SELECT",
-      "papeis": "{authenticated}",
-      "usando": "(is_school_member(school_id) AND (is_school_office(school_id) OR (EXISTS ( SELECT 1\n   FROM ((gradebooks gb\n     JOIN class_subjects cs ON (((cs.id = gb.class_subject_id) AND (cs.school_id = gb.school_id))))\n     JOIN teachers t ON (((t.id = cs.teacher_id) AND (t.school_id = cs.school_id))))\n  WHERE ((gb.id = grade_items.gradebook_id) AND (gb.school_id = grade_items.school_id) AND (cs.status = 'active'::text) AND (t.user_id = ( SELECT auth.uid() AS uid)))))))",
+      "usando": "((school_id IS NOT NULL) AND (school_id IN ( SELECT private.user_permission_school_ids('finance.settings.read'::text) AS user_permission_school_ids)))",
       "verificando": "",
       "modo": "PERMISSIVE"
     },
@@ -6093,8 +6021,8 @@
       "politica": "School staff only",
       "cmd": "ALL",
       "papeis": "{authenticated}",
-      "usando": "private.is_school_staff(school_id)",
-      "verificando": "private.is_school_staff(school_id)",
+      "usando": "(school_id IN ( SELECT private.user_role_school_ids(ARRAY['owner'::text, 'admin'::text, 'administrador'::text, 'secretary'::text, 'secretaria'::text, 'treasury'::text, 'tesouraria'::text, 'finance'::text, 'teacher'::text, 'professor'::text]) AS user_role_school_ids))",
+      "verificando": "(school_id IN ( SELECT private.user_role_school_ids(ARRAY['owner'::text, 'admin'::text, 'administrador'::text, 'secretary'::text, 'secretaria'::text, 'treasury'::text, 'tesouraria'::text, 'finance'::text, 'teacher'::text, 'professor'::text]) AS user_role_school_ids))",
       "modo": "RESTRICTIVE"
     },
     {
@@ -6108,10 +6036,10 @@
     },
     {
       "tabela": "grade_items",
-      "politica": "grade_items_select",
+      "politica": "grade_items_read",
       "cmd": "SELECT",
       "papeis": "{authenticated}",
-      "usando": "private.has_permission(school_id, 'assessment.grades.read'::text)",
+      "usando": "((school_id IN ( SELECT private.user_permission_school_ids('assessment.grades.read'::text) AS user_permission_school_ids)) OR ((school_id IN ( SELECT private.user_member_school_ids() AS user_member_school_ids)) AND ((school_id IN ( SELECT private.user_role_school_ids(ARRAY['owner'::text, 'admin'::text, 'administrador'::text, 'secretary'::text, 'secretaria'::text]) AS user_role_school_ids)) OR ((school_id, gradebook_id) IN ( SELECT tg.school_id,\n    tg.gradebook_id\n   FROM private.teacher_gradebooks() tg(school_id, gradebook_id))))))",
       "verificando": "",
       "modo": "PERMISSIVE"
     },
@@ -6135,15 +6063,6 @@
     },
     {
       "tabela": "grade_levels",
-      "politica": "Read grade_levels in own school",
-      "cmd": "SELECT",
-      "papeis": "{authenticated}",
-      "usando": "(is_school_member(school_id) AND is_school_office(school_id))",
-      "verificando": "",
-      "modo": "PERMISSIVE"
-    },
-    {
-      "tabela": "grade_levels",
       "politica": "Update grade_levels in own school",
       "cmd": "UPDATE",
       "papeis": "{authenticated}",
@@ -6153,19 +6072,10 @@
     },
     {
       "tabela": "grade_levels",
-      "politica": "grade_levels_select_authorized",
+      "politica": "grade_levels_read",
       "cmd": "SELECT",
       "papeis": "{authenticated}",
-      "usando": "private.has_permission(school_id, 'academic.structure.read'::text)",
-      "verificando": "",
-      "modo": "PERMISSIVE"
-    },
-    {
-      "tabela": "grade_scores",
-      "politica": "Academic read grade scores",
-      "cmd": "SELECT",
-      "papeis": "{authenticated}",
-      "usando": "(is_school_member(school_id) AND (is_school_office(school_id) OR (EXISTS ( SELECT 1\n   FROM (((grade_items gi\n     JOIN gradebooks gb ON (((gb.id = gi.gradebook_id) AND (gb.school_id = gi.school_id))))\n     JOIN class_subjects cs ON (((cs.id = gb.class_subject_id) AND (cs.school_id = gb.school_id))))\n     JOIN teachers t ON (((t.id = cs.teacher_id) AND (t.school_id = cs.school_id))))\n  WHERE ((gi.id = grade_scores.grade_item_id) AND (gi.school_id = grade_scores.school_id) AND (cs.status = 'active'::text) AND (t.user_id = ( SELECT auth.uid() AS uid)))))))",
+      "usando": "(((school_id IS NOT NULL) AND (school_id IN ( SELECT private.user_member_school_ids() AS user_member_school_ids)) AND ((school_id IS NOT NULL) AND (school_id IN ( SELECT private.user_role_school_ids(ARRAY['owner'::text, 'admin'::text, 'administrador'::text, 'secretary'::text, 'secretaria'::text]) AS user_role_school_ids)))) OR ((school_id IS NOT NULL) AND (school_id IN ( SELECT private.user_permission_school_ids('academic.structure.read'::text) AS user_permission_school_ids))))",
       "verificando": "",
       "modo": "PERMISSIVE"
     },
@@ -6174,8 +6084,8 @@
       "politica": "School staff only",
       "cmd": "ALL",
       "papeis": "{authenticated}",
-      "usando": "private.is_school_staff(school_id)",
-      "verificando": "private.is_school_staff(school_id)",
+      "usando": "(school_id IN ( SELECT private.user_role_school_ids(ARRAY['owner'::text, 'admin'::text, 'administrador'::text, 'secretary'::text, 'secretaria'::text, 'treasury'::text, 'tesouraria'::text, 'finance'::text, 'teacher'::text, 'professor'::text]) AS user_role_school_ids))",
+      "verificando": "(school_id IN ( SELECT private.user_role_school_ids(ARRAY['owner'::text, 'admin'::text, 'administrador'::text, 'secretary'::text, 'secretaria'::text, 'treasury'::text, 'tesouraria'::text, 'finance'::text, 'teacher'::text, 'professor'::text]) AS user_role_school_ids))",
       "modo": "RESTRICTIVE"
     },
     {
@@ -6189,10 +6099,10 @@
     },
     {
       "tabela": "grade_scores",
-      "politica": "grade_scores_select",
+      "politica": "grade_scores_read",
       "cmd": "SELECT",
       "papeis": "{authenticated}",
-      "usando": "private.has_permission(school_id, 'assessment.grades.read'::text)",
+      "usando": "((school_id IN ( SELECT private.user_permission_school_ids('assessment.grades.read'::text) AS user_permission_school_ids)) OR ((school_id IN ( SELECT private.user_member_school_ids() AS user_member_school_ids)) AND ((school_id IN ( SELECT private.user_role_school_ids(ARRAY['owner'::text, 'admin'::text, 'administrador'::text, 'secretary'::text, 'secretaria'::text]) AS user_role_school_ids)) OR ((school_id, grade_item_id) IN ( SELECT ti.school_id,\n    ti.grade_item_id\n   FROM private.teacher_grade_items() ti(school_id, grade_item_id))))))",
       "verificando": "",
       "modo": "PERMISSIVE"
     },
@@ -6210,23 +6120,41 @@
       "politica": "School staff only",
       "cmd": "ALL",
       "papeis": "{authenticated}",
-      "usando": "private.is_school_staff(school_id)",
-      "verificando": "private.is_school_staff(school_id)",
+      "usando": "(school_id IN ( SELECT private.user_role_school_ids(ARRAY['owner'::text, 'admin'::text, 'administrador'::text, 'secretary'::text, 'secretaria'::text, 'treasury'::text, 'tesouraria'::text, 'finance'::text, 'teacher'::text, 'professor'::text]) AS user_role_school_ids))",
+      "verificando": "(school_id IN ( SELECT private.user_role_school_ids(ARRAY['owner'::text, 'admin'::text, 'administrador'::text, 'secretary'::text, 'secretaria'::text, 'treasury'::text, 'tesouraria'::text, 'finance'::text, 'teacher'::text, 'professor'::text]) AS user_role_school_ids))",
       "modo": "RESTRICTIVE"
     },
     {
       "tabela": "grade_sheet_rows",
-      "politica": "grade_sheet_rows_select",
+      "politica": "grade_sheet_rows_read",
       "cmd": "SELECT",
       "papeis": "{authenticated}",
-      "usando": "private.has_permission(school_id, 'assessment.grades.read'::text)",
+      "usando": "(((school_id IS NOT NULL) AND (school_id IN ( SELECT private.user_permission_school_ids('assessment.grades.read'::text) AS user_permission_school_ids))) OR (private.is_aal2() AND ((school_id IS NOT NULL) AND (school_id IN ( SELECT private.user_permission_school_ids('assessment.grades.manage'::text) AS user_permission_school_ids)))))",
       "verificando": "",
       "modo": "PERMISSIVE"
     },
     {
       "tabela": "grade_sheet_rows",
-      "politica": "grade_sheet_rows_write",
-      "cmd": "ALL",
+      "politica": "grade_sheet_rows_write (delete)",
+      "cmd": "DELETE",
+      "papeis": "{authenticated}",
+      "usando": "(private.is_aal2() AND private.has_permission(school_id, 'assessment.grades.manage'::text))",
+      "verificando": "",
+      "modo": "PERMISSIVE"
+    },
+    {
+      "tabela": "grade_sheet_rows",
+      "politica": "grade_sheet_rows_write (insert)",
+      "cmd": "INSERT",
+      "papeis": "{authenticated}",
+      "usando": "",
+      "verificando": "(private.is_aal2() AND private.has_permission(school_id, 'assessment.grades.manage'::text))",
+      "modo": "PERMISSIVE"
+    },
+    {
+      "tabela": "grade_sheet_rows",
+      "politica": "grade_sheet_rows_write (update)",
+      "cmd": "UPDATE",
       "papeis": "{authenticated}",
       "usando": "(private.is_aal2() AND private.has_permission(school_id, 'assessment.grades.manage'::text))",
       "verificando": "(private.is_aal2() AND private.has_permission(school_id, 'assessment.grades.manage'::text))",
@@ -6237,8 +6165,8 @@
       "politica": "School staff only",
       "cmd": "ALL",
       "papeis": "{authenticated}",
-      "usando": "private.is_school_staff(school_id)",
-      "verificando": "private.is_school_staff(school_id)",
+      "usando": "(school_id IN ( SELECT private.user_role_school_ids(ARRAY['owner'::text, 'admin'::text, 'administrador'::text, 'secretary'::text, 'secretaria'::text, 'treasury'::text, 'tesouraria'::text, 'finance'::text, 'teacher'::text, 'professor'::text]) AS user_role_school_ids))",
+      "verificando": "(school_id IN ( SELECT private.user_role_school_ids(ARRAY['owner'::text, 'admin'::text, 'administrador'::text, 'secretary'::text, 'secretaria'::text, 'treasury'::text, 'tesouraria'::text, 'finance'::text, 'teacher'::text, 'professor'::text]) AS user_role_school_ids))",
       "modo": "RESTRICTIVE"
     },
     {
@@ -6255,7 +6183,7 @@
       "politica": "grade_sheets_select",
       "cmd": "SELECT",
       "papeis": "{authenticated}",
-      "usando": "private.has_permission(school_id, 'assessment.grades.read'::text)",
+      "usando": "((school_id IS NOT NULL) AND (school_id IN ( SELECT private.user_permission_school_ids('assessment.grades.read'::text) AS user_permission_school_ids)))",
       "verificando": "",
       "modo": "PERMISSIVE"
     },
@@ -6270,20 +6198,11 @@
     },
     {
       "tabela": "gradebooks",
-      "politica": "Academic read gradebooks",
-      "cmd": "SELECT",
-      "papeis": "{authenticated}",
-      "usando": "(is_school_member(school_id) AND (is_school_office(school_id) OR (EXISTS ( SELECT 1\n   FROM (class_subjects cs\n     JOIN teachers t ON (((t.id = cs.teacher_id) AND (t.school_id = cs.school_id))))\n  WHERE ((cs.id = gradebooks.class_subject_id) AND (cs.school_id = gradebooks.school_id) AND (cs.status = 'active'::text) AND (t.user_id = ( SELECT auth.uid() AS uid)))))))",
-      "verificando": "",
-      "modo": "PERMISSIVE"
-    },
-    {
-      "tabela": "gradebooks",
       "politica": "School staff only",
       "cmd": "ALL",
       "papeis": "{authenticated}",
-      "usando": "private.is_school_staff(school_id)",
-      "verificando": "private.is_school_staff(school_id)",
+      "usando": "(school_id IN ( SELECT private.user_role_school_ids(ARRAY['owner'::text, 'admin'::text, 'administrador'::text, 'secretary'::text, 'secretaria'::text, 'treasury'::text, 'tesouraria'::text, 'finance'::text, 'teacher'::text, 'professor'::text]) AS user_role_school_ids))",
+      "verificando": "(school_id IN ( SELECT private.user_role_school_ids(ARRAY['owner'::text, 'admin'::text, 'administrador'::text, 'secretary'::text, 'secretaria'::text, 'treasury'::text, 'tesouraria'::text, 'finance'::text, 'teacher'::text, 'professor'::text]) AS user_role_school_ids))",
       "modo": "RESTRICTIVE"
     },
     {
@@ -6297,10 +6216,10 @@
     },
     {
       "tabela": "gradebooks",
-      "politica": "gradebooks_select",
+      "politica": "gradebooks_read",
       "cmd": "SELECT",
       "papeis": "{authenticated}",
-      "usando": "private.has_permission(school_id, 'assessment.grades.read'::text)",
+      "usando": "((school_id IN ( SELECT private.user_permission_school_ids('assessment.grades.read'::text) AS user_permission_school_ids)) OR ((school_id IN ( SELECT private.user_member_school_ids() AS user_member_school_ids)) AND ((school_id IN ( SELECT private.user_role_school_ids(ARRAY['owner'::text, 'admin'::text, 'administrador'::text, 'secretary'::text, 'secretaria'::text]) AS user_role_school_ids)) OR ((school_id, class_subject_id) IN ( SELECT tc.school_id,\n    tc.class_subject_id\n   FROM private.teacher_class_subjects(false) tc(school_id, class_subject_id, class_group_id, subject_id))))))",
       "verificando": "",
       "modo": "PERMISSIVE"
     },
@@ -6318,7 +6237,7 @@
       "politica": "grading_scales_select_authorized",
       "cmd": "SELECT",
       "papeis": "{authenticated}",
-      "usando": "private.has_permission(school_id, 'academic.structure.read'::text)",
+      "usando": "((school_id IS NOT NULL) AND (school_id IN ( SELECT private.user_permission_school_ids('academic.structure.read'::text) AS user_permission_school_ids)))",
       "verificando": "",
       "modo": "PERMISSIVE"
     },
@@ -6336,7 +6255,7 @@
       "politica": "HR reads absence events in own school",
       "cmd": "SELECT",
       "papeis": "{authenticated}",
-      "usando": "(is_school_member(school_id) AND (private.sga_app_role(school_id) = ANY (ARRAY['Administrador'::text, 'Tesouraria'::text])) AND (deleted_at IS NULL))",
+      "usando": "((school_id IS NOT NULL) AND (school_id IN ( SELECT private.user_member_school_ids() AS user_member_school_ids)) AND (private.sga_app_role(school_id) = ANY (ARRAY['Administrador'::text, 'Tesouraria'::text])) AND (deleted_at IS NULL))",
       "verificando": "",
       "modo": "PERMISSIVE"
     },
@@ -6381,7 +6300,7 @@
       "politica": "HR reads attendance assurance evidence",
       "cmd": "SELECT",
       "papeis": "{authenticated}",
-      "usando": "(is_school_member(school_id) AND ((private.sga_app_role(school_id) = ANY (ARRAY['Administrador'::text, 'Tesouraria'::text])) OR (actor_user_id = ( SELECT auth.uid() AS uid))))",
+      "usando": "((school_id IS NOT NULL) AND (school_id IN ( SELECT private.user_member_school_ids() AS user_member_school_ids)) AND ((private.sga_app_role(school_id) = ANY (ARRAY['Administrador'::text, 'Tesouraria'::text])) OR (actor_user_id = ( SELECT auth.uid() AS uid))))",
       "verificando": "",
       "modo": "PERMISSIVE"
     },
@@ -6462,7 +6381,7 @@
       "politica": "HR reads remuneration policies in own school",
       "cmd": "SELECT",
       "papeis": "{authenticated}",
-      "usando": "(is_school_member(school_id) AND (private.sga_app_role(school_id) = ANY (ARRAY['Administrador'::text, 'Tesouraria'::text])))",
+      "usando": "((school_id IS NOT NULL) AND (school_id IN ( SELECT private.user_member_school_ids() AS user_member_school_ids)) AND (private.sga_app_role(school_id) = ANY (ARRAY['Administrador'::text, 'Tesouraria'::text])))",
       "verificando": "",
       "modo": "PERMISSIVE"
     },
@@ -6570,7 +6489,7 @@
       "politica": "Read hr_departments in own school",
       "cmd": "SELECT",
       "papeis": "{authenticated}",
-      "usando": "is_school_member(school_id)",
+      "usando": "((school_id IS NOT NULL) AND (school_id IN ( SELECT private.user_member_school_ids() AS user_member_school_ids)))",
       "verificando": "",
       "modo": "PERMISSIVE"
     },
@@ -6921,7 +6840,7 @@
       "politica": "Read hr_positions in own school",
       "cmd": "SELECT",
       "papeis": "{authenticated}",
-      "usando": "is_school_member(school_id)",
+      "usando": "((school_id IS NOT NULL) AND (school_id IN ( SELECT private.user_member_school_ids() AS user_member_school_ids)))",
       "verificando": "",
       "modo": "PERMISSIVE"
     },
@@ -6975,7 +6894,7 @@
       "politica": "HR reads teacher employment links in own school",
       "cmd": "SELECT",
       "papeis": "{authenticated}",
-      "usando": "(is_school_member(school_id) AND (private.sga_app_role(school_id) = ANY (ARRAY['Administrador'::text, 'Tesouraria'::text])) AND (deleted_at IS NULL))",
+      "usando": "((school_id IS NOT NULL) AND (school_id IN ( SELECT private.user_member_school_ids() AS user_member_school_ids)) AND (private.sga_app_role(school_id) = ANY (ARRAY['Administrador'::text, 'Tesouraria'::text])) AND (deleted_at IS NULL))",
       "verificando": "",
       "modo": "PERMISSIVE"
     },
@@ -7002,7 +6921,7 @@
       "politica": "HR reads teacher lesson occurrences in own school",
       "cmd": "SELECT",
       "papeis": "{authenticated}",
-      "usando": "(is_school_member(school_id) AND (private.sga_app_role(school_id) = ANY (ARRAY['Administrador'::text, 'Tesouraria'::text])) AND (deleted_at IS NULL))",
+      "usando": "((school_id IS NOT NULL) AND (school_id IN ( SELECT private.user_member_school_ids() AS user_member_school_ids)) AND (private.sga_app_role(school_id) = ANY (ARRAY['Administrador'::text, 'Tesouraria'::text])) AND (deleted_at IS NULL))",
       "verificando": "",
       "modo": "PERMISSIVE"
     },
@@ -7029,7 +6948,7 @@
       "politica": "HR reads teacher QR sessions in own school",
       "cmd": "SELECT",
       "papeis": "{authenticated}",
-      "usando": "(is_school_member(school_id) AND (private.sga_app_role(school_id) = ANY (ARRAY['Administrador'::text, 'Tesouraria'::text])))",
+      "usando": "((school_id IS NOT NULL) AND (school_id IN ( SELECT private.user_member_school_ids() AS user_member_school_ids)) AND (private.sga_app_role(school_id) = ANY (ARRAY['Administrador'::text, 'Tesouraria'::text])))",
       "verificando": "",
       "modo": "PERMISSIVE"
     },
@@ -7047,7 +6966,7 @@
       "politica": "Read school import audits",
       "cmd": "SELECT",
       "papeis": "{authenticated}",
-      "usando": "(EXISTS ( SELECT 1\n   FROM import_jobs j\n  WHERE ((j.id = import_audits.import_job_id) AND is_school_member(j.school_id))))",
+      "usando": "(import_job_id IN ( SELECT private.user_import_job_ids(false) AS user_import_job_ids))",
       "verificando": "",
       "modo": "PERMISSIVE"
     },
@@ -7056,8 +6975,8 @@
       "politica": "School staff only",
       "cmd": "ALL",
       "papeis": "{authenticated}",
-      "usando": "(EXISTS ( SELECT 1\n   FROM import_jobs j\n  WHERE ((j.id = import_audits.import_job_id) AND private.is_school_staff(j.school_id))))",
-      "verificando": "(EXISTS ( SELECT 1\n   FROM import_jobs j\n  WHERE ((j.id = import_audits.import_job_id) AND private.is_school_staff(j.school_id))))",
+      "usando": "(import_job_id IN ( SELECT private.user_import_job_ids(true) AS user_import_job_ids))",
+      "verificando": "(import_job_id IN ( SELECT private.user_import_job_ids(true) AS user_import_job_ids))",
       "modo": "RESTRICTIVE"
     },
     {
@@ -7065,7 +6984,7 @@
       "politica": "Read school import jobs",
       "cmd": "SELECT",
       "papeis": "{authenticated}",
-      "usando": "is_school_member(school_id)",
+      "usando": "((school_id IS NOT NULL) AND (school_id IN ( SELECT private.user_member_school_ids() AS user_member_school_ids)))",
       "verificando": "",
       "modo": "PERMISSIVE"
     },
@@ -7074,8 +6993,8 @@
       "politica": "School staff only",
       "cmd": "ALL",
       "papeis": "{authenticated}",
-      "usando": "private.is_school_staff(school_id)",
-      "verificando": "private.is_school_staff(school_id)",
+      "usando": "(school_id IN ( SELECT private.user_role_school_ids(ARRAY['owner'::text, 'admin'::text, 'administrador'::text, 'secretary'::text, 'secretaria'::text, 'treasury'::text, 'tesouraria'::text, 'finance'::text, 'teacher'::text, 'professor'::text]) AS user_role_school_ids))",
+      "verificando": "(school_id IN ( SELECT private.user_role_school_ids(ARRAY['owner'::text, 'admin'::text, 'administrador'::text, 'secretary'::text, 'secretaria'::text, 'treasury'::text, 'tesouraria'::text, 'finance'::text, 'teacher'::text, 'professor'::text]) AS user_role_school_ids))",
       "modo": "RESTRICTIVE"
     },
     {
@@ -7083,7 +7002,7 @@
       "politica": "Read school import rows",
       "cmd": "SELECT",
       "papeis": "{authenticated}",
-      "usando": "(EXISTS ( SELECT 1\n   FROM import_jobs j\n  WHERE ((j.id = import_rows.import_job_id) AND is_school_member(j.school_id))))",
+      "usando": "(import_job_id IN ( SELECT private.user_import_job_ids(false) AS user_import_job_ids))",
       "verificando": "",
       "modo": "PERMISSIVE"
     },
@@ -7092,8 +7011,8 @@
       "politica": "School staff only",
       "cmd": "ALL",
       "papeis": "{authenticated}",
-      "usando": "(EXISTS ( SELECT 1\n   FROM import_jobs j\n  WHERE ((j.id = import_rows.import_job_id) AND private.is_school_staff(j.school_id))))",
-      "verificando": "(EXISTS ( SELECT 1\n   FROM import_jobs j\n  WHERE ((j.id = import_rows.import_job_id) AND private.is_school_staff(j.school_id))))",
+      "usando": "(import_job_id IN ( SELECT private.user_import_job_ids(true) AS user_import_job_ids))",
+      "verificando": "(import_job_id IN ( SELECT private.user_import_job_ids(true) AS user_import_job_ids))",
       "modo": "RESTRICTIVE"
     },
     {
@@ -7101,8 +7020,8 @@
       "politica": "School staff only",
       "cmd": "ALL",
       "papeis": "{authenticated}",
-      "usando": "private.is_school_staff(school_id)",
-      "verificando": "private.is_school_staff(school_id)",
+      "usando": "(school_id IN ( SELECT private.user_role_school_ids(ARRAY['owner'::text, 'admin'::text, 'administrador'::text, 'secretary'::text, 'secretaria'::text, 'treasury'::text, 'tesouraria'::text, 'finance'::text, 'teacher'::text, 'professor'::text]) AS user_role_school_ids))",
+      "verificando": "(school_id IN ( SELECT private.user_role_school_ids(ARRAY['owner'::text, 'admin'::text, 'administrador'::text, 'secretary'::text, 'secretaria'::text, 'treasury'::text, 'tesouraria'::text, 'finance'::text, 'teacher'::text, 'professor'::text]) AS user_role_school_ids))",
       "modo": "RESTRICTIVE"
     },
     {
@@ -7119,7 +7038,7 @@
       "politica": "issued_documents_select",
       "cmd": "SELECT",
       "papeis": "{authenticated}",
-      "usando": "private.has_permission(school_id, 'documents.issued.read'::text)",
+      "usando": "((school_id IS NOT NULL) AND (school_id IN ( SELECT private.user_permission_school_ids('documents.issued.read'::text) AS user_permission_school_ids)))",
       "verificando": "",
       "modo": "PERMISSIVE"
     },
@@ -7130,15 +7049,6 @@
       "papeis": "{authenticated}",
       "usando": "(private.is_aal2() AND private.has_permission(school_id, 'documents.issued.revoke'::text))",
       "verificando": "(private.is_aal2() AND private.has_permission(school_id, 'documents.issued.revoke'::text))",
-      "modo": "PERMISSIVE"
-    },
-    {
-      "tabela": "member_roles",
-      "politica": "Read member_roles in own school",
-      "cmd": "SELECT",
-      "papeis": "{authenticated}",
-      "usando": "(EXISTS ( SELECT 1\n   FROM school_memberships sm\n  WHERE ((sm.id = member_roles.membership_id) AND ((sm.user_id = ( SELECT auth.uid() AS uid)) OR is_school_member(sm.school_id)))))",
-      "verificando": "",
       "modo": "PERMISSIVE"
     },
     {
@@ -7161,10 +7071,10 @@
     },
     {
       "tabela": "member_roles",
-      "politica": "member_roles_select_member",
+      "politica": "member_roles_read",
       "cmd": "SELECT",
       "papeis": "{authenticated}",
-      "usando": "private.is_active_member(school_id)",
+      "usando": "((EXISTS ( SELECT 1\n   FROM school_memberships sm\n  WHERE ((sm.id = member_roles.membership_id) AND ((sm.user_id = ( SELECT auth.uid() AS uid)) OR is_school_member(sm.school_id))))) OR ((school_id IS NOT NULL) AND (school_id IN ( SELECT private.user_member_school_ids() AS user_member_school_ids))))",
       "verificando": "",
       "modo": "PERMISSIVE"
     },
@@ -7182,7 +7092,7 @@
       "politica": "notifications_select",
       "cmd": "SELECT",
       "papeis": "{authenticated}",
-      "usando": "((user_id = ( SELECT auth.uid() AS uid)) AND (private.has_permission(school_id, 'communication.inbox.read'::text) OR private.is_active_member(school_id)))",
+      "usando": "((user_id = ( SELECT auth.uid() AS uid)) AND (((school_id IS NOT NULL) AND (school_id IN ( SELECT private.user_permission_school_ids('communication.inbox.read'::text) AS user_permission_school_ids))) OR ((school_id IS NOT NULL) AND (school_id IN ( SELECT private.user_member_school_ids() AS user_member_school_ids)))))",
       "verificando": "",
       "modo": "PERMISSIVE"
     },
@@ -7197,24 +7107,6 @@
     },
     {
       "tabela": "people",
-      "politica": "Professor reads people for assigned students",
-      "cmd": "SELECT",
-      "papeis": "{authenticated}",
-      "usando": "(is_school_member(school_id) AND (EXISTS ( SELECT 1\n   FROM (((students s\n     JOIN enrollments e ON (((e.school_id = s.school_id) AND (e.student_id = s.id))))\n     JOIN class_subjects cs ON (((cs.school_id = e.school_id) AND (cs.class_group_id = e.class_group_id))))\n     JOIN teachers t ON (((t.id = cs.teacher_id) AND (t.school_id = cs.school_id))))\n  WHERE ((s.school_id = people.school_id) AND (s.person_id = people.id) AND (e.status = ANY (ARRAY['active'::text, 'pending'::text])) AND (cs.status = 'active'::text) AND (t.status = 'active'::text) AND (t.user_id = ( SELECT auth.uid() AS uid))))))",
-      "verificando": "",
-      "modo": "PERMISSIVE"
-    },
-    {
-      "tabela": "people",
-      "politica": "Read people in own school",
-      "cmd": "SELECT",
-      "papeis": "{authenticated}",
-      "usando": "(is_school_member(school_id) AND is_school_office(school_id))",
-      "verificando": "",
-      "modo": "PERMISSIVE"
-    },
-    {
-      "tabela": "people",
       "politica": "people_insert_authorized",
       "cmd": "INSERT",
       "papeis": "{authenticated}",
@@ -7224,10 +7116,10 @@
     },
     {
       "tabela": "people",
-      "politica": "people_select_authorized",
+      "politica": "people_read",
       "cmd": "SELECT",
       "papeis": "{authenticated}",
-      "usando": "private.has_permission(school_id, 'people.records.read'::text)",
+      "usando": "((school_id IN ( SELECT private.user_permission_school_ids('people.records.read'::text) AS user_permission_school_ids)) OR ((school_id IN ( SELECT private.user_member_school_ids() AS user_member_school_ids)) AND ((school_id IN ( SELECT private.user_role_school_ids(ARRAY['owner'::text, 'admin'::text, 'administrador'::text, 'secretary'::text, 'secretaria'::text]) AS user_role_school_ids)) OR ((school_id, id) IN ( SELECT tp.school_id,\n    tp.person_id\n   FROM private.teacher_people() tp(school_id, person_id))))))",
       "verificando": "",
       "modo": "PERMISSIVE"
     },
@@ -7242,19 +7134,10 @@
     },
     {
       "tabela": "permissions",
-      "politica": "Read permissions authenticated",
+      "politica": "permissions_read",
       "cmd": "SELECT",
       "papeis": "{authenticated}",
-      "usando": "true",
-      "verificando": "",
-      "modo": "PERMISSIVE"
-    },
-    {
-      "tabela": "permissions",
-      "politica": "permissions_select_member",
-      "cmd": "SELECT",
-      "papeis": "{authenticated}",
-      "usando": "(EXISTS ( SELECT 1\n   FROM school_memberships m\n  WHERE ((m.user_id = ( SELECT auth.uid() AS uid)) AND (m.status = 'active'::text))))",
+      "usando": "(true OR (EXISTS ( SELECT 1\n   FROM school_memberships m\n  WHERE ((m.user_id = ( SELECT auth.uid() AS uid)) AND (m.status = 'active'::text)))))",
       "verificando": "",
       "modo": "PERMISSIVE"
     },
@@ -7272,7 +7155,7 @@
       "politica": "Read person_documents in own school",
       "cmd": "SELECT",
       "papeis": "{authenticated}",
-      "usando": "(is_school_member(school_id) AND is_school_office(school_id))",
+      "usando": "((school_id IS NOT NULL) AND (school_id IN ( SELECT private.user_member_school_ids() AS user_member_school_ids)) AND ((school_id IS NOT NULL) AND (school_id IN ( SELECT private.user_role_school_ids(ARRAY['owner'::text, 'admin'::text, 'administrador'::text, 'secretary'::text, 'secretaria'::text]) AS user_role_school_ids))))",
       "verificando": "",
       "modo": "PERMISSIVE"
     },
@@ -7290,7 +7173,7 @@
       "politica": "Read person roles in own school",
       "cmd": "SELECT",
       "papeis": "{authenticated}",
-      "usando": "(is_school_member(school_id) AND is_school_office(school_id))",
+      "usando": "((school_id IS NOT NULL) AND (school_id IN ( SELECT private.user_member_school_ids() AS user_member_school_ids)) AND ((school_id IS NOT NULL) AND (school_id IN ( SELECT private.user_role_school_ids(ARRAY['owner'::text, 'admin'::text, 'administrador'::text, 'secretary'::text, 'secretaria'::text]) AS user_role_school_ids))))",
       "verificando": "",
       "modo": "PERMISSIVE"
     },
@@ -7314,19 +7197,10 @@
     },
     {
       "tabela": "profiles",
-      "politica": "profiles_select_membership_managers",
+      "politica": "profiles_read",
       "cmd": "SELECT",
       "papeis": "{authenticated}",
-      "usando": "(EXISTS ( SELECT 1\n   FROM school_memberships membership\n  WHERE ((membership.user_id = profiles.id) AND private.has_permission(membership.school_id, 'rbac.memberships.read'::text))))",
-      "verificando": "",
-      "modo": "PERMISSIVE"
-    },
-    {
-      "tabela": "profiles",
-      "politica": "profiles_select_own",
-      "cmd": "SELECT",
-      "papeis": "{authenticated}",
-      "usando": "(( SELECT auth.uid() AS uid) = id)",
+      "usando": "((EXISTS ( SELECT 1\n   FROM school_memberships membership\n  WHERE ((membership.user_id = profiles.id) AND private.has_permission(membership.school_id, 'rbac.memberships.read'::text)))) OR (( SELECT auth.uid() AS uid) = id))",
       "verificando": "",
       "modo": "PERMISSIVE"
     },
@@ -7353,7 +7227,7 @@
       "politica": "Read program subjects in own school",
       "cmd": "SELECT",
       "papeis": "{authenticated}",
-      "usando": "((school_id = ( SELECT current_school_id() AS current_school_id)) AND (deleted_at IS NULL) AND is_school_office(school_id))",
+      "usando": "((school_id = ( SELECT current_school_id() AS current_school_id)) AND (deleted_at IS NULL) AND ((school_id IS NOT NULL) AND (school_id IN ( SELECT private.user_role_school_ids(ARRAY['owner'::text, 'admin'::text, 'administrador'::text, 'secretary'::text, 'secretaria'::text]) AS user_role_school_ids))))",
       "verificando": "",
       "modo": "PERMISSIVE"
     },
@@ -7371,7 +7245,7 @@
       "politica": "programs_select_authorized",
       "cmd": "SELECT",
       "papeis": "{authenticated}",
-      "usando": "private.has_permission(school_id, 'academic.structure.read'::text)",
+      "usando": "((school_id IS NOT NULL) AND (school_id IN ( SELECT private.user_permission_school_ids('academic.structure.read'::text) AS user_permission_school_ids)))",
       "verificando": "",
       "modo": "PERMISSIVE"
     },
@@ -7380,8 +7254,8 @@
       "politica": "School staff only",
       "cmd": "ALL",
       "papeis": "{authenticated}",
-      "usando": "private.is_school_staff(school_id)",
-      "verificando": "private.is_school_staff(school_id)",
+      "usando": "(school_id IN ( SELECT private.user_role_school_ids(ARRAY['owner'::text, 'admin'::text, 'administrador'::text, 'secretary'::text, 'secretaria'::text, 'treasury'::text, 'tesouraria'::text, 'finance'::text, 'teacher'::text, 'professor'::text]) AS user_role_school_ids))",
+      "verificando": "(school_id IN ( SELECT private.user_role_school_ids(ARRAY['owner'::text, 'admin'::text, 'administrador'::text, 'secretary'::text, 'secretaria'::text, 'treasury'::text, 'tesouraria'::text, 'finance'::text, 'teacher'::text, 'professor'::text]) AS user_role_school_ids))",
       "modo": "RESTRICTIVE"
     },
     {
@@ -7398,7 +7272,7 @@
       "politica": "report_cards_select",
       "cmd": "SELECT",
       "papeis": "{authenticated}",
-      "usando": "(private.has_permission(school_id, 'assessment.reports.read'::text) OR private.has_permission(school_id, 'assessment.grades.read'::text))",
+      "usando": "(((school_id IS NOT NULL) AND (school_id IN ( SELECT private.user_permission_school_ids('assessment.reports.read'::text) AS user_permission_school_ids))) OR ((school_id IS NOT NULL) AND (school_id IN ( SELECT private.user_permission_school_ids('assessment.grades.read'::text) AS user_permission_school_ids))))",
       "verificando": "",
       "modo": "PERMISSIVE"
     },
@@ -7413,15 +7287,6 @@
     },
     {
       "tabela": "reserved_subdomains",
-      "politica": "platform_admin_manage_reserved_subdomains",
-      "cmd": "ALL",
-      "papeis": "{authenticated}",
-      "usando": "is_platform_admin()",
-      "verificando": "is_platform_admin()",
-      "modo": "PERMISSIVE"
-    },
-    {
-      "tabela": "reserved_subdomains",
       "politica": "public_read_reserved_subdomains",
       "cmd": "SELECT",
       "papeis": "{anon,authenticated}",
@@ -7430,29 +7295,47 @@
       "modo": "PERMISSIVE"
     },
     {
+      "tabela": "reserved_subdomains",
+      "politica": "reserved_subdomains_admin_delete",
+      "cmd": "DELETE",
+      "papeis": "{authenticated}",
+      "usando": "is_platform_admin()",
+      "verificando": "",
+      "modo": "PERMISSIVE"
+    },
+    {
+      "tabela": "reserved_subdomains",
+      "politica": "reserved_subdomains_admin_insert",
+      "cmd": "INSERT",
+      "papeis": "{authenticated}",
+      "usando": "",
+      "verificando": "is_platform_admin()",
+      "modo": "PERMISSIVE"
+    },
+    {
+      "tabela": "reserved_subdomains",
+      "politica": "reserved_subdomains_admin_update",
+      "cmd": "UPDATE",
+      "papeis": "{authenticated}",
+      "usando": "is_platform_admin()",
+      "verificando": "is_platform_admin()",
+      "modo": "PERMISSIVE"
+    },
+    {
       "tabela": "role_permissions",
       "politica": "role_permissions_select_member",
       "cmd": "SELECT",
       "papeis": "{authenticated}",
-      "usando": "private.is_active_member(school_id)",
+      "usando": "((school_id IS NOT NULL) AND (school_id IN ( SELECT private.user_member_school_ids() AS user_member_school_ids)))",
       "verificando": "",
       "modo": "PERMISSIVE"
     },
     {
       "tabela": "roles",
-      "politica": "Read roles authenticated",
+      "politica": "roles_read",
       "cmd": "SELECT",
       "papeis": "{authenticated}",
-      "usando": "((school_id IS NULL) OR is_school_member(school_id))",
-      "verificando": "",
-      "modo": "PERMISSIVE"
-    },
-    {
-      "tabela": "roles",
-      "politica": "roles_select_member",
-      "cmd": "SELECT",
-      "papeis": "{authenticated}",
-      "usando": "private.is_active_member(school_id)",
+      "usando": "((school_id IS NULL) OR ((school_id IS NOT NULL) AND (school_id IN ( SELECT private.user_member_school_ids() AS user_member_school_ids))) OR ((school_id IS NOT NULL) AND (school_id IN ( SELECT private.user_member_school_ids() AS user_member_school_ids))))",
       "verificando": "",
       "modo": "PERMISSIVE"
     },
@@ -7470,7 +7353,7 @@
       "politica": "Read rooms in own school",
       "cmd": "SELECT",
       "papeis": "{authenticated}",
-      "usando": "((school_id = ( SELECT current_school_id() AS current_school_id)) AND (deleted_at IS NULL) AND is_school_office(school_id))",
+      "usando": "((school_id = ( SELECT current_school_id() AS current_school_id)) AND (deleted_at IS NULL) AND ((school_id IS NOT NULL) AND (school_id IN ( SELECT private.user_role_school_ids(ARRAY['owner'::text, 'admin'::text, 'administrador'::text, 'secretary'::text, 'secretaria'::text]) AS user_role_school_ids))))",
       "verificando": "",
       "modo": "PERMISSIVE"
     },
@@ -7506,7 +7389,7 @@
       "politica": "Read school announcements",
       "cmd": "SELECT",
       "papeis": "{authenticated}",
-      "usando": "((deleted_at IS NULL) AND (private.is_school_staff(school_id) OR ((status = 'sent'::text) AND (audience = ANY (private.announcement_audiences_for(school_id))))))",
+      "usando": "((deleted_at IS NULL) AND (((school_id IS NOT NULL) AND (school_id IN ( SELECT private.user_role_school_ids(ARRAY['owner'::text, 'admin'::text, 'administrador'::text, 'secretary'::text, 'secretaria'::text, 'treasury'::text, 'tesouraria'::text, 'finance'::text, 'teacher'::text, 'professor'::text]) AS user_role_school_ids))) OR ((status = 'sent'::text) AND (audience = ANY (private.announcement_audiences_for(school_id))))))",
       "verificando": "",
       "modo": "PERMISSIVE"
     },
@@ -7515,7 +7398,7 @@
       "politica": "Finance roles can read billing settings",
       "cmd": "SELECT",
       "papeis": "{authenticated}",
-      "usando": "(is_school_member(school_id) AND (private.sga_app_role(school_id) = ANY (ARRAY['Administrador'::text, 'Tesouraria'::text])))",
+      "usando": "((school_id IS NOT NULL) AND (school_id IN ( SELECT private.user_member_school_ids() AS user_member_school_ids)) AND (private.sga_app_role(school_id) = ANY (ARRAY['Administrador'::text, 'Tesouraria'::text])))",
       "verificando": "",
       "modo": "PERMISSIVE"
     },
@@ -7557,7 +7440,7 @@
     },
     {
       "tabela": "school_branding",
-      "politica": "school_members_view_branding",
+      "politica": "public_read_school_branding",
       "cmd": "SELECT",
       "papeis": "{anon,authenticated}",
       "usando": "true",
@@ -7569,7 +7452,7 @@
       "politica": "school_integrations_select_admin",
       "cmd": "SELECT",
       "papeis": "{authenticated}",
-      "usando": "(is_school_member(school_id) AND (private.sga_app_role(school_id) = 'Administrador'::text))",
+      "usando": "((school_id IS NOT NULL) AND (school_id IN ( SELECT private.user_member_school_ids() AS user_member_school_ids)) AND (private.sga_app_role(school_id) = 'Administrador'::text))",
       "verificando": "",
       "modo": "PERMISSIVE"
     },
@@ -7578,25 +7461,16 @@
       "politica": "Read invitations with membership permission",
       "cmd": "SELECT",
       "papeis": "{authenticated}",
-      "usando": "private.has_permission(school_id, 'rbac.memberships.read'::text)",
+      "usando": "((school_id IS NOT NULL) AND (school_id IN ( SELECT private.user_permission_school_ids('rbac.memberships.read'::text) AS user_permission_school_ids)))",
       "verificando": "",
       "modo": "PERMISSIVE"
     },
     {
       "tabela": "school_memberships",
-      "politica": "Users can read own memberships",
+      "politica": "school_memberships_read",
       "cmd": "SELECT",
       "papeis": "{authenticated}",
-      "usando": "((user_id = ( SELECT auth.uid() AS uid)) OR is_school_member(school_id))",
-      "verificando": "",
-      "modo": "PERMISSIVE"
-    },
-    {
-      "tabela": "school_memberships",
-      "politica": "memberships_select_member",
-      "cmd": "SELECT",
-      "papeis": "{authenticated}",
-      "usando": "private.is_active_member(school_id)",
+      "usando": "((user_id = ( SELECT auth.uid() AS uid)) OR ((school_id IS NOT NULL) AND (school_id IN ( SELECT private.user_member_school_ids() AS user_member_school_ids))) OR ((school_id IS NOT NULL) AND (school_id IN ( SELECT private.user_member_school_ids() AS user_member_school_ids))))",
       "verificando": "",
       "modo": "PERMISSIVE"
     },
@@ -7605,7 +7479,7 @@
       "politica": "school_modules_select_authorized",
       "cmd": "SELECT",
       "papeis": "{authenticated}",
-      "usando": "private.has_permission(school_id, 'modules.catalog.read'::text)",
+      "usando": "((school_id IS NOT NULL) AND (school_id IN ( SELECT private.user_permission_school_ids('modules.catalog.read'::text) AS user_permission_school_ids)))",
       "verificando": "",
       "modo": "PERMISSIVE"
     },
@@ -7623,7 +7497,7 @@
       "politica": "settings_select_member",
       "cmd": "SELECT",
       "papeis": "{authenticated}",
-      "usando": "private.is_active_member(school_id)",
+      "usando": "((school_id IS NOT NULL) AND (school_id IN ( SELECT private.user_member_school_ids() AS user_member_school_ids)))",
       "verificando": "",
       "modo": "PERMISSIVE"
     },
@@ -7641,7 +7515,7 @@
       "politica": "Read school_shift_slots in own school",
       "cmd": "SELECT",
       "papeis": "{authenticated}",
-      "usando": "((school_id = ( SELECT current_school_id() AS current_school_id)) AND (deleted_at IS NULL) AND is_school_office(school_id))",
+      "usando": "((school_id = ( SELECT current_school_id() AS current_school_id)) AND (deleted_at IS NULL) AND ((school_id IS NOT NULL) AND (school_id IN ( SELECT private.user_role_school_ids(ARRAY['owner'::text, 'admin'::text, 'administrador'::text, 'secretary'::text, 'secretaria'::text]) AS user_role_school_ids))))",
       "verificando": "",
       "modo": "PERMISSIVE"
     },
@@ -7668,7 +7542,7 @@
       "politica": "Read school_shifts in own school",
       "cmd": "SELECT",
       "papeis": "{authenticated}",
-      "usando": "((school_id = ( SELECT current_school_id() AS current_school_id)) AND (deleted_at IS NULL) AND is_school_office(school_id))",
+      "usando": "((school_id = ( SELECT current_school_id() AS current_school_id)) AND (deleted_at IS NULL) AND ((school_id IS NOT NULL) AND (school_id IN ( SELECT private.user_role_school_ids(ARRAY['owner'::text, 'admin'::text, 'administrador'::text, 'secretary'::text, 'secretaria'::text]) AS user_role_school_ids))))",
       "verificando": "",
       "modo": "PERMISSIVE"
     },
@@ -7713,8 +7587,8 @@
       "politica": "School staff only",
       "cmd": "ALL",
       "papeis": "{authenticated}",
-      "usando": "private.is_school_staff(school_id)",
-      "verificando": "private.is_school_staff(school_id)",
+      "usando": "(school_id IN ( SELECT private.user_role_school_ids(ARRAY['owner'::text, 'admin'::text, 'administrador'::text, 'secretary'::text, 'secretaria'::text, 'treasury'::text, 'tesouraria'::text, 'finance'::text, 'teacher'::text, 'professor'::text]) AS user_role_school_ids))",
+      "verificando": "(school_id IN ( SELECT private.user_role_school_ids(ARRAY['owner'::text, 'admin'::text, 'administrador'::text, 'secretary'::text, 'secretaria'::text, 'treasury'::text, 'tesouraria'::text, 'finance'::text, 'teacher'::text, 'professor'::text]) AS user_role_school_ids))",
       "modo": "RESTRICTIVE"
     },
     {
@@ -7722,7 +7596,7 @@
       "politica": "Members read siga_access_logs",
       "cmd": "SELECT",
       "papeis": "{authenticated}",
-      "usando": "is_school_member(school_id)",
+      "usando": "((school_id IS NOT NULL) AND (school_id IN ( SELECT private.user_member_school_ids() AS user_member_school_ids)))",
       "verificando": "",
       "modo": "PERMISSIVE"
     },
@@ -7731,14 +7605,32 @@
       "politica": "School staff only",
       "cmd": "ALL",
       "papeis": "{authenticated}",
-      "usando": "private.is_school_staff(school_id)",
-      "verificando": "private.is_school_staff(school_id)",
+      "usando": "(school_id IN ( SELECT private.user_role_school_ids(ARRAY['owner'::text, 'admin'::text, 'administrador'::text, 'secretary'::text, 'secretaria'::text, 'treasury'::text, 'tesouraria'::text, 'finance'::text, 'teacher'::text, 'professor'::text]) AS user_role_school_ids))",
+      "verificando": "(school_id IN ( SELECT private.user_role_school_ids(ARRAY['owner'::text, 'admin'::text, 'administrador'::text, 'secretary'::text, 'secretaria'::text, 'treasury'::text, 'tesouraria'::text, 'finance'::text, 'teacher'::text, 'professor'::text]) AS user_role_school_ids))",
       "modo": "RESTRICTIVE"
     },
     {
       "tabela": "siga_assessment_items",
-      "politica": "Manage assigned assessment items",
-      "cmd": "ALL",
+      "politica": "Manage assigned assessment items (delete)",
+      "cmd": "DELETE",
+      "papeis": "{authenticated}",
+      "usando": "current_user_can_manage_assessment_item(school_id, class_group_id, subject_id)",
+      "verificando": "",
+      "modo": "PERMISSIVE"
+    },
+    {
+      "tabela": "siga_assessment_items",
+      "politica": "Manage assigned assessment items (insert)",
+      "cmd": "INSERT",
+      "papeis": "{authenticated}",
+      "usando": "",
+      "verificando": "current_user_can_manage_assessment_item(school_id, class_group_id, subject_id)",
+      "modo": "PERMISSIVE"
+    },
+    {
+      "tabela": "siga_assessment_items",
+      "politica": "Manage assigned assessment items (update)",
+      "cmd": "UPDATE",
       "papeis": "{authenticated}",
       "usando": "current_user_can_manage_assessment_item(school_id, class_group_id, subject_id)",
       "verificando": "current_user_can_manage_assessment_item(school_id, class_group_id, subject_id)",
@@ -7746,17 +7638,35 @@
     },
     {
       "tabela": "siga_assessment_items",
-      "politica": "Members read siga_assessment_items",
+      "politica": "siga_assessment_items_read",
       "cmd": "SELECT",
       "papeis": "{authenticated}",
-      "usando": "is_school_member(school_id)",
+      "usando": "(current_user_can_manage_assessment_item(school_id, class_group_id, subject_id) OR ((school_id IS NOT NULL) AND (school_id IN ( SELECT private.user_member_school_ids() AS user_member_school_ids))))",
       "verificando": "",
       "modo": "PERMISSIVE"
     },
     {
       "tabela": "siga_assessment_scores",
-      "politica": "Manage assigned assessment scores",
-      "cmd": "ALL",
+      "politica": "Manage assigned assessment scores (delete)",
+      "cmd": "DELETE",
+      "papeis": "{authenticated}",
+      "usando": "current_user_can_manage_assessment_score(school_id, item_id, enrollment_id)",
+      "verificando": "",
+      "modo": "PERMISSIVE"
+    },
+    {
+      "tabela": "siga_assessment_scores",
+      "politica": "Manage assigned assessment scores (insert)",
+      "cmd": "INSERT",
+      "papeis": "{authenticated}",
+      "usando": "",
+      "verificando": "current_user_can_manage_assessment_score(school_id, item_id, enrollment_id)",
+      "modo": "PERMISSIVE"
+    },
+    {
+      "tabela": "siga_assessment_scores",
+      "politica": "Manage assigned assessment scores (update)",
+      "cmd": "UPDATE",
       "papeis": "{authenticated}",
       "usando": "current_user_can_manage_assessment_score(school_id, item_id, enrollment_id)",
       "verificando": "current_user_can_manage_assessment_score(school_id, item_id, enrollment_id)",
@@ -7764,28 +7674,28 @@
     },
     {
       "tabela": "siga_assessment_scores",
-      "politica": "Members read siga_assessment_scores",
-      "cmd": "SELECT",
-      "papeis": "{authenticated}",
-      "usando": "is_school_member(school_id)",
-      "verificando": "",
-      "modo": "PERMISSIVE"
-    },
-    {
-      "tabela": "siga_assessment_scores",
       "politica": "School staff only",
       "cmd": "ALL",
       "papeis": "{authenticated}",
-      "usando": "private.is_school_staff(school_id)",
-      "verificando": "private.is_school_staff(school_id)",
+      "usando": "(school_id IN ( SELECT private.user_role_school_ids(ARRAY['owner'::text, 'admin'::text, 'administrador'::text, 'secretary'::text, 'secretaria'::text, 'treasury'::text, 'tesouraria'::text, 'finance'::text, 'teacher'::text, 'professor'::text]) AS user_role_school_ids))",
+      "verificando": "(school_id IN ( SELECT private.user_role_school_ids(ARRAY['owner'::text, 'admin'::text, 'administrador'::text, 'secretary'::text, 'secretaria'::text, 'treasury'::text, 'tesouraria'::text, 'finance'::text, 'teacher'::text, 'professor'::text]) AS user_role_school_ids))",
       "modo": "RESTRICTIVE"
+    },
+    {
+      "tabela": "siga_assessment_scores",
+      "politica": "siga_assessment_scores_read",
+      "cmd": "SELECT",
+      "papeis": "{authenticated}",
+      "usando": "(current_user_can_manage_assessment_score(school_id, item_id, enrollment_id) OR ((school_id IS NOT NULL) AND (school_id IN ( SELECT private.user_member_school_ids() AS user_member_school_ids))))",
+      "verificando": "",
+      "modo": "PERMISSIVE"
     },
     {
       "tabela": "siga_attendance_justifications",
       "politica": "Members read siga_attendance_justifications",
       "cmd": "SELECT",
       "papeis": "{authenticated}",
-      "usando": "is_school_member(school_id)",
+      "usando": "((school_id IS NOT NULL) AND (school_id IN ( SELECT private.user_member_school_ids() AS user_member_school_ids)))",
       "verificando": "",
       "modo": "PERMISSIVE"
     },
@@ -7794,8 +7704,8 @@
       "politica": "School staff only",
       "cmd": "ALL",
       "papeis": "{authenticated}",
-      "usando": "private.is_school_staff(school_id)",
-      "verificando": "private.is_school_staff(school_id)",
+      "usando": "(school_id IN ( SELECT private.user_role_school_ids(ARRAY['owner'::text, 'admin'::text, 'administrador'::text, 'secretary'::text, 'secretaria'::text, 'treasury'::text, 'tesouraria'::text, 'finance'::text, 'teacher'::text, 'professor'::text]) AS user_role_school_ids))",
+      "verificando": "(school_id IN ( SELECT private.user_role_school_ids(ARRAY['owner'::text, 'admin'::text, 'administrador'::text, 'secretary'::text, 'secretaria'::text, 'treasury'::text, 'tesouraria'::text, 'finance'::text, 'teacher'::text, 'professor'::text]) AS user_role_school_ids))",
       "modo": "RESTRICTIVE"
     },
     {
@@ -7803,7 +7713,7 @@
       "politica": "Members read siga_attendance_records",
       "cmd": "SELECT",
       "papeis": "{authenticated}",
-      "usando": "is_school_member(school_id)",
+      "usando": "((school_id IS NOT NULL) AND (school_id IN ( SELECT private.user_member_school_ids() AS user_member_school_ids)))",
       "verificando": "",
       "modo": "PERMISSIVE"
     },
@@ -7812,8 +7722,8 @@
       "politica": "School staff only",
       "cmd": "ALL",
       "papeis": "{authenticated}",
-      "usando": "private.is_school_staff(school_id)",
-      "verificando": "private.is_school_staff(school_id)",
+      "usando": "(school_id IN ( SELECT private.user_role_school_ids(ARRAY['owner'::text, 'admin'::text, 'administrador'::text, 'secretary'::text, 'secretaria'::text, 'treasury'::text, 'tesouraria'::text, 'finance'::text, 'teacher'::text, 'professor'::text]) AS user_role_school_ids))",
+      "verificando": "(school_id IN ( SELECT private.user_role_school_ids(ARRAY['owner'::text, 'admin'::text, 'administrador'::text, 'secretary'::text, 'secretaria'::text, 'treasury'::text, 'tesouraria'::text, 'finance'::text, 'teacher'::text, 'professor'::text]) AS user_role_school_ids))",
       "modo": "RESTRICTIVE"
     },
     {
@@ -7821,7 +7731,7 @@
       "politica": "Members read siga_attendance_sessions",
       "cmd": "SELECT",
       "papeis": "{authenticated}",
-      "usando": "is_school_member(school_id)",
+      "usando": "((school_id IS NOT NULL) AND (school_id IN ( SELECT private.user_member_school_ids() AS user_member_school_ids)))",
       "verificando": "",
       "modo": "PERMISSIVE"
     },
@@ -7830,8 +7740,8 @@
       "politica": "School staff only",
       "cmd": "ALL",
       "papeis": "{authenticated}",
-      "usando": "private.is_school_staff(school_id)",
-      "verificando": "private.is_school_staff(school_id)",
+      "usando": "(school_id IN ( SELECT private.user_role_school_ids(ARRAY['owner'::text, 'admin'::text, 'administrador'::text, 'secretary'::text, 'secretaria'::text, 'treasury'::text, 'tesouraria'::text, 'finance'::text, 'teacher'::text, 'professor'::text]) AS user_role_school_ids))",
+      "verificando": "(school_id IN ( SELECT private.user_role_school_ids(ARRAY['owner'::text, 'admin'::text, 'administrador'::text, 'secretary'::text, 'secretaria'::text, 'treasury'::text, 'tesouraria'::text, 'finance'::text, 'teacher'::text, 'professor'::text]) AS user_role_school_ids))",
       "modo": "RESTRICTIVE"
     },
     {
@@ -7893,7 +7803,7 @@
       "politica": "Read own school direct messages",
       "cmd": "SELECT",
       "papeis": "{authenticated}",
-      "usando": "(is_school_member(school_id) AND ((( SELECT auth.uid() AS uid) = sender_id) OR (( SELECT auth.uid() AS uid) = recipient_id)))",
+      "usando": "((school_id IS NOT NULL) AND (school_id IN ( SELECT private.user_member_school_ids() AS user_member_school_ids)) AND ((( SELECT auth.uid() AS uid) = sender_id) OR (( SELECT auth.uid() AS uid) = recipient_id)))",
       "verificando": "",
       "modo": "PERMISSIVE"
     },
@@ -7920,7 +7830,7 @@
       "politica": "siga_files_select_scoped",
       "cmd": "SELECT",
       "papeis": "{authenticated}",
-      "usando": "(is_school_member(school_id) AND\nCASE\n    WHEN (area = 'secretaria'::text) THEN (private.sga_file_role(school_id) = ANY (ARRAY['Administrador'::text, 'Secretaria'::text]))\n    ELSE (private.sga_file_role(school_id) = ANY (ARRAY['Administrador'::text, 'Secretaria'::text, 'Tesouraria'::text, 'Professor'::text]))\nEND AND ((area <> 'pessoal'::text) OR (owner_user_id = ( SELECT auth.uid() AS uid))) AND ((visibility <> 'private'::text) OR (owner_user_id = ( SELECT auth.uid() AS uid)) OR (private.sga_file_role(school_id) = 'Administrador'::text) OR ((area = 'secretaria'::text) AND (private.sga_file_role(school_id) = 'Secretaria'::text))))",
+      "usando": "((school_id IS NOT NULL) AND (school_id IN ( SELECT private.user_member_school_ids() AS user_member_school_ids)) AND\nCASE\n    WHEN (area = 'secretaria'::text) THEN (private.sga_file_role(school_id) = ANY (ARRAY['Administrador'::text, 'Secretaria'::text]))\n    ELSE (private.sga_file_role(school_id) = ANY (ARRAY['Administrador'::text, 'Secretaria'::text, 'Tesouraria'::text, 'Professor'::text]))\nEND AND ((area <> 'pessoal'::text) OR (owner_user_id = ( SELECT auth.uid() AS uid))) AND ((visibility <> 'private'::text) OR (owner_user_id = ( SELECT auth.uid() AS uid)) OR (private.sga_file_role(school_id) = 'Administrador'::text) OR ((area = 'secretaria'::text) AND (private.sga_file_role(school_id) = 'Secretaria'::text))))",
       "verificando": "",
       "modo": "PERMISSIVE"
     },
@@ -7935,74 +7845,74 @@
     },
     {
       "tabela": "siga_lesson_meetings",
-      "politica": "Members read lesson meetings in own school",
-      "cmd": "SELECT",
+      "politica": "Staff manage lesson meetings in own school (delete)",
+      "cmd": "DELETE",
       "papeis": "{authenticated}",
-      "usando": "((school_id = ( SELECT current_school_id() AS current_school_id)) AND is_school_member(school_id))",
+      "usando": "((school_id = ( SELECT current_school_id() AS current_school_id)) AND is_school_member(school_id) AND current_school_role_is(ARRAY['owner'::text, 'admin'::text, 'administrator'::text, 'administrador'::text, 'diretor geral'::text, 'director geral'::text, 'professor'::text, 'teacher'::text]))",
       "verificando": "",
       "modo": "PERMISSIVE"
     },
     {
       "tabela": "siga_lesson_meetings",
-      "politica": "Staff manage lesson meetings in own school",
-      "cmd": "ALL",
+      "politica": "Staff manage lesson meetings in own school (insert)",
+      "cmd": "INSERT",
+      "papeis": "{authenticated}",
+      "usando": "",
+      "verificando": "((school_id = ( SELECT current_school_id() AS current_school_id)) AND is_school_member(school_id) AND current_school_role_is(ARRAY['owner'::text, 'admin'::text, 'administrator'::text, 'administrador'::text, 'diretor geral'::text, 'director geral'::text, 'professor'::text, 'teacher'::text]))",
+      "modo": "PERMISSIVE"
+    },
+    {
+      "tabela": "siga_lesson_meetings",
+      "politica": "Staff manage lesson meetings in own school (update)",
+      "cmd": "UPDATE",
       "papeis": "{authenticated}",
       "usando": "((school_id = ( SELECT current_school_id() AS current_school_id)) AND is_school_member(school_id) AND current_school_role_is(ARRAY['owner'::text, 'admin'::text, 'administrator'::text, 'administrador'::text, 'diretor geral'::text, 'director geral'::text, 'professor'::text, 'teacher'::text]))",
       "verificando": "((school_id = ( SELECT current_school_id() AS current_school_id)) AND is_school_member(school_id) AND current_school_role_is(ARRAY['owner'::text, 'admin'::text, 'administrator'::text, 'administrador'::text, 'diretor geral'::text, 'director geral'::text, 'professor'::text, 'teacher'::text]))",
       "modo": "PERMISSIVE"
     },
     {
-      "tabela": "staff_module_grants",
-      "politica": "Admins manage staff grants",
-      "cmd": "ALL",
-      "papeis": "{authenticated}",
-      "usando": "is_school_admin(school_id)",
-      "verificando": "is_school_admin(school_id)",
-      "modo": "PERMISSIVE"
-    },
-    {
-      "tabela": "staff_module_grants",
-      "politica": "Read own or admin staff grants",
+      "tabela": "siga_lesson_meetings",
+      "politica": "siga_lesson_meetings_read",
       "cmd": "SELECT",
       "papeis": "{authenticated}",
-      "usando": "((is_school_member(school_id) AND (user_id = ( SELECT auth.uid() AS uid))) OR is_school_admin(school_id))",
+      "usando": "(((school_id = ( SELECT current_school_id() AS current_school_id)) AND ((school_id IS NOT NULL) AND (school_id IN ( SELECT private.user_member_school_ids() AS user_member_school_ids)))) OR ((school_id = ( SELECT current_school_id() AS current_school_id)) AND ((school_id IS NOT NULL) AND (school_id IN ( SELECT private.user_member_school_ids() AS user_member_school_ids))) AND current_school_role_is(ARRAY['owner'::text, 'admin'::text, 'administrator'::text, 'administrador'::text, 'diretor geral'::text, 'director geral'::text, 'professor'::text, 'teacher'::text])))",
       "verificando": "",
       "modo": "PERMISSIVE"
     },
     {
       "tabela": "staff_module_grants",
-      "politica": "staff_module_grants_delete_admin",
+      "politica": "staff_module_grants_delete",
       "cmd": "DELETE",
       "papeis": "{authenticated}",
-      "usando": "(is_school_member(school_id) AND (private.sga_app_role(school_id) = 'Administrador'::text))",
+      "usando": "(is_school_admin(school_id) OR (is_school_member(school_id) AND (private.sga_app_role(school_id) = 'Administrador'::text)))",
       "verificando": "",
       "modo": "PERMISSIVE"
     },
     {
       "tabela": "staff_module_grants",
-      "politica": "staff_module_grants_insert_admin",
+      "politica": "staff_module_grants_insert",
       "cmd": "INSERT",
       "papeis": "{authenticated}",
       "usando": "",
-      "verificando": "(is_school_member(school_id) AND (private.sga_app_role(school_id) = 'Administrador'::text))",
+      "verificando": "(is_school_admin(school_id) OR (is_school_member(school_id) AND (private.sga_app_role(school_id) = 'Administrador'::text)))",
       "modo": "PERMISSIVE"
     },
     {
       "tabela": "staff_module_grants",
-      "politica": "staff_module_grants_select_own_or_admin",
+      "politica": "staff_module_grants_read",
       "cmd": "SELECT",
       "papeis": "{authenticated}",
-      "usando": "(is_school_member(school_id) AND ((user_id = ( SELECT auth.uid() AS uid)) OR (private.sga_app_role(school_id) = 'Administrador'::text)))",
+      "usando": "(((school_id IS NOT NULL) AND (school_id IN ( SELECT private.user_role_school_ids(ARRAY['owner'::text, 'admin'::text, 'administrador'::text]) AS user_role_school_ids))) OR ((school_id IS NOT NULL) AND (school_id IN ( SELECT private.user_member_school_ids() AS user_member_school_ids)) AND ((user_id = ( SELECT auth.uid() AS uid)) OR (private.sga_app_role(school_id) = 'Administrador'::text))))",
       "verificando": "",
       "modo": "PERMISSIVE"
     },
     {
       "tabela": "staff_module_grants",
-      "politica": "staff_module_grants_update_admin",
+      "politica": "staff_module_grants_update",
       "cmd": "UPDATE",
       "papeis": "{authenticated}",
-      "usando": "(is_school_member(school_id) AND (private.sga_app_role(school_id) = 'Administrador'::text))",
-      "verificando": "(is_school_member(school_id) AND (private.sga_app_role(school_id) = 'Administrador'::text))",
+      "usando": "(is_school_admin(school_id) OR (is_school_member(school_id) AND (private.sga_app_role(school_id) = 'Administrador'::text)))",
+      "verificando": "(is_school_admin(school_id) OR (is_school_member(school_id) AND (private.sga_app_role(school_id) = 'Administrador'::text)))",
       "modo": "PERMISSIVE"
     },
     {
@@ -8010,7 +7920,7 @@
       "politica": "School members can read student academic history",
       "cmd": "SELECT",
       "papeis": "{authenticated}",
-      "usando": "is_school_member(school_id)",
+      "usando": "((school_id IS NOT NULL) AND (school_id IN ( SELECT private.user_member_school_ids() AS user_member_school_ids)))",
       "verificando": "",
       "modo": "PERMISSIVE"
     },
@@ -8025,20 +7935,11 @@
     },
     {
       "tabela": "student_guardians",
-      "politica": "Read student_guardians in own school",
-      "cmd": "SELECT",
-      "papeis": "{authenticated}",
-      "usando": "(is_school_member(school_id) AND is_school_office(school_id))",
-      "verificando": "",
-      "modo": "PERMISSIVE"
-    },
-    {
-      "tabela": "student_guardians",
       "politica": "School staff only",
       "cmd": "ALL",
       "papeis": "{authenticated}",
-      "usando": "private.is_school_staff(school_id)",
-      "verificando": "private.is_school_staff(school_id)",
+      "usando": "(school_id IN ( SELECT private.user_role_school_ids(ARRAY['owner'::text, 'admin'::text, 'administrador'::text, 'secretary'::text, 'secretaria'::text, 'treasury'::text, 'tesouraria'::text, 'finance'::text, 'teacher'::text, 'professor'::text]) AS user_role_school_ids))",
+      "verificando": "(school_id IN ( SELECT private.user_role_school_ids(ARRAY['owner'::text, 'admin'::text, 'administrador'::text, 'secretary'::text, 'secretaria'::text, 'treasury'::text, 'tesouraria'::text, 'finance'::text, 'teacher'::text, 'professor'::text]) AS user_role_school_ids))",
       "modo": "RESTRICTIVE"
     },
     {
@@ -8052,10 +7953,10 @@
     },
     {
       "tabela": "student_guardians",
-      "politica": "student_guardians_select_authorized",
+      "politica": "student_guardians_read",
       "cmd": "SELECT",
       "papeis": "{authenticated}",
-      "usando": "private.has_permission(school_id, 'students.records.read'::text)",
+      "usando": "(((school_id IS NOT NULL) AND (school_id IN ( SELECT private.user_member_school_ids() AS user_member_school_ids)) AND ((school_id IS NOT NULL) AND (school_id IN ( SELECT private.user_role_school_ids(ARRAY['owner'::text, 'admin'::text, 'administrador'::text, 'secretary'::text, 'secretaria'::text]) AS user_role_school_ids)))) OR ((school_id IS NOT NULL) AND (school_id IN ( SELECT private.user_permission_school_ids('students.records.read'::text) AS user_permission_school_ids))))",
       "verificando": "",
       "modo": "PERMISSIVE"
     },
@@ -8064,7 +7965,7 @@
       "politica": "Read own school student status events",
       "cmd": "SELECT",
       "papeis": "{authenticated}",
-      "usando": "((school_id = ( SELECT current_school_id() AS current_school_id)) AND is_school_office(school_id))",
+      "usando": "((school_id = ( SELECT current_school_id() AS current_school_id)) AND ((school_id IS NOT NULL) AND (school_id IN ( SELECT private.user_role_school_ids(ARRAY['owner'::text, 'admin'::text, 'administrador'::text, 'secretary'::text, 'secretaria'::text]) AS user_role_school_ids))))",
       "verificando": "",
       "modo": "PERMISSIVE"
     },
@@ -8073,25 +7974,7 @@
       "politica": "School members can read student status history",
       "cmd": "SELECT",
       "papeis": "{authenticated}",
-      "usando": "is_school_member(school_id)",
-      "verificando": "",
-      "modo": "PERMISSIVE"
-    },
-    {
-      "tabela": "students",
-      "politica": "Professor reads students in assigned classes",
-      "cmd": "SELECT",
-      "papeis": "{authenticated}",
-      "usando": "(is_school_member(school_id) AND (EXISTS ( SELECT 1\n   FROM ((enrollments e\n     JOIN class_subjects cs ON (((cs.school_id = e.school_id) AND (cs.class_group_id = e.class_group_id))))\n     JOIN teachers t ON (((t.id = cs.teacher_id) AND (t.school_id = cs.school_id))))\n  WHERE ((e.school_id = students.school_id) AND (e.student_id = students.id) AND (e.status = ANY (ARRAY['active'::text, 'pending'::text])) AND (cs.status = 'active'::text) AND (t.status = 'active'::text) AND (t.user_id = ( SELECT auth.uid() AS uid))))))",
-      "verificando": "",
-      "modo": "PERMISSIVE"
-    },
-    {
-      "tabela": "students",
-      "politica": "Read students in own school",
-      "cmd": "SELECT",
-      "papeis": "{authenticated}",
-      "usando": "(is_school_member(school_id) AND is_school_office(school_id))",
+      "usando": "((school_id IS NOT NULL) AND (school_id IN ( SELECT private.user_member_school_ids() AS user_member_school_ids)))",
       "verificando": "",
       "modo": "PERMISSIVE"
     },
@@ -8100,16 +7983,16 @@
       "politica": "School staff only",
       "cmd": "ALL",
       "papeis": "{authenticated}",
-      "usando": "private.is_school_staff(school_id)",
-      "verificando": "private.is_school_staff(school_id)",
+      "usando": "(school_id IN ( SELECT private.user_role_school_ids(ARRAY['owner'::text, 'admin'::text, 'administrador'::text, 'secretary'::text, 'secretaria'::text, 'treasury'::text, 'tesouraria'::text, 'finance'::text, 'teacher'::text, 'professor'::text]) AS user_role_school_ids))",
+      "verificando": "(school_id IN ( SELECT private.user_role_school_ids(ARRAY['owner'::text, 'admin'::text, 'administrador'::text, 'secretary'::text, 'secretaria'::text, 'treasury'::text, 'tesouraria'::text, 'finance'::text, 'teacher'::text, 'professor'::text]) AS user_role_school_ids))",
       "modo": "RESTRICTIVE"
     },
     {
       "tabela": "students",
-      "politica": "students_select_authorized",
+      "politica": "students_read",
       "cmd": "SELECT",
       "papeis": "{authenticated}",
-      "usando": "private.has_permission(school_id, 'students.records.read'::text)",
+      "usando": "((school_id IN ( SELECT private.user_permission_school_ids('students.records.read'::text) AS user_permission_school_ids)) OR ((school_id IN ( SELECT private.user_member_school_ids() AS user_member_school_ids)) AND ((school_id IN ( SELECT private.user_role_school_ids(ARRAY['owner'::text, 'admin'::text, 'administrador'::text, 'secretary'::text, 'secretaria'::text]) AS user_role_school_ids)) OR ((school_id, id) IN ( SELECT ts.school_id,\n    ts.student_id\n   FROM private.teacher_students() ts(school_id, student_id))))))",
       "verificando": "",
       "modo": "PERMISSIVE"
     },
@@ -8136,7 +8019,7 @@
       "politica": "Read subject_types in own school",
       "cmd": "SELECT",
       "papeis": "{authenticated}",
-      "usando": "((school_id = ( SELECT current_school_id() AS current_school_id)) AND (deleted_at IS NULL) AND is_school_office(school_id))",
+      "usando": "((school_id = ( SELECT current_school_id() AS current_school_id)) AND (deleted_at IS NULL) AND ((school_id IS NOT NULL) AND (school_id IN ( SELECT private.user_role_school_ids(ARRAY['owner'::text, 'admin'::text, 'administrador'::text, 'secretary'::text, 'secretaria'::text]) AS user_role_school_ids))))",
       "verificando": "",
       "modo": "PERMISSIVE"
     },
@@ -8151,15 +8034,6 @@
     },
     {
       "tabela": "subjects",
-      "politica": "Professor reads assigned subjects",
-      "cmd": "SELECT",
-      "papeis": "{authenticated}",
-      "usando": "(is_school_member(school_id) AND (EXISTS ( SELECT 1\n   FROM (class_subjects cs\n     JOIN teachers t ON (((t.id = cs.teacher_id) AND (t.school_id = cs.school_id))))\n  WHERE ((cs.school_id = subjects.school_id) AND (cs.subject_id = subjects.id) AND (cs.status = 'active'::text) AND (t.status = 'active'::text) AND (t.user_id = ( SELECT auth.uid() AS uid))))))",
-      "verificando": "",
-      "modo": "PERMISSIVE"
-    },
-    {
-      "tabela": "subjects",
       "politica": "subjects_insert_authorized",
       "cmd": "INSERT",
       "papeis": "{authenticated}",
@@ -8169,10 +8043,10 @@
     },
     {
       "tabela": "subjects",
-      "politica": "subjects_select_authorized",
+      "politica": "subjects_read",
       "cmd": "SELECT",
       "papeis": "{authenticated}",
-      "usando": "private.has_permission(school_id, 'academic.subjects.read'::text)",
+      "usando": "((school_id IN ( SELECT private.user_permission_school_ids('academic.subjects.read'::text) AS user_permission_school_ids)) OR ((school_id IN ( SELECT private.user_member_school_ids() AS user_member_school_ids)) AND ((school_id, id) IN ( SELECT tc.school_id,\n    tc.subject_id\n   FROM private.teacher_class_subjects(true) tc(school_id, class_subject_id, class_group_id, subject_id)))))",
       "verificando": "",
       "modo": "PERMISSIVE"
     },
@@ -8217,7 +8091,7 @@
       "politica": "Read teacher_availability in own school",
       "cmd": "SELECT",
       "papeis": "{authenticated}",
-      "usando": "((school_id = ( SELECT current_school_id() AS current_school_id)) AND (deleted_at IS NULL) AND is_school_office(school_id))",
+      "usando": "((school_id = ( SELECT current_school_id() AS current_school_id)) AND (deleted_at IS NULL) AND ((school_id IS NOT NULL) AND (school_id IN ( SELECT private.user_role_school_ids(ARRAY['owner'::text, 'admin'::text, 'administrador'::text, 'secretary'::text, 'secretaria'::text]) AS user_role_school_ids))))",
       "verificando": "",
       "modo": "PERMISSIVE"
     },
@@ -8235,25 +8109,16 @@
       "politica": "teacher_subjects_select_authorized",
       "cmd": "SELECT",
       "papeis": "{authenticated}",
-      "usando": "private.has_permission(school_id, 'teachers.records.read'::text)",
+      "usando": "((school_id IS NOT NULL) AND (school_id IN ( SELECT private.user_permission_school_ids('teachers.records.read'::text) AS user_permission_school_ids)))",
       "verificando": "",
       "modo": "PERMISSIVE"
     },
     {
       "tabela": "teachers",
-      "politica": "Professor reads own teacher record",
+      "politica": "teachers_read",
       "cmd": "SELECT",
       "papeis": "{authenticated}",
-      "usando": "(is_school_member(school_id) AND (user_id = ( SELECT auth.uid() AS uid)) AND (status = 'active'::text))",
-      "verificando": "",
-      "modo": "PERMISSIVE"
-    },
-    {
-      "tabela": "teachers",
-      "politica": "teachers_select_authorized",
-      "cmd": "SELECT",
-      "papeis": "{authenticated}",
-      "usando": "private.has_permission(school_id, 'teachers.records.read'::text)",
+      "usando": "(((school_id IS NOT NULL) AND (school_id IN ( SELECT private.user_member_school_ids() AS user_member_school_ids)) AND (user_id = ( SELECT auth.uid() AS uid)) AND (status = 'active'::text)) OR ((school_id IS NOT NULL) AND (school_id IN ( SELECT private.user_permission_school_ids('teachers.records.read'::text) AS user_permission_school_ids))))",
       "verificando": "",
       "modo": "PERMISSIVE"
     },
@@ -8313,15 +8178,6 @@
     },
     {
       "tabela": "terms",
-      "politica": "Academic read terms",
-      "cmd": "SELECT",
-      "papeis": "{authenticated}",
-      "usando": "is_school_member(school_id)",
-      "verificando": "",
-      "modo": "PERMISSIVE"
-    },
-    {
-      "tabela": "terms",
       "politica": "Academic update terms",
       "cmd": "UPDATE",
       "papeis": "{authenticated}",
@@ -8331,10 +8187,10 @@
     },
     {
       "tabela": "terms",
-      "politica": "terms_select_authorized",
+      "politica": "terms_read",
       "cmd": "SELECT",
       "papeis": "{authenticated}",
-      "usando": "private.has_permission(school_id, 'academic.structure.read'::text)",
+      "usando": "(((school_id IS NOT NULL) AND (school_id IN ( SELECT private.user_member_school_ids() AS user_member_school_ids))) OR ((school_id IS NOT NULL) AND (school_id IN ( SELECT private.user_permission_school_ids('academic.structure.read'::text) AS user_permission_school_ids))))",
       "verificando": "",
       "modo": "PERMISSIVE"
     },
@@ -8349,15 +8205,6 @@
     },
     {
       "tabela": "timetable_slots",
-      "politica": "Academic read timetable slots",
-      "cmd": "SELECT",
-      "papeis": "{authenticated}",
-      "usando": "(is_school_member(school_id) AND (is_school_office(school_id) OR (EXISTS ( SELECT 1\n   FROM (class_subjects cs\n     JOIN teachers t ON (((t.id = cs.teacher_id) AND (t.school_id = cs.school_id))))\n  WHERE ((cs.id = timetable_slots.class_subject_id) AND (cs.school_id = timetable_slots.school_id) AND (cs.status = 'active'::text) AND (t.status = 'active'::text) AND (t.user_id = ( SELECT auth.uid() AS uid))))) OR (NOT (EXISTS ( SELECT 1\n   FROM teachers self_teacher\n  WHERE ((self_teacher.school_id = timetable_slots.school_id) AND (self_teacher.status = 'active'::text) AND (self_teacher.user_id = ( SELECT auth.uid() AS uid))))))))",
-      "verificando": "",
-      "modo": "PERMISSIVE"
-    },
-    {
-      "tabela": "timetable_slots",
       "politica": "Academic update timetable slots",
       "cmd": "UPDATE",
       "papeis": "{authenticated}",
@@ -8367,10 +8214,10 @@
     },
     {
       "tabela": "timetable_slots",
-      "politica": "timetable_slots_select_authorized",
+      "politica": "timetable_slots_read",
       "cmd": "SELECT",
       "papeis": "{authenticated}",
-      "usando": "private.has_permission(school_id, 'academic.timetable.read'::text)",
+      "usando": "((school_id IN ( SELECT private.user_permission_school_ids('academic.timetable.read'::text) AS user_permission_school_ids)) OR ((school_id IN ( SELECT private.user_member_school_ids() AS user_member_school_ids)) AND ((school_id IN ( SELECT private.user_role_school_ids(ARRAY['owner'::text, 'admin'::text, 'administrador'::text, 'secretary'::text, 'secretaria'::text]) AS user_role_school_ids)) OR ((school_id, class_subject_id) IN ( SELECT tc.school_id,\n    tc.class_subject_id\n   FROM private.teacher_class_subjects(true) tc(school_id, class_subject_id, class_group_id, subject_id))) OR (NOT (school_id IN ( SELECT ct.school_id\n   FROM private.current_teacher_rows() ct(school_id, teacher_id)))))))",
       "verificando": "",
       "modo": "PERMISSIVE"
     },
@@ -8406,8 +8253,8 @@
     {
       "id": "avatars",
       "public": false,
-      "file_size_limit": null,
-      "tipos_aceites": null
+      "file_size_limit": 5242880,
+      "tipos_aceites": "{image/png,image/jpeg,image/webp}"
     },
     {
       "id": "billing-proofs",
@@ -8424,8 +8271,8 @@
     {
       "id": "school-logos",
       "public": true,
-      "file_size_limit": null,
-      "tipos_aceites": null
+      "file_size_limit": 2097152,
+      "tipos_aceites": "{image/png,image/jpeg,image/webp,image/svg+xml}"
     },
     {
       "id": "school-private",
@@ -8436,7 +8283,7 @@
     {
       "id": "siga-files",
       "public": false,
-      "file_size_limit": null,
+      "file_size_limit": 52428800,
       "tipos_aceites": null
     }
   ],
@@ -8599,6 +8446,12 @@
     },
     {
       "schema": "private",
+      "funcao": "audit_role_permissions_stmt",
+      "args": "",
+      "security_definer": true
+    },
+    {
+      "schema": "private",
       "funcao": "audit_row_change",
       "args": "",
       "security_definer": true
@@ -8698,6 +8551,12 @@
       "funcao": "create_student_case",
       "args": "target_school_id uuid, target_student_id uuid, case_type text, title text, summary text",
       "security_definer": false
+    },
+    {
+      "schema": "private",
+      "funcao": "current_teacher_rows",
+      "args": "",
+      "security_definer": true
     },
     {
       "schema": "private",
@@ -9139,6 +8998,36 @@
     },
     {
       "schema": "private",
+      "funcao": "teacher_class_subjects",
+      "args": "p_require_active_teacher boolean",
+      "security_definer": true
+    },
+    {
+      "schema": "private",
+      "funcao": "teacher_grade_items",
+      "args": "",
+      "security_definer": true
+    },
+    {
+      "schema": "private",
+      "funcao": "teacher_gradebooks",
+      "args": "",
+      "security_definer": true
+    },
+    {
+      "schema": "private",
+      "funcao": "teacher_people",
+      "args": "",
+      "security_definer": true
+    },
+    {
+      "schema": "private",
+      "funcao": "teacher_students",
+      "args": "",
+      "security_definer": true
+    },
+    {
+      "schema": "private",
       "funcao": "timetable_room_is_explicit",
       "args": "p_room text",
       "security_definer": false
@@ -9208,6 +9097,30 @@
       "funcao": "upsert_grade_score",
       "args": "target_school_id uuid, target_grade_item_id uuid, target_enrollment_id uuid, new_score numeric, change_reason text, score_note text",
       "security_definer": false
+    },
+    {
+      "schema": "private",
+      "funcao": "user_import_job_ids",
+      "args": "p_staff_only boolean",
+      "security_definer": true
+    },
+    {
+      "schema": "private",
+      "funcao": "user_member_school_ids",
+      "args": "",
+      "security_definer": true
+    },
+    {
+      "schema": "private",
+      "funcao": "user_permission_school_ids",
+      "args": "permission_code text",
+      "security_definer": true
+    },
+    {
+      "schema": "private",
+      "funcao": "user_role_school_ids",
+      "args": "p_codes text[]",
+      "security_definer": true
     },
     {
       "schema": "private",
@@ -10929,8 +10842,20 @@
     },
     {
       "tabela": "role_permissions",
-      "trigger": "audit_role_permissions_change",
-      "funcao": "audit_row_change",
+      "trigger": "audit_role_permissions_delete",
+      "funcao": "audit_role_permissions_stmt",
+      "funcao_schema": "private"
+    },
+    {
+      "tabela": "role_permissions",
+      "trigger": "audit_role_permissions_insert",
+      "funcao": "audit_role_permissions_stmt",
+      "funcao_schema": "private"
+    },
+    {
+      "tabela": "role_permissions",
+      "trigger": "audit_role_permissions_update",
+      "funcao": "audit_role_permissions_stmt",
       "funcao_schema": "private"
     },
     {
