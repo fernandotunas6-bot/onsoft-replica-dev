@@ -31,6 +31,7 @@ import { SpotlightRail } from "@/features/spotlight/SpotlightRail";
 import { DashboardCalendarCard } from "@/features/dashboard/components/DashboardCalendarCard";
 import { StudentTimetableCard } from "@/features/dashboard/components/StudentTimetableCard";
 import { StudentGradesCard } from "@/features/dashboard/components/StudentGradesCard";
+import { StudentHigherEdCard } from "@/features/dashboard/components/StudentHigherEdCard";
 import { StudentCompetenciesCard } from "@/features/dashboard/components/StudentCompetenciesCard";
 import { assessmentCalendarItems } from "@/features/dashboard/student-calendar-items";
 import { openSettingsPanel } from "@/lib/settings-deep-link";
@@ -253,6 +254,7 @@ export function GuardianPortalDashboard() {
           <StudentTimetableCard studentId={activeStudentId ?? null} />
 
           <StudentGradesCard studentId={activeStudentId ?? null} />
+          <StudentHigherEdCard studentId={activeStudentId ?? null} />
 
           <StudentCompetenciesCard studentId={activeStudentId ?? null} />
         </>

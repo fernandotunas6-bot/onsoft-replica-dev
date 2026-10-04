@@ -1,5 +1,6 @@
 import { requireAal2 } from "@/features/hr/require-aal2";
 import { createServerFn } from "@tanstack/react-start";
+import { readSettingsDomain } from "@/features/school/settings-domains";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { publicDatabaseError } from "@/integrations/supabase/server-error";
@@ -52,6 +53,7 @@ import {
   saftPeriodBounds,
   validateSaftSchoolReadiness,
 } from "./saft-export";
+import { higherEdFeeCodeForCategory } from "@/features/higher-ed/fees";
 
 const REPORTING_PAGE_SIZE = 1000;
 const REPORTING_MAX_PAGES = 30;
@@ -182,17 +184,8 @@ async function resolveSiblingDiscountPercent(
     .maybeSingle();
   if (!activeSibling) return 0;
 
-  const { data: billingSettings } = await db
-    .from("school_settings")
-    .select("value")
-    .eq("school_id", schoolId)
-    .eq("domain", "billing")
-    .maybeSingle();
-  const configured = (billingSettings?.value as Record<string, unknown> | null)?.[
-    "sibling_discount_percent"
-  ];
-  const percent = Number(configured ?? 0);
-  return Number.isFinite(percent) && percent > 0 ? Math.min(percent, 100) : 0;
+  const billing = await readSettingsDomain(db, schoolId, "billing");
+  return billing.sibling_discount_percent;
 }
 
 async function personIdForInvoice(
@@ -1115,16 +1108,27 @@ export const issueInvoice = createServerFn({ method: "POST" })
         ? Math.round(((data.amount * contractDiscountPercent) / 100) * 100) / 100
         : 0;
 
-    const kind = categoryToFeeKind(data.category);
+    // Emolumento do Ensino Superior: o item certo pelo código, não o primeiro activo.
+    const feeCode = higherEdFeeCodeForCategory(data.category);
+    const kind = feeCode ? null : categoryToFeeKind(data.category);
     let feeQuery = db
       .from("fee_items")
       .select("id, name, amount")
       .eq("school_id", membership.schoolId)
       .eq("fee_plan_id", plan.id)
       .eq("is_active", true);
-    if (kind) feeQuery = feeQuery.eq("kind", kind);
+    if (feeCode) feeQuery = feeQuery.eq("code", feeCode);
+    else if (kind) feeQuery = feeQuery.eq("kind", kind);
+    // «Documento»/«Outro» não se ligam a um emolumento do Superior por acaso.
+    else feeQuery = feeQuery.neq("kind", "service");
     const { data: feeItem } = await feeQuery.limit(1).maybeSingle();
-    if (!feeItem?.id) throw new Error("Não há item de taxa activo para esta categoria.");
+    if (!feeItem?.id) {
+      throw new Error(
+        feeCode
+          ? "Este emolumento ainda não está definido. Defina o valor em Ensino Superior → Emolumentos."
+          : "Não há item de taxa activo para esta categoria.",
+      );
+    }
 
     const competenceMonth =
       (data.issuedOn ?? new Date().toISOString().slice(0, 10)).slice(0, 7) + "-01";
@@ -1305,6 +1309,25 @@ export const reverseCashEntry = createServerFn({ method: "POST" })
           "Não foi possível estornar o recibo. O lançamento permanece inalterado.",
         );
       return receipt;
+    }
+
+    // Uma saída de caixa que pagou um salário não se anula aqui: o salário
+    // ficava «pago» com o dinheiro devolvido ao caixa, e a ordem e a folha
+    // diziam o contrário do caixa.
+    const { data: payrollLink, error: payrollLinkError } = await db
+      .from("hr_payroll_payment_items")
+      .select("id, status")
+      .eq("school_id", membership.schoolId)
+      .eq("cash_expense_id", data.cashEntryId)
+      .limit(1)
+      .maybeSingle();
+    if (payrollLinkError && !isMissingSgaTable(payrollLinkError)) {
+      throw publicDatabaseError(payrollLinkError, "Não foi possível verificar a despesa.");
+    }
+    if (payrollLink?.id) {
+      throw new Error(
+        "Esta saída pagou um salário e não se anula no caixa: a folha continuaria a dar o salário como pago. A correcção tem de ser feita no pagamento salarial (Recursos Humanos).",
+      );
     }
 
     const { data: expense, error: expenseError } = await db
@@ -1743,12 +1766,13 @@ export const exportSaftAoXml = createServerFn({ method: "POST" })
     ]);
     const db = await loadSgaAdminClient();
 
-    const [{ data: schoolSetting }, { data: agtSetting }] = await Promise.all([
+    // Os dados fiscais da escola vivem na tabela `schools` (não há domínio
+    // «school» em school_settings: lê-lo deixava a exportação sempre bloqueada).
+    const [{ data: schoolRow }, { data: agtSetting }] = await Promise.all([
       db
-        .from("school_settings")
-        .select("value")
-        .eq("school_id", membership.schoolId)
-        .eq("domain", "school")
+        .from("schools")
+        .select("name, nif, address, city, municipality")
+        .eq("id", membership.schoolId)
         .maybeSingle(),
       db
         .from("school_settings")
@@ -1758,15 +1782,14 @@ export const exportSaftAoXml = createServerFn({ method: "POST" })
         .maybeSingle(),
     ]);
 
-    const schoolVal = (schoolSetting?.value as Record<string, unknown>) ?? {};
     const agtVal = (agtSetting?.value as Record<string, unknown>) ?? {};
     const text = (v: unknown) => (typeof v === "string" ? v.trim() : "");
     // Sem valores inventados: o que faltar fica vazio e aparece nos avisos.
     const schoolInfo = {
-      nif: text(schoolVal["nif"]) || text(schoolVal["taxId"]),
-      name: text(schoolVal["name"]) || text(schoolVal["schoolName"]),
-      address: text(schoolVal["address"]),
-      city: text(schoolVal["city"]),
+      nif: text(schoolRow?.nif),
+      name: text(schoolRow?.name),
+      address: text(schoolRow?.address),
+      city: text(schoolRow?.city) || text(schoolRow?.municipality),
     };
 
     const readiness = validateSaftSchoolReadiness(schoolInfo);

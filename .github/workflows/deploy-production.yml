@@ -56,14 +56,16 @@ jobs:
       # Falha em segundos, com o nome do que falta, antes de instalar e construir.
       # Sem isto, a falta do token só aparecia a meio da publicação, dita pelo
       # wrangler (foi assim de #49 a #53: nada chegou à Cloudflare). Só nomes,
-      # nunca valores.
+      # nunca valores. URL e chave publicável são públicas (as mesmas por omissão
+      # de src/integrations/supabase/client.ts); a chave de serviço aceita a
+      # SUPABASE_SECRET_KEY, que o servidor já prefere (client.server.ts).
       - name: Confirmar segredos obrigatórios do ambiente production
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
-          VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
-          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID || vars.CLOUDFLARE_ACCOUNT_ID }}
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL || secrets.SUPABASE_URL || 'https://xodgfmxiaunpamctfeea.supabase.co' }}
+          VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY || secrets.SUPABASE_PUBLISHABLE_KEY || 'sb_publishable_NSqtGz5zxP_EngLuNj00Og_y3V4D4td' }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY || secrets.SUPABASE_SECRET_KEY }}
         run: |
           missing=0
           for name in CLOUDFLARE_API_TOKEN CLOUDFLARE_ACCOUNT_ID VITE_SUPABASE_URL VITE_SUPABASE_PUBLISHABLE_KEY SUPABASE_SERVICE_ROLE_KEY; do
@@ -96,10 +98,10 @@ jobs:
         run: node scripts/deploy-all.mjs
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
-          VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
-          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID || vars.CLOUDFLARE_ACCOUNT_ID }}
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL || secrets.SUPABASE_URL || 'https://xodgfmxiaunpamctfeea.supabase.co' }}
+          VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY || secrets.SUPABASE_PUBLISHABLE_KEY || 'sb_publishable_NSqtGz5zxP_EngLuNj00Og_y3V4D4td' }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY || secrets.SUPABASE_SECRET_KEY }}
           SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
           SUPABASE_JWT_SECRET: ${{ secrets.SUPABASE_JWT_SECRET }}
           SIGA_CRON_SECRET: ${{ secrets.SIGA_CRON_SECRET }}
@@ -110,6 +112,30 @@ jobs:
           RESEND_WEBHOOK_SECRET: ${{ secrets.RESEND_WEBHOOK_SECRET }}
           APPYPAY_WEBHOOK_TOKEN: ${{ secrets.APPYPAY_WEBHOOK_TOKEN }}
           LOVABLE_API_KEY: ${{ secrets.LOVABLE_API_KEY }}
+          SIGA_ALERT_WEBHOOK_URL: ${{ secrets.SIGA_ALERT_WEBHOOK_URL }}
+          HCAPTCHA_SECRET_KEY: ${{ secrets.HCAPTCHA_SECRET_KEY }}
+          APPYPAY_CLIENT_SECRET: ${{ secrets.APPYPAY_CLIENT_SECRET }}
+          ZOOM_CLIENT_SECRET: ${{ secrets.ZOOM_CLIENT_SECRET }}
+          SIGA_GATEWAY_ALERT_SLACK_URL: ${{ secrets.SIGA_GATEWAY_ALERT_SLACK_URL }}
+          # Configuração não secreta (scripts/worker-secrets.mjs → OPTIONAL_WORKER_VARS);
+          # vazias não são enviadas e o que está no painel da Cloudflare mantém-se.
+          PLATFORM_DOMAIN: ${{ vars.PLATFORM_DOMAIN }}
+          APPYPAY_ENV: ${{ vars.APPYPAY_ENV }}
+          APPYPAY_CLIENT_ID: ${{ vars.APPYPAY_CLIENT_ID }}
+          APPYPAY_RESOURCE: ${{ vars.APPYPAY_RESOURCE }}
+          APPYPAY_GPO_METHOD: ${{ vars.APPYPAY_GPO_METHOD }}
+          APPYPAY_REF_METHOD: ${{ vars.APPYPAY_REF_METHOD }}
+          CLOUDFLARE_ZONE_ID: ${{ vars.CLOUDFLARE_ZONE_ID }}
+          GOOGLE_WORKSPACE_DOMAIN: ${{ vars.GOOGLE_WORKSPACE_DOMAIN }}
+          MAILBOX_PROVIDER: ${{ vars.MAILBOX_PROVIDER }}
+          PAYFLOW_AUTO_SYNC: ${{ vars.PAYFLOW_AUTO_SYNC }}
+          SMS_API_URL: ${{ vars.SMS_API_URL }}
+          WHATSAPP_OTP_TEMPLATE_NAME: ${{ vars.WHATSAPP_OTP_TEMPLATE_NAME }}
+          WHATSAPP_PHONE_NUMBER_ID: ${{ vars.WHATSAPP_PHONE_NUMBER_ID }}
+          ZOHO_MAIL_CLIENT_ID: ${{ vars.ZOHO_MAIL_CLIENT_ID }}
+          ZOHO_MAIL_ORG_ID: ${{ vars.ZOHO_MAIL_ORG_ID }}
+          ZOOM_CLIENT_ID: ${{ vars.ZOOM_CLIENT_ID }}
+          ZOOM_REDIRECT_URI: ${{ vars.ZOOM_REDIRECT_URI }}
           SMS_API_KEY: ${{ secrets.SMS_API_KEY }}
           TWILIO_ACCOUNT_SID: ${{ secrets.TWILIO_ACCOUNT_SID }}
           TWILIO_AUTH_TOKEN: ${{ secrets.TWILIO_AUTH_TOKEN }}
@@ -124,6 +150,10 @@ jobs:
           ZOHO_MAIL_CLIENT_SECRET: ${{ secrets.ZOHO_MAIL_CLIENT_SECRET }}
           ZOHO_MAIL_REFRESH_TOKEN: ${{ secrets.ZOHO_MAIL_REFRESH_TOKEN }}
           PAYFLOW_R2_BUCKET: ${{ vars.PAYFLOW_R2_BUCKET }}
+          # Chave pública do hCaptcha (vai no bundle). Sem ela, o SIGA publicado não
+          # mostra o widget e o Supabase Auth (captcha activo) recusa todos os logins
+          # por senha; o WEB também a usa no registo de escolas.
+          VITE_HCAPTCHA_SITE_KEY: ${{ vars.VITE_HCAPTCHA_SITE_KEY }}
 
       - name: Confirmar DNS da plataforma (raiz, app e wildcard)
         run: npm run siga:check-dns

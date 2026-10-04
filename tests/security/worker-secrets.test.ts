@@ -4,8 +4,10 @@ import { describe, expect, it } from "vitest";
 import {
   NOT_WORKER_SECRETS,
   OPTIONAL_WORKER_SECRETS,
+  OPTIONAL_WORKER_VARS,
   REQUIRED_WORKER_SECRETS,
   collectWorkerSecrets,
+  collectWorkerVars,
 } from "../../scripts/worker-secrets.mjs";
 
 const SENSITIVE = /(KEY|SECRET|TOKEN|PASSWORD|_SID|FROM_NUMBER)$/;
@@ -17,6 +19,8 @@ function envNamesReadBy(dir: string, out = new Set<string>()) {
     else if (/\.(ts|tsx)$/.test(entry)) {
       const code = readFileSync(full, "utf8");
       for (const m of code.matchAll(/process\.env(?:\?\.|\.|\[")([A-Z0-9_]+)/g)) out.add(m[1]);
+      // Helpers locais (`env("APPYPAY_CLIENT_SECRET")`): escapavam a esta verificação.
+      for (const m of code.matchAll(/\benv\("([A-Z][A-Z0-9_]+)"\)/g)) out.add(m[1]);
     }
   }
   return out;
@@ -58,6 +62,39 @@ describe("segredos do worker", () => {
     );
     for (const name of [...REQUIRED_WORKER_SECRETS, ...OPTIONAL_WORKER_SECRETS]) {
       expect(varsBlock).not.toMatch(new RegExp(`^\\s*${name}\\s*[:,]`, "m"));
+    }
+  });
+
+  it("toda a variável que o servidor lê tem destino na publicação", () => {
+    const script = readFileSync(join(process.cwd(), "scripts/deploy-cf.mjs"), "utf8");
+    const varsBlock = script.slice(script.indexOf("config.vars = {"));
+    const known = new Set([
+      ...REQUIRED_WORKER_SECRETS,
+      ...OPTIONAL_WORKER_SECRETS,
+      ...OPTIONAL_WORKER_VARS,
+      ...Object.keys(NOT_WORKER_SECRETS),
+    ]);
+    const missing = [...envNamesReadBy(join(process.cwd(), "src"))]
+      .filter((name) => !name.startsWith("VITE_") && !known.has(name))
+      .filter((name) => !new RegExp(`\\b${name}\\b`).test(varsBlock))
+      .sort();
+    expect(
+      missing,
+      `Sem destino na publicação (worker-secrets.mjs ou vars de deploy-cf.mjs): ${missing.join(", ")}`,
+    ).toEqual([]);
+  });
+
+  it("a publicação mantém as variáveis do painel e só envia config definida", () => {
+    const script = readFileSync(join(process.cwd(), "scripts/deploy-cf.mjs"), "utf8");
+    expect(script).toMatch(/config\.keep_vars = true/);
+    expect(
+      collectWorkerVars({ PLATFORM_DOMAIN: "x.ao" }, { APPYPAY_ENV: "", ZOOM_CLIENT_ID: "z" }),
+    ).toEqual([
+      ["PLATFORM_DOMAIN", "x.ao"],
+      ["ZOOM_CLIENT_ID", "z"],
+    ]);
+    for (const name of OPTIONAL_WORKER_VARS) {
+      expect(OPTIONAL_WORKER_SECRETS, `${name} não pode ser segredo e var`).not.toContain(name);
     }
   });
 });

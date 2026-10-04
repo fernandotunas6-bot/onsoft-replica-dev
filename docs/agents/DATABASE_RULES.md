@@ -54,6 +54,12 @@ aluno, e duas nem chegavam a correr na base SGA (função e colunas inexistentes
    de outra que o exige anula o 2FA (somam-se por OR); o teste `staff-only-sensitive-tables`
    recusa-a. `students` e `enrollments` não aceitam INSERT directo: só pelo servidor.
 
+6d. **Papel pela escola da linha.** Numa política, usar `private.sga_app_role(school_id)`
+   (devolve «Administrador», «Tesouraria»…) **sempre** com `is_school_member(school_id)`:
+   para quem não é membro, `sga_app_role` cai no cargo global do perfil. Não usar
+   `current_profile_role()` (devolve o código, `owner`/`treasury`, e é o da primeira
+   escola) nem `current_school_id()` (primeira escola, não a da linha).
+
 ## `CREATE TABLE IF NOT EXISTS` não corrige uma tabela que já existe
 
 Se a tabela existe com outra forma, `CREATE TABLE IF NOT EXISTS` não faz nada **e não dá

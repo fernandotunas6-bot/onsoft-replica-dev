@@ -547,13 +547,13 @@ export const getDashboardOverview = createServerFn({ method: "GET" })
       if (!error) {
         const rows = docs ?? [];
         overview.totals.documentTotal = rows.length;
+        // Vocabulário da base (ver statusToUi em documents/server.ts): «fulfilled»
+        // é o documento entregue e faltava aqui, pelo que nunca contava como emitido.
         overview.totals.documentIssued = rows.filter((row) =>
-          ["approved", "ready", "delivered", "issued", "completed"].includes(String(row.status)),
+          ["approved", "fulfilled"].includes(String(row.status)),
         ).length;
         overview.totals.documentPending = rows.filter((row) =>
-          ["submitted", "in_review", "queued", "processing", "pending_payment"].includes(
-            String(row.status),
-          ),
+          ["submitted", "in_review"].includes(String(row.status)),
         ).length;
         overview.recentActivity = rows.slice(0, 6).map((row) => ({
           id: String(row.id),
@@ -1047,12 +1047,12 @@ export const listSchoolAlerts = createServerFn({ method: "GET" })
             .eq("school_id", schoolId)
             .eq("status", "pending")
             .is("deleted_at", null),
+          // Vocabulário da base (queued/processing são rótulos da interface).
           db
             .from("document_requests")
-            .select("id, status")
+            .select("id", { count: "exact", head: true })
             .eq("school_id", schoolId)
-            .in("status", ["submitted", "in_review", "queued", "processing"])
-            .limit(80),
+            .in("status", ["submitted", "in_review"]),
         ]);
 
         let pendingApps = 0;
@@ -1067,7 +1067,7 @@ export const listSchoolAlerts = createServerFn({ method: "GET" })
           pendingApps = applications.count ?? 0;
         }
 
-        const pendingDocs = documents.error ? 0 : (documents.data ?? []).length;
+        const pendingDocs = documents.error ? 0 : (documents.count ?? 0);
         const candidaturas = buildSchoolAlert("candidaturas", pendingApps);
         const matricula = buildSchoolAlert("matricula", applicantCount ?? 0);
         const documentos = buildSchoolAlert("documentos", pendingDocs);

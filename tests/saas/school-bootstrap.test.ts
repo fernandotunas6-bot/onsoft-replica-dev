@@ -454,7 +454,7 @@ describe("school-bootstrap", () => {
         slug: "colegio-esperanca",
         title: "Candidatura a matrícula",
         subtitle: "Colégio Esperança",
-        is_open: true,
+        is_open: false,
         created_by: "user-admin-uuid-1",
         updated_by: "user-admin-uuid-1",
       });

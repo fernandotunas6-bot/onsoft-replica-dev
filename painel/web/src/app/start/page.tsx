@@ -25,16 +25,20 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { MarketingFormPage } from "@/components/marketing/marketing-form-page"
-import { ANGOLA_PROVINCES, SCHOOL_TYPES } from "@/lib/angola"
+import { EmailVerification } from "./email-verification"
+import { GlassTile, SigaMascot } from "@/components/brand/aurora"
+import { ANGOLA_PROVINCES, SCHOOL_TYPES, SECONDARY_COURSES, TEACHING_LEVELS } from "@/lib/angola"
 import { cn } from "@/lib/utils"
 import { ECOSYSTEM_URLS, PLATFORM_DOMAIN } from "@/lib/ecosystem-urls"
 import {
   checkSlugAvailability,
   fetchSaasPlans,
   signupSchool,
+  recordSignupProgress,
   type PlanCode,
   type SaasPlan,
 } from "@/lib/saas-api"
+import { SIGNUP_CAPTCHA_SITE_KEY, SignupCaptcha } from "@/components/signup-captcha"
 
 const FALLBACK_PLANS: SaasPlan[] = [
   { code: "start", name: "Start", description: "Escolas pequenas" },
@@ -63,6 +67,8 @@ const schema = z.object({
     .regex(/^[0-9]{9,10}$/, "NIF inválido. Use o NIF de entidade da AGT (9–10 dígitos)"),
   commercial_name: z.string().trim().max(160).optional(),
   school_type: z.string().trim().optional(),
+  teaching_levels: z.array(z.string()).min(1, "Escolha pelo menos um nível de ensino"),
+  secondary_courses: z.array(z.string()),
   province: z.string().trim().min(1, "Escolha a província"),
   municipality: z.string().trim().min(2, "Indique o município").max(80),
   commune: z.string().trim().max(80).optional(),
@@ -118,7 +124,7 @@ const schema = z.object({
 type FormValues = z.infer<typeof schema>
 
 const STEPS = [
-  { id: 1, title: "Instituição", hint: "Nome, NIF e natureza" },
+  { id: 1, title: "Instituição", hint: "Nome, NIF, natureza e níveis" },
   { id: 2, title: "Localização", hint: "Onde fica a escola" },
   { id: 3, title: "Responsável", hint: "Quem trata do registo" },
   { id: 4, title: "Plano", hint: "Pode mudar depois" },
@@ -128,7 +134,7 @@ const STEPS = [
 ]
 
 const STEP_INTRO: Record<number, string> = {
-  1: "Os dados oficiais aparecem nas facturas, pautas e certificados emitidos pela escola.",
+  1: "Os dados oficiais aparecem nas facturas, pautas e certificados. Os níveis de ensino definem as classes e disciplinas que a escola recebe já criadas.",
   2: "A localização fica na ficha da escola e nos documentos oficiais.",
   3: "A pessoa que acompanha o registo e recebe as comunicações comerciais.",
   4: "Todos os planos começam com um período experimental. O pagamento só é pedido depois.",
@@ -140,13 +146,20 @@ const STEP_INTRO: Record<number, string> = {
 const LAST_STEP = STEPS.length
 
 const FIELDS_BY_STEP: Record<number, (keyof FormValues)[]> = {
-  1: ["name", "nif", "commercial_name"],
+  1: ["name", "nif", "commercial_name", "teaching_levels"],
   2: ["province", "municipality", "commune", "neighborhood", "address", "phone", "email"],
   3: ["contact_name", "contact_role", "contact_phone", "contact_email"],
   4: ["plan_code"],
   5: ["admin_name", "admin_email", "admin_password", "admin_password_confirm"],
   6: ["slug"],
 }
+
+/** Passo de cada campo — para levar a pessoa ao campo que o servidor recusou. */
+const FIELD_STEP = Object.fromEntries(
+  Object.entries(FIELDS_BY_STEP).flatMap(([step, fields]) => fields.map((field) => [field, Number(step)])),
+) as Record<keyof FormValues, number>
+
+const AUTO_ENTER_SECONDS = 8
 
 /** Rascunho no navegador: quem fecha a página a meio retoma onde estava. Nunca a senha. */
 const DRAFT_KEY = "siga-web:start-draft:v1"
@@ -171,6 +184,48 @@ function writeDraft(draft: Draft | null) {
     else window.localStorage.removeItem(DRAFT_KEY)
   } catch {
     /* navegador sem armazenamento: o registo continua, só sem rascunho */
+  }
+}
+
+/**
+ * Sessão deste registo: um id aleatório, guardado no navegador, que permite à
+ * equipa ver até onde o assistente chegou (sem dados pessoais até o e-mail ser
+ * confirmado) e fechar o acompanhamento quando a escola é criada.
+ */
+const SESSION_KEY = "siga-web:start-session:v1"
+const VERIFICATION_KEY = "siga-web:start-verification:v1"
+
+function readSessionId(): string {
+  try {
+    const existing = window.localStorage.getItem(SESSION_KEY)
+    if (existing && /^[0-9a-f-]{36}$/i.test(existing)) return existing
+    const created = crypto.randomUUID()
+    window.localStorage.setItem(SESSION_KEY, created)
+    return created
+  } catch {
+    return crypto.randomUUID()
+  }
+}
+
+type Verification = { email: string; token: string }
+
+/** O comprovativo vale 2 h no servidor; guardado só nesta aba (sessionStorage). */
+function readVerification(): Verification | null {
+  try {
+    const raw = window.sessionStorage.getItem(VERIFICATION_KEY)
+    const parsed = raw ? (JSON.parse(raw) as Verification) : null
+    return parsed?.email && parsed.token ? parsed : null
+  } catch {
+    return null
+  }
+}
+
+function writeVerification(value: Verification | null) {
+  try {
+    if (value) window.sessionStorage.setItem(VERIFICATION_KEY, JSON.stringify(value))
+    else window.sessionStorage.removeItem(VERIFICATION_KEY)
+  } catch {
+    /* sem armazenamento: vale enquanto a página estiver aberta */
   }
 }
 
@@ -209,17 +264,29 @@ export function StartSchoolWizard() {
   const [step, setStep] = useState(1)
   const [plans, setPlans] = useState<SaasPlan[]>(FALLBACK_PLANS)
   const [serverError, setServerError] = useState<string | null>(null)
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null)
+  // Cada tentativa gasta o sinal; incrementar pede um novo ao widget.
+  const [captchaReset, setCaptchaReset] = useState(0)
   // `form.formState.isSubmitting` só activa dentro de `form.handleSubmit(...)` — o
   // <form onSubmit> aqui chama onNext/onCreate directamente, então nunca acendia.
   // Sem isto, um duplo clique em "Criar escola" disparava dois pedidos de signup.
   const [isCreating, setIsCreating] = useState(false)
+  const [sessionId] = useState(() => (typeof window === "undefined" ? "" : readSessionId()))
+  const [verification, setVerification] = useState<Verification | null>(() =>
+    typeof window === "undefined" ? null : readVerification(),
+  )
   const [done, setDone] = useState<{
     hostname: string
     sigaUrl: string
     adminTenantsUrl?: string
     adminInviteDelivered: boolean
     adminPasswordSet: boolean
+    adminExistingAccount: boolean
+    adminLoginUrl: string | null
   } | null>(null)
+  // Com entrada directa disponível, segue sozinho para o painel da escola ao fim
+  // de uns segundos — dá tempo de ler o essencial e pode ser cancelado.
+  const [redirectIn, setRedirectIn] = useState<number | null>(null)
 
   const form = useForm<FormValues>({
     resolver: zodResolver(schema),
@@ -228,6 +295,8 @@ export function StartSchoolWizard() {
       nif: "",
       commercial_name: "",
       school_type: "privada",
+      teaching_levels: [],
+      secondary_courses: [],
       province: "",
       municipality: "",
       commune: "",
@@ -309,6 +378,17 @@ export function StartSchoolWizard() {
     }, 400)
     return () => clearTimeout(timeout)
   }, [draftJson, step, done])
+
+  // Passo atingido, para a equipa ver onde as escolas desistem.
+  useEffect(() => {
+    if (done || !sessionId) return
+    recordSignupProgress({
+      sessionId,
+      step,
+      planCode: form.getValues("plan_code"),
+      schoolName: form.getValues("name"),
+    })
+  }, [step, done, sessionId, form])
   const planLabel = useMemo(
     () => plans.find((p) => p.code === values.plan_code)?.name ?? values.plan_code,
     [plans, values.plan_code],
@@ -334,6 +414,13 @@ export function StartSchoolWizard() {
     return () => clearTimeout(timeout)
   }, [slug])
 
+  const adminEmail = (values.admin_email ?? "").trim().toLowerCase()
+  // Domínios reservados (.test, .example…) não recebem e-mail: o servidor
+  // dispensa-os da confirmação (testes E2E), e o assistente também.
+  const reservedTestEmail = /\.(test|example|invalid|localhost)$/i.test(adminEmail)
+  const emailVerified =
+    reservedTestEmail || Boolean(verification && verification.email === adminEmail)
+
   async function validateStep() {
     const fields = FIELDS_BY_STEP[step]
     if (!fields) return true
@@ -345,6 +432,10 @@ export function StartSchoolWizard() {
     if (!(await validateStep())) return
     if (step === 6 && slugStatus === "taken") {
       form.setError("slug", { message: "Este subdomínio já está em uso por outra escola." })
+      return
+    }
+    if (step === 5 && !emailVerified) {
+      setServerError("Confirme o e-mail com o código que lhe enviámos antes de continuar.")
       return
     }
     if (step === 3 && !form.getValues("admin_name")) {
@@ -378,6 +469,15 @@ export function StartSchoolWizard() {
       setServerError("Este subdomínio já está em uso por outra escola. Volte ao passo 6 e escolha outro.")
       return
     }
+    if (!emailVerified) {
+      setStep(FIELD_STEP.admin_email)
+      setServerError("Confirme o e-mail do administrador com o código antes de criar a escola.")
+      return
+    }
+    if (SIGNUP_CAPTCHA_SITE_KEY && !captchaToken) {
+      setServerError("Confirme que não é um robô antes de criar a escola.")
+      return
+    }
     setIsCreating(true)
     try {
       const { admin_password_confirm: _confirm, ...payload } = form.getValues()
@@ -387,7 +487,13 @@ export function StartSchoolWizard() {
           ...payload,
           city: payload.municipality || payload.city,
           commercial_name: payload.commercial_name || undefined,
+          secondary_courses: payload.teaching_levels.includes("ii_ciclo")
+            ? payload.secondary_courses
+            : [],
           email: payload.email || payload.contact_email,
+          email_verification_token: verification?.token,
+          session_id: sessionId || undefined,
+          captcha_token: captchaToken ?? undefined,
         })
       } catch {
         // Falha de rede (servidor em baixo, sem ligação) — signupSchool() não
@@ -399,23 +505,71 @@ export function StartSchoolWizard() {
         return
       }
       if (!result.ok) {
-        setServerError(result.error || "Falha ao criar a escola.")
+        const message = result.error || "Falha ao criar a escola."
+        // O token do hCaptcha é de uso único: qualquer recusa pede um novo.
+        setCaptchaReset((value) => value + 1)
+        // Levar a pessoa ao campo que o servidor recusou, em vez de a deixar
+        // no último passo a adivinhar qual era.
+        const serverFields = Object.entries(result.fieldErrors ?? {}).filter(
+          ([field, errors]) => field in FIELD_STEP && errors?.length,
+        )
+        if (serverFields.length) {
+          for (const [field, errors] of serverFields) {
+            form.setError(field as keyof FormValues, { message: errors[0] })
+          }
+          setStep(FIELD_STEP[serverFields[0][0] as keyof FormValues])
+          setServerError("O servidor recusou um campo. Levámo-lo ao passo onde está.")
+          return
+        }
+        if (/Confirme o e-mail/i.test(message)) {
+          setVerification(null)
+          writeVerification(null)
+          setStep(FIELD_STEP.admin_email)
+        } else if (/e-mail/i.test(message) && /conta|acesso/i.test(message)) {
+          form.setError("admin_email", { message })
+          setStep(FIELD_STEP.admin_email)
+        } else if (/subdomínio/i.test(message)) {
+          form.setError("slug", { message })
+          setSlugStatus("taken")
+          setStep(FIELD_STEP.slug)
+        }
+        setServerError(message)
         return
       }
       writeDraft(null)
+      writeVerification(null)
+      try {
+        window.localStorage.removeItem(SESSION_KEY)
+      } catch {
+        /* ignorar */
+      }
       setDone({
         hostname: result.hostname || `${payload.slug}.${PLATFORM_DOMAIN}`,
         sigaUrl: result.sigaUrl || ECOSYSTEM_URLS.siga,
         adminTenantsUrl: result.adminTenantsUrl,
         adminInviteDelivered: result.adminInviteDelivered ?? false,
         adminPasswordSet: result.adminPasswordSet ?? false,
+        adminExistingAccount: result.adminExistingAccount ?? false,
+        adminLoginUrl: result.adminLoginUrl ?? null,
       })
+      if (result.adminLoginUrl) setRedirectIn(AUTO_ENTER_SECONDS)
     } finally {
       setIsCreating(false)
     }
   }
 
+  useEffect(() => {
+    if (redirectIn == null || !done?.adminLoginUrl) return
+    if (redirectIn <= 0) {
+      window.location.assign(done.adminLoginUrl)
+      return
+    }
+    const timeout = setTimeout(() => setRedirectIn((s) => (s == null ? null : s - 1)), 1000)
+    return () => clearTimeout(timeout)
+  }, [redirectIn, done])
+
   if (done) {
+    const enterUrl = done.adminLoginUrl || done.sigaUrl
     const paymentMessage = encodeURIComponent(
       `Olá, registei a escola ${values.name} no SIGA Plus. Pretendo enviar o comprovativo do plano ${planLabel}. Endereço: ${done.hostname}.`,
     )
@@ -428,8 +582,12 @@ export function StartSchoolWizard() {
     return (
       <Card className="mx-auto w-full max-w-xl">
         <CardHeader className="text-center">
-          <div className="mx-auto mb-2 flex h-12 w-12 items-center justify-center rounded-full bg-emerald-500/10">
-            <Check className="h-6 w-6 text-emerald-600" />
+          {/* Celebração: a mascote recebe a escola nova (decorativo). */}
+          <div className="relative mx-auto mb-3 h-24 w-40" aria-hidden="true">
+            <GlassTile tone="sky" size={64} tilt={-10} depth={6} className="left-2 top-4">
+              <Check className="size-8 drop-shadow" strokeWidth={3} />
+            </GlassTile>
+            <SigaMascot size={80} tilt={8} className="right-2 top-0" />
           </div>
           <CardTitle className="text-xl font-semibold tracking-tight">
             {values.name} está criada
@@ -441,7 +599,18 @@ export function StartSchoolWizard() {
         <CardContent className="grid gap-5 text-center">
           <div className="rounded-lg border p-4 space-y-2 text-left">
             <h3 className="text-sm">Acesso do administrador</h3>
-            {done.adminPasswordSet ? (
+            {done.adminLoginUrl ? (
+              <p className="text-sm text-muted-foreground">
+                A conta de <strong>{values.admin_email}</strong> está pronta e a sessão já vai aberta: entra
+                directamente no painel da escola. Nas próximas vezes, entre com este e-mail e a senha que definiu.
+              </p>
+            ) : done.adminExistingAccount && !done.adminPasswordSet ? (
+              <p className="text-sm text-muted-foreground">
+                <strong>{values.admin_email}</strong> já tinha conta no SIGA Plus (por exemplo, entrada com o Google).
+                A escola ficou ligada a essa conta: entre como de costume. A senha escolhida neste registo não
+                substituiu a sua.
+              </p>
+            ) : done.adminPasswordSet ? (
               <p className="text-sm text-muted-foreground">
                 A conta já está pronta. Entre no SIGA Plus com <strong>{values.admin_email}</strong> e a senha que definiu neste registo.
                 {done.adminInviteDelivered
@@ -457,16 +626,39 @@ export function StartSchoolWizard() {
                 A conta de <strong>{values.admin_email}</strong> já está criada, mas o convite ainda não foi enviado. Use «Recuperar senha» no SIGA Plus com este e-mail, ou peça o link à equipa de suporte.
               </p>
             )}
+            <Button asChild className="mt-2 w-full">
+              <a href={enterUrl}>
+                Entrar no painel da escola <ArrowRight className="size-4" />
+              </a>
+            </Button>
+            {redirectIn != null && done.adminLoginUrl ? (
+              <p className="text-center text-xs text-muted-foreground">
+                A entrar automaticamente em {Math.max(redirectIn, 0)} s…{" "}
+                <button
+                  type="button"
+                  className="underline underline-offset-4"
+                  onClick={() => setRedirectIn(null)}
+                >
+                  Ficar nesta página
+                </button>
+              </p>
+            ) : null}
           </div>
 
           <div className="rounded-lg border p-4 text-left">
             <h3 className="text-sm">Primeiros passos no SIGA Plus</h3>
+            <p className="mt-1 text-xs text-muted-foreground">
+              O painel da escola mostra estes passos com o que já está feito e o próximo a fazer.
+            </p>
             <ol className="mt-3 grid gap-2.5">
+              {/* Mesma ordem do guia «Arranque da escola» no painel do SIGA
+                  (src/features/school/setup-guide.ts): cada passo precisa do anterior. */}
               {[
-                ["Confirme os dados da escola", "Definições → Escola: logótipo, director e coordenadas."],
-                ["Publique o modelo de avaliação", "Pedagógica → Modelos de avaliação. Sem ele não há pautas."],
-                ["Crie o ano lectivo, as classes e as turmas", "Pedagógica → Estrutura académica."],
-                ["Convide a equipa", "Acessos: secretaria, tesouraria e professores."],
+                ["Confirme os dados da escola", "NIF, director(a), contactos e logótipo — saem nos documentos."],
+                ["Defina o ano lectivo e os três trimestres", "Calendário. Sem ano activo não há turmas nem propinas."],
+                ["Prepare classes, disciplinas e turmas", "Pedagógica → Estrutura académica."],
+                ["Publique o modelo de avaliação e as propinas", "Sem modelo não há pautas; sem propinas não há facturas."],
+                ["Convide a equipa e matricule os alunos", "Acessos: secretaria, tesouraria e professores."],
               ].map(([title, hint], index) => (
                 <li key={title} className="flex gap-3">
                   <span className="flex size-5 shrink-0 items-center justify-center rounded-full border text-[11px] text-muted-foreground">
@@ -479,11 +671,6 @@ export function StartSchoolWizard() {
                 </li>
               ))}
             </ol>
-            <Button asChild className="mt-4 w-full">
-              <a href={done.sigaUrl}>
-                Entrar no SIGA Plus <ArrowRight className="size-4" />
-              </a>
-            </Button>
           </div>
 
           <div className="grid gap-3 border-t pt-5">
@@ -554,7 +741,9 @@ export function StartSchoolWizard() {
       <aside className="hidden lg:flex lg:flex-col lg:gap-6">
         <div>
           <p className="text-xs uppercase tracking-wide text-muted-foreground">Nova escola</p>
-          <h1 className="mt-1 text-2xl font-semibold tracking-tight">Criar a sua escola</h1>
+          <h1 className="mt-1 text-2xl font-semibold tracking-tight">
+            Criar a <span className="text-aurora">sua escola</span>
+          </h1>
           <p className="mt-2 text-sm text-muted-foreground">
             Cerca de cinco minutos. A escola fica pronta a usar no fim.
           </p>
@@ -733,6 +922,93 @@ export function StartSchoolWizard() {
                       </FormItem>
                     )}
                   />
+                  <FormField
+                    control={form.control}
+                    name="teaching_levels"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Níveis de ensino que a escola lecciona</FormLabel>
+                        <p className="text-xs text-muted-foreground">
+                          Escolha todos os que se aplicam. O SIGA cria logo as classes e disciplinas
+                          de cada um.
+                        </p>
+                        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                          {TEACHING_LEVELS.map((level) => {
+                            const checked = field.value.includes(level.id)
+                            return (
+                              <button
+                                key={level.id}
+                                type="button"
+                                role="checkbox"
+                                aria-checked={checked}
+                                onClick={() =>
+                                  field.onChange(
+                                    checked
+                                      ? field.value.filter((id) => id !== level.id)
+                                      : [...field.value, level.id],
+                                  )
+                                }
+                                className={cn(
+                                  "rounded-lg border px-3 py-2 text-left text-sm transition-colors",
+                                  checked
+                                    ? "border-primary bg-primary/5 text-foreground"
+                                    : "text-muted-foreground hover:bg-muted/60",
+                                )}
+                              >
+                                <span className="font-medium">{level.label}</span>
+                                <span className="block text-xs text-muted-foreground">
+                                  {level.hint}
+                                </span>
+                              </button>
+                            )
+                          })}
+                        </div>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  {form.watch("teaching_levels").includes("ii_ciclo") ? (
+                    <FormField
+                      control={form.control}
+                      name="secondary_courses"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Cursos do II Ciclo (opcional)</FormLabel>
+                          <p className="text-xs text-muted-foreground">
+                            Cada curso fica com as suas classes. Sem escolha, fica um II Ciclo geral.
+                          </p>
+                          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                            {SECONDARY_COURSES.map((course) => {
+                              const checked = field.value.includes(course.id)
+                              return (
+                                <button
+                                  key={course.id}
+                                  type="button"
+                                  role="checkbox"
+                                  aria-checked={checked}
+                                  onClick={() =>
+                                    field.onChange(
+                                      checked
+                                        ? field.value.filter((id) => id !== course.id)
+                                        : [...field.value, course.id],
+                                    )
+                                  }
+                                  className={cn(
+                                    "rounded-lg border px-3 py-2 text-left text-sm transition-colors",
+                                    checked
+                                      ? "border-primary bg-primary/5 text-foreground"
+                                      : "text-muted-foreground hover:bg-muted/60",
+                                  )}
+                                >
+                                  {course.label}
+                                </button>
+                              )
+                            })}
+                          </div>
+                        </FormItem>
+                      )}
+                    />
+                  ) : null}
                 </>
               ) : null}
 
@@ -865,6 +1141,23 @@ export function StartSchoolWizard() {
                     />
                     <PasswordField form={form} name="admin_password_confirm" label="Confirmar senha" />
                   </div>
+                  {reservedTestEmail ? null : <EmailVerification
+                    email={values.admin_email ?? ""}
+                    sessionId={sessionId}
+                    verifiedEmail={verification?.email ?? null}
+                    onVerified={(email, token) => {
+                      const value = { email, token }
+                      setVerification(value)
+                      writeVerification(value)
+                      setServerError(null)
+                    }}
+                    context={{
+                      contactName: values.contact_name,
+                      contactPhone: values.contact_phone,
+                      schoolName: values.name,
+                      planCode: values.plan_code,
+                    }}
+                  />}
                 </>
               ) : null}
 
@@ -917,6 +1210,21 @@ export function StartSchoolWizard() {
                     ) : null}
                     <Row label="NIF" value={values.nif} />
                     <Row label="Natureza" value={typeLabel ?? ""} />
+                    <Row
+                      label="Níveis"
+                      value={TEACHING_LEVELS.filter((l) => values.teaching_levels.includes(l.id))
+                        .map((l) => l.label)
+                        .join(" · ")}
+                    />
+                    {values.teaching_levels.includes("ii_ciclo") &&
+                    values.secondary_courses.length ? (
+                      <Row
+                        label="Cursos"
+                        value={SECONDARY_COURSES.filter((c) => values.secondary_courses.includes(c.id))
+                          .map((c) => c.label)
+                          .join(" · ")}
+                      />
+                    ) : null}
                   </ReviewSection>
                   <ReviewSection title="Localização" onEdit={() => setStep(2)}>
                     <Row label="Província" value={values.province} />
@@ -938,6 +1246,10 @@ export function StartSchoolWizard() {
                     <Row label="Endereço" value={`${values.slug}.${PLATFORM_DOMAIN}`} />
                   </ReviewSection>
                 </div>
+              ) : null}
+
+              {step === LAST_STEP ? (
+                <SignupCaptcha onToken={setCaptchaToken} resetSignal={captchaReset} />
               ) : null}
 
               {serverError ? (
@@ -1133,7 +1445,7 @@ function Row({ label, value }: { label: string; value: string }) {
 
 export default function StartSchoolPage() {
   return (
-    <MarketingFormPage maxWidth="5xl">
+    <MarketingFormPage maxWidth="5xl" aurora>
       <StartSchoolWizard />
     </MarketingFormPage>
   )

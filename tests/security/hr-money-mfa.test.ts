@@ -106,3 +106,36 @@ describe("folha salarial e pagamentos com 2FA", () => {
     }
   });
 });
+
+describe("papel do RH pela escola da linha (20260930200000)", () => {
+  const snapshot = JSON.parse(
+    readFileSync(resolve(REPO, "supabase/PRODUCTION_SNAPSHOT.json"), "utf8"),
+  ) as {
+    politicas: Array<{ tabela: string; politica: string; usando: string; verificando: string }>;
+  };
+
+  it("nenhuma política do RH ou da faturação compara current_profile_role()", () => {
+    // Devolve o código (owner, treasury); as políticas comparavam com nomes e nunca
+    // coincidiam: o RH não funcionava para ninguém.
+    const legacy = snapshot.politicas
+      .filter((p) => p.tabela.startsWith("hr_") || p.tabela === "school_billing_settings")
+      .filter((p) => /current_profile_role\(\)/.test(`${p.usando} ${p.verificando}`))
+      .map((p) => `${p.tabela}: ${p.politica}`);
+    expect(legacy).toEqual([]);
+  });
+
+  it("sga_app_role(school_id) numa política vai sempre com is_school_member(school_id)", () => {
+    // Para quem não é membro da escola, sga_app_role devolve o cargo global do perfil:
+    // sem a verificação de membro, um Administrador de outra escola passaria.
+    const unguarded = snapshot.politicas
+      .filter((p) => {
+        const expr = `${p.usando} ${p.verificando}`;
+        return (
+          /sga_app_role\(school_id\)/.test(expr) && !/is_school_member\(school_id\)/.test(expr)
+        );
+      })
+      .map((p) => `${p.tabela}: ${p.politica}`);
+    expect(snapshot.politicas.some((p) => /sga_app_role\(school_id\)/.test(p.usando))).toBe(true);
+    expect(unguarded).toEqual([]);
+  });
+});

@@ -1,8 +1,12 @@
 import { z } from "zod";
 import { normalizePaymentReference } from "@/features/finance/emiss-multicaixa";
 
+/**
+ * Corpo do aviso EMIS/Unitel. A key da escola já não vem aqui: o pedido é
+ * assinado (`gateway-webhook-signature.ts`). `externalId` — o identificador da
+ * transacção no provedor — é obrigatório: é a chave que impede liquidar duas vezes.
+ */
 export const gatewayConfirmInputSchema = z.object({
-  apiKey: z.string().trim().min(8).max(200),
   reference: z.string().trim().min(5).max(160),
   amount: z.number().positive(),
   invoiceId: z.string().uuid().optional(),
@@ -11,7 +15,7 @@ export const gatewayConfirmInputSchema = z.object({
   channel: z
     .enum(["multicaixa", "express", "multicaixa_express", "unitel_money"])
     .default("multicaixa_express"),
-  externalId: z.string().trim().max(120).optional(),
+  externalId: z.string().trim().min(6).max(120),
 });
 
 export type GatewayConfirmInput = z.infer<typeof gatewayConfirmInputSchema>;

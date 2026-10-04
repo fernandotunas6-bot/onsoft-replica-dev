@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { safeCell } from "@/lib/export-csv";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import {
@@ -28,8 +29,8 @@ export const Route = createFileRoute("/alumni/insights")({
 
 function csvEscape(value: unknown) {
   if (value === null || value === undefined) return "";
-  const text = Array.isArray(value) ? value.join(" | ") : String(value);
-  return `"${text.replaceAll('"', '""')}"`;
+  // Dados escritos pelos antigos alunos: protegidos contra fórmulas no Excel.
+  return safeCell(Array.isArray(value) ? value.join(" | ") : String(value));
 }
 
 function AlumniInsightsPage() {

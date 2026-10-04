@@ -26,7 +26,7 @@ export function PricingSection() {
         <div className="mx-auto max-w-2xl text-center mb-12">
           <Badge variant="outline" className="mb-4">Planos</Badge>
           <h2 className="text-3xl font-bold tracking-tight sm:text-4xl mb-4">
-            Escolha o plano da sua escola
+            Escolha o plano <span className="text-aurora">da sua escola</span>
           </h2>
           <p className="text-lg text-muted-foreground mb-8">
             Comece com 14 dias de período experimental e evolua quando a escola crescer.

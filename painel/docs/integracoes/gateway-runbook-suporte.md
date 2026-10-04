@@ -18,33 +18,33 @@ Encarregado pagou?
 
 Preencher antes de escalar:
 
-| Campo | Exemplo |
-| --- | --- |
-| Escola (slug / hostname) | `colegio-esperanca.portal-siga.com` |
-| Canal | Multicaixa (`/gateway/confirm`) ou Unitel (`/unitel/confirm`) |
-| ID ou n.º da fatura | UUID ou `FAT-2026-…` |
-| Referência EMIS (9 dígitos) | `123456789` |
-| Montante pago (Kz inteiros) | `45000` |
-| Data/hora do pagamento | |
-| HTTP status + corpo JSON do webhook | do portal banco ou logs |
-| Comprovativo do pagador | SMS, recibo ATM, captura app |
+| Campo                               | Exemplo                                                       |
+| ----------------------------------- | ------------------------------------------------------------- |
+| Escola (slug / hostname)            | `colegio-esperanca.portal-siga.com`                           |
+| Canal                               | Multicaixa (`/gateway/confirm`) ou Unitel (`/unitel/confirm`) |
+| ID ou n.º da fatura                 | UUID ou `FAT-2026-…`                                          |
+| Referência EMIS (9 dígitos)         | `123456789`                                                   |
+| Montante pago (Kz inteiros)         | `45000`                                                       |
+| Data/hora do pagamento              |                                                               |
+| HTTP status + corpo JSON do webhook | do portal banco ou logs                                       |
+| Comprovativo do pagador             | SMS, recibo ATM, captura app                                  |
 
 ## Mapa HTTP → acção
 
 Respostas do SIGA (`POST …/gateway/confirm` ou `…/unitel/confirm`):
 
-| HTTP | Mensagem típica | Causa | Quem resolve | Acção |
-| --- | --- | --- | --- | --- |
-| `401` | API key inválida | `merchantId` ou chave errada no portal | Escola + banco | Copiar `webhookApiKey` de Definições → Integrações; **não** usar entidade EMIS como key |
-| `401` | Escola não identificada | Integração inactiva ou key de outra escola | Escola | Reinstalar integração; verificar tenant |
-| `400` | Corpo JSON inválido | Portal envia formato errado | Banco / integrador | Validar JSON; Content-Type `application/json` |
-| `400` | Modo dev: invoiceId em falta | Simulador sem `invoiceId` | Dev | Adicionar `invoiceId` ao corpo |
-| `404` | Fatura não encontrada | UUID errado ou fatura de outra escola | Escola | Confirmar `invoiceId` na fatura SIGA |
-| `404` | Plano ou fatura não encontrados | Sem plano `pending_gateway` ou referência errada | Escola | Reemitir referência; criar plano gateway |
-| `409` | Referência não coincide | Referência do portal ≠ plano SIGA | Escola + banco | Comparar dígitos; regenerar em `/faturas` |
-| `502` | Erro ao liquidar / permissões SGA | RPC `register_payment` falhou | Operador plataforma | SQL SGA; confirmar manual na tesouraria |
-| `200` + «já liquidada» | Idempotência | Webhook repetido | — | Normal; verificar recibo existente |
-| Timeout / sem resposta | Rede / DNS / TLS | Hostname inacessível, certificado | Operador + escola | Testar URL pública; ADMIN `/domains` |
+| HTTP                   | Mensagem típica                   | Causa                                            | Quem resolve        | Acção                                                                                   |
+| ---------------------- | --------------------------------- | ------------------------------------------------ | ------------------- | --------------------------------------------------------------------------------------- |
+| `401`                  | API key inválida                  | `merchantId` ou chave errada no portal           | Escola + banco      | Copiar `webhookApiKey` de Definições → Integrações; **não** usar entidade EMIS como key |
+| `401`                  | Escola não identificada           | Integração inactiva ou key de outra escola       | Escola              | Reinstalar integração; verificar tenant                                                 |
+| `400`                  | Corpo JSON inválido               | Portal envia formato errado                      | Banco / integrador  | Validar JSON; Content-Type `application/json`                                           |
+| `400`                  | Modo dev: invoiceId em falta      | Simulador sem `invoiceId`                        | Dev                 | Adicionar `invoiceId` ao corpo                                                          |
+| `404`                  | Fatura não encontrada             | UUID errado ou fatura de outra escola            | Escola              | Confirmar `invoiceId` na fatura SIGA                                                    |
+| `404`                  | Plano ou fatura não encontrados   | Sem plano `pending_gateway` ou referência errada | Escola              | Reemitir referência; criar plano gateway                                                |
+| `409`                  | Referência não coincide           | Referência do portal ≠ plano SIGA                | Escola + banco      | Comparar dígitos; regenerar em `/faturas`                                               |
+| `502`                  | Erro ao liquidar / permissões SGA | RPC `register_payment` falhou                    | Operador plataforma | SQL SGA; confirmar manual na tesouraria                                                 |
+| `200` + «já liquidada» | Idempotência                      | Webhook repetido                                 | —                   | Normal; verificar recibo existente                                                      |
+| Timeout / sem resposta | Rede / DNS / TLS                  | Hostname inacessível, certificado                | Operador + escola   | Testar URL pública; ADMIN `/domains`                                                    |
 
 ## Passos por perfil
 
@@ -75,18 +75,18 @@ npm run siga:gateway-simulate -- --invoice-id=<uuid> --unitel
 ### Banco / EMIS / Unitel (externo)
 
 1. Confirmar URL de callback exacta (hostname público da escola).
-2. Confirmar corpo POST inclui `apiKey`, `reference`, `amount` (Kz inteiros).
+2. Confirmar corpo POST com `reference`, `amount` (Kz inteiros) e `externalId`, e os cabeçalhos `X-SIGA-Timestamp`/`X-SIGA-Signature` (relógio do emissor certo: ±5 min).
 3. Reenviar webhook de teste com mesma referência e montante da fatura SIGA.
 4. Fornecer logs do lado deles (timestamp, HTTP status recebido, corpo resposta).
 
 ## Escalonamento
 
-| Nível | Quando | Destino |
-| --- | --- | --- |
-| L1 | Dúvida de referência ou confirmação manual | Secretaria / tesouraria escolar |
-| L2 | `401`/`404`/`409` persistente após verificar Integrações | Suporte SIGA Plus (operador) |
-| L3 | `502`, hostname, multi-tenant, SQL SGA | Equipa técnica plataforma |
-| L4 | Portal banco não envia webhook ou envia formato inválido | Gestor contrato EMIS/Unitel da escola |
+| Nível | Quando                                                   | Destino                               |
+| ----- | -------------------------------------------------------- | ------------------------------------- |
+| L1    | Dúvida de referência ou confirmação manual               | Secretaria / tesouraria escolar       |
+| L2    | `401`/`404`/`409` persistente após verificar Integrações | Suporte SIGA Plus (operador)          |
+| L3    | `502`, hostname, multi-tenant, SQL SGA                   | Equipa técnica plataforma             |
+| L4    | Portal banco não envia webhook ou envia formato inválido | Gestor contrato EMIS/Unitel da escola |
 
 **SLA sugerido:** L1 resolve no mesmo dia útil (confirmação manual). L2–L3 em 1–2 dias úteis com dados completos da tabela acima.
 
@@ -119,13 +119,13 @@ Defina `SIGA_GATEWAY_ALERT_SLACK_URL` (Incoming Webhook) no ambiente de produç�
 
 Quando a taxa de falha nas últimas 24h excede **25%** (mínimo **5** eventos), o SIGA pode alertar a equipa de plataforma:
 
-| Variável | Defeito | Descrição |
-| --- | --- | --- |
-| `SIGA_GATEWAY_FAILURE_RATE_ALERT_SLACK_URL` | fallback `SIGA_GATEWAY_ALERT_SLACK_URL` | Slack Incoming Webhook |
-| `SIGA_GATEWAY_FAILURE_RATE_ALERT_EMAIL_TO` | — | Destinatários (Resend) |
-| `SIGA_GATEWAY_FAILURE_RATE_THRESHOLD` | `0.25` | Limiar 0–1 |
-| `SIGA_GATEWAY_FAILURE_RATE_MIN_EVENTS` | `5` | Mínimo de eventos antes de alertar |
-| `SIGA_GATEWAY_FAILURE_RATE_COOLDOWN_HOURS` | `6` | Evita spam (registo em `saas_audit_logs`) |
+| Variável                                    | Defeito                                 | Descrição                                 |
+| ------------------------------------------- | --------------------------------------- | ----------------------------------------- |
+| `SIGA_GATEWAY_FAILURE_RATE_ALERT_SLACK_URL` | fallback `SIGA_GATEWAY_ALERT_SLACK_URL` | Slack Incoming Webhook                    |
+| `SIGA_GATEWAY_FAILURE_RATE_ALERT_EMAIL_TO`  | —                                       | Destinatários (Resend)                    |
+| `SIGA_GATEWAY_FAILURE_RATE_THRESHOLD`       | `0.25`                                  | Limiar 0–1                                |
+| `SIGA_GATEWAY_FAILURE_RATE_MIN_EVENTS`      | `5`                                     | Mínimo de eventos antes de alertar        |
+| `SIGA_GATEWAY_FAILURE_RATE_COOLDOWN_HOURS`  | `6`                                     | Evita spam (registo em `saas_audit_logs`) |
 
 - **Automático:** após cada falha de webhook, o servidor verifica a taxa (se alertas configurados).
 - **Cron:** `npm run siga:gateway-failure-rate-check` (sugerido de hora a hora).

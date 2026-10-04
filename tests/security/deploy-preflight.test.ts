@@ -40,9 +40,12 @@ describe("verificação de segredos antes de publicar", () => {
     for (const name of required) expect(checked, name).toContain(name);
   });
 
-  it("cada nome verificado chega ao passo vindo dos segredos", () => {
+  it("cada nome verificado chega ao passo vindo dos segredos, igual à publicação", () => {
+    const publish = steps.find((s) => s.run?.includes("deploy-all.mjs"));
     for (const name of checked) {
-      expect(preflight?.env?.[name], name).toBe(`\${{ secrets.${name} }}`);
+      expect(preflight?.env?.[name], name).toMatch(new RegExp(`^\\$\\{\\{ secrets\\.${name}\\b`));
+      // O passo que confirma e o que publica lêem o mesmo valor (incluindo recursos).
+      expect(publish?.env?.[name], name).toBe(preflight?.env?.[name]);
     }
   });
 

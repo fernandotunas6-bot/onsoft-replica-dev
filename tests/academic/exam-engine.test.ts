@@ -5,6 +5,7 @@ import {
   computeFinalResult,
   examEligibility,
   subjectFinalsFromBreakdown,
+  subjectsBeforeSession,
   type EngineRule,
 } from "@/features/academic/exam-engine";
 
@@ -129,5 +130,142 @@ describe("faltas a partir das presenças do SIGA", () => {
     expect(absencePercentageFromStatuses(["excused", "excused"])).toBeNull();
     expect(absencePercentageFromStatuses(["present", "absent", "late", "excused"])).toBe(33.33);
     expect(absencePercentageFromStatuses(["absent", "absent", "present", "present"])).toBe(50);
+  });
+});
+
+describe("várias épocas no mesmo ano", () => {
+  const pauta = [
+    { subjectId: "mat", subjectName: "Matemática", average: 8, isKeySubject: true },
+    { subjectId: "por", subjectName: "Português", average: 14, isKeySubject: false },
+  ];
+  const recurso = { id: "s1", createdAt: "2026-07-01T00:00:00Z" };
+  const especial = { id: "s2", createdAt: "2026-08-01T00:00:00Z" };
+  const melhoria = { id: "s3", createdAt: "2026-09-01T00:00:00Z" };
+  const regs = [
+    {
+      sessionId: "s1",
+      subjectId: "mat",
+      status: "graded",
+      finalAverage: 12,
+      sessionCreatedAt: recurso.createdAt,
+    },
+  ];
+
+  it("a época seguinte parte da nota do recurso, não da pauta", () => {
+    const subjects = subjectsBeforeSession(pauta, regs, especial);
+    expect(subjects.find((s) => s.subjectId === "mat")?.average).toBe(12);
+    // Já aprovado no recurso: não volta a ser inscrito no exame especial.
+    expect(
+      examEligibility({ subjects, absencePercentage: 0 }, rule, {
+        kind: "exame_especial",
+        maxFailedSubjects: null,
+      }),
+    ).toMatchObject({ eligible: false, reason: "no-negatives" });
+  });
+
+  it("a melhoria vê as disciplinas recuperadas no recurso", () => {
+    const subjects = subjectsBeforeSession(pauta, regs, melhoria);
+    const eligibility = examEligibility({ subjects, absencePercentage: 0 }, rule, {
+      kind: "melhoria",
+      maxFailedSubjects: null,
+    });
+    expect(eligibility.eligible && eligibility.subjects.map((s) => s.subjectId)).toEqual([
+      "mat",
+      "por",
+    ]);
+  });
+
+  it("a própria época e as posteriores não contam", () => {
+    expect(subjectsBeforeSession(pauta, regs, recurso)[0]?.average).toBe(8);
+    const later = [{ ...regs[0]!, sessionId: "s3", sessionCreatedAt: melhoria.createdAt }];
+    expect(subjectsBeforeSession(pauta, later, especial)[0]?.average).toBe(8);
+  });
+
+  it("inscrições sem nota (faltou, anulado) não mudam a média", () => {
+    const absent = [{ ...regs[0]!, status: "absent", finalAverage: null }];
+    expect(subjectsBeforeSession(pauta, absent, especial)[0]?.average).toBe(8);
+  });
+});
+
+describe("melhoria nunca baixa a nota", () => {
+  it("com «substitui» ou «média», um exame pior deixa a nota que havia", () => {
+    expect(averageAfterExam(14, 9, "replace", rule, "melhoria")).toBe(14);
+    expect(averageAfterExam(14, 10, "average", rule, "melhoria")).toBe(14);
+    expect(averageAfterExam(14, 18, "average", rule, "melhoria")).toBe(16);
+  });
+
+  it("nas outras épocas o método da época decide", () => {
+    expect(averageAfterExam(9, 7, "replace", rule, "recurso")).toBe(7);
+    expect(averageAfterExam(9, 7, "replace", rule)).toBe(7);
+  });
+});
+
+describe("pauta anual incompleta até haver nota em todos os períodos", () => {
+  const anual = [
+    { subjectId: "mat", termId: "t1", subject: "Matemática", average: 12 },
+    { subjectId: "mat", termId: "t2", subject: "Matemática", average: 13 },
+    { subjectId: "mat", termId: "t3", subject: "Matemática", average: 14 },
+    { subjectId: "por", termId: "t1", subject: "Português", average: 11 },
+    { subjectId: "por", termId: "t2", subject: "Português", average: 12 },
+  ];
+
+  it("conta os períodos em falta por disciplina", () => {
+    const subjects = subjectFinalsFromBreakdown(anual, rule, 3);
+    expect(subjects.map((s) => [s.subjectId, s.missingTerms])).toEqual([
+      ["mat", 0],
+      ["por", 1],
+    ]);
+  });
+
+  it("sem a nota de um período a situação é «incompleta», não «transita»", () => {
+    const result = computeFinalResult(subjectFinalsFromBreakdown(anual, rule, 3), 0, rule);
+    expect(result.result).toBe("incomplete");
+    expect(result.reason).toContain("Português");
+  });
+
+  it("excluído por faltas continua a não transitar", () => {
+    expect(computeFinalResult(subjectFinalsFromBreakdown(anual, rule, 3), 40, rule).result).toBe(
+      "fail",
+    );
+  });
+
+  it("com as três notas decide normalmente", () => {
+    const completo = [
+      ...anual,
+      { subjectId: "por", termId: "t3", subject: "Português", average: 13 },
+    ];
+    expect(computeFinalResult(subjectFinalsFromBreakdown(completo, rule, 3), 0, rule).result).toBe(
+      "pass",
+    );
+  });
+
+  it("pautas antigas sem termId: cada entrada conta como um período", () => {
+    const antiga = anual.map(({ termId: _t, ...e }) => e);
+    expect(subjectFinalsFromBreakdown(antiga, rule, 3).map((s) => s.missingTerms)).toEqual([0, 1]);
+  });
+
+  it("sem saber os períodos do ano (0), mantém o comportamento anterior", () => {
+    expect(computeFinalResult(subjectFinalsFromBreakdown(anual, rule), 0, rule).result).toBe(
+      "pass",
+    );
+  });
+
+  it("linha marcada incompleta pela pauta (disciplina sem notas) fica incompleta", () => {
+    const completo = subjectFinalsFromBreakdown(anual, rule);
+    expect(computeFinalResult(completo, 0, rule, true).result).toBe("incomplete");
+  });
+
+  it("incompleta não vai a exame", () => {
+    const subjects = subjectFinalsFromBreakdown(
+      anual.map((e) => ({ ...e, average: 8 })),
+      rule,
+      3,
+    );
+    expect(
+      examEligibility({ subjects, absencePercentage: 0 }, rule, {
+        kind: "recurso",
+        maxFailedSubjects: null,
+      }),
+    ).toMatchObject({ eligible: false, reason: "incomplete" });
   });
 });

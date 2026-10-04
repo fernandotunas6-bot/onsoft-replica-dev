@@ -8,6 +8,11 @@
  * - telefone: o telefone da conta no Auth, ou um número que essa conta
  *   confirmou por código (`phone_change`). `profiles.phone` sozinho não
  *   basta: o perfil deixa gravá-lo sem verificação.
+ *
+ * A prova da confirmação é o registo `profile_phone_changed_otp` em
+ * `saas_audit_logs` (só o servidor escreve lá), não uma linha de
+ * `verification_otps` consumida: um código também fica consumido quando é
+ * substituído por um pedido novo, sem nunca ter sido acertado.
  */
 import type { SupabaseClient } from "@supabase/supabase-js";
 
@@ -72,16 +77,15 @@ export async function resolveResetAccount(
     const userId = String(profile.id);
     const user = await authUser(admin, userId);
     if (user && samePhone(user.phone, normalized)) return userId;
-    const { data: otps } = await db
-      .from("verification_otps")
-      .select("attempts_left, expires_at, consumed_at")
+    const { data: confirmed } = await db
+      .from("saas_audit_logs")
+      .select("id")
+      .eq("action", "profile_phone_changed_otp")
       .eq("user_id", userId)
-      .eq("purpose", "phone_change")
-      .eq("target_identifier", normalized)
-      .not("consumed_at", "is", null)
-      .order("created_at", { ascending: false })
-      .limit(5);
-    if ((otps ?? []).some(isAcceptedOtp)) return userId;
+      .eq("metadata->>new_phone", normalized)
+      .limit(1)
+      .maybeSingle();
+    if (confirmed) return userId;
   }
   return (await findAuthUser(admin, (user) => samePhone(user.phone, normalized)))?.id ?? null;
 }

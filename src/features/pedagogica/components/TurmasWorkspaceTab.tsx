@@ -7,6 +7,7 @@ import { badgeBase, toneClass } from "@/components/layout/PageHeader";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { cn } from "@/lib/utils";
 import type { PedagogicalWorkspace } from "@/features/academic/server";
+import { safeHref } from "@/lib/safe-url";
 
 // Materiais por turma só são carregados a pedido: com uma dezena de turmas na
 // grelha, montar o painel em todas disparava um pedido por cartão e atrasava a
@@ -291,7 +292,7 @@ export function TurmasWorkspaceTab({
                   <div className="mt-4 flex flex-wrap gap-2">
                     {t.whatsappInviteUrl ? (
                       <Button size="sm" variant="outline" className="gap-1.5" asChild>
-                        <a href={t.whatsappInviteUrl} target="_blank" rel="noreferrer">
+                        <a href={safeHref(t.whatsappInviteUrl)} target="_blank" rel="noreferrer">
                           WhatsApp
                         </a>
                       </Button>

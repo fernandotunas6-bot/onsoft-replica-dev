@@ -48,11 +48,14 @@ import { Route as AuthResetPasswordRouteImport } from './routes/auth.reset-passw
 import { Route as CalendarioIcsRouteImport } from './routes/calendario.ics'
 import { Route as ConfiguracoesAssinaturaRouteImport } from './routes/configuracoes_.assinatura'
 import { Route as ConfiguracoesDiagnosticoRouteImport } from './routes/configuracoes_.diagnostico'
+import { Route as ConfiguracoesInicioRouteImport } from './routes/configuracoes_.inicio'
 import { Route as ConviteTokenRouteImport } from './routes/convite.$token'
 import { Route as FinanceiroRhRouteImport } from './routes/financeiro.rh'
 import { Route as MatriculaSlugRouteImport } from './routes/matricula/$slug'
+import { Route as PedagogicaPautasSuperiorRouteImport } from './routes/pedagogica_.pautas-superior'
 import { Route as PedagogicaPresencaDocenteRouteImport } from './routes/pedagogica_.presenca-docente'
 import { Route as PedagogicaRiscoRouteImport } from './routes/pedagogica_.risco'
+import { Route as PedagogicaSuperiorRouteImport } from './routes/pedagogica_.superior'
 import { Route as PessoasIndexRouteImport } from './routes/pessoas/index'
 import { Route as ProfessorPresencaRouteImport } from './routes/professor.presenca'
 import { Route as ProfessoresTeacherIdRouteImport } from './routes/professores/$teacherId'
@@ -64,7 +67,9 @@ import { Route as AlumniPortalPortfolioRouteImport } from './routes/alumni.porta
 import { Route as ApiCalendarIcsRouteImport } from './routes/api/calendar.ics'
 import { Route as ApiCatracasDeviceScanRouteImport } from './routes/api/catracas/device-scan'
 import { Route as ApiCronLessonRemindersRouteImport } from './routes/api/cron/lesson-reminders'
+import { Route as ApiCronSaasLifecycleRouteImport } from './routes/api/cron/saas-lifecycle'
 import { Route as ApiSaasAuditLogsRouteImport } from './routes/api/saas/audit-logs'
+import { Route as ApiSaasBillingProofsRouteImport } from './routes/api/saas/billing-proofs'
 import { Route as ApiSaasDomainsRouteImport } from './routes/api/saas/domains'
 import { Route as ApiSaasGatewayWebhooksRouteImport } from './routes/api/saas/gateway-webhooks'
 import { Route as ApiSaasMailboxesRouteImport } from './routes/api/saas/mailboxes'
@@ -72,6 +77,7 @@ import { Route as ApiSaasMeRouteImport } from './routes/api/saas/me'
 import { Route as ApiSaasPlansRouteImport } from './routes/api/saas/plans'
 import { Route as ApiSaasPlatformAdminsRouteImport } from './routes/api/saas/platform-admins'
 import { Route as ApiSaasSignupRouteImport } from './routes/api/saas/signup'
+import { Route as ApiSaasSignupLeadsRouteImport } from './routes/api/saas/signup-leads'
 import { Route as ApiSaasStatsRouteImport } from './routes/api/saas/stats'
 import { Route as ApiSaasSubscriptionsRouteImport } from './routes/api/saas/subscriptions'
 import { Route as ApiSaasTenantsRouteImport } from './routes/api/saas/tenants'
@@ -82,6 +88,9 @@ import { Route as FinanceiroRhFolhaRouteImport } from './routes/financeiro.rh.fo
 import { Route as FinanceiroRhPagamentosRouteImport } from './routes/financeiro.rh.pagamentos'
 import { Route as FinanceiroRhPresencaRouteImport } from './routes/financeiro.rh.presenca'
 import { Route as FinanceiroRhSalariosRouteImport } from './routes/financeiro.rh.salarios'
+import { Route as PedagogicaPautasSuperiorImprimirRouteImport } from './routes/pedagogica_.pautas-superior_.imprimir'
+import { Route as PedagogicaSuperiorCertificadoRouteImport } from './routes/pedagogica_.superior_.certificado'
+import { Route as PedagogicaSuperiorHistoricoRouteImport } from './routes/pedagogica_.superior_.historico'
 import { Route as AlumniPortalPortfolioEducationRouteImport } from './routes/alumni.portal.portfolio.education'
 import { Route as AlumniPortalPortfolioPrintRouteImport } from './routes/alumni.portal.portfolio.print'
 import { Route as AlumniPortalPortfolioShowcaseRouteImport } from './routes/alumni.portal.portfolio.showcase'
@@ -96,6 +105,10 @@ import { Route as ApiSaasDomainsStatusRouteImport } from './routes/api/saas/doma
 import { Route as ApiSaasDomainsVerifyRouteImport } from './routes/api/saas/domains.verify'
 import { Route as ApiSaasEmailRoutesRouteImport } from './routes/api/saas/email.routes'
 import { Route as ApiSaasPlatformAdminsRevokeRouteImport } from './routes/api/saas/platform-admins.revoke'
+import { Route as ApiSaasSignupEmailCodeRouteImport } from './routes/api/saas/signup.email-code'
+import { Route as ApiSaasSignupEmailVerifyRouteImport } from './routes/api/saas/signup.email-verify'
+import { Route as ApiSaasSignupProgressRouteImport } from './routes/api/saas/signup.progress'
+import { Route as ApiSaasSignupUnsubscribeRouteImport } from './routes/api/saas/signup.unsubscribe'
 import { Route as ApiSaasSubscriptionsBackfillRouteImport } from './routes/api/saas/subscriptions.backfill'
 import { Route as ApiSaasTenantsLookupRouteImport } from './routes/api/saas/tenants.lookup'
 import { Route as ApiSaasTenantsStatusRouteImport } from './routes/api/saas/tenants.status'
@@ -300,6 +313,11 @@ const ConfiguracoesDiagnosticoRoute =
     path: '/configuracoes/diagnostico',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ConfiguracoesInicioRoute = ConfiguracoesInicioRouteImport.update({
+  id: '/configuracoes_/inicio',
+  path: '/configuracoes/inicio',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ConviteTokenRoute = ConviteTokenRouteImport.update({
   id: '/convite/$token',
   path: '/convite/$token',
@@ -315,6 +333,12 @@ const MatriculaSlugRoute = MatriculaSlugRouteImport.update({
   path: '/matricula/$slug',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PedagogicaPautasSuperiorRoute =
+  PedagogicaPautasSuperiorRouteImport.update({
+    id: '/pedagogica_/pautas-superior',
+    path: '/pedagogica/pautas-superior',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const PedagogicaPresencaDocenteRoute =
   PedagogicaPresencaDocenteRouteImport.update({
     id: '/pedagogica_/presenca-docente',
@@ -324,6 +348,11 @@ const PedagogicaPresencaDocenteRoute =
 const PedagogicaRiscoRoute = PedagogicaRiscoRouteImport.update({
   id: '/pedagogica_/risco',
   path: '/pedagogica/risco',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PedagogicaSuperiorRoute = PedagogicaSuperiorRouteImport.update({
+  id: '/pedagogica_/superior',
+  path: '/pedagogica/superior',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PessoasIndexRoute = PessoasIndexRouteImport.update({
@@ -381,9 +410,19 @@ const ApiCronLessonRemindersRoute = ApiCronLessonRemindersRouteImport.update({
   path: '/api/cron/lesson-reminders',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiCronSaasLifecycleRoute = ApiCronSaasLifecycleRouteImport.update({
+  id: '/api/cron/saas-lifecycle',
+  path: '/api/cron/saas-lifecycle',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiSaasAuditLogsRoute = ApiSaasAuditLogsRouteImport.update({
   id: '/api/saas/audit-logs',
   path: '/api/saas/audit-logs',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiSaasBillingProofsRoute = ApiSaasBillingProofsRouteImport.update({
+  id: '/api/saas/billing-proofs',
+  path: '/api/saas/billing-proofs',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiSaasDomainsRoute = ApiSaasDomainsRouteImport.update({
@@ -419,6 +458,11 @@ const ApiSaasPlatformAdminsRoute = ApiSaasPlatformAdminsRouteImport.update({
 const ApiSaasSignupRoute = ApiSaasSignupRouteImport.update({
   id: '/api/saas/signup',
   path: '/api/saas/signup',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiSaasSignupLeadsRoute = ApiSaasSignupLeadsRouteImport.update({
+  id: '/api/saas/signup-leads',
+  path: '/api/saas/signup-leads',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiSaasStatsRoute = ApiSaasStatsRouteImport.update({
@@ -472,6 +516,24 @@ const FinanceiroRhSalariosRoute = FinanceiroRhSalariosRouteImport.update({
   path: '/salarios',
   getParentRoute: () => FinanceiroRhRoute,
 } as any)
+const PedagogicaPautasSuperiorImprimirRoute =
+  PedagogicaPautasSuperiorImprimirRouteImport.update({
+    id: '/pedagogica_/pautas-superior_/imprimir',
+    path: '/pedagogica/pautas-superior/imprimir',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const PedagogicaSuperiorCertificadoRoute =
+  PedagogicaSuperiorCertificadoRouteImport.update({
+    id: '/pedagogica_/superior_/certificado',
+    path: '/pedagogica/superior/certificado',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const PedagogicaSuperiorHistoricoRoute =
+  PedagogicaSuperiorHistoricoRouteImport.update({
+    id: '/pedagogica_/superior_/historico',
+    path: '/pedagogica/superior/historico',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const AlumniPortalPortfolioEducationRoute =
   AlumniPortalPortfolioEducationRouteImport.update({
     id: '/education',
@@ -551,6 +613,28 @@ const ApiSaasPlatformAdminsRevokeRoute =
     path: '/revoke',
     getParentRoute: () => ApiSaasPlatformAdminsRoute,
   } as any)
+const ApiSaasSignupEmailCodeRoute = ApiSaasSignupEmailCodeRouteImport.update({
+  id: '/email-code',
+  path: '/email-code',
+  getParentRoute: () => ApiSaasSignupRoute,
+} as any)
+const ApiSaasSignupEmailVerifyRoute =
+  ApiSaasSignupEmailVerifyRouteImport.update({
+    id: '/email-verify',
+    path: '/email-verify',
+    getParentRoute: () => ApiSaasSignupRoute,
+  } as any)
+const ApiSaasSignupProgressRoute = ApiSaasSignupProgressRouteImport.update({
+  id: '/progress',
+  path: '/progress',
+  getParentRoute: () => ApiSaasSignupRoute,
+} as any)
+const ApiSaasSignupUnsubscribeRoute =
+  ApiSaasSignupUnsubscribeRouteImport.update({
+    id: '/unsubscribe',
+    path: '/unsubscribe',
+    getParentRoute: () => ApiSaasSignupRoute,
+  } as any)
 const ApiSaasSubscriptionsBackfillRoute =
   ApiSaasSubscriptionsBackfillRouteImport.update({
     id: '/backfill',
@@ -624,11 +708,14 @@ export interface FileRoutesByFullPath {
   '/calendario/ics': typeof CalendarioIcsRoute
   '/configuracoes/assinatura': typeof ConfiguracoesAssinaturaRoute
   '/configuracoes/diagnostico': typeof ConfiguracoesDiagnosticoRoute
+  '/configuracoes/inicio': typeof ConfiguracoesInicioRoute
   '/convite/$token': typeof ConviteTokenRoute
   '/financeiro/rh': typeof FinanceiroRhRouteWithChildren
   '/matricula/$slug': typeof MatriculaSlugRoute
+  '/pedagogica/pautas-superior': typeof PedagogicaPautasSuperiorRoute
   '/pedagogica/presenca-docente': typeof PedagogicaPresencaDocenteRoute
   '/pedagogica/risco': typeof PedagogicaRiscoRoute
+  '/pedagogica/superior': typeof PedagogicaSuperiorRoute
   '/professor/presenca': typeof ProfessorPresencaRoute
   '/professores/$teacherId': typeof ProfessoresTeacherIdRoute
   '/relatorios/academicos': typeof RelatoriosAcademicosRoute
@@ -641,14 +728,17 @@ export interface FileRoutesByFullPath {
   '/api/calendar/ics': typeof ApiCalendarIcsRoute
   '/api/catracas/device-scan': typeof ApiCatracasDeviceScanRoute
   '/api/cron/lesson-reminders': typeof ApiCronLessonRemindersRoute
+  '/api/cron/saas-lifecycle': typeof ApiCronSaasLifecycleRoute
   '/api/saas/audit-logs': typeof ApiSaasAuditLogsRoute
+  '/api/saas/billing-proofs': typeof ApiSaasBillingProofsRoute
   '/api/saas/domains': typeof ApiSaasDomainsRouteWithChildren
   '/api/saas/gateway-webhooks': typeof ApiSaasGatewayWebhooksRoute
   '/api/saas/mailboxes': typeof ApiSaasMailboxesRoute
   '/api/saas/me': typeof ApiSaasMeRoute
   '/api/saas/plans': typeof ApiSaasPlansRoute
   '/api/saas/platform-admins': typeof ApiSaasPlatformAdminsRouteWithChildren
-  '/api/saas/signup': typeof ApiSaasSignupRoute
+  '/api/saas/signup': typeof ApiSaasSignupRouteWithChildren
+  '/api/saas/signup-leads': typeof ApiSaasSignupLeadsRoute
   '/api/saas/stats': typeof ApiSaasStatsRoute
   '/api/saas/subscriptions': typeof ApiSaasSubscriptionsRouteWithChildren
   '/api/saas/tenants': typeof ApiSaasTenantsRouteWithChildren
@@ -659,6 +749,9 @@ export interface FileRoutesByFullPath {
   '/financeiro/rh/pagamentos': typeof FinanceiroRhPagamentosRoute
   '/financeiro/rh/presenca': typeof FinanceiroRhPresencaRoute
   '/financeiro/rh/salarios': typeof FinanceiroRhSalariosRoute
+  '/pedagogica/pautas-superior/imprimir': typeof PedagogicaPautasSuperiorImprimirRoute
+  '/pedagogica/superior/certificado': typeof PedagogicaSuperiorCertificadoRoute
+  '/pedagogica/superior/historico': typeof PedagogicaSuperiorHistoricoRoute
   '/alumni/portal/portfolio/education': typeof AlumniPortalPortfolioEducationRoute
   '/alumni/portal/portfolio/print': typeof AlumniPortalPortfolioPrintRoute
   '/alumni/portal/portfolio/showcase': typeof AlumniPortalPortfolioShowcaseRoute
@@ -673,6 +766,10 @@ export interface FileRoutesByFullPath {
   '/api/saas/domains/verify': typeof ApiSaasDomainsVerifyRoute
   '/api/saas/email/routes': typeof ApiSaasEmailRoutesRoute
   '/api/saas/platform-admins/revoke': typeof ApiSaasPlatformAdminsRevokeRoute
+  '/api/saas/signup/email-code': typeof ApiSaasSignupEmailCodeRoute
+  '/api/saas/signup/email-verify': typeof ApiSaasSignupEmailVerifyRoute
+  '/api/saas/signup/progress': typeof ApiSaasSignupProgressRoute
+  '/api/saas/signup/unsubscribe': typeof ApiSaasSignupUnsubscribeRoute
   '/api/saas/subscriptions/backfill': typeof ApiSaasSubscriptionsBackfillRoute
   '/api/saas/tenants/lookup': typeof ApiSaasTenantsLookupRoute
   '/api/saas/tenants/status': typeof ApiSaasTenantsStatusRoute
@@ -719,11 +816,14 @@ export interface FileRoutesByTo {
   '/calendario/ics': typeof CalendarioIcsRoute
   '/configuracoes/assinatura': typeof ConfiguracoesAssinaturaRoute
   '/configuracoes/diagnostico': typeof ConfiguracoesDiagnosticoRoute
+  '/configuracoes/inicio': typeof ConfiguracoesInicioRoute
   '/convite/$token': typeof ConviteTokenRoute
   '/financeiro/rh': typeof FinanceiroRhRouteWithChildren
   '/matricula/$slug': typeof MatriculaSlugRoute
+  '/pedagogica/pautas-superior': typeof PedagogicaPautasSuperiorRoute
   '/pedagogica/presenca-docente': typeof PedagogicaPresencaDocenteRoute
   '/pedagogica/risco': typeof PedagogicaRiscoRoute
+  '/pedagogica/superior': typeof PedagogicaSuperiorRoute
   '/professor/presenca': typeof ProfessorPresencaRoute
   '/professores/$teacherId': typeof ProfessoresTeacherIdRoute
   '/relatorios/academicos': typeof RelatoriosAcademicosRoute
@@ -736,14 +836,17 @@ export interface FileRoutesByTo {
   '/api/calendar/ics': typeof ApiCalendarIcsRoute
   '/api/catracas/device-scan': typeof ApiCatracasDeviceScanRoute
   '/api/cron/lesson-reminders': typeof ApiCronLessonRemindersRoute
+  '/api/cron/saas-lifecycle': typeof ApiCronSaasLifecycleRoute
   '/api/saas/audit-logs': typeof ApiSaasAuditLogsRoute
+  '/api/saas/billing-proofs': typeof ApiSaasBillingProofsRoute
   '/api/saas/domains': typeof ApiSaasDomainsRouteWithChildren
   '/api/saas/gateway-webhooks': typeof ApiSaasGatewayWebhooksRoute
   '/api/saas/mailboxes': typeof ApiSaasMailboxesRoute
   '/api/saas/me': typeof ApiSaasMeRoute
   '/api/saas/plans': typeof ApiSaasPlansRoute
   '/api/saas/platform-admins': typeof ApiSaasPlatformAdminsRouteWithChildren
-  '/api/saas/signup': typeof ApiSaasSignupRoute
+  '/api/saas/signup': typeof ApiSaasSignupRouteWithChildren
+  '/api/saas/signup-leads': typeof ApiSaasSignupLeadsRoute
   '/api/saas/stats': typeof ApiSaasStatsRoute
   '/api/saas/subscriptions': typeof ApiSaasSubscriptionsRouteWithChildren
   '/api/saas/tenants': typeof ApiSaasTenantsRouteWithChildren
@@ -754,6 +857,9 @@ export interface FileRoutesByTo {
   '/financeiro/rh/pagamentos': typeof FinanceiroRhPagamentosRoute
   '/financeiro/rh/presenca': typeof FinanceiroRhPresencaRoute
   '/financeiro/rh/salarios': typeof FinanceiroRhSalariosRoute
+  '/pedagogica/pautas-superior/imprimir': typeof PedagogicaPautasSuperiorImprimirRoute
+  '/pedagogica/superior/certificado': typeof PedagogicaSuperiorCertificadoRoute
+  '/pedagogica/superior/historico': typeof PedagogicaSuperiorHistoricoRoute
   '/alumni/portal/portfolio/education': typeof AlumniPortalPortfolioEducationRoute
   '/alumni/portal/portfolio/print': typeof AlumniPortalPortfolioPrintRoute
   '/alumni/portal/portfolio/showcase': typeof AlumniPortalPortfolioShowcaseRoute
@@ -768,6 +874,10 @@ export interface FileRoutesByTo {
   '/api/saas/domains/verify': typeof ApiSaasDomainsVerifyRoute
   '/api/saas/email/routes': typeof ApiSaasEmailRoutesRoute
   '/api/saas/platform-admins/revoke': typeof ApiSaasPlatformAdminsRevokeRoute
+  '/api/saas/signup/email-code': typeof ApiSaasSignupEmailCodeRoute
+  '/api/saas/signup/email-verify': typeof ApiSaasSignupEmailVerifyRoute
+  '/api/saas/signup/progress': typeof ApiSaasSignupProgressRoute
+  '/api/saas/signup/unsubscribe': typeof ApiSaasSignupUnsubscribeRoute
   '/api/saas/subscriptions/backfill': typeof ApiSaasSubscriptionsBackfillRoute
   '/api/saas/tenants/lookup': typeof ApiSaasTenantsLookupRoute
   '/api/saas/tenants/status': typeof ApiSaasTenantsStatusRoute
@@ -815,11 +925,14 @@ export interface FileRoutesById {
   '/calendario/ics': typeof CalendarioIcsRoute
   '/configuracoes_/assinatura': typeof ConfiguracoesAssinaturaRoute
   '/configuracoes_/diagnostico': typeof ConfiguracoesDiagnosticoRoute
+  '/configuracoes_/inicio': typeof ConfiguracoesInicioRoute
   '/convite/$token': typeof ConviteTokenRoute
   '/financeiro/rh': typeof FinanceiroRhRouteWithChildren
   '/matricula/$slug': typeof MatriculaSlugRoute
+  '/pedagogica_/pautas-superior': typeof PedagogicaPautasSuperiorRoute
   '/pedagogica_/presenca-docente': typeof PedagogicaPresencaDocenteRoute
   '/pedagogica_/risco': typeof PedagogicaRiscoRoute
+  '/pedagogica_/superior': typeof PedagogicaSuperiorRoute
   '/professor/presenca': typeof ProfessorPresencaRoute
   '/professores/$teacherId': typeof ProfessoresTeacherIdRoute
   '/relatorios/academicos': typeof RelatoriosAcademicosRoute
@@ -832,14 +945,17 @@ export interface FileRoutesById {
   '/api/calendar/ics': typeof ApiCalendarIcsRoute
   '/api/catracas/device-scan': typeof ApiCatracasDeviceScanRoute
   '/api/cron/lesson-reminders': typeof ApiCronLessonRemindersRoute
+  '/api/cron/saas-lifecycle': typeof ApiCronSaasLifecycleRoute
   '/api/saas/audit-logs': typeof ApiSaasAuditLogsRoute
+  '/api/saas/billing-proofs': typeof ApiSaasBillingProofsRoute
   '/api/saas/domains': typeof ApiSaasDomainsRouteWithChildren
   '/api/saas/gateway-webhooks': typeof ApiSaasGatewayWebhooksRoute
   '/api/saas/mailboxes': typeof ApiSaasMailboxesRoute
   '/api/saas/me': typeof ApiSaasMeRoute
   '/api/saas/plans': typeof ApiSaasPlansRoute
   '/api/saas/platform-admins': typeof ApiSaasPlatformAdminsRouteWithChildren
-  '/api/saas/signup': typeof ApiSaasSignupRoute
+  '/api/saas/signup': typeof ApiSaasSignupRouteWithChildren
+  '/api/saas/signup-leads': typeof ApiSaasSignupLeadsRoute
   '/api/saas/stats': typeof ApiSaasStatsRoute
   '/api/saas/subscriptions': typeof ApiSaasSubscriptionsRouteWithChildren
   '/api/saas/tenants': typeof ApiSaasTenantsRouteWithChildren
@@ -850,6 +966,9 @@ export interface FileRoutesById {
   '/financeiro/rh/pagamentos': typeof FinanceiroRhPagamentosRoute
   '/financeiro/rh/presenca': typeof FinanceiroRhPresencaRoute
   '/financeiro/rh/salarios': typeof FinanceiroRhSalariosRoute
+  '/pedagogica_/pautas-superior_/imprimir': typeof PedagogicaPautasSuperiorImprimirRoute
+  '/pedagogica_/superior_/certificado': typeof PedagogicaSuperiorCertificadoRoute
+  '/pedagogica_/superior_/historico': typeof PedagogicaSuperiorHistoricoRoute
   '/alumni/portal/portfolio/education': typeof AlumniPortalPortfolioEducationRoute
   '/alumni/portal/portfolio/print': typeof AlumniPortalPortfolioPrintRoute
   '/alumni/portal/portfolio/showcase': typeof AlumniPortalPortfolioShowcaseRoute
@@ -864,6 +983,10 @@ export interface FileRoutesById {
   '/api/saas/domains/verify': typeof ApiSaasDomainsVerifyRoute
   '/api/saas/email/routes': typeof ApiSaasEmailRoutesRoute
   '/api/saas/platform-admins/revoke': typeof ApiSaasPlatformAdminsRevokeRoute
+  '/api/saas/signup/email-code': typeof ApiSaasSignupEmailCodeRoute
+  '/api/saas/signup/email-verify': typeof ApiSaasSignupEmailVerifyRoute
+  '/api/saas/signup/progress': typeof ApiSaasSignupProgressRoute
+  '/api/saas/signup/unsubscribe': typeof ApiSaasSignupUnsubscribeRoute
   '/api/saas/subscriptions/backfill': typeof ApiSaasSubscriptionsBackfillRoute
   '/api/saas/tenants/lookup': typeof ApiSaasTenantsLookupRoute
   '/api/saas/tenants/status': typeof ApiSaasTenantsStatusRoute
@@ -912,11 +1035,14 @@ export interface FileRouteTypes {
     | '/calendario/ics'
     | '/configuracoes/assinatura'
     | '/configuracoes/diagnostico'
+    | '/configuracoes/inicio'
     | '/convite/$token'
     | '/financeiro/rh'
     | '/matricula/$slug'
+    | '/pedagogica/pautas-superior'
     | '/pedagogica/presenca-docente'
     | '/pedagogica/risco'
+    | '/pedagogica/superior'
     | '/professor/presenca'
     | '/professores/$teacherId'
     | '/relatorios/academicos'
@@ -929,7 +1055,9 @@ export interface FileRouteTypes {
     | '/api/calendar/ics'
     | '/api/catracas/device-scan'
     | '/api/cron/lesson-reminders'
+    | '/api/cron/saas-lifecycle'
     | '/api/saas/audit-logs'
+    | '/api/saas/billing-proofs'
     | '/api/saas/domains'
     | '/api/saas/gateway-webhooks'
     | '/api/saas/mailboxes'
@@ -937,6 +1065,7 @@ export interface FileRouteTypes {
     | '/api/saas/plans'
     | '/api/saas/platform-admins'
     | '/api/saas/signup'
+    | '/api/saas/signup-leads'
     | '/api/saas/stats'
     | '/api/saas/subscriptions'
     | '/api/saas/tenants'
@@ -947,6 +1076,9 @@ export interface FileRouteTypes {
     | '/financeiro/rh/pagamentos'
     | '/financeiro/rh/presenca'
     | '/financeiro/rh/salarios'
+    | '/pedagogica/pautas-superior/imprimir'
+    | '/pedagogica/superior/certificado'
+    | '/pedagogica/superior/historico'
     | '/alumni/portal/portfolio/education'
     | '/alumni/portal/portfolio/print'
     | '/alumni/portal/portfolio/showcase'
@@ -961,6 +1093,10 @@ export interface FileRouteTypes {
     | '/api/saas/domains/verify'
     | '/api/saas/email/routes'
     | '/api/saas/platform-admins/revoke'
+    | '/api/saas/signup/email-code'
+    | '/api/saas/signup/email-verify'
+    | '/api/saas/signup/progress'
+    | '/api/saas/signup/unsubscribe'
     | '/api/saas/subscriptions/backfill'
     | '/api/saas/tenants/lookup'
     | '/api/saas/tenants/status'
@@ -1007,11 +1143,14 @@ export interface FileRouteTypes {
     | '/calendario/ics'
     | '/configuracoes/assinatura'
     | '/configuracoes/diagnostico'
+    | '/configuracoes/inicio'
     | '/convite/$token'
     | '/financeiro/rh'
     | '/matricula/$slug'
+    | '/pedagogica/pautas-superior'
     | '/pedagogica/presenca-docente'
     | '/pedagogica/risco'
+    | '/pedagogica/superior'
     | '/professor/presenca'
     | '/professores/$teacherId'
     | '/relatorios/academicos'
@@ -1024,7 +1163,9 @@ export interface FileRouteTypes {
     | '/api/calendar/ics'
     | '/api/catracas/device-scan'
     | '/api/cron/lesson-reminders'
+    | '/api/cron/saas-lifecycle'
     | '/api/saas/audit-logs'
+    | '/api/saas/billing-proofs'
     | '/api/saas/domains'
     | '/api/saas/gateway-webhooks'
     | '/api/saas/mailboxes'
@@ -1032,6 +1173,7 @@ export interface FileRouteTypes {
     | '/api/saas/plans'
     | '/api/saas/platform-admins'
     | '/api/saas/signup'
+    | '/api/saas/signup-leads'
     | '/api/saas/stats'
     | '/api/saas/subscriptions'
     | '/api/saas/tenants'
@@ -1042,6 +1184,9 @@ export interface FileRouteTypes {
     | '/financeiro/rh/pagamentos'
     | '/financeiro/rh/presenca'
     | '/financeiro/rh/salarios'
+    | '/pedagogica/pautas-superior/imprimir'
+    | '/pedagogica/superior/certificado'
+    | '/pedagogica/superior/historico'
     | '/alumni/portal/portfolio/education'
     | '/alumni/portal/portfolio/print'
     | '/alumni/portal/portfolio/showcase'
@@ -1056,6 +1201,10 @@ export interface FileRouteTypes {
     | '/api/saas/domains/verify'
     | '/api/saas/email/routes'
     | '/api/saas/platform-admins/revoke'
+    | '/api/saas/signup/email-code'
+    | '/api/saas/signup/email-verify'
+    | '/api/saas/signup/progress'
+    | '/api/saas/signup/unsubscribe'
     | '/api/saas/subscriptions/backfill'
     | '/api/saas/tenants/lookup'
     | '/api/saas/tenants/status'
@@ -1102,11 +1251,14 @@ export interface FileRouteTypes {
     | '/calendario/ics'
     | '/configuracoes_/assinatura'
     | '/configuracoes_/diagnostico'
+    | '/configuracoes_/inicio'
     | '/convite/$token'
     | '/financeiro/rh'
     | '/matricula/$slug'
+    | '/pedagogica_/pautas-superior'
     | '/pedagogica_/presenca-docente'
     | '/pedagogica_/risco'
+    | '/pedagogica_/superior'
     | '/professor/presenca'
     | '/professores/$teacherId'
     | '/relatorios/academicos'
@@ -1119,7 +1271,9 @@ export interface FileRouteTypes {
     | '/api/calendar/ics'
     | '/api/catracas/device-scan'
     | '/api/cron/lesson-reminders'
+    | '/api/cron/saas-lifecycle'
     | '/api/saas/audit-logs'
+    | '/api/saas/billing-proofs'
     | '/api/saas/domains'
     | '/api/saas/gateway-webhooks'
     | '/api/saas/mailboxes'
@@ -1127,6 +1281,7 @@ export interface FileRouteTypes {
     | '/api/saas/plans'
     | '/api/saas/platform-admins'
     | '/api/saas/signup'
+    | '/api/saas/signup-leads'
     | '/api/saas/stats'
     | '/api/saas/subscriptions'
     | '/api/saas/tenants'
@@ -1137,6 +1292,9 @@ export interface FileRouteTypes {
     | '/financeiro/rh/pagamentos'
     | '/financeiro/rh/presenca'
     | '/financeiro/rh/salarios'
+    | '/pedagogica_/pautas-superior_/imprimir'
+    | '/pedagogica_/superior_/certificado'
+    | '/pedagogica_/superior_/historico'
     | '/alumni/portal/portfolio/education'
     | '/alumni/portal/portfolio/print'
     | '/alumni/portal/portfolio/showcase'
@@ -1151,6 +1309,10 @@ export interface FileRouteTypes {
     | '/api/saas/domains/verify'
     | '/api/saas/email/routes'
     | '/api/saas/platform-admins/revoke'
+    | '/api/saas/signup/email-code'
+    | '/api/saas/signup/email-verify'
+    | '/api/saas/signup/progress'
+    | '/api/saas/signup/unsubscribe'
     | '/api/saas/subscriptions/backfill'
     | '/api/saas/tenants/lookup'
     | '/api/saas/tenants/status'
@@ -1188,10 +1350,13 @@ export interface RootRouteChildren {
   AuthResetPasswordRoute: typeof AuthResetPasswordRoute
   ConfiguracoesAssinaturaRoute: typeof ConfiguracoesAssinaturaRoute
   ConfiguracoesDiagnosticoRoute: typeof ConfiguracoesDiagnosticoRoute
+  ConfiguracoesInicioRoute: typeof ConfiguracoesInicioRoute
   ConviteTokenRoute: typeof ConviteTokenRoute
   MatriculaSlugRoute: typeof MatriculaSlugRoute
+  PedagogicaPautasSuperiorRoute: typeof PedagogicaPautasSuperiorRoute
   PedagogicaPresencaDocenteRoute: typeof PedagogicaPresencaDocenteRoute
   PedagogicaRiscoRoute: typeof PedagogicaRiscoRoute
+  PedagogicaSuperiorRoute: typeof PedagogicaSuperiorRoute
   ProfessorPresencaRoute: typeof ProfessorPresencaRoute
   ProfessoresTeacherIdRoute: typeof ProfessoresTeacherIdRoute
   RelatoriosAcademicosRoute: typeof RelatoriosAcademicosRoute
@@ -1202,19 +1367,25 @@ export interface RootRouteChildren {
   ApiCalendarIcsRoute: typeof ApiCalendarIcsRoute
   ApiCatracasDeviceScanRoute: typeof ApiCatracasDeviceScanRoute
   ApiCronLessonRemindersRoute: typeof ApiCronLessonRemindersRoute
+  ApiCronSaasLifecycleRoute: typeof ApiCronSaasLifecycleRoute
   ApiSaasAuditLogsRoute: typeof ApiSaasAuditLogsRoute
+  ApiSaasBillingProofsRoute: typeof ApiSaasBillingProofsRoute
   ApiSaasDomainsRoute: typeof ApiSaasDomainsRouteWithChildren
   ApiSaasGatewayWebhooksRoute: typeof ApiSaasGatewayWebhooksRoute
   ApiSaasMailboxesRoute: typeof ApiSaasMailboxesRoute
   ApiSaasMeRoute: typeof ApiSaasMeRoute
   ApiSaasPlansRoute: typeof ApiSaasPlansRoute
   ApiSaasPlatformAdminsRoute: typeof ApiSaasPlatformAdminsRouteWithChildren
-  ApiSaasSignupRoute: typeof ApiSaasSignupRoute
+  ApiSaasSignupRoute: typeof ApiSaasSignupRouteWithChildren
+  ApiSaasSignupLeadsRoute: typeof ApiSaasSignupLeadsRoute
   ApiSaasStatsRoute: typeof ApiSaasStatsRoute
   ApiSaasSubscriptionsRoute: typeof ApiSaasSubscriptionsRouteWithChildren
   ApiSaasTenantsRoute: typeof ApiSaasTenantsRouteWithChildren
   ApiWebhooksTwilioSmsRoute: typeof ApiWebhooksTwilioSmsRoute
   ApiWebhooksWhatsappStatusRoute: typeof ApiWebhooksWhatsappStatusRoute
+  PedagogicaPautasSuperiorImprimirRoute: typeof PedagogicaPautasSuperiorImprimirRoute
+  PedagogicaSuperiorCertificadoRoute: typeof PedagogicaSuperiorCertificadoRoute
+  PedagogicaSuperiorHistoricoRoute: typeof PedagogicaSuperiorHistoricoRoute
   ApiFinanceGatewayConfirmRoute: typeof ApiFinanceGatewayConfirmRoute
   ApiFinancePayflowSettlementRoute: typeof ApiFinancePayflowSettlementRoute
   ApiIntegrationsResendWebhookRoute: typeof ApiIntegrationsResendWebhookRoute
@@ -1500,6 +1671,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ConfiguracoesDiagnosticoRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/configuracoes_/inicio': {
+      id: '/configuracoes_/inicio'
+      path: '/configuracoes/inicio'
+      fullPath: '/configuracoes/inicio'
+      preLoaderRoute: typeof ConfiguracoesInicioRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/convite/$token': {
       id: '/convite/$token'
       path: '/convite/$token'
@@ -1521,6 +1699,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof MatriculaSlugRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/pedagogica_/pautas-superior': {
+      id: '/pedagogica_/pautas-superior'
+      path: '/pedagogica/pautas-superior'
+      fullPath: '/pedagogica/pautas-superior'
+      preLoaderRoute: typeof PedagogicaPautasSuperiorRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/pedagogica_/presenca-docente': {
       id: '/pedagogica_/presenca-docente'
       path: '/pedagogica/presenca-docente'
@@ -1533,6 +1718,13 @@ declare module '@tanstack/react-router' {
       path: '/pedagogica/risco'
       fullPath: '/pedagogica/risco'
       preLoaderRoute: typeof PedagogicaRiscoRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/pedagogica_/superior': {
+      id: '/pedagogica_/superior'
+      path: '/pedagogica/superior'
+      fullPath: '/pedagogica/superior'
+      preLoaderRoute: typeof PedagogicaSuperiorRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/pessoas/': {
@@ -1612,11 +1804,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiCronLessonRemindersRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/cron/saas-lifecycle': {
+      id: '/api/cron/saas-lifecycle'
+      path: '/api/cron/saas-lifecycle'
+      fullPath: '/api/cron/saas-lifecycle'
+      preLoaderRoute: typeof ApiCronSaasLifecycleRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/saas/audit-logs': {
       id: '/api/saas/audit-logs'
       path: '/api/saas/audit-logs'
       fullPath: '/api/saas/audit-logs'
       preLoaderRoute: typeof ApiSaasAuditLogsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/saas/billing-proofs': {
+      id: '/api/saas/billing-proofs'
+      path: '/api/saas/billing-proofs'
+      fullPath: '/api/saas/billing-proofs'
+      preLoaderRoute: typeof ApiSaasBillingProofsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/saas/domains': {
@@ -1666,6 +1872,13 @@ declare module '@tanstack/react-router' {
       path: '/api/saas/signup'
       fullPath: '/api/saas/signup'
       preLoaderRoute: typeof ApiSaasSignupRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/saas/signup-leads': {
+      id: '/api/saas/signup-leads'
+      path: '/api/saas/signup-leads'
+      fullPath: '/api/saas/signup-leads'
+      preLoaderRoute: typeof ApiSaasSignupLeadsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/saas/stats': {
@@ -1737,6 +1950,27 @@ declare module '@tanstack/react-router' {
       fullPath: '/financeiro/rh/salarios'
       preLoaderRoute: typeof FinanceiroRhSalariosRouteImport
       parentRoute: typeof FinanceiroRhRoute
+    }
+    '/pedagogica_/pautas-superior_/imprimir': {
+      id: '/pedagogica_/pautas-superior_/imprimir'
+      path: '/pedagogica/pautas-superior/imprimir'
+      fullPath: '/pedagogica/pautas-superior/imprimir'
+      preLoaderRoute: typeof PedagogicaPautasSuperiorImprimirRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/pedagogica_/superior_/certificado': {
+      id: '/pedagogica_/superior_/certificado'
+      path: '/pedagogica/superior/certificado'
+      fullPath: '/pedagogica/superior/certificado'
+      preLoaderRoute: typeof PedagogicaSuperiorCertificadoRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/pedagogica_/superior_/historico': {
+      id: '/pedagogica_/superior_/historico'
+      path: '/pedagogica/superior/historico'
+      fullPath: '/pedagogica/superior/historico'
+      preLoaderRoute: typeof PedagogicaSuperiorHistoricoRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/alumni/portal/portfolio/education': {
       id: '/alumni/portal/portfolio/education'
@@ -1835,6 +2069,34 @@ declare module '@tanstack/react-router' {
       fullPath: '/api/saas/platform-admins/revoke'
       preLoaderRoute: typeof ApiSaasPlatformAdminsRevokeRouteImport
       parentRoute: typeof ApiSaasPlatformAdminsRoute
+    }
+    '/api/saas/signup/email-code': {
+      id: '/api/saas/signup/email-code'
+      path: '/email-code'
+      fullPath: '/api/saas/signup/email-code'
+      preLoaderRoute: typeof ApiSaasSignupEmailCodeRouteImport
+      parentRoute: typeof ApiSaasSignupRoute
+    }
+    '/api/saas/signup/email-verify': {
+      id: '/api/saas/signup/email-verify'
+      path: '/email-verify'
+      fullPath: '/api/saas/signup/email-verify'
+      preLoaderRoute: typeof ApiSaasSignupEmailVerifyRouteImport
+      parentRoute: typeof ApiSaasSignupRoute
+    }
+    '/api/saas/signup/progress': {
+      id: '/api/saas/signup/progress'
+      path: '/progress'
+      fullPath: '/api/saas/signup/progress'
+      preLoaderRoute: typeof ApiSaasSignupProgressRouteImport
+      parentRoute: typeof ApiSaasSignupRoute
+    }
+    '/api/saas/signup/unsubscribe': {
+      id: '/api/saas/signup/unsubscribe'
+      path: '/unsubscribe'
+      fullPath: '/api/saas/signup/unsubscribe'
+      preLoaderRoute: typeof ApiSaasSignupUnsubscribeRouteImport
+      parentRoute: typeof ApiSaasSignupRoute
     }
     '/api/saas/subscriptions/backfill': {
       id: '/api/saas/subscriptions/backfill'
@@ -2024,6 +2286,24 @@ const ApiSaasPlatformAdminsRouteWithChildren =
     ApiSaasPlatformAdminsRouteChildren,
   )
 
+interface ApiSaasSignupRouteChildren {
+  ApiSaasSignupEmailCodeRoute: typeof ApiSaasSignupEmailCodeRoute
+  ApiSaasSignupEmailVerifyRoute: typeof ApiSaasSignupEmailVerifyRoute
+  ApiSaasSignupProgressRoute: typeof ApiSaasSignupProgressRoute
+  ApiSaasSignupUnsubscribeRoute: typeof ApiSaasSignupUnsubscribeRoute
+}
+
+const ApiSaasSignupRouteChildren: ApiSaasSignupRouteChildren = {
+  ApiSaasSignupEmailCodeRoute: ApiSaasSignupEmailCodeRoute,
+  ApiSaasSignupEmailVerifyRoute: ApiSaasSignupEmailVerifyRoute,
+  ApiSaasSignupProgressRoute: ApiSaasSignupProgressRoute,
+  ApiSaasSignupUnsubscribeRoute: ApiSaasSignupUnsubscribeRoute,
+}
+
+const ApiSaasSignupRouteWithChildren = ApiSaasSignupRoute._addFileChildren(
+  ApiSaasSignupRouteChildren,
+)
+
 interface ApiSaasSubscriptionsRouteChildren {
   ApiSaasSubscriptionsBackfillRoute: typeof ApiSaasSubscriptionsBackfillRoute
 }
@@ -2081,10 +2361,13 @@ const rootRouteChildren: RootRouteChildren = {
   AuthResetPasswordRoute: AuthResetPasswordRoute,
   ConfiguracoesAssinaturaRoute: ConfiguracoesAssinaturaRoute,
   ConfiguracoesDiagnosticoRoute: ConfiguracoesDiagnosticoRoute,
+  ConfiguracoesInicioRoute: ConfiguracoesInicioRoute,
   ConviteTokenRoute: ConviteTokenRoute,
   MatriculaSlugRoute: MatriculaSlugRoute,
+  PedagogicaPautasSuperiorRoute: PedagogicaPautasSuperiorRoute,
   PedagogicaPresencaDocenteRoute: PedagogicaPresencaDocenteRoute,
   PedagogicaRiscoRoute: PedagogicaRiscoRoute,
+  PedagogicaSuperiorRoute: PedagogicaSuperiorRoute,
   ProfessorPresencaRoute: ProfessorPresencaRoute,
   ProfessoresTeacherIdRoute: ProfessoresTeacherIdRoute,
   RelatoriosAcademicosRoute: RelatoriosAcademicosRoute,
@@ -2095,19 +2378,25 @@ const rootRouteChildren: RootRouteChildren = {
   ApiCalendarIcsRoute: ApiCalendarIcsRoute,
   ApiCatracasDeviceScanRoute: ApiCatracasDeviceScanRoute,
   ApiCronLessonRemindersRoute: ApiCronLessonRemindersRoute,
+  ApiCronSaasLifecycleRoute: ApiCronSaasLifecycleRoute,
   ApiSaasAuditLogsRoute: ApiSaasAuditLogsRoute,
+  ApiSaasBillingProofsRoute: ApiSaasBillingProofsRoute,
   ApiSaasDomainsRoute: ApiSaasDomainsRouteWithChildren,
   ApiSaasGatewayWebhooksRoute: ApiSaasGatewayWebhooksRoute,
   ApiSaasMailboxesRoute: ApiSaasMailboxesRoute,
   ApiSaasMeRoute: ApiSaasMeRoute,
   ApiSaasPlansRoute: ApiSaasPlansRoute,
   ApiSaasPlatformAdminsRoute: ApiSaasPlatformAdminsRouteWithChildren,
-  ApiSaasSignupRoute: ApiSaasSignupRoute,
+  ApiSaasSignupRoute: ApiSaasSignupRouteWithChildren,
+  ApiSaasSignupLeadsRoute: ApiSaasSignupLeadsRoute,
   ApiSaasStatsRoute: ApiSaasStatsRoute,
   ApiSaasSubscriptionsRoute: ApiSaasSubscriptionsRouteWithChildren,
   ApiSaasTenantsRoute: ApiSaasTenantsRouteWithChildren,
   ApiWebhooksTwilioSmsRoute: ApiWebhooksTwilioSmsRoute,
   ApiWebhooksWhatsappStatusRoute: ApiWebhooksWhatsappStatusRoute,
+  PedagogicaPautasSuperiorImprimirRoute: PedagogicaPautasSuperiorImprimirRoute,
+  PedagogicaSuperiorCertificadoRoute: PedagogicaSuperiorCertificadoRoute,
+  PedagogicaSuperiorHistoricoRoute: PedagogicaSuperiorHistoricoRoute,
   ApiFinanceGatewayConfirmRoute: ApiFinanceGatewayConfirmRoute,
   ApiFinancePayflowSettlementRoute: ApiFinancePayflowSettlementRoute,
   ApiIntegrationsResendWebhookRoute: ApiIntegrationsResendWebhookRoute,

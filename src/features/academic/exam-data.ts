@@ -88,10 +88,14 @@ export type AnnualSheet = {
   id: string;
   status: string;
   rule: EngineRule | null;
+  /** Períodos do ano lectivo: cada disciplina precisa de nota em todos. */
+  expectedTerms: number;
   rows: Array<{
     enrollmentId: string;
     absencePercentage: number | null;
     sheetResult: string | null;
+    /** A pauta anual marcou-a incompleta (ex.: disciplina sem nenhuma nota). */
+    sheetIncomplete: boolean;
     breakdown: BreakdownEntry[];
   }>;
 };
@@ -112,7 +116,7 @@ export async function loadAnnualSheet(
     .limit(1)
     .maybeSingle();
   if (!sheet) return null;
-  const [{ data: rows }, rule] = await Promise.all([
+  const [{ data: rows }, rule, { count: termCount }] = await Promise.all([
     db
       .from("grade_sheet_rows")
       .select("enrollment_id, absence_percentage, result, subject_breakdown")
@@ -124,6 +128,11 @@ export async function loadAnnualSheet(
       sheet.rule_set_id ? str(sheet.rule_set_id) : null,
       await classCycle(db, schoolId, classGroupId),
     ),
+    db
+      .from("terms")
+      .select("id", { count: "exact", head: true })
+      .eq("school_id", schoolId)
+      .eq("academic_year_id", yearId),
   ]);
   const sheetRows = (rows ?? []) as Row[];
   const absences = await absenceByEnrollment(
@@ -137,6 +146,7 @@ export async function loadAnnualSheet(
     id: str(sheet.id),
     status: str(sheet.status),
     rule,
+    expectedTerms: termCount ?? 0,
     rows: sheetRows.map((r) => ({
       enrollmentId: str(r.enrollment_id),
       // As presenças do SIGA mandam; a percentagem gravada na pauta só serve de
@@ -145,6 +155,7 @@ export async function loadAnnualSheet(
         ? absences.get(str(r.enrollment_id))!
         : numOrNull(r.absence_percentage),
       sheetResult: r.result ? str(r.result) : null,
+      sheetIncomplete: str(r.result) === "incomplete",
       breakdown: Array.isArray(r.subject_breakdown)
         ? (r.subject_breakdown as BreakdownEntry[])
         : [],

@@ -30,6 +30,7 @@ import {
   TASK_KIND_LABELS,
 } from "@/features/academic/lesson-messages";
 import { publicErrorMessage } from "@/lib/public-error";
+import { safeHref } from "@/lib/safe-url";
 
 const WEEKDAYS = ["Domingo", "Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado"];
 const selectClass = "h-9 w-full rounded-md border border-border bg-background px-2 text-sm";
@@ -114,7 +115,7 @@ function LessonDetailBody({ detail, queryKey }: { detail: LessonDetail; queryKey
             {DELIVERY_MODE_LABELS[detail.deliveryMode] ?? detail.deliveryMode}
             {online && detail.onlineUrl ? (
               <a
-                href={detail.onlineUrl}
+                href={safeHref(detail.onlineUrl)}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-0.5 text-xs text-primary hover:underline"

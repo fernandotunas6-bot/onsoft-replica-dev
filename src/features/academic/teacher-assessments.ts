@@ -134,8 +134,7 @@ export async function buildTeacherAssessmentBoard(
       .select("grade_item_id")
       .eq("school_id", schoolId)
       .in("grade_item_id", itemIds.slice(i, i + 100))
-      .not("score", "is", null)
-      .neq("status", "reversed");
+      .not("score", "is", null);
     for (const s of (scores ?? []) as Row[]) {
       const id = str(s["grade_item_id"]);
       scoredByItem.set(id, (scoredByItem.get(id) ?? 0) + 1);

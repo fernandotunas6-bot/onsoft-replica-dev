@@ -107,7 +107,9 @@ export function PricingPlans({
         <Card
           key={tier.id}
           className={cn('flex flex-col pt-0', {
-            'border-primary relative shadow-lg': tier.popular,
+            // Destaque único da página: contorno em gradiente animado (index.css).
+            'aurora-ring border-transparent relative shadow-lg': tier.popular && mode === 'pricing',
+            'border-primary relative shadow-lg': tier.popular && mode !== 'pricing',
             'border-primary': currentPlanId === tier.id && mode === 'billing',
           })}
           aria-labelledby={`${tier.id}-title`}
@@ -132,8 +134,8 @@ export function PricingPlans({
             <p className='text-muted-foreground text-sm text-balance'>{tier.description}</p>
           </CardHeader>
           <CardContent className='flex flex-1 flex-col space-y-6'>
-            <div className='flex items-baseline justify-center'>
-              <span className='text-4xl font-bold'>{tier.price}</span>
+            <div className='flex flex-wrap items-baseline justify-center gap-x-1'>
+              <span className='text-3xl font-bold tabular-nums xl:text-4xl'>{tier.price}</span>
               <span className='text-muted-foreground text-sm'>{tier.frequency}</span>
             </div>
             <div className='space-y-2'>

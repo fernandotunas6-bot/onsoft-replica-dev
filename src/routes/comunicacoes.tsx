@@ -673,6 +673,7 @@ function ComunicacoesPage() {
                 ) : items.length === 0 ? (
                   <EmptyState
                     icon={MessageSquare}
+                    firstUse
                     title="Ainda não há comunicados"
                     description={
                       canManage

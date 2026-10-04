@@ -91,7 +91,12 @@ function VerifyDocumentPage() {
               <dt className="text-muted-foreground">Documento</dt>
               <dd>{query.data.title}</dd>
               <dt className="text-muted-foreground">Emitido por</dt>
-              <dd>{query.data.schoolName}</dd>
+              <dd>
+                {query.data.schoolName}
+                {query.data.issuerRole ? (
+                  <span className="text-muted-foreground"> · {query.data.issuerRole}</span>
+                ) : null}
+              </dd>
               {query.data.reference ? (
                 <>
                   <dt className="text-muted-foreground">Número</dt>

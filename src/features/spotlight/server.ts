@@ -14,6 +14,7 @@ import {
   spotlightOverridesSchema,
   type SpotlightOverrides,
 } from "./schemas";
+import { updateSettingsDomainValue } from "@/features/school/settings-domains";
 
 const DOMAIN = "spotlight";
 
@@ -65,37 +66,6 @@ export const saveSpotlightOverrides = createServerFn({ method: "POST" })
     if (!context) throw new Error("Unauthorized");
     const membership = await requireSgaWriter(context.supabase, context.userId, ["Administrador"]);
     const db = await loadSgaAdminClient();
-    const existing = await db
-      .from("school_settings")
-      .select("id, version")
-      .eq("school_id", membership.schoolId)
-      .eq("domain", DOMAIN)
-      .maybeSingle();
-    if (existing.error && /schema cache|does not exist|42P01|PGRST/i.test(existing.error.message)) {
-      throw new Error(
-        "Não foi possível guardar. Aplique APPLY_IN_SQL_EDITOR.sql (school_settings).",
-      );
-    }
-    if (existing.data?.id) {
-      const { error } = await db
-        .from("school_settings")
-        .update({
-          value: data,
-          version: Number(existing.data.version ?? 1) + 1,
-          changed_by: context.userId,
-        })
-        .eq("id", existing.data.id)
-        .eq("school_id", membership.schoolId);
-      if (error) throw publicDatabaseError(error, "Não foi possível guardar os destaques.");
-    } else {
-      const { error } = await db.from("school_settings").insert({
-        school_id: membership.schoolId,
-        domain: DOMAIN,
-        version: 1,
-        value: data,
-        changed_by: context.userId,
-      });
-      if (error) throw publicDatabaseError(error, "Não foi possível criar os destaques.");
-    }
+    await updateSettingsDomainValue(db, membership.schoolId, DOMAIN, () => data, context.userId);
     return applySpotlightOverrides(spotlightCatalog, data);
   });

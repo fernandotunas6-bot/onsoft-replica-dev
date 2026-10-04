@@ -353,14 +353,28 @@ export const createAcademicYear = createServerFn({ method: "POST" })
     }
 
     // Um ano activo de cada vez: o resto do SIGA resolve o ano por status.
-    const { error: closeError } = await db
+    // Guarda-se qual estava activo para o repor se o novo não ficar gravado —
+    // senão a escola ficava sem ano lectivo activo.
+    const { data: closed, error: closeError } = await db
       .from("academic_years")
       .update({ status: "closed" })
       .eq("school_id", membership.schoolId)
-      .eq("status", "active");
+      .eq("status", "active")
+      .select("id");
     if (closeError) {
       throw publicDatabaseError(closeError, "Não foi possível fechar o ano lectivo anterior.");
     }
+    const reopenPrevious = async () => {
+      const ids = (closed ?? [])
+        .map((row) => String(row.id))
+        .filter((id) => id !== String(existing?.id ?? ""));
+      if (!ids.length) return;
+      await db
+        .from("academic_years")
+        .update({ status: "active" })
+        .eq("school_id", membership.schoolId)
+        .in("id", ids);
+    };
 
     if (existing?.id) {
       const { error } = await db
@@ -368,7 +382,10 @@ export const createAcademicYear = createServerFn({ method: "POST" })
         .update({ starts_on: data.startsOn, ends_on: data.endsOn, status: "active" })
         .eq("id", existing.id)
         .eq("school_id", membership.schoolId);
-      if (error) throw publicDatabaseError(error, "Não foi possível activar o ano lectivo.");
+      if (error) {
+        await reopenPrevious();
+        throw publicDatabaseError(error, "Não foi possível activar o ano lectivo.");
+      }
       return { id: existing.id as string, name: data.name, created: false };
     }
 
@@ -383,7 +400,10 @@ export const createAcademicYear = createServerFn({ method: "POST" })
       })
       .select("id")
       .single();
-    if (error) throw publicDatabaseError(error, "Não foi possível criar o ano lectivo.");
+    if (error) {
+      await reopenPrevious();
+      throw publicDatabaseError(error, "Não foi possível criar o ano lectivo.");
+    }
     return { id: created.id as string, name: data.name, created: true };
   });
 
@@ -403,6 +423,19 @@ export const createCalendarEvent = createServerFn({ method: "POST" })
     const db = await loadSgaAdminClient();
 
     let academicYearId = data.academicYearId;
+    if (academicYearId) {
+      // O ano indicado tem de ser desta escola.
+      const { data: ownYear, error: ownYearError } = await db
+        .from("academic_years")
+        .select("id")
+        .eq("id", academicYearId)
+        .eq("school_id", membership.schoolId)
+        .maybeSingle();
+      if (ownYearError) {
+        throw publicDatabaseError(ownYearError, "Não foi possível validar o ano lectivo.");
+      }
+      if (!ownYear) throw new Error("Ano lectivo não encontrado.");
+    }
     if (!academicYearId) {
       const { data: year, error: yearError } = await db
         .from("academic_years")

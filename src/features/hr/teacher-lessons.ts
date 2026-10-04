@@ -673,37 +673,22 @@ export const redeemTeacherLessonQr = createServerFn({ method: "POST" })
       );
     }
 
-    type SecureRedeemRpcRow = {
-      occurrence_id?: string | null;
-      purpose?: string | null;
-      compensation_event_id?: string | null;
-      occurrence_status?: string | null;
-      assurance_score?: number | null;
-      decision?: string | null;
-      inside_geofence?: boolean | null;
-      distance_from_school_m?: number | null;
-    };
-
-    // RPCs RH ainda fora do Database.Functions tipado do cliente Supabase.
-    const untypedRpc = context.supabase as unknown as {
-      rpc: (
-        fn: string,
-        args?: Record<string, unknown>,
-      ) => Promise<{ data: unknown; error: { code?: string; message?: string } | null }>;
-    };
-
-    const { data: result, error } = await untypedRpc.rpc("hr_redeem_teacher_qr_secure", {
+    // `?? undefined` porque o schema de entrada tem `.default(null)` e os argumentos
+    // gerados são opcionais (`p_latitude?: number`), que aceitam `undefined` e não `null`.
+    // Omitir o argumento e enviá-lo nulo dão o mesmo na base: a função declara
+    // `DEFAULT NULL` nos três.
+    const { data: result, error } = await context.supabase.rpc("hr_redeem_teacher_qr_secure", {
       p_token_hash: tokenHash,
-      p_latitude: data.latitude,
-      p_longitude: data.longitude,
-      p_accuracy_m: data.accuracy,
+      p_latitude: data.latitude ?? undefined,
+      p_longitude: data.longitude ?? undefined,
+      p_accuracy_m: data.accuracy ?? undefined,
     });
 
     if (error) {
       throw publicDatabaseError(error, "Não foi possível validar a presença por QR.");
     }
 
-    const row = (Array.isArray(result) ? result[0] : result) as SecureRedeemRpcRow | null;
+    const row = result?.[0] ?? null;
     if (!row) throw new Error("O QR não produziu um registo de presença válido.");
 
     const purpose = String(row.purpose) as "check_in" | "check_out";

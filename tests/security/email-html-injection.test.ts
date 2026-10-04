@@ -48,7 +48,7 @@ describe("envio de e-mail com a chave da plataforma", () => {
   });
 
   it("limita envios, restringe destinatários à escola e força o remetente do sistema", () => {
-    expect(body).toMatch(/PLATFORM_EMAIL_RATE_LIMIT/);
+    expect(body).toMatch(/platformQuotaOk\(`platform_email:/);
     expect(body).toMatch(/\.eq\("school_id", membership\.schoolId\)\s*\.in\("email", recipients\)/);
     expect(body).toMatch(/from = resolveSystemSender\(/);
   });
