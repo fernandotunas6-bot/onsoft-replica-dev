@@ -500,7 +500,8 @@ export function ChatDock({
                 value={q}
                 onChange={(e) => setQ(e.target.value)}
                 placeholder={picker ? "Procurar contacto" : "Procurar conversa ou mensagem"}
-                className="min-w-0 flex-1 bg-transparent outline-none"
+                aria-label={picker ? "Procurar contacto" : "Procurar conversa ou mensagem"}
+                className="min-w-0 flex-1 bg-transparent outline-none focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
                 style={{ fontSize: 16 }}
               />
             </div>
@@ -684,7 +685,11 @@ export function ChatDock({
             ref={scrollRef}
             role="log"
             aria-live="polite"
+            tabIndex={-1}
             onClick={() => setSelId(null)}
+            onKeyDown={(e) => {
+              if (e.key === "Escape") setSelId(null);
+            }}
             className="min-h-0 flex-1 overflow-y-auto px-3 py-2"
             style={{ background: T.wall }}
           >
@@ -719,9 +724,18 @@ export function ChatDock({
                   <div className={`my-0.5 flex ${own ? "justify-end" : "justify-start"}`}>
                     <div style={{ maxWidth: "82%" }}>
                       <div
+                        role="button"
+                        tabIndex={0}
                         onClick={(e) => {
                           e.stopPropagation();
                           setSelId(selId === mm.id ? null : mm.id);
+                        }}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" || e.key === " ") {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            setSelId(selId === mm.id ? null : mm.id);
+                          }
                         }}
                         className="cursor-pointer rounded-lg px-2.5 py-1.5 text-sm shadow-sm"
                         style={{ background: own ? T.out : "#fff" }}
@@ -749,11 +763,22 @@ export function ChatDock({
                           <>
                             {mm.file ? (
                               <div
+                                role="button"
+                                tabIndex={0}
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   void openAttachment(mm.file!.fileId).catch(() =>
                                     setToast("Não foi possível abrir o arquivo."),
                                   );
+                                }}
+                                onKeyDown={(e) => {
+                                  if (e.key === "Enter" || e.key === " ") {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    void openAttachment(mm.file!.fileId).catch(() =>
+                                      setToast("Não foi possível abrir o arquivo."),
+                                    );
+                                  }
                                 }}
                                 className="mb-1 flex cursor-pointer items-center gap-2 rounded px-2 py-1.5"
                                 style={{ background: "rgba(0,0,0,.06)" }}
@@ -946,7 +971,7 @@ export function ChatDock({
               rows={1}
               value={draft}
               placeholder="Escreva uma mensagem"
-              className="min-w-0 flex-1 resize-none rounded-2xl px-3 py-2 outline-none"
+              className="min-w-0 flex-1 resize-none rounded-2xl px-3 py-2 outline-none focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
               style={{ fontSize: 16, background: "#fff", border: `1px solid ${T.line}` }}
               onChange={(e) => {
                 setDraft(e.target.value);
