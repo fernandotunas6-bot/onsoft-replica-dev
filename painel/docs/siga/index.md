@@ -22,6 +22,9 @@ Ver também [Arquitetura do ecossistema](/arquitetura/).
 - [Alunos e matrículas](/siga/alunos-e-matriculas) — matrícula interna, online e importação
 - [Área pedagógica](/siga/area-pedagogica) — notas, pautas oficiais e chamada
 - [Financeiro escolar](/siga/financeiro-escolar) — facturas, recibos, caixa e pagamentos
+- [RH e assiduidade](/siga/rh-e-assiduidade) — folha salarial e presença do professor por QR
+- [Documentos e comunicações](/siga/documentos-e-comunicacoes) — documentos oficiais, verificação e comunicados
+- [Catracas e arquivos](/siga/catracas-e-arquivos) — cartões, controlo de entrada e biblioteca
 - [Mapa de navegação](/siga/navegacao) — sidebar, launcher e permissões por papel
 - [Ensino Superior](/siga/ensino-superior) — cursos, planos com créditos, inscrições por cadeira e épocas
 - [Funcionalidades](/guide/features) — visão geral dos módulos
