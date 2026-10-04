@@ -95,6 +95,11 @@ export default defineConfig({
           text: 'SIGA escolar',
           items: [
             { text: 'Visão geral', link: '/siga/' },
+            { text: 'Primeiros passos', link: '/siga/primeiros-passos' },
+            { text: 'Papéis, acessos e segurança', link: '/siga/papeis-e-acessos' },
+            { text: 'Alunos e matrículas', link: '/siga/alunos-e-matriculas' },
+            { text: 'Área pedagógica', link: '/siga/area-pedagogica' },
+            { text: 'Financeiro escolar', link: '/siga/financeiro-escolar' },
             { text: 'Navegação e permissões', link: '/siga/navegacao' },
             { text: 'Ensino Superior', link: '/siga/ensino-superior' },
           ],
