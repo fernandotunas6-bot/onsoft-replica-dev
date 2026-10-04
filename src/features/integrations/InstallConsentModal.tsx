@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { ExternalLink } from "lucide-react";
 import { toast } from "sonner";
+import { toastActionError } from "@/lib/action-error-toast";
 import { Button } from "@/components/ui/button";
 import { FormModal } from "@/components/ui/modal-system";
 import { installSchoolIntegration } from "./server";
@@ -48,7 +49,7 @@ export function InstallConsentModal({
       onOpenChange(false);
       onInstalled?.(provider);
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Não foi possível instalar.");
+      toastActionError(error, "Não foi possível instalar.");
     } finally {
       setSaving(false);
     }

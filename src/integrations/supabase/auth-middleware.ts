@@ -4,6 +4,7 @@ import { getRequest, setResponseHeaders } from "@tanstack/react-start/server";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "./types";
 import { assertPublishableSupabaseKey, isOpaqueSupabaseApiKey } from "./api-key";
+import { accessTokenAal, assertSessionMfa, isSessionMfaError } from "./session-mfa";
 
 function unauthorized(reason = "Unauthorized"): never {
   throw Object.assign(new Error(reason), { statusCode: 401 });
@@ -185,6 +186,7 @@ export const requireSupabaseAuth = createMiddleware({
     const { data, error } = await supabase.auth.getClaims(token);
     authApiReachable = true;
     if (data?.claims?.sub) {
+      await assertSessionMfa(data.claims.sub, accessTokenAal(token));
       setResponseHeaders(
         new Headers({
           "Cache-Control": "private, no-store",
@@ -197,6 +199,7 @@ export const requireSupabaseAuth = createMiddleware({
     }
     authApiError = error?.message;
   } catch (claimsError) {
+    if (isSessionMfaError(claimsError)) throw claimsError;
     authApiError = claimsError instanceof Error ? claimsError.message : "getClaims falhou";
   }
 
@@ -204,6 +207,7 @@ export const requireSupabaseAuth = createMiddleware({
     const { data: userData, error: userError } = await supabase.auth.getUser(token);
     authApiReachable = true;
     if (userData?.user?.id) {
+      await assertSessionMfa(userData.user.id, accessTokenAal(token));
       setResponseHeaders(
         new Headers({
           "Cache-Control": "private, no-store",
@@ -216,6 +220,7 @@ export const requireSupabaseAuth = createMiddleware({
     }
     authApiError = authApiError || userError?.message;
   } catch (userError) {
+    if (isSessionMfaError(userError)) throw userError;
     authApiError =
       authApiError || (userError instanceof Error ? userError.message : "getUser falhou");
   }
@@ -233,6 +238,7 @@ export const requireSupabaseAuth = createMiddleware({
     if (isValidSignature) {
       const localClaims = decodeAccessTokenClaims(token);
       if (localClaims?.sub) {
+        await assertSessionMfa(localClaims.sub, accessTokenAal(token));
         setResponseHeaders(
           new Headers({
             "Cache-Control": "private, no-store",

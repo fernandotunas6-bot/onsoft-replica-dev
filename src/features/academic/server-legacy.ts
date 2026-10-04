@@ -16,7 +16,12 @@ import { loadPeopleLite, loadPersonNamesById } from "@/features/people/lookup";
 import { scoreAverage, inferTeachingCycle } from "@/lib/angola-academic";
 import { buildClassAcademicSummaries } from "./assessment-engine";
 import { ensureAcademicDefaultsCore } from "./academic-bootstrap";
-import { listSgaTermGrades, upsertSgaTermGrade, upsertSgaTermGradesBatch } from "./sga-grades";
+import {
+  assertAssessmentTermNotLocked,
+  listSgaTermGrades,
+  upsertSgaTermGrade,
+  upsertSgaTermGradesBatch,
+} from "./sga-grades";
 import { reportSigaError } from "@/lib/ops-report";
 import {
   createClassGroupInputSchema,
@@ -51,12 +56,15 @@ async function assertTermOpen(
   schoolId: string,
   term: number,
 ) {
-  const { data } = await db
+  const { data, error } = await db
     .from("school_settings")
     .select("value")
     .eq("school_id", schoolId)
     .eq("domain", "pedagogy")
     .maybeSingle();
+  // Sem conseguir ler os períodos fechados, não se grava (antes contava como aberto).
+  if (error)
+    throw publicDatabaseError(error, "Não foi possível confirmar se o período está aberto.");
   const pedagogy = pedagogySettingsSchema.safeParse(data?.value ?? {}).data;
   if (pedagogy?.closedTerms.includes(term as 1 | 2 | 3)) {
     throw new Error(
@@ -1688,6 +1696,14 @@ export const upsertAssessmentScores = createServerFn({ method: "POST" })
     }
     if (!item?.id) throw new Error("Avaliação não encontrada.");
     await assertTermOpen(db, membership.schoolId, Number(item.term));
+    // Pauta homologada/publicada: as notas das avaliações também ficam fechadas
+    // (a alteração passa a pedido), como as de MAC/NPP/NPT.
+    await assertAssessmentTermNotLocked(
+      db,
+      membership.schoolId,
+      String(item.class_group_id),
+      Number(item.term),
+    );
 
     // 1 SELECT para todos os alunos do lote + 1 INSERT em lote (novos) + updates em
     // paralelo — substitui o anterior select+insert/update sequencial por aluno, que
@@ -1803,6 +1819,25 @@ export const updateAssessmentItem = createServerFn({ method: "POST" })
       ["Administrador", "Secretaria", "Professor"],
     );
     const db = await loadSgaAdminClient();
+    const { data: current, error: currentError } = await db
+      .from("siga_assessment_items")
+      .select("id, term, class_group_id")
+      .eq("id", data.id)
+      .eq("school_id", membership.schoolId)
+      .maybeSingle();
+    if (currentError) {
+      throw publicDatabaseError(currentError, "Não foi possível validar a avaliação.");
+    }
+    if (!current?.id) throw new Error("Avaliação não encontrada.");
+    // Mudar a cotação ou «conta para a pauta» muda o MAC: o período tem de estar
+    // aberto e a pauta ainda não oficial.
+    await assertTermOpen(db, membership.schoolId, Number(current.term));
+    await assertAssessmentTermNotLocked(
+      db,
+      membership.schoolId,
+      String(current.class_group_id),
+      Number(current.term),
+    );
     const { data: updated, error } = await db
       .from("siga_assessment_items")
       .update({

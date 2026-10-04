@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { toastActionError } from "@/lib/action-error-toast";
+import { applySchoolStructure } from "./setup-status";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -98,11 +100,36 @@ export function PedagogicalSettingsPanel() {
         },
       });
       await queryClient.invalidateQueries({ queryKey: ["school", "settings"] });
-      toast.success("Configuração pedagógica guardada.");
+      await queryClient.invalidateQueries({ queryKey: ["school", "setup-status"] });
+      toast.success("Configuração pedagógica guardada.", {
+        description: teachingLevels.length
+          ? "Use «Criar classes e disciplinas» para acrescentar as que faltam destes níveis."
+          : undefined,
+      });
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Não foi possível guardar.");
     } finally {
       setSaving(false);
+    }
+  };
+
+  // Aplica os níveis GUARDADOS (o servidor lê-os de Definições → Pedagógico):
+  // só acrescenta o que falta, nunca apaga classes, cursos ou disciplinas.
+  const [applying, setApplying] = useState(false);
+  const applyStructure = async () => {
+    setApplying(true);
+    try {
+      const result = await applySchoolStructure();
+      await queryClient.invalidateQueries({ queryKey: ["school", "setup-status"] });
+      toast.success(
+        result.seeded.length
+          ? `Criado: ${result.seeded.join(", ")}.`
+          : "A estrutura destes níveis já estava completa.",
+      );
+    } catch (error) {
+      toastActionError(error, "Não foi possível criar a estrutura.");
+    } finally {
+      setApplying(false);
     }
   };
 
@@ -352,9 +379,23 @@ export function PedagogicalSettingsPanel() {
       </div>
 
       {canEdit ? (
-        <Button onClick={() => void save()} disabled={saving}>
-          {saving ? "A guardar…" : "Guardar configuração pedagógica"}
-        </Button>
+        <div className="flex flex-wrap items-center gap-2">
+          <Button onClick={() => void save()} disabled={saving}>
+            {saving ? "A guardar…" : "Guardar configuração pedagógica"}
+          </Button>
+          <Button
+            variant="secondary"
+            onClick={() => void applyStructure()}
+            disabled={applying || saving || teachingLevels.length === 0}
+            title={
+              teachingLevels.length === 0
+                ? "Escolha e guarde pelo menos um nível de ensino."
+                : "Cria as classes, cursos e disciplinas em falta dos níveis guardados."
+            }
+          >
+            {applying ? "A criar…" : "Criar classes e disciplinas"}
+          </Button>
+        </div>
       ) : (
         <p className="text-sm text-muted-foreground">Só o administrador altera estes níveis.</p>
       )}

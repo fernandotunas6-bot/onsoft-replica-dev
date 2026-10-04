@@ -17,6 +17,7 @@ import {
   PieChart,
   NotebookPen,
   FolderOpen,
+  FileCheck,
 } from "lucide-react";
 import {
   Dialog,
@@ -43,6 +44,69 @@ import {
   teacherLessonPlansSearch,
 } from "@/features/hr/teacher-classroom-links";
 
+/** Os quatro estados que o professor marca, com as cores de cada um. */
+const STATUS_OPTIONS = [
+  {
+    status: "present",
+    label: "Presente",
+    short: "Presente",
+    plural: "Presentes",
+    icon: Check,
+    text: "text-success",
+    ring: "ring-success/60",
+    row: "border-success/30 bg-success/5",
+    selected: "border-success bg-success text-success-foreground shadow-sm",
+    activeChip: "border-success/40 bg-success/10",
+  },
+  {
+    status: "absent",
+    label: "Falta",
+    short: "Falta",
+    plural: "Faltas",
+    icon: X,
+    text: "text-destructive",
+    ring: "ring-destructive/60",
+    row: "border-destructive/30 bg-destructive/5",
+    selected: "border-destructive bg-destructive text-destructive-foreground shadow-sm",
+    activeChip: "border-destructive/40 bg-destructive/10",
+  },
+  {
+    status: "late",
+    label: "Atrasado",
+    short: "Atraso",
+    plural: "Atrasos",
+    icon: AlertCircle,
+    text: "text-warning-strong",
+    ring: "ring-warning/70",
+    row: "border-warning/30 bg-warning/5",
+    selected: "border-warning bg-warning text-warning-foreground shadow-sm",
+    activeChip: "border-warning/40 bg-warning/10",
+  },
+  {
+    status: "excused",
+    label: "Justificada",
+    short: "Justif.",
+    plural: "Justificadas",
+    icon: FileCheck,
+    text: "text-info",
+    ring: "ring-info/60",
+    row: "border-info/30 bg-info/5",
+    selected: "border-info bg-info text-info-foreground shadow-sm",
+    activeChip: "border-info/40 bg-info/10",
+  },
+] as const satisfies ReadonlyArray<{
+  status: AttendanceStatus;
+  label: string;
+  short: string;
+  plural: string;
+  icon: typeof Check;
+  text: string;
+  ring: string;
+  row: string;
+  selected: string;
+  activeChip: string;
+}>;
+
 export function AttendanceCallDialog({
   open,
   onOpenChange,
@@ -61,6 +125,7 @@ export function AttendanceCallDialog({
   const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
   const [sortOrder, setSortOrder] = useState<"name" | "number">("name");
+  const [statusFilter, setStatusFilter] = useState<AttendanceStatus | "all">("all");
   const [isEditingMode, setIsEditingMode] = useState(false);
   const [editReason, setEditReason] = useState("");
   const [confirmReasonModalOpen, setConfirmReasonModalOpen] = useState(false);
@@ -200,13 +265,17 @@ export function AttendanceCallDialog({
   };
 
   const data = sheetQuery.data;
-  const filteredStudents = (data?.students ?? [])
+  const statusOf = (studentId: string): AttendanceStatus =>
+    studentStatuses[studentId]?.status || "not_registered";
+  const allStudents = data?.students ?? [];
+  const filteredStudents = allStudents
     .filter((st) =>
       search
         ? st.full_name.toLowerCase().includes(search.toLowerCase()) ||
           st.student_number.toLowerCase().includes(search.toLowerCase())
         : true,
     )
+    .filter((st) => statusFilter === "all" || statusOf(st.student_id) === statusFilter)
     .sort((a, b) => {
       if (sortOrder === "number") {
         return (a.student_number || "").localeCompare(b.student_number || "", undefined, {
@@ -230,98 +299,141 @@ export function AttendanceCallDialog({
     ? teacherClassFilesSearch(data.session.class_group_id)
     : null;
 
-  const presentCount = Object.values(studentStatuses).filter((s) => s.status === "present").length;
-  const absentCount = Object.values(studentStatuses).filter((s) => s.status === "absent").length;
-  const lateCount = Object.values(studentStatuses).filter((s) => s.status === "late").length;
-  const excusedCount = Object.values(studentStatuses).filter((s) => s.status === "excused").length;
+  const countOf = (status: AttendanceStatus) =>
+    allStudents.filter((st) => statusOf(st.student_id) === status).length;
+  const totalStudents = allStudents.length;
+  const pendingCount = countOf("not_registered");
+  const markedCount = totalStudents - pendingCount;
+  const progress = totalStudents ? Math.round((markedCount / totalStudents) * 100) : 0;
+  const toggleFilter = (next: AttendanceStatus) =>
+    setStatusFilter((current) => (current === next ? "all" : next));
 
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
         <DialogContent className="flex h-[100dvh] max-h-[100dvh] w-full max-w-full flex-col gap-0 overflow-hidden rounded-none p-0 sm:h-auto sm:max-h-[90vh] sm:max-w-3xl sm:rounded-lg">
-          <DialogHeader className="border-b border-border bg-muted/20 p-4 pb-5 pt-[max(1rem,env(safe-area-inset-top))] sm:p-5">
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <div>
-                <DialogTitle className="text-xl font-extrabold flex items-center gap-2">
-                  <CheckCheck className="size-6 text-primary" />
-                  {data?.session.class_group_name ?? "Turma"} ·{" "}
-                  {data?.session.subject_name ?? "Disciplina"}
+          <DialogHeader className="space-y-0 border-b border-border bg-muted/20 px-4 pb-3 pt-[max(0.875rem,env(safe-area-inset-top))] text-left sm:p-5">
+            <div className="flex items-start justify-between gap-3 pr-8">
+              <div className="min-w-0">
+                <DialogTitle className="flex items-center gap-2 text-lg font-extrabold leading-tight sm:text-xl">
+                  <CheckCheck className="size-5 shrink-0 text-primary sm:size-6" />
+                  <span className="truncate">
+                    {data?.session.class_group_name ?? "Turma"} ·{" "}
+                    {data?.session.subject_name ?? "Disciplina"}
+                  </span>
                 </DialogTitle>
-                <DialogDescription className="mt-1 text-xs">
+                <DialogDescription className="mt-0.5 text-xs">
                   {data?.session.lesson_date
                     ? new Date(`${data.session.lesson_date}T12:00:00Z`).toLocaleDateString(
                         "pt-PT",
-                        { weekday: "long", day: "numeric", month: "long", year: "numeric" },
+                        { weekday: "long", day: "numeric", month: "long" },
                       )
                     : "Chamada de hoje"}
                   {data?.session.starts_at ? ` · ${data.session.starts_at}` : ""}
                 </DialogDescription>
               </div>
-              <div className="flex items-center gap-2">
-                {isCompleted ? (
-                  <Badge
-                    variant="outline"
-                    className="bg-success/10 text-success border-success/30 gap-1.5 py-1 px-3"
+              {isCompleted ? (
+                <Badge
+                  variant="outline"
+                  className="shrink-0 gap-1 border-success/30 bg-success/10 px-2 py-0.5 text-success"
+                >
+                  <Lock className="size-3" /> Concluída
+                </Badge>
+              ) : (
+                <Badge
+                  variant="outline"
+                  className="shrink-0 gap-1 border-warning/30 bg-warning/10 px-2 py-0.5 text-warning-strong"
+                >
+                  <Clock className="size-3" /> Pendente
+                </Badge>
+              )}
+            </div>
+
+            {/* PROGRESSO: quantos já estão marcados */}
+            <div className="mt-3">
+              <div className="flex items-center justify-between text-xs">
+                <span className="font-semibold text-foreground">
+                  {markedCount} de {totalStudents} marcados
+                </span>
+                {pendingCount > 0 ? (
+                  <button
+                    type="button"
+                    onClick={() => toggleFilter("not_registered")}
+                    className="font-semibold text-primary underline-offset-2 hover:underline"
                   >
-                    <Lock className="size-3.5" /> Chamada Concluída
-                  </Badge>
+                    {statusFilter === "not_registered" ? "Ver todos" : `${pendingCount} por marcar`}
+                  </button>
                 ) : (
-                  <Badge
-                    variant="outline"
-                    className="bg-warning/10 text-warning-foreground border-warning/30 gap-1.5 py-1 px-3"
-                  >
-                    <Clock className="size-3.5" /> Chamada Pendente
-                  </Badge>
+                  <span className="font-semibold text-success">Todos marcados</span>
                 )}
+              </div>
+              <div
+                className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-muted"
+                role="progressbar"
+                aria-label="Alunos marcados"
+                aria-valuemin={0}
+                aria-valuemax={100}
+                aria-valuenow={progress}
+              >
+                <div
+                  className="h-full rounded-full bg-primary transition-[width] duration-300"
+                  style={{ width: `${progress}%` }}
+                />
               </div>
             </div>
 
-            {/* BARRA DE ESTATÍSTICAS DA CHAMADA */}
-            <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-xl bg-background p-3 border border-border">
-              <div className="flex items-center gap-4 text-xs font-semibold">
-                <span className="text-success flex items-center gap-1">
-                  <Check className="size-3.5" /> {presentCount} Presentes
-                </span>
-                <span className="text-destructive flex items-center gap-1">
-                  <X className="size-3.5" /> {absentCount} Faltas
-                </span>
-                <span className="text-warning-foreground flex items-center gap-1">
-                  <AlertCircle className="size-3.5" /> {lateCount} Atrasos
-                </span>
-                <span className="text-info flex items-center gap-1">
-                  <Check className="size-3.5" /> {excusedCount} Justificadas
-                </span>
-              </div>
-              <span className="text-xs text-muted-foreground font-mono">
-                Total: {data?.totalCount ?? 0} alunos
-              </span>
+            {/* CONTADORES: tocar filtra a lista por esse estado */}
+            <div className="mt-3 grid grid-cols-4 gap-1.5">
+              {STATUS_OPTIONS.map((option) => {
+                const active = statusFilter === option.status;
+                const Icon = option.icon;
+                return (
+                  <button
+                    key={option.status}
+                    type="button"
+                    aria-pressed={active}
+                    onClick={() => toggleFilter(option.status)}
+                    className={`flex flex-col items-center rounded-xl border px-1 py-1.5 transition-colors touch-manipulation ${
+                      active ? option.activeChip : "border-border bg-background hover:bg-muted/60"
+                    }`}
+                  >
+                    <span
+                      className={`flex items-center gap-1 text-base font-extrabold ${option.text}`}
+                    >
+                      <Icon className="size-3.5" aria-hidden />
+                      {countOf(option.status)}
+                    </span>
+                    <span className="text-[11px] font-medium text-muted-foreground">
+                      {option.plural}
+                    </span>
+                  </button>
+                );
+              })}
             </div>
           </DialogHeader>
 
-          {/* BARRA DE CONTROLO DE PESQUISA E ACÇÃO EM MASSA */}
-          <div className="flex flex-wrap items-center justify-between gap-3 p-4 border-b border-border bg-background">
-            <div className="flex items-center gap-2 min-w-[220px] flex-1">
-              <div className="relative w-full">
-                <Search className="absolute left-3 top-2.5 size-4 text-muted-foreground" />
-                <Input
-                  aria-label="Pesquisar aluno"
-                  placeholder="Pesquisar aluno por nome ou número..."
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  className="pl-9 h-9 text-xs"
-                />
-              </div>
+          {/* PESQUISA E ACÇÕES */}
+          <div className="space-y-2 border-b border-border bg-background px-4 py-3">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                aria-label="Pesquisar aluno"
+                placeholder="Pesquisar por nome ou número…"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="h-10 pl-9 text-sm"
+              />
             </div>
             <div className="flex items-center gap-2">
               <Button
                 type="button"
                 variant="outline"
                 size="sm"
-                className="gap-1.5 text-xs h-9"
+                className="h-9 gap-1.5 text-xs"
                 onClick={() => setSortOrder(sortOrder === "name" ? "number" : "name")}
               >
                 <ArrowUpDown className="size-3.5" />
-                {sortOrder === "name" ? "Por Nome" : "Por Número"}
+                {sortOrder === "name" ? "Nome" : "Número"}
               </Button>
               {!isCompleted || isEditingMode ? (
                 <Button
@@ -329,181 +441,194 @@ export function AttendanceCallDialog({
                   variant="secondary"
                   size="sm"
                   onClick={handleMarkAllPresent}
-                  className="gap-1.5 text-xs h-9 font-semibold bg-primary-soft text-primary-strong hover:bg-primary/20"
+                  className="h-9 flex-1 gap-1.5 bg-primary-soft text-xs font-semibold text-primary-strong hover:bg-primary/20 sm:flex-none"
                 >
-                  <CheckCheck className="size-4" /> Marcar todos presentes
+                  <CheckCheck className="size-4" /> Todos presentes
                 </Button>
               ) : null}
             </div>
           </div>
 
-          {/* LISTA DE ALUNOS COM BOTÕES TÁCTEIS DE ALTA VELOCIDADE */}
-          <div className="flex-1 overflow-y-auto p-4 space-y-2">
+          {/* LISTA DE ALUNOS */}
+          <div className="flex-1 overflow-y-auto overscroll-contain px-3 py-3 sm:px-4">
             {sheetQuery.isLoading ? (
-              <div className="py-12 text-center text-sm text-muted-foreground animate-pulse">
-                A carregar lista da turma...
+              <div className="space-y-2" aria-busy="true" aria-label="A carregar lista da turma">
+                {Array.from({ length: 6 }, (_, index) => (
+                  <div key={index} className="h-[5.5rem] animate-pulse rounded-2xl bg-muted/60" />
+                ))}
               </div>
             ) : filteredStudents.length === 0 ? (
               <div className="py-12 text-center text-sm text-muted-foreground">
-                Nenhum aluno encontrado nesta turma.
+                {statusFilter !== "all" || search
+                  ? "Nenhum aluno com este filtro."
+                  : "Nenhum aluno encontrado nesta turma."}
+                {statusFilter !== "all" ? (
+                  <div className="mt-3">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setStatusFilter("all")}
+                    >
+                      Ver todos
+                    </Button>
+                  </div>
+                ) : null}
               </div>
             ) : (
-              filteredStudents.map((st) => {
-                const currentStatus = studentStatuses[st.student_id]?.status || "not_registered";
-                return (
-                  <div
-                    key={st.student_id}
-                    className={`flex flex-wrap items-center justify-between gap-3 p-3 rounded-xl border transition-colors ${
-                      currentStatus === "present"
-                        ? "border-success/30 bg-success/5"
-                        : currentStatus === "absent"
-                          ? "border-destructive/30 bg-destructive/5"
-                          : currentStatus === "late"
-                            ? "border-warning/30 bg-warning/5"
-                            : currentStatus === "excused"
-                              ? "border-info/30 bg-info/5"
-                              : "border-border bg-card"
-                    }`}
-                  >
-                    <div className="flex items-center gap-3 min-w-[200px] flex-1">
-                      <UserAvatar
-                        url={st.photo_url}
-                        initials={st.full_name.slice(0, 2).toUpperCase()}
-                        className="size-9"
-                      />
-                      <div>
-                        <p className="text-sm font-bold text-foreground">{st.full_name}</p>
-                        <p className="text-xs text-muted-foreground font-mono">
-                          Nº {st.student_number || "—"}
-                        </p>
+              <ul className="space-y-2">
+                {filteredStudents.map((st, index) => {
+                  const currentStatus = statusOf(st.student_id);
+                  const current = STATUS_OPTIONS.find((option) => option.status === currentStatus);
+                  return (
+                    <li
+                      key={st.student_id}
+                      className={`rounded-2xl border p-2.5 shadow-xs transition-colors sm:flex sm:items-center sm:justify-between sm:gap-3 sm:p-3 ${
+                        current ? current.row : "border-border bg-card"
+                      }`}
+                    >
+                      <div className="flex min-w-0 items-center gap-3 sm:flex-1">
+                        <span className="w-5 shrink-0 text-right font-mono text-[11px] text-muted-foreground">
+                          {index + 1}
+                        </span>
+                        <span
+                          className={`shrink-0 rounded-full p-0.5 ring-2 ${current ? current.ring : "ring-transparent"}`}
+                        >
+                          <UserAvatar
+                            url={st.photo_url}
+                            initials={st.full_name.slice(0, 2).toUpperCase()}
+                            className="size-10"
+                          />
+                        </span>
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate text-sm font-bold text-foreground">
+                            {st.full_name}
+                          </p>
+                          <p className="font-mono text-xs text-muted-foreground">
+                            Nº {st.student_number || "—"}
+                            {current ? (
+                              <span className={`ml-2 font-sans font-semibold ${current.text}`}>
+                                · {current.label}
+                              </span>
+                            ) : null}
+                          </p>
+                        </div>
                       </div>
-                    </div>
 
-                    <div className="flex flex-wrap items-center gap-1.5">
-                      <Button
-                        type="button"
-                        size="sm"
-                        disabled={disabledInputs}
-                        variant={currentStatus === "present" ? "default" : "outline"}
-                        onClick={() => setSingleStatus(st.student_id, "present")}
-                        className={`h-11 min-w-[5.5rem] px-3 text-xs gap-1 font-bold touch-manipulation ${
-                          currentStatus === "present"
-                            ? "bg-success text-success-foreground hover:bg-success/90"
-                            : ""
-                        }`}
+                      <div
+                        role="radiogroup"
+                        aria-label={`Presença de ${st.full_name}`}
+                        className="mt-2 grid grid-cols-4 gap-1.5 sm:mt-0 sm:flex sm:shrink-0"
                       >
-                        <Check className="size-4" /> Presente
-                      </Button>
-
-                      <Button
-                        type="button"
-                        size="sm"
-                        disabled={disabledInputs}
-                        variant={currentStatus === "absent" ? "default" : "outline"}
-                        onClick={() => setSingleStatus(st.student_id, "absent")}
-                        className={`h-11 min-w-[5.5rem] px-3 text-xs gap-1 font-bold touch-manipulation ${
-                          currentStatus === "absent"
-                            ? "bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                            : ""
-                        }`}
-                      >
-                        <X className="size-4" /> Falta
-                      </Button>
-
-                      <Button
-                        type="button"
-                        size="sm"
-                        disabled={disabledInputs}
-                        variant={currentStatus === "late" ? "default" : "outline"}
-                        onClick={() => setSingleStatus(st.student_id, "late")}
-                        className={`h-11 min-w-[5.5rem] px-2.5 text-xs gap-1 font-semibold touch-manipulation ${
-                          currentStatus === "late"
-                            ? "bg-warning text-warning-foreground hover:bg-warning/90"
-                            : ""
-                        }`}
-                      >
-                        <AlertCircle className="size-3.5" /> Atrasado
-                      </Button>
-
-                      <Button
-                        type="button"
-                        size="sm"
-                        disabled={disabledInputs}
-                        variant={currentStatus === "excused" ? "default" : "outline"}
-                        onClick={() => setSingleStatus(st.student_id, "excused")}
-                        className={`h-11 min-w-[5.5rem] px-2.5 text-xs gap-1 font-semibold touch-manipulation ${
-                          currentStatus === "excused"
-                            ? "bg-info text-info-foreground hover:bg-info/90"
-                            : ""
-                        }`}
-                      >
-                        Justificada
-                      </Button>
-                    </div>
-                  </div>
-                );
-              })
+                        {STATUS_OPTIONS.map((option) => {
+                          const selected = currentStatus === option.status;
+                          const Icon = option.icon;
+                          return (
+                            <button
+                              key={option.status}
+                              type="button"
+                              role="radio"
+                              aria-checked={selected}
+                              disabled={disabledInputs}
+                              onClick={() => setSingleStatus(st.student_id, option.status)}
+                              className={`flex h-12 flex-col items-center justify-center gap-0.5 rounded-xl border text-[11px] font-bold transition-all touch-manipulation active:scale-95 disabled:pointer-events-none disabled:opacity-60 sm:h-11 sm:w-[4.75rem] ${
+                                selected
+                                  ? option.selected
+                                  : "border-border bg-background text-muted-foreground hover:bg-muted/60"
+                              }`}
+                            >
+                              <Icon className="size-4" aria-hidden />
+                              {option.short}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </li>
+                  );
+                })}
+              </ul>
             )}
           </div>
 
-          <DialogFooter className="flex flex-wrap items-center justify-between gap-3 border-t border-border bg-muted/20 p-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
-            {isCompleted && !isEditingMode ? (
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setIsEditingMode(true)}
-                className="gap-2 text-xs"
-              >
-                <Edit3 className="size-4" /> Editar chamada concluída
-              </Button>
-            ) : (
-              <span className="text-xs text-muted-foreground">
-                Confirme as presenças e faltas antes de concluir.
-              </span>
-            )}
-
-            <div className="flex flex-wrap items-center gap-2">
+          <DialogFooter className="flex-col gap-2 border-t border-border bg-background/95 px-4 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3 backdrop-blur sm:flex-row sm:items-center sm:justify-between sm:space-x-0 sm:bg-muted/20 sm:p-4">
+            <div className="flex items-center gap-2">
+              {isCompleted && !isEditingMode ? (
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setIsEditingMode(true)}
+                  className="h-10 flex-1 gap-2 text-xs sm:flex-none"
+                >
+                  <Edit3 className="size-4" /> Corrigir chamada
+                </Button>
+              ) : null}
               {gradesSearch ? (
                 <Button
                   asChild
                   type="button"
                   variant="secondary"
-                  className="gap-2 text-xs font-bold"
+                  size="sm"
+                  className="h-10 gap-1.5 text-xs font-bold"
                 >
-                  <Link to="/pedagogica" search={gradesSearch}>
-                    <PieChart className="size-4" /> Lançar notas
+                  <Link to="/pedagogica" search={gradesSearch} aria-label="Lançar notas">
+                    <PieChart className="size-4" />
+                    <span className="hidden sm:inline">Lançar notas</span>
                   </Link>
                 </Button>
               ) : null}
               {plansSearch ? (
-                <Button asChild type="button" variant="outline" className="gap-2 text-xs font-bold">
-                  <Link to="/planos-aula" search={plansSearch}>
-                    <NotebookPen className="size-4" /> Plano
+                <Button
+                  asChild
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="h-10 gap-1.5 text-xs font-bold"
+                >
+                  <Link to="/planos-aula" search={plansSearch} aria-label="Plano de aula">
+                    <NotebookPen className="size-4" />
+                    <span className="hidden sm:inline">Plano</span>
                   </Link>
                 </Button>
               ) : null}
               {filesSearch ? (
-                <Button asChild type="button" variant="outline" className="gap-2 text-xs font-bold">
-                  <Link to="/arquivos" search={filesSearch}>
-                    <FolderOpen className="size-4" /> Materiais
+                <Button
+                  asChild
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="h-10 gap-1.5 text-xs font-bold"
+                >
+                  <Link to="/arquivos" search={filesSearch} aria-label="Materiais da turma">
+                    <FolderOpen className="size-4" />
+                    <span className="hidden sm:inline">Materiais</span>
                   </Link>
                 </Button>
               ) : null}
-              <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-                Cancelar
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="ml-auto h-10 sm:ml-0"
+                onClick={() => onOpenChange(false)}
+              >
+                Fechar
               </Button>
-              {!isCompleted || isEditingMode ? (
-                <Button
-                  type="button"
-                  onClick={handleSaveCall}
-                  disabled={submitBatchMutation.isPending || editBatchMutation.isPending}
-                  className="gap-2 font-bold px-6"
-                >
-                  <Save className="size-4" />
-                  {isCompleted ? "Salvar alterações auditadas" : "Concluir chamada"}
-                </Button>
-              ) : null}
             </div>
+            {!isCompleted || isEditingMode ? (
+              <Button
+                type="button"
+                onClick={handleSaveCall}
+                disabled={submitBatchMutation.isPending || editBatchMutation.isPending}
+                className="h-12 w-full gap-2 px-6 text-sm font-bold sm:h-10 sm:w-auto"
+              >
+                <Save className="size-4" />
+                {isCompleted
+                  ? "Guardar correcção"
+                  : pendingCount > 0
+                    ? `Concluir chamada · ${markedCount}/${totalStudents}`
+                    : "Concluir chamada"}
+              </Button>
+            ) : null}
           </DialogFooter>
         </DialogContent>
       </Dialog>

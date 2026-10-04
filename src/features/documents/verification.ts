@@ -18,9 +18,55 @@ import { publicDatabaseError } from "@/integrations/supabase/server-error";
 import { loadSgaAdminClient, resolveSgaMembershipAdmin } from "@/integrations/supabase/sga-admin";
 import { checkRateLimit, isRateLimitBypassed, recordRateLimitAttempt } from "@/lib/rate-limit";
 import { consumeRateLimit } from "@/lib/shared-rate-limit";
+import { isPrintTemplateKey, type PrintTemplateKey } from "./print-catalog";
 
 export const ISSUED_DOCUMENT_ACTION = "documents.issued";
 const ISSUER_ROLES = ["Administrador", "Secretaria", "Tesouraria", "Professor"];
+const OFFICE_ROLES = ["Administrador", "Secretaria"];
+
+/**
+ * Quem pode emitir cada modelo. O código de verificação diz «autêntico» sobre o
+ * que o emissor escreveu (título, titular, valor): um professor emitir um
+ * certificado de habilitações ou um recibo, verificável como autêntico, não
+ * pode acontecer. O professor emite os documentos pedagógicos da sua turma; a
+ * Secretaria e a Direcção emitem tudo.
+ */
+const TEMPLATE_ISSUERS: Record<PrintTemplateKey, readonly string[]> = {
+  "talao-candidatura": OFFICE_ROLES,
+  "talao-matricula": OFFICE_ROLES,
+  "folha-credenciais": OFFICE_ROLES,
+  "dossie-academico": OFFICE_ROLES,
+  // Recibos, facturas e relatórios financeiros saem por este modelo.
+  "service-document": [...OFFICE_ROLES, "Tesouraria"],
+  "historico-academico-individual": OFFICE_ROLES,
+  "certificado-habilitacoes": OFFICE_ROLES,
+  "declaracao-notas-simples": OFFICE_ROLES,
+  "pauta-disciplinar": [...OFFICE_ROLES, "Professor"],
+  "pauta-geral-turma": [...OFFICE_ROLES, "Professor"],
+  "boletim-escolar": [...OFFICE_ROLES, "Professor"],
+  "diario-pedagogico-professor": [...OFFICE_ROLES, "Professor"],
+  "acta-conselho-notas": [...OFFICE_ROLES, "Professor"],
+  "relatorio-validacao-notas": [...OFFICE_ROLES, "Professor"],
+  "mapa-estatistico-aproveitamento": [...OFFICE_ROLES, "Professor"],
+};
+/** Um valor impresso (recibo, factura) só da Direcção, Secretaria ou Tesouraria. */
+const AMOUNT_ISSUERS = [...OFFICE_ROLES, "Tesouraria"];
+
+/** Papel que aparece na verificação («emitido pela Secretaria»), o mais alto que permite emitir. */
+export function issuerRoleFor(
+  roles: readonly string[],
+  templateKey: PrintTemplateKey,
+  hasAmount: boolean,
+): string | null {
+  const allowed = hasAmount
+    ? TEMPLATE_ISSUERS[templateKey].filter((role) => AMOUNT_ISSUERS.includes(role))
+    : TEMPLATE_ISSUERS[templateKey];
+  return (
+    ["Administrador", "Secretaria", "Tesouraria", "Professor"].find(
+      (role) => allowed.includes(role) && roles.includes(role),
+    ) ?? null
+  );
+}
 const CODE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 const CODE_RE = /^SIGA-[A-HJ-NP-Z2-9]{4}-[A-HJ-NP-Z2-9]{4}$/;
 const ISSUE_RATE_LIMIT = { windowMs: 60 * 60 * 1000, max: 300 };
@@ -53,7 +99,7 @@ export function maskHolderName(name: string | null | undefined): string {
 const registerInputSchema = z.object({
   title: z.string().trim().min(2).max(160),
   holderName: z.string().trim().max(160).optional(),
-  templateKey: z.string().trim().max(80).optional(),
+  templateKey: z.string().trim().refine(isPrintTemplateKey, "Modelo de documento não reconhecido."),
   /** Número do documento (recibo, fatura…) e valor, para confirmar o que está impresso. */
   reference: z.string().trim().max(80).optional(),
   amountLabel: z.string().trim().max(60).optional(),
@@ -68,6 +114,15 @@ export const registerIssuedDocument = createServerFn({ method: "POST" })
     const roles: string[] = membership.allAppRoles ?? [membership.appRole];
     if (!ISSUER_ROLES.some((role) => roles.includes(role))) {
       throw new Error("Sem permissão para emitir documentos oficiais.");
+    }
+    const templateKey = data.templateKey as PrintTemplateKey;
+    const issuerRole = issuerRoleFor(roles, templateKey, Boolean(data.amountLabel));
+    if (!issuerRole) {
+      throw new Error(
+        data.amountLabel
+          ? "Documentos com valor só são emitidos pela Direcção, Secretaria ou Tesouraria."
+          : "Este documento é emitido pela Secretaria ou pela Direcção.",
+      );
     }
     const rateLimitKey = `document_issue:${context.userId}`;
     if (!isRateLimitBypassed(rateLimitKey)) {
@@ -92,7 +147,8 @@ export const registerIssuedDocument = createServerFn({ method: "POST" })
         code,
         title: data.title,
         holder: data.holderName ?? null,
-        template: data.templateKey ?? null,
+        template: templateKey,
+        issuer_role: issuerRole,
         reference: data.reference ?? null,
         amount: data.amountLabel ?? null,
         school_name: membership.schoolName ?? null,
@@ -115,6 +171,7 @@ export type DocumentVerification =
       issuedAt: string;
       reference: string | null;
       amount: string | null;
+      issuerRole: string | null;
     };
 
 /** Pública (sem sessão): quem recebe o documento verifica-o. */
@@ -163,5 +220,6 @@ export const verifyIssuedDocument = createServerFn({ method: "GET" })
       issuedAt: typeof meta.issued_at === "string" ? meta.issued_at : String(row.occurred_at),
       reference: typeof meta.reference === "string" ? meta.reference : null,
       amount: typeof meta.amount === "string" ? meta.amount : null,
+      issuerRole: typeof meta.issuer_role === "string" ? meta.issuer_role : null,
     };
   });

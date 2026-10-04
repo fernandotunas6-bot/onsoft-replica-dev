@@ -4,6 +4,71 @@ Ler isto **antes** de alterar código. Ecossistema (5 apps):
 [ARCHITECTURE_HARMONIZATION.md](./ARCHITECTURE_HARMONIZATION.md).
 Depois abrir o skill do módulo em `.cursor/skills/`.
 
+## Pendentes de decisão do dono (2026-10-03)
+
+- **Multas por atraso.** O pagamento por referência (EMIS/Unitel) cobra
+  `amount - discount + penalty`; a tesouraria (`register_payment`) e a referência
+  gerada no ecrã cobram `amount - discount`. O dono pediu regra universal **ou**
+  opção por escola («multa entra em todos os pagamentos» / «só nos electrónicos»).
+  Implementar como definição em `school_settings` (domínio finance) e usar o mesmo
+  total nos três caminhos.
+- **Anular um salário pago por engano.** O caixa já recusa anular a saída de um
+  salário (`reverseCashEntry`). Falta, nos RH, a anulação com motivo que reponha
+  o item, a ordem e a folha e anule a saída de caixa numa transacção (migração).
+  O dono pediu regra universal ou opções de escolha.
+- **Professor em várias escolas do sistema** (ex.: colégio + escola pública): o
+  professor só vê os alunos das turmas onde dá aulas (`loadStudentScope`, igual às
+  turmas da árvore da barra lateral). Ver no mesmo portal as turmas das outras
+  escolas onde trabalha — com vínculo pedido e aprovado em cada escola — fica
+  **pendente** (pedido do dono).
+- **Migração `20261002160000_annual_sheet_requires_all_terms` por aplicar** na
+  produção (a aplicação pela ferramenta é cancelada; o dono aplica no SQL Editor
+  do projecto `xodgfmxiaunpamctfeea`, que tem 91 escolas).
+
+## Ensino Superior (2026-10-03)
+
+Sem migrações: usa as tabelas que já existiam na produção (vazias) —
+`program_subjects` (plano: semestre, créditos), `program_subject_prerequisites`
+e `course_unit_enrollments` (estas duas sem política para `authenticated`: só o
+servidor lhes toca, ver `PRIVILEGIO_POR_DESENHO`).
+
+- **Motor puro:** `src/features/higher-ed/engine.ts` (plano, precedências com
+  detecção de ciclos, inscrição com limites de créditos, épocas, resultados,
+  progressão, `transcriptLines`). Testes em `tests/higher-ed/`.
+- **Regulamento:** domínio `higher_ed` em `settings-domains.ts`
+  (`HIGHER_ED_DEFAULTS`), editável pelo Administrador.
+- **Épocas:** frequência → normal (só admitidos) → recurso (reprovado) →
+  especial (finalista, até N cadeiras, reprovado/excluído por frequência) →
+  melhoria (aprovado, uma vez). Convenção: admitido = `status inscrito`,
+  `season frequencia`, `final_grade` = média de frequência.
+- **Servidor:** `src/features/higher-ed/server.ts`. O lançamento
+  (`recordUnitResult`) tem bloqueio optimista e auditoria; creditação exige 2FA;
+  o professor só lança e vê pautas das cadeiras que dá numa turma do curso.
+- **Ecrãs:** `/pedagogica/superior` (secretaria: plano, estudantes,
+  regulamento), `/pedagogica/pautas-superior` (professor e secretaria),
+  `/pedagogica/superior/historico` (documento imprimível).
+- **Assistente** `/configuracoes/inicio`: passos de regulamento e planos quando a
+  escola tem o nível `superior`.
+
+## Auditoria de produção 11 (2026-10-02)
+
+Relatório: `docs/auditoria/11-auditoria-producao-2026-10-02.md` (PR #65).
+
+- **Aplicada na produção**, com autorização do dono: `20261002090137_gateway_settlement_atomic.sql`
+  (`settle_gateway_payment_service`, só `service_role`). Ensaiada numa transacção desfeita.
+- **Migrações só-produção trazidas** (versão do registo, corpo copiado do registo e
+  conferido por md5): chat (`20261002062355`, `20261002062506`), RH atómico
+  (`20260930193133`, `20261001070135`), `20260930070505`, `20260930162029` e
+  `20261002051817`. Retrato e tipos recapturados a seguir: 186 tabelas, só acréscimos.
+  `FUNCOES_ESPERA_MIGRACAO` ficou vazia. Um ficheiro capturado leva a marca
+  `-- @@corpo-capturado@@`: não se edita; correcções vão numa migração nova.
+- **2FA na sessão:** `requireSupabaseAuth` recusa o token aal1 de contas com 2FA activo
+  (`session-mfa.ts`). Função nova que precise de servidor continua a ter de pedir
+  `requireAal2` se mexer em dinheiro — isto só impede entrar sem o código.
+- **Webhook EMIS/Unitel:** pedidos assinados (`X-SIGA-Timestamp`, `X-SIGA-Signature`),
+  sem `apiKey` no corpo, `externalId` obrigatório. Contrato em
+  `painel/docs/integracoes/emis-multicaixa-unitel.md`.
+
 ## Ano lectivo activo (2026-09-30)
 
 O SIGA resolve o ano corrente pelo estado `active`. A 2026-09-29 a escola
@@ -111,6 +176,7 @@ entrega tudo o que lê. Levantamento das ~90 chamadas:
   filtradas pelo utilizador. `tests/security/membership-only-reads.test.ts`
   guarda a lista revista e falha com qualquer função nova que só verifique a
   pertença.
+
 ## Dinheiro com 2FA; RH não funciona com os papéis actuais (2026-09-30)
 
 - `20260930190000` (aplicada; decisão do dono: «só dinheiro»): três políticas
@@ -1012,7 +1078,7 @@ Depois de aplicar: `npm run siga:db-snapshot` e retirar a entrada de
 Descoberto ao verificar o alcance das correcções de hidratação, e **não resolvido de
 propósito**.
 
-O `server.handlers.GET` da rota responde a *todos* os pedidos, pelo que o componente
+O `server.handlers.GET` da rota responde a _todos_ os pedidos, pelo que o componente
 `CalendarFeedPage` (57 linhas: endereço do feed, contagem de eventos, botão de descarga)
 **nunca renderiza**. Medido contra um build de produção nas três variantes: 368 bytes do
 handler (token curto ou ausente), 404 do `servePublicCalendarIcs` (token válido), zero
@@ -1035,10 +1101,10 @@ outra coisa.
 
 A escolha é entre duas, e é do dono:
 
-  a) **a página é para existir** → o handler tem de deixar passar os pedidos com
-     `Accept: text/html` e só servir `.ics` a quem pede `.ics`;
-  b) **não é para existir** → removem-se o componente e os testes, e fica o componente
-     mínimo que as outras 14 rotas com handler já usam.
+a) **a página é para existir** → o handler tem de deixar passar os pedidos com
+`Accept: text/html` e só servir `.ics` a quem pede `.ics`;
+b) **não é para existir** → removem-se o componente e os testes, e fica o componente
+mínimo que as outras 14 rotas com handler já usam.
 
 Enquanto não se decidir, o estado é este: os testes passam, mas testam código que o produto
 não corre. Fica uma nota no topo do ficheiro da rota a dizer isto mesmo, para ninguém
@@ -1072,11 +1138,11 @@ controlo, e é por isso que os têm.
 Verificadas uma a uma, depois de as ter corrigido às três e de ter descrito as três como
 bugs. **Estava a dar-lhes crédito a mais**, e a distinção importa para quem vier a seguir:
 
-| ocorrência | veredicto | como foi verificado |
-|---|---|---|
-| `DesktopTitleBar` | **defeito real, em produção** | controlo: revertendo-o o #418 volta, com ele desaparece |
-| `appearance.tsx` (`isDark`) | não podia morder | `mode` nasce em `"light"`; com `isDark` revertido, `mode:"system"` semeado e SO escuro → sem #418 |
-| `calendario.ics.tsx` | código inalcançável | o `server.handlers.GET` responde a todos os pedidos; nenhuma variante devolve o shell da app |
+| ocorrência                  | veredicto                     | como foi verificado                                                                               |
+| --------------------------- | ----------------------------- | ------------------------------------------------------------------------------------------------- |
+| `DesktopTitleBar`           | **defeito real, em produção** | controlo: revertendo-o o #418 volta, com ele desaparece                                           |
+| `appearance.tsx` (`isDark`) | não podia morder              | `mode` nasce em `"light"`; com `isDark` revertido, `mode:"system"` semeado e SO escuro → sem #418 |
+| `calendario.ics.tsx`        | código inalcançável           | o `server.handlers.GET` responde a todos os pedidos; nenhuma variante devolve o shell da app      |
 
 **E o alcance do único defeito real era menor do que eu disse.** Escrevi «em todas as
 páginas com `AppShell`» e «em todas as páginas de quem tem sessão». Nenhuma das duas é
@@ -1106,7 +1172,6 @@ ou o ficheiro ICS (token válido). Medido: 368 bytes do handler, zero ocorrênci
 As duas correcções ficam, e o guarda continua a justificá-las: ler `window` numa expressão
 de render é a forma que causou o defeito real, e não se quer distinguir caso a caso de cada
 vez. Mas são **higiene com teste a suportá-la**, não correcções de sintomas observados.
-
 
 ### Duas das causas do React #418, e o que falta saber
 

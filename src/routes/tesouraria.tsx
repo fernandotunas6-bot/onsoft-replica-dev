@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { safeCell } from "@/lib/export-csv";
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { Download } from "lucide-react";
@@ -40,7 +41,9 @@ const kz = (n: number) =>
 
 function downloadCsv(name: string, rows: Array<Array<string | number>>) {
   const csv = rows
-    .map((r) => r.map((c) => `"${String(c ?? "").replace(/"/g, '""')}"`).join(";"))
+    // safeCell: nomes e descrições vêm de fora (formulário público de matrícula);
+    // um nome começado por «=» era uma fórmula ao abrir no Excel.
+    .map((r) => r.map((c) => safeCell(c)).join(";"))
     .join("\n");
   const blob = new Blob(["\ufeff" + csv], { type: "text/csv;charset=utf-8" });
   const url = URL.createObjectURL(blob);

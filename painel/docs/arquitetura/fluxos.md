@@ -56,14 +56,14 @@ ADMIN; o SIGA só pergunta se pode usar o sistema e quais os módulos activos.
 
 ### Rotas ADMIN (`platform_admins`)
 
-| Rota | Função |
-| --- | --- |
-| `/tenants` | Escolas clientes, estado, plano, sync utilização |
-| `/platform-admins` | Conceder/revogar operadores da plataforma |
-| `/audit` | Últimos eventos `saas_audit_logs` |
-| `/domains` | Subdomínios portal-siga + domínios custom (`tenant_domains`) |
-| `/subscriptions` | Histórico de subscrições (`subscriptions`) |
-| `/settings/billing` | Catálogo de planos SaaS |
+| Rota                | Função                                                       |
+| ------------------- | ------------------------------------------------------------ |
+| `/tenants`          | Escolas clientes, estado, plano, sync utilização             |
+| `/platform-admins`  | Conceder/revogar operadores da plataforma                    |
+| `/audit`            | Últimos eventos `saas_audit_logs`                            |
+| `/domains`          | Subdomínios portal-siga + domínios custom (`tenant_domains`) |
+| `/subscriptions`    | Histórico de subscrições (`subscriptions`)                   |
+| `/settings/billing` | Catálogo de planos SaaS                                      |
 
 Todas exigem sessão Supabase com registo em `platform_admins`.
 
@@ -99,7 +99,7 @@ Tesouraria → plano pending_gateway (referência EMIS determinística)
   → pagador liquida no terminal
   → EMIS POST /api/finance/gateway/confirm
      Unitel POST /api/finance/gateway/unitel/confirm
-     { apiKey, reference, amount, invoiceId? }
+     { reference, amount, externalId }  + X-SIGA-Signature (HMAC)
   → register_payment + plano settled
   → alternativa: confirmar manualmente na UI (PaymentReferenceCard)
 ```

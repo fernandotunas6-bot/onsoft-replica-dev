@@ -164,31 +164,41 @@ export class OtpService {
       return { valid: false, reason: "too_many_attempts", attemptsLeft: 0 };
     }
 
-    // 3. Validação do hash
-    const computedHash = this.hashCode(params.code, normalizedIdentifier);
-    const isMatch = computedHash === record.code_hash;
-
-    if (isMatch) {
-      // Sucesso: invalidação imediata e atómica
-      await db
-        .from("verification_otps")
-        .update({ consumed_at: new Date().toISOString() })
-        .eq("id", record.id);
-
-      return { valid: true };
-    }
-
-    // Incorreto: decrementa tentativas
+    // 3. Gastar a tentativa ANTES de comparar, com update condicional: só passa
+    // quem decrementa a partir do valor que leu. Antes, ler-comparar-escrever
+    // deixava N pedidos em paralelo lerem todos «5 tentativas» e testar N
+    // códigos — num OTP de reposição de senha, isso é força bruta à conta.
     const newAttemptsLeft = record.attempts_left - 1;
     const isNowExhausted = newAttemptsLeft <= 0;
-
-    await db
+    const { data: claimed } = await db
       .from("verification_otps")
       .update({
         attempts_left: newAttemptsLeft,
         ...(isNowExhausted ? { consumed_at: new Date().toISOString() } : {}),
       })
-      .eq("id", record.id);
+      .eq("id", record.id)
+      .eq("attempts_left", record.attempts_left)
+      .is("consumed_at", null)
+      .select("id");
+    if (!claimed?.length) {
+      // Outra tentativa em simultâneo gastou esta vez: não se compara nada.
+      return { valid: false, reason: "invalid_code", attemptsLeft: Math.max(0, newAttemptsLeft) };
+    }
+
+    const computedHash = this.hashCode(params.code, normalizedIdentifier);
+    if (computedHash === record.code_hash) {
+      // Na última tentativa o claim acima já o consumiu, e foi este pedido.
+      if (isNowExhausted) return { valid: true };
+      // Sucesso: consumir uma única vez (dois acertos em simultâneo não valem os dois).
+      const { data: consumed } = await db
+        .from("verification_otps")
+        .update({ consumed_at: new Date().toISOString() })
+        .eq("id", record.id)
+        .is("consumed_at", null)
+        .select("id");
+      if (consumed?.length) return { valid: true };
+      return { valid: false, reason: "not_found" };
+    }
 
     return {
       valid: false,

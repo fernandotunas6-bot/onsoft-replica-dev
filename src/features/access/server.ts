@@ -17,6 +17,8 @@ import {
 import { isRateLimitBypassed } from "@/lib/rate-limit";
 import { signInWithIdentifierInputSchema } from "./bi-login";
 import { recordAccessAudit } from "@/features/audit/record-audit";
+import { requireAal2 } from "@/features/hr/require-aal2";
+import { reportSigaError } from "@/lib/ops-report";
 import {
   inviteUserInputSchema,
   resendSystemInviteInputSchema,
@@ -43,6 +45,74 @@ function isAdministratorRole(role: string): boolean {
   return ["administrador", "admin", "owner", "diretor geral", "director geral"].includes(
     normalized,
   );
+}
+
+/**
+ * Cargos que só um Administrador atribui. A Secretaria gere contas, mas dar
+ * acesso ao dinheiro (Tesouraria) a uma conta que ela própria cria seria
+ * juntar as duas funções na mesma pessoa.
+ */
+const ADMIN_ONLY_ROLE_CODES = new Set([
+  ...mapAppRoleToSgaCodes("Administrador"),
+  ...mapAppRoleToSgaCodes("Tesouraria"),
+  "diretor geral",
+  "director geral",
+]);
+
+export function cargoRequiresAdministrator(cargoOrRoleCode: string): boolean {
+  const normalized = cargoOrRoleCode.trim().toLowerCase();
+  return (
+    normalized === "administrador" ||
+    normalized === "tesouraria" ||
+    ADMIN_ONLY_ROLE_CODES.has(normalized)
+  );
+}
+
+type SchoolBanPlan = {
+  update: boolean;
+  banDuration?: "876000h" | "none";
+  schoolBans: string[];
+  notice: string | null;
+};
+
+/**
+ * Decide o que fazer ao bloqueio global da conta quando uma escola a suspende
+ * ou reactiva. `siga_school_bans` (app_metadata) lista as escolas que a bloquearam.
+ */
+export function planSchoolBan(input: {
+  disabled: boolean;
+  schoolId: string;
+  hasOtherActiveSchools: boolean;
+  bannedUntil: string | null;
+  schoolBans: unknown;
+  now?: number;
+}): SchoolBanPlan {
+  const bans = Array.isArray(input.schoolBans)
+    ? input.schoolBans.filter((v): v is string => typeof v === "string")
+    : [];
+  const banned =
+    Boolean(input.bannedUntil) && Date.parse(String(input.bannedUntil)) > (input.now ?? Date.now());
+
+  if (input.disabled) {
+    // Com outra escola activa, só a membership desta é suspensa.
+    if (input.hasOtherActiveSchools) return { update: false, schoolBans: bans, notice: null };
+    const schoolBans = bans.includes(input.schoolId) ? bans : [...bans, input.schoolId];
+    return { update: true, banDuration: "876000h", schoolBans, notice: null };
+  }
+
+  const remaining = bans.filter((id) => id !== input.schoolId);
+  if (!banned) {
+    return { update: remaining.length !== bans.length, schoolBans: remaining, notice: null };
+  }
+  if (bans.includes(input.schoolId) && remaining.length === 0) {
+    return { update: true, banDuration: "none", schoolBans: remaining, notice: null };
+  }
+  return {
+    update: remaining.length !== bans.length,
+    schoolBans: remaining,
+    notice:
+      "A conta voltou a esta escola, mas continua bloqueada por outra escola ou pela plataforma.",
+  };
 }
 
 async function requireAdminContext(context: AuthedContext) {
@@ -201,10 +271,15 @@ export const inviteSystemUser = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     if (!context) throw new Error("Unauthorized");
     const { schoolId, isAdministrator } = await requireAdminContext(context);
-    if (data.cargo === "Administrador" && !isAdministrator) {
+    if (cargoRequiresAdministrator(data.cargo) && !isAdministrator) {
       throw new Error(
-        "Apenas um Administrador pode convidar ou criar contas com cargo de Administrador.",
+        `Apenas um Administrador pode convidar ou criar contas com cargo de ${data.cargo}.`,
       );
+    }
+    // Dar administração ou tesouraria a alguém vale mais do que pagar um salário,
+    // que já exige 2FA: a mesma exigência aqui.
+    if (cargoRequiresAdministrator(data.cargo)) {
+      requireAal2(context.claims ?? {}, `Criar uma conta com cargo de ${data.cargo}`);
     }
     const admin = await loadAdminClient();
 
@@ -398,8 +473,11 @@ export const updateSystemAccountCargo = createServerFn({ method: "POST" })
     if (data.userId === context.userId && !isAdministrator) {
       throw new Error("Não tem permissão para alterar o seu próprio cargo.");
     }
-    if (data.cargo === "Administrador" && !isAdministrator) {
-      throw new Error("Apenas um Administrador pode atribuir o cargo de Administrador.");
+    if (cargoRequiresAdministrator(data.cargo) && !isAdministrator) {
+      throw new Error(`Apenas um Administrador pode atribuir o cargo de ${data.cargo}.`);
+    }
+    if (cargoRequiresAdministrator(data.cargo)) {
+      requireAal2(context.claims ?? {}, `Atribuir o cargo de ${data.cargo}`);
     }
 
     const admin = await loadAdminClient();
@@ -536,12 +614,31 @@ export const setSystemAccountDisabled = createServerFn({ method: "POST" })
 
     // O bloqueio de auth.users vale para todas as escolas. Com acesso activo a
     // outra escola, suspende-se só a membership desta — as outras escolas
-    // decidem por si. Ao reactivar, o bloqueio global é levantado.
+    // decidem por si. Cada escola que bloqueia fica anotada na conta; ao
+    // reactivar, só se levanta o bloqueio global se foi esta escola que o pôs e
+    // nenhuma outra o mantém. Um bloqueio da plataforma (ou de outra escola)
+    // não é desfeito por aqui.
     const access = await otherSchoolAccess(admin, data.userId, schoolId);
-    if (!data.disabled || !access.hasOtherActiveSchools) {
-      await admin.auth.admin.updateUserById(data.userId, {
-        ban_duration: data.disabled ? "876000h" : "none",
+    const { data: authUser, error: authUserError } = await admin.auth.admin.getUserById(
+      data.userId,
+    );
+    if (authUserError || !authUser.user) {
+      throw new Error("Não foi possível ler a conta de acesso.");
+    }
+    const appMetadata = (authUser.user.app_metadata ?? {}) as Record<string, unknown>;
+    const plan = planSchoolBan({
+      disabled: data.disabled,
+      schoolId,
+      hasOtherActiveSchools: access.hasOtherActiveSchools,
+      bannedUntil: (authUser.user as { banned_until?: string | null }).banned_until ?? null,
+      schoolBans: appMetadata["siga_school_bans"],
+    });
+    if (plan.update) {
+      const { error: banError } = await admin.auth.admin.updateUserById(data.userId, {
+        ...(plan.banDuration ? { ban_duration: plan.banDuration } : {}),
+        app_metadata: { ...appMetadata, siga_school_bans: plan.schoolBans },
       });
+      if (banError) throw new Error("Não foi possível actualizar o bloqueio da conta.");
     }
 
     await recordAccessAudit({
@@ -552,7 +649,7 @@ export const setSystemAccountDisabled = createServerFn({ method: "POST" })
       entityId: data.userId,
       metadata: {},
     });
-    return { id: data.userId, disabled: data.disabled };
+    return { id: data.userId, disabled: data.disabled, notice: plan.notice };
   });
 
 export const resendSystemInvite = createServerFn({ method: "POST" })
@@ -751,6 +848,10 @@ export const resetStaffPasswordDirect = createServerFn({ method: "POST" })
   .validator((input: unknown) => resetStaffPasswordInputSchema.parse(input))
   .handler(async ({ data, context }) => {
     if (!context) throw new Error("Unauthorized");
+    // Definir a senha de outra pessoa é tomar a conta dela: só com 2FA nesta sessão.
+    // Sem isto, a senha de um Administrador bastava para entrar como Tesouraria e
+    // inscrever lá um 2FA próprio.
+    requireAal2(context.claims ?? {}, "Redefinir a senha de um funcionário");
     const { schoolId, isAdministrator } = await requireAdminContext(context);
     if (!isAdministrator) {
       throw new Error(
@@ -800,6 +901,10 @@ export const resetStaffPasswordDirect = createServerFn({ method: "POST" })
       throw new Error(error.message || "Não foi possível redefinir a senha do funcionário.");
     }
 
+    if (data.userId !== context.userId) {
+      await notifyPasswordResetByAdmin(admin, schoolId, data.userId);
+    }
+
     await recordAccessAudit({
       schoolId,
       actorUserId: context.userId,
@@ -810,6 +915,50 @@ export const resetStaffPasswordDirect = createServerFn({ method: "POST" })
     });
     return { success: true, userId: data.userId };
   });
+
+function escapeHtml(value: string) {
+  return value.replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
+}
+
+/**
+ * Avisa o funcionário de que a senha foi mudada pela Administração: se não foi
+ * ele a pedir, fica a saber. Um aviso que falha não desfaz a redefinição.
+ */
+async function notifyPasswordResetByAdmin(
+  admin: Awaited<ReturnType<typeof loadAdminClient>>,
+  schoolId: string,
+  userId: string,
+) {
+  try {
+    const apiKey = process.env["RESEND_API_KEY"]?.trim();
+    const { data: authData } = await admin.auth.admin.getUserById(userId);
+    const email = authData.user?.email;
+    if (!apiKey || !email) return;
+    const { data: school } = await admin
+      .from("schools")
+      .select("name")
+      .eq("id", schoolId)
+      .maybeSingle();
+    const schoolName = school?.name || getAppName();
+    const text =
+      `A senha da sua conta ${getAppName()} na ${schoolName} foi redefinida pela Administração da escola.\n\n` +
+      "Se não pediu esta alteração, contacte a Administração de imediato.";
+    await sendResendEmail({
+      apiKey,
+      from: resolveSystemSender("auth", { schoolName }),
+      to: [email],
+      subject: `A sua senha foi redefinida — ${schoolName}`,
+      html: `<p>${escapeHtml(text).replace(/\n\n/g, "</p><p>")}</p>`,
+      text,
+    });
+  } catch (error) {
+    reportSigaError("access.password_reset_notice.failed", error, {
+      module: "access",
+      school_id: schoolId,
+      entity_id: userId,
+    });
+  }
+}
 
 /** Papéis reais da escola (para preencher o cargo do convite institucional). */
 export const listSchoolRoles = createServerFn({ method: "GET" })
@@ -860,8 +1009,16 @@ export const createSchoolInvitation = createServerFn({ method: "POST" })
     // Igual a inviteSystemUser: só um Administrador convida administradores.
     // Sem isto, a Secretaria criava um convite owner/admin (por exemplo para
     // um segundo e-mail seu), aceitava-o e tornava-se administradora.
-    if (isAdministratorRole(data.roleCode) && !isAdministrator) {
-      throw new Error("Apenas um Administrador pode convidar com cargo de Administrador.");
+    if (
+      (isAdministratorRole(data.roleCode) || cargoRequiresAdministrator(data.roleCode)) &&
+      !isAdministrator
+    ) {
+      throw new Error(
+        "Apenas um Administrador pode convidar com cargo de Administrador ou Tesouraria.",
+      );
+    }
+    if (isAdministratorRole(data.roleCode) || cargoRequiresAdministrator(data.roleCode)) {
+      requireAal2(context.claims ?? {}, "Convidar com cargo de Administrador ou Tesouraria");
     }
     const admin = await loadAdminClient();
 
@@ -1122,16 +1279,37 @@ export const acceptSchoolInvitation = createServerFn({ method: "POST" })
       }
     }
 
-    // 6. Ligar people.user_id por email (idempotente)
+    // 6. Ligar people.user_id por email (idempotente). Em ILIKE, «_» e «%» são
+    // curingas: «ana_silva@…» também apanhava «ana.silva@…» e ligava esta conta
+    // à ficha de outra pessoa. Compara-se o e-mail exacto e só se liga quando há
+    // uma única ficha sem conta.
     try {
-      await admin
+      const { data: candidates } = await admin
         .from("people")
-        .update({ user_id: userId })
+        .select("id, email")
         .eq("school_id", schoolId)
-        .ilike("email", invitedEmail)
-        .is("user_id", null);
+        .ilike(
+          "email",
+          invitedEmail.replace(/[\\%_]/g, (c) => `\\${c}`),
+        )
+        .is("user_id", null)
+        .limit(5);
+      const exact = (candidates ?? []).filter(
+        (row) =>
+          String(row.email ?? "")
+            .toLowerCase()
+            .trim() === invitedEmail,
+      );
+      if (exact.length === 1) {
+        await admin
+          .from("people")
+          .update({ user_id: userId })
+          .eq("school_id", schoolId)
+          .eq("id", String(exact[0].id))
+          .is("user_id", null);
+      }
     } catch {
-      // Não crítico — falha silenciosa se people não tiver coluna email ou user_id
+      // Não crítico — o vínculo à ficha pode ser feito depois em Pessoas.
     }
 
     // 7. Marcar como aceite
@@ -1143,7 +1321,8 @@ export const acceptSchoolInvitation = createServerFn({ method: "POST" })
         accepted_by: userId,
         updated_at: new Date().toISOString(),
       })
-      .eq("id", invitation.id);
+      .eq("id", invitation.id)
+      .eq("status", "pending");
 
     if (updateErr) {
       throw publicDatabaseError(updateErr, "Não foi possível confirmar a aceitação do convite.");

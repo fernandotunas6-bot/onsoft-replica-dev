@@ -398,6 +398,43 @@ export const listSchoolFiles = createServerFn({ method: "GET" })
     };
   });
 
+/**
+ * O caminho tem de ser o que o próprio envio cria (localStoragePath):
+ * `<escola>/<ano>/<mês>/<área>/<utilizador>/<id>-<nome>`. O servidor assina
+ * depois este caminho com a chave de serviço, que não passa pelas regras do
+ * armazenamento: aceitar qualquer caminho deixava registar uma ficha nova a
+ * apontar para o ficheiro de outra pessoa, de outra escola ou de sistema
+ * (conteúdo oculto) e abri-lo.
+ */
+export function isOwnUploadPath(
+  path: string,
+  schoolId: string,
+  userId: string,
+  fileId: string,
+  area: string,
+) {
+  const parts = path.split("/");
+  if (parts.length !== 6 || parts.some((part) => !part || part === "." || part === "..")) {
+    return false;
+  }
+  const [school, year, month, pathArea, owner, fileName] = parts as [
+    string,
+    string,
+    string,
+    string,
+    string,
+    string,
+  ];
+  return (
+    school === schoolId &&
+    /^\d{4}$/.test(year) &&
+    /^\d{2}$/.test(month) &&
+    pathArea === area &&
+    owner === userId &&
+    fileName.startsWith(`${fileId}-`)
+  );
+}
+
 export const registerSchoolFile = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((input: unknown) => registerSchoolFileInputSchema.parse(input))
@@ -410,6 +447,9 @@ export const registerSchoolFile = createServerFn({ method: "POST" })
     }
     if (!kindFromFile(data.name, data.mime)) {
       throw new Error("Formato fora do padrão SIGA.");
+    }
+    if (!isOwnUploadPath(data.storagePath, membership.schoolId, userId, data.id, data.area)) {
+      throw new Error("Caminho do ficheiro inválido.");
     }
     const db = await loadSgaAdminClient();
     const now = new Date().toISOString();

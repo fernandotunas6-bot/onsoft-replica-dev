@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { normalizeAngolaProvince } from "@/lib/angola-territory";
 import { isSchoolTypeId } from "@/lib/school-config";
+import { isCourseId, isTeachingLevelId } from "@/lib/angola-academic";
 import { isReservedSubdomain } from "@/lib/saas/platform-domain";
 import { validateSchoolNif } from "@/lib/angola-identity";
 import { validateAngolaPhone } from "@/lib/angola-phone";
@@ -124,6 +125,21 @@ export const createSchoolWizardInputSchema = z.object({
     .unknown()
     .optional()
     .transform((value) => (isSchoolTypeId(value) ? value : undefined)),
+  // Contexto pedagógico do cliente: que níveis a escola lecciona e, no II Ciclo,
+  // que cursos. É com isto que «Preparar estrutura académica» cria as classes,
+  // cursos e disciplinas certos — sem isto toda a escola nascia «Ensino Geral ·
+  // 10ª Classe», fosse primária, complexo ou universidade. Opcionais (o WEB
+  // antigo não os envia); valores desconhecidos são descartados.
+  teaching_levels: z
+    .array(z.unknown())
+    .max(10)
+    .optional()
+    .transform((values) => (values ? [...new Set(values.filter(isTeachingLevelId))] : undefined)),
+  secondary_courses: z
+    .array(z.unknown())
+    .max(10)
+    .optional()
+    .transform((values) => (values ? [...new Set(values.filter(isCourseId))] : undefined)),
   phone: optionalAngolaPhone,
   email: normalizedEmail("E-mail da escola inválido").optional().or(z.literal("")),
   logo_url: z.string().trim().optional(),
@@ -266,6 +282,8 @@ export const publicSchoolSignupInputSchema = createSchoolWizardInputSchema
     email_verification_token: z.string().trim().max(2000).optional(),
     // Sessão do assistente WEB, para fechar o acompanhamento de desistências.
     session_id: z.string().uuid().optional(),
+    /** hCaptcha do WEB; exigido quando o Worker tem `HCAPTCHA_SECRET_KEY`. */
+    captcha_token: z.string().trim().max(4000).optional(),
   });
 
 export type PublicSchoolSignupInput = z.infer<typeof publicSchoolSignupInputSchema>;

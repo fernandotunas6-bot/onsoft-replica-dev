@@ -104,7 +104,9 @@ export const requestGradeChange = createServerFn({ method: "POST" })
     if (score.pending_score != null)
       throw new Error("Já existe um pedido pendente para esta nota.");
     if (Number(score.score) === data.newScore) throw new Error("A nota pedida é igual à actual.");
-    const { error } = await db
+    // Só regista se continuar sem pedido pendente: dois pedidos em simultâneo
+    // não se sobrepõem (o segundo recebe o aviso de pedido pendente).
+    const { data: claimed, error } = await db
       .from("grade_scores")
       .update({
         pending_score: data.newScore,
@@ -114,8 +116,11 @@ export const requestGradeChange = createServerFn({ method: "POST" })
         updated_by: context.userId,
       })
       .eq("school_id", schoolId)
-      .eq("id", score.id);
+      .eq("id", score.id)
+      .is("pending_score", null)
+      .select("id");
     if (error) throw publicDatabaseError(error, "Não foi possível registar o pedido.");
+    if (!claimed?.length) throw new Error("Já existe um pedido pendente para esta nota.");
     return { ok: true };
   });
 
@@ -277,13 +282,17 @@ export const decideGradeChange = createServerFn({ method: "POST" })
     const schoolId = membership.schoolId;
     const { data: score } = await db
       .from("grade_scores")
-      .select("id, grade_item_id, score, pending_score, pending_reason, pending_requested_by")
+      .select(
+        "id, grade_item_id, score, pending_score, pending_reason, pending_requested_by, pending_requested_at",
+      )
       .eq("school_id", schoolId)
       .eq("id", data.gradeScoreId)
       .maybeSingle();
     if (!score || score.pending_score == null) throw new Error("Este pedido já foi decidido.");
 
     if (data.approve) {
+      // Sem caderneta ou sem conseguir ler as pautas não se aprova: a nota
+      // oficial nunca muda sem a certeza de que a pauta está reaberta.
       const { data: item } = await db
         .from("grade_items")
         .select("gradebook_id")
@@ -293,26 +302,53 @@ export const decideGradeChange = createServerFn({ method: "POST" })
         ? await db
             .from("gradebooks")
             .select("class_group_id, term_id")
+            .eq("school_id", schoolId)
             .eq("id", item.gradebook_id)
             .maybeSingle()
         : { data: null };
-      if (book) {
-        const { data: sheets } = await db
-          .from("grade_sheets")
-          .select("kind, term_id, status")
-          .eq("school_id", schoolId)
-          .eq("class_group_id", book.class_group_id)
-          .in("status", LOCKED_SHEET_STATUSES);
-        const locked = (sheets ?? []).find(
-          (s: Row) => str(s["kind"]) === "annual" || str(s["term_id"]) === str(book.term_id),
+      if (!book) throw new Error("Não foi possível localizar a caderneta desta nota.");
+      const { data: sheets, error: sheetsError } = await db
+        .from("grade_sheets")
+        .select("kind, term_id, status")
+        .eq("school_id", schoolId)
+        .eq("class_group_id", book.class_group_id)
+        .in("status", LOCKED_SHEET_STATUSES);
+      if (sheetsError && !isMissing(sheetsError.message)) {
+        throw publicDatabaseError(sheetsError, "Não foi possível confirmar o estado da pauta.");
+      }
+      const locked = (sheets ?? []).find(
+        (s: Row) => str(s["kind"]) === "annual" || str(s["term_id"]) === str(book.term_id),
+      );
+      if (locked) {
+        throw new Error(
+          "A pauta deste período ainda está oficial. Reabra-a para rectificação (com motivo) e depois aprove o pedido.",
         );
-        if (locked) {
-          throw new Error(
-            "A pauta deste período ainda está oficial. Reabra-a para rectificação (com motivo) e depois aprove o pedido.",
-          );
-        }
       }
     }
+
+    // Decisão atómica: só a primeira decisão fecha o pedido (o mesmo pedido,
+    // com o mesmo valor e data); uma segunda aprovação em simultâneo não
+    // duplica o histórico nem reaplica a nota.
+    let decideQuery = db
+      .from("grade_scores")
+      .update({
+        ...(data.approve ? { score: score.pending_score } : {}),
+        pending_score: null,
+        pending_reason: null,
+        pending_requested_by: null,
+        pending_requested_at: null,
+        updated_by: context.userId,
+      })
+      .eq("school_id", schoolId)
+      .eq("id", score.id)
+      .eq("pending_score", score.pending_score);
+    decideQuery =
+      score.pending_requested_at == null
+        ? decideQuery.is("pending_requested_at", null)
+        : decideQuery.eq("pending_requested_at", score.pending_requested_at);
+    const { data: decided, error } = await decideQuery.select("id");
+    if (error) throw publicDatabaseError(error, "Não foi possível concluir a decisão.");
+    if (!decided?.length) throw new Error("Este pedido já foi decidido.");
 
     const history = {
       school_id: schoolId,
@@ -326,21 +362,20 @@ export const decideGradeChange = createServerFn({ method: "POST" })
     };
     const { error: historyError } = await db.from("grade_score_history").insert(history);
     if (historyError && !isMissing(historyError.message)) {
+      // Sem histórico a alteração não fica: repor a nota e o pedido pendente.
+      await db
+        .from("grade_scores")
+        .update({
+          score: score.score,
+          pending_score: score.pending_score,
+          pending_reason: score.pending_reason,
+          pending_requested_by: score.pending_requested_by,
+          pending_requested_at: score.pending_requested_at,
+        })
+        .eq("school_id", schoolId)
+        .eq("id", score.id);
       throw publicDatabaseError(historyError, "Não foi possível registar o histórico.");
     }
-    const { error } = await db
-      .from("grade_scores")
-      .update({
-        ...(data.approve ? { score: score.pending_score } : {}),
-        pending_score: null,
-        pending_reason: null,
-        pending_requested_by: null,
-        pending_requested_at: null,
-        updated_by: context.userId,
-      })
-      .eq("school_id", schoolId)
-      .eq("id", score.id);
-    if (error) throw publicDatabaseError(error, "Não foi possível concluir a decisão.");
 
     if (score.pending_requested_by) {
       await insertInAppNotifications(db, schoolId, [

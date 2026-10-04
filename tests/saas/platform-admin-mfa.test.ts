@@ -20,6 +20,13 @@ const db = {
   },
 };
 
+// 2FA na sessão (session-mfa.ts): estas contas não têm factor verificado.
+vi.mock("@/integrations/supabase/client.server", () => ({
+  supabaseAdmin: {
+    auth: { admin: { mfa: { listFactors: async () => ({ data: { factors: [] }, error: null }) } } },
+  },
+}));
+
 vi.mock("@/integrations/supabase/sga-admin", () => ({
   loadSgaAdminClient: async () => db,
   resolveSgaMembershipAdmin: async () => null,

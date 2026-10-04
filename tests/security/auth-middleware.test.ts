@@ -30,6 +30,13 @@ vi.setConfig({ testTimeout: 30_000 });
 const getRequestMock = vi.fn();
 const createClientMock = vi.fn();
 
+// 2FA na sessão (session-mfa.ts): estas contas não têm factor verificado.
+vi.mock("@/integrations/supabase/client.server", () => ({
+  supabaseAdmin: {
+    auth: { admin: { mfa: { listFactors: async () => ({ data: { factors: [] }, error: null }) } } },
+  },
+}));
+
 vi.mock("@tanstack/react-start/server", () => ({
   getRequest: () => getRequestMock(),
   setResponseHeaders: () => undefined,

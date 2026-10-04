@@ -5,3 +5,8 @@ export declare function collectWorkerSecrets(
   envVars: Record<string, string | undefined>,
   processEnv: Record<string, string | undefined>,
 ): Array<[string, string]>;
+export declare const OPTIONAL_WORKER_VARS: string[];
+export declare function collectWorkerVars(
+  envVars: Record<string, string | undefined>,
+  processEnv: Record<string, string | undefined>,
+): Array<[string, string]>;

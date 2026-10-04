@@ -1,6 +1,11 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { ensureDefaultTeacher } from "@/features/academic/sga-grades";
 import * as legacy from "./academic-bootstrap-legacy";
+import { periodModelFor } from "./period-model";
+import {
+  loadSchoolTeachingContext,
+  seedSchoolStructureFromSettings,
+} from "./school-structure-seed";
 
 export * from "./academic-bootstrap-legacy";
 
@@ -56,13 +61,16 @@ async function requireConfiguredAcademicCalendar(
     return null;
   }
 
+  // Trimestres no ensino geral; dois semestres numa escola só de Ensino Superior.
+  const { teachingLevels } = await loadSchoolTeachingContext(db, schoolId);
+  const periods = periodModelFor(teachingLevels);
   const bySequence = new Map((terms ?? []).map((term) => [Number(term.sequence), term] as const));
-  for (const sequence of [1, 2, 3]) {
+  for (let sequence = 1; sequence <= periods.count; sequence += 1) {
     const term = bySequence.get(sequence);
     if (!term?.starts_on || !term?.ends_on) {
       if (options?.strict) {
         throw new Error(
-          `Configure as datas reais do ${sequence}º trimestre antes de preparar a estrutura académica.`,
+          `Configure as datas reais do ${sequence}º ${periods.kind} antes de preparar a estrutura académica.`,
         );
       }
       return null;
@@ -155,6 +163,29 @@ export async function ensureAcademicDefaultsCore(
   input: { schoolId: string; userId: string; yearName?: string },
   options: BootstrapAcademicOptions = { strict: true },
 ): Promise<{ created: string[] }> {
+  // Escola com níveis/cursos definidos (registo ou Definições → Pedagógico):
+  // cria a estrutura desse contexto. Não precisa do calendário — classes,
+  // cursos e disciplinas não dependem das datas dos períodos.
+  const planned = await seedSchoolStructureFromSettings(
+    db,
+    { schoolId: input.schoolId, userId: input.userId },
+    options,
+  );
+  if (planned.hasContext) {
+    const created = [...planned.seeded];
+    const { data: activeTeachers } = await db
+      .from("teachers")
+      .select("id")
+      .eq("school_id", input.schoolId)
+      .eq("status", "active")
+      .limit(1);
+    if ((activeTeachers ?? []).length === 0) {
+      await ensureDefaultTeacher(db, input.schoolId, input.userId);
+      created.push("professor");
+    }
+    return { created };
+  }
+
   await requireConfiguredAcademicCalendar(db, input.schoolId, options);
 
   const academic = await bootstrapAcademicStructure(

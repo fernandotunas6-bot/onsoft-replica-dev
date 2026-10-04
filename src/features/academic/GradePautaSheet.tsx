@@ -262,6 +262,17 @@ export function GradePautaSheet({
     return [{ enrollmentId: student.id, mac, npp, npt }];
   });
 
+  // Linhas começadas mas que não se podem gravar (falta MAC/NPP/NPT ou valor
+  // fora de 0–20). Antes eram ignoradas sem aviso e o professor julgava-as
+  // guardadas.
+  const unsavedDrafts = roster.filter((student) => {
+    const draft = drafts[student.id];
+    if (!draft) return false;
+    const values = [draft.mac, draft.npp, draft.npt];
+    if (values.every((value) => value.trim() === "")) return false;
+    return values.some((value) => parseScore(value) == null);
+  }).length;
+
   const savePauta = async () => {
     if (!subjectId || pendingRows.length === 0 || termClosed) return;
     setSaving(true);
@@ -271,6 +282,11 @@ export function GradePautaSheet({
       });
       await queryClient.invalidateQueries({ queryKey: ["academic", "pedagogical-workspace"] });
       toast.success(`Pauta guardada · ${pendingRows.length} aluno(s)`);
+      if (unsavedDrafts > 0) {
+        toast.warning(
+          `${unsavedDrafts} aluno(s) não foram guardados: falta MAC, NPP ou NPT, ou a nota está fora de 0–20.`,
+        );
+      }
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Não foi possível guardar a pauta.");
     } finally {
@@ -825,6 +841,11 @@ export function GradePautaSheet({
             <Save className="size-3.5" />
             {saving ? "A guardar…" : `Guardar pauta (${pendingRows.length})`}
           </Button>
+        ) : null}
+        {canEdit && view === "disciplina" && unsavedDrafts > 0 ? (
+          <p className="text-xs text-warning-strong" role="status">
+            {unsavedDrafts} aluno(s) por completar: faltam notas ou há valores fora de 0–20.
+          </p>
         ) : null}
       </div>
 
