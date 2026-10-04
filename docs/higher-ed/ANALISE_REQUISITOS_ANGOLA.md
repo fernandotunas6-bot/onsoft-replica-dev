@@ -40,21 +40,22 @@ injustificadas às aulas dadas no semestre.
 | Classificação final inteira 10–20 com menção (257/25) | ✅ |
 | Emolumentos (recurso, especial, melhoria, certidão) | ✅ |
 | Candidatura com curso pretendido | ✅ |
-| Distinção mestrado / doutoramento; bacharelato | ❌ só «licenciatura» e «pós-graduação» |
-| Doutoramento: tese, júri, Aprovado/distinção/louvor | ❌ |
-| Modalidade (presencial/semipresencial/distância) e regime (regular/pós-laboral) por curso | ❌ |
-| Vagas por curso e exame de acesso (nota, seriação) | ❌ |
+| Grau do curso: licenciatura, mestrado, doutoramento, especialização | ✅ (bacharelato exige migração: a base só admite graduação/pós-graduação) |
+| Doutoramento: decisão do júri (Aprovado / com distinção / com distinção e louvor) | ✅ com acta, 2FA e auditoria |
+| Modalidade (presencial/semipresencial/distância) e regime (regular/pós-laboral) por curso | ✅ |
+| Vagas por curso e exame de acesso (nota, seriação) | ✅ separador «Acesso» |
 | Estatuto trabalhador-estudante (faltas, época especial) | ❌ |
-| Exportação para o SISIES/GEPE (Matrículas, Graduados, Vagas, Acesso) | ❌ |
+| Exportação para o SISIES/GEPE (Vagas, Acesso, Matrículas, Graduados) | ✅ Excel |
 | Diploma / carta de curso registado com QR | ❌ |
 | Bolsas | ❌ |
 
-## Próximos passos sugeridos (sem migração)
+## Pendente (precisa de migração ou de decisão)
 
-1. Modalidade e regime por curso (domínio `higher_ed`).
-2. Exportação SISIES/GEPE: Matrículas e Graduados por curso, em Excel.
-3. Vagas por curso e nota do exame de acesso na candidatura, com seriação.
-4. Grau de pós-graduação (mestrado / doutoramento / especialização) por curso.
+- Estatuto trabalhador-estudante: exige uma tabela própria (dados pessoais; não
+  pode ficar em `school_settings`, que outros membros da escola lêem).
+- Bacharelato: alterar a restrição `programs.kind`.
+- Bolsas, turnos/vagas por turma com lista de espera, inscrição pelo próprio estudante.
+- Diploma/carta de curso registado com QR de verificação.
 
 ## Comparação com outros sistemas académicos
 
@@ -62,16 +63,16 @@ injustificadas às aulas dadas no semestre.
 | --- | --- | --- |
 | Plano curricular com créditos e precedências | Banner (prerequisites), FenixEdu (curricular plans), SIGAA | ✅ |
 | Inscrição online em cadeiras por período | SIGAA (matrícula on-line), FenixEdu | ✅ pela secretaria (individual e em lote); pelo estudante — por fazer |
-| Trancamento/anulação de cadeira com prazo | SIGAA (até 6 semanas) | ✅ anulação com motivo; prazo — por decidir |
+| Trancamento/anulação de cadeira com prazo | SIGAA (até 6 semanas) | ✅ prazo no regulamento; depois exige 2FA |
 | Aproveitamento de estudos / equivalência | SIGAA, SIGARRA | ✅ «Creditar» com 2FA |
 | Degree audit: o que falta para concluir | Banner (degree audit) | ✅ «Para concluir: N cadeiras, X créditos» |
 | Situação académica (regular / atraso / risco) | Banner (academic standing: good standing, probation) | ✅ configurável no regulamento |
 | Prescrição / prazo máximo de integralização | SIGARRA (prescrição), SIGAA (prazo de conclusão) | ✅ «anos além da duração» (0 = desligado) |
 | Fluxo de correcção de notas | Banner (grade change workflow) | ✅ «Corrigir nota»: secretaria, 2FA, motivo, auditoria |
-| Holds: dívida bloqueia inscrição/documentos | Banner (registration holds) | ❌ regra financeira — por decidir |
+| Holds: dívida bloqueia inscrição | Banner (registration holds) | ✅ opção do regulamento (desligada por omissão) |
 | Estatuto trabalhador-estudante (faltas, prescrição a 50 %) | SIGARRA | ❌ por decidir |
 | Turnos/vagas por turma e lista de espera | FenixEdu (turnos), Banner (capacity, waitlist) | ❌ |
-| Calendário de inscrições e épocas | FenixEdu (curricular calendars), SIGAA | ➖ semestres; janelas de inscrição/época por fazer |
+| Calendário de inscrições | FenixEdu (curricular calendars), SIGAA | ✅ datas de abertura e fecho no regulamento |
 | Sistemas angolanos (SIGU, SkyGnova, SIGA.ao) | candidatura → certificado num só sistema | ✅ mesmo ciclo |
 
 Fontes: [SIGAA — trancamento](https://sigaa.ufrn.br/sigaa/public/curso/secao_extra.jsf?lc=en_US&id=111635057&extra=1677436146),
