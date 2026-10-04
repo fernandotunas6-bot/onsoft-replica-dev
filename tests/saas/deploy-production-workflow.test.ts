@@ -41,7 +41,10 @@ describe("workflow de publicação em produção", () => {
     const names = [...REQUIRED_WORKER_SECRETS, ...OPTIONAL_WORKER_SECRETS];
     expect(names.length).toBeGreaterThan(10);
     for (const name of names) {
-      expect(workflow, name).toContain(`${name}: \${{ secrets.${name} }}`);
+      // `||` permite um segredo com outro nome (ex.: SUPABASE_SECRET_KEY) como recurso.
+      expect(workflow, name).toMatch(
+        new RegExp(`${name}: \\$\\{\\{ secrets\\.${name}( \\|\\|| \\}\\})`),
+      );
     }
   });
 });
