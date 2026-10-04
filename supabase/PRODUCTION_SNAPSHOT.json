@@ -1,11 +1,14 @@
 {
-  "capturadoEm": "2026-09-30T18:07:49.780Z",
+  "capturadoEm": "2026-10-02T09:13:52.813Z",
   "resumo": {
-    "tabelas": 183,
-    "com_rls": 183,
-    "politicas": 332,
-    "funcoes_private": 103,
-    "triggers": 198
+    "tabelas": 186,
+    "com_rls": 186,
+    "politicas": 338,
+    "funcoes_private": 108,
+    "triggers": 198,
+    "buckets": 6,
+    "buckets_publicos": 1,
+    "politicas_storage": 14
   },
   "tabelas": [
     {
@@ -4170,6 +4173,70 @@
       ]
     },
     {
+      "tabela": "siga_chat_conversations",
+      "rls": true,
+      "rls_forcada": true,
+      "anon_select": false,
+      "auth_select": true,
+      "politicas": 1,
+      "colunas": [
+        "id",
+        "school_id",
+        "type",
+        "title",
+        "student_id",
+        "direct_key",
+        "created_by",
+        "created_at"
+      ],
+      "obrigatorias": [
+        "school_id"
+      ]
+    },
+    {
+      "tabela": "siga_chat_members",
+      "rls": true,
+      "rls_forcada": true,
+      "anon_select": false,
+      "auth_select": true,
+      "politicas": 2,
+      "colunas": [
+        "conversation_id",
+        "user_id",
+        "last_read_at",
+        "joined_at"
+      ],
+      "obrigatorias": [
+        "conversation_id",
+        "user_id"
+      ]
+    },
+    {
+      "tabela": "siga_chat_messages",
+      "rls": true,
+      "rls_forcada": true,
+      "anon_select": false,
+      "auth_select": true,
+      "politicas": 3,
+      "colunas": [
+        "id",
+        "conversation_id",
+        "school_id",
+        "sender_id",
+        "body",
+        "reply_to",
+        "attachment_file_id",
+        "attachment_file_name",
+        "deleted_at",
+        "created_at"
+      ],
+      "obrigatorias": [
+        "conversation_id",
+        "school_id",
+        "sender_id"
+      ]
+    },
+    {
       "tabela": "siga_class_tasks",
       "rls": true,
       "rls_forcada": true,
@@ -7768,6 +7835,60 @@
       "modo": "RESTRICTIVE"
     },
     {
+      "tabela": "siga_chat_conversations",
+      "politica": "Membros lêem a conversa",
+      "cmd": "SELECT",
+      "papeis": "{authenticated}",
+      "usando": "private.is_chat_member(id)",
+      "verificando": "",
+      "modo": "PERMISSIVE"
+    },
+    {
+      "tabela": "siga_chat_members",
+      "politica": "Marca a própria leitura",
+      "cmd": "UPDATE",
+      "papeis": "{authenticated}",
+      "usando": "(user_id = ( SELECT auth.uid() AS uid))",
+      "verificando": "(user_id = ( SELECT auth.uid() AS uid))",
+      "modo": "PERMISSIVE"
+    },
+    {
+      "tabela": "siga_chat_members",
+      "politica": "Membros vêem os participantes",
+      "cmd": "SELECT",
+      "papeis": "{authenticated}",
+      "usando": "private.is_chat_member(conversation_id)",
+      "verificando": "",
+      "modo": "PERMISSIVE"
+    },
+    {
+      "tabela": "siga_chat_messages",
+      "politica": "Autor apaga a própria mensagem",
+      "cmd": "UPDATE",
+      "papeis": "{authenticated}",
+      "usando": "(sender_id = ( SELECT auth.uid() AS uid))",
+      "verificando": "(sender_id = ( SELECT auth.uid() AS uid))",
+      "modo": "PERMISSIVE"
+    },
+    {
+      "tabela": "siga_chat_messages",
+      "politica": "Membros enviam mensagens",
+      "cmd": "INSERT",
+      "papeis": "{authenticated}",
+      "usando": "",
+      "verificando": "((sender_id = ( SELECT auth.uid() AS uid)) AND private.is_chat_member(conversation_id))",
+      "modo": "PERMISSIVE"
+    },
+    {
+      "tabela": "siga_chat_messages",
+      "politica": "Membros lêem as mensagens",
+      "cmd": "SELECT",
+      "papeis": "{authenticated}",
+      "usando": "private.is_chat_member(conversation_id)",
+      "verificando": "",
+      "modo": "PERMISSIVE"
+    },
+    {
       "tabela": "siga_direct_messages",
       "politica": "Read own school direct messages",
       "cmd": "SELECT",
@@ -8281,6 +8402,158 @@
       "modo": "PERMISSIVE"
     }
   ],
+  "storage_buckets": [
+    {
+      "id": "avatars",
+      "public": false,
+      "file_size_limit": null,
+      "tipos_aceites": null
+    },
+    {
+      "id": "billing-proofs",
+      "public": false,
+      "file_size_limit": 5242880,
+      "tipos_aceites": "{application/pdf,image/png,image/jpeg,image/webp}"
+    },
+    {
+      "id": "school-exports",
+      "public": false,
+      "file_size_limit": 104857600,
+      "tipos_aceites": null
+    },
+    {
+      "id": "school-logos",
+      "public": true,
+      "file_size_limit": null,
+      "tipos_aceites": null
+    },
+    {
+      "id": "school-private",
+      "public": false,
+      "file_size_limit": 52428800,
+      "tipos_aceites": null
+    },
+    {
+      "id": "siga-files",
+      "public": false,
+      "file_size_limit": null,
+      "tipos_aceites": null
+    }
+  ],
+  "storage_politicas": [
+    {
+      "tabela": "objects",
+      "politica": "Authenticated users can replace school logos",
+      "cmd": "UPDATE",
+      "papeis": "{authenticated}",
+      "usando": "((bucket_id = 'school-logos'::text) AND (name ~ '^[0-9a-f-]{36}/logo-[0-9]{13}\\.(png|jpg|jpeg|webp)$'::text) AND school_logo_folder_ok(split_part(name, '/'::text, 1)))",
+      "verificando": "((bucket_id = 'school-logos'::text) AND (name ~ '^[0-9a-f-]{36}/logo-[0-9]{13}\\.(png|jpg|jpeg|webp)$'::text) AND school_logo_folder_ok(split_part(name, '/'::text, 1)))"
+    },
+    {
+      "tabela": "objects",
+      "politica": "Authenticated users can upload school logos",
+      "cmd": "INSERT",
+      "papeis": "{authenticated}",
+      "usando": "",
+      "verificando": "((bucket_id = 'school-logos'::text) AND (name ~ '^[0-9a-f-]{36}/logo-[0-9]{13}\\.(png|jpg|jpeg|webp)$'::text) AND school_logo_folder_ok(split_part(name, '/'::text, 1)))"
+    },
+    {
+      "tabela": "objects",
+      "politica": "Owners read own siga files",
+      "cmd": "SELECT",
+      "papeis": "{authenticated}",
+      "usando": "((bucket_id = 'siga-files'::text) AND (split_part(name, '/'::text, 1) = (( SELECT current_school_id() AS current_school_id))::text) AND ((storage.foldername(name))[5] = (( SELECT auth.uid() AS uid))::text))",
+      "verificando": ""
+    },
+    {
+      "tabela": "objects",
+      "politica": "School logos are publicly accessible",
+      "cmd": "SELECT",
+      "papeis": "{public}",
+      "usando": "(bucket_id = 'school-logos'::text)",
+      "verificando": ""
+    },
+    {
+      "tabela": "objects",
+      "politica": "Staff can replace siga files",
+      "cmd": "UPDATE",
+      "papeis": "{authenticated}",
+      "usando": "((bucket_id = 'siga-files'::text) AND (split_part(name, '/'::text, 1) = (( SELECT current_school_id() AS current_school_id))::text) AND ((storage.foldername(name))[5] = (( SELECT auth.uid() AS uid))::text))",
+      "verificando": "((bucket_id = 'siga-files'::text) AND (split_part(name, '/'::text, 1) = (( SELECT current_school_id() AS current_school_id))::text) AND ((storage.foldername(name))[5] = (( SELECT auth.uid() AS uid))::text))"
+    },
+    {
+      "tabela": "objects",
+      "politica": "Staff can upload siga files",
+      "cmd": "INSERT",
+      "papeis": "{authenticated}",
+      "usando": "",
+      "verificando": "((bucket_id = 'siga-files'::text) AND (split_part(name, '/'::text, 1) = (( SELECT current_school_id() AS current_school_id))::text) AND ((storage.foldername(name))[5] = (( SELECT auth.uid() AS uid))::text))"
+    },
+    {
+      "tabela": "objects",
+      "politica": "Users can delete their own avatar",
+      "cmd": "DELETE",
+      "papeis": "{authenticated}",
+      "usando": "((bucket_id = 'avatars'::text) AND ((storage.foldername(name))[1] = (auth.uid())::text))",
+      "verificando": ""
+    },
+    {
+      "tabela": "objects",
+      "politica": "Users can read avatars",
+      "cmd": "SELECT",
+      "papeis": "{authenticated}",
+      "usando": "((bucket_id = 'avatars'::text) AND (((storage.foldername(name))[1] = (auth.uid())::text) OR (EXISTS ( SELECT 1\n   FROM (school_memberships sm1\n     JOIN school_memberships sm2 ON ((sm1.school_id = sm2.school_id)))\n  WHERE ((sm1.user_id = auth.uid()) AND ((sm2.user_id)::text = (storage.foldername(objects.name))[1]) AND (sm1.status = 'active'::text) AND (sm2.status = 'active'::text))))))",
+      "verificando": ""
+    },
+    {
+      "tabela": "objects",
+      "politica": "Users can replace their own avatar",
+      "cmd": "UPDATE",
+      "papeis": "{authenticated}",
+      "usando": "((bucket_id = 'avatars'::text) AND ((storage.foldername(name))[1] = (auth.uid())::text))",
+      "verificando": "((bucket_id = 'avatars'::text) AND ((storage.foldername(name))[1] = (auth.uid())::text))"
+    },
+    {
+      "tabela": "objects",
+      "politica": "Users can upload their own avatar",
+      "cmd": "INSERT",
+      "papeis": "{authenticated}",
+      "usando": "",
+      "verificando": "((bucket_id = 'avatars'::text) AND ((storage.foldername(name))[1] = (auth.uid())::text))"
+    },
+    {
+      "tabela": "objects",
+      "politica": "school_objects_delete",
+      "cmd": "DELETE",
+      "papeis": "{authenticated}",
+      "usando": "((bucket_id = ANY (ARRAY['school-private'::text, 'school-exports'::text])) AND private.is_aal2() AND private.has_permission(private.storage_school_id(name), 'files.objects.delete'::text))",
+      "verificando": ""
+    },
+    {
+      "tabela": "objects",
+      "politica": "school_objects_insert",
+      "cmd": "INSERT",
+      "papeis": "{authenticated}",
+      "usando": "",
+      "verificando": "((bucket_id = ANY (ARRAY['school-private'::text, 'school-exports'::text])) AND private.is_aal2() AND private.has_permission(private.storage_school_id(name), 'files.objects.create'::text))"
+    },
+    {
+      "tabela": "objects",
+      "politica": "school_objects_select",
+      "cmd": "SELECT",
+      "papeis": "{authenticated}",
+      "usando": "((bucket_id = ANY (ARRAY['school-private'::text, 'school-exports'::text])) AND private.has_permission(private.storage_school_id(name), 'files.objects.read'::text))",
+      "verificando": ""
+    },
+    {
+      "tabela": "objects",
+      "politica": "school_objects_update",
+      "cmd": "UPDATE",
+      "papeis": "{authenticated}",
+      "usando": "((bucket_id = ANY (ARRAY['school-private'::text, 'school-exports'::text])) AND private.is_aal2() AND private.has_permission(private.storage_school_id(name), 'files.objects.update'::text))",
+      "verificando": "((bucket_id = ANY (ARRAY['school-private'::text, 'school-exports'::text])) AND private.is_aal2() AND private.has_permission(private.storage_school_id(name), 'files.objects.update'::text))"
+    }
+  ],
   "funcoes": [
     {
       "schema": "private",
@@ -8500,6 +8773,24 @@
     },
     {
       "schema": "private",
+      "funcao": "hr_confirm_payroll_payment_item",
+      "args": "p_school_id uuid, p_payment_item_id uuid, p_result text, p_reference text, p_failure_reason text",
+      "security_definer": true
+    },
+    {
+      "schema": "private",
+      "funcao": "hr_payment_destination_label",
+      "args": "p_iban text, p_account text, p_reference text, p_method text",
+      "security_definer": false
+    },
+    {
+      "schema": "private",
+      "funcao": "hr_upsert_payment_destination",
+      "args": "p_school_id uuid, p_employment_id uuid, p_destination jsonb",
+      "security_definer": true
+    },
+    {
+      "schema": "private",
       "funcao": "is_aal2",
       "args": "",
       "security_definer": false
@@ -8508,6 +8799,12 @@
       "schema": "private",
       "funcao": "is_active_member",
       "args": "target_school_id uuid",
+      "security_definer": true
+    },
+    {
+      "schema": "private",
+      "funcao": "is_chat_member",
+      "args": "p_conversation_id uuid",
       "security_definer": true
     },
     {
@@ -8742,6 +9039,12 @@
       "schema": "private",
       "funcao": "seed_default_academic_catalogs",
       "args": "p_school_id uuid",
+      "security_definer": true
+    },
+    {
+      "schema": "private",
+      "funcao": "settle_gateway_payment_service",
+      "args": "target_school_id uuid, target_invoice_id uuid, target_amount numeric, target_payment_method text, target_received_by uuid, target_external_id text, target_paid_on date",
       "security_definer": true
     },
     {
@@ -9232,6 +9535,12 @@
     },
     {
       "schema": "public",
+      "funcao": "hr_confirm_payroll_payment_item",
+      "args": "p_school_id uuid, p_payment_item_id uuid, p_result text, p_reference text, p_failure_reason text",
+      "security_definer": false
+    },
+    {
+      "schema": "public",
       "funcao": "hr_confirm_teacher_lesson",
       "args": "p_occurrence_id uuid, p_evidence_method text, p_evidence_ref text",
       "security_definer": false
@@ -9388,6 +9697,12 @@
     },
     {
       "schema": "public",
+      "funcao": "hr_redeem_teacher_qr_secure",
+      "args": "p_token_hash text, p_latitude double precision, p_longitude double precision, p_accuracy_m double precision",
+      "security_definer": true
+    },
+    {
+      "schema": "public",
       "funcao": "hr_refresh_payroll_payment_batch",
       "args": "p_batch_id uuid",
       "security_definer": false
@@ -9402,6 +9717,12 @@
       "schema": "public",
       "funcao": "hr_serialize_salary_payroll",
       "args": "",
+      "security_definer": false
+    },
+    {
+      "schema": "public",
+      "funcao": "hr_upsert_payment_destination",
+      "args": "p_school_id uuid, p_employment_id uuid, p_destination jsonb",
       "security_definer": false
     },
     {
@@ -9643,6 +9964,12 @@
       "funcao": "set_updated_at_and_version",
       "args": "",
       "security_definer": false
+    },
+    {
+      "schema": "public",
+      "funcao": "settle_gateway_payment_service",
+      "args": "school_id uuid, invoice_id uuid, amount numeric, payment_method text, received_by uuid, external_id text, paid_on date",
+      "security_definer": true
     },
     {
       "schema": "public",
@@ -12501,6 +12828,41 @@
       "chave": "siga_cash_expenses_school_id_fkey"
     },
     {
+      "de": "siga_chat_conversations",
+      "para": "schools",
+      "chave": "siga_chat_conversations_school_id_fkey"
+    },
+    {
+      "de": "siga_chat_conversations",
+      "para": "students",
+      "chave": "siga_chat_conversations_student_id_fkey"
+    },
+    {
+      "de": "siga_chat_members",
+      "para": "siga_chat_conversations",
+      "chave": "siga_chat_members_conversation_id_fkey"
+    },
+    {
+      "de": "siga_chat_messages",
+      "para": "schools",
+      "chave": "siga_chat_messages_school_id_fkey"
+    },
+    {
+      "de": "siga_chat_messages",
+      "para": "siga_chat_conversations",
+      "chave": "siga_chat_messages_conversation_id_fkey"
+    },
+    {
+      "de": "siga_chat_messages",
+      "para": "siga_chat_messages",
+      "chave": "siga_chat_messages_reply_to_fkey"
+    },
+    {
+      "de": "siga_chat_messages",
+      "para": "siga_files",
+      "chave": "siga_chat_messages_attachment_file_id_fkey"
+    },
+    {
       "de": "siga_class_tasks",
       "para": "class_subjects",
       "chave": "siga_class_tasks_class_subject_id_fkey"
@@ -14337,6 +14699,14 @@
       "valores": [
         "posted",
         "reversed"
+      ]
+    },
+    {
+      "tabela": "siga_chat_conversations",
+      "coluna": "type",
+      "valores": [
+        "direct",
+        "group"
       ]
     },
     {
