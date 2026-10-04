@@ -49,30 +49,52 @@ CREATE FUNCTION private.next_document_number(s uuid, t text) RETURNS text
 CREATE TABLE public.finance_invoices("id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,"school_id" uuid NOT NULL,"contract_id" uuid NOT NULL,"fee_item_id" uuid NOT NULL,"invoice_number" text NOT NULL,"competence_month" date,"amount" numeric NOT NULL,"discount_amount" numeric DEFAULT 0 NOT NULL,"due_date" date NOT NULL,"status" text DEFAULT 'open'::text NOT NULL,"issued_by" uuid NOT NULL,"cancelled_at" timestamp with time zone,"cancelled_by" uuid,"cancellation_reason" text,"created_at" timestamp with time zone DEFAULT now() NOT NULL,"penalty_amount" numeric DEFAULT 0 NOT NULL);
 CREATE TABLE public.finance_receipts("id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,"school_id" uuid NOT NULL,"invoice_id" uuid NOT NULL,"receipt_number" text NOT NULL,"amount" numeric NOT NULL,"paid_on" date NOT NULL,"payment_method" text NOT NULL,"received_by" uuid NOT NULL,"status" text DEFAULT 'issued'::text NOT NULL,"reversed_at" timestamp with time zone,"reversed_by" uuid,"reversal_reason" text,"created_at" timestamp with time zone DEFAULT now() NOT NULL,"external_id" text);
 CREATE TABLE public.school_settings(id uuid PRIMARY KEY DEFAULT gen_random_uuid(), school_id uuid NOT NULL, domain text NOT NULL, version integer NOT NULL DEFAULT 1, value jsonb NOT NULL DEFAULT '{}'::jsonb, changed_by uuid, created_at timestamptz NOT NULL DEFAULT now(), UNIQUE (school_id, domain));
+-- Catálogo da importação, com as duas linhas como na produção a 2026-10-04.
+CREATE TABLE public.import_table_specs(id uuid PRIMARY KEY DEFAULT gen_random_uuid(), table_schema text NOT NULL, table_name text NOT NULL, direct_import_policy text NOT NULL, sensitivity text NOT NULL DEFAULT 'normal', module_code text, notes text, active boolean NOT NULL DEFAULT true);
+INSERT INTO public.import_table_specs(table_schema, table_name, direct_import_policy, module_code, notes) VALUES
+  ('public', 'school_settings', 'review', NULL, 'Definições da escola.'),
+  ('public', 'school_billing_settings', 'controlled', 'financeiro', 'Parâmetros de cobrança.');
 `);
 
 const read = (path) => readFileSync(new URL(path, import.meta.url), "utf8");
 const pacote = read("../../docs/agents/SIGA_aplicar_multas_atraso.sql");
 const confirmar = pacote.slice(pacote.indexOf("-- ══════════ Confirmar ══════════"));
-const estado = async () => Object.values((await db.query(confirmar)).rows[0])[0];
 // SIGA_confirmar_migracoes.sql pergunta privilégios nestas duas; sem elas, a consulta falha.
 await db.exec(
   "CREATE TABLE public.siga_direct_messages (id uuid PRIMARY KEY); CREATE TABLE public.student_academic_history (id uuid PRIMARY KEY);",
 );
-const sonda = async () =>
-  (await db.exec(read("../../docs/agents/SIGA_confirmar_migracoes.sql")))
-    .at(-1)
-    .rows.find((r) => r.migracao === "20261004140000_late_fee_one_rule").estado;
-assert.equal(await estado(), "por aplicar");
-assert.equal(await sonda(), "EM FALTA");
+const sonda = async () => {
+  const rows = (await db.exec(read("../../docs/agents/SIGA_confirmar_migracoes.sql"))).at(-1).rows;
+  return [
+    "20261004140000_late_fee_one_rule",
+    "20261004141000_propinas_import_into_billing_rules",
+  ].map((m) => rows.find((r) => r.migracao === m).estado);
+};
+const confirmacao = async () => Object.values((await db.query(confirmar)).rows[0]);
+assert.deepEqual(await confirmacao(), ["por aplicar", "por aplicar"]);
+assert.deepEqual(await sonda(), ["EM FALTA", "EM FALTA"]);
 
 // O pacote inteiro, como no SQL Editor, duas vezes seguidas.
 for (let corrida = 0; corrida < 2; corrida++) {
   assert.deepEqual((await db.exec(pacote)).at(-1).rows[0], {
     "20261004140000 multa por atraso": "aplicada",
+    "20261004141000 importação de propinas": "aplicada",
   });
 }
-assert.equal(await sonda(), "aplicada");
+assert.deepEqual(await sonda(), ["aplicada", "aplicada"]);
+// A governança muda uma vez (a nota não se repete) e só a linha de school_settings.
+const specs = (
+  await db.query(
+    "select table_name, direct_import_policy, module_code, notes from import_table_specs order by 1",
+  )
+).rows;
+assert.equal(specs[0].direct_import_policy, "controlled");
+assert.equal(specs[0].table_name, "school_billing_settings");
+assert.deepEqual(
+  { policy: specs[1].direct_import_policy, module: specs[1].module_code },
+  { policy: "controlled", module: "financeiro" },
+);
+assert.equal(specs[1].notes.match(/só do domínio billing/g).length, 1);
 
 const A = "00000000-0000-0000-0000-00000000000a";
 const B = "00000000-0000-0000-0000-00000000000b";

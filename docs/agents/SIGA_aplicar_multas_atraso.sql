@@ -1,10 +1,14 @@
 -- SIGA Plus — SQL a aplicar no Supabase (projecto Sga), pacote de 2026-10-04
 -- Colar TUDO no SQL Editor → Run. Pode correr mais do que uma vez sem problema.
--- 1 migração: multa por atraso com uma regra só. A tesouraria passa a cobrar o
--- total a pagar com a multa (valor − desconto + multa), e a aplicá-la segundo as
--- regras de Definições › Cobrança, como já fazia o webhook EMIS/Unitel.
--- Não mexe em dados. A 2026-10-04 (produção, só leitura) nenhuma escola tinha multa
--- nas regras de cobrança: aplicar não muda nenhum valor até uma escola a definir.
+-- 2 migrações:
+--   · multa por atraso com uma regra só: a tesouraria passa a cobrar o total a pagar
+--     com a multa (valor − desconto + multa) e a aplicá-la segundo as regras de
+--     Definições › Cobrança, como já fazia o webhook EMIS/Unitel;
+--   · a importação de «propinas» passa a gravar essas regras (catálogo da importação:
+--     school_settings fica «controlled», só para o domínio billing).
+-- Não mexe em faturas, recibos nem regras. A 2026-10-04 (produção, só leitura)
+-- nenhuma escola tinha multa nas regras de cobrança: aplicar não muda nenhum valor
+-- até uma escola a definir.
 -- Ensaiado em PGlite (tests/sql/late-fee.mjs): corre duas vezes; a regra da base e a
 -- do ecrã (late-fee.ts) dão o mesmo em 5040 casos.
 -- Confirmar no fim com a consulta do fundo deste ficheiro (deve dar "aplicada").
@@ -174,8 +178,46 @@ end;
 $function$;
 
 
+-- ══════════ 20261004141000_propinas_import_into_billing_rules.sql ══════════
+-- Importação de «propinas» grava as regras de cobrança activas.
+--
+-- Até 2026-10-04 o importador gravava em school_billing_settings, que nada lê: as
+-- regras activas (Definições › Cobrança, a multa por atraso, o desconto de irmãos)
+-- estão em school_settings, domínio billing. Agora grava aí, só no domínio billing,
+-- com 2FA e a mesma gravação versionada do ecrã (src/features/import/importers/
+-- propinas-importer.ts).
+--
+-- A governança da importação (src/features/import/engine/governance.ts) exige que a
+-- tabela de destino esteja «controlled» no catálogo. school_settings estava em
+-- «review»: passa a «controlled», módulo financeiro. Só o importador de propinas a
+-- tem como destino, e só o domínio billing; dados bancários, AGT e os outros domínios
+-- nunca por importação (tests/finance/late-fee.test.ts confere as duas coisas).
+--
+-- Não toca nos dados de school_billing_settings (2 linhas a 2026-10-04): o que lá está
+-- não passa a valer; cada escola revê as regras em Definições › Cobrança.
+--
+-- Idempotente: só altera a linha enquanto não estiver «controlled».
+
+UPDATE public.import_table_specs
+SET direct_import_policy = 'controlled',
+    module_code = 'financeiro',
+    notes = concat_ws(
+      ' ',
+      nullif(notes, ''),
+      'Importação controlada só do domínio billing, pelo importador de propinas (com 2FA); dados bancários, AGT e restantes domínios nunca por importação.'
+    )
+WHERE table_schema = 'public'
+  AND table_name = 'school_settings'
+  AND direct_import_policy <> 'controlled';
+
+
 -- ══════════ Confirmar ══════════
 SELECT CASE WHEN to_regprocedure('private.late_fee_due(uuid, numeric, date, numeric, date, text)') IS NOT NULL
   AND position('private.late_fee_due' in pg_get_functiondef(
     to_regprocedure('private.register_payment(uuid, uuid, numeric, text, date)'))) > 0
-THEN 'aplicada' ELSE 'por aplicar' END AS "20261004140000 multa por atraso";
+THEN 'aplicada' ELSE 'por aplicar' END AS "20261004140000 multa por atraso",
+CASE WHEN EXISTS (
+  SELECT 1 FROM public.import_table_specs
+   WHERE table_schema = 'public' AND table_name = 'school_settings'
+     AND direct_import_policy = 'controlled'
+) THEN 'aplicada' ELSE 'por aplicar' END AS "20261004141000 importação de propinas";

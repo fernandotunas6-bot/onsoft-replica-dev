@@ -25,17 +25,24 @@ nas regras (produção, só leitura): nada foi cobrado a mais nem a menos.
 - **Ecrãs:** a referência EMIS é do que falta pagar, com a multa de um pagamento
   hoje (o servidor calcula; o cartão mostra «Inclui a multa…»). O «Receber» mostra a
   multa de hoje e soma-a ao valor sugerido.
-- Migração `20261004140000_late_fee_one_rule.sql`, pacote
-  `docs/agents/SIGA_aplicar_multas_atraso.sql` (sonda também em
+- Migrações `20261004140000_late_fee_one_rule.sql` e
+  `20261004141000_propinas_import_into_billing_rules.sql`, pacote
+  `docs/agents/SIGA_aplicar_multas_atraso.sql` (sondas também em
   `SIGA_confirmar_migracoes.sql`).
 
-**Por decidir (dono):** a importação de «propinas» grava em `school_billing_settings`,
-que nada lê; as regras activas estão em `school_settings` (domínio `billing`). Na
-produção há 2 linhas nessa tabela, gravadas a 08/09 com os antigos valores do ecrã:
-o Colégio Adventista do Huambo (multa 2 %, 5 dias, desconto de irmãos 10 %) e uma
-escola de testes. Hoje o Huambo cobra sem multa nem desconto. Se essas regras são
-para valer, definem-se em Definições › Cobrança; a importação deve passar a gravar
-no domínio `billing`.
+**Importação de «propinas»** (decisão do dono, 2026-10-04): gravava em
+`school_billing_settings`, que nada lê, e sem a coluna da multa gravava 10 %. Passa a
+gravar as regras activas (`school_settings`, domínio `billing`), só o que vem no
+ficheiro, com 2FA e a gravação versionada do ecrã; migração
+`20261004141000_propinas_import_into_billing_rules.sql` (catálogo: `school_settings`
+«controlled», só o domínio `billing`). O modelo oficial é um preçário (designação,
+classe, valor, taxa de multa diária) que o importador não usa: avisa que os valores
+e a taxa diária não entram. Importar preços por classe fica por fazer.
+
+`school_billing_settings` fica como está (2 linhas, gravadas a 08/09 com os antigos
+valores do ecrã): o Colégio Adventista do Huambo (multa 2 %, 5 dias, desconto de
+irmãos 10 %) e uma escola de testes. Por decisão do dono não passam a valer: o
+Huambo cobra sem multa nem desconto até rever as regras em Definições › Cobrança.
 
 ## Tempo real nas tabelas reais — POR APLICAR (2026-10-04)
 

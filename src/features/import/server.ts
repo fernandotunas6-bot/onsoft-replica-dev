@@ -24,6 +24,7 @@ import {
 import { suggestModule } from "./engine/suggest";
 import { getImporter, isModuleImplemented } from "./engine/registry";
 import { assertImportModuleGoverned } from "./engine/governance";
+import { requireAal2 } from "@/features/hr/require-aal2";
 import type { ImportCommitContext } from "./engine/types";
 import { dynamicTablesClient } from "@/integrations/supabase/sga";
 import type { Json, TablesInsert } from "@/integrations/supabase/types";
@@ -418,6 +419,11 @@ export const commitImportBatch = createServerFn({ method: "POST" })
     );
     const importer = getImporter(job.module);
     await assertImportModuleGoverned(db, job.module);
+    // As regras de cobrança (multa, desconto, vencimento) só mudam com 2FA, como no ecrã
+    // Definições › Cobrança (updateBillingSettings).
+    if (job.module === "propinas" && !data.dry_run) {
+      requireAal2(context.claims, "Importar as regras de cobrança");
+    }
 
     const PENDING_STATUSES = [
       "valid",
