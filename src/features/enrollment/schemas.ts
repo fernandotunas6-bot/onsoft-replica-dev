@@ -98,6 +98,8 @@ export const submitPublicEnrollmentInputSchema = z.object({
   guardianName: optionalText,
   guardianPhone: optionalText,
   guardianRelationship: optionalText,
+  /** Curso pretendido (Ensino Superior): só cursos activos da própria escola. */
+  desiredProgramId: z.string().uuid().optional(),
 });
 export type SubmitPublicEnrollmentInput = z.infer<typeof submitPublicEnrollmentInputSchema>;
 

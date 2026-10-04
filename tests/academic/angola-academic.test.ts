@@ -9,6 +9,7 @@ import {
   getPeriodNoun,
   getPeriodsForCycle,
   gradeMatchesTeachingLevels,
+  inferTeachingCycle,
   initialsFromName,
   parsePautaScore,
   recursoFinal,
@@ -87,5 +88,16 @@ describe("angola academic pauta", () => {
     expect(calculateDisciplineFinalAverage(12, 14, null)).toBeCloseTo(13);
     expect(calculateDisciplineFinalAverage(12, 14, undefined)).toBeCloseTo(13);
     expect(calculateDisciplineFinalAverage(12, 14, 16)).toBeCloseTo(14);
+  });
+});
+
+describe("anos do Ensino Superior com o código do curso", () => {
+  it("são sempre Superior, mesmo com palavras de outros níveis no código", () => {
+    expect(inferTeachingCycle("1º Ano · DIREITO")).toBe("superior");
+    expect(inferTeachingCycle("2º Ano · ENSINO-MEDIO")).toBe("superior");
+    expect(inferTeachingCycle("3º Ano · EDUC-PRIMARIA")).toBe("superior");
+    expect(gradeMatchesTeachingLevels("2º Ano · ENSINO-MEDIO", ["superior"])).toBe(true);
+    expect(gradeMatchesTeachingLevels("2º Ano · ENSINO-MEDIO", ["ii_ciclo"])).toBe(false);
+    expect(inferTeachingCycle("10ª Classe · CFB")).toBe("ii_ciclo");
   });
 });

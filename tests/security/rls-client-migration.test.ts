@@ -55,6 +55,11 @@ const MIGRADOS = [
  * na contagem de dívida abaixo.
  */
 const PRIVILEGIO_POR_DESENHO = new Set([
+  // Ensino Superior: `program_subject_prerequisites` e `course_unit_enrollments`
+  // não têm política nenhuma para `authenticated` (só o servidor lhes toca). Cada
+  // função exige Administrador/Secretaria (ou o professor da cadeira, para lançar
+  // notas) e filtra pela escola da sessão.
+  "src/features/higher-ed/server.ts",
   // Chat escolar. A regra de quem pode falar com quem (pessoal fala com todos;
   // alunos e encarregados só com o pessoal) vive em `isMessagingStaff` e em
   // `loadSchoolColleagues`, que leem `school_memberships`, `member_roles`,

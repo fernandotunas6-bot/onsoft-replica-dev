@@ -188,7 +188,6 @@ export function SchoolSettingsPanel() {
   const activeRule = useActiveAssessmentRule();
   const [institution, setInstitution] = useState<Institution>(initialInstitution);
   const [errors, setErrors] = useState<Partial<Record<keyof Institution, string>>>({});
-  const [anoLectivo, setAnoLectivo] = useState<string>(schoolSettingDefaults.academicYear);
   const [moeda, setMoeda] = useState<string>(schoolSettingDefaults.currency);
   const [trimestres, setTrimestres] = useState(String(schoolSettingDefaults.evaluationPeriods));
   const [mediaMinima, setMediaMinima] = useState<number[]>([schoolSettingDefaults.passingGrade]);
@@ -246,7 +245,6 @@ export function SchoolSettingsPanel() {
       endereco: school.address ?? "",
       ...locationFields(school),
     });
-    setAnoLectivo(school.academic_year ?? schoolSettingDefaults.academicYear);
     setMoeda(school.currency || schoolSettingDefaults.currency);
     setTrimestres(String(supportedPeriods(school.evaluation_periods)));
     setMediaMinima([school.passing_grade ?? schoolSettingDefaults.passingGrade]);
@@ -273,7 +271,6 @@ export function SchoolSettingsPanel() {
   const dirty = useMemo(() => {
     const base =
       JSON.stringify(institution) !== JSON.stringify(baselineInstitution) ||
-      anoLectivo !== (schoolQuery.data?.academic_year ?? schoolSettingDefaults.academicYear) ||
       moeda !== (schoolQuery.data?.currency ?? schoolSettingDefaults.currency) ||
       trimestres !== String(supportedPeriods(schoolQuery.data?.evaluation_periods)) ||
       mediaMinima[0] !== (schoolQuery.data?.passing_grade ?? schoolSettingDefaults.passingGrade) ||
@@ -291,7 +288,6 @@ export function SchoolSettingsPanel() {
     institution,
     baselineInstitution,
     schoolQuery.data,
-    anoLectivo,
     moeda,
     trimestres,
     mediaMinima,
@@ -314,7 +310,6 @@ export function SchoolSettingsPanel() {
   const reset = () => {
     setInstitution(baselineInstitution);
     setErrors({});
-    setAnoLectivo(schoolQuery.data?.academic_year ?? schoolSettingDefaults.academicYear);
     setMoeda(schoolQuery.data?.currency ?? schoolSettingDefaults.currency);
     setTrimestres(String(supportedPeriods(schoolQuery.data?.evaluation_periods)));
     setMediaMinima([schoolQuery.data?.passing_grade ?? schoolSettingDefaults.passingGrade]);
@@ -372,7 +367,6 @@ export function SchoolSettingsPanel() {
           neighborhood: parsed.data.bairro,
           latitude: point ? point.latitude : null,
           longitude: point ? point.longitude : null,
-          academicYear: anoLectivo,
           currency: moeda,
           evaluationPeriods: Number(trimestres),
           passingGrade: mediaMinima[0] ?? schoolSettingDefaults.passingGrade,
@@ -629,21 +623,29 @@ export function SchoolSettingsPanel() {
         <h5 className="text-xs font-bold text-muted-foreground">Ano lectivo</h5>
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="space-y-1.5">
-            <Label htmlFor="ano">Ano lectivo activo</Label>
-            <Select value={anoLectivo} onValueChange={setAnoLectivo} disabled={!canEdit}>
-              <SelectTrigger id="ano">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {[schoolSettingDefaults.academicYear, "2025/2026", "2026/2027"]
-                  .filter((v, i, a) => a.indexOf(v) === i)
-                  .map((v) => (
-                    <SelectItem key={v} value={v}>
-                      {v}
-                    </SelectItem>
-                  ))}
-              </SelectContent>
-            </Select>
+            <p className="text-sm font-medium" id="ano-activo-label">
+              Ano lectivo activo
+            </p>
+            <div
+              className="flex min-h-9 items-center justify-between gap-2 rounded-md border border-input bg-muted/40 px-3 text-sm"
+              aria-labelledby="ano-activo-label"
+            >
+              <span
+                className={schoolQuery.data?.academic_year ? undefined : "text-muted-foreground"}
+              >
+                {schoolQuery.data?.academic_year ?? "Nenhum ano lectivo activo"}
+              </span>
+              <Link
+                to="/calendario"
+                className="text-xs font-semibold text-primary underline-offset-2 hover:underline"
+              >
+                Gerir no calendário
+              </Link>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Criar, activar e datar anos lectivos e períodos faz-se no calendário — é de lá que
+              turmas, propinas e pautas tiram o ano.
+            </p>
           </div>
           <div className="space-y-1.5">
             <Label htmlFor="moeda">Moeda</Label>
@@ -652,7 +654,7 @@ export function SchoolSettingsPanel() {
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {[schoolSettingDefaults.currency, "AOA", "USD", "EUR", "Kwanza (Kz)"]
+                {[schoolSettingDefaults.currency, "AOA", "USD", "EUR"]
                   .filter((v, i, a) => a.indexOf(v) === i)
                   .map((v) => (
                     <SelectItem key={v} value={v}>

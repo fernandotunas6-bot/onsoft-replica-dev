@@ -28,36 +28,49 @@ A secção «Webhook de confirmação» na integração mostra URL e API key pro
 
 Cada escola deve usar a **entidade EMIS** atribuída pelo banco/EMIS — não o valor de demonstração partilhado.
 
-| Campo na UI | Campo no config | Regra |
-| --- | --- | --- |
-| Merchant EMIS / Multicaixa | `merchantId` ou `emisEntity` | 4–6 dígitos |
-| (vazio) | — | não há referências Multicaixa até a entidade ser preenchida |
+| Campo na UI                | Campo no config              | Regra                                                       |
+| -------------------------- | ---------------------------- | ----------------------------------------------------------- |
+| Merchant EMIS / Multicaixa | `merchantId` ou `emisEntity` | 4–6 dígitos                                                 |
+| (vazio)                    | —                            | não há referências Multicaixa até a entidade ser preenchida |
 
 A entidade entra nas referências Multicaixa geradas em `/faturas` e no `PaymentReferenceCard`. O webhook valida montante e referência contra o plano `pending_gateway` da escola.
 
 ## Webhook EMIS / Multicaixa Express
 
-| Item | Valor |
-| --- | --- |
-| Método | `POST` |
-| URL | `https://{hostname-siga}/api/finance/gateway/confirm` |
-| Content-Type | `application/json` |
-| Autenticação | campo `apiKey` no corpo (valor de Integrações) |
+| Item         | Valor                                                                             |
+| ------------ | --------------------------------------------------------------------------------- |
+| Método       | `POST`                                                                            |
+| URL          | `https://{hostname-siga}/api/finance/gateway/confirm`                             |
+| Content-Type | `application/json`                                                                |
+| Autenticação | assinatura HMAC-SHA256 com a API key de Integrações (a key **não** vai no pedido) |
+| Cabeçalhos   | `X-SIGA-Timestamp: <segundos Unix>` e `X-SIGA-Signature: sha256=<hex>`            |
 
 Corpo JSON:
 
 ```json
 {
-  "apiKey": "<webhookApiKey da escola>",
   "reference": "123456789",
   "amount": 45000,
-  "invoiceId": "<uuid opcional>"
+  "externalId": "<id da transacção no provedor>"
 }
 ```
 
-- `reference` — 9 dígitos, sem espaços.
+- `reference` — a referência que o SIGA emitiu no plano de pagamento (só se liquidam
+  referências de planos pendentes).
 - `amount` — valor em **kwanzas inteiros** (ex. `45000` = 45 000 Kz).
-- `invoiceId` — opcional; acelera o match se vários planos estiverem abertos.
+- `externalId` — **obrigatório**; o mesmo identificador nunca gera dois recibos.
+- `invoiceId` — opcional; se vier, tem de ser a fatura do plano da referência.
+
+Assinatura: `X-SIGA-Signature = "sha256=" + hex(HMAC_SHA256(apiKey, timestamp + "." + corpo))`,
+sobre os bytes exactos do corpo enviado. Pedidos com carimbo a mais de 5 minutos são
+recusados.
+
+```sh
+ts=$(date +%s); body='{"reference":"123456789","amount":45000,"externalId":"tx-1"}'
+sig=$(printf '%s.%s' "$ts" "$body" | openssl dgst -sha256 -hmac "$API_KEY" -hex | sed 's/^.* //')
+curl -X POST "$URL" -H 'Content-Type: application/json' \
+  -H "X-SIGA-Timestamp: $ts" -H "X-SIGA-Signature: sha256=$sig" --data "$body"
+```
 
 Resposta esperada: `200` com `{ "ok": true }` quando o pagamento for registado.
 
@@ -65,11 +78,11 @@ Resposta esperada: `200` com `{ "ok": true }` quando o pagamento for registado.
 
 Unitel usa **URL dedicada** (canal fixo `unitel_money`):
 
-| Item | Valor |
-| --- | --- |
-| Método | `POST` |
-| URL | `https://{hostname-siga}/api/finance/gateway/unitel/confirm` |
-| Corpo | igual ao EMIS (`apiKey`, `reference`, `amount`, `invoiceId?`) |
+| Item               | Valor                                                                       |
+| ------------------ | --------------------------------------------------------------------------- |
+| Método             | `POST`                                                                      |
+| URL                | `https://{hostname-siga}/api/finance/gateway/unitel/confirm`                |
+| Corpo e assinatura | iguais ao EMIS (`reference`, `amount`, `externalId`; cabeçalhos `X-SIGA-*`) |
 
 Configure esta URL no portal Unitel Money, não a rota Multicaixa genérica.
 
@@ -110,22 +123,22 @@ SIGA_E2E_LIVE=1 npm run siga:e2e-playwright-live
 
 ## Resolução de problemas
 
-| Sintoma | Verificar |
-| --- | --- |
-| `401` / API key inválida | `webhookApiKey` em Integrações; não confundir com `merchantId` |
-| Referência não encontrada | Plano em `pending_gateway`; referência igual à da fatura |
-| Montante rejeitado | `amount` em kwanzas inteiros, igual ao plano |
-| Unitel não liquida | URL `/unitel/confirm`, não `/gateway/confirm` |
-| Entidade errada no terminal | Campo Merchant EMIS na integração Multicaixa |
+| Sintoma                     | Verificar                                                      |
+| --------------------------- | -------------------------------------------------------------- |
+| `401` / API key inválida    | `webhookApiKey` em Integrações; não confundir com `merchantId` |
+| Referência não encontrada   | Plano em `pending_gateway`; referência igual à da fatura       |
+| Montante rejeitado          | `amount` em kwanzas inteiros, igual ao plano                   |
+| Unitel não liquida          | URL `/unitel/confirm`, não `/gateway/confirm`                  |
+| Entidade errada no terminal | Campo Merchant EMIS na integração Multicaixa                   |
 
 ## Observabilidade
 
-| Onde | O quê |
-| --- | --- |
-| SIGA → Integrações | Últimos 5 webhooks por canal |
-| ADMIN → Webhooks gateway | Métricas 24h/7d cross-tenant |
-| CLI | `npm run siga:gateway-events-recent` |
-| Alertas | `SIGA_GATEWAY_ALERT_SLACK_URL`, `SIGA_GATEWAY_FAILURE_RATE_*` |
+| Onde                     | O quê                                                         |
+| ------------------------ | ------------------------------------------------------------- |
+| SIGA → Integrações       | Últimos 5 webhooks por canal                                  |
+| ADMIN → Webhooks gateway | Métricas 24h/7d cross-tenant                                  |
+| CLI                      | `npm run siga:gateway-events-recent`                          |
+| Alertas                  | `SIGA_GATEWAY_ALERT_SLACK_URL`, `SIGA_GATEWAY_FAILURE_RATE_*` |
 
 Detalhes: [Runbook observabilidade](/integracoes/gateway-runbook-suporte#observabilidade).
 

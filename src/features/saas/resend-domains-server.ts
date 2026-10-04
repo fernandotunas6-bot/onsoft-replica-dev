@@ -2,17 +2,19 @@ import { z } from "zod";
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { ResendDomainsClient } from "@/features/integrations/resend-domains-client";
-import {
-  loadSgaAdminClient,
-  requireSgaWriterFor,
-  requireSgaWriterForWrite,
-} from "@/integrations/supabase/sga-admin";
+import { requirePlatformAdmin } from "./platform-guard";
 import { errorMessage } from "@/lib/error-message";
 
+/**
+ * Domínios da conta Resend da PLATAFORMA (partilhada por todas as escolas).
+ * Só o administrador da plataforma: com o cargo de Administrador de uma escola,
+ * qualquer escola (incluindo do registo público) listava os domínios das
+ * outras, pedia verificações e registava domínios na conta do SIGA.
+ */
 export const listResendDomainsFn = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    await requireSgaWriterFor("gestao", context.supabase, context.userId, ["Administrador"]);
+    await requirePlatformAdmin(context.userId, context.claims["aal"]);
     try {
       const domains = await ResendDomainsClient.listDomains();
       return {
@@ -48,7 +50,7 @@ export const verifyResendDomainFn = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((input: unknown) => verifyResendDomainInputSchema.parse(input))
   .handler(async ({ data, context }) => {
-    await requireSgaWriterForWrite("gestao", context.supabase, context.userId, ["Administrador"]);
+    await requirePlatformAdmin(context.userId, context.claims["aal"]);
     try {
       const result = await ResendDomainsClient.verifyDomain(data.domainId);
       return {
@@ -77,21 +79,13 @@ export const createResendDomainFn = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((input: unknown) => createResendDomainInputSchema.parse(input))
   .handler(async ({ data, context }) => {
-    const membership = await requireSgaWriterForWrite("gestao", context.supabase, context.userId, [
-      "Administrador",
-    ]);
-    const db = await loadSgaAdminClient();
+    await requirePlatformAdmin(context.userId, context.claims["aal"]);
 
     try {
+      // Só cria na conta Resend. O domínio de uma escola (tenant_domains) é
+      // registado pelo fluxo de domínios da escola, com o tenant certo — aqui
+      // gravava-se o id da escola como tenant_id.
       const created = await ResendDomainsClient.createDomain(data.domainName);
-
-      // Regista o domínio na tabela tenant_domains para auditoria multi-tenant
-      await db.from("tenant_domains").insert({
-        tenant_id: membership.schoolId, // ou tenant_id correspondente
-        hostname: data.domainName.toLowerCase(),
-        type: "custom_domain",
-        status: created.status === "verified" ? "active" : "pending",
-      });
 
       return {
         success: true,

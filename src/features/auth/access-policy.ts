@@ -92,6 +92,16 @@ const accessRules: Array<{ prefixes: string[]; roles: ApplicationRole[] }> = [
   // Casos de risco são dados sensíveis de menores: o servidor
   // (risk-followup.functions) só aceita estes cargos.
   {
+    // Ensino Superior: planos, inscrições por cadeira e regulamento são da secretaria.
+    prefixes: ["/pedagogica/superior"],
+    roles: ["Administrador", "Secretaria"],
+  },
+  {
+    // Pauta por cadeira: o professor lança nas cadeiras que dá (o servidor confirma).
+    prefixes: ["/pedagogica/pautas-superior"],
+    roles: ["Administrador", "Secretaria", "Professor"],
+  },
+  {
     prefixes: ["/pedagogica/risco"],
     roles: ["Administrador", "Secretaria", "Professor"],
   },

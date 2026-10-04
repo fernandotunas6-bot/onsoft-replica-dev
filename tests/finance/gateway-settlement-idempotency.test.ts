@@ -60,6 +60,14 @@ function construirDb(): SupabaseClient {
         proximoNumeroRecibo += 1;
         return { data: numero, error: null };
       }
+      // Base sem a liquidação atómica (20261002090137), ex.: ambiente local:
+      // estes testes cobrem o caminho em passos que corre até lá.
+      if (nome === "settle_gateway_payment_service") {
+        return {
+          data: null,
+          error: { code: "PGRST202", message: "Could not find the function" },
+        };
+      }
       // Um webhook servidor-a-servidor tem auth.uid() nulo: register_payment levanta
       // sempre 42501 e o caminho real é o fallback. É esse que estamos a testar.
       return {

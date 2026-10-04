@@ -6,6 +6,38 @@
  * tabelas, dando cobertura de tipos a código que falhava em execução.
  */
 
+/**
+ * Regenerado a 2026-09-16, depois de aplicadas
+ * `20260916120000_school_email_routes_cloudflare_route_id.sql` e
+ * `20260916130000_contact_verification_and_communication_preferences.sql`.
+ * São 154 tabelas (eram 149): as duas novas de `features/contacts` mais as que
+ * entretanto entraram. A regeneração só acrescentou — nenhuma tabela saiu.
+ */
+
+/**
+ * Regenerado a 2026-09-20, depois de aplicada
+ * `20260916140000_assessment_rule_sets.sql`. São 156 tabelas (eram 154): as
+ * duas que faltavam ao núcleo de avaliação — `assessment_rule_sets` e
+ * `assessment_key_subjects`. A regeneração só acrescentou: 255 entradas
+ * passaram a 257 e nenhuma saiu.
+ */
+
+/**
+ * Regenerado a 2026-09-28 a partir da produção (conector Supabase,
+ * `generate_typescript_types`). São 179 tabelas (eram 156); a 2026-09-29 entrou `grade_sheet_versions`. Saiu
+ * `notification_preferences`, que já não existe na produção.
+ */
+
+/** Regenerado da produção em 2026-09-30: 183 tabelas e RPCs verificadas. */
+
+/**
+ * Regenerado da produção a 2026-10-02 (conector Supabase, `generate_typescript_types`):
+ * 186 tabelas (eram 183). Entram `siga_chat_conversations`, `siga_chat_members` e
+ * `siga_chat_messages` (migrações 20261002062355/062506, trazidas para o repositório no
+ * mesmo dia) e as funções `settle_gateway_payment_service`, `hr_confirm_payroll_payment_item`,
+ * `hr_upsert_payment_destination` e `hr_redeem_teacher_qr_secure`. Nada saiu.
+ */
+
 export type Json =
   | string
   | number

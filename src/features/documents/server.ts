@@ -41,6 +41,7 @@ import {
   type PrintTemplateKey,
 } from "./print-catalog";
 import { parsePrintSettings } from "./print-settings";
+import { updateSettingsDomainValue } from "@/features/school/settings-domains";
 
 /**
  * Há dois vocabulários de estado, e só o servidor deve conhecer os dois.
@@ -372,45 +373,6 @@ async function readSettingDomain(db: AdminDb, schoolId: string, domain: string) 
   return data as { id: string; domain: string; version: number; value: JsonMap } | null;
 }
 
-async function upsertSettingDomain(
-  db: AdminDb,
-  schoolId: string,
-  domain: string,
-  value: JsonMap,
-  userId: string,
-) {
-  const existing = await readSettingDomain(db, schoolId, domain);
-  if (existing?.id) {
-    const { data, error } = await db
-      .from("school_settings")
-      .update({
-        value: value as Json,
-        version: Number(existing.version ?? 1) + 1,
-        changed_by: userId,
-      })
-      .eq("id", existing.id)
-      .eq("school_id", schoolId)
-      .select("id")
-      .single();
-    if (error) throw publicDatabaseError(error, `Não foi possível guardar settings:${domain}.`);
-    return data;
-  }
-
-  const { data, error } = await db
-    .from("school_settings")
-    .insert({
-      school_id: schoolId,
-      domain,
-      version: 1,
-      value: value as Json,
-      changed_by: userId,
-    })
-    .select("id")
-    .single();
-  if (error) throw publicDatabaseError(error, `Não foi possível criar settings:${domain}.`);
-  return data;
-}
-
 function assertPrintKey(key: string): PrintTemplateKey {
   if (!isPrintTemplateKey(key)) throw new Error("Modelo de impressão não reconhecido.");
   return key;
@@ -510,15 +472,13 @@ export const savePrintTemplate = createServerFn({ method: "POST" })
     ]);
     const key = assertPrintKey(data.key);
     const db = await loadSgaAdminClient();
-    const row = await readSettingDomain(db, membership.schoolId, PRINT_SETTINGS_DOMAIN);
-    const settings = parsePrintSettings(row?.value);
-    await upsertSettingDomain(
+    await updateSettingsDomainValue(
       db,
       membership.schoolId,
       PRINT_SETTINGS_DOMAIN,
-      {
-        ...settings,
-        overrides: { ...(settings.overrides ?? {}), [key]: data.source },
+      (current) => {
+        const settings = parsePrintSettings(current);
+        return { ...settings, overrides: { ...(settings.overrides ?? {}), [key]: data.source } };
       },
       context.userId,
     );
@@ -535,15 +495,16 @@ export const resetPrintTemplate = createServerFn({ method: "POST" })
     ]);
     const key = assertPrintKey(data.key);
     const db = await loadSgaAdminClient();
-    const row = await readSettingDomain(db, membership.schoolId, PRINT_SETTINGS_DOMAIN);
-    const settings = parsePrintSettings(row?.value);
-    const overrides = { ...(settings.overrides ?? {}) };
-    delete overrides[key];
-    await upsertSettingDomain(
+    await updateSettingsDomainValue(
       db,
       membership.schoolId,
       PRINT_SETTINGS_DOMAIN,
-      { ...settings, overrides },
+      (current) => {
+        const settings = parsePrintSettings(current);
+        const overrides = { ...(settings.overrides ?? {}) };
+        delete overrides[key];
+        return { ...settings, overrides };
+      },
       context.userId,
     );
     return { key, customized: false };
@@ -559,17 +520,18 @@ export const setActivePrintTemplate = createServerFn({ method: "POST" })
     ]);
     const key = assertPrintKey(data.key);
     const db = await loadSgaAdminClient();
-    const row = await readSettingDomain(db, membership.schoolId, PRINT_SETTINGS_DOMAIN);
-    const settings = parsePrintSettings(row?.value);
     const meta = PRINT_TEMPLATE_META[key];
-    await upsertSettingDomain(
+    await updateSettingsDomainValue(
       db,
       membership.schoolId,
       PRINT_SETTINGS_DOMAIN,
-      {
-        ...settings,
-        issue: key,
-        byType: { ...(settings.byType ?? {}), [meta.type]: key },
+      (current) => {
+        const settings = parsePrintSettings(current);
+        return {
+          ...settings,
+          issue: key,
+          byType: { ...(settings.byType ?? {}), [meta.type]: key },
+        };
       },
       context.userId,
     );

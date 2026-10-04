@@ -1,4 +1,5 @@
 import { describeError } from "@/lib/error-capture";
+import { keepAlive } from "@/lib/execution-context";
 
 /**
  * Observabilidade do SIGA — espelha `painel/payflow/lib/ops-report.ts`, que já
@@ -177,7 +178,9 @@ async function dispatchAlert(event: string, fields: Record<string, unknown>): Pr
  */
 export function reportSigaEvent(event: string, fields: Record<string, unknown> = {}): void {
   logSigaEvent(event, fields);
-  void dispatchAlert(event, fields);
+  // Não se espera pelo alerta, mas no Worker regista-se com waitUntil: sem isso o
+  // pedido terminava e o fetch do alerta podia ser cancelado.
+  keepAlive(dispatchAlert(event, fields));
 }
 
 /** O mesmo, preservando a cadeia de causas do erro na descrição. */

@@ -59,6 +59,7 @@ export type EngineRule = {
 
 export type BreakdownEntry = {
   subjectId?: string | null;
+  termId?: string | null;
   subject?: string | null;
   average?: number | string | null;
   isKeySubject?: boolean | null;
@@ -69,17 +70,25 @@ export type SubjectFinal = {
   subjectName: string;
   average: number;
   isKeySubject: boolean;
+  /** Períodos do ano sem nota nesta disciplina (0 = completa ou desconhecido). */
+  missingTerms?: number;
 };
 
 /**
  * A pauta anual lista uma entrada por disciplina e período: junta-as numa
  * média por disciplina (média dos períodos com nota, arredondada pela regra).
+ * Com `expectedTerms` (períodos do ano lectivo), conta os que faltam: a
+ * disciplina só está completa com nota em todos (decisão de 2026-10-02).
  */
 export function subjectFinalsFromBreakdown(
   breakdown: BreakdownEntry[] | null | undefined,
   rule: Pick<EngineRule, "roundingMethod" | "decimalPlaces">,
+  expectedTerms = 0,
 ): SubjectFinal[] {
-  const bySubject = new Map<string, { name: string; values: number[]; key: boolean }>();
+  const bySubject = new Map<
+    string,
+    { name: string; values: number[]; key: boolean; terms: Set<string> }
+  >();
   for (const entry of breakdown ?? []) {
     const id = entry.subjectId ? String(entry.subjectId) : "";
     const value = entry.average == null || entry.average === "" ? NaN : Number(entry.average);
@@ -88,8 +97,11 @@ export function subjectFinalsFromBreakdown(
       name: String(entry.subject ?? "Disciplina"),
       values: [],
       key: false,
+      terms: new Set<string>(),
     };
     current.values.push(value);
+    // Pautas anteriores a 20261002160000 não têm `termId`: cada entrada é um período.
+    current.terms.add(entry.termId ? String(entry.termId) : `#${current.values.length}`);
     current.key = current.key || Boolean(entry.isKeySubject);
     bySubject.set(id, current);
   }
@@ -103,15 +115,21 @@ export function subjectFinalsFromBreakdown(
         rule.decimalPlaces,
       ),
       isKeySubject: s.key,
+      missingTerms: Math.max(0, expectedTerms - s.terms.size),
     }))
     .sort((a, b) => a.subjectName.localeCompare(b.subjectName, "pt"));
+}
+
+/** Disciplinas a que falta a nota de algum período. */
+export function subjectsMissingTerms(subjects: SubjectFinal[]) {
+  return subjects.filter((s) => (s.missingTerms ?? 0) > 0).map((s) => s.subjectName);
 }
 
 export type Eligibility =
   | { eligible: true; subjects: SubjectFinal[] }
   | {
       eligible: false;
-      reason: "no-negatives" | "absences" | "too-many" | "no-grades";
+      reason: "no-negatives" | "absences" | "too-many" | "no-grades" | "incomplete";
       subjects: SubjectFinal[];
     };
 
@@ -124,6 +142,8 @@ export function examEligibility(
   input: {
     subjects: SubjectFinal[];
     absencePercentage: number | null;
+    /** A pauta anual marcou a linha como incompleta (disciplina sem notas). */
+    sheetIncomplete?: boolean;
   },
   rule: EngineRule,
   session: { kind: ExamKind; maxFailedSubjects: number | null },
@@ -135,6 +155,10 @@ export function examEligibility(
     input.absencePercentage > rule.maximumAbsencePercentage
   ) {
     return { eligible: false, reason: "absences", subjects: [] };
+  }
+  // Sem as notas de todos os períodos ainda não há média anual para recuperar.
+  if (input.sheetIncomplete || subjectsMissingTerms(input.subjects).length) {
+    return { eligible: false, reason: "incomplete", subjects: [] };
   }
   if (session.kind === "melhoria") {
     const passed = input.subjects.filter((s) => s.average >= rule.passingValue);
@@ -158,14 +182,19 @@ export const ELIGIBILITY_REASON_LABELS: Record<
   absences: "Excluído por faltas",
   "too-many": "Negativas acima do máximo da época",
   "no-grades": "Sem notas na pauta anual",
+  incomplete: "Faltam notas de período",
 };
 
-/** Média da disciplina depois do exame, pelo método da época e o arredondamento da regra. */
+/**
+ * Média da disciplina depois do exame, pelo método da época e o arredondamento da regra.
+ * Na melhoria a nota nunca desce: um exame pior deixa a média que o aluno já tinha.
+ */
 export function averageAfterExam(
   original: number | null,
   score: number,
   method: ExamResultMethod,
   rule: Pick<EngineRule, "roundingMethod" | "decimalPlaces">,
+  kind?: ExamKind,
 ) {
   const base = original ?? score;
   const raw =
@@ -174,7 +203,8 @@ export function averageAfterExam(
       : method === "average"
         ? (base + score) / 2
         : Math.max(base, score);
-  return roundGrade(raw, rule.roundingMethod, rule.decimalPlaces);
+  const rounded = roundGrade(raw, rule.roundingMethod, rule.decimalPlaces);
+  return kind === "melhoria" && original != null ? Math.max(original, rounded) : rounded;
 }
 
 export type FinalResultCode = "pass" | "fail" | "incomplete";
@@ -191,6 +221,7 @@ export function computeFinalResult(
   subjects: SubjectFinal[],
   absencePercentage: number | null,
   rule: EngineRule,
+  sheetIncomplete = false,
 ): FinalResult {
   if (!subjects.length) {
     return { result: "incomplete", average: null, failedSubjects: [], reason: "Sem notas" };
@@ -209,6 +240,18 @@ export function computeFinalResult(
     absencePercentage > rule.maximumAbsencePercentage
   ) {
     return { result: "fail", average, failedSubjects, reason: "Faltas acima do limite" };
+  }
+  // Incompleta até haver nota em todos os períodos (como build_grade_sheet).
+  const missing = subjectsMissingTerms(subjects);
+  if (missing.length || sheetIncomplete) {
+    return {
+      result: "incomplete",
+      average,
+      failedSubjects,
+      reason: missing.length
+        ? `Faltam notas de período: ${missing.join(", ")}`
+        : "Disciplina sem notas na pauta anual",
+    };
   }
   const keyFail =
     rule.keySubjectsCauseFailure &&
@@ -289,11 +332,40 @@ export function latestGradedBySubject(
 
 /**
  * Percentagem de faltas como a pauta a calcula: faltas ÷ aulas registadas,
- * sem contar as justificadas. `null` se não houver registos.
+ * sem contar as justificadas nem as de aluno sem registo (`not_registered`:
+ * a chamada não o marcou — contá-lo como aula diluía as faltas e escondia uma
+ * exclusão). `null` se não houver registos.
  */
 export function absencePercentageFromStatuses(statuses: string[]): number | null {
-  const counted = statuses.filter((s) => s !== "excused");
+  const counted = statuses.filter((s) => s !== "excused" && s !== "not_registered");
   if (!counted.length) return null;
   const absent = counted.filter((s) => s === "absent").length;
   return Math.round((absent * 10000) / counted.length) / 100;
+}
+
+/**
+ * Médias que uma época encontra: as da pauta anual com as notas das épocas
+ * anteriores já aplicadas. Sem isto, uma segunda época partia outra vez da
+ * pauta — quem passou no recurso voltava a ser inscrito no exame especial com
+ * a negativa antiga e, com «substitui», uma nota pior apagava o recurso; e a
+ * melhoria não via as disciplinas recuperadas no recurso.
+ */
+export function subjectsBeforeSession(
+  subjects: SubjectFinal[],
+  registrations: Array<{
+    sessionId: string;
+    subjectId: string;
+    status: string;
+    finalAverage: number | null;
+    sessionCreatedAt: string;
+  }>,
+  session: { id: string; createdAt: string },
+): SubjectFinal[] {
+  const earlier = registrations.filter(
+    (r) =>
+      r.sessionId !== session.id &&
+      (r.sessionCreatedAt < session.createdAt ||
+        (r.sessionCreatedAt === session.createdAt && r.sessionId < session.id)),
+  );
+  return applyExamResults(subjects, latestGradedBySubject(earlier));
 }

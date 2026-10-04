@@ -6,7 +6,11 @@
  */
 
 import { loadSgaAdminClient } from "@/integrations/supabase/sga-admin";
-import { getPlatformDomain, getPlatformSubdomain } from "@/lib/saas/platform-domain";
+import {
+  getPlatformDomain,
+  getPlatformSubdomain,
+  isPlatformOwnedHostname,
+} from "@/lib/saas/platform-domain";
 import { domainDnsInstructions } from "@/features/saas/platform-ops";
 import { buildInstitutionalAddress, validateForwardingEmail } from "@/features/saas/email-routing";
 
@@ -192,12 +196,33 @@ export async function requestCustomDomainVerification(input: {
   hostname: string;
 }): Promise<{ domainId: string; instructions: ReturnType<typeof domainDnsInstructions> }> {
   const db = await loadSgaAdminClient();
-  const hostname = input.hostname.trim().toLowerCase();
+  const hostname = input.hostname.trim().toLowerCase().replace(/\.+$/, "");
+
+  // O domínio da plataforma e os subdomínios dela são atribuídos no
+  // provisionamento — nunca se registam como domínio próprio de uma escola.
+  if (isPlatformOwnedHostname(hostname)) {
+    throw new Error("Este endereço pertence à plataforma. Indique um domínio da própria escola.");
+  }
+
+  // Um domínio só pode estar pedido por uma escola de cada vez.
+  const { data: claimed, error: claimedError } = await db
+    .from("tenant_domains")
+    .select("id, tenant_id")
+    .eq("hostname", hostname)
+    .neq("tenant_id", input.tenantId)
+    .limit(1)
+    .maybeSingle();
+  if (claimedError) {
+    throw new Error("Não foi possível confirmar se o domínio está livre. Tente de novo.");
+  }
+  if (claimed?.id) {
+    throw new Error("Este domínio já foi pedido por outra escola.");
+  }
 
   // Verificar se já existe para este tenant
   const { data: existing } = await db
     .from("tenant_domains")
-    .select("id")
+    .select("id, hostname, status")
     .eq("tenant_id", input.tenantId)
     .eq("type", "custom_domain")
     .limit(1)
@@ -205,9 +230,12 @@ export async function requestCustomDomainVerification(input: {
 
   let domainId: string;
 
-  if (existing?.id) {
+  if (existing?.id && existing.hostname === hostname && existing.status === "active") {
+    // O mesmo domínio já está activo: repetir o pedido não o desliga.
     domainId = existing.id as string;
-    await db
+  } else if (existing?.id) {
+    domainId = existing.id as string;
+    const { error: updateError } = await db
       .from("tenant_domains")
       .update({
         hostname,
@@ -216,7 +244,11 @@ export async function requestCustomDomainVerification(input: {
         check_count: 0,
         updated_at: new Date().toISOString(),
       })
-      .eq("id", domainId);
+      .eq("id", domainId)
+      .eq("tenant_id", input.tenantId);
+    if (updateError) {
+      throw new Error(`Não foi possível registar o domínio: ${updateError.message}`);
+    }
   } else {
     const { data: inserted, error } = await db
       .from("tenant_domains")

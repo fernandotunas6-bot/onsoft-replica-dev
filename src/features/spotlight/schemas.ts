@@ -9,15 +9,30 @@ export type SpotlightKind = (typeof spotlightKinds)[number];
 export const spotlightTones = ["primary", "info", "success", "warning"] as const;
 export type SpotlightTone = (typeof spotlightTones)[number];
 
+// O destaque é mostrado a toda a escola: só caminhos da própria app ("/…", nunca
+// "//host") e links http(s). Um `javascript:` correria no browser de quem clica.
+const internalPathSchema = z
+  .string()
+  .min(1)
+  .refine((value) => value.startsWith("/") && !value.startsWith("//") && !value.includes("\\"), {
+    message: "Use um caminho interno que comece por /.",
+  });
+const externalHrefSchema = z
+  .string()
+  .url()
+  .refine((value) => /^https?:\/\//i.test(value.trim()), {
+    message: "Use um link que comece por https://.",
+  });
+
 export const spotlightLinkSchema = z.discriminatedUnion("type", [
   z.object({
     type: z.literal("internal"),
-    to: z.string().min(1),
-    fallbackTo: z.string().min(1).optional(),
+    to: internalPathSchema,
+    fallbackTo: internalPathSchema.optional(),
   }),
   z.object({
     type: z.literal("external"),
-    href: z.string().url(),
+    href: externalHrefSchema,
   }),
   z.object({
     type: z.literal("settings"),

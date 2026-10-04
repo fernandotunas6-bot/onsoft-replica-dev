@@ -93,6 +93,7 @@ function PublicEnrollmentPage() {
           guardianName,
           guardianPhone,
           guardianRelationship: String(data.get("guardian_relationship") || "") || undefined,
+          desiredProgramId: String(data.get("desired_program") || "") || undefined,
         },
       });
       setReceipt({
@@ -232,6 +233,27 @@ function PublicEnrollmentPage() {
                 <Label htmlFor="full_name">Nome completo</Label>
                 <Input id="full_name" name="full_name" required minLength={2} />
               </div>
+              {form?.programs?.length ? (
+                <div className="space-y-2">
+                  <Label htmlFor="desired_program">Curso pretendido</Label>
+                  <select
+                    id="desired_program"
+                    name="desired_program"
+                    required
+                    defaultValue=""
+                    className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
+                  >
+                    <option value="" disabled>
+                      Escolha o curso
+                    </option>
+                    {form.programs.map((program) => (
+                      <option key={program.id} value={program.id}>
+                        {program.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              ) : null}
               <div className="grid gap-3 sm:grid-cols-2">
                 {hasField(form?.visible_fields, "birth_date") ? (
                   <div className="space-y-1.5">

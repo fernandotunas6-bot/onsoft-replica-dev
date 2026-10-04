@@ -64,3 +64,34 @@ describe("verificação de documentos oficiais", () => {
     expect(isPublicAppPath("/verificar")).toBe(true);
   });
 });
+
+describe("quem emite cada documento verificável", () => {
+  it("professor emite documentos pedagógicos, não certificados nem declarações", async () => {
+    const { issuerRoleFor } = await import("@/features/documents/verification");
+    expect(issuerRoleFor(["Professor"], "pauta-disciplinar", false)).toBe("Professor");
+    expect(issuerRoleFor(["Professor"], "boletim-escolar", false)).toBe("Professor");
+    expect(issuerRoleFor(["Professor"], "certificado-habilitacoes", false)).toBeNull();
+    expect(issuerRoleFor(["Professor"], "declaracao-notas-simples", false)).toBeNull();
+    expect(issuerRoleFor(["Professor"], "historico-academico-individual", false)).toBeNull();
+  });
+
+  it("documento com valor só da Direcção, Secretaria ou Tesouraria", async () => {
+    const { issuerRoleFor } = await import("@/features/documents/verification");
+    expect(issuerRoleFor(["Professor"], "pauta-disciplinar", true)).toBeNull();
+    expect(issuerRoleFor(["Secretaria"], "service-document", true)).toBe("Secretaria");
+    expect(issuerRoleFor(["Tesouraria"], "service-document", true)).toBe("Tesouraria");
+    expect(issuerRoleFor(["Tesouraria"], "certificado-habilitacoes", false)).toBeNull();
+  });
+
+  it("mostra o papel mais alto que permite emitir", async () => {
+    const { issuerRoleFor } = await import("@/features/documents/verification");
+    expect(issuerRoleFor(["Professor", "Secretaria"], "boletim-escolar", false)).toBe("Secretaria");
+  });
+
+  it("o registo exige um modelo conhecido e verifica o papel antes de escrever", () => {
+    const source = readFileSync("src/features/documents/verification.ts", "utf8");
+    expect(source).toContain('refine(isPrintTemplateKey, "Modelo de documento não reconhecido.")');
+    const register = source.slice(source.indexOf("export const registerIssuedDocument"));
+    expect(register.indexOf("issuerRoleFor(")).toBeLessThan(register.indexOf('from("audit_logs")'));
+  });
+});

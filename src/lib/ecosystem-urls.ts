@@ -46,6 +46,7 @@ export const ECOSYSTEM_URLS = {
 export const DOC_PATHS = {
   sigaHome: "/siga/index.html",
   sigaNavigation: "/siga/navegacao.html",
+  sigaHigherEd: "/siga/ensino-superior.html",
   guideFeatures: "/guide/features.html",
   guideSupport: "/guide/support.html",
   guideSqlSga: "/guide/sql-sga.html",

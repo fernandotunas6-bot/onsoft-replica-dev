@@ -128,7 +128,6 @@ export const getMyStudentGrades = createServerFn({ method: "GET" })
             .eq("school_id", schoolId)
             .in("enrollment_id", enrollmentIds)
             .in("grade_item_id", itemIds)
-            .neq("status", "reversed")
         : { data: [] as Row[] };
 
     const byId = (rows: Row[]) => new Map(rows.map((row) => [str(row["id"]), row]));

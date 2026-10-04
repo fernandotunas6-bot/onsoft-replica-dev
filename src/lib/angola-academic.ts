@@ -14,14 +14,16 @@ export const angolaTeachingLevels = [
     cycle: "Primário",
     classes: ["1ª", "2ª", "3ª", "4ª", "5ª", "6ª"],
     // Aceita "1ª"/"1.ª"/"1a" — os dados reais das turmas usam o formato com ponto ("1.ª Classe").
-    match: /prim[aá]r|[123456]\.?\s?[ªa]/i,
+    // `(?<!\d)`: sem ele, «11ª» e «12ª» (II Ciclo) contavam como «1ª»/«2ª» do primário
+    // nas pautas e no histórico, que pegam no primeiro nível que coincide.
+    match: /prim[aá]r|(?<!\d)[123456]\.?\s?[ªa]/i,
   },
   {
     id: "i_ciclo",
     label: "I Ciclo do Ensino Secundário (7ª–9ª)",
     cycle: "I Ciclo",
     classes: ["7ª", "8ª", "9ª"],
-    match: /i\s*ciclo|[789]\.?\s?[ªa]|primeiro ciclo/i,
+    match: /(?<!i)i\s*ciclo|(?<!\d)[789]\.?\s?[ªa]|primeiro ciclo/i,
   },
   {
     id: "ii_ciclo",
@@ -51,6 +53,9 @@ export function isTeachingLevelId(value: unknown): value is AngolaTeachingLevelI
 export type AngolaTeachingCycle =
   "primario" | "i_ciclo" | "ii_ciclo" | "tecnico" | "adultos" | "superior";
 
+/** «1º Ano», «2.º ano · DIREITO»: ano curricular do Ensino Superior. */
+const HIGHER_ED_YEAR = /^\s*\d\.?\s?º\s?ano\b/i;
+
 /**
  * Deriva o ciclo de ensino a partir da classe/curso reais de uma turma — fonte única usada tanto
  * pelas Pautas (PautasWorkspaceModule.tsx) como pelo Histórico académico (academic/server.ts) para
@@ -62,6 +67,9 @@ export function inferTeachingCycle(
 ): AngolaTeachingCycle {
   const course = (courseName ?? "").toLowerCase();
   if (course.includes("técnic") || course.includes("tecnic")) return "tecnico";
+  // «Nº Ano» é sempre Superior, mesmo que o código do curso a seguir contenha
+  // palavras de outro nível (ex.: «1º Ano · EDUC-PRIMARIA», «2º Ano · ENSINO-MEDIO»).
+  if (HIGHER_ED_YEAR.test(gradeName ?? "")) return "superior";
   const level = angolaTeachingLevels.find((lvl) => lvl.match.test(gradeName ?? ""));
   if (!level) return "i_ciclo";
   return level.id === "pre_escolar" ? "primario" : level.id;
@@ -277,6 +285,7 @@ export function getPeriodLabelUpper(
 
 export function gradeMatchesTeachingLevels(gradeName: string, enabled: readonly string[]) {
   if (!enabled.length) return true;
+  if (HIGHER_ED_YEAR.test(gradeName)) return enabled.includes("superior");
   return angolaTeachingLevels.some(
     (level) => enabled.includes(level.id) && level.match.test(gradeName),
   );

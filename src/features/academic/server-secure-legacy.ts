@@ -6,12 +6,13 @@ import { loadSgaAdminClient, resolveSgaMembershipAdmin } from "@/integrations/su
 import { loadPeopleLite, loadPersonNamesById } from "@/features/people/lookup";
 import { averagePercent } from "@/features/students/schemas";
 import { scoreAverage } from "@/lib/angola-academic";
-import { listSgaTermGrades } from "./sga-grades";
+import { assertAssessmentTermNotLocked, listSgaTermGrades } from "./sga-grades";
 import {
   getStudentAcademicHistoryInputSchema,
   getTeacherWorkspaceInputSchema,
   listAssessmentsInputSchema,
   deleteAssessmentInputSchema,
+  updateAssessmentInputSchema,
   listPedagogicalWorkspaceInputSchema,
   listTermGradesInputSchema,
 } from "./schemas";
@@ -39,7 +40,6 @@ export {
   ensureAcademicDefaults,
   removeProgramSubject,
   unassignClassSubjectTeacher,
-  updateAssessmentItem,
   updateClassGroup,
   updateProgramGradingProfile,
   updateSubject,
@@ -507,6 +507,42 @@ export const listAssessments = createServerFn({ method: "GET" })
     return { available: true, items, scores: scores ?? [] };
   });
 
+/**
+ * O gatilho `enforce_teacher_assessment_item_scope` só corre quando muda a
+ * turma ou a disciplina: editar a cotação ou «conta para a pauta» de uma
+ * avaliação de outro professor passava. O âmbito confere-se aqui.
+ */
+export const updateAssessmentItem = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .validator((input: unknown) => updateAssessmentInputSchema.parse(input))
+  .handler(async ({ data, context }) => {
+    if (!context) throw new Error("Não autenticado.");
+    const membership = await requireAcademicMembership(context.userId);
+    if (isTeacherOnly(membership)) {
+      const db = await loadSgaAdminClient();
+      const scope = await resolveTeacherScope(db, membership.schoolId, context.userId);
+      if (!scope.teacherId) {
+        throw new Error("Perfil de professor não associado a esta escola.");
+      }
+      const { data: item, error: itemError } = await db
+        .from("siga_assessment_items")
+        .select("id, class_group_id, subject_id")
+        .eq("id", data.id)
+        .eq("school_id", membership.schoolId)
+        .maybeSingle();
+      if (itemError) {
+        throw publicDatabaseError(itemError, "Não foi possível validar a avaliação.");
+      }
+      if (!item) throw new Error("Avaliação não encontrada nesta escola.");
+      if (!scope.pairKeys.has(pairKey(item.class_group_id, item.subject_id))) {
+        throw new Error(
+          "O professor só pode editar avaliações da sua turma e disciplina atribuídas.",
+        );
+      }
+    }
+    return legacy.updateAssessmentItem({ data });
+  });
+
 export const deleteAssessmentItem = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((input: unknown) => deleteAssessmentInputSchema.parse(input))
@@ -514,6 +550,24 @@ export const deleteAssessmentItem = createServerFn({ method: "POST" })
     if (!context) throw new Error("Não autenticado.");
     const membership = await requireAcademicMembership(context.userId);
     const db = await loadSgaAdminClient();
+
+    // Apagar uma avaliação apaga as notas dela: não numa pauta já oficial.
+    const { data: target, error: targetError } = await db
+      .from("siga_assessment_items")
+      .select("id, class_group_id, term")
+      .eq("id", data.itemId)
+      .eq("school_id", membership.schoolId)
+      .maybeSingle();
+    if (targetError) {
+      throw publicDatabaseError(targetError, "Não foi possível validar a avaliação.");
+    }
+    if (!target) throw new Error("Avaliação não encontrada nesta escola.");
+    await assertAssessmentTermNotLocked(
+      db,
+      membership.schoolId,
+      String(target.class_group_id),
+      Number(target.term),
+    );
 
     if (isTeacherOnly(membership)) {
       const scope = await resolveTeacherScope(db, membership.schoolId, context.userId);

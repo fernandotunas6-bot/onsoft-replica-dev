@@ -96,6 +96,7 @@ export default defineConfig({
           items: [
             { text: 'Visão geral', link: '/siga/' },
             { text: 'Navegação e permissões', link: '/siga/navegacao' },
+            { text: 'Ensino Superior', link: '/siga/ensino-superior' },
           ],
         },
       ],

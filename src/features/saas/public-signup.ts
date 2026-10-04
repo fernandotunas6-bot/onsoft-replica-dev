@@ -11,6 +11,7 @@ import { markLeadCompleted } from "@/features/saas/commercial-lifecycle";
 
 export const EMAIL_NOT_VERIFIED_MESSAGE =
   "Confirme o e-mail do administrador com o código que lhe enviámos antes de criar a escola.";
+import { verifyHcaptcha } from "@/lib/hcaptcha-verify.server";
 
 const SIGNUP_RATE_LIMIT = { windowMs: 60 * 60 * 1000, max: 3 };
 
@@ -42,6 +43,7 @@ export async function runPublicSchoolSignup(
     website: _honeypot,
     email_verification_token: verificationToken,
     session_id: sessionId,
+    captcha_token: captchaToken,
     ...wizardData
   } = data;
   // Prova de posse do e-mail antes de gastar o limite de pedidos e de escrever
@@ -60,6 +62,11 @@ export async function runPublicSchoolSignup(
     throw new Error(
       "Muitos pedidos recentes a partir deste e-mail/IP. Tente novamente daqui a algumas horas.",
     );
+  }
+
+  // Depois do limite (que trava a repetição barata), antes de criar seja o que for.
+  if (!(await verifyHcaptcha(captchaToken, ip))) {
+    throw new Error("Confirme que não é um robô e tente de novo.");
   }
 
   const result = await provisionTenantCore(

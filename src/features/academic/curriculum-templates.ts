@@ -373,7 +373,12 @@ export function planCurriculum(selection: TemplateSelection): CurriculumPlan {
 
       for (const n of course.grades) {
         const code = gradeCode(level, n);
-        plan.grades.push({ programCode, code, name: level.gradeLabel(n), sequence: n });
+        // Com vários cursos no nível, a classe leva o curso: «10ª Classe · CFB»,
+        // «1º Ano · DIR» — senão as listas mostram várias «10ª Classe» iguais.
+        const gradeName = multiCourse(level)
+          ? `${level.gradeLabel(n)} · ${course.code}`
+          : level.gradeLabel(n);
+        plan.grades.push({ programCode, code, name: gradeName, sequence: n });
         const codes = [...(course.subjects["*"] ?? []), ...(course.subjects[n] ?? [])];
         const unique = [...new Set(codes)];
         for (const s of unique) {

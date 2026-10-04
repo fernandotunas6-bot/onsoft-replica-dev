@@ -28,11 +28,11 @@ chegue ao painel já com sessão aberta e veja, por ordem, o que falta e onde se
 | ---------- | --------------------------- | --------------------------------------- | ---------------- | ------------------------ |
 | Base       | Dados da escola             | NIF, director(a), telefone ou e-mail    | —                | Definições → Escola      |
 | Base       | Ano lectivo                 | ano `active`                            | —                | Calendário               |
-| Base       | Três trimestres             | 3 trimestres com datas no ano activo    | ano              | Calendário               |
+| Base       | Três trimestres (ou dois semestres) | 3 trimestres com datas; 2 semestres numa escola só de Ensino Superior | ano | Calendário |
 | Pedagógica | Cursos e classes            | ≥1 curso e ≥1 classe activos            | ano              | Pedagógica → Estrutura   |
 | Pedagógica | Disciplinas                 | ≥1 disciplina activa                    | estrutura        | Pedagógica → Disciplinas |
 | Pedagógica | Turmas                      | ≥1 turma no ano activo                  | ano, estrutura   | Pedagógica → Turmas      |
-| Pedagógica | Modelo de avaliação         | regra `DEFAULT` activa                  | —                | Pedagógica → Modelos     |
+| Pedagógica | Modelo de avaliação         | regra `DEFAULT` activa (só Ensino Superior: regulamento do Superior, opcional) | — | Pedagógica → Modelos |
 | Financeiro | Propina e matrícula         | plano activo do ano com itens           | ano              | Definições → Financeiro  |
 | Pessoas    | Equipa                      | outro membro activo ou convite pendente | —                | Acessos                  |
 | Pessoas    | Alunos                      | ≥1 aluno                                | turmas, propinas | Alunos → Matricular      |
@@ -42,7 +42,10 @@ Porquê esta ordem: `class_groups` e `fee_plans` exigem ano lectivo; o modelo de
 as turmas no ano activo; sem modelo de avaliação não há pautas; a matrícula põe o aluno numa
 turma e gera as facturas.
 
-O cartão mostra também o plano e o fim do período experimental (liga a Assinatura e plano).
+O cartão mostra também o plano e o fim do período experimental (liga a Assinatura e plano) e
+«Todos os passos», que abre o assistente completo `/configuracoes/inicio`
+(`src/features/school/setup-steps.ts`: regulamento e planos do Superior, emolumentos, 2FA,
+IBAN). Os dois usam a mesma regra de períodos (`src/features/academic/period-model.ts`).
 Quando tudo está feito fica uma linha «A escola está pronta a operar», que se pode ocultar.
 
 ## 3. O que o Administrador gere (só a sua escola)
@@ -73,7 +76,13 @@ da sessão ou um admin da plataforma com MFA.
   níveis, cursos, classes, disciplinas dos planos curriculares, currículos por classe, turmas
   («10ª CFB A — Manhã») e salas (uma por turma do mesmo turno + laboratórios/oficina).
   Idempotente. A carga horária não é preenchida; no superior as unidades curriculares ficam
-  para a instituição.
+  para a instituição (Pedagógica → Ensino Superior → plano curricular).
+- **Mesmos códigos no registo:** os níveis escolhidos no registo (e em Definições → Pedagógico)
+  passam por `school-structure-plan.ts`, que constrói o plano com `planCurriculum` e grava com
+  a mesma `applyCurriculumPlan` — EP, ESG1, ESG2-<área>, ETP, ES-<curso> (mais `INIC`
+  Iniciação e cursos genéricos `ESG2-GERAL`/`ETP-GERAL`/`ES-LIC` quando o registo não diz a
+  área). Aplicar o modelo depois só acrescenta o que falta. Classes de níveis com vários
+  cursos levam o curso no nome («10ª Classe · CFB», «1º Ano · DIR»).
 
 ## 5. Registo público e acompanhamento
 
@@ -104,4 +113,6 @@ da sessão ou um admin da plataforma com MFA.
 
 - Referência Multicaixa real (homologação EMIS no PayFlow).
 - Carga horária por disciplina nos modelos (depende do plano curricular de cada escola).
-- Calendário por semestres para o ensino superior (o SIGA trabalha por trimestres).
+- ~~Calendário por semestres para o ensino superior~~ — feito: «Configurar semestres» no
+  Calendário numa escola só de Ensino Superior (gravação um a um; a gravação conjunta
+  `save_academic_calendar` só aceita 3 trimestres e exige migração).

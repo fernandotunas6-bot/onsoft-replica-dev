@@ -19,12 +19,12 @@ describe("modelos de estrutura académica", () => {
   it("II Ciclo: 10ª, 11ª e 12ª classe por área, com turmas «10ª CFB A — Manhã»", () => {
     const plan = planCurriculum({ ...base, courses: { secundario_2: ["CFB", "CEJ"] } });
     expect(plan.grades.map((g) => g.name)).toEqual([
-      "10ª Classe",
-      "11ª Classe",
-      "12ª Classe",
-      "10ª Classe",
-      "11ª Classe",
-      "12ª Classe",
+      "10ª Classe · CFB",
+      "11ª Classe · CFB",
+      "12ª Classe · CFB",
+      "10ª Classe · CEJ",
+      "11ª Classe · CEJ",
+      "12ª Classe · CEJ",
     ]);
     expect(plan.programs.map((p) => p.code)).toEqual(["ESG2-CFB", "ESG2-CEJ"]);
     expect(plan.classGroups[0]).toMatchObject({ code: "CFB10A-M", name: "10ª CFB A — Manhã" });
@@ -43,7 +43,7 @@ describe("modelos de estrutura académica", () => {
 
   it("Técnico-profissional vai até à 13ª classe, com Projecto Tecnológico no fim", () => {
     const plan = planCurriculum({ ...base, courses: { tecnico: ["INF"] } });
-    expect(plan.grades.map((g) => g.name).at(-1)).toBe("13ª Classe");
+    expect(plan.grades.map((g) => g.name).at(-1)).toBe("13ª Classe · INF");
     expect(plan.curriculum.find((c) => c.gradeCode === "13CL")!.subjectCodes).toContain("PT");
     expect(plan.rooms.map((r) => r.code)).toEqual(expect.arrayContaining(["LAB-INF", "OFICINA"]));
   });
@@ -51,11 +51,11 @@ describe("modelos de estrutura académica", () => {
   it("Superior: anos em vez de classes e perfil de avaliação do superior", () => {
     const plan = planCurriculum({ ...base, courses: { superior: ["DIR", "EINF"] } });
     expect(plan.grades.filter((g) => g.programCode === "ES-DIR").map((g) => g.name)).toEqual([
-      "1º Ano",
-      "2º Ano",
-      "3º Ano",
-      "4º Ano",
-      "5º Ano",
+      "1º Ano · DIR",
+      "2º Ano · DIR",
+      "3º Ano · DIR",
+      "4º Ano · DIR",
+      "5º Ano · DIR",
     ]);
     expect(plan.programs.every((p) => p.kind === "undergraduate" && p.higherEducation)).toBe(true);
     expect(plan.classGroups[0]).toMatchObject({ code: "DIR1A-M", name: "1º Ano DIR A — Manhã" });
