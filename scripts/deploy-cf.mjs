@@ -1,7 +1,7 @@
 import { execSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
-import { collectWorkerSecrets } from "./worker-secrets.mjs";
+import { collectWorkerSecrets, collectWorkerVars } from "./worker-secrets.mjs";
 
 // Load .env file
 const envFile = path.resolve(".env");
@@ -85,7 +85,12 @@ if (fs.existsSync(wranglerPath)) {
     VITE_DOCS_URL: DOCS_URL,
     VITE_SIGA_URL: SIGA_URL,
     VITE_PAYFLOW_URL: PAYFLOW_URL,
+    ...Object.fromEntries(collectWorkerVars(envVars, process.env)),
   };
+  // Sem isto, `wrangler deploy` substitui todas as variáveis do Worker pelas deste
+  // ficheiro: o que estivesse definido à mão no painel (métodos AppyPay, domínio da
+  // plataforma…) desaparecia a cada publicação.
+  config.keep_vars = true;
   fs.writeFileSync(wranglerPath, JSON.stringify(config, null, 2), "utf-8");
   console.log("==> Attached production Supabase & App environment variables to wrangler.json");
 }

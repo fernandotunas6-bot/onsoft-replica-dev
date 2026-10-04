@@ -1,4 +1,5 @@
-import { test, expect } from "@playwright/test";
+import { createHmac } from "node:crypto";
+import { test, expect, type APIRequestContext } from "@playwright/test";
 import {
   buildSignupPayload,
   ECOSYSTEM_E2E_URLS,
@@ -17,6 +18,27 @@ import {
   seedE2EGatewayFixture,
   E2E_UNITEL_SCHOOL_WEBHOOK_KEY,
 } from "./helpers/sga-live-admin";
+
+/** Aviso assinado como o provedor o envia (a key nunca vai no corpo). */
+function signedGatewayPost(
+  request: APIRequestContext,
+  url: string,
+  key: string,
+  body: Record<string, unknown>,
+) {
+  const payload = { externalId: `e2e-${Date.now()}`, ...body };
+  const rawBody = JSON.stringify(payload);
+  const timestamp = String(Math.floor(Date.now() / 1000));
+  const signature = `sha256=${createHmac("sha256", key).update(`${timestamp}.${rawBody}`).digest("hex")}`;
+  return request.post(url, {
+    data: rawBody,
+    headers: {
+      "Content-Type": "application/json",
+      "X-SIGA-Timestamp": timestamp,
+      "X-SIGA-Signature": signature,
+    },
+  });
+}
 
 test.describe("Gateway EMIS @live", () => {
   test.skip(!isLiveE2EEnabled(), "Defina SIGA_E2E_LIVE=1 com apps locais e Supabase configurado.");
@@ -37,16 +59,18 @@ test.describe("Gateway EMIS @live", () => {
 
       const fixture = await seedE2EGatewayFixture(schoolId!, { amount: 45_000 });
 
-      const confirm = await request.post(`${ECOSYSTEM_E2E_URLS.siga}/api/finance/gateway/confirm`, {
-        data: {
-          apiKey,
+      const confirm = await signedGatewayPost(
+        request,
+        `${ECOSYSTEM_E2E_URLS.siga}/api/finance/gateway/confirm`,
+        apiKey,
+        {
           reference: fixture.reference,
           amount: fixture.amount,
           invoiceId: fixture.invoiceId,
           channel: "multicaixa_express",
           externalId: `e2e-dev-${Date.now()}`,
         },
-      });
+      );
       expect(confirm.ok()).toBeTruthy();
       const body = (await confirm.json()) as {
         ok?: boolean;
@@ -85,15 +109,17 @@ test.describe("Gateway EMIS @live", () => {
 
       const fixture = await seedE2EGatewayFixture(schoolId!, { amount: 45_000 });
 
-      const confirm = await request.post(`${ECOSYSTEM_E2E_URLS.siga}/api/finance/gateway/confirm`, {
-        data: {
-          apiKey: schoolWebhookKey,
+      const confirm = await signedGatewayPost(
+        request,
+        `${ECOSYSTEM_E2E_URLS.siga}/api/finance/gateway/confirm`,
+        schoolWebhookKey,
+        {
           reference: fixture.reference,
           amount: fixture.amount,
           invoiceId: fixture.invoiceId,
           channel: "multicaixa_express",
         },
-      });
+      );
       expect(confirm.ok()).toBeTruthy();
       const body = (await confirm.json()) as { ok?: boolean; planSettled?: boolean };
       expect(body.ok).toBe(true);
@@ -130,14 +156,11 @@ test.describe("Gateway Unitel @live", () => {
         channel: "unitel_money",
       });
 
-      const confirm = await request.post(unitelConfirmUrl, {
-        data: {
-          apiKey,
-          reference: fixture.reference,
-          amount: fixture.amount,
-          invoiceId: fixture.invoiceId,
-          externalId: `e2e-unitel-dev-${Date.now()}`,
-        },
+      const confirm = await signedGatewayPost(request, unitelConfirmUrl, apiKey, {
+        reference: fixture.reference,
+        amount: fixture.amount,
+        invoiceId: fixture.invoiceId,
+        externalId: `e2e-unitel-dev-${Date.now()}`,
       });
       expect(confirm.ok()).toBeTruthy();
       const body = (await confirm.json()) as {
@@ -180,13 +203,10 @@ test.describe("Gateway Unitel @live", () => {
         channel: "unitel_money",
       });
 
-      const confirm = await request.post(unitelConfirmUrl, {
-        data: {
-          apiKey: unitelWebhookKey,
-          reference: fixture.reference,
-          amount: fixture.amount,
-          invoiceId: fixture.invoiceId,
-        },
+      const confirm = await signedGatewayPost(request, unitelConfirmUrl, unitelWebhookKey, {
+        reference: fixture.reference,
+        amount: fixture.amount,
+        invoiceId: fixture.invoiceId,
       });
       expect(confirm.ok()).toBeTruthy();
       const body = (await confirm.json()) as { ok?: boolean; planSettled?: boolean };

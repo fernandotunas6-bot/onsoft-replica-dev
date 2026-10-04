@@ -6,6 +6,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { MailCheck, MailWarning } from "lucide-react";
 import { actionIcons, moduleIcons, statusIcons } from "@/lib/app-icons";
 import { toast } from "sonner";
+import { toastActionError } from "@/lib/action-error-toast";
 import { Panel, badgeBase, toneClass } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -76,8 +77,7 @@ function RequestRow({
       void queryClient.invalidateQueries({ queryKey: QUERY_KEY });
       void queryClient.invalidateQueries({ queryKey: ["access", "accounts"] });
     },
-    onError: (error) =>
-      toast.error(error instanceof Error ? error.message : "Não foi possível gravar a decisão."),
+    onError: (error) => toastActionError(error, "Não foi possível gravar a decisão."),
   });
 
   const open = isOpenAccessRequest(item.status);

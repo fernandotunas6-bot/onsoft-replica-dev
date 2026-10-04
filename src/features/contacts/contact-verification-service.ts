@@ -255,7 +255,25 @@ export class ContactVerificationService {
    * Marca o email como verificado.
    */
   public static async markEmailAsVerified(userId: string): Promise<void> {
-    await this.marcarVerificado(userId, "email", "Falha ao marcar email como verificado");
+    // Só o e-mail que o Auth confirmou (magic link ou reposição de senha) conta
+    // como verificado, e é esse endereço que fica no perfil. Um login por senha
+    // sem e-mail confirmado não marca nada.
+    const db = await loadSgaAdminClient();
+    const { data, error } = await db.auth.admin.getUserById(userId);
+    if (error) throw new Error(`Falha ao confirmar o email: ${error.message}`);
+    const email = data.user?.email?.toLowerCase().trim();
+    if (!email || !data.user?.email_confirmed_at) {
+      throw new Error("O email desta conta ainda não foi confirmado.");
+    }
+    await this.patchProfile(
+      userId,
+      {
+        email_address: email,
+        email_verified: true,
+        email_verified_at: new Date().toISOString(),
+      },
+      "Falha ao marcar email como verificado",
+    );
   }
 
   /**

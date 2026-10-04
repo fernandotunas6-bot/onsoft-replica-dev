@@ -36,6 +36,7 @@ import { useDeclareEntityFocus } from "@/features/intelligence/entity-focus-cont
 import { mapClassGroupToSnapshot } from "@/features/intelligence/classes/class-relations-adapter";
 import { useRelations } from "@/features/intelligence/use-relations";
 import { useSuggestions } from "@/features/intelligence/use-suggestions";
+import { safeHref } from "@/lib/safe-url";
 
 type SalaOption = { id: string; name: string; capacity: number | null };
 
@@ -352,7 +353,7 @@ export function TurmaProfileModal({
                       <dt className="text-muted-foreground">WhatsApp</dt>
                       <dd className="mt-0.5 text-sm font-medium">
                         <a
-                          href={turma.whatsapp_invite_url}
+                          href={safeHref(turma.whatsapp_invite_url)}
                           target="_blank"
                           rel="noreferrer"
                           className="text-primary hover:underline"

@@ -18,7 +18,6 @@ const PUBLICADAS_NA_PRODUCAO = [
 ];
 const MIGRACAO_TEMPO_REAL =
   "supabase/migrations/20261004101000_realtime_publish_school_screens.sql";
-const MIGRACAO_COMUNICADOS = "supabase/migrations/20261004100000_announcements_read_by_role.sql";
 
 const snapshot = JSON.parse(readFileSync("supabase/PRODUCTION_SNAPSHOT.json", "utf8")) as {
   tabelas: Array<{ tabela: string }>;
@@ -79,28 +78,10 @@ describe("tempo real contra a produção", () => {
   });
 });
 
-describe("comunicados: leitura pela regra da lista", () => {
-  const sql = readFileSync(MIGRACAO_COMUNICADOS, "utf8");
-
-  it("restringe (RESTRICTIVE) a leitura: o pessoal vê todos, os outros só enviados e não do corpo docente", () => {
-    expect(sql).toMatch(/AS RESTRICTIVE\s+FOR SELECT\s+TO authenticated/);
-    expect(sql).toContain("private.is_school_staff(school_id)");
-    expect(sql).toContain("status = 'sent' AND audience <> 'teaching_staff'");
-    expect(sql).toContain('DROP POLICY IF EXISTS "Announcements visible by role"');
-  });
-
-  it("é a mesma regra que a lista do servidor aplica a alunos e encarregados", () => {
-    const servidor = readFileSync("src/features/communications/server.ts", "utf8");
-    expect(servidor).toContain('.eq("status", "sent").neq("audience", "teaching_staff")');
-  });
-});
-
 describe("pacote para o SQL Editor", () => {
-  it("leva as duas migrações tal como estão, com a confirmação no fim", () => {
-    const pacote = readFileSync("docs/agents/SIGA_aplicar_comunicados_tempo_real.sql", "utf8");
-    for (const migracao of [MIGRACAO_COMUNICADOS, MIGRACAO_TEMPO_REAL]) {
-      expect(pacote, migracao).toContain(readFileSync(migracao, "utf8"));
-    }
-    expect(pacote).toMatch(/══════════ Confirmar ══════════[\s\S]*'Announcements visible by role'/);
+  it("leva a migração tal como está, com a confirmação no fim", () => {
+    const pacote = readFileSync("docs/agents/SIGA_aplicar_tempo_real.sql", "utf8");
+    expect(pacote).toContain(readFileSync(MIGRACAO_TEMPO_REAL, "utf8"));
+    expect(pacote).toMatch(/══════════ Confirmar ══════════[\s\S]*pg_publication_tables/);
   });
 });

@@ -18,6 +18,7 @@ import {
 import { createClient, isSupabaseConfigured } from "@/lib/supabase/client"
 import {
   backfillSaasSubscriptions,
+  fetchBillingProofUrl,
   fetchSaasAuditLogs,
   fetchSaasSubscriptions,
   updateTenantSubscription,
@@ -71,6 +72,56 @@ function pendingPlanRequests(logs: SaasAuditLogRow[]): PlanRequest[] {
   return pending
 }
 
+type PaymentProof = {
+  tenantId: string
+  tenantName: string
+  tenantSlug: string | null
+  planCode: string
+  billing: "monthly" | "yearly"
+  amountKz: number | null
+  proofPath: string
+  transferReference: string | null
+  paidOn: string | null
+  submittedAt: string
+}
+
+/**
+ * Comprovativos enviados em SIGA → Assinatura e ainda por confirmar: os que
+ * chegaram depois da última confirmação de pagamento da escola.
+ */
+function pendingPaymentProofs(logs: SaasAuditLogRow[]): PaymentProof[] {
+  const confirmedAt = new Map<string, string>()
+  for (const log of logs) {
+    const meta = (log.metadata ?? {}) as Record<string, unknown>
+    if (log.tenant_id && log.action === "TENANT_SUBSCRIPTION_UPDATED" && meta.payment_confirmed) {
+      const prev = confirmedAt.get(log.tenant_id)
+      if (!prev || log.created_at > prev) confirmedAt.set(log.tenant_id, log.created_at)
+    }
+  }
+  return logs
+    .filter((log) => log.action === "plan_payment_proof_submitted" && log.tenant_id)
+    .filter((log) => {
+      const confirmed = confirmedAt.get(log.tenant_id as string)
+      return !confirmed || log.created_at > confirmed
+    })
+    .sort((a, b) => b.created_at.localeCompare(a.created_at))
+    .map((log) => {
+      const meta = (log.metadata ?? {}) as Record<string, unknown>
+      return {
+        tenantId: log.tenant_id as string,
+        tenantName: log.tenant_name || String(meta.school ?? "Escola"),
+        tenantSlug: log.tenant_slug ?? null,
+        planCode: String(meta.plan_code ?? ""),
+        billing: meta.billing === "yearly" ? "yearly" : "monthly",
+        amountKz: typeof meta.amount_kz === "number" ? meta.amount_kz : null,
+        proofPath: String(meta.proof_path ?? ""),
+        transferReference: typeof meta.transfer_reference === "string" ? meta.transfer_reference : null,
+        paidOn: typeof meta.paid_on === "string" ? meta.paid_on : null,
+        submittedAt: log.created_at,
+      }
+    })
+}
+
 async function accessToken(): Promise<string | undefined> {
   if (!isSupabaseConfigured()) return undefined
   const supabase = createClient()
@@ -99,6 +150,7 @@ export default function SubscriptionsPage() {
   const [backfillMessage, setBackfillMessage] = useState<string | null>(null)
   const [requests, setRequests] = useState<PlanRequest[]>([])
   const [approving, setApproving] = useState<string | null>(null)
+  const [proofs, setProofs] = useState<PaymentProof[]>([])
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -110,9 +162,11 @@ export default function SubscriptionsPage() {
         "plan_change_requested",
         "plan_change_cancelled",
         "TENANT_SUBSCRIPTION_UPDATED",
+        "plan_payment_proof_submitted",
       ]),
     ])
     setRequests(audit.ok ? pendingPlanRequests(audit.logs ?? []) : [])
+    setProofs(audit.ok ? pendingPaymentProofs(audit.logs ?? []) : [])
     if (!token || result.error?.includes("Unauthorized") || result.error?.includes("Sem permissão")) {
       setNeedsAuth(true)
       setSubscriptions([])
@@ -152,6 +206,31 @@ export default function SubscriptionsPage() {
     })
     if (!result.ok) setError(result.error || "Não foi possível mudar o plano.")
     else setBackfillMessage(`${request.tenantName} passou para o plano ${request.to}.`)
+    await load()
+    setApproving(null)
+  }
+
+  async function openProof(proof: PaymentProof) {
+    const token = await accessToken()
+    const result = await fetchBillingProofUrl(token, proof.proofPath)
+    if (result.ok && result.url) window.open(result.url, "_blank", "noopener,noreferrer")
+    else setError(result.error || "Comprovativo indisponível.")
+  }
+
+  async function confirmPayment(proof: PaymentProof) {
+    setApproving(proof.tenantId)
+    setError(null)
+    const token = await accessToken()
+    const result = await updateTenantSubscription(token, {
+      tenantId: proof.tenantId,
+      plan_code: proof.planCode || undefined,
+      confirm_payment_billing: proof.billing,
+    })
+    if (!result.ok) setError(result.error || "Não foi possível confirmar o pagamento.")
+    else
+      setBackfillMessage(
+        `${proof.tenantName}: pagamento confirmado, plano ${proof.planCode} activo (${proof.billing === "yearly" ? "1 ano" : "1 mês"}).`,
+      )
     await load()
     setApproving(null)
   }
@@ -223,6 +302,53 @@ export default function SubscriptionsPage() {
           <p className="mb-4 rounded-md bg-muted px-3 py-2 text-sm text-muted-foreground">
             {backfillMessage}
           </p>
+        ) : null}
+
+        {proofs.length > 0 ? (
+          <Card className="mb-4">
+            <CardContent className="pt-6">
+              <h2 className="text-sm font-medium">Comprovativos de pagamento por confirmar ({proofs.length})</h2>
+              <p className="mb-3 text-xs text-muted-foreground">
+                Enviados pelas escolas em Configurações → Assinatura. Confirme a entrada do dinheiro na
+                conta antes de activar: activa o plano por um mês ou um ano.
+              </p>
+              <ul className="divide-y">
+                {proofs.map((proof) => (
+                  <li
+                    key={`${proof.tenantId}-${proof.submittedAt}`}
+                    className="flex flex-wrap items-center justify-between gap-3 py-3 text-sm"
+                  >
+                    <div className="min-w-0">
+                      <div>
+                        {proof.tenantName}
+                        {proof.tenantSlug ? (
+                          <span className="ml-2 font-mono text-xs text-muted-foreground">{proof.tenantSlug}</span>
+                        ) : null}
+                      </div>
+                      <div className="text-xs text-muted-foreground">
+                        {proof.planCode} · {proof.billing === "yearly" ? "anual" : "mensal"}
+                        {proof.amountKz ? ` · ${proof.amountKz.toLocaleString("pt-AO")} Kz` : ""}
+                        {proof.transferReference ? ` · ref. ${proof.transferReference}` : ""}
+                        {proof.paidOn ? ` · pago a ${proof.paidOn}` : ""} · enviado a {formatDate(proof.submittedAt)}
+                      </div>
+                    </div>
+                    <div className="flex gap-2">
+                      <Button size="sm" variant="outline" onClick={() => void openProof(proof)}>
+                        Ver comprovativo
+                      </Button>
+                      <Button
+                        size="sm"
+                        disabled={approving !== null}
+                        onClick={() => void confirmPayment(proof)}
+                      >
+                        {approving === proof.tenantId ? "A confirmar…" : "Confirmar pagamento"}
+                      </Button>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            </CardContent>
+          </Card>
         ) : null}
 
         {requests.length > 0 ? (

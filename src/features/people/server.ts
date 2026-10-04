@@ -10,6 +10,7 @@ import {
 import { sgaClient } from "@/integrations/supabase/sga";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { publicDatabaseError } from "@/integrations/supabase/server-error";
+import { reportSigaError } from "@/lib/ops-report";
 import {
   loadSgaAdminClient,
   requireSgaWriterFor,
@@ -418,20 +419,42 @@ export const findPersonDuplicates = createServerFn({ method: "POST" })
     ]);
     const db = await loadSgaAdminClient();
 
-    const { data: people, error } = await db
-      .from("people")
-      .select("id, full_name, email, phone, national_id, date_of_birth, status")
-      .eq("school_id", membership.schoolId)
-      .limit(250);
-    if (error) throw publicDatabaseError(error, "Não foi possível verificar duplicados.");
-
     const name = data.fullName.trim().toLowerCase();
     const email = (data.email ?? "").trim().toLowerCase();
     const phone = normalizePhone(data.phone);
     const nif = (data.nif ?? data.documentNumber ?? "").trim().toLowerCase();
     const birth = data.birthDate ?? "";
 
-    return (people ?? [])
+    // Procura dirigida por cada critério, em vez das primeiras 250 fichas da
+    // escola: numa escola grande o duplicado estava quase sempre fora da amostra.
+    const likeSafe = (value: string) => value.replace(/[\\%_]/g, (c) => `\\${c}`);
+    const columns = "id, full_name, email, phone, national_id, date_of_birth, status";
+    const base = () => db.from("people").select(columns).eq("school_id", membership.schoolId);
+    const lookups = [
+      name
+        ? base()
+            .ilike("full_name", `%${likeSafe(name)}%`)
+            .limit(50)
+        : null,
+      email ? base().ilike("email", likeSafe(email)).limit(10) : null,
+      phone.length >= 9
+        ? base()
+            .ilike("phone", `%${phone.slice(-9)}%`)
+            .limit(10)
+        : null,
+      nif ? base().ilike("national_id", likeSafe(nif)).limit(10) : null,
+    ].filter((query) => query !== null);
+    const results = await Promise.all(lookups);
+    const lookupError = results.find((result) => result.error)?.error;
+    if (lookupError)
+      throw publicDatabaseError(lookupError, "Não foi possível verificar duplicados.");
+    const people = [
+      ...new Map(
+        results.flatMap((result) => result.data ?? []).map((row) => [String(row.id), row]),
+      ).values(),
+    ];
+
+    return people
       .map((person: Record<string, unknown>) => {
         let score = 0;
         const reasons: string[] = [];
@@ -634,17 +657,23 @@ export const mergePeople = createServerFn({ method: "POST" })
     if (data.survivorId === data.duplicateId) {
       throw new Error("Seleccione duas pessoas diferentes.");
     }
+    requireAal2(context.claims, "Fundir fichas de pessoas");
     const db = await loadSgaAdminClient();
 
     const { data: people, error } = await db
       .from("people")
-      .select("id, full_name, email, phone, national_id, date_of_birth, status")
+      .select("id, full_name, email, phone, national_id, date_of_birth, status, user_id")
       .eq("school_id", membership.schoolId)
       .in("id", [data.survivorId, data.duplicateId]);
     if (error) throw publicDatabaseError(error, "Não foi possível carregar as pessoas.");
     const survivor = (people ?? []).find((row) => row.id === data.survivorId);
     const duplicate = (people ?? []).find((row) => row.id === data.duplicateId);
     if (!survivor || !duplicate) throw new Error("Uma das pessoas não existe nesta escola.");
+    if (survivor.user_id && duplicate.user_id && survivor.user_id !== duplicate.user_id) {
+      throw new Error(
+        "As duas fichas têm contas de acesso diferentes. Não é seguro fundi-las — desactive o duplicado.",
+      );
+    }
 
     const [{ data: students }, { data: teachers }] = await Promise.all([
       db
@@ -664,6 +693,24 @@ export const mergePeople = createServerFn({ method: "POST" })
     if (survivorStudents.length && duplicateStudents.length) {
       throw new Error(
         "As duas fichas têm matrícula de aluno. Não é seguro fundi-las — desactive o duplicado.",
+      );
+    }
+    const { data: employments, error: employmentsError } = await db
+      .from("hr_employments")
+      .select("id, person_id")
+      .eq("school_id", membership.schoolId)
+      .in("person_id", [data.survivorId, data.duplicateId])
+      .is("deleted_at", null);
+    if (employmentsError) {
+      throw publicDatabaseError(
+        employmentsError,
+        "Não foi possível verificar os vínculos laborais.",
+      );
+    }
+    const employmentOwners = new Set((employments ?? []).map((row) => String(row.person_id)));
+    if (employmentOwners.size > 1) {
+      throw new Error(
+        "As duas fichas têm vínculo laboral (RH). Não é seguro fundi-las — desactive o duplicado.",
       );
     }
     const survivorTeachers = (teachers ?? []).filter((row) => row.person_id === data.survivorId);
@@ -705,7 +752,102 @@ export const mergePeople = createServerFn({ method: "POST" })
       }
     }
 
+    // Tudo o que aponta para o duplicado passa para a ficha que fica: sem isto,
+    // o encarregado fundido perdia os educandos no portal, e documentos, cartões
+    // de acesso e vínculos de RH ficavam presos a uma ficha desactivada.
+    const moves = await Promise.all([
+      db
+        .from("person_documents")
+        .update({ person_id: data.survivorId, updated_by: context.userId })
+        .eq("school_id", membership.schoolId)
+        .eq("person_id", data.duplicateId),
+      db
+        .from("siga_access_cards")
+        .update({ person_id: data.survivorId })
+        .eq("school_id", membership.schoolId)
+        .eq("person_id", data.duplicateId),
+      db
+        .from("hr_employments")
+        .update({ person_id: data.survivorId, updated_by: context.userId })
+        .eq("school_id", membership.schoolId)
+        .eq("person_id", data.duplicateId),
+    ]);
+    const moveError = moves.find((result) => result.error)?.error;
+    if (moveError) {
+      throw publicDatabaseError(
+        moveError,
+        "Não foi possível transferir documentos, cartões ou vínculo laboral.",
+      );
+    }
+
+    const { data: guardianLinks, error: guardianError } = await db
+      .from("student_guardians")
+      .select("id, student_id, guardian_person_id")
+      .eq("school_id", membership.schoolId)
+      .in("guardian_person_id", [data.survivorId, data.duplicateId]);
+    if (guardianError) {
+      throw publicDatabaseError(guardianError, "Não foi possível carregar os educandos.");
+    }
+    const survivorWards = new Set(
+      (guardianLinks ?? [])
+        .filter((row) => row.guardian_person_id === data.survivorId)
+        .map((row) => String(row.student_id)),
+    );
+    const duplicateLinks = (guardianLinks ?? []).filter(
+      (row) => row.guardian_person_id === data.duplicateId,
+    );
+    const linksToMove = duplicateLinks
+      .filter((row) => !survivorWards.has(String(row.student_id)))
+      .map((row) => String(row.id));
+    // Mesmo educando já ligado à ficha que fica: a ligação do duplicado é repetida.
+    const redundantLinks = duplicateLinks
+      .filter((row) => survivorWards.has(String(row.student_id)))
+      .map((row) => String(row.id));
+    if (linksToMove.length) {
+      const { error } = await db
+        .from("student_guardians")
+        .update({ guardian_person_id: data.survivorId })
+        .eq("school_id", membership.schoolId)
+        .in("id", linksToMove);
+      if (error) throw publicDatabaseError(error, "Não foi possível transferir os educandos.");
+    }
+    if (redundantLinks.length) {
+      const { error } = await db
+        .from("student_guardians")
+        .delete()
+        .eq("school_id", membership.schoolId)
+        .in("id", redundantLinks);
+      if (error) throw publicDatabaseError(error, "Não foi possível transferir os educandos.");
+    }
+
+    const { data: roleRows, error: rolesError } = await db
+      .from("person_roles")
+      .select("id, person_id, role")
+      .eq("school_id", membership.schoolId)
+      .in("person_id", [data.survivorId, data.duplicateId])
+      .is("deleted_at", null);
+    if (rolesError) throw publicDatabaseError(rolesError, "Não foi possível carregar os papéis.");
+    const survivorRoles = new Set(
+      (roleRows ?? [])
+        .filter((row) => row.person_id === data.survivorId)
+        .map((row) => String(row.role)),
+    );
+    const rolesToMove = (roleRows ?? [])
+      .filter((row) => row.person_id === data.duplicateId && !survivorRoles.has(String(row.role)))
+      .map((row) => String(row.id));
+    if (rolesToMove.length) {
+      const { error } = await db
+        .from("person_roles")
+        .update({ person_id: data.survivorId, updated_by: context.userId })
+        .eq("school_id", membership.schoolId)
+        .in("id", rolesToMove);
+      if (error) throw publicDatabaseError(error, "Não foi possível transferir os papéis.");
+    }
+
     const survivorPatch: TablesUpdate<"people"> = { updated_by: context.userId };
+    // A conta de acesso do duplicado passa para a ficha que fica.
+    const moveLogin = Boolean(duplicate.user_id && !survivor.user_id);
+    if (moveLogin) survivorPatch["user_id"] = duplicate.user_id;
     if (!survivor["email"] && duplicate["email"]) survivorPatch["email"] = duplicate["email"];
     if (!survivor["phone"] && duplicate["phone"]) survivorPatch["phone"] = duplicate["phone"];
     if (!survivor["national_id"] && duplicate["national_id"]) {
@@ -724,6 +866,7 @@ export const mergePeople = createServerFn({ method: "POST" })
     if (survivorPatch["email"]) duplicateClear["email"] = null;
     if (survivorPatch["phone"]) duplicateClear["phone"] = null;
     if (survivorPatch["national_id"]) duplicateClear["national_id"] = null;
+    if (moveLogin) duplicateClear["user_id"] = null;
 
     let duplicateError = (
       await db
@@ -753,6 +896,26 @@ export const mergePeople = createServerFn({ method: "POST" })
     if (survivorError) {
       throw publicDatabaseError(survivorError, "Não foi possível actualizar a ficha sobrevivente.");
     }
+
+    const { error: auditError } = await db.from("audit_logs").insert({
+      school_id: membership.schoolId,
+      actor_user_id: context.userId,
+      action: "people.merged",
+      entity_type: "person",
+      entity_id: data.survivorId,
+      metadata: {
+        duplicate_id: data.duplicateId,
+        reason: data.reason,
+        moved_guardian_links: linksToMove.length,
+        removed_redundant_guardian_links: redundantLinks.length,
+        moved_login: moveLogin,
+      },
+    });
+    if (auditError)
+      reportSigaError("people.merge.audit_failed", auditError, {
+        school_id: membership.schoolId,
+        survivor_id: data.survivorId,
+      });
 
     return {
       survivorId: data.survivorId,

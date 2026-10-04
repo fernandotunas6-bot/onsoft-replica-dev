@@ -15,9 +15,11 @@ test.describe("WEB — wizard comercial /start", () => {
   test("percorre os 7 passos até à revisão sem submeter", async ({ page }) => {
     const continuar = page.getByRole("button", { name: /Continuar/ });
 
-    // 1. Instituição — o NIF é obrigatório (9–10 dígitos).
+    // 1. Instituição — o NIF é obrigatório (9–10 dígitos) e é preciso pelo menos
+    // um nível de ensino. Fica o Primário: o II Ciclo abriria os cursos do médio.
     await page.getByLabel("Nome oficial da instituição").fill("Colégio E2E Playwright");
     await page.getByLabel("NIF da instituição").fill("5417000001");
+    await page.getByRole("checkbox", { name: /Ensino Primário/ }).click();
     await continuar.click();
 
     // 2. Localização — província e município obrigatórios.

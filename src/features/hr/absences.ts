@@ -6,6 +6,7 @@ import {
   loadSgaAdminClient,
   resolveSgaMembershipAdmin,
 } from "@/integrations/supabase/sga-admin";
+import { requireAal2 } from "@/features/hr/require-aal2";
 import {
   hrAbsenceTypeSchema,
   reviewHrAbsenceInputSchema,
@@ -208,6 +209,8 @@ export const reviewHrAbsence = createServerFn({ method: "POST" })
   .validator((input: unknown) => reviewHrAbsenceInputSchema.parse(input))
   .handler(async ({ data, context }) => {
     const membership = await requireAbsenceAdmin(context.userId, "write");
+    // A falta validada entra no desconto do salário: mesma exigência da folha.
+    requireAal2(context.claims, "Rever uma falta com efeito no salário");
     const db = await loadSgaAdminClient();
     const now = new Date().toISOString();
 
@@ -224,7 +227,7 @@ export const reviewHrAbsence = createServerFn({ method: "POST" })
       throw new Error("Esta falta já foi revista e não pode ser validada novamente.");
     }
 
-    const { error } = await db
+    const { data: reviewed, error } = await db
       .from("hr_absence_events")
       .update({
         absence_type: data.absenceType,
@@ -236,8 +239,10 @@ export const reviewHrAbsence = createServerFn({ method: "POST" })
       })
       .eq("id", data.absenceId)
       .eq("school_id", membership.schoolId)
-      .eq("validation_status", "pending");
+      .eq("validation_status", "pending")
+      .select("id");
     if (error) throw publicDatabaseError(error, "Não foi possível guardar a decisão da falta.");
+    if (!reviewed?.length) throw new Error("Esta falta já foi revista por outro utilizador.");
 
     return { saved: true };
   });

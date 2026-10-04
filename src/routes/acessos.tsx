@@ -657,6 +657,7 @@ function AcessosPage() {
                       <TableCell colSpan={5} className="p-4">
                         <EmptyState
                           icon={UserPlus}
+                          firstUse
                           title="Ainda não há contas nesta escola"
                           description="Envie o primeiro convite para secretaria, professores ou tesouraria acederem ao SIGA."
                           compact
@@ -986,13 +987,15 @@ function AcessosPage() {
                               disabled={account.is_self}
                               onCheckedChange={async (checked) => {
                                 try {
-                                  await setSystemAccountDisabled({
+                                  const result = await setSystemAccountDisabled({
                                     data: { userId: account.id, disabled: !checked },
                                   });
                                   await queryClient.invalidateQueries({
                                     queryKey: ["access", "accounts"],
                                   });
-                                  toast.success(checked ? "Conta reactivada" : "Conta suspensa");
+                                  if (result.notice) toast.warning(result.notice);
+                                  else
+                                    toast.success(checked ? "Conta reactivada" : "Conta suspensa");
                                 } catch (error) {
                                   toast.error("Não foi possível actualizar o acesso", {
                                     description:
@@ -1193,6 +1196,7 @@ function AcessosPage() {
                     <TableCell colSpan={5} className="p-4">
                       <EmptyState
                         icon={UserPlus}
+                        firstUse
                         title="Ainda não há membros de equipa"
                         description="Registe pessoas em Pessoas e associe-lhes contas de acesso."
                         action={

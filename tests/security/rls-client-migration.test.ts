@@ -55,11 +55,41 @@ const MIGRADOS = [
  * na contagem de dívida abaixo.
  */
 const PRIVILEGIO_POR_DESENHO = new Set([
+  // Ensino Superior: `program_subject_prerequisites` e `course_unit_enrollments`
+  // não têm política nenhuma para `authenticated` (só o servidor lhes toca). Cada
+  // função exige Administrador/Secretaria (ou o professor da cadeira, para lançar
+  // notas) e filtra pela escola da sessão.
+  "src/features/higher-ed/server.ts",
+  // Chat escolar. A regra de quem pode falar com quem (pessoal fala com todos;
+  // alunos e encarregados só com o pessoal) vive em `isMessagingStaff` e em
+  // `loadSchoolColleagues`, que leem `school_memberships`, `member_roles`,
+  // `roles` e `profiles` de outras contas — nada disso é legível pelo JWT de um
+  // encarregado, e com razão. A RLS das tabelas siga_chat_* continua a ser a
+  // rede de segurança para o acesso directo do browser (o Realtime passa por lá).
+  "src/features/messages/chat-server.ts",
+
   // Assinatura da escola (Configurações → Assinatura). `tenants`,
   // `subscriptions`, `tenant_usage` e `saas_audit_logs` só têm política para a
   // equipa da plataforma. O servidor exige o Administrador e lê apenas o
   // tenant da escola da sessão.
   "src/features/saas/subscription-server.ts",
+
+  // Guia de arranque da escola: as contagens já usam `context.supabase`; só o
+  // plano da escola (`tenants`, política apenas `is_platform_admin()`) é lido
+  // com o cliente privilegiado, pelo tenant da escola da sessão do Administrador.
+  "src/features/school/setup-guide-server.ts",
+
+  // Modelo de estrutura académica: `academic_levels`, `programs` e `campuses`
+  // não têm política de escrita para utilizadores e `subjects` exige aal2. O
+  // servidor exige Administrador/Secretaria com escrita na Pedagógica e grava
+  // só na escola da membership.
+  "src/features/academic/curriculum-templates-server.ts",
+
+  // Ciclo comercial: `saas_signup_leads` é só do servidor (FORCE RLS, sem
+  // políticas) e `tenants`/`saas_audit_logs` só têm política da plataforma. As
+  // rotas públicas gravam apenas o progresso da própria sessão; a tarefa diária
+  // exige SIGA_CRON_SECRET; a listagem exige admin da plataforma com MFA.
+  "src/features/saas/commercial-lifecycle.ts",
 
   // Regista cada documento oficial emitido (audit_logs, só o servidor grava) e
   // verifica-o publicamente, sem sessão, a partir do código impresso.

@@ -1,5 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
+import { nullableHttpUrlSchema } from "@/lib/safe-url";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { publicDatabaseError } from "@/integrations/supabase/server-error";
 import {
@@ -23,10 +24,7 @@ export const alumniPortfolioVisibility = ["private", "school", "alumni"] as cons
 export const alumniPortfolioEducationLevels = ["primary", "middle", "higher"] as const;
 
 const nullableText = (max: number) => z.union([z.string().trim().max(max), z.null()]).optional();
-const nullableUrl = z
-  .union([z.string().trim().url(), z.literal(""), z.null()])
-  .optional()
-  .transform((value) => (value === "" ? null : value));
+const nullableUrl = nullableHttpUrlSchema;
 
 export const portfolioItemSchema = z
   .object({

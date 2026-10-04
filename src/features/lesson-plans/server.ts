@@ -6,6 +6,7 @@ import {
   requireSgaWriterForWrite,
   resolveSgaMembershipAdmin,
 } from "@/integrations/supabase/sga-admin";
+import { assertAssessmentTermNotLocked } from "@/features/academic/sga-grades";
 import {
   createLessonPlanInputSchema,
   deleteLessonPlanInputSchema,
@@ -130,6 +131,15 @@ async function saveComponents(
     planned_count: number;
   }>;
 
+  // Criar ou retirar avaliações mexe na pauta: com o período fechado ou a
+  // pauta homologada, o plano não altera avaliações (confirmado uma vez).
+  let termChecked = false;
+  const ensureTermOpen = async () => {
+    if (termChecked) return;
+    await assertAssessmentTermNotLocked(db, schoolId, scope.classGroupId, scope.term);
+    termChecked = true;
+  };
+
   const keyOf = (kind: string, name: string) => `${kind}:${name.trim().toLowerCase()}`;
   const existingByKey = new Map(existingRows.map((row) => [keyOf(row.kind, row.name), row]));
   const nextKeys = new Set(components.map((row) => keyOf(row.kind, row.name)));
@@ -154,6 +164,7 @@ async function saveComponents(
     const key = keyOf(component.kind, component.name);
     const existingRow = existingByKey.get(key);
     if (!existingRow) {
+      await ensureTermOpen();
       const { data: created, error } = await db
         .from("siga_lesson_plan_components")
         .insert({
@@ -177,6 +188,7 @@ async function saveComponents(
     }
 
     if (existingRow.planned_count !== component.plannedCount) {
+      await ensureTermOpen();
       const { error } = await db
         .from("siga_lesson_plan_components")
         .update({ planned_count: component.plannedCount, sequence: sequence + 1 })
@@ -244,6 +256,76 @@ async function saveComponents(
 function isLessonPlanStaff(membership: { appRole: string; allAppRoles?: string[] }) {
   const roles = membership.allAppRoles ?? [membership.appRole];
   return ["Administrador", "Secretaria", "Professor"].some((role) => roles.includes(role));
+}
+
+async function ownTeacherIds(db: Db, schoolId: string, userId: string) {
+  const ids = new Set<string>();
+  const { data: direct } = await db
+    .from("teachers")
+    .select("id")
+    .eq("school_id", schoolId)
+    .eq("user_id", userId)
+    .eq("status", "active");
+  for (const row of direct ?? []) ids.add(String(row.id));
+  const { data: person } = await db
+    .from("people")
+    .select("id")
+    .eq("school_id", schoolId)
+    .eq("user_id", userId)
+    .limit(1)
+    .maybeSingle();
+  if (person?.id) {
+    const { data: byPerson } = await db
+      .from("teachers")
+      .select("id")
+      .eq("school_id", schoolId)
+      .eq("person_id", String(person.id))
+      .eq("status", "active");
+    for (const row of byPerson ?? []) ids.add(String(row.id));
+  }
+  return ids;
+}
+
+/**
+ * O plano gera avaliações na pauta da turma: a disciplina tem de ser da turma
+ * (nesta escola) e um professor só planeia as turmas/disciplinas que lecciona.
+ * A coordenação (Administrador, Secretaria) planeia qualquer uma.
+ */
+async function assertLessonPlanScope(
+  db: Db,
+  membership: { schoolId: string; appRole: string; allAppRoles?: string[] },
+  userId: string,
+  classGroupId: string,
+  subjectId: string,
+) {
+  const { data: classSubject, error } = await db
+    .from("class_subjects")
+    .select("id, teacher_id")
+    .eq("school_id", membership.schoolId)
+    .eq("class_group_id", classGroupId)
+    .eq("subject_id", subjectId)
+    .limit(1)
+    .maybeSingle();
+  if (error) throw publicDatabaseError(error, "Não foi possível validar a turma e a disciplina.");
+  if (!classSubject) throw new Error("Esta disciplina não pertence à turma escolhida.");
+  const roles = membership.allAppRoles ?? [membership.appRole];
+  if (roles.includes("Administrador") || roles.includes("Secretaria")) return;
+  const mine = await ownTeacherIds(db, membership.schoolId, userId);
+  if (!classSubject.teacher_id || !mine.has(String(classSubject.teacher_id))) {
+    throw new Error("Só pode planear as turmas e disciplinas que lecciona.");
+  }
+}
+
+async function loadPlanScope(db: Db, schoolId: string, planId: string) {
+  const { data: plan, error } = await db
+    .from("siga_lesson_plans")
+    .select("id, class_group_id, subject_id")
+    .eq("id", planId)
+    .eq("school_id", schoolId)
+    .maybeSingle();
+  if (error) throw publicDatabaseError(error, "Não foi possível carregar o plano de aula.");
+  if (!plan) throw new Error("Plano de aula não encontrado.");
+  return { classGroupId: String(plan.class_group_id), subjectId: String(plan.subject_id) };
 }
 
 export const listLessonPlans = createServerFn({ method: "GET" })
@@ -385,6 +467,7 @@ export const createLessonPlan = createServerFn({ method: "POST" })
       ["Administrador", "Secretaria", "Professor"],
     );
     const db = await loadSgaAdminClient();
+    await assertLessonPlanScope(db, membership, context.userId, data.classGroupId, data.subjectId);
     const { data: created, error } = await db
       .from("siga_lesson_plans")
       .insert({
@@ -434,6 +517,15 @@ export const updateLessonPlan = createServerFn({ method: "POST" })
       ["Administrador", "Secretaria", "Professor"],
     );
     const db = await loadSgaAdminClient();
+    const current = await loadPlanScope(db, membership.schoolId, data.id);
+    await assertLessonPlanScope(
+      db,
+      membership,
+      context.userId,
+      current.classGroupId,
+      current.subjectId,
+    );
+    await assertLessonPlanScope(db, membership, context.userId, data.classGroupId, data.subjectId);
     const { data: updated, error } = await db
       .from("siga_lesson_plans")
       .update({
@@ -477,6 +569,14 @@ export const deleteLessonPlan = createServerFn({ method: "POST" })
       ["Administrador", "Secretaria", "Professor"],
     );
     const db = await loadSgaAdminClient();
+    const current = await loadPlanScope(db, membership.schoolId, data.id);
+    await assertLessonPlanScope(
+      db,
+      membership,
+      context.userId,
+      current.classGroupId,
+      current.subjectId,
+    );
     // Apagar o plano remove as suas definições de componentes (cascade); os itens do
     // Centro de Avaliação já gerados ficam (SET NULL), incluindo notas já lançadas.
     const { error } = await db

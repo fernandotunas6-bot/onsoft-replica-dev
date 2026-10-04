@@ -77,6 +77,7 @@ import { documentValidationCode } from "@/features/academic/assessment-views";
 import { whatsappHref } from "@/features/integrations/actions";
 import { useInstalledIntegrations } from "@/features/integrations/use-installed-integrations";
 import { useSchoolSettings } from "@/features/auth/use-school-settings";
+import { HIGHER_ED_FEES } from "@/features/higher-ed/fees";
 import { useDeclareEntityFocus } from "@/features/intelligence/entity-focus-context";
 import { mapInvoicesToFinanceOverviewSnapshot } from "@/features/intelligence/finance/finance-overview-adapter";
 import { InstalledModuleTools } from "@/features/integrations/InstalledModuleTools";
@@ -144,6 +145,7 @@ function FaturasPage() {
   const realtimeInstanceId = useId();
   const queryClient = useQueryClient();
   const { school, selectedYearLabel } = useSchoolSettings();
+  const higherEdSchool = (school?.pedagogy?.teachingLevels ?? []).includes("superior");
   const installed = useInstalledIntegrations();
   const resendInvoices = installed.hasCapability("resend.invoices");
   const whatsappOn = installed.hasCapability("whatsapp.notices");
@@ -918,7 +920,13 @@ function FaturasPage() {
                     name: "categoria",
                     label: "Categoria",
                     type: "select",
-                    options: ["Mensalidade", "Matrícula", "Documento", "Outro"],
+                    options: [
+                      "Mensalidade",
+                      "Matrícula",
+                      "Documento",
+                      ...(higherEdSchool ? HIGHER_ED_FEES.map((fee) => fee.name) : []),
+                      "Outro",
+                    ],
                   },
                   { name: "valor", label: "Valor (Kz)", type: "number", placeholder: "45000" },
                   { name: "vencimento", label: "Vencimento", type: "date" },

@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import asyncio
 import os
+import re
 import secrets
 import subprocess
 import sys
@@ -118,9 +119,11 @@ async def fill_wizard_until_review(
 ) -> None:
     """Assistente "Criar a sua escola" (7 passos) até à revisão, sem submeter."""
     continuar = page.get_by_role("button", name="Continuar")
-    # 1. Instituição — NIF obrigatório (9–10 dígitos).
+    # 1. Instituição — NIF obrigatório (9–10 dígitos) e pelo menos um nível de
+    # ensino. Fica o Primário: o II Ciclo abriria os cursos do médio.
     await page.get_by_label("Nome oficial da instituição").fill(school)
     await page.get_by_label("NIF da instituição").fill("5417000001")
+    await page.get_by_role("checkbox", name=re.compile("Ensino Primário")).click()
     await continuar.click()
     # 2. Localização.
     await page.get_by_text("Passo 2 de 7").wait_for()

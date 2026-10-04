@@ -207,8 +207,7 @@ describe("tabelas sensíveis: só o pessoal da escola pela API", () => {
   /** Leituras «qualquer membro» que ficam, e porquê. */
   const MEMBER_READ_OK: Record<string, string> = {
     announcements: "avisos da escola",
-    school_announcements:
-      "avisos da escola; rascunhos e avisos ao corpo docente só para o pessoal (RESTRICTIVE, 20261004100000)",
+    school_announcements: "avisos da escola",
     enrollment_forms: "formulário público de matrícula",
     hr_departments: "estrutura (nomes de departamentos)",
     hr_positions: "estrutura (nomes de cargos)",

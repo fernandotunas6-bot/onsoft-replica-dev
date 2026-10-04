@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { toastActionError } from "@/lib/action-error-toast";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -125,7 +126,7 @@ function SchoolBankingForm() {
         );
       }
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Não foi possível guardar.");
+      toastActionError(error, "Não foi possível guardar.");
     } finally {
       setSaving(false);
     }
@@ -237,7 +238,7 @@ function SchoolAgtForm() {
       );
       toast.success("Parâmetros AGT guardados.");
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Não foi possível guardar.");
+      toastActionError(error, "Não foi possível guardar.");
     } finally {
       setSaving(false);
     }

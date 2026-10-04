@@ -20,17 +20,27 @@ export class ResendOtpAdapter implements IMessageDeliveryAdapter {
     }
 
     const schoolDisplay = payload.schoolName || "SIGA Plus";
+    // No registo da escola o e-mail tem de dizer o que está a acontecer: quem o
+    // recebe sem ter pedido fica a saber que alguém usou o seu endereço.
+    const signup = payload.purpose === "signup_verification";
+    const heading = signup ? "Confirme o seu e-mail" : "Código de Verificação";
+    const intro = signup
+      ? "Está a registar uma escola no SIGA Plus. Introduza este código no assistente para confirmar que o e-mail é seu."
+      : "Utilize o código numérico abaixo para autenticar a sua operação no SIGA Plus.";
+    const ignoreNote = signup
+      ? "Se não está a registar uma escola, ignore esta mensagem: sem o código, nenhuma conta é criada com o seu e-mail."
+      : "Se não solicitou esta verificação, ignore esta mensagem com segurança.";
     const schoolDisplayHtml = escapeHtml(schoolDisplay);
     const from = resolveSystemSender("auth", { schoolName: payload.schoolName });
 
     const htmlContent = `
       <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 460px; margin: 0 auto; padding: 28px 24px; border: 1px solid #e2e8f0; border-radius: 12px; background-color: #ffffff;">
         <div style="text-align: center; margin-bottom: 24px;">
-          <h2 style="color: #0f172a; font-size: 20px; font-weight: 700; margin: 0 0 8px;">Código de Verificação</h2>
+          <h2 style="color: #0f172a; font-size: 20px; font-weight: 700; margin: 0 0 8px;">${heading}</h2>
           <p style="color: #64748b; font-size: 14px; margin: 0;">${schoolDisplayHtml}</p>
         </div>
         <p style="color: #334155; font-size: 14px; line-height: 1.5; margin: 0 0 20px;">
-          Utilize o código numérico abaixo para autenticar a sua operação no SIGA Plus.
+          ${intro}
         </p>
         <div style="background-color: #f8fafc; border: 1px solid #cbd5e1; border-radius: 8px; padding: 16px; text-align: center; margin-bottom: 24px;">
           <span style="font-family: monospace; font-size: 32px; font-weight: 700; letter-spacing: 6px; color: #0f172a;">
@@ -38,7 +48,7 @@ export class ResendOtpAdapter implements IMessageDeliveryAdapter {
           </span>
         </div>
         <p style="color: #64748b; font-size: 12px; line-height: 1.4; margin: 0 0 16px;">
-          Este código expira em <strong>${payload.expiresInMinutes} minutos</strong>. Se não solicitou esta verificação, ignore esta mensagem com segurança.
+          Este código expira em <strong>${payload.expiresInMinutes} minutos</strong>. ${ignoreNote}
         </p>
         <hr style="border: none; border-top: 1px solid #f1f5f9; margin: 20px 0;" />
         <p style="color: #94a3b8; font-size: 11px; text-align: center; margin: 0;">
@@ -47,7 +57,9 @@ export class ResendOtpAdapter implements IMessageDeliveryAdapter {
       </div>
     `;
 
-    const textContent = `${schoolDisplay}: O seu código de verificação é ${payload.code}. Válido por ${payload.expiresInMinutes} minutos.`;
+    const textContent = signup
+      ? `SIGA Plus: o código para confirmar o seu e-mail é ${payload.code}. Válido por ${payload.expiresInMinutes} minutos. ${ignoreNote}`
+      : `${schoolDisplay}: O seu código de verificação é ${payload.code}. Válido por ${payload.expiresInMinutes} minutos.`;
 
     try {
       const res = await sendResendEmail({

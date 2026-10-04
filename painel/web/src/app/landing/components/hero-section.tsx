@@ -1,21 +1,34 @@
 "use client"
 
 import { useState } from 'react'
-import { ArrowRight, Play, Star } from 'lucide-react'
+import { ArrowRight, CalendarCheck, GraduationCap, Play, Star } from 'lucide-react'
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { DotPattern } from '@/components/dot-pattern'
+import { Aurora, GlassTile, SigaMascot, usePointerParallax } from '@/components/brand/aurora'
+import { SigaPhoneDemo } from '@/components/brand/siga-phone-demo'
 import { assetUrl } from "@/lib/utils"
 import { getCreateSchoolUrl, getPricingUrl } from "@/lib/ecosystem-urls"
 
 export function HeroSection() {
   const [videoOpen, setVideoOpen] = useState(false)
+  // Paralaxe das peças de vidro e olhar da mascote (CSS vars no section).
+  const heroRef = usePointerParallax<HTMLElement>()
   return (
-    <section id="hero" className="relative overflow-hidden bg-gradient-to-b from-background to-background/80 pt-16 sm:pt-20 pb-16">
-      <div className="absolute inset-0">
-        <DotPattern className="opacity-100" size="md" fadeStyle="ellipse" />
-      </div>
+    <section
+      id="hero"
+      ref={heroRef}
+      className="relative overflow-hidden pt-16 sm:pt-20 pb-16"
+    >
+      <Aurora />
+
+      {/* Peças de vidro: o que o SIGA arruma — pautas, calendário, a pasta da escola. */}
+      <GlassTile tone="violet" size={92} tilt={-10} depth={18} className="hidden md:grid left-[6%] top-24 lg:left-[9%]">
+        <GraduationCap className="size-10 drop-shadow" strokeWidth={2.2} />
+      </GlassTile>
+      <GlassTile tone="sky" size={64} tilt={12} depth={10} delay={3} className="hidden lg:grid right-[10%] top-32">
+        <CalendarCheck className="size-7 drop-shadow" strokeWidth={2.2} />
+      </GlassTile>
 
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative">
         <div className="mx-auto max-w-4xl text-center">
@@ -29,7 +42,7 @@ export function HeroSection() {
 
           <h1 className="mb-6 text-4xl font-bold tracking-tight sm:text-6xl lg:text-7xl">
             Gestão escolar
-            <span className="bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
+            <span className="text-aurora">
               {" "}completa{" "}
             </span>
             para a sua instituição
@@ -62,9 +75,18 @@ export function HeroSection() {
           </div>
         </div>
 
-        <div className="mx-auto mt-20 max-w-6xl">
+        {/* Telemóvel: no ecrã pequeno ocupa o lugar da captura do painel. */}
+        <div className="relative mx-auto mt-14 flex justify-center sm:hidden">
+          <SigaPhoneDemo />
+          <SigaMascot size={72} className="-bottom-6 right-2" />
+        </div>
+
+        <div className="relative mx-auto mt-20 hidden max-w-6xl sm:block">
+          <div className="pointer-events-none absolute -right-4 -bottom-12 z-10 hidden lg:block xl:-right-10">
+            <SigaPhoneDemo className="rotate-[3deg]" />
+            <SigaMascot size={96} className="-left-14 bottom-10" />
+          </div>
           <div className="relative group">
-            <div className="hero-glow absolute top-2 lg:-top-8 left-1/2 transform -translate-x-1/2 w-[90%] mx-auto h-24 lg:h-80 bg-primary/50 rounded-full blur-3xl"></div>
 
             <div className="relative rounded-xl border bg-card shadow-2xl">
               <img

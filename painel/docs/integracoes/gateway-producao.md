@@ -6,11 +6,11 @@ Guia para **operadores SIGA Plus** e **administradores escolares** activarem pag
 
 ## Papéis
 
-| Papel | Responsabilidade |
-| --- | --- |
-| Operador plataforma | Hostname público activo, TLS, escola visível no ADMIN |
-| Administrador escolar | Integrações, entidade EMIS, teste de fatura |
-| Tesouraria / banco | Contrato EMIS, URL de callback no portal externo |
+| Papel                 | Responsabilidade                                      |
+| --------------------- | ----------------------------------------------------- |
+| Operador plataforma   | Hostname público activo, TLS, escola visível no ADMIN |
+| Administrador escolar | Integrações, entidade EMIS, teste de fatura           |
+| Tesouraria / banco    | Contrato EMIS, URL de callback no portal externo      |
 
 ## Fase 1 — Pré-requisitos SIGA
 
@@ -29,21 +29,23 @@ Guia para **operadores SIGA Plus** e **administradores escolares** activarem pag
 4. **Multicaixa:** preencher **Merchant EMIS / Multicaixa** (4–6 dígitos) — valor atribuído pelo banco, **não** `99824` (demo)
 5. Guardar integração com estado `connected` ou `configured`
 
-| Canal | URL de callback (substituir hostname) |
-| --- | --- |
-| EMIS / Multicaixa | `https://{hostname}/api/finance/gateway/confirm` |
-| Unitel Money | `https://{hostname}/api/finance/gateway/unitel/confirm` |
+| Canal             | URL de callback (substituir hostname)                   |
+| ----------------- | ------------------------------------------------------- |
+| EMIS / Multicaixa | `https://{hostname}/api/finance/gateway/confirm`        |
+| Unitel Money      | `https://{hostname}/api/finance/gateway/unitel/confirm` |
 
 Corpo JSON que o portal externo deve enviar:
 
 ```json
 {
-  "apiKey": "<webhookApiKey copiada do SIGA>",
   "reference": "123456789",
   "amount": 45000,
-  "invoiceId": "<uuid da fatura, recomendado>"
+  "externalId": "<id da transacção no provedor>"
 }
 ```
+
+A key copiada do SIGA **não** vai no corpo: assina o pedido (`X-SIGA-Timestamp`,
+`X-SIGA-Signature`). Ver [EMIS / Unitel](./emis-multicaixa-unitel.md).
 
 ## Fase 3 — Portal EMIS / Multicaixa (externo)
 
@@ -53,14 +55,14 @@ Passos típicos no portal do banco/EMIS (nomes variam por instituição):
 - [ ] Entidade EMIS registada — **mesmo valor** que no SIGA (Integrações → Merchant EMIS)
 - [ ] URL de notificação = `https://{hostname}/api/finance/gateway/confirm`
 - [ ] Método `POST`, corpo JSON
-- [ ] Campo de autenticação = `apiKey` no JSON (valor do SIGA, não o merchant ID)
+- [ ] Pedido assinado com a key do SIGA (`X-SIGA-Timestamp` + `X-SIGA-Signature`), não o merchant ID
 - [ ] Montante em kwanzas inteiros, referência de 9 dígitos sem espaços
 
 ## Fase 4 — Portal Unitel Money (externo)
 
 - [ ] Conta merchant Unitel activa
 - [ ] URL de callback = `https://{hostname}/api/finance/gateway/unitel/confirm` (**não** a rota Multicaixa)
-- [ ] Mesmo corpo JSON (`apiKey`, `reference`, `amount`, `invoiceId?`)
+- [ ] Mesmo corpo JSON (`reference`, `amount`, `externalId`) e mesma assinatura
 - [ ] API key = valor de Integrações → **Unitel Money** (integração separada da Multicaixa)
 
 ## Fase 5 — Go-live (validação)
@@ -117,13 +119,13 @@ Ver [Runbook § Observabilidade](/integracoes/gateway-runbook-suporte#observabil
 
 ## Erros frequentes em produção
 
-| Sintoma | Causa provável | Acção |
-| --- | --- | --- |
-| `401` API key inválida | Merchant ID colado no portal em vez de `webhookApiKey` | Copiar API key de Integrações |
-| Referência não encontrada | Plano não está `pending_gateway` ou referência diferente | Reemitir referência; comparar 9 dígitos |
-| Unitel não liquida | URL `/gateway/confirm` em vez de `/unitel/confirm` | Corrigir no portal Unitel |
-| Entidade errada no ATM | Referência antiga gerada com a entidade de demonstração `99824` | Preencher a entidade real da escola e gerar nova referência |
-| Webhook OK mas sem recibo | Permissões SGA / RPC `register_payment` | Aplicar SQL SGA; confirmar manualmente na tesouraria |
+| Sintoma                   | Causa provável                                                  | Acção                                                       |
+| ------------------------- | --------------------------------------------------------------- | ----------------------------------------------------------- |
+| `401` API key inválida    | Merchant ID colado no portal em vez de `webhookApiKey`          | Copiar API key de Integrações                               |
+| Referência não encontrada | Plano não está `pending_gateway` ou referência diferente        | Reemitir referência; comparar 9 dígitos                     |
+| Unitel não liquida        | URL `/gateway/confirm` em vez de `/unitel/confirm`              | Corrigir no portal Unitel                                   |
+| Entidade errada no ATM    | Referência antiga gerada com a entidade de demonstração `99824` | Preencher a entidade real da escola e gerar nova referência |
+| Webhook OK mas sem recibo | Permissões SGA / RPC `register_payment`                         | Aplicar SQL SGA; confirmar manualmente na tesouraria        |
 
 ## Segurança
 

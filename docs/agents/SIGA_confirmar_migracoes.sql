@@ -67,11 +67,7 @@ from (values
      to_regclass('public.siga_attendance_sessions_school_slot_day_key') is not null),
   ('20260930090000_one_active_academic_year',
      to_regclass('public.academic_years_one_active_per_school') is not null),
-  -- Estas duas estão no pacote docs/agents/SIGA_aplicar_comunicados_tempo_real.sql.
-  ('20261004100000_announcements_read_by_role',
-     exists (select 1 from pg_policies where tablename = 'school_announcements'
-             and policyname = 'Announcements visible by role'
-             and permissive = 'RESTRICTIVE')),
+  -- Esta está no pacote docs/agents/SIGA_aplicar_tempo_real.sql.
   ('20261004101000_realtime_publish_school_screens',
      (select count(*) from pg_publication_tables
       where pubname = 'supabase_realtime' and schemaname = 'public'

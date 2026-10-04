@@ -301,13 +301,17 @@ export function validateRuleDraft(
 /** Arredondamento igual a `private.round_grade`. */
 export function roundGrade(value: number, method: RoundingMethod, decimalPlaces: number) {
   const factor = 10 ** Math.max(0, decimalPlaces);
+  // Sem o ruído da vírgula flutuante: (9.7 + 10.1 + 10.2) / 3 dá 9.999…998 e,
+  // «para baixo», o 10 exacto passava a 9 (reprovação); «para cima», 10.000…2
+  // passava a 11. 12 algarismos significativos chegam para notas de 0 a 20.
+  const scaled = Number((value * factor).toPrecision(12));
   switch (method) {
     case "nearest":
-      return Math.round(value * factor) / factor;
+      return Math.round(scaled) / factor;
     case "up":
-      return Math.ceil(value * factor) / factor;
+      return Math.ceil(scaled) / factor;
     case "down":
-      return Math.floor(value * factor) / factor;
+      return Math.floor(scaled) / factor;
     default:
       return value;
   }

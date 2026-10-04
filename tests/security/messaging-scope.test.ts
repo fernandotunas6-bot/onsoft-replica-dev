@@ -10,6 +10,13 @@ const body = (name: string) => {
   const start = source.indexOf(`export const ${name} `);
   return source.slice(start, source.indexOf("export const ", start + 1));
 };
+// O filtro do directório deixou de viver no server fn: passou para a função
+// `loadSchoolColleagues`, para o chat (chat-server.ts) usar a mesma regra sem
+// chamar um server fn de dentro de outro. A invariante é a mesma; mudou o sítio.
+const functionBody = (name: string) => {
+  const start = source.indexOf(`export async function ${name}(`);
+  return source.slice(start, source.indexOf("\nexport ", start + 1));
+};
 
 describe("mensagens directas: quem fala com quem", () => {
   it("pessoal da escola é reconhecido; alunos e encarregados não", () => {
@@ -23,8 +30,12 @@ describe("mensagens directas: quem fala com quem", () => {
   });
 
   it("alunos e encarregados só vêem o pessoal no directório", () => {
-    expect(body("listSchoolColleagues")).toMatch(
+    expect(functionBody("loadSchoolColleagues")).toMatch(
       /viewerIsStaff\s*\?\s*userIds\s*:\s*userIds\.filter/,
+    );
+    // E o server fn continua a ser apenas a casca que a chama.
+    expect(body("listSchoolColleagues")).toMatch(
+      /return loadSchoolColleagues\(db, membership, context\.userId\)/,
     );
   });
 

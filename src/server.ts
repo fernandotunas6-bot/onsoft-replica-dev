@@ -1,9 +1,18 @@
 import "./lib/error-capture";
 
+import { AsyncLocalStorage } from "node:async_hooks";
+
 import { consumeLastCapturedError } from "./lib/error-capture";
 import { renderErrorPage } from "./lib/error-page";
 import { CSP_REPORT_PATH, handleCspReport } from "./lib/csp";
 import { withSecurityHeaders } from "./lib/security-headers";
+import { installKeepAlive } from "./lib/execution-context";
+
+type ExecutionContext = { waitUntil?: (promise: Promise<unknown>) => void };
+
+// `ctx` do pedido em curso, para `keepAlive` (alertas) o encontrar sem o passar à mão.
+const requestContext = new AsyncLocalStorage<ExecutionContext>();
+installKeepAlive((promise) => requestContext.getStore()?.waitUntil?.(promise));
 
 type ServerEntry = {
   fetch: (request: Request, env: unknown, ctx: unknown) => Promise<Response> | Response;
@@ -48,21 +57,25 @@ function isH3SwallowedErrorBody(body: string): boolean {
 
 export default {
   async fetch(request: Request, env: unknown, ctx: unknown) {
-    try {
-      if (new URL(request.url).pathname === CSP_REPORT_PATH) {
-        return withSecurityHeaders(await handleCspReport(request));
-      }
-      const handler = await getServerEntry();
-      const response = await handler.fetch(request, env, ctx);
-      return withSecurityHeaders(await normalizeCatastrophicSsrResponse(response));
-    } catch (error) {
-      console.error(error);
-      return withSecurityHeaders(
-        new Response(renderErrorPage(), {
-          status: 500,
-          headers: { "content-type": "text/html; charset=utf-8" },
-        }),
-      );
-    }
+    return requestContext.run((ctx ?? {}) as ExecutionContext, () => handle(request, env, ctx));
   },
 };
+
+async function handle(request: Request, env: unknown, ctx: unknown): Promise<Response> {
+  try {
+    if (new URL(request.url).pathname === CSP_REPORT_PATH) {
+      return withSecurityHeaders(await handleCspReport(request));
+    }
+    const handler = await getServerEntry();
+    const response = await handler.fetch(request, env, ctx);
+    return withSecurityHeaders(await normalizeCatastrophicSsrResponse(response));
+  } catch (error) {
+    console.error(error);
+    return withSecurityHeaders(
+      new Response(renderErrorPage(), {
+        status: 500,
+        headers: { "content-type": "text/html; charset=utf-8" },
+      }),
+    );
+  }
+}

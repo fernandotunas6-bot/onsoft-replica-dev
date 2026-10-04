@@ -4,6 +4,7 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { publicDatabaseError } from "@/integrations/supabase/server-error";
 import {
   loadSgaAdminClient,
+  requireSgaWriterFor,
   requireSgaWriterForWrite,
   resolveSgaMembershipAdmin,
 } from "@/integrations/supabase/sga-admin";
@@ -21,6 +22,24 @@ import {
   upsertAlumniInputSchema,
   upsertAlumniOpportunityInputSchema,
 } from "./schemas";
+
+/**
+ * A rede Alumni da escola (contactos, data de nascimento, percurso) é do
+ * gabinete: antes, qualquer membro — aluno, encarregado — listava-a toda,
+ * ignorando a visibilidade e o consentimento de cada antigo aluno. O antigo
+ * aluno vê o seu perfil pelo portal (self-service).
+ */
+async function resolveOfficeContext(
+  supabase: Parameters<typeof requireSgaWriterFor>[1],
+  userId: string,
+) {
+  const membership = await requireSgaWriterFor("pessoas", supabase, userId, [
+    "Administrador",
+    "Secretaria",
+  ]);
+  const db = await loadSgaAdminClient();
+  return { membership, db };
+}
 
 async function resolveContext(userId: string) {
   const membership = await resolveSgaMembershipAdmin(userId);
@@ -50,7 +69,7 @@ export const listAlumni = createServerFn({ method: "GET" })
   .validator((input: unknown) => listAlumniInputSchema.parse(input))
   .handler(async ({ data, context }) => {
     if (!context) throw new Error("Sessão inválida. Termine e volte a entrar.");
-    const { membership, db } = await resolveContext(context.userId);
+    const { membership, db } = await resolveOfficeContext(context.supabase, context.userId);
 
     let query = db
       .from("alumni_profiles")
@@ -136,7 +155,7 @@ export const getAlumniProfile = createServerFn({ method: "GET" })
   .validator((input: unknown) => alumniIdInputSchema.parse(input))
   .handler(async ({ data, context }) => {
     if (!context) throw new Error("Sessão inválida. Termine e volte a entrar.");
-    const { membership, db } = await resolveContext(context.userId);
+    const { membership, db } = await resolveOfficeContext(context.supabase, context.userId);
     const profile = await assertAlumniInSchool(db, membership.schoolId, data.alumniId);
 
     const { data: fullProfile, error } = await db
@@ -229,7 +248,7 @@ export const getAlumniOverview = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     if (!context) throw new Error("Sessão inválida. Termine e volte a entrar.");
-    const { membership, db } = await resolveContext(context.userId);
+    const { membership, db } = await resolveOfficeContext(context.supabase, context.userId);
     const [
       { count: total },
       { count: mentors },
