@@ -236,7 +236,7 @@ describe("/ (painel principal)", () => {
     });
     expect(realtimeBindingsFor("students").length).toBe(1);
     expect(realtimeBindingsFor("enrollments").length).toBe(1);
-    expect(realtimeBindingsFor("invoices").length).toBe(1);
+    expect(realtimeBindingsFor("finance_invoices").length).toBe(1);
     expect(realtimeBindingsFor("school_announcements").length).toBe(1);
   });
 

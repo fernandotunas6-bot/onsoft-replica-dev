@@ -4,6 +4,26 @@ Ler isto **antes** de alterar código. Ecossistema (5 apps):
 [ARCHITECTURE_HARMONIZATION.md](./ARCHITECTURE_HARMONIZATION.md).
 Depois abrir o skill do módulo em `.cursor/skills/`.
 
+## Tempo real nas tabelas reais — POR APLICAR (2026-10-04)
+
+A publicação `supabase_realtime` só tinha `document_requests`,
+`school_announcements`, `siga_chat_members` e `siga_chat_messages` (produção, só
+leitura, 2026-10-04). As mensagens (contador e notificações do desktop), o
+/alunos, o painel e o /faturas subscreviam tabelas não publicadas e nunca
+recebiam eventos; o /faturas e o painel ouviam ainda `invoices`/`payments`, que
+não existem. O cliente passa a `finance_invoices`/`finance_receipts`, e a
+migração `20261004101000_realtime_publish_school_screens.sql` publica as 6
+tabelas. O tempo real aplica as políticas de leitura (alunos e faturas só chegam
+ao pessoal). Como cada linha chega como um evento, os ecrãs juntam as
+invalidações numa janela de 300 ms (`src/lib/realtime-invalidate.ts`): uma
+importação ou a geração das propinas não dispara um pedido por linha.
+
+Pacote: `docs/agents/SIGA_aplicar_tempo_real.sql` (confirmação no fim; a sonda
+também está em `SIGA_confirmar_migracoes.sql`). Ensaio PGlite:
+`tests/sql/realtime-package.mjs`. `tests/security/tempo-real-vs-producao.test.ts`
+recusa subscrições a tabelas que não existem na produção ou que nenhuma migração
+publica.
+
 ## Aurora + PR #65 integrados (2026-10-04)
 
 O Aurora (PR #66, na main) e o PR #65 cresceram em paralelo; foram juntos em

@@ -66,6 +66,12 @@ from (values
   ('20260929230000_attendance_sessions_unique_slot_day',
      to_regclass('public.siga_attendance_sessions_school_slot_day_key') is not null),
   ('20260930090000_one_active_academic_year',
-     to_regclass('public.academic_years_one_active_per_school') is not null)
+     to_regclass('public.academic_years_one_active_per_school') is not null),
+  -- Esta está no pacote docs/agents/SIGA_aplicar_tempo_real.sql.
+  ('20261004101000_realtime_publish_school_screens',
+     (select count(*) from pg_publication_tables
+      where pubname = 'supabase_realtime' and schemaname = 'public'
+        and tablename in ('siga_direct_messages', 'students', 'enrollments',
+                          'enrollment_applications', 'finance_invoices', 'finance_receipts')) = 6)
 ) as m(migracao, ok)
 order by migracao;
