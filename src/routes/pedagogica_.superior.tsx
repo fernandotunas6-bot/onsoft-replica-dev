@@ -37,6 +37,7 @@ import {
   listStalePendingEnrollments,
   cancelUnitEnrollment,
   correctUnitResult,
+  recordDoctoralDecision,
   createHigherEdProgram,
   enrollCohort,
   exportSisiesWorkbook,
@@ -51,6 +52,7 @@ import {
 } from "@/features/higher-ed/server";
 import { SEASON_LABEL, STATUS_LABEL } from "@/features/higher-ed/labels";
 import type { AccessPlacement } from "@/features/higher-ed/access";
+import { DOCTORAL_MENTIONS } from "@/features/higher-ed/engine";
 import { normalizeProgramCode } from "@/features/higher-ed/program-shape";
 import type {
   HigherEdDegree,
@@ -947,6 +949,21 @@ function StudentPanel({ programId, studentId }: { programId: string; studentId: 
     },
     onError: (error) => toastActionError(error, "Não foi possível lançar."),
   });
+  const [jury, setJury] = useState<{
+    unitId: string;
+    mention: "aprovado" | "distincao" | "distincao_louvor";
+    note: string;
+  } | null>(null);
+  const decide = useMutation({
+    mutationFn: (current: NonNullable<typeof jury>) =>
+      recordDoctoralDecision({ data: { programId, studentId, ...current } }),
+    onSuccess: async () => {
+      toast.success("Decisão do júri registada.");
+      setJury(null);
+      await refresh();
+    },
+    onError: (error) => toastActionError(error, "Não foi possível registar a decisão."),
+  });
   const [correcting, setCorrecting] = useState<{
     id: string;
     grade: string;
@@ -994,7 +1011,7 @@ function StudentPanel({ programId, studentId }: { programId: string; studentId: 
   });
 
   if (!student.data) return <p className="text-sm text-muted-foreground">A carregar…</p>;
-  const { progress, units, standing } = student.data;
+  const { progress, units, standing, degree } = student.data;
   const bySemester = [...new Set(units.map((u) => u.semester))].sort((a, b) => a - b);
 
   return (
@@ -1108,6 +1125,17 @@ function StudentPanel({ programId, studentId }: { programId: string; studentId: 
                             {SEASON_LABEL[season]}
                           </Button>
                         ))}
+                        {degree === "doutoramento" && last?.status === "inscrito" ? (
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() =>
+                              setJury({ unitId: unit.id, mention: "aprovado", note: "" })
+                            }
+                          >
+                            Decisão do júri
+                          </Button>
+                        ) : null}
                         {last?.id &&
                         last.season &&
                         ["aprovado", "reprovado", "excluido_frequencia"].includes(last.status) ? (
@@ -1155,6 +1183,61 @@ function StudentPanel({ programId, studentId }: { programId: string; studentId: 
                       <p className="text-xs text-muted-foreground">
                         {unit.enrollReasons.join(" ")}
                       </p>
+                    ) : null}
+                    {jury?.unitId === unit.id ? (
+                      <form
+                        className="grid gap-2 rounded-md border p-3 sm:grid-cols-[16rem_minmax(0,1fr)_auto] sm:items-end"
+                        onSubmit={(event) => {
+                          event.preventDefault();
+                          decide.mutate(jury);
+                        }}
+                      >
+                        <div className="space-y-1">
+                          <Label htmlFor={`jury-${unit.id}`}>Decisão do júri</Label>
+                          <Select
+                            value={jury.mention}
+                            onValueChange={(value) =>
+                              setJury({ ...jury, mention: value as typeof jury.mention })
+                            }
+                          >
+                            <SelectTrigger id={`jury-${unit.id}`}>
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {Object.entries(DOCTORAL_MENTIONS).map(([value, label]) => (
+                                <SelectItem key={value} value={value}>
+                                  {label}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="space-y-1">
+                          <Label htmlFor={`jury-note-${unit.id}`}>Acta do júri</Label>
+                          <Input
+                            id={`jury-note-${unit.id}`}
+                            required
+                            minLength={5}
+                            maxLength={400}
+                            placeholder="Acta n.º …, de DD/MM/AAAA"
+                            value={jury.note}
+                            onChange={(e) => setJury({ ...jury, note: e.target.value })}
+                          />
+                        </div>
+                        <div className="flex gap-2">
+                          <Button size="sm" type="submit" disabled={decide.isPending}>
+                            {decide.isPending ? "A registar…" : "Registar"}
+                          </Button>
+                          <Button
+                            size="sm"
+                            type="button"
+                            variant="ghost"
+                            onClick={() => setJury(null)}
+                          >
+                            Cancelar
+                          </Button>
+                        </div>
+                      </form>
                     ) : null}
                     {correcting && last?.id === correcting.id ? (
                       <form

@@ -6,6 +6,8 @@ import {
   enrollmentWindowError,
   checkEnrollmentBatch,
   checkUnitEnrollment,
+  decodeJuryDecision,
+  encodeJuryDecision,
   finalClassification,
   findPrerequisiteCycles,
   frequencyOutcome,
@@ -519,5 +521,14 @@ describe("regras opcionais (calendário de inscrições e prazo de anulação)",
     expect(cancellationIsLate(42, "2026-09-01", "2026-10-14")).toBe(true);
     expect(cancellationIsLate(0, "2026-09-01", "2027-01-01")).toBe(false);
     expect(cancellationIsLate(42, null, "2027-01-01")).toBe(false);
+  });
+});
+
+describe("doutoramento: decisão do júri", () => {
+  it("grava e lê a menção nas notas da tese", () => {
+    const notes = encodeJuryDecision("distincao_louvor", "Acta n.º 3 de 10/07/2026");
+    expect(decodeJuryDecision(notes)).toBe("distincao_louvor");
+    expect(decodeJuryDecision("Creditação por equivalência.")).toBeNull();
+    expect(decodeJuryDecision("júri:outra|x")).toBeNull();
   });
 });

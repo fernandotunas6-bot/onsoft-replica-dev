@@ -165,4 +165,12 @@ describe("Ensino Superior no servidor", () => {
     }
     expect(body).toContain('action: "higher_ed.sisies.exported"');
   });
+
+  it("decisão do júri: só doutoramento, 2FA, inscrição em curso, auditoria", () => {
+    const body = fn("recordDoctoralDecision");
+    expect(body).toContain('requireAal2(context.claims, "Registar a decisão do júri")');
+    expect(body).toContain("A decisão do júri só se regista em cursos de doutoramento.");
+    expect(body).toContain('.eq("status", "inscrito")');
+    expect(body).toContain('action: "higher_ed.doctoral.decision"');
+  });
 });

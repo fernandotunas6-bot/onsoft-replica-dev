@@ -35,6 +35,8 @@ import { HIGHER_ED_FEES } from "./fees";
 import { rankAccessCandidates } from "./access";
 import {
   completedUnitIds,
+  decodeJuryDecision,
+  encodeJuryDecision,
   finalClassification,
   academicStanding,
   cancellationIsLate,
@@ -779,8 +781,10 @@ export const getStudentHigherEd = createServerFn({ method: "GET" })
         seasons: seasonEligibility({ unitId: unit.id, records, plan: units, regulation }),
       };
     });
+    const profiles = await readSettingsDomain(db, schoolId, "higher_ed_programs");
     return {
       activeYearId: yearId,
+      degree: parseProgramProfile(profiles[data.programId]).degree,
       regulation,
       standing: academicStanding({ plan: units, records, regulation }),
       progress: { ...progress, pendingUnits: progress.pendingUnits.map((u) => u.id) },
@@ -827,6 +831,19 @@ export const getStudentTranscript = createServerFn({ method: "GET" })
     if (!rows.length) await requireStudentInProgram(db, schoolId, data.studentId, data.programId);
     const records = rows.map((row) => row.record);
     const lines = transcriptLines(units, records);
+    const programProfiles = await readSettingsDomain(db, schoolId, "higher_ed_programs");
+    const { data: noteRows } = await db
+      .from("course_unit_enrollments")
+      .select("notes")
+      .eq("school_id", schoolId)
+      .eq("student_id", data.studentId)
+      .eq("program_id", data.programId)
+      .eq("status", "aprovado")
+      .like("notes", "júri:%");
+    const juryMention =
+      ((noteRows ?? []) as Row[])
+        .map((row) => decodeJuryDecision(row.notes ? str(row.notes) : null))
+        .find(Boolean) ?? null;
     const yearIds = [...new Set(lines.map((l) => l.academicYearId).filter(Boolean))] as string[];
     const { data: years } = yearIds.length
       ? await db
@@ -847,7 +864,13 @@ export const getStudentTranscript = createServerFn({ method: "GET" })
         director: school.director_name ? str(school.director_name) : null,
         logoUrl: school.logo_url ? str(school.logo_url) : null,
       },
-      program: { name: str(program.name), code: str(program.code), kind: str(program.kind) },
+      program: {
+        name: str(program.name),
+        code: str(program.code),
+        kind: str(program.kind),
+        degree: parseProgramProfile(programProfiles[data.programId]).degree,
+      },
+      juryMention: juryMention,
       student: {
         name: str(person.full_name) || "Estudante",
         number: student.student_number ? str(student.student_number) : null,
@@ -1329,6 +1352,64 @@ export const correctUnitResult = createServerFn({ method: "POST" })
       },
     });
     return { status: patch.status, finalGrade: grade };
+  });
+
+/**
+ * Decisão do júri de doutoramento sobre a tese (uma cadeira do plano): conclui a
+ * cadeira sem nota numérica e grava a menção. Secretaria, 2FA e auditoria.
+ */
+export const recordDoctoralDecision = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .validator((input: unknown) =>
+    z
+      .object({
+        programId: z.string().uuid(),
+        studentId: z.string().uuid(),
+        unitId: z.string().uuid(),
+        mention: z.enum(["aprovado", "distincao", "distincao_louvor"]),
+        note: z.string().trim().min(5).max(400),
+      })
+      .parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    const membership = await officeMembership(context, "write");
+    requireAal2(context.claims, "Registar a decisão do júri");
+    const db = await loadSgaAdminClient();
+    const schoolId = membership.schoolId;
+    const profiles = await readSettingsDomain(db, schoolId, "higher_ed_programs");
+    if (parseProgramProfile(profiles[data.programId]).degree !== "doutoramento") {
+      throw new Error("A decisão do júri só se regista em cursos de doutoramento.");
+    }
+    const rows = await loadRecords(db, schoolId, data.studentId, data.programId);
+    const latest = latestRecordByUnit(rows.map((row) => row.record)).get(data.unitId);
+    const row = rows.find((r) => r.record === latest);
+    if (!row || !latest || latest.status !== "inscrito") {
+      throw new Error("O estudante tem de estar inscrito na tese, sem resultado lançado.");
+    }
+    const { data: saved, error } = await db
+      .from("course_unit_enrollments")
+      .update({
+        status: "aprovado",
+        season: "normal",
+        final_grade: null,
+        credits_earned: latest.credits,
+        notes: encodeJuryDecision(data.mention, data.note),
+        updated_by: context.userId,
+      })
+      .eq("school_id", schoolId)
+      .eq("id", row.id)
+      .eq("status", "inscrito")
+      .select("id");
+    if (error) throw publicDatabaseError(error, "Não foi possível registar a decisão do júri.");
+    if (!saved?.length) throw new Error("A inscrição mudou entretanto. Actualize a página.");
+    await audit(db, {
+      schoolId,
+      actor: context.userId,
+      action: "higher_ed.doctoral.decision",
+      entityId: row.id,
+      metadata: { mention: data.mention, note: data.note },
+    });
+    return { mention: data.mention };
   });
 
 /** Creditação/equivalência: a cadeira fica concluída sem nota (não entra na média). */
