@@ -12431,6 +12431,16 @@ export type Database = {
           purpose: string
         }[]
       }
+      hr_reverse_payroll_payment: {
+        Args: {
+          actor: string
+          next_step: string
+          payment_item_id: string
+          reason: string
+          school_id: string
+        }
+        Returns: Json
+      }
       hr_redeem_teacher_qr_secure: {
         Args: {
           p_accuracy_m?: number

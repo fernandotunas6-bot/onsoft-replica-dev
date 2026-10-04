@@ -53,6 +53,7 @@ describe("folha salarial e pagamentos com 2FA", () => {
         "hr_create_payroll_payment_batch",
         "hr_create_payroll_run",
         "hr_refresh_payroll_payment_batch",
+        "hr_reverse_payroll_payment",
       ].sort(),
     );
   });

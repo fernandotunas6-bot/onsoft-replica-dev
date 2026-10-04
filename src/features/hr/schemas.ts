@@ -215,6 +215,18 @@ export const confirmPayrollPaymentItemInputSchema = z
   });
 export type ConfirmPayrollPaymentItemInput = z.infer<typeof confirmPayrollPaymentItemInputSchema>;
 
+/**
+ * Anular um salário pago por engano (`hr_reverse_payroll_payment`). Depois de anular:
+ * `repay` volta a autorizar o pagamento (ex.: IBAN errado), `cancel` cancela-o (o
+ * salário não era devido).
+ */
+export const reversePayrollPaymentItemInputSchema = z.object({
+  paymentItemId: z.string().uuid(),
+  reason: z.string().trim().min(5, "Indique o motivo (mínimo 5 caracteres).").max(500),
+  next: z.enum(["repay", "cancel"]),
+});
+export type ReversePayrollPaymentItemInput = z.infer<typeof reversePayrollPaymentItemInputSchema>;
+
 export const attendanceAssurancePolicySchema = z
   .object({
     enabled: z.boolean().default(true),

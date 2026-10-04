@@ -8,6 +8,7 @@ describe("domínios de configuração da escola", () => {
       due_day: 10,
       late_fee_percent: 0,
       grace_days: 0,
+      late_fee_applies_to: "all",
       sibling_discount_percent: 0,
     });
   });
@@ -20,7 +21,13 @@ describe("domínios de configuração da escola", () => {
         grace_days: "abc",
         sibling_discount_percent: 150,
       }),
-    ).toEqual({ due_day: 28, late_fee_percent: 3, grace_days: 0, sibling_discount_percent: 100 });
+    ).toEqual({
+      due_day: 28,
+      late_fee_percent: 3,
+      grace_days: 0,
+      late_fee_applies_to: "all",
+      sibling_discount_percent: 100,
+    });
   });
 
   it("instituição só aceita naturezas conhecidas", () => {

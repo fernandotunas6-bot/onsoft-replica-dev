@@ -16,6 +16,7 @@ import { listFeePlanSettings, upsertFeePlanSettings } from "@/features/finance/s
 import { DEFAULT_FEE_PLAN_NAME } from "@/features/finance/fee-plan-defaults";
 import { toastActionError } from "@/lib/action-error-toast";
 import { kwanza } from "@/lib/currency";
+import { LATE_FEE_SCOPES, type LateFeeScope } from "@/features/finance/late-fee";
 
 export function BillingParametersSummary() {
   const currentUser = useCurrentAccount();
@@ -49,6 +50,14 @@ export function BillingParametersSummary() {
       valor: billing.late_fee_percent > 0 ? `${billing.late_fee_percent}%` : "Sem multa",
     },
     { label: "Tolerância", valor: `${billing.grace_days} dias` },
+    ...(billing.late_fee_percent > 0
+      ? [
+          {
+            label: "Multa aplica-se",
+            valor: billing.late_fee_applies_to === "electronic" ? "Só electrónicos" : "Em todos",
+          },
+        ]
+      : []),
     {
       label: "Desconto irmãos",
       valor:
@@ -88,6 +97,7 @@ export function BillingSettingsForm() {
   const canManage = ["Administrador", "Tesouraria"].includes(currentUser.role);
   // Iguais aos valores por omissão de settings-domains.ts (sem multa nem desconto).
   const [values, setValues] = useState({ due: "10", fee: "0", grace: "0", discount: "0" });
+  const [feeScope, setFeeScope] = useState<LateFeeScope>("all");
   const [saving, setSaving] = useState(false);
   const billingQuery = useQuery({
     queryKey: ["school", "billing-settings"],
@@ -104,6 +114,7 @@ export function BillingSettingsForm() {
       grace: String(billingQuery.data.grace_days),
       discount: String(billingQuery.data.sibling_discount_percent),
     });
+    setFeeScope(billingQuery.data.late_fee_applies_to);
   }, [billingQuery.data]);
 
   const billingDirty = Boolean(
@@ -111,7 +122,8 @@ export function BillingSettingsForm() {
     (values.due !== String(billingQuery.data.due_day) ||
       values.fee !== String(billingQuery.data.late_fee_percent) ||
       values.grace !== String(billingQuery.data.grace_days) ||
-      values.discount !== String(billingQuery.data.sibling_discount_percent)),
+      values.discount !== String(billingQuery.data.sibling_discount_percent) ||
+      feeScope !== billingQuery.data.late_fee_applies_to),
   );
 
   useEffect(() => {
@@ -148,6 +160,7 @@ export function BillingSettingsForm() {
           dueDay: due,
           lateFeePercent: fee,
           graceDays: grace,
+          lateFeeAppliesTo: feeScope,
           siblingDiscountPercent: discount,
         },
       });
@@ -215,6 +228,25 @@ export function BillingSettingsForm() {
           </div>
         ))}
       </div>
+      <fieldset className="space-y-2">
+        <legend className="text-sm font-medium">A multa aplica-se</legend>
+        {LATE_FEE_SCOPES.map((scope) => (
+          <label key={scope.value} className="flex items-center gap-2 text-sm">
+            <input
+              type="radio"
+              name="late-fee-scope"
+              value={scope.value}
+              checked={feeScope === scope.value}
+              onChange={() => setFeeScope(scope.value)}
+            />
+            {scope.label}
+          </label>
+        ))}
+        <p className="text-xs text-muted-foreground">
+          O mesmo total em todos os canais: tesouraria, referência Multicaixa e carteiras. A multa
+          conta a partir do dia seguinte ao fim da tolerância e fica fixa na fatura.
+        </p>
+      </fieldset>
       <div className="flex justify-end">
         <Button onClick={saveBilling} disabled={saving}>
           {saving ? "A guardar…" : "Guardar cobrança"}

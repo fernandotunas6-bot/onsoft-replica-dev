@@ -8791,6 +8791,12 @@
     },
     {
       "schema": "private",
+      "funcao": "hr_reverse_payroll_payment",
+      "args": "p_school_id uuid, p_payment_item_id uuid, p_actor uuid, p_reason text, p_next text",
+      "security_definer": true
+    },
+    {
+      "schema": "private",
       "funcao": "hr_upsert_payment_destination",
       "args": "p_school_id uuid, p_employment_id uuid, p_destination jsonb",
       "security_definer": true
@@ -9718,6 +9724,12 @@
       "funcao": "hr_refresh_payroll_payment_batch",
       "args": "p_batch_id uuid",
       "security_definer": false
+    },
+    {
+      "schema": "public",
+      "funcao": "hr_reverse_payroll_payment",
+      "args": "school_id uuid, payment_item_id uuid, actor uuid, reason text, next_step text",
+      "security_definer": true
     },
     {
       "schema": "public",

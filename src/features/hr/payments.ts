@@ -15,6 +15,7 @@ import {
   maskPaymentDestinationLabel,
   paymentBatchIdInputSchema,
   payrollRunIdInputSchema,
+  reversePayrollPaymentItemInputSchema,
   upsertHrPaymentDestinationInputSchema,
 } from "@/features/hr/schemas";
 
@@ -29,6 +30,15 @@ async function requirePaymentAdmin(userId: string, mode: "read" | "write" = "rea
   // Permissões por módulo (Nenhum/Leitura) também valem no RH.
   await assertModuleNotBlocked(membership.schoolId, userId, "financeiro", mode);
   return membership;
+}
+
+/** Número livre para uma nova saída: o base, ou base-2, base-3… se já usados. */
+export function nextExpenseNumber(base: string, used: ReadonlyArray<{ document_number: unknown }>) {
+  const taken = new Set(used.map((row) => String(row.document_number)));
+  if (!taken.has(base)) return base;
+  let n = 2;
+  while (taken.has(`${base}-${n}`)) n += 1;
+  return `${base}-${n}`;
 }
 
 function missingPaymentSchema(error: { code?: string; message?: string } | null) {
@@ -366,21 +376,30 @@ export const confirmPayrollPaymentItem = createServerFn({ method: "POST" })
       return { paid: false, failed: true };
     }
 
-    const documentNumber = `${String(batch.batch_number)}-${String(item.id).replace(/-/g, "").slice(0, 8).toUpperCase()}`;
+    let documentNumber = `${String(batch.batch_number)}-${String(item.id).replace(/-/g, "").slice(0, 8).toUpperCase()}`;
     let cashExpenseId: string | null = item.cash_expense_id ? String(item.cash_expense_id) : null;
     // Saída lançada por este pedido: se outro pedido confirmar o item primeiro
     // (duplo clique, dois separadores), é retirada para o caixa não pagar duas vezes.
     let createdExpenseId: string | null = null;
 
     if (!cashExpenseId) {
-      const { data: existingExpense } = await db
+      // O número é único por escola. Uma saída lançada e não ligada (pedido
+      // interrompido) é reaproveitada; uma anulada (salário anulado e pago de novo)
+      // não: o novo pagamento leva o número seguinte (…-2, …-3).
+      const { data: sameNumber } = await db
         .from("siga_cash_expenses")
-        .select("id")
+        .select("id, status, document_number")
         .eq("school_id", membership.schoolId)
-        .eq("document_number", documentNumber)
-        .maybeSingle();
-      if (existingExpense?.id) {
-        cashExpenseId = String(existingExpense.id);
+        .like("document_number", `${documentNumber}%`);
+      const posted = (sameNumber ?? []).find(
+        (row) =>
+          String(row.status) === "posted" &&
+          (row.document_number === documentNumber ||
+            String(row.document_number).startsWith(`${documentNumber}-`)),
+      );
+      if (sameNumber?.length) documentNumber = nextExpenseNumber(documentNumber, sameNumber);
+      if (posted?.id) {
+        cashExpenseId = String(posted.id);
       } else {
         const { data: expense, error: expenseError } = await db
           .from("siga_cash_expenses")
@@ -497,4 +516,36 @@ export const confirmPayrollPaymentItem = createServerFn({ method: "POST" })
     }
 
     return { paid: true, cashExpenseId, batchCompleted: allPaid };
+  });
+
+/**
+ * Anula um salário pago por engano: o item deixa de estar pago, a saída de caixa
+ * fica anulada e a folha volta atrás — tudo numa transacção
+ * (`hr_reverse_payroll_payment`, 20261004130000). O caixa recusa anular estas
+ * saídas (`reverseCashEntry`): o caminho é este.
+ */
+export const reversePayrollPaymentItem = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .validator((input: unknown) => reversePayrollPaymentItemInputSchema.parse(input))
+  .handler(async ({ data, context }) => {
+    const membership = await requirePaymentAdmin(context.userId, "write");
+    requireAal2(context.claims, "Anular um pagamento salarial");
+    const db = await loadSgaAdminClient();
+    const { data: outcome, error } = await db.rpc("hr_reverse_payroll_payment", {
+      school_id: membership.schoolId,
+      payment_item_id: data.paymentItemId,
+      actor: context.userId,
+      reason: data.reason,
+      next_step: data.next,
+    });
+    if (error) {
+      if (error.code === "22023" || error.code === "P0002") throw new Error(error.message);
+      throw publicDatabaseError(error, "Não foi possível anular o pagamento salarial.");
+    }
+    return outcome as {
+      paymentItemId: string;
+      itemStatus: "authorized" | "cancelled";
+      batchStatus: string;
+      cashExpenseId: string | null;
+    };
   });

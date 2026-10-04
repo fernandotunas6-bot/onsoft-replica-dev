@@ -402,6 +402,7 @@ export const updateBillingSettings = createServerFn({ method: "POST" })
         due_day: data.dueDay,
         late_fee_percent: data.lateFeePercent,
         grace_days: data.graceDays,
+        late_fee_applies_to: data.lateFeeAppliesTo,
         sibling_discount_percent: data.siblingDiscountPercent,
       },
       context.userId,

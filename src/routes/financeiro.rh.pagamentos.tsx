@@ -25,6 +25,7 @@ import {
   getPayrollPaymentBatchDetail,
   listPayrollPaymentBatches,
   refreshPayrollPaymentBatch,
+  reversePayrollPaymentItem,
   upsertHrPaymentDestination,
 } from "@/features/hr/payments";
 import { kwanza } from "@/lib/currency";
@@ -53,11 +54,20 @@ type ExecutionDraft = {
   failureReason: string;
 };
 
+type ReversalDraft = {
+  paymentItemId: string;
+  beneficiaryName: string;
+  amountKz: number;
+  reason: string;
+  next: "repay" | "cancel";
+};
+
 function PayrollPaymentsPage() {
   const queryClient = useQueryClient();
   const [selectedBatchId, setSelectedBatchId] = useState<string | null>(null);
   const [destinationDraft, setDestinationDraft] = useState<DestinationDraft | null>(null);
   const [executionDraft, setExecutionDraft] = useState<ExecutionDraft | null>(null);
+  const [reversalDraft, setReversalDraft] = useState<ReversalDraft | null>(null);
 
   const runs = useQuery({
     queryKey: ["hr", "payroll-runs"],
@@ -162,6 +172,27 @@ function PayrollPaymentsPage() {
         error instanceof Error
           ? error.message
           : "Não foi possível registrar o resultado do pagamento.",
+      ),
+  });
+
+  const reversePayment = useMutation({
+    mutationFn: (value: ReversalDraft) =>
+      reversePayrollPaymentItem({
+        data: { paymentItemId: value.paymentItemId, reason: value.reason, next: value.next },
+      }),
+    onSuccess: async (result) => {
+      toast.success("Pagamento salarial anulado.", {
+        description:
+          result.itemStatus === "authorized"
+            ? "A saída de caixa foi anulada e o salário pode ser pago de novo."
+            : "A saída de caixa foi anulada e o salário ficou cancelado.",
+      });
+      setReversalDraft(null);
+      await refresh();
+    },
+    onError: (error) =>
+      toast.error(
+        error instanceof Error ? error.message : "Não foi possível anular o pagamento salarial.",
       ),
   });
 
@@ -400,6 +431,23 @@ function PayrollPaymentsPage() {
                               Configurar destino
                             </Button>
                           ) : null}
+                          {status === "paid" ? (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() =>
+                                setReversalDraft({
+                                  paymentItemId: String(item.id),
+                                  beneficiaryName: String(item.beneficiary_name),
+                                  amountKz: Number(item.amount_kz ?? 0),
+                                  reason: "",
+                                  next: "repay",
+                                })
+                              }
+                            >
+                              Anular pagamento
+                            </Button>
+                          ) : null}
                           {canRecordResult ? (
                             <>
                               <Button
@@ -603,6 +651,61 @@ function PayrollPaymentsPage() {
                         : executionDraft.result === "paid"
                           ? "Confirmar e lançar no caixa"
                           : "Registar falha"}
+                    </Button>
+                  </div>
+                </Panel>
+              ) : null}
+
+              {reversalDraft ? (
+                <Panel
+                  title={`Anular pagamento · ${reversalDraft.beneficiaryName}`}
+                  description={`${kwanza(reversalDraft.amountKz)} · Para um salário pago por engano. A saída de caixa é anulada com o mesmo motivo e a folha volta atrás, tudo de uma vez. Exige 2FA.`}
+                >
+                  <div className="grid gap-3">
+                    <label className="space-y-1 text-sm">
+                      <span>Motivo</span>
+                      <Input
+                        aria-label="Motivo da anulação do pagamento salarial"
+                        value={reversalDraft.reason}
+                        onChange={(event) =>
+                          setReversalDraft({ ...reversalDraft, reason: event.target.value })
+                        }
+                        placeholder="Ex.: transferido para o IBAN errado"
+                        maxLength={500}
+                      />
+                    </label>
+                    <fieldset className="space-y-2 text-sm">
+                      <legend className="font-medium">Depois de anular</legend>
+                      <label className="flex items-center gap-2">
+                        <input
+                          type="radio"
+                          name="reversal-next"
+                          checked={reversalDraft.next === "repay"}
+                          onChange={() => setReversalDraft({ ...reversalDraft, next: "repay" })}
+                        />
+                        Voltar a pagar (o salário é devido; ex.: destino errado)
+                      </label>
+                      <label className="flex items-center gap-2">
+                        <input
+                          type="radio"
+                          name="reversal-next"
+                          checked={reversalDraft.next === "cancel"}
+                          onChange={() => setReversalDraft({ ...reversalDraft, next: "cancel" })}
+                        />
+                        Cancelar (o salário não era devido)
+                      </label>
+                    </fieldset>
+                  </div>
+                  <div className="mt-4 flex justify-end gap-2">
+                    <Button variant="outline" onClick={() => setReversalDraft(null)}>
+                      Voltar
+                    </Button>
+                    <Button
+                      variant="destructive"
+                      onClick={() => reversePayment.mutate(reversalDraft)}
+                      disabled={reversePayment.isPending || reversalDraft.reason.trim().length < 5}
+                    >
+                      {reversePayment.isPending ? "A anular…" : "Anular pagamento"}
                     </Button>
                   </div>
                 </Panel>

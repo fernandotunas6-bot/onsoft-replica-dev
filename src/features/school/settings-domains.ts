@@ -17,6 +17,7 @@
  * - Quem lê um domínio usa `readSettingsDomain`/`parseSettingsDomain`; não se
  *   volta a escrever `value["campo"] ?? x` noutro sítio.
  */
+import { parseLateFeeScope, type LateFeeScope } from "@/features/finance/late-fee";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { isSchoolTypeId, type AngolaSchoolTypeId } from "@/lib/school-config";
 import { pedagogySettingsSchema, type PedagogySettings } from "./schemas";
@@ -51,6 +52,8 @@ export type BillingSettings = {
   late_fee_percent: number;
   /** Dias depois do vencimento antes de aplicar a multa. */
   grace_days: number;
+  /** Em que pagamentos a multa se aplica (`late-fee.ts`). Por omissão, em todos. */
+  late_fee_applies_to: LateFeeScope;
   /** Desconto quando outro educando do mesmo encarregado está matriculado. 0 = sem desconto. */
   sibling_discount_percent: number;
 };
@@ -204,6 +207,7 @@ export const SETTINGS_DOMAINS = {
         due_day: bounded(v["due_day"], 10, 1, 28, true),
         late_fee_percent: bounded(v["late_fee_percent"], 0, 0, 100),
         grace_days: bounded(v["grace_days"], 0, 0, 60, true),
+        late_fee_applies_to: parseLateFeeScope(v["late_fee_applies_to"]),
         sibling_discount_percent: bounded(v["sibling_discount_percent"], 0, 0, 100),
       };
     },

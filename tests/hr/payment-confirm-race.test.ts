@@ -16,7 +16,7 @@ describe("confirmação de pagamento salarial", () => {
   });
 
   it("uma saída já existente (retoma) nunca é apagada", () => {
-    const reuse = confirm.indexOf("cashExpenseId = String(existingExpense.id);");
+    const reuse = confirm.indexOf("cashExpenseId = String(posted.id);");
     expect(reuse).toBeGreaterThan(-1);
     expect(confirm.slice(reuse, reuse + 80)).not.toContain("createdExpenseId");
   });

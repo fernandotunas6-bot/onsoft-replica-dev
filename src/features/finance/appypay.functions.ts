@@ -1,4 +1,5 @@
 import { requireAal2 } from "@/features/hr/require-aal2";
+import { invoiceTotalDue } from "@/features/finance/late-fee-server";
 import { createServerFn } from "@tanstack/react-start";
 import { reportSigaError } from "@/lib/ops-report";
 import { z } from "zod";
@@ -80,7 +81,7 @@ export const createInvoiceCharge = createServerFn({ method: "POST" })
     }
     const { data: invoice } = await db
       .from("finance_invoices")
-      .select("id, invoice_number, status, amount, discount_amount")
+      .select("id, invoice_number, status, amount, discount_amount, penalty_amount, due_date")
       .eq("id", data.invoiceId)
       .eq("school_id", schoolId)
       .maybeSingle();
@@ -88,7 +89,8 @@ export const createInvoiceCharge = createServerFn({ method: "POST" })
     if (invoice.status === "paid" || invoice.status === "cancelled") {
       throw new Error("Esta factura já não tem valor por pagar.");
     }
-    // O que falta pagar: total, menos desconto, menos os recibos já emitidos.
+    // O que falta pagar: total, menos desconto, mais a multa (a mesma regra de todos
+    // os canais, `late-fee.ts`), menos os recibos já emitidos.
     const { data: receipts } = await db
       .from("finance_receipts")
       .select("amount")
@@ -99,7 +101,8 @@ export const createInvoiceCharge = createServerFn({ method: "POST" })
       (sum: number, r: { amount: unknown }) => sum + Number(r.amount || 0),
       0,
     );
-    const due = Number(invoice.amount) - Number(invoice.discount_amount ?? 0) - alreadyPaid;
+    const { total } = await invoiceTotalDue(db, schoolId, invoice, "electronic");
+    const due = total - alreadyPaid;
     if (due <= 0.009) throw new Error("Esta factura já não tem valor por pagar.");
     if (data.amount > due + 0.01) {
       throw new Error(`O valor é maior do que o que falta pagar (${due.toFixed(2)} Kz).`);

@@ -27,7 +27,7 @@ import {
 // Só o schema (zod puro, sem dependências pesadas) entra estaticamente; o
 // gerador de XML continua a ser carregado dinamicamente dentro do handler.
 import { generateSaftInputSchema } from "./saft-generator";
-import { invoiceNetTotal } from "./invoice-settlement";
+import { invoiceTotalDue } from "./late-fee-server";
 import { insertFinanceArchive } from "@/features/arquivos/archive-finance-core";
 import { stableDocumentCode } from "@/features/arquivos/document-code";
 import { canWriteFileArea } from "@/features/arquivos/kinds";
@@ -858,7 +858,7 @@ export const generateInvoicePaymentReference = createServerFn({ method: "POST" }
     const db = await loadSgaAdminClient();
     const { data: invoice, error: invoiceError } = await db
       .from("finance_invoices")
-      .select("id, status, amount, discount_amount")
+      .select("id, status, amount, discount_amount, penalty_amount, due_date")
       .eq("id", data.invoiceId)
       .eq("school_id", membership.schoolId)
       .maybeSingle();
@@ -879,7 +879,9 @@ export const generateInvoicePaymentReference = createServerFn({ method: "POST" }
       (sum: number, r: { amount: unknown }) => sum + Number(r.amount || 0),
       0,
     );
-    const due = Number(invoice.amount) - Number(invoice.discount_amount ?? 0) - alreadyPaid;
+    // A referência é paga por via electrónica: leva a multa da escola, se houver.
+    const { total } = await invoiceTotalDue(db, membership.schoolId, invoice, "electronic");
+    const due = total - alreadyPaid;
     if (data.amount > due + 0.01) {
       throw new Error(`O valor é maior do que o que falta pagar (${due.toFixed(2)} Kz).`);
     }
@@ -1326,7 +1328,7 @@ export const reverseCashEntry = createServerFn({ method: "POST" })
     }
     if (payrollLink?.id) {
       throw new Error(
-        "Esta saída pagou um salário e não se anula no caixa: a folha continuaria a dar o salário como pago. A correcção tem de ser feita no pagamento salarial (Recursos Humanos).",
+        "Esta saída pagou um salário e não se anula no caixa: a folha continuaria a dar o salário como pago. Anule-a em Recursos Humanos → Pagamentos («Anular pagamento»): a saída, o salário e a folha voltam atrás juntos.",
       );
     }
 
@@ -1369,7 +1371,7 @@ export const createPaymentPlan = createServerFn({ method: "POST" })
         .from("finance_invoices")
         // `total_amount` não existe em `finance_invoices` (as colunas são
         // `amount` e `discount_amount`).
-        .select("id, amount, discount_amount, status")
+        .select("id, amount, discount_amount, penalty_amount, due_date, status")
         .eq("id", data.invoiceId)
         .eq("school_id", membership.schoolId)
         .maybeSingle();
@@ -1390,7 +1392,9 @@ export const createPaymentPlan = createServerFn({ method: "POST" })
         (sum: number, row: { amount: unknown }) => sum + Number(row.amount || 0),
         0,
       );
-      amountDue = Math.max(invoiceNetTotal(invoiceRow) - paid, 0);
+      const channel = isGatewayPaymentChannel(data.channel) ? "electronic" : "counter";
+      const { total } = await invoiceTotalDue(db, membership.schoolId, invoiceRow, channel);
+      amountDue = Math.max(total - paid, 0);
     }
     if (data.studentId) {
       const { data: studentRow, error: studentError } = await db

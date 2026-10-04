@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { invoiceStatusFromPaid } from "./invoice-settlement";
+import { invoiceAmountDue as amountDueWithPenalty, lateFeeFor, todayInLuanda } from "./late-fee";
 import { publicDatabaseError } from "@/integrations/supabase/server-error";
 import { normalizePaymentReference } from "@/features/finance/emiss-multicaixa";
 import {
@@ -151,32 +152,26 @@ export async function settleGatewayPayment(
   if (invoiceError) throw publicDatabaseError(invoiceError, "Não foi possível ler a fatura.");
   if (!invoice) throw new Error("Fatura não encontrada para esta escola.");
   if (invoice.status === "cancelled") throw new Error("Fatura cancelada.");
-  // Mesma multa por atraso de private.register_payment (20260924143000): aplica-se uma
-  // única vez, ao primeiro pagamento registado depois da tolerância configurada em
-  // Definições > Cobrança — o gateway também é um caminho de pagamento, não só a
-  // tesouraria manual.
-  let invoicePenaltyAmount = Number(invoice.penalty_amount ?? 0);
-  if (invoicePenaltyAmount === 0 && invoice.due_date) {
-    const billing = await readSettingsDomain(db, input.schoolId, "billing");
-    const graceDays = billing.grace_days;
-    const lateFeePercent = billing.late_fee_percent;
-    const dueDate = new Date(`${invoice.due_date}T00:00:00Z`);
-    const graceDeadline = new Date(dueDate.getTime() + graceDays * 86_400_000);
-    if (lateFeePercent > 0 && Date.now() > graceDeadline.getTime()) {
-      invoicePenaltyAmount =
-        Math.round(((Number(invoice.amount) * lateFeePercent) / 100) * 100) / 100;
-      await db
-        .from("finance_invoices")
-        .update({ penalty_amount: invoicePenaltyAmount })
-        .eq("school_id", input.schoolId)
-        .eq("id", input.invoiceId);
-    }
+  // Multa por atraso: a mesma regra da tesouraria (`late-fee.ts` e
+  // private.register_payment, 20261004120000). Um pagamento por referência é sempre
+  // electrónico; a multa fica gravada ao primeiro pagamento depois do prazo.
+  const billing = await readSettingsDomain(db, input.schoolId, "billing");
+  const invoicePenaltyAmount = lateFeeFor(invoice, billing, todayInLuanda(), "electronic");
+  if (
+    invoice.status !== "paid" &&
+    invoicePenaltyAmount > 0 &&
+    Number(invoice.penalty_amount ?? 0) === 0
+  ) {
+    await db
+      .from("finance_invoices")
+      .update({ penalty_amount: invoicePenaltyAmount })
+      .eq("school_id", input.schoolId)
+      .eq("id", input.invoiceId)
+      .eq("penalty_amount", 0);
   }
-  // Mesma correção de private.register_payment (20260924135028): o saldo em aberto é
-  // o valor líquido, não o bruto — sem isto uma fatura com desconto nunca chegava a
-  // "paid" pagando o valor correcto, e uma com multa ficava "paid" antes de tempo.
-  const invoiceAmountDue =
-    Number(invoice.amount) - Number(invoice.discount_amount ?? 0) + invoicePenaltyAmount;
+  // O saldo em aberto é o valor líquido mais a multa: sem isto uma fatura com
+  // desconto nunca chegava a "paid" e uma com multa ficava "paid" antes de tempo.
+  const invoiceAmountDue = amountDueWithPenalty(invoice, invoicePenaltyAmount);
   if (invoice.status === "paid") {
     return {
       alreadyPaid: true as const,

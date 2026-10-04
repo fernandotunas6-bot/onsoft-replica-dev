@@ -11,7 +11,15 @@ export function invoiceStatusFromPaid(invoiceAmount: number, paid: number): Sett
   return cents(paid) >= cents(invoiceAmount) ? "paid" : "partially_paid";
 }
 
-/** Total a pagar da fatura: valor menos desconto, nunca negativo. */
-export function invoiceNetTotal(invoice: { amount: unknown; discount_amount?: unknown }) {
-  return Math.max(Number(invoice.amount ?? 0) - Number(invoice.discount_amount ?? 0), 0);
+/**
+ * Total a pagar da fatura: valor menos desconto (nunca negativo), mais a multa já
+ * gravada na fatura (`late-fee.ts`), quando a linha a traz.
+ */
+export function invoiceNetTotal(invoice: {
+  amount: unknown;
+  discount_amount?: unknown;
+  penalty_amount?: unknown;
+}) {
+  const net = Math.max(Number(invoice.amount ?? 0) - Number(invoice.discount_amount ?? 0), 0);
+  return net + Math.max(Number(invoice.penalty_amount ?? 0), 0);
 }
