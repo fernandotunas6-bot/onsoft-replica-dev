@@ -60,6 +60,13 @@ const PRIVILEGIO_POR_DESENHO = new Set([
   // função exige Administrador/Secretaria (ou o professor da cadeira, para lançar
   // notas) e filtra pela escola da sessão.
   "src/features/higher-ed/server.ts",
+  // Chat escolar. A regra de quem pode falar com quem (pessoal fala com todos;
+  // alunos e encarregados só com o pessoal) vive em `isMessagingStaff` e em
+  // `loadSchoolColleagues`, que leem `school_memberships`, `member_roles`,
+  // `roles` e `profiles` de outras contas — nada disso é legível pelo JWT de um
+  // encarregado, e com razão. A RLS das tabelas siga_chat_* continua a ser a
+  // rede de segurança para o acesso directo do browser (o Realtime passa por lá).
+  "src/features/messages/chat-server.ts",
 
   // Assinatura da escola (Configurações → Assinatura). `tenants`,
   // `subscriptions`, `tenant_usage` e `saas_audit_logs` só têm política para a

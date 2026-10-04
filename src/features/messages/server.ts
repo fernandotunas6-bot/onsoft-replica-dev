@@ -114,6 +114,53 @@ async function loadCargoByUserId(
   return cargoByUserId;
 }
 
+/** Colegas visíveis para esta pessoa nesta escola. Extraído do server fn para
+ *  que o chat (chat-server.ts) use a mesma regra sem chamar um server fn de
+ *  dentro de outro. */
+export async function loadSchoolColleagues(
+  db: Awaited<ReturnType<typeof loadSgaAdminClient>>,
+  membership: NonNullable<Awaited<ReturnType<typeof resolveSgaMembershipAdmin>>>,
+  viewerId: string,
+): Promise<SchoolColleague[]> {
+  const { data: rows, error } = await db
+    .from("school_memberships")
+    .select("id, user_id, status")
+    .eq("school_id", membership.schoolId)
+    .eq("status", "active");
+  if (error) throw publicDatabaseError(error, "Não foi possível listar os colegas.");
+
+  const memberships = (rows ?? [])
+    .map((row) => ({ id: String(row.id), user_id: String(row.user_id) }))
+    .filter((row) => row.user_id !== viewerId);
+  const userIds = [...new Set(memberships.map((row) => row.user_id))];
+  if (!userIds.length) return [] as SchoolColleague[];
+
+  const cargoByUserId = await loadCargoByUserId(db, memberships);
+  // Alunos e encarregados só vêem o pessoal da escola.
+  const viewerIsStaff = isMessagingStaff(membership.allAppRoles ?? [membership.appRole]);
+  const visibleIds = viewerIsStaff
+    ? userIds
+    : userIds.filter((id) => isMessagingStaff([cargoByUserId.get(id) ?? ""]));
+  if (!visibleIds.length) return [] as SchoolColleague[];
+
+  const { data: profiles, error: profileError } = await db
+    .from("profiles")
+    .select("id, full_name, avatar_url, cargo")
+    .in("id", visibleIds);
+  if (profileError && /avatar_url|cargo|42703|schema cache/i.test(profileError.message)) {
+    const { data: fallback } = await db
+      .from("profiles")
+      .select("id, full_name")
+      .in("id", visibleIds);
+    return mapColleagues(visibleIds, fallback ?? [], cargoByUserId);
+  }
+  if (profileError) {
+    throw publicDatabaseError(profileError, "Não foi possível ler os perfis.");
+  }
+
+  return mapColleagues(visibleIds, profiles ?? [], cargoByUserId);
+}
+
 export const listSchoolColleagues = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
@@ -121,44 +168,7 @@ export const listSchoolColleagues = createServerFn({ method: "GET" })
     const membership = await resolveSgaMembershipAdmin(context.userId);
     if (!membership) throw new Error("Sem membership activa nesta escola.");
     const db = await loadSgaAdminClient();
-
-    const { data: rows, error } = await db
-      .from("school_memberships")
-      .select("id, user_id, status")
-      .eq("school_id", membership.schoolId)
-      .eq("status", "active");
-    if (error) throw publicDatabaseError(error, "Não foi possível listar os colegas.");
-
-    const memberships = (rows ?? [])
-      .map((row) => ({ id: String(row.id), user_id: String(row.user_id) }))
-      .filter((row) => row.user_id !== context.userId);
-    const userIds = [...new Set(memberships.map((row) => row.user_id))];
-    if (!userIds.length) return [] as SchoolColleague[];
-
-    const cargoByUserId = await loadCargoByUserId(db, memberships);
-    // Alunos e encarregados só vêem o pessoal da escola.
-    const viewerIsStaff = isMessagingStaff(membership.allAppRoles ?? [membership.appRole]);
-    const visibleIds = viewerIsStaff
-      ? userIds
-      : userIds.filter((id) => isMessagingStaff([cargoByUserId.get(id) ?? ""]));
-    if (!visibleIds.length) return [] as SchoolColleague[];
-
-    const { data: profiles, error: profileError } = await db
-      .from("profiles")
-      .select("id, full_name, avatar_url, cargo")
-      .in("id", visibleIds);
-    if (profileError && /avatar_url|cargo|42703|schema cache/i.test(profileError.message)) {
-      const { data: fallback } = await db
-        .from("profiles")
-        .select("id, full_name")
-        .in("id", visibleIds);
-      return mapColleagues(visibleIds, fallback ?? [], cargoByUserId);
-    }
-    if (profileError) {
-      throw publicDatabaseError(profileError, "Não foi possível ler os perfis.");
-    }
-
-    return mapColleagues(visibleIds, profiles ?? [], cargoByUserId);
+    return loadSchoolColleagues(db, membership, context.userId);
   });
 
 export const listDirectThread = createServerFn({ method: "GET" })
