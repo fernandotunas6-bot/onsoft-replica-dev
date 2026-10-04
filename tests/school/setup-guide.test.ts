@@ -119,3 +119,21 @@ describe("o guia aponta para ecrãs que existem", () => {
     }
   });
 });
+
+describe("guia do painel com as regras do assistente", () => {
+  it("escola só de Ensino Superior: dois semestres e regulamento em vez de MAC/NPP/NPT", () => {
+    const superior = { ...PRONTA, teachingLevels: ["superior"], termsInActiveYear: 2 };
+    expect(step(superior, "trimestres")).toMatchObject({
+      title: "Gravar os dois semestres",
+      done: true,
+    });
+    expect(step(superior, "avaliacao")).toMatchObject({ optional: true });
+    expect(step(superior, "avaliacao").action).toMatchObject({ to: "/pedagogica/superior" });
+  });
+
+  it("com ensino geral continuam os três trimestres", () => {
+    const mista = { ...PRONTA, teachingLevels: ["ii_ciclo", "superior"], termsInActiveYear: 2 };
+    expect(step(mista, "trimestres").done).toBe(false);
+    expect(step(mista, "avaliacao").optional).toBe(false);
+  });
+});

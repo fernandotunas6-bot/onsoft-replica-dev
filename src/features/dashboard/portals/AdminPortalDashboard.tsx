@@ -487,12 +487,7 @@ export function AdminPortalDashboard({
         <section className="rounded-xl border border-primary/20 bg-primary/5 p-4">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <h2 className="text-sm font-bold">Primeiros passos da escola</h2>
-            <Link
-              to="/configuracoes/inicio"
-              className="rounded-full bg-primary px-3 py-1 text-xs font-semibold text-primary-foreground hover:opacity-90"
-            >
-              Abrir assistente de configuração
-            </Link>
+            {/* O assistente de configuração é só do Administrador. */}
           </div>
           <p className="mt-1 text-xs text-muted-foreground">
             {data?.academicYear
