@@ -336,39 +336,3 @@ export async function getNativeSystemInfo(): Promise<SystemInfoResult> {
     is_desktop_native: false,
   };
 }
-
-/** Minimiza a janela nativa do Windows/macOS */
-export async function minimizeWindow() {
-  if (isTauriDesktop()) {
-    try {
-      const { getCurrentWindow } = await import("@tauri-apps/api/window");
-      await getCurrentWindow().minimize();
-    } catch (e) {
-      console.warn("Failed to minimize window", e);
-    }
-  }
-}
-
-/** Alterna entre maximizado e tamanho normal da janela */
-export async function toggleMaximizeWindow() {
-  if (isTauriDesktop()) {
-    try {
-      const { getCurrentWindow } = await import("@tauri-apps/api/window");
-      await getCurrentWindow().toggleMaximize();
-    } catch (e) {
-      console.warn("Failed to toggle maximize window", e);
-    }
-  }
-}
-
-/** Fecha a janela nativa do aplicativo */
-export async function closeWindow() {
-  if (isTauriDesktop()) {
-    try {
-      const { getCurrentWindow } = await import("@tauri-apps/api/window");
-      await getCurrentWindow().close();
-    } catch (e) {
-      console.warn("Failed to close window", e);
-    }
-  }
-}

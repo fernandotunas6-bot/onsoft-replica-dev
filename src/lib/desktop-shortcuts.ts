@@ -3,7 +3,8 @@
  * browser do sistema e que teclas são atalhos.
  */
 
-export type DesktopShortcut = "reload" | "back" | "forward" | "zoom-in" | "zoom-out" | "zoom-reset";
+export type DesktopShortcut =
+  "reload" | "back" | "forward" | "print" | "zoom-in" | "zoom-out" | "zoom-reset";
 
 /**
  * Link que abre no browser do sistema: http(s) de outra origem, `mailto:` e `tel:`.
@@ -30,6 +31,8 @@ export function shortcutAction(event: KeyLike): DesktopShortcut | null {
   const mod = event.ctrlKey || event.metaKey;
   if (event.key === "F5" && !mod && !event.altKey) return "reload";
   if (mod && !event.altKey && event.key.toLowerCase() === "r") return "reload";
+  // O menu nativo do macOS não tem «Imprimir»: Cmd+P não fazia nada na app.
+  if (mod && !event.altKey && !event.shiftKey && event.key.toLowerCase() === "p") return "print";
   if (event.altKey && !mod && event.key === "ArrowLeft") return "back";
   if (event.altKey && !mod && event.key === "ArrowRight") return "forward";
   if (mod && !event.altKey && (event.key === "=" || event.key === "+")) return "zoom-in";

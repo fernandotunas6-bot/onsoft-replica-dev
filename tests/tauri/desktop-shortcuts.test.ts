@@ -44,6 +44,9 @@ describe("desktop — atalhos", () => {
     expect(shortcutAction(key("=", { metaKey: true }))).toBe("zoom-in");
     expect(shortcutAction(key("-", { ctrlKey: true }))).toBe("zoom-out");
     expect(shortcutAction(key("0", { ctrlKey: true }))).toBe("zoom-reset");
+    expect(shortcutAction(key("p", { metaKey: true }))).toBe("print");
+    expect(shortcutAction(key("P", { ctrlKey: true }))).toBe("print");
+    expect(shortcutAction(key("p", { ctrlKey: true, shiftKey: true }))).toBeNull();
   });
 
   it("não rouba teclas normais nem Ctrl+K", () => {

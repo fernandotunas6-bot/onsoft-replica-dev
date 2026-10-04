@@ -34,7 +34,7 @@ A janela principal mostra o portal (origem remota): o Tauri só deixa uma origem
 
 As janelas `print-…` e `payflow-…` não entram em nenhuma capability: as páginas delas não chamam comandos. Só a origem exacta do portal fica na janela principal; DOC, PayFlow e ADMIN (subdomínios) abrem no browser do sistema.
 
-No frontend, `DesktopIntegration` liga isto (exportações, links, impressão no macOS, atalhos F5/Ctrl+R, Alt+←/→, Ctrl + / − / 0 com zoom lembrado e o aviso de versão nova). A janela tem a barra de título nativa; a web já não desenha barras próprias dentro da app.
+No frontend, `DesktopIntegration` liga isto (exportações, links, impressão no macOS, atalhos F5/Ctrl+R, Alt+←/→, Ctrl/Cmd+P (o menu nativo do macOS não tem «Imprimir»), Ctrl + / − / 0 com zoom lembrado e o aviso de versão nova). A janela tem a barra de título nativa; a web já não desenha barras próprias dentro da app.
 
 ## Hardware
 

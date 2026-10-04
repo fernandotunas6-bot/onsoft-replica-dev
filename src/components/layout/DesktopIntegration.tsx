@@ -18,7 +18,8 @@ const ZOOM_KEY = "siga:desktop-zoom";
  *  - Exportações (`<a download>`) abrem o diálogo nativo "Guardar como" (desktop-downloads).
  *  - macOS: `window.print()` passa pelo comando Rust `print_page` (o do WKWebView não
  *    faz nada). Windows e Linux imprimem com o do próprio webview.
- *  - Atalhos: F5/Ctrl+R recarregar, Alt+←/→ histórico, Ctrl + / − / 0 zoom (lembrado).
+ *  - Atalhos: F5/Ctrl+R recarregar, Alt+←/→ histórico, Ctrl/Cmd+P imprimir,
+ *    Ctrl + / − / 0 zoom (lembrado).
  *    Recarregar com gravações à espera de rede pede confirmação (perdiam-se).
  *  - Versão nova publicada (release assinada): aviso com "Instalar e reiniciar", que
  *    nunca instala com gravações por enviar.
@@ -103,7 +104,8 @@ export function DesktopIntegration() {
         ) {
           window.location.reload();
         }
-      } else if (action === "back") window.history.back();
+      } else if (action === "print") window.print();
+      else if (action === "back") window.history.back();
       else if (action === "forward") window.history.forward();
       else void applyZoom(nextZoom(zoom, action));
     };
