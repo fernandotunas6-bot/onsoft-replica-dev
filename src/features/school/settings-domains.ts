@@ -129,6 +129,18 @@ export type HigherEdRegulation = {
   /** Período de inscrições em cadeiras (AAAA-MM-DD). Vazio = sempre aberto. */
   enrollment_opens_on: string | null;
   enrollment_closes_on: string | null;
+  /**
+   * Estatuto de trabalhador-estudante (como o regulamento do SIGARRA): as faltas não
+   * excluem da avaliação.
+   */
+  worker_student_absence_exempt: boolean;
+  /** Trabalhador-estudante vai à época especial sem ser finalista. */
+  worker_student_special_season: boolean;
+  /**
+   * Situação académica e prescrição: cada ano do trabalhador-estudante conta esta
+   * percentagem de um ano (50 = metade dos créditos esperados). 100 = sem desconto.
+   */
+  worker_student_progress_percent: number;
 };
 
 export const HIGHER_ED_DEFAULTS: HigherEdRegulation = {
@@ -150,6 +162,9 @@ export const HIGHER_ED_DEFAULTS: HigherEdRegulation = {
   cancel_deadline_days: 0,
   enrollment_opens_on: null,
   enrollment_closes_on: null,
+  worker_student_absence_exempt: true,
+  worker_student_special_season: true,
+  worker_student_progress_percent: 50,
 };
 
 export type HigherEdDegree = "licenciatura" | "mestrado" | "doutoramento" | "especializacao";
@@ -333,6 +348,21 @@ export const SETTINGS_DOMAINS = {
         ),
         enrollment_opens_on: isoDate(v["enrollment_opens_on"]),
         enrollment_closes_on: isoDate(v["enrollment_closes_on"]),
+        worker_student_absence_exempt:
+          typeof v["worker_student_absence_exempt"] === "boolean"
+            ? v["worker_student_absence_exempt"]
+            : d.worker_student_absence_exempt,
+        worker_student_special_season:
+          typeof v["worker_student_special_season"] === "boolean"
+            ? v["worker_student_special_season"]
+            : d.worker_student_special_season,
+        worker_student_progress_percent: bounded(
+          v["worker_student_progress_percent"],
+          d.worker_student_progress_percent,
+          10,
+          100,
+          true,
+        ),
       };
     },
   },

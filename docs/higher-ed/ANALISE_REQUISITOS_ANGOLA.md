@@ -44,15 +44,13 @@ injustificadas às aulas dadas no semestre.
 | Doutoramento: decisão do júri (Aprovado / com distinção / com distinção e louvor) | ✅ com acta, 2FA e auditoria |
 | Modalidade (presencial/semipresencial/distância) e regime (regular/pós-laboral) por curso | ✅ |
 | Vagas por curso e exame de acesso (nota, seriação) | ✅ separador «Acesso» |
-| Estatuto trabalhador-estudante (faltas, época especial) | ❌ |
+| Estatuto trabalhador-estudante (faltas, época especial) | ✅ 2026-10-04 |
 | Exportação para o SISIES/GEPE (Vagas, Acesso, Matrículas, Graduados) | ✅ Excel |
 | Diploma / carta de curso registado com QR | ❌ |
 | Bolsas | ❌ |
 
 ## Pendente (precisa de migração ou de decisão)
 
-- Estatuto trabalhador-estudante: exige uma tabela própria (dados pessoais; não
-  pode ficar em `school_settings`, que outros membros da escola lêem).
 - Bacharelato: alterar a restrição `programs.kind`.
 - Bolsas, turnos/vagas por turma com lista de espera, inscrição pelo próprio estudante.
 - Diploma/carta de curso registado com QR de verificação.
@@ -70,7 +68,7 @@ injustificadas às aulas dadas no semestre.
 | Prescrição / prazo máximo de integralização | SIGARRA (prescrição), SIGAA (prazo de conclusão) | ✅ «anos além da duração» (0 = desligado) |
 | Fluxo de correcção de notas | Banner (grade change workflow) | ✅ «Corrigir nota»: secretaria, 2FA, motivo, auditoria |
 | Holds: dívida bloqueia inscrição | Banner (registration holds) | ✅ opção do regulamento (desligada por omissão) |
-| Estatuto trabalhador-estudante (faltas, prescrição a 50 %) | SIGARRA | ❌ por decidir |
+| Estatuto trabalhador-estudante (faltas, prescrição a 50 %) | SIGARRA | ✅ configurável no regulamento |
 | Turnos/vagas por turma e lista de espera | FenixEdu (turnos), Banner (capacity, waitlist) | ❌ |
 | Calendário de inscrições | FenixEdu (curricular calendars), SIGAA | ✅ datas de abertura e fecho no regulamento |
 | Sistemas angolanos (SIGU, SkyGnova, SIGA.ao) | candidatura → certificado num só sistema | ✅ mesmo ciclo |

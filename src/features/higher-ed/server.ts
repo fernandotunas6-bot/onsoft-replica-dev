@@ -37,6 +37,7 @@ import {
   programYears,
 } from "./program-shape";
 import { HIGHER_ED_FEES } from "./fees";
+import { studentStatusMap, studentStatusOf } from "./student-status";
 import { rankAccessCandidates } from "./access";
 import {
   completedUnitIds,
@@ -55,6 +56,7 @@ import {
   planCohortEnrollment,
   planTotals,
   seasonEligibility,
+  NO_STATUS,
   seasonResult,
   studentProgress,
   transcriptLines,
@@ -758,11 +760,12 @@ export const getStudentHigherEd = createServerFn({ method: "GET" })
     const schoolId = membership.schoolId;
     await requireProgram(db, schoolId, data.programId);
     await requireStudentInProgram(db, schoolId, data.studentId, data.programId);
-    const [{ units, prerequisites }, rows, regulation, yearId] = await Promise.all([
+    const [{ units, prerequisites }, rows, regulation, yearId, status] = await Promise.all([
       loadPlan(db, schoolId, data.programId),
       loadRecords(db, schoolId, data.studentId, data.programId),
       regulationOf(db, schoolId),
       activeYearId(db, schoolId),
+      studentStatusOf(db, schoolId, data.studentId),
     ]);
     const records = rows.map((row) => row.record);
     const latest = latestRecordByUnit(records);
@@ -785,7 +788,7 @@ export const getStudentHigherEd = createServerFn({ method: "GET" })
         latest: last ? { ...last, id: rowIdByRecord.get(last) ?? null } : null,
         canEnroll: Boolean(check?.ok),
         enrollReasons: check?.reasons ?? ["Não há ano lectivo activo."],
-        seasons: seasonEligibility({ unitId: unit.id, records, plan: units, regulation }),
+        seasons: seasonEligibility({ unitId: unit.id, records, plan: units, regulation, status }),
       };
     });
     const profiles = await readSettingsDomain(db, schoolId, "higher_ed_programs");
@@ -793,7 +796,8 @@ export const getStudentHigherEd = createServerFn({ method: "GET" })
       activeYearId: yearId,
       degree: parseProgramProfile(profiles[data.programId]).degree,
       regulation,
-      standing: academicStanding({ plan: units, records, regulation }),
+      standing: academicStanding({ plan: units, records, regulation, status }),
+      workerStudent: status.workerStudent,
       progress: { ...progress, pendingUnits: progress.pendingUnits.map((u) => u.id) },
       units: unitsView,
       prerequisites,
@@ -1577,7 +1581,8 @@ export const recordUnitResult = createServerFn({ method: "POST" })
       if (latestRecord.status !== "inscrito") {
         throw new Error("A frequência só se lança numa inscrição ainda em curso.");
       }
-      const outcome = frequencyOutcome(data.frequency, data.absencePercent, regulation);
+      const status = await studentStatusOf(db, schoolId, data.studentId);
+      const outcome = frequencyOutcome(data.frequency, data.absencePercent, regulation, status);
       if (outcome.kind === "sem_nota") throw new Error("Indique a média de frequência.");
       patch =
         outcome.kind === "excluido_faltas"
@@ -1608,7 +1613,14 @@ export const recordUnitResult = createServerFn({ method: "POST" })
                   credits_earned: 0,
                 };
     } else {
-      const eligible = seasonEligibility({ unitId: unit.id, records, plan: units, regulation });
+      const status = await studentStatusOf(db, schoolId, data.studentId);
+      const eligible = seasonEligibility({
+        unitId: unit.id,
+        records,
+        plan: units,
+        regulation,
+        status,
+      });
       const season = data.season;
       if (season === "normal") {
         if (!(latestRecord.status === "inscrito" && latestRecord.season === "frequencia")) {
@@ -1872,16 +1884,25 @@ export const getUnitSheet = createServerFn({ method: "GET" })
           .in("id", personIds)
       : { data: [] as Row[] };
     const nameOf = new Map(((people ?? []) as Row[]).map((p) => [str(p.id), str(p.full_name)]));
+    const statuses = await studentStatusMap(db, schoolId, studentIds);
 
     const rows = (students ?? [])
       .map((student) => {
         const records = byStudent.get(str(student.id)) ?? [];
         const latest = latestRecordByUnit(records).get(unit.id) ?? null;
-        const eligible = seasonEligibility({ unitId: unit.id, records, plan: units, regulation });
+        const status = statuses.get(str(student.id)) ?? NO_STATUS;
+        const eligible = seasonEligibility({
+          unitId: unit.id,
+          records,
+          plan: units,
+          regulation,
+          status,
+        });
         return {
           studentId: str(student.id),
           name: nameOf.get(str(student.person_id)) || "Estudante",
           number: student.student_number ? str(student.student_number) : null,
+          workerStudent: status.workerStudent,
           latest: latest
             ? {
                 status: latest.status,

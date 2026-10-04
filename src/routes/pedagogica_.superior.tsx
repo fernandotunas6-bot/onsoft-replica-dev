@@ -51,6 +51,11 @@ import {
   setUnitPrerequisites,
 } from "@/features/higher-ed/server";
 import { SEASON_LABEL, STATUS_LABEL } from "@/features/higher-ed/labels";
+import {
+  getStudentSpecialStatuses,
+  grantWorkerStudentStatus,
+  revokeStudentSpecialStatus,
+} from "@/features/higher-ed/student-status";
 import type { AccessPlacement } from "@/features/higher-ed/access";
 import { DOCTORAL_MENTIONS } from "@/features/higher-ed/engine";
 import { normalizeProgramCode } from "@/features/higher-ed/program-shape";
@@ -1012,7 +1017,7 @@ function StudentPanel({ programId, studentId }: { programId: string; studentId: 
   });
 
   if (!student.data) return <p className="text-sm text-muted-foreground">A carregar…</p>;
-  const { progress, units, standing, degree } = student.data;
+  const { progress, units, standing, degree, workerStudent } = student.data;
   const bySemester = [...new Set(units.map((u) => u.semester))].sort((a, b) => a - b);
 
   return (
@@ -1037,6 +1042,7 @@ function StudentPanel({ programId, studentId }: { programId: string; studentId: 
         ]}
       />
       <StandingSummary standing={standing} />
+      <WorkerStudentPanel studentId={studentId} inForce={workerStudent} onChange={refresh} />
       <div className="flex flex-wrap items-center gap-2">
         <Button onClick={() => enroll.mutate()} disabled={!selected.length || enroll.isPending}>
           {enroll.isPending
@@ -1634,6 +1640,145 @@ function StandingSummary({
   );
 }
 
+/**
+ * Estatuto de trabalhador-estudante (faltas, época especial e prescrição pelo
+ * regulamento). Concede/revoga com prova e 2FA; dados só no servidor.
+ */
+function WorkerStudentPanel({
+  studentId,
+  inForce,
+  onChange,
+}: {
+  studentId: string;
+  inForce: boolean;
+  onChange: () => Promise<unknown> | void;
+}) {
+  const fetchStatuses = useServerFn(getStudentSpecialStatuses);
+  const statuses = useQuery({
+    queryKey: ["higher-ed", "special-status", studentId],
+    queryFn: () => fetchStatuses({ data: { studentId } }),
+  });
+  const [open, setOpen] = useState(false);
+  const [form, setForm] = useState({ validFrom: "", validUntil: "", employer: "", evidence: "" });
+  const current = statuses.data?.statuses.find((row) => row.inForce) ?? null;
+  const done = async () => {
+    setOpen(false);
+    await statuses.refetch();
+    await onChange();
+  };
+  const grant = useMutation({
+    mutationFn: () =>
+      grantWorkerStudentStatus({
+        data: {
+          studentId,
+          validFrom: form.validFrom,
+          validUntil: form.validUntil || null,
+          employer: form.employer,
+          evidenceNote: form.evidence,
+        },
+      }),
+    onSuccess: async () => {
+      toast.success("Estatuto de trabalhador-estudante concedido.");
+      await done();
+    },
+    onError: (error) => toastActionError(error, "Não foi possível conceder o estatuto."),
+  });
+  const revoke = useMutation({
+    mutationFn: (statusId: string) =>
+      revokeStudentSpecialStatus({ data: { statusId, reason: "Estatuto terminado." } }),
+    onSuccess: async () => {
+      toast.success("Estatuto revogado.");
+      await done();
+    },
+    onError: (error) => toastActionError(error, "Não foi possível revogar o estatuto."),
+  });
+
+  if (statuses.data && !statuses.data.available) return null;
+  return (
+    <div className="rounded-md border p-3 text-sm">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div className="flex items-center gap-2">
+          <span className="font-medium">Trabalhador-estudante</span>
+          {inForce || current ? (
+            <Badge variant="secondary">
+              Em vigor{current?.valid_until ? ` até ${current.valid_until}` : ""}
+            </Badge>
+          ) : (
+            <span className="text-xs text-muted-foreground">Sem estatuto</span>
+          )}
+        </div>
+        {current ? (
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => revoke.mutate(current.id)}
+            disabled={revoke.isPending}
+          >
+            Revogar
+          </Button>
+        ) : (
+          <Button size="sm" variant="outline" onClick={() => setOpen((value) => !value)}>
+            Conceder estatuto
+          </Button>
+        )}
+      </div>
+      {open && !current ? (
+        <div className="mt-3 grid gap-3 sm:grid-cols-2">
+          <div className="space-y-1.5">
+            <Label htmlFor="ws-from">Início</Label>
+            <Input
+              id="ws-from"
+              type="date"
+              value={form.validFrom}
+              onChange={(event) => setForm({ ...form, validFrom: event.target.value })}
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="ws-until">Fim (opcional)</Label>
+            <Input
+              id="ws-until"
+              type="date"
+              value={form.validUntil}
+              onChange={(event) => setForm({ ...form, validUntil: event.target.value })}
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="ws-employer">Entidade empregadora</Label>
+            <Input
+              id="ws-employer"
+              value={form.employer}
+              maxLength={200}
+              onChange={(event) => setForm({ ...form, employer: event.target.value })}
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="ws-evidence">Prova</Label>
+            <Input
+              id="ws-evidence"
+              value={form.evidence}
+              maxLength={1000}
+              placeholder="Ex.: declaração do empregador de 01/10"
+              onChange={(event) => setForm({ ...form, evidence: event.target.value })}
+            />
+          </div>
+          <p className="text-xs text-muted-foreground sm:col-span-2">
+            As regras que mudam (faltas, época especial, prescrição) estão no Regulamento.
+          </p>
+          <div className="sm:col-span-2">
+            <Button
+              size="sm"
+              onClick={() => grant.mutate()}
+              disabled={grant.isPending || !form.validFrom || form.evidence.trim().length < 3}
+            >
+              {grant.isPending ? "A conceder…" : "Conceder"}
+            </Button>
+          </div>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
 // ── Regulamento ─────────────────────────────────────────────────────────────
 
 type NumericRegulationKey = {
@@ -1712,6 +1857,11 @@ const REGULATION_FIELDS: Array<{
     label: "Anos além da duração (prescrição)",
     hint: "Depois disto o estudante excede o prazo do curso. 0 = sem prescrição.",
   },
+  {
+    key: "worker_student_progress_percent",
+    label: "Trabalhador-estudante: quanto conta cada ano (%)",
+    hint: "Para a situação académica e a prescrição. 50 = meio ano; 100 = como os outros.",
+  },
 ];
 
 function RegulationTab({ canEdit }: { canEdit: boolean }) {
@@ -1777,6 +1927,32 @@ function RegulationTab({ canEdit }: { canEdit: boolean }) {
             onCheckedChange={(value) => setDraft({ ...current, block_enrollment_with_debt: value })}
           />
           <Label htmlFor="reg-debt">Propinas vencidas impedem a inscrição em cadeiras</Label>
+        </div>
+        <div className="flex items-center gap-3 sm:col-span-2">
+          <Switch
+            id="reg-ws-absence"
+            checked={current.worker_student_absence_exempt}
+            disabled={!canEdit}
+            onCheckedChange={(value) =>
+              setDraft({ ...current, worker_student_absence_exempt: value })
+            }
+          />
+          <Label htmlFor="reg-ws-absence">
+            Trabalhador-estudante: as faltas não excluem da avaliação
+          </Label>
+        </div>
+        <div className="flex items-center gap-3 sm:col-span-2">
+          <Switch
+            id="reg-ws-special"
+            checked={current.worker_student_special_season}
+            disabled={!canEdit}
+            onCheckedChange={(value) =>
+              setDraft({ ...current, worker_student_special_season: value })
+            }
+          />
+          <Label htmlFor="reg-ws-special">
+            Trabalhador-estudante: época especial sem ser finalista
+          </Label>
         </div>
         <div className="space-y-1.5">
           <Label htmlFor="reg-opens">Inscrições abrem a</Label>

@@ -39,6 +39,7 @@ const MIGRATIONS = {
     "siga_exam_sessions",
     "siga_exam_registrations",
   ],
+  "supabase/migrations/20261004140000_student_special_statuses.sql": ["student_special_statuses"],
   "supabase/migrations/20260925162000_lesson_plans_and_subject_guards.sql": [
     "siga_lesson_plans",
     "siga_lesson_plan_components",

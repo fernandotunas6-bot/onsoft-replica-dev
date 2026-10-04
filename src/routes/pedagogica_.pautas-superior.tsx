@@ -225,7 +225,17 @@ function UnitSheet({ programId, unitId }: { programId: string; unitId: string })
                 <li key={row.studentId} className="flex flex-col gap-2 py-3">
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <div className="min-w-0">
-                      <p className="text-sm font-semibold">{row.name}</p>
+                      <p className="text-sm font-semibold">
+                        {row.name}
+                        {row.workerStudent ? (
+                          <span
+                            className="ml-2 rounded border px-1 text-[10px] font-medium text-muted-foreground"
+                            title="Trabalhador-estudante: regras do regulamento para faltas e época especial"
+                          >
+                            TE
+                          </span>
+                        ) : null}
+                      </p>
                       <p className="text-xs text-muted-foreground">
                         {row.number ? `N.º ${row.number} · ` : ""}
                         {row.latest?.attempt ? `${row.latest.attempt}.ª inscrição` : ""}

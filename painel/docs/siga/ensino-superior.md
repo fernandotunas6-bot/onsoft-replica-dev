@@ -113,6 +113,21 @@ fatura**, escolhendo a categoria com o mesmo nome; 0 Kz = a instituição não c
 - **Portal** — o estudante e o encarregado vêem créditos, média e o estado de cada
   cadeira, só do próprio estudante.
 
+## 8. Trabalhador-estudante
+
+Na ficha do estudante (separador Estudantes), a Secretaria concede o estatuto com a data de
+início, a data de fim (opcional), a entidade empregadora e a prova (ex.: declaração do
+empregador). Conceder e revogar exige verificação em duas etapas; os dados do estatuto só a
+Administração e a Secretaria os vêem.
+
+O Regulamento decide o que muda para quem tem o estatuto em vigor:
+
+- **Faltas não excluem** da avaliação (por omissão, sim);
+- **Época especial sem ser finalista** (por omissão, sim);
+- **Quanto conta cada ano** para a situação académica e a prescrição (por omissão, 50 %).
+
+Na pauta da cadeira, estes estudantes aparecem com a marca **TE**.
+
 ## Assistente de configuração
 
 Em **Configurar a escola** (`/configuracoes/inicio`), uma escola com Ensino Superior

@@ -40,26 +40,28 @@ O Aurora (PR #66, na main) e o PR #65 cresceram em paralelo; foram juntos em
 - **Registo público:** e-mail confirmado por código → limite de pedidos → hCaptcha →
   provisionamento.
 
-## Pendentes de decisão do dono (2026-10-03)
+## Pedidos do dono de 2026-10-04 (feitos)
 
-- **Multas por atraso.** O pagamento por referência (EMIS/Unitel) cobra
-  `amount - discount + penalty`; a tesouraria (`register_payment`) e a referência
-  gerada no ecrã cobram `amount - discount`. O dono pediu regra universal **ou**
-  opção por escola («multa entra em todos os pagamentos» / «só nos electrónicos»).
-  Implementar como definição em `school_settings` (domínio finance) e usar o mesmo
-  total nos três caminhos.
-- **Anular um salário pago por engano.** O caixa já recusa anular a saída de um
-  salário (`reverseCashEntry`). Falta, nos RH, a anulação com motivo que reponha
-  o item, a ordem e a folha e anule a saída de caixa numa transacção (migração).
-  O dono pediu regra universal ou opções de escolha.
-- **Professor em várias escolas do sistema** (ex.: colégio + escola pública): o
-  professor só vê os alunos das turmas onde dá aulas (`loadStudentScope`, igual às
-  turmas da árvore da barra lateral). Ver no mesmo portal as turmas das outras
-  escolas onde trabalha — com vínculo pedido e aprovado em cada escola — fica
-  **pendente** (pedido do dono).
-- **Migração `20261002160000_annual_sheet_requires_all_terms` por aplicar** na
-  produção (a aplicação pela ferramenta é cancelada; o dono aplica no SQL Editor
-  do projecto `xodgfmxiaunpamctfeea`, que tem 91 escolas).
+- **Multa por atraso igual em todos os canais.** Regra em `src/features/finance/late-fee.ts`
+  e em `private.register_payment` (`20261004120000`, aplicada). Opção da escola em Cobrança:
+  `late_fee_applies_to` = `all` (por omissão) ou `electronic`. Começa no dia seguinte ao fim
+  da tolerância; fica gravada em `penalty_amount` ao primeiro pagamento depois do prazo.
+  `invoiceNetTotal` soma a multa gravada; referências, AppyPay e planos usam
+  `invoiceTotalDue` (`late-fee-server.ts`).
+- **Anular salário pago por engano.** RH → Pagamentos → «Anular pagamento» (2FA, motivo).
+  `private.hr_reverse_payroll_payment` (`20261004130000`, aplicada, só `service_role`):
+  saída de caixa, item, linha da folha, ordem e folha numa transacção; depois `repay` ou
+  `cancel`. Novo pagamento depois de anular: número da saída `…-2` (`nextExpenseNumber`).
+- **Professor em várias escolas.** Cartão «As minhas escolas» no painel do professor
+  (`src/features/hr/teacher-schools.ts`): turmas por escola com vínculo de Professor activo;
+  alunos e notas só na escola activa.
+- **Trabalhador-estudante.** Tabela `student_special_statuses` (`20261004140000`, aplicada,
+  só servidor), `src/features/higher-ed/student-status.ts`; regras no motor
+  (`StudentStatus`) e no regulamento (`worker_student_*`).
+- Migrações `20261002100000`, `20261002160000`, `20261003070000`: aplicadas e registadas.
+- **Ferramenta Supabase:** SQL com `DROP`/`DELETE` pede uma confirmação que não chega à
+  sessão e expira aos 60 s. Usar blocos `DO … IF NOT EXISTS` ou `ALTER POLICY` quando
+  forem equivalentes; o que precisa mesmo de `DROP` vai num pacote para o SQL Editor.
 
 ## Ensino Superior (2026-10-03)
 

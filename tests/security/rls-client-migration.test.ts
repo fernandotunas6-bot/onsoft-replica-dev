@@ -71,6 +71,10 @@ const PRIVILEGIO_POR_DESENHO = new Set([
   // nas de vínculo activo, as turmas onde dá aulas (mesmas consultas de
   // `teacherClassGroupIds`). Devolve nomes de turmas e contagens, nunca alunos.
   "src/features/hr/teacher-schools.ts",
+  // Estatuto de trabalhador-estudante: `student_special_statuses` é sensível (dados
+  // de emprego), sem política para `authenticated`; só o servidor lhe toca, com
+  // Administrador/Secretaria e 2FA para conceder ou revogar.
+  "src/features/higher-ed/student-status.ts",
 
   // Assinatura da escola (Configurações → Assinatura). `tenants`,
   // `subscriptions`, `tenant_usage` e `saas_audit_logs` só têm política para a

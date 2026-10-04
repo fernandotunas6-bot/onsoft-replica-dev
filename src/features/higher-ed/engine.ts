@@ -345,6 +345,13 @@ export function checkEnrollmentBatch(params: {
 
 // ── Avaliação e épocas ────────────────────────────────────────────────────
 
+/**
+ * Estatutos especiais do estudante que mudam as regras (hoje: trabalhador-estudante,
+ * `student_special_statuses`). Cada regra liga-se no regulamento.
+ */
+export type StudentStatus = { workerStudent: boolean };
+export const NO_STATUS: StudentStatus = { workerStudent: false };
+
 export type FrequencyOutcome =
   | { kind: "excluido_faltas" }
   | { kind: "excluido_frequencia"; frequency: number }
@@ -361,8 +368,11 @@ export function frequencyOutcome(
   frequency: number | null | undefined,
   absencePercent: number | null | undefined,
   regulation: HigherEdRegulation,
+  status: StudentStatus = NO_STATUS,
 ): FrequencyOutcome {
+  const absenceExempt = status.workerStudent && regulation.worker_student_absence_exempt;
   if (
+    !absenceExempt &&
     regulation.max_absence_percent > 0 &&
     (absencePercent ?? 0) > regulation.max_absence_percent
   ) {
@@ -391,8 +401,11 @@ export function seasonEligibility(params: {
   records: UnitRecord[];
   plan: PlanUnit[];
   regulation: HigherEdRegulation;
+  status?: StudentStatus;
 }) {
   const { unitId, records, plan, regulation } = params;
+  const workerSpecial =
+    Boolean(params.status?.workerStudent) && regulation.worker_student_special_season;
   const unitRecords = records.filter((r) => r.unitId === unitId);
   const latest = latestRecordByUnit(unitRecords).get(unitId);
   const completed = completedUnitIds(records);
@@ -407,10 +420,11 @@ export function seasonEligibility(params: {
     (latest.season === "normal" || latest.season === "frequencia");
   // Especial: finalista, numa cadeira que reprovou (ou de que foi excluído por
   // frequência). Excluído por faltas não vai; uma cadeira ainda em curso também não.
+  // Trabalhador-estudante: vai à especial sem ser finalista (se o regulamento o permitir).
   const especial =
     !done &&
     pending > 0 &&
-    pending <= regulation.special_season_max_units &&
+    (workerSpecial || pending <= regulation.special_season_max_units) &&
     (latest?.status === "reprovado" || latest?.status === "excluido_frequencia");
   const melhoria =
     regulation.improvement_enabled &&
@@ -629,20 +643,26 @@ export function academicStanding(params: {
   plan: PlanUnit[];
   records: UnitRecord[];
   regulation: HigherEdRegulation;
+  status?: StudentStatus;
 }) {
   const { plan, records, regulation } = params;
   const progress = studentProgress({ plan, records, regulation });
-  const yearsAttended = new Set(
+  const calendarYears = new Set(
     records.filter((r) => r.status !== "anulado" && r.academicYearId).map((r) => r.academicYearId),
   ).size;
+  // Trabalhador-estudante: cada ano conta só uma parte (prescrição a 50 % no SIGARRA).
+  const yearWeight = params.status?.workerStudent
+    ? regulation.worker_student_progress_percent / 100
+    : 1;
+  const countedYears = calendarYears * yearWeight;
   const planYears = Math.max(1, ...plan.map((unit) => curricularYearOf(unit.semester)));
   const expectedCredits = plan
-    .filter((unit) => unit.semester <= yearsAttended * 2)
+    .filter((unit) => unit.semester <= countedYears * 2)
     .reduce((sum, unit) => sum + unit.credits, 0);
   const ratio = expectedCredits > 0 ? (progress.creditsEarned / expectedCredits) * 100 : 100;
   let standing: AcademicStanding = "regular";
   if (progress.completed) standing = "concluido";
-  else if (regulation.max_extra_years > 0 && yearsAttended > planYears + regulation.max_extra_years)
+  else if (regulation.max_extra_years > 0 && countedYears > planYears + regulation.max_extra_years)
     standing = "prazo_excedido";
   else if (regulation.standing_risk_percent > 0 && ratio < regulation.standing_risk_percent)
     standing = "em_risco";
@@ -650,7 +670,10 @@ export function academicStanding(params: {
     standing = "em_atraso";
   return {
     standing,
-    yearsAttended,
+    yearsAttended: calendarYears,
+    /** Anos que contam para a situação e a prescrição (trabalhador-estudante: menos). */
+    countedYears,
+    workerStudent: Boolean(params.status?.workerStudent),
     planYears,
     expectedCredits,
     creditsEarned: progress.creditsEarned,

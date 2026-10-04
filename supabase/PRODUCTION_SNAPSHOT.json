@@ -1,11 +1,11 @@
 {
   "capturadoEm": "2026-10-04T11:52:18.267Z",
   "resumo": {
-    "tabelas": 186,
-    "com_rls": 186,
+    "tabelas": 187,
+    "com_rls": 187,
     "politicas": 338,
     "funcoes_private": 110,
-    "triggers": 199,
+    "triggers": 200,
     "buckets": 6,
     "buckets_publicos": 1,
     "politicas_storage": 14
@@ -4819,6 +4819,35 @@
         "case_id",
         "school_id",
         "description"
+      ]
+    },
+    {
+      "tabela": "student_special_statuses",
+      "rls": true,
+      "rls_forcada": true,
+      "anon_select": false,
+      "auth_select": false,
+      "politicas": 0,
+      "colunas": [
+        "id",
+        "school_id",
+        "student_id",
+        "kind",
+        "valid_from",
+        "valid_until",
+        "employer",
+        "evidence_note",
+        "granted_by",
+        "revoked_at",
+        "revoked_by",
+        "revoke_reason",
+        "created_at",
+        "updated_at",
+        "version"
+      ],
+      "obrigatorias": [
+        "school_id",
+        "student_id"
       ]
     },
     {
@@ -11174,6 +11203,12 @@
       "funcao_schema": "public"
     },
     {
+      "tabela": "student_special_statuses",
+      "trigger": "student_special_statuses_touch",
+      "funcao": "siga_touch_updated_at",
+      "funcao_schema": "public"
+    },
+    {
       "tabela": "students",
       "trigger": "audit_students_change",
       "funcao": "audit_row_change",
@@ -14980,6 +15015,13 @@
         "mother",
         "other",
         "sibling"
+      ]
+    },
+    {
+      "tabela": "student_special_statuses",
+      "coluna": "kind",
+      "valores": [
+        "worker_student"
       ]
     },
     {

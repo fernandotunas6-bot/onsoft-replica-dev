@@ -4,6 +4,7 @@ import { cleanup, screen, waitFor } from "@testing-library/react";
 import type { ComponentType } from "react";
 import { renderRoute, routeComponentOf, resetRouteLocation } from "./_harness";
 import type { HrTeacherLessonOccurrence } from "@/features/hr/teacher-lessons";
+import { schoolTodayIso } from "@/features/hr/schoolClock";
 
 /**
  * Testes de montagem e render de `/professor/presenca`.
@@ -35,7 +36,9 @@ vi.mock("@/features/hr/teacher-lessons", () => ({
   redeemTeacherLessonQr: vi.fn(),
 }));
 
-const today = new Date().toISOString().slice(0, 10);
+// A data da escola (Luanda), a mesma do ecrã: entre as 23h e a meia-noite UTC a data
+// UTC já é a de ontem em Luanda.
+const today = schoolTodayIso(new Date());
 
 const scheduledLesson: HrTeacherLessonOccurrence = {
   id: "occ-1",
