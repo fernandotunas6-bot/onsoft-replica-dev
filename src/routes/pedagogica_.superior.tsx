@@ -131,6 +131,7 @@ function HigherEdPage() {
         ) : !programs.data?.length ? (
           <>
             <EmptyState
+              firstUse
               title="Ainda não há cursos do Ensino Superior"
               description="Crie aqui cada curso (licenciatura, mestrado…) com os seus anos curriculares; depois monte o plano de cada um."
             />

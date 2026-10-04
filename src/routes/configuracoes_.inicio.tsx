@@ -5,6 +5,7 @@ import { toastActionError } from "@/lib/action-error-toast";
 import { useServerFn } from "@tanstack/react-start";
 import { ArrowRight, CheckCircle2, Circle, LoaderCircle, RefreshCw, Star } from "lucide-react";
 import { AppShell } from "@/components/layout/AppShell";
+import { Aurora } from "@/components/brand/aurora";
 import { PageHeader, Panel } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/button";
 import { useCurrentAccount } from "@/features/auth/use-current-account";
@@ -100,48 +101,52 @@ function SetupContent({ status }: { status: SchoolSetupStatus }) {
     <>
       <section
         className={cn(
-          "rounded-xl border p-5",
-          summary.ready ? "border-success/30 bg-success/5" : "border-primary/20 bg-primary/5",
+          "relative overflow-hidden rounded-xl border p-5",
+          summary.ready ? "border-success/30 bg-success/5" : "border-primary/20",
         )}
         aria-label="Progresso da configuração"
       >
-        <div className="flex flex-wrap items-end justify-between gap-3">
-          <div>
-            <p className="text-sm font-semibold">
-              {summary.ready
-                ? "A escola está pronta a funcionar."
-                : `Faltam ${summary.essentialsTotal - summary.essentialsDone} passo(s) essencial(is).`}
-            </p>
-            <p className="mt-1 text-xs text-muted-foreground">
-              {summary.done} de {summary.total} passos concluídos · essenciais{" "}
-              {summary.essentialsDone}/{summary.essentialsTotal}
-            </p>
+        {/* O mesmo fundo do «Arranque da escola» no painel (docs/design/VISUAL_AURORA.md). */}
+        {summary.ready ? null : <Aurora variant="soft" fade={false} />}
+        <div className="relative">
+          <div className="flex flex-wrap items-end justify-between gap-3">
+            <div>
+              <p className="text-sm font-semibold">
+                {summary.ready
+                  ? "A escola está pronta a funcionar."
+                  : `Faltam ${summary.essentialsTotal - summary.essentialsDone} passo(s) essencial(is).`}
+              </p>
+              <p className="mt-1 text-xs text-muted-foreground">
+                {summary.done} de {summary.total} passos concluídos · essenciais{" "}
+                {summary.essentialsDone}/{summary.essentialsTotal}
+              </p>
+            </div>
+            <span className="text-2xl font-bold tabular-nums">{summary.percent}%</span>
           </div>
-          <span className="text-2xl font-bold tabular-nums">{summary.percent}%</span>
-        </div>
-        <div
-          className="mt-3 h-2 overflow-hidden rounded-full bg-muted"
-          role="progressbar"
-          aria-valuemin={0}
-          aria-valuemax={100}
-          aria-valuenow={summary.percent}
-          aria-label="Passos concluídos"
-        >
           <div
-            className={cn(
-              "h-full rounded-full transition-all",
-              summary.ready ? "bg-success" : "bg-primary",
-            )}
-            style={{ width: `${summary.percent}%` }}
-          />
-        </div>
-        {summary.nextStep ? (
-          <div className="mt-4 flex flex-wrap items-center gap-2 text-sm">
-            <span className="text-muted-foreground">A seguir:</span>
-            <span className="font-medium">{summary.nextStep.title}</span>
-            <StepActionButton step={summary.nextStep} primary />
+            className="mt-3 h-2 overflow-hidden rounded-full bg-muted"
+            role="progressbar"
+            aria-valuemin={0}
+            aria-valuemax={100}
+            aria-valuenow={summary.percent}
+            aria-label="Passos concluídos"
+          >
+            <div
+              className={cn(
+                "h-full rounded-full transition-all",
+                summary.ready ? "bg-success" : "bg-primary",
+              )}
+              style={{ width: `${summary.percent}%` }}
+            />
           </div>
-        ) : null}
+          {summary.nextStep ? (
+            <div className="mt-4 flex flex-wrap items-center gap-2 text-sm">
+              <span className="text-muted-foreground">A seguir:</span>
+              <span className="font-medium">{summary.nextStep.title}</span>
+              <StepActionButton step={summary.nextStep} primary />
+            </div>
+          ) : null}
+        </div>
       </section>
 
       {groups.map((group) => (
