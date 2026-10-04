@@ -59,6 +59,8 @@ export interface InvoiceLike {
   total_amount?: number | null;
   amount?: number | null;
   discount_amount?: number | null;
+  /** Multa por atraso já aplicada (entra no total a pagar). */
+  penalty_amount?: number | null;
   amount_paid?: number | null;
   due_date?: string | null;
   due_on?: string | null;
@@ -176,7 +178,12 @@ export function deriveFinancialSnapshot(
     const total =
       inv.total_amount != null
         ? Number(inv.total_amount)
-        : Math.max(0, Number(inv.amount ?? 0) - Number(inv.discount_amount ?? 0));
+        : Math.max(
+            0,
+            Number(inv.amount ?? 0) -
+              Number(inv.discount_amount ?? 0) +
+              Number(inv.penalty_amount ?? 0),
+          );
 
     const paid = Math.min(total, Math.max(0, Number(inv.amount_paid ?? 0)));
     const openAmount = Math.max(0, total - paid);

@@ -38,7 +38,7 @@ export async function applyPayflowSettlement(input: PayflowSettlementInput) {
 
   const { data: invoice, error } = await db
     .from("finance_invoices")
-    .select("id, status, school_id, amount, discount_amount")
+    .select("id, status, school_id, amount, discount_amount, penalty_amount")
     .eq("id", input.invoice_id)
     .eq("school_id", input.school_id)
     .maybeSingle();

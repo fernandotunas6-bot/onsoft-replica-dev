@@ -267,7 +267,9 @@ export async function loadOpenInvoiceRefs(
 ): Promise<OpenInvoiceRef[]> {
   const { data: invoices, error: invoicesError } = await db
     .from("finance_invoices")
-    .select("id, contract_id, invoice_number, amount, discount_amount, due_date, competence_month")
+    .select(
+      "id, contract_id, invoice_number, amount, discount_amount, penalty_amount, due_date, competence_month",
+    )
     .eq("school_id", schoolId)
     .in("status", ["open", "partially_paid"]);
   if (invoicesError) {
@@ -325,7 +327,7 @@ export async function loadOpenInvoiceRefs(
     .map((row) => {
       const enrollmentId = enrollmentIdByContract.get(String(row.contract_id));
       const studentId = enrollmentId ? studentIdByEnrollment.get(enrollmentId) : undefined;
-      // Total a pagar (valor menos desconto): a mesma regra de register_payment.
+      // Total a pagar (valor menos desconto mais multa aplicada): a regra de register_payment.
       const amount = invoiceNetTotal(row);
       const paid = paidByInvoice.get(String(row.id)) ?? 0;
       return studentId
