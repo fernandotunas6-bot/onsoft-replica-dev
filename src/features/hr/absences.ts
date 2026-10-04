@@ -1,4 +1,6 @@
+import { isMissingHrTable } from "@/features/hr/missing-table";
 import { createServerFn } from "@tanstack/react-start";
+import { requireAal2 } from "@/features/hr/require-aal2";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { publicDatabaseError } from "@/integrations/supabase/server-error";
 import {
@@ -25,17 +27,6 @@ async function requireAbsenceAdmin(userId: string, mode: "read" | "write" = "rea
   // Permissões por módulo (Nenhum/Leitura) também valem no RH.
   await assertModuleNotBlocked(membership.schoolId, userId, "financeiro", mode);
   return membership;
-}
-
-function missingAbsenceSchema(error: { code?: string; message?: string } | null) {
-  return Boolean(
-    error &&
-    (error.code === "42P01" ||
-      error.code === "PGRST205" ||
-      /hr_absence_events|hr_contract_remuneration_policies|schema cache|does not exist/i.test(
-        error.message ?? "",
-      )),
-  );
 }
 
 export type HrAbsenceReviewRow = {
@@ -71,7 +62,7 @@ export const listHrAbsencesForReview = createServerFn({ method: "GET" })
       .limit(250);
 
     if (error) {
-      if (missingAbsenceSchema(error)) return [];
+      if (isMissingHrTable(error)) return [];
       throw publicDatabaseError(error, "Não foi possível carregar as faltas.");
     }
     if (!absences?.length) return [];
@@ -121,7 +112,7 @@ export const listHrAbsencesForReview = createServerFn({ method: "GET" })
         .eq("school_id", membership.schoolId)
         .in("contract_id", contractIds)
         .eq("active", true);
-      if (policyError && !missingAbsenceSchema(policyError)) {
+      if (policyError && !isMissingHrTable(policyError)) {
         throw publicDatabaseError(
           policyError,
           "Não foi possível carregar as políticas remuneratórias.",
@@ -208,6 +199,7 @@ export const reviewHrAbsence = createServerFn({ method: "POST" })
   .validator((input: unknown) => reviewHrAbsenceInputSchema.parse(input))
   .handler(async ({ data, context }) => {
     const membership = await requireAbsenceAdmin(context.userId, "write");
+    requireAal2(context.claims, "Rever faltas com impacto salarial");
     const db = await loadSgaAdminClient();
     const now = new Date().toISOString();
 
@@ -224,7 +216,7 @@ export const reviewHrAbsence = createServerFn({ method: "POST" })
       throw new Error("Esta falta já foi revista e não pode ser validada novamente.");
     }
 
-    const { error } = await db
+    const { data: updated, error } = await db
       .from("hr_absence_events")
       .update({
         absence_type: data.absenceType,
@@ -236,8 +228,16 @@ export const reviewHrAbsence = createServerFn({ method: "POST" })
       })
       .eq("id", data.absenceId)
       .eq("school_id", membership.schoolId)
-      .eq("validation_status", "pending");
+      .eq("validation_status", "pending")
+      .is("deleted_at", null)
+      .select("id")
+      .maybeSingle();
     if (error) throw publicDatabaseError(error, "Não foi possível guardar a decisão da falta.");
+    if (!updated) {
+      throw new Error(
+        "A falta foi alterada ou removida entretanto. Actualize a lista antes de decidir.",
+      );
+    }
 
     return { saved: true };
   });

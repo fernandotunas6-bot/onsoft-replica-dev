@@ -1,7 +1,7 @@
+import { isMissingHrTable } from "@/features/hr/missing-table";
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { publicDatabaseError } from "@/integrations/supabase/server-error";
-import { reportSigaError } from "@/lib/ops-report";
 import {
   assertModuleNotBlocked,
   loadSgaAdminClient,
@@ -9,9 +9,7 @@ import {
 } from "@/integrations/supabase/sga-admin";
 import { requireAal2 } from "@/features/hr/require-aal2";
 import {
-  canConfirmPaymentItem,
   confirmPayrollPaymentItemInputSchema,
-  HR_PAYMENT_CONFIRMABLE_STATUSES,
   maskPaymentDestinationLabel,
   paymentBatchIdInputSchema,
   payrollRunIdInputSchema,
@@ -31,143 +29,30 @@ async function requirePaymentAdmin(userId: string, mode: "read" | "write" = "rea
   return membership;
 }
 
-function missingPaymentSchema(error: { code?: string; message?: string } | null) {
-  return Boolean(
-    error &&
-    (error.code === "42P01" ||
-      error.code === "PGRST205" ||
-      /hr_(payment|payroll_payment)|schema cache|does not exist/i.test(error.message ?? "")),
-  );
-}
-
-/**
- * Estados que acompanham um pagamento já registado (lote, item da folha, folha).
- * Se falharem não se lança: o pagamento está feito e repetir seria recusado.
- * Mas a falha fica nos registos, em vez de desaparecer.
- */
-async function syncPaymentStatus(
-  label: string,
-  write: PromiseLike<{ error: unknown }>,
-  fields: Record<string, unknown>,
-) {
-  const { error } = await write;
-  if (error) reportSigaError(`hr.payment.status_sync_failed.${label}`, error, fields);
-}
-
 export const upsertHrPaymentDestination = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((input: unknown) => upsertHrPaymentDestinationInputSchema.parse(input))
   .handler(async ({ data, context }) => {
     const membership = await requirePaymentAdmin(context.userId, "write");
     requireAal2(context.claims, "Alterar o destino de pagamento de um salário");
-    const db = await loadSgaAdminClient();
-    const { data: employment, error: employmentError } = await db
-      .from("hr_employments")
-      .select("id")
-      .eq("id", data.employmentId)
-      .eq("school_id", membership.schoolId)
-      .is("deleted_at", null)
-      .maybeSingle();
-    if (employmentError)
-      throw publicDatabaseError(employmentError, "Não foi possível validar o vínculo.");
-    if (!employment) throw new Error("Vínculo funcional não encontrado.");
-
-    const { data: existing, error: existingError } = await db
-      .from("hr_payment_destinations")
-      .select("id, method, iban, account_number, destination_reference, beneficiary_name")
-      .eq("school_id", membership.schoolId)
-      .eq("employment_id", data.employmentId)
-      .eq("is_primary", true)
-      .eq("active", true)
-      .is("deleted_at", null)
-      .maybeSingle();
-    if (existingError && !missingPaymentSchema(existingError))
-      throw publicDatabaseError(existingError, "Não foi possível carregar o destino de pagamento.");
-
-    const payload = {
-      school_id: membership.schoolId,
-      employment_id: data.employmentId,
-      method: data.method,
-      beneficiary_name: data.beneficiaryName,
-      bank_name: data.bankName || null,
-      iban: data.iban || null,
-      account_number: data.accountNumber || null,
-      destination_reference: data.destinationReference || null,
-      is_primary: true,
-      active: true,
-      updated_by: context.userId,
-    };
-
-    const label = (row: {
-      method?: unknown;
-      iban?: unknown;
-      account_number?: unknown;
-      destination_reference?: unknown;
-    }) =>
-      maskPaymentDestinationLabel(
-        row.iban ? String(row.iban) : null,
-        row.account_number ? String(row.account_number) : null,
-        row.destination_reference ? String(row.destination_reference) : null,
-        String(row.method ?? ""),
+    const { data: result, error } = await context.supabase.rpc("hr_upsert_payment_destination", {
+      p_school_id: membership.schoolId,
+      p_employment_id: data.employmentId,
+      p_destination: {
+        method: data.method,
+        beneficiaryName: data.beneficiaryName,
+        bankName: data.bankName,
+        iban: data.iban,
+        accountNumber: data.accountNumber,
+        destinationReference: data.destinationReference,
+      },
+    });
+    if (error)
+      throw publicDatabaseError(
+        error,
+        "Não foi possível guardar o destino salarial e a auditoria.",
       );
-    // Quem mudou, quando, de onde para onde (sempre mascarado): a troca de
-    // IBAN é o caminho clássico para desviar um salário.
-    const audit = async (destinationId: string) => {
-      const { error: auditError } = await db.from("audit_logs").insert({
-        school_id: membership.schoolId,
-        actor_user_id: context.userId,
-        action: "hr.payment_destination.changed",
-        entity_type: "hr_payment_destination",
-        entity_id: destinationId,
-        metadata: {
-          employment_id: data.employmentId,
-          before: existing
-            ? {
-                method: String(existing.method ?? ""),
-                destination: label(existing),
-                beneficiary: String(existing.beneficiary_name ?? ""),
-              }
-            : null,
-          after: {
-            method: data.method,
-            destination: label({
-              method: data.method,
-              iban: data.iban,
-              account_number: data.accountNumber,
-              destination_reference: data.destinationReference,
-            }),
-            beneficiary: data.beneficiaryName,
-          },
-        },
-      });
-      if (auditError) {
-        throw publicDatabaseError(
-          auditError,
-          "O destino foi guardado, mas não foi possível registar a alteração na auditoria.",
-        );
-      }
-    };
-
-    if (existing?.id) {
-      const { error } = await db
-        .from("hr_payment_destinations")
-        .update(payload)
-        .eq("id", existing.id)
-        .eq("school_id", membership.schoolId);
-      if (error)
-        throw publicDatabaseError(error, "Não foi possível actualizar o destino de pagamento.");
-      await audit(String(existing.id));
-      return { saved: true, id: String(existing.id) };
-    }
-
-    const { data: created, error } = await db
-      .from("hr_payment_destinations")
-      .insert({ ...payload, created_by: context.userId })
-      .select("id")
-      .single();
-    if (error) throw publicDatabaseError(error, "Não foi possível guardar o destino de pagamento.");
-    await audit(String(created.id));
-    return { saved: true, id: String(created.id) };
+    return result as { saved: boolean; id: string; unchanged?: boolean };
   });
 
 export const listHrPaymentDestinations = createServerFn({ method: "GET" })
@@ -184,7 +69,7 @@ export const listHrPaymentDestinations = createServerFn({ method: "GET" })
       .eq("active", true)
       .is("deleted_at", null);
     if (error) {
-      if (missingPaymentSchema(error)) return [];
+      if (isMissingHrTable(error)) return [];
       throw publicDatabaseError(error, "Não foi possível carregar os destinos de pagamento.");
     }
     return (data ?? []).map((row) => ({
@@ -257,7 +142,7 @@ export const listPayrollPaymentBatches = createServerFn({ method: "GET" })
       .order("created_at", { ascending: false })
       .limit(36);
     if (error) {
-      if (missingPaymentSchema(error)) return [];
+      if (isMissingHrTable(error)) return [];
       throw publicDatabaseError(error, "Não foi possível carregar as ordens salariais.");
     }
     return data ?? [];
@@ -303,179 +188,19 @@ export const confirmPayrollPaymentItem = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const membership = await requirePaymentAdmin(context.userId, "write");
     requireAal2(context.claims, "Confirmar um pagamento salarial");
-    const db = await loadSgaAdminClient();
-
-    const { data: item, error: itemError } = await db
-      .from("hr_payroll_payment_items")
-      .select("id, batch_id, payroll_item_id, beneficiary_name, amount_kz, status, cash_expense_id")
-      .eq("id", data.paymentItemId)
-      .eq("school_id", membership.schoolId)
-      .maybeSingle();
-    if (itemError)
-      throw publicDatabaseError(itemError, "Não foi possível carregar o pagamento salarial.");
-    if (!item) throw new Error("Item de pagamento não encontrado.");
-    if (String(item.status) === "paid")
-      return {
-        paid: true,
-        idempotent: true,
-        cashExpenseId: item.cash_expense_id ? String(item.cash_expense_id) : null,
-      };
-
-    const { data: batch, error: batchError } = await db
-      .from("hr_payroll_payment_batches")
-      .select("id, payroll_run_id, batch_number, method, status")
-      .eq("id", item.batch_id)
-      .eq("school_id", membership.schoolId)
-      .maybeSingle();
-    if (batchError)
-      throw publicDatabaseError(batchError, "Não foi possível carregar a ordem salarial.");
-    if (!batch || !["authorized", "processing", "partial"].includes(String(batch.status)))
-      throw new Error("A ordem salarial precisa estar autorizada antes da execução.");
-
-    if (!canConfirmPaymentItem(String(item.status))) {
-      throw new Error("Este item não está pronto para confirmação de pagamento.");
-    }
-
-    if (data.result === "failed") {
-      const { data: failedRow, error } = await db
-        .from("hr_payroll_payment_items")
-        .update({
-          status: "failed",
-          provider_reference: data.reference,
-          failure_reason: data.failureReason,
-          updated_by: context.userId,
-        })
-        .eq("id", item.id)
-        .eq("school_id", membership.schoolId)
-        .in("status", [...HR_PAYMENT_CONFIRMABLE_STATUSES])
-        .select("id")
-        .maybeSingle();
-      if (error)
-        throw publicDatabaseError(error, "Não foi possível registrar a falha do pagamento.");
-      if (!failedRow)
-        throw new Error("O estado do pagamento mudou; actualize a lista e tente de novo.");
-      await syncPaymentStatus(
-        "batch",
-        db
-          .from("hr_payroll_payment_batches")
-          .update({ status: "partial", updated_by: context.userId })
-          .eq("id", batch.id)
-          .eq("school_id", membership.schoolId),
-        { school_id: membership.schoolId, batch_id: batch.id },
-      );
-      return { paid: false, failed: true };
-    }
-
-    const documentNumber = `${String(batch.batch_number)}-${String(item.id).replace(/-/g, "").slice(0, 8).toUpperCase()}`;
-    let cashExpenseId: string | null = item.cash_expense_id ? String(item.cash_expense_id) : null;
-
-    if (!cashExpenseId) {
-      const { data: existingExpense } = await db
-        .from("siga_cash_expenses")
-        .select("id")
-        .eq("school_id", membership.schoolId)
-        .eq("document_number", documentNumber)
-        .maybeSingle();
-      if (existingExpense?.id) {
-        cashExpenseId = String(existingExpense.id);
-      } else {
-        const { data: expense, error: expenseError } = await db
-          .from("siga_cash_expenses")
-          .insert({
-            school_id: membership.schoolId,
-            document_number: documentNumber,
-            description: `Pagamento salarial ${String(item.beneficiary_name)} · ${String(batch.batch_number)}`,
-            category: "Salários",
-            amount: Number(item.amount_kz ?? 0),
-            method: String(batch.method) === "cash" ? "cash" : "transfer",
-            reference: data.reference,
-            occurred_at: new Date().toISOString(),
-            status: "posted",
-            created_by: context.userId,
-            updated_by: context.userId,
-          })
-          .select("id")
-          .single();
-        if (expenseError)
-          throw publicDatabaseError(
-            expenseError,
-            "Não foi possível lançar a saída salarial no caixa.",
-          );
-        cashExpenseId = String(expense.id);
-      }
-    }
-
-    const now = new Date().toISOString();
-    const { data: paidRow, error: payError } = await db
-      .from("hr_payroll_payment_items")
-      .update({
-        status: "paid",
-        provider_reference: data.reference,
-        failure_reason: null,
-        paid_at: now,
-        confirmed_by: context.userId,
-        cash_expense_id: cashExpenseId,
-        updated_by: context.userId,
-      })
-      .eq("id", item.id)
-      .eq("school_id", membership.schoolId)
-      .in("status", [...HR_PAYMENT_CONFIRMABLE_STATUSES])
-      .select("id")
-      .maybeSingle();
-    if (payError)
-      throw publicDatabaseError(payError, "Não foi possível confirmar o pagamento salarial.");
-    if (!paidRow)
-      throw new Error("O estado do pagamento mudou; actualize a lista e tente de novo.");
-
-    await syncPaymentStatus(
-      "payroll_item",
-      db
-        .from("hr_payroll_items")
-        .update({ status: "paid", updated_by: context.userId })
-        .eq("id", item.payroll_item_id)
-        .eq("school_id", membership.schoolId),
-      { school_id: membership.schoolId, payroll_item_id: item.payroll_item_id },
-    );
-
-    const { data: remaining, error: remainingError } = await db
-      .from("hr_payroll_payment_items")
-      .select("id, status")
-      .eq("batch_id", batch.id)
-      .eq("school_id", membership.schoolId)
-      .neq("status", "cancelled");
-    if (remainingError)
-      throw publicDatabaseError(
-        remainingError,
-        "Não foi possível recomputar o estado da ordem salarial.",
-      );
-    const allPaid =
-      (remaining ?? []).length > 0 &&
-      (remaining ?? []).every((row) => String(row.status) === "paid");
-    const anyPaid = (remaining ?? []).some((row) => String(row.status) === "paid");
-
-    await syncPaymentStatus(
-      "batch",
-      db
-        .from("hr_payroll_payment_batches")
-        .update({
-          status: allPaid ? "completed" : anyPaid ? "partial" : "processing",
-          updated_by: context.userId,
-        })
-        .eq("id", batch.id)
-        .eq("school_id", membership.schoolId),
-      { school_id: membership.schoolId, batch_id: batch.id },
-    );
-    if (allPaid) {
-      await syncPaymentStatus(
-        "payroll_run",
-        db
-          .from("hr_payroll_runs")
-          .update({ status: "paid", paid_at: now, updated_by: context.userId })
-          .eq("id", batch.payroll_run_id)
-          .eq("school_id", membership.schoolId),
-        { school_id: membership.schoolId, payroll_run_id: batch.payroll_run_id },
-      );
-    }
-
-    return { paid: true, cashExpenseId, batchCompleted: allPaid };
+    const { data: result, error } = await context.supabase.rpc("hr_confirm_payroll_payment_item", {
+      p_school_id: membership.schoolId,
+      p_payment_item_id: data.paymentItemId,
+      p_result: data.result,
+      p_reference: data.reference,
+      p_failure_reason: data.failureReason || undefined,
+    });
+    if (error) throw publicDatabaseError(error, "Não foi possível confirmar o pagamento salarial.");
+    return result as {
+      paid: boolean;
+      failed?: boolean;
+      idempotent?: boolean;
+      cashExpenseId?: string | null;
+      batchCompleted?: boolean;
+    };
   });

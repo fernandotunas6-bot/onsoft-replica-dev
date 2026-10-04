@@ -3,8 +3,8 @@
   "resumo": {
     "tabelas": 183,
     "com_rls": 183,
-    "politicas": 332,
-    "funcoes_private": 103,
+    "politicas": 333,
+    "funcoes_private": 106,
     "triggers": 198
   },
   "tabelas": [
@@ -3889,7 +3889,7 @@
       "rls_forcada": true,
       "anon_select": false,
       "auth_select": false,
-      "politicas": 1,
+      "politicas": 2,
       "colunas": [
         "id",
         "school_id",
@@ -7643,6 +7643,15 @@
     },
     {
       "tabela": "siga_access_cards",
+      "politica": "Members read siga_access_cards",
+      "cmd": "SELECT",
+      "papeis": "{authenticated}",
+      "usando": "is_school_member(school_id)",
+      "verificando": "",
+      "modo": "PERMISSIVE"
+    },
+    {
+      "tabela": "siga_access_cards",
       "politica": "School staff only",
       "cmd": "ALL",
       "papeis": "{authenticated}",
@@ -8500,6 +8509,24 @@
     },
     {
       "schema": "private",
+      "funcao": "hr_confirm_payroll_payment_item",
+      "args": "p_school_id uuid, p_payment_item_id uuid, p_result text, p_reference text, p_failure_reason text DEFAULT NULL::text",
+      "security_definer": true
+    },
+    {
+      "schema": "private",
+      "funcao": "hr_payment_destination_label",
+      "args": "p_iban text, p_account text, p_reference text, p_method text",
+      "security_definer": false
+    },
+    {
+      "schema": "private",
+      "funcao": "hr_upsert_payment_destination",
+      "args": "p_school_id uuid, p_employment_id uuid, p_destination jsonb",
+      "security_definer": true
+    },
+    {
+      "schema": "private",
       "funcao": "is_aal2",
       "args": "",
       "security_definer": false
@@ -9232,6 +9259,12 @@
     },
     {
       "schema": "public",
+      "funcao": "hr_confirm_payroll_payment_item",
+      "args": "p_school_id uuid, p_payment_item_id uuid, p_result text, p_reference text, p_failure_reason text DEFAULT NULL::text",
+      "security_definer": false
+    },
+    {
+      "schema": "public",
       "funcao": "hr_confirm_teacher_lesson",
       "args": "p_occurrence_id uuid, p_evidence_method text, p_evidence_ref text",
       "security_definer": false
@@ -9402,6 +9435,12 @@
       "schema": "public",
       "funcao": "hr_serialize_salary_payroll",
       "args": "",
+      "security_definer": false
+    },
+    {
+      "schema": "public",
+      "funcao": "hr_upsert_payment_destination",
+      "args": "p_school_id uuid, p_employment_id uuid, p_destination jsonb",
       "security_definer": false
     },
     {
