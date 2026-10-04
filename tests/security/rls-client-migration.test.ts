@@ -67,6 +67,10 @@ const PRIVILEGIO_POR_DESENHO = new Set([
   // encarregado, e com razão. A RLS das tabelas siga_chat_* continua a ser a
   // rede de segurança para o acesso directo do browser (o Realtime passa por lá).
   "src/features/messages/chat-server.ts",
+  // Professor em várias escolas: lê os vínculos da conta em todas as escolas e, só
+  // nas de vínculo activo, as turmas onde dá aulas (mesmas consultas de
+  // `teacherClassGroupIds`). Devolve nomes de turmas e contagens, nunca alunos.
+  "src/features/hr/teacher-schools.ts",
 
   // Assinatura da escola (Configurações → Assinatura). `tenants`,
   // `subscriptions`, `tenant_usage` e `saas_audit_logs` só têm política para a
