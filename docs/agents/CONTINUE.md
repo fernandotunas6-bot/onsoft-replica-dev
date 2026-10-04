@@ -4,6 +4,22 @@ Ler isto **antes** de alterar código. Ecossistema (5 apps):
 [ARCHITECTURE_HARMONIZATION.md](./ARCHITECTURE_HARMONIZATION.md).
 Depois abrir o skill do módulo em `.cursor/skills/`.
 
+## Aurora + PR #65 integrados (2026-10-04)
+
+O Aurora (PR #66, na main) e o PR #65 cresceram em paralelo; foram juntos em
+`claude/aurora-web` e o PR #65 avançou para o mesmo commit. Regras que ficam:
+
+- **Uma só estrutura académica:** `school-structure-plan.ts` usa `planCurriculum`
+  (curriculum-templates.ts) e `applyCurriculumPlan`. Códigos: EP, ESG1, ESG2-<área>, ETP,
+  ES-<curso>, INIC. Classes únicas **dentro do curso** (`grade_levels` por
+  `school_id,program_id,code`): nunca verificar classes só pelo código.
+- **Ensino Superior:** nível `ES`, cursos `ES-<código>` (`higherEdProgramCode`), anos `1ANO`…
+  com nome «1º Ano · <curso>».
+- **Dois guias, uma regra:** cartão do painel (`setup-guide.ts`) e assistente
+  (`setup-steps.ts`) usam `period-model.ts` (semestres numa escola só de Superior).
+- **Registo público:** e-mail confirmado por código → limite de pedidos → hCaptcha →
+  provisionamento.
+
 ## Pendentes de decisão do dono (2026-10-03)
 
 - **Multas por atraso.** O pagamento por referência (EMIS/Unitel) cobra
