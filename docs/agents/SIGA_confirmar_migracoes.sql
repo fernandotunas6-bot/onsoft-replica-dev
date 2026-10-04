@@ -39,6 +39,8 @@ from (values
   ('20260926220000_exam_sessions_registrations',
      to_regclass('public.siga_exam_sessions') is not null
      and to_regclass('public.siga_exam_registrations') is not null),
+  -- Só higiene: mesmo com as 2 políticas antigas, `authenticated` não tem SELECT e o RLS
+  -- está forçado (verificado a 2026-10-04), por isso "EM FALTA" aqui não é exposição.
   ('20260927090000_student_history_server_only',
      not exists (select 1 from pg_policies
                  where tablename in ('student_academic_history', 'student_status_history'))
@@ -47,12 +49,23 @@ from (values
      coalesce(position('siga_attendance_records' in
        (select prosrc from pg_proc p join pg_namespace n on n.oid = p.pronamespace
         where n.nspname = 'private' and p.proname = 'build_grade_sheet' limit 1)) > 0, false)),
+  -- A assinatura de 13 argumentos foi substituída pela de 14 (calculation_options,
+  -- 20260929110000); qualquer das duas prova que as regras de transição existem.
   ('20260927130000_assessment_rule_promotion_rules',
-     to_regprocedure('public.siga_publish_assessment_rule(uuid, uuid, text, numeric, numeric, numeric, numeric, text, boolean, boolean, uuid[], boolean, jsonb)') is not null),
+     to_regprocedure('public.siga_publish_assessment_rule(uuid, uuid, text, numeric, numeric, numeric, numeric, text, boolean, boolean, uuid[], boolean, jsonb)') is not null
+     or to_regprocedure('public.siga_publish_assessment_rule(uuid, uuid, text, numeric, numeric, numeric, numeric, text, boolean, boolean, uuid[], boolean, jsonb, jsonb)') is not null),
+  ('20260929110000_assessment_rule_calculation_options',
+     to_regprocedure('public.siga_publish_assessment_rule(uuid, uuid, text, numeric, numeric, numeric, numeric, text, boolean, boolean, uuid[], boolean, jsonb, jsonb)') is not null),
   ('20260927150000_competencies',
      to_regclass('public.siga_competencies') is not null
      and to_regclass('public.siga_assessment_item_competencies') is not null),
   ('20260927170000_shared_rate_limit',
-     to_regprocedure('public.siga_rate_limit_consume(text[], integer, integer)') is not null)
+     to_regprocedure('public.siga_rate_limit_consume(text[], integer, integer)') is not null),
+  ('20260926203852_harden_teacher_qr_attendance',
+     exists (select 1 from pg_proc where proname = 'hr_redeem_teacher_qr_secure')),
+  ('20260929230000_attendance_sessions_unique_slot_day',
+     to_regclass('public.siga_attendance_sessions_school_slot_day_key') is not null),
+  ('20260930090000_one_active_academic_year',
+     to_regclass('public.academic_years_one_active_per_school') is not null)
 ) as m(migracao, ok)
 order by migracao;
