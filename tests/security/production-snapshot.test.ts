@@ -146,11 +146,12 @@ const ANON_POLICIES_ESPERADAS = [
  * outro diário da escola — numa escola nova não havia nenhum dos dois, logo não
  * se abria o primeiro diário nem se lançavam notas.
  */
-// Vazia desde 2026-09-28: as quinze entradas que restavam (histórico das
+// Vazia desde 2026-09-28, quando as quinze entradas que restavam (histórico das
 // notas, horários e lembretes, catálogo da importação, exames, competências,
 // caixas de correio, pedidos de vinculação, alunos em risco e cobranças
-// AppyPay) já existem na produção — confirmado no retrato recapturado nesse dia
-// pelo conector Supabase.
+// AppyPay) se confirmaram em produção. Voltou a esvaziar a 2026-10-02: as três
+// tabelas do chat (20261002093000_chat_conversations.sql) foram aplicadas e
+// aparecem no retrato recapturado nesse dia.
 const TABELAS_AUSENTES_DA_PRODUCAO = new Set<string>([]);
 
 /** Tabelas consultadas pelo código — `.from("x")`, excluindo buckets de storage. */

@@ -38,13 +38,11 @@ import { useTenant } from "@/features/saas/tenant-context";
 import {
   ColleagueAvatars,
   ColleagueDirectory,
-  ColleagueThread,
   useFrequentColleagues,
-  type MessengerView,
   type SchoolColleague,
 } from "@/features/messages/StaffMessenger";
 import { touchRecentContact } from "@/features/messages/recent-contacts";
-import { OPEN_DM_EVENT } from "@/features/messages/unread";
+import { requestOpenDirectMessage } from "@/features/messages/unread";
 import { SpotlightRail } from "@/features/spotlight/SpotlightRail";
 
 type Row = {
@@ -109,51 +107,31 @@ export function AccountDrawer({
   const { activePlan } = useTenant();
   const { signOut, signOutAllDevices, signingOut } = useSignOut();
   const { colleagues } = useFrequentColleagues();
-  const [view, setView] = useState<MessengerView>("menu");
-  const [peer, setPeer] = useState<SchoolColleague | null>(null);
-  const [pendingPeerId, setPendingPeerId] = useState<string | null>(null);
+  const [view, setView] = useState<"menu" | "directory">("menu");
   const [profileModalOpen, setProfileModalOpen] = useState(false);
   const [globalSignOutOpen, setGlobalSignOutOpen] = useState(false);
   const [profileModalTab, setProfileModalTab] = useState<
     "perfil" | "foto" | "seguranca" | "instituicoes"
   >("perfil");
 
-  // `useCallback` para os dois efeitos abaixo poderem depender desta função
-  // em vez de replicarem à mão o que ela fecha por dentro (`currentUser.id`).
+  // A conversa deixou de abrir dentro do drawer: passou para o separador
+  // "Mensagens" da coluna da direita, que é quem ouve o OPEN_DM_EVENT. Aqui
+  // fecha-se o drawer e pede-se a conversa — assim o sino de notificações e
+  // esta fila de avatares acabam no mesmo sítio.
   const openThread = useCallback(
     (next: SchoolColleague) => {
       touchRecentContact(currentUser.id, next.id);
-      setPeer(next);
-      setView("thread");
-      setPendingPeerId(null);
+      onOpenChange(false);
+      setView("menu");
+      requestOpenDirectMessage(next.id);
     },
-    [currentUser.id],
+    [currentUser.id, onOpenChange],
   );
-
-  useEffect(() => {
-    const handler = (event: Event) => {
-      const peerId = (event as CustomEvent<{ peerId?: string }>).detail?.peerId;
-      if (!peerId) return;
-      const person = colleagues.find((row) => row.id === peerId);
-      if (person) openThread(person);
-      else setPendingPeerId(peerId);
-    };
-    window.addEventListener(OPEN_DM_EVENT, handler);
-    return () => window.removeEventListener(OPEN_DM_EVENT, handler);
-  }, [colleagues, openThread]);
-
-  useEffect(() => {
-    if (!pendingPeerId) return;
-    const person = colleagues.find((row) => row.id === pendingPeerId);
-    if (!person) return;
-    openThread(person);
-  }, [colleagues, pendingPeerId, openThread]);
 
   const handleSignOut = async () => {
     if (!(await signOut())) return;
     onOpenChange(false);
     setView("menu");
-    setPeer(null);
   };
 
   const handleGlobalSignOut = async () => {
@@ -161,7 +139,6 @@ export function AccountDrawer({
     setGlobalSignOutOpen(false);
     onOpenChange(false);
     setView("menu");
-    setPeer(null);
   };
 
   const handleOpenProfileModal = (
@@ -177,10 +154,7 @@ export function AccountDrawer({
       <Sheet
         open={open}
         onOpenChange={(next) => {
-          if (!next) {
-            setView("menu");
-            setPeer(null);
-          }
+          if (!next) setView("menu");
           onOpenChange(next);
         }}
       >
@@ -248,8 +222,6 @@ export function AccountDrawer({
 
           {view === "directory" ? (
             <ColleagueDirectory onBack={() => setView("menu")} onOpenThread={openThread} />
-          ) : view === "thread" && peer ? (
-            <ColleagueThread peer={peer} onBack={() => setView("menu")} />
           ) : (
             <div className="no-scrollbar flex-1 overflow-y-auto px-3 pb-2">
               <ul className="space-y-0.5">
