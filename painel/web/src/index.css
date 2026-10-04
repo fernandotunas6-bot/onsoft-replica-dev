@@ -280,3 +280,364 @@ h6,
 [data-slot="card-title"] {
   font-weight: 500;
 }
+
+/*
+ * Tons por área: cada área tem três tonalidades (--h-a/b/c); a luminosidade e
+ * a saturação são as mesmas em todas, por isso nenhuma grita mais que outra.
+ * O fundo Aurora, o brilho do cabeçalho e o texto em gradiente leem daqui.
+ */
+:root,
+[data-tone] {
+  --tone-a: oklch(0.72 calc(0.17 * var(--c, 1)) var(--h-a, 258));
+  --tone-b: oklch(0.68 calc(0.2 * var(--c, 1)) var(--h-b, 292));
+  --tone-c: oklch(0.86 calc(0.09 * var(--c, 1)) var(--h-c, 228));
+  --tone-ink-a: oklch(0.52 calc(0.22 * var(--c, 1)) var(--h-a, 258));
+  --tone-ink-b: oklch(0.5 calc(0.24 * var(--c, 1)) var(--h-b, 292));
+  --tone-ink-c: oklch(0.58 calc(0.17 * var(--c, 1)) var(--h-c, 228));
+}
+
+.dark,
+.dark [data-tone] {
+  --tone-a: oklch(0.45 calc(0.17 * var(--c, 1)) var(--h-a, 258));
+  --tone-b: oklch(0.42 calc(0.2 * var(--c, 1)) var(--h-b, 292));
+  --tone-c: oklch(0.38 calc(0.12 * var(--c, 1)) var(--h-c, 228));
+  --tone-ink-a: oklch(0.78 calc(0.15 * var(--c, 1)) var(--h-a, 258));
+  --tone-ink-b: oklch(0.76 calc(0.17 * var(--c, 1)) var(--h-b, 292));
+  --tone-ink-c: oklch(0.84 calc(0.1 * var(--c, 1)) var(--h-c, 228));
+}
+
+[data-tone="marca"] { --h-a: 258; --h-b: 292; --h-c: 228; }
+[data-tone="pedagogica"] { --h-a: 285; --h-b: 318; --h-c: 262; }
+[data-tone="financeiro"] { --h-a: 158; --h-b: 184; --h-c: 140; }
+[data-tone="secretaria"] { --h-a: 235; --h-b: 252; --h-c: 210; }
+[data-tone="rh"] {
+  --h-a: 82;
+  --h-b: 64;
+  --h-c: 98;
+}
+[data-tone="comunicacao"] { --h-a: 350; --h-b: 322; --h-c: 12; }
+[data-tone="sistema"] {
+  --h-a: 265;
+  --h-b: 250;
+  --h-c: 285;
+  --c: 0.45;
+}
+
+/* Texto em gradiente da marca: desliza devagar entre as três tonalidades. */
+.text-aurora {
+  background-image: linear-gradient(
+    100deg,
+    var(--tone-ink-a),
+    var(--tone-ink-b),
+    var(--tone-ink-c),
+    var(--tone-ink-a)
+  );
+  background-size: 300% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  -webkit-text-fill-color: transparent;
+  animation: text-aurora 9s ease-in-out infinite;
+}
+
+/* Contorno em gradiente animado — só para o destaque de uma página (plano recomendado). */
+.aurora-ring {
+  position: relative;
+}
+
+.aurora-ring::before {
+  content: "";
+  position: absolute;
+  inset: -1px;
+  border-radius: inherit;
+  padding: 1.5px;
+  background: linear-gradient(
+    120deg,
+    var(--tone-ink-a),
+    var(--tone-ink-b),
+    var(--tone-ink-c),
+    var(--tone-ink-a)
+  );
+  background-size: 300% 100%;
+  -webkit-mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  animation: text-aurora 9s ease-in-out infinite;
+  pointer-events: none;
+}
+
+/* Brilho discreto por trás do cabeçalho das páginas, na cor da área. */
+.page-header-glow {
+  position: absolute;
+  inset: -1.25rem 0 -0.75rem 0;
+  z-index: 0;
+  border-radius: 1.25rem;
+  pointer-events: none;
+  background:
+    radial-gradient(55% 140% at 8% -10%, color-mix(in oklab, var(--tone-a) 30%, transparent), transparent 70%),
+    radial-gradient(45% 120% at 92% -10%, color-mix(in oklab, var(--tone-b) 24%, transparent), transparent 70%);
+  -webkit-mask-image: linear-gradient(to bottom, #000 40%, transparent);
+  mask-image: linear-gradient(to bottom, #000 40%, transparent);
+  animation: header-glow 16s ease-in-out infinite alternate;
+}
+
+@layer components {/*
+ * Aurora — fundo animado da marca (azul → violeta, grelha que se desvanece,
+ * peças de vidro a flutuar). Só CSS: sem imagens nem vídeo, pesa bytes.
+ * O movimento pára com `prefers-reduced-motion` (regra global acima) e fica
+ * mais leve em ecrãs tácteis.
+ */
+.aurora {
+  --aurora-base: oklch(0.97 calc(0.02 * var(--c, 1)) var(--h-b, 292));
+  --aurora-a: var(--tone-a);
+  --aurora-b: var(--tone-b);
+  --aurora-c: var(--tone-c);
+  --aurora-grid: oklch(1 0 0 / 0.55);
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  isolation: isolate;
+  background: var(--aurora-base);
+  pointer-events: none;
+}
+
+.dark .aurora {
+  --aurora-base: oklch(0.18 calc(0.05 * var(--c, 1)) var(--h-b, 280));
+  --aurora-grid: oklch(1 0 0 / 0.12);
+}
+
+.aurora--soft {
+  opacity: 0.55;
+}
+
+.aurora__blob {
+  position: absolute;
+  border-radius: 9999px;
+  filter: blur(64px);
+  will-change: transform;
+  animation: aurora-drift 24s ease-in-out infinite alternate;
+}
+
+.aurora__blob--a {
+  width: 60%;
+  height: 75%;
+  left: -12%;
+  top: -18%;
+  background: radial-gradient(circle at 35% 35%, var(--aurora-a), transparent 70%);
+}
+
+.aurora__blob--b {
+  width: 55%;
+  height: 70%;
+  right: -12%;
+  top: -5%;
+  background: radial-gradient(circle at 50% 50%, var(--aurora-b), transparent 70%);
+  animation-duration: 30s;
+  animation-delay: -8s;
+}
+
+.aurora__blob--c {
+  width: 50%;
+  height: 60%;
+  left: 22%;
+  bottom: -30%;
+  background: radial-gradient(circle at 50% 50%, var(--aurora-c), transparent 70%);
+  animation-duration: 36s;
+  animation-delay: -14s;
+}
+
+.aurora__grid {
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(to right, var(--aurora-grid) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--aurora-grid) 1px, transparent 1px);
+  background-size: 44px 44px;
+  -webkit-mask-image: radial-gradient(ellipse 55% 65% at 88% 12%, #000 15%, transparent 72%);
+  mask-image: radial-gradient(ellipse 55% 65% at 88% 12%, #000 15%, transparent 72%);
+  animation: aurora-grid 20s linear infinite;
+}
+
+.aurora__fade {
+  position: absolute;
+  inset: auto 0 0 0;
+  height: 30%;
+  background: linear-gradient(to bottom, transparent, var(--background));
+}
+
+/* Peças de vidro 3D (ícones a flutuar), com paralaxe pelo ponteiro. */
+.glass-tile {
+  --tilt: -8deg;
+  --depth: 14px;
+  position: absolute;
+  display: grid;
+  place-items: center;
+  border-radius: 28%;
+  color: white;
+  box-shadow:
+    inset 0 2px 0 oklch(1 0 0 / 0.55),
+    inset 0 -6px 12px oklch(0 0 0 / 0.18),
+    0 18px 40px -12px oklch(0.35 0.18 285 / 0.55);
+  transform: translate3d(calc(var(--px, 0) * var(--depth)), calc(var(--py, 0) * var(--depth)), 0)
+    rotate(var(--tilt));
+  transition: transform 0.25s ease-out;
+}
+
+.glass-tile__float {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 100%;
+  border-radius: inherit;
+  animation: tile-float 7s ease-in-out infinite;
+}
+
+.glass-tile--violet {
+  background: linear-gradient(145deg, oklch(0.78 0.16 300), oklch(0.58 0.24 295));
+}
+
+.glass-tile--blue {
+  background: linear-gradient(145deg, oklch(0.82 0.12 240), oklch(0.62 0.18 255));
+}
+
+.glass-tile--sky {
+  background: linear-gradient(145deg, oklch(0.9 0.08 220), oklch(0.72 0.13 235));
+}
+
+/* Mascote: olhos que piscam e seguem o ponteiro. */
+.mascot-eye {
+  display: block;
+  width: 22%;
+  height: 34%;
+  border-radius: 9999px;
+  background: oklch(0.2 0.03 270);
+  transform: translate(calc(var(--px, 0) * 3px), calc(var(--py, 0) * 3px));
+  animation: mascot-blink 6s infinite;
+  transform-origin: center;
+}
+
+/* Telemóvel de demonstração: os passos do arranque vão ficando feitos. */
+.demo-check {
+  opacity: 0;
+  scale: 0.4;
+  animation: demo-check 9s ease-out infinite;
+  animation-delay: var(--delay, 0s);
+}
+
+.demo-bar {
+  transform-origin: left;
+  animation: demo-bar 9s ease-in-out infinite;
+}
+}
+
+
+@keyframes aurora-drift {
+  0% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  50% {
+    transform: translate3d(6%, 5%, 0) scale(1.08);
+  }
+  100% {
+    transform: translate3d(-5%, 7%, 0) scale(0.95);
+  }
+}
+
+@keyframes aurora-grid {
+  to {
+    background-position: 44px 44px;
+  }
+}
+
+@keyframes tile-float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+@keyframes mascot-blink {
+  0%,
+  93%,
+  100% {
+    scale: 1 1;
+  }
+  95% {
+    scale: 1 0.1;
+  }
+}
+
+@keyframes demo-check {
+  0%,
+  8% {
+    opacity: 0;
+    scale: 0.4;
+  }
+  14%,
+  88% {
+    opacity: 1;
+    scale: 1;
+  }
+  100% {
+    opacity: 0;
+    scale: 0.4;
+  }
+}
+
+@keyframes demo-bar {
+  0% {
+    transform: scaleX(0.08);
+  }
+  80%,
+  90% {
+    transform: scaleX(1);
+  }
+  100% {
+    transform: scaleX(0.08);
+  }
+}
+
+@media (hover: none) and (pointer: coarse) {
+  .aurora__blob {
+    filter: blur(40px);
+    animation-duration: 40s;
+  }
+
+  .aurora__grid {
+    animation: none;
+  }
+}
+
+@keyframes text-aurora {
+  0%,
+  100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+}
+
+@keyframes header-glow {
+  from {
+    opacity: 0.75;
+    transform: translateX(-1.5%);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(1.5%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .text-aurora,
+  .page-header-glow,
+  .aurora-ring::before {
+    animation: none;
+  }
+}

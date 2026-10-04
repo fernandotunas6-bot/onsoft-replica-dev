@@ -1,25 +1,9 @@
 /**
- * Tipos do esquema de produção, gerados — não editar à mão.
+ * Tipos gerados a partir da produção — não editar à mão.
  *
- * Reposto a 2026-09-14 com `npx supabase gen types typescript --linked`. A
- * versão anterior era mantida à mão e descrevia **40 tabelas**; a produção tem
- * **149**. Duas consequências, ambas verificadas:
- *
- *   1. As 109 tabelas que faltavam não eram tipadas em lado nenhum. O caminho
- *      privilegiado (`loadSgaAdminClient`) passa por `sgaClient()`, que relaxa
- *      a tipagem para `any` — logo cada leitura privilegiada era também uma
- *      leitura sem tipos, e um nome de coluna errado não era apanhado.
- *   2. Descrevia 17 tabelas que **não existem na produção** — `invoices`,
- *      `payments`, `courses`, `class_schedule_slots`, `term_grades` e outras —
- *      dando cobertura de tipos a código que falha em tempo de execução. É
- *      assim que cinco importadores ficaram a escrever para um modelo de dados
- *      substituído sem que nada objectasse. Ver
- *      `tests/security/production-snapshot.test.ts`.
- *
- * Para regenerar depois de uma migração: `npx supabase gen types typescript
- * --linked > src/integrations/supabase/types.ts`. As tabelas que a aplicação
- * usa e a produção não tem continuam a ser listadas por
- * `npm run siga:rls-readiness` e pelo teste do retrato.
+ * Regenerar com `npm run siga:gen-types` depois de qualquer migração aplicada.
+ * Editar este ficheiro à mão foi como ele passou a descrever menos de metade das
+ * tabelas, dando cobertura de tipos a código que falhava em execução.
  */
 
 /**

@@ -657,6 +657,7 @@ function AcessosPage() {
                       <TableCell colSpan={5} className="p-4">
                         <EmptyState
                           icon={UserPlus}
+                          firstUse
                           title="Ainda não há contas nesta escola"
                           description="Envie o primeiro convite para secretaria, professores ou tesouraria acederem ao SIGA."
                           compact
@@ -1195,6 +1196,7 @@ function AcessosPage() {
                     <TableCell colSpan={5} className="p-4">
                       <EmptyState
                         icon={UserPlus}
+                        firstUse
                         title="Ainda não há membros de equipa"
                         description="Registe pessoas em Pessoas e associe-lhes contas de acesso."
                         action={

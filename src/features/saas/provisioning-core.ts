@@ -9,7 +9,13 @@ import {
   findProvisioningGaps,
 } from "@/features/saas/provisioning-verify";
 import { getPlatformSubdomain } from "@/lib/saas/platform-domain";
-import { createSchoolAdminAccount, type SchoolAdminAccount } from "@/features/saas/admin-account";
+import {
+  EMAIL_LINKED_TO_SCHOOL_MESSAGE,
+  createSchoolAdminAccount,
+  findAuthUserByEmail,
+  type ExistingAdminAccount,
+  type SchoolAdminAccount,
+} from "@/features/saas/admin-account";
 import { reportSigaError, reportSigaEvent } from "@/lib/ops-report";
 
 type ProvisioningResult = {
@@ -20,8 +26,78 @@ type ProvisioningResult = {
   bootstrapSeeded: string[];
   adminInviteDelivered: boolean;
   adminPasswordSet: boolean;
+  /** A conta do administrador já existia (ex.: Google) e foi ligada à escola. */
+  adminExistingAccount: boolean;
   adminSetupUrl: string | null;
+  /** Entrada directa no SIGA já com sessão — ver `SchoolAdminAccount.loginUrl`. */
+  adminLoginUrl: string | null;
 };
+
+type SgaAdminDb = Awaited<ReturnType<typeof loadSgaAdminClient>>;
+
+/**
+ * Tudo o que pode recusar o registo, verificado **antes** de escrever.
+ *
+ * Antes, o tenant, o domínio e a escola eram criados primeiro e só depois se
+ * descobria que o e-mail já tinha conta. A reversão que se seguia não
+ * consegue apagar uma escola com histórico (`audit_logs` é imutável e aponta
+ * para ela), e o cliente ficava com o endereço e o e-mail presos a uma escola
+ * a que não conseguia entrar.
+ */
+async function preflight(
+  db: SgaAdminDb,
+  data: CreateSchoolWizardInput,
+): Promise<{ existingAdmin: ExistingAdminAccount | null }> {
+  const hostname = getPlatformSubdomain(data.slug);
+  const [{ data: tenantWithSlug }, { data: domainWithHost }] = await Promise.all([
+    db.from("tenants").select("id").eq("slug", data.slug).limit(1).maybeSingle(),
+    db.from("tenant_domains").select("id").eq("hostname", hostname).limit(1).maybeSingle(),
+  ]);
+  if (tenantWithSlug || domainWithHost) {
+    throw new Error("Este subdomínio já está em uso por outra escola. Escolha outro.");
+  }
+
+  const existing = await findAuthUserByEmail(db, data.admin_email);
+  if (!existing) return { existingAdmin: null };
+
+  const { data: membership, error: membershipErr } = await db
+    .from("school_memberships")
+    .select("id")
+    .eq("user_id", existing.id)
+    .eq("status", "active")
+    .limit(1)
+    .maybeSingle();
+  if (membershipErr) {
+    throw publicDatabaseError(
+      membershipErr,
+      "Não foi possível confirmar o e-mail do administrador.",
+    );
+  }
+  if (membership) throw new Error(EMAIL_LINKED_TO_SCHOOL_MESSAGE);
+
+  return { existingAdmin: { userId: existing.id, neverSignedIn: !existing.lastSignInAt } };
+}
+
+/**
+ * O responsável que se identifica como director(a) da escola passa a ser o
+ * director(a) na ficha — o nome que sai assinado em declarações e pautas.
+ * Só a direcção geral: «Director Pedagógico» ou «Director Financeiro» não são
+ * quem assina pela escola.
+ */
+export function directorFromContact(role: string | undefined, name: string): string | null {
+  const normalized = (role ?? "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, " ");
+  return /^(o |a )?direc?tora?( geral)?$/.test(normalized) ? name.trim() || null : null;
+}
+
+/** Sufixo que liberta um slug preso a uma escola que não chegou a nascer. */
+export function releasedSlug(slug: string, tenantId: string): string {
+  return `${slug}-falhou-${tenantId.slice(0, 8)}`;
+}
 
 /**
  * Onde o provisionamento ia quando parou.
@@ -63,7 +139,7 @@ export async function provisionTenantCore(
   opts: { auditUserId: string | null; source: "platform_admin" | "public_signup" },
 ): Promise<ProvisioningResult> {
   const startedAt = Date.now();
-  const trace: ProvisioningTrace = { stage: "plan", tenantId: null, schoolId: null };
+  const trace: ProvisioningTrace = { stage: "preflight", tenantId: null, schoolId: null };
   try {
     const result = await runProvisioning(data, opts, trace);
     reportSigaEvent("tenant.provisioning.completed", {
@@ -104,6 +180,9 @@ async function runProvisioning(
   trace: ProvisioningTrace,
 ): Promise<ProvisioningResult> {
   const db = await loadSgaAdminClient();
+
+  const { existingAdmin } = await preflight(db, data);
+  trace.stage = "tenant";
 
   const { data: plan } = await db
     .from("plans")
@@ -169,65 +248,76 @@ async function runProvisioning(
     }
     const { error } = await db.from("tenants").delete().eq("id", tenantId);
     if (error) {
-      // A escola que ficou (ver cleanupSchool) ainda o referencia. Marca-se como
-      // falhado e liberta-se o endereço, para a escola poder tentar de novo.
-      await db
+      // Uma escola com histórico já não se apaga (`audit_logs` é imutável e
+      // referencia-a), e o tenant fica preso a ela. Em vez de ocupar o slug
+      // para sempre — a escola seguinte recebia "já está em uso" sem perceber
+      // porquê — fica marcado como falhado e o slug é libertado.
+      const { error: releaseErr } = await db
         .from("tenants")
-        .update({
-          status: "provisioning_failed",
-          slug: `${data.slug}-falhou-${tenantId.slice(0, 8)}`,
-        })
+        .update({ status: "provisioning_failed", slug: releasedSlug(data.slug, tenantId) })
         .eq("id", tenantId);
-      // Alertável de propósito: um tenant que não é apagado fica a ocupar o
-      // slug para sempre, e a escola que tentar o mesmo endereço a seguir
-      // recebe "já está em uso" sem ninguém perceber porquê.
+      // Alertável de propósito: fica uma escola por arrumar na plataforma.
       reportSigaError("tenant.provisioning.rollback.failed", error, {
         tenant_id: tenantId,
         entity: "tenant",
         entity_id: tenantId,
+        reason: releaseErr ? "slug_not_released" : "slug_released",
       });
     }
   };
 
   /**
-   * Idem para a escola: papéis, memberships e perfil antes da própria escola.
-   * Também apaga a conta auth.users do administrador — sem isto, uma falha a
-   * meio do provisionamento (comum no signup público, sem operador a
-   * acompanhar) deixava uma conta órfã para sempre: tudo o resto revertido,
-   * mas a identidade em auth.users continuava a existir, sem escola, sem
-   * perfil, sem propósito. Mesmo princípio de inviteSystemUser: nunca deixar
-   * conta "fantasma" para trás.
+   * Idem para a escola: o que o provisionamento escreveu, por ordem inversa.
+   *
+   * A conta do administrador: se foi criada aqui, é apagada — nunca deixar
+   * conta "fantasma" para trás (mesmo princípio de inviteSystemUser). Se já
+   * existia (ex.: Google), só perde a ligação à escola.
+   *
+   * `school_settings.changed_by` e `enrollment_forms.created_by` apontam para
+   * a conta sem ON DELETE: sem os apagar antes, `deleteUser` falhava e a conta
+   * ficava com o e-mail preso — a tentativa seguinte recebia «já existe uma
+   * conta com este e-mail». A própria escola só se apaga se ainda não tiver
+   * histórico em `audit_logs`; caso contrário `cleanupTenant` liberta o slug.
    */
-  const cleanupSchool = async (schoolId: string, adminUserId: string | null) => {
-    await db.from("member_roles").delete().eq("school_id", schoolId);
-    await db.from("role_permissions").delete().eq("school_id", schoolId);
-    await db.from("roles").delete().eq("school_id", schoolId);
-    await db.from("school_memberships").delete().eq("school_id", schoolId);
-    // O que o bootstrap cria. `school_settings.changed_by` e
-    // `enrollment_forms.created_by` apontam para a conta do administrador e,
-    // sem os apagar, a conta ficava presa e o e-mail não servia para tentar
-    // de novo (a 2026-09-28 foi o que aconteceu). Ordem das dependências.
-    await db.from("school_settings").delete().eq("school_id", schoolId);
-    await db.from("document_sequences").delete().eq("school_id", schoolId);
-    await db.from("enrollment_forms").delete().eq("school_id", schoolId);
-    await db.from("fee_items").delete().eq("school_id", schoolId);
-    await db.from("fee_plans").delete().eq("school_id", schoolId);
-    await db.from("academic_years").delete().eq("school_id", schoolId);
-    if (adminUserId) {
-      await db.from("profiles").delete().eq("id", adminUserId);
-      try {
-        const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-        // `deleteUser` devolve o erro, não o lança.
-        const { error: deleteErr } = await supabaseAdmin.auth.admin.deleteUser(adminUserId);
-        if (deleteErr) throw deleteErr;
-      } catch (deleteErr) {
+  const cleanupSchool = async (
+    schoolId: string,
+    admin: { userId: string; createdHere: boolean } | null,
+  ) => {
+    for (const table of [
+      "member_roles",
+      // Da main: as permissões dos papéis e o ano lectivo do bootstrap também
+      // prendiam a escola (e o ano à conta do director) se ficassem.
+      "role_permissions",
+      "roles",
+      "school_memberships",
+      "school_settings",
+      "enrollment_forms",
+      "document_sequences",
+      "fee_items",
+      "fee_plans",
+      "academic_years",
+    ] as const) {
+      await db.from(table).delete().eq("school_id", schoolId);
+    }
+    if (admin?.createdHere) {
+      await db.from("profiles").delete().eq("id", admin.userId);
+      const { error: deleteErr } = await db.auth.admin.deleteUser(admin.userId);
+      if (deleteErr) {
+        // Não é grave para o cliente: uma conta sem escola e sem sessões é
+        // reaproveitada pela tentativa seguinte (ver preflight).
         reportSigaError("tenant.provisioning.rollback.failed", deleteErr, {
           school_id: schoolId,
-          user_id: adminUserId,
+          user_id: admin.userId,
           entity: "auth_user",
-          entity_id: adminUserId,
+          entity_id: admin.userId,
         });
       }
+    } else if (admin) {
+      await db
+        .from("profiles")
+        .update({ school_id: null, cargo: null })
+        .eq("id", admin.userId)
+        .eq("school_id", schoolId);
     }
     const { error } = await db.from("schools").delete().eq("id", schoolId);
     if (error) {
@@ -276,6 +366,7 @@ async function runProvisioning(
       phone: data.phone || data.contact_phone || null,
       email: data.email || data.contact_email,
       logo_url: data.logo_url || null,
+      director_name: directorFromContact(data.contact_role, data.contact_name),
     })
     .select("id")
     .single();
@@ -289,6 +380,8 @@ async function runProvisioning(
 
   let adminUserId: string | null = null;
   let adminAccount: SchoolAdminAccount | null = null;
+  const adminForCleanup = () =>
+    adminUserId ? { userId: adminUserId, createdHere: !adminAccount?.reusedAccount } : null;
   try {
     // A conta é criada sem depender do mailer e o link de acesso é entregue
     // como efeito secundário best-effort — ver admin-account.ts. Antes disto,
@@ -299,6 +392,7 @@ async function runProvisioning(
       fullName: data.admin_name,
       schoolName: data.name,
       password: data.admin_password,
+      existing: existingAdmin,
     });
     adminUserId = adminAccount.userId;
 
@@ -364,8 +458,7 @@ async function runProvisioning(
       );
     }
   } catch (err) {
-    await cleanupSchool(schoolId, adminUserId);
-    if (adminUserId) await db.auth.admin.deleteUser(adminUserId).catch(() => undefined);
+    await cleanupSchool(schoolId, adminForCleanup());
     await cleanupTenant();
     throw err instanceof Error ? err : new Error("Falha ao provisionar o administrador da escola.");
   }
@@ -458,8 +551,7 @@ async function runProvisioning(
   trace.stage = "verify";
   const gaps = await findProvisioningGaps(db, { tenantId, schoolId, adminUserId });
   if (gaps.length > 0) {
-    await cleanupSchool(schoolId, adminUserId);
-    await db.auth.admin.deleteUser(adminUserId).catch(() => undefined);
+    await cleanupSchool(schoolId, adminForCleanup());
     await cleanupTenant();
     throw new Error(describeProvisioningGaps(gaps));
   }
@@ -481,6 +573,7 @@ async function runProvisioning(
       admin_invite_channel: adminAccount?.inviteChannel ?? null,
       admin_invite_error: adminAccount?.deliveryError ?? null,
       admin_password_set: adminAccount?.passwordSet ?? false,
+      admin_existing_account: adminAccount?.reusedAccount ?? false,
     },
   });
 
@@ -492,6 +585,10 @@ async function runProvisioning(
     bootstrapSeeded,
     adminInviteDelivered: adminAccount?.inviteDelivered ?? false,
     adminPasswordSet: adminAccount?.passwordSet ?? false,
+    adminExistingAccount: adminAccount?.reusedAccount ?? false,
+    // A entrada directa é para quem acabou de definir a senha no registo
+    // público. O admin de plataforma nunca recebe sessão na conta do director.
+    adminLoginUrl: opts.source === "public_signup" ? (adminAccount?.loginUrl ?? null) : null,
     // O link de definição de senha nunca sai no signup público: só quem já é
     // admin de plataforma o recebe, para o entregar ao director.
     adminSetupUrl: opts.source === "platform_admin" ? (adminAccount?.setupUrl ?? null) : null,

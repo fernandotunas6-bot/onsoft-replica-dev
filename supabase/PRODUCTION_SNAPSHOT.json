@@ -1,11 +1,11 @@
 {
-  "capturadoEm": "2026-10-02T09:29:12.000Z",
+  "capturadoEm": "2026-10-04T11:52:18.267Z",
   "resumo": {
     "tabelas": 186,
     "com_rls": 186,
     "politicas": 338,
-    "funcoes_private": 108,
-    "triggers": 198,
+    "funcoes_private": 110,
+    "triggers": 199,
     "buckets": 6,
     "buckets_publicos": 1,
     "politicas_storage": 14
@@ -7506,7 +7506,7 @@
       "politica": "Read school announcements",
       "cmd": "SELECT",
       "papeis": "{authenticated}",
-      "usando": "(is_school_member(school_id) AND (deleted_at IS NULL))",
+      "usando": "((deleted_at IS NULL) AND (private.is_school_staff(school_id) OR ((status = 'sent'::text) AND (audience = ANY (private.announcement_audiences_for(school_id))))))",
       "verificando": "",
       "modo": "PERMISSIVE"
     },
@@ -8569,6 +8569,12 @@
     },
     {
       "schema": "private",
+      "funcao": "announcement_audiences_for",
+      "args": "p_school_id uuid",
+      "security_definer": true
+    },
+    {
+      "schema": "private",
       "funcao": "archive_grade_sheet_version",
       "args": "target_school_id uuid, target_sheet_id uuid, actor uuid",
       "security_definer": true
@@ -9092,6 +9098,12 @@
     {
       "schema": "private",
       "funcao": "sga_request_is_service_role",
+      "args": "",
+      "security_definer": true
+    },
+    {
+      "schema": "private",
+      "funcao": "siga_chat_message_guard",
       "args": "",
       "security_definer": true
     },
@@ -11070,6 +11082,12 @@
       "trigger": "siga_cash_expenses_set_updated_at",
       "funcao": "siga_touch_updated_at",
       "funcao_schema": "public"
+    },
+    {
+      "tabela": "siga_chat_messages",
+      "trigger": "siga_chat_messages_guard",
+      "funcao": "siga_chat_message_guard",
+      "funcao_schema": "private"
     },
     {
       "tabela": "siga_class_tasks",

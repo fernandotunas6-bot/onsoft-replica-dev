@@ -730,3 +730,32 @@ export function cancellationIsLate(
   limit.setUTCDate(limit.getUTCDate() + deadlineDays);
   return today > limit.toISOString().slice(0, 10);
 }
+
+/** Decisão do júri de doutoramento (Decreto Presidencial 257/25). */
+export const DOCTORAL_MENTIONS = {
+  aprovado: "Aprovado",
+  distincao: "Aprovado com distinção",
+  distincao_louvor: "Aprovado com distinção e louvor",
+} as const;
+export type DoctoralMention = keyof typeof DOCTORAL_MENTIONS;
+
+const JURY_PREFIX = "júri:";
+
+export function encodeJuryDecision(mention: DoctoralMention, note: string) {
+  return `${JURY_PREFIX}${mention}|${note}`;
+}
+
+/** Lê a decisão do júri gravada nas notas da inscrição da tese (ou null). */
+export function decodeJuryDecision(notes: string | null | undefined): DoctoralMention | null {
+  if (!notes?.startsWith(JURY_PREFIX)) return null;
+  const mention = notes.slice(JURY_PREFIX.length).split("|")[0];
+  return mention && mention in DOCTORAL_MENTIONS ? (mention as DoctoralMention) : null;
+}
+
+/** Grau conferido, como aparece no certificado. */
+export const DEGREE_TITLE = {
+  licenciatura: "Licenciado",
+  mestrado: "Mestre",
+  doutoramento: "Doutor",
+  especializacao: null,
+} as const;

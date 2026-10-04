@@ -320,17 +320,17 @@ const funcoesPublicas = new Set(
 );
 
 /**
- * Funções `public` escritas numa migração por aplicar. Mesma regra que
- * ESPERA_MIGRACAO: a lista só encolhe, e o teste obriga a tirar a entrada
- * quando o retrato a mostrar.
- */
-/**
- * Funções que o código chama e a produção ainda não tem. Existe para encolher.
+ * Funções `public` que o código chama e a produção ainda não tem, porque há uma migração
+ * escrita e por aplicar. A lista só encolhe: o teste obriga a tirar a entrada quando o
+ * retrato mostrar a função.
  *
- * O `siga_publish_assessment_rule` e o `siga_rate_limit_consume` saíram a 2026-09-28:
- * foram aplicados e o retrato recapturado mostra-os. A 2026-10-02 saíram
- * `settle_gateway_payment_service` (20261002090137) e `hr_redeem_teacher_qr_secure`
- * (20260926203852, aplicada na produção como 20261002091121), pelo mesmo motivo.
+ * `siga_publish_assessment_rule` e `siga_rate_limit_consume` saíram a 2026-09-28.
+ * A 2026-10-02 saíram `settle_gateway_payment_service` (20261002090137) e
+ * `hr_redeem_teacher_qr_secure`, com `20260926203852_harden_teacher_qr_attendance.sql` aplicada: a presença do docente por QR
+ * esteve seis dias sem ser registada, porque `hr/teacher-lessons.ts` chamava-a desde
+ * eaceb8f2 e a produção devolvia PGRST202.
+ *
+ * Vazia desde então.
  */
 const FUNCOES_ESPERA_MIGRACAO = new Set<string>([]);
 /**

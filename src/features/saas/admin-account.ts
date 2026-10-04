@@ -1,4 +1,9 @@
-import { getAppName, getAppUrl, getAuthResetPasswordUrl } from "@/lib/app-config";
+import {
+  getAppName,
+  getAppUrl,
+  getAuthMagicLinkUrl,
+  getAuthResetPasswordUrl,
+} from "@/lib/app-config";
 import { renderSchoolInvitationEmail } from "@/features/auth/email-templates";
 import {
   resolveResendFromAddress,
@@ -23,6 +28,14 @@ export type SchoolAdminAccount = {
   userId: string;
   /** true quando a conta já tem senha própria (definida por quem provisionou) — login imediato, sem depender de e-mail. */
   passwordSet: boolean;
+  /** true quando a conta já existia (ex.: entrou antes com o Google) e foi só ligada à escola nova. */
+  reusedAccount: boolean;
+  /**
+   * Link de entrada directa no SIGA, de uso único. Só existe quando a senha foi
+   * definida neste mesmo pedido: quem o recebe já conhece a senha, por isso o
+   * link não lhe dá nada que não tivesse — poupa-lhe só o segundo login.
+   */
+  loginUrl: string | null;
   inviteDelivered: boolean;
   inviteChannel: "resend" | null;
   /** Link de definição de senha. Só para quem provisiona — nunca para o público. */
@@ -44,18 +57,89 @@ type AuthAdminApi = {
         email: string;
         options?: { redirectTo?: string };
       }) => Promise<{
-        data: { properties?: { action_link?: string } | null } | null;
+        data: { properties?: { action_link?: string; hashed_token?: string } | null } | null;
+        error: { message: string } | null;
+      }>;
+      updateUserById?: (
+        userId: string,
+        attrs: {
+          password?: string;
+          email_confirm?: boolean;
+          user_metadata?: Record<string, unknown>;
+        },
+      ) => Promise<{ error: { message: string } | null }>;
+    };
+  };
+};
+
+/**
+ * Conta já existente com o e-mail do administrador, sem escola nenhuma.
+ *
+ * Acontece de duas formas, ambas vistas em produção: a pessoa entrou antes no
+ * SIGA com o Google (a conta nasce sem vínculo escolar), ou uma tentativa de
+ * registo anterior falhou depois de criar a conta. Recusar o registo nesses
+ * casos dizia «já existe uma conta com este e-mail» a quem não tinha escola
+ * nenhuma — e não havia saída.
+ */
+export type ExistingAdminAccount = {
+  userId: string;
+  /**
+   * A conta nunca iniciou sessão: não tem dono activo, e a senha escolhida
+   * neste registo passa a ser a dela. Com sessões anteriores (ex.: Google), as
+   * credenciais existentes ficam intactas.
+   */
+  neverSignedIn: boolean;
+};
+
+type AuthUserSummary = { id: string; email?: string | null; last_sign_in_at?: string | null };
+
+type AuthListApi = {
+  auth: {
+    admin: {
+      listUsers: (params: { page: number; perPage: number }) => Promise<{
+        data: { users: AuthUserSummary[] } | null;
         error: { message: string } | null;
       }>;
     };
   };
 };
 
+const LIST_USERS_PAGE = 1000;
+const LIST_USERS_MAX_PAGES = 50;
+
+/** Conta do Supabase Auth com este e-mail, ou null. Mesmo método de reset-account-resolver. */
+export async function findAuthUserByEmail(
+  db: AuthListApi,
+  email: string,
+): Promise<{ id: string; lastSignInAt: string | null } | null> {
+  const normalized = email.trim().toLowerCase();
+  for (let page = 1; page <= LIST_USERS_MAX_PAGES; page += 1) {
+    const { data, error } = await db.auth.admin.listUsers({ page, perPage: LIST_USERS_PAGE });
+    if (error) throw new Error("Não foi possível confirmar o e-mail do administrador.");
+    const users = data?.users ?? [];
+    const match = users.find((user) => user.email?.trim().toLowerCase() === normalized);
+    if (match) return { id: match.id, lastSignInAt: match.last_sign_in_at ?? null };
+    if (users.length < LIST_USERS_PAGE) return null;
+  }
+  return null;
+}
+
+/** Endereço de entrada no SIGA a partir do token de um link gerado no servidor. */
+export function buildAdminLoginUrl(hashedToken: string): string {
+  const url = new URL(getAuthMagicLinkUrl());
+  url.searchParams.set("token_hash", hashedToken);
+  url.searchParams.set("type", "recovery");
+  return url.toString();
+}
+
+export const EMAIL_LINKED_TO_SCHOOL_MESSAGE =
+  "Este e-mail já tem acesso a uma escola no SIGA Plus. Entre no SIGA com ele (ou use «Recuperar senha»). Para registar outra escola, use outro e-mail para o administrador.";
+
 /** Mensagens cruas da Supabase Auth → português accionável. */
 export function translateAdminAccountError(message: string): string {
   const raw = message.trim();
   if (/already been registered|already registered|already exists|duplicate/i.test(raw)) {
-    return "Já existe uma conta com este e-mail. Use outro endereço para o administrador da escola.";
+    return EMAIL_LINKED_TO_SCHOOL_MESSAGE;
   }
   if (/email address .* is invalid|invalid email|email_address_invalid/i.test(raw)) {
     return "O e-mail do administrador foi recusado pelo serviço de identidade. Confirme o endereço.";
@@ -67,51 +151,90 @@ export function translateAdminAccountError(message: string): string {
 }
 
 /**
- * Cria a conta do administrador e tenta entregar o link de configuração.
+ * Cria (ou reaproveita) a conta do administrador e tenta entregar o acesso.
  * Lança só se a **conta** não puder ser criada; falha de entrega nunca é fatal.
  */
 export async function createSchoolAdminAccount(
   db: AuthAdminApi,
-  input: { email: string; fullName: string; schoolName: string; password?: string },
+  input: {
+    email: string;
+    fullName: string;
+    schoolName: string;
+    password?: string;
+    /** Conta já existente, sem escola — ver `ExistingAdminAccount`. */
+    existing?: ExistingAdminAccount | null;
+  },
 ): Promise<SchoolAdminAccount> {
   const email = input.email.trim().toLowerCase();
 
-  const { data: created, error: createErr } = await db.auth.admin.createUser({
-    email,
-    password: input.password,
-    email_confirm: true,
-    user_metadata: { full_name: input.fullName },
-  });
-  if (createErr || !created.user) {
-    throw new Error(
-      translateAdminAccountError(
-        createErr?.message ?? "Não foi possível criar a conta do administrador.",
-      ),
-    );
+  let userId: string;
+  let passwordSet = false;
+  if (input.existing) {
+    userId = input.existing.userId;
+    if (input.existing.neverSignedIn && input.password) {
+      const update = db.auth.admin.updateUserById;
+      if (!update) throw new Error("Não foi possível actualizar a conta do administrador.");
+      const { error } = await update(userId, {
+        password: input.password,
+        email_confirm: true,
+        user_metadata: { full_name: input.fullName },
+      });
+      if (error) throw new Error(translateAdminAccountError(error.message));
+      passwordSet = true;
+    }
+  } else {
+    const { data: created, error: createErr } = await db.auth.admin.createUser({
+      email,
+      password: input.password,
+      email_confirm: true,
+      user_metadata: { full_name: input.fullName },
+    });
+    if (createErr || !created.user) {
+      throw new Error(
+        translateAdminAccountError(
+          createErr?.message ?? "Não foi possível criar a conta do administrador.",
+        ),
+      );
+    }
+    userId = created.user.id;
+    passwordSet = Boolean(input.password);
   }
-  const userId = created.user.id;
 
   const account: SchoolAdminAccount = {
     userId,
-    passwordSet: Boolean(input.password),
+    passwordSet,
+    reusedAccount: Boolean(input.existing),
+    loginUrl: null,
     inviteDelivered: false,
     inviteChannel: null,
     setupUrl: null,
     deliveryError: null,
   };
 
+  // Conta com dono activo (já entrou antes, ex.: Google) e senha intacta: entra
+  // como sempre entrou. Nem link de senha, nem link de entrada — isso daria a
+  // quem preencheu o formulário uma sessão numa conta que não provou ser sua.
+  if (account.reusedAccount && !passwordSet) return account;
+
   try {
     const { data: link, error: linkErr } = await db.auth.admin.generateLink({
       type: "recovery",
       email,
-      options: { redirectTo: getAuthResetPasswordUrl() },
+      options: { redirectTo: passwordSet ? getAuthMagicLinkUrl() : getAuthResetPasswordUrl() },
     });
-    const setupUrl = link?.properties?.action_link ?? null;
-    if (linkErr || !setupUrl) {
+    const actionLink = link?.properties?.action_link ?? null;
+    const hashedToken = link?.properties?.hashed_token ?? null;
+    if (linkErr || !actionLink) {
       account.deliveryError = linkErr?.message ?? "Não foi possível gerar o link de acesso.";
       return account;
     }
-    account.setupUrl = setupUrl;
+    if (passwordSet) {
+      // Um só token de recuperação vale de cada vez: fica para a entrada directa,
+      // e o e-mail aponta para a página de login (a senha já existe).
+      account.loginUrl = hashedToken ? buildAdminLoginUrl(hashedToken) : null;
+    } else {
+      account.setupUrl = actionLink;
+    }
 
     const apiKey = process.env["RESEND_API_KEY"]?.trim();
     if (!apiKey) {
@@ -122,7 +245,7 @@ export async function createSchoolAdminAccount(
     const message = renderSchoolInvitationEmail({
       schoolName: input.schoolName,
       roleName: "Administrador da Escola",
-      invitationUrl: setupUrl,
+      invitationUrl: account.setupUrl ?? getAppUrl(),
       platformName: getAppName(),
       platformUrl: getAppUrl(),
       recipientEmail: email,

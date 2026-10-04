@@ -69,11 +69,12 @@ export function FeaturesSection() {
         <div className="mx-auto max-w-2xl text-center mb-16">
           <Badge variant="outline" className="mb-4">Funcionalidades</Badge>
           <h2 className="text-3xl font-bold tracking-tight sm:text-4xl mb-4">
-            Tudo o que a escola precisa para trabalhar todos os dias
+            Tudo o que a escola precisa para{" "}
+            <span className="text-aurora">trabalhar todos os dias</span>
           </h2>
           <p className="text-lg text-muted-foreground">
-            O SIGA gere a operação da escola. O portal WEB vende e cria a escola.
-            O ADMIN controla a plataforma SaaS. O PayFlow cobra.
+            Matrículas, pautas, propinas, documentos e comunicação com as famílias — numa só
+            plataforma, com a cobrança feita pelo PayFlow.
           </p>
         </div>
 

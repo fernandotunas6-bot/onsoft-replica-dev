@@ -67,7 +67,9 @@ import { Route as AlumniPortalPortfolioRouteImport } from './routes/alumni.porta
 import { Route as ApiCalendarIcsRouteImport } from './routes/api/calendar.ics'
 import { Route as ApiCatracasDeviceScanRouteImport } from './routes/api/catracas/device-scan'
 import { Route as ApiCronLessonRemindersRouteImport } from './routes/api/cron/lesson-reminders'
+import { Route as ApiCronSaasLifecycleRouteImport } from './routes/api/cron/saas-lifecycle'
 import { Route as ApiSaasAuditLogsRouteImport } from './routes/api/saas/audit-logs'
+import { Route as ApiSaasBillingProofsRouteImport } from './routes/api/saas/billing-proofs'
 import { Route as ApiSaasDomainsRouteImport } from './routes/api/saas/domains'
 import { Route as ApiSaasGatewayWebhooksRouteImport } from './routes/api/saas/gateway-webhooks'
 import { Route as ApiSaasMailboxesRouteImport } from './routes/api/saas/mailboxes'
@@ -75,6 +77,7 @@ import { Route as ApiSaasMeRouteImport } from './routes/api/saas/me'
 import { Route as ApiSaasPlansRouteImport } from './routes/api/saas/plans'
 import { Route as ApiSaasPlatformAdminsRouteImport } from './routes/api/saas/platform-admins'
 import { Route as ApiSaasSignupRouteImport } from './routes/api/saas/signup'
+import { Route as ApiSaasSignupLeadsRouteImport } from './routes/api/saas/signup-leads'
 import { Route as ApiSaasStatsRouteImport } from './routes/api/saas/stats'
 import { Route as ApiSaasSubscriptionsRouteImport } from './routes/api/saas/subscriptions'
 import { Route as ApiSaasTenantsRouteImport } from './routes/api/saas/tenants'
@@ -102,6 +105,10 @@ import { Route as ApiSaasDomainsStatusRouteImport } from './routes/api/saas/doma
 import { Route as ApiSaasDomainsVerifyRouteImport } from './routes/api/saas/domains.verify'
 import { Route as ApiSaasEmailRoutesRouteImport } from './routes/api/saas/email.routes'
 import { Route as ApiSaasPlatformAdminsRevokeRouteImport } from './routes/api/saas/platform-admins.revoke'
+import { Route as ApiSaasSignupEmailCodeRouteImport } from './routes/api/saas/signup.email-code'
+import { Route as ApiSaasSignupEmailVerifyRouteImport } from './routes/api/saas/signup.email-verify'
+import { Route as ApiSaasSignupProgressRouteImport } from './routes/api/saas/signup.progress'
+import { Route as ApiSaasSignupUnsubscribeRouteImport } from './routes/api/saas/signup.unsubscribe'
 import { Route as ApiSaasSubscriptionsBackfillRouteImport } from './routes/api/saas/subscriptions.backfill'
 import { Route as ApiSaasTenantsLookupRouteImport } from './routes/api/saas/tenants.lookup'
 import { Route as ApiSaasTenantsStatusRouteImport } from './routes/api/saas/tenants.status'
@@ -403,9 +410,19 @@ const ApiCronLessonRemindersRoute = ApiCronLessonRemindersRouteImport.update({
   path: '/api/cron/lesson-reminders',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiCronSaasLifecycleRoute = ApiCronSaasLifecycleRouteImport.update({
+  id: '/api/cron/saas-lifecycle',
+  path: '/api/cron/saas-lifecycle',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiSaasAuditLogsRoute = ApiSaasAuditLogsRouteImport.update({
   id: '/api/saas/audit-logs',
   path: '/api/saas/audit-logs',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiSaasBillingProofsRoute = ApiSaasBillingProofsRouteImport.update({
+  id: '/api/saas/billing-proofs',
+  path: '/api/saas/billing-proofs',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiSaasDomainsRoute = ApiSaasDomainsRouteImport.update({
@@ -441,6 +458,11 @@ const ApiSaasPlatformAdminsRoute = ApiSaasPlatformAdminsRouteImport.update({
 const ApiSaasSignupRoute = ApiSaasSignupRouteImport.update({
   id: '/api/saas/signup',
   path: '/api/saas/signup',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiSaasSignupLeadsRoute = ApiSaasSignupLeadsRouteImport.update({
+  id: '/api/saas/signup-leads',
+  path: '/api/saas/signup-leads',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiSaasStatsRoute = ApiSaasStatsRouteImport.update({
@@ -591,6 +613,28 @@ const ApiSaasPlatformAdminsRevokeRoute =
     path: '/revoke',
     getParentRoute: () => ApiSaasPlatformAdminsRoute,
   } as any)
+const ApiSaasSignupEmailCodeRoute = ApiSaasSignupEmailCodeRouteImport.update({
+  id: '/email-code',
+  path: '/email-code',
+  getParentRoute: () => ApiSaasSignupRoute,
+} as any)
+const ApiSaasSignupEmailVerifyRoute =
+  ApiSaasSignupEmailVerifyRouteImport.update({
+    id: '/email-verify',
+    path: '/email-verify',
+    getParentRoute: () => ApiSaasSignupRoute,
+  } as any)
+const ApiSaasSignupProgressRoute = ApiSaasSignupProgressRouteImport.update({
+  id: '/progress',
+  path: '/progress',
+  getParentRoute: () => ApiSaasSignupRoute,
+} as any)
+const ApiSaasSignupUnsubscribeRoute =
+  ApiSaasSignupUnsubscribeRouteImport.update({
+    id: '/unsubscribe',
+    path: '/unsubscribe',
+    getParentRoute: () => ApiSaasSignupRoute,
+  } as any)
 const ApiSaasSubscriptionsBackfillRoute =
   ApiSaasSubscriptionsBackfillRouteImport.update({
     id: '/backfill',
@@ -684,14 +728,17 @@ export interface FileRoutesByFullPath {
   '/api/calendar/ics': typeof ApiCalendarIcsRoute
   '/api/catracas/device-scan': typeof ApiCatracasDeviceScanRoute
   '/api/cron/lesson-reminders': typeof ApiCronLessonRemindersRoute
+  '/api/cron/saas-lifecycle': typeof ApiCronSaasLifecycleRoute
   '/api/saas/audit-logs': typeof ApiSaasAuditLogsRoute
+  '/api/saas/billing-proofs': typeof ApiSaasBillingProofsRoute
   '/api/saas/domains': typeof ApiSaasDomainsRouteWithChildren
   '/api/saas/gateway-webhooks': typeof ApiSaasGatewayWebhooksRoute
   '/api/saas/mailboxes': typeof ApiSaasMailboxesRoute
   '/api/saas/me': typeof ApiSaasMeRoute
   '/api/saas/plans': typeof ApiSaasPlansRoute
   '/api/saas/platform-admins': typeof ApiSaasPlatformAdminsRouteWithChildren
-  '/api/saas/signup': typeof ApiSaasSignupRoute
+  '/api/saas/signup': typeof ApiSaasSignupRouteWithChildren
+  '/api/saas/signup-leads': typeof ApiSaasSignupLeadsRoute
   '/api/saas/stats': typeof ApiSaasStatsRoute
   '/api/saas/subscriptions': typeof ApiSaasSubscriptionsRouteWithChildren
   '/api/saas/tenants': typeof ApiSaasTenantsRouteWithChildren
@@ -719,6 +766,10 @@ export interface FileRoutesByFullPath {
   '/api/saas/domains/verify': typeof ApiSaasDomainsVerifyRoute
   '/api/saas/email/routes': typeof ApiSaasEmailRoutesRoute
   '/api/saas/platform-admins/revoke': typeof ApiSaasPlatformAdminsRevokeRoute
+  '/api/saas/signup/email-code': typeof ApiSaasSignupEmailCodeRoute
+  '/api/saas/signup/email-verify': typeof ApiSaasSignupEmailVerifyRoute
+  '/api/saas/signup/progress': typeof ApiSaasSignupProgressRoute
+  '/api/saas/signup/unsubscribe': typeof ApiSaasSignupUnsubscribeRoute
   '/api/saas/subscriptions/backfill': typeof ApiSaasSubscriptionsBackfillRoute
   '/api/saas/tenants/lookup': typeof ApiSaasTenantsLookupRoute
   '/api/saas/tenants/status': typeof ApiSaasTenantsStatusRoute
@@ -785,14 +836,17 @@ export interface FileRoutesByTo {
   '/api/calendar/ics': typeof ApiCalendarIcsRoute
   '/api/catracas/device-scan': typeof ApiCatracasDeviceScanRoute
   '/api/cron/lesson-reminders': typeof ApiCronLessonRemindersRoute
+  '/api/cron/saas-lifecycle': typeof ApiCronSaasLifecycleRoute
   '/api/saas/audit-logs': typeof ApiSaasAuditLogsRoute
+  '/api/saas/billing-proofs': typeof ApiSaasBillingProofsRoute
   '/api/saas/domains': typeof ApiSaasDomainsRouteWithChildren
   '/api/saas/gateway-webhooks': typeof ApiSaasGatewayWebhooksRoute
   '/api/saas/mailboxes': typeof ApiSaasMailboxesRoute
   '/api/saas/me': typeof ApiSaasMeRoute
   '/api/saas/plans': typeof ApiSaasPlansRoute
   '/api/saas/platform-admins': typeof ApiSaasPlatformAdminsRouteWithChildren
-  '/api/saas/signup': typeof ApiSaasSignupRoute
+  '/api/saas/signup': typeof ApiSaasSignupRouteWithChildren
+  '/api/saas/signup-leads': typeof ApiSaasSignupLeadsRoute
   '/api/saas/stats': typeof ApiSaasStatsRoute
   '/api/saas/subscriptions': typeof ApiSaasSubscriptionsRouteWithChildren
   '/api/saas/tenants': typeof ApiSaasTenantsRouteWithChildren
@@ -820,6 +874,10 @@ export interface FileRoutesByTo {
   '/api/saas/domains/verify': typeof ApiSaasDomainsVerifyRoute
   '/api/saas/email/routes': typeof ApiSaasEmailRoutesRoute
   '/api/saas/platform-admins/revoke': typeof ApiSaasPlatformAdminsRevokeRoute
+  '/api/saas/signup/email-code': typeof ApiSaasSignupEmailCodeRoute
+  '/api/saas/signup/email-verify': typeof ApiSaasSignupEmailVerifyRoute
+  '/api/saas/signup/progress': typeof ApiSaasSignupProgressRoute
+  '/api/saas/signup/unsubscribe': typeof ApiSaasSignupUnsubscribeRoute
   '/api/saas/subscriptions/backfill': typeof ApiSaasSubscriptionsBackfillRoute
   '/api/saas/tenants/lookup': typeof ApiSaasTenantsLookupRoute
   '/api/saas/tenants/status': typeof ApiSaasTenantsStatusRoute
@@ -887,14 +945,17 @@ export interface FileRoutesById {
   '/api/calendar/ics': typeof ApiCalendarIcsRoute
   '/api/catracas/device-scan': typeof ApiCatracasDeviceScanRoute
   '/api/cron/lesson-reminders': typeof ApiCronLessonRemindersRoute
+  '/api/cron/saas-lifecycle': typeof ApiCronSaasLifecycleRoute
   '/api/saas/audit-logs': typeof ApiSaasAuditLogsRoute
+  '/api/saas/billing-proofs': typeof ApiSaasBillingProofsRoute
   '/api/saas/domains': typeof ApiSaasDomainsRouteWithChildren
   '/api/saas/gateway-webhooks': typeof ApiSaasGatewayWebhooksRoute
   '/api/saas/mailboxes': typeof ApiSaasMailboxesRoute
   '/api/saas/me': typeof ApiSaasMeRoute
   '/api/saas/plans': typeof ApiSaasPlansRoute
   '/api/saas/platform-admins': typeof ApiSaasPlatformAdminsRouteWithChildren
-  '/api/saas/signup': typeof ApiSaasSignupRoute
+  '/api/saas/signup': typeof ApiSaasSignupRouteWithChildren
+  '/api/saas/signup-leads': typeof ApiSaasSignupLeadsRoute
   '/api/saas/stats': typeof ApiSaasStatsRoute
   '/api/saas/subscriptions': typeof ApiSaasSubscriptionsRouteWithChildren
   '/api/saas/tenants': typeof ApiSaasTenantsRouteWithChildren
@@ -922,6 +983,10 @@ export interface FileRoutesById {
   '/api/saas/domains/verify': typeof ApiSaasDomainsVerifyRoute
   '/api/saas/email/routes': typeof ApiSaasEmailRoutesRoute
   '/api/saas/platform-admins/revoke': typeof ApiSaasPlatformAdminsRevokeRoute
+  '/api/saas/signup/email-code': typeof ApiSaasSignupEmailCodeRoute
+  '/api/saas/signup/email-verify': typeof ApiSaasSignupEmailVerifyRoute
+  '/api/saas/signup/progress': typeof ApiSaasSignupProgressRoute
+  '/api/saas/signup/unsubscribe': typeof ApiSaasSignupUnsubscribeRoute
   '/api/saas/subscriptions/backfill': typeof ApiSaasSubscriptionsBackfillRoute
   '/api/saas/tenants/lookup': typeof ApiSaasTenantsLookupRoute
   '/api/saas/tenants/status': typeof ApiSaasTenantsStatusRoute
@@ -990,7 +1055,9 @@ export interface FileRouteTypes {
     | '/api/calendar/ics'
     | '/api/catracas/device-scan'
     | '/api/cron/lesson-reminders'
+    | '/api/cron/saas-lifecycle'
     | '/api/saas/audit-logs'
+    | '/api/saas/billing-proofs'
     | '/api/saas/domains'
     | '/api/saas/gateway-webhooks'
     | '/api/saas/mailboxes'
@@ -998,6 +1065,7 @@ export interface FileRouteTypes {
     | '/api/saas/plans'
     | '/api/saas/platform-admins'
     | '/api/saas/signup'
+    | '/api/saas/signup-leads'
     | '/api/saas/stats'
     | '/api/saas/subscriptions'
     | '/api/saas/tenants'
@@ -1025,6 +1093,10 @@ export interface FileRouteTypes {
     | '/api/saas/domains/verify'
     | '/api/saas/email/routes'
     | '/api/saas/platform-admins/revoke'
+    | '/api/saas/signup/email-code'
+    | '/api/saas/signup/email-verify'
+    | '/api/saas/signup/progress'
+    | '/api/saas/signup/unsubscribe'
     | '/api/saas/subscriptions/backfill'
     | '/api/saas/tenants/lookup'
     | '/api/saas/tenants/status'
@@ -1091,7 +1163,9 @@ export interface FileRouteTypes {
     | '/api/calendar/ics'
     | '/api/catracas/device-scan'
     | '/api/cron/lesson-reminders'
+    | '/api/cron/saas-lifecycle'
     | '/api/saas/audit-logs'
+    | '/api/saas/billing-proofs'
     | '/api/saas/domains'
     | '/api/saas/gateway-webhooks'
     | '/api/saas/mailboxes'
@@ -1099,6 +1173,7 @@ export interface FileRouteTypes {
     | '/api/saas/plans'
     | '/api/saas/platform-admins'
     | '/api/saas/signup'
+    | '/api/saas/signup-leads'
     | '/api/saas/stats'
     | '/api/saas/subscriptions'
     | '/api/saas/tenants'
@@ -1126,6 +1201,10 @@ export interface FileRouteTypes {
     | '/api/saas/domains/verify'
     | '/api/saas/email/routes'
     | '/api/saas/platform-admins/revoke'
+    | '/api/saas/signup/email-code'
+    | '/api/saas/signup/email-verify'
+    | '/api/saas/signup/progress'
+    | '/api/saas/signup/unsubscribe'
     | '/api/saas/subscriptions/backfill'
     | '/api/saas/tenants/lookup'
     | '/api/saas/tenants/status'
@@ -1192,7 +1271,9 @@ export interface FileRouteTypes {
     | '/api/calendar/ics'
     | '/api/catracas/device-scan'
     | '/api/cron/lesson-reminders'
+    | '/api/cron/saas-lifecycle'
     | '/api/saas/audit-logs'
+    | '/api/saas/billing-proofs'
     | '/api/saas/domains'
     | '/api/saas/gateway-webhooks'
     | '/api/saas/mailboxes'
@@ -1200,6 +1281,7 @@ export interface FileRouteTypes {
     | '/api/saas/plans'
     | '/api/saas/platform-admins'
     | '/api/saas/signup'
+    | '/api/saas/signup-leads'
     | '/api/saas/stats'
     | '/api/saas/subscriptions'
     | '/api/saas/tenants'
@@ -1227,6 +1309,10 @@ export interface FileRouteTypes {
     | '/api/saas/domains/verify'
     | '/api/saas/email/routes'
     | '/api/saas/platform-admins/revoke'
+    | '/api/saas/signup/email-code'
+    | '/api/saas/signup/email-verify'
+    | '/api/saas/signup/progress'
+    | '/api/saas/signup/unsubscribe'
     | '/api/saas/subscriptions/backfill'
     | '/api/saas/tenants/lookup'
     | '/api/saas/tenants/status'
@@ -1281,14 +1367,17 @@ export interface RootRouteChildren {
   ApiCalendarIcsRoute: typeof ApiCalendarIcsRoute
   ApiCatracasDeviceScanRoute: typeof ApiCatracasDeviceScanRoute
   ApiCronLessonRemindersRoute: typeof ApiCronLessonRemindersRoute
+  ApiCronSaasLifecycleRoute: typeof ApiCronSaasLifecycleRoute
   ApiSaasAuditLogsRoute: typeof ApiSaasAuditLogsRoute
+  ApiSaasBillingProofsRoute: typeof ApiSaasBillingProofsRoute
   ApiSaasDomainsRoute: typeof ApiSaasDomainsRouteWithChildren
   ApiSaasGatewayWebhooksRoute: typeof ApiSaasGatewayWebhooksRoute
   ApiSaasMailboxesRoute: typeof ApiSaasMailboxesRoute
   ApiSaasMeRoute: typeof ApiSaasMeRoute
   ApiSaasPlansRoute: typeof ApiSaasPlansRoute
   ApiSaasPlatformAdminsRoute: typeof ApiSaasPlatformAdminsRouteWithChildren
-  ApiSaasSignupRoute: typeof ApiSaasSignupRoute
+  ApiSaasSignupRoute: typeof ApiSaasSignupRouteWithChildren
+  ApiSaasSignupLeadsRoute: typeof ApiSaasSignupLeadsRoute
   ApiSaasStatsRoute: typeof ApiSaasStatsRoute
   ApiSaasSubscriptionsRoute: typeof ApiSaasSubscriptionsRouteWithChildren
   ApiSaasTenantsRoute: typeof ApiSaasTenantsRouteWithChildren
@@ -1715,11 +1804,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiCronLessonRemindersRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/cron/saas-lifecycle': {
+      id: '/api/cron/saas-lifecycle'
+      path: '/api/cron/saas-lifecycle'
+      fullPath: '/api/cron/saas-lifecycle'
+      preLoaderRoute: typeof ApiCronSaasLifecycleRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/saas/audit-logs': {
       id: '/api/saas/audit-logs'
       path: '/api/saas/audit-logs'
       fullPath: '/api/saas/audit-logs'
       preLoaderRoute: typeof ApiSaasAuditLogsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/saas/billing-proofs': {
+      id: '/api/saas/billing-proofs'
+      path: '/api/saas/billing-proofs'
+      fullPath: '/api/saas/billing-proofs'
+      preLoaderRoute: typeof ApiSaasBillingProofsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/saas/domains': {
@@ -1769,6 +1872,13 @@ declare module '@tanstack/react-router' {
       path: '/api/saas/signup'
       fullPath: '/api/saas/signup'
       preLoaderRoute: typeof ApiSaasSignupRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/saas/signup-leads': {
+      id: '/api/saas/signup-leads'
+      path: '/api/saas/signup-leads'
+      fullPath: '/api/saas/signup-leads'
+      preLoaderRoute: typeof ApiSaasSignupLeadsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/saas/stats': {
@@ -1960,6 +2070,34 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiSaasPlatformAdminsRevokeRouteImport
       parentRoute: typeof ApiSaasPlatformAdminsRoute
     }
+    '/api/saas/signup/email-code': {
+      id: '/api/saas/signup/email-code'
+      path: '/email-code'
+      fullPath: '/api/saas/signup/email-code'
+      preLoaderRoute: typeof ApiSaasSignupEmailCodeRouteImport
+      parentRoute: typeof ApiSaasSignupRoute
+    }
+    '/api/saas/signup/email-verify': {
+      id: '/api/saas/signup/email-verify'
+      path: '/email-verify'
+      fullPath: '/api/saas/signup/email-verify'
+      preLoaderRoute: typeof ApiSaasSignupEmailVerifyRouteImport
+      parentRoute: typeof ApiSaasSignupRoute
+    }
+    '/api/saas/signup/progress': {
+      id: '/api/saas/signup/progress'
+      path: '/progress'
+      fullPath: '/api/saas/signup/progress'
+      preLoaderRoute: typeof ApiSaasSignupProgressRouteImport
+      parentRoute: typeof ApiSaasSignupRoute
+    }
+    '/api/saas/signup/unsubscribe': {
+      id: '/api/saas/signup/unsubscribe'
+      path: '/unsubscribe'
+      fullPath: '/api/saas/signup/unsubscribe'
+      preLoaderRoute: typeof ApiSaasSignupUnsubscribeRouteImport
+      parentRoute: typeof ApiSaasSignupRoute
+    }
     '/api/saas/subscriptions/backfill': {
       id: '/api/saas/subscriptions/backfill'
       path: '/backfill'
@@ -2148,6 +2286,24 @@ const ApiSaasPlatformAdminsRouteWithChildren =
     ApiSaasPlatformAdminsRouteChildren,
   )
 
+interface ApiSaasSignupRouteChildren {
+  ApiSaasSignupEmailCodeRoute: typeof ApiSaasSignupEmailCodeRoute
+  ApiSaasSignupEmailVerifyRoute: typeof ApiSaasSignupEmailVerifyRoute
+  ApiSaasSignupProgressRoute: typeof ApiSaasSignupProgressRoute
+  ApiSaasSignupUnsubscribeRoute: typeof ApiSaasSignupUnsubscribeRoute
+}
+
+const ApiSaasSignupRouteChildren: ApiSaasSignupRouteChildren = {
+  ApiSaasSignupEmailCodeRoute: ApiSaasSignupEmailCodeRoute,
+  ApiSaasSignupEmailVerifyRoute: ApiSaasSignupEmailVerifyRoute,
+  ApiSaasSignupProgressRoute: ApiSaasSignupProgressRoute,
+  ApiSaasSignupUnsubscribeRoute: ApiSaasSignupUnsubscribeRoute,
+}
+
+const ApiSaasSignupRouteWithChildren = ApiSaasSignupRoute._addFileChildren(
+  ApiSaasSignupRouteChildren,
+)
+
 interface ApiSaasSubscriptionsRouteChildren {
   ApiSaasSubscriptionsBackfillRoute: typeof ApiSaasSubscriptionsBackfillRoute
 }
@@ -2222,14 +2378,17 @@ const rootRouteChildren: RootRouteChildren = {
   ApiCalendarIcsRoute: ApiCalendarIcsRoute,
   ApiCatracasDeviceScanRoute: ApiCatracasDeviceScanRoute,
   ApiCronLessonRemindersRoute: ApiCronLessonRemindersRoute,
+  ApiCronSaasLifecycleRoute: ApiCronSaasLifecycleRoute,
   ApiSaasAuditLogsRoute: ApiSaasAuditLogsRoute,
+  ApiSaasBillingProofsRoute: ApiSaasBillingProofsRoute,
   ApiSaasDomainsRoute: ApiSaasDomainsRouteWithChildren,
   ApiSaasGatewayWebhooksRoute: ApiSaasGatewayWebhooksRoute,
   ApiSaasMailboxesRoute: ApiSaasMailboxesRoute,
   ApiSaasMeRoute: ApiSaasMeRoute,
   ApiSaasPlansRoute: ApiSaasPlansRoute,
   ApiSaasPlatformAdminsRoute: ApiSaasPlatformAdminsRouteWithChildren,
-  ApiSaasSignupRoute: ApiSaasSignupRoute,
+  ApiSaasSignupRoute: ApiSaasSignupRouteWithChildren,
+  ApiSaasSignupLeadsRoute: ApiSaasSignupLeadsRoute,
   ApiSaasStatsRoute: ApiSaasStatsRoute,
   ApiSaasSubscriptionsRoute: ApiSaasSubscriptionsRouteWithChildren,
   ApiSaasTenantsRoute: ApiSaasTenantsRouteWithChildren,

@@ -67,9 +67,11 @@ export function PageHeader({
     ([{ label: "Início", to: "/" }, { label: group }, { label: title }] satisfies PageCrumb[]);
 
   return (
-    <div className="space-y-2.5">
+    <div className="relative isolate space-y-2.5">
+      {/* Brilho na cor da área (tom em <html data-tone>, ver AreaToneSync). */}
+      <div aria-hidden="true" className="page-header-glow" />
       {!hideBreadcrumb ? (
-        <Breadcrumb>
+        <Breadcrumb className="relative">
           <BreadcrumbList className="text-[11px] sm:text-xs">
             {trail.map((crumb, index) => {
               const isLast = index === trail.length - 1;
@@ -98,7 +100,7 @@ export function PageHeader({
           </BreadcrumbList>
         </Breadcrumb>
       ) : null}
-      <div className="flex flex-wrap items-end justify-between gap-3">
+      <div className="relative flex flex-wrap items-end justify-between gap-3">
         <div className="flex items-center gap-3">
           {headerMark}
           <div>

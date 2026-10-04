@@ -78,10 +78,10 @@ const SettingsCenter = lazy(() =>
     default: SettingsCenter,
   })),
 );
-const ContextualActionsPanelHost = lazy(() =>
-  import("@/features/intelligence/components/ContextualActionsPanelHost").then(
-    ({ ContextualActionsPanelHost }) => ({ default: ContextualActionsPanelHost }),
-  ),
+// A coluna da direita passou a ter dois separadores (Relacionado e Mensagens):
+// o painel contextual deixou de ser o dono do espaço e vive dentro da RightRail.
+const RightRail = lazy(() =>
+  import("@/components/layout/RightRail").then(({ RightRail }) => ({ default: RightRail })),
 );
 
 export function AppShell({ children }: { children: ReactNode }) {
@@ -697,7 +697,7 @@ function AuthenticatedAppShell({ children }: { children: ReactNode }) {
         </div>
 
         <Suspense fallback={null}>
-          <ContextualActionsPanelHost />
+          <RightRail />
         </Suspense>
 
         <BottomNavigation onOpenMore={() => setMoreOpen(true)} />

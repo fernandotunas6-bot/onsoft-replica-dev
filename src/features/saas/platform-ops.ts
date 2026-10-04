@@ -170,6 +170,7 @@ export async function updateTenantSubscription(input: {
   tenantId: string;
   plan_code?: "start" | "professional" | "business" | "enterprise";
   extend_trial_days?: number;
+  confirm_payment_billing?: "monthly" | "yearly";
   userId: string;
 }): Promise<{ success: true }> {
   const db = await loadSgaAdminClient();
@@ -209,6 +210,33 @@ export async function updateTenantSubscription(input: {
     metadata.trial_ends_at = patch.trial_ends_at;
   }
 
+  // Pagamento confirmado: a assinatura passa a activa até ao fim do período
+  // pago, contado a partir de hoje ou do fim do período ainda em curso.
+  let paidUntil: string | null = null;
+  if (input.confirm_payment_billing) {
+    const { data: current } = await db
+      .from("subscriptions")
+      .select("status, current_period_end")
+      .eq("tenant_id", input.tenantId)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    const currentEnd =
+      current?.status === "active" && current.current_period_end
+        ? new Date(current.current_period_end)
+        : null;
+    const base = currentEnd && currentEnd.getTime() > Date.now() ? currentEnd : new Date();
+    const end = new Date(base);
+    if (input.confirm_payment_billing === "yearly") end.setFullYear(end.getFullYear() + 1);
+    else end.setMonth(end.getMonth() + 1);
+    paidUntil = end.toISOString();
+    patch.subscription_status = "active";
+    patch.status = "active";
+    metadata.payment_confirmed = true;
+    metadata.billing = input.confirm_payment_billing;
+    metadata.paid_until = paidUntil;
+  }
+
   if (!Object.keys(patch).some((key) => key !== "updated_at")) {
     throw new Error("Nada para actualizar.");
   }
@@ -236,7 +264,7 @@ export async function updateTenantSubscription(input: {
       tenantId: input.tenantId,
       planId: updatedTenant.plan_id as string,
       status: (updatedTenant.subscription_status as SubscriptionLifecycle) || "active",
-      periodEnd: (updatedTenant.trial_ends_at as string | null) ?? undefined,
+      periodEnd: paidUntil ?? (updatedTenant.trial_ends_at as string | null) ?? undefined,
     });
   }
 
@@ -666,4 +694,15 @@ export function domainDnsInstructions(hostname: string, tenantSlug: string, tena
     txtHost: dnsVerifyTxtHost(hostname),
     txtValue: dnsVerifyToken(tenantId),
   };
+}
+
+/** Link temporário (5 min) para a equipa ver um comprovativo de pagamento. */
+export async function signedBillingProofUrl(path: string): Promise<string> {
+  if (!/^[0-9a-f-]{36}\/[\w.-]+\.(pdf|png|jpg|webp)$/i.test(path)) {
+    throw new Error("Comprovativo inválido.");
+  }
+  const db = await loadSgaAdminClient();
+  const { data, error } = await db.storage.from("billing-proofs").createSignedUrl(path, 300);
+  if (error || !data?.signedUrl) throw new Error("Comprovativo não encontrado.");
+  return data.signedUrl;
 }

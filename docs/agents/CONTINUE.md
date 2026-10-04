@@ -4,6 +4,42 @@ Ler isto **antes** de alterar código. Ecossistema (5 apps):
 [ARCHITECTURE_HARMONIZATION.md](./ARCHITECTURE_HARMONIZATION.md).
 Depois abrir o skill do módulo em `.cursor/skills/`.
 
+## Tempo real nas tabelas reais — POR APLICAR (2026-10-04)
+
+A publicação `supabase_realtime` só tinha `document_requests`,
+`school_announcements`, `siga_chat_members` e `siga_chat_messages` (produção, só
+leitura, 2026-10-04). As mensagens (contador e notificações do desktop), o
+/alunos, o painel e o /faturas subscreviam tabelas não publicadas e nunca
+recebiam eventos; o /faturas e o painel ouviam ainda `invoices`/`payments`, que
+não existem. O cliente passa a `finance_invoices`/`finance_receipts`, e a
+migração `20261004101000_realtime_publish_school_screens.sql` publica as 6
+tabelas. O tempo real aplica as políticas de leitura (alunos e faturas só chegam
+ao pessoal). Como cada linha chega como um evento, os ecrãs juntam as
+invalidações numa janela de 300 ms (`src/lib/realtime-invalidate.ts`): uma
+importação ou a geração das propinas não dispara um pedido por linha.
+
+Pacote: `docs/agents/SIGA_aplicar_tempo_real.sql` (confirmação no fim; a sonda
+também está em `SIGA_confirmar_migracoes.sql`). Ensaio PGlite:
+`tests/sql/realtime-package.mjs`. `tests/security/tempo-real-vs-producao.test.ts`
+recusa subscrições a tabelas que não existem na produção ou que nenhuma migração
+publica.
+
+## Aurora + PR #65 integrados (2026-10-04)
+
+O Aurora (PR #66, na main) e o PR #65 cresceram em paralelo; foram juntos em
+`claude/aurora-web` e o PR #65 avançou para o mesmo commit. Regras que ficam:
+
+- **Uma só estrutura académica:** `school-structure-plan.ts` usa `planCurriculum`
+  (curriculum-templates.ts) e `applyCurriculumPlan`. Códigos: EP, ESG1, ESG2-<área>, ETP,
+  ES-<curso>, INIC. Classes únicas **dentro do curso** (`grade_levels` por
+  `school_id,program_id,code`): nunca verificar classes só pelo código.
+- **Ensino Superior:** nível `ES`, cursos `ES-<código>` (`higherEdProgramCode`), anos `1ANO`…
+  com nome «1º Ano · <curso>».
+- **Dois guias, uma regra:** cartão do painel (`setup-guide.ts`) e assistente
+  (`setup-steps.ts`) usam `period-model.ts` (semestres numa escola só de Superior).
+- **Registo público:** e-mail confirmado por código → limite de pedidos → hCaptcha →
+  provisionamento.
+
 ## Pendentes de decisão do dono (2026-10-03)
 
 - **Multas por atraso.** O pagamento por referência (EMIS/Unitel) cobra
@@ -59,8 +95,8 @@ servidor lhes toca, ver `PRIVILEGIO_POR_DESENHO`).
   conta `Aluno` (o encarregado não inscreve); mesmas regras da secretaria porque
   ambas passam por `enrollUnitsFor`; auditoria `higher_ed.enrollment.self`.
   Anular continua só na secretaria.
-- **Por fazer:** ver «Próximos passos» em `docs/higher-ed/ANALISE_REQUISITOS_ANGOLA.md`
-  (trabalhador-estudante, diploma com QR, doutoramento, turnos/lista de espera).
+- **Por fazer:** ver «Pendente» em `docs/higher-ed/ANALISE_REQUISITOS_ANGOLA.md`
+  (trabalhador-estudante, bacharelato, diploma com QR, bolsas, turnos/lista de espera).
 
 ## Auditoria de produção 11 (2026-10-02)
 
@@ -189,6 +225,24 @@ entrega tudo o que lê. Levantamento das ~90 chamadas:
   guarda a lista revista e falha com qualquer função nova que só verifique a
   pertença.
 
+## RH e faturação a funcionar: papel pela escola da linha (2026-09-30)
+
+- `20260930200000` (aplicada, com autorização do dono): nas 35 políticas `hr_*` e de
+  `school_billing_settings`, `current_profile_role()` → `private.sga_app_role(school_id)` e
+  `school_id = current_school_id()` → `is_school_member(school_id)`; nas 10 funções `hr_*`
+  INVOKER, `current_profile_role()` → `sga_app_role(current_school_id())`. Texto lido da
+  base e trocado só nessas expressões (como `20260928110000`).
+- Ensaiada na base real numa transacção desfeita antes de aplicar; depois, com o JWT do
+  dono: aal2 cria folha (`draft`) e lê a faturação da própria escola (1) e 0 de outras;
+  aal1 não altera faturação e criar folha é recusado pela restritiva de 2FA. 0 folhas
+  gravadas. Retrato: 333 políticas, 0 do RH com `current_profile_role`.
+- Testes (`hr-money-mfa`): nenhuma política do RH/faturação usa `current_profile_role()`;
+  em toda a base, `sga_app_role(school_id)` só com `is_school_member(school_id)`.
+  DATABASE_RULES 6d.
+- Fora de âmbito (mistura códigos e nomes; mexer muda acessos fora do RH):
+  `can_manage_students`, `can_read_students`, `current_school_role_is`, UPDATE de
+  `schools` (compara com 'Administrador': hoje nunca passa), `finance_gateway_webhook_events`.
+
 ## Dinheiro com 2FA; RH não funciona com os papéis actuais (2026-09-30)
 
 - `20260930190000` (aplicada; decisão do dono: «só dinheiro»): três políticas
@@ -200,7 +254,7 @@ entrega tudo o que lê. Levantamento das ~90 chamadas:
   servidor verifica aal2 antes das 6 acções da folha/lotes (`hr/require-aal2.ts`), com
   mensagem que abre «Activar 2FA». `tests/security/hr-money-mfa.test.ts` exige a
   verificação antes de cada `rpc("hr_…")` que mexa em dinheiro.
-- **Achado, por corrigir (decisão/trabalho à parte):** as políticas e funções de RH
+- **Achado, corrigido a seguir em `20260930200000` (ver abaixo):** as políticas e funções de RH
   comparam `current_profile_role()` com 'Administrador'/'Tesouraria', mas a função devolve
   o **código** do papel (`owner`, `admin`, `treasury`). Nunca coincidem: um dono com 2FA
   recebe «Insufficient payroll permission» em `hr_create_payroll_run`, e as políticas
@@ -343,6 +397,78 @@ dependem disso).
   está resolvido pela migração `20260930090000` (verificação adiada para o fim).
   Também a tabela `school_access_requests` já está no retrato
   (`TABELAS_AUSENTES_DA_PRODUCAO` vazia).
+
+## Visual «Aurora» da marca (2026-09-30)
+
+Ver [docs/design/VISUAL_AURORA.md](../design/VISUAL_AURORA.md). Fundo animado azul→violeta,
+peças de vidro com paralaxe, mascote com olhos e telemóvel com o SIGA em demonstração.
+Aplicado: topo e chamada final da página inicial, `/start`, «está criada», guia de arranque do
+SIGA, faixa nos e-mails. Estilos em `@layer components` (senão sobrepõem o `hidden` do
+Tailwind). Capturas verificadas em claro, escuro e telemóvel.
+
+## Arranque: MED, modelos de estrutura, e-mail confirmado, pagamentos e desistências (2026-09-30)
+
+Detalhe em [docs/provisioning/ARRANQUE_ESCOLA.md](../provisioning/ARRANQUE_ESCOLA.md) §4–7.
+
+- `med-calendar.ts`: ano/trimestres do MED (Decreto Executivo n.º 686/25 + regra testada).
+- `curriculum-templates*.ts` + `CurriculumTemplateDialog.tsx`: modelos por nível (1ª–13ª,
+  superior). Escrita privilegiada justificada em `rls-client-migration.test.ts`.
+- Registo público exige e-mail confirmado (`signup-verification.ts`; chave derivada da chave de
+  serviço, sem configuração nova). WEB `/start` passo «Conta» com código.
+- Migração **aplicada na produção** `20260930162029_signup_leads_and_billing_proofs`:
+  `saas_signup_leads` (FORCE RLS, só servidor) e bucket privado `billing-proofs`. Retrato e
+  `types.ts` actualizados à mão para esta tabela.
+- `commercial-lifecycle.ts`: progresso, lembretes e avisos de trial; cron
+  `/api/cron/saas-lifecycle` + workflow diário. ADMIN: `/signups` e comprovativos em
+  `/subscriptions` (confirmar pagamento = `confirm_payment_billing`).
+- Rotas novas geradas com `@tanstack/router-generator`; o bloco `Register` do Start no fim
+  de `routeTree.gen.ts` tem de ficar (o gerador sozinho não o escreve).
+
+## Arranque da escola: guia no painel do Administrador (2026-09-30)
+
+Plano completo: [docs/provisioning/ARRANQUE_ESCOLA.md](../provisioning/ARRANQUE_ESCOLA.md).
+
+- Na produção, as escolas recentes ficavam paradas logo após a criação (sem ano lectivo,
+  turmas nem modelo). O bloco «Primeiros passos» mandava matricular antes de haver turmas.
+- `src/features/school/setup-guide.ts`: 11 passos em 4 fases, ordenados pelas dependências
+  reais, cada um decidido pelo que está na base. `setup-guide-server.ts` conta com
+  `context.supabase` (RLS); só o plano (`tenants`) usa o cliente privilegiado — por isso está
+  em `PRIVILEGIO_POR_DESENHO`. `SchoolSetupGuide.tsx` substitui o bloco antigo para o
+  Administrador (a Secretaria mantém os atalhos simples).
+- Provisionamento: `director_name` a partir do responsável quando a função é «Director(a)»;
+  formulário público de matrícula nasce fechado.
+- WEB `/start`: «Primeiros passos» na mesma ordem do guia.
+- Testes: `tests/school/setup-guide.test.ts` (regras e rotas/painéis existentes),
+  `tests/school/setup-guide-ui.test.tsx` (ecrã).
+
+## Criar escola: e-mail «já usado», domínio preso e sem entrada no painel (2026-09-30)
+
+Diagnóstico na produção (só leitura): as duas últimas criações (24/09 e 28/09) falharam
+e ficaram meio-feitas; hoje uma conta Google sem escola não conseguia registar a sua.
+
+- **Todas as criações eram revertidas:** `findProvisioningGaps` contava `select("id")`, e
+  `member_roles` não tem coluna `id` (chave = membership + papel). O erro 42703 era lido
+  como «0 linhas» → «papel atribuído em falta» → reversão. Conta agora com `*`, e uma
+  consulta que falha não é peça em falta (evento `tenant.provisioning.verify.unavailable`).
+- **A reversão não conseguia reverter:** `audit_logs` é imutável e aponta para a escola, logo
+  a escola (e o tenant) já não se apagam; `school_settings.changed_by` e
+  `enrollment_forms.created_by` impediam `deleteUser`. Resultado: conta presa ao e-mail e
+  o cliente recebia «já existe uma conta com este e-mail». Agora: apaga os registos do
+  bootstrap antes da conta; se o tenant não sai, fica `provisioning_failed` com o slug
+  libertado (`<slug>-falhou-<id8>`).
+- **Verificação prévia** (`preflight` em `provisioning-core.ts`): subdomínio e e-mail são
+  verificados antes de escrever. E-mail com membership activa → recusa sem criar nada.
+  Conta sem escola (Google, ou tentativa falhada) → é ligada à escola nova; se nunca
+  iniciou sessão recebe a senha do registo, senão as credenciais ficam intactas.
+- **Entrada directa:** com senha definida no registo público, o servidor devolve
+  `adminLoginUrl` (`/auth/magic-link?token_hash=…&type=recovery`, uso único). O WEB
+  `/start` entra sozinho no painel da escola ao fim de 8 s (cancelável). O admin de
+  plataforma nunca recebe este link; uma conta Google reaproveitada também não.
+- WEB `/start`: erros do servidor levam ao passo/campo certo (e-mail, subdomínio, campos
+  recusados pela validação).
+- **Por arrumar na produção** (não mexido): tenant `epatuloko` (activo, sem domínio nem
+  membros, slug ocupado) e `siga-plus-web-production-falhou-986ba240`; a conta do
+  administrador de `epatuloko` ficou sem escola (é reaproveitada numa nova tentativa).
 
 ## CORS e domínios próprios seguem PLATFORM_DOMAIN (2026-09-30)
 

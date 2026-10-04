@@ -16,6 +16,7 @@ import {
 } from "./academic-architecture";
 import { getAcademicStructureStatus } from "./academic-structure";
 import { cn } from "@/lib/utils";
+import { CurriculumTemplateDialog } from "./CurriculumTemplateDialog";
 
 const STATUS_DOT: Record<ModuleStatus, string> = {
   ready: "bg-success/70",
@@ -72,6 +73,17 @@ export function AcademicStructureTab({
 
   return (
     <div className="space-y-5">
+      <section className="surface-card flex flex-wrap items-center justify-between gap-3 p-5">
+        <div className="min-w-0">
+          <h2 className="text-sm font-medium">Começar com um modelo</h2>
+          <p className="text-xs text-muted-foreground">
+            Classes numeradas (1ª à 13ª), cursos e áreas do MED, disciplinas, turmas e salas — ou
+            anos e licenciaturas no ensino superior. Tudo editável depois.
+          </p>
+        </div>
+        <CurriculumTemplateDialog />
+      </section>
+
       <section className="surface-card space-y-3 p-5">
         <h2 className="text-sm font-medium">Percurso da informação</h2>
         <ol className="flex flex-wrap items-center gap-x-1.5 gap-y-2 text-xs text-muted-foreground">

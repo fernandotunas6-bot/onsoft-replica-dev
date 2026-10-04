@@ -207,6 +207,18 @@ sessão e ainda não está no git). Das 17 migrações que o `origin/main` mexeu
 | `20260930090000_one_active_academic_year` (main) | um ano lectivo activo por escola | 0 escolas com mais de um activo ao vivo → aplica-se limpo. |
 | `20260927120000_reclose_physical_access_secrets`, `20260924230000_close_access_card_and_device_secrets`, `20260927090000_student_history_server_only` | só retiram políticas mortas | Os privilégios de tabela **já** estão revogados (`authenticated`/`anon` sem `SELECT` em `siga_access_cards`; `siga_lesson_plans` idem), por isso não há exposição hoje — é higiene. `20260927120000_reclose_physical_access_secrets` foi **aplicada em produção a 2026-10-02** (migração `reclose_physical_access_secrets_20261002`): `siga_access_cards` ficou só com a RESTRICTIVE `School staff only`, `siga_turnstile_devices` sem políticas, `anon`/`authenticated` sem `SELECT`. As outras duas continuam por aplicar. |
 
+> **Actualização 2026-10-04 (verificado ao vivo, só leitura).** As três primeiras linhas do §A
+> já estão aplicadas em produção a 2026-10-02 (`harden_teacher_qr_attendance`,
+> `attendance_sessions_unique_slot_day`, `one_active_academic_year`): existem
+> `hr_redeem_teacher_qr_secure`, `siga_attendance_sessions_school_slot_day_key` e
+> `academic_years_one_active_per_school`. `close_access_card_and_device_secrets` também já
+> não tem efeito por aplicar (nenhuma política PERMISSIVE em `siga_access_cards` /
+> `siga_turnstile_devices`). Do §A resta só `student_history_server_only`: as 2 políticas
+> antigas continuam, mas `authenticated` não tem `SELECT` e o RLS está forçado nas duas
+> tabelas — higiene, sem exposição. O `SIGA_confirmar_migracoes.sql` dizia «EM FALTA» em
+> `assessment_rule_promotion_rules` por procurar a assinatura de 13 argumentos, que a de 14
+> (`calculation_options`, 20260929110000) substituiu; a sonda passou a aceitar as duas.
+
 ### B. O efeito já está na produção — não reaplicar (confiança: verificado ao vivo, salvo nota)
 
 | Migração(ões) | Evidência |

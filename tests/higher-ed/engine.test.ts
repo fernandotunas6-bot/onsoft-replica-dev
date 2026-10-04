@@ -7,6 +7,8 @@ import {
   enrollmentOffer,
   checkEnrollmentBatch,
   checkUnitEnrollment,
+  decodeJuryDecision,
+  encodeJuryDecision,
   finalClassification,
   findPrerequisiteCycles,
   frequencyOutcome,
@@ -553,5 +555,14 @@ describe("matrícula on-line: oferta de cadeiras", () => {
     expect(
       parseSettingsDomain("higher_ed", { student_self_enrollment: true }).student_self_enrollment,
     ).toBe(true);
+  });
+});
+
+describe("doutoramento: decisão do júri", () => {
+  it("grava e lê a menção nas notas da tese", () => {
+    const notes = encodeJuryDecision("distincao_louvor", "Acta n.º 3 de 10/07/2026");
+    expect(decodeJuryDecision(notes)).toBe("distincao_louvor");
+    expect(decodeJuryDecision("Creditação por equivalência.")).toBeNull();
+    expect(decodeJuryDecision("júri:outra|x")).toBeNull();
   });
 });

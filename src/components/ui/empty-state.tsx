@@ -2,6 +2,7 @@ import type { ElementType, ReactNode } from "react";
 import { Inbox } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { SigaMascot } from "@/components/brand/aurora";
 
 export type EmptyStateProps = {
   title: string;
@@ -12,6 +13,11 @@ export type EmptyStateProps = {
   onAction?: () => void;
   className?: string;
   compact?: boolean;
+  /**
+   * Primeiro uso («Ainda não há…»): a mascote convida a começar. Só nestes
+   * casos — num filtro sem resultados seria ruído.
+   */
+  firstUse?: boolean;
 };
 
 /**
@@ -27,6 +33,7 @@ export function EmptyState({
   onAction,
   className,
   compact = false,
+  firstUse = false,
 }: EmptyStateProps) {
   return (
     <div
@@ -37,9 +44,20 @@ export function EmptyState({
       )}
       role="status"
     >
-      <span className="mb-3 flex size-11 items-center justify-center rounded-xl bg-primary-soft text-primary">
-        <Icon className="size-5" aria-hidden />
-      </span>
+      {firstUse && !compact ? (
+        <span className="relative mb-4 block size-16" aria-hidden>
+          <SigaMascot size={64} tilt={-6} className="left-0 top-0" />
+        </span>
+      ) : compact ? (
+        <span className="mb-3 flex size-11 items-center justify-center rounded-xl bg-primary-soft text-primary">
+          <Icon className="size-5" aria-hidden />
+        </span>
+      ) : (
+        // Na cor da área da página (tom em <html data-tone>).
+        <span className="empty-chip mb-3" aria-hidden>
+          <Icon className="size-6 drop-shadow" />
+        </span>
+      )}
       <h3 className="text-sm font-semibold text-foreground">{title}</h3>
       {description ? (
         <p className="mt-1.5 max-w-md text-xs text-muted-foreground md:text-sm">{description}</p>

@@ -10,6 +10,7 @@ import {
   ScrollText,
   Globe,
   Receipt,
+  UserPlus,
   Activity,
   Settings,
   Megaphone,
@@ -109,6 +110,11 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
             title: t("nav.subscriptions"),
             url: "/subscriptions",
             icon: Receipt,
+          },
+          {
+            title: t("nav.signups"),
+            url: "/signups",
+            icon: UserPlus,
           },
           {
             title: t("nav.platform_admins"),
