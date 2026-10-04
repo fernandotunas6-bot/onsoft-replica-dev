@@ -95,8 +95,15 @@ servidor lhes toca, ver `PRIVILEGIO_POR_DESENHO`).
   conta `Aluno` (o encarregado não inscreve); mesmas regras da secretaria porque
   ambas passam por `enrollUnitsFor`; auditoria `higher_ed.enrollment.self`.
   Anular continua só na secretaria.
+- **Certificado de conclusão com registo e QR** (2026-10-04): `issueHigherEdCertificate`
+  (Direcção/Secretaria, 2FA, só com o curso concluído) numera pela série `certificate` da
+  escola (`next_document_number_service`, «CE-000001») e regista o código no mesmo
+  sítio que os outros documentos oficiais (`audit_logs`, `documents.issued`, modelo
+  `certificado-conclusao-superior`), por isso `/verificar` confirma-o sem mudanças.
+  Uma vez por estudante e curso: repetir devolve o mesmo número e código. Sem anulação
+  (o registo de verificação em `audit_logs` não a tem).
 - **Por fazer:** ver «Pendente» em `docs/higher-ed/ANALISE_REQUISITOS_ANGOLA.md`
-  (trabalhador-estudante, bacharelato, diploma com QR, bolsas, turnos/lista de espera).
+  (trabalhador-estudante, bacharelato, bolsas, turnos/lista de espera).
 
 ## Auditoria de produção 11 (2026-10-02)
 

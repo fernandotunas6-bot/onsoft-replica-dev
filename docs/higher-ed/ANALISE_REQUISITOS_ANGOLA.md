@@ -36,7 +36,7 @@ injustificadas às aulas dadas no semestre.
 | Ano lectivo por semestres | ✅ (gravação um a um; gravação conjunta exige migração) |
 | Inscrição por cadeira (individual e em lote), anulação | ✅ |
 | Pautas por cadeira, lançamento pelo docente, impressão | ✅ |
-| Histórico académico, certificado de conclusão | ✅ (sem registo/QR de verificação) |
+| Histórico académico, certificado de conclusão | ✅ certificado com n.º de registo (série CE) e QR para /verificar |
 | Classificação final inteira 10–20 com menção (257/25) | ✅ |
 | Emolumentos (recurso, especial, melhoria, certidão) | ✅ |
 | Candidatura com curso pretendido | ✅ |
@@ -46,7 +46,7 @@ injustificadas às aulas dadas no semestre.
 | Vagas por curso e exame de acesso (nota, seriação) | ✅ separador «Acesso» |
 | Estatuto trabalhador-estudante (faltas, época especial) | ❌ |
 | Exportação para o SISIES/GEPE (Vagas, Acesso, Matrículas, Graduados) | ✅ Excel |
-| Diploma / carta de curso registado com QR | ❌ |
+| Diploma / carta de curso registado com QR | ✅ certificado de conclusão emitido com 2FA, uma vez por curso |
 | Bolsas | ❌ |
 
 ## Pendente (precisa de migração ou de decisão)
@@ -55,7 +55,6 @@ injustificadas às aulas dadas no semestre.
   pode ficar em `school_settings`, que outros membros da escola lêem).
 - Bacharelato: alterar a restrição `programs.kind`.
 - Bolsas, turnos/vagas por turma com lista de espera.
-- Diploma/carta de curso registado com QR de verificação.
 
 ## Comparação com outros sistemas académicos
 

@@ -120,6 +120,11 @@ fatura**, escolhendo a categoria com o mesmo nome; 0 Kz = a instituição não c
   em falta; **concluiu** quando todas as cadeiras do plano estão feitas.
 - **Portal** — o estudante e o encarregado vêem créditos, média e o estado de cada
   cadeira, só do próprio estudante.
+- **Certificado de conclusão** (carta de curso) — quando o estudante conclui o curso, a
+  Secretaria ou a Direcção carrega em **Emitir certificado** (pede a verificação em duas
+  etapas). O certificado recebe o número de registo da escola (série «CE») e um código de
+  verificação com QR: quem o recebe confirma-o em `/verificar`. Emitir de novo devolve o
+  mesmo número e o mesmo código; só se imprime depois de emitido.
 
 ## Assistente de configuração
 

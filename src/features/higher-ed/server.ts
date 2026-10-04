@@ -30,6 +30,10 @@ import {
   type HigherEdRegulation,
 } from "@/features/school/settings-domains";
 import { requireAal2 } from "@/features/hr/require-aal2";
+import {
+  ISSUED_DOCUMENT_ACTION,
+  generateVerificationCode,
+} from "@/features/documents/verification";
 import { resolveVisibleStudent } from "@/features/dashboard/student-access";
 import {
   HIGHER_ED_LEVEL,
@@ -803,6 +807,92 @@ export const getStudentHigherEd = createServerFn({ method: "GET" })
   });
 
 /** Histórico académico (documento): uma linha por cadeira do plano, com o ano em que a fez. */
+/** Histórico do estudante num curso: o que o ecrã mostra e o que o certificado certifica. */
+async function buildTranscript(
+  db: Db,
+  schoolId: string,
+  data: { programId: string; studentId: string },
+) {
+  const program = await requireProgram(db, schoolId, data.programId);
+  const { data: student } = await db
+    .from("students")
+    .select("id, person_id, student_number")
+    .eq("school_id", schoolId)
+    .eq("id", data.studentId)
+    .maybeSingle();
+  if (!student) throw new Error("Estudante não encontrado nesta escola.");
+  const [{ units }, rows, regulation, personResult, schoolResult] = await Promise.all([
+    loadPlan(db, schoolId, data.programId),
+    loadRecords(db, schoolId, data.studentId, data.programId),
+    regulationOf(db, schoolId),
+    db
+      .from("people")
+      .select("full_name, national_id")
+      .eq("school_id", schoolId)
+      .eq("id", str(student.person_id))
+      .maybeSingle(),
+    db
+      .from("schools")
+      .select("name, commercial_name, nif, address, director_name, logo_url")
+      .eq("id", schoolId)
+      .maybeSingle(),
+  ]);
+  // Só há histórico de quem tem registos no curso (ou matrícula nele).
+  if (!rows.length) await requireStudentInProgram(db, schoolId, data.studentId, data.programId);
+  const records = rows.map((row) => row.record);
+  const lines = transcriptLines(units, records);
+  const programProfiles = await readSettingsDomain(db, schoolId, "higher_ed_programs");
+  const { data: noteRows } = await db
+    .from("course_unit_enrollments")
+    .select("notes")
+    .eq("school_id", schoolId)
+    .eq("student_id", data.studentId)
+    .eq("program_id", data.programId)
+    .eq("status", "aprovado")
+    .like("notes", "júri:%");
+  const juryMention =
+    ((noteRows ?? []) as Row[])
+      .map((row) => decodeJuryDecision(row.notes ? str(row.notes) : null))
+      .find(Boolean) ?? null;
+  const yearIds = [...new Set(lines.map((l) => l.academicYearId).filter(Boolean))] as string[];
+  const { data: years } = yearIds.length
+    ? await db.from("academic_years").select("id, name").eq("school_id", schoolId).in("id", yearIds)
+    : { data: [] as Row[] };
+  const yearName = new Map(((years ?? []) as Row[]).map((y) => [str(y.id), str(y.name)]));
+  const progress = studentProgress({ plan: units, records, regulation });
+  const school = (schoolResult.data ?? {}) as Row;
+  const person = (personResult.data ?? {}) as Row;
+  return {
+    school: {
+      name: str(school.commercial_name) || str(school.name),
+      nif: school.nif ? str(school.nif) : null,
+      address: school.address ? str(school.address) : null,
+      director: school.director_name ? str(school.director_name) : null,
+      logoUrl: school.logo_url ? str(school.logo_url) : null,
+    },
+    program: {
+      name: str(program.name),
+      code: str(program.code),
+      kind: str(program.kind),
+      degree: parseProgramProfile(programProfiles[data.programId]).degree,
+    },
+    juryMention: juryMention,
+    student: {
+      name: str(person.full_name) || "Estudante",
+      number: student.student_number ? str(student.student_number) : null,
+      document: person.national_id ? str(person.national_id) : null,
+    },
+    lines: lines.map((line) => ({
+      ...line,
+      yearName: line.academicYearId ? (yearName.get(line.academicYearId) ?? null) : null,
+    })),
+    progress: { ...progress, pendingUnits: progress.pendingUnits.length },
+    passingGrade: regulation.passing_grade,
+    issuedAt: new Date().toISOString(),
+    certificate: await findIssuedCertificate(db, schoolId, data.studentId, data.programId),
+  };
+}
+
 export const getStudentTranscript = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .validator((input: unknown) =>
@@ -811,88 +901,121 @@ export const getStudentTranscript = createServerFn({ method: "GET" })
   .handler(async ({ data, context }) => {
     const membership = await officeMembership(context, "read");
     const db = await loadSgaAdminClient();
+    return buildTranscript(db, membership.schoolId, data);
+  });
+
+// ── Certificado de conclusão (carta de curso) com registo e QR ──────────────
+
+/** Modelo no registo de documentos emitidos (`audit_logs`, `documents.issued`). */
+export const HIGHER_ED_CERTIFICATE_TEMPLATE = "certificado-conclusao-superior";
+
+type IssuedCertificate = { number: string; code: string; issuedAt: string };
+
+/**
+ * O certificado já emitido para o estudante neste curso (o primeiro, se por alguma
+ * corrida houver dois): a segunda impressão sai com o mesmo número e o mesmo código.
+ */
+async function findIssuedCertificate(
+  db: Db,
+  schoolId: string,
+  studentId: string,
+  programId: string,
+): Promise<IssuedCertificate | null> {
+  const { data, error } = await db
+    .from("audit_logs")
+    .select("metadata, occurred_at")
+    .eq("school_id", schoolId)
+    .eq("action", ISSUED_DOCUMENT_ACTION)
+    .eq("metadata->>template", HIGHER_ED_CERTIFICATE_TEMPLATE)
+    .eq("metadata->>student_id", studentId)
+    .eq("metadata->>program_id", programId)
+    .order("occurred_at", { ascending: true })
+    .limit(1)
+    .maybeSingle();
+  if (error) throw publicDatabaseError(error, "Não foi possível ler o registo de certificados.");
+  if (!data) return null;
+  const meta = (data.metadata ?? {}) as Row;
+  return {
+    number: str(meta.reference),
+    code: str(meta.code),
+    issuedAt: str(meta.issued_at) || str(data.occurred_at),
+  };
+}
+
+/**
+ * Emite o certificado de conclusão: número da série «certificate» da escola
+ * (document_sequences, «CE-000001») e código de verificação para /verificar, no mesmo
+ * registo que os outros documentos oficiais. Só a Direcção e a Secretaria, com 2FA, e
+ * só para quem concluiu o curso. Repetir devolve o mesmo certificado.
+ */
+export const issueHigherEdCertificate = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .validator((input: unknown) =>
+    z.object({ programId: z.string().uuid(), studentId: z.string().uuid() }).parse(input),
+  )
+  .handler(async ({ data, context }): Promise<IssuedCertificate> => {
+    const membership = await officeMembership(context, "write");
+    requireAal2(context.claims, "Emitir o certificado de conclusão");
+    const db = await loadSgaAdminClient();
     const schoolId = membership.schoolId;
-    const program = await requireProgram(db, schoolId, data.programId);
-    const { data: student } = await db
-      .from("students")
-      .select("id, person_id, student_number")
-      .eq("school_id", schoolId)
-      .eq("id", data.studentId)
-      .maybeSingle();
-    if (!student) throw new Error("Estudante não encontrado nesta escola.");
-    const [{ units }, rows, regulation, personResult, schoolResult] = await Promise.all([
-      loadPlan(db, schoolId, data.programId),
-      loadRecords(db, schoolId, data.studentId, data.programId),
-      regulationOf(db, schoolId),
-      db
-        .from("people")
-        .select("full_name, national_id")
-        .eq("school_id", schoolId)
-        .eq("id", str(student.person_id))
-        .maybeSingle(),
-      db
-        .from("schools")
-        .select("name, commercial_name, nif, address, director_name, logo_url")
-        .eq("id", schoolId)
-        .maybeSingle(),
-    ]);
-    // Só há histórico de quem tem registos no curso (ou matrícula nele).
-    if (!rows.length) await requireStudentInProgram(db, schoolId, data.studentId, data.programId);
-    const records = rows.map((row) => row.record);
-    const lines = transcriptLines(units, records);
-    const programProfiles = await readSettingsDomain(db, schoolId, "higher_ed_programs");
-    const { data: noteRows } = await db
-      .from("course_unit_enrollments")
-      .select("notes")
-      .eq("school_id", schoolId)
-      .eq("student_id", data.studentId)
-      .eq("program_id", data.programId)
-      .eq("status", "aprovado")
-      .like("notes", "júri:%");
-    const juryMention =
-      ((noteRows ?? []) as Row[])
-        .map((row) => decodeJuryDecision(row.notes ? str(row.notes) : null))
-        .find(Boolean) ?? null;
-    const yearIds = [...new Set(lines.map((l) => l.academicYearId).filter(Boolean))] as string[];
-    const { data: years } = yearIds.length
-      ? await db
-          .from("academic_years")
-          .select("id, name")
-          .eq("school_id", schoolId)
-          .in("id", yearIds)
-      : { data: [] as Row[] };
-    const yearName = new Map(((years ?? []) as Row[]).map((y) => [str(y.id), str(y.name)]));
-    const progress = studentProgress({ plan: units, records, regulation });
-    const school = (schoolResult.data ?? {}) as Row;
-    const person = (personResult.data ?? {}) as Row;
-    return {
-      school: {
-        name: str(school.commercial_name) || str(school.name),
-        nif: school.nif ? str(school.nif) : null,
-        address: school.address ? str(school.address) : null,
-        director: school.director_name ? str(school.director_name) : null,
-        logoUrl: school.logo_url ? str(school.logo_url) : null,
-      },
-      program: {
-        name: str(program.name),
-        code: str(program.code),
-        kind: str(program.kind),
-        degree: parseProgramProfile(programProfiles[data.programId]).degree,
-      },
-      juryMention: juryMention,
-      student: {
-        name: str(person.full_name) || "Estudante",
-        number: student.student_number ? str(student.student_number) : null,
-        document: person.national_id ? str(person.national_id) : null,
-      },
-      lines: lines.map((line) => ({
-        ...line,
-        yearName: line.academicYearId ? (yearName.get(line.academicYearId) ?? null) : null,
-      })),
-      progress: { ...progress, pendingUnits: progress.pendingUnits.length },
-      passingGrade: regulation.passing_grade,
+    const transcript = await buildTranscript(db, schoolId, data);
+    if (transcript.certificate) return transcript.certificate;
+
+    const doctoral = transcript.program.degree === "doutoramento";
+    const final = transcript.progress.completed
+      ? finalClassification(transcript.progress.average)
+      : null;
+    if (!transcript.progress.completed || (doctoral ? !transcript.juryMention : !final)) {
+      throw new Error(
+        "O estudante ainda não concluiu o curso: o certificado não pode ser emitido.",
+      );
+    }
+
+    const { data: number, error: numberError } = await db.rpc("next_document_number_service", {
+      school_id: schoolId,
+      document_type: "certificate",
+      default_prefix: "CE",
+    });
+    if (numberError || !number) {
+      throw publicDatabaseError(
+        numberError ?? { message: "sem número" },
+        "Não foi possível numerar o certificado.",
+      );
+    }
+    // Duas emissões ao mesmo tempo: fica a primeira (o número gasto fica por usar).
+    const raced = await findIssuedCertificate(db, schoolId, data.studentId, data.programId);
+    if (raced) return raced;
+
+    const roles: string[] = membership.allAppRoles ?? [membership.appRole];
+    const issued: IssuedCertificate = {
+      number: String(number),
+      code: generateVerificationCode(),
       issuedAt: new Date().toISOString(),
     };
+    // Sem este registo o documento diria que é verificável e não é: o erro não se engole.
+    const { error } = await db.from("audit_logs").insert({
+      school_id: schoolId,
+      actor_user_id: context.userId,
+      action: ISSUED_DOCUMENT_ACTION,
+      entity_type: "issued_document",
+      entity_id: crypto.randomUUID(),
+      metadata: {
+        code: issued.code,
+        title: `Certificado de conclusão — ${transcript.program.name}`,
+        holder: transcript.student.name,
+        template: HIGHER_ED_CERTIFICATE_TEMPLATE,
+        issuer_role: roles.includes("Administrador") ? "Administrador" : "Secretaria",
+        reference: issued.number,
+        school_name: transcript.school.name,
+        issued_at: issued.issuedAt,
+        student_id: data.studentId,
+        program_id: data.programId,
+        final_grade: final?.value ?? null,
+        mention: doctoral ? transcript.juryMention : (final?.mention ?? null),
+      } as never,
+    });
+    if (error) throw publicDatabaseError(error, "Não foi possível registar o certificado emitido.");
+    return issued;
   });
 
 const todayIso = () => new Date().toISOString().slice(0, 10);

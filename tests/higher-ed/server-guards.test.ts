@@ -104,8 +104,32 @@ describe("Ensino Superior no servidor", () => {
   it("histórico académico: só secretaria, estudante da escola", () => {
     const body = fn("getStudentTranscript");
     expect(body).toContain('officeMembership(context, "read")');
-    expect(body).toContain("Estudante não encontrado nesta escola.");
-    expect(body).toContain("transcriptLines(");
+    expect(body).toContain("buildTranscript(db, membership.schoolId, data)");
+    const build = source.slice(
+      source.indexOf("async function buildTranscript"),
+      source.indexOf("export const getStudentTranscript"),
+    );
+    expect(build).toContain("Estudante não encontrado nesta escola.");
+    expect(build).toContain("transcriptLines(");
+  });
+
+  it("certificado de conclusão: secretaria com 2FA, só concluído, número e código, uma vez", () => {
+    const body = fn("issueHigherEdCertificate");
+    expect(body).toContain('officeMembership(context, "write")');
+    expect(body).toContain('requireAal2(context.claims, "Emitir o certificado de conclusão")');
+    expect(body).toContain("if (transcript.certificate) return transcript.certificate;");
+    expect(body).toContain("O estudante ainda não concluiu o curso");
+    // Número da série oficial de certificados e código do registo de /verificar.
+    expect(body).toMatch(
+      /rpc\("next_document_number_service", \{[^}]*document_type: "certificate"/,
+    );
+    expect(body).toContain("generateVerificationCode()");
+    expect(body).toContain("action: ISSUED_DOCUMENT_ACTION");
+    expect(body).toContain("template: HIGHER_ED_CERTIFICATE_TEMPLATE");
+    // Sem registo, o documento diria que é verificável e não é.
+    expect(body).toMatch(
+      /if \(error\) throw publicDatabaseError\(error, "Não foi possível registar/,
+    );
   });
 
   it("portal: estudante e encarregado só vêem o próprio percurso", () => {
