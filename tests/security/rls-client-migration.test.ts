@@ -55,6 +55,14 @@ const MIGRADOS = [
  * na contagem de dívida abaixo.
  */
 const PRIVILEGIO_POR_DESENHO = new Set([
+  // Chat escolar. A regra de quem pode falar com quem (pessoal fala com todos;
+  // alunos e encarregados só com o pessoal) vive em `isMessagingStaff` e em
+  // `loadSchoolColleagues`, que leem `school_memberships`, `member_roles`,
+  // `roles` e `profiles` de outras contas — nada disso é legível pelo JWT de um
+  // encarregado, e com razão. A RLS das tabelas siga_chat_* continua a ser a
+  // rede de segurança para o acesso directo do browser (o Realtime passa por lá).
+  "src/features/messages/chat-server.ts",
+
   // Assinatura da escola (Configurações → Assinatura). `tenants`,
   // `subscriptions`, `tenant_usage` e `saas_audit_logs` só têm política para a
   // equipa da plataforma. O servidor exige o Administrador e lê apenas o

@@ -320,22 +320,19 @@ const funcoesPublicas = new Set(
 );
 
 /**
- * Funções `public` escritas numa migração por aplicar. Mesma regra que
- * ESPERA_MIGRACAO: a lista só encolhe, e o teste obriga a tirar a entrada
- * quando o retrato a mostrar.
- */
-/**
- * Funções que o código chama e a produção ainda não tem. Existe para encolher.
+ * Funções `public` que o código chama e a produção ainda não tem, porque há uma migração
+ * escrita e por aplicar. A lista só encolhe: o teste obriga a tirar a entrada quando o
+ * retrato mostrar a função.
  *
- * O `siga_publish_assessment_rule` e o `siga_rate_limit_consume` saíram a 2026-09-28:
- * foram aplicados e o retrato recapturado mostra-os.
+ * `siga_publish_assessment_rule` e `siga_rate_limit_consume` saíram a 2026-09-28.
+ * `hr_redeem_teacher_qr_secure` saiu a 2026-10-02, com
+ * `20260926203852_harden_teacher_qr_attendance.sql` aplicada: a presença do docente por QR
+ * esteve seis dias sem ser registada, porque `hr/teacher-lessons.ts` chamava-a desde
+ * eaceb8f2 e a produção devolvia PGRST202.
+ *
+ * Vazia desde então.
  */
-const FUNCOES_ESPERA_MIGRACAO = new Set<string>([
-  // `20260926203852_harden_teacher_qr_attendance.sql`, por aplicar.
-  // `hr/teacher-lessons.ts` chama-a desde eaceb8f2; sondada na produção a 2026-09-28
-  // devolve PGRST202, e a presença do docente por QR não é registada enquanto assim for.
-  "hr_redeem_teacher_qr_secure",
-]);
+const FUNCOES_ESPERA_MIGRACAO = new Set<string>([]);
 /**
  * Colunas que o código grava e a produção ainda não tem porque há uma migração escrita e
  * por aplicar. Aplicar SQL à base é decisão do dono do projecto, não do agente — esta
