@@ -13,10 +13,12 @@ Relatório: `docs/auditoria/12-auditoria-sistema-2026-10-04.md`.
   (`user_*_school_ids`, `teacher_*`, `current_teacher_rows`, `user_import_job_ids`) e 116 políticas
   reescritas para as usar existem só na base: as funções estão em
   `20261005000000_reconcile_unrecorded_rls_helpers.sql`; as políticas só no retrato novo.
-- **Por fazer, nesta ordem:** (1) recapturar `PRODUCTION_SNAPSHOT.json` e ajustar 3 testes de segurança
-  (`production-snapshot`, `person-documents-read-scope`, `hr-money-mfa`) à forma `user_*_school_ids` — mesma
-  semântica, ver secção 4 da auditoria; (2) decisão do dono sobre 2FA nas políticas de escrita e fecho de
-  período na base (secção 5); (3) segredos do ambiente `production`; (4) staging para os E2E.
+- **Retrato recapturado** (04/10 à noite) e 3 testes de segurança ajustados à forma `user_*_school_ids`.
+- **Por aplicar no SQL Editor** (a ferramenta cancela a escrita): `20261005010000_assessment_closed_term_guard.sql`
+  (fecho de período nas avaliações) e `20261005020000_direct_writes_require_mfa.sql` (2FA nas escritas
+  directas da plataforma e das avaliações). Ensaios em `tests/sql/`. O que ficou de fora do 2FA e porquê:
+  secção 5 da auditoria 12.
+- **Por fazer:** segredos do ambiente `production`; staging para os E2E.
 - **Tempo real APLICADO** a 04/10 (publicação com 10 tabelas). O bloco «POR APLICAR» abaixo fica como histórico.
 - Os ensaios `tests/sql/*.mjs` correm agora no CI (PGlite instalado fora do projecto).
 - Já aplicadas na produção (o texto antigo dizia «por aplicar»): `one_active_academic_year` (02/10) e
