@@ -19,7 +19,8 @@ import { getPlatformSubdomain } from "@/lib/saas/platform-domain";
 import { fetchActivePlans } from "./catalog";
 import { planCodeSchema } from "./schemas";
 import type { Plan } from "./types";
-import { PLAN_REQUEST_ACTIONS, pendingPlanRequestFrom } from "./subscription-view";
+import { PLAN_REQUEST_ACTIONS, pendingPlanRequestFrom, planPriceKz } from "./subscription-view";
+import { getPayflowUrl } from "@/lib/ecosystem-urls";
 
 type Db = Awaited<ReturnType<typeof loadSgaAdminClient>>;
 
@@ -216,5 +217,245 @@ export const cancelPlanChangeRequest = createServerFn({ method: "POST" })
       metadata: {},
     });
     if (error) throw publicDatabaseError(error, "Não foi possível cancelar o pedido.");
+    return { ok: true };
+  });
+
+// ─── Pagamento do plano ──────────────────────────────────────────────────────
+
+const billingSchema = z.enum(["monthly", "yearly"]);
+
+export type PlanPaymentStart =
+  | {
+      mode: "payflow";
+      planName: string;
+      amountKz: number;
+      checkoutUrl: string;
+      reference: string | null;
+      iban: string | null;
+      beneficiary: string | null;
+      bankName: string | null;
+      expiresAt: string | null;
+    }
+  | { mode: "manual"; planName: string; amountKz: number; reason: string };
+
+/**
+ * Cobrança do plano no PayFlow: transferência com referência única da escola e
+ * página onde se envia o comprovativo. A referência Multicaixa (EMIS) não é
+ * oferecida: o PayFlow recusa-a em produção até haver adaptador homologado.
+ * Sem PayFlow configurado, a escola paga ao IBAN da plataforma e envia o
+ * comprovativo aqui mesmo (`submitPlanPaymentProof`).
+ */
+export const startPlanPayment = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .validator((input: unknown) =>
+    z.object({ planCode: planCodeSchema, billing: billingSchema.default("monthly") }).parse(input),
+  )
+  .handler(async ({ data, context }): Promise<PlanPaymentStart> => {
+    const { db, tenantId, schoolName } = await requireSchoolAdminTenant(context.userId);
+    const plans = await fetchActivePlans();
+    const plan = plans.find((p) => p.code === data.planCode);
+    if (!plan) throw new Error("Esse plano não está disponível.");
+    const amountKz = planPriceKz(plan, data.billing);
+    if (!amountKz)
+      throw new Error("Este plano não tem preço definido. Fale com a equipa comercial.");
+
+    const apiKey = process.env["PAYFLOW_INTEGRATION_API_KEY"]?.trim() ?? "";
+    const url = getPayflowUrl("/api/v1/payments");
+    if (apiKey.length < 24 || !url) {
+      return {
+        mode: "manual",
+        planName: plan.name,
+        amountKz,
+        reason: "Pagamento por transferência para o IBAN da plataforma.",
+      };
+    }
+
+    const { data: school } = await db
+      .from("schools")
+      .select("id, email")
+      .eq("tenant_id", tenantId)
+      .maybeSingle();
+    const { data: tenant } = await db
+      .from("tenants")
+      .select("slug")
+      .eq("id", tenantId)
+      .maybeSingle();
+    const month = new Date().toISOString().slice(0, 7);
+    let response: Response;
+    try {
+      response = await fetch(url, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${apiKey}`,
+          // Mesmo plano e periodicidade no mesmo mês → a mesma cobrança.
+          "Idempotency-Key": `siga-sub-${tenantId}-${plan.code}-${data.billing}-${month}`,
+        },
+        body: JSON.stringify({
+          amount: Math.round(amountKz * 100),
+          currency: "AOA",
+          description: `SIGA Plus — plano ${plan.name} (${data.billing === "yearly" ? "anual" : "mensal"})`,
+          customer: { name: schoolName, email: (school?.email as string | null) ?? "" },
+          external_reference: `SIGA-SUB-${String(tenant?.slug ?? tenantId).slice(0, 60)}`,
+          source_app: "SIGA",
+          payment_method: "bank_transfer",
+          purpose: "school_subscription",
+          school_id: String(school?.id ?? tenantId),
+          metadata: { tenant_id: tenantId, plan_code: plan.code, billing: data.billing },
+        }),
+      });
+    } catch {
+      return { mode: "manual", planName: plan.name, amountKz, reason: "O PayFlow não respondeu." };
+    }
+    const body = (await response.json().catch(() => null)) as {
+      data?: {
+        id?: string;
+        checkout_url?: string;
+        bank_transfer?: {
+          reference?: string;
+          iban?: string;
+          beneficiary?: string;
+          bank_name?: string;
+          expires_at?: string;
+        } | null;
+      };
+      error?: { message?: string };
+    } | null;
+    const payment = body?.data;
+    if (!response.ok || !payment?.checkout_url) {
+      return {
+        mode: "manual",
+        planName: plan.name,
+        amountKz,
+        reason: body?.error?.message || "A cobrança não pôde ser criada no PayFlow.",
+      };
+    }
+
+    await db.from("saas_audit_logs").insert({
+      tenant_id: tenantId,
+      user_id: context.userId,
+      action: "plan_payment_started",
+      entity: "subscription",
+      entity_id: tenantId,
+      metadata: {
+        school: schoolName,
+        plan_code: plan.code,
+        billing: data.billing,
+        amount_kz: amountKz,
+        payflow_payment_id: payment.id ?? null,
+        transfer_reference: payment.bank_transfer?.reference ?? null,
+        checkout_url: payment.checkout_url,
+      },
+    });
+
+    return {
+      mode: "payflow",
+      planName: plan.name,
+      amountKz,
+      checkoutUrl: payment.checkout_url,
+      reference: payment.bank_transfer?.reference ?? null,
+      iban: payment.bank_transfer?.iban ?? null,
+      beneficiary: payment.bank_transfer?.beneficiary ?? null,
+      bankName: payment.bank_transfer?.bank_name ?? null,
+      expiresAt: payment.bank_transfer?.expires_at ?? null,
+    };
+  });
+
+const PROOF_EXTENSIONS = {
+  "application/pdf": "pdf",
+  "image/png": "png",
+  "image/jpeg": "jpg",
+  "image/webp": "webp",
+} as const;
+
+/**
+ * Recibo de uma transferência já feita para o IBAN da plataforma. Guardado no
+ * bucket privado `billing-proofs` (só o servidor lê) e registado para a equipa
+ * validar no ADMIN → Subscrições. Enviar o recibo não activa o plano: a equipa
+ * confirma a entrada do dinheiro e activa.
+ */
+export const submitPlanPaymentProof = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .validator((input: unknown) =>
+    z
+      .object({
+        planCode: planCodeSchema,
+        billing: billingSchema.default("monthly"),
+        contentType: z.enum(["application/pdf", "image/png", "image/jpeg", "image/webp"], {
+          message: "Envie um PDF ou uma imagem (PNG, JPG, WebP).",
+        }),
+        // 5 MB em base64 (≈ 4/3).
+        base64: z.string().min(1).max(7_000_000, "O comprovativo deve ter no máximo 5 MB."),
+        transferReference: z.string().trim().max(80).optional(),
+        paidOn: z
+          .string()
+          .regex(/^\d{4}-\d{2}-\d{2}$/)
+          .optional(),
+        note: z.string().trim().max(500).optional(),
+      })
+      .parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    const { db, tenantId, schoolName } = await requireSchoolAdminTenant(context.userId);
+    const plans = await fetchActivePlans();
+    const plan = plans.find((p) => p.code === data.planCode);
+    if (!plan) throw new Error("Esse plano não está disponível.");
+    const buffer = Buffer.from(data.base64, "base64");
+    if (buffer.byteLength > 5 * 1024 * 1024)
+      throw new Error("O comprovativo deve ter no máximo 5 MB.");
+
+    // O caminho é só do servidor: tenant da sessão + carimbo; nada do nome do ficheiro.
+    const path = `${tenantId}/${Date.now()}-${crypto.randomUUID().slice(0, 8)}.${PROOF_EXTENSIONS[data.contentType]}`;
+    const { error: uploadError } = await db.storage
+      .from("billing-proofs")
+      .upload(path, buffer, { contentType: data.contentType, upsert: false });
+    if (uploadError)
+      throw publicDatabaseError(uploadError, "Não foi possível guardar o comprovativo.");
+
+    const { data: tenant } = await db
+      .from("tenants")
+      .select("plan_id")
+      .eq("id", tenantId)
+      .maybeSingle();
+    const current = plans.find((p) => p.id === tenant?.plan_id);
+    const rows = [
+      {
+        tenant_id: tenantId,
+        user_id: context.userId,
+        action: "plan_payment_proof_submitted",
+        entity: "subscription",
+        entity_id: tenantId,
+        metadata: {
+          school: schoolName,
+          plan_code: plan.code,
+          billing: data.billing,
+          amount_kz: planPriceKz(plan, data.billing),
+          proof_path: path,
+          content_type: data.contentType,
+          transfer_reference: data.transferReference ?? null,
+          paid_on: data.paidOn ?? null,
+          note: data.note ?? null,
+        },
+      },
+    ];
+    // Pagar outro plano é também pedir a mudança: aparece na fila do ADMIN.
+    if (current?.code !== plan.code) {
+      rows.push({
+        tenant_id: tenantId,
+        user_id: context.userId,
+        action: "plan_change_requested",
+        entity: "subscription",
+        entity_id: tenantId,
+        metadata: {
+          school: schoolName,
+          from: current?.code ?? null,
+          to: plan.code,
+          billing: data.billing,
+          note: "Comprovativo de pagamento enviado.",
+        } as never,
+      });
+    }
+    const { error } = await db.from("saas_audit_logs").insert(rows);
+    if (error) throw publicDatabaseError(error, "Não foi possível registar o comprovativo.");
     return { ok: true };
   });

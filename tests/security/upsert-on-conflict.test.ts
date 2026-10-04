@@ -13,6 +13,14 @@ import { describe, expect, it } from "vitest";
 // com as colunas por ordem alfabética. Um upsert numa tabela nova tem de ter a
 // chave confirmada na produção e acrescentada aqui.
 const UNICOS_PRODUCAO: Record<string, string[]> = {
+  // 2026-10-02: tabelas dos modelos de estrutura académica (curriculum-templates-apply).
+  academic_levels: ["id", "id,school_id", "code,school_id"],
+  class_groups: ["id", "id,school_id", "academic_year_id,code,school_id"],
+  curriculum_subjects: ["id", "id,school_id", "curriculum_id,subject_id"],
+  grade_levels: ["id", "id,school_id", "code,program_id,school_id"],
+  programs: ["id", "id,school_id", "code,school_id"],
+  rooms: ["id", "id,school_id", "code,school_id"],
+  subjects: ["id", "id,school_id", "code,school_id"],
   alumni_communication_preferences: ["id", "alumni_id,school_id"],
   alumni_event_registrations: ["id", "alumni_id,event_id"],
   alumni_opportunity_applications: ["id", "alumni_id,opportunity_id"],

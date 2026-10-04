@@ -42,6 +42,7 @@ import { QuickActions, type QuickAction } from "@/components/mobile/QuickActions
 import { MobileTabs } from "@/components/mobile/MobileTabs";
 import { MobileOnly, ResponsiveEntityView } from "@/components/mobile/ResponsiveEntityView";
 import { useSchoolAlerts } from "@/features/dashboard/use-school-alerts";
+import { SchoolSetupGuide } from "@/features/school/SchoolSetupGuide";
 
 const DashboardCharts = lazy(() =>
   import("@/features/dashboard/DashboardCharts").then((module) => ({
@@ -384,7 +385,7 @@ export function AdminPortalDashboard({
             </span>
           </div>
           <h1 className="mt-1 font-display text-xl sm:text-2xl font-bold tracking-tight text-foreground">
-            {greeting}, {currentUser.name.split(" ")[0]}
+            {greeting}, <span className="text-aurora">{currentUser.name.split(" ")[0]}</span>
           </h1>
           <p className="mt-0.5 text-xs text-muted-foreground capitalize">
             {now
@@ -475,7 +476,14 @@ export function AdminPortalDashboard({
         }
       />
 
-      {activeTab === "geral" && capabilities.students && totalStudents === 0 ? (
+      {/* O Administrador tem o guia de arranque completo, lido da base; os
+          outros papéis com acesso académico mantêm os atalhos simples. */}
+      {activeTab === "geral" && currentUser.role === "Administrador" ? <SchoolSetupGuide /> : null}
+
+      {activeTab === "geral" &&
+      currentUser.role !== "Administrador" &&
+      capabilities.students &&
+      totalStudents === 0 ? (
         <section className="rounded-xl border border-primary/20 bg-primary/5 p-4">
           <h2 className="text-sm font-bold">Primeiros passos da escola</h2>
           <p className="mt-1 text-xs text-muted-foreground">
