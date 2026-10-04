@@ -30,7 +30,12 @@ import {
 } from "@/features/school/settings-domains";
 import { requireAal2 } from "@/features/hr/require-aal2";
 import { resolveVisibleStudent } from "@/features/dashboard/student-access";
-import { HIGHER_ED_LEVEL, normalizeProgramCode, programYears } from "./program-shape";
+import {
+  HIGHER_ED_LEVEL,
+  higherEdProgramCode,
+  normalizeProgramCode,
+  programYears,
+} from "./program-shape";
 import { HIGHER_ED_FEES } from "./fees";
 import { rankAccessCandidates } from "./access";
 import {
@@ -362,10 +367,12 @@ async function ensureProgramYears(
   years: number,
 ) {
   const wanted = programYears(code, years);
+  // Os códigos dos anos repetem-se entre cursos («1ANO»): só os deste curso contam.
   const { data: existing } = await db
     .from("grade_levels")
     .select("code")
     .eq("school_id", schoolId)
+    .eq("program_id", programId)
     .in(
       "code",
       wanted.map((grade) => grade.code),
@@ -392,8 +399,8 @@ export const createHigherEdProgram = createServerFn({ method: "POST" })
     const membership = await adminMembership(context);
     const db = await loadSgaAdminClient();
     const schoolId = membership.schoolId;
-    const code = normalizeProgramCode(data.code || data.name);
-    if (code.length < 2) throw new Error("Indique um código com pelo menos 2 letras.");
+    const code = higherEdProgramCode(data.code || data.name);
+    if (code.length < 5) throw new Error("Indique um código com pelo menos 2 letras.");
     const { data: clash } = await db
       .from("programs")
       .select("id")

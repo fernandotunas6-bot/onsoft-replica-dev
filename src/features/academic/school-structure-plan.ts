@@ -2,160 +2,136 @@
  * Estrutura académica certa para o contexto da escola.
  *
  * O cliente diz no registo (ou em Definições → Pedagógico) que níveis lecciona
- * e, no II Ciclo, que cursos. Daqui sai o plano do que criar: níveis
- * (academic_levels), cursos (programs), classes (grade_levels) e disciplinas.
+ * e, no II Ciclo, que cursos. Daqui sai o plano do que criar — no mesmo
+ * formato e com os mesmos códigos dos «modelos de estrutura» (Pedagógica →
+ * Estrutura → Modelo), para que registo, assistente e modelo nunca criem o
+ * mesmo nível, curso ou classe duas vezes:
+ *   EP (Primário) · ESG1 (I Ciclo) · ESG2-<área> (II Ciclo) · ETP (Técnico)
+ *   · ES-<curso> (Superior) · INIC (Iniciação, só aqui).
  *
  * Antes, toda a escola nascia com «Ensino Geral · 10ª Classe · turma 10ª A»
- * (40 escolas na produção, 2026-10-03), fosse uma escola primária, um
- * complexo do Iniciação ao II Ciclo ou um instituto técnico.
- *
- * Função pura: os códigos são estáveis para que repetir «Preparar estrutura»
- * só acrescente o que falta, nunca duplique nem apague.
+ * (40 escolas na produção, 2026-10-03). Sem turmas nem salas: quantas turmas e
+ * em que turno é decisão da escola (o modelo de estrutura cria-as se pedido).
  */
+import type { AngolaCourseId, AngolaTeachingLevelId } from "@/lib/angola-academic";
 import {
-  angolaCoreSubjects,
-  angolaSecondaryCourses,
-  type AngolaCourseId,
-  type AngolaTeachingLevelId,
-} from "@/lib/angola-academic";
+  EDUCATION_LEVELS,
+  planCurriculum,
+  type CurriculumPlan,
+  type EducationLevelId,
+} from "./curriculum-templates";
 
-export type PlannedLevel = { code: string; name: string; sequence: number };
-export type PlannedProgram = {
-  code: string;
-  name: string;
-  kind: "general" | "technical" | "undergraduate";
-  levelCode: string;
-};
-export type PlannedGrade = { code: string; name: string; sequence: number; programCode: string };
-export type PlannedSubject = { code: string; name: string; short_name: string };
+export type SchoolStructurePlan = CurriculumPlan;
 
-export type SchoolStructurePlan = {
-  levels: PlannedLevel[];
-  programs: PlannedProgram[];
-  grades: PlannedGrade[];
-  subjects: PlannedSubject[];
+/** Áreas do II Ciclo do registo → cursos do modelo (Letras = Ciências Humanas). */
+const AREA_TO_TEMPLATE: Partial<Record<AngolaCourseId, string>> = {
+  cfb: "CFB",
+  cej: "CEJ",
+  letras: "CH",
 };
 
-// Códigos alinhados com os que já existem na produção («primary», «cycle_i»).
-const LEVELS: Record<AngolaTeachingLevelId, PlannedLevel> = {
-  pre_escolar: { code: "pre_school", name: "Iniciação", sequence: 1 },
-  primario: { code: "primary", name: "Ensino Primário", sequence: 2 },
-  i_ciclo: { code: "cycle_i", name: "I Ciclo do Ensino Secundário", sequence: 3 },
-  ii_ciclo: { code: "cycle_ii", name: "II Ciclo do Ensino Secundário", sequence: 4 },
-  superior: { code: "higher", name: "Ensino Superior", sequence: 5 },
-};
+const levelDef = (id: EducationLevelId) => EDUCATION_LEVELS.find((level) => level.id === id)!;
 
-const LEVEL_ORDER: AngolaTeachingLevelId[] = [
-  "pre_escolar",
-  "primario",
-  "i_ciclo",
-  "ii_ciclo",
-  "superior",
-];
-
-const SHORT_NAMES: Record<string, string> = {
-  LP: "Port",
-  MAT: "Mat",
-  EF: "EF",
-  EM: "EMC",
-  CN: "CN",
-  HIST: "Hist",
-  GEO: "Geo",
-  ING: "Ing",
-  FIS: "Fís",
-  QUI: "Quím",
-  BIO: "Bio",
-  FIL: "Fil",
-};
-
-function classesFor(prefix: string, from: number, to: number, programCode: string) {
-  const grades: PlannedGrade[] = [];
-  for (let n = from; n <= to; n += 1) {
-    grades.push({
-      code: `${n}${prefix}`,
-      name: `${n}ª Classe`,
-      sequence: n,
-      programCode,
+/** Curso genérico de um nível (quando o registo não diz qual). */
+function addGeneric(
+  plan: CurriculumPlan,
+  level: {
+    code: string;
+    name: string;
+    sequence: number;
+    kind: "general" | "technical" | "undergraduate";
+  },
+  program: { code: string; name: string; short: string },
+  grades: Array<{ n: number; code: string; label: string }>,
+) {
+  if (!plan.levels.some((l) => l.code === level.code)) {
+    plan.levels.push({ code: level.code, name: level.name, sequence: level.sequence });
+  }
+  plan.programs.push({
+    levelCode: level.code,
+    code: program.code,
+    name: program.name,
+    kind: level.kind,
+    higherEducation: level.kind === "undergraduate",
+  });
+  for (const grade of grades) {
+    plan.grades.push({
+      programCode: program.code,
+      code: grade.code,
+      name: `${grade.label} · ${program.short}`,
+      sequence: grade.n,
     });
   }
-  return grades;
 }
+
+const range = (from: number, to: number) =>
+  Array.from({ length: to - from + 1 }, (_, i) => from + i);
 
 export function planSchoolStructure(
   teachingLevels: readonly AngolaTeachingLevelId[],
   courses: readonly AngolaCourseId[] = [],
 ): SchoolStructurePlan {
-  const selected = LEVEL_ORDER.filter((id) => teachingLevels.includes(id));
-  const levels: PlannedLevel[] = [];
-  const programs: PlannedProgram[] = [];
-  const grades: PlannedGrade[] = [];
+  const has = (id: AngolaTeachingLevelId) => teachingLevels.includes(id);
+  const areas = courses
+    .map((course) => AREA_TO_TEMPLATE[course])
+    .filter((code): code is string => Boolean(code));
 
-  for (const id of selected) {
-    const level = LEVELS[id];
-    levels.push(level);
+  const plan = planCurriculum({
+    courses: {
+      ...(has("primario") ? { primario: ["EP"] } : {}),
+      ...(has("i_ciclo") ? { secundario_1: ["ESG1"] } : {}),
+      ...(has("ii_ciclo") && areas.length ? { secundario_2: areas } : {}),
+    },
+    groupsPerGrade: 1,
+    shifts: ["morning"],
+    capacity: 35,
+    createRooms: false,
+  });
+  plan.classGroups = [];
+  plan.rooms = [];
 
-    if (id === "pre_escolar") {
-      programs.push({ code: "PRE", name: "Iniciação", kind: "general", levelCode: level.code });
-      grades.push({ code: "INIC", name: "Iniciação", sequence: 0, programCode: "PRE" });
-    } else if (id === "primario") {
-      programs.push({
-        code: "PRIM",
-        name: "Ensino Primário",
-        kind: "general",
-        levelCode: level.code,
-      });
-      grades.push(...classesFor("PRIM", 1, 6, "PRIM"));
-    } else if (id === "i_ciclo") {
-      programs.push({ code: "ICICLO", name: "I Ciclo", kind: "general", levelCode: level.code });
-      grades.push(...classesFor("ICICLO", 7, 9, "ICICLO"));
-    } else if (id === "ii_ciclo") {
-      // Cada curso tem as suas classes: «10ª Classe · CFB» e «10ª Classe · CEJ»
-      // são turmas e pautas diferentes. Sem cursos indicados, um II Ciclo geral.
-      const chosen = angolaSecondaryCourses.filter((course) => courses.includes(course.id));
-      const list = chosen.length
-        ? chosen
-        : [{ id: "geral", label: "Ensino Geral", short: "Geral" } as const];
-      for (const course of list) {
-        const programCode = `IICICLO-${course.short.toUpperCase()}`;
-        const technical = course.id === "tecnico";
-        programs.push({
-          code: programCode,
-          name: course.label,
-          kind: technical ? "technical" : "general",
-          levelCode: level.code,
-        });
-        // O técnico-profissional vai até à 13ª classe.
-        for (const grade of classesFor(programCode, 10, technical ? 13 : 12, programCode)) {
-          grades.push({ ...grade, name: `${grade.name} · ${course.short}` });
-        }
-      }
-    } else if (id === "superior") {
-      programs.push({
-        code: "LIC",
-        name: "Licenciatura",
-        kind: "undergraduate",
-        levelCode: level.code,
-      });
-      for (let year = 1; year <= 5; year += 1) {
-        grades.push({
-          code: `${year}ANO-LIC`,
-          name: `${year}º Ano · LIC`,
-          sequence: year,
-          programCode: "LIC",
-        });
-      }
+  if (has("pre_escolar")) {
+    addGeneric(
+      plan,
+      { code: "INIC", name: "Iniciação", sequence: 0, kind: "general" },
+      { code: "INIC", name: "Iniciação", short: "INIC" },
+      [{ n: 0, code: "INIC", label: "Iniciação" }],
+    );
+  }
+  if (has("ii_ciclo")) {
+    // Sem área indicada (nem técnico), um II Ciclo geral.
+    if (!areas.length && !courses.includes("tecnico")) {
+      const esg2 = levelDef("secundario_2");
+      addGeneric(
+        plan,
+        esg2,
+        { code: "ESG2-GERAL", name: "II Ciclo — Ensino Geral", short: "GERAL" },
+        range(10, 12).map((n) => ({ n, code: `${n}CL`, label: esg2.gradeLabel(n) })),
+      );
+    }
+    // Técnico-profissional indicado sem curso: um curso técnico genérico (10ª–13ª).
+    if (courses.includes("tecnico")) {
+      const etp = levelDef("tecnico");
+      addGeneric(
+        plan,
+        etp,
+        { code: "ETP-GERAL", name: "Técnico-Profissional", short: "ETP" },
+        range(10, 13).map((n) => ({ n, code: `${n}CL`, label: etp.gradeLabel(n) })),
+      );
     }
   }
+  if (has("superior")) {
+    // A Licenciatura de partida; os cursos reais criam-se em Ensino Superior
+    // (ou no modelo de estrutura).
+    const es = levelDef("superior");
+    addGeneric(
+      plan,
+      es,
+      { code: "ES-LIC", name: "Licenciatura", short: "LIC" },
+      range(1, 5).map((n) => ({ n, code: `${n}ANO`, label: es.gradeLabel(n) })),
+    );
+  }
 
-  // Disciplinas do tronco comum dos níveis escolhidos (o superior não tem
-  // tronco comum: as cadeiras são de cada curso e entram depois).
-  const subjects = angolaCoreSubjects
-    .filter((subject) => subject.levels.some((level) => selected.includes(level)))
-    .map((subject) => ({
-      code: subject.code,
-      name: subject.name,
-      short_name: SHORT_NAMES[subject.code] ?? subject.code,
-    }));
-
-  return { levels, programs, grades, subjects };
+  plan.levels.sort((a, b) => a.sequence - b.sequence);
+  return plan;
 }
