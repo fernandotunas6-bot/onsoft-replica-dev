@@ -1,5 +1,22 @@
 -- SIGA · migrações por aplicar na produção (2026-10-04)
 --
+-- ESTADO: APLICADO na produção a 2026-10-04 (projecto xodgfmxiaunpamctfeea).
+-- As partes A e B foram aplicadas pelo conector Supabase (apply_migration) e o
+-- histórico ficou com estas versões:
+--   20261004120443  chat_integrity_created_by_on_delete_set_null        (parte A)
+--   20261004120727  annual_sheet_requires_all_terms                     (parte B)
+--   20261004120832  annual_sheet_requires_all_terms_fix_exam_average    (correcção)
+-- A de 120727 foi aplicada com um erro de transcrição (exam_average a ler
+-- average_values); 120832 repôs o corpo correcto no mesmo minuto. Nenhuma pauta
+-- foi construída nessa janela (0 linhas em grade_sheet_rows), por isso não houve
+-- dados afectados. Conferido: md5 do corpo sem espaços = b7bca3201b9ee556296d0fe3c115ccf6,
+-- igual ao de 20261002160000_annual_sheet_requires_all_terms.sql.
+-- Registadas também as versões canónicas 20261002100000 e 20261002160000, para o
+-- histórico bater com os ficheiros do repo.
+-- O retrato não mudou: não guarda acções ON DELETE nem corpos de funções.
+--
+-- Mantido por ser idempotente — voltar a correr é inofensivo.
+--
 -- Já aplicado pelo agente (não repetir, mas repetir é inofensivo):
 --   * 20261003070000_announcements_audience_rls  (função + ALTER POLICY; registada)
 --   * 20261002100000_chat_integrity, partes 1–3 (guarda das mensagens, trigger,
