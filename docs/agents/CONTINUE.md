@@ -48,15 +48,15 @@ Huambo cobra sem multa nem desconto até rever as regras em Definições › Cob
 
 Relatório: `docs/auditoria/12-auditoria-sistema-2026-10-04.md`.
 
-- **Produção mudou sem migrações.** Cinco migrações de 04/10 (22:04–22:15) foram trazidas para
-  `supabase/migrations/` (corpo capturado, md5 conferido). Além delas, 10 funções `private.*`
-  (`user_*_school_ids`, `teacher_*`, `current_teacher_rows`, `user_import_job_ids`) e 116 políticas
-  reescritas para as usar existem só na base: as funções estão em
-  `20261005000000_reconcile_unrecorded_rls_helpers.sql`; as políticas só no retrato novo.
+- **Produção mudou fora do Git.** Sete migrações de 04/10 (22:04–22:26) foram trazidas para
+  `supabase/migrations/` (corpo capturado, md5 conferido), incluindo a reescrita de 116 políticas para funções
+  de conjunto `private.user_*_school_ids`/`teacher_*` (`20261004222220`, `20261004222611`). A reescrita preserva a
+  semântica (verificação mecânica na auditoria 12, secção 4b).
 - **Retrato recapturado** (04/10 à noite) e 3 testes de segurança ajustados à forma `user_*_school_ids`.
 - **Por aplicar no SQL Editor** (a ferramenta cancela a escrita): `20261005010000_assessment_closed_term_guard.sql`
   (fecho de período nas avaliações) e `20261005020000_direct_writes_require_mfa.sql` (2FA nas escritas
-  directas da plataforma e das avaliações). Ensaios em `tests/sql/`. O que ficou de fora do 2FA e porquê:
+  directas da plataforma e das avaliações) e `20261005030000_school_row_role_policies.sql` (papel pela escola da
+  linha nos eventos de gateway; retira a política morta de `schools`). Ensaios em `tests/sql/`. O que ficou de fora do 2FA e porquê:
   secção 5 da auditoria 12.
 - **Por fazer:** segredos do ambiente `production`; staging para os E2E.
 - **Tempo real APLICADO** a 04/10 (publicação com 10 tabelas). O bloco «POR APLICAR» abaixo fica como histórico.
@@ -214,6 +214,48 @@ Causa: as Definições da escola activavam o ano escolhido sem fechar o anterior
   A 2026-09-30, com autorização do dono, os três anos de teste do Huambo
   passaram a `closed` (sem turmas nem matrículas; nada apagado). Nenhuma escola
   tem agora mais de um ano activo, por isso o pacote já se pode aplicar.
+
+## Desktop Tauri: PR #63 unido ao ramo ccr-06c00242 (2026-10-03)
+
+Havia dois trabalhos no Tauri fora do `main`: o PR #63 (`fix/tauri-runtime-hardening`:
+launcher, hardware endurecido, permissões mínimas) e o ramo `ccr-06c00242-8oyfbz`
+(sessão Claude, sem PR: exportações, impressão, PayFlow, sem rede, actualizações).
+Por decisão do dono, tudo fica no PR #63, com as escolhas dele (launcher, permissões
+mínimas, «fechar = sair», barra nativa). Detalhes: `docs/desktop/TAURI_RUNTIME.md` e o
+skill `siga-desktop`.
+
+- **A app não abria:** o PR #63 registava o updater sem `plugins.updater` (confirmado a
+  correr o binário: `PluginInitialization("updater", …)`, código 101). Corrigido e
+  guardado (`check-desktop.mjs`, `tests/tauri/native-startup.test.ts`).
+- **`tauri dev` sem comandos:** a capability `development` era só remota e o `devUrl`
+  conta como origem local; passa a `local: true`.
+- **Três barras de título** na app (nativa + `TauriTitlebar` + `DesktopTitleBar`):
+  as duas da web saíram; fica a nativa.
+- Trazidos do ramo ccr-06c00242, cada um com permissão própria: `save_file`,
+  `print_page`/`print_html`, `open_payflow` (só para o PayFlow oficial), links fora do
+  portal no browser do sistema, atalhos e zoom, instância única, sem rede — fase 1 (no
+  `OfflineBanner` que já existia) e actualizações assinadas por `check_app_update` /
+  `install_app_update` (o portal não recebe `updater:` nem `process:`).
+- Verificado na app (Linux, Xvfb): arranque, launcher, «Guardar como», impressão sem
+  scripts do modelo, PayFlow com sessão, barra única e zoom no ecrã de entrada real.
+- **Por decidir (dono):** modo totalmente offline (análise entregue em 03/10: interface
+  embutida, base local cifrada, sincronização; dinheiro e 2FA sempre online); chaves de
+  assinatura; testes reais em Windows/macOS.
+- **Notificações do sistema** (depois do PR verde): mensagem nova (só o remetente),
+  comunicado publicado (regra da lista) e «Alterações enviadas», só com a app em segundo
+  plano. Verificado com D-Bus e dunst.
+- **Achados fora do desktop, por decidir (mexem na base de produção):**
+  - O ecrã de faturas e o painel subscrevem tempo real em `invoices` e `payments`, que não
+    existem na produção (as reais: `finance_invoices`, `finance_receipts`,
+    `payment_gateway_charges`); a migração `20260901091600_enable_app_realtime.sql`
+    publica esses nomes. Esses ecrãs não se actualizam sozinhos. Corrigir é publicar as
+    tabelas reais (migração; confirmar antes com
+    `select * from pg_publication_tables where pubname = 'supabase_realtime'`) e trocar os
+    nomes no cliente. Por isso as notificações de pagamentos ficaram de fora.
+  - `school_announcements`: a política de leitura é `is_school_member` (inclui alunos e
+    encarregados), por isso a API devolve-lhes rascunhos e avisos ao corpo docente, que a
+    lista do servidor esconde. Corrigir é restringir a leitura de quem não é do pessoal a
+    `status = 'sent'` e `audience <> 'teaching_staff'` (migração).
 
 ## Escritas com o erro ignorado (2026-09-29/30)
 

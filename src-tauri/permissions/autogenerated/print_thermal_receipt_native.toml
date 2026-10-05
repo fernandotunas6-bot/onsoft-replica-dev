@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-print-thermal-receipt-native"
+description = "Enables the print_thermal_receipt_native command without any pre-configured scope."
+commands.allow = ["print_thermal_receipt_native"]
+
+[[permission]]
+identifier = "deny-print-thermal-receipt-native"
+description = "Denies the print_thermal_receipt_native command without any pre-configured scope."
+commands.deny = ["print_thermal_receipt_native"]

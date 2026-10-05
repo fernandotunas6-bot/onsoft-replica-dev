@@ -14,6 +14,7 @@ import {
   resolveSgaMembershipAdmin,
 } from "@/integrations/supabase/sga-admin";
 import { resolveUserLinkedEntities } from "@/features/auth/server";
+import { schoolTodayIso } from "@/lib/school-date";
 
 export const attendanceStatusEnum = z.enum([
   "present",
@@ -171,7 +172,7 @@ export const listTeacherAttendanceSessions = createServerFn({ method: "GET" })
     ]);
     const db = await loadSgaAdminClient();
 
-    const today = data.date || new Date().toISOString().slice(0, 10);
+    const today = data.date || schoolTodayIso();
     const dateObj = new Date(`${today}T12:00:00Z`);
     const weekday = dateObj.getDay(); // 0 = Domingo, 1 = Segunda...
 
@@ -387,7 +388,7 @@ export const getAttendanceCallSheet = createServerFn({ method: "GET" })
         .maybeSingle();
       sessionRow = s;
     } else if (data.classGroupId && data.subjectId) {
-      const today = data.date || new Date().toISOString().slice(0, 10);
+      const today = data.date || schoolTodayIso();
       const { data: s } = await db
         .from("siga_attendance_sessions")
         .select("*")

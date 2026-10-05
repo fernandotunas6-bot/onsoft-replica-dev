@@ -23,6 +23,7 @@ import {
   updateScheduleSlotInputSchema,
 } from "./schemas";
 import { z } from "zod";
+import { schoolTodayIso } from "@/lib/school-date";
 
 function timeSlice(value: unknown): string {
   return String(value ?? "").slice(0, 5);
@@ -930,7 +931,7 @@ export const publishAcademicSchedule = createServerFn({ method: "POST" })
         version_number: nextVersion,
         name: data.name ?? `Horário V${nextVersion}`,
         status: "published",
-        valid_from: data.validFrom ?? new Date().toISOString().slice(0, 10),
+        valid_from: data.validFrom ?? schoolTodayIso(),
         valid_to: data.validTo ?? null,
         published_at: new Date().toISOString(),
         published_by: context.userId,
@@ -1004,11 +1005,11 @@ async function syncScheduleSlotsToSessions({
     .select("starts_on, ends_on")
     .eq("school_id", schoolId)
     .eq("academic_year_id", academicYearId)
-    .lte("starts_on", new Date().toISOString().slice(0, 10))
-    .gte("ends_on", new Date().toISOString().slice(0, 10))
+    .lte("starts_on", schoolTodayIso())
+    .gte("ends_on", schoolTodayIso())
     .maybeSingle();
 
-  const startDate = currentTerm?.starts_on ?? new Date().toISOString().slice(0, 10);
+  const startDate = currentTerm?.starts_on ?? schoolTodayIso();
   const endDate =
     currentTerm?.ends_on ?? new Date(Date.now() + 30 * 86400000).toISOString().slice(0, 10);
 

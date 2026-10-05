@@ -13,6 +13,7 @@ import {
   updateAnnouncementInputSchema,
   updateAnnouncementStatusInputSchema,
 } from "./schemas";
+import { schoolTodayIso } from "@/lib/school-date";
 
 // Table: public.school_announcements
 // Status values: 'draft' | 'scheduled' | 'sent'  (no 'archived' — use soft-delete deleted_at instead)
@@ -74,7 +75,7 @@ async function hasOverdueInvoice(
     .eq("school_id", schoolId)
     .in("contract_id", contractIds)
     .in("status", ["open", "partially_paid"])
-    .lt("due_date", new Date().toISOString().slice(0, 10));
+    .lt("due_date", schoolTodayIso());
   return (count ?? 0) > 0;
 }
 

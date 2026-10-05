@@ -19,7 +19,7 @@ describe("Tauri 2 Desktop Bridge", () => {
   it("returns fallback system info in web browser context", async () => {
     const info = await getNativeSystemInfo();
     expect(info.is_desktop_native).toBe(false);
-    expect(["windows", "macos"]).toContain(info.os_type);
+    expect(["windows", "macos", "linux", "web"]).toContain(info.os_type);
   });
 });
 
@@ -33,23 +33,33 @@ describe("Desktop Utils & Native Hardware Fallbacks", () => {
     expect(info.is_desktop_native).toBe(false);
   });
 
-  it("simulates turnstile relay in web browser mode", async () => {
+  it("rejects unavailable turnstile relay in web browser mode", async () => {
     const result = await pulseTurnstileRelay("192.168.1.100", 1, "entry");
-    expect(result.success).toBe(true);
-    expect(result.message).toContain("Modo Web: Simulação");
-    expect(result.bytes_sent).toBe(5);
+    expect(result.success).toBe(false);
+    expect(result.message).toContain("Desktop");
+    expect(result.bytes_sent).toBe(0);
   });
 
-  it("simulates thermal receipt printing in web browser mode", async () => {
+  it("rejects unavailable thermal receipt printing in web browser mode", async () => {
     const result = await printThermalReceiptNative("192.168.1.200", "SIGA - Recibo de Teste");
-    expect(result.success).toBe(true);
-    expect(result.message).toContain("Modo Web: Simulação");
-    expect(result.bytes_sent).toBeGreaterThan(0);
+    expect(result.success).toBe(false);
+    expect(result.message).toContain("Desktop");
+    expect(result.bytes_sent).toBe(0);
   });
 
   it("skips native notification when not running inside Tauri", async () => {
     const sent = await notifyNative("Teste SIGA", "Corpo da notificação");
     expect(sent).toBe(false);
+  });
+
+  it("rejects executable URLs and URLs containing credentials", async () => {
+    for (const url of [
+      "javascript:alert(1)",
+      "file:///etc/passwd",
+      "https://user:secret@example.com",
+    ]) {
+      await expect(openExternalLink(url)).rejects.toThrow();
+    }
   });
 
   it("falls back to window.open for external links in browser mode", async () => {
