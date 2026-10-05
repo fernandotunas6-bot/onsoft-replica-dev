@@ -44,8 +44,6 @@ valores do ecrã): o Colégio Adventista do Huambo (multa 2 %, 5 dias, desconto 
 irmãos 10 %) e uma escola de testes. Por decisão do dono não passam a valer: o
 Huambo cobra sem multa nem desconto até rever as regras em Definições › Cobrança.
 
-## Tempo real nas tabelas reais — POR APLICAR (2026-10-04)
-
 ## Auditoria 12 — SQL fora do Git e estado da produção (2026-10-04)
 
 Relatório: `docs/auditoria/12-auditoria-sistema-2026-10-04.md`.
