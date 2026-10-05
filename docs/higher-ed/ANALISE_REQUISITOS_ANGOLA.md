@@ -47,12 +47,12 @@ injustificadas às aulas dadas no semestre.
 | Estatuto trabalhador-estudante (faltas, época especial) | ✅ com prova, datas e 2FA |
 | Exportação para o SISIES/GEPE (Vagas, Acesso, Matrículas, Graduados) | ✅ Excel |
 | Diploma / carta de curso registado com QR | ✅ certificado de conclusão emitido com 2FA, uma vez por curso |
-| Bolsas | ❌ |
+| Bolsas | ✅ desconto por estudante na emissão das faturas (2026-10-05) |
 
 ## Pendente (precisa de migração ou de decisão)
 
 - Bacharelato: alterar a restrição `programs.kind`.
-- Bolsas, turnos/vagas por turma com lista de espera.
+- Turnos/vagas por turma com lista de espera. Bolsas na base Bolsas da exportação SISIES.
 
 ## Comparação com outros sistemas académicos
 

@@ -58,6 +58,7 @@ import {
   uploadPersonPhotoToLibrary,
 } from "@/features/arquivos/apply-person-photo";
 import { StudentRelatedFilesPanel } from "@/features/arquivos/StudentRelatedFilesPanel";
+import { StudentScholarshipPanel } from "@/features/finance/StudentScholarshipPanel";
 import { whatsappHref } from "@/features/integrations/actions";
 import { InstalledModuleTools } from "@/features/integrations/InstalledModuleTools";
 import { useInstalledIntegrations } from "@/features/integrations/use-installed-integrations";
@@ -1417,6 +1418,8 @@ function StudentDetail() {
           schoolId={String(student.school_id)}
           studentId={student.id}
         />
+
+        {canIssueInvoice ? <StudentScholarshipPanel studentId={student.id} /> : null}
 
         <div className="grid gap-4 sm:grid-cols-3">
           <StatCard

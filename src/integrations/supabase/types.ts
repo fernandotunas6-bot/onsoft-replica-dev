@@ -10622,6 +10622,66 @@ export type Database = {
           },
         ];
       };
+      student_scholarships: {
+        Row: {
+          id: string;
+          school_id: string;
+          student_id: string;
+          kind: string;
+          percent: number;
+          scope: string;
+          sponsor: string | null;
+          valid_from: string;
+          valid_until: string | null;
+          evidence_note: string;
+          granted_by: string | null;
+          revoked_at: string | null;
+          revoked_by: string | null;
+          revoke_reason: string | null;
+          created_at: string;
+          updated_at: string;
+          version: number;
+        };
+        Insert: {
+          id?: string;
+          school_id: string;
+          student_id: string;
+          kind: string;
+          percent: number;
+          scope?: string;
+          sponsor?: string | null;
+          valid_from?: string;
+          valid_until?: string | null;
+          evidence_note: string;
+          granted_by?: string | null;
+          revoked_at?: string | null;
+          revoked_by?: string | null;
+          revoke_reason?: string | null;
+          created_at?: string;
+          updated_at?: string;
+          version?: number;
+        };
+        Update: {
+          id?: string;
+          school_id?: string;
+          student_id?: string;
+          kind?: string;
+          percent?: number;
+          scope?: string;
+          sponsor?: string | null;
+          valid_from?: string;
+          valid_until?: string | null;
+          evidence_note?: string;
+          granted_by?: string | null;
+          revoked_at?: string | null;
+          revoked_by?: string | null;
+          revoke_reason?: string | null;
+          created_at?: string;
+          updated_at?: string;
+          version?: number;
+        };
+        Relationships: [];
+      };
       student_special_statuses: {
         Row: {
           id: string;

@@ -75,6 +75,9 @@ const PRIVILEGIO_POR_DESENHO = new Set([
   // de emprego), sem política para `authenticated`; só o servidor lhe toca, com
   // Administrador/Secretaria e 2FA para conceder ou revogar.
   "src/features/higher-ed/student-status.ts",
+  // Bolsas de estudo: `student_scholarships` é financeira e sensível, sem política para
+  // `authenticated`; só o servidor (Administração/Tesouraria escrevem, com 2FA).
+  "src/features/finance/scholarship-server.ts",
 
   // Assinatura da escola (Configurações → Assinatura). `tenants`,
   // `subscriptions`, `tenant_usage` e `saas_audit_logs` só têm política para a

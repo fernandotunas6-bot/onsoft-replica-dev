@@ -1,11 +1,11 @@
 {
   "capturadoEm": "2026-10-04T22:27:59.000Z",
   "resumo": {
-    "tabelas": 187,
-    "com_rls": 187,
+    "tabelas": 188,
+    "com_rls": 188,
     "politicas": 321,
     "funcoes_private": 122,
-    "triggers": 202,
+    "triggers": 203,
     "buckets": 6,
     "buckets_publicos": 1,
     "politicas_storage": 14
@@ -4819,6 +4819,40 @@
         "case_id",
         "school_id",
         "description"
+      ]
+    },
+    {
+      "tabela": "student_scholarships",
+      "rls": true,
+      "rls_forcada": true,
+      "anon_select": false,
+      "auth_select": false,
+      "politicas": 0,
+      "colunas": [
+        "id",
+        "school_id",
+        "student_id",
+        "kind",
+        "percent",
+        "scope",
+        "sponsor",
+        "valid_from",
+        "valid_until",
+        "evidence_note",
+        "granted_by",
+        "revoked_at",
+        "revoked_by",
+        "revoke_reason",
+        "created_at",
+        "updated_at",
+        "version"
+      ],
+      "obrigatorias": [
+        "school_id",
+        "student_id",
+        "kind",
+        "percent",
+        "evidence_note"
       ]
     },
     {
@@ -11128,6 +11162,12 @@
       "funcao_schema": "public"
     },
     {
+      "tabela": "student_scholarships",
+      "trigger": "student_scholarships_touch",
+      "funcao": "siga_touch_updated_at",
+      "funcao_schema": "public"
+    },
+    {
       "tabela": "student_special_statuses",
       "trigger": "student_special_statuses_touch",
       "funcao": "siga_touch_updated_at",
@@ -14940,6 +14980,25 @@
         "mother",
         "other",
         "sibling"
+      ]
+    },
+    {
+      "tabela": "student_scholarships",
+      "coluna": "kind",
+      "valores": [
+        "institutional",
+        "merit",
+        "other",
+        "social",
+        "staff"
+      ]
+    },
+    {
+      "tabela": "student_scholarships",
+      "coluna": "scope",
+      "valores": [
+        "all",
+        "tuition"
       ]
     },
     {
