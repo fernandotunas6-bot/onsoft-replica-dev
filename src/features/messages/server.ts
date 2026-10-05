@@ -189,7 +189,9 @@ export const listDirectThread = createServerFn({ method: "GET" })
       .or(
         `and(sender_id.eq.${context.userId},recipient_id.eq.${data.peerId}),and(sender_id.eq.${data.peerId},recipient_id.eq.${context.userId})`,
       )
-      .order("created_at", { ascending: true })
+      // As mais recentes primeiro e depois invertidas: com ascending + limit, uma
+      // conversa com mais mensagens do que o limite mostrava só as mais antigas.
+      .order("created_at", { ascending: false })
       .limit(data.limit);
 
     if (error) {
@@ -201,7 +203,7 @@ export const listDirectThread = createServerFn({ method: "GET" })
 
     return {
       storage: "sga" as const,
-      messages: (rows ?? []).map((row) => ({
+      messages: [...(rows ?? [])].reverse().map((row) => ({
         id: String(row.id),
         senderId: String(row.sender_id),
         body: String(row.body ?? ""),

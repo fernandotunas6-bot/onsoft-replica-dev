@@ -3,6 +3,9 @@ import { createServerFn } from "@tanstack/react-start";
 import { reportSigaError } from "@/lib/ops-report";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { readSettingsDomain } from "@/features/school/settings-domains";
+import { invoiceNetTotal } from "./invoice-settlement";
+import { lateFeeFor, todayIso } from "./late-fee";
 
 export type GatewayCharge = {
   id: string;
@@ -80,7 +83,7 @@ export const createInvoiceCharge = createServerFn({ method: "POST" })
     }
     const { data: invoice } = await db
       .from("finance_invoices")
-      .select("id, invoice_number, status, amount, discount_amount")
+      .select("id, invoice_number, status, amount, discount_amount, penalty_amount, due_date")
       .eq("id", data.invoiceId)
       .eq("school_id", schoolId)
       .maybeSingle();
@@ -88,7 +91,8 @@ export const createInvoiceCharge = createServerFn({ method: "POST" })
     if (invoice.status === "paid" || invoice.status === "cancelled") {
       throw new Error("Esta factura já não tem valor por pagar.");
     }
-    // O que falta pagar: total, menos desconto, menos os recibos já emitidos.
+    // O que falta pagar: total a pagar (com a multa já aplicada) mais a multa que este
+    // pagamento electrónico leva hoje (late-fee.ts), menos os recibos já emitidos.
     const { data: receipts } = await db
       .from("finance_receipts")
       .select("amount")
@@ -99,7 +103,9 @@ export const createInvoiceCharge = createServerFn({ method: "POST" })
       (sum: number, r: { amount: unknown }) => sum + Number(r.amount || 0),
       0,
     );
-    const due = Number(invoice.amount) - Number(invoice.discount_amount ?? 0) - alreadyPaid;
+    const billing = await readSettingsDomain(db, schoolId, "billing");
+    const lateFee = lateFeeFor(invoice, billing, todayIso(), "electronic");
+    const due = Math.round((invoiceNetTotal(invoice) + lateFee - alreadyPaid) * 100) / 100;
     if (due <= 0.009) throw new Error("Esta factura já não tem valor por pagar.");
     if (data.amount > due + 0.01) {
       throw new Error(`O valor é maior do que o que falta pagar (${due.toFixed(2)} Kz).`);
@@ -190,7 +196,8 @@ export const reconcileOpenCharges = createServerFn({ method: "POST" })
       .from("payment_gateway_charges")
       .select("*")
       .eq("school_id", schoolId)
-      .in("status", ["pending", "needs_review"])
+      // "settling" parado (o Worker morreu a meio) também se retoma; ver STALE_SETTLING_MINUTES.
+      .in("status", ["pending", "needs_review", "settling"])
       .not("provider_charge_id", "is", null)
       .limit(50);
     const { reconcileAppyPayCharge } = await import("@/features/finance/appypay-reconcile.server");

@@ -649,7 +649,6 @@ export async function listSgaTermGrades(params: {
       .from("grade_scores")
       .select("id, grade_item_id, enrollment_id, score, status, updated_at")
       .eq("school_id", schoolId)
-      .neq("status", "reversed")
       .order("updated_at", { ascending: false })
       .order("id", { ascending: true })
       .range(from, Math.min(from + PAGE, maxRows) - 1);

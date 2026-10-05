@@ -325,8 +325,8 @@ const funcoesPublicas = new Set(
  * retrato mostrar a função.
  *
  * `siga_publish_assessment_rule` e `siga_rate_limit_consume` saíram a 2026-09-28.
- * `hr_redeem_teacher_qr_secure` saiu a 2026-10-02, com
- * `20260926203852_harden_teacher_qr_attendance.sql` aplicada: a presença do docente por QR
+ * A 2026-10-02 saíram `settle_gateway_payment_service` (20261002090137) e
+ * `hr_redeem_teacher_qr_secure`, com `20260926203852_harden_teacher_qr_attendance.sql` aplicada: a presença do docente por QR
  * esteve seis dias sem ser registada, porque `hr/teacher-lessons.ts` chamava-a desde
  * eaceb8f2 e a produção devolvia PGRST202.
  *

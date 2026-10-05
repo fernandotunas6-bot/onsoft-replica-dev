@@ -64,3 +64,20 @@ describe("modelo de avaliação", () => {
     expect(ruleChanges(null, decree)).toEqual([]);
   });
 });
+
+describe("roundGrade sem ruído da vírgula flutuante", () => {
+  it("um 10 exacto continua 10 «para baixo» e «para cima»", () => {
+    const media = (9.7 + 10.1 + 10.2) / 3; // 9.999…998 em vírgula flutuante
+    expect(roundGrade(media, "down", 0)).toBe(10);
+    expect(roundGrade((9.4 + 10.3 + 10.3) / 3, "up", 0)).toBe(10); // 10.000…2
+    expect(roundGrade(1.1, "up", 1)).toBe(1.1);
+    expect(roundGrade(1.005, "nearest", 2)).toBe(1.01);
+  });
+
+  it("valores realmente intermédios arredondam como antes", () => {
+    expect(roundGrade(9.99, "down", 0)).toBe(9);
+    expect(roundGrade(10.01, "up", 0)).toBe(11);
+    expect(roundGrade(9.5, "nearest", 0)).toBe(10);
+    expect(roundGrade(9.44, "nearest", 1)).toBe(9.4);
+  });
+});

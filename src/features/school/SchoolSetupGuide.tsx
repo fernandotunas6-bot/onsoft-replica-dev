@@ -150,6 +150,10 @@ export function SchoolSetupGuide() {
           </div>
           <div className="flex items-center gap-2">
             <SubscriptionLine subscription={guide.subscription} />
+            {/* Todos os passos (regulamento do Superior, emolumentos, 2FA…) no assistente. */}
+            <Button asChild size="sm" variant="ghost">
+              <Link to="/configuracoes/inicio">Todos os passos</Link>
+            </Button>
             <Button
               type="button"
               size="sm"

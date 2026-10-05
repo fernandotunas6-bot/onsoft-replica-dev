@@ -4,6 +4,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { realtimeInvalidator } from "@/lib/realtime-invalidate";
 import {
   Activity,
   Building2,
@@ -144,23 +145,26 @@ function Dashboard() {
 
   // Realtime — invalida o overview sempre que dados críticos mudam na BD
   useEffect(() => {
+    const realtime = realtimeInvalidator(queryClient);
+    const overview = () => realtime.invalidate(["dashboard", "overview"]);
     const channel = supabase
       .channel(`dashboard_realtime_overview:${realtimeInstanceId}`)
-      .on("postgres_changes", { event: "*", schema: "public", table: "students" }, () =>
-        queryClient.invalidateQueries({ queryKey: ["dashboard", "overview"] }),
+      .on("postgres_changes", { event: "*", schema: "public", table: "students" }, overview)
+      .on("postgres_changes", { event: "*", schema: "public", table: "enrollments" }, overview)
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "finance_invoices" },
+        overview,
       )
-      .on("postgres_changes", { event: "*", schema: "public", table: "enrollments" }, () =>
-        queryClient.invalidateQueries({ queryKey: ["dashboard", "overview"] }),
-      )
-      .on("postgres_changes", { event: "INSERT", schema: "public", table: "invoices" }, () =>
-        queryClient.invalidateQueries({ queryKey: ["dashboard", "overview"] }),
-      )
-      .on("postgres_changes", { event: "*", schema: "public", table: "school_announcements" }, () =>
-        queryClient.invalidateQueries({ queryKey: ["dashboard", "overview"] }),
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "school_announcements" },
+        overview,
       )
       .subscribe();
 
     return () => {
+      realtime.dispose();
       supabase.removeChannel(channel);
     };
   }, [queryClient, realtimeInstanceId]);

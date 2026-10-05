@@ -17,6 +17,7 @@ o cursor). Só CSS e SVG de ícones: sem vídeo nem imagens, não pesa no carreg
 | Registar (converter) | WEB → `/start` | Aurora suave por trás do formulário: a pessoa sente que continua no mesmo sítio, sem distrair do formulário. |
 | Primeira vitória | WEB → «… está criada» | A mascote recebe a escola nova — o momento de celebração antes de entrar no painel. |
 | Primeiro uso (activar) | SIGA → «Arranque da escola» | O guia usa o mesmo fundo: a escola reconhece o sítio de onde veio e o guia destaca-se do resto do painel. Pronto → peça de vidro com visto. |
+| Primeiro uso (activar) | SIGA → assistente «Configurar a escola» (`/configuracoes/inicio`) | O progresso usa o mesmo fundo do cartão «Arranque»; sai quando a escola fica pronta. |
 | Voltar (reter) | E-mails de fim do período experimental e de registo por concluir | Faixa com o gradiente da marca (os e-mails não animam). |
 
 ## Tons por área

@@ -4,6 +4,7 @@
  */
 import { loadSgaAdminClient } from "@/integrations/supabase/sga-admin";
 import { publicDatabaseError } from "@/integrations/supabase/server-error";
+import { invoiceNetTotal } from "./invoice-settlement";
 
 export type PayflowStudentSyncResult = {
   ok: true;
@@ -130,6 +131,7 @@ export async function executePayflowStudentSync(input: {
     competence_month: string | null;
     amount: number | null;
     discount_amount: number | null;
+    penalty_amount: number | null;
     due_date: string | null;
     status: string;
     fee_item_id: string | null;
@@ -138,7 +140,7 @@ export async function executePayflowStudentSync(input: {
     const { data: invoices, error: invoicesError } = await db
       .from("finance_invoices")
       .select(
-        "id, invoice_number, competence_month, amount, discount_amount, due_date, status, fee_item_id",
+        "id, invoice_number, competence_month, amount, discount_amount, penalty_amount, due_date, status, fee_item_id",
       )
       .eq("school_id", input.schoolId)
       .in("contract_id", contractIds)
@@ -189,7 +191,8 @@ export async function executePayflowStudentSync(input: {
     },
     invoices: invoiceRows
       .map((invoice) => {
-        const net = Number(invoice.amount ?? 0) - Number(invoice.discount_amount ?? 0);
+        // Total a pagar, com a multa por atraso já aplicada (invoice-settlement.ts).
+        const net = invoiceNetTotal(invoice);
         const amount = kzToMinorUnits(net);
         if (amount <= 0) return null;
         const due = invoice.due_date || new Date().toISOString().slice(0, 10);

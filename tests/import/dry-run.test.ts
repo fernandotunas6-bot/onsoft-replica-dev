@@ -219,9 +219,9 @@ describe("dry run não escreve na base", () => {
     expect(writes).toEqual([]);
   });
 
-  it("propinasImporter — will_update quando já há parâmetros", async () => {
+  it("propinasImporter — will_update quando já há regras de cobrança", async () => {
     const { client, writes } = explodingDb();
-    const cache = { existingSettingsId: "bs1" };
+    const cache = { hasBillingRules: true };
     const res = await propinasImporter.commitRow(
       { due_day: 10, late_fee_percent: 5 },
       commitContext(client) as never,

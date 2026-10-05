@@ -30,8 +30,9 @@ export const updateSchoolSettingsInputSchema = z.object({
   phone: angolaPhoneSchema,
   email: z.string().trim().email().max(255),
   address: z.string().trim().min(5).max(200),
-  academicYear: z.string().trim().min(4).max(40),
-  currency: z.string().trim().min(3).max(8),
+  /** Ignorado: o ano lectivo vem de academic_years (calendário). Mantido para clientes antigos. */
+  academicYear: z.string().trim().max(40).optional(),
+  currency: z.enum(["AOA", "USD", "EUR"]),
   // Alinhado com angola-academic (MIN/MAX_EVALUATION_PERIODS) e com o CHECK da
   // tabela `schools`. Antes aceitava 1–6, valores que o resto do sistema não sabe representar.
   evaluationPeriods: z.number().int().min(2).max(3),
@@ -82,6 +83,7 @@ export const updateBillingSettingsInputSchema = z.object({
   dueDay: z.number().int().min(1).max(28),
   lateFeePercent: z.number().min(0).max(100),
   graceDays: z.number().int().min(0).max(60),
+  lateFeeScope: z.enum(["all", "electronic"]),
   siblingDiscountPercent: z.number().min(0).max(100),
 });
 export type UpdateBillingSettingsInput = z.infer<typeof updateBillingSettingsInputSchema>;

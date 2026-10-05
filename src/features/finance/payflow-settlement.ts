@@ -5,6 +5,7 @@ import { settleGatewayPayment } from "@/features/finance/gateway-webhook-handler
 import { minorUnitsToKz } from "@/features/finance/payflow-education-sync";
 import { invoiceNetTotal, invoiceStatusFromPaid } from "@/features/finance/invoice-settlement";
 import { timingSafeEqual } from "@/lib/timing-safe-equal";
+import { reportSigaError } from "@/lib/ops-report";
 
 export const payflowSettlementInputSchema = z.object({
   event: z.enum(["payment.paid", "payment.refunded"]),
@@ -37,7 +38,7 @@ export async function applyPayflowSettlement(input: PayflowSettlementInput) {
 
   const { data: invoice, error } = await db
     .from("finance_invoices")
-    .select("id, status, school_id, amount, discount_amount")
+    .select("id, status, school_id, amount, discount_amount, penalty_amount")
     .eq("id", input.invoice_id)
     .eq("school_id", input.school_id)
     .maybeSingle();
@@ -55,6 +56,11 @@ export async function applyPayflowSettlement(input: PayflowSettlementInput) {
       amount: amountKz,
       method: "transfer",
       reference: input.payment_id,
+      // Chave de idempotência: o índice único (school_id, external_id) de
+      // `finance_receipts` impede um segundo recibo quando o PayFlow reenvia o
+      // mesmo pagamento. Sem ela, numa fatura parcialmente paga cada reenvio
+      // emitia outro recibo enquanto houvesse saldo.
+      externalId: input.payment_id,
     });
     if (settled.alreadyPaid) {
       return {
@@ -75,7 +81,7 @@ export async function applyPayflowSettlement(input: PayflowSettlementInput) {
 
   const { data: receipts, error: receiptsError } = await db
     .from("finance_receipts")
-    .select("id, status")
+    .select("id, status, external_id")
     .eq("invoice_id", input.invoice_id)
     .eq("school_id", input.school_id);
   if (receiptsError) {
@@ -83,7 +89,34 @@ export async function applyPayflowSettlement(input: PayflowSettlementInput) {
   }
 
   const active = (receipts ?? []).filter((row) => String(row.status ?? "") !== "reversed");
-  if (active.length === 0 && invoice.status !== "paid") {
+  // Só o recibo deste pagamento PayFlow. Antes anulavam-se todos os recibos
+  // activos da fatura — também os pagos em caixa ou por outro canal — e o
+  // estorno de um pagamento parcial apagava dinheiro que tinha mesmo entrado.
+  const fromThisPayment = active.filter(
+    (row) =>
+      String((row as { external_id?: string | null }).external_id ?? "") === input.payment_id,
+  );
+  if (fromThisPayment.length === 0 && active.length > 0) {
+    reportSigaError(
+      "finance.settlement.mismatch",
+      new Error("Estorno PayFlow sem recibo correspondente ao pagamento."),
+      {
+        module: "finance",
+        action: "payflow.refund",
+        school_id: input.school_id,
+        invoice_id: input.invoice_id,
+        payment_id: input.payment_id,
+        count: active.length,
+      },
+    );
+    return {
+      ok: false as const,
+      status: 409,
+      message:
+        "Nenhum recibo desta fatura corresponde ao pagamento PayFlow. O estorno exige revisão manual na tesouraria.",
+    };
+  }
+  if (fromThisPayment.length === 0 && invoice.status !== "paid") {
     return {
       ok: true as const,
       status: 200,
@@ -94,7 +127,7 @@ export async function applyPayflowSettlement(input: PayflowSettlementInput) {
 
   const reason = input.reason?.trim() || `Estorno PayFlow ${input.payment_id}`;
   const now = new Date().toISOString();
-  for (const receipt of active) {
+  for (const receipt of fromThisPayment) {
     const { error: reverseError } = await db
       .from("finance_receipts")
       .update({

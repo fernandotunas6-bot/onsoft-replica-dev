@@ -17,6 +17,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { loadSgaAdminClient, resolveSgaMembershipAdmin } from "@/integrations/supabase/sga-admin";
 import { buildSetupGuide, type SetupCounts, type SetupGuide } from "./setup-guide";
+import { loadSchoolTeachingContext } from "@/features/academic/school-structure-seed";
 
 export type SchoolSetupOverview = SetupGuide & {
   schoolName: string;
@@ -193,6 +194,7 @@ export async function loadSetupCounts(
       pendingInvitations,
       students,
       publicEnrollmentOpen: openForms > 0,
+      teachingLevels: (await loadSchoolTeachingContext(db as never, schoolId)).teachingLevels,
     },
   };
 }

@@ -1,5 +1,6 @@
 import { requireAal2 } from "@/features/hr/require-aal2";
 import { createServerFn } from "@tanstack/react-start";
+import { readSettingsDomain } from "@/features/school/settings-domains";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { publicDatabaseError } from "@/integrations/supabase/server-error";
@@ -27,6 +28,7 @@ import {
 // gerador de XML continua a ser carregado dinamicamente dentro do handler.
 import { generateSaftInputSchema } from "./saft-generator";
 import { invoiceNetTotal } from "./invoice-settlement";
+import { lateFeeFor, todayIso } from "./late-fee";
 import { insertFinanceArchive } from "@/features/arquivos/archive-finance-core";
 import { stableDocumentCode } from "@/features/arquivos/document-code";
 import { canWriteFileArea } from "@/features/arquivos/kinds";
@@ -52,6 +54,7 @@ import {
   saftPeriodBounds,
   validateSaftSchoolReadiness,
 } from "./saft-export";
+import { higherEdFeeCodeForCategory } from "@/features/higher-ed/fees";
 
 const REPORTING_PAGE_SIZE = 1000;
 const REPORTING_MAX_PAGES = 30;
@@ -182,17 +185,8 @@ async function resolveSiblingDiscountPercent(
     .maybeSingle();
   if (!activeSibling) return 0;
 
-  const { data: billingSettings } = await db
-    .from("school_settings")
-    .select("value")
-    .eq("school_id", schoolId)
-    .eq("domain", "billing")
-    .maybeSingle();
-  const configured = (billingSettings?.value as Record<string, unknown> | null)?.[
-    "sibling_discount_percent"
-  ];
-  const percent = Number(configured ?? 0);
-  return Number.isFinite(percent) && percent > 0 ? Math.min(percent, 100) : 0;
+  const billing = await readSettingsDomain(db, schoolId, "billing");
+  return billing.sibling_discount_percent;
 }
 
 async function personIdForInvoice(
@@ -202,7 +196,7 @@ async function personIdForInvoice(
 ) {
   const { data: invoice } = await db
     .from("finance_invoices")
-    .select("id, invoice_number, amount, discount_amount, contract_id")
+    .select("id, invoice_number, amount, discount_amount, penalty_amount, contract_id")
     .eq("id", invoiceId)
     .eq("school_id", schoolId)
     .maybeSingle();
@@ -211,7 +205,7 @@ async function personIdForInvoice(
       personId: null as string | null,
       studentNumber: null as string | null,
       invoiceNumber: invoice?.invoice_number ? String(invoice.invoice_number) : null,
-      amount: Number(invoice?.amount ?? 0) - Number(invoice?.discount_amount ?? 0),
+      amount: invoice ? invoiceNetTotal(invoice) : 0,
     };
   }
   const { data: contract } = await db
@@ -224,7 +218,7 @@ async function personIdForInvoice(
       personId: null,
       studentNumber: null,
       invoiceNumber: String(invoice.invoice_number ?? ""),
-      amount: Number(invoice.amount ?? 0) - Number(invoice.discount_amount ?? 0),
+      amount: invoiceNetTotal(invoice),
     };
   }
   const { data: enrollment } = await db
@@ -237,14 +231,14 @@ async function personIdForInvoice(
       personId: null,
       studentNumber: null,
       invoiceNumber: String(invoice.invoice_number ?? ""),
-      amount: Number(invoice.amount ?? 0) - Number(invoice.discount_amount ?? 0),
+      amount: invoiceNetTotal(invoice),
     };
   }
   const student = await personIdForStudent(db, schoolId, String(enrollment.student_id));
   return {
     ...student,
     invoiceNumber: String(invoice.invoice_number ?? ""),
-    amount: Number(invoice.amount ?? 0) - Number(invoice.discount_amount ?? 0),
+    amount: invoiceNetTotal(invoice),
   };
 }
 
@@ -423,7 +417,7 @@ export const getFinanceReporting = createServerFn({ method: "GET" })
         db
           .from("finance_invoices")
           .select(
-            "id, amount, discount_amount, due_date, status, competence_month, fee_item_id, contract_id, created_at",
+            "id, amount, discount_amount, penalty_amount, due_date, status, competence_month, fee_item_id, contract_id, created_at",
           )
           .eq("school_id", membership.schoolId)
           .order("created_at", { ascending: true })
@@ -503,7 +497,7 @@ export const getFinanceReporting = createServerFn({ method: "GET" })
     );
 
     for (const invoice of activeInvoices) {
-      const amount = Number(invoice.amount ?? 0) - Number(invoice.discount_amount ?? 0);
+      const amount = invoiceNetTotal(invoice);
       const paid = paidByInvoice.get(String(invoice.id)) ?? 0;
       const openAmount = Math.max(amount - paid, 0);
       billed += amount;
@@ -596,7 +590,7 @@ export const listInvoices = createServerFn({ method: "GET" })
     const { data: invoices, error } = await db
       .from("finance_invoices")
       .select(
-        "id, contract_id, fee_item_id, invoice_number, competence_month, amount, discount_amount, due_date, status, created_at",
+        "id, contract_id, fee_item_id, invoice_number, competence_month, amount, discount_amount, penalty_amount, due_date, status, created_at",
       )
       .eq("school_id", membership.schoolId)
       .neq("status", "cancelled")
@@ -657,6 +651,10 @@ export const listInvoices = createServerFn({ method: "GET" })
         (paidByInvoice.get(receipt.invoice_id) ?? 0) + Number(receipt.amount ?? 0),
       );
     }
+    // A multa que um pagamento registado hoje levaria (late-fee.ts): a tesouraria vê-a
+    // antes de receber, em vez de a fatura ficar «parcial» depois.
+    const billing = await readSettingsDomain(db, membership.schoolId, "billing");
+    const today = todayIso();
 
     return (invoices ?? []).map(
       (invoice: {
@@ -666,6 +664,7 @@ export const listInvoices = createServerFn({ method: "GET" })
         invoice_number: string;
         amount: number;
         discount_amount: number;
+        penalty_amount: number;
         due_date: string;
         status: string;
         created_at: string;
@@ -674,11 +673,12 @@ export const listInvoices = createServerFn({ method: "GET" })
         const enrollment = contract ? enrollmentById.get(contract.enrollment_id) : null;
         const student = enrollment ? studentById.get(enrollment.student_id) : null;
         const fee = invoice.fee_item_id ? feeById.get(invoice.fee_item_id) : null;
-        const total = Number(invoice.amount ?? 0) - Number(invoice.discount_amount ?? 0);
+        const total = invoiceNetTotal(invoice);
         const paid = paidByInvoice.get(invoice.id) ?? 0;
         let status = mapInvoiceStatus(invoice.status);
         if (status !== "void" && paid > 0 && paid < total) status = "partial";
         if (status !== "void" && paid >= total && total > 0) status = "paid";
+        const open = status !== "void" && status !== "paid";
         return {
           id: invoice.id,
           number: invoice.invoice_number,
@@ -690,6 +690,11 @@ export const listInvoices = createServerFn({ method: "GET" })
           due_on: invoice.due_date,
           total_amount: total,
           amount_paid: paid,
+          penalty_amount: Number(invoice.penalty_amount ?? 0),
+          late_fee_today: {
+            counter: open ? lateFeeFor(invoice, billing, today, "counter") : 0,
+            electronic: open ? lateFeeFor(invoice, billing, today, "electronic") : 0,
+          },
           status,
         };
       },
@@ -848,7 +853,8 @@ export const recordInvoicePayment = createServerFn({ method: "POST" })
 
 const paymentReferenceInputSchema = z.object({
   invoiceId: z.string().uuid(),
-  amount: z.number().positive().max(100_000_000),
+  /** Sem valor, a referência é do que falta pagar (com a multa de um pagamento hoje). */
+  amount: z.number().positive().max(100_000_000).optional(),
 });
 
 export const generateInvoicePaymentReference = createServerFn({ method: "POST" })
@@ -865,7 +871,7 @@ export const generateInvoicePaymentReference = createServerFn({ method: "POST" }
     const db = await loadSgaAdminClient();
     const { data: invoice, error: invoiceError } = await db
       .from("finance_invoices")
-      .select("id, status, amount, discount_amount")
+      .select("id, status, amount, discount_amount, penalty_amount, due_date")
       .eq("id", data.invoiceId)
       .eq("school_id", membership.schoolId)
       .maybeSingle();
@@ -886,8 +892,14 @@ export const generateInvoicePaymentReference = createServerFn({ method: "POST" }
       (sum: number, r: { amount: unknown }) => sum + Number(r.amount || 0),
       0,
     );
-    const due = Number(invoice.amount) - Number(invoice.discount_amount ?? 0) - alreadyPaid;
-    if (data.amount > due + 0.01) {
+    // A referência é paga electronicamente: se hoje já é depois da tolerância, a liquidação
+    // (webhook ou confirmação manual) aplica a multa, e a referência tem de a incluir.
+    const billing = await readSettingsDomain(db, membership.schoolId, "billing");
+    const lateFee = lateFeeFor(invoice, billing, todayIso(), "electronic");
+    const due = Math.round((invoiceNetTotal(invoice) + lateFee - alreadyPaid) * 100) / 100;
+    if (due <= 0.009) throw new Error("Esta fatura já não tem valor por pagar.");
+    const amount = data.amount ?? due;
+    if (amount > due + 0.01) {
       throw new Error(`O valor é maior do que o que falta pagar (${due.toFixed(2)} Kz).`);
     }
 
@@ -899,9 +911,11 @@ export const generateInvoicePaymentReference = createServerFn({ method: "POST" }
         "A entidade EMIS da escola não está configurada. Defina-a em Definições → Integrações → Multicaixa antes de gerar referências.",
       );
     }
-    const mcx = generateMulticaixaReference(emisEntity, data.invoiceId, data.amount);
+    const mcx = generateMulticaixaReference(emisEntity, data.invoiceId, amount);
     return {
       multicaixa: mcx,
+      /** Multa por atraso incluída no valor (0 quando não há). */
+      lateFee,
       // Só carteiras configuradas pela escola; nenhuma está ainda — nunca dados de exemplo.
       mobileWallets: [] as MobileWalletPayment[],
       emisEntity,
@@ -1115,16 +1129,27 @@ export const issueInvoice = createServerFn({ method: "POST" })
         ? Math.round(((data.amount * contractDiscountPercent) / 100) * 100) / 100
         : 0;
 
-    const kind = categoryToFeeKind(data.category);
+    // Emolumento do Ensino Superior: o item certo pelo código, não o primeiro activo.
+    const feeCode = higherEdFeeCodeForCategory(data.category);
+    const kind = feeCode ? null : categoryToFeeKind(data.category);
     let feeQuery = db
       .from("fee_items")
       .select("id, name, amount")
       .eq("school_id", membership.schoolId)
       .eq("fee_plan_id", plan.id)
       .eq("is_active", true);
-    if (kind) feeQuery = feeQuery.eq("kind", kind);
+    if (feeCode) feeQuery = feeQuery.eq("code", feeCode);
+    else if (kind) feeQuery = feeQuery.eq("kind", kind);
+    // «Documento»/«Outro» não se ligam a um emolumento do Superior por acaso.
+    else feeQuery = feeQuery.neq("kind", "service");
     const { data: feeItem } = await feeQuery.limit(1).maybeSingle();
-    if (!feeItem?.id) throw new Error("Não há item de taxa activo para esta categoria.");
+    if (!feeItem?.id) {
+      throw new Error(
+        feeCode
+          ? "Este emolumento ainda não está definido. Defina o valor em Ensino Superior → Emolumentos."
+          : "Não há item de taxa activo para esta categoria.",
+      );
+    }
 
     const competenceMonth =
       (data.issuedOn ?? new Date().toISOString().slice(0, 10)).slice(0, 7) + "-01";
@@ -1307,6 +1332,25 @@ export const reverseCashEntry = createServerFn({ method: "POST" })
       return receipt;
     }
 
+    // Uma saída de caixa que pagou um salário não se anula aqui: o salário
+    // ficava «pago» com o dinheiro devolvido ao caixa, e a ordem e a folha
+    // diziam o contrário do caixa.
+    const { data: payrollLink, error: payrollLinkError } = await db
+      .from("hr_payroll_payment_items")
+      .select("id, status")
+      .eq("school_id", membership.schoolId)
+      .eq("cash_expense_id", data.cashEntryId)
+      .limit(1)
+      .maybeSingle();
+    if (payrollLinkError && !isMissingSgaTable(payrollLinkError)) {
+      throw publicDatabaseError(payrollLinkError, "Não foi possível verificar a despesa.");
+    }
+    if (payrollLink?.id) {
+      throw new Error(
+        "Esta saída pagou um salário e não se anula no caixa: a folha continuaria a dar o salário como pago. A correcção tem de ser feita no pagamento salarial (Recursos Humanos).",
+      );
+    }
+
     const { data: expense, error: expenseError } = await db
       .from("siga_cash_expenses")
       .update({
@@ -1345,8 +1389,8 @@ export const createPaymentPlan = createServerFn({ method: "POST" })
       const { data: invoiceRow, error: invoiceError } = await db
         .from("finance_invoices")
         // `total_amount` não existe em `finance_invoices` (as colunas são
-        // `amount` e `discount_amount`).
-        .select("id, amount, discount_amount, status")
+        // `amount`, `discount_amount` e `penalty_amount`).
+        .select("id, amount, discount_amount, penalty_amount, due_date, status")
         .eq("id", data.invoiceId)
         .eq("school_id", membership.schoolId)
         .maybeSingle();
@@ -1367,7 +1411,13 @@ export const createPaymentPlan = createServerFn({ method: "POST" })
         (sum: number, row: { amount: unknown }) => sum + Number(row.amount || 0),
         0,
       );
-      amountDue = Math.max(invoiceNetTotal(invoiceRow) - paid, 0);
+      // Paga-se por referência (electrónico): inclui a multa de um pagamento hoje.
+      const billing = await readSettingsDomain(db, membership.schoolId, "billing");
+      const lateFee = lateFeeFor(invoiceRow, billing, todayIso(), "electronic");
+      amountDue = Math.max(
+        Math.round((invoiceNetTotal(invoiceRow) + lateFee - paid) * 100) / 100,
+        0,
+      );
     }
     if (data.studentId) {
       const { data: studentRow, error: studentError } = await db
@@ -1743,12 +1793,13 @@ export const exportSaftAoXml = createServerFn({ method: "POST" })
     ]);
     const db = await loadSgaAdminClient();
 
-    const [{ data: schoolSetting }, { data: agtSetting }] = await Promise.all([
+    // Os dados fiscais da escola vivem na tabela `schools` (não há domínio
+    // «school» em school_settings: lê-lo deixava a exportação sempre bloqueada).
+    const [{ data: schoolRow }, { data: agtSetting }] = await Promise.all([
       db
-        .from("school_settings")
-        .select("value")
-        .eq("school_id", membership.schoolId)
-        .eq("domain", "school")
+        .from("schools")
+        .select("name, nif, address, city, municipality")
+        .eq("id", membership.schoolId)
         .maybeSingle(),
       db
         .from("school_settings")
@@ -1758,15 +1809,14 @@ export const exportSaftAoXml = createServerFn({ method: "POST" })
         .maybeSingle(),
     ]);
 
-    const schoolVal = (schoolSetting?.value as Record<string, unknown>) ?? {};
     const agtVal = (agtSetting?.value as Record<string, unknown>) ?? {};
     const text = (v: unknown) => (typeof v === "string" ? v.trim() : "");
     // Sem valores inventados: o que faltar fica vazio e aparece nos avisos.
     const schoolInfo = {
-      nif: text(schoolVal["nif"]) || text(schoolVal["taxId"]),
-      name: text(schoolVal["name"]) || text(schoolVal["schoolName"]),
-      address: text(schoolVal["address"]),
-      city: text(schoolVal["city"]),
+      nif: text(schoolRow?.nif),
+      name: text(schoolRow?.name),
+      address: text(schoolRow?.address),
+      city: text(schoolRow?.city) || text(schoolRow?.municipality),
     };
 
     const readiness = validateSaftSchoolReadiness(schoolInfo);

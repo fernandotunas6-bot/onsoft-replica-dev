@@ -8,6 +8,8 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 export const STUDENT_STAFF_ROLES = ["Administrador", "Secretaria", "Tesouraria", "Professor"];
+/** Vêem todos os alunos da escola. O professor vê só os das suas turmas. */
+export const STUDENT_OFFICE_ROLES = ["Administrador", "Secretaria", "Tesouraria"];
 
 export type StudentScope =
   { all: true } | { all: false; studentIds: string[]; personIds: string[] };
@@ -62,13 +64,95 @@ export async function resolveVerifiedAccountEmail(
   }
 }
 
-/** Pessoal da escola não precisa de consulta; os outros resolvem as ligações. */
+/**
+ * Turmas do professor: as das disciplinas que lecciona (as mesmas que a árvore
+ * da barra lateral mostra) e aquelas de que é director de turma.
+ */
+export async function teacherClassGroupIds(
+  db: SupabaseClient,
+  schoolId: string,
+  teacherId: string,
+): Promise<string[]> {
+  const [{ data: subjects, error: subjectsError }, { data: homerooms, error: homeroomError }] =
+    await Promise.all([
+      db
+        .from("class_subjects")
+        .select("class_group_id")
+        .eq("school_id", schoolId)
+        .eq("teacher_id", teacherId)
+        .eq("status", "active"),
+      db
+        .from("class_groups")
+        .select("id")
+        .eq("school_id", schoolId)
+        .eq("homeroom_teacher_id", teacherId),
+    ]);
+  // Falha fechada: sem saber as turmas, o professor não vê alunos.
+  if (subjectsError || homeroomError) return [];
+  return [
+    ...new Set([
+      ...(subjects ?? []).map((row: { class_group_id: string }) => String(row.class_group_id)),
+      ...(homerooms ?? []).map((row: { id: string }) => String(row.id)),
+    ]),
+  ];
+}
+
+/** Alunos (e as fichas deles e dos encarregados) das turmas do professor. */
+async function teacherStudentScope(
+  db: SupabaseClient,
+  schoolId: string,
+  teacherId: string | null,
+  ownPersonId: string | null,
+): Promise<{ studentIds: string[]; personIds: string[] }> {
+  const own = ownPersonId ? [ownPersonId] : [];
+  if (!teacherId) return { studentIds: [], personIds: own };
+  const classGroupIds = await teacherClassGroupIds(db, schoolId, teacherId);
+  if (!classGroupIds.length) return { studentIds: [], personIds: own };
+  const { data: enrollments, error } = await db
+    .from("enrollments")
+    .select("student_id")
+    .eq("school_id", schoolId)
+    .in("class_group_id", classGroupIds)
+    .in("status", ["active", "pending"]);
+  if (error) return { studentIds: [], personIds: own };
+  const studentIds = [
+    ...new Set((enrollments ?? []).map((row: { student_id: string }) => String(row.student_id))),
+  ];
+  if (!studentIds.length) return { studentIds, personIds: own };
+  const [{ data: students }, { data: guardians }] = await Promise.all([
+    db.from("students").select("person_id").eq("school_id", schoolId).in("id", studentIds),
+    db
+      .from("student_guardians")
+      .select("guardian_person_id")
+      .eq("school_id", schoolId)
+      .in("student_id", studentIds),
+  ]);
+  return {
+    studentIds,
+    personIds: [
+      ...new Set([
+        ...own,
+        ...(students ?? []).map((row: { person_id: string }) => String(row.person_id)),
+        ...(guardians ?? []).map((row: { guardian_person_id: string }) =>
+          String(row.guardian_person_id),
+        ),
+      ]),
+    ],
+  };
+}
+
+/**
+ * Direcção, Secretaria e Tesouraria vêem todos. O professor vê os alunos das
+ * turmas onde dá aulas (e os encarregados deles); aluno e encarregado, os seus.
+ * Com vários papéis, junta-se o que cada um dá.
+ */
 export async function loadStudentScope(
   db: SupabaseClient,
-  membership: { schoolId: string; appRole: string },
+  membership: { schoolId: string; appRole: string; allAppRoles?: readonly string[] },
   userId: string,
 ): Promise<StudentScope> {
-  if (STUDENT_STAFF_ROLES.includes(membership.appRole)) return { all: true };
+  const roles = membership.allAppRoles?.length ? membership.allAppRoles : [membership.appRole];
+  if (roles.some((role) => STUDENT_OFFICE_ROLES.includes(role))) return { all: true };
   const { resolveUserLinkedEntities } = await import("@/features/auth/server");
   const verifiedEmail = await resolveVerifiedAccountEmail(db, userId);
   const linked = await resolveUserLinkedEntities(
@@ -79,7 +163,7 @@ export async function loadStudentScope(
   );
   const childIds = linked.linked_students.map((s) => s.student_id);
   let childPersonIds: string[] = [];
-  if (membership.appRole === "Encarregado" && childIds.length) {
+  if (roles.includes("Encarregado") && childIds.length) {
     const { data } = await db
       .from("students")
       .select("person_id")
@@ -87,5 +171,24 @@ export async function loadStudentScope(
       .in("id", childIds);
     childPersonIds = (data ?? []).map((row: { person_id: string }) => row.person_id);
   }
-  return studentScopeFor(membership.appRole, linked, childPersonIds);
+  const scopes = roles
+    .filter((role) => role === "Aluno" || role === "Encarregado")
+    .map((role) => studentScopeFor(role, linked, childPersonIds))
+    .filter((scope): scope is Extract<StudentScope, { all: false }> => !scope.all);
+  if (roles.includes("Professor")) {
+    scopes.push({
+      all: false,
+      ...(await teacherStudentScope(db, membership.schoolId, linked.teacher_id, linked.person_id)),
+    });
+  }
+  return {
+    all: false,
+    studentIds: [...new Set(scopes.flatMap((scope) => scope.studentIds))],
+    personIds: [
+      ...new Set([
+        ...(linked.person_id ? [linked.person_id] : []),
+        ...scopes.flatMap((scope) => scope.personIds),
+      ]),
+    ],
+  };
 }

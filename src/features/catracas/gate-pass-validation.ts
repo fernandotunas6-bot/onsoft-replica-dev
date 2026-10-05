@@ -72,17 +72,33 @@ export async function resolveGatePassDeviceByApiKey(
   };
 }
 
+/**
+ * Que identificadores do cartão abrem a passagem.
+ *
+ * - `secret` (leitor físico, sem sessão): só o QR (`qr_secret`) e a tag RFID. O número
+ *   e o "código de barras" estão impressos em texto no cartão — quem visse um cartão
+ *   podia escrevê-los num leitor e passar com ele.
+ * - `staff` (portaria com sessão SIGA): também aceita o número e o código impressos,
+ *   para a entrada manual por um funcionário.
+ */
+export type GatePassTokenScope = "secret" | "staff";
+
 export async function findGatePassCard(
   db: SupabaseClient,
   schoolId: string,
   tokens: string[],
+  scope: GatePassTokenScope = "secret",
 ): Promise<GatePassCardRow | null> {
   for (const token of tokens) {
+    const filter =
+      scope === "staff"
+        ? `card_number.eq.${token},barcode.eq.${token},qr_secret.eq.${token},rfid_tag.eq.${token}`
+        : `qr_secret.eq.${token},rfid_tag.eq.${token}`;
     const { data: found } = await db
       .from("siga_access_cards")
       .select("id, person_id, student_id, status, card_number")
       .eq("school_id", schoolId)
-      .or(`card_number.eq.${token},barcode.eq.${token},qr_secret.eq.${token},rfid_tag.eq.${token}`)
+      .or(filter)
       .maybeSingle();
     if (found) return found;
   }
@@ -113,6 +129,7 @@ export async function evaluateGatePassAccess(
   tokens: string[],
   direction: "entry" | "exit",
   device: GatePassDeviceContext,
+  scope: GatePassTokenScope = "secret",
 ): Promise<GatePassEvaluation> {
   if (device.blockPassage) {
     return {
@@ -121,7 +138,7 @@ export async function evaluateGatePassAccess(
     };
   }
 
-  const card = await findGatePassCard(db, schoolId, tokens);
+  const card = await findGatePassCard(db, schoolId, tokens, scope);
 
   if (!card) {
     await insertAccessLog(db, {

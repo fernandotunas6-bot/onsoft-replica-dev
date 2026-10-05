@@ -95,13 +95,20 @@ describe("estorno PayFlow", () => {
     currency: "AOA",
   };
 
-  it("anula os recibos e reabre a fatura paga como 'open', sem colunas inexistentes", async () => {
+  it("anula o recibo do pagamento e reabre a fatura paga como 'open', sem colunas inexistentes", async () => {
     const { db, writes } = fakeDb({
       finance_invoices: [
         { id: invoiceId, school_id: school, status: "paid", amount: 15000, discount_amount: 0 },
       ],
       finance_receipts: [
-        { id: "r1", invoice_id: invoiceId, school_id: school, status: "issued", amount: 15000 },
+        {
+          id: "r1",
+          invoice_id: invoiceId,
+          school_id: school,
+          status: "issued",
+          amount: 15000,
+          external_id: "pay_refund_1",
+        },
       ],
     });
     current.db = db;
@@ -115,7 +122,7 @@ describe("estorno PayFlow", () => {
     expect(writes[1]!.filters).toMatchObject({ status: "paid" });
   });
 
-  it("fatura parcialmente paga também volta a 'open' quando todos os recibos são anulados", async () => {
+  it("fatura parcialmente paga também volta a 'open' quando o recibo PayFlow é anulado", async () => {
     const { db, writes } = fakeDb({
       finance_invoices: [
         {
@@ -127,7 +134,14 @@ describe("estorno PayFlow", () => {
         },
       ],
       finance_receipts: [
-        { id: "r1", invoice_id: invoiceId, school_id: school, status: "issued", amount: 5000 },
+        {
+          id: "r1",
+          invoice_id: invoiceId,
+          school_id: school,
+          status: "issued",
+          amount: 5000,
+          external_id: "pay_refund_1",
+        },
       ],
     });
     current.db = db;
@@ -148,7 +162,14 @@ describe("estorno PayFlow", () => {
         },
       ],
       finance_receipts: [
-        { id: "r1", invoice_id: invoiceId, school_id: school, status: "issued", amount: 15000 },
+        {
+          id: "r1",
+          invoice_id: invoiceId,
+          school_id: school,
+          status: "issued",
+          amount: 15000,
+          external_id: "pay_refund_1",
+        },
       ],
     });
     current.db = db;

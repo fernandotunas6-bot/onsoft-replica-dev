@@ -238,7 +238,6 @@ async function loadPrePauta(
             itemRows.map((i) => str(i["id"])),
           )
           .in("enrollment_id", enrollmentIds)
-          .neq("status", "reversed")
       : { data: [] as Row[] };
 
   const subjectName = new Map(

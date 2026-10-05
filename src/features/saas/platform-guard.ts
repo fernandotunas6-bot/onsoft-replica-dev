@@ -1,6 +1,7 @@
 import { loadSgaAdminClient, resolveSgaMembershipAdmin } from "@/integrations/supabase/sga-admin";
 import { publicDatabaseError } from "@/integrations/supabase/server-error";
 import type { ApplicationRole } from "@/features/auth/access-policy";
+import { assertSessionMfa } from "@/integrations/supabase/session-mfa";
 
 /**
  * Administrador da plataforma ≠ cargo escolar. Tabela `platform_admins`
@@ -101,7 +102,10 @@ export async function resolveBearerSession(
   const db = await loadSgaAdminClient();
   const { data, error } = await db.auth.getUser(token);
   if (error || !data.user) throw new Error("Unauthorized");
-  return { userId: data.user.id, aal: tokenAal(token) };
+  const aal = tokenAal(token);
+  // Conta com 2FA activo não entra com o token aal1 de antes do código.
+  await assertSessionMfa(data.user.id, aal);
+  return { userId: data.user.id, aal };
 }
 
 export async function resolveBearerUserId(authorization: string | null): Promise<string> {

@@ -17,6 +17,67 @@ import {
 // Table: public.school_announcements
 // Status values: 'draft' | 'scheduled' | 'sent'  (no 'archived' — use soft-delete deleted_at instead)
 
+const ANNOUNCEMENT_STAFF_ROLES = ["Administrador", "Secretaria", "Tesouraria", "Professor"];
+
+/**
+ * Públicos que um aluno, encarregado ou outro utilizador pode ler. O aviso aos
+ * encarregados em dívida só chega a quem tem uma factura vencida por pagar de
+ * um educando.
+ */
+export async function visibleAnnouncementAudiences(
+  db: Awaited<ReturnType<typeof loadSgaAdminClient>>,
+  membership: { schoolId: string; appRole: string; allAppRoles?: readonly string[] },
+  userId: string,
+): Promise<string[]> {
+  const roles = membership.allAppRoles?.length ? membership.allAppRoles : [membership.appRole];
+  const audiences = new Set<string>();
+  if (roles.includes("Aluno")) {
+    ["all_guardians", "students_secondary", "students_finalists"].forEach((a) => audiences.add(a));
+  }
+  if (roles.includes("Encarregado")) {
+    audiences.add("all_guardians");
+    const { loadStudentScope } = await import("@/features/students/student-scope");
+    const scope = await loadStudentScope(db as never, membership, userId);
+    if (
+      !scope.all &&
+      scope.studentIds.length &&
+      (await hasOverdueInvoice(db, membership.schoolId, scope.studentIds))
+    ) {
+      audiences.add("guardians_with_debt");
+    }
+  }
+  return [...audiences];
+}
+
+async function hasOverdueInvoice(
+  db: Awaited<ReturnType<typeof loadSgaAdminClient>>,
+  schoolId: string,
+  studentIds: string[],
+): Promise<boolean> {
+  const { data: enrollments } = await db
+    .from("enrollments")
+    .select("id")
+    .eq("school_id", schoolId)
+    .in("student_id", studentIds);
+  const enrollmentIds = (enrollments ?? []).map((row: { id: string }) => row.id);
+  if (!enrollmentIds.length) return false;
+  const { data: contracts } = await db
+    .from("finance_contracts")
+    .select("id")
+    .eq("school_id", schoolId)
+    .in("enrollment_id", enrollmentIds);
+  const contractIds = (contracts ?? []).map((row: { id: string }) => row.id);
+  if (!contractIds.length) return false;
+  const { count } = await db
+    .from("finance_invoices")
+    .select("id", { count: "exact", head: true })
+    .eq("school_id", schoolId)
+    .in("contract_id", contractIds)
+    .in("status", ["open", "partially_paid"])
+    .lt("due_date", new Date().toISOString().slice(0, 10));
+  return (count ?? 0) > 0;
+}
+
 export const listSchoolAnnouncements = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .validator((input: unknown) => listAnnouncementsInputSchema.parse(input ?? {}))
@@ -49,10 +110,14 @@ export const listSchoolAnnouncements = createServerFn({ method: "GET" })
     if (data.status) {
       query = query.eq("status", data.status);
     }
-    // Rascunhos, agendados e avisos ao corpo docente não são para alunos e encarregados.
+    // Rascunhos e agendados são do pessoal. Os outros vêem só os comunicados
+    // do seu público: antes viam todos menos os do corpo docente — incluindo o
+    // aviso de cobrança aos encarregados em dívida e os de antigos alunos.
     const roles: string[] = membership.allAppRoles ?? [membership.appRole];
-    if (!["Administrador", "Secretaria", "Professor"].some((role) => roles.includes(role))) {
-      query = query.eq("status", "sent").neq("audience", "teaching_staff");
+    if (!ANNOUNCEMENT_STAFF_ROLES.some((role) => roles.includes(role))) {
+      const audiences = await visibleAnnouncementAudiences(db, membership, context.userId);
+      if (!audiences.length) return [];
+      query = query.eq("status", "sent").in("audience", audiences);
     }
 
     const { data: announcements, error } = await query;

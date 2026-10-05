@@ -110,14 +110,17 @@ describe("Academic Advanced Importers (presencas, pautas, propinas)", () => {
 
   describe("propinasImporter", () => {
     it("rejeita dia de vencimento inválido", () => {
-      const cache = { existingSettingsId: null };
+      const cache = { hasBillingRules: false };
       const analysis = propinasImporter.analyzeRow({ due_day: 35 }, cache as any);
       expect(analysis.status).toBe("error");
-      expect(analysis.errors).toContain("Dia de vencimento deve ser entre 1 e 31.");
+      // Os limites de Definições › Cobrança (settings-domains.ts): 1 a 28.
+      expect(analysis.errors).toContain(
+        "Dia de vencimento deve ser um número inteiro entre 1 e 28.",
+      );
     });
 
     it("reconhece parâmetros válidos de propinas", () => {
-      const cache = { existingSettingsId: null };
+      const cache = { hasBillingRules: false };
       const analysis = propinasImporter.analyzeRow(
         { due_day: 10, late_fee_percent: 10, grace_days: 5 },
         cache as any,

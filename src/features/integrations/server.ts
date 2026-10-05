@@ -15,14 +15,20 @@ import {
   type CatalogIntegrationId,
 } from "./catalog";
 import { capabilityIdsFor, installPackageFor, parseGrantedCapabilities } from "./install";
-import { generateWebhookApiKey, buildRotatedWebhookConfig } from "./gateway-webhook-key";
+import {
+  generateWebhookApiKey,
+  buildRotatedWebhookConfig,
+  maskGatewayWebhookKeys,
+} from "./gateway-webhook-key";
+import { requireAal2 } from "@/features/hr/require-aal2";
 import {
   normalizeResendRecipients,
   resolveResendCredentials,
   resolveSystemSender,
   sendResendEmail,
 } from "./resend-client";
-import { checkRateLimit, isRateLimitBypassed, recordRateLimitAttempt } from "@/lib/rate-limit";
+import { isRateLimitBypassed } from "@/lib/rate-limit";
+import { consumeRateLimit } from "@/lib/shared-rate-limit";
 import {
   normalizeWhatsAppRecipients,
   resolveWhatsAppCredentials,
@@ -93,6 +99,10 @@ function integrationPublicRow(
   };
 }
 
+/** Gateways de pagamento: o comerciante decide para onde vai o dinheiro e a
+ * chave do webhook emite recibos — mexer neles exige 2FA, como o IBAN. */
+const PAYMENT_PROVIDERS = new Set(["multicaixa_express", "unitel_money"]);
+
 export type SchoolIntegrationSummary = ReturnType<typeof integrationPublicRow>;
 
 export const listSchoolIntegrations = createServerFn({ method: "GET" })
@@ -109,7 +119,15 @@ export const listSchoolIntegrations = createServerFn({ method: "GET" })
         .select("provider, status, config, updated_at")
         .eq("school_id", membership.schoolId);
       if (error) throw error;
-      const byProvider = new Map((data ?? []).map((row) => [row.provider, row]));
+      // A API key do gateway emite recibos (POST /api/finance/gateway/confirm):
+      // só sai em claro para uma sessão com 2FA, como o resto do dinheiro.
+      const revealKeys = context.claims?.["aal"] === "aal2";
+      const byProvider = new Map(
+        (data ?? []).map((row) => [
+          row.provider,
+          { ...row, config: maskGatewayWebhookKeys(row.config, revealKeys) },
+        ]),
+      );
       return academicIntegrationCatalog.map((item) =>
         integrationPublicRow(item, byProvider.get(item.id)),
       );
@@ -166,8 +184,29 @@ export const upsertSchoolIntegration = createServerFn({ method: "POST" })
     if (!isCatalogIntegrationId(data.provider)) {
       throw new Error("Integração desconhecida no catálogo SIGA.");
     }
+    if (PAYMENT_PROVIDERS.has(data.provider)) {
+      requireAal2(context.claims ?? {}, "Configurar um gateway de pagamentos");
+    }
     const db = await loadSgaAdminClient();
     const existing = await readIntegrationConfig(db, membership.schoolId, data.provider);
+    const previousMerchant = String(existing["merchantId"] ?? "");
+    const nextMerchant = String(data.merchantId ?? existing["merchantId"] ?? "");
+    if (PAYMENT_PROVIDERS.has(data.provider) && nextMerchant !== previousMerchant) {
+      const { error: auditError } = await db.from("audit_logs").insert({
+        school_id: membership.schoolId,
+        actor_user_id: context.userId,
+        action: "integration.payment_merchant.changed",
+        entity_type: "school_integration",
+        entity_id: null,
+        metadata: { provider: data.provider, before: previousMerchant, after: nextMerchant },
+      });
+      if (auditError) {
+        throw publicDatabaseError(
+          auditError,
+          "Não foi possível registar a alteração na auditoria.",
+        );
+      }
+    }
     const { error } = await db.from("school_integrations").upsert(
       {
         school_id: membership.schoolId,
@@ -198,6 +237,9 @@ export const installSchoolIntegration = createServerFn({ method: "POST" })
     ]);
     if (!isCatalogIntegrationId(data.provider)) {
       throw new Error("Integração desconhecida no catálogo SIGA.");
+    }
+    if (PAYMENT_PROVIDERS.has(data.provider)) {
+      requireAal2(context.claims ?? {}, "Instalar um gateway de pagamentos");
     }
     const pack = installPackageFor(data.provider);
     if (!pack) throw new Error("Pacote de instalação em falta.");
@@ -272,6 +314,7 @@ export const rotateGatewayWebhookApiKey = createServerFn({ method: "POST" })
   .validator((input: unknown) => rotateGatewayWebhookKeyInputSchema.parse(input))
   .handler(async ({ data, context }) => {
     if (!context) throw new Error("Unauthorized");
+    requireAal2(context.claims ?? {}, "Gerar a API key do gateway de pagamentos");
     const membership = await requireSgaWriterForWrite("gestao", context.supabase, context.userId, [
       "Administrador",
     ]);
@@ -324,11 +367,41 @@ async function withoutOptedOutPhones(
     .select("phone")
     .eq("school_id", schoolId)
     .in("user_id", userIds);
-  // Mesma normalização dos destinatários, para comparar números iguais.
-  const blocked = new Set(
-    normalizeWhatsAppRecipients((people ?? []).map((row) => String(row.phone ?? ""))),
+  // Últimos 9 dígitos: o mesmo número em formato WhatsApp (dígitos) ou SMS (+E164).
+  const blocked = new Set((people ?? []).map((row) => phoneKey(String(row.phone ?? ""))));
+  return recipients.filter((phone) => !blocked.has(phoneKey(phone)));
+}
+
+const phoneKey = (phone: string) => phone.replace(/\D/g, "").slice(-9);
+
+/**
+ * Com credenciais da plataforma (SMS Twilio, token WhatsApp do SIGA), só se envia
+ * para números registados nesta escola: sem isto, uma escola criada pelo registo
+ * público mandava mensagens pagas pela plataforma a qualquer número.
+ */
+async function onlySchoolPhones(
+  db: Awaited<ReturnType<typeof loadSgaAdminClient>>,
+  schoolId: string,
+  recipients: string[],
+): Promise<string[]> {
+  const { data: people } = await db
+    .from("people")
+    .select("phone")
+    .eq("school_id", schoolId)
+    .not("phone", "is", null)
+    .limit(20000);
+  const known = new Set(
+    (people ?? [])
+      .map((row) => phoneKey(String(row.phone ?? "")))
+      .filter((key) => key.length === 9),
   );
-  return recipients.filter((phone) => !blocked.has(phone));
+  return recipients.filter((phone) => known.has(phoneKey(phone)));
+}
+
+/** Limite por escola e por hora, partilhado entre instâncias do Worker. */
+async function platformQuotaOk(key: string) {
+  if (isRateLimitBypassed(key)) return true;
+  return consumeRateLimit([key], PLATFORM_EMAIL_RATE_LIMIT);
 }
 
 async function withoutOptedOutRecipients(
@@ -422,17 +495,12 @@ export const sendSchoolResendEmail = createServerFn({ method: "POST" })
 
     let from = credentials.from;
     if (usingPlatformKey) {
-      const rateLimitKey = `platform_email:${membership.schoolId}`;
-      if (
-        !isRateLimitBypassed(rateLimitKey) &&
-        !checkRateLimit([rateLimitKey], PLATFORM_EMAIL_RATE_LIMIT)
-      ) {
+      if (!(await platformQuotaOk(`platform_email:${membership.schoolId}`))) {
         return {
           mode: "clipboard" as const,
           reason: "Limite de envios por hora atingido. Configure uma chave Resend própria.",
         };
       }
-      recordRateLimitAttempt([rateLimitKey], PLATFORM_EMAIL_RATE_LIMIT);
       // Só para contactos desta escola, e com o remetente do sistema.
       const { data: known } = await db
         .from("people")
@@ -537,18 +605,14 @@ export const sendSchoolWhatsAppMessage = createServerFn({ method: "POST" })
     const ownToken = String(
       config.accessToken ?? config.apiKey ?? config.webhookApiKey ?? config.callbackUrl ?? "",
     ).trim();
-    if (!ownToken || /^https?:\/\//i.test(ownToken)) {
-      const rateLimitKey = `platform_whatsapp:${membership.schoolId}`;
-      if (
-        !isRateLimitBypassed(rateLimitKey) &&
-        !checkRateLimit([rateLimitKey], PLATFORM_EMAIL_RATE_LIMIT)
-      ) {
+    const usingPlatformToken = !ownToken || /^https?:\/\//i.test(ownToken);
+    if (usingPlatformToken) {
+      if (!(await platformQuotaOk(`platform_whatsapp:${membership.schoolId}`))) {
         return {
           mode: "deeplink" as const,
           reason: "Limite de envios por hora atingido. Configure um token WhatsApp próprio.",
         };
       }
-      recordRateLimitAttempt([rateLimitKey], PLATFORM_EMAIL_RATE_LIMIT);
     }
 
     let recipients = normalizeWhatsAppRecipients(data.to ?? []);
@@ -560,6 +624,15 @@ export const sendSchoolWhatsAppMessage = createServerFn({ method: "POST" })
         mode: "deeplink" as const,
         reason: "Sem destinatários: indique telemóveis ou cadastre phones na equipa.",
       };
+    }
+    if (usingPlatformToken) {
+      recipients = await onlySchoolPhones(db, membership.schoolId, recipients);
+      if (!recipients.length) {
+        return {
+          mode: "deeplink" as const,
+          reason: "Sem destinatários desta escola com telemóvel registado.",
+        };
+      }
     }
     // Quem desligou os comunicados nesta escola não os recebe por WhatsApp.
     recipients = await withoutOptedOutPhones(db, membership.schoolId, recipients);
@@ -633,6 +706,23 @@ export const sendSchoolSmsMessage = createServerFn({ method: "POST" })
       return {
         mode: "unavailable" as const,
         reason: "Sem destinatários: indique telemóveis ou cadastre phones na equipa.",
+      };
+    }
+    // A conta Twilio é da plataforma (paga por SMS): só números desta escola,
+    // sem quem desligou os comunicados, e com limite por hora.
+    recipients = await onlySchoolPhones(db, membership.schoolId, recipients);
+    recipients = await withoutOptedOutPhones(db, membership.schoolId, recipients);
+    if (!recipients.length) {
+      return {
+        mode: "unavailable" as const,
+        reason:
+          "Sem destinatários desta escola com telemóvel registado (ou desligaram os comunicados).",
+      };
+    }
+    if (!(await platformQuotaOk(`platform_sms:${membership.schoolId}`))) {
+      return {
+        mode: "unavailable" as const,
+        reason: "Limite de envios de SMS por hora atingido.",
       };
     }
 

@@ -98,34 +98,49 @@ export async function resolveBiOrEmailToUserEmail(identifier: string): Promise<s
   const db = await loadSgaAdminClient();
   const searchId = biValidation.compact ?? compact;
 
-  // Search by national_id in people
-  const { data: person } = await db
-    .from("people")
-    .select("user_id, email, national_id")
-    .eq("national_id", searchId)
-    .limit(1)
-    .maybeSingle();
+  // O mesmo B.I. pode estar em fichas de várias escolas, e o e-mail de uma ficha
+  // é escrito pela secretaria. Com `limit(1)` sem ordem, uma ficha com o e-mail
+  // errado noutra escola podia impedir a pessoa certa de entrar. Agora: as fichas
+  // ligadas a uma conta têm prioridade; sem nenhuma, conta o e-mail das outras —
+  // e só se apontarem todas para o mesmo (ambíguo = não se escolhe ao acaso).
+  const pickEmail = (rows: Array<{ email: string | null; user_id: string | null }> | null) => {
+    const unique = (list: Array<{ email: string | null }>) => {
+      const emails = new Set(
+        list
+          .map((row) =>
+            String(row.email ?? "")
+              .trim()
+              .toLowerCase(),
+          )
+          .filter((email) => email.includes("@")),
+      );
+      return emails.size === 1 ? [...emails][0] : null;
+    };
+    const all = rows ?? [];
+    const linked = all.filter((row) => row.user_id);
+    return linked.length ? unique(linked) : unique(all);
+  };
 
-  if (person?.email && person.email.includes("@")) {
-    return person.email;
-  }
+  const { data: byBi } = await db
+    .from("people")
+    .select("email, user_id")
+    .eq("national_id", searchId)
+    .limit(20);
+  const biEmail = pickEmail(byBi);
+  if (biEmail) return biEmail;
 
   // Havia aqui um segundo ramo que lia `profiles.email` quando a pessoa tinha
   // `user_id`. `profiles` não tem coluna `email`, pelo que o PostgREST recusava
-  // a consulta e o ramo nunca devolvia nada — o e-mail já vinha de `people`,
-  // acima.
+  // a consulta e o ramo nunca devolvia nada — o e-mail já vinha de `people`.
 
-  // Fallback por telefone, também em `people` e pela mesma razão.
-  const { data: profileByPhone } = await db
+  // Fallback por telefone, também em `people` e pela mesma regra.
+  const { data: byPhone } = await db
     .from("people")
-    .select("email")
+    .select("email, user_id")
     .eq("phone", searchId)
-    .limit(1)
-    .maybeSingle();
-
-  if (profileByPhone?.email && profileByPhone.email.includes("@")) {
-    return profileByPhone.email;
-  }
+    .limit(20);
+  const phoneEmail = pickEmail(byPhone);
+  if (phoneEmail) return phoneEmail;
 
   return trimmed;
 }

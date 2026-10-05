@@ -72,12 +72,13 @@ describe("alunos", () => {
 });
 
 describe("ano lectivo: um activo de cada vez", () => {
-  it("definições da escola fecham os outros antes de activar", () => {
+  it("guardar as definições da escola nunca activa nem fecha anos lectivos", () => {
     const source = read("src/features/school/server.ts");
-    const close = source.indexOf("error: closeError");
-    const activate = source.indexOf("error: activateError");
-    expect(close).toBeGreaterThan(-1);
-    expect(activate).toBeGreaterThan(close);
+    const update = source.slice(
+      source.indexOf("export const updateSchoolSettings"),
+      source.indexOf("export const listRecentAuditLogs"),
+    );
+    expect(update).not.toContain('.from("academic_years")');
   });
 
   it("calendário lectivo verifica o fecho do ano anterior", () => {

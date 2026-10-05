@@ -26,6 +26,8 @@ import { useCurrentAccount } from "@/features/auth/use-current-account";
 import { useSchoolSettings } from "@/features/auth/use-school-settings";
 import { useSignOut } from "@/features/auth/use-sign-out";
 import { canAccessPath } from "@/features/auth/access-policy";
+import { withHigherEdVocabulary } from "@/features/auth/nav-vocabulary";
+import { isHigherEdOnly } from "@/features/academic/period-model";
 import {
   getPortalNavigation,
   isNavChildActive,
@@ -72,10 +74,12 @@ export function AppSidebar({
     .map((part) => part[0]?.toUpperCase() ?? "")
     .join("");
 
-  const visibleGroups = useMemo(
-    () => getPortalNavigation(currentUser.role, currentUser.grants, activePlan),
-    [currentUser.role, currentUser.grants, activePlan],
-  );
+  // Instituição só de Ensino Superior: «Estudantes» em vez de «Alunos».
+  const higherEdOnly = isHigherEdOnly(school?.pedagogy?.teachingLevels ?? []);
+  const visibleGroups = useMemo(() => {
+    const groups = getPortalNavigation(currentUser.role, currentUser.grants, activePlan);
+    return higherEdOnly ? withHigherEdVocabulary(groups) : groups;
+  }, [currentUser.role, currentUser.grants, activePlan, higherEdOnly]);
   // Memoizado para o efeito abaixo poder depender dele directamente. Antes
   // dependia só de `pathname`, o que deixava de fora a mudança de
   // `visibleGroups` (papel/grants/plano): os menus recém-visíveis não abriam.

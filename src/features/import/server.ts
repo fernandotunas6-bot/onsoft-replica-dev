@@ -1,4 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
+import { safeCell } from "@/lib/export-csv";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { publicDatabaseError } from "@/integrations/supabase/server-error";
 import {
@@ -23,6 +24,7 @@ import {
 import { suggestModule } from "./engine/suggest";
 import { getImporter, isModuleImplemented } from "./engine/registry";
 import { assertImportModuleGoverned } from "./engine/governance";
+import { requireAal2 } from "@/features/hr/require-aal2";
 import type { ImportCommitContext } from "./engine/types";
 import { dynamicTablesClient } from "@/integrations/supabase/sga";
 import type { Json, TablesInsert } from "@/integrations/supabase/types";
@@ -417,6 +419,11 @@ export const commitImportBatch = createServerFn({ method: "POST" })
     );
     const importer = getImporter(job.module);
     await assertImportModuleGoverned(db, job.module);
+    // As regras de cobrança (multa, desconto, vencimento) só mudam com 2FA, como no ecrã
+    // Definições › Cobrança (updateBillingSettings).
+    if (job.module === "propinas" && !data.dry_run) {
+      requireAal2(context.claims, "Importar as regras de cobrança");
+    }
 
     const PENDING_STATUSES = [
       "valid",
@@ -700,12 +707,24 @@ export function generateErrorReportCsv(rows: ImportRowRecord[]): string {
   const invalidRows = rows.filter(
     (r) => r.status === "error" || r.status === "duplicate" || r.errors.length > 0,
   );
-  let csv = "Folha;Linha;Dados_Originais;Estado;Erros;Avisos\n";
+  // Folha e dados vêm do ficheiro importado: cada célula passa por safeCell
+  // (aspas e protecção contra fórmulas), como nas outras exportações.
+  const lines = ["Folha;Linha;Dados_Originais;Estado;Erros;Avisos"];
   for (const r of invalidRows) {
-    const rawStr = JSON.stringify(r.raw_data).replace(/;/g, ",");
-    csv += `${r.sheet_name};${r.row_number};"${rawStr}";${r.status};"${(r.errors ?? []).join(" | ")}";"${(r.warnings ?? []).join(" | ")}"\n`;
+    lines.push(
+      [
+        r.sheet_name,
+        r.row_number,
+        JSON.stringify(r.raw_data),
+        r.status,
+        (r.errors ?? []).join(" | "),
+        (r.warnings ?? []).join(" | "),
+      ]
+        .map((cell) => safeCell(cell))
+        .join(";"),
+    );
   }
-  return csv;
+  return `${lines.join("\n")}\n`;
 }
 
 /** Gera e descarrega o modelo Excel (.xlsx) profissional de 6 abas para o módulo. */
@@ -741,6 +760,15 @@ export const exportSchoolDataFn = createServerFn({ method: "POST" })
       "Secretaria",
       "Tesouraria",
     ]);
+    // Cada módulo com os mesmos cargos da importação: a Tesouraria não leva os
+    // dados pessoais de alunos e encarregados, nem a Secretaria os financeiros.
+    const roles = membership.allAppRoles ?? [membership.appRole];
+    const denied = data.modules.filter(
+      (module) => !rolesForModule(module).some((role) => roles.includes(role)),
+    );
+    if (denied.length) {
+      throw new Error(`Sem permissão para exportar: ${denied.join(", ")}.`);
+    }
 
     // Carregar nome da escola
     const { data: school } = await db
@@ -758,6 +786,25 @@ export const exportSchoolDataFn = createServerFn({ method: "POST" })
       modules: data.modules,
       mode: data.mode,
     });
+
+    // Uma exportação leva dados pessoais da escola inteira: fica registada.
+    const { error: auditError } = await db.from("audit_logs").insert({
+      school_id: membership.schoolId,
+      actor_user_id: context.userId,
+      action: "school_data.exported",
+      entity_type: "school",
+      entity_id: membership.schoolId,
+      metadata: {
+        modules: data.modules,
+        mode: data.mode,
+        academic_year_id: data.academic_year_id ?? null,
+        class_group_id: data.class_group_id ?? null,
+        record_count: result.recordCount,
+      },
+    });
+    if (auditError) {
+      throw publicDatabaseError(auditError, "Não foi possível registar a exportação na auditoria.");
+    }
 
     return {
       fileName: result.fileName,

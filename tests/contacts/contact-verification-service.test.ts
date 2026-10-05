@@ -10,17 +10,28 @@ import {
  * `vi.hoisted` porque `vi.mock` sobe para o topo do ficheiro e não veria estas variáveis
  * declaradas mais abaixo.
  */
-const { escritas, erroDoCliente } = vi.hoisted(() => ({
+const { escritas, erroDoCliente, utilizadorAuth } = vi.hoisted(() => ({
   escritas: [] as Array<{
     tabela: string;
     patch: Record<string, unknown>;
     filtro: [string, unknown];
   }>,
   erroDoCliente: { valor: null as { message: string } | null },
+  utilizadorAuth: {
+    valor: { email: "User@Example.com", email_confirmed_at: "2026-10-01T00:00:00Z" } as {
+      email: string | null;
+      email_confirmed_at: string | null;
+    },
+  },
 }));
 
 vi.mock("@/integrations/supabase/sga-admin", () => ({
   loadSgaAdminClient: async () => ({
+    auth: {
+      admin: {
+        getUserById: async () => ({ data: { user: utilizadorAuth.valor }, error: null }),
+      },
+    },
     from: (tabela: string) => ({
       update: (patch: Record<string, unknown>) => ({
         eq: (coluna: string, valor: unknown) => {
@@ -280,8 +291,28 @@ describe("ContactVerificationService — escritas no perfil", () => {
     });
   });
 
+  it("markEmailAsVerified grava o email confirmado pelo Auth", async () => {
+    await ContactVerificationService.markEmailAsVerified("u1");
+    const patch = ultima().patch;
+    expect(patch["email_verified"]).toBe(true);
+    expect(patch["email_address"]).toBe("user@example.com");
+    expect(typeof patch["email_verified_at"]).toBe("string");
+  });
+
+  it("markEmailAsVerified recusa quando o Auth não confirmou o email", async () => {
+    const antes = utilizadorAuth.valor;
+    utilizadorAuth.valor = { email: "user@example.com", email_confirmed_at: null };
+    try {
+      await expect(ContactVerificationService.markEmailAsVerified("u1")).rejects.toThrow(
+        "ainda não foi confirmado",
+      );
+      expect(escritas).toHaveLength(0);
+    } finally {
+      utilizadorAuth.valor = antes;
+    }
+  });
+
   it.each([
-    ["markEmailAsVerified", "email_verified", "email_verified_at"],
     ["markPhoneAsVerified", "phone_verified", "phone_verified_at"],
     ["markWhatsappAsVerified", "whatsapp_verified", "whatsapp_verified_at"],
   ] as const)("%s marca só o seu canal", async (metodo, verif, verifEm) => {

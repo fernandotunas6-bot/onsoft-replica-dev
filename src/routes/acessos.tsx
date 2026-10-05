@@ -987,13 +987,15 @@ function AcessosPage() {
                               disabled={account.is_self}
                               onCheckedChange={async (checked) => {
                                 try {
-                                  await setSystemAccountDisabled({
+                                  const result = await setSystemAccountDisabled({
                                     data: { userId: account.id, disabled: !checked },
                                   });
                                   await queryClient.invalidateQueries({
                                     queryKey: ["access", "accounts"],
                                   });
-                                  toast.success(checked ? "Conta reactivada" : "Conta suspensa");
+                                  if (result.notice) toast.warning(result.notice);
+                                  else
+                                    toast.success(checked ? "Conta reactivada" : "Conta suspensa");
                                 } catch (error) {
                                   toast.error("Não foi possível actualizar o acesso", {
                                     description:

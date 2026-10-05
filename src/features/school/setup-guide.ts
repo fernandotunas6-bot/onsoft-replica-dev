@@ -40,6 +40,8 @@ export type SetupCounts = {
   pendingInvitations: number;
   students: number;
   publicEnrollmentOpen: boolean;
+  /** Níveis de ensino da escola (Definições → Pedagógico): decide trimestres/semestres. */
+  teachingLevels?: string[];
 };
 
 export type SetupStepId =
@@ -86,6 +88,8 @@ export type SetupGuide = {
   ready: boolean;
 };
 
+import { isHigherEdOnly, periodModelFor } from "@/features/academic/period-model";
+
 const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
 
 export function buildSetupGuide(counts: SetupCounts): SetupGuide {
@@ -95,6 +99,9 @@ export function buildSetupGuide(counts: SetupCounts): SetupGuide {
     !school.director && "director(a)",
     !school.contact && "telefone ou e-mail",
   ].filter(Boolean) as string[];
+
+  const periods = periodModelFor(counts.teachingLevels ?? []);
+  const higherOnly = isHigherEdOnly(counts.teachingLevels ?? []);
 
   const raw: Array<Omit<SetupStep, "blockedBy"> & { requires: SetupStepId[] }> = [
     {
@@ -130,14 +137,18 @@ export function buildSetupGuide(counts: SetupCounts): SetupGuide {
     {
       id: "trimestres",
       phase: "Base",
-      title: "Gravar os três trimestres",
-      why: "As notas, as faltas e as pautas são lançadas por trimestre.",
-      detail: `${counts.termsInActiveYear} de 3 trimestres com datas.`,
-      done: counts.termsInActiveYear >= 3,
+      // Mesma regra do assistente (setup-steps.ts): só Ensino Superior → 2 semestres.
+      title: periods.kind === "semestre" ? "Gravar os dois semestres" : "Gravar os três trimestres",
+      why:
+        periods.kind === "semestre"
+          ? "As cadeiras do plano e as épocas de exame seguem os semestres."
+          : "As notas, as faltas e as pautas são lançadas por trimestre.",
+      detail: `${counts.termsInActiveYear} de ${periods.count} ${periods.plural.toLowerCase()} com datas.`,
+      done: counts.termsInActiveYear >= periods.count,
       optional: false,
       requires: ["ano"],
       action: { kind: "route", to: "/calendario" },
-      actionLabel: "Gravar trimestres",
+      actionLabel: periods.kind === "semestre" ? "Gravar semestres" : "Gravar trimestres",
     },
     {
       id: "estrutura",
@@ -186,18 +197,32 @@ export function buildSetupGuide(counts: SetupCounts): SetupGuide {
       action: { kind: "route", to: "/pedagogica", search: { tab: "turmas" } },
       actionLabel: "Abrir turmas",
     },
-    {
-      id: "avaliacao",
-      phase: "Pedagógica",
-      title: "Publicar o modelo de avaliação",
-      why: "Define os pesos (MAC, provas, exame) e a nota mínima. Sem ele não há pautas.",
-      detail: counts.assessmentModel ? "Modelo activo publicado." : "Nenhum modelo publicado.",
-      done: counts.assessmentModel,
-      optional: false,
-      requires: [],
-      action: { kind: "route", to: "/pedagogica", search: { tab: "modelos" } },
-      actionLabel: "Abrir modelos de avaliação",
-    },
+    higherOnly
+      ? {
+          // No Ensino Superior avalia-se pelo regulamento (frequência, épocas).
+          id: "avaliacao",
+          phase: "Pedagógica",
+          title: "Rever o regulamento do Ensino Superior",
+          why: "Créditos, admissão e dispensa de exame, épocas e faltas — as regras das pautas.",
+          detail: "Em Ensino Superior → Regulamento.",
+          done: counts.assessmentModel,
+          optional: true,
+          requires: [],
+          action: { kind: "route", to: "/pedagogica/superior" },
+          actionLabel: "Abrir regulamento",
+        }
+      : {
+          id: "avaliacao",
+          phase: "Pedagógica",
+          title: "Publicar o modelo de avaliação",
+          why: "Define os pesos (MAC, provas, exame) e a nota mínima. Sem ele não há pautas.",
+          detail: counts.assessmentModel ? "Modelo activo publicado." : "Nenhum modelo publicado.",
+          done: counts.assessmentModel,
+          optional: false,
+          requires: [],
+          action: { kind: "route", to: "/pedagogica", search: { tab: "modelos" } },
+          actionLabel: "Abrir modelos de avaliação",
+        },
     {
       id: "propinas",
       phase: "Financeiro",

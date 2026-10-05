@@ -27,7 +27,7 @@ import {
 import { MarketingFormPage } from "@/components/marketing/marketing-form-page"
 import { EmailVerification } from "./email-verification"
 import { GlassTile, SigaMascot } from "@/components/brand/aurora"
-import { ANGOLA_PROVINCES, SCHOOL_TYPES } from "@/lib/angola"
+import { ANGOLA_PROVINCES, SCHOOL_TYPES, SECONDARY_COURSES, TEACHING_LEVELS } from "@/lib/angola"
 import { cn } from "@/lib/utils"
 import { ECOSYSTEM_URLS, PLATFORM_DOMAIN } from "@/lib/ecosystem-urls"
 import {
@@ -38,6 +38,7 @@ import {
   type PlanCode,
   type SaasPlan,
 } from "@/lib/saas-api"
+import { SIGNUP_CAPTCHA_SITE_KEY, SignupCaptcha } from "@/components/signup-captcha"
 
 const FALLBACK_PLANS: SaasPlan[] = [
   { code: "start", name: "Start", description: "Escolas pequenas" },
@@ -66,6 +67,8 @@ const schema = z.object({
     .regex(/^[0-9]{9,10}$/, "NIF inválido. Use o NIF de entidade da AGT (9–10 dígitos)"),
   commercial_name: z.string().trim().max(160).optional(),
   school_type: z.string().trim().optional(),
+  teaching_levels: z.array(z.string()).min(1, "Escolha pelo menos um nível de ensino"),
+  secondary_courses: z.array(z.string()),
   province: z.string().trim().min(1, "Escolha a província"),
   municipality: z.string().trim().min(2, "Indique o município").max(80),
   commune: z.string().trim().max(80).optional(),
@@ -121,7 +124,7 @@ const schema = z.object({
 type FormValues = z.infer<typeof schema>
 
 const STEPS = [
-  { id: 1, title: "Instituição", hint: "Nome, NIF e natureza" },
+  { id: 1, title: "Instituição", hint: "Nome, NIF, natureza e níveis" },
   { id: 2, title: "Localização", hint: "Onde fica a escola" },
   { id: 3, title: "Responsável", hint: "Quem trata do registo" },
   { id: 4, title: "Plano", hint: "Pode mudar depois" },
@@ -131,7 +134,7 @@ const STEPS = [
 ]
 
 const STEP_INTRO: Record<number, string> = {
-  1: "Os dados oficiais aparecem nas facturas, pautas e certificados emitidos pela escola.",
+  1: "Os dados oficiais aparecem nas facturas, pautas e certificados. Os níveis de ensino definem as classes e disciplinas que a escola recebe já criadas.",
   2: "A localização fica na ficha da escola e nos documentos oficiais.",
   3: "A pessoa que acompanha o registo e recebe as comunicações comerciais.",
   4: "Todos os planos começam com um período experimental. O pagamento só é pedido depois.",
@@ -143,7 +146,7 @@ const STEP_INTRO: Record<number, string> = {
 const LAST_STEP = STEPS.length
 
 const FIELDS_BY_STEP: Record<number, (keyof FormValues)[]> = {
-  1: ["name", "nif", "commercial_name"],
+  1: ["name", "nif", "commercial_name", "teaching_levels"],
   2: ["province", "municipality", "commune", "neighborhood", "address", "phone", "email"],
   3: ["contact_name", "contact_role", "contact_phone", "contact_email"],
   4: ["plan_code"],
@@ -261,6 +264,9 @@ export function StartSchoolWizard() {
   const [step, setStep] = useState(1)
   const [plans, setPlans] = useState<SaasPlan[]>(FALLBACK_PLANS)
   const [serverError, setServerError] = useState<string | null>(null)
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null)
+  // Cada tentativa gasta o sinal; incrementar pede um novo ao widget.
+  const [captchaReset, setCaptchaReset] = useState(0)
   // `form.formState.isSubmitting` só activa dentro de `form.handleSubmit(...)` — o
   // <form onSubmit> aqui chama onNext/onCreate directamente, então nunca acendia.
   // Sem isto, um duplo clique em "Criar escola" disparava dois pedidos de signup.
@@ -289,6 +295,8 @@ export function StartSchoolWizard() {
       nif: "",
       commercial_name: "",
       school_type: "privada",
+      teaching_levels: [],
+      secondary_courses: [],
       province: "",
       municipality: "",
       commune: "",
@@ -466,6 +474,10 @@ export function StartSchoolWizard() {
       setServerError("Confirme o e-mail do administrador com o código antes de criar a escola.")
       return
     }
+    if (SIGNUP_CAPTCHA_SITE_KEY && !captchaToken) {
+      setServerError("Confirme que não é um robô antes de criar a escola.")
+      return
+    }
     setIsCreating(true)
     try {
       const { admin_password_confirm: _confirm, ...payload } = form.getValues()
@@ -475,9 +487,13 @@ export function StartSchoolWizard() {
           ...payload,
           city: payload.municipality || payload.city,
           commercial_name: payload.commercial_name || undefined,
+          secondary_courses: payload.teaching_levels.includes("ii_ciclo")
+            ? payload.secondary_courses
+            : [],
           email: payload.email || payload.contact_email,
           email_verification_token: verification?.token,
           session_id: sessionId || undefined,
+          captcha_token: captchaToken ?? undefined,
         })
       } catch {
         // Falha de rede (servidor em baixo, sem ligação) — signupSchool() não
@@ -490,6 +506,8 @@ export function StartSchoolWizard() {
       }
       if (!result.ok) {
         const message = result.error || "Falha ao criar a escola."
+        // O token do hCaptcha é de uso único: qualquer recusa pede um novo.
+        setCaptchaReset((value) => value + 1)
         // Levar a pessoa ao campo que o servidor recusou, em vez de a deixar
         // no último passo a adivinhar qual era.
         const serverFields = Object.entries(result.fieldErrors ?? {}).filter(
@@ -904,6 +922,93 @@ export function StartSchoolWizard() {
                       </FormItem>
                     )}
                   />
+                  <FormField
+                    control={form.control}
+                    name="teaching_levels"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Níveis de ensino que a escola lecciona</FormLabel>
+                        <p className="text-xs text-muted-foreground">
+                          Escolha todos os que se aplicam. O SIGA cria logo as classes e disciplinas
+                          de cada um.
+                        </p>
+                        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                          {TEACHING_LEVELS.map((level) => {
+                            const checked = field.value.includes(level.id)
+                            return (
+                              <button
+                                key={level.id}
+                                type="button"
+                                role="checkbox"
+                                aria-checked={checked}
+                                onClick={() =>
+                                  field.onChange(
+                                    checked
+                                      ? field.value.filter((id) => id !== level.id)
+                                      : [...field.value, level.id],
+                                  )
+                                }
+                                className={cn(
+                                  "rounded-lg border px-3 py-2 text-left text-sm transition-colors",
+                                  checked
+                                    ? "border-primary bg-primary/5 text-foreground"
+                                    : "text-muted-foreground hover:bg-muted/60",
+                                )}
+                              >
+                                <span className="font-medium">{level.label}</span>
+                                <span className="block text-xs text-muted-foreground">
+                                  {level.hint}
+                                </span>
+                              </button>
+                            )
+                          })}
+                        </div>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  {form.watch("teaching_levels").includes("ii_ciclo") ? (
+                    <FormField
+                      control={form.control}
+                      name="secondary_courses"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Cursos do II Ciclo (opcional)</FormLabel>
+                          <p className="text-xs text-muted-foreground">
+                            Cada curso fica com as suas classes. Sem escolha, fica um II Ciclo geral.
+                          </p>
+                          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                            {SECONDARY_COURSES.map((course) => {
+                              const checked = field.value.includes(course.id)
+                              return (
+                                <button
+                                  key={course.id}
+                                  type="button"
+                                  role="checkbox"
+                                  aria-checked={checked}
+                                  onClick={() =>
+                                    field.onChange(
+                                      checked
+                                        ? field.value.filter((id) => id !== course.id)
+                                        : [...field.value, course.id],
+                                    )
+                                  }
+                                  className={cn(
+                                    "rounded-lg border px-3 py-2 text-left text-sm transition-colors",
+                                    checked
+                                      ? "border-primary bg-primary/5 text-foreground"
+                                      : "text-muted-foreground hover:bg-muted/60",
+                                  )}
+                                >
+                                  {course.label}
+                                </button>
+                              )
+                            })}
+                          </div>
+                        </FormItem>
+                      )}
+                    />
+                  ) : null}
                 </>
               ) : null}
 
@@ -1105,6 +1210,21 @@ export function StartSchoolWizard() {
                     ) : null}
                     <Row label="NIF" value={values.nif} />
                     <Row label="Natureza" value={typeLabel ?? ""} />
+                    <Row
+                      label="Níveis"
+                      value={TEACHING_LEVELS.filter((l) => values.teaching_levels.includes(l.id))
+                        .map((l) => l.label)
+                        .join(" · ")}
+                    />
+                    {values.teaching_levels.includes("ii_ciclo") &&
+                    values.secondary_courses.length ? (
+                      <Row
+                        label="Cursos"
+                        value={SECONDARY_COURSES.filter((c) => values.secondary_courses.includes(c.id))
+                          .map((c) => c.label)
+                          .join(" · ")}
+                      />
+                    ) : null}
                   </ReviewSection>
                   <ReviewSection title="Localização" onEdit={() => setStep(2)}>
                     <Row label="Província" value={values.province} />
@@ -1126,6 +1246,10 @@ export function StartSchoolWizard() {
                     <Row label="Endereço" value={`${values.slug}.${PLATFORM_DOMAIN}`} />
                   </ReviewSection>
                 </div>
+              ) : null}
+
+              {step === LAST_STEP ? (
+                <SignupCaptcha onToken={setCaptchaToken} resetSignal={captchaReset} />
               ) : null}
 
               {serverError ? (
