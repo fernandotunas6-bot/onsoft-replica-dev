@@ -3,6 +3,7 @@ import crypto from "node:crypto";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { ImportModule } from "./schemas";
 import { FIELD_CATALOG } from "./engine/field-catalog";
+import { schoolTodayIso } from "@/lib/school-date";
 
 export type ExportMode = "human" | "siga_exchange";
 
@@ -1322,7 +1323,7 @@ export async function exportSchoolData(
   }
 
   const finalBuffer = await workbook.xlsx.writeBuffer();
-  const dateTag = new Date().toISOString().slice(0, 10);
+  const dateTag = schoolTodayIso();
   const cleanSchool = options.schoolName.replace(/[^a-zA-Z0-9_-]/g, "_").slice(0, 20);
   const fileName =
     options.mode === "siga_exchange"

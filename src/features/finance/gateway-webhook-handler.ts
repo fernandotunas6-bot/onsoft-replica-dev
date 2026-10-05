@@ -24,6 +24,7 @@ import { isRateLimitBypassed } from "@/lib/rate-limit";
 import { consumeRateLimit } from "@/lib/shared-rate-limit";
 import { reportSigaError } from "@/lib/ops-report";
 import { readSettingsDomain } from "@/features/school/settings-domains";
+import { schoolTodayIso } from "@/lib/school-date";
 
 function mapPaymentMethodForLedger(method: string): "cash" | "bank_transfer" | "card" | "other" {
   if (method === "cash") return "cash";
@@ -236,14 +237,14 @@ export async function settleGatewayPayment(
     invoice_id: input.invoiceId,
     amount: input.amount,
     payment_method: mapPaymentMethodForLedger(input.method),
-    paid_on: new Date().toISOString().slice(0, 10),
+    paid_on: schoolTodayIso(),
   });
 
   if (error) {
     if (/aal2|42501|autorização|permission/i.test(error.message ?? "")) {
       // Chamada de webhook server-to-server (sem sessão AAL2 interactiva).
       // Liquidação direta com o client de serviço da escola.
-      const today = new Date().toISOString().slice(0, 10);
+      const today = schoolTodayIso();
 
       // Caminho atómico (20261002090137, aplicada a 2026-10-02): fatura bloqueada,
       // saldo, recibo e estado numa só transacção. Se a função faltar (base sem a

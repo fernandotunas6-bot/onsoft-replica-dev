@@ -54,6 +54,7 @@ import {
   validateSaftSchoolReadiness,
 } from "./saft-export";
 import { higherEdFeeCodeForCategory } from "@/features/higher-ed/fees";
+import { schoolTodayIso } from "@/lib/school-date";
 
 const REPORTING_PAGE_SIZE = 1000;
 const REPORTING_MAX_PAGES = 30;
@@ -447,7 +448,7 @@ export const getFinanceReporting = createServerFn({ method: "GET" })
     const expenses = expensesPaged.rows;
     const truncated = invoicesPaged.truncated || receiptsPaged.truncated || expensesPaged.truncated;
 
-    const today = new Date().toISOString().slice(0, 10);
+    const today = schoolTodayIso();
     const activeInvoices = (invoices ?? []).filter(
       (invoice: { status: string }) => invoice.status !== "cancelled",
     );
@@ -1130,8 +1131,7 @@ export const issueInvoice = createServerFn({ method: "POST" })
       );
     }
 
-    const competenceMonth =
-      (data.issuedOn ?? new Date().toISOString().slice(0, 10)).slice(0, 7) + "-01";
+    const competenceMonth = (data.issuedOn ?? schoolTodayIso()).slice(0, 7) + "-01";
 
     // Número gerado pelo servidor (nunca pelo cliente) para nunca aceitar texto livre
     // (ex.: nº de processo do aluno colado por engano) na numeração fiscal FT-AAAA/NNNN.

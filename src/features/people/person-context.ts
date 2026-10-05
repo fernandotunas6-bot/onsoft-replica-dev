@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { schoolTodayIso } from "@/lib/school-date";
 
 export type PersonAcademicSummary = {
   total_enrollments: number;
@@ -173,7 +174,7 @@ export async function resolvePersonContext(
           );
         }
 
-        const today = new Date().toISOString().slice(0, 10);
+        const today = schoolTodayIso();
         let balance = 0;
         let overdueCount = 0;
         for (const invoice of invoices ?? []) {

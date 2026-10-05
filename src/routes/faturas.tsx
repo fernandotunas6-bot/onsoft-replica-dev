@@ -93,6 +93,7 @@ import { exportCsv } from "@/lib/export-csv";
 import { exportPdfTable } from "@/lib/export-pdf-loader";
 import { ListFilterBar } from "@/components/filters/ListFilterBar";
 import { dateInRange, usePersistedListFilters } from "@/lib/list-filters";
+import { schoolTodayIso } from "@/lib/school-date";
 
 const faturasFilterDefaults = {
   q: "",
@@ -210,7 +211,7 @@ function FaturasPage() {
         estado:
           invoice.status === "paid"
             ? ("Paga" as const)
-            : invoice.due_on < new Date().toISOString().slice(0, 10)
+            : invoice.due_on < schoolTodayIso()
               ? ("Vencida" as const)
               : ("Pendente" as const),
       })),
@@ -706,7 +707,7 @@ function FaturasPage() {
     );
 
     const proformaNo = `FP-${new Date().getFullYear()}/${String(invoiceCount + 1).padStart(4, "0")}`;
-    const issueDate = new Date().toISOString().slice(0, 10);
+    const issueDate = schoolTodayIso();
     const dueDate = new Date(Date.now() + 15 * 86400000).toISOString().slice(0, 10);
     const amount = Number(values["valor"]) || 0;
     const nif = values["nif"];

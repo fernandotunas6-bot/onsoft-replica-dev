@@ -28,6 +28,7 @@ import {
   submitPublicEnrollmentInputSchema,
   updateEnrollmentFormInputSchema,
 } from "./schemas";
+import { schoolTodayIso } from "@/lib/school-date";
 
 function isMissingPeopleGeography(error: { message?: string; code?: string } | null | undefined) {
   return Boolean(
@@ -548,7 +549,7 @@ export const decideEnrollmentApplication = createServerFn({ method: "POST" })
           {
             school_id: membership.schoolId,
             person_id: personRow.id,
-            admission_date: new Date().toISOString().slice(0, 10),
+            admission_date: schoolTodayIso(),
             guardian_person_id: guardianPersonId ?? undefined,
             // Ver nota em students/server.ts: DEFAULT NULL na base, opcional nos tipos.
             relationship: guardianPersonId
@@ -600,7 +601,7 @@ export const decideEnrollmentApplication = createServerFn({ method: "POST" })
           school_id: membership.schoolId,
           student_id: studentId,
           class_group_id: classGroup.id,
-          enrolled_on: new Date().toISOString().slice(0, 10),
+          enrolled_on: schoolTodayIso(),
         });
         if (enrollError) {
           await recordStudentStatusHistory(db, {

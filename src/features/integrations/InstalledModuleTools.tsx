@@ -13,6 +13,7 @@ import {
 } from "./actions";
 import { capabilitiesForModule, type SigaHostModule } from "./install";
 import { useInstalledIntegrations } from "./use-installed-integrations";
+import { schoolTodayIso } from "@/lib/school-date";
 
 export function InstalledModuleTools({
   module,
@@ -71,7 +72,7 @@ export function InstalledModuleTools({
       }
       if (kind === "copy-einvoice") {
         const nif = school?.nif?.trim() || "sem-nif";
-        const payload = `AGT;${nif};${school?.name ?? "Escola"};${new Date().toISOString().slice(0, 10)}`;
+        const payload = `AGT;${nif};${school?.name ?? "Escola"};${schoolTodayIso()}`;
         await copyText(payload);
         toast.success("Linha de faturação electrónica copiada", {
           description: "Use no software certificado ou no Portal do Contribuinte.",

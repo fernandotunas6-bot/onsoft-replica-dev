@@ -31,6 +31,7 @@ import {
 } from "./gate-pass-token";
 import { evaluateGatePassAccess, resolveGatePassDevice } from "./gate-pass-validation";
 import { runDeviceGatePassWebhook } from "./device-webhook-handler";
+import { schoolTodayIso } from "@/lib/school-date";
 
 export interface GateEntryRecord {
   student_id: string | null;
@@ -649,7 +650,7 @@ export const getCampusVsClassroomReconciliation = createServerFn({ method: "GET"
     ]);
     const db = await loadSgaAdminClient();
 
-    const todayStr = new Date().toISOString().slice(0, 10);
+    const todayStr = schoolTodayIso();
 
     const { data: gateEntries } = await db
       .from("siga_access_logs")

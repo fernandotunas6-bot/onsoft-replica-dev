@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { schoolTodayIso } from "@/lib/school-date";
 
 export const generateSaftInputSchema = z.object({
   fiscalYear: z
@@ -85,7 +86,7 @@ export function buildSaftAoXml(
   const year = input.fiscalYear;
   const startDate = input.startDate ?? `${year}-01-01`;
   const endDate = input.endDate ?? `${year}-12-31`;
-  const dateCreated = new Date().toISOString().slice(0, 10);
+  const dateCreated = schoolTodayIso();
 
   const schoolNif = school.nif?.trim() || "999999999";
   const schoolName = school.name?.trim() || UNKNOWN;

@@ -1,3 +1,4 @@
+import { schoolTodayIso } from "@/lib/school-date";
 /**
  * Helpers puros para o contrato SIGA → PayFlow `POST /api/v1/education/sync`.
  * A fonte de verdade académica continua no SIGA; o PayFlow só espelha o necessário para cobrar.
@@ -60,7 +61,7 @@ export function mapEnrollmentStatusToPayflow(
 export function mapInvoiceStatusToPayflow(
   status: string,
   dueOn: string | null | undefined,
-  today = new Date().toISOString().slice(0, 10),
+  today = schoolTodayIso(),
 ): PayflowInvoiceStatus {
   const s = status.toLowerCase();
   if (s === "paid") return "paid";

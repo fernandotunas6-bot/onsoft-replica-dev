@@ -65,6 +65,7 @@ import {
   type Prerequisite,
   type UnitRecord,
 } from "./engine";
+import { schoolTodayIso } from "@/lib/school-date";
 
 type Db = Awaited<ReturnType<typeof loadSgaAdminClient>>;
 type Row = Record<string, unknown>;
@@ -893,7 +894,7 @@ export const getStudentTranscript = createServerFn({ method: "GET" })
     };
   });
 
-const todayIso = () => new Date().toISOString().slice(0, 10);
+const todayIso = () => schoolTodayIso();
 
 /** Estudantes com propinas vencidas por pagar (para o bloqueio por dívida). */
 async function studentsWithOverdueDebt(db: Db, schoolId: string, studentIds: string[]) {

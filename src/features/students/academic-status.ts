@@ -1,3 +1,4 @@
+import { schoolTodayIso } from "@/lib/school-date";
 /**
  * academic-status.ts
  *
@@ -150,7 +151,7 @@ export function deriveAcademicStatus(input: {
  */
 export function deriveFinancialSnapshot(
   invoices: InvoiceLike[],
-  today = new Date().toISOString().slice(0, 10),
+  today = schoolTodayIso(),
 ): StudentFinancialSummary {
   if (!invoices.length) {
     return {

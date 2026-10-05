@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { schoolTodayIso } from "@/lib/school-date";
 
 export const financeListInputSchema = z.object({
   limit: z.number().int().min(1).max(250).default(100),
@@ -119,7 +120,7 @@ export function officialReceiptBody(input: {
 
 export function paymentStatusFromInvoices(
   invoices: Array<{ status: string; due_on?: string | null }>,
-  today = new Date().toISOString().slice(0, 10),
+  today = schoolTodayIso(),
 ): "settled" | "pending" | "overdue" | null {
   if (invoices.length === 0) return null;
   const open = invoices.filter((invoice) => invoice.status !== "paid" && invoice.status !== "void");

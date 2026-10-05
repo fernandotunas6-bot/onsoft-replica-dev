@@ -35,6 +35,7 @@ import { assertCanSeeStudent, loadStudentScope } from "./student-scope";
 import { recordAccessAudit, recordAuditBatch } from "@/features/audit/record-audit";
 import { queueTenantUsageSync } from "@/features/saas/usage-sync";
 import { assertCanAddStudentForSchool } from "@/features/saas/tenant-limits-server";
+import { schoolTodayIso } from "@/lib/school-date";
 
 function isMissingPeopleGeography(error: { message?: string; code?: string } | null | undefined) {
   return Boolean(
@@ -665,7 +666,7 @@ export const createStudent = createServerFn({ method: "POST" })
       {
         school_id: membership.schoolId,
         person_id: data.personId,
-        admission_date: data.admittedOn ?? new Date().toISOString().slice(0, 10),
+        admission_date: data.admittedOn ?? schoolTodayIso(),
         // `undefined` e não `null`: os parâmetros `guardian_person_id` e
         // `relationship` de `register_student` têm `DEFAULT NULL` na base, pelo
         // que omitir e passar NULL dão o mesmo resultado — e os tipos gerados da
@@ -712,7 +713,7 @@ export const createStudent = createServerFn({ method: "POST" })
           school_id: membership.schoolId,
           student_id: studentOutcome.studentId,
           class_group_id: data.classGroupId,
-          enrolled_on: data.admittedOn ?? new Date().toISOString().slice(0, 10),
+          enrolled_on: data.admittedOn ?? schoolTodayIso(),
         },
       );
       if (enrollError) {
@@ -823,7 +824,7 @@ export const enrollNewStudent = createServerFn({ method: "POST" })
       {
         school_id: membership.schoolId,
         person_id: person.id,
-        admission_date: data.admittedOn ?? new Date().toISOString().slice(0, 10),
+        admission_date: data.admittedOn ?? schoolTodayIso(),
         // `undefined` e não `null`: os parâmetros `guardian_person_id` e
         // `relationship` de `register_student` têm `DEFAULT NULL` na base, pelo
         // que omitir e passar NULL dão o mesmo resultado — e os tipos gerados da
@@ -875,7 +876,7 @@ export const enrollNewStudent = createServerFn({ method: "POST" })
           school_id: membership.schoolId,
           student_id: studentOutcome.studentId,
           class_group_id: data.classGroupId,
-          enrolled_on: data.admittedOn ?? new Date().toISOString().slice(0, 10),
+          enrolled_on: data.admittedOn ?? schoolTodayIso(),
         },
       );
       if (enrollError) {
@@ -1103,7 +1104,7 @@ export const enrollStudentInClass = createServerFn({ method: "POST" })
       school_id: membership.schoolId,
       student_id: data.studentId,
       class_group_id: data.classGroupId,
-      enrolled_on: data.enrolledOn ?? new Date().toISOString().slice(0, 10),
+      enrolled_on: data.enrolledOn ?? schoolTodayIso(),
     });
     if (error) {
       if (rpcAuthError(error)) {
@@ -1674,7 +1675,7 @@ export const batchAssignClass = createServerFn({ method: "POST" })
     // Matrículas novas pela mesma função que a matrícula individual: tranca a
     // turma, valida capacidade/ano/estado, gera o número e exige 2FA. Em série,
     // porque cada chamada tranca a mesma turma.
-    const enrolledOn = new Date().toISOString().slice(0, 10);
+    const enrolledOn = schoolTodayIso();
     for (const studentId of toEnroll) {
       const { error } = await sgaClient(context.supabase).rpc("enroll_student", {
         school_id: schoolId,
