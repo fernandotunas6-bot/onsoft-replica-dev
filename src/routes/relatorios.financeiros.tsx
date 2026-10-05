@@ -38,6 +38,7 @@ import { buildFinancePrintSchool } from "@/lib/finance-print";
 import { ListFilterBar } from "@/components/filters/ListFilterBar";
 import { usePersistedListFilters } from "@/lib/list-filters";
 import { warmFinanceCharts } from "@/lib/warm-charts";
+import { schoolTodayIso } from "@/lib/school-date";
 
 const RelatoriosFinanceirosCategoryCharts = lazy(() =>
   import("@/features/finance/RelatoriosFinanceirosCategoryCharts").then((module) => ({
@@ -423,7 +424,7 @@ function RelatoriosFinanceiros() {
                   variant="outline"
                   className="gap-2"
                   onClick={async () => {
-                    const payload = `AGT;${school?.nif ?? "sem-nif"};${school?.name ?? "Escola"};${new Date().toISOString().slice(0, 10)};${kwanza(receita)}`;
+                    const payload = `AGT;${school?.nif ?? "sem-nif"};${school?.name ?? "Escola"};${schoolTodayIso()};${kwanza(receita)}`;
                     await navigator.clipboard.writeText(payload);
                     toast.success("Linha AGT copiada");
                   }}

@@ -39,6 +39,7 @@ import {
   personRoleOptions,
 } from "./schemas";
 import { isAngolaBiNif, normalizePersonNif } from "@/lib/angola-identity";
+import { schoolTodayIso } from "@/lib/school-date";
 
 function mapSex(sex: string | undefined) {
   if (!sex) return null;
@@ -1092,7 +1093,7 @@ export const createTeacher = createServerFn({ method: "POST" })
         school_id: membership.schoolId,
         person_id: person.id,
         employee_number: data.employeeNumber || `DOC-${seq}`,
-        hired_on: data.hiredOn || new Date().toISOString().slice(0, 10),
+        hired_on: data.hiredOn || schoolTodayIso(),
         employment_type: "permanent",
         highest_qualification: "bachelor",
         status: "active",
@@ -1494,7 +1495,7 @@ export async function ensureTeacherHrRecord(input: {
         person_id: person.id,
         user_id: input.userId,
         employee_number: `DOC-${seq}`,
-        hired_on: new Date().toISOString().slice(0, 10),
+        hired_on: schoolTodayIso(),
         employment_type: "permanent",
         highest_qualification: "bachelor",
         status: "active",

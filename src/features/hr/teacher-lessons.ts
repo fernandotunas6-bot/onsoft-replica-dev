@@ -1,3 +1,4 @@
+import { isMissingHrTable } from "@/features/hr/missing-table";
 import { createHash, randomBytes } from "node:crypto";
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
@@ -17,17 +18,6 @@ const HR_LESSON_ROLES = new Set(["Administrador", "Tesouraria"]);
 const TEACHER_QR_ISSUER_ROLES = new Set(["Administrador", "Secretaria", "Tesouraria"]);
 
 type SgaAdminClient = Awaited<ReturnType<typeof loadSgaAdminClient>>;
-
-function missingTeacherLessonSchema(error: { code?: string; message?: string } | null) {
-  return Boolean(
-    error &&
-    (error.code === "42P01" ||
-      error.code === "PGRST205" ||
-      /hr_teacher_(lesson_occurrences|qr_sessions)|schema cache|does not exist|relation .* does not exist/i.test(
-        error.message ?? "",
-      )),
-  );
-}
 
 async function requireHrLessonReader(userId: string, mode: "read" | "write" = "read") {
   const membership = await resolveSgaMembershipAdmin(userId);
@@ -448,7 +438,7 @@ export const listHrTeacherLessonOccurrences = createServerFn({ method: "GET" })
       .limit(250);
 
     if (error) {
-      if (missingTeacherLessonSchema(error)) return [];
+      if (isMissingHrTable(error)) return [];
       throw publicDatabaseError(error, "Não foi possível carregar as aulas remuneráveis.");
     }
 
@@ -478,7 +468,7 @@ export const listTeacherQrOccurrences = createServerFn({ method: "GET" })
       .limit(120);
 
     if (error) {
-      if (missingTeacherLessonSchema(error)) return [];
+      if (isMissingHrTable(error)) return [];
       throw publicDatabaseError(error, "Não foi possível carregar as aulas para emissão do QR.");
     }
 
@@ -525,7 +515,7 @@ export const listMyTeacherLessonOccurrences = createServerFn({ method: "GET" })
       .limit(120);
 
     if (error) {
-      if (missingTeacherLessonSchema(error)) return [];
+      if (isMissingHrTable(error)) return [];
       throw publicDatabaseError(error, "Não foi possível carregar as suas aulas e presenças.");
     }
 

@@ -9,6 +9,7 @@ import {
   registerReceiptDirect,
   type OpenInvoiceRef,
 } from "./finance-core";
+import { schoolTodayIso } from "@/lib/school-date";
 
 type PagamentosCache = ImportRefCache & {
   students: StudentRef[];
@@ -175,7 +176,7 @@ export const pagamentosImporter: RowImporter = {
     );
     const paidOn =
       normalizeDate(valueOf(normalized, "payment_date", "data_pagamento", "data")) ||
-      new Date().toISOString().slice(0, 10);
+      schoolTodayIso();
     const invoiceNum =
       normalizeText(valueOf(normalized, "invoice_number", "fatura", "guia")) || null;
     const receiptHint = normalizeText(

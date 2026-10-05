@@ -1,7 +1,6 @@
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
-import { nextExpenseNumber } from "@/features/hr/payments";
 import { reversePayrollPaymentItemInputSchema } from "@/features/hr/schemas";
 
 const migration = readFileSync(
@@ -33,14 +32,19 @@ describe("anular um salário pago por engano", () => {
   });
 
   it("um novo pagamento depois de anular leva o número seguinte (o número é único)", () => {
-    expect(nextExpenseNumber("FS-1-ABC", [])).toBe("FS-1-ABC");
-    expect(nextExpenseNumber("FS-1-ABC", [{ document_number: "FS-1-ABC" }])).toBe("FS-1-ABC-2");
-    expect(
-      nextExpenseNumber("FS-1-ABC", [
-        { document_number: "FS-1-ABC" },
-        { document_number: "FS-1-ABC-2" },
-      ]),
-    ).toBe("FS-1-ABC-3");
+    // A confirmação é atómica na base (hr_confirm_payroll_payment_item); a saída anulada
+    // mantém o número, por isso a função procura o primeiro livre (…-2, …-3).
+    // O comportamento está ensaiado em tests/sql/payroll-confirmation.mjs.
+    const confirm = readFileSync(
+      resolve(
+        __dirname,
+        "../../supabase/migrations/20261005040000_hr_confirm_payment_free_expense_number.sql",
+      ),
+      "utf8",
+    );
+    expect(confirm).toContain("WHILE EXISTS (SELECT 1 FROM public.siga_cash_expenses");
+    expect(confirm).toContain("v_number := v_batch.batch_number||'-'||v_item.id::text||'-'||v_n;");
+    expect(confirm).toContain("VALUES(p_school_id,v_number,");
   });
 
   it("a função é só do servidor e faz tudo numa transacção", () => {

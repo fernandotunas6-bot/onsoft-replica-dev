@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-hardware-bridge-request"
+description = "Enables the hardware_bridge_request command without any pre-configured scope."
+commands.allow = ["hardware_bridge_request"]
+
+[[permission]]
+identifier = "deny-hardware-bridge-request"
+description = "Denies the hardware_bridge_request command without any pre-configured scope."
+commands.deny = ["hardware_bridge_request"]

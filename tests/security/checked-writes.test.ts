@@ -40,7 +40,8 @@ describe("presenças", () => {
 describe("pagamentos: estados depois do registo ficam nos registos", () => {
   it("folha de salários", () => {
     const source = read("src/features/hr/payments.ts");
-    expect(source).toMatch(/async function syncPaymentStatus/);
+    expect(source).toContain('rpc("hr_confirm_payroll_payment_item"');
+    expect(source).not.toMatch(/async function syncPaymentStatus/);
     expect(source).not.toMatch(
       /\n\s+await db\s*\n\s+\.from\("hr_payroll_(runs|items|payment_batches)"\)/,
     );

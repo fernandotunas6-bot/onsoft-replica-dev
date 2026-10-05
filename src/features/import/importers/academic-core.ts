@@ -1,6 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { canonicalEntityKey } from "../engine/dedupe";
 import { normalizeDate, normalizeText } from "../engine/normalize";
+import { schoolTodayIso } from "@/lib/school-date";
 
 export type StudentRef = {
   id: string;
@@ -233,7 +234,7 @@ export function parseScore(value: unknown): number | null {
 }
 
 export function normalizedEnrollmentDate(value: unknown) {
-  return normalizeDate(value) ?? new Date().toISOString().slice(0, 10);
+  return normalizeDate(value) ?? schoolTodayIso();
 }
 
 export function normalizeShift(value: unknown): "morning" | "afternoon" | "evening" | null {

@@ -15,6 +15,7 @@ import {
   type FeeItemRef,
   type FeePlanRef,
 } from "./finance-core";
+import { schoolTodayIso } from "@/lib/school-date";
 
 type DividasCache = ImportRefCache & {
   students: StudentRef[];
@@ -168,7 +169,7 @@ export const dividasImporter: RowImporter = {
     const monthRef = valueOf(normalized, "month_ref", "mes", "referencia", "descricao");
     const dueDate =
       normalizeDate(valueOf(normalized, "due_date", "vencimento", "data_vencimento")) ||
-      new Date().toISOString().slice(0, 10);
+      schoolTodayIso();
     const invoiceNum =
       normalizeText(valueOf(normalized, "invoice_number", "fatura", "guia")) || null;
 

@@ -3,6 +3,7 @@ import { canonicalEntityKey, findBestEntityMatch, findBestPersonMatch } from "..
 import { normalizeText } from "../engine/normalize";
 import type { AuditEntry, ImportRefCache, RowImporter } from "../engine/types";
 import { loadExistingPeople, personCandidateFromRow, resolveOrCreatePerson } from "./people-core";
+import { schoolTodayIso } from "@/lib/school-date";
 
 function rpcAuthError(error: { code?: string; message?: string }) {
   return error.code === "42501" || /is_aal2|autorização|autorizacao/i.test(error.message ?? "");
@@ -133,7 +134,7 @@ export const alunosImporter: RowImporter = {
         {
           school_id: ctx.schoolId,
           person_id: personResult.personId,
-          admission_date: new Date().toISOString().slice(0, 10),
+          admission_date: schoolTodayIso(),
           guardian_person_id: null,
           relationship: null,
           primary_guardian: false,
@@ -210,7 +211,7 @@ export const alunosImporter: RowImporter = {
           school_id: ctx.schoolId,
           student_id: student.id,
           class_group_id: found.id,
-          enrolled_on: new Date().toISOString().slice(0, 10),
+          enrolled_on: schoolTodayIso(),
         });
         if (enrollError && !rpcAuthError(enrollError)) {
           warnings.push(
