@@ -1,4 +1,4 @@
-import { normalizeDate, normalizeNumber, normalizeText } from "../engine/normalize";
+import { normalizeDate, normalizeMoney, normalizeText } from "../engine/normalize";
 import type { ImportRefCache, RowImporter } from "../engine/types";
 import { loadStudentRefs, uniqueExactMatch, type StudentRef } from "./academic-core";
 import {
@@ -84,7 +84,7 @@ export const pagamentosImporter: RowImporter = {
     const studentIdent = normalizeText(
       valueOf(normalized, "student_identifier", "student_number", "aluno", "processo", "bi_aluno"),
     );
-    const amountVal = normalizeNumber(valueOf(normalized, "amount", "valor", "montante"));
+    const amountVal = normalizeMoney(valueOf(normalized, "amount", "valor", "montante"));
     const invoiceNum =
       normalizeText(valueOf(normalized, "invoice_number", "fatura", "guia")) || null;
     const receiptNum =
@@ -169,7 +169,7 @@ export const pagamentosImporter: RowImporter = {
     const studentIdent = normalizeText(
       valueOf(normalized, "student_identifier", "student_number", "aluno", "processo", "bi_aluno"),
     )!;
-    const amount = normalizeNumber(valueOf(normalized, "amount", "valor", "montante"))!;
+    const amount = normalizeMoney(valueOf(normalized, "amount", "valor", "montante"))!;
     const method = mapPaymentMethod(
       valueOf(normalized, "payment_method", "payment_channel", "forma_pagamento", "canal"),
     );

@@ -1,4 +1,4 @@
-import { normalizeDate, normalizeNumber, normalizeText } from "../engine/normalize";
+import { normalizeDate, normalizeMoney, normalizeText } from "../engine/normalize";
 import type { ImportRefCache, RowImporter } from "../engine/types";
 import { loadStudentRefs, uniqueExactMatch, type StudentRef } from "./academic-core";
 import {
@@ -78,7 +78,7 @@ export const dividasImporter: RowImporter = {
     const studentIdent = normalizeText(
       valueOf(normalized, "student_identifier", "aluno", "processo", "bi_aluno"),
     );
-    const amountVal = normalizeNumber(
+    const amountVal = normalizeMoney(
       valueOf(normalized, "amount_due", "valor", "montante", "saldo"),
     );
     const invoiceNum = normalizeText(valueOf(normalized, "invoice_number", "fatura", "guia"));
@@ -162,9 +162,7 @@ export const dividasImporter: RowImporter = {
     const studentIdent = normalizeText(
       valueOf(normalized, "student_identifier", "aluno", "processo", "bi_aluno"),
     )!;
-    const amount = normalizeNumber(
-      valueOf(normalized, "amount_due", "valor", "montante", "saldo"),
-    )!;
+    const amount = normalizeMoney(valueOf(normalized, "amount_due", "valor", "montante", "saldo"))!;
     const monthRef = valueOf(normalized, "month_ref", "mes", "referencia", "descricao");
     const dueDate =
       normalizeDate(valueOf(normalized, "due_date", "vencimento", "data_vencimento")) ||
