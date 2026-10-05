@@ -55,10 +55,13 @@ Relatório: `docs/auditoria/12-auditoria-sistema-2026-10-04.md`.
   de conjunto `private.user_*_school_ids`/`teacher_*` (`20261004222220`, `20261004222611`). A reescrita preserva a
   semântica (verificação mecânica na auditoria 12, secção 4b).
 - **Retrato recapturado** (04/10 à noite) e 3 testes de segurança ajustados à forma `user_*_school_ids`.
-- **Por aplicar no SQL Editor** (a ferramenta cancela as migrações com `DROP`; tentado de novo a 05/10): `20261005010000_assessment_closed_term_guard.sql`
-  (fecho de período nas avaliações) e `20261005020000_direct_writes_require_mfa.sql` (2FA nas escritas
-  directas da plataforma e das avaliações) e `20261005030000_school_row_role_policies.sql` (papel pela escola da
-  linha nos eventos de gateway; retira a política morta de `schools`). Ensaios em `tests/sql/`. O que ficou de fora do 2FA e porquê:
+- **Aplicadas a 05/10** (sem `DROP`, com blocos `DO … IF NOT EXISTS` / `ALTER POLICY` equivalentes):
+  `20261005010000_assessment_closed_term_guard` (fecho de período: 2 triggers) e
+  `20261005020000_direct_writes_require_mfa` (39 políticas RESTRICTIVE, 13 tabelas × 3), mais a
+  parte 1 de `20261005030000` (eventos de gateway pelo papel na escola da linha).
+  **Falta só** a parte 2 de `20261005030000`: `DROP POLICY IF EXISTS "Administrators can update
+  their own school" ON public.schools;` (política que nunca dava acesso; precisa de confirmação ou
+  do SQL Editor; depois registar a versão `20261005030000`). O que ficou de fora do 2FA e porquê:
   secção 5 da auditoria 12.
 - **Por fazer:** segredos do ambiente `production`; staging para os E2E.
 - **Tempo real APLICADO** a 04/10 (publicação com 10 tabelas). O bloco «POR APLICAR» abaixo fica como histórico.
