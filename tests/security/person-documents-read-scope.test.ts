@@ -51,7 +51,13 @@ describe("leitura de person_documents restrita a quem gere matrículas", () => {
     expect(select).toBeDefined();
     // `is_school_office(school_id)` (owner/admin/administrador/secretary/secretaria, por escola)
     // é o guarda em produção desde a 28/09; `can_manage_students()` era o da migração original.
-    expect(select?.usando).toMatch(/can_manage_students\(\)|is_school_office\(school_id\)/);
+    // Desde 04/10 a produção escreve o mesmo guarda como `user_role_school_ids(ARRAY[...])`.
+    const usando = select?.usando ?? "";
+    expect(usando).toMatch(
+      /can_manage_students\(\)|is_school_office\(school_id\)|user_role_school_ids\(ARRAY\[/,
+    );
+    // A lista de papéis de gestão nunca inclui aluno nem encarregado.
+    expect(usando).not.toMatch(/'(student|aluno|guardian|encarregado|parent)'/);
   });
 
   it("nenhuma política de person_documents usa is_school_member() sozinho", () => {
