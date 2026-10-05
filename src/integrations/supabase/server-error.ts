@@ -50,6 +50,18 @@ const constraintMessages: Record<string, string> = {
   student_guardians_check1: "O aluno não pode ser o seu próprio encarregado.",
 };
 
+/**
+ * Mensagens de regras de negócio levantadas pela própria base (RAISE nos gatilhos e
+ * funções), escritas para o utilizador: passam tal como estão. Sem esta lista, a da
+ * lotação chegava ao ecrã como «Um ou mais valores não respeitam as regras».
+ */
+const businessMessages = new Set([
+  "A turma atingiu a capacidade configurada.",
+  "A turma nova tem de ser da mesma escola e do mesmo ano lectivo da matrícula.",
+  "Turma ativa inválida para esta escola.",
+  "Identidade da matrícula é imutável.",
+]);
+
 function constraintMessage(message: string | undefined): string | null {
   const name = /constraint "([a-z0-9_]+)"/i.exec(message ?? "")?.[1];
   return (name && constraintMessages[name]) || null;
@@ -68,6 +80,8 @@ export function publicDatabaseError(error: DatabaseError, fallback: string): Err
   if (missingTable) {
     return new Error(publicMessages["42P01"] ?? fallback);
   }
+  const raised = String(error.message ?? "").trim();
+  if (businessMessages.has(raised)) return new Error(raised);
   if (error.code === "23505" || error.code === "23514") {
     const specific = constraintMessage(error.message);
     if (specific) return new Error(specific);

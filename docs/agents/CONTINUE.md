@@ -4,6 +4,22 @@ Ler isto **antes** de alterar código. Ecossistema (5 apps):
 [ARCHITECTURE_HARMONIZATION.md](./ARCHITECTURE_HARMONIZATION.md).
 Depois abrir o skill do módulo em `.cursor/skills/`.
 
+## Mudar de turma — POR APLICAR (2026-10-05)
+
+O gatilho `private.protect_enrollment_identity` tratava a turma como identidade da
+matrícula e recusava qualquer UPDATE de `class_group_id` («Identidade da matrícula é
+imutável.»). «Alterar turma», a atribuição em lote a alunos já matriculados e a
+importação de matrículas com «actualizar» falhavam sempre que a turma mudava: nas 36
+matrículas da produção (leitura de 2026-10-05) nunca houve uma mudança de turma gravada.
+
+- Migração `20261005160000_enrollment_class_change.sql`, pacote
+  `docs/agents/SIGA_aplicar_mudar_turma.sql` (sonda em `SIGA_confirmar_migracoes.sql`,
+  ensaio `tests/sql/enrollment-class-change.mjs`): a turma muda se a nova for do mesmo ano
+  e estiver activa; ocupar um lugar respeita a lotação (como `enroll_student`); o resto da
+  identidade continua imutável. A matrícula, as notas e o contrato ficam os mesmos.
+- `updateEnrollment` recusa antes uma turma de outro ano (é matrícula nova), e as
+  mensagens destas regras chegam ao ecrã como estão (`server-error.ts`).
+
 ## Multa por atraso: uma regra — APLICADA (2026-10-05)
 
 Pedido do dono (regra universal ou opção por escola). Antes: o webhook EMIS/Unitel

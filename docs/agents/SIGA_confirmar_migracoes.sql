@@ -95,6 +95,10 @@ from (values
      coalesce(position('siga.hr_payroll_reversal' in pg_get_functiondef(
        to_regprocedure('public.hr_block_locked_payroll_item_mutation()'))) > 0, false)
      and coalesce(position('siga.hr_payroll_reversal' in pg_get_functiondef(
-       to_regprocedure('private.hr_reverse_payroll_payment(uuid, uuid, uuid, text, text)'))) > 0, false))
+       to_regprocedure('private.hr_reverse_payroll_payment(uuid, uuid, uuid, text, text)'))) > 0, false)),
+  -- Esta está no pacote docs/agents/SIGA_aplicar_mudar_turma.sql.
+  ('20261005160000_enrollment_class_change',
+     coalesce(position('A turma atingiu a capacidade' in pg_get_functiondef(
+       to_regprocedure('private.protect_enrollment_identity()'))) > 0, false))
 ) as m(migracao, ok)
 order by migracao;
