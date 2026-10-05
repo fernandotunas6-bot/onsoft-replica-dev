@@ -114,35 +114,39 @@ describe("Ensino Superior no servidor", () => {
   });
 
   it("trabalhador-estudante: secretaria com 2FA, auditado, e a base sem a tabela não parte nada", () => {
+    const status = readFileSync("src/features/higher-ed/student-status.ts", "utf8");
+    const chunk = (name: string) => {
+      const start = status.indexOf(`export const ${name}`);
+      const next = status.indexOf("export const ", start + 1);
+      return status.slice(start, next === -1 ? undefined : next);
+    };
     for (const [name, label, action] of [
       [
         "grantWorkerStudentStatus",
-        "Atribuir o estatuto de trabalhador-estudante",
-        "higher_ed.worker_student.granted",
+        "Conceder o estatuto de trabalhador-estudante",
+        "student.special_status.granted",
       ],
       [
-        "revokeWorkerStudentStatus",
-        "Retirar o estatuto de trabalhador-estudante",
-        "higher_ed.worker_student.revoked",
+        "revokeStudentSpecialStatus",
+        "Revogar um estatuto do estudante",
+        "student.special_status.revoked",
       ],
     ] as const) {
-      const body = fn(name);
-      expect(body, name).toContain('officeMembership(context, "write")');
+      const body = chunk(name);
       expect(body, name).toContain(`requireAal2(context.claims, "${label}")`);
+      expect(body, name).toContain("[...OFFICE]");
       expect(body, name).toContain(`action: "${action}"`);
-      expect(body, name).toContain("throw new Error(MISSING_STATUS_TABLE)");
+      expect(body, name).toContain("missingTable(error)");
     }
+    expect(status).toContain('const OFFICE = ["Administrador", "Secretaria"] as const;');
     // Ler o estatuto com a tabela por criar devolve «sem estatuto», não um erro.
-    const rows = source.slice(
-      source.indexOf("async function workerStudentRows"),
-      source.indexOf("function isWorkerStudent"),
-    );
-    expect(rows).toContain("if (isMissingTable(error)) return [];");
-    // O lançamento e a pauta aplicam o estatuto do ano da inscrição.
+    const map = status.slice(status.indexOf("export async function studentStatusMap"));
+    expect(map).toContain("if (missingTable(error)) return map;");
+    // O lançamento e a pauta aplicam o estatuto do estudante.
     expect(fn("recordUnitResult")).toContain(
-      "frequencyOutcome(data.frequency, data.absencePercent, regulation, {",
+      "frequencyOutcome(data.frequency, data.absencePercent, regulation, status)",
     );
-    expect(fn("recordUnitResult")).toContain("latestRecord.academicYearId");
+    expect(fn("getUnitSheet")).toContain("studentStatusMap(db, schoolId, studentIds)");
   });
 
   it("certificado de conclusão: secretaria com 2FA, só concluído, número e código, uma vez", () => {

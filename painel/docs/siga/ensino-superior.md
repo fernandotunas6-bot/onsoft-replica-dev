@@ -61,12 +61,9 @@ Separador **Regulamento** (só Administrador edita). Valores por omissão:
 | Matrícula on-line (o estudante inscreve-se no portal) | desligada |
 | Trabalhador-estudante: faltas não excluem | ligado |
 | Trabalhador-estudante: época especial sem ser finalista | ligado |
+| Trabalhador-estudante: quanto conta cada ano (situação e prescrição) | 50 % |
 
-**Trabalhador-estudante.** Na ficha do estudante, a Secretaria ou a Direcção carrega em
-**Atribuir estatuto**, indica o comprovativo (ex.: declaração da entidade empregadora) e
-confirma com a verificação em duas etapas. O estatuto vale para o ano lectivo activo e
-aplica as duas regras acima (cada uma desliga-se no regulamento). Retirá-lo pede o
-motivo. Na pauta da cadeira, o estudante aparece com «Trabalhador-estudante».
+**Trabalhador-estudante.** Ver a secção 8.
 
 ## 4. Inscrições por cadeira
 
@@ -133,6 +130,21 @@ fatura**, escolhendo a categoria com o mesmo nome; 0 Kz = a instituição não c
   etapas). O certificado recebe o número de registo da escola (série «CE») e um código de
   verificação com QR: quem o recebe confirma-o em `/verificar`. Emitir de novo devolve o
   mesmo número e o mesmo código; só se imprime depois de emitido.
+
+## 8. Trabalhador-estudante
+
+Na ficha do estudante (separador Estudantes), a Secretaria concede o estatuto com a data de
+início, a data de fim (opcional), a entidade empregadora e a prova (ex.: declaração do
+empregador). Conceder e revogar exige verificação em duas etapas; os dados do estatuto só a
+Administração e a Secretaria os vêem.
+
+O Regulamento decide o que muda para quem tem o estatuto em vigor:
+
+- **Faltas não excluem** da avaliação (por omissão, sim);
+- **Época especial sem ser finalista** (por omissão, sim);
+- **Quanto conta cada ano** para a situação académica e a prescrição (por omissão, 50 %).
+
+Na pauta da cadeira, estes estudantes aparecem com a marca **TE**.
 
 ## Assistente de configuração
 

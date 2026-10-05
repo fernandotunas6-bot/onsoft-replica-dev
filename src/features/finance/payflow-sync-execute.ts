@@ -4,6 +4,7 @@
  */
 import { loadSgaAdminClient } from "@/integrations/supabase/sga-admin";
 import { publicDatabaseError } from "@/integrations/supabase/server-error";
+import { schoolTodayIso } from "@/lib/school-date";
 import { invoiceNetTotal } from "./invoice-settlement";
 
 export type PayflowStudentSyncResult = {
@@ -195,7 +196,7 @@ export async function executePayflowStudentSync(input: {
         const net = invoiceNetTotal(invoice);
         const amount = kzToMinorUnits(net);
         if (amount <= 0) return null;
-        const due = invoice.due_date || new Date().toISOString().slice(0, 10);
+        const due = invoice.due_date || schoolTodayIso();
         const feeName = invoice.fee_item_id ? feeNameById.get(invoice.fee_item_id) : null;
         return {
           id: invoice.id,

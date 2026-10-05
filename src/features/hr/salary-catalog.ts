@@ -2,6 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { loadSgaAdminClient, resolveSgaMembershipAdmin } from "@/integrations/supabase/sga-admin";
 import { publicDatabaseError } from "@/integrations/supabase/server-error";
+import { schoolTodayIso } from "@/lib/school-date";
 
 /** Salary references are read through the server only; public catalog tables have no direct client grants. */
 const HR_SALARY_ROLES = new Set(["Administrador", "Tesouraria"]);
@@ -31,11 +32,11 @@ export const listApprovedSalaryScales = createServerFn({ method: "GET" })
       .from("hr_salary_scale_versions")
       .select("id, scale_id, version_label, effective_from, effective_until")
       .eq("status", "approved")
-      .lte("effective_from", new Date().toISOString().slice(0, 10))
+      .lte("effective_from", schoolTodayIso())
       .order("effective_from", { ascending: false });
     if (versionError)
       throw publicDatabaseError(versionError, "Não foi possível carregar versões salariais.");
-    const today = new Date().toISOString().slice(0, 10);
+    const today = schoolTodayIso();
     const currentVersions = (versions ?? []).filter(
       (v) => !v.effective_until || v.effective_until >= today,
     );

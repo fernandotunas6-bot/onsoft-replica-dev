@@ -1,8 +1,9 @@
 import type { BillingSettings } from "@/features/school/settings-domains";
+import { schoolTodayIso } from "@/lib/school-date";
 
 /**
  * Multa por atraso: uma regra só, igual à de `private.late_fee_due`
- * (20261004140000_late_fee_one_rule.sql). A tesouraria aplica-a na base; a
+ * (20261004135000_late_fee_one_rule.sql). A tesouraria aplica-a na base; a
  * referência EMIS, o AppyPay, o plano de pagamento e o webhook usam esta.
  *
  * - Aplica-se uma vez: a fatura que já tem multa (`penalty_amount > 0`) não leva outra.
@@ -69,7 +70,7 @@ export function lateFeeFor(
   return feeCents / 100;
 }
 
-/** Data de hoje (`YYYY-MM-DD`, UTC), a mesma que os pagamentos gravam em `paid_on`. */
+/** Data de hoje na escola (`YYYY-MM-DD`, Luanda), a mesma que os pagamentos gravam em `paid_on`. */
 export function todayIso() {
-  return new Date().toISOString().slice(0, 10);
+  return schoolTodayIso();
 }

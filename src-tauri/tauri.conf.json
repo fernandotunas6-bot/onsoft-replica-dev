@@ -6,14 +6,10 @@
   "build": {
     "beforeDevCommand": "npm run dev",
     "devUrl": "http://localhost:3006",
-    "beforeBuildCommand": "npm run build",
-    "frontendDist": "../.output/public"
+    "beforeBuildCommand": "node scripts/check-desktop.mjs",
+    "frontendDist": "../desktop"
   },
   "app": {
-    "trayIcon": {
-      "iconPath": "icons/32x32.png",
-      "tooltip": "SIGA Desktop"
-    },
     "windows": [
       {
         "title": "SIGA - Sistema Integrado de Gestão Académica",
@@ -25,15 +21,16 @@
         "fullscreen": false,
         "center": true,
         "decorations": true,
-        "titleBarStyle": "Overlay",
-        "hiddenTitle": true,
-        "transparent": true
+        "titleBarStyle": "Visible",
+        "hiddenTitle": false,
+        "transparent": false,
+        "label": "main"
       }
     ],
     "security": {
-      "csp": null
+      "csp": "default-src 'self'; script-src 'self'; style-src 'self'; connect-src https://portal-siga.com; img-src 'self' data:; object-src 'none'; base-uri 'self'; form-action 'none'; frame-src 'none'"
     },
-    "macOSPrivateApi": true
+    "withGlobalTauri": true
   },
   "bundle": {
     "active": true,
@@ -44,6 +41,26 @@
       "icons/128x128@2x.png",
       "icons/icon.icns",
       "icons/icon.ico"
-    ]
+    ],
+    "publisher": "OnSoft",
+    "shortDescription": "Gestão académica da sua escola",
+    "windows": {
+      "allowDowngrades": false,
+      "webviewInstallMode": {
+        "type": "downloadBootstrapper",
+        "silent": false
+      },
+      "nsis": {
+        "installMode": "currentUser",
+        "languages": [
+          "Portuguese",
+          "English"
+        ],
+        "displayLanguageSelector": true,
+        "installerIcon": "icons/icon.ico",
+        "startMenuFolder": "OnSoft",
+        "compression": "lzma"
+      }
+    }
   }
 }

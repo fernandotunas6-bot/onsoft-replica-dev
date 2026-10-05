@@ -59,6 +59,8 @@ public/turmas/*.zip
 # Tauri build artifacts
 src-tauri/target/
 src-tauri/gen/
+# Gerado no workflow de versões (scripts/desktop/release-config.mjs).
+src-tauri/tauri.release.conf.json
 target/
 
 # Template de chat de referência (não integrado; o schema.sql traz tabelas próprias que colidem com as do SIGA)

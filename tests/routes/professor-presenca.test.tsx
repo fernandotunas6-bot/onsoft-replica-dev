@@ -36,8 +36,8 @@ vi.mock("@/features/hr/teacher-lessons", () => ({
   redeemTeacherLessonQr: vi.fn(),
 }));
 
-// O ecrã conta as aulas de hoje pela hora da escola (Luanda, UTC+1). Com o dia
-// em UTC, entre as 23h e a meia-noite UTC os dois dias divergiam e o teste falhava.
+// A data da escola (Luanda), a mesma do ecrã: entre as 23h e a meia-noite UTC a data
+// UTC já é a de ontem em Luanda.
 const today = schoolTodayIso(new Date());
 
 const scheduledLesson: HrTeacherLessonOccurrence = {

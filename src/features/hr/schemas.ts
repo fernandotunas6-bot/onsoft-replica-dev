@@ -47,6 +47,7 @@ export const hrPayrollItemStatusSchema = z.enum([
   "draft",
   "calculated",
   "approved",
+  "processing",
   "paid",
   "cancelled",
 ]);
@@ -57,11 +58,12 @@ export type HrPaymentMethod = z.infer<typeof hrPaymentMethodSchema>;
 
 export const hrPaymentBatchStatusSchema = z.enum([
   "draft",
-  "ready",
+  "awaiting_authorization",
   "authorized",
   "processing",
   "partial",
   "completed",
+  "failed",
   "cancelled",
 ]);
 export type HrPaymentBatchStatus = z.infer<typeof hrPaymentBatchStatusSchema>;
@@ -102,11 +104,12 @@ export const HR_PAYMENT_BATCH_TRANSITIONS: Record<
   HrPaymentBatchStatus,
   readonly HrPaymentBatchStatus[]
 > = {
-  draft: ["ready", "cancelled"],
-  ready: ["authorized", "draft", "cancelled"],
-  authorized: ["processing", "cancelled"],
+  draft: ["awaiting_authorization", "authorized", "cancelled"],
+  awaiting_authorization: ["authorized", "draft", "cancelled"],
+  authorized: ["processing", "partial", "completed", "cancelled"],
   processing: ["partial", "completed"],
   partial: ["processing", "completed"],
+  failed: [],
   completed: [],
   cancelled: [],
 };
@@ -215,6 +218,18 @@ export const confirmPayrollPaymentItemInputSchema = z
   });
 export type ConfirmPayrollPaymentItemInput = z.infer<typeof confirmPayrollPaymentItemInputSchema>;
 
+/**
+ * Anular um salário pago por engano (`hr_reverse_payroll_payment`). Depois de anular:
+ * `repay` volta a autorizar o pagamento (ex.: IBAN errado), `cancel` cancela-o (o
+ * salário não era devido).
+ */
+export const reversePayrollPaymentItemInputSchema = z.object({
+  paymentItemId: z.string().uuid(),
+  reason: z.string().trim().min(5, "Indique o motivo (mínimo 5 caracteres).").max(500),
+  next: z.enum(["repay", "cancel"]),
+});
+export type ReversePayrollPaymentItemInput = z.infer<typeof reversePayrollPaymentItemInputSchema>;
+
 export const attendanceAssurancePolicySchema = z
   .object({
     enabled: z.boolean().default(true),
@@ -297,10 +312,19 @@ export const redeemTeacherLessonQrInputSchema = z
   });
 export type RedeemTeacherLessonQrInput = z.infer<typeof redeemTeacherLessonQrInputSchema>;
 
+/** Reject Date.parse's rollover of nonexistent days before sending PostgreSQL dates. */
+function calendarDateSchema(message: string) {
+  return z.string().refine((value) => {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(value) || value.startsWith("0000-")) return false;
+    const timestamp = Date.parse(`${value}T00:00:00Z`);
+    return Number.isFinite(timestamp) && new Date(timestamp).toISOString().slice(0, 10) === value;
+  }, message);
+}
+
 export const materializeTeacherLessonsInputSchema = z
   .object({
-    from: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Data inicial inválida."),
-    to: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Data final inválida."),
+    from: calendarDateSchema("Data inicial inválida."),
+    to: calendarDateSchema("Data final inválida."),
   })
   .superRefine((value, ctx) => {
     const start = Date.parse(`${value.from}T00:00:00Z`);
@@ -331,9 +355,9 @@ export type AssignTeacherSubstituteInput = z.infer<typeof assignTeacherSubstitut
 export const createExtraTeacherLessonInputSchema = z
   .object({
     classSubjectId: z.string().uuid(),
-    lessonDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Data da aula inválida."),
-    startsAt: z.string().regex(/^\d{2}:\d{2}$/, "Hora inicial inválida."),
-    endsAt: z.string().regex(/^\d{2}:\d{2}$/, "Hora final inválida."),
+    lessonDate: calendarDateSchema("Data da aula inválida."),
+    startsAt: z.string().regex(/^(?:[01]\d|2[0-3]):[0-5]\d$/, "Hora inicial inválida."),
+    endsAt: z.string().regex(/^(?:[01]\d|2[0-3]):[0-5]\d$/, "Hora final inválida."),
     reason: z.string().trim().min(3).max(1000),
   })
   .superRefine((value, ctx) => {
@@ -368,11 +392,11 @@ export function maskPaymentDestinationLabel(
   destinationReference: string | null | undefined,
   method: string,
 ): string {
-  const source = (iban || accountNumber || "").replace(/\s/g, "");
-  if (source.length >= 4) {
-    return `${iban ? "IBAN" : "Conta"} ••••${source.slice(-4)}`;
+  const source = (iban || accountNumber || destinationReference || "").replace(/\s/g, "");
+  if (source) {
+    const prefix = iban ? "IBAN" : accountNumber ? "Conta" : "Referência";
+    return `${prefix} ••••${source.length > 4 ? source.slice(-4) : ""}`;
   }
-  if (destinationReference) return destinationReference;
   if (method === "cash") return "Numerário";
   return "Outro";
 }

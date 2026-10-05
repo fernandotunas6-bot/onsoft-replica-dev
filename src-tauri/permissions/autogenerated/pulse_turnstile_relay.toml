@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-pulse-turnstile-relay"
+description = "Enables the pulse_turnstile_relay command without any pre-configured scope."
+commands.allow = ["pulse_turnstile_relay"]
+
+[[permission]]
+identifier = "deny-pulse-turnstile-relay"
+description = "Denies the pulse_turnstile_relay command without any pre-configured scope."
+commands.deny = ["pulse_turnstile_relay"]

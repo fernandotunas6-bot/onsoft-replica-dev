@@ -1,3 +1,4 @@
+import { isMissingHrTable } from "@/features/hr/missing-table";
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { publicDatabaseError } from "@/integrations/supabase/server-error";
@@ -8,17 +9,6 @@ import {
 } from "@/integrations/supabase/sga-admin";
 
 const HR_READ_ROLES = new Set(["Administrador", "Tesouraria"]);
-
-function isMissingHrSchema(error: { code?: string; message?: string } | null) {
-  return Boolean(
-    error &&
-    (error.code === "42P01" ||
-      error.code === "PGRST205" ||
-      /hr_(departments|positions|employments|contracts|payroll)|schema cache|does not exist|relation .* does not exist/i.test(
-        error.message ?? "",
-      )),
-  );
-}
 
 async function requireHrReader(userId: string, mode: "read" | "write" = "read") {
   const membership = await resolveSgaMembershipAdmin(userId);
@@ -60,7 +50,7 @@ export const getHrDashboard = createServerFn({ method: "GET" })
       .is("deleted_at", null);
 
     if (schemaProbe.error) {
-      if (isMissingHrSchema(schemaProbe.error)) {
+      if (isMissingHrTable(schemaProbe.error)) {
         return {
           ready: false,
           employeeCount: 0,
@@ -143,7 +133,7 @@ export const listHrPayrollRuns = createServerFn({ method: "GET" })
       .limit(36);
 
     if (error) {
-      if (isMissingHrSchema(error)) return [];
+      if (isMissingHrTable(error)) return [];
       throw publicDatabaseError(error, "Não foi possível carregar as folhas salariais.");
     }
     return data ?? [];

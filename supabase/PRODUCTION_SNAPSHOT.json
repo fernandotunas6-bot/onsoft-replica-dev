@@ -1,11 +1,11 @@
 {
   "capturadoEm": "2026-10-04T22:27:59.000Z",
   "resumo": {
-    "tabelas": 186,
-    "com_rls": 186,
+    "tabelas": 187,
+    "com_rls": 187,
     "politicas": 321,
-    "funcoes_private": 121,
-    "triggers": 201,
+    "funcoes_private": 122,
+    "triggers": 202,
     "buckets": 6,
     "buckets_publicos": 1,
     "politicas_storage": 14
@@ -4822,6 +4822,35 @@
       ]
     },
     {
+      "tabela": "student_special_statuses",
+      "rls": true,
+      "rls_forcada": true,
+      "anon_select": false,
+      "auth_select": false,
+      "politicas": 0,
+      "colunas": [
+        "id",
+        "school_id",
+        "student_id",
+        "kind",
+        "valid_from",
+        "valid_until",
+        "employer",
+        "evidence_note",
+        "granted_by",
+        "revoked_at",
+        "revoked_by",
+        "revoke_reason",
+        "created_at",
+        "updated_at",
+        "version"
+      ],
+      "obrigatorias": [
+        "school_id",
+        "student_id"
+      ]
+    },
+    {
       "tabela": "student_status_events",
       "rls": true,
       "rls_forcada": true,
@@ -8650,6 +8679,12 @@
     },
     {
       "schema": "private",
+      "funcao": "hr_reverse_payroll_payment",
+      "args": "p_school_id uuid, p_payment_item_id uuid, p_actor uuid, p_reason text, p_next text",
+      "security_definer": true
+    },
+    {
+      "schema": "private",
       "funcao": "hr_upsert_payment_destination",
       "args": "p_school_id uuid, p_employment_id uuid, p_destination jsonb",
       "security_definer": true
@@ -9631,6 +9666,12 @@
       "funcao": "hr_refresh_payroll_payment_batch",
       "args": "p_batch_id uuid",
       "security_definer": false
+    },
+    {
+      "schema": "public",
+      "funcao": "hr_reverse_payroll_payment",
+      "args": "school_id uuid, payment_item_id uuid, actor uuid, reason text, next_step text",
+      "security_definer": true
     },
     {
       "schema": "public",
@@ -11083,6 +11124,12 @@
     {
       "tabela": "student_risk_cases",
       "trigger": "trg_student_risk_cases_updated",
+      "funcao": "siga_touch_updated_at",
+      "funcao_schema": "public"
+    },
+    {
+      "tabela": "student_special_statuses",
+      "trigger": "student_special_statuses_touch",
       "funcao": "siga_touch_updated_at",
       "funcao_schema": "public"
     },
@@ -14893,6 +14940,13 @@
         "mother",
         "other",
         "sibling"
+      ]
+    },
+    {
+      "tabela": "student_special_statuses",
+      "coluna": "kind",
+      "valores": [
+        "worker_student"
       ]
     },
     {

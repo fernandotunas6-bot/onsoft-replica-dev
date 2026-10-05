@@ -73,13 +73,8 @@ from (values
       where pubname = 'supabase_realtime' and schemaname = 'public'
         and tablename in ('siga_direct_messages', 'students', 'enrollments',
                           'enrollment_applications', 'finance_invoices', 'finance_receipts')) = 6),
-  -- Esta está no pacote docs/agents/SIGA_aplicar_trabalhador_estudante.sql.
-  ('20261004150000_higher_ed_student_statuses',
-     to_regclass('public.higher_ed_student_statuses') is not null
-     and not coalesce(has_table_privilege('authenticated',
-       to_regclass('public.higher_ed_student_statuses'), 'SELECT'), true)),
   -- Estas duas estão no pacote docs/agents/SIGA_aplicar_multas_atraso.sql.
-  ('20261004140000_late_fee_one_rule',
+  ('20261004135000_late_fee_one_rule',
      to_regprocedure('private.late_fee_due(uuid, numeric, date, numeric, date, text)') is not null
      and coalesce(position('private.late_fee_due' in pg_get_functiondef(
        to_regprocedure('private.register_payment(uuid, uuid, numeric, text, date)'))) > 0, false)),
@@ -87,6 +82,20 @@ from (values
      exists (select 1 from public.import_table_specs
              where table_schema = 'public' and table_name = 'school_settings'
                and direct_import_policy = 'controlled')),
+  -- Estatuto de trabalhador-estudante (aplicada a 2026-10-04).
+  ('20261004140000_student_special_statuses',
+     to_regclass('public.student_special_statuses') is not null
+     and not coalesce(has_table_privilege('authenticated',
+       to_regclass('public.student_special_statuses'), 'SELECT'), true)),
+  -- Anular um salário e voltar a pagar (aplicadas a 2026-10-05).
+  ('20261005040000_hr_confirm_payment_free_expense_number',
+     coalesce(position('WHILE EXISTS' in pg_get_functiondef(
+       to_regprocedure('private.hr_confirm_payroll_payment_item(uuid, uuid, text, text, text)'))) > 0, false)),
+  ('20261005050000_hr_reverse_payroll_payment_lock_states',
+     coalesce(position('siga.hr_payroll_reversal' in pg_get_functiondef(
+       to_regprocedure('public.hr_block_locked_payroll_item_mutation()'))) > 0, false)
+     and coalesce(position('siga.hr_payroll_reversal' in pg_get_functiondef(
+       to_regprocedure('private.hr_reverse_payroll_payment(uuid, uuid, uuid, text, text)'))) > 0, false)),
   -- Esta está no pacote docs/agents/SIGA_aplicar_propina_por_classe.sql.
   ('20261005030000_fee_items_grade_level',
      exists (select 1 from information_schema.columns

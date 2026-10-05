@@ -152,12 +152,7 @@ const ANON_POLICIES_ESPERADAS = [
 // AppyPay) se confirmaram em produção. Voltou a esvaziar a 2026-10-02: as três
 // tabelas do chat (20261002093000_chat_conversations.sql) foram aplicadas e
 // aparecem no retrato recapturado nesse dia.
-const TABELAS_AUSENTES_DA_PRODUCAO = new Set<string>([
-  // 20261004150000 (pacote SIGA_aplicar_trabalhador_estudante.sql), por aplicar. Até lá
-  // ninguém tem o estatuto (a leitura devolve «sem estatuto») e atribuí-lo dá a mensagem
-  // de aplicar o pacote, em vez do erro do PostgREST.
-  "higher_ed_student_statuses",
-]);
+const TABELAS_AUSENTES_DA_PRODUCAO = new Set<string>([]);
 
 /** Tabelas consultadas pelo código — `.from("x")`, excluindo buckets de storage. */
 function tabelasUsadasPelaApp(): string[] {
