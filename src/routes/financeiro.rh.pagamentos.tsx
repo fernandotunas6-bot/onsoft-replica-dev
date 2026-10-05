@@ -680,6 +680,7 @@ function PayrollPaymentsPage() {
                         <input
                           type="radio"
                           name="reversal-next"
+                          aria-label="Voltar a pagar"
                           checked={reversalDraft.next === "repay"}
                           onChange={() => setReversalDraft({ ...reversalDraft, next: "repay" })}
                         />
@@ -689,6 +690,7 @@ function PayrollPaymentsPage() {
                         <input
                           type="radio"
                           name="reversal-next"
+                          aria-label="Cancelar o pagamento"
                           checked={reversalDraft.next === "cancel"}
                           onChange={() => setReversalDraft({ ...reversalDraft, next: "cancel" })}
                         />
