@@ -38,6 +38,8 @@ import {
   cancelUnitEnrollment,
   correctUnitResult,
   recordDoctoralDecision,
+  grantWorkerStudentStatus,
+  revokeWorkerStudentStatus,
   createHigherEdProgram,
   enrollCohort,
   exportSisiesWorkbook,
@@ -1037,6 +1039,13 @@ function StudentPanel({ programId, studentId }: { programId: string; studentId: 
         ]}
       />
       <StandingSummary standing={standing} />
+      {student.data.activeYearId ? (
+        <WorkerStudentStatus
+          studentId={studentId}
+          status={student.data.workerStudent}
+          onChange={refresh}
+        />
+      ) : null}
       <div className="flex flex-wrap items-center gap-2">
         <Button onClick={() => enroll.mutate()} disabled={!selected.length || enroll.isPending}>
           {enroll.isPending
@@ -1590,6 +1599,100 @@ const STANDING_LABEL: Record<
   prazo_excedido: { label: "Prazo do curso excedido", tone: "destructive" },
 };
 
+/**
+ * Estatuto de trabalhador-estudante no ano lectivo activo. A Direcção ou a Secretaria
+ * atribui-o com o comprovativo e retira-o com o motivo (2FA, auditoria); as regras que
+ * muda (faltas, época especial) estão no regulamento.
+ */
+function WorkerStudentStatus({
+  studentId,
+  status,
+  onChange,
+}: {
+  studentId: string;
+  status: { evidence: string; grantedAt: string } | null;
+  onChange: () => Promise<unknown>;
+}) {
+  const [editing, setEditing] = useState<"grant" | "revoke" | null>(null);
+  const [text, setText] = useState("");
+  const close = () => {
+    setEditing(null);
+    setText("");
+  };
+  const save = useMutation({
+    mutationFn: () =>
+      editing === "revoke"
+        ? revokeWorkerStudentStatus({ data: { studentId, reason: text } })
+        : grantWorkerStudentStatus({ data: { studentId, evidence: text } }),
+    onSuccess: async () => {
+      toast.success(
+        editing === "revoke"
+          ? "Estatuto de trabalhador-estudante retirado."
+          : "Estatuto de trabalhador-estudante atribuído.",
+      );
+      close();
+      await onChange();
+    },
+    onError: (error) => toastActionError(error, "Não foi possível guardar o estatuto."),
+  });
+
+  return (
+    <div className="space-y-2 rounded-lg border p-3 text-sm">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div>
+          <p className="font-medium">Trabalhador-estudante</p>
+          <p className="text-xs text-muted-foreground">
+            {status
+              ? `Com estatuto neste ano lectivo · ${status.evidence}`
+              : "Sem estatuto neste ano lectivo."}
+          </p>
+        </div>
+        {editing === null ? (
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => setEditing(status ? "revoke" : "grant")}
+          >
+            {status ? "Retirar estatuto" : "Atribuir estatuto"}
+          </Button>
+        ) : null}
+      </div>
+      {editing ? (
+        <form
+          className="flex flex-wrap items-end gap-2"
+          onSubmit={(event) => {
+            event.preventDefault();
+            save.mutate();
+          }}
+        >
+          <div className="min-w-64 flex-1 space-y-1.5">
+            <Label htmlFor="worker-student-text">
+              {editing === "grant" ? "Comprovativo" : "Motivo"}
+            </Label>
+            <Input
+              id="worker-student-text"
+              value={text}
+              maxLength={500}
+              placeholder={
+                editing === "grant"
+                  ? "Ex.: declaração da entidade empregadora de 01/09/2026"
+                  : "Ex.: deixou de trabalhar"
+              }
+              onChange={(event) => setText(event.target.value)}
+            />
+          </div>
+          <Button type="submit" size="sm" disabled={text.trim().length < 3 || save.isPending}>
+            {save.isPending ? "A guardar…" : editing === "grant" ? "Atribuir" : "Retirar"}
+          </Button>
+          <Button type="button" size="sm" variant="ghost" onClick={close}>
+            Cancelar
+          </Button>
+        </form>
+      ) : null}
+    </div>
+  );
+}
+
 /** Situação académica e «o que falta para concluir» (degree audit). */
 function StandingSummary({
   standing,
@@ -1777,6 +1880,43 @@ function RegulationTab({ canEdit }: { canEdit: boolean }) {
             onCheckedChange={(value) => setDraft({ ...current, block_enrollment_with_debt: value })}
           />
           <Label htmlFor="reg-debt">Propinas vencidas impedem a inscrição em cadeiras</Label>
+        </div>
+        <div className="flex items-center gap-3 sm:col-span-2">
+          <Switch
+            id="reg-self"
+            checked={current.student_self_enrollment}
+            disabled={!canEdit}
+            onCheckedChange={(value) => setDraft({ ...current, student_self_enrollment: value })}
+          />
+          <Label htmlFor="reg-self">
+            Estudantes inscrevem-se nas cadeiras no portal (dentro do período de inscrições)
+          </Label>
+        </div>
+        <div className="flex items-center gap-3 sm:col-span-2">
+          <Switch
+            id="reg-worker-absence"
+            checked={current.worker_student_absence_exempt}
+            disabled={!canEdit}
+            onCheckedChange={(value) =>
+              setDraft({ ...current, worker_student_absence_exempt: value })
+            }
+          />
+          <Label htmlFor="reg-worker-absence">
+            Trabalhador-estudante: as faltas não excluem da avaliação
+          </Label>
+        </div>
+        <div className="flex items-center gap-3 sm:col-span-2">
+          <Switch
+            id="reg-worker-special"
+            checked={current.worker_student_special_season}
+            disabled={!canEdit}
+            onCheckedChange={(value) =>
+              setDraft({ ...current, worker_student_special_season: value })
+            }
+          />
+          <Label htmlFor="reg-worker-special">
+            Trabalhador-estudante: época especial mesmo sem ser finalista
+          </Label>
         </div>
         <div className="space-y-1.5">
           <Label htmlFor="reg-opens">Inscrições abrem a</Label>

@@ -4,6 +4,7 @@ import {
   academicStanding,
   cancellationIsLate,
   enrollmentWindowError,
+  enrollmentOffer,
   checkEnrollmentBatch,
   checkUnitEnrollment,
   decodeJuryDecision,
@@ -253,6 +254,48 @@ describe("frequência e épocas", () => {
         plan,
         regulation: { ...reg, special_season_max_units: 1 },
       }).especial,
+    ).toBe(false);
+  });
+
+  it("trabalhador-estudante: faltas não excluem e época especial sem ser finalista", () => {
+    // Faltas acima do limite: só exclui quem não tem o estatuto (ou se o regulamento o desligar).
+    expect(frequencyOutcome(15, 30, reg).kind).toBe("excluido_faltas");
+    expect(frequencyOutcome(15, 30, reg, { workerStudent: true }).kind).toBe("dispensado_exame");
+    expect(
+      frequencyOutcome(
+        15,
+        30,
+        { ...reg, worker_student_absence_exempt: false },
+        {
+          workerStudent: true,
+        },
+      ).kind,
+    ).toBe("excluido_faltas");
+    // Longe de concluir (não é finalista), reprovado numa cadeira do 1.º semestre.
+    const records = [rec("mat1", "reprovado")];
+    const base = { unitId: "mat1", records, plan, regulation: reg };
+    expect(seasonEligibility(base).especial).toBe(false);
+    expect(seasonEligibility({ ...base, workerStudent: true }).especial).toBe(true);
+    expect(
+      seasonEligibility({
+        ...base,
+        workerStudent: true,
+        regulation: { ...reg, worker_student_special_season: false },
+      }).especial,
+    ).toBe(false);
+    // Só em cadeira reprovada ou excluída por frequência; nunca numa já aprovada.
+    expect(
+      seasonEligibility({ ...base, records: [rec("mat1", "aprovado")], workerStudent: true })
+        .especial,
+    ).toBe(false);
+  });
+
+  it("regulamento: estatuto de trabalhador-estudante com os dois efeitos ligados por omissão", () => {
+    expect(HIGHER_ED_DEFAULTS.worker_student_absence_exempt).toBe(true);
+    expect(HIGHER_ED_DEFAULTS.worker_student_special_season).toBe(true);
+    expect(
+      parseSettingsDomain("higher_ed", { worker_student_special_season: false })
+        .worker_student_special_season,
     ).toBe(false);
   });
 
@@ -521,6 +564,39 @@ describe("regras opcionais (calendário de inscrições e prazo de anulação)",
     expect(cancellationIsLate(42, "2026-09-01", "2026-10-14")).toBe(true);
     expect(cancellationIsLate(0, "2026-09-01", "2027-01-01")).toBe(false);
     expect(cancellationIsLate(42, null, "2027-01-01")).toBe(false);
+  });
+});
+
+describe("matrícula on-line: oferta de cadeiras", () => {
+  it("esconde as concluídas, marca as inscritas e explica as bloqueadas", () => {
+    const records = [
+      rec("mat1", "aprovado", { academicYearId: "y0" }),
+      rec("prog1", "inscrito", { academicYearId: "y1", season: null }),
+    ];
+    const offer = enrollmentOffer({
+      plan,
+      prerequisites: prereqs,
+      records,
+      regulation: reg,
+      academicYearId: "y1",
+    });
+    const byId = new Map(offer.map((o) => [o.unit.id, o]));
+    expect(byId.has("mat1")).toBe(false);
+    expect(byId.get("prog1")?.state).toBe("inscrita");
+    expect(byId.get("mat2")?.state).toBe("disponivel");
+    expect(byId.get("prog2")?.state).toBe("bloqueada");
+    expect(byId.get("prog2")?.reasons.join(" ")).toContain("PROG1");
+    expect(offer.map((o) => o.unit.semester)).toEqual(
+      [...offer.map((o) => o.unit.semester)].sort((a, b) => a - b),
+    );
+  });
+
+  it("regulamento: matrícula on-line desligada por omissão", () => {
+    expect(HIGHER_ED_DEFAULTS.student_self_enrollment).toBe(false);
+    expect(parseSettingsDomain("higher_ed", {}).student_self_enrollment).toBe(false);
+    expect(
+      parseSettingsDomain("higher_ed", { student_self_enrollment: true }).student_self_enrollment,
+    ).toBe(true);
   });
 });
 

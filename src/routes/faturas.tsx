@@ -2,6 +2,7 @@ import { useEffect, useId, useMemo, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { realtimeInvalidator } from "@/lib/realtime-invalidate";
 import { ListPaginationBar } from "@/components/filters/ListPaginationBar";
 import {
   AlertCircle,
@@ -140,6 +141,18 @@ const estadoTone = {
   Vencida: toneClass.danger,
 } as const;
 
+/** Texto do «Receber»: diz se registar hoje aplica a multa por atraso, e em que métodos. */
+function receiveDescription(multa: { counter: number; electronic: number }) {
+  const kz = (value: number) => kwanza(value);
+  if (multa.counter > 0) {
+    return `Em atraso: registar hoje aplica a multa de ${kz(multa.counter)}, já somada ao valor.`;
+  }
+  if (multa.electronic > 0) {
+    return `Em atraso: Multicaixa Express e Unitel Money levam a multa de ${kz(multa.electronic)}; numerário e transferência não.`;
+  }
+  return "Liquida esta fatura e lança o recibo no caixa.";
+}
+
 function FaturasPage() {
   const realtimeInstanceId = useId();
   const queryClient = useQueryClient();
@@ -149,11 +162,7 @@ function FaturasPage() {
   const resendInvoices = installed.hasCapability("resend.invoices");
   const whatsappOn = installed.hasCapability("whatsapp.notices");
   const multicaixaOn = installed.isInstalled("multicaixa_express");
-  const [emisInvoice, setEmisInvoice] = useState<{
-    id: string;
-    numero: string;
-    valor: number;
-  } | null>(null);
+  const [emisInvoice, setEmisInvoice] = useState<{ id: string; numero: string } | null>(null);
   const receiveMethods = [
     "Numerário",
     "Transferência",
@@ -206,6 +215,8 @@ function FaturasPage() {
         vencimento: invoice.due_on,
         valor: Number(invoice.total_amount),
         recebido: Number(invoice.amount_paid),
+        // Multa que um pagamento registado hoje leva (0 sem atraso ou sem multa na escola).
+        multaHoje: invoice.late_fee_today,
         estado:
           invoice.status === "paid"
             ? ("Paga" as const)
@@ -252,27 +263,38 @@ function FaturasPage() {
     setPage(1);
   }, [query, estado, de, ate]);
 
-  // Realtime — actualiza faturas e relatório ao vivo quando há novos pagamentos ou faturas
+  // Realtime — actualiza faturas e relatório ao vivo quando há novos pagamentos ou faturas.
+  // As tabelas do SIGA são finance_invoices e finance_receipts (cada pagamento gera um
+  // recibo); `invoices` e `payments` são do esquema antigo e não existem.
   useEffect(() => {
+    const realtime = realtimeInvalidator(queryClient);
+    const created = () =>
+      realtime.invalidate(
+        ["finance", "invoices"],
+        ["finance", "reporting"],
+        ["dashboard", "overview"],
+      );
     const channel = supabase
       .channel(`faturas_realtime:${realtimeInstanceId}`)
-      .on("postgres_changes", { event: "INSERT", schema: "public", table: "invoices" }, () => {
-        void queryClient.invalidateQueries({ queryKey: ["finance", "invoices"] });
-        void queryClient.invalidateQueries({ queryKey: ["finance", "reporting"] });
-        void queryClient.invalidateQueries({ queryKey: ["dashboard", "overview"] });
-      })
-      .on("postgres_changes", { event: "INSERT", schema: "public", table: "payments" }, () => {
-        void queryClient.invalidateQueries({ queryKey: ["finance", "invoices"] });
-        void queryClient.invalidateQueries({ queryKey: ["finance", "reporting"] });
-        void queryClient.invalidateQueries({ queryKey: ["dashboard", "overview"] });
-      })
-      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "invoices" }, () => {
-        void queryClient.invalidateQueries({ queryKey: ["finance", "invoices"] });
-        void queryClient.invalidateQueries({ queryKey: ["finance", "reporting"] });
-      })
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "finance_invoices" },
+        created,
+      )
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "finance_receipts" },
+        created,
+      )
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "finance_invoices" },
+        () => realtime.invalidate(["finance", "invoices"], ["finance", "reporting"]),
+      )
       .subscribe();
 
     return () => {
+      realtime.dispose();
       supabase.removeChannel(channel);
     };
   }, [queryClient, realtimeInstanceId]);
@@ -303,13 +325,7 @@ function FaturasPage() {
           <Button
             size="sm"
             variant="ghost"
-            onClick={() =>
-              setEmisInvoice({
-                id: f.id,
-                numero: f.numero,
-                valor: Math.max(f.valor - f.recebido, 0) || f.valor,
-              })
-            }
+            onClick={() => setEmisInvoice({ id: f.id, numero: f.numero })}
           >
             <QrCode className="size-3.5" /> Referência EMIS
           </Button>
@@ -318,7 +334,7 @@ function FaturasPage() {
           <QuickFormModal
             eyebrow={f.numero}
             title={`Receber ${f.aluno}`}
-            description="Liquida esta fatura e lança o recibo no caixa."
+            description={receiveDescription(f.multaHoje)}
             icon={<Wallet className="size-5" />}
             submitLabel="Confirmar pagamento"
             successDescription="Pagamento registado."
@@ -327,7 +343,11 @@ function FaturasPage() {
                 name: "valor",
                 label: "Valor (Kz)",
                 type: "number",
-                defaultValue: String(Math.max(f.valor - f.recebido, 0) || f.valor),
+                defaultValue: String(
+                  Math.round(
+                    ((Math.max(f.valor - f.recebido, 0) || f.valor) + f.multaHoje.counter) * 100,
+                  ) / 100,
+                ),
               },
               {
                 name: "recibo",
@@ -1277,7 +1297,6 @@ function FaturasPage() {
               <PaymentReferenceCard
                 invoiceId={emisInvoice.id}
                 invoiceNumber={emisInvoice.numero}
-                amount={emisInvoice.valor}
                 onPaymentSuccess={() => {
                   setEmisInvoice(null);
                   void queryClient.invalidateQueries({ queryKey: ["finance"] });

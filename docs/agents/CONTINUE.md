@@ -4,6 +4,86 @@ Ler isto **antes** de alterar código. Ecossistema (5 apps):
 [ARCHITECTURE_HARMONIZATION.md](./ARCHITECTURE_HARMONIZATION.md).
 Depois abrir o skill do módulo em `.cursor/skills/`.
 
+## Multa por atraso: uma regra — POR APLICAR (2026-10-04)
+
+Pedido do dono (regra universal ou opção por escola). Antes: o webhook EMIS/Unitel
+aplicava a multa; a tesouraria (`private.register_payment`) não a aplicava e
+ignorava a já gravada (a fatura ficava «paga» sem ela); a referência do ecrã, o
+plano de pagamento e o AppyPay pediam valor − desconto. Nenhuma escola tinha multa
+nas regras (produção, só leitura): nada foi cobrado a mais nem a menos.
+
+- **Regra** (`src/features/finance/late-fee.ts`, igual a `private.late_fee_due`):
+  uma vez por fatura; só depois do vencimento mais a tolerância, contada em datas;
+  percentagem sobre o valor, arredondada ao cêntimo pelo decimal escrito (como o
+  `numeric`). O ensaio `tests/sql/late-fee.mjs` compara as duas em 5040 casos.
+- **Âmbito** em Definições › Cobrança (`late_fee_scope`): «Em todos os pagamentos»
+  (omissão) ou «Só nos electrónicos» (métodos `card`/`other`: Multicaixa, Express,
+  Unitel Money, referências; numerário e transferência ficam sem multa).
+- **Total a pagar** = valor − desconto + multa aplicada (`invoiceNetTotal`): lista,
+  resumo, painel, ficha da pessoa, PayFlow, importação e estornos. O SAF-T fica com
+  o valor da fatura emitida (a multa não é da fatura original).
+- **Ecrãs:** a referência EMIS é do que falta pagar, com a multa de um pagamento
+  hoje (o servidor calcula; o cartão mostra «Inclui a multa…»). O «Receber» mostra a
+  multa de hoje e soma-a ao valor sugerido.
+- Migrações `20261004140000_late_fee_one_rule.sql` e
+  `20261004141000_propinas_import_into_billing_rules.sql`, pacote
+  `docs/agents/SIGA_aplicar_multas_atraso.sql` (sondas também em
+  `SIGA_confirmar_migracoes.sql`).
+
+**Importação de «propinas»** (decisão do dono, 2026-10-04): gravava em
+`school_billing_settings`, que nada lê, e sem a coluna da multa gravava 10 %. Passa a
+gravar as regras activas (`school_settings`, domínio `billing`), só o que vem no
+ficheiro, com 2FA e a gravação versionada do ecrã; migração
+`20261004141000_propinas_import_into_billing_rules.sql` (catálogo: `school_settings`
+«controlled», só o domínio `billing`). O modelo oficial é um preçário (designação,
+classe, valor, taxa de multa diária) que o importador não usa: avisa que os valores
+e a taxa diária não entram. Importar preços por classe fica por fazer.
+
+`school_billing_settings` fica como está (2 linhas, gravadas a 08/09 com os antigos
+valores do ecrã): o Colégio Adventista do Huambo (multa 2 %, 5 dias, desconto de
+irmãos 10 %) e uma escola de testes. Por decisão do dono não passam a valer: o
+Huambo cobra sem multa nem desconto até rever as regras em Definições › Cobrança.
+
+## Auditoria 12 — SQL fora do Git e estado da produção (2026-10-04)
+
+Relatório: `docs/auditoria/12-auditoria-sistema-2026-10-04.md`.
+
+- **Produção mudou sem migrações.** Cinco migrações de 04/10 (22:04–22:15) foram trazidas para
+  `supabase/migrations/` (corpo capturado, md5 conferido). Além delas, 10 funções `private.*`
+  (`user_*_school_ids`, `teacher_*`, `current_teacher_rows`, `user_import_job_ids`) e 116 políticas
+  reescritas para as usar existem só na base: as funções estão em
+  `20261005000000_reconcile_unrecorded_rls_helpers.sql`; as políticas só no retrato novo.
+- **Retrato recapturado** (04/10 à noite) e 3 testes de segurança ajustados à forma `user_*_school_ids`.
+- **Por aplicar no SQL Editor** (a ferramenta cancela a escrita): `20261005010000_assessment_closed_term_guard.sql`
+  (fecho de período nas avaliações) e `20261005020000_direct_writes_require_mfa.sql` (2FA nas escritas
+  directas da plataforma e das avaliações). Ensaios em `tests/sql/`. O que ficou de fora do 2FA e porquê:
+  secção 5 da auditoria 12.
+- **Por fazer:** segredos do ambiente `production`; staging para os E2E.
+- **Tempo real APLICADO** a 04/10 (publicação com 10 tabelas). O bloco «POR APLICAR» abaixo fica como histórico.
+- Os ensaios `tests/sql/*.mjs` correm agora no CI (PGlite instalado fora do projecto).
+- Já aplicadas na produção (o texto antigo dizia «por aplicar»): `one_active_academic_year` (02/10) e
+  `annual_sheet_requires_all_terms` (04/10).
+
+## Tempo real nas tabelas reais — APLICADO a 04/10 (texto original)
+
+A publicação `supabase_realtime` só tinha `document_requests`,
+`school_announcements`, `siga_chat_members` e `siga_chat_messages` (produção, só
+leitura, 2026-10-04). As mensagens (contador e notificações do desktop), o
+/alunos, o painel e o /faturas subscreviam tabelas não publicadas e nunca
+recebiam eventos; o /faturas e o painel ouviam ainda `invoices`/`payments`, que
+não existem. O cliente passa a `finance_invoices`/`finance_receipts`, e a
+migração `20261004101000_realtime_publish_school_screens.sql` publica as 6
+tabelas. O tempo real aplica as políticas de leitura (alunos e faturas só chegam
+ao pessoal). Como cada linha chega como um evento, os ecrãs juntam as
+invalidações numa janela de 300 ms (`src/lib/realtime-invalidate.ts`): uma
+importação ou a geração das propinas não dispara um pedido por linha.
+
+Pacote: `docs/agents/SIGA_aplicar_tempo_real.sql` (confirmação no fim; a sonda
+também está em `SIGA_confirmar_migracoes.sql`). Ensaio PGlite:
+`tests/sql/realtime-package.mjs`. `tests/security/tempo-real-vs-producao.test.ts`
+recusa subscrições a tabelas que não existem na produção ou que nenhuma migração
+publica.
+
 ## Aurora + PR #65 integrados (2026-10-04)
 
 O Aurora (PR #66, na main) e o PR #65 cresceram em paralelo; foram juntos em
@@ -22,12 +102,9 @@ O Aurora (PR #66, na main) e o PR #65 cresceram em paralelo; foram juntos em
 
 ## Pendentes de decisão do dono (2026-10-03)
 
-- **Multas por atraso.** O pagamento por referência (EMIS/Unitel) cobra
-  `amount - discount + penalty`; a tesouraria (`register_payment`) e a referência
-  gerada no ecrã cobram `amount - discount`. O dono pediu regra universal **ou**
-  opção por escola («multa entra em todos os pagamentos» / «só nos electrónicos»).
-  Implementar como definição em `school_settings` (domínio finance) e usar o mesmo
-  total nos três caminhos.
+- **Multas por atraso.** Feito a 2026-10-04 (secção «Multa por atraso: uma regra»):
+  opção por escola em Definições › Cobrança e o mesmo total em todos os caminhos.
+  Falta aplicar `SIGA_aplicar_multas_atraso.sql`.
 - **Anular um salário pago por engano.** O caixa já recusa anular a saída de um
   salário (`reverseCashEntry`). Falta, nos RH, a anulação com motivo que reponha
   o item, a ordem e a folha e anule a saída de caixa numa transacção (migração).
@@ -65,6 +142,35 @@ servidor lhes toca, ver `PRIVILEGIO_POR_DESENHO`).
   `/pedagogica/superior/historico` (documento imprimível).
 - **Assistente** `/configuracoes/inicio`: passos de regulamento e planos quando a
   escola tem o nível `superior`.
+- **Também feito a 03/10:** perfil do curso (grau, modalidade, regime, vagas),
+  exame de acesso e seriação, exportação SISIES, regras opcionais (dívida,
+  período de inscrições, prazo de anulação com 2FA), correcção de nota e
+  situação académica.
+- **Matrícula on-line** (regra `student_self_enrollment`, desligada por omissão):
+  cartão «Inscrição em cadeiras» no portal do estudante
+  (`StudentSelfEnrollmentCard`), `getMyEnrollmentOffer` / `enrollMyUnits`. Só a
+  conta `Aluno` (o encarregado não inscreve); mesmas regras da secretaria porque
+  ambas passam por `enrollUnitsFor`; auditoria `higher_ed.enrollment.self`.
+  Anular continua só na secretaria.
+- **Certificado de conclusão com registo e QR** (2026-10-04): `issueHigherEdCertificate`
+  (Direcção/Secretaria, 2FA, só com o curso concluído) numera pela série `certificate` da
+  escola (`next_document_number_service`, «CE-000001») e regista o código no mesmo
+  sítio que os outros documentos oficiais (`audit_logs`, `documents.issued`, modelo
+  `certificado-conclusao-superior`), por isso `/verificar` confirma-o sem mudanças.
+  Uma vez por estudante e curso: repetir devolve o mesmo número e código. Sem anulação
+  (o registo de verificação em `audit_logs` não a tem).
+- **Trabalhador-estudante — POR APLICAR** (2026-10-04): tabela
+  `higher_ed_student_statuses` só do servidor (migração `20261004150000`, pacote
+  `docs/agents/SIGA_aplicar_trabalhador_estudante.sql`, sonda em
+  `SIGA_confirmar_migracoes.sql`). Um estatuto por estudante e ano lectivo, com
+  comprovativo; atribuir/retirar com 2FA e auditoria (`higher_ed.worker_student.*`).
+  Efeitos no regulamento: `worker_student_absence_exempt` (faltas não excluem) e
+  `worker_student_special_season` (época especial sem ser finalista), aplicados no
+  lançamento, na pauta e na ficha pelo estatuto do ano da inscrição. Enquanto a tabela
+  não existir, ninguém tem o estatuto e atribuí-lo pede o pacote
+  (`TABELAS_AUSENTES_DA_PRODUCAO`).
+- **Por fazer:** ver «Pendente» em `docs/higher-ed/ANALISE_REQUISITOS_ANGOLA.md`
+  (bacharelato, bolsas, turnos/lista de espera; prescrição do trabalhador-estudante).
 
 ## Auditoria de produção 11 (2026-10-02)
 

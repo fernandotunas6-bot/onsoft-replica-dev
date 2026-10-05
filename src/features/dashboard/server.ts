@@ -34,6 +34,7 @@ import {
   type AcademicYearPhase,
 } from "@/features/calendar/dates";
 import { buildUpcomingCalendarItems } from "@/features/calendar/upcoming";
+import { invoiceNetTotal } from "@/features/finance/invoice-settlement";
 import {
   emptySchoolTodayOps,
   isStartingWithinMinutes,
@@ -575,7 +576,7 @@ export const getDashboardOverview = createServerFn({ method: "GET" })
       const [{ data: invoices }, { data: receipts }] = await Promise.all([
         db
           .from("finance_invoices")
-          .select("id, amount, discount_amount, competence_month, status, due_date")
+          .select("id, amount, discount_amount, penalty_amount, competence_month, status, due_date")
           .eq("school_id", schoolId)
           .limit(3000),
         db
@@ -612,7 +613,7 @@ export const getDashboardOverview = createServerFn({ method: "GET" })
 
       for (const invoice of invoices ?? []) {
         if (invoice.status === "cancelled") continue;
-        const total = Number(invoice.amount ?? 0) - Number(invoice.discount_amount ?? 0);
+        const total = invoiceNetTotal(invoice);
         const paid = paidByInvoice.get(String(invoice.id)) ?? 0;
         const openAmount = Math.max(total - paid, 0);
         billed += total;
@@ -975,7 +976,7 @@ export const getSchoolTodayOps = createServerFn({ method: "GET" })
         const [{ data: invoices }, { data: receipts }] = await Promise.all([
           db
             .from("finance_invoices")
-            .select("id, amount, discount_amount, status, due_date")
+            .select("id, amount, discount_amount, penalty_amount, status, due_date")
             .eq("school_id", schoolId)
             .limit(250),
           db
@@ -995,7 +996,7 @@ export const getSchoolTodayOps = createServerFn({ method: "GET" })
         let overdueCount = 0;
         for (const invoice of invoices ?? []) {
           if (invoice.status === "cancelled") continue;
-          const total = Number(invoice.amount ?? 0) - Number(invoice.discount_amount ?? 0);
+          const total = invoiceNetTotal(invoice);
           const paid = paidByInvoice.get(String(invoice.id)) ?? 0;
           const openAmount = Math.max(total - paid, 0);
           if (openAmount > 0 && String(invoice.due_date ?? "") < today) overdueCount += 1;
@@ -1084,7 +1085,7 @@ export const listSchoolAlerts = createServerFn({ method: "GET" })
         const [{ data: invoices }, { data: receipts }] = await Promise.all([
           db
             .from("finance_invoices")
-            .select("id, amount, discount_amount, status, due_date")
+            .select("id, amount, discount_amount, penalty_amount, status, due_date")
             .eq("school_id", schoolId)
             .neq("status", "cancelled")
             .limit(5000),
@@ -1106,7 +1107,7 @@ export const listSchoolAlerts = createServerFn({ method: "GET" })
         let overdueCount = 0;
         for (const invoice of invoices ?? []) {
           if (invoice.status === "cancelled") continue;
-          const total = Number(invoice.amount ?? 0) - Number(invoice.discount_amount ?? 0);
+          const total = invoiceNetTotal(invoice);
           const paid = paidByInvoice.get(String(invoice.id)) ?? 0;
           const openAmount = Math.max(total - paid, 0);
           if (openAmount > 0 && String(invoice.due_date ?? "") < today) overdueCount += 1;
