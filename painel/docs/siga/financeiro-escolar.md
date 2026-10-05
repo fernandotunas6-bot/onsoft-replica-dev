@@ -7,14 +7,16 @@ Quem usa: Administrador e Tesouraria. O aluno e o encarregado vêem as suas fact
 ## Antes de começar
 
 1. Em **Definições → Financeiro**, defina a propina, a matrícula e outros serviços, e os dados bancários da escola com IBAN.
+   - Em **Propina por classe**, dê um preço próprio às classes que pagam outro valor. A classe sem preço usa a propina geral. Os preços também se importam com o modelo de «propinas».
 2. Confirme o NIF da escola em Definições → Escola. Sem ele não há exportação fiscal.
 3. Active a verificação em dois passos nas contas da Tesouraria.
 
 ## Facturas e recibos
 
 - **Facturas:** em `/faturas`, emita facturas por aluno. Cada factura tem estado aberto, parcialmente pago, pago ou anulado.
+- **Valor da factura:** deixe o valor vazio para usar o preço do plano. Na propina é o preço da classe do aluno, se a escola o definiu.
 - **Receber:** regista um pagamento e emite o recibo. Um pagamento parcial deixa a factura parcialmente paga.
-- **Desconto e multa:** o valor a pagar é o total menos o desconto. A regra da multa por atraso está em decisão e será uma definição por escola.
+- **Desconto e multa:** o valor a pagar é o total menos o desconto, mais a multa por atraso se a escola a definiu em Definições → Cobrança. A multa aplica-se uma vez, depois do vencimento e da tolerância, em todos os pagamentos ou só nos electrónicos.
 - **Anular:** só é possível numa factura sem recibos.
 - **Estornar um recibo:** exige dois passos, recalcula o estado da factura e não permite estornar o mesmo recibo duas vezes.
 

@@ -936,7 +936,13 @@ function FaturasPage() {
                       "Outro",
                     ],
                   },
-                  { name: "valor", label: "Valor (Kz)", type: "number", placeholder: "45000" },
+                  {
+                    name: "valor",
+                    label: "Valor (Kz)",
+                    type: "number",
+                    placeholder: "Vazio: preço da classe",
+                    required: false,
+                  },
                   { name: "vencimento", label: "Vencimento", type: "date" },
                   {
                     name: "descricao",
@@ -954,11 +960,13 @@ function FaturasPage() {
                       studentId: student.student_id,
                       dueOn: values["vencimento"] ?? "",
                       category: values["categoria"] ?? "",
-                      amount: Number(values["valor"]),
+                      amount: values["valor"] ? Number(values["valor"]) : undefined,
                       description: values["descricao"] || undefined,
                     },
                   });
                   const numero = String(created.invoice_number ?? "");
+                  // O valor pode vir do plano de propinas: o impresso usa o da fatura emitida.
+                  const issuedAmount = Number(created.amount ?? values["valor"] ?? 0);
                   await queryClient.invalidateQueries({ queryKey: ["finance", "invoices"] });
                   await queryClient.invalidateQueries({ queryKey: ["finance", "reporting"] });
                   await downloadReceipt(
@@ -966,12 +974,12 @@ function FaturasPage() {
                       numero,
                       aluno: student.full_name,
                       processo: student.registration_number,
-                      valor: Number(values["valor"]),
+                      valor: issuedAmount,
                       recebido: 0,
                       descricao: values["descricao"] || values["categoria"] || "Fatura escolar",
                     },
                     numero,
-                    Number(values["valor"]),
+                    issuedAmount,
                     "fatura",
                   );
                 }}

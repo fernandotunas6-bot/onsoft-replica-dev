@@ -5,7 +5,7 @@ import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { publicDatabaseError } from "@/integrations/supabase/server-error";
 import { reportSigaError } from "@/lib/ops-report";
-import { sgaClient } from "@/integrations/supabase/sga";
+import { dynamicTablesClient, sgaClient } from "@/integrations/supabase/sga";
 import {
   loadSgaAdminClient,
   requireSgaWriterFor,
@@ -29,6 +29,14 @@ import {
 import { generateSaftInputSchema } from "./saft-generator";
 import { invoiceNetTotal } from "./invoice-settlement";
 import { lateFeeFor, todayIso } from "./late-fee";
+import {
+  feeItemMatcher,
+  gradeTuitionCode,
+  isMissingGradeColumn,
+  pickFeeItem,
+  toFeeItemRow,
+  type FeeItemRow,
+} from "./fee-items";
 import { insertFinanceArchive } from "@/features/arquivos/archive-finance-core";
 import { stableDocumentCode } from "@/features/arquivos/document-code";
 import { canWriteFileArea } from "@/features/arquivos/kinds";
@@ -1124,32 +1132,55 @@ export const issueInvoice = createServerFn({ method: "POST" })
       contract = createdContract;
     }
     const contractDiscountPercent = Number(contract.discount_percentage ?? 0);
-    const discountAmount =
-      contractDiscountPercent > 0
-        ? Math.round(((data.amount * contractDiscountPercent) / 100) * 100) / 100
-        : 0;
+
+    // Classe do aluno (pela turma): a propina e a matrícula usam o preço da classe, se a
+    // escola o definiu; senão o preço geral (fee-items.ts).
+    const { data: classGroup } = enrollment.class_group_id
+      ? await db
+          .from("class_groups")
+          .select("grade_level_id")
+          .eq("school_id", membership.schoolId)
+          .eq("id", enrollment.class_group_id)
+          .maybeSingle()
+      : { data: null };
+    const gradeLevelId = classGroup?.grade_level_id ? String(classGroup.grade_level_id) : null;
 
     // Emolumento do Ensino Superior: o item certo pelo código, não o primeiro activo.
     const feeCode = higherEdFeeCodeForCategory(data.category);
     const kind = feeCode ? null : categoryToFeeKind(data.category);
-    let feeQuery = db
+    // `select("*")`: a coluna da classe só existe depois de 20261005030000.
+    const { data: itemRows, error: itemsError } = await db
       .from("fee_items")
-      .select("id, name, amount")
+      .select("*")
       .eq("school_id", membership.schoolId)
       .eq("fee_plan_id", plan.id)
       .eq("is_active", true);
-    if (feeCode) feeQuery = feeQuery.eq("code", feeCode);
-    else if (kind) feeQuery = feeQuery.eq("kind", kind);
-    // «Documento»/«Outro» não se ligam a um emolumento do Superior por acaso.
-    else feeQuery = feeQuery.neq("kind", "service");
-    const { data: feeItem } = await feeQuery.limit(1).maybeSingle();
-    if (!feeItem?.id) {
+    if (itemsError) {
+      throw publicDatabaseError(itemsError, "Não foi possível ler o plano de propinas.");
+    }
+    const feeItem = pickFeeItem(
+      (itemRows ?? []).map((row) => toFeeItemRow(row as Record<string, unknown>)),
+      feeItemMatcher({ feeCode, kind }),
+      kind ? gradeLevelId : null,
+    );
+    if (!feeItem) {
       throw new Error(
         feeCode
           ? "Este emolumento ainda não está definido. Defina o valor em Ensino Superior → Emolumentos."
           : "Não há item de taxa activo para esta categoria.",
       );
     }
+    // Sem valor escrito, o preço do item (o da classe, se houver).
+    const amount = data.amount ?? feeItem.amount;
+    if (!(amount > 0)) {
+      throw new Error(
+        "Indique o valor: esta categoria ainda não tem preço no plano de propinas (Definições › Cobrança).",
+      );
+    }
+    const discountAmount =
+      contractDiscountPercent > 0
+        ? Math.round(((amount * contractDiscountPercent) / 100) * 100) / 100
+        : 0;
 
     const competenceMonth =
       (data.issuedOn ?? new Date().toISOString().slice(0, 10)).slice(0, 7) + "-01";
@@ -1177,7 +1208,7 @@ export const issueInvoice = createServerFn({ method: "POST" })
           fee_item_id: feeItem.id,
           invoice_number: invoiceNumber,
           competence_month: competenceMonth,
-          amount: data.amount,
+          amount,
           discount_amount: discountAmount,
           penalty_amount: 0,
           due_date: data.dueOn,
@@ -1219,7 +1250,7 @@ export const issueInvoice = createServerFn({ method: "POST" })
       description: `Fatura escolar ${invoiceNumber} (${data.category}). ${data.description?.trim() || "Documento de cobrança arquivado na biblioteca."} Processo ${student.studentNumber ?? "—"}.`,
       relatedPersonId: student.personId,
       sourceLabel: invoiceNumber,
-      amountLabel: formatAmountKz(Number(data.amount)),
+      amountLabel: formatAmountKz(amount),
       documentCode,
     });
 
@@ -1232,6 +1263,8 @@ export const issueInvoice = createServerFn({ method: "POST" })
     return {
       ...invoice,
       invoice_number: invoiceNumber,
+      /** Valor da fatura: o escrito ou o preço do plano (o da classe do aluno). */
+      amount,
       library_document_code: archived?.documentCode ?? documentCode,
       library_file_id: archived?.fileId ?? null,
     };
@@ -1608,7 +1641,51 @@ export type FeePlanItemSummary = {
   kind: string;
   amount: number;
   is_active: boolean;
+  /** Preço de uma classe (null = preço geral). */
+  grade_level_id: string | null;
 };
+
+/** Classe com o preço da propina dela (null = usa a propina geral). */
+export type GradeTuitionPrice = {
+  grade_level_id: string;
+  name: string;
+  program: string | null;
+  amount: number | null;
+};
+
+/** A coluna fee_items.grade_level_id existe (migração 20261005030000 aplicada)? */
+async function gradePricingAvailable(db: Awaited<ReturnType<typeof loadSgaAdminClient>>) {
+  const { error } = await dynamicTablesClient(db)
+    .from("fee_items")
+    .select("grade_level_id")
+    .limit(1);
+  if (!error) return true;
+  if (isMissingSgaTable(error) || isMissingGradeColumn(error)) return false;
+  throw publicDatabaseError(error, "Não foi possível ler o plano de propinas.");
+}
+
+/** As classes activas da escola, com o curso, para os preços por classe. */
+async function loadGradeLevels(
+  db: Awaited<ReturnType<typeof loadSgaAdminClient>>,
+  schoolId: string,
+) {
+  const [{ data: grades, error }, { data: programs }] = await Promise.all([
+    db
+      .from("grade_levels")
+      .select("id, name, program_id, sequence")
+      .eq("school_id", schoolId)
+      .eq("is_active", true)
+      .order("sequence"),
+    db.from("programs").select("id, name").eq("school_id", schoolId),
+  ]);
+  if (error) throw publicDatabaseError(error, "Não foi possível carregar as classes.");
+  const programName = new Map((programs ?? []).map((row) => [String(row.id), String(row.name)]));
+  return (grades ?? []).map((row) => ({
+    id: String(row.id),
+    name: String(row.name),
+    program: row.program_id ? (programName.get(String(row.program_id)) ?? null) : null,
+  }));
+}
 
 async function loadFeePlanSettingsForSchool(schoolId: string) {
   const db = await loadSgaAdminClient();
@@ -1626,26 +1703,50 @@ async function loadFeePlanSettingsForSchool(schoolId: string) {
     return { ready: false, plan: null, items: [] as FeePlanItemSummary[] };
   }
 
+  // `select("*")`: a coluna da classe só existe depois de 20261005030000.
   const { data: items, error: itemsError } = await db
     .from("fee_items")
-    .select("id, name, kind, amount, is_active")
+    .select("*")
     .eq("school_id", schoolId)
     .eq("fee_plan_id", plan.id)
     .order("kind");
   if (itemsError && !isMissingSgaTable(itemsError)) {
     throw publicDatabaseError(itemsError, "Não foi possível carregar os itens de taxa.");
   }
+  const rows: FeeItemRow[] = (items ?? []).map((row) =>
+    toFeeItemRow(row as Record<string, unknown>),
+  );
+  const gradePricing = await gradePricingAvailable(db);
+  const grades = gradePricing ? await loadGradeLevels(db, schoolId) : [];
+  const gradePrices: GradeTuitionPrice[] = grades.map((grade) => {
+    const item = rows.find(
+      (row) => row.is_active && row.kind === "tuition" && row.grade_level_id === grade.id,
+    );
+    return {
+      grade_level_id: grade.id,
+      name: grade.name,
+      program: grade.program,
+      amount: item ? item.amount : null,
+    };
+  });
 
   return {
     ready: true,
     plan: { id: plan.id as string, name: String(plan.name), status: String(plan.status) },
-    items: (items ?? []).map((row) => ({
-      id: row.id as string,
-      name: String(row.name),
-      kind: String(row.kind),
-      amount: Number(row.amount),
-      is_active: Boolean(row.is_active),
-    })),
+    // O resumo e o formulário mostram os preços gerais; os das classes vêm em gradePrices.
+    items: rows
+      .filter((row) => !row.grade_level_id)
+      .map((row) => ({
+        id: row.id,
+        name: row.name,
+        kind: row.kind,
+        amount: row.amount,
+        is_active: row.is_active,
+        grade_level_id: null,
+      })),
+    /** false até a migração 20261005030000 ser aplicada. */
+    gradePricing,
+    gradePrices,
   };
 }
 
@@ -1746,15 +1847,23 @@ export const upsertFeePlanSettings = createServerFn({ method: "POST" })
       },
     ] as const;
 
+    // O preço geral é o item sem classe: os preços das classes (mesmo tipo) não contam.
+    const { data: planItemRows, error: planItemsError } = await db
+      .from("fee_items")
+      .select("*")
+      .eq("school_id", membership.schoolId)
+      .eq("fee_plan_id", planId);
+    if (planItemsError) {
+      throw publicDatabaseError(planItemsError, "Não foi possível ler os itens de taxa.");
+    }
+    const planItems = (planItemRows ?? []).map((row) =>
+      toFeeItemRow(row as Record<string, unknown>),
+    );
     for (const item of desired) {
-      const { data: existingItem } = await db
-        .from("fee_items")
-        .select("id")
-        .eq("school_id", membership.schoolId)
-        .eq("fee_plan_id", planId)
-        .eq("kind", item.kind)
-        .limit(1)
-        .maybeSingle();
+      const existingItem =
+        planItems.find((row) => row.kind === item.kind && !row.grade_level_id && row.is_active) ??
+        planItems.find((row) => row.kind === item.kind && !row.grade_level_id) ??
+        null;
 
       if (existingItem?.id) {
         const { error } = await db
@@ -1779,6 +1888,99 @@ export const upsertFeePlanSettings = createServerFn({ method: "POST" })
     }
 
     return loadFeePlanSettingsForSchool(membership.schoolId);
+  });
+
+const gradeTuitionPricesInputSchema = z.object({
+  prices: z
+    .array(
+      z.object({
+        gradeLevelId: z.string().uuid(),
+        /** null ou vazio: a classe deixa de ter preço próprio e usa a propina geral. */
+        amount: z.number().positive().max(999_999_999_999.99).nullable(),
+      }),
+    )
+    .max(500),
+});
+
+/**
+ * Preço da propina por classe no plano activo: cria, actualiza ou desliga o item de cada
+ * classe (o histórico das faturas fica, porque o item não se apaga).
+ */
+export const saveGradeTuitionPrices = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .validator((input: unknown) => gradeTuitionPricesInputSchema.parse(input))
+  .handler(async ({ data, context }) => {
+    const membership = await requireSgaWriterForWrite(
+      "financeiro",
+      context.supabase,
+      context.userId,
+      ["Administrador", "Tesouraria"],
+    );
+    const db = await loadSgaAdminClient();
+    const schoolId = membership.schoolId;
+    if (!(await gradePricingAvailable(db))) {
+      throw new Error(
+        "Os preços por classe ainda não estão disponíveis nesta base: falta aplicar docs/agents/SIGA_aplicar_propina_por_classe.sql.",
+      );
+    }
+    const { data: plan } = await db
+      .from("fee_plans")
+      .select("id")
+      .eq("school_id", schoolId)
+      .eq("status", "active")
+      .limit(1)
+      .maybeSingle();
+    if (!plan?.id) throw new Error("Active primeiro o plano de propinas (propina geral).");
+
+    const grades = new Map(
+      (await loadGradeLevels(db, schoolId)).map((grade) => [grade.id, grade] as const),
+    );
+    const { data: itemRows, error: itemsError } = await db
+      .from("fee_items")
+      .select("*")
+      .eq("school_id", schoolId)
+      .eq("fee_plan_id", plan.id)
+      .eq("kind", "tuition");
+    if (itemsError) throw publicDatabaseError(itemsError, "Não foi possível ler os preços.");
+    const items = (itemRows ?? []).map((row) => toFeeItemRow(row as Record<string, unknown>));
+    const table = dynamicTablesClient(db);
+
+    for (const price of data.prices) {
+      const grade = grades.get(price.gradeLevelId);
+      if (!grade) throw new Error("Classe não encontrada nesta escola.");
+      const existing = items.find((item) => item.grade_level_id === price.gradeLevelId) ?? null;
+      if (price.amount === null) {
+        if (existing?.is_active) {
+          const { error } = await db
+            .from("fee_items")
+            .update({ is_active: false })
+            .eq("school_id", schoolId)
+            .eq("id", existing.id);
+          if (error) throw publicDatabaseError(error, "Não foi possível retirar o preço.");
+        }
+        continue;
+      }
+      const name = `Propina mensal — ${grade.name}${grade.program ? ` (${grade.program})` : ""}`;
+      const { error } = existing
+        ? await db
+            .from("fee_items")
+            .update({ amount: price.amount, name: name.slice(0, 120), is_active: true })
+            .eq("school_id", schoolId)
+            .eq("id", existing.id)
+        : await table.from("fee_items").insert({
+            school_id: schoolId,
+            fee_plan_id: plan.id,
+            code: gradeTuitionCode(price.gradeLevelId),
+            name: name.slice(0, 120),
+            kind: "tuition",
+            frequency: "monthly",
+            amount: price.amount,
+            is_active: true,
+            grade_level_id: price.gradeLevelId,
+          });
+      if (error) throw publicDatabaseError(error, "Não foi possível guardar o preço da classe.");
+    }
+    return loadFeePlanSettingsForSchool(schoolId);
   });
 
 export const exportSaftAoXml = createServerFn({ method: "POST" })

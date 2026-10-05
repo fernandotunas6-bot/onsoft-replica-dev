@@ -4,6 +4,34 @@ Ler isto **antes** de alterar código. Ecossistema (5 apps):
 [ARCHITECTURE_HARMONIZATION.md](./ARCHITECTURE_HARMONIZATION.md).
 Depois abrir o skill do módulo em `.cursor/skills/`.
 
+## Propina por classe — POR APLICAR (2026-10-05)
+
+O plano de propinas tinha um preço por tipo e a tesouraria escrevia o valor de cada fatura
+à mão; o modelo oficial de importação de «propinas» já trazia um preço por classe e era
+ignorado.
+
+- **Base:** `fee_items.grade_level_id` (opcional, chave composta com `grade_levels`, um só
+  preço activo por classe e tipo em cada plano). Sem classe é o preço geral, como até
+  aqui. Migração `20261005030000_fee_items_grade_level.sql`, pacote
+  `docs/agents/SIGA_aplicar_propina_por_classe.sql` (sonda também em
+  `SIGA_confirmar_migracoes.sql`; ensaio `tests/sql/fee-items-grade-level.mjs`).
+- **Escolha do item** (`src/features/finance/fee-items.ts`): a propina usa o preço da
+  classe da turma do aluno, senão o geral; o preço de uma classe nunca serve a outra.
+  Emolumentos e «Documento»/«Outro» nunca olham para a classe. Sem valor escrito, a
+  fatura usa o preço do item (o campo «Valor» passa a opcional).
+- **Ecrã:** Definições › Cobrança › Plano de propinas ganha «Propina por classe»
+  (`saveGradeTuitionPrices`, Administrador/Tesouraria). Vazio = propina geral; retirar
+  um preço desliga o item, nunca o apaga (as faturas ligam-se a ele).
+- **Importação de propinas:** cada linha com classe (e curso, se a classe existir em mais
+  de um curso) e valor grava o preço da classe no plano activo; as regras de cobrança
+  continuam como antes. Sem o pacote, a pré-visualização recusa os preços.
+- **Valores em Kz nas importações** (`normalizeMoney`): «35.000» num CSV era lido como 35
+  (`normalizeNumber`). Propinas, pagamentos, dívidas e histórico financeiro passam a ler
+  um separador seguido de três dígitos como milhares.
+- **Até aplicar:** tudo funciona como antes (leituras com `select("*")`, sondas que tratam
+  a coluna em falta). `fee_items.grade_level_id` está em
+  `tests/security/espera-migracao.ts` e sai de lá quando o retrato for recapturado.
+
 ## Multa por atraso: uma regra — POR APLICAR (2026-10-04)
 
 Pedido do dono (regra universal ou opção por escola). Antes: o webhook EMIS/Unitel
@@ -37,7 +65,7 @@ ficheiro, com 2FA e a gravação versionada do ecrã; migração
 `20261004141000_propinas_import_into_billing_rules.sql` (catálogo: `school_settings`
 «controlled», só o domínio `billing`). O modelo oficial é um preçário (designação,
 classe, valor, taxa de multa diária) que o importador não usa: avisa que os valores
-e a taxa diária não entram. Importar preços por classe fica por fazer.
+e a taxa diária não entram. Os preços por classe entraram a 2026-10-05 (secção acima).
 
 `school_billing_settings` fica como está (2 linhas, gravadas a 08/09 com os antigos
 valores do ecrã): o Colégio Adventista do Huambo (multa 2 %, 5 dias, desconto de

@@ -86,6 +86,12 @@ from (values
   ('20261004141000_propinas_import_into_billing_rules',
      exists (select 1 from public.import_table_specs
              where table_schema = 'public' and table_name = 'school_settings'
-               and direct_import_policy = 'controlled'))
+               and direct_import_policy = 'controlled')),
+  -- Esta está no pacote docs/agents/SIGA_aplicar_propina_por_classe.sql.
+  ('20261005030000_fee_items_grade_level',
+     exists (select 1 from information_schema.columns
+             where table_schema = 'public' and table_name = 'fee_items'
+               and column_name = 'grade_level_id')
+     and to_regclass('public.fee_items_plan_grade_kind_active_key') is not null)
 ) as m(migracao, ok)
 order by migracao;
