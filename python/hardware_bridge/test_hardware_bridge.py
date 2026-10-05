@@ -24,14 +24,26 @@ class TestHardwareBridge(unittest.TestCase):
     def test_turnstile_simulated_pulse(self):
         controller = TurnstileHardwareController(ip_address="127.0.0.1")
         res_entry = controller.send_pulse_relay(gate_number=1, duration_ms=2000, direction="entry")
-        self.assertEqual(res_entry["status"], "success")
+        self.assertEqual(res_entry["status"], "simulated")
         self.assertEqual(res_entry["direction"], "entry")
         self.assertEqual(res_entry["relay_channel"], 1)
 
         res_exit = controller.send_pulse_relay(gate_number=1, duration_ms=2000, direction="exit")
-        self.assertEqual(res_exit["status"], "success")
+        self.assertEqual(res_exit["status"], "simulated")
         self.assertEqual(res_exit["direction"], "exit")
         self.assertEqual(res_exit["relay_channel"], 2)
+
+    def test_connection_failure_is_not_simulated_success(self):
+        with mock.patch("siga_hardware_bridge.socket.socket", side_effect=OSError("offline")):
+            result = TurnstileHardwareController("192.168.1.20").send_pulse_relay()
+        self.assertEqual(result["status"], "error")
+
+    def test_receipt_preserves_requested_text_and_rejects_commands(self):
+        result = EscPosThermalPrinter.format_text_bytes("Recibo 123 · António")
+        self.assertIn("Recibo 123 · António".encode("utf-8"), result)
+        for text in ["", "x" * 65537, "recibo\x1b@"]:
+            with self.assertRaises(ValueError):
+                EscPosThermalPrinter.format_text_bytes(text)
 
     def test_zkteco_protocol_command_builder(self):
         cmd_bytes = ZkTecoProtocolHelper.build_open_door_command(door_index=1)

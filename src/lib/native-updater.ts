@@ -3,63 +3,54 @@ import { isTauri } from "@tauri-apps/api/core";
 export interface NativeUpdateInfo {
   configured: boolean;
   available: boolean;
-  currentVersion?: string;
   version?: string;
-  date?: string;
   body?: string;
 }
 
-function isNativeUpdaterEnabled(): boolean {
-  return import.meta.env["VITE_SIGA_NATIVE_UPDATER_ENABLED"] === "true";
-}
+type AppUpdate = {
+  configured: boolean;
+  available: boolean;
+  version?: string | null;
+  notes?: string | null;
+};
 
 /**
- * Consulta atualizações apenas quando o updater nativo foi explicitamente ativado.
+ * Procura uma versão nova da app desktop (comando Rust `check_app_update`).
  *
- * A ativação exige também `plugins.updater.pubkey`, `plugins.updater.endpoints`
- * e artefactos assinados no pipeline de release. Enquanto essa infraestrutura
- * não estiver configurada, esta função não faz chamadas de rede nem falha o app.
+ * O portal não recebe as permissões do plugin updater: verificar e instalar são dois
+ * comandos da app. Sem chave pública configurada na versão instalada, o Rust responde
+ * `configured: false` sem ir à rede; fora da app não faz nada.
  */
 export async function checkNativeUpdate(): Promise<NativeUpdateInfo> {
-  if (!isTauri() || !isNativeUpdaterEnabled()) {
-    return { configured: false, available: false };
-  }
-
-  const { check } = await import("@tauri-apps/plugin-updater");
-  const update = await check();
-
-  if (!update) {
-    return { configured: true, available: false };
-  }
-
+  if (!isTauri()) return { configured: false, available: false };
+  const { invoke } = await import("@tauri-apps/api/core");
+  const update = await invoke<AppUpdate>("check_app_update");
   return {
-    configured: true,
-    available: true,
-    currentVersion: update.currentVersion,
-    version: update.version,
-    date: update.date,
-    body: update.body,
+    configured: update.configured,
+    available: update.available,
+    version: update.version ?? undefined,
+    body: update.notes ?? undefined,
   };
 }
 
 /**
- * Faz download e instala a atualização encontrada.
- * No Windows, `downloadAndInstall()` encerra a aplicação ao lançar o instalador.
- * Em macOS/Linux, a execução continua e o SIGA relança explicitamente o app.
+ * Descarrega, verifica a assinatura, instala e reinicia (comando `install_app_update`).
+ * No Windows o instalador fecha a app; nos outros sistemas o Rust reinicia-a.
  */
 export async function installNativeUpdate(): Promise<boolean> {
-  if (!isTauri() || !isNativeUpdaterEnabled()) return false;
-
-  const { check } = await import("@tauri-apps/plugin-updater");
-  const update = await check();
-  if (!update) return false;
-
-  await update.downloadAndInstall();
-
-  // No Windows o processo já é encerrado pelo updater antes deste ponto.
-  // Nos restantes desktops, relançamos explicitamente a nova versão.
-  const { relaunch } = await import("@tauri-apps/plugin-process");
-  await relaunch();
-
+  if (!isTauri()) return false;
+  const { invoke } = await import("@tauri-apps/api/core");
+  await invoke("install_app_update");
   return true;
+}
+
+/**
+ * Nunca actualizar a meio de uma escrita: com gravações por enviar, recusa e diz
+ * quantas são; senão instala.
+ */
+export async function installNativeUpdateWhenSafe(
+  pendingWrites: number,
+): Promise<{ installed: boolean; waiting: number }> {
+  if (pendingWrites > 0) return { installed: false, waiting: pendingWrites };
+  return { installed: await installNativeUpdate(), waiting: 0 };
 }

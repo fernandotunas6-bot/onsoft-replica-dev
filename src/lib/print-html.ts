@@ -1,5 +1,17 @@
+import { isTauriDesktop } from "@/lib/desktop-utils";
+
 /** Imprime o documento HTML oficial diretamente através de um iframe oculto no DOM, sem abrir abas about:blank. */
 export function printOfficialHtml(html: string) {
+  // App desktop no macOS: o WKWebView não imprime a partir de um iframe. O Rust abre
+  // uma janela de pré-visualização servida com `script-src 'none'` (os modelos são
+  // editáveis pela escola) e mostra o diálogo de impressão nativo.
+  if (isTauriDesktop() && /Mac/i.test(navigator.userAgent)) {
+    void import("@tauri-apps/api/core")
+      .then(({ invoke }) => invoke("print_html", { html }))
+      .catch((error) => console.warn("[desktop] impressão falhou", error));
+    return;
+  }
+
   // Garantir que existe um iframe de impressão isolado no DOM
   let iframe = document.getElementById("siga-print-frame") as HTMLIFrameElement | null;
   if (!iframe) {

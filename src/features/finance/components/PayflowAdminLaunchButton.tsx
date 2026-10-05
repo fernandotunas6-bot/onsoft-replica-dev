@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { PayflowBrandIcon } from "@/features/finance/components/PayflowBrandIcon";
 import { createPayflowAdminLaunch } from "@/features/finance/server";
+import { isTauriDesktop } from "@/lib/desktop-utils";
 import { getPayflowAdminUrl } from "@/lib/ecosystem-urls";
 import { cn } from "@/lib/utils";
 
@@ -36,6 +37,17 @@ export function PayflowAdminLaunchButton({
     try {
       setBusy(true);
       const launch = await createPayflowAdminLaunch();
+      // App desktop: o webview não abre o POST com target="_blank". O Rust abre o
+      // PayFlow numa janela própria e faz lá a troca SSO (comando open_payflow).
+      if (isTauriDesktop()) {
+        const { invoke } = await import("@tauri-apps/api/core");
+        await invoke("open_payflow", {
+          exchangeUrl: launch.exchangeUrl,
+          assertion: launch.assertion,
+          redirectTo: "/admin",
+        });
+        return;
+      }
       const form = document.createElement("form");
       form.method = "POST";
       form.action = launch.exchangeUrl;
