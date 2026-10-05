@@ -1,38 +1,42 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
   "productName": "SIGA Desktop",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "identifier": "ao.onsoft.siga",
   "build": {
-    "beforeDevCommand": "npm run dev",
-    "devUrl": "http://localhost:3006",
-    "beforeBuildCommand": "node scripts/check-desktop.mjs",
-    "frontendDist": "../desktop"
+    "beforeDevCommand": "npm --prefix desktop run dev",
+    "devUrl": "http://localhost:1420",
+    "beforeBuildCommand": "npm --prefix desktop run build",
+    "frontendDist": "../desktop/dist"
   },
   "app": {
     "windows": [
       {
-        "title": "SIGA - Sistema Integrado de Gestão Académica",
-        "width": 1280,
-        "height": 832,
-        "minWidth": 1024,
+        "label": "main",
+        "title": "SIGA Desktop",
+        "width": 1200,
+        "height": 800,
+        "minWidth": 1000,
         "minHeight": 700,
         "resizable": true,
         "fullscreen": false,
+        "maximized": false,
         "center": true,
         "decorations": true,
-        "titleBarStyle": "Visible",
-        "hiddenTitle": false,
+        "alwaysOnTop": false,
         "transparent": false,
-        "label": "main"
+        "shadow": true,
+        "dragDropEnabled": true
       }
     ],
     "security": {
-      "csp": "default-src 'self'; script-src 'self'; style-src 'self'; connect-src https://portal-siga.com; img-src 'self' data:; object-src 'none'; base-uri 'self'; form-action 'none'; frame-src 'none'"
+      "csp": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; connect-src 'self' tauri: ipc: http://ipc.localhost"
     },
+    "macOSPrivateApi": true,
     "withGlobalTauri": true
   },
   "bundle": {
+    "createUpdaterArtifacts": false,
     "active": true,
     "targets": "all",
     "icon": [
@@ -43,7 +47,18 @@
       "icons/icon.ico"
     ],
     "publisher": "OnSoft",
-    "shortDescription": "Gestão académica da sua escola",
+    "category": "Education",
+    "shortDescription": "Gest\u00e3o acad\u00e9mica da sua escola",
+    "longDescription": "SIGA Plus desktop com portal escolar, menus nativos, prefer\u00eancias e atalhos.",
+    "copyright": "SIGA \u00a9 2026 OnSoft; template \u00a9 Danny Smith",
+    "macOS": {
+      "frameworks": [],
+      "minimumSystemVersion": "10.15",
+      "signingIdentity": "-",
+      "providerShortName": null,
+      "entitlements": null,
+      "exceptionDomain": ""
+    },
     "windows": {
       "allowDowngrades": false,
       "webviewInstallMode": {
@@ -57,10 +72,10 @@
           "English"
         ],
         "displayLanguageSelector": true,
-        "installerIcon": "icons/icon.ico",
         "startMenuFolder": "OnSoft",
-        "compression": "lzma"
+        "installerIcon": "icons/icon.ico"
       }
     }
-  }
+  },
+  "plugins": {}
 }

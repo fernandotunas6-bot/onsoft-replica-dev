@@ -16,7 +16,9 @@ describe("arranque da app desktop", () => {
       const before = lib.slice(Math.max(0, match.index - 200), match.index);
       expect(before).toContain("if updater_configured(");
     }
-    expect(lib).toMatch(/fn updater_configured\([^)]*\) -> bool/);
+    expect(readFileSync("src-tauri/src/school/mod.rs", "utf8")).toMatch(
+      /fn updater_configured\([^)]*\) -> bool/,
+    );
   });
 
   it("a configuração publicada não traz updater sem chave pública", () => {

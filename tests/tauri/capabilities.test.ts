@@ -9,13 +9,15 @@ type Capability = {
 };
 
 const readJson = <T>(path: string) => JSON.parse(readFileSync(path, "utf8")) as T;
-const lib = readFileSync("src-tauri/src/lib.rs", "utf8");
+const lib = readFileSync("src-tauri/src/school/mod.rs", "utf8");
+const bindings = readFileSync("src-tauri/src/bindings.rs", "utf8");
 const build = readFileSync("src-tauri/build.rs", "utf8");
 
 /** Comandos registados em `generate_handler!` (sem o caminho do módulo). */
 const handlerCommands = () => {
   const block = lib.match(/generate_handler!\[([\s\S]*?)\]/)?.[1] ?? "";
-  return block
+  const typed = bindings.match(/collect_commands!\[([\s\S]*?)\]/)?.[1] ?? "";
+  return (block + "," + typed)
     .split(",")
     .map((name) => name.trim().split("::").pop()!)
     .filter(Boolean)
@@ -35,12 +37,7 @@ const appPermissions = (capability: Capability) =>
 
 const portal = readJson<Capability>("src-tauri/capabilities/school-portal.json");
 const local = readJson<Capability>("src-tauri/capabilities/default.json");
-const development = readJson<{
-  app: { security: { capabilities: Array<string | Capability> } };
-}>("src-tauri/tauri.dev.conf.json").app.security.capabilities.find(
-  (entry): entry is Capability => typeof entry === "object" && entry.identifier === "development",
-)!;
-
+const quickPane = readJson<Capability>("src-tauri/capabilities/quick-pane.json");
 describe("permissões dos comandos da app", () => {
   // Um comando que falte num destes sítios é recusado em produção.
   it("generate_handler! e o manifesto de build.rs listam os mesmos comandos", () => {
@@ -49,7 +46,7 @@ describe("permissões dos comandos da app", () => {
 
   it("cada allow-<comando> das capabilities existe no manifesto", () => {
     const manifest = new Set(manifestCommands());
-    for (const capability of [portal, local, development]) {
+    for (const capability of [portal, local, quickPane]) {
       for (const command of appPermissions(capability)) {
         expect(manifest.has(command), `${capability.identifier}: ${command}`).toBe(true);
       }
@@ -66,13 +63,20 @@ describe("permissões dos comandos da app", () => {
     ).toEqual([]);
   });
 
-  // Em `tauri dev` o devUrl é a origem local da app: uma capability só remota
-  // nunca se aplicava e o portal em desenvolvimento ficava sem os comandos.
-  it("em desenvolvimento, a capability aplica-se ao devUrl e cobre o portal", () => {
-    expect(development.local).toBe(true);
-    expect(development.remote).toBeUndefined();
-    for (const permission of portal.permissions) {
-      expect(development.permissions, permission).toContain(permission);
+  it("as janelas locais e o portal têm permissões separadas", () => {
+    expect(readJson<{ windows: string[] }>("src-tauri/capabilities/default.json").windows).toEqual([
+      "main",
+    ]);
+    expect(
+      readJson<{ windows: string[] }>("src-tauri/capabilities/school-portal.json").windows,
+    ).toEqual(["school"]);
+    for (const command of [
+      "allow-load-preferences",
+      "allow-save-emergency-data",
+      "allow-open-siga-portal",
+    ]) {
+      expect(portal.permissions).not.toContain(command);
+      expect(local.permissions).toContain(command);
     }
   });
 });

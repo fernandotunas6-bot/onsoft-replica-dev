@@ -11,12 +11,18 @@ on:
       - "src-tauri/**"
       - "desktop/**"
       - "scripts/check-desktop.mjs"
+      - "scripts/desktop/**"
+      - "tests/tauri/**"
+      - "package.json"
       - ".github/workflows/native-ci.yml"
   pull_request:
     paths:
       - "src-tauri/**"
       - "desktop/**"
       - "scripts/check-desktop.mjs"
+      - "scripts/desktop/**"
+      - "tests/tauri/**"
+      - "package.json"
       - ".github/workflows/native-ci.yml"
   workflow_dispatch:
 
@@ -37,6 +43,14 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Build Danny Smith frontend
+        run: |
+          npm ci --prefix desktop
+          npm --prefix desktop run build
 
       - name: Install Rust stable
         uses: dtolnay/rust-toolchain@stable
@@ -67,26 +81,35 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y libwebkit2gtk-4.1-dev libgtk-3-dev libsoup-3.0-dev libayatana-appindicator3-dev librsvg2-dev xvfb
 
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Build Danny Smith frontend
+        run: |
+          npm ci --prefix desktop
+          npm --prefix desktop run build
+
       - name: Install Rust stable
         uses: dtolnay/rust-toolchain@stable
         with:
-          components: rustfmt
+          components: rustfmt, clippy
 
       - name: Cache Rust
         uses: swatinem/rust-cache@v2
         with:
           workspaces: "./src-tauri -> target"
 
-      - name: Check desktop launcher and permissions
+      - name: Check template and permissions
         run: node scripts/check-desktop.mjs
 
       - name: Rust format and unit tests (locked)
         working-directory: src-tauri
         run: |
           cargo fmt --check
+          cargo clippy --locked -- -D warnings
           cargo test --locked --lib
 
-      - name: Build like the installer (embedded launcher)
+      - name: Build like the installer (embedded template)
         working-directory: src-tauri
         run: cargo build --locked --features tauri/custom-protocol
 
@@ -101,24 +124,20 @@ jobs:
           fi
 
   frontend-build:
-    name: Frontend build for Tauri
-    if: github.event_name != 'pull_request'
+    name: Template frontend quality
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup Bun
-        uses: oven-sh/setup-bun@v2
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
         with:
-          bun-version: latest
-
-      - name: Install locked dependencies
-        run: bun install --frozen-lockfile
-
-      - name: Check desktop launcher
-        run: bun run desktop:check
-
-      - name: Build server frontend
-        run: bun run build
+          node-version: 24
+      - run: npm ci --prefix desktop
+      - run: node scripts/check-desktop.mjs
+      - working-directory: desktop
+        run: |
+          npm run typecheck
+          npm run lint
+          npm run ast:lint
+          npm run format:check
+          npm run test:run
+          npm run build

@@ -4,9 +4,13 @@
   "description": "Native school functions for the exact trusted SIGA portal",
   "local": false,
   "remote": {
-    "urls": ["https://portal-siga.com/*"]
+    "urls": [
+      "https://portal-siga.com/*"
+    ]
   },
-  "windows": ["main"],
+  "windows": [
+    "school"
+  ],
   "permissions": [
     "core:default",
     "core:webview:allow-set-webview-zoom",

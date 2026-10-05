@@ -1,12 +1,47 @@
 {
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "default",
-  "description": "Local launcher permissions only",
-  "windows": ["main"],
+  "description": "Capability for the main window",
+  "windows": [
+    "main"
+  ],
   "permissions": [
     "core:default",
-    "allow-get-system-info",
-    "allow-get-desktop-diagnostics",
-    "allow-open-school-portal"
-  ]
+    "core:window:allow-minimize",
+    "core:window:allow-maximize",
+    "core:window:allow-toggle-maximize",
+    "core:window:allow-close",
+    "core:window:allow-set-fullscreen",
+    "core:window:allow-is-maximized",
+    "core:window:allow-is-fullscreen",
+    "core:window:default",
+    "core:window:allow-start-dragging",
+    "core:webview:allow-create-webview-window",
+    "core:event:default",
+    "opener:default",
+    "clipboard-manager:default",
+    "dialog:default",
+    "fs:default",
+    "log:default",
+    "notification:default",
+    "process:default",
+    "os:default",
+    "global-shortcut:default",
+    "allow-greet",
+    "allow-load-preferences",
+    "allow-save-preferences",
+    "allow-send-native-notification",
+    "allow-save-emergency-data",
+    "allow-load-emergency-data",
+    "allow-cleanup-old-recovery-files",
+    "allow-show-quick-pane",
+    "allow-dismiss-quick-pane",
+    "allow-toggle-quick-pane",
+    "allow-get-default-quick-pane-shortcut",
+    "allow-update-quick-pane-shortcut",
+    "allow-open-siga-portal",
+    "allow-check-app-update",
+    "allow-desktop-update-status"
+  ],
+  "local": true
 }
