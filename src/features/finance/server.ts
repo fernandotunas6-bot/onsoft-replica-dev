@@ -28,7 +28,7 @@ import {
 // gerador de XML continua a ser carregado dinamicamente dentro do handler.
 import { generateSaftInputSchema } from "./saft-generator";
 import { invoiceNetTotal } from "./invoice-settlement";
-import { lateFeeFor, todayIso } from "./late-fee";
+import { lateFeeFor, paidOnIso, todayIso } from "./late-fee";
 import { insertFinanceArchive } from "@/features/arquivos/archive-finance-core";
 import { stableDocumentCode } from "@/features/arquivos/document-code";
 import { canWriteFileArea } from "@/features/arquivos/kinds";
@@ -815,7 +815,7 @@ export const recordInvoicePayment = createServerFn({ method: "POST" })
       invoice_id: data.invoiceId,
       amount: data.amount,
       payment_method: mapPaymentMethodForLedger(data.method),
-      paid_on: (data.paidAt ?? new Date().toISOString()).slice(0, 10),
+      paid_on: paidOnIso(data.paidAt),
     });
     if (error) {
       if (error.code === "42501" || /is_aal2|autorização/i.test(error.message ?? "")) {
