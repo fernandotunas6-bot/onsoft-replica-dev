@@ -4,6 +4,46 @@ Ler isto **antes** de alterar código. Ecossistema (5 apps):
 [ARCHITECTURE_HARMONIZATION.md](./ARCHITECTURE_HARMONIZATION.md).
 Depois abrir o skill do módulo em `.cursor/skills/`.
 
+## Multa por atraso: uma regra — POR APLICAR (2026-10-04)
+
+Pedido do dono (regra universal ou opção por escola). Antes: o webhook EMIS/Unitel
+aplicava a multa; a tesouraria (`private.register_payment`) não a aplicava e
+ignorava a já gravada (a fatura ficava «paga» sem ela); a referência do ecrã, o
+plano de pagamento e o AppyPay pediam valor − desconto. Nenhuma escola tinha multa
+nas regras (produção, só leitura): nada foi cobrado a mais nem a menos.
+
+- **Regra** (`src/features/finance/late-fee.ts`, igual a `private.late_fee_due`):
+  uma vez por fatura; só depois do vencimento mais a tolerância, contada em datas;
+  percentagem sobre o valor, arredondada ao cêntimo pelo decimal escrito (como o
+  `numeric`). O ensaio `tests/sql/late-fee.mjs` compara as duas em 5040 casos.
+- **Âmbito** em Definições › Cobrança (`late_fee_scope`): «Em todos os pagamentos»
+  (omissão) ou «Só nos electrónicos» (métodos `card`/`other`: Multicaixa, Express,
+  Unitel Money, referências; numerário e transferência ficam sem multa).
+- **Total a pagar** = valor − desconto + multa aplicada (`invoiceNetTotal`): lista,
+  resumo, painel, ficha da pessoa, PayFlow, importação e estornos. O SAF-T fica com
+  o valor da fatura emitida (a multa não é da fatura original).
+- **Ecrãs:** a referência EMIS é do que falta pagar, com a multa de um pagamento
+  hoje (o servidor calcula; o cartão mostra «Inclui a multa…»). O «Receber» mostra a
+  multa de hoje e soma-a ao valor sugerido.
+- Migrações `20261004140000_late_fee_one_rule.sql` e
+  `20261004141000_propinas_import_into_billing_rules.sql`, pacote
+  `docs/agents/SIGA_aplicar_multas_atraso.sql` (sondas também em
+  `SIGA_confirmar_migracoes.sql`).
+
+**Importação de «propinas»** (decisão do dono, 2026-10-04): gravava em
+`school_billing_settings`, que nada lê, e sem a coluna da multa gravava 10 %. Passa a
+gravar as regras activas (`school_settings`, domínio `billing`), só o que vem no
+ficheiro, com 2FA e a gravação versionada do ecrã; migração
+`20261004141000_propinas_import_into_billing_rules.sql` (catálogo: `school_settings`
+«controlled», só o domínio `billing`). O modelo oficial é um preçário (designação,
+classe, valor, taxa de multa diária) que o importador não usa: avisa que os valores
+e a taxa diária não entram. Importar preços por classe fica por fazer.
+
+`school_billing_settings` fica como está (2 linhas, gravadas a 08/09 com os antigos
+valores do ecrã): o Colégio Adventista do Huambo (multa 2 %, 5 dias, desconto de
+irmãos 10 %) e uma escola de testes. Por decisão do dono não passam a valer: o
+Huambo cobra sem multa nem desconto até rever as regras em Definições › Cobrança.
+
 ## Auditoria 12 — SQL fora do Git e estado da produção (2026-10-04)
 
 Relatório: `docs/auditoria/12-auditoria-sistema-2026-10-04.md`.
@@ -62,12 +102,9 @@ O Aurora (PR #66, na main) e o PR #65 cresceram em paralelo; foram juntos em
 
 ## Pendentes de decisão do dono (2026-10-03)
 
-- **Multas por atraso.** O pagamento por referência (EMIS/Unitel) cobra
-  `amount - discount + penalty`; a tesouraria (`register_payment`) e a referência
-  gerada no ecrã cobram `amount - discount`. O dono pediu regra universal **ou**
-  opção por escola («multa entra em todos os pagamentos» / «só nos electrónicos»).
-  Implementar como definição em `school_settings` (domínio finance) e usar o mesmo
-  total nos três caminhos.
+- **Multas por atraso.** Feito a 2026-10-04 (secção «Multa por atraso: uma regra»):
+  opção por escola em Definições › Cobrança e o mesmo total em todos os caminhos.
+  Falta aplicar `SIGA_aplicar_multas_atraso.sql`.
 - **Anular um salário pago por engano.** O caixa já recusa anular a saída de um
   salário (`reverseCashEntry`). Falta, nos RH, a anulação com motivo que reponha
   o item, a ordem e a folha e anule a saída de caixa numa transacção (migração).

@@ -72,6 +72,15 @@ from (values
      (select count(*) from pg_publication_tables
       where pubname = 'supabase_realtime' and schemaname = 'public'
         and tablename in ('siga_direct_messages', 'students', 'enrollments',
-                          'enrollment_applications', 'finance_invoices', 'finance_receipts')) = 6)
+                          'enrollment_applications', 'finance_invoices', 'finance_receipts')) = 6),
+  -- Estas duas estão no pacote docs/agents/SIGA_aplicar_multas_atraso.sql.
+  ('20261004140000_late_fee_one_rule',
+     to_regprocedure('private.late_fee_due(uuid, numeric, date, numeric, date, text)') is not null
+     and coalesce(position('private.late_fee_due' in pg_get_functiondef(
+       to_regprocedure('private.register_payment(uuid, uuid, numeric, text, date)'))) > 0, false)),
+  ('20261004141000_propinas_import_into_billing_rules',
+     exists (select 1 from public.import_table_specs
+             where table_schema = 'public' and table_name = 'school_settings'
+               and direct_import_policy = 'controlled'))
 ) as m(migracao, ok)
 order by migracao;
