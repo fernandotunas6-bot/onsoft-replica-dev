@@ -155,6 +155,14 @@ describe("Ensino Superior no servidor", () => {
     expect(body).toContain('requireAal2(context.claims, "Emitir o certificado de conclusão")');
     expect(body).toContain("if (transcript.certificate) return transcript.certificate;");
     expect(body).toContain("O estudante ainda não concluiu o curso");
+    // Dívida (opção do regulamento): verificada antes de gastar o número da série.
+    expect(body).toContain("block_documents_with_debt");
+    expect(body.indexOf("studentsWithOverdueDebt(")).toBeGreaterThan(
+      body.indexOf("if (transcript.certificate) return transcript.certificate;"),
+    );
+    expect(body.indexOf("studentsWithOverdueDebt(")).toBeLessThan(
+      body.indexOf('rpc("next_document_number_service"'),
+    );
     // Número da série oficial de certificados e código do registo de /verificar.
     expect(body).toMatch(
       /rpc\("next_document_number_service", \{[^}]*document_type: "certificate"/,
