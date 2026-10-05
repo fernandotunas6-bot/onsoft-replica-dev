@@ -38,8 +38,6 @@ import {
   cancelUnitEnrollment,
   correctUnitResult,
   recordDoctoralDecision,
-  grantWorkerStudentStatus,
-  revokeWorkerStudentStatus,
   createHigherEdProgram,
   enrollCohort,
   exportSisiesWorkbook,
@@ -53,6 +51,11 @@ import {
   setUnitPrerequisites,
 } from "@/features/higher-ed/server";
 import { SEASON_LABEL, STATUS_LABEL } from "@/features/higher-ed/labels";
+import {
+  getStudentSpecialStatuses,
+  grantWorkerStudentStatus,
+  revokeStudentSpecialStatus,
+} from "@/features/higher-ed/student-status";
 import type { AccessPlacement } from "@/features/higher-ed/access";
 import { DOCTORAL_MENTIONS } from "@/features/higher-ed/engine";
 import { normalizeProgramCode } from "@/features/higher-ed/program-shape";
@@ -1014,7 +1017,7 @@ function StudentPanel({ programId, studentId }: { programId: string; studentId: 
   });
 
   if (!student.data) return <p className="text-sm text-muted-foreground">A carregar…</p>;
-  const { progress, units, standing, degree } = student.data;
+  const { progress, units, standing, degree, workerStudent } = student.data;
   const bySemester = [...new Set(units.map((u) => u.semester))].sort((a, b) => a - b);
 
   return (
@@ -1039,13 +1042,7 @@ function StudentPanel({ programId, studentId }: { programId: string; studentId: 
         ]}
       />
       <StandingSummary standing={standing} />
-      {student.data.activeYearId ? (
-        <WorkerStudentStatus
-          studentId={studentId}
-          status={student.data.workerStudent}
-          onChange={refresh}
-        />
-      ) : null}
+      <WorkerStudentPanel studentId={studentId} inForce={workerStudent} onChange={refresh} />
       <div className="flex flex-wrap items-center gap-2">
         <Button onClick={() => enroll.mutate()} disabled={!selected.length || enroll.isPending}>
           {enroll.isPending
@@ -1599,100 +1596,6 @@ const STANDING_LABEL: Record<
   prazo_excedido: { label: "Prazo do curso excedido", tone: "destructive" },
 };
 
-/**
- * Estatuto de trabalhador-estudante no ano lectivo activo. A Direcção ou a Secretaria
- * atribui-o com o comprovativo e retira-o com o motivo (2FA, auditoria); as regras que
- * muda (faltas, época especial) estão no regulamento.
- */
-function WorkerStudentStatus({
-  studentId,
-  status,
-  onChange,
-}: {
-  studentId: string;
-  status: { evidence: string; grantedAt: string } | null;
-  onChange: () => Promise<unknown>;
-}) {
-  const [editing, setEditing] = useState<"grant" | "revoke" | null>(null);
-  const [text, setText] = useState("");
-  const close = () => {
-    setEditing(null);
-    setText("");
-  };
-  const save = useMutation({
-    mutationFn: () =>
-      editing === "revoke"
-        ? revokeWorkerStudentStatus({ data: { studentId, reason: text } })
-        : grantWorkerStudentStatus({ data: { studentId, evidence: text } }),
-    onSuccess: async () => {
-      toast.success(
-        editing === "revoke"
-          ? "Estatuto de trabalhador-estudante retirado."
-          : "Estatuto de trabalhador-estudante atribuído.",
-      );
-      close();
-      await onChange();
-    },
-    onError: (error) => toastActionError(error, "Não foi possível guardar o estatuto."),
-  });
-
-  return (
-    <div className="space-y-2 rounded-lg border p-3 text-sm">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <div>
-          <p className="font-medium">Trabalhador-estudante</p>
-          <p className="text-xs text-muted-foreground">
-            {status
-              ? `Com estatuto neste ano lectivo · ${status.evidence}`
-              : "Sem estatuto neste ano lectivo."}
-          </p>
-        </div>
-        {editing === null ? (
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => setEditing(status ? "revoke" : "grant")}
-          >
-            {status ? "Retirar estatuto" : "Atribuir estatuto"}
-          </Button>
-        ) : null}
-      </div>
-      {editing ? (
-        <form
-          className="flex flex-wrap items-end gap-2"
-          onSubmit={(event) => {
-            event.preventDefault();
-            save.mutate();
-          }}
-        >
-          <div className="min-w-64 flex-1 space-y-1.5">
-            <Label htmlFor="worker-student-text">
-              {editing === "grant" ? "Comprovativo" : "Motivo"}
-            </Label>
-            <Input
-              id="worker-student-text"
-              value={text}
-              maxLength={500}
-              placeholder={
-                editing === "grant"
-                  ? "Ex.: declaração da entidade empregadora de 01/09/2026"
-                  : "Ex.: deixou de trabalhar"
-              }
-              onChange={(event) => setText(event.target.value)}
-            />
-          </div>
-          <Button type="submit" size="sm" disabled={text.trim().length < 3 || save.isPending}>
-            {save.isPending ? "A guardar…" : editing === "grant" ? "Atribuir" : "Retirar"}
-          </Button>
-          <Button type="button" size="sm" variant="ghost" onClick={close}>
-            Cancelar
-          </Button>
-        </form>
-      ) : null}
-    </div>
-  );
-}
-
 /** Situação académica e «o que falta para concluir» (degree audit). */
 function StandingSummary({
   standing,
@@ -1732,6 +1635,145 @@ function StandingSummary({
             ))}
           </ul>
         </details>
+      ) : null}
+    </div>
+  );
+}
+
+/**
+ * Estatuto de trabalhador-estudante (faltas, época especial e prescrição pelo
+ * regulamento). Concede/revoga com prova e 2FA; dados só no servidor.
+ */
+function WorkerStudentPanel({
+  studentId,
+  inForce,
+  onChange,
+}: {
+  studentId: string;
+  inForce: boolean;
+  onChange: () => Promise<unknown> | void;
+}) {
+  const fetchStatuses = useServerFn(getStudentSpecialStatuses);
+  const statuses = useQuery({
+    queryKey: ["higher-ed", "special-status", studentId],
+    queryFn: () => fetchStatuses({ data: { studentId } }),
+  });
+  const [open, setOpen] = useState(false);
+  const [form, setForm] = useState({ validFrom: "", validUntil: "", employer: "", evidence: "" });
+  const current = statuses.data?.statuses.find((row) => row.inForce) ?? null;
+  const done = async () => {
+    setOpen(false);
+    await statuses.refetch();
+    await onChange();
+  };
+  const grant = useMutation({
+    mutationFn: () =>
+      grantWorkerStudentStatus({
+        data: {
+          studentId,
+          validFrom: form.validFrom,
+          validUntil: form.validUntil || null,
+          employer: form.employer,
+          evidenceNote: form.evidence,
+        },
+      }),
+    onSuccess: async () => {
+      toast.success("Estatuto de trabalhador-estudante concedido.");
+      await done();
+    },
+    onError: (error) => toastActionError(error, "Não foi possível conceder o estatuto."),
+  });
+  const revoke = useMutation({
+    mutationFn: (statusId: string) =>
+      revokeStudentSpecialStatus({ data: { statusId, reason: "Estatuto terminado." } }),
+    onSuccess: async () => {
+      toast.success("Estatuto revogado.");
+      await done();
+    },
+    onError: (error) => toastActionError(error, "Não foi possível revogar o estatuto."),
+  });
+
+  if (statuses.data && !statuses.data.available) return null;
+  return (
+    <div className="rounded-md border p-3 text-sm">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div className="flex items-center gap-2">
+          <span className="font-medium">Trabalhador-estudante</span>
+          {inForce || current ? (
+            <Badge variant="secondary">
+              Em vigor{current?.valid_until ? ` até ${current.valid_until}` : ""}
+            </Badge>
+          ) : (
+            <span className="text-xs text-muted-foreground">Sem estatuto</span>
+          )}
+        </div>
+        {current ? (
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => revoke.mutate(current.id)}
+            disabled={revoke.isPending}
+          >
+            Revogar
+          </Button>
+        ) : (
+          <Button size="sm" variant="outline" onClick={() => setOpen((value) => !value)}>
+            Conceder estatuto
+          </Button>
+        )}
+      </div>
+      {open && !current ? (
+        <div className="mt-3 grid gap-3 sm:grid-cols-2">
+          <div className="space-y-1.5">
+            <Label htmlFor="ws-from">Início</Label>
+            <Input
+              id="ws-from"
+              type="date"
+              value={form.validFrom}
+              onChange={(event) => setForm({ ...form, validFrom: event.target.value })}
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="ws-until">Fim (opcional)</Label>
+            <Input
+              id="ws-until"
+              type="date"
+              value={form.validUntil}
+              onChange={(event) => setForm({ ...form, validUntil: event.target.value })}
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="ws-employer">Entidade empregadora</Label>
+            <Input
+              id="ws-employer"
+              value={form.employer}
+              maxLength={200}
+              onChange={(event) => setForm({ ...form, employer: event.target.value })}
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="ws-evidence">Prova</Label>
+            <Input
+              id="ws-evidence"
+              value={form.evidence}
+              maxLength={1000}
+              placeholder="Ex.: declaração do empregador de 01/10"
+              onChange={(event) => setForm({ ...form, evidence: event.target.value })}
+            />
+          </div>
+          <p className="text-xs text-muted-foreground sm:col-span-2">
+            As regras que mudam (faltas, época especial, prescrição) estão no Regulamento.
+          </p>
+          <div className="sm:col-span-2">
+            <Button
+              size="sm"
+              onClick={() => grant.mutate()}
+              disabled={grant.isPending || !form.validFrom || form.evidence.trim().length < 3}
+            >
+              {grant.isPending ? "A conceder…" : "Conceder"}
+            </Button>
+          </div>
+        </div>
       ) : null}
     </div>
   );
@@ -1814,6 +1856,11 @@ const REGULATION_FIELDS: Array<{
     key: "max_extra_years",
     label: "Anos além da duração (prescrição)",
     hint: "Depois disto o estudante excede o prazo do curso. 0 = sem prescrição.",
+  },
+  {
+    key: "worker_student_progress_percent",
+    label: "Trabalhador-estudante: quanto conta cada ano (%)",
+    hint: "Para a situação académica e a prescrição. 50 = meio ano; 100 = como os outros.",
   },
 ];
 

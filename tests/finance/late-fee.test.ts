@@ -93,7 +93,7 @@ describe("multa por atraso: todos os caminhos com a mesma regra", () => {
   });
 
   it("a tesouraria aplica-a na base, com a mesma regra", () => {
-    const sql = readFileSync("supabase/migrations/20261004140000_late_fee_one_rule.sql", "utf8");
+    const sql = readFileSync("supabase/migrations/20261004135000_late_fee_one_rule.sql", "utf8");
     expect(sql).toContain("late_fee := private.late_fee_due(");
     expect(sql).toContain("return round(round(invoice_amount, 2) * fee_percent / 100, 2);");
     expect(sql).toContain("if payment_date <= invoice_due_date + grace_days then");
@@ -107,7 +107,7 @@ describe("multa por atraso: todos os caminhos com a mesma regra", () => {
   it("o pacote do SQL Editor leva a migração tal como está, com a confirmação no fim", () => {
     const pacote = readFileSync("docs/agents/SIGA_aplicar_multas_atraso.sql", "utf8");
     expect(pacote).toContain(
-      readFileSync("supabase/migrations/20261004140000_late_fee_one_rule.sql", "utf8"),
+      readFileSync("supabase/migrations/20261004135000_late_fee_one_rule.sql", "utf8"),
     );
     expect(pacote).toMatch(/══════════ Confirmar ══════════[\s\S]*private\.late_fee_due/);
   });

@@ -26,6 +26,7 @@ import { SpotlightRail } from "@/features/spotlight/SpotlightRail";
 import { DashboardCalendarCard } from "@/features/dashboard/components/DashboardCalendarCard";
 import { StudentTimetableCard } from "@/features/dashboard/components/StudentTimetableCard";
 import { TeacherAssessmentsCard } from "@/features/dashboard/components/TeacherAssessmentsCard";
+import { TeacherSchoolsCard } from "@/features/dashboard/components/TeacherSchoolsCard";
 import { openSettingsPanel } from "@/lib/settings-deep-link";
 import {
   teacherClassFilesSearch,
@@ -168,6 +169,8 @@ export function TeacherPortalDashboard() {
       </PortalStats>
 
       <StudentTimetableCard variant="teacher" />
+
+      <TeacherSchoolsCard />
 
       <PortalSection
         title="Aulas de hoje"

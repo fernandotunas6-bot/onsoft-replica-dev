@@ -1,4 +1,4 @@
-// Ensaio local (PGlite) de 20261004140000_late_fee_one_rule.sql. Sem produção.
+// Ensaio local (PGlite) de 20261004135000_late_fee_one_rule.sql. Sem produção.
 // Executar (carrega também a regra em TypeScript, para comparar as duas):
 //   SIGA_SQL_TEST_MODULE_PATH=<.../pglite/dist/index.js> node --experimental-strip-types tests/sql/late-fee.mjs
 const { PGlite } = await import(process.env["SIGA_SQL_TEST_MODULE_PATH"] || "@electric-sql/pglite");
@@ -66,7 +66,7 @@ await db.exec(
 const sonda = async () => {
   const rows = (await db.exec(read("../../docs/agents/SIGA_confirmar_migracoes.sql"))).at(-1).rows;
   return [
-    "20261004140000_late_fee_one_rule",
+    "20261004135000_late_fee_one_rule",
     "20261004141000_propinas_import_into_billing_rules",
   ].map((m) => rows.find((r) => r.migracao === m).estado);
 };
@@ -77,7 +77,7 @@ assert.deepEqual(await sonda(), ["EM FALTA", "EM FALTA"]);
 // O pacote inteiro, como no SQL Editor, duas vezes seguidas.
 for (let corrida = 0; corrida < 2; corrida++) {
   assert.deepEqual((await db.exec(pacote)).at(-1).rows[0], {
-    "20261004140000 multa por atraso": "aplicada",
+    "20261004135000 multa por atraso": "aplicada",
     "20261004141000 importação de propinas": "aplicada",
   });
 }

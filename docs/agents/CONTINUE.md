@@ -4,7 +4,7 @@ Ler isto **antes** de alterar código. Ecossistema (5 apps):
 [ARCHITECTURE_HARMONIZATION.md](./ARCHITECTURE_HARMONIZATION.md).
 Depois abrir o skill do módulo em `.cursor/skills/`.
 
-## Multa por atraso: uma regra — POR APLICAR (2026-10-04)
+## Multa por atraso: uma regra — APLICADA (2026-10-05)
 
 Pedido do dono (regra universal ou opção por escola). Antes: o webhook EMIS/Unitel
 aplicava a multa; a tesouraria (`private.register_payment`) não a aplicava e
@@ -25,10 +25,12 @@ nas regras (produção, só leitura): nada foi cobrado a mais nem a menos.
 - **Ecrãs:** a referência EMIS é do que falta pagar, com a multa de um pagamento
   hoje (o servidor calcula; o cartão mostra «Inclui a multa…»). O «Receber» mostra a
   multa de hoje e soma-a ao valor sugerido.
-- Migrações `20261004140000_late_fee_one_rule.sql` e
-  `20261004141000_propinas_import_into_billing_rules.sql`, pacote
+- Migrações `20261004135000_late_fee_one_rule.sql` (antes `…140000`, que colidia com a
+  dos estatutos) e `20261004141000_propinas_import_into_billing_rules.sql`, pacote
   `docs/agents/SIGA_aplicar_multas_atraso.sql` (sondas também em
-  `SIGA_confirmar_migracoes.sql`).
+  `SIGA_confirmar_migracoes.sql`). **Aplicadas a 2026-10-05** com `apply_migration`
+  (registo `20261005081124` e `20261005081139`); corpos conferidos por md5 com o
+  repositório.
 
 **Importação de «propinas»** (decisão do dono, 2026-10-04): gravava em
 `school_billing_settings`, que nada lê, e sem a coluna da multa gravava 10 %. Passa a
@@ -53,7 +55,7 @@ Relatório: `docs/auditoria/12-auditoria-sistema-2026-10-04.md`.
   de conjunto `private.user_*_school_ids`/`teacher_*` (`20261004222220`, `20261004222611`). A reescrita preserva a
   semântica (verificação mecânica na auditoria 12, secção 4b).
 - **Retrato recapturado** (04/10 à noite) e 3 testes de segurança ajustados à forma `user_*_school_ids`.
-- **Por aplicar no SQL Editor** (a ferramenta cancela a escrita): `20261005010000_assessment_closed_term_guard.sql`
+- **Por aplicar no SQL Editor** (a ferramenta cancela as migrações com `DROP`; tentado de novo a 05/10): `20261005010000_assessment_closed_term_guard.sql`
   (fecho de período nas avaliações) e `20261005020000_direct_writes_require_mfa.sql` (2FA nas escritas
   directas da plataforma e das avaliações) e `20261005030000_school_row_role_policies.sql` (papel pela escola da
   linha nos eventos de gateway; retira a política morta de `schools`). Ensaios em `tests/sql/`. O que ficou de fora do 2FA e porquê:
@@ -100,23 +102,37 @@ O Aurora (PR #66, na main) e o PR #65 cresceram em paralelo; foram juntos em
 - **Registo público:** e-mail confirmado por código → limite de pedidos → hCaptcha →
   provisionamento.
 
-## Pendentes de decisão do dono (2026-10-03)
+## Pedidos do dono de 2026-10-04 (feitos)
 
-- **Multas por atraso.** Feito a 2026-10-04 (secção «Multa por atraso: uma regra»):
-  opção por escola em Definições › Cobrança e o mesmo total em todos os caminhos.
-  Falta aplicar `SIGA_aplicar_multas_atraso.sql`.
-- **Anular um salário pago por engano.** O caixa já recusa anular a saída de um
-  salário (`reverseCashEntry`). Falta, nos RH, a anulação com motivo que reponha
-  o item, a ordem e a folha e anule a saída de caixa numa transacção (migração).
-  O dono pediu regra universal ou opções de escolha.
-- **Professor em várias escolas do sistema** (ex.: colégio + escola pública): o
-  professor só vê os alunos das turmas onde dá aulas (`loadStudentScope`, igual às
-  turmas da árvore da barra lateral). Ver no mesmo portal as turmas das outras
-  escolas onde trabalha — com vínculo pedido e aprovado em cada escola — fica
-  **pendente** (pedido do dono).
-- **Migração `20261002160000_annual_sheet_requires_all_terms` por aplicar** na
-  produção (a aplicação pela ferramenta é cancelada; o dono aplica no SQL Editor
-  do projecto `xodgfmxiaunpamctfeea`, que tem 91 escolas).
+- **Multa por atraso igual em todos os canais.** Trabalho do PR #71 juntado no PR #74 (uma
+  só implementação): `src/features/finance/late-fee.ts` e `private.late_fee_due` +
+  `private.register_payment` (`20261004135000_late_fee_one_rule`). Opção da escola em
+  Cobrança: `late_fee_scope` = `all` (por omissão) ou `electronic`. A versão anterior desta
+  sessão (`20261004120000`) fica no histórico e é substituída por esta.
+- **Anular salário pago por engano.** RH → Pagamentos → «Anular pagamento» (2FA, motivo).
+  `private.hr_reverse_payroll_payment` (`20261004130000`, aplicada, só `service_role`):
+  saída de caixa, item, linha da folha, ordem e folha numa transacção; depois `repay` ou
+  `cancel`. **Na produção falhava sempre** (05/10, sem salários pagos nem anulações até então):
+  põe a linha da folha em `approved`, que o trigger `hr_block_locked_payroll_item_mutation`
+  recusa, e a folha em `approved`, que refaz as validações da aprovação. **Corrigido e
+  aplicado a 2026-10-05** (registo `20261005081328` e `20261005081417`; corpos conferidos
+  por md5): `20261005040000_hr_confirm_payment_free_expense_number.sql`
+  (a confirmação atómica da main escolhe o número livre da saída, `…-2`, `…-3`, em vez do
+  antigo `nextExpenseNumber`) e `20261005050000_hr_reverse_payroll_payment_lock_states.sql`
+  (a linha passa de paga a `processing`/`cancelled` só dentro da anulação, com a marca
+  local `siga.hr_payroll_reversal`; a folha fica `processing` enquanto houver salários
+  por pagar). Ensaio: `tests/sql/payroll-confirmation.mjs`; sondas em
+  `SIGA_confirmar_migracoes.sql`.
+- **Professor em várias escolas.** Cartão «As minhas escolas» no painel do professor
+  (`src/features/hr/teacher-schools.ts`): turmas por escola com vínculo de Professor activo;
+  alunos e notas só na escola activa.
+- **Trabalhador-estudante.** Tabela `student_special_statuses` (`20261004140000`, aplicada,
+  só servidor), `src/features/higher-ed/student-status.ts`; regras no motor
+  (`StudentStatus`) e no regulamento (`worker_student_*`).
+- Migrações `20261002100000`, `20261002160000`, `20261003070000`: aplicadas e registadas.
+- **Ferramenta Supabase:** SQL com `DROP`/`DELETE` pede uma confirmação que não chega à
+  sessão e expira aos 60 s. Usar blocos `DO … IF NOT EXISTS` ou `ALTER POLICY` quando
+  forem equivalentes; o que precisa mesmo de `DROP` vai num pacote para o SQL Editor.
 
 ## Ensino Superior (2026-10-03)
 
@@ -159,18 +175,11 @@ servidor lhes toca, ver `PRIVILEGIO_POR_DESENHO`).
   `certificado-conclusao-superior`), por isso `/verificar` confirma-o sem mudanças.
   Uma vez por estudante e curso: repetir devolve o mesmo número e código. Sem anulação
   (o registo de verificação em `audit_logs` não a tem).
-- **Trabalhador-estudante — POR APLICAR** (2026-10-04): tabela
-  `higher_ed_student_statuses` só do servidor (migração `20261004150000`, pacote
-  `docs/agents/SIGA_aplicar_trabalhador_estudante.sql`, sonda em
-  `SIGA_confirmar_migracoes.sql`). Um estatuto por estudante e ano lectivo, com
-  comprovativo; atribuir/retirar com 2FA e auditoria (`higher_ed.worker_student.*`).
-  Efeitos no regulamento: `worker_student_absence_exempt` (faltas não excluem) e
-  `worker_student_special_season` (época especial sem ser finalista), aplicados no
-  lançamento, na pauta e na ficha pelo estatuto do ano da inscrição. Enquanto a tabela
-  não existir, ninguém tem o estatuto e atribuí-lo pede o pacote
-  (`TABELAS_AUSENTES_DA_PRODUCAO`).
+- **Trabalhador-estudante:** uma só implementação (PR #70 juntado no #74, a pedido do
+  dono): tabela `student_special_statuses` (`20261004140000`, aplicada), ver «Pedidos do
+  dono de 2026-10-04». A tabela `higher_ed_student_statuses` do PR #70 não foi criada.
 - **Por fazer:** ver «Pendente» em `docs/higher-ed/ANALISE_REQUISITOS_ANGOLA.md`
-  (bacharelato, bolsas, turnos/lista de espera; prescrição do trabalhador-estudante).
+  (bacharelato, bolsas, turnos/lista de espera).
 
 ## Auditoria de produção 11 (2026-10-02)
 

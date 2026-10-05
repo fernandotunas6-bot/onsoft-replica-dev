@@ -139,12 +139,17 @@ export type HigherEdRegulation = {
    */
   student_self_enrollment: boolean;
   /**
-   * Estatuto de trabalhador-estudante (atribuído pela secretaria, por ano lectivo, com
-   * comprovativo): as faltas não excluem da avaliação (como no SIGARRA).
+   * Estatuto de trabalhador-estudante (atribuído pela secretaria, com prova e datas):
+   * as faltas não excluem da avaliação (como no SIGARRA).
    */
   worker_student_absence_exempt: boolean;
   /** Trabalhador-estudante vai à época especial mesmo sem ser finalista. */
   worker_student_special_season: boolean;
+  /**
+   * Situação académica e prescrição: cada ano do trabalhador-estudante conta esta
+   * percentagem de um ano (50 = metade dos créditos esperados). 100 = sem desconto.
+   */
+  worker_student_progress_percent: number;
 };
 
 export const HIGHER_ED_DEFAULTS: HigherEdRegulation = {
@@ -169,6 +174,7 @@ export const HIGHER_ED_DEFAULTS: HigherEdRegulation = {
   student_self_enrollment: false,
   worker_student_absence_exempt: true,
   worker_student_special_season: true,
+  worker_student_progress_percent: 50,
 };
 
 export type HigherEdDegree = "licenciatura" | "mestrado" | "doutoramento" | "especializacao";
@@ -364,6 +370,13 @@ export const SETTINGS_DOMAINS = {
           typeof v["worker_student_special_season"] === "boolean"
             ? v["worker_student_special_season"]
             : d.worker_student_special_season,
+        worker_student_progress_percent: bounded(
+          v["worker_student_progress_percent"],
+          d.worker_student_progress_percent,
+          10,
+          100,
+          true,
+        ),
       };
     },
   },

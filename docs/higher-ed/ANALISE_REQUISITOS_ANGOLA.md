@@ -44,15 +44,13 @@ injustificadas às aulas dadas no semestre.
 | Doutoramento: decisão do júri (Aprovado / com distinção / com distinção e louvor) | ✅ com acta, 2FA e auditoria |
 | Modalidade (presencial/semipresencial/distância) e regime (regular/pós-laboral) por curso | ✅ |
 | Vagas por curso e exame de acesso (nota, seriação) | ✅ separador «Acesso» |
-| Estatuto trabalhador-estudante (faltas, época especial) | ✅ por ano lectivo, com comprovativo e 2FA |
+| Estatuto trabalhador-estudante (faltas, época especial) | ✅ com prova, datas e 2FA |
 | Exportação para o SISIES/GEPE (Vagas, Acesso, Matrículas, Graduados) | ✅ Excel |
 | Diploma / carta de curso registado com QR | ✅ certificado de conclusão emitido com 2FA, uma vez por curso |
 | Bolsas | ❌ |
 
 ## Pendente (precisa de migração ou de decisão)
 
-- Estatuto trabalhador-estudante: feito com a tabela `higher_ed_student_statuses`, só do
-  servidor (migração 20261004150000, por aplicar). Fica por fazer a prescrição a 50 %.
 - Bacharelato: alterar a restrição `programs.kind`.
 - Bolsas, turnos/vagas por turma com lista de espera.
 
@@ -69,7 +67,7 @@ injustificadas às aulas dadas no semestre.
 | Prescrição / prazo máximo de integralização | SIGARRA (prescrição), SIGAA (prazo de conclusão) | ✅ «anos além da duração» (0 = desligado) |
 | Fluxo de correcção de notas | Banner (grade change workflow) | ✅ «Corrigir nota»: secretaria, 2FA, motivo, auditoria |
 | Holds: dívida bloqueia inscrição/documentos | Banner (registration holds) | ✅ inscrição: opção do regulamento (desligada por omissão); documentos — não |
-| Estatuto trabalhador-estudante (faltas, prescrição a 50 %) | SIGARRA | ✅ faltas e época especial (regulamento); prescrição — não |
+| Estatuto trabalhador-estudante (faltas, prescrição a 50 %) | SIGARRA | ✅ faltas, época especial e prescrição (regulamento) |
 | Turnos/vagas por turma e lista de espera | FenixEdu (turnos), Banner (capacity, waitlist) | ❌ |
 | Calendário de inscrições e épocas | FenixEdu (curricular calendars), SIGAA | ✅ datas de abertura e fecho no regulamento; janelas por época — não |
 | Sistemas angolanos (SIGU, SkyGnova, SIGA.ao) | candidatura → certificado num só sistema | ✅ mesmo ciclo |

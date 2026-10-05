@@ -41,7 +41,16 @@ await db.exec(`ALTER TABLE hr_payroll_payment_items ADD COLUMN cash_expense_id u
 CREATE TABLE siga_cash_expenses(id uuid primary key default gen_random_uuid(),school_id uuid not null,
  document_number text not null,description text not null,category text not null,amount numeric not null check(amount>0),
  method text not null,reference text,occurred_at timestamptz not null,status text not null,
- created_by uuid,updated_by uuid);`);
+ reversal_reason text,reversed_at timestamptz,reversed_by uuid,created_at timestamptz default now(),
+ created_by uuid,updated_at timestamptz default now(),updated_by uuid,unique(school_id,document_number));
+CREATE TABLE audit_logs(id uuid primary key default gen_random_uuid(),school_id uuid not null,actor_user_id uuid,
+ action text not null,entity_type text not null,entity_id uuid,request_id text,metadata jsonb,occurred_at timestamptz default now());
+-- Na produção, entrar em «approved» corre as validações da aprovação (hr_guard_payroll_*),
+-- que exigem todas as linhas aprovadas; aqui basta recusar a entrada.
+CREATE FUNCTION approval_guards() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN
+ IF NEW.status='approved' AND OLD.status<>'approved' THEN RAISE EXCEPTION 'approval guards: Item salarial não está aprovado'; END IF;
+ RETURN NEW; END $$;
+CREATE TRIGGER approval_guards BEFORE UPDATE ON hr_payroll_runs FOR EACH ROW EXECUTE FUNCTION approval_guards();`);
 const locked = readFileSync(
   new URL(
     "../../supabase/migrations/20260906185000_hr_payroll_locked_status_transitions.sql",
@@ -162,6 +171,119 @@ assert.equal(last.batchCompleted, true);
 assert.equal((await db.query("select status from hr_payroll_runs")).rows[0].status, "paid");
 assert.equal(await cashCount(), 2);
 assert.equal((await confirm(13, "paid", "REF-002")).rows[0].result.idempotent, true);
+// Anular (hr_reverse_payroll_payment) e voltar a pagar. A anulação aplicada na produção
+// (20261004130000) põe a linha da folha em «approved» e o trigger de bloqueio recusa;
+// 20261005050000 corrige-a. A saída anulada mantém o número, que é único por escola, e a
+// confirmação escolhe o seguinte livre (20261005040000).
+const migrationFile = (name) =>
+  readFileSync(new URL("../../supabase/migrations/" + name, import.meta.url), "utf8");
+// Sonda de docs/agents/SIGA_confirmar_migracoes.sql (as tabelas que ela consulta pelo nome).
+await db.exec(`CREATE TABLE IF NOT EXISTS siga_direct_messages(id uuid primary key);
+CREATE TABLE IF NOT EXISTS student_academic_history(id uuid primary key);
+CREATE TABLE IF NOT EXISTS import_table_specs(table_schema text,table_name text,direct_import_policy text);`);
+const probe = async () =>
+  Object.fromEntries(
+    (
+      await db.exec(
+        readFileSync(
+          new URL("../../docs/agents/SIGA_confirmar_migracoes.sql", import.meta.url),
+          "utf8",
+        ),
+      )
+    )
+      .at(-1)
+      .rows.filter(
+        (r) => r.migracao.startsWith("2026100504") || r.migracao.startsWith("2026100505"),
+      )
+      .map((r) => [r.migracao.slice(0, 14), r.estado]),
+  );
+assert.deepEqual(await probe(), { 20261005040000: "EM FALTA", 20261005050000: "EM FALTA" });
+await db.exec(migrationFile("20261004130000_hr_reverse_payroll_payment.sql"));
+const freeNumber = migrationFile("20261005040000_hr_confirm_payment_free_expense_number.sql");
+await db.exec(freeNumber);
+await db.exec(freeNumber);
+const reverseItem = (item, next, reason = "IBAN errado no primeiro pagamento") =>
+  db.query("select private.hr_reverse_payroll_payment($1,$2,$3,$4,$5) as result", [
+    school,
+    id(item),
+    actor,
+    reason,
+    next,
+  ]);
+const statusOf = async (table, rowId) =>
+  (await db.query(`select status from ${table} where id=$1`, [rowId])).rows[0].status;
+await assert.rejects(
+  reverseItem(12, "repay"),
+  /Invalid locked payroll item status transition: paid -> approved/,
+);
+assert.equal(await statusOf("hr_payroll_payment_items", id(12)), "paid");
+const lockFix = migrationFile("20261005050000_hr_reverse_payroll_payment_lock_states.sql");
+await db.exec(lockFix);
+await db.exec(lockFix);
+assert.deepEqual(await probe(), { 20261005040000: "aplicada", 20261005050000: "aplicada" });
+// Fora da anulação a linha paga (id 10, do pagamento 12) continua bloqueada, com ou sem
+// a marca de outra linha.
+await assert.rejects(
+  db.query("update hr_payroll_items set status='processing' where id=$1", [id(10)]),
+  /Invalid locked payroll item status transition: paid -> processing/,
+);
+await assert.rejects(
+  db.transaction(async (tx) => {
+    await tx.query("select set_config('siga.hr_payroll_reversal',$1,true)", [id(11)]);
+    await tx.query("update hr_payroll_items set status='cancelled' where id=$1", [id(10)]);
+  }),
+  /Invalid locked payroll item status transition: paid -> cancelled/,
+);
+const numbers = async () =>
+  (
+    await db.query(
+      "select document_number, status from siga_cash_expenses where document_number like $1 order by document_number",
+      [`SAL-001-${id(12)}%`],
+    )
+  ).rows;
+const reversed = (await reverseItem(12, "repay")).rows[0].result;
+assert.deepEqual(
+  { item: reversed.itemStatus, batch: reversed.batchStatus },
+  { item: "authorized", batch: "partial" },
+);
+assert.equal(await statusOf("hr_payroll_items", id(10)), "processing");
+assert.equal(await statusOf("hr_payroll_runs", run), "processing");
+assert.equal(
+  (await db.query("select paid_at from hr_payroll_runs where id=$1", [run])).rows[0].paid_at,
+  null,
+);
+const repaid = (await confirm(12, "paid", "REF-003")).rows[0].result;
+assert.equal(repaid.paid, true);
+assert.equal(repaid.batchCompleted, true);
+assert.equal(await statusOf("hr_payroll_runs", run), "paid");
+assert.deepEqual(
+  (await numbers()).map((row) => [row.document_number, row.status]),
+  [
+    [`SAL-001-${id(12)}`, "reversed"],
+    [`SAL-001-${id(12)}-2`, "posted"],
+  ],
+);
+// Uma segunda anulação e novo pagamento levam o -3.
+await reverseItem(12, "repay", "Referência bancária errada");
+await confirm(12, "paid", "REF-004");
+assert.equal((await numbers()).at(-1).document_number, `SAL-001-${id(12)}-3`);
+// Cancelar (o salário não era devido): a linha fica cancelada e, sem nada por pagar,
+// a ordem fica concluída e a folha continua paga.
+const cancelled = (await reverseItem(13, "cancel", "Salário não era devido")).rows[0].result;
+assert.deepEqual(
+  { item: cancelled.itemStatus, batch: cancelled.batchStatus },
+  { item: "cancelled", batch: "completed" },
+);
+assert.equal(await statusOf("hr_payroll_items", id(11)), "cancelled");
+assert.equal(await statusOf("hr_payroll_runs", run), "paid");
+assert.equal(
+  (
+    await db.query("select count(*)::int as n from audit_logs where action=$1", [
+      "hr.payroll_payment.reversed",
+    ])
+  ).rows[0].n,
+  3,
+);
 const privileges = (
   await db.query(`select has_function_privilege('anon','public.hr_confirm_payroll_payment_item(uuid,uuid,text,text,text)','execute') as anon,
  has_function_privilege('authenticated','public.hr_confirm_payroll_payment_item(uuid,uuid,text,text,text)','execute') as authenticated`)
@@ -169,6 +291,6 @@ const privileges = (
 assert.equal(privileges.anon, false);
 assert.equal(privileges.authenticated, true);
 console.log(
-  "Payroll confirmation: rollback, isolation, MFA, module grants, manual policy, amounts, failures, replay and completion passed.",
+  "Payroll confirmation: rollback, isolation, MFA, module grants, manual policy, amounts, failures, replay, completion, reversal (pay again -2/-3, cancel) and the payroll lock passed.",
 );
 await db.close();

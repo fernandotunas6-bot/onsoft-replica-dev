@@ -13,6 +13,7 @@ import {
   maskPaymentDestinationLabel,
   paymentBatchIdInputSchema,
   payrollRunIdInputSchema,
+  reversePayrollPaymentItemInputSchema,
   upsertHrPaymentDestinationInputSchema,
 } from "@/features/hr/schemas";
 
@@ -202,5 +203,37 @@ export const confirmPayrollPaymentItem = createServerFn({ method: "POST" })
       idempotent?: boolean;
       cashExpenseId?: string | null;
       batchCompleted?: boolean;
+    };
+  });
+
+/**
+ * Anula um salário pago por engano: o item deixa de estar pago, a saída de caixa
+ * fica anulada e a folha volta atrás — tudo numa transacção
+ * (`hr_reverse_payroll_payment`, 20261004130000). O caixa recusa anular estas
+ * saídas (`reverseCashEntry`): o caminho é este.
+ */
+export const reversePayrollPaymentItem = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .validator((input: unknown) => reversePayrollPaymentItemInputSchema.parse(input))
+  .handler(async ({ data, context }) => {
+    const membership = await requirePaymentAdmin(context.userId, "write");
+    requireAal2(context.claims, "Anular um pagamento salarial");
+    const db = await loadSgaAdminClient();
+    const { data: outcome, error } = await db.rpc("hr_reverse_payroll_payment", {
+      school_id: membership.schoolId,
+      payment_item_id: data.paymentItemId,
+      actor: context.userId,
+      reason: data.reason,
+      next_step: data.next,
+    });
+    if (error) {
+      if (error.code === "22023" || error.code === "P0002") throw new Error(error.message);
+      throw publicDatabaseError(error, "Não foi possível anular o pagamento salarial.");
+    }
+    return outcome as {
+      paymentItemId: string;
+      itemStatus: "authorized" | "cancelled";
+      batchStatus: string;
+      cashExpenseId: string | null;
     };
   });

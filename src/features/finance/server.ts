@@ -1347,7 +1347,7 @@ export const reverseCashEntry = createServerFn({ method: "POST" })
     }
     if (payrollLink?.id) {
       throw new Error(
-        "Esta saída pagou um salário e não se anula no caixa: a folha continuaria a dar o salário como pago. A correcção tem de ser feita no pagamento salarial (Recursos Humanos).",
+        "Esta saída pagou um salário e não se anula no caixa: a folha continuaria a dar o salário como pago. Anule-a em Recursos Humanos → Pagamentos («Anular pagamento»): a saída, o salário e a folha voltam atrás juntos.",
       );
     }
 
