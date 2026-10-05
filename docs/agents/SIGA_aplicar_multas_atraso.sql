@@ -14,7 +14,7 @@
 -- Confirmar no fim com a consulta do fundo deste ficheiro (deve dar "aplicada").
 
 
--- ══════════ 20261004140000_late_fee_one_rule.sql ══════════
+-- ══════════ 20261004135000_late_fee_one_rule.sql ══════════
 -- Multa por atraso: uma regra só, na tesouraria como nas referências.
 --
 -- Antes (produção, só leitura, 2026-10-04):
@@ -215,7 +215,7 @@ WHERE table_schema = 'public'
 SELECT CASE WHEN to_regprocedure('private.late_fee_due(uuid, numeric, date, numeric, date, text)') IS NOT NULL
   AND position('private.late_fee_due' in pg_get_functiondef(
     to_regprocedure('private.register_payment(uuid, uuid, numeric, text, date)'))) > 0
-THEN 'aplicada' ELSE 'por aplicar' END AS "20261004140000 multa por atraso",
+THEN 'aplicada' ELSE 'por aplicar' END AS "20261004135000 multa por atraso",
 CASE WHEN EXISTS (
   SELECT 1 FROM public.import_table_specs
    WHERE table_schema = 'public' AND table_name = 'school_settings'

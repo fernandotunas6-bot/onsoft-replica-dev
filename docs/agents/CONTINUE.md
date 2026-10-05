@@ -25,7 +25,8 @@ nas regras (produção, só leitura): nada foi cobrado a mais nem a menos.
 - **Ecrãs:** a referência EMIS é do que falta pagar, com a multa de um pagamento
   hoje (o servidor calcula; o cartão mostra «Inclui a multa…»). O «Receber» mostra a
   multa de hoje e soma-a ao valor sugerido.
-- Migrações `20261004140000_late_fee_one_rule.sql` e
+- Migrações `20261004135000_late_fee_one_rule.sql` (era `140000`; renumerada a 2026-10-05
+  porque a produção usou `20261004140000` para `student_special_statuses`) e
   `20261004141000_propinas_import_into_billing_rules.sql`, pacote
   `docs/agents/SIGA_aplicar_multas_atraso.sql` (sondas também em
   `SIGA_confirmar_migracoes.sql`).
@@ -159,16 +160,15 @@ servidor lhes toca, ver `PRIVILEGIO_POR_DESENHO`).
   `certificado-conclusao-superior`), por isso `/verificar` confirma-o sem mudanças.
   Uma vez por estudante e curso: repetir devolve o mesmo número e código. Sem anulação
   (o registo de verificação em `audit_logs` não a tem).
-- **Trabalhador-estudante — POR APLICAR** (2026-10-04): tabela
-  `higher_ed_student_statuses` só do servidor (migração `20261004150000`, pacote
-  `docs/agents/SIGA_aplicar_trabalhador_estudante.sql`, sonda em
-  `SIGA_confirmar_migracoes.sql`). Um estatuto por estudante e ano lectivo, com
-  comprovativo; atribuir/retirar com 2FA e auditoria (`higher_ed.worker_student.*`).
-  Efeitos no regulamento: `worker_student_absence_exempt` (faltas não excluem) e
-  `worker_student_special_season` (época especial sem ser finalista), aplicados no
-  lançamento, na pauta e na ficha pelo estatuto do ano da inscrição. Enquanto a tabela
-  não existir, ninguém tem o estatuto e atribuí-lo pede o pacote
-  (`TABELAS_AUSENTES_DA_PRODUCAO`).
+- **Trabalhador-estudante — APLICADO** (2026-10-05): tabela `student_special_statuses`
+  (migração `20261004140000`, aplicada na produção a 04/10 a partir do PR #74; só do
+  servidor). O código usa-a desde 05/10: um estatuto em vigor por estudante, de
+  `valid_from` a `valid_until`; «trabalhador-estudante no ano X» = estatuto não revogado
+  cuja validade cruza as datas do ano. Atribuir no ano activo cria `[início, fim]` do ano
+  ou estende o estatuto em vigor; retirar revoga-o (a linha fica). 2FA e auditoria
+  (`higher_ed.worker_student.*`). Efeitos no regulamento: `worker_student_absence_exempt`
+  e `worker_student_special_season`. A tabela `higher_ed_student_statuses` (do #70,
+  `20261004150000`) nunca foi aplicada e saiu do repositório.
 - **Por fazer:** ver «Pendente» em `docs/higher-ed/ANALISE_REQUISITOS_ANGOLA.md`
   (bacharelato, bolsas, turnos/lista de espera; prescrição do trabalhador-estudante).
 

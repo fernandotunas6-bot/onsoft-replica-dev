@@ -1,7 +1,7 @@
 /**
  * Estado de uma fatura a partir do que os recibos válidos já pagaram, contra o
  * total a pagar (valor menos desconto mais a multa já aplicada) — a regra de
- * `private.register_payment` desde 20261004140000. Usada no estorno, no webhook,
+ * `private.register_payment` desde 20261004135000. Usada no estorno, no webhook,
  * no PayFlow e na importação.
  */
 export type SettlementStatus = "open" | "partially_paid" | "paid";

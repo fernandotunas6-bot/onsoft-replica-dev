@@ -38,6 +38,12 @@
  * `hr_upsert_payment_destination` e `hr_redeem_teacher_qr_secure`. Nada saiu.
  */
 
+/**
+ * Regenerado da produção a 2026-10-05 (conector Supabase, `generate_typescript_types`):
+ * 187 tabelas (eram 186). Entra `student_special_statuses` (trabalhador-estudante,
+ * 20261004140000) e as funções `hr_reverse_payroll_payment` (20261004130000). Nada saiu.
+ */
+
 export type Json =
   | string
   | number
@@ -10748,6 +10754,75 @@ export type Database = {
           },
         ]
       }
+      student_special_statuses: {
+        Row: {
+          created_at: string
+          employer: string | null
+          evidence_note: string | null
+          granted_by: string | null
+          id: string
+          kind: string
+          revoke_reason: string | null
+          revoked_at: string | null
+          revoked_by: string | null
+          school_id: string
+          student_id: string
+          updated_at: string
+          valid_from: string
+          valid_until: string | null
+          version: number
+        }
+        Insert: {
+          created_at?: string
+          employer?: string | null
+          evidence_note?: string | null
+          granted_by?: string | null
+          id?: string
+          kind?: string
+          revoke_reason?: string | null
+          revoked_at?: string | null
+          revoked_by?: string | null
+          school_id: string
+          student_id: string
+          updated_at?: string
+          valid_from?: string
+          valid_until?: string | null
+          version?: number
+        }
+        Update: {
+          created_at?: string
+          employer?: string | null
+          evidence_note?: string | null
+          granted_by?: string | null
+          id?: string
+          kind?: string
+          revoke_reason?: string | null
+          revoked_at?: string | null
+          revoked_by?: string | null
+          school_id?: string
+          student_id?: string
+          updated_at?: string
+          valid_from?: string
+          valid_until?: string | null
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "student_special_statuses_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "schools"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "student_special_statuses_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "students"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       student_status_events: {
         Row: {
           changed_by: string | null
@@ -12479,6 +12554,16 @@ export type Database = {
           isOneToOne: true
           isSetofReturn: false
         }
+      }
+      hr_reverse_payroll_payment: {
+        Args: {
+          actor: string
+          next_step: string
+          payment_item_id: string
+          reason: string
+          school_id: string
+        }
+        Returns: Json
       }
       hr_review_teacher_lesson: {
         Args: {

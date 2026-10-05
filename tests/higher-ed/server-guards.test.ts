@@ -130,14 +130,20 @@ describe("Ensino Superior no servidor", () => {
       expect(body, name).toContain('officeMembership(context, "write")');
       expect(body, name).toContain(`requireAal2(context.claims, "${label}")`);
       expect(body, name).toContain(`action: "${action}"`);
-      expect(body, name).toContain("throw new Error(MISSING_STATUS_TABLE)");
+      // Lê o estatuto em vigor pelo helper, que dá a mensagem clara se a tabela faltar.
+      expect(body, name).toContain("openWorkerStudentStatus(db, schoolId, data.studentId)");
     }
+    const open = source.slice(
+      source.indexOf("async function openWorkerStudentStatus"),
+      source.indexOf("export const grantWorkerStudentStatus"),
+    );
+    expect(open).toContain("throw new Error(MISSING_STATUS_TABLE)");
     // Ler o estatuto com a tabela por criar devolve «sem estatuto», não um erro.
     const rows = source.slice(
       source.indexOf("async function workerStudentRows"),
-      source.indexOf("function isWorkerStudent"),
+      source.indexOf("function workerStudentInYear"),
     );
-    expect(rows).toContain("if (isMissingTable(error)) return [];");
+    expect(rows).toContain("if (isMissingTable(error)) return none;");
     // O lançamento e a pauta aplicam o estatuto do ano da inscrição.
     expect(fn("recordUnitResult")).toContain(
       "frequencyOutcome(data.frequency, data.absencePercent, regulation, {",

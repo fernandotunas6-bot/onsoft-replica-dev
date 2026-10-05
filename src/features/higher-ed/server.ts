@@ -246,12 +246,17 @@ async function audit(
 }
 
 // ── Estatutos especiais (trabalhador-estudante) ─────────────────────────────
+//
+// Tabela `student_special_statuses` (20261004140000, aplicada na produção; só o servidor
+// lhe toca): um estatuto em vigor por estudante e tipo, de `valid_from` a `valid_until`
+// (sem fim = em aberto). «Trabalhador-estudante no ano lectivo X» é um estatuto não
+// revogado cuja validade cruza as datas desse ano.
 
-const WORKER_STUDENT = "trabalhador_estudante";
+const WORKER_STUDENT = "worker_student";
 const MISSING_STATUS_TABLE =
-  "O estatuto de trabalhador-estudante ainda não está disponível nesta base: falta aplicar docs/agents/SIGA_aplicar_trabalhador_estudante.sql.";
+  "O estatuto de trabalhador-estudante ainda não está disponível nesta base: falta a migração 20261004140000_student_special_statuses.";
 
-/** A tabela ainda não existe (migração 20261004150000 por aplicar). */
+/** A tabela ainda não existe (base sem a migração 20261004140000). */
 function isMissingTable(error: { code?: string; message?: string } | null) {
   return Boolean(
     error &&
@@ -262,48 +267,93 @@ function isMissingTable(error: { code?: string; message?: string } | null) {
 }
 
 type WorkerStudentRow = {
+  id: string;
   studentId: string;
-  academicYearId: string;
+  validFrom: string;
+  validUntil: string | null;
   evidence: string;
   grantedAt: string;
 };
 
-/** Estatutos activos destes estudantes; vazio enquanto a tabela não existir. */
+type YearRange = { startsOn: string; endsOn: string };
+
+type WorkerStudentStatuses = { rows: WorkerStudentRow[]; years: Map<string, YearRange> };
+
+function toWorkerStudentRow(row: Row): WorkerStudentRow {
+  return {
+    id: str(row.id),
+    studentId: str(row.student_id),
+    validFrom: str(row.valid_from),
+    validUntil: row.valid_until ? str(row.valid_until) : null,
+    evidence: str(row.evidence_note),
+    grantedAt: str(row.updated_at),
+  };
+}
+
+/** O estatuto vale em algum dia do ano lectivo (as validades cruzam-se). */
+function coversYear(row: WorkerStudentRow, year: YearRange | undefined) {
+  return Boolean(
+    year && row.validFrom <= year.endsOn && (!row.validUntil || row.validUntil >= year.startsOn),
+  );
+}
+
+/** Datas dos anos lectivos da escola (poucas linhas por escola). */
+async function academicYearRanges(db: Db, schoolId: string) {
+  const { data, error } = await db
+    .from("academic_years")
+    .select("id, starts_on, ends_on")
+    .eq("school_id", schoolId);
+  if (error) throw publicDatabaseError(error, "Não foi possível ler os anos lectivos.");
+  return new Map(
+    ((data ?? []) as Row[]).map((row) => [
+      str(row.id),
+      { startsOn: str(row.starts_on), endsOn: str(row.ends_on) },
+    ]),
+  );
+}
+
+/** Estatutos em vigor destes estudantes; vazio enquanto a tabela não existir. */
 async function workerStudentRows(
   db: Db,
   schoolId: string,
   studentIds: string[],
-): Promise<WorkerStudentRow[]> {
-  if (!studentIds.length) return [];
+): Promise<WorkerStudentStatuses> {
+  const none: WorkerStudentStatuses = { rows: [], years: new Map() };
+  if (!studentIds.length) return none;
   const { data, error } = await dynamicTablesClient(db)
-    .from("higher_ed_student_statuses")
-    .select("student_id, academic_year_id, evidence, granted_at")
+    .from("student_special_statuses")
+    .select("id, student_id, valid_from, valid_until, evidence_note, updated_at")
     .eq("school_id", schoolId)
-    .eq("status", WORKER_STUDENT)
+    .eq("kind", WORKER_STUDENT)
     .is("revoked_at", null)
     .in("student_id", studentIds);
   if (error) {
-    if (isMissingTable(error)) return [];
+    if (isMissingTable(error)) return none;
     throw publicDatabaseError(error, "Não foi possível ler o estatuto dos estudantes.");
   }
-  return ((data ?? []) as Row[]).map((row) => ({
-    studentId: str(row.student_id),
-    academicYearId: str(row.academic_year_id),
-    evidence: str(row.evidence),
-    grantedAt: str(row.granted_at),
-  }));
+  const rows = ((data ?? []) as Row[]).map(toWorkerStudentRow);
+  if (!rows.length) return none;
+  return { rows, years: await academicYearRanges(db, schoolId) };
+}
+
+/** O estatuto deste estudante em vigor no ano lectivo, ou null. */
+function workerStudentInYear(
+  statuses: WorkerStudentStatuses,
+  studentId: string,
+  academicYearId: string | null | undefined,
+) {
+  if (!academicYearId) return null;
+  const year = statuses.years.get(academicYearId);
+  return statuses.rows.find((row) => row.studentId === studentId && coversYear(row, year)) ?? null;
 }
 
 /** Trabalhador-estudante neste ano lectivo (o da inscrição, ou o activo). */
 function isWorkerStudent(
-  rows: WorkerStudentRow[],
+  statuses: WorkerStudentStatuses,
   studentId: string,
   academicYearId: string | null | undefined,
 ) {
-  return Boolean(
-    academicYearId &&
-    rows.some((row) => row.studentId === studentId && row.academicYearId === academicYearId),
-  );
+  return workerStudentInYear(statuses, studentId, academicYearId) !== null;
 }
 
 // ── Cursos e plano ─────────────────────────────────────────────────────────
@@ -871,7 +921,7 @@ export const getStudentHigherEd = createServerFn({ method: "GET" })
         }),
       };
     });
-    const workerStudent = statuses.find((row) => yearId && row.academicYearId === yearId) ?? null;
+    const workerStudent = workerStudentInYear(statuses, data.studentId, yearId);
     const profiles = await readSettingsDomain(db, schoolId, "higher_ed_programs");
     return {
       activeYearId: yearId,
@@ -994,10 +1044,12 @@ const workerStudentGrantInput = z.object({
   evidence: z.string().trim().min(3).max(500),
 });
 
-/** O ano lectivo activo e o estudante, ambos desta escola. */
+/** O ano lectivo activo (com as datas) e o estudante, ambos desta escola. */
 async function workerStudentTarget(db: Db, schoolId: string, studentId: string) {
   const yearId = await activeYearId(db, schoolId);
   if (!yearId) throw new Error("Não há ano lectivo activo.");
+  const year = (await academicYearRanges(db, schoolId)).get(yearId);
+  if (!year?.startsOn || !year.endsOn) throw new Error("O ano lectivo activo não tem datas.");
   const { data: student } = await db
     .from("students")
     .select("id")
@@ -1005,13 +1057,31 @@ async function workerStudentTarget(db: Db, schoolId: string, studentId: string) 
     .eq("id", studentId)
     .maybeSingle();
   if (!student) throw new Error("Estudante não encontrado nesta escola.");
-  return yearId;
+  return { yearId, year };
+}
+
+/** O estatuto em vigor (não revogado) do estudante — há no máximo um por tipo. */
+async function openWorkerStudentStatus(db: Db, schoolId: string, studentId: string) {
+  const { data, error } = await dynamicTablesClient(db)
+    .from("student_special_statuses")
+    .select("id, student_id, valid_from, valid_until, evidence_note, updated_at")
+    .eq("school_id", schoolId)
+    .eq("student_id", studentId)
+    .eq("kind", WORKER_STUDENT)
+    .is("revoked_at", null)
+    .maybeSingle();
+  if (error) {
+    if (isMissingTable(error)) throw new Error(MISSING_STATUS_TABLE);
+    throw publicDatabaseError(error, "Não foi possível ler o estatuto do estudante.");
+  }
+  return data ? toWorkerStudentRow(data as Row) : null;
 }
 
 /**
  * Atribui o estatuto de trabalhador-estudante no ano lectivo activo (Direcção ou
  * Secretaria, 2FA, com o comprovativo). Muda as regras de faltas e de época especial,
- * por isso fica na auditoria. Atribuir de novo actualiza o comprovativo.
+ * por isso fica na auditoria. Atribuir de novo actualiza o comprovativo e estende a
+ * validade ao ano activo (o estatuto em vigor é um só por estudante).
  */
 export const grantWorkerStudentStatus = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -1021,40 +1091,34 @@ export const grantWorkerStudentStatus = createServerFn({ method: "POST" })
     requireAal2(context.claims, "Atribuir o estatuto de trabalhador-estudante");
     const db = await loadSgaAdminClient();
     const schoolId = membership.schoolId;
-    const yearId = await workerStudentTarget(db, schoolId, data.studentId);
+    const { yearId, year } = await workerStudentTarget(db, schoolId, data.studentId);
+    const existing = await openWorkerStudentStatus(db, schoolId, data.studentId);
     const table = dynamicTablesClient(db);
-    const { data: existing, error: readError } = await table
-      .from("higher_ed_student_statuses")
-      .select("id")
-      .eq("school_id", schoolId)
-      .eq("student_id", data.studentId)
-      .eq("academic_year_id", yearId)
-      .eq("status", WORKER_STUDENT)
-      .maybeSingle();
-    if (readError) {
-      if (isMissingTable(readError)) throw new Error(MISSING_STATUS_TABLE);
-      throw publicDatabaseError(readError, "Não foi possível ler o estatuto do estudante.");
-    }
-    const values = {
-      evidence: data.evidence,
-      granted_by: context.userId,
-      granted_at: new Date().toISOString(),
-      revoked_at: null,
-      revoked_by: null,
-      revocation_reason: null,
-    };
     const { error } = existing
       ? await table
-          .from("higher_ed_student_statuses")
-          .update(values)
+          .from("student_special_statuses")
+          .update({
+            evidence_note: data.evidence,
+            granted_by: context.userId,
+            valid_from: existing.validFrom < year.startsOn ? existing.validFrom : year.startsOn,
+            valid_until:
+              existing.validUntil === null
+                ? null
+                : existing.validUntil > year.endsOn
+                  ? existing.validUntil
+                  : year.endsOn,
+          })
           .eq("school_id", schoolId)
-          .eq("id", str((existing as Row).id))
-      : await table.from("higher_ed_student_statuses").insert({
+          .eq("id", existing.id)
+          .is("revoked_at", null)
+      : await table.from("student_special_statuses").insert({
           school_id: schoolId,
           student_id: data.studentId,
-          academic_year_id: yearId,
-          status: WORKER_STUDENT,
-          ...values,
+          kind: WORKER_STUDENT,
+          valid_from: year.startsOn,
+          valid_until: year.endsOn,
+          evidence_note: data.evidence,
+          granted_by: context.userId,
         });
     if (error) throw publicDatabaseError(error, "Não foi possível atribuir o estatuto.");
     await audit(db, {
@@ -1068,7 +1132,7 @@ export const grantWorkerStudentStatus = createServerFn({ method: "POST" })
     return { academicYearId: yearId };
   });
 
-/** Retira o estatuto no ano lectivo activo, com o motivo. A linha fica, revogada. */
+/** Retira o estatuto em vigor no ano lectivo activo, com o motivo. A linha fica, revogada. */
 export const revokeWorkerStudentStatus = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((input: unknown) =>
@@ -1081,24 +1145,23 @@ export const revokeWorkerStudentStatus = createServerFn({ method: "POST" })
     requireAal2(context.claims, "Retirar o estatuto de trabalhador-estudante");
     const db = await loadSgaAdminClient();
     const schoolId = membership.schoolId;
-    const yearId = await workerStudentTarget(db, schoolId, data.studentId);
+    const { yearId, year } = await workerStudentTarget(db, schoolId, data.studentId);
+    const existing = await openWorkerStudentStatus(db, schoolId, data.studentId);
+    if (!existing || !coversYear(existing, year)) {
+      throw new Error("O estudante não tem o estatuto neste ano lectivo.");
+    }
     const { data: revoked, error } = await dynamicTablesClient(db)
-      .from("higher_ed_student_statuses")
+      .from("student_special_statuses")
       .update({
         revoked_at: new Date().toISOString(),
         revoked_by: context.userId,
-        revocation_reason: data.reason,
+        revoke_reason: data.reason,
       })
       .eq("school_id", schoolId)
-      .eq("student_id", data.studentId)
-      .eq("academic_year_id", yearId)
-      .eq("status", WORKER_STUDENT)
+      .eq("id", existing.id)
       .is("revoked_at", null)
       .select("id");
-    if (error) {
-      if (isMissingTable(error)) throw new Error(MISSING_STATUS_TABLE);
-      throw publicDatabaseError(error, "Não foi possível retirar o estatuto.");
-    }
+    if (error) throw publicDatabaseError(error, "Não foi possível retirar o estatuto.");
     if (!revoked?.length) throw new Error("O estudante não tem o estatuto neste ano lectivo.");
     await audit(db, {
       schoolId,
