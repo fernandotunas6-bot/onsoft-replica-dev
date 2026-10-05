@@ -4,7 +4,7 @@ Ler isto **antes** de alterar código. Ecossistema (5 apps):
 [ARCHITECTURE_HARMONIZATION.md](./ARCHITECTURE_HARMONIZATION.md).
 Depois abrir o skill do módulo em `.cursor/skills/`.
 
-## Multa por atraso: uma regra — POR APLICAR (2026-10-04)
+## Multa por atraso: uma regra — APLICADA (2026-10-05)
 
 Pedido do dono (regra universal ou opção por escola). Antes: o webhook EMIS/Unitel
 aplicava a multa; a tesouraria (`private.register_payment`) não a aplicava e
@@ -25,10 +25,12 @@ nas regras (produção, só leitura): nada foi cobrado a mais nem a menos.
 - **Ecrãs:** a referência EMIS é do que falta pagar, com a multa de um pagamento
   hoje (o servidor calcula; o cartão mostra «Inclui a multa…»). O «Receber» mostra a
   multa de hoje e soma-a ao valor sugerido.
-- Migrações `20261004140000_late_fee_one_rule.sql` e
-  `20261004141000_propinas_import_into_billing_rules.sql`, pacote
+- Migrações `20261004135000_late_fee_one_rule.sql` (antes `…140000`, que colidia com a
+  dos estatutos) e `20261004141000_propinas_import_into_billing_rules.sql`, pacote
   `docs/agents/SIGA_aplicar_multas_atraso.sql` (sondas também em
-  `SIGA_confirmar_migracoes.sql`).
+  `SIGA_confirmar_migracoes.sql`). **Aplicadas a 2026-10-05** com `apply_migration`
+  (registo `20261005081124` e `20261005081139`); corpos conferidos por md5 com o
+  repositório.
 
 **Importação de «propinas»** (decisão do dono, 2026-10-04): gravava em
 `school_billing_settings`, que nada lê, e sem a coluna da multa gravava 10 %. Passa a
@@ -53,7 +55,7 @@ Relatório: `docs/auditoria/12-auditoria-sistema-2026-10-04.md`.
   de conjunto `private.user_*_school_ids`/`teacher_*` (`20261004222220`, `20261004222611`). A reescrita preserva a
   semântica (verificação mecânica na auditoria 12, secção 4b).
 - **Retrato recapturado** (04/10 à noite) e 3 testes de segurança ajustados à forma `user_*_school_ids`.
-- **Por aplicar no SQL Editor** (a ferramenta cancela a escrita): `20261005010000_assessment_closed_term_guard.sql`
+- **Por aplicar no SQL Editor** (a ferramenta cancela as migrações com `DROP`; tentado de novo a 05/10): `20261005010000_assessment_closed_term_guard.sql`
   (fecho de período nas avaliações) e `20261005020000_direct_writes_require_mfa.sql` (2FA nas escritas
   directas da plataforma e das avaliações) e `20261005030000_school_row_role_policies.sql` (papel pela escola da
   linha nos eventos de gateway; retira a política morta de `schools`). Ensaios em `tests/sql/`. O que ficou de fora do 2FA e porquê:
@@ -110,10 +112,11 @@ O Aurora (PR #66, na main) e o PR #65 cresceram em paralelo; foram juntos em
 - **Anular salário pago por engano.** RH → Pagamentos → «Anular pagamento» (2FA, motivo).
   `private.hr_reverse_payroll_payment` (`20261004130000`, aplicada, só `service_role`):
   saída de caixa, item, linha da folha, ordem e folha numa transacção; depois `repay` ou
-  `cancel`. **Na produção falha sempre** (05/10, sem salários pagos nem anulações até agora):
+  `cancel`. **Na produção falhava sempre** (05/10, sem salários pagos nem anulações até então):
   põe a linha da folha em `approved`, que o trigger `hr_block_locked_payroll_item_mutation`
-  recusa, e a folha em `approved`, que refaz as validações da aprovação. **Por aplicar no
-  SQL Editor, por esta ordem:** `20261005040000_hr_confirm_payment_free_expense_number.sql`
+  recusa, e a folha em `approved`, que refaz as validações da aprovação. **Corrigido e
+  aplicado a 2026-10-05** (registo `20261005081328` e `20261005081417`; corpos conferidos
+  por md5): `20261005040000_hr_confirm_payment_free_expense_number.sql`
   (a confirmação atómica da main escolhe o número livre da saída, `…-2`, `…-3`, em vez do
   antigo `nextExpenseNumber`) e `20261005050000_hr_reverse_payroll_payment_lock_states.sql`
   (a linha passa de paga a `processing`/`cancelled` só dentro da anulação, com a marca
