@@ -132,6 +132,9 @@ jobs:
         with:
           node-version: 24
       - run: npm ci --prefix desktop
+      - name: Audit template dependencies
+        working-directory: desktop
+        run: npm audit --audit-level=high --fetch-timeout=30000 --fetch-retries=1
       - run: node scripts/check-desktop.mjs
       - working-directory: desktop
         run: |
