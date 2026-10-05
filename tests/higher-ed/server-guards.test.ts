@@ -241,10 +241,14 @@ describe("Ensino Superior no servidor", () => {
   it("exportação SISIES: secretaria, ano activo, auditada", () => {
     const body = fn("exportSisiesWorkbook");
     expect(body).toContain('officeMembership(context, "read")');
-    for (const sheet of ["Vagas", "Acesso", "Matrículas", "Graduados"]) {
+    for (const sheet of ["Vagas", "Acesso", "Matrículas", "Graduados", "Bolsas"]) {
       expect(body).toContain(`addWorksheet("${sheet}")`);
     }
     expect(body).toContain('action: "higher_ed.sisies.exported"');
+    // Bolsas: só contratos activos com desconto, da escola da sessão.
+    expect(body).toMatch(
+      /\.from\("finance_contracts"\)[\s\S]*?\.eq\("school_id", schoolId\)\s*\.eq\("status", "active"\)\s*\.gt\("discount_percentage", 0\)/,
+    );
   });
 
   it("decisão do júri: só doutoramento, 2FA, inscrição em curso, auditoria", () => {
