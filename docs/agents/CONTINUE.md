@@ -110,7 +110,16 @@ O Aurora (PR #66, na main) e o PR #65 cresceram em paralelo; foram juntos em
 - **Anular salário pago por engano.** RH → Pagamentos → «Anular pagamento» (2FA, motivo).
   `private.hr_reverse_payroll_payment` (`20261004130000`, aplicada, só `service_role`):
   saída de caixa, item, linha da folha, ordem e folha numa transacção; depois `repay` ou
-  `cancel`. Novo pagamento depois de anular: número da saída `…-2` (`nextExpenseNumber`).
+  `cancel`. **Na produção falha sempre** (05/10, sem salários pagos nem anulações até agora):
+  põe a linha da folha em `approved`, que o trigger `hr_block_locked_payroll_item_mutation`
+  recusa, e a folha em `approved`, que refaz as validações da aprovação. **Por aplicar no
+  SQL Editor, por esta ordem:** `20261005040000_hr_confirm_payment_free_expense_number.sql`
+  (a confirmação atómica da main escolhe o número livre da saída, `…-2`, `…-3`, em vez do
+  antigo `nextExpenseNumber`) e `20261005050000_hr_reverse_payroll_payment_lock_states.sql`
+  (a linha passa de paga a `processing`/`cancelled` só dentro da anulação, com a marca
+  local `siga.hr_payroll_reversal`; a folha fica `processing` enquanto houver salários
+  por pagar). Ensaio: `tests/sql/payroll-confirmation.mjs`; sondas em
+  `SIGA_confirmar_migracoes.sql`.
 - **Professor em várias escolas.** Cartão «As minhas escolas» no painel do professor
   (`src/features/hr/teacher-schools.ts`): turmas por escola com vínculo de Professor activo;
   alunos e notas só na escola activa.

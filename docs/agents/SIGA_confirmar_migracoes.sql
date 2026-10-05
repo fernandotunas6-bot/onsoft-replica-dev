@@ -86,6 +86,15 @@ from (values
   ('20261004140000_student_special_statuses',
      to_regclass('public.student_special_statuses') is not null
      and not coalesce(has_table_privilege('authenticated',
-       to_regclass('public.student_special_statuses'), 'SELECT'), true))
+       to_regclass('public.student_special_statuses'), 'SELECT'), true)),
+  -- Anular um salário e voltar a pagar (por aplicar a 2026-10-05).
+  ('20261005040000_hr_confirm_payment_free_expense_number',
+     coalesce(position('WHILE EXISTS' in pg_get_functiondef(
+       to_regprocedure('private.hr_confirm_payroll_payment_item(uuid, uuid, text, text, text)'))) > 0, false)),
+  ('20261005050000_hr_reverse_payroll_payment_lock_states',
+     coalesce(position('siga.hr_payroll_reversal' in pg_get_functiondef(
+       to_regprocedure('public.hr_block_locked_payroll_item_mutation()'))) > 0, false)
+     and coalesce(position('siga.hr_payroll_reversal' in pg_get_functiondef(
+       to_regprocedure('private.hr_reverse_payroll_payment(uuid, uuid, uuid, text, text)'))) > 0, false))
 ) as m(migracao, ok)
 order by migracao;

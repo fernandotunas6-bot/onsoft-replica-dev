@@ -47,6 +47,37 @@ describe("anular um salário pago por engano", () => {
     expect(confirm).toContain("VALUES(p_school_id,v_number,");
   });
 
+  it("a linha paga só sai do bloqueio dentro da anulação e a folha não volta a aprovada", () => {
+    // 20261004130000 punha a linha em «approved» (o trigger de bloqueio recusa) e a folha
+    // em «approved» (refaz as validações da aprovação). Ensaio em tests/sql/payroll-confirmation.mjs.
+    const fix = readFileSync(
+      resolve(
+        __dirname,
+        "../../supabase/migrations/20261005050000_hr_reverse_payroll_payment_lock_states.sql",
+      ),
+      "utf8",
+    );
+    expect(fix).toContain(
+      "AND COALESCE(current_setting('siga.hr_payroll_reversal', true), '') = OLD.id::text);",
+    );
+    expect(fix).toContain(
+      "perform set_config('siga.hr_payroll_reversal', item.payroll_item_id::text, true);",
+    );
+    expect(fix).toContain("perform set_config('siga.hr_payroll_reversal', '', true);");
+    expect(fix).toContain("case when p_next = 'repay' then 'processing' else 'cancelled' end");
+    expect(fix).toContain(
+      "new_run_status := case when outstanding then 'processing' else 'paid' end;",
+    );
+    const reversal = fix.slice(
+      fix.indexOf("CREATE OR REPLACE FUNCTION private.hr_reverse_payroll_payment"),
+    );
+    expect(reversal).toContain("perform set_config");
+    expect(reversal).not.toContain("'approved'");
+    expect(fix).toMatch(
+      /REVOKE ALL ON FUNCTION private\.hr_reverse_payroll_payment[^;]+FROM PUBLIC, anon, authenticated/,
+    );
+  });
+
   it("a função é só do servidor e faz tudo numa transacção", () => {
     expect(migration).toMatch(
       /REVOKE ALL ON FUNCTION private\.hr_reverse_payroll_payment[^;]+FROM PUBLIC, anon, authenticated/,
