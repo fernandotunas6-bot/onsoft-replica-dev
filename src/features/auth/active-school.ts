@@ -14,6 +14,13 @@ export const ACTIVE_SCHOOL_STORAGE_KEY = "siga:active-school-id";
 /** Sinal de que a escola guardada já não pertence ao utilizador (ex.: saiu da escola). */
 export const ACTIVE_SCHOOL_UNAVAILABLE = "ACTIVE_SCHOOL_UNAVAILABLE";
 
+/**
+ * Evento do `window` quando o utilizador muda de escola (useCurrentAccount). O
+ * TenantProvider ouve-o: no anfitrião sem escola (`app.`) o tenant vem da escola
+ * da sessão e tem de ser relido.
+ */
+export const ACTIVE_SCHOOL_CHANGED_EVENT = "siga:active-school-changed";
+
 const ONE_YEAR_SECONDS = 60 * 60 * 24 * 365;
 
 export function isActiveSchoolUnavailable(error: unknown): boolean {

@@ -5,6 +5,7 @@ import { getCurrentAccountContext } from "@/features/auth/server";
 import type { ApplicationRole } from "@/features/auth/access-policy";
 import type { UserSchoolMembershipItem } from "@/integrations/supabase/sga";
 import {
+  ACTIVE_SCHOOL_CHANGED_EVENT,
   isActiveSchoolUnavailable,
   readStoredActiveSchool,
   rememberActiveSchool,
@@ -115,12 +116,20 @@ export function useCurrentAccount() {
   };
 
   const setActiveSchoolId = (newSchoolId: string | null) => {
+    const changed = newSchoolId !== (activeSchoolIdState ?? currentSchoolId);
     setActiveSchoolIdState(newSchoolId);
-    // Grava o cookie antes de invalidar: os refetches que se seguem já têm de
+    // Grava o cookie antes de recarregar: os pedidos que se seguem já têm de
     // sair com a escola nova, senão recarregavam dados da escola anterior.
     rememberActiveSchool(newSchoolId);
-    // Invalidate queries so that all scoped school data is refreshed
-    void queryClient.invalidateQueries({ queryKey: ["auth", "account-context"] });
+    if (!changed) return;
+    // As chaves dos dados não levam a escola (["pedagogical-workspace"],
+    // ["finance", "invoices"], …): até 2026-10-05 só o contexto da conta era
+    // invalidado, e o painel, as turmas ou as faturas da escola anterior ficavam
+    // no ecrã (e a servir de base a gravações) até o staleTime expirar. Descarta-se
+    // tudo o que é da escola e volta-se a pedir o que está no ecrã; a sessão
+    // (["auth", …]) fica.
+    void queryClient.resetQueries({ predicate: (query) => query.queryKey[0] !== "auth" });
+    window.dispatchEvent(new Event(ACTIVE_SCHOOL_CHANGED_EVENT));
   };
 
   const linkedEntities = profile.data?.linkedEntities ?? {
