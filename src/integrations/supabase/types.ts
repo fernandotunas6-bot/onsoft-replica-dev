@@ -1753,6 +1753,60 @@ export type Database = {
           },
         ];
       };
+      class_group_waitlist: {
+        Row: {
+          id: string;
+          school_id: string;
+          class_group_id: string;
+          student_id: string;
+          status: string;
+          note: string | null;
+          created_by: string | null;
+          created_at: string;
+          placed_at: string | null;
+          placed_by: string | null;
+          cancelled_at: string | null;
+          cancelled_by: string | null;
+          cancel_reason: string | null;
+          updated_at: string;
+          version: number;
+        };
+        Insert: {
+          id?: string;
+          school_id: string;
+          class_group_id: string;
+          student_id: string;
+          status?: string;
+          note?: string | null;
+          created_by?: string | null;
+          created_at?: string;
+          placed_at?: string | null;
+          placed_by?: string | null;
+          cancelled_at?: string | null;
+          cancelled_by?: string | null;
+          cancel_reason?: string | null;
+          updated_at?: string;
+          version?: number;
+        };
+        Update: {
+          id?: string;
+          school_id?: string;
+          class_group_id?: string;
+          student_id?: string;
+          status?: string;
+          note?: string | null;
+          created_by?: string | null;
+          created_at?: string;
+          placed_at?: string | null;
+          placed_by?: string | null;
+          cancelled_at?: string | null;
+          cancelled_by?: string | null;
+          cancel_reason?: string | null;
+          updated_at?: string;
+          version?: number;
+        };
+        Relationships: [];
+      };
       class_groups: {
         Row: {
           academic_year_id: string;

@@ -363,17 +363,19 @@ function ApplicationRow({
   const accept = async (withClass: boolean) => {
     setBusy(true);
     try {
-      await decideEnrollmentApplication({
+      const outcome = (await decideEnrollmentApplication({
         data: {
           applicationId: row.id,
           decision: "accepted",
           classGroupId: withClass && classGroupId ? classGroupId : undefined,
         },
-      });
+      })) as { waitlistPosition?: number };
       await refresh(
-        withClass && selected
-          ? `Candidatura aceite e aluno colocado em ${selected.name ?? "turma"}.`
-          : "Candidatura aceite. O aluno ficou como candidato até ser colocado numa turma.",
+        outcome?.waitlistPosition
+          ? `Candidatura aceite. ${selected?.name ?? "A turma"} está cheia: o aluno ficou na lista de espera (posição ${outcome.waitlistPosition}).`
+          : withClass && selected
+            ? `Candidatura aceite e aluno colocado em ${selected.name ?? "turma"}.`
+            : "Candidatura aceite. O aluno ficou como candidato até ser colocado numa turma.",
       );
       await printTalao(withClass ? "matricula" : "candidatura").catch(() => undefined);
     } catch (error) {

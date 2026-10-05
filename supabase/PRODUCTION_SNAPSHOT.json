@@ -1,11 +1,11 @@
 {
   "capturadoEm": "2026-10-04T22:27:59.000Z",
   "resumo": {
-    "tabelas": 188,
-    "com_rls": 188,
+    "tabelas": 189,
+    "com_rls": 189,
     "politicas": 321,
     "funcoes_private": 122,
-    "triggers": 203,
+    "triggers": 204,
     "buckets": 6,
     "buckets_publicos": 1,
     "politicas_storage": 14
@@ -764,6 +764,36 @@
         "school_id",
         "code",
         "name"
+      ]
+    },
+    {
+      "tabela": "class_group_waitlist",
+      "rls": true,
+      "rls_forcada": true,
+      "anon_select": false,
+      "auth_select": false,
+      "politicas": 0,
+      "colunas": [
+        "id",
+        "school_id",
+        "class_group_id",
+        "student_id",
+        "status",
+        "note",
+        "created_by",
+        "created_at",
+        "placed_at",
+        "placed_by",
+        "cancelled_at",
+        "cancelled_by",
+        "cancel_reason",
+        "updated_at",
+        "version"
+      ],
+      "obrigatorias": [
+        "school_id",
+        "class_group_id",
+        "student_id"
       ]
     },
     {
@@ -10202,6 +10232,12 @@
       "funcao_schema": "private"
     },
     {
+      "tabela": "class_group_waitlist",
+      "trigger": "class_group_waitlist_touch",
+      "funcao": "siga_touch_updated_at",
+      "funcao_schema": "public"
+    },
+    {
       "tabela": "class_groups",
       "trigger": "audit_class_groups_change",
       "funcao": "audit_row_change",
@@ -13583,6 +13619,15 @@
         "draft",
         "reopened",
         "submitted"
+      ]
+    },
+    {
+      "tabela": "class_group_waitlist",
+      "coluna": "status",
+      "valores": [
+        "cancelled",
+        "placed",
+        "waiting"
       ]
     },
     {

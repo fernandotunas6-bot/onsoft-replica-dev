@@ -41,6 +41,7 @@ const MIGRATIONS = {
   ],
   "supabase/migrations/20261004140000_student_special_statuses.sql": ["student_special_statuses"],
   "supabase/migrations/20261005160000_student_scholarships.sql": ["student_scholarships"],
+  "supabase/migrations/20261005170000_class_group_waitlist.sql": ["class_group_waitlist"],
   "supabase/migrations/20260925162000_lesson_plans_and_subject_guards.sql": [
     "siga_lesson_plans",
     "siga_lesson_plan_components",

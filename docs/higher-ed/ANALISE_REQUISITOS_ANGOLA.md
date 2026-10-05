@@ -48,11 +48,12 @@ injustificadas às aulas dadas no semestre.
 | Exportação para o SISIES/GEPE (Vagas, Acesso, Matrículas, Graduados) | ✅ Excel |
 | Diploma / carta de curso registado com QR | ✅ certificado de conclusão emitido com 2FA, uma vez por curso |
 | Bolsas | ✅ desconto por estudante na emissão das faturas (2026-10-05) |
+| Lista de espera por turma | ✅ turma cheia na aceitação → fila; a secretaria coloca pela ordem (2026-10-05) |
 
 ## Pendente (precisa de migração ou de decisão)
 
 - Bacharelato: alterar a restrição `programs.kind`.
-- Turnos/vagas por turma com lista de espera. Bolsas na base Bolsas da exportação SISIES.
+- Turnos (vários horários da mesma cadeira). Bolsas na base Bolsas da exportação SISIES.
 
 ## Comparação com outros sistemas académicos
 
@@ -68,7 +69,7 @@ injustificadas às aulas dadas no semestre.
 | Fluxo de correcção de notas | Banner (grade change workflow) | ✅ «Corrigir nota»: secretaria, 2FA, motivo, auditoria |
 | Holds: dívida bloqueia inscrição/documentos | Banner (registration holds) | ✅ inscrição: opção do regulamento (desligada por omissão); documentos — não |
 | Estatuto trabalhador-estudante (faltas, prescrição a 50 %) | SIGARRA | ✅ faltas, época especial e prescrição (regulamento) |
-| Turnos/vagas por turma e lista de espera | FenixEdu (turnos), Banner (capacity, waitlist) | ❌ |
+| Turnos/vagas por turma e lista de espera | FenixEdu (turnos), Banner (capacity, waitlist) | ✅ vagas e lista de espera por turma; turnos — não |
 | Calendário de inscrições e épocas | FenixEdu (curricular calendars), SIGAA | ✅ datas de abertura e fecho no regulamento; janelas por época — não |
 | Sistemas angolanos (SIGU, SkyGnova, SIGA.ao) | candidatura → certificado num só sistema | ✅ mesmo ciclo |
 
