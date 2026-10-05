@@ -39,7 +39,10 @@ describe("modelos de impressão sem código activo", () => {
   });
 
   it("na app desktop (macOS) o documento abre servido sem scripts e sem permissões da app", () => {
-    const pages = readFileSync(join(process.cwd(), "src-tauri/src/internal_pages.rs"), "utf8");
+    const pages = readFileSync(
+      join(process.cwd(), "src-tauri/src/school/internal_pages.rs"),
+      "utf8",
+    );
     const csp = pages.match(/pub const PRINT_CSP: &str = "([\s\S]*?)";/)?.[1] ?? "";
     expect(csp).toContain("default-src 'none'");
     expect(csp).toContain("script-src 'none'");
@@ -48,13 +51,14 @@ describe("modelos de impressão sem código activo", () => {
     expect(printHtml).toContain("PRINT_CSP.to_string()");
     expect(pages).toMatch(/\.header\("Content-Security-Policy", csp\)/);
     // As janelas de impressão ("print-…") não entram em nenhuma capability.
-    const capabilities = [
-      "src-tauri/capabilities/default.json",
-      "src-tauri/capabilities/school-portal.json",
-    ].map(
-      (path) =>
-        JSON.parse(readFileSync(join(process.cwd(), path), "utf8")) as { windows: string[] },
-    );
-    for (const capability of capabilities) expect(capability.windows).toEqual(["main"]);
+    const capabilityDir = join(process.cwd(), "src-tauri/capabilities");
+    for (const file of readdirSync(capabilityDir).filter((name) => name.endsWith(".json"))) {
+      const capability = JSON.parse(readFileSync(join(capabilityDir, file), "utf8")) as {
+        windows: string[];
+      };
+      for (const label of capability.windows) {
+        expect(["main", "school", "quick-pane"], `${file}: ${label}`).toContain(label);
+      }
+    }
   });
 });
