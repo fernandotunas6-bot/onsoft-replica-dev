@@ -20,12 +20,38 @@ vi.mock("@/features/auth/server", () => ({
     accountContext(input),
 }));
 
+// Subdomínio do endereço (null = app./local) e a navegação para outro subdomínio.
+let host: string | null = null;
+const navigate = vi.fn();
+vi.mock("@/features/auth/active-school", async (importOriginal) => {
+  const real = await importOriginal<typeof import("@/features/auth/active-school")>();
+  return {
+    ...real,
+    hostSchoolSlug: () => host,
+    navigateToSchoolHost: (slug: string) => navigate(slug),
+  };
+});
+
 const { useCurrentAccount } = await import("@/features/auth/use-current-account");
-const { ACTIVE_SCHOOL_CHANGED_EVENT } = await import("@/features/auth/active-school");
+const { ACTIVE_SCHOOL_CHANGED_EVENT, hostSchoolSlug, schoolHostUrl } = await vi.importActual<
+  typeof import("@/features/auth/active-school")
+>("@/features/auth/active-school");
 
 const schools = [
-  { schoolId: "escola-a", schoolName: "Escola A", status: "active" },
-  { schoolId: "escola-b", schoolName: "Escola B", status: "active" },
+  {
+    schoolId: "escola-a",
+    schoolName: "Escola A",
+    schoolSlug: "escola-a",
+    status: "active",
+    isActive: true,
+  },
+  {
+    schoolId: "escola-b",
+    schoolName: "Escola B",
+    schoolSlug: "escola-b",
+    status: "active",
+    isActive: true,
+  },
 ];
 
 describe("troca de escola", () => {
@@ -34,6 +60,8 @@ describe("troca de escola", () => {
     React.createElement(QueryClientProvider, { client: queryClient }, children);
 
   beforeEach(() => {
+    host = null;
+    navigate.mockReset();
     localStorage.clear();
     document.cookie = "siga-active-school=; path=/; max-age=0";
     queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
@@ -76,5 +104,48 @@ describe("troca de escola", () => {
 
     expect(queryClient.getQueryData(["pedagogical-workspace"])).toEqual({ turmas: ["10ª A"] });
     expect(document.cookie).toContain("siga-active-school=escola-a");
+  });
+
+  it("no subdomínio de uma escola, essa escola fica activa", async () => {
+    host = "escola-b";
+    const { result } = renderHook(() => useCurrentAccount(), { wrapper });
+    // O cookie deste endereço não tinha escolha: o servidor resolveu a escola A.
+    await waitFor(() => expect(result.current.activeSchool?.schoolId).toBe("escola-b"));
+    expect(document.cookie).toContain("siga-active-school=escola-b");
+    expect(navigate).not.toHaveBeenCalled();
+  });
+
+  it("no subdomínio de A, escolher B vai para o endereço de B sem mexer nos dados de A", async () => {
+    host = "escola-a";
+    const { result } = renderHook(() => useCurrentAccount(), { wrapper });
+    await waitFor(() => expect(result.current.activeSchool?.schoolId).toBe("escola-a"));
+    queryClient.setQueryData(["pedagogical-workspace"], { turmas: ["10ª A"] });
+
+    act(() => result.current.setActiveSchoolId("escola-b"));
+
+    expect(navigate).toHaveBeenCalledWith("escola-b");
+    expect(queryClient.getQueryData(["pedagogical-workspace"])).toEqual({ turmas: ["10ª A"] });
+    expect(document.cookie).not.toContain("siga-active-school=escola-b");
+  });
+});
+
+describe("endereço da escola", () => {
+  it("só os subdomínios de escola têm escola própria", () => {
+    expect(hostSchoolSlug("colegio-huambo.portal-siga.com")).toBe("colegio-huambo");
+    expect(hostSchoolSlug("app.portal-siga.com")).toBeNull();
+    expect(hostSchoolSlug("portal-siga.com")).toBeNull();
+    expect(hostSchoolSlug("localhost")).toBeNull();
+  });
+
+  it("o mesmo ecrã no subdomínio da outra escola", () => {
+    expect(
+      schoolHostUrl("escola-b", {
+        protocol: "https:",
+        hostname: "escola-a.portal-siga.com",
+        port: "",
+        pathname: "/faturas",
+        search: "?estado=open",
+      }),
+    ).toBe("https://escola-b.portal-siga.com/faturas?estado=open");
   });
 });
