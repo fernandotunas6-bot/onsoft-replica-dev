@@ -1,7 +1,12 @@
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { addDaysIso, lateFeeChannelOfLedgerMethod, lateFeeFor } from "@/features/finance/late-fee";
+import {
+  addDaysIso,
+  lateFeeChannelOfLedgerMethod,
+  lateFeeFor,
+  paidOnIso,
+} from "@/features/finance/late-fee";
 import { invoiceNetTotal } from "@/features/finance/invoice-settlement";
 import { parseSettingsDomain } from "@/features/school/settings-domains";
 
@@ -120,5 +125,19 @@ describe("multa por atraso: todos os caminhos com a mesma regra", () => {
         ),
     );
     expect(withoutPenalty).toEqual(["src/features/finance/saft-export.ts"]);
+  });
+});
+
+describe("paidOnIso — data gravada em paid_on", () => {
+  it("sem data escolhida usa o dia de Luanda, não o dia UTC", () => {
+    // 00:30 em Luanda de 5/10 ainda é 4/10 em UTC.
+    expect(paidOnIso(undefined, new Date("2026-10-04T23:30:00Z"))).toBe("2026-10-05");
+    expect(paidOnIso(null, new Date("2026-10-05T10:00:00Z"))).toBe("2026-10-05");
+  });
+
+  it("com data escolhida no ecrã grava esse dia", () => {
+    expect(paidOnIso("2026-09-30T12:00:00.000Z", new Date("2026-10-05T10:00:00Z"))).toBe(
+      "2026-09-30",
+    );
   });
 });

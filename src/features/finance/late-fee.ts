@@ -74,3 +74,13 @@ export function lateFeeFor(
 export function todayIso() {
   return schoolTodayIso();
 }
+
+/**
+ * `paid_on` de um pagamento registado na tesouraria. Sem data escolhida é hoje na escola
+ * (Luanda): o `toISOString()` anterior dava a data UTC, e entre as 00:00 e a 01:00 o
+ * recibo ficava com a data de ontem — e a multa por atraso era calculada para esse dia.
+ * Com data, o dia é o que vem escrito (o ecrã envia `AAAA-MM-DDT12:00:00Z`).
+ */
+export function paidOnIso(paidAt?: string | null, now: Date = new Date()) {
+  return paidAt ? paidAt.slice(0, 10) : schoolTodayIso(now);
+}
