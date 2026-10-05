@@ -229,6 +229,7 @@ function UnitSheet({ programId, unitId }: { programId: string; unitId: string })
                       <p className="text-xs text-muted-foreground">
                         {row.number ? `N.º ${row.number} · ` : ""}
                         {row.latest?.attempt ? `${row.latest.attempt}.ª inscrição` : ""}
+                        {row.workerStudent ? " · Trabalhador-estudante" : ""}
                       </p>
                     </div>
                     <div className="flex flex-wrap items-center gap-2">

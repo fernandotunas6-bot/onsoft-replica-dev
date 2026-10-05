@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { schoolTodayIso } from "@/lib/school-date";
+import { invoiceNetTotal } from "@/features/finance/invoice-settlement";
 
 export type PersonAcademicSummary = {
   total_enrollments: number;
@@ -153,7 +154,7 @@ export async function resolvePersonContext(
       if (contractIds.length) {
         const { data: invoices } = await db
           .from("finance_invoices")
-          .select("id, amount, discount_amount, due_date, status")
+          .select("id, amount, discount_amount, penalty_amount, due_date, status")
           .eq("school_id", schoolId)
           .in("contract_id", contractIds)
           .neq("status", "cancelled");
@@ -178,7 +179,7 @@ export async function resolvePersonContext(
         let balance = 0;
         let overdueCount = 0;
         for (const invoice of invoices ?? []) {
-          const amount = Number(invoice.amount ?? 0) - Number(invoice.discount_amount ?? 0);
+          const amount = invoiceNetTotal(invoice);
           const paid = paidByInvoice.get(invoice.id) ?? 0;
           const open = Math.max(amount - paid, 0);
           balance += open;

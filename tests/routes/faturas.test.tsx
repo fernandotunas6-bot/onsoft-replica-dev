@@ -114,6 +114,8 @@ const sampleInvoice: Invoice = {
   due_on: "2026-03-15",
   total_amount: 45000,
   amount_paid: 0,
+  penalty_amount: 0,
+  late_fee_today: { counter: 0, electronic: 0 },
   status: "pending",
 };
 

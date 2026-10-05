@@ -51,6 +51,12 @@ export type BillingSettings = {
   late_fee_percent: number;
   /** Dias depois do vencimento antes de aplicar a multa. */
   grace_days: number;
+  /**
+   * Onde a multa se aplica: `all` em todos os pagamentos; `electronic` só nos
+   * electrónicos (Multicaixa, referência EMIS, Express, Unitel Money, AppyPay).
+   * Regra em `features/finance/late-fee.ts` e `private.late_fee_due`.
+   */
+  late_fee_scope: "all" | "electronic";
   /** Desconto quando outro educando do mesmo encarregado está matriculado. 0 = sem desconto. */
   sibling_discount_percent: number;
 };
@@ -126,6 +132,19 @@ export type HigherEdRegulation = {
   /** Período de inscrições em cadeiras (AAAA-MM-DD). Vazio = sempre aberto. */
   enrollment_opens_on: string | null;
   enrollment_closes_on: string | null;
+  /**
+   * Como a matrícula on-line do SIGAA: o estudante inscreve-se nas cadeiras no
+   * portal, com as mesmas regras da secretaria (período, dívida, precedências,
+   * créditos). Desligado: só a secretaria inscreve.
+   */
+  student_self_enrollment: boolean;
+  /**
+   * Estatuto de trabalhador-estudante (atribuído pela secretaria, por ano lectivo, com
+   * comprovativo): as faltas não excluem da avaliação (como no SIGARRA).
+   */
+  worker_student_absence_exempt: boolean;
+  /** Trabalhador-estudante vai à época especial mesmo sem ser finalista. */
+  worker_student_special_season: boolean;
 };
 
 export const HIGHER_ED_DEFAULTS: HigherEdRegulation = {
@@ -147,6 +166,9 @@ export const HIGHER_ED_DEFAULTS: HigherEdRegulation = {
   cancel_deadline_days: 0,
   enrollment_opens_on: null,
   enrollment_closes_on: null,
+  student_self_enrollment: false,
+  worker_student_absence_exempt: true,
+  worker_student_special_season: true,
 };
 
 export type HigherEdDegree = "licenciatura" | "mestrado" | "doutoramento" | "especializacao";
@@ -204,6 +226,7 @@ export const SETTINGS_DOMAINS = {
         due_day: bounded(v["due_day"], 10, 1, 28, true),
         late_fee_percent: bounded(v["late_fee_percent"], 0, 0, 100),
         grace_days: bounded(v["grace_days"], 0, 0, 60, true),
+        late_fee_scope: v["late_fee_scope"] === "electronic" ? "electronic" : "all",
         sibling_discount_percent: bounded(v["sibling_discount_percent"], 0, 0, 100),
       };
     },
@@ -329,6 +352,18 @@ export const SETTINGS_DOMAINS = {
         ),
         enrollment_opens_on: isoDate(v["enrollment_opens_on"]),
         enrollment_closes_on: isoDate(v["enrollment_closes_on"]),
+        student_self_enrollment:
+          typeof v["student_self_enrollment"] === "boolean"
+            ? v["student_self_enrollment"]
+            : d.student_self_enrollment,
+        worker_student_absence_exempt:
+          typeof v["worker_student_absence_exempt"] === "boolean"
+            ? v["worker_student_absence_exempt"]
+            : d.worker_student_absence_exempt,
+        worker_student_special_season:
+          typeof v["worker_student_special_season"] === "boolean"
+            ? v["worker_student_special_season"]
+            : d.worker_student_special_season,
       };
     },
   },

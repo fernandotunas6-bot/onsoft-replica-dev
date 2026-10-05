@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { invoiceStatusFromPaid } from "./invoice-settlement";
+import { invoiceNetTotal, invoiceStatusFromPaid } from "./invoice-settlement";
+import { lateFeeFor, todayIso } from "./late-fee";
 import { publicDatabaseError } from "@/integrations/supabase/server-error";
 import { normalizePaymentReference } from "@/features/finance/emiss-multicaixa";
 import {
@@ -152,32 +153,30 @@ export async function settleGatewayPayment(
   if (invoiceError) throw publicDatabaseError(invoiceError, "Não foi possível ler a fatura.");
   if (!invoice) throw new Error("Fatura não encontrada para esta escola.");
   if (invoice.status === "cancelled") throw new Error("Fatura cancelada.");
-  // Mesma multa por atraso de private.register_payment (20260924143000): aplica-se uma
-  // única vez, ao primeiro pagamento registado depois da tolerância configurada em
-  // Definições > Cobrança — o gateway também é um caminho de pagamento, não só a
-  // tesouraria manual.
+  // Multa por atraso: a regra de late-fee.ts, a mesma que private.late_fee_due aplica na
+  // tesouraria. O gateway é pagamento electrónico, por isso aplica-se nos dois âmbitos de
+  // Definições › Cobrança: uma vez, se hoje já passou o vencimento mais a tolerância.
   let invoicePenaltyAmount = Number(invoice.penalty_amount ?? 0);
-  if (invoicePenaltyAmount === 0 && invoice.due_date) {
+  if (invoice.status !== "paid") {
     const billing = await readSettingsDomain(db, input.schoolId, "billing");
-    const graceDays = billing.grace_days;
-    const lateFeePercent = billing.late_fee_percent;
-    const dueDate = new Date(`${invoice.due_date}T00:00:00Z`);
-    const graceDeadline = new Date(dueDate.getTime() + graceDays * 86_400_000);
-    if (lateFeePercent > 0 && Date.now() > graceDeadline.getTime()) {
-      invoicePenaltyAmount =
-        Math.round(((Number(invoice.amount) * lateFeePercent) / 100) * 100) / 100;
-      await db
+    const lateFee = lateFeeFor(invoice, billing, todayIso(), "electronic");
+    if (lateFee > 0) {
+      const { error: penaltyError } = await db
         .from("finance_invoices")
-        .update({ penalty_amount: invoicePenaltyAmount })
+        .update({ penalty_amount: lateFee })
         .eq("school_id", input.schoolId)
-        .eq("id", input.invoiceId);
+        .eq("id", input.invoiceId)
+        .eq("penalty_amount", 0);
+      // Sem a multa gravada, a liquidação compara com um saldo sem ela e recusa o valor.
+      if (penaltyError) {
+        throw publicDatabaseError(penaltyError, "Não foi possível aplicar a multa por atraso.");
+      }
+      invoicePenaltyAmount = lateFee;
     }
   }
-  // Mesma correção de private.register_payment (20260924135028): o saldo em aberto é
-  // o valor líquido, não o bruto — sem isto uma fatura com desconto nunca chegava a
-  // "paid" pagando o valor correcto, e uma com multa ficava "paid" antes de tempo.
-  const invoiceAmountDue =
-    Number(invoice.amount) - Number(invoice.discount_amount ?? 0) + invoicePenaltyAmount;
+  // Total a pagar: valor menos desconto mais a multa aplicada (invoice-settlement.ts), o
+  // mesmo que private.register_payment e private.settle_gateway_payment_service usam.
+  const invoiceAmountDue = invoiceNetTotal({ ...invoice, penalty_amount: invoicePenaltyAmount });
   if (invoice.status === "paid") {
     return {
       alreadyPaid: true as const,
@@ -428,9 +427,8 @@ export async function settleGatewayPayment(
         );
 
       // `invoiceStatusFromPaid` arredonda a cêntimos (um pagamento exacto não fica
-      // "partially_paid" por vírgula flutuante). A base é `invoiceAmountDue`, não
-      // `invoiceNetTotal`: só a primeira soma a multa, e uma fatura com multa nunca
-      // chegaria a "paid" pagando o valor devido.
+      // "partially_paid" por vírgula flutuante). A base é `invoiceAmountDue`, que já
+      // leva a multa aplicada neste pagamento.
       const newStatus = invoiceStatusFromPaid(invoiceAmountDue, alreadyPaid + input.amount);
       // O recibo já existe: não se lança (repetir emitia outro). Mas uma fatura
       // paga que fica "pendente" leva a cobrar de novo, por isso fica registado.

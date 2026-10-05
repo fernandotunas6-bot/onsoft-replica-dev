@@ -4,6 +4,13 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { useOptionalStackNav } from "@/components/ui/stacked-modal";
 import { useCurrentAccount } from "@/features/auth/use-current-account";
 import {
@@ -16,6 +23,16 @@ import { listFeePlanSettings, upsertFeePlanSettings } from "@/features/finance/s
 import { DEFAULT_FEE_PLAN_NAME } from "@/features/finance/fee-plan-defaults";
 import { toastActionError } from "@/lib/action-error-toast";
 import { kwanza } from "@/lib/currency";
+
+/** Onde a multa se aplica (BillingSettings.late_fee_scope). */
+const LATE_FEE_SCOPES = [
+  { id: "all", label: "Em todos os pagamentos" },
+  {
+    id: "electronic",
+    label: "Só nos electrónicos (Multicaixa, referência, Express, Unitel Money, AppyPay)",
+  },
+] as const;
+type LateFeeScope = (typeof LATE_FEE_SCOPES)[number]["id"];
 
 export function BillingParametersSummary() {
   const currentUser = useCurrentAccount();
@@ -49,6 +66,17 @@ export function BillingParametersSummary() {
       valor: billing.late_fee_percent > 0 ? `${billing.late_fee_percent}%` : "Sem multa",
     },
     { label: "Tolerância", valor: `${billing.grace_days} dias` },
+    ...(billing.late_fee_percent > 0
+      ? [
+          {
+            label: "Multa aplica-se",
+            valor:
+              billing.late_fee_scope === "electronic"
+                ? "Só nos pagamentos electrónicos"
+                : "Em todos os pagamentos",
+          },
+        ]
+      : []),
     {
       label: "Desconto irmãos",
       valor:
@@ -88,6 +116,7 @@ export function BillingSettingsForm() {
   const canManage = ["Administrador", "Tesouraria"].includes(currentUser.role);
   // Iguais aos valores por omissão de settings-domains.ts (sem multa nem desconto).
   const [values, setValues] = useState({ due: "10", fee: "0", grace: "0", discount: "0" });
+  const [scope, setScope] = useState<LateFeeScope>("all");
   const [saving, setSaving] = useState(false);
   const billingQuery = useQuery({
     queryKey: ["school", "billing-settings"],
@@ -104,6 +133,7 @@ export function BillingSettingsForm() {
       grace: String(billingQuery.data.grace_days),
       discount: String(billingQuery.data.sibling_discount_percent),
     });
+    setScope(billingQuery.data.late_fee_scope);
   }, [billingQuery.data]);
 
   const billingDirty = Boolean(
@@ -111,7 +141,8 @@ export function BillingSettingsForm() {
     (values.due !== String(billingQuery.data.due_day) ||
       values.fee !== String(billingQuery.data.late_fee_percent) ||
       values.grace !== String(billingQuery.data.grace_days) ||
-      values.discount !== String(billingQuery.data.sibling_discount_percent)),
+      values.discount !== String(billingQuery.data.sibling_discount_percent) ||
+      scope !== billingQuery.data.late_fee_scope),
   );
 
   useEffect(() => {
@@ -148,6 +179,7 @@ export function BillingSettingsForm() {
           dueDay: due,
           lateFeePercent: fee,
           graceDays: grace,
+          lateFeeScope: scope,
           siblingDiscountPercent: discount,
         },
       });
@@ -214,6 +246,25 @@ export function BillingSettingsForm() {
             />
           </div>
         ))}
+        <div className="space-y-1.5 sm:col-span-2">
+          <Label htmlFor="multa-ambito">Onde se aplica a multa</Label>
+          <Select value={scope} onValueChange={(value) => setScope(value as LateFeeScope)}>
+            <SelectTrigger id="multa-ambito">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {LATE_FEE_SCOPES.map((option) => (
+                <SelectItem key={option.id} value={option.id}>
+                  {option.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <p className="text-xs text-muted-foreground">
+            Aplica-se uma vez, no primeiro pagamento depois do vencimento e da tolerância. Com «Só
+            nos electrónicos», o numerário e a transferência na tesouraria ficam sem multa.
+          </p>
+        </div>
       </div>
       <div className="flex justify-end">
         <Button onClick={saveBilling} disabled={saving}>
