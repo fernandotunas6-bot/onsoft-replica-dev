@@ -75,6 +75,11 @@ const PRIVILEGIO_POR_DESENHO = new Set([
   // de emprego), sem política para `authenticated`; só o servidor lhe toca, com
   // Administrador/Secretaria e 2FA para conceder ou revogar.
   "src/features/higher-ed/student-status.ts",
+  // Bolsa ou desconto do aluno: `finance_contracts` não tem política de escrita para
+  // `authenticated` (só SELECT, mais a RESTRICTIVE do pessoal), e a Tesouraria nem
+  // sempre lê `enrollments`. Só o servidor grava, com Administrador/Tesouraria, 2FA,
+  // filtro pela escola da sessão e auditoria com o antes e o depois.
+  "src/features/finance/scholarship-server.ts",
 
   // Assinatura da escola (Configurações → Assinatura). `tenants`,
   // `subscriptions`, `tenant_usage` e `saas_audit_logs` só têm política para a

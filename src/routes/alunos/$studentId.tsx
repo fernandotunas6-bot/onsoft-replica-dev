@@ -93,6 +93,10 @@ import {
 import { issuePrintDocument } from "@/features/documents/print-issue-loader";
 import { officialDeclarationBody } from "@/features/documents/schemas";
 import { issueInvoice, listInvoices, recordInvoicePayment } from "@/features/finance/server";
+import {
+  getStudentScholarship,
+  setStudentScholarship,
+} from "@/features/finance/scholarship-server";
 import { PayflowStudentSyncButton } from "@/features/finance/components/PayflowStudentSyncButton";
 import { officialReceiptBody, paymentStatusFromInvoices } from "@/features/finance/schemas";
 import { kwanza } from "@/lib/currency";
@@ -271,6 +275,13 @@ function StudentDetail() {
     queryFn: () => searchPeople({ data: { query: "", limit: 50 } }),
     // Só para escolher o encarregado, que é da Administração e da Secretaria.
     enabled: canRequestDocument,
+  });
+  // Bolsa ou desconto do contrato (vale para as faturas emitidas a seguir).
+  const scholarshipQuery = useQuery({
+    queryKey: ["finance", "scholarship", studentId],
+    queryFn: () => getStudentScholarship({ data: { studentId } }),
+    enabled: canIssueInvoice,
+    retry: false,
   });
   const invoicesQuery = useQuery({
     queryKey: ["finance", "invoices", "student", studentId],
@@ -1261,6 +1272,48 @@ function StudentDetail() {
                     </Button>
                   )}
                 />
+                {canReceivePayment ? (
+                  <QuickFormModal
+                    eyebrow={student.registration_number}
+                    title="Bolsa ou desconto"
+                    description="Percentagem descontada nas faturas emitidas a partir de agora (bolsa, irmãos, funcionário…). As já emitidas não mudam. Pede a verificação em duas etapas."
+                    icon={<Wallet className="size-5" />}
+                    submitLabel="Gravar"
+                    successDescription="Bolsa ou desconto gravado."
+                    onSubmit={async (values) => {
+                      const percent = Number(String(values["percentagem"] ?? "").replace(",", "."));
+                      if (!Number.isFinite(percent) || percent < 0 || percent > 100) {
+                        throw new Error("A percentagem tem de estar entre 0 e 100.");
+                      }
+                      await setStudentScholarship({
+                        data: { studentId, percent, reason: values["motivo"] ?? "" },
+                      });
+                      await queryClient.invalidateQueries({
+                        queryKey: ["finance", "scholarship", studentId],
+                      });
+                    }}
+                    fields={[
+                      {
+                        name: "percentagem",
+                        label: "Desconto (%)",
+                        type: "number",
+                        defaultValue: scholarshipQuery.data?.percent ?? 0,
+                      },
+                      {
+                        name: "motivo",
+                        label: "Motivo",
+                        type: "textarea",
+                        full: true,
+                        placeholder: "Ex.: bolsa de mérito 2026, aprovada pela Direcção",
+                      },
+                    ]}
+                    trigger={(open) => (
+                      <Button variant="outline" className="gap-2" onClick={open}>
+                        <Wallet className="size-4" /> Bolsa
+                      </Button>
+                    )}
+                  />
+                ) : null}
                 <PayflowStudentSyncButton studentId={studentId} />
               </>
             ) : null}
@@ -1724,6 +1777,12 @@ function StudentDetail() {
                 label="Situação financeira"
                 value={paymentStatus ? (pagamentoLabels[paymentStatus] ?? paymentStatus) : "—"}
               />
+              {scholarshipQuery.data?.percent ? (
+                <Field
+                  label="Bolsa ou desconto"
+                  value={`${scholarshipQuery.data.percent.toLocaleString("pt-AO")} %`}
+                />
+              ) : null}
             </div>
             {studentInvoices.length > 0 ? (
               <ul className="mt-4 space-y-2 text-sm">

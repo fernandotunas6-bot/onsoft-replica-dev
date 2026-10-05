@@ -15,6 +15,7 @@ Quem usa: Administrador e Tesouraria. O aluno e o encarregado vêem as suas fact
 - **Facturas:** em `/faturas`, emita facturas por aluno. Cada factura tem estado aberto, parcialmente pago, pago ou anulado.
 - **Receber:** regista um pagamento e emite o recibo. Um pagamento parcial deixa a factura parcialmente paga.
 - **Desconto e multa:** o valor a pagar é o total menos o desconto. A regra da multa por atraso está em decisão e será uma definição por escola.
+- **Bolsa ou desconto do aluno:** na ficha do aluno, o botão **Bolsa** define a percentagem descontada nas faturas emitidas a partir daí (bolsa de mérito, social, irmãos, funcionário…). Só a Direcção e a Tesouraria o alteram, com a verificação em dois passos e o motivo, que fica na auditoria. As faturas já emitidas não mudam.
 - **Anular:** só é possível numa factura sem recibos.
 - **Estornar um recibo:** exige dois passos, recalcula o estado da factura e não permite estornar o mesmo recibo duas vezes.
 
