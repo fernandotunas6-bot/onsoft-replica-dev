@@ -2,6 +2,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { invoiceNetTotal, invoiceStatusFromPaid } from "@/features/finance/invoice-settlement";
 import { normalizeText } from "../engine/normalize";
 import { categoryToFeeKind } from "@/features/finance/server";
+import { formatInvoiceNumber } from "@/features/finance/invoice-numbering";
 
 /**
  * Resolução de matrícula, plano financeiro, contrato, fatura e recibo para os três
@@ -217,7 +218,7 @@ export async function insertInvoiceWithNumber(
 
   let sequence = startSequence;
   for (let attempt = 0; attempt < 5; attempt += 1) {
-    const invoiceNumber = `FT-${year}/${String(sequence).padStart(4, "0")}`;
+    const invoiceNumber = formatInvoiceNumber(year, sequence);
     const { data, error } = await db
       .from("finance_invoices")
       .insert({ ...row, invoice_number: invoiceNumber })

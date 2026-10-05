@@ -10,6 +10,7 @@ import { cn } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
 import { fetchSaasSession } from "@/lib/saas-api";
 import { getCreateSchoolUrl } from "@/lib/ecosystem-urls";
+import { prepareAdminMfa } from "@/lib/admin-mfa";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -95,35 +96,12 @@ export function LoginForm1({ className, ...props }: React.ComponentProps<"div">)
     }
 
     try {
-      const { data: aal } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
-      if (aal?.currentLevel === "aal2") {
+      const next = await prepareAdminMfa(supabase.auth.mfa);
+      if (next.step === "done") {
         await finishLogin();
         return;
       }
-      const { data: factors } = await supabase.auth.mfa.listFactors();
-      const verified = factors?.totp?.find((factor) => factor.status === "verified");
-      if (verified) {
-        setMfa({ step: "verify", factorId: verified.id });
-        setIsSubmitting(false);
-        return;
-      }
-      // Sem autenticador: regista um agora (QR). Factores por confirmar de uma
-      // tentativa anterior impediriam um novo registo com o mesmo nome.
-      for (const factor of factors?.all ?? []) {
-        if (factor.status !== "verified") await supabase.auth.mfa.unenroll({ factorId: factor.id });
-      }
-      const { data: enrolled, error: enrollError } = await supabase.auth.mfa.enroll({
-        factorType: "totp",
-        friendlyName: "SIGA Plus — administração",
-      });
-      if (enrollError || !enrolled)
-        throw enrollError ?? new Error("Não foi possível iniciar o MFA.");
-      setMfa({
-        step: "enroll",
-        factorId: enrolled.id,
-        qrCode: enrolled.totp.qr_code,
-        secret: enrolled.totp.secret,
-      });
+      setMfa(next);
     } catch (mfaError) {
       await supabase.auth.signOut();
       setServerError(
