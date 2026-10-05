@@ -1479,9 +1479,10 @@ export const createPaymentPlan = createServerFn({ method: "POST" })
       role: membership.appRole,
       category: "talao",
       title: `Talão ${channelLabel}`,
-      description: `Talão de plano de pagamento (${channelLabel}, ${data.installments} prestação(ões)). Referência ${data.reference ?? "—"}. Processo ${studentNumber ?? "—"}. Arquivado automaticamente.`,
+      // A referência gerada (Multicaixa) também vai no talão, não só a escrita à mão.
+      description: `Talão de plano de pagamento (${channelLabel}, ${data.installments} prestação(ões)). Referência ${reference ?? "—"}. Processo ${studentNumber ?? "—"}. Arquivado automaticamente.`,
       relatedPersonId: personId,
-      sourceLabel: data.reference ?? plan.id,
+      sourceLabel: reference ?? plan.id,
       documentCode,
     });
 
@@ -1562,6 +1563,9 @@ export const listGatewayWebhookEvents = createServerFn({ method: "GET" })
     return (rows ?? []) as GatewayWebhookEventSummary[];
   });
 
+/** Estados de um plano que ainda se podem cancelar (os mesmos que a liquidação fecha). */
+const CANCELLABLE_PLAN_STATUSES = ["pending_gateway", "scheduled"];
+
 export const cancelPaymentPlan = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((input: unknown) => cancelPaymentPlanInputSchema.parse(input))
@@ -1586,6 +1590,8 @@ export const cancelPaymentPlan = createServerFn({ method: "POST" })
     if (existing.status === "settled") {
       throw new Error("Não é possível cancelar um plano já liquidado.");
     }
+    // Só cancela o que ainda está por liquidar: se o pagamento for confirmado entre a
+    // leitura acima e esta escrita, um plano «settled» não pode voltar a «cancelled».
     const { data: plan, error } = await db
       .from("finance_payment_plans")
       .update({
@@ -1595,10 +1601,13 @@ export const cancelPaymentPlan = createServerFn({ method: "POST" })
       })
       .eq("id", data.planId)
       .eq("school_id", membership.schoolId)
+      .in("status", CANCELLABLE_PLAN_STATUSES)
       .select("id, status")
       .maybeSingle();
     if (error) throw publicDatabaseError(error, "Não foi possível cancelar o plano.");
-    if (!plan) throw new Error("Plano não encontrado.");
+    if (!plan) {
+      throw new Error("O plano mudou entretanto (liquidado ou cancelado). Actualize a lista.");
+    }
     return plan;
   });
 
