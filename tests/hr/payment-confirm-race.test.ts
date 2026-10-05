@@ -1,23 +1,24 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 
+/**
+ * A confirmação de um pagamento salarial era feita em vários passos no servidor (ler o
+ * item, criar a saída de caixa, marcar pago), com código para desfazer a saída quando
+ * outro pedido confirmava primeiro. Passou a uma só transacção na base
+ * (`hr_confirm_payroll_payment_item`, 20260930193133), que bloqueia o item: dois pedidos
+ * ao mesmo tempo não criam duas saídas. Este teste exige esse caminho.
+ */
 describe("confirmação de pagamento salarial", () => {
   const source = readFileSync("src/features/hr/payments.ts", "utf8");
-  const confirm = source.slice(source.indexOf("export const confirmPayrollPaymentItem"));
+  const start = source.indexOf("export const confirmPayrollPaymentItem");
+  const confirm = source.slice(start, source.indexOf("export const", start + 1));
 
-  it("a saída criada é retirada se outro pedido confirmar o item primeiro", () => {
-    expect(confirm).toContain("createdExpenseId = cashExpenseId;");
-    const guard = confirm.indexOf("if (payError || !paidRow) {");
-    expect(guard).toBeGreaterThan(-1);
-    const block = confirm.slice(guard, guard + 700);
-    expect(block).toContain('.from("siga_cash_expenses")');
-    expect(block).toContain(".delete()");
-    expect(block).toContain('.eq("id", createdExpenseId)');
+  it("confirma numa só transacção na base, com 2FA", () => {
+    expect(confirm).toContain('requireAal2(context.claims, "Confirmar um pagamento salarial")');
+    expect(confirm).toContain('rpc("hr_confirm_payroll_payment_item"');
   });
 
-  it("uma saída já existente (retoma) nunca é apagada", () => {
-    const reuse = confirm.indexOf("cashExpenseId = String(existingExpense.id);");
-    expect(reuse).toBeGreaterThan(-1);
-    expect(confirm.slice(reuse, reuse + 80)).not.toContain("createdExpenseId");
+  it("não cria saídas de caixa no servidor fora da transacção", () => {
+    expect(confirm).not.toContain('.from("siga_cash_expenses")');
   });
 });
