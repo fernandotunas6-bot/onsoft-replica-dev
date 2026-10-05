@@ -40,7 +40,7 @@ injustificadas às aulas dadas no semestre.
 | Classificação final inteira 10–20 com menção (257/25) | ✅ |
 | Emolumentos (recurso, especial, melhoria, certidão) | ✅ |
 | Candidatura com curso pretendido | ✅ |
-| Grau do curso: licenciatura, mestrado, doutoramento, especialização | ✅ (bacharelato exige migração: a base só admite graduação/pós-graduação) |
+| Grau do curso: bacharelato, licenciatura, mestrado, doutoramento, especialização | ✅ (o grau vive no perfil do curso; bacharelato e licenciatura são graduação na base, sem migração) |
 | Doutoramento: decisão do júri (Aprovado / com distinção / com distinção e louvor) | ✅ com acta, 2FA e auditoria |
 | Modalidade (presencial/semipresencial/distância) e regime (regular/pós-laboral) por curso | ✅ |
 | Vagas por curso e exame de acesso (nota, seriação) | ✅ separador «Acesso» |
@@ -52,7 +52,6 @@ injustificadas às aulas dadas no semestre.
 
 ## Pendente (precisa de migração ou de decisão)
 
-- Bacharelato: alterar a restrição `programs.kind`.
 - Turnos (vários horários da mesma cadeira). Bolsas na base Bolsas da exportação SISIES.
 
 ## Comparação com outros sistemas académicos

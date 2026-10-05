@@ -29,7 +29,9 @@ Em **Ensino Superior → Novo curso** (só Administrador):
 
 - **Nome** — ex.: «Licenciatura em Direito».
 - **Código** — único na escola; se ficar vazio, é feito a partir do nome (`DIREITO`).
-- **Grau** — Licenciatura (4 anos por omissão) ou Pós-graduação (2 anos).
+- **Grau** — Bacharelato (3 anos por omissão), Licenciatura (4), Mestrado (2), Doutoramento (3)
+  ou Especialização (1). Bacharelato e licenciatura são graduação; os outros, pós-graduação.
+  O certificado de conclusão do bacharelato confere o grau de Bacharel.
 - **Anos curriculares** — o SIGA cria os anos 1.º a N.º. Ao editar, os anos só se
   acrescentam (um ano com turmas não se apaga). Um curso pode ser desactivado.
 

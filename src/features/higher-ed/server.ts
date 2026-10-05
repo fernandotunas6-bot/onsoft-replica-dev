@@ -24,6 +24,7 @@ import {
 import {
   HIGHER_ED_DEFAULTS,
   parseProgramProfile,
+  programKindForDegree,
   updateSettingsDomainValue,
   parseSettingsDomain,
   readSettingsDomain,
@@ -310,7 +311,7 @@ export const listHigherEdPrograms = createServerFn({ method: "GET" })
   });
 
 const profileInput = z.object({
-  degree: z.enum(["licenciatura", "mestrado", "doutoramento", "especializacao"]),
+  degree: z.enum(["bacharelato", "licenciatura", "mestrado", "doutoramento", "especializacao"]),
   modality: z.enum(["presencial", "semipresencial", "distancia"]),
   regime: z.enum(["regular", "pos_laboral"]),
   seats: z.number().int().min(0).max(100_000),
@@ -324,9 +325,8 @@ const programInput = z.object({
   profile: profileInput.optional(),
 });
 
-/** Grau ↔ tipo do curso na base: só a licenciatura é graduação. */
-const kindForDegree = (degree: z.infer<typeof profileInput>["degree"]) =>
-  degree === "licenciatura" ? ("undergraduate" as const) : ("postgraduate" as const);
+/** Grau ↔ tipo do curso na base: bacharelato e licenciatura são graduação. */
+const kindForDegree = programKindForDegree;
 
 async function saveProgramProfile(
   db: Db,
@@ -2453,6 +2453,7 @@ export const setApplicationAccessScore = createServerFn({ method: "POST" })
 // ── Exportação SISIES / GEPE (MESCTI) ───────────────────────────────────────
 
 const DEGREE_TEXT = {
+  bacharelato: "Bacharelato",
   licenciatura: "Licenciatura",
   mestrado: "Mestrado",
   doutoramento: "Doutoramento",

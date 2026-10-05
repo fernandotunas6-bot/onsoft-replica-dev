@@ -177,7 +177,26 @@ export const HIGHER_ED_DEFAULTS: HigherEdRegulation = {
   worker_student_progress_percent: 50,
 };
 
-export type HigherEdDegree = "licenciatura" | "mestrado" | "doutoramento" | "especializacao";
+export type HigherEdDegree =
+  "bacharelato" | "licenciatura" | "mestrado" | "doutoramento" | "especializacao";
+
+/** Graus da Lei de Bases (Lei 17/16, alterada pela Lei 32/20). */
+export const HIGHER_ED_DEGREES: readonly HigherEdDegree[] = [
+  "bacharelato",
+  "licenciatura",
+  "mestrado",
+  "doutoramento",
+  "especializacao",
+];
+
+/**
+ * Tipo do curso na base (`programs.kind`): bacharelato e licenciatura são graduação;
+ * mestrado, doutoramento e especialização são pós-graduação.
+ */
+export const programKindForDegree = (degree: HigherEdDegree) =>
+  degree === "bacharelato" || degree === "licenciatura"
+    ? ("undergraduate" as const)
+    : ("postgraduate" as const);
 export type HigherEdModality = "presencial" | "semipresencial" | "distancia";
 export type HigherEdRegime = "regular" | "pos_laboral";
 
@@ -204,11 +223,7 @@ export function parseProgramProfile(value: unknown): HigherEdProgramProfile {
   const v = asRecord(value);
   const d = HIGHER_ED_PROGRAM_DEFAULT;
   return {
-    degree: oneOf(
-      v["degree"],
-      ["licenciatura", "mestrado", "doutoramento", "especializacao"],
-      d.degree,
-    ),
+    degree: oneOf(v["degree"], HIGHER_ED_DEGREES, d.degree),
     modality: oneOf(v["modality"], ["presencial", "semipresencial", "distancia"], d.modality),
     regime: oneOf(v["regime"], ["regular", "pos_laboral"], d.regime),
     seats: bounded(v["seats"], d.seats, 0, 100_000, true),
