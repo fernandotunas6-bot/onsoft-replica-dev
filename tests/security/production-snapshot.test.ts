@@ -91,7 +91,7 @@ const ANON_POLICIES_ESPERADAS = [
   "enrollment_applications.Public insert open enrollment applications",
   "enrollment_forms.Public read open enrollment forms",
   "reserved_subdomains.public_read_reserved_subdomains",
-  "school_branding.school_members_view_branding",
+  "school_branding.public_read_school_branding",
 ];
 
 /**

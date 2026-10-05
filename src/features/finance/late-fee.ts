@@ -1,81 +1,75 @@
+import type { BillingSettings } from "@/features/school/settings-domains";
+
 /**
- * Multa por atraso: uma regra para todos os caminhos de pagamento.
+ * Multa por atraso: uma regra só, igual à de `private.late_fee_due`
+ * (20261004135000_late_fee_one_rule.sql). A tesouraria aplica-a na base; a
+ * referência EMIS, o AppyPay, o plano de pagamento e o webhook usam esta.
  *
- * Antes, o pagamento por referência (EMIS/Unitel) cobrava `valor − desconto + multa`
- * e a tesouraria (`private.register_payment`) e a referência gerada no ecrã cobravam
- * `valor − desconto`: o mesmo encarregado pagava valores diferentes conforme o canal.
- *
- * Regra (igual em `private.register_payment` desde 20261004120000):
- * - a multa é `late_fee_percent` % do valor da fatura, arredondada ao cêntimo;
- * - aplica-se depois do vencimento + `grace_days` (no dia seguinte ao último de tolerância);
- * - fica gravada na fatura (`penalty_amount`) ao primeiro pagamento depois do prazo e não
- *   é recalculada (não «sobe» a meio de um plano de pagamento);
- * - `late_fee_scope` decide em que pagamentos se aplica: `all` (todos, a regra
- *   por omissão) ou `electronic` (só referências e carteiras; o balcão não cobra multa).
- *   Uma multa já gravada faz parte da dívida em qualquer canal.
+ * - Aplica-se uma vez: a fatura que já tem multa (`penalty_amount > 0`) não leva outra.
+ * - Só a pagamentos depois do vencimento mais a tolerância. Conta a data, não a hora:
+ *   quem paga no último dia da tolerância não paga multa.
+ * - Valor: a percentagem sobre o valor da fatura, arredondada ao cêntimo.
+ * - Âmbito (Definições › Cobrança): `all` em todos os pagamentos; `electronic` só nos
+ *   electrónicos (Multicaixa, referência EMIS, Express, Unitel Money, AppyPay), não em
+ *   numerário nem transferência.
  */
+export type LateFeeChannel = "counter" | "electronic";
 
-export type LateFeeScope = "all" | "electronic";
-export type PaymentChannel = "counter" | "electronic";
+type LateFeeRule = Pick<BillingSettings, "late_fee_percent" | "grace_days" | "late_fee_scope">;
 
-export const LATE_FEE_SCOPES: ReadonlyArray<{ value: LateFeeScope; label: string }> = [
-  { value: "all", label: "Em todos os pagamentos" },
-  { value: "electronic", label: "Só nos pagamentos electrónicos (referência, carteira)" },
-];
-
-export function parseLateFeeScope(value: unknown): LateFeeScope {
-  return value === "electronic" ? "electronic" : "all";
-}
-
-type InvoiceForFee = {
-  amount: unknown;
-  discount_amount?: unknown;
-  penalty_amount?: unknown;
-  due_date?: string | null;
-};
-
-type BillingForFee = {
-  late_fee_percent: number;
-  grace_days: number;
-  late_fee_scope: LateFeeScope;
-};
-
-const cents = (value: number) => Math.round(value * 100) / 100;
-
-/** Data (AAAA-MM-DD) a partir da qual a multa se aplica, ou null sem vencimento. */
-export function lateFeeStartsOn(dueDate: string | null | undefined, graceDays: number) {
-  if (!dueDate || !/^\d{4}-\d{2}-\d{2}/.test(dueDate)) return null;
-  const start = new Date(`${dueDate.slice(0, 10)}T00:00:00Z`);
-  start.setUTCDate(start.getUTCDate() + Math.max(0, Math.trunc(graceDays)) + 1);
-  return start.toISOString().slice(0, 10);
+/** Canal pelo método do recibo (`finance_receipts.payment_method`), como na base. */
+export function lateFeeChannelOfLedgerMethod(method: string): LateFeeChannel {
+  return method === "card" || method === "other" ? "electronic" : "counter";
 }
 
 /**
- * Multa da fatura num pagamento feito em `paidOn` (AAAA-MM-DD) pelo canal indicado.
- * Devolve a multa já gravada, se houver; senão a que este pagamento aplica (ou 0).
+ * Centésimas inteiras de um valor, arredondadas a meio para cima pelo decimal escrito
+ * (`1.255` → 126), como o `round(x, 2)` do `numeric` do Postgres. `Math.round(x * 100)`
+ * daria 125, porque 1.255 em binário é 1.25499…
+ */
+function hundredths(value: number): number {
+  if (!Number.isFinite(value) || value <= 0) return 0;
+  const text = value.toString();
+  if (/e/i.test(text)) return Math.round(value * 100);
+  const [whole = "0", fraction = ""] = text.split(".");
+  const digits = `${fraction}000`.slice(0, 3);
+  return Number(whole) * 100 + Number(digits.slice(0, 2)) + (Number(digits[2]) >= 5 ? 1 : 0);
+}
+
+/** `YYYY-MM-DD` mais `days` dias (UTC, sem horas). */
+export function addDaysIso(isoDate: string, days: number): string {
+  const date = new Date(`${isoDate.slice(0, 10)}T00:00:00Z`);
+  date.setUTCDate(date.getUTCDate() + days);
+  return date.toISOString().slice(0, 10);
+}
+
+/**
+ * Multa a aplicar a um pagamento feito em `paidOn` (`YYYY-MM-DD`) por `channel`.
+ * 0 quando a fatura já tem multa, não está atrasada, a escola não cobra multa ou o
+ * canal fica fora do âmbito.
  */
 export function lateFeeFor(
-  invoice: InvoiceForFee,
-  billing: BillingForFee,
+  invoice: { amount: unknown; due_date?: string | null; penalty_amount?: unknown },
+  rule: LateFeeRule,
   paidOn: string,
-  channel: PaymentChannel,
+  channel: LateFeeChannel,
 ): number {
-  const stored = Number(invoice.penalty_amount ?? 0);
-  if (stored > 0) return cents(stored);
-  if (!(billing.late_fee_percent > 0)) return 0;
-  if (billing.late_fee_scope === "electronic" && channel === "counter") return 0;
-  const startsOn = lateFeeStartsOn(invoice.due_date, billing.grace_days);
-  if (!startsOn || paidOn.slice(0, 10) < startsOn) return 0;
-  return cents((Number(invoice.amount ?? 0) * billing.late_fee_percent) / 100);
+  if (Number(invoice.penalty_amount ?? 0) > 0) return 0;
+  if (!invoice.due_date) return 0;
+  // Centésimas de ponto percentual e cêntimos, em inteiros: o mesmo arredondamento que
+  // `round(round(amount, 2) * round(pct, 2) / 100, 2)` faz no Postgres.
+  const pctHundredths = hundredths(Number(rule.late_fee_percent));
+  if (!(pctHundredths > 0)) return 0;
+  if (channel === "counter" && rule.late_fee_scope === "electronic") return 0;
+  if (paidOn.slice(0, 10) <= addDaysIso(invoice.due_date, rule.grace_days)) return 0;
+  const cents = hundredths(Number(invoice.amount));
+  if (!(cents > 0)) return 0;
+  const product = cents * pctHundredths;
+  const feeCents = Math.floor(product / 10_000) + (product % 10_000 >= 5_000 ? 1 : 0);
+  return feeCents / 100;
 }
 
-/** Total a pagar: valor − desconto (nunca negativo) + multa. */
-export function invoiceAmountDue(invoice: InvoiceForFee, penalty: number) {
-  const net = Math.max(Number(invoice.amount ?? 0) - Number(invoice.discount_amount ?? 0), 0);
-  return cents(net + Math.max(penalty, 0));
-}
-
-/** Data de hoje em Angola (UTC+1), no formato da coluna `paid_on`. */
-export function todayInLuanda(now = new Date()) {
-  return new Date(now.getTime() + 60 * 60 * 1000).toISOString().slice(0, 10);
+/** Data de hoje (`YYYY-MM-DD`, UTC), a mesma que os pagamentos gravam em `paid_on`. */
+export function todayIso() {
+  return new Date().toISOString().slice(0, 10);
 }

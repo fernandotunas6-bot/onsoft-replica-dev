@@ -4,7 +4,67 @@ Ler isto **antes** de alterar código. Ecossistema (5 apps):
 [ARCHITECTURE_HARMONIZATION.md](./ARCHITECTURE_HARMONIZATION.md).
 Depois abrir o skill do módulo em `.cursor/skills/`.
 
-## Tempo real nas tabelas reais — POR APLICAR (2026-10-04)
+## Multa por atraso: uma regra — POR APLICAR (2026-10-04)
+
+Pedido do dono (regra universal ou opção por escola). Antes: o webhook EMIS/Unitel
+aplicava a multa; a tesouraria (`private.register_payment`) não a aplicava e
+ignorava a já gravada (a fatura ficava «paga» sem ela); a referência do ecrã, o
+plano de pagamento e o AppyPay pediam valor − desconto. Nenhuma escola tinha multa
+nas regras (produção, só leitura): nada foi cobrado a mais nem a menos.
+
+- **Regra** (`src/features/finance/late-fee.ts`, igual a `private.late_fee_due`):
+  uma vez por fatura; só depois do vencimento mais a tolerância, contada em datas;
+  percentagem sobre o valor, arredondada ao cêntimo pelo decimal escrito (como o
+  `numeric`). O ensaio `tests/sql/late-fee.mjs` compara as duas em 5040 casos.
+- **Âmbito** em Definições › Cobrança (`late_fee_scope`): «Em todos os pagamentos»
+  (omissão) ou «Só nos electrónicos» (métodos `card`/`other`: Multicaixa, Express,
+  Unitel Money, referências; numerário e transferência ficam sem multa).
+- **Total a pagar** = valor − desconto + multa aplicada (`invoiceNetTotal`): lista,
+  resumo, painel, ficha da pessoa, PayFlow, importação e estornos. O SAF-T fica com
+  o valor da fatura emitida (a multa não é da fatura original).
+- **Ecrãs:** a referência EMIS é do que falta pagar, com a multa de um pagamento
+  hoje (o servidor calcula; o cartão mostra «Inclui a multa…»). O «Receber» mostra a
+  multa de hoje e soma-a ao valor sugerido.
+- Migrações `20261004140000_late_fee_one_rule.sql` e
+  `20261004141000_propinas_import_into_billing_rules.sql`, pacote
+  `docs/agents/SIGA_aplicar_multas_atraso.sql` (sondas também em
+  `SIGA_confirmar_migracoes.sql`).
+
+**Importação de «propinas»** (decisão do dono, 2026-10-04): gravava em
+`school_billing_settings`, que nada lê, e sem a coluna da multa gravava 10 %. Passa a
+gravar as regras activas (`school_settings`, domínio `billing`), só o que vem no
+ficheiro, com 2FA e a gravação versionada do ecrã; migração
+`20261004141000_propinas_import_into_billing_rules.sql` (catálogo: `school_settings`
+«controlled», só o domínio `billing`). O modelo oficial é um preçário (designação,
+classe, valor, taxa de multa diária) que o importador não usa: avisa que os valores
+e a taxa diária não entram. Importar preços por classe fica por fazer.
+
+`school_billing_settings` fica como está (2 linhas, gravadas a 08/09 com os antigos
+valores do ecrã): o Colégio Adventista do Huambo (multa 2 %, 5 dias, desconto de
+irmãos 10 %) e uma escola de testes. Por decisão do dono não passam a valer: o
+Huambo cobra sem multa nem desconto até rever as regras em Definições › Cobrança.
+
+## Auditoria 12 — SQL fora do Git e estado da produção (2026-10-04)
+
+Relatório: `docs/auditoria/12-auditoria-sistema-2026-10-04.md`.
+
+- **Produção mudou sem migrações.** Cinco migrações de 04/10 (22:04–22:15) foram trazidas para
+  `supabase/migrations/` (corpo capturado, md5 conferido). Além delas, 10 funções `private.*`
+  (`user_*_school_ids`, `teacher_*`, `current_teacher_rows`, `user_import_job_ids`) e 116 políticas
+  reescritas para as usar existem só na base: as funções estão em
+  `20261005000000_reconcile_unrecorded_rls_helpers.sql`; as políticas só no retrato novo.
+- **Retrato recapturado** (04/10 à noite) e 3 testes de segurança ajustados à forma `user_*_school_ids`.
+- **Por aplicar no SQL Editor** (a ferramenta cancela a escrita): `20261005010000_assessment_closed_term_guard.sql`
+  (fecho de período nas avaliações) e `20261005020000_direct_writes_require_mfa.sql` (2FA nas escritas
+  directas da plataforma e das avaliações). Ensaios em `tests/sql/`. O que ficou de fora do 2FA e porquê:
+  secção 5 da auditoria 12.
+- **Por fazer:** segredos do ambiente `production`; staging para os E2E.
+- **Tempo real APLICADO** a 04/10 (publicação com 10 tabelas). O bloco «POR APLICAR» abaixo fica como histórico.
+- Os ensaios `tests/sql/*.mjs` correm agora no CI (PGlite instalado fora do projecto).
+- Já aplicadas na produção (o texto antigo dizia «por aplicar»): `one_active_academic_year` (02/10) e
+  `annual_sheet_requires_all_terms` (04/10).
+
+## Tempo real nas tabelas reais — APLICADO a 04/10 (texto original)
 
 A publicação `supabase_realtime` só tinha `document_requests`,
 `school_announcements`, `siga_chat_members` e `siga_chat_messages` (produção, só
@@ -42,12 +102,11 @@ O Aurora (PR #66, na main) e o PR #65 cresceram em paralelo; foram juntos em
 
 ## Pedidos do dono de 2026-10-04 (feitos)
 
-- **Multa por atraso igual em todos os canais.** Regra em `src/features/finance/late-fee.ts`
-  e em `private.register_payment` (`20261004120000`, aplicada). Opção da escola em Cobrança:
-  `late_fee_scope` = `all` (por omissão) ou `electronic`. Começa no dia seguinte ao fim
-  da tolerância; fica gravada em `penalty_amount` ao primeiro pagamento depois do prazo.
-  `invoiceNetTotal` soma a multa gravada; referências, AppyPay e planos usam
-  `invoiceTotalDue` (`late-fee-server.ts`).
+- **Multa por atraso igual em todos os canais.** Trabalho do PR #71 juntado no PR #74 (uma
+  só implementação): `src/features/finance/late-fee.ts` e `private.late_fee_due` +
+  `private.register_payment` (`20261004135000_late_fee_one_rule`). Opção da escola em
+  Cobrança: `late_fee_scope` = `all` (por omissão) ou `electronic`. A versão anterior desta
+  sessão (`20261004120000`) fica no histórico e é substituída por esta.
 - **Anular salário pago por engano.** RH → Pagamentos → «Anular pagamento» (2FA, motivo).
   `private.hr_reverse_payroll_payment` (`20261004130000`, aplicada, só `service_role`):
   saída de caixa, item, linha da folha, ordem e folha numa transacção; depois `repay` ou

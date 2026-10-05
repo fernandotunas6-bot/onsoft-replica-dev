@@ -83,7 +83,7 @@ export const updateBillingSettingsInputSchema = z.object({
   dueDay: z.number().int().min(1).max(28),
   lateFeePercent: z.number().min(0).max(100),
   graceDays: z.number().int().min(0).max(60),
-  lateFeeScope: z.enum(["all", "electronic"]).default("all"),
+  lateFeeScope: z.enum(["all", "electronic"]),
   siblingDiscountPercent: z.number().min(0).max(100),
 });
 export type UpdateBillingSettingsInput = z.infer<typeof updateBillingSettingsInputSchema>;

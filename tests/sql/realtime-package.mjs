@@ -25,6 +25,10 @@ for (const t of [
 }
 // SIGA_confirmar_migracoes.sql pergunta privilégios nesta tabela; sem ela, a consulta falha.
 await table("student_academic_history");
+// A sonda das multas (20261004141000) lê os destinos da importação.
+await db.exec(
+  "CREATE TABLE public.import_table_specs (table_schema text, table_name text, direct_import_policy text)",
+);
 await db.exec("CREATE ROLE authenticated");
 
 const published = async () =>

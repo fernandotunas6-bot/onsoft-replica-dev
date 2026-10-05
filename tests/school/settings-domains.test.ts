@@ -19,6 +19,7 @@ describe("domínios de configuração da escola", () => {
         due_day: 45,
         late_fee_percent: "3",
         grace_days: "abc",
+        late_fee_scope: "só ao sábado",
         sibling_discount_percent: 150,
       }),
     ).toEqual({
@@ -28,6 +29,9 @@ describe("domínios de configuração da escola", () => {
       late_fee_scope: "all",
       sibling_discount_percent: 100,
     });
+    expect(parseSettingsDomain("billing", { late_fee_scope: "electronic" }).late_fee_scope).toBe(
+      "electronic",
+    );
   });
 
   it("instituição só aceita naturezas conhecidas", () => {

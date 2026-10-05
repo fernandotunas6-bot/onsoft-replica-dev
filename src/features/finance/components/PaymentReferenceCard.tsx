@@ -7,29 +7,35 @@ import { getFinanceGatewayConfirmUrl } from "@/lib/ecosystem-urls";
 import { confirmManualMulticaixaPayment, generateInvoicePaymentReference } from "../server";
 import { toast } from "sonner";
 
+const kwanzaLabel = (value: number) =>
+  new Intl.NumberFormat("pt-AO", { style: "currency", currency: "AOA" }).format(value);
+
 interface PaymentReferenceCardProps {
   invoiceId: string;
   invoiceNumber: string;
-  amount: number;
   onPaymentSuccess?: () => void;
 }
 
+/**
+ * Referência do que falta pagar. O valor vem do servidor: inclui a multa por atraso
+ * que o pagamento electrónico de hoje leva (`late-fee.ts`), que o ecrã não sabe.
+ */
 export function PaymentReferenceCard({
   invoiceId,
   invoiceNumber,
-  amount,
   onPaymentSuccess,
 }: PaymentReferenceCardProps) {
   const [copiedField, setCopiedField] = useState<string | null>(null);
   const [isConfirming, setIsConfirming] = useState(false);
 
   const refQuery = useQuery({
-    queryKey: ["finance", "payment-reference", invoiceId, amount],
-    queryFn: () => generateInvoicePaymentReference({ data: { invoiceId, amount } }),
+    queryKey: ["finance", "payment-reference", invoiceId],
+    queryFn: () => generateInvoicePaymentReference({ data: { invoiceId } }),
     retry: false,
   });
 
   const referenceData = refQuery.data?.multicaixa;
+  const lateFee = refQuery.data?.lateFee ?? 0;
   const wallets = refQuery.data?.mobileWallets ?? [];
 
   const copyToClipboard = (text: string, fieldName: string) => {
@@ -53,7 +59,7 @@ export function PaymentReferenceCard({
       const res = await confirmManualMulticaixaPayment({
         data: {
           invoiceId,
-          amount,
+          amount: referenceData.amountNumber,
           reference: referenceData.reference,
           method: "multicaixa_express",
         },
@@ -165,6 +171,11 @@ export function PaymentReferenceCard({
               )}
             </button>
           </div>
+          {lateFee > 0 ? (
+            <p className="text-xs text-muted-foreground">
+              Inclui a multa por atraso de {kwanzaLabel(lateFee)}.
+            </p>
+          ) : null}
         </div>
       </div>
 

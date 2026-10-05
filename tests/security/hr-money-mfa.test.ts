@@ -132,7 +132,10 @@ describe("papel do RH pela escola da linha (20260930200000)", () => {
       .filter((p) => {
         const expr = `${p.usando} ${p.verificando}`;
         return (
-          /sga_app_role\(school_id\)/.test(expr) && !/is_school_member\(school_id\)/.test(expr)
+          /sga_app_role\(school_id\)/.test(expr) &&
+          // `user_member_school_ids()` é o mesmo teste (membro activo) escrito para o planeador
+          // avaliar uma só vez; a produção reescreveu assim as políticas a 04/10.
+          !/is_school_member\(school_id\)|user_member_school_ids\(\)/.test(expr)
         );
       })
       .map((p) => `${p.tabela}: ${p.politica}`);
