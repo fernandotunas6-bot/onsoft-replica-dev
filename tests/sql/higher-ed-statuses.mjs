@@ -16,6 +16,7 @@ CREATE TABLE public.students (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), sch
 CREATE TABLE public.academic_years (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), school_id uuid NOT NULL);
 CREATE TABLE public.siga_direct_messages (id uuid PRIMARY KEY);
 CREATE TABLE public.student_academic_history (id uuid PRIMARY KEY);
+CREATE TABLE public.import_table_specs (table_schema text, table_name text, direct_import_policy text);
 GRANT ALL ON ALL TABLES IN SCHEMA public TO authenticated;
 `);
 

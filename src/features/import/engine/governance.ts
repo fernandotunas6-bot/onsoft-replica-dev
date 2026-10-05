@@ -19,7 +19,8 @@ export const IMPORTER_TARGET_TABLES: Record<ImportModule, readonly string[]> = {
   avaliacoes: ["class_groups", "subjects", "class_subjects", "terms", "gradebooks", "grade_items"],
   pautas: ["enrollments"],
   presencas: ["siga_attendance_sessions", "siga_attendance_records"],
-  propinas: ["school_billing_settings"],
+  // Só o domínio `billing` (propinas-importer.ts); os outros domínios nunca por importação.
+  propinas: ["school_settings"],
   pagamentos: ["finance_invoices", "finance_receipts"],
   dividas: ["finance_contracts", "finance_invoices"],
   historico_academico: ["student_academic_history"],
