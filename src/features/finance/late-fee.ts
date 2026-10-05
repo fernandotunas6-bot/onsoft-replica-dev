@@ -10,7 +10,7 @@
  * - aplica-se depois do vencimento + `grace_days` (no dia seguinte ao último de tolerância);
  * - fica gravada na fatura (`penalty_amount`) ao primeiro pagamento depois do prazo e não
  *   é recalculada (não «sobe» a meio de um plano de pagamento);
- * - `late_fee_applies_to` decide em que pagamentos se aplica: `all` (todos, a regra
+ * - `late_fee_scope` decide em que pagamentos se aplica: `all` (todos, a regra
  *   por omissão) ou `electronic` (só referências e carteiras; o balcão não cobra multa).
  *   Uma multa já gravada faz parte da dívida em qualquer canal.
  */
@@ -37,7 +37,7 @@ type InvoiceForFee = {
 type BillingForFee = {
   late_fee_percent: number;
   grace_days: number;
-  late_fee_applies_to: LateFeeScope;
+  late_fee_scope: LateFeeScope;
 };
 
 const cents = (value: number) => Math.round(value * 100) / 100;
@@ -63,7 +63,7 @@ export function lateFeeFor(
   const stored = Number(invoice.penalty_amount ?? 0);
   if (stored > 0) return cents(stored);
   if (!(billing.late_fee_percent > 0)) return 0;
-  if (billing.late_fee_applies_to === "electronic" && channel === "counter") return 0;
+  if (billing.late_fee_scope === "electronic" && channel === "counter") return 0;
   const startsOn = lateFeeStartsOn(invoice.due_date, billing.grace_days);
   if (!startsOn || paidOn.slice(0, 10) < startsOn) return 0;
   return cents((Number(invoice.amount ?? 0) * billing.late_fee_percent) / 100);

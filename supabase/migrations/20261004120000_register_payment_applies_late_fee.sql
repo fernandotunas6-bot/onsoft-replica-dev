@@ -11,7 +11,7 @@
 --   * aplica-se quando paid_on > due_date + grace_days;
 --   * fica gravada em penalty_amount ao primeiro pagamento depois do prazo e não é
 --     recalculada; uma multa gravada faz parte da dívida em qualquer canal;
---   * late_fee_applies_to = 'electronic' → no balcão (dinheiro, transferência) não se
+--   * late_fee_scope = 'electronic' → no balcão (dinheiro, transferência) não se
 --     aplica; 'all' (ou ausente) → aplica-se sempre.
 -- Total a pagar = greatest(valor − desconto, 0) + multa.
 --
@@ -62,7 +62,7 @@ begin
     limit 1;
     fee_percent := least(greatest(coalesce((billing->>'late_fee_percent')::numeric, 0), 0), 100);
     grace := least(greatest(coalesce((billing->>'grace_days')::numeric, 0), 0), 60)::integer;
-    applies_to := coalesce(billing->>'late_fee_applies_to', 'all');
+    applies_to := coalesce(billing->>'late_fee_scope', 'all');
     if fee_percent > 0
        and target_paid_on > selected_invoice.due_date + grace
        and not (applies_to = 'electronic' and target_payment_method in ('cash', 'bank_transfer')) then

@@ -8,7 +8,7 @@ describe("domínios de configuração da escola", () => {
       due_day: 10,
       late_fee_percent: 0,
       grace_days: 0,
-      late_fee_applies_to: "all",
+      late_fee_scope: "all",
       sibling_discount_percent: 0,
     });
   });
@@ -25,7 +25,7 @@ describe("domínios de configuração da escola", () => {
       due_day: 28,
       late_fee_percent: 3,
       grace_days: 0,
-      late_fee_applies_to: "all",
+      late_fee_scope: "all",
       sibling_discount_percent: 100,
     });
   });

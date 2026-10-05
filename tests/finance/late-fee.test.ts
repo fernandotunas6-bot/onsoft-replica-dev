@@ -13,7 +13,7 @@ const invoice = {
   penalty_amount: 0,
   due_date: "2026-10-10",
 };
-const billing = { late_fee_percent: 5, grace_days: 5, late_fee_applies_to: "all" as const };
+const billing = { late_fee_percent: 5, grace_days: 5, late_fee_scope: "all" as const };
 
 describe("multa por atraso (regra única)", () => {
   it("começa no dia seguinte ao fim da tolerância", () => {
@@ -29,7 +29,7 @@ describe("multa por atraso (regra única)", () => {
   });
 
   it("«só electrónicos» não cobra no balcão, mas uma multa gravada é dívida em todos", () => {
-    const electronic = { ...billing, late_fee_applies_to: "electronic" as const };
+    const electronic = { ...billing, late_fee_scope: "electronic" as const };
     expect(lateFeeFor(invoice, electronic, "2026-11-01", "counter")).toBe(0);
     expect(lateFeeFor(invoice, electronic, "2026-11-01", "electronic")).toBe(500);
     expect(

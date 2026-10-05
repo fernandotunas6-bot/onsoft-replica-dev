@@ -44,7 +44,7 @@ O Aurora (PR #66, na main) e o PR #65 cresceram em paralelo; foram juntos em
 
 - **Multa por atraso igual em todos os canais.** Regra em `src/features/finance/late-fee.ts`
   e em `private.register_payment` (`20261004120000`, aplicada). Opção da escola em Cobrança:
-  `late_fee_applies_to` = `all` (por omissão) ou `electronic`. Começa no dia seguinte ao fim
+  `late_fee_scope` = `all` (por omissão) ou `electronic`. Começa no dia seguinte ao fim
   da tolerância; fica gravada em `penalty_amount` ao primeiro pagamento depois do prazo.
   `invoiceNetTotal` soma a multa gravada; referências, AppyPay e planos usam
   `invoiceTotalDue` (`late-fee-server.ts`).

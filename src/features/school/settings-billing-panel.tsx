@@ -54,7 +54,7 @@ export function BillingParametersSummary() {
       ? [
           {
             label: "Multa aplica-se",
-            valor: billing.late_fee_applies_to === "electronic" ? "Só electrónicos" : "Em todos",
+            valor: billing.late_fee_scope === "electronic" ? "Só electrónicos" : "Em todos",
           },
         ]
       : []),
@@ -114,7 +114,7 @@ export function BillingSettingsForm() {
       grace: String(billingQuery.data.grace_days),
       discount: String(billingQuery.data.sibling_discount_percent),
     });
-    setFeeScope(billingQuery.data.late_fee_applies_to);
+    setFeeScope(billingQuery.data.late_fee_scope);
   }, [billingQuery.data]);
 
   const billingDirty = Boolean(
@@ -123,7 +123,7 @@ export function BillingSettingsForm() {
       values.fee !== String(billingQuery.data.late_fee_percent) ||
       values.grace !== String(billingQuery.data.grace_days) ||
       values.discount !== String(billingQuery.data.sibling_discount_percent) ||
-      feeScope !== billingQuery.data.late_fee_applies_to),
+      feeScope !== billingQuery.data.late_fee_scope),
   );
 
   useEffect(() => {
@@ -160,7 +160,7 @@ export function BillingSettingsForm() {
           dueDay: due,
           lateFeePercent: fee,
           graceDays: grace,
-          lateFeeAppliesTo: feeScope,
+          lateFeeScope: feeScope,
           siblingDiscountPercent: discount,
         },
       });
