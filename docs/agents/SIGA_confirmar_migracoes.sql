@@ -97,7 +97,7 @@ from (values
      and coalesce(position('siga.hr_payroll_reversal' in pg_get_functiondef(
        to_regprocedure('private.hr_reverse_payroll_payment(uuid, uuid, uuid, text, text)'))) > 0, false)),
   -- Esta está no pacote docs/agents/SIGA_aplicar_propina_por_classe.sql.
-  ('20261005030000_fee_items_grade_level',
+  ('20261005150000_fee_items_grade_level',
      exists (select 1 from information_schema.columns
              where table_schema = 'public' and table_name = 'fee_items'
                and column_name = 'grade_level_id')

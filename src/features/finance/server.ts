@@ -1154,7 +1154,7 @@ export const issueInvoice = createServerFn({ method: "POST" })
     // Emolumento do Ensino Superior: o item certo pelo código, não o primeiro activo.
     const feeCode = higherEdFeeCodeForCategory(data.category);
     const kind = feeCode ? null : categoryToFeeKind(data.category);
-    // `select("*")`: a coluna da classe só existe depois de 20261005030000.
+    // `select("*")`: a coluna da classe só existe depois de 20261005150000.
     const { data: itemRows, error: itemsError } = await db
       .from("fee_items")
       .select("*")
@@ -1653,7 +1653,7 @@ export type GradeTuitionPrice = {
   amount: number | null;
 };
 
-/** A coluna fee_items.grade_level_id existe (migração 20261005030000 aplicada)? */
+/** A coluna fee_items.grade_level_id existe (migração 20261005150000 aplicada)? */
 async function gradePricingAvailable(db: Awaited<ReturnType<typeof loadSgaAdminClient>>) {
   const { error } = await dynamicTablesClient(db)
     .from("fee_items")
@@ -1703,7 +1703,7 @@ async function loadFeePlanSettingsForSchool(schoolId: string) {
     return { ready: false, plan: null, items: [] as FeePlanItemSummary[] };
   }
 
-  // `select("*")`: a coluna da classe só existe depois de 20261005030000.
+  // `select("*")`: a coluna da classe só existe depois de 20261005150000.
   const { data: items, error: itemsError } = await db
     .from("fee_items")
     .select("*")
@@ -1744,7 +1744,7 @@ async function loadFeePlanSettingsForSchool(schoolId: string) {
         is_active: row.is_active,
         grade_level_id: null,
       })),
-    /** false até a migração 20261005030000 ser aplicada. */
+    /** false até a migração 20261005150000 ser aplicada. */
     gradePricing,
     gradePrices,
   };

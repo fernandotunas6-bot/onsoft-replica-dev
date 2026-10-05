@@ -29,7 +29,7 @@ type PropinasCache = ImportRefCache & {
   programs: ProgramRef[];
   /** Itens de propina por classe já no plano, por classe. */
   gradeItemIdByGrade: Map<string, string>;
-  /** false enquanto a base não tiver `fee_items.grade_level_id` (20261005030000). */
+  /** false enquanto a base não tiver `fee_items.grade_level_id` (20261005150000). */
   gradePricing: boolean;
 };
 
@@ -198,14 +198,14 @@ export const propinasImporter: RowImporter = {
       ]);
     const planId = plan?.id ? String(plan.id) : null;
     const gradeItemIdByGrade = new Map<string, string>();
-    // Sem tipos: `fee_items.grade_level_id` só existe depois de 20261005030000.
+    // Sem tipos: `fee_items.grade_level_id` só existe depois de 20261005150000.
     const { error: columnError } = await dynamicTablesClient(ctx.db as never)
       .from("fee_items")
       .select("grade_level_id")
       .limit(1);
     const gradePricing = !isMissingGradeColumn(columnError);
     if (planId) {
-      // `select("*")`: a coluna da classe só existe depois de 20261005030000.
+      // `select("*")`: a coluna da classe só existe depois de 20261005150000.
       const { data: items } = await ctx.db
         .from("fee_items")
         .select("*")
@@ -316,7 +316,7 @@ export const propinasImporter: RowImporter = {
     if (price && cache.planId) {
       const name = (price.title ?? `Propina mensal — ${price.grade.name}`).slice(0, 120);
       const existingId = cache.gradeItemIdByGrade.get(price.grade.id);
-      // Sem tipos: `fee_items.grade_level_id` só existe depois de 20261005030000.
+      // Sem tipos: `fee_items.grade_level_id` só existe depois de 20261005150000.
       const items = dynamicTablesClient(ctx.db as never);
       if (existingId) {
         const { error } = await items

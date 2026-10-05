@@ -2,7 +2,7 @@
  * Itens do plano de propinas (`fee_items`) e o preço por classe.
  *
  * Um item com `grade_level_id` é o preço de uma classe (migração
- * 20261005030000_fee_items_grade_level.sql); sem ele é o preço geral. Os itens lêem-se
+ * 20261005150000_fee_items_grade_level.sql); sem ele é o preço geral. Os itens lêem-se
  * com `select("*")` e escolhem-se aqui, em código: antes de a migração ser aplicada a
  * coluna não existe, e uma consulta que a nomeasse partia a emissão de faturas.
  */

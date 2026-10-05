@@ -1,5 +1,5 @@
 // Ensaio local (PGlite) do pacote docs/agents/SIGA_aplicar_propina_por_classe.sql
-// (migração 20261005030000). Sem produção.
+// (migração 20261005150000). Sem produção.
 // Uso: node tests/sql/fee-items-grade-level.mjs (ver tests/sql/README.md).
 const { PGlite } = await import(process.env["SIGA_SQL_TEST_MODULE_PATH"] || "@electric-sql/pglite");
 import { readFileSync } from "node:fs";
@@ -57,11 +57,11 @@ const estado = async () => Object.values((await db.query(confirmar)).rows[0])[0]
 const sonda = async () =>
   (await db.exec(read("../../docs/agents/SIGA_confirmar_migracoes.sql")))
     .at(-1)
-    .rows.find((r) => r.migracao === "20261005030000_fee_items_grade_level").estado;
+    .rows.find((r) => r.migracao === "20261005150000_fee_items_grade_level").estado;
 
 // O pacote leva a migração tal como está.
 assert.ok(
-  pacote.includes(read("../../supabase/migrations/20261005030000_fee_items_grade_level.sql")),
+  pacote.includes(read("../../supabase/migrations/20261005150000_fee_items_grade_level.sql")),
 );
 
 // Dados de antes: um plano com o preço geral, já usado numa fatura.
@@ -84,7 +84,7 @@ assert.equal(await sonda(), "EM FALTA");
 
 for (let corrida = 0; corrida < 2; corrida++) {
   assert.deepEqual((await db.exec(pacote)).at(-1).rows[0], {
-    "20261005030000 propina por classe": "aplicada",
+    "20261005150000 propina por classe": "aplicada",
   });
 }
 assert.equal(await sonda(), "aplicada");

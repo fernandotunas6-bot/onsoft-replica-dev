@@ -95,7 +95,7 @@ export function resolveFeePlanForYear(
 }
 
 export async function loadFeeItemRefs(db: SupabaseClient, schoolId: string): Promise<FeeItemRef[]> {
-  // `select("*")`: a coluna da classe só existe depois de 20261005030000.
+  // `select("*")`: a coluna da classe só existe depois de 20261005150000.
   const { data, error } = await db
     .from("fee_items")
     .select("*")

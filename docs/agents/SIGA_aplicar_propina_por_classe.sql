@@ -9,7 +9,7 @@
 -- Confirmar no fim com a consulta do fundo deste ficheiro (deve dar "aplicada").
 
 
--- ══════════ 20261005030000_fee_items_grade_level.sql ══════════
+-- ══════════ 20261005150000_fee_items_grade_level.sql ══════════
 -- Propina por classe: um item do plano pode ter o preço de uma classe.
 --
 -- Até 2026-10-05 o plano de propinas tinha um preço por tipo (propina, matrícula) e a
@@ -61,4 +61,4 @@ SELECT CASE
   ) THEN 'por aplicar'
   WHEN to_regclass('public.fee_items_plan_grade_kind_active_key') IS NULL THEN 'por aplicar'
   ELSE 'aplicada'
-END AS "20261005030000 propina por classe";
+END AS "20261005150000 propina por classe";

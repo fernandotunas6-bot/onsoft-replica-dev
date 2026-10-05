@@ -12,7 +12,7 @@ ignorado.
 
 - **Base:** `fee_items.grade_level_id` (opcional, chave composta com `grade_levels`, um só
   preço activo por classe e tipo em cada plano). Sem classe é o preço geral, como até
-  aqui. Migração `20261005030000_fee_items_grade_level.sql`, pacote
+  aqui. Migração `20261005150000_fee_items_grade_level.sql`, pacote
   `docs/agents/SIGA_aplicar_propina_por_classe.sql` (sonda também em
   `SIGA_confirmar_migracoes.sql`; ensaio `tests/sql/fee-items-grade-level.mjs`).
 - **Escolha do item** (`src/features/finance/fee-items.ts`): a propina usa o preço da
