@@ -343,6 +343,45 @@ export function checkEnrollmentBatch(params: {
   return { ok, perUnit, limits, yearCredits, creditsBySemester };
 }
 
+export type OfferedUnit = {
+  unit: PlanUnit;
+  state: "inscrita" | "disponivel" | "bloqueada";
+  reasons: string[];
+};
+
+/**
+ * O que o estudante vê para se inscrever (matrícula on-line): as cadeiras do
+ * plano ainda por concluir, já inscritas neste ano, disponíveis ou bloqueadas
+ * com o motivo. As concluídas e creditadas não aparecem.
+ */
+export function enrollmentOffer(params: {
+  plan: PlanUnit[];
+  prerequisites: Prerequisite[];
+  records: UnitRecord[];
+  regulation: HigherEdRegulation;
+  academicYearId: string;
+}): OfferedUnit[] {
+  const completed = completedUnitIds(params.records);
+  return params.plan
+    .filter((unit) => !completed.has(unit.id))
+    .sort((a, b) => a.semester - b.semester || a.name.localeCompare(b.name, "pt"))
+    .map((unit) => {
+      const enrolledNow = params.records.some(
+        (r) =>
+          r.unitId === unit.id &&
+          r.academicYearId === params.academicYearId &&
+          r.status === "inscrito",
+      );
+      if (enrolledNow) return { unit, state: "inscrita" as const, reasons: [] };
+      const check = checkUnitEnrollment({ ...params, unit });
+      return {
+        unit,
+        state: check.ok ? ("disponivel" as const) : ("bloqueada" as const),
+        reasons: check.reasons,
+      };
+    });
+}
+
 // ── Avaliação e épocas ────────────────────────────────────────────────────
 
 /**
@@ -368,9 +407,10 @@ export function frequencyOutcome(
   frequency: number | null | undefined,
   absencePercent: number | null | undefined,
   regulation: HigherEdRegulation,
-  status: StudentStatus = NO_STATUS,
+  status: { workerStudent?: boolean } = {},
 ): FrequencyOutcome {
-  const absenceExempt = status.workerStudent && regulation.worker_student_absence_exempt;
+  // Trabalhador-estudante: as faltas não excluem, se o regulamento o previr.
+  const absenceExempt = Boolean(status.workerStudent && regulation.worker_student_absence_exempt);
   if (
     !absenceExempt &&
     regulation.max_absence_percent > 0 &&
@@ -393,7 +433,8 @@ export function frequencyOutcome(
  * - normal: admitido a exame (frequência lançada, inscrição em curso);
  * - recurso: reprovou na época normal (os excluídos não vão a recurso);
  * - especial: finalista (até `special_season_max_units` cadeiras por concluir), em
- *   cadeira reprovada ou com exclusão por frequência;
+ *   cadeira reprovada ou com exclusão por frequência; o trabalhador-estudante vai mesmo
+ *   sem ser finalista, se o regulamento o previr;
  * - melhoria: já aprovou e a instituição permite melhoria (uma vez por cadeira).
  */
 export function seasonEligibility(params: {
@@ -402,10 +443,13 @@ export function seasonEligibility(params: {
   plan: PlanUnit[];
   regulation: HigherEdRegulation;
   status?: StudentStatus;
+  /** Estatuto de trabalhador-estudante no ano lectivo em causa (igual a `status`). */
+  workerStudent?: boolean;
 }) {
   const { unitId, records, plan, regulation } = params;
   const workerSpecial =
-    Boolean(params.status?.workerStudent) && regulation.worker_student_special_season;
+    Boolean(params.status?.workerStudent ?? params.workerStudent) &&
+    regulation.worker_student_special_season;
   const unitRecords = records.filter((r) => r.unitId === unitId);
   const latest = latestRecordByUnit(unitRecords).get(unitId);
   const completed = completedUnitIds(records);

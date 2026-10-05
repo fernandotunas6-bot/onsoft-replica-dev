@@ -14,7 +14,7 @@ a escola no WEB, ou em Definições → Pedagógico).
 | Administrador | `/pedagogica/superior` | Cria e edita cursos, define o regulamento, tudo o que a secretaria faz |
 | Secretaria | `/pedagogica/superior` | Monta planos, inscreve estudantes, credita cadeiras, emite históricos |
 | Professor | `/pedagogica/pautas-superior` | Lança frequência e exames **só nas cadeiras que lecciona** |
-| Estudante / Encarregado | Portal (início) | Vê créditos, média e o estado de cada cadeira |
+| Estudante / Encarregado | Portal (início) | Vê créditos, média e o estado de cada cadeira; o estudante inscreve-se nas cadeiras se a escola abrir a matrícula on-line |
 
 ## 0. Ano lectivo por semestres
 
@@ -58,6 +58,12 @@ Separador **Regulamento** (só Administrador edita). Valores por omissão:
 | Cadeiras em falta para época especial | até 2 |
 | Tentativas por cadeira | sem limite (0) |
 | Melhoria de nota | permitida |
+| Matrícula on-line (o estudante inscreve-se no portal) | desligada |
+| Trabalhador-estudante: faltas não excluem | ligado |
+| Trabalhador-estudante: época especial sem ser finalista | ligado |
+| Trabalhador-estudante: quanto conta cada ano (situação e prescrição) | 50 % |
+
+**Trabalhador-estudante.** Ver a secção 8.
 
 ## 4. Inscrições por cadeira
 
@@ -68,6 +74,13 @@ Separador **Regulamento** (só Administrador edita). Valores por omissão:
 O SIGA recusa uma inscrição quando a cadeira já está concluída, já está em curso no ano,
 tem uma inscrição de **outro ano sem resultado**, faltam precedências, se esgotaram as
 tentativas, ou os créditos passam os limites do regulamento.
+
+- **Pelo estudante (matrícula on-line)** — com a regra ligada no regulamento, o portal do
+  estudante mostra o cartão **Inscrição em cadeiras**: as cadeiras por concluir, as que
+  pode escolher e o motivo das bloqueadas. Valem as mesmas regras da secretaria, o
+  **período de inscrições** e, se ligada, a regra das **propinas vencidas**. O
+  encarregado não inscreve. Cada inscrição fica na auditoria; anular continua a ser na
+  secretaria.
 
 **Anular** — na ficha, numa cadeira em curso, com motivo. O painel **Inscrições sem
 resultado de anos anteriores** lista as que ficaram abertas para lançar ou anular.
@@ -112,6 +125,11 @@ fatura**, escolhendo a categoria com o mesmo nome; 0 Kz = a instituição não c
   em falta; **concluiu** quando todas as cadeiras do plano estão feitas.
 - **Portal** — o estudante e o encarregado vêem créditos, média e o estado de cada
   cadeira, só do próprio estudante.
+- **Certificado de conclusão** (carta de curso) — quando o estudante conclui o curso, a
+  Secretaria ou a Direcção carrega em **Emitir certificado** (pede a verificação em duas
+  etapas). O certificado recebe o número de registo da escola (série «CE») e um código de
+  verificação com QR: quem o recebe confirma-o em `/verificar`. Emitir de novo devolve o
+  mesmo número e o mesmo código; só se imprime depois de emitido.
 
 ## 8. Trabalhador-estudante
 

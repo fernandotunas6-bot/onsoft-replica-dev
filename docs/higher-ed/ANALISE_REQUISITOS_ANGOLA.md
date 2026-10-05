@@ -36,7 +36,7 @@ injustificadas às aulas dadas no semestre.
 | Ano lectivo por semestres | ✅ (gravação um a um; gravação conjunta exige migração) |
 | Inscrição por cadeira (individual e em lote), anulação | ✅ |
 | Pautas por cadeira, lançamento pelo docente, impressão | ✅ |
-| Histórico académico, certificado de conclusão | ✅ (sem registo/QR de verificação) |
+| Histórico académico, certificado de conclusão | ✅ certificado com n.º de registo (série CE) e QR para /verificar |
 | Classificação final inteira 10–20 com menção (257/25) | ✅ |
 | Emolumentos (recurso, especial, melhoria, certidão) | ✅ |
 | Candidatura com curso pretendido | ✅ |
@@ -44,33 +44,32 @@ injustificadas às aulas dadas no semestre.
 | Doutoramento: decisão do júri (Aprovado / com distinção / com distinção e louvor) | ✅ com acta, 2FA e auditoria |
 | Modalidade (presencial/semipresencial/distância) e regime (regular/pós-laboral) por curso | ✅ |
 | Vagas por curso e exame de acesso (nota, seriação) | ✅ separador «Acesso» |
-| Estatuto trabalhador-estudante (faltas, época especial) | ✅ 2026-10-04 |
+| Estatuto trabalhador-estudante (faltas, época especial) | ✅ com prova, datas e 2FA |
 | Exportação para o SISIES/GEPE (Vagas, Acesso, Matrículas, Graduados) | ✅ Excel |
-| Diploma / carta de curso registado com QR | ❌ |
+| Diploma / carta de curso registado com QR | ✅ certificado de conclusão emitido com 2FA, uma vez por curso |
 | Bolsas | ❌ |
 
 ## Pendente (precisa de migração ou de decisão)
 
 - Bacharelato: alterar a restrição `programs.kind`.
-- Bolsas, turnos/vagas por turma com lista de espera, inscrição pelo próprio estudante.
-- Diploma/carta de curso registado com QR de verificação.
+- Bolsas, turnos/vagas por turma com lista de espera.
 
 ## Comparação com outros sistemas académicos
 
 | Lógica | Onde existe | No SIGA |
 | --- | --- | --- |
 | Plano curricular com créditos e precedências | Banner (prerequisites), FenixEdu (curricular plans), SIGAA | ✅ |
-| Inscrição online em cadeiras por período | SIGAA (matrícula on-line), FenixEdu | ✅ pela secretaria (individual e em lote); pelo estudante — por fazer |
-| Trancamento/anulação de cadeira com prazo | SIGAA (até 6 semanas) | ✅ prazo no regulamento; depois exige 2FA |
+| Inscrição online em cadeiras por período | SIGAA (matrícula on-line), FenixEdu | ✅ secretaria (individual e em lote) e estudante no portal (regra do regulamento, desligada por omissão) |
+| Trancamento/anulação de cadeira com prazo | SIGAA (até 6 semanas) | ✅ anulação com motivo; prazo no regulamento, depois exige 2FA |
 | Aproveitamento de estudos / equivalência | SIGAA, SIGARRA | ✅ «Creditar» com 2FA |
 | Degree audit: o que falta para concluir | Banner (degree audit) | ✅ «Para concluir: N cadeiras, X créditos» |
 | Situação académica (regular / atraso / risco) | Banner (academic standing: good standing, probation) | ✅ configurável no regulamento |
 | Prescrição / prazo máximo de integralização | SIGARRA (prescrição), SIGAA (prazo de conclusão) | ✅ «anos além da duração» (0 = desligado) |
 | Fluxo de correcção de notas | Banner (grade change workflow) | ✅ «Corrigir nota»: secretaria, 2FA, motivo, auditoria |
-| Holds: dívida bloqueia inscrição | Banner (registration holds) | ✅ opção do regulamento (desligada por omissão) |
-| Estatuto trabalhador-estudante (faltas, prescrição a 50 %) | SIGARRA | ✅ configurável no regulamento |
+| Holds: dívida bloqueia inscrição/documentos | Banner (registration holds) | ✅ inscrição: opção do regulamento (desligada por omissão); documentos — não |
+| Estatuto trabalhador-estudante (faltas, prescrição a 50 %) | SIGARRA | ✅ faltas, época especial e prescrição (regulamento) |
 | Turnos/vagas por turma e lista de espera | FenixEdu (turnos), Banner (capacity, waitlist) | ❌ |
-| Calendário de inscrições | FenixEdu (curricular calendars), SIGAA | ✅ datas de abertura e fecho no regulamento |
+| Calendário de inscrições e épocas | FenixEdu (curricular calendars), SIGAA | ✅ datas de abertura e fecho no regulamento; janelas por época — não |
 | Sistemas angolanos (SIGU, SkyGnova, SIGA.ao) | candidatura → certificado num só sistema | ✅ mesmo ciclo |
 
 Fontes: [SIGAA — trancamento](https://sigaa.ufrn.br/sigaa/public/curso/secao_extra.jsf?lc=en_US&id=111635057&extra=1677436146),

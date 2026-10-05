@@ -1930,28 +1930,39 @@ function RegulationTab({ canEdit }: { canEdit: boolean }) {
         </div>
         <div className="flex items-center gap-3 sm:col-span-2">
           <Switch
-            id="reg-ws-absence"
+            id="reg-self"
+            checked={current.student_self_enrollment}
+            disabled={!canEdit}
+            onCheckedChange={(value) => setDraft({ ...current, student_self_enrollment: value })}
+          />
+          <Label htmlFor="reg-self">
+            Estudantes inscrevem-se nas cadeiras no portal (dentro do período de inscrições)
+          </Label>
+        </div>
+        <div className="flex items-center gap-3 sm:col-span-2">
+          <Switch
+            id="reg-worker-absence"
             checked={current.worker_student_absence_exempt}
             disabled={!canEdit}
             onCheckedChange={(value) =>
               setDraft({ ...current, worker_student_absence_exempt: value })
             }
           />
-          <Label htmlFor="reg-ws-absence">
+          <Label htmlFor="reg-worker-absence">
             Trabalhador-estudante: as faltas não excluem da avaliação
           </Label>
         </div>
         <div className="flex items-center gap-3 sm:col-span-2">
           <Switch
-            id="reg-ws-special"
+            id="reg-worker-special"
             checked={current.worker_student_special_season}
             disabled={!canEdit}
             onCheckedChange={(value) =>
               setDraft({ ...current, worker_student_special_season: value })
             }
           />
-          <Label htmlFor="reg-ws-special">
-            Trabalhador-estudante: época especial sem ser finalista
+          <Label htmlFor="reg-worker-special">
+            Trabalhador-estudante: época especial mesmo sem ser finalista
           </Label>
         </div>
         <div className="space-y-1.5">

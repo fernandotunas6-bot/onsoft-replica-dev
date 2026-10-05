@@ -146,6 +146,28 @@ servidor lhes toca, ver `PRIVILEGIO_POR_DESENHO`).
   `/pedagogica/superior/historico` (documento imprimível).
 - **Assistente** `/configuracoes/inicio`: passos de regulamento e planos quando a
   escola tem o nível `superior`.
+- **Também feito a 03/10:** perfil do curso (grau, modalidade, regime, vagas),
+  exame de acesso e seriação, exportação SISIES, regras opcionais (dívida,
+  período de inscrições, prazo de anulação com 2FA), correcção de nota e
+  situação académica.
+- **Matrícula on-line** (regra `student_self_enrollment`, desligada por omissão):
+  cartão «Inscrição em cadeiras» no portal do estudante
+  (`StudentSelfEnrollmentCard`), `getMyEnrollmentOffer` / `enrollMyUnits`. Só a
+  conta `Aluno` (o encarregado não inscreve); mesmas regras da secretaria porque
+  ambas passam por `enrollUnitsFor`; auditoria `higher_ed.enrollment.self`.
+  Anular continua só na secretaria.
+- **Certificado de conclusão com registo e QR** (2026-10-04): `issueHigherEdCertificate`
+  (Direcção/Secretaria, 2FA, só com o curso concluído) numera pela série `certificate` da
+  escola (`next_document_number_service`, «CE-000001») e regista o código no mesmo
+  sítio que os outros documentos oficiais (`audit_logs`, `documents.issued`, modelo
+  `certificado-conclusao-superior`), por isso `/verificar` confirma-o sem mudanças.
+  Uma vez por estudante e curso: repetir devolve o mesmo número e código. Sem anulação
+  (o registo de verificação em `audit_logs` não a tem).
+- **Trabalhador-estudante:** uma só implementação (PR #70 juntado no #74, a pedido do
+  dono): tabela `student_special_statuses` (`20261004140000`, aplicada), ver «Pedidos do
+  dono de 2026-10-04». A tabela `higher_ed_student_statuses` do PR #70 não foi criada.
+- **Por fazer:** ver «Pendente» em `docs/higher-ed/ANALISE_REQUISITOS_ANGOLA.md`
+  (bacharelato, bolsas, turnos/lista de espera).
 
 ## Auditoria de produção 11 (2026-10-02)
 

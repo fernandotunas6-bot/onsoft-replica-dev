@@ -133,11 +133,17 @@ export type HigherEdRegulation = {
   enrollment_opens_on: string | null;
   enrollment_closes_on: string | null;
   /**
-   * Estatuto de trabalhador-estudante (como o regulamento do SIGARRA): as faltas não
-   * excluem da avaliação.
+   * Como a matrícula on-line do SIGAA: o estudante inscreve-se nas cadeiras no
+   * portal, com as mesmas regras da secretaria (período, dívida, precedências,
+   * créditos). Desligado: só a secretaria inscreve.
+   */
+  student_self_enrollment: boolean;
+  /**
+   * Estatuto de trabalhador-estudante (atribuído pela secretaria, com prova e datas):
+   * as faltas não excluem da avaliação (como no SIGARRA).
    */
   worker_student_absence_exempt: boolean;
-  /** Trabalhador-estudante vai à época especial sem ser finalista. */
+  /** Trabalhador-estudante vai à época especial mesmo sem ser finalista. */
   worker_student_special_season: boolean;
   /**
    * Situação académica e prescrição: cada ano do trabalhador-estudante conta esta
@@ -165,6 +171,7 @@ export const HIGHER_ED_DEFAULTS: HigherEdRegulation = {
   cancel_deadline_days: 0,
   enrollment_opens_on: null,
   enrollment_closes_on: null,
+  student_self_enrollment: false,
   worker_student_absence_exempt: true,
   worker_student_special_season: true,
   worker_student_progress_percent: 50,
@@ -351,6 +358,10 @@ export const SETTINGS_DOMAINS = {
         ),
         enrollment_opens_on: isoDate(v["enrollment_opens_on"]),
         enrollment_closes_on: isoDate(v["enrollment_closes_on"]),
+        student_self_enrollment:
+          typeof v["student_self_enrollment"] === "boolean"
+            ? v["student_self_enrollment"]
+            : d.student_self_enrollment,
         worker_student_absence_exempt:
           typeof v["worker_student_absence_exempt"] === "boolean"
             ? v["worker_student_absence_exempt"]

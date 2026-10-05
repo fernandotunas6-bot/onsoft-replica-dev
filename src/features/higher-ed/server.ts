@@ -18,6 +18,7 @@ import { publicDatabaseError } from "@/integrations/supabase/server-error";
 import {
   loadSgaAdminClient,
   requireSgaWriterFor,
+  resolveSgaMembershipAdmin,
   requireSgaWriterForWrite,
 } from "@/integrations/supabase/sga-admin";
 import {
@@ -29,6 +30,10 @@ import {
   type HigherEdRegulation,
 } from "@/features/school/settings-domains";
 import { requireAal2 } from "@/features/hr/require-aal2";
+import {
+  ISSUED_DOCUMENT_ACTION,
+  generateVerificationCode,
+} from "@/features/documents/verification";
 import { resolveVisibleStudent } from "@/features/dashboard/student-access";
 import {
   HIGHER_ED_LEVEL,
@@ -47,6 +52,7 @@ import {
   academicStanding,
   cancellationIsLate,
   enrollmentWindowError,
+  enrollmentOffer,
   academicSemesterOf,
   checkEnrollmentBatch,
   EXAM_SEASONS,
@@ -220,13 +226,20 @@ async function requireStudentInProgram(
 
 async function audit(
   db: Db,
-  entry: { schoolId: string; actor: string; action: string; entityId: string; metadata: Row },
+  entry: {
+    schoolId: string;
+    actor: string;
+    action: string;
+    entityId: string;
+    metadata: Row;
+    entityType?: string;
+  },
 ) {
   await db.from("audit_logs").insert({
     school_id: entry.schoolId,
     actor_user_id: entry.actor,
     action: entry.action,
-    entity_type: "course_unit_enrollment",
+    entity_type: entry.entityType ?? "course_unit_enrollment",
     entity_id: entry.entityId,
     metadata: entry.metadata as never,
   });
@@ -805,6 +818,92 @@ export const getStudentHigherEd = createServerFn({ method: "GET" })
   });
 
 /** Histórico académico (documento): uma linha por cadeira do plano, com o ano em que a fez. */
+/** Histórico do estudante num curso: o que o ecrã mostra e o que o certificado certifica. */
+async function buildTranscript(
+  db: Db,
+  schoolId: string,
+  data: { programId: string; studentId: string },
+) {
+  const program = await requireProgram(db, schoolId, data.programId);
+  const { data: student } = await db
+    .from("students")
+    .select("id, person_id, student_number")
+    .eq("school_id", schoolId)
+    .eq("id", data.studentId)
+    .maybeSingle();
+  if (!student) throw new Error("Estudante não encontrado nesta escola.");
+  const [{ units }, rows, regulation, personResult, schoolResult] = await Promise.all([
+    loadPlan(db, schoolId, data.programId),
+    loadRecords(db, schoolId, data.studentId, data.programId),
+    regulationOf(db, schoolId),
+    db
+      .from("people")
+      .select("full_name, national_id")
+      .eq("school_id", schoolId)
+      .eq("id", str(student.person_id))
+      .maybeSingle(),
+    db
+      .from("schools")
+      .select("name, commercial_name, nif, address, director_name, logo_url")
+      .eq("id", schoolId)
+      .maybeSingle(),
+  ]);
+  // Só há histórico de quem tem registos no curso (ou matrícula nele).
+  if (!rows.length) await requireStudentInProgram(db, schoolId, data.studentId, data.programId);
+  const records = rows.map((row) => row.record);
+  const lines = transcriptLines(units, records);
+  const programProfiles = await readSettingsDomain(db, schoolId, "higher_ed_programs");
+  const { data: noteRows } = await db
+    .from("course_unit_enrollments")
+    .select("notes")
+    .eq("school_id", schoolId)
+    .eq("student_id", data.studentId)
+    .eq("program_id", data.programId)
+    .eq("status", "aprovado")
+    .like("notes", "júri:%");
+  const juryMention =
+    ((noteRows ?? []) as Row[])
+      .map((row) => decodeJuryDecision(row.notes ? str(row.notes) : null))
+      .find(Boolean) ?? null;
+  const yearIds = [...new Set(lines.map((l) => l.academicYearId).filter(Boolean))] as string[];
+  const { data: years } = yearIds.length
+    ? await db.from("academic_years").select("id, name").eq("school_id", schoolId).in("id", yearIds)
+    : { data: [] as Row[] };
+  const yearName = new Map(((years ?? []) as Row[]).map((y) => [str(y.id), str(y.name)]));
+  const progress = studentProgress({ plan: units, records, regulation });
+  const school = (schoolResult.data ?? {}) as Row;
+  const person = (personResult.data ?? {}) as Row;
+  return {
+    school: {
+      name: str(school.commercial_name) || str(school.name),
+      nif: school.nif ? str(school.nif) : null,
+      address: school.address ? str(school.address) : null,
+      director: school.director_name ? str(school.director_name) : null,
+      logoUrl: school.logo_url ? str(school.logo_url) : null,
+    },
+    program: {
+      name: str(program.name),
+      code: str(program.code),
+      kind: str(program.kind),
+      degree: parseProgramProfile(programProfiles[data.programId]).degree,
+    },
+    juryMention: juryMention,
+    student: {
+      name: str(person.full_name) || "Estudante",
+      number: student.student_number ? str(student.student_number) : null,
+      document: person.national_id ? str(person.national_id) : null,
+    },
+    lines: lines.map((line) => ({
+      ...line,
+      yearName: line.academicYearId ? (yearName.get(line.academicYearId) ?? null) : null,
+    })),
+    progress: { ...progress, pendingUnits: progress.pendingUnits.length },
+    passingGrade: regulation.passing_grade,
+    issuedAt: new Date().toISOString(),
+    certificate: await findIssuedCertificate(db, schoolId, data.studentId, data.programId),
+  };
+}
+
 export const getStudentTranscript = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .validator((input: unknown) =>
@@ -813,88 +912,121 @@ export const getStudentTranscript = createServerFn({ method: "GET" })
   .handler(async ({ data, context }) => {
     const membership = await officeMembership(context, "read");
     const db = await loadSgaAdminClient();
+    return buildTranscript(db, membership.schoolId, data);
+  });
+
+// ── Certificado de conclusão (carta de curso) com registo e QR ──────────────
+
+/** Modelo no registo de documentos emitidos (`audit_logs`, `documents.issued`). */
+export const HIGHER_ED_CERTIFICATE_TEMPLATE = "certificado-conclusao-superior";
+
+type IssuedCertificate = { number: string; code: string; issuedAt: string };
+
+/**
+ * O certificado já emitido para o estudante neste curso (o primeiro, se por alguma
+ * corrida houver dois): a segunda impressão sai com o mesmo número e o mesmo código.
+ */
+async function findIssuedCertificate(
+  db: Db,
+  schoolId: string,
+  studentId: string,
+  programId: string,
+): Promise<IssuedCertificate | null> {
+  const { data, error } = await db
+    .from("audit_logs")
+    .select("metadata, occurred_at")
+    .eq("school_id", schoolId)
+    .eq("action", ISSUED_DOCUMENT_ACTION)
+    .eq("metadata->>template", HIGHER_ED_CERTIFICATE_TEMPLATE)
+    .eq("metadata->>student_id", studentId)
+    .eq("metadata->>program_id", programId)
+    .order("occurred_at", { ascending: true })
+    .limit(1)
+    .maybeSingle();
+  if (error) throw publicDatabaseError(error, "Não foi possível ler o registo de certificados.");
+  if (!data) return null;
+  const meta = (data.metadata ?? {}) as Row;
+  return {
+    number: str(meta.reference),
+    code: str(meta.code),
+    issuedAt: str(meta.issued_at) || str(data.occurred_at),
+  };
+}
+
+/**
+ * Emite o certificado de conclusão: número da série «certificate» da escola
+ * (document_sequences, «CE-000001») e código de verificação para /verificar, no mesmo
+ * registo que os outros documentos oficiais. Só a Direcção e a Secretaria, com 2FA, e
+ * só para quem concluiu o curso. Repetir devolve o mesmo certificado.
+ */
+export const issueHigherEdCertificate = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .validator((input: unknown) =>
+    z.object({ programId: z.string().uuid(), studentId: z.string().uuid() }).parse(input),
+  )
+  .handler(async ({ data, context }): Promise<IssuedCertificate> => {
+    const membership = await officeMembership(context, "write");
+    requireAal2(context.claims, "Emitir o certificado de conclusão");
+    const db = await loadSgaAdminClient();
     const schoolId = membership.schoolId;
-    const program = await requireProgram(db, schoolId, data.programId);
-    const { data: student } = await db
-      .from("students")
-      .select("id, person_id, student_number")
-      .eq("school_id", schoolId)
-      .eq("id", data.studentId)
-      .maybeSingle();
-    if (!student) throw new Error("Estudante não encontrado nesta escola.");
-    const [{ units }, rows, regulation, personResult, schoolResult] = await Promise.all([
-      loadPlan(db, schoolId, data.programId),
-      loadRecords(db, schoolId, data.studentId, data.programId),
-      regulationOf(db, schoolId),
-      db
-        .from("people")
-        .select("full_name, national_id")
-        .eq("school_id", schoolId)
-        .eq("id", str(student.person_id))
-        .maybeSingle(),
-      db
-        .from("schools")
-        .select("name, commercial_name, nif, address, director_name, logo_url")
-        .eq("id", schoolId)
-        .maybeSingle(),
-    ]);
-    // Só há histórico de quem tem registos no curso (ou matrícula nele).
-    if (!rows.length) await requireStudentInProgram(db, schoolId, data.studentId, data.programId);
-    const records = rows.map((row) => row.record);
-    const lines = transcriptLines(units, records);
-    const programProfiles = await readSettingsDomain(db, schoolId, "higher_ed_programs");
-    const { data: noteRows } = await db
-      .from("course_unit_enrollments")
-      .select("notes")
-      .eq("school_id", schoolId)
-      .eq("student_id", data.studentId)
-      .eq("program_id", data.programId)
-      .eq("status", "aprovado")
-      .like("notes", "júri:%");
-    const juryMention =
-      ((noteRows ?? []) as Row[])
-        .map((row) => decodeJuryDecision(row.notes ? str(row.notes) : null))
-        .find(Boolean) ?? null;
-    const yearIds = [...new Set(lines.map((l) => l.academicYearId).filter(Boolean))] as string[];
-    const { data: years } = yearIds.length
-      ? await db
-          .from("academic_years")
-          .select("id, name")
-          .eq("school_id", schoolId)
-          .in("id", yearIds)
-      : { data: [] as Row[] };
-    const yearName = new Map(((years ?? []) as Row[]).map((y) => [str(y.id), str(y.name)]));
-    const progress = studentProgress({ plan: units, records, regulation });
-    const school = (schoolResult.data ?? {}) as Row;
-    const person = (personResult.data ?? {}) as Row;
-    return {
-      school: {
-        name: str(school.commercial_name) || str(school.name),
-        nif: school.nif ? str(school.nif) : null,
-        address: school.address ? str(school.address) : null,
-        director: school.director_name ? str(school.director_name) : null,
-        logoUrl: school.logo_url ? str(school.logo_url) : null,
-      },
-      program: {
-        name: str(program.name),
-        code: str(program.code),
-        kind: str(program.kind),
-        degree: parseProgramProfile(programProfiles[data.programId]).degree,
-      },
-      juryMention: juryMention,
-      student: {
-        name: str(person.full_name) || "Estudante",
-        number: student.student_number ? str(student.student_number) : null,
-        document: person.national_id ? str(person.national_id) : null,
-      },
-      lines: lines.map((line) => ({
-        ...line,
-        yearName: line.academicYearId ? (yearName.get(line.academicYearId) ?? null) : null,
-      })),
-      progress: { ...progress, pendingUnits: progress.pendingUnits.length },
-      passingGrade: regulation.passing_grade,
+    const transcript = await buildTranscript(db, schoolId, data);
+    if (transcript.certificate) return transcript.certificate;
+
+    const doctoral = transcript.program.degree === "doutoramento";
+    const final = transcript.progress.completed
+      ? finalClassification(transcript.progress.average)
+      : null;
+    if (!transcript.progress.completed || (doctoral ? !transcript.juryMention : !final)) {
+      throw new Error(
+        "O estudante ainda não concluiu o curso: o certificado não pode ser emitido.",
+      );
+    }
+
+    const { data: number, error: numberError } = await db.rpc("next_document_number_service", {
+      school_id: schoolId,
+      document_type: "certificate",
+      default_prefix: "CE",
+    });
+    if (numberError || !number) {
+      throw publicDatabaseError(
+        numberError ?? { message: "sem número" },
+        "Não foi possível numerar o certificado.",
+      );
+    }
+    // Duas emissões ao mesmo tempo: fica a primeira (o número gasto fica por usar).
+    const raced = await findIssuedCertificate(db, schoolId, data.studentId, data.programId);
+    if (raced) return raced;
+
+    const roles: string[] = membership.allAppRoles ?? [membership.appRole];
+    const issued: IssuedCertificate = {
+      number: String(number),
+      code: generateVerificationCode(),
       issuedAt: new Date().toISOString(),
     };
+    // Sem este registo o documento diria que é verificável e não é: o erro não se engole.
+    const { error } = await db.from("audit_logs").insert({
+      school_id: schoolId,
+      actor_user_id: context.userId,
+      action: ISSUED_DOCUMENT_ACTION,
+      entity_type: "issued_document",
+      entity_id: crypto.randomUUID(),
+      metadata: {
+        code: issued.code,
+        title: `Certificado de conclusão — ${transcript.program.name}`,
+        holder: transcript.student.name,
+        template: HIGHER_ED_CERTIFICATE_TEMPLATE,
+        issuer_role: roles.includes("Administrador") ? "Administrador" : "Secretaria",
+        reference: issued.number,
+        school_name: transcript.school.name,
+        issued_at: issued.issuedAt,
+        student_id: data.studentId,
+        program_id: data.programId,
+        final_grade: final?.value ?? null,
+        mention: doctoral ? transcript.juryMention : (final?.mention ?? null),
+      } as never,
+    });
+    if (error) throw publicDatabaseError(error, "Não foi possível registar o certificado emitido.");
+    return issued;
   });
 
 const todayIso = () => new Date().toISOString().slice(0, 10);
@@ -950,6 +1082,90 @@ async function assertEnrollmentAllowed(
   return studentsWithOverdueDebt(db, schoolId, studentIds);
 }
 
+/**
+ * Inscreve um estudante em cadeiras do ano activo com as regras do regulamento
+ * (período, dívida, precedências, tentativas e créditos). Usada pela secretaria
+ * e pela matrícula on-line do próprio estudante.
+ */
+async function enrollUnitsFor(
+  db: Db,
+  params: {
+    schoolId: string;
+    studentId: string;
+    programId: string;
+    unitIds: string[];
+    actor: string;
+    regulation: HigherEdRegulation;
+  },
+) {
+  const { schoolId, studentId, programId, regulation } = params;
+  await requireProgram(db, schoolId, programId);
+  await requireStudentInProgram(db, schoolId, studentId, programId);
+  const yearId = await activeYearId(db, schoolId);
+  if (!yearId) throw new Error("Não há ano lectivo activo para inscrever o estudante.");
+  const [{ units, prerequisites }, rows] = await Promise.all([
+    loadPlan(db, schoolId, programId),
+    loadRecords(db, schoolId, studentId, programId),
+  ]);
+  const indebted = await assertEnrollmentAllowed(db, schoolId, regulation, [studentId]);
+  if (indebted.has(studentId)) {
+    throw new Error(
+      "O estudante tem propinas vencidas por pagar: o regulamento não permite a inscrição.",
+    );
+  }
+  const records = rows.map((row) => row.record);
+  const selected = [...new Set(params.unitIds)].map((id) => {
+    const unit = units.find((u) => u.id === id);
+    if (!unit) throw new Error("Uma das cadeiras não pertence ao plano deste curso.");
+    return unit;
+  });
+  const batch = checkEnrollmentBatch({
+    selected,
+    plan: units,
+    prerequisites,
+    records,
+    regulation,
+    academicYearId: yearId,
+  });
+  if (!batch.ok) {
+    const reasons = [
+      ...batch.limits,
+      ...[...batch.perUnit.values()].flatMap((check) => check.reasons),
+    ];
+    throw new Error(reasons.join(" "));
+  }
+  const attempts = new Map<string, number>();
+  for (const record of records) {
+    attempts.set(record.unitId, Math.max(attempts.get(record.unitId) ?? 0, record.attempt));
+  }
+  const { data: inserted, error } = await db
+    .from("course_unit_enrollments")
+    .insert(
+      selected.map((unit) => ({
+        school_id: schoolId,
+        student_id: studentId,
+        academic_year_id: yearId,
+        program_id: programId,
+        program_subject_id: unit.id,
+        semester: academicSemesterOf(unit.semester),
+        credits: unit.credits,
+        attempt: (attempts.get(unit.id) ?? 0) + 1,
+        status: "inscrito",
+        credits_earned: 0,
+        created_by: params.actor,
+        updated_by: params.actor,
+      })),
+    )
+    .select("id");
+  if (error) throw publicDatabaseError(error, "Não foi possível inscrever o estudante.");
+  return {
+    enrolled: selected.length,
+    credits: batch.yearCredits,
+    ids: ((inserted ?? []) as Row[]).map((row) => str(row.id)),
+    units: selected.map((unit) => unit.name),
+  };
+}
+
 export const enrollStudentUnits = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((input: unknown) =>
@@ -964,65 +1180,16 @@ export const enrollStudentUnits = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const membership = await officeMembership(context, "write");
     const db = await loadSgaAdminClient();
-    const schoolId = membership.schoolId;
-    await requireProgram(db, schoolId, data.programId);
-    await requireStudentInProgram(db, schoolId, data.studentId, data.programId);
-    const yearId = await activeYearId(db, schoolId);
-    if (!yearId) throw new Error("Não há ano lectivo activo para inscrever o estudante.");
-    const [{ units, prerequisites }, rows, regulation] = await Promise.all([
-      loadPlan(db, schoolId, data.programId),
-      loadRecords(db, schoolId, data.studentId, data.programId),
-      regulationOf(db, schoolId),
-    ]);
-    const indebted = await assertEnrollmentAllowed(db, schoolId, regulation, [data.studentId]);
-    if (indebted.has(data.studentId)) {
-      throw new Error(
-        "O estudante tem propinas vencidas por pagar: o regulamento não permite a inscrição.",
-      );
-    }
-    const records = rows.map((row) => row.record);
-    const selected = [...new Set(data.unitIds)].map((id) => {
-      const unit = units.find((u) => u.id === id);
-      if (!unit) throw new Error("Uma das cadeiras não pertence ao plano deste curso.");
-      return unit;
-    });
-    const batch = checkEnrollmentBatch({
-      selected,
-      plan: units,
-      prerequisites,
-      records,
+    const regulation = await regulationOf(db, membership.schoolId);
+    const result = await enrollUnitsFor(db, {
+      schoolId: membership.schoolId,
+      studentId: data.studentId,
+      programId: data.programId,
+      unitIds: data.unitIds,
+      actor: context.userId,
       regulation,
-      academicYearId: yearId,
     });
-    if (!batch.ok) {
-      const reasons = [
-        ...batch.limits,
-        ...[...batch.perUnit.values()].flatMap((check) => check.reasons),
-      ];
-      throw new Error(reasons.join(" "));
-    }
-    const attempts = new Map<string, number>();
-    for (const record of records) {
-      attempts.set(record.unitId, Math.max(attempts.get(record.unitId) ?? 0, record.attempt));
-    }
-    const { error } = await db.from("course_unit_enrollments").insert(
-      selected.map((unit) => ({
-        school_id: schoolId,
-        student_id: data.studentId,
-        academic_year_id: yearId,
-        program_id: data.programId,
-        program_subject_id: unit.id,
-        semester: academicSemesterOf(unit.semester),
-        credits: unit.credits,
-        attempt: (attempts.get(unit.id) ?? 0) + 1,
-        status: "inscrito",
-        credits_earned: 0,
-        created_by: context.userId,
-        updated_by: context.userId,
-      })),
-    );
-    if (error) throw publicDatabaseError(error, "Não foi possível inscrever o estudante.");
-    return { enrolled: selected.length, credits: batch.yearCredits };
+    return { enrolled: result.enrolled, credits: result.credits };
   });
 
 /** Estudantes com matrícula activa (ou pendente) numa turma de um ano do curso. */
@@ -1631,7 +1798,7 @@ export const recordUnitResult = createServerFn({ method: "POST" })
           season === "recurso"
             ? "Só vai a recurso quem reprovou na época normal."
             : season === "especial"
-              ? `A época especial é só para finalistas (até ${regulation.special_season_max_units} cadeiras em falta).`
+              ? `A época especial é só para finalistas (até ${regulation.special_season_max_units} cadeiras em falta)${regulation.worker_student_special_season ? " e trabalhadores-estudantes" : ""}.`
               : "Melhoria só depois de aprovar a cadeira, uma vez, se o regulamento a permitir.",
         );
       }
@@ -2015,6 +2182,165 @@ export const getMyHigherEd = createServerFn({ method: "GET" })
       });
     }
     return { programs: result };
+  });
+
+// ── Matrícula on-line (o estudante inscreve-se) ──────────────────────────────
+
+/** Só a conta do próprio estudante; o encarregado vê o percurso mas não inscreve. */
+async function ownStudent(userId: string) {
+  const membership = await resolveSgaMembershipAdmin(userId);
+  if (membership?.appRole !== "Aluno") return null;
+  return resolveVisibleStudent(userId);
+}
+
+/** Cursos superiores em que o estudante tem matrícula activa (ou pendente). */
+async function enrolledProgramsOf(db: Db, schoolId: string, studentId: string) {
+  const { data: enrollments } = await db
+    .from("enrollments")
+    .select("class_group_id")
+    .eq("school_id", schoolId)
+    .eq("student_id", studentId)
+    .in("status", ["active", "pending"]);
+  const groupIds = [...new Set((enrollments ?? []).map((e) => str(e.class_group_id)))];
+  if (!groupIds.length) return [];
+  const { data: groups } = await db
+    .from("class_groups")
+    .select("grade_level_id")
+    .eq("school_id", schoolId)
+    .in("id", groupIds);
+  const gradeIds = [...new Set(((groups ?? []) as Row[]).map((g) => str(g.grade_level_id)))];
+  if (!gradeIds.length) return [];
+  const { data: grades } = await db
+    .from("grade_levels")
+    .select("program_id")
+    .eq("school_id", schoolId)
+    .in("id", gradeIds);
+  const programIds = [
+    ...new Set(((grades ?? []) as Row[]).map((g) => str(g.program_id)).filter(Boolean)),
+  ];
+  if (!programIds.length) return [];
+  const { data: programs } = await db
+    .from("programs")
+    .select("id, name")
+    .eq("school_id", schoolId)
+    .in("kind", ["undergraduate", "postgraduate"])
+    .in("id", programIds)
+    .order("name");
+  return ((programs ?? []) as Row[]).map((p) => ({ id: str(p.id), name: str(p.name) }));
+}
+
+/**
+ * Cadeiras que o estudante pode escolher no portal, com o motivo das que estão
+ * bloqueadas. `enabled: false` quando a escola não abriu a matrícula on-line.
+ */
+export const getMyEnrollmentOffer = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const own = await ownStudent(context.userId);
+    if (!own) return { enabled: false as const };
+    const { db, schoolId, studentId } = own;
+    const regulation = await regulationOf(db, schoolId);
+    if (!regulation.student_self_enrollment) return { enabled: false as const };
+    const programs = await enrolledProgramsOf(db, schoolId, studentId);
+    if (!programs.length) return { enabled: false as const };
+    const yearId = await activeYearId(db, schoolId);
+    const blocked: string[] = [];
+    if (!yearId) blocked.push("Não há ano lectivo activo.");
+    const windowError = enrollmentWindowError(regulation, todayIso());
+    if (windowError) blocked.push(windowError);
+    if (regulation.block_enrollment_with_debt) {
+      const indebted = await studentsWithOverdueDebt(db, schoolId, [studentId]);
+      if (indebted.has(studentId)) {
+        blocked.push("Tem propinas vencidas por pagar: regularize-as na tesouraria.");
+      }
+    }
+    const offers = [];
+    for (const program of programs) {
+      const [{ units, prerequisites }, rows] = await Promise.all([
+        loadPlan(db, schoolId, program.id),
+        loadRecords(db, schoolId, studentId, program.id),
+      ]);
+      const records = rows.map((row) => row.record);
+      const offered = yearId
+        ? enrollmentOffer({
+            plan: units,
+            prerequisites,
+            records,
+            regulation,
+            academicYearId: yearId,
+          })
+        : [];
+      const creditsThisYear = yearId
+        ? records
+            .filter((r) => r.academicYearId === yearId && r.status === "inscrito")
+            .reduce((sum, r) => sum + r.credits, 0)
+        : 0;
+      offers.push({
+        program,
+        creditsThisYear,
+        units: offered.map((offer) => ({
+          id: offer.unit.id,
+          name: offer.unit.name,
+          semester: offer.unit.semester,
+          credits: offer.unit.credits,
+          state: offer.state,
+          reasons: offer.reasons,
+        })),
+      });
+    }
+    return {
+      enabled: true as const,
+      blocked,
+      limits: {
+        perYear: regulation.max_credits_per_year,
+        perSemester: regulation.max_credits_per_semester,
+      },
+      closesOn: regulation.enrollment_closes_on,
+      offers,
+    };
+  });
+
+/** O estudante inscreve-se em cadeiras: mesmas regras da secretaria, com auditoria. */
+export const enrollMyUnits = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .validator((input: unknown) =>
+    z
+      .object({
+        programId: z.string().uuid(),
+        unitIds: z.array(z.string().uuid()).min(1).max(30),
+      })
+      .parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    const own = await ownStudent(context.userId);
+    if (!own) throw new Error("Só o próprio estudante se inscreve nas cadeiras.");
+    const { db, schoolId, studentId } = own;
+    const regulation = await regulationOf(db, schoolId);
+    if (!regulation.student_self_enrollment) {
+      throw new Error("A inscrição em cadeiras faz-se na secretaria.");
+    }
+    const result = await enrollUnitsFor(db, {
+      schoolId,
+      studentId,
+      programId: data.programId,
+      unitIds: data.unitIds,
+      actor: context.userId,
+      regulation,
+    });
+    await audit(db, {
+      schoolId,
+      actor: context.userId,
+      action: "higher_ed.enrollment.self",
+      entityId: result.ids[0] ?? studentId,
+      metadata: {
+        student_id: studentId,
+        program_id: data.programId,
+        enrollment_ids: result.ids,
+        units: result.units,
+        credits: result.credits,
+      },
+    });
+    return { enrolled: result.enrolled, credits: result.credits };
   });
 
 // ── Acesso (exame de acesso e seriação) ─────────────────────────────────────
