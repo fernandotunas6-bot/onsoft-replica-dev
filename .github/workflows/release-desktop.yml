@@ -20,7 +20,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version: 24
       - run: node scripts/check-desktop.mjs
 
   build-tauri:
@@ -41,14 +41,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 22
-
-      # bun.lock é o ficheiro de dependências do projecto (o CI e o Lovable usam
-      # bun); não há package-lock.json na raiz.
-      - name: Setup Bun
-        uses: oven-sh/setup-bun@v2
-        with:
-          bun-version: latest
+          node-version: 24
 
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
@@ -56,10 +49,10 @@ jobs:
           targets: ${{ matrix.platform == 'macos-latest' && 'aarch64-apple-darwin,x86_64-apple-darwin' || '' }}
 
       - name: Install frontend dependencies
-        run: bun install --frozen-lockfile
+        run: npm ci --prefix desktop
 
-      - name: Validate launcher and release tag
-        run: bun run desktop:check
+      - name: Validate template and release tag
+        run: node scripts/check-desktop.mjs
 
       # Actualizações automáticas só com as duas chaves (docs/desktop/PUBLICAR_VERSOES.md).
       # Sem elas a versão sai sem updater e a app continua a abrir.
@@ -77,6 +70,7 @@ jobs:
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         with:
+          tauriScript: npm run tauri
           tagName: ${{ github.ref_name }}
           releaseName: "SIGA Desktop ${{ github.ref_name }}"
           releaseBody: "Nova versão instalável do SIGA Desktop."

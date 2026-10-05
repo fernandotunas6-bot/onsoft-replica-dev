@@ -1,0 +1,7 @@
+{
+  "repository": "https://github.com/dannysmith/tauri-template",
+  "commit": "437a18b9b63924833857f299217a5270f009d120",
+  "license": "MIT",
+  "adopted": "2026-10-05",
+  "nativeDirectory": "../src-tauri"
+}

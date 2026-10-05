@@ -15,7 +15,7 @@ escola teria de reinstalar à mão).
 1. Num computador de confiança, com o projecto instalado:
 
    ```sh
-   bun run tauri signer generate -w ~/.tauri/siga-desktop.key
+   npm run tauri -- signer generate -w ~/.tauri/siga-desktop.key
    ```
 
    Escolha uma palavra-passe. Ficam dois ficheiros: `siga-desktop.key` (privada) e
@@ -35,19 +35,19 @@ instaladas antes disso têm de ser substituídas uma vez à mão.
 
 ## 2. Cada versão
 
-1. Subir a versão nos três sítios, com o mesmo número (o workflow recusa se não
+1. Subir a versão nos quatro sítios, com o mesmo número (o workflow recusa se não
    coincidirem): `src-tauri/tauri.conf.json` (`version`), `src-tauri/Cargo.toml`
-   (`version`) e o `Cargo.lock` (`cd src-tauri && cargo update -p siga-desktop`).
+   (`version`) `desktop/package.json` (com `npm install --package-lock-only` em desktop) e o `Cargo.lock` (`cd src-tauri && cargo update -p siga-desktop`).
 2. Juntar isso ao `main` e criar a tag:
 
    ```sh
-   git tag v1.0.1
-   git push origin v1.0.1
+   git tag v1.1.0
+   git push origin v1.1.0
    ```
 
 O workflow constrói os instaladores num **rascunho** de release. Nada chega às escolas até:
 
-1. Abrir **Releases**, rever o rascunho `SIGA Desktop v1.0.1` e escrever as novidades.
+1. Abrir **Releases**, rever o rascunho `SIGA Desktop v1.1.0` e escrever as novidades.
 2. Carregar em **Publish release**.
 
 A partir daí, as apps instaladas (com chave configurada) mostram, 15 s depois de abrir,
@@ -69,11 +69,11 @@ Sem ela a app funciona, mas o sistema avisa na primeira abertura:
 ## Verificar localmente (Linux)
 
 ```sh
-bun run tauri signer generate -w /tmp/teste.key --ci -p ""
+npm run tauri -- signer generate -w /tmp/teste.key --ci -p ""
 UPDATER_PUBKEY="$(cat /tmp/teste.key.pub)" HAS_PRIVATE_KEY=true \
   REPO=dono/repo node scripts/desktop/release-config.mjs
 TAURI_SIGNING_PRIVATE_KEY="$(cat /tmp/teste.key)" TAURI_SIGNING_PRIVATE_KEY_PASSWORD="" \
-  bun run tauri build --bundles deb --config src-tauri/tauri.release.conf.json -- --locked
+  npm run tauri -- build --bundles deb --config src-tauri/tauri.release.conf.json -- --locked
 ```
 
 O `.deb` sai com o `.sig` ao lado. Apague `src-tauri/tauri.release.conf.json` no fim
