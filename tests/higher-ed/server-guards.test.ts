@@ -42,9 +42,28 @@ describe("Ensino Superior no servidor", () => {
   });
 
   it("inscrição: motor e regulamento validam antes de inserir; estudante tem de ser do curso", () => {
-    const body = fn("enrollStudentUnits");
+    const start = source.indexOf("async function enrollUnitsFor");
+    const body = source.slice(start, source.indexOf("export const ", start));
     expect(body).toContain("requireStudentInProgram(");
+    expect(body).toContain("assertEnrollmentAllowed(");
     expect(body.indexOf("checkEnrollmentBatch(")).toBeLessThan(body.indexOf(".insert("));
+    expect(fn("enrollStudentUnits")).toContain("enrollUnitsFor(db");
+  });
+
+  it("matrícula on-line: só o próprio estudante, só com o regulamento aberto, auditada", () => {
+    const own = source.slice(
+      source.indexOf("async function ownStudent"),
+      source.indexOf("async function enrolledProgramsOf"),
+    );
+    expect(own).toContain('appRole !== "Aluno"');
+    const body = fn("enrollMyUnits");
+    expect(body).toContain("ownStudent(context.userId)");
+    expect(body).not.toContain("studentId: z.");
+    expect(body.indexOf("regulation.student_self_enrollment")).toBeLessThan(
+      body.indexOf("enrollUnitsFor(db"),
+    );
+    expect(body).toContain('action: "higher_ed.enrollment.self"');
+    expect(fn("getMyEnrollmentOffer")).toContain("regulation.student_self_enrollment");
   });
 
   it("resultados: só professor da cadeira ou coordenação, época validada, auditoria", () => {
@@ -85,8 +104,64 @@ describe("Ensino Superior no servidor", () => {
   it("histórico académico: só secretaria, estudante da escola", () => {
     const body = fn("getStudentTranscript");
     expect(body).toContain('officeMembership(context, "read")');
-    expect(body).toContain("Estudante não encontrado nesta escola.");
-    expect(body).toContain("transcriptLines(");
+    expect(body).toContain("buildTranscript(db, membership.schoolId, data)");
+    const build = source.slice(
+      source.indexOf("async function buildTranscript"),
+      source.indexOf("export const getStudentTranscript"),
+    );
+    expect(build).toContain("Estudante não encontrado nesta escola.");
+    expect(build).toContain("transcriptLines(");
+  });
+
+  it("trabalhador-estudante: secretaria com 2FA, auditado, e a base sem a tabela não parte nada", () => {
+    for (const [name, label, action] of [
+      [
+        "grantWorkerStudentStatus",
+        "Atribuir o estatuto de trabalhador-estudante",
+        "higher_ed.worker_student.granted",
+      ],
+      [
+        "revokeWorkerStudentStatus",
+        "Retirar o estatuto de trabalhador-estudante",
+        "higher_ed.worker_student.revoked",
+      ],
+    ] as const) {
+      const body = fn(name);
+      expect(body, name).toContain('officeMembership(context, "write")');
+      expect(body, name).toContain(`requireAal2(context.claims, "${label}")`);
+      expect(body, name).toContain(`action: "${action}"`);
+      expect(body, name).toContain("throw new Error(MISSING_STATUS_TABLE)");
+    }
+    // Ler o estatuto com a tabela por criar devolve «sem estatuto», não um erro.
+    const rows = source.slice(
+      source.indexOf("async function workerStudentRows"),
+      source.indexOf("function isWorkerStudent"),
+    );
+    expect(rows).toContain("if (isMissingTable(error)) return [];");
+    // O lançamento e a pauta aplicam o estatuto do ano da inscrição.
+    expect(fn("recordUnitResult")).toContain(
+      "frequencyOutcome(data.frequency, data.absencePercent, regulation, {",
+    );
+    expect(fn("recordUnitResult")).toContain("latestRecord.academicYearId");
+  });
+
+  it("certificado de conclusão: secretaria com 2FA, só concluído, número e código, uma vez", () => {
+    const body = fn("issueHigherEdCertificate");
+    expect(body).toContain('officeMembership(context, "write")');
+    expect(body).toContain('requireAal2(context.claims, "Emitir o certificado de conclusão")');
+    expect(body).toContain("if (transcript.certificate) return transcript.certificate;");
+    expect(body).toContain("O estudante ainda não concluiu o curso");
+    // Número da série oficial de certificados e código do registo de /verificar.
+    expect(body).toMatch(
+      /rpc\("next_document_number_service", \{[^}]*document_type: "certificate"/,
+    );
+    expect(body).toContain("generateVerificationCode()");
+    expect(body).toContain("action: ISSUED_DOCUMENT_ACTION");
+    expect(body).toContain("template: HIGHER_ED_CERTIFICATE_TEMPLATE");
+    // Sem registo, o documento diria que é verificável e não é.
+    expect(body).toMatch(
+      /if \(error\) throw publicDatabaseError\(error, "Não foi possível registar/,
+    );
   });
 
   it("portal: estudante e encarregado só vêem o próprio percurso", () => {
@@ -150,7 +225,9 @@ describe("Ensino Superior no servidor", () => {
   });
 
   it("regras opcionais: inscrições verificam período e dívida; anulação tardia exige 2FA", () => {
-    expect(fn("enrollStudentUnits")).toContain("assertEnrollmentAllowed(");
+    // Individual e matrícula on-line passam por enrollUnitsFor (ver acima).
+    expect(fn("enrollStudentUnits")).toContain("enrollUnitsFor(db");
+    expect(fn("enrollMyUnits")).toContain("enrollUnitsFor(db");
     expect(fn("enrollCohort")).toContain("assertEnrollmentAllowed(");
     expect(fn("cancelUnitEnrollment")).toContain(
       'requireAal2(context.claims, "Anular uma inscrição fora do prazo")',

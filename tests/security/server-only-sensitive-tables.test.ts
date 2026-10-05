@@ -43,6 +43,10 @@ const MIGRATIONS = {
     "siga_lesson_plans",
     "siga_lesson_plan_components",
   ],
+  // Estatuto de trabalhador-estudante: situação laboral do estudante.
+  "supabase/migrations/20261004150000_higher_ed_student_statuses.sql": [
+    "higher_ed_student_statuses",
+  ],
 };
 
 const read = (path: string) => readFileSync(join(process.cwd(), path), "utf8");

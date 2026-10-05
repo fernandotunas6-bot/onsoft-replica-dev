@@ -73,6 +73,11 @@ from (values
       where pubname = 'supabase_realtime' and schemaname = 'public'
         and tablename in ('siga_direct_messages', 'students', 'enrollments',
                           'enrollment_applications', 'finance_invoices', 'finance_receipts')) = 6),
+  -- Esta está no pacote docs/agents/SIGA_aplicar_trabalhador_estudante.sql.
+  ('20261004150000_higher_ed_student_statuses',
+     to_regclass('public.higher_ed_student_statuses') is not null
+     and not coalesce(has_table_privilege('authenticated',
+       to_regclass('public.higher_ed_student_statuses'), 'SELECT'), true)),
   -- Estas duas estão no pacote docs/agents/SIGA_aplicar_multas_atraso.sql.
   ('20261004140000_late_fee_one_rule',
      to_regprocedure('private.late_fee_due(uuid, numeric, date, numeric, date, text)') is not null
