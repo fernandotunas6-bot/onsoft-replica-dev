@@ -68,6 +68,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { SchemaMissingBanner, isSchemaMissingError } from "@/components/ui/schema-missing-banner";
+import { schoolTodayIso } from "@/lib/school-date";
 
 type TurnstileDeviceRow = {
   id: string;
@@ -265,7 +266,7 @@ export function TurnstileAccessPanel() {
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `catracas-siga-offline-${new Date().toISOString().slice(0, 10)}.json`;
+      a.download = `catracas-siga-offline-${schoolTodayIso()}.json`;
       a.click();
       URL.revokeObjectURL(url);
       toast.success(`Exportados ${res.totalCards} cartões ativos para controladores offline.`);

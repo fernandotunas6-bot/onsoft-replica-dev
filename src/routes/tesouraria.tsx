@@ -15,6 +15,7 @@ import {
   ChargeInvoiceButton,
   useAppyPayStatus,
 } from "@/features/finance/AppyPayPanel";
+import { schoolTodayIso } from "@/lib/school-date";
 
 export const Route = createFileRoute("/tesouraria")({
   head: () => ({
@@ -83,7 +84,7 @@ function TreasuryPage() {
   const summary = reporting.data?.summary;
   const monthly = reporting.data?.monthly ?? [];
   const maxMonth = Math.max(1, ...monthly.map((m) => Math.max(m.received, m.expense)));
-  const today = new Date().toISOString().slice(0, 10);
+  const today = schoolTodayIso();
 
   const pending = useMemo(() => {
     const list = (invoices.data ?? [])

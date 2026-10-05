@@ -2,6 +2,7 @@ import { findBestPersonMatch } from "../engine/dedupe";
 import { normalizeText } from "../engine/normalize";
 import type { ImportRefCache, RowImporter } from "../engine/types";
 import { loadExistingPeople, personCandidateFromRow, resolveOrCreatePerson } from "./people-core";
+import { schoolTodayIso } from "@/lib/school-date";
 
 type ProfessorCache = ImportRefCache & {
   teacherByPersonId: Map<string, { id: string; employee_number: string; status: string }>;
@@ -147,7 +148,7 @@ export const professoresImporter: RowImporter = {
         school_id: ctx.schoolId,
         person_id: personResult.personId,
         employee_number: employeeNumber,
-        hired_on: new Date().toISOString().slice(0, 10),
+        hired_on: schoolTodayIso(),
         employment_type: "permanent",
         highest_qualification: "bachelor",
         status: "active",

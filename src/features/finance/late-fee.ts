@@ -1,4 +1,5 @@
 import type { BillingSettings } from "@/features/school/settings-domains";
+import { schoolTodayIso } from "@/lib/school-date";
 
 /**
  * Multa por atraso: uma regra só, igual à de `private.late_fee_due`
@@ -69,7 +70,7 @@ export function lateFeeFor(
   return feeCents / 100;
 }
 
-/** Data de hoje (`YYYY-MM-DD`, UTC), a mesma que os pagamentos gravam em `paid_on`. */
+/** Data de hoje na escola (`YYYY-MM-DD`, Luanda), a mesma que os pagamentos gravam em `paid_on`. */
 export function todayIso() {
-  return new Date().toISOString().slice(0, 10);
+  return schoolTodayIso();
 }

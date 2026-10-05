@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { schoolTodayIso } from "@/lib/school-date";
 import { invoiceNetTotal } from "@/features/finance/invoice-settlement";
 
 export type PersonAcademicSummary = {
@@ -174,7 +175,7 @@ export async function resolvePersonContext(
           );
         }
 
-        const today = new Date().toISOString().slice(0, 10);
+        const today = schoolTodayIso();
         let balance = 0;
         let overdueCount = 0;
         for (const invoice of invoices ?? []) {
