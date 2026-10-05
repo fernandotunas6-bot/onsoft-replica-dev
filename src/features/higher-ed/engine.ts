@@ -782,6 +782,7 @@ export function decodeJuryDecision(notes: string | null | undefined): DoctoralMe
 
 /** Grau conferido, como aparece no certificado. */
 export const DEGREE_TITLE = {
+  bacharelato: "Bacharel",
   licenciatura: "Licenciado",
   mestrado: "Mestre",
   doutoramento: "Doutor",
