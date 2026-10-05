@@ -182,7 +182,7 @@ function HigherEdPage() {
   );
 }
 
-/** Excel com Vagas, Acesso, Matrículas e Graduados para o SISIES (MESCTI). */
+/** Excel com Vagas, Acesso, Matrículas, Graduados e Bolsas para o SISIES (MESCTI). */
 function SisiesExportButton() {
   const run = useMutation({
     mutationFn: () => exportSisiesWorkbook(),

@@ -75,6 +75,7 @@ import {
   type UnitRecord,
 } from "./engine";
 import { schoolTodayIso } from "@/lib/school-date";
+import { SCHOLARSHIP_KINDS, scholarsByProgram } from "@/features/finance/scholarships";
 
 type Db = Awaited<ReturnType<typeof loadSgaAdminClient>>;
 type Row = Record<string, unknown>;
@@ -2468,7 +2469,7 @@ const REGIME_TEXT = { regular: "Regular", pos_laboral: "Pós-laboral" } as const
 
 /**
  * Ficheiro Excel com as bases que o GEPE/MESCTI recolhe pelo SISIES e que o
- * SIGA conhece: Vagas, Acesso, Matrículas e Graduados (por curso, no ano activo).
+ * SIGA conhece: Vagas, Acesso, Matrículas, Graduados e Bolsas (por curso, no ano activo).
  */
 export const exportSisiesWorkbook = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -2542,10 +2543,12 @@ export const exportSisiesWorkbook = createServerFn({ method: "POST" })
     );
     type Count = { total: number; m: number; f: number; byYear: Map<number, number> };
     const enrolledBy = new Map<string, Count>();
+    const programOfStudent = new Map<string, string>();
     for (const enrollment of (enrollments ?? []) as Row[]) {
       const grade = gradeById.get(gradeOfGroup.get(str(enrollment.class_group_id)) ?? "");
       if (!grade) continue;
       const programId = str(grade.program_id);
+      programOfStudent.set(str(enrollment.student_id), programId);
       const count = enrolledBy.get(programId) ?? { total: 0, m: 0, f: 0, byYear: new Map() };
       const sex = sexOfStudent.get(str(enrollment.student_id));
       count.total += 1;
@@ -2555,6 +2558,31 @@ export const exportSisiesWorkbook = createServerFn({ method: "POST" })
       count.byYear.set(sequence, (count.byYear.get(sequence) ?? 0) + 1);
       enrolledBy.set(programId, count);
     }
+
+    // Bolsas: bolseiros matriculados com bolsa em vigor hoje (`student_scholarships`).
+    // Sem a tabela (migração por aplicar) a folha sai com zeros.
+    const { data: scholarshipRows } = studentIds.length
+      ? await db
+          .from("student_scholarships")
+          .select("student_id, kind, percent, scope, valid_from, valid_until, revoked_at")
+          .eq("school_id", schoolId)
+          .in("student_id", studentIds)
+          .is("revoked_at", null)
+      : { data: [] };
+    const scholarsBy = scholarsByProgram(
+      ((scholarshipRows ?? []) as Row[]).map((row) => ({
+        student_id: str(row.student_id),
+        kind: str(row.kind),
+        percent: Number(row.percent),
+        scope: str(row.scope),
+        valid_from: str(row.valid_from),
+        valid_until: row.valid_until ? str(row.valid_until) : null,
+        revoked_at: null,
+      })),
+      programOfStudent,
+      sexOfStudent,
+      schoolTodayIso(),
+    );
 
     // Acesso: candidaturas pelo curso pretendido.
     const { data: applications } = await db
@@ -2641,6 +2669,16 @@ export const exportSisiesWorkbook = createServerFn({ method: "POST" })
     ]);
     const graduados = workbook.addWorksheet("Graduados");
     header(graduados, ["Código", "Curso", "Grau", "Graduados", "Classificação média"]);
+    const bolsas = workbook.addWorksheet("Bolsas");
+    header(bolsas, [
+      "Código",
+      "Curso",
+      "Grau",
+      "Bolseiros",
+      "Masculino",
+      "Feminino",
+      ...SCHOLARSHIP_KINDS.map((kind) => kind.label),
+    ]);
     for (const program of programs) {
       const id = str(program.id);
       const profile = profileOf(id);
@@ -2684,6 +2722,16 @@ export const exportSisiesWorkbook = createServerFn({ method: "POST" })
               (graduates.averages.reduce((a, b) => a + b, 0) / graduates.averages.length) * 10,
             ) / 10
           : "",
+      ]);
+      const scholars = scholarsBy.get(id);
+      bolsas.addRow([
+        code,
+        name,
+        DEGREE_TEXT[profile.degree],
+        scholars?.total ?? 0,
+        scholars?.m ?? 0,
+        scholars?.f ?? 0,
+        ...SCHOLARSHIP_KINDS.map((kind) => scholars?.byKind[kind.value] ?? 0),
       ]);
     }
     const buffer = await workbook.xlsx.writeBuffer();

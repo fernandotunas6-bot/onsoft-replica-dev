@@ -63,3 +63,50 @@ export function discountAmountFor(amount: number, percent: number) {
   if (!(percent > 0)) return 0;
   return Math.round(((amount * percent) / 100) * 100) / 100;
 }
+
+export type ScholarCount = {
+  total: number;
+  m: number;
+  f: number;
+  byKind: Record<ScholarshipKind, number>;
+};
+
+/**
+ * Bolseiros por curso, para a base «Bolsas» do SISIES: estudantes matriculados com uma
+ * bolsa em vigor em `on`. Cada estudante conta uma vez, pelo tipo da bolsa de maior
+ * percentagem.
+ */
+export function scholarsByProgram(
+  rows: readonly (ScholarshipRow & { student_id: string; kind: string })[],
+  programOfStudent: ReadonlyMap<string, string>,
+  sexOfStudent: ReadonlyMap<string, string>,
+  on: string,
+): Map<string, ScholarCount> {
+  const best = new Map<string, { kind: ScholarshipKind; percent: number }>();
+  for (const row of rows) {
+    if (!scholarshipInForce(row, on) || !programOfStudent.has(row.student_id)) continue;
+    const kind = (
+      SCHOLARSHIP_KINDS.some((k) => k.value === row.kind) ? row.kind : "other"
+    ) as ScholarshipKind;
+    const percent = Number(row.percent) || 0;
+    const current = best.get(row.student_id);
+    if (!current || percent > current.percent) best.set(row.student_id, { kind, percent });
+  }
+  const counts = new Map<string, ScholarCount>();
+  for (const [studentId, { kind }] of best) {
+    const programId = programOfStudent.get(studentId)!;
+    const count = counts.get(programId) ?? {
+      total: 0,
+      m: 0,
+      f: 0,
+      byKind: { merit: 0, social: 0, staff: 0, institutional: 0, other: 0 },
+    };
+    count.total += 1;
+    const sex = sexOfStudent.get(studentId);
+    if (sex === "M") count.m += 1;
+    if (sex === "F") count.f += 1;
+    count.byKind[kind] += 1;
+    counts.set(programId, count);
+  }
+  return counts;
+}

@@ -45,14 +45,14 @@ injustificadas às aulas dadas no semestre.
 | Modalidade (presencial/semipresencial/distância) e regime (regular/pós-laboral) por curso | ✅ |
 | Vagas por curso e exame de acesso (nota, seriação) | ✅ separador «Acesso» |
 | Estatuto trabalhador-estudante (faltas, época especial) | ✅ com prova, datas e 2FA |
-| Exportação para o SISIES/GEPE (Vagas, Acesso, Matrículas, Graduados) | ✅ Excel |
+| Exportação para o SISIES/GEPE (Vagas, Acesso, Matrículas, Graduados, Bolsas) | ✅ Excel |
 | Diploma / carta de curso registado com QR | ✅ certificado de conclusão emitido com 2FA, uma vez por curso |
 | Bolsas | ✅ desconto por estudante na emissão das faturas (2026-10-05) |
 | Lista de espera por turma | ✅ turma cheia na aceitação → fila; a secretaria coloca pela ordem (2026-10-05) |
 
 ## Pendente (precisa de migração ou de decisão)
 
-- Turnos (vários horários da mesma cadeira). Bolsas na base Bolsas da exportação SISIES.
+- Turnos (vários horários da mesma cadeira).
 
 ## Comparação com outros sistemas académicos
 
