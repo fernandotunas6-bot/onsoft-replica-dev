@@ -56,6 +56,11 @@ import {
 } from "./saft-export";
 import { higherEdFeeCodeForCategory } from "@/features/higher-ed/fees";
 import { schoolTodayIso } from "@/lib/school-date";
+import {
+  formatInvoiceNumber,
+  invoiceYearForSchool,
+  loadNextInvoiceSequence,
+} from "./invoice-numbering";
 
 const REPORTING_PAGE_SIZE = 1000;
 const REPORTING_MAX_PAGES = 30;
@@ -1156,19 +1161,14 @@ export const issueInvoice = createServerFn({ method: "POST" })
 
     // Número gerado pelo servidor (nunca pelo cliente) para nunca aceitar texto livre
     // (ex.: nº de processo do aluno colado por engano) na numeração fiscal FT-AAAA/NNNN.
-    const invoiceYear = new Date().getFullYear();
-    const { count: yearInvoiceCount } = await db
-      .from("finance_invoices")
-      .select("id", { count: "exact", head: true })
-      .eq("school_id", membership.schoolId)
-      .like("invoice_number", `FT-${invoiceYear}/%`);
-    let sequence = (yearInvoiceCount ?? 0) + 1;
+    const invoiceYear = invoiceYearForSchool();
+    let sequence = await loadNextInvoiceSequence(db, membership.schoolId, invoiceYear);
 
     let invoice: Record<string, unknown> | null = null;
     let invoiceNumber = "";
     let error: { code?: string; message: string } | null = null;
     for (let attempt = 0; attempt < 5; attempt += 1) {
-      invoiceNumber = `FT-${invoiceYear}/${String(sequence).padStart(4, "0")}`;
+      invoiceNumber = formatInvoiceNumber(invoiceYear, sequence);
       const result = await db
         .from("finance_invoices")
         .insert({

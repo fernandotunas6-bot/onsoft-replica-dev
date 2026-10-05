@@ -1,4 +1,8 @@
 import { normalizeDate, normalizeNumber, normalizeText } from "../engine/normalize";
+import {
+  invoiceYearForSchool,
+  loadNextInvoiceSequence,
+} from "@/features/finance/invoice-numbering";
 import type { ImportRefCache, RowImporter } from "../engine/types";
 import { loadStudentRefs, uniqueExactMatch, type StudentRef } from "./academic-core";
 import {
@@ -55,6 +59,7 @@ export const dividasImporter: RowImporter = {
     const existingInvoiceNumbers = new Set(
       (invoiceRows.data ?? []).map((r) => normalizeText(r.invoice_number)).filter(Boolean),
     );
+    const invoiceYear = invoiceYearForSchool();
 
     return {
       existingPeople: [],
@@ -66,8 +71,9 @@ export const dividasImporter: RowImporter = {
       feeItems,
       existingInvoiceNumbers,
       contractCache: new Map(),
-      invoiceYear: new Date().getFullYear(),
-      invoiceSequence: 1,
+      invoiceYear,
+      // Continua a numeração da escola: começar em 1 colidia com as faturas do ano.
+      invoiceSequence: await loadNextInvoiceSequence(ctx.db, ctx.schoolId, invoiceYear),
     } as DividasCache;
   },
 
