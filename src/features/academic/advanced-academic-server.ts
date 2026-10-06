@@ -274,6 +274,38 @@ export const updateRoom = createServerFn({ method: "POST" })
     );
     const db = await loadSgaAdminClient();
 
+    // Desactivar uma sala em uso deixava aulas activas do horário e turmas a
+    // apontar para uma sala que já não aparece para escolher (auditoria 13).
+    if (data.status === "inactive") {
+      const [slots, groups] = await Promise.all([
+        db
+          .from("timetable_slots")
+          .select("id", { count: "exact", head: true })
+          .eq("school_id", membership.schoolId)
+          .eq("room_id", data.id)
+          .eq("status", "active"),
+        db
+          .from("class_groups")
+          .select("id", { count: "exact", head: true })
+          .eq("school_id", membership.schoolId)
+          .eq("room_id", data.id)
+          .eq("status", "active"),
+      ]);
+      if (slots.error)
+        throw publicDatabaseError(slots.error, "Não foi possível verificar o horário.");
+      if (groups.error)
+        throw publicDatabaseError(groups.error, "Não foi possível verificar as turmas.");
+      const inUse = [
+        slots.count ? `${slots.count} aula(s) activa(s) no horário` : null,
+        groups.count ? `${groups.count} turma(s) como sala própria` : null,
+      ].filter(Boolean);
+      if (inUse.length) {
+        throw new Error(
+          `Esta sala está em uso (${inUse.join(" e ")}). Mude-as para outra sala antes de a desactivar.`,
+        );
+      }
+    }
+
     const updatePayload: TablesUpdate<"rooms"> = {
       updated_by: context.userId,
     };
