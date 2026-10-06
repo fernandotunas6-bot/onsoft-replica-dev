@@ -45,6 +45,10 @@ instaladas antes disso têm de ser substituídas uma vez à mão.
    git push origin v1.1.0
    ```
 
+   Sem acesso a enviar tags: **Actions → Release Desktop App (Tauri) → Run workflow**, no
+   `main`, com a versão (`1.1.0`). O workflow confirma que é a versão da app, cria a tag
+   `v1.1.0` no commit do `main` e compila.
+
 O workflow constrói os instaladores num **rascunho** de release. Nada chega às escolas até:
 
 1. Abrir **Releases**, rever o rascunho `SIGA Desktop v1.1.0` e escrever as novidades.
