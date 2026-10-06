@@ -7,17 +7,22 @@ Depois abrir o skill do módulo em `.cursor/skills/`.
 ## Auditoria 13 — fluxos da escola (2026-10-06)
 
 Relatório: [13-auditoria-fluxos-2026-10-06.md](../auditoria/13-auditoria-fluxos-2026-10-06.md).
-Só código; nenhuma migração, nada escrito na produção.
+Nada escrito na produção; duas migrações escritas e ensaiadas, por aplicar.
 
 - **Corrigido:** importação em páginas (`import/engine/paged.ts`; antes cortava a 1000/2000 e
   passava listas de ids gigantes); um lote que lança já não perde o registo de reversão;
   limite de alunos do plano também ao aceitar candidaturas e ao importar; formulário público
   fechado a escolas arquivadas/suspensas/trial expirado; `enrollStudentInClass` só com a
   matrícula corrente; nota acima da cotação e cotação abaixo das notas recusadas.
-- **Aberto, decisão do dono (A1):** a suspensão e o fim do trial só existem no ecrã; o
-  servidor e a RLS não os verificam. Também abertos: datas do ano lectivo sem verificar
-  os períodos (A2), quota de armazenamento nunca aplicada (A3), anular matrícula/mudar estado
-  do aluno sem acertar o outro lado (A4).
+- **Segunda passagem:** quota de arquivo do plano aplicada (A3); horário publicado arquiva
+  as versões anteriores (A5); `listEnrollments` com âmbito do professor (A6); subdomínio
+  reservado recusado no passo 6 do WEB (A7); limite real de 2 MB no logótipo.
+- **Por aplicar (dono, SQL Editor):** `docs/agents/SIGA_aplicar_auditoria13_2026-10-06.sql`
+  — `20261006180000` (datas do ano lectivo cobrem os períodos, A2) e `20261006181000`
+  (bucket `school-logos` sem SVG, A8). Ensaios em `tests/sql/`. Depois: recapturar o retrato.
+- **Aberto, decisão do dono:** A1 — a suspensão e o fim do trial só existem no ecrã (o
+  servidor e a RLS não os verificam); A4 — anular matrícula / mudar estado do aluno sem
+  acertar o outro lado.
 
 ## Verificação por níveis: um toque, código só por recurso (2026-10-06)
 
@@ -49,7 +54,7 @@ Só código; nenhuma migração, nada escrito na produção.
 
 Levantamento completo: [estado-deploy-2026-10-06.md](../auditoria/estado-deploy-2026-10-06.md).
 
-- **Migrações: nada por aplicar.** As três que faltavam de facto foram aplicadas a 06/10
+- **Migrações:** desde a auditoria 13 há **2 por aplicar** (secção acima). Antes dela, nada por aplicar. As três que faltavam de facto foram aplicadas a 06/10
   (`20261005030000_school_row_role_policies`, `20261005150000_fee_items_grade_level`,
   `20261006100000_enrollment_class_change`) e registadas no histórico. As
   `20261005010000` e `20261005020000`, que os relatórios davam por pendentes, **já
