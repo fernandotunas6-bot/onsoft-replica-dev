@@ -101,6 +101,10 @@ from (values
      exists (select 1 from information_schema.columns
              where table_schema = 'public' and table_name = 'fee_items'
                and column_name = 'grade_level_id')
-     and to_regclass('public.fee_items_plan_grade_kind_active_key') is not null)
+     and to_regclass('public.fee_items_plan_grade_kind_active_key') is not null),
+  -- Esta está no pacote docs/agents/SIGA_aplicar_mudar_turma.sql.
+  ('20261005160000_enrollment_class_change',
+     coalesce(position('A turma atingiu a capacidade' in pg_get_functiondef(
+       to_regprocedure('private.protect_enrollment_identity()'))) > 0, false))
 ) as m(migracao, ok)
 order by migracao;
