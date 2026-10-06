@@ -2,6 +2,11 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { resolveSgaMembership, sgaClient, type SgaMembershipContext } from "./sga";
 import { GRANT_ELEVATABLE_ROLES, type ApplicationRole } from "@/features/auth/access-policy";
 import { ACTIVE_SCHOOL_UNAVAILABLE } from "@/features/auth/active-school";
+import {
+  getTenantAccessBlock,
+  type TenantAccessBlockReason,
+  type TenantAccessSnapshot,
+} from "@/features/saas/tenant-access";
 
 export async function loadSgaAdminClient() {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
@@ -197,6 +202,51 @@ export async function assertModuleNotBlocked(
   }
 }
 
+/** Mesmo texto do ecrã de bloqueio (`TenantProvider`), para a pessoa reconhecer o motivo. */
+const TENANT_WRITE_BLOCKED: Record<TenantAccessBlockReason | "archived_school", string> = {
+  suspended:
+    "A assinatura desta escola está suspensa: os dados podem ser consultados, mas não alterados. Regularize a assinatura no portal comercial.",
+  trial_expired:
+    "O período experimental terminou: os dados podem ser consultados, mas não alterados. Escolha um plano para continuar a usar o SIGA Plus.",
+  cancelled:
+    "A subscrição desta escola foi cancelada: os dados podem ser consultados, mas não alterados. Reactive-a no portal comercial.",
+  archived_school: "Esta escola está arquivada: os dados podem ser consultados, mas não alterados.",
+};
+
+/**
+ * Escola suspensa, cancelada, arquivada ou com o trial terminado não grava
+ * (auditoria 13, A1). Até aqui o bloqueio vivia só no ecrã (`TenantProvider`):
+ * o servidor aceitava escritas de qualquer cliente que não montasse esse ecrã.
+ * As leituras continuam (a escola pode consultar e exportar os seus dados) e o
+ * pagamento da assinatura usa outro guarda (`requireSchoolAdminTenant`).
+ *
+ * Falha fechado: sem confirmar o estado, não se grava.
+ */
+export async function assertTenantAllowsWrites(schoolId: string, now = new Date()): Promise<void> {
+  const db = await loadSgaAdminClient();
+  const { data: school, error } = await db
+    .from("schools")
+    .select("status, tenant_id")
+    .eq("id", schoolId)
+    .maybeSingle();
+  if (error) {
+    throw new Error("Não foi possível confirmar o estado da escola. Tente novamente.");
+  }
+  if (!school) throw new Error("Escola não encontrada.");
+  if (school.status === "archived") throw new Error(TENANT_WRITE_BLOCKED.archived_school);
+  if (!school.tenant_id) return;
+  const { data: tenant, error: tenantError } = await db
+    .from("tenants")
+    .select("status, subscription_status, trial_ends_at")
+    .eq("id", school.tenant_id)
+    .maybeSingle();
+  if (tenantError) {
+    throw new Error("Não foi possível confirmar o estado da assinatura. Tente novamente.");
+  }
+  const access = getTenantAccessBlock(tenant as TenantAccessSnapshot | null, now);
+  if (access.blocked) throw new Error(TENANT_WRITE_BLOCKED[access.reason ?? "suspended"]);
+}
+
 type SgaWriterArgs = [
   clientOrUserId: SupabaseClient | string,
   userIdOrRoles?: string | ApplicationRole[],
@@ -219,11 +269,15 @@ async function requireSgaWriterWithMode(
   if (!membership) throw new Error("Sem membership activa nesta escola.");
   if (allowedRoles.includes(membership.appRole)) {
     await assertModuleNotBlocked(membership.schoolId, userId, moduleKey, mode);
+    if (mode === "write") await assertTenantAllowsWrites(membership.schoolId);
     return membership;
   }
   // Sem o cargo: só entra se a Administração lhe deu esta permissão por módulo.
   const level = await readModuleGrant(membership.schoolId, userId, moduleKey);
-  if (grantElevates(membership.appRole, allowedRoles, level, mode)) return membership;
+  if (grantElevates(membership.appRole, allowedRoles, level, mode)) {
+    if (mode === "write") await assertTenantAllowsWrites(membership.schoolId);
+    return membership;
+  }
   throw new Error("Sem permissão para esta operação na escola.");
 }
 
