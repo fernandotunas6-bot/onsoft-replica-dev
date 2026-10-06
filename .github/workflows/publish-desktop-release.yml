@@ -3,7 +3,9 @@ name: Publicar versão do SIGA Desktop
 # O release-desktop.yml deixa cada versão em rascunho (as escolas não a vêem).
 # Este workflow publica-a com um clique (Actions → Run workflow), só depois de
 # confirmar que os instaladores com nome fixo estão lá: são esses que o site
-# (painel/web, /download) oferece em releases/latest/download/<nome>.
+# (painel/web, /download) oferece em releases/latest/download/<nome>. Junta também
+# SHA256SUMS.txt, com as somas desses ficheiros. Pode correr de novo numa versão já
+# publicada (actualiza as somas).
 on:
   workflow_dispatch:
     inputs:
@@ -47,5 +49,12 @@ jobs:
             fi
           done
           [ "$missing" -eq 0 ] || exit 1
+
+          # Somas SHA-256 dos instaladores (o site liga a SHA256SUMS.txt).
+          dir=$(mktemp -d)
+          gh release download "$TAG" --repo "$REPO" --dir "$dir" --pattern 'SIGA-Desktop-*'
+          (cd "$dir" && sha256sum SIGA-Desktop-* > SHA256SUMS.txt && cat SHA256SUMS.txt)
+          gh release upload "$TAG" "$dir/SHA256SUMS.txt" --clobber --repo "$REPO"
+
           gh release edit "$TAG" --repo "$REPO" --draft=false --latest
           echo "Publicada: https://github.com/$REPO/releases/tag/$TAG"

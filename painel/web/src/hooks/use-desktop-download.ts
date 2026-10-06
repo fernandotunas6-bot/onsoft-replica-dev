@@ -18,12 +18,16 @@ export function useVisitorOs() {
   return os
 }
 
+// Um só pedido por visita, partilhado pelos cartões e pela página.
+let latestRelease: Promise<DesktopRelease | null> | null = null
+
 /** Versão e tamanhos da última release publicada; null enquanto carrega ou sem resposta. */
 export function useDesktopRelease() {
   const [release, setRelease] = useState<DesktopRelease | null>(null)
   useEffect(() => {
     let active = true
-    void fetchLatestDesktopRelease().then((value) => {
+    latestRelease ??= fetchLatestDesktopRelease()
+    void latestRelease.then((value) => {
       if (active) setRelease(value)
     })
     return () => {

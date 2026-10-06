@@ -115,7 +115,20 @@ jobs:
           tauriScript: npm run tauri
           tagName: ${{ env.RELEASE_TAG }}
           releaseName: "SIGA Desktop ${{ env.RELEASE_TAG }}"
-          releaseBody: "Nova versão instalável do SIGA Desktop."
+          releaseBody: |
+            App do SIGA Plus para computador: o portal da escola com impressão directa, catracas e sessão protegida por PIN.
+
+            **Transferir e instalar:** https://www.portal-siga.com/download
+
+            | Sistema | Ficheiro |
+            |---|---|
+            | Windows 10/11 (64 bits) | `SIGA-Desktop-Windows-x64-setup.exe` |
+            | macOS 10.15+ (Intel e Apple Silicon) | `SIGA-Desktop-macOS-universal.dmg` |
+            | Ubuntu / Debian | `SIGA-Desktop-Linux-amd64.deb` |
+            | Fedora / openSUSE | `SIGA-Desktop-Linux-x86_64.rpm` |
+            | Outras distribuições Linux | `SIGA-Desktop-Linux-x86_64.AppImage` |
+
+            Na primeira instalação, o Windows (SmartScreen) e o macOS (Gatekeeper) pedem confirmação, porque os instaladores ainda não têm certificado de editor: os passos estão na página de transferência. Somas SHA-256 em `SHA256SUMS.txt`.
           releaseDraft: true
           prerelease: false
           includeUpdaterJson: true

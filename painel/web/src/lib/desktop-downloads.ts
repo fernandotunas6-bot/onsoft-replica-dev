@@ -27,10 +27,14 @@ export const DESKTOP_RELEASES_REPO =
 export const DESKTOP_ASSETS: DesktopAsset[] = [
   { os: "windows", file: "SIGA-Desktop-Windows-x64-setup.exe", format: "Instalador .exe", primary: true },
   { os: "macos", file: "SIGA-Desktop-macOS-universal.dmg", format: "Imagem .dmg", primary: true },
-  { os: "linux", file: "SIGA-Desktop-Linux-x86_64.AppImage", format: "AppImage", primary: true },
-  { os: "linux", file: "SIGA-Desktop-Linux-amd64.deb", format: ".deb (Ubuntu, Debian)", primary: false },
+  // .deb primeiro: ~5 MB contra ~80 MB do AppImage, que conta em ligações lentas.
+  { os: "linux", file: "SIGA-Desktop-Linux-amd64.deb", format: "Pacote .deb (Ubuntu, Debian)", primary: true },
   { os: "linux", file: "SIGA-Desktop-Linux-x86_64.rpm", format: ".rpm (Fedora, openSUSE)", primary: false },
+  { os: "linux", file: "SIGA-Desktop-Linux-x86_64.AppImage", format: "AppImage (outras)", primary: false },
 ]
+
+/** Somas SHA-256 dos instaladores, juntas pelo workflow de publicação. */
+export const DESKTOP_CHECKSUMS_FILE = "SHA256SUMS.txt"
 
 export const DESKTOP_RELEASES_PAGE = `https://github.com/${DESKTOP_RELEASES_REPO}/releases/latest`
 

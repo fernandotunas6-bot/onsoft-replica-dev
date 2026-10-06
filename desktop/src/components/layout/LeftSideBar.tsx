@@ -29,16 +29,18 @@ export function LeftSideBar({ children, className }: LeftSideBarProps) {
             className="justify-start"
             onClick={() => openPalette(true)}
           >
-            <Search className="me-2 h-4 w-4" />
-            {t('commandPalette.placeholder')}
+            <Search className="me-2 h-4 w-4 shrink-0" />
+            <span className="truncate">{t('siga.searchCommands')}</span>
           </Button>
           <Button
             variant="ghost"
             className="justify-start"
             onClick={() => openPreferences(true)}
           >
-            <Settings className="me-2 h-4 w-4" />
-            {t('commands.openPreferences.label')}
+            <Settings className="me-2 h-4 w-4 shrink-0" />
+            <span className="truncate">
+              {t('commands.openPreferences.label')}
+            </span>
           </Button>
         </>
       )}

@@ -114,5 +114,6 @@
   "siga.notes.title": "Quick note",
   "siga.notes.empty": "Use the global shortcut to enter a quick note.",
   "siga.notes.temporary": "This note lasts for this session only. It is not a school record.",
-  "siga.notes.placeholder": "Enter a quick note…"
+  "siga.notes.placeholder": "Enter a quick note…",
+  "siga.searchCommands": "Search commands"
 }

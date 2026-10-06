@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 // @ts-expect-error — script Node em JavaScript, sem declarações de tipos.
 import * as stableAssets from "../../scripts/desktop/stable-assets.mjs";
-import { DESKTOP_ASSETS } from "../../painel/web/src/lib/desktop-downloads";
+import { DESKTOP_ASSETS, DESKTOP_CHECKSUMS_FILE } from "../../painel/web/src/lib/desktop-downloads";
 
 const { STABLE_ASSET_NAMES, stableAssetName, stableCopies } = stableAssets as {
   STABLE_ASSET_NAMES: Record<string, string>;
@@ -50,5 +50,6 @@ describe("instaladores com nomes fixos para o site", () => {
   it("o workflow de publicação exige os mesmos ficheiros", () => {
     const workflow = readFileSync(".github/workflows/publish-desktop-release.yml", "utf8");
     for (const name of Object.values(STABLE_ASSET_NAMES)) expect(workflow).toContain(name);
+    expect(workflow).toContain(`> ${DESKTOP_CHECKSUMS_FILE}`);
   });
 });
