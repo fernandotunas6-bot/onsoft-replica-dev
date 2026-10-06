@@ -70,6 +70,8 @@ build envia, além dos ficheiros com a versão no nome, estas cópias
 | macOS (Intel e Apple Silicon) | `SIGA-Desktop-macOS-universal.dmg`                                                                    |
 | Linux                         | `SIGA-Desktop-Linux-x86_64.AppImage`, `SIGA-Desktop-Linux-amd64.deb`, `SIGA-Desktop-Linux-x86_64.rpm` |
 
+O workflow de publicação junta ainda `SHA256SUMS.txt` (somas SHA-256 dos cinco ficheiros), que a página oferece em «Verificar integridade».
+
 Os links servem sempre a última versão **publicada** (os rascunhos não contam), por isso
 o site não muda a cada versão. A página mostra a versão e os tamanhos lidos da API
 pública do GitHub; sem resposta, os links continuam a funcionar. Outro repositório:

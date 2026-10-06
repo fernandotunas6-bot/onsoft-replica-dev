@@ -24,8 +24,11 @@ export function useMainWindowEventListeners() {
 
     listen<{ text: string }>('quick-pane-submit', event => {
       logger.debug('Quick pane note received')
-      const { setLastQuickPaneEntry } = useUIStore.getState()
+      const { setLastQuickPaneEntry, setRightSidebarVisible } =
+        useUIStore.getState()
       setLastQuickPaneEntry(event.payload.text)
+      // O painel da nota começa fechado: mostrá-lo quando chega uma nota.
+      setRightSidebarVisible(true)
     })
       .then(unlistenFn => {
         if (!isMounted) {
