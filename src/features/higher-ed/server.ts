@@ -23,7 +23,9 @@ import {
 } from "@/integrations/supabase/sga-admin";
 import {
   HIGHER_ED_DEFAULTS,
+  HIGHER_ED_DEGREES,
   parseProgramProfile,
+  programKindForDegree,
   updateSettingsDomainValue,
   parseSettingsDomain,
   readSettingsDomain,
@@ -310,7 +312,7 @@ export const listHigherEdPrograms = createServerFn({ method: "GET" })
   });
 
 const profileInput = z.object({
-  degree: z.enum(["licenciatura", "mestrado", "doutoramento", "especializacao"]),
+  degree: z.enum(HIGHER_ED_DEGREES),
   modality: z.enum(["presencial", "semipresencial", "distancia"]),
   regime: z.enum(["regular", "pos_laboral"]),
   seats: z.number().int().min(0).max(100_000),
@@ -324,9 +326,8 @@ const programInput = z.object({
   profile: profileInput.optional(),
 });
 
-/** Grau ↔ tipo do curso na base: só a licenciatura é graduação. */
-const kindForDegree = (degree: z.infer<typeof profileInput>["degree"]) =>
-  degree === "licenciatura" ? ("undergraduate" as const) : ("postgraduate" as const);
+/** Grau ↔ tipo do curso na base: bacharelato e licenciatura são graduação. */
+const kindForDegree = programKindForDegree;
 
 async function saveProgramProfile(
   db: Db,
@@ -981,6 +982,14 @@ export const issueHigherEdCertificate = createServerFn({ method: "POST" })
       throw new Error(
         "O estudante ainda não concluiu o curso: o certificado não pode ser emitido.",
       );
+    }
+    if ((await regulationOf(db, schoolId)).block_documents_with_debt) {
+      const indebted = await studentsWithOverdueDebt(db, schoolId, [data.studentId]);
+      if (indebted.has(data.studentId)) {
+        throw new Error(
+          "O estudante tem propinas vencidas por pagar: o regulamento não permite emitir o certificado.",
+        );
+      }
     }
 
     const { data: number, error: numberError } = await db.rpc("next_document_number_service", {
@@ -2453,6 +2462,7 @@ export const setApplicationAccessScore = createServerFn({ method: "POST" })
 // ── Exportação SISIES / GEPE (MESCTI) ───────────────────────────────────────
 
 const DEGREE_TEXT = {
+  bacharelato: "Bacharelato",
   licenciatura: "Licenciatura",
   mestrado: "Mestrado",
   doutoramento: "Doutoramento",
@@ -2517,7 +2527,7 @@ export const exportSisiesWorkbook = createServerFn({ method: "POST" })
     const { data: enrollments } = gradeOfGroup.size
       ? await db
           .from("enrollments")
-          .select("student_id, class_group_id")
+          .select("id, student_id, class_group_id")
           .eq("school_id", schoolId)
           .in("class_group_id", [...gradeOfGroup.keys()])
           .in("status", ["active", "pending"])
@@ -2553,6 +2563,44 @@ export const exportSisiesWorkbook = createServerFn({ method: "POST" })
       const sequence = Number(grade.sequence ?? 0);
       count.byYear.set(sequence, (count.byYear.get(sequence) ?? 0) + 1);
       enrolledBy.set(programId, count);
+    }
+
+    // Bolsas: matrículas do ano com desconto no contrato financeiro (bolsa ou
+    // desconto do aluno, finance/scholarship-server.ts), por curso e sexo.
+    const enrollmentRows = (enrollments ?? []) as Row[];
+    const discountOf = new Map<string, number>();
+    for (let start = 0; start < enrollmentRows.length; start += 300) {
+      const { data: contracts } = await db
+        .from("finance_contracts")
+        .select("enrollment_id, discount_percentage")
+        .eq("school_id", schoolId)
+        .eq("status", "active")
+        .gt("discount_percentage", 0)
+        .in(
+          "enrollment_id",
+          enrollmentRows.slice(start, start + 300).map((e) => str(e.id)),
+        );
+      for (const contract of (contracts ?? []) as Row[]) {
+        discountOf.set(str(contract.enrollment_id), Number(contract.discount_percentage ?? 0));
+      }
+    }
+    const scholarsBy = new Map<
+      string,
+      { total: number; m: number; f: number; percents: number[] }
+    >();
+    for (const enrollment of enrollmentRows) {
+      const percent = discountOf.get(str(enrollment.id));
+      if (!percent) continue;
+      const grade = gradeById.get(gradeOfGroup.get(str(enrollment.class_group_id)) ?? "");
+      if (!grade) continue;
+      const programId = str(grade.program_id);
+      const entry = scholarsBy.get(programId) ?? { total: 0, m: 0, f: 0, percents: [] };
+      const sex = sexOfStudent.get(str(enrollment.student_id));
+      entry.total += 1;
+      if (sex === "M") entry.m += 1;
+      if (sex === "F") entry.f += 1;
+      entry.percents.push(percent);
+      scholarsBy.set(programId, entry);
     }
 
     // Acesso: candidaturas pelo curso pretendido.
@@ -2640,6 +2688,16 @@ export const exportSisiesWorkbook = createServerFn({ method: "POST" })
     ]);
     const graduados = workbook.addWorksheet("Graduados");
     header(graduados, ["Código", "Curso", "Grau", "Graduados", "Classificação média"]);
+    const bolsas = workbook.addWorksheet("Bolsas");
+    header(bolsas, [
+      "Código",
+      "Curso",
+      "Grau",
+      "Bolseiros",
+      "Masculino",
+      "Feminino",
+      "Desconto médio (%)",
+    ]);
     for (const program of programs) {
       const id = str(program.id);
       const profile = profileOf(id);
@@ -2681,6 +2739,20 @@ export const exportSisiesWorkbook = createServerFn({ method: "POST" })
         graduates.averages.length
           ? Math.round(
               (graduates.averages.reduce((a, b) => a + b, 0) / graduates.averages.length) * 10,
+            ) / 10
+          : "",
+      ]);
+      const scholars = scholarsBy.get(id) ?? { total: 0, m: 0, f: 0, percents: [] };
+      bolsas.addRow([
+        code,
+        name,
+        DEGREE_TEXT[profile.degree],
+        scholars.total,
+        scholars.m,
+        scholars.f,
+        scholars.percents.length
+          ? Math.round(
+              (scholars.percents.reduce((a, b) => a + b, 0) / scholars.percents.length) * 10,
             ) / 10
           : "",
       ]);

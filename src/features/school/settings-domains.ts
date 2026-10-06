@@ -125,6 +125,11 @@ export type HigherEdRegulation = {
   /** Como os «holds» do Banner: propinas vencidas impedem a inscrição em cadeiras. */
   block_enrollment_with_debt: boolean;
   /**
+   * O mesmo «hold» nos documentos: propinas vencidas impedem a emissão do
+   * certificado de conclusão (uma reimpressão do já emitido continua possível).
+   */
+  block_documents_with_debt: boolean;
+  /**
    * Como o trancamento do SIGAA: dias após o início do semestre até quando a
    * secretaria anula uma inscrição sem 2FA. Depois disso exige 2FA. 0 = sem prazo.
    */
@@ -168,6 +173,7 @@ export const HIGHER_ED_DEFAULTS: HigherEdRegulation = {
   max_extra_years: 0,
   access_min_score: 10,
   block_enrollment_with_debt: false,
+  block_documents_with_debt: false,
   cancel_deadline_days: 0,
   enrollment_opens_on: null,
   enrollment_closes_on: null,
@@ -177,7 +183,23 @@ export const HIGHER_ED_DEFAULTS: HigherEdRegulation = {
   worker_student_progress_percent: 50,
 };
 
-export type HigherEdDegree = "licenciatura" | "mestrado" | "doutoramento" | "especializacao";
+/**
+ * Graus do Ensino Superior angolano (Lei 32/20). O bacharelato (2026-10-05) é, como a
+ * licenciatura, um grau de graduação: na base fica `programs.kind = 'undergraduate'`.
+ */
+export const HIGHER_ED_DEGREES = [
+  "bacharelato",
+  "licenciatura",
+  "mestrado",
+  "doutoramento",
+  "especializacao",
+] as const;
+export type HigherEdDegree = (typeof HIGHER_ED_DEGREES)[number];
+
+/** Tipo do curso na base para um grau: bacharelato e licenciatura são graduação. */
+export function programKindForDegree(degree: HigherEdDegree): "undergraduate" | "postgraduate" {
+  return degree === "bacharelato" || degree === "licenciatura" ? "undergraduate" : "postgraduate";
+}
 export type HigherEdModality = "presencial" | "semipresencial" | "distancia";
 export type HigherEdRegime = "regular" | "pos_laboral";
 
@@ -204,11 +226,7 @@ export function parseProgramProfile(value: unknown): HigherEdProgramProfile {
   const v = asRecord(value);
   const d = HIGHER_ED_PROGRAM_DEFAULT;
   return {
-    degree: oneOf(
-      v["degree"],
-      ["licenciatura", "mestrado", "doutoramento", "especializacao"],
-      d.degree,
-    ),
+    degree: oneOf(v["degree"], HIGHER_ED_DEGREES, d.degree),
     modality: oneOf(v["modality"], ["presencial", "semipresencial", "distancia"], d.modality),
     regime: oneOf(v["regime"], ["regular", "pos_laboral"], d.regime),
     seats: bounded(v["seats"], d.seats, 0, 100_000, true),
@@ -349,6 +367,10 @@ export const SETTINGS_DOMAINS = {
           typeof v["block_enrollment_with_debt"] === "boolean"
             ? v["block_enrollment_with_debt"]
             : d.block_enrollment_with_debt,
+        block_documents_with_debt:
+          typeof v["block_documents_with_debt"] === "boolean"
+            ? v["block_documents_with_debt"]
+            : d.block_documents_with_debt,
         cancel_deadline_days: bounded(
           v["cancel_deadline_days"],
           d.cancel_deadline_days,

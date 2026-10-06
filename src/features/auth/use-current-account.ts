@@ -5,7 +5,10 @@ import { getCurrentAccountContext } from "@/features/auth/server";
 import type { ApplicationRole } from "@/features/auth/access-policy";
 import type { UserSchoolMembershipItem } from "@/integrations/supabase/sga";
 import {
+  ACTIVE_SCHOOL_CHANGED_EVENT,
+  hostSchoolSlug,
   isActiveSchoolUnavailable,
+  navigateToSchoolHost,
   readStoredActiveSchool,
   rememberActiveSchool,
 } from "@/features/auth/active-school";
@@ -115,13 +118,43 @@ export function useCurrentAccount() {
   };
 
   const setActiveSchoolId = (newSchoolId: string | null) => {
+    // No subdomínio de uma escola a marca, o plano e os bloqueios vêm do endereço:
+    // trocar para outra escola é ir para o endereço dela (o mesmo ecrã). Ficar e
+    // trocar só o cookie mostrava os dados de B com a marca de A.
+    const here = hostSchoolSlug();
+    const target = schools.find((school) => school.schoolId === newSchoolId);
+    if (here && target?.schoolSlug && target.schoolSlug !== here) {
+      navigateToSchoolHost(target.schoolSlug);
+      return;
+    }
+    const changed = newSchoolId !== (activeSchoolIdState ?? currentSchoolId);
     setActiveSchoolIdState(newSchoolId);
-    // Grava o cookie antes de invalidar: os refetches que se seguem já têm de
+    // Grava o cookie antes de recarregar: os pedidos que se seguem já têm de
     // sair com a escola nova, senão recarregavam dados da escola anterior.
     rememberActiveSchool(newSchoolId);
-    // Invalidate queries so that all scoped school data is refreshed
-    void queryClient.invalidateQueries({ queryKey: ["auth", "account-context"] });
+    if (!changed) return;
+    // As chaves dos dados não levam a escola (["pedagogical-workspace"],
+    // ["finance", "invoices"], …): até 2026-10-05 só o contexto da conta era
+    // invalidado, e o painel, as turmas ou as faturas da escola anterior ficavam
+    // no ecrã (e a servir de base a gravações) até o staleTime expirar. Descarta-se
+    // tudo o que é da escola e volta-se a pedir o que está no ecrã; a sessão
+    // (["auth", …]) fica.
+    void queryClient.resetQueries({ predicate: (query) => query.queryKey[0] !== "auth" });
+    window.dispatchEvent(new Event(ACTIVE_SCHOOL_CHANGED_EVENT));
   };
+
+  // No subdomínio de uma escola, a escola activa é a do endereço (se o utilizador
+  // for membro activo dela): o cookie de cada subdomínio pode trazer outra escolha,
+  // e quem chega de outra escola pelo seletor ainda não tem cookie neste endereço.
+  const hostSchoolId =
+    schools.find((school) => school.schoolSlug === hostSchoolSlug() && school.isActive)?.schoolId ??
+    null;
+  useEffect(() => {
+    if (hostSchoolId && currentSchoolId && hostSchoolId !== currentSchoolId) {
+      setActiveSchoolId(hostSchoolId);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- só quando a escola resolvida muda
+  }, [hostSchoolId, currentSchoolId]);
 
   const linkedEntities = profile.data?.linkedEntities ?? {
     person_id: null,

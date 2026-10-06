@@ -31,6 +31,8 @@ export type FeeItemRef = {
   kind: string;
   name: string;
   is_active: boolean;
+  /** Preço de uma classe (finance/fee-items.ts); null = preço geral. */
+  grade_level_id: string | null;
 };
 
 export async function loadEnrollmentFinanceRefs(
@@ -93,18 +95,20 @@ export function resolveFeePlanForYear(
 }
 
 export async function loadFeeItemRefs(db: SupabaseClient, schoolId: string): Promise<FeeItemRef[]> {
+  // `select("*")`: a coluna da classe só existe depois de 20261005150000.
   const { data, error } = await db
     .from("fee_items")
-    .select("id, fee_plan_id, kind, name, is_active")
+    .select("*")
     .eq("school_id", schoolId)
     .eq("is_active", true);
   if (error) throw new Error(`Não foi possível carregar itens de taxa: ${error.message}`);
-  return (data ?? []).map((row) => ({
+  return (data ?? []).map((row: Record<string, unknown>) => ({
     id: String(row.id),
     fee_plan_id: String(row.fee_plan_id),
     kind: String(row.kind),
     name: String(row.name ?? ""),
     is_active: Boolean(row.is_active),
+    grade_level_id: row.grade_level_id ? String(row.grade_level_id) : null,
   }));
 }
 
@@ -114,7 +118,10 @@ export function resolveFeeItemForPlan(
   feePlanId: string,
   descriptionHint: unknown,
 ): FeeItemRef | null {
-  const forPlan = items.filter((row) => row.fee_plan_id === feePlanId && row.is_active);
+  const forPlan = items
+    .filter((row) => row.fee_plan_id === feePlanId && row.is_active)
+    // O preço de uma classe (finance/fee-items.ts) não etiqueta faturas de outras: o geral primeiro.
+    .sort((a, b) => Number(Boolean(a.grade_level_id)) - Number(Boolean(b.grade_level_id)));
   const kind = categoryToFeeKind(normalizeText(descriptionHint));
   if (kind) {
     const byKind = forPlan.find((row) => row.kind === kind);

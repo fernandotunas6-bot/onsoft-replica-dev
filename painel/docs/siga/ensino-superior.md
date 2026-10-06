@@ -9,12 +9,12 @@ a escola no WEB, ou em Definições → Pedagógico).
 
 ## Quem faz o quê
 
-| Papel | Onde | O que faz |
-| --- | --- | --- |
-| Administrador | `/pedagogica/superior` | Cria e edita cursos, define o regulamento, tudo o que a secretaria faz |
-| Secretaria | `/pedagogica/superior` | Monta planos, inscreve estudantes, credita cadeiras, emite históricos |
-| Professor | `/pedagogica/pautas-superior` | Lança frequência e exames **só nas cadeiras que lecciona** |
-| Estudante / Encarregado | Portal (início) | Vê créditos, média e o estado de cada cadeira; o estudante inscreve-se nas cadeiras se a escola abrir a matrícula on-line |
+| Papel                   | Onde                          | O que faz                                                                                                                 |
+| ----------------------- | ----------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| Administrador           | `/pedagogica/superior`        | Cria e edita cursos, define o regulamento, tudo o que a secretaria faz                                                    |
+| Secretaria              | `/pedagogica/superior`        | Monta planos, inscreve estudantes, credita cadeiras, emite históricos                                                     |
+| Professor               | `/pedagogica/pautas-superior` | Lança frequência e exames **só nas cadeiras que lecciona**                                                                |
+| Estudante / Encarregado | Portal (início)               | Vê créditos, média e o estado de cada cadeira; o estudante inscreve-se nas cadeiras se a escola abrir a matrícula on-line |
 
 ## 0. Ano lectivo por semestres
 
@@ -29,7 +29,7 @@ Em **Ensino Superior → Novo curso** (só Administrador):
 
 - **Nome** — ex.: «Licenciatura em Direito».
 - **Código** — único na escola; se ficar vazio, é feito a partir do nome (`DIREITO`).
-- **Grau** — Licenciatura (4 anos por omissão) ou Pós-graduação (2 anos).
+- **Grau** — Bacharelato (3 anos por omissão), Licenciatura (4), Mestrado (2), Doutoramento (3) ou Especialização (1). O certificado de conclusão diz o título do grau (Bacharel, Licenciado, Mestre, Doutor).
 - **Anos curriculares** — o SIGA cria os anos 1.º a N.º. Ao editar, os anos só se
   acrescentam (um ano com turmas não se apaga). Um curso pode ser desactivado.
 
@@ -47,21 +47,21 @@ posterior). Uma cadeira com inscrições não sai do plano.
 
 Separador **Regulamento** (só Administrador edita). Valores por omissão:
 
-| Regra | Por omissão |
-| --- | --- |
-| Créditos máximos por ano / por semestre | 60 / 36 |
-| Peso da frequência na época normal | 40 % (o exame vale 60 %) |
-| Admissão a exame | frequência ≥ 7 |
-| Dispensa de exame | frequência ≥ 14 (0 = sem dispensa) |
-| Nota mínima de aprovação | 10 |
-| Faltas máximas | 25 % (0 = sem limite) |
-| Cadeiras em falta para época especial | até 2 |
-| Tentativas por cadeira | sem limite (0) |
-| Melhoria de nota | permitida |
-| Matrícula on-line (o estudante inscreve-se no portal) | desligada |
-| Trabalhador-estudante: faltas não excluem | ligado |
-| Trabalhador-estudante: época especial sem ser finalista | ligado |
-| Trabalhador-estudante: quanto conta cada ano (situação e prescrição) | 50 % |
+| Regra                                                                | Por omissão                        |
+| -------------------------------------------------------------------- | ---------------------------------- |
+| Créditos máximos por ano / por semestre                              | 60 / 36                            |
+| Peso da frequência na época normal                                   | 40 % (o exame vale 60 %)           |
+| Admissão a exame                                                     | frequência ≥ 7                     |
+| Dispensa de exame                                                    | frequência ≥ 14 (0 = sem dispensa) |
+| Nota mínima de aprovação                                             | 10                                 |
+| Faltas máximas                                                       | 25 % (0 = sem limite)              |
+| Cadeiras em falta para época especial                                | até 2                              |
+| Tentativas por cadeira                                               | sem limite (0)                     |
+| Melhoria de nota                                                     | permitida                          |
+| Matrícula on-line (o estudante inscreve-se no portal)                | desligada                          |
+| Trabalhador-estudante: faltas não excluem                            | ligado                             |
+| Trabalhador-estudante: época especial sem ser finalista              | ligado                             |
+| Trabalhador-estudante: quanto conta cada ano (situação e prescrição) | 50 %                               |
 
 **Trabalhador-estudante.** Ver a secção 8.
 
@@ -94,10 +94,10 @@ Em **Pautas do Superior** o professor escolhe a cadeira e vê só os botões das
 que cada estudante pode ir:
 
 1. **Frequência** — média de frequência e % de faltas.
-   - faltas acima do máximo → *Excluído por faltas*;
-   - frequência abaixo da admissão → *Excluído por frequência*;
-   - frequência ≥ dispensa → *Aprovado* sem exame;
-   - senão → *Admitido a exame*.
+   - faltas acima do máximo → _Excluído por faltas_;
+   - frequência abaixo da admissão → _Excluído por frequência_;
+   - frequência ≥ dispensa → _Aprovado_ sem exame;
+   - senão → _Admitido a exame_.
 2. **Época normal** — só admitidos. Nota = frequência × peso + exame × (1 − peso).
 3. **Recurso** — quem reprovou na normal. Nota = exame.
 4. **Época especial** — finalistas (até N cadeiras em falta), numa cadeira reprovada ou
@@ -129,7 +129,10 @@ fatura**, escolhendo a categoria com o mesmo nome; 0 Kz = a instituição não c
   Secretaria ou a Direcção carrega em **Emitir certificado** (pede a verificação em duas
   etapas). O certificado recebe o número de registo da escola (série «CE») e um código de
   verificação com QR: quem o recebe confirma-o em `/verificar`. Emitir de novo devolve o
-  mesmo número e o mesmo código; só se imprime depois de emitido.
+  mesmo número e o mesmo código; só se imprime depois de emitido. Se o regulamento tiver
+  ligada a regra «Propinas vencidas impedem a emissão do certificado» (desligada por
+  omissão), o certificado só é emitido depois de regularizadas as propinas vencidas; um
+  certificado já emitido continua a poder ser reimpresso.
 
 ## 8. Trabalhador-estudante
 
