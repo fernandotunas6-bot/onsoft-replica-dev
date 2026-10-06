@@ -3,4 +3,4 @@ description: SIGA Desktop (Tauri) — ler skill siga-desktop antes de editar có
 globs: src-tauri/**,desktop/**,src/components/layout/DesktopIntegration.tsx,src/lib/desktop-*.ts
 ---
 
-Tauri só no SIGA escolar. Capabilities mínimas (comando novo = três sítios), sem secrets no cliente, updater assinado só com chave. Detalhes: `.cursor/skills/siga-desktop/SKILL.md` e `docs/desktop/TAURI_RUNTIME.md`.
+Tauri só no SIGA escolar. Base completa Danny Smith em desktop/, Rust em src-tauri/. Capabilities locais do template separadas do portal school; comandos em bindings/handler, manifesto e capability, sem secrets no cliente, updater assinado só com chave. Detalhes: `.cursor/skills/siga-desktop/SKILL.md` e `docs/desktop/TAURI_RUNTIME.md`.

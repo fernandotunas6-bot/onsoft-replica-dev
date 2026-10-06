@@ -1,40 +1,36 @@
-# SIGA Desktop: execução e validação
+# SIGA Desktop — Danny Smith Tauri Template
 
-O desktop pertence ao SIGA escolar. Windows é a prioridade; macOS usa o mesmo projecto. A aplicação TanStack Start requer servidor: `.output/public` não é uma aplicação autónoma. O instalador inclui `desktop/index.html`, um ecrã local que abre o portal HTTPS `https://portal-siga.com`. Não inclui ADMIN, WEB, DOC ou PAYFLOW.
+A base desktop é o [Danny Smith Tauri Template](https://github.com/dannysmith/tauri-template), commit `437a18b9b63924833857f299217a5270f009d120`, licença MIT preservada em `desktop/LICENSE.md`. A adopção inclui React/Vite/TypeScript, Tailwind/shadcn, Zustand, TanStack Query, i18next, paleta de comandos, preferências, menus nativos, quick pane, recuperação de dados, testes e arquitectura Rust com tauri-specta.
 
-## Desenvolvimento
+## Estrutura e desenvolvimento
 
-- `npm run desktop:dev`: arranca Vite em localhost:3006 com permissões de desenvolvimento explícitas. Em `tauri dev` o `devUrl` é a origem local da app, por isso a capability `development` é `local: true` (só existe em `tauri.dev.conf.json`) e cobre as mesmas permissões do portal.
-- `npm run desktop:check`: verifica launcher, origem de produção, CSP, versão, lockfile e que o updater só é registado com configuração.
-- `npm run desktop:build`: compila com Cargo `--locked`. Exige Rust e os pré-requisitos Tauri do sistema operativo.
-- `cd src-tauri && cargo test --locked --lib`: testes Rust sem accionar hardware.
-- `python3 -m unittest discover -s python/hardware_bridge`: testes do daemon local.
-- Linux sem ecrã: `xvfb-run` corre o binário; com um gestor de janelas (por exemplo openbox) vê-se a barra nativa.
+- `desktop/`: aplicação local completa e independente, com `package-lock.json` e npm.
+- `src-tauri/`: crate nativa canónica. Não existe outra configuração Tauri em `desktop/`.
+- `src-tauri/src/commands/`: comandos tipados do template e integração SIGA.
+- `src-tauri/src/school/`: compatibilidade com os comandos escolares existentes, incluindo IPC binário de exportação.
+- `desktop/UPSTREAM.json`: origem exacta da base adoptada.
 
-A configuração de desenvolvimento não é incluída no build de produção. A capability de produção aceita apenas a origem exacta do portal escolar. Não autoriza shell, acesso livre a ficheiros ou stores, Stronghold, diálogos, updater ou controlo de processos: o que a app faz com eles passa por comandos próprios, cada um com a sua permissão. Links externos passam por validação de esquema e são abertos pelo sistema. Fechar a janela principal fecha a aplicação (também as janelas de impressão e do PayFlow); a bandeja oferece Abrir e Sair enquanto o processo está activo. Abrir o SIGA outra vez foca a janela que já existe.
+Na raiz: `npm run desktop:install`, depois `npm run desktop:dev` ou `npm run desktop:build`. O Vite do template usa `localhost:1420`. `npm run desktop:check` valida configuração e permissões. `npm run desktop:quality` executa as verificações completas do template (requer Rust e bibliotecas Tauri do sistema). `npm --prefix desktop run rust:bindings` regenera os bindings em `desktop/src/lib/bindings.ts`.
 
-## Arranque
+O launcher antigo (`launcher.js`, `launcher.css`) e `tauri.dev.conf.json` foram removidos. O frontend web SIGA continua a ser SSR: não pode ser incorporado a partir de `.output/public`.
 
-O plugin do updater exige `plugins.updater` (chave pública) no `tauri.conf.json`. Registado sem essa configuração, a app terminava ao abrir (`PluginInitialization("updater", … invalid type: null, expected struct Config")`). O Rust só o regista quando a chave existe (`updater_configured`); `check-desktop.mjs` e `tests/tauri/native-startup.test.ts` recusam voltar atrás.
+## Janelas e permissões
 
-## Comandos da app e permissões
+`main` aloja o frontend local completo; `quick-pane` é o painel rápido do template. A acção «Abrir SIGA» cria ou foca a janela `school` em `https://portal-siga.com`. O portal preserva as funções nativas e a sua barra de título do sistema. Menus, preferências e atalhos da central usam a estrutura do template.
 
-A janela principal mostra o portal (origem remota): o Tauri só deixa uma origem remota chamar comandos da app com permissão explícita. Um comando novo acrescenta-se em três sítios — `generate_handler!` (lib.rs), o manifesto de `build.rs` e a capability (`allow-<comando>`) — senão é recusado em produção. `tests/tauri/capabilities.test.ts` confere os três.
+As capabilities locais autorizam os plugins do template apenas em `main` e `quick-pane`. A capability `school-portal` aplica-se exclusivamente a `school`, à origem exacta do portal, com comandos escolares e notificações. O portal não recebe acesso aos plugins de ficheiros, diálogos, processos, store, shell ou updater do template. `print-*` e `payflow-*` não recebem capabilities.
 
-| Comando                                                                            | Para quê                                                                                                                                                                                                                                      |
-| ---------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `get_system_info`, `get_desktop_diagnostics`, `open_school_portal`                 | launcher e diagnóstico                                                                                                                                                                                                                        |
-| `hardware_bridge_request`, `pulse_turnstile_relay`, `print_thermal_receipt_native` | hardware (secção seguinte)                                                                                                                                                                                                                    |
-| `open_external_url`                                                                | links para fora do portal no browser do sistema                                                                                                                                                                                               |
-| `save_file`                                                                        | exportações (CSV, XLSX, PDF, ICS) pelo «Guardar como» nativo: o WKWebView e o WebKitGTK ignoram `<a download href="blob:">`. Bytes no corpo, nome em `x-file-name`; o diálogo abre no Rust e só se escreve no caminho escolhido; máximo 50 MB |
-| `print_page`                                                                       | macOS: o `window.print()` do WKWebView não faz nada                                                                                                                                                                                           |
-| `print_html`                                                                       | documentos oficiais no macOS: janela `print-<id>` servida por `sigapage://` com `script-src 'none'` (os modelos são editáveis pela escola) e diálogo nativo ao carregar                                                                       |
-| `open_payflow`                                                                     | PayFlow numa janela `payflow-<id>` com a troca SSO; a asserção só vai para `https://payflow.portal-siga.com/api/v1/sso/exchange` (o PayFlow local só em builds de desenvolvimento)                                                            |
-| `check_app_update`, `install_app_update`                                           | actualizações assinadas (secção Release)                                                                                                                                                                                                      |
+Um comando tipado é registado em `bindings.rs` e no manifesto de `build.rs`, com permissão na capability local. Os comandos escolares existentes são registados em `school/mod.rs`, no mesmo manifesto e na capability escolar. O dispatcher mantém ambas as famílias. Os testes em `tests/tauri/capabilities.test.ts` verificam esse contrato.
 
-As janelas `print-…` e `payflow-…` não entram em nenhuma capability: as páginas delas não chamam comandos. Só a origem exacta do portal fica na janela principal; DOC, PayFlow e ADMIN (subdomínios) abrem no browser do sistema.
+Fechar `main` segue o comportamento do template: encerra no Windows/Linux e oculta no macOS, onde o Dock permite reabrir. Instância única e restauração de tamanho/posição vêm do template. O quick pane tem atalho global configurável.
 
-No frontend, `DesktopIntegration` liga isto (exportações, links, impressão no macOS, atalhos F5/Ctrl+R, Alt+←/→, Ctrl/Cmd+P (o menu nativo do macOS não tem «Imprimir»), Ctrl + / − / 0 com zoom lembrado e o aviso de versão nova). A janela tem a barra de título nativa; a web já não desenha barras próprias dentro da app.
+## Arranque e actualizações
+
+O updater só é registado com uma chave pública real em `plugins.updater`. A configuração base não inclui chaves fictícias nem servidores de exemplo. A central consulta disponibilidade sem instalar nem reiniciar; a instalação continua no portal escolar, com a protecção de gravações pendentes existente. Preferências e interface local funcionam sem Internet; os módulos académicos dependem do servidor.
+
+## Comandos escolares preservados
+
+Hardware (`hardware_bridge_request`, `pulse_turnstile_relay`, `print_thermal_receipt_native`), exportações (`save_file`, máximo 50 MB), impressão (`print_page`, `print_html`, macOS), PayFlow (`open_payflow`), links (`open_external_url`), diagnósticos, portal e actualizações (`check_app_update`, `install_app_update`) mantêm os contratos do frontend web. O protocolo `sigapage://` continua a servir documentos de impressão sem scripts.
 
 ## Hardware
 
@@ -58,7 +54,7 @@ Não existe ainda fila persistente, leitura sem rede nem resolução de conflito
 
 ## Release
 
-`release-desktop.yml` é o único workflow de instaladores. Executa apenas em tags `v*`, exige tag igual à versão Tauri/Cargo e cria release em draft. Não criar tags nem disparar runners pagos para validar uma PR. `native-ci.yml` mantém os checks Windows/macOS em main/manual, sem os duplicar nas PRs. Instalações Bun e compilações Cargo usam lockfiles sem fallback que os altere.
+`release-desktop.yml` é o único workflow de instaladores. Executa apenas em tags `v*`, exige tag igual à versão Tauri/Cargo e cria release em draft. Não criar tags nem disparar runners pagos para validar uma PR. `native-ci.yml` mantém os checks Windows/macOS em main/manual, sem os duplicar nas PRs. Instalações npm do desktop e compilações Cargo usam lockfiles sem fallback que os altere.
 
 Actualizações assinadas: `scripts/desktop/release-config.mjs` gera `src-tauri/tauri.release.conf.json` e o build usa-o com `--config`. Só com a variável `TAURI_UPDATER_PUBKEY` e o segredo `TAURI_SIGNING_PRIVATE_KEY` o build assina os artefactos e liga o updater ao `latest.json` da release publicada (os rascunhos não chegam às escolas). Sem elas, a versão sai sem actualizações automáticas e abre na mesma. A app verifica 15 s depois de abrir e só instala quando a pessoa carrega em «Instalar e reiniciar», nunca com gravações por enviar. O portal não recebe permissões `updater:` nem `process:`; usa `check_app_update` e `install_app_update`. Guia do dono: [PUBLICAR_VERSOES.md](./PUBLICAR_VERSOES.md).
 
