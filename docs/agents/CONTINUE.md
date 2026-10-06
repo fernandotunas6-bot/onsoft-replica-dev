@@ -4,6 +4,18 @@ Ler isto **antes** de alterar código. Ecossistema (5 apps):
 [ARCHITECTURE_HARMONIZATION.md](./ARCHITECTURE_HARMONIZATION.md).
 Depois abrir o skill do módulo em `.cursor/skills/`.
 
+## Menos fadiga no 2FA e na instalação (2026-10-06)
+
+- **Dispositivo de confiança** (`src/features/auth/trusted-device.ts`): no passo do código
+  2FA, «Confiar neste dispositivo durante 30 dias» (marcado por omissão). Com confiança,
+  a sessão aal2 não termina aos 30 min sem actividade; ao fim de 30 dias termina e o
+  código volta a ser pedido. Não salta o 2FA: o refresh token mantém o aal2 da sessão.
+  Sem confiança (computador partilhado) fica a regra antiga dos 30 min. Terminar a
+  sessão (`use-sign-out`) esquece a confiança de todas as contas no navegador.
+- Durante o código 2FA já não aparecem «Entrar com Google» nem a instalação.
+- Instalação: um só convite discreto («Instalar a aplicação · Agora não»); «Agora não»
+  ou recusa no browser calam-no 30 dias; não aparece na app instalada.
+
 ## Publicar — estado de 2026-10-06
 
 Levantamento completo: [estado-deploy-2026-10-06.md](../auditoria/estado-deploy-2026-10-06.md).

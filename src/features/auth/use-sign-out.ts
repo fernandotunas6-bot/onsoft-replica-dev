@@ -1,4 +1,5 @@
 import { clearSigaCaches } from "@/lib/pwa";
+import { forgetAllTrustedDevices } from "@/features/auth/trusted-device";
 import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -17,6 +18,8 @@ export function useSignOut() {
         setSigningOut(false);
         return false;
       }
+      // Quem sai de propósito deixa de confiar neste dispositivo.
+      forgetAllTrustedDevices();
       queryClient.clear();
       await clearSigaCaches().catch(() => undefined);
       return true;

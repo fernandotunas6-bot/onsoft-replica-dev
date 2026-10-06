@@ -16,6 +16,13 @@ import { SigaLogo } from "@/components/ui/siga-logo";
 import { AuthHeroSlides } from "./AuthHeroSlides";
 import { writeSessionHint } from "@/features/auth/session-hint";
 import { pendingMfaFactorId } from "@/features/auth/pending-mfa";
+import {
+  SHARED_DEVICE_IDLE_MS,
+  TRUSTED_DEVICE_DAYS,
+  deviceTrust,
+  forgetTrustedDevice,
+  trustDevice,
+} from "@/features/auth/trusted-device";
 import { AuthBackgroundVideo } from "./AuthBackgroundVideo";
 import { AuthCaptcha } from "./AuthCaptcha";
 import { authCaptchaConfigured } from "@/lib/auth-captcha-config";
@@ -46,9 +53,10 @@ import { Label } from "@/components/ui/label";
 import { PageLoading } from "@/components/ui/page-loading";
 
 const AuthSessionContext = createContext<Session | null>(null);
-const IDLE_TIMEOUT_MS = 30 * 60_000;
 const ACTIVITY_WRITE_INTERVAL_MS = 15_000;
 const REMEMBERED_EMAIL_KEY = "portal:login-email";
+const INSTALL_DISMISSED_KEY = "siga:install-dismissed-until";
+const INSTALL_SNOOZE_MS = 30 * 24 * 60 * 60_000;
 
 const activityKey = (userId: string) => `portal:last-activity:${userId}`;
 
@@ -153,7 +161,10 @@ export function AuthGate({
   const [rememberedEmail, setRememberedEmail] = useState("");
   const [mfaFactorId, setMfaFactorId] = useState<string | null>(null);
   const [mfaCode, setMfaCode] = useState("");
+  const [trustThisDevice, setTrustThisDevice] = useState(true);
   const [installPrompt, setInstallPrompt] = useState<BeforeInstallPromptEvent | null>(null);
+  // «Agora não» cala o convite durante 30 dias neste navegador.
+  const [installDismissed, setInstallDismissed] = useState(true);
   const [isStandalone, setIsStandalone] = useState(false);
   const [mode, setMode] = useState<"signin" | "signup">("signin");
 
@@ -169,6 +180,12 @@ export function AuthGate({
         window.matchMedia("(display-mode: standalone)").matches ||
         (window.navigator as unknown as { standalone?: boolean }).standalone === true;
       setIsStandalone(Boolean(isStandaloneMode));
+      try {
+        const until = Number(localStorage.getItem(INSTALL_DISMISSED_KEY));
+        setInstallDismissed(Number.isFinite(until) && until > Date.now());
+      } catch {
+        setInstallDismissed(false);
+      }
 
       const handleBeforeInstall = (e: Event) => {
         e.preventDefault();
@@ -181,14 +198,23 @@ export function AuthGate({
     return undefined;
   }, []);
 
+  const dismissInstall = () => {
+    setInstallDismissed(true);
+    try {
+      localStorage.setItem(INSTALL_DISMISSED_KEY, String(Date.now() + INSTALL_SNOOZE_MS));
+    } catch {
+      // ignore
+    }
+  };
+
   const handleInstallApp = async () => {
     if (!installPrompt) return;
     try {
       await installPrompt.prompt();
       const choice = await installPrompt.userChoice;
-      if (choice.outcome === "accepted") {
-        setInstallPrompt(null);
-      }
+      // O browser só deixa usar o convite uma vez; recusado, não insistir.
+      setInstallPrompt(null);
+      if (choice.outcome === "dismissed") dismissInstall();
     } catch (e) {
       console.warn("PWA install error:", e);
     }
@@ -304,21 +330,33 @@ export function AuthGate({
       localStorage.setItem(key, String(now));
     };
 
-    const expireSession = async () => {
+    const expireSession = async (message: string) => {
       if (expiring) return;
       expiring = true;
       setSession(null);
-      setError("A sessão terminou após 30 minutos sem actividade. Entre novamente.");
+      setError(message);
       await supabase.auth.signOut({ scope: "local" });
     };
 
     const checkActivity = () => {
+      // Dispositivo de confiança: não há fim por inactividade até a confiança
+      // expirar; aí a sessão termina e o 2FA volta a ser pedido.
+      const trust = deviceTrust(session.user.id);
+      if (trust === "expired") {
+        forgetTrustedDevice(session.user.id);
+        void expireSession(
+          `Passaram ${TRUSTED_DEVICE_DAYS} dias desde a última verificação neste dispositivo. Entre novamente.`,
+        );
+        return;
+      }
       const stored = Number(localStorage.getItem(key));
-      if (!Number.isFinite(stored) || stored <= 0) {
+      if (trust === "trusted" || !Number.isFinite(stored) || stored <= 0) {
         markActivity();
         return;
       }
-      if (Date.now() - stored >= IDLE_TIMEOUT_MS) void expireSession();
+      if (Date.now() - stored >= SHARED_DEVICE_IDLE_MS) {
+        void expireSession("A sessão terminou após 30 minutos sem actividade. Entre novamente.");
+      }
     };
 
     const onVisibilityChange = () => {
@@ -588,19 +626,6 @@ export function AuthGate({
           {/* No telemóvel o painel da marca não aparece: sem isto, o ecrã não dizia onde se entra. */}
           <SigaLogo className="mb-6 lg:hidden" />
           <div className="w-full max-w-lg rounded-2xl border border-border bg-card p-8 shadow-sm sm:p-10 lg:[zoom:1.15]">
-            {installPrompt && (
-              <div className="mb-6 flex flex-col items-center justify-center text-center pb-4 border-b border-border">
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={handleInstallApp}
-                  className="h-8 gap-1.5 text-xs rounded-full"
-                >
-                  <Download className="size-3.5" /> Instalar App SIGA Plus
-                </Button>
-              </div>
-            )}
-
             <h2 className="mt-1 font-display text-xl font-semibold tracking-tight text-center">
               {mode === "signup" ? "Criar conta SIGA Plus" : "Iniciar sessão"}
             </h2>
@@ -698,6 +723,8 @@ export function AuthGate({
                         activityKey(sessionData.session.user.id),
                         String(Date.now()),
                       );
+                      if (trustThisDevice) trustDevice(sessionData.session.user.id);
+                      else forgetTrustedDevice(sessionData.session.user.id);
                       setSession(sessionData.session);
                       setMfaFactorId(null);
                       setMfaCode("");
@@ -723,6 +750,19 @@ export function AuthGate({
                   placeholder="000000"
                   required
                 />
+                <label className="flex items-start gap-2 text-xs text-muted-foreground cursor-pointer select-none">
+                  <input
+                    type="checkbox"
+                    checked={trustThisDevice}
+                    onChange={(event) => setTrustThisDevice(event.target.checked)}
+                    className="mt-0.5 size-3.5 rounded border-input text-primary focus:ring-primary"
+                  />
+                  <span>
+                    Confiar neste dispositivo durante {TRUSTED_DEVICE_DAYS} dias (não volta a pedir
+                    o código nem a terminar a sessão por inactividade). Desmarque num computador
+                    partilhado.
+                  </span>
+                </label>
                 <Button
                   type="submit"
                   className="w-full"
@@ -915,52 +955,65 @@ export function AuthGate({
               </form>
             ) : null}
 
-            <div className="mt-4 flex items-center gap-3 text-[11px] text-muted-foreground">
-              <span className="h-px flex-1 bg-border" />
-              ou
-              <span className="h-px flex-1 bg-border" />
-            </div>
-            <Button
-              type="button"
-              variant="outline"
-              className="mt-4 w-full gap-2 h-10 text-sm font-medium"
-              onClick={() => void signInWithGoogle()}
-              disabled={submitting || resetting || sendingMagicLink}
-            >
-              <svg viewBox="0 0 24 24" className="size-4" aria-hidden="true">
-                <path
-                  fill="#4285F4"
-                  d="M23.52 12.27c0-.85-.08-1.67-.22-2.45H12v4.64h6.47a5.54 5.54 0 0 1-2.4 3.63v3h3.88c2.27-2.09 3.57-5.17 3.57-8.82Z"
-                />
-                <path
-                  fill="#34A853"
-                  d="M12 24c3.24 0 5.96-1.07 7.95-2.91l-3.88-3a7.4 7.4 0 0 1-4.07 1.16c-3.13 0-5.78-2.11-6.73-4.96H1.27v3.11A12 12 0 0 0 12 24Z"
-                />
-                <path
-                  fill="#FBBC05"
-                  d="M5.27 14.29a7.2 7.2 0 0 1 0-4.58V6.6H1.27a12 12 0 0 0 0 10.8l4-3.11Z"
-                />
-                <path
-                  fill="#EA4335"
-                  d="M12 4.75c1.76 0 3.34.6 4.59 1.79l3.44-3.44C17.95 1.19 15.24 0 12 0 7.31 0 3.26 2.69 1.27 6.6l4 3.11C6.22 6.86 8.87 4.75 12 4.75Z"
-                />
-              </svg>
-              {mode === "signup" ? "Continuar com Google" : "Entrar com Google"}
-            </Button>
-
-            {installPrompt && (
-              <div className="mt-4 pt-3 border-t border-border/60">
+            {/* Durante o código 2FA só há um caminho: confirmar ou usar outra conta. */}
+            {mfaFactorId ? null : (
+              <>
+                <div className="mt-4 flex items-center gap-3 text-[11px] text-muted-foreground">
+                  <span className="h-px flex-1 bg-border" />
+                  ou
+                  <span className="h-px flex-1 bg-border" />
+                </div>
                 <Button
                   type="button"
                   variant="outline"
-                  onClick={handleInstallApp}
-                  className="w-full gap-2 text-xs font-medium text-muted-foreground hover:text-foreground"
+                  className="mt-4 w-full gap-2 h-10 text-sm font-medium"
+                  onClick={() => void signInWithGoogle()}
+                  disabled={submitting || resetting || sendingMagicLink}
                 >
-                  <Download className="size-3.5" />
-                  Instalar aplicação Web no dispositivo (PWA)
+                  <svg viewBox="0 0 24 24" className="size-4" aria-hidden="true">
+                    <path
+                      fill="#4285F4"
+                      d="M23.52 12.27c0-.85-.08-1.67-.22-2.45H12v4.64h6.47a5.54 5.54 0 0 1-2.4 3.63v3h3.88c2.27-2.09 3.57-5.17 3.57-8.82Z"
+                    />
+                    <path
+                      fill="#34A853"
+                      d="M12 24c3.24 0 5.96-1.07 7.95-2.91l-3.88-3a7.4 7.4 0 0 1-4.07 1.16c-3.13 0-5.78-2.11-6.73-4.96H1.27v3.11A12 12 0 0 0 12 24Z"
+                    />
+                    <path
+                      fill="#FBBC05"
+                      d="M5.27 14.29a7.2 7.2 0 0 1 0-4.58V6.6H1.27a12 12 0 0 0 0 10.8l4-3.11Z"
+                    />
+                    <path
+                      fill="#EA4335"
+                      d="M12 4.75c1.76 0 3.34.6 4.59 1.79l3.44-3.44C17.95 1.19 15.24 0 12 0 7.31 0 3.26 2.69 1.27 6.6l4 3.11C6.22 6.86 8.87 4.75 12 4.75Z"
+                    />
+                  </svg>
+                  {mode === "signup" ? "Continuar com Google" : "Entrar com Google"}
                 </Button>
-              </div>
+              </>
             )}
+
+            {installPrompt && !installDismissed && !mfaFactorId && !isStandalone ? (
+              <div className="mt-4 flex items-center justify-center gap-3 border-t border-border/60 pt-3 text-xs">
+                <button
+                  type="button"
+                  onClick={handleInstallApp}
+                  className="inline-flex items-center gap-1.5 font-medium text-muted-foreground hover:text-foreground"
+                >
+                  <Download className="size-3.5" /> Instalar a aplicação
+                </button>
+                <span aria-hidden="true" className="text-border">
+                  ·
+                </span>
+                <button
+                  type="button"
+                  onClick={dismissInstall}
+                  className="text-muted-foreground hover:text-foreground"
+                >
+                  Agora não
+                </button>
+              </div>
+            ) : null}
           </div>
         </section>
       </main>
