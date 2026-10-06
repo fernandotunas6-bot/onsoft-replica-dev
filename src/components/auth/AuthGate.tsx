@@ -753,6 +753,7 @@ export function AuthGate({
                 <label className="flex items-start gap-2 text-xs text-muted-foreground cursor-pointer select-none">
                   <input
                     type="checkbox"
+                    aria-label="Confiar neste dispositivo"
                     checked={trustThisDevice}
                     onChange={(event) => setTrustThisDevice(event.target.checked)}
                     className="mt-0.5 size-3.5 rounded border-input text-primary focus:ring-primary"
