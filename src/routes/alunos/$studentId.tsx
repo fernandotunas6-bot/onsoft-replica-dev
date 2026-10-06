@@ -94,6 +94,10 @@ import {
 import { issuePrintDocument } from "@/features/documents/print-issue-loader";
 import { officialDeclarationBody } from "@/features/documents/schemas";
 import { issueInvoice, listInvoices, recordInvoicePayment } from "@/features/finance/server";
+import {
+  getStudentScholarship,
+  setStudentScholarship,
+} from "@/features/finance/scholarship-server";
 import { PayflowStudentSyncButton } from "@/features/finance/components/PayflowStudentSyncButton";
 import { officialReceiptBody, paymentStatusFromInvoices } from "@/features/finance/schemas";
 import { kwanza } from "@/lib/currency";
@@ -272,6 +276,13 @@ function StudentDetail() {
     queryFn: () => searchPeople({ data: { query: "", limit: 50 } }),
     // Só para escolher o encarregado, que é da Administração e da Secretaria.
     enabled: canRequestDocument,
+  });
+  // Desconto do contrato (vale para as faturas emitidas a seguir).
+  const scholarshipQuery = useQuery({
+    queryKey: ["finance", "scholarship", studentId],
+    queryFn: () => getStudentScholarship({ data: { studentId } }),
+    enabled: canIssueInvoice,
+    retry: false,
   });
   const invoicesQuery = useQuery({
     queryKey: ["finance", "invoices", "student", studentId],
@@ -1233,7 +1244,8 @@ function StudentDetail() {
                         studentId,
                         dueOn: values["vencimento"],
                         category: values["categoria"],
-                        amount: Number(values["valor"]),
+                        // Vazio: o preço do plano de propinas (o da classe do aluno, se houver).
+                        amount: values["valor"] ? Number(values["valor"]) : undefined,
                         description: `${values["descricao"] || ""}${nifNote}`.trim() || undefined,
                       },
                     });
@@ -1246,7 +1258,13 @@ function StudentDetail() {
                       type: "select",
                       options: ["Mensalidade", "Matrícula", "Documento", "Outro"],
                     },
-                    { name: "valor", label: "Valor (Kz)", type: "number", placeholder: "45000" },
+                    {
+                      name: "valor",
+                      label: "Valor (Kz)",
+                      type: "number",
+                      placeholder: "Vazio: preço da classe",
+                      required: false,
+                    },
                     { name: "vencimento", label: "Vencimento", type: "date" },
                     {
                       name: "descricao",
@@ -1262,6 +1280,48 @@ function StudentDetail() {
                     </Button>
                   )}
                 />
+                {canReceivePayment ? (
+                  <QuickFormModal
+                    eyebrow={student.registration_number}
+                    title="Desconto do contrato"
+                    description="Percentagem descontada nas faturas emitidas a partir de agora (irmãos, funcionário, acordo…). As já emitidas não mudam. As bolsas de estudo ficam no painel «Bolsa de estudo»: vale o maior dos dois. Pede a verificação em duas etapas."
+                    icon={<Wallet className="size-5" />}
+                    submitLabel="Gravar"
+                    successDescription="Desconto do contrato gravado."
+                    onSubmit={async (values) => {
+                      const percent = Number(String(values["percentagem"] ?? "").replace(",", "."));
+                      if (!Number.isFinite(percent) || percent < 0 || percent > 100) {
+                        throw new Error("A percentagem tem de estar entre 0 e 100.");
+                      }
+                      await setStudentScholarship({
+                        data: { studentId, percent, reason: values["motivo"] ?? "" },
+                      });
+                      await queryClient.invalidateQueries({
+                        queryKey: ["finance", "scholarship", studentId],
+                      });
+                    }}
+                    fields={[
+                      {
+                        name: "percentagem",
+                        label: "Desconto (%)",
+                        type: "number",
+                        defaultValue: scholarshipQuery.data?.percent ?? 0,
+                      },
+                      {
+                        name: "motivo",
+                        label: "Motivo",
+                        type: "textarea",
+                        full: true,
+                        placeholder: "Ex.: desconto de irmãos acordado pela Direcção",
+                      },
+                    ]}
+                    trigger={(open) => (
+                      <Button variant="outline" className="gap-2" onClick={open}>
+                        <Wallet className="size-4" /> Desconto
+                      </Button>
+                    )}
+                  />
+                ) : null}
                 <PayflowStudentSyncButton studentId={studentId} />
               </>
             ) : null}
@@ -1727,6 +1787,12 @@ function StudentDetail() {
                 label="Situação financeira"
                 value={paymentStatus ? (pagamentoLabels[paymentStatus] ?? paymentStatus) : "—"}
               />
+              {scholarshipQuery.data?.percent ? (
+                <Field
+                  label="Desconto do contrato"
+                  value={`${scholarshipQuery.data.percent.toLocaleString("pt-AO")} %`}
+                />
+              ) : null}
             </div>
             {studentInvoices.length > 0 ? (
               <ul className="mt-4 space-y-2 text-sm">

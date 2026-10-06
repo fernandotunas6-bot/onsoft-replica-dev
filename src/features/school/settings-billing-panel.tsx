@@ -19,7 +19,11 @@ import {
   type SchoolSettingsBundle,
 } from "@/features/school/server";
 import { useInstalledIntegrations } from "@/features/integrations/use-installed-integrations";
-import { listFeePlanSettings, upsertFeePlanSettings } from "@/features/finance/server";
+import {
+  listFeePlanSettings,
+  saveGradeTuitionPrices,
+  upsertFeePlanSettings,
+} from "@/features/finance/server";
 import { DEFAULT_FEE_PLAN_NAME } from "@/features/finance/fee-plan-defaults";
 import { toastActionError } from "@/lib/action-error-toast";
 import { kwanza } from "@/lib/currency";
@@ -287,6 +291,9 @@ export function FeePlanSettingsForm() {
   const [tuitionAmount, setTuitionAmount] = useState("");
   const [enrollmentAmount, setEnrollmentAmount] = useState("");
   const [saving, setSaving] = useState(false);
+  // Propina por classe: vazio = usa a propina geral (fee-items.ts).
+  const [gradeAmounts, setGradeAmounts] = useState<Record<string, string>>({});
+  const [savingGrades, setSavingGrades] = useState(false);
 
   const feePlanQuery = useQuery({
     queryKey: ["finance", "fee-plan-settings"],
@@ -302,7 +309,19 @@ export function FeePlanSettingsForm() {
     const enrollment = feePlanQuery.data.items.find((item) => item.kind === "enrollment");
     setTuitionAmount(amountText(tuition?.amount));
     setEnrollmentAmount(amountText(enrollment?.amount));
+    setGradeAmounts(
+      Object.fromEntries(
+        (feePlanQuery.data.gradePrices ?? []).map((grade) => [
+          grade.grade_level_id,
+          amountText(grade.amount ?? undefined),
+        ]),
+      ),
+    );
   }, [feePlanQuery.data]);
+
+  const gradeChanges = (feePlanQuery.data?.gradePrices ?? []).filter(
+    (grade) => (gradeAmounts[grade.grade_level_id] ?? "") !== amountText(grade.amount ?? undefined),
+  );
 
   const feePlanDirty = Boolean(
     feePlanQuery.data &&
@@ -314,8 +333,29 @@ export function FeePlanSettingsForm() {
   );
 
   useEffect(() => {
-    stackNav?.reportDirty(feePlanDirty);
-  }, [feePlanDirty, stackNav]);
+    stackNav?.reportDirty(feePlanDirty || gradeChanges.length > 0);
+  }, [feePlanDirty, gradeChanges.length, stackNav]);
+
+  const saveGradePrices = async () => {
+    const prices = gradeChanges.map((grade) => {
+      const text = (gradeAmounts[grade.grade_level_id] ?? "").replace(/\s/g, "").replace(",", ".");
+      return { gradeLevelId: grade.grade_level_id, amount: text ? Number(text) : null };
+    });
+    if (prices.some((price) => price.amount !== null && !(price.amount > 0))) {
+      toast.error("Os preços por classe têm de ser maiores que zero (ou ficar vazios).");
+      return;
+    }
+    setSavingGrades(true);
+    try {
+      const data = await saveGradeTuitionPrices({ data: { prices } });
+      queryClient.setQueryData(["finance", "fee-plan-settings"], data);
+      toast.success("Preços por classe actualizados.");
+    } catch (error) {
+      toastActionError(error, "Não foi possível guardar os preços por classe.");
+    } finally {
+      setSavingGrades(false);
+    }
+  };
 
   const saveFeePlan = async () => {
     const tuition = Number(tuitionAmount.replace(/\s/g, "").replace(",", "."));
@@ -421,6 +461,50 @@ export function FeePlanSettingsForm() {
           {saving ? "A guardar…" : ready ? "Guardar propinas" : "Activar plano financeiro"}
         </Button>
       </div>
+      {ready && feePlanQuery.data?.gradePricing && feePlanQuery.data.gradePrices.length ? (
+        <div className="space-y-3 border-t pt-4">
+          <div>
+            <p className="text-sm font-semibold">Propina por classe</p>
+            <p className="text-xs text-muted-foreground">
+              Vazio = usa a propina mensal acima. A fatura de propina usa o preço da classe do
+              aluno; o valor escrito na fatura continua a valer, se o indicar.
+            </p>
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2">
+            {feePlanQuery.data.gradePrices.map((grade) => (
+              <div key={grade.grade_level_id} className="space-y-1.5">
+                <Label htmlFor={`grade-price-${grade.grade_level_id}`}>
+                  {grade.name}
+                  {grade.program ? ` · ${grade.program}` : ""}
+                </Label>
+                <Input
+                  id={`grade-price-${grade.grade_level_id}`}
+                  type="number"
+                  min={1}
+                  step={1000}
+                  placeholder={tuitionAmount ? `Geral: ${tuitionAmount}` : "Propina geral"}
+                  value={gradeAmounts[grade.grade_level_id] ?? ""}
+                  onChange={(event) =>
+                    setGradeAmounts((current) => ({
+                      ...current,
+                      [grade.grade_level_id]: event.target.value,
+                    }))
+                  }
+                />
+              </div>
+            ))}
+          </div>
+          <div className="flex justify-end">
+            <Button
+              variant="outline"
+              onClick={() => void saveGradePrices()}
+              disabled={savingGrades || gradeChanges.length === 0}
+            >
+              {savingGrades ? "A guardar…" : "Guardar preços por classe"}
+            </Button>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }

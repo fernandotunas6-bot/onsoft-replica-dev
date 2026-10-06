@@ -299,6 +299,18 @@ describe("frequência e épocas", () => {
     ).toBe(false);
   });
 
+  it("regulamento: a dívida só bloqueia o certificado se a escola o ligar", () => {
+    expect(HIGHER_ED_DEFAULTS.block_documents_with_debt).toBe(false);
+    expect(
+      parseSettingsDomain("higher_ed", { block_documents_with_debt: true })
+        .block_documents_with_debt,
+    ).toBe(true);
+    expect(
+      parseSettingsDomain("higher_ed", { block_documents_with_debt: "sim" })
+        .block_documents_with_debt,
+    ).toBe(false);
+  });
+
   it("melhoria: só depois de aprovar, uma vez, e se a instituição a permitir", () => {
     const approved = [rec("mat1", "aprovado")];
     expect(

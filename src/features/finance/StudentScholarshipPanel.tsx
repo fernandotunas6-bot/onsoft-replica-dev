@@ -8,7 +8,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toastActionError } from "@/lib/action-error-toast";
 import { schoolTodayIso } from "@/lib/school-date";
-import { getStudentScholarships, grantScholarship, revokeScholarship } from "./scholarship-server";
+import {
+  getStudentScholarships,
+  grantScholarship,
+  revokeScholarship,
+} from "./student-scholarship-server";
 import { SCHOLARSHIP_KINDS, scholarshipKindLabel, type ScholarshipKind } from "./scholarships";
 
 /**

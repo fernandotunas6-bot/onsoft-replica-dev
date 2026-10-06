@@ -4,6 +4,79 @@ Ler isto **antes** de alterar código. Ecossistema (5 apps):
 [ARCHITECTURE_HARMONIZATION.md](./ARCHITECTURE_HARMONIZATION.md).
 Depois abrir o skill do módulo em `.cursor/skills/`.
 
+## Publicar — estado de 2026-10-06
+
+Levantamento completo: [estado-deploy-2026-10-06.md](../auditoria/estado-deploy-2026-10-06.md).
+
+- **Migrações: nada por aplicar.** As três que faltavam de facto foram aplicadas a 06/10
+  (`20261005030000_school_row_role_policies`, `20261005150000_fee_items_grade_level`,
+  `20261006100000_enrollment_class_change`) e registadas no histórico. As
+  `20261005010000` e `20261005020000`, que os relatórios davam por pendentes, **já
+  estavam aplicadas**. Retrato recapturado, tipos regenerados,
+  `tests/security/espera-migracao.ts` vazia.
+- **`enrollment_class_change` foi renumerada** de `20261005160000` para
+  `20261006100000`: a produção já era dona da `20261005160000`, com
+  `student_scholarships` do PR #87.
+- **As 3 migrações do PR #87 estão na `main`**, só os ficheiros (`student_scholarships`,
+  `class_group_waitlist`, `course_unit_shift`). Estavam aplicadas na produção com os
+  ficheiros a existir só na branch do PR — o que a regra da auditoria 12 proíbe. Sem
+  elas no repositório, o retrato recapturado deixava 3 testes de segurança vermelhos.
+  O código de aplicação do PR #87 continua em rascunho e não foi tocado.
+- **Publicação automática ligada.** Os 5 segredos estão no ambiente `production`, sem
+  regras de protecção: cada merge na `main` publica, depois de `typecheck`, `lint` e
+  `test` passarem. O `AUTH_BYPASS`, o `VITE_AUTH_DISABLED` e o `RESEND_API_KEY` ficaram
+  de fora de propósito.
+- **O 503 do PayFlow era `lib/cf-env.ts`**, que lia os bindings de `globalThis.env` em
+  vez de `cloudflare:workers`. A base D1 tem as 14 tabelas e as 6 migrações, e o binding
+  do Worker está correcto — o `num_tables: 0` da API da Cloudflare é metadado
+  desactualizado. Corrigido e provado em workerd (health 200, `latencyMs: 236`).
+- **Por rodar:** a `SUPABASE_SERVICE_ROLE_KEY` (exposta a 04/10, e agora também no
+  ambiente `production`) e o personal access token do Supabase (colado a 06/10). Ao
+  rodar a primeira, actualizar o segredo do ambiente ou a publicação deixa de passar.
+
+## Propina por classe — APLICADA (2026-10-06)
+
+O plano de propinas tinha um preço por tipo e a tesouraria escrevia o valor de cada fatura
+à mão; o modelo oficial de importação de «propinas» já trazia um preço por classe e era
+ignorado.
+
+- **Base:** `fee_items.grade_level_id` (opcional, chave composta com `grade_levels`, um só
+  preço activo por classe e tipo em cada plano). Sem classe é o preço geral, como até
+  aqui. Migração `20261005150000_fee_items_grade_level.sql`, pacote
+  `docs/agents/SIGA_aplicar_propina_por_classe.sql` (sonda também em
+  `SIGA_confirmar_migracoes.sql`; ensaio `tests/sql/fee-items-grade-level.mjs`).
+- **Escolha do item** (`src/features/finance/fee-items.ts`): a propina usa o preço da
+  classe da turma do aluno, senão o geral; o preço de uma classe nunca serve a outra.
+  Emolumentos e «Documento»/«Outro» nunca olham para a classe. Sem valor escrito, a
+  fatura usa o preço do item (o campo «Valor» passa a opcional).
+- **Ecrã:** Definições › Cobrança › Plano de propinas ganha «Propina por classe»
+  (`saveGradeTuitionPrices`, Administrador/Tesouraria). Vazio = propina geral; retirar
+  um preço desliga o item, nunca o apaga (as faturas ligam-se a ele).
+- **Importação de propinas:** cada linha com classe (e curso, se a classe existir em mais
+  de um curso) e valor grava o preço da classe no plano activo; as regras de cobrança
+  continuam como antes. Sem o pacote, a pré-visualização recusa os preços.
+- **Valores em Kz nas importações** (`normalizeMoney`): «35.000» num CSV era lido como 35
+  (`normalizeNumber`). Propinas, pagamentos, dívidas e histórico financeiro passam a ler
+  um separador seguido de três dígitos como milhares.
+- **Aplicada a 2026-10-06** (registo `20261005150000`), retrato recapturado e
+  `fee_items.grade_level_id` retirada de `tests/security/espera-migracao.ts`, que ficou
+  vazia.
+## Mudar de turma — APLICADA (2026-10-06)
+
+O gatilho `private.protect_enrollment_identity` tratava a turma como identidade da
+matrícula e recusava qualquer UPDATE de `class_group_id` («Identidade da matrícula é
+imutável.»). «Alterar turma», a atribuição em lote a alunos já matriculados e a
+importação de matrículas com «actualizar» falhavam sempre que a turma mudava: nas 36
+matrículas da produção (leitura de 2026-10-05) nunca houve uma mudança de turma gravada.
+
+- Migração `20261005160000_enrollment_class_change.sql`, pacote
+  `docs/agents/SIGA_aplicar_mudar_turma.sql` (sonda em `SIGA_confirmar_migracoes.sql`,
+  ensaio `tests/sql/enrollment-class-change.mjs`): a turma muda se a nova for do mesmo ano
+  e estiver activa; ocupar um lugar respeita a lotação (como `enroll_student`); o resto da
+  identidade continua imutável. A matrícula, as notas e o contrato ficam os mesmos.
+- `updateEnrollment` recusa antes uma turma de outro ano (é matrícula nova), e as
+  mensagens destas regras chegam ao ecrã como estão (`server-error.ts`).
+
 ## Multa por atraso: uma regra — APLICADA (2026-10-05)
 
 Pedido do dono (regra universal ou opção por escola). Antes: o webhook EMIS/Unitel
@@ -39,7 +112,7 @@ ficheiro, com 2FA e a gravação versionada do ecrã; migração
 `20261004141000_propinas_import_into_billing_rules.sql` (catálogo: `school_settings`
 «controlled», só o domínio `billing`). O modelo oficial é um preçário (designação,
 classe, valor, taxa de multa diária) que o importador não usa: avisa que os valores
-e a taxa diária não entram. Importar preços por classe fica por fazer.
+e a taxa diária não entram. Os preços por classe entraram a 2026-10-05 (secção acima).
 
 `school_billing_settings` fica como está (2 linhas, gravadas a 08/09 com os antigos
 valores do ecrã): o Colégio Adventista do Huambo (multa 2 %, 5 dias, desconto de
@@ -55,15 +128,14 @@ Relatório: `docs/auditoria/12-auditoria-sistema-2026-10-04.md`.
   de conjunto `private.user_*_school_ids`/`teacher_*` (`20261004222220`, `20261004222611`). A reescrita preserva a
   semântica (verificação mecânica na auditoria 12, secção 4b).
 - **Retrato recapturado** (04/10 à noite) e 3 testes de segurança ajustados à forma `user_*_school_ids`.
-- **Aplicadas a 05/10** (sem `DROP`, com blocos `DO … IF NOT EXISTS` / `ALTER POLICY` equivalentes):
-  `20261005010000_assessment_closed_term_guard` (fecho de período: 2 triggers) e
-  `20261005020000_direct_writes_require_mfa` (39 políticas RESTRICTIVE, 13 tabelas × 3), mais a
-  parte 1 de `20261005030000` (eventos de gateway pelo papel na escola da linha).
-  **Falta só** a parte 2 de `20261005030000`: `DROP POLICY IF EXISTS "Administrators can update
-  their own school" ON public.schools;` (política que nunca dava acesso; precisa de confirmação ou
-  do SQL Editor; depois registar a versão `20261005030000`). O que ficou de fora do 2FA e porquê:
+- **Todas aplicadas** (ver «Publicar — estado de 2026-10-06» no topo). As
+  `20261005010000_assessment_closed_term_guard.sql` (fecho de período nas avaliações) e
+  `20261005020000_direct_writes_require_mfa.sql` (2FA nas escritas directas) **já estavam
+  aplicadas** quando se foi confirmar a 06/10; a `20261005030000_school_row_role_policies.sql`
+  (papel pela escola da linha nos eventos de gateway; retira a política morta de `schools`)
+  foi aplicada a 06/10. Ensaios em `tests/sql/`. O que ficou de fora do 2FA e porquê:
   secção 5 da auditoria 12.
-- **Por fazer:** segredos do ambiente `production`; staging para os E2E.
+- **Segredos do ambiente `production`: feitos a 06/10.** Fica por fazer o staging para os E2E.
 - **Tempo real APLICADO** a 04/10 (publicação com 10 tabelas). O bloco «POR APLICAR» abaixo fica como histórico.
 - Os ensaios `tests/sql/*.mjs` correm agora no CI (PGlite instalado fora do projecto).
 - Já aplicadas na produção (o texto antigo dizia «por aplicar»): `one_active_academic_year` (02/10) e

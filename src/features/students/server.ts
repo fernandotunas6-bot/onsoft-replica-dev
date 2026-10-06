@@ -1248,6 +1248,23 @@ export const updateEnrollment = createServerFn({ method: "POST" })
       .maybeSingle();
     if (classError) throw publicDatabaseError(classError, "Não foi possível validar a turma.");
     if (!classGroup) throw new Error("Turma não encontrada nesta escola.");
+    // A turma muda dentro do ano (20261006100000_enrollment_class_change.sql); outro
+    // ano lectivo é uma matrícula nova, para não perder notas nem o contrato do ano.
+    const { data: current } = await db
+      .from("enrollments")
+      .select("academic_year_id")
+      .eq("id", data.enrollmentId)
+      .eq("school_id", membership.schoolId)
+      .maybeSingle();
+    if (
+      current?.academic_year_id &&
+      classGroup["academic_year_id"] &&
+      current.academic_year_id !== classGroup["academic_year_id"]
+    ) {
+      throw new Error(
+        "Esta turma é de outro ano lectivo: matricule o aluno no ano novo em vez de mudar a turma.",
+      );
+    }
 
     const patch: TablesUpdate<"enrollments"> = {
       class_group_id: data.classGroupId,

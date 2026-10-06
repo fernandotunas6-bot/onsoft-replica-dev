@@ -8,13 +8,47 @@
  * por isso alterá-lo à mão não dá acesso a escola nenhuma.
  */
 
+import { isLocalDevHostname, resolveTenantLookup } from "@/lib/saas/tenant-resolver";
+
 export const ACTIVE_SCHOOL_COOKIE = "siga-active-school";
 export const ACTIVE_SCHOOL_STORAGE_KEY = "siga:active-school-id";
 
 /** Sinal de que a escola guardada já não pertence ao utilizador (ex.: saiu da escola). */
 export const ACTIVE_SCHOOL_UNAVAILABLE = "ACTIVE_SCHOOL_UNAVAILABLE";
 
+/**
+ * Evento do `window` quando o utilizador muda de escola (useCurrentAccount). O
+ * TenantProvider ouve-o: no anfitrião sem escola (`app.`) o tenant vem da escola
+ * da sessão e tem de ser relido.
+ */
+export const ACTIVE_SCHOOL_CHANGED_EVENT = "siga:active-school-changed";
+
 const ONE_YEAR_SECONDS = 60 * 60 * 24 * 365;
+
+/**
+ * Slug da escola do endereço, quando se está no subdomínio de uma escola
+ * (`escola-a.portal-siga.com`). null em `app.`, no domínio da plataforma, num
+ * domínio próprio e em desenvolvimento local: aí a escola é a escolhida no seletor.
+ */
+export function hostSchoolSlug(hostname?: string): string | null {
+  const host = hostname ?? (typeof window === "undefined" ? "" : window.location.hostname);
+  if (!host || isLocalDevHostname(host)) return null;
+  const lookup = resolveTenantLookup(host);
+  return lookup.mode === "slug" ? lookup.slug : null;
+}
+
+/**
+ * O mesmo ecrã no subdomínio de outra escola. Só se chama quando `hostSchoolSlug()`
+ * não é null, por isso o primeiro rótulo do endereço é o da escola actual.
+ */
+export function schoolHostUrl(
+  slug: string,
+  location: Pick<Location, "protocol" | "hostname" | "port" | "pathname" | "search">,
+): string {
+  const rest = location.hostname.slice(location.hostname.indexOf(".") + 1);
+  const port = location.port ? `:${location.port}` : "";
+  return `${location.protocol}//${slug}.${rest}${port}${location.pathname}${location.search}`;
+}
 
 export function isActiveSchoolUnavailable(error: unknown): boolean {
   const message = error instanceof Error ? error.message : String(error ?? "");
@@ -38,4 +72,9 @@ export function rememberActiveSchool(schoolId: string | null) {
 export function readStoredActiveSchool(): string | null {
   if (typeof window === "undefined") return null;
   return localStorage.getItem(ACTIVE_SCHOOL_STORAGE_KEY);
+}
+
+/** Vai para o mesmo ecrã no subdomínio da escola indicada. */
+export function navigateToSchoolHost(slug: string) {
+  window.location.assign(schoolHostUrl(slug, window.location));
 }

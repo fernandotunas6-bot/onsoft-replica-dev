@@ -32,7 +32,8 @@ export const issueInvoiceInputSchema = z.object({
   issuedOn: z.string().date().optional(),
   description: z.string().trim().max(500).optional(),
   category: z.string().trim().min(1).max(80),
-  amount: z.number().positive().max(999_999_999_999.99),
+  /** Sem valor, o preço do plano de propinas (o da classe do aluno, se houver). */
+  amount: z.number().positive().max(999_999_999_999.99).optional(),
 });
 
 export type IssueInvoiceInput = z.infer<typeof issueInvoiceInputSchema>;

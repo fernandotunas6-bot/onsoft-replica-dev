@@ -2,6 +2,8 @@
 -- Supabase → SQL Editor → colar → Run. Cada linha deve dizer "aplicada".
 -- Se alguma disser "EM FALTA", aplicar docs/agents/SIGA_aplicar_migracoes.sql
 -- (pode correr mais do que uma vez sem problema: foi testado duas vezes seguidas).
+-- As cinco de 2026-10-05 ainda por aplicar estão juntas, por ordem, em
+-- docs/agents/SIGA_aplicar_pendentes_2026-10-06.sql.
 
 select migracao, case when ok then 'aplicada' else 'EM FALTA' end as estado
 from (values
@@ -95,6 +97,46 @@ from (values
      coalesce(position('siga.hr_payroll_reversal' in pg_get_functiondef(
        to_regprocedure('public.hr_block_locked_payroll_item_mutation()'))) > 0, false)
      and coalesce(position('siga.hr_payroll_reversal' in pg_get_functiondef(
-       to_regprocedure('private.hr_reverse_payroll_payment(uuid, uuid, uuid, text, text)'))) > 0, false))
+       to_regprocedure('private.hr_reverse_payroll_payment(uuid, uuid, uuid, text, text)'))) > 0, false)),
+  -- Esta está no pacote docs/agents/SIGA_aplicar_propina_por_classe.sql.
+  ('20261005150000_fee_items_grade_level',
+     exists (select 1 from information_schema.columns
+             where table_schema = 'public' and table_name = 'fee_items'
+               and column_name = 'grade_level_id')
+     and to_regclass('public.fee_items_plan_grade_kind_active_key') is not null),
+  -- Esta está no pacote docs/agents/SIGA_aplicar_mudar_turma.sql.
+  ('20261006100000_enrollment_class_change',
+     coalesce(position('A turma atingiu a capacidade' in pg_get_functiondef(
+       to_regprocedure('private.protect_enrollment_identity()'))) > 0, false)),
+  -- QR do professor: só a versão endurecida é chamável (aplicada a 2026-10-05).
+  ('20261005143409_teacher_qr_inner_functions_not_callable',
+     not coalesce(has_function_privilege('authenticated',
+       to_regprocedure('public.hr_redeem_teacher_qr(text)'), 'EXECUTE'), true)
+     and not coalesce(has_function_privilege('authenticated',
+       to_regprocedure('public.hr_evaluate_teacher_attendance_assurance(uuid, text, double precision, double precision, double precision)'),
+       'EXECUTE'), true)),
+  -- As três da auditoria 12, no pacote docs/agents/SIGA_aplicar_pendentes_2026-10-06.sql.
+  ('20261005010000_assessment_closed_term_guard',
+     to_regprocedure('private.assessment_term_is_locked(uuid, uuid, integer)') is not null
+     and exists (select 1 from pg_trigger
+                 where tgname = 'enforce_assessment_item_closed_term' and not tgisinternal)
+     and exists (select 1 from pg_trigger
+                 where tgname = 'enforce_assessment_score_closed_term' and not tgisinternal)),
+  ('20261005020000_direct_writes_require_mfa',
+     (select count(*) from pg_policies
+      where schemaname = 'public'
+        and policyname = 'Direct writes require MFA (insert)'
+        and tablename in ('tenants', 'subscriptions', 'subscription_addons', 'plans',
+                          'tenant_domains', 'tenant_provisioning', 'tenant_usage',
+                          'saas_audit_logs', 'school_slug_history', 'reserved_subdomains',
+                          'email_aliases', 'siga_assessment_items', 'siga_assessment_scores')) = 13),
+  ('20261005030000_school_row_role_policies',
+     exists (select 1 from pg_policies
+             where tablename = 'finance_gateway_webhook_events'
+               and policyname = 'Read gateway webhook events in own school'
+               and qual like '%sga_app_role%')
+     and not exists (select 1 from pg_policies
+                     where tablename = 'schools'
+                       and policyname = 'Administrators can update their own school'))
 ) as m(migracao, ok)
 order by migracao;

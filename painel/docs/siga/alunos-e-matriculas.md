@@ -28,6 +28,8 @@ A ficha reúne dados pessoais, encarregados, matrícula, notas, frequência, fin
 
 Em **Alunos** é possível mudar o estado de vários alunos de uma vez e atribuir turma em lote. O SIGA verifica a lotação da turma antes de mudar alguém, e mudar o estado fica registado na auditoria.
 
+Para mudar um aluno de turma, use **Alterar turma** na ficha do aluno. A matrícula, as notas e o contrato financeiro continuam os mesmos; a nova turma tem de ser do mesmo ano lectivo e ter vaga. Para o ano seguinte faz-se uma matrícula nova.
+
 ## Matrícula online
 
 1. Em **Definições → Matrícula pública**, abra o formulário e escolha os campos.

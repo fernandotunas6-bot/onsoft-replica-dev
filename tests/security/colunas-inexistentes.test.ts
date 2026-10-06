@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { resolve, relative } from "node:path";
+import { COLUNAS_ESPERA_MIGRACAO } from "./espera-migracao";
 
 /**
  * Nomes de coluna que o código pede e a base não tem.
@@ -345,7 +346,9 @@ const FUNCOES_ESPERA_MIGRACAO = new Set<string>([]);
  */
 // Vazia outra vez desde 2026-09-28: as colunas do motor de importação
 // (`import_jobs.*`) foram aplicadas e o retrato recapturado.
-const ESPERA_MIGRACAO = new Set<string>([]);
+// Desde 2026-10-05 a lista está em ./espera-migracao.ts, partilhada com
+// production-columns.test.ts, e vale também para os selects (só sondas que tratam o erro).
+const ESPERA_MIGRACAO = COLUNAS_ESPERA_MIGRACAO;
 
 const leituras = leiturasDoCodigo();
 const escritas = escritasDoCodigo();
@@ -370,7 +373,7 @@ describe("colunas pedidas vs colunas que existem", () => {
       const colunas = colunasPorTabela.get(leitura.tabela);
       if (!colunas) continue; // tabela fora do retrato: outro teste trata disso
       for (const coluna of leitura.colunas) {
-        if (!colunas.has(coluna)) {
+        if (!colunas.has(coluna) && !ESPERA_MIGRACAO.has(`${leitura.tabela}.${coluna}`)) {
           erradas.push(`${leitura.ficheiro}: ${leitura.tabela}.${coluna}`);
         }
       }

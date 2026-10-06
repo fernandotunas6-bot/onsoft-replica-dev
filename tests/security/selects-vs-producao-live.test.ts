@@ -2,6 +2,8 @@ import { readFileSync, readdirSync, statSync } from "node:fs";
 import { relative, resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 
+import { COLUNAS_ESPERA_MIGRACAO } from "./espera-migracao";
+
 /**
  * Cada `.select(…)` de `src/` disparado contra a produção, a valer.
  *
@@ -50,6 +52,20 @@ const podeSondar = Boolean(URL_BASE && CHAVE);
  * Não é para esconder achados: é para o teste falhar por coisas **novas**. Tirar
  * uma entrada daqui quando a migração respectiva for aplicada.
  */
+/**
+ * Uma coluna de `COLUNAS_ESPERA_MIGRACAO` não é um achado: há migração escrita e por
+ * aplicar, e o código funciona sem ela (lê com `select("*")` e escolhe em código; a
+ * única consulta que a nomeia é uma sonda que trata o erro). `colunas-inexistentes`
+ * e `production-columns` já respeitavam a lista; este teste não, e a suite ficava
+ * vermelha por uma espera registada — o que ensina a ignorar falhas, justamente o
+ * que o resto deste ficheiro evita. Quem obriga a lista a encolher continua a ser
+ * `colunas-inexistentes`, pelo retrato recapturado.
+ */
+function eEsperaDeMigracao(mensagem: string): boolean {
+  const m = /column ([\w.]+) does not exist/.exec(mensagem);
+  return m ? COLUNAS_ESPERA_MIGRACAO.has(m[1]) : false;
+}
+
 const AUSENCIAS_CONHECIDAS = new Map<string, string>([
   // `assessment_rule_sets` saiu daqui a 2026-09-20: a migração foi aplicada.
   // `tenant_mailboxes` saiu a 2026-09-27, pela mesma razão. A lista está vazia, e
@@ -143,6 +159,7 @@ describe.skipIf(!podeSondar)("selects do código vs. produção (ao vivo)", () =
         } catch {
           /* corpo não-JSON: fica como veio */
         }
+        if (eEsperaDeMigracao(mensagem)) continue;
         recusados.push(
           `${ficheiro}: ${tabela}(${colunas.slice(0, 80)}) → ${mensagem.slice(0, 120)}`,
         );

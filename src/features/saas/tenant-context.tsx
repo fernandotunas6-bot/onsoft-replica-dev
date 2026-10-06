@@ -12,6 +12,7 @@ import {
 } from "@/features/saas/server";
 import { getTenantAccessBlock, type TenantAccessBlockReason } from "@/features/saas/tenant-access";
 import { DOC_PATHS, getDocUrl, getPricingUrl } from "@/lib/ecosystem-urls";
+import { ACTIVE_SCHOOL_CHANGED_EVENT } from "@/features/auth/active-school";
 
 interface TenantContextType {
   activeTenant: Tenant | null;
@@ -112,6 +113,10 @@ export const TenantProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
   useEffect(() => {
     loadTenant();
+    // Troca de escola: no anfitrião `app.` o tenant (marca, plano, bloqueios) vem
+    // da escola da sessão; sem isto ficava o da escola anterior até recarregar.
+    const onSchoolChanged = () => void loadTenant();
+    window.addEventListener(ACTIVE_SCHOOL_CHANGED_EVENT, onSchoolChanged);
     let unsub: (() => void) | undefined;
     void import("@/integrations/supabase/client").then(({ supabase }) => {
       const { data } = supabase.auth.onAuthStateChange((event) => {
@@ -119,7 +124,10 @@ export const TenantProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       });
       unsub = () => data.subscription.unsubscribe();
     });
-    return () => unsub?.();
+    return () => {
+      window.removeEventListener(ACTIVE_SCHOOL_CHANGED_EVENT, onSchoolChanged);
+      unsub?.();
+    };
   }, []);
 
   const setDevSlug = (slug: string) => {

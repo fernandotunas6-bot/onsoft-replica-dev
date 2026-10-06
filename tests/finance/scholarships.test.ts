@@ -1,7 +1,6 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import {
-  scholarsByProgram,
   discountAmountFor,
   effectiveDiscountPercent,
   scholarshipInForce,
@@ -55,51 +54,5 @@ describe("bolsas de estudo", () => {
       /REVOKE ALL ON public\.student_scholarships FROM PUBLIC, anon, authenticated/,
     );
     expect(sql).not.toMatch(/CREATE POLICY/);
-  });
-});
-
-describe("bolseiros por curso (SISIES)", () => {
-  const row = (
-    student_id: string,
-    kind: string,
-    percent: number,
-    valid_until: string | null = null,
-  ) => ({
-    student_id,
-    kind,
-    percent,
-    scope: "tuition",
-    valid_from: "2026-01-01",
-    valid_until,
-    revoked_at: null,
-  });
-
-  it("conta cada estudante uma vez, pelo tipo da maior bolsa, só os matriculados e em vigor", () => {
-    const counts = scholarsByProgram(
-      [
-        row("a", "social", 30),
-        row("a", "merit", 50),
-        row("b", "staff", 100),
-        row("c", "merit", 50, "2026-02-01"),
-        row("x", "merit", 50),
-      ],
-      new Map([
-        ["a", "p1"],
-        ["b", "p1"],
-        ["c", "p2"],
-      ]),
-      new Map([
-        ["a", "F"],
-        ["b", "M"],
-      ]),
-      "2026-10-05",
-    );
-    expect(counts.get("p1")).toEqual({
-      total: 2,
-      m: 1,
-      f: 1,
-      byKind: { merit: 1, social: 0, staff: 1, institutional: 0, other: 0 },
-    });
-    expect(counts.has("p2")).toBe(false);
   });
 });

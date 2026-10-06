@@ -23,6 +23,7 @@ import {
 } from "@/integrations/supabase/sga-admin";
 import {
   HIGHER_ED_DEFAULTS,
+  HIGHER_ED_DEGREES,
   parseProgramProfile,
   programKindForDegree,
   updateSettingsDomainValue,
@@ -76,7 +77,7 @@ import {
   type UnitRecord,
 } from "./engine";
 import { schoolTodayIso } from "@/lib/school-date";
-import { SCHOLARSHIP_KINDS, scholarsByProgram } from "@/features/finance/scholarships";
+import { effectiveDiscountPercent, scholarshipInForce } from "@/features/finance/scholarships";
 
 type Db = Awaited<ReturnType<typeof loadSgaAdminClient>>;
 type Row = Record<string, unknown>;
@@ -377,7 +378,7 @@ export const listHigherEdPrograms = createServerFn({ method: "GET" })
   });
 
 const profileInput = z.object({
-  degree: z.enum(["bacharelato", "licenciatura", "mestrado", "doutoramento", "especializacao"]),
+  degree: z.enum(HIGHER_ED_DEGREES),
   modality: z.enum(["presencial", "semipresencial", "distancia"]),
   regime: z.enum(["regular", "pos_laboral"]),
   seats: z.number().int().min(0).max(100_000),
@@ -1047,6 +1048,14 @@ export const issueHigherEdCertificate = createServerFn({ method: "POST" })
       throw new Error(
         "O estudante ainda não concluiu o curso: o certificado não pode ser emitido.",
       );
+    }
+    if ((await regulationOf(db, schoolId)).block_documents_with_debt) {
+      const indebted = await studentsWithOverdueDebt(db, schoolId, [data.studentId]);
+      if (indebted.has(data.studentId)) {
+        throw new Error(
+          "O estudante tem propinas vencidas por pagar: o regulamento não permite emitir o certificado.",
+        );
+      }
     }
 
     const { data: number, error: numberError } = await db.rpc("next_document_number_service", {
@@ -2678,7 +2687,7 @@ export const exportSisiesWorkbook = createServerFn({ method: "POST" })
     const { data: enrollments } = gradeOfGroup.size
       ? await db
           .from("enrollments")
-          .select("student_id, class_group_id")
+          .select("id, student_id, class_group_id")
           .eq("school_id", schoolId)
           .in("class_group_id", [...gradeOfGroup.keys()])
           .in("status", ["active", "pending"])
@@ -2702,12 +2711,10 @@ export const exportSisiesWorkbook = createServerFn({ method: "POST" })
     );
     type Count = { total: number; m: number; f: number; byYear: Map<number, number> };
     const enrolledBy = new Map<string, Count>();
-    const programOfStudent = new Map<string, string>();
     for (const enrollment of (enrollments ?? []) as Row[]) {
       const grade = gradeById.get(gradeOfGroup.get(str(enrollment.class_group_id)) ?? "");
       if (!grade) continue;
       const programId = str(grade.program_id);
-      programOfStudent.set(str(enrollment.student_id), programId);
       const count = enrolledBy.get(programId) ?? { total: 0, m: 0, f: 0, byYear: new Map() };
       const sex = sexOfStudent.get(str(enrollment.student_id));
       count.total += 1;
@@ -2718,30 +2725,69 @@ export const exportSisiesWorkbook = createServerFn({ method: "POST" })
       enrolledBy.set(programId, count);
     }
 
-    // Bolsas: bolseiros matriculados com bolsa em vigor hoje (`student_scholarships`).
-    // Sem a tabela (migração por aplicar) a folha sai com zeros.
+    // Bolsas: matrículas do ano com desconto — o do contrato financeiro
+    // (finance/scholarship-server.ts) ou uma bolsa em vigor (`student_scholarships`,
+    // finance/student-scholarship-server.ts). Conta o maior, como na emissão das faturas.
+    const enrollmentRows = (enrollments ?? []) as Row[];
+    const discountOf = new Map<string, number>();
+    for (let start = 0; start < enrollmentRows.length; start += 300) {
+      const { data: contracts } = await db
+        .from("finance_contracts")
+        .select("enrollment_id, discount_percentage")
+        .eq("school_id", schoolId)
+        .eq("status", "active")
+        .gt("discount_percentage", 0)
+        .in(
+          "enrollment_id",
+          enrollmentRows.slice(start, start + 300).map((e) => str(e.id)),
+        );
+      for (const contract of (contracts ?? []) as Row[]) {
+        discountOf.set(str(contract.enrollment_id), Number(contract.discount_percentage ?? 0));
+      }
+    }
     const { data: scholarshipRows } = studentIds.length
       ? await db
           .from("student_scholarships")
-          .select("student_id, kind, percent, scope, valid_from, valid_until, revoked_at")
+          .select("student_id, percent, scope, valid_from, valid_until, revoked_at")
           .eq("school_id", schoolId)
           .in("student_id", studentIds)
           .is("revoked_at", null)
       : { data: [] };
-    const scholarsBy = scholarsByProgram(
-      ((scholarshipRows ?? []) as Row[]).map((row) => ({
-        student_id: str(row.student_id),
-        kind: str(row.kind),
+    const today = schoolTodayIso();
+    const scholarshipOf = new Map<string, number>();
+    for (const row of (scholarshipRows ?? []) as Row[]) {
+      const scholarship = {
         percent: Number(row.percent),
         scope: str(row.scope),
         valid_from: str(row.valid_from),
         valid_until: row.valid_until ? str(row.valid_until) : null,
         revoked_at: null,
-      })),
-      programOfStudent,
-      sexOfStudent,
-      schoolTodayIso(),
-    );
+      };
+      if (!scholarshipInForce(scholarship, today)) continue;
+      const id = str(row.student_id);
+      scholarshipOf.set(id, Math.max(scholarshipOf.get(id) ?? 0, scholarship.percent));
+    }
+    const scholarsBy = new Map<
+      string,
+      { total: number; m: number; f: number; percents: number[] }
+    >();
+    for (const enrollment of enrollmentRows) {
+      const percent = effectiveDiscountPercent(
+        discountOf.get(str(enrollment.id)) ?? 0,
+        scholarshipOf.get(str(enrollment.student_id)) ?? 0,
+      );
+      if (!percent) continue;
+      const grade = gradeById.get(gradeOfGroup.get(str(enrollment.class_group_id)) ?? "");
+      if (!grade) continue;
+      const programId = str(grade.program_id);
+      const entry = scholarsBy.get(programId) ?? { total: 0, m: 0, f: 0, percents: [] };
+      const sex = sexOfStudent.get(str(enrollment.student_id));
+      entry.total += 1;
+      if (sex === "M") entry.m += 1;
+      if (sex === "F") entry.f += 1;
+      entry.percents.push(percent);
+      scholarsBy.set(programId, entry);
+    }
 
     // Acesso: candidaturas pelo curso pretendido.
     const { data: applications } = await db
@@ -2836,7 +2882,7 @@ export const exportSisiesWorkbook = createServerFn({ method: "POST" })
       "Bolseiros",
       "Masculino",
       "Feminino",
-      ...SCHOLARSHIP_KINDS.map((kind) => kind.label),
+      "Desconto médio (%)",
     ]);
     for (const program of programs) {
       const id = str(program.id);
@@ -2882,15 +2928,19 @@ export const exportSisiesWorkbook = createServerFn({ method: "POST" })
             ) / 10
           : "",
       ]);
-      const scholars = scholarsBy.get(id);
+      const scholars = scholarsBy.get(id) ?? { total: 0, m: 0, f: 0, percents: [] };
       bolsas.addRow([
         code,
         name,
         DEGREE_TEXT[profile.degree],
-        scholars?.total ?? 0,
-        scholars?.m ?? 0,
-        scholars?.f ?? 0,
-        ...SCHOLARSHIP_KINDS.map((kind) => scholars?.byKind[kind.value] ?? 0),
+        scholars.total,
+        scholars.m,
+        scholars.f,
+        scholars.percents.length
+          ? Math.round(
+              (scholars.percents.reduce((a, b) => a + b, 0) / scholars.percents.length) * 10,
+            ) / 10
+          : "",
       ]);
     }
     const buffer = await workbook.xlsx.writeBuffer();

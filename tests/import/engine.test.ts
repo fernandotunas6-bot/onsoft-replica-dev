@@ -1,8 +1,10 @@
+import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import {
   normalizeText,
   foldForCompare,
   normalizeDate,
+  normalizeMoney,
   normalizeNumber,
   normalizePhoneDigits,
   normalizeGender,
@@ -45,6 +47,39 @@ describe("Motor de Importação — normalização", () => {
   it("normaliza números em formato PT/AO (milhar por ponto, decimal por vírgula)", () => {
     expect(normalizeNumber("1.234,56")).toBeCloseTo(1234.56);
     expect(normalizeNumber("25000")).toBe(25000);
+  });
+
+  it("valores em Kz: três dígitos depois do separador são milhares, nunca cêntimos", () => {
+    // normalizeNumber lia «35.000» como 35: num CSV, a propina de 35 000 Kz ficava a 35 Kz.
+    expect(normalizeNumber("35.000")).toBe(35);
+    expect(normalizeMoney("35.000")).toBe(35000);
+    expect(normalizeMoney("1.250.000")).toBe(1250000);
+    expect(normalizeMoney("35,000")).toBe(35000);
+    expect(normalizeMoney("35 000 Kz")).toBe(35000);
+    expect(normalizeMoney("-12.500")).toBe(-12500);
+    // O resto é como normalizeNumber: cêntimos, formato PT/AO e EN, números e vazios.
+    expect(normalizeMoney("35.000,50")).toBeCloseTo(35000.5);
+    expect(normalizeMoney("35,000.50")).toBeCloseTo(35000.5);
+    expect(normalizeMoney("35,5")).toBeCloseTo(35.5);
+    expect(normalizeMoney("35.50")).toBeCloseTo(35.5);
+    expect(normalizeMoney("25000")).toBe(25000);
+    expect(normalizeMoney(35.5)).toBe(35.5);
+    expect(normalizeMoney("")).toBeNull();
+    expect(normalizeMoney(null)).toBeNull();
+    expect(normalizeMoney("sem valor")).toBeNull();
+  });
+
+  it("os importadores de dinheiro lêem os valores como Kz", () => {
+    for (const file of [
+      "propinas-importer.ts",
+      "pagamentos-importer.ts",
+      "dividas-importer.ts",
+      "historico-financeiro-importer.ts",
+    ]) {
+      const source = readFileSync(`src/features/import/importers/${file}`, "utf8");
+      expect(source, file).toContain("normalizeMoney(");
+      expect(source, file).not.toContain("normalizeNumber(");
+    }
   });
 
   it("normaliza telefone removendo indicativo 244", () => {

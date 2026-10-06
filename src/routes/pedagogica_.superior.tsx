@@ -59,14 +59,14 @@ import {
 import type { AccessPlacement } from "@/features/higher-ed/access";
 import { DOCTORAL_MENTIONS } from "@/features/higher-ed/engine";
 import { normalizeProgramCode } from "@/features/higher-ed/program-shape";
-import type {
-  HigherEdDegree,
-  HigherEdModality,
-  HigherEdProgramProfile,
-  HigherEdRegime,
-  HigherEdRegulation,
+import {
+  programKindForDegree,
+  type HigherEdDegree,
+  type HigherEdModality,
+  type HigherEdProgramProfile,
+  type HigherEdRegime,
+  type HigherEdRegulation,
 } from "@/features/school/settings-domains";
-import { programKindForDegree } from "@/features/school/settings-domains";
 import { toastActionError } from "@/lib/action-error-toast";
 import { DocPathHelpButton } from "@/components/ui/doc-help-button";
 import { DOC_PATHS } from "@/lib/ecosystem-urls";
@@ -1930,6 +1930,17 @@ function RegulationTab({ canEdit }: { canEdit: boolean }) {
             onCheckedChange={(value) => setDraft({ ...current, block_enrollment_with_debt: value })}
           />
           <Label htmlFor="reg-debt">Propinas vencidas impedem a inscrição em cadeiras</Label>
+        </div>
+        <div className="flex items-center gap-3 sm:col-span-2">
+          <Switch
+            id="reg-debt-documents"
+            checked={current.block_documents_with_debt}
+            disabled={!canEdit}
+            onCheckedChange={(value) => setDraft({ ...current, block_documents_with_debt: value })}
+          />
+          <Label htmlFor="reg-debt-documents">
+            Propinas vencidas impedem a emissão do certificado de conclusão
+          </Label>
         </div>
         <div className="flex items-center gap-3 sm:col-span-2">
           <Switch

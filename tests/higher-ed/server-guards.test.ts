@@ -166,6 +166,14 @@ describe("Ensino Superior no servidor", () => {
     expect(body).toContain('requireAal2(context.claims, "Emitir o certificado de conclusão")');
     expect(body).toContain("if (transcript.certificate) return transcript.certificate;");
     expect(body).toContain("O estudante ainda não concluiu o curso");
+    // Dívida (opção do regulamento): verificada antes de gastar o número da série.
+    expect(body).toContain("block_documents_with_debt");
+    expect(body.indexOf("studentsWithOverdueDebt(")).toBeGreaterThan(
+      body.indexOf("if (transcript.certificate) return transcript.certificate;"),
+    );
+    expect(body.indexOf("studentsWithOverdueDebt(")).toBeLessThan(
+      body.indexOf('rpc("next_document_number_service"'),
+    );
     // Número da série oficial de certificados e código do registo de /verificar.
     expect(body).toMatch(
       /rpc\("next_document_number_service", \{[^}]*document_type: "certificate"/,
@@ -252,10 +260,14 @@ describe("Ensino Superior no servidor", () => {
   it("exportação SISIES: secretaria, ano activo, auditada", () => {
     const body = fn("exportSisiesWorkbook");
     expect(body).toContain('officeMembership(context, "read")');
-    for (const sheet of ["Vagas", "Acesso", "Matrículas", "Graduados"]) {
+    for (const sheet of ["Vagas", "Acesso", "Matrículas", "Graduados", "Bolsas"]) {
       expect(body).toContain(`addWorksheet("${sheet}")`);
     }
     expect(body).toContain('action: "higher_ed.sisies.exported"');
+    // Bolsas: só contratos activos com desconto, da escola da sessão.
+    expect(body).toMatch(
+      /\.from\("finance_contracts"\)[\s\S]*?\.eq\("school_id", schoolId\)\s*\.eq\("status", "active"\)\s*\.gt\("discount_percentage", 0\)/,
+    );
   });
 
   it("decisão do júri: só doutoramento, 2FA, inscrição em curso, auditoria", () => {

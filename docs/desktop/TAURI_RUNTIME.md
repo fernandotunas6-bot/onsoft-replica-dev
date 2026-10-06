@@ -26,6 +26,8 @@ Fechar `main` segue o comportamento do template: encerra no Windows/Linux e ocul
 
 ## Arranque e actualizações
 
+Um atalho global ocupado ou inválido não interrompe o arranque: tenta-se o padrão quando o personalizado falha, sem alterar a preferência guardada. Se ambos estiverem indisponíveis, o quick pane continua acessível pelos comandos da aplicação. Abrir uma segunda instância mostra e restaura a janela principal antes de lhe dar foco.
+
 O updater só é registado com uma chave pública real em `plugins.updater`. A configuração base não inclui chaves fictícias nem servidores de exemplo. A central consulta disponibilidade sem instalar nem reiniciar; a instalação continua no portal escolar, com a protecção de gravações pendentes existente. Preferências e interface local funcionam sem Internet; os módulos académicos dependem do servidor.
 
 ## Comandos escolares preservados
@@ -63,3 +65,9 @@ Actualizações assinadas: `scripts/desktop/release-config.mjs` gera `src-tauri/
 O ecrã local permanece disponível sem Internet, mas os módulos académicos dependem do servidor. A sessão do portal não está integrada com o cofre nativo.
 
 Para uma release de produção faltam testes reais dos instaladores Windows/macOS, certificados de assinatura/notarização e validação dos periféricos físicos. A impressão no macOS (`print_page`, `print_html`) foi verificada só no Linux. Compilação Linux e testes automatizados não substituem essas verificações.
+
+## Testes Windows e manifesto
+
+O `build.rs` liga `windows-app-manifest.xml` a todos os alvos MSVC, incluindo os testes de biblioteca. O conteúdo corresponde ao manifesto padrão do `tauri-build 2.7.1`: Common Controls v6. O manifesto automático é desactivado apenas nesse alvo para evitar recursos duplicados; ícone e restantes recursos continuam a ser gerados pelo Tauri. Rever este ficheiro ao actualizar `tauri-build`. Isto trata o erro de carregamento `STATUS_ENTRYPOINT_NOT_FOUND` antes da execução dos testes (tauri-apps/tauri#13419). A biblioteca usa o sufixo `_lib` para evitar colisões de nomes com o executável no Windows.
+
+O arranque React cancela a continuação assíncrona após desmontagem e remove a subscrição de idioma. Os testes de ciclo de vida cobrem StrictMode e desmontagem durante preferências, idioma e criação de menus.
