@@ -289,30 +289,73 @@ Comportamento verificado de fora:
 O wildcard responde a um slug que nunca existiu, que é o teste decisivo: cada escola
 criada é alcançável no seu subdomínio sem acção por escola.
 
-### A1 — `www.portal-siga.com` dá 522 (não é deste deploy)
+### A1 — `www.portal-siga.com` dava 522 — RESOLVIDO
 
-Causa, lida na API: o projecto Pages `siga-web` **não tem o hostname associado**.
+**Não havia registo DNS nenhum para o `www`.** A zona tem 10 registos e nenhum é `www`;
+o que fazia o hostname resolver era o **wildcard** `*.portal-siga.com` (AAAA `100::`, o
+endereço de marcação que o Cloudflare usa nos hostnames geridos por Worker/Pages). Como
+a rota do Worker para `www` é `bypass`, o Worker recusava-o, e do outro lado não havia
+nada: 522.
+
+(Uma primeira versão desta secção dizia que «o DNS do `www` existe e aponta para o
+Cloudflare». Estava errado — resolvia pelo wildcard. Os IPs pareciam iguais aos do
+`docs` porque ambos são IPs do proxy do Cloudflare.)
+
+O lado das Pages também estava mal: o domínio estava associado ao projecto `siga-web`
+desde **2026-09-02** com `status: deactivated`, e por isso não aparecia na lista de
+domínios do projecto. **O `www.portal-siga.com` esteve em baixo mais de um mês.**
+
+Resolvido a 06/10, em dois passos:
+
+1. `PATCH` no domínio das Pages: `deactivated` → `pending`, com o Cloudflare a dizer o
+   que faltava — `verification_data.error_message: "CNAME record not set"`.
+2. Criado o registo, igual ao do `admin` e do `docs`:
+
+   ```
+   CNAME  www.portal-siga.com  →  siga-web.pages.dev   (proxied)
+   ```
+
+Em menos de um minuto o domínio passou a `active` e o hostname a **200**. Confirmado que
+serve o projecto certo: o md5 do corpo de `www.portal-siga.com` é igual ao de
+`siga-web.pages.dev`.
+
+| Hostname                             | Antes | Agora |
+| ------------------------------------ | ----- | ----- |
+| `portal-siga.com`                    | 200   | 200   |
+| `app.portal-siga.com`                | 200   | 200   |
+| `payflow.portal-siga.com`            | 200   | 200   |
+| `www.portal-siga.com`                | **522** | **200** |
+| `admin.portal-siga.com`              | 302   | 302   |
+| `docs.portal-siga.com`               | 200   | 200   |
+| `*.portal-siga.com` (slug inventado) | 200   | 200   |
+
+### A2 — o `CLOUDFLARE_API_TOKEN` não tinha Zone DNS — RESOLVIDO
+
+As APIs de DNS respondiam `10000 Authentication error` (o aviso da linha 74 de
+`docs/cloudflare/OVERVIEW.md`): o token tinha Zone → Read mas não Zone → DNS. O dono
+acrescentou a permissão a 06/10 e o token passou a ler e escrever DNS, o que permitiu o
+passo 2 de A1. O `CLOUDFLARE_ZONE_ID` do `.env` está correcto — conferido contra o
+`zone_tag` que a API das Pages devolve.
+
+Com a permissão, `npm run siga:configure-domains` passa a ser corrível (pede ainda
+Workers Routes Edit e Pages Edit, que o token já tinha).
+
+## 10. Correio: assinatura alinhada, falta a política
+
+O sistema envia de `noreply@portal-siga.com` (`RESEND_FROM_EMAIL`). A configuração do
+Resend está correcta e **não é um defeito**, ao contrário do que a leitura rápida dos
+registos sugere:
+
+- DKIM em `resend._domainkey.portal-siga.com` — alinha com o domínio do `From`.
+- SPF em `send.portal-siga.com` (`v=spf1 include:amazonses.com ~all`) — é o domínio do
+  return-path que o Resend usa, subdomínio do `From`, logo o alinhamento relaxado passa.
+
+O que falta mesmo é **DMARC**: não existe `_dmarc.portal-siga.com`. Sem ele não há
+política para quem recebe nem relatórios de quem tenta falsificar o domínio. Com DKIM e
+SPF já alinhados, começar por um registo de observação é de risco baixo:
 
 ```
-siga-web    domains: ['siga-web.pages.dev']                             ← falta www
-siga-admin  domains: ['siga-admin.pages.dev', 'admin.portal-siga.com']  ✓
-siga-docs   domains: ['siga-docs.pages.dev',  'docs.portal-siga.com']   ✓
+TXT  _dmarc.portal-siga.com  →  v=DMARC1; p=none; rua=mailto:<caixa de relatórios>
 ```
 
-O DNS do `www` existe e aponta para o Cloudflare (mesmos IPs do `docs`), e a rota do
-Worker é `bypass` — por isso o Worker não o serve e nada está do outro lado: 522. O
-projecto em si está de pé (`siga-web.pages.dev` responde 200), e a publicação de hoje
-correu bem. É só a associação do hostname que falta, e falta desde antes deste trabalho.
-
-Correcção: associar `www.portal-siga.com` ao projecto Pages `siga-web` (Cloudflare →
-Workers & Pages → siga-web → Custom domains), ou `npm run siga:configure-domains`, que
-faz isso e é idempotente.
-
-### A2 — o `CLOUDFLARE_API_TOKEN` não tem Zone DNS
-
-O token do `.env` (o mesmo que foi para o ambiente `production`) é de Workers e Pages:
-as APIs de DNS respondem `10000 Authentication error`, exactamente o que a linha 74 de
-`docs/cloudflare/OVERVIEW.md` avisa. Chega para publicar — foi o que fez hoje — mas
-**`npm run siga:configure-domains` falha no primeiro passo**, porque precisa de Zone →
-DNS → Edit. Para correr esse script é preciso um token com Zone DNS Edit + Workers
-Routes Edit + Pages Edit.
+Depois de ler os relatórios, subir para `p=quarantine` e `p=reject`. Decisão do dono.
