@@ -1,12 +1,14 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-// @ts-expect-error -- script Node sem tipos
-import {
-  STABLE_ASSET_NAMES,
-  stableAssetName,
-  stableCopies,
-} from "../../scripts/desktop/stable-assets.mjs";
+// @ts-expect-error — script Node em JavaScript, sem declarações de tipos.
+import * as stableAssets from "../../scripts/desktop/stable-assets.mjs";
 import { DESKTOP_ASSETS } from "../../painel/web/src/lib/desktop-downloads";
+
+const { STABLE_ASSET_NAMES, stableAssetName, stableCopies } = stableAssets as {
+  STABLE_ASSET_NAMES: Record<string, string>;
+  stableAssetName: (path: string) => string | null;
+  stableCopies: (paths: string[]) => Map<string, string>;
+};
 
 describe("instaladores com nomes fixos para o site", () => {
   it("cada instalador do tauri-action tem um nome fixo; o resto fica de fora", () => {
