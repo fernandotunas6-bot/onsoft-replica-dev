@@ -1,5 +1,5 @@
 // Ensaio local (PGlite) do pacote docs/agents/SIGA_aplicar_mudar_turma.sql
-// (migração 20261005160000). Sem produção.
+// (migração 20261006100000). Sem produção.
 // Uso: node tests/sql/enrollment-class-change.mjs (ver tests/sql/README.md).
 const { PGlite } = await import(process.env["SIGA_SQL_TEST_MODULE_PATH"] || "@electric-sql/pglite");
 import { readFileSync } from "node:fs";
@@ -57,14 +57,14 @@ CREATE TABLE public.import_table_specs (table_schema text, table_name text, dire
 
 const pacote = read("../../docs/agents/SIGA_aplicar_mudar_turma.sql");
 assert.ok(
-  pacote.includes(read("../../supabase/migrations/20261005160000_enrollment_class_change.sql")),
+  pacote.includes(read("../../supabase/migrations/20261006100000_enrollment_class_change.sql")),
 );
 const confirmar = pacote.slice(pacote.indexOf("-- ══════════ Confirmar ══════════"));
 const estado = async () => Object.values((await db.query(confirmar)).rows[0])[0];
 const sonda = async () =>
   (await db.exec(read("../../docs/agents/SIGA_confirmar_migracoes.sql")))
     .at(-1)
-    .rows.find((r) => r.migracao === "20261005160000_enrollment_class_change").estado;
+    .rows.find((r) => r.migracao === "20261006100000_enrollment_class_change").estado;
 
 const one = async (sql, params = []) => (await db.query(sql, params)).rows[0];
 const school = "11111111-1111-4111-8111-111111111111";
@@ -96,7 +96,7 @@ assert.equal(await sonda(), "EM FALTA");
 
 for (let corrida = 0; corrida < 2; corrida++) {
   assert.deepEqual((await db.exec(pacote)).at(-1).rows[0], {
-    "20261005160000 mudar de turma": "aplicada",
+    "20261006100000 mudar de turma": "aplicada",
   });
 }
 assert.equal(await sonda(), "aplicada");

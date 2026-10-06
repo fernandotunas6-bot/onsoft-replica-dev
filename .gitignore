@@ -25,6 +25,9 @@ node_modules/.vite
 .wrangler/
 .dev.vars
 
+# VitePress (painel/docs) — temporários do build
+painel/docs/.vitepress/.temp/
+
 # Local Supabase CLI cache
 supabase/.temp/
 
