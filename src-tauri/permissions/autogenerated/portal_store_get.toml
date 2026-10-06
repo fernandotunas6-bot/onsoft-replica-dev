@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-portal-store-get"
+description = "Enables the portal_store_get command without any pre-configured scope."
+commands.allow = ["portal_store_get"]
+
+[[permission]]
+identifier = "deny-portal-store-get"
+description = "Denies the portal_store_get command without any pre-configured scope."
+commands.deny = ["portal_store_get"]

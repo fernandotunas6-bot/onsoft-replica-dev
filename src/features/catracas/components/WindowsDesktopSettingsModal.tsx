@@ -34,8 +34,8 @@ import {
   saveLocalHardwareBridgeConfig,
   type LocalHardwareDevice,
 } from "@/lib/tauri-bridge";
-
-const STORAGE_KEY = "siga-desktop-settings";
+import { loadNativeSetting, saveNativeSetting } from "@/lib/native-store";
+import { DESKTOP_SETTINGS_STORAGE_KEY } from "@/features/catracas/hardware-pulse";
 
 interface DesktopSettings {
   turnstileIp: string;
@@ -55,21 +55,12 @@ const defaultSettings: DesktopSettings = {
   nativeNotifications: true,
 };
 
-function loadDesktopSettings(): DesktopSettings {
+async function loadDesktopSettings(): Promise<DesktopSettings> {
   try {
-    const raw = window.localStorage.getItem(STORAGE_KEY);
-    if (!raw) return defaultSettings;
-    return { ...defaultSettings, ...JSON.parse(raw) };
+    const stored = await loadNativeSetting<Partial<DesktopSettings>>(DESKTOP_SETTINGS_STORAGE_KEY);
+    return { ...defaultSettings, ...stored };
   } catch {
     return defaultSettings;
-  }
-}
-
-function saveDesktopSettings(settings: DesktopSettings) {
-  try {
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
-  } catch {
-    // Armazenamento indisponível (privado/bloqueado) — as definições ficam só nesta sessão.
   }
 }
 
@@ -97,19 +88,29 @@ export function WindowsDesktopSettingsModal({
 
   useEffect(() => {
     if (!open) return;
-    const stored = loadDesktopSettings();
-    setTurnstileIp(stored.turnstileIp);
-    setPrinterIp(stored.printerIp);
-    setSigaAppUrl(stored.sigaAppUrl);
-    setDeviceApiKey(stored.deviceApiKey);
-    setAutoStartWindows(stored.autoStartWindows);
-    setNativeNotifications(stored.nativeNotifications);
+    let cancelled = false;
     void refreshLocalDiscovery();
-    void getLocalHardwareBridgeConfig().then((cfg) => {
-      if (cfg.siga_app_url) setSigaAppUrl(cfg.siga_app_url);
-      if (cfg.device_api_key) setDeviceApiKey(cfg.device_api_key);
-      if (cfg.turnstile_ip) setTurnstileIp(cfg.turnstile_ip);
-    });
+    // Primeiro o que está guardado no posto; depois o daemon (quando responde) prevalece.
+    void loadDesktopSettings()
+      .then((stored) => {
+        if (cancelled) return;
+        setTurnstileIp(stored.turnstileIp);
+        setPrinterIp(stored.printerIp);
+        setSigaAppUrl(stored.sigaAppUrl);
+        setDeviceApiKey(stored.deviceApiKey);
+        setAutoStartWindows(stored.autoStartWindows);
+        setNativeNotifications(stored.nativeNotifications);
+        return getLocalHardwareBridgeConfig();
+      })
+      .then((cfg) => {
+        if (cancelled || !cfg) return;
+        if (cfg.siga_app_url) setSigaAppUrl(cfg.siga_app_url);
+        if (cfg.device_api_key) setDeviceApiKey(cfg.device_api_key);
+        if (cfg.turnstile_ip) setTurnstileIp(cfg.turnstile_ip);
+      });
+    return () => {
+      cancelled = true;
+    };
   }, [open]);
 
   const refreshLocalDiscovery = async () => {
@@ -441,13 +442,17 @@ export function WindowsDesktopSettingsModal({
           <Button
             type="button"
             onClick={() => {
-              saveDesktopSettings({
+              void saveNativeSetting<DesktopSettings>(DESKTOP_SETTINGS_STORAGE_KEY, {
                 turnstileIp,
                 printerIp,
                 sigaAppUrl,
                 deviceApiKey,
                 autoStartWindows,
                 nativeNotifications,
+              }).catch((err) => {
+                toast.error("Definições do posto não guardadas", {
+                  description: err instanceof Error ? err.message : String(err),
+                });
               });
               void saveLocalHardwareBridgeConfig({
                 siga_app_url: sigaAppUrl,

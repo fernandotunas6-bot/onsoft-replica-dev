@@ -22,6 +22,7 @@ Ler `docs/desktop/TAURI_RUNTIME.md` e `desktop/AGENTS.md`.
 - `main` e `quick-pane` locais usam as capacidades do template. Portal SSR em `school`, apenas `https://portal-siga.com/*`, com permissões escolares mínimas.
 - Comandos tipados em `bindings.rs` e manifesto `build.rs`; compatibilidade web em `school/mod.rs`. Capabilities correspondentes e testes verificam o contrato.
 - Nunca conceder ao portal plugins livres de fs, updater, process, shell, store, dialog ou stronghold.
+- Store e Stronghold no portal: só pelos comandos de caminho fixo `portal_store_*` / `portal_vault_*` (`src-tauri/src/school/native_storage.rs`); a app local recebe os plugins completos.
 - Updater só com chave pública real; a central não instala actualizações. Instalação no portal respeita gravações pendentes.
 - Impressão, hardware, exportações e PayFlow preservados. Launcher e `tauri.dev.conf.json` removidos.
 - npm com lockfile em `desktop/`; Bun mantém-se para o SIGA web. `npm run desktop:quality` para os checks do template.

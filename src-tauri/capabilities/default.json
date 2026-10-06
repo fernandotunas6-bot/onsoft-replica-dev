@@ -27,6 +27,8 @@
     "process:default",
     "os:default",
     "global-shortcut:default",
+    "store:default",
+    "stronghold:default",
     "allow-greet",
     "allow-load-preferences",
     "allow-save-preferences",

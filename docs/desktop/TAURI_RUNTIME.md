@@ -20,7 +20,7 @@ O launcher antigo (`launcher.js`, `launcher.css`) e `tauri.dev.conf.json` foram 
 
 `main` aloja o frontend local completo; `quick-pane` é o painel rápido do template. A acção «Abrir SIGA» cria ou foca a janela `school` em `https://portal-siga.com`. O portal preserva as funções nativas e a sua barra de título do sistema. Menus, preferências e atalhos da central usam a estrutura do template.
 
-As capabilities locais autorizam os plugins do template apenas em `main` e `quick-pane`. A capability `school-portal` aplica-se exclusivamente a `school`, à origem exacta do portal, com comandos escolares e notificações. O portal não recebe acesso aos plugins de ficheiros, diálogos, processos, store, shell ou updater do template. `print-*` e `payflow-*` não recebem capabilities.
+As capabilities locais autorizam os plugins do template apenas em `main` e `quick-pane`. A capability `school-portal` aplica-se exclusivamente a `school`, à origem exacta do portal, com comandos escolares e notificações. O portal não recebe acesso aos plugins de ficheiros, diálogos, processos, store, stronghold, shell ou updater do template. `print-*` e `payflow-*` não recebem capabilities.
 
 Um comando tipado é registado em `bindings.rs` e no manifesto de `build.rs`, com permissão na capability local. Os comandos escolares existentes são registados em `school/mod.rs`, no mesmo manifesto e na capability escolar. O dispatcher mantém ambas as famílias. Os testes em `tests/tauri/capabilities.test.ts` verificam esse contrato.
 
@@ -31,6 +31,15 @@ Fechar `main` segue o comportamento do template: encerra no Windows/Linux e ocul
 Um atalho global ocupado ou inválido não interrompe o arranque: tenta-se o padrão quando o personalizado falha, sem alterar a preferência guardada. Se ambos estiverem indisponíveis, o quick pane continua acessível pelos comandos da aplicação. Abrir uma segunda instância mostra e restaura a janela principal antes de lhe dar foco.
 
 O updater só é registado com uma chave pública real em `plugins.updater`. A configuração base não inclui chaves fictícias nem servidores de exemplo. A central consulta disponibilidade sem instalar nem reiniciar; a instalação continua no portal escolar, com a protecção de gravações pendentes existente. Preferências e interface local funcionam sem Internet; os módulos académicos dependem do servidor.
+
+## Armazenamento nativo (Store e Stronghold)
+
+A app local (`main`) recebe os plugins completos `store:default` e `stronghold:default`. O portal não: os comandos destes plugins aceitam caminhos livres (absolutos ou com `..`) e, numa origem remota, um XSS poderia escrever ficheiros em qualquer pasta do utilizador. O portal usa comandos próprios (`src-tauri/src/school/native_storage.rs`), que gravam sempre nos mesmos ficheiros da pasta de dados da app:
+
+- **Definições do posto** — `portal_store_get/set/delete` em `siga-portal.json` (plugin Store). Chaves `[A-Za-z0-9-_.:]`, até 128 caracteres; valores JSON até 64 KiB; até 256 chaves. No portal: `src/lib/native-store.ts`. As definições de catracas/impressora (`WindowsDesktopSettingsModal`) já usam este ficheiro; o localStorage fica como cópia para leituras síncronas e as definições antigas migram na primeira leitura.
+- **Cofre cifrado** — `portal_vault_unlock/lock/get/set/remove` em `siga-portal.hold` (plugin Stronghold, chave derivada por argon2 com o sal `siga.salt`, partilhado com o cofre da app local). A primeira abertura cria o cofre com a palavra-passe indicada; as seguintes exigem a mesma. Cada gravação cifra o ficheiro de novo com scrypt (cerca de 1 s em release): guardar só o necessário. No portal: `src/lib/native-stronghold.ts`. Ainda não guarda a sessão Supabase: falta decidir a política de desbloqueio (que palavra-passe e quando a pedir).
+
+O Stronghold está marcado para descontinuação no Tauri 3; nessa migração, substituir pelo cofre do sistema (Keychain, Credential Manager, Secret Service) mantendo os mesmos comandos `portal_vault_*`. Em desenvolvimento, o `Cargo.toml` optimiza as crates de argon2/scrypt: sem isso cada gravação demorava minutos.
 
 ## Comandos escolares preservados
 
@@ -64,7 +73,7 @@ Actualizações assinadas: `scripts/desktop/release-config.mjs` gera `src-tauri/
 
 ## Limites actuais
 
-O ecrã local permanece disponível sem Internet, mas os módulos académicos dependem do servidor. A sessão do portal não está integrada com o cofre nativo.
+O ecrã local permanece disponível sem Internet, mas os módulos académicos dependem do servidor. O cofre nativo existe (`portal_vault_*`), mas a sessão do portal ainda não o usa.
 
 Para uma release de produção faltam testes reais dos instaladores Windows/macOS, certificados de assinatura/notarização e validação dos periféricos físicos. A impressão no macOS (`print_page`, `print_html`) foi verificada só no Linux. Compilação Linux e testes automatizados não substituem essas verificações.
 

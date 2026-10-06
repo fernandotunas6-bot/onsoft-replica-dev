@@ -1,5 +1,6 @@
 mod hardware_bridge;
 mod internal_pages;
+pub mod native_storage;
 
 use serde::{Deserialize, Serialize};
 use std::io::Write;
@@ -520,7 +521,15 @@ pub fn handle(invoke: tauri::ipc::Invoke) -> bool {
         internal_pages::print_html,
         internal_pages::open_payflow,
         check_app_update,
-        install_app_update
+        install_app_update,
+        native_storage::portal_store_get,
+        native_storage::portal_store_set,
+        native_storage::portal_store_delete,
+        native_storage::portal_vault_unlock,
+        native_storage::portal_vault_lock,
+        native_storage::portal_vault_get,
+        native_storage::portal_vault_set,
+        native_storage::portal_vault_remove
     ];
     handler(invoke)
 }
@@ -528,6 +537,7 @@ pub fn handle(invoke: tauri::ipc::Invoke) -> bool {
 pub fn setup(builder: tauri::Builder<tauri::Wry>) -> tauri::Builder<tauri::Wry> {
     builder
         .manage(internal_pages::InternalPages::default())
+        .manage(native_storage::PortalVault::default())
         .register_uri_scheme_protocol("sigapage", |ctx, request| {
             internal_pages::serve(ctx.app_handle(), &request)
         })
