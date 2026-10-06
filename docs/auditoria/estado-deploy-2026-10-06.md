@@ -1,0 +1,133 @@
+# Estado do deploy — 2026-10-06
+
+Levantamento feito hoje antes de preparar a publicação. Produção lida só por fora
+(HTTP, API da Cloudflare); a base Supabase **não** foi lida (as credenciais do MCP e
+do CLI estão sem autorização — ver «O que ficou por verificar»).
+
+## 1. O código: a `main` está pronta
+
+| Verificação                 | Resultado                                                |
+| --------------------------- | -------------------------------------------------------- |
+| `main` vs `origin/main`     | iguais (`d4650d89`), 0 à frente, 0 atrás                 |
+| CI na `main` (`d4650d89`)   | verde — CI, Academic Import Check, SIGA Native CI        |
+| `Deploy produção` (verify)  | verde: `typecheck`, `lint`, `test` sobre o mesmo commit   |
+| Ensaios SQL das 5 pendentes | 5 de 5 passam em PGlite (corridos hoje)                  |
+
+Trabalho de 04/10 a 06/10 (PRs #70 a #91) está todo fundido na `main`: multas por
+atraso, propina por classe, mudar de turma, bolsas/desconto no contrato, numeração
+de faturas, data civil de Luanda, QR do professor, Ensino Superior (bacharelato,
+certificado, trabalhador-estudante), template Tauri e endurecimento do arranque.
+
+## 2. O que está publicado: a produção está em 02/10
+
+A publicação automática **nunca correu** (44 de 44 execuções falhadas, agora 45).
+O que está no ar foi publicado à mão, e há quatro dias:
+
+| App                                        | Último `modified_on` |
+| ------------------------------------------ | -------------------- |
+| `fernandotunas6-bot-onsoft-replica-dev` (SIGA) | 2026-10-02 08:11 |
+| `siga-plus-payflow` (PayFlow)              | 2026-10-02 06:53     |
+
+Ou seja: **nada de 03/10 a 06/10 está em produção.** As multas por atraso, a data de
+Luanda, a numeração das faturas e o QR do professor estão na `main` e não no ar.
+
+Sondagem HTTP de hoje:
+
+| Endereço                                      | Resposta |
+| --------------------------------------------- | -------- |
+| `https://portal-siga.com/`                    | 200      |
+| `https://siga-docs.pages.dev/`                | 200      |
+| `https://siga-web.pages.dev/`                 | 200      |
+| `https://siga-admin.pages.dev/`               | 302      |
+| `https://payflow.portal-siga.com/api/v1/health` | **503**  |
+
+## 3. Dois bloqueios, os dois do dono
+
+### B1 — faltam 3 segredos no ambiente `production` (A3 da auditoria 12)
+
+A execução de hoje (`37422352112`) falha em 3s, no passo que confirma os segredos,
+antes de instalar nada:
+
+```
+Falta o segredo CLOUDFLARE_API_TOKEN no ambiente GitHub 'production'
+Falta o segredo CLOUDFLARE_ACCOUNT_ID no ambiente GitHub 'production'
+Falta o segredo SUPABASE_SERVICE_ROLE_KEY no ambiente GitHub 'production'
+```
+
+`VITE_SUPABASE_URL` e `VITE_SUPABASE_PUBLISHABLE_KEY` já resolvem pelas omissões do
+workflow. Só o dono cria segredos (Settings → Environments → production). **Rodar
+primeiro as chaves que foram coladas em conversas** (segredo Google OAuth de 25/09,
+access token e `service_role` do Supabase de 04/10): a chave que entrar no ambiente
+tem de ser a nova, não a exposta.
+
+### B2 — a base D1 do PayFlow está vazia
+
+A base existe com o id certo e **zero tabelas**:
+
+```
+siga-payflow  uuid bbfa8e07-48ad-4397-902b-bcb0b8da2948  num_tables: 0
+```
+
+As 6 migrações de `painel/payflow/drizzle/` nunca foram aplicadas. É por isso que o
+health responde 503 com `database: unavailable`. Quem as aplica é o
+`deploy-all.mjs` (`wrangler d1 migrations apply`), que nunca correu — a mesma causa
+raiz de B1. Resolvido B1, a primeira publicação aplica-as; o passo final do workflow
+(«Confirmar que os serviços publicados respondem») só passa depois disso.
+
+**Enquanto B2 não estiver resolvido, o workflow falha no fim mesmo com os segredos
+postos** — publica os 5 apps e depois recusa, porque o health do PayFlow dá 503.
+
+## 4. Ordem de publicação recomendada
+
+1. **Rodar** as chaves expostas (Supabase `service_role` e access token, Google OAuth).
+2. **Criar os 3 segredos** no ambiente `production` com as chaves novas.
+3. **Aplicar as 5 migrações** do Supabase pendentes, pelo pacote
+   `docs/agents/SIGA_aplicar_pendentes_2026-10-06.sql` (SQL Editor → Run), e
+   confirmar com a consulta do fundo (5 linhas «aplicada»). Fazer **antes** de
+   publicar: a propina por classe e o mudar de turma só funcionam com elas.
+4. **`workflow_dispatch`** do «Deploy produção» (ou um push para a `main`). A primeira
+   execução aplica as migrações D1 do PayFlow e resolve B2.
+5. **Confirmar na Cloudflare** o `modified_on` dos dois Workers e o estado das Pages —
+   o código de saída do `deploy:all` engana, e já houve publicações a falhar a meio
+   deixando apps em commits diferentes.
+6. **Recapturar** `supabase/PRODUCTION_SNAPSHOT.json` e retirar `fee_items.grade_level_id`
+   de `tests/security/espera-migracao.ts`.
+
+## 5. Migrações do Supabase: 5 por aplicar
+
+Pacote único, por ordem de versão, idempotente, com confirmação no fim:
+`docs/agents/SIGA_aplicar_pendentes_2026-10-06.sql`. Os corpos são os dos ficheiros
+de `supabase/migrations/`, conferidos por md5.
+
+| Versão         | Migração                            | Porquê                                            | Ensaio PGlite                 |
+| -------------- | ----------------------------------- | ------------------------------------------------- | ----------------------------- |
+| 20261005010000 | `assessment_closed_term_guard`      | A6: escrita directa nas notas com pauta oficial   | `assessment-closed-term.mjs`  |
+| 20261005020000 | `direct_writes_require_mfa`         | A5: 2FA em 13 tabelas                             | `direct-writes-mfa.mjs`       |
+| 20261005030000 | `school_row_role_policies`          | A9: papel pela escola da linha no gateway         | `school-row-role-policies.mjs`|
+| 20261005150000 | `fee_items_grade_level`             | propina por classe                                | `fee-items-grade-level.mjs`   |
+| 20261005160000 | `enrollment_class_change`           | mudar de turma no mesmo ano                       | `enrollment-class-change.mjs` |
+
+Já aplicadas e agora com sonda em `SIGA_confirmar_migracoes.sql` (faltava):
+`20261005143409_teacher_qr_inner_functions_not_callable`.
+
+Usa-se o SQL Editor e não `apply_migration` porque a ferramenta cancela as migrações
+com `DROP` (cancelada duas vezes a 04/10, expirada duas vezes a 05/10, sem aplicar nada).
+
+## 6. Colisão de versões no PR #87
+
+O PR #87 (rascunho, em conflito) traz `supabase/migrations/20261005160000_student_scholarships.sql`.
+A `main` já tem **`20261005160000_enrollment_class_change.sql`** — mesma versão, migração
+diferente. Antes de o PR seguir, a das bolsas tem de ser renumerada (p. ex. `20261006100000`),
+senão repete-se a colisão de versões de 04/10. O PR traz ainda `20261005170000_class_group_waitlist`
+e `20261006090000_course_unit_shift`, essas sem colisão.
+
+## 7. O que ficou por verificar
+
+- **A base Supabase não foi lida.** O MCP responde `FGA Authentication Error: Unauthorized`
+  e o CLI não tem sessão. Por isso as 5 pendentes são «pendentes» pelo registo do
+  repositório e dos relatórios (auditoria 12 e `CONTINUE.md`), não por leitura da base
+  de hoje. **Correr a consulta de `SIGA_confirmar_migracoes.sql` antes de aplicar o
+  pacote:** se alguma das 5 já disser «aplicada», aplicar o pacote continua a ser
+  seguro (é idempotente), mas o registo passa a estar certo.
+- Os PRs abertos ficam fora desta publicação: #92 (desktop, CI verde, pronto a fundir),
+  #87 (rascunho, em conflito, colisão da secção 6) e #35 (rascunho de 28/09).

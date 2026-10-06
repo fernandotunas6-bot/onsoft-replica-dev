@@ -4,6 +4,27 @@ Ler isto **antes** de alterar código. Ecossistema (5 apps):
 [ARCHITECTURE_HARMONIZATION.md](./ARCHITECTURE_HARMONIZATION.md).
 Depois abrir o skill do módulo em `.cursor/skills/`.
 
+## Publicar — estado de 2026-10-06
+
+Levantamento completo: [estado-deploy-2026-10-06.md](../auditoria/estado-deploy-2026-10-06.md).
+
+- **A `main` está pronta** (`d4650d89`, CI verde, `typecheck`/`lint`/`test` verdes no
+  mesmo commit). **A produção está em 02/10:** os dois Workers têm `modified_on` de
+  02/10 e a publicação automática nunca correu (45 execuções, 45 falhas).
+- **5 migrações por aplicar**, juntas por ordem e idempotentes, em
+  [SIGA_aplicar_pendentes_2026-10-06.sql](./SIGA_aplicar_pendentes_2026-10-06.sql):
+  `20261005010000`, `20261005020000`, `20261005030000` (auditoria 12) e
+  `20261005150000`, `20261005160000` (propina por classe e mudar de turma, as duas
+  secções abaixo). Os 5 ensaios PGlite passam. Correr primeiro
+  `SIGA_confirmar_migracoes.sql` para confirmar o registo.
+- **Dois bloqueios, os dois do dono:** faltam `CLOUDFLARE_API_TOKEN`,
+  `CLOUDFLARE_ACCOUNT_ID` e `SUPABASE_SERVICE_ROLE_KEY` no ambiente `production`
+  (rodar antes as chaves expostas em conversas); e a base D1 `siga-payflow` está com
+  **zero tabelas**, por isso o PayFlow responde 503 — as 6 migrações de
+  `painel/payflow/drizzle/` nunca correram. A primeira publicação resolve-as.
+- **PR #87 tem colisão de versão:** traz `20261005160000_student_scholarships.sql` e a
+  `main` já tem `20261005160000_enrollment_class_change.sql`. Renumerar antes de fundir.
+
 ## Propina por classe — POR APLICAR (2026-10-05)
 
 O plano de propinas tinha um preço por tipo e a tesouraria escrevia o valor de cada fatura
