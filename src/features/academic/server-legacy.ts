@@ -1682,7 +1682,7 @@ export const upsertAssessmentScores = createServerFn({ method: "POST" })
     const db = await loadSgaAdminClient();
     const { data: item, error: itemError } = await db
       .from("siga_assessment_items")
-      .select("id, term, class_group_id")
+      .select("id, term, class_group_id, max_score")
       .eq("id", data.itemId)
       .eq("school_id", membership.schoolId)
       .maybeSingle();
@@ -1695,6 +1695,12 @@ export const upsertAssessmentScores = createServerFn({ method: "POST" })
       throw publicDatabaseError(itemError, "Não foi possível validar a avaliação.");
     }
     if (!item?.id) throw new Error("Avaliação não encontrada.");
+    // O esquema aceita até 20 para qualquer avaliação; uma prova cotada para 10
+    // aceitava 18, e o domínio por competência passava dos 100%.
+    const maxScore = item.max_score == null ? null : Number(item.max_score);
+    if (maxScore != null && data.rows.some((row) => row.score != null && row.score > maxScore)) {
+      throw new Error(`Esta avaliação vale ${maxScore} valores: nenhuma nota pode passar disso.`);
+    }
     await assertTermOpen(db, membership.schoolId, Number(item.term));
     // Pauta homologada/publicada: as notas das avaliações também ficam fechadas
     // (a alteração passa a pedido), como as de MAC/NPP/NPT.
@@ -1838,6 +1844,24 @@ export const updateAssessmentItem = createServerFn({ method: "POST" })
       String(current.class_group_id),
       Number(current.term),
     );
+    // Baixar a cotação deixava notas já lançadas acima do máximo da avaliação.
+    const { data: topScore, error: topScoreError } = await db
+      .from("siga_assessment_scores")
+      .select("score")
+      .eq("school_id", membership.schoolId)
+      .eq("item_id", data.id)
+      .not("score", "is", null)
+      .order("score", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (topScoreError) {
+      throw publicDatabaseError(topScoreError, "Não foi possível verificar as notas lançadas.");
+    }
+    if (topScore?.score != null && Number(topScore.score) > data.maxScore) {
+      throw new Error(
+        `Já há notas de ${Number(topScore.score)} valores nesta avaliação: a cotação não pode ficar abaixo disso.`,
+      );
+    }
     const { data: updated, error } = await db
       .from("siga_assessment_items")
       .update({

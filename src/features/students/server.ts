@@ -1035,12 +1035,17 @@ export const enrollStudentInClass = createServerFn({ method: "POST" })
     ]);
     const db = await loadSgaAdminClient();
 
+    // Só a matrícula corrente do ano (a base admite uma activa ou pendente). Sem o
+    // filtro, um aluno com uma matrícula anulada e outra activa no mesmo ano (a
+    // colocação em lote cria uma nova) dava «várias linhas» e não se podia mover;
+    // e uma matrícula anulada era reactivada em vez de ficar no histórico.
     const { data: existing, error: existingError } = await db
       .from("enrollments")
       .select("id, status")
       .eq("student_id", data.studentId)
       .eq("academic_year_id", data.academicYearId)
       .eq("school_id", membership.schoolId)
+      .in("status", ["pending", "active"])
       .maybeSingle();
     if (existingError) {
       throw publicDatabaseError(existingError, "Não foi possível verificar matrículas existentes.");

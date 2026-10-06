@@ -577,16 +577,28 @@ export async function assertScheduleSlotConflictsDetailed({
   // 1. Validar capacidade da sala (se houver sala e turma)
   if (roomId) {
     const [{ data: roomData }, { data: groupData }] = await Promise.all([
-      db.from("rooms").select("id, name, capacity").eq("id", roomId).maybeSingle(),
-      db.from("class_groups").select("id, name, capacity").eq("id", classGroupId).maybeSingle(),
+      db
+        .from("rooms")
+        .select("id, name, capacity")
+        .eq("id", roomId)
+        .eq("school_id", schoolId)
+        .maybeSingle(),
+      db
+        .from("class_groups")
+        .select("id, name, capacity")
+        .eq("id", classGroupId)
+        .eq("school_id", schoolId)
+        .maybeSingle(),
     ]);
 
+    // Só quem ocupa lugar: matrículas anuladas, transferidas ou concluídas não
+    // estão na sala. `enrollments` não tem `deleted_at`.
     const { count: enrolledCount } = await db
       .from("enrollments")
       .select("id", { count: "exact", head: true })
       .eq("class_group_id", classGroupId)
-      .eq("school_id", schoolId);
-    // `enrollments` não tem `deleted_at`: filtrar por ela recusava a consulta inteira.
+      .eq("school_id", schoolId)
+      .in("status", ["pending", "active"]);
 
     const actualStudents = enrolledCount ?? groupData?.capacity ?? 0;
     if (roomData?.capacity && actualStudents > roomData.capacity) {

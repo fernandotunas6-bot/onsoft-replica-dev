@@ -4,6 +4,21 @@ Ler isto **antes** de alterar código. Ecossistema (5 apps):
 [ARCHITECTURE_HARMONIZATION.md](./ARCHITECTURE_HARMONIZATION.md).
 Depois abrir o skill do módulo em `.cursor/skills/`.
 
+## Auditoria 13 — fluxos da escola (2026-10-06)
+
+Relatório: [13-auditoria-fluxos-2026-10-06.md](../auditoria/13-auditoria-fluxos-2026-10-06.md).
+Só código; nenhuma migração, nada escrito na produção.
+
+- **Corrigido:** importação em páginas (`import/engine/paged.ts`; antes cortava a 1000/2000 e
+  passava listas de ids gigantes); um lote que lança já não perde o registo de reversão;
+  limite de alunos do plano também ao aceitar candidaturas e ao importar; formulário público
+  fechado a escolas arquivadas/suspensas/trial expirado; `enrollStudentInClass` só com a
+  matrícula corrente; nota acima da cotação e cotação abaixo das notas recusadas.
+- **Aberto, decisão do dono (A1):** a suspensão e o fim do trial só existem no ecrã; o
+  servidor e a RLS não os verificam. Também abertos: datas do ano lectivo sem verificar
+  os períodos (A2), quota de armazenamento nunca aplicada (A3), anular matrícula/mudar estado
+  do aluno sem acertar o outro lado (A4).
+
 ## Verificação por níveis: um toque, código só por recurso (2026-10-06)
 
 - **Entrada** (`AuthGate` + `MfaChallenge`): conta com chave de acesso (passkey, Supabase
@@ -87,6 +102,7 @@ ignorado.
 - **Aplicada a 2026-10-06** (registo `20261005150000`), retrato recapturado e
   `fee_items.grade_level_id` retirada de `tests/security/espera-migracao.ts`, que ficou
   vazia.
+
 ## Mudar de turma — APLICADA (2026-10-06)
 
 O gatilho `private.protect_enrollment_identity` tratava a turma como identidade da

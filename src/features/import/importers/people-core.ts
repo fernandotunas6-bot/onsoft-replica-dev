@@ -9,6 +9,7 @@ import {
 } from "../engine/normalize";
 import type { AuditEntry, ImportCommitContext } from "../engine/types";
 import { normalizePersonNif } from "@/lib/angola-identity";
+import { selectAllPages } from "../engine/paged";
 
 export type PersonCandidate = {
   full_name: string;
@@ -34,13 +35,21 @@ export async function loadExistingPeople(
   db: SupabaseClient,
   schoolId: string,
 ): Promise<ExistingPersonRow[]> {
-  const { data, error } = await db
-    .from("people")
-    .select("id, full_name, email, phone, national_id, date_of_birth, status")
-    .eq("school_id", schoolId)
-    .limit(2000);
-  if (error) throw new Error(`Não foi possível carregar pessoas existentes: ${error.message}`);
-  return (data ?? []) as ExistingPersonRow[];
+  // Todas, em páginas: com o tecto antigo de 2000, uma escola maior deixava de
+  // reconhecer as pessoas já registadas e criava-as outra vez.
+  return selectAllPages<ExistingPersonRow>(
+    (from, to) =>
+      db
+        .from("people")
+        .select("id, full_name, email, phone, national_id, date_of_birth, status")
+        .eq("school_id", schoolId)
+        .order("id", { ascending: true })
+        .range(from, to) as unknown as PromiseLike<{
+        data: ExistingPersonRow[] | null;
+        error: { message: string } | null;
+      }>,
+    "Não foi possível carregar pessoas existentes",
+  );
 }
 
 export function personCandidateFromRow(row: Record<string, unknown>): PersonCandidate | null {
