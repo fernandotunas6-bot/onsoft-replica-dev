@@ -29,6 +29,26 @@ const missingTable = (error: { code?: string; message?: string } | null) =>
       /class_group_waitlist/.test(error.message ?? "")),
   );
 
+async function auditWaitlist(
+  db: Db,
+  entry: {
+    schoolId: string;
+    actor: string;
+    action: "added" | "placed" | "cancelled";
+    entityId: string;
+    metadata: Record<string, unknown>;
+  },
+) {
+  await db.from("audit_logs").insert({
+    school_id: entry.schoolId,
+    actor_user_id: entry.actor,
+    action: `enrollment.waitlist.${entry.action}`,
+    entity_type: "class_group_waitlist",
+    entity_id: entry.entityId,
+    metadata: entry.metadata as never,
+  });
+}
+
 /**
  * Põe o aluno na fila da turma (ou devolve a posição em que já está). Devolve null se a
  * tabela ainda não existir na base.
@@ -43,16 +63,33 @@ export async function addStudentToWaitlist(
     note?: string | null;
   },
 ): Promise<{ position: number } | null> {
-  const { error } = await db.from("class_group_waitlist").insert({
-    school_id: input.schoolId,
-    class_group_id: input.classGroupId,
-    student_id: input.studentId,
-    note: input.note ?? null,
-    created_by: input.userId,
-  });
+  const { data: inserted, error } = await db
+    .from("class_group_waitlist")
+    .insert({
+      school_id: input.schoolId,
+      class_group_id: input.classGroupId,
+      student_id: input.studentId,
+      note: input.note ?? null,
+      created_by: input.userId,
+    })
+    .select("id")
+    .maybeSingle();
   if (error && error.code !== "23505") {
     if (missingTable(error)) return null;
     throw publicDatabaseError(error, "Não foi possível pôr o aluno na lista de espera.");
+  }
+  if (inserted?.id) {
+    await auditWaitlist(db, {
+      schoolId: input.schoolId,
+      actor: input.userId,
+      action: "added",
+      entityId: String(inserted.id),
+      metadata: {
+        class_group_id: input.classGroupId,
+        student_id: input.studentId,
+        note: input.note ?? null,
+      },
+    });
   }
   const { data: queue } = await db
     .from("class_group_waitlist")
@@ -103,7 +140,7 @@ export const listClassWaitlist = createServerFn({ method: "GET" })
     const [{ data: groups }, { data: enrollments }, { data: students }] = await Promise.all([
       db
         .from("class_groups")
-        .select("id, name, code, capacity")
+        .select("id, name, code, capacity, academic_year_id")
         .eq("school_id", schoolId)
         .in("id", classIds),
       db
@@ -143,6 +180,28 @@ export const listClassWaitlist = createServerFn({ method: "GET" })
       const id = String(row.class_group_id);
       occupied.set(id, (occupied.get(id) ?? 0) + 1);
     }
+    // Quem já tem matrícula (activa ou pendente) noutra turma do mesmo ano não se coloca
+    // pela fila: a secretaria retira-o (ou muda-o de turma na ficha do aluno).
+    const yearOfGroup = new Map(
+      (groups ?? []).map((g) => [String(g.id), String(g.academic_year_id ?? "")]),
+    );
+    const { data: studentEnrollments } = await db
+      .from("enrollments")
+      .select("student_id, class_group_id, class_groups!inner(academic_year_id)")
+      .eq("school_id", schoolId)
+      .in("student_id", studentIds)
+      .in("status", ["pending", "active"]);
+    const yearsOfStudent = new Map<string, Set<string>>();
+    for (const row of (studentEnrollments ?? []) as Array<{
+      student_id: string;
+      class_groups: { academic_year_id: string | null } | null;
+    }>) {
+      const year = row.class_groups?.academic_year_id;
+      if (!year) continue;
+      const set = yearsOfStudent.get(String(row.student_id)) ?? new Set<string>();
+      set.add(String(year));
+      yearsOfStudent.set(String(row.student_id), set);
+    }
     const positions = queuePositions(entries);
     return {
       available: true as const,
@@ -160,6 +219,9 @@ export const listClassWaitlist = createServerFn({ method: "GET" })
               .filter((entry) => entry.classGroupId === id)
               .map((entry) => {
                 const position = positions.get(entry.id) ?? 0;
+                const enrolledElsewhere = Boolean(
+                  yearsOfStudent.get(entry.studentId)?.has(yearOfGroup.get(id) ?? ""),
+                );
                 return {
                   id: entry.id,
                   studentId: entry.studentId,
@@ -168,7 +230,8 @@ export const listClassWaitlist = createServerFn({ method: "GET" })
                   since: entry.createdAt,
                   note: entry.note,
                   position,
-                  canPlace: canPlace(position, seats),
+                  enrolledElsewhere,
+                  canPlace: !enrolledElsewhere && canPlace(position, seats),
                 };
               })
               .sort((a, b) => a.position - b.position),
@@ -248,26 +311,43 @@ export const placeFromWaitlist = createServerFn({ method: "POST" })
       throw new Error("Este aluno já não está na lista de espera.");
     const classGroupId = String(entry.class_group_id);
 
-    const [{ data: queue }, { data: group }, { count: occupiedCount }] = await Promise.all([
-      db
-        .from("class_group_waitlist")
-        .select("id, class_group_id, student_id, created_at")
-        .eq("school_id", schoolId)
-        .eq("class_group_id", classGroupId)
-        .eq("status", "waiting"),
-      db
-        .from("class_groups")
-        .select("capacity")
-        .eq("school_id", schoolId)
-        .eq("id", classGroupId)
-        .maybeSingle(),
-      db
-        .from("enrollments")
-        .select("id", { count: "exact", head: true })
-        .eq("school_id", schoolId)
-        .eq("class_group_id", classGroupId)
-        .in("status", ["pending", "active"]),
-    ]);
+    const [{ data: queue }, { data: group }, { count: occupiedCount }, { data: current }] =
+      await Promise.all([
+        db
+          .from("class_group_waitlist")
+          .select("id, class_group_id, student_id, created_at")
+          .eq("school_id", schoolId)
+          .eq("class_group_id", classGroupId)
+          .eq("status", "waiting"),
+        db
+          .from("class_groups")
+          .select("capacity, academic_year_id")
+          .eq("school_id", schoolId)
+          .eq("id", classGroupId)
+          .maybeSingle(),
+        db
+          .from("enrollments")
+          .select("id", { count: "exact", head: true })
+          .eq("school_id", schoolId)
+          .eq("class_group_id", classGroupId)
+          .in("status", ["pending", "active"]),
+        db
+          .from("enrollments")
+          .select("id, class_groups!inner(academic_year_id)")
+          .eq("school_id", schoolId)
+          .eq("student_id", String(entry.student_id))
+          .in("status", ["pending", "active"]),
+      ]);
+    const yearId = group?.academic_year_id ? String(group.academic_year_id) : "";
+    if (
+      ((current ?? []) as Array<{ class_groups: { academic_year_id: string | null } | null }>).some(
+        (row) => String(row.class_groups?.academic_year_id ?? "") === yearId,
+      )
+    ) {
+      throw new Error(
+        "O aluno já tem turma neste ano lectivo. Retire-o da lista ou mude-o de turma na ficha do aluno.",
+      );
+    }
     const positions = queuePositions(
       (queue ?? []).map((row) => ({
         id: String(row.id),
@@ -303,7 +383,15 @@ export const placeFromWaitlist = createServerFn({ method: "POST" })
       .from("class_group_waitlist")
       .update({ status: "placed", placed_at: new Date().toISOString(), placed_by: context.userId })
       .eq("school_id", schoolId)
-      .eq("id", String(entry.id));
+      .eq("id", String(entry.id))
+      .eq("status", "waiting");
+    await auditWaitlist(db, {
+      schoolId,
+      actor: context.userId,
+      action: "placed",
+      entityId: String(entry.id),
+      metadata: { class_group_id: classGroupId, student_id: String(entry.student_id), position },
+    });
     // Sai das outras filas em que esperava (já tem turma).
     await db
       .from("class_group_waitlist")
@@ -343,9 +431,20 @@ export const cancelWaitlistEntry = createServerFn({ method: "POST" })
       .eq("school_id", membership.schoolId)
       .eq("id", data.entryId)
       .eq("status", "waiting")
-      .select("id")
+      .select("id, class_group_id, student_id")
       .maybeSingle();
     if (error) throw publicDatabaseError(error, "Não foi possível retirar da lista de espera.");
     if (!row) throw new Error("Esta entrada já não está na lista de espera.");
+    await auditWaitlist(db, {
+      schoolId: membership.schoolId,
+      actor: context.userId,
+      action: "cancelled",
+      entityId: String(row.id),
+      metadata: {
+        class_group_id: String(row.class_group_id),
+        student_id: String(row.student_id),
+        reason: data.reason,
+      },
+    });
     return { id: String(row.id) };
   });

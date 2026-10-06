@@ -81,6 +81,11 @@ export function ClassWaitlistPanel() {
                       {" "}
                       · desde {entry.since.slice(0, 10)}
                     </span>
+                    {entry.enrolledElsewhere ? (
+                      <span className="ml-2 rounded border px-1 text-[10px] font-medium text-muted-foreground">
+                        já tem turma
+                      </span>
+                    ) : null}
                   </span>
                   <span className="flex gap-1">
                     <Button
@@ -90,9 +95,11 @@ export function ClassWaitlistPanel() {
                       title={
                         entry.canPlace
                           ? "Colocar na turma"
-                          : group.freeSeats === 0
-                            ? "A turma está cheia"
-                            : "Coloque primeiro quem chegou antes"
+                          : entry.enrolledElsewhere
+                            ? "Já tem turma neste ano: retire-o da lista"
+                            : group.freeSeats === 0
+                              ? "A turma está cheia"
+                              : "Coloque primeiro quem chegou antes"
                       }
                       onClick={() => place.mutate(entry.id)}
                     >

@@ -72,7 +72,9 @@ export const getStudentScholarships = createServerFn({ method: "GET" })
     const today = schoolTodayIso();
     return {
       available: true as const,
-      canWrite: (WRITERS as readonly string[]).includes(membership.appRole),
+      canWrite: (membership.allAppRoles ?? [membership.appRole]).some((role) =>
+        (WRITERS as readonly string[]).includes(role),
+      ),
       rows: (rows ?? []).map((row) => ({
         ...row,
         percent: Number(row.percent),

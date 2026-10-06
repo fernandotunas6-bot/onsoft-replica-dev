@@ -32,6 +32,10 @@ Depois abrir o skill do módulo em `.cursor/skills/`.
 
 ## Publicar — estado de 2026-10-06
 
+> **PR #87 (bolsas, lista de espera, turnos):** traz `20261006160000_waitlist_scholarship_shift_indexes.sql`
+> (só índices, idempotente), **por aplicar**: aplicar na produção depois do merge, e registar
+> a versão. O resto das tabelas e colunas do PR já está na produção.
+
 Levantamento completo: [estado-deploy-2026-10-06.md](../auditoria/estado-deploy-2026-10-06.md).
 
 - **Migrações: nada por aplicar.** As três que faltavam de facto foram aplicadas a 06/10

@@ -377,7 +377,10 @@ function ApplicationRow({
             ? `Candidatura aceite e aluno colocado em ${selected.name ?? "turma"}.`
             : "Candidatura aceite. O aluno ficou como candidato até ser colocado numa turma.",
       );
-      await printTalao(withClass ? "matricula" : "candidatura").catch(() => undefined);
+      // Na lista de espera ainda não há matrícula: o talão é o da candidatura.
+      await printTalao(withClass && !outcome?.waitlistPosition ? "matricula" : "candidatura").catch(
+        () => undefined,
+      );
     } catch (error) {
       showDecisionError(error, "Não foi possível aceitar.");
     } finally {
