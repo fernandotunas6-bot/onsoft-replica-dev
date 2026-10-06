@@ -7,6 +7,7 @@ import Pricing from '@/app/pricing/page'
 import StartSchool from '@/app/start/page'
 import Terms from '@/app/termos/page'
 import Privacy from '@/app/privacidade/page'
+import Download from '@/app/download/page'
 
 const Dashboard = lazy(() => import('@/app/dashboard/page'))
 const Dashboard2 = lazy(() => import('@/app/dashboard-2/page'))
@@ -59,6 +60,7 @@ export const routes: RouteConfig[] = [
   { path: "/faqs", element: <FAQs /> },
   { path: "/termos", element: <Terms /> },
   { path: "/privacidade", element: <Privacy /> },
+  { path: "/download", element: <Download /> },
 
   // Produto vivo (funções reais do funil comercial)
   { path: "/dashboard", element: <Dashboard /> },

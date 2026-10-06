@@ -16,6 +16,7 @@ export const MARKETING_NAV_ITEMS: MarketingNavItem[] = [
   { nameKey: "landing.team", landingHref: "#team", pageHref: "/#team" },
   { nameKey: "landing.pricing", landingHref: "#pricing", pageHref: "/pricing" },
   { nameKey: "landing.faq", landingHref: "#faq", pageHref: "/faqs" },
+  { nameKey: "landing.desktop", landingHref: "/download", pageHref: "/download" },
   { nameKey: "landing.contact", landingHref: "#contact", pageHref: "/#contact" },
 ]
 
@@ -23,6 +24,7 @@ export const MARKETING_FOOTER_LINKS = {
   product: [
     { name: "Funcionalidades", href: "/#features" },
     { name: "Preços", href: "/pricing" },
+    { name: "App para computador", href: "/download" },
     { name: "Criar escola", href: getCreateSchoolUrl() },
     { name: "Documentação", href: getDocsUrl() },
   ],

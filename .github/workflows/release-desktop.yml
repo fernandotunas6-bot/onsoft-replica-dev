@@ -72,6 +72,7 @@ jobs:
         run: node scripts/desktop/release-config.mjs
 
       - name: Build Tauri app
+        id: build
         uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -86,3 +87,18 @@ jobs:
           prerelease: false
           includeUpdaterJson: true
           args: --config src-tauri/tauri.release.conf.json ${{ matrix.args }} -- --locked
+
+      # Cópias com nomes fixos: o site (painel/web, /download) liga a
+      # releases/latest/download/<nome fixo>, que serve sempre a última versão publicada.
+      - name: Upload installers with fixed names
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ARTIFACT_PATHS: ${{ steps.build.outputs.artifactPaths }}
+          TAG: ${{ github.ref_name }}
+          REPO: ${{ github.repository }}
+        run: |
+          node scripts/desktop/stable-assets.mjs stable-assets > stable-assets.txt
+          while IFS= read -r file; do
+            gh release upload "$TAG" "$file" --clobber --repo "$REPO"
+          done < stable-assets.txt
