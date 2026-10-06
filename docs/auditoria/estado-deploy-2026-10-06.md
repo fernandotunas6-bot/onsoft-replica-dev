@@ -359,3 +359,16 @@ TXT  _dmarc.portal-siga.com  →  v=DMARC1; p=none; rua=mailto:<caixa de relató
 ```
 
 Depois de ler os relatórios, subir para `p=quarantine` e `p=reject`. Decisão do dono.
+
+## 11. A publicação deixa de correr por documentação
+
+O `deploy-production.yml` era o **único** workflow sem filtro de caminho. O `ci.yml` já
+tinha exactamente `paths-ignore: ["**/*.md", "docs/**"]`, e o `payflow.yml` e o
+`academic-import-check.yml` têm listas de `paths` próprias. Foi por isso que, a 06/10, um
+commit só de documentação na `main` (`11e355d0`) republicou os 5 apps enquanto o CI o
+saltou, como devia.
+
+O `deploy-production.yml` passa a ter a mesma lista do `ci.yml`. Um commit misto (código
+mais documentos) continua a publicar, porque toca em caminhos que não estão na lista; e o
+`workflow_dispatch` publica sempre, qualquer que seja o que mudou — o dono não perde a
+publicação manual.
