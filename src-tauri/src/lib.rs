@@ -36,8 +36,9 @@ pub fn run() {
     {
         app_builder = app_builder.plugin(tauri_plugin_single_instance::init(|app, _args, _cwd| {
             if let Some(window) = app.get_webview_window("main") {
-                let _ = window.set_focus();
+                let _ = window.show();
                 let _ = window.unminimize();
+                let _ = window.set_focus();
             }
         }));
     }
@@ -131,10 +132,21 @@ pub fn run() {
                     .unwrap_or(DEFAULT_QUICK_PANE_SHORTCUT);
 
                 log::info!("Registering quick pane shortcut: {shortcut_to_register}");
-                commands::quick_pane::register_quick_pane_shortcut(
+                if let Err(error) = commands::quick_pane::register_quick_pane_shortcut(
                     app.handle(),
                     shortcut_to_register,
-                )?;
+                ) {
+                    // Another application may own the shortcut. Keep SIGA usable.
+                    log::warn!("Quick pane shortcut unavailable: {error}");
+                    if shortcut_to_register != DEFAULT_QUICK_PANE_SHORTCUT {
+                        if let Err(error) = commands::quick_pane::register_quick_pane_shortcut(
+                            app.handle(),
+                            DEFAULT_QUICK_PANE_SHORTCUT,
+                        ) {
+                            log::warn!("Default quick pane shortcut also unavailable: {error}");
+                        }
+                    }
+                }
             }
 
             // Create the quick pane window (hidden) - must be done on main thread
