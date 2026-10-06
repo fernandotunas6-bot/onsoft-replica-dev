@@ -21,6 +21,13 @@ name: Deploy produção
 on:
   push:
     branches: [main]
+    # Um commit só de documentação não republica os 5 apps. Mesma lista do
+    # `ci.yml`, que já a tinha: este era o único workflow sem filtro de caminho,
+    # e a 06/10 um commit de documentação na `main` republicou tudo sem
+    # necessidade. Um commit misto (código + documentos) continua a publicar,
+    # porque toca em caminhos que não estão aqui; e o `workflow_dispatch`
+    # abaixo publica sempre, qualquer que seja o que mudou.
+    paths-ignore: ["**/*.md", "docs/**"]
   workflow_dispatch:
 
 permissions:
