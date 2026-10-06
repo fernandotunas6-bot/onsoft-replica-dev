@@ -14,7 +14,8 @@ describe("emolumentos do Ensino Superior", () => {
     const source = readFileSync("src/features/finance/server.ts", "utf8");
     const start = source.indexOf("export const issueInvoice");
     const body = source.slice(start, source.indexOf("export const", start + 1));
-    expect(body).toContain('feeQuery.eq("code", feeCode)');
-    expect(body).toContain('feeQuery.neq("kind", "service")');
+    // A regra em si (código, tipo, nunca um emolumento por acaso) está em tests/finance/fee-items.test.ts.
+    expect(body).toContain("const feeCode = higherEdFeeCodeForCategory(data.category);");
+    expect(body).toContain("feeItemMatcher({ feeCode, kind })");
   });
 });

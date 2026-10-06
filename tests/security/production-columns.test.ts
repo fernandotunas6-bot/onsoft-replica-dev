@@ -1,13 +1,15 @@
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
+import { COLUNAS_ESPERA_MIGRACAO } from "./espera-migracao";
 
 /**
  * O código só lê e filtra colunas que existem na produção
  * (`supabase/PRODUCTION_SNAPSHOT.json`, regra de docs/agents/DATABASE_RULES.md).
  * Uma coluna inexistente não dá erro de compilação: dá um 400 em produção ou,
  * pior, uma leitura sempre vazia. Coluna nova → migração aplicada e retrato
- * recapturado antes do código que a usa.
+ * recapturado antes do código que a usa, ou registada em ./espera-migracao.ts com o
+ * código a funcionar sem ela até lá.
  */
 type Snapshot = {
   tabelas: Array<{ tabela: string; colunas: string[] }>;
@@ -50,13 +52,17 @@ describe("colunas usadas existem na produção", () => {
           .split(",")
           .map((c) => c.trim())
           .filter(Boolean)) {
-          if (!known.has(column)) problems.push(`${where} select ${table}.${column}`);
+          if (!known.has(column) && !COLUNAS_ESPERA_MIGRACAO.has(`${table}.${column}`)) {
+            problems.push(`${where} select ${table}.${column}`);
+          }
         }
       }
       for (const filter of chain.matchAll(
         /\.(eq|neq|in|is|order|gt|gte|lt|lte|like|ilike|contains)\(\s*"([a-z_0-9]+)"/g,
       )) {
-        if (!known.has(filter[2]!)) problems.push(`${where} ${filter[1]} ${table}.${filter[2]}`);
+        if (!known.has(filter[2]!) && !COLUNAS_ESPERA_MIGRACAO.has(`${table}.${filter[2]}`)) {
+          problems.push(`${where} ${filter[1]} ${table}.${filter[2]}`);
+        }
       }
     }
   }

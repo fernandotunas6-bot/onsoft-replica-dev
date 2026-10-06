@@ -74,6 +74,22 @@ export function normalizeNumber(value: unknown): number | null {
   return Number.isFinite(n) ? n : null;
 }
 
+/**
+ * Valor em kwanzas. Como normalizeNumber, mas um separador seguido de exactamente três
+ * dígitos é de milhares: «35.000», «1.250.000» e «35,000» são 35 000 e 1 250 000. O
+ * kwanza só tem cêntimos (duas casas), por isso três casas decimais nunca são um valor;
+ * normalizeNumber lia «35.000», escrito num CSV, como 35.
+ */
+export function normalizeMoney(value: unknown): number | null {
+  if (typeof value !== "number") {
+    const str = normalizeText(value).replace(/[^\d,.-]/g, "");
+    if (/^-?\d{1,3}(\.\d{3})+$/.test(str) || /^-?\d{1,3}(,\d{3})+$/.test(str)) {
+      return Number(str.replace(/[.,]/g, ""));
+    }
+  }
+  return normalizeNumber(value);
+}
+
 /** Telefone: mantém só dígitos, remove indicativo 244/+244 quando presente. */
 export function normalizePhoneDigits(value: unknown): string | null {
   const str = normalizeText(value).replace(/[^\d]/g, "");

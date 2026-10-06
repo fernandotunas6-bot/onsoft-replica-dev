@@ -1232,7 +1232,8 @@ function StudentDetail() {
                         studentId,
                         dueOn: values["vencimento"],
                         category: values["categoria"],
-                        amount: Number(values["valor"]),
+                        // Vazio: o preço do plano de propinas (o da classe do aluno, se houver).
+                        amount: values["valor"] ? Number(values["valor"]) : undefined,
                         description: `${values["descricao"] || ""}${nifNote}`.trim() || undefined,
                       },
                     });
@@ -1245,7 +1246,13 @@ function StudentDetail() {
                       type: "select",
                       options: ["Mensalidade", "Matrícula", "Documento", "Outro"],
                     },
-                    { name: "valor", label: "Valor (Kz)", type: "number", placeholder: "45000" },
+                    {
+                      name: "valor",
+                      label: "Valor (Kz)",
+                      type: "number",
+                      placeholder: "Vazio: preço da classe",
+                      required: false,
+                    },
                     { name: "vencimento", label: "Vencimento", type: "date" },
                     {
                       name: "descricao",

@@ -1,4 +1,4 @@
-import { normalizeNumber, normalizeText } from "../engine/normalize";
+import { normalizeMoney, normalizeText } from "../engine/normalize";
 import {
   invoiceYearForSchool,
   loadNextInvoiceSequence,
@@ -93,10 +93,10 @@ export const historicoFinanceiroImporter: RowImporter = {
     const academicYearName = normalizeText(
       valueOf(normalized, "academic_year", "ano_lectivo", "ano"),
     );
-    const totalBilled = normalizeNumber(
+    const totalBilled = normalizeMoney(
       valueOf(normalized, "total_billed", "total_faturado", "faturado"),
     );
-    const totalPaid = normalizeNumber(valueOf(normalized, "total_paid", "total_pago", "liquidado"));
+    const totalPaid = normalizeMoney(valueOf(normalized, "total_paid", "total_pago", "liquidado"));
 
     if (!studentIdent) errors.push("Identificador do aluno (Nº Processo ou BI) é obrigatório.");
     if (!academicYearName) errors.push("Ano lectivo do balanço é obrigatório (ex.: 2025/2026).");
@@ -173,11 +173,11 @@ export const historicoFinanceiroImporter: RowImporter = {
     const academicYearName = normalizeText(
       valueOf(normalized, "academic_year", "ano_lectivo", "ano"),
     );
-    const totalBilled = normalizeNumber(
+    const totalBilled = normalizeMoney(
       valueOf(normalized, "total_billed", "total_faturado", "faturado"),
     )!;
     const totalPaid =
-      normalizeNumber(valueOf(normalized, "total_paid", "total_pago", "liquidado")) ?? 0;
+      normalizeMoney(valueOf(normalized, "total_paid", "total_pago", "liquidado")) ?? 0;
 
     if (totalBilled <= 0) {
       return {
