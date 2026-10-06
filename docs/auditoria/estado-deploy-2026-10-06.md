@@ -123,11 +123,38 @@ e `20261006090000_course_unit_shift`, essas sem colisão.
 
 ## 7. O que ficou por verificar
 
-- **A base Supabase não foi lida.** O MCP responde `FGA Authentication Error: Unauthorized`
-  e o CLI não tem sessão. Por isso as 5 pendentes são «pendentes» pelo registo do
-  repositório e dos relatórios (auditoria 12 e `CONTINUE.md`), não por leitura da base
-  de hoje. **Correr a consulta de `SIGA_confirmar_migracoes.sql` antes de aplicar o
-  pacote:** se alguma das 5 já disser «aplicada», aplicar o pacote continua a ser
-  seguro (é idempotente), mas o registo passa a estar certo.
+- **O catálogo da base não foi lido; o esquema foi.** Dois caminhos estão fechados: o MCP
+  do Supabase responde `FGA Authentication Error: Unauthorized` e o `SUPABASE_ACCESS_TOKEN`
+  do `.env` dá 401 na API de gestão (`/v1/projects`) — foram rodados ou revogados depois
+  da exposição de 04/10. O que **funciona** é o PostgREST com a chave `service_role` do
+  `.env`, e é por isso que `tests/security/selects-vs-producao-live.test.ts` corre.
+
+  Pelo PostgREST confirma-se **ao vivo** que `20261005150000` está por aplicar:
+
+  ```
+  GET /rest/v1/fee_items?select=grade_level_id
+  → 42703  column fee_items.grade_level_id does not exist
+  ```
+
+  As outras quatro são funções, gatilhos e políticas: o PostgREST não as mostra (o
+  esquema `private` não está exposto e a `service_role` ignora o RLS), por isso para
+  essas o estado vem do registo do repositório e dos relatórios (auditoria 12 e
+  `CONTINUE.md`), não de leitura de hoje. **Correr a consulta de
+  `SIGA_confirmar_migracoes.sql` antes de aplicar o pacote:** se alguma já disser
+  «aplicada», aplicar continua a ser seguro (é idempotente), mas o registo fica certo.
+
+- **Os dois segredos da Cloudflare já existem na máquina.** `CLOUDFLARE_API_TOKEN` e
+  `CLOUDFLARE_ACCOUNT_ID` estão no `.env` da raiz; o que falta é pô-los no ambiente
+  GitHub `production`. O terceiro, `SUPABASE_SERVICE_ROLE_KEY`, também está lá — mas é
+  o que foi colado em conversa a 04/10, por isso **esse tem de ser rodado primeiro** e
+  o que entra no ambiente é a chave nova (e o `.env` actualizado a seguir).
+
+- **A suite local ficava vermelha por uma espera registada.** `COLUNAS_ESPERA_MIGRACAO`
+  (`tests/security/espera-migracao.ts`) é respeitada por `colunas-inexistentes` e
+  `production-columns`, mas não era pelo teste ao vivo: `fee_items.grade_level_id`
+  fazia falhar 1 dos 3 077 testes. Corrigido — o teste ao vivo salta agora as colunas
+  dessa lista (e só essas; quem obriga a lista a encolher continua a ser
+  `colunas-inexistentes`, pelo retrato recapturado). No CI isto não se via: o teste ao
+  vivo é saltado sem credenciais.
 - Os PRs abertos ficam fora desta publicação: #92 (desktop, CI verde, pronto a fundir),
   #87 (rascunho, em conflito, colisão da secção 6) e #35 (rascunho de 28/09).

@@ -22,6 +22,10 @@ Levantamento completo: [estado-deploy-2026-10-06.md](../auditoria/estado-deploy-
   (rodar antes as chaves expostas em conversas); e a base D1 `siga-payflow` está com
   **zero tabelas**, por isso o PayFlow responde 503 — as 6 migrações de
   `painel/payflow/drizzle/` nunca correram. A primeira publicação resolve-as.
+- **Confirmado ao vivo** (PostgREST com a `service_role`): `fee_items.grade_level_id`
+  não existe na produção, ou seja `20261005150000` está mesmo por aplicar. O MCP do
+  Supabase e o `SUPABASE_ACCESS_TOKEN` do `.env` dão `Unauthorized`/401 — o catálogo
+  (funções, gatilhos, políticas) não foi lido.
 - **PR #87 tem colisão de versão:** traz `20261005160000_student_scholarships.sql` e a
   `main` já tem `20261005160000_enrollment_class_change.sql`. Renumerar antes de fundir.
 
