@@ -10,8 +10,8 @@
  * obriga a lista a encolher: a coluna sai daqui quando o retrato recapturado já a tiver.
  */
 export const COLUNAS_ESPERA_MIGRACAO = new Set<string>([
-  // 20261005150000_fee_items_grade_level.sql (docs/agents/SIGA_aplicar_propina_por_classe.sql).
-  // Sondas em finance/server.ts (gradePricingAvailable) e no importador de propinas, com
-  // isMissingGradeColumn (finance/fee-items.ts); as outras leituras de fee_items usam select("*").
-  "fee_items.grade_level_id",
+  // Vazia, e é isso que se pretende. `fee_items.grade_level_id` saiu a 2026-10-06:
+  // a migração 20261005150000 foi aplicada na produção e o retrato recapturado já
+  // tem a coluna. Uma lista que ninguém esvazia deixa de ser espera e passa a ser
+  // dívida silenciosa.
 ]);

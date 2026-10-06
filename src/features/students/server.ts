@@ -1248,7 +1248,7 @@ export const updateEnrollment = createServerFn({ method: "POST" })
       .maybeSingle();
     if (classError) throw publicDatabaseError(classError, "Não foi possível validar a turma.");
     if (!classGroup) throw new Error("Turma não encontrada nesta escola.");
-    // A turma muda dentro do ano (20261005160000_enrollment_class_change.sql); outro
+    // A turma muda dentro do ano (20261006100000_enrollment_class_change.sql); outro
     // ano lectivo é uma matrícula nova, para não perder notas nem o contrato do ano.
     const { data: current } = await db
       .from("enrollments")
