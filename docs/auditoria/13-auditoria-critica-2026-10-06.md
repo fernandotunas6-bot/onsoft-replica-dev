@@ -286,7 +286,11 @@ socket TCP com **IP privado obrigatório** (recusa endereços públicos), págin
 impressão editável pela escola não toca em nada), updater que só se registra com chave pública
 porque registá-lo sem ela fazia a app terminar ao abrir.
 
-E nunca foi publicada:
+E cresceu **hoje**: o PR #92 foi fundido a meio desta sessão (`ce904b68`) e trouxe instaladores
+Linux (`.deb`, `.rpm`, AppImage) à matriz de versões e a sessão do Supabase guardada num cofre
+Stronghold (argon2 + scrypt), aberto com um PIN da estação de trabalho.
+
+E nunca foi publicada — nem antes do PR #92, nem depois dele:
 
 | Verificação                         | Resultado      |
 | ----------------------------------- | -------------- |
@@ -299,9 +303,11 @@ Em cadeia: sem as duas chaves, `releaseConfig()` devolve `{}` → sem `createUpd
 `plugins.updater`, sem `latest.json`. Uma versão publicada hoje sairia **sem caminho de
 actualização** — cada escola reinstalaria à mão para sempre. E com `bundle.macOS.signingIdentity:
 "-"` (assinatura ad-hoc, sem notarização), o Gatekeeper recusa-a num Mac que não seja o que a
-compilou.
+compilou. Com o cofre do PR #92, isto deixa de ser só inconveniência: uma app sem caminho de
+actualização passa a ser uma app que guarda a sessão do Supabase e não pode ser corrigida à
+distância.
 
-Mais duas observações:
+Mais três observações:
 
 - **`withGlobalTauri: true`** expõe `window.__TAURI__` à WebView. Está contido porque o frontend é
   local (`frontendDist: "../desktop/dist"`) e as páginas internas não têm capabilities — mas é
