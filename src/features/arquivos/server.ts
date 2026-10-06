@@ -17,6 +17,7 @@ import {
   kindFromFile,
 } from "./kinds";
 import { insertFinanceArchive } from "./archive-finance-core";
+import { assertCanStoreBytesForSchool } from "@/features/saas/tenant-limits-server";
 import { generateDocumentCode, normalizeDocumentCode, prefixForCategory } from "./document-code";
 import {
   createSchoolFolderInputSchema,
@@ -452,6 +453,19 @@ export const registerSchoolFile = createServerFn({ method: "POST" })
       throw new Error("Caminho do ficheiro inválido.");
     }
     const db = await loadSgaAdminClient();
+    // Quota de arquivo do plano. O ficheiro já foi enviado pelo browser: se não
+    // cabe, sai do armazenamento para não ocupar espaço sem registo.
+    if (data.storageBackend === "sga") {
+      try {
+        await assertCanStoreBytesForSchool(membership.schoolId, data.sizeBytes);
+      } catch (error) {
+        await db.storage
+          .from(FILES_BUCKET)
+          .remove([data.storagePath])
+          .catch(() => undefined);
+        throw error;
+      }
+    }
     const now = new Date().toISOString();
     const base = {
       id: data.id,

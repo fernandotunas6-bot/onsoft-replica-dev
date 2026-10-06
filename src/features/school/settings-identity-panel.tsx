@@ -154,6 +154,11 @@ export function DigitalIdentityPanel() {
       toast.error("Use um logótipo em PNG, JPEG ou WebP.");
       return;
     }
+    // Limite do bucket `school-logos`; acima disto o envio falhava sem dizer porquê.
+    if (file.size > 2 * 1024 * 1024) {
+      toast.error("O logótipo deve ter no máximo 2 MB.");
+      return;
+    }
 
     setIsSavingBranding(true);
     try {
