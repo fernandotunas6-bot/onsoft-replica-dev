@@ -36,6 +36,8 @@ fn main() {
             "portal_vault_get",
             "portal_vault_set",
             "portal_vault_remove",
+            "portal_vault_exists",
+            "portal_vault_reset",
         ]));
     // tauri-winres embeds resources only in application binaries. Link the same
     // manifest into every MSVC target, including the lib unit-test executable.

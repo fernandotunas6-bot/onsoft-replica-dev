@@ -195,7 +195,9 @@ pub fn run() {
             | "portal_vault_lock"
             | "portal_vault_get"
             | "portal_vault_set"
-            | "portal_vault_remove" => school::handle(invoke),
+            | "portal_vault_remove"
+            | "portal_vault_exists"
+            | "portal_vault_reset" => school::handle(invoke),
             _ => typed_handler(invoke),
         })
         .build(context)

@@ -529,7 +529,9 @@ pub fn handle(invoke: tauri::ipc::Invoke) -> bool {
         native_storage::portal_vault_lock,
         native_storage::portal_vault_get,
         native_storage::portal_vault_set,
-        native_storage::portal_vault_remove
+        native_storage::portal_vault_remove,
+        native_storage::portal_vault_exists,
+        native_storage::portal_vault_reset
     ];
     handler(invoke)
 }

@@ -3,6 +3,7 @@ import { readStoredActiveSchool } from "@/features/auth/active-school";
 import { createClient } from "@supabase/supabase-js";
 import type { Database } from "./types";
 import { brokeredPreviewStorage } from "./previewAuthStorage";
+import { desktopSessionStorage, isDesktopSessionRuntime } from "@/lib/desktop-session-vault";
 import { assertPublishableSupabaseKey, isOpaqueSupabaseApiKey } from "./api-key";
 
 function createSupabaseFetch(supabaseKey: string): typeof fetch {
@@ -60,7 +61,8 @@ function createSupabaseClient() {
       fetch: createSupabaseFetch(SUPABASE_PUBLISHABLE_KEY),
     },
     auth: {
-      storage: brokeredPreviewStorage(),
+      // App desktop (Tauri): sessão no cofre nativo, aberto com o PIN do posto.
+      storage: isDesktopSessionRuntime() ? desktopSessionStorage() : brokeredPreviewStorage(),
       persistSession: true,
       autoRefreshToken: true,
     },

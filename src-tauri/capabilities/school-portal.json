@@ -33,6 +33,8 @@
     "allow-portal-vault-get",
     "allow-portal-vault-set",
     "allow-portal-vault-remove",
+    "allow-portal-vault-exists",
+    "allow-portal-vault-reset",
     "notification:default"
   ]
 }
