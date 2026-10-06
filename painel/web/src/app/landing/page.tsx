@@ -12,6 +12,7 @@ import { TestimonialsSection } from "./components/testimonials-section"
 import { BlogSection } from "./components/blog-section"
 import { FaqSection } from "./components/faq-section"
 import { CTASection } from "./components/cta-section"
+import { DesktopSection } from "./components/desktop-section"
 import { ContactSection } from "./components/contact-section"
 
 export default function LandingPage() {
@@ -27,6 +28,7 @@ export default function LandingPage() {
       <TestimonialsSection />
       <BlogSection />
       <FaqSection />
+      <DesktopSection />
       <CTASection />
       <ContactSection />
     </MarketingLayout>
