@@ -1,5 +1,5 @@
 {
-  "capturadoEm": "2026-10-04T22:27:59.000Z",
+  "capturadoEm": "2026-10-05T07:19:46.000Z",
   "resumo": {
     "tabelas": 187,
     "com_rls": 187,
@@ -13066,6 +13066,16 @@
       "de": "student_risk_interventions",
       "para": "student_risk_cases",
       "chave": "student_risk_interventions_case_id_fkey"
+    },
+    {
+      "de": "student_special_statuses",
+      "para": "schools",
+      "chave": "student_special_statuses_school_id_fkey"
+    },
+    {
+      "de": "student_special_statuses",
+      "para": "students",
+      "chave": "student_special_statuses_student_id_fkey"
     },
     {
       "de": "student_status_events",
