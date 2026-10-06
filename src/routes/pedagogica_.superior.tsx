@@ -59,12 +59,13 @@ import {
 import type { AccessPlacement } from "@/features/higher-ed/access";
 import { DOCTORAL_MENTIONS } from "@/features/higher-ed/engine";
 import { normalizeProgramCode } from "@/features/higher-ed/program-shape";
-import type {
-  HigherEdDegree,
-  HigherEdModality,
-  HigherEdProgramProfile,
-  HigherEdRegime,
-  HigherEdRegulation,
+import {
+  programKindForDegree,
+  type HigherEdDegree,
+  type HigherEdModality,
+  type HigherEdProgramProfile,
+  type HigherEdRegime,
+  type HigherEdRegulation,
 } from "@/features/school/settings-domains";
 import { toastActionError } from "@/lib/action-error-toast";
 import { DocPathHelpButton } from "@/components/ui/doc-help-button";
@@ -221,6 +222,7 @@ type ProgramSummary = {
 };
 
 const DEGREE_LABEL: Record<HigherEdDegree, string> = {
+  bacharelato: "Bacharelato",
   licenciatura: "Licenciatura",
   mestrado: "Mestrado",
   doutoramento: "Doutoramento",
@@ -236,6 +238,7 @@ const REGIME_LABEL: Record<HigherEdRegime, string> = {
   pos_laboral: "Pós-laboral",
 };
 const DEGREE_YEARS: Record<HigherEdDegree, number> = {
+  bacharelato: 3,
   licenciatura: 4,
   mestrado: 2,
   doutoramento: 3,
@@ -311,7 +314,7 @@ function ProgramEditor({
         data: {
           name: form.name,
           code: form.code || undefined,
-          kind: form.degree === "licenciatura" ? "undergraduate" : "postgraduate",
+          kind: programKindForDegree(form.degree),
           years,
           profile,
         },

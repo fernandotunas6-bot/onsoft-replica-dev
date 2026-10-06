@@ -183,7 +183,23 @@ export const HIGHER_ED_DEFAULTS: HigherEdRegulation = {
   worker_student_progress_percent: 50,
 };
 
-export type HigherEdDegree = "licenciatura" | "mestrado" | "doutoramento" | "especializacao";
+/**
+ * Graus do Ensino Superior angolano (Lei 32/20). O bacharelato (2026-10-05) é, como a
+ * licenciatura, um grau de graduação: na base fica `programs.kind = 'undergraduate'`.
+ */
+export const HIGHER_ED_DEGREES = [
+  "bacharelato",
+  "licenciatura",
+  "mestrado",
+  "doutoramento",
+  "especializacao",
+] as const;
+export type HigherEdDegree = (typeof HIGHER_ED_DEGREES)[number];
+
+/** Tipo do curso na base para um grau: bacharelato e licenciatura são graduação. */
+export function programKindForDegree(degree: HigherEdDegree): "undergraduate" | "postgraduate" {
+  return degree === "bacharelato" || degree === "licenciatura" ? "undergraduate" : "postgraduate";
+}
 export type HigherEdModality = "presencial" | "semipresencial" | "distancia";
 export type HigherEdRegime = "regular" | "pos_laboral";
 
@@ -210,11 +226,7 @@ export function parseProgramProfile(value: unknown): HigherEdProgramProfile {
   const v = asRecord(value);
   const d = HIGHER_ED_PROGRAM_DEFAULT;
   return {
-    degree: oneOf(
-      v["degree"],
-      ["licenciatura", "mestrado", "doutoramento", "especializacao"],
-      d.degree,
-    ),
+    degree: oneOf(v["degree"], HIGHER_ED_DEGREES, d.degree),
     modality: oneOf(v["modality"], ["presencial", "semipresencial", "distancia"], d.modality),
     regime: oneOf(v["regime"], ["regular", "pos_laboral"], d.regime),
     seats: bounded(v["seats"], d.seats, 0, 100_000, true),
