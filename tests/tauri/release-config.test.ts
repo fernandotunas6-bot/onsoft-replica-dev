@@ -38,4 +38,14 @@ describe("publicação da app desktop", () => {
     );
     expect(workflow).toMatch(/releaseDraft: true/);
   });
+
+  it("o arranque manual cria a tag da versão da app e usa-a em todo o lado", () => {
+    const workflow = readFileSync(".github/workflows/release-desktop.yml", "utf8");
+    expect(workflow).toContain("workflow_dispatch:");
+    expect(workflow).toContain("format('v{0}', inputs.version)");
+    expect(workflow).toContain('git push origin "refs/tags/$RELEASE_TAG"');
+    expect(workflow).toContain("tagName: ${{ env.RELEASE_TAG }}");
+    // Fora da definição de RELEASE_TAG, nada pode usar o ramo (main) como nome da versão.
+    expect(workflow.match(/github\.ref_name/g)).toHaveLength(1);
+  });
 });

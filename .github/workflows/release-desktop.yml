@@ -4,9 +4,19 @@ on:
   push:
     tags:
       - "v*"
+  # Alternativa a enviar a tag: Actions → Release Desktop App → Run workflow, no main,
+  # com a versão da app. O primeiro job cria a tag v<versão> no commit do main.
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Versão da app (ex.: 1.1.0); cria a tag v<versão> no main"
+        required: true
 
 permissions:
   contents: write
+
+env:
+  RELEASE_TAG: ${{ github.event_name == 'workflow_dispatch' && format('v{0}', inputs.version) || github.ref_name }}
 
 concurrency:
   group: desktop-release-${{ github.ref }}
@@ -22,6 +32,29 @@ jobs:
         with:
           node-version: 24
       - run: node scripts/check-desktop.mjs
+
+      # Com a tag enviada, o check-desktop já confirmou tag = versão. No arranque manual,
+      # confirmar aqui e criar a tag (com o GITHUB_TOKEN não dispara outra execução).
+      - name: Create the release tag (manual run)
+        if: github.event_name == 'workflow_dispatch'
+        env:
+          VERSION: ${{ inputs.version }}
+        run: |
+          expected=$(node -p "require('./src-tauri/tauri.conf.json').version")
+          if [ "$VERSION" != "$expected" ]; then
+            echo "::error::A versão pedida ($VERSION) não é a da app ($expected)."
+            exit 1
+          fi
+          if [ "$GITHUB_REF" != "refs/heads/main" ]; then
+            echo "::error::Corra este workflow a partir do main."
+            exit 1
+          fi
+          if git ls-remote --exit-code --tags origin "refs/tags/$RELEASE_TAG" >/dev/null; then
+            echo "::error::A tag $RELEASE_TAG já existe."
+            exit 1
+          fi
+          git tag "$RELEASE_TAG" "$GITHUB_SHA"
+          git push origin "refs/tags/$RELEASE_TAG"
 
   build-tauri:
     needs: validate
@@ -80,8 +113,8 @@ jobs:
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         with:
           tauriScript: npm run tauri
-          tagName: ${{ github.ref_name }}
-          releaseName: "SIGA Desktop ${{ github.ref_name }}"
+          tagName: ${{ env.RELEASE_TAG }}
+          releaseName: "SIGA Desktop ${{ env.RELEASE_TAG }}"
           releaseBody: "Nova versão instalável do SIGA Desktop."
           releaseDraft: true
           prerelease: false
@@ -95,7 +128,7 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           ARTIFACT_PATHS: ${{ steps.build.outputs.artifactPaths }}
-          TAG: ${{ github.ref_name }}
+          TAG: ${{ env.RELEASE_TAG }}
           REPO: ${{ github.repository }}
         run: |
           node scripts/desktop/stable-assets.mjs stable-assets > stable-assets.txt
