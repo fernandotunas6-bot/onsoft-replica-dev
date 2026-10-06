@@ -233,3 +233,86 @@ espera, turnos) continua a ser decisão de quem o abriu.
   vivo é saltado sem credenciais.
 - Os PRs abertos ficam fora desta publicação: #92 (desktop, CI verde, pronto a fundir),
   #87 (rascunho, em conflito, colisão da secção 6) e #35 (rascunho de 28/09).
+
+---
+
+## 8. Publicado e confirmado na Cloudflare (06/10, 09:06)
+
+O «Deploy produção» correu com êxito **pela primeira vez** (46.ª execução), no commit
+`5a0c0730`. Confirmado na Cloudflare, não pelo verde do workflow:
+
+| Serviço                                   | Publicado em        | Commit     |
+| ----------------------------------------- | ------------------- | ---------- |
+| `fernandotunas6-bot-onsoft-replica-dev`   | 2026-10-06 09:06:17 | —          |
+| `siga-plus-payflow`                       | 2026-10-06 09:05:39 | —          |
+| Pages `siga-web`                          | 2026-10-06 09:04:43 | `5a0c0730` |
+| Pages `siga-admin`                        | 2026-10-06 09:05:12 | `5a0c0730` |
+| Pages `siga-docs`                         | 2026-10-06 09:04:22 | `5a0c0730` |
+
+Os cinco no mesmo commit — ao contrário de 04/10, quando estavam em três commits
+diferentes.
+
+**O 503 do PayFlow fechou em produção:**
+
+```
+GET https://payflow.portal-siga.com/api/v1/health
+→ 200  status: ok  database: { status: "ok", latencyMs: 211 }
+```
+
+## 9. Estrutura de domínios
+
+Rotas de Worker na zona, como o desenho pede (o Cloudflare resolve por
+especificidade, não pela ordem da lista — a rota de `payflow` ganha ao wildcard):
+
+```
+docs.portal-siga.com/*       → (bypass)     www.portal-siga.com/*    → (bypass)
+admin.portal-siga.com/*      → (bypass)     app.portal-siga.com/*    → Worker SIGA
+payflow.portal-siga.com/*    → PayFlow      *.portal-siga.com/*      → Worker SIGA
+```
+
+Domínios personalizados dos Workers: `portal-siga.com`, `app.`, `payflow.` e
+`minha-escola.` — este último é de uma escola em concreto e não devia ser preciso (o
+wildcard faz esse trabalho); fica como excepção criada à mão, inofensiva.
+
+Comportamento verificado de fora:
+
+| Hostname                             | Esperado         | Resposta |
+| ------------------------------------ | ---------------- | -------- |
+| `portal-siga.com`                    | Worker SIGA      | 200      |
+| `app.portal-siga.com`                | Worker SIGA      | 200      |
+| `payflow.portal-siga.com`            | Worker PayFlow   | 200      |
+| `docs.portal-siga.com`               | Pages siga-docs  | 200      |
+| `admin.portal-siga.com`              | Pages siga-admin | 302 → /tenants |
+| `*.portal-siga.com` (slug inventado) | wildcard → SIGA  | 200      |
+| **`www.portal-siga.com`**            | Pages siga-web   | **522**  |
+
+O wildcard responde a um slug que nunca existiu, que é o teste decisivo: cada escola
+criada é alcançável no seu subdomínio sem acção por escola.
+
+### A1 — `www.portal-siga.com` dá 522 (não é deste deploy)
+
+Causa, lida na API: o projecto Pages `siga-web` **não tem o hostname associado**.
+
+```
+siga-web    domains: ['siga-web.pages.dev']                             ← falta www
+siga-admin  domains: ['siga-admin.pages.dev', 'admin.portal-siga.com']  ✓
+siga-docs   domains: ['siga-docs.pages.dev',  'docs.portal-siga.com']   ✓
+```
+
+O DNS do `www` existe e aponta para o Cloudflare (mesmos IPs do `docs`), e a rota do
+Worker é `bypass` — por isso o Worker não o serve e nada está do outro lado: 522. O
+projecto em si está de pé (`siga-web.pages.dev` responde 200), e a publicação de hoje
+correu bem. É só a associação do hostname que falta, e falta desde antes deste trabalho.
+
+Correcção: associar `www.portal-siga.com` ao projecto Pages `siga-web` (Cloudflare →
+Workers & Pages → siga-web → Custom domains), ou `npm run siga:configure-domains`, que
+faz isso e é idempotente.
+
+### A2 — o `CLOUDFLARE_API_TOKEN` não tem Zone DNS
+
+O token do `.env` (o mesmo que foi para o ambiente `production`) é de Workers e Pages:
+as APIs de DNS respondem `10000 Authentication error`, exactamente o que a linha 74 de
+`docs/cloudflare/OVERVIEW.md` avisa. Chega para publicar — foi o que fez hoje — mas
+**`npm run siga:configure-domains` falha no primeiro passo**, porque precisa de Zone →
+DNS → Edit. Para correr esse script é preciso um token com Zone DNS Edit + Workers
+Routes Edit + Pages Edit.
