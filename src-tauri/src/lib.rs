@@ -108,12 +108,26 @@ pub fn run() {
         .plugin(tauri_plugin_clipboard_manager::init())
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_os::init())
+        .plugin(tauri_plugin_store::Builder::default().build())
         .setup(|app| {
             log::info!("Application starting up");
             log::debug!(
                 "App handle initialized for package: {}",
                 app.package_info().name
             );
+
+            // Cofre cifrado da app local. O sal (argon2) fica na pasta de dados locais,
+            // que tem de existir antes da primeira palavra-passe. Sem ela, a app abre na
+            // mesma, só sem o cofre local.
+            match school::native_storage::local_data_dir(app.handle()) {
+                Ok(data_dir) => app.handle().plugin(
+                    tauri_plugin_stronghold::Builder::with_argon2(
+                        &data_dir.join(school::native_storage::SALT_FILE),
+                    )
+                    .build(),
+                )?,
+                Err(error) => log::warn!("Stronghold unavailable: {error}"),
+            }
 
             // Set up global shortcut plugin (without any shortcuts - we register them separately)
             #[cfg(desktop)]
@@ -173,7 +187,17 @@ pub fn run() {
             | "print_html"
             | "open_payflow"
             | "check_app_update"
-            | "install_app_update" => school::handle(invoke),
+            | "install_app_update"
+            | "portal_store_get"
+            | "portal_store_set"
+            | "portal_store_delete"
+            | "portal_vault_unlock"
+            | "portal_vault_lock"
+            | "portal_vault_get"
+            | "portal_vault_set"
+            | "portal_vault_remove"
+            | "portal_vault_exists"
+            | "portal_vault_reset" => school::handle(invoke),
             _ => typed_handler(invoke),
         })
         .build(context)

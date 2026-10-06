@@ -28,6 +28,16 @@ fn main() {
             "open_payflow",
             "check_app_update",
             "install_app_update",
+            "portal_store_get",
+            "portal_store_set",
+            "portal_store_delete",
+            "portal_vault_unlock",
+            "portal_vault_lock",
+            "portal_vault_get",
+            "portal_vault_set",
+            "portal_vault_remove",
+            "portal_vault_exists",
+            "portal_vault_reset",
         ]));
     // tauri-winres embeds resources only in application binaries. Link the same
     // manifest into every MSVC target, including the lib unit-test executable.

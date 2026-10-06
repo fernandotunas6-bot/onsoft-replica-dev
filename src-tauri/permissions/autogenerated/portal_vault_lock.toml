@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-portal-vault-lock"
+description = "Enables the portal_vault_lock command without any pre-configured scope."
+commands.allow = ["portal_vault_lock"]
+
+[[permission]]
+identifier = "deny-portal-vault-lock"
+description = "Denies the portal_vault_lock command without any pre-configured scope."
+commands.deny = ["portal_vault_lock"]

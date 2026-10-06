@@ -12,13 +12,15 @@ A base desktop é o [Danny Smith Tauri Template](https://github.com/dannysmith/t
 
 Na raiz: `npm run desktop:install`, depois `npm run desktop:dev` ou `npm run desktop:build`. O Vite do template usa `localhost:1420`. `npm run desktop:check` valida configuração e permissões. `npm run desktop:quality` executa as verificações completas do template (requer Rust e bibliotecas Tauri do sistema). `npm --prefix desktop run rust:bindings` regenera os bindings em `desktop/src/lib/bindings.ts`.
 
+Versões: o `tauri build` pára quando um pacote `@tauri-apps/*` instalado (em `desktop/` ou na raiz) difere da crate correspondente em major.minor (ex.: `@tauri-apps/api` 2.12.x com `tauri` 2.12.x; `@tauri-apps/plugin-updater` 2.13.x com `tauri-plugin-updater` 2.13.x). Ao actualizar o `Cargo.lock`, actualizar também `desktop/package-lock.json` e `bun.lock`. O `desktop:check` compara os três lockfiles e falha antes do build.
+
 O launcher antigo (`launcher.js`, `launcher.css`) e `tauri.dev.conf.json` foram removidos. O frontend web SIGA continua a ser SSR: não pode ser incorporado a partir de `.output/public`.
 
 ## Janelas e permissões
 
 `main` aloja o frontend local completo; `quick-pane` é o painel rápido do template. A acção «Abrir SIGA» cria ou foca a janela `school` em `https://portal-siga.com`. O portal preserva as funções nativas e a sua barra de título do sistema. Menus, preferências e atalhos da central usam a estrutura do template.
 
-As capabilities locais autorizam os plugins do template apenas em `main` e `quick-pane`. A capability `school-portal` aplica-se exclusivamente a `school`, à origem exacta do portal, com comandos escolares e notificações. O portal não recebe acesso aos plugins de ficheiros, diálogos, processos, store, shell ou updater do template. `print-*` e `payflow-*` não recebem capabilities.
+As capabilities locais autorizam os plugins do template apenas em `main` e `quick-pane`. A capability `school-portal` aplica-se exclusivamente a `school`, à origem exacta do portal, com comandos escolares e notificações. O portal não recebe acesso aos plugins de ficheiros, diálogos, processos, store, stronghold, shell ou updater do template. `print-*` e `payflow-*` não recebem capabilities.
 
 Um comando tipado é registado em `bindings.rs` e no manifesto de `build.rs`, com permissão na capability local. Os comandos escolares existentes são registados em `school/mod.rs`, no mesmo manifesto e na capability escolar. O dispatcher mantém ambas as famílias. Os testes em `tests/tauri/capabilities.test.ts` verificam esse contrato.
 
@@ -29,6 +31,16 @@ Fechar `main` segue o comportamento do template: encerra no Windows/Linux e ocul
 Um atalho global ocupado ou inválido não interrompe o arranque: tenta-se o padrão quando o personalizado falha, sem alterar a preferência guardada. Se ambos estiverem indisponíveis, o quick pane continua acessível pelos comandos da aplicação. Abrir uma segunda instância mostra e restaura a janela principal antes de lhe dar foco.
 
 O updater só é registado com uma chave pública real em `plugins.updater`. A configuração base não inclui chaves fictícias nem servidores de exemplo. A central consulta disponibilidade sem instalar nem reiniciar; a instalação continua no portal escolar, com a protecção de gravações pendentes existente. Preferências e interface local funcionam sem Internet; os módulos académicos dependem do servidor.
+
+## Armazenamento nativo (Store e Stronghold)
+
+A app local (`main`) recebe os plugins completos `store:default` e `stronghold:default`. O portal não: os comandos destes plugins aceitam caminhos livres (absolutos ou com `..`) e, numa origem remota, um XSS poderia escrever ficheiros em qualquer pasta do utilizador. O portal usa comandos próprios (`src-tauri/src/school/native_storage.rs`), que gravam sempre nos mesmos ficheiros da pasta de dados da app:
+
+- **Definições do posto** — `portal_store_get/set/delete` em `siga-portal.json` (plugin Store). Chaves `[A-Za-z0-9-_.:]`, até 128 caracteres; valores JSON até 64 KiB; até 256 chaves. No portal: `src/lib/native-store.ts`. As definições de catracas/impressora (`WindowsDesktopSettingsModal`) já usam este ficheiro; o localStorage fica como cópia para leituras síncronas e as definições antigas migram na primeira leitura.
+- **Cofre cifrado** — `portal_vault_unlock/lock/get/set/remove` em `siga-portal.hold` (plugin Stronghold, chave derivada por argon2 com o sal `siga.salt`, partilhado com o cofre da app local). A primeira abertura cria o cofre com a palavra-passe indicada; as seguintes exigem a mesma. Cada gravação cifra o ficheiro de novo com scrypt (cerca de 1 s em release): guardar só o necessário. No portal: `src/lib/native-stronghold.ts`.
+- **Sessão no cofre (PIN do posto)** — na app, o `auth.storage` do Supabase é `desktopSessionStorage()` (`src/lib/desktop-session-vault.ts`): a sessão fica no cofre e não no localStorage do WebView (texto simples no disco). Ao abrir a app, `DesktopVaultGate` pede o PIN deste computador (cria-o na primeira vez, 6 caracteres ou mais); até lá, a autenticação espera em vez de concluir que não há sessão. Cinco PIN errados seguidos bloqueiam 1 minuto. «Esqueci o PIN» (`portal_vault_reset`) apaga o cofre: é preciso entrar de novo, os dados da escola não se perdem. Uma sessão deixada no localStorage por versões anteriores passa para o cofre no primeiro desbloqueio. Cada actualização do token grava o cofre (cerca de 1 s, fora da thread principal). O PIN protege a sessão de quem abre a app no computador; não substitui a palavra-passe da conta nem o fim de sessão por inactividade (30 min).
+
+O Stronghold está marcado para descontinuação no Tauri 3; nessa migração, substituir pelo cofre do sistema (Keychain, Credential Manager, Secret Service) mantendo os mesmos comandos `portal_vault_*`. Em desenvolvimento, o `Cargo.toml` optimiza as crates de argon2/scrypt: sem isso cada gravação demorava minutos.
 
 ## Comandos escolares preservados
 
@@ -56,13 +68,13 @@ Não existe ainda fila persistente, leitura sem rede nem resolução de conflito
 
 ## Release
 
-`release-desktop.yml` é o único workflow de instaladores. Executa apenas em tags `v*`, exige tag igual à versão Tauri/Cargo e cria release em draft. Não criar tags nem disparar runners pagos para validar uma PR. `native-ci.yml` mantém os checks Windows/macOS em main/manual, sem os duplicar nas PRs. Instalações npm do desktop e compilações Cargo usam lockfiles sem fallback que os altere.
+`release-desktop.yml` é o único workflow de instaladores: Windows (NSIS), macOS (universal) e Linux (`.deb`, `.rpm`, AppImage, compilados em Ubuntu 22.04). Executa apenas em tags `v*`, exige tag igual à versão Tauri/Cargo e cria release em draft. Não criar tags nem disparar runners pagos para validar uma PR. `native-ci.yml` mantém os checks Windows/macOS em main/manual, sem os duplicar nas PRs. Instalações npm do desktop e compilações Cargo usam lockfiles sem fallback que os altere.
 
 Actualizações assinadas: `scripts/desktop/release-config.mjs` gera `src-tauri/tauri.release.conf.json` e o build usa-o com `--config`. Só com a variável `TAURI_UPDATER_PUBKEY` e o segredo `TAURI_SIGNING_PRIVATE_KEY` o build assina os artefactos e liga o updater ao `latest.json` da release publicada (os rascunhos não chegam às escolas). Sem elas, a versão sai sem actualizações automáticas e abre na mesma. A app verifica 15 s depois de abrir e só instala quando a pessoa carrega em «Instalar e reiniciar», nunca com gravações por enviar. O portal não recebe permissões `updater:` nem `process:`; usa `check_app_update` e `install_app_update`. Guia do dono: [PUBLICAR_VERSOES.md](./PUBLICAR_VERSOES.md).
 
 ## Limites actuais
 
-O ecrã local permanece disponível sem Internet, mas os módulos académicos dependem do servidor. A sessão do portal não está integrada com o cofre nativo.
+O ecrã local permanece disponível sem Internet, mas os módulos académicos dependem do servidor. A sessão do portal fica no cofre nativo, aberto com o PIN do posto.
 
 Para uma release de produção faltam testes reais dos instaladores Windows/macOS, certificados de assinatura/notarização e validação dos periféricos físicos. A impressão no macOS (`print_page`, `print_html`) foi verificada só no Linux. Compilação Linux e testes automatizados não substituem essas verificações.
 

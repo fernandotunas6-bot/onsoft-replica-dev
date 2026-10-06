@@ -5,7 +5,7 @@ precisa quando muda o lado nativo (`src-tauri/`, `desktop/`: impressão, gravaç
 ficheiros, catraca, janelas…). As mudanças nos ecrãs chegam sozinhas, com o site.
 
 Workflow: [`.github/workflows/release-desktop.yml`](../../.github/workflows/release-desktop.yml)
-(Windows e macOS universal, num **rascunho** de release).
+(Windows, macOS universal e Linux — .deb, .rpm, AppImage —, num **rascunho** de release).
 
 ## 1. Uma vez: chave de assinatura das actualizações
 

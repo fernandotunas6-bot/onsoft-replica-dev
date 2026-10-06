@@ -50,6 +50,39 @@ assert.deepEqual(readJson("src-tauri/tauri.windows.conf.json").bundle.targets, [
 assert.equal(config.bundle.windows.nsis.installMode, "currentUser");
 assert.equal(config.bundle.windows.allowDowngrades, false);
 assert(existsSync("src-tauri/Cargo.lock"));
+// O `tauri build` pára se um pacote npm instalado e a crate correspondente diferem em
+// major.minor. Compara os lockfiles do desktop (npm) e da raiz (bun) com o Cargo.lock.
+const crates = new Map(
+  [
+    ...readFileSync("src-tauri/Cargo.lock", "utf8").matchAll(
+      /^name = "(tauri|tauri-plugin-[a-z-]+)"\nversion = "([^"]+)"/gm,
+    ),
+  ].map(([, name, version]) => [name, version]),
+);
+const npmLocked = Object.entries(readJson("desktop/package-lock.json").packages).map(
+  ([path, { version }]) => [
+    "desktop/package-lock.json",
+    path.replace(/^node_modules\//, ""),
+    version,
+  ],
+);
+const bunLocked = [
+  ...readFileSync("bun.lock", "utf8").matchAll(
+    /^ {4}"(@tauri-apps\/[a-z-]+)": \["@tauri-apps\/[a-z-]+@([^"]+)"/gm,
+  ),
+].map(([, name, version]) => ["bun.lock", name, version]);
+const minor = (version) => version.split(".").slice(0, 2).join(".");
+for (const [lockfile, name, version] of [...npmLocked, ...bunLocked]) {
+  const match = name.match(/^@tauri-apps\/(api|plugin-[a-z-]+)$/);
+  if (!match) continue;
+  const crate = match[1] === "api" ? "tauri" : `tauri-${match[1]}`;
+  if (!crates.has(crate)) continue;
+  assert.equal(
+    minor(version),
+    minor(crates.get(crate)),
+    `${name} ${version} (${lockfile}) e a crate ${crate} ${crates.get(crate)} têm de ter o mesmo major.minor`,
+  );
+}
 if (process.env.GITHUB_REF_TYPE === "tag")
   assert.equal(
     process.env.GITHUB_REF_NAME,
