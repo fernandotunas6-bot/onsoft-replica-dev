@@ -872,6 +872,21 @@ export const publishAcademicSchedule = createServerFn({ method: "POST" })
     );
     const db = await loadSgaAdminClient();
 
+    // O ano lectivo é o da turma, não o que o cliente diz.
+    const { data: classGroup, error: classGroupError } = await db
+      .from("class_groups")
+      .select("id, academic_year_id")
+      .eq("id", data.classGroupId)
+      .eq("school_id", membership.schoolId)
+      .maybeSingle();
+    if (classGroupError) {
+      throw publicDatabaseError(classGroupError, "Não foi possível validar a turma.");
+    }
+    if (!classGroup) throw new Error("Turma não encontrada nesta escola.");
+    if (String(classGroup.academic_year_id) !== data.academicYearId) {
+      throw new Error("A turma não pertence ao ano lectivo indicado.");
+    }
+
     // A publicação é uma operação de fecho: não pode criar uma versão que
     // ignore a carga semanal previamente configurada para a turma.
     const { data: classSubjects, error: classSubjectsError } = await db
@@ -926,14 +941,20 @@ export const publishAcademicSchedule = createServerFn({ method: "POST" })
       throw new Error("Adicione pelo menos uma aula activa antes de publicar o horário.");
     }
 
-    // 1. Obter ou criar versão de horário
-    const { count } = await db
+    // 1. Versão nova = maior número + 1. Contar as linhas repetia um número
+    // (chave única `academic_schedules_version_key`) quando uma versão era apagada.
+    const { data: lastVersion, error: lastVersionError } = await db
       .from("academic_schedules")
-      .select("id", { count: "exact", head: true })
+      .select("version_number")
       .eq("school_id", membership.schoolId)
-      .eq("class_group_id", data.classGroupId);
-
-    const nextVersion = (count ?? 0) + 1;
+      .eq("class_group_id", data.classGroupId)
+      .order("version_number", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (lastVersionError) {
+      throw publicDatabaseError(lastVersionError, "Não foi possível ler as versões do horário.");
+    }
+    const nextVersion = Number(lastVersion?.version_number ?? 0) + 1;
     const { data: schedule, error: schedError } = await db
       .from("academic_schedules")
       .insert({
@@ -958,6 +979,21 @@ export const publishAcademicSchedule = createServerFn({ method: "POST" })
     }
     if (!schedule) {
       throw new Error("Não foi possível publicar o horário.");
+    }
+
+    // Só uma versão publicada por turma: as anteriores passam a arquivo.
+    const { error: archiveError } = await db
+      .from("academic_schedules")
+      .update({ status: "archived", updated_by: context.userId })
+      .eq("school_id", membership.schoolId)
+      .eq("class_group_id", data.classGroupId)
+      .eq("status", "published")
+      .neq("id", schedule.id);
+    if (archiveError) {
+      throw publicDatabaseError(
+        archiveError,
+        "Horário publicado, mas a versão anterior não foi arquivada.",
+      );
     }
 
     // 2. Associar slots ativos da turma a esta versão de horário

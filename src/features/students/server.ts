@@ -1157,6 +1157,10 @@ export const listEnrollments = createServerFn({ method: "GET" })
       "Professor",
     ]);
     const db = await loadSgaAdminClient();
+    // O professor só vê os alunos das suas turmas (como `searchStudents`); sem isto
+    // recebia as matrículas da escola inteira.
+    const scope = await loadStudentScope(db, membership, context.userId);
+    if (!scope.all && scope.studentIds.length === 0) return [];
 
     let query = db
       .from("enrollments")
@@ -1169,9 +1173,17 @@ export const listEnrollments = createServerFn({ method: "GET" })
     if (data.academicYearId) query = query.eq("academic_year_id", data.academicYearId);
     if (data.classGroupId) query = query.eq("class_group_id", data.classGroupId);
     if (data.status && data.status !== "todos") query = query.eq("status", data.status);
+    // Lista curta vai no pedido (o limite conta só os visíveis); longa, filtra-se abaixo.
+    if (!scope.all && scope.studentIds.length <= 200) {
+      query = query.in("student_id", scope.studentIds);
+    }
 
-    const { data: enrollments, error } = await query;
+    const { data: allEnrollments, error } = await query;
     if (error) throw publicDatabaseError(error, "Não foi possível carregar as matrículas.");
+    const visible = scope.all ? null : new Set(scope.studentIds);
+    const enrollments = (allEnrollments ?? []).filter(
+      (row) => !visible || visible.has(String(row.student_id)),
+    );
 
     const studentIds = [...new Set((enrollments ?? []).map((row) => row.student_id))];
     const classIds = [...new Set((enrollments ?? []).map((row) => row.class_group_id))];
