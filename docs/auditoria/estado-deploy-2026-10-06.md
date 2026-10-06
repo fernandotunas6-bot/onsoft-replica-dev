@@ -60,22 +60,45 @@ primeiro as chaves que foram coladas em conversas** (segredo Google OAuth de 25/
 access token e `service_role` do Supabase de 04/10): a chave que entrar no ambiente
 tem de ser a nova, não a exposta.
 
-### B2 — a base D1 do PayFlow está vazia
+### B2 — o PayFlow não chega aos bindings (defeito de código, não de configuração)
 
-A base existe com o id certo e **zero tabelas**:
+**Correcção.** Uma primeira versão deste relatório dizia que a base D1 estava vazia,
+a partir do `num_tables: 0` que a API da Cloudflare e o `wrangler d1 list` devolvem.
+Esse campo está desactualizado. Consultada a base a valer:
 
 ```
-siga-payflow  uuid bbfa8e07-48ad-4397-902b-bcb0b8da2948  num_tables: 0
+sqlite_master → 14 tabelas (payments, students, schools, student_invoices, …)
+d1_migrations → as 6 migrações aplicadas (0000 e 0002 a 29/09, 0001/0003/0004/0005 a 02/10)
 ```
 
-As 6 migrações de `painel/payflow/drizzle/` nunca foram aplicadas. É por isso que o
-health responde 503 com `database: unavailable`. Quem as aplica é o
-`deploy-all.mjs` (`wrangler d1 migrations apply`), que nunca correu — a mesma causa
-raiz de B1. Resolvido B1, a primeira publicação aplica-as; o passo final do workflow
-(«Confirmar que os serviços publicados respondem») só passa depois disso.
+E o binding do Worker publicado está certo:
 
-**Enquanto B2 não estiver resolvido, o workflow falha no fim mesmo com os segredos
-postos** — publica os 5 apps e depois recusa, porque o health do PayFlow dá 503.
+```
+siga-plus-payflow → bindings: 1 → d1 DB = bbfa8e07-48ad-4397-902b-bcb0b8da2948
+```
+
+Base com tabelas, binding correcto, e ainda assim 503. A causa está em
+`painel/payflow/lib/cf-env.ts`: resolvia o ambiente **no carregamento do módulo**,
+lendo `globalThis.env`. Em workerd os bindings chegam por `cloudflare:workers` —
+nunca por `globalThis.env` nem por `process.env`. O teste falhava sempre, caía no
+`process.env`, e `env.DB` ficava `undefined`.
+
+A prova está no próprio health: `latencyMs: 0`. O `checkDatabase` só devolve zero
+quando sai no `isD1()`, antes de consultar — se fosse a base a falhar, a latência
+seria outra. E `getDb()` lançava «binding `DB` is unavailable», a mesma mensagem que
+`scripts/siga/payflow-bindings.mjs` atribui, num comentário, às ligações apagadas
+pelo deploy. Eram dois defeitos com a mesma mensagem; o primeiro foi corrigido a
+29/09, este ficou.
+
+Corrigido neste trabalho: `cf-env.ts` passa a resolver os bindings por
+`cloudflare:workers` (importação dinâmica, porque o módulo não existe em Node) e a
+ler por `Proxy`, com os bindings a ganhar ao `globalThis.env` e ao `process.env`.
+É a via documentada pelo vinext.
+
+**Isto não se resolve a publicar.** Nenhuma publicação do código de 02/10 ia
+arranjar o 503, e é por isso que o passo final do workflow («Confirmar que os
+serviços publicados respondem») ia continuar a falhar depois de os segredos
+estarem postos. Com a correcção, a publicação passa a ser o que resolve.
 
 ## 4. Ordem de publicação recomendada
 
@@ -85,12 +108,13 @@ postos** — publica os 5 apps e depois recusa, porque o health do PayFlow dá 5
    `docs/agents/SIGA_aplicar_pendentes_2026-10-06.sql` (SQL Editor → Run), e
    confirmar com a consulta do fundo (5 linhas «aplicada»). Fazer **antes** de
    publicar: a propina por classe e o mudar de turma só funcionam com elas.
-4. **`workflow_dispatch`** do «Deploy produção» (ou um push para a `main`). A primeira
-   execução aplica as migrações D1 do PayFlow e resolve B2.
-5. **Confirmar na Cloudflare** o `modified_on` dos dois Workers e o estado das Pages —
+4. **Fundir a correcção do `cf-env.ts`** (B2). Sem ela o PayFlow continua em 503 e o
+   passo final do workflow recusa a publicação.
+5. **`workflow_dispatch`** do «Deploy produção» (ou um push para a `main`).
+6. **Confirmar na Cloudflare** o `modified_on` dos dois Workers e o estado das Pages —
    o código de saída do `deploy:all` engana, e já houve publicações a falhar a meio
    deixando apps em commits diferentes.
-6. **Recapturar** `supabase/PRODUCTION_SNAPSHOT.json` e retirar `fee_items.grade_level_id`
+7. **Recapturar** `supabase/PRODUCTION_SNAPSHOT.json` e retirar `fee_items.grade_level_id`
    de `tests/security/espera-migracao.ts`.
 
 ## 5. Migrações do Supabase: 5 por aplicar

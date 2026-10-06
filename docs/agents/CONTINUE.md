@@ -19,9 +19,11 @@ Levantamento completo: [estado-deploy-2026-10-06.md](../auditoria/estado-deploy-
   `SIGA_confirmar_migracoes.sql` para confirmar o registo.
 - **Dois bloqueios, os dois do dono:** faltam `CLOUDFLARE_API_TOKEN`,
   `CLOUDFLARE_ACCOUNT_ID` e `SUPABASE_SERVICE_ROLE_KEY` no ambiente `production`
-  (rodar antes as chaves expostas em conversas); e a base D1 `siga-payflow` está com
-  **zero tabelas**, por isso o PayFlow responde 503 — as 6 migrações de
-  `painel/payflow/drizzle/` nunca correram. A primeira publicação resolve-as.
+  (rodar antes as chaves expostas em conversas) — **postos a 06/10 a partir do `.env`**;
+  e o PayFlow responde 503 por um defeito de código em `painel/payflow/lib/cf-env.ts`,
+  que lia os bindings de `globalThis.env` em vez de `cloudflare:workers`. A base D1 tem
+  as 14 tabelas e as 6 migrações aplicadas, e o binding do Worker está correcto — o
+  `num_tables: 0` da API da Cloudflare é metadado desactualizado. Corrigido a 06/10.
 - **Confirmado ao vivo** (PostgREST com a `service_role`): `fee_items.grade_level_id`
   não existe na produção, ou seja `20261005150000` está mesmo por aplicar. O MCP do
   Supabase e o `SUPABASE_ACCESS_TOKEN` do `.env` dão `Unauthorized`/401 — o catálogo
