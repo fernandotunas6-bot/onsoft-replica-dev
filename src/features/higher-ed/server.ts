@@ -982,6 +982,14 @@ export const issueHigherEdCertificate = createServerFn({ method: "POST" })
         "O estudante ainda não concluiu o curso: o certificado não pode ser emitido.",
       );
     }
+    if ((await regulationOf(db, schoolId)).block_documents_with_debt) {
+      const indebted = await studentsWithOverdueDebt(db, schoolId, [data.studentId]);
+      if (indebted.has(data.studentId)) {
+        throw new Error(
+          "O estudante tem propinas vencidas por pagar: o regulamento não permite emitir o certificado.",
+        );
+      }
+    }
 
     const { data: number, error: numberError } = await db.rpc("next_document_number_service", {
       school_id: schoolId,

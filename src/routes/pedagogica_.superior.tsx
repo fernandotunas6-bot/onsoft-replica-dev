@@ -1930,6 +1930,17 @@ function RegulationTab({ canEdit }: { canEdit: boolean }) {
         </div>
         <div className="flex items-center gap-3 sm:col-span-2">
           <Switch
+            id="reg-debt-documents"
+            checked={current.block_documents_with_debt}
+            disabled={!canEdit}
+            onCheckedChange={(value) => setDraft({ ...current, block_documents_with_debt: value })}
+          />
+          <Label htmlFor="reg-debt-documents">
+            Propinas vencidas impedem a emissão do certificado de conclusão
+          </Label>
+        </div>
+        <div className="flex items-center gap-3 sm:col-span-2">
+          <Switch
             id="reg-self"
             checked={current.student_self_enrollment}
             disabled={!canEdit}
