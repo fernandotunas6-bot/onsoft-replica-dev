@@ -45,6 +45,7 @@ import {
 import { HIGHER_ED_FEES } from "./fees";
 import { studentStatusMap, studentStatusOf } from "./student-status";
 import { rankAccessCandidates } from "./access";
+import { NO_LAUNCH, canLaunchAny, defaultShift, shiftVisible, type LaunchScope } from "./shifts";
 import {
   completedUnitIds,
   decodeJuryDecision,
@@ -161,7 +162,7 @@ async function loadPlan(db: Db, schoolId: string, programId: string) {
 }
 
 const RECORD_COLUMNS =
-  "id, student_id, program_subject_id, academic_year_id, semester, credits, attempt, status, final_grade, season, credits_earned, updated_at";
+  "id, student_id, program_subject_id, academic_year_id, semester, credits, attempt, status, final_grade, season, credits_earned, updated_at, class_group_id";
 
 function toRecord(row: Row): UnitRecord {
   return {
@@ -186,7 +187,71 @@ async function loadRecords(db: Db, schoolId: string, studentId: string, programI
     .eq("program_id", programId);
   if (error)
     throw publicDatabaseError(error, "Não foi possível carregar o histórico do estudante.");
-  return ((data ?? []) as Row[]).map((row) => ({ id: str(row.id), record: toRecord(row) }));
+  return ((data ?? []) as Row[]).map((row) => ({
+    id: str(row.id),
+    record: toRecord(row),
+    shift: row.class_group_id ? str(row.class_group_id) : null,
+  }));
+}
+
+/**
+ * Turnos do curso no ano activo: que turmas dão cada disciplina (`class_subjects`) e em
+ * que turmas estão os estudantes. Base do turno por omissão (`defaultShift`).
+ */
+async function programShifts(
+  db: Db,
+  schoolId: string,
+  programId: string,
+  yearId: string | null,
+  studentIds: readonly string[] = [],
+) {
+  const offerings = new Map<string, string[]>();
+  const groupsOf = new Map<string, string[]>();
+  const groupName = new Map<string, string>();
+  const { data: grades } = await db
+    .from("grade_levels")
+    .select("id")
+    .eq("school_id", schoolId)
+    .eq("program_id", programId);
+  const gradeIds = (grades ?? []).map((g) => str(g.id));
+  if (!gradeIds.length) return { offerings, groupsOf, groupName };
+  let groupsQuery = db
+    .from("class_groups")
+    .select("id, name")
+    .eq("school_id", schoolId)
+    .in("grade_level_id", gradeIds);
+  if (yearId) groupsQuery = groupsQuery.eq("academic_year_id", yearId);
+  const { data: groups } = await groupsQuery;
+  for (const group of (groups ?? []) as Row[]) groupName.set(str(group.id), str(group.name));
+  if (!groupName.size) return { offerings, groupsOf, groupName };
+  const groupIds = [...groupName.keys()];
+  const [{ data: subjects }, { data: enrollments }] = await Promise.all([
+    db
+      .from("class_subjects")
+      .select("class_group_id, subject_id")
+      .eq("school_id", schoolId)
+      .in("class_group_id", groupIds),
+    studentIds.length
+      ? db
+          .from("enrollments")
+          .select("student_id, class_group_id")
+          .eq("school_id", schoolId)
+          .in("class_group_id", groupIds)
+          .in("student_id", [...studentIds])
+          .in("status", ["active", "pending"])
+      : Promise.resolve({ data: [] as Row[] }),
+  ]);
+  for (const row of (subjects ?? []) as Row[]) {
+    const list = offerings.get(str(row.subject_id)) ?? [];
+    if (!list.includes(str(row.class_group_id))) list.push(str(row.class_group_id));
+    offerings.set(str(row.subject_id), list);
+  }
+  for (const row of (enrollments ?? []) as Row[]) {
+    const list = groupsOf.get(str(row.student_id)) ?? [];
+    list.push(str(row.class_group_id));
+    groupsOf.set(str(row.student_id), list);
+  }
+  return { offerings, groupsOf, groupName };
 }
 
 async function regulationOf(db: Db, schoolId: string): Promise<HigherEdRegulation> {
@@ -1140,6 +1205,7 @@ async function enrollUnitsFor(
   for (const record of records) {
     attempts.set(record.unitId, Math.max(attempts.get(record.unitId) ?? 0, record.attempt));
   }
+  const shifts = await programShifts(db, schoolId, programId, yearId, [studentId]);
   const { data: inserted, error } = await db
     .from("course_unit_enrollments")
     .insert(
@@ -1149,6 +1215,10 @@ async function enrollUnitsFor(
         academic_year_id: yearId,
         program_id: programId,
         program_subject_id: unit.id,
+        class_group_id: defaultShift(
+          shifts.groupsOf.get(studentId) ?? [],
+          shifts.offerings.get(unit.subjectId) ?? [],
+        ),
         semester: academicSemesterOf(unit.semester),
         credits: unit.credits,
         attempt: (attempts.get(unit.id) ?? 0) + 1,
@@ -1269,6 +1339,7 @@ export const enrollCohort = createServerFn({ method: "POST" })
       recordsByStudent.set(str(row.student_id), list);
     }
 
+    const shifts = await programShifts(db, schoolId, data.programId, yearId, studentIds);
     const inserts: Row[] = [];
     const skipped: Array<{ studentId: string; unit: string; reasons: string[] }> = [];
     let studentsEnrolled = 0;
@@ -1305,6 +1376,10 @@ export const enrollCohort = createServerFn({ method: "POST" })
           academic_year_id: yearId,
           program_id: data.programId,
           program_subject_id: unit.id,
+          class_group_id: defaultShift(
+            shifts.groupsOf.get(studentId) ?? [],
+            shifts.offerings.get(unit.subjectId) ?? [],
+          ),
           semester: academicSemesterOf(unit.semester),
           credits: unit.credits,
           attempt: attempt + 1,
@@ -1671,17 +1746,20 @@ const resultInput = z.object({
   absencePercent: z.number().min(0).max(100).nullable().optional(),
 });
 
-/** O professor que dá a cadeira (numa turma do curso) também lança. */
-async function canLaunchUnit(
+/**
+ * Quem lança a cadeira e em que turnos: a coordenação em todos; o professor nas turmas
+ * do curso onde dá a disciplina (`class_subjects`).
+ */
+async function launchScope(
   db: Db,
   membership: { schoolId: string; appRole: string; allAppRoles?: string[] },
   userId: string,
   programId: string,
   subjectId: string,
-) {
+): Promise<LaunchScope> {
   const roles = membership.allAppRoles ?? [membership.appRole];
-  if (roles.some((role) => (OFFICE as readonly string[]).includes(role))) return true;
-  if (!roles.includes("Professor")) return false;
+  if (roles.some((role) => (OFFICE as readonly string[]).includes(role))) return { all: true };
+  if (!roles.includes("Professor")) return NO_LAUNCH;
   const { data: teacher } = await db
     .from("teachers")
     .select("id")
@@ -1689,31 +1767,32 @@ async function canLaunchUnit(
     .eq("user_id", userId)
     .eq("status", "active")
     .maybeSingle();
-  if (!teacher?.id) return false;
+  if (!teacher?.id) return NO_LAUNCH;
   const { data: grades } = await db
     .from("grade_levels")
     .select("id")
     .eq("school_id", membership.schoolId)
     .eq("program_id", programId);
   const gradeIds = (grades ?? []).map((g) => str(g.id));
-  if (!gradeIds.length) return false;
+  if (!gradeIds.length) return NO_LAUNCH;
   const { data: groups } = await db
     .from("class_groups")
     .select("id")
     .eq("school_id", membership.schoolId)
     .in("grade_level_id", gradeIds);
   const groupIds = (groups ?? []).map((g) => str(g.id));
-  if (!groupIds.length) return false;
-  const { data: assignment } = await db
+  if (!groupIds.length) return NO_LAUNCH;
+  const { data: assignments } = await db
     .from("class_subjects")
-    .select("id")
+    .select("class_group_id")
     .eq("school_id", membership.schoolId)
     .eq("subject_id", subjectId)
     .eq("teacher_id", str(teacher.id))
-    .in("class_group_id", groupIds)
-    .limit(1)
-    .maybeSingle();
-  return Boolean(assignment);
+    .in("class_group_id", groupIds);
+  return {
+    all: false,
+    groups: new Set((assignments ?? []).map((a) => str(a.class_group_id))),
+  };
 }
 
 export const recordUnitResult = createServerFn({ method: "POST" })
@@ -1735,7 +1814,8 @@ export const recordUnitResult = createServerFn({ method: "POST" })
     ]);
     const unit = units.find((u) => u.id === data.unitId);
     if (!unit) throw new Error("Cadeira não encontrada no plano deste curso.");
-    if (!(await canLaunchUnit(db, membership, context.userId, data.programId, unit.subjectId))) {
+    const scope = await launchScope(db, membership, context.userId, data.programId, unit.subjectId);
+    if (!canLaunchAny(scope)) {
       throw new Error("Só a coordenação ou o professor desta cadeira lança as notas.");
     }
     const records = rows.map((row) => row.record);
@@ -1744,6 +1824,9 @@ export const recordUnitResult = createServerFn({ method: "POST" })
     const latestRow = unitRows.find((row) => row.record === latestRecord);
     if (!latestRow || !latestRecord)
       throw new Error("O estudante não está inscrito nesta cadeira.");
+    if (!shiftVisible(scope, latestRow.shift)) {
+      throw new Error("Este estudante tem a cadeira noutro turno: lança o professor desse turno.");
+    }
 
     let patch: Row;
     if (data.season === "frequencia") {
@@ -1988,7 +2071,8 @@ export const getUnitSheet = createServerFn({ method: "GET" })
     ]);
     const unit = units.find((u) => u.id === data.unitId);
     if (!unit) throw new Error("Cadeira não encontrada no plano deste curso.");
-    if (!(await canLaunchUnit(db, membership, context.userId, data.programId, unit.subjectId))) {
+    const scope = await launchScope(db, membership, context.userId, data.programId, unit.subjectId);
+    if (!canLaunchAny(scope)) {
       throw new Error("Só a coordenação ou o professor desta cadeira vê esta pauta.");
     }
     const { data: inUnit, error: inUnitError } = await db
@@ -2001,6 +2085,7 @@ export const getUnitSheet = createServerFn({ method: "GET" })
     if (inUnitError) throw publicDatabaseError(inUnitError, "Não foi possível carregar a pauta.");
     const studentIds = [...new Set((inUnit ?? []).map((row) => str(row.student_id)))];
     const yearId = await activeYearId(db, schoolId);
+    const shifts = await programShifts(db, schoolId, data.programId, yearId);
     const [{ data: school }, { data: year }] = await Promise.all([
       db.from("schools").select("name, commercial_name, logo_url").eq("id", schoolId).maybeSingle(),
       yearId
@@ -2021,8 +2106,14 @@ export const getUnitSheet = createServerFn({ method: "GET" })
         logoUrl: school?.logo_url ? str(school.logo_url) : null,
       },
       yearName: year?.name ? str(year.name) : null,
+      canAssignShift: scope.all,
     };
-    if (!studentIds.length) return { ...base, rows: [] };
+    // Turnos onde a cadeira é dada; o professor só vê os seus.
+    const offered = (shifts.offerings.get(unit.subjectId) ?? [])
+      .filter((id) => scope.all || scope.groups.has(id))
+      .map((id) => ({ id, name: shifts.groupName.get(id) ?? "Turma" }))
+      .sort((a, b) => a.name.localeCompare(b.name, "pt"));
+    if (!studentIds.length) return { ...base, shifts: offered, rows: [] };
 
     // O histórico completo de cada estudante no curso: a época especial depende
     // de quantas cadeiras lhe faltam no plano, não só desta.
@@ -2034,9 +2125,12 @@ export const getUnitSheet = createServerFn({ method: "GET" })
       .in("student_id", studentIds);
     if (error) throw publicDatabaseError(error, "Não foi possível carregar a pauta.");
     const byStudent = new Map<string, UnitRecord[]>();
+    const shiftOf = new Map<UnitRecord, string | null>();
     for (const row of (recordRows ?? []) as Row[]) {
       const list = byStudent.get(str(row.student_id)) ?? [];
-      list.push(toRecord(row));
+      const record = toRecord(row);
+      shiftOf.set(record, row.class_group_id ? str(row.class_group_id) : null);
+      list.push(record);
       byStudent.set(str(row.student_id), list);
     }
     const { data: students } = await db
@@ -2072,6 +2166,7 @@ export const getUnitSheet = createServerFn({ method: "GET" })
           name: nameOf.get(str(student.person_id)) || "Estudante",
           number: student.student_number ? str(student.student_number) : null,
           workerStudent: status.workerStudent,
+          shift: latest ? (shiftOf.get(latest) ?? null) : null,
           latest: latest
             ? {
                 status: latest.status,
@@ -2090,8 +2185,72 @@ export const getUnitSheet = createServerFn({ method: "GET" })
         };
       })
       .filter((row) => row.latest && row.latest.status !== "anulado")
+      .filter((row) => shiftVisible(scope, row.shift))
+      .map((row) => ({
+        ...row,
+        shiftName: row.shift ? (shifts.groupName.get(row.shift) ?? "Outra turma") : null,
+      }))
       .sort((a, b) => a.name.localeCompare(b.name, "pt"));
-    return { ...base, rows };
+    return { ...base, shifts: offered, rows };
+  });
+
+/**
+ * Troca de turno: a secretaria põe a inscrição do estudante na cadeira noutra turma que
+ * a dá (ou sem turno). Só a inscrição mais recente, se não estiver anulada.
+ */
+export const setUnitShift = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .validator((input: unknown) =>
+    z
+      .object({
+        programId: z.string().uuid(),
+        unitId: z.string().uuid(),
+        studentId: z.string().uuid(),
+        classGroupId: z.string().uuid().nullable(),
+      })
+      .parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    const membership = await officeMembership(context, "write");
+    const db = await loadSgaAdminClient();
+    const schoolId = membership.schoolId;
+    const [{ units }, rows] = await Promise.all([
+      loadPlan(db, schoolId, data.programId),
+      loadRecords(db, schoolId, data.studentId, data.programId),
+    ]);
+    const unit = units.find((u) => u.id === data.unitId);
+    if (!unit) throw new Error("Cadeira não encontrada no plano deste curso.");
+    const latestRecord = latestRecordByUnit(rows.map((row) => row.record)).get(unit.id);
+    const latestRow = rows.find((row) => row.record === latestRecord);
+    if (!latestRow || !latestRecord || latestRecord.status === "anulado") {
+      throw new Error("O estudante não está inscrito nesta cadeira.");
+    }
+    if (data.classGroupId) {
+      const shifts = await programShifts(
+        db,
+        schoolId,
+        data.programId,
+        await activeYearId(db, schoolId),
+      );
+      if (!(shifts.offerings.get(unit.subjectId) ?? []).includes(data.classGroupId)) {
+        throw new Error("Essa turma não dá esta cadeira no ano lectivo activo.");
+      }
+    }
+    if (latestRow.shift === data.classGroupId) return { shift: data.classGroupId };
+    const { error } = await db
+      .from("course_unit_enrollments")
+      .update({ class_group_id: data.classGroupId, updated_by: context.userId })
+      .eq("school_id", schoolId)
+      .eq("id", latestRow.id);
+    if (error) throw publicDatabaseError(error, "Não foi possível mudar o turno.");
+    await audit(db, {
+      schoolId,
+      actor: context.userId,
+      action: "higher_ed.unit.shift_changed",
+      entityId: latestRow.id,
+      metadata: { before: latestRow.shift, after: data.classGroupId },
+    });
+    return { shift: data.classGroupId };
   });
 
 // ── Portal do estudante e do encarregado ───────────────────────────────────

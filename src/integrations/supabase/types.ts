@@ -2169,6 +2169,7 @@ export type Database = {
         Row: {
           academic_year_id: string;
           attempt: number;
+          class_group_id: string | null;
           created_at: string;
           created_by: string | null;
           credits: number;
@@ -2189,6 +2190,7 @@ export type Database = {
         Insert: {
           academic_year_id: string;
           attempt?: number;
+          class_group_id?: string | null;
           created_at?: string;
           created_by?: string | null;
           credits: number;
@@ -2209,6 +2211,7 @@ export type Database = {
         Update: {
           academic_year_id?: string;
           attempt?: number;
+          class_group_id?: string | null;
           created_at?: string;
           created_by?: string | null;
           credits?: number;
@@ -2227,6 +2230,13 @@ export type Database = {
           updated_by?: string | null;
         };
         Relationships: [
+          {
+            foreignKeyName: "course_unit_enrollments_class_group_fkey";
+            columns: ["school_id", "class_group_id"];
+            isOneToOne: false;
+            referencedRelation: "class_groups";
+            referencedColumns: ["school_id", "id"];
+          },
           {
             foreignKeyName: "course_unit_enrollments_program_fkey";
             columns: ["school_id", "program_id"];

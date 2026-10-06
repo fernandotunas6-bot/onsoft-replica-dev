@@ -111,6 +111,17 @@ entretanto» e nada se sobrepõe. Cada lançamento fica na auditoria.
 
 **Imprimir pauta** — documento com resultados, totais e assinaturas (docente e secretaria).
 
+### Turnos
+
+Quando o mesmo ano do curso tem várias turmas (por exemplo manhã e pós-laboral), cada
+turma que tem a disciplina é um **turno** da cadeira. Ao inscrever, o estudante fica no
+turno da sua turma; se a turma dele não dá a cadeira e só há um turno, fica nesse; com
+vários, fica «sem turno» até a secretaria escolher.
+
+- O professor vê e lança **só os estudantes dos turnos que dá** (e os que estão sem turno).
+- Na pauta há um filtro por turno. A Administração e a Secretaria mudam o turno de cada
+  estudante na própria pauta; a mudança fica na auditoria.
+
 ## 6. Emolumentos
 
 Separador **Emolumentos** (o Administrador altera): valores do exame de recurso, exame de

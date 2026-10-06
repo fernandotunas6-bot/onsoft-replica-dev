@@ -182,7 +182,8 @@ servidor lhes toca, ver `PRIVILEGIO_POR_DESENHO`).
   dono): tabela `student_special_statuses` (`20261004140000`, aplicada), ver «Pedidos do
   dono de 2026-10-04». A tabela `higher_ed_student_statuses` do PR #70 não foi criada.
 - **Por fazer:** ver «Pendente» em `docs/higher-ed/ANALISE_REQUISITOS_ANGOLA.md`
-  (turnos). Bacharelato (grau no perfil do curso, sem migração), bolsas (`student_scholarships`, 20261005160000) e lista de
+  (SISIES: Pós-graduados e Recursos Humanos). Turnos por cadeira
+  (`course_unit_enrollments.class_group_id`, 20261006090000, aplicada). Bacharelato (grau no perfil do curso, sem migração), bolsas (`student_scholarships`, 20261005160000) e lista de
   espera por turma (`class_group_waitlist`, 20261005170000) feitas e aplicadas (PR #87).
 
 ## Auditoria de produção 11 (2026-10-02)

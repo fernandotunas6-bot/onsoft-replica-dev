@@ -975,7 +975,8 @@
         "created_at",
         "updated_at",
         "created_by",
-        "updated_by"
+        "updated_by",
+        "class_group_id"
       ],
       "obrigatorias": [
         "school_id",
@@ -11722,6 +11723,11 @@
       "de": "course_unit_enrollments",
       "para": "academic_years",
       "chave": "course_unit_enrollments_year_fkey"
+    },
+    {
+      "de": "course_unit_enrollments",
+      "para": "class_groups",
+      "chave": "course_unit_enrollments_class_group_fkey"
     },
     {
       "de": "course_unit_enrollments",
