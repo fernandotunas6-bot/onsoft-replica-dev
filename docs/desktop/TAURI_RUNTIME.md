@@ -12,6 +12,8 @@ A base desktop é o [Danny Smith Tauri Template](https://github.com/dannysmith/t
 
 Na raiz: `npm run desktop:install`, depois `npm run desktop:dev` ou `npm run desktop:build`. O Vite do template usa `localhost:1420`. `npm run desktop:check` valida configuração e permissões. `npm run desktop:quality` executa as verificações completas do template (requer Rust e bibliotecas Tauri do sistema). `npm --prefix desktop run rust:bindings` regenera os bindings em `desktop/src/lib/bindings.ts`.
 
+Versões: o `tauri build` pára quando um pacote `@tauri-apps/*` instalado (em `desktop/` ou na raiz) difere da crate correspondente em major.minor (ex.: `@tauri-apps/api` 2.12.x com `tauri` 2.12.x; `@tauri-apps/plugin-updater` 2.13.x com `tauri-plugin-updater` 2.13.x). Ao actualizar o `Cargo.lock`, actualizar também `desktop/package-lock.json` e `bun.lock`. O `desktop:check` compara os três lockfiles e falha antes do build.
+
 O launcher antigo (`launcher.js`, `launcher.css`) e `tauri.dev.conf.json` foram removidos. O frontend web SIGA continua a ser SSR: não pode ser incorporado a partir de `.output/public`.
 
 ## Janelas e permissões
@@ -56,7 +58,7 @@ Não existe ainda fila persistente, leitura sem rede nem resolução de conflito
 
 ## Release
 
-`release-desktop.yml` é o único workflow de instaladores. Executa apenas em tags `v*`, exige tag igual à versão Tauri/Cargo e cria release em draft. Não criar tags nem disparar runners pagos para validar uma PR. `native-ci.yml` mantém os checks Windows/macOS em main/manual, sem os duplicar nas PRs. Instalações npm do desktop e compilações Cargo usam lockfiles sem fallback que os altere.
+`release-desktop.yml` é o único workflow de instaladores: Windows (NSIS), macOS (universal) e Linux (`.deb`, `.rpm`, AppImage, compilados em Ubuntu 22.04). Executa apenas em tags `v*`, exige tag igual à versão Tauri/Cargo e cria release em draft. Não criar tags nem disparar runners pagos para validar uma PR. `native-ci.yml` mantém os checks Windows/macOS em main/manual, sem os duplicar nas PRs. Instalações npm do desktop e compilações Cargo usam lockfiles sem fallback que os altere.
 
 Actualizações assinadas: `scripts/desktop/release-config.mjs` gera `src-tauri/tauri.release.conf.json` e o build usa-o com `--config`. Só com a variável `TAURI_UPDATER_PUBKEY` e o segredo `TAURI_SIGNING_PRIVATE_KEY` o build assina os artefactos e liga o updater ao `latest.json` da release publicada (os rascunhos não chegam às escolas). Sem elas, a versão sai sem actualizações automáticas e abre na mesma. A app verifica 15 s depois de abrir e só instala quando a pessoa carrega em «Instalar e reiniciar», nunca com gravações por enviar. O portal não recebe permissões `updater:` nem `process:`; usa `check_app_update` e `install_app_update`. Guia do dono: [PUBLICAR_VERSOES.md](./PUBLICAR_VERSOES.md).
 
