@@ -1,22 +1,23 @@
-import { isTauri } from "@tauri-apps/api/core";
-import { appDataDir, join } from "@tauri-apps/api/path";
-import { Stronghold, type Client } from "@tauri-apps/plugin-stronghold";
-
-const SIGA_STRONGHOLD_FILE = "siga-auth.hold";
-const SIGA_STRONGHOLD_CLIENT = "siga-auth";
+import { invoke, isTauri } from "@tauri-apps/api/core";
 
 export interface NativeSecretStore {
   getItem(key: string): Promise<string | null>;
   setItem(key: string, value: string): Promise<void>;
   removeItem(key: string): Promise<void>;
+  /** Fecha o cofre: os segredos saem da memória até novo desbloqueio. */
+  lock(): Promise<void>;
 }
 
 /**
- * Abre o cofre nativo do SIGA usando uma palavra-passe fornecida em runtime.
+ * Abre o cofre nativo do SIGA (Stronghold, cifrado com a palavra-passe indicada).
  *
- * A palavra-passe nunca deve ser hardcoded no bundle nem guardada em localStorage.
- * A política de desbloqueio (credencial do utilizador, keychain/biometria, etc.) deve
- * ser definida separadamente antes de ligar este store à sessão Supabase.
+ * O portal é remoto e não recebe o plugin Stronghold (aceita caminhos livres): os
+ * comandos `portal_vault_*` gravam sempre no mesmo ficheiro da pasta de dados da app.
+ * A primeira abertura cria o cofre com esta palavra-passe; as seguintes exigem a mesma.
+ * Cada gravação cifra o ficheiro de novo (cerca de 1 s): guardar só o que precisa.
+ *
+ * A palavra-passe (o PIN do posto) nunca deve ser hardcoded no bundle nem guardada em
+ * localStorage. Mínimo de 6 caracteres; 5 PIN errados seguidos bloqueiam 1 minuto.
  */
 export async function createNativeStrongholdStore(password: string): Promise<NativeSecretStore> {
   if (!isTauri()) {
@@ -27,34 +28,22 @@ export async function createNativeStrongholdStore(password: string): Promise<Nat
     throw new Error("É necessária uma palavra-passe não vazia para abrir o Stronghold.");
   }
 
-  const vaultPath = await join(await appDataDir(), SIGA_STRONGHOLD_FILE);
-  const stronghold = await Stronghold.load(vaultPath, password);
-
-  let client: Client;
-  try {
-    client = await stronghold.loadClient(SIGA_STRONGHOLD_CLIENT);
-  } catch {
-    client = await stronghold.createClient(SIGA_STRONGHOLD_CLIENT);
-  }
-
-  const store = client.getStore();
-  const encoder = new TextEncoder();
-  const decoder = new TextDecoder();
+  await invoke("portal_vault_unlock", { password });
 
   return {
-    async getItem(key: string): Promise<string | null> {
-      const value = await store.get(key);
-      return value ? decoder.decode(value) : null;
-    },
-
-    async setItem(key: string, value: string): Promise<void> {
-      await store.insert(key, Array.from(encoder.encode(value)));
-      await stronghold.save();
-    },
-
-    async removeItem(key: string): Promise<void> {
-      await store.remove(key);
-      await stronghold.save();
-    },
+    getItem: (key) => invoke<string | null>("portal_vault_get", { key }),
+    setItem: (key, value) => invoke("portal_vault_set", { key, value }),
+    removeItem: (key) => invoke("portal_vault_remove", { key }),
+    lock: () => invoke("portal_vault_lock"),
   };
+}
+
+/** Se o cofre já foi criado neste computador (pedir o PIN) ou não (criar o PIN). */
+export function nativeVaultExists(): Promise<boolean> {
+  return invoke<boolean>("portal_vault_exists");
+}
+
+/** «Esqueci o PIN»: apaga o cofre e o que lá estava (a sessão); o próximo PIN cria outro. */
+export function resetNativeVault(): Promise<void> {
+  return invoke("portal_vault_reset");
 }

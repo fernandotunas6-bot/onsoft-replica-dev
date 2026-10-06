@@ -1,3 +1,4 @@
+import { reportPossibleStepUp } from "@/lib/step-up";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { toast } from "sonner";
 import { ModalShell, ModalHeader, ModalContent, ModalFooter } from "@/components/ui/modal-system";
@@ -115,6 +116,8 @@ export function QuickFormModal({
       toast.success(title, { description: successDescription });
       setOpen(false);
     } catch (err) {
+      // Acção protegida: abre «Confirme que é você» em vez de um erro.
+      if (reportPossibleStepUp(err)) return;
       toast.error("Erro ao guardar", {
         description: err instanceof Error ? err.message : "Ocorreu uma falha ao guardar.",
       });

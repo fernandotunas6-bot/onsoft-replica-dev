@@ -32,6 +32,10 @@ tauri-plugin-persisted-scope = "2"
 tauri-plugin-process = "2"
 tauri-plugin-os = "2"
 tauri-plugin-global-shortcut = "2"
+tauri-plugin-store = "2.5"
+tauri-plugin-stronghold = "2.4"
+iota_stronghold = "2.1"
+zeroize = "1"
 log = "0.4"
 regex = "1"
 reqwest = { version = "=0.13.4", default-features = false }
@@ -58,3 +62,30 @@ lto = true               # Link-time optimizations
 opt-level = "s"          # Optimize for size over speed
 panic = "abort"          # Don't include panic unwinding code
 strip = true             # Remove debug symbols
+
+# O cofre (Stronghold) deriva chaves com argon2 e cifra o ficheiro com scrypt (age).
+# Sem optimização, cada gravação leva minutos em desenvolvimento e nos testes:
+# optimizar só estas crates.
+[profile.dev.package."rust-argon2"]
+opt-level = 3
+
+[profile.dev.package.blake2b_simd]
+opt-level = 3
+
+[profile.dev.package.scrypt]
+opt-level = 3
+
+[profile.dev.package.salsa20]
+opt-level = 3
+
+[profile.dev.package.pbkdf2]
+opt-level = 3
+
+[profile.dev.package.sha2]
+opt-level = 3
+
+[profile.dev.package.hmac]
+opt-level = 3
+
+[profile.dev.package."iota-crypto"]
+opt-level = 3

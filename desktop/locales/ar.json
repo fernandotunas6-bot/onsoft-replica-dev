@@ -114,5 +114,6 @@
   "siga.notes.title": "ملاحظة سريعة",
   "siga.notes.empty": "استخدم الاختصار العام لكتابة ملاحظة سريعة.",
   "siga.notes.temporary": "تبقى هذه الملاحظة في الجلسة الحالية فقط. وهي ليست سجلاً مدرسياً.",
-  "siga.notes.placeholder": "اكتب ملاحظة سريعة…"
+  "siga.notes.placeholder": "اكتب ملاحظة سريعة…",
+  "siga.searchCommands": "البحث في الأوامر"
 }

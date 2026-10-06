@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-portal-vault-reset"
+description = "Enables the portal_vault_reset command without any pre-configured scope."
+commands.allow = ["portal_vault_reset"]
+
+[[permission]]
+identifier = "deny-portal-vault-reset"
+description = "Denies the portal_vault_reset command without any pre-configured scope."
+commands.deny = ["portal_vault_reset"]

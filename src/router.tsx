@@ -4,13 +4,15 @@ import { routeTree } from "./routeTree.gen";
 import { attachPerformanceSupervisor } from "@/lib/performance-supervisor";
 import { RouteErrorScreen } from "@/components/error/RouteErrorScreen";
 import { isSessionError, reportPossibleSessionError } from "@/lib/session-expiry";
+import { reportPossibleStepUp } from "@/lib/step-up";
 
 export const getRouter = () => {
   const queryClient = new QueryClient({
     // Sessão expirada em qualquer pedido → volta ao ecrã de entrada em vez de ecrã em branco.
     queryCache: new QueryCache({ onError: (error) => void reportPossibleSessionError(error) }),
     mutationCache: new MutationCache({
-      onError: (error) => void reportPossibleSessionError(error),
+      // Acção crítica sem confirmação recente → abre «Confirme que é você».
+      onError: (error) => void (reportPossibleStepUp(error) || reportPossibleSessionError(error)),
     }),
     defaultOptions: {
       queries: {

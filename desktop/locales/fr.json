@@ -114,5 +114,6 @@
   "siga.notes.title": "Note rapide",
   "siga.notes.empty": "Utilisez le raccourci global pour saisir une note rapide.",
   "siga.notes.temporary": "Cette note reste uniquement pendant cette session. Ce n’est pas un dossier scolaire.",
-  "siga.notes.placeholder": "Saisissez une note rapide…"
+  "siga.notes.placeholder": "Saisissez une note rapide…",
+  "siga.searchCommands": "Rechercher des commandes"
 }

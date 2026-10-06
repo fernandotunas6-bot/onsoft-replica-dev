@@ -114,5 +114,6 @@
   "siga.notes.title": "Nota rápida",
   "siga.notes.empty": "Use o atalho global para escrever uma nota rápida.",
   "siga.notes.temporary": "Esta nota fica apenas nesta sessão. Não é um registo escolar.",
-  "siga.notes.placeholder": "Escreva uma nota rápida…"
+  "siga.notes.placeholder": "Escreva uma nota rápida…",
+  "siga.searchCommands": "Pesquisar comandos"
 }

@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { isStepUpError } from "@/lib/step-up";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   AlertTriangle,
@@ -103,6 +104,7 @@ function PayrollPaymentsPage() {
       await refresh();
     },
     onError: (error) =>
+      isStepUpError(error) ||
       toast.error(
         error instanceof Error ? error.message : "Não foi possível preparar a ordem salarial.",
       ),
@@ -115,6 +117,7 @@ function PayrollPaymentsPage() {
       await refresh();
     },
     onError: (error) =>
+      isStepUpError(error) ||
       toast.error(error instanceof Error ? error.message : "Não foi possível sincronizar o lote."),
   });
 
@@ -127,6 +130,7 @@ function PayrollPaymentsPage() {
       await refresh();
     },
     onError: (error) =>
+      isStepUpError(error) ||
       toast.error(error instanceof Error ? error.message : "Não foi possível autorizar a ordem."),
   });
 
@@ -138,6 +142,7 @@ function PayrollPaymentsPage() {
       if (selectedBatchId) await syncBatch.mutateAsync(selectedBatchId);
     },
     onError: (error) =>
+      isStepUpError(error) ||
       toast.error(error instanceof Error ? error.message : "Não foi possível guardar o destino."),
   });
 
@@ -168,6 +173,7 @@ function PayrollPaymentsPage() {
       await refresh();
     },
     onError: (error) =>
+      isStepUpError(error) ||
       toast.error(
         error instanceof Error
           ? error.message
@@ -191,6 +197,7 @@ function PayrollPaymentsPage() {
       await refresh();
     },
     onError: (error) =>
+      isStepUpError(error) ||
       toast.error(
         error instanceof Error ? error.message : "Não foi possível anular o pagamento salarial.",
       ),

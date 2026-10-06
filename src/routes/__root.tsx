@@ -122,6 +122,7 @@ function RootShell({ children }: { children: ReactNode }) {
 }
 
 import { DesktopIntegration } from "@/components/layout/DesktopIntegration";
+import { DesktopVaultGate } from "@/components/layout/DesktopVaultGate";
 import { areaToneForPath } from "@/lib/area-tone";
 
 function ClientOnlyToaster() {
@@ -179,6 +180,7 @@ function RootComponent() {
       <TenantProvider>
         <AppearanceProvider>
           <DesktopIntegration />
+          <DesktopVaultGate />
           <div className="relative pt-[env(safe-area-inset-top,0)] flex min-h-screen flex-col">
             {isPublic ? (
               <Outlet />

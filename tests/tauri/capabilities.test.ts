@@ -63,6 +63,21 @@ describe("permissões dos comandos da app", () => {
     ).toEqual([]);
   });
 
+  it("Store e Stronghold: plugins completos só na app local; o portal usa comandos de caminho fixo", () => {
+    expect(local.permissions).toEqual(
+      expect.arrayContaining(["store:default", "stronghold:default"]),
+    );
+    expect(portal.permissions).toEqual(
+      expect.arrayContaining([
+        "allow-portal-store-get",
+        "allow-portal-store-set",
+        "allow-portal-vault-unlock",
+        "allow-portal-vault-get",
+        "allow-portal-vault-set",
+      ]),
+    );
+  });
+
   it("as janelas locais e o portal têm permissões separadas", () => {
     expect(readJson<{ windows: string[] }>("src-tauri/capabilities/default.json").windows).toEqual([
       "main",

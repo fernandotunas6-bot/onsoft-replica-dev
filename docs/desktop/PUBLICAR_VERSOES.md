@@ -5,7 +5,7 @@ precisa quando muda o lado nativo (`src-tauri/`, `desktop/`: impressão, gravaç
 ficheiros, catraca, janelas…). As mudanças nos ecrãs chegam sozinhas, com o site.
 
 Workflow: [`.github/workflows/release-desktop.yml`](../../.github/workflows/release-desktop.yml)
-(Windows e macOS universal, num **rascunho** de release).
+(Windows, macOS universal e Linux — .deb, .rpm, AppImage —, num **rascunho** de release).
 
 ## 1. Uma vez: chave de assinatura das actualizações
 
@@ -45,10 +45,37 @@ instaladas antes disso têm de ser substituídas uma vez à mão.
    git push origin v1.1.0
    ```
 
+   Sem acesso a enviar tags: **Actions → Release Desktop App (Tauri) → Run workflow**, no
+   `main`, com a versão (`1.1.0`). O workflow confirma que é a versão da app, cria a tag
+   `v1.1.0` no commit do `main` e compila.
+
 O workflow constrói os instaladores num **rascunho** de release. Nada chega às escolas até:
 
 1. Abrir **Releases**, rever o rascunho `SIGA Desktop v1.1.0` e escrever as novidades.
-2. Carregar em **Publish release**.
+2. Publicar: **Actions → Publicar versão do SIGA Desktop → Run workflow**, com a tag
+   (`v1.1.0`). O workflow confirma que os 5 instaladores com nome fixo estão no rascunho
+   antes de o publicar. (Carregar em **Publish release** na página da release também
+   serve, mas sem essa verificação.)
+
+## Transferência no site
+
+O site (`painel/web`, página `/download`, menu «Transferir», rodapé e secção na página
+inicial) liga a `https://github.com/<repo>/releases/latest/download/<nome fixo>`. Cada
+build envia, além dos ficheiros com a versão no nome, estas cópias
+(`scripts/desktop/stable-assets.mjs`):
+
+| Sistema                       | Ficheiro                                                                                              |
+| ----------------------------- | ----------------------------------------------------------------------------------------------------- |
+| Windows                       | `SIGA-Desktop-Windows-x64-setup.exe`                                                                  |
+| macOS (Intel e Apple Silicon) | `SIGA-Desktop-macOS-universal.dmg`                                                                    |
+| Linux                         | `SIGA-Desktop-Linux-x86_64.AppImage`, `SIGA-Desktop-Linux-amd64.deb`, `SIGA-Desktop-Linux-x86_64.rpm` |
+
+O workflow de publicação junta ainda `SHA256SUMS.txt` (somas SHA-256 dos cinco ficheiros), que a página oferece em «Verificar integridade».
+
+Os links servem sempre a última versão **publicada** (os rascunhos não contam), por isso
+o site não muda a cada versão. A página mostra a versão e os tamanhos lidos da API
+pública do GitHub; sem resposta, os links continuam a funcionar. Outro repositório:
+`VITE_DESKTOP_RELEASES_REPO=dono/repo` no build do site.
 
 A partir daí, as apps instaladas (com chave configurada) mostram, 15 s depois de abrir,
 «Nova versão do SIGA — Instalar e reiniciar». Nunca instalam sozinhas, nem com
