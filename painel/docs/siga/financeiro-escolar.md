@@ -17,6 +17,7 @@ Quem usa: Administrador e Tesouraria. O aluno e o encarregado vêem as suas fact
 - **Valor da factura:** deixe o valor vazio para usar o preço do plano. Na propina é o preço da classe do aluno, se a escola o definiu.
 - **Receber:** regista um pagamento e emite o recibo. Um pagamento parcial deixa a factura parcialmente paga.
 - **Desconto e multa:** o valor a pagar é o total menos o desconto, mais a multa por atraso se a escola a definiu em Definições → Cobrança. A multa aplica-se uma vez, depois do vencimento e da tolerância, em todos os pagamentos ou só nos electrónicos.
+- **Bolsa ou desconto do aluno:** na ficha do aluno, o botão **Bolsa** define a percentagem descontada nas faturas emitidas a partir daí (bolsa de mérito, social, irmãos, funcionário…). Só a Direcção e a Tesouraria o alteram, com a verificação em dois passos e o motivo, que fica na auditoria. As faturas já emitidas não mudam.
 - **Anular:** só é possível numa factura sem recibos.
 - **Estornar um recibo:** exige dois passos, recalcula o estado da factura e não permite estornar o mesmo recibo duas vezes.
 
