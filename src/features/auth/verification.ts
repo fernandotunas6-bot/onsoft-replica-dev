@@ -1,4 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
+import { isDesktopSessionRuntime } from "@/lib/desktop-session-vault";
 
 /**
  * Formas de provar que é mesmo a pessoa, da mais leve à de recurso:
@@ -54,6 +55,9 @@ export function sessionAal(accessToken: string): string | null {
 export function passkeysSupported(): boolean {
   return (
     typeof window !== "undefined" &&
+    // App desktop (Tauri): a origem não é portal-siga.com, por isso o servidor
+    // recusaria a chave. Lá vale o código e o cofre nativo com o PIN do posto.
+    !isDesktopSessionRuntime() &&
     window.isSecureContext &&
     typeof window.PublicKeyCredential === "function" &&
     typeof navigator.credentials?.get === "function"
