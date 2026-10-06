@@ -68,12 +68,19 @@ describe("cobrança AppyPay presa em settling", () => {
     const { client, updates } = db();
     const before = Date.now();
     await reconcileAppyPayCharge(client, row);
+    const after = Date.now();
     const claim = updates.find((u) => u.values["status"] === "settling");
     expect(claim?.or).toMatch(/status\.in\.\(pending,failed,expired\)/);
     const stale = /and\(status\.eq\.settling,last_webhook_at\.lt\.([^)]+)\)/.exec(claim?.or ?? "");
     expect(stale).not.toBeNull();
     const cutoff = Date.parse(stale![1]!);
-    expect(before - cutoff).toBeGreaterThanOrEqual(STALE_SETTLING_MINUTES * 60_000 - 50);
+    // O corte é «agora menos 10 min», lido num instante qualquer entre `before` e `after`,
+    // por isso enquadra-se pelos dois lados. Comparar só com `before` e uma tolerância fixa
+    // media o tempo da chamada: numa máquina carregada passava dos 50 ms e o teste falhava
+    // sem nada estar errado no código.
+    const window = STALE_SETTLING_MINUTES * 60_000;
+    expect(cutoff).toBeGreaterThanOrEqual(before - window);
+    expect(cutoff).toBeLessThanOrEqual(after - window);
   });
 
   it("retomar uma já liquidada não apaga o número do recibo", async () => {
