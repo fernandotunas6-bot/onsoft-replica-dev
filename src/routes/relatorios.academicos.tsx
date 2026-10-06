@@ -1,7 +1,7 @@
 import { useMemo, lazy, Suspense, useEffect } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { usePassingValue } from "@/features/academic/use-passing-value";
+import { useActiveAssessmentRule } from "@/features/academic/use-passing-value";
 import { EvolutionPanel } from "@/features/academic/EvolutionPanel";
 import { YearComparisonPanel } from "@/features/academic/YearComparisonPanel";
 import { Award, Download, FileBadge, FileDown } from "lucide-react";
@@ -87,7 +87,7 @@ function RelatoriosAcademicos() {
   );
 
   const { selectedYearId, selectedYearLabel, school } = useSchoolSettings();
-  const passing = usePassingValue();
+  const { passing, promotionRules } = useActiveAssessmentRule();
   const workspaceQuery = useQuery({
     queryKey: ["academic", "pedagogical-workspace", selectedYearId],
     queryFn: () =>
@@ -317,6 +317,9 @@ function RelatoriosAcademicos() {
               <PautaExportDialog
                 termGrades={termGradesAll}
                 classGroups={classGroups}
+                evaluationPeriods={school?.evaluation_periods}
+                passing={passing}
+                promotionRules={promotionRules}
                 disabled={!canRead || termGradesAll.length === 0}
               />
               <Button
