@@ -15,7 +15,16 @@ import {
 import { SigaLogo } from "@/components/ui/siga-logo";
 import { AuthHeroSlides } from "./AuthHeroSlides";
 import { writeSessionHint } from "@/features/auth/session-hint";
-import { pendingMfaFactorId } from "@/features/auth/pending-mfa";
+import { pendingMfaFactors } from "@/features/auth/pending-mfa";
+import {
+  passkeysSupported,
+  registerPasskey,
+  passkeyErrorMessage,
+  sessionAal,
+  type VerificationFactors,
+} from "@/features/auth/verification";
+import { MfaChallenge } from "./MfaChallenge";
+import { StepUpDialog } from "./StepUpDialog";
 import {
   SHARED_DEVICE_IDLE_MS,
   TRUSTED_DEVICE_DAYS,
@@ -137,6 +146,27 @@ export function useAuthSession(): Session | null {
   return useContext(AuthSessionContext);
 }
 
+/**
+ * Depois de entrar com o código, propõe uma vez a chave de acesso: da próxima
+ * vez basta um toque. O clique no aviso é o gesto que o browser exige.
+ */
+function offerPasskey() {
+  if (!passkeysSupported()) return;
+  toast("Da próxima vez, entre com um toque", {
+    description: "Crie uma chave de acesso: impressão digital, Face ID ou Windows Hello.",
+    duration: 15_000,
+    action: {
+      label: "Criar chave",
+      onClick: () => {
+        void registerPasskey().then(
+          () => toast.success("Chave de acesso criada. Da próxima vez basta um toque."),
+          (passkeyError: unknown) => toast.error(passkeyErrorMessage(passkeyError)),
+        );
+      },
+    },
+  });
+}
+
 export function AuthGate({
   children,
   sessionHint,
@@ -159,9 +189,7 @@ export function AuthGate({
   const [info, setInfo] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
   const [rememberedEmail, setRememberedEmail] = useState("");
-  const [mfaFactorId, setMfaFactorId] = useState<string | null>(null);
-  const [mfaCode, setMfaCode] = useState("");
-  const [trustThisDevice, setTrustThisDevice] = useState(true);
+  const [mfaFactors, setMfaFactors] = useState<VerificationFactors | null>(null);
   const [installPrompt, setInstallPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   // «Agora não» cala o convite durante 30 dias neste navegador.
   const [installDismissed, setInstallDismissed] = useState(true);
@@ -228,16 +256,16 @@ export function AuthGate({
     // servidor recusa os tokens aal1 dessas contas (`requireSupabaseAuth`).
     const adoptSession = async (nextSession: Session | null) => {
       if (nextSession) {
-        const factorId = await pendingMfaFactorId();
+        const factors = await pendingMfaFactors();
         if (!active) return;
-        if (factorId) {
-          setMfaFactorId(factorId);
+        if (factors) {
+          setMfaFactors(factors);
           setSession(null);
           setChecking(false);
           return;
         }
       }
-      setMfaFactorId(null);
+      setMfaFactors(null);
       setSession(nextSession);
       setChecking(false);
     };
@@ -319,6 +347,7 @@ export function AuthGate({
     if (!session) return;
 
     const key = activityKey(session.user.id);
+    const verifiedSession = sessionAal(session.access_token) === "aal2";
     let lastWrite = 0;
     let expiring = false;
 
@@ -339,13 +368,20 @@ export function AuthGate({
     };
 
     const checkActivity = () => {
-      // Dispositivo de confiança: não há fim por inactividade até a confiança
-      // expirar; aí a sessão termina e o 2FA volta a ser pedido.
-      const trust = deviceTrust(session.user.id);
-      if (trust === "expired") {
+      // Dispositivo reconhecido (sessão com 2FA): sem fim por inactividade.
+      // Só volta a pedir a verificação perante um sinal de risco.
+      let trust = deviceTrust(session.user.id);
+      if (trust === "shared" && verifiedSession) {
+        // Sessão com 2FA de antes do reconhecimento existir: reconhece agora.
+        trustDevice(session.user.id);
+        trust = "trusted";
+      }
+      if (trust === "expired" || trust === "changed") {
         forgetTrustedDevice(session.user.id);
         void expireSession(
-          `Passaram ${TRUSTED_DEVICE_DAYS} dias desde a última verificação neste dispositivo. Entre novamente.`,
+          trust === "expired"
+            ? `Passaram ${TRUSTED_DEVICE_DAYS} dias desde a última verificação neste dispositivo. Confirme de novo que é você.`
+            : "Este navegador mudou desde a última verificação. Por segurança, confirme de novo que é você.",
         );
         return;
       }
@@ -418,9 +454,9 @@ export function AuthGate({
             if (count) warnToChangePassword(PWNED_SIGN_IN_NOTICE);
           });
         }
-        const factorId = await pendingMfaFactorId();
-        if (factorId) {
-          setMfaFactorId(factorId);
+        const factors = await pendingMfaFactors();
+        if (factors) {
+          setMfaFactors(factors);
           setSession(null);
         }
         return;
@@ -594,7 +630,12 @@ export function AuthGate({
   }
 
   if (session) {
-    return <AuthSessionContext.Provider value={session}>{children}</AuthSessionContext.Provider>;
+    return (
+      <AuthSessionContext.Provider value={session}>
+        {children}
+        <StepUpDialog email={session.user.email ?? null} />
+      </AuthSessionContext.Provider>
+    );
   }
 
   return (
@@ -638,7 +679,7 @@ export function AuthGate({
               role="tablist"
               aria-label="Modo de acesso"
               className="mt-4 grid grid-cols-2 gap-1 rounded-xl bg-muted p-1 text-xs font-semibold"
-              hidden={Boolean(mfaFactorId)}
+              hidden={Boolean(mfaFactors)}
             >
               {(
                 [
@@ -684,114 +725,41 @@ export function AuthGate({
               </p>
             ) : null}
 
-            {mfaFactorId ? (
-              <form
-                className="mt-6 space-y-4"
-                onSubmit={(event) => {
-                  event.preventDefault();
-                  void (async () => {
-                    setSubmitting(true);
-                    setError(null);
-                    try {
-                      const challenge = await supabase.auth.mfa.challenge({
-                        factorId: mfaFactorId,
-                      });
-                      if (challenge.error) throw challenge.error;
-                      const verified = await supabase.auth.mfa.verify({
-                        factorId: mfaFactorId,
-                        challengeId: challenge.data.id,
-                        code: mfaCode.trim(),
-                      });
-                      if (verified.error) throw verified.error;
-
-                      const assurance = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
-                      if (assurance.error) throw assurance.error;
-                      if (assurance.data?.currentLevel !== "aal2") {
-                        throw new Error(
-                          "A verificação 2FA não elevou a sessão para AAL2. Tente novamente.",
-                        );
-                      }
-
-                      const { data: sessionData, error: sessionError } =
-                        await supabase.auth.getSession();
-                      if (sessionError) throw sessionError;
-                      if (!sessionData.session) {
-                        throw new Error("A sessão não ficou disponível após a verificação 2FA.");
-                      }
-
-                      localStorage.setItem(
-                        activityKey(sessionData.session.user.id),
-                        String(Date.now()),
-                      );
-                      if (trustThisDevice) trustDevice(sessionData.session.user.id);
-                      else forgetTrustedDevice(sessionData.session.user.id);
-                      setSession(sessionData.session);
-                      setMfaFactorId(null);
-                      setMfaCode("");
-                    } catch (verifyError) {
-                      setError(
-                        verifyError instanceof Error ? verifyError.message : "Código 2FA inválido.",
-                      );
-                    } finally {
-                      setSubmitting(false);
-                    }
-                  })();
-                }}
-              >
-                <p className="text-xs text-muted-foreground">
-                  Introduza o código da aplicação autenticadora para concluir o início de sessão.
-                </p>
-                <Input
-                  aria-label="Código de autenticação multifator"
-                  value={mfaCode}
-                  onChange={(event) => setMfaCode(event.target.value)}
-                  inputMode="numeric"
-                  autoComplete="one-time-code"
-                  placeholder="000000"
-                  required
-                />
-                <label className="flex items-start gap-2 text-xs text-muted-foreground cursor-pointer select-none">
-                  <input
-                    type="checkbox"
-                    aria-label="Confiar neste dispositivo"
-                    checked={trustThisDevice}
-                    onChange={(event) => setTrustThisDevice(event.target.checked)}
-                    className="mt-0.5 size-3.5 rounded border-input text-primary focus:ring-primary"
-                  />
-                  <span>
-                    Confiar neste dispositivo durante {TRUSTED_DEVICE_DAYS} dias (não volta a pedir
-                    o código nem a terminar a sessão por inactividade). Desmarque num computador
-                    partilhado.
-                  </span>
-                </label>
-                <Button
-                  type="submit"
-                  className="w-full"
-                  disabled={submitting || mfaCode.length < 6}
-                >
-                  {submitting ? "A verificar…" : "Confirmar 2FA"}
-                </Button>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  className="w-full"
-                  disabled={submitting}
-                  onClick={() => {
-                    setMfaFactorId(null);
-                    setMfaCode("");
+            {mfaFactors ? (
+              <div className="mt-6">
+                <MfaChallenge
+                  factors={mfaFactors}
+                  intro="Falta confirmar que é você. Só é pedido neste dispositivo de 30 em 30 dias, ou se algo mudar."
+                  cancelLabel="Usar outra conta"
+                  onCancel={() => {
+                    setMfaFactors(null);
                     void supabase.auth.signOut({ scope: "local" });
                   }}
-                >
-                  Usar outra conta
-                </Button>
-              </form>
+                  onVerified={async (method) => {
+                    const assurance = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+                    if (assurance.data?.currentLevel !== "aal2") {
+                      throw new Error("A verificação não elevou a sessão. Tente novamente.");
+                    }
+                    const { data: sessionData } = await supabase.auth.getSession();
+                    if (!sessionData.session) {
+                      throw new Error("A sessão não ficou disponível após a verificação.");
+                    }
+                    const userId = sessionData.session.user.id;
+                    localStorage.setItem(activityKey(userId), String(Date.now()));
+                    trustDevice(userId);
+                    setSession(sessionData.session);
+                    setMfaFactors(null);
+                    if (method === "code" && !mfaFactors.passkeyId) offerPasskey();
+                  }}
+                />
+              </div>
             ) : null}
 
             <form
               className="mt-6 space-y-4"
               onSubmit={signIn}
               aria-busy={submitting}
-              hidden={Boolean(mfaFactorId) || mode === "signup"}
+              hidden={Boolean(mfaFactors) || mode === "signup"}
             >
               <div className="space-y-1.5">
                 <Label htmlFor="login-email" className="text-xs font-medium">
@@ -880,7 +848,7 @@ export function AuthGate({
               </button>
             </form>
 
-            {mode === "signup" && !mfaFactorId ? (
+            {mode === "signup" && !mfaFactors ? (
               <form className="mt-6 space-y-4" onSubmit={signUp} aria-busy={submitting}>
                 <div className="space-y-1.5">
                   <Label htmlFor="signup-name" className="text-xs font-medium">
@@ -957,7 +925,7 @@ export function AuthGate({
             ) : null}
 
             {/* Durante o código 2FA só há um caminho: confirmar ou usar outra conta. */}
-            {mfaFactorId ? null : (
+            {mfaFactors ? null : (
               <>
                 <div className="mt-4 flex items-center gap-3 text-[11px] text-muted-foreground">
                   <span className="h-px flex-1 bg-border" />
@@ -994,7 +962,7 @@ export function AuthGate({
               </>
             )}
 
-            {installPrompt && !installDismissed && !mfaFactorId && !isStandalone ? (
+            {installPrompt && !installDismissed && !mfaFactors && !isStandalone ? (
               <div className="mt-4 flex items-center justify-center gap-3 border-t border-border/60 pt-3 text-xs">
                 <button
                   type="button"

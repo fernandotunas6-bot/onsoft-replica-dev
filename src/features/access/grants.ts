@@ -1,3 +1,4 @@
+import { requireRecentVerification } from "@/lib/step-up";
 import { z } from "zod";
 import { createServerFn } from "@tanstack/react-start";
 import { accessModules } from "@/features/auth/access-policy";
@@ -73,6 +74,7 @@ export const setStaffModuleGrant = createServerFn({ method: "POST" })
     if (target.appRole === "Aluno" || target.appRole === "Encarregado") {
       throw new Error("Permissões por módulo são só para pessoal da escola.");
     }
+    requireRecentVerification(context.claims, "Dar uma permissão por módulo");
     const { error } = await context.supabase.from("staff_module_grants").upsert(
       {
         school_id: membership.schoolId,

@@ -4,17 +4,31 @@ Ler isto **antes** de alterar código. Ecossistema (5 apps):
 [ARCHITECTURE_HARMONIZATION.md](./ARCHITECTURE_HARMONIZATION.md).
 Depois abrir o skill do módulo em `.cursor/skills/`.
 
-## Menos fadiga no 2FA e na instalação (2026-10-06)
+## Verificação por níveis: um toque, código só por recurso (2026-10-06)
 
-- **Dispositivo de confiança** (`src/features/auth/trusted-device.ts`): no passo do código
-  2FA, «Confiar neste dispositivo durante 30 dias» (marcado por omissão). Com confiança,
-  a sessão aal2 não termina aos 30 min sem actividade; ao fim de 30 dias termina e o
-  código volta a ser pedido. Não salta o 2FA: o refresh token mantém o aal2 da sessão.
-  Sem confiança (computador partilhado) fica a regra antiga dos 30 min. Terminar a
-  sessão (`use-sign-out`) esquece a confiança de todas as contas no navegador.
-- Durante o código 2FA já não aparecem «Entrar com Google» nem a instalação.
-- Instalação: um só convite discreto («Instalar a aplicação · Agora não»); «Agora não»
-  ou recusa no browser calam-no 30 dias; não aparece na app instalada.
+- **Entrada** (`AuthGate` + `MfaChallenge`): conta com chave de acesso (passkey, Supabase
+  WebAuthn MFA) confirma com um toque (impressão digital, Face ID, Windows Hello, PIN);
+  o código TOTP fica como «Usar o código da aplicação autenticadora». Depois de entrar
+  com código, um aviso propõe criar a chave. Perfil → Segurança: «Chaves de acesso».
+- **Dispositivo reconhecido** (`trusted-device.ts`), sem caixa: depois de qualquer 2FA a
+  sessão aal2 não termina por inactividade. Volta a pedir quando há sinal de risco: 30
+  dias, outro navegador/sistema no mesmo armazenamento (`deviceFingerprint`), sair
+  (esquece), senha mudada ou «terminar em todos» (refresh token revogado). Contas sem
+  2FA mantêm os 30 min de inactividade.
+- **Reconfirmação («modo sudo»)** (`lib/step-up.ts`): o servidor exige verificação com
+  menos de 15 min (hora em `amr` do token, que a renovação não altera) em: IBAN da
+  escola, regras de cobrança, destino/autorização/confirmação/anulação de pagamentos
+  salariais, cargos de contas, suspender contas, convites com cargo de administração,
+  permissões por módulo. Recusa 403 com «Confirme a sua identidade para continuar»; o
+  `StepUpDialog` abre (via MutationCache, `toastActionError`, `QuickFormModal`) e pede
+  um toque / código / senha. Teste: `tests/security/step-up.test.ts`.
+- **Por fazer (dono, Supabase):** Authentication → Multi-Factor → activar **WebAuthn**,
+  com RP ID `portal-siga.com` e as origens `https://portal-siga.com` e
+  `https://*.portal-siga.com` (domínios próprios de escola à parte). Sem isto, criar a
+  chave dá «As chaves de acesso ainda não estão activas neste servidor» e tudo continua
+  com o código TOTP.
+- Instalação: um só convite discreto («Instalar a aplicação · Agora não», 30 dias);
+  nada de Google nem instalação durante a confirmação.
 
 ## Publicar — estado de 2026-10-06
 

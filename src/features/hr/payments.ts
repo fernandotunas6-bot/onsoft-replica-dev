@@ -1,3 +1,4 @@
+import { requireRecentVerification } from "@/lib/step-up";
 import { isMissingHrTable } from "@/features/hr/missing-table";
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
@@ -36,6 +37,7 @@ export const upsertHrPaymentDestination = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const membership = await requirePaymentAdmin(context.userId, "write");
     requireAal2(context.claims, "Alterar o destino de pagamento de um salário");
+    requireRecentVerification(context.claims, "Alterar o destino de pagamento de um salário");
     const { data: result, error } = await context.supabase.rpc("hr_upsert_payment_destination", {
       p_school_id: membership.schoolId,
       p_employment_id: data.employmentId,
@@ -121,6 +123,7 @@ export const authorizePayrollPaymentBatch = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     await requirePaymentAdmin(context.userId, "write");
     requireAal2(context.claims, "Autorizar uma ordem de pagamento salarial");
+    requireRecentVerification(context.claims, "Autorizar uma ordem de pagamento salarial");
     const { data: result, error } = await context.supabase.rpc(
       "hr_authorize_payroll_payment_batch",
       { p_batch_id: data.batchId },
@@ -189,6 +192,7 @@ export const confirmPayrollPaymentItem = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const membership = await requirePaymentAdmin(context.userId, "write");
     requireAal2(context.claims, "Confirmar um pagamento salarial");
+    requireRecentVerification(context.claims, "Confirmar um pagamento salarial");
     const { data: result, error } = await context.supabase.rpc("hr_confirm_payroll_payment_item", {
       p_school_id: membership.schoolId,
       p_payment_item_id: data.paymentItemId,
@@ -218,6 +222,7 @@ export const reversePayrollPaymentItem = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const membership = await requirePaymentAdmin(context.userId, "write");
     requireAal2(context.claims, "Anular um pagamento salarial");
+    requireRecentVerification(context.claims, "Anular um pagamento salarial");
     const db = await loadSgaAdminClient();
     const { data: outcome, error } = await db.rpc("hr_reverse_payroll_payment", {
       school_id: membership.schoolId,
