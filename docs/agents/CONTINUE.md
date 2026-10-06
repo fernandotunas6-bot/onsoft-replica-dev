@@ -20,9 +20,12 @@ Nada escrito na produção; duas migrações escritas e ensaiadas, por aplicar.
 - **Por aplicar (dono, SQL Editor):** `docs/agents/SIGA_aplicar_auditoria13_2026-10-06.sql`
   — `20261006180000` (datas do ano lectivo cobrem os períodos, A2) e `20261006181000`
   (bucket `school-logos` sem SVG, A8). Ensaios em `tests/sql/`. Depois: recapturar o retrato.
-- **Aberto, decisão do dono:** A1 — a suspensão e o fim do trial só existem no ecrã (o
-  servidor e a RLS não os verificam); A4 — anular matrícula / mudar estado do aluno sem
-  acertar o outro lado.
+- **Decididos pelo dono e feitos:** A1 — escola bloqueada (suspensa, cancelada, arquivada,
+  trial terminado) não grava no servidor (`assertTenantAllowsWrites` em
+  `requireSgaWriterForWrite`); leituras e pagamento da assinatura continuam. A4 — estado do
+  aluno fecha a matrícula corrente e anular a última matrícula deixa o aluno inactivo
+  (`students/enrollment-sync.ts`). A RLS continua sem olhar para o tenant (escritas
+  directas pela API já exigem 2FA e papel).
 
 ## Verificação por níveis: um toque, código só por recurso (2026-10-06)
 

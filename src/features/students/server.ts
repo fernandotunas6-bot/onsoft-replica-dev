@@ -31,6 +31,7 @@ import {
 } from "./schemas";
 import { deriveAcademicStatus, deriveFinancialSnapshot, type InvoiceLike } from "./academic-status";
 import { recordStudentStatusHistory, recordStudentStatusHistoryBatch } from "./status-history";
+import { closeCurrentEnrollmentsForStatus, hasCurrentEnrollment } from "./enrollment-sync";
 import { assertCanSeeStudent, loadStudentScope } from "./student-scope";
 import { recordAccessAudit, recordAuditBatch } from "@/features/audit/record-audit";
 import { queueTenantUsageSync } from "@/features/saas/usage-sync";
@@ -947,6 +948,15 @@ export const changeStudentStatus = createServerFn({ method: "POST" })
     if (error) throw publicDatabaseError(error, "Não foi possível alterar o estado do aluno.");
     if (!student) throw new Error("Aluno não encontrado");
 
+    // Transferido, concluído ou inactivo deixa de ocupar lugar na turma.
+    const closedEnrollments = await closeCurrentEnrollmentsForStatus(db, {
+      schoolId: membership.schoolId,
+      studentIds: [data.studentId],
+      studentStatus: nextStatus,
+      reason: data.reason,
+      userId: context.userId,
+    });
+
     await recordStudentStatusHistory(db, {
       schoolId: membership.schoolId,
       studentId: data.studentId,
@@ -971,6 +981,7 @@ export const changeStudentStatus = createServerFn({ method: "POST" })
           reason: data.reason || null,
           before: { status: previousStatus },
           after: { status: nextStatus },
+          enrollments_closed: closedEnrollments,
         },
       });
     } catch {
@@ -1363,6 +1374,34 @@ export const cancelEnrollment = createServerFn({ method: "POST" })
       .maybeSingle();
     if (error) throw publicDatabaseError(error, "Não foi possível anular a matrícula.");
     if (!enrollment) throw new Error("Matrícula não encontrada.");
+
+    // Sem outra matrícula corrente, o aluno deixa de estar activo (auditoria 13, A4).
+    // Matriculá-lo de novo volta a pô-lo activo (enrollStudentInClass).
+    const studentId = String(enrollment.student_id);
+    if (!(await hasCurrentEnrollment(db, membership.schoolId, studentId))) {
+      const { data: deactivated, error: studentError } = await db
+        .from("students")
+        .update({ status: "inactive", updated_by: context.userId })
+        .eq("id", studentId)
+        .eq("school_id", membership.schoolId)
+        .eq("status", "active")
+        .select("id")
+        .maybeSingle();
+      if (studentError) {
+        throw publicDatabaseError(studentError, "Matrícula anulada, mas o aluno ficou activo.");
+      }
+      if (deactivated) {
+        await recordStudentStatusHistory(db, {
+          schoolId: membership.schoolId,
+          studentId,
+          previousStatus: "active",
+          newStatus: "inactive",
+          reason: reason.length >= 3 ? `Matrícula anulada: ${reason}` : "Matrícula anulada",
+          changedBy: context.userId,
+        });
+        queueTenantUsageSync(membership.schoolId);
+      }
+    }
     return enrollment;
   });
 
@@ -1795,6 +1834,13 @@ export const batchUpdateStudentStatus = createServerFn({ method: "POST" })
         throw publicDatabaseError(updateError, "Não foi possível alterar o estado dos alunos.");
       }
       const reason = data.reason || "Atualização em lote";
+      await closeCurrentEnrollmentsForStatus(db, {
+        schoolId: membership.schoolId,
+        studentIds: updatedIds,
+        studentStatus: data.newStatus,
+        reason: data.reason,
+        userId: context.userId,
+      });
       await recordStudentStatusHistoryBatch(db, {
         schoolId: membership.schoolId,
         changes: changes.map((s) => ({ studentId: s.id, previousStatus: s.status })),
