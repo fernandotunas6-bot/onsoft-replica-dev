@@ -4,6 +4,30 @@ Ler isto **antes** de alterar código. Ecossistema (5 apps):
 [ARCHITECTURE_HARMONIZATION.md](./ARCHITECTURE_HARMONIZATION.md).
 Depois abrir o skill do módulo em `.cursor/skills/`.
 
+## Análise crítica — 2026-10-06
+
+Relatório: [13-auditoria-critica-2026-10-06.md](../auditoria/13-auditoria-critica-2026-10-06.md).
+
+Duas correcções de leitura que mudam o enquadramento de tudo o que vem antes:
+
+- **«49 escolas, 45 alunos, 38 facturas» não é adopção.** 43 das 48 escolas são restos de
+  testes E2E (08–09/09), todas `active`, com 42 subdomínios `tenant_domains` verificados.
+  Das 5 restantes, quatro estão vazias. O uso real é **uma escola, dois alunos, uma nota,
+  quatro facturas**. `siga_assessment_scores` tem 1 linha; `attendance_records` tem 0.
+- **A suite não estava verde.** 1 falha em 3 077 (`tests/finance/appypay-stale-settling`),
+  que o CI não via por ser mais rápido do que a tolerância de 50 ms que o teste media.
+  Corrigida.
+
+Corrigido no commit `305e7972`: a **pauta exportada** (CSV/PDF) decidia a transição por sua
+conta — MFD com os períodos que houvesse, «Transita» por média simples ≥ 10, limiar fixo e
+3 trimestres no selector. Passa a usar `decidePromotionStatus`, o regime da turma e a nota
+mínima do modelo em vigor, como a pauta oficial. Ver §5 e §6 do relatório.
+
+Por decidir (só o dono): rodar a `service_role` e o PAT; limpar os 43 restos de E2E
+(`npm run siga:e2e-cleanup-stale -- --dry-run` identifica 42); projecto de staging; o que
+o PayFlow é (`provider: unconfigured`, `sigaUrl: null`); chaves de assinatura da app
+desktop (**0 releases, 0 tags `v*`, 0 segredos no repositório**); DMARC.
+
 ## Publicar — estado de 2026-10-06
 
 Levantamento completo: [estado-deploy-2026-10-06.md](../auditoria/estado-deploy-2026-10-06.md).
@@ -61,6 +85,7 @@ ignorado.
 - **Aplicada a 2026-10-06** (registo `20261005150000`), retrato recapturado e
   `fee_items.grade_level_id` retirada de `tests/security/espera-migracao.ts`, que ficou
   vazia.
+
 ## Mudar de turma — APLICADA (2026-10-06)
 
 O gatilho `private.protect_enrollment_identity` tratava a turma como identidade da
