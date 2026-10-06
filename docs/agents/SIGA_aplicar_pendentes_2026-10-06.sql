@@ -17,7 +17,7 @@
 --   3. 20261005030000_school_row_role_policies       — A9: papel pela escola da linha
 --      nos eventos de gateway; retira a política morta de `schools`.
 --   4. 20261005150000_fee_items_grade_level          — propina por classe.
---   5. 20261005160000_enrollment_class_change        — mudar de turma no mesmo ano.
+--   5. 20261006100000_enrollment_class_change        — mudar de turma no mesmo ano.
 --
 -- Ensaiadas em PGlite a 2026-10-06, as cinco a passar:
 --   tests/sql/assessment-closed-term.mjs, direct-writes-mfa.mjs,
@@ -270,7 +270,7 @@ CREATE UNIQUE INDEX IF NOT EXISTS fee_items_plan_grade_kind_active_key
   WHERE is_active AND grade_level_id IS NOT NULL;
 
 
--- ══════════ 20261005160000_enrollment_class_change.sql ══════════
+-- ══════════ 20261006100000_enrollment_class_change.sql ══════════
 -- Mudar um aluno de turma no mesmo ano lectivo, com as vagas da turma.
 --
 -- Até 2026-10-05 o gatilho private.protect_enrollment_identity tratava a turma como
@@ -373,7 +373,7 @@ from (values
              where table_schema = 'public' and table_name = 'fee_items'
                and column_name = 'grade_level_id')
      and to_regclass('public.fee_items_plan_grade_kind_active_key') is not null),
-  ('20261005160000_enrollment_class_change',
+  ('20261006100000_enrollment_class_change',
      coalesce(position('A turma atingiu a capacidade' in pg_get_functiondef(
        to_regprocedure('private.protect_enrollment_identity()'))) > 0, false))
 ) as m(migracao, ok)

@@ -43,7 +43,7 @@ Sondagem HTTP de hoje:
 
 ## 3. Dois bloqueios, os dois do dono
 
-### B1 — faltam 3 segredos no ambiente `production` (A3 da auditoria 12)
+### B1 — segredos do ambiente `production` (A3 da auditoria 12) — RESOLVIDO a 06/10
 
 A execução de hoje (`37422352112`) falha em 3s, no passo que confirma os segredos,
 antes de instalar nada:
@@ -54,11 +54,24 @@ Falta o segredo CLOUDFLARE_ACCOUNT_ID no ambiente GitHub 'production'
 Falta o segredo SUPABASE_SERVICE_ROLE_KEY no ambiente GitHub 'production'
 ```
 
-`VITE_SUPABASE_URL` e `VITE_SUPABASE_PUBLISHABLE_KEY` já resolvem pelas omissões do
-workflow. Só o dono cria segredos (Settings → Environments → production). **Rodar
-primeiro as chaves que foram coladas em conversas** (segredo Google OAuth de 25/09,
-access token e `service_role` do Supabase de 04/10): a chave que entrar no ambiente
-tem de ser a nova, não a exposta.
+Os dois da Cloudflare já estavam no `.env` da raiz. Os cinco foram postos no ambiente
+`production` a 06/10 (`CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID`,
+`SUPABASE_SERVICE_ROLE_KEY`, `VITE_SUPABASE_URL`, `VITE_SUPABASE_PUBLISHABLE_KEY`).
+Ficaram **de fora de propósito** o `AUTH_BYPASS` e o `VITE_AUTH_DISABLED` que o `.env`
+também tem, e o `RESEND_API_KEY` — esse punha a produção a enviar email, o que não é
+desbloquear a publicação.
+
+O ambiente não tem regras de protecção nem política de ramos, e o workflow está
+`active`: **cada merge na `main` publica**, depois de `typecheck`, `lint` e `test`
+passarem sobre o mesmo commit. É a publicação automática pedida; se algum dia se
+quiser uma aprovação pelo meio, é em Settings → Environments → production → required
+reviewers.
+
+**Por rodar:** a `SUPABASE_SERVICE_ROLE_KEY` que entrou é a que foi exposta em conversa
+a 04/10, e o personal access token usado para aplicar o SQL foi colado em conversa a
+06/10. Os dois funcionam e os dois são públicos para efeitos práticos. Quando a
+`service_role` for rodada, o segredo do ambiente `production` tem de ser actualizado,
+senão a publicação deixa de passar.
 
 ### B2 — o PayFlow não chega aos bindings (defeito de código, não de configuração)
 
@@ -100,50 +113,88 @@ arranjar o 503, e é por isso que o passo final do workflow («Confirmar que os
 serviços publicados respondem») ia continuar a falhar depois de os segredos
 estarem postos. Com a correcção, a publicação passa a ser o que resolve.
 
-## 4. Ordem de publicação recomendada
+## 4. Ordem de publicação
 
-1. **Rodar** as chaves expostas (Supabase `service_role` e access token, Google OAuth).
-2. **Criar os 3 segredos** no ambiente `production` com as chaves novas.
-3. **Aplicar as 5 migrações** do Supabase pendentes, pelo pacote
-   `docs/agents/SIGA_aplicar_pendentes_2026-10-06.sql` (SQL Editor → Run), e
-   confirmar com a consulta do fundo (5 linhas «aplicada»). Fazer **antes** de
-   publicar: a propina por classe e o mudar de turma só funcionam com elas.
-4. **Fundir a correcção do `cf-env.ts`** (B2). Sem ela o PayFlow continua em 503 e o
-   passo final do workflow recusa a publicação.
-5. **`workflow_dispatch`** do «Deploy produção» (ou um push para a `main`).
-6. **Confirmar na Cloudflare** o `modified_on` dos dois Workers e o estado das Pages —
-   o código de saída do `deploy:all` engana, e já houve publicações a falhar a meio
+Feito a 06/10, por esta ordem:
+
+1. ~~Criar os 3 segredos~~ — feitos, cinco (secção 3, B1).
+2. ~~Aplicar as migrações do Supabase~~ — três aplicadas e confirmadas (secção 5).
+3. ~~Corrigir o `cf-env.ts`~~ — feito e provado em workerd (secção 3, B2).
+4. ~~Recapturar o retrato e regenerar os tipos~~ — feitos (secção 5).
+5. **Fundir na `main`** — dispara a publicação automática dos 5 apps.
+6. **Confirmar na Cloudflare** o `modified_on` dos dois Workers e o estado das Pages.
+   O código de saída do `deploy:all` engana, e já houve publicações a falhar a meio
    deixando apps em commits diferentes.
-7. **Recapturar** `supabase/PRODUCTION_SNAPSHOT.json` e retirar `fee_items.grade_level_id`
-   de `tests/security/espera-migracao.ts`.
+7. **Rodar** a `service_role` e o personal access token (secção 3, B1), e actualizar o
+   segredo do ambiente `production`.
 
-## 5. Migrações do Supabase: 5 por aplicar
+## 5. Migrações do Supabase: aplicadas a 06/10
 
-Pacote único, por ordem de versão, idempotente, com confirmação no fim:
-`docs/agents/SIGA_aplicar_pendentes_2026-10-06.sql`. Os corpos são os dos ficheiros
-de `supabase/migrations/`, conferidos por md5.
+Aplicadas com a API de gestão (`/v1/projects/.../database/query`), depois de o dono
+fornecer um personal access token novo. **O registo do repositório estava errado:**
+das cinco que os relatórios diziam pendentes, duas já estavam aplicadas. Só faltavam
+três.
 
-| Versão         | Migração                            | Porquê                                            | Ensaio PGlite                 |
-| -------------- | ----------------------------------- | ------------------------------------------------- | ----------------------------- |
-| 20261005010000 | `assessment_closed_term_guard`      | A6: escrita directa nas notas com pauta oficial   | `assessment-closed-term.mjs`  |
-| 20261005020000 | `direct_writes_require_mfa`         | A5: 2FA em 13 tabelas                             | `direct-writes-mfa.mjs`       |
-| 20261005030000 | `school_row_role_policies`          | A9: papel pela escola da linha no gateway         | `school-row-role-policies.mjs`|
-| 20261005150000 | `fee_items_grade_level`             | propina por classe                                | `fee-items-grade-level.mjs`   |
-| 20261005160000 | `enrollment_class_change`           | mudar de turma no mesmo ano                       | `enrollment-class-change.mjs` |
+| Versão         | Migração                       | Estado antes | Agora      |
+| -------------- | ------------------------------ | ------------ | ---------- |
+| 20261005010000 | `assessment_closed_term_guard` | já aplicada  | aplicada   |
+| 20261005020000 | `direct_writes_require_mfa`    | já aplicada  | aplicada   |
+| 20261005030000 | `school_row_role_policies`     | **em falta** | aplicada   |
+| 20261005150000 | `fee_items_grade_level`        | **em falta** | aplicada   |
+| 20261006100000 | `enrollment_class_change`      | **em falta** | aplicada   |
 
-Já aplicadas e agora com sonda em `SIGA_confirmar_migracoes.sql` (faltava):
-`20261005143409_teacher_qr_inner_functions_not_callable`.
+Cada uma foi aplicada em separado e confirmada pela sonda antes da seguinte. As três
+ficaram registadas em `supabase_migrations.schema_migrations`.
 
-Usa-se o SQL Editor e não `apply_migration` porque a ferramenta cancela as migrações
-com `DROP` (cancelada duas vezes a 04/10, expirada duas vezes a 05/10, sem aplicar nada).
+Retrato recapturado (`npm run siga:db-snapshot`): 187 → 189 tabelas, 321 → 359
+políticas, 122 → 125 funções `private`, 202 → 206 triggers. Tipos regenerados
+(`supabase gen types typescript --linked`). `tests/security/espera-migracao.ts` ficou
+**vazia**: `fee_items.grade_level_id` existe agora na produção.
 
-## 6. Colisão de versões no PR #87
+### Comparar por efeito, não por nome
 
-O PR #87 (rascunho, em conflito) traz `supabase/migrations/20261005160000_student_scholarships.sql`.
-A `main` já tem **`20261005160000_enrollment_class_change.sql`** — mesma versão, migração
-diferente. Antes de o PR seguir, a das bolsas tem de ser renumerada (p. ex. `20261006100000`),
-senão repete-se a colisão de versões de 04/10. O PR traz ainda `20261005170000_class_group_waitlist`
-e `20261006090000_course_unit_shift`, essas sem colisão.
+O histórico da produção tem 187 versões e o repositório 213 — mas a diferença quase
+toda é a mesma migração registada com outra versão, porque quem a aplicou usou
+`apply_migration`, que atribui um carimbo novo. Oito casos: `late_fee_one_rule`
+(repo `20261004135000`, produção `20261005081124`), `propinas_import_into_billing_rules`,
+`hr_confirm_payment_free_expense_number`, `hr_reverse_payroll_payment_lock_states`,
+`realtime_publish_school_screens`, `attendance_sessions_unique_slot_day`,
+`one_active_academic_year`, `harden_teacher_qr_attendance`. Mais dois ficheiros que
+são cópias duplicadas no repositório (`hr_atomic_payment_destination`,
+`chat_conversations`), já aplicados pela outra cópia. Comparar por nome de versão dava
+«faltam nove»; por efeito, faltavam três.
+
+## 6. A colisão de versões já estava na produção — e as 3 do PR #87 também
+
+Pior do que uma colisão por fundir. O histórico da produção já tinha:
+
+```
+20261005160000  student_scholarships
+20261005170000  class_group_waitlist
+20261006090000  course_unit_shift
+```
+
+São as três migrações do **PR #87, que é um rascunho e nunca foi fundido**. Foram
+aplicadas na produção com os ficheiros a existir só nessa branch — exactamente o que a
+regra da secção 7 da auditoria 12 proíbe («nenhum DDL na produção sem o ficheiro no
+mesmo commit»).
+
+E a versão `20261005160000` ficou **dupla**: na produção é `student_scholarships`, na
+`main` era `enrollment_class_change`. Quem corresse a ferramenta de migrações daria
+`enrollment_class_change` por aplicada — e não estava.
+
+Resolvido assim:
+
+- `enrollment_class_change` foi **renumerada** para `20261006100000` (a produção já é
+  dona da `20261005160000`), no ficheiro e em todas as referências: ensaio PGlite,
+  pacotes, sondas e o comentário em `src/features/students/server.ts`.
+- Os três ficheiros do PR #87 foram **trazidos para a `main`** a partir da branch,
+  só as migrações — nada do código de aplicação do PR, que continua em rascunho.
+  Sem isto o retrato recapturado deixava três testes de segurança vermelhos, a
+  denunciar tabelas de produção sem declaração no repositório.
+
+O PR #87 fica mais pequeno e sem conflito nas migrações; o resto (bolsas, lista de
+espera, turnos) continua a ser decisão de quem o abriu.
 
 ## 7. O que ficou por verificar
 

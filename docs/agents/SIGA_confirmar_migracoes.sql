@@ -105,7 +105,7 @@ from (values
                and column_name = 'grade_level_id')
      and to_regclass('public.fee_items_plan_grade_kind_active_key') is not null),
   -- Esta está no pacote docs/agents/SIGA_aplicar_mudar_turma.sql.
-  ('20261005160000_enrollment_class_change',
+  ('20261006100000_enrollment_class_change',
      coalesce(position('A turma atingiu a capacidade' in pg_get_functiondef(
        to_regprocedure('private.protect_enrollment_identity()'))) > 0, false)),
   -- QR do professor: só a versão endurecida é chamável (aplicada a 2026-10-05).

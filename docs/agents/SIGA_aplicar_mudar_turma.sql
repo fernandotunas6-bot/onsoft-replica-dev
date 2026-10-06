@@ -8,7 +8,7 @@
 -- Confirmar no fim com a consulta do fundo deste ficheiro (deve dar "aplicada").
 
 
--- ══════════ 20261005160000_enrollment_class_change.sql ══════════
+-- ══════════ 20261006100000_enrollment_class_change.sql ══════════
 -- Mudar um aluno de turma no mesmo ano lectivo, com as vagas da turma.
 --
 -- Até 2026-10-05 o gatilho private.protect_enrollment_identity tratava a turma como
@@ -85,4 +85,4 @@ SELECT CASE
          to_regprocedure('private.protect_enrollment_identity()'))) > 0, false)
     THEN 'aplicada'
   ELSE 'por aplicar'
-END AS "20261005160000 mudar de turma";
+END AS "20261006100000 mudar de turma";
