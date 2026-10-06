@@ -16,6 +16,9 @@ function App() {
 
   // Initialize command system and cleanup on app startup
   useEffect(() => {
+    let disposed = false
+    let cleanupMenuListener: (() => void) | undefined
+
     logger.info('🚀 Frontend application starting up')
     initializeCommandSystem()
     logger.debug('Command system initialized')
@@ -25,16 +28,19 @@ function App() {
       try {
         // Load preferences to get saved language
         const result = await commands.loadPreferences()
+        if (disposed) return
         const savedLanguage =
           result.status === 'ok' ? result.data.language : null
 
         // Initialize language (will use system locale if no preference)
         await initializeLanguage(savedLanguage)
+        if (disposed) return
 
         // Build the application menu with the initialized language
         await buildAppMenu()
+        if (disposed) return
         logger.debug('Application menu built')
-        setupMenuLanguageListener()
+        cleanupMenuListener = setupMenuLanguageListener()
       } catch (error) {
         logger.warn('Failed to initialize language or menu', { error })
       }
@@ -66,7 +72,11 @@ function App() {
       }
     }
     const updateTimer = setTimeout(checkForUpdates, 15000)
-    return () => clearTimeout(updateTimer)
+    return () => {
+      disposed = true
+      cleanupMenuListener?.()
+      clearTimeout(updateTimer)
+    }
   }, [])
 
   return (

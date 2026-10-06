@@ -187,3 +187,7 @@ The `CmdOrCtrl` accelerator automatically uses the correct modifier per platform
 | Translations not updating | Verify `setupMenuLanguageListener()` is called              |
 | Action not working        | Check handler uses `getState()` for current values          |
 | Accelerator conflicts     | Verify shortcut isn't used elsewhere in the app             |
+
+## Startup lifecycle in SIGA
+
+`App.tsx` initializes the language before building the native menu. Its effect checks whether it has been disposed after each awaited step and retains the unsubscribe function from `setupMenuLanguageListener()`. Cleanup removes the listener and the delayed update check. Keep this lifecycle when changing startup; `App.lifecycle.test.tsx` covers StrictMode and unmount during asynchronous initialization.

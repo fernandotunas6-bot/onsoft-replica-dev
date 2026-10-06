@@ -29,5 +29,22 @@ fn main() {
             "check_app_update",
             "install_app_update",
         ]));
+    // tauri-winres embeds resources only in application binaries. Link the same
+    // manifest into every MSVC target, including the lib unit-test executable.
+    // See tauri-apps/tauri#13419 (STATUS_ENTRYPOINT_NOT_FOUND).
+    let attributes = if std::env::var("CARGO_CFG_TARGET_OS").as_deref() == Ok("windows")
+        && std::env::var("CARGO_CFG_TARGET_ENV").as_deref() == Ok("msvc")
+    {
+        let manifest = std::path::PathBuf::from(
+            std::env::var_os("CARGO_MANIFEST_DIR").expect("Cargo manifest directory"),
+        )
+        .join("windows-app-manifest.xml");
+        println!("cargo:rerun-if-changed={}", manifest.display());
+        println!("cargo:rustc-link-arg=/MANIFEST:EMBED");
+        println!("cargo:rustc-link-arg=/MANIFESTINPUT:{}", manifest.display());
+        attributes.windows_attributes(tauri_build::WindowsAttributes::new_without_app_manifest())
+    } else {
+        attributes
+    };
     tauri_build::try_build(attributes).expect("falha nas permissões SIGA Desktop");
 }

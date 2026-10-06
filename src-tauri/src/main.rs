@@ -2,5 +2,5 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 fn main() {
-    siga_desktop::run()
+    siga_desktop_lib::run()
 }
