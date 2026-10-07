@@ -200,6 +200,9 @@ export async function assertModuleNotBlocked(
   if (mode === "write" && level === "Leitura") {
     throw new Error(`Esta conta só tem leitura no módulo ${MODULE_LABELS[moduleKey]}.`);
   }
+  // O RH (folha, pagamentos, faltas, aulas) usa este guarda em vez de
+  // requireSgaWriterForWrite: sem isto gravava numa escola bloqueada (A1).
+  if (mode === "write") await assertTenantAllowsWrites(schoolId);
 }
 
 /** Mesmo texto do ecrã de bloqueio (`TenantProvider`), para a pessoa reconhecer o motivo. */
@@ -268,8 +271,8 @@ async function requireSgaWriterWithMode(
   const membership = await resolveMembershipForRequest(userId, preferredSchoolId);
   if (!membership) throw new Error("Sem membership activa nesta escola.");
   if (allowedRoles.includes(membership.appRole)) {
+    // Em escrita, assertModuleNotBlocked também confirma que a escola grava.
     await assertModuleNotBlocked(membership.schoolId, userId, moduleKey, mode);
-    if (mode === "write") await assertTenantAllowsWrites(membership.schoolId);
     return membership;
   }
   // Sem o cargo: só entra se a Administração lhe deu esta permissão por módulo.

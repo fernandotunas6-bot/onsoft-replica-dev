@@ -144,7 +144,11 @@ function mapRow(row: Record<string, unknown>): SchoolFileRecord {
  * tem de continuar a dizer o mesmo -- `tests/security/siga-files-rls.test.ts`
  * compara-as.
  */
-export function canSeeRow(row: SchoolFileRecord, userId: string, role: string) {
+export function canSeeRow(
+  row: Pick<SchoolFileRecord, "area" | "ownerUserId" | "visibility">,
+  userId: string,
+  role: string,
+) {
   if (!canReadFileArea(role, row.area)) return false;
   if (row.area === "pessoal" && row.ownerUserId !== userId) return false;
   if (row.visibility === "private" && row.ownerUserId !== userId) {

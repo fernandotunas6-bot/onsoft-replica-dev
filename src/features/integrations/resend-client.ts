@@ -175,3 +175,31 @@ export async function sendResendEmail(input: ResendSendInput): Promise<ResendSen
   }
   return { id: payload.id ?? null, status: res.status };
 }
+
+/**
+ * Um e-mail por destinatário. Com todos no mesmo "Para", cada encarregado via os
+ * endereços dos outros (auditoria 13). Poucos pedidos de cada vez, para não
+ * esbarrar no limite de pedidos por segundo do Resend.
+ */
+export async function sendResendEmailEach(
+  input: ResendSendInput,
+  concurrency = 4,
+): Promise<{ sent: number; ids: string[]; errors: string[] }> {
+  const recipients = normalizeResendRecipients(input.to);
+  const ids: string[] = [];
+  const errors: string[] = [];
+  for (let i = 0; i < recipients.length; i += concurrency) {
+    const batch = recipients.slice(i, i + concurrency);
+    const results = await Promise.allSettled(
+      batch.map((to) => sendResendEmail({ ...input, to: [to] })),
+    );
+    for (const result of results) {
+      if (result.status === "fulfilled") {
+        if (result.value.id) ids.push(result.value.id);
+      } else {
+        errors.push(result.reason instanceof Error ? result.reason.message : "Falha no envio.");
+      }
+    }
+  }
+  return { sent: recipients.length - errors.length, ids, errors };
+}

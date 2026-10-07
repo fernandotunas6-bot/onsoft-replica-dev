@@ -3,6 +3,7 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { publicDatabaseError } from "@/integrations/supabase/server-error";
 import { loadSgaAdminClient, resolveSgaMembershipAdmin } from "@/integrations/supabase/sga-admin";
 import { mapSgaRoleCode } from "@/integrations/supabase/sga";
+import { assertSenderMayAttach } from "./attachments";
 import {
   listDirectThreadInputSchema,
   sendDirectMessageInputSchema,
@@ -42,7 +43,7 @@ export function isMessagingStaff(roles: readonly string[]): boolean {
 }
 
 /** Cargos da pessoa NESTA escola (não o cargo global do perfil). */
-async function schoolRolesOf(
+export async function schoolRolesOf(
   db: Awaited<ReturnType<typeof loadSgaAdminClient>>,
   schoolId: string,
   userId: string,
@@ -242,6 +243,17 @@ export const sendDirectMessage = createServerFn({ method: "POST" })
       }
     }
 
+    // A tabela não tem guarda na base para o anexo (o chat tem): o servidor
+    // confirma que é desta escola e que quem envia o pode abrir.
+    const attachment = data.attachmentFileId
+      ? await assertSenderMayAttach(db, {
+          schoolId: membership.schoolId,
+          senderId: context.userId,
+          senderRoles: membership.allAppRoles ?? [membership.appRole],
+          fileId: data.attachmentFileId,
+        })
+      : null;
+
     const { data: row, error } = await db
       .from("siga_direct_messages")
       .insert({
@@ -249,8 +261,8 @@ export const sendDirectMessage = createServerFn({ method: "POST" })
         sender_id: context.userId,
         recipient_id: data.peerId,
         body: data.body?.trim() || null,
-        attachment_file_id: data.attachmentFileId ?? null,
-        attachment_file_name: data.attachmentFileName ?? null,
+        attachment_file_id: attachment?.id ?? null,
+        attachment_file_name: attachment?.name ?? null,
         created_by: context.userId,
       })
       .select("id, sender_id, body, attachment_file_id, attachment_file_name, created_at")

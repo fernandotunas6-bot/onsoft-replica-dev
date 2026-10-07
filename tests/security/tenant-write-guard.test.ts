@@ -88,7 +88,22 @@ describe("escritas de uma escola bloqueada", () => {
     const source = readFileSync("src/integrations/supabase/sga-admin.ts", "utf8");
     const fn = source.slice(source.indexOf("async function requireSgaWriterWithMode"));
     const body = fn.slice(0, fn.indexOf("\n}\n"));
-    // Nos dois caminhos que devolvem a membership (cargo e permissão por módulo).
-    expect(body.match(/if \(mode === "write"\) await assertTenantAllowsWrites/g)).toHaveLength(2);
+    // Caminho da permissão por módulo: directo. Caminho do cargo: através de
+    // assertModuleNotBlocked, que o RH também usa sozinho.
+    expect(body.match(/if \(mode === "write"\) await assertTenantAllowsWrites/g)).toHaveLength(1);
+    expect(body).toMatch(
+      /await assertModuleNotBlocked\(membership\.schoolId, userId, moduleKey, mode\)/,
+    );
+    const guard = source.slice(source.indexOf("export async function assertModuleNotBlocked"));
+    expect(guard.slice(0, guard.indexOf("\n}\n"))).toMatch(
+      /if \(mode === "write"\) await assertTenantAllowsWrites\(schoolId\)/,
+    );
+  });
+
+  it("o RH grava pelo guarda de módulo em modo escrita", () => {
+    for (const file of ["payroll", "payments", "absences", "salary-changes", "salary-amendments"]) {
+      const source = readFileSync(`src/features/hr/${file}.ts`, "utf8");
+      expect(source).toMatch(/assertModuleNotBlocked\([^)]*"financeiro",\s*(mode|"write")\)/);
+    }
   });
 });

@@ -394,6 +394,7 @@ function ComunicacoesPage() {
           data: {
             subject: values.title,
             text: values.body,
+            audience: values.audience,
           },
         });
         if (dispatch.mode === "sent") {
@@ -405,7 +406,7 @@ function ComunicacoesPage() {
       }
       if (status === "sent" && values.channel === "whatsapp" && whatsappNotices) {
         const dispatch = await sendSchoolWhatsAppMessage({
-          data: { text },
+          data: { text, audience: values.audience },
         });
         if (dispatch.mode === "sent") {
           dispatchNote = [
@@ -434,7 +435,7 @@ function ComunicacoesPage() {
       // facto (credenciais globais no servidor, sem UI de instalação por escola).
       if (status === "sent" && values.channel === "sms") {
         const dispatch = await sendSchoolSmsMessage({
-          data: { text },
+          data: { text, audience: values.audience },
         });
         if (dispatch.mode === "sent") {
           dispatchNote = [
@@ -729,7 +730,10 @@ function ComunicacoesPage() {
                                         onClick={async () => {
                                           const text = `${c.title}\n\n${c.body}`;
                                           const dispatch = await sendSchoolWhatsAppMessage({
-                                            data: { text },
+                                            data: {
+                                              text,
+                                              audience: c.audience as Audience,
+                                            },
                                           });
                                           if (dispatch.mode === "sent") {
                                             toast.success(

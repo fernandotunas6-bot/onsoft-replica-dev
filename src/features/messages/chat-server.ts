@@ -2,7 +2,8 @@ import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { publicDatabaseError } from "@/integrations/supabase/server-error";
 import { loadSgaAdminClient, resolveSgaMembershipAdmin } from "@/integrations/supabase/sga-admin";
-import { isMessagingStaff, loadSchoolColleagues } from "./server";
+import { assertSenderMayAttach } from "./attachments";
+import { isMessagingStaff, loadSchoolColleagues, schoolRolesOf } from "./server";
 import {
   conversationInputSchema,
   deleteChatMessageInputSchema,
@@ -316,6 +317,14 @@ export const sendChatMessage = createServerFn({ method: "POST" })
     if (!membership) throw new Error("Sem membership activa nesta escola.");
     const db = await loadSgaAdminClient();
     await assertMember(db, data.conversationId, context.userId);
+    const attachment = data.attachmentFileId
+      ? await assertSenderMayAttach(db, {
+          schoolId: membership.schoolId,
+          senderId: context.userId,
+          senderRoles: membership.allAppRoles ?? [membership.appRole],
+          fileId: data.attachmentFileId,
+        })
+      : null;
 
     const { data: row, error } = await db
       .from("siga_chat_messages")
@@ -325,8 +334,8 @@ export const sendChatMessage = createServerFn({ method: "POST" })
         sender_id: context.userId,
         body: data.body?.trim() ?? "",
         reply_to: data.replyTo ?? null,
-        attachment_file_id: data.attachmentFileId ?? null,
-        attachment_file_name: data.attachmentFileName ?? null,
+        attachment_file_id: attachment?.id ?? null,
+        attachment_file_name: attachment?.name ?? null,
       })
       .select(
         "id, sender_id, body, reply_to, attachment_file_id, attachment_file_name, deleted_at, created_at",
@@ -395,6 +404,16 @@ export const markChatRead = createServerFn({ method: "POST" })
     return { ok: true as const };
   });
 
+/** Os dois participantes de uma conversa directa, sem mexer em quem já lá está
+ *  (o `last_read_at` de cada um fica como estava). */
+async function ensureDirectMembers(db: Db, conversationId: string, userIds: string[]) {
+  const { error } = await db.from("siga_chat_members").upsert(
+    userIds.map((userId) => ({ conversation_id: conversationId, user_id: userId })),
+    { onConflict: "conversation_id,user_id", ignoreDuplicates: true },
+  );
+  if (error) throw publicDatabaseError(error, "Não foi possível iniciar a conversa.");
+}
+
 /** Abre (ou reaproveita) a conversa directa com alguém. A regra de quem pode
  *  falar com quem é a mesma do messenger antigo: o pessoal fala com todos,
  *  alunos e encarregados só com o pessoal. */
@@ -417,13 +436,12 @@ export const startDirectConversation = createServerFn({ method: "POST" })
       .maybeSingle();
     if (!peer) throw new Error("Este utilizador não pertence à escola.");
 
+    // Cargos da outra pessoa NESTA escola, como em sendDirectMessage. O
+    // `profiles.cargo` é um só para todas as escolas: quem é professor noutra
+    // escola e encarregado nesta abria aqui conversa com qualquer aluno.
     if (!isMessagingStaff(membership.allAppRoles ?? [membership.appRole])) {
-      const { data: profile } = await db
-        .from("profiles")
-        .select("cargo")
-        .eq("id", data.peerId)
-        .maybeSingle();
-      if (!isMessagingStaff([String(profile?.cargo ?? "")])) {
+      const peerRoles = await schoolRolesOf(db, membership.schoolId, data.peerId);
+      if (!isMessagingStaff(peerRoles)) {
         throw new Error("Só pode enviar mensagens ao pessoal da escola.");
       }
     }
@@ -437,7 +455,12 @@ export const startDirectConversation = createServerFn({ method: "POST" })
       .eq("direct_key", directKey)
       .maybeSingle();
     if (findError && missingChatTables(findError)) throw new ChatSchemaMissing();
-    if (existing) return { conversationId: String(existing.id) };
+    if (existing) {
+      // Se a criação anterior falhou depois de gravar a conversa, os membros
+      // ficaram por inserir e a conversa nunca mais abria ("Não participa").
+      await ensureDirectMembers(db, String(existing.id), [context.userId, data.peerId]);
+      return { conversationId: String(existing.id) };
+    }
 
     const { data: created, error: createError } = await db
       .from("siga_chat_conversations")
@@ -456,15 +479,14 @@ export const startDirectConversation = createServerFn({ method: "POST" })
         .select("id")
         .eq("direct_key", directKey)
         .maybeSingle();
-      if (raced) return { conversationId: String(raced.id) };
+      if (raced) {
+        await ensureDirectMembers(db, String(raced.id), [context.userId, data.peerId]);
+        return { conversationId: String(raced.id) };
+      }
       throw publicDatabaseError(createError, "Não foi possível iniciar a conversa.");
     }
 
-    const { error: memberError } = await db.from("siga_chat_members").insert([
-      { conversation_id: created.id, user_id: context.userId },
-      { conversation_id: created.id, user_id: data.peerId },
-    ]);
-    if (memberError) throw publicDatabaseError(memberError, "Não foi possível iniciar a conversa.");
+    await ensureDirectMembers(db, String(created.id), [context.userId, data.peerId]);
 
     return { conversationId: String(created.id) };
   });

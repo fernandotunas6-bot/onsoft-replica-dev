@@ -23,6 +23,7 @@ import {
 import { useCurrentAccount } from "@/features/auth/use-current-account";
 import { PickFileButton } from "@/features/arquivos/PickFileButton";
 import { signSchoolFile } from "@/features/arquivos/server";
+import { signMessageAttachment } from "@/features/messages/attachment-server";
 import type { SchoolFileRecord } from "@/features/arquivos/schemas";
 import { UserAvatar } from "@/components/ui/user-avatar";
 import { touchRecentContact } from "./recent-contacts";
@@ -152,8 +153,14 @@ function Avatar({
   );
 }
 
-async function openAttachment(fileId: string) {
-  const signed = await signSchoolFile({ data: { id: fileId } });
+/** Mensagem já gravada: abre pela mensagem, para que encarregados e alunos (sem
+ *  acesso aos Arquivos) abram o que o pessoal lhes envia. Ainda a enviar ou
+ *  falhada: o anexo é de quem a escreve, abre pelos Arquivos. */
+async function openAttachment(message: ChatMessage) {
+  const persisted = message.status !== "sending" && message.status !== "failed";
+  const signed = persisted
+    ? await signMessageAttachment({ data: { source: "chat", messageId: message.id } })
+    : await signSchoolFile({ data: { id: message.file!.fileId } });
   if (signed.url) window.open(signed.url, "_blank", "noopener");
   else throw new Error("sem-url");
 }
@@ -767,7 +774,7 @@ export function ChatDock({
                                 tabIndex={0}
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  void openAttachment(mm.file!.fileId).catch(() =>
+                                  void openAttachment(mm).catch(() =>
                                     setToast("Não foi possível abrir o arquivo."),
                                   );
                                 }}
@@ -775,7 +782,7 @@ export function ChatDock({
                                   if (e.key === "Enter" || e.key === " ") {
                                     e.preventDefault();
                                     e.stopPropagation();
-                                    void openAttachment(mm.file!.fileId).catch(() =>
+                                    void openAttachment(mm).catch(() =>
                                       setToast("Não foi possível abrir o arquivo."),
                                     );
                                   }

@@ -38,6 +38,8 @@ const UNICOS_PRODUCAO: Record<string, string[]> = {
   school_integration_secrets: ["id", "provider,school_id,secret_key"],
   school_integrations: ["id", "provider,school_id"],
   school_shifts: ["id", "id,school_id", "code,school_id"],
+  // 2026-10-07: chave primária confirmada na produção (auditoria 13, conversas directas).
+  siga_chat_members: ["conversation_id,user_id"],
   siga_attendance_records: ["id", "session_id,student_id"],
   siga_exam_registrations: ["id", "enrollment_id,session_id,subject_id"],
   siga_lesson_meetings: ["id", "external_meeting_id,provider", "attendance_session_id,provider"],

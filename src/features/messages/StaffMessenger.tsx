@@ -9,6 +9,7 @@ import { UserAvatar } from "@/components/ui/user-avatar";
 import { useCurrentAccount } from "@/features/auth/use-current-account";
 import { PickFileButton } from "@/features/arquivos/PickFileButton";
 import { signSchoolFile } from "@/features/arquivos/server";
+import { signMessageAttachment } from "@/features/messages/attachment-server";
 import type { SchoolFileRecord } from "@/features/arquivos/schemas";
 import { SqlChecklistLink } from "@/components/ui/sql-checklist-link";
 import { sqlApplyHint } from "@/lib/sql-doc-hint";
@@ -216,8 +217,16 @@ export function ColleagueDirectory({
   );
 }
 
-function openAttachment(fileId: string) {
-  signSchoolFile({ data: { id: fileId } })
+/** Mensagem gravada: abre pela mensagem (o destinatário pode não ter acesso aos
+ *  Arquivos). Só a cópia local, sem tabela, vai directamente ao ficheiro. */
+function signAttachment(fileId: string, messageId: string | null) {
+  return messageId
+    ? signMessageAttachment({ data: { source: "direct", messageId } })
+    : signSchoolFile({ data: { id: fileId } });
+}
+
+function openAttachment(fileId: string, messageId: string | null) {
+  signAttachment(fileId, messageId)
     .then((signed) => {
       if (signed.url) window.open(signed.url, "_blank", "noopener");
       else toast.error("Não foi possível abrir o arquivo.");
@@ -233,7 +242,15 @@ function openAttachment(fileId: string) {
     });
 }
 
-function MessageAttachment({ fileId, fileName }: { fileId: string; fileName: string }) {
+function MessageAttachment({
+  fileId,
+  fileName,
+  messageId,
+}: {
+  fileId: string;
+  fileName: string;
+  messageId: string | null;
+}) {
   const [url, setUrl] = useState<string | null>(null);
   const [locked, setLocked] = useState(false);
   const isImage = /\.(png|jpe?g|webp|gif|svg)$/i.test(fileName);
@@ -241,7 +258,7 @@ function MessageAttachment({ fileId, fileName }: { fileId: string; fileName: str
   useEffect(() => {
     if (!isImage) return;
     let cancelled = false;
-    void signSchoolFile({ data: { id: fileId } })
+    void signAttachment(fileId, messageId)
       .then((signed) => {
         if (cancelled) return;
         if (signed.url) setUrl(signed.url);
@@ -250,12 +267,12 @@ function MessageAttachment({ fileId, fileName }: { fileId: string; fileName: str
       .catch((error) => {
         if (cancelled) return;
         const message = error instanceof Error ? error.message : "";
-        if (/sistema|permissão|oculto/i.test(message)) setLocked(true);
+        if (/sistema|permissão|oculto|anexar/i.test(message)) setLocked(true);
       });
     return () => {
       cancelled = true;
     };
-  }, [fileId, isImage]);
+  }, [fileId, isImage, messageId]);
 
   if (locked) {
     return (
@@ -285,7 +302,7 @@ function MessageAttachment({ fileId, fileName }: { fileId: string; fileName: str
       ) : (
         <button
           type="button"
-          onClick={() => openAttachment(fileId)}
+          onClick={() => openAttachment(fileId, messageId)}
           className="flex w-full items-center gap-1.5 rounded-lg border border-border bg-secondary/50 px-2.5 py-1.5 text-left text-xs font-medium hover:bg-secondary transition-colors"
         >
           <FileText className="size-3.5 shrink-0" />
@@ -458,6 +475,7 @@ export function ColleagueThread({ peer, onBack }: { peer: SchoolColleague; onBac
                 <MessageAttachment
                   fileId={item.attachmentFileId}
                   fileName={item.attachmentFileName}
+                  messageId={useLocal ? null : item.id}
                 />
               ) : null}
               {item.createdAt ? (
