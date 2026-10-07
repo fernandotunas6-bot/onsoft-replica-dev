@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import { Button } from "@/components/ui/button";
 import { toastActionError } from "@/lib/action-error-toast";
 import { saveAutomaticRiskSignals } from "@/features/ai-assist/risk-followup.functions";

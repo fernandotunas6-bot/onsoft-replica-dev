@@ -4,6 +4,19 @@ Ler isto **antes** de alterar código. Ecossistema (5 apps):
 [ARCHITECTURE_HARMONIZATION.md](./ARCHITECTURE_HARMONIZATION.md).
 Depois abrir o skill do módulo em `.cursor/skills/`.
 
+## Orientação de erros em todo o sistema (2026-10-07)
+
+- Cada erro sai com **o que correu mal, a forma certa e um botão para o sítio onde se
+  corrige**. Catálogo único: `src/lib/error-guidance.ts` (testes com as mensagens reais
+  do servidor). Mapa completo de casos e destinos: [ERROR_GUIDANCE.md](./ERROR_GUIDANCE.md).
+- `import { toast } from "sonner"` proibido pelo lint: tudo usa `@/lib/toast`, que
+  orienta cada `toast.error`. Mutações sem `onError` deixam de falhar caladas
+  (`MutationCache`); leituras que falham por configuração avisam (`QueryCache`); o
+  `RouteErrorScreen` mostra a correcção e o botão.
+- O botão só aparece a quem pode abrir o destino; os outros recebem «peça a …».
+- Telemóvel: avisos em largura total abaixo do entalhe; desktop Tauri em segundo plano:
+  notificação do sistema.
+
 ## Verificação por níveis: um toque, código só por recurso (2026-10-06)
 
 - **Entrada** (`AuthGate` + `MfaChallenge`): conta com chave de acesso (passkey, Supabase

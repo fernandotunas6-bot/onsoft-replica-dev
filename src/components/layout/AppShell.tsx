@@ -4,7 +4,7 @@ import {
 } from "@/features/notifications/PersonalNotificationsList";
 import { lazy, Suspense, useEffect, useRef, useState, type ReactNode } from "react";
 import { Link, useRouter, useRouterState } from "@tanstack/react-router";
-import { toast } from "sonner";
+import { registerErrorGuidance, toast } from "@/lib/toast";
 
 import {
   Bell,
@@ -169,12 +169,26 @@ function AuthenticatedAppShell({ children }: { children: ReactNode }) {
     const onOpenSettings = (event: Event) => {
       if (!canAccessPath("/configuracoes", currentUser.role, currentUser.grants)) return;
       const panelId = (event as CustomEvent<{ panelId?: string }>).detail?.panelId;
+      // Diz a quem pediu (ex.: o botão de um aviso de erro) que o painel abriu.
+      event.preventDefault();
       setSettingsPanelId(panelId);
       setSettingsOpen(true);
     };
     window.addEventListener(OPEN_SETTINGS_EVENT, onOpenSettings);
     return () => window.removeEventListener(OPEN_SETTINGS_EVENT, onOpenSettings);
   }, [currentUser.role, currentUser.grants]);
+
+  // Os avisos de erro (`@/lib/toast`) levam ao sítio da correcção só quando
+  // esta conta o pode abrir; senão dizem a quem pedir.
+  useEffect(
+    () =>
+      registerErrorGuidance({
+        navigate: (action) =>
+          void router.navigate({ to: action.to as never, search: action.search as never }),
+        canOpen: (path) => canAccessPath(path, currentUser.role, currentUser.grants),
+      }),
+    [router, currentUser.role, currentUser.grants],
+  );
 
   useEffect(() => {
     setOpen(false);

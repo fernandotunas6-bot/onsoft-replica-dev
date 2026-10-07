@@ -2,7 +2,7 @@ import { clearSigaCaches } from "@/lib/pwa";
 import { forgetAllTrustedDevices } from "@/features/auth/trusted-device";
 import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import { supabase } from "@/integrations/supabase/client";
 
 export function useSignOut() {
