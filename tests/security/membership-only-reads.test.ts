@@ -37,8 +37,6 @@ const REVISTAS: Record<string, string> = {
   listInstalledCapabilities: "integrações activas da escola",
   listAcademicDirectory: "anos, cursos, classes e turmas",
   getTenantForCurrentUser: "a escola da própria conta",
-  listDirectThread: "só as mensagens em que a conta é remetente ou destinatária",
-  listInboxPreviews: "só as mensagens da própria conta",
   listCalendarEvents: "calendário da escola",
   getActiveAcademicYear: "ano lectivo em vigor",
   listPrintTemplates: "modelos de impressão",

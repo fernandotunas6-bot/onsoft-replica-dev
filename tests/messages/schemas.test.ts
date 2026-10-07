@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
-  listDirectThreadInputSchema,
-  sendDirectMessageInputSchema,
-} from "@/features/messages/schemas";
+  listChatMessagesInputSchema,
+  sendChatMessageInputSchema,
+} from "@/features/messages/chat-schemas";
 import {
   initialsFromName,
   matchesColleagueQuery,
@@ -20,14 +20,14 @@ describe("mensagens internas", () => {
 
   it("valida o envio de mensagem", () => {
     expect(
-      sendDirectMessageInputSchema.safeParse({
-        peerId: "11111111-1111-1111-1111-111111111111",
+      sendChatMessageInputSchema.safeParse({
+        conversationId: "33333333-3333-3333-3333-333333333333",
         body: "Bom dia",
       }).success,
     ).toBe(true);
     expect(
-      sendDirectMessageInputSchema.safeParse({
-        peerId: "11111111-1111-1111-1111-111111111111",
+      sendChatMessageInputSchema.safeParse({
+        conversationId: "33333333-3333-3333-3333-333333333333",
         body: "   ",
       }).success,
     ).toBe(false);
@@ -35,8 +35,8 @@ describe("mensagens internas", () => {
 
   it("aceita uma mensagem só com anexo (sem texto)", () => {
     expect(
-      sendDirectMessageInputSchema.safeParse({
-        peerId: "11111111-1111-1111-1111-111111111111",
+      sendChatMessageInputSchema.safeParse({
+        conversationId: "33333333-3333-3333-3333-333333333333",
         attachmentFileId: "22222222-2222-2222-2222-222222222222",
         attachmentFileName: "boletim.pdf",
       }).success,
@@ -45,14 +45,16 @@ describe("mensagens internas", () => {
 
   it("rejeita mensagem sem texto e sem anexo", () => {
     expect(
-      sendDirectMessageInputSchema.safeParse({
-        peerId: "11111111-1111-1111-1111-111111111111",
+      sendChatMessageInputSchema.safeParse({
+        conversationId: "33333333-3333-3333-3333-333333333333",
       }).success,
     ).toBe(false);
   });
 
-  it("exige um colega válido na conversa", () => {
-    expect(listDirectThreadInputSchema.safeParse({ peerId: "nao-uuid" }).success).toBe(false);
+  it("exige uma conversa válida", () => {
+    expect(listChatMessagesInputSchema.safeParse({ conversationId: "nao-uuid" }).success).toBe(
+      false,
+    );
   });
 
   it("pesquisa colegas por nome ou cargo", () => {

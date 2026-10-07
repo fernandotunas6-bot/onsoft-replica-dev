@@ -31,11 +31,16 @@ Depois abrir o skill do módulo em `.cursor/skills/`.
   recentes; quando a janela enche, `planChatUnread` (`chat-unread.ts`, testado) escolhe
   as conversas lidas antes do corte para uma contagem exacta (`count: exact, head`) e vai
   buscar a última mensagem das que ficaram fora. Antes essas ficavam com 0 por ler.
-- **Messenger antigo retirado do ecrã:** `ColleagueThread`, `use-inbox-unread.ts`,
-  `local-thread.ts` e o «lido» em `localStorage`. Nada escrevia já em
-  `siga_direct_messages`. **Por fazer:** as server functions `listDirectThread`,
-  `sendDirectMessage` e `listInboxPreviews` (`messages/server.ts`) ficaram sem uso; o
-  histórico antigo nessa tabela não aparece no chat — decidir se se migra ou se arquiva.
+- **Messenger antigo retirado:** `ColleagueThread`, `use-inbox-unread.ts`,
+  `local-thread.ts`, o «lido» em `localStorage`, `messages/schemas.ts` e as server
+  functions `listDirectThread`, `sendDirectMessage` e `listInboxPreviews`. O histórico
+  **não se perdeu**: as 24 mensagens de `siga_direct_messages` (uma escola, última a
+  30/09) já estão no chat com o mesmo id, copiadas pela migração
+  `20261002093000_chat_conversations.sql` (confirmado na produção a 07/10). A tabela
+  antiga fica, só para consulta.
+- **Regra «só ao pessoal» corrigida no chat:** `startDirectConversation` verificava o
+  `cargo` global do perfil; passou a usar o cargo nesta escola (`schoolRolesOf`), como o
+  messenger antigo. Teste em `messaging-scope.test.ts`.
 
 ## Orientação de erros em todo o sistema (2026-10-07)
 

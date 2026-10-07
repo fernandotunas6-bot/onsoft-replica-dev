@@ -39,10 +39,15 @@ describe("mensagens directas: quem fala com quem", () => {
     );
   });
 
-  it("alunos e encarregados só enviam mensagens ao pessoal (cargo nesta escola)", () => {
-    const send = body("sendDirectMessage");
-    expect(send).toMatch(/schoolRolesOf\(db, membership\.schoolId, data\.peerId\)/);
-    expect(send).toMatch(/Só pode enviar mensagens ao pessoal da escola/);
+  it("alunos e encarregados só abrem conversa com o pessoal (cargo nesta escola)", () => {
+    // O messenger antigo (sendDirectMessage) saiu; a regra vive no chat.
+    const chat = readFileSync(join(process.cwd(), "src/features/messages/chat-server.ts"), "utf8");
+    const start = chat.indexOf("export const startDirectConversation ");
+    const open = chat.slice(start, chat.indexOf("export const ", start + 1));
+    expect(open).toMatch(/schoolRolesOf\(db, membership\.schoolId, data\.peerId\)/);
+    expect(open).toMatch(/Só pode enviar mensagens ao pessoal da escola/);
+    // O `cargo` global do perfil não decide: pode ser de outra escola.
+    expect(open).not.toMatch(/from\("profiles"\)/);
   });
 });
 

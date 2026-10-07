@@ -3,7 +3,7 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { publicDatabaseError } from "@/integrations/supabase/server-error";
 import { loadSgaAdminClient, resolveSgaMembershipAdmin } from "@/integrations/supabase/sga-admin";
 import { loadShareableSchoolFile, signChatAttachmentFile } from "@/features/arquivos/server";
-import { isMessagingStaff, loadSchoolColleagues } from "./server";
+import { isMessagingStaff, loadSchoolColleagues, schoolRolesOf } from "./server";
 import {
   conversationInputSchema,
   deleteChatMessageInputSchema,
@@ -500,13 +500,12 @@ export const startDirectConversation = createServerFn({ method: "POST" })
       .maybeSingle();
     if (!peer) throw new Error("Este utilizador não pertence à escola.");
 
+    // O cargo conta-se NESTA escola (member_roles), não o `cargo` global do
+    // perfil: quem é professor noutra escola e aluno nesta não pode receber
+    // mensagens privadas de um encarregado daqui.
     if (!isMessagingStaff(membership.allAppRoles ?? [membership.appRole])) {
-      const { data: profile } = await db
-        .from("profiles")
-        .select("cargo")
-        .eq("id", data.peerId)
-        .maybeSingle();
-      if (!isMessagingStaff([String(profile?.cargo ?? "")])) {
+      const peerRoles = await schoolRolesOf(db, membership.schoolId, data.peerId);
+      if (!isMessagingStaff(peerRoles)) {
         throw new Error("Só pode enviar mensagens ao pessoal da escola.");
       }
     }
