@@ -21,7 +21,12 @@ import {
 import { useCurrentAccount } from "@/features/auth/use-current-account";
 import type { EnrollmentStatus, ExamSeason } from "@/features/higher-ed/engine";
 import { SEASON_LABEL, STATUS_LABEL } from "@/features/higher-ed/labels";
-import { getUnitSheet, listLaunchableUnits, recordUnitResult } from "@/features/higher-ed/server";
+import {
+  getUnitSheet,
+  listLaunchableUnits,
+  recordUnitResult,
+  setUnitShift,
+} from "@/features/higher-ed/server";
 import { toastActionError } from "@/lib/action-error-toast";
 import { DocPathHelpButton } from "@/components/ui/doc-help-button";
 import { DOC_PATHS } from "@/lib/ecosystem-urls";
@@ -128,6 +133,17 @@ function UnitSheet({ programId, unitId }: { programId: string; unitId: string })
   });
   const [launch, setLaunch] = useState<Launch | null>(null);
   const [filter, setFilter] = useState<ExamSeason | "todos">("todos");
+  const [shiftFilter, setShiftFilter] = useState<string>("todos");
+  const changeShift = useServerFn(setUnitShift);
+  const moveShift = useMutation({
+    mutationFn: (input: { studentId: string; classGroupId: string | null }) =>
+      changeShift({ data: { programId, unitId, ...input } }),
+    onSuccess: async () => {
+      toast.success("Turno actualizado.");
+      await queryClient.invalidateQueries({ queryKey });
+    },
+    onError: (error) => toastActionError(error, "Não foi possível mudar o turno."),
+  });
 
   const record = useMutation({
     mutationFn: (current: Launch) => {
@@ -166,8 +182,11 @@ function UnitSheet({ programId, unitId }: { programId: string; unitId: string })
       </Panel>
     );
   }
-  const { unit, regulation, rows } = sheet.data;
-  const visible = filter === "todos" ? rows : rows.filter((row) => row.seasons[filter]);
+  const { unit, regulation, rows, shifts, canAssignShift } = sheet.data;
+  const inShift =
+    shiftFilter === "todos" ? rows : rows.filter((row) => (row.shift ?? "sem") === shiftFilter);
+  const visible = filter === "todos" ? inShift : inShift.filter((row) => row.seasons[filter]);
+  const showShifts = shifts.length > 1 || rows.some((row) => row.shift === null && shifts.length);
   const pendingBySeason = SEASONS.map((season) => ({
     season,
     count: rows.filter((row) => row.seasons[season]).length,
@@ -198,6 +217,36 @@ function UnitSheet({ programId, unitId }: { programId: string; unitId: string })
         </p>
       ) : (
         <div className="space-y-3">
+          {showShifts ? (
+            <div className="flex flex-wrap gap-2" role="group" aria-label="Filtrar por turno">
+              <Button
+                size="sm"
+                variant={shiftFilter === "todos" ? "default" : "outline"}
+                onClick={() => setShiftFilter("todos")}
+              >
+                Todos os turnos
+              </Button>
+              {shifts.map((shift) => (
+                <Button
+                  key={shift.id}
+                  size="sm"
+                  variant={shiftFilter === shift.id ? "default" : "outline"}
+                  onClick={() => setShiftFilter(shift.id)}
+                >
+                  {shift.name} ({rows.filter((row) => row.shift === shift.id).length})
+                </Button>
+              ))}
+              {rows.some((row) => row.shift === null) ? (
+                <Button
+                  size="sm"
+                  variant={shiftFilter === "sem" ? "default" : "outline"}
+                  onClick={() => setShiftFilter("sem")}
+                >
+                  Sem turno ({rows.filter((row) => row.shift === null).length})
+                </Button>
+              ) : null}
+            </div>
+          ) : null}
           <div className="flex flex-wrap gap-2" role="group" aria-label="Filtrar por época">
             <Button
               size="sm"
@@ -240,6 +289,7 @@ function UnitSheet({ programId, unitId }: { programId: string; unitId: string })
                         {row.number ? `N.º ${row.number} · ` : ""}
                         {row.latest?.attempt ? `${row.latest.attempt}.ª inscrição` : ""}
                         {row.workerStudent ? " · Trabalhador-estudante" : ""}
+                        {showShifts ? ` · Turno: ${row.shiftName ?? "sem turno"}` : ""}
                       </p>
                     </div>
                     <div className="flex flex-wrap items-center gap-2">
@@ -255,6 +305,33 @@ function UnitSheet({ programId, unitId }: { programId: string; unitId: string })
                           {row.latest.finalGrade !== null ? ` · ${row.latest.finalGrade}` : ""}
                           {row.latest.season ? ` · ${SEASON_LABEL[row.latest.season]}` : ""}
                         </Badge>
+                      ) : null}
+                      {canAssignShift && shifts.length ? (
+                        <Select
+                          value={row.shift ?? "sem"}
+                          disabled={moveShift.isPending}
+                          onValueChange={(value) =>
+                            moveShift.mutate({
+                              studentId: row.studentId,
+                              classGroupId: value === "sem" ? null : value,
+                            })
+                          }
+                        >
+                          <SelectTrigger
+                            className="h-8 w-40 text-xs"
+                            aria-label={`Turno de ${row.name}`}
+                          >
+                            <SelectValue placeholder="Turno" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="sem">Sem turno</SelectItem>
+                            {shifts.map((shift) => (
+                              <SelectItem key={shift.id} value={shift.id}>
+                                {shift.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
                       ) : null}
                       {seasons.map((season) => (
                         <Button

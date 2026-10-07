@@ -36,6 +36,15 @@ Para mudar um aluno de turma, use **Alterar turma** na ficha do aluno. A matríc
 2. Partilhe o link da escola. O formulário fica em `/matricula/` seguido do identificador da escola.
 3. As candidaturas chegam à lista de matrículas. Ao aceitar, o SIGA cria o aluno, o encarregado se tiver sido indicado, e pode já colocar o aluno numa turma.
 
+## Lista de espera por turma
+
+Quando aceita uma candidatura numa turma que já está cheia, o aluno é criado e fica na **lista de espera** dessa turma, com a sua posição. Em **Pedagógica → Turmas** aparece o quadro «Lista de espera» com as turmas que têm alunos à espera, as vagas livres e a fila por ordem de chegada.
+
+- **Colocar** matricula o aluno na turma. Só fica disponível quando há vaga para a posição dele (o primeiro da fila entra na primeira vaga). Pede a verificação em dois passos.
+- **Retirar** tira o aluno da fila, com um motivo.
+
+Só a Administração e a Secretaria vêem e mexem na lista.
+
 ## Importação por Excel
 
 1. Em **Importar**, escolha o tipo de dados e descarregue o modelo oficial.

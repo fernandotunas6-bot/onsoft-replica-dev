@@ -12,6 +12,11 @@
  * `students.records.read`…) que o papel owner/admin tem. Só `tenants` fica no
  * cliente privilegiado — a política é apenas `is_platform_admin()` —, como em
  * subscription-server.ts.
+ *
+ * `school_invitations` também: guarda o hash do token do convite e `authenticated` não
+ * tem SELECT na produção (a política existe, a permissão não). Pela sessão, a contagem
+ * dava sempre «permission denied» e o guia mostrava 0 convites pendentes. Conta-se com
+ * o cliente privilegiado, filtrado pela escola da membership, como em access/server.ts.
  */
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
@@ -45,6 +50,8 @@ export async function loadSetupCounts(
   db: ReadDb,
   schoolId: string,
   adminUserId: string,
+  /** Cliente para `school_invitations` (sem SELECT para a sessão); por omissão, `db`. */
+  invitationsDb: ReadDb = db,
 ): Promise<{ counts: SetupCounts; tenantId: string | null; schoolName: string }> {
   const [schoolRes, yearRes] = await Promise.all([
     db
@@ -151,7 +158,7 @@ export async function loadSetupCounts(
         .neq("user_id", adminUserId),
     ),
     count(
-      db
+      invitationsDb
         .from("school_invitations")
         .select("*", head)
         .eq("school_id", schoolId)
@@ -221,11 +228,13 @@ export const getSchoolSetupGuide = createServerFn({ method: "GET" })
   .handler(async ({ context }): Promise<SchoolSetupOverview | null> => {
     const membership = await resolveSgaMembershipAdmin(context.userId);
     if (!membership || membership.appRole !== "Administrador") return null;
+    const admin = await loadSgaAdminClient();
     const { counts, tenantId, schoolName } = await loadSetupCounts(
       context.supabase as unknown as ReadDb,
       membership.schoolId,
       context.userId,
+      admin,
     );
-    const subscription = await loadSubscription(await loadSgaAdminClient(), tenantId);
+    const subscription = await loadSubscription(admin, tenantId);
     return { ...buildSetupGuide(counts), schoolName, subscription };
   });
