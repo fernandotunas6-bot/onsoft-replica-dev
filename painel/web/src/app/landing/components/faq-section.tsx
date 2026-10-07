@@ -4,6 +4,7 @@ import { CircleHelp } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion'
 import { Badge } from '@/components/ui/badge'
+import type { SiteFaq } from '@/lib/site-content'
 
 type FaqItem = {
   value: string
@@ -11,7 +12,8 @@ type FaqItem = {
   answer: string
 }
 
-const faqItems: FaqItem[] = [
+/** Texto fixo, usado enquanto o SIGA não responde ou se o ADMIN não tiver perguntas em destaque. */
+const FALLBACK_ITEMS: FaqItem[] = [
   {
     value: 'item-1',
     question: 'Como crio a minha escola no SIGA Plus?',
@@ -50,7 +52,12 @@ const faqItems: FaqItem[] = [
   },
 ]
 
-const FaqSection = () => {
+/** Perguntas em destaque geridas no ADMIN (Site → Perguntas do site); sem elas, as fixas. */
+const FaqSection = ({ faqs }: { faqs?: SiteFaq[] | null }) => {
+  const featured = (faqs ?? []).filter((faq) => faq.featured)
+  const faqItems: FaqItem[] = featured.length
+    ? featured.map((faq) => ({ value: faq.id, question: faq.question, answer: faq.answer }))
+    : FALLBACK_ITEMS
   return (
     <section id="faq" className="py-24 sm:py-32">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">

@@ -1,11 +1,12 @@
 "use client"
 
-import { CalendarCheck, Languages, Layers, MonitorDown } from 'lucide-react'
+import { CalendarCheck, GraduationCap, Languages, Layers, MonitorDown, School } from 'lucide-react'
+import { formatCount, type SiteStats } from '@/lib/site-content'
 import { Card, CardContent } from '@/components/ui/card'
 import { DotPattern } from '@/components/dot-pattern'
 
 
-const stats = [
+const STATIC_STATS = [
   {
     icon: Layers,
     value: '13+',
@@ -32,7 +33,35 @@ const stats = [
   }
 ]
 
-export function StatsSection() {
+type Stat = (typeof STATIC_STATS)[number]
+
+/**
+ * Totais reais do SIGA (escolas activas, alunos activos) à frente, quando o sistema os
+ * devolve; sem eles, os quatro números fixos do produto.
+ */
+function statsFor(live: SiteStats | null | undefined): Stat[] {
+  if (!live || live.schools <= 0) return STATIC_STATS
+  const real: Stat[] = [
+    {
+      icon: School,
+      value: formatCount(live.schools),
+      label: live.schools === 1 ? 'Escola activa' : 'Escolas activas',
+      description: 'A trabalhar no SIGA hoje'
+    },
+  ]
+  if (live.students > 0) {
+    real.push({
+      icon: GraduationCap,
+      value: formatCount(live.students),
+      label: 'Alunos',
+      description: 'Com matrícula activa no SIGA'
+    })
+  }
+  return [...real, ...STATIC_STATS].slice(0, 4)
+}
+
+export function StatsSection({ live }: { live?: SiteStats | null }) {
+  const stats = statsFor(live)
   return (
     <section className="py-12 sm:py-16 relative">
       {/* Background with transparency */}

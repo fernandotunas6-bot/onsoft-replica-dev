@@ -20,32 +20,55 @@ import {
 import { BookOpen, CircleHelp, Mail } from 'lucide-react'
 import { getDocsUrl } from '@/lib/ecosystem-urls'
 import { SUPPORT_EMAIL, supportMailto } from '@/lib/support-contact'
+import { sendContactMessage } from '@/lib/site-content'
 
 const contactFormSchema = z.object({
   name: z.string().trim().min(2, {
     message: "Escreva o seu nome.",
   }),
-  school: z.string().trim().max(120).optional(),
+  email: z.string().trim().email({ message: "Introduza um e-mail válido." }).max(254),
+  school: z.string().trim().max(160).optional(),
   subject: z.string().trim().min(5, {
     message: "O assunto precisa de pelo menos 5 caracteres.",
-  }),
+  }).max(160, { message: "O assunto tem no máximo 160 caracteres." }),
   message: z.string().trim().min(10, {
     message: "A mensagem precisa de pelo menos 10 caracteres.",
-  }),
+  }).max(5000, { message: "A mensagem tem no máximo 5000 caracteres." }),
+  /** Campo escondido contra robôs (não aparece a pessoas nem a leitores de ecrã). */
+  website: z.string().optional(),
 })
 
 type ContactForm = z.infer<typeof contactFormSchema>
 
 export function ContactSection() {
-  const [prepared, setPrepared] = useState(false)
+  type Status =
+    | { kind: "idle" }
+    | { kind: "sending" }
+    | { kind: "sent" }
+    | { kind: "error"; message: string }
+    | { kind: "email"; message: string }
+  const [status, setStatus] = useState<Status>({ kind: "idle" })
   const form = useForm<ContactForm>({
     resolver: zodResolver(contactFormSchema),
-    defaultValues: { name: "", school: "", subject: "", message: "" },
+    defaultValues: { name: "", email: "", school: "", subject: "", message: "", website: "" },
   })
 
-  function onSubmit(values: ContactForm) {
-    window.location.assign(supportMailto(values))
-    setPrepared(true)
+  // A mensagem fica guardada para a equipa (ADMIN → Mensagens de contacto). Se o SIGA
+  // não responder, prepara o mesmo texto no programa de e-mail, para não se perder.
+  async function onSubmit(values: ContactForm) {
+    setStatus({ kind: "sending" })
+    const result = await sendContactMessage(values)
+    if (result.ok) {
+      setStatus({ kind: "sent" })
+      form.reset()
+      return
+    }
+    if (result.retryByEmail) {
+      setStatus({ kind: "email", message: result.error })
+      window.location.assign(supportMailto(values))
+      return
+    }
+    setStatus({ kind: "error", message: result.error })
   }
 
   return (
@@ -127,7 +150,7 @@ export function ContactSection() {
               </CardHeader>
               <CardContent>
                 <Form {...form}>
-                  <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+                  <form onSubmit={form.handleSubmit(onSubmit)} className="relative space-y-6" noValidate>
                     <div className="grid gap-4 sm:grid-cols-2">
                       <FormField
                         control={form.control}
@@ -155,6 +178,25 @@ export function ContactSection() {
                           </FormItem>
                         )}
                       />
+                    </div>
+                    <FormField
+                      control={form.control}
+                      name="email"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>E-mail para a resposta</FormLabel>
+                          <FormControl>
+                            <Input type="email" autoComplete="email" placeholder="secretaria@escola.ao" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <div aria-hidden="true" className="absolute -left-[9999px] h-px w-px overflow-hidden">
+                      <label>
+                        Não preencher
+                        <input type="text" tabIndex={-1} autoComplete="off" {...form.register("website")} />
+                      </label>
                     </div>
                     <FormField
                       control={form.control}
@@ -187,13 +229,22 @@ export function ContactSection() {
                         </FormItem>
                       )}
                     />
-                    <Button type="submit" className="w-full cursor-pointer">
-                      Preparar e-mail
+                    <Button type="submit" className="w-full cursor-pointer" disabled={status.kind === "sending"}>
+                      {status.kind === "sending" ? "A enviar…" : "Enviar mensagem"}
                     </Button>
-                    <p className="text-muted-foreground text-center text-sm" role="status">
-                      {prepared
-                        ? `Abrimos o seu programa de e-mail com a mensagem pronta: só falta enviar. Se não abriu, escreva para ${SUPPORT_EMAIL}.`
-                        : `A mensagem abre no seu programa de e-mail, para ${SUPPORT_EMAIL}.`}
+                    <p
+                      className={
+                        status.kind === "error" ? "text-destructive text-center text-sm" : "text-muted-foreground text-center text-sm"
+                      }
+                      role="status"
+                    >
+                      {status.kind === "sent"
+                        ? "Mensagem enviada. Respondemos para o seu e-mail."
+                        : status.kind === "error"
+                          ? status.message
+                          : status.kind === "email"
+                            ? `${status.message} Abrimos o seu programa de e-mail com a mensagem pronta para ${SUPPORT_EMAIL}: só falta enviar.`
+                            : `Respondemos por e-mail. Também pode escrever para ${SUPPORT_EMAIL}.`}
                     </p>
                   </form>
                 </Form>

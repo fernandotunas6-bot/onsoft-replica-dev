@@ -15,6 +15,8 @@ export const PLATFORM_ROUTE_PREFIXES = [
   "/dashboard-2",
   "/tenants",
   "/subscriptions",
+  "/signups",
+  "/site",
   "/platform-admins",
   "/users",
   "/audit",

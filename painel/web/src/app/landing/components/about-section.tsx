@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
 import { CardDecorator } from '@/components/ui/card-decorator'
-import { Link2, MapPin, Rocket, School } from 'lucide-react'
+import { GraduationCap, Link2, MapPin, Rocket, School } from 'lucide-react'
 
 const values = [
   {
@@ -28,6 +28,16 @@ const values = [
     description: 'Matrículas, pautas, tesouraria e cobrança partilham os mesmos dados, sem folhas paralelas.'
   }
 ]
+
+/** Níveis de ensino que o SIGA Plus organiza (os mesmos do SIGA: angola-academic). */
+const LEVELS = [
+  'Iniciação e pré-escolar',
+  'Ensino Primário',
+  'I Ciclo do Ensino Secundário',
+  'II Ciclo e Ensino Médio',
+  'Técnico-Profissional',
+  'Ensino Superior',
+] as const
 
 export function AboutSection() {
   return (
@@ -66,9 +76,18 @@ export function AboutSection() {
 
         {/* Call to Action */}
         <div className="mt-16 text-center">
-          <div className="flex items-center justify-center gap-2 mb-6">
-            <span className="text-muted-foreground">Feito com cuidado para escolas em Angola</span>
-          </div>
+          <p className="text-muted-foreground mb-4 text-sm">Do pré-escolar ao ensino superior</p>
+          <ul className="mb-8 flex flex-wrap items-center justify-center gap-2">
+            {LEVELS.map((level) => (
+              <li
+                key={level}
+                className="bg-card text-foreground inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-sm"
+              >
+                <GraduationCap className="text-primary size-4" aria-hidden="true" />
+                {level}
+              </li>
+            ))}
+          </ul>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Button size="lg" className="cursor-pointer" asChild>
               <a href="/start">
