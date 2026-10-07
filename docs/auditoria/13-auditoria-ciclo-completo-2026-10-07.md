@@ -467,3 +467,23 @@ funcional, se fizer parte do âmbito pretendido.
 
 Com isto, todos os módulos do pedido estão inventariados. Os únicos que não foram verificados
 dinamicamente são os que precisam de contas, dados ou envio real, e todos dependem de F-09.
+
+## 12. Correcções feitas (2026-10-07)
+
+No ramo `ccr-1cb32a3f-afnzyp`, cada uma com teste que falha sem a correcção. Suite completa
+depois das cinco primeiras: 3 121 testes passam, 0 falhas; lint sem erros; build OK.
+
+| Falha      | Correcção                                                                                                                                                                                                 | Commit        | Estado                                                                                            |
+| ---------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------- | ------------------------------------------------------------------------------------------------- |
+| F-28       | Assinaturas da pauta passam para página nova quando não cabem; identificação da pauta nas folhas seguintes; «Página x de y». Teste gera o PDF de 1 a 80 alunos                                            | `6571ab5`     | Feito                                                                                             |
+| F-22       | `listInvoices` aceita `studentId` e filtra no servidor pelos contratos do aluno; a ficha usa-o                                                                                                            | `9562169`     | Feito                                                                                             |
+| F-06       | Transição `PENDENTE` enquanto faltar disciplina ou período do ciclo; «Aprovado» por disciplina com a nota mínima do modelo. Um teste antigo que esperava «TRANSITA» sem notas de Matemática foi corrigido | `006f750`     | Feito                                                                                             |
+| F-02       | O importador de notas recusa linhas de pautas homologadas, publicadas, fechadas ou em reclamação (análise e commit)                                                                                       | `4b5894d`     | Feito (falta o gatilho na base, ver abaixo)                                                       |
+| F-07       | Importar pagamentos, dívidas, histórico financeiro, notas, avaliações e pautas exige 2FA, como à mão                                                                                                      | `d211016`     | Parcial: falta o bloqueio da fatura no recibo importado                                           |
+| F-36       | Agendar só no portal (esquema, servidor e formulário); a publicação automática só toca nos do portal                                                                                                      | `a751f90`     | Feito                                                                                             |
+| F-01, F-08 | Migração `20261007100000_teacher_scope_and_treasury_reads.sql` + ensaio `tests/sql/teacher-scope-reads.mjs` + sonda em `SIGA_confirmar_migracoes.sql`                                                     | ver `git log` | **Escrita e ensaiada, por aplicar na produção** (decisão do dono, regra 7 de `DATABASE_RULES.md`) |
+
+Por fazer, por precisarem de decisão, de migração com mais alcance ou de ambiente de testes:
+F-03, F-04, F-05, F-23 (ciclo do ano e propinas), F-27 (certificação AGT — decisão com
+contabilista), F-29 (impostos nos salários), F-30, o gatilho de fecho em `grade_scores`
+(defesa em profundidade para F-02) e o recibo importado pela RPC (resto da F-07).
