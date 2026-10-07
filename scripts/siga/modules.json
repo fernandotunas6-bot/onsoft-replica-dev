@@ -203,7 +203,7 @@
       "skill": "siga-comunicacoes",
       "label": "Comunicações",
       "routes": ["src/routes/comunicacoes.tsx"],
-      "feature": ["src/features/communications/schemas.ts", "src/features/communications/server.ts", "src/features/messages/schemas.ts", "src/features/messages/server.ts"],
+      "feature": ["src/features/communications/schemas.ts", "src/features/communications/server.ts", "src/features/messages/chat-schemas.ts", "src/features/messages/chat-server.ts", "src/features/messages/server.ts"],
       "tests": ["tests/communications/schemas.test.ts", "tests/messages/schemas.test.ts"],
       "accessKey": "pedagogica",
       "navPath": "/comunicacoes"
