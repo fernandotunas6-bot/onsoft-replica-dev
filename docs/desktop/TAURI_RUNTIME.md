@@ -62,9 +62,17 @@ O daemon rejeita origens desconhecidas (incluindo `null`), Host diferente do end
 
 ## Sem rede
 
-Fase 1 (desktop, PWA e web): sem rede, as gravações feitas com `useMutation` ficam em pausa e seguem quando a rede volta, mas só em memória. O aviso de ligação (`OfflineBanner`) diz quantas estão à espera, mostra «A enviar…» e confirma «Alterações enviadas.»; fechar ou recarregar com gravações por enviar pede confirmação. Gravações que chamam a função do servidor directamente continuam a falhar com erro.
+**App desktop (portal na janela da app):**
 
-Não existe ainda fila persistente, leitura sem rede nem resolução de conflitos: a análise do modo totalmente offline (interface embutida, base local cifrada, sincronização) está por decidir com o dono.
+- **Páginas.** O Service Worker guarda o HTML de cada página aberta e, com rede, pré-carrega as de trabalho (`/`, `/pedagogica`, `/tesouraria`, `/calendario`, `/alunos`) e o código JavaScript delas (`src/lib/offline/desktop-offline.ts`). Sem rede, abre a última versão guardada. O HTML não tem dados pessoais: o servidor nunca recebe a sessão (fica no cofre do cliente), só os cookies da escola activa e do indicador «tem sessão». No navegador e na PWA continua a regra da auditoria de 30/09: o HTML de navegação nunca é guardado (`tests/security/pwa-private-cache.test.ts`); o modo desktop só se liga com a mensagem `SIGA_DESKTOP_OFFLINE` da app (`tests/security/pwa-desktop-offline.test.ts`).
+- **Consultas da instituição.** Configurações da escola, anos e períodos lectivos, calendário e salas ficam no localStorage da app (por escola) e só são repostas quando a app abre sem rede; com rede vem tudo fresco (`src/lib/offline/offline-queries.ts`). Por decisão do dono, nada de dados pessoais: turmas e disciplinas vêm do servidor junto com listas de alunos, por isso ficam de fora. Terminar sessão apaga-as.
+- **Fila de envio.** Chamadas e notas lançadas sem rede (ou com a rede a cair durante o envio) ficam no cofre do posto, cifradas com o PIN, com o autor (`src/lib/offline/outbox.ts`). Seguem por ordem quando a rede volta, só com a sessão de quem as fez; saem da fila quando o servidor confirma. Erro de rede ou de sessão: ficam à espera. Recusa do servidor: aviso com «Descartar». Sobrevivem a fechar a app e ao fim de sessão por inactividade; «Esqueci o PIN» apaga-as. Só escritas que o servidor aceita repetir sem duplicar (chamada: upsert por sessão e aluno; notas: actualiza a nota existente). Limite: 60 KiB por posto (o cofre aceita 64 KiB por valor).
+- **Pagamentos sem rede:** ainda não. `register_payment` não tem chave contra repetições e exige 2FA recente; precisa de uma migração na base de produção (chave de idempotência) antes de entrar na fila.
+- **Instalação.** O instalador Windows leva o WebView2 completo (`webviewInstallMode: offlineInstaller`, verificado pelo `check-desktop`): instala sem Internet.
+
+**Navegador e PWA:** as gravações feitas com `useMutation` ficam em pausa só em memória e o aviso de ligação pede confirmação antes de fechar. Chamadas e notas sem rede falham com erro, como antes.
+
+Não existe base local completa nem resolução de conflitos: o offline total (base SQLite por escola, sincronização) é uma fase seguinte.
 
 ## Release
 

@@ -49,6 +49,12 @@ for (const match of lib.matchAll(/tauri_plugin_updater::Builder/g)) {
 assert.deepEqual(readJson("src-tauri/tauri.windows.conf.json").bundle.targets, ["nsis"]);
 assert.equal(config.bundle.windows.nsis.installMode, "currentUser");
 assert.equal(config.bundle.windows.allowDowngrades, false);
+// Instalar sem Internet: o instalador leva o WebView2 completo (escolas sem rede estável).
+assert.equal(
+  config.bundle.windows.webviewInstallMode.type,
+  "offlineInstaller",
+  "O instalador Windows tem de incluir o WebView2 (offlineInstaller)",
+);
 assert(existsSync("src-tauri/Cargo.lock"));
 // O `tauri build` pára se um pacote npm instalado e a crate correspondente diferem em
 // major.minor. Compara os lockfiles do desktop (npm) e da raiz (bun) com o Cargo.lock.
