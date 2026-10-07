@@ -1,4 +1,5 @@
 import { readFileSync } from "node:fs";
+import { aal2ActionForImport } from "@/features/import/aal2-modules";
 import { describe, expect, it } from "vitest";
 import { propinasImporter } from "@/features/import/importers/propinas-importer";
 import { IMPORTER_TARGET_TABLES } from "@/features/import/engine/governance";
@@ -389,9 +390,24 @@ describe("importação de propinas: limites", () => {
   });
 
   it("gravar as regras pela importação pede 2FA, como no ecrã", () => {
+    expect(aal2ActionForImport("propinas")).toBe("Importar as regras de cobrança");
     const server = readFileSync("src/features/import/server.ts", "utf8");
     expect(server).toMatch(
-      /if \(job\.module === "propinas" && !data\.dry_run\) \{\s*requireAal2\(context\.claims,/,
+      /const aal2Action = aal2ActionForImport\(job\.module\);\s*if \(aal2Action && !data\.dry_run\) \{\s*requireAal2\(context\.claims, aal2Action\);/,
     );
+  });
+
+  it("pagamentos, dívidas e notas importados também pedem 2FA (auditoria 13, F-07)", () => {
+    for (const module of [
+      "pagamentos",
+      "dividas",
+      "historico_financeiro",
+      "notas",
+      "avaliacoes",
+      "pautas",
+    ]) {
+      expect(aal2ActionForImport(module), module).not.toBeNull();
+    }
+    expect(aal2ActionForImport("alunos")).toBeNull();
   });
 });
