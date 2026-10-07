@@ -320,11 +320,16 @@ export function ChatDock({
         setLoading(false);
       });
 
+    // Rajadas (várias mensagens seguidas, um grupo activo) recarregam a lista
+    // uma vez, não uma por mensagem.
+    let reloadTimer: ReturnType<typeof setTimeout> | null = null;
+    const typingTimers = new Set<ReturnType<typeof setTimeout>>();
     const unsubscribe = adapter.subscribe({
       // O Realtime só traz a linha crua: o nome de quem enviou e a mensagem
       // respondida vêm do servidor, por isso recarrega-se em vez de inventar.
       onMessage: (cid) => {
-        void reload();
+        if (reloadTimer) clearTimeout(reloadTimer);
+        reloadTimer = setTimeout(() => void reload().catch(() => {}), 300);
         if (activeRef.current === cid) {
           void markRead(cid);
           void loadMessages(cid);
@@ -344,7 +349,11 @@ export function ChatDock({
         })),
       onTyping: (cid) => {
         setTyping((t) => ({ ...t, [cid]: true }));
-        setTimeout(() => setTyping((t) => ({ ...t, [cid]: false })), 3000);
+        const timer = setTimeout(() => {
+          typingTimers.delete(timer);
+          setTyping((t) => ({ ...t, [cid]: false }));
+        }, 3000);
+        typingTimers.add(timer);
       },
       onPresence: (ids) =>
         setConvs((cs) => cs.map((c) => (c.peerId ? { ...c, online: ids.includes(c.peerId) } : c))),
@@ -352,6 +361,8 @@ export function ChatDock({
 
     return () => {
       alive = false;
+      if (reloadTimer) clearTimeout(reloadTimer);
+      typingTimers.forEach(clearTimeout);
       unsubscribe();
     };
   }, [adapter, loadMessages, markRead, patch, reload]);

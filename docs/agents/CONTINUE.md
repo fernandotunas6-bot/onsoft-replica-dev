@@ -27,6 +27,10 @@ Depois abrir o skill do módulo em `.cursor/skills/`.
   tempo real partilhada; o «lido» é `siga_chat_members.last_read_at`, por isso o que se
   lê no telemóvel apaga no computador. O sino abre a conversa (incluindo grupos) com
   `requestOpenConversation`.
+- **Contagem exacta sem migração:** `listChatConversations` lê as 600 mensagens mais
+  recentes; quando a janela enche, `planChatUnread` (`chat-unread.ts`, testado) escolhe
+  as conversas lidas antes do corte para uma contagem exacta (`count: exact, head`) e vai
+  buscar a última mensagem das que ficaram fora. Antes essas ficavam com 0 por ler.
 - **Messenger antigo retirado do ecrã:** `ColleagueThread`, `use-inbox-unread.ts`,
   `local-thread.ts` e o «lido» em `localStorage`. Nada escrevia já em
   `siga_direct_messages`. **Por fazer:** as server functions `listDirectThread`,

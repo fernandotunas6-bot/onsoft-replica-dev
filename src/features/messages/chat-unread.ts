@@ -58,3 +58,56 @@ export function summarizeChatUnread(conversations: ChatConversation[]): ChatUnre
   unread.sort((a, b) => b.lastAt - a.lastAt);
   return { unreadCount, conversations: unread, unreadPeerIds, lastTextByPeer };
 }
+
+type WindowRow = {
+  conversation_id: string;
+  sender_id: string;
+  deleted_at?: string | null;
+  created_at: string;
+};
+
+/**
+ * Por ler a partir da janela das mensagens mais recentes da escola (servidor).
+ *
+ * A janela vem ordenada da mais recente para a mais antiga e tem no máximo
+ * `limit` linhas. Quando enche, as conversas cujo «lido» é anterior à linha mais
+ * antiga da janela podem ter mensagens por ler fora dela: essas vão em
+ * `needsExactCount` para uma contagem exacta, e as que não aparecem na janela
+ * em `missingLast` para irem buscar a última mensagem.
+ */
+export function planChatUnread(input: {
+  rows: WindowRow[];
+  limit: number;
+  conversationIds: string[];
+  readAtById: Map<string, string>;
+  userId: string;
+}) {
+  const { rows, limit, conversationIds, readAtById, userId } = input;
+  const unreadByConv = new Map<string, number>();
+  const seen = new Set<string>();
+  for (const row of rows) {
+    const cid = String(row.conversation_id);
+    seen.add(cid);
+    const readAt = Date.parse(readAtById.get(cid) ?? "");
+    if (
+      String(row.sender_id) !== userId &&
+      !row.deleted_at &&
+      (Number.isNaN(readAt) || Date.parse(row.created_at) > readAt)
+    ) {
+      unreadByConv.set(cid, (unreadByConv.get(cid) ?? 0) + 1);
+    }
+  }
+
+  const truncated = rows.length >= limit && rows.length > 0;
+  const cutoff = truncated ? Date.parse(rows[rows.length - 1]!.created_at) : -Infinity;
+  const needsExactCount = new Set<string>();
+  const missingLast: string[] = [];
+  if (truncated) {
+    for (const cid of conversationIds) {
+      const readAt = Date.parse(readAtById.get(cid) ?? "");
+      if (Number.isNaN(readAt) || cutoff > readAt) needsExactCount.add(cid);
+      if (!seen.has(cid)) missingLast.push(cid);
+    }
+  }
+  return { unreadByConv, needsExactCount, missingLast };
+}

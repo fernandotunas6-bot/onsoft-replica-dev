@@ -15,6 +15,7 @@ import {
   type ChatConversationType,
   type ChatMessage,
 } from "./chat-schemas";
+import { planChatUnread } from "./chat-unread";
 
 const MISSING_TABLE = /schema cache|does not exist|42P01|PGRST/i;
 
@@ -177,27 +178,63 @@ export const listChatConversations = createServerFn({ method: "GET" })
       peersByConv.set(cid, [...(peersByConv.get(cid) ?? []), uid]);
     }
 
+    const WINDOW = 600;
     const { data: lastRows } = await db
       .from("siga_chat_messages")
       .select("id, conversation_id, sender_id, body, attachment_file_name, deleted_at, created_at")
       .in("conversation_id", visibleIds)
       .order("created_at", { ascending: false })
-      .limit(600);
+      .limit(WINDOW);
 
-    const lastByConv = new Map<string, NonNullable<typeof lastRows>[number]>();
-    const unreadByConv = new Map<string, number>();
+    type LastRow = NonNullable<typeof lastRows>[number];
+    const lastByConv = new Map<string, LastRow>();
     for (const row of lastRows ?? []) {
       const cid = String(row.conversation_id);
       if (!lastByConv.has(cid)) lastByConv.set(cid, row);
-      const readAt = Date.parse(readAtById.get(cid) ?? "");
-      if (
-        String(row.sender_id) !== context.userId &&
-        !row.deleted_at &&
-        (Number.isNaN(readAt) || Date.parse(String(row.created_at)) > readAt)
-      ) {
-        unreadByConv.set(cid, (unreadByConv.get(cid) ?? 0) + 1);
-      }
     }
+    const plan = planChatUnread({
+      rows: (lastRows ?? []).map((row) => ({
+        conversation_id: String(row.conversation_id),
+        sender_id: String(row.sender_id),
+        deleted_at: row.deleted_at,
+        created_at: String(row.created_at),
+      })),
+      limit: WINDOW,
+      conversationIds: visibleIds,
+      readAtById,
+      userId: context.userId,
+    });
+    const unreadByConv = plan.unreadByConv;
+
+    // Escola com muito movimento: a janela não chega às conversas mais
+    // paradas. Antes ficavam sem última mensagem e com o «por ler» a zero, e
+    // o sino depende deste número.
+    await Promise.all([
+      ...plan.missingLast.map(async (cid) => {
+        const { data: last } = await db
+          .from("siga_chat_messages")
+          .select(
+            "id, conversation_id, sender_id, body, attachment_file_name, deleted_at, created_at",
+          )
+          .eq("conversation_id", cid)
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        if (last) lastByConv.set(cid, last as LastRow);
+      }),
+      ...[...plan.needsExactCount].map(async (cid) => {
+        let count = db
+          .from("siga_chat_messages")
+          .select("id", { count: "exact", head: true })
+          .eq("conversation_id", cid)
+          .neq("sender_id", context.userId)
+          .is("deleted_at", null);
+        const readAt = readAtById.get(cid);
+        if (readAt && !Number.isNaN(Date.parse(readAt))) count = count.gt("created_at", readAt);
+        const { count: exact, error } = await count;
+        if (!error && typeof exact === "number") unreadByConv.set(cid, exact);
+      }),
+    ]);
 
     const profiles = await loadProfiles(db, [...peersByConv.values()].flat());
 
