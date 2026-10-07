@@ -29,6 +29,7 @@ export const MARKETING_FOOTER_LINKS = {
   company: [
     { name: "Sobre", href: "/#about" },
     { name: "Para quem", href: "/#roles" },
+    { name: "Blog", href: "/blog" },
     { name: "Contacto", href: "/#contact" },
   ],
   resources: [

@@ -103,6 +103,11 @@ const PRIVILEGIO_POR_DESENHO = new Set([
   // rotas públicas gravam apenas o progresso da própria sessão; a tarefa diária
   // exige SIGA_CRON_SECRET; a listagem exige admin da plataforma com MFA.
   "src/features/saas/commercial-lifecycle.ts",
+  // Conteúdo do site público: as tabelas `web_*` são só do servidor (FORCE RLS, sem
+  // políticas). As rotas públicas lêem só o publicado (a vitrine só nome, logótipo e
+  // cidade de escolas que aceitaram) e gravam contacto com limite por IP; as do ADMIN
+  // exigem admin da plataforma com MFA; a escolha da vitrine exige o Administrador.
+  "src/features/saas/web-site-content.ts",
 
   // Regista cada documento oficial emitido (audit_logs, só o servidor grava) e
   // verifica-o publicamente, sem sessão, a partir do código impresso.

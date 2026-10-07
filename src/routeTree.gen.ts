@@ -105,10 +105,17 @@ import { Route as ApiSaasDomainsStatusRouteImport } from './routes/api/saas/doma
 import { Route as ApiSaasDomainsVerifyRouteImport } from './routes/api/saas/domains.verify'
 import { Route as ApiSaasEmailRoutesRouteImport } from './routes/api/saas/email.routes'
 import { Route as ApiSaasPlatformAdminsRevokeRouteImport } from './routes/api/saas/platform-admins.revoke'
+import { Route as ApiSaasPublicBlogRouteImport } from './routes/api/saas/public.blog'
+import { Route as ApiSaasPublicContactRouteImport } from './routes/api/saas/public.contact'
+import { Route as ApiSaasPublicSiteRouteImport } from './routes/api/saas/public.site'
 import { Route as ApiSaasSignupEmailCodeRouteImport } from './routes/api/saas/signup.email-code'
 import { Route as ApiSaasSignupEmailVerifyRouteImport } from './routes/api/saas/signup.email-verify'
 import { Route as ApiSaasSignupProgressRouteImport } from './routes/api/saas/signup.progress'
 import { Route as ApiSaasSignupUnsubscribeRouteImport } from './routes/api/saas/signup.unsubscribe'
+import { Route as ApiSaasSiteFaqsRouteImport } from './routes/api/saas/site.faqs'
+import { Route as ApiSaasSiteMessagesRouteImport } from './routes/api/saas/site.messages'
+import { Route as ApiSaasSitePostsRouteImport } from './routes/api/saas/site.posts'
+import { Route as ApiSaasSiteShowcaseRouteImport } from './routes/api/saas/site.showcase'
 import { Route as ApiSaasSubscriptionsBackfillRouteImport } from './routes/api/saas/subscriptions.backfill'
 import { Route as ApiSaasTenantsLookupRouteImport } from './routes/api/saas/tenants.lookup'
 import { Route as ApiSaasTenantsStatusRouteImport } from './routes/api/saas/tenants.status'
@@ -613,6 +620,21 @@ const ApiSaasPlatformAdminsRevokeRoute =
     path: '/revoke',
     getParentRoute: () => ApiSaasPlatformAdminsRoute,
   } as any)
+const ApiSaasPublicBlogRoute = ApiSaasPublicBlogRouteImport.update({
+  id: '/api/saas/public/blog',
+  path: '/api/saas/public/blog',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiSaasPublicContactRoute = ApiSaasPublicContactRouteImport.update({
+  id: '/api/saas/public/contact',
+  path: '/api/saas/public/contact',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiSaasPublicSiteRoute = ApiSaasPublicSiteRouteImport.update({
+  id: '/api/saas/public/site',
+  path: '/api/saas/public/site',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiSaasSignupEmailCodeRoute = ApiSaasSignupEmailCodeRouteImport.update({
   id: '/email-code',
   path: '/email-code',
@@ -635,6 +657,26 @@ const ApiSaasSignupUnsubscribeRoute =
     path: '/unsubscribe',
     getParentRoute: () => ApiSaasSignupRoute,
   } as any)
+const ApiSaasSiteFaqsRoute = ApiSaasSiteFaqsRouteImport.update({
+  id: '/api/saas/site/faqs',
+  path: '/api/saas/site/faqs',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiSaasSiteMessagesRoute = ApiSaasSiteMessagesRouteImport.update({
+  id: '/api/saas/site/messages',
+  path: '/api/saas/site/messages',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiSaasSitePostsRoute = ApiSaasSitePostsRouteImport.update({
+  id: '/api/saas/site/posts',
+  path: '/api/saas/site/posts',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiSaasSiteShowcaseRoute = ApiSaasSiteShowcaseRouteImport.update({
+  id: '/api/saas/site/showcase',
+  path: '/api/saas/site/showcase',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiSaasSubscriptionsBackfillRoute =
   ApiSaasSubscriptionsBackfillRouteImport.update({
     id: '/backfill',
@@ -766,10 +808,17 @@ export interface FileRoutesByFullPath {
   '/api/saas/domains/verify': typeof ApiSaasDomainsVerifyRoute
   '/api/saas/email/routes': typeof ApiSaasEmailRoutesRoute
   '/api/saas/platform-admins/revoke': typeof ApiSaasPlatformAdminsRevokeRoute
+  '/api/saas/public/blog': typeof ApiSaasPublicBlogRoute
+  '/api/saas/public/contact': typeof ApiSaasPublicContactRoute
+  '/api/saas/public/site': typeof ApiSaasPublicSiteRoute
   '/api/saas/signup/email-code': typeof ApiSaasSignupEmailCodeRoute
   '/api/saas/signup/email-verify': typeof ApiSaasSignupEmailVerifyRoute
   '/api/saas/signup/progress': typeof ApiSaasSignupProgressRoute
   '/api/saas/signup/unsubscribe': typeof ApiSaasSignupUnsubscribeRoute
+  '/api/saas/site/faqs': typeof ApiSaasSiteFaqsRoute
+  '/api/saas/site/messages': typeof ApiSaasSiteMessagesRoute
+  '/api/saas/site/posts': typeof ApiSaasSitePostsRoute
+  '/api/saas/site/showcase': typeof ApiSaasSiteShowcaseRoute
   '/api/saas/subscriptions/backfill': typeof ApiSaasSubscriptionsBackfillRoute
   '/api/saas/tenants/lookup': typeof ApiSaasTenantsLookupRoute
   '/api/saas/tenants/status': typeof ApiSaasTenantsStatusRoute
@@ -874,10 +923,17 @@ export interface FileRoutesByTo {
   '/api/saas/domains/verify': typeof ApiSaasDomainsVerifyRoute
   '/api/saas/email/routes': typeof ApiSaasEmailRoutesRoute
   '/api/saas/platform-admins/revoke': typeof ApiSaasPlatformAdminsRevokeRoute
+  '/api/saas/public/blog': typeof ApiSaasPublicBlogRoute
+  '/api/saas/public/contact': typeof ApiSaasPublicContactRoute
+  '/api/saas/public/site': typeof ApiSaasPublicSiteRoute
   '/api/saas/signup/email-code': typeof ApiSaasSignupEmailCodeRoute
   '/api/saas/signup/email-verify': typeof ApiSaasSignupEmailVerifyRoute
   '/api/saas/signup/progress': typeof ApiSaasSignupProgressRoute
   '/api/saas/signup/unsubscribe': typeof ApiSaasSignupUnsubscribeRoute
+  '/api/saas/site/faqs': typeof ApiSaasSiteFaqsRoute
+  '/api/saas/site/messages': typeof ApiSaasSiteMessagesRoute
+  '/api/saas/site/posts': typeof ApiSaasSitePostsRoute
+  '/api/saas/site/showcase': typeof ApiSaasSiteShowcaseRoute
   '/api/saas/subscriptions/backfill': typeof ApiSaasSubscriptionsBackfillRoute
   '/api/saas/tenants/lookup': typeof ApiSaasTenantsLookupRoute
   '/api/saas/tenants/status': typeof ApiSaasTenantsStatusRoute
@@ -983,10 +1039,17 @@ export interface FileRoutesById {
   '/api/saas/domains/verify': typeof ApiSaasDomainsVerifyRoute
   '/api/saas/email/routes': typeof ApiSaasEmailRoutesRoute
   '/api/saas/platform-admins/revoke': typeof ApiSaasPlatformAdminsRevokeRoute
+  '/api/saas/public/blog': typeof ApiSaasPublicBlogRoute
+  '/api/saas/public/contact': typeof ApiSaasPublicContactRoute
+  '/api/saas/public/site': typeof ApiSaasPublicSiteRoute
   '/api/saas/signup/email-code': typeof ApiSaasSignupEmailCodeRoute
   '/api/saas/signup/email-verify': typeof ApiSaasSignupEmailVerifyRoute
   '/api/saas/signup/progress': typeof ApiSaasSignupProgressRoute
   '/api/saas/signup/unsubscribe': typeof ApiSaasSignupUnsubscribeRoute
+  '/api/saas/site/faqs': typeof ApiSaasSiteFaqsRoute
+  '/api/saas/site/messages': typeof ApiSaasSiteMessagesRoute
+  '/api/saas/site/posts': typeof ApiSaasSitePostsRoute
+  '/api/saas/site/showcase': typeof ApiSaasSiteShowcaseRoute
   '/api/saas/subscriptions/backfill': typeof ApiSaasSubscriptionsBackfillRoute
   '/api/saas/tenants/lookup': typeof ApiSaasTenantsLookupRoute
   '/api/saas/tenants/status': typeof ApiSaasTenantsStatusRoute
@@ -1093,10 +1156,17 @@ export interface FileRouteTypes {
     | '/api/saas/domains/verify'
     | '/api/saas/email/routes'
     | '/api/saas/platform-admins/revoke'
+    | '/api/saas/public/blog'
+    | '/api/saas/public/contact'
+    | '/api/saas/public/site'
     | '/api/saas/signup/email-code'
     | '/api/saas/signup/email-verify'
     | '/api/saas/signup/progress'
     | '/api/saas/signup/unsubscribe'
+    | '/api/saas/site/faqs'
+    | '/api/saas/site/messages'
+    | '/api/saas/site/posts'
+    | '/api/saas/site/showcase'
     | '/api/saas/subscriptions/backfill'
     | '/api/saas/tenants/lookup'
     | '/api/saas/tenants/status'
@@ -1201,10 +1271,17 @@ export interface FileRouteTypes {
     | '/api/saas/domains/verify'
     | '/api/saas/email/routes'
     | '/api/saas/platform-admins/revoke'
+    | '/api/saas/public/blog'
+    | '/api/saas/public/contact'
+    | '/api/saas/public/site'
     | '/api/saas/signup/email-code'
     | '/api/saas/signup/email-verify'
     | '/api/saas/signup/progress'
     | '/api/saas/signup/unsubscribe'
+    | '/api/saas/site/faqs'
+    | '/api/saas/site/messages'
+    | '/api/saas/site/posts'
+    | '/api/saas/site/showcase'
     | '/api/saas/subscriptions/backfill'
     | '/api/saas/tenants/lookup'
     | '/api/saas/tenants/status'
@@ -1309,10 +1386,17 @@ export interface FileRouteTypes {
     | '/api/saas/domains/verify'
     | '/api/saas/email/routes'
     | '/api/saas/platform-admins/revoke'
+    | '/api/saas/public/blog'
+    | '/api/saas/public/contact'
+    | '/api/saas/public/site'
     | '/api/saas/signup/email-code'
     | '/api/saas/signup/email-verify'
     | '/api/saas/signup/progress'
     | '/api/saas/signup/unsubscribe'
+    | '/api/saas/site/faqs'
+    | '/api/saas/site/messages'
+    | '/api/saas/site/posts'
+    | '/api/saas/site/showcase'
     | '/api/saas/subscriptions/backfill'
     | '/api/saas/tenants/lookup'
     | '/api/saas/tenants/status'
@@ -1392,6 +1476,13 @@ export interface RootRouteChildren {
   ApiIntegrationsZoomCallbackRoute: typeof ApiIntegrationsZoomCallbackRoute
   ApiPublicPaymentsAppypayRoute: typeof ApiPublicPaymentsAppypayRoute
   ApiSaasEmailRoutesRoute: typeof ApiSaasEmailRoutesRoute
+  ApiSaasPublicBlogRoute: typeof ApiSaasPublicBlogRoute
+  ApiSaasPublicContactRoute: typeof ApiSaasPublicContactRoute
+  ApiSaasPublicSiteRoute: typeof ApiSaasPublicSiteRoute
+  ApiSaasSiteFaqsRoute: typeof ApiSaasSiteFaqsRoute
+  ApiSaasSiteMessagesRoute: typeof ApiSaasSiteMessagesRoute
+  ApiSaasSitePostsRoute: typeof ApiSaasSitePostsRoute
+  ApiSaasSiteShowcaseRoute: typeof ApiSaasSiteShowcaseRoute
   ApiSaasUsageSyncRoute: typeof ApiSaasUsageSyncRoute
   ApiFinanceGatewayUnitelConfirmRoute: typeof ApiFinanceGatewayUnitelConfirmRoute
 }
@@ -2070,6 +2161,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiSaasPlatformAdminsRevokeRouteImport
       parentRoute: typeof ApiSaasPlatformAdminsRoute
     }
+    '/api/saas/public/blog': {
+      id: '/api/saas/public/blog'
+      path: '/api/saas/public/blog'
+      fullPath: '/api/saas/public/blog'
+      preLoaderRoute: typeof ApiSaasPublicBlogRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/saas/public/contact': {
+      id: '/api/saas/public/contact'
+      path: '/api/saas/public/contact'
+      fullPath: '/api/saas/public/contact'
+      preLoaderRoute: typeof ApiSaasPublicContactRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/saas/public/site': {
+      id: '/api/saas/public/site'
+      path: '/api/saas/public/site'
+      fullPath: '/api/saas/public/site'
+      preLoaderRoute: typeof ApiSaasPublicSiteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/saas/signup/email-code': {
       id: '/api/saas/signup/email-code'
       path: '/email-code'
@@ -2097,6 +2209,34 @@ declare module '@tanstack/react-router' {
       fullPath: '/api/saas/signup/unsubscribe'
       preLoaderRoute: typeof ApiSaasSignupUnsubscribeRouteImport
       parentRoute: typeof ApiSaasSignupRoute
+    }
+    '/api/saas/site/faqs': {
+      id: '/api/saas/site/faqs'
+      path: '/api/saas/site/faqs'
+      fullPath: '/api/saas/site/faqs'
+      preLoaderRoute: typeof ApiSaasSiteFaqsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/saas/site/messages': {
+      id: '/api/saas/site/messages'
+      path: '/api/saas/site/messages'
+      fullPath: '/api/saas/site/messages'
+      preLoaderRoute: typeof ApiSaasSiteMessagesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/saas/site/posts': {
+      id: '/api/saas/site/posts'
+      path: '/api/saas/site/posts'
+      fullPath: '/api/saas/site/posts'
+      preLoaderRoute: typeof ApiSaasSitePostsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/saas/site/showcase': {
+      id: '/api/saas/site/showcase'
+      path: '/api/saas/site/showcase'
+      fullPath: '/api/saas/site/showcase'
+      preLoaderRoute: typeof ApiSaasSiteShowcaseRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/api/saas/subscriptions/backfill': {
       id: '/api/saas/subscriptions/backfill'
@@ -2403,6 +2543,13 @@ const rootRouteChildren: RootRouteChildren = {
   ApiIntegrationsZoomCallbackRoute: ApiIntegrationsZoomCallbackRoute,
   ApiPublicPaymentsAppypayRoute: ApiPublicPaymentsAppypayRoute,
   ApiSaasEmailRoutesRoute: ApiSaasEmailRoutesRoute,
+  ApiSaasPublicBlogRoute: ApiSaasPublicBlogRoute,
+  ApiSaasPublicContactRoute: ApiSaasPublicContactRoute,
+  ApiSaasPublicSiteRoute: ApiSaasPublicSiteRoute,
+  ApiSaasSiteFaqsRoute: ApiSaasSiteFaqsRoute,
+  ApiSaasSiteMessagesRoute: ApiSaasSiteMessagesRoute,
+  ApiSaasSitePostsRoute: ApiSaasSitePostsRoute,
+  ApiSaasSiteShowcaseRoute: ApiSaasSiteShowcaseRoute,
   ApiSaasUsageSyncRoute: ApiSaasUsageSyncRoute,
   ApiFinanceGatewayUnitelConfirmRoute: ApiFinanceGatewayUnitelConfirmRoute,
 }

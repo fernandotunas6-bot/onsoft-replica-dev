@@ -42,6 +42,7 @@ import { whatsappHref } from "@/features/integrations/actions";
 import { InstalledModuleTools } from "@/features/integrations/InstalledModuleTools";
 import { useInstalledIntegrations } from "@/features/integrations/use-installed-integrations";
 import { ModuleShortcutsRow } from "./settings-shortcuts-row";
+import { WebShowcaseCard } from "./web-showcase-card";
 
 const institutionSchema = z.object({
   nome: z.string().trim().min(3, "Nome demasiado curto").max(120, "Máximo 120 caracteres"),
@@ -772,6 +773,8 @@ export function SchoolSettingsPanel() {
           ))}
         </ul>
       </div>
+
+      <WebShowcaseCard canEdit={canEdit} />
 
       {canEdit ? (
         <div className="flex justify-end gap-2">

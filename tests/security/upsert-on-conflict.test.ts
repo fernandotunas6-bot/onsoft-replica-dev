@@ -47,6 +47,9 @@ const UNICOS_PRODUCAO: Record<string, string[]> = {
   student_academic_history: ["id", "academic_year_label,grade_level,school_id,student_id"],
   student_risk_cases: ["id", "enrollment_id,school_id"],
   tenant_usage: ["id", "tenant_id"],
+  // 2026-10-07: chave primária de 20261007100000_web_site_content.sql (vitrine do site).
+  // Recapturar da produção depois de aplicada a migração.
+  web_school_showcase: ["school_id"],
 };
 
 function upsertsNoCodigo() {
