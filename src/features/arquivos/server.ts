@@ -1386,6 +1386,67 @@ export const listSchoolFileActivity = createServerFn({ method: "GET" })
     };
   });
 
+/**
+ * Ficheiro desta escola para anexar a uma mensagem: só se quem envia o pode
+ * ver. Sem isto, um id copiado partilhava no chat um ficheiro pessoal ou
+ * privado de outra pessoa (a base só confirma que é da mesma escola).
+ */
+export async function loadShareableSchoolFile(
+  db: AdminDb,
+  schoolId: string,
+  fileId: string,
+  userId: string,
+  role: string,
+): Promise<SchoolFileRecord> {
+  const row = await loadSchoolFileRow(db, schoolId, fileId);
+  if (!row || row.isFolder) throw new Error("O ficheiro anexado já não existe nos Arquivos.");
+  if (!canSeeRow(row, userId, role) || !canAccessFileContent(row, userId, role)) {
+    throw new Error("Só pode anexar ficheiros que consegue abrir nos Arquivos.");
+  }
+  return row;
+}
+
+/**
+ * Endereço temporário (10 min) de um anexo de mensagem. Quem chama já
+ * confirmou que a pessoa participa na conversa: quem envia escolheu partilhar
+ * o ficheiro com ela, por isso não se aplicam aqui as áreas dos Arquivos.
+ */
+export async function signChatAttachmentFile(db: AdminDb, schoolId: string, fileId: string) {
+  const row = await loadSchoolFileRow(db, schoolId, fileId);
+  if (!row) throw new Error("O anexo foi apagado dos Arquivos e já não pode ser aberto.");
+  if (row.storageBackend !== "sga") {
+    throw new Error("Este anexo ficou guardado só no computador de quem o enviou.");
+  }
+  const signed = await db.storage.from(FILES_BUCKET).createSignedUrl(row.storagePath, 600);
+  if (signed.error || !signed.data?.signedUrl) {
+    throw new Error("Não foi possível abrir o anexo agora. Tente outra vez dentro de instantes.");
+  }
+  return signed.data.signedUrl;
+}
+
+async function loadSchoolFileRow(
+  db: AdminDb,
+  schoolId: string,
+  fileId: string,
+): Promise<SchoolFileRecord | null> {
+  let { data: row, error } = await db
+    .from("siga_files")
+    .select(FILE_SELECT)
+    .eq("id", fileId)
+    .eq("school_id", schoolId)
+    .maybeSingle();
+  if (error && missingOptionalColumn(error)) {
+    ({ data: row, error } = await db
+      .from("siga_files")
+      .select(FILE_SELECT_BASIC)
+      .eq("id", fileId)
+      .eq("school_id", schoolId)
+      .maybeSingle());
+  }
+  if (error) throw publicDatabaseError(error, "Não foi possível ler o ficheiro.");
+  return row ? mapRow(row as Record<string, unknown>) : null;
+}
+
 export const signSchoolFile = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .validator((input: unknown) => schoolFileIdInputSchema.parse(input))

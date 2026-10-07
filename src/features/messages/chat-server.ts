@@ -2,6 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { publicDatabaseError } from "@/integrations/supabase/server-error";
 import { loadSgaAdminClient, resolveSgaMembershipAdmin } from "@/integrations/supabase/sga-admin";
+import { loadShareableSchoolFile, signChatAttachmentFile } from "@/features/arquivos/server";
 import { isMessagingStaff, loadSchoolColleagues } from "./server";
 import {
   conversationInputSchema,
@@ -23,7 +24,8 @@ const MISSING_TABLE = /schema cache|does not exist|42P01|PGRST/i;
  *  honesto em vez de rebentar. */
 export class ChatSchemaMissing extends Error {
   constructor() {
-    super("CHAT_SCHEMA_MISSING");
+    // Texto para a pessoa: o aviso de erro reconhece «falta aplicar a migração».
+    super("As mensagens ainda não estão activas nesta escola: falta aplicar a migração.");
   }
 }
 
@@ -316,6 +318,15 @@ export const sendChatMessage = createServerFn({ method: "POST" })
     if (!membership) throw new Error("Sem membership activa nesta escola.");
     const db = await loadSgaAdminClient();
     await assertMember(db, data.conversationId, context.userId);
+    const attachment = data.attachmentFileId
+      ? await loadShareableSchoolFile(
+          db,
+          membership.schoolId,
+          data.attachmentFileId,
+          context.userId,
+          membership.appRole,
+        )
+      : null;
 
     const { data: row, error } = await db
       .from("siga_chat_messages")
@@ -325,8 +336,9 @@ export const sendChatMessage = createServerFn({ method: "POST" })
         sender_id: context.userId,
         body: data.body?.trim() ?? "",
         reply_to: data.replyTo ?? null,
-        attachment_file_id: data.attachmentFileId ?? null,
-        attachment_file_name: data.attachmentFileName ?? null,
+        attachment_file_id: attachment?.id ?? null,
+        // O nome vem dos Arquivos, não do browser: é o que o destinatário vai abrir.
+        attachment_file_name: attachment ? attachment.name : null,
       })
       .select(
         "id, sender_id, body, reply_to, attachment_file_id, attachment_file_name, deleted_at, created_at",
@@ -363,13 +375,17 @@ export const deleteChatMessage = createServerFn({ method: "POST" })
     if (!membership) throw new Error("Sem membership activa nesta escola.");
     const db = await loadSgaAdminClient();
     // `sender_id` no filtro: apagar é só para o autor, nunca para quem recebeu.
-    const { error } = await db
+    const { data: removed, error } = await db
       .from("siga_chat_messages")
       .update({ deleted_at: new Date().toISOString(), body: "", attachment_file_id: null })
       .eq("id", data.messageId)
       .eq("school_id", membership.schoolId)
-      .eq("sender_id", context.userId);
+      .eq("sender_id", context.userId)
+      .select("id");
     if (error) throw publicDatabaseError(error, "Não foi possível apagar a mensagem.");
+    // Nenhuma linha: a mensagem é de outra pessoa (ou de outra escola). Sem
+    // isto o ecrã dava-a por apagada e ela voltava ao recarregar.
+    if (!removed?.length) throw new Error("Só pode apagar as mensagens que enviou.");
     return { ok: true as const };
   });
 
@@ -393,6 +409,36 @@ export const markChatRead = createServerFn({ method: "POST" })
       throw publicDatabaseError(error, "Não foi possível marcar como lida.");
     }
     return { ok: true as const };
+  });
+
+/** Abre o anexo de uma mensagem para quem participa na conversa. Funciona
+ *  para alunos e encarregados, que não têm acesso ao módulo Arquivos. */
+export const openChatAttachment = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .validator((input: unknown) => deleteChatMessageInputSchema.parse(input))
+  .handler(async ({ data, context }) => {
+    if (!context) throw new Error("Unauthorized");
+    const membership = await resolveSgaMembershipAdmin(context.userId);
+    if (!membership) throw new Error("Sem membership activa nesta escola.");
+    const db = await loadSgaAdminClient();
+    const { data: message, error } = await db
+      .from("siga_chat_messages")
+      .select("conversation_id, attachment_file_id, deleted_at")
+      .eq("id", data.messageId)
+      .eq("school_id", membership.schoolId)
+      .maybeSingle();
+    if (error) throw publicDatabaseError(error, "Não foi possível abrir o anexo.");
+    if (!message) throw new Error("A mensagem já não existe.");
+    await assertMember(db, String(message.conversation_id), context.userId);
+    if (message.deleted_at || !message.attachment_file_id) {
+      throw new Error("O anexo foi apagado por quem o enviou.");
+    }
+    const url = await signChatAttachmentFile(
+      db,
+      membership.schoolId,
+      String(message.attachment_file_id),
+    );
+    return { url };
   });
 
 /** Abre (ou reaproveita) a conversa directa com alguém. A regra de quem pode

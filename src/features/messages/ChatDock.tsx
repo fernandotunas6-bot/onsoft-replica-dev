@@ -2,14 +2,12 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import {
   ArrowLeft,
-  CalendarCheck,
   Check,
   CheckCheck,
   ClipboardList,
   Clock,
   CornerUpLeft,
   FileText,
-  Flag,
   GraduationCap,
   Plus,
   Search,
@@ -22,11 +20,19 @@ import {
 } from "lucide-react";
 import { useCurrentAccount } from "@/features/auth/use-current-account";
 import { PickFileButton } from "@/features/arquivos/PickFileButton";
-import { signSchoolFile } from "@/features/arquivos/server";
+import { toast } from "@/lib/toast";
+import { toastActionError } from "@/lib/action-error-toast";
+import { guidanceFor } from "@/lib/error-guidance";
+import { errorMessage } from "@/lib/error-message";
+import { isTauriDesktop, openExternalLink } from "@/lib/desktop-utils";
+import { reportPossibleSessionError } from "@/lib/session-expiry";
 import type { SchoolFileRecord } from "@/features/arquivos/schemas";
 import { UserAvatar } from "@/components/ui/user-avatar";
 import { touchRecentContact } from "./recent-contacts";
+import { isMessagingStaff } from "./messaging-roles";
 import { createSigaChatAdapter } from "./chat-adapter";
+import { openChatAttachment } from "./chat-server";
+import { canAccessPath } from "@/features/auth/access-policy";
 import type { ChatContact, ChatConversation, ChatMessage } from "./chat-schemas";
 
 /* Paleta e ícones do template original (chat/ChatEscolar.jsx), mantidos tal e
@@ -101,7 +107,13 @@ const fsize = (b: number) =>
 
 function Ticks({ s }: { s: ChatMessage["status"] }) {
   if (s === "sending") return <Clock size={12} color={T.mute} />;
-  if (s === "failed") return <b style={{ color: "#c0392b" }}>!</b>;
+  // Um «!» sozinho passava despercebido: diz-se o que aconteceu e o que fazer.
+  if (s === "failed")
+    return (
+      <b style={{ color: "#c0392b" }} title="Toque na mensagem e escolha Reenviar">
+        Não enviada · toque para reenviar
+      </b>
+    );
   if (s === "sent") return <Check size={14} color={T.mute} />;
   return <CheckCheck size={14} color={s === "read" ? T.read : T.mute} />;
 }
@@ -152,10 +164,33 @@ function Avatar({
   );
 }
 
-async function openAttachment(fileId: string) {
-  const signed = await signSchoolFile({ data: { id: fileId } });
-  if (signed.url) window.open(signed.url, "_blank", "noopener");
-  else throw new Error("sem-url");
+/** Mensagem acabada de escrever: ainda não tem id do servidor. */
+const SERVER_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const isSaved = (message: ChatMessage) =>
+  message.status !== "sending" && message.status !== "failed" && SERVER_ID.test(message.id);
+
+/**
+ * Abre o anexo noutro separador. O separador abre-se já, no próprio toque:
+ * aberto depois do pedido ao servidor, o Safari do telemóvel bloqueava-o.
+ * Na app desktop vai para o navegador do sistema.
+ */
+async function openAttachment(message: ChatMessage) {
+  if (!isSaved(message)) {
+    toast.info("O anexo abre depois de a mensagem ser enviada.");
+    return;
+  }
+  const tab = isTauriDesktop() ? null : window.open("about:blank", "_blank");
+  try {
+    const { url } = await openChatAttachment({ data: { messageId: message.id } });
+    if (isTauriDesktop()) await openExternalLink(url);
+    else if (tab) {
+      tab.opener = null;
+      tab.location.href = url;
+    } else window.location.assign(url);
+  } catch (error) {
+    tab?.close();
+    toastActionError(error, "Não foi possível abrir o anexo.");
+  }
 }
 
 export function ChatDock({
@@ -186,7 +221,6 @@ export function ChatDock({
   const [reply, setReply] = useState<{ id: string; from: string; text: string } | null>(null);
   const [selId, setSelId] = useState<string | null>(null);
   const [typing, setTyping] = useState<Record<string, boolean>>({});
-  const [toast, setToast] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [picker, setPicker] = useState<"loading" | ChatContact[] | null>(null);
@@ -228,16 +262,22 @@ export function ChatDock({
   }, [activeId, conv?.messages.length, activeTyping]);
 
   useEffect(() => {
-    if (!toast) return;
-    const t = setTimeout(() => setToast(""), 2400);
-    return () => clearTimeout(t);
-  }, [toast]);
-
-  useEffect(() => {
     onUnreadChange?.(total);
   }, [onUnreadChange, total]);
 
   const reload = useCallback(() => adapter.listConversations().then(setConvs), [adapter]);
+
+  const retryLoad = () => {
+    setError("");
+    setLoading(true);
+    reload()
+      .catch((caught) => {
+        if (!reportPossibleSessionError(caught)) {
+          setError(errorMessage(caught, "Não foi possível carregar as conversas."));
+        }
+      })
+      .finally(() => setLoading(false));
+  };
 
   const loadMessages = useCallback(
     (id: string) =>
@@ -251,7 +291,7 @@ export function ChatDock({
             more: result.hasMore,
           })),
         )
-        .catch(() => setToast("Não foi possível carregar as mensagens.")),
+        .catch((error) => toastActionError(error, "Não foi possível carregar as mensagens.")),
     [adapter, patch],
   );
 
@@ -261,9 +301,10 @@ export function ChatDock({
       .then(() => {
         if (alive) setLoading(false);
       })
-      .catch(() => {
+      .catch((caught) => {
         if (!alive) return;
-        setError("Não foi possível carregar as conversas.");
+        if (reportPossibleSessionError(caught)) return;
+        setError(errorMessage(caught, "Não foi possível carregar as conversas."));
         setLoading(false);
       });
 
@@ -324,28 +365,61 @@ export function ChatDock({
   }, [openRequest?.nonce, loading]);
 
   const del = (mid: string) => {
-    patch(activeId!, (c) => ({
+    const cid = activeId;
+    const before = conv?.messages.find((m) => m.id === mid);
+    if (!cid || !before) return;
+    patch(cid, (c) => ({
       ...c,
       messages: c.messages.map((m) =>
         m.id === mid ? { ...m, deleted: true, file: null, text: "" } : m,
       ),
     }));
     setSelId(null);
-    void adapter.deleteMessage(mid).catch(() => setToast("Não foi possível apagar a mensagem."));
+    void adapter.deleteMessage(mid).catch((error) => {
+      // Não foi apagada: volta a aparecer como estava, em vez de sumir e
+      // reaparecer só ao recarregar.
+      patch(cid, (c) => ({
+        ...c,
+        messages: c.messages.map((m) => (m.id === mid ? before : m)),
+      }));
+      toastActionError(error, "Não foi possível apagar a mensagem.");
+    });
   };
 
-  /* Atalhos do aluno: navegam nas rotas que já existem, em vez de abrirem um
-     ecrã novo só para o chat. */
-  const studentAction = (action: "boletim" | "frequencia" | "ocorrencias") => {
+  /* A ficha do aluno junta boletim, média, frequência e situação financeira.
+     Só para quem a pode abrir: um encarregado na mesma conversa não vê o atalho. */
+  const canOpenStudent = canAccessPath("/alunos", currentUser.role, currentUser.grants);
+  const openStudent = () => {
     const studentId = conv?.student?.id;
     if (!studentId) return;
-    const target = {
-      boletim: { to: "/pedagogica", search: { tab: "notas", aluno: studentId } },
-      frequencia: { to: "/pedagogica", search: { tab: "presenca", aluno: studentId } },
-      ocorrencias: { to: "/alunos", search: { aluno: studentId } },
-    }[action];
-    void navigate(target as never);
+    void navigate({ to: "/alunos/$studentId", params: { studentId } });
     onClose?.();
+  };
+
+  /**
+   * Falha ao enviar. Recusa por regra (não pode escrever a esta pessoa, anexo
+   * que não pode partilhar…) explica a regra: reenviar dava o mesmo erro.
+   * Falha de rede ou desconhecida oferece «Reenviar» — o texto fica na conversa.
+   */
+  const failToSend = (error: unknown, retry: () => void) => {
+    if (reportPossibleSessionError(error)) return;
+    const guidance = guidanceFor(error);
+    const retryable =
+      !guidance ||
+      guidance.kind === "network" ||
+      guidance.kind === "limit" ||
+      guidance.id.startsWith("generic.");
+    if (!retryable) {
+      toastActionError(error, "Não foi possível enviar a mensagem.");
+      return;
+    }
+    toast.error("A mensagem não foi enviada", {
+      id: "chat-send-failed",
+      description:
+        "Verifique a ligação à internet e toque em Reenviar. O texto ficou guardado na conversa.",
+      duration: 12_000,
+      action: { label: "Reenviar", onClick: retry },
+    });
   };
 
   const deliver = (cid: string, msg: ChatMessage, file: { id: string; name: string } | null) =>
@@ -364,9 +438,9 @@ export function ChatDock({
             .map((m) => (m.id === msg.id ? saved : m)),
         })),
       )
-      .catch(() => {
+      .catch((error) => {
         setStatus(cid, msg.id, "failed");
-        setToast("Falha ao enviar. Toque na mensagem para reenviar.");
+        failToSend(error, () => resendIn(cid, msg));
       });
 
   const send = () => {
@@ -394,11 +468,13 @@ export function ChatDock({
     void deliver(cid, msg, file);
   };
 
-  const resend = (msg: ChatMessage) => {
-    if (!activeId) return;
-    setStatus(activeId, msg.id, "sending");
+  const resendIn = (cid: string, msg: ChatMessage) => {
+    setStatus(cid, msg.id, "sending");
     setSelId(null);
-    void deliver(activeId, msg, msg.file ? { id: msg.file.fileId, name: msg.file.name } : null);
+    void deliver(cid, msg, msg.file ? { id: msg.file.fileId, name: msg.file.name } : null);
+  };
+  const resend = (msg: ChatMessage) => {
+    if (activeId) resendIn(activeId, msg);
   };
 
   const loadOlder = () => {
@@ -413,7 +489,7 @@ export function ChatDock({
           messages: [...result.messages, ...c.messages],
         }));
       })
-      .catch(() => setToast("Não foi possível carregar mensagens anteriores."));
+      .catch((error) => toastActionError(error, "Não foi possível carregar mensagens anteriores."));
   };
 
   const openPicker = () => {
@@ -422,9 +498,9 @@ export function ChatDock({
     adapter
       .listContacts()
       .then(setPicker)
-      .catch(() => {
+      .catch((error) => {
         setPicker(null);
-        setToast("Não foi possível carregar os contactos.");
+        toastActionError(error, "Não foi possível carregar os contactos.");
       });
   };
 
@@ -436,8 +512,10 @@ export function ChatDock({
       setPicker(null);
       setQ("");
       openConv(id);
-    } catch {
-      setToast("Não foi possível iniciar a conversa.");
+    } catch (error) {
+      // Ex.: «Só pode enviar mensagens ao pessoal da escola.» — a regra diz a
+      // quem se pode escrever, em vez de um «não foi possível» sem porquê.
+      toastActionError(error, "Não foi possível iniciar a conversa.");
     }
   };
 
@@ -562,13 +640,58 @@ export function ChatDock({
                   A carregar conversas…
                 </p>
               ) : error ? (
-                <p className="p-6 text-center text-sm" style={{ color: "#c0392b" }}>
-                  {error}
-                </p>
+                <div className="p-6 text-center text-sm" role="alert">
+                  <p style={{ color: "#c0392b" }}>{error}</p>
+                  <p className="mt-1" style={{ color: T.mute }}>
+                    Verifique a ligação à internet e tente outra vez.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={retryLoad}
+                    className="mt-3 rounded-full px-4 py-2 text-sm font-semibold"
+                    style={{ background: T.brand, color: "#fff", minHeight: 40 }}
+                  >
+                    Tentar outra vez
+                  </button>
+                </div>
               ) : list.length === 0 ? (
-                <p className="p-6 text-center text-sm" style={{ color: T.mute }}>
-                  Nenhuma conversa encontrada.
-                </p>
+                <div className="p-6 text-center text-sm" style={{ color: T.mute }}>
+                  {convs.length === 0 ? (
+                    <>
+                      <p className="font-semibold" style={{ color: T.ink }}>
+                        Ainda não tem conversas.
+                      </p>
+                      <p className="mt-1">
+                        {isMessagingStaff([currentUser.role])
+                          ? "Toque em «Nova conversa» e escolha um colega, aluno ou encarregado."
+                          : "Toque em «Nova conversa» e escolha alguém da direcção, da secretaria ou um professor."}
+                      </p>
+                      <button
+                        type="button"
+                        onClick={openPicker}
+                        className="mt-3 inline-flex items-center gap-1 rounded-full px-4 py-2 text-sm font-semibold"
+                        style={{ background: T.brand, color: "#fff", minHeight: 40 }}
+                      >
+                        <Plus size={16} /> Nova conversa
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      <p>Nenhuma conversa corresponde à pesquisa ou ao filtro.</p>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setQ("");
+                          setFilter("all");
+                        }}
+                        className="mt-2 underline"
+                        style={{ color: T.brandDark }}
+                      >
+                        Limpar pesquisa e filtro
+                      </button>
+                    </>
+                  )}
+                </div>
               ) : null}
               {list.map((c) => {
                 const last = c.messages.at(-1);
@@ -655,29 +778,20 @@ export function ChatDock({
             ) : null}
           </div>
 
-          {conv.student ? (
+          {conv.student && canOpenStudent ? (
             <div
               className="flex gap-2 overflow-x-auto px-2 py-2"
               style={{ background: "#fff", borderBottom: `1px solid ${T.line}` }}
             >
-              {(
-                [
-                  ["boletim", "Boletim", ClipboardList],
-                  ["frequencia", "Frequência", CalendarCheck],
-                  ["ocorrencias", "Ocorrências", Flag],
-                ] as const
-              ).map(([k, l, I]) => (
-                <button
-                  key={k}
-                  type="button"
-                  onClick={() => studentAction(k)}
-                  className="flex items-center gap-1 whitespace-nowrap rounded-full px-3 py-1.5 text-xs"
-                  style={{ border: `1px solid ${T.line}`, color: T.brandDark }}
-                >
-                  <I size={13} />
-                  {l}
-                </button>
-              ))}
+              <button
+                type="button"
+                onClick={openStudent}
+                className="flex items-center gap-1 whitespace-nowrap rounded-full px-3 py-1.5 text-xs"
+                style={{ border: `1px solid ${T.line}`, color: T.brandDark, minHeight: 32 }}
+              >
+                <ClipboardList size={13} />
+                Ficha do aluno · boletim e frequência
+              </button>
             </div>
           ) : null}
 
@@ -767,17 +881,13 @@ export function ChatDock({
                                 tabIndex={0}
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  void openAttachment(mm.file!.fileId).catch(() =>
-                                    setToast("Não foi possível abrir o arquivo."),
-                                  );
+                                  void openAttachment(mm);
                                 }}
                                 onKeyDown={(e) => {
                                   if (e.key === "Enter" || e.key === " ") {
                                     e.preventDefault();
                                     e.stopPropagation();
-                                    void openAttachment(mm.file!.fileId).catch(() =>
-                                      setToast("Não foi possível abrir o arquivo."),
-                                    );
+                                    void openAttachment(mm);
                                   }
                                 }}
                                 className="mb-1 flex cursor-pointer items-center gap-2 rounded px-2 py-1.5"
@@ -1007,15 +1117,6 @@ export function ChatDock({
           </div>
         </>
       )}
-
-      {toast ? (
-        <div
-          className="absolute bottom-20 left-3 right-3 rounded-lg px-3 py-2 text-center text-xs"
-          style={{ background: T.ink, color: "#fff" }}
-        >
-          {toast}
-        </div>
-      ) : null}
     </div>
   );
 }

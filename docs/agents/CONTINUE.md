@@ -4,6 +4,26 @@ Ler isto **antes** de alterar código. Ecossistema (5 apps):
 [ARCHITECTURE_HARMONIZATION.md](./ARCHITECTURE_HARMONIZATION.md).
 Depois abrir o skill do módulo em `.cursor/skills/`.
 
+## Mensagens (chat) — revisão (2026-10-07)
+
+- **Um só chat montado:** a `RightRail` monta o `ChatDock` na coluna (≥1024px) ou na
+  folha do telemóvel, nunca nos dois. Antes ficava sempre montado escondido no telemóvel
+  e a folha abria um segundo no mesmo canal de tempo real; no computador, clicar numa
+  notificação abria também a folha do telemóvel. Com o chat fechado, o contador de não
+  lidas vem de `listChatConversations` de minuto a minuto.
+- **Anexos:** `openChatAttachment` abre o anexo a quem participa na conversa (alunos e
+  encarregados incluídos, que não têm o módulo Arquivos). Ao enviar, o servidor confirma
+  que quem anexa consegue abrir o ficheiro (`loadShareableSchoolFile`) e usa o nome dos
+  Arquivos. Antes um id copiado partilhava ficheiros pessoais de outra pessoa.
+- **Erros:** todos os avisos do chat dizem o motivo real e a correcção; envio falhado
+  por rede oferece «Reenviar»; apagar falhado repõe a mensagem; lista com erro tem
+  «Tentar outra vez»; lista vazia explica a quem se pode escrever.
+- **Atalho do aluno:** «Ficha do aluno» (`/alunos/$studentId`) em vez de Boletim /
+  Frequência / Ocorrências — «Frequência» abria `?tab=presenca`, que não existe.
+- **Por decidir (arquitectura):** há dois sistemas de mensagens. O sino do `AppShell`
+  (`useInboxUnread`) conta `siga_direct_messages` (o messenger antigo, `server.ts` /
+  `StaffMessenger`), enquanto o chat escreve em `siga_chat_*`. Unificar num só.
+
 ## Orientação de erros em todo o sistema (2026-10-07)
 
 - Cada erro sai com **o que correu mal, a forma certa e um botão para o sítio onde se

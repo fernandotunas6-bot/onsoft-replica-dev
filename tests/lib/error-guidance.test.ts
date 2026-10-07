@@ -96,6 +96,22 @@ const SERVER_MESSAGES: Array<[string, string, string | null]> = [
   ["Seleccione turma e disciplina.", "process.select-required", null],
   ["O nome é obrigatório.", "process.validation", null],
   ["Não foi possível guardar a turma.", "generic.failed", "/configuracoes/diagnostico"],
+  // Mensagens (chat-server.ts e o gatilho 20261002100000_chat_integrity.sql).
+  ["Só pode enviar mensagens ao pessoal da escola.", "messages.staff-only", null],
+  ["Não participa nesta conversa.", "messages.not-member", null],
+  ["Este utilizador não pertence à escola.", "messages.not-member", null],
+  ["Só pode anexar ficheiros que consegue abrir nos Arquivos.", "messages.attachment", "/arquivos"],
+  ["O ficheiro anexado já não existe nos Arquivos.", "messages.attachment", "/arquivos"],
+  ["O anexo foi apagado por quem o enviou.", "messages.attachment", "/arquivos"],
+  ["O anexo tem de ser um ficheiro da escola da conversa.", "messages.attachment", "/arquivos"],
+  ["Só pode apagar as mensagens que enviou.", "messages.own-only", null],
+  ["Só pode responder a mensagens da mesma conversa.", "messages.own-only", null],
+  ["Escreva uma mensagem ou anexe um arquivo.", "messages.empty", null],
+  [
+    "As mensagens ainda não estão activas nesta escola: falta aplicar a migração.",
+    "config.pending-migration",
+    "/configuracoes/diagnostico",
+  ],
 ];
 
 function destination(id: string, message: string) {

@@ -52,6 +52,8 @@ const REVISTAS: Record<string, string> = {
   // Filtra por `sender_id`, que o VERIFICA acima não reconhece — e alargá-lo a
   // `sender_id` em geral deixaria passar funções que só o usam para escrever.
   deleteChatMessage: 'apaga só a própria mensagem: .eq("sender_id", context.userId)',
+  openChatAttachment:
+    "assertMember: só quem participa na conversa da mensagem abre o anexo (siga_chat_members)",
 };
 
 // Sinais de que a função verifica mais do que a pertença.

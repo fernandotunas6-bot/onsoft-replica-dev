@@ -76,6 +76,17 @@ Os erros do zod que chegam em JSON (`[{"code":"too_big"…}]`) passam por
 `network.offline`, `network.timeout`. Mensagem técnica sem regra → «Não foi possível
 concluir a operação» + Diagnóstico; o texto técnico vai só para a consola.
 
+### 4. Mensagens (chat)
+
+| Caso                                              | Regra                 | O que a pessoa vê                                                                        |
+| ------------------------------------------------- | --------------------- | ---------------------------------------------------------------------------------------- |
+| Aluno/encarregado escreve a quem não é do pessoal | `messages.staff-only` | a quem pode escrever                                                                     |
+| Conversa ou contacto já não disponível            | `messages.not-member` | começar nova conversa                                                                    |
+| Anexo que não pode partilhar / apagado            | `messages.attachment` | escolher outro ficheiro (→ Arquivos)                                                     |
+| Apagar mensagem de outra pessoa                   | `messages.own-only`   | só as próprias                                                                           |
+| Envio vazio                                       | `messages.empty`      | escrever ou anexar                                                                       |
+| Falha de rede ao enviar                           | —                     | «A mensagem não foi enviada» + botão **Reenviar**; a mensagem fica marcada «Não enviada» |
+
 ## Desktop, telemóvel e app desktop
 
 - **Computador:** avisos no canto superior direito, até 4 visíveis, botão de fechar.

@@ -7,8 +7,11 @@ import { useEntityFocus } from "@/features/intelligence/entity-focus-context";
 import { useRelations } from "@/features/intelligence/use-relations";
 import { useSuggestions } from "@/features/intelligence/use-suggestions";
 import { ContextualActionsPanel } from "@/features/intelligence/components/ContextualActionsPanel";
-import { startDirectConversation } from "@/features/messages/chat-server";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { listChatConversations, startDirectConversation } from "@/features/messages/chat-server";
 import { OPEN_DM_EVENT } from "@/features/messages/unread";
+import { useBreakpoint } from "@/hooks/use-breakpoint";
+import { toastActionError } from "@/lib/action-error-toast";
 
 /* O chat é pesado (painel inteiro + realtime) e a maioria das sessões nunca
    abre o separador: só carrega quando alguém lá vai. */
@@ -37,6 +40,11 @@ export function RightRail() {
     nonce: number;
   } | null>(null);
   const nonceRef = useRef(0);
+  // Um só chat de cada vez: a coluna em `lg` (computador), a folha abaixo
+  // disso (telemóvel e tablet). Montar os dois abria duas ligações de tempo
+  // real no mesmo canal e, ao fechar a folha, cortava a da coluna.
+  const { breakpoint, ready } = useBreakpoint();
+  const isDesktop = breakpoint === "desktop";
 
   // Sem entidade em foco não há "Relacionado" para mostrar — o chat passa a ser
   // o único separador e fica seleccionado.
@@ -51,23 +59,52 @@ export function RightRail() {
       const peerId = (event as CustomEvent<{ peerId?: string }>).detail?.peerId;
       if (!peerId) return;
       setTab("mensagens");
-      setMobileOpen(true);
-      setPanelCollapsed(false);
+      // No computador abre a coluna; a folha de baixo é só para o telemóvel.
+      if (isDesktop) setPanelCollapsed(false);
+      else setMobileOpen(true);
       void startDirectConversation({ data: { peerId } })
         .then(({ conversationId }) => {
           nonceRef.current += 1;
           setOpenRequest({ conversationId, nonce: nonceRef.current });
         })
-        .catch(() => {
-          /* A ChatDock mostra a lista; iniciar a conversa pode estar barrado
-             pela regra de quem fala com quem. */
+        .catch((error) => {
+          // A lista fica aberta; o aviso diz porquê (ex.: um encarregado só
+          // escreve ao pessoal da escola) e como seguir.
+          toastActionError(error, "Não foi possível abrir a conversa com esta pessoa.");
         });
     };
     window.addEventListener(OPEN_DM_EVENT, handler);
     return () => window.removeEventListener(OPEN_DM_EVENT, handler);
-  }, [setPanelCollapsed]);
+  }, [isDesktop, setPanelCollapsed]);
 
   const handleUnread = useCallback((total: number) => setUnread(total), []);
+
+  // Com o chat fechado (folha do telemóvel fechada, coluna recolhida) não há
+  // tempo real: o contador vem de uma leitura leve, de minuto a minuto.
+  const chatMounted =
+    ready && activeTab === "mensagens" && (isDesktop ? !panelCollapsed : mobileOpen);
+  const closedUnread = useQuery({
+    queryKey: ["chat", "unread"],
+    queryFn: async () =>
+      (await listChatConversations()).conversations.reduce((n, c) => n + (c.unread || 0), 0),
+    enabled: ready && !chatMounted,
+    refetchInterval: 60_000,
+    refetchOnWindowFocus: true,
+    staleTime: 30_000,
+    retry: false,
+    // O contador é um extra: falhar não interrompe ninguém com um aviso.
+    meta: { errorToast: false },
+  });
+  const unreadCount = chatMounted ? unread : (closedUnread.data ?? unread);
+
+  // Ao fechar o chat, o contador continua no número que o chat mostrava (já
+  // com o que a pessoa acabou de ler), e não no da leitura anterior.
+  const queryClient = useQueryClient();
+  const wasMounted = useRef(false);
+  useEffect(() => {
+    if (wasMounted.current && !chatMounted) queryClient.setQueryData(["chat", "unread"], unread);
+    wasMounted.current = chatMounted;
+  }, [chatMounted, queryClient, unread]);
 
   const chat = (
     <Suspense
@@ -104,9 +141,9 @@ export function RightRail() {
         )}
       >
         Mensagens
-        {unread > 0 ? (
+        {unreadCount > 0 ? (
           <span className="rounded-full bg-destructive px-1.5 text-[10px] font-bold text-destructive-foreground">
-            {unread}
+            {unreadCount}
           </span>
         ) : null}
       </button>
@@ -142,7 +179,7 @@ export function RightRail() {
               className="relative rounded-full p-2 text-muted-foreground transition-colors hover:text-foreground"
             >
               <MessageCircle className="size-4" />
-              {unread > 0 ? (
+              {unreadCount > 0 ? (
                 <span className="absolute -right-0.5 -top-0.5 size-2.5 rounded-full bg-destructive" />
               ) : null}
             </button>
@@ -164,7 +201,9 @@ export function RightRail() {
             {tabs}
             <div className="min-h-0 flex-1">
               {activeTab === "mensagens" ? (
-                chat
+                ready && isDesktop ? (
+                  chat
+                ) : null
               ) : (
                 <ContextualActionsPanel
                   title={focusedEntity?.label ?? ""}
@@ -207,25 +246,32 @@ export function RightRail() {
           className="relative flex size-12 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg"
         >
           <MessageCircle className="size-5" />
-          {unread > 0 ? (
+          {unreadCount > 0 ? (
             <span className="absolute -right-0.5 -top-0.5 rounded-full bg-destructive px-1.5 text-[10px] font-bold text-destructive-foreground">
-              {unread}
+              {unreadCount}
             </span>
           ) : null}
         </button>
       </div>
 
-      <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
+      <Sheet open={mobileOpen && !isDesktop} onOpenChange={setMobileOpen}>
         {/* Quase ecrã inteiro: uma conversa num Sheet de 75vh deixa duas
-            mensagens visíveis acima do teclado num telemóvel. */}
-        <SheetContent side="bottom" className="flex h-[92vh] flex-col gap-0 p-0">
+            mensagens visíveis acima do teclado num telemóvel. `dvh` encolhe
+            com o teclado e com a barra do navegador (`vh` não), e a margem de
+            baixo deixa a caixa de escrever acima da barra do iPhone. */}
+        <SheetContent
+          side="bottom"
+          className="flex h-[92vh] h-[92dvh] flex-col gap-0 p-0 pb-[env(safe-area-inset-bottom)]"
+        >
           <SheetHeader className="sr-only">
             <SheetTitle>{activeTab === "mensagens" ? "Mensagens" : "Relacionado"}</SheetTitle>
           </SheetHeader>
           {tabs}
           <div className="min-h-0 flex-1">
             {activeTab === "mensagens" ? (
-              chat
+              isDesktop ? null : (
+                chat
+              )
             ) : (
               <ContextualActionsPanel
                 title={focusedEntity?.label ?? ""}

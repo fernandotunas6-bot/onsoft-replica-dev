@@ -373,6 +373,40 @@ const RULES: Rule[] = [
     action: TO_PROFILE,
   },
 
+  /* ───────────── Mensagens ───────────── */
+  {
+    id: "messages.staff-only",
+    kind: "process",
+    match: /só pode enviar mensagens ao pessoal da escola/i,
+    fix: "Alunos e encarregados escrevem à direcção, à secretaria, à tesouraria e aos professores. Escolha um destes contactos em «Nova conversa».",
+  },
+  {
+    id: "messages.not-member",
+    kind: "permission",
+    match: /não participa nesta conversa|utilizador não pertence à escola/i,
+    fix: "A conversa ou o contacto já não está disponível nesta escola. Feche-a e comece uma nova em «Nova conversa».",
+  },
+  {
+    id: "messages.attachment",
+    kind: "process",
+    match:
+      /anexo (foi apagado|ficou guardado|tem de ser)|só pode anexar ficheiros|ficheiro anexado já não existe/i,
+    fix: "Escolha outro ficheiro em Arquivos que consiga abrir, ou peça a quem o enviou que o anexe de novo.",
+    action: { kind: "route", to: "/arquivos", label: "Abrir Arquivos" },
+  },
+  {
+    id: "messages.own-only",
+    kind: "process",
+    match: /só pode apagar as mensagens que enviou|responder a mensagens da mesma conversa/i,
+    fix: "Só se apagam as próprias mensagens, e só se responde a mensagens da conversa aberta.",
+  },
+  {
+    id: "messages.empty",
+    kind: "process",
+    match: /escreva uma mensagem ou anexe/i,
+    fix: "Escreva o texto na caixa por baixo da conversa, ou toque no clipe para anexar um ficheiro, e carregue em Enviar.",
+  },
+
   /* ───────────── Acesso, sessão, rede e limites ───────────── */
   {
     id: "access.no-school",

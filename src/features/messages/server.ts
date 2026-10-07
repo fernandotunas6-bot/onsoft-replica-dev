@@ -8,6 +8,7 @@ import {
   sendDirectMessageInputSchema,
   type InboxPreview,
 } from "./schemas";
+import { isMessagingStaff } from "./messaging-roles";
 
 const MISSING_TABLE = /schema cache|does not exist|42P01|PGRST/i;
 
@@ -29,17 +30,7 @@ function missingMessagesTable(error: { message?: string } | null) {
   return Boolean(error?.message && MISSING_TABLE.test(error.message));
 }
 
-/**
- * Quem pode conversar com quem. O pessoal da escola fala com toda a gente;
- * alunos, encarregados e contas sem cargo só com o pessoal. Sem isto, um
- * encarregado (um adulto de fora) escrevia em privado a qualquer aluno, e
- * alunos trocavam mensagens entre si sem supervisão.
- */
-const MESSAGING_STAFF_ROLES = new Set(["Administrador", "Secretaria", "Tesouraria", "Professor"]);
-
-export function isMessagingStaff(roles: readonly string[]): boolean {
-  return roles.some((role) => MESSAGING_STAFF_ROLES.has(role));
-}
+export { isMessagingStaff };
 
 /** Cargos da pessoa NESTA escola (não o cargo global do perfil). */
 async function schoolRolesOf(

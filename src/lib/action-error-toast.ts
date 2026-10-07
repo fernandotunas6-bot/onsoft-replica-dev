@@ -3,6 +3,7 @@ import { errorParts, guidanceFor } from "@/lib/error-guidance";
 import { formatMutationError } from "@/lib/format-error";
 import { isTechnicalMessage } from "@/lib/public-error";
 import { reportPossibleStepUp } from "@/lib/step-up";
+import { reportPossibleSessionError } from "@/lib/session-expiry";
 
 /**
  * Erro de uma acção (gravar, apagar, emitir…), com a correcção e o botão para
@@ -14,6 +15,8 @@ import { reportPossibleStepUp } from "@/lib/step-up";
 export function toastActionError(error: unknown, fallback: string) {
   // O diálogo «Confirme que é você» já explica; um aviso de erro por cima só confundia.
   if (reportPossibleStepUp(error)) return;
+  // Sessão expirada: o ecrã de entrada já diz o que fazer.
+  if (reportPossibleSessionError(error)) return;
   const { message, code } = errorParts(error);
   const text = message ? formatMutationError(new Error(message), fallback) : "";
   // Um erro só com código Postgres (sem texto útil) ainda tem regra própria.
