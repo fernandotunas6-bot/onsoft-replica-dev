@@ -285,7 +285,7 @@ function StudentDetail() {
   });
   const invoicesQuery = useQuery({
     queryKey: ["finance", "invoices", "student", studentId],
-    queryFn: () => listInvoices({ data: { limit: 250 } }),
+    queryFn: () => listInvoices({ data: { studentId, limit: 1000 } }),
     retry: false,
   });
   const documentsQuery = useQuery({

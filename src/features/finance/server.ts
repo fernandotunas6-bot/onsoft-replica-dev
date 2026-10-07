@@ -14,6 +14,7 @@ import {
 } from "@/integrations/supabase/sga-admin";
 import {
   financeListInputSchema,
+  listInvoicesInputSchema,
   issueInvoiceInputSchema,
   recordCashExpenseInputSchema,
   recordInvoicePaymentInputSchema,
@@ -592,7 +593,7 @@ export const getFinanceReporting = createServerFn({ method: "GET" })
 
 export const listInvoices = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
-  .validator((input: unknown) => financeListInputSchema.parse(input))
+  .validator((input: unknown) => listInvoicesInputSchema.parse(input))
   .handler(async ({ data, context }) => {
     const membership = await requireSgaWriterFor("financeiro", context.supabase, context.userId, [
       "Administrador",
@@ -601,13 +602,39 @@ export const listInvoices = createServerFn({ method: "GET" })
     ]);
     const db = await loadSgaAdminClient();
 
-    const { data: invoices, error } = await db
+    let studentContractIds: string[] | null = null;
+    if (data.studentId) {
+      const { data: studentEnrollments, error: enrollmentsError } = await db
+        .from("enrollments")
+        .select("id")
+        .eq("school_id", membership.schoolId)
+        .eq("student_id", data.studentId);
+      if (enrollmentsError) {
+        throw publicDatabaseError(enrollmentsError, "Não foi possível carregar as faturas.");
+      }
+      const enrollmentIds = (studentEnrollments ?? []).map((row: { id: string }) => row.id);
+      if (!enrollmentIds.length) return [];
+      const { data: studentContracts, error: contractsError } = await db
+        .from("finance_contracts")
+        .select("id")
+        .eq("school_id", membership.schoolId)
+        .in("enrollment_id", enrollmentIds);
+      if (contractsError) {
+        throw publicDatabaseError(contractsError, "Não foi possível carregar as faturas.");
+      }
+      studentContractIds = (studentContracts ?? []).map((row: { id: string }) => row.id);
+      if (!studentContractIds.length) return [];
+    }
+
+    let invoicesQuery = db
       .from("finance_invoices")
       .select(
         "id, contract_id, fee_item_id, invoice_number, competence_month, amount, discount_amount, penalty_amount, due_date, status, created_at",
       )
       .eq("school_id", membership.schoolId)
-      .neq("status", "cancelled")
+      .neq("status", "cancelled");
+    if (studentContractIds) invoicesQuery = invoicesQuery.in("contract_id", studentContractIds);
+    const { data: invoices, error } = await invoicesQuery
       .order("created_at", { ascending: false })
       .limit(data.limit);
     if (error) throw publicDatabaseError(error, "Não foi possível carregar as faturas.");
