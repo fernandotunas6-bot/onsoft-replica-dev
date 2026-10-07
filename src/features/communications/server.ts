@@ -8,6 +8,7 @@ import {
 } from "@/integrations/supabase/sga-admin";
 import {
   archiveAnnouncementInputSchema,
+  SCHEDULED_CHANNEL_MESSAGE,
   createAnnouncementInputSchema,
   listAnnouncementsInputSchema,
   updateAnnouncementInputSchema,
@@ -95,6 +96,9 @@ export const listSchoolAnnouncements = createServerFn({ method: "GET" })
       .update({ status: "sent", published_at: nowIso })
       .eq("school_id", membership.schoolId)
       .eq("status", "scheduled")
+      // Só os do portal: publicar é tudo o que acontece aqui. Um agendado por SMS,
+      // e-mail ou WhatsApp não sai por esse canal, e não pode passar a «Enviado».
+      .eq("channel", "portal")
       .lte("scheduled_for", nowIso)
       .is("deleted_at", null);
 
@@ -190,6 +194,17 @@ export const updateSchoolAnnouncementStatus = createServerFn({ method: "POST" })
       ["Administrador", "Secretaria"],
     );
     const db = await loadSgaAdminClient();
+    if (data.status === "scheduled") {
+      const { data: current } = await db
+        .from("school_announcements")
+        .select("channel")
+        .eq("id", data.id)
+        .eq("school_id", membership.schoolId)
+        .maybeSingle();
+      if (current && (current.channel ?? "portal") !== "portal") {
+        throw new Error(SCHEDULED_CHANNEL_MESSAGE);
+      }
+    }
     const patch = {
       status: data.status,
       published_at: data.status === "sent" ? new Date().toISOString() : null,

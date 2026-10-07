@@ -47,6 +47,7 @@ import {
   announcementAudienceOptions,
   announcementChannelOptions,
   announcementStatusOptions,
+  SCHEDULED_CHANNEL_MESSAGE,
 } from "@/features/communications/schemas";
 import {
   archiveSchoolAnnouncement,
@@ -477,7 +478,11 @@ function ComunicacoesPage() {
     const form = formRef.current;
     if (!form) return;
     if (!form.reportValidity()) return;
-    const scheduledFor = readAnnouncementForm(form).scheduledFor;
+    const { scheduledFor, channel } = readAnnouncementForm(form);
+    if (scheduledFor && channel !== "portal") {
+      toast.error("Não foi possível agendar", { description: SCHEDULED_CHANNEL_MESSAGE });
+      return;
+    }
     void saveAnnouncement(form, scheduledFor ? "scheduled" : "draft");
   };
 
