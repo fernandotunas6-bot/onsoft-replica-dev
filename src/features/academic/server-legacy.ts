@@ -827,20 +827,56 @@ export const updateClassGroup = createServerFn({ method: "POST" })
     const db = await loadSgaAdminClient();
     // `roomId`: string = mudar de sala, null = tirar a sala, ausente = não mexer.
     // O campus não muda com a sala: `normalize_class_group` torna-o imutável.
+    // A sala nova tem de caber a turma com a lotação que ela vai ter: a pedida ou,
+    // sem ela, a actual (antes assumia 30).
+    let capacityForRoom = data.capacity;
+    if (data.roomId && capacityForRoom === undefined) {
+      const { data: current } = await db
+        .from("class_groups")
+        .select("capacity")
+        .eq("id", data.id)
+        .eq("school_id", membership.schoolId)
+        .maybeSingle();
+      capacityForRoom = typeof current?.capacity === "number" ? current.capacity : 30;
+    }
     const sala = data.roomId
-      ? await loadSalaForClassGroup(db, membership.schoolId, data.roomId, data.capacity ?? 30)
+      ? await loadSalaForClassGroup(db, membership.schoolId, data.roomId, capacityForRoom ?? 30)
       : null;
+    // Baixar a lotação abaixo dos alunos já na turma deixava-a «sobrelotada» sem
+    // aviso: a base só confere a lotação quando entra alguém (auditoria 13).
+    if (data.capacity !== undefined) {
+      const { count: occupied, error: occupiedError } = await db
+        .from("enrollments")
+        .select("id", { count: "exact", head: true })
+        .eq("school_id", membership.schoolId)
+        .eq("class_group_id", data.id)
+        .in("status", ["pending", "active"]);
+      if (occupiedError) {
+        throw publicDatabaseError(occupiedError, "Não foi possível contar os alunos da turma.");
+      }
+      if ((occupied ?? 0) > data.capacity) {
+        throw new Error(
+          `A turma tem ${occupied} alunos matriculados: a lotação não pode ficar em ${data.capacity}.`,
+        );
+      }
+    }
+    // Só o que veio no pedido: um campo ausente não muda (antes a lotação voltava
+    // a 30 e o grupo de WhatsApp era apagado sempre que não vinham).
     const payload = {
       code: data.code,
       name: data.name,
-      shift: data.shift,
-      capacity: data.capacity ?? 30,
+      ...(data.shift !== undefined ? { shift: data.shift } : {}),
+      ...(data.capacity !== undefined ? { capacity: data.capacity } : {}),
       ...(data.roomId !== undefined ? { room_id: sala?.id ?? null } : {}),
       // O formulário oferece activa/inactiva; `class_groups.status` só aceita
       // draft/active/closed/archived, e "inactive" era recusado.
       ...(data.status ? { status: data.status === "inactive" ? "archived" : "active" } : {}),
-      whatsapp_invite_url: data.whatsappInviteUrl ?? null,
-      whatsapp_group_name: data.whatsappGroupName ?? null,
+      ...(data.whatsappInviteUrl !== undefined
+        ? { whatsapp_invite_url: data.whatsappInviteUrl }
+        : {}),
+      ...(data.whatsappGroupName !== undefined
+        ? { whatsapp_group_name: data.whatsappGroupName }
+        : {}),
       updated_by: context.userId,
     };
     let { data: group, error } = await db

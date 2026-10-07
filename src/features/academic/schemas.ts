@@ -98,14 +98,17 @@ export const updateClassGroupInputSchema = z.object({
   id: z.string().uuid(),
   code: classGroupCode,
   name: classGroupName,
-  shift: z.enum(classShiftOptions),
+  // Ausente = não mexe. «Reactivar» só muda o estado: antes repunha o turno
+  // (dia inteiro virava manhã), a lotação (30) e apagava o grupo de WhatsApp.
+  shift: z.enum(classShiftOptions).optional(),
   capacity: z.number().int().positive().max(200).optional(),
   roomId: z.string().uuid().optional().nullable(),
   // Ausente = não mexe no estado. O antigo `.default("active")` reactivava sem
   // aviso uma turma arquivada sempre que alguém lhe editava o nome.
   status: z.enum(["active", "inactive"]).optional(),
-  whatsappInviteUrl: optionalHttpUrl,
-  whatsappGroupName: optionalText,
+  // Ausente = não mexe; `null` (ou "" no nome) = apagar.
+  whatsappInviteUrl: z.union([z.null(), optionalHttpUrl]),
+  whatsappGroupName: clearableText,
 });
 export type UpdateClassGroupInput = z.infer<typeof updateClassGroupInputSchema>;
 
