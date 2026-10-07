@@ -268,9 +268,10 @@ produção (regra do pedido: não alterar dados reais). O que foi possível veri
   dispositivo real; Safari/Firefox não disponíveis; só Chromium em emulação.
 - Páginas de produção: a rede deste ambiente recusa `portal-siga.com`; o ensaio de ecrãs
   correu contra o servidor de desenvolvimento local, sem Supabase.
-- Calendário, presenças de alunos, boletins, PDF/Excel, RH e salários, biblioteca, capelania,
-  alumni, comunicações, Google Workspace, app desktop e modo offline: **não auditados**.
-  Horários, QR do professor, arquivos e storage foram vistos na segunda passagem (secção 8).
+- Biblioteca, capelania, alumni e comunicações (envio real de SMS/WhatsApp/e-mail): **não
+  auditados**. Horários, QR, arquivos e storage estão na secção 8; presenças, PDF/Excel, RH,
+  calendário, desktop e integrações na secção 9 (por leitura e geração local, sem utilizadores).
+- App desktop: não compilada nem executada (sem Rust nem ambiente gráfico).
 - Políticas RLS fora das 11 tabelas da réplica.
 - Desempenho e volume: só o tempo de build e a leitura dos limites das listagens; nenhuma medição de resposta com dados.
 - Backups e restauro; logs e monitorização em produção.
@@ -336,3 +337,78 @@ Retirar ou restringir antes de os pôr em uso.
 
 Prioridades actualizadas: **F-22 entra no passo 5 do plano** (com F-04), e **F-23 no passo 6**
 (com F-05).
+
+## 9. Terceira passagem (2026-10-07)
+
+### F-27 — P1 (regulatório, a confirmar) — Faturação sem certificação AGT
+
+`src/features/finance/saft-export.ts:149` diz-o claramente: _«o SIGA não é software de
+facturação certificado pela AGT (certificado 0, documentos sem assinatura)»_. As faturas e
+recibos levam numeração fiscal (`FT-AAAA/NNNN`) mas não têm a assinatura nem o encadeamento
+que o regime de faturação electrónica angolano exige ao software certificado. O SAF-T exportado
+serve só para conferência. **Confirmar com um contabilista ou a AGT** se as escolas clientes
+são obrigadas a faturar com software certificado. Se forem, os documentos do SIGA devem passar
+a «documento interno / aviso de cobrança», e a fatura fiscal vem do software certificado da
+escola, até haver certificação.
+
+### F-28 — P2 — Na pauta oficial em PDF as assinaturas ficam por cima das notas
+
+**Verificado gerando o PDF** com o mesmo código de `exportOfficialPautaPdf`
+(`src/lib/export-pdf.ts:133`), em paisagem com 8 colunas. As assinaturas ficam em
+`min(fimDaTabela + 22, alturaDaPágina − 24)`; quando a tabela acaba nos últimos 46 mm da
+página, a linha «O Professor / O Coordenador / A Direcção» é impressa sobre as últimas linhas:
+
+| Alunos | Páginas | Fim da tabela | Assinaturas | Folga           |
+| ------ | ------- | ------------- | ----------- | --------------- |
+| 15     | 1       | 183,9 mm      | 186,0 mm    | 2,1 mm          |
+| 16     | 1       | 191,2 mm      | 186,0 mm    | **−5,2 mm**     |
+| 39     | 2       | 188,0 mm      | 186,0 mm    | **−2,0 mm**     |
+| 40     | 2       | 195,2 mm      | 186,0 mm    | **−9,2 mm**     |
+| 63–64  | 3       | até 195,2 mm  | 186,0 mm    | **até −9,2 mm** |
+
+Turmas de 39 e 40 alunos são correntes. Também: o cabeçalho oficial (brasão, escola, turma)
+só aparece na primeira página e não há «Página x de y». Correcção: se não couber, nova página
+antes das assinaturas; `didDrawPage` para repetir o cabeçalho e numerar. Aceitação: de 1 a 80
+alunos, folga ≥ 10 mm e todas as páginas identificadas.
+
+### F-29 — P1 — A folha de salários não calcula impostos legais
+
+`src/routes/financeiro.rh.folha.tsx:278` mostra _«Inclui faltas validadas; impostos legais
+ainda não configurados»_. O «líquido» é o bruto menos faltas: não há INSS (trabalhador e
+entidade empregadora) nem IRT, e não há código que os calcule em `src/features/hr/`. Uma
+escola que pague pelo valor «líquido» paga a mais e não retém o que deve. Correcção:
+parametrizar as taxas e escalões por ano fiscal (tabela versionada, não constantes no
+código), com testes de cálculo independentes. Até lá, chamar «valor antes de impostos» ao
+que hoje se chama «líquido».
+
+### F-30 — P2 — Correcções de chamada podem ficar sem rasto e sem limite temporal
+
+`editFinalizedAttendanceCall` (`src/features/pedagogica/attendance-server.ts:606`) grava a
+correcção e só depois a auditoria. Se esta falhar, fica um `console.warn` e a correcção
+mantém-se, sem registo. Não há limite de tempo nem bloqueio por período fechado: um professor
+pode alterar faltas de há meses, já usadas na percentagem de faltas do resultado final
+(`exam-engine.computeFinalResult` reprova acima do limite). Correcção: auditoria e correcção
+na mesma transacção (RPC), e recusa depois do fecho do período, salvo Direcção.
+
+### F-31 — P3 — Outras
+
+| ID   | Achado                                                                                                                                                                                                         | Evidência                                      |
+| ---- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------- |
+| F-32 | Decidir uma justificação não é atómico: aprovada com a falta por mudar, sem nova tentativa (já não está «pending»); duas decisões ao mesmo tempo não são travadas (o `update` não filtra `status = 'pending'`) | `attendance-server.ts:750`                     |
+| F-33 | Feed ICS: token em claro, sem revogação, continua válido depois de a pessoa perder o vínculo; só leva períodos e feriados, não os eventos da escola                                                            | `src/features/calendar/feed.ts`                |
+| F-34 | «Google Calendar» promete _«sincronização do calendário lectivo e turmas»_; é a subscrição do feed ICS (sem turmas nem eventos). `google_workspace_connections` não é usada por código nenhum                  | `integrations/catalog.ts:27`, `launcher.ts:18` |
+| F-35 | SIGE: é uma exportação de ficheiro («Preparar o ficheiro…»), não uma integração — o texto está certo; fica registado para não se vender como ligação                                                           | `integrations/install.ts:197`                  |
+
+### Verificado e correcto nesta passagem
+
+| Área                                    | Verificação                                                                                                                                                                                                                                                                                                |
+| --------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Chamada (presenças)                     | Professor só nas suas sessões; só alunos matriculados na turma; gravação num único `upsert` idempotente; chamada fechada só se altera por «Corrigir chamada» com motivo                                                                                                                                    |
+| Justificações                           | Só o encarregado ou o aluno do próprio registo; professor decide só as das suas aulas; uma decisão por justificação                                                                                                                                                                                        |
+| Exportações Excel                       | 21 consultas filtradas por escola; as outras 11 usam ids vindos dessas linhas                                                                                                                                                                                                                              |
+| Declaração em PDF                       | Corpo curto e fixo (`officialDeclarationBody`): sem sobreposição                                                                                                                                                                                                                                           |
+| App desktop (documentação e permissões) | Sessão num cofre Stronghold com PIN, 5 erros bloqueiam 1 min; o portal remoto não tem acesso a ficheiros, shell nem updater; hardware só para IPs privados. **Offline:** só preferências; os módulos escolares precisam do servidor (sem fila nem resolução de conflitos), e a documentação diz isso mesmo |
+
+Prioridades actualizadas: **F-27 e F-29 antes de qualquer escola usar finanças ou salários
+reais** (decisão do dono, com contabilista); F-28 entra no passo 7; F-30 no passo 3 (junto das
+importações, mesmo princípio: correcções com rasto e respeito pelo fecho).
