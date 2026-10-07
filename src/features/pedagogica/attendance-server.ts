@@ -717,6 +717,30 @@ export const editFinalizedAttendanceCall = createServerFn({ method: "POST" })
       .filter(({ item, oldStatus }) => oldStatus !== item.status);
 
     if (changes.length) {
+      // Primeiro o registo da correcção, depois a correcção: antes, se a auditoria
+      // falhasse, as presenças ficavam mudadas sem rasto (só um aviso no servidor).
+      const { data: auditRows, error: auditError } = await db
+        .from("siga_attendance_audits")
+        .insert(
+          changes.map(({ item, prev, oldStatus }) => ({
+            school_id: membership.schoolId,
+            session_id: session.id,
+            attendance_record_id: prev?.id ?? null,
+            student_id: item.studentId,
+            old_status: oldStatus,
+            new_status: item.status,
+            reason: data.reason.trim(),
+            changed_by: context.userId,
+          })),
+        )
+        .select("id");
+      if (auditError) {
+        throw publicDatabaseError(
+          auditError,
+          "Não foi possível registar a correcção. A chamada não foi alterada.",
+        );
+      }
+
       const now = new Date().toISOString();
       const { error: upsertError } = await db.from("siga_attendance_records").upsert(
         changes.map(({ item }) => ({
@@ -731,23 +755,13 @@ export const editFinalizedAttendanceCall = createServerFn({ method: "POST" })
         { onConflict: "session_id,student_id" },
       );
       if (upsertError) {
+        // O registo descreve uma correcção que não aconteceu: sai, se a tabela deixar.
+        const ids = (auditRows ?? []).map((row: { id: string }) => row.id);
+        if (ids.length) {
+          await db.from("siga_attendance_audits").delete().in("id", ids);
+        }
         throw publicDatabaseError(upsertError, "Não foi possível corrigir a chamada.");
       }
-
-      const { error: auditError } = await db.from("siga_attendance_audits").insert(
-        changes.map(({ item, prev, oldStatus }) => ({
-          school_id: membership.schoolId,
-          session_id: session.id,
-          attendance_record_id: prev?.id ?? null,
-          student_id: item.studentId,
-          old_status: oldStatus,
-          new_status: item.status,
-          reason: data.reason.trim(),
-          changed_by: context.userId,
-        })),
-      );
-      if (auditError)
-        console.warn("[attendance] auditoria da correcção falhou:", auditError.message);
 
       await recomputeAttendanceRates(
         db,

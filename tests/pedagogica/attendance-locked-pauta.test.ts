@@ -31,6 +31,15 @@ describe("presenças num período com pauta oficial", () => {
     );
   });
 
+  it("a correcção regista-se antes de mudar as presenças", () => {
+    const fn = body("editFinalizedAttendanceCall");
+    expect(fn.indexOf('.from("siga_attendance_audits")')).toBeGreaterThan(-1);
+    expect(fn.indexOf('.from("siga_attendance_audits")')).toBeLessThan(
+      fn.indexOf('.from("siga_attendance_records").upsert'),
+    );
+    expect(fn).not.toContain("console.warn");
+  });
+
   it("usa os mesmos estados oficiais das notas", () => {
     const helper = source.slice(source.indexOf("async function assertAttendanceNotLocked"));
     const fn = helper.slice(0, helper.indexOf("\n}\n"));
