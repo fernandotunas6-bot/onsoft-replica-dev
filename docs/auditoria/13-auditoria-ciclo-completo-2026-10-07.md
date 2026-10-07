@@ -268,10 +268,71 @@ produção (regra do pedido: não alterar dados reais). O que foi possível veri
   dispositivo real; Safari/Firefox não disponíveis; só Chromium em emulação.
 - Páginas de produção: a rede deste ambiente recusa `portal-siga.com`; o ensaio de ecrãs
   correu contra o servidor de desenvolvimento local, sem Supabase.
-- Horários, calendário, presenças por QR, boletins, PDF/Excel, arquivos e links de descarga,
-  storage, RH e salários, biblioteca, capelania, alumni, comunicações, Google Workspace,
-  app desktop e modo offline: **não auditados nesta passagem**.
-- Políticas RLS fora das 11 tabelas da réplica, e políticas de `storage.objects`.
-- Desempenho e volume: só o tempo de build; nenhuma medição de resposta com dados.
+- Calendário, presenças de alunos, boletins, PDF/Excel, RH e salários, biblioteca, capelania,
+  alumni, comunicações, Google Workspace, app desktop e modo offline: **não auditados**.
+  Horários, QR do professor, arquivos e storage foram vistos na segunda passagem (secção 8).
+- Políticas RLS fora das 11 tabelas da réplica.
+- Desempenho e volume: só o tempo de build e a leitura dos limites das listagens; nenhuma medição de resposta com dados.
 - Backups e restauro; logs e monitorização em produção.
 - PayFlow, ADMIN, WEB e DOC só nas fronteiras.
+
+## 8. Segunda passagem (2026-10-07)
+
+Mesmo método: código, definições de funções da produção e contagens agregadas, sem dados
+pessoais e sem escrita.
+
+### F-22 — P1 — A ficha do aluno mostra só as faturas que caibam nas 250 mais recentes da escola
+
+| Campo           |                                                                                                                                                                                                                                                                                                                                     |
+| --------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Módulo          | Ficha do aluno → Financeiro (`src/routes/alunos/$studentId.tsx:286`, `listInvoices` em `src/features/finance/server.ts:593`)                                                                                                                                                                                                        |
+| Perfil afectado | Secretaria, Tesouraria, Administração; encarregado que recebe a informação                                                                                                                                                                                                                                                          |
+| Pré-condições   | Escola com mais de 250 faturas não canceladas                                                                                                                                                                                                                                                                                       |
+| Passos          | Abrir a ficha de um aluno cuja fatura mais antiga já não está entre as 250 mais recentes da escola                                                                                                                                                                                                                                  |
+| Esperado        | Todas as faturas e o saldo real do aluno                                                                                                                                                                                                                                                                                            |
+| Observado       | **Confirmado no código:** a ficha chama `listInvoices({ limit: 250 })` **sem filtro de aluno** (o esquema limita a 250, ordenado por `created_at desc`) e filtra no navegador. As faturas mais antigas do aluno desaparecem e o saldo fica errado. As páginas Faturas, Tesouraria e Financeiro usam a mesma chamada, sem paginação. |
+| Impacto         | Uma escola de 500 alunos passa as 250 faturas no primeiro mês.                                                                                                                                                                                                                                                                      |
+| Correcção       | `listInvoices` aceita `studentId` (filtro no servidor pelo contrato da matrícula) e paginação por cursor; a ficha passa o aluno.                                                                                                                                                                                                    |
+| Aceitação       | Com 1 000 faturas sintéticas, a ficha mostra todas as faturas do aluno e o saldo coincide com a soma na base.                                                                                                                                                                                                                       |
+
+### F-23 — P2 — Os horários do ano anterior bloqueiam o horário do ano novo
+
+`private.enforce_timetable_slot_no_overlap` (lida na produção) compara todas as aulas
+`active` da escola no mesmo dia — turma, professor e sala — **sem filtrar o ano lectivo**.
+Fechar o ano não arquiva as aulas (F-05), por isso o mesmo professor ou a mesma sala, à mesma
+hora, é recusado no ano novo com «Conflito de horário». Correcção: arquivar as aulas no fecho
+do ano ou juntar o ano da turma à condição. O gatilho está bem feito no resto: cobre turma,
+professor e sala e serializa por escola e dia (`pg_advisory_xact_lock`).
+
+### F-24 — evidência real de F-04
+
+Na produção existe um contrato com **duas propinas de Agosto/2026** (`tuition`), 18 000 e
+15 000 Kz, emitidas com 12 h de intervalo e **ambas pagas**. Pode ser uma escola de teste,
+mas mostra que nada impede faturar e cobrar o mesmo mês duas vezes.
+
+### F-25 — P3 — Registo de ficheiro sem conteúdo quando o upload do arquivo financeiro falha
+
+`archive-finance-core.ts` corre no servidor; se o upload para `siga-files` falhar, grava em
+`siga_files` um registo com `storage_backend = 'local'`, mas no servidor não há armazenamento
+local: a biblioteca mostra um documento que ninguém consegue abrir. Hoje há 0 casos.
+
+### F-26 — P3 — Buckets `school-private` e `school-exports` sem uso, com leitura larga
+
+Estão vazios e nenhum código os usa, mas as políticas deixam qualquer papel com
+`files.objects.read` (professor e tesouraria incluídos) ler **todos** os objectos da escola.
+Retirar ou restringir antes de os pôr em uso.
+
+### Verificado e correcto nesta passagem
+
+| Área                                             | Verificação                                                                                                                                                                       |
+| ------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Ficheiros (`siga-files`)                         | Leitura directa só do próprio autor; descarga pelo servidor com escola e papel conferidos, link assinado de 10 min, recusa registada em `siga_file_events`                        |
+| `billing-proofs`                                 | Sem políticas: só o servidor (link de 5 min)                                                                                                                                      |
+| Logótipos                                        | Bucket público; a política só aceita `png/jpg/webp` no nome da pasta da escola (SVG fica de fora, apesar de o bucket o aceitar)                                                   |
+| Integridade (produção)                           | 12 ficheiros, 0 sem objecto, 1 objecto órfão; 0 matrículas sem aluno; 0 faturas sem contrato; 0 alunos com duas matrículas activas; 0 faturas pagas abaixo do total; 0 sobrepagas |
+| Presença do professor por QR                     | `hr_redeem_teacher_qr` verifica validade, uso único e dono, com `FOR UPDATE`; avaliação de geolocalização antes; só o wrapper `_secure` é executável por `authenticated`          |
+| Verificação pública de documentos (`/verificar`) | Formato do código validado, limite de pedidos, nome do titular mascarado («A. D. F.»)                                                                                             |
+| Horários                                         | Gatilho anti-sobreposição com bloqueio por escola e dia (excepto F-23)                                                                                                            |
+
+Prioridades actualizadas: **F-22 entra no passo 5 do plano** (com F-04), e **F-23 no passo 6**
+(com F-05).
