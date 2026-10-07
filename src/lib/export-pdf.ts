@@ -130,8 +130,37 @@ async function drawOfficialHeader(
   return 68;
 }
 
-export async function exportOfficialPautaPdf<Row extends object>(
-  filename: string,
+/** Espaço entre o fim da tabela e a linha das assinaturas, e margem inferior da página (mm). */
+const SIGNATURE_GAP_MM = 22;
+const SIGNATURE_BOTTOM_MARGIN_MM = 24;
+const CONTINUATION_TOP_MM = 20;
+
+/**
+ * Onde desenhar as assinaturas da pauta. Antes era `min(fimDaTabela + 22, altura − 24)`:
+ * quando a tabela acabava nos últimos 46 mm da página (16, 39, 40, 63, 64 alunos em
+ * paisagem), as assinaturas saíam por cima das últimas notas. Se não couberem, vão para
+ * uma página nova — nunca sobre a tabela.
+ */
+export function placeSignatureBlock(finalY: number, pageHeight: number) {
+  const y = finalY + SIGNATURE_GAP_MM;
+  if (y <= pageHeight - SIGNATURE_BOTTOM_MARGIN_MM) return { y, newPage: false };
+  return { y: CONTINUATION_TOP_MM + SIGNATURE_GAP_MM, newPage: true };
+}
+
+/** Linha de identificação nas páginas seguintes à primeira (escola, documento, turma). */
+function continuationLabel(meta: OfficialPautaMeta, title: string) {
+  return [
+    meta.schoolName,
+    title,
+    meta.className ? `Turma ${meta.className}` : "",
+    meta.academicYear,
+  ]
+    .filter(Boolean)
+    .join(" · ");
+}
+
+/** Gera a pauta oficial sem a gravar (testável fora do browser). */
+export async function buildOfficialPautaPdf<Row extends object>(
   title: string,
   meta: OfficialPautaMeta,
   columns: ReadonlyArray<{ label: string; value: (row: Row) => PdfValue }>,
@@ -139,6 +168,7 @@ export async function exportOfficialPautaPdf<Row extends object>(
 ) {
   const doc = new jsPDF({ orientation: columns.length > 7 ? "landscape" : "portrait" });
   const startY = await drawOfficialHeader(doc, meta, title);
+  const label = continuationLabel(meta, title);
   autoTable(doc, {
     startY,
     head: [columns.map((column) => column.label)],
@@ -150,11 +180,32 @@ export async function exportOfficialPautaPdf<Row extends object>(
     ),
     styles: { fontSize: 8, cellPadding: 2, font: "times" },
     headStyles: { fillColor: [206, 17, 38], textColor: 255 },
+    // O cabeçalho oficial só cabe na primeira página; as outras levam a identificação
+    // do documento, para que uma folha solta continue a dizer de que pauta é.
+    margin: { top: CONTINUATION_TOP_MM },
+    didDrawPage: (hook) => {
+      if (hook.pageNumber === 1) return;
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(8);
+      doc.setTextColor(90);
+      doc.text(label, 14, 12, { maxWidth: doc.internal.pageSize.getWidth() - 28 });
+      doc.setTextColor(0);
+    },
   });
   const finalY =
     (doc as unknown as { lastAutoTable?: { finalY: number } }).lastAutoTable?.finalY ?? 200;
   const pageHeight = doc.internal.pageSize.getHeight();
-  const signaturesY = Math.min(finalY + 22, pageHeight - 24);
+  const tableEndPage = doc.getNumberOfPages();
+  const placement = placeSignatureBlock(finalY, pageHeight);
+  if (placement.newPage) {
+    doc.addPage();
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(8);
+    doc.setTextColor(90);
+    doc.text(label, 14, 12, { maxWidth: doc.internal.pageSize.getWidth() - 28 });
+    doc.setTextColor(0);
+  }
+  const signaturesY = placement.y;
   doc.setFontSize(9);
   const pageWidth = doc.internal.pageSize.getWidth();
   doc.text("O Professor: ____________________", 14, signaturesY);
@@ -167,9 +218,32 @@ export async function exportOfficialPautaPdf<Row extends object>(
   // Antes desenhava-se aqui um "QR" de quadrados que nenhum leitor lia, com um
   // código que não se verificava em lado nenhum. Fica só a referência.
   if (meta.validationCode) {
+    doc.setPage(1);
     doc.setFontSize(7);
     doc.text(`Referência: ${meta.validationCode}`, pageWidth - 14, 12, { align: "right" });
   }
+  // «Página x de y» em todas as folhas: num documento oficial, uma folha em falta tem de
+  // se notar.
+  const totalPages = doc.getNumberOfPages();
+  for (let page = 1; page <= totalPages; page += 1) {
+    doc.setPage(page);
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(7);
+    doc.text(`Página ${page} de ${totalPages}`, pageWidth - 14, pageHeight - 8, {
+      align: "right",
+    });
+  }
+  return { doc, signaturesY, signaturesPage: totalPages, tableEndY: finalY, tableEndPage };
+}
+
+export async function exportOfficialPautaPdf<Row extends object>(
+  filename: string,
+  title: string,
+  meta: OfficialPautaMeta,
+  columns: ReadonlyArray<{ label: string; value: (row: Row) => PdfValue }>,
+  rows: ReadonlyArray<Row>,
+) {
+  const { doc } = await buildOfficialPautaPdf(title, meta, columns, rows);
   doc.save(filename.endsWith(".pdf") ? filename : `${filename}.pdf`);
 }
 
