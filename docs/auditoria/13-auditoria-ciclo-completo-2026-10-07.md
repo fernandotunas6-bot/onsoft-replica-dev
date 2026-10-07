@@ -268,8 +268,8 @@ produção (regra do pedido: não alterar dados reais). O que foi possível veri
   dispositivo real; Safari/Firefox não disponíveis; só Chromium em emulação.
 - Páginas de produção: a rede deste ambiente recusa `portal-siga.com`; o ensaio de ecrãs
   correu contra o servidor de desenvolvimento local, sem Supabase.
-- Biblioteca, capelania, alumni e comunicações (envio real de SMS/WhatsApp/e-mail): **não
-  auditados**. Horários, QR, arquivos e storage estão na secção 8; presenças, PDF/Excel, RH,
+- Envio real de SMS/WhatsApp/e-mail: não executado (não se enviam mensagens a pessoas reais);
+  o fluxo foi lido no código (secção 10). Horários, QR, arquivos e storage estão na secção 8; presenças, PDF/Excel, RH,
   calendário, desktop e integrações na secção 9 (por leitura e geração local, sem utilizadores).
 - App desktop: não compilada nem executada (sem Rust nem ambiente gráfico).
 - Políticas RLS fora das 11 tabelas da réplica.
@@ -412,3 +412,58 @@ na mesma transacção (RPC), e recusa depois do fecho do período, salvo Direcç
 Prioridades actualizadas: **F-27 e F-29 antes de qualquer escola usar finanças ou salários
 reais** (decisão do dono, com contabilista); F-28 entra no passo 7; F-30 no passo 3 (junto das
 importações, mesmo princípio: correcções com rasto e respeito pelo fecho).
+
+## 10. Quarta passagem (2026-10-07)
+
+### F-36 — P2 — Comunicados agendados ficam «Enviado» sem serem enviados
+
+| Campo           |                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
+| --------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Módulo          | Comunicações (`src/features/communications/server.ts:91`, `src/routes/comunicacoes.tsx:375`)                                                                                                                                                                                                                                                                                                                                                                                              |
+| Perfil afectado | Encarregados e alunos (não recebem); Direcção/Secretaria (julgam que enviaram)                                                                                                                                                                                                                                                                                                                                                                                                            |
+| Passos          | Criar um comunicado com canal SMS, WhatsApp ou e-mail, agendado; esperar a hora; abrir Comunicações                                                                                                                                                                                                                                                                                                                                                                                       |
+| Esperado        | A mensagem sai pelo canal escolhido à hora marcada, e o estado reflecte o resultado                                                                                                                                                                                                                                                                                                                                                                                                       |
+| Observado       | **Confirmado no código:** não há tarefa agendada. `listSchoolAnnouncements` passa os agendados vencidos a `sent` («Enviado») quando _alguém abre a lista_. O despacho por Resend, Twilio ou WhatsApp só existe no handler do navegador, no momento de «Enviar agora»; um agendado nunca é despachado. No envio imediato, se o canal não estiver activo, o comunicado também fica «Enviado», com a nota «Registo interno guardado.». Se o navegador fechar entre gravar e despachar, idem. |
+| Correcção       | O despacho passa para o servidor (registos em `communication_dispatches`, que já existe e é lido pelas estatísticas); agendados por uma tarefa (GitHub Actions como `saas-lifecycle`, ou Cron Trigger do Worker); o estado do comunicado deriva dos despachos (`enviado`, `parcial`, `falhou`, `só portal`).                                                                                                                                                                              |
+| Aceitação       | Um agendado com canal SMS, num ambiente de testes com destino de teste, gera despachos à hora marcada sem ninguém abrir a página; sem canal configurado o estado é «só portal», nunca «Enviado».                                                                                                                                                                                                                                                                                          |
+
+### F-37 — P3 — Biblioteca (empréstimos, multas) e capelania não existem
+
+Nenhuma tabela nem código (a «Biblioteca» do SIGA é o arquivo de documentos). Já estava
+registado em `docs/auditoria/00-promessa-vs-produto.md` (9.1–9.3). O site comercial
+(`painel/web`) e os docs **não** os prometem — sem desalinhamento comercial. Fica como lacuna
+funcional, se fizer parte do âmbito pretendido.
+
+### Verificado e correcto nesta passagem
+
+| Área                  | Verificação                                                                                                                                                                                                                                                                                                                                                     |
+| --------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Alumni                | 15 tabelas com RLS sem políticas (só o servidor). Gestão por `adminContext` (papel e escola); actualizações com `school_id`. Auto-serviço só sobre o próprio perfil (`resolveOwnProfile`: escola + `auth_user_id` + `self_service_enabled`). A reivindicação exige e-mail confirmado, procura literal (sem curingas) e recusa um perfil já ligado a outra conta |
+| Comunicados — público | Aluno e encarregado vêem só os comunicados enviados do seu público (`visibleAnnouncementAudiences`); rascunhos e agendados só o pessoal                                                                                                                                                                                                                         |
+| Envio imediato        | Mensagens honestas: quando o canal falha, diz o motivo e copia o texto; o SMS já não sai por WhatsApp por engano                                                                                                                                                                                                                                                |
+
+## 11. Estado final da cobertura
+
+| Módulo                                                        | Estado                                                 |
+| ------------------------------------------------------------- | ------------------------------------------------------ |
+| Isolamento entre escolas (RLS, servidor, webhooks, ficheiros) | Verificado funcional                                   |
+| Permissões dentro da escola                                   | Verificado com falha (F-01, F-08)                      |
+| Criação de escola / configuração                              | Parcialmente verificado (código)                       |
+| Pessoas, alunos, matrícula individual                         | Parcialmente verificado (código + funções da produção) |
+| Importação                                                    | Verificado com falha por leitura (F-02, F-07)          |
+| Renovação, transição e fecho de ano                           | Inexistente / falha (F-03, F-05, F-23)                 |
+| Horários                                                      | Parcialmente verificado; falha F-23                    |
+| Presenças (alunos e QR do professor)                          | Parcialmente verificado; falhas F-30, F-32             |
+| Notas, pautas, boletins, PDF                                  | Verificado com falha (F-06, F-19, F-20, F-28)          |
+| Propinas, faturas, pagamentos                                 | Verificado com falha (F-04, F-22, F-24, F-27)          |
+| RH e salários                                                 | Verificado com falha (F-29)                            |
+| Ficheiros e documentos                                        | Verificado funcional (F-25, F-26 menores)              |
+| Comunicações                                                  | Verificado com falha (F-36)                            |
+| Alumni                                                        | Verificado funcional (código)                          |
+| Calendário e integrações                                      | Parcial (F-33, F-34, F-35)                             |
+| Biblioteca, capelania                                         | Inexistentes (F-37)                                    |
+| App desktop / offline                                         | Só documentação e permissões; não executada            |
+| Jornada integrada e testes de carga                           | **Bloqueados** — falta ambiente de testes (F-09)       |
+
+Com isto, todos os módulos do pedido estão inventariados. Os únicos que não foram verificados
+dinamicamente são os que precisam de contas, dados ou envio real, e todos dependem de F-09.
