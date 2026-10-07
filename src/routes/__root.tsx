@@ -123,6 +123,7 @@ function RootShell({ children }: { children: ReactNode }) {
 
 import { DesktopIntegration } from "@/components/layout/DesktopIntegration";
 import { DesktopVaultGate } from "@/components/layout/DesktopVaultGate";
+import { OfflineOutboxSync } from "@/components/layout/OfflineOutboxSync";
 import { areaToneForPath } from "@/lib/area-tone";
 
 function ClientOnlyToaster() {
@@ -196,6 +197,7 @@ function RootComponent() {
               <Outlet />
             ) : (
               <AuthGate sessionHint={sessionHint}>
+                <OfflineOutboxSync />
                 <SchoolYearProvider>
                   <SchoolBrandAppearanceSync />
                   <EntityFocusProvider>

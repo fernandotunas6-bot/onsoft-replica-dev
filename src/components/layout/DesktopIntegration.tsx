@@ -1,11 +1,13 @@
 import { useEffect } from "react";
 import { useQueryClient } from "@tanstack/react-query";
+import { useRouter } from "@tanstack/react-router";
 import { toast } from "@/lib/toast";
 import { isTauriDesktop, openExternalLink } from "@/lib/desktop-utils";
 import { installDesktopDownloads } from "@/lib/desktop-downloads";
 import { isExternalUrl, nextZoom, shortcutAction, storedZoom } from "@/lib/desktop-shortcuts";
 import { checkNativeUpdate, installNativeUpdateWhenSafe } from "@/lib/native-updater";
 import { pausedWriteCount, pendingWriteCount, writesLabel } from "@/lib/pending-writes";
+import { startDesktopOffline } from "@/lib/offline/desktop-offline";
 
 const ZOOM_KEY = "siga:desktop-zoom";
 
@@ -26,6 +28,10 @@ const ZOOM_KEY = "siga:desktop-zoom";
  */
 export function DesktopIntegration() {
   const queryClient = useQueryClient();
+  const router = useRouter();
+
+  // Sem rede: páginas, consultas da instituição e fila de envio (offline/desktop-offline).
+  useEffect(() => startDesktopOffline(queryClient, router as never), [queryClient, router]);
 
   useEffect(() => {
     if (!isTauriDesktop()) return;
