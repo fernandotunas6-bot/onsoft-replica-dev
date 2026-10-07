@@ -630,7 +630,7 @@ function StudentDetail() {
         status:
           subject.mfd == null
             ? "Pendente"
-            : subject.mfd >= angolaGradeScale.passing
+            : subject.mfd >= (year.passingValue ?? angolaGradeScale.passing)
               ? "Aprovado"
               : "Reprovado",
       })),

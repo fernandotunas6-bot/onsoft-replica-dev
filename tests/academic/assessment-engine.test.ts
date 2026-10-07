@@ -99,7 +99,9 @@ describe("SIGA AssessmentEngine — Fonte Única de Dados Académicos", () => {
     expect(summaries.length).toBe(1);
     expect(summaries[0].studentName).toBe("Ana Manuel");
     expect(summaries[0].subjects[0].mfd).toBe(14.2);
-    expect(summaries[0].status).toBe("TRANSITA");
+    // Matemática não tem nenhuma nota: sem todas as disciplinas não há decisão. Este teste
+    // esperava «TRANSITA» — era o defeito F-06 da auditoria 13 escrito como regra.
+    expect(summaries[0].status).toBe("PENDENTE");
   });
 });
 
