@@ -4,28 +4,28 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
 import { CardDecorator } from '@/components/ui/card-decorator'
-import { Code, Palette, Layout, Crown } from 'lucide-react'
+import { Link2, MapPin, Rocket, School } from 'lucide-react'
 
 const values = [
   {
-    icon: Code,
+    icon: School,
     title: 'Feito para escolas',
-    description: 'Cada ecrã serve secretaria, tesouraria e professores — não um marketplace de componentes.'
+    description: 'Cada ecrã foi pensado para a direcção, a secretaria, a tesouraria e os professores.'
   },
   {
-    icon: Palette,
+    icon: MapPin,
     title: 'Identidade angolana',
     description: 'BI, NIF, IBAN AO, fuso de Luanda e documentos alinhados ao MINED e à AGT.'
   },
   {
-    icon: Layout,
-    title: 'Pronto a operar',
-    description: 'Cria a escola no WEB, o ADMIN regista o cliente e o SIGA fica imediatamente disponível.'
+    icon: Rocket,
+    title: 'Pronto no mesmo dia',
+    description: 'Crie a escola aqui no site e a equipa começa logo a trabalhar no SIGA.'
   },
   {
-    icon: Crown,
-    title: 'Cinco apps, um produto',
-    description: 'WEB vende, ADMIN controla, SIGA trabalha, PayFlow cobra, DOC explica — sem misturar papéis.'
+    icon: Link2,
+    title: 'Tudo ligado',
+    description: 'Matrículas, pautas, tesouraria e cobrança partilham os mesmos dados, sem folhas paralelas.'
   }
 ]
 
@@ -42,8 +42,8 @@ export function AboutSection() {
             Feito para a escola angolana
           </h2>
           <p className="text-lg text-muted-foreground mb-8">
-            O SIGA Plus é a plataforma de gestão escolar do ecossistema: venda no WEB,
-            controlo SaaS no ADMIN, operação no SIGA, cobrança no PayFlow e ajuda no DOC.
+            O SIGA Plus junta a gestão académica, a secretaria e a tesouraria numa só plataforma,
+            com a cobrança feita pelo PayFlow e manuais em português sempre à mão.
           </p>
         </div>
 

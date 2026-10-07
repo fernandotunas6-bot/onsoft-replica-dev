@@ -71,11 +71,12 @@ const STEPS: Record<DesktopOs, { title: string; steps: string[]; note: string }>
   macos: {
     title: "macOS",
     steps: [
+      "Confirme que o Mac está actualizado: menu Apple → Definições do Sistema (ou Preferências do Sistema) → Actualização de Software. A app usa o motor do Safari e precisa do Safari 16.4 ou mais recente.",
       "Abra o ficheiro SIGA-Desktop-macOS-universal.dmg e arraste o SIGA Desktop para a pasta Aplicações.",
-      "Na primeira vez, clique no SIGA Desktop com o botão direito (ou Control + clique) e escolha «Abrir».",
-      "Confirme «Abrir» no aviso do macOS. Nas vezes seguintes abre normalmente.",
+      "Na primeira vez, clique no SIGA Desktop com o botão direito (ou Control + clique) e escolha «Abrir»; confirme «Abrir» no aviso.",
+      "No macOS 15 Sequoia ou mais recente, se só aparecer «Concluído»: abra Definições do Sistema → Privacidade e Segurança e clique em «Abrir mesmo assim».",
     ],
-    note: "O macOS pede esta confirmação porque a app ainda não está notarizada pela Apple. Funciona em Mac Intel e Apple Silicon.",
+    note: "O macOS pede esta confirmação porque a app ainda não está notarizada pela Apple. Funciona em Mac Intel e Apple Silicon, do macOS 11 Big Sur em diante; se a app avisar que o Safari é antigo, actualize-o em Actualização de Software.",
   },
   linux: {
     title: "Linux",

@@ -7,6 +7,8 @@
   "menu.hideOthers": "إخفاء الآخرين",
   "menu.showAll": "إظهار الكل",
   "menu.quit": "إنهاء {{appName}}",
+  "menu.edit": "تحرير",
+  "menu.window": "نافذة",
   "menu.view": "عرض",
   "menu.toggleLeftSidebar": "تبديل الشريط الجانبي الأيسر",
   "menu.toggleRightSidebar": "تبديل الشريط الجانبي الأيمن",

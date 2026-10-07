@@ -28,7 +28,11 @@ const PLATFORMS: Platform[] = [
     os: "macos",
     name: "macOS",
     logo: AppleLogo,
-    requirements: ["macOS 10.15 ou mais recente", "Mac Intel e Apple Silicon"],
+    requirements: [
+      "macOS 11 Big Sur ou mais recente",
+      "Safari 16.4 ou mais recente (a app usa o motor do Safari)",
+      "Mac Intel e Apple Silicon",
+    ],
   },
   {
     os: "linux",
