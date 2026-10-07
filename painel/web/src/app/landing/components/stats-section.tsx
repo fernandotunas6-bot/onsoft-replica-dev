@@ -1,39 +1,34 @@
 "use client"
 
-import {
-  Package,
-  Download,
-  Users,
-  Star
-} from 'lucide-react'
+import { CalendarCheck, Languages, Layers, MonitorDown } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
 import { DotPattern } from '@/components/dot-pattern'
 
 
 const stats = [
   {
-    icon: Package,
+    icon: Layers,
     value: '13+',
     label: 'Módulos',
-    description: 'Secretaria à tesouraria'
+    description: 'Da secretaria à tesouraria'
   },
   {
-    icon: Download,
-    value: '1 BD',
-    label: 'Multi-tenant',
-    description: 'N escolas isoladas'
+    icon: CalendarCheck,
+    value: '14 dias',
+    label: 'Para experimentar',
+    description: 'Sem compromisso'
   },
   {
-    icon: Users,
-    value: '5 apps',
-    label: 'Ecossistema',
-    description: 'WEB, ADMIN, SIGA, PayFlow, DOC'
+    icon: MonitorDown,
+    value: '3',
+    label: 'Sistemas',
+    description: 'App para Windows, macOS e Linux'
   },
   {
-    icon: Star,
-    value: 'AO',
-    label: 'Angola',
-    description: 'BI, NIF e Multicaixa'
+    icon: Languages,
+    value: 'PT-AO',
+    label: 'Português de Angola',
+    description: 'BI, NIF, IBAN AO e Multicaixa'
   }
 ]
 
@@ -55,7 +50,7 @@ export function StatsSection() {
               <CardContent className="p-6">
                 <div className="flex justify-center mb-4">
                   <div className="p-3 bg-primary/10 rounded-xl">
-                    <stat.icon className="h-6 w-6 text-primary" />
+                    <stat.icon className="h-6 w-6 text-primary" aria-hidden="true" />
                   </div>
                 </div>
                 <div className="space-y-1">

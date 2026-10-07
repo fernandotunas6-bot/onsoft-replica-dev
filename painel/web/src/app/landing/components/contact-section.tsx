@@ -1,5 +1,6 @@
 "use client"
 
+import { useState } from "react"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import { z } from "zod"
@@ -16,44 +17,35 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form"
-import { Mail, MessageCircle, BookOpen } from 'lucide-react'
+import { BookOpen, CircleHelp, Mail } from 'lucide-react'
 import { getDocsUrl } from '@/lib/ecosystem-urls'
+import { SUPPORT_EMAIL, supportMailto } from '@/lib/support-contact'
 
 const contactFormSchema = z.object({
-  firstName: z.string().min(2, {
-    message: "O primeiro nome precisa de pelo menos 2 caracteres.",
+  name: z.string().trim().min(2, {
+    message: "Escreva o seu nome.",
   }),
-  lastName: z.string().min(2, {
-    message: "O apelido precisa de pelo menos 2 caracteres.",
-  }),
-  email: z.string().email({
-    message: "Introduza um e-mail válido.",
-  }),
-  subject: z.string().min(5, {
+  school: z.string().trim().max(120).optional(),
+  subject: z.string().trim().min(5, {
     message: "O assunto precisa de pelo menos 5 caracteres.",
   }),
-  message: z.string().min(10, {
+  message: z.string().trim().min(10, {
     message: "A mensagem precisa de pelo menos 10 caracteres.",
   }),
 })
 
+type ContactForm = z.infer<typeof contactFormSchema>
+
 export function ContactSection() {
-  const form = useForm<z.infer<typeof contactFormSchema>>({
+  const [prepared, setPrepared] = useState(false)
+  const form = useForm<ContactForm>({
     resolver: zodResolver(contactFormSchema),
-    defaultValues: {
-      firstName: "",
-      lastName: "",
-      email: "",
-      subject: "",
-      message: "",
-    },
+    defaultValues: { name: "", school: "", subject: "", message: "" },
   })
 
-  function onSubmit(values: z.infer<typeof contactFormSchema>) {
-    // Here you would typically send the form data to your backend
-    console.log(values)
-    // You could also show a success message or redirect
-    form.reset()
+  function onSubmit(values: ContactForm) {
+    window.location.assign(supportMailto(values))
+    setPrepared(true)
   }
 
   return (
@@ -65,66 +57,60 @@ export function ContactSection() {
             Precisa de ajuda ou tem perguntas?
           </h2>
           <p className="text-lg text-muted-foreground">
-            A equipa SIGA Plus está disponível para escolas, parceiros e administradores da plataforma.
+            Escreva-nos sobre planos, demonstrações ou a criação da escola. Respondemos por e-mail.
           </p>
         </div>
 
         <div className="grid gap-8 lg:grid-cols-3">
           {/* Contact Options */}
           <div className="space-y-6 order-2 lg:order-1">
-            <Card className="hover:shadow-md transition-shadow cursor-pointer">
+            <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <MessageCircle className="h-5 w-5 text-primary" />
-                  Comunidade
+                  <Mail className="h-5 w-5 text-primary" aria-hidden="true" />
+                  E-mail
                 </CardTitle>
               </CardHeader>
               <CardContent>
                 <p className="text-muted-foreground mb-3">
-                  Fale connosco para ajuda rápida sobre o portal, planos e criação de escola.
+                  Prefere escrever directamente? O suporte do SIGA Plus responde a partir deste endereço.
                 </p>
                 <Button variant="outline" size="sm" className="cursor-pointer" asChild>
-                  <a href="#faq">
-                    Ver FAQ
-                  </a>
+                  <a href={`mailto:${SUPPORT_EMAIL}`}>{SUPPORT_EMAIL}</a>
                 </Button>
               </CardContent>
             </Card>
 
-            <Card className="hover:shadow-md transition-shadow cursor-pointer">
+            <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <BookOpen className="h-5 w-5 text-primary" />
-                  Documentação
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-muted-foreground mb-3">
-                  Reporte problemas, peça funcionalidades ou consulte o estado do produto.
-                </p>
-                <Button variant="outline" size="sm" className="cursor-pointer" asChild>
-                  <a href={getDocsUrl()}>
-                    Abrir DOC
-                  </a>
-                </Button>
-              </CardContent>
-            </Card>
-
-            <Card className="hover:shadow-md transition-shadow cursor-pointer">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <BookOpen className="h-5 w-5 text-primary" />
+                  <BookOpen className="h-5 w-5 text-primary" aria-hidden="true" />
                   Manuais
                 </CardTitle>
               </CardHeader>
               <CardContent>
                 <p className="text-muted-foreground mb-3">
-                  Consulte guias, arquitectura e artigos por módulo (pautas, tesouraria, acessos).
+                  Guias em português por área: primeiros passos, pedagógica, tesouraria e acessos.
                 </p>
                 <Button variant="outline" size="sm" className="cursor-pointer" asChild>
-                  <a href={getDocsUrl('/guide/')}>
-                    Abrir manuais
-                  </a>
+                  <a href={getDocsUrl('/siga/primeiros-passos.html')}>Abrir manuais</a>
+                </Button>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <CircleHelp className="h-5 w-5 text-primary" aria-hidden="true" />
+                  Perguntas frequentes
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-muted-foreground mb-3">
+                  Avaliação, planos, pagamentos e segurança, respondidos num minuto.
+                </p>
+                <Button variant="outline" size="sm" className="cursor-pointer" asChild>
+                  <a href="/faqs">Ver perguntas</a>
                 </Button>
               </CardContent>
             </Card>
@@ -135,8 +121,8 @@ export function ContactSection() {
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <Mail className="h-5 w-5" />
-                  Envie-nos uma mensagem
+                  <Mail className="h-5 w-5" aria-hidden="true" />
+                  Escreva-nos
                 </CardTitle>
               </CardHeader>
               <CardContent>
@@ -145,12 +131,12 @@ export function ContactSection() {
                     <div className="grid gap-4 sm:grid-cols-2">
                       <FormField
                         control={form.control}
-                        name="firstName"
+                        name="name"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>Primeiro nome</FormLabel>
+                            <FormLabel>Nome</FormLabel>
                             <FormControl>
-                              <Input placeholder="Maria" {...field} />
+                              <Input autoComplete="name" placeholder="Maria Santos" {...field} />
                             </FormControl>
                             <FormMessage />
                           </FormItem>
@@ -158,31 +144,18 @@ export function ContactSection() {
                       />
                       <FormField
                         control={form.control}
-                        name="lastName"
+                        name="school"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>Apelido</FormLabel>
+                            <FormLabel>Escola (opcional)</FormLabel>
                             <FormControl>
-                              <Input placeholder="Santos" {...field} />
+                              <Input autoComplete="organization" placeholder="Colégio…" {...field} />
                             </FormControl>
                             <FormMessage />
                           </FormItem>
                         )}
                       />
                     </div>
-                    <FormField
-                      control={form.control}
-                      name="email"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>E-mail</FormLabel>
-                          <FormControl>
-                            <Input type="email" placeholder="escola@exemplo.ao" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
                     <FormField
                       control={form.control}
                       name="subject"
@@ -215,8 +188,13 @@ export function ContactSection() {
                       )}
                     />
                     <Button type="submit" className="w-full cursor-pointer">
-                      Enviar mensagem
+                      Preparar e-mail
                     </Button>
+                    <p className="text-muted-foreground text-center text-sm" role="status">
+                      {prepared
+                        ? `Abrimos o seu programa de e-mail com a mensagem pronta: só falta enviar. Se não abriu, escreva para ${SUPPORT_EMAIL}.`
+                        : `A mensagem abre no seu programa de e-mail, para ${SUPPORT_EMAIL}.`}
+                    </p>
                   </form>
                 </Form>
               </CardContent>

@@ -13,7 +13,6 @@ export const MARKETING_NAV_ITEMS: MarketingNavItem[] = [
   { nameKey: "landing.home", landingHref: "#hero", pageHref: "/" },
   { nameKey: "landing.features", landingHref: "#features", pageHref: "/#features" },
   { nameKey: "landing.solutions", landingHref: "#features", pageHref: "/#features", megaMenu: true },
-  { nameKey: "landing.team", landingHref: "#team", pageHref: "/#team" },
   { nameKey: "landing.pricing", landingHref: "#pricing", pageHref: "/pricing" },
   { nameKey: "landing.faq", landingHref: "#faq", pageHref: "/faqs" },
   { nameKey: "landing.desktop", landingHref: "/download", pageHref: "/download" },
@@ -26,25 +25,21 @@ export const MARKETING_FOOTER_LINKS = {
     { name: "Preços", href: "/pricing" },
     { name: "App para computador", href: "/download" },
     { name: "Criar escola", href: getCreateSchoolUrl() },
-    { name: "Documentação", href: getDocsUrl() },
   ],
   company: [
     { name: "Sobre", href: "/#about" },
-    { name: "Novidades", href: "/#blog" },
-    { name: "Equipa", href: "/#team" },
+    { name: "Para quem", href: "/#roles" },
     { name: "Contacto", href: "/#contact" },
   ],
   resources: [
-    { name: "Ajuda", href: getDocsUrl() },
+    { name: "Primeiros passos", href: getDocsUrl("/siga/primeiros-passos.html") },
+    { name: "Criar a escola", href: getDocsUrl("/web/criar-escola.html") },
     { name: "FAQ", href: "/faqs" },
-    { name: "Manuais", href: getDocsUrl("/guide/") },
-    { name: "Arquitectura", href: getDocsUrl("/arquitetura/") },
+    { name: "Financeiro escolar", href: getDocsUrl("/siga/financeiro-escolar.html") },
   ],
   legal: [
     { name: "Privacidade", href: "/privacidade" },
     { name: "Termos", href: "/termos" },
-    { name: "Segurança", href: "/#security" },
-    { name: "Estado", href: "/#status" },
   ],
 } as const
 

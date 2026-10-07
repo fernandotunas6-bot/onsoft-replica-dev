@@ -21,7 +21,7 @@ export function SiteFooter() {
             </Link>
           </div>
           <p className="text-xs text-muted-foreground">
-            WEB vende · ADMIN controla · SIGA trabalha · PayFlow cobra · DOC explica.
+            Gestão escolar para Angola: matrículas, pautas, tesouraria e cobrança.
           </p>
         </div>
       </div>
