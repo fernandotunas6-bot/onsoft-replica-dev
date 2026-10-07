@@ -1055,10 +1055,17 @@ export const cancelInvoice = createServerFn({ method: "POST" })
       })
       .eq("id", data.invoiceId)
       .eq("school_id", membership.schoolId)
+      // Só se ainda estiver como foi lida: um pagamento entre a verificação e aqui
+      // mudava-a para paga, e a anulação passava por cima.
+      .eq("status", String(invoice.status))
       .select("id, status")
       .maybeSingle();
     if (error) throw publicDatabaseError(error, "Não foi possível cancelar a fatura.");
-    if (!updated) throw new Error("Fatura não encontrada.");
+    if (!updated) {
+      throw new Error(
+        "A fatura mudou entretanto (por exemplo, recebeu um pagamento). Actualize e tente de novo.",
+      );
+    }
     return updated;
   });
 

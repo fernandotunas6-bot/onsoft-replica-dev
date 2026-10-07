@@ -1,5 +1,17 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
+/** Estados de aluno que deixam passar na catraca. */
+export const GATE_ALLOWED_STUDENT_STATUSES = new Set(["active", "applicant"]);
+
+const STUDENT_STATUS_PT: Record<string, string> = {
+  inactive: "inactivo",
+  transferred: "transferido",
+  graduated: "que já concluiu",
+  cancelled: "com matrícula cancelada",
+  suspended: "suspenso",
+  locked: "bloqueado",
+};
+
 export type GatePassCardRow = {
   id: string;
   person_id: string;
@@ -180,7 +192,11 @@ export async function evaluateGatePassAccess(
       .eq("id", card.student_id)
       .eq("school_id", schoolId)
       .maybeSingle();
-    if (student?.status === "inactive") {
+    // Só o aluno activo (ou candidato) passa. Antes só «inactivo» era barrado:
+    // transferido, concluído, cancelado, suspenso ou bloqueado continuavam a entrar
+    // com o cartão, e um aluno apagado também (auditoria 13).
+    const studentStatus = student?.status ? String(student.status) : null;
+    if (!studentStatus || !GATE_ALLOWED_STUDENT_STATUSES.has(studentStatus)) {
       await insertAccessLog(db, {
         school_id: schoolId,
         person_id: card.person_id,
@@ -190,9 +206,14 @@ export async function evaluateGatePassAccess(
         device_name: device.deviceName,
         direction,
         status: "denied",
-        denial_reason: `Aluno com estado: ${student.status}`,
+        denial_reason: studentStatus
+          ? `Aluno com estado: ${studentStatus}`
+          : "Aluno não encontrado",
       });
-      return { granted: false, reason: "Acesso negado: aluno inactivo." };
+      return {
+        granted: false,
+        reason: `Acesso negado: aluno ${STUDENT_STATUS_PT[studentStatus ?? ""] ?? "sem ficha activa"}.`,
+      };
     }
   }
 
