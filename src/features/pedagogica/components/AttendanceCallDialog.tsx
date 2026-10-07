@@ -1,6 +1,9 @@
 import { useEffect, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import type { z } from "zod";
+import { sendOrQueue } from "@/lib/offline/outbox";
+import { currentUserId } from "@/lib/offline/outbox-session";
 import { toast } from "sonner";
 import {
   Check,
@@ -34,8 +37,8 @@ import { Badge } from "@/components/ui/badge";
 import { UserAvatar } from "@/components/ui/user-avatar";
 import {
   getAttendanceCallSheet,
-  submitAttendanceCallBatch,
   editFinalizedAttendanceCall,
+  submitAttendanceCallBatchInputSchema,
   type AttendanceStatus,
 } from "@/features/pedagogica/attendance-server";
 import {
@@ -157,9 +160,34 @@ export function AttendanceCallDialog({
     }
   }, [sheetQuery.data]);
 
+  // Sem rede, na app desktop, a chamada fica guardada no posto e segue quando a rede
+  // volta (lib/offline/outbox). No navegador, envia como antes.
   const submitBatchMutation = useMutation({
-    mutationFn: submitAttendanceCallBatch,
-    onSuccess: () => {
+    mutationFn: async (input: { data: z.infer<typeof submitAttendanceCallBatchInputSchema> }) => {
+      const session = sheetQuery.data?.session;
+      const label = [
+        "Chamada",
+        session?.class_group_name,
+        session?.subject_name,
+        session?.lesson_date
+          ? new Date(`${session.lesson_date}T12:00:00Z`).toLocaleDateString("pt-PT")
+          : null,
+      ]
+        .filter(Boolean)
+        .join(" · ");
+      return sendOrQueue("attendance.submit", input.data, {
+        label,
+        userId: await currentUserId(),
+      });
+    },
+    onSuccess: (outcome) => {
+      if (outcome.queued) {
+        toast.info("Chamada guardada neste computador", {
+          description: "Sem ligação ao servidor. É enviada sozinha quando a Internet voltar.",
+        });
+        onOpenChange(false);
+        return;
+      }
       toast.success("Chamada realizada com sucesso!", {
         description: "Presenças registadas. Pode lançar notas desta turma a seguir.",
       });

@@ -19,7 +19,10 @@ const PLATFORMS: Platform[] = [
     os: "windows",
     name: "Windows",
     logo: WindowsLogo,
-    requirements: ["Windows 10 ou 11, 64 bits", "Instala sem privilégios de administrador"],
+    requirements: [
+      "Windows 10 ou 11, 64 bits",
+      "Instala sem Internet e sem privilégios de administrador",
+    ],
   },
   {
     os: "macos",

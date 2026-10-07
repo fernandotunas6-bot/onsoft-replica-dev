@@ -1,7 +1,7 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
   "productName": "SIGA Desktop",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "identifier": "ao.onsoft.siga",
   "build": {
     "beforeDevCommand": "npm --prefix desktop run dev",
@@ -62,8 +62,8 @@
     "windows": {
       "allowDowngrades": false,
       "webviewInstallMode": {
-        "type": "downloadBootstrapper",
-        "silent": false
+        "type": "offlineInstaller",
+        "silent": true
       },
       "nsis": {
         "installMode": "currentUser",

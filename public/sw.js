@@ -1,5 +1,5 @@
 /* SIGA runtime cache. This file lives in public so Nitro publishes it at /sw.js. */
-const CACHE_VERSION = "v4";
+const CACHE_VERSION = "v5";
 const CACHES = {
   pages: `siga-pages-${CACHE_VERSION}`,
   assets: `siga-assets-${CACHE_VERSION}`,
@@ -19,13 +19,60 @@ const cacheResponse = async (cacheName, request, response) => {
   return response;
 };
 
+/* Páginas sem rede, só na app desktop (posto com PIN).
+   No navegador, o HTML de navegação nunca é guardado (auditoria de 30/09: computadores
+   partilhados). Na app desktop, a página marca o modo com SIGA_DESKTOP_OFFLINE e cada
+   página aberta passa a ficar guardada para abrir sem rede. O HTML não tem dados pessoais:
+   o servidor nunca recebe a sessão (fica no cofre do cliente), só os cookies da escola
+   activa e do indicador «tem sessão». Terminar sessão apaga tudo (clearSigaCaches). */
+const DESKTOP_MARKER = "/__siga-desktop-offline";
+
+const desktopOffline = async () =>
+  Boolean(await caches.match(DESKTOP_MARKER, { cacheName: CACHES.pages }));
+
+const pageKey = (url) => new URL(url).origin + new URL(url).pathname;
+
+const cachePage = async (url, response) => {
+  if (!response || !response.ok) return response;
+  if (!(response.headers.get("content-type") || "").includes("text/html")) return response;
+  await (await caches.open(CACHES.pages)).put(pageKey(url), response.clone());
+  return response;
+};
+
 const networkFirst = async (request) => {
+  const keepPages = await desktopOffline();
   try {
-    return await fetch(request);
+    const response = await fetch(request);
+    return keepPages ? await cachePage(request.url, response) : response;
   } catch {
-    return (await caches.match(OFFLINE_PAGE)) ?? Response.error();
+    const saved = keepPages
+      ? await caches.match(pageKey(request.url), { cacheName: CACHES.pages })
+      : undefined;
+    return saved ?? (await caches.match(OFFLINE_PAGE)) ?? Response.error();
   }
 };
+
+/* Com rede, a app desktop pede as páginas de trabalho para abrirem sem rede mesmo que
+   ainda não tenham sido visitadas neste computador. */
+const warmPages = async (paths) => {
+  if (!(await desktopOffline())) return;
+  const list = Array.isArray(paths) ? paths.slice(0, 20) : [];
+  await Promise.allSettled(
+    list
+      .filter((path) => typeof path === "string" && /^\/(?!\/)/.test(path))
+      .map(async (path) => {
+        const url = new URL(path, self.location.origin).href;
+        const response = await fetch(url, {
+          credentials: "same-origin",
+          headers: { Accept: "text/html" },
+        });
+        await cachePage(url, response);
+      }),
+  );
+};
+
+const enableDesktopOffline = async () =>
+  (await caches.open(CACHES.pages)).put(DESKTOP_MARKER, new Response("1"));
 
 const cacheFirst = async (cacheName, request) => {
   const cached = await caches.match(request);
@@ -47,6 +94,10 @@ self.addEventListener("install", (event) => {
    para ser aceite. */
 self.addEventListener("message", (event) => {
   if (event.data?.type === "SKIP_WAITING") self.skipWaiting();
+  if (event.data?.type === "SIGA_DESKTOP_OFFLINE") {
+    event.waitUntil(enableDesktopOffline().then(() => warmPages(event.data.paths)));
+  }
+  if (event.data?.type === "SIGA_WARM_PAGES") event.waitUntil(warmPages(event.data.paths));
 });
 
 self.addEventListener("activate", (event) => {
