@@ -76,3 +76,20 @@ export function isMissingGradeColumn(
 export function gradeTuitionCode(gradeLevelId: string) {
   return `TUITION-${gradeLevelId}`;
 }
+
+/**
+ * Mês a que a fatura respeita (`competence_month`, sempre dia 1).
+ *
+ * A propina mensal é do mês do vencimento: é essa a propina que se está a cobrar.
+ * Antes usava-se o mês da emissão, e a propina de Setembro emitida a 11/08 ficava
+ * como de Agosto — na produção, uma escola real ficou com duas propinas de Agosto
+ * pagas para o mesmo aluno (auditoria 13). As outras taxas seguem a emissão.
+ */
+export function invoiceCompetenceMonth(input: {
+  kind: string | null;
+  dueOn: string;
+  issuedOn: string;
+}): string {
+  const base = input.kind === "tuition" ? input.dueOn : input.issuedOn;
+  return `${base.slice(0, 7)}-01`;
+}

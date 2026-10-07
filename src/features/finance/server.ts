@@ -35,6 +35,7 @@ import {
   isMissingGradeColumn,
   pickFeeItem,
   toFeeItemRow,
+  invoiceCompetenceMonth,
   type FeeItemRow,
 } from "./fee-items";
 import { insertFinanceArchive } from "@/features/arquivos/archive-finance-core";
@@ -1188,7 +1189,38 @@ export const issueInvoice = createServerFn({ method: "POST" })
         ? Math.round(((amount * contractDiscountPercent) / 100) * 100) / 100
         : 0;
 
-    const competenceMonth = (data.issuedOn ?? schoolTodayIso()).slice(0, 7) + "-01";
+    const competenceMonth = invoiceCompetenceMonth({
+      kind: feeItem.kind,
+      dueOn: data.dueOn,
+      issuedOn: data.issuedOn ?? schoolTodayIso(),
+    });
+
+    // Uma propina por aluno e por mês: emitir outra para o mesmo mês cobrava duas
+    // vezes (o preço da classe e o geral são itens diferentes, por isso conta o tipo).
+    if (feeItem.kind === "tuition") {
+      const tuitionItemIds = (itemRows ?? [])
+        .map((row) => toFeeItemRow(row as Record<string, unknown>))
+        .filter((item) => item.kind === "tuition")
+        .map((item) => item.id);
+      const { data: sameMonth, error: sameMonthError } = await db
+        .from("finance_invoices")
+        .select("invoice_number")
+        .eq("school_id", membership.schoolId)
+        .eq("contract_id", contract.id)
+        .eq("competence_month", competenceMonth)
+        .in("fee_item_id", tuitionItemIds.length ? tuitionItemIds : [feeItem.id])
+        .neq("status", "cancelled")
+        .limit(1)
+        .maybeSingle();
+      if (sameMonthError) {
+        throw publicDatabaseError(sameMonthError, "Não foi possível verificar as propinas do mês.");
+      }
+      if (sameMonth) {
+        throw new Error(
+          `Este aluno já tem a propina de ${competenceMonth.slice(0, 7)} (${String(sameMonth.invoice_number)}). Anule-a antes de emitir outra, ou escolha o vencimento do mês certo.`,
+        );
+      }
+    }
 
     // Número gerado pelo servidor (nunca pelo cliente) para nunca aceitar texto livre
     // (ex.: nº de processo do aluno colado por engano) na numeração fiscal FT-AAAA/NNNN.
