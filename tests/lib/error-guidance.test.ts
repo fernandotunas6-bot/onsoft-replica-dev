@@ -148,7 +148,9 @@ describe("orientação de erros", () => {
   it("quem não pode abrir o destino recebe a quem pedir", () => {
     const guidance = guidanceFor("Não há plano financeiro activo na escola.")!;
     expect(guidanceFixFor(guidance, true)).toBe(guidance.fix);
-    expect(guidanceFixFor(guidance, false)).toMatch(/peça a a direcção ou a tesouraria/);
+    expect(guidanceFixFor(guidance, false)).toMatch(
+      /Se não tiver acesso, peça à direcção ou à tesouraria\.$/,
+    );
   });
 
   it("os painéis de Definições abrem pelo caminho /configuracoes", () => {

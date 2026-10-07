@@ -50,7 +50,7 @@ O destino é sempre o mesmo do guia de arranque (`src/features/school/setup-guid
 **Permissões:** o botão só aparece se a conta pode abrir o destino (`canAccessPath`,
 registado pelo `AppShell` em `registerErrorGuidance`). Para configuração exige-se também
 acesso às Definições — um professor vê o Calendário mas não cria o ano lectivo. Quem não
-pode recebe «Se não tiver acesso, peça a {responsável}».
+pode recebe «Se não tiver acesso, peça à direcção…» (ou «ao administrador…»).
 
 ### 2. Erro de processo → mostrar a forma certa
 

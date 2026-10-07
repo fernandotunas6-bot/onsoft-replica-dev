@@ -55,7 +55,8 @@ type Rule = Omit<Guidance, "title"> & {
   title?: string;
 };
 
-const DIRECTION = "a direcção ou a secretaria da escola";
+/** A quem pedir, já com a preposição: «peça à direcção…», «peça ao administrador…». */
+const DIRECTION = "à direcção ou à secretaria da escola";
 
 /* Destinos — os mesmos do guia de arranque. */
 const TO_CALENDAR: GuidanceAction = {
@@ -166,7 +167,7 @@ const RULES: Rule[] = [
     title: "Falta o plano de propinas",
     fix: "Em Definições → Financeiro, crie o plano do ano lectivo activo com o preço da propina e repita.",
     action: SETTINGS("financeiro", "Abrir Financeiro"),
-    owner: "a direcção ou a tesouraria",
+    owner: "à direcção ou à tesouraria",
   },
   {
     id: "config.school-banking",
@@ -175,7 +176,7 @@ const RULES: Rule[] = [
     title: "Faltam os dados bancários da escola",
     fix: "Preencha titular, banco e IBAN (AO06 + 21 dígitos) em Definições → Financeiro.",
     action: SETTINGS("financeiro", "Abrir Financeiro"),
-    owner: "a direcção ou a tesouraria",
+    owner: "à direcção ou à tesouraria",
   },
   {
     id: "config.school-data",
@@ -237,7 +238,7 @@ const RULES: Rule[] = [
     match: /o papel pedido não está configurado|cargo (não existe|em falta)/i,
     fix: "Em Acessos, confirme que o cargo existe na escola e atribua-o à conta.",
     action: TO_ACCESS,
-    owner: "o administrador da escola",
+    owner: "ao administrador da escola",
   },
   {
     id: "config.alumni",
@@ -253,7 +254,7 @@ const RULES: Rule[] = [
       /ainda não tem assinatura|assinatura (expirou|suspensa|inactiva)|não está incluíd[oa] no (seu )?plano|plano da escola não inclui/i,
     fix: "Veja o plano activo e o que inclui em Configurações → Assinatura.",
     action: TO_SUBSCRIPTION,
-    owner: "o administrador da escola",
+    owner: "ao administrador da escola",
   },
   {
     id: "config.email-provider",
@@ -389,7 +390,7 @@ const RULES: Rule[] = [
     codes: ["42501"],
     title: "Não tem permissão para esta acção",
     fix: "Peça ao administrador da escola, em Acessos, a permissão do módulo ou o cargo adequado.",
-    owner: "o administrador da escola",
+    owner: "ao administrador da escola",
   },
   {
     id: "limit.rate",
@@ -485,7 +486,7 @@ export function guidanceActionPath(action: GuidanceAction): string {
  */
 export function guidanceFixFor(guidance: Guidance, canOpenAction: boolean): string {
   if (canOpenAction || !guidance.action || !guidance.owner) return guidance.fix;
-  return `${guidance.fix} Se não tiver acesso, peça a ${guidance.owner}.`;
+  return `${guidance.fix} Se não tiver acesso, peça ${guidance.owner}.`;
 }
 
 /** Só para testes: os identificadores das regras, pela ordem em que são testadas. */
