@@ -1,7 +1,7 @@
 {
   "name": "siga-desktop-ui",
   "private": true,
-  "version": "1.2.0",
+  "version": "1.2.1",
   "type": "module",
   "author": "OnSoft",
   "copyright": "SIGA adaptation © 2026 OnSoft; template © Danny Smith",

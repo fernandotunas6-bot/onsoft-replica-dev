@@ -123,7 +123,7 @@ jobs:
             | Sistema | Ficheiro |
             |---|---|
             | Windows 10/11 (64 bits) | `SIGA-Desktop-Windows-x64-setup.exe` |
-            | macOS 10.15+ (Intel e Apple Silicon) | `SIGA-Desktop-macOS-universal.dmg` |
+            | macOS 11+ com o Safari 16.4+ (Intel e Apple Silicon) | `SIGA-Desktop-macOS-universal.dmg` |
             | Ubuntu / Debian | `SIGA-Desktop-Linux-amd64.deb` |
             | Fedora / openSUSE | `SIGA-Desktop-Linux-x86_64.rpm` |
             | Outras distribuições Linux | `SIGA-Desktop-Linux-x86_64.AppImage` |

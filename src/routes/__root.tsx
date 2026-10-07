@@ -97,6 +97,9 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { rel: "apple-touch-icon", href: "/icons/apple-touch-icon.png", sizes: "180x180" },
       { rel: "manifest", href: "/manifest.webmanifest" },
     ],
+    // Antes do resto: num motor antigo (ex.: Mac com o Safari por actualizar, também na
+    // app desktop) explica como actualizar em vez de deixar um ecrã que não responde.
+    scripts: [{ src: "/browser-check.js" }],
   }),
   // Pista de sessão para o SSR desenhar logo o ecrã de entrada (ver session-hint.ts).
   loader: async () => ({ sessionHint: await readSessionHint() }),

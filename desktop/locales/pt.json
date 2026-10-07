@@ -7,6 +7,8 @@
   "menu.hideOthers": "Ocultar outras aplicações",
   "menu.showAll": "Mostrar todas",
   "menu.quit": "Sair de {{appName}}",
+  "menu.edit": "Editar",
+  "menu.window": "Janela",
   "menu.view": "Ver",
   "menu.toggleLeftSidebar": "Mostrar/ocultar painel esquerdo",
   "menu.toggleRightSidebar": "Mostrar/ocultar painel direito",

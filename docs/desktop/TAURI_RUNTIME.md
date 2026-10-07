@@ -60,6 +60,19 @@ O daemon rejeita origens desconhecidas (incluindo `null`), Host diferente do end
 
 `DesktopNotifications` (no `AppShell`, só na app) subscreve em tempo real as mensagens directas recebidas pela conta e os comunicados da escola, e avisa pelo sistema **só com a app em segundo plano** (com a janela à frente, o próprio ecrã mostra). Uma mensagem nova mostra só o remetente, nunca o texto: o aviso pode aparecer no ecrã bloqueado ou com o ecrã projectado. Um comunicado avisa com o título, pela mesma regra da lista (o pessoal vê todos; alunos e encarregados só os enviados e não os do corpo docente), só acabado de publicar e uma vez. Rajadas juntam-se num aviso («3 mensagens novas»). O aviso de ligação também avisa «Alterações enviadas» quando acaba de enviar o que ficou à espera. Usa o plugin de notificações (`notification:default` já na capability do portal); regras em `src/lib/desktop-notifications.ts`.
 
+## macOS
+
+A app usa o WebKit do sistema (o motor do Safari instalado). O SIGA, a janela local e o
+Tailwind 4 são compilados para o Safari 16.4 ou mais recente; com um Safari mais antigo
+o ecrã aparece, mas o código não arranca (portal, PIN e entrada sem resposta). Por isso:
+
+- `minimumSystemVersion` é `11.0` (o macOS 10.15 não recebe Safari 16.4);
+- `public/browser-check.js` (cópia igual em `desktop/public/`) corre antes do resto e,
+  num motor antigo, explica como actualizar o Safari em Actualização de Software
+  (Monterey → Safari 17, Big Sur → Safari 16.6). Serve também o navegador;
+- o menu da app no Mac tem **Editar** e **Janela**: sem eles Cmd+C/V/X/Z/A e Cmd+W/M não
+  funcionam em nenhuma janela, incluindo o portal.
+
 ## Sem rede
 
 **App desktop (portal na janela da app):**
