@@ -77,6 +77,39 @@ async function assertMember(db: Db, conversationId: string, userId: string) {
   if (!data) throw new Error("Não participa nesta conversa.");
 }
 
+/**
+ * A conversa é da escola activa e, se for directa, a outra pessoa ainda tem
+ * vínculo activo. Quem saiu da escola deixa de ler (RLS e servidor), por isso
+ * escrever-lhe era falar para ninguém.
+ */
+async function assertConversationOpen(
+  db: Db,
+  conversationId: string,
+  schoolId: string,
+  userId: string,
+) {
+  const { data: conversation, error } = await db
+    .from("siga_chat_conversations")
+    .select("type, school_id")
+    .eq("id", conversationId)
+    .maybeSingle();
+  if (error) throw publicDatabaseError(error, "Não foi possível abrir a conversa.");
+  if (!conversation || String(conversation.school_id) !== schoolId) {
+    throw new Error("Esta conversa é de outra escola. Mude de escola para responder.");
+  }
+  if (String(conversation.type) === "group") return;
+  const { data: members } = await db
+    .from("siga_chat_members")
+    .select("user_id")
+    .eq("conversation_id", conversationId)
+    .neq("user_id", userId);
+  const peers = (members ?? []).map((row) => String(row.user_id));
+  const active = await activeMemberIds(db, schoolId, peers);
+  if (!peers.length || peers.some((peer) => !active.has(peer))) {
+    throw new Error("Esta pessoa já não pertence à escola: a conversa fica só para leitura.");
+  }
+}
+
 type MessageRow = {
   id: string;
   sender_id: string;
@@ -129,6 +162,75 @@ function toMessage(
 
 // ------------------------------------------------------------ conversas ---
 
+type LastMessageRow = {
+  id: string;
+  conversation_id: string;
+  sender_id: string;
+  body: string | null;
+  attachment_file_name: string | null;
+  deleted_at: string | null;
+  created_at: string;
+};
+
+/** Poucos pedidos de cada vez: uma conta com muitas conversas não pode abrir
+ *  centenas de ligações ao mesmo tempo. */
+const SUMMARY_CONCURRENCY = 8;
+
+async function loadConversationSummaries(
+  db: Db,
+  conversationIds: string[],
+  userId: string,
+  readAtById: Map<string, string>,
+): Promise<Map<string, { last: LastMessageRow | null; unread: number }>> {
+  const out = new Map<string, { last: LastMessageRow | null; unread: number }>();
+  for (let i = 0; i < conversationIds.length; i += SUMMARY_CONCURRENCY) {
+    const batch = conversationIds.slice(i, i + SUMMARY_CONCURRENCY);
+    await Promise.all(
+      batch.map(async (conversationId) => {
+        const lastQuery = db
+          .from("siga_chat_messages")
+          .select(
+            "id, conversation_id, sender_id, body, attachment_file_name, deleted_at, created_at",
+          )
+          .eq("conversation_id", conversationId)
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        let unreadQuery = db
+          .from("siga_chat_messages")
+          .select("id", { count: "exact", head: true })
+          .eq("conversation_id", conversationId)
+          .neq("sender_id", userId)
+          .is("deleted_at", null);
+        const readAt = readAtById.get(conversationId);
+        if (readAt && !Number.isNaN(Date.parse(readAt))) {
+          unreadQuery = unreadQuery.gt("created_at", readAt);
+        }
+        const [{ data: last }, { count }] = await Promise.all([lastQuery, unreadQuery]);
+        out.set(conversationId, {
+          last: (last as LastMessageRow | null) ?? null,
+          unread: count ?? 0,
+        });
+      }),
+    );
+  }
+  return out;
+}
+
+/** Quem destes utilizadores tem vínculo activo com a escola. */
+async function activeMemberIds(db: Db, schoolId: string, userIds: string[]): Promise<Set<string>> {
+  if (!userIds.length) return new Set();
+  const { data, error } = await db
+    .from("school_memberships")
+    .select("user_id")
+    .eq("school_id", schoolId)
+    .eq("status", "active")
+    .in("user_id", userIds);
+  // Sem confirmar, não se marca ninguém como tendo saído.
+  if (error) return new Set(userIds);
+  return new Set((data ?? []).map((row) => String(row.user_id)));
+}
+
 export const listChatConversations = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
@@ -176,29 +278,24 @@ export const listChatConversations = createServerFn({ method: "GET" })
       peersByConv.set(cid, [...(peersByConv.get(cid) ?? []), uid]);
     }
 
-    const { data: lastRows } = await db
-      .from("siga_chat_messages")
-      .select("id, conversation_id, sender_id, body, attachment_file_name, deleted_at, created_at")
-      .in("conversation_id", visibleIds)
-      .order("created_at", { ascending: false })
-      .limit(600);
+    // Por conversa: a última mensagem e as não lidas exactas. Antes vinham das
+    // 600 mensagens mais recentes de todas as conversas juntas — numa conta com
+    // movimento, as conversas mais antigas ficavam sem pré-visualização (e no
+    // fim da lista) e as não lidas paravam de contar.
+    const summaries = await loadConversationSummaries(db, visibleIds, context.userId, readAtById);
 
-    const lastByConv = new Map<string, NonNullable<typeof lastRows>[number]>();
-    const unreadByConv = new Map<string, number>();
-    for (const row of lastRows ?? []) {
-      const cid = String(row.conversation_id);
-      if (!lastByConv.has(cid)) lastByConv.set(cid, row);
-      const readAt = Date.parse(readAtById.get(cid) ?? "");
-      if (
-        String(row.sender_id) !== context.userId &&
-        !row.deleted_at &&
-        (Number.isNaN(readAt) || Date.parse(String(row.created_at)) > readAt)
-      ) {
-        unreadByConv.set(cid, (unreadByConv.get(cid) ?? 0) + 1);
-      }
-    }
+    // Conversa directa com quem já saiu da escola: fica só para leitura.
+    const peerIds = [...new Set([...peersByConv.values()].flat())];
+    const activePeers = await activeMemberIds(db, membership.schoolId, peerIds);
 
-    const profiles = await loadProfiles(db, [...peersByConv.values()].flat());
+    const profiles = await loadProfiles(db, peerIds);
+    // Num grupo, quem escreveu a última mensagem pode já não ser membro.
+    const missingSenders = [...summaries.values()]
+      .map((summary) => summary.last?.sender_id)
+      .filter((id): id is string => Boolean(id) && id !== context.userId && !profiles.has(id!));
+    const senderProfiles = missingSenders.length
+      ? new Map([...profiles, ...(await loadProfiles(db, missingSenders))])
+      : profiles;
 
     const conversations: ChatConversation[] = (convRows ?? []).map((row) => {
       const id = String(row.id);
@@ -207,7 +304,8 @@ export const listChatConversations = createServerFn({ method: "GET" })
       const peerId = isGroup ? null : (peers[0] ?? null);
       const peer = peerId ? profiles.get(peerId) : undefined;
       const cargo = String(peer?.cargo ?? "").trim();
-      const last = lastByConv.get(id);
+      const summary = summaries.get(id);
+      const last = summary?.last;
 
       return {
         id,
@@ -216,7 +314,8 @@ export const listChatConversations = createServerFn({ method: "GET" })
         sub: isGroup ? `${peers.length + 1} participantes` : cargo || "Equipa",
         peerId,
         avatarUrl: peer?.avatar_url ? String(peer.avatar_url) : null,
-        unread: unreadByConv.get(id) ?? 0,
+        unread: summary?.unread ?? 0,
+        peerLeft: !isGroup && Boolean(peerId) && !activePeers.has(peerId!),
         student: row.student_id ? { id: String(row.student_id) } : undefined,
         loaded: false,
         messages: last
@@ -231,7 +330,7 @@ export const listChatConversations = createServerFn({ method: "GET" })
                 from:
                   String(last.sender_id) === context.userId
                     ? "me"
-                    : nameOf(profiles.get(String(last.sender_id))),
+                    : nameOf(senderProfiles.get(String(last.sender_id))),
                 status: "sent" as const,
                 deleted: Boolean(last.deleted_at),
                 replyTo: null,
@@ -291,6 +390,7 @@ export const listChatMessages = createServerFn({ method: "GET" })
       ? await db
           .from("siga_chat_messages")
           .select("id, sender_id, body, deleted_at, created_at")
+          .eq("conversation_id", data.conversationId)
           .in("id", replyIds)
       : { data: [] };
     const replies = new Map(
@@ -317,6 +417,7 @@ export const sendChatMessage = createServerFn({ method: "POST" })
     if (!membership) throw new Error("Sem membership activa nesta escola.");
     const db = await loadSgaAdminClient();
     await assertMember(db, data.conversationId, context.userId);
+    await assertConversationOpen(db, data.conversationId, membership.schoolId, context.userId);
     const attachment = data.attachmentFileId
       ? await assertSenderMayAttach(db, {
           schoolId: membership.schoolId,
@@ -357,6 +458,7 @@ export const sendChatMessage = createServerFn({ method: "POST" })
         .from("siga_chat_messages")
         .select("id, sender_id, body, deleted_at, created_at")
         .eq("id", row.reply_to)
+        .eq("conversation_id", data.conversationId)
         .maybeSingle();
       if (parent) replies.set(String(parent.id), parent as MessageRow);
     }
@@ -372,13 +474,20 @@ export const deleteChatMessage = createServerFn({ method: "POST" })
     if (!membership) throw new Error("Sem membership activa nesta escola.");
     const db = await loadSgaAdminClient();
     // `sender_id` no filtro: apagar é só para o autor, nunca para quem recebeu.
-    const { error } = await db
+    const { data: deleted, error } = await db
       .from("siga_chat_messages")
-      .update({ deleted_at: new Date().toISOString(), body: "", attachment_file_id: null })
+      .update({
+        deleted_at: new Date().toISOString(),
+        body: "",
+        attachment_file_id: null,
+        attachment_file_name: null,
+      })
       .eq("id", data.messageId)
       .eq("school_id", membership.schoolId)
-      .eq("sender_id", context.userId);
+      .eq("sender_id", context.userId)
+      .select("id");
     if (error) throw publicDatabaseError(error, "Não foi possível apagar a mensagem.");
+    if (!deleted?.length) throw new Error("Só pode apagar as suas mensagens.");
     return { ok: true as const };
   });
 
