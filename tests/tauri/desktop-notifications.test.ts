@@ -23,9 +23,13 @@ const announcement = (extra: Record<string, unknown> = {}) => ({
 
 describe("notificações da app desktop", () => {
   it("mensagens: só as recebidas por esta conta", () => {
-    expect(isIncomingMessage({ id: "m", recipient_id: me, sender_id: "u-2" }, me)).toBe(true);
-    expect(isIncomingMessage({ id: "m", recipient_id: me, sender_id: me }, me)).toBe(false);
-    expect(isIncomingMessage({ id: "m", recipient_id: "u-3", sender_id: "u-2" }, me)).toBe(false);
+    // Linha de siga_chat_messages: a RLS já só entrega as conversas da conta.
+    expect(isIncomingMessage({ id: "m", conversation_id: "c", sender_id: "u-2" }, me)).toBe(true);
+    expect(isIncomingMessage({ id: "m", conversation_id: "c", sender_id: me }, me)).toBe(false);
+    expect(
+      isIncomingMessage({ id: "m", sender_id: "u-2", deleted_at: "2026-10-07T08:00:00Z" }, me),
+    ).toBe(false);
+    expect(isIncomingMessage({ id: "m" }, me)).toBe(false);
     expect(isIncomingMessage(null, me)).toBe(false);
   });
 

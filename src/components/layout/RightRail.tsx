@@ -7,9 +7,9 @@ import { useEntityFocus } from "@/features/intelligence/entity-focus-context";
 import { useRelations } from "@/features/intelligence/use-relations";
 import { useSuggestions } from "@/features/intelligence/use-suggestions";
 import { ContextualActionsPanel } from "@/features/intelligence/components/ContextualActionsPanel";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { listChatConversations, startDirectConversation } from "@/features/messages/chat-server";
-import { OPEN_DM_EVENT } from "@/features/messages/unread";
+import { startDirectConversation } from "@/features/messages/chat-server";
+import { useChatUnread } from "@/features/messages/use-chat-unread";
+import { OPEN_CHAT_EVENT, OPEN_DM_EVENT } from "@/features/messages/unread";
 import { useBreakpoint } from "@/hooks/use-breakpoint";
 import { toastActionError } from "@/lib/action-error-toast";
 
@@ -73,38 +73,34 @@ export function RightRail() {
           toastActionError(error, "Não foi possível abrir a conversa com esta pessoa.");
         });
     };
+    // Conversa já conhecida (sino de notificações): abre-se directamente,
+    // incluindo as de grupo, que não têm uma pessoa do outro lado.
+    const openConversation = (event: Event) => {
+      const conversationId = (event as CustomEvent<{ conversationId?: string }>).detail
+        ?.conversationId;
+      if (!conversationId) return;
+      setTab("mensagens");
+      if (isDesktop) setPanelCollapsed(false);
+      else setMobileOpen(true);
+      nonceRef.current += 1;
+      setOpenRequest({ conversationId, nonce: nonceRef.current });
+    };
     window.addEventListener(OPEN_DM_EVENT, handler);
-    return () => window.removeEventListener(OPEN_DM_EVENT, handler);
+    window.addEventListener(OPEN_CHAT_EVENT, openConversation);
+    return () => {
+      window.removeEventListener(OPEN_DM_EVENT, handler);
+      window.removeEventListener(OPEN_CHAT_EVENT, openConversation);
+    };
   }, [isDesktop, setPanelCollapsed]);
 
   const handleUnread = useCallback((total: number) => setUnread(total), []);
 
-  // Com o chat fechado (folha do telemóvel fechada, coluna recolhida) não há
-  // tempo real: o contador vem de uma leitura leve, de minuto a minuto.
+  // Com o chat fechado (folha do telemóvel fechada, coluna recolhida) o
+  // contador vem da fonte partilhada com o sino (`useChatUnread`).
   const chatMounted =
     ready && activeTab === "mensagens" && (isDesktop ? !panelCollapsed : mobileOpen);
-  const closedUnread = useQuery({
-    queryKey: ["chat", "unread"],
-    queryFn: async () =>
-      (await listChatConversations()).conversations.reduce((n, c) => n + (c.unread || 0), 0),
-    enabled: ready && !chatMounted,
-    refetchInterval: 60_000,
-    refetchOnWindowFocus: true,
-    staleTime: 30_000,
-    retry: false,
-    // O contador é um extra: falhar não interrompe ninguém com um aviso.
-    meta: { errorToast: false },
-  });
-  const unreadCount = chatMounted ? unread : (closedUnread.data ?? unread);
-
-  // Ao fechar o chat, o contador continua no número que o chat mostrava (já
-  // com o que a pessoa acabou de ler), e não no da leitura anterior.
-  const queryClient = useQueryClient();
-  const wasMounted = useRef(false);
-  useEffect(() => {
-    if (wasMounted.current && !chatMounted) queryClient.setQueryData(["chat", "unread"], unread);
-    wasMounted.current = chatMounted;
-  }, [chatMounted, queryClient, unread]);
+  const summary = useChatUnread();
+  const unreadCount = chatMounted ? unread : summary.unreadCount;
 
   const chat = (
     <Suspense

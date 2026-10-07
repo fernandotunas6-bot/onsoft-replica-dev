@@ -66,7 +66,7 @@ describe("mensagens directas: só o servidor grava", () => {
   it("o browser não insere mensagens directamente", () => {
     for (const file of [
       "src/features/messages/StaffMessenger.tsx",
-      "src/features/messages/use-inbox-unread.ts",
+      "src/features/messages/use-chat-unread.ts",
     ]) {
       const text = readFileSync(join(process.cwd(), file), "utf8");
       expect(text, file).not.toMatch(

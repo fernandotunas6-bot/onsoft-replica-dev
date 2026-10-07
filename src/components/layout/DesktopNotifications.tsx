@@ -1,7 +1,8 @@
 import { useEffect, useId } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useCurrentAccount } from "@/features/auth/use-current-account";
-import { listInboxPreviews } from "@/features/messages/server";
+import { listChatConversations } from "@/features/messages/chat-server";
+import { CHAT_UNREAD_KEY } from "@/features/messages/use-chat-unread";
 import { supabase } from "@/integrations/supabase/client";
 import {
   announcementNotice,
@@ -37,14 +38,15 @@ export function DesktopNotifications() {
     const roles = rolesKey.split("|");
     const announced = new Set<string>();
 
+    // O nome vem das conversas (a mesma leitura do sino), nunca o texto.
     const senderName = async (senderId: string) => {
       try {
-        const inbox = await queryClient.fetchQuery({
-          queryKey: ["messages", "inbox", userId],
-          queryFn: () => listInboxPreviews(),
+        const conversations = await queryClient.fetchQuery({
+          queryKey: [...CHAT_UNREAD_KEY, userId],
+          queryFn: async () => (await listChatConversations()).conversations,
           staleTime: 0,
         });
-        return inbox.previews.find((row) => row.peerId === senderId)?.full_name ?? null;
+        return conversations.find((row) => row.peerId === senderId)?.name ?? null;
       } catch {
         return null;
       }
@@ -67,12 +69,7 @@ export function DesktopNotifications() {
       .channel(`desktop_notifications:${userId}:${instanceId}`)
       .on(
         "postgres_changes",
-        {
-          event: "INSERT",
-          schema: "public",
-          table: "siga_direct_messages",
-          filter: `recipient_id=eq.${userId}`,
-        },
+        { event: "INSERT", schema: "public", table: "siga_chat_messages" },
         (payload) => {
           const row = payload.new as Row;
           if (isIncomingMessage(row, userId)) messages.push(row);

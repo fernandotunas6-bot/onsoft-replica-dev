@@ -59,9 +59,9 @@ import { buildStudentCapacity } from "@/features/saas/tenant-limits";
 import { getPricingUrl, getSigaNavDocUrl } from "@/lib/ecosystem-urls";
 import { consumeSettingsOpen, OPEN_SETTINGS_EVENT } from "@/lib/settings-deep-link";
 import { scheduleIdleRouteWarmup } from "@/lib/idle-route-warmup";
-import { useInboxUnread } from "@/features/messages/use-inbox-unread";
+import { useChatUnread } from "@/features/messages/use-chat-unread";
 import { initialsFromName } from "@/features/messages/recent-contacts";
-import { requestOpenDirectMessage } from "@/features/messages/unread";
+import { requestOpenConversation } from "@/features/messages/unread";
 import { useSchoolAlerts } from "@/features/dashboard/use-school-alerts";
 import {
   BottomNavigation,
@@ -99,7 +99,8 @@ function AuthenticatedAppShell({ children }: { children: ReactNode }) {
     activeTenant,
     activePlan,
   );
-  const { unread, unreadCount } = useInboxUnread();
+  // Por ler do chat: a mesma fonte da coluna de mensagens e do painel da conta.
+  const { conversations: unread, unreadCount } = useChatUnread();
   const { alerts, alertCount } = useSchoolAlerts();
   const personalNotifications = usePersonalNotifications();
   const personalUnread = personalNotifications.data?.unread ?? 0;
@@ -565,26 +566,28 @@ function AuthenticatedAppShell({ children }: { children: ReactNode }) {
                   ))}
                   {unread.map((row) => (
                     <button
-                      key={row.peerId}
+                      key={row.id}
                       type="button"
                       className="flex w-full items-start gap-3 rounded-2xl border border-border bg-secondary/40 px-3 py-3 text-left transition-colors hover:bg-secondary"
                       onClick={() => {
                         setNotificationsOpen(false);
-                        setAccountOpen(true);
-                        requestOpenDirectMessage(row.peerId);
+                        requestOpenConversation(row.id);
                       }}
                     >
                       <UserAvatar
-                        url={row.avatar_url}
-                        initials={initialsFromName(row.full_name)}
+                        url={row.avatarUrl}
+                        initials={initialsFromName(row.name)}
                         className="size-9 bg-primary-soft text-xs font-bold text-primary"
                       />
                       <span className="min-w-0 flex-1">
-                        <span className="block truncate text-sm font-semibold">
-                          {row.full_name}
+                        <span className="flex items-center justify-between gap-2">
+                          <span className="truncate text-sm font-semibold">{row.name}</span>
+                          <span className="shrink-0 rounded-full bg-destructive px-1.5 text-[10px] font-bold text-destructive-foreground">
+                            {row.unread > 9 ? "9+" : row.unread}
+                          </span>
                         </span>
                         <span className="mt-0.5 line-clamp-2 text-xs text-muted-foreground">
-                          {row.lastBody}
+                          {row.lastText || "Anexo"}
                         </span>
                       </span>
                     </button>

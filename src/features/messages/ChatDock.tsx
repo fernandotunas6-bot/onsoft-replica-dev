@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   ArrowLeft,
   Check,
@@ -31,6 +32,7 @@ import { UserAvatar } from "@/components/ui/user-avatar";
 import { touchRecentContact } from "./recent-contacts";
 import { isMessagingStaff } from "./messaging-roles";
 import { createSigaChatAdapter } from "./chat-adapter";
+import { invalidateChatUnread } from "./use-chat-unread";
 import { openChatAttachment } from "./chat-server";
 import { canAccessPath } from "@/features/auth/access-policy";
 import type { ChatContact, ChatConversation, ChatMessage } from "./chat-schemas";
@@ -207,9 +209,19 @@ export function ChatDock({
 }) {
   const currentUser = useCurrentAccount();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const adapter = useMemo(
     () => createSigaChatAdapter({ id: currentUser.id, name: currentUser.name }),
     [currentUser.id, currentUser.name],
+  );
+  // Lida aqui = apagada no sino, no avatar e no painel da conta.
+  const markRead = useCallback(
+    (cid: string) =>
+      adapter
+        .markRead(cid)
+        .then(() => invalidateChatUnread(queryClient))
+        .catch(() => {}),
+    [adapter, queryClient],
   );
 
   const [convs, setConvs] = useState<ChatConversation[]>([]);
@@ -314,7 +326,7 @@ export function ChatDock({
       onMessage: (cid) => {
         void reload();
         if (activeRef.current === cid) {
-          void adapter.markRead(cid).catch(() => {});
+          void markRead(cid);
           void loadMessages(cid);
         }
       },
@@ -342,7 +354,7 @@ export function ChatDock({
       alive = false;
       unsubscribe();
     };
-  }, [adapter, loadMessages, patch, reload]);
+  }, [adapter, loadMessages, markRead, patch, reload]);
 
   const openConv = useCallback(
     (id: string) => {
@@ -353,10 +365,10 @@ export function ChatDock({
       setSelId(null);
       setPending(null);
       patch(id, (c) => ({ ...c, unread: 0 }));
-      void adapter.markRead(id).catch(() => {});
+      void markRead(id);
       void loadMessages(id);
     },
-    [adapter, loadMessages, patch],
+    [loadMessages, markRead, patch],
   );
 
   useEffect(() => {

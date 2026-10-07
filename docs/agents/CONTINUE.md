@@ -20,9 +20,18 @@ Depois abrir o skill do módulo em `.cursor/skills/`.
   «Tentar outra vez»; lista vazia explica a quem se pode escrever.
 - **Atalho do aluno:** «Ficha do aluno» (`/alunos/$studentId`) em vez de Boletim /
   Frequência / Ocorrências — «Frequência» abria `?tab=presenca`, que não existe.
-- **Por decidir (arquitectura):** há dois sistemas de mensagens. O sino do `AppShell`
-  (`useInboxUnread`) conta `siga_direct_messages` (o messenger antigo, `server.ts` /
-  `StaffMessenger`), enquanto o chat escreve em `siga_chat_*`. Unificar num só.
+- **Um só «por ler»:** `use-chat-unread.ts` (lógica em `chat-unread.ts`, testada) é a
+  única fonte para o sino e o selo do avatar (`AppShell`), o contador da coluna/folha
+  (`RightRail`), os pontos do painel da conta (`StaffMessenger`) e as notificações do
+  desktop (`DesktopNotifications`, agora sobre `siga_chat_messages`). Uma só ligação de
+  tempo real partilhada; o «lido» é `siga_chat_members.last_read_at`, por isso o que se
+  lê no telemóvel apaga no computador. O sino abre a conversa (incluindo grupos) com
+  `requestOpenConversation`.
+- **Messenger antigo retirado do ecrã:** `ColleagueThread`, `use-inbox-unread.ts`,
+  `local-thread.ts` e o «lido» em `localStorage`. Nada escrevia já em
+  `siga_direct_messages`. **Por fazer:** as server functions `listDirectThread`,
+  `sendDirectMessage` e `listInboxPreviews` (`messages/server.ts`) ficaram sem uso; o
+  histórico antigo nessa tabela não aparece no chat — decidir se se migra ou se arquiva.
 
 ## Orientação de erros em todo o sistema (2026-10-07)
 

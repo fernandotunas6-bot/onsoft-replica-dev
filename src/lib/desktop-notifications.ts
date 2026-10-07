@@ -19,10 +19,16 @@ const TITLE_MAX = 120;
 
 const text = (value: unknown) => (typeof value === "string" ? value : "");
 
-/** Mensagem directa recebida por esta conta (não enviada por ela). */
+/**
+ * Mensagem do chat recebida por esta conta: escrita por outra pessoa e não
+ * apagada. O tempo real só entrega linhas das conversas em que a conta
+ * participa (RLS de `siga_chat_messages`), por isso não há destinatário a
+ * confirmar aqui.
+ */
 export function isIncomingMessage(row: Row | null | undefined, userId: string) {
   if (!row || !userId) return false;
-  return Boolean(text(row["id"])) && row["recipient_id"] === userId && row["sender_id"] !== userId;
+  if (!text(row["id"]) || !text(row["sender_id"]) || row["deleted_at"]) return false;
+  return row["sender_id"] !== userId;
 }
 
 /**
