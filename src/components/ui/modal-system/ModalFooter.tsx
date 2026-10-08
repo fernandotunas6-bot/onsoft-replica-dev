@@ -58,7 +58,9 @@ export function ModalFooter({
             disabled={disabled || isSubmitting}
             className="gap-1.5 text-xs min-w-[90px]"
           >
-            {isSubmitting && <LoaderCircle className="size-3.5 animate-spin motion-reduce:animate-none" />}
+            {isSubmitting && (
+              <LoaderCircle className="size-3.5 animate-spin motion-reduce:animate-none" />
+            )}
             {submitLabel}
           </Button>
         )}
