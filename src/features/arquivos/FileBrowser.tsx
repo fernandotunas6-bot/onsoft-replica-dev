@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
+  Camera,
   ChevronRight,
   Copy,
   Download,
@@ -242,6 +243,7 @@ export function FileBrowser({
   const [relatedUserFilter, setRelatedUserFilter] = useState<string>("all");
   const [uploadProgress, setUploadProgress] = useState<Record<string, number>>({});
   const inputRef = useRef<HTMLInputElement>(null);
+  const cameraRef = useRef<HTMLInputElement>(null);
   const driveOn = installed.hasCapability("m365.onedrive");
   const canWrite = canWriteFileArea(account.role, area);
   const canUpload = writableAreas.length > 0;
@@ -1241,6 +1243,9 @@ export function FileBrowser({
                       <DropdownMenuItem onClick={() => inputRef.current?.click()} className="gap-2">
                         <Upload className="size-4 text-primary" /> Carregar Ficheiros
                       </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => cameraRef.current?.click()} className="gap-2">
+                        <Camera className="size-4 text-primary" /> Tirar fotografia
+                      </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
                   <input
@@ -1249,6 +1254,19 @@ export function FileBrowser({
                     aria-label="Seleccionar arquivos para carregar"
                     accept={uploadAccept}
                     multiple
+                    className="sr-only"
+                    onChange={(event) => {
+                      const files = Array.from(event.currentTarget.files ?? []);
+                      event.currentTarget.value = "";
+                      void uploadFiles(files);
+                    }}
+                  />
+                  <input
+                    ref={cameraRef}
+                    type="file"
+                    accept="image/*"
+                    capture="environment"
+                    aria-label="Tirar fotografia para carregar"
                     className="sr-only"
                     onChange={(event) => {
                       const files = Array.from(event.currentTarget.files ?? []);
