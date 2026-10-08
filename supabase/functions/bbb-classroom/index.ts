@@ -170,7 +170,7 @@ Deno.serve(async (request) => {
           ends_at: new Date(endsAt).toISOString(),
           meeting_id: meetingId,
           status: "scheduled",
-        }).select("id,status,starts_at,ends_at").single();
+        }).select("id,title,class_group_id,status,starts_at,ends_at").single();
       if (createError) throw createError;
       return respond(201, { session: created }, request);
     }
