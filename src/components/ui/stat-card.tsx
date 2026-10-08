@@ -70,7 +70,7 @@ export const StatCard = React.forwardRef<HTMLDivElement, StatCardProps>(
     const content = (
       <div
         className={cn(
-          "relative overflow-hidden rounded-xl border border-border/80 bg-card p-4 sm:p-5 shadow-card transition-all duration-150",
+          "relative overflow-hidden rounded-xl border border-border/80 bg-card p-4 sm:p-5 shadow-card motion-safe:transition-[border-color,box-shadow] motion-safe:duration-150",
           to && "hover:border-primary/40 hover:shadow-subtle cursor-pointer",
           className,
         )}
