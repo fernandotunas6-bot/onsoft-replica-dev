@@ -536,7 +536,9 @@ export const registerSchoolFile = createServerFn({ method: "POST" })
       throw new Error("Formato fora do padrão SIGA.");
     }
     if (requiresVerifiedSchoolStorage(data) && data.storageBackend !== "sga") {
-      throw new Error("Os documentos pessoais da Secretaria exigem armazenamento seguro da escola.");
+      throw new Error(
+        "Os documentos pessoais da Secretaria exigem armazenamento seguro da escola.",
+      );
     }
     if (!isOwnUploadPath(data.storagePath, membership.schoolId, userId, data.id, data.area)) {
       throw new Error("Caminho do ficheiro inválido.");
