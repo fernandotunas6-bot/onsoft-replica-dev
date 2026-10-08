@@ -45,8 +45,11 @@ create table if not exists public.bbb_classroom_recordings (
 );
 
 alter table public.bbb_classroom_sessions enable row level security;
+alter table public.bbb_classroom_sessions force row level security;
 alter table public.bbb_classroom_participation enable row level security;
+alter table public.bbb_classroom_participation force row level security;
 alter table public.bbb_classroom_recordings enable row level security;
+alter table public.bbb_classroom_recordings force row level security;
 revoke all on public.bbb_classroom_sessions from anon, authenticated;
 revoke all on public.bbb_classroom_participation from anon, authenticated;
 revoke all on public.bbb_classroom_recordings from anon, authenticated;
