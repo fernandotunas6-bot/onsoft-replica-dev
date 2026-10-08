@@ -590,6 +590,10 @@ export function FileBrowser({
 
   const uploadFiles = async (list: FileList | File[] | null) => {
     if (!list?.length || !canUpload || uploading || pendingFiles.length > 0) return;
+    if (initialRelatedPersonId && !canWriteFileArea(account.role, "secretaria")) {
+      toast.error("Sem permissão para carregar documentos pessoais na Secretaria.");
+      return;
+    }
     const accepted: File[] = [];
     for (const file of Array.from(list)) {
       const allowed = isAllowedSchoolFile(file);
