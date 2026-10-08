@@ -631,6 +631,10 @@ export function FileBrowser({
       toast.error("Os documentos pessoais devem ter visibilidade privada.");
       return;
     }
+    if (initialRelatedPersonId && targetArea !== "secretaria") {
+      toast.error("Os documentos pessoais devem ser guardados na área reservada da Secretaria.");
+      return;
+    }
     setPendingFiles([]);
     setUploading(true);
     setUploadProgress(files.reduce((acc, f) => ({ ...acc, [f.name]: 0 }), {}));
