@@ -81,6 +81,7 @@ import {
 import { readFilesPrefs, writeFilesPrefs } from "./prefs";
 import { isImageFileKind, resolveFileBlob, resolveFileUrl } from "./resolve-file";
 import { schoolFileShareText } from "./share-text";
+import { assertVerifiedSchoolStorage } from "./storage-policy";
 import {
   fileCategoryOptions,
   fileKindOptions,
@@ -687,11 +688,10 @@ export function FileBrowser({
         } finally {
           clearInterval(ramp);
         }
-        if (initialRelatedPersonId && backend !== "sga") {
-          throw new Error(
-            "O documento pessoal não foi enviado ao armazenamento seguro da escola. Verifique a ligação e tente novamente.",
-          );
-        }
+        assertVerifiedSchoolStorage(
+          { area: targetArea, visibility: meta.visibility, relatedPersonId: meta.relatedPersonId },
+          backend,
+        );
         const record: SchoolFileRecord = {
           id,
           schoolId,
@@ -743,11 +743,11 @@ export function FileBrowser({
             relatedPersonId: record.relatedPersonId,
           },
         });
-        if (initialRelatedPersonId && registered.storage !== "sga") {
-          throw new Error(
-            "Não foi possível registar o documento pessoal na base de dados da escola.",
-          );
-        }
+        assertVerifiedSchoolStorage(
+          { area: targetArea, visibility: meta.visibility, relatedPersonId: meta.relatedPersonId },
+          backend,
+          registered.storage,
+        );
         const storedRecord: SchoolFileRecord =
           registered.storage === "local" && backend === "sga"
             ? { ...record, storageBackend: "local" }
