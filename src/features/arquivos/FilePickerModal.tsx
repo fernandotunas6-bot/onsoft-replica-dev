@@ -1,4 +1,5 @@
 import { FolderOpen } from "lucide-react";
+import { fileMotion } from "@/components/files/file-motion";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import { FileBrowser } from "./FileBrowser";
 import { DialogExpandButton, useExpandableDialog } from "./dialog-expand";
@@ -23,7 +24,7 @@ export function FilePickerModal({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
         className={contentClassName(
-          "flex max-h-[min(92vh,800px)] w-[min(980px,calc(100vw-1.5rem))] max-w-none flex-col gap-0 overflow-hidden p-0 sm:rounded-2xl",
+          `${fileMotion.panel} flex max-h-[min(92vh,800px)] w-[min(980px,calc(100vw-1.5rem))] max-w-none flex-col gap-0 overflow-hidden p-0 sm:rounded-2xl`,
         )}
       >
         <DialogExpandButton expanded={expanded} onToggle={toggleExpanded} />
