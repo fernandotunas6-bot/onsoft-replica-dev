@@ -590,12 +590,6 @@ export function FileBrowser({
 
   const uploadFiles = async (list: FileList | File[] | null) => {
     if (!list?.length || !canUpload || uploading || pendingFiles.length > 0) return;
-    if (!remoteQuery.data?.schoolId) {
-      toast.error("Escola indisponível", {
-        description: "Inicie sessão novamente para gravar arquivos.",
-      });
-      return;
-    }
     const accepted: File[] = [];
     for (const file of Array.from(list)) {
       const allowed = isAllowedSchoolFile(file);
