@@ -24,7 +24,9 @@ describe("LocalFilePicker", () => {
   it("rejects oversized files before calling onSelect", async () => {
     const onSelect = vi.fn();
     const onError = vi.fn();
-    const { container } = render(<LocalFilePicker onSelect={onSelect} onError={onError} maxBytes={2} />);
+    const { container } = render(
+      <LocalFilePicker onSelect={onSelect} onError={onError} maxBytes={2} />,
+    );
     const input = container.querySelector('input[type="file"]') as HTMLInputElement;
     fireEvent.change(input, { target: { files: [new File(["abc"], "large.txt")] } });
     expect(onSelect).not.toHaveBeenCalled();
@@ -33,7 +35,14 @@ describe("LocalFilePicker", () => {
 
   it("reports callback errors", async () => {
     const onError = vi.fn();
-    const { container } = render(<LocalFilePicker onSelect={async () => { throw new Error("Falha de rede"); }} onError={onError} />);
+    const { container } = render(
+      <LocalFilePicker
+        onSelect={async () => {
+          throw new Error("Falha de rede");
+        }}
+        onError={onError}
+      />,
+    );
     const input = container.querySelector('input[type="file"]') as HTMLInputElement;
     fireEvent.change(input, { target: { files: [new File(["abc"], "a.txt")] } });
     await waitFor(() => expect(onError).toHaveBeenCalledWith("Falha de rede"));
