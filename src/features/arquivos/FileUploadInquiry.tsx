@@ -72,6 +72,7 @@ export function FileUploadInquiryModal({
   currentUserId,
   mode = "upload",
   initial,
+  lockRelatedPerson = false,
   onCancel,
   onConfirm,
 }: {
@@ -84,6 +85,7 @@ export function FileUploadInquiryModal({
   currentUserId: string;
   mode?: "upload" | "organize";
   initial?: Partial<UploadInquiryResult> & { name?: string };
+  lockRelatedPerson?: boolean;
   onCancel: () => void;
   onConfirm: (meta: UploadInquiryResult) => void;
 }) {
@@ -423,6 +425,7 @@ export function FileUploadInquiryModal({
               id="file-meta-visibility"
               className="flex h-9 w-full rounded-md border border-input bg-background px-2 text-sm"
               value={visibility}
+              disabled={lockRelatedPerson}
               onChange={(event) =>
                 setVisibility(event.target.value as SchoolFileRecord["visibility"])
               }
@@ -476,6 +479,7 @@ export function FileUploadInquiryModal({
             <select
               className="mt-1.5 flex h-9 w-full rounded-md border border-input bg-background px-2 text-sm"
               value={relatedPersonId}
+              disabled={lockRelatedPerson}
               onChange={(event) => {
                 setRelatedPersonId(event.target.value);
                 setFormError(null);
