@@ -28,3 +28,18 @@ jobs:
         run: bun install --frozen-lockfile
       - name: Check BBB formatting
         run: bunx prettier --check src/features/virtual-classroom src/components/virtual-classroom src/server/integrations/bigbluebutton.ts src/server/integrations/bigbluebutton-policy.ts src/server/integrations/bigbluebutton-service.ts supabase/functions/bbb-classroom/index.ts tests/integrations/bigbluebutton.test.ts tests/virtual-classroom/classroom-api.test.ts
+
+      - name: Prepare formatted BBB patch
+        if: failure()
+        run: |
+          bunx prettier --write src/features/virtual-classroom src/components/virtual-classroom src/server/integrations/bigbluebutton.ts src/server/integrations/bigbluebutton-policy.ts src/server/integrations/bigbluebutton-service.ts supabase/functions/bbb-classroom/index.ts tests/integrations/bigbluebutton.test.ts tests/virtual-classroom/classroom-api.test.ts
+          git diff --binary > bbb-format.patch
+          git diff --check
+
+      - name: Upload formatting patch
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: bbb-format-patch
+          path: bbb-format.patch
+          if-no-files-found: warn
