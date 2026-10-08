@@ -535,6 +535,14 @@ export function FileUploadInquiryModal({
                 );
                 return;
               }
+              if (lockRelatedPerson && (!initial?.relatedPersonId || relatedPersonId !== initial.relatedPersonId)) {
+                setFormError("O documento deve permanecer associado à pessoa deste perfil.");
+                return;
+              }
+              if (lockRelatedPerson && visibility !== "private") {
+                setFormError("Os documentos pessoais devem manter acesso privado.");
+                return;
+              }
               if (isPhotoCategory && !relatedPersonId) {
                 setFormError("Seleccione o aluno a quem a fotografia pertence.");
                 return;
