@@ -1245,7 +1245,10 @@ export function FileBrowser({
                       <DropdownMenuItem onClick={() => inputRef.current?.click()} className="gap-2">
                         <Upload className="size-4 text-primary" /> Carregar Ficheiros
                       </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => cameraRef.current?.click()} className="gap-2">
+                      <DropdownMenuItem
+                        onClick={() => cameraRef.current?.click()}
+                        className="gap-2"
+                      >
                         <Camera className="size-4 text-primary" /> Tirar fotografia
                       </DropdownMenuItem>
                     </DropdownMenuContent>
