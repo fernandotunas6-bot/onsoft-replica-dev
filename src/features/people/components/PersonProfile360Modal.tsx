@@ -819,9 +819,9 @@ export function PersonProfile360Modal({
                   </Button>
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  Na biblioteca reservada, carregue o BI, passaporte, certidão ou certificado.
-                  No formulário de classificação, associe o ficheiro a esta pessoa e mantenha
-                  a visibilidade privada. O carregamento não verifica automaticamente a identidade.
+                  Na biblioteca reservada, carregue o BI, passaporte, certidão ou certificado. No
+                  formulário de classificação, associe o ficheiro a esta pessoa e mantenha a
+                  visibilidade privada. O carregamento não verifica automaticamente a identidade.
                 </p>
                 {person?.documents && person.documents.length > 0 ? (
                   <div className="divide-y divide-border rounded-lg border border-border">
@@ -854,7 +854,7 @@ export function PersonProfile360Modal({
               initialRelatedPersonId={personId}
             />
 
-                        {/* ABA 4: CONTACTOS */}
+            {/* ABA 4: CONTACTOS */}
             <TabsContent value="contactos" className="space-y-4">
               <div className="rounded-xl border border-border bg-card p-5 shadow-sm space-y-4">
                 <h4 className="text-sm font-bold flex items-center gap-2">
