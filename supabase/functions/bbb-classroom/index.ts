@@ -66,7 +66,7 @@ Deno.serve(async (request) => {
       .from("roles").select("code").eq("school_id", session.school_id).in("id", roleIds.length ? roleIds : ["00000000-0000-0000-0000-000000000000"]);
     if (rolesError) throw rolesError;
     const codes = new Set((roles ?? []).map((r) => r.code.toLowerCase()));
-    const admin = ["school_admin", "pedagogical_admin"].some((code) => codes.has(code));
+    const admin = ["owner", "admin"].some((code) => codes.has(code));
     const { data: assignment, error: assignmentError } = teacher
       ? await db.from("class_subjects").select("id").eq("school_id", session.school_id)
           .eq("class_group_id", session.class_group_id).eq("teacher_id", teacher.id)
