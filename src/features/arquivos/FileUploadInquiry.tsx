@@ -535,7 +535,10 @@ export function FileUploadInquiryModal({
                 );
                 return;
               }
-              if (lockRelatedPerson && (!initial?.relatedPersonId || relatedPersonId !== initial.relatedPersonId)) {
+              if (
+                lockRelatedPerson &&
+                (!initial?.relatedPersonId || relatedPersonId !== initial.relatedPersonId)
+              ) {
                 setFormError("O documento deve permanecer associado à pessoa deste perfil.");
                 return;
               }
