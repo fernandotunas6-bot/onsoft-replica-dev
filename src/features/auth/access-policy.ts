@@ -170,6 +170,11 @@ export function canAccessPath(
     return true;
   }
 
+  // Classroom content is additionally authorized per school and enrollment by the Edge Function.
+  if (pathname === "/aulas-virtuais") {
+    return ["Administrador", "Professor", "Aluno"].includes(role);
+  }
+
   if (pathname === "/alumni/portal" || pathname.startsWith("/alumni/portal/")) {
     if (plan && !planIncludesModule(plan, "pessoas")) return false;
     if (grants.pessoas === "Nenhum") return false;
