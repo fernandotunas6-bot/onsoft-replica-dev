@@ -44,6 +44,8 @@ import { Tabs, TabsContent } from "@/components/ui/tabs";
 import { UserAvatar } from "@/components/ui/user-avatar";
 import { PickFileButton } from "@/features/arquivos/PickFileButton";
 import { FilePickerModal } from "@/features/arquivos/FilePickerModal";
+import { listSchoolFiles } from "@/features/arquivos/server";
+import { formatFileSize } from "@/features/arquivos/kinds";
 import { uploadPersonPhotoToLibrary } from "@/features/arquivos/apply-person-photo";
 import { useCurrentAccount } from "@/features/auth/use-current-account";
 import {
@@ -183,6 +185,16 @@ export function PersonProfile360Modal({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
   const [personalDocumentsOpen, setPersonalDocumentsOpen] = useState(false);
+
+  const personalFilesQuery = useQuery({
+    queryKey: ["arquivos", "person-documents", account.schoolId, personId],
+    enabled: Boolean(open && personId && account.schoolId && activeTab === "identificacao"),
+    queryFn: () =>
+      listSchoolFiles({
+        data: { area: "secretaria", relatedPersonId: personId, limit: 48 },
+      }),
+    staleTime: 20_000,
+  });
 
   const person = personQuery.data as PersonRecord | undefined;
 
@@ -824,6 +836,25 @@ export function PersonProfile360Modal({
                   formulário de classificação, associe o ficheiro a esta pessoa e mantenha a
                   visibilidade privada. O carregamento não verifica automaticamente a identidade.
                 </p>
+                <div className="space-y-2 rounded-lg border border-border p-3">
+                  <p className="text-sm font-semibold">Ficheiros associados a esta pessoa</p>
+                  {personalFilesQuery.isLoading ? (
+                    <p className="text-xs text-muted-foreground">A carregar documentos…</p>
+                  ) : personalFilesQuery.isError ? (
+                    <p className="text-xs text-destructive">Não foi possível consultar os ficheiros.</p>
+                  ) : personalFilesQuery.data?.files.length ? (
+                    <ul className="divide-y divide-border">
+                      {personalFilesQuery.data.files.map((file) => (
+                        <li key={file.id} className="flex items-center justify-between gap-3 py-2 text-xs">
+                          <span className="min-w-0 truncate font-medium">{file.title || file.name}</span>
+                          <span className="shrink-0 text-muted-foreground">{formatFileSize(file.sizeBytes)}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <p className="text-xs text-muted-foreground">Nenhum ficheiro associado na Secretaria.</p>
+                  )}
+                </div>
                 {person?.documents && person.documents.length > 0 ? (
                   <div className="divide-y divide-border rounded-lg border border-border">
                     {person.documents.map((doc) => (
@@ -850,7 +881,14 @@ export function PersonProfile360Modal({
 
             <FilePickerModal
               open={personalDocumentsOpen}
-              onOpenChange={setPersonalDocumentsOpen}
+              onOpenChange={(nextOpen) => {
+                setPersonalDocumentsOpen(nextOpen);
+                if (!nextOpen) {
+                  void queryClient.invalidateQueries({
+                    queryKey: ["arquivos", "person-documents", account.schoolId, personId],
+                  });
+                }
+              }}
               area="secretaria"
               initialRelatedPersonId={personId}
             />
