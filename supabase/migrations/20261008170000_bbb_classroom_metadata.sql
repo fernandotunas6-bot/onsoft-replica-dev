@@ -13,8 +13,8 @@ create table if not exists public.bbb_classroom_sessions (
   created_at timestamptz not null default now(),
   check (ends_at > starts_at),
   unique (school_id,id),
-  foreign key (class_group_id) references public.class_groups(id),
-  foreign key (teacher_id) references public.teachers(id)
+  foreign key (school_id, class_group_id) references public.class_groups(school_id, id),
+  foreign key (school_id, teacher_id) references public.teachers(school_id, id)
 );
 create index if not exists bbb_classroom_sessions_schedule_idx
   on public.bbb_classroom_sessions (school_id, starts_at desc);
