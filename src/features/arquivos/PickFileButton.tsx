@@ -28,6 +28,7 @@ export function PickFileButton({
     <>
       <Button
         type="button"
+        aria-label={label}
         variant={variant}
         size={size}
         className={`gap-2 ${fileMotion.interactive}`}
