@@ -67,7 +67,7 @@ export function PageHeader({
     ([{ label: "Início", to: "/" }, { label: group }, { label: title }] satisfies PageCrumb[]);
 
   return (
-    <div className="relative isolate space-y-2.5">
+    <div className="relative isolate space-y-2.5 motion-safe:animate-in motion-safe:fade-in motion-safe:duration-200">
       {/* Brilho na cor da área (tom em <html data-tone>, ver AreaToneSync). */}
       <div aria-hidden="true" className="page-header-glow" />
       {!hideBreadcrumb ? (
