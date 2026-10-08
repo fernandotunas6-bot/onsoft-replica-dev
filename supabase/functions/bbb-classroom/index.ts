@@ -134,13 +134,18 @@ Deno.serve(async (request) => {
     if (membershipError) throw membershipError;
     if (!membership) return respond(403, { error: "Access denied" }, request);
 
-    const [{ data: memberRoles, error: roleError }, { data: teacher, error: teacherError }, { data: student, error: studentError }] =
+    const [{ data: memberRoles, error: roleError }, { data: teacher, error: teacherError }, { data: person, error: personError }] =
       await Promise.all([
         db.from("member_roles").select("role_id").eq("membership_id", membership.id).eq("school_id", session.school_id),
         db.from("teachers").select("id").eq("id", session.teacher_id).eq("school_id", session.school_id).eq("user_id", userId).maybeSingle(),
-        db.from("students").select("id,people!inner(user_id)").eq("school_id", session.school_id).eq("people.user_id", userId).is("deleted_at", null).maybeSingle(),
+        db.from("people").select("id").eq("school_id", session.school_id).eq("user_id", userId).is("deleted_at", null).maybeSingle(),
       ]);
-    if (roleError || teacherError || studentError) throw roleError ?? teacherError ?? studentError;
+    if (roleError || teacherError || personError) throw roleError ?? teacherError ?? personError;
+    const { data: student, error: studentError } = person
+      ? await db.from("students").select("id").eq("school_id", session.school_id)
+          .eq("person_id", person.id).is("deleted_at", null).maybeSingle()
+      : { data: null, error: null };
+    if (studentError) throw studentError;
     const roleIds = (memberRoles ?? []).map((r) => r.role_id);
     const { data: roles, error: rolesError } = await db
       .from("roles").select("code").eq("school_id", session.school_id).in("id", roleIds.length ? roleIds : ["00000000-0000-0000-0000-000000000000"]);
