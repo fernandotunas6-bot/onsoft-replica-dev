@@ -15,15 +15,14 @@ type ClassroomResponse = {
   error?: string;
 };
 
-async function classroomRequest(
-  payload: Record<string, string>,
-): Promise<ClassroomResponse> {
-  const { data, error } = await supabase.functions.invoke<ClassroomResponse>(
-    "bbb-classroom",
-    { body: payload },
-  );
+async function classroomRequest(payload: Record<string, string>): Promise<ClassroomResponse> {
+  const { data, error } = await supabase.functions.invoke<ClassroomResponse>("bbb-classroom", {
+    body: payload,
+  });
   if (error) throw new Error("Não foi possível comunicar com as aulas virtuais.");
-  if (!data || data.error) throw new Error(data?.error ?? "Resposta inválida do servidor.");
+  if (!data || data.error) {
+    throw new Error(data?.error ?? "Resposta inválida do servidor.");
+  }
   return data;
 }
 
