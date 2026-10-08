@@ -12,6 +12,7 @@ type Props = {
 
 export function VirtualClassroomPanel({ schoolId, classGroupId, teacherId, canSchedule }: Props) {
   const { sessions, loading, error, refresh } = useVirtualClassrooms(schoolId);
+  const classroomSessions = sessions.filter((session) => session.class_group_id === classGroupId);
   const [title, setTitle] = useState("");
   const [startsAt, setStartsAt] = useState("");
   const [endsAt, setEndsAt] = useState("");
@@ -88,9 +89,9 @@ export function VirtualClassroomPanel({ schoolId, classGroupId, teacherId, canSc
         </div>
         {loading && <p role="status" className="text-sm">A carregar aulas...</p>}
         {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
-        {!loading && !error && sessions.filter((session) => session.class_group_id === classGroupId).length === 0 &&
+        {!loading && !error && classroomSessions.length === 0 &&
           <p className="text-sm text-muted-foreground">Ainda não existem aulas virtuais nesta turma.</p>}
-        {sessions.filter((session) => session.class_group_id === classGroupId).map((session) => (
+        {classroomSessions.map((session) => (
           <article key={session.id} className="rounded-xl border p-3">
             <p className="font-medium">{session.title}</p>
             <p className="text-sm text-muted-foreground">
