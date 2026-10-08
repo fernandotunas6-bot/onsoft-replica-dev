@@ -13,7 +13,8 @@ import {
 /**
  * Trusted server-side orchestration. Callers MUST fetch the authorization
  * context from the authenticated database session immediately before use.
- * Never accept ClassroomAuthorization as a client-controlled JSON payload.\n * This service is not a public API endpoint and must never be called from the browser.
+ * Never accept ClassroomAuthorization as a client-controlled JSON payload.
+ * This service is not a public API endpoint and must never be called from the browser.
  */
 export type VerifiedClassroomRequest = {
   context: ClassroomAuthorization;
