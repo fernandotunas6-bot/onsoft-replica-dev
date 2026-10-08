@@ -994,6 +994,7 @@ export function ChatDock({
                 paralelo só do chat. Alunos e encarregados não têm Arquivos. */}
               {canAttach ? (
                 <PickFileButton
+                  label="Anexar ficheiro da biblioteca"
                   variant="ghost"
                   size="sm"
                   onPick={(file: SchoolFileRecord) =>
