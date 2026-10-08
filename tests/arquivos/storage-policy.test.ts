@@ -19,15 +19,11 @@ describe("confidential school file storage", () => {
   });
 
   it("rejects a local-only upload for a confidential document", () => {
-    expect(() => assertVerifiedSchoolStorage(document, "local")).toThrow(
-      "armazenamento seguro",
-    );
+    expect(() => assertVerifiedSchoolStorage(document, "local")).toThrow("armazenamento seguro");
   });
 
   it("rejects uploads that lack a persisted server record", () => {
-    expect(() => assertVerifiedSchoolStorage(document, "sga", "local")).toThrow(
-      "base de dados",
-    );
+    expect(() => assertVerifiedSchoolStorage(document, "sga", "local")).toThrow("base de dados");
   });
 
   it("accepts confirmed remote uploads and allows ordinary offline files", () => {
