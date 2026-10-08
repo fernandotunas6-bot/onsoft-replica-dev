@@ -1544,6 +1544,7 @@ export function FileBrowser({
             ? { relatedPersonId: initialRelatedPersonId, visibility: "private" }
             : undefined
         }
+        lockRelatedPerson={Boolean(initialRelatedPersonId)}
         onCancel={() => setPendingFiles([])}
         onConfirm={(meta) => void commitUpload(meta)}
       />
