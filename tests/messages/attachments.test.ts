@@ -73,16 +73,14 @@ describe("anexos de mensagens: quem envia só partilha o que pode abrir", () => 
 
 describe("anexos de mensagens: servidor", () => {
   const chat = read("src/features/messages/chat-server.ts");
-  const direct = read("src/features/messages/server.ts");
   const sign = read("src/features/messages/attachment-server.ts");
 
   it("o envio verifica o anexo e grava o nome da base, não o do browser", () => {
-    for (const body of [serverFn(chat, "sendChatMessage"), serverFn(direct, "sendDirectMessage")]) {
-      expect(body).toMatch(/assertSenderMayAttach\(db, \{/);
-      expect(body).toMatch(/attachment_file_id: attachment\?\.id \?\? null/);
-      expect(body).toMatch(/attachment_file_name: attachment\?\.name \?\? null/);
-      expect(body).not.toMatch(/attachment_file_name: data\.attachmentFileName/);
-    }
+    const body = serverFn(chat, "sendChatMessage");
+    expect(body).toMatch(/assertSenderMayAttach\(db, \{/);
+    expect(body).toMatch(/attachment_file_id: attachment\?\.id \?\? null/);
+    expect(body).toMatch(/attachment_file_name: attachment\?\.name \?\? null/);
+    expect(body).not.toMatch(/attachment_file_name: data\.attachmentFileName/);
   });
 
   it("abrir pela mensagem: só quem participa, e a regra volta a valer para quem enviou", () => {
@@ -90,17 +88,13 @@ describe("anexos de mensagens: servidor", () => {
     expect(body).toMatch(/\.eq\("school_id", membership\.schoolId\)/);
     expect(body).toMatch(/from\("siga_chat_members"\)/);
     expect(body).toMatch(/Não participa nesta conversa/);
-    expect(body).toMatch(/message\.recipient_id\) !== userId/);
     expect(body).toMatch(/schoolRolesOf\(db, membership\.schoolId, senderId\)/);
     expect(body).toMatch(/canShareFileInMessage\(file, senderId, senderRoles\)/);
   });
 
-  it("os messengers abrem anexos gravados pela mensagem", () => {
+  it("o chat abre anexos gravados pela mensagem", () => {
     expect(read("src/features/messages/ChatDock.tsx")).toMatch(
       /signMessageAttachment\(\{ data: \{ source: "chat", messageId: message\.id \} \}\)/,
-    );
-    expect(read("src/features/messages/StaffMessenger.tsx")).toMatch(
-      /signMessageAttachment\(\{ data: \{ source: "direct", messageId \} \}\)/,
     );
   });
 });

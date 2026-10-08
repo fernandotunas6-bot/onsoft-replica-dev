@@ -8,7 +8,7 @@ import { useRelations } from "@/features/intelligence/use-relations";
 import { useSuggestions } from "@/features/intelligence/use-suggestions";
 import { ContextualActionsPanel } from "@/features/intelligence/components/ContextualActionsPanel";
 import { startDirectConversation } from "@/features/messages/chat-server";
-import { OPEN_DM_EVENT } from "@/features/messages/unread";
+import { OPEN_DM_EVENT, type OpenConversationRequest } from "@/features/messages/unread";
 
 /* O chat é pesado (painel inteiro + realtime) e a maioria das sessões nunca
    abre o separador: só carrega quando alguém lá vai. */
@@ -43,21 +43,26 @@ export function RightRail() {
   const hasRelated = Boolean(focusedEntity);
   const activeTab: RailTab = hasRelated ? tab : "mensagens";
 
-  /* Reaproveita o evento que o sino de notificações e a fila de avatares do
-     drawer já disparam (requestOpenDirectMessage): aqui resolve-se o peerId
-     para a conversa directa e abre-se o separador. */
+  /* O sino de notificações e a fila de avatares do drawer pedem a conversa por
+     OPEN_DM_EVENT: o sino já sabe a conversa; a fila de avatares só sabe a
+     pessoa, e aqui resolve-se (ou cria-se) a conversa directa. */
   useEffect(() => {
+    const open = (conversationId: string) => {
+      nonceRef.current += 1;
+      setOpenRequest({ conversationId, nonce: nonceRef.current });
+    };
     const handler = (event: Event) => {
-      const peerId = (event as CustomEvent<{ peerId?: string }>).detail?.peerId;
-      if (!peerId) return;
+      const detail = (event as CustomEvent<OpenConversationRequest>).detail ?? {};
+      if (!detail.peerId && !detail.conversationId) return;
       setTab("mensagens");
       setMobileOpen(true);
       setPanelCollapsed(false);
-      void startDirectConversation({ data: { peerId } })
-        .then(({ conversationId }) => {
-          nonceRef.current += 1;
-          setOpenRequest({ conversationId, nonce: nonceRef.current });
-        })
+      if (detail.conversationId) {
+        open(detail.conversationId);
+        return;
+      }
+      void startDirectConversation({ data: { peerId: detail.peerId! } })
+        .then(({ conversationId }) => open(conversationId))
         .catch(() => {
           /* A ChatDock mostra a lista; iniciar a conversa pode estar barrado
              pela regra de quem fala com quem. */

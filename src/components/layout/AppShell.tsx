@@ -61,7 +61,7 @@ import { consumeSettingsOpen, OPEN_SETTINGS_EVENT } from "@/lib/settings-deep-li
 import { scheduleIdleRouteWarmup } from "@/lib/idle-route-warmup";
 import { useInboxUnread } from "@/features/messages/use-inbox-unread";
 import { initialsFromName } from "@/features/messages/recent-contacts";
-import { requestOpenDirectMessage } from "@/features/messages/unread";
+import { requestOpenConversation } from "@/features/messages/unread";
 import { useSchoolAlerts } from "@/features/dashboard/use-school-alerts";
 import {
   BottomNavigation,
@@ -551,13 +551,12 @@ function AuthenticatedAppShell({ children }: { children: ReactNode }) {
                   ))}
                   {unread.map((row) => (
                     <button
-                      key={row.peerId}
+                      key={row.conversationId}
                       type="button"
                       className="flex w-full items-start gap-3 rounded-2xl border border-border bg-secondary/40 px-3 py-3 text-left transition-colors hover:bg-secondary"
                       onClick={() => {
                         setNotificationsOpen(false);
-                        setAccountOpen(true);
-                        requestOpenDirectMessage(row.peerId);
+                        requestOpenConversation(row.conversationId);
                       }}
                     >
                       <UserAvatar

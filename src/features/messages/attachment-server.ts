@@ -9,7 +9,9 @@ import { schoolRolesOf } from "./server";
 const FILES_BUCKET = "siga-files";
 
 const signMessageAttachmentInputSchema = z.object({
-  source: z.enum(["chat", "direct"]),
+  // As mensagens directas antigas (`siga_direct_messages`) foram copiadas para o
+  // chat a 2026-10-02 e já ninguém lá escreve: os anexos abrem só pelo chat.
+  source: z.literal("chat"),
   messageId: z.string().uuid(),
 });
 
@@ -28,41 +30,23 @@ export const signMessageAttachment = createServerFn({ method: "GET" })
     if (!membership) throw new Error("Sem membership activa nesta escola.");
     const db = await loadSgaAdminClient();
 
-    let senderId: string;
-    let fileId: string | null;
-    if (data.source === "chat") {
-      const { data: message, error } = await db
-        .from("siga_chat_messages")
-        .select("conversation_id, sender_id, attachment_file_id, deleted_at")
-        .eq("id", data.messageId)
-        .eq("school_id", membership.schoolId)
-        .maybeSingle();
-      if (error) throw publicDatabaseError(error, "Não foi possível abrir o anexo.");
-      if (!message || message.deleted_at) throw new Error("Anexo não encontrado.");
-      const { data: member } = await db
-        .from("siga_chat_members")
-        .select("user_id")
-        .eq("conversation_id", message.conversation_id)
-        .eq("user_id", userId)
-        .maybeSingle();
-      if (!member) throw new Error("Não participa nesta conversa.");
-      senderId = String(message.sender_id);
-      fileId = message.attachment_file_id ? String(message.attachment_file_id) : null;
-    } else {
-      const { data: message, error } = await db
-        .from("siga_direct_messages")
-        .select("sender_id, recipient_id, attachment_file_id")
-        .eq("id", data.messageId)
-        .eq("school_id", membership.schoolId)
-        .maybeSingle();
-      if (error) throw publicDatabaseError(error, "Não foi possível abrir o anexo.");
-      if (!message) throw new Error("Anexo não encontrado.");
-      if (String(message.sender_id) !== userId && String(message.recipient_id) !== userId) {
-        throw new Error("Não participa nesta conversa.");
-      }
-      senderId = String(message.sender_id);
-      fileId = message.attachment_file_id ? String(message.attachment_file_id) : null;
-    }
+    const { data: message, error } = await db
+      .from("siga_chat_messages")
+      .select("conversation_id, sender_id, attachment_file_id, deleted_at")
+      .eq("id", data.messageId)
+      .eq("school_id", membership.schoolId)
+      .maybeSingle();
+    if (error) throw publicDatabaseError(error, "Não foi possível abrir o anexo.");
+    if (!message || message.deleted_at) throw new Error("Anexo não encontrado.");
+    const { data: member } = await db
+      .from("siga_chat_members")
+      .select("user_id")
+      .eq("conversation_id", message.conversation_id)
+      .eq("user_id", userId)
+      .maybeSingle();
+    if (!member) throw new Error("Não participa nesta conversa.");
+    const senderId = String(message.sender_id);
+    const fileId = message.attachment_file_id ? String(message.attachment_file_id) : null;
     if (!fileId) throw new Error("Anexo não encontrado.");
 
     const file = await loadAttachableFile(db, membership.schoolId, fileId);

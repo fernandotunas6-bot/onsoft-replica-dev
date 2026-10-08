@@ -182,8 +182,17 @@ o instalou; nenhuma folha salarial nem ordem de pagamento criada.
 | Ecrã     | Cada mensagem recebida recarregava a lista e substituía-a: a conversa aberta perdia o histórico carregado e as mensagens ainda a enviar, e voltava a contar como não lidas as que se estavam a ler.                            | **Corrigido** — a lista nova junta-se à que está no ecrã (`chat-merge.ts`); recarregar a conversa mantém o que ainda está a enviar.                                                       |
 | Ecrã     | Erros sempre genéricos («Falha ao enviar»), mesmo quando o servidor dizia a razão; apagar sem sucesso deixava a mensagem como apagada; alunos e encarregados viam o botão de anexo, que abre os Arquivos que não têm.          | **Corrigido** — mostra a razão do servidor quando serve à pessoa; apagar sem sucesso repõe a mensagem; o anexo só aparece a quem tem Arquivos. Teste `tests/messages/chat-merge.test.ts`. |
 
-Ficou por fazer, sem efeito na produção de hoje (24 mensagens directas): o messenger antigo de
-mensagens directas (`listInboxPreviews`) ainda lê as últimas 400 mensagens para as pré-visualizações.
+**Dois sistemas de mensagens (2026-10-08).** O chat (`siga_chat_*`) substituiu as mensagens directas
+antigas (`siga_direct_messages`) a 2026-10-02: as 24 mensagens antigas foram copiadas para o chat
+(confirmado na produção: 24 de 24) e o ecrã antigo deixou de estar em uso. Mas o sino de
+notificações, o número no avatar da conta e as notificações da app desktop continuavam a ler só a
+tabela antiga: **as mensagens do chat nunca chegavam ao sino**, e as antigas ficavam por ler para
+sempre, porque só o ecrã fora de uso as marcava como lidas. **Corrigido** — o sino, o avatar, a
+lista de colegas e a app desktop lêem o chat (não lidas do servidor, actualizadas em tempo real ao
+chegar uma mensagem e ao abrir a conversa); o sino abre a conversa pelo id (um grupo não tem
+pessoa). Saiu o código morto: o fio de conversa antigo, `listDirectThread`, `sendDirectMessage`,
+`listInboxPreviews`, os esquemas e o armazenamento local deles. A tabela antiga fica na base, com os
+dados, sem escritas. Testes `tests/messages/chat-unread.test.ts` e `tests/tauri/desktop-notifications*`.
 
 ## 5. O que foi verificado e está bem
 
@@ -230,3 +239,6 @@ Nenhuma migração nova: continuam 2 por aplicar (A2, A8).
 
 Depois do chat afinado: `tsc` 0 erros, ESLint 0 erros, Vitest 3 179 passam e 19 ignorados, build
 sem erros.
+
+Depois de juntar o chat e as notificações (com a `main` de 2026-10-08 incorporada): `tsc` 0 erros,
+ESLint 0 erros (47 avisos), Vitest 3 222 passam e 19 ignorados, build sem erros.
