@@ -1545,7 +1545,11 @@ export function FileBrowser({
         currentUserId={account.id}
         initial={
           initialRelatedPersonId
-            ? { relatedPersonId: initialRelatedPersonId, visibility: "private" }
+            ? {
+                relatedPersonId: initialRelatedPersonId,
+                visibility: "private",
+                area: "secretaria",
+              }
             : undefined
         }
         lockRelatedPerson={Boolean(initialRelatedPersonId)}
