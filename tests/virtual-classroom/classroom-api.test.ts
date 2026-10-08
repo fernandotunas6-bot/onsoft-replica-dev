@@ -5,7 +5,10 @@ vi.mock("@/integrations/supabase/client", () => ({
   supabase: { functions: { invoke } },
 }));
 
-import { listVirtualClassrooms, scheduleVirtualClassroom } from "@/features/virtual-classroom/classroom-api";
+import {
+  listVirtualClassrooms,
+  scheduleVirtualClassroom,
+} from "@/features/virtual-classroom/classroom-api";
 
 describe("BigBlueButton classroom API", () => {
   beforeEach(() => invoke.mockReset());
@@ -30,10 +33,15 @@ describe("BigBlueButton classroom API", () => {
 
   it("rejects a schedule response without a session", async () => {
     invoke.mockResolvedValue({ data: {}, error: null });
-    await expect(scheduleVirtualClassroom({
-      schoolId: "school-1", classGroupId: "class-1", teacherId: "teacher-1",
-      title: "Matemática", startsAt: "2026-10-10T10:00:00Z",
-      endsAt: "2026-10-10T11:00:00Z",
-    })).rejects.toThrow("A aula não foi criada.");
+    await expect(
+      scheduleVirtualClassroom({
+        schoolId: "school-1",
+        classGroupId: "class-1",
+        teacherId: "teacher-1",
+        title: "Matemática",
+        startsAt: "2026-10-10T10:00:00Z",
+        endsAt: "2026-10-10T11:00:00Z",
+      }),
+    ).rejects.toThrow("A aula não foi criada.");
   });
 });
