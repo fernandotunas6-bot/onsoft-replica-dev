@@ -623,6 +623,14 @@ export function FileBrowser({
       toast.error("Sem permissão para carregar nesta área.");
       return;
     }
+    if (initialRelatedPersonId && meta.relatedPersonId !== initialRelatedPersonId) {
+      toast.error("O documento deve ficar associado à pessoa deste perfil.");
+      return;
+    }
+    if (initialRelatedPersonId && meta.visibility !== "private") {
+      toast.error("Os documentos pessoais devem ter visibilidade privada.");
+      return;
+    }
     setPendingFiles([]);
     setUploading(true);
     setUploadProgress(files.reduce((acc, f) => ({ ...acc, [f.name]: 0 }), {}));
