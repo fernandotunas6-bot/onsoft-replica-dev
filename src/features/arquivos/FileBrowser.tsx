@@ -1531,6 +1531,7 @@ export function FileBrowser({
         defaultArea={area}
         writableAreas={writableAreas}
         currentUserId={account.id}
+        initial={initialRelatedPersonId ? { relatedPersonId: initialRelatedPersonId } : undefined}
         onCancel={() => setPendingFiles([])}
         onConfirm={(meta) => void commitUpload(meta)}
       />
