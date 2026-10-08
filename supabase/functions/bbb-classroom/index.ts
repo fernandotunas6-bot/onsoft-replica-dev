@@ -168,17 +168,19 @@ Deno.serve(async (request) => {
     const studentAllowed = Boolean(student && enrollment?.length && codes.has("student"));
     if (!admin && !teacherAllowed && !studentAllowed)
       return respond(403, { error: "Access denied" }, request);
+    // Only advertise actions implemented by this deployed function.
+    // BBB meeting creation, joining, ending and recordings are not enabled yet.
     const host = admin || teacherAllowed;
     return respond(200, {
       sessionId: session.id,
       status: session.status,
       capabilities: {
-        create: session.status === "scheduled" && host,
-        start: session.status === "scheduled" && host,
-        join: session.status === "live" && (host || studentAllowed),
-        end: session.status === "live" && host,
-        recordings: session.status === "ended" &&
-          (host || (studentAllowed && session.recordings_published === true)),
+        create: false,
+        start: false,
+        join: false,
+        end: false,
+        recordings: false,
+        schedule: host,
       },
     }, request);
   } catch {
