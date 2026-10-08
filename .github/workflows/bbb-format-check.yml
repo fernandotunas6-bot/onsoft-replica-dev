@@ -1,0 +1,21 @@
+name: BBB formatting verification
+
+on:
+  push:
+    branches:
+      - feat/bigbluebutton-server-adapter-20261008
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  check-bbb-format:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+      - name: Check BBB formatting
+        run: bunx prettier --check src/features/virtual-classroom src/components/virtual-classroom src/server/integrations/bigbluebutton.ts src/server/integrations/bigbluebutton-policy.ts src/server/integrations/bigbluebutton-service.ts supabase/functions/bbb-classroom/index.ts tests/integrations/bigbluebutton.test.ts tests/virtual-classroom/classroom-api.test.ts
