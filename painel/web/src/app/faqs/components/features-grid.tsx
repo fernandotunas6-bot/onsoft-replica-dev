@@ -2,12 +2,15 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from '@/components/ui/button'
 import { ArrowRight, Sparkles, Shield, Truck, Clock } from 'lucide-react'
+import { getDocsUrl } from '@/lib/ecosystem-urls'
 
 interface FeatureItem {
   id: number
   title: string
   description: string
   icon: string
+  /** Caminho do site, ou `docs:/…` para um manual do DOC. */
+  href: string
 }
 
 interface FeaturesGridProps {
@@ -40,9 +43,19 @@ export function FeaturesGrid({ features }: FeaturesGridProps) {
                   variant='link'
                   size='sm'
                   className='text-muted-foreground hover:text-foreground h-auto cursor-pointer !p-0 text-sm'
+                  asChild
                 >
-                  Saber mais
-                  <ArrowRight className='ms-1.5 size-4' />
+                  <a
+                    href={
+                      feature.href.startsWith('docs:')
+                        ? getDocsUrl(feature.href.slice('docs:'.length))
+                        : feature.href
+                    }
+                  >
+                    Saber mais
+                    <span className='sr-only'>: {feature.title}</span>
+                    <ArrowRight className='ms-1.5 size-4' aria-hidden='true' />
+                  </a>
                 </Button>
               </CardContent>
             </Card>

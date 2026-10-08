@@ -7,6 +7,8 @@
   "menu.hideOthers": "Hide Others",
   "menu.showAll": "Show All",
   "menu.quit": "Quit {{appName}}",
+  "menu.edit": "Edit",
+  "menu.window": "Window",
   "menu.view": "View",
   "menu.toggleLeftSidebar": "Toggle Left Sidebar",
   "menu.toggleRightSidebar": "Toggle Right Sidebar",

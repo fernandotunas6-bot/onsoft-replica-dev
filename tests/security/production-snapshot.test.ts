@@ -152,7 +152,14 @@ const ANON_POLICIES_ESPERADAS = [
 // AppyPay) se confirmaram em produção. Voltou a esvaziar a 2026-10-02: as três
 // tabelas do chat (20261002093000_chat_conversations.sql) foram aplicadas e
 // aparecem no retrato recapturado nesse dia.
-const TABELAS_AUSENTES_DA_PRODUCAO = new Set<string>([]);
+const TABELAS_AUSENTES_DA_PRODUCAO = new Set<string>([
+  // 20261007100000_web_site_content.sql (site público gerido no ADMIN): sai daqui
+  // quando o retrato for recapturado depois de aplicada.
+  "web_blog_posts",
+  "web_contact_messages",
+  "web_faqs",
+  "web_school_showcase",
+]);
 
 /** Tabelas consultadas pelo código — `.from("x")`, excluindo buckets de storage. */
 function tabelasUsadasPelaApp(): string[] {

@@ -1,83 +1,13 @@
-"use client"
-
-import { zodResolver } from "@hookform/resolvers/zod"
-import { useForm } from "react-hook-form"
-import { z } from "zod"
 import { Separator } from '@/components/ui/separator'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormMessage,
-} from "@/components/ui/form"
 import { Logo } from '@/components/logo'
-import { Github, Twitter, Linkedin, Youtube, Heart } from 'lucide-react'
 import { MARKETING_FOOTER_LINKS } from '@/lib/marketing-nav'
-
-const newsletterSchema = z.object({
-  email: z.string().email({
-    message: "Introduza um e-mail válido.",
-  }),
-})
 
 const footerLinks = MARKETING_FOOTER_LINKS
 
-const socialLinks = [
-  { name: 'Twitter', href: '#', icon: Twitter },
-  { name: 'GitHub', href: '#', icon: Github },
-  { name: 'LinkedIn', href: '#', icon: Linkedin },
-  { name: 'YouTube', href: '#', icon: Youtube },
-]
-
 export function LandingFooter() {
-  const form = useForm<z.infer<typeof newsletterSchema>>({
-    resolver: zodResolver(newsletterSchema),
-    defaultValues: {
-      email: "",
-    },
-  })
-
-  function onSubmit(values: z.infer<typeof newsletterSchema>) {
-    console.log(values)
-    form.reset()
-  }
-
   return (
     <footer className="border-t bg-background">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-16">
-        <div className="mb-16">
-          <div className="mx-auto max-w-2xl text-center">
-            <h3 className="text-2xl font-bold mb-4">Receba novidades</h3>
-            <p className="text-muted-foreground mb-6">
-              Actualizações do SIGA Plus, manuais e avisos para escolas em Angola.
-            </p>
-            <Form {...form}>
-              <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col gap-2 max-w-md mx-auto sm:flex-row">
-                <FormField
-                  control={form.control}
-                  name="email"
-                  render={({ field }) => (
-                    <FormItem className="flex-1">
-                      <FormControl>
-                        <Input
-                          type="email"
-                          placeholder="O seu e-mail"
-                          {...field}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <Button type="submit" className="cursor-pointer">Subscrever</Button>
-              </form>
-            </Form>
-          </div>
-        </div>
-
         <div className="grid gap-8 grid-cols-4 lg:grid-cols-6">
           <div className="col-span-4 lg:col-span-2 max-w-2xl">
             <div className="flex items-center space-x-2 mb-4 max-lg:justify-center">
@@ -87,21 +17,8 @@ export function LandingFooter() {
               </a>
             </div>
             <p className="text-muted-foreground mb-6 max-lg:text-center max-lg:flex max-lg:justify-center">
-              Plataforma de gestão escolar para Angola. WEB vende, ADMIN controla, SIGA trabalha, PayFlow cobra, DOC explica.
+              Gestão escolar para Angola: matrículas, pautas, tesouraria e cobrança numa só plataforma, no navegador e no computador.
             </p>
-            <div className="flex space-x-4 max-lg:justify-center">
-              {socialLinks.map((social) => (
-                <Button key={social.name} variant="ghost" size="icon" asChild>
-                  <a
-                    href={social.href}
-                    aria-label={social.name}
-                    rel="noopener noreferrer"
-                  >
-                    <social.icon className="h-4 w-4" />
-                  </a>
-                </Button>
-              ))}
-            </div>
           </div>
 
           <div className='max-md:col-span-2 lg:col-span-1'>
@@ -173,16 +90,7 @@ export function LandingFooter() {
 
         <div className="flex flex-col lg:flex-row justify-between items-center gap-2">
           <div className="flex flex-col sm:flex-row items-center gap-2 text-muted-foreground text-sm">
-            <div className="flex items-center gap-1">
-              <span>Feito com</span>
-              <Heart className="h-4 w-4 text-red-500 fill-current" />
-              <span>pela</span>
-              <a href="/" className="font-semibold text-foreground hover:text-primary transition-colors duration-100 cursor-pointer">
-                SIGA Plus
-              </a>
-            </div>
-            <span className="hidden sm:inline">•</span>
-            <span>© {new Date().getFullYear()} para escolas em Angola</span>
+            <span>© {new Date().getFullYear()} OnSoft · SIGA Plus para escolas em Angola</span>
           </div>
           <div className="flex items-center space-x-4 text-sm text-muted-foreground mt-4 md:mt-0">
             <a href="/privacidade" className="hover:text-foreground transition-colors duration-100">

@@ -118,7 +118,7 @@ export function FeaturesSection() {
                 </a>
               </Button>
               <Button size="lg" variant="outline" className="cursor-pointer" asChild>
-                <a href={getDocsUrl()}>
+                <a href={getDocsUrl("/siga/primeiros-passos.html")}>
                   Ver documentação
                 </a>
               </Button>
@@ -154,7 +154,7 @@ export function FeaturesSection() {
 
             <div className="flex flex-col sm:flex-row gap-4 pe-4 pt-2">
               <Button size="lg" className="cursor-pointer" asChild>
-                <a href={getDocsUrl()} className='flex items-center'>
+                <a href={getDocsUrl("/siga/primeiros-passos.html")} className='flex items-center'>
                   Abrir manuais
                   <ArrowRight className="ms-2 size-4" aria-hidden="true" />
                 </a>

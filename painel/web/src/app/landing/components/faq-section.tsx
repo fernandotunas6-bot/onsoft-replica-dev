@@ -4,6 +4,7 @@ import { CircleHelp } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion'
 import { Badge } from '@/components/ui/badge'
+import type { SiteFaq } from '@/lib/site-content'
 
 type FaqItem = {
   value: string
@@ -11,46 +12,52 @@ type FaqItem = {
   answer: string
 }
 
-const faqItems: FaqItem[] = [
+/** Texto fixo, usado enquanto o SIGA não responde ou se o ADMIN não tiver perguntas em destaque. */
+const FALLBACK_ITEMS: FaqItem[] = [
   {
     value: 'item-1',
     question: 'Como crio a minha escola no SIGA Plus?',
     answer:
-      'Abra o portal WEB, escolha Criar escola e complete o wizard. A API SaaS provisiona o tenant, a escola e a conta. Depois entra no SIGA para operar o dia-a-dia.',
+      'Clique em «Criar escola grátis» e siga seis passos curtos: dados da escola, responsável, plano, conta do administrador e endereço da escola (por exemplo, a-minha-escola.portal-siga.com). No fim, entra no SIGA, onde a equipa trabalha no dia-a-dia.',
   },
   {
     value: 'item-2',
-    question: 'Qual a diferença entre WEB, ADMIN, SIGA e PayFlow?',
+    question: 'Há período de avaliação?',
     answer:
-      'O WEB vende e cria a escola. O ADMIN (porta 3005) controla tenants, planos e facturação SaaS. O SIGA é onde a escola trabalha: alunos, pautas e tesouraria. O PayFlow (porta 3007) cobra e emite recibos. A documentação vive no DOC.',
+      'Sim: 14 dias para experimentar, sem compromisso. No fim escolhe o plano que serve a escola e continua com os mesmos dados.',
   },
   {
     value: 'item-3',
-    question: 'Posso usar o SIGA em projectos comerciais da escola?',
+    question: 'Os dados da minha escola ficam separados das outras?',
     answer:
-      'Sim. O SIGA Plus é a plataforma da instituição. Cada escola vê só os seus dados (isolamento por tenant). O administrador escolar não entra no ADMIN da plataforma.',
+      'Sim. Cada escola vê só os seus dados, com acessos por cargo e verificação em dois passos (2FA) para quem trata de dinheiro e de notas.',
   },
   {
     value: 'item-4',
-    question: 'Há período de avaliação?',
+    question: 'Como recebemos as propinas?',
     answer:
-      'Sim. O trial público actual é de 14 dias. No fim, a escola escolhe um plano no portal WEB. O ADMIN gere o estado da subscrição.',
+      'A tesouraria emite facturas e recibos com o IBAN da escola. A cobrança por Multicaixa Express e Unitel Money é feita pelo PayFlow, ligado ao SIGA.',
   },
   {
     value: 'item-5',
-    question: 'O sistema está em português?',
+    question: 'Funciona sem Internet?',
     answer:
-      'Sim. Português é o idioma predefinido no WEB, ADMIN e DOC. Pode alternar para inglês no selector de idioma quando existir.',
+      'No navegador precisa de rede. Na app para computador (Windows, macOS e Linux), chamadas e notas lançadas sem rede ficam guardadas e seguem sozinhas quando a Internet volta.',
   },
   {
     value: 'item-6',
     question: 'Como obtenho ajuda?',
     answer:
-      'Abra a documentação (DOC) a partir de qualquer app, ou use o formulário de contacto neste portal. Os manuais apontam para o artigo certo (pautas, tesouraria, etc.).',
+      'Os manuais em português estão sempre à mão, a partir do site e do SIGA. Para outras dúvidas, use o formulário de contacto nesta página.',
   },
 ]
 
-const FaqSection = () => {
+/** Perguntas em destaque geridas no ADMIN (Site → Perguntas do site); sem elas, as fixas. */
+const FaqSection = ({ faqs }: { faqs?: SiteFaq[] | null }) => {
+  const featured = (faqs ?? []).filter((faq) => faq.featured)
+  const faqItems: FaqItem[] = featured.length
+    ? featured.map((faq) => ({ value: faq.id, question: faq.question, answer: faq.answer }))
+    : FALLBACK_ITEMS
   return (
     <section id="faq" className="py-24 sm:py-32">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
@@ -61,7 +68,7 @@ const FaqSection = () => {
             Perguntas frequentes
           </h2>
           <p className="text-lg text-muted-foreground">
-            Tudo o que precisa de saber sobre o SIGA Plus, planos e o ecossistema. Ainda tem dúvidas? Estamos aqui para ajudar.
+            O essencial sobre o SIGA Plus, os planos e o arranque da escola.
           </p>
         </div>
 
@@ -75,7 +82,7 @@ const FaqSection = () => {
                     <AccordionTrigger className='cursor-pointer items-center gap-4 rounded-none bg-transparent py-2 ps-3 pe-4 hover:no-underline data-[state=open]:border-b'>
                       <div className='flex items-center gap-4'>
                         <div className='bg-primary/10 text-primary flex size-9 shrink-0 items-center justify-center rounded-full'>
-                          <CircleHelp className='size-5' />
+                          <CircleHelp className='size-5' aria-hidden='true' />
                         </div>
                         <span className='text-start font-semibold'>{item.question}</span>
                       </div>

@@ -105,7 +105,8 @@ export function DesktopVaultGate() {
           <div className="space-y-4">
             <p className="text-sm text-muted-foreground">
               O cofre deste computador é apagado e cria um PIN novo. Terá de entrar no SIGA outra
-              vez; os dados da escola não se perdem.
+              vez; os dados da escola não se perdem. Presenças e notas guardadas sem rede que ainda
+              não foram enviadas perdem-se.
             </p>
             {error && (
               <p role="alert" className="text-sm text-destructive">

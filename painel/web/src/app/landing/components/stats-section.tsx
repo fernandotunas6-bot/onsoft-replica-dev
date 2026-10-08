@@ -1,43 +1,67 @@
 "use client"
 
-import {
-  Package,
-  Download,
-  Users,
-  Star
-} from 'lucide-react'
+import { CalendarCheck, GraduationCap, Languages, Layers, MonitorDown, School } from 'lucide-react'
+import { formatCount, type SiteStats } from '@/lib/site-content'
 import { Card, CardContent } from '@/components/ui/card'
 import { DotPattern } from '@/components/dot-pattern'
 
 
-const stats = [
+const STATIC_STATS = [
   {
-    icon: Package,
+    icon: Layers,
     value: '13+',
     label: 'Módulos',
-    description: 'Secretaria à tesouraria'
+    description: 'Da secretaria à tesouraria'
   },
   {
-    icon: Download,
-    value: '1 BD',
-    label: 'Multi-tenant',
-    description: 'N escolas isoladas'
+    icon: CalendarCheck,
+    value: '14 dias',
+    label: 'Para experimentar',
+    description: 'Sem compromisso'
   },
   {
-    icon: Users,
-    value: '5 apps',
-    label: 'Ecossistema',
-    description: 'WEB, ADMIN, SIGA, PayFlow, DOC'
+    icon: MonitorDown,
+    value: '3',
+    label: 'Sistemas',
+    description: 'App para Windows, macOS e Linux'
   },
   {
-    icon: Star,
-    value: 'AO',
-    label: 'Angola',
-    description: 'BI, NIF e Multicaixa'
+    icon: Languages,
+    value: 'PT-AO',
+    label: 'Português de Angola',
+    description: 'BI, NIF, IBAN AO e Multicaixa'
   }
 ]
 
-export function StatsSection() {
+type Stat = (typeof STATIC_STATS)[number]
+
+/**
+ * Totais reais do SIGA (escolas activas, alunos activos) à frente, quando o sistema os
+ * devolve; sem eles, os quatro números fixos do produto.
+ */
+function statsFor(live: SiteStats | null | undefined): Stat[] {
+  if (!live || live.schools <= 0) return STATIC_STATS
+  const real: Stat[] = [
+    {
+      icon: School,
+      value: formatCount(live.schools),
+      label: live.schools === 1 ? 'Escola activa' : 'Escolas activas',
+      description: 'A trabalhar no SIGA hoje'
+    },
+  ]
+  if (live.students > 0) {
+    real.push({
+      icon: GraduationCap,
+      value: formatCount(live.students),
+      label: 'Alunos',
+      description: 'Com matrícula activa no SIGA'
+    })
+  }
+  return [...real, ...STATIC_STATS].slice(0, 4)
+}
+
+export function StatsSection({ live }: { live?: SiteStats | null }) {
+  const stats = statsFor(live)
   return (
     <section className="py-12 sm:py-16 relative">
       {/* Background with transparency */}
@@ -55,7 +79,7 @@ export function StatsSection() {
               <CardContent className="p-6">
                 <div className="flex justify-center mb-4">
                   <div className="p-3 bg-primary/10 rounded-xl">
-                    <stat.icon className="h-6 w-6 text-primary" />
+                    <stat.icon className="h-6 w-6 text-primary" aria-hidden="true" />
                   </div>
                 </div>
                 <div className="space-y-1">

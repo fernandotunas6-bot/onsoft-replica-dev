@@ -1,6 +1,8 @@
 import { useState } from "react"
 import {
   BellRing,
+  CloudOff,
+  PackageCheck,
   ExternalLink,
   KeyRound,
   Printer,
@@ -32,6 +34,12 @@ const BENEFITS: { icon: LucideIcon; title: string; description: string }[] = [
     description: "Ligação às catracas e leitores da escola na rede local, sem configurar o navegador.",
   },
   {
+    icon: CloudOff,
+    title: "Continua sem Internet",
+    description:
+      "Chamadas e notas lançadas sem rede ficam guardadas no computador e seguem sozinhas quando a Internet volta.",
+  },
+  {
     icon: KeyRound,
     title: "Sessão protegida por PIN",
     description: "A sessão fica cifrada neste computador e abre com o PIN do posto.",
@@ -40,6 +48,12 @@ const BENEFITS: { icon: LucideIcon; title: string; description: string }[] = [
     icon: BellRing,
     title: "Avisos no computador",
     description: "Mensagens e comunicados novos aparecem como notificação, mesmo com a janela minimizada.",
+  },
+  {
+    icon: PackageCheck,
+    title: "Instala sem Internet",
+    description:
+      "O instalador para Windows já traz tudo o que precisa (incluindo o WebView2): transfira uma vez e instale em vários computadores.",
   },
 ]
 
@@ -57,11 +71,12 @@ const STEPS: Record<DesktopOs, { title: string; steps: string[]; note: string }>
   macos: {
     title: "macOS",
     steps: [
+      "Confirme que o Mac está actualizado: menu Apple → Definições do Sistema (ou Preferências do Sistema) → Actualização de Software. A app usa o motor do Safari e precisa do Safari 16.4 ou mais recente.",
       "Abra o ficheiro SIGA-Desktop-macOS-universal.dmg e arraste o SIGA Desktop para a pasta Aplicações.",
-      "Na primeira vez, clique no SIGA Desktop com o botão direito (ou Control + clique) e escolha «Abrir».",
-      "Confirme «Abrir» no aviso do macOS. Nas vezes seguintes abre normalmente.",
+      "Na primeira vez, clique no SIGA Desktop com o botão direito (ou Control + clique) e escolha «Abrir»; confirme «Abrir» no aviso.",
+      "No macOS 15 Sequoia ou mais recente, se só aparecer «Concluído»: abra Definições do Sistema → Privacidade e Segurança e clique em «Abrir mesmo assim».",
     ],
-    note: "O macOS pede esta confirmação porque a app ainda não está notarizada pela Apple. Funciona em Mac Intel e Apple Silicon.",
+    note: "O macOS pede esta confirmação porque a app ainda não está notarizada pela Apple. Funciona em Mac Intel e Apple Silicon, do macOS 11 Big Sur em diante; se a app avisar que o Safari é antigo, actualize-o em Actualização de Software.",
   },
   linux: {
     title: "Linux",
@@ -94,7 +109,7 @@ function ReleaseDetails() {
       <p className="flex flex-wrap items-center justify-center gap-x-5 gap-y-2">
         <span className="inline-flex items-center gap-1.5">
           <Wifi className="size-4" aria-hidden="true" />
-          Precisa de Internet: os dados da escola ficam no servidor do SIGA Plus.
+          Os dados da escola ficam no servidor: sem rede, chamadas e notas ficam guardadas e seguem depois.
         </span>
         <a
           href={desktopDownloadUrl(DESKTOP_CHECKSUMS_FILE)}
@@ -124,7 +139,7 @@ export default function DownloadPage() {
   return (
     <MarketingLayout
       title="SIGA Plus para computador"
-      description="A app do SIGA Plus para Windows, macOS e Linux: o mesmo portal da escola, com impressão directa, catracas e sessão protegida por PIN."
+      description="A app do SIGA Plus para Windows, macOS e Linux: o portal da escola com impressão directa, catracas, sessão protegida por PIN e trabalho sem Internet."
       eyebrow="Transferir"
     >
       <div className="container mx-auto space-y-20 px-4 py-12 sm:px-6 lg:px-8">
@@ -144,7 +159,7 @@ export default function DownloadPage() {
             O SIGA Plus continua a funcionar no navegador. A app acrescenta o que o navegador não
             consegue fazer na secretaria e na portaria.
           </p>
-          <div className="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {BENEFITS.map(({ icon: Icon, title, description }) => (
               <div key={title} className="bg-card rounded-2xl border p-5">
                 <span className="bg-primary/10 text-primary grid size-10 place-items-center rounded-lg">

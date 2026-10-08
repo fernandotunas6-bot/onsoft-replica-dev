@@ -26,6 +26,11 @@ const translations: Record<Language, Record<string, string>> = {
     "nav.ecosystem": "Ecossistema",
     "nav.docs": "Documentação",
     "nav.admin_subtitle": "Centro de controlo SaaS",
+    "nav.site": "Site",
+    "nav.site_blog": "Blog",
+    "nav.site_faqs": "Perguntas do site",
+    "nav.site_messages": "Mensagens de contacto",
+    "nav.site_schools": "Escolas no site",
 
     // General & Navigation
     "nav.dashboards": "Painéis",
@@ -111,6 +116,11 @@ const translations: Record<Language, Record<string, string>> = {
     "nav.ecosystem": "Ecosystem",
     "nav.docs": "Documentation",
     "nav.admin_subtitle": "SaaS Control Center",
+    "nav.site": "Website",
+    "nav.site_blog": "Blog",
+    "nav.site_faqs": "Website FAQ",
+    "nav.site_messages": "Contact messages",
+    "nav.site_schools": "Schools on website",
 
     // General & Navigation
     "nav.dashboards": "Dashboards",

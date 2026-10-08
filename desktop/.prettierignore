@@ -21,3 +21,5 @@ src/lib/bindings.ts
 
 # Logs
 *.log
+# Cópia de ../public/browser-check.js (tem de ficar igual, formatação da raiz)
+public/browser-check.js

@@ -18,7 +18,8 @@ import {
 import { ResponsiveEntityView } from "@/components/mobile/ResponsiveEntityView";
 import { badgeBase, toneClass } from "@/components/layout/PageHeader";
 import { documentValidationCode } from "@/features/academic/assessment-views";
-import { upsertTermGradesBatch } from "@/features/academic/server";
+import { sendOrQueue } from "@/lib/offline/outbox";
+import { currentUserId } from "@/lib/offline/outbox-session";
 import { overlayPauta, overlayServico } from "@/features/documents/print-overlays";
 import { issuePrintDocument } from "@/features/documents/print-issue-loader";
 import { setTermLock } from "@/features/school/server";
@@ -277,9 +278,29 @@ export function GradePautaSheet({
     if (!subjectId || pendingRows.length === 0 || termClosed) return;
     setSaving(true);
     try {
-      await upsertTermGradesBatch({
-        data: { subjectId, term, rows: pendingRows },
-      });
+      // Sem rede, na app desktop, as notas ficam guardadas no posto e seguem quando a
+      // rede volta (lib/offline/outbox). No navegador, grava como antes.
+      const outcome = await sendOrQueue(
+        "grades.term",
+        { subjectId, term, rows: pendingRows },
+        {
+          label: [
+            "Notas",
+            selectedGroup?.name,
+            selectedSubject?.name,
+            `${term}º ${periodNoun.toLowerCase()}`,
+          ]
+            .filter(Boolean)
+            .join(" · "),
+          userId: await currentUserId(),
+        },
+      );
+      if (outcome.queued) {
+        toast.info(`Notas guardadas neste computador · ${pendingRows.length} aluno(s)`, {
+          description: "Sem ligação ao servidor. São enviadas sozinhas quando a Internet voltar.",
+        });
+        return;
+      }
       await queryClient.invalidateQueries({ queryKey: ["academic", "pedagogical-workspace"] });
       toast.success(`Pauta guardada · ${pendingRows.length} aluno(s)`);
       if (unsavedDrafts > 0) {
