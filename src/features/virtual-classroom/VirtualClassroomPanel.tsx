@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from "react";
+import { useId, useState, type FormEvent } from "react";
 import { Button } from "@/components/ui/button";
 import { scheduleVirtualClassroom } from "./classroom-api";
 import { useVirtualClassrooms } from "./useVirtualClassrooms";
@@ -11,6 +11,7 @@ type Props = {
 };
 
 export function VirtualClassroomPanel({ schoolId, classGroupId, teacherId, canSchedule }: Props) {
+  const formId = useId();
   const { sessions, loading, error, refresh } = useVirtualClassrooms(schoolId);
   const classroomSessions = sessions.filter((session) => session.class_group_id === classGroupId);
   const [title, setTitle] = useState("");
@@ -62,15 +63,15 @@ export function VirtualClassroomPanel({ schoolId, classGroupId, teacherId, canSc
         <form onSubmit={(event) => void submit(event)} className="grid gap-3 rounded-xl border p-4">
           <h3 className="font-medium">Agendar aula</h3>
           <label className="grid gap-1 text-sm">Título
-            <input id="bbb-classroom-title" aria-label="Título da aula" className="rounded-md border bg-background p-2" required maxLength={200}
+            <input id={`${formId}-title`} aria-label="Título da aula" className="rounded-md border bg-background p-2" required maxLength={200}
               value={title} onChange={(event) => setTitle(event.target.value)} />
           </label>
           <label className="grid gap-1 text-sm">Início
-            <input id="bbb-classroom-start" aria-label="Início da aula" className="rounded-md border bg-background p-2" required type="datetime-local"
+            <input id={`${formId}-start`} aria-label="Início da aula" className="rounded-md border bg-background p-2" required type="datetime-local"
               value={startsAt} onChange={(event) => setStartsAt(event.target.value)} />
           </label>
           <label className="grid gap-1 text-sm">Fim
-            <input id="bbb-classroom-end" aria-label="Fim da aula" className="rounded-md border bg-background p-2" required type="datetime-local"
+            <input id={`${formId}-end`} aria-label="Fim da aula" className="rounded-md border bg-background p-2" required type="datetime-local"
               value={endsAt} onChange={(event) => setEndsAt(event.target.value)} />
           </label>
           <Button type="submit" disabled={pending || !title.trim() || !startsAt || !endsAt}>
