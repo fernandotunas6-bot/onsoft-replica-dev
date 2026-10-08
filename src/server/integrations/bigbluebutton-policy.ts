@@ -4,11 +4,7 @@
  * not from client JSON, cookies or request headers.
  */
 export type ClassroomAction = "create" | "start" | "join" | "end" | "recordings";
-export type ClassroomRole =
-  | "student"
-  | "teacher"
-  | "pedagogical_admin"
-  | "school_admin";
+export type ClassroomRole = "student" | "teacher" | "pedagogical_admin" | "school_admin";
 
 export type ClassroomAuthorization = {
   authenticatedUserId: string;
@@ -51,18 +47,11 @@ export function canAccessVirtualClassroom(
     teacherAssignment,
   } = context;
   if (!authenticatedUserId || !activeSchoolId || !session.id) return false;
-  if (!membership?.active || membership.userId !== authenticatedUserId)
-    return false;
-  if (
-    membership.schoolId !== activeSchoolId ||
-    session.schoolId !== activeSchoolId
-  )
-    return false;
+  if (!membership?.active || membership.userId !== authenticatedUserId) return false;
+  if (membership.schoolId !== activeSchoolId || session.schoolId !== activeSchoolId) return false;
   if (session.status === "cancelled") return false;
 
-  const isAdmin =
-    membership.role === "school_admin" ||
-    membership.role === "pedagogical_admin";
+  const isAdmin = membership.role === "school_admin" || membership.role === "pedagogical_admin";
   const isAssignedTeacher =
     membership.role === "teacher" &&
     session.teacherId === authenticatedUserId &&
@@ -81,10 +70,7 @@ export function canAccessVirtualClassroom(
     case "start":
       return session.status === "scheduled" && (isAdmin || isAssignedTeacher);
     case "join":
-      return (
-        session.status === "live" &&
-        (isAdmin || isAssignedTeacher || isEnrolledStudent)
-      );
+      return session.status === "live" && (isAdmin || isAssignedTeacher || isEnrolledStudent);
     case "end":
       return session.status === "live" && (isAdmin || isAssignedTeacher);
     case "recordings":

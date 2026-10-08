@@ -6,20 +6,9 @@ import { Button } from "@/components/ui/button";
  * Reusable classroom controls. Parent must obtain capabilities from a
  * trusted, authenticated server endpoint. This UI is not an authorization boundary.
  */
-export type VirtualClassroomState =
-  | "scheduled"
-  | "live"
-  | "ended"
-  | "cancelled";
-export type VirtualClassroomAction =
-  | "create"
-  | "start"
-  | "join"
-  | "end"
-  | "recordings";
-export type VirtualClassroomCapabilities = Partial<
-  Record<VirtualClassroomAction, boolean>
->;
+export type VirtualClassroomState = "scheduled" | "live" | "ended" | "cancelled";
+export type VirtualClassroomAction = "create" | "start" | "join" | "end" | "recordings";
+export type VirtualClassroomCapabilities = Partial<Record<VirtualClassroomAction, boolean>>;
 
 type Props = {
   status: VirtualClassroomState;
@@ -66,17 +55,11 @@ const controls: Array<{
   },
 ];
 
-export function VirtualClassroomControls({
-  status,
-  capabilities,
-  onAction,
-  disabled,
-}: Props) {
+export function VirtualClassroomControls({ status, capabilities, onAction, disabled }: Props) {
   const [pending, setPending] = useState<VirtualClassroomAction | null>(null);
   const [error, setError] = useState<string | null>(null);
   const visible = controls.filter(
-    ({ action, statuses }) =>
-      capabilities[action] === true && statuses.includes(status),
+    ({ action, statuses }) => capabilities[action] === true && statuses.includes(status),
   );
   if (visible.length === 0) return null;
 
@@ -105,10 +88,7 @@ export function VirtualClassroomControls({
             onClick={() => void execute(action)}
           >
             {pending === action ? (
-              <Loader2
-                className="mr-2 h-4 w-4 animate-spin"
-                aria-hidden="true"
-              />
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden="true" />
             ) : (
               <Icon className="mr-2 h-4 w-4" aria-hidden="true" />
             )}

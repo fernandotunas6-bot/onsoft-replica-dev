@@ -3,10 +3,7 @@ import {
   canAccessVirtualClassroom,
   type ClassroomAuthorization,
 } from "../../src/server/integrations/bigbluebutton-policy";
-import {
-  scopedMeetingId,
-  bbbSignedUrl,
-} from "../../src/server/integrations/bigbluebutton";
+import { scopedMeetingId, bbbSignedUrl } from "../../src/server/integrations/bigbluebutton";
 
 const base: ClassroomAuthorization = {
   authenticatedUserId: "teacher-1",
@@ -110,9 +107,7 @@ describe("BBB classroom policy", () => {
   });
 
   it("creates collision-resistant scoped identifiers for different segments", () => {
-    expect(scopedMeetingId("ab", "c", "d")).not.toBe(
-      scopedMeetingId("a", "bc", "d"),
-    );
+    expect(scopedMeetingId("ab", "c", "d")).not.toBe(scopedMeetingId("a", "bc", "d"));
     expect(() => scopedMeetingId("../x", "c", "d")).toThrow();
   });
 

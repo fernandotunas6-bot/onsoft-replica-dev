@@ -22,8 +22,16 @@ export default function VirtualClassroomCalendarSection({ schoolId }: Props) {
           Actualizar
         </button>
       </div>
-      {loading && <p role="status" className="text-sm">A carregar...</p>}
-      {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
+      {loading && (
+        <p role="status" className="text-sm">
+          A carregar...
+        </p>
+      )}
+      {error && (
+        <p role="alert" className="text-sm text-destructive">
+          {error}
+        </p>
+      )}
       {!loading && !error && sessions.length === 0 && (
         <p className="text-sm text-muted-foreground">Nenhuma aula virtual agendada.</p>
       )}

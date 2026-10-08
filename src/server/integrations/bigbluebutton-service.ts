@@ -5,10 +5,7 @@ import {
   getBbbRecordings,
   scopedMeetingId,
 } from "./bigbluebutton";
-import {
-  assertVirtualClassroomAccess,
-  type ClassroomAuthorization,
-} from "./bigbluebutton-policy";
+import { assertVirtualClassroomAccess, type ClassroomAuthorization } from "./bigbluebutton-policy";
 
 /**
  * Trusted server-side orchestration. Callers MUST fetch the authorization
@@ -44,8 +41,7 @@ function meetingPasswords() {
 export async function provisionVirtualClassroom(request: VerifiedClassroomRequest) {
   requireServer();
   assertVirtualClassroomAccess("create", request.context);
-  if (request.context.session.id !== request.sessionId)
-    throw new Error("Session mismatch");
+  if (request.context.session.id !== request.sessionId) throw new Error("Session mismatch");
   const { attendeePW, moderatorPW } = meetingPasswords();
   await createBbbMeeting({
     meetingID: meetingId(request),
@@ -68,8 +64,7 @@ export async function joinVirtualClassroom(
     const c = request.context;
     if (c.membership?.role === "student") throw new Error("Moderator access denied");
     const isAdmin =
-      c.membership?.role === "school_admin" ||
-      c.membership?.role === "pedagogical_admin";
+      c.membership?.role === "school_admin" || c.membership?.role === "pedagogical_admin";
     const assigned =
       c.membership?.role === "teacher" &&
       c.session.teacherId === c.authenticatedUserId &&
