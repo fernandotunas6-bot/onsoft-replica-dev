@@ -11,12 +11,14 @@ export function FilePickerModal({
   onOpenChange,
   area,
   acceptKinds,
+  initialRelatedPersonId,
   onPick,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   area?: FileArea | undefined;
   acceptKinds?: readonly FileKind[] | undefined;
+  initialRelatedPersonId?: string;
   onPick?: ((file: SchoolFileRecord) => void) | undefined;
 }) {
   const { expanded, toggleExpanded, contentClassName } = useExpandableDialog();
@@ -43,6 +45,7 @@ export function FilePickerModal({
             pickMode={Boolean(onPick)}
             initialArea={area}
             acceptKinds={acceptKinds}
+            initialRelatedPersonId={initialRelatedPersonId}
             onPick={(file) => {
               if (file.isFolder) return;
               onPick?.(file);
