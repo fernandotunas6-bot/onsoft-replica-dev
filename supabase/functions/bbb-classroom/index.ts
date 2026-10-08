@@ -24,6 +24,9 @@ const isUuid = (value: unknown): value is string =>
 
 Deno.serve(async (request) => {
   if (request.method === "OPTIONS") return new Response(null, { status: 204, headers: cors(request) });
+  const origin = request.headers.get("Origin");
+  if (origin && !allowedOrigins.has(origin))
+    return respond(403, { error: "Origin not allowed" }, request);
   if (request.method !== "POST") return respond(405, { error: "Method not allowed" }, request);
   const token = /^Bearer (.+)$/i.exec(request.headers.get("Authorization") ?? "")?.[1];
   if (!token) return respond(401, { error: "Authentication required" }, request);
