@@ -29,7 +29,8 @@ async function classroomRequest(
 
 export async function listVirtualClassrooms(schoolId: string) {
   const response = await classroomRequest({ action: "list", schoolId });
-  return response.sessions ?? [];
+  if (!Array.isArray(response.sessions)) throw new Error("Lista de aulas inválida.");
+  return response.sessions;
 }
 
 export async function scheduleVirtualClassroom(input: {
