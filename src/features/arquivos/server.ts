@@ -605,6 +605,11 @@ export const registerSchoolFile = createServerFn({ method: "POST" })
     let row: Record<string, unknown> | null = null;
     const first = await db.from("siga_files").insert(withAudit).select(FILE_SELECT).single();
     if (first.error && missingOptionalColumn(first.error)) {
+      if (data.relatedPersonId) {
+        throw new Error(
+          "A base de dados da escola não suporta a associação de documentos a pessoas. Actualize o Arquivo antes de carregar.",
+        );
+      }
       const mid = await db
         .from("siga_files")
         .insert({ ...base, class_group_id: data.classGroupId ?? null })
