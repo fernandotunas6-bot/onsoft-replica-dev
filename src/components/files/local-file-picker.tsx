@@ -44,7 +44,9 @@ export function LocalFilePicker({
     try {
       await onSelect(selected);
     } catch (error) {
-      onError?.(error instanceof Error ? error.message : "Não foi possível seleccionar o ficheiro.");
+      onError?.(
+        error instanceof Error ? error.message : "Não foi possível seleccionar o ficheiro.",
+      );
     } finally {
       setBusy(false);
     }
