@@ -12,6 +12,8 @@ export function useVirtualClassrooms(schoolId: string | null) {
     const version = ++requestVersion.current;
     if (!schoolId) {
       setSessions([]);
+      setError(null);
+      setLoading(false);
       return;
     }
     setLoading(true);
