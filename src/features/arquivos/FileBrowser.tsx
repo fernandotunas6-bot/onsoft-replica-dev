@@ -586,7 +586,7 @@ export function FileBrowser({
     }
   };
 
-  const uploadFiles = async (list: FileList | null) => {
+  const uploadFiles = async (list: FileList | File[] | null) => {
     if (!list?.length || !canUpload) return;
     if (!remoteQuery.data?.schoolId) {
       toast.error("Escola indisponível", {
@@ -1250,7 +1250,11 @@ export function FileBrowser({
                     accept={uploadAccept}
                     multiple
                     className="sr-only"
-                    onChange={(event) => void uploadFiles(event.target.files)}
+                    onChange={(event) => {
+                      const files = Array.from(event.currentTarget.files ?? []);
+                      event.currentTarget.value = "";
+                      void uploadFiles(files);
+                    }}
                   />
                 </>
               ) : null}
