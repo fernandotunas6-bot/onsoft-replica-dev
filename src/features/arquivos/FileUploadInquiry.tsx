@@ -377,6 +377,7 @@ export function FileUploadInquiryModal({
                 id="file-meta-area"
                 className="flex h-9 w-full rounded-md border border-input bg-background px-2 text-sm"
                 value={area}
+                disabled={lockRelatedPerson}
                 onChange={(event) => {
                   const next = event.target.value as FileArea;
                   setArea(next);
@@ -540,6 +541,10 @@ export function FileUploadInquiryModal({
                 (!initial?.relatedPersonId || relatedPersonId !== initial.relatedPersonId)
               ) {
                 setFormError("O documento deve permanecer associado à pessoa deste perfil.");
+                return;
+              }
+              if (lockRelatedPerson && area !== "secretaria") {
+                setFormError("Os documentos pessoais devem ficar na área reservada da Secretaria.");
                 return;
               }
               if (lockRelatedPerson && visibility !== "private") {
