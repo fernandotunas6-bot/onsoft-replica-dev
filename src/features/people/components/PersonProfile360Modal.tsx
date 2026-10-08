@@ -196,10 +196,11 @@ export function PersonProfile360Modal({
   const photoUrl = person?.photo_url || null;
 
   const handleDirectPhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file || !personId) return;
+    const file = e.currentTarget.files?.[0];
+    e.currentTarget.value = "";
+    if (!file || !personId || isUploadingPhoto) return;
 
-    if (!file.type.startsWith("image/")) {
+    if (!["image/png", "image/jpeg", "image/webp"].includes(file.type)) {
       toast.error("Por favor seleccione uma imagem válida (PNG, JPEG ou WebP).");
       return;
     }
