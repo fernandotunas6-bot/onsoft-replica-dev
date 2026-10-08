@@ -1,11 +1,18 @@
 // Authenticated Supabase Edge Function. Never accept a role or school from client JSON.
-// Deploy only after configuring SUPABASE_URL, SUPABASE_ANON_KEY,
-// SUPABASE_SERVICE_ROLE_KEY, BBB_API_URL and BBB_API_SECRET.
+// Requires SUPABASE_URL, SUPABASE_ANON_KEY and SUPABASE_SERVICE_ROLE_KEY.
+// This endpoint does not call BBB or expose BBB credentials.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.0";
 
 const headers = { "Content-Type": "application/json", "Cache-Control": "no-store" };
-const respond = (status: number, body: unknown) =>
-  new Response(JSON.stringify(body), { status, headers });
+const allowedOrigins = new Set(["https://portal-siga.com", "https://www.portal-siga.com"]);
+const cors = (request: Request) => {
+  const origin = request.headers.get("Origin");
+  return origin && allowedOrigins.has(origin)
+    ? { "Access-Control-Allow-Origin": origin, "Access-Control-Allow-Headers": "authorization, apikey, content-type", "Access-Control-Allow-Methods": "POST, OPTIONS", Vary: "Origin" }
+    : {};
+};
+const respond = (status: number, body: unknown, request: Request) =>
+  new Response(JSON.stringify(body), { status, headers: { ...headers, ...cors(request) } });
 const env = (name: string) => {
   const value = Deno.env.get(name);
   if (!value) throw new Error("Missing server configuration: " + name);
@@ -16,9 +23,10 @@ const isUuid = (value: unknown): value is string =>
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value);
 
 Deno.serve(async (request) => {
-  if (request.method !== "POST") return respond(405, { error: "Method not allowed" });
+  if (request.method === "OPTIONS") return new Response(null, { status: 204, headers: cors(request) });
+  if (request.method !== "POST") return respond(405, { error: "Method not allowed" }, request);
   const token = /^Bearer (.+)$/i.exec(request.headers.get("Authorization") ?? "")?.[1];
-  if (!token) return respond(401, { error: "Authentication required" });
+  if (!token) return respond(401, { error: "Authentication required" }, request);
   try {
     const url = env("SUPABASE_URL");
     const auth = createClient(url, env("SUPABASE_ANON_KEY"), {
@@ -26,10 +34,10 @@ Deno.serve(async (request) => {
       auth: { persistSession: false },
     });
     const { data: userResult, error: userError } = await auth.auth.getUser(token);
-    if (userError || !userResult.user) return respond(401, { error: "Invalid session" });
+    if (userError || !userResult.user) return respond(401, { error: "Invalid session" }, request);
     const body = await request.json().catch(() => null);
-    if (!body || !isUuid(body.sessionId)) return respond(400, { error: "Invalid session ID" });
-    if (body.action !== "capabilities") return respond(501, { error: "Operation not enabled" });
+    if (!body || !isUuid(body.sessionId)) return respond(400, { error: "Invalid session ID" }, request);
+    if (body.action !== "capabilities") return respond(501, { error: "Operation not enabled" }, request);
 
     // Privileged access is isolated inside this function. The token was
     // verified above; every query below is scoped by server-fetched school.
@@ -42,7 +50,7 @@ Deno.serve(async (request) => {
       .eq("id", body.sessionId)
       .maybeSingle();
     if (sessionError) throw sessionError;
-    if (!session) return respond(404, { error: "Session not found" });
+    if (!session) return respond(404, { error: "Session not found" }, request);
     const userId = userResult.user.id;
     const { data: membership, error: membershipError } = await db
       .from("school_memberships")
@@ -52,7 +60,7 @@ Deno.serve(async (request) => {
       .eq("status", "active")
       .maybeSingle();
     if (membershipError) throw membershipError;
-    if (!membership) return respond(403, { error: "Access denied" });
+    if (!membership) return respond(403, { error: "Access denied" }, request);
 
     const [{ data: memberRoles, error: roleError }, { data: teacher, error: teacherError }, { data: student, error: studentError }] =
       await Promise.all([
@@ -82,7 +90,7 @@ Deno.serve(async (request) => {
     const teacherAllowed = Boolean(teacher && assignment?.length && codes.has("teacher"));
     const studentAllowed = Boolean(student && enrollment?.length && codes.has("student"));
     if (!admin && !teacherAllowed && !studentAllowed)
-      return respond(403, { error: "Access denied" });
+      return respond(403, { error: "Access denied" }, request);
     const host = admin || teacherAllowed;
     return respond(200, {
       sessionId: session.id,
@@ -95,9 +103,9 @@ Deno.serve(async (request) => {
         recordings: session.status === "ended" &&
           (host || (studentAllowed && session.recordings_published === true)),
       },
-    });
+    }, request);
   } catch {
     // Do not leak database details or configuration values to callers.
-    return respond(500, { error: "Classroom service unavailable" });
+    return respond(500, { error: "Classroom service unavailable" }, request);
   }
 });
