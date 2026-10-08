@@ -22,20 +22,28 @@ export function VirtualClassroomPanel({ schoolId, classGroupId, teacherId, canSc
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (pending || !canSchedule) return;
+    const start = new Date(startsAt);
+    const end = new Date(endsAt);
+    if (!Number.isFinite(start.getTime()) || !Number.isFinite(end.getTime()) ||
+        start.getTime() < Date.now() - 60000 || end <= start ||
+        end.getTime() - start.getTime() > 8 * 3600000) {
+      setFormError("Defina um horário futuro válido, com duração máxima de 8 horas.");
+      return;
+    }
     setPending(true);
     setSuccess(false);
     setFormError(null);
     try {
       await scheduleVirtualClassroom({
         schoolId, classGroupId, teacherId, title: title.trim(),
-        startsAt: new Date(startsAt).toISOString(),
-        endsAt: new Date(endsAt).toISOString(),
+        startsAt: start.toISOString(),
+        endsAt: end.toISOString(),
       });
       setTitle("");
       setStartsAt("");
       setEndsAt("");
       setSuccess(true);
-      await refresh();
+      void refresh();
     } catch {
       setFormError("Não foi possível agendar a aula. Verifique os dados e as permissões.");
     } finally {
