@@ -39,6 +39,75 @@ Deno.serve(async (request) => {
     const { data: userResult, error: userError } = await auth.auth.getUser(token);
     if (userError || !userResult.user) return respond(401, { error: "Invalid session" }, request);
     const body = await request.json().catch(() => null);
+    if (body?.action === "schedule") {
+      if (!isUuid(body.schoolId) || !isUuid(body.classGroupId) || !isUuid(body.teacherId))
+        return respond(400, { error: "Invalid school, class or teacher" }, request);
+      if (typeof body.title !== "string" || body.title.trim().length < 1 ||
+          body.title.trim().length > 200)
+        return respond(400, { error: "Invalid title" }, request);
+      const startsAt = typeof body.startsAt === "string" ? Date.parse(body.startsAt) : NaN;
+      const endsAt = typeof body.endsAt === "string" ? Date.parse(body.endsAt) : NaN;
+      if (!Number.isFinite(startsAt) || !Number.isFinite(endsAt) ||
+          startsAt < Date.now() - 60000 || endsAt <= startsAt ||
+          endsAt - startsAt > 8 * 3600000)
+        return respond(400, { error: "Invalid classroom schedule" }, request);
+      const db = createClient(url, env("SUPABASE_SERVICE_ROLE_KEY"), {
+        auth: { persistSession: false },
+      });
+      const userId = userResult.user.id;
+      const [{ data: membership, error: membershipError },
+        { data: classGroup, error: classError },
+        { data: teacher, error: teacherError }] = await Promise.all([
+        db.from("school_memberships").select("id").eq("school_id", body.schoolId)
+          .eq("user_id", userId).eq("status", "active").maybeSingle(),
+        db.from("class_groups").select("id").eq("school_id", body.schoolId)
+          .eq("id", body.classGroupId).maybeSingle(),
+        db.from("teachers").select("id,user_id").eq("school_id", body.schoolId)
+          .eq("id", body.teacherId).eq("status", "active").maybeSingle(),
+      ]);
+      if (membershipError || classError || teacherError)
+        throw membershipError ?? classError ?? teacherError;
+      if (!membership || !classGroup || !teacher)
+        return respond(403, { error: "Access denied" }, request);
+      const { data: memberRoles, error: memberRolesError } = await db
+        .from("member_roles").select("role_id").eq("school_id", body.schoolId)
+        .eq("membership_id", membership.id);
+      if (memberRolesError) throw memberRolesError;
+      const roleIds = (memberRoles ?? []).map((r) => r.role_id);
+      const { data: roles, error: rolesError } = await db
+        .from("roles").select("code").eq("school_id", body.schoolId)
+        .in("id", roleIds.length ? roleIds : ["00000000-0000-0000-0000-000000000000"]);
+      if (rolesError) throw rolesError;
+      const codes = new Set((roles ?? []).map((r) => r.code.toLowerCase()));
+      const admin = codes.has("owner") || codes.has("admin");
+      const { data: assignments, error: assignmentError } = await db
+        .from("class_subjects").select("id").eq("school_id", body.schoolId)
+        .eq("class_group_id", body.classGroupId).eq("teacher_id", body.teacherId)
+        .eq("status", "active").limit(1);
+      if (assignmentError) throw assignmentError;
+      if (!assignments?.length || (!admin &&
+          !(codes.has("teacher") && teacher.user_id === userId)))
+        return respond(403, { error: "Access denied" }, request);
+      const sessionId = crypto.randomUUID();
+      // No BBB credentials are needed for scheduling. Meetings are provisioned later.
+      const meetingId = [body.schoolId, body.classGroupId, sessionId]
+        .map((value: string) => value.length + "-" + value).join("_");
+      const { data: created, error: createError } = await db
+        .from("bbb_classroom_sessions")
+        .insert({
+          id: sessionId,
+          school_id: body.schoolId,
+          class_group_id: body.classGroupId,
+          teacher_id: body.teacherId,
+          title: body.title.trim(),
+          starts_at: new Date(startsAt).toISOString(),
+          ends_at: new Date(endsAt).toISOString(),
+          meeting_id: meetingId,
+          status: "scheduled",
+        }).select("id,status,starts_at,ends_at").single();
+      if (createError) throw createError;
+      return respond(201, { session: created }, request);
+    }
     if (!body || !isUuid(body.sessionId)) return respond(400, { error: "Invalid session ID" }, request);
     if (body.action !== "capabilities") return respond(501, { error: "Operation not enabled" }, request);
 
