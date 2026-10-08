@@ -613,9 +613,17 @@ export function FileBrowser({
   const commitUpload = async (meta: UploadInquiryResult) => {
     const schoolId = remoteQuery.data?.schoolId;
     const files = pendingFiles;
-    setPendingFiles([]);
     const targetArea = meta.area;
-    if (!schoolId || !files.length || !canWriteFileArea(account.role, targetArea)) return;
+    if (!files.length) return;
+    if (!schoolId) {
+      toast.error("Escola indisponível. Inicie sessão novamente.");
+      return;
+    }
+    if (!canWriteFileArea(account.role, targetArea)) {
+      toast.error("Sem permissão para carregar nesta área.");
+      return;
+    }
+    setPendingFiles([]);
     setUploading(true);
     setUploadProgress(files.reduce((acc, f) => ({ ...acc, [f.name]: 0 }), {}));
     let appliedProfilePhoto = false;
