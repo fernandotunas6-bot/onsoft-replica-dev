@@ -4,6 +4,7 @@ import { normalizeText } from "../engine/normalize";
 import type { AuditEntry, ImportRefCache, RowImporter } from "../engine/types";
 import { loadExistingPeople, personCandidateFromRow, resolveOrCreatePerson } from "./people-core";
 import { schoolTodayIso } from "@/lib/school-date";
+import { selectAllPages } from "../engine/paged";
 
 function rpcAuthError(error: { code?: string; message?: string }) {
   return error.code === "42501" || /is_aal2|autorização|autorizacao/i.test(error.message ?? "");
@@ -13,16 +14,22 @@ async function loadStudentsByPersonId(
   db: SupabaseClient,
   schoolId: string,
 ): Promise<Map<string, { id: string; student_number: string }>> {
-  const { data } = await db
-    .from("students")
-    .select("id, student_number, person_id")
-    .eq("school_id", schoolId);
+  type Row = { id: string; student_number: string; person_id: string };
+  const data = await selectAllPages<Row>(
+    (from, to) =>
+      db
+        .from("students")
+        .select("id, student_number, person_id")
+        .eq("school_id", schoolId)
+        .order("id", { ascending: true })
+        .range(from, to) as unknown as PromiseLike<{
+        data: Row[] | null;
+        error: { message: string } | null;
+      }>,
+    "Não foi possível carregar alunos",
+  );
   const map = new Map<string, { id: string; student_number: string }>();
-  for (const row of (data ?? []) as Array<{
-    id: string;
-    student_number: string;
-    person_id: string;
-  }>) {
+  for (const row of data) {
     map.set(row.person_id, { id: row.id, student_number: row.student_number });
   }
   return map;
@@ -109,6 +116,29 @@ export const alunosImporter: RowImporter = {
         errors: ["Nome completo do aluno é obrigatório."],
         audits: [],
       };
+    }
+
+    // Um aluno novo conta para o limite do plano. Verifica-se antes de criar a
+    // pessoa, para a recusa não deixar uma ficha sem aluno.
+    if (!ctx.dryRun && ctx.assertCanAddStudent) {
+      const match =
+        ctx.duplicateStrategy === "create_new"
+          ? null
+          : findBestPersonMatch(candidate, cache.existingPeople);
+      if (!match || !cache.studentByPersonId.has(match.record.id)) {
+        try {
+          await ctx.assertCanAddStudent();
+        } catch (error) {
+          return {
+            status: "error",
+            warnings: [],
+            errors: [
+              error instanceof Error ? error.message : "Limite de alunos do plano atingido.",
+            ],
+            audits: [],
+          };
+        }
+      }
     }
 
     const personResult = await resolveOrCreatePerson(candidate, cache.existingPeople, ctx);

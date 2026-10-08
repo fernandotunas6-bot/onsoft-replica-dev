@@ -2,7 +2,11 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireAal2 } from "@/features/hr/require-aal2";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { loadSgaAdminClient, resolveSgaMembershipAdmin } from "@/integrations/supabase/sga-admin";
+import {
+  assertModuleNotBlocked,
+  loadSgaAdminClient,
+  resolveSgaMembershipAdmin,
+} from "@/integrations/supabase/sga-admin";
 import { publicDatabaseError } from "@/integrations/supabase/server-error";
 
 const inputSchema = z.object({ requestId: z.string().uuid() });
@@ -17,6 +21,9 @@ export const applyApprovedHrSalaryChange = createServerFn({ method: "POST" })
       throw new Error("A aplicação salarial exige autorização administrativa.");
     }
     requireAal2(context.claims, "Aplicar uma alteração salarial");
+    // Como no pedido e na decisão: módulo financeiro em «Nenhum/Leitura» e escola
+    // bloqueada também impedem aplicar (auditoria 13).
+    await assertModuleNotBlocked(membership.schoolId, context.userId, "financeiro", "write");
     const db = await loadSgaAdminClient();
     const { data: amendmentId, error } = await db.rpc("hr_apply_approved_salary_change", {
       p_request_id: data.requestId,

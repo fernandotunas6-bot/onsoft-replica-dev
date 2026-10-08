@@ -175,7 +175,9 @@ function supportedPeriods(stored: unknown): number {
 
 // Sem SVG: o bucket é público e um SVG pode levar código.
 const LOGO_ALLOWED_TYPES = ["image/png", "image/jpeg", "image/webp"];
-const MAX_LOGO_BYTES = 4 * 1024 * 1024;
+// O bucket `school-logos` recusa acima de 2 MB: com 4 MB aqui, um logótipo de 3 MB
+// passava esta verificação e falhava com «Não foi possível carregar o logótipo».
+const MAX_LOGO_BYTES = 2 * 1024 * 1024;
 
 export function SchoolSettingsPanel() {
   const currentUser = useCurrentAccount();
@@ -403,7 +405,7 @@ export function SchoolSettingsPanel() {
       return;
     }
     if (file.size > MAX_LOGO_BYTES) {
-      toast.error("O logótipo deve ter no máximo 4 MB.");
+      toast.error("O logótipo deve ter no máximo 2 MB.");
       return;
     }
     setUploadingLogo(true);

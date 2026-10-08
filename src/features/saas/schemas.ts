@@ -2,7 +2,7 @@ import { z } from "zod";
 import { normalizeAngolaProvince } from "@/lib/angola-territory";
 import { isSchoolTypeId } from "@/lib/school-config";
 import { isCourseId, isTeachingLevelId } from "@/lib/angola-academic";
-import { isReservedSubdomain } from "@/lib/saas/platform-domain";
+import { hasReservedDnsHyphens, isReservedSubdomain } from "@/lib/saas/platform-domain";
 import { validateSchoolNif } from "@/lib/angola-identity";
 import { validateAngolaPhone } from "@/lib/angola-phone";
 
@@ -164,6 +164,9 @@ export const createSchoolWizardInputSchema = z.object({
     )
     .refine((slug) => !isReservedSubdomain(slug), {
       message: "Este subdomínio está reservado pela plataforma.",
+    })
+    .refine((slug) => !hasReservedDnsHyphens(slug), {
+      message: "O subdomínio não pode ter «--» na 3.ª e 4.ª posição (ex.: «xn--»).",
     }),
 
   admin_email: normalizedEmail("E-mail do administrador inválido"),

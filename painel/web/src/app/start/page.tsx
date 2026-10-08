@@ -394,7 +394,9 @@ export function StartSchoolWizard() {
     [plans, values.plan_code],
   )
 
-  const [slugStatus, setSlugStatus] = useState<"idle" | "checking" | "available" | "taken">("idle")
+  const [slugStatus, setSlugStatus] = useState<
+    "idle" | "checking" | "available" | "taken" | "reserved"
+  >("idle")
   const slug = values.slug
   useEffect(() => {
     if (!slug || slug.length < 3) {
@@ -407,7 +409,7 @@ export function StartSchoolWizard() {
         if (available == null) {
           setSlugStatus("idle") // não deu para confirmar — não bloqueia, o servidor valida na submissão
         } else {
-          setSlugStatus(available ? "available" : "taken")
+          setSlugStatus(available === "reserved" ? "reserved" : available ? "available" : "taken")
         }
       })
     }, 500)
@@ -432,6 +434,10 @@ export function StartSchoolWizard() {
     if (!(await validateStep())) return
     if (step === 6 && slugStatus === "taken") {
       form.setError("slug", { message: "Este subdomínio já está em uso por outra escola." })
+      return
+    }
+    if (step === 6 && slugStatus === "reserved") {
+      form.setError("slug", { message: "Este subdomínio está reservado pela plataforma." })
       return
     }
     if (step === 5 && !emailVerified) {
@@ -465,8 +471,12 @@ export function StartSchoolWizard() {
       setServerError("Falta corrigir um campo. Levámo-lo ao passo onde está.")
       return
     }
-    if (slugStatus === "taken") {
-      setServerError("Este subdomínio já está em uso por outra escola. Volte ao passo 6 e escolha outro.")
+    if (slugStatus === "taken" || slugStatus === "reserved") {
+      setServerError(
+        slugStatus === "reserved"
+          ? "Este subdomínio está reservado pela plataforma. Volte ao passo 6 e escolha outro."
+          : "Este subdomínio já está em uso por outra escola. Volte ao passo 6 e escolha outro.",
+      )
       return
     }
     if (!emailVerified) {
@@ -1189,6 +1199,10 @@ export function StartSchoolWizard() {
                       ) : slugStatus === "taken" ? (
                         <p className="text-xs text-destructive">
                           {field.value}.{PLATFORM_DOMAIN} já está em uso por outra escola.
+                        </p>
+                      ) : slugStatus === "reserved" ? (
+                        <p className="text-xs text-destructive">
+                          {field.value}.{PLATFORM_DOMAIN} está reservado pela plataforma. Escolha outro.
                         </p>
                       ) : (
                         <p className="text-xs text-muted-foreground">

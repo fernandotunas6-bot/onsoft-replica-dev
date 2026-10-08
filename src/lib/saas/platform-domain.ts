@@ -128,6 +128,15 @@ export function isReservedSubdomain(slug: string): boolean {
 }
 
 /**
+ * Rótulo DNS com «--» na 3.ª e 4.ª posição (RFC 5891): reservado para nomes
+ * internacionalizados. `xn--…` é mostrado pelos browsers com outros caracteres
+ * (punycode), o que permitiria um endereço que se lê como o de outra escola.
+ */
+export function hasReservedDnsHyphens(slug: string): boolean {
+  return slug.trim().toLowerCase().slice(2, 4) === "--";
+}
+
+/**
  * Validação rigorosa de slug de escola.
  */
 export function validateTenantSlug(slug: string): { valid: boolean; reason?: string } {
@@ -155,6 +164,13 @@ export function validateTenantSlug(slug: string): { valid: boolean; reason?: str
 
   if (isReservedSubdomain(normalized)) {
     return { valid: false, reason: `O endereço «${normalized}» está reservado pelo sistema.` };
+  }
+
+  if (hasReservedDnsHyphens(normalized)) {
+    return {
+      valid: false,
+      reason: "O endereço não pode ter dois hífens seguidos na 3.ª e 4.ª posição (ex.: «xn--»).",
+    };
   }
 
   return { valid: true };

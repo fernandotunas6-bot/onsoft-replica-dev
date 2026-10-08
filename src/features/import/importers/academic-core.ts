@@ -2,6 +2,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { canonicalEntityKey } from "../engine/dedupe";
 import { normalizeDate, normalizeText } from "../engine/normalize";
 import { schoolTodayIso } from "@/lib/school-date";
+import { selectAllPages } from "../engine/paged";
 
 export type StudentRef = {
   id: string;
@@ -48,28 +49,43 @@ export function uniqueExactMatch<T>(
 }
 
 export async function loadStudentRefs(db: SupabaseClient, schoolId: string): Promise<StudentRef[]> {
-  const { data: students, error: studentError } = await db
-    .from("students")
-    .select("id, person_id, student_number, status")
-    .eq("school_id", schoolId);
-  if (studentError) throw new Error(`Não foi possível carregar alunos: ${studentError.message}`);
-
-  const personIds = [
-    ...new Set((students ?? []).map((row) => String(row.person_id)).filter(Boolean)),
-  ];
-  const { data: people, error: peopleError } = personIds.length
-    ? await db
-        .from("people")
-        .select("id, national_id")
-        .eq("school_id", schoolId)
-        .in("id", personIds)
-    : { data: [], error: null };
-  if (peopleError)
-    throw new Error(`Não foi possível carregar identificadores dos alunos: ${peopleError.message}`);
+  // Em páginas e sem filtrar por uma lista com todos os ids: o PostgREST corta em 1000
+  // linhas e uma lista com centenas de ids passa o tamanho máximo do URL.
+  type StudentRow = { id: string; person_id: string; student_number: string; status: string };
+  type PersonRow = { id: string; national_id: string | null };
+  const [students, people] = await Promise.all([
+    selectAllPages<StudentRow>(
+      (from, to) =>
+        db
+          .from("students")
+          .select("id, person_id, student_number, status")
+          .eq("school_id", schoolId)
+          .order("id", { ascending: true })
+          .range(from, to) as unknown as PromiseLike<{
+          data: StudentRow[] | null;
+          error: { message: string } | null;
+        }>,
+      "Não foi possível carregar alunos",
+    ),
+    selectAllPages<PersonRow>(
+      (from, to) =>
+        db
+          .from("people")
+          .select("id, national_id")
+          .eq("school_id", schoolId)
+          .not("national_id", "is", null)
+          .order("id", { ascending: true })
+          .range(from, to) as unknown as PromiseLike<{
+          data: PersonRow[] | null;
+          error: { message: string } | null;
+        }>,
+      "Não foi possível carregar identificadores dos alunos",
+    ),
+  ]);
   const nationalIdByPerson = new Map(
-    (people ?? []).map((row) => [String(row.id), row.national_id ? String(row.national_id) : null]),
+    people.map((row) => [String(row.id), row.national_id ? String(row.national_id) : null]),
   );
-  return (students ?? []).map((row) => ({
+  return students.map((row) => ({
     id: String(row.id),
     person_id: String(row.person_id),
     student_number: String(row.student_number ?? ""),

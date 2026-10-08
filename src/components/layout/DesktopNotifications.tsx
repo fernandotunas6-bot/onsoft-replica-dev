@@ -1,7 +1,8 @@
 import { useEffect, useId } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useCurrentAccount } from "@/features/auth/use-current-account";
-import { listInboxPreviews } from "@/features/messages/server";
+import { listChatConversations } from "@/features/messages/chat-server";
+import { chatSummaryQueryKey } from "@/features/messages/use-inbox-unread";
 import { supabase } from "@/integrations/supabase/client";
 import {
   announcementNotice,
@@ -37,14 +38,16 @@ export function DesktopNotifications() {
     const roles = rolesKey.split("|");
     const announced = new Set<string>();
 
-    const senderName = async (senderId: string) => {
+    // Nome da conversa directa (a outra pessoa); num grupo não se diz quem.
+    const senderName = async (conversationId: string) => {
       try {
-        const inbox = await queryClient.fetchQuery({
-          queryKey: ["messages", "inbox", userId],
-          queryFn: () => listInboxPreviews(),
+        const conversations = await queryClient.fetchQuery({
+          queryKey: chatSummaryQueryKey(userId),
+          queryFn: async () => (await listChatConversations()).conversations,
           staleTime: 0,
         });
-        return inbox.previews.find((row) => row.peerId === senderId)?.full_name ?? null;
+        const conversation = conversations.find((row) => row.id === conversationId);
+        return conversation && conversation.type !== "group" ? conversation.name : null;
       } catch {
         return null;
       }
@@ -53,7 +56,8 @@ export function DesktopNotifications() {
     const messages = createNoticeBatcher<Row>((rows) => {
       if (!appInBackground()) return;
       void (async () => {
-        const name = rows.length === 1 ? await senderName(String(rows[0]!["sender_id"])) : null;
+        const name =
+          rows.length === 1 ? await senderName(String(rows[0]!["conversation_id"])) : null;
         const notice = messageNotice(rows.length, name);
         await notifyInBackground(notice.title, notice.body);
       })();
@@ -67,12 +71,9 @@ export function DesktopNotifications() {
       .channel(`desktop_notifications:${userId}:${instanceId}`)
       .on(
         "postgres_changes",
-        {
-          event: "INSERT",
-          schema: "public",
-          table: "siga_direct_messages",
-          filter: `recipient_id=eq.${userId}`,
-        },
+        // As mensagens vivem no chat desde 2026-10-02; `siga_direct_messages`
+        // já não recebe nada. A RLS limita às conversas de que a conta é membro.
+        { event: "INSERT", schema: "public", table: "siga_chat_messages" },
         (payload) => {
           const row = payload.new as Row;
           if (isIncomingMessage(row, userId)) messages.push(row);
