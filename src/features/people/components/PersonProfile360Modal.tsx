@@ -43,6 +43,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Tabs, TabsContent } from "@/components/ui/tabs";
 import { UserAvatar } from "@/components/ui/user-avatar";
 import { PickFileButton } from "@/features/arquivos/PickFileButton";
+import { FilePickerModal } from "@/features/arquivos/FilePickerModal";
 import { uploadPersonPhotoToLibrary } from "@/features/arquivos/apply-person-photo";
 import { useCurrentAccount } from "@/features/auth/use-current-account";
 import {
@@ -181,6 +182,7 @@ export function PersonProfile360Modal({
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
+  const [personalDocumentsOpen, setPersonalDocumentsOpen] = useState(false);
 
   const person = personQuery.data as PersonRecord | undefined;
 
@@ -807,7 +809,20 @@ export function PersonProfile360Modal({
                     <FileCheck className="size-4 text-primary" />
                     Documentos de Identificação Civil
                   </h4>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    onClick={() => setPersonalDocumentsOpen(true)}
+                  >
+                    <Upload className="mr-2 size-4" /> Carregar documento pessoal
+                  </Button>
                 </div>
+                <p className="text-xs text-muted-foreground">
+                  Na biblioteca reservada, carregue o BI, passaporte, certidão ou certificado.
+                  No formulário de classificação, associe o ficheiro a esta pessoa e mantenha
+                  a visibilidade privada. O carregamento não verifica automaticamente a identidade.
+                </p>
                 {person?.documents && person.documents.length > 0 ? (
                   <div className="divide-y divide-border rounded-lg border border-border">
                     {person.documents.map((doc) => (
@@ -832,7 +847,13 @@ export function PersonProfile360Modal({
               </div>
             </TabsContent>
 
-            {/* ABA 4: CONTACTOS */}
+            <FilePickerModal
+              open={personalDocumentsOpen}
+              onOpenChange={setPersonalDocumentsOpen}
+              area="secretaria"
+            />
+
+                        {/* ABA 4: CONTACTOS */}
             <TabsContent value="contactos" className="space-y-4">
               <div className="rounded-xl border border-border bg-card p-5 shadow-sm space-y-4">
                 <h4 className="text-sm font-bold flex items-center gap-2">
