@@ -33,7 +33,9 @@ export function useVirtualClassrooms(schoolId: string | null) {
 
   useEffect(() => {
     void refresh();
-    return () => { requestVersion.current += 1; };
+    return () => {
+      requestVersion.current += 1;
+    };
   }, [refresh]);
 
   return { sessions, loading, error, refresh };
