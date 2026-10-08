@@ -8,9 +8,7 @@ export function requiresVerifiedSchoolStorage(input: {
   relatedPersonId?: string | null;
 }): boolean {
   return (
-    input.area === "secretaria" &&
-    input.visibility === "private" &&
-    Boolean(input.relatedPersonId)
+    input.area === "secretaria" && input.visibility === "private" && Boolean(input.relatedPersonId)
   );
 }
 
@@ -26,8 +24,6 @@ export function assertVerifiedSchoolStorage(
     );
   }
   if (registeredBackend !== undefined && registeredBackend !== "sga") {
-    throw new Error(
-      "Não foi possível registar o documento pessoal na base de dados da escola.",
-    );
+    throw new Error("Não foi possível registar o documento pessoal na base de dados da escola.");
   }
 }
