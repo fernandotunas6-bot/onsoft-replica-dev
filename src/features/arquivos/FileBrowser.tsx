@@ -246,8 +246,7 @@ export function FileBrowser({
   const cameraRef = useRef<HTMLInputElement>(null);
   const driveOn = installed.hasCapability("m365.onedrive");
   const canWrite = canWriteFileArea(account.role, area);
-  const canUpload =
-    writableAreas.length > 0 &&
+  const canUpload = writableAreas.length > 0 &&
     (!initialRelatedPersonId || writableAreas.includes("secretaria"));
   const kindChoices = (
     acceptKinds?.length
