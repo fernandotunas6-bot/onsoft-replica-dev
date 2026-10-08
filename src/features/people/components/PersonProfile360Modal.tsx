@@ -824,17 +824,6 @@ export function PersonProfile360Modal({
                   formulário de classificação, associe o ficheiro a esta pessoa e mantenha a
                   visibilidade privada. O carregamento não verifica automaticamente a identidade.
                 </p>
-                <div className="flex flex-wrap gap-2">
-                  <PickFileButton
-                    label="Escolher documento pessoal existente"
-                    area="secretaria"
-                    initialRelatedPersonId={personId}
-                    onPick={(file) => {
-                      toast.success(`Documento seleccionado: ${file.name}`);
-                    }}
-                    size="sm"
-                  />
-                </div>
                 {person?.documents && person.documents.length > 0 ? (
                   <div className="divide-y divide-border rounded-lg border border-border">
                     {person.documents.map((doc) => (
