@@ -52,7 +52,7 @@ export function MetricCard({ metric }: { metric: Metric }) {
     <div
       className={cn(
         "flex h-full flex-col justify-between rounded-xl border border-border bg-card p-3.5",
-        metric.to && "transition-colors active:bg-secondary/60",
+        metric.to && "motion-safe:transition-colors motion-safe:duration-150 active:bg-secondary/60",
       )}
     >
       <p className="text-[11px] font-medium text-muted-foreground">{metric.label}</p>
