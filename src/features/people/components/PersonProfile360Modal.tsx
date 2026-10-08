@@ -851,6 +851,7 @@ export function PersonProfile360Modal({
               open={personalDocumentsOpen}
               onOpenChange={setPersonalDocumentsOpen}
               area="secretaria"
+              initialRelatedPersonId={personId}
             />
 
                         {/* ABA 4: CONTACTOS */}
