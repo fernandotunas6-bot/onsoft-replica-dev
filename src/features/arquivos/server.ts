@@ -1,4 +1,5 @@
 import type { TablesUpdate } from "@/integrations/supabase/types";
+import { requiresVerifiedSchoolStorage } from "./storage-policy";
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { publicDatabaseError } from "@/integrations/supabase/server-error";
@@ -534,6 +535,11 @@ export const registerSchoolFile = createServerFn({ method: "POST" })
     if (!kindFromFile(data.name, data.mime)) {
       throw new Error("Formato fora do padrão SIGA.");
     }
+    if (requiresVerifiedSchoolStorage(data) && data.storageBackend !== "sga") {
+      throw new Error(
+        "Os documentos pessoais da Secretaria exigem armazenamento seguro da escola.",
+      );
+    }
     if (!isOwnUploadPath(data.storagePath, membership.schoolId, userId, data.id, data.area)) {
       throw new Error("Caminho do ficheiro inválido.");
     }
@@ -605,6 +611,11 @@ export const registerSchoolFile = createServerFn({ method: "POST" })
     let row: Record<string, unknown> | null = null;
     const first = await db.from("siga_files").insert(withAudit).select(FILE_SELECT).single();
     if (first.error && missingOptionalColumn(first.error)) {
+      if (data.relatedPersonId) {
+        throw new Error(
+          "A base de dados da escola não suporta a associação de documentos a pessoas. Actualize o Arquivo antes de carregar.",
+        );
+      }
       const mid = await db
         .from("siga_files")
         .insert({ ...base, class_group_id: data.classGroupId ?? null })

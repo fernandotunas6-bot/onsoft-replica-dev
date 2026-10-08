@@ -146,8 +146,9 @@ export function DigitalIdentityPanel() {
   }, [loadDomainData]);
 
   const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file || !activeTenant) return;
+    const file = e.currentTarget.files?.[0];
+    e.currentTarget.value = "";
+    if (!file || !activeTenant || isSavingBranding) return;
     // Só PNG, JPEG ou WebP (o bucket é público; SVG pode levar código).
     const ext = file.name.split(".").pop()?.toLowerCase() ?? "";
     if (!["png", "jpg", "jpeg", "webp"].includes(ext)) {
@@ -734,7 +735,7 @@ export function DigitalIdentityPanel() {
                       disabled={isSavingBranding}
                     />
                     <p className="text-[11px] text-muted-foreground mt-1">
-                      PNG, JPG ou SVG. Altura recomendada: 64px.
+                      PNG, JPG ou WebP (máx. 2 MB). Altura recomendada: 64px.
                     </p>
                   </div>
                 </div>

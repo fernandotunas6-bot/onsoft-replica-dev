@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
+  Camera,
   ChevronRight,
   Copy,
   Download,
@@ -80,6 +81,7 @@ import {
 import { readFilesPrefs, writeFilesPrefs } from "./prefs";
 import { isImageFileKind, resolveFileBlob, resolveFileUrl } from "./resolve-file";
 import { schoolFileShareText } from "./share-text";
+import { assertVerifiedSchoolStorage } from "./storage-policy";
 import {
   fileCategoryOptions,
   fileKindOptions,
@@ -242,9 +244,11 @@ export function FileBrowser({
   const [relatedUserFilter, setRelatedUserFilter] = useState<string>("all");
   const [uploadProgress, setUploadProgress] = useState<Record<string, number>>({});
   const inputRef = useRef<HTMLInputElement>(null);
+  const cameraRef = useRef<HTMLInputElement>(null);
   const driveOn = installed.hasCapability("m365.onedrive");
   const canWrite = canWriteFileArea(account.role, area);
-  const canUpload = writableAreas.length > 0;
+  const canUpload =
+    writableAreas.length > 0 && (!initialRelatedPersonId || writableAreas.includes("secretaria"));
   const kindChoices = (
     acceptKinds?.length
       ? fileKindOptions.filter((kind) => acceptKinds.includes(kind))
@@ -586,12 +590,10 @@ export function FileBrowser({
     }
   };
 
-  const uploadFiles = async (list: FileList | null) => {
-    if (!list?.length || !canUpload) return;
-    if (!remoteQuery.data?.schoolId) {
-      toast.error("Escola indisponível", {
-        description: "Inicie sessão novamente para gravar arquivos.",
-      });
+  const uploadFiles = async (list: FileList | File[] | null) => {
+    if (!list?.length || !canUpload || uploading || pendingFiles.length > 0) return;
+    if (initialRelatedPersonId && !canWriteFileArea(account.role, "secretaria")) {
+      toast.error("Sem permissão para carregar documentos pessoais na Secretaria.");
       return;
     }
     const accepted: File[] = [];
@@ -617,9 +619,29 @@ export function FileBrowser({
   const commitUpload = async (meta: UploadInquiryResult) => {
     const schoolId = remoteQuery.data?.schoolId;
     const files = pendingFiles;
-    setPendingFiles([]);
     const targetArea = meta.area;
-    if (!schoolId || !files.length || !canWriteFileArea(account.role, targetArea)) return;
+    if (!files.length) return;
+    if (!schoolId) {
+      toast.error("Escola indisponível. Inicie sessão novamente.");
+      return;
+    }
+    if (!canWriteFileArea(account.role, targetArea)) {
+      toast.error("Sem permissão para carregar nesta área.");
+      return;
+    }
+    if (initialRelatedPersonId && meta.relatedPersonId !== initialRelatedPersonId) {
+      toast.error("O documento deve ficar associado à pessoa deste perfil.");
+      return;
+    }
+    if (initialRelatedPersonId && meta.visibility !== "private") {
+      toast.error("Os documentos pessoais devem ter visibilidade privada.");
+      return;
+    }
+    if (initialRelatedPersonId && targetArea !== "secretaria") {
+      toast.error("Os documentos pessoais devem ser guardados na área reservada da Secretaria.");
+      return;
+    }
+    setPendingFiles([]);
     setUploading(true);
     setUploadProgress(files.reduce((acc, f) => ({ ...acc, [f.name]: 0 }), {}));
     let appliedProfilePhoto = false;
@@ -666,6 +688,10 @@ export function FileBrowser({
         } finally {
           clearInterval(ramp);
         }
+        assertVerifiedSchoolStorage(
+          { area: targetArea, visibility: meta.visibility, relatedPersonId: meta.relatedPersonId },
+          backend,
+        );
         const record: SchoolFileRecord = {
           id,
           schoolId,
@@ -717,6 +743,11 @@ export function FileBrowser({
             relatedPersonId: record.relatedPersonId,
           },
         });
+        assertVerifiedSchoolStorage(
+          { area: targetArea, visibility: meta.visibility, relatedPersonId: meta.relatedPersonId },
+          backend,
+          registered.storage,
+        );
         const storedRecord: SchoolFileRecord =
           registered.storage === "local" && backend === "sga"
             ? { ...record, storageBackend: "local" }
@@ -1216,7 +1247,7 @@ export function FileBrowser({
                     size="sm"
                     variant="outline"
                     className="gap-2 font-semibold px-4"
-                    disabled={uploading}
+                    disabled={uploading || pendingFiles.length > 0}
                     onClick={() => inputRef.current?.click()}
                   >
                     <Upload className="size-4" /> Carregar
@@ -1227,7 +1258,7 @@ export function FileBrowser({
                         type="button"
                         size="sm"
                         className="gap-2 bg-primary text-primary-foreground shadow-md hover:shadow-lg rounded-xl font-semibold px-4"
-                        disabled={uploading}
+                        disabled={uploading || pendingFiles.length > 0}
                       >
                         <Plus className="size-4" />
                         {uploading ? "A guardar…" : "Novo"}
@@ -1241,6 +1272,12 @@ export function FileBrowser({
                       <DropdownMenuItem onClick={() => inputRef.current?.click()} className="gap-2">
                         <Upload className="size-4 text-primary" /> Carregar Ficheiros
                       </DropdownMenuItem>
+                      <DropdownMenuItem
+                        onClick={() => cameraRef.current?.click()}
+                        className="gap-2"
+                      >
+                        <Camera className="size-4 text-primary" /> Tirar fotografia
+                      </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
                   <input
@@ -1250,7 +1287,24 @@ export function FileBrowser({
                     accept={uploadAccept}
                     multiple
                     className="sr-only"
-                    onChange={(event) => void uploadFiles(event.target.files)}
+                    onChange={(event) => {
+                      const files = Array.from(event.currentTarget.files ?? []);
+                      event.currentTarget.value = "";
+                      void uploadFiles(files);
+                    }}
+                  />
+                  <input
+                    ref={cameraRef}
+                    type="file"
+                    accept="image/*"
+                    capture="environment"
+                    aria-label="Tirar fotografia para carregar"
+                    className="sr-only"
+                    onChange={(event) => {
+                      const files = Array.from(event.currentTarget.files ?? []);
+                      event.currentTarget.value = "";
+                      void uploadFiles(files);
+                    }}
                   />
                 </>
               ) : null}
@@ -1504,6 +1558,16 @@ export function FileBrowser({
         defaultArea={area}
         writableAreas={writableAreas}
         currentUserId={account.id}
+        initial={
+          initialRelatedPersonId
+            ? {
+                relatedPersonId: initialRelatedPersonId,
+                visibility: "private",
+                area: "secretaria",
+              }
+            : undefined
+        }
+        lockRelatedPerson={Boolean(initialRelatedPersonId)}
         onCancel={() => setPendingFiles([])}
         onConfirm={(meta) => void commitUpload(meta)}
       />

@@ -43,6 +43,9 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Tabs, TabsContent } from "@/components/ui/tabs";
 import { UserAvatar } from "@/components/ui/user-avatar";
 import { PickFileButton } from "@/features/arquivos/PickFileButton";
+import { FilePickerModal } from "@/features/arquivos/FilePickerModal";
+import { listSchoolFiles } from "@/features/arquivos/server";
+import { formatFileSize } from "@/features/arquivos/kinds";
 import { uploadPersonPhotoToLibrary } from "@/features/arquivos/apply-person-photo";
 import { useCurrentAccount } from "@/features/auth/use-current-account";
 import {
@@ -181,6 +184,17 @@ export function PersonProfile360Modal({
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
+  const [personalDocumentsOpen, setPersonalDocumentsOpen] = useState(false);
+
+  const personalFilesQuery = useQuery({
+    queryKey: ["arquivos", "person-documents", account.schoolId, personId],
+    enabled: Boolean(open && personId && account.schoolId && activeTab === "identificacao"),
+    queryFn: () =>
+      listSchoolFiles({
+        data: { area: "secretaria", relatedPersonId: personId, limit: 48 },
+      }),
+    staleTime: 20_000,
+  });
 
   const person = personQuery.data as PersonRecord | undefined;
 
@@ -194,10 +208,11 @@ export function PersonProfile360Modal({
   const photoUrl = person?.photo_url || null;
 
   const handleDirectPhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file || !personId) return;
+    const file = e.currentTarget.files?.[0];
+    e.currentTarget.value = "";
+    if (!file || !personId || isUploadingPhoto) return;
 
-    if (!file.type.startsWith("image/")) {
+    if (!["image/png", "image/jpeg", "image/webp"].includes(file.type)) {
       toast.error("Por favor seleccione uma imagem válida (PNG, JPEG ou WebP).");
       return;
     }
@@ -807,6 +822,49 @@ export function PersonProfile360Modal({
                     <FileCheck className="size-4 text-primary" />
                     Documentos de Identificação Civil
                   </h4>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    onClick={() => setPersonalDocumentsOpen(true)}
+                  >
+                    <Upload className="mr-2 size-4" /> Carregar documento pessoal
+                  </Button>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Na biblioteca reservada, carregue o BI, passaporte, certidão ou certificado. No
+                  formulário de classificação, associe o ficheiro a esta pessoa e mantenha a
+                  visibilidade privada. O carregamento não verifica automaticamente a identidade.
+                </p>
+                <div className="space-y-2 rounded-lg border border-border p-3">
+                  <p className="text-sm font-semibold">Ficheiros associados a esta pessoa</p>
+                  {personalFilesQuery.isLoading ? (
+                    <p className="text-xs text-muted-foreground">A carregar documentos…</p>
+                  ) : personalFilesQuery.isError ? (
+                    <p className="text-xs text-destructive">
+                      Não foi possível consultar os ficheiros.
+                    </p>
+                  ) : personalFilesQuery.data?.files.length ? (
+                    <ul className="divide-y divide-border">
+                      {personalFilesQuery.data.files.map((file) => (
+                        <li
+                          key={file.id}
+                          className="flex items-center justify-between gap-3 py-2 text-xs"
+                        >
+                          <span className="min-w-0 truncate font-medium">
+                            {file.title || file.name}
+                          </span>
+                          <span className="shrink-0 text-muted-foreground">
+                            {formatFileSize(file.sizeBytes)}
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <p className="text-xs text-muted-foreground">
+                      Nenhum ficheiro associado na Secretaria.
+                    </p>
+                  )}
                 </div>
                 {person?.documents && person.documents.length > 0 ? (
                   <div className="divide-y divide-border rounded-lg border border-border">
@@ -831,6 +889,20 @@ export function PersonProfile360Modal({
                 )}
               </div>
             </TabsContent>
+
+            <FilePickerModal
+              open={personalDocumentsOpen}
+              onOpenChange={(nextOpen) => {
+                setPersonalDocumentsOpen(nextOpen);
+                if (!nextOpen) {
+                  void queryClient.invalidateQueries({
+                    queryKey: ["arquivos", "person-documents", account.schoolId, personId],
+                  });
+                }
+              }}
+              area="secretaria"
+              initialRelatedPersonId={personId}
+            />
 
             {/* ABA 4: CONTACTOS */}
             <TabsContent value="contactos" className="space-y-4">
