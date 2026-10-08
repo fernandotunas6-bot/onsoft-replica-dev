@@ -1,6 +1,7 @@
 import { useState, type ReactNode } from "react";
 import { FolderOpen } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { fileMotion } from "@/components/files/file-motion";
 import { FilePickerModal } from "./FilePickerModal";
 import type { FileArea, FileKind } from "./kinds";
 import type { SchoolFileRecord } from "./schemas";
@@ -29,7 +30,7 @@ export function PickFileButton({
         type="button"
         variant={variant}
         size={size}
-        className="gap-2"
+        className={`gap-2 ${fileMotion.interactive}`}
         onClick={() => setOpen(true)}
       >
         {children ?? (
