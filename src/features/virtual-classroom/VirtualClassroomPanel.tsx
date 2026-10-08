@@ -62,15 +62,15 @@ export function VirtualClassroomPanel({ schoolId, classGroupId, teacherId, canSc
         <form onSubmit={(event) => void submit(event)} className="grid gap-3 rounded-xl border p-4">
           <h3 className="font-medium">Agendar aula</h3>
           <label className="grid gap-1 text-sm">Título
-            <input className="rounded-md border bg-background p-2" required maxLength={200}
+            <input id="bbb-classroom-title" aria-label="Título da aula" className="rounded-md border bg-background p-2" required maxLength={200}
               value={title} onChange={(event) => setTitle(event.target.value)} />
           </label>
           <label className="grid gap-1 text-sm">Início
-            <input className="rounded-md border bg-background p-2" required type="datetime-local"
+            <input id="bbb-classroom-start" aria-label="Início da aula" className="rounded-md border bg-background p-2" required type="datetime-local"
               value={startsAt} onChange={(event) => setStartsAt(event.target.value)} />
           </label>
           <label className="grid gap-1 text-sm">Fim
-            <input className="rounded-md border bg-background p-2" required type="datetime-local"
+            <input id="bbb-classroom-end" aria-label="Fim da aula" className="rounded-md border bg-background p-2" required type="datetime-local"
               value={endsAt} onChange={(event) => setEndsAt(event.target.value)} />
           </label>
           <Button type="submit" disabled={pending || !title.trim() || !startsAt || !endsAt}>
