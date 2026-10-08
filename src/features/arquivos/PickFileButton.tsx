@@ -10,6 +10,7 @@ export function PickFileButton({
   label = "Arquivo",
   area,
   acceptKinds,
+  initialRelatedPersonId,
   onPick,
   variant = "outline",
   size = "default",
@@ -18,6 +19,7 @@ export function PickFileButton({
   label?: string;
   area?: FileArea;
   acceptKinds?: readonly FileKind[];
+  initialRelatedPersonId?: string;
   onPick?: (file: SchoolFileRecord) => void;
   variant?: "outline" | "ghost" | "secondary";
   size?: "default" | "sm";
@@ -46,6 +48,7 @@ export function PickFileButton({
         onOpenChange={setOpen}
         area={area}
         acceptKinds={acceptKinds}
+        initialRelatedPersonId={initialRelatedPersonId}
         onPick={onPick}
       />
     </>
