@@ -1539,7 +1539,11 @@ export function FileBrowser({
         defaultArea={area}
         writableAreas={writableAreas}
         currentUserId={account.id}
-        initial={initialRelatedPersonId ? { relatedPersonId: initialRelatedPersonId } : undefined}
+        initial={
+          initialRelatedPersonId
+            ? { relatedPersonId: initialRelatedPersonId, visibility: "private" }
+            : undefined
+        }
         onCancel={() => setPendingFiles([])}
         onConfirm={(meta) => void commitUpload(meta)}
       />
