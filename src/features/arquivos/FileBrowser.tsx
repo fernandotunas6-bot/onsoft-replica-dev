@@ -1216,7 +1216,7 @@ export function FileBrowser({
                     size="sm"
                     variant="outline"
                     className="gap-2 font-semibold px-4"
-                    disabled={uploading}
+                    disabled={uploading || pendingFiles.length > 0}
                     onClick={() => inputRef.current?.click()}
                   >
                     <Upload className="size-4" /> Carregar
@@ -1227,7 +1227,7 @@ export function FileBrowser({
                         type="button"
                         size="sm"
                         className="gap-2 bg-primary text-primary-foreground shadow-md hover:shadow-lg rounded-xl font-semibold px-4"
-                        disabled={uploading}
+                        disabled={uploading || pendingFiles.length > 0}
                       >
                         <Plus className="size-4" />
                         {uploading ? "A guardar…" : "Novo"}
