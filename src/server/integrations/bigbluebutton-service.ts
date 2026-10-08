@@ -44,7 +44,8 @@ function meetingPasswords() {
 export async function provisionVirtualClassroom(request: VerifiedClassroomRequest) {
   requireServer();
   assertVirtualClassroomAccess("create", request.context);
-  if (request.context.session.id !== request.sessionId) throw new Error("Session mismatch");
+  if (request.context.session.id !== request.sessionId)
+    throw new Error("Session mismatch");
   const { attendeePW, moderatorPW } = meetingPasswords();
   await createBbbMeeting({
     meetingID: meetingId(request),
@@ -66,8 +67,11 @@ export async function joinVirtualClassroom(
     // A student cannot request a moderator link.
     const c = request.context;
     if (c.membership?.role === "student") throw new Error("Moderator access denied");
-    const isAdmin = c.membership?.role === "school_admin" || c.membership?.role === "pedagogical_admin";
-    const assigned = c.membership?.role === "teacher" &&
+    const isAdmin =
+      c.membership?.role === "school_admin" ||
+      c.membership?.role === "pedagogical_admin";
+    const assigned =
+      c.membership?.role === "teacher" &&
       c.session.teacherId === c.authenticatedUserId &&
       c.teacherAssignment?.active === true &&
       c.teacherAssignment.teacherUserId === c.authenticatedUserId &&
