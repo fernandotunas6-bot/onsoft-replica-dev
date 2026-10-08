@@ -39,6 +39,72 @@ Deno.serve(async (request) => {
     const { data: userResult, error: userError } = await auth.auth.getUser(token);
     if (userError || !userResult.user) return respond(401, { error: "Invalid session" }, request);
     const body = await request.json().catch(() => null);
+    if (body?.action === "list") {
+      if (!isUuid(body.schoolId))
+        return respond(400, { error: "Invalid school" }, request);
+      const db = createClient(url, env("SUPABASE_SERVICE_ROLE_KEY"), {
+        auth: { persistSession: false },
+      });
+      const userId = userResult.user.id;
+      const { data: membership, error: membershipError } = await db
+        .from("school_memberships").select("id")
+        .eq("school_id", body.schoolId).eq("user_id", userId)
+        .eq("status", "active").maybeSingle();
+      if (membershipError) throw membershipError;
+      if (!membership) return respond(403, { error: "Access denied" }, request);
+      const { data: memberRoles, error: memberRolesError } = await db
+        .from("member_roles").select("role_id")
+        .eq("school_id", body.schoolId).eq("membership_id", membership.id);
+      if (memberRolesError) throw memberRolesError;
+      const roleIds = (memberRoles ?? []).map((r) => r.role_id);
+      const { data: roles, error: rolesError } = await db
+        .from("roles").select("code").eq("school_id", body.schoolId)
+        .in("id", roleIds.length ? roleIds : ["00000000-0000-0000-0000-000000000000"]);
+      if (rolesError) throw rolesError;
+      const codes = new Set((roles ?? []).map((r) => r.code.toLowerCase()));
+      const admin = codes.has("owner") || codes.has("admin");
+      const { data: teachers, error: teacherError } = await db
+        .from("teachers").select("id").eq("school_id", body.schoolId)
+        .eq("user_id", userId).eq("status", "active");
+      if (teacherError) throw teacherError;
+      const teacherIds = (teachers ?? []).map((teacher) => teacher.id);
+      const { data: assignments, error: assignmentError } = teacherIds.length
+        ? await db.from("class_subjects").select("class_group_id")
+            .eq("school_id", body.schoolId).eq("status", "active")
+            .in("teacher_id", teacherIds)
+        : { data: [], error: null };
+      if (assignmentError) throw assignmentError;
+      const { data: people, error: peopleError } = await db
+        .from("people").select("id").eq("school_id", body.schoolId)
+        .eq("user_id", userId).is("deleted_at", null);
+      if (peopleError) throw peopleError;
+      const personIds = (people ?? []).map((person) => person.id);
+      const { data: students, error: studentError } = personIds.length
+        ? await db.from("students").select("id").eq("school_id", body.schoolId)
+            .is("deleted_at", null).in("person_id", personIds)
+        : { data: [], error: null };
+      if (studentError) throw studentError;
+      const studentIds = (students ?? []).map((student) => student.id);
+      const { data: enrollments, error: enrollmentError } = studentIds.length
+        ? await db.from("enrollments").select("class_group_id")
+            .eq("school_id", body.schoolId).eq("status", "active")
+            .is("ended_on", null).in("student_id", studentIds)
+        : { data: [], error: null };
+      if (enrollmentError) throw enrollmentError;
+      const visibleGroups = new Set<string>();
+      if (codes.has("teacher")) for (const a of assignments ?? []) visibleGroups.add(a.class_group_id);
+      if (codes.has("student")) for (const e of enrollments ?? []) visibleGroups.add(e.class_group_id);
+      if (!admin && !visibleGroups.size)
+        return respond(200, { sessions: [] }, request);
+      let query = db.from("bbb_classroom_sessions")
+        .select("id,title,class_group_id,starts_at,ends_at,status")
+        .eq("school_id", body.schoolId)
+        .order("starts_at", { ascending: false }).limit(100);
+      if (!admin) query = query.in("class_group_id", [...visibleGroups]);
+      const { data: sessions, error: sessionsError } = await query;
+      if (sessionsError) throw sessionsError;
+      return respond(200, { sessions: sessions ?? [] }, request);
+    }
     if (body?.action === "schedule") {
       if (!isUuid(body.schoolId) || !isUuid(body.classGroupId) || !isUuid(body.teacherId))
         return respond(400, { error: "Invalid school, class or teacher" }, request);
