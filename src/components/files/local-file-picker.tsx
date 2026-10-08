@@ -60,7 +60,7 @@ export function LocalFilePicker({
         disabled={disabled || busy}
         className="sr-only"
         tabIndex={-1}
-        aria-hidden="true"
+        aria-label={label}
         onChange={handleChange}
       />
       <Button
