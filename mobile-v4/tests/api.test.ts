@@ -139,3 +139,15 @@ it("rejects unknown permission strings from the institutional session", async ()
   }));
   await expect(new ApiGateway().session()).rejects.toThrow("Contrato de sessão inválido");
 });
+
+it("rejects an institutional session without a user name", async () => {
+  const session = { ...demoSession("professor"), name: "   " };
+  vi.stubGlobal("fetch", vi.fn().mockResolvedValue({
+    ok: true,
+    status: 200,
+    json: async () => session,
+  }));
+  await expect(new ApiGateway().session()).rejects.toThrow(
+    "Contrato de sessão inválido",
+  );
+});
