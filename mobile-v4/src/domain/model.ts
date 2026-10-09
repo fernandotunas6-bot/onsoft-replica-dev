@@ -10,6 +10,8 @@ export type Permission =
 export interface Membership {
   schoolId: string;
   schoolName: string;
+  /** Institutional image URL; absent until supplied by the authorised school API. */
+  schoolLogoUrl?: string | null;
   roles: Role[];
   permissions: Permission[];
   active: boolean;
