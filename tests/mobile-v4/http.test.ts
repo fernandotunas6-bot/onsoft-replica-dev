@@ -5,6 +5,7 @@ vi.mock("@/integrations/supabase/sga-admin", () => ({ loadSgaAdminClient: vi.fn(
 vi.mock("@/features/mobile-v4/session-core.server", () => ({ loadMobileV4Session: vi.fn() }));
 vi.mock("@/features/mobile-v4/operations-core.server", () => ({
   loadMobileV4Workspace: vi.fn(),
+  loadMobileV4AcademicCatalog: vi.fn(),
   applyMobileV4Command: vi.fn(),
 }));
 
@@ -38,12 +39,71 @@ beforeEach(() => {
     authenticate: vi.fn().mockResolvedValue({ userId: "verified-user", aal: "aal2" }),
     session: vi.fn().mockResolvedValue({ userId: "verified-user" }),
     workspace: vi.fn().mockResolvedValue({ schoolId: school }),
+    academic: vi.fn().mockResolvedValue({
+      schoolId: school,
+      role: "aluno",
+      classes: [],
+      timetable: [],
+      tasks: [],
+    }),
     command: vi.fn().mockResolvedValue({ committed: true }),
     logout: vi.fn().mockResolvedValue(undefined),
   };
 });
 
 describe("Mobile V4 HTTP transport with controlled service dependencies", () => {
+  it("serves the canonical catalog only for the verified user and exact school/role", async () => {
+    const response = await handleMobileV4Http(
+      request(`/schools/${school}/academic?role=aluno&userId=attacker`),
+      deps,
+    );
+    expect(response.status).toBe(200);
+    expect(deps.academic).toHaveBeenCalledWith("verified-user", {
+      schoolId: school,
+      role: "aluno",
+    });
+    expect(response.headers.get("Cache-Control")).toBe("private, no-store");
+    expect(deps.workspace).not.toHaveBeenCalled();
+    expect(deps.command).not.toHaveBeenCalled();
+  });
+  it("rejects invalid catalog scope before data lookup", async () => {
+    for (const path of [
+      `/schools/${school}/academic?role=admin`,
+      `/schools/${school}/academic`,
+      "/schools/abc/academic?role=aluno",
+    ]) {
+      expect((await handleMobileV4Http(request(path), deps)).status).toBe(422);
+    }
+    expect(deps.academic).not.toHaveBeenCalled();
+  });
+  it("does not read the catalog with an invalid session or cross-site origin", async () => {
+    vi.mocked(deps.authenticate).mockRejectedValueOnce(new Error("invalid token"));
+    expect(
+      (await handleMobileV4Http(request(`/schools/${school}/academic?role=aluno`), deps)).status,
+    ).toBe(401);
+    expect(
+      (
+        await handleMobileV4Http(
+          request(`/schools/${school}/academic?role=aluno`, undefined, {
+            Origin: "https://evil.example",
+          }),
+          deps,
+        )
+      ).status,
+    ).toBe(403);
+    expect(deps.academic).not.toHaveBeenCalled();
+  });
+  it("returns catalog lookup failure without exposing database details", async () => {
+    vi.mocked(deps.academic).mockRejectedValueOnce(
+      new MobileApiError(503, "ACADEMIC_CATALOG_UNAVAILABLE"),
+    );
+    const response = await handleMobileV4Http(
+      request(`/schools/${school}/academic?role=aluno`),
+      deps,
+    );
+    expect(response.status).toBe(503);
+    expect(await response.json()).toEqual({ error: "ACADEMIC_CATALOG_UNAVAILABLE" });
+  });
   it("returns private JSON from the verified identity", async () => {
     const response = await handleMobileV4Http(request("/session"), deps);
     expect(response.status).toBe(200);

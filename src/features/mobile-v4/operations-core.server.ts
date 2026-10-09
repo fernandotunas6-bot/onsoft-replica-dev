@@ -2,6 +2,20 @@ import { requireMobileAcademicAccess } from "./authorization";
 import { MobileApiError } from "./errors";
 import { mobileCommandRequestSchema, mobileScopeSchema } from "./schemas";
 import { resolveMobileAcademicScope } from "./academic-scope.server";
+import { readMobileAcademicCatalog } from "./academic-catalog.server";
+
+/** Canonical read endpoint, independently of the unfinished legacy workspace. */
+export async function loadMobileV4AcademicCatalog(userId: string, input: unknown) {
+  const inputScope = mobileScopeSchema.parse(input);
+  const { db } = await requireMobileAcademicAccess(
+    userId,
+    inputScope.schoolId,
+    inputScope.role,
+    "read",
+  );
+  const scope = await resolveMobileAcademicScope(db, userId, inputScope.schoolId, inputScope.role);
+  return readMobileAcademicCatalog(db, scope, userId);
+}
 
 // Until the academic projection and atomic persistence are validated against
 // an isolated database, these routes must never report success or fake data.

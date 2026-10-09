@@ -66,6 +66,13 @@ jobs:
         with:
           fetch-depth: 0
 
+      # Os ensaios SQL carregam as projecções TypeScript da aplicação com
+      # node:module. Usar o mesmo Node 24 validado no Mobile, sem depender
+      # da versão pré-instalada na imagem ubuntu-latest.
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+
       - uses: oven-sh/setup-bun@v2
         with:
           bun-version: latest

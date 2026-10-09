@@ -1,6 +1,8 @@
 import type { Gateway, Session, Context, Workspace, Command, Permission } from "../domain/model";
 import { authorize, scopeWorkspace, required, validateCommand } from "../domain/policy";
 import { importSigaDirectMessages } from "./chat-import";
+import { parseAcademicCatalog } from "../domain/catalog-validation";
+import type { AcademicCatalog } from "../domain/catalog";
 const allowedPermissions: readonly Permission[] = [
   "academic.read",
   "attendance.write",
@@ -25,7 +27,7 @@ export class ApiError extends Error {
     super(message);
   }
 }
-// Proposed API contract. No production endpoint is enabled by this module.
+// Authenticated transport. No production endpoint is enabled by this module.
 export class ApiGateway implements Gateway {
   private current: Session | null = null;
   private workspaceCache = new Map<string, Workspace>();
@@ -125,6 +127,14 @@ export class ApiGateway implements Gateway {
     )
       throw new Error("Contrato de sessão inválido.");
     return (this.current = { ...data, mode: "api" });
+  }
+  async academicCatalog(ctx: Context, signal?: AbortSignal): Promise<AcademicCatalog> {
+    authorize(this.current, ctx);
+    const data = await this.request(
+      "/schools/" + encodeURIComponent(ctx.schoolId) + "/academic?role=" + ctx.role,
+      signal,
+    );
+    return parseAcademicCatalog(data, ctx);
   }
   async workspace(ctx: Context, signal?: AbortSignal): Promise<Workspace> {
     authorize(this.current, ctx);

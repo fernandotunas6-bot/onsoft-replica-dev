@@ -4,9 +4,26 @@
 
 Branch: `feat/siga-plus-mobile-v4-isolated`, PR #116. Base auditada: `27bf782313289d669c28cf7e3364ed7aaeaf52fa`.
 
-A integração institucional **ainda não está concluída nem activada**. Este ciclo implementa o transporte HTTP autenticado e validação de pedidos, preservando os ficheiros visuais. Não importou conversas ou dados pessoais, não substituiu integrações por simulações, não executou SQL remoto e não publicou o servidor SIGA em produção.
+A integração institucional **ainda não está concluída nem activada**. Os ciclos implementam transporte HTTP autenticado, validação de pedidos, âmbito académico e catálogo canónico de leitura, preservando os ficheiros visuais. Não importou conversas ou dados pessoais, não substituiu integrações por simulações, só executou consultas de leitura ao catálogo remoto e não publicou o servidor SIGA em produção.
 
 ## Implementado e verificado localmente
+
+### Catálogo académico de leitura
+
+Foi acrescentado `GET /api/mobile-v4/schools/:schoolId/academic?role=professor` (ou papel `aluno`), com Bearer/MFA, autorização exacta por escola/papel e resolução do âmbito antes de consultar dados. Devolve apenas turmas/disciplinas autorizadas, docente atribuído, matrículas, nomes de alunos permitidos, horários e trabalhos publicados, através do esquema real Sga. Não lê contactos privados, notas, documentos ou conversas neste endpoint.
+
+O contrato distingue `classSubjectId`, `classGroupId`, `subjectId`, `academicYearId`, `enrollmentId` e `slotId`. Os slots preservam o dia ISO (1–7), horas, sala institucional e validade da versão publicada. Horários antigos sem `schedule_id` vêm marcados `legacy`; não se inventa data de publicação nem se convertem slots em aulas realizadas. Rascunhos e trabalhos ligados a slots não publicados são excluídos. Campos institucionais nulos continuam nulos. Referências inconsistentes, erros ou resultados truncados são recusados; mudanças de vínculo/atribuição/ano entre resolução e projecção são detectadas nos casos ensaiados.
+
+O `ApiGateway.academicCatalog` já faz a leitura autenticada, com token actualizado por pedido e AbortSignal. O cliente valida estrutura, IDs, escola/papel, âmbito professor/aluno, horários, datas, relações e campos privados inesperados. A interface ainda não consome este catálogo: a adaptação completa para o workspace depende dos contratos de notas, aulas/presenças e restantes serviços. Workspace e comandos continuam com 503; modo institucional permanece desligado.
+
+Validação deste avanço:
+
+- Mobile: **87 testes aprovados**, incluindo 20 novos testes de contrato/transporte. TypeScript, lint, formatação, build e PWA aprovados.
+- Ensaio PostgreSQL/PGlite isolado: **26 verificações** com a resolução/projecção TypeScript reais e consultas SQL parametrizadas. Inclui duas escolas, professor, matrícula própria, ausência de colegas, horários publicado/legacy/rascunho, tarefas, contrato cliente após JSON, mudanças de identidade/atribuição/ano, referências de outra escola e falhas/truncagem. O fixture tem subconjuntos de colunas/tipos/nullable confirmados por leitura; não reproduz toda a RLS/FKs/triggers e não testa Auth/PostgREST ou concorrência reais.
+- Backend HTTP/âmbito/RLS seleccionados: **67 testes aprovados**. Suite raiz completa: **3.320 aprovados e 19 ignorados**, 497 ficheiros aprovados e 3 ignorados. Os ignorados não contam como integração real.
+- Servidor compilado em runtime Cloudflare local: sessão, workspace, catálogo, comandos e logout sem Bearer devolveram **401 JSON**, sem acesso a dados. Não foi ensaiada sessão válida real.
+- Raiz: TypeScript, lint sem erros (47 avisos existentes), build, Prettier e inventário passaram. O workflow CI fixa Node 24 para os ensaios TypeScript, seguindo a versão usada no Mobile.
+- Não há migração nova: este catálogo usa tabelas existentes. Não foram consultados dados pessoais ou executadas escritas no Sga remoto.
 
 ### Continuação com o Sga existente
 
@@ -62,8 +79,8 @@ As permissões de escrita deixaram de ser anunciadas na sessão antes de existir
 
 1. A integração terá como base o **Sga existente**, conforme escolha do utilizador. Não foi criado outro projecto nem uma branch Supabase paga. Não há base Supabase de testes ou credenciais de staging neste ambiente; os ensaios de migração têm de continuar isolados. A escolha do Sga não activa o modo institucional nem autoriza migrações de produção.
 2. Preparar base isolada com esquema actual, duas escolas de teste e contas autorizadas de professor/aluno; não copiar dados pessoais de produção.
-3. Rever o contrato académico: `ClassGroup` Mobile agrega turma e disciplina; `Grade` ainda usa valor único e revisão, enquanto o SIGA tem componentes, diários, estados de pauta e períodos. Definir IDs canónicos e estados de publicação antes da projecção e escrita.
-4. Implementar leitura por atribuição docente e matrícula própria, com notas apenas publicadas para alunos, horário/aulas, presenças docente e discente distintas, tarefas/entregas, calendário e documentos.
+3. Rever o contrato académico: `ClassGroup` Mobile agrega turma e disciplina; `Grade` ainda usa valor único e revisão, enquanto o SIGA tem componentes, diários, estados de pauta e períodos. Os IDs canónicos e estados de publicação de horários/trabalhos já estão definidos no catálogo; a projecção e escrita de notas continuam pendentes.
+4. A leitura de turmas/disciplinas/matrículas/horários/trabalhos já existe no catálogo. Concluir a projecção para a interface, com notas apenas publicadas para alunos, horário/aulas, presenças docente e discente distintas, tarefas/entregas, calendário e documentos.
 5. Reutilizar as guardas do chat para participantes e escola, com notificações, assinaturas temporárias de ficheiros e anexos autorizados. Não há chat institucional real neste ciclo.
 6. Persistir comandos numa transacção com comparação de revisão, chave por escola/utilizador/operação, resposta de replay e auditoria atómica. Testar concorrência, rollback, replay e alteração de payload com a mesma chave.
 7. Validar sessão, MFA, logout e percursos completos com contas reais de staging. Publicar o backend exclusivamente em staging e só depois ligar o fornecedor de sessão no Mobile. O Pages público actual continua a ser apenas preview; a demonstração existente é identificada como tal e não constitui uma integração.

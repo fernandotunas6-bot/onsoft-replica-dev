@@ -2,7 +2,11 @@ import { ZodError } from "zod";
 import { resolveBearerSession } from "@/features/saas/platform-guard";
 import { loadSgaAdminClient } from "@/integrations/supabase/sga-admin";
 import { loadMobileV4Session } from "./session-core.server";
-import { loadMobileV4Workspace, applyMobileV4Command } from "./operations-core.server";
+import {
+  loadMobileV4Workspace,
+  applyMobileV4Command,
+  loadMobileV4AcademicCatalog,
+} from "./operations-core.server";
 import { MobileApiError } from "./errors";
 import { mobileRoleSchema, mobileScopeSchema, mobileCommandRequestSchema } from "./schemas";
 
@@ -11,6 +15,7 @@ export type MobileHttpDependencies = {
   authenticate: (authorization: string | null) => Promise<Identity>;
   session: (userId: string) => Promise<unknown>;
   workspace: (userId: string, scope: unknown) => Promise<unknown>;
+  academic: (userId: string, scope: unknown) => Promise<unknown>;
   command: (userId: string, input: unknown) => Promise<unknown>;
   logout: (token: string) => Promise<void>;
 };
@@ -18,6 +23,7 @@ const dependencies: MobileHttpDependencies = {
   authenticate: resolveBearerSession,
   session: loadMobileV4Session,
   workspace: loadMobileV4Workspace,
+  academic: loadMobileV4AcademicCatalog,
   command: applyMobileV4Command,
   logout: async (token) => {
     const db = await loadSgaAdminClient();
@@ -85,9 +91,8 @@ export async function handleMobileV4Http(request: Request, deps = dependencies):
   try {
     const url = new URL(request.url);
     const path = url.pathname;
-    const schoolRoute = /^\/api\/mobile-v4\/schools\/([0-9a-f-]+)\/(workspace|commands)$/i.exec(
-      path,
-    );
+    const schoolRoute =
+      /^\/api\/mobile-v4\/schools\/([0-9a-f-]+)\/(workspace|academic|commands)$/i.exec(path);
     const operation =
       path === "/api/mobile-v4/session"
         ? "session"
@@ -95,7 +100,7 @@ export async function handleMobileV4Http(request: Request, deps = dependencies):
           ? "logout"
           : schoolRoute?.[2];
     if (!operation) return respond({ error: "NOT_FOUND" }, 404);
-    const method = operation === "session" || operation === "workspace" ? "GET" : "POST";
+    const method = ["session", "workspace", "academic"].includes(operation) ? "GET" : "POST";
     if (request.method !== method) return respond({ error: "METHOD_NOT_ALLOWED" }, 405, method);
     const origin = request.headers.get("origin");
     if (
@@ -125,10 +130,10 @@ export async function handleMobileV4Http(request: Request, deps = dependencies):
       return respond(null, 204);
     }
     const schoolId = schoolRoute![1];
-    if (operation === "workspace") {
+    if (operation === "workspace" || operation === "academic") {
       const role = mobileRoleSchema.parse(url.searchParams.get("role"));
       const scope = mobileScopeSchema.parse({ schoolId, role });
-      return respond(await deps.workspace(identity.userId, scope));
+      return respond(await deps[operation](identity.userId, scope));
     }
     if (identity.aal !== "aal2") throw new MobileApiError(403, "MFA_REQUIRED");
     const body = await readJson(request);

@@ -5,6 +5,7 @@ const mocks = vi.hoisted(() => ({
   list: vi.fn(),
   grant: vi.fn(),
   scope: vi.fn(),
+  catalog: vi.fn(),
 }));
 vi.mock("@/integrations/supabase/sga-admin", () => ({
   loadSgaAdminClient: mocks.load,
@@ -14,11 +15,15 @@ vi.mock("@/integrations/supabase/sga", () => ({ listUserSchoolMemberships: mocks
 vi.mock("@/features/mobile-v4/academic-scope.server", () => ({
   resolveMobileAcademicScope: mocks.scope,
 }));
+vi.mock("@/features/mobile-v4/academic-catalog.server", () => ({
+  readMobileAcademicCatalog: mocks.catalog,
+}));
 
 import { requireMobileAcademicAccess } from "@/features/mobile-v4/authorization";
 import {
   applyMobileV4Command,
   loadMobileV4Workspace,
+  loadMobileV4AcademicCatalog,
 } from "@/features/mobile-v4/operations-core.server";
 import { mapMobileMemberships } from "@/features/mobile-v4/session-core.server";
 
@@ -57,9 +62,39 @@ beforeEach(() => {
   ]);
   mocks.grant.mockResolvedValue(undefined);
   mocks.scope.mockResolvedValue({ classSubjectIds: [], enrollmentIds: [] });
+  mocks.catalog.mockResolvedValue({
+    schoolId: b,
+    role: "aluno",
+    classes: [],
+    timetable: [],
+    tasks: [],
+  });
 });
 
 describe("Mobile tenant and role authorization", () => {
+  it("loads the catalog only after membership and academic scope resolution", async () => {
+    const data = await loadMobileV4AcademicCatalog("user", { schoolId: b, role: "aluno" });
+    expect(data.schoolId).toBe(b);
+    expect(mocks.catalog).toHaveBeenCalledWith(
+      expect.anything(),
+      { classSubjectIds: [], enrollmentIds: [] },
+      "user",
+    );
+    expect(mocks.grant.mock.invocationCallOrder[0]).toBeLessThan(
+      mocks.scope.mock.invocationCallOrder[0],
+    );
+    expect(mocks.scope.mock.invocationCallOrder[0]).toBeLessThan(
+      mocks.catalog.mock.invocationCallOrder[0],
+    );
+  });
+  it("never reads catalog records after a forbidden or revoked school membership", async () => {
+    active.data = null;
+    await expect(
+      loadMobileV4AcademicCatalog("user", { schoolId: b, role: "aluno" }),
+    ).rejects.toMatchObject({ status: 403 });
+    expect(mocks.scope).not.toHaveBeenCalled();
+    expect(mocks.catalog).not.toHaveBeenCalled();
+  });
   it("resolves academic scope only after exact school and role authorization", async () => {
     await expect(
       loadMobileV4Workspace("user", { schoolId: b, role: "aluno" }),

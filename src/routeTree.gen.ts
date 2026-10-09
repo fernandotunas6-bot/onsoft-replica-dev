@@ -124,6 +124,7 @@ import { Route as ApiSaasTenantsStatusRouteImport } from './routes/api/saas/tena
 import { Route as ApiSaasTenantsSubscriptionRouteImport } from './routes/api/saas/tenants.subscription'
 import { Route as ApiSaasUsageSyncRouteImport } from './routes/api/saas/usage.sync'
 import { Route as ApiFinanceGatewayUnitelConfirmRouteImport } from './routes/api/finance/gateway.unitel.confirm'
+import { Route as ApiMobileV4SchoolsSchoolIdAcademicRouteImport } from './routes/api/mobile-v4/schools/$schoolId/academic'
 import { Route as ApiMobileV4SchoolsSchoolIdCommandsRouteImport } from './routes/api/mobile-v4/schools/$schoolId/commands'
 import { Route as ApiMobileV4SchoolsSchoolIdWorkspaceRouteImport } from './routes/api/mobile-v4/schools/$schoolId/workspace'
 
@@ -724,6 +725,12 @@ const ApiFinanceGatewayUnitelConfirmRoute =
     path: '/api/finance/gateway/unitel/confirm',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiMobileV4SchoolsSchoolIdAcademicRoute =
+  ApiMobileV4SchoolsSchoolIdAcademicRouteImport.update({
+    id: '/api/mobile-v4/schools/$schoolId/academic',
+    path: '/api/mobile-v4/schools/$schoolId/academic',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiMobileV4SchoolsSchoolIdCommandsRoute =
   ApiMobileV4SchoolsSchoolIdCommandsRouteImport.update({
     id: '/api/mobile-v4/schools/$schoolId/commands',
@@ -853,6 +860,7 @@ export interface FileRoutesByFullPath {
   '/api/saas/tenants/subscription': typeof ApiSaasTenantsSubscriptionRoute
   '/api/saas/usage/sync': typeof ApiSaasUsageSyncRoute
   '/api/finance/gateway/unitel/confirm': typeof ApiFinanceGatewayUnitelConfirmRoute
+  '/api/mobile-v4/schools/$schoolId/academic': typeof ApiMobileV4SchoolsSchoolIdAcademicRoute
   '/api/mobile-v4/schools/$schoolId/commands': typeof ApiMobileV4SchoolsSchoolIdCommandsRoute
   '/api/mobile-v4/schools/$schoolId/workspace': typeof ApiMobileV4SchoolsSchoolIdWorkspaceRoute
 }
@@ -972,6 +980,7 @@ export interface FileRoutesByTo {
   '/api/saas/tenants/subscription': typeof ApiSaasTenantsSubscriptionRoute
   '/api/saas/usage/sync': typeof ApiSaasUsageSyncRoute
   '/api/finance/gateway/unitel/confirm': typeof ApiFinanceGatewayUnitelConfirmRoute
+  '/api/mobile-v4/schools/$schoolId/academic': typeof ApiMobileV4SchoolsSchoolIdAcademicRoute
   '/api/mobile-v4/schools/$schoolId/commands': typeof ApiMobileV4SchoolsSchoolIdCommandsRoute
   '/api/mobile-v4/schools/$schoolId/workspace': typeof ApiMobileV4SchoolsSchoolIdWorkspaceRoute
 }
@@ -1092,6 +1101,7 @@ export interface FileRoutesById {
   '/api/saas/tenants/subscription': typeof ApiSaasTenantsSubscriptionRoute
   '/api/saas/usage/sync': typeof ApiSaasUsageSyncRoute
   '/api/finance/gateway/unitel/confirm': typeof ApiFinanceGatewayUnitelConfirmRoute
+  '/api/mobile-v4/schools/$schoolId/academic': typeof ApiMobileV4SchoolsSchoolIdAcademicRoute
   '/api/mobile-v4/schools/$schoolId/commands': typeof ApiMobileV4SchoolsSchoolIdCommandsRoute
   '/api/mobile-v4/schools/$schoolId/workspace': typeof ApiMobileV4SchoolsSchoolIdWorkspaceRoute
 }
@@ -1213,6 +1223,7 @@ export interface FileRouteTypes {
     | '/api/saas/tenants/subscription'
     | '/api/saas/usage/sync'
     | '/api/finance/gateway/unitel/confirm'
+    | '/api/mobile-v4/schools/$schoolId/academic'
     | '/api/mobile-v4/schools/$schoolId/commands'
     | '/api/mobile-v4/schools/$schoolId/workspace'
   fileRoutesByTo: FileRoutesByTo
@@ -1332,6 +1343,7 @@ export interface FileRouteTypes {
     | '/api/saas/tenants/subscription'
     | '/api/saas/usage/sync'
     | '/api/finance/gateway/unitel/confirm'
+    | '/api/mobile-v4/schools/$schoolId/academic'
     | '/api/mobile-v4/schools/$schoolId/commands'
     | '/api/mobile-v4/schools/$schoolId/workspace'
   id:
@@ -1451,6 +1463,7 @@ export interface FileRouteTypes {
     | '/api/saas/tenants/subscription'
     | '/api/saas/usage/sync'
     | '/api/finance/gateway/unitel/confirm'
+    | '/api/mobile-v4/schools/$schoolId/academic'
     | '/api/mobile-v4/schools/$schoolId/commands'
     | '/api/mobile-v4/schools/$schoolId/workspace'
   fileRoutesById: FileRoutesById
@@ -1537,6 +1550,7 @@ export interface RootRouteChildren {
   ApiSaasSiteShowcaseRoute: typeof ApiSaasSiteShowcaseRoute
   ApiSaasUsageSyncRoute: typeof ApiSaasUsageSyncRoute
   ApiFinanceGatewayUnitelConfirmRoute: typeof ApiFinanceGatewayUnitelConfirmRoute
+  ApiMobileV4SchoolsSchoolIdAcademicRoute: typeof ApiMobileV4SchoolsSchoolIdAcademicRoute
   ApiMobileV4SchoolsSchoolIdCommandsRoute: typeof ApiMobileV4SchoolsSchoolIdCommandsRoute
   ApiMobileV4SchoolsSchoolIdWorkspaceRoute: typeof ApiMobileV4SchoolsSchoolIdWorkspaceRoute
 }
@@ -2348,6 +2362,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiFinanceGatewayUnitelConfirmRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/mobile-v4/schools/$schoolId/academic': {
+      id: '/api/mobile-v4/schools/$schoolId/academic'
+      path: '/api/mobile-v4/schools/$schoolId/academic'
+      fullPath: '/api/mobile-v4/schools/$schoolId/academic'
+      preLoaderRoute: typeof ApiMobileV4SchoolsSchoolIdAcademicRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/mobile-v4/schools/$schoolId/commands': {
       id: '/api/mobile-v4/schools/$schoolId/commands'
       path: '/api/mobile-v4/schools/$schoolId/commands'
@@ -2636,6 +2657,8 @@ const rootRouteChildren: RootRouteChildren = {
   ApiSaasSiteShowcaseRoute: ApiSaasSiteShowcaseRoute,
   ApiSaasUsageSyncRoute: ApiSaasUsageSyncRoute,
   ApiFinanceGatewayUnitelConfirmRoute: ApiFinanceGatewayUnitelConfirmRoute,
+  ApiMobileV4SchoolsSchoolIdAcademicRoute:
+    ApiMobileV4SchoolsSchoolIdAcademicRoute,
   ApiMobileV4SchoolsSchoolIdCommandsRoute:
     ApiMobileV4SchoolsSchoolIdCommandsRoute,
   ApiMobileV4SchoolsSchoolIdWorkspaceRoute:
