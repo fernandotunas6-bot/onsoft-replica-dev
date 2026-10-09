@@ -96,10 +96,9 @@ export function createSigaChatAdapter(me: { id: string; name: string }) {
     },
 
     subscribe(handlers: ChatAdapterHandlers) {
-      const subscribedChannel = supabase
-        .channel(`siga-chat:${crypto.randomUUID()}`, {
-          config: { presence: { key: me.id } },
-        });
+      const subscribedChannel = supabase.channel(`siga-chat:${crypto.randomUUID()}`, {
+        config: { presence: { key: me.id } },
+      });
       channel = subscribedChannel;
 
       subscribedChannel
