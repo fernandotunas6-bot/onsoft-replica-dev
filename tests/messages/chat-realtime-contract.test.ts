@@ -2,10 +2,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
-const source = readFileSync(
-  join(process.cwd(), "src/features/messages/chat-adapter.ts"),
-  "utf8",
-);
+const source = readFileSync(join(process.cwd(), "src/features/messages/chat-adapter.ts"), "utf8");
 const subscription = source.slice(
   source.indexOf("subscribe(handlers"),
   source.indexOf("\n    },\n  };"),
