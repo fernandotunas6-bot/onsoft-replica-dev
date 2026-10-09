@@ -298,8 +298,8 @@ function AuthenticatedAppShell({ children }: { children: ReactNode }) {
           />
 
           <header className="sticky top-0 z-30 hidden h-14 items-center gap-2.5 border-b border-border/70 bg-background/95 backdrop-blur-xs px-3.5 md:flex md:px-5">
-            {/* Tablet: sem barra lateral fixa e sem hub — o hambúrguer dá
-                acesso à árvore completa. No telemóvel esse papel é do "Mais". */}
+            {/* Tablet usa este cabeçalho e mantém a navegação inferior.
+                O hambúrguer também dá acesso à árvore completa da sidebar. */}
             <Button
               variant="ghost"
               size="icon"

@@ -54,14 +54,14 @@ export function MobileHeader({
   };
 
   return (
-    <header className="sticky top-0 z-[30] border-b border-border bg-background/95 backdrop-blur-sm lg:hidden">
-      <div className="flex h-14 items-center gap-2 px-3">
+    <header className="sticky top-0 z-[30] border-b border-border bg-background/95 backdrop-blur-sm md:hidden">
+      <div className="flex min-h-[56px] items-center gap-2 px-3">
         {isRoot ? (
           <>
             <button
               type="button"
               onClick={onOpenContext}
-              className="flex min-w-0 flex-1 items-center gap-1.5 rounded-lg py-1 pl-1 pr-2 text-left active:bg-secondary"
+              className="flex min-h-[44px] min-w-0 flex-1 items-center gap-1.5 rounded-lg py-1 pl-1 pr-2 text-left active:bg-secondary"
             >
               <span className="min-w-0">
                 <span className="block truncate text-sm font-medium text-foreground">
