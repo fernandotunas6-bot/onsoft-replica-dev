@@ -34,7 +34,9 @@ export const getRouter = () => {
     defaultPreload: "intent",
     defaultPreloadDelay: 0,
     defaultPreloadStaleTime: 60_000,
-    defaultErrorComponent: ({ error, reset }) => <RouteErrorScreen error={error} reset={reset} />,
+    defaultErrorComponent: ({ error, reset }) => (
+      <RouteErrorScreen error={error as Error} reset={reset} />
+    ),
   });
 
   return router;
