@@ -44,6 +44,18 @@ jobs:
         run: npm run build
       - name: Verify PWA
         run: npm run check:pwa
+      - name: Generate formatting diagnostics
+        if: steps.formatting.outcome != 'success'
+        run: |
+          npx prettier --write src tests scripts index.html vite.config.ts tsconfig.json package.json public/manifest.webmanifest docs README.md
+          git diff -- mobile-v4 > mobile-v4-formatting.patch
+      - name: Upload formatting diagnostics
+        if: steps.formatting.outcome != 'success'
+        uses: actions/upload-artifact@v4
+        with:
+          name: mobile-v4-formatting-patch
+          path: mobile-v4/mobile-v4-formatting.patch
+          retention-days: 7
       - name: Enforce formatting gate
         if: steps.formatting.outcome != 'success'
         run: |
