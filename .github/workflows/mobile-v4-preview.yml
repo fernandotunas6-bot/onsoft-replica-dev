@@ -1,0 +1,51 @@
+name: Mobile V4 — validate and package preview
+
+on:
+  pull_request:
+    paths:
+      - 'mobile-v4/**'
+      - '.github/workflows/mobile-v4-preview.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: mobile-v4-preview-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  mobile-v4:
+    name: Test and build isolated Mobile V4
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: mobile-v4
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: mobile-v4/package-lock.json
+      - name: Install locked dependencies
+        run: npm ci
+      - name: Check types
+        run: npm run typecheck
+      - name: Lint
+        run: npm run lint
+      - name: Check formatting
+        run: npm run format:check
+      - name: Run tests
+        run: npm test
+      - name: Build PWA
+        run: npm run build
+      - name: Verify PWA
+        run: npm run check:pwa
+      - name: Package isolated preview
+        uses: actions/upload-artifact@v4
+        with:
+          name: siga-mobile-v4-preview
+          path: mobile-v4/dist/
+          if-no-files-found: error
+          retention-days: 14
