@@ -68,7 +68,9 @@ export class ApiGateway implements Gateway {
       !Array.isArray(data.memberships) ||
       data.memberships.some(
         (m: Record<string, unknown>) =>
-          !m || typeof m !== "object" || Array.isArray(m) ||
+          !m ||
+          typeof m !== "object" ||
+          Array.isArray(m) ||
           typeof m.schoolId !== "string" ||
           !m.schoolId.trim() ||
           typeof m.schoolName !== "string" ||
@@ -82,8 +84,7 @@ export class ApiGateway implements Gateway {
               m.schoolLogoUrl.startsWith("//"))) ||
           m.roles.some((role: unknown) => role !== "professor" && role !== "aluno") ||
           m.permissions.some(
-            (permission: unknown) =>
-              !allowedPermissions.includes(permission as Permission),
+            (permission: unknown) => !allowedPermissions.includes(permission as Permission),
           ),
       )
     )
@@ -110,8 +111,7 @@ export class ApiGateway implements Gateway {
       "announcements",
       "documents",
     ] as const;
-    if (data.schoolId !== ctx.schoolId)
-      throw new Error("Resposta pertence a outra escola.");
+    if (data.schoolId !== ctx.schoolId) throw new Error("Resposta pertence a outra escola.");
     if (arrays.some((field) => !Array.isArray(data[field])))
       throw new Error("Contrato académico inválido.");
     if (data.sigaDirectThreads !== undefined && data.sigaDirectThreads !== null) {
