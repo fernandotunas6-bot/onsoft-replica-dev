@@ -1212,3 +1212,59 @@ h6,
     animation: none;
   }
 }
+
+
+/* Microinteracções CSS: só o glifo se move; os alvos de toque mantêm-se fixos.
+ * Sem timers ou animações decorativas contínuas. Ícones de carregamento
+ * conservam a sua rotação e os controlos indisponíveis não dão feedback.
+ */
+@media (prefers-reduced-motion: no-preference) {
+  .siga-motion-control:not(:disabled):not([aria-disabled="true"]):not([aria-busy="true"]) > svg:not(.animate-spin),
+  [data-nav-row] [data-nav-icon] > svg,
+  .siga-motion-nav svg,
+  .header-icon-btn:not(:disabled):not([aria-disabled="true"]) > svg:not(.animate-spin) {
+    transition: transform var(--siga-motion-fast) var(--siga-ease);
+    transform-origin: center;
+  }
+
+  /* Teclado e toque recebem o mesmo feedback, sem alterar o foco. */
+  .siga-motion-control:not(:disabled):not([aria-disabled="true"]):not([aria-busy="true"]):is(:focus-visible, :active) > svg:not(.animate-spin),
+  [data-nav-row]:is(:focus-visible, :active) [data-nav-icon] > svg,
+  .siga-motion-nav:is(:focus-visible, :active) svg,
+  .header-icon-btn:not(:disabled):not([aria-disabled="true"]):is(:focus-visible, :active) > svg:not(.animate-spin) {
+    transform: scale(1.08);
+  }
+
+  .siga-check-indicator[data-state="checked"] {
+    animation: siga-check-enter var(--siga-motion-fast) var(--siga-ease);
+  }
+
+  /* Hover apenas para rato/trackpad; evita estados presos no telemóvel. */
+  @media (hover: hover) and (pointer: fine) {
+    .siga-motion-control:not(:disabled):not([aria-disabled="true"]):not([aria-busy="true"]):hover > svg:not(.animate-spin),
+    [data-nav-row]:hover [data-nav-icon] > svg,
+    .siga-motion-nav:hover svg,
+    .header-icon-btn:not(:disabled):not([aria-disabled="true"]):hover > svg:not(.animate-spin) {
+      transform: scale(1.08);
+    }
+
+    .siga-motion-control:not(:disabled):not([aria-disabled="true"]):not([aria-busy="true"]):hover > .lucide-download {
+      transform: translateY(2px);
+    }
+
+    .siga-motion-control:not(:disabled):not([aria-disabled="true"]):not([aria-busy="true"]):hover > .lucide-upload {
+      transform: translateY(-2px);
+    }
+
+    .siga-motion-control:not(:disabled):not([aria-disabled="true"]):not([aria-busy="true"]):hover > :is(.lucide-settings, .lucide-refresh-cw),
+    [data-nav-row]:hover [data-nav-icon] > .lucide-settings,
+    .header-icon-btn:not(:disabled):not([aria-disabled="true"]):hover > .lucide-settings {
+      transform: rotate(12deg);
+    }
+  }
+}
+
+@keyframes siga-check-enter {
+  from { opacity: 0; transform: scale(0.8); }
+  to { opacity: 1; transform: scale(1); }
+}
