@@ -58,6 +58,7 @@ export function App({ initialGateway }: { initialGateway?: Gateway }) {
   }, []);
   const [theme, setTheme] = useState(() => localStorage.getItem("siga-mobile-theme") || "Sistema");
   const [bg, setBg] = useState(() => Number(localStorage.getItem("siga-mobile-bg")) || 0);
+  const [compact, setCompact] = useState(() => localStorage.getItem("siga-mobile-compact") === "true");
   const [systemDark, setSystemDark] = useState(false);
   const [online, setOnline] = useState(navigator.onLine);
   const [prompt, setPrompt] = useState("");
@@ -161,7 +162,8 @@ export function App({ initialGateway }: { initialGateway?: Gateway }) {
   useEffect(() => {
     localStorage.setItem("siga-mobile-theme", theme);
     localStorage.setItem("siga-mobile-bg", String(bg));
-  }, [theme, bg]);
+    localStorage.setItem("siga-mobile-compact", String(compact));
+  }, [theme, bg, compact]);
   function selectSchool(id: string) {
     setData(null);
     setProjects([]);
@@ -296,7 +298,7 @@ export function App({ initialGateway }: { initialGateway?: Gateway }) {
   return (
     <div
       id="app"
-      className={(bg === 0 ? "gradient" : bg === 1 ? "bg-one" : "bg-two") + (dark ? " dark" : "")}
+      className={(bg === 0 ? "gradient" : bg === 1 ? "bg-one" : "bg-two") + (dark ? " dark" : "") + (compact ? " compact" : "")}
     >
       <header className={page ? "top service-top" : "top"} inert={!!sheet}>
         {page ? (
@@ -826,6 +828,12 @@ export function App({ initialGateway }: { initialGateway?: Gateway }) {
               {row("Escola seleccionada: " + schoolName, "school", () => setSheet("workspace"))}
               {row("Aparência", "moon", () => setSheet("appearance"))}
               {row("Conectores", "plug", () => setSheet("connectors"))}
+              <div className="card">
+                <label className="setting-toggle">
+                  <span><b>Vista compacta</b><span className="muted">Menos espaços e painéis mais discretos.</span></span>
+                  <input type="checkbox" checked={compact} onChange={(e) => setCompact(e.target.checked)} />
+                </label>
+              </div>
               <div className="card">
                 Mobile V4 · aplicação isolada. As definições institucionais continuam no SIGA Plus.
               </div>
