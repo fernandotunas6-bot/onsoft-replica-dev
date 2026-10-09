@@ -97,6 +97,64 @@ describe("BBB tenant isolation matrix", () => {
     expect(canAccessVirtualClassroom("join", context)).toBe(false);
   });
 
+  it("denies access without an active membership", () => {
+    const context = makeContext();
+    context.membership!.active = false;
+    expect(canAccessVirtualClassroom("start", context)).toBe(false);
+  });
+
+  it("denies a teacher whose assignment is inactive", () => {
+    const context = makeContext();
+    context.teacherAssignment!.active = false;
+    expect(canAccessVirtualClassroom("start", context)).toBe(false);
+  });
+
+  it("denies a teacher assigned to a different school", () => {
+    const context = makeContext();
+    context.teacherAssignment!.schoolId = "school-b";
+    expect(canAccessVirtualClassroom("start", context)).toBe(false);
+  });
+
+  it("allows an enrolled student to join a live session, but never start it", () => {
+    const context = makeContext();
+    context.authenticatedUserId = "student-a";
+    context.membership = {
+      userId: "student-a",
+      schoolId: "school-a",
+      role: "student",
+      active: true,
+    };
+    context.enrollment = {
+      studentUserId: "student-a",
+      schoolId: "school-a",
+      active: true,
+    };
+    context.session.status = "live";
+    expect(canAccessVirtualClassroom("join", context)).toBe(true);
+    expect(canAccessVirtualClassroom("start", context)).toBe(false);
+    expect(canAccessVirtualClassroom("end", context)).toBe(false);
+  });
+
+  it("requires explicit publication before a student can view recordings", () => {
+    const context = makeContext();
+    context.authenticatedUserId = "student-a";
+    context.membership = {
+      userId: "student-a",
+      schoolId: "school-a",
+      role: "student",
+      active: true,
+    };
+    context.enrollment = {
+      studentUserId: "student-a",
+      schoolId: "school-a",
+      active: true,
+    };
+    context.session.status = "ended";
+    expect(canAccessVirtualClassroom("recordings", context)).toBe(false);
+    context.recordingsPublished = true;
+    expect(canAccessVirtualClassroom("recordings", context)).toBe(true);
+  });
+
   it("denies any action for a cancelled session", () => {
     const context = makeContext();
     context.session.status = "cancelled";
