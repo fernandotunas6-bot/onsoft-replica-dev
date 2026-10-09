@@ -62,9 +62,11 @@ export class ApiGateway implements Gateway {
       !Array.isArray(data.memberships) ||
       data.memberships.some(
         (m: Record<string, unknown>) =>
-          !m || typeof m !== "object" ||
+          !m || typeof m !== "object" || Array.isArray(m) ||
           typeof m.schoolId !== "string" ||
+          !m.schoolId.trim() ||
           typeof m.schoolName !== "string" ||
+          !m.schoolName.trim() ||
           typeof m.active !== "boolean" ||
           !Array.isArray(m.roles) ||
           !Array.isArray(m.permissions) ||
