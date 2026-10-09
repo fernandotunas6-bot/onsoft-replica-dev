@@ -106,7 +106,8 @@ it("rejects unrecognised membership roles in API session", async () => {
 });
 
 it("rejects incomplete academic workspace responses", async () => {
-  const fetch = vi.fn()
+  const fetch = vi
+    .fn()
     .mockResolvedValueOnce({ ok: true, status: 200, json: async () => demoSession("professor") })
     .mockResolvedValueOnce({ ok: true, status: 200, json: async () => ({ schoolId: ctx.schoolId, classes: [] }) });
   vi.stubGlobal("fetch", fetch);
@@ -147,7 +148,5 @@ it("rejects an institutional session without a user name", async () => {
     status: 200,
     json: async () => session,
   }));
-  await expect(new ApiGateway().session()).rejects.toThrow(
-    "Contrato de sessão inválido",
-  );
+  await expect(new ApiGateway().session()).rejects.toThrow("Contrato de sessão inválido");
 });
