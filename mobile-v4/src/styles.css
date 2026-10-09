@@ -1412,3 +1412,57 @@ select:focus-visible {
 .dark .year-labels {
   color: #ccc;
 }
+
+
+/* Mobile V4 visual refinement: neutral surfaces, restrained motion, accessible focus. */
+:root {
+  color-scheme: light;
+  --v4-surface: #ffffff;
+  --v4-ink: #171b25;
+  --v4-border: rgba(29, 39, 57, .10);
+  --v4-shadow: 0 10px 34px rgba(27, 39, 60, .055);
+}
+#app.gradient {
+  background: radial-gradient(ellipse at 85% 5%, rgba(113, 143, 209, .075), transparent 46%), #f8f9fb;
+}
+#app .top { align-items: center; }
+#app .workspace,
+#app .profile,
+#app .round,
+#app .choice,
+#app .sheet {
+  border-color: var(--v4-border);
+  box-shadow: var(--v4-shadow);
+}
+#app .nav {
+  background: rgba(255,255,255,.94);
+  border-color: var(--v4-border);
+  box-shadow: 0 12px 40px rgba(25,34,51,.10);
+}
+#app .nav button.active { background: #eef1f7; }
+#app button,
+#app a,
+#app input,
+#app textarea,
+#app select { -webkit-tap-highlight-color: transparent; }
+#app :is(button,a,input,textarea,select):focus-visible {
+  outline: 3px solid #3977c5;
+  outline-offset: 3px;
+}
+#app button:not(:disabled) { transition: background-color .16s ease, border-color .16s ease, box-shadow .16s ease; }
+#app button:disabled { cursor: not-allowed; opacity: .55; }
+#app .menurow:hover { background: rgba(30, 46, 72, .045); }
+#app .muted { color: #626b79; }
+@media (max-width: 420px) {
+  #app .content { padding-left: 16px; padding-right: 16px; }
+  #app .top { padding-left: 16px; padding-right: 16px; }
+  #app h1 { font-size: clamp(28px, 8vw, 36px); letter-spacing: -.035em; }
+  #app .nav { width: calc(100% - 28px); max-width: 440px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  #app *, #app *::before, #app *::after {
+    animation-duration: .01ms !important;
+    transition-duration: .01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
