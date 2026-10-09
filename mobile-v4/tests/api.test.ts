@@ -127,7 +127,8 @@ it("rejects incomplete academic workspace responses", async () => {
 });
 
 it("rejects malformed imported chat thread collections", async () => {
-  const fetch = vi.fn()
+  const fetch = vi
+    .fn()
     .mockResolvedValueOnce({ ok: true, status: 200, json: async () => demoSession("professor") })
     .mockResolvedValueOnce({
       ok: true,
