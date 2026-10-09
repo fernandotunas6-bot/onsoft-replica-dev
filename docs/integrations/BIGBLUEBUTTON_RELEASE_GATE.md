@@ -30,3 +30,25 @@ Esta PR continua draft. Os componentes não estão montados nas páginas existen
 - As credenciais BBB devem ser configuradas apenas no runtime que efectivamente chama a API BBB, com rotação e sem registo em logs ou resposta HTTP.
 - Validar concorrência e transições atómicas `scheduled → live → ended`, incluindo repetição de pedidos e falha da API BBB.
 - Actualizar o texto da PR, obter revisão de segurança, executar testes e ensaio em staging antes de remover o estado draft.
+
+## Preparação do deploy isolado — 09/10/2026
+
+### Destino e segurança
+- **Produção SIGA Plus (projecto `xodgfmxiaunpamctfeea`) é proibida como destino de staging**. Não executar migrações, Edge Functions ou configuração BBB neste projecto.
+- A criação de `SIGA Plus BBB Staging` foi recusada pelo Supabase: limite de dois projectos gratuitos activos.
+- A restauração do projecto secundário `rzqglamkxkcobxjmshic` também foi recusada pelo mesmo limite. A base de dados secundária não foi auditada; não assumir que está vazia.
+- Necessário disponibilizar um projecto Supabase novo e isolado, ou resolver o limite de capacidade sem alterar produção.
+
+### Verificações do GitHub
+- No commit `32eb02c81246b1acf5e8375a7735c61025abac65`, os workflows CI, Academic Import Check e BBB formatting verification foram reportados como `action_required`; nenhuma execução de testes aprovada foi comprovada.
+- Verificar permissões e aprovações do GitHub Actions antes de considerar CI validado.
+
+### Procedimento quando o staging estiver disponível
+1. Confirmar o identificador do projecto de staging e a ausência de dados de terceiros; nunca reutilizar credenciais de produção.
+2. Rever e aplicar a migração `20261008170000_bbb_classroom_metadata.sql` apenas no staging; verificar RLS, FKs e políticas.
+3. Configurar variáveis Supabase próprias do staging e publicar `bbb-classroom` com JWT obrigatório.
+4. Validar autenticação, isolamento entre escolas, listagem, agendamento, permissões e respostas 501 para funcionalidades desactivadas.
+5. Configurar um servidor BBB independente com HTTPS e credenciais exclusivamente server-side, implementar e testar operações de reunião antes de as activar.
+6. Executar CI, testes de integração, smoke tests, concorrência e dispositivos reais; manter a PR draft até aprovação.
+
+**Estado efectivo:** staging não provisionado; deploy não executado; produção preservada. Não anunciar a videoconferência como operacional.
