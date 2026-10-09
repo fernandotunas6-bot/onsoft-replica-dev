@@ -13,6 +13,7 @@ export type ClassroomAuthorization = {
     id: string;
     schoolId: string;
     teacherId: string;
+    classGroupId: string;
     status: "scheduled" | "live" | "ended" | "cancelled";
   };
   membership: {
