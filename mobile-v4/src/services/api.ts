@@ -81,6 +81,11 @@ export class ApiGateway implements Gateway {
       "/schools/" + encodeURIComponent(ctx.schoolId) + "/workspace?role=" + ctx.role,
       signal,
     );
+    if (!data || typeof data !== "object" || Array.isArray(data))
+      throw new Error("Contrato académico inválido.");
+    const arrays = ["classes", "lessons", "grades", "attendance", "tasks", "submissions", "plans", "messages", "announcements", "documents"] as const;
+    if (data.schoolId !== ctx.schoolId || arrays.some((field) => !Array.isArray(data[field])))
+      throw new Error("Contrato académico inválido ou escola não autorizada.");
     if (data.sigaDirectThreads)
       data.messages = importSigaDirectMessages(ctx, data.sigaDirectThreads);
     return scopeWorkspace(data, ctx);
