@@ -14,6 +14,7 @@ const ctx: ClassroomAuthorization = {
     id: "session-a",
     schoolId: "school-a",
     teacherId: "teacher-a",
+    classGroupId: "class-a",
     status: "live",
   },
   membership: {
@@ -43,6 +44,22 @@ describe("BBB trusted service", () => {
         "moderator",
       ),
     ).rejects.toThrow("Moderator access denied");
+  });
+
+  it("rejects a class group different from the verified session", async () => {
+    const teacherContext: ClassroomAuthorization = {
+      ...ctx,
+      authenticatedUserId: "teacher-user-a",
+      membership: { userId: "teacher-user-a", schoolId: "school-a", role: "teacher", active: true },
+      teacherAssignment: { teacherUserId: "teacher-user-a", teacherId: "teacher-a", schoolId: "school-a", active: true },
+    };
+    await expect(joinVirtualClassroom({
+      context: teacherContext,
+      classGroupId: "class-b",
+      sessionId: "session-a",
+      title: "Matemática",
+      fullName: "Professor",
+    }, "moderator")).rejects.toThrow("Classroom session scope mismatch");
   });
 
   it("rejects cross-school classroom requests", async () => {
