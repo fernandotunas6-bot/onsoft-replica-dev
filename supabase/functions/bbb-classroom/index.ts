@@ -81,8 +81,12 @@ Deno.serve(async (request) => {
     })();
     if (!body || typeof body !== "object" || Array.isArray(body))
       return respond(400, { error: "Invalid request body" }, request);
-    if (typeof body.action !== "string" ||
-        !["list", "schedule", "capabilities", "start", "join", "end", "recordings"].includes(body.action))
+    if (
+      typeof body.action !== "string" ||
+      !["list", "schedule", "capabilities", "start", "join", "end", "recordings"].includes(
+        body.action,
+      )
+    )
       return respond(400, { error: "Unknown classroom action" }, request);
     if (body.action === "list") {
       if (!isUuid(body.schoolId)) return respond(400, { error: "Invalid school" }, request);
