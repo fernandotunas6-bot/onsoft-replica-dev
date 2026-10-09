@@ -8,7 +8,6 @@ const COMMAND_ROLES: Record<string, "professor" | "aluno"> = {
   plan: "professor",
   task: "professor",
   submission: "aluno",
-  message: "professor",
   document: "aluno",
 };
 
@@ -33,7 +32,8 @@ export const executeMobileV4Command = createServerFn({ method: "POST" })
     if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(data.requestId))
       throw new Error("Identificador do pedido inválido.");
     const commandRole = COMMAND_ROLES[data.command?.type];
-    if (!commandRole) throw new Error("Tipo de comando inválido.");
+    if (!commandRole && data.command?.type !== "message")
+      throw new Error("Tipo de comando inválido.");
     if (data.command.type !== "message" && commandRole !== data.role)
       throw new Error("Comando incompatível com o papel académico.");
     await requireMobileAcademicAccess(context.userId, data.schoolId, data.role, "write");
