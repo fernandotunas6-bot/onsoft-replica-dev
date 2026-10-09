@@ -96,8 +96,13 @@ export function createSigaChatAdapter(me: { id: string; name: string }) {
     },
 
     subscribe(handlers: ChatAdapterHandlers) {
-      channel = supabase
-        .channel("siga-chat", { config: { presence: { key: me.id } } })
+      const subscribedChannel = supabase
+        .channel(`siga-chat:${crypto.randomUUID()}`, {
+          config: { presence: { key: me.id } },
+        });
+      channel = subscribedChannel;
+
+      subscribedChannel
         .on(
           "postgres_changes",
           { event: "INSERT", schema: "public", table: "siga_chat_messages" },
@@ -151,15 +156,15 @@ export function createSigaChatAdapter(me: { id: string; name: string }) {
           handlers.onTyping(String(data.conversationId));
         })
         .on("presence", { event: "sync" }, () => {
-          handlers.onPresence(Object.keys(channel?.presenceState() ?? {}));
+          handlers.onPresence(Object.keys(subscribedChannel.presenceState() ?? {}));
         })
         .subscribe((status) => {
-          if (status === "SUBSCRIBED") void channel?.track({ at: Date.now() });
+          if (status === "SUBSCRIBED") void subscribedChannel.track({ at: Date.now() });
         });
 
       return () => {
-        if (channel) void supabase.removeChannel(channel);
-        channel = null;
+        if (channel === subscribedChannel) channel = null;
+        void supabase.removeChannel(subscribedChannel);
       };
     },
   };
