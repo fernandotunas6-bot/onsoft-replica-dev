@@ -75,6 +75,7 @@ describe("BBB tenant isolation matrix", () => {
     context.enrollment = {
       studentUserId: "student-a",
       schoolId: "school-b",
+      classGroupId: "class-a",
       active: true,
     };
     expect(canAccessVirtualClassroom("join", context)).toBe(false);
@@ -93,9 +94,32 @@ describe("BBB tenant isolation matrix", () => {
     context.enrollment = {
       studentUserId: "student-a",
       schoolId: "school-a",
+      classGroupId: "class-a",
       active: false,
     };
     expect(canAccessVirtualClassroom("join", context)).toBe(false);
+  });
+
+  it("denies a student enrolled in another class of the same school", () => {
+    const context = makeContext();
+    context.authenticatedUserId = "student-a";
+    context.membership = {
+      userId: "student-a",
+      schoolId: "school-a",
+      role: "student",
+      active: true,
+    };
+    context.enrollment = {
+      studentUserId: "student-a",
+      schoolId: "school-a",
+      classGroupId: "class-b",
+      active: true,
+    };
+    context.session.status = "live";
+    expect(canAccessVirtualClassroom("join", context)).toBe(false);
+    context.session.status = "ended";
+    context.recordingsPublished = true;
+    expect(canAccessVirtualClassroom("recordings", context)).toBe(false);
   });
 
   it("denies access without an active membership", () => {
@@ -128,6 +152,7 @@ describe("BBB tenant isolation matrix", () => {
     context.enrollment = {
       studentUserId: "student-a",
       schoolId: "school-a",
+      classGroupId: "class-a",
       active: true,
     };
     context.session.status = "live";
@@ -148,6 +173,7 @@ describe("BBB tenant isolation matrix", () => {
     context.enrollment = {
       studentUserId: "student-a",
       schoolId: "school-a",
+      classGroupId: "class-a",
       active: true,
     };
     context.session.status = "ended";
