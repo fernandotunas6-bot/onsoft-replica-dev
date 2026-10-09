@@ -26,6 +26,7 @@ const ctx: ClassroomAuthorization = {
   enrollment: {
     studentUserId: "student-a",
     schoolId: "school-a",
+    classGroupId: "class-a",
     active: true,
   },
 };
