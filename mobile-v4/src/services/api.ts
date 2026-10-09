@@ -2,8 +2,13 @@ import type { Gateway, Session, Context, Workspace, Command, Permission } from "
 import { authorize, scopeWorkspace, required } from "../domain/policy";
 import { importSigaDirectMessages } from "./chat-import";
 const allowedPermissions: readonly Permission[] = [
-  "academic.read", "attendance.write", "grades.write", "tasks.write",
-  "submissions.write", "messages.write", "documents.request",
+  "academic.read",
+  "attendance.write",
+  "grades.write",
+  "tasks.write",
+  "submissions.write",
+  "messages.write",
+  "documents.request",
 ];
 export class ApiError extends Error {
   constructor(
@@ -75,7 +80,10 @@ export class ApiGateway implements Gateway {
               !m.schoolLogoUrl.startsWith("/") ||
               m.schoolLogoUrl.startsWith("//"))) ||
           m.roles.some((role: unknown) => role !== "professor" && role !== "aluno") ||
-          m.permissions.some((permission: unknown) => !allowedPermissions.includes(permission as Permission)),
+          m.permissions.some(
+            (permission: unknown) =>
+              !allowedPermissions.includes(permission as Permission),
+          ),
       )
     )
       throw new Error("Contrato de sessão inválido.");
@@ -89,7 +97,18 @@ export class ApiGateway implements Gateway {
     );
     if (!data || typeof data !== "object" || Array.isArray(data))
       throw new Error("Contrato académico inválido.");
-    const arrays = ["classes", "lessons", "grades", "attendance", "tasks", "submissions", "plans", "messages", "announcements", "documents"] as const;
+    const arrays = [
+      "classes",
+      "lessons",
+      "grades",
+      "attendance",
+      "tasks",
+      "submissions",
+      "plans",
+      "messages",
+      "announcements",
+      "documents",
+    ] as const;
     if (data.schoolId !== ctx.schoolId)
       throw new Error("Resposta pertence a outra escola.");
     if (arrays.some((field) => !Array.isArray(data[field])))
