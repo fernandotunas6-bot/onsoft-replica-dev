@@ -25,6 +25,7 @@ export type ClassroomAuthorization = {
   enrollment?: {
     studentUserId: string;
     schoolId: string;
+    classGroupId: string;
     active: boolean;
   } | null;
   teacherAssignment?: {
@@ -64,6 +65,7 @@ export function canAccessVirtualClassroom(
     membership.role === "student" &&
     enrollment?.active === true &&
     enrollment.schoolId === activeSchoolId &&
+    enrollment.classGroupId === session.classGroupId &&
     enrollment.studentUserId === authenticatedUserId;
 
   switch (action) {
