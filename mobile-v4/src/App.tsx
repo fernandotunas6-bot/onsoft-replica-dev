@@ -1014,7 +1014,15 @@ export function App({ initialGateway }: { initialGateway?: Gateway }) {
                   ? session?.name || "Sem sessão"
                   : sheet === "request"
                     ? "O pedido de vínculo institucional será ligado ao fluxo de aprovação da secretaria."
-                    : "Esta área preserva o painel original e aguarda integração com o serviço correspondente."}
+                    : sheet === "profile-detail"
+                      ? "Consulta o teu perfil e os vínculos escolares activos na área de conta."
+                      : sheet === "support"
+                        ? "Para obter apoio, contacta a secretaria da escola seleccionada. Indica o serviço e a hora do problema, sem partilhar palavras-passe."
+                        : sheet === "docs"
+                          ? "Começa por seleccionar a escola e o papel. Em Meu dia podes consultar aulas, tarefas, presenças e mensagens disponíveis."
+                          : sheet === "community"
+                            ? "A comunicação escolar está disponível na área Mensagens, respeitando os vínculos e permissões."
+                            : "Este serviço depende da activação institucional no SIGA Plus."}
               </p>
               <p className="muted">Sem alterações na produção.</p>
             </div>
