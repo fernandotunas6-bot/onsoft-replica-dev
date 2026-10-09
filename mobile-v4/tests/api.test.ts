@@ -114,3 +114,16 @@ it("rejects incomplete academic workspace responses", async () => {
   await api.session();
   await expect(api.workspace(ctx)).rejects.toThrow("Contrato académico inválido");
 });
+
+it("rejects malformed imported chat thread collections", async () => {
+  const fetch = vi.fn()
+    .mockResolvedValueOnce({ ok: true, status: 200, json: async () => demoSession("professor") })
+    .mockResolvedValueOnce({ ok: true, status: 200, json: async () => ({
+      ...seed(ctx.schoolId),
+      sigaDirectThreads: { invalid: true },
+    }) });
+  vi.stubGlobal("fetch", fetch);
+  const api = new ApiGateway();
+  await api.session();
+  await expect(api.workspace(ctx)).rejects.toThrow("Contrato de mensagens inválido");
+});
