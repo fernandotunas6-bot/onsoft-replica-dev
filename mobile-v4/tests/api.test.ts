@@ -127,3 +127,15 @@ it("rejects malformed imported chat thread collections", async () => {
   await api.session();
   await expect(api.workspace(ctx)).rejects.toThrow("Contrato de mensagens inválido");
 });
+
+it("rejects unknown permission strings from the institutional session", async () => {
+  const session = demoSession("professor");
+  const invalid = {
+    ...session,
+    memberships: [{ ...session.memberships[0], permissions: ["academic.read", "admin.all"] }],
+  };
+  vi.stubGlobal("fetch", vi.fn().mockResolvedValue({
+    ok: true, status: 200, json: async () => invalid,
+  }));
+  await expect(new ApiGateway().session()).rejects.toThrow("Contrato de sessão inválido");
+});
