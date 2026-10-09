@@ -34,7 +34,13 @@ export class ApiGateway implements Gateway {
         response.status,
         response.status === 401
           ? "Sessão expirada."
-          : "Não foi possível concluir a operação (" + response.status + ").",
+          : response.status === 403
+            ? "Sem autorização para esta escola ou operação."
+            : response.status === 409
+              ? "Os dados foram alterados. Actualize antes de voltar a guardar."
+              : response.status === 422
+                ? "Os dados enviados não passaram na validação institucional."
+                : "Não foi possível concluir a operação (" + response.status + ").",
       );
     }
     return response.status === 204 ? null : response.json();
