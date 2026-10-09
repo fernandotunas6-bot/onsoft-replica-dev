@@ -10,7 +10,7 @@ const makeContext = (): ClassroomAuthorization => ({
   session: {
     id: "session-a",
     schoolId: "school-a",
-    teacherId: "teacher-a",
+    teacherId: "teacher-record-a",
     status: "scheduled",
   },
   membership: {
@@ -21,6 +21,7 @@ const makeContext = (): ClassroomAuthorization => ({
   },
   teacherAssignment: {
     teacherUserId: "teacher-a",
+    teacherId: "teacher-record-a",
     schoolId: "school-a",
     active: true,
   },
@@ -41,6 +42,17 @@ describe("BBB tenant isolation matrix", () => {
     const context = makeContext();
     context.membership!.schoolId = "school-b";
     expect(canAccessVirtualClassroom("create", context)).toBe(false);
+  });
+
+  it("allows assigned teacher when teacher record ID differs from auth user ID", () => {
+    const context = makeContext();
+    expect(canAccessVirtualClassroom("create", context)).toBe(true);
+  });
+
+  it("denies teacher with unrelated record ID", () => {
+    const context = makeContext();
+    context.teacherAssignment!.teacherId = "teacher-record-b";
+    expect(canAccessVirtualClassroom("start", context)).toBe(false);
   });
 
   it("denies teacher with unrelated assignment", () => {
