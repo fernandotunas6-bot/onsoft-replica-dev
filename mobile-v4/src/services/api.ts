@@ -1,5 +1,5 @@
 import type { Gateway, Session, Context, Workspace, Command, Permission } from "../domain/model";
-import { authorize, scopeWorkspace, required } from "../domain/policy";
+import { authorize, scopeWorkspace, required, validateCommand } from "../domain/policy";
 import { importSigaDirectMessages } from "./chat-import";
 const allowedPermissions: readonly Permission[] = [
   "academic.read",
@@ -21,6 +21,10 @@ export class ApiError extends Error {
 // Proposed API contract. No production endpoint is enabled by this module.
 export class ApiGateway implements Gateway {
   private current: Session | null = null;
+  private workspaceCache = new Map<string, Workspace>();
+  private key(ctx: Context) {
+    return `${ctx.userId}:${ctx.schoolId}:${ctx.role}`;
+  }
   constructor(private base = "/api/mobile-v4") {
     if (
       !base.startsWith("/") ||
@@ -45,7 +49,10 @@ export class ApiGateway implements Gateway {
       ...(body ? { body: JSON.stringify(body) } : {}),
     });
     if (!response.ok) {
-      if (response.status === 401) this.current = null;
+      if (response.status === 401) {
+        this.current = null;
+        this.workspaceCache.clear();
+      }
       throw new ApiError(
         response.status,
         response.status === 401
@@ -63,6 +70,7 @@ export class ApiGateway implements Gateway {
   }
   async session(signal?: AbortSignal): Promise<Session | null> {
     this.current = null;
+    this.workspaceCache.clear();
     const data = await this.request("/session", signal);
     if (data === null) return null;
     if (
@@ -126,21 +134,29 @@ export class ApiGateway implements Gateway {
         throw new Error("Contrato de mensagens inválido.");
       data.messages = importSigaDirectMessages(ctx, data.sigaDirectThreads);
     }
-    return scopeWorkspace(data, ctx);
+    const scoped = scopeWorkspace(data, ctx);
+    this.workspaceCache.set(this.key(ctx), scoped);
+    return scoped;
   }
   async execute(ctx: Context, command: Command, signal?: AbortSignal) {
     authorize(this.current, ctx, required[command.type]);
+    const workspace = this.workspaceCache.get(this.key(ctx));
+    if (!workspace || !this.current)
+      throw new Error("Actualize os dados da escola antes de efectuar alterações.");
+    validateCommand(this.current, ctx, workspace, command);
     await this.request("/schools/" + encodeURIComponent(ctx.schoolId) + "/commands", signal, {
       role: ctx.role,
       command,
       requestId: crypto.randomUUID(),
     });
+    this.workspaceCache.delete(this.key(ctx));
   }
   async signOut() {
     try {
       await this.request("/logout", undefined, {});
     } finally {
       this.current = null;
+      this.workspaceCache.clear();
     }
   }
 }
