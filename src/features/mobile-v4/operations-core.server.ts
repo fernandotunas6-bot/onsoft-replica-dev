@@ -1,12 +1,14 @@
 import { requireMobileAcademicAccess } from "./authorization";
 import { MobileApiError } from "./errors";
 import { mobileCommandRequestSchema, mobileScopeSchema } from "./schemas";
+import { resolveMobileAcademicScope } from "./academic-scope.server";
 
 // Until the academic projection and atomic persistence are validated against
 // an isolated database, these routes must never report success or fake data.
 export async function loadMobileV4Workspace(userId: string, input: unknown) {
   const scope = mobileScopeSchema.parse(input);
-  await requireMobileAcademicAccess(userId, scope.schoolId, scope.role, "read");
+  const { db } = await requireMobileAcademicAccess(userId, scope.schoolId, scope.role, "read");
+  await resolveMobileAcademicScope(db, userId, scope.schoolId, scope.role);
   throw new MobileApiError(503, "WORKSPACE_NOT_READY");
 }
 

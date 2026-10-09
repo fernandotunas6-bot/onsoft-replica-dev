@@ -4,15 +4,22 @@ const mocks = vi.hoisted(() => ({
   load: vi.fn(),
   list: vi.fn(),
   grant: vi.fn(),
+  scope: vi.fn(),
 }));
 vi.mock("@/integrations/supabase/sga-admin", () => ({
   loadSgaAdminClient: mocks.load,
   assertModuleNotBlocked: mocks.grant,
 }));
 vi.mock("@/integrations/supabase/sga", () => ({ listUserSchoolMemberships: mocks.list }));
+vi.mock("@/features/mobile-v4/academic-scope.server", () => ({
+  resolveMobileAcademicScope: mocks.scope,
+}));
 
 import { requireMobileAcademicAccess } from "@/features/mobile-v4/authorization";
-import { applyMobileV4Command } from "@/features/mobile-v4/operations-core.server";
+import {
+  applyMobileV4Command,
+  loadMobileV4Workspace,
+} from "@/features/mobile-v4/operations-core.server";
 import { mapMobileMemberships } from "@/features/mobile-v4/session-core.server";
 
 const a = "11111111-1111-4111-8111-111111111111";
@@ -49,9 +56,39 @@ beforeEach(() => {
     },
   ]);
   mocks.grant.mockResolvedValue(undefined);
+  mocks.scope.mockResolvedValue({ classSubjectIds: [], enrollmentIds: [] });
 });
 
 describe("Mobile tenant and role authorization", () => {
+  it("resolves academic scope only after exact school and role authorization", async () => {
+    await expect(
+      loadMobileV4Workspace("user", { schoolId: b, role: "aluno" }),
+    ).rejects.toMatchObject({
+      status: 503,
+      code: "WORKSPACE_NOT_READY",
+    });
+    expect(mocks.scope).toHaveBeenCalledWith(expect.anything(), "user", b, "aluno");
+    expect(mocks.grant.mock.invocationCallOrder[0]).toBeLessThan(
+      mocks.scope.mock.invocationCallOrder[0],
+    );
+  });
+  it("does not resolve academic records for a forbidden school", async () => {
+    active.data = null;
+    await expect(
+      loadMobileV4Workspace("user", { schoolId: b, role: "aluno" }),
+    ).rejects.toMatchObject({ status: 403 });
+    expect(mocks.scope).not.toHaveBeenCalled();
+  });
+  it("preserves identity denial from the academic resolver", async () => {
+    const { MobileApiError } = await import("@/features/mobile-v4/errors");
+    mocks.scope.mockRejectedValueOnce(new MobileApiError(403, "ACADEMIC_IDENTITY_REQUIRED"));
+    await expect(
+      loadMobileV4Workspace("user", { schoolId: b, role: "aluno" }),
+    ).rejects.toMatchObject({
+      status: 403,
+      code: "ACADEMIC_IDENTITY_REQUIRED",
+    });
+  });
   it("checks the exact requested school, user, active status and role", async () => {
     await requireMobileAcademicAccess("user", b, "aluno");
     expect(filters).toEqual({ user_id: "user", school_id: b, status: "active" });

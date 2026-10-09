@@ -8,13 +8,27 @@ A integração institucional **ainda não está concluída nem activada**. Este 
 
 ## Implementado e verificado localmente
 
+### Continuação com o Sga existente
+
+O utilizador escolheu o projecto Supabase **Sga**, referência `xodgfmxiaunpamctfeea`, que é a base de produção do SIGA. O projecto está `ACTIVE_HEALTHY`. Confirmaram-se tabelas, colunas e restrições de estado com consultas exclusivamente de leitura ao catálogo; não foram consultadas fichas pessoais nem executadas escritas ou migrações.
+
+Foi acrescentada a resolução server-side de âmbito académico, após a autorização de escola/papel:
+
+- Identidade ligada por `people.user_id` ou `teachers.user_id`, com rejeição de vínculos contraditórios, fichas apagadas/inactivas e identidades ambíguas. Não se associa aluno por coincidência de ID nem por e-mail não verificado.
+- Professor: disciplinas activas atribuídas ao docente, nas turmas e anos activos, e respectivas matrículas activas. Direcção de turma, por si só, não concede escrita nas disciplinas de outro docente.
+- Aluno: matrícula própria activa e disciplinas dessa turma. Não inclui matrículas pendentes, de terceiros ou de anos encerrados, nem acumula acesso de outros papéis.
+- Todas as consultas levam filtro explícito de escola. Respostas truncadas pelo limite de linhas do Supabase são recusadas; não são apresentadas como âmbito completo.
+- O endpoint de workspace executa esta resolução, mas continua a devolver `503 WORKSPACE_NOT_READY` até existir a projecção completa. Não foram substituídos dados académicos por listas simuladas.
+
+Este avanço acrescenta **26 testes** de âmbito e ordenação da autorização, com um adaptador controlado de base de dados. O conjunto Mobile backend + protecção de migração RLS tem **61 testes aprovados**; estes testes não equivalem a percursos autenticados reais. TypeScript, ESLint dos ficheiros alterados, Prettier e build raiz passaram. A identidade visual Mobile permanece intacta e o preview publicado mantém a API desligada.
+
 | Área                 | Resultado                                                                                                                                                                                                                                                |
-| -------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
+| -------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | CI                   | Corrigida a formatação que bloqueava o CI raiz; Mobile V4 usa a sua configuração ESLint e workflow próprios. Backend/rotas/testes também desencadeiam o workflow Mobile.                                                                                 |
 | Sessão HTTP          | `GET /api/mobile-v4/session`; Bearer validado por `resolveBearerSession`, que usa `auth.getUser` e a verificação MFA existente. Identidade nunca vem do corpo do cliente.                                                                                |
 | Vínculos             | Leitura estrita de escolas, vínculos e papéis; erro de consulta não é convertido em lista vazia ou nome genérico. A opção estrita é exclusiva dos novos chamadores Mobile, preservando os restantes.                                                     |
 | Autorização          | Vínculo exacto activo na escola pedida, papel académico nessa escola e grants do módulo; papel de uma escola não autoriza outra.                                                                                                                         |
-| Workspace HTTP       | `GET /api/mobile-v4/schools/:schoolId/workspace?role=professor                                                                                                                                                                                           | aluno`; valida âmbito e acesso, depois responde `503 WORKSPACE_NOT_READY`. Projecção académica pendente. |
+| Workspace HTTP       | `GET /api/mobile-v4/schools/:schoolId/workspace`, com papel `professor` ou `aluno`; valida acesso e resolve o âmbito académico real, depois responde `503 WORKSPACE_NOT_READY`. Projecção académica pendente.                                            |
 | Comandos HTTP        | `POST /api/mobile-v4/schools/:schoolId/commands`; exige `aal2`, schema estrito, UUID de idempotência e papel compatível. Após autorização responde `503 COMMANDS_NOT_READY`. Não existe persistência, auditoria ou idempotência transaccional concluída. |
 | Logout HTTP          | `POST /api/mobile-v4/logout` com `{}`; chama `auth.admin.signOut(token, 'local')`. Revoga a sessão de renovação actual. JWTs de acesso já emitidos continuam sujeitos à expiração; não há promessa de revogação imediata desses JWTs.                    |
 | Transporte cliente   | Recebe fornecedor da sessão Supabase existente por injecção; procura token actualizado por pedido e limpa sessão local no logout. Bootstrap institucional recusa activar sem esse fornecedor.                                                            |
@@ -44,7 +58,7 @@ As permissões de escrita deixaram de ser anunciadas na sessão antes de existir
 
 ## Bloqueios e sequência necessária
 
-1. Não há branch Supabase de testes: a listagem devolveu apenas `main`, referência `xodgfmxiaunpamctfeea`, de produção. Não há credenciais Supabase de staging no ambiente local. A ferramenta de criação de branch exige organização indicada pelo utilizador e confirmação explícita do custo antes de criar.
+1. A integração terá como base o **Sga existente**, conforme escolha do utilizador. Não foi criado outro projecto nem uma branch Supabase paga. Não há base Supabase de testes ou credenciais de staging neste ambiente; os ensaios de migração têm de continuar isolados. A escolha do Sga não activa o modo institucional nem autoriza migrações de produção.
 2. Preparar base isolada com esquema actual, duas escolas de teste e contas autorizadas de professor/aluno; não copiar dados pessoais de produção.
 3. Rever o contrato académico: `ClassGroup` Mobile agrega turma e disciplina; `Grade` ainda usa valor único e revisão, enquanto o SIGA tem componentes, diários, estados de pauta e períodos. Definir IDs canónicos e estados de publicação antes da projecção e escrita.
 4. Implementar leitura por atribuição docente e matrícula própria, com notas apenas publicadas para alunos, horário/aulas, presenças docente e discente distintas, tarefas/entregas, calendário e documentos.
