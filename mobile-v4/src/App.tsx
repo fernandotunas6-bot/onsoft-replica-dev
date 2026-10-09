@@ -58,7 +58,9 @@ export function App({ initialGateway }: { initialGateway?: Gateway }) {
   }, []);
   const [theme, setTheme] = useState(() => localStorage.getItem("siga-mobile-theme") || "Sistema");
   const [bg, setBg] = useState(() => Number(localStorage.getItem("siga-mobile-bg")) || 0);
-  const [compact, setCompact] = useState(() => localStorage.getItem("siga-mobile-compact") === "true");
+  const [compact, setCompact] = useState(
+    () => localStorage.getItem("siga-mobile-compact") === "true",
+  );
   const [systemDark, setSystemDark] = useState(false);
   const [online, setOnline] = useState(navigator.onLine);
   const [prompt, setPrompt] = useState("");
@@ -298,7 +300,11 @@ export function App({ initialGateway }: { initialGateway?: Gateway }) {
   return (
     <div
       id="app"
-      className={(bg === 0 ? "gradient" : bg === 1 ? "bg-one" : "bg-two") + (dark ? " dark" : "") + (compact ? " compact" : "")}
+      className={
+        (bg === 0 ? "gradient" : bg === 1 ? "bg-one" : "bg-two") +
+        (dark ? " dark" : "") +
+        (compact ? " compact" : "")
+      }
     >
       <header className={page ? "top service-top" : "top"} inert={!!sheet}>
         {page ? (
@@ -333,7 +339,18 @@ export function App({ initialGateway }: { initialGateway?: Gateway }) {
               onClick={() => setSheet("workspace")}
               aria-label={"Seleccionar escola. Actual: " + schoolName}
             >
-              <span className="avatar">{membership?.schoolLogoUrl?.startsWith("/") ? <img className="school-logo" src={membership.schoolLogoUrl} alt="" loading="lazy" /> : "S"}</span>
+              <span className="avatar">
+                {membership?.schoolLogoUrl?.startsWith("/") ? (
+                  <img
+                    className="school-logo"
+                    src={membership.schoolLogoUrl}
+                    alt=""
+                    loading="lazy"
+                  />
+                ) : (
+                  "S"
+                )}
+              </span>
               {schoolName}
               <Icon name="chevron-down" size={18} />
             </button>
@@ -764,9 +781,18 @@ export function App({ initialGateway }: { initialGateway?: Gateway }) {
                       ? "Sessão SIGA Plus"
                       : "Autenticação real por integrar"}
                 </p>
-                <p className="muted">{schoolName} · {role === "professor" ? "Professor" : "Aluno"}</p>
-                {session && <p className="muted">{session.memberships.filter((m) => m.active).length} escola(s) com vínculo activo</p>}
-                <button className="pill" onClick={() => setSheet("workspace")}>Gerir escola activa</button>
+                <p className="muted">
+                  {schoolName} · {role === "professor" ? "Professor" : "Aluno"}
+                </p>
+                {session && (
+                  <p className="muted">
+                    {session.memberships.filter((m) => m.active).length} escola(s) com vínculo
+                    activo
+                  </p>
+                )}
+                <button className="pill" onClick={() => setSheet("workspace")}>
+                  Gerir escola activa
+                </button>
               </div>
               {menu.map(([label, icon, id]) => (
                 <div key={id}>
@@ -833,8 +859,15 @@ export function App({ initialGateway }: { initialGateway?: Gateway }) {
               {row("Conectores", "plug", () => setSheet("connectors"))}
               <div className="card">
                 <label className="setting-toggle">
-                  <span><b>Vista compacta</b><span className="muted">Menos espaços e painéis mais discretos.</span></span>
-                  <input type="checkbox" checked={compact} onChange={(e) => setCompact(e.target.checked)} />
+                  <span>
+                    <b>Vista compacta</b>
+                    <span className="muted">Menos espaços e painéis mais discretos.</span>
+                  </span>
+                  <input
+                    type="checkbox"
+                    checked={compact}
+                    onChange={(e) => setCompact(e.target.checked)}
+                  />
                 </label>
               </div>
               <div className="card">
@@ -952,18 +985,38 @@ export function App({ initialGateway }: { initialGateway?: Gateway }) {
           {sheet === "connectors" && (
             <>
               <h2>Serviços institucionais</h2>
-              <p className="muted">As ligações são geridas pela escola no SIGA Plus. Esta aplicação não solicita palavras-passe de terceiros.</p>
+              <p className="muted">
+                As ligações são geridas pela escola no SIGA Plus. Esta aplicação não solicita
+                palavras-passe de terceiros.
+              </p>
               {[
-                ["SIGA Plus", session?.mode === "api" ? "Sessão institucional disponível" : "Aguardando autenticação institucional"],
-                ["Mensagens", currentData ? "Área de mensagens disponível neste contexto" : "Selecciona uma escola para consultar"],
-                ["Documentos", currentData ? "Pedidos de documentos disponíveis neste contexto" : "Selecciona uma escola para consultar"],
+                [
+                  "SIGA Plus",
+                  session?.mode === "api"
+                    ? "Sessão institucional disponível"
+                    : "Aguardando autenticação institucional",
+                ],
+                [
+                  "Mensagens",
+                  currentData
+                    ? "Área de mensagens disponível neste contexto"
+                    : "Selecciona uma escola para consultar",
+                ],
+                [
+                  "Documentos",
+                  currentData
+                    ? "Pedidos de documentos disponíveis neste contexto"
+                    : "Selecciona uma escola para consultar",
+                ],
               ].map(([name, status]) => (
                 <div className="card" key={name}>
                   <b>{name}</b>
                   <p className="muted">{status}</p>
                 </div>
               ))}
-              <button className="pill" onClick={() => navigatePage("integracoes")}>Ver integrações</button>
+              <button className="pill" onClick={() => navigatePage("integracoes")}>
+                Ver integrações
+              </button>
             </>
           )}
           {sheet === "news" && (
