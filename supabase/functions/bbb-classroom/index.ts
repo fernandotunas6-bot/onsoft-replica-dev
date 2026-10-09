@@ -279,10 +279,11 @@ Deno.serve(async (request) => {
         .eq("school_id", session.school_id),
       db
         .from("teachers")
-        .select("id")
+        .select("id,user_id")
         .eq("id", session.teacher_id)
         .eq("school_id", session.school_id)
         .eq("user_id", userId)
+        .eq("status", "active")
         .maybeSingle(),
       db
         .from("people")
@@ -335,7 +336,9 @@ Deno.serve(async (request) => {
           .limit(1)
       : { data: null, error: null };
     if (enrollmentError) throw enrollmentError;
-    const teacherAllowed = Boolean(teacher && assignment?.length && codes.has("teacher"));
+    const teacherAllowed = Boolean(
+      teacher && teacher.user_id === userId && assignment?.length && codes.has("teacher")
+    );
     const studentAllowed = Boolean(student && enrollment?.length && codes.has("student"));
     if (!admin && !teacherAllowed && !studentAllowed)
       return respond(403, { error: "Access denied" }, request);
