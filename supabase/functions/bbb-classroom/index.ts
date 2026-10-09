@@ -70,7 +70,11 @@ Deno.serve(async (request) => {
     }
     const rawBody = new TextDecoder().decode(bodyBytes);
     const body = (() => {
-      try { return JSON.parse(rawBody); } catch { return null; }
+      try {
+        return JSON.parse(rawBody);
+      } catch {
+        return null;
+      }
     })();
     if (!body || typeof body !== "object" || Array.isArray(body))
       return respond(400, { error: "Invalid request body" }, request);
@@ -366,7 +370,7 @@ Deno.serve(async (request) => {
       : { data: null, error: null };
     if (enrollmentError) throw enrollmentError;
     const teacherAllowed = Boolean(
-      teacher && teacher.user_id === userId && assignment?.length && codes.has("teacher")
+      teacher && teacher.user_id === userId && assignment?.length && codes.has("teacher"),
     );
     const studentAllowed = Boolean(student && enrollment?.length && codes.has("student"));
     if (!admin && !teacherAllowed && !studentAllowed)
