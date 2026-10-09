@@ -2,7 +2,21 @@
 
 Esta publicação contém **somente** os ficheiros compilados de `mobile-v4/`. Não é a produção institucional do SIGA Plus.
 
-## Estado verificado em 9 de Outubro de 2026
+## Actualização Work — preview de staging
+
+- Publicação isolada: https://04e9ebe7.siga-plus-mobile-v4.pages.dev.
+- Alias: https://staging-mobile-v4-pr116.siga-plus-mobile-v4.pages.dev.
+- Deployment: `04e9ebe7-ac37-43ff-8380-3fe0037ba095`, ambiente **preview**, estado `success`, 9/10/2026 às 18:23:40 UTC.
+- Commit publicado: `9113462d375e25b6d2080cf4c413167d0dc6bd47`.
+- [Workflow Mobile aprovado](https://github.com/fernandotunas6-bot/onsoft-replica-dev/actions/runs/37972841739) e [CI raiz aprovado](https://github.com/fernandotunas6-bot/onsoft-replica-dev/actions/runs/37972841534) para esse commit.
+- Home, manifesto e service worker devolveram 200; sete assets públicos correspondem byte a byte ao build local. Sessão e logout devolveram 503 JSON com `INSTITUTIONAL_API_DISABLED`.
+- Chromium a 390/768/1280 px: navegação, selector de escola sem sessão, menu, Segurança e reload por hash aprovados; sem erros JavaScript ou overflow horizontal. Ensaio anónimo, sem percursos institucionais reais.
+- O agente HTTP Python foi inicialmente bloqueado pelo Cloudflare com 403/1010. A verificação com User-Agent de navegador e a abertura em Chromium funcionaram. Nenhuma regra Cloudflare foi alterada.
+- O URL canónico do projecto permanece na publicação anterior (`https://17570c06.siga-plus-mobile-v4.pages.dev`). Apenas a branch `staging-mobile-v4-pr116` foi publicada; `portal-siga.com` não foi alterado.
+
+O preview contém a interface existente, com API institucional explicitamente desligada. Não é deploy do backend autenticado nem validação de contas e dados reais. Relatório: [RELATORIO_WORK_2026-10-09.md](RELATORIO_WORK_2026-10-09.md).
+
+## Histórico anterior — 9 de Outubro de 2026
 
 - Projecto Cloudflare Pages: `siga-plus-mobile-v4`.
 - Endereço: https://siga-plus-mobile-v4.pages.dev.

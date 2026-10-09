@@ -32,7 +32,15 @@ As permissões de escrita deixaram de ser anunciadas na sessão antes de existir
 - Raiz: TypeScript aprovado com heap de 6 GiB; ESLint sem erros (47 avisos existentes); build aprovado; `siga:check` aprovado.
 - SQL: **18 ensaios existentes** executados numa base PGlite local, incluindo aplicação idempotente e isolamento. Não foram criadas migrações Mobile neste ciclo; não se afirma que estes ensaios validem um backend Mobile transaccional inexistente.
 - Smoke HTTP contra o servidor compilado em runtime Cloudflare local: sessão, workspace, comandos e logout sem Bearer devolveram **401 JSON**, sem carregar dados. Não foi ensaiada sessão real válida neste ambiente.
+- Smoke de navegador no preview público: Chromium a **390, 768 e 1280 px**, navegação Meu dia, selector sem sessão, menu, Segurança e recarregamento hash; sem erros JavaScript nem overflow horizontal. Este ensaio é anónimo; não valida professor/aluno autenticados.
 - CSS, componentes visuais, ícones e páginas Mobile não foram alterados. Não foi feita QA visual autenticada em Android/iOS, Safari ou dispositivo real.
+
+## Commit, CI e publicação
+
+- Código: [`9113462d375e25b6d2080cf4c413167d0dc6bd47`](https://github.com/fernandotunas6-bot/onsoft-replica-dev/commit/9113462d375e25b6d2080cf4c413167d0dc6bd47).
+- [Workflow Mobile aprovado](https://github.com/fernandotunas6-bot/onsoft-replica-dev/actions/runs/37972841739) e [CI raiz aprovado](https://github.com/fernandotunas6-bot/onsoft-replica-dev/actions/runs/37972841534) para esse commit.
+- [Preview isolado](https://04e9ebe7.siga-plus-mobile-v4.pages.dev), deployment `04e9ebe7-ac37-43ff-8380-3fe0037ba095`, ambiente `preview`, `success` em 9/10/2026 às 18:23:40 UTC.
+- Smoke externo: home/manifesto/SW 200, sete assets iguais ao build, sessão/logout 503 JSON com API desligada. O URL canónico Pages e o portal principal permaneceram nas versões anteriores.
 
 ## Bloqueios e sequência necessária
 
