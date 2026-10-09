@@ -90,3 +90,17 @@ for (const [status, expected] of [
     await expect(new ApiGateway().session()).rejects.toThrow(expected);
   });
 }
+
+it("rejects unrecognised membership roles in API session", async () => {
+  const session = demoSession("professor");
+  const invalid = {
+    ...session,
+    memberships: [{ ...session.memberships[0], roles: ["administrador"] }],
+  };
+  vi.stubGlobal("fetch", vi.fn().mockResolvedValue({
+    ok: true,
+    status: 200,
+    json: async () => invalid,
+  }));
+  await expect(new ApiGateway().session()).rejects.toThrow("Contrato de sessão inválido");
+});
