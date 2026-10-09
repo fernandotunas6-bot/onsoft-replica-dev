@@ -35,6 +35,8 @@ jobs:
       - name: Lint
         run: npm run lint
       - name: Check formatting
+        id: formatting
+        continue-on-error: true
         run: npm run format:check
       - name: Run tests
         run: npm test
@@ -42,6 +44,11 @@ jobs:
         run: npm run build
       - name: Verify PWA
         run: npm run check:pwa
+      - name: Enforce formatting gate
+        if: steps.formatting.outcome != 'success'
+        run: |
+          echo "Prettier failed: preview packaging is blocked."
+          exit 1
       - name: Package isolated preview
         uses: actions/upload-artifact@v4
         with:
