@@ -764,6 +764,9 @@ export function App({ initialGateway }: { initialGateway?: Gateway }) {
                       ? "Sessão SIGA Plus"
                       : "Autenticação real por integrar"}
                 </p>
+                <p className="muted">{schoolName} · {role === "professor" ? "Professor" : "Aluno"}</p>
+                {session && <p className="muted">{session.memberships.filter((m) => m.active).length} escola(s) com vínculo activo</p>}
+                <button className="pill" onClick={() => setSheet("workspace")}>Gerir escola activa</button>
               </div>
               {menu.map(([label, icon, id]) => (
                 <div key={id}>
