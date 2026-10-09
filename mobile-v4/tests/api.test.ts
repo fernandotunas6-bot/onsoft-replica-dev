@@ -75,3 +75,18 @@ it("401 reports expired session without exposing response contents", async () =>
   );
   await expect(new ApiGateway().session()).rejects.toThrow("Sessão expirada");
 });
+
+for (const [status, expected] of [
+  [403, "Sem autorização"],
+  [409, "Actualize antes"],
+  [422, "validação institucional"],
+] as const) {
+  it(`reports API HTTP ${status} without leaking response body`, async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue({
+      ok: false,
+      status,
+      json: async () => ({ secret: "never show this" }),
+    }));
+    await expect(new ApiGateway().session()).rejects.toThrow(expected);
+  });
+}
