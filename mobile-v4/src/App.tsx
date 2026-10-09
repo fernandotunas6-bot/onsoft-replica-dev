@@ -948,23 +948,19 @@ export function App({ initialGateway }: { initialGateway?: Gateway }) {
           )}
           {sheet === "connectors" && (
             <>
-              <h2>Constrói com as ferramentas que já utilizas</h2>
-              <p className="muted">Nenhum conector externo está ligado.</p>
+              <h2>Serviços institucionais</h2>
+              <p className="muted">As ligações são geridas pela escola no SIGA Plus. Esta aplicação não solicita palavras-passe de terceiros.</p>
               {[
-                "Cloud",
-                "AI",
-                "GitHub",
-                "Google Drive",
-                "Slack",
-                "Supabase",
-                "MCP server",
-                "Conector personalizado",
-              ].map((c) => (
-                <div className="card" key={c}>
-                  <Icon name="plug" /> {c}
-                  <p className="muted">Integração por configurar no SIGA Plus.</p>
+                ["SIGA Plus", session?.mode === "api" ? "Sessão institucional disponível" : "Aguardando autenticação institucional"],
+                ["Mensagens", currentData ? "Área de mensagens disponível neste contexto" : "Selecciona uma escola para consultar"],
+                ["Documentos", currentData ? "Pedidos de documentos disponíveis neste contexto" : "Selecciona uma escola para consultar"],
+              ].map(([name, status]) => (
+                <div className="card" key={name}>
+                  <b>{name}</b>
+                  <p className="muted">{status}</p>
                 </div>
               ))}
+              <button className="pill" onClick={() => navigatePage("integracoes")}>Ver integrações</button>
             </>
           )}
           {sheet === "news" && (
