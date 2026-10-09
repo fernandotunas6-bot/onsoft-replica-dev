@@ -26,7 +26,11 @@ function requireServer() {
 }
 
 function meetingId(request: VerifiedClassroomRequest) {
-  return scopedMeetingId(request.context.activeSchoolId, request.classGroupId, request.sessionId);
+  if (request.context.session.id !== request.sessionId ||
+      request.context.session.classGroupId !== request.classGroupId) {
+    throw new Error("Classroom session scope mismatch");
+  }
+  return scopedMeetingId(request.context.activeSchoolId, request.context.session.classGroupId, request.context.session.id);
 }
 
 function meetingPasswords() {
