@@ -22,7 +22,14 @@ export class ApiError extends Error {
 export class ApiGateway implements Gateway {
   private current: Session | null = null;
   constructor(private base = "/api/mobile-v4") {
-    if (!base.startsWith("/") || base.startsWith("//") || base.includes("..") || base.includes("?") || base.includes("#") || base.includes("\\"))
+    if (
+      !base.startsWith("/") ||
+      base.startsWith("//") ||
+      base.includes("..") ||
+      base.includes("?") ||
+      base.includes("#") ||
+      base.includes("\\")
+    )
       throw new Error("A API deve usar um caminho na mesma origem.");
   }
   private async request(path: string, signal?: AbortSignal, body?: unknown) {
