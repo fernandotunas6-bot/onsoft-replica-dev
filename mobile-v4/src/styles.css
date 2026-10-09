@@ -1473,30 +1473,30 @@ select:focus-visible {
 }
 @media (max-width: 420px) {
   #app .content {
-  padding-left: 16px;
-  padding-right: 16px;
-}
+    padding-left: 16px;
+    padding-right: 16px;
+  }
   #app .top {
-  padding-left: 16px;
-  padding-right: 16px;
-}
+    padding-left: 16px;
+    padding-right: 16px;
+  }
   #app h1 {
-  font-size: clamp(28px, 8vw, 36px);
-  letter-spacing: -0.035em;
-}
+    font-size: clamp(28px, 8vw, 36px);
+    letter-spacing: -0.035em;
+  }
   #app .nav {
-  width: calc(100% - 28px);
-  max-width: 440px;
-}
+    width: calc(100% - 28px);
+    max-width: 440px;
+  }
 }
 @media (prefers-reduced-motion: reduce) {
   #app *,
   #app *::before,
   #app *::after {
-  animation-duration: 0.01ms !important;
-  transition-duration: 0.01ms !important;
-  scroll-behavior: auto !important;
-}
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
 
 /* School identity stays compact; missing images retain the existing monogram. */
@@ -1534,7 +1534,8 @@ select:focus-visible {
 #app.compact .menurow {
   min-height: 44px;
 }
-#app.compact .project, #app.compact .chat {
+#app.compact .project,
+#app.compact .chat {
   padding-block: 10px;
 }
 #app.compact h1 {
