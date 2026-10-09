@@ -48,13 +48,17 @@ export class ApiGateway implements Gateway {
   async session(signal?: AbortSignal): Promise<Session | null> {
     this.current = null;
     const data = await this.request("/session", signal);
-    if (!data) return null;
+    if (data === null) return null;
     if (
+      typeof data !== "object" ||
+      Array.isArray(data) ||
       typeof data.userId !== "string" ||
+      !data.userId.trim() ||
       typeof data.name !== "string" ||
       !Array.isArray(data.memberships) ||
       data.memberships.some(
         (m: Record<string, unknown>) =>
+          !m || typeof m !== "object" ||
           typeof m.schoolId !== "string" ||
           typeof m.schoolName !== "string" ||
           typeof m.active !== "boolean" ||
