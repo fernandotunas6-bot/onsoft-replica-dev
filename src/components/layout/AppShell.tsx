@@ -119,7 +119,6 @@ function AuthenticatedAppShell({ children }: { children: ReactNode }) {
   } = useSchoolSettings();
   const activeYearLabel = activeYear?.label ?? selectedYearLabel;
 
-  const [open, setOpen] = useState(false);
   const [pinnedCollapsed, setPinnedCollapsed] = useState(false);
   const [hoverOpen, setHoverOpen] = useState(false);
   const hoverLeaveTimer = useRef<number>(0);
@@ -177,7 +176,6 @@ function AuthenticatedAppShell({ children }: { children: ReactNode }) {
   }, [currentUser.role, currentUser.grants]);
 
   useEffect(() => {
-    setOpen(false);
     // As folhas mobile têm de fechar na navegação: um toque no hub "Mais"
     // navega, e sem isto a folha ficava aberta por cima da página nova.
     setMoreOpen(false);
@@ -271,21 +269,10 @@ function AuthenticatedAppShell({ children }: { children: ReactNode }) {
           />
         </div>
 
-        <Sheet open={open} onOpenChange={setOpen}>
-          {/* Cantos só do lado que fica dentro do ecrã: à esquerda a folha encosta
-              à margem, e arredondar aí abriria uma fresta contra o bordo. */}
-          <SheetContent
-            side="left"
-            className="w-[240px] overflow-hidden rounded-r-xl border-none bg-sidebar p-0"
-          >
-            <AppSidebar onOpenSettings={(panelId) => openSettings(panelId)} />
-          </SheetContent>
-        </Sheet>
-
         <div className="flex min-w-0 flex-1 flex-col lg:my-2 lg:mx-2 lg:overflow-clip lg:rounded-2xl lg:border lg:border-border/60 lg:shadow-sm">
           {/*
               Header mobile (§10): substitui o header de computador abaixo de
-              768px. O de computador continua igual — os dez controlos do topo
+              1024px. O de computador continua igual — os dez controlos do topo
               não cabem num telemóvel e nenhum deles é o que se vem fazer.
           */}
           <MobileHeader
@@ -297,19 +284,7 @@ function AuthenticatedAppShell({ children }: { children: ReactNode }) {
             onOpenAccount={() => setAccountOpen(true)}
           />
 
-          <header className="sticky top-0 z-30 hidden h-14 items-center gap-2.5 border-b border-border/70 bg-background/95 backdrop-blur-xs px-3.5 md:flex md:px-5">
-            {/* Tablet usa este cabeçalho e mantém a navegação inferior.
-                O hambúrguer também dá acesso à árvore completa da sidebar. */}
-            <Button
-              variant="ghost"
-              size="icon"
-              className="header-icon-btn lg:hidden"
-              onClick={() => setOpen(true)}
-              aria-label="Abrir menu"
-            >
-              <Menu className="size-5" />
-            </Button>
-
+          <header className="sticky top-0 z-30 hidden h-14 items-center gap-2.5 border-b border-border/70 bg-background/95 backdrop-blur-xs px-5 lg:flex">
             <Button
               variant="ghost"
               size="icon"
@@ -620,7 +595,7 @@ function AuthenticatedAppShell({ children }: { children: ReactNode }) {
           <main
             id="conteudo-principal"
             tabIndex={-1}
-            className="page-enter mx-auto w-full max-w-[1400px] flex-1 px-4 py-4 pb-bottom-nav md:px-5 md:py-5 lg:px-6 lg:py-5 lg:pb-5 [content-visibility:auto]"
+            className="page-enter mx-auto w-full max-w-[1400px] flex-1 px-4 py-4 pb-bottom-nav md:px-5 md:pt-5 lg:px-6 lg:py-5 lg:pb-5 [content-visibility:auto]"
           >
             {studentCapacity.nearLimit || studentCapacity.atLimit ? (
               <div

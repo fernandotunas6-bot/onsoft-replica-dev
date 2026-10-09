@@ -19,7 +19,7 @@ const sizeClasses: Record<NonNullable<ModalShellProps["size"]>, string> = {
   lg: "max-w-2xl",
   xl: "max-w-4xl",
   "2xl": "max-w-6xl",
-  full: "max-w-[95vw] h-[92vh]",
+  full: "max-w-[95vw] h-[92dvh]",
 };
 
 export function ModalShell({
@@ -69,7 +69,7 @@ export function ModalShell({
           onEscapeKeyDown={handleEscapeKeyDown}
           onClick={(e) => e.stopPropagation()}
           className={cn(
-            "fixed left-1/2 top-1/2 z-50 flex w-[calc(100%-2rem)] -translate-x-1/2 -translate-y-1/2 flex-col rounded-xl border border-border bg-card p-0 shadow-xl duration-200 motion-safe:data-[state=open]:animate-in motion-safe:data-[state=closed]:animate-out motion-safe:data-[state=closed]:fade-out-0 motion-safe:data-[state=open]:fade-in-0 motion-safe:data-[state=closed]:zoom-out-95 motion-safe:data-[state=open]:zoom-in-95 focus:outline-hidden sm:w-full",
+            "fixed left-1/2 top-1/2 z-50 flex max-h-[92dvh] w-[calc(100%-2rem)] -translate-x-1/2 -translate-y-1/2 flex-col overflow-y-auto rounded-xl border border-border bg-card p-0 shadow-xl duration-200 motion-safe:data-[state=open]:animate-in motion-safe:data-[state=closed]:animate-out motion-safe:data-[state=closed]:fade-out-0 motion-safe:data-[state=open]:fade-in-0 motion-safe:data-[state=closed]:zoom-out-95 motion-safe:data-[state=open]:zoom-in-95 focus:outline-hidden sm:w-full",
             sizeClasses[size],
             className,
           )}

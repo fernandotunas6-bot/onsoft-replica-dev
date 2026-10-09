@@ -59,7 +59,7 @@ export function SubModal({
       className="z-70"
       hasUnsavedChanges={hasUnsavedChanges}
     >
-      <form onSubmit={handleSubmit} className="flex flex-col">
+      <form onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col">
         <ModalHeader
           {...(icon ? { icon } : {})}
           title={title}
