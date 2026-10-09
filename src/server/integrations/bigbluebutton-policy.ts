@@ -28,6 +28,7 @@ export type ClassroomAuthorization = {
   } | null;
   teacherAssignment?: {
     teacherUserId: string;
+    teacherId: string;
     schoolId: string;
     active: boolean;
   } | null;
@@ -54,7 +55,7 @@ export function canAccessVirtualClassroom(
   const isAdmin = membership.role === "school_admin" || membership.role === "pedagogical_admin";
   const isAssignedTeacher =
     membership.role === "teacher" &&
-    session.teacherId === authenticatedUserId &&
+    teacherAssignment?.teacherId === session.teacherId &&
     teacherAssignment?.active === true &&
     teacherAssignment.schoolId === activeSchoolId &&
     teacherAssignment.teacherUserId === authenticatedUserId;
