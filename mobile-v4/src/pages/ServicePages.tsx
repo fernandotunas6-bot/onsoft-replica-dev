@@ -1,3 +1,5 @@
+import type { AcademicCatalog as Catalog } from "../domain/catalog";
+import { AcademicCatalog } from "../components/AcademicCatalog";
 import type { Session, Workspace, Context, Role, Command } from "../domain/model";
 import { Academic } from "../components/Academic";
 import { AttendanceMap } from "../components/AttendanceMap";
@@ -53,6 +55,7 @@ export function ServicePages({
   page,
   session,
   data,
+  catalog,
   ctx,
   role,
   loading,
@@ -61,10 +64,12 @@ export function ServicePages({
   onNavigate,
   onSelectSchool,
   onSettings,
+  onRefresh,
 }: {
   page: string;
   session: Session | null;
   data: Workspace | null;
+  catalog?: Catalog | null;
   ctx: Context | null;
   role: Role;
   loading: boolean;
@@ -73,6 +78,7 @@ export function ServicePages({
   onNavigate: (id: string) => void;
   onSelectSchool: () => void;
   onSettings: () => void;
+  onRefresh?: () => void;
 }) {
   const info = infoPages[page];
   const service = serviceCatalog(role).find((m) => m[2] === page);
@@ -83,6 +89,7 @@ export function ServicePages({
           key={session?.userId + ":" + ctx?.schoolId}
           session={session}
           data={data}
+          catalog={catalog}
           ctx={ctx}
           onSettings={onSettings}
         />
@@ -143,6 +150,11 @@ export function ServicePages({
             {ctx?.role === "professor" ? "Trabalho do professor" : "Espaço do aluno"}
           </div>
           <h1>{page === "calendario" ? "Calendário" : service?.[0] || "Serviço indisponível"}</h1>
+          {ctx && onRefresh && (
+            <button className="pill" disabled={loading || busy} onClick={onRefresh}>
+              Actualizar dados
+            </button>
+          )}
           {!ctx ? (
             <div className="card">
               <p>Selecciona uma escola e um perfil autorizado para abrir este serviço.</p>
@@ -152,6 +164,13 @@ export function ServicePages({
             </div>
           ) : loading ? (
             <p role="status">A carregar…</p>
+          ) : catalog ? (
+            <AcademicCatalog
+              key={ctx.userId + ctx.schoolId + ctx.role + page}
+              catalog={catalog}
+              module={page}
+              onNavigate={onNavigate}
+            />
           ) : data ? (
             page === "calendario" ? (
               <AttendanceMap data={data} ctx={ctx} />

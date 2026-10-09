@@ -1,3 +1,4 @@
+import type { AcademicCatalog } from "../domain/catalog";
 import { useState } from "react";
 import type { Session, Workspace, Context } from "../domain/model";
 import { AttendanceMap } from "../components/AttendanceMap";
@@ -5,11 +6,13 @@ import { Icon } from "../components/Icon";
 export function ProfilePage({
   session,
   data,
+  catalog,
   ctx,
   onSettings,
 }: {
   session: Session | null;
   data: Workspace | null;
+  catalog?: AcademicCatalog | null;
   ctx: Context | null;
   onSettings: () => void;
 }) {
@@ -80,14 +83,18 @@ export function ProfilePage({
       <div className="profile-empty">
         <Icon name="book-open" size={42} />
         <h2>
-          {data
-            ? `${data.classes.length} ${ctx?.role === "professor" ? "turmas atribuídas" : "disciplinas activas"}`
-            : "Selecciona a tua escola"}
+          {catalog
+            ? `${ctx?.role === "professor" ? new Set(catalog.classes.map((c) => c.classGroupId)).size : catalog.classes.length} ${ctx?.role === "professor" ? "turmas atribuídas" : "disciplinas activas"}`
+            : data
+              ? `${data.classes.length} ${ctx?.role === "professor" ? "turmas atribuídas" : "disciplinas activas"}`
+              : "Selecciona a tua escola"}
         </h2>
         <p className="muted">
-          {data
-            ? "Aulas, presenças e serviços do teu dia, num só lugar."
-            : "O mapa académico surge depois de autenticar e seleccionar uma escola."}
+          {catalog
+            ? "Consulta as disciplinas, os horários e os trabalhos publicados nos serviços académicos."
+            : data
+              ? "Aulas, presenças e serviços do teu dia, num só lugar."
+              : "O mapa académico surge depois de autenticar e seleccionar uma escola."}
         </p>
       </div>
       {data && ctx && <AttendanceMap data={data} ctx={ctx} annual />}

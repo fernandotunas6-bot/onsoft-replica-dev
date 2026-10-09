@@ -1,3 +1,4 @@
+import type { AcademicCatalog } from "./catalog";
 export type Role = "professor" | "aluno";
 export type Permission =
   | "academic.read"
@@ -139,6 +140,7 @@ export type Command =
   | { type: "document"; documentType: string };
 export interface Gateway {
   session(signal?: AbortSignal): Promise<Session | null>;
+  academicCatalog?(ctx: Context, signal?: AbortSignal): Promise<AcademicCatalog>;
   workspace(ctx: Context, signal?: AbortSignal): Promise<Workspace>;
   execute(ctx: Context, command: Command, signal?: AbortSignal): Promise<void>;
   signOut(): Promise<void>;

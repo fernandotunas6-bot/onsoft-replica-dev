@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { Command, Context, Gateway, Role, Session, Workspace } from "./domain/model";
+import type { AcademicCatalog } from "./domain/catalog";
 import { DemoGateway } from "./services/demo";
 import { ApiError } from "./services/api";
 import { Icon } from "./components/Icon";
@@ -33,6 +34,7 @@ export function App({ initialGateway }: { initialGateway?: Gateway }) {
   const [school, setSchool] = useState("");
   const [role, setRole] = useState<Role>("professor");
   const [data, setData] = useState<Workspace | null>(null);
+  const [catalog, setCatalog] = useState<AcademicCatalog | null>(null);
   const [loadedKey, setLoadedKey] = useState("");
   const [loading, setLoading] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -79,6 +81,7 @@ export function App({ initialGateway }: { initialGateway?: Gateway }) {
   const key = ctx ? `${ctx.userId}:${ctx.schoolId}:${ctx.role}` : "";
   const activeKey = useRef(key);
   activeKey.current = key;
+  const currentCatalog = loadedKey === key ? catalog : null;
   const currentData = loadedKey === key ? data : null;
   useEffect(() => {
     if (!gateway) return;
@@ -97,7 +100,18 @@ export function App({ initialGateway }: { initialGateway?: Gateway }) {
         }
       })
       .catch((e) => {
-        if (live) setError(e.message);
+        if (live) {
+          setError(e.message);
+          if (e instanceof ApiError && (e.status === 401 || e.status === 403)) {
+            setSchool("");
+            setCatalog(null);
+            setData(null);
+            if (e.status === 401) {
+              setSession(null);
+              setGateway(null);
+            }
+          }
+        }
       })
       .finally(() => {
         if (live) setLoading(false);
@@ -109,6 +123,7 @@ export function App({ initialGateway }: { initialGateway?: Gateway }) {
   }, [gateway]);
   useEffect(() => {
     setData(null);
+    setCatalog(null);
     setLoadedKey("");
     setError("");
     setNotice("");
@@ -122,16 +137,33 @@ export function App({ initialGateway }: { initialGateway?: Gateway }) {
     let live = true;
     const ac = new AbortController();
     setLoading(true);
-    gateway
-      .workspace(ctx, ac.signal)
-      .then((d) => {
-        if (live) {
-          setData(d);
-          setLoadedKey(key);
-        }
+    const request =
+      session?.mode === "api"
+        ? gateway.academicCatalog
+          ? gateway.academicCatalog(ctx, ac.signal).then((d) => {
+              if (live) setCatalog(d);
+            })
+          : Promise.reject(new Error("O catálogo académico não está disponível nesta ligação."))
+        : gateway.workspace(ctx, ac.signal).then((d) => {
+            if (live) setData(d);
+          });
+    request
+      .then(() => {
+        if (live) setLoadedKey(key);
       })
       .catch((e) => {
-        if (live) setError(e.message);
+        if (live) {
+          setError(e.message);
+          if (e instanceof ApiError && (e.status === 401 || e.status === 403)) {
+            setSchool("");
+            setCatalog(null);
+            setData(null);
+            if (e.status === 401) {
+              setSession(null);
+              setGateway(null);
+            }
+          }
+        }
       })
       .finally(() => {
         if (live) setLoading(false);
@@ -140,7 +172,7 @@ export function App({ initialGateway }: { initialGateway?: Gateway }) {
       live = false;
       ac.abort();
     };
-  }, [gateway, ctx, key, reload]);
+  }, [gateway, ctx, key, reload, session?.mode]);
   useEffect(() => {
     const q = matchMedia("(prefers-color-scheme: dark)");
     setSystemDark(q.matches);
@@ -168,6 +200,7 @@ export function App({ initialGateway }: { initialGateway?: Gateway }) {
   }, [theme, bg, compact]);
   function selectSchool(id: string) {
     setData(null);
+    setCatalog(null);
     setProjects([]);
     setSheet("");
     setSchool(id);
@@ -175,6 +208,7 @@ export function App({ initialGateway }: { initialGateway?: Gateway }) {
   }
   async function startDemo(next: Role) {
     setData(null);
+    setCatalog(null);
     setSheet("");
     setSchool("");
     setRole(next);
@@ -190,6 +224,7 @@ export function App({ initialGateway }: { initialGateway?: Gateway }) {
       setError("Não foi possível confirmar a saída no servidor.");
     } finally {
       setData(null);
+      setCatalog(null);
       setSession(null);
       setSchool("");
       setProjects([]);
@@ -223,6 +258,7 @@ export function App({ initialGateway }: { initialGateway?: Gateway }) {
         setError((e as Error).message);
         if (e instanceof ApiError && (e.status === 401 || e.status === 403)) {
           setData(null);
+          setCatalog(null);
           setProjects([]);
           setSchool("");
           setSheet("");
@@ -476,6 +512,7 @@ export function App({ initialGateway }: { initialGateway?: Gateway }) {
                   value={role}
                   onChange={(e) => {
                     setData(null);
+                    setCatalog(null);
                     setRole(e.target.value as Role);
                   }}
                 >
@@ -494,7 +531,9 @@ export function App({ initialGateway }: { initialGateway?: Gateway }) {
                   <span className="tileicon">
                     <Icon name={icon} size={24} />
                   </span>
-                  <span>{label}</span>
+                  <span>
+                    {session?.mode === "api" && id === "aulas" ? "Horário semanal" : label}
+                  </span>
                   <Icon name="chevron-right" size={17} />
                 </button>
               ))}
@@ -503,6 +542,17 @@ export function App({ initialGateway }: { initialGateway?: Gateway }) {
               <b>Próximas actividades</b>
               {loading ? (
                 <p role="status">A carregar…</p>
+              ) : currentCatalog ? (
+                <>
+                  <p>{currentCatalog.timetable.length} períodos no horário semanal.</p>
+                  <button
+                    className="pill"
+                    onClick={() => openModule(role === "professor" ? "aulas" : "horario")}
+                  >
+                    Consultar horário semanal
+                  </button>
+                  <p className="small">Aulas realizadas e presenças ainda não integradas.</p>
+                </>
               ) : currentData?.lessons.length ? (
                 currentData.lessons.map((l) => (
                   <button
@@ -582,6 +632,16 @@ export function App({ initialGateway }: { initialGateway?: Gateway }) {
             <h1>Conversas</h1>
             {ctx && currentData ? (
               <ChatPage key={key} data={currentData} ctx={ctx} execute={execute} busy={busy} />
+            ) : ctx && session?.mode === "api" ? (
+              <div className="card" role="status">
+                <p>O chat institucional ainda aguarda integração validada.</p>
+                <button
+                  className="pill"
+                  onClick={() => navigatePage(role === "professor" ? "turmas" : "disciplinas")}
+                >
+                  Consultar disciplinas
+                </button>
+              </div>
             ) : (
               <div className="card">
                 <p>Selecciona uma escola para abrir o chat.</p>
@@ -614,6 +674,8 @@ export function App({ initialGateway }: { initialGateway?: Gateway }) {
               page={page}
               session={session}
               data={currentData}
+              catalog={currentCatalog}
+              onRefresh={() => setReload((r) => r + 1)}
               ctx={ctx}
               role={role}
               loading={loading}
@@ -1038,7 +1100,11 @@ export function App({ initialGateway }: { initialGateway?: Gateway }) {
           )}
           {sheet === "inbox" && (
             <>
-              <p>{currentData?.messages.length || 0} mensagens neste contexto escolar.</p>
+              <p>
+                {session?.mode === "api"
+                  ? "O chat institucional ainda aguarda integração validada."
+                  : `${currentData?.messages.length || 0} mensagens neste contexto escolar.`}
+              </p>
               <button className="pill" onClick={() => openModule("mensagens")}>
                 Abrir mensagens
               </button>

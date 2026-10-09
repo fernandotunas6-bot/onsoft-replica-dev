@@ -85,3 +85,20 @@ As permissões de escrita deixaram de ser anunciadas na sessão antes de existir
 6. Persistir comandos numa transacção com comparação de revisão, chave por escola/utilizador/operação, resposta de replay e auditoria atómica. Testar concorrência, rollback, replay e alteração de payload com a mesma chave.
 7. Validar sessão, MFA, logout e percursos completos com contas reais de staging. Publicar o backend exclusivamente em staging e só depois ligar o fornecedor de sessão no Mobile. O Pages público actual continua a ser apenas preview; a demonstração existente é identificada como tal e não constitui uma integração.
 8. Rever e aprovar a promoção institucional separadamente. Produção e migrações de produção continuam fora deste ciclo.
+
+## Interface ligada ao catálogo institucional
+
+O Mobile passa a pedir o catálogo académico quando a sessão é institucional; a demonstração continua a usar o workspace de teste explicitamente identificado. Não são fabricadas listas vazias para módulos ainda não integrados.
+
+- Professor: consulta turmas e disciplinas atribuídas, expande os alunos matriculados, pesquisa e filtra disciplinas; abre o horário semanal e os trabalhos publicados.
+- Aluno: consulta as suas disciplinas, professor atribuído, horário semanal e trabalhos publicados. A interface não apresenta a lista de colegas.
+- Horário/calendário: filtro ISO por dia da semana, sala e validade quando existentes; distingue horários publicados de horários anteriores sem publicação associada. Não representa estes períodos como aulas realizadas ou presenças.
+- Perfil: contagens do catálogo, com turmas únicas para o professor. Meu dia abre o horário semanal. Actualização manual volta a consultar o catálogo.
+- Notas, presenças/faltas, planos, avisos, chat e documentos mostram o estado de integração pendente; não disponibilizam escritas fictícias nem afirmam ausência de registos.
+- Mudança de escola/papel, logout e rejeição de autenticação limpam o catálogo; respostas tardias de outro contexto são descartadas. Pesquisa, filtros, contexto e componentes mantêm os estilos e ícones existentes; CSS sem alteração.
+
+Validação local: **90 testes Mobile aprovados**, incluindo três novos percursos de interface com adaptador controlado (professor, aluno e resposta tardia após mudança de escola). TypeScript, ESLint, Prettier, build e verificações PWA aprovados. Estes ensaios não usam contas reais nem constituem validação autenticada de produção. Backend não alterado neste ciclo; os 3.320 testes raiz e 26 verificações SQL são resultados do commit anterior, não novas execuções.
+
+CI do catálogo `f189b125`: [Mobile aprovado](https://github.com/fernandotunas6-bot/onsoft-replica-dev/actions/runs/37978681862) e [raiz aprovado](https://github.com/fernandotunas6-bot/onsoft-replica-dev/actions/runs/37978681803). Preview anterior: https://ff5dafaa.siga-plus-mobile-v4.pages.dev, ambiente preview. A verificação externa interrompida desse ciclo não é apresentada como concluída. O endereço canónico Pages continua no deployment `17570c06-7e08-44d9-a05d-1bfc04011dfe`, confirmado neste ciclo.
+
+A ligação Supabase existente continua a exigir fornecedor de sessão injectado; não foi activado o modo institucional público. O backend completo, persistência transaccional, MFA com contas reais, chat, notificações, ficheiros e migrações/QA isoladas continuam pendentes. Não houve migração nem escrita na base Sga de produção.
