@@ -67,7 +67,7 @@ export async function joinVirtualClassroom(
       c.membership?.role === "school_admin" || c.membership?.role === "pedagogical_admin";
     const assigned =
       c.membership?.role === "teacher" &&
-      c.session.teacherId === c.authenticatedUserId &&
+      c.teacherAssignment?.teacherId === c.session.teacherId &&
       c.teacherAssignment?.active === true &&
       c.teacherAssignment.teacherUserId === c.authenticatedUserId &&
       c.teacherAssignment.schoolId === c.activeSchoolId;
