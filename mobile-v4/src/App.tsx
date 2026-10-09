@@ -331,7 +331,7 @@ export function App({ initialGateway }: { initialGateway?: Gateway }) {
               onClick={() => setSheet("workspace")}
               aria-label={"Seleccionar escola. Actual: " + schoolName}
             >
-              <span className="avatar">S</span>
+              <span className="avatar">{membership?.schoolLogoUrl?.startsWith("/") ? <img className="school-logo" src={membership.schoolLogoUrl} alt="" loading="lazy" /> : "S"}</span>
               {schoolName}
               <Icon name="chevron-down" size={18} />
             </button>
