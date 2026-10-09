@@ -5,6 +5,9 @@ import { ApiError } from "./services/api";
 import { Icon } from "./components/Icon";
 import { Sheet } from "./components/Sheet";
 import { Academic, teacherModules, studentModules } from "./components/Academic";
+import { ServicePages } from "./pages/ServicePages";
+import { ChatPage } from "./pages/ChatPage";
+import { serviceCatalog, routeFor } from "./pages/catalog";
 import "./styles.css";
 type Project = { id: string; name: string; favorite: boolean };
 const tabs = [
@@ -39,6 +42,20 @@ export function App({ initialGateway }: { initialGateway?: Gateway }) {
   const [tab, setTab] = useState("home");
   const [sheet, setSheet] = useState("");
   const [module, setModule] = useState("");
+  const [page, setPage] = useState(() => location.hash.slice(2));
+  const readRoute = () => (location.hash.startsWith("#/") ? location.hash.slice(2) : "");
+  useEffect(() => {
+    const changed = () => {
+      setPage(readRoute());
+      setSheet("");
+    };
+    window.addEventListener("hashchange", changed);
+    window.addEventListener("popstate", changed);
+    return () => {
+      window.removeEventListener("hashchange", changed);
+      window.removeEventListener("popstate", changed);
+    };
+  }, []);
   const [theme, setTheme] = useState(() => localStorage.getItem("siga-mobile-theme") || "Sistema");
   const [bg, setBg] = useState(() => Number(localStorage.getItem("siga-mobile-bg")) || 0);
   const [systemDark, setSystemDark] = useState(false);
@@ -160,7 +177,7 @@ export function App({ initialGateway }: { initialGateway?: Gateway }) {
     if (gateway instanceof DemoGateway) {
       gateway.setRole(next);
       setSession(await gateway.session());
-    } else setGateway(new DemoGateway(next));
+    } else setGateway(new DemoGateway(next, true));
   }
   async function logout() {
     try {
@@ -216,10 +233,16 @@ export function App({ initialGateway }: { initialGateway?: Gateway }) {
       if (activeKey.current === requestKey) setBusy(false);
     }
   }
+  function navigatePage(id: string) {
+    const resolved = routeFor(id, role);
+    setPage(resolved);
+    setSheet("");
+    setNotice("");
+    history.pushState(null, "", "#/" + resolved);
+  }
   function openModule(id: string) {
     setModule(id);
-    setSheet("academic");
-    setNotice("");
+    navigatePage(id);
   }
   function createProject() {
     if (!ctx) {
@@ -275,19 +298,48 @@ export function App({ initialGateway }: { initialGateway?: Gateway }) {
       id="app"
       className={(bg === 0 ? "gradient" : bg === 1 ? "bg-one" : "bg-two") + (dark ? " dark" : "")}
     >
-      <header className="top" inert={!!sheet}>
-        <button
-          className="workspace"
-          onClick={() => setSheet("workspace")}
-          aria-label={"Seleccionar escola. Actual: " + schoolName}
-        >
-          <span className="avatar">S</span>
-          {schoolName}
-          <Icon name="chevron-down" size={18} />
-        </button>
-        <button className="profile" aria-label="Conta" onClick={() => setSheet("profile")}>
-          <Icon name="user-round" size={23} />
-        </button>
+      <header className={page ? "top service-top" : "top"} inert={!!sheet}>
+        {page ? (
+          <>
+            <button className="brand-link" onClick={() => navigatePage("perfil")}>
+              <span className="brand-mark">S</span>
+              <span>SIGA Plus</span>
+            </button>
+            <div className="actions">
+              <button
+                className="open-siga"
+                onClick={() => {
+                  navigatePage("");
+                  setTab("daily");
+                }}
+              >
+                Abrir SIGA Plus
+              </button>
+              <button
+                className="round menu-toggle"
+                aria-label="Abrir menu de serviços"
+                onClick={() => setSheet("full-menu")}
+              >
+                <Icon name="menu" />
+              </button>
+            </div>
+          </>
+        ) : (
+          <>
+            <button
+              className="workspace"
+              onClick={() => setSheet("workspace")}
+              aria-label={"Seleccionar escola. Actual: " + schoolName}
+            >
+              <span className="avatar">S</span>
+              {schoolName}
+              <Icon name="chevron-down" size={18} />
+            </button>
+            <button className="profile" aria-label="Conta" onClick={() => setSheet("profile")}>
+              <Icon name="user-round" size={23} />
+            </button>
+          </>
+        )}
       </header>
       <main className="content" inert={!!sheet}>
         {!online && (
@@ -299,7 +351,7 @@ export function App({ initialGateway }: { initialGateway?: Gateway }) {
         {session?.mode === "demo" && (
           <div className="demo-badge">Demonstração · dados fictícios · sem ligação à produção</div>
         )}
-        {tab === "home" && (
+        {!page && tab === "home" && (
           <>
             <div style={{ textAlign: "center", paddingTop: "12vh" }}>
               <div className="small">O teu espaço de gestão escolar</div>
@@ -339,7 +391,7 @@ export function App({ initialGateway }: { initialGateway?: Gateway }) {
             </form>
           </>
         )}
-        {tab === "daily" && (
+        {!page && tab === "daily" && (
           <>
             <div className="headerline">
               <div>
@@ -456,7 +508,7 @@ export function App({ initialGateway }: { initialGateway?: Gateway }) {
             </div>
           </>
         )}
-        {tab === "projects" && (
+        {!page && tab === "projects" && (
           <>
             <div className="headerline">
               <h1>Projectos</h1>
@@ -506,37 +558,52 @@ export function App({ initialGateway }: { initialGateway?: Gateway }) {
             )}
           </>
         )}
-        {tab === "chats" && (
+        {!page && tab === "chats" && (
           <>
-            <div className="headerline">
-              <h1>Conversas</h1>
+            <h1>Conversas</h1>
+            {ctx && currentData ? (
+              <ChatPage key={key} data={currentData} ctx={ctx} execute={execute} busy={busy} />
+            ) : (
+              <div className="card">
+                <p>Selecciona uma escola para abrir o chat.</p>
+                <button className="pill" onClick={() => setSheet("workspace")}>
+                  Seleccionar escola
+                </button>
+              </div>
+            )}
+          </>
+        )}
+        {page && (
+          <>
+            <div className="page-context">
               <button
                 className="round"
-                aria-label="Pesquisar conversas"
-                onClick={() => setSheet("search")}
+                aria-label="Voltar a Meu dia"
+                onClick={() => {
+                  navigatePage("");
+                  setTab("daily");
+                }}
               >
-                <Icon name="search" size={24} />
+                <Icon name="chevron-left" />
+              </button>
+              <button className="pill" onClick={() => setSheet("workspace")}>
+                {schoolName}
+                <Icon name="chevron-down" size={16} />
               </button>
             </div>
-            {currentData?.messages
-              .filter((m) => m.text.toLowerCase().includes(filter.toLowerCase()))
-              .map((m) => (
-                <div className="chat" key={m.id}>
-                  <div className="grow">
-                    <div className="name">{m.text}</div>
-                    <div className="muted">
-                      {m.from === session?.userId ? "Enviada" : "Recebida"} ·{" "}
-                      {new Date(m.sentAt).toLocaleDateString("pt-AO")}
-                    </div>
-                  </div>
-                </div>
-              ))}
-            {!currentData?.messages.length && (
-              <div className="card">Ainda não há conversas nesta escola.</div>
-            )}
-            <button className="pill" onClick={() => openModule("mensagens")}>
-              <Icon name="plus" size={18} /> Nova conversa
-            </button>
+            <ServicePages
+              page={page}
+              session={session}
+              data={currentData}
+              ctx={ctx}
+              role={role}
+              loading={loading}
+              busy={busy}
+              execute={execute}
+              onNavigate={navigatePage}
+              onSelectSchool={() => setSheet("workspace")}
+              onSettings={() => setSheet("settings")}
+            />
           </>
         )}
         {!sheet && error && (
@@ -557,6 +624,7 @@ export function App({ initialGateway }: { initialGateway?: Gateway }) {
             aria-label={label}
             aria-current={tab === id ? "page" : undefined}
             onClick={() => {
+              navigatePage("");
               setTab(id);
               setNotice("");
             }}
@@ -605,6 +673,51 @@ export function App({ initialGateway }: { initialGateway?: Gateway }) {
                 </button>
               </div>
             ))}
+          {sheet === "full-menu" && (
+            <div className="full-menu">
+              <h2>SIGA Plus</h2>
+              <details open>
+                <summary>Serviços escolares</summary>
+                {serviceCatalog(role).map(([label, icon, id]) => (
+                  <a
+                    key={id}
+                    className="menurow"
+                    href={"#/" + id}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      navigatePage(id);
+                    }}
+                  >
+                    <Icon name={icon} />
+                    {label}
+                    <Icon name="chevron-right" />
+                  </a>
+                ))}
+              </details>
+              {[
+                ["O meu perfil", "perfil"],
+                ["Recursos", "recursos"],
+                ["Comunidade escolar", "mensagens"],
+                ["A minha escola", "escola"],
+                ["Segurança", "seguranca"],
+                ["Privacidade", "privacidade"],
+                ["Instalar aplicação", "instalacao"],
+              ].map(([label, id]) => (
+                <a
+                  key={id}
+                  href={"#/" + id}
+                  className="menurow"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    navigatePage(id);
+                  }}
+                >
+                  {label}
+                  <Icon name="chevron-right" />
+                </a>
+              ))}
+            </div>
+          )}
           {sheet === "workspace" && (
             <>
               <div className="small">ESCOLA ACTUAL</div>
@@ -651,13 +764,29 @@ export function App({ initialGateway }: { initialGateway?: Gateway }) {
                 </p>
               </div>
               {menu.map(([label, icon, id]) => (
-                <div key={id}>{row(label, icon, () => setSheet(id))}</div>
+                <div key={id}>
+                  {row(label, icon, () => {
+                    const routes: Record<string, string> = {
+                      "profile-detail": "perfil",
+                      support: "suporte",
+                      docs: "manual",
+                      community: "mensagens",
+                      connectors: "integracoes",
+                      news: "recursos",
+                      inbox: "mensagens",
+                    };
+                    if (routes[id]) navigatePage(routes[id]);
+                    else setSheet(id);
+                  })}
+                </div>
               ))}
               {install &&
                 row("Instalar aplicação", "monitor-smartphone", async () => {
                   await (install as Event & { prompt: () => Promise<void> }).prompt();
                   setInstall(null);
                 })}
+              {row("Todos os serviços", "grid-2x2", () => navigatePage("servicos"))}
+              {row("Menu de serviços", "list-filter", () => setSheet("full-menu"))}
               {session && row("Terminar sessão", "user-round", logout)}
             </>
           )}
@@ -856,6 +985,7 @@ export function App({ initialGateway }: { initialGateway?: Gateway }) {
             </>
           )}
           {![
+            "full-menu",
             "academic",
             "workspace",
             "profile",

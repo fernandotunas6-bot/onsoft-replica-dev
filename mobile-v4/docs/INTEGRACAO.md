@@ -42,3 +42,11 @@ Ao trocar escola ou papel: limpar dados/formulários/listas visíveis, abortar a
 ## Gates para staging
 
 Dois tenants, conta sem vínculo, aluno próprio/outro, docente atribuído/não atribuído, grants read/none, sessão expirada, MFA, período fechado, IDs adulterados, notas não publicadas, auditoria, pedido de documento e troca de contexto durante leitura/escrita. Não executar SQL ou tocar produção para validar esta pasta.
+
+## Mapa de aulas e chat — extensão das referências
+
+`teacherAttendance` é uma lista separada `{lessonId,userId,status}` de registos docentes. Não calcular a presença do professor a partir da chamada dos alunos. Sem registo: pendente; nunca converter automaticamente em falta. Datas/métricas do mapa respeitam Africa/Luanda, e um dia com resultados diferentes fica «Registos mistos». Totais contam aulas, não quadrados. A história de teste só é criada no modo demonstrativo escolhido explicitamente.
+
+`src/services/chat-import.ts` recebe uma projecção de conversas directas autorizadas do SIGA em `sigaDirectThreads`: `{schoolId,memberIds,messages:[{id,sender_id,body,created_at,deleted_at}]}`. É baseada em `src/features/messages/chat-server.ts` e na sua `MessageRow`, consultados nesta implementação. O cliente verifica escola/participantes, omite mensagens eliminadas, deduplica e converte para os balões do chat. `ApiGateway` aplica o conversor quando esse campo está presente na resposta. Não copia dados directamente da base de produção nem importa o UI StaffMessenger.
+
+Servidor deve reutilizar `assertMember`, `assertConversationOpen`, `loadSchoolColleagues` e as regras de contacto actuais. O feed já precisa de autorização antes de chegar ao cliente. A UI desta pasta ainda limita contactos à relação docente/aluno nas turmas; grupos, anexos, respostas a mensagens e confirmações de leitura do chat principal não foram integrados. Nenhuma mensagem real foi importada, porque a autenticação/API continuam desactivadas.

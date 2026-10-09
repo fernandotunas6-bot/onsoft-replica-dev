@@ -35,3 +35,7 @@ Lacunas: sem módulos académicos funcionais, sem sessão real ou permissões ef
 - Médio: uploads, documentos oficiais e pedidos de vínculo aguardam serviços existentes; não inventar sucesso.
 - Médio: gradientes e backdrop-filter precisam de teste em dispositivos de baixa potência; animações respeitam reduced-motion.
 - Médio: shell PWA disponível offline não significa dados académicos disponíveis offline.
+
+## Extensão 17h16 — páginas de referência
+
+Implementados perfil com capa/estatísticas de aulas, menu de ecrã inteiro, páginas próprias dos serviços, rodapé em colunas, calendário mensal/anual com legenda, chat por contacto e conversor do formato das conversas directas SIGA. Conserva o shell inicial e os ficheiros de referência intactos. As imagens servem de referência visual; a fotografia e os dados da conta Lovable não são usados como dados do perfil. Próximo gate continua a ser a integração autenticada em staging e QA visual Android/iOS.

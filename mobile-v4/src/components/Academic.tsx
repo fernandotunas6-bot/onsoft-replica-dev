@@ -175,6 +175,11 @@ export function Academic({
             )}
           </article>
         ))}
+      {["presencas", "faltas"].includes(module) && (
+        <button className="pill" onClick={() => onNavigate("calendario")}>
+          Ver mapa de aulas
+        </button>
+      )}
       {module === "presencas" && (
         <form
           onSubmit={(e) =>

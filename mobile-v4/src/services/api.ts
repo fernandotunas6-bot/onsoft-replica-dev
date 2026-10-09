@@ -1,5 +1,6 @@
 import type { Gateway, Session, Context, Workspace, Command } from "../domain/model";
 import { authorize, scopeWorkspace, required } from "../domain/policy";
+import { importSigaDirectMessages } from "./chat-import";
 export class ApiError extends Error {
   constructor(
     public status: number,
@@ -64,6 +65,8 @@ export class ApiGateway implements Gateway {
       "/schools/" + encodeURIComponent(ctx.schoolId) + "/workspace?role=" + ctx.role,
       signal,
     );
+    if (data.sigaDirectThreads)
+      data.messages = importSigaDirectMessages(ctx, data.sigaDirectThreads);
     return scopeWorkspace(data, ctx);
   }
   async execute(ctx: Context, command: Command, signal?: AbortSignal) {

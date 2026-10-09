@@ -59,3 +59,13 @@ Sem ligação, o shell abre após uma primeira visita bem-sucedida; dados instit
 Sem autenticação real, endpoints implementados no SIGA, RLS novo, SQL executado, upload de ficheiros, emissões oficiais, notificações push ou deploy. Conectores, suporte, comunidade, pedidos de vínculo e acções de desenvolvimento IA conservam painéis de informação e indicam a integração pendente. Não afirmar segurança de produção a partir das guardas do browser: a autorização efectiva é do servidor existente.
 
 Revisão visual em dispositivos reais, TalkBack/VoiceOver, teclado virtual, zoom 200%, contraste e desempenho dos gradientes ainda pendente. Os testes React usam jsdom; não equivalem a validação visual Android/iOS.
+
+## Páginas novas a partir das referências
+
+Conta → Perfil abre `#/perfil`: capa em gradiente, avatar por iniciais, informações escolares, mapa anual e rodapé em duas colunas. Conta → Menu de serviços abre o menu de ecrã inteiro; Todos os serviços abre `#/servicos`. A marca nas páginas é SIGA Plus; não há links de marketing do Lovable.
+
+Cada serviço abre uma página completa com o mesmo cabeçalho/rodapé. URLs hash preservam a navegação Voltar do browser sem requerer rotas novas no servidor. Rodapé, menu e atalhos levam a destinos escolares reais na aplicação: aulas/horário, calendário, notas, trabalhos, chat, avisos, documentação, instalação e páginas de informação escolar. As permissões de escrita continuam no serviço/servidor.
+
+Calendário → mapa mensal; Perfil → mapa anual. Azul = presença, vermelho = falta, âmbar = justificada, ponto dividido = registos mistos, cinzento = por registar. Clicar num dia mostra aulas e estados. Setas do teclado percorrem dias, e mudar de mês selecciona o primeiro dia desse mês. O mapa do professor usa registos docentes separados. No modo de teste iniciado pela interface, aparecem exemplos fictícios das cores; sem escola não aparecem dados académicos.
+
+Conversas → contacto → chat com balões, horas de Luanda e envio. A página Mensagens usa o mesmo componente. A importação do formato do chat SIGA está preparada no adaptador HTTP; não foram importadas conversas reais nem activada a API de produção.

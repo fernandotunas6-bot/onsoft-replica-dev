@@ -59,6 +59,11 @@ export interface Attendance {
   studentId: string;
   status: AttendanceStatus;
 }
+export interface TeacherAttendance {
+  lessonId: string;
+  userId: string;
+  status: AttendanceStatus;
+}
 export interface Task {
   id: string;
   classId: string;
@@ -97,6 +102,7 @@ export interface Workspace {
   lessons: Lesson[];
   grades: Grade[];
   attendance: Attendance[];
+  teacherAttendance?: TeacherAttendance[];
   tasks: Task[];
   submissions: Submission[];
   plans: Plan[];

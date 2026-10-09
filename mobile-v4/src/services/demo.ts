@@ -63,6 +63,7 @@ export function seed(schoolId: string): Workspace {
       },
     ],
     attendance: [],
+    teacherAttendance: [],
     tasks: [
       {
         id: schoolId + "-task",
@@ -83,7 +84,10 @@ export function seed(schoolId: string): Workspace {
 export class DemoGateway implements Gateway {
   private current: Session | null;
   private db = new Map<string, Workspace>();
-  constructor(role: Role) {
+  constructor(
+    role: Role,
+    private withCalendarExample = false,
+  ) {
     this.current = demoSession(role);
   }
   setRole(role: Role) {
@@ -97,7 +101,32 @@ export class DemoGateway implements Gateway {
     return structuredClone(scopeWorkspace(this.data(ctx.schoolId), ctx));
   }
   private data(id: string) {
-    if (!this.db.has(id)) this.db.set(id, seed(id));
+    if (!this.db.has(id)) {
+      const workspace = seed(id);
+      if (this.withCalendarExample) {
+        const statuses = ["presente", "ausente", "justificada", "presente", "ausente"] as const;
+        const offsets = [1, 2, 3, 4, 4];
+        offsets.forEach((offset, index) => {
+          const lessonId = id + "-history-" + index;
+          const date = new Date(Date.now() - offset * 86400000).toISOString().slice(0, 10);
+          workspace.lessons.push({
+            id: lessonId,
+            classId: id + "-class",
+            date,
+            time: index === 4 ? "10:00–10:45" : "08:00–08:45",
+            room: "Sala 04",
+            topic: "Aula de teste · histórico",
+          });
+          workspace.attendance.push({ lessonId, studentId: id + "-s1", status: statuses[index] });
+          workspace.teacherAttendance!.push({
+            lessonId,
+            userId: "demo-teacher",
+            status: statuses[index],
+          });
+        });
+      }
+      this.db.set(id, workspace);
+    }
     return this.db.get(id)!;
   }
   async execute(ctx: Context, cmd: Command) {

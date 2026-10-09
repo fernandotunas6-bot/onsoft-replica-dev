@@ -1,6 +1,6 @@
 # Validação da pasta Mobile V4
 
-- 36 testes aprovados: 27 de domínio/acesso, 4 React/jsdom e 5 do adaptador HTTP.
+- 51 testes aprovados: 27 de domínio/acesso, 7 React/jsdom, 12 de calendário/importação de chat e 5 do adaptador HTTP.
 - TypeScript estrito e build Vite aprovados.
 - ESLint da pasta validado; formatação Prettier verificada.
 - PWA: manifesto/ícones/âmbito, exclusão de API, POST e origens externas verificados por execução do service worker gerado em contexto de teste.
@@ -12,3 +12,5 @@ Não executados: suíte completa do SIGA raiz, build de Windows/macOS, QA visual
 ## Aceite antes da integração
 
 Confirmar visual a 320/360/390/430/768 px; teclado e zoom; foco e leitor de ecrã; cache sem dados privados; sessão/MFA/grants; turmas atribuídas; notas publicadas/rascunho; períodos encerrados; revisões concorrentes; duas escolas; revogação de sessão; troca de contexto durante leitura/escrita; documentação de API alinhada com os serviços existentes.
+
+Extensão validada: navegação para páginas completas, perfil com mapa anual, menu de ecrã inteiro, footer com links internos, conversa por contacto, separação da presença docente/aluno, dias mistos/pendentes, calendário bissexto e importação rejeitada fora do contexto escolar. A revisão visual em browser/dispositivo continua pendente.

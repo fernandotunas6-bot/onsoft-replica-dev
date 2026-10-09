@@ -71,6 +71,12 @@ export function scopeWorkspace(data: Workspace, ctx: Context): Workspace {
     attendance: data.attendance.filter(
       (a) => lessonIds.has(a.lessonId) && studentIds.has(a.studentId),
     ),
+    teacherAttendance:
+      ctx.role === "professor"
+        ? (data.teacherAttendance || []).filter(
+            (a) => a.userId === ctx.userId && lessonIds.has(a.lessonId),
+          )
+        : [],
     submissions: data.submissions.filter(
       (s) => taskIds.has(s.taskId) && studentIds.has(s.studentId),
     ),
