@@ -34,6 +34,9 @@ Deno.serve(async (request) => {
   if (origin && !allowedOrigins.has(origin))
     return respond(403, { error: "Origin not allowed" }, request);
   if (request.method !== "POST") return respond(405, { error: "Method not allowed" }, request);
+  const contentType = request.headers.get("Content-Type") ?? "";
+  if (!/^application\/json(?:\s*;|\s*$)/i.test(contentType))
+    return respond(415, { error: "JSON content type required" }, request);
   const token = /^Bearer (.+)$/i.exec(request.headers.get("Authorization") ?? "")?.[1];
   if (!token) return respond(401, { error: "Authentication required" }, request);
   try {
@@ -78,7 +81,10 @@ Deno.serve(async (request) => {
     })();
     if (!body || typeof body !== "object" || Array.isArray(body))
       return respond(400, { error: "Invalid request body" }, request);
-    if (body?.action === "list") {
+    if (typeof body.action !== "string" ||
+        !["list", "schedule", "capabilities", "start", "join", "end", "recordings"].includes(body.action))
+      return respond(400, { error: "Unknown classroom action" }, request);
+    if (body.action === "list") {
       if (!isUuid(body.schoolId)) return respond(400, { error: "Invalid school" }, request);
       const db = createClient(url, env("SUPABASE_SERVICE_ROLE_KEY"), {
         auth: { persistSession: false },
