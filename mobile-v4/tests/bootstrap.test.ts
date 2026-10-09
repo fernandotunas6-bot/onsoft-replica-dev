@@ -11,6 +11,9 @@ describe("institutional API bootstrap", () => {
   });
 
   it("only enables the same-origin API through explicit institutional configuration", () => {
-    expect(institutionalGateway("institutional")).toBeInstanceOf(ApiGateway);
+    expect(() => institutionalGateway("institutional")).toThrow("sessão institucional");
+    expect(
+      institutionalGateway("institutional", { accessToken: async () => "verified-session" }),
+    ).toBeInstanceOf(ApiGateway);
   });
 });

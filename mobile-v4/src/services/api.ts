@@ -10,6 +10,13 @@ const allowedPermissions: readonly Permission[] = [
   "messages.write",
   "documents.request",
 ];
+export interface SessionTransport {
+  /** Supply the current access token from the existing Supabase session.
+   * The gateway never stores tokens or reads tokens from URLs/localStorage.
+   */
+  accessToken(): Promise<string | null>;
+  clearSession?(): Promise<void>;
+}
 export class ApiError extends Error {
   constructor(
     public status: number,
@@ -22,10 +29,14 @@ export class ApiError extends Error {
 export class ApiGateway implements Gateway {
   private current: Session | null = null;
   private workspaceCache = new Map<string, Workspace>();
+  private pendingRequests = new Map<string, string>();
   private key(ctx: Context) {
     return `${ctx.userId}:${ctx.schoolId}:${ctx.role}`;
   }
-  constructor(private base = "/api/mobile-v4") {
+  constructor(
+    private base = "/api/mobile-v4",
+    private transport?: SessionTransport,
+  ) {
     if (
       !base.startsWith("/") ||
       base.startsWith("//") ||
@@ -37,12 +48,20 @@ export class ApiGateway implements Gateway {
       throw new Error("A API deve usar um caminho na mesma origem.");
   }
   private async request(path: string, signal?: AbortSignal, body?: unknown) {
+    const token = this.transport ? await this.transport.accessToken() : null;
+    if (this.transport && !token) {
+      this.current = null;
+      this.workspaceCache.clear();
+      this.pendingRequests.clear();
+      throw new ApiError(401, "Sessão expirada.");
+    }
     const response = await fetch(this.base + path, {
       signal,
       credentials: "same-origin",
       cache: "no-store",
       headers: {
         Accept: "application/json",
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
         ...(body ? { "Content-Type": "application/json" } : {}),
       },
       method: body ? "POST" : "GET",
@@ -52,6 +71,7 @@ export class ApiGateway implements Gateway {
       if (response.status === 401) {
         this.current = null;
         this.workspaceCache.clear();
+        this.pendingRequests.clear();
       }
       throw new ApiError(
         response.status,
@@ -144,11 +164,15 @@ export class ApiGateway implements Gateway {
     if (!workspace || !this.current)
       throw new Error("Actualize os dados da escola antes de efectuar alterações.");
     validateCommand(this.current, ctx, workspace, command);
+    const retryKey = this.key(ctx) + ":" + JSON.stringify(command);
+    const requestId = this.pendingRequests.get(retryKey) ?? crypto.randomUUID();
+    this.pendingRequests.set(retryKey, requestId);
     await this.request("/schools/" + encodeURIComponent(ctx.schoolId) + "/commands", signal, {
       role: ctx.role,
       command,
-      requestId: crypto.randomUUID(),
+      requestId,
     });
+    this.pendingRequests.delete(retryKey);
     this.workspaceCache.delete(this.key(ctx));
   }
   async signOut() {
@@ -157,6 +181,8 @@ export class ApiGateway implements Gateway {
     } finally {
       this.current = null;
       this.workspaceCache.clear();
+      this.pendingRequests.clear();
+      await this.transport?.clearSession?.();
     }
   }
 }

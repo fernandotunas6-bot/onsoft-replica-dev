@@ -55,6 +55,13 @@ const MIGRADOS = [
  * na contagem de dívida abaixo.
  */
 const PRIVILEGIO_POR_DESENHO = new Set([
+  // Mobile V4: o aluno não pode ler directamente os vínculos/roles nem
+  // revogar sessões Auth Admin. HTTP valida Bearer + MFA antes dos serviços;
+  // autorização confirma o vínculo exacto activo e papel por escola. Ainda
+  // não lê dados académicos nem grava comandos (503). Testes em tests/mobile-v4.
+  "src/features/mobile-v4/authorization.ts",
+  "src/features/mobile-v4/session-core.server.ts",
+  "src/features/mobile-v4/http.server.ts",
   // Ensino Superior: `program_subject_prerequisites` e `course_unit_enrollments`
   // não têm política nenhuma para `authenticated` (só o servidor lhes toca). Cada
   // função exige Administrador/Secretaria (ou o professor da cadeira, para lançar

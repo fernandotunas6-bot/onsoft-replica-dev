@@ -1,5 +1,7 @@
 # Auditoria inicial de integração — 09/10/2026
 
+> Actualização Work: transporte HTTP e validação implementados, integração institucional ainda desligada. Estado e limites actuais em [RELATORIO_WORK_2026-10-09.md](RELATORIO_WORK_2026-10-09.md); as próximas etapas abaixo descrevem o plano inicial.
+
 ## Ficheiros efectivamente consultados
 
 - `src/features/messages/chat-server.ts`: usa `createServerFn`, `requireSupabaseAuth`, `loadSgaAdminClient`, `resolveSgaMembershipAdmin`; inclui `assertMember` e `assertConversationOpen` para isolamento de conversas.

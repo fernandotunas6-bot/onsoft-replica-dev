@@ -19,6 +19,8 @@ export default tseslint.config(
       // (outro tsconfig, outros globals) — só produzia ruído e ~10 min de CPU.
       "painel/**",
       "desktop/**",
+      // Aplicação independente, validada pelo workflow Mobile V4.
+      "mobile-v4/**",
       "modelo de pautas/**",
       "playwright-report/**",
       "reports/**",

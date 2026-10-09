@@ -1,5 +1,7 @@
 # Contrato de integração proposto — não activo
 
+> Actualização Work: transporte HTTP e validação implementados, integração institucional ainda desligada. Estado e limites actuais em [RELATORIO_WORK_2026-10-09.md](RELATORIO_WORK_2026-10-09.md); as próximas etapas abaixo descrevem o plano inicial.
+
 O entrypoint não instancia ApiGateway. `App` aceita uma implementação `Gateway` por injecção. API HTTP proposta na mesma origem, por omissão `/api/mobile-v4`. Estes endpoints não foram confirmados nem criados no SIGA.
 
 | Endpoint proposto                                        | Resultado                                                                                 |

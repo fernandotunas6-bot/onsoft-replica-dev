@@ -6,6 +6,21 @@ assert.equal(manifest.display, "standalone");
 assert.equal(manifest.scope, "./");
 for (const icon of manifest.icons) await access("dist/" + icon.src.replace("./", ""));
 const listeners = new Map();
+const previewWorker = vm.runInNewContext(
+  "(" +
+    (await readFile("dist/_worker.js", "utf8"))
+      .replace("export default", "")
+      .trim()
+      .replace(/;$/, "") +
+    ")",
+  { URL, Response },
+);
+const disabledApi = await previewWorker.fetch(
+  new Request("https://example.test/api/mobile-v4/session"),
+  {},
+);
+assert.equal(disabledApi.status, 503);
+assert.equal((await disabledApi.json()).error, "INSTITUTIONAL_API_DISABLED");
 const scope = "https://example.test/mobile-v4/";
 vm.runInNewContext(await readFile("dist/sw.js", "utf8"), {
   URL,
@@ -31,6 +46,7 @@ assert.equal(
   false,
 );
 assert.equal(handles({ method: "GET", url: scope + "api/grades", mode: "cors" }), false);
+assert.equal(handles({ method: "GET", url: scope + "_worker.js", mode: "cors" }), false);
 assert.equal(
   handles({ method: "GET", url: "https://other.test/index.html", mode: "navigate" }),
   false,

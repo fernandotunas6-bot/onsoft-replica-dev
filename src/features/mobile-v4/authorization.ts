@@ -1,4 +1,6 @@
 import { loadSgaAdminClient, assertModuleNotBlocked } from "@/integrations/supabase/sga-admin";
+import { MobileApiError } from "./errors";
+import { mobileScopeSchema } from "./schemas";
 import { listUserSchoolMemberships } from "@/integrations/supabase/sga";
 
 export type MobileAcademicRole = "professor" | "aluno";
@@ -14,7 +16,8 @@ export async function requireMobileAcademicAccess(
   role: MobileAcademicRole,
   mode: "read" | "write" = "read",
 ) {
-  if (!userId.trim() || !schoolId.trim()) throw new Error("Sessão ou escola inválida.");
+  mobileScopeSchema.parse({ schoolId, role });
+  if (!userId.trim()) throw new MobileApiError(401, "SESSION_REQUIRED");
   const db = await loadSgaAdminClient();
   const { data: activeRow, error: activeError } = await db
     .from("school_memberships")
@@ -23,16 +26,27 @@ export async function requireMobileAcademicAccess(
     .eq("school_id", schoolId)
     .eq("status", "active")
     .maybeSingle();
-  if (activeError || !activeRow) throw new Error("Sem vínculo activo nesta escola.");
-  const memberships = await listUserSchoolMemberships(db, userId);
+  if (activeError) throw new MobileApiError(503, "MEMBERSHIP_LOOKUP_UNAVAILABLE");
+  if (!activeRow) throw new MobileApiError(403, "SCHOOL_FORBIDDEN");
+  const memberships = await listUserSchoolMemberships(db, userId, { strict: true });
   const membership = memberships.find(
     (item) => item.schoolId === schoolId && item.membershipId === activeRow.id && item.isActive,
   );
-  if (!membership) throw new Error("Sem vínculo activo nesta escola.");
+  if (!membership) throw new MobileApiError(403, "SCHOOL_FORBIDDEN");
   const requiredRole = role === "professor" ? "Professor" : "Aluno";
   if (!membership.allAppRoles.includes(requiredRole)) {
-    throw new Error("Papel académico não autorizado nesta escola.");
+    throw new MobileApiError(403, "ROLE_FORBIDDEN");
   }
-  await assertModuleNotBlocked(schoolId, userId, "pedagogica", mode);
+  try {
+    await assertModuleNotBlocked(schoolId, userId, "pedagogica", mode);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "";
+    const forbidden =
+      /retirado|só tem leitura|suspensa|experimental terminou|cancelada|arquivada/.test(message);
+    throw new MobileApiError(
+      forbidden ? 403 : 503,
+      forbidden ? "MODULE_FORBIDDEN" : "GRANTS_UNAVAILABLE",
+    );
+  }
   return { db, membership };
 }

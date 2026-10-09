@@ -1,0 +1,170 @@
+import { beforeEach, describe, expect, it, vi } from "vitest";
+
+vi.mock("@/features/saas/platform-guard", () => ({ resolveBearerSession: vi.fn() }));
+vi.mock("@/integrations/supabase/sga-admin", () => ({ loadSgaAdminClient: vi.fn() }));
+vi.mock("@/features/mobile-v4/session-core.server", () => ({ loadMobileV4Session: vi.fn() }));
+vi.mock("@/features/mobile-v4/operations-core.server", () => ({
+  loadMobileV4Workspace: vi.fn(),
+  applyMobileV4Command: vi.fn(),
+}));
+
+import { handleMobileV4Http, type MobileHttpDependencies } from "@/features/mobile-v4/http.server";
+import { MobileApiError } from "@/features/mobile-v4/errors";
+
+const school = "11111111-1111-4111-8111-111111111111";
+const requestId = "22222222-2222-4222-8222-222222222222";
+const command = {
+  role: "professor",
+  requestId,
+  command: {
+    type: "grade",
+    classId: "class",
+    studentId: "student",
+    value: 12,
+    published: false,
+    expectedRevision: 0,
+  },
+};
+let deps: MobileHttpDependencies;
+function request(path: string, body?: unknown, headers: Record<string, string> = {}) {
+  return new Request("https://staging.example/api/mobile-v4" + path, {
+    method: body === undefined ? "GET" : "POST",
+    headers: { Authorization: "Bearer test-jwt", "Content-Type": "application/json", ...headers },
+    ...(body === undefined ? {} : { body: JSON.stringify(body) }),
+  });
+}
+beforeEach(() => {
+  deps = {
+    authenticate: vi.fn().mockResolvedValue({ userId: "verified-user", aal: "aal2" }),
+    session: vi.fn().mockResolvedValue({ userId: "verified-user" }),
+    workspace: vi.fn().mockResolvedValue({ schoolId: school }),
+    command: vi.fn().mockResolvedValue({ committed: true }),
+    logout: vi.fn().mockResolvedValue(undefined),
+  };
+});
+
+describe("Mobile V4 HTTP transport with controlled service dependencies", () => {
+  it("returns private JSON from the verified identity", async () => {
+    const response = await handleMobileV4Http(request("/session"), deps);
+    expect(response.status).toBe(200);
+    expect(response.headers.get("Cache-Control")).toBe("private, no-store");
+    expect(response.headers.get("Access-Control-Allow-Origin")).toBeNull();
+    expect(deps.session).toHaveBeenCalledWith("verified-user");
+    expect(deps.authenticate).toHaveBeenCalledWith("Bearer test-jwt");
+  });
+  it("rejects invalid or MFA-pending sessions without reading data", async () => {
+    vi.mocked(deps.authenticate).mockRejectedValue(new Error("secret JWT details"));
+    const response = await handleMobileV4Http(request("/session"), deps);
+    expect(response.status).toBe(401);
+    expect(await response.text()).not.toContain("secret");
+    expect(deps.session).not.toHaveBeenCalled();
+  });
+  it("rejects cross-origin and opaque-origin requests before auth", async () => {
+    for (const origin of ["https://evil.example", "null"]) {
+      expect(
+        (await handleMobileV4Http(request("/logout", {}, { Origin: origin }), deps)).status,
+      ).toBe(403);
+    }
+    expect(deps.authenticate).not.toHaveBeenCalled();
+  });
+  it("does not support CORS preflight or incorrect methods", async () => {
+    const response = await handleMobileV4Http(
+      new Request("https://staging.example/api/mobile-v4/session", { method: "OPTIONS" }),
+      deps,
+    );
+    expect(response.status).toBe(405);
+    expect(response.headers.get("Allow")).toBe("GET");
+    expect(deps.authenticate).not.toHaveBeenCalled();
+  });
+  it("validates school UUID and role before querying workspace", async () => {
+    for (const path of [
+      `/schools/${school}/workspace?role=admin`,
+      "/schools/abc/workspace?role=aluno",
+    ]) {
+      expect((await handleMobileV4Http(request(path), deps)).status).toBe(422);
+    }
+    expect(deps.workspace).not.toHaveBeenCalled();
+  });
+  it("forwards only route school and verified user", async () => {
+    await handleMobileV4Http(
+      request(`/schools/${school}/workspace?role=aluno&userId=attacker`),
+      deps,
+    );
+    expect(deps.workspace).toHaveBeenCalledWith("verified-user", {
+      schoolId: school,
+      role: "aluno",
+    });
+  });
+  it("requires aal2 for every write", async () => {
+    vi.mocked(deps.authenticate).mockResolvedValue({ userId: "verified-user", aal: "aal1" });
+    expect(
+      (await handleMobileV4Http(request(`/schools/${school}/commands`, command), deps)).status,
+    ).toBe(403);
+    expect(deps.command).not.toHaveBeenCalled();
+  });
+  it("rejects forged identity/tenant and unknown fields", async () => {
+    for (const extra of [{ userId: "attacker" }, { schoolId: school }, { unsafe: true }]) {
+      expect(
+        (
+          await handleMobileV4Http(
+            request(`/schools/${school}/commands`, { ...command, ...extra }),
+            deps,
+          )
+        ).status,
+      ).toBe(422);
+    }
+    expect(deps.command).not.toHaveBeenCalled();
+  });
+  it("validates payload before dispatch and preserves idempotency key", async () => {
+    const response = await handleMobileV4Http(
+      request(`/schools/${school}/commands`, command),
+      deps,
+    );
+    expect(response.status).toBe(200);
+    expect(deps.command).toHaveBeenCalledWith("verified-user", { ...command, schoolId: school });
+  });
+  it("returns 403/409/503 without leaking details or reporting success", async () => {
+    for (const status of [403, 409, 503]) {
+      vi.mocked(deps.command).mockRejectedValue(new MobileApiError(status, "OPERATION_BLOCKED"));
+      expect(
+        (await handleMobileV4Http(request(`/schools/${school}/commands`, command), deps)).status,
+      ).toBe(status);
+    }
+  });
+  it("rejects malformed JSON and unsupported content types", async () => {
+    const malformed = new Request(
+      `https://staging.example/api/mobile-v4/schools/${school}/commands`,
+      {
+        method: "POST",
+        body: "{",
+        headers: { Authorization: "Bearer test", "Content-Type": "application/json" },
+      },
+    );
+    expect((await handleMobileV4Http(malformed, deps)).status).toBe(422);
+    expect(
+      (
+        await handleMobileV4Http(
+          request(`/schools/${school}/commands`, command, { "Content-Type": "text/plain" }),
+          deps,
+        )
+      ).status,
+    ).toBe(415);
+    expect(deps.command).not.toHaveBeenCalled();
+  });
+  it("limits streamed bodies even without content-length", async () => {
+    const response = await handleMobileV4Http(
+      request(`/schools/${school}/commands`, { text: "x".repeat(70000) }),
+      deps,
+    );
+    expect(response.status).toBe(413);
+    expect(deps.command).not.toHaveBeenCalled();
+  });
+  it("revokes only the current refresh session on logout", async () => {
+    expect((await handleMobileV4Http(request("/logout", {}), deps)).status).toBe(204);
+    expect(deps.logout).toHaveBeenCalledWith("test-jwt");
+  });
+  it("fails logout if revocation is unavailable", async () => {
+    vi.mocked(deps.logout).mockRejectedValue(new MobileApiError(503, "LOGOUT_UNAVAILABLE"));
+    expect((await handleMobileV4Http(request("/logout", {}), deps)).status).toBe(503);
+  });
+});

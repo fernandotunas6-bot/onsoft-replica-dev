@@ -1,0 +1,21 @@
+import { requireMobileAcademicAccess } from "./authorization";
+import { MobileApiError } from "./errors";
+import { mobileCommandRequestSchema, mobileScopeSchema } from "./schemas";
+
+// Until the academic projection and atomic persistence are validated against
+// an isolated database, these routes must never report success or fake data.
+export async function loadMobileV4Workspace(userId: string, input: unknown) {
+  const scope = mobileScopeSchema.parse(input);
+  await requireMobileAcademicAccess(userId, scope.schoolId, scope.role, "read");
+  throw new MobileApiError(503, "WORKSPACE_NOT_READY");
+}
+
+export async function applyMobileV4Command(userId: string, input: unknown) {
+  const data = mobileCommandRequestSchema.parse(input);
+  const studentCommand = ["submission", "document"].includes(data.command.type);
+  if (data.command.type !== "message" && (studentCommand ? "aluno" : "professor") !== data.role) {
+    throw new MobileApiError(403, "COMMAND_ROLE_FORBIDDEN");
+  }
+  await requireMobileAcademicAccess(userId, data.schoolId, data.role, "write");
+  throw new MobileApiError(503, "COMMANDS_NOT_READY");
+}

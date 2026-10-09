@@ -8,7 +8,9 @@ async function walk(dir) {
     )
   ).flat();
 }
-const files = (await walk("dist")).filter((f) => !f.endsWith("sw.js"));
+const files = (await walk("dist")).filter(
+  (f) => !f.endsWith("sw.js") && !f.endsWith("/_worker.js"),
+);
 const hash = createHash("sha256");
 for (const f of files) hash.update(await readFile(f));
 const version = hash.digest("hex").slice(0, 16);

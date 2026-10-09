@@ -68,6 +68,8 @@ import { Route as ApiCalendarIcsRouteImport } from './routes/api/calendar.ics'
 import { Route as ApiCatracasDeviceScanRouteImport } from './routes/api/catracas/device-scan'
 import { Route as ApiCronLessonRemindersRouteImport } from './routes/api/cron/lesson-reminders'
 import { Route as ApiCronSaasLifecycleRouteImport } from './routes/api/cron/saas-lifecycle'
+import { Route as ApiMobileV4LogoutRouteImport } from './routes/api/mobile-v4/logout'
+import { Route as ApiMobileV4SessionRouteImport } from './routes/api/mobile-v4/session'
 import { Route as ApiSaasAuditLogsRouteImport } from './routes/api/saas/audit-logs'
 import { Route as ApiSaasBillingProofsRouteImport } from './routes/api/saas/billing-proofs'
 import { Route as ApiSaasDomainsRouteImport } from './routes/api/saas/domains'
@@ -122,6 +124,8 @@ import { Route as ApiSaasTenantsStatusRouteImport } from './routes/api/saas/tena
 import { Route as ApiSaasTenantsSubscriptionRouteImport } from './routes/api/saas/tenants.subscription'
 import { Route as ApiSaasUsageSyncRouteImport } from './routes/api/saas/usage.sync'
 import { Route as ApiFinanceGatewayUnitelConfirmRouteImport } from './routes/api/finance/gateway.unitel.confirm'
+import { Route as ApiMobileV4SchoolsSchoolIdCommandsRouteImport } from './routes/api/mobile-v4/schools/$schoolId/commands'
+import { Route as ApiMobileV4SchoolsSchoolIdWorkspaceRouteImport } from './routes/api/mobile-v4/schools/$schoolId/workspace'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -422,6 +426,16 @@ const ApiCronSaasLifecycleRoute = ApiCronSaasLifecycleRouteImport.update({
   path: '/api/cron/saas-lifecycle',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiMobileV4LogoutRoute = ApiMobileV4LogoutRouteImport.update({
+  id: '/api/mobile-v4/logout',
+  path: '/api/mobile-v4/logout',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiMobileV4SessionRoute = ApiMobileV4SessionRouteImport.update({
+  id: '/api/mobile-v4/session',
+  path: '/api/mobile-v4/session',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiSaasAuditLogsRoute = ApiSaasAuditLogsRouteImport.update({
   id: '/api/saas/audit-logs',
   path: '/api/saas/audit-logs',
@@ -710,6 +724,18 @@ const ApiFinanceGatewayUnitelConfirmRoute =
     path: '/api/finance/gateway/unitel/confirm',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiMobileV4SchoolsSchoolIdCommandsRoute =
+  ApiMobileV4SchoolsSchoolIdCommandsRouteImport.update({
+    id: '/api/mobile-v4/schools/$schoolId/commands',
+    path: '/api/mobile-v4/schools/$schoolId/commands',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiMobileV4SchoolsSchoolIdWorkspaceRoute =
+  ApiMobileV4SchoolsSchoolIdWorkspaceRouteImport.update({
+    id: '/api/mobile-v4/schools/$schoolId/workspace',
+    path: '/api/mobile-v4/schools/$schoolId/workspace',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -771,6 +797,8 @@ export interface FileRoutesByFullPath {
   '/api/catracas/device-scan': typeof ApiCatracasDeviceScanRoute
   '/api/cron/lesson-reminders': typeof ApiCronLessonRemindersRoute
   '/api/cron/saas-lifecycle': typeof ApiCronSaasLifecycleRoute
+  '/api/mobile-v4/logout': typeof ApiMobileV4LogoutRoute
+  '/api/mobile-v4/session': typeof ApiMobileV4SessionRoute
   '/api/saas/audit-logs': typeof ApiSaasAuditLogsRoute
   '/api/saas/billing-proofs': typeof ApiSaasBillingProofsRoute
   '/api/saas/domains': typeof ApiSaasDomainsRouteWithChildren
@@ -825,6 +853,8 @@ export interface FileRoutesByFullPath {
   '/api/saas/tenants/subscription': typeof ApiSaasTenantsSubscriptionRoute
   '/api/saas/usage/sync': typeof ApiSaasUsageSyncRoute
   '/api/finance/gateway/unitel/confirm': typeof ApiFinanceGatewayUnitelConfirmRoute
+  '/api/mobile-v4/schools/$schoolId/commands': typeof ApiMobileV4SchoolsSchoolIdCommandsRoute
+  '/api/mobile-v4/schools/$schoolId/workspace': typeof ApiMobileV4SchoolsSchoolIdWorkspaceRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -886,6 +916,8 @@ export interface FileRoutesByTo {
   '/api/catracas/device-scan': typeof ApiCatracasDeviceScanRoute
   '/api/cron/lesson-reminders': typeof ApiCronLessonRemindersRoute
   '/api/cron/saas-lifecycle': typeof ApiCronSaasLifecycleRoute
+  '/api/mobile-v4/logout': typeof ApiMobileV4LogoutRoute
+  '/api/mobile-v4/session': typeof ApiMobileV4SessionRoute
   '/api/saas/audit-logs': typeof ApiSaasAuditLogsRoute
   '/api/saas/billing-proofs': typeof ApiSaasBillingProofsRoute
   '/api/saas/domains': typeof ApiSaasDomainsRouteWithChildren
@@ -940,6 +972,8 @@ export interface FileRoutesByTo {
   '/api/saas/tenants/subscription': typeof ApiSaasTenantsSubscriptionRoute
   '/api/saas/usage/sync': typeof ApiSaasUsageSyncRoute
   '/api/finance/gateway/unitel/confirm': typeof ApiFinanceGatewayUnitelConfirmRoute
+  '/api/mobile-v4/schools/$schoolId/commands': typeof ApiMobileV4SchoolsSchoolIdCommandsRoute
+  '/api/mobile-v4/schools/$schoolId/workspace': typeof ApiMobileV4SchoolsSchoolIdWorkspaceRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -1002,6 +1036,8 @@ export interface FileRoutesById {
   '/api/catracas/device-scan': typeof ApiCatracasDeviceScanRoute
   '/api/cron/lesson-reminders': typeof ApiCronLessonRemindersRoute
   '/api/cron/saas-lifecycle': typeof ApiCronSaasLifecycleRoute
+  '/api/mobile-v4/logout': typeof ApiMobileV4LogoutRoute
+  '/api/mobile-v4/session': typeof ApiMobileV4SessionRoute
   '/api/saas/audit-logs': typeof ApiSaasAuditLogsRoute
   '/api/saas/billing-proofs': typeof ApiSaasBillingProofsRoute
   '/api/saas/domains': typeof ApiSaasDomainsRouteWithChildren
@@ -1056,6 +1092,8 @@ export interface FileRoutesById {
   '/api/saas/tenants/subscription': typeof ApiSaasTenantsSubscriptionRoute
   '/api/saas/usage/sync': typeof ApiSaasUsageSyncRoute
   '/api/finance/gateway/unitel/confirm': typeof ApiFinanceGatewayUnitelConfirmRoute
+  '/api/mobile-v4/schools/$schoolId/commands': typeof ApiMobileV4SchoolsSchoolIdCommandsRoute
+  '/api/mobile-v4/schools/$schoolId/workspace': typeof ApiMobileV4SchoolsSchoolIdWorkspaceRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -1119,6 +1157,8 @@ export interface FileRouteTypes {
     | '/api/catracas/device-scan'
     | '/api/cron/lesson-reminders'
     | '/api/cron/saas-lifecycle'
+    | '/api/mobile-v4/logout'
+    | '/api/mobile-v4/session'
     | '/api/saas/audit-logs'
     | '/api/saas/billing-proofs'
     | '/api/saas/domains'
@@ -1173,6 +1213,8 @@ export interface FileRouteTypes {
     | '/api/saas/tenants/subscription'
     | '/api/saas/usage/sync'
     | '/api/finance/gateway/unitel/confirm'
+    | '/api/mobile-v4/schools/$schoolId/commands'
+    | '/api/mobile-v4/schools/$schoolId/workspace'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -1234,6 +1276,8 @@ export interface FileRouteTypes {
     | '/api/catracas/device-scan'
     | '/api/cron/lesson-reminders'
     | '/api/cron/saas-lifecycle'
+    | '/api/mobile-v4/logout'
+    | '/api/mobile-v4/session'
     | '/api/saas/audit-logs'
     | '/api/saas/billing-proofs'
     | '/api/saas/domains'
@@ -1288,6 +1332,8 @@ export interface FileRouteTypes {
     | '/api/saas/tenants/subscription'
     | '/api/saas/usage/sync'
     | '/api/finance/gateway/unitel/confirm'
+    | '/api/mobile-v4/schools/$schoolId/commands'
+    | '/api/mobile-v4/schools/$schoolId/workspace'
   id:
     | '__root__'
     | '/'
@@ -1349,6 +1395,8 @@ export interface FileRouteTypes {
     | '/api/catracas/device-scan'
     | '/api/cron/lesson-reminders'
     | '/api/cron/saas-lifecycle'
+    | '/api/mobile-v4/logout'
+    | '/api/mobile-v4/session'
     | '/api/saas/audit-logs'
     | '/api/saas/billing-proofs'
     | '/api/saas/domains'
@@ -1403,6 +1451,8 @@ export interface FileRouteTypes {
     | '/api/saas/tenants/subscription'
     | '/api/saas/usage/sync'
     | '/api/finance/gateway/unitel/confirm'
+    | '/api/mobile-v4/schools/$schoolId/commands'
+    | '/api/mobile-v4/schools/$schoolId/workspace'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -1452,6 +1502,8 @@ export interface RootRouteChildren {
   ApiCatracasDeviceScanRoute: typeof ApiCatracasDeviceScanRoute
   ApiCronLessonRemindersRoute: typeof ApiCronLessonRemindersRoute
   ApiCronSaasLifecycleRoute: typeof ApiCronSaasLifecycleRoute
+  ApiMobileV4LogoutRoute: typeof ApiMobileV4LogoutRoute
+  ApiMobileV4SessionRoute: typeof ApiMobileV4SessionRoute
   ApiSaasAuditLogsRoute: typeof ApiSaasAuditLogsRoute
   ApiSaasBillingProofsRoute: typeof ApiSaasBillingProofsRoute
   ApiSaasDomainsRoute: typeof ApiSaasDomainsRouteWithChildren
@@ -1485,6 +1537,8 @@ export interface RootRouteChildren {
   ApiSaasSiteShowcaseRoute: typeof ApiSaasSiteShowcaseRoute
   ApiSaasUsageSyncRoute: typeof ApiSaasUsageSyncRoute
   ApiFinanceGatewayUnitelConfirmRoute: typeof ApiFinanceGatewayUnitelConfirmRoute
+  ApiMobileV4SchoolsSchoolIdCommandsRoute: typeof ApiMobileV4SchoolsSchoolIdCommandsRoute
+  ApiMobileV4SchoolsSchoolIdWorkspaceRoute: typeof ApiMobileV4SchoolsSchoolIdWorkspaceRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -1902,6 +1956,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiCronSaasLifecycleRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/mobile-v4/logout': {
+      id: '/api/mobile-v4/logout'
+      path: '/api/mobile-v4/logout'
+      fullPath: '/api/mobile-v4/logout'
+      preLoaderRoute: typeof ApiMobileV4LogoutRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/mobile-v4/session': {
+      id: '/api/mobile-v4/session'
+      path: '/api/mobile-v4/session'
+      fullPath: '/api/mobile-v4/session'
+      preLoaderRoute: typeof ApiMobileV4SessionRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/saas/audit-logs': {
       id: '/api/saas/audit-logs'
       path: '/api/saas/audit-logs'
@@ -2280,6 +2348,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiFinanceGatewayUnitelConfirmRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/mobile-v4/schools/$schoolId/commands': {
+      id: '/api/mobile-v4/schools/$schoolId/commands'
+      path: '/api/mobile-v4/schools/$schoolId/commands'
+      fullPath: '/api/mobile-v4/schools/$schoolId/commands'
+      preLoaderRoute: typeof ApiMobileV4SchoolsSchoolIdCommandsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/mobile-v4/schools/$schoolId/workspace': {
+      id: '/api/mobile-v4/schools/$schoolId/workspace'
+      path: '/api/mobile-v4/schools/$schoolId/workspace'
+      fullPath: '/api/mobile-v4/schools/$schoolId/workspace'
+      preLoaderRoute: typeof ApiMobileV4SchoolsSchoolIdWorkspaceRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -2519,6 +2601,8 @@ const rootRouteChildren: RootRouteChildren = {
   ApiCatracasDeviceScanRoute: ApiCatracasDeviceScanRoute,
   ApiCronLessonRemindersRoute: ApiCronLessonRemindersRoute,
   ApiCronSaasLifecycleRoute: ApiCronSaasLifecycleRoute,
+  ApiMobileV4LogoutRoute: ApiMobileV4LogoutRoute,
+  ApiMobileV4SessionRoute: ApiMobileV4SessionRoute,
   ApiSaasAuditLogsRoute: ApiSaasAuditLogsRoute,
   ApiSaasBillingProofsRoute: ApiSaasBillingProofsRoute,
   ApiSaasDomainsRoute: ApiSaasDomainsRouteWithChildren,
@@ -2552,6 +2636,10 @@ const rootRouteChildren: RootRouteChildren = {
   ApiSaasSiteShowcaseRoute: ApiSaasSiteShowcaseRoute,
   ApiSaasUsageSyncRoute: ApiSaasUsageSyncRoute,
   ApiFinanceGatewayUnitelConfirmRoute: ApiFinanceGatewayUnitelConfirmRoute,
+  ApiMobileV4SchoolsSchoolIdCommandsRoute:
+    ApiMobileV4SchoolsSchoolIdCommandsRoute,
+  ApiMobileV4SchoolsSchoolIdWorkspaceRoute:
+    ApiMobileV4SchoolsSchoolIdWorkspaceRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

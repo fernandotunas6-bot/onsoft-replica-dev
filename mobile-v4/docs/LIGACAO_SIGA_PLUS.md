@@ -1,5 +1,7 @@
 # Ligação segura Mobile V4 ↔ SIGA Plus
 
+> Actualização Work: transporte HTTP e validação implementados, integração institucional ainda desligada. Estado e limites actuais em [RELATORIO_WORK_2026-10-09.md](RELATORIO_WORK_2026-10-09.md); as próximas etapas abaixo descrevem o plano inicial.
+
 Estado: o frontend já suporta activação explícita do adaptador API; **não existe ligação institucional activa no deploy público**. A aplicação publicada permanece demonstração. Não apontar o Mobile V4 directamente para Supabase com chave privilegiada.
 
 ## Arquitectura recomendada

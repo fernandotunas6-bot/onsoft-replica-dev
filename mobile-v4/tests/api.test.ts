@@ -7,6 +7,51 @@ const ctx = {
   role: "professor" as const,
 };
 afterEach(() => vi.unstubAllGlobals());
+it("reads a fresh Supabase token for each request without storing it", async () => {
+  const accessToken = vi.fn().mockResolvedValueOnce("token-a").mockResolvedValueOnce("token-b");
+  const fetch = vi
+    .fn()
+    .mockResolvedValueOnce({ ok: true, status: 200, json: async () => demoSession("professor") })
+    .mockResolvedValueOnce({ ok: true, status: 200, json: async () => seed(ctx.schoolId) });
+  vi.stubGlobal("fetch", fetch);
+  const api = new ApiGateway("/api/mobile-v4", { accessToken });
+  await api.session();
+  await api.workspace(ctx);
+  expect(fetch.mock.calls[0][1].headers.Authorization).toBe("Bearer token-a");
+  expect(fetch.mock.calls[1][1].headers.Authorization).toBe("Bearer token-b");
+});
+it("refuses a missing session token before contacting the API", async () => {
+  const fetch = vi.fn();
+  vi.stubGlobal("fetch", fetch);
+  const api = new ApiGateway("/api/mobile-v4", { accessToken: async () => null });
+  await expect(api.session()).rejects.toThrow("Sessão expirada");
+  expect(fetch).not.toHaveBeenCalled();
+});
+it("preserves the request ID when retrying an ambiguous network failure", async () => {
+  const fetch = vi
+    .fn()
+    .mockResolvedValueOnce({ ok: true, status: 200, json: async () => demoSession("professor") })
+    .mockResolvedValueOnce({ ok: true, status: 200, json: async () => seed(ctx.schoolId) })
+    .mockRejectedValueOnce(new TypeError("Network interrupted"))
+    .mockResolvedValueOnce({ ok: true, status: 204 });
+  vi.stubGlobal("fetch", fetch);
+  const api = new ApiGateway();
+  await api.session();
+  await api.workspace(ctx);
+  const command = { type: "message" as const, to: "demo-student", text: "Test retry" };
+  await expect(api.execute(ctx, command)).rejects.toThrow("Network interrupted");
+  await api.execute(ctx, command);
+  const first = JSON.parse(fetch.mock.calls[2][1].body);
+  const retry = JSON.parse(fetch.mock.calls[3][1].body);
+  expect(retry.requestId).toBe(first.requestId);
+});
+it("clears the local Supabase session even when remote logout fails", async () => {
+  const clearSession = vi.fn().mockResolvedValue(undefined);
+  vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new TypeError("Network interrupted")));
+  const api = new ApiGateway("/api/mobile-v4", { accessToken: async () => "token", clearSession });
+  await expect(api.signOut()).rejects.toThrow();
+  expect(clearSession).toHaveBeenCalledTimes(1);
+});
 it("refuses external API bases", () => {
   expect(() => new ApiGateway("https://example.com")).toThrow();
   expect(() => new ApiGateway("//example.com")).toThrow();

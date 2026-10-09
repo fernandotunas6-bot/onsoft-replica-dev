@@ -3,8 +3,11 @@ name: Mobile V4 — validate and package preview
 on:
   pull_request:
     paths:
-      - 'mobile-v4/**'
-      - '.github/workflows/mobile-v4-preview.yml'
+      - "mobile-v4/**"
+      - "src/features/mobile-v4/**"
+      - "src/routes/api/mobile-v4/**"
+      - "tests/mobile-v4/**"
+      - ".github/workflows/mobile-v4-preview.yml"
   workflow_dispatch:
 
 permissions:
@@ -25,7 +28,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: '24'
+          node-version: "24"
           cache: npm
           cache-dependency-path: mobile-v4/package-lock.json
       - name: Install locked dependencies
@@ -47,8 +50,8 @@ jobs:
       - name: Generate formatting diagnostics
         if: steps.formatting.outcome != 'success'
         run: |
-          npx prettier --write src tests scripts index.html vite.config.ts tsconfig.json package.json public/manifest.webmanifest docs README.md
-          git diff -- src tests scripts index.html vite.config.ts tsconfig.json package.json public/manifest.webmanifest docs README.md > mobile-v4-formatting.patch
+          npx prettier --write src tests scripts index.html vite.config.ts tsconfig.json package.json public/manifest.webmanifest public/_worker.js docs README.md
+          git diff -- src tests scripts index.html vite.config.ts tsconfig.json package.json public/manifest.webmanifest public/_worker.js docs README.md > mobile-v4-formatting.patch
           test -s mobile-v4-formatting.patch
       - name: Upload formatting diagnostics
         if: steps.formatting.outcome != 'success'
