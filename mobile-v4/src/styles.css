@@ -1469,3 +1469,12 @@ select:focus-visible {
 
 /* School identity stays compact; missing images retain the existing monogram. */
 .school-logo { display: block; width: 100%; height: 100%; object-fit: contain; border-radius: inherit; }
+
+.setting-toggle { display: flex; align-items: center; justify-content: space-between; gap: 16px; cursor: pointer; }
+.setting-toggle > span { display: grid; gap: 4px; }
+.setting-toggle input { width: 20px; height: 20px; flex: none; }
+#app.compact .content { padding-top: 0; }
+#app.compact .card { padding: 12px; margin-bottom: 10px; }
+#app.compact .menurow { min-height: 44px; }
+#app.compact .project, #app.compact .chat { padding-block: 10px; }
+#app.compact h1 { margin-block: 8px 14px; }
