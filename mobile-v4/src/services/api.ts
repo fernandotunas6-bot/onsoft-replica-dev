@@ -1,0 +1,84 @@
+import type { Gateway, Session, Context, Workspace, Command } from "../domain/model";
+import { authorize, scopeWorkspace, required } from "../domain/policy";
+export class ApiError extends Error {
+  constructor(
+    public status: number,
+    message: string,
+  ) {
+    super(message);
+  }
+}
+// Proposed API contract. No production endpoint is enabled by this module.
+export class ApiGateway implements Gateway {
+  private current: Session | null = null;
+  constructor(private base = "/api/mobile-v4") {
+    if (!base.startsWith("/") || base.startsWith("//") || base.includes(".."))
+      throw new Error("A API deve usar um caminho na mesma origem.");
+  }
+  private async request(path: string, signal?: AbortSignal, body?: unknown) {
+    const response = await fetch(this.base + path, {
+      signal,
+      credentials: "same-origin",
+      cache: "no-store",
+      headers: {
+        Accept: "application/json",
+        ...(body ? { "Content-Type": "application/json" } : {}),
+      },
+      method: body ? "POST" : "GET",
+      ...(body ? { body: JSON.stringify(body) } : {}),
+    });
+    if (!response.ok) {
+      if (response.status === 401) this.current = null;
+      throw new ApiError(
+        response.status,
+        response.status === 401
+          ? "Sessão expirada."
+          : "Não foi possível concluir a operação (" + response.status + ").",
+      );
+    }
+    return response.status === 204 ? null : response.json();
+  }
+  async session(signal?: AbortSignal): Promise<Session | null> {
+    this.current = null;
+    const data = await this.request("/session", signal);
+    if (!data) return null;
+    if (
+      typeof data.userId !== "string" ||
+      typeof data.name !== "string" ||
+      !Array.isArray(data.memberships) ||
+      data.memberships.some(
+        (m: Record<string, unknown>) =>
+          typeof m.schoolId !== "string" ||
+          typeof m.schoolName !== "string" ||
+          typeof m.active !== "boolean" ||
+          !Array.isArray(m.roles) ||
+          !Array.isArray(m.permissions),
+      )
+    )
+      throw new Error("Contrato de sessão inválido.");
+    return (this.current = { ...data, mode: "api" });
+  }
+  async workspace(ctx: Context, signal?: AbortSignal): Promise<Workspace> {
+    authorize(this.current, ctx);
+    const data = await this.request(
+      "/schools/" + encodeURIComponent(ctx.schoolId) + "/workspace?role=" + ctx.role,
+      signal,
+    );
+    return scopeWorkspace(data, ctx);
+  }
+  async execute(ctx: Context, command: Command, signal?: AbortSignal) {
+    authorize(this.current, ctx, required[command.type]);
+    await this.request("/schools/" + encodeURIComponent(ctx.schoolId) + "/commands", signal, {
+      role: ctx.role,
+      command,
+      requestId: crypto.randomUUID(),
+    });
+  }
+  async signOut() {
+    try {
+      await this.request("/logout", undefined, {});
+    } finally {
+      this.current = null;
+    }
+  }
+}

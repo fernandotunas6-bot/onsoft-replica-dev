@@ -1,0 +1,889 @@
+import { useEffect, useMemo, useRef, useState } from "react";
+import type { Command, Context, Gateway, Role, Session, Workspace } from "./domain/model";
+import { DemoGateway } from "./services/demo";
+import { ApiError } from "./services/api";
+import { Icon } from "./components/Icon";
+import { Sheet } from "./components/Sheet";
+import { Academic, teacherModules, studentModules } from "./components/Academic";
+import "./styles.css";
+type Project = { id: string; name: string; favorite: boolean };
+const tabs = [
+  ["home", "house", "Início"],
+  ["projects", "grid-2x2", "Projectos"],
+  ["chats", "messages-square", "Conversas"],
+  ["daily", "book-open", "Meu dia"],
+];
+const menu = [
+  ["Caixa de entrada", "inbox", "inbox"],
+  ["Novidades", "bell", "news"],
+  ["Perfil", "user-round", "profile-detail"],
+  ["Configurações da conta", "settings", "settings"],
+  ["Conectores", "plug", "connectors"],
+  ["Suporte", "circle-help", "support"],
+  ["Documentação", "book-open", "docs"],
+  ["Aparência", "moon", "appearance"],
+  ["Comunidade", "users", "community"],
+];
+export function App({ initialGateway }: { initialGateway?: Gateway }) {
+  const [gateway, setGateway] = useState<Gateway | null>(initialGateway || null);
+  const [session, setSession] = useState<Session | null>(null);
+  const [school, setSchool] = useState("");
+  const [role, setRole] = useState<Role>("professor");
+  const [data, setData] = useState<Workspace | null>(null);
+  const [loadedKey, setLoadedKey] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  const [notice, setNotice] = useState("");
+  const [reload, setReload] = useState(0);
+  const [tab, setTab] = useState("home");
+  const [sheet, setSheet] = useState("");
+  const [module, setModule] = useState("");
+  const [theme, setTheme] = useState(() => localStorage.getItem("siga-mobile-theme") || "Sistema");
+  const [bg, setBg] = useState(() => Number(localStorage.getItem("siga-mobile-bg")) || 0);
+  const [systemDark, setSystemDark] = useState(false);
+  const [online, setOnline] = useState(navigator.onLine);
+  const [prompt, setPrompt] = useState("");
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [filter, setFilter] = useState("");
+  const [favorites, setFavorites] = useState(false);
+  const [projectId, setProjectId] = useState("");
+  const [rename, setRename] = useState("");
+  const [install, setInstall] = useState<Event | null>(null);
+  const membership = session?.memberships.find((m) => m.schoolId === school && m.active);
+  const schoolName = membership?.schoolName || "Por seleccionar";
+  const ctx = useMemo<Context | null>(
+    () => (session && membership ? { userId: session.userId, schoolId: school, role } : null),
+    [session, membership, school, role],
+  );
+  const key = ctx ? `${ctx.userId}:${ctx.schoolId}:${ctx.role}` : "";
+  const activeKey = useRef(key);
+  activeKey.current = key;
+  const currentData = loadedKey === key ? data : null;
+  useEffect(() => {
+    if (!gateway) return;
+    let live = true;
+    const ac = new AbortController();
+    setLoading(true);
+    setError("");
+    gateway
+      .session(ac.signal)
+      .then((s) => {
+        if (live) {
+          setSession(s);
+          if (s) {
+            setRole(s.memberships.find((m) => m.active)?.roles[0] || "professor");
+          }
+        }
+      })
+      .catch((e) => {
+        if (live) setError(e.message);
+      })
+      .finally(() => {
+        if (live) setLoading(false);
+      });
+    return () => {
+      live = false;
+      ac.abort();
+    };
+  }, [gateway]);
+  useEffect(() => {
+    setData(null);
+    setLoadedKey("");
+    setError("");
+    setNotice("");
+    setProjects([]);
+    setFilter("");
+    setBusy(false);
+    if (!gateway || !ctx) {
+      setLoading(false);
+      return;
+    }
+    let live = true;
+    const ac = new AbortController();
+    setLoading(true);
+    gateway
+      .workspace(ctx, ac.signal)
+      .then((d) => {
+        if (live) {
+          setData(d);
+          setLoadedKey(key);
+        }
+      })
+      .catch((e) => {
+        if (live) setError(e.message);
+      })
+      .finally(() => {
+        if (live) setLoading(false);
+      });
+    return () => {
+      live = false;
+      ac.abort();
+    };
+  }, [gateway, ctx, key, reload]);
+  useEffect(() => {
+    const q = matchMedia("(prefers-color-scheme: dark)");
+    setSystemDark(q.matches);
+    const change = () => setSystemDark(q.matches);
+    q.addEventListener("change", change);
+    const update = () => setOnline(navigator.onLine);
+    const installEvent = (e: Event) => {
+      e.preventDefault();
+      setInstall(e);
+    };
+    window.addEventListener("online", update);
+    window.addEventListener("offline", update);
+    window.addEventListener("beforeinstallprompt", installEvent);
+    return () => {
+      q.removeEventListener("change", change);
+      window.removeEventListener("online", update);
+      window.removeEventListener("offline", update);
+      window.removeEventListener("beforeinstallprompt", installEvent);
+    };
+  }, []);
+  useEffect(() => {
+    localStorage.setItem("siga-mobile-theme", theme);
+    localStorage.setItem("siga-mobile-bg", String(bg));
+  }, [theme, bg]);
+  function selectSchool(id: string) {
+    setData(null);
+    setProjects([]);
+    setSheet("");
+    setSchool(id);
+    setModule("");
+  }
+  async function startDemo(next: Role) {
+    setData(null);
+    setSheet("");
+    setSchool("");
+    setRole(next);
+    if (gateway instanceof DemoGateway) {
+      gateway.setRole(next);
+      setSession(await gateway.session());
+    } else setGateway(new DemoGateway(next));
+  }
+  async function logout() {
+    try {
+      await gateway?.signOut();
+    } catch {
+      setError("Não foi possível confirmar a saída no servidor.");
+    } finally {
+      setData(null);
+      setSession(null);
+      setSchool("");
+      setProjects([]);
+      setSheet("");
+      setGateway(null);
+      setNotice("Sessão terminada; contexto local limpo.");
+    }
+  }
+  async function execute(command: Command) {
+    if (!gateway || !ctx || !currentData) return false;
+    if (!online && session?.mode === "api") {
+      setError("Sem ligação. Volta a ligar para guardar.");
+      return false;
+    }
+    const requestKey = key;
+    setBusy(true);
+    setError("");
+    try {
+      await gateway.execute(ctx, command);
+      const next = await gateway.workspace(ctx);
+      if (activeKey.current === requestKey) {
+        setData(next);
+        setLoadedKey(requestKey);
+        setNotice(
+          session?.mode === "demo" ? "Guardado no ambiente de teste." : "Guardado no SIGA Plus.",
+        );
+      }
+      return activeKey.current === requestKey;
+    } catch (e) {
+      if (activeKey.current === requestKey) {
+        setError((e as Error).message);
+        if (e instanceof ApiError && (e.status === 401 || e.status === 403)) {
+          setData(null);
+          setProjects([]);
+          setSchool("");
+          setSheet("");
+          if (e.status === 401) {
+            setSession(null);
+            setGateway(null);
+          }
+        }
+      }
+      return false;
+    } finally {
+      if (activeKey.current === requestKey) setBusy(false);
+    }
+  }
+  function openModule(id: string) {
+    setModule(id);
+    setSheet("academic");
+    setNotice("");
+  }
+  function createProject() {
+    if (!ctx) {
+      setSheet("workspace");
+      return;
+    }
+    if (!prompt.trim()) return;
+    setProjects([
+      ...projects,
+      {
+        id: crypto.randomUUID(),
+        name: prompt.trim().slice(0, 160),
+        favorite: false,
+      },
+    ]);
+    setPrompt("");
+    setTab("projects");
+  }
+  const row = (label: string, icon: string, action: () => void) => (
+    <button className="menurow" onClick={action}>
+      <span className="symbol">
+        <Icon name={icon} />
+      </span>
+      <span>{label}</span>
+    </button>
+  );
+  const moduleTitle =
+    [...teacherModules, ...studentModules].find((m) => m[2] === module)?.[0] || "Actividade";
+  const selectedProject = projects.find((p) => p.id === projectId);
+  const dark = theme === "Escuro" || (theme === "Sistema" && systemDark);
+  const sheetTitle: Record<string, string> = {
+    profile: "Conta",
+    appearance: "Aparência",
+    workspace: "Seleccionar escola",
+    settings: "Configurações",
+    connectors: "Conectores",
+    news: "Novidades",
+    inbox: "Caixa de entrada",
+    search: "Pesquisar",
+    filters: "Filtros",
+    attachments: "Anexos",
+    projectmenu: "Projecto",
+    rename: "Editar projecto",
+    academic: moduleTitle,
+    "profile-detail": "Perfil",
+    support: "Suporte",
+    docs: "Documentação",
+    community: "Comunidade",
+    request: "Solicitar acesso",
+  };
+  return (
+    <div
+      id="app"
+      className={(bg === 0 ? "gradient" : bg === 1 ? "bg-one" : "bg-two") + (dark ? " dark" : "")}
+    >
+      <header className="top" inert={!!sheet}>
+        <button
+          className="workspace"
+          onClick={() => setSheet("workspace")}
+          aria-label={"Seleccionar escola. Actual: " + schoolName}
+        >
+          <span className="avatar">S</span>
+          {schoolName}
+          <Icon name="chevron-down" size={18} />
+        </button>
+        <button className="profile" aria-label="Conta" onClick={() => setSheet("profile")}>
+          <Icon name="user-round" size={23} />
+        </button>
+      </header>
+      <main className="content" inert={!!sheet}>
+        {!online && (
+          <p className="status" role="status">
+            Sem ligação ·{" "}
+            {session?.mode === "demo" ? "teste local disponível" : "gravação indisponível"}
+          </p>
+        )}
+        {session?.mode === "demo" && (
+          <div className="demo-badge">Demonstração · dados fictícios · sem ligação à produção</div>
+        )}
+        {tab === "home" && (
+          <>
+            <div style={{ textAlign: "center", paddingTop: "12vh" }}>
+              <div className="small">O teu espaço de gestão escolar</div>
+              <h1 style={{ fontSize: 38 }}>Como podemos ajudar?</h1>
+            </div>
+            <form
+              className="composer"
+              onSubmit={(e) => {
+                e.preventDefault();
+                createProject();
+              }}
+            >
+              <label className="sr-only" htmlFor="prompt">
+                Descreve o que pretendes fazer na escola
+              </label>
+              <input
+                id="prompt"
+                value={prompt}
+                onChange={(e) => setPrompt(e.target.value)}
+                placeholder="Descreve o que pretendes fazer na escola…"
+                maxLength={160}
+              />
+              <div className="composerfoot">
+                <button
+                  type="button"
+                  className="round"
+                  aria-label="Anexos"
+                  onClick={() => setSheet("attachments")}
+                >
+                  <Icon name="plus" size={24} />
+                </button>
+                <span>Construir ⌄</span>
+                <button className="round" aria-label="Criar projecto local" type="submit">
+                  <Icon name="arrow-up" size={24} />
+                </button>
+              </div>
+            </form>
+          </>
+        )}
+        {tab === "daily" && (
+          <>
+            <div className="headerline">
+              <div>
+                <div className="small">SIGA PLUS · ACESSO RÁPIDO</div>
+                <h1>Meu dia</h1>
+              </div>
+              <button
+                className="round"
+                aria-label="Seleccionar escola"
+                onClick={() => setSheet("workspace")}
+              >
+                <Icon name="school" />
+              </button>
+            </div>
+            <div className="card">
+              <div className="small">ESCOLA ACTIVA</div>
+              <h2>{schoolName}</h2>
+              <p className="muted">
+                {session
+                  ? session.name + " · " + role
+                  : "Autentica a sessão institucional ou abre a demonstração."}
+              </p>
+              <button className="pill" onClick={() => setSheet("workspace")}>
+                <Icon name="chevron-down" size={16} /> Seleccionar escola
+              </button>
+            </div>
+            {!session && (
+              <div className="card">
+                <b>Testar os percursos</b>
+                <p className="muted">
+                  Escolas e alunos fictícios, guardados apenas durante esta sessão.
+                </p>
+                <div className="flow-actions">
+                  <button className="pill" onClick={() => startDemo("professor")}>
+                    Testar como professor
+                  </button>
+                  <button className="pill" onClick={() => startDemo("aluno")}>
+                    Testar como aluno
+                  </button>
+                </div>
+              </div>
+            )}
+            {session?.mode === "demo" && (
+              <div className="rolebar">
+                <button
+                  className={"pill " + (role === "professor" ? "role-active" : "")}
+                  onClick={() => startDemo("professor")}
+                >
+                  <Icon name="book-open" size={18} /> Professor
+                </button>
+                <button
+                  className={"pill " + (role === "aluno" ? "role-active" : "")}
+                  onClick={() => startDemo("aluno")}
+                >
+                  <Icon name="user-round" size={18} /> Aluno
+                </button>
+              </div>
+            )}
+            {session?.mode === "api" && membership && membership.roles.length > 1 && (
+              <label>
+                Perfil autorizado
+                <select
+                  value={role}
+                  onChange={(e) => {
+                    setData(null);
+                    setRole(e.target.value as Role);
+                  }}
+                >
+                  {membership.roles.map((r) => (
+                    <option key={r} value={r}>
+                      {r}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            )}
+            <h2>{role === "professor" ? "Trabalho do professor" : "Espaço do aluno"}</h2>
+            <div className="quickgrid">
+              {(role === "professor" ? teacherModules : studentModules).map(([label, icon, id]) => (
+                <button className="quicktile" key={id} onClick={() => openModule(id)}>
+                  <span className="tileicon">
+                    <Icon name={icon} size={24} />
+                  </span>
+                  <span>{label}</span>
+                  <Icon name="chevron-right" size={17} />
+                </button>
+              ))}
+            </div>
+            <div className="card">
+              <b>Próximas actividades</b>
+              {loading ? (
+                <p role="status">A carregar…</p>
+              ) : currentData?.lessons.length ? (
+                currentData.lessons.map((l) => (
+                  <button
+                    className="menurow"
+                    key={l.id}
+                    onClick={() => openModule(role === "professor" ? "aulas" : "horario")}
+                  >
+                    <span>
+                      {l.date} · {l.time}
+                      <br />
+                      {l.topic}
+                    </span>
+                  </button>
+                ))
+              ) : (
+                <p className="muted">
+                  {school
+                    ? "Sem actividades disponíveis."
+                    : "Selecciona uma escola para consultar a agenda."}
+                </p>
+              )}
+            </div>
+          </>
+        )}
+        {tab === "projects" && (
+          <>
+            <div className="headerline">
+              <h1>Projectos</h1>
+              <div className="actions">
+                <button
+                  className="round"
+                  aria-label="Pesquisar projectos"
+                  onClick={() => setSheet("search")}
+                >
+                  <Icon name="search" size={24} />
+                </button>
+                <button className="round" aria-label="Filtros" onClick={() => setSheet("filters")}>
+                  <Icon name="list-filter" size={24} />
+                </button>
+              </div>
+            </div>
+            <p className="muted">Organização local desta sessão escolar.</p>
+            {projects
+              .filter(
+                (p) =>
+                  p.name.toLowerCase().includes(filter.toLowerCase()) && (!favorites || p.favorite),
+              )
+              .map((p) => (
+                <div className="project" key={p.id}>
+                  <div className="thumb" />
+                  <div className="grow">
+                    <div className="name">
+                      {p.favorite ? "★ " : ""}
+                      {p.name}
+                    </div>
+                    <div className="muted">{schoolName} · projecto local</div>
+                  </div>
+                  <button
+                    className="dots"
+                    aria-label={"Acções de " + p.name}
+                    onClick={() => {
+                      setProjectId(p.id);
+                      setSheet("projectmenu");
+                    }}
+                  >
+                    <Icon name="ellipsis" size={24} />
+                  </button>
+                </div>
+              ))}
+            {!projects.length && (
+              <div className="card">Sem projectos. Cria um no separador Início.</div>
+            )}
+          </>
+        )}
+        {tab === "chats" && (
+          <>
+            <div className="headerline">
+              <h1>Conversas</h1>
+              <button
+                className="round"
+                aria-label="Pesquisar conversas"
+                onClick={() => setSheet("search")}
+              >
+                <Icon name="search" size={24} />
+              </button>
+            </div>
+            {currentData?.messages
+              .filter((m) => m.text.toLowerCase().includes(filter.toLowerCase()))
+              .map((m) => (
+                <div className="chat" key={m.id}>
+                  <div className="grow">
+                    <div className="name">{m.text}</div>
+                    <div className="muted">
+                      {m.from === session?.userId ? "Enviada" : "Recebida"} ·{" "}
+                      {new Date(m.sentAt).toLocaleDateString("pt-AO")}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            {!currentData?.messages.length && (
+              <div className="card">Ainda não há conversas nesta escola.</div>
+            )}
+            <button className="pill" onClick={() => openModule("mensagens")}>
+              <Icon name="plus" size={18} /> Nova conversa
+            </button>
+          </>
+        )}
+        {!sheet && error && (
+          <div className="error" role="alert">
+            {error}
+            <button className="pill" onClick={() => setReload((r) => r + 1)}>
+              Tentar novamente
+            </button>
+          </div>
+        )}
+        {!sheet && notice && <p role="status">{notice}</p>}
+      </main>
+      <nav className="nav" aria-label="Navegação principal" inert={!!sheet}>
+        {tabs.map(([id, icon, label]) => (
+          <button
+            key={id}
+            className={tab === id ? "active" : ""}
+            aria-label={label}
+            aria-current={tab === id ? "page" : undefined}
+            onClick={() => {
+              setTab(id);
+              setNotice("");
+            }}
+          >
+            <Icon name={icon} size={27} />
+          </button>
+        ))}
+      </nav>
+      {sheet && (
+        <Sheet title={sheetTitle[sheet] || sheet} onClose={() => setSheet("")}>
+          {error && (
+            <p className="error" role="alert">
+              {error}
+            </p>
+          )}
+          {notice && (
+            <p className="success" role="status">
+              {notice}
+            </p>
+          )}
+          {sheet === "academic" &&
+            (!ctx ? (
+              <div className="card">
+                <p>Selecciona uma escola e um perfil autorizado para abrir este módulo.</p>
+                <button className="pill" onClick={() => setSheet("workspace")}>
+                  Seleccionar escola
+                </button>
+              </div>
+            ) : loading ? (
+              <p role="status">A carregar…</p>
+            ) : currentData ? (
+              <Academic
+                key={key + module}
+                module={module}
+                data={currentData}
+                ctx={ctx}
+                execute={execute}
+                busy={busy}
+                onNavigate={openModule}
+              />
+            ) : (
+              <div className="card">
+                <p>Não foi possível carregar os dados.</p>
+                <button className="pill" onClick={() => setReload((r) => r + 1)}>
+                  Tentar novamente
+                </button>
+              </div>
+            ))}
+          {sheet === "workspace" && (
+            <>
+              <div className="small">ESCOLA ACTUAL</div>
+              {row(schoolName, "school", () => setSheet(""))}
+              <div className="line" />
+              <div className="small">ESCOLAS COM VÍNCULO ACTIVO</div>
+              {session?.memberships
+                .filter((m) => m.active)
+                .map((m) => (
+                  <div key={m.schoolId}>
+                    {row(m.schoolName, m.schoolId === school ? "check" : "school", () => {
+                      setRole(m.roles[0]);
+                      selectSchool(m.schoolId);
+                    })}
+                  </div>
+                ))}
+              {!session && (
+                <div className="card">
+                  <b>Nenhuma sessão autenticada</b>
+                  <p className="muted">A integração real está desactivada nesta versão.</p>
+                  <button className="pill" onClick={() => startDemo("professor")}>
+                    Abrir demonstração
+                  </button>
+                </div>
+              )}
+              {session && !session.memberships.some((m) => m.active) && (
+                <p>Nenhum vínculo activo.</p>
+              )}
+              {row("Por seleccionar", "school", () => selectSchool(""))}
+              {row("Configurações do espaço escolar", "settings", () => setSheet("settings"))}
+              {row("Solicitar acesso a uma escola", "plus", () => setSheet("request"))}
+            </>
+          )}
+          {sheet === "profile" && (
+            <>
+              <div className="card">
+                <b>{session?.name || "Sem sessão institucional"}</b>
+                <p className="muted">
+                  {session?.mode === "demo"
+                    ? "Conta de demonstração"
+                    : session
+                      ? "Sessão SIGA Plus"
+                      : "Autenticação real por integrar"}
+                </p>
+              </div>
+              {menu.map(([label, icon, id]) => (
+                <div key={id}>{row(label, icon, () => setSheet(id))}</div>
+              ))}
+              {install &&
+                row("Instalar aplicação", "monitor-smartphone", async () => {
+                  await (install as Event & { prompt: () => Promise<void> }).prompt();
+                  setInstall(null);
+                })}
+              {session && row("Terminar sessão", "user-round", logout)}
+            </>
+          )}
+          {sheet === "appearance" && (
+            <>
+              <h3>Tema</h3>
+              <div className="choices">
+                {["Sistema", "Claro", "Escuro"].map((t, i) => (
+                  <button
+                    key={t}
+                    className={"choice " + (theme === t ? "selected" : "")}
+                    aria-pressed={theme === t}
+                    onClick={() => setTheme(t)}
+                  >
+                    <Icon name={["monitor-smartphone", "sun", "moon"][i]} size={26} />
+                    <div>{t}</div>
+                  </button>
+                ))}
+              </div>
+              <h3>Plano de fundo do painel</h3>
+              <div className="swatches">
+                {[0, 1, 2].map((i) => (
+                  <button
+                    key={i}
+                    className={"swatch " + (bg === i ? "selected" : "")}
+                    aria-label={"Gradiente " + (i + 1)}
+                    aria-pressed={bg === i}
+                    onClick={() => setBg(i)}
+                  />
+                ))}
+              </div>
+              <p className="muted">Respeita a preferência de movimento reduzido do dispositivo.</p>
+            </>
+          )}
+          {sheet === "settings" && (
+            <>
+              {row("Escola seleccionada: " + schoolName, "school", () => setSheet("workspace"))}
+              {row("Aparência", "moon", () => setSheet("appearance"))}
+              {row("Conectores", "plug", () => setSheet("connectors"))}
+              <div className="card">
+                Mobile V4 · aplicação isolada. As definições institucionais continuam no SIGA Plus.
+              </div>
+            </>
+          )}
+          {sheet === "search" && (
+            <label>
+              Pesquisar
+              <input
+                className="search"
+                autoFocus
+                value={filter}
+                onChange={(e) => setFilter(e.target.value)}
+              />
+              <button className="pill" onClick={() => setSheet("")}>
+                Aplicar pesquisa
+              </button>
+            </label>
+          )}
+          {sheet === "filters" && (
+            <>
+              {row("Todos", "list-filter", () => {
+                setFavorites(false);
+                setFilter("");
+                setSheet("");
+              })}
+              {row("Favoritos", "star", () => {
+                setFavorites(true);
+                setSheet("");
+              })}
+            </>
+          )}
+          {sheet === "projectmenu" && selectedProject && (
+            <>
+              <p>{selectedProject.name}</p>
+              {row("Adicionar aos favoritos", "star", () => {
+                setProjects(
+                  projects.map((p) => (p.id === projectId ? { ...p, favorite: !p.favorite } : p)),
+                );
+                setSheet("");
+              })}
+              {row("Copiar", "copy", () => {
+                setProjects([
+                  ...projects,
+                  {
+                    ...selectedProject,
+                    id: crypto.randomUUID(),
+                    name: selectedProject.name + " — cópia",
+                  },
+                ]);
+                setSheet("");
+              })}
+              {row("Editar", "pencil", () => {
+                setRename(selectedProject.name);
+                setSheet("rename");
+              })}
+              {row("Conversar sobre este projecto", "messages-square", () =>
+                openModule("mensagens"),
+              )}
+              {row("Excluir", "trash-2", () => setSheet("delete-project"))}
+              {[
+                "Abrir em nova aba",
+                "Remixar",
+                "Abrir",
+                "Mover",
+                "Configurações",
+                "Publicar no perfil",
+              ].map((label) => (
+                <div key={label}>{row(label, "external-link", () => setSheet(label))}</div>
+              ))}
+            </>
+          )}
+          {sheet === "rename" && (
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                if (rename.trim()) {
+                  setProjects(
+                    projects.map((p) => (p.id === projectId ? { ...p, name: rename.trim() } : p)),
+                  );
+                  setSheet("");
+                }
+              }}
+            >
+              <label>
+                Nome do projecto
+                <input
+                  value={rename}
+                  maxLength={160}
+                  required
+                  onChange={(e) => setRename(e.target.value)}
+                />
+              </label>
+              <button className="pill" type="submit">
+                Guardar
+              </button>
+            </form>
+          )}
+          {sheet === "delete-project" && (
+            <div className="card">
+              <p>Excluir este projecto local?</p>
+              <button
+                className="pill"
+                onClick={() => {
+                  setProjects(projects.filter((p) => p.id !== projectId));
+                  setSheet("");
+                }}
+              >
+                Confirmar exclusão
+              </button>
+            </div>
+          )}
+          {sheet === "connectors" && (
+            <>
+              <h2>Constrói com as ferramentas que já utilizas</h2>
+              <p className="muted">Nenhum conector externo está ligado.</p>
+              {[
+                "Cloud",
+                "AI",
+                "GitHub",
+                "Google Drive",
+                "Slack",
+                "Supabase",
+                "MCP server",
+                "Conector personalizado",
+              ].map((c) => (
+                <div className="card" key={c}>
+                  <Icon name="plug" /> {c}
+                  <p className="muted">Integração por configurar no SIGA Plus.</p>
+                </div>
+              ))}
+            </>
+          )}
+          {sheet === "news" && (
+            <div className="card">
+              <h3>Mobile V4</h3>
+              <p>Chamadas, notas, planos, tarefas e entregas disponíveis no modo de teste.</p>
+            </div>
+          )}
+          {sheet === "attachments" && (
+            <div className="card">
+              <p>
+                O carregamento de ficheiros requer armazenamento institucional e permissões no
+                servidor.
+              </p>
+              <button className="pill" onClick={() => setSheet("connectors")}>
+                Ligar conector
+              </button>
+            </div>
+          )}
+          {sheet === "inbox" && (
+            <>
+              <p>{currentData?.messages.length || 0} mensagens neste contexto escolar.</p>
+              <button className="pill" onClick={() => openModule("mensagens")}>
+                Abrir mensagens
+              </button>
+            </>
+          )}
+          {![
+            "academic",
+            "workspace",
+            "profile",
+            "appearance",
+            "settings",
+            "search",
+            "filters",
+            "projectmenu",
+            "rename",
+            "delete-project",
+            "connectors",
+            "news",
+            "attachments",
+            "inbox",
+          ].includes(sheet) && (
+            <div className="card">
+              <p>
+                {sheet === "profile-detail"
+                  ? session?.name || "Sem sessão"
+                  : sheet === "request"
+                    ? "O pedido de vínculo institucional será ligado ao fluxo de aprovação da secretaria."
+                    : "Esta área preserva o painel original e aguarda integração com o serviço correspondente."}
+              </p>
+              <p className="muted">Sem alterações na produção.</p>
+            </div>
+          )}
+        </Sheet>
+      )}
+    </div>
+  );
+}
