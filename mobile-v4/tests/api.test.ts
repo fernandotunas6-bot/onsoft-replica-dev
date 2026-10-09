@@ -176,3 +176,47 @@ it("rejects an institutional session without a user name", async () => {
   );
   await expect(new ApiGateway().session()).rejects.toThrow("Contrato de sessão inválido");
 });
+
+it("blocks institutional writes before loading an authorised workspace", async () => {
+  const fetch = vi.fn().mockResolvedValue({
+    ok: true,
+    status: 200,
+    json: async () => demoSession("professor"),
+  });
+  vi.stubGlobal("fetch", fetch);
+  const api = new ApiGateway();
+  await api.session();
+  await expect(
+    api.execute(ctx, {
+      type: "grade",
+      classId: "not-authorised",
+      studentId: "unknown",
+      value: 15,
+      published: true,
+      expectedRevision: 0,
+    }),
+  ).rejects.toThrow("Actualize os dados");
+  expect(fetch).toHaveBeenCalledTimes(1);
+});
+
+it("rejects an invalid command without contacting the write endpoint", async () => {
+  const fetch = vi
+    .fn()
+    .mockResolvedValueOnce({ ok: true, status: 200, json: async () => demoSession("professor") })
+    .mockResolvedValueOnce({ ok: true, status: 200, json: async () => seed(ctx.schoolId) });
+  vi.stubGlobal("fetch", fetch);
+  const api = new ApiGateway();
+  await api.session();
+  await api.workspace(ctx);
+  await expect(
+    api.execute(ctx, {
+      type: "grade",
+      classId: "not-authorised",
+      studentId: "unknown",
+      value: 15,
+      published: true,
+      expectedRevision: 0,
+    }),
+  ).rejects.toThrow("Turma não autorizada");
+  expect(fetch).toHaveBeenCalledTimes(2);
+});
