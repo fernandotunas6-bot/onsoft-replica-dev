@@ -52,10 +52,7 @@ export class ApiGateway implements Gateway {
                 : "Não foi possível concluir a operação (" + response.status + ").",
       );
     }
-    if (response.status === 204) return null;
-    if (!response.headers.get("content-type")?.toLowerCase().includes("application/json"))
-      throw new Error("A API devolveu uma resposta não JSON.");
-    return response.json();
+    return response.status === 204 ? null : response.json();
   }
   async session(signal?: AbortSignal): Promise<Session | null> {
     this.current = null;
