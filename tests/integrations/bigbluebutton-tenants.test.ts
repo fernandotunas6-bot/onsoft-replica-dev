@@ -11,6 +11,7 @@ const makeContext = (): ClassroomAuthorization => ({
     id: "session-a",
     schoolId: "school-a",
     teacherId: "teacher-record-a",
+    classGroupId: "class-a",
     status: "scheduled",
   },
   membership: {
