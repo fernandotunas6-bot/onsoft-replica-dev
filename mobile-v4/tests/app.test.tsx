@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, it, expect, vi } from "vitest";
 import { render, screen, fireEvent, waitFor, cleanup } from "@testing-library/react";
 import { App } from "../src/App";
+import { ApiError } from "../src/services/api";
 import { DemoGateway } from "../src/services/demo";
 import type { Gateway, Workspace } from "../src/domain/model";
 beforeEach(() => {
@@ -280,4 +281,20 @@ it("discards late institutional catalog after changing school", async () => {
   fireEvent.click(screen.getByRole("button", { name: "Minhas turmas" }));
   await screen.findByText("Sem resultados para os filtros seleccionados.");
   expect(screen.queryByText("Aluno autorizado")).toBeNull();
+});
+
+it("keeps the authentication rejection visible while clearing the institutional school context", async () => {
+  const { gateway } = institutionalGateway("professor");
+  gateway.academicCatalog = async () => {
+    throw new ApiError(403, "O acesso a esta escola foi revogado.");
+  };
+  render(<App initialGateway={gateway} />);
+  fireEvent.click(screen.getByRole("button", { name: /Seleccionar escola. Actual/ }));
+  fireEvent.click(await screen.findByRole("button", { name: "Escola autorizada" }));
+  await screen.findByText("O acesso a esta escola foi revogado.");
+  expect(
+    screen.getByRole("button", { name: "Seleccionar escola. Actual: Por seleccionar" }),
+  ).toBeTruthy();
+  expect(screen.queryByText("Aluno autorizado")).toBeNull();
+  expect(gateway.execute).not.toHaveBeenCalled();
 });

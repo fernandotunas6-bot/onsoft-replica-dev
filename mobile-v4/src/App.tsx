@@ -125,8 +125,6 @@ export function App({ initialGateway }: { initialGateway?: Gateway }) {
     setData(null);
     setCatalog(null);
     setLoadedKey("");
-    setError("");
-    setNotice("");
     setProjects([]);
     setFilter("");
     setBusy(false);
@@ -136,6 +134,8 @@ export function App({ initialGateway }: { initialGateway?: Gateway }) {
     }
     let live = true;
     const ac = new AbortController();
+    setError("");
+    setNotice("");
     setLoading(true);
     const request =
       session?.mode === "api"

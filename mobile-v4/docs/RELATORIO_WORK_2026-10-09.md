@@ -4,7 +4,7 @@
 
 Branch: `feat/siga-plus-mobile-v4-isolated`, PR #116. Base auditada: `27bf782313289d669c28cf7e3364ed7aaeaf52fa`.
 
-A integração institucional **ainda não está concluída nem activada**. Os ciclos implementam transporte HTTP autenticado, validação de pedidos, âmbito académico e catálogo canónico de leitura, preservando os ficheiros visuais. Não importou conversas ou dados pessoais, não substituiu integrações por simulações, só executou consultas de leitura ao catálogo remoto e não publicou o servidor SIGA em produção.
+A integração institucional **ainda não está concluída nem activada**. Os ciclos implementam transporte HTTP autenticado, validação de pedidos, âmbito académico e catálogo canónico de leitura e páginas que o consomem, preservando estilos, ícones e navegação. Não importou conversas ou dados pessoais, não substituiu integrações por simulações, só executou consultas de leitura ao catálogo remoto e não publicou o servidor SIGA em produção.
 
 ## Implementado e verificado localmente
 
@@ -14,9 +14,9 @@ Foi acrescentado `GET /api/mobile-v4/schools/:schoolId/academic?role=professor` 
 
 O contrato distingue `classSubjectId`, `classGroupId`, `subjectId`, `academicYearId`, `enrollmentId` e `slotId`. Os slots preservam o dia ISO (1–7), horas, sala institucional e validade da versão publicada. Horários antigos sem `schedule_id` vêm marcados `legacy`; não se inventa data de publicação nem se convertem slots em aulas realizadas. Rascunhos e trabalhos ligados a slots não publicados são excluídos. Campos institucionais nulos continuam nulos. Referências inconsistentes, erros ou resultados truncados são recusados; mudanças de vínculo/atribuição/ano entre resolução e projecção são detectadas nos casos ensaiados.
 
-O `ApiGateway.academicCatalog` já faz a leitura autenticada, com token actualizado por pedido e AbortSignal. O cliente valida estrutura, IDs, escola/papel, âmbito professor/aluno, horários, datas, relações e campos privados inesperados. A interface ainda não consome este catálogo: a adaptação completa para o workspace depende dos contratos de notas, aulas/presenças e restantes serviços. Workspace e comandos continuam com 503; modo institucional permanece desligado.
+O `ApiGateway.academicCatalog` já faz a leitura autenticada, com token actualizado por pedido e AbortSignal. O cliente valida estrutura, IDs, escola/papel, âmbito professor/aluno, horários, datas, relações e campos privados inesperados. A interface já consome este catálogo nas páginas de turmas, disciplinas, horários/calendário e trabalhos publicados. A adaptação completa para o workspace depende dos contratos de notas, aulas/presenças e restantes serviços. Workspace e comandos continuam com 503; modo institucional permanece desligado.
 
-Validação deste avanço:
+Validação do catálogo anterior (`f189b125`):
 
 - Mobile: **87 testes aprovados**, incluindo 20 novos testes de contrato/transporte. TypeScript, lint, formatação, build e PWA aprovados.
 - Ensaio PostgreSQL/PGlite isolado: **26 verificações** com a resolução/projecção TypeScript reais e consultas SQL parametrizadas. Inclui duas escolas, professor, matrícula própria, ausência de colegas, horários publicado/legacy/rascunho, tarefas, contrato cliente após JSON, mudanças de identidade/atribuição/ano, referências de outra escola e falhas/truncagem. O fixture tem subconjuntos de colunas/tipos/nullable confirmados por leitura; não reproduz toda a RLS/FKs/triggers e não testa Auth/PostgREST ou concorrência reais.
@@ -80,7 +80,7 @@ As permissões de escrita deixaram de ser anunciadas na sessão antes de existir
 1. A integração terá como base o **Sga existente**, conforme escolha do utilizador. Não foi criado outro projecto nem uma branch Supabase paga. Não há base Supabase de testes ou credenciais de staging neste ambiente; os ensaios de migração têm de continuar isolados. A escolha do Sga não activa o modo institucional nem autoriza migrações de produção.
 2. Preparar base isolada com esquema actual, duas escolas de teste e contas autorizadas de professor/aluno; não copiar dados pessoais de produção.
 3. Rever o contrato académico: `ClassGroup` Mobile agrega turma e disciplina; `Grade` ainda usa valor único e revisão, enquanto o SIGA tem componentes, diários, estados de pauta e períodos. Os IDs canónicos e estados de publicação de horários/trabalhos já estão definidos no catálogo; a projecção e escrita de notas continuam pendentes.
-4. A leitura de turmas/disciplinas/matrículas/horários/trabalhos já existe no catálogo. Concluir a projecção para a interface, com notas apenas publicadas para alunos, horário/aulas, presenças docente e discente distintas, tarefas/entregas, calendário e documentos.
+4. Turmas, disciplinas, matrículas, horários e trabalhos publicados já estão ligados à interface. Concluir notas apenas publicadas para alunos, aulas realizadas, presenças docente e discente distintas, entregas, eventos de calendário e documentos.
 5. Reutilizar as guardas do chat para participantes e escola, com notificações, assinaturas temporárias de ficheiros e anexos autorizados. Não há chat institucional real neste ciclo.
 6. Persistir comandos numa transacção com comparação de revisão, chave por escola/utilizador/operação, resposta de replay e auditoria atómica. Testar concorrência, rollback, replay e alteração de payload com a mesma chave.
 7. Validar sessão, MFA, logout e percursos completos com contas reais de staging. Publicar o backend exclusivamente em staging e só depois ligar o fornecedor de sessão no Mobile. O Pages público actual continua a ser apenas preview; a demonstração existente é identificada como tal e não constitui uma integração.
@@ -102,3 +102,11 @@ Validação local: **90 testes Mobile aprovados**, incluindo três novos percurs
 CI do catálogo `f189b125`: [Mobile aprovado](https://github.com/fernandotunas6-bot/onsoft-replica-dev/actions/runs/37978681862) e [raiz aprovado](https://github.com/fernandotunas6-bot/onsoft-replica-dev/actions/runs/37978681803). Preview anterior: https://ff5dafaa.siga-plus-mobile-v4.pages.dev, ambiente preview. A verificação externa interrompida desse ciclo não é apresentada como concluída. O endereço canónico Pages continua no deployment `17570c06-7e08-44d9-a05d-1bfc04011dfe`, confirmado neste ciclo.
 
 A ligação Supabase existente continua a exigir fornecedor de sessão injectado; não foi activado o modo institucional público. O backend completo, persistência transaccional, MFA com contas reais, chat, notificações, ficheiros e migrações/QA isoladas continuam pendentes. Não houve migração nem escrita na base Sga de produção.
+
+## Publicação e verificação da interface (`3962cee8`)
+
+Commit: [`3962cee8256070aeabc1b9987f614e9adc3548da`](https://github.com/fernandotunas6-bot/onsoft-replica-dev/commit/3962cee8256070aeabc1b9987f614e9adc3548da). [Workflow Mobile aprovado](https://github.com/fernandotunas6-bot/onsoft-replica-dev/actions/runs/37984605514) e [CI raiz aprovado](https://github.com/fernandotunas6-bot/onsoft-replica-dev/actions/runs/37984605589), incluindo ensaios SQL, inventário, build e auditoria de dependências.
+
+Preview: https://f72a4477.siga-plus-mobile-v4.pages.dev, deployment `f72a4477-11ba-437d-a96f-440903f4d395`, ambiente `preview`, publicação confirmada como `success`. Dez verificações HTTP externas passaram: sete assets idênticos ao build e sessão/logout/catálogo a devolver 503 JSON, sem cache, com API institucional desligada. Chromium anónimo a 390/768/1280 px validou navegação, selector sem sessão, menu, Segurança e reload hash, sem erros JavaScript ou overflow horizontal. Não valida percursos autenticados reais. O deployment canónico permanece `17570c06-7e08-44d9-a05d-1bfc04011dfe`.
+
+Correcção posterior: a mensagem de rejeição de acesso deixou de desaparecer quando a escola é limpa após 401/403. Novo teste de interface valida 403, limpeza do contexto e ausência de escrita. **91 testes Mobile locais aprovados**, TypeScript, ESLint, build e PWA aprovados. Esta correcção posterior ainda não integra o preview `3962cee8`; o seu CI deverá ser verificado separadamente.
