@@ -14,18 +14,20 @@ Os destinos da navegação inferior também passam a ter altura mínima de 44 px
 
 O padding superior do tablet deixa de substituir o espaço inferior reservado à navegação. Os modais partilhados passam a limitar a altura com `dvh`, permitem rolagem de recurso no invólucro e dão ao corpo espaço flexível com `min-h-0`. Cabeçalho e rodapé mantêm o tamanho; acções e rótulos longos podem quebrar linha. Os botões Fechar/Ajuda recebem nomes acessíveis, foco visível e alvos de toque. Os formulários e o wizard usam a mesma distribuição de espaço.
 
+O bloqueio de toque fora do modal passa a impedir efectivamente o fecho, mantendo Escape disponível. O aviso de alterações não guardadas usa título e descrição acessíveis, botões partilhados com foco visível e alvos mobile de 44 px, quebra de linha e rolagem em ecrãs baixos. A camada do aviso fica acima dos submodais. Cinco testes cobrem toque fora permitido/bloqueado, Escape, continuar a editar e confirmação explícita de descarte.
+
 44 px é o objectivo de conforto do SIGA e a referência do critério WCAG 2.5.5 AAA; não é o mínimo do critério 2.5.8 AA, que usa 24 px com excepções.
 
 ## Validação
 
 - Build de produção: aprovado.
-- Testes de `tests/ui` e catálogo de navegação: 17 ficheiros, 82 testes aprovados, incluindo voltar com histórico externo/interno e abrir contexto numa página interna.
+- Testes de `tests/ui` e catálogo de navegação: 18 ficheiros, 87 testes aprovados, incluindo voltar com histórico externo/interno e abrir contexto numa página interna.
 - ESLint dos componentes desta passagem e do novo teste: zero erros.
 - Checklist de estilo: aprovado, 857 ficheiros, 47/47 rotas elegíveis.
 - Verificação estática de acessibilidade: aprovada, 863 ficheiros.
 - `git diff --check`: aprovado.
 
-A base foi actualizada para `d1e9860`. O TypeScript esgotou o heap padrão de cerca de 2 GiB. A execução com `node --max-old-space-size=6144 node_modules/typescript/bin/tsc --noEmit` passou, sem desactivar verificações de tipos.
+A base foi actualizada para `0014297`. A verificação TypeScript com heap de 6144 MiB tinha passado na base anterior `d1e9860`. Na base actual foi interrompida após cerca de nove minutos sem conclusão nem diagnósticos; permanece pendente. Nenhuma verificação de tipos foi desactivada.
 
 ## Limites de aprovação
 

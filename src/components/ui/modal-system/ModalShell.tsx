@@ -1,5 +1,6 @@
 import * as React from "react";
 import * as DialogPrimitive from "@radix-ui/react-dialog";
+import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 export interface ModalShellProps {
@@ -42,7 +43,11 @@ export function ModalShell({
   }, [hasUnsavedChanges, onOpenChange]);
 
   const handlePointerDownOutside = (e: Event) => {
-    if (preventOutsideClose || hasUnsavedChanges) {
+    if (preventOutsideClose) {
+      e.preventDefault();
+      return;
+    }
+    if (hasUnsavedChanges) {
       e.preventDefault();
       handleRequestClose();
     }
@@ -82,33 +87,37 @@ export function ModalShell({
       {showUnsavedWarning && (
         <DialogPrimitive.Root open={showUnsavedWarning} onOpenChange={setShowUnsavedWarning}>
           <DialogPrimitive.Portal>
-            <DialogPrimitive.Overlay className="fixed inset-0 z-60 bg-black/70 backdrop-blur-xs" />
-            <DialogPrimitive.Content className="fixed left-1/2 top-1/2 z-60 w-[calc(100%-2rem)] max-w-sm -translate-x-1/2 -translate-y-1/2 rounded-xl border border-border bg-card p-5 shadow-2xl space-y-4">
+            <DialogPrimitive.Overlay className="fixed inset-0 z-[80] bg-black/70 backdrop-blur-xs" />
+            <DialogPrimitive.Content className="fixed left-1/2 top-1/2 z-[80] max-h-[92dvh] overflow-y-auto w-[calc(100%-2rem)] max-w-sm -translate-x-1/2 -translate-y-1/2 rounded-xl border border-border bg-card p-5 shadow-2xl space-y-4">
               <div className="space-y-1.5 text-left">
-                <h3 className="font-semibold text-sm text-foreground">Alterações não guardadas</h3>
-                <p className="text-xs text-muted-foreground">
+                <DialogPrimitive.Title className="font-semibold text-[16px] lg:text-sm text-foreground">
+                  Alterações não guardadas
+                </DialogPrimitive.Title>
+                <DialogPrimitive.Description className="text-[14px] lg:text-xs text-muted-foreground">
                   Possui alterações não guardadas no formulário. Tem a certeza que deseja sair e
                   descartar?
-                </p>
+                </DialogPrimitive.Description>
               </div>
-              <div className="flex items-center justify-end gap-2 pt-2">
-                <button
+              <div className="flex flex-wrap items-center justify-end gap-2 pt-2">
+                <Button
                   type="button"
                   onClick={() => setShowUnsavedWarning(false)}
-                  className="rounded-md border border-border bg-background px-3 py-1.5 text-xs font-medium text-foreground hover:bg-muted"
+                  variant="outline"
+                  className="h-auto whitespace-normal text-[14px] lg:text-xs"
                 >
                   Continuar a editar
-                </button>
-                <button
+                </Button>
+                <Button
                   type="button"
                   onClick={() => {
                     setShowUnsavedWarning(false);
                     onOpenChange(false);
                   }}
-                  className="rounded-md bg-rose-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-rose-700"
+                  variant="destructive"
+                  className="h-auto whitespace-normal text-[14px] lg:text-xs"
                 >
                   Descartar alterações
-                </button>
+                </Button>
               </div>
             </DialogPrimitive.Content>
           </DialogPrimitive.Portal>
