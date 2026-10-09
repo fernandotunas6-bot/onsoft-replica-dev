@@ -2,10 +2,11 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { App } from "./App";
-// API activation intentionally requires a code integration and server review.
+import { institutionalGateway } from "./services/bootstrap";
+
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
-    <App />
+    <App initialGateway={institutionalGateway(import.meta.env.VITE_MOBILE_V4_API_MODE)} />
   </StrictMode>,
 );
 if (import.meta.env.PROD && "serviceWorker" in navigator)
