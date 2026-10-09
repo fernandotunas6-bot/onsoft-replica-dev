@@ -20,7 +20,7 @@ Foi acrescentada a resolução server-side de âmbito académico, após a autori
 - Todas as consultas levam filtro explícito de escola. Respostas truncadas pelo limite de linhas do Supabase são recusadas; não são apresentadas como âmbito completo.
 - O endpoint de workspace executa esta resolução, mas continua a devolver `503 WORKSPACE_NOT_READY` até existir a projecção completa. Não foram substituídos dados académicos por listas simuladas.
 
-Este avanço acrescenta **26 testes** de âmbito e ordenação da autorização, com um adaptador controlado de base de dados. O conjunto Mobile backend + protecção de migração RLS tem **61 testes aprovados**; estes testes não equivalem a percursos autenticados reais. TypeScript, ESLint dos ficheiros alterados, Prettier e build raiz passaram. A identidade visual Mobile permanece intacta e o preview publicado mantém a API desligada.
+Este avanço acrescenta **26 testes** de âmbito e ordenação da autorização, com um adaptador controlado de base de dados. O conjunto Mobile backend + protecção de migração RLS tem **61 testes aprovados**; estes testes não equivalem a percursos autenticados reais. A suite raiz completa aprovou **3.312 testes**, com 19 ignorados (497 ficheiros aprovados e 3 ignorados). TypeScript, ESLint dos ficheiros alterados, Prettier e build raiz passaram. A identidade visual Mobile permanece intacta e o preview publicado mantém a API desligada.
 
 | Área                 | Resultado                                                                                                                                                                                                                                                |
 | -------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -38,7 +38,7 @@ Este avanço acrescenta **26 testes** de âmbito e ordenação da autorização,
 
 As permissões de escrita deixaram de ser anunciadas na sessão antes de existirem comandos implementados. A API de workspace não representa ausência de dados reais por listas vazias: informa explicitamente a indisponibilidade.
 
-## Validação
+## Validação do ciclo anterior (`9113462d`)
 
 - Mobile V4: **67 testes aprovados**, TypeScript, ESLint, Prettier, build Vite e verificações PWA aprovados.
 - Raiz: **3.286 testes aprovados e 19 ignorados**, 496 ficheiros aprovados e 3 ignorados. Os testes ignorados não contam como integração real concluída.
@@ -50,6 +50,8 @@ As permissões de escrita deixaram de ser anunciadas na sessão antes de existir
 - CSS, componentes visuais, ícones e páginas Mobile não foram alterados. Não foi feita QA visual autenticada em Android/iOS, Safari ou dispositivo real.
 
 ## Commit, CI e publicação
+
+- Âmbito académico Sga: [`7193118697cd2bec1928aef07d086334ed27ab73`](https://github.com/fernandotunas6-bot/onsoft-replica-dev/commit/7193118697cd2bec1928aef07d086334ed27ab73). [Workflow Mobile aprovado](https://github.com/fernandotunas6-bot/onsoft-replica-dev/actions/runs/37975375680); [CI raiz aprovado](https://github.com/fernandotunas6-bot/onsoft-replica-dev/actions/runs/37975375786). Os resultados locais deste avanço estão na secção Continuação. Não houve nova publicação Cloudflare deste backend.
 
 - Código: [`9113462d375e25b6d2080cf4c413167d0dc6bd47`](https://github.com/fernandotunas6-bot/onsoft-replica-dev/commit/9113462d375e25b6d2080cf4c413167d0dc6bd47).
 - [Workflow Mobile aprovado](https://github.com/fernandotunas6-bot/onsoft-replica-dev/actions/runs/37972841739) e [CI raiz aprovado](https://github.com/fernandotunas6-bot/onsoft-replica-dev/actions/runs/37972841534) para esse commit.
