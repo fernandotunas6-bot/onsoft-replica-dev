@@ -10,6 +10,9 @@ afterEach(() => vi.unstubAllGlobals());
 it("refuses external API bases", () => {
   expect(() => new ApiGateway("https://example.com")).toThrow();
   expect(() => new ApiGateway("//example.com")).toThrow();
+  expect(() => new ApiGateway("/api/mobile-v4?redirect=other")).toThrow();
+  expect(() => new ApiGateway("/api/mobile-v4#fragment")).toThrow();
+  expect(() => new ApiGateway("/api/../mobile-v4")).toThrow();
 });
 it("uses same-origin credentials and disables response cache", async () => {
   const fetch = vi.fn().mockResolvedValue({
