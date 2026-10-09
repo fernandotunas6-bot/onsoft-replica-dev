@@ -59,7 +59,9 @@ export class ApiGateway implements Gateway {
           typeof m.schoolName !== "string" ||
           typeof m.active !== "boolean" ||
           !Array.isArray(m.roles) ||
-          !Array.isArray(m.permissions),
+          !Array.isArray(m.permissions) ||
+          m.roles.some((role: unknown) => role !== "professor" && role !== "aluno") ||
+          m.permissions.some((permission: unknown) => typeof permission !== "string"),
       )
     )
       throw new Error("Contrato de sessão inválido.");
