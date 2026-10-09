@@ -104,3 +104,13 @@ it("rejects unrecognised membership roles in API session", async () => {
   }));
   await expect(new ApiGateway().session()).rejects.toThrow("Contrato de sessão inválido");
 });
+
+it("rejects incomplete academic workspace responses", async () => {
+  const fetch = vi.fn()
+    .mockResolvedValueOnce({ ok: true, status: 200, json: async () => demoSession("professor") })
+    .mockResolvedValueOnce({ ok: true, status: 200, json: async () => ({ schoolId: ctx.schoolId, classes: [] }) });
+  vi.stubGlobal("fetch", fetch);
+  const api = new ApiGateway();
+  await api.session();
+  await expect(api.workspace(ctx)).rejects.toThrow("Contrato académico inválido");
+});
