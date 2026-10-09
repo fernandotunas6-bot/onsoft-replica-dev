@@ -82,11 +82,14 @@ for (const [status, expected] of [
   [422, "validação institucional"],
 ] as const) {
   it(`reports API HTTP ${status} without leaking response body`, async () => {
-    vi.stubGlobal("fetch", vi.fn().mockResolvedValue({
-      ok: false,
-      status,
-      json: async () => ({ secret: "never show this" }),
-    }));
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({
+        ok: false,
+        status,
+        json: async () => ({ secret: "never show this" }),
+      }),
+    );
     await expect(new ApiGateway().session()).rejects.toThrow(expected);
   });
 }
@@ -97,11 +100,14 @@ it("rejects unrecognised membership roles in API session", async () => {
     ...session,
     memberships: [{ ...session.memberships[0], roles: ["administrador"] }],
   };
-  vi.stubGlobal("fetch", vi.fn().mockResolvedValue({
-    ok: true,
-    status: 200,
-    json: async () => invalid,
-  }));
+  vi.stubGlobal(
+    "fetch",
+    vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => invalid,
+    }),
+  );
   await expect(new ApiGateway().session()).rejects.toThrow("Contrato de sessão inválido");
 });
 
@@ -109,7 +115,11 @@ it("rejects incomplete academic workspace responses", async () => {
   const fetch = vi
     .fn()
     .mockResolvedValueOnce({ ok: true, status: 200, json: async () => demoSession("professor") })
-    .mockResolvedValueOnce({ ok: true, status: 200, json: async () => ({ schoolId: ctx.schoolId, classes: [] }) });
+    .mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      json: async () => ({ schoolId: ctx.schoolId, classes: [] }),
+    });
   vi.stubGlobal("fetch", fetch);
   const api = new ApiGateway();
   await api.session();
@@ -119,10 +129,14 @@ it("rejects incomplete academic workspace responses", async () => {
 it("rejects malformed imported chat thread collections", async () => {
   const fetch = vi.fn()
     .mockResolvedValueOnce({ ok: true, status: 200, json: async () => demoSession("professor") })
-    .mockResolvedValueOnce({ ok: true, status: 200, json: async () => ({
-      ...seed(ctx.schoolId),
-      sigaDirectThreads: { invalid: true },
-    }) });
+    .mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      json: async () => ({
+        ...seed(ctx.schoolId),
+        sigaDirectThreads: { invalid: true },
+      }),
+    });
   vi.stubGlobal("fetch", fetch);
   const api = new ApiGateway();
   await api.session();
@@ -135,18 +149,26 @@ it("rejects unknown permission strings from the institutional session", async ()
     ...session,
     memberships: [{ ...session.memberships[0], permissions: ["academic.read", "admin.all"] }],
   };
-  vi.stubGlobal("fetch", vi.fn().mockResolvedValue({
-    ok: true, status: 200, json: async () => invalid,
-  }));
+  vi.stubGlobal(
+    "fetch",
+    vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => invalid,
+    }),
+  );
   await expect(new ApiGateway().session()).rejects.toThrow("Contrato de sessão inválido");
 });
 
 it("rejects an institutional session without a user name", async () => {
   const session = { ...demoSession("professor"), name: "   " };
-  vi.stubGlobal("fetch", vi.fn().mockResolvedValue({
-    ok: true,
-    status: 200,
-    json: async () => session,
-  }));
+  vi.stubGlobal(
+    "fetch",
+    vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => session,
+    }),
+  );
   await expect(new ApiGateway().session()).rejects.toThrow("Contrato de sessão inválido");
 });
