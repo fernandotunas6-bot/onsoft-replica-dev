@@ -22,7 +22,7 @@ export class ApiError extends Error {
 export class ApiGateway implements Gateway {
   private current: Session | null = null;
   constructor(private base = "/api/mobile-v4") {
-    if (!base.startsWith("/") || base.startsWith("//") || base.includes(".."))
+    if (!base.startsWith("/") || base.startsWith("//") || base.includes("..") || base.includes("?") || base.includes("#") || base.includes("\\"))
       throw new Error("A API deve usar um caminho na mesma origem.");
   }
   private async request(path: string, signal?: AbortSignal, body?: unknown) {
@@ -52,7 +52,10 @@ export class ApiGateway implements Gateway {
                 : "Não foi possível concluir a operação (" + response.status + ").",
       );
     }
-    return response.status === 204 ? null : response.json();
+    if (response.status === 204) return null;
+    if (!response.headers.get("content-type")?.toLowerCase().includes("application/json"))
+      throw new Error("A API devolveu uma resposta não JSON.");
+    return response.json();
   }
   async session(signal?: AbortSignal): Promise<Session | null> {
     this.current = null;
