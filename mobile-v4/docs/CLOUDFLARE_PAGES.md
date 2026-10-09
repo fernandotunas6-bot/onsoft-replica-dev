@@ -12,12 +12,12 @@ Este projecto publica somente o conteúdo compilado de `mobile-v4/`, nunca a apl
 6. Build command: `npm run build`.
 7. Build output directory: `dist`.
 8. Environment variable: `NODE_VERSION=24`.
-9. Guardar e executar o primeiro deploy. Confirmar o endereço *.pages.dev atribuído pelo Cloudflare.
+9. Guardar e executar o primeiro deploy. Confirmar o endereço \*.pages.dev atribuído pelo Cloudflare.
 
 ## Segurança
 
 - Esta publicação é acessível publicamente por URL, salvo configuração de Cloudflare Access. Não usar dados reais de alunos, professores ou mensagens.
-- Não configurar credenciais de serviço do Supabase no frontend, nem introduzir segredos em variáveis VITE_*.
+- Não configurar credenciais de serviço do Supabase no frontend, nem introduzir segredos em variáveis VITE\_\*.
 - Não ligar API institucional, autenticação real ou domínio principal nesta fase.
 - Para restringir a demonstração, configurar Cloudflare Zero Trust Access para o hostname atribuído.
 - Validar instalação PWA em Android/iOS, cache, teclado, responsividade, contraste e navegação antes de promover.
