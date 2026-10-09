@@ -64,6 +64,10 @@ export class ApiGateway implements Gateway {
           typeof m.active !== "boolean" ||
           !Array.isArray(m.roles) ||
           !Array.isArray(m.permissions) ||
+          (m.schoolLogoUrl != null &&
+            (typeof m.schoolLogoUrl !== "string" ||
+              !m.schoolLogoUrl.startsWith("/") ||
+              m.schoolLogoUrl.startsWith("//"))) ||
           m.roles.some((role: unknown) => role !== "professor" && role !== "aluno") ||
           m.permissions.some((permission: unknown) => typeof permission !== "string"),
       )
