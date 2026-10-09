@@ -54,19 +54,20 @@ export function WizardModal({
   const isLastStep = currentStepIndex === steps.length - 1;
 
   const handleNext = () => {
-    if (!isLastStep && canProceed) {
+    if (!isLastStep && canProceed && !isSubmitting) {
       onStepChange(currentStepIndex + 1);
     }
   };
 
   const handlePrev = () => {
-    if (!isFirstStep) {
+    if (!isFirstStep && !isSubmitting) {
       onStepChange(currentStepIndex - 1);
     }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!canProceed || isSubmitting) return;
     if (isLastStep) {
       await onSubmit();
     } else {
@@ -113,13 +114,16 @@ export function WizardModal({
               const isCurrent = idx === currentStepIndex;
               return (
                 <React.Fragment key={step.id}>
-                  <div
-                    onClick={() => isCompleted && onStepChange(idx)}
-                    className={`flex items-center gap-2 ${
-                      isCompleted ? "cursor-pointer hover:opacity-80" : ""
-                    }`}
+                  <button
+                    type="button"
+                    disabled={!isCompleted || isSubmitting}
+                    aria-current={isCurrent ? "step" : undefined}
+                    aria-label={`Etapa ${idx + 1}: ${step.label}`}
+                    onClick={() => isCompleted && !isSubmitting && onStepChange(idx)}
+                    className="flex min-h-[44px] shrink-0 items-center gap-2 rounded-md px-1 text-[14px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring enabled:hover:bg-muted lg:min-h-0 lg:py-1 lg:text-xs"
                   >
-                    <div
+                    <span
+                      aria-hidden
                       className={`flex size-6 shrink-0 items-center justify-center rounded-full text-xs font-semibold ${
                         isCompleted
                           ? "bg-emerald-600 text-white"
@@ -128,10 +132,10 @@ export function WizardModal({
                             : "bg-muted text-muted-foreground"
                       }`}
                     >
-                      {isCompleted ? <Check className="size-3.5" /> : idx + 1}
-                    </div>
+                      {isCompleted ? <Check className="size-3.5" aria-hidden /> : idx + 1}
+                    </span>
                     <span
-                      className={`text-xs font-medium whitespace-nowrap ${
+                      className={`font-medium whitespace-nowrap ${
                         isCurrent
                           ? "text-foreground font-semibold"
                           : isCompleted
@@ -141,9 +145,10 @@ export function WizardModal({
                     >
                       {step.label}
                     </span>
-                  </div>
+                  </button>
                   {idx < steps.length - 1 && (
                     <div
+                      aria-hidden
                       className={`h-0.5 min-w-4 flex-1 ${
                         idx < currentStepIndex ? "bg-emerald-600" : "bg-border"
                       }`}
@@ -171,6 +176,7 @@ export function WizardModal({
                 variant="outline"
                 size="sm"
                 onClick={handlePrev}
+                disabled={isSubmitting}
                 className="text-xs"
               >
                 Anterior

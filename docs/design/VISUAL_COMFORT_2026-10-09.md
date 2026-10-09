@@ -16,18 +16,20 @@ O padding superior do tablet deixa de substituir o espaço inferior reservado à
 
 O bloqueio de toque fora do modal passa a impedir efectivamente o fecho, mantendo Escape disponível. O aviso de alterações não guardadas usa título e descrição acessíveis, botões partilhados com foco visível e alvos mobile de 44 px, quebra de linha e rolagem em ecrãs baixos. A camada do aviso fica acima dos submodais. Cinco testes cobrem toque fora permitido/bloqueado, Escape, continuar a editar e confirmação explícita de descarte.
 
+As etapas concluídas do wizard passam a ser botões nativos focáveis, com nomes acessíveis, foco visível e altura de 44 px abaixo de 1024 px. A etapa actual usa `aria-current="step"`; etapas futuras continuam bloqueadas. A submissão do formulário respeita `canProceed` e `isSubmitting`, incluindo Enter, e a navegação fica bloqueada enquanto guarda. Cinco testes verificam estes percursos.
+
 44 px é o objectivo de conforto do SIGA e a referência do critério WCAG 2.5.5 AAA; não é o mínimo do critério 2.5.8 AA, que usa 24 px com excepções.
 
 ## Validação
 
 - Build de produção: aprovado.
-- Testes de `tests/ui` e catálogo de navegação: 18 ficheiros, 87 testes aprovados, incluindo voltar com histórico externo/interno e abrir contexto numa página interna.
+- Testes de `tests/ui` e catálogo de navegação: 19 ficheiros, 92 testes aprovados, incluindo voltar com histórico externo/interno e abrir contexto numa página interna.
 - ESLint dos componentes desta passagem e do novo teste: zero erros.
 - Checklist de estilo: aprovado, 857 ficheiros, 47/47 rotas elegíveis.
 - Verificação estática de acessibilidade: aprovada, 863 ficheiros.
 - `git diff --check`: aprovado.
 
-A base foi actualizada para `0014297`. A verificação TypeScript com heap de 6144 MiB tinha passado na base anterior `d1e9860`. Na base actual foi interrompida após cerca de nove minutos sem conclusão nem diagnósticos; permanece pendente. Nenhuma verificação de tipos foi desactivada.
+A base foi actualizada para `0014297`. A verificação TypeScript com heap de 6144 MiB tinha passado na base anterior `d1e9860`. Na base actual foi interrompida após cerca de nove minutos sem conclusão nem diagnósticos; permanece pendente. Nenhuma verificação de tipos foi desactivada. Na passagem seguinte, a verificação semântica e sintáctica dirigida ao wizard e ao seu teste passou com as opções do `tsconfig.json` do projecto; esta verificação parcial não substitui a execução completa.
 
 ## Limites de aprovação
 
