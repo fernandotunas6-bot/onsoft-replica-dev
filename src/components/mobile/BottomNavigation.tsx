@@ -64,7 +64,7 @@ export function BottomNavigation({ onOpenMore }: { onOpenMore: () => void }) {
             </>
           );
           const className =
-            "flex w-full flex-col items-center justify-center gap-1 py-1 outline-none " +
+            "siga-motion-nav flex min-h-[44px] w-full flex-col items-center justify-center gap-1 py-1 outline-none " +
             // O anel de foco fica por dentro (`focus-visible:ring-inset`): num
             // elemento encostado ao bordo inferior do ecrã, um anel exterior é
             // cortado pela margem e o foco deixa de se ver.

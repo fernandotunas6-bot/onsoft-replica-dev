@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { toIcsCalendar, toIcsTimedCalendar } from "@/features/calendar/ics";
 
 describe("ICS text serialization", () => {
@@ -18,6 +18,18 @@ describe("ICS text serialization", () => {
       expect(ics).toContain("UID:A\\nB\\nC\\nEND:VEVENT");
       expect(ics.split("\r\n").filter((line) => line === "END:VEVENT")).toHaveLength(1);
       expect(ics.replaceAll("\r\n", "")).not.toMatch(/[\r\n]/);
+    });
+
+    it(`includes a UTC publication stamp in ${timed ? "timed" : "all-day"} events`, () => {
+      vi.useFakeTimers();
+      vi.setSystemTime(new Date("2026-10-09T19:00:00+01:00"));
+      try {
+        const ics = render("Aula");
+        expect(ics).toContain("DTSTAMP:20261009T180000Z\r\n");
+        expect(ics.match(/^DTSTAMP:/gm)).toHaveLength(1);
+      } finally {
+        vi.useRealTimers();
+      }
     });
 
     it(`folds UTF-8 lines without losing text in ${timed ? "timed" : "all-day"} events`, () => {

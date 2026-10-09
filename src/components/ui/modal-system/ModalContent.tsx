@@ -11,7 +11,7 @@ export function ModalContent({ children, className, noPadding = false }: ModalCo
   return (
     <div
       className={cn(
-        "flex-1 overflow-y-auto max-h-[calc(85vh-110px)] focus:outline-hidden",
+        "min-h-0 flex-1 overflow-y-auto overscroll-contain max-h-[calc(85dvh-110px)] focus:outline-hidden",
         !noPadding && "p-5 space-y-4",
         className,
       )}

@@ -85,6 +85,7 @@ export function toIcsCalendar(
   options?: { calendarName?: string; calendarDescription?: string },
 ) {
   const lines = calendarHeader(options);
+  const stamp = icsUtcDateTime(new Date().toISOString());
   for (const event of events) {
     const start = event.event_date.slice(0, 10);
     const inclusiveEnd = (event.ends_on ?? event.event_date).slice(0, 10);
@@ -92,6 +93,7 @@ export function toIcsCalendar(
     lines.push(
       "BEGIN:VEVENT",
       `UID:${icsEscape(uid)}`,
+      `DTSTAMP:${stamp}`,
       `DTSTART;VALUE=DATE:${icsDate(start)}`,
       `DTEND;VALUE=DATE:${icsDate(icsExclusiveEnd(inclusiveEnd))}`,
       `SUMMARY:${icsEscape(event.title)}`,
@@ -108,6 +110,7 @@ export function toIcsTimedCalendar(
   options?: { calendarName?: string; calendarDescription?: string },
 ) {
   const lines = calendarHeader(options);
+  const stamp = icsUtcDateTime(new Date().toISOString());
   for (const event of events) {
     const start = icsUtcDateTime(event.starts_at);
     const end = icsUtcDateTime(
@@ -117,6 +120,7 @@ export function toIcsTimedCalendar(
     lines.push(
       "BEGIN:VEVENT",
       `UID:${icsEscape(uid)}`,
+      `DTSTAMP:${stamp}`,
       `DTSTART:${start}`,
       `DTEND:${end}`,
       `SUMMARY:${icsEscape(event.title)}`,
