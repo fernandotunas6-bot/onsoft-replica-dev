@@ -64,6 +64,7 @@ export class ApiGateway implements Gateway {
       typeof data.userId !== "string" ||
       !data.userId.trim() ||
       typeof data.name !== "string" ||
+      !data.name.trim() ||
       !Array.isArray(data.memberships) ||
       data.memberships.some(
         (m: Record<string, unknown>) =>
