@@ -2,6 +2,16 @@ import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { requireMobileAcademicAccess } from "./authorization";
 
+const COMMAND_ROLES: Record<string, "professor" | "aluno"> = {
+  attendance: "professor",
+  grade: "professor",
+  plan: "professor",
+  task: "professor",
+  submission: "aluno",
+  message: "professor",
+  document: "aluno",
+};
+
 type MobileCommandRequest = {
   schoolId: string;
   role: "professor" | "aluno";
@@ -20,7 +30,12 @@ export const executeMobileV4Command = createServerFn({ method: "POST" })
   .inputValidator((input: MobileCommandRequest) => input)
   .handler(async ({ context, data }) => {
     if (!context?.userId) throw new Error("Unauthorized");
-    if (!data.requestId || !data.command?.type) throw new Error("Comando inválido.");
+    if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(data.requestId))
+      throw new Error("Identificador do pedido inválido.");
+    const commandRole = COMMAND_ROLES[data.command?.type];
+    if (!commandRole) throw new Error("Tipo de comando inválido.");
+    if (data.command.type !== "message" && commandRole !== data.role)
+      throw new Error("Comando incompatível com o papel académico.");
     await requireMobileAcademicAccess(context.userId, data.schoolId, data.role, "write");
     throw new Error(
       "Escrita Mobile V4 indisponível: falta validação transaccional, idempotência e auditoria.",
