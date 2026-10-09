@@ -44,7 +44,18 @@ Deno.serve(async (request) => {
     });
     const { data: userResult, error: userError } = await auth.auth.getUser(token);
     if (userError || !userResult.user) return respond(401, { error: "Invalid session" }, request);
-    const body = await request.json().catch(() => null);
+    // Reject oversized payloads before parsing; classroom commands need only small JSON.
+    const declaredLength = Number(request.headers.get("Content-Length"));
+    if (Number.isFinite(declaredLength) && declaredLength > 8192)
+      return respond(413, { error: "Request too large" }, request);
+    const rawBody = await request.text();
+    if (new TextEncoder().encode(rawBody).byteLength > 8192)
+      return respond(413, { error: "Request too large" }, request);
+    const body = (() => {
+      try { return JSON.parse(rawBody); } catch { return null; }
+    })();
+    if (!body || typeof body !== "object" || Array.isArray(body))
+      return respond(400, { error: "Invalid request body" }, request);
     if (body?.action === "list") {
       if (!isUuid(body.schoolId)) return respond(400, { error: "Invalid school" }, request);
       const db = createClient(url, env("SUPABASE_SERVICE_ROLE_KEY"), {
