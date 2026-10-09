@@ -16,9 +16,17 @@ export async function requireMobileAcademicAccess(
 ) {
   if (!userId.trim() || !schoolId.trim()) throw new Error("Sessão ou escola inválida.");
   const db = await loadSgaAdminClient();
+  const { data: activeRow, error: activeError } = await db
+    .from("school_memberships")
+    .select("id")
+    .eq("user_id", userId)
+    .eq("school_id", schoolId)
+    .eq("status", "active")
+    .maybeSingle();
+  if (activeError || !activeRow) throw new Error("Sem vínculo activo nesta escola.");
   const memberships = await listUserSchoolMemberships(db, userId);
   const membership = memberships.find(
-    (item) => item.schoolId === schoolId && item.isActive,
+    (item) => item.schoolId === schoolId && item.membershipId === activeRow.id && item.isActive,
   );
   if (!membership) throw new Error("Sem vínculo activo nesta escola.");
   const requiredRole = role === "professor" ? "Professor" : "Aluno";
