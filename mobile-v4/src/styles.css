@@ -1415,66 +1415,123 @@ select:focus-visible {
 
 
 /* Mobile V4 visual refinement: neutral surfaces, restrained motion, accessible focus. */
-:root {
+:root{
   color-scheme: light;
   --v4-surface: #ffffff;
   --v4-ink: #171b25;
-  --v4-border: rgba(29, 39, 57, .10);
-  --v4-shadow: 0 10px 34px rgba(27, 39, 60, .055);
+  --v4-border: rgba(29, 39, 57, 0.10);
+  --v4-shadow: 0 10px 34px rgba(27, 39, 60, 0.055);
 }
-#app.gradient {
-  background: radial-gradient(ellipse at 85% 5%, rgba(113, 143, 209, .075), transparent 46%), #f8f9fb;
+#app.gradient{
+  background: radial-gradient(ellipse at 85% 5%, rgba(113, 143, 209, 0.075), transparent 46%), #f8f9fb;
 }
-#app .top { align-items: center; }
+#app .top{
+  align-items: center;
+}
 #app .workspace,
 #app .profile,
 #app .round,
 #app .choice,
-#app .sheet {
+#app .sheet{
   border-color: var(--v4-border);
   box-shadow: var(--v4-shadow);
 }
-#app .nav {
-  background: rgba(255,255,255,.94);
+#app .nav{
+  background: rgba(255, 255, 255, 0.94);
   border-color: var(--v4-border);
-  box-shadow: 0 12px 40px rgba(25,34,51,.10);
+  box-shadow: 0 12px 40px rgba(25, 34, 51, 0.10);
 }
-#app .nav button.active { background: #eef1f7; }
+#app .nav button.active{
+  background: #eef1f7;
+}
 #app button,
 #app a,
 #app input,
 #app textarea,
-#app select { -webkit-tap-highlight-color: transparent; }
-#app :is(button,a,input,textarea,select):focus-visible {
+#app select{
+  -webkit-tap-highlight-color: transparent;
+}
+#app :is(button,a,input,textarea,select):focus-visible{
   outline: 3px solid #3977c5;
   outline-offset: 3px;
 }
-#app button:not(:disabled) { transition: background-color .16s ease, border-color .16s ease, box-shadow .16s ease; }
-#app button:disabled { cursor: not-allowed; opacity: .55; }
-#app .menurow:hover { background: rgba(30, 46, 72, .045); }
-#app .muted { color: #626b79; }
+#app button:not(:disabled){
+  transition: background-color 0.16s ease, border-color 0.16s ease, box-shadow 0.16s ease;
+}
+#app button:disabled{
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+#app .menurow:hover{
+  background: rgba(30, 46, 72, 0.045);
+}
+#app .muted{
+  color: #626b79;
+}
 @media (max-width: 420px) {
-  #app .content { padding-left: 16px; padding-right: 16px; }
-  #app .top { padding-left: 16px; padding-right: 16px; }
-  #app h1 { font-size: clamp(28px, 8vw, 36px); letter-spacing: -.035em; }
-  #app .nav { width: calc(100% - 28px); max-width: 440px; }
+  #app .content{
+  padding-left: 16px;
+  padding-right: 16px;
+}
+  #app .top{
+  padding-left: 16px;
+  padding-right: 16px;
+}
+  #app h1{
+  font-size: clamp(28px, 8vw, 36px);
+  letter-spacing: -0.035em;
+}
+  #app .nav{
+  width: calc(100% - 28px);
+  max-width: 440px;
+}
 }
 @media (prefers-reduced-motion: reduce) {
-  #app *, #app *::before, #app *::after {
-    animation-duration: .01ms !important;
-    transition-duration: .01ms !important;
-    scroll-behavior: auto !important;
-  }
+  #app *, #app *::before, #app *::after{
+  animation-duration: 0.01ms !important;
+  transition-duration: 0.01ms !important;
+  scroll-behavior: auto !important;
+}
 }
 
 /* School identity stays compact; missing images retain the existing monogram. */
-.school-logo { display: block; width: 100%; height: 100%; object-fit: contain; border-radius: inherit; }
+.school-logo{
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  border-radius: inherit;
+}
 
-.setting-toggle { display: flex; align-items: center; justify-content: space-between; gap: 16px; cursor: pointer; }
-.setting-toggle > span { display: grid; gap: 4px; }
-.setting-toggle input { width: 20px; height: 20px; flex: none; }
-#app.compact .content { padding-top: 0; }
-#app.compact .card { padding: 12px; margin-bottom: 10px; }
-#app.compact .menurow { min-height: 44px; }
-#app.compact .project, #app.compact .chat { padding-block: 10px; }
-#app.compact h1 { margin-block: 8px 14px; }
+.setting-toggle{
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  cursor: pointer;
+}
+.setting-toggle > span{
+  display: grid;
+  gap: 4px;
+}
+.setting-toggle input{
+  width: 20px;
+  height: 20px;
+  flex: none;
+}
+#app.compact .content{
+  padding-top: 0;
+}
+#app.compact .card{
+  padding: 12px;
+  margin-bottom: 10px;
+}
+#app.compact .menurow{
+  min-height: 44px;
+}
+#app.compact .project, #app.compact .chat{
+  padding-block: 10px;
+}
+#app.compact h1{
+  margin-block: 8px 14px;
+}
