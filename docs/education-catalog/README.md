@@ -144,7 +144,7 @@ novo.
   (`is_aal2`) e `academic.subjects.manage`; o servidor exige ainda Administrador/Secretaria e
   só aceita um grupo que a revisão reconhece como a mesma disciplina. Auditado
   (`academic.subject.merged`, com o que mudou).
-- Até a migração ser aplicada, o botão responde «falta aplicar a migração 20261010150000…»
+- A migração está aplicada (2026-10-10). Sem ela, o botão respondia «falta aplicar a migração 20261010150000…»
   (e a função está em `FUNCOES_ESPERA_MIGRACAO`).
 
 ## API de pesquisa (Mobile V4, WEB, integrações)
@@ -230,14 +230,25 @@ maior existente e, se outro pedido gravou o mesmo número ao mesmo tempo, tenta 
 UUID continua a ser a chave primária. Os códigos não são credenciais e não vão em URLs
 públicas de dados pessoais.
 
-## Aplicar (dono, SQL Editor) — não aplicado
+## Aplicado na produção (2026-10-10)
 
-1. `supabase/migrations/20261010120000_global_education_catalog.sql` (idempotente; tabelas
-   novas, nenhuma alteração a tabelas existentes).
-2. `supabase/seeds/education/catalog.sql` (idempotente).
-3. `supabase/migrations/20261010150000_merge_school_subjects.sql` (só cria a função).
-4. Recapturar o retrato (`npm run siga:db-snapshot`) e tirar `merge_school_subjects` de
-   `FUNCOES_ESPERA_MIGRACAO` (`tests/security/espera-migracao.ts`).
+1. `20261010120000_global_education_catalog.sql` e `20261010150000_merge_school_subjects.sql`
+   — no histórico da produção com estes números. Confirmado: as 9 tabelas com RLS forçada,
+   `anon` sem acesso, `authenticated` só com SELECT, `identifier_sequences` só para o
+   servidor, `merge_school_subjects` SECURITY DEFINER com EXECUTE para `authenticated`.
+2. `supabase/seeds/education/catalog.sql` — carregada por partes (o plano curricular numa
+   forma compacta equivalente, provada em PGlite contra o ficheiro). Verificação: as
+   impressões md5 das 8 tabelas (ordenadas com `COLLATE "C"`) são iguais às do ficheiro
+   carregado em PGlite — 9 fontes, 9 níveis, 41 áreas, 8 países, 115 disciplinas, 54
+   cursos, 20 etapas, 614 entradas de plano.
+3. **Falta (dono, com o CLI ligado):** recapturar o retrato (`npm run siga:db-snapshot`) e
+   os tipos (`npm run siga:gen-types`), e tirar `merge_school_subjects` de
+   `FUNCOES_ESPERA_MIGRACAO` (`tests/security/espera-migracao.ts`) — o teste
+   `colunas-inexistentes` obriga a isso assim que o retrato mostrar a função. Não se fez
+   aqui porque o retrato só se gera com o CLI e não se escreve à mão.
+
+Se a carga mudar (`npm run siga:catalog-seed`), voltar a correr o ficheiro inteiro: é
+idempotente (`ON CONFLICT … DO UPDATE`).
 
 Ensaio local: `SIGA_SQL_TEST_MODULE_PATH=<…/pglite/dist/index.js> node tests/sql/education-catalog.mjs`
 — migração e carga duas vezes, contagens iguais, chaves estrangeiras, estados, anon sem

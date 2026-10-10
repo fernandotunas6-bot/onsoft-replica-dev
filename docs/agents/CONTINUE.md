@@ -30,8 +30,11 @@ Detalhe e cobertura real: [docs/education-catalog/README.md](../education-catalo
 - **Duas sessões fizeram este catálogo em paralelo.** A da branch `ccr-680ee371-6vebkz`
   começou o mesmo trabalho sem saber deste; ficou num `git stash` local (não publicado) e só
   entrou a regra por área acima. Antes de começar, `git fetch` e ler este ficheiro na `main`.
-- **Por aplicar (dono):** `20261010120000_global_education_catalog.sql`, depois
-  `supabase/seeds/education/catalog.sql`, depois `20261010150000_merge_school_subjects.sql`. A página não depende delas.
+- **Aplicado na produção a 2026-10-10:** `20261010120000_global_education_catalog.sql`,
+  `20261010150000_merge_school_subjects.sql` e a carga `supabase/seeds/education/catalog.sql`
+  (md5 das 8 tabelas igual ao do ficheiro; ver o README do catálogo). **Falta:** recapturar
+  o retrato e os tipos (`npm run siga:db-snapshot`, `npm run siga:gen-types`) e tirar
+  `merge_school_subjects` de `FUNCOES_ESPERA_MIGRACAO`.
 
 ## Auditoria 13 — fluxos da escola (2026-10-06)
 
