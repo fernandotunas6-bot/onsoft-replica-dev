@@ -48,7 +48,18 @@
 ## V5 — Refinamento visual e ícones (10-10-2026)
 - **Tema escuro reposto:** os blocos `#app …` do refinamento anterior sobrepunham-se a `.dark …` (barra inferior branca, texto secundário sem contraste, papel activo invertido). Regras `#app.dark` no fim do CSS, sem tocar no original.
 - **Ícones:** mantêm-se os desenhos e a atribuição originais (pedido do utilizador). Uma primeira versão com ícones novos por serviço foi revertida.
-- **Cada função com a sua cor** (`SERVICE_TONES` em `pages/catalog.ts`, `data-tone`): o ícone original na cor da função, sobre um fundo suave da mesma cor, igual em «Meu dia» e «Os teus serviços», com variante para o tema escuro. Os mosaicos entram em cascata (32 ms entre eles) e o ícone sobe ligeiramente ao passar; nada anima com «Reduzir movimento». Um ícone em relevo (3D) foi experimentado e retirado a pedido do utilizador.
+- **Sem cor por função:** a cor por serviço e o ícone em relevo (3D) foram experimentados e retirados a pedido do utilizador. Fica o ícone original numa só cor de destaque (`--v5-accent`). Fica o movimento: os mosaicos entram em cascata (32 ms entre eles) e o ícone sobe ligeiramente ao passar; nada anima com «Reduzir movimento».
 - **Mosaicos e agenda:** seta sempre no canto, toque com ligeira compressão, agenda com uma linha por actividade e a hora em destaque. Espaço inferior reservado para a barra com a margem segura do iPhone.
 - `tests/icons.test.ts`: todos os ícones usados existem (nenhum cai no «?»), cada serviço de um perfil tem ícone diferente, e cada ícone é só traço, sem cores nem scripts.
 - Revisto em Chromium a 390 px, claro e escuro, professor e aluno, sem erros JS. Continua por rever em Android/iOS físicos e com leitores de ecrã.
+
+### Funções de cada perfil (`domain/agenda.ts`, `components/AcademicCatalog.tsx`)
+| Função | Antes | Agora |
+|---|---|---|
+| Horário / Aulas | cartões soltos | por dia, a começar em hoje, cada dia por hora; no dia de hoje «A decorrer» e «A seguir» (relógio de Luanda). Continua a ser o horário publicado, não a aula realizada |
+| Trabalhos / Tarefas | lista sem ordem | «Por entregar» do prazo mais próximo («Hoje», «Amanhã», «Faltam N dias»; sem prazo no fim) e «Prazo terminado» à parte. Não sabe das entregas |
+| Turmas (professor) | «Ver horário», «Ver trabalhos» | resumo «N períodos por semana · N trabalhos por entregar», mais «Fazer chamada» e «Ver notas» |
+| Disciplinas (aluno) | só a matrícula | o mesmo resumo e «Ver notas»; sem chamada |
+
+`tests/agenda.test.tsx` cobre o relógio de Luanda, a ordem dos dias, os estados da aula, os prazos e a navegação de cada perfil.
+

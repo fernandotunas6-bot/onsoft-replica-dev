@@ -1,16 +1,14 @@
 import { useState } from "react";
 import type { AcademicCatalog as Catalog } from "../domain/catalog";
+import {
+  WEEKDAYS as weekdays,
+  dueLabel,
+  luandaClock,
+  scheduleByDay,
+  taskBuckets,
+} from "../domain/agenda";
 
-const weekdays = [
-  "",
-  "Segunda-feira",
-  "Terça-feira",
-  "Quarta-feira",
-  "Quinta-feira",
-  "Sexta-feira",
-  "Sábado",
-  "Domingo",
-];
+const slotChip = { now: "A decorrer", next: "A seguir" } as const;
 const pending: Record<string, string> = {
   presencas: "O registo e a consulta de presenças ainda aguardam integração validada.",
   faltas: "A consulta de faltas ainda aguarda integração validada.",
@@ -27,11 +25,15 @@ export function AcademicCatalog({
   catalog,
   module,
   onNavigate,
+  now,
 }: {
   catalog: Catalog;
   module: string;
   onNavigate: (id: string) => void;
+  /** Só para testes; por omissão a hora de Luanda. */
+  now?: Date;
 }) {
+  const clock = luandaClock(now);
   const [query, setQuery] = useState("");
   const [classId, setClassId] = useState("");
   const [day, setDay] = useState("");
@@ -68,6 +70,17 @@ export function AcademicCatalog({
     (s) => byId.has(s.classSubjectId) && (!day || s.weekday === Number(day)),
   );
   const tasks = catalog.tasks.filter((t) => byId.has(t.classSubjectId));
+  const buckets = taskBuckets(tasks, clock.date);
+  const classSummary = (id: string) => {
+    const weekly = catalog.timetable.filter((s) => s.classSubjectId === id).length;
+    const open = taskBuckets(
+      catalog.tasks.filter((t) => t.classSubjectId === id),
+      clock.date,
+    ).open.length;
+    return `${weekly} ${weekly === 1 ? "período" : "períodos"} por semana · ${open} ${
+      open === 1 ? "trabalho por entregar" : "trabalhos por entregar"
+    }`;
+  };
   return (
     <section>
       <p className="small">
@@ -125,49 +138,93 @@ export function AcademicCatalog({
             ) : (
               <p>Matrícula activa nesta disciplina.</p>
             )}
-            <button
-              className="pill"
-              onClick={() => onNavigate(catalog.role === "professor" ? "aulas" : "horario")}
-            >
-              Ver horário
-            </button>
-            <button
-              className="pill"
-              onClick={() => onNavigate(catalog.role === "professor" ? "tarefas" : "trabalhos")}
-            >
-              Ver trabalhos
-            </button>
+            <p className="small">{classSummary(c.classSubjectId)}</p>
+            <div className="cardactions">
+              {catalog.role === "professor" && (
+                <button className="pill" onClick={() => onNavigate("presencas")}>
+                  Fazer chamada
+                </button>
+              )}
+              <button
+                className="pill"
+                onClick={() => onNavigate(catalog.role === "professor" ? "aulas" : "horario")}
+              >
+                Ver horário
+              </button>
+              <button
+                className="pill"
+                onClick={() => onNavigate(catalog.role === "professor" ? "tarefas" : "trabalhos")}
+              >
+                Ver trabalhos
+              </button>
+              <button
+                className="pill"
+                onClick={() => onNavigate(catalog.role === "professor" ? "notas" : "notas-aluno")}
+              >
+                Ver notas
+              </button>
+            </div>
           </article>
         ))}
       {isSchedule &&
-        slots.map((s) => (
-          <article className="card" key={s.slotId}>
-            <h2>{byId.get(s.classSubjectId)?.subjectName}</h2>
-            <p>
-              {byId.get(s.classSubjectId)?.className} · {weekdays[s.weekday]} · {s.startsAt}–
-              {s.endsAt}
-            </p>
-            <p>{s.room ? `Sala: ${s.room}` : "Sala não indicada."}</p>
-            <p className="small">
-              {s.publication === "legacy"
-                ? "Horário anterior sem publicação associada."
-                : "Horário publicado."}
-              {s.validFrom && ` Desde ${s.validFrom}.`}
-              {s.validTo && ` Até ${s.validTo}.`}
-            </p>
-          </article>
+        scheduleByDay(slots, clock).map((d) => (
+          <section className="agendaday" key={d.weekday} aria-label={d.label}>
+            <h3 className={d.isToday ? "today" : undefined}>{d.label}</h3>
+            {d.slots.map(({ slot: s, state }) => (
+              <article className={`card${state ? ` slot-${state}` : ""}`} key={s.slotId}>
+                <h2>
+                  {byId.get(s.classSubjectId)?.subjectName}
+                  {state && <span className="status-chip">{slotChip[state]}</span>}
+                </h2>
+                <p>
+                  {byId.get(s.classSubjectId)?.className} · {weekdays[s.weekday]} · {s.startsAt}–
+                  {s.endsAt}
+                </p>
+                <p>{s.room ? `Sala: ${s.room}` : "Sala não indicada."}</p>
+                <p className="small">
+                  {s.publication === "legacy"
+                    ? "Horário anterior sem publicação associada."
+                    : "Horário publicado."}
+                  {s.validFrom && ` Desde ${s.validFrom}.`}
+                  {s.validTo && ` Até ${s.validTo}.`}
+                </p>
+              </article>
+            ))}
+          </section>
         ))}
       {isTasks &&
-        tasks.map((t) => (
-          <article className="card" key={t.id}>
-            <h2>{t.title}</h2>
-            <p>
-              {byId.get(t.classSubjectId)?.className} · {byId.get(t.classSubjectId)?.subjectName}
-            </p>
-            <p>{t.instructions || "Sem instruções adicionais."}</p>
-            <p>{t.due ? `Prazo: ${t.due}` : "Sem prazo indicado."}</p>
-          </article>
-        ))}
+        (
+          [
+            ["Por entregar", buckets.open],
+            ["Prazo terminado", buckets.closed],
+          ] as const
+        ).map(
+          ([title, list]) =>
+            list.length > 0 && (
+              <section className="agendaday" key={title} aria-label={title}>
+                <h3>
+                  {title} · {list.length}
+                </h3>
+                {list.map((t) => {
+                  const label = dueLabel(t.due, clock.date);
+                  return (
+                    <article className="card" key={t.id}>
+                      <h2>
+                        {t.title}
+                        {label && <span className="status-chip">{label}</span>}
+                      </h2>
+                      <p>
+                        {byId.get(t.classSubjectId)?.className} ·{" "}
+                        {byId.get(t.classSubjectId)?.subjectName}
+                      </p>
+                      <p>{t.instructions || "Sem instruções adicionais."}</p>
+                      <p>{t.due ? `Prazo: ${t.due}` : "Sem prazo indicado."}</p>
+                    </article>
+                  );
+                })}
+              </section>
+            ),
+        )}
       {((isClasses && !classes.length) ||
         (isSchedule && !slots.length) ||
         (isTasks && !tasks.length)) && (

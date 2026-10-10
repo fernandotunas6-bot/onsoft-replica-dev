@@ -1712,3 +1712,49 @@ select:focus-visible {
     transform: none;
   }
 }
+
+/* Agenda: horário por dia e trabalhos por prazo, com a aula a decorrer em destaque. */
+#app .agendaday {
+  margin: 14px 0 6px;
+}
+#app .agendaday > h3 {
+  margin: 0 0 8px;
+  font-size: 0.82rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  opacity: 0.72;
+}
+#app .agendaday > h3.today {
+  color: var(--v5-accent);
+  opacity: 1;
+}
+#app .agendaday h2 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+#app .agendaday h2 .status-chip {
+  font-size: 0.72rem;
+}
+#app .card.slot-now {
+  border-left: 3px solid var(--v5-accent);
+}
+#app .card.slot-now .status-chip {
+  background: var(--v5-accent);
+  color: #fff;
+}
+#app .cardactions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+#app.dark .agendaday .status-chip {
+  background: rgba(255, 255, 255, 0.1);
+  color: inherit;
+}
+#app.dark .agendaday .card.slot-now .status-chip {
+  background: var(--v5-accent);
+  color: #fff;
+}
