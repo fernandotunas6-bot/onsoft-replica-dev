@@ -95,6 +95,19 @@ fica no registo de auditoria (`academic.subject.renamed_to_catalog`). O servidor
 revisão e só aplica o que ele próprio sugere, e só se o nome não mudou entretanto. Usa o
 cliente do utilizador (RLS), não o privilegiado.
 
+## Criar disciplina com o catálogo
+
+Pedagógica → Disciplinas → **Nova**: o campo «Disciplina» sugere os nomes do catálogo
+(com o nome do país) enquanto se escreve, e por baixo aparece, antes de gravar:
+- «A escola já tem «Matemática» (MAT), que é a mesma disciplina» — quando o catálogo
+  reconhece o nome escrito como uma disciplina que a escola já tem (grafia, sinónimo);
+- o nome do catálogo, se o escrito é diferente;
+- o código do catálogo, se o campo está vazio e o código está livre.
+
+Não bloqueia (a escola pode querer «Matemática» e «Matemática A»). Lógica em
+`subject-hint.ts`; o `QuickFormModal` ganhou duas opções genéricas e opcionais
+(`suggestions` num campo de texto, com `<datalist>` nativo, e `renderHint`).
+
 ## Juntar duplicados
 
 `public.merge_school_subjects(escola, a_manter, a_juntar[])` — migração

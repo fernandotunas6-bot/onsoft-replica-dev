@@ -20,6 +20,8 @@ Detalhe e cobertura real: [docs/education-catalog/README.md](../education-catalo
 - «Rever disciplinas» (Estrutura): duplicados (só mostra) e correcção de grafia dos nomes
   (RLS, 2FA, auditado). Juntar duplicados: `public.merge_school_subjects` (20261010150000),
   transaccional, recusa o que misturaria pautas/exames/competências e o superior.
+- «Nova disciplina» sugere nomes do catálogo e avisa antes de criar um duplicado
+  (`subject-hint.ts`; `QuickFormModal` com `suggestions` e `renderHint`).
 - **Por aplicar (dono):** `20261010120000_global_education_catalog.sql`, depois
   `supabase/seeds/education/catalog.sql`, depois `20261010150000_merge_school_subjects.sql`. A página não depende delas.
 

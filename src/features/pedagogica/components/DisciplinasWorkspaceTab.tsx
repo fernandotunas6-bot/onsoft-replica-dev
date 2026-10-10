@@ -20,6 +20,9 @@ import {
 import { angolaCoreSubjects, angolaTeachingLevels } from "@/lib/angola-academic";
 import { cn } from "@/lib/utils";
 import { AssignTeacherForm } from "./AssignTeacherForm";
+import { useSchoolSettings } from "@/features/auth/use-school-settings";
+import { countryFromCurrency } from "@/features/education-catalog/subject-review";
+import { subjectCreationHint, subjectSuggestions } from "@/features/education-catalog/subject-hint";
 
 export function DisciplinasWorkspaceTab({
   canManageAcademic,
@@ -73,6 +76,8 @@ export function DisciplinasWorkspaceTab({
   curriculumAreas?: Array<{ id: string; name: string; code: string; color?: string | null }>;
   onRefresh: () => Promise<void>;
 }) {
+  const { school } = useSchoolSettings();
+  const country = countryFromCurrency(school?.currency);
   return (
     <Panel
       title="Disciplinas e docentes"
@@ -106,6 +111,34 @@ export function DisciplinasWorkspaceTab({
               description="Adicione uma disciplina ao catálogo da escola. O professor e os tempos por semana definem-se em cada turma (Atribuir professor, currículo do curso)."
               icon={<Plus className="size-5" />}
               submitLabel="Criar disciplina"
+              renderHint={(values) => {
+                const hint = subjectCreationHint(
+                  values["nome"] ?? "",
+                  values["codigo"] ?? "",
+                  subjects.map((x) => ({ name: x.name, code: x.code ?? null })),
+                  country,
+                );
+                if (!hint) return null;
+                return (
+                  <div className="space-y-1 text-xs">
+                    {hint.duplicateOf ? (
+                      <p className={cn(badgeBase, toneClass.warning, "whitespace-normal")}>
+                        A escola já tem «{hint.duplicateOf.name}»
+                        {hint.duplicateOf.code ? ` (${hint.duplicateOf.code})` : ""}, que é a mesma
+                        disciplina. Use essa em vez de criar outra.
+                      </p>
+                    ) : null}
+                    {hint.catalogName ? (
+                      <p className="text-muted-foreground">No catálogo: «{hint.catalogName}».</p>
+                    ) : null}
+                    {hint.suggestedCode ? (
+                      <p className="text-muted-foreground">
+                        Código sugerido: <span className="font-mono">{hint.suggestedCode}</span>
+                      </p>
+                    ) : null}
+                  </div>
+                );
+              }}
               onSubmit={async (values) => {
                 const annualHours = values["cargaAnual"] ? Number(values["cargaAnual"]) : undefined;
                 await createSubject({
@@ -133,6 +166,7 @@ export function DisciplinasWorkspaceTab({
                   label: "Disciplina",
                   placeholder: "Ex.: Química Geral",
                   full: true,
+                  suggestions: subjectSuggestions(country),
                 },
                 { name: "codigo", label: "Código", placeholder: "Ex.: QUI" },
                 {
