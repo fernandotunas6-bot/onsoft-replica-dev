@@ -49,10 +49,11 @@ Nada escrito na produção; nenhuma migração nova.
   `src/lib/escape-html.ts`, `isMissingTable`, `readSettingsDomainRow`,
   `finance/payment-method.ts`, `academic/own-teacher.ts`, `src/lib/option-label.ts`,
   `src/lib/base64.ts`.
-- **Por decidir (dono):** A1 — 40 matrículas pendentes do Huambo (`MAT-98xxxx`, 08/10, escritas
-  fora da aplicação; 39 alunos ficaram «candidato»): confirmar com «Atribuir turma» à mesma
-  turma, ou anular. A2 — matrículas antes de o ano lectivo começar (a RPC exige o ano activo e a
-  data dentro dele). A3 — 2FA na mudança de turma.
+- **Decididos pelo dono (secção 8.5 do relatório):** A3 — 2FA também na mudança de turma
+  (feito). A2 — matrícula antecipada no ano em preparação, até 183 dias antes
+  (`20261010130000`, por aplicar, mesmo pacote; `enrollmentWindow` no servidor). A1 — o dono diz
+  que as 40 matrículas do Huambo são reais, mas estão nas turmas «DEMO — 1.ª Classe A/B», em
+  rascunho: confirmar na escola antes; guia nos dois sentidos na secção 8.5.
 - **Segunda passagem (Pessoas, Perfil, Horários, Salas)** — secção 8 do relatório. CI do PR #118
   corrigido (`ecosystem-urls.ts` sem `import.meta.env` em Node). **Por aplicar (dono, SQL Editor):**
   `docs/agents/SIGA_aplicar_auditoria14_2026-10-10.sql` — `20261010100000` (H1: duas turmas sem

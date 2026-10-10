@@ -189,3 +189,27 @@ reproduz a recusa da segunda turma sem sala; aplica a migração duas vezes; pro
 verdade (por nome ou por id) e a própria turma continuam a colidir. `tests/people/teacher-number.test.ts`
 (maior número + 1 com saltos; nova tentativa no número tomado). `tests/security/timetable-overlap-rooms.test.ts`
 compara a lista do ecrã com a da migração nova.
+
+### 8.5 Decisões do dono sobre A1, A2 e A3 (2026-10-10)
+
+- **A3 — 2FA na mudança de turma: feito.** `placeStudentInClass` exige 2FA antes de
+  matricular **ou** mudar de turma; o lote («Atribuir turma») exige-o se houver alguém a
+  matricular, mudar ou confirmar; a importação de matrículas exige-o ao gravar. Sem
+  migração.
+- **A2 — Matrícula antecipada: feito, por aplicar.** Migração `20261010130000_early_enrollment.sql`
+  (no mesmo pacote; ensaio `tests/sql/early-enrollment.mjs`): `enroll_student` aceita o ano
+  activo ou em preparação (`draft`) e datas até 183 dias antes do início; a matrícula fica com
+  a data de início do ano. A mesma regra no servidor (`enrollmentWindow`), que a verifica antes
+  de criar o aluno. No ecrã, escolhe-se o ano seguinte no selector de ano e as turmas dele
+  aparecem. Até a migração ser aplicada, a base continua a recusar o ano em preparação.
+- **A1 — Huambo: o dono indicou que são reais; a leitura de 2026-10-10 sugere o contrário.**
+  As 40 matrículas pendentes estão em duas turmas chamadas **«DEMO — 1.ª Classe A» e
+  «DEMO — 1.ª Classe B»** (`DEMO1A`, `DEMO1B`), ambas em rascunho (`draft`), criadas a 08/10,
+  com 20 matrículas cada. 39 alunos estão «candidato» e 1 «activo». Antes de confirmar,
+  verificar na escola se são alunos reais.
+  - **Se forem reais:** (1) Pedagógica › Turmas: pôr as duas turmas em «Activa» (e, se o
+    nome «DEMO» não for o certo, mudar o nome); (2) Alunos: filtrar pela turma, seleccionar os
+    20 alunos e «Atribuir turma» à mesma turma — confirma as matrículas pendentes e põe os
+    alunos «activo», com histórico (M8). Exige 2FA (A3). Repetir para a outra turma.
+  - **Se forem de demonstração:** anular as matrículas (ficha do aluno › anular matrícula, ou
+    um SQL revisto, que posso preparar) e arquivar as duas turmas. Os alunos ficam «inactivo».

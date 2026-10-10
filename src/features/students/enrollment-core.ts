@@ -28,7 +28,7 @@ type AdminDb = Awaited<ReturnType<typeof loadSgaAdminClient>>;
 type DbError = { code?: string | undefined; message?: string | undefined };
 
 export const ENROLLMENT_2FA_MESSAGE =
-  "Esta conta precisa de verificação em duas etapas (2FA) activa para matricular alunos.";
+  "Esta conta precisa de verificação em duas etapas (2FA) activa para matricular alunos ou mudá-los de turma.";
 
 /** `register_student` e `enroll_student` recusam sem 2FA (`private.is_aal2`) ou sem permissão. */
 export { isRpcAuthDenied };
@@ -121,6 +121,42 @@ export type EnrollableClass = {
   capacity: number | null;
 };
 
+/** Dias antes do início do ano em que já se pode matricular (igual a `enroll_student`). */
+export const EARLY_ENROLLMENT_DAYS = 183;
+
+function addDaysIso(iso: string, days: number): string {
+  const date = new Date(`${iso}T00:00:00Z`);
+  date.setUTCDate(date.getUTCDate() + days);
+  return date.toISOString().slice(0, 10);
+}
+
+/**
+ * A janela de matrícula de um ano lectivo, a mesma de `private.enroll_student`
+ * (migração 20261010130000, auditoria 14 A2): ano activo ou em preparação; a data
+ * pode ser até 183 dias antes do início (matrícula antecipada, que fica com a data de
+ * início do ano) e nunca depois do fim.
+ */
+export function enrollmentWindow(
+  year: { name: string; status: string; startsOn: string; endsOn: string } | null,
+  requestedOn: string,
+): { ok: true; enrolledOn: string; early: boolean } | { ok: false; message: string } {
+  if (!year || (year.status !== "active" && year.status !== "draft")) {
+    return {
+      ok: false,
+      message: `O ano lectivo ${year?.name ?? "da turma"} está fechado: só se matricula no ano activo ou no que está em preparação.`,
+    };
+  }
+  const earliest = addDaysIso(year.startsOn, -EARLY_ENROLLMENT_DAYS);
+  if (requestedOn < earliest || requestedOn > year.endsOn) {
+    return {
+      ok: false,
+      message: `A data da matrícula (${requestedOn}) está fora do ano lectivo ${year.name} (${year.startsOn} a ${year.endsOn}; antecipada a partir de ${earliest}).`,
+    };
+  }
+  const early = requestedOn < year.startsOn;
+  return { ok: true, enrolledOn: early ? year.startsOn : requestedOn, early };
+}
+
 /**
  * As regras de `enroll_student`, antes de criar a pessoa e o aluno: turma activa
  * da escola, ano lectivo activo, data dentro do ano e lugar livre. Sem isto, uma
@@ -158,17 +194,18 @@ export async function assertClassAcceptsEnrollment(
     .eq("school_id", input.schoolId)
     .maybeSingle();
   if (yearError) throw publicDatabaseError(yearError, "Não foi possível validar o ano lectivo.");
-  if (!year || year.status !== "active") {
-    throw new Error(
-      `O ano lectivo ${year?.name ?? "da turma"} não está activo: só se matricula no ano activo.`,
-    );
-  }
-  const enrolledOn = input.enrolledOn || schoolTodayIso();
-  if (enrolledOn < String(year.starts_on) || enrolledOn > String(year.ends_on)) {
-    throw new Error(
-      `A data da matrícula (${enrolledOn}) está fora do ano lectivo ${year.name} (${year.starts_on} a ${year.ends_on}).`,
-    );
-  }
+  const dates = enrollmentWindow(
+    year
+      ? {
+          name: String(year.name),
+          status: String(year.status),
+          startsOn: String(year.starts_on),
+          endsOn: String(year.ends_on),
+        }
+      : null,
+    input.enrolledOn || schoolTodayIso(),
+  );
+  if (!dates.ok) throw new Error(dates.message);
 
   const capacity = typeof group.capacity === "number" ? group.capacity : null;
   if (capacity && capacity > 0) {
@@ -366,7 +403,7 @@ export async function placeStudentInClass(
     academicYearId?: string | null;
     enrolledOn?: string | null;
     userId: string;
-    /** Sessão com 2FA (aal2): a matrícula nova exige-o na base. */
+    /** Sessão com 2FA (aal2): exigida para matricular e para mudar de turma. */
     hasAal2: boolean;
   },
 ): Promise<PlacementResult> {
@@ -408,6 +445,10 @@ export async function placeStudentInClass(
     throw publicDatabaseError(currentError, "Não foi possível verificar matrículas existentes.");
   }
 
+  // Matricular e mudar de turma exigem 2FA (auditoria 14, A3, decidido pelo dono):
+  // antes só a matrícula nova o exigia, na base; a mudança de turma gravava sem ele.
+  if (!input.hasAal2) throw new Error(ENROLLMENT_2FA_MESSAGE);
+
   let result: PlacementResult;
   if (current) {
     const { error } = await db
@@ -427,7 +468,6 @@ export async function placeStudentInClass(
   } else {
     const held = heldStudentMessage(previousStatus);
     if (held) throw new Error(held);
-    if (!input.hasAal2) throw new Error(ENROLLMENT_2FA_MESSAGE);
     const enrolled = await enrollStudentReopening(db, session, {
       schoolId: input.schoolId,
       studentId: input.studentId,

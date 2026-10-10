@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import {
   ENROLLMENT_2FA_MESSAGE,
   assertClassAcceptsEnrollment,
+  enrollmentWindow,
   isRpcAuthDenied,
   placeStudentInClass,
   studentStatusAfterPlacement,
@@ -229,6 +230,16 @@ describe("colocar em turma", () => {
     expect(rpc).not.toHaveBeenCalled();
     expect(store.writes).toEqual([]);
   });
+
+  it("sem 2FA, mudar de turma também é recusado, sem escrever (A3)", async () => {
+    const store = fixture({ status: "active" }, [
+      { id: "mat-1", class_group_id: "turma-a", academic_year_id: YEAR, status: "active" },
+    ]);
+    const rpc = enrollRpc(store);
+    await expect(place(store, rpc, { hasAal2: false })).rejects.toThrow(ENROLLMENT_2FA_MESSAGE);
+    expect(rpc).not.toHaveBeenCalled();
+    expect(store.writes).toEqual([]);
+  });
 });
 
 describe("estado depois da colocação", () => {
@@ -267,7 +278,7 @@ describe("turma validada antes de criar o aluno", () => {
     const store = fixture({ status: "applicant" });
     await expect(
       assertClassAcceptsEnrollment(store.db, { schoolId: SCHOOL, classGroupId: "turma-velha" }),
-    ).rejects.toThrow(/2025\/2026 não está activo/);
+    ).rejects.toThrow(/2025\/2026 está fechado/);
     await expect(
       assertClassAcceptsEnrollment(store.db, {
         schoolId: SCHOOL,
@@ -275,5 +286,35 @@ describe("turma validada antes de criar o aluno", () => {
         enrolledOn: "3000-01-01",
       }),
     ).rejects.toThrow(/fora do ano lectivo/);
+  });
+});
+
+describe("matrícula antecipada (A2, igual a enroll_student)", () => {
+  const year = { name: "2027/2028", status: "draft", startsOn: "2027-09-01", endsOn: "2028-07-31" };
+
+  it("aceita o ano em preparação até 183 dias antes, com a data de início do ano", () => {
+    expect(enrollmentWindow(year, "2027-08-20")).toEqual({
+      ok: true,
+      enrolledOn: "2027-09-01",
+      early: true,
+    });
+    expect(enrollmentWindow(year, "2027-03-02").ok).toBe(true); // 183 dias antes
+    expect(enrollmentWindow(year, "2027-03-01").ok).toBe(false); // 184 dias antes
+  });
+
+  it("dentro do ano grava a data pedida; depois do fim recusa", () => {
+    expect(enrollmentWindow({ ...year, status: "active" }, "2027-10-05")).toEqual({
+      ok: true,
+      enrolledOn: "2027-10-05",
+      early: false,
+    });
+    expect(enrollmentWindow(year, "2028-08-01").ok).toBe(false);
+  });
+
+  it("ano fechado ou arquivado continua recusado", () => {
+    for (const status of ["closed", "archived"]) {
+      const result = enrollmentWindow({ ...year, status }, "2027-10-05");
+      expect(result.ok).toBe(false);
+    }
   });
 });

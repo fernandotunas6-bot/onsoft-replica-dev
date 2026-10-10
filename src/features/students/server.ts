@@ -1448,8 +1448,12 @@ export const batchAssignClass = createServerFn({ method: "POST" })
       if (held) failed.push({ studentId, message: held });
       else toEnroll.push(studentId);
     }
-    // A matrícula nova exige 2FA na base: recusado antes de mexer em qualquer aluno.
-    if (toEnroll.length && context.claims?.["aal"] !== "aal2") {
+    // Matricular, mudar de turma e confirmar exigem 2FA (auditoria 14, A3): recusado
+    // antes de mexer em qualquer aluno.
+    if (
+      (toEnroll.length || toMove.length || toConfirm.length) &&
+      context.claims?.["aal"] !== "aal2"
+    ) {
       throw new Error(ENROLLMENT_2FA_MESSAGE);
     }
 
