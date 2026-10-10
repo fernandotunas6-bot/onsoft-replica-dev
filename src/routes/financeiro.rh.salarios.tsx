@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import { toastActionError } from "@/lib/action-error-toast";
 import { AppShell } from "@/components/layout/AppShell";
 import { PageHeader, Panel } from "@/components/layout/PageHeader";

@@ -1,7 +1,7 @@
 import { Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { FolderOpen, ImagePlus, LoaderCircle, Lock } from "lucide-react";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import { Button } from "@/components/ui/button";
 import { useCurrentAccount } from "@/features/auth/use-current-account";
 import { applyLibraryPhotoToPerson } from "./apply-person-photo";

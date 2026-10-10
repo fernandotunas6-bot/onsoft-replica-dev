@@ -65,6 +65,11 @@ const businessMessages = new Set([
   "Estudante, ano letivo ou data de matrícula inválida.",
   "Pessoa ou data de admissão inválida.",
   "Encarregado inválido para esta escola.",
+  // Gatilho das mensagens (20261002100000_chat_integrity.sql).
+  "Conversa inexistente.",
+  "A mensagem tem de pertencer à escola da conversa.",
+  "O anexo tem de ser um ficheiro da escola da conversa.",
+  "Só pode responder a mensagens da mesma conversa.",
 ]);
 
 function constraintMessage(message: string | undefined): string | null {

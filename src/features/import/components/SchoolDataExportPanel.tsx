@@ -8,7 +8,7 @@ import {
   Square,
   RefreshCw,
 } from "lucide-react";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import { Button } from "@/components/ui/button";
 import { exportSchoolDataFn } from "../server";
 import type { ImportModule } from "../schemas";

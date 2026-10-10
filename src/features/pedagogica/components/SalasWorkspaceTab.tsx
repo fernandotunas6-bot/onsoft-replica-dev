@@ -23,7 +23,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { listRooms, createRoom, updateRoom } from "@/features/academic/server";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import { EMPTY_LIST } from "@/lib/stable-empty";
 import { errorMessage } from "@/lib/error-message";
 import type { RoomType } from "@/features/academic/schemas";

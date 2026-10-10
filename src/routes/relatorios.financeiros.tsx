@@ -13,7 +13,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { whatsappHref } from "@/features/integrations/actions";
 import { InstalledModuleTools } from "@/features/integrations/InstalledModuleTools";
 import { useInstalledIntegrations } from "@/features/integrations/use-installed-integrations";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import { AppShell } from "@/components/layout/AppShell";
 import { PageHeader, Panel, StatGrid } from "@/components/layout/PageHeader";
 import { DocHelpButton } from "@/components/ui/doc-help-button";

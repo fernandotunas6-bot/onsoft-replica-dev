@@ -29,7 +29,7 @@ import { getOrCreateCalendarFeedToken } from "@/features/calendar/feed";
 import { calendarIcsFeedUrl } from "@/features/calendar/ics";
 import { useDeclareEntityFocus } from "@/features/intelligence/entity-focus-context";
 import { mapTeacherWorkspaceToSnapshot } from "@/features/intelligence/teachers/teacher-relations-adapter";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import { optionLabel } from "@/lib/option-label";
 
 export const Route = createFileRoute("/professores/$teacherId")({

@@ -1,5 +1,5 @@
 import { useState, type ReactNode } from "react";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import { QuickModal } from "@/components/ui/modal-system";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
