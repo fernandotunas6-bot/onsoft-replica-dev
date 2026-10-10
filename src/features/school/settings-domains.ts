@@ -18,7 +18,7 @@
  *   volta a escrever `value["campo"] ?? x` noutro sítio.
  */
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { publicDatabaseError } from "@/integrations/supabase/server-error";
+import { isMissingTable, publicDatabaseError } from "@/integrations/supabase/server-error";
 import { isSchoolTypeId, type AngolaSchoolTypeId } from "@/lib/school-config";
 import { pedagogySettingsSchema, type PedagogySettings } from "./schemas";
 
@@ -468,7 +468,7 @@ export async function readSettingsDomainRow<V = unknown>(
     .eq("domain", domain)
     .maybeSingle();
   // Base sem a tabela (instalação antiga): sem linha, como uma escola que nunca gravou.
-  if (error && !/schema cache|does not exist|42P01|PGRST/i.test(error.message)) {
+  if (error && !isMissingTable(error)) {
     throw publicDatabaseError(error, `Não foi possível ler as definições (${domain}).`);
   }
   return (data as { id: string; domain: string; version: number; value: V } | null) ?? null;

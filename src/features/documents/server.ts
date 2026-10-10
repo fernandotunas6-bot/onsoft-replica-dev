@@ -41,8 +41,10 @@ import {
   type PrintTemplateKey,
 } from "./print-catalog";
 import { parsePrintSettings } from "./print-settings";
-import { updateSettingsDomainValue } from "@/features/school/settings-domains";
-import { readSettingsDomainRow } from "@/features/school/settings-domains";
+import {
+  readSettingsDomainRow,
+  updateSettingsDomainValue,
+} from "@/features/school/settings-domains";
 
 /**
  * Há dois vocabulários de estado, e só o servidor deve conhecer os dois.
