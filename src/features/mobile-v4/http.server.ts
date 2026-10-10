@@ -9,6 +9,7 @@ import {
   loadMobileV4Attendance,
   loadMobileV4Results,
   loadMobileV4Lessons,
+  loadMobileV4Assessments,
   loadMobileV4Gradebooks,
   loadMobileV4Finance,
   loadMobileV4Chat,
@@ -48,6 +49,7 @@ export type MobileHttpDependencies = {
   attendance: (userId: string, scope: unknown) => Promise<unknown>;
   academic: (userId: string, scope: unknown) => Promise<unknown>;
   lessons: (userId: string, scope: unknown) => Promise<unknown>;
+  assessments: (userId: string, scope: unknown) => Promise<unknown>;
   chatCommand: (userId: string, scope: unknown) => Promise<unknown>;
   notificationsRead: (userId: string, input: unknown) => Promise<unknown>;
   command: (userId: string, input: unknown) => Promise<unknown>;
@@ -61,6 +63,7 @@ const dependencies: MobileHttpDependencies = {
   attendance: loadMobileV4Attendance,
   results: loadMobileV4Results,
   lessons: loadMobileV4Lessons,
+  assessments: loadMobileV4Assessments,
   gradebooks: loadMobileV4Gradebooks,
   finance: loadMobileV4Finance,
   chat: loadMobileV4Chat,
@@ -138,7 +141,7 @@ export async function handleMobileV4Http(request: Request, deps = dependencies):
     const url = new URL(request.url);
     const path = url.pathname;
     const schoolRoute =
-      /^\/api\/mobile-v4\/schools\/([0-9a-f-]+)\/(workspace|academic|attendance|results|lessons|gradebooks|finance|notifications|notifications-read|chat|contacts|attachment|chat-capabilities|chat-commands|commands)$/i.exec(
+      /^\/api\/mobile-v4\/schools\/([0-9a-f-]+)\/(workspace|academic|attendance|results|lessons|assessments|gradebooks|finance|notifications|notifications-read|chat|contacts|attachment|chat-capabilities|chat-commands|commands)$/i.exec(
         path,
       );
     const operation =
@@ -158,6 +161,7 @@ export async function handleMobileV4Http(request: Request, deps = dependencies):
       "attendance",
       "results",
       "lessons",
+      "assessments",
       "gradebooks",
       "finance",
       "notifications",
@@ -252,6 +256,7 @@ export async function handleMobileV4Http(request: Request, deps = dependencies):
       operation === "academic" ||
       operation === "results" ||
       operation === "lessons" ||
+      operation === "assessments" ||
       operation === "gradebooks" ||
       operation === "finance"
     ) {

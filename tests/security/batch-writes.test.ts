@@ -184,7 +184,17 @@ describe("mudar estado em lote (alunos)", () => {
 });
 
 describe("lançar notas de avaliação", () => {
-  const fn = body(read("src/features/academic/server-legacy.ts"), "upsertAssessmentScores");
+  // Núcleo partilhado pelo portal (upsertAssessmentScores) e pela app móvel.
+  const fn = body(
+    read("src/features/academic/assessment-scores-core.server.ts"),
+    "recordAssessmentScores",
+  );
+
+  it("upsertAssessmentScores delega no núcleo partilhado", () => {
+    expect(body(read("src/features/academic/server-legacy.ts"), "upsertAssessmentScores")).toMatch(
+      /recordAssessmentScores\(/,
+    );
+  });
 
   it("só aceita alunos da turma da avaliação, também para a Administração e a Secretaria", () => {
     expect(fn).toMatch(/\.eq\("class_group_id", String\(item\.class_group_id\)\)/);

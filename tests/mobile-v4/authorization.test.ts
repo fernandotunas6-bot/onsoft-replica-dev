@@ -169,10 +169,10 @@ describe("Mobile tenant and role authorization", () => {
     await expect(requireMobileAcademicAccess("user", b, "admin" as never)).rejects.toThrow();
     expect(mocks.load).not.toHaveBeenCalled();
   });
-  it("advertises only the writes the server implements (teacher attendance call)", async () => {
+  it("advertises only the writes the server implements (attendance call and scores)", async () => {
     const memberships = mapMobileMemberships(await mocks.list());
     expect(memberships.map((m) => m.permissions)).toEqual([
-      ["academic.read", "attendance.write"],
+      ["academic.read", "attendance.write", "grades.write"],
       ["academic.read"],
     ]);
   });

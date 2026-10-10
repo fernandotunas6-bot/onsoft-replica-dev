@@ -62,7 +62,7 @@ Worker em qualquer host). É a mesma app; o endereço oficial a divulgar é `m.p
 
 ## Próximas integrações (ordem decidida)
 
-1. ~~Chamada do professor~~ — feita (ver abaixo). Falta: notas por disciplina (comandos com auditoria, idempotência
+1. ~~Chamada do professor~~ e ~~notas das avaliações~~ — feitas (ver abaixo). Falta: notas por disciplina (MAC/NPP/NPT da pauta) (comandos com auditoria, idempotência
    por `requestId` e conflito de revisão), reutilizando os serviços do SIGA.
 2. Chat real (`chat-server.ts`: `assertMember`, `assertConversationOpen`).
 3. Notificações push (reutilizar o push do portal na app `/mobile/`).
@@ -110,3 +110,16 @@ não precisa de ser revertido: sem pedidos para `m.`, o código fica inactivo.
 
 A sessão de agente não tem ferramentas Cloudflare de escrita (só leitura); os passos 3 e 5 são do
 dono no painel.
+
+## Notas das avaliações (10/10/2026)
+
+- `GET /api/mobile-v4/schools/:id/assessments?role=professor`: avaliações (`siga_assessment_items`)
+  dos pares turma × disciplina atribuídos ao professor, com as notas e a versão (`updated_at`).
+- Comando `scores` (aal2): `recordAssessmentScores`, o núcleo do portal
+  (`features/academic/assessment-scores-core.server.ts`): cotação, trimestre fechado, pauta
+  oficial, só alunos da turma, auditoria `grades.assessment_score_changed`. O mobile acrescenta:
+  professor atribuído à turma × disciplina (403) e versão vista por nota — nota mudada entretanto
+  → 409, nada é gravado.
+- A sessão anuncia `grades.write` ao professor. App: «Lançar notas» na página Notas (só as notas
+  mudadas são enviadas; vírgula aceite; acima da cotação bloqueado no campo).
+- Criar avaliações e as notas de pauta (MAC/NPP/NPT) continuam no portal. Sem migrações.

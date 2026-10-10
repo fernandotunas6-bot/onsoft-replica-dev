@@ -128,6 +128,7 @@ import { Route as ApiSaasTenantsSubscriptionRouteImport } from './routes/api/saa
 import { Route as ApiSaasUsageSyncRouteImport } from './routes/api/saas/usage.sync'
 import { Route as ApiFinanceGatewayUnitelConfirmRouteImport } from './routes/api/finance/gateway.unitel.confirm'
 import { Route as ApiMobileV4SchoolsSchoolIdAcademicRouteImport } from './routes/api/mobile-v4/schools/$schoolId/academic'
+import { Route as ApiMobileV4SchoolsSchoolIdAssessmentsRouteImport } from './routes/api/mobile-v4/schools/$schoolId/assessments'
 import { Route as ApiMobileV4SchoolsSchoolIdAttachmentRouteImport } from './routes/api/mobile-v4/schools/$schoolId/attachment'
 import { Route as ApiMobileV4SchoolsSchoolIdAttendanceRouteImport } from './routes/api/mobile-v4/schools/$schoolId/attendance'
 import { Route as ApiMobileV4SchoolsSchoolIdChatRouteImport } from './routes/api/mobile-v4/schools/$schoolId/chat'
@@ -762,6 +763,12 @@ const ApiMobileV4SchoolsSchoolIdAcademicRoute =
     path: '/api/mobile-v4/schools/$schoolId/academic',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiMobileV4SchoolsSchoolIdAssessmentsRoute =
+  ApiMobileV4SchoolsSchoolIdAssessmentsRouteImport.update({
+    id: '/api/mobile-v4/schools/$schoolId/assessments',
+    path: '/api/mobile-v4/schools/$schoolId/assessments',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiMobileV4SchoolsSchoolIdAttachmentRoute =
   ApiMobileV4SchoolsSchoolIdAttachmentRouteImport.update({
     id: '/api/mobile-v4/schools/$schoolId/attachment',
@@ -967,6 +974,7 @@ export interface FileRoutesByFullPath {
   '/api/saas/usage/sync': typeof ApiSaasUsageSyncRoute
   '/api/finance/gateway/unitel/confirm': typeof ApiFinanceGatewayUnitelConfirmRoute
   '/api/mobile-v4/schools/$schoolId/academic': typeof ApiMobileV4SchoolsSchoolIdAcademicRoute
+  '/api/mobile-v4/schools/$schoolId/assessments': typeof ApiMobileV4SchoolsSchoolIdAssessmentsRoute
   '/api/mobile-v4/schools/$schoolId/attachment': typeof ApiMobileV4SchoolsSchoolIdAttachmentRoute
   '/api/mobile-v4/schools/$schoolId/attendance': typeof ApiMobileV4SchoolsSchoolIdAttendanceRoute
   '/api/mobile-v4/schools/$schoolId/chat': typeof ApiMobileV4SchoolsSchoolIdChatRoute
@@ -1102,6 +1110,7 @@ export interface FileRoutesByTo {
   '/api/saas/usage/sync': typeof ApiSaasUsageSyncRoute
   '/api/finance/gateway/unitel/confirm': typeof ApiFinanceGatewayUnitelConfirmRoute
   '/api/mobile-v4/schools/$schoolId/academic': typeof ApiMobileV4SchoolsSchoolIdAcademicRoute
+  '/api/mobile-v4/schools/$schoolId/assessments': typeof ApiMobileV4SchoolsSchoolIdAssessmentsRoute
   '/api/mobile-v4/schools/$schoolId/attachment': typeof ApiMobileV4SchoolsSchoolIdAttachmentRoute
   '/api/mobile-v4/schools/$schoolId/attendance': typeof ApiMobileV4SchoolsSchoolIdAttendanceRoute
   '/api/mobile-v4/schools/$schoolId/chat': typeof ApiMobileV4SchoolsSchoolIdChatRoute
@@ -1238,6 +1247,7 @@ export interface FileRoutesById {
   '/api/saas/usage/sync': typeof ApiSaasUsageSyncRoute
   '/api/finance/gateway/unitel/confirm': typeof ApiFinanceGatewayUnitelConfirmRoute
   '/api/mobile-v4/schools/$schoolId/academic': typeof ApiMobileV4SchoolsSchoolIdAcademicRoute
+  '/api/mobile-v4/schools/$schoolId/assessments': typeof ApiMobileV4SchoolsSchoolIdAssessmentsRoute
   '/api/mobile-v4/schools/$schoolId/attachment': typeof ApiMobileV4SchoolsSchoolIdAttachmentRoute
   '/api/mobile-v4/schools/$schoolId/attendance': typeof ApiMobileV4SchoolsSchoolIdAttendanceRoute
   '/api/mobile-v4/schools/$schoolId/chat': typeof ApiMobileV4SchoolsSchoolIdChatRoute
@@ -1375,6 +1385,7 @@ export interface FileRouteTypes {
     | '/api/saas/usage/sync'
     | '/api/finance/gateway/unitel/confirm'
     | '/api/mobile-v4/schools/$schoolId/academic'
+    | '/api/mobile-v4/schools/$schoolId/assessments'
     | '/api/mobile-v4/schools/$schoolId/attachment'
     | '/api/mobile-v4/schools/$schoolId/attendance'
     | '/api/mobile-v4/schools/$schoolId/chat'
@@ -1510,6 +1521,7 @@ export interface FileRouteTypes {
     | '/api/saas/usage/sync'
     | '/api/finance/gateway/unitel/confirm'
     | '/api/mobile-v4/schools/$schoolId/academic'
+    | '/api/mobile-v4/schools/$schoolId/assessments'
     | '/api/mobile-v4/schools/$schoolId/attachment'
     | '/api/mobile-v4/schools/$schoolId/attendance'
     | '/api/mobile-v4/schools/$schoolId/chat'
@@ -1645,6 +1657,7 @@ export interface FileRouteTypes {
     | '/api/saas/usage/sync'
     | '/api/finance/gateway/unitel/confirm'
     | '/api/mobile-v4/schools/$schoolId/academic'
+    | '/api/mobile-v4/schools/$schoolId/assessments'
     | '/api/mobile-v4/schools/$schoolId/attachment'
     | '/api/mobile-v4/schools/$schoolId/attendance'
     | '/api/mobile-v4/schools/$schoolId/chat'
@@ -1746,6 +1759,7 @@ export interface RootRouteChildren {
   ApiSaasUsageSyncRoute: typeof ApiSaasUsageSyncRoute
   ApiFinanceGatewayUnitelConfirmRoute: typeof ApiFinanceGatewayUnitelConfirmRoute
   ApiMobileV4SchoolsSchoolIdAcademicRoute: typeof ApiMobileV4SchoolsSchoolIdAcademicRoute
+  ApiMobileV4SchoolsSchoolIdAssessmentsRoute: typeof ApiMobileV4SchoolsSchoolIdAssessmentsRoute
   ApiMobileV4SchoolsSchoolIdAttachmentRoute: typeof ApiMobileV4SchoolsSchoolIdAttachmentRoute
   ApiMobileV4SchoolsSchoolIdAttendanceRoute: typeof ApiMobileV4SchoolsSchoolIdAttendanceRoute
   ApiMobileV4SchoolsSchoolIdChatRoute: typeof ApiMobileV4SchoolsSchoolIdChatRoute
@@ -2597,6 +2611,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiMobileV4SchoolsSchoolIdAcademicRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/mobile-v4/schools/$schoolId/assessments': {
+      id: '/api/mobile-v4/schools/$schoolId/assessments'
+      path: '/api/mobile-v4/schools/$schoolId/assessments'
+      fullPath: '/api/mobile-v4/schools/$schoolId/assessments'
+      preLoaderRoute: typeof ApiMobileV4SchoolsSchoolIdAssessmentsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/mobile-v4/schools/$schoolId/attachment': {
       id: '/api/mobile-v4/schools/$schoolId/attachment'
       path: '/api/mobile-v4/schools/$schoolId/attachment'
@@ -2987,6 +3008,8 @@ const rootRouteChildren: RootRouteChildren = {
   ApiFinanceGatewayUnitelConfirmRoute: ApiFinanceGatewayUnitelConfirmRoute,
   ApiMobileV4SchoolsSchoolIdAcademicRoute:
     ApiMobileV4SchoolsSchoolIdAcademicRoute,
+  ApiMobileV4SchoolsSchoolIdAssessmentsRoute:
+    ApiMobileV4SchoolsSchoolIdAssessmentsRoute,
   ApiMobileV4SchoolsSchoolIdAttachmentRoute:
     ApiMobileV4SchoolsSchoolIdAttachmentRoute,
   ApiMobileV4SchoolsSchoolIdAttendanceRoute:

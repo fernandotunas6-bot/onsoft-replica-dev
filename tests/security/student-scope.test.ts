@@ -127,6 +127,12 @@ describe("leituras da escola inteira só para o pessoal", () => {
     [
       "src/features/academic/server-legacy.ts",
       ["upsertAssessmentScores"],
+      /recordAssessmentScores\(/,
+    ],
+    // Núcleo partilhado pelo portal e pela app móvel.
+    [
+      "src/features/academic/assessment-scores-core.server.ts",
+      ["recordAssessmentScores"],
       /"grades\.assessment_score_changed"/,
     ],
   ];

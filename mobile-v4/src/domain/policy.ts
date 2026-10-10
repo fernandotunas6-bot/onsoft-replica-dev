@@ -2,6 +2,7 @@ import type { Context, Session, Permission, Workspace, Command, ClassGroup } fro
 export const required: Record<Command["type"], Permission> = {
   attendance: "attendance.write",
   grade: "grades.write",
+  scores: "grades.write",
   plan: "tasks.write",
   task: "tasks.write",
   submission: "submissions.write",

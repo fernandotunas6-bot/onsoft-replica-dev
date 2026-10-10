@@ -3,6 +3,7 @@ import { InstitutionalChat } from "../components/InstitutionalChat";
 import { InstitutionalFinance } from "../components/InstitutionalFinance";
 import { InstitutionalGradebooks } from "../components/InstitutionalGradebooks";
 import { InstitutionalResults } from "../components/InstitutionalResults";
+import { TeacherScores } from "../components/TeacherScores";
 import { InstitutionalAttendance } from "../components/InstitutionalAttendance";
 import type { ApiError } from "../services/api";
 import type { Gateway } from "../domain/model";
@@ -209,13 +210,22 @@ export function ServicePages({
               onAccessError={onAccessError}
             />
           ) : catalog && gateway && ctx.role === "professor" && page === "notas" ? (
-            <InstitutionalGradebooks
-              key={ctx.userId + ctx.schoolId + ctx.role + page}
-              ctx={ctx}
-              catalog={catalog}
-              gateway={gateway}
-              onAccessError={onAccessError}
-            />
+            <>
+              <TeacherScores
+                key={"scores" + ctx.userId + ctx.schoolId}
+                ctx={ctx}
+                catalog={catalog}
+                gateway={gateway}
+                onAccessError={onAccessError}
+              />
+              <InstitutionalGradebooks
+                key={ctx.userId + ctx.schoolId + ctx.role + page}
+                ctx={ctx}
+                catalog={catalog}
+                gateway={gateway}
+                onAccessError={onAccessError}
+              />
+            </>
           ) : catalog &&
             gateway &&
             ctx.role === "aluno" &&

@@ -30,8 +30,9 @@ export function mapMobileMemberships(
       const assigned = item.allAppRoles;
       if (assigned.includes("Professor")) {
         roles.push("professor");
-        // A chamada já tem comando no servidor (teacher-attendance.server.ts).
-        permissions.push("academic.read", "attendance.write");
+        // Chamada e notas de avaliações têm comando no servidor
+        // (teacher-attendance.server.ts, teacher-scores.server.ts).
+        permissions.push("academic.read", "attendance.write", "grades.write");
       }
       if (assigned.includes("Aluno")) {
         roles.push("aluno");

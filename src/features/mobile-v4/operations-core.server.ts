@@ -46,6 +46,10 @@ export async function applyMobileV4Command(userId: string, input: unknown) {
     const { recordMobileV4Attendance } = await import("./teacher-attendance.server");
     return recordMobileV4Attendance(userId, { ...data, command: data.command });
   }
+  if (data.command.type === "scores") {
+    const { recordMobileV4Scores } = await import("./teacher-scores.server");
+    return recordMobileV4Scores(userId, { ...data, command: data.command });
+  }
   await requireMobileAcademicAccess(userId, data.schoolId, data.role, "write");
   throw new MobileApiError(503, "COMMANDS_NOT_READY");
 }
@@ -193,4 +197,9 @@ export async function applyMobileV4NotificationsRead(userId: string, input: unkn
     { schoolId: s.schoolId, role: s.role, userId },
     "ids" in s ? { ids: s.ids } : { all: true },
   );
+}
+
+export async function loadMobileV4Assessments(userId: string, input: unknown) {
+  const { loadMobileV4Assessments: load } = await import("./teacher-scores.server");
+  return load(userId, input);
 }
