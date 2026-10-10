@@ -59,7 +59,7 @@ export function InstitutionalNotifications({
         `${x.title} ${x.body}`.toLocaleLowerCase("pt").includes(query.toLocaleLowerCase("pt")),
     ) ?? [];
   return (
-    <section>
+    <section className="academic" style={{ overflowWrap: "anywhere" }}>
       <p>Os teus 50 avisos mais recentes nesta escola. Consultar não marca como lido.</p>
       <button className="pill" disabled={loading} onClick={() => setReload((n) => n + 1)}>
         Actualizar avisos
@@ -69,7 +69,7 @@ export function InstitutionalNotifications({
       {inbox && (
         <>
           <p role="status">{inbox.unread} não lidas nesta escola</p>
-          <label>
+          <label className="checkline">
             <input
               type="checkbox"
               checked={unreadOnly}
@@ -77,12 +77,15 @@ export function InstitutionalNotifications({
             />{" "}
             Apenas não lidas
           </label>
-          <input
-            aria-label="Pesquisar avisos"
-            placeholder="Pesquisar avisos"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-          />
+          <label>
+            Pesquisar avisos
+            <input
+              aria-label="Pesquisar avisos"
+              placeholder="Pesquisar avisos"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+            />
+          </label>
           {items.length === 0 && <p>Nenhum aviso encontrado.</p>}
           {items.map((item) => (
             <article className="card" key={item.id}>

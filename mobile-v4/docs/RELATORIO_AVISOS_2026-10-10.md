@@ -20,6 +20,7 @@ Consultar **não** marca automaticamente avisos como lidos. Não foram implement
 - 3.363 testes do repositório aprovados, com 19 ignorados; lint raiz sem erros (47 avisos existentes).
 - 33 testes nos dois ficheiros de HTTP/notificações do servidor, incluindo filtro por utilizador/escola, respostas externas, falhas da base e encaminhamento para ambos os perfis.
 - 107 verificações da projecção Mobile em PostgreSQL local, incluindo sete novas para avisos: 50 recentes/60 não lidas, ordenação estável, dois marcadores de leitura, escola/utilizador e falha da base. Usa o leitor real e um adaptador SQL parametrizado; não valida PostgREST/Auth/RLS remoto.
+- Chromium com dados controlados: 390/768/1280 px, textos longos sem overflow, pesquisa e refresh que preserva filtros; classes existentes academic/checkline, sem alterar CSS. Não é um percurso com conta real.
 - Tipos Mobile e raiz, três builds Mobile, build raiz, lint e formatação verificados. A rota gerada foi actualizada pelo build antes da verificação final de tipos.
 - Testes com dados controlados são ensaios; não equivalem a validação positiva com uma conta real Sga nem à verificação remota de RLS/PostgREST.
 - Sem alterações Supabase ou migrações de produção; sem publicação do portal principal.
