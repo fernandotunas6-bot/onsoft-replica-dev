@@ -1024,6 +1024,7 @@ export const listTeachers = createServerFn({ method: "GET" })
     });
   });
 
+/** Número de professor automático: «DOC-000001» (IDENTIFIER_POLICIES.teacher). */
 export const createTeacher = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((input: unknown) => createTeacherInputSchema.parse(input))

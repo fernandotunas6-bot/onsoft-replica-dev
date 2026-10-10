@@ -27,6 +27,7 @@ import { toast } from "@/lib/toast";
 import { EMPTY_LIST } from "@/lib/stable-empty";
 import { errorMessage } from "@/lib/error-message";
 import type { RoomType } from "@/features/academic/schemas";
+import { suggestNextCode } from "@/features/education-catalog/identifiers";
 
 /** Colunas de `rooms` usadas aqui (confirmadas em supabase/PRODUCTION_SNAPSHOT.json). */
 type RoomRow = {
@@ -212,6 +213,11 @@ export function SalasWorkspaceTab({ canManage }: { canManage: boolean }) {
                   name: "codigo",
                   label: "Código da Sala",
                   placeholder: "Ex: B-12",
+                  // Continua a numeração da escola (S01…S07 → S08); editável.
+                  defaultValue: suggestNextCode(
+                    "room",
+                    rooms.map((room) => room.code),
+                  ),
                   required: true,
                 },
                 {

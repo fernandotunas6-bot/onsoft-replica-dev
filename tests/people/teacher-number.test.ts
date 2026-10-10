@@ -11,7 +11,7 @@ function fakeDb(numbers: string[]): Db {
   const query = {
     select: () => query,
     eq: () => query,
-    like: () =>
+    ilike: () =>
       Promise.resolve({
         data: numbers.map((employee_number) => ({ employee_number })),
         error: null,
@@ -40,6 +40,7 @@ describe("número do professor", () => {
       if (tried.length === 1) {
         numbers.push(number); // o pedido concorrente gravou-o primeiro
         return {
+          data: null,
           error: {
             code: "23505",
             message:
@@ -47,7 +48,7 @@ describe("número do professor", () => {
           },
         };
       }
-      return { error: null };
+      return { data: { id: "t1" }, error: null };
     });
     expect(result.error).toBeNull();
     expect(tried).toEqual(["DOC-000002", "DOC-000003"]);
@@ -57,7 +58,7 @@ describe("número do professor", () => {
     let calls = 0;
     const result = await insertTeacherWithNextNumber(fakeDb([]), "s", async () => {
       calls += 1;
-      return { error: { code: "23503", message: "foreign key" } };
+      return { data: null, error: { code: "23503", message: "foreign key" } };
     });
     expect(calls).toBe(1);
     expect(result.error?.code).toBe("23503");

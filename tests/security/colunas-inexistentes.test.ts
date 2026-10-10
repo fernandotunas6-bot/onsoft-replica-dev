@@ -331,8 +331,8 @@ const funcoesPublicas = new Set(
  * esteve seis dias sem ser registada, porque `hr/teacher-lessons.ts` chamava-a desde
  * eaceb8f2 e a produção devolvia PGRST202.
  *
- * Vazia desde então, até 2026-10-10 (`siga_merge_people`). A lista está em
- * ./espera-migracao.ts, partilhada com `production-columns.test.ts`.
+ * Vazia de 2026-10-02 a 2026-10-10. A lista vive agora em `espera-migracao.ts`,
+ * partilhada com `production-columns.test.ts`.
  */
 /**
  * Colunas que o código grava e a produção ainda não tem porque há uma migração escrita e

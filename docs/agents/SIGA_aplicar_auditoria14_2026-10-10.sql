@@ -323,7 +323,7 @@ COMMIT;
 -- 1. private.register_teacher (P3). «Novo professor» passa a usá-la. A sequência dela
 --    (private.teacher_number_sequences) nunca foi usada: começa em 1 e dava logo
 --    DOC-000001, que já existe. O número passa a ser o maior entre a sequência e o maior
---    DOC-NNNNNN da escola + 1 — acerta-se sozinha, também depois de professores criados
+--    DOC-<n> da escola + 1 — acerta-se sozinha, também depois de professores criados
 --    por importação ou pela ligação de um login. O resto do corpo é o da produção
 --    (pg_get_functiondef de 2026-10-10).
 --
@@ -392,7 +392,8 @@ begin
     coalesce(max(substring(t.employee_number from 5)::bigint), 0) + 1
   ) into generated_number
   from public.teachers t
-  where t.school_id = target_school_id and t.employee_number ~ '^DOC-[0-9]{6}$';
+  -- A mesma regra de nextSequentialCode (education-catalog/identifiers.ts).
+  where t.school_id = target_school_id and t.employee_number ~* '^DOC-[0-9]{1,18}$';
   generated_employee_number := 'DOC-' || lpad(generated_number::text, 6, '0');
   update private.teacher_number_sequences
   set next_number = generated_number + 1, updated_at = now()

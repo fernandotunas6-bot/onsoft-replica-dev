@@ -103,6 +103,8 @@ const registerInputSchema = z.object({
   /** Número do documento (recibo, fatura…) e valor, para confirmar o que está impresso. */
   reference: z.string().trim().max(80).optional(),
   amountLabel: z.string().trim().max(60).optional(),
+  /** Disciplinas tal como impressas (printed-subjects.ts): o nome à data da emissão. */
+  subjects: z.array(z.string().trim().min(1).max(120)).max(40).optional(),
 });
 
 export const registerIssuedDocument = createServerFn({ method: "POST" })
@@ -151,6 +153,7 @@ export const registerIssuedDocument = createServerFn({ method: "POST" })
         issuer_role: issuerRole,
         reference: data.reference ?? null,
         amount: data.amountLabel ?? null,
+        subjects: data.subjects?.length ? data.subjects : null,
         school_name: membership.schoolName ?? null,
         issued_at: issuedAt,
       },
@@ -172,6 +175,8 @@ export type DocumentVerification =
       reference: string | null;
       amount: string | null;
       issuerRole: string | null;
+      /** Disciplinas com o nome que tinham no dia da emissão (só documentos com disciplinas). */
+      subjects: string[];
     };
 
 /** Pública (sem sessão): quem recebe o documento verifica-o. */
@@ -221,5 +226,8 @@ export const verifyIssuedDocument = createServerFn({ method: "GET" })
       reference: typeof meta.reference === "string" ? meta.reference : null,
       amount: typeof meta.amount === "string" ? meta.amount : null,
       issuerRole: typeof meta.issuer_role === "string" ? meta.issuer_role : null,
+      subjects: Array.isArray(meta.subjects)
+        ? meta.subjects.filter((s): s is string => typeof s === "string")
+        : [],
     };
   });
