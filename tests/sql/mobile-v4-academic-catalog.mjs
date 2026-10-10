@@ -22,7 +22,7 @@ export async function resolve(specifier, context, next) {
 }
 export async function load(url, context, next) {
   if (url.startsWith(SRC) && url.endsWith('.ts')) return { format: 'module', shortCircuit: true,
-    source: stripTypeScriptTypes(await readFile(new URL(url), 'utf8'), { mode: 'transform' }) };
+    source: stripTypeScriptTypes((await readFile(new URL(url), 'utf8')).replaceAll('import.meta.env', '({})'), { mode: 'transform' }) };
   return next(url, context);
 }
 `),
@@ -45,8 +45,40 @@ const { parseAcademicAttendance } = await import(
 const { readMobileResults } = await import(
   new URL("../../src/features/mobile-v4/results.server.ts", import.meta.url)
 );
+const { readMobileGradebooks } = await import(
+  new URL("../../src/features/mobile-v4/gradebooks.server.ts", import.meta.url)
+);
+const { readMobileFinance } = await import(
+  new URL("../../src/features/mobile-v4/finance.server.ts", import.meta.url)
+);
+const { readMobileChat } = await import(
+  new URL("../../src/features/mobile-v4/chat.server.ts", import.meta.url)
+);
+const { readMobileChatContacts, signMobileChatAttachment } = await import(
+  new URL("../../src/features/mobile-v4/chat-files.server.ts", import.meta.url)
+);
+const { readMobileNotifications } = await import(
+  new URL("../../src/features/mobile-v4/notifications.server.ts", import.meta.url)
+);
 const pg = new PGlite();
 await pg.exec(`
+CREATE TABLE notifications(id uuid PRIMARY KEY,school_id uuid NOT NULL,user_id uuid NOT NULL,channel text NOT NULL,event_type text NOT NULL,title text NOT NULL,body text NOT NULL,status text NOT NULL,read_at timestamptz,created_at timestamptz NOT NULL);
+CREATE TABLE member_roles(membership_id uuid,role_id uuid);
+CREATE TABLE roles(id uuid PRIMARY KEY,code text);
+CREATE TABLE siga_files(id uuid PRIMARY KEY,school_id uuid,name text,area text,visibility text,owner_user_id uuid,related_user_id uuid,is_folder boolean,is_system boolean,storage_backend text,storage_path text,deleted_at timestamptz);
+CREATE TABLE profiles(id uuid PRIMARY KEY,full_name text);
+CREATE TABLE school_memberships(id uuid PRIMARY KEY,school_id uuid,user_id uuid,status text);
+CREATE TABLE siga_chat_conversations(id uuid PRIMARY KEY,school_id uuid,type text,title text);
+CREATE TABLE siga_chat_members(conversation_id uuid,user_id uuid,last_read_at timestamptz,PRIMARY KEY(conversation_id,user_id));
+CREATE TABLE siga_chat_messages(id uuid PRIMARY KEY,school_id uuid,conversation_id uuid,sender_id uuid,body text,created_at timestamptz,deleted_at timestamptz,reply_to uuid,attachment_file_id uuid,attachment_file_name text);
+CREATE TABLE finance_contracts(id uuid PRIMARY KEY,school_id uuid NOT NULL,enrollment_id uuid NOT NULL,status text);
+CREATE TABLE fee_items(id uuid PRIMARY KEY,school_id uuid NOT NULL,name text NOT NULL);
+CREATE TABLE finance_invoices(id uuid PRIMARY KEY,school_id uuid NOT NULL,contract_id uuid NOT NULL,fee_item_id uuid NOT NULL,invoice_number text NOT NULL,competence_month date,due_date date,status text,amount numeric(18,2),discount_amount numeric(18,2),penalty_amount numeric);
+CREATE TABLE finance_receipts(id uuid PRIMARY KEY,school_id uuid NOT NULL,invoice_id uuid NOT NULL,receipt_number text NOT NULL,amount numeric(18,2),paid_on date,payment_method text,status text);
+CREATE TABLE terms(id uuid PRIMARY KEY,school_id uuid NOT NULL,academic_year_id uuid NOT NULL,name text NOT NULL,sequence smallint CHECK(sequence>0));
+CREATE TABLE gradebooks(id uuid PRIMARY KEY,school_id uuid NOT NULL,class_subject_id uuid NOT NULL,class_group_id uuid NOT NULL,academic_year_id uuid NOT NULL,term_id uuid NOT NULL,status text CHECK(status IN ('draft','open','submitted','closed')));
+CREATE TABLE grade_items(id uuid PRIMARY KEY,school_id uuid NOT NULL,gradebook_id uuid NOT NULL,code text NOT NULL,name text NOT NULL,kind text NOT NULL,max_score numeric(6,2) CHECK(max_score>0),sequence smallint CHECK(sequence>0),assessed_on date);
+CREATE TABLE grade_scores(id uuid PRIMARY KEY,school_id uuid NOT NULL,grade_item_id uuid NOT NULL,enrollment_id uuid NOT NULL,score numeric(6,2),status text CHECK(status IN ('draft','submitted','locked')),note text,pending_score numeric, UNIQUE(school_id,grade_item_id,enrollment_id));
 CREATE TABLE grade_sheets(id uuid PRIMARY KEY, school_id uuid NOT NULL, class_group_id uuid NOT NULL, academic_year_id uuid NOT NULL, title text NOT NULL, kind text CHECK(kind IN ('term','annual')), status text CHECK(status IN ('draft','submitted','in_review','homologated','published','contested','rectified','closed')), published_at timestamptz);
 CREATE TABLE grade_sheet_rows(id uuid PRIMARY KEY, school_id uuid NOT NULL, grade_sheet_id uuid NOT NULL, enrollment_id uuid NOT NULL, continuous_average numeric, exam_average numeric, term_average numeric, result text CHECK(result IN ('pending','pass','fail','incomplete')), observation text, subject_breakdown jsonb, UNIQUE(school_id,grade_sheet_id,enrollment_id));
 CREATE TABLE siga_attendance_sessions(id uuid PRIMARY KEY, school_id uuid NOT NULL, class_group_id uuid NOT NULL, subject_id uuid NOT NULL, academic_year_id uuid, teacher_id uuid, lesson_date date NOT NULL, starts_at text, ends_at text, status text CHECK(status IN ('pending','completed','cancelled')));
@@ -240,7 +272,9 @@ function adapter({ fail, cap } = {}) {
       const filters = [],
         values = [];
       let fields = [],
-        maximum = 1000;
+        maximum = 1000,
+        head = false;
+      const ordering = [];
       calls.push({ table, filters });
       function eq(field, value) {
         values.push(value);
@@ -256,8 +290,9 @@ function adapter({ fail, cap } = {}) {
             `SELECT count(*)::int AS n FROM ${identifier(table)}${where}`,
             values,
           );
+          if (head) return { data: null, error: null, count: total.rows[0].n };
           const result = await pg.query(
-            `SELECT ${fields.map(identifier).join(",")} FROM ${identifier(table)}${where} LIMIT ${Number(maximum)}`,
+            `SELECT ${fields.map((f) => (["created_at", "last_read_at"].includes(f) ? `${identifier(f)}::text AS ${identifier(f)}` : identifier(f))).join(",")} FROM ${identifier(table)}${where}${ordering.length ? ` ORDER BY ${ordering.join(",")}` : ""} LIMIT ${Number(maximum)}`,
             values,
           );
           const count = total.rows[0].n;
@@ -267,11 +302,28 @@ function adapter({ fail, cap } = {}) {
             Object.fromEntries(
               Object.entries(row).map(([key, value]) => [
                 key,
-                ["continuous_average", "exam_average", "term_average"].includes(key) &&
-                value !== null
+                [
+                  "continuous_average",
+                  "exam_average",
+                  "term_average",
+                  "score",
+                  "max_score",
+                  "amount",
+                  "discount_amount",
+                  "penalty_amount",
+                ].includes(key) && value !== null
                   ? Number(value)
                   : value instanceof Date
-                    ? !["lesson_date", "valid_from", "valid_to", "due_on"].includes(key)
+                    ? ![
+                        "lesson_date",
+                        "valid_from",
+                        "valid_to",
+                        "due_on",
+                        "assessed_on",
+                        "due_date",
+                        "competence_month",
+                        "paid_on",
+                      ].includes(key)
                       ? value.toISOString()
                       : value.toISOString().slice(0, 10)
                     : value,
@@ -288,11 +340,39 @@ function adapter({ fail, cap } = {}) {
         }
       }
       const chain = {
-        select(selection) {
+        select(selection, options = {}) {
+          head = !!options.head;
           fields = selection.split(",").map((v) => v.trim());
           return chain;
         },
         eq,
+        neq(field, value) {
+          values.push(value);
+          filters.push(`${identifier(field)}<>$${values.length}`);
+          return chain;
+        },
+        gt(field, value) {
+          values.push(value);
+          filters.push(`${identifier(field)}>$${values.length}`);
+          return chain;
+        },
+        order(field, options) {
+          ordering.push(`${identifier(field)} ${options?.ascending === false ? "DESC" : "ASC"}`);
+          return chain;
+        },
+        or(expression) {
+          const match =
+            /^created_at\.lt\.(.+),and\(created_at\.eq\.(.+),id\.lt\.([0-9a-f-]+)\)$/.exec(
+              expression,
+            );
+          assert.ok(match);
+          assert.equal(match[1], match[2]);
+          values.push(match[1], match[3]);
+          filters.push(
+            `(created_at<$${values.length - 1} OR (created_at=$${values.length - 1} AND id<$${values.length}))`,
+          );
+          return chain;
+        },
         gte(field, value) {
           values.push(value);
           filters.push(`${identifier(field)}>=$${values.length}`);
@@ -635,6 +715,400 @@ try {
     (await readMobileResults(db, pupilScope, studentData, studentUser)).sheets.length === 0,
     "withdrawn publication disappears",
   );
+
+  await insert("terms", {
+    id: uuid(450),
+    school_id: A,
+    academic_year_id: yearA,
+    name: "Período configurado",
+    sequence: 1,
+  });
+  for (const [n, school, cs, group, year] of [
+    [451, A, csA, groupA, yearA],
+    [452, A, unrelatedCs, unrelatedGroup, yearA],
+    [453, B, csB, groupB, yearB],
+    [454, A, csA, groupA, yearB],
+  ]) {
+    await insert("gradebooks", {
+      id: uuid(n),
+      school_id: school,
+      class_subject_id: cs,
+      class_group_id: group,
+      academic_year_id: year,
+      term_id: uuid(450),
+      status: "open",
+    });
+    await insert("grade_items", {
+      id: uuid(n + 10),
+      school_id: school,
+      gradebook_id: uuid(n),
+      code: "MAC",
+      name: "Componente real",
+      kind: "continuous",
+      max_score: 100,
+      sequence: 1,
+      assessed_on: null,
+    });
+    await insert("grade_scores", {
+      id: uuid(n + 20),
+      school_id: school,
+      grade_item_id: uuid(n + 10),
+      enrollment_id: school === A ? enrollment : foreignEnrollment,
+      score: 0,
+      status: "draft",
+      note: "PRIVATE NOTE",
+      pending_score: 50,
+    });
+  }
+  await insert("grade_scores", {
+    id: uuid(480),
+    school_id: A,
+    grade_item_id: uuid(461),
+    enrollment_id: peerEnrollment,
+    score: 87.5,
+    status: "locked",
+    note: "PRIVATE PEER",
+    pending_score: null,
+  });
+  const journals = await readMobileGradebooks(db, teacherScope, teacherData, teacherUser);
+  check(
+    journals.books.length === 1 && journals.books[0].id === uuid(451),
+    "only assigned teacher's current-year diaries, no unrelated teacher/foreign school/previous year",
+  );
+  check(
+    journals.books[0].items[0].scores.length === 2 && journals.books[0].items[0].maxScore === 100,
+    "own active roster and actual scale",
+  );
+  check(
+    journals.books[0].items[0].scores.some((s) => s.value === 0 && s.status === "draft") &&
+      journals.books[0].items[0].scores.some((s) => s.value === 87.5 && s.status === "locked"),
+    "zero, decimal, draft and locked values preserved without inferring publication",
+  );
+  check(
+    !JSON.stringify(journals).includes("PRIVATE") &&
+      !JSON.stringify(journals).includes("pending_score"),
+    "no private score notes or pending changes",
+  );
+  await assert.rejects(
+    readMobileGradebooks(db, pupilScope, studentData, studentUser),
+    (e) => e.code === "GRADEBOOKS_TEACHER_ONLY",
+  );
+  checks++;
+  for (const table of ["gradebooks", "terms", "grade_items", "grade_scores"]) {
+    for (const mode of ["fail", "cap"]) {
+      await assert.rejects(
+        readMobileGradebooks(adapter({ [mode]: table }), teacherScope, teacherData, teacherUser),
+        (e) => e.code === "GRADEBOOKS_UNAVAILABLE",
+      );
+      checks++;
+    }
+  }
+  await pg.query("UPDATE terms SET academic_year_id=$1 WHERE id=$2", [yearB, uuid(450)]);
+  await assert.rejects(
+    readMobileGradebooks(db, teacherScope, teacherData, teacherUser),
+    (e) => e.code === "GRADEBOOKS_INCONSISTENT",
+  );
+  checks++;
+  await pg.query("UPDATE terms SET academic_year_id=$1 WHERE id=$2", [yearA, uuid(450)]);
+
+  await insert("enrollments", {
+    id: uuid(600),
+    school_id: A,
+    academic_year_id: yearA,
+    class_group_id: groupA,
+    student_id: student,
+    status: "closed",
+  });
+  await insert("fee_items", { id: uuid(601), school_id: A, name: "Propina registada" });
+  for (const [n, school, enr] of [
+    [602, A, enrollment],
+    [603, A, peerEnrollment],
+    [604, B, foreignEnrollment],
+    [605, A, uuid(600)],
+  ]) {
+    await insert("finance_contracts", {
+      id: uuid(n),
+      school_id: school,
+      enrollment_id: enr,
+      status: "active",
+    });
+    await insert("finance_invoices", {
+      id: uuid(n + 10),
+      school_id: school,
+      contract_id: uuid(n),
+      fee_item_id: uuid(601),
+      invoice_number: `FT-${n}`,
+      competence_month: "2026-10-01",
+      due_date: "2026-10-31",
+      status: n === 605 ? "paid" : "partially_paid",
+      amount: 100,
+      discount_amount: 10,
+      penalty_amount: 5,
+    });
+    await insert("finance_receipts", {
+      id: uuid(n + 20),
+      school_id: school,
+      invoice_id: uuid(n + 10),
+      receipt_number: `RC-${n}`,
+      amount: 50,
+      paid_on: "2026-10-10",
+      payment_method: "cash",
+      status: "issued",
+    });
+  }
+  await insert("finance_receipts", {
+    id: uuid(630),
+    school_id: A,
+    invoice_id: uuid(612),
+    receipt_number: "RC-reversed",
+    amount: 10,
+    paid_on: "2026-10-09",
+    payment_method: "bank_transfer",
+    status: "reversed",
+  });
+  const finance = await readMobileFinance(db, pupilScope, studentUser);
+  check(
+    finance.invoices.length === 2 && finance.invoices.some((i) => i.id === uuid(615)),
+    "only own current/historical enrollment invoices, no peer/foreign school",
+  );
+  check(
+    finance.invoices.find((i) => i.id === uuid(612)).receipts.length === 2,
+    "own receipt history includes explicit reversal without deleting history",
+  );
+  check(
+    finance.invoices[0].amountCents === 10000 &&
+      finance.invoices[0].discountCents === 1000 &&
+      finance.invoices[0].penaltyCents === 500,
+    "safe cent conversion preserves invoice values",
+  );
+  await assert.rejects(
+    readMobileFinance(db, teacherScope, teacherUser),
+    (e) => e.code === "FINANCE_STUDENT_ONLY",
+  );
+  checks++;
+  for (const table of [
+    "enrollments",
+    "finance_contracts",
+    "finance_invoices",
+    "fee_items",
+    "finance_receipts",
+  ])
+    for (const mode of ["fail", "cap"]) {
+      await assert.rejects(
+        readMobileFinance(adapter({ [mode]: table }), pupilScope, studentUser),
+        (e) => e.code === "FINANCE_UNAVAILABLE",
+      );
+      checks++;
+    }
+  const direct = uuid(700),
+    foreignChat = uuid(701),
+    hiddenChat = uuid(702);
+  for (const [id, school_id] of [
+    [direct, A],
+    [foreignChat, B],
+    [hiddenChat, A],
+  ])
+    await insert("siga_chat_conversations", { id, school_id, type: "direct", title: null });
+  for (const [id, user_id] of [
+    [direct, studentUser],
+    [direct, teacherUser],
+    [foreignChat, studentUser],
+    [foreignChat, peerUser],
+    [hiddenChat, peerUser],
+  ])
+    await insert("siga_chat_members", {
+      conversation_id: id,
+      user_id,
+      last_read_at: "2026-10-09T00:00:00Z",
+    });
+  for (const [id, full_name] of [
+    [studentUser, "Aluno"],
+    [teacherUser, "Professor real"],
+  ])
+    await insert("profiles", { id, full_name });
+  await insert("school_memberships", {
+    id: uuid(703),
+    school_id: A,
+    user_id: teacherUser,
+    status: "active",
+  });
+  for (let n = 0; n < 65; n++)
+    await insert("siga_chat_messages", {
+      id: uuid(710 + n),
+      school_id: A,
+      conversation_id: direct,
+      sender_id: teacherUser,
+      body: `Mensagem ${n}`,
+      created_at: `2026-10-10T08:00:00.123${String(n).padStart(3, "0")}Z`,
+      deleted_at: n === 64 ? "2026-10-10T09:00:00Z" : null,
+      reply_to: n === 63 ? uuid(710) : null,
+      attachment_file_id: n === 64 ? uuid(900) : null,
+      attachment_file_name: n === 64 ? "Segredo apagado" : null,
+    });
+  await insert("siga_chat_messages", {
+    id: uuid(800),
+    school_id: B,
+    conversation_id: direct,
+    sender_id: teacherUser,
+    body: "Outra escola",
+    created_at: "2026-10-10T08:00:00Z",
+  });
+  const inbox = await readMobileChat(db, pupilScope, studentUser);
+  check(
+    inbox.threads.length === 1 &&
+      inbox.threads[0].unread === 64 &&
+      inbox.threads[0].name === "Professor real",
+    "inbox counts only nondeleted school messages and owned threads",
+  );
+  const first = await readMobileChat(db, pupilScope, studentUser, direct);
+  check(
+    first.messages.length === 60 && first.next.id === uuid(715),
+    "stable 60-message page at equal timestamps",
+  );
+  check(
+    first.messages.at(-1).deleted &&
+      !first.messages.at(-1).body &&
+      !first.messages.at(-1).attachment,
+    "deleted bodies and attachments redacted",
+  );
+  check(
+    first.messages.find((m) => m.id === uuid(773)).reply.body === "Mensagem 0",
+    "reply parent resolved only in same conversation and school",
+  );
+  const second = await readMobileChat(db, pupilScope, studentUser, direct, first.next);
+  check(
+    second.messages.length === 5 && !second.next && second.messages.at(-1).id === uuid(714),
+    "keyset pagination no skipped or duplicated PostgreSQL microseconds inside the same millisecond",
+  );
+  for (const id of [foreignChat, hiddenChat]) {
+    await assert.rejects(
+      readMobileChat(db, pupilScope, studentUser, id),
+      (e) => e.code === "CHAT_FORBIDDEN",
+    );
+    checks++;
+  }
+  for (const table of [
+    "siga_chat_members",
+    "siga_chat_conversations",
+    "siga_chat_messages",
+    "profiles",
+    "school_memberships",
+  ]) {
+    await assert.rejects(
+      readMobileChat(adapter({ fail: table }), pupilScope, studentUser),
+      (e) => e.code === "CHAT_UNAVAILABLE",
+    );
+    checks++;
+  }
+  await pg.query("UPDATE school_memberships SET status='inactive' WHERE id=$1", [uuid(703)]);
+  check(
+    (await readMobileChat(db, pupilScope, studentUser)).threads[0].peerLeft,
+    "departed direct peer is flagged without inventing availability",
+  );
+  await pg.query("UPDATE school_memberships SET status='active' WHERE id=$1", [uuid(703)]);
+  await insert("school_memberships", {
+    id: uuid(704),
+    school_id: A,
+    user_id: peerUser,
+    status: "active",
+  });
+  await insert("roles", { id: uuid(705), code: "teacher" });
+  await insert("roles", { id: uuid(706), code: "student" });
+  await insert("member_roles", { membership_id: uuid(703), role_id: uuid(705) });
+  await insert("member_roles", { membership_id: uuid(704), role_id: uuid(706) });
+  check(
+    (await readMobileChatContacts(db, A, studentUser, ["Aluno"])).length === 1,
+    "student contacts include only staff in this school",
+  );
+  check(
+    (await readMobileChatContacts(db, A, teacherUser, ["Professor"])).some(
+      (c) => c.id === peerUser,
+    ),
+    "teacher contacts include active school students",
+  );
+  await insert("siga_files", {
+    id: uuid(900),
+    school_id: A,
+    name: "Enunciado.pdf",
+    area: "escola",
+    visibility: "school",
+    owner_user_id: teacherUser,
+    related_user_id: null,
+    is_folder: false,
+    is_system: false,
+    storage_backend: "sga",
+    storage_path: "school/enunciado.pdf",
+    deleted_at: null,
+  });
+  await pg.query(
+    "UPDATE siga_chat_messages SET attachment_file_id=$1,attachment_file_name='Enunciado.pdf' WHERE id=$2",
+    [uuid(900), uuid(772)],
+  );
+  const signedPaths = [];
+  const fileDb = {
+    ...db,
+    storage: {
+      from(bucket) {
+        assert.equal(bucket, "siga-files");
+        return {
+          async createSignedUrl(path, seconds) {
+            signedPaths.push(path);
+            assert.equal(seconds, 600);
+            return {
+              data: {
+                signedUrl:
+                  "https://xodgfmxiaunpamctfeea.supabase.co/storage/v1/object/sign/siga-files/school/enunciado.pdf?token=test",
+              },
+              error: null,
+            };
+          },
+        };
+      },
+    },
+  };
+  check(
+    !!(await signMobileChatAttachment(fileDb, A, studentUser, uuid(772))).url,
+    "actual message/tenant/member/sender file permissions checked before storage signing",
+  );
+  await assert.rejects(
+    signMobileChatAttachment(fileDb, A, peerUser, uuid(772)),
+    (e) => e.code === "CHAT_FORBIDDEN",
+  );
+  checks++;
+  await assert.rejects(
+    signMobileChatAttachment(fileDb, B, studentUser, uuid(772)),
+    (e) => e.code === "ATTACHMENT_NOT_FOUND",
+  );
+  checks++;
+  await pg.query("UPDATE siga_files SET visibility='private',owner_user_id=$1 WHERE id=$2", [
+    peerUser,
+    uuid(900),
+  ]);
+  await assert.rejects(
+    signMobileChatAttachment(fileDb, A, studentUser, uuid(772)),
+    (e) => e.code === "ATTACHMENT_FORBIDDEN",
+  );
+  checks++;
+  check(signedPaths.length === 1, "forbidden attachments never reach storage signer");
+  await pg.query("UPDATE siga_files SET visibility='school',owner_user_id=$1 WHERE id=$2", [
+    teacherUser,
+    uuid(900),
+  ]);
+  await pg.query("UPDATE school_memberships SET status='inactive' WHERE id=$1", [uuid(703)]);
+  await assert.rejects(
+    signMobileChatAttachment(fileDb, A, studentUser, uuid(772)),
+    (e) => e.code === "ATTACHMENT_FORBIDDEN",
+  );
+  checks++;
+  await pg.query("DELETE FROM siga_chat_members WHERE conversation_id=$1 AND user_id=$2", [
+    direct,
+    studentUser,
+  ]);
+  await assert.rejects(
+    readMobileChat(db, pupilScope, studentUser, direct),
+    (e) => e.code === "CHAT_FORBIDDEN",
+  );
+  checks++;
   const noRows = await readMobileAttendance(db, pupilScope, studentData, {
     from: "2026-11-01",
     to: "2026-11-30",
@@ -702,6 +1176,62 @@ try {
   await assert.rejects(
     readMobileAcademicCatalog(db, scope, teacherUser),
     (e) => e.code === "ACADEMIC_CATALOG_INCONSISTENT",
+  );
+  checks++;
+  // Notification fixtures: actual reader and count query against local PostgreSQL.
+  const notification = (id, school_id, user_id, extras = {}) =>
+    insert("notifications", {
+      id: uuid(id),
+      school_id,
+      user_id,
+      channel: "in_app",
+      event_type: "schedule",
+      title: "Aviso de ensaio SQL",
+      body: "Texto controlado",
+      status: "sent",
+      read_at: null,
+      created_at: "2026-10-10T08:00:00Z",
+      ...extras,
+    });
+  for (let n = 900; n < 960; n++) await notification(n, A, studentUser);
+  await notification(960, A, studentUser, { status: "read" });
+  await notification(961, A, studentUser, { read_at: "2026-10-10T08:10:00Z" });
+  await notification(962, A, studentUser, { channel: "email" });
+  await notification(963, B, studentUser);
+  await notification(964, A, peerUser);
+  await notification(965, A, teacherUser);
+  const notices = await readMobileNotifications(db, {
+    schoolId: A,
+    userId: studentUser,
+    role: "aluno",
+  });
+  check(notices.items.length === 50, "notification recent list capped at 50");
+  check(
+    notices.unread === 60,
+    "unread count includes older own in-app notices, excludes read status/read timestamp",
+  );
+  check(
+    notices.items[0].id === uuid(961) && notices.items[1].id === uuid(960),
+    "equal-time notices have deterministic UUID ordering",
+  );
+  check(notices.items[0].read && notices.items[1].read, "both canonical read markers recognized");
+  check(
+    (await readMobileNotifications(db, { schoolId: B, userId: studentUser, role: "aluno" })).items
+      .length === 1,
+    "same notification account in another school remains isolated",
+  );
+  check(
+    (await readMobileNotifications(db, { schoolId: A, userId: teacherUser, role: "professor" }))
+      .items.length === 1,
+    "teacher only sees own notifications",
+  );
+  await assert.rejects(
+    readMobileNotifications(adapter({ fail: "notifications" }), {
+      schoolId: A,
+      userId: studentUser,
+      role: "aluno",
+    }),
+    (e) => e.code === "NOTIFICATIONS_UNAVAILABLE",
   );
   checks++;
   console.log(

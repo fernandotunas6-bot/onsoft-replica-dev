@@ -1,3 +1,6 @@
+import type { ChatInbox, ChatHistory, ChatCursor } from "./institutional-chat";
+import type { StudentFinance } from "./finance";
+import type { AcademicGradebooks } from "./gradebooks";
 import type { AcademicResults } from "./results";
 import type { AcademicAttendance, AttendanceRange } from "./attendance";
 import type { AcademicCatalog } from "./catalog";
@@ -145,6 +148,33 @@ export interface Gateway {
   subscribeSessionChanged?(listener: () => void): () => void;
   session(signal?: AbortSignal): Promise<Session | null>;
   academicCatalog?(ctx: Context, signal?: AbortSignal): Promise<AcademicCatalog>;
+  subscribeChatChanged?(ctx: Context, listener: () => void): () => void;
+  chatCapabilities?(ctx: Context, signal?: AbortSignal): Promise<{ writes: boolean }>;
+  chatCommand?(
+    ctx: Context,
+    requestId: string,
+    command: import("./institutional-chat").ChatCommand,
+    signal?: AbortSignal,
+  ): Promise<import("./institutional-chat").ChatReceipt>;
+  chatAttachment?(ctx: Context, messageId: string, signal?: AbortSignal): Promise<{ url: string }>;
+  chatContacts?(ctx: Context, signal?: AbortSignal): Promise<{ id: string; name: string }[]>;
+  notifications?(
+    ctx: Context,
+    signal?: AbortSignal,
+  ): Promise<import("./notifications").NotificationInbox>;
+  chatInbox?(ctx: Context, signal?: AbortSignal): Promise<ChatInbox>;
+  chatHistory?(
+    ctx: Context,
+    conversationId: string,
+    before?: ChatCursor,
+    signal?: AbortSignal,
+  ): Promise<ChatHistory>;
+  studentFinance?(ctx: Context, signal?: AbortSignal): Promise<StudentFinance>;
+  academicGradebooks?(
+    ctx: Context,
+    catalog: AcademicCatalog,
+    signal?: AbortSignal,
+  ): Promise<AcademicGradebooks>;
   academicResults?(
     ctx: Context,
     catalog: AcademicCatalog,

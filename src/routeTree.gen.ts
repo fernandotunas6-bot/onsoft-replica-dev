@@ -125,9 +125,17 @@ import { Route as ApiSaasTenantsSubscriptionRouteImport } from './routes/api/saa
 import { Route as ApiSaasUsageSyncRouteImport } from './routes/api/saas/usage.sync'
 import { Route as ApiFinanceGatewayUnitelConfirmRouteImport } from './routes/api/finance/gateway.unitel.confirm'
 import { Route as ApiMobileV4SchoolsSchoolIdAcademicRouteImport } from './routes/api/mobile-v4/schools/$schoolId/academic'
+import { Route as ApiMobileV4SchoolsSchoolIdAttachmentRouteImport } from './routes/api/mobile-v4/schools/$schoolId/attachment'
 import { Route as ApiMobileV4SchoolsSchoolIdAttendanceRouteImport } from './routes/api/mobile-v4/schools/$schoolId/attendance'
+import { Route as ApiMobileV4SchoolsSchoolIdChatRouteImport } from './routes/api/mobile-v4/schools/$schoolId/chat'
+import { Route as ApiMobileV4SchoolsSchoolIdChatCapabilitiesRouteImport } from './routes/api/mobile-v4/schools/$schoolId/chat-capabilities'
+import { Route as ApiMobileV4SchoolsSchoolIdChatCommandsRouteImport } from './routes/api/mobile-v4/schools/$schoolId/chat-commands'
 import { Route as ApiMobileV4SchoolsSchoolIdCommandsRouteImport } from './routes/api/mobile-v4/schools/$schoolId/commands'
+import { Route as ApiMobileV4SchoolsSchoolIdContactsRouteImport } from './routes/api/mobile-v4/schools/$schoolId/contacts'
+import { Route as ApiMobileV4SchoolsSchoolIdFinanceRouteImport } from './routes/api/mobile-v4/schools/$schoolId/finance'
+import { Route as ApiMobileV4SchoolsSchoolIdGradebooksRouteImport } from './routes/api/mobile-v4/schools/$schoolId/gradebooks'
 import { Route as ApiMobileV4SchoolsSchoolIdLessonsRouteImport } from './routes/api/mobile-v4/schools/$schoolId/lessons'
+import { Route as ApiMobileV4SchoolsSchoolIdNotificationsRouteImport } from './routes/api/mobile-v4/schools/$schoolId/notifications'
 import { Route as ApiMobileV4SchoolsSchoolIdResultsRouteImport } from './routes/api/mobile-v4/schools/$schoolId/results'
 import { Route as ApiMobileV4SchoolsSchoolIdWorkspaceRouteImport } from './routes/api/mobile-v4/schools/$schoolId/workspace'
 
@@ -734,10 +742,34 @@ const ApiMobileV4SchoolsSchoolIdAcademicRoute =
     path: '/api/mobile-v4/schools/$schoolId/academic',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiMobileV4SchoolsSchoolIdAttachmentRoute =
+  ApiMobileV4SchoolsSchoolIdAttachmentRouteImport.update({
+    id: '/api/mobile-v4/schools/$schoolId/attachment',
+    path: '/api/mobile-v4/schools/$schoolId/attachment',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiMobileV4SchoolsSchoolIdAttendanceRoute =
   ApiMobileV4SchoolsSchoolIdAttendanceRouteImport.update({
     id: '/api/mobile-v4/schools/$schoolId/attendance',
     path: '/api/mobile-v4/schools/$schoolId/attendance',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiMobileV4SchoolsSchoolIdChatRoute =
+  ApiMobileV4SchoolsSchoolIdChatRouteImport.update({
+    id: '/api/mobile-v4/schools/$schoolId/chat',
+    path: '/api/mobile-v4/schools/$schoolId/chat',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiMobileV4SchoolsSchoolIdChatCapabilitiesRoute =
+  ApiMobileV4SchoolsSchoolIdChatCapabilitiesRouteImport.update({
+    id: '/api/mobile-v4/schools/$schoolId/chat-capabilities',
+    path: '/api/mobile-v4/schools/$schoolId/chat-capabilities',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiMobileV4SchoolsSchoolIdChatCommandsRoute =
+  ApiMobileV4SchoolsSchoolIdChatCommandsRouteImport.update({
+    id: '/api/mobile-v4/schools/$schoolId/chat-commands',
+    path: '/api/mobile-v4/schools/$schoolId/chat-commands',
     getParentRoute: () => rootRouteImport,
   } as any)
 const ApiMobileV4SchoolsSchoolIdCommandsRoute =
@@ -746,10 +778,34 @@ const ApiMobileV4SchoolsSchoolIdCommandsRoute =
     path: '/api/mobile-v4/schools/$schoolId/commands',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiMobileV4SchoolsSchoolIdContactsRoute =
+  ApiMobileV4SchoolsSchoolIdContactsRouteImport.update({
+    id: '/api/mobile-v4/schools/$schoolId/contacts',
+    path: '/api/mobile-v4/schools/$schoolId/contacts',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiMobileV4SchoolsSchoolIdFinanceRoute =
+  ApiMobileV4SchoolsSchoolIdFinanceRouteImport.update({
+    id: '/api/mobile-v4/schools/$schoolId/finance',
+    path: '/api/mobile-v4/schools/$schoolId/finance',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiMobileV4SchoolsSchoolIdGradebooksRoute =
+  ApiMobileV4SchoolsSchoolIdGradebooksRouteImport.update({
+    id: '/api/mobile-v4/schools/$schoolId/gradebooks',
+    path: '/api/mobile-v4/schools/$schoolId/gradebooks',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiMobileV4SchoolsSchoolIdLessonsRoute =
   ApiMobileV4SchoolsSchoolIdLessonsRouteImport.update({
     id: '/api/mobile-v4/schools/$schoolId/lessons',
     path: '/api/mobile-v4/schools/$schoolId/lessons',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiMobileV4SchoolsSchoolIdNotificationsRoute =
+  ApiMobileV4SchoolsSchoolIdNotificationsRouteImport.update({
+    id: '/api/mobile-v4/schools/$schoolId/notifications',
+    path: '/api/mobile-v4/schools/$schoolId/notifications',
     getParentRoute: () => rootRouteImport,
   } as any)
 const ApiMobileV4SchoolsSchoolIdResultsRoute =
@@ -882,9 +938,17 @@ export interface FileRoutesByFullPath {
   '/api/saas/usage/sync': typeof ApiSaasUsageSyncRoute
   '/api/finance/gateway/unitel/confirm': typeof ApiFinanceGatewayUnitelConfirmRoute
   '/api/mobile-v4/schools/$schoolId/academic': typeof ApiMobileV4SchoolsSchoolIdAcademicRoute
+  '/api/mobile-v4/schools/$schoolId/attachment': typeof ApiMobileV4SchoolsSchoolIdAttachmentRoute
   '/api/mobile-v4/schools/$schoolId/attendance': typeof ApiMobileV4SchoolsSchoolIdAttendanceRoute
+  '/api/mobile-v4/schools/$schoolId/chat': typeof ApiMobileV4SchoolsSchoolIdChatRoute
+  '/api/mobile-v4/schools/$schoolId/chat-capabilities': typeof ApiMobileV4SchoolsSchoolIdChatCapabilitiesRoute
+  '/api/mobile-v4/schools/$schoolId/chat-commands': typeof ApiMobileV4SchoolsSchoolIdChatCommandsRoute
   '/api/mobile-v4/schools/$schoolId/commands': typeof ApiMobileV4SchoolsSchoolIdCommandsRoute
+  '/api/mobile-v4/schools/$schoolId/contacts': typeof ApiMobileV4SchoolsSchoolIdContactsRoute
+  '/api/mobile-v4/schools/$schoolId/finance': typeof ApiMobileV4SchoolsSchoolIdFinanceRoute
+  '/api/mobile-v4/schools/$schoolId/gradebooks': typeof ApiMobileV4SchoolsSchoolIdGradebooksRoute
   '/api/mobile-v4/schools/$schoolId/lessons': typeof ApiMobileV4SchoolsSchoolIdLessonsRoute
+  '/api/mobile-v4/schools/$schoolId/notifications': typeof ApiMobileV4SchoolsSchoolIdNotificationsRoute
   '/api/mobile-v4/schools/$schoolId/results': typeof ApiMobileV4SchoolsSchoolIdResultsRoute
   '/api/mobile-v4/schools/$schoolId/workspace': typeof ApiMobileV4SchoolsSchoolIdWorkspaceRoute
 }
@@ -1005,9 +1069,17 @@ export interface FileRoutesByTo {
   '/api/saas/usage/sync': typeof ApiSaasUsageSyncRoute
   '/api/finance/gateway/unitel/confirm': typeof ApiFinanceGatewayUnitelConfirmRoute
   '/api/mobile-v4/schools/$schoolId/academic': typeof ApiMobileV4SchoolsSchoolIdAcademicRoute
+  '/api/mobile-v4/schools/$schoolId/attachment': typeof ApiMobileV4SchoolsSchoolIdAttachmentRoute
   '/api/mobile-v4/schools/$schoolId/attendance': typeof ApiMobileV4SchoolsSchoolIdAttendanceRoute
+  '/api/mobile-v4/schools/$schoolId/chat': typeof ApiMobileV4SchoolsSchoolIdChatRoute
+  '/api/mobile-v4/schools/$schoolId/chat-capabilities': typeof ApiMobileV4SchoolsSchoolIdChatCapabilitiesRoute
+  '/api/mobile-v4/schools/$schoolId/chat-commands': typeof ApiMobileV4SchoolsSchoolIdChatCommandsRoute
   '/api/mobile-v4/schools/$schoolId/commands': typeof ApiMobileV4SchoolsSchoolIdCommandsRoute
+  '/api/mobile-v4/schools/$schoolId/contacts': typeof ApiMobileV4SchoolsSchoolIdContactsRoute
+  '/api/mobile-v4/schools/$schoolId/finance': typeof ApiMobileV4SchoolsSchoolIdFinanceRoute
+  '/api/mobile-v4/schools/$schoolId/gradebooks': typeof ApiMobileV4SchoolsSchoolIdGradebooksRoute
   '/api/mobile-v4/schools/$schoolId/lessons': typeof ApiMobileV4SchoolsSchoolIdLessonsRoute
+  '/api/mobile-v4/schools/$schoolId/notifications': typeof ApiMobileV4SchoolsSchoolIdNotificationsRoute
   '/api/mobile-v4/schools/$schoolId/results': typeof ApiMobileV4SchoolsSchoolIdResultsRoute
   '/api/mobile-v4/schools/$schoolId/workspace': typeof ApiMobileV4SchoolsSchoolIdWorkspaceRoute
 }
@@ -1129,9 +1201,17 @@ export interface FileRoutesById {
   '/api/saas/usage/sync': typeof ApiSaasUsageSyncRoute
   '/api/finance/gateway/unitel/confirm': typeof ApiFinanceGatewayUnitelConfirmRoute
   '/api/mobile-v4/schools/$schoolId/academic': typeof ApiMobileV4SchoolsSchoolIdAcademicRoute
+  '/api/mobile-v4/schools/$schoolId/attachment': typeof ApiMobileV4SchoolsSchoolIdAttachmentRoute
   '/api/mobile-v4/schools/$schoolId/attendance': typeof ApiMobileV4SchoolsSchoolIdAttendanceRoute
+  '/api/mobile-v4/schools/$schoolId/chat': typeof ApiMobileV4SchoolsSchoolIdChatRoute
+  '/api/mobile-v4/schools/$schoolId/chat-capabilities': typeof ApiMobileV4SchoolsSchoolIdChatCapabilitiesRoute
+  '/api/mobile-v4/schools/$schoolId/chat-commands': typeof ApiMobileV4SchoolsSchoolIdChatCommandsRoute
   '/api/mobile-v4/schools/$schoolId/commands': typeof ApiMobileV4SchoolsSchoolIdCommandsRoute
+  '/api/mobile-v4/schools/$schoolId/contacts': typeof ApiMobileV4SchoolsSchoolIdContactsRoute
+  '/api/mobile-v4/schools/$schoolId/finance': typeof ApiMobileV4SchoolsSchoolIdFinanceRoute
+  '/api/mobile-v4/schools/$schoolId/gradebooks': typeof ApiMobileV4SchoolsSchoolIdGradebooksRoute
   '/api/mobile-v4/schools/$schoolId/lessons': typeof ApiMobileV4SchoolsSchoolIdLessonsRoute
+  '/api/mobile-v4/schools/$schoolId/notifications': typeof ApiMobileV4SchoolsSchoolIdNotificationsRoute
   '/api/mobile-v4/schools/$schoolId/results': typeof ApiMobileV4SchoolsSchoolIdResultsRoute
   '/api/mobile-v4/schools/$schoolId/workspace': typeof ApiMobileV4SchoolsSchoolIdWorkspaceRoute
 }
@@ -1254,9 +1334,17 @@ export interface FileRouteTypes {
     | '/api/saas/usage/sync'
     | '/api/finance/gateway/unitel/confirm'
     | '/api/mobile-v4/schools/$schoolId/academic'
+    | '/api/mobile-v4/schools/$schoolId/attachment'
     | '/api/mobile-v4/schools/$schoolId/attendance'
+    | '/api/mobile-v4/schools/$schoolId/chat'
+    | '/api/mobile-v4/schools/$schoolId/chat-capabilities'
+    | '/api/mobile-v4/schools/$schoolId/chat-commands'
     | '/api/mobile-v4/schools/$schoolId/commands'
+    | '/api/mobile-v4/schools/$schoolId/contacts'
+    | '/api/mobile-v4/schools/$schoolId/finance'
+    | '/api/mobile-v4/schools/$schoolId/gradebooks'
     | '/api/mobile-v4/schools/$schoolId/lessons'
+    | '/api/mobile-v4/schools/$schoolId/notifications'
     | '/api/mobile-v4/schools/$schoolId/results'
     | '/api/mobile-v4/schools/$schoolId/workspace'
   fileRoutesByTo: FileRoutesByTo
@@ -1377,9 +1465,17 @@ export interface FileRouteTypes {
     | '/api/saas/usage/sync'
     | '/api/finance/gateway/unitel/confirm'
     | '/api/mobile-v4/schools/$schoolId/academic'
+    | '/api/mobile-v4/schools/$schoolId/attachment'
     | '/api/mobile-v4/schools/$schoolId/attendance'
+    | '/api/mobile-v4/schools/$schoolId/chat'
+    | '/api/mobile-v4/schools/$schoolId/chat-capabilities'
+    | '/api/mobile-v4/schools/$schoolId/chat-commands'
     | '/api/mobile-v4/schools/$schoolId/commands'
+    | '/api/mobile-v4/schools/$schoolId/contacts'
+    | '/api/mobile-v4/schools/$schoolId/finance'
+    | '/api/mobile-v4/schools/$schoolId/gradebooks'
     | '/api/mobile-v4/schools/$schoolId/lessons'
+    | '/api/mobile-v4/schools/$schoolId/notifications'
     | '/api/mobile-v4/schools/$schoolId/results'
     | '/api/mobile-v4/schools/$schoolId/workspace'
   id:
@@ -1500,9 +1596,17 @@ export interface FileRouteTypes {
     | '/api/saas/usage/sync'
     | '/api/finance/gateway/unitel/confirm'
     | '/api/mobile-v4/schools/$schoolId/academic'
+    | '/api/mobile-v4/schools/$schoolId/attachment'
     | '/api/mobile-v4/schools/$schoolId/attendance'
+    | '/api/mobile-v4/schools/$schoolId/chat'
+    | '/api/mobile-v4/schools/$schoolId/chat-capabilities'
+    | '/api/mobile-v4/schools/$schoolId/chat-commands'
     | '/api/mobile-v4/schools/$schoolId/commands'
+    | '/api/mobile-v4/schools/$schoolId/contacts'
+    | '/api/mobile-v4/schools/$schoolId/finance'
+    | '/api/mobile-v4/schools/$schoolId/gradebooks'
     | '/api/mobile-v4/schools/$schoolId/lessons'
+    | '/api/mobile-v4/schools/$schoolId/notifications'
     | '/api/mobile-v4/schools/$schoolId/results'
     | '/api/mobile-v4/schools/$schoolId/workspace'
   fileRoutesById: FileRoutesById
@@ -1590,9 +1694,17 @@ export interface RootRouteChildren {
   ApiSaasUsageSyncRoute: typeof ApiSaasUsageSyncRoute
   ApiFinanceGatewayUnitelConfirmRoute: typeof ApiFinanceGatewayUnitelConfirmRoute
   ApiMobileV4SchoolsSchoolIdAcademicRoute: typeof ApiMobileV4SchoolsSchoolIdAcademicRoute
+  ApiMobileV4SchoolsSchoolIdAttachmentRoute: typeof ApiMobileV4SchoolsSchoolIdAttachmentRoute
   ApiMobileV4SchoolsSchoolIdAttendanceRoute: typeof ApiMobileV4SchoolsSchoolIdAttendanceRoute
+  ApiMobileV4SchoolsSchoolIdChatRoute: typeof ApiMobileV4SchoolsSchoolIdChatRoute
+  ApiMobileV4SchoolsSchoolIdChatCapabilitiesRoute: typeof ApiMobileV4SchoolsSchoolIdChatCapabilitiesRoute
+  ApiMobileV4SchoolsSchoolIdChatCommandsRoute: typeof ApiMobileV4SchoolsSchoolIdChatCommandsRoute
   ApiMobileV4SchoolsSchoolIdCommandsRoute: typeof ApiMobileV4SchoolsSchoolIdCommandsRoute
+  ApiMobileV4SchoolsSchoolIdContactsRoute: typeof ApiMobileV4SchoolsSchoolIdContactsRoute
+  ApiMobileV4SchoolsSchoolIdFinanceRoute: typeof ApiMobileV4SchoolsSchoolIdFinanceRoute
+  ApiMobileV4SchoolsSchoolIdGradebooksRoute: typeof ApiMobileV4SchoolsSchoolIdGradebooksRoute
   ApiMobileV4SchoolsSchoolIdLessonsRoute: typeof ApiMobileV4SchoolsSchoolIdLessonsRoute
+  ApiMobileV4SchoolsSchoolIdNotificationsRoute: typeof ApiMobileV4SchoolsSchoolIdNotificationsRoute
   ApiMobileV4SchoolsSchoolIdResultsRoute: typeof ApiMobileV4SchoolsSchoolIdResultsRoute
   ApiMobileV4SchoolsSchoolIdWorkspaceRoute: typeof ApiMobileV4SchoolsSchoolIdWorkspaceRoute
 }
@@ -2411,11 +2523,39 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiMobileV4SchoolsSchoolIdAcademicRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/mobile-v4/schools/$schoolId/attachment': {
+      id: '/api/mobile-v4/schools/$schoolId/attachment'
+      path: '/api/mobile-v4/schools/$schoolId/attachment'
+      fullPath: '/api/mobile-v4/schools/$schoolId/attachment'
+      preLoaderRoute: typeof ApiMobileV4SchoolsSchoolIdAttachmentRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/mobile-v4/schools/$schoolId/attendance': {
       id: '/api/mobile-v4/schools/$schoolId/attendance'
       path: '/api/mobile-v4/schools/$schoolId/attendance'
       fullPath: '/api/mobile-v4/schools/$schoolId/attendance'
       preLoaderRoute: typeof ApiMobileV4SchoolsSchoolIdAttendanceRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/mobile-v4/schools/$schoolId/chat': {
+      id: '/api/mobile-v4/schools/$schoolId/chat'
+      path: '/api/mobile-v4/schools/$schoolId/chat'
+      fullPath: '/api/mobile-v4/schools/$schoolId/chat'
+      preLoaderRoute: typeof ApiMobileV4SchoolsSchoolIdChatRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/mobile-v4/schools/$schoolId/chat-capabilities': {
+      id: '/api/mobile-v4/schools/$schoolId/chat-capabilities'
+      path: '/api/mobile-v4/schools/$schoolId/chat-capabilities'
+      fullPath: '/api/mobile-v4/schools/$schoolId/chat-capabilities'
+      preLoaderRoute: typeof ApiMobileV4SchoolsSchoolIdChatCapabilitiesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/mobile-v4/schools/$schoolId/chat-commands': {
+      id: '/api/mobile-v4/schools/$schoolId/chat-commands'
+      path: '/api/mobile-v4/schools/$schoolId/chat-commands'
+      fullPath: '/api/mobile-v4/schools/$schoolId/chat-commands'
+      preLoaderRoute: typeof ApiMobileV4SchoolsSchoolIdChatCommandsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/mobile-v4/schools/$schoolId/commands': {
@@ -2425,11 +2565,39 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiMobileV4SchoolsSchoolIdCommandsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/mobile-v4/schools/$schoolId/contacts': {
+      id: '/api/mobile-v4/schools/$schoolId/contacts'
+      path: '/api/mobile-v4/schools/$schoolId/contacts'
+      fullPath: '/api/mobile-v4/schools/$schoolId/contacts'
+      preLoaderRoute: typeof ApiMobileV4SchoolsSchoolIdContactsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/mobile-v4/schools/$schoolId/finance': {
+      id: '/api/mobile-v4/schools/$schoolId/finance'
+      path: '/api/mobile-v4/schools/$schoolId/finance'
+      fullPath: '/api/mobile-v4/schools/$schoolId/finance'
+      preLoaderRoute: typeof ApiMobileV4SchoolsSchoolIdFinanceRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/mobile-v4/schools/$schoolId/gradebooks': {
+      id: '/api/mobile-v4/schools/$schoolId/gradebooks'
+      path: '/api/mobile-v4/schools/$schoolId/gradebooks'
+      fullPath: '/api/mobile-v4/schools/$schoolId/gradebooks'
+      preLoaderRoute: typeof ApiMobileV4SchoolsSchoolIdGradebooksRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/mobile-v4/schools/$schoolId/lessons': {
       id: '/api/mobile-v4/schools/$schoolId/lessons'
       path: '/api/mobile-v4/schools/$schoolId/lessons'
       fullPath: '/api/mobile-v4/schools/$schoolId/lessons'
       preLoaderRoute: typeof ApiMobileV4SchoolsSchoolIdLessonsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/mobile-v4/schools/$schoolId/notifications': {
+      id: '/api/mobile-v4/schools/$schoolId/notifications'
+      path: '/api/mobile-v4/schools/$schoolId/notifications'
+      fullPath: '/api/mobile-v4/schools/$schoolId/notifications'
+      preLoaderRoute: typeof ApiMobileV4SchoolsSchoolIdNotificationsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/mobile-v4/schools/$schoolId/results': {
@@ -2722,12 +2890,27 @@ const rootRouteChildren: RootRouteChildren = {
   ApiFinanceGatewayUnitelConfirmRoute: ApiFinanceGatewayUnitelConfirmRoute,
   ApiMobileV4SchoolsSchoolIdAcademicRoute:
     ApiMobileV4SchoolsSchoolIdAcademicRoute,
+  ApiMobileV4SchoolsSchoolIdAttachmentRoute:
+    ApiMobileV4SchoolsSchoolIdAttachmentRoute,
   ApiMobileV4SchoolsSchoolIdAttendanceRoute:
     ApiMobileV4SchoolsSchoolIdAttendanceRoute,
+  ApiMobileV4SchoolsSchoolIdChatRoute: ApiMobileV4SchoolsSchoolIdChatRoute,
+  ApiMobileV4SchoolsSchoolIdChatCapabilitiesRoute:
+    ApiMobileV4SchoolsSchoolIdChatCapabilitiesRoute,
+  ApiMobileV4SchoolsSchoolIdChatCommandsRoute:
+    ApiMobileV4SchoolsSchoolIdChatCommandsRoute,
   ApiMobileV4SchoolsSchoolIdCommandsRoute:
     ApiMobileV4SchoolsSchoolIdCommandsRoute,
+  ApiMobileV4SchoolsSchoolIdContactsRoute:
+    ApiMobileV4SchoolsSchoolIdContactsRoute,
+  ApiMobileV4SchoolsSchoolIdFinanceRoute:
+    ApiMobileV4SchoolsSchoolIdFinanceRoute,
+  ApiMobileV4SchoolsSchoolIdGradebooksRoute:
+    ApiMobileV4SchoolsSchoolIdGradebooksRoute,
   ApiMobileV4SchoolsSchoolIdLessonsRoute:
     ApiMobileV4SchoolsSchoolIdLessonsRoute,
+  ApiMobileV4SchoolsSchoolIdNotificationsRoute:
+    ApiMobileV4SchoolsSchoolIdNotificationsRoute,
   ApiMobileV4SchoolsSchoolIdResultsRoute:
     ApiMobileV4SchoolsSchoolIdResultsRoute,
   ApiMobileV4SchoolsSchoolIdWorkspaceRoute:

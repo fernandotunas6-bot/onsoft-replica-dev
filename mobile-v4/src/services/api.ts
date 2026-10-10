@@ -1,3 +1,13 @@
+import { parseNotificationInbox } from "../domain/notifications";
+import {
+  parseChatReceipt,
+  type ChatCommand,
+  parseChatInbox,
+  parseChatHistory,
+  type ChatCursor,
+} from "../domain/institutional-chat";
+import { parseStudentFinance } from "../domain/finance";
+import { parseAcademicGradebooks } from "../domain/gradebooks";
 import { parseAcademicResults } from "../domain/results";
 import type { AcademicAttendance, AttendanceRange } from "../domain/attendance";
 import { parseAcademicAttendance } from "../domain/attendance-validation";
@@ -22,6 +32,7 @@ export interface SessionTransport {
    * The gateway never stores tokens or reads tokens from URLs/localStorage.
    */
   accessToken(): Promise<string | null>;
+  subscribeChatChanged?(ctx: Context, listener: () => void): () => void;
   clearSession?(): Promise<void>;
   subscribeSessionChanged?(listener: () => void): () => void;
 }
@@ -165,6 +176,159 @@ export class ApiGateway implements Gateway {
       signal,
     );
     return parseAcademicCatalog(data, ctx);
+  }
+  subscribeChatChanged(ctx: Context, listener: () => void) {
+    authorize(this.current, ctx);
+    return this.transport?.subscribeChatChanged?.(ctx, listener) ?? (() => {});
+  }
+  async chatCapabilities(ctx: Context, signal?: AbortSignal) {
+    authorize(this.current, ctx);
+    const data = await this.request(
+      `/schools/${encodeURIComponent(ctx.schoolId)}/chat-capabilities?role=${ctx.role}`,
+      signal,
+    );
+    if (
+      !data ||
+      typeof data !== "object" ||
+      Object.keys(data).length !== 1 ||
+      !("writes" in data) ||
+      typeof data.writes !== "boolean"
+    )
+      throw new Error("Capacidades do chat inválidas.");
+    return { writes: data.writes };
+  }
+  async chatCommand(ctx: Context, requestId: string, command: ChatCommand, signal?: AbortSignal) {
+    authorize(this.current, ctx);
+    return parseChatReceipt(
+      await this.request(`/schools/${encodeURIComponent(ctx.schoolId)}/chat-commands`, signal, {
+        role: ctx.role,
+        requestId,
+        command,
+      }),
+      command,
+    );
+  }
+  async chatAttachment(ctx: Context, messageId: string, signal?: AbortSignal) {
+    authorize(this.current, ctx);
+    const data = await this.request(
+      `/schools/${encodeURIComponent(ctx.schoolId)}/attachment?${new URLSearchParams({ role: ctx.role, messageId })}`,
+      signal,
+    );
+    if (
+      !data ||
+      typeof data !== "object" ||
+      Object.keys(data).length !== 1 ||
+      !("url" in data) ||
+      typeof data.url !== "string"
+    )
+      throw new Error("Resposta do anexo inválida.");
+    const url = new URL(data.url);
+    if (
+      url.protocol !== "https:" ||
+      url.hostname !== "xodgfmxiaunpamctfeea.supabase.co" ||
+      !url.pathname.startsWith("/storage/v1/object/sign/siga-files/") ||
+      url.username ||
+      url.password ||
+      !url.searchParams.get("token")
+    )
+      throw new Error("Ligação do anexo inválida.");
+    return { url: data.url };
+  }
+  async chatContacts(ctx: Context, signal?: AbortSignal) {
+    authorize(this.current, ctx);
+    const data = (await this.request(
+      `/schools/${encodeURIComponent(ctx.schoolId)}/contacts?role=${ctx.role}`,
+      signal,
+    )) as {
+      schoolId: string;
+      userId: string;
+      role: string;
+      contacts: { id: string; name: string }[];
+    };
+    if (
+      !data ||
+      data.schoolId !== ctx.schoolId ||
+      data.userId !== ctx.userId ||
+      data.role !== ctx.role ||
+      Object.keys(data).length !== 4 ||
+      !Array.isArray(data.contacts) ||
+      data.contacts.length > 1000 ||
+      new Set(data.contacts.map((c) => c.id)).size !== data.contacts.length ||
+      data.contacts.some(
+        (c) =>
+          !c ||
+          Object.keys(c).length !== 2 ||
+          !/^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i.test(c.id) ||
+          c.id === ctx.userId ||
+          typeof c.name !== "string" ||
+          !c.name.trim() ||
+          c.name.length > 500,
+      )
+    )
+      throw new Error("Contrato de contactos inválido.");
+    return data.contacts;
+  }
+  async notifications(ctx: Context, signal?: AbortSignal) {
+    authorize(this.current, ctx);
+    return parseNotificationInbox(
+      await this.request(
+        "/schools/" + encodeURIComponent(ctx.schoolId) + "/notifications?role=" + ctx.role,
+        signal,
+      ),
+      ctx,
+    );
+  }
+  async chatInbox(ctx: Context, signal?: AbortSignal) {
+    authorize(this.current, ctx);
+    return parseChatInbox(
+      await this.request(
+        "/schools/" + encodeURIComponent(ctx.schoolId) + "/chat?role=" + ctx.role,
+        signal,
+      ),
+      ctx,
+    );
+  }
+  async chatHistory(
+    ctx: Context,
+    conversationId: string,
+    before?: ChatCursor,
+    signal?: AbortSignal,
+  ) {
+    authorize(this.current, ctx);
+    const params = new URLSearchParams({
+      role: ctx.role,
+      conversationId,
+      ...(before ? { before: before.date, beforeId: before.id } : {}),
+    });
+    return parseChatHistory(
+      await this.request(
+        "/schools/" + encodeURIComponent(ctx.schoolId) + "/chat?" + params,
+        signal,
+      ),
+      ctx,
+      conversationId,
+      before,
+    );
+  }
+  async studentFinance(ctx: Context, signal?: AbortSignal) {
+    authorize(this.current, ctx);
+    if (ctx.role !== "aluno")
+      throw new ApiError(403, "As propinas são consultadas apenas pelo próprio aluno.");
+    const data = await this.request(
+      "/schools/" + encodeURIComponent(ctx.schoolId) + "/finance?role=" + ctx.role,
+      signal,
+    );
+    return parseStudentFinance(data, ctx);
+  }
+  async academicGradebooks(ctx: Context, catalog: AcademicCatalog, signal?: AbortSignal) {
+    authorize(this.current, ctx);
+    if (ctx.role !== "professor")
+      throw new ApiError(403, "A consulta dos diários é exclusiva do professor.");
+    const data = await this.request(
+      "/schools/" + encodeURIComponent(ctx.schoolId) + "/gradebooks?role=" + ctx.role,
+      signal,
+    );
+    return parseAcademicGradebooks(data, ctx, catalog);
   }
   async academicResults(ctx: Context, catalog: AcademicCatalog, signal?: AbortSignal) {
     authorize(this.current, ctx);

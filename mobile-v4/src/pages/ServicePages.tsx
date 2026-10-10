@@ -1,3 +1,7 @@
+import { InstitutionalNotifications } from "../components/InstitutionalNotifications";
+import { InstitutionalChat } from "../components/InstitutionalChat";
+import { InstitutionalFinance } from "../components/InstitutionalFinance";
+import { InstitutionalGradebooks } from "../components/InstitutionalGradebooks";
 import { InstitutionalResults } from "../components/InstitutionalResults";
 import { InstitutionalAttendance } from "../components/InstitutionalAttendance";
 import type { ApiError } from "../services/api";
@@ -157,7 +161,13 @@ export function ServicePages({
           <div className="page-eyebrow">
             {ctx?.role === "professor" ? "Trabalho do professor" : "Espaço do aluno"}
           </div>
-          <h1>{page === "calendario" ? "Calendário" : service?.[0] || "Serviço indisponível"}</h1>
+          <h1>
+            {session?.mode === "api" && page === "notas" && role === "professor"
+              ? "Consultar notas"
+              : page === "calendario"
+                ? "Calendário"
+                : service?.[0] || "Serviço indisponível"}
+          </h1>
           {ctx && onRefresh && (
             <button className="pill" disabled={loading || busy} onClick={onRefresh}>
               Actualizar dados
@@ -172,6 +182,13 @@ export function ServicePages({
             </div>
           ) : loading ? (
             <p role="status">A carregar…</p>
+          ) : gateway && session?.mode === "api" && page === "avisos" ? (
+            <InstitutionalNotifications
+              key={ctx.userId + ctx.schoolId + ctx.role}
+              ctx={ctx}
+              gateway={gateway}
+              onAccessError={onAccessError}
+            />
           ) : catalog && gateway && ["calendario", "presencas", "faltas"].includes(page) ? (
             <InstitutionalAttendance
               key={ctx.userId + ctx.schoolId + ctx.role + page}
@@ -188,6 +205,33 @@ export function ServicePages({
               key={ctx.userId + ctx.schoolId + ctx.role + page}
               ctx={ctx}
               catalog={catalog}
+              gateway={gateway}
+              onAccessError={onAccessError}
+            />
+          ) : catalog && gateway && ctx.role === "professor" && page === "notas" ? (
+            <InstitutionalGradebooks
+              key={ctx.userId + ctx.schoolId + ctx.role + page}
+              ctx={ctx}
+              catalog={catalog}
+              gateway={gateway}
+              onAccessError={onAccessError}
+            />
+          ) : catalog &&
+            gateway &&
+            ctx.role === "aluno" &&
+            ["propinas", "propinas-pagas"].includes(page) ? (
+            <InstitutionalFinance
+              key={ctx.userId + ctx.schoolId + page}
+              ctx={ctx}
+              catalog={catalog}
+              gateway={gateway}
+              onAccessError={onAccessError}
+              paidOnly={page === "propinas-pagas"}
+            />
+          ) : catalog && gateway && page === "mensagens" ? (
+            <InstitutionalChat
+              key={ctx.userId + ctx.schoolId + ctx.role}
+              ctx={ctx}
               gateway={gateway}
               onAccessError={onAccessError}
             />
