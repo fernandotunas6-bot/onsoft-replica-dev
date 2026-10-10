@@ -114,7 +114,9 @@ export function SalasWorkspaceTab({ canManage }: { canManage: boolean }) {
       await queryClient.invalidateQueries({ queryKey: ["academic", "rooms"] });
       toast.success("Sala cadastrada com sucesso.");
     } catch (err) {
-      toast.error(errorMessage(err, "Erro ao criar sala."));
+      // O formulário fica aberto com o que se escreveu: antes o erro era engolido e o
+      // formulário fechava como se tivesse gravado (código repetido, por exemplo).
+      throw new Error(errorMessage(err, "Erro ao criar sala."), { cause: err });
     }
   };
 
@@ -138,7 +140,7 @@ export function SalasWorkspaceTab({ canManage }: { canManage: boolean }) {
       await queryClient.invalidateQueries({ queryKey: ["academic", "rooms"] });
       toast.success("Sala atualizada com sucesso.");
     } catch (err) {
-      toast.error(errorMessage(err, "Erro ao atualizar sala."));
+      throw new Error(errorMessage(err, "Erro ao atualizar sala."), { cause: err });
     }
   };
 
