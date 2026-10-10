@@ -274,3 +274,17 @@ O resto das escritas sem `requireSgaWriterForWrite` usa guardas próprios que j�
 vêm de `server-legacy.ts`; 6 leituras usam a versão endurecida para o professor e delegam na
 antiga para a direcção e a secretaria. As duas continuam necessárias; juntá-las num só
 ficheiro é arrumação, sem defeito à vista, e fica para depois.
+
+**Integridade dos dados de produção** (leitura de 2026-10-10, só contagens). A zero:
+matrículas correntes em ano fechado, de turma de outro ano, de aluno inactivo/transferido;
+alunos activos sem matrícula; turmas acima da lotação; pessoas duplicadas por BI; fichas de aluno
+ou professor activas de pessoa inactiva; aulas em disciplinas inactivas; faturas abertas de
+matrícula anulada, pagas sem recibo, com recibos acima do valor, ou abertas já pagas; notas acima
+da cotação, negativas ou de matrícula anulada; disciplinas atribuídas a professor inactivo;
+membros sem papel; contas de professor sem ficha; dois encarregados principais. Diferentes de zero:
+
+- **Turmas «DEMO» (A1):** além das 40 matrículas pendentes, 180 aulas activas no horário, em
+  12 turmas «DEMO» em rascunho, todas de 08/10 e da mesma escola. Nada no código gera estes
+  nomes: foram escritos directamente na base. Reforça que é um conjunto de demonstração.
+- **34 alunos activos sem encarregado.** Não é proibido (alunos adultos, Ensino Superior), mas
+  merece revisão pela secretaria.

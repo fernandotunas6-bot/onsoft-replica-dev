@@ -54,6 +54,11 @@ Nada escrito na produção; nenhuma migração nova.
   (`20261010130000`, por aplicar, mesmo pacote; `enrollmentWindow` no servidor). A1 — o dono diz
   que as 40 matrículas do Huambo são reais, mas estão nas turmas «DEMO — 1.ª Classe A/B», em
   rascunho: confirmar na escola antes; guia nos dois sentidos na secção 8.5.
+- **Terceira passagem (secção 9):** conta ligada também ao professor (fusão e convite, K1);
+  eliminar avaliação e emitir documento respeitam a escola bloqueada (G1); listas sem o pedaço
+  do id. Integridade dos dados de produção verificada (só as turmas «DEMO» e 34 alunos sem
+  encarregado). **Por decidir:** bloqueio da escola também na gestão de acessos. **Por fazer
+  (dono):** activar a protecção contra senhas comprometidas no Auth do Supabase.
 - **Segunda passagem (Pessoas, Perfil, Horários, Salas)** — secção 8 do relatório. CI do PR #118
   corrigido (`ecosystem-urls.ts` sem `import.meta.env` em Node). **Por aplicar (dono, SQL Editor):**
   `docs/agents/SIGA_aplicar_auditoria14_2026-10-10.sql` — `20261010100000` (H1: duas turmas sem
