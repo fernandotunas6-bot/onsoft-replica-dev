@@ -15,3 +15,15 @@ export const COLUNAS_ESPERA_MIGRACAO = new Set<string>([
   // tem a coluna. Uma lista que ninguém esvazia deixa de ser espera e passa a ser
   // dívida silenciosa.
 ]);
+
+/**
+ * Funções `public` que o código chama e a produção ainda não tem, porque há uma migração
+ * escrita e por aplicar. Só vale para quem chama e trata a falta (`isMissingFunction`)
+ * com o caminho antigo. A lista só encolhe: `colunas-inexistentes.test.ts` obriga a tirar
+ * a entrada quando o retrato mostrar a função.
+ */
+export const FUNCOES_ESPERA_MIGRACAO = new Set<string>([
+  // 20261010110000 (auditoria 14, P4): fundir pessoas numa transacção. Sem ela,
+  // mergePeople segue os passos soltos de antes (mergePeopleInSteps).
+  "siga_merge_people",
+]);

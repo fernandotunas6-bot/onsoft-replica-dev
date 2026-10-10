@@ -65,6 +65,16 @@ const businessMessages = new Set([
   "Estudante, ano letivo ou data de matrícula inválida.",
   "Pessoa ou data de admissão inválida.",
   "Encarregado inválido para esta escola.",
+  // register_teacher
+  "Dados funcionais ou pessoa inválida.",
+  "Existe disciplina inválida ou pertencente a outra escola.",
+  // merge_people (20261010110000)
+  "Seleccione duas pessoas diferentes.",
+  "Uma das pessoas não existe nesta escola.",
+  "As duas fichas têm contas de acesso diferentes. Não é seguro fundi-las — desactive o duplicado.",
+  "As duas fichas têm matrícula de aluno. Não é seguro fundi-las — desactive o duplicado.",
+  "As duas fichas têm vínculo laboral (RH). Não é seguro fundi-las — desactive o duplicado.",
+  "As duas fichas têm registo de professor. Não é seguro fundi-las — desactive o duplicado.",
   // Gatilho das mensagens (20261002100000_chat_integrity.sql).
   "Conversa inexistente.",
   "A mensagem tem de pertencer à escola da conversa.",
@@ -75,6 +85,16 @@ const businessMessages = new Set([
 function constraintMessage(message: string | undefined): string | null {
   const name = /constraint "([a-z0-9_]+)"/i.exec(message ?? "")?.[1];
   return (name && constraintMessages[name]) || null;
+}
+
+/** Função ainda por criar nesta base (migração por aplicar): quem chama segue o caminho antigo. */
+export function isMissingFunction(error: DatabaseError | null | undefined): boolean {
+  return Boolean(
+    error &&
+    (error.code === "PGRST202" ||
+      error.code === "42883" ||
+      /could not find the function|function .* does not exist/i.test(error.message ?? "")),
+  );
 }
 
 /** Tabela ainda por criar nesta base (migração por aplicar): quem lê trata-a como vazia. */

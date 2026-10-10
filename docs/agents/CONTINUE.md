@@ -36,8 +36,12 @@ Nada escrito na produção; nenhuma migração nova.
   sala à mesma hora eram recusadas pela RPC e pelo gatilho antigo; ensaio
   `tests/sql/timetable-room-placeholders.mjs`). Depois: recapturar o retrato. Número de
   professor num só sítio (`people/teacher-number.ts`, maior + 1). A mesma migração traz o H2 (trocar o professor de uma aula, que o troca em todas as
-  aulas da disciplina na turma, é recusado se ele ficar em duas turmas à mesma hora). O importador de professores numera como o servidor. **Por decidir:** P3 (`register_teacher`
-  sem uso, com sequência própria que colidiria), P4 (fundir pessoas sem transacção). P5 (encarregado reaproveitado na candidatura,
+  aulas da disciplina na turma, é recusado se ele ficar em duas turmas à mesma hora). O importador de professores numera como o servidor. **Decididos pelo dono e feitos (por aplicar, mesmo pacote):** `20261010110000` —
+  `register_teacher` numera acima do maior número e «Novo professor» usa-a (P3); «Fundir pessoas»
+  numa transacção, `private.merge_people` / `siga_merge_people`, só servidor (P4). Até serem
+  aplicadas, o servidor segue o caminho antigo (`isMissingFunction`, número repetido). Depois de
+  aplicar: tirar `siga_merge_people` de `tests/security/espera-migracao.ts` e apagar
+  `mergePeopleInSteps`. P5 (encarregado reaproveitado na candidatura,
   `people/guardian-lookup.ts`) e P6 (apagar a morada na ficha 360) corrigidos; a `20260925170000`, por
   aplicar, passou a usar `private.timetable_room_is_explicit` (H3).
 
