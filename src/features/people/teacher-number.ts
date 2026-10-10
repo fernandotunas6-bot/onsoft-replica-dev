@@ -1,19 +1,21 @@
-import type { loadSgaAdminClient } from "@/integrations/supabase/sga-admin";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { publicDatabaseError } from "@/integrations/supabase/server-error";
 
-type AdminDb = Awaited<ReturnType<typeof loadSgaAdminClient>>;
+/** O cliente do servidor ou o da importação: só lê `teachers.employee_number`. */
+type Db = Pick<SupabaseClient, "from">;
 
 const SEQUENTIAL = /^DOC-(\d{6})$/;
 
 /**
  * Número de professor seguinte (`DOC-000123`): o maior número sequencial da escola + 1.
  *
- * Havia duas cópias (Novo professor e a ligação de um login a um professor) que
- * contavam os professores e somavam 1. Com um número em falta — um professor
+ * Havia três numerações: duas cópias (Novo professor e a ligação de um login a um
+ * professor) que contavam os professores e somavam 1, e a importação, que usava
+ * `DOC-` com um pedaço do id da pessoa. Com um número em falta — um professor
  * importado com outro formato, ou um número escrito à mão — a contagem repetia um
  * número já usado e a criação falhava com «chave duplicada».
  */
-export async function nextTeacherEmployeeNumber(db: AdminDb, schoolId: string): Promise<string> {
+export async function nextTeacherEmployeeNumber(db: Db, schoolId: string): Promise<string> {
   const { data, error } = await db
     .from("teachers")
     .select("employee_number")
@@ -41,7 +43,7 @@ export function isTeacherNumberTaken(error: { code?: string; message?: string } 
  */
 export async function insertTeacherWithNextNumber<
   R extends { error: { code?: string; message?: string } | null },
->(db: AdminDb, schoolId: string, insert: (employeeNumber: string) => PromiseLike<R>): Promise<R> {
+>(db: Db, schoolId: string, insert: (employeeNumber: string) => PromiseLike<R>): Promise<R> {
   let result = await insert(await nextTeacherEmployeeNumber(db, schoolId));
   for (let attempt = 1; attempt < 3 && isTeacherNumberTaken(result.error); attempt += 1) {
     result = await insert(await nextTeacherEmployeeNumber(db, schoolId));
