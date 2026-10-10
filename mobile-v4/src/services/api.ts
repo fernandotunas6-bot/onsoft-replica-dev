@@ -18,6 +18,7 @@ export interface SessionTransport {
    */
   accessToken(): Promise<string | null>;
   clearSession?(): Promise<void>;
+  subscribeSessionChanged?(listener: () => void): () => void;
 }
 export class ApiError extends Error {
   constructor(
@@ -30,6 +31,21 @@ export class ApiError extends Error {
 // Authenticated transport. No production endpoint is enabled by this module.
 export class ApiGateway implements Gateway {
   private current: Session | null = null;
+  private sessionRevision = 0;
+  private invalidateSession() {
+    this.sessionRevision++;
+    this.current = null;
+    this.workspaceCache.clear();
+    this.pendingRequests.clear();
+  }
+  subscribeSessionChanged(listener: () => void): () => void {
+    return (
+      this.transport?.subscribeSessionChanged?.(() => {
+        this.invalidateSession();
+        listener();
+      }) || (() => {})
+    );
+  }
   private workspaceCache = new Map<string, Workspace>();
   private pendingRequests = new Map<string, string>();
   private key(ctx: Context) {
@@ -50,7 +66,13 @@ export class ApiGateway implements Gateway {
       throw new Error("A API deve usar um caminho na mesma origem.");
   }
   private async request(path: string, signal?: AbortSignal, body?: unknown) {
+    const revision = this.sessionRevision;
+    const assertCurrentSession = () => {
+      if (revision !== this.sessionRevision)
+        throw new ApiError(401, "A sessão foi alterada. Volte a seleccionar a escola.");
+    };
     const token = this.transport ? await this.transport.accessToken() : null;
+    assertCurrentSession();
     if (this.transport && !token) {
       this.current = null;
       this.workspaceCache.clear();
@@ -69,6 +91,7 @@ export class ApiGateway implements Gateway {
       method: body ? "POST" : "GET",
       ...(body ? { body: JSON.stringify(body) } : {}),
     });
+    assertCurrentSession();
     if (!response.ok) {
       if (response.status === 401) {
         this.current = null;
@@ -88,7 +111,9 @@ export class ApiGateway implements Gateway {
                 : "Não foi possível concluir a operação (" + response.status + ").",
       );
     }
-    return response.status === 204 ? null : response.json();
+    const data = response.status === 204 ? null : await response.json();
+    assertCurrentSession();
+    return data;
   }
   async session(signal?: AbortSignal): Promise<Session | null> {
     this.current = null;
@@ -189,9 +214,7 @@ export class ApiGateway implements Gateway {
     try {
       await this.request("/logout", undefined, {});
     } finally {
-      this.current = null;
-      this.workspaceCache.clear();
-      this.pendingRequests.clear();
+      this.invalidateSession();
       await this.transport?.clearSession?.();
     }
   }

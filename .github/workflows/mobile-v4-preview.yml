@@ -45,13 +45,21 @@ jobs:
         run: npm test
       - name: Build PWA
         run: npm run build
+      - name: Build institutional host module
+        run: npm run build:institutional
+      - name: Upload institutional host module
+        uses: actions/upload-artifact@v4
+        with:
+          name: mobile-v4-institutional-host
+          path: mobile-v4/dist-institutional/
+          retention-days: 7
       - name: Verify PWA
         run: npm run check:pwa
       - name: Generate formatting diagnostics
         if: steps.formatting.outcome != 'success'
         run: |
-          npx prettier --write src tests scripts index.html vite.config.ts tsconfig.json package.json public/manifest.webmanifest public/_worker.js docs README.md
-          git diff -- src tests scripts index.html vite.config.ts tsconfig.json package.json public/manifest.webmanifest public/_worker.js docs README.md > mobile-v4-formatting.patch
+          npx prettier --write src tests scripts index.html vite.config.ts vite.institutional.config.ts tsconfig.json package.json public/manifest.webmanifest public/_worker.js docs README.md
+          git diff -- src tests scripts index.html vite.config.ts vite.institutional.config.ts tsconfig.json package.json public/manifest.webmanifest public/_worker.js docs README.md > mobile-v4-formatting.patch
           test -s mobile-v4-formatting.patch
       - name: Upload formatting diagnostics
         if: steps.formatting.outcome != 'success'

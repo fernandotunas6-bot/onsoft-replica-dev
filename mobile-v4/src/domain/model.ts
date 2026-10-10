@@ -139,6 +139,7 @@ export type Command =
   | { type: "message"; to: string; text: string }
   | { type: "document"; documentType: string };
 export interface Gateway {
+  subscribeSessionChanged?(listener: () => void): () => void;
   session(signal?: AbortSignal): Promise<Session | null>;
   academicCatalog?(ctx: Context, signal?: AbortSignal): Promise<AcademicCatalog>;
   workspace(ctx: Context, signal?: AbortSignal): Promise<Workspace>;

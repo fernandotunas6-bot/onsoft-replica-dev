@@ -298,3 +298,22 @@ it("keeps the authentication rejection visible while clearing the institutional 
   expect(screen.queryByText("Aluno autorizado")).toBeNull();
   expect(gateway.execute).not.toHaveBeenCalled();
 });
+
+it("clears visible institutional data when the existing Supabase session changes and unsubscribes on unmount", async () => {
+  const { gateway } = institutionalGateway("professor");
+  let changed: () => void = () => {};
+  const unsubscribe = vi.fn();
+  gateway.subscribeSessionChanged = (listener) => {
+    changed = listener;
+    return unsubscribe;
+  };
+  const mounted = render(<App initialGateway={gateway} />);
+  await selectInstitutionalSchool();
+  fireEvent.click(screen.getByRole("button", { name: "Minhas turmas" }));
+  await screen.findByText("Aluno autorizado");
+  changed();
+  await screen.findByText("Selecciona uma escola e um perfil autorizado para abrir este serviço.");
+  expect(screen.queryByText("Aluno autorizado")).toBeNull();
+  mounted.unmount();
+  expect(unsubscribe).toHaveBeenCalledOnce();
+});

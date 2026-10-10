@@ -30,6 +30,7 @@ const menu = [
 ];
 export function App({ initialGateway }: { initialGateway?: Gateway }) {
   const [gateway, setGateway] = useState<Gateway | null>(initialGateway || null);
+  const [authRevision, setAuthRevision] = useState(0);
   const [session, setSession] = useState<Session | null>(null);
   const [school, setSchool] = useState("");
   const [role, setRole] = useState<Role>("professor");
@@ -83,6 +84,20 @@ export function App({ initialGateway }: { initialGateway?: Gateway }) {
   activeKey.current = key;
   const currentCatalog = loadedKey === key ? catalog : null;
   const currentData = loadedKey === key ? data : null;
+  useEffect(
+    () =>
+      gateway?.subscribeSessionChanged?.(() => {
+        setSession(null);
+        setSchool("");
+        setData(null);
+        setCatalog(null);
+        setLoadedKey("");
+        setProjects([]);
+        setSheet("");
+        setAuthRevision((r) => r + 1);
+      }),
+    [gateway],
+  );
   useEffect(() => {
     if (!gateway) return;
     let live = true;
@@ -108,7 +123,7 @@ export function App({ initialGateway }: { initialGateway?: Gateway }) {
             setData(null);
             if (e.status === 401) {
               setSession(null);
-              setGateway(null);
+              if (!initialGateway) setGateway(null);
             }
           }
         }
@@ -120,7 +135,7 @@ export function App({ initialGateway }: { initialGateway?: Gateway }) {
       live = false;
       ac.abort();
     };
-  }, [gateway]);
+  }, [gateway, authRevision, initialGateway]);
   useEffect(() => {
     setData(null);
     setCatalog(null);
@@ -160,7 +175,7 @@ export function App({ initialGateway }: { initialGateway?: Gateway }) {
             setData(null);
             if (e.status === 401) {
               setSession(null);
-              setGateway(null);
+              if (!initialGateway) setGateway(null);
             }
           }
         }
@@ -172,7 +187,7 @@ export function App({ initialGateway }: { initialGateway?: Gateway }) {
       live = false;
       ac.abort();
     };
-  }, [gateway, ctx, key, reload, session?.mode]);
+  }, [gateway, ctx, key, reload, session?.mode, initialGateway]);
   useEffect(() => {
     const q = matchMedia("(prefers-color-scheme: dark)");
     setSystemDark(q.matches);
@@ -229,7 +244,7 @@ export function App({ initialGateway }: { initialGateway?: Gateway }) {
       setSchool("");
       setProjects([]);
       setSheet("");
-      setGateway(null);
+      if (!initialGateway) setGateway(null);
       setNotice("Sessão terminada; contexto local limpo.");
     }
   }
@@ -264,7 +279,7 @@ export function App({ initialGateway }: { initialGateway?: Gateway }) {
           setSheet("");
           if (e.status === 401) {
             setSession(null);
-            setGateway(null);
+            if (!initialGateway) setGateway(null);
           }
         }
       }
