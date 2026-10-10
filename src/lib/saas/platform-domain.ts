@@ -7,6 +7,8 @@
 export const RESERVED_SUBDOMAINS: ReadonlySet<string> = new Set([
   "www",
   "app",
+  "m",
+  "mobile",
   "admin",
   "saas-admin",
   "api",

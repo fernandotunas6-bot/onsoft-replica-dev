@@ -4,11 +4,21 @@ import { createSigaMobileV4Gateway } from "../../src/features/mobile-v4/browser"
 import { supabase } from "../../src/integrations/supabase/client";
 import {
   listVerificationFactors,
+  passkeyErrorMessage,
+  passkeysSupported,
   sessionAal,
+  verifyWithPasskey,
   verifyWithCode,
   type VerificationFactors,
 } from "../../src/features/auth/verification";
 import { Icon } from "../src/components/Icon";
+import { isPlatformOwnedHostname } from "../../src/lib/saas/platform-domain";
+
+// A chave de acesso está presa a portal-siga.com: só serve nos subdomínios da
+// plataforma (m.portal-siga.com), não no preview em pages.dev.
+function canUsePasskey(): boolean {
+  return passkeysSupported() && isPlatformOwnedHostname(window.location.hostname);
+}
 
 export function ConnectedMobile() {
   const gateway = useMemo(() => createSigaMobileV4Gateway(), []);
@@ -64,6 +74,19 @@ export function ConnectedMobile() {
     };
   }, []);
   if (mode === "ready") return <App initialGateway={gateway} />;
+  const passkeyId = canUsePasskey() ? (factors?.passkeyId ?? null) : null;
+  async function confirmWithPasskey() {
+    if (!passkeyId) return;
+    setBusy(true);
+    setError("");
+    try {
+      await verifyWithPasskey(passkeyId);
+    } catch (failure) {
+      setError(passkeyErrorMessage(failure));
+    } finally {
+      setBusy(false);
+    }
+  }
   async function submit() {
     setBusy(true);
     setError("");
@@ -96,7 +119,7 @@ export function ConnectedMobile() {
       <main className="content">
         <div className="brand-mark">S</div>
         <h1>SIGA Plus</h1>
-        <p className="muted">Mobile V4 · ligação de testes ao Sga</p>
+        <p className="muted">Professor e aluno</p>
         <section className="card">
           {mode === "loading" ? (
             <p role="status">A confirmar sessão…</p>
@@ -110,6 +133,17 @@ export function ConnectedMobile() {
               <h2>{mode === "mfa" ? "Confirmar identidade" : "Entrar na conta escolar"}</h2>
               {mode === "mfa" ? (
                 <>
+                  {passkeyId && (
+                    <button
+                      type="button"
+                      className="pill"
+                      disabled={busy}
+                      onClick={() => void confirmWithPasskey()}
+                    >
+                      <Icon name="user-round" />
+                      Confirmar com a chave de acesso
+                    </button>
+                  )}
                   <p>Usa o código da aplicação autenticadora já configurada no SIGA.</p>
                   <label>
                     Código de autenticação
@@ -169,7 +203,7 @@ export function ConnectedMobile() {
                   Sair desta conta
                 </button>
               )}
-              {mode === "mfa" && !factors?.totpId && (
+              {mode === "mfa" && !factors?.totpId && !passkeyId && (
                 <p>
                   Esta conta usa uma chave ligada ao domínio do portal. Entra pelo domínio original;
                   não é possível usar essa chave neste preview.

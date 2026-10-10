@@ -7,18 +7,29 @@ const fixture = vi.hoisted(() => ({
   onAuthStateChange: vi.fn(() => ({ data: { subscription: { unsubscribe: vi.fn() } } })),
   listFactors: vi.fn(),
   verify: vi.fn(),
+  passkey: vi.fn(),
+  passkeysSupported: vi.fn(() => false),
+  platformHost: vi.fn(() => false),
 }));
 vi.mock("../../src/integrations/supabase/client", () => ({ supabase: { auth: fixture } }));
 vi.mock("../../src/features/auth/verification", () => ({
   listVerificationFactors: fixture.listFactors,
   sessionAal: () => "aal1",
   verifyWithCode: fixture.verify,
+  verifyWithPasskey: fixture.passkey,
+  passkeysSupported: fixture.passkeysSupported,
+  passkeyErrorMessage: () => "Não foi possível confirmar com a chave de acesso.",
+}));
+vi.mock("../../src/lib/saas/platform-domain", () => ({
+  isPlatformOwnedHostname: fixture.platformHost,
 }));
 vi.mock("../../src/features/mobile-v4/browser", () => ({ createSigaMobileV4Gateway: () => ({}) }));
 vi.mock("../src/App", () => ({ App: () => <div>Institutional application mounted</div> }));
 afterEach(() => {
   cleanup();
   vi.clearAllMocks();
+  fixture.passkeysSupported.mockReturnValue(false);
+  fixture.platformHost.mockReturnValue(false);
 });
 it("shows actual login controls and clears password after a rejected SDK sign-in", async () => {
   fixture.getSession.mockResolvedValue({ data: { session: null }, error: null });
@@ -52,4 +63,24 @@ it("requires the existing verified TOTP before mounting an aal1 account with MFA
   fireEvent.click(screen.getByRole("button", { name: "Confirmar código" }));
   await screen.findByText("Código inválido ou expirado.");
   expect(fixture.verify).toHaveBeenCalledWith("configured-factor", "123456");
+});
+it("offers the passkey only on the platform host where its RP ID is valid", async () => {
+  fixture.getSession.mockResolvedValue({
+    data: { session: { access_token: "local-token" } },
+    error: null,
+  });
+  fixture.listFactors.mockResolvedValue({ totpId: null, passkeyId: "passkey-factor" });
+  fixture.passkeysSupported.mockReturnValue(true);
+  fixture.passkey.mockRejectedValue(new Error("cancelled"));
+  const { unmount } = render(<ConnectedMobile />);
+  await screen.findByText(/chave ligada ao domínio do portal/);
+  expect(screen.queryByRole("button", { name: "Confirmar com a chave de acesso" })).toBeNull();
+  unmount();
+
+  fixture.platformHost.mockReturnValue(true);
+  render(<ConnectedMobile />);
+  fireEvent.click(await screen.findByRole("button", { name: "Confirmar com a chave de acesso" }));
+  await screen.findByText("Não foi possível confirmar com a chave de acesso.");
+  expect(fixture.passkey).toHaveBeenCalledWith("passkey-factor");
+  expect(screen.queryByText(/chave ligada ao domínio do portal/)).toBeNull();
 });

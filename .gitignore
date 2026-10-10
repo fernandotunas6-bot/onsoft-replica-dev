@@ -77,3 +77,6 @@ client_secret_*.json
 mobile-v4/dist-institutional/
 
 mobile-v4/dist-connected/
+
+# App móvel compilada no deploy (npm run mobile:build)
+public/mobile/

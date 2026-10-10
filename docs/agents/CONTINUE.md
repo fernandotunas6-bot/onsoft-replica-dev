@@ -4,6 +4,14 @@ Ler isto **antes** de alterar código. Ecossistema (5 apps):
 [ARCHITECTURE_HARMONIZATION.md](./ARCHITECTURE_HARMONIZATION.md).
 Depois abrir o skill do módulo em `.cursor/skills/`.
 
+## App móvel em m.portal-siga.com (2026-10-10)
+
+Decisão do dono: a PWA professor/aluno (`mobile-v4/`, PR #116) publica-se em
+`m.portal-siga.com` pelo Worker do portal, não no `pages.dev`. `npm run mobile:build` →
+`public/mobile/` (corre no `deploy-cf.mjs`); `src/lib/mobile-host.ts` fecha o host `m.` a tudo
+menos `/api/mobile-v4/*`; `m`/`mobile` reservados. Detalhes, acções do dono e ordem das próximas
+integrações: [PUBLICACAO_M_PORTAL_SIGA.md](../../mobile-v4/docs/PUBLICACAO_M_PORTAL_SIGA.md).
+
 ## Auditoria 13 — fluxos da escola (2026-10-06)
 
 Relatório: [13-auditoria-fluxos-2026-10-06.md](../auditoria/13-auditoria-fluxos-2026-10-06.md).

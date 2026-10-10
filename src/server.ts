@@ -7,6 +7,7 @@ import { renderErrorPage } from "./lib/error-page";
 import { CSP_REPORT_PATH, handleCspReport } from "./lib/csp";
 import { withSecurityHeaders } from "./lib/security-headers";
 import { installKeepAlive } from "./lib/execution-context";
+import { isMobileHost, routeMobileHostRequest } from "./lib/mobile-host";
 
 type ExecutionContext = { waitUntil?: (promise: Promise<unknown>) => void };
 
@@ -65,6 +66,10 @@ async function handle(request: Request, env: unknown, ctx: unknown): Promise<Res
   try {
     if (new URL(request.url).pathname === CSP_REPORT_PATH) {
       return withSecurityHeaders(await handleCspReport(request));
+    }
+    if (isMobileHost(new URL(request.url).hostname)) {
+      const mobile = routeMobileHostRequest(request);
+      if (mobile) return withSecurityHeaders(mobile);
     }
     const handler = await getServerEntry();
     const response = await handler.fetch(request, env, ctx);
