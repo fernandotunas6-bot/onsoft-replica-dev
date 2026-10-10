@@ -22,6 +22,8 @@ Detalhe e cobertura real: [docs/education-catalog/README.md](../education-catalo
   transaccional, recusa o que misturaria pautas/exames/competências e o superior.
 - «Nova disciplina» sugere nomes do catálogo e avisa antes de criar um duplicado
   (`subject-hint.ts`; `QuickFormModal` com `suggestions` e `renderHint`).
+- Documentos: o registo de cada emissão (`documents.issued`) guarda os nomes das disciplinas
+  impressas e `/verificar` mostra-os — o nome à data da emissão sobrevive a renomear/juntar.
 - **Por aplicar (dono):** `20261010120000_global_education_catalog.sql`, depois
   `supabase/seeds/education/catalog.sql`, depois `20261010150000_merge_school_subjects.sql`. A página não depende delas.
 

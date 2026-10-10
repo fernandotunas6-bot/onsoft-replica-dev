@@ -113,6 +113,12 @@ function VerifyDocumentPage() {
               <dd>{query.data.holder}</dd>
               <dt className="text-muted-foreground">Data</dt>
               <dd>{new Date(query.data.issuedAt).toLocaleString("pt-AO")}</dd>
+              {query.data.subjects.length ? (
+                <>
+                  <dt className="text-muted-foreground">Disciplinas</dt>
+                  <dd>{query.data.subjects.join(", ")}</dd>
+                </>
+              ) : null}
             </dl>
             <p className="text-xs text-muted-foreground">Compare com o documento.</p>
           </section>

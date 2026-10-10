@@ -108,6 +108,22 @@ Não bloqueia (a escola pode querer «Matemática» e «Matemática A»). Lógic
 `subject-hint.ts`; o `QuickFormModal` ganhou duas opções genéricas e opcionais
 (`suggestions` num campo de texto, com `<datalist>` nativo, e `renderHint`).
 
+## Documentos: o nome à data da emissão
+
+O que existe:
+- **Pautas:** guardam o nome da disciplina nas linhas (`grade_sheet_rows.subject_breakdown`)
+  e têm versões arquivadas (`grade_sheet_versions.snapshot`).
+- **Histórico académico:** grava `subject_results` com o nome da altura.
+- **Documentos emitidos** (declarações, certificados, boletins, dossiê): são gerados no
+  momento a partir dos dados actuais. Cada emissão regista um código de verificação
+  (`audit_logs`, `documents.issued`). Esse registo passou a guardar também os **nomes das
+  disciplinas tal como saíram impressos** (`printed-subjects.ts`; só nomes, sem notas), e a
+  página pública `/verificar` mostra-os.
+
+Assim, um documento emitido antes de corrigir ou juntar uma disciplina continua verificável
+com o nome que tinha. Uma reimpressão gera um documento novo, com o nome actual e um código
+novo.
+
 ## Juntar duplicados
 
 `public.merge_school_subjects(escola, a_manter, a_juntar[])` — migração
