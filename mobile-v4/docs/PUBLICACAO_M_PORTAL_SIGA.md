@@ -62,8 +62,21 @@ Worker em qualquer host). É a mesma app; o endereço oficial a divulgar é `m.p
 
 ## Próximas integrações (ordem decidida)
 
-1. Escritas do professor: chamada e notas por disciplina (comandos com auditoria, idempotência
+1. ~~Chamada do professor~~ — feita (ver abaixo). Falta: notas por disciplina (comandos com auditoria, idempotência
    por `requestId` e conflito de revisão), reutilizando os serviços do SIGA.
 2. Chat real (`chat-server.ts`: `assertMember`, `assertConversationOpen`).
 3. Notificações push (reutilizar o push do portal na app `/mobile/`).
 4. Tarefas e entregas, com upload de ficheiros.
+
+## Chamada do professor (10/10/2026)
+
+- `GET /api/mobile-v4/schools/:id/lessons?role=professor`: aulas de hoje (Luanda) do professor,
+  com as sessões de chamada criadas como no portal e as marcações já gravadas.
+- Comando `attendance` (`POST …/commands`, exige MFA aal2): grava e fecha a chamada com
+  `recordAttendanceCall`, o mesmo núcleo do portal (`features/pedagogica/attendance-core.server.ts`):
+  só o professor da aula, só alunos matriculados, recusa se a pauta do período já é oficial,
+  recalcula a taxa de presença. Repetir o mesmo envio devolve sucesso sem nova escrita; chamada
+  fechada com outros estados → 409, corrige-se no portal com motivo e auditoria.
+- A sessão anuncia `attendance.write` ao professor. App: «Chamada de hoje» no ecrã de presenças
+  (Todos presentes, Presente/Falta/Justificada por aluno, Fechar chamada).
+- Sem migrações: usa as tabelas e funções já existentes.

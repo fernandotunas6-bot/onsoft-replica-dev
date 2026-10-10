@@ -1,6 +1,7 @@
 import type { AcademicResults } from "./results";
 import type { AcademicAttendance, AttendanceRange } from "./attendance";
 import type { AcademicCatalog } from "./catalog";
+import type { TeacherDay } from "./teacher-day";
 export type Role = "professor" | "aluno";
 export type Permission =
   | "academic.read"
@@ -155,6 +156,15 @@ export interface Gateway {
     catalog: AcademicCatalog,
     signal?: AbortSignal,
   ): Promise<AcademicAttendance>;
+  teacherDay?(ctx: Context, catalog: AcademicCatalog, signal?: AbortSignal): Promise<TeacherDay>;
+  recordAttendance?(
+    ctx: Context,
+    catalog: AcademicCatalog,
+    day: TeacherDay,
+    sessionId: string,
+    entries: { studentId: string; status: AttendanceStatus }[],
+    signal?: AbortSignal,
+  ): Promise<void>;
   workspace(ctx: Context, signal?: AbortSignal): Promise<Workspace>;
   execute(ctx: Context, command: Command, signal?: AbortSignal): Promise<void>;
   signOut(): Promise<void>;

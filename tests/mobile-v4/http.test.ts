@@ -8,6 +8,7 @@ vi.mock("@/features/mobile-v4/operations-core.server", () => ({
   loadMobileV4AcademicCatalog: vi.fn(),
   loadMobileV4Attendance: vi.fn(),
   loadMobileV4Results: vi.fn(),
+  loadMobileV4Lessons: vi.fn(),
   applyMobileV4Command: vi.fn(),
 }));
 
@@ -50,6 +51,7 @@ beforeEach(() => {
       timetable: [],
       tasks: [],
     }),
+    lessons: vi.fn().mockResolvedValue({ schoolId: school, date: "2026-10-10", lessons: [] }),
     command: vi.fn().mockResolvedValue({ committed: true }),
     logout: vi.fn().mockResolvedValue(undefined),
   };
@@ -285,4 +287,19 @@ it("rejects results before service invocation on invalid scope, missing auth and
     (await handleMobileV4Http(request(`/schools/${school}/results?role=aluno`, {}), deps)).status,
   ).toBe(405);
   expect(deps.results).not.toHaveBeenCalled();
+});
+it("routes the teacher's day lessons as a read with verified identity", async () => {
+  const response = await handleMobileV4Http(
+    request(`/schools/${school}/lessons?role=professor`),
+    deps,
+  );
+  expect(response.status).toBe(200);
+  expect(deps.lessons).toHaveBeenCalledWith("verified-user", {
+    schoolId: school,
+    role: "professor",
+  });
+  expect(
+    (await handleMobileV4Http(request(`/schools/${school}/lessons?role=professor`, {}), deps))
+      .status,
+  ).toBe(405);
 });

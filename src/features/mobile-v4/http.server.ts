@@ -8,6 +8,7 @@ import {
   loadMobileV4AcademicCatalog,
   loadMobileV4Attendance,
   loadMobileV4Results,
+  loadMobileV4Lessons,
 } from "./operations-core.server";
 import { MobileApiError } from "./errors";
 import {
@@ -25,6 +26,7 @@ export type MobileHttpDependencies = {
   results: (userId: string, scope: unknown) => Promise<unknown>;
   attendance: (userId: string, scope: unknown) => Promise<unknown>;
   academic: (userId: string, scope: unknown) => Promise<unknown>;
+  lessons: (userId: string, scope: unknown) => Promise<unknown>;
   command: (userId: string, input: unknown) => Promise<unknown>;
   logout: (token: string) => Promise<void>;
 };
@@ -35,6 +37,7 @@ const dependencies: MobileHttpDependencies = {
   academic: loadMobileV4AcademicCatalog,
   attendance: loadMobileV4Attendance,
   results: loadMobileV4Results,
+  lessons: loadMobileV4Lessons,
   command: applyMobileV4Command,
   logout: async (token) => {
     const db = await loadSgaAdminClient();
@@ -103,7 +106,7 @@ export async function handleMobileV4Http(request: Request, deps = dependencies):
     const url = new URL(request.url);
     const path = url.pathname;
     const schoolRoute =
-      /^\/api\/mobile-v4\/schools\/([0-9a-f-]+)\/(workspace|academic|attendance|results|commands)$/i.exec(
+      /^\/api\/mobile-v4\/schools\/([0-9a-f-]+)\/(workspace|academic|attendance|results|lessons|commands)$/i.exec(
         path,
       );
     const operation =
@@ -113,7 +116,14 @@ export async function handleMobileV4Http(request: Request, deps = dependencies):
           ? "logout"
           : schoolRoute?.[2];
     if (!operation) return respond({ error: "NOT_FOUND" }, 404);
-    const method = ["session", "workspace", "academic", "attendance", "results"].includes(operation)
+    const method = [
+      "session",
+      "workspace",
+      "academic",
+      "attendance",
+      "results",
+      "lessons",
+    ].includes(operation)
       ? "GET"
       : "POST";
     if (request.method !== method) return respond({ error: "METHOD_NOT_ALLOWED" }, 405, method);
@@ -154,7 +164,12 @@ export async function handleMobileV4Http(request: Request, deps = dependencies):
       });
       return respond(await deps.attendance(identity.userId, scope));
     }
-    if (operation === "workspace" || operation === "academic" || operation === "results") {
+    if (
+      operation === "workspace" ||
+      operation === "academic" ||
+      operation === "results" ||
+      operation === "lessons"
+    ) {
       const role = mobileRoleSchema.parse(url.searchParams.get("role"));
       const scope = mobileScopeSchema.parse({ schoolId, role });
       return respond(await deps[operation](identity.userId, scope));
