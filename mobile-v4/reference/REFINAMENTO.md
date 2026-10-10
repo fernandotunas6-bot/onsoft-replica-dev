@@ -47,8 +47,8 @@
 
 ## V5 — Refinamento visual e ícones (10-10-2026)
 - **Tema escuro reposto:** os blocos `#app …` do refinamento anterior sobrepunham-se a `.dark …` (barra inferior branca, texto secundário sem contraste, papel activo invertido). Regras `#app.dark` no fim do CSS, sem tocar no original.
-- **Ícones com significado:** calendário (Calendário), relógio (Meu horário), prancheta (Presenças), quadro (Aulas de hoje), caderno (Plano de aula), lista (Tarefas/Trabalhos), medalha (Minhas notas), camadas (Disciplinas), documento (Documentos), carteira e recibo (Propinas). A roda dentada é gerada por geometria (8 dentes simétricos); sino e presente redesenhados. Mesma grelha 24×24 e traço 1,8.
-- **Cada função com a sua cor** (`SERVICE_TONES` em `pages/catalog.ts`, `data-tone`): a mesma em «Meu dia» e «Os teus serviços», com variante para o tema escuro. Os mosaicos entram em cascata (32 ms entre eles) e o ícone sobe ligeiramente ao passar; nada anima com movimento reduzido.
+- **Ícones:** mantêm-se os desenhos e a atribuição originais (pedido do utilizador). Uma primeira versão com ícones novos por serviço foi revertida.
+- **Cada função com a sua cor e ícone em 3D** (`SERVICE_TONES` em `pages/catalog.ts`, `data-tone`): a mesma em «Meu dia» e «Os teus serviços». O ícone original fica branco sobre um botão em relevo na cor da função — gradiente, brilho de vidro em cima, base mais escura e sombra colorida —, igual nos dois temas. Ao passar ou focar, inclina-se em perspectiva e flutua; ao tocar, afunda. Os mosaicos entram em cascata (32 ms entre eles). Nada disto anima com «Reduzir movimento».
 - **Mosaicos e agenda:** seta sempre no canto, toque com ligeira compressão, agenda com uma linha por actividade e a hora em destaque. Espaço inferior reservado para a barra com a margem segura do iPhone.
-- `tests/icons.test.ts`: todos os ícones usados existem (nenhum cai no «?»), cada serviço de um perfil tem ícone próprio, e cada ícone é só traço, sem cores nem scripts.
+- `tests/icons.test.ts`: todos os ícones usados existem (nenhum cai no «?»), cada serviço de um perfil tem ícone diferente, e cada ícone é só traço, sem cores nem scripts.
 - Revisto em Chromium a 390 px, claro e escuro, professor e aluno, sem erros JS. Continua por rever em Android/iOS físicos e com leitores de ecrã.

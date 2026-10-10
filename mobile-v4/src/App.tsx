@@ -20,7 +20,7 @@ const tabs = [
 ];
 const menu = [
   ["Caixa de entrada", "inbox", "inbox"],
-  ["Novidades", "newspaper", "news"],
+  ["Novidades", "bell", "news"],
   ["Perfil", "user-round", "profile-detail"],
   ["Configurações da conta", "settings", "settings"],
   ["Conectores", "plug", "connectors"],

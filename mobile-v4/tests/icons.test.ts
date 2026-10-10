@@ -35,10 +35,8 @@ it("cada serviço do professor e do aluno tem um ícone próprio", () => {
   for (const modules of [teacherModules, studentModules]) {
     const icons = modules.map(([, icon]) => icon);
     const repeated = icons.filter((icon, i) => icons.indexOf(icon) !== i);
-    // Trabalhos e Tarefas partilham a lista de verificação, em perfis diferentes.
     expect(repeated, modules.map(([label]) => label).join(", ")).toEqual([]);
   }
-  expect(serviceCatalog("aluno").map(([, icon]) => icon)).not.toContain("panel-top");
 });
 
 it("cada ícone é um SVG de traço sem cor nem scripts embutidos", () => {

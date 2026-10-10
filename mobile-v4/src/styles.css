@@ -1772,19 +1772,104 @@ select:focus-visible {
   --tone: #6ee7b7;
   --tone-soft: #173528;
 }
-#app .quicktile[data-tone] .tileicon {
-  background: var(--tone-soft);
-  color: var(--tone);
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--tone) 14%, transparent);
+/* Ícone 3D: botão em relevo na cor da função (igual nos dois temas), com
+ * brilho em cima, base mais escura, sombra colorida e símbolo branco. */
+#app [data-tone="indigo"] {
+  --tone-solid: #5b5bf0;
 }
-#app .quicktile[data-tone]:hover {
-  border-color: color-mix(in srgb, var(--tone) 32%, transparent);
+#app [data-tone="green"] {
+  --tone-solid: #1f9d55;
+}
+#app [data-tone="amber"] {
+  --tone-solid: #e08a0b;
+}
+#app [data-tone="blue"] {
+  --tone-solid: #2b7de9;
+}
+#app [data-tone="teal"] {
+  --tone-solid: #12938a;
+}
+#app [data-tone="orange"] {
+  --tone-solid: #ea6a1f;
+}
+#app [data-tone="violet"] {
+  --tone-solid: #8b5cf6;
+}
+#app [data-tone="rose"] {
+  --tone-solid: #e0457b;
+}
+#app [data-tone="coral"] {
+  --tone-solid: #e5534b;
+}
+#app [data-tone="slate"] {
+  --tone-solid: #64748b;
+}
+#app [data-tone="emerald"] {
+  --tone-solid: #10a37f;
+}
+#app .quicktile[data-tone] {
+  perspective: 600px;
+}
+#app .quicktile[data-tone] .tileicon {
+  position: relative;
+  width: 46px;
+  height: 46px;
+  border-radius: 15px;
+  color: #fff;
+  background: linear-gradient(
+    160deg,
+    color-mix(in srgb, var(--tone-solid) 55%, #fff) 0%,
+    var(--tone-solid) 52%,
+    color-mix(in srgb, var(--tone-solid) 78%, #000) 100%
+  );
+  box-shadow:
+    0 8px 16px -6px color-mix(in srgb, var(--tone-solid) 65%, transparent),
+    0 2px 4px -1px color-mix(in srgb, var(--tone-solid) 40%, transparent),
+    inset 0 1px 0 rgba(255, 255, 255, 0.5),
+    inset 0 -3px 0 rgba(0, 0, 0, 0.14);
+  transform-style: preserve-3d;
+  transition:
+    transform 0.28s cubic-bezier(0.2, 0.8, 0.2, 1),
+    box-shadow 0.28s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+/* Brilho de vidro na metade de cima. */
+#app .quicktile[data-tone] .tileicon::before {
+  content: "";
+  position: absolute;
+  inset: 1px 1px 50% 1px;
+  border-radius: 14px 14px 10px 10px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.38), rgba(255, 255, 255, 0));
+  pointer-events: none;
 }
 #app .quicktile[data-tone] .tileicon .ui-icon {
-  transition: transform 0.22s cubic-bezier(0.2, 0.8, 0.2, 1);
+  position: relative;
+  stroke-width: 2.1;
+  filter: drop-shadow(0 1.5px 0 rgba(0, 0, 0, 0.22));
+  transition: transform 0.28s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+#app .quicktile[data-tone]:hover {
+  border-color: color-mix(in srgb, var(--tone-solid) 30%, transparent);
+}
+#app .quicktile[data-tone]:hover .tileicon,
+#app .quicktile[data-tone]:focus-visible .tileicon {
+  transform: translateY(-3px) rotateX(10deg) rotateY(-12deg);
+  box-shadow:
+    0 14px 22px -8px color-mix(in srgb, var(--tone-solid) 70%, transparent),
+    0 3px 6px -2px color-mix(in srgb, var(--tone-solid) 40%, transparent),
+    inset 0 1px 0 rgba(255, 255, 255, 0.55),
+    inset 0 -3px 0 rgba(0, 0, 0, 0.14);
 }
 #app .quicktile[data-tone]:hover .tileicon .ui-icon {
-  transform: translateY(-1px) scale(1.06);
+  transform: translateZ(6px) scale(1.06);
+}
+#app .quicktile[data-tone]:active .tileicon {
+  transform: translateY(0) scale(0.94);
+}
+#app.dark .quicktile[data-tone] .tileicon {
+  box-shadow:
+    0 8px 18px -6px color-mix(in srgb, var(--tone-solid) 55%, #000),
+    inset 0 1px 0 rgba(255, 255, 255, 0.35),
+    inset 0 -3px 0 rgba(0, 0, 0, 0.25);
 }
 #app .quicktile[data-tone] {
   animation: v5-tile-in 0.36s cubic-bezier(0.2, 0.8, 0.2, 1) backwards;
@@ -1804,6 +1889,9 @@ select:focus-visible {
   #app .quicktile[data-tone] {
     animation: none;
   }
+  #app .quicktile[data-tone]:hover .tileicon,
+  #app .quicktile[data-tone]:focus-visible .tileicon,
+  #app .quicktile[data-tone]:active .tileicon,
   #app .quicktile[data-tone]:hover .tileicon .ui-icon {
     transform: none;
   }

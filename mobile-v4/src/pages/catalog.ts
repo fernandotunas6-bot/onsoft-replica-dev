@@ -122,13 +122,11 @@ export function serviceCatalog(role: Role) {
     ...modules,
     ...(role === "aluno"
       ? [
-          ["Propinas", "wallet", "propinas"],
-          ["Propinas pagas", "receipt", "propinas-pagas"],
+          ["Propinas", "panel-top", "propinas"],
+          ["Propinas pagas", "check", "propinas-pagas"],
         ]
       : []),
-    ...(role === "aluno"
-      ? [["Calendário", "calendar", "calendario"]]
-      : [["Avisos", "bell", "avisos"]]),
+    ...(role === "aluno" ? [["Calendário", "bell", "calendario"]] : [["Avisos", "bell", "avisos"]]),
   ];
 }
 export const footerGroups = [
