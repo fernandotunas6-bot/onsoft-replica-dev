@@ -195,17 +195,20 @@ sobem; nomes locais contam (`Português` em Portugal).
 
 | Entidade | Formato | Emitido por |
 |---|---|---|
-| Aluno | `EST-000123` (já existia; CHECK na base) e código público de 7 dígitos `0000123` | `private.register_student()` |
-| Documento | `<PREFIXO>-000123` | `private.next_document_number()` (já existia) |
-| Professor, funcionário, turma, sala, curso, disciplina, matrícula | `P-0012`, `F-0012`, `T-001`, `S-001`, `C-001`, `D-001`, `M-000123` | `private.next_entity_identifier()` (novo, só servidor) |
+| Aluno | `EST-000123` (CHECK na base) e código público de 7 dígitos `0000123` | `private.register_student()` |
+| Professor | `DOC-000123` (já existia) | ao criar o professor: o seguinte ao **maior** `DOC-n` (`insertWithSequentialCode`) |
+| Documento | `<PREFIXO do tipo>-000123` (`FT`, `RC`, … `OT`) | `private.next_document_number()` (já existia) |
+| Sala (sugestão no formulário) | continua o padrão da escola (`S01…S07` → `S08`; `LAB-2` → `LAB-3`); sem padrão, `S-001` | `suggestNextCode` |
+| Funcionário, turma, curso, disciplina, matrícula | `F-0012`, `T-001`, `C-001`, `D-001`, `M-000123` | `private.next_entity_identifier()` (migração por aplicar; ainda não ligado) |
 
-UUID continua a ser a chave primária. `next_entity_identifier` usa `INSERT … ON CONFLICT DO
-UPDATE … RETURNING` numa linha por escola + entidade: o bloqueio da linha garante números
-diferentes em pedidos simultâneos. Os códigos não são credenciais e não vão em URLs
+**Corrigido (2026-10-10):** o número automático do professor era «contagem + 1». Depois de
+apagar um professor, ou com um número escrito à mão, repetia um número existente e a
+restrição `teachers_school_id_employee_number_key` fazia falhar a criação. Agora segue o
+maior existente e, se outro pedido gravou o mesmo número ao mesmo tempo, tenta o seguinte
+(até 5 vezes). Vale para «Novo professor» e para a ficha criada ao vincular a conta.
+
+UUID continua a ser a chave primária. Os códigos não são credenciais e não vão em URLs
 públicas de dados pessoais.
-
-**Ainda não ligado**: nenhum fluxo existente passou a chamar `next_entity_identifier`; os
-códigos das turmas e salas continuam como hoje. Ligar só depois de a migração estar aplicada.
 
 ## Aplicar (dono, SQL Editor) — não aplicado
 
