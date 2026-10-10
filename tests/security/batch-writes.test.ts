@@ -44,7 +44,10 @@ describe("chamada de presença", () => {
   }
 
   it("a taxa é recalculada na base, de uma vez", () => {
-    expect(source).toMatch(/rpc\("siga_recompute_attendance_rates"/);
+    // Guarda partilhada com a chamada do Mobile V4 (attendance-guards.ts).
+    expect(read("src/features/pedagogica/attendance-guards.ts")).toMatch(
+      /rpc\("siga_recompute_attendance_rates"/,
+    );
   });
 });
 

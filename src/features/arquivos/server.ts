@@ -11,6 +11,7 @@ import {
 import type { ApplicationRole } from "@/features/auth/access-policy";
 import { loadPersonNamesById } from "@/features/people/lookup";
 import {
+  canSeeFileMetadata,
   canAccessFileContent,
   canManageSystemFile,
   canReadFileArea,
@@ -150,12 +151,7 @@ export function canSeeRow(
   userId: string,
   role: string,
 ) {
-  if (!canReadFileArea(role, row.area)) return false;
-  if (row.area === "pessoal" && row.ownerUserId !== userId) return false;
-  if (row.visibility === "private" && row.ownerUserId !== userId) {
-    return role === "Administrador" || (row.area === "secretaria" && role === "Secretaria");
-  }
-  return true;
+  return canSeeFileMetadata(row, userId, role);
 }
 
 /** Metadados visíveis; descrição/caminho de sistema ocultos sem permissão de conteúdo. */

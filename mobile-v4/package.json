@@ -1,0 +1,37 @@
+{
+  "name": "siga-plus-mobile-v4",
+  "version": "0.4.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 127.0.0.1 --port 5180 --strictPort",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "build": "tsc --noEmit && vite build && node scripts/pwa.mjs",
+    "preview": "vite preview --host 127.0.0.1 --port 5180 --strictPort",
+    "format:check": "prettier --check src staging tests scripts deployment index.html vite.config.ts vite.institutional.config.ts tsconfig.json package.json public/manifest.webmanifest public/_worker.js docs README.md",
+    "check:pwa": "node scripts/check-pwa.mjs",
+    "lint": "eslint src staging tests public/_worker.js",
+    "build:institutional": "tsc --noEmit && vite build --config vite.institutional.config.ts",
+    "build:connected": "node scripts/build-connected.mjs",
+    "test:domain": "node --test deployment/domain-worker.check.mjs"
+  },
+  "dependencies": {
+    "react": "19.2.0",
+    "react-dom": "19.2.0"
+  },
+  "devDependencies": {
+    "@testing-library/react": "16.3.0",
+    "@types/react": "19.2.0",
+    "@types/react-dom": "19.2.0",
+    "eslint": "^9.32.0",
+    "eslint-plugin-react-hooks": "^5.2.0",
+    "globals": "^15.15.0",
+    "jsdom": "26.1.0",
+    "prettier": "^3.6.2",
+    "typescript": "5.8.3",
+    "typescript-eslint": "^8.56.1",
+    "vite": "7.1.12",
+    "vitest": "3.2.4"
+  }
+}
