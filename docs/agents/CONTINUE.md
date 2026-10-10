@@ -30,6 +30,15 @@ Nada escrito na produção; nenhuma migração nova.
   fora da aplicação; 39 alunos ficaram «candidato»): confirmar com «Atribuir turma» à mesma
   turma, ou anular. A2 — matrículas antes de o ano lectivo começar (a RPC exige o ano activo e a
   data dentro dele). A3 — 2FA na mudança de turma.
+- **Segunda passagem (Pessoas, Perfil, Horários, Salas)** — secção 8 do relatório. CI do PR #118
+  corrigido (`ecosystem-urls.ts` sem `import.meta.env` em Node). **Por aplicar (dono, SQL Editor):**
+  `docs/agents/SIGA_aplicar_auditoria14_2026-10-10.sql` — `20261010100000` (H1: duas turmas sem
+  sala à mesma hora eram recusadas pela RPC e pelo gatilho antigo; ensaio
+  `tests/sql/timetable-room-placeholders.mjs`). Depois: recapturar o retrato. Número de
+  professor num só sítio (`people/teacher-number.ts`, maior + 1). **Por decidir:** H2 (trocar o
+  professor de uma aula troca-o em todas, sem verificar conflitos), H3 (a `20260925170000`, por
+  aplicar, tem outra lista de marcadores), P3 (três numerações de professor; `register_teacher`
+  sem uso), P4 (fundir pessoas sem transacção), P5 (encarregado duplicado na candidatura).
 
 ## Auditoria 13 — fluxos da escola (2026-10-06)
 

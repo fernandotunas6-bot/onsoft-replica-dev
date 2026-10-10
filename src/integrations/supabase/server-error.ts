@@ -31,6 +31,7 @@ const constraintMessages: Record<string, string> = {
   students_school_id_person_id_key: "Esta pessoa já está registada como aluno.",
   students_school_id_student_number_key: "Já existe um aluno com este número.",
   teachers_school_id_person_id_key: "Esta pessoa já está registada como professor.",
+  teachers_school_id_employee_number_key: "Já existe um professor com este número.",
   teachers_one_login_per_school: "Esta conta já está ligada a outro professor nesta escola.",
   enrollments_one_current_per_year_uidx: "O aluno já tem uma matrícula activa neste ano lectivo.",
   class_groups_school_id_academic_year_id_code_key:

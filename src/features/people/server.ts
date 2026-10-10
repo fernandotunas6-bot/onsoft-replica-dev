@@ -41,6 +41,7 @@ import {
 import { isAngolaBiNif, normalizePersonNif } from "@/lib/angola-identity";
 import { buildPersonInsert, isMissingPeopleGeography } from "./person-fields";
 import { syncBiDocumentFromNif } from "./bi-document";
+import { insertTeacherWithNextNumber } from "./teacher-number";
 import { schoolTodayIso } from "@/lib/school-date";
 
 type AdminDb = Awaited<ReturnType<typeof loadSgaAdminClient>>;
@@ -1011,27 +1012,35 @@ export const createTeacher = createServerFn({ method: "POST" })
       .single();
     if (personError) throw publicDatabaseError(personError, "Não foi possível criar a pessoa.");
 
-    const { count } = await db
-      .from("teachers")
-      .select("id", { count: "exact", head: true })
-      .eq("school_id", membership.schoolId);
-    const seq = String((count ?? 0) + 1).padStart(6, "0");
-    const { data: teacher, error } = await db
-      .from("teachers")
-      .insert({
-        school_id: membership.schoolId,
-        person_id: person.id,
-        employee_number: data.employeeNumber || `DOC-${seq}`,
-        hired_on: data.hiredOn || schoolTodayIso(),
-        employment_type: "permanent",
-        highest_qualification: "bachelor",
-        status: "active",
-        created_by: context.userId,
-        updated_by: context.userId,
-      })
-      .select("*")
-      .single();
-    if (error) throw publicDatabaseError(error, "Não foi possível criar o professor.");
+    const insertTeacher = (employeeNumber: string) =>
+      db
+        .from("teachers")
+        .insert({
+          school_id: membership.schoolId,
+          person_id: person.id,
+          employee_number: employeeNumber,
+          hired_on: data.hiredOn || schoolTodayIso(),
+          employment_type: "permanent",
+          highest_qualification: "bachelor",
+          status: "active",
+          created_by: context.userId,
+          updated_by: context.userId,
+        })
+        .select("*")
+        .single();
+    const { data: teacher, error } = data.employeeNumber
+      ? await insertTeacher(data.employeeNumber)
+      : await insertTeacherWithNextNumber(db, membership.schoolId, insertTeacher);
+    if (error || !teacher) {
+      // A pessoa foi criada só para este professor: sem ele, sai (antes ficava uma
+      // ficha solta a cada tentativa falhada, e a seguinte duplicava-a).
+      await db
+        .from("people")
+        .update({ deleted_at: new Date().toISOString(), updated_by: context.userId })
+        .eq("id", person.id)
+        .eq("school_id", membership.schoolId);
+      throw publicDatabaseError(error ?? {}, "Não foi possível criar o professor.");
+    }
     return teacher;
   });
 
@@ -1412,29 +1421,29 @@ export async function ensureTeacherHrRecord(input: {
 
   let teacherId = existing?.id ? String(existing.id) : null;
   if (!teacherId) {
-    const { count } = await db
-      .from("teachers")
-      .select("id", { count: "exact", head: true })
-      .eq("school_id", input.schoolId);
-    const seq = String((count ?? 0) + 1).padStart(6, "0");
-    const inserted = await db
-      .from("teachers")
-      .insert({
-        school_id: input.schoolId,
-        person_id: person.id,
-        user_id: input.userId,
-        employee_number: `DOC-${seq}`,
-        hired_on: schoolTodayIso(),
-        employment_type: "permanent",
-        highest_qualification: "bachelor",
-        status: "active",
-        created_by: input.actorId,
-        updated_by: input.actorId,
-      })
-      .select("id")
-      .single();
-    if (inserted.error) {
-      throw publicDatabaseError(inserted.error, "Não foi possível criar a ficha de professor.");
+    const inserted = await insertTeacherWithNextNumber(db, input.schoolId, (employeeNumber) =>
+      db
+        .from("teachers")
+        .insert({
+          school_id: input.schoolId,
+          person_id: person.id,
+          user_id: input.userId,
+          employee_number: employeeNumber,
+          hired_on: schoolTodayIso(),
+          employment_type: "permanent",
+          highest_qualification: "bachelor",
+          status: "active",
+          created_by: input.actorId,
+          updated_by: input.actorId,
+        })
+        .select("id")
+        .single(),
+    );
+    if (inserted.error || !inserted.data) {
+      throw publicDatabaseError(
+        inserted.error ?? {},
+        "Não foi possível criar a ficha de professor.",
+      );
     }
     teacherId = String(inserted.data.id);
   }
