@@ -53,6 +53,27 @@ Nada aqui é estimado; é o que `catalogCoverage()` devolve e a página mostra.
 
 O catálogo **não** diz que uma escola está autorizada a oferecer um curso.
 
+## Estrutura da escola a partir do catálogo (fase 8)
+
+Pedagógica → Estrutura → **Usar modelo de estrutura** tem agora «Sistema de ensino»:
+
+- **Angola**: o ecrã de sempre (modelos de `curriculum-templates.ts`), sem mudanças.
+- **Portugal / Moçambique**: as etapas do catálogo com classes/anos e, onde as há, os cursos.
+  `plan-from-catalog.ts` gera o mesmo `CurriculumPlan` e grava-o o mesmo
+  `applyCurriculumPlan` (idempotente). Entram só as disciplinas **obrigatórias** do plano,
+  com o nome do país («Português»); as de opção ficam para a escola. Etapas sem plano
+  (Moçambique) criam classes e turmas sem disciplinas, e o resumo diz quais.
+- Servidor: `applyCatalogStructure` (Administrador/Secretaria, escrita na Pedagógica, escola
+  da sessão); recusa etapas de outro país e cursos que a etapa não tem.
+- Códigos de turma: `1A-M`, `CT10A-M` (secundário), `LICGEST1A-M` / `MESGEST1A-M` (superior,
+  porque o mesmo curso existe em graus diferentes), `ES1A-M` (superior sem cursos).
+
+**Duplicados ao aplicar (todos os países, Angola incluída):** uma disciplina que a escola já
+tem com outra grafia é reaproveitada — «Inglês» serve para «Língua Estrangeira (Inglês)»,
+«Ed. Física» para «Educação Física». Só por correspondência exacta de nome ou sinónimo do
+catálogo, nunca por código («EM» é Estudo do Meio nos modelos e Educação Moral noutros
+sítios) nem por letras trocadas.
+
 ## Contexto de nível
 
 Toda a sugestão de disciplina pede uma etapa (país + nível) ou um nível ISCED + via. Física
@@ -102,8 +123,7 @@ não há nada em `TABELAS_AUSENTES_DA_PRODUCAO`.
 
 ## Próximas fases
 
-- Assistente de criação de escola: usar `subjectsForContext` / `coursesFor` no
-  `CurriculumTemplateDialog` para Moçambique e Portugal (Angola já usa os modelos).
+- ~~Assistente de estrutura para Moçambique e Portugal~~ (feito, ver acima).
 - Ligar `subjects.catalog_subject_code` e `programs.catalog_course_code` (colunas novas, por
   `ALTER TABLE`) e usar `findSubjectDuplicates` para propor fusões com mapeamento auditado.
 - Documentos e pautas a resolverem nomes pelo catálogo (mantendo o nome à data da emissão).

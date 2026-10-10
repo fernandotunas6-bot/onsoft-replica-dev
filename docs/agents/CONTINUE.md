@@ -14,6 +14,9 @@ Detalhe e cobertura real: [docs/education-catalog/README.md](../education-catalo
 - Contexto de nível obrigatório (`catalog.ts`), pesquisa local sem acentos/siglas/erros
   (`search.ts`), normalização de classes, períodos e disciplinas (`normalize.ts`), IDs
   curtos (`identifiers.ts`). Página `/pedagogica/catalogo` (só consulta).
+- Fase 8: «Usar modelo de estrutura» com Sistema de ensino (AO como antes; PT e MZ pelo
+  catálogo, `plan-from-catalog.ts` + `applyCatalogStructure`). Ao aplicar, disciplinas já
+  existentes com outra grafia são reaproveitadas pelo catálogo (só nome/sinónimo exacto).
 - **Por aplicar (dono):** `20261010120000_global_education_catalog.sql` e depois
   `supabase/seeds/education/catalog.sql`. A página não depende delas.
 
