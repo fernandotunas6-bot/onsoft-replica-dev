@@ -1,4 +1,5 @@
 import type { requireMobileAcademicAccess } from "./authorization";
+import { isoMicros } from "./timestamps";
 import type { MobileAcademicScope } from "./academic-scope.server";
 import {
   parseChatInbox,
@@ -24,11 +25,7 @@ async function read<T>(
   return r.data;
 }
 // Preserve PostgreSQL microseconds: truncating to JS milliseconds loses messages at page boundaries.
-const iso = (s: string) => {
-  const utc = /\.(\d{1,6})(?:Z|\+00(?::?00)?)$/.exec(s);
-  const base = new Date(s).toISOString();
-  return base.replace(/\.\d{3}Z$/, `.${(utc?.[1] ?? base.slice(20, 23)).padEnd(6, "0")}Z`);
-};
+const iso = isoMicros;
 type Member = { conversation_id: string; user_id: string; last_read_at: string };
 type Message = {
   id: string;

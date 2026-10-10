@@ -96,6 +96,31 @@ export const mobileChatScopeSchema = mobileScopeSchema
     { message: "Cursor de conversa inválido." },
   );
 
+/** Página de avisos: sem cursor, a mais recente; com cursor, a seguinte. */
+export const mobileNotificationsScopeSchema = mobileScopeSchema
+  .extend({
+    before: z.string().datetime({ offset: true }).optional(),
+    beforeId: z.string().uuid().optional(),
+  })
+  .strict()
+  .refine((v) => Boolean(v.before) === Boolean(v.beforeId), {
+    message: "Cursor de avisos inválido.",
+  });
+
+/** Marcar avisos como lidos: uma lista (1–50, sem repetidos) ou todos. */
+export const mobileNotificationsReadSchema = z.union([
+  mobileScopeSchema
+    .extend({
+      ids: z
+        .array(z.string().uuid())
+        .min(1)
+        .max(50)
+        .refine((ids) => new Set(ids).size === ids.length, { message: "Avisos repetidos." }),
+    })
+    .strict(),
+  mobileScopeSchema.extend({ all: z.literal(true) }).strict(),
+]);
+
 export const mobileChatAttachmentSchema = mobileScopeSchema
   .extend({ messageId: z.string().uuid() })
   .strict();

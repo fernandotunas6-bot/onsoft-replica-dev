@@ -16,6 +16,7 @@ import {
   applyMobileV4ChatCommand,
   loadMobileV4ChatCapabilities,
   loadMobileV4Notifications,
+  applyMobileV4NotificationsRead,
 } from "./operations-core.server";
 import { MobileApiError } from "./errors";
 import {
@@ -26,6 +27,8 @@ import {
   mobileChatScopeSchema,
   mobileChatAttachmentSchema,
   mobileChatCommandRequestSchema,
+  mobileNotificationsScopeSchema,
+  mobileNotificationsReadSchema,
 } from "./schemas";
 
 type Identity = { userId: string; aal: string | null };
@@ -44,6 +47,7 @@ export type MobileHttpDependencies = {
   attendance: (userId: string, scope: unknown) => Promise<unknown>;
   academic: (userId: string, scope: unknown) => Promise<unknown>;
   chatCommand: (userId: string, scope: unknown) => Promise<unknown>;
+  notificationsRead: (userId: string, input: unknown) => Promise<unknown>;
   command: (userId: string, input: unknown) => Promise<unknown>;
   logout: (token: string) => Promise<void>;
 };
@@ -63,6 +67,7 @@ const dependencies: MobileHttpDependencies = {
   attachment: loadMobileV4ChatAttachment,
   command: applyMobileV4Command,
   chatCommand: applyMobileV4ChatCommand,
+  notificationsRead: applyMobileV4NotificationsRead,
   logout: async (token) => {
     const db = await loadSgaAdminClient();
     const { error } = await db.auth.admin.signOut(token, "local");
@@ -130,7 +135,7 @@ export async function handleMobileV4Http(request: Request, deps = dependencies):
     const url = new URL(request.url);
     const path = url.pathname;
     const schoolRoute =
-      /^\/api\/mobile-v4\/schools\/([0-9a-f-]+)\/(workspace|academic|attendance|results|gradebooks|finance|notifications|chat|contacts|attachment|chat-capabilities|chat-commands|commands)$/i.exec(
+      /^\/api\/mobile-v4\/schools\/([0-9a-f-]+)\/(workspace|academic|attendance|results|gradebooks|finance|notifications|notifications-read|chat|contacts|attachment|chat-capabilities|chat-commands|commands)$/i.exec(
         path,
       );
     const operation =
@@ -229,13 +234,21 @@ export async function handleMobileV4Http(request: Request, deps = dependencies):
       });
       return respond(await deps.attendance(identity.userId, scope));
     }
+    if (operation === "notifications") {
+      const scope = mobileNotificationsScopeSchema.parse({
+        schoolId,
+        role: url.searchParams.get("role"),
+        before: url.searchParams.get("before") ?? undefined,
+        beforeId: url.searchParams.get("beforeId") ?? undefined,
+      });
+      return respond(await deps.notifications(identity.userId, scope));
+    }
     if (
       operation === "workspace" ||
       operation === "academic" ||
       operation === "results" ||
       operation === "gradebooks" ||
-      operation === "finance" ||
-      operation === "notifications"
+      operation === "finance"
     ) {
       const role = mobileRoleSchema.parse(url.searchParams.get("role"));
       const scope = mobileScopeSchema.parse({ schoolId, role });
@@ -247,6 +260,13 @@ export async function handleMobileV4Http(request: Request, deps = dependencies):
     if (!body || typeof body !== "object" || Array.isArray(body) || "schoolId" in body) {
       throw new MobileApiError(422, "INVALID_COMMAND");
     }
+    if (operation === "notifications-read")
+      return respond(
+        await deps.notificationsRead(
+          identity.userId,
+          mobileNotificationsReadSchema.parse({ ...body, schoolId }),
+        ),
+      );
     if (operation === "chat-commands")
       return respond(
         await deps.chatCommand(

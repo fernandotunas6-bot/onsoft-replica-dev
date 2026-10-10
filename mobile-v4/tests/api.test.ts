@@ -265,3 +265,37 @@ it("rejects an invalid command without contacting the write endpoint", async () 
   ).rejects.toThrow("Turma não autorizada");
   expect(fetch).toHaveBeenCalledTimes(2);
 });
+
+const uuid = (n: number) => `00000000-0000-4000-8000-${String(n).padStart(12, "0")}`;
+it("sends the notification cursor and posts read targets with the selected role", async () => {
+  const fetch = vi
+    .fn()
+    .mockResolvedValueOnce({ ok: true, status: 200, json: async () => demoSession("professor") })
+    .mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      json: async () => ({ ...ctx, unread: 0, items: [], next: null }),
+    })
+    .mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      json: async () => ({ ...ctx, updated: 1, unread: 0 }),
+    });
+  vi.stubGlobal("fetch", fetch);
+  const api = new ApiGateway();
+  await api.session();
+  const cursor = { date: "2026-10-10T08:00:00.123456+00:00", id: uuid(7) };
+  await api.notifications(ctx, undefined, cursor);
+  const url = new URL(fetch.mock.calls[1][0], "https://m.portal-siga.com");
+  expect(url.pathname).toBe("/api/mobile-v4/schools/demo-a/notifications");
+  expect(Object.fromEntries(url.searchParams)).toEqual({
+    role: "professor",
+    before: cursor.date,
+    beforeId: cursor.id,
+  });
+  const receipt = await api.markNotificationsRead(ctx, { ids: [uuid(7)] });
+  expect(receipt.unread).toBe(0);
+  expect(fetch.mock.calls[2][0]).toBe("/api/mobile-v4/schools/demo-a/notifications-read");
+  expect(fetch.mock.calls[2][1].method).toBe("POST");
+  expect(JSON.parse(fetch.mock.calls[2][1].body)).toEqual({ role: "professor", ids: [uuid(7)] });
+});

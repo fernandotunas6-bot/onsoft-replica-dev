@@ -57,7 +57,7 @@ const { readMobileChat } = await import(
 const { readMobileChatContacts, signMobileChatAttachment } = await import(
   new URL("../../src/features/mobile-v4/chat-files.server.ts", import.meta.url)
 );
-const { readMobileNotifications } = await import(
+const { readMobileNotifications, markMobileNotificationsRead } = await import(
   new URL("../../src/features/mobile-v4/notifications.server.ts", import.meta.url)
 );
 const pg = new PGlite();
@@ -273,7 +273,8 @@ function adapter({ fail, cap } = {}) {
         values = [];
       let fields = [],
         maximum = 1000,
-        head = false;
+        head = false,
+        changes = null;
       const ordering = [];
       calls.push({ table, filters });
       function eq(field, value) {
@@ -286,6 +287,16 @@ function adapter({ fail, cap } = {}) {
           return { data: null, error: { message: "injected unavailable database" }, count: null };
         try {
           const where = filters.length ? ` WHERE ${filters.join(" AND ")}` : "";
+          if (changes) {
+            // UPDATE … RETURNING, como o PostgREST faz com update().select().
+            const keys = Object.keys(changes);
+            const set = keys.map((key, i) => `${identifier(key)}=$${values.length + i + 1}`);
+            const updated = await pg.query(
+              `UPDATE ${identifier(table)} SET ${set.join(",")}${where} RETURNING ${fields.map(identifier).join(",") || "id"}`,
+              [...values, ...keys.map((key) => changes[key])],
+            );
+            return { data: updated.rows, error: null, count: null };
+          }
           const total = await pg.query(
             `SELECT count(*)::int AS n FROM ${identifier(table)}${where}`,
             values,
@@ -340,6 +351,10 @@ function adapter({ fail, cap } = {}) {
         }
       }
       const chain = {
+        update(next) {
+          changes = next;
+          return chain;
+        },
         select(selection, options = {}) {
           head = !!options.head;
           fields = selection.split(",").map((v) => v.trim());
@@ -1225,6 +1240,60 @@ try {
       .items.length === 1,
     "teacher only sees own notifications",
   );
+  // Página seguinte: os 12 mais antigos, sem repetir nem saltar avisos com a
+  // mesma data (ordem por data e id, como na primeira página).
+  const studentNotices = { schoolId: A, userId: studentUser, role: "aluno" };
+  check(notices.next?.id === notices.items[49].id, "full page exposes cursor at its last item");
+  const older = await readMobileNotifications(db, studentNotices, notices.next);
+  const seen = new Set(notices.items.map((x) => x.id));
+  check(
+    older.items.length === 12 && older.items.every((x) => !seen.has(x.id)) && older.next === null,
+    "second page holds the remaining own notices with no overlap and no further cursor",
+  );
+  // Marcar como lido: só os próprios, da escola, do canal in_app, ainda por ler.
+  const firstTwo = [notices.items[2].id, notices.items[3].id];
+  const receipt = await markMobileNotificationsRead(db, studentNotices, { ids: firstTwo });
+  check(
+    receipt.updated === 2 && receipt.unread === 58,
+    "marking two own notices lowers the counter",
+  );
+  const readAt = await pg.query(
+    "SELECT status, read_at FROM notifications WHERE id = ANY($1::uuid[]) ORDER BY id",
+    [firstTwo],
+  );
+  check(
+    readAt.rows.every((r) => r.status === "read" && r.read_at),
+    "marked notices get the same status and read_at the web app writes",
+  );
+  const again = await markMobileNotificationsRead(db, studentNotices, { ids: firstTwo });
+  const kept = await pg.query("SELECT read_at FROM notifications WHERE id = $1", [firstTwo[0]]);
+  check(
+    again.updated === 0 && kept.rows[0].read_at.getTime() === readAt.rows[0].read_at.getTime(),
+    "repeating the request changes nothing and keeps the first read time",
+  );
+  const foreign = await markMobileNotificationsRead(db, studentNotices, {
+    ids: [uuid(963), uuid(964), uuid(965), uuid(962)],
+  });
+  const untouched = await pg.query(
+    "SELECT count(*)::int AS n FROM notifications WHERE id = ANY($1::uuid[]) AND read_at IS NULL",
+    [[uuid(963), uuid(964), uuid(965), uuid(962)]],
+  );
+  check(
+    foreign.updated === 0 && untouched.rows[0].n === 4,
+    "another school, other users and other channels are never marked",
+  );
+  const all = await markMobileNotificationsRead(db, studentNotices, { all: true });
+  check(all.updated === 58 && all.unread === 0, "mark all clears this school only");
+  check(
+    (await readMobileNotifications(db, { schoolId: B, userId: studentUser, role: "aluno" }))
+      .unread === 1,
+    "the same account keeps its unread notice in the other school",
+  );
+  await assert.rejects(
+    markMobileNotificationsRead(adapter({ fail: "notifications" }), studentNotices, { all: true }),
+    (e) => e.code === "NOTIFICATIONS_UNAVAILABLE",
+  );
+  checks++;
   await assert.rejects(
     readMobileNotifications(adapter({ fail: "notifications" }), {
       schoolId: A,

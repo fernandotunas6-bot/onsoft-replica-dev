@@ -34,3 +34,13 @@ Os workflows da aplicação passaram: Mobile `38050586875` e CI geral `380505869
 Faltam testes positivos com contas reais, leitura para além dos 50 recentes, marcação como lida, push/entrega e navegação por destinos autorizados. Não declarar estes recursos concluídos.
 
 No domínio final, os dez endpoints de consulta recusaram sessão ausente/token inválido (401/no-store). O portal principal manteve o mesmo HTML após normalizar apenas timestamps SSR; rotas existentes e deployment canónico Pages preservados.
+
+## Marcar como lido e avisos mais antigos (ciclo seguinte, 10/10/2026)
+
+Fecha duas das pendências acima. Sem migrações: usa as colunas que o SIGA já escreve.
+
+- **Marcar como lido** — `POST /api/mobile-v4/schools/:schoolId/notifications-read` com `{ "role", "ids": [1–50 UUID sem repetidos] }` ou `{ "role", "all": true }`. Como as outras escritas do Mobile: método POST, origem da própria aplicação, sessão `aal2` (403 sem o segundo factor), corpo estrito (a escola vem só da rota; `schoolId`, `userId` ou campos a mais dão 422) e vínculo activo verificado. Grava `status = 'read'` e `read_at`, exactamente como o SIGA principal (`markMyNotificationsRead`), filtrando `school_id`, `user_id`, `channel = 'in_app'`, `read_at IS NULL` e estado diferente de `read`. Devolve `{ updated, unread }`: o que passou de não lido a lido e o contador novo da escola. Repetir o pedido não muda a data de leitura.
+- **Avisos mais antigos** — o mesmo `GET` aceita `before` + `beforeId` (os dois ou nenhum). A resposta tem `next`: o cursor do último aviso da página, ou `null` quando não há mais. Data em ISO UTC com microssegundos (`isoMicros`, agora partilhado com o chat), para não repetir nem saltar avisos criados no mesmo milissegundo.
+- **Interface** — «Marcar como lido» em cada aviso por ler, «Marcar todos como lidos» enquanto houver não lidos, e «Mostrar avisos mais antigos» no fim da lista. Sem alterações de CSS (classes `pill`, `flow-actions`, `card` já existentes). Uma recusa da escrita (403) explica o segundo factor e não tira a pessoa da escola; uma resposta que chega depois de mudar de escola é descartada.
+
+Verificação: 205 testes Mobile (17 de avisos), tipos, lint, formatação, três builds e PWA; 88 testes do servidor Mobile na raiz; 116 verificações em PostgreSQL local (nove novas: segunda página sem sobreposição, dois avisos marcados baixam o contador, repetição sem efeito, outra escola/outros utilizadores/outros canais intocados, marcar todos só nesta escola, falha da base). Continua por fazer: ensaio com contas reais, push/entrega e navegação pelos destinos dos avisos.

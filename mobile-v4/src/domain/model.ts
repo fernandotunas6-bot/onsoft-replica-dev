@@ -160,7 +160,13 @@ export interface Gateway {
   notifications?(
     ctx: Context,
     signal?: AbortSignal,
+    before?: import("./notifications").NotificationCursor,
   ): Promise<import("./notifications").NotificationInbox>;
+  markNotificationsRead?(
+    ctx: Context,
+    target: import("./notifications").NotificationReadTarget,
+    signal?: AbortSignal,
+  ): Promise<import("./notifications").NotificationReadReceipt>;
   chatInbox?(ctx: Context, signal?: AbortSignal): Promise<ChatInbox>;
   chatHistory?(
     ctx: Context,
