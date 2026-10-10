@@ -52,6 +52,7 @@ import { Route as ConfiguracoesInicioRouteImport } from './routes/configuracoes_
 import { Route as ConviteTokenRouteImport } from './routes/convite.$token'
 import { Route as FinanceiroRhRouteImport } from './routes/financeiro.rh'
 import { Route as MatriculaSlugRouteImport } from './routes/matricula/$slug'
+import { Route as PedagogicaCatalogoRouteImport } from './routes/pedagogica_.catalogo'
 import { Route as PedagogicaPautasSuperiorRouteImport } from './routes/pedagogica_.pautas-superior'
 import { Route as PedagogicaPresencaDocenteRouteImport } from './routes/pedagogica_.presenca-docente'
 import { Route as PedagogicaRiscoRouteImport } from './routes/pedagogica_.risco'
@@ -338,6 +339,11 @@ const FinanceiroRhRoute = FinanceiroRhRouteImport.update({
 const MatriculaSlugRoute = MatriculaSlugRouteImport.update({
   id: '/matricula/$slug',
   path: '/matricula/$slug',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PedagogicaCatalogoRoute = PedagogicaCatalogoRouteImport.update({
+  id: '/pedagogica_/catalogo',
+  path: '/pedagogica/catalogo',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PedagogicaPautasSuperiorRoute =
@@ -754,6 +760,7 @@ export interface FileRoutesByFullPath {
   '/convite/$token': typeof ConviteTokenRoute
   '/financeiro/rh': typeof FinanceiroRhRouteWithChildren
   '/matricula/$slug': typeof MatriculaSlugRoute
+  '/pedagogica/catalogo': typeof PedagogicaCatalogoRoute
   '/pedagogica/pautas-superior': typeof PedagogicaPautasSuperiorRoute
   '/pedagogica/presenca-docente': typeof PedagogicaPresencaDocenteRoute
   '/pedagogica/risco': typeof PedagogicaRiscoRoute
@@ -869,6 +876,7 @@ export interface FileRoutesByTo {
   '/convite/$token': typeof ConviteTokenRoute
   '/financeiro/rh': typeof FinanceiroRhRouteWithChildren
   '/matricula/$slug': typeof MatriculaSlugRoute
+  '/pedagogica/catalogo': typeof PedagogicaCatalogoRoute
   '/pedagogica/pautas-superior': typeof PedagogicaPautasSuperiorRoute
   '/pedagogica/presenca-docente': typeof PedagogicaPresencaDocenteRoute
   '/pedagogica/risco': typeof PedagogicaRiscoRoute
@@ -985,6 +993,7 @@ export interface FileRoutesById {
   '/convite/$token': typeof ConviteTokenRoute
   '/financeiro/rh': typeof FinanceiroRhRouteWithChildren
   '/matricula/$slug': typeof MatriculaSlugRoute
+  '/pedagogica_/catalogo': typeof PedagogicaCatalogoRoute
   '/pedagogica_/pautas-superior': typeof PedagogicaPautasSuperiorRoute
   '/pedagogica_/presenca-docente': typeof PedagogicaPresencaDocenteRoute
   '/pedagogica_/risco': typeof PedagogicaRiscoRoute
@@ -1102,6 +1111,7 @@ export interface FileRouteTypes {
     | '/convite/$token'
     | '/financeiro/rh'
     | '/matricula/$slug'
+    | '/pedagogica/catalogo'
     | '/pedagogica/pautas-superior'
     | '/pedagogica/presenca-docente'
     | '/pedagogica/risco'
@@ -1217,6 +1227,7 @@ export interface FileRouteTypes {
     | '/convite/$token'
     | '/financeiro/rh'
     | '/matricula/$slug'
+    | '/pedagogica/catalogo'
     | '/pedagogica/pautas-superior'
     | '/pedagogica/presenca-docente'
     | '/pedagogica/risco'
@@ -1332,6 +1343,7 @@ export interface FileRouteTypes {
     | '/convite/$token'
     | '/financeiro/rh'
     | '/matricula/$slug'
+    | '/pedagogica_/catalogo'
     | '/pedagogica_/pautas-superior'
     | '/pedagogica_/presenca-docente'
     | '/pedagogica_/risco'
@@ -1437,6 +1449,7 @@ export interface RootRouteChildren {
   ConfiguracoesInicioRoute: typeof ConfiguracoesInicioRoute
   ConviteTokenRoute: typeof ConviteTokenRoute
   MatriculaSlugRoute: typeof MatriculaSlugRoute
+  PedagogicaCatalogoRoute: typeof PedagogicaCatalogoRoute
   PedagogicaPautasSuperiorRoute: typeof PedagogicaPautasSuperiorRoute
   PedagogicaPresencaDocenteRoute: typeof PedagogicaPresencaDocenteRoute
   PedagogicaRiscoRoute: typeof PedagogicaRiscoRoute
@@ -1788,6 +1801,13 @@ declare module '@tanstack/react-router' {
       path: '/matricula/$slug'
       fullPath: '/matricula/$slug'
       preLoaderRoute: typeof MatriculaSlugRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/pedagogica_/catalogo': {
+      id: '/pedagogica_/catalogo'
+      path: '/pedagogica/catalogo'
+      fullPath: '/pedagogica/catalogo'
+      preLoaderRoute: typeof PedagogicaCatalogoRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/pedagogica_/pautas-superior': {
@@ -2504,6 +2524,7 @@ const rootRouteChildren: RootRouteChildren = {
   ConfiguracoesInicioRoute: ConfiguracoesInicioRoute,
   ConviteTokenRoute: ConviteTokenRoute,
   MatriculaSlugRoute: MatriculaSlugRoute,
+  PedagogicaCatalogoRoute: PedagogicaCatalogoRoute,
   PedagogicaPautasSuperiorRoute: PedagogicaPautasSuperiorRoute,
   PedagogicaPresencaDocenteRoute: PedagogicaPresencaDocenteRoute,
   PedagogicaRiscoRoute: PedagogicaRiscoRoute,
