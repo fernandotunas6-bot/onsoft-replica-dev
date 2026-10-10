@@ -33,7 +33,7 @@ import {
 } from "@/features/hr/teacher-classroom-links";
 import { AttendanceCallDialog } from "@/features/pedagogica/components/AttendanceCallDialog";
 import { schoolTodayIso } from "./schoolClock";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 
 type BarcodeDetectorLike = {
   detect(source: CanvasImageSource): Promise<Array<{ rawValue?: string }>>;

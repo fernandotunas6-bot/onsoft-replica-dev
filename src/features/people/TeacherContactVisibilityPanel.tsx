@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import { Panel } from "@/components/layout/PageHeader";
 import { InlineLoading } from "@/components/ui/inline-loading";
 import { Label } from "@/components/ui/label";

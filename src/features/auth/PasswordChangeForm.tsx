@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from "react";
 import { KeyRound, LoaderCircle } from "lucide-react";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import { PWNED_PASSWORD_MESSAGE, passwordPolicyMessage } from "@/lib/password-policy-error";
 import { passwordExposureCount } from "@/lib/pwned-password";
 import { useAuthSession } from "@/components/auth/AuthGate";

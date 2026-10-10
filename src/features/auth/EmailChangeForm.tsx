@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from "react";
 import { Mail, LoaderCircle } from "lucide-react";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import { useAuthSession } from "@/components/auth/AuthGate";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";

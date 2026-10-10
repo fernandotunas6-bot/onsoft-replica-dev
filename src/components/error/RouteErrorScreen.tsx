@@ -3,6 +3,9 @@ import { useRouter } from "@tanstack/react-router";
 import { reportLovableError } from "@/lib/lovable-error-reporting";
 import { handleSessionExpired, isSessionError } from "@/lib/session-expiry";
 import { STALE_BUILD_MESSAGE, isStaleBuildError, recoverFromStaleBuild } from "@/lib/stale-build";
+import { guidanceFor } from "@/lib/error-guidance";
+import { isTechnicalMessage } from "@/lib/public-error";
+import { describeError, runGuidanceAction } from "@/lib/toast";
 
 type RouteErrorScreenProps = {
   error: Error;
@@ -43,6 +46,21 @@ export function RouteErrorScreen({ error, reset, fullPage = false }: RouteErrorS
     );
   }
 
+  // Uma página que não carrega por falta de configuração (ou de permissão)
+  // diz porquê e leva ao sítio certo, em vez de «algo correu mal».
+  const guidance = guidanceFor(error);
+  const message = error?.message?.trim() ?? "";
+  // `describeError` aplica as permissões: o botão só aparece a quem o pode abrir.
+  const described = guidance && message ? describeError(message) : null;
+  const heading = guidance
+    ? (described?.title ?? guidance.title ?? "Esta página não carregou")
+    : "Esta página não carregou";
+  const explanation = guidance
+    ? (described?.description ?? guidance.fix)
+    : "Algo correu mal do nosso lado. Pode tentar outra vez ou voltar ao início.";
+  const action = described?.action;
+  const showDetails = Boolean(message) && (!guidance || isTechnicalMessage(message));
+
   return (
     <div
       className={
@@ -52,13 +70,9 @@ export function RouteErrorScreen({ error, reset, fullPage = false }: RouteErrorS
       }
     >
       <div className="max-w-md text-center">
-        <h1 className="text-xl font-semibold tracking-tight text-foreground">
-          Esta página não carregou
-        </h1>
-        <p className="mt-2 text-sm text-muted-foreground">
-          Algo correu mal do nosso lado. Pode tentar outra vez ou voltar ao início.
-        </p>
-        {error?.message ? (
+        <h1 className="text-xl font-semibold tracking-tight text-foreground">{heading}</h1>
+        <p className="mt-2 text-sm text-muted-foreground">{explanation}</p>
+        {showDetails ? (
           <details className="mt-3 text-left">
             <summary className="cursor-pointer text-xs text-muted-foreground hover:text-foreground">
               Detalhes técnicos:
@@ -68,20 +82,33 @@ export function RouteErrorScreen({ error, reset, fullPage = false }: RouteErrorS
             </p>
           </details>
         ) : null}
-        <div className="mt-6 flex flex-wrap justify-center gap-2">
+        <div className="mt-6 flex flex-col-reverse justify-center gap-2 sm:flex-row sm:flex-wrap">
+          {action ? (
+            <button
+              type="button"
+              onClick={() => runGuidanceAction(action)}
+              className="inline-flex min-h-10 items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+            >
+              {action.label}
+            </button>
+          ) : null}
           <button
             type="button"
             onClick={() => {
               void router.invalidate();
               reset();
             }}
-            className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+            className={
+              action
+                ? "inline-flex min-h-10 items-center justify-center rounded-md border border-input bg-background px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-accent"
+                : "inline-flex min-h-10 items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+            }
           >
             Tentar outra vez
           </button>
           <a
             href="/"
-            className="inline-flex items-center justify-center rounded-md border border-input bg-background px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-accent"
+            className="inline-flex min-h-10 items-center justify-center rounded-md border border-input bg-background px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-accent"
           >
             Ir para o início
           </a>
