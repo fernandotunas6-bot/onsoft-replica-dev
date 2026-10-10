@@ -74,11 +74,11 @@ export const infoPages: Record<string, { title: string; intro: string; items: st
   },
   integracoes: {
     title: "Serviços ligados",
-    intro: "A integração institucional será feita com os serviços já existentes no SIGA Plus.",
+    intro: "A ligação institucional usa os serviços existentes no SIGA Plus.",
     items: [
-      "Autenticação e vínculos activos por ligar no ambiente isolado.",
-      "Horários, notas e presenças usam o contrato académico.",
-      "O adaptador de chat converte respostas autorizadas do serviço SIGA. Nenhuma conversa real foi importada nesta demo.",
+      "A sessão institucional limita o acesso às escolas e aos serviços autorizados.",
+      "Consulta disciplinas, horários, trabalhos, notas, presenças e propinas.",
+      "O chat permite consultar conversas e anexos autorizados. A disponibilidade de envio e gestão é indicada na aplicação.",
     ],
   },
   conduta: {
@@ -95,6 +95,12 @@ export function serviceCatalog(role: Role) {
   const modules = role === "professor" ? teacherModules : studentModules;
   return [
     ...modules,
+    ...(role === "aluno"
+      ? [
+          ["Propinas", "panel-top", "propinas"],
+          ["Propinas pagas", "check", "propinas-pagas"],
+        ]
+      : []),
     ...(role === "aluno" ? [["Calendário", "bell", "calendario"]] : [["Avisos", "bell", "avisos"]]),
   ];
 }

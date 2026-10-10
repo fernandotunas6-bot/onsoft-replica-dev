@@ -398,3 +398,16 @@ export function suggestFileArea(
   }
   return pick([preferred ?? "escola", "pessoal", "escola", "secretaria", "publico"]);
 }
+
+/** Shared metadata policy for Arquivos and authenticated message attachments. */
+export function canSeeFileMetadata(
+  row: { area: FileArea; ownerUserId: string; visibility: FileVisibility },
+  userId: string,
+  role: string,
+) {
+  if (!canReadFileArea(role, row.area)) return false;
+  if (row.area === "pessoal" && row.ownerUserId !== userId) return false;
+  if (row.visibility === "private" && row.ownerUserId !== userId)
+    return role === "Administrador" || (row.area === "secretaria" && role === "Secretaria");
+  return true;
+}

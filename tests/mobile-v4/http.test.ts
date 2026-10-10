@@ -8,6 +8,13 @@ vi.mock("@/features/mobile-v4/operations-core.server", () => ({
   loadMobileV4AcademicCatalog: vi.fn(),
   loadMobileV4Attendance: vi.fn(),
   loadMobileV4Results: vi.fn(),
+  loadMobileV4Gradebooks: vi.fn(),
+  loadMobileV4Finance: vi.fn(),
+  loadMobileV4Chat: vi.fn(),
+  loadMobileV4ChatContacts: vi.fn(),
+  loadMobileV4ChatAttachment: vi.fn(),
+  applyMobileV4ChatCommand: vi.fn(),
+  loadMobileV4ChatCapabilities: vi.fn(),
   applyMobileV4Command: vi.fn(),
 }));
 
@@ -41,6 +48,17 @@ beforeEach(() => {
     authenticate: vi.fn().mockResolvedValue({ userId: "verified-user", aal: "aal2" }),
     session: vi.fn().mockResolvedValue({ userId: "verified-user" }),
     workspace: vi.fn().mockResolvedValue({ schoolId: school }),
+    capabilities: vi.fn().mockResolvedValue({ writes: false }),
+    contacts: vi.fn().mockResolvedValue({ contacts: [] }),
+    attachment: vi.fn().mockResolvedValue({ url: "https://example.test" }),
+    chat: vi.fn().mockResolvedValue({ threads: [] }),
+    finance: vi.fn().mockResolvedValue({
+      schoolId: school,
+      userId: "verified-user",
+      role: "aluno",
+      invoices: [],
+    }),
+    gradebooks: vi.fn().mockResolvedValue({ schoolId: school, role: "professor", books: [] }),
     results: vi.fn().mockResolvedValue({ schoolId: school, role: "aluno", sheets: [] }),
     attendance: vi.fn().mockResolvedValue({ sessions: [], teacherLessons: [] }),
     academic: vi.fn().mockResolvedValue({
@@ -50,6 +68,9 @@ beforeEach(() => {
       timetable: [],
       tasks: [],
     }),
+    chatCommand: vi
+      .fn()
+      .mockResolvedValue({ type: "send", conversationId: school, messageId: requestId }),
     command: vi.fn().mockResolvedValue({ committed: true }),
     logout: vi.fn().mockResolvedValue(undefined),
   };
@@ -285,4 +306,77 @@ it("rejects results before service invocation on invalid scope, missing auth and
     (await handleMobileV4Http(request(`/schools/${school}/results?role=aluno`, {}), deps)).status,
   ).toBe(405);
   expect(deps.results).not.toHaveBeenCalled();
+});
+
+it("routes internal gradebooks only after validating identity and scope", async () => {
+  const response = await handleMobileV4Http(
+    request(`/schools/${school}/gradebooks?role=professor&teacherId=attacker`),
+    deps,
+  );
+  expect(response.status).toBe(200);
+  expect(deps.gradebooks).toHaveBeenCalledWith("verified-user", {
+    schoolId: school,
+    role: "professor",
+  });
+  expect(
+    (await handleMobileV4Http(request(`/schools/${school}/gradebooks?role=other`), deps)).status,
+  ).toBe(422);
+});
+
+it("serves only the finance scope bound to verified identity", async () => {
+  const response = await handleMobileV4Http(
+    request(`/schools/${school}/finance?role=aluno&studentId=attacker`),
+    deps,
+  );
+  expect(response.status).toBe(200);
+  expect(deps.finance).toHaveBeenCalledWith("verified-user", { schoolId: school, role: "aluno" });
+});
+
+it("validates chat cursor and binds only verified actor / requested school", async () => {
+  expect(
+    (
+      await handleMobileV4Http(
+        request(
+          `/schools/${school}/chat?role=aluno&conversationId=${school}&before=2026-10-10T08:00:00.123456Z&beforeId=${requestId}`,
+        ),
+        deps,
+      )
+    ).status,
+  ).toBe(200);
+  expect(deps.chat).toHaveBeenCalledWith(
+    "verified-user",
+    expect.objectContaining({ schoolId: school, conversationId: school, beforeId: requestId }),
+  );
+  expect(
+    (
+      await handleMobileV4Http(
+        request(`/schools/${school}/chat?role=aluno&beforeId=${requestId}`),
+        deps,
+      )
+    ).status,
+  ).toBe(422);
+});
+it("requires MFA and strict body for all chat mutations", async () => {
+  const data = {
+    role: "aluno",
+    requestId,
+    command: { type: "send", conversationId: school, body: "Mensagem" },
+  };
+  vi.mocked(deps.authenticate).mockResolvedValueOnce({ userId: "verified-user", aal: "aal1" });
+  expect(
+    (await handleMobileV4Http(request(`/schools/${school}/chat-commands`, data), deps)).status,
+  ).toBe(403);
+  expect(deps.chatCommand).not.toHaveBeenCalled();
+  expect(
+    (
+      await handleMobileV4Http(
+        request(`/schools/${school}/chat-commands`, { ...data, userId: "attacker" }),
+        deps,
+      )
+    ).status,
+  ).toBe(422);
+  expect(
+    (await handleMobileV4Http(request(`/schools/${school}/chat-commands`, data), deps)).status,
+  ).toBe(200);
+  expect(deps.chatCommand).toHaveBeenCalledWith("verified-user", { ...data, schoolId: school });
 });

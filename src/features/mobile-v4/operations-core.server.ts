@@ -5,6 +5,9 @@ import {
   mobileCommandRequestSchema,
   mobileScopeSchema,
   mobileAttendanceScopeSchema,
+  mobileChatScopeSchema,
+  mobileChatAttachmentSchema,
+  mobileChatCommandRequestSchema,
 } from "./schemas";
 import { resolveMobileAcademicScope } from "./academic-scope.server";
 import { readMobileAcademicCatalog } from "./academic-catalog.server";
@@ -73,4 +76,83 @@ export async function loadMobileV4Results(userId: string, input: unknown) {
   const catalog = await readMobileAcademicCatalog(db, scope, userId);
   const { readMobileResults } = await import("./results.server");
   return readMobileResults(db, scope, catalog, userId);
+}
+
+export async function loadMobileV4Gradebooks(userId: string, input: unknown) {
+  const requested = mobileScopeSchema.parse(input);
+  const { db } = await requireMobileAcademicAccess(
+    userId,
+    requested.schoolId,
+    requested.role,
+    "read",
+  );
+  if (requested.role !== "professor") throw new MobileApiError(403, "GRADEBOOKS_TEACHER_ONLY");
+  const scope = await resolveMobileAcademicScope(db, userId, requested.schoolId, requested.role);
+  const catalog = await readMobileAcademicCatalog(db, scope, userId);
+  const { readMobileGradebooks } = await import("./gradebooks.server");
+  return readMobileGradebooks(db, scope, catalog, userId);
+}
+
+export async function loadMobileV4Finance(userId: string, input: unknown) {
+  const requested = mobileScopeSchema.parse(input);
+  const { db } = await requireMobileAcademicAccess(
+    userId,
+    requested.schoolId,
+    requested.role,
+    "read",
+  );
+  if (requested.role !== "aluno") throw new MobileApiError(403, "FINANCE_STUDENT_ONLY");
+  const scope = await resolveMobileAcademicScope(db, userId, requested.schoolId, requested.role);
+  const { readMobileFinance } = await import("./finance.server");
+  return readMobileFinance(db, scope, userId);
+}
+
+export async function loadMobileV4Chat(userId: string, input: unknown) {
+  const requested = mobileChatScopeSchema.parse(input);
+  const { db } = await requireMobileAcademicAccess(
+    userId,
+    requested.schoolId,
+    requested.role,
+    "read",
+  );
+  const scope = await resolveMobileAcademicScope(db, userId, requested.schoolId, requested.role);
+  const { readMobileChat } = await import("./chat.server");
+  return readMobileChat(
+    db,
+    scope,
+    userId,
+    requested.conversationId,
+    requested.before ? { date: requested.before, id: requested.beforeId! } : undefined,
+  );
+}
+
+export async function loadMobileV4ChatContacts(userId: string, input: unknown) {
+  const s = mobileScopeSchema.parse(input);
+  const { db, membership } = await requireMobileAcademicAccess(userId, s.schoolId, s.role, "read");
+  const { readMobileChatContacts } = await import("./chat-files.server");
+  return {
+    ...s,
+    userId,
+    contacts: await readMobileChatContacts(db, s.schoolId, userId, membership.allAppRoles),
+  };
+}
+export async function loadMobileV4ChatAttachment(userId: string, input: unknown) {
+  const s = mobileChatAttachmentSchema.parse(input);
+  const { db } = await requireMobileAcademicAccess(userId, s.schoolId, s.role, "read");
+  const { signMobileChatAttachment } = await import("./chat-files.server");
+  return signMobileChatAttachment(db, s.schoolId, userId, s.messageId);
+}
+
+export async function applyMobileV4ChatCommand(userId: string, input: unknown) {
+  const data = mobileChatCommandRequestSchema.parse(input);
+  const { db } = await requireMobileAcademicAccess(userId, data.schoolId, data.role, "write");
+  const { applyMobileChatCommand } = await import("./chat-commands.server");
+  return applyMobileChatCommand(db, userId, data);
+}
+
+export async function loadMobileV4ChatCapabilities(userId: string, input: unknown) {
+  const data = mobileScopeSchema.parse(input);
+  const { db } = await requireMobileAcademicAccess(userId, data.schoolId, data.role, "read");
+  const { readMobileChatCapabilities } = await import("./chat-commands.server");
+  return readMobileChatCapabilities(db);
 }

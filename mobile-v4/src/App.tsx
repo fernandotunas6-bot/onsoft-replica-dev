@@ -1,3 +1,4 @@
+import { UpcomingClasses } from "./components/UpcomingClasses";
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { Command, Context, Gateway, Role, Session, Workspace } from "./domain/model";
 import type { AcademicCatalog } from "./domain/catalog";
@@ -558,16 +559,7 @@ export function App({ initialGateway }: { initialGateway?: Gateway }) {
               {loading ? (
                 <p role="status">A carregar…</p>
               ) : currentCatalog ? (
-                <>
-                  <p>{currentCatalog.timetable.length} períodos no horário semanal.</p>
-                  <button
-                    className="pill"
-                    onClick={() => openModule(role === "professor" ? "aulas" : "horario")}
-                  >
-                    Consultar horário semanal
-                  </button>
-                  <p className="small">Aulas realizadas e presenças ainda não integradas.</p>
-                </>
+                <UpcomingClasses catalog={currentCatalog} onNavigate={openModule} />
               ) : currentData?.lessons.length ? (
                 currentData.lessons.map((l) => (
                   <button
