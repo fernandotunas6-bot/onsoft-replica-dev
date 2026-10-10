@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 import {
   formatIdentifier,
+  insertWithSequentialCode,
+  nextSequentialCode,
+  suggestNextCode,
   isValidIdentifier,
   parseIdentifier,
   studentPublicCode,
@@ -96,12 +99,13 @@ describe("disciplinas", () => {
 
 describe("identificadores curtos", () => {
   it("formata segundo a política", () => {
-    expect(formatIdentifier("teacher", 12)).toBe("P-0012");
+    // O que a base já usa para professores: «DOC-000012».
+    expect(formatIdentifier("teacher", 12)).toBe("DOC-000012");
     expect(formatIdentifier("staff", 12)).toBe("F-0012");
     expect(formatIdentifier("class_group", 1)).toBe("T-001");
     expect(formatIdentifier("room", 1)).toBe("S-001");
     expect(formatIdentifier("enrollment", 123)).toBe("M-000123");
-    expect(formatIdentifier("document", 123)).toBe("DOC-000123");
+    expect(formatIdentifier("document", 123)).toBe("OT-000123");
     expect(formatIdentifier("school", 1)).toBe("ESC-001");
     // O número de processo do aluno é o que a base já gera (CHECK ^EST-[0-9]{6,}$).
     expect(formatIdentifier("student", 1)).toBe("EST-000001");
@@ -116,15 +120,83 @@ describe("identificadores curtos", () => {
   });
 
   it("lê e valida códigos", () => {
-    expect(parseIdentifier("teacher", " p-0012 ")).toEqual({ n: 12, code: "P-0012" });
-    expect(parseIdentifier("teacher", "P-12")).toBeNull();
+    expect(parseIdentifier("teacher", " doc-000012 ")).toEqual({ n: 12, code: "DOC-000012" });
+    expect(parseIdentifier("teacher", "DOC-12")).toBeNull();
     expect(parseIdentifier("teacher", "F-0012")).toBeNull();
-    expect(parseIdentifier("teacher", "P-0000")).toBeNull();
+    expect(parseIdentifier("teacher", "DOC-000000")).toBeNull();
     expect(isValidIdentifier("student", "EST-000123")).toBe(true);
     expect(isValidIdentifier("student", "0000123")).toBe(false);
   });
 
   it("o código público do aluno continua com 7 dígitos", () => {
     expect(studentPublicCode("EST-000123", "00000000-0000-0000-0000-000000000000")).toBe("0000123");
+  });
+});
+
+describe("próximo número sem repetir", () => {
+  it("segue o maior existente, não a contagem", () => {
+    // Três professores, um apagado (DOC-000002) e um número escrito à mão: a
+    // contagem dava DOC-000003, que já existe.
+    expect(nextSequentialCode(["DOC-000001", "DOC-000003", "PROF-9", null], "DOC", 6)).toBe(
+      "DOC-000004",
+    );
+    expect(nextSequentialCode([], "DOC", 6)).toBe("DOC-000001");
+    expect(nextSequentialCode(["doc-000041"], "DOC", 6)).toBe("DOC-000042");
+  });
+
+  it("sugere o código seguinte no padrão que a escola já usa", () => {
+    expect(suggestNextCode("room", ["S01", "S02", "S07", "LAB-CIE"])).toBe("S08");
+    expect(suggestNextCode("room", ["LAB-1", "LAB-2", "S01"])).toBe("LAB-3");
+    expect(suggestNextCode("room", [])).toBe("S-001");
+    expect(suggestNextCode("room", ["AUDITORIO"])).toBe("S-001");
+    expect(suggestNextCode("room", ["S-001"])).toBe("S-002");
+  });
+
+  it("noutra gravação com o mesmo número, tenta o seguinte", async () => {
+    const stored = ["DOC-000001"];
+    const tried: string[] = [];
+    let raced = false;
+    const result = await insertWithSequentialCode({
+      prefix: "DOC",
+      padding: 6,
+      constraint: "teachers_school_id_employee_number_key",
+      loadExisting: async () => [...stored],
+      insert: async (code) => {
+        tried.push(code);
+        // Outro pedido grava DOC-000002 entre a leitura e a escrita.
+        if (!raced) {
+          raced = true;
+          stored.push(code);
+          return {
+            data: null,
+            error: {
+              code: "23505",
+              message:
+                'duplicate key value violates unique constraint "teachers_school_id_employee_number_key"',
+            },
+          };
+        }
+        stored.push(code);
+        return { data: { id: "t1", code }, error: null };
+      },
+    });
+    expect(tried).toEqual(["DOC-000002", "DOC-000003"]);
+    expect(result.data).toEqual({ id: "t1", code: "DOC-000003" });
+  });
+
+  it("outro erro não se repete", async () => {
+    let calls = 0;
+    const result = await insertWithSequentialCode({
+      prefix: "DOC",
+      padding: 6,
+      constraint: "teachers_school_id_employee_number_key",
+      loadExisting: async () => [],
+      insert: async () => {
+        calls += 1;
+        return { data: null, error: { code: "23505", message: "people_school_email_uidx" } };
+      },
+    });
+    expect(calls).toBe(1);
+    expect(result.error?.message).toBe("people_school_email_uidx");
   });
 });

@@ -105,6 +105,7 @@ import { Route as ApiSaasDomainsCheckRouteImport } from './routes/api/saas/domai
 import { Route as ApiSaasDomainsPollRouteImport } from './routes/api/saas/domains.poll'
 import { Route as ApiSaasDomainsStatusRouteImport } from './routes/api/saas/domains.status'
 import { Route as ApiSaasDomainsVerifyRouteImport } from './routes/api/saas/domains.verify'
+import { Route as ApiSaasEducationCatalogSearchRouteImport } from './routes/api/saas/education-catalog.search'
 import { Route as ApiSaasEmailRoutesRouteImport } from './routes/api/saas/email.routes'
 import { Route as ApiSaasPlatformAdminsRevokeRouteImport } from './routes/api/saas/platform-admins.revoke'
 import { Route as ApiSaasPublicBlogRouteImport } from './routes/api/saas/public.blog'
@@ -621,6 +622,12 @@ const ApiSaasDomainsVerifyRoute = ApiSaasDomainsVerifyRouteImport.update({
   path: '/verify',
   getParentRoute: () => ApiSaasDomainsRoute,
 } as any)
+const ApiSaasEducationCatalogSearchRoute =
+  ApiSaasEducationCatalogSearchRouteImport.update({
+    id: '/search',
+    path: '/search',
+    getParentRoute: () => ApiSaasEducationCatalogRoute,
+  } as any)
 const ApiSaasEmailRoutesRoute = ApiSaasEmailRoutesRouteImport.update({
   id: '/api/saas/email/routes',
   path: '/api/saas/email/routes',
@@ -787,7 +794,7 @@ export interface FileRoutesByFullPath {
   '/api/saas/audit-logs': typeof ApiSaasAuditLogsRoute
   '/api/saas/billing-proofs': typeof ApiSaasBillingProofsRoute
   '/api/saas/domains': typeof ApiSaasDomainsRouteWithChildren
-  '/api/saas/education-catalog': typeof ApiSaasEducationCatalogRoute
+  '/api/saas/education-catalog': typeof ApiSaasEducationCatalogRouteWithChildren
   '/api/saas/gateway-webhooks': typeof ApiSaasGatewayWebhooksRoute
   '/api/saas/mailboxes': typeof ApiSaasMailboxesRoute
   '/api/saas/me': typeof ApiSaasMeRoute
@@ -820,6 +827,7 @@ export interface FileRoutesByFullPath {
   '/api/saas/domains/poll': typeof ApiSaasDomainsPollRoute
   '/api/saas/domains/status': typeof ApiSaasDomainsStatusRoute
   '/api/saas/domains/verify': typeof ApiSaasDomainsVerifyRoute
+  '/api/saas/education-catalog/search': typeof ApiSaasEducationCatalogSearchRoute
   '/api/saas/email/routes': typeof ApiSaasEmailRoutesRoute
   '/api/saas/platform-admins/revoke': typeof ApiSaasPlatformAdminsRevokeRoute
   '/api/saas/public/blog': typeof ApiSaasPublicBlogRoute
@@ -904,7 +912,7 @@ export interface FileRoutesByTo {
   '/api/saas/audit-logs': typeof ApiSaasAuditLogsRoute
   '/api/saas/billing-proofs': typeof ApiSaasBillingProofsRoute
   '/api/saas/domains': typeof ApiSaasDomainsRouteWithChildren
-  '/api/saas/education-catalog': typeof ApiSaasEducationCatalogRoute
+  '/api/saas/education-catalog': typeof ApiSaasEducationCatalogRouteWithChildren
   '/api/saas/gateway-webhooks': typeof ApiSaasGatewayWebhooksRoute
   '/api/saas/mailboxes': typeof ApiSaasMailboxesRoute
   '/api/saas/me': typeof ApiSaasMeRoute
@@ -937,6 +945,7 @@ export interface FileRoutesByTo {
   '/api/saas/domains/poll': typeof ApiSaasDomainsPollRoute
   '/api/saas/domains/status': typeof ApiSaasDomainsStatusRoute
   '/api/saas/domains/verify': typeof ApiSaasDomainsVerifyRoute
+  '/api/saas/education-catalog/search': typeof ApiSaasEducationCatalogSearchRoute
   '/api/saas/email/routes': typeof ApiSaasEmailRoutesRoute
   '/api/saas/platform-admins/revoke': typeof ApiSaasPlatformAdminsRevokeRoute
   '/api/saas/public/blog': typeof ApiSaasPublicBlogRoute
@@ -1022,7 +1031,7 @@ export interface FileRoutesById {
   '/api/saas/audit-logs': typeof ApiSaasAuditLogsRoute
   '/api/saas/billing-proofs': typeof ApiSaasBillingProofsRoute
   '/api/saas/domains': typeof ApiSaasDomainsRouteWithChildren
-  '/api/saas/education-catalog': typeof ApiSaasEducationCatalogRoute
+  '/api/saas/education-catalog': typeof ApiSaasEducationCatalogRouteWithChildren
   '/api/saas/gateway-webhooks': typeof ApiSaasGatewayWebhooksRoute
   '/api/saas/mailboxes': typeof ApiSaasMailboxesRoute
   '/api/saas/me': typeof ApiSaasMeRoute
@@ -1055,6 +1064,7 @@ export interface FileRoutesById {
   '/api/saas/domains/poll': typeof ApiSaasDomainsPollRoute
   '/api/saas/domains/status': typeof ApiSaasDomainsStatusRoute
   '/api/saas/domains/verify': typeof ApiSaasDomainsVerifyRoute
+  '/api/saas/education-catalog/search': typeof ApiSaasEducationCatalogSearchRoute
   '/api/saas/email/routes': typeof ApiSaasEmailRoutesRoute
   '/api/saas/platform-admins/revoke': typeof ApiSaasPlatformAdminsRevokeRoute
   '/api/saas/public/blog': typeof ApiSaasPublicBlogRoute
@@ -1174,6 +1184,7 @@ export interface FileRouteTypes {
     | '/api/saas/domains/poll'
     | '/api/saas/domains/status'
     | '/api/saas/domains/verify'
+    | '/api/saas/education-catalog/search'
     | '/api/saas/email/routes'
     | '/api/saas/platform-admins/revoke'
     | '/api/saas/public/blog'
@@ -1291,6 +1302,7 @@ export interface FileRouteTypes {
     | '/api/saas/domains/poll'
     | '/api/saas/domains/status'
     | '/api/saas/domains/verify'
+    | '/api/saas/education-catalog/search'
     | '/api/saas/email/routes'
     | '/api/saas/platform-admins/revoke'
     | '/api/saas/public/blog'
@@ -1408,6 +1420,7 @@ export interface FileRouteTypes {
     | '/api/saas/domains/poll'
     | '/api/saas/domains/status'
     | '/api/saas/domains/verify'
+    | '/api/saas/education-catalog/search'
     | '/api/saas/email/routes'
     | '/api/saas/platform-admins/revoke'
     | '/api/saas/public/blog'
@@ -1480,7 +1493,7 @@ export interface RootRouteChildren {
   ApiSaasAuditLogsRoute: typeof ApiSaasAuditLogsRoute
   ApiSaasBillingProofsRoute: typeof ApiSaasBillingProofsRoute
   ApiSaasDomainsRoute: typeof ApiSaasDomainsRouteWithChildren
-  ApiSaasEducationCatalogRoute: typeof ApiSaasEducationCatalogRoute
+  ApiSaasEducationCatalogRoute: typeof ApiSaasEducationCatalogRouteWithChildren
   ApiSaasGatewayWebhooksRoute: typeof ApiSaasGatewayWebhooksRoute
   ApiSaasMailboxesRoute: typeof ApiSaasMailboxesRoute
   ApiSaasMeRoute: typeof ApiSaasMeRoute
@@ -2187,6 +2200,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiSaasDomainsVerifyRouteImport
       parentRoute: typeof ApiSaasDomainsRoute
     }
+    '/api/saas/education-catalog/search': {
+      id: '/api/saas/education-catalog/search'
+      path: '/search'
+      fullPath: '/api/saas/education-catalog/search'
+      preLoaderRoute: typeof ApiSaasEducationCatalogSearchRouteImport
+      parentRoute: typeof ApiSaasEducationCatalogRoute
+    }
     '/api/saas/email/routes': {
       id: '/api/saas/email/routes'
       path: '/api/saas/email/routes'
@@ -2453,6 +2473,20 @@ const ApiSaasDomainsRouteWithChildren = ApiSaasDomainsRoute._addFileChildren(
   ApiSaasDomainsRouteChildren,
 )
 
+interface ApiSaasEducationCatalogRouteChildren {
+  ApiSaasEducationCatalogSearchRoute: typeof ApiSaasEducationCatalogSearchRoute
+}
+
+const ApiSaasEducationCatalogRouteChildren: ApiSaasEducationCatalogRouteChildren =
+  {
+    ApiSaasEducationCatalogSearchRoute: ApiSaasEducationCatalogSearchRoute,
+  }
+
+const ApiSaasEducationCatalogRouteWithChildren =
+  ApiSaasEducationCatalogRoute._addFileChildren(
+    ApiSaasEducationCatalogRouteChildren,
+  )
+
 interface ApiSaasPlatformAdminsRouteChildren {
   ApiSaasPlatformAdminsRevokeRoute: typeof ApiSaasPlatformAdminsRevokeRoute
 }
@@ -2563,7 +2597,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiSaasAuditLogsRoute: ApiSaasAuditLogsRoute,
   ApiSaasBillingProofsRoute: ApiSaasBillingProofsRoute,
   ApiSaasDomainsRoute: ApiSaasDomainsRouteWithChildren,
-  ApiSaasEducationCatalogRoute: ApiSaasEducationCatalogRoute,
+  ApiSaasEducationCatalogRoute: ApiSaasEducationCatalogRouteWithChildren,
   ApiSaasGatewayWebhooksRoute: ApiSaasGatewayWebhooksRoute,
   ApiSaasMailboxesRoute: ApiSaasMailboxesRoute,
   ApiSaasMeRoute: ApiSaasMeRoute,
