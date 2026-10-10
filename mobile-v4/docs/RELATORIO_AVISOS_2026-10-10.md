@@ -25,4 +25,12 @@ Consultar **não** marca automaticamente avisos como lidos. Não foram implement
 - Testes com dados controlados são ensaios; não equivalem a validação positiva com uma conta real Sga nem à verificação remota de RLS/PostgREST.
 - Sem alterações Supabase ou migrações de produção; sem publicação do portal principal.
 
-Esta implementação está na branch de desenvolvimento da PR #116. O domínio `m.portal-siga.com` continua fixado no deployment `c734a903` / aplicação `ab7f6262`; **os novos Avisos ainda não foram publicados**. Uma promoção deve registar o novo deployment/SHA, validar o preview e actualizar exclusivamente o destino do Worker Mobile conforme `CLOUDFLARE_PAGES.md`. Não declarar o novo endpoint disponível no domínio enquanto isso não ocorrer.
+A implementação foi publicada como preview conectado `361b8072-e50d-4d6b-ad7a-eefd58168b40`, aplicação `586d9a268d7b799c61c100d73c2e5fbc57768d41`, conclusão 10/10/2026 12:04:52 UTC. O domínio `m.portal-siga.com` foi actualizado exclusivamente pelo destino `PAGES_ORIGIN` do Worker Mobile.
+
+O preview e o domínio final passaram nas comparações byte a byte dos quatro assets e nos testes HTTP de notificações: sessão ausente/token inválido 401, origem externa 403, método incorrecto 405 e no-store. Login/reload do preview e domínio final a 390/768/1280 px, com respostas HTTP reais via Node, sem erros JS/overflow; não é autenticação positiva com credenciais reais.
+
+Os workflows da aplicação passaram: Mobile `38050586875` e CI geral `38050586914`. A configuração publicada, os limites e a reversão para `c734a903` estão em `CLOUDFLARE_PAGES.md`. A estrutura actual de `public.notifications` foi confirmada por SELECT de metadados no Sga; não foram lidos conteúdos de notificações pessoais nesse procedimento, nem feitas escritas ou migrações.
+
+Faltam testes positivos com contas reais, leitura para além dos 50 recentes, marcação como lida, push/entrega e navegação por destinos autorizados. Não declarar estes recursos concluídos.
+
+No domínio final, os dez endpoints de consulta recusaram sessão ausente/token inválido (401/no-store). O portal principal manteve o mesmo HTML após normalizar apenas timestamps SSR; rotas existentes e deployment canónico Pages preservados.

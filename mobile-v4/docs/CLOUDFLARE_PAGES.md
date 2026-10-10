@@ -3,8 +3,8 @@
 ## Endereço público
 
 - Mobile: https://m.portal-siga.com.
-- Conteúdo fixado no deployment de testes conectado https://c734a903.siga-plus-mobile-v4.pages.dev.
-- Aplicação: commit `ab7f6262fee56eb79ddb409f11a384b0f490798c`, deployment `c734a903-7130-49a6-ac8c-2cc24fecc17d`, preview concluído em 10/10/2026 às 08:52:26 UTC.
+- Conteúdo fixado no deployment de testes conectado https://361b8072.siga-plus-mobile-v4.pages.dev.
+- Aplicação: commit `586d9a268d7b799c61c100d73c2e5fbc57768d41`, deployment `361b8072-e50d-4d6b-ad7a-eefd58168b40`, preview concluído em 10/10/2026 às 12:04:52 UTC.
 - O domínio foi publicado a pedido do utilizador. A aplicação continua em validação institucional: não afirmar que todos os percursos reais foram aprovados.
 
 ## Roteamento isolado
@@ -41,8 +41,16 @@ A versão conectada mantém noindex/no-store e não instala service worker offli
 ## Verificação da publicação em 10/10/2026
 
 - HTTPS 200 e quatro assets comparados byte a byte com `dist-connected`.
-- Nove endpoints de consulta: sessão ausente, Origin local sem sessão e bearer inválido devolveram 401; respostas private/no-store.
+- Dez endpoints de consulta: sessão ausente e bearer inválido devolveram 401; respostas private/no-store. Notificações também recusaram Origin local sem sessão com 401.
 - Origem externa, origem do portal pai e `null` devolveram 403; método incorrecto devolveu 405.
 - Chromium: entrada/reload a 390/768/1280 px, sem erros JS nem overflow. Respostas HTTP reais encaminhadas por Node, sem dados simulados; não é um ensaio positivo de credenciais.
-- 187 testes Mobile aprovados; teste adicional Node das protecções do domínio aprovado; tipos, lint e formatação aprovados.
+- 196 testes Mobile aprovados; teste adicional Node das protecções do domínio aprovado; tipos, lint e formatação aprovados.
 - Portal principal: HTTP 200; HTML idêntico após normalizar apenas os timestamps SSR. Rotas existentes preservadas, acrescendo somente a rota Mobile. Deployment canónico Pages antigo permanece `17570c06-7e08-44d9-a05d-1bfc04011dfe`.
+
+## Promoção dos Avisos pessoais
+
+Preview `361b8072` (SHA `586d9a26`) e domínio final verificados: quatro assets byte a byte, notificações com sessão ausente/token inválido 401, origem externa 403, POST 405 e private/no-store. O workflow Mobile e a CI geral do SHA da aplicação passaram.
+
+O Worker do domínio mantém o mesmo código; apenas `PAGES_ORIGIN` mudou para o preview validado. Custom Domain/rota Mobile e todas as rotas do ecossistema preservadas. Reversão: repor `https://c734a903.siga-plus-mobile-v4.pages.dev` na variável `PAGES_ORIGIN` do Worker Mobile. Não reverter por merge no portal nem por alteração de DNS wildcard.
+
+Avisos consultam dados próprios por utilizador/escola; sem marcar como lido ou activar push. A estrutura real da tabela foi confirmada por SELECT de metadados no Sga. Sem escritas/migrações na produção. Testes positivos com contas reais continuam pendentes. Relatório: `RELATORIO_AVISOS_2026-10-10.md`.
