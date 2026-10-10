@@ -157,6 +157,10 @@ export interface Gateway {
   ): Promise<import("./institutional-chat").ChatReceipt>;
   chatAttachment?(ctx: Context, messageId: string, signal?: AbortSignal): Promise<{ url: string }>;
   chatContacts?(ctx: Context, signal?: AbortSignal): Promise<{ id: string; name: string }[]>;
+  notifications?(
+    ctx: Context,
+    signal?: AbortSignal,
+  ): Promise<import("./notifications").NotificationInbox>;
   chatInbox?(ctx: Context, signal?: AbortSignal): Promise<ChatInbox>;
   chatHistory?(
     ctx: Context,

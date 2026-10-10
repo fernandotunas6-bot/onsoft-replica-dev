@@ -15,6 +15,7 @@ import {
   loadMobileV4ChatAttachment,
   applyMobileV4ChatCommand,
   loadMobileV4ChatCapabilities,
+  loadMobileV4Notifications,
 } from "./operations-core.server";
 import { MobileApiError } from "./errors";
 import {
@@ -35,6 +36,7 @@ export type MobileHttpDependencies = {
   capabilities: (userId: string, scope: unknown) => Promise<unknown>;
   contacts: (userId: string, scope: unknown) => Promise<unknown>;
   attachment: (userId: string, scope: unknown) => Promise<unknown>;
+  notifications: (userId: string, scope: unknown) => Promise<unknown>;
   chat: (userId: string, scope: unknown) => Promise<unknown>;
   finance: (userId: string, scope: unknown) => Promise<unknown>;
   gradebooks: (userId: string, scope: unknown) => Promise<unknown>;
@@ -55,6 +57,7 @@ const dependencies: MobileHttpDependencies = {
   gradebooks: loadMobileV4Gradebooks,
   finance: loadMobileV4Finance,
   chat: loadMobileV4Chat,
+  notifications: loadMobileV4Notifications,
   contacts: loadMobileV4ChatContacts,
   capabilities: loadMobileV4ChatCapabilities,
   attachment: loadMobileV4ChatAttachment,
@@ -127,7 +130,7 @@ export async function handleMobileV4Http(request: Request, deps = dependencies):
     const url = new URL(request.url);
     const path = url.pathname;
     const schoolRoute =
-      /^\/api\/mobile-v4\/schools\/([0-9a-f-]+)\/(workspace|academic|attendance|results|gradebooks|finance|chat|contacts|attachment|chat-capabilities|chat-commands|commands)$/i.exec(
+      /^\/api\/mobile-v4\/schools\/([0-9a-f-]+)\/(workspace|academic|attendance|results|gradebooks|finance|notifications|chat|contacts|attachment|chat-capabilities|chat-commands|commands)$/i.exec(
         path,
       );
     const operation =
@@ -148,6 +151,7 @@ export async function handleMobileV4Http(request: Request, deps = dependencies):
       "results",
       "gradebooks",
       "finance",
+      "notifications",
       "chat",
     ].includes(operation)
       ? "GET"
@@ -230,7 +234,8 @@ export async function handleMobileV4Http(request: Request, deps = dependencies):
       operation === "academic" ||
       operation === "results" ||
       operation === "gradebooks" ||
-      operation === "finance"
+      operation === "finance" ||
+      operation === "notifications"
     ) {
       const role = mobileRoleSchema.parse(url.searchParams.get("role"));
       const scope = mobileScopeSchema.parse({ schoolId, role });

@@ -156,3 +156,10 @@ export async function loadMobileV4ChatCapabilities(userId: string, input: unknow
   const { readMobileChatCapabilities } = await import("./chat-commands.server");
   return readMobileChatCapabilities(db);
 }
+
+export async function loadMobileV4Notifications(userId: string, input: unknown) {
+  const s = mobileScopeSchema.parse(input);
+  const { db } = await requireMobileAcademicAccess(userId, s.schoolId, s.role, "read");
+  const { readMobileNotifications } = await import("./notifications.server");
+  return readMobileNotifications(db, { ...s, userId });
+}

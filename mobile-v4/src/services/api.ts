@@ -1,3 +1,4 @@
+import { parseNotificationInbox } from "../domain/notifications";
 import {
   parseChatReceipt,
   type ChatCommand,
@@ -264,6 +265,16 @@ export class ApiGateway implements Gateway {
     )
       throw new Error("Contrato de contactos inválido.");
     return data.contacts;
+  }
+  async notifications(ctx: Context, signal?: AbortSignal) {
+    authorize(this.current, ctx);
+    return parseNotificationInbox(
+      await this.request(
+        "/schools/" + encodeURIComponent(ctx.schoolId) + "/notifications?role=" + ctx.role,
+        signal,
+      ),
+      ctx,
+    );
   }
   async chatInbox(ctx: Context, signal?: AbortSignal) {
     authorize(this.current, ctx);

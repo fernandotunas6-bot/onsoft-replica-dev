@@ -134,6 +134,7 @@ import { Route as ApiMobileV4SchoolsSchoolIdCommandsRouteImport } from './routes
 import { Route as ApiMobileV4SchoolsSchoolIdContactsRouteImport } from './routes/api/mobile-v4/schools/$schoolId/contacts'
 import { Route as ApiMobileV4SchoolsSchoolIdFinanceRouteImport } from './routes/api/mobile-v4/schools/$schoolId/finance'
 import { Route as ApiMobileV4SchoolsSchoolIdGradebooksRouteImport } from './routes/api/mobile-v4/schools/$schoolId/gradebooks'
+import { Route as ApiMobileV4SchoolsSchoolIdNotificationsRouteImport } from './routes/api/mobile-v4/schools/$schoolId/notifications'
 import { Route as ApiMobileV4SchoolsSchoolIdResultsRouteImport } from './routes/api/mobile-v4/schools/$schoolId/results'
 import { Route as ApiMobileV4SchoolsSchoolIdWorkspaceRouteImport } from './routes/api/mobile-v4/schools/$schoolId/workspace'
 
@@ -794,6 +795,12 @@ const ApiMobileV4SchoolsSchoolIdGradebooksRoute =
     path: '/api/mobile-v4/schools/$schoolId/gradebooks',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiMobileV4SchoolsSchoolIdNotificationsRoute =
+  ApiMobileV4SchoolsSchoolIdNotificationsRouteImport.update({
+    id: '/api/mobile-v4/schools/$schoolId/notifications',
+    path: '/api/mobile-v4/schools/$schoolId/notifications',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiMobileV4SchoolsSchoolIdResultsRoute =
   ApiMobileV4SchoolsSchoolIdResultsRouteImport.update({
     id: '/api/mobile-v4/schools/$schoolId/results',
@@ -933,6 +940,7 @@ export interface FileRoutesByFullPath {
   '/api/mobile-v4/schools/$schoolId/contacts': typeof ApiMobileV4SchoolsSchoolIdContactsRoute
   '/api/mobile-v4/schools/$schoolId/finance': typeof ApiMobileV4SchoolsSchoolIdFinanceRoute
   '/api/mobile-v4/schools/$schoolId/gradebooks': typeof ApiMobileV4SchoolsSchoolIdGradebooksRoute
+  '/api/mobile-v4/schools/$schoolId/notifications': typeof ApiMobileV4SchoolsSchoolIdNotificationsRoute
   '/api/mobile-v4/schools/$schoolId/results': typeof ApiMobileV4SchoolsSchoolIdResultsRoute
   '/api/mobile-v4/schools/$schoolId/workspace': typeof ApiMobileV4SchoolsSchoolIdWorkspaceRoute
 }
@@ -1062,6 +1070,7 @@ export interface FileRoutesByTo {
   '/api/mobile-v4/schools/$schoolId/contacts': typeof ApiMobileV4SchoolsSchoolIdContactsRoute
   '/api/mobile-v4/schools/$schoolId/finance': typeof ApiMobileV4SchoolsSchoolIdFinanceRoute
   '/api/mobile-v4/schools/$schoolId/gradebooks': typeof ApiMobileV4SchoolsSchoolIdGradebooksRoute
+  '/api/mobile-v4/schools/$schoolId/notifications': typeof ApiMobileV4SchoolsSchoolIdNotificationsRoute
   '/api/mobile-v4/schools/$schoolId/results': typeof ApiMobileV4SchoolsSchoolIdResultsRoute
   '/api/mobile-v4/schools/$schoolId/workspace': typeof ApiMobileV4SchoolsSchoolIdWorkspaceRoute
 }
@@ -1192,6 +1201,7 @@ export interface FileRoutesById {
   '/api/mobile-v4/schools/$schoolId/contacts': typeof ApiMobileV4SchoolsSchoolIdContactsRoute
   '/api/mobile-v4/schools/$schoolId/finance': typeof ApiMobileV4SchoolsSchoolIdFinanceRoute
   '/api/mobile-v4/schools/$schoolId/gradebooks': typeof ApiMobileV4SchoolsSchoolIdGradebooksRoute
+  '/api/mobile-v4/schools/$schoolId/notifications': typeof ApiMobileV4SchoolsSchoolIdNotificationsRoute
   '/api/mobile-v4/schools/$schoolId/results': typeof ApiMobileV4SchoolsSchoolIdResultsRoute
   '/api/mobile-v4/schools/$schoolId/workspace': typeof ApiMobileV4SchoolsSchoolIdWorkspaceRoute
 }
@@ -1323,6 +1333,7 @@ export interface FileRouteTypes {
     | '/api/mobile-v4/schools/$schoolId/contacts'
     | '/api/mobile-v4/schools/$schoolId/finance'
     | '/api/mobile-v4/schools/$schoolId/gradebooks'
+    | '/api/mobile-v4/schools/$schoolId/notifications'
     | '/api/mobile-v4/schools/$schoolId/results'
     | '/api/mobile-v4/schools/$schoolId/workspace'
   fileRoutesByTo: FileRoutesByTo
@@ -1452,6 +1463,7 @@ export interface FileRouteTypes {
     | '/api/mobile-v4/schools/$schoolId/contacts'
     | '/api/mobile-v4/schools/$schoolId/finance'
     | '/api/mobile-v4/schools/$schoolId/gradebooks'
+    | '/api/mobile-v4/schools/$schoolId/notifications'
     | '/api/mobile-v4/schools/$schoolId/results'
     | '/api/mobile-v4/schools/$schoolId/workspace'
   id:
@@ -1581,6 +1593,7 @@ export interface FileRouteTypes {
     | '/api/mobile-v4/schools/$schoolId/contacts'
     | '/api/mobile-v4/schools/$schoolId/finance'
     | '/api/mobile-v4/schools/$schoolId/gradebooks'
+    | '/api/mobile-v4/schools/$schoolId/notifications'
     | '/api/mobile-v4/schools/$schoolId/results'
     | '/api/mobile-v4/schools/$schoolId/workspace'
   fileRoutesById: FileRoutesById
@@ -1677,6 +1690,7 @@ export interface RootRouteChildren {
   ApiMobileV4SchoolsSchoolIdContactsRoute: typeof ApiMobileV4SchoolsSchoolIdContactsRoute
   ApiMobileV4SchoolsSchoolIdFinanceRoute: typeof ApiMobileV4SchoolsSchoolIdFinanceRoute
   ApiMobileV4SchoolsSchoolIdGradebooksRoute: typeof ApiMobileV4SchoolsSchoolIdGradebooksRoute
+  ApiMobileV4SchoolsSchoolIdNotificationsRoute: typeof ApiMobileV4SchoolsSchoolIdNotificationsRoute
   ApiMobileV4SchoolsSchoolIdResultsRoute: typeof ApiMobileV4SchoolsSchoolIdResultsRoute
   ApiMobileV4SchoolsSchoolIdWorkspaceRoute: typeof ApiMobileV4SchoolsSchoolIdWorkspaceRoute
 }
@@ -2558,6 +2572,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiMobileV4SchoolsSchoolIdGradebooksRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/mobile-v4/schools/$schoolId/notifications': {
+      id: '/api/mobile-v4/schools/$schoolId/notifications'
+      path: '/api/mobile-v4/schools/$schoolId/notifications'
+      fullPath: '/api/mobile-v4/schools/$schoolId/notifications'
+      preLoaderRoute: typeof ApiMobileV4SchoolsSchoolIdNotificationsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/mobile-v4/schools/$schoolId/results': {
       id: '/api/mobile-v4/schools/$schoolId/results'
       path: '/api/mobile-v4/schools/$schoolId/results'
@@ -2865,6 +2886,8 @@ const rootRouteChildren: RootRouteChildren = {
     ApiMobileV4SchoolsSchoolIdFinanceRoute,
   ApiMobileV4SchoolsSchoolIdGradebooksRoute:
     ApiMobileV4SchoolsSchoolIdGradebooksRoute,
+  ApiMobileV4SchoolsSchoolIdNotificationsRoute:
+    ApiMobileV4SchoolsSchoolIdNotificationsRoute,
   ApiMobileV4SchoolsSchoolIdResultsRoute:
     ApiMobileV4SchoolsSchoolIdResultsRoute,
   ApiMobileV4SchoolsSchoolIdWorkspaceRoute:

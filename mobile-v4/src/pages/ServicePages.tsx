@@ -1,3 +1,4 @@
+import { InstitutionalNotifications } from "../components/InstitutionalNotifications";
 import { InstitutionalChat } from "../components/InstitutionalChat";
 import { InstitutionalFinance } from "../components/InstitutionalFinance";
 import { InstitutionalGradebooks } from "../components/InstitutionalGradebooks";
@@ -181,6 +182,13 @@ export function ServicePages({
             </div>
           ) : loading ? (
             <p role="status">A carregar…</p>
+          ) : gateway && session?.mode === "api" && page === "avisos" ? (
+            <InstitutionalNotifications
+              key={ctx.userId + ctx.schoolId + ctx.role}
+              ctx={ctx}
+              gateway={gateway}
+              onAccessError={onAccessError}
+            />
           ) : catalog && gateway && ["calendario", "presencas", "faltas"].includes(page) ? (
             <InstitutionalAttendance
               key={ctx.userId + ctx.schoolId + ctx.role + page}

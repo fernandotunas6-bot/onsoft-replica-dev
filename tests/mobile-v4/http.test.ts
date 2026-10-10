@@ -15,6 +15,7 @@ vi.mock("@/features/mobile-v4/operations-core.server", () => ({
   loadMobileV4ChatAttachment: vi.fn(),
   applyMobileV4ChatCommand: vi.fn(),
   loadMobileV4ChatCapabilities: vi.fn(),
+  loadMobileV4Notifications: vi.fn(),
   applyMobileV4Command: vi.fn(),
 }));
 
@@ -51,6 +52,7 @@ beforeEach(() => {
     capabilities: vi.fn().mockResolvedValue({ writes: false }),
     contacts: vi.fn().mockResolvedValue({ contacts: [] }),
     attachment: vi.fn().mockResolvedValue({ url: "https://example.test" }),
+    notifications: vi.fn().mockResolvedValue({ items: [], unread: 0 }),
     chat: vi.fn().mockResolvedValue({ threads: [] }),
     finance: vi.fn().mockResolvedValue({
       schoolId: school,
@@ -380,3 +382,15 @@ it("requires MFA and strict body for all chat mutations", async () => {
   ).toBe(200);
   expect(deps.chatCommand).toHaveBeenCalledWith("verified-user", { ...data, schoolId: school });
 });
+
+it.each(["professor", "aluno"])(
+  "routes notifications using verified identity for %s",
+  async (role) => {
+    const response = await handleMobileV4Http(
+      request(`/schools/${school}/notifications?role=${role}`),
+      deps,
+    );
+    expect(response.status).toBe(200);
+    expect(deps.notifications).toHaveBeenCalledWith("verified-user", { schoolId: school, role });
+  },
+);
