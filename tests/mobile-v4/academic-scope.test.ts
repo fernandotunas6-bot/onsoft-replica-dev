@@ -183,6 +183,31 @@ describe("Mobile canonical academic scope (controlled database adapter)", () => 
       ),
     ).toBe(true);
   });
+  it("gives the teacher the same roster as the portal call: active and pending, never withdrawn", async () => {
+    const row = (id: string, status: string) => ({
+      id,
+      school_id: "A",
+      student_id: id === "own" ? "student" : id,
+      class_group_id: "group",
+      academic_year_id: "year",
+      status,
+    });
+    const { db } = database({
+      enrollments: [
+        row("own", "active"),
+        row("new", "pending"),
+        row("gone", "withdrawn"),
+        row("moved", "transferred"),
+        row("ended", "cancelled"),
+      ],
+    });
+    expect(
+      (await resolveMobileAcademicScope(db, "teacher-user", "A", "professor")).enrollmentIds,
+    ).toEqual(["own", "new"]);
+    expect(
+      (await resolveMobileAcademicScope(db, "student-user", "A", "aluno")).enrollmentIds,
+    ).toEqual(["own"]);
+  });
   it("does not include classmates, pending or withdrawn enrollments in student scope", async () => {
     const { db } = database();
     expect(await resolveMobileAcademicScope(db, "student-user", "A", "aluno")).toEqual({

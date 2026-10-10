@@ -89,8 +89,7 @@ function happy(over: Partial<Record<string, (ops: Op[]) => Result>> = {}) {
       return { data: { id: CS, class_group_id: GROUP, subject_id: SUBJECT, teacher_id: TEACHER } };
     if (table === "siga_attendance_sessions")
       return has(ops, "update") ? {} : { data: [session()] };
-    if (table === "enrollments")
-      return { data: [A, B, C].map((s) => ({ student_id: s })), count: 3 };
+    if (table === "enrollments") return { data: [A, B].map((s) => ({ student_id: s })), count: 2 };
     if (table === "siga_attendance_records") return {};
     throw new Error("tabela inesperada " + table);
   });
@@ -269,6 +268,22 @@ describe("chamada do professor no Mobile", () => {
         input(),
       ),
     );
+  });
+
+  it("não fecha a chamada com um aluno da turma por marcar", async () => {
+    const call = happy({
+      enrollments: (ops) => {
+        expect(ops).toContainEqual(["in", ["status", ["active", "pending"]]]);
+        return { data: [A, B, C].map((s) => ({ student_id: s })), count: 3 };
+      },
+    });
+    await refuses(409, "ATTENDANCE_ROSTER_CHANGED", () =>
+      recordMobileAttendanceCall(call.db, scope, USER, input()),
+    );
+    expect(call.queries.some((q) => q.table === "siga_attendance_records")).toBe(false);
+    expect(
+      call.queries.some((q) => q.table === "siga_attendance_sessions" && has(q.ops, "update")),
+    ).toBe(false);
   });
 
   it("um erro ao gravar ou ao fechar não é dado como sucesso", async () => {

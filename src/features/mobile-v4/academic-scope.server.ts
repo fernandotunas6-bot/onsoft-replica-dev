@@ -1,6 +1,9 @@
 import type { requireMobileAcademicAccess, MobileAcademicRole } from "./authorization";
 import { MobileApiError } from "./errors";
 
+/** Matrículas que entram na lista da turma e na chamada, como no portal. */
+export const ROSTER_ENROLLMENT_STATUSES = ["active", "pending"];
+
 type Db = Awaited<ReturnType<typeof requireMobileAcademicAccess>>["db"];
 
 export interface MobileAcademicScope {
@@ -172,12 +175,14 @@ export async function resolveMobileAcademicScope(
   if (role === "professor") {
     scope.classGroupIds = [...new Set(subjects.map((subject) => subject.class_group_id))];
     if (scope.classGroupIds.length) {
+      // A mesma lista da chamada no portal: matrículas activas e pendentes da
+      // turma. O aluno só vê as suas matrículas activas.
       const enrollments = await rows<{ id: string }>(
         db
           .from("enrollments")
           .select("id", { count: "exact" })
           .eq("school_id", schoolId)
-          .eq("status", "active")
+          .in("status", ROSTER_ENROLLMENT_STATUSES)
           .in(
             "academic_year_id",
             years.map((year) => year.id),

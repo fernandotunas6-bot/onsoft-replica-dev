@@ -6,14 +6,15 @@
  * - a sessão do dia é encontrada ou aberta como no portal (`status: pending`);
  * - pauta do período (ou anual) já oficial → recusa (`assertAttendanceNotLocked`);
  * - chamada já fechada → recusa: corrigir exige motivo e auditoria, no portal;
- * - só alunos matriculados na turma (activa ou pendente);
+ * - só alunos matriculados na turma (activa ou pendente), e todos eles: a
+ *   chamada não fecha com um aluno da turma por marcar (o portal permite-o);
  * - um só upsert para a turma, taxa recalculada (`recomputeAttendanceRates`) e
  *   a sessão fecha como `completed`.
  *
  * Erros conhecidos saem com código e estado HTTP; nada é convertido em sucesso.
  */
 import type { requireMobileAcademicAccess } from "./authorization";
-import type { MobileAcademicScope } from "./academic-scope.server";
+import { ROSTER_ENROLLMENT_STATUSES, type MobileAcademicScope } from "./academic-scope.server";
 import type { AttendanceCallInput } from "../../../mobile-v4/src/domain/attendance";
 import {
   assertAttendanceNotLocked,
@@ -127,7 +128,7 @@ export async function recordMobileAttendanceCall(
     .select("student_id", { count: "exact" })
     .eq("school_id", scope.schoolId)
     .eq("class_group_id", session.class_group_id)
-    .in("status", ["active", "pending"])
+    .in("status", ROSTER_ENROLLMENT_STATUSES)
     .limit(1000);
   if (
     enrollments.error ||
@@ -139,6 +140,11 @@ export async function recordMobileAttendanceCall(
   const enrolled = new Set(enrollments.data.map((row) => String(row.student_id)));
   if (input.records.some((r) => !enrolled.has(r.studentId)))
     throw new MobileApiError(422, "ATTENDANCE_STUDENT_NOT_ENROLLED");
+  // A chamada fecha a sessão: um aluno da turma sem registo ficava sem presença
+  // nem falta, e só o portal (com motivo) o podia acrescentar depois.
+  const recorded = new Set(input.records.map((r) => r.studentId));
+  if ([...enrolled].some((studentId) => !recorded.has(studentId)))
+    throw new MobileApiError(409, "ATTENDANCE_ROSTER_CHANGED");
 
   const now = new Date().toISOString();
   const { error: upsertError } = await db.from("siga_attendance_records").upsert(

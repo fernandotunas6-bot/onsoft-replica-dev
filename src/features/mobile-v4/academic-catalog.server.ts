@@ -1,5 +1,5 @@
 import type { requireMobileAcademicAccess } from "./authorization";
-import type { MobileAcademicScope } from "./academic-scope.server";
+import { ROSTER_ENROLLMENT_STATUSES, type MobileAcademicScope } from "./academic-scope.server";
 import type { AcademicCatalog } from "../../../mobile-v4/src/domain/catalog";
 import { MobileApiError } from "./errors";
 
@@ -131,7 +131,7 @@ export async function readMobileAcademicCatalog(
             .from("enrollments")
             .select("id, class_group_id, student_id", { count: "exact" })
             .eq("school_id", schoolId)
-            .eq("status", "active")
+            .in("status", scope.role === "professor" ? ROSTER_ENROLLMENT_STATUSES : ["active"])
             .in("id", scope.enrollmentIds)
             .in("class_group_id", groupIds)
             .limit(1000),
@@ -259,7 +259,11 @@ export async function readMobileAcademicCatalog(
               name: person.full_name,
               userId: person.user_id,
             };
-          }),
+          })
+          .sort(
+            (a, b) =>
+              a.name.localeCompare(b.name, "pt") || a.enrollmentId.localeCompare(b.enrollmentId),
+          ),
       };
     })
     .sort(

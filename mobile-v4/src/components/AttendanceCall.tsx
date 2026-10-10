@@ -29,6 +29,7 @@ export function attendanceCallError(error: unknown): string {
     case "ATTENDANCE_FUTURE_DATE":
       return "Não é possível fazer a chamada de um dia que ainda não chegou.";
     case "ATTENDANCE_STUDENT_NOT_ENROLLED":
+    case "ATTENDANCE_ROSTER_CHANGED":
       return "A lista de alunos da turma mudou. Actualize as presenças e volte a fazer a chamada.";
     case "MFA_REQUIRED":
       return "Para gravar a chamada, entre com o segundo factor (código ou chave de acesso).";
