@@ -299,3 +299,44 @@ it("sends the notification cursor and posts read targets with the selected role"
   expect(fetch.mock.calls[2][1].method).toBe("POST");
   expect(JSON.parse(fetch.mock.calls[2][1].body)).toEqual({ role: "professor", ids: [uuid(7)] });
 });
+
+it("posts the teacher call and keeps the server error code", async () => {
+  const input = {
+    classSubjectId: uuid(20),
+    date: "2026-10-09",
+    records: [{ studentId: uuid(21), status: "absent" as const }],
+  };
+  const fetch = vi
+    .fn()
+    .mockResolvedValueOnce({ ok: true, status: 200, json: async () => demoSession("professor") })
+    .mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      json: async () => ({
+        ...ctx,
+        classSubjectId: input.classSubjectId,
+        sessionId: uuid(22),
+        date: input.date,
+        count: 1,
+        status: "completed",
+      }),
+    })
+    .mockResolvedValueOnce({
+      ok: false,
+      status: 409,
+      json: async () => ({ error: "ATTENDANCE_ALREADY_CLOSED" }),
+    });
+  vi.stubGlobal("fetch", fetch);
+  const api = new ApiGateway();
+  await api.session();
+  expect((await api.recordAttendanceCall(ctx, input)).sessionId).toBe(uuid(22));
+  expect(fetch.mock.calls[1][0]).toBe("/api/mobile-v4/schools/demo-a/attendance-call");
+  expect(JSON.parse(fetch.mock.calls[1][1].body)).toEqual({ role: "professor", ...input });
+  await expect(api.recordAttendanceCall(ctx, input)).rejects.toMatchObject({
+    status: 409,
+    code: "ATTENDANCE_ALREADY_CLOSED",
+  });
+  // Um aluno nunca chega a contactar o servidor.
+  await expect(api.recordAttendanceCall({ ...ctx, role: "aluno" }, input)).rejects.toThrow();
+  expect(fetch).toHaveBeenCalledTimes(3);
+});

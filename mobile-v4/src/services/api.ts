@@ -14,7 +14,12 @@ import {
 import { parseStudentFinance } from "../domain/finance";
 import { parseAcademicGradebooks } from "../domain/gradebooks";
 import { parseAcademicResults } from "../domain/results";
-import type { AcademicAttendance, AttendanceRange } from "../domain/attendance";
+import {
+  parseAttendanceCallReceipt,
+  type AcademicAttendance,
+  type AttendanceCallInput,
+  type AttendanceRange,
+} from "../domain/attendance";
 import { parseAcademicAttendance } from "../domain/attendance-validation";
 import type { Gateway, Session, Context, Workspace, Command, Permission } from "../domain/model";
 import { authorize, scopeWorkspace, required, validateCommand } from "../domain/policy";
@@ -43,6 +48,8 @@ export class ApiError extends Error {
   constructor(
     public status: number,
     message: string,
+    /** Código devolvido pelo servidor (`{ "error": "…" }`), quando o há. */
+    public code?: string,
   ) {
     super(message);
   }
@@ -117,6 +124,14 @@ export class ApiGateway implements Gateway {
         this.workspaceCache.clear();
         this.pendingRequests.clear();
       }
+      let code: string | undefined;
+      try {
+        const payload = (await response.json()) as { error?: unknown };
+        if (typeof payload?.error === "string" && /^[A-Z0-9_]{2,64}$/.test(payload.error))
+          code = payload.error;
+      } catch {
+        /* corpo sem JSON: fica só o estado */
+      }
       throw new ApiError(
         response.status,
         response.status === 401
@@ -128,6 +143,7 @@ export class ApiGateway implements Gateway {
               : response.status === 422
                 ? "Os dados enviados não passaram na validação institucional."
                 : "Não foi possível concluir a operação (" + response.status + ").",
+        code,
       );
     }
     const data = response.status === 204 ? null : await response.json();
@@ -283,6 +299,19 @@ export class ApiGateway implements Gateway {
         signal,
       ),
       ctx,
+    );
+  }
+  async recordAttendanceCall(ctx: Context, input: AttendanceCallInput, signal?: AbortSignal) {
+    authorize(this.current, ctx);
+    if (ctx.role !== "professor")
+      throw new ApiError(403, "A chamada é feita apenas pelo professor da turma.");
+    return parseAttendanceCallReceipt(
+      await this.request(`/schools/${encodeURIComponent(ctx.schoolId)}/attendance-call`, signal, {
+        role: ctx.role,
+        ...input,
+      }),
+      ctx,
+      input,
     );
   }
   async markNotificationsRead(ctx: Context, target: NotificationReadTarget, signal?: AbortSignal) {

@@ -10,6 +10,7 @@ import {
   mobileChatCommandRequestSchema,
   mobileNotificationsScopeSchema,
   mobileNotificationsReadSchema,
+  mobileAttendanceCallSchema,
 } from "./schemas";
 import { resolveMobileAcademicScope } from "./academic-scope.server";
 import { readMobileAcademicCatalog } from "./academic-catalog.server";
@@ -184,4 +185,18 @@ export async function applyMobileV4NotificationsRead(userId: string, input: unkn
     { schoolId: s.schoolId, role: s.role, userId },
     "ids" in s ? { ids: s.ids } : { all: true },
   );
+}
+
+/** Chamada do professor: acesso de escrita à Pedagógica e âmbito verificado. */
+export async function applyMobileV4AttendanceCall(userId: string, input: unknown) {
+  const data = mobileAttendanceCallSchema.parse(input);
+  if (data.role !== "professor") throw new MobileApiError(403, "COMMAND_ROLE_FORBIDDEN");
+  const { db } = await requireMobileAcademicAccess(userId, data.schoolId, data.role, "write");
+  const scope = await resolveMobileAcademicScope(db, userId, data.schoolId, data.role);
+  const { recordMobileAttendanceCall } = await import("./attendance-call.server");
+  return recordMobileAttendanceCall(db, scope, userId, {
+    classSubjectId: data.classSubjectId,
+    date: data.date,
+    records: data.records,
+  });
 }

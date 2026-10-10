@@ -41,7 +41,11 @@ describe("presenças num período com pauta oficial", () => {
   });
 
   it("usa os mesmos estados oficiais das notas", () => {
-    const helper = source.slice(source.indexOf("async function assertAttendanceNotLocked"));
+    // A guarda vive em attendance-guards.ts, partilhada com a chamada do Mobile V4.
+    const guards = readFileSync("src/features/pedagogica/attendance-guards.ts", "utf8");
+    expect(source).toContain('from "./attendance-guards"');
+    const helper = guards.slice(guards.indexOf("async function assertAttendanceNotLocked"));
+    expect(helper.length).toBeLessThan(guards.length);
     const fn = helper.slice(0, helper.indexOf("\n}\n"));
     expect(fn).toContain("LOCKED_SHEET_STATUSES");
     expect(fn).toContain('sheet.kind === "annual"');

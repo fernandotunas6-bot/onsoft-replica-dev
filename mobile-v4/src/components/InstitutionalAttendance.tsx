@@ -6,6 +6,7 @@ import { ApiError } from "../services/api";
 import { daysOfMonth, luandaDate, type DayStatus } from "../domain/calendar";
 import { attendanceLabels } from "./AttendanceMap";
 import { Icon } from "./Icon";
+import { AttendanceCall } from "./AttendanceCall";
 const studentLabels: Record<StudentAttendanceStatus, string> = {
   present: "Presente",
   absent: "Falta",
@@ -57,6 +58,7 @@ export function InstitutionalAttendance({
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [reload, setReload] = useState(0);
+  const [saved, setSaved] = useState("");
   const dates = useMemo(() => daysOfMonth(month), [month]);
   const range = useMemo(() => ({ from: dates[0], to: dates.at(-1)! }), [dates]);
   const accessError = useRef(onAccessError);
@@ -112,6 +114,7 @@ export function InstitutionalAttendance({
           ? "Ocorrências mistas"
           : "Sem confirmação";
   };
+  useEffect(() => setSaved(""), [selected, ctx]);
   function changeMonth(offset: number) {
     const [y, m] = month.split("-").map(Number);
     const next = new Date(Date.UTC(y, m - 1 + offset, 1)).toISOString().slice(0, 7);
@@ -144,6 +147,7 @@ export function InstitutionalAttendance({
         Actualizar presenças
       </button>
       {loading && <p role="status">A carregar presenças…</p>}
+      {saved && <p role="status">{saved}</p>}
       {error && (
         <p className="error" role="alert">
           {error}
@@ -233,6 +237,19 @@ export function InstitutionalAttendance({
               ))}
               {!lessons.length && <p>Sem ocorrências docentes registadas neste dia.</p>}
               <h3>Chamadas dos alunos</h3>
+              <AttendanceCall
+                key={selected}
+                ctx={ctx}
+                gateway={gateway}
+                catalog={catalog}
+                attendance={data}
+                date={selected}
+                today={luandaDate()}
+                onSaved={(message) => {
+                  setSaved(message);
+                  setReload((r) => r + 1);
+                }}
+              />
             </>
           )}
           {sessions.map((s) => (

@@ -26,3 +26,19 @@ Só consulta, em disciplinas/anos/matrículas actualmente activos. Ocorrências 
 Continuam pendentes notas, planos completos, submissões, chat, notificações, documentos/ficheiros, comandos transaccionais com auditoria/idempotência e percursos com contas reais autorizadas. Não se declara o Mobile integralmente funcional.
 
 Não houve alteração de esquema, migração, escrita de dados na base Sga ou publicação do portal principal.
+
+## Chamada do professor (escrita, 10/10/2026)
+
+Primeira escrita académica do Mobile. Sem migrações: grava nas tabelas que o portal já usa (`siga_attendance_sessions`, `siga_attendance_records`) e com as **mesmas guardas**. `assertAttendanceNotLocked` e `recomputeAttendanceRates` passaram de `attendance-server.ts` para `src/features/pedagogica/attendance-guards.ts`, sem mudar a lógica. O portal e o Mobile importam-nas daí; o Worker do Mobile não pode levar módulos com `createServerFn`.
+
+- `POST /api/mobile-v4/schools/:schoolId/attendance-call` com `{ role: "professor", classSubjectId, date, records: [{ studentId, status }] }` (1–500 alunos, sem repetidos; estados `present`, `absent`, `excused`, `late`, `early_exit`). POST, origem da aplicação, sessão `aal2`, corpo estrito (a escola vem só da rota), escrita permitida na Pedagógica.
+- No servidor (`attendance-call.server.ts`), pela ordem do portal:
+  1. A turma-disciplina tem de estar no âmbito do professor e em `class_subjects` com ele.
+  2. O dia não pode ser futuro (calendário de Luanda).
+  3. A sessão do dia é encontrada ou aberta `pending`. Duas sessões no mesmo dia dão 409: o Mobile não adivinha o tempo.
+  4. São recusadas a sessão de outro professor (403), a aula cancelada (409), a pauta do período ou anual já oficial (409) e a chamada já fechada (409: corrige-se no portal, com motivo e auditoria).
+  5. Só entram alunos matriculados na turma, activos ou pendentes; uma lista truncada dá 503.
+  6. Um só upsert, depois o recálculo da taxa, e a sessão fecha `completed`.
+- Interface: no calendário do professor, no dia escolhido (hoje ou antes), «Fazer chamada» para as turmas com aula nesse dia. A turma conta se tiver horário publicado em vigor nesse dia da semana, uma ocorrência docente ou uma chamada pendente; as que já estão fechadas ou canceladas ficam de fora. Todos começam presentes, cada aluno tem a sua escolha, e a gravação pede confirmação com o resumo. Cada recusa do servidor tem a sua mensagem (o código passa a vir em `ApiError.code`).
+
+Verificação: 212 testes Mobile (tipos, lint, formatação, worker do domínio, os três builds — o `build:connected` apanhou e obrigou a separar as guardas — e PWA). Na raiz: 7 testes da escrita com base simulada (ordem pauta → gravar, sessão nova, recusas, lista truncada, falhas sem sucesso falso), o teste HTTP da rota e os testes estruturais das presenças, actualizados para o módulo partilhado. **Não há ensaio em PostgreSQL desta escrita** nem com contas reais. Correcção de chamada fechada, justificações e chamada por tempo (vários no mesmo dia) continuam só no portal.

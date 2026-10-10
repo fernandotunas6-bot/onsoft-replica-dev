@@ -162,6 +162,11 @@ export interface Gateway {
     signal?: AbortSignal,
     before?: import("./notifications").NotificationCursor,
   ): Promise<import("./notifications").NotificationInbox>;
+  recordAttendanceCall?(
+    ctx: Context,
+    input: import("./attendance").AttendanceCallInput,
+    signal?: AbortSignal,
+  ): Promise<import("./attendance").AttendanceCallReceipt>;
   markNotificationsRead?(
     ctx: Context,
     target: import("./notifications").NotificationReadTarget,

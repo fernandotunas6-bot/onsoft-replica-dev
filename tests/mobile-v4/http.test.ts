@@ -17,6 +17,7 @@ vi.mock("@/features/mobile-v4/operations-core.server", () => ({
   loadMobileV4ChatCapabilities: vi.fn(),
   loadMobileV4Notifications: vi.fn(),
   applyMobileV4NotificationsRead: vi.fn(),
+  applyMobileV4AttendanceCall: vi.fn(),
   applyMobileV4Command: vi.fn(),
 }));
 
@@ -76,6 +77,7 @@ beforeEach(() => {
       .mockResolvedValue({ type: "send", conversationId: school, messageId: requestId }),
     command: vi.fn().mockResolvedValue({ committed: true }),
     notificationsRead: vi.fn().mockResolvedValue({ updated: 1, unread: 0 }),
+    attendanceCall: vi.fn().mockResolvedValue({ status: "completed" }),
     logout: vi.fn().mockResolvedValue(undefined),
   };
 });
@@ -447,4 +449,37 @@ it("marks notices read only by POST, with MFA, a strict body and the route schoo
   expect(
     (await handleMobileV4Http(request(path, { role: "professor", all: true }), deps)).status,
   ).toBe(200);
+});
+
+it("records a teacher call only by POST, with MFA, a strict body and the route school", async () => {
+  const path = `/schools/${school}/attendance-call`;
+  const student = "44444444-4444-4444-8444-444444444444";
+  const cs = "55555555-5555-4555-8555-555555555555";
+  const call = {
+    role: "professor",
+    classSubjectId: cs,
+    date: "2026-10-09",
+    records: [{ studentId: student, status: "absent" }],
+  };
+  expect((await handleMobileV4Http(request(path), deps)).status).toBe(405);
+  deps.authenticate = vi.fn().mockResolvedValue({ userId: "verified-user", aal: "aal1" });
+  expect((await handleMobileV4Http(request(path, call), deps)).status).toBe(403);
+  deps.authenticate = vi.fn().mockResolvedValue({ userId: "verified-user", aal: "aal2" });
+  for (const body of [
+    { ...call, records: [] },
+    { ...call, records: [call.records[0], call.records[0]] },
+    { ...call, records: [{ studentId: student, status: "not_registered" }] },
+    { ...call, records: [{ studentId: student, status: "absent", notes: "x" }] },
+    { ...call, date: "2026-02-30" },
+    { ...call, classSubjectId: "class" },
+    { ...call, schoolId: school },
+    { ...call, teacherId: "attacker" },
+  ])
+    expect((await handleMobileV4Http(request(path, body), deps)).status, JSON.stringify(body)).toBe(
+      422,
+    );
+  expect(deps.attendanceCall).not.toHaveBeenCalled();
+  const response = await handleMobileV4Http(request(path, call), deps);
+  expect(response.status).toBe(200);
+  expect(deps.attendanceCall).toHaveBeenCalledWith("verified-user", { ...call, schoolId: school });
 });

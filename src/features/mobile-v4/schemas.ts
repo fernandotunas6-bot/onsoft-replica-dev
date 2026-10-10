@@ -121,6 +121,28 @@ export const mobileNotificationsReadSchema = z.union([
   mobileScopeSchema.extend({ all: z.literal(true) }).strict(),
 ]);
 
+/** Chamada do professor: uma turma-disciplina, um dia, um estado por aluno. */
+export const mobileAttendanceCallSchema = mobileScopeSchema
+  .extend({
+    classSubjectId: z.string().uuid(),
+    date,
+    records: z
+      .array(
+        z
+          .object({
+            studentId: z.string().uuid(),
+            status: z.enum(["present", "absent", "excused", "late", "early_exit"]),
+          })
+          .strict(),
+      )
+      .min(1)
+      .max(500)
+      .refine((rows) => new Set(rows.map((r) => r.studentId)).size === rows.length, {
+        message: "Alunos repetidos na chamada.",
+      }),
+  })
+  .strict();
+
 export const mobileChatAttachmentSchema = mobileScopeSchema
   .extend({ messageId: z.string().uuid() })
   .strict();

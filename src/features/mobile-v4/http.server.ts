@@ -17,6 +17,7 @@ import {
   loadMobileV4ChatCapabilities,
   loadMobileV4Notifications,
   applyMobileV4NotificationsRead,
+  applyMobileV4AttendanceCall,
 } from "./operations-core.server";
 import { MobileApiError } from "./errors";
 import {
@@ -29,6 +30,7 @@ import {
   mobileChatCommandRequestSchema,
   mobileNotificationsScopeSchema,
   mobileNotificationsReadSchema,
+  mobileAttendanceCallSchema,
 } from "./schemas";
 
 type Identity = { userId: string; aal: string | null };
@@ -48,6 +50,7 @@ export type MobileHttpDependencies = {
   academic: (userId: string, scope: unknown) => Promise<unknown>;
   chatCommand: (userId: string, scope: unknown) => Promise<unknown>;
   notificationsRead: (userId: string, input: unknown) => Promise<unknown>;
+  attendanceCall: (userId: string, input: unknown) => Promise<unknown>;
   command: (userId: string, input: unknown) => Promise<unknown>;
   logout: (token: string) => Promise<void>;
 };
@@ -68,6 +71,7 @@ const dependencies: MobileHttpDependencies = {
   command: applyMobileV4Command,
   chatCommand: applyMobileV4ChatCommand,
   notificationsRead: applyMobileV4NotificationsRead,
+  attendanceCall: applyMobileV4AttendanceCall,
   logout: async (token) => {
     const db = await loadSgaAdminClient();
     const { error } = await db.auth.admin.signOut(token, "local");
@@ -135,7 +139,7 @@ export async function handleMobileV4Http(request: Request, deps = dependencies):
     const url = new URL(request.url);
     const path = url.pathname;
     const schoolRoute =
-      /^\/api\/mobile-v4\/schools\/([0-9a-f-]+)\/(workspace|academic|attendance|results|gradebooks|finance|notifications|notifications-read|chat|contacts|attachment|chat-capabilities|chat-commands|commands)$/i.exec(
+      /^\/api\/mobile-v4\/schools\/([0-9a-f-]+)\/(workspace|academic|attendance|results|gradebooks|finance|notifications|notifications-read|attendance-call|chat|contacts|attachment|chat-capabilities|chat-commands|commands)$/i.exec(
         path,
       );
     const operation =
@@ -260,6 +264,13 @@ export async function handleMobileV4Http(request: Request, deps = dependencies):
     if (!body || typeof body !== "object" || Array.isArray(body) || "schoolId" in body) {
       throw new MobileApiError(422, "INVALID_COMMAND");
     }
+    if (operation === "attendance-call")
+      return respond(
+        await deps.attendanceCall(
+          identity.userId,
+          mobileAttendanceCallSchema.parse({ ...body, schoolId }),
+        ),
+      );
     if (operation === "notifications-read")
       return respond(
         await deps.notificationsRead(
