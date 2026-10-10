@@ -163,6 +163,10 @@ novo.
 - **Classes (turmas, preçário de propinas):** código ou nome exactos; se nada bater, a mesma
   classe escrita de outra forma («10a classe», «décima classe» → «10ª Classe»), pelo número
   e pela unidade (classe ≠ ano), só quando é uma. Nas turmas fica com aviso.
+- **Horários:** a disciplina segue a mesma regra das notas (catálogo só por nome, com aviso).
+- **Histórico académico:** «8a classe» e «oitava classe» são o mesmo histórico que «8ª
+  Classe»: reimportar actualiza a linha existente (que fica com a classe como estava
+  escrita) em vez de criar outra.
 - **Períodos (notas, avaliações):** além de «1º Trimestre» e «Segundo Trimestre», aceita
   «I Trimestre», «III trimestre» e «T2». Nunca um 4.º período.
 

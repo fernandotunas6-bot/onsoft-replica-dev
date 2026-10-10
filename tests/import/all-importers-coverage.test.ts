@@ -132,7 +132,7 @@ describe("All 22 Importers Completeness & Coverage", () => {
             person_id: "p1",
           },
         ],
-        existingKeys: new Set(),
+        existingKeys: new Map(),
       };
       const res = historicoAcademicoImporter.analyzeRow(
         { student_identifier: "PROC-1", academic_year: "2023/2024", grade_level: "8ª Classe" },
@@ -152,14 +152,22 @@ describe("All 22 Importers Completeness & Coverage", () => {
             person_id: "p1",
           },
         ],
-        existingKeys: new Set(["s1::2023/2024::8ª Classe"]),
+        existingKeys: new Map([["s1::2023/2024::8ª Classe", "8ª Classe"]]),
       };
-      const res = historicoAcademicoImporter.analyzeRow(
-        { student_identifier: "PROC-1", academic_year: "2023/2024", grade_level: "8ª Classe" },
+      // A mesma classe escrita de outra forma também é o mesmo histórico.
+      for (const grade of ["8ª Classe", "8a classe", "oitava classe"]) {
+        const res = historicoAcademicoImporter.analyzeRow(
+          { student_identifier: "PROC-1", academic_year: "2023/2024", grade_level: grade },
+          cache as any,
+        );
+        expect(res.status, grade).toBe("warning");
+        expect(res.warnings[0]).toMatch(/já existe/i);
+      }
+      const other = historicoAcademicoImporter.analyzeRow(
+        { student_identifier: "PROC-1", academic_year: "2023/2024", grade_level: "8º Ano" },
         cache as any,
       );
-      expect(res.status).toBe("warning");
-      expect(res.warnings[0]).toMatch(/já existe/i);
+      expect(other.status).toBe("valid");
     });
   });
 
