@@ -3,7 +3,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { readSettingsDomain } from "@/features/school/settings-domains";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { publicDatabaseError } from "@/integrations/supabase/server-error";
+import { isRpcAuthDenied, publicDatabaseError } from "@/integrations/supabase/server-error";
 import { reportSigaError } from "@/lib/ops-report";
 import { dynamicTablesClient, sgaClient } from "@/integrations/supabase/sga";
 import {
@@ -70,6 +70,7 @@ import {
   invoiceYearForSchool,
   loadNextInvoiceSequence,
 } from "./invoice-numbering";
+import { mapPaymentMethodForLedger } from "./payment-method";
 
 const REPORTING_PAGE_SIZE = 1000;
 const REPORTING_MAX_PAGES = 30;
@@ -794,15 +795,6 @@ export const listCashEntries = createServerFn({ method: "GET" })
  * Os métodos premium angolanos (Multicaixa Express, Unitel Money) não têm
  * equivalente 1:1 — o método original fica registado na descrição do arquivo.
  */
-function mapPaymentMethodForLedger(method: string): "cash" | "bank_transfer" | "card" | "other" {
-  if (method === "cash") return "cash";
-  if (method === "transfer") return "bank_transfer";
-  if (method === "multicaixa" || method === "multicaixa_express" || method === "express") {
-    return "card";
-  }
-  return "other";
-}
-
 export const recordInvoicePayment = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((input: unknown) => recordInvoicePaymentInputSchema.parse(input))
@@ -827,7 +819,7 @@ export const recordInvoicePayment = createServerFn({ method: "POST" })
       paid_on: paidOnIso(data.paidAt),
     });
     if (error) {
-      if (error.code === "42501" || /is_aal2|autorização/i.test(error.message ?? "")) {
+      if (isRpcAuthDenied(error)) {
         throw new Error(
           "Esta conta precisa de verificação em duas etapas (2FA) activa para registar pagamentos.",
         );

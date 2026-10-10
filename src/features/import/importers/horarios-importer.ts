@@ -1,4 +1,4 @@
-import { normalizeText } from "../engine/normalize";
+import { normalizeText, valueOf } from "../engine/normalize";
 import type { AuditEntry, ImportRefCache, RowImporter } from "../engine/types";
 import {
   loadClassSubjectRefs,
@@ -25,14 +25,6 @@ type HorariosCache = ImportRefCache & {
   existingSlots: Set<string>; // key: `${class_subject_id}:${weekday}:${starts_at}`
   scheduledSlots: ScheduledSlot[];
 };
-
-function valueOf(row: Record<string, unknown>, ...keys: string[]) {
-  for (const key of keys) {
-    const value = row[key];
-    if (value !== undefined && value !== null && normalizeText(value)) return value;
-  }
-  return null;
-}
 
 function parseWeekday(val: unknown): number | null {
   const norm = normalizeText(val).toLowerCase();

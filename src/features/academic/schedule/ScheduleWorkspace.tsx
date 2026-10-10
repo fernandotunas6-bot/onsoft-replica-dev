@@ -45,13 +45,10 @@ import { schedulePublicationReadiness } from "./utils/publicationReadiness";
 import { assertValidScheduleTime, assertNoScheduleConflict } from "./utils/validation";
 import { toast } from "sonner";
 import { errorMessage } from "@/lib/error-message";
+import { optionLabel } from "@/lib/option-label";
 
 const weekdays = ["Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado", "Domingo"] as const;
 const weekdayByLabel = new Map<string, number>(weekdays.map((label, index) => [label, index + 1]));
-
-function optionLabel(id: string, label: string) {
-  return `${label} · ${id.slice(0, 8)}`;
-}
 
 function timeValue(value: string) {
   return value.slice(0, 5);

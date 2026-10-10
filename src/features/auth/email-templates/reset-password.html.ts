@@ -1,3 +1,5 @@
+import { escapeHtml } from "@/lib/escape-html";
+
 /**
  * Design System de E-mails Transacionais do SIGA Plus
  *
@@ -17,12 +19,7 @@ export interface SchoolBrandingContext {
 }
 
 /** Texto de utilizador (nome da escola, cargo, e-mail) dentro do HTML do e-mail. */
-export function escapeHtml(value: string | null | undefined): string {
-  return String(value ?? "").replace(
-    /[&<>"']/g,
-    (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]!,
-  );
-}
+export { escapeHtml };
 
 /** Logótipo só por https: nada de `javascript:`, `data:` ou aspas a fugir do atributo. */
 export function safeImageUrl(url: string | null | undefined): string | null {

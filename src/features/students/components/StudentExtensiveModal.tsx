@@ -32,6 +32,7 @@ import { StudentStatusBadge } from "./StudentStatusBadge";
 import { StudentFinanceBadge } from "./StudentFinanceBadge";
 import { StudentStatusHistoryTimeline } from "./StudentStatusHistoryTimeline";
 import { formatKz } from "@/features/students/academic-status";
+import { sexLabel } from "@/features/people/person-fields";
 import { PayflowStudentSyncButton } from "@/features/finance/components/PayflowStudentSyncButton";
 
 export interface StudentExtensiveModalProps {
@@ -354,13 +355,10 @@ export function StudentExtensiveModal({
               </div>
 
               <div className="p-3 rounded-xl bg-card border border-border/70">
-                <span className="text-xs font-medium text-muted-foreground block">Gênero</span>
+                <span className="text-xs font-medium text-muted-foreground block">Género</span>
+                {/* people.sex guarda male/female/other; comparar com "M"/"F" dava sempre «—». */}
                 <span className="text-sm font-semibold text-foreground mt-0.5 block">
-                  {student?.gender === "M"
-                    ? "Masculino"
-                    : student?.gender === "F"
-                      ? "Feminino"
-                      : "—"}
+                  {sexLabel(student?.gender)}
                 </span>
               </div>
 

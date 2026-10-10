@@ -1,3 +1,5 @@
+import { escapeHtml } from "@/lib/escape-html";
+
 /** Subconjunto Handlebars usado pelos .hbs em public/templates (if/else/each, this, @index, inc). */
 
 type Frame = { data: unknown; index?: number };
@@ -12,15 +14,6 @@ function getPath(value: unknown, path: string): unknown {
 
 function isTruthy(value: unknown): boolean {
   return !(value == null || value === false || value === "" || value === 0);
-}
-
-function escapeHtml(value: string): string {
-  return value
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;")
-    .replaceAll("'", "&#39;");
 }
 
 function stringify(value: unknown): string {

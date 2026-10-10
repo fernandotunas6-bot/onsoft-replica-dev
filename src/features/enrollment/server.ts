@@ -1,10 +1,8 @@
-import type { TablesInsert, TablesUpdate } from "@/integrations/supabase/types";
+import type { TablesUpdate } from "@/integrations/supabase/types";
 import { createServerFn } from "@tanstack/react-start";
-import { normalizeStoredPhone } from "@/lib/angola-phone";
 import { getRequestIP } from "@tanstack/react-start/server";
 import { isRateLimitBypassed } from "@/lib/rate-limit";
 import { consumeRateLimit } from "@/lib/shared-rate-limit";
-import { sgaClient } from "@/integrations/supabase/sga";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { publicDatabaseError } from "@/integrations/supabase/server-error";
 import {
@@ -12,13 +10,20 @@ import {
   requireSgaWriterFor,
   requireSgaWriterForWrite,
 } from "@/integrations/supabase/sga-admin";
-import { mapSgaGuardianRelationship } from "@/features/students/schemas";
+import {
+  assertClassAcceptsEnrollment,
+  enrollStudentRpc,
+  registerStudentRpc,
+  rpcFailureError,
+} from "@/features/students/enrollment-core";
+import { recordStudentStatusHistory } from "@/features/students/status-history";
+import { buildPersonInsert, isMissingPeopleGeography } from "@/features/people/person-fields";
+import { syncBiDocumentFromNif } from "@/features/people/bi-document";
 import {
   publicInstalledProviderIds,
   publicSchoolEmail,
   publicSchoolPhone,
 } from "@/features/integrations/install";
-import { normalizePersonNif, isAngolaBiNif } from "@/lib/angola-identity";
 import { requireAal2 } from "@/features/hr/require-aal2";
 import {
   candidacyProcessNumber,
@@ -31,14 +36,6 @@ import {
 import { schoolTodayIso } from "@/lib/school-date";
 import { assertCanAddStudentForSchool } from "@/features/saas/tenant-limits-server";
 import { getTenantAccessBlock } from "@/features/saas/tenant-access";
-
-function isMissingPeopleGeography(error: { message?: string; code?: string } | null | undefined) {
-  return Boolean(
-    error &&
-    (/province|municipality|commune|address|42703|schema cache/i.test(error.message ?? "") ||
-      error.code === "42703"),
-  );
-}
 
 function slugFromSchoolName(name: string) {
   const base = name
@@ -365,20 +362,18 @@ export const decideEnrollmentApplication = createServerFn({ method: "POST" })
     }
     const db = await loadSgaAdminClient();
 
-    // A turma escolhida valida-se antes de criar o aluno.
-    let classGroup: { id: string } | null = null;
-    if (data.decision === "accepted" && data.classGroupId) {
-      const { data: group, error: classError } = await db
-        .from("class_groups")
-        .select("id, academic_year_id")
-        .eq("id", data.classGroupId)
-        .eq("school_id", membership.schoolId)
-        .maybeSingle();
-      if (classError) throw publicDatabaseError(classError, "Não foi possível validar a turma.");
-      if (!group) throw new Error("Turma não encontrada nesta escola.");
-      if (!group.academic_year_id) throw new Error("Esta turma não tem ano lectivo associado.");
-      classGroup = { id: String(group.id) };
-    }
+    // A turma escolhida valida-se antes de criar o aluno, com as regras de
+    // enroll_student (activa, ano activo, data, lotação): uma turma cheia já não
+    // deixa um aluno criado à espera de turma.
+    const enrolledOn = schoolTodayIso();
+    const classGroup =
+      data.decision === "accepted" && data.classGroupId
+        ? await assertClassAcceptsEnrollment(db, {
+            schoolId: membership.schoolId,
+            classGroupId: data.classGroupId,
+            enrolledOn,
+          })
+        : null;
 
     // Reserva a candidatura antes de criar o que quer que seja: duas pessoas a
     // aceitar a mesma candidatura ao mesmo tempo criavam dois alunos. Uma
@@ -447,32 +442,16 @@ export const decideEnrollmentApplication = createServerFn({ method: "POST" })
           guardianRelationship?: string;
         };
         const person = payload.person ?? {};
-        const fullName = String(person.full_name ?? application.full_name).trim();
-        const normalizedNif = normalizePersonNif(person.nif);
-        const personPayload: TablesInsert<"people"> = {
-          school_id: membership.schoolId,
-          full_name: fullName,
-          preferred_name: fullName.split(/\s+/)[0],
-          email: person.email || null,
-          phone: person.phone_primary
-            ? (normalizeStoredPhone(person.phone_primary) ?? person.phone_primary)
-            : null,
-          national_id: normalizedNif,
-          date_of_birth: person.birth_date || null,
-          sex: person.sex === "M" ? "male" : person.sex === "F" ? "female" : person.sex || null,
-          status: "active",
-          created_by: context.userId,
-          updated_by: context.userId,
-        };
-        const hasGeography = Boolean(
-          person.province || person.municipality || person.commune || person.address,
+        // A mesma ficha que «Nova pessoa» e «Nova matrícula» (género «Outro»
+        // incluído, que a base recusava como «outro»).
+        const {
+          payload: personPayload,
+          hasGeography,
+          nationalId: normalizedNif,
+        } = buildPersonInsert(
+          { ...person, full_name: String(person.full_name ?? application.full_name) },
+          { schoolId: membership.schoolId, userId: context.userId },
         );
-        if (hasGeography) {
-          personPayload["province"] = person.province || null;
-          personPayload["municipality"] = person.municipality || null;
-          personPayload["commune"] = person.commune || null;
-          personPayload["address"] = person.address || null;
-        }
 
         // Mesmo BI já registado na escola: reaproveita a pessoa (antigo aluno,
         // irmão já com ficha de encarregado…) em vez de criar um duplicado; se
@@ -537,37 +516,27 @@ export const decideEnrollmentApplication = createServerFn({ method: "POST" })
           createdPeople.push(inserted.id);
         }
 
-        if (!existingPersonId && isAngolaBiNif(normalizedNif) && normalizedNif) {
-          const { error: documentError } = await db.from("person_documents").insert({
-            school_id: membership.schoolId,
-            person_id: personRow.id,
-            document_type: "bi",
-            document_number: normalizedNif,
-            created_by: context.userId,
-            updated_by: context.userId,
-          });
-          if (documentError && !/duplicate|unique|23505/i.test(documentError.message)) {
-            throw publicDatabaseError(
-              documentError,
-              "Não foi possível registar o BI do candidato.",
-            );
-          }
+        if (!existingPersonId) {
+          await syncBiDocumentFromNif(
+            db,
+            membership.schoolId,
+            personRow.id,
+            normalizedNif,
+            context.userId,
+          );
         }
 
         const guardianName = String(payload.guardianName ?? "").trim();
         let guardianPersonId: string | null = null;
         if (guardianName) {
+          // O telefone do encarregado ia como escrito, sem normalizar.
+          const { payload: guardianPayload } = buildPersonInsert(
+            { full_name: guardianName, phone_primary: payload.guardianPhone },
+            { schoolId: membership.schoolId, userId: context.userId },
+          );
           const { data: guardianPerson, error: guardianError } = await db
             .from("people")
-            .insert({
-              school_id: membership.schoolId,
-              full_name: guardianName,
-              preferred_name: guardianName.split(/\s+/)[0],
-              phone: payload.guardianPhone || null,
-              status: "active",
-              created_by: context.userId,
-              updated_by: context.userId,
-            })
+            .insert(guardianPayload)
             .select("id")
             .single();
           // Antes o erro era ignorado e o aluno ficava sem encarregado, sem aviso.
@@ -581,37 +550,27 @@ export const decideEnrollmentApplication = createServerFn({ method: "POST" })
         // register_student cria o aluno (+ encarregado) numa transação atómica: gera o
         // número de processo por sequência própria (nunca duplica sob candidaturas
         // aceites em simultâneo) e valida a pessoa/encarregado antes de gravar.
-        const { data: registered, error: registerError } = await sgaClient(context.supabase).rpc(
-          "register_student",
-          {
-            school_id: membership.schoolId,
-            person_id: personRow.id,
-            admission_date: schoolTodayIso(),
-            guardian_person_id: guardianPersonId ?? undefined,
-            // Ver nota em students/server.ts: DEFAULT NULL na base, opcional nos tipos.
-            relationship: guardianPersonId
-              ? mapSgaGuardianRelationship(payload.guardianRelationship || "encarregado")
-              : undefined,
-            primary_guardian: Boolean(guardianPersonId),
-            financial_responsibility: Boolean(guardianPersonId),
-            pickup_authorization: true,
-          },
-        );
-        if (registerError) {
-          // A base recusa sem 2FA (private.is_aal2) ou sem permissão. Antes, este
-          // ramo repetia a escrita com a chave de serviço — contornava a recusa e
-          // o registo do encarregado. Igual a createPerson: recusar e explicar.
-          if (
-            registerError.code === "42501" ||
-            /is_aal2|autorização|permission denied/i.test(registerError.message ?? "")
-          ) {
-            throw new Error("Esta conta precisa de 2FA activo para matricular alunos.");
-          }
-          throw publicDatabaseError(registerError, "Não foi possível matricular o candidato.");
-        } else {
-          const studentOutcome = registered as { studentId: string };
-          studentId = studentOutcome.studentId;
+        const registered = await registerStudentRpc(context.supabase, {
+          schoolId: membership.schoolId,
+          personId: personRow.id,
+          admissionDate: enrolledOn,
+          guardian: guardianPersonId
+            ? {
+                personId: guardianPersonId,
+                relationship: payload.guardianRelationship || "encarregado",
+                isPrimary: true,
+              }
+            : null,
+        });
+        // A base recusa sem 2FA (private.is_aal2) ou sem permissão. Antes, este
+        // ramo repetia a escrita com a chave de serviço — contornava a recusa e
+        // o registo do encarregado. Recusar e explicar.
+        if (!registered.ok) {
+          throw rpcFailureError(registered, {
+            fallback: "Não foi possível matricular o candidato.",
+          });
         }
+        studentId = registered.value.studentId;
       } catch (error) {
         // Nada ficou registado como aluno: desfaz as pessoas novas e liberta a
         // candidatura para outra tentativa.
@@ -631,16 +590,15 @@ export const decideEnrollmentApplication = createServerFn({ method: "POST" })
         studentId,
       });
 
-      const { recordStudentStatusHistory } = await import("@/features/students/status-history");
       if (classGroup && studentId) {
         // enroll_student tranca a turma (FOR UPDATE) e valida capacidade atomicamente.
-        const { error: enrollError } = await sgaClient(context.supabase).rpc("enroll_student", {
-          school_id: membership.schoolId,
-          student_id: studentId,
-          class_group_id: classGroup.id,
-          enrolled_on: schoolTodayIso(),
+        const enrolled = await enrollStudentRpc(context.supabase, {
+          schoolId: membership.schoolId,
+          studentId,
+          classGroupId: classGroup.id,
+          enrolledOn,
         });
-        if (enrollError) {
+        if (!enrolled.ok) {
           await recordStudentStatusHistory(db, {
             schoolId: membership.schoolId,
             studentId,
@@ -651,18 +609,11 @@ export const decideEnrollmentApplication = createServerFn({ method: "POST" })
           });
           // Sem desvio pela chave de serviço: saltaria a verificação de
           // capacidade da turma que enroll_student faz sob FOR UPDATE.
-          if (
-            enrollError.code === "42501" ||
-            /is_aal2|autorização|permission denied/i.test(enrollError.message ?? "")
-          ) {
-            throw new Error(
-              "Aluno criado, mas esta conta precisa de 2FA activo para o colocar na turma.",
-            );
-          }
-          throw publicDatabaseError(
-            enrollError,
-            "Candidatura aceite e aluno criado, mas não foi possível colocá-lo na turma. Faça-o na ficha do aluno.",
-          );
+          throw rpcFailureError(enrolled, {
+            auth: "Aluno criado, mas esta conta precisa de 2FA activo para o colocar na turma.",
+            fallback:
+              "Candidatura aceite e aluno criado, mas não foi possível colocá-lo na turma. Faça-o na ficha do aluno.",
+          });
         }
       }
 

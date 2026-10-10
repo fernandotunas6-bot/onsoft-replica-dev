@@ -94,6 +94,37 @@ export const ACADEMIC_STATUS_LABELS: Record<AcademicStatus, string> = {
   locked: "Trancado",
 };
 
+/** Rótulo do estado do aluno — o mesmo no distintivo, nos filtros, na ficha e nas exportações. */
+export function academicStatusLabel(status: string | null | undefined): string {
+  if (!status) return "—";
+  return ACADEMIC_STATUS_LABELS[status as AcademicStatus] ?? status;
+}
+
+/** Estados que a secretaria escolhe à mão (ficha, lista e lote). */
+export const MANUAL_STUDENT_STATUSES = ["active", "inactive", "transferred", "graduated"] as const;
+export type ManualStudentStatus = (typeof MANUAL_STUDENT_STATUSES)[number];
+
+/** Opções `{ value, label }` para os formulários de mudança de estado. */
+export function studentStatusChoices(extra: AcademicStatus[] = []) {
+  return [...MANUAL_STUDENT_STATUSES, ...extra].map((value) => ({
+    value,
+    label: ACADEMIC_STATUS_LABELS[value],
+  }));
+}
+
+export const ENROLLMENT_STATUS_LABELS: Record<string, string> = {
+  pending: "Pendente",
+  active: "Activa",
+  transferred: "Transferida",
+  completed: "Concluída",
+  cancelled: "Anulada",
+};
+
+export function enrollmentStatusLabel(status: string | null | undefined): string {
+  if (!status) return "Sem matrícula";
+  return ENROLLMENT_STATUS_LABELS[status] ?? status;
+}
+
 export const FINANCIAL_STATUS_LABELS: Record<FinancialStatus, string> = {
   settled: "Regularizado",
   pending: "Pendente",

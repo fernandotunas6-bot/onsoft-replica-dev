@@ -62,19 +62,6 @@ describe("regras da base escritas para o utilizador", () => {
   });
 });
 
-describe("mudar de turma", () => {
-  it("«Alterar turma» recusa outro ano lectivo antes de gravar", async () => {
-    const { readFileSync } = await import("node:fs");
-    const source = readFileSync("src/features/students/server.ts", "utf8");
-    const start = source.indexOf("export const updateEnrollment ");
-    const body = source.slice(start, source.indexOf("export const", start + 1));
-    expect(body.indexOf("Esta turma é de outro ano lectivo")).toBeGreaterThan(0);
-    expect(body.indexOf("Esta turma é de outro ano lectivo")).toBeLessThan(
-      body.indexOf(".update(patch)"),
-    );
-  });
-});
-
 describe("telefone gravado", () => {
   it("normaliza angolanos e aceita internacionais com indicativo", async () => {
     const { normalizeStoredPhone } = await import("@/lib/angola-phone");

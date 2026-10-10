@@ -23,8 +23,8 @@ describe("aceitar candidatura: sem alunos duplicados nem pessoas órfãs", () =>
     expect(decide).toContain("decided_at.is.null,decided_at.lt.");
   });
 
-  it("valida a turma antes de criar o aluno", () => {
-    expect(at('.from("class_groups")')).toBeLessThan(at(".insert(personPayload)"));
+  it("valida a turma (activa, ano activo, data, lotação) antes de criar o aluno", () => {
+    expect(at("assertClassAcceptsEnrollment(db")).toBeLessThan(at(".insert(personPayload)"));
   });
 
   it("reaproveita a pessoa do mesmo BI e recusa um segundo aluno", () => {
@@ -43,7 +43,7 @@ describe("aceitar candidatura: sem alunos duplicados nem pessoas órfãs", () =>
   });
 
   it("marca a candidatura aceite antes de colocar na turma", () => {
-    expect(at('decision: "accepted",')).toBeLessThan(at('rpc("enroll_student"'));
+    expect(at('decision: "accepted",')).toBeLessThan(at("enrollStudentRpc(context.supabase"));
   });
 
   it("só quem reservou fecha a candidatura", () => {

@@ -85,6 +85,7 @@ import { SchoolNowWidget } from "@/features/academic/components/SchoolNowWidget"
 import { getSigaNavDocUrl } from "@/lib/ecosystem-urls";
 import { toast } from "sonner";
 import { warmPedagogicaCharts } from "@/lib/warm-charts";
+import { optionLabel, resolveOptionId } from "@/lib/option-label";
 
 const PedagogicaNotasCharts = lazy(() =>
   import("@/features/academic/PedagogicaNotasCharts").then((module) => ({
@@ -165,15 +166,6 @@ const shiftLabels = {
   afternoon: "Tarde",
   evening: "Noite",
 } as const;
-
-function optionLabel(id: string, label: string) {
-  return `${label} · ${id.slice(0, 8)}`;
-}
-
-function resolveOptionId(options: string[], selected: string | undefined, ids: string[]) {
-  const index = options.indexOf(selected ?? "");
-  return index >= 0 ? ids[index] : undefined;
-}
 
 function PedagogicaPage() {
   const navigate = useNavigate({ from: "/pedagogica" });
