@@ -9,11 +9,7 @@ import {
   subjectIdsForTeacherAssignment,
   type TeacherAssignmentLink,
 } from "@/features/pedagogica/teacher-assignment";
-
-function resolveOptionId(options: string[], selected: string | undefined, ids: string[]) {
-  const index = options.indexOf(selected ?? "");
-  return index >= 0 ? ids[index] : undefined;
-}
+import { resolveOptionId } from "@/lib/option-label";
 
 export function AssignTeacherForm({
   turmaOptions,

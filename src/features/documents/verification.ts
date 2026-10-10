@@ -15,7 +15,11 @@ import { getRequestIP } from "@tanstack/react-start/server";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { publicDatabaseError } from "@/integrations/supabase/server-error";
-import { loadSgaAdminClient, resolveSgaMembershipAdmin } from "@/integrations/supabase/sga-admin";
+import {
+  assertTenantAllowsWrites,
+  loadSgaAdminClient,
+  resolveSgaMembershipAdmin,
+} from "@/integrations/supabase/sga-admin";
 import { checkRateLimit, isRateLimitBypassed, recordRateLimitAttempt } from "@/lib/rate-limit";
 import { consumeRateLimit } from "@/lib/shared-rate-limit";
 import { isPrintTemplateKey, type PrintTemplateKey } from "./print-catalog";
@@ -126,6 +130,9 @@ export const registerIssuedDocument = createServerFn({ method: "POST" })
           : "Este documento é emitido pela Secretaria ou pela Direcção.",
       );
     }
+    // Escola bloqueada não emite documentos oficiais (auditoria 13, A1). Sem o guarda do
+    // módulo «pessoas»: os recibos são da Tesouraria, que pode não ter esse módulo.
+    await assertTenantAllowsWrites(membership.schoolId);
     const rateLimitKey = `document_issue:${context.userId}`;
     if (!isRateLimitBypassed(rateLimitKey)) {
       if (!checkRateLimit([rateLimitKey], ISSUE_RATE_LIMIT)) {

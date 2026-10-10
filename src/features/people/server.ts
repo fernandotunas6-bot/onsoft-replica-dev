@@ -7,9 +7,13 @@ import {
   loadHiddenTeachers,
   seesAllTeacherContacts,
 } from "./teacher-contact-visibility";
-import { sgaClient } from "@/integrations/supabase/sga";
+import { rpcArgs, sgaClient } from "@/integrations/supabase/sga";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { publicDatabaseError } from "@/integrations/supabase/server-error";
+import {
+  isMissingFunction,
+  isRpcAuthDenied,
+  publicDatabaseError,
+} from "@/integrations/supabase/server-error";
 import { reportSigaError } from "@/lib/ops-report";
 import {
   loadSgaAdminClient,
@@ -39,18 +43,10 @@ import {
   personRoleOptions,
 } from "./schemas";
 import { isAngolaBiNif, normalizePersonNif } from "@/lib/angola-identity";
+import { buildPersonInsert, isMissingPeopleGeography } from "./person-fields";
+import { syncBiDocumentFromNif } from "./bi-document";
+import { insertTeacherWithNextNumber, isTeacherNumberTaken } from "./teacher-number";
 import { schoolTodayIso } from "@/lib/school-date";
-import {
-  IDENTIFIER_POLICIES,
-  insertWithSequentialCode,
-} from "@/features/education-catalog/identifiers";
-
-function mapSex(sex: string | undefined) {
-  if (!sex) return null;
-  if (sex === "M") return "male";
-  if (sex === "F") return "female";
-  return sex;
-}
 
 type AdminDb = Awaited<ReturnType<typeof loadSgaAdminClient>>;
 
@@ -105,49 +101,8 @@ async function insertPersonDocuments(
   }
 }
 
-async function syncBiDocumentFromNif(
-  db: AdminDb,
-  schoolId: string,
-  personId: string,
-  nif: string | null | undefined,
-  userId: string,
-) {
-  if (!isAngolaBiNif(nif)) return;
-  const compact = normalizePersonNif(nif);
-  if (!compact) return;
-  const { data: existing } = await db
-    .from("person_documents")
-    .select("id")
-    .eq("school_id", schoolId)
-    .eq("person_id", personId)
-    .eq("document_type", "bi")
-    .eq("document_number", compact)
-    .is("deleted_at", null)
-    .maybeSingle();
-  if (existing?.id) return;
-  const { error } = await db.from("person_documents").insert({
-    school_id: schoolId,
-    person_id: personId,
-    document_type: "bi",
-    document_number: compact,
-    created_by: userId,
-    updated_by: userId,
-  });
-  if (error && !/duplicate|unique|23505/i.test(error.message)) {
-    throw publicDatabaseError(error, "Não foi possível sincronizar o BI.");
-  }
-}
-
 function normalizePhone(value: string | null | undefined) {
   return (value ?? "").replace(/\D/g, "");
-}
-
-function isMissingPeopleGeography(error: { message?: string; code?: string } | null | undefined) {
-  return Boolean(
-    error &&
-    (/province|municipality|commune|address|42703|schema cache/i.test(error.message ?? "") ||
-      error.code === "42703"),
-  );
 }
 
 function isMissingPersonRoles(error: { message?: string; code?: string } | null | undefined) {
@@ -583,35 +538,10 @@ export const createPerson = createServerFn({ method: "POST" })
     const personInput = data.person;
     const roles = data.roles ?? [];
 
-    const normalizedNif = normalizePersonNif(personInput.nif);
-    const personPayload: TablesInsert<"people"> = {
-      school_id: membership.schoolId,
-      full_name: personInput.full_name,
-      preferred_name:
-        personInput.preferred_name ||
-        personInput.first_name ||
-        personInput.full_name.split(/\s+/)[0],
-      email: personInput.email || null,
-      phone: normalizePersonPhone(personInput.phone_primary),
-      national_id: normalizedNif,
-      date_of_birth: personInput.birth_date || null,
-      sex: mapSex(personInput.sex),
-      status: "active",
-      created_by: context.userId,
-      updated_by: context.userId,
-    };
-    const hasGeography = Boolean(
-      personInput.province ||
-      personInput.municipality ||
-      personInput.commune ||
-      personInput.address,
-    );
-    if (hasGeography) {
-      personPayload["province"] = personInput.province || null;
-      personPayload["municipality"] = personInput.municipality || null;
-      personPayload["commune"] = personInput.commune || null;
-      personPayload["address"] = personInput.address || null;
-    }
+    const { payload: personPayload } = buildPersonInsert(personInput, {
+      schoolId: membership.schoolId,
+      userId: context.userId,
+    });
 
     const firstRelationship = data.relationships[0];
     const { data: result, error } = await context.supabase.rpc("siga_create_person_bundle", {
@@ -665,262 +595,30 @@ export const mergePeople = createServerFn({ method: "POST" })
     requireAal2(context.claims, "Fundir fichas de pessoas");
     const db = await loadSgaAdminClient();
 
-    const { data: people, error } = await db
-      .from("people")
-      .select("id, full_name, email, phone, national_id, date_of_birth, status, user_id")
-      .eq("school_id", membership.schoolId)
-      .in("id", [data.survivorId, data.duplicateId]);
-    if (error) throw publicDatabaseError(error, "Não foi possível carregar as pessoas.");
-    const survivor = (people ?? []).find((row) => row.id === data.survivorId);
-    const duplicate = (people ?? []).find((row) => row.id === data.duplicateId);
-    if (!survivor || !duplicate) throw new Error("Uma das pessoas não existe nesta escola.");
-    if (survivor.user_id && duplicate.user_id && survivor.user_id !== duplicate.user_id) {
-      throw new Error(
-        "As duas fichas têm contas de acesso diferentes. Não é seguro fundi-las — desactive o duplicado.",
-      );
-    }
-
-    const [{ data: students }, { data: teachers }] = await Promise.all([
-      db
-        .from("students")
-        .select("id, person_id")
-        .eq("school_id", membership.schoolId)
-        .in("person_id", [data.survivorId, data.duplicateId]),
-      db
-        .from("teachers")
-        .select("id, person_id")
-        .eq("school_id", membership.schoolId)
-        .in("person_id", [data.survivorId, data.duplicateId]),
-    ]);
-
-    const survivorStudents = (students ?? []).filter((row) => row.person_id === data.survivorId);
-    const duplicateStudents = (students ?? []).filter((row) => row.person_id === data.duplicateId);
-    if (survivorStudents.length && duplicateStudents.length) {
-      throw new Error(
-        "As duas fichas têm matrícula de aluno. Não é seguro fundi-las — desactive o duplicado.",
-      );
-    }
-    const { data: employments, error: employmentsError } = await db
-      .from("hr_employments")
-      .select("id, person_id")
-      .eq("school_id", membership.schoolId)
-      .in("person_id", [data.survivorId, data.duplicateId])
-      .is("deleted_at", null);
-    if (employmentsError) {
-      throw publicDatabaseError(
-        employmentsError,
-        "Não foi possível verificar os vínculos laborais.",
-      );
-    }
-    const employmentOwners = new Set((employments ?? []).map((row) => String(row.person_id)));
-    if (employmentOwners.size > 1) {
-      throw new Error(
-        "As duas fichas têm vínculo laboral (RH). Não é seguro fundi-las — desactive o duplicado.",
-      );
-    }
-    const survivorTeachers = (teachers ?? []).filter((row) => row.person_id === data.survivorId);
-    const duplicateTeachers = (teachers ?? []).filter((row) => row.person_id === data.duplicateId);
-    if (survivorTeachers.length && duplicateTeachers.length) {
-      throw new Error(
-        "As duas fichas têm registo de professor. Não é seguro fundi-las — desactive o duplicado.",
-      );
-    }
-
-    if (duplicateStudents.length) {
-      const { error: studentError } = await db
-        .from("students")
-        .update({ person_id: data.survivorId, updated_by: context.userId })
-        .in(
-          "id",
-          duplicateStudents.map((row) => row.id),
-        );
-      if (studentError) {
-        throw publicDatabaseError(
-          studentError,
-          "Não foi possível transferir a matrícula de aluno.",
-        );
-      }
-    }
-    if (duplicateTeachers.length) {
-      const { error: teacherError } = await db
-        .from("teachers")
-        .update({ person_id: data.survivorId, updated_by: context.userId })
-        .in(
-          "id",
-          duplicateTeachers.map((row) => row.id),
-        );
-      if (teacherError) {
-        throw publicDatabaseError(
-          teacherError,
-          "Não foi possível transferir o registo de professor.",
-        );
-      }
-    }
-
-    // Tudo o que aponta para o duplicado passa para a ficha que fica: sem isto,
-    // o encarregado fundido perdia os educandos no portal, e documentos, cartões
-    // de acesso e vínculos de RH ficavam presos a uma ficha desactivada.
-    const moves = await Promise.all([
-      db
-        .from("person_documents")
-        .update({ person_id: data.survivorId, updated_by: context.userId })
-        .eq("school_id", membership.schoolId)
-        .eq("person_id", data.duplicateId),
-      db
-        .from("siga_access_cards")
-        .update({ person_id: data.survivorId })
-        .eq("school_id", membership.schoolId)
-        .eq("person_id", data.duplicateId),
-      db
-        .from("hr_employments")
-        .update({ person_id: data.survivorId, updated_by: context.userId })
-        .eq("school_id", membership.schoolId)
-        .eq("person_id", data.duplicateId),
-    ]);
-    const moveError = moves.find((result) => result.error)?.error;
-    if (moveError) {
-      throw publicDatabaseError(
-        moveError,
-        "Não foi possível transferir documentos, cartões ou vínculo laboral.",
-      );
-    }
-
-    const { data: guardianLinks, error: guardianError } = await db
-      .from("student_guardians")
-      .select("id, student_id, guardian_person_id")
-      .eq("school_id", membership.schoolId)
-      .in("guardian_person_id", [data.survivorId, data.duplicateId]);
-    if (guardianError) {
-      throw publicDatabaseError(guardianError, "Não foi possível carregar os educandos.");
-    }
-    const survivorWards = new Set(
-      (guardianLinks ?? [])
-        .filter((row) => row.guardian_person_id === data.survivorId)
-        .map((row) => String(row.student_id)),
+    // Numa só transacção (private.merge_people, migração 20261010110000): tudo ou
+    // nada. Antes de a migração ser aplicada, segue o caminho em passos, abaixo.
+    const { error: rpcError } = await db.rpc(
+      "siga_merge_people" as never,
+      {
+        p_school_id: membership.schoolId,
+        p_survivor_id: data.survivorId,
+        p_duplicate_id: data.duplicateId,
+        p_reason: data.reason,
+        p_actor: context.userId,
+      } as never,
     );
-    const duplicateLinks = (guardianLinks ?? []).filter(
-      (row) => row.guardian_person_id === data.duplicateId,
-    );
-    const linksToMove = duplicateLinks
-      .filter((row) => !survivorWards.has(String(row.student_id)))
-      .map((row) => String(row.id));
-    // Mesmo educando já ligado à ficha que fica: a ligação do duplicado é repetida.
-    const redundantLinks = duplicateLinks
-      .filter((row) => survivorWards.has(String(row.student_id)))
-      .map((row) => String(row.id));
-    if (linksToMove.length) {
-      const { error } = await db
-        .from("student_guardians")
-        .update({ guardian_person_id: data.survivorId })
-        .eq("school_id", membership.schoolId)
-        .in("id", linksToMove);
-      if (error) throw publicDatabaseError(error, "Não foi possível transferir os educandos.");
+    if (rpcError && !isMissingFunction(rpcError)) {
+      throw publicDatabaseError(rpcError, "Não foi possível fundir as fichas.");
     }
-    if (redundantLinks.length) {
-      const { error } = await db
-        .from("student_guardians")
-        .delete()
-        .eq("school_id", membership.schoolId)
-        .in("id", redundantLinks);
-      if (error) throw publicDatabaseError(error, "Não foi possível transferir os educandos.");
-    }
-
-    const { data: roleRows, error: rolesError } = await db
-      .from("person_roles")
-      .select("id, person_id, role")
-      .eq("school_id", membership.schoolId)
-      .in("person_id", [data.survivorId, data.duplicateId])
-      .is("deleted_at", null);
-    if (rolesError) throw publicDatabaseError(rolesError, "Não foi possível carregar os papéis.");
-    const survivorRoles = new Set(
-      (roleRows ?? [])
-        .filter((row) => row.person_id === data.survivorId)
-        .map((row) => String(row.role)),
-    );
-    const rolesToMove = (roleRows ?? [])
-      .filter((row) => row.person_id === data.duplicateId && !survivorRoles.has(String(row.role)))
-      .map((row) => String(row.id));
-    if (rolesToMove.length) {
-      const { error } = await db
-        .from("person_roles")
-        .update({ person_id: data.survivorId, updated_by: context.userId })
-        .eq("school_id", membership.schoolId)
-        .in("id", rolesToMove);
-      if (error) throw publicDatabaseError(error, "Não foi possível transferir os papéis.");
-    }
-
-    const survivorPatch: TablesUpdate<"people"> = { updated_by: context.userId };
-    // A conta de acesso do duplicado passa para a ficha que fica.
-    const moveLogin = Boolean(duplicate.user_id && !survivor.user_id);
-    if (moveLogin) survivorPatch["user_id"] = duplicate.user_id;
-    if (!survivor["email"] && duplicate["email"]) survivorPatch["email"] = duplicate["email"];
-    if (!survivor["phone"] && duplicate["phone"]) survivorPatch["phone"] = duplicate["phone"];
-    if (!survivor["national_id"] && duplicate["national_id"]) {
-      survivorPatch["national_id"] = duplicate["national_id"];
-    }
-    if (!survivor["date_of_birth"] && duplicate["date_of_birth"]) {
-      survivorPatch["date_of_birth"] = duplicate["date_of_birth"];
-    }
-
-    // Clear unique contact fields on the duplicate first so the survivor update
-    // does not collide with school-level unique indexes (email / NIF / phone).
-    const duplicateClear: TablesUpdate<"people"> = {
-      updated_by: context.userId,
-      status: "inactive",
-    };
-    if (survivorPatch["email"]) duplicateClear["email"] = null;
-    if (survivorPatch["phone"]) duplicateClear["phone"] = null;
-    if (survivorPatch["national_id"]) duplicateClear["national_id"] = null;
-    if (moveLogin) duplicateClear["user_id"] = null;
-
-    let duplicateError = (
-      await db
-        .from("people")
-        .update(duplicateClear)
-        .eq("id", data.duplicateId)
-        .eq("school_id", membership.schoolId)
-    ).error;
-    if (duplicateError) {
-      duplicateError = (
-        await db
-          .from("people")
-          .update({ ...duplicateClear, status: "archived" })
-          .eq("id", data.duplicateId)
-          .eq("school_id", membership.schoolId)
-      ).error;
-    }
-    if (duplicateError) {
-      throw publicDatabaseError(duplicateError, "Não foi possível desactivar o duplicado.");
-    }
-
-    const { error: survivorError } = await db
-      .from("people")
-      .update(survivorPatch)
-      .eq("id", data.survivorId)
-      .eq("school_id", membership.schoolId);
-    if (survivorError) {
-      throw publicDatabaseError(survivorError, "Não foi possível actualizar a ficha sobrevivente.");
-    }
-
-    const { error: auditError } = await db.from("audit_logs").insert({
-      school_id: membership.schoolId,
-      actor_user_id: context.userId,
-      action: "people.merged",
-      entity_type: "person",
-      entity_id: data.survivorId,
-      metadata: {
-        duplicate_id: data.duplicateId,
+    if (rpcError) {
+      await mergePeopleInSteps(db, {
+        schoolId: membership.schoolId,
+        survivorId: data.survivorId,
+        duplicateId: data.duplicateId,
         reason: data.reason,
-        moved_guardian_links: linksToMove.length,
-        removed_redundant_guardian_links: redundantLinks.length,
-        moved_login: moveLogin,
-      },
-    });
-    if (auditError)
-      reportSigaError("people.merge.audit_failed", auditError, {
-        school_id: membership.schoolId,
-        survivor_id: data.survivorId,
+        userId: context.userId,
       });
+    }
 
     return {
       survivorId: data.survivorId,
@@ -928,6 +626,289 @@ export const mergePeople = createServerFn({ method: "POST" })
       reason: data.reason,
     };
   });
+
+/**
+ * A fusão em passos soltos, para a base sem `private.merge_people` (migração
+ * 20261010110000 por aplicar). Uma falha a meio deixa a fusão parcial; sai quando a
+ * migração estiver aplicada.
+ */
+async function mergePeopleInSteps(
+  db: AdminDb,
+  input: {
+    schoolId: string;
+    survivorId: string;
+    duplicateId: string;
+    reason: string;
+    userId: string;
+  },
+) {
+  const { data: people, error } = await db
+    .from("people")
+    .select("id, full_name, email, phone, national_id, date_of_birth, status, user_id")
+    .eq("school_id", input.schoolId)
+    .in("id", [input.survivorId, input.duplicateId]);
+  if (error) throw publicDatabaseError(error, "Não foi possível carregar as pessoas.");
+  const survivor = (people ?? []).find((row) => row.id === input.survivorId);
+  const duplicate = (people ?? []).find((row) => row.id === input.duplicateId);
+  if (!survivor || !duplicate) throw new Error("Uma das pessoas não existe nesta escola.");
+  if (survivor.user_id && duplicate.user_id && survivor.user_id !== duplicate.user_id) {
+    throw new Error(
+      "As duas fichas têm contas de acesso diferentes. Não é seguro fundi-las — desactive o duplicado.",
+    );
+  }
+
+  const [{ data: students }, { data: teachers }] = await Promise.all([
+    db
+      .from("students")
+      .select("id, person_id")
+      .eq("school_id", input.schoolId)
+      .in("person_id", [input.survivorId, input.duplicateId]),
+    db
+      .from("teachers")
+      .select("id, person_id")
+      .eq("school_id", input.schoolId)
+      .in("person_id", [input.survivorId, input.duplicateId]),
+  ]);
+
+  const survivorStudents = (students ?? []).filter((row) => row.person_id === input.survivorId);
+  const duplicateStudents = (students ?? []).filter((row) => row.person_id === input.duplicateId);
+  if (survivorStudents.length && duplicateStudents.length) {
+    throw new Error(
+      "As duas fichas têm matrícula de aluno. Não é seguro fundi-las — desactive o duplicado.",
+    );
+  }
+  const { data: employments, error: employmentsError } = await db
+    .from("hr_employments")
+    .select("id, person_id")
+    .eq("school_id", input.schoolId)
+    .in("person_id", [input.survivorId, input.duplicateId])
+    .is("deleted_at", null);
+  if (employmentsError) {
+    throw publicDatabaseError(employmentsError, "Não foi possível verificar os vínculos laborais.");
+  }
+  const employmentOwners = new Set((employments ?? []).map((row) => String(row.person_id)));
+  if (employmentOwners.size > 1) {
+    throw new Error(
+      "As duas fichas têm vínculo laboral (RH). Não é seguro fundi-las — desactive o duplicado.",
+    );
+  }
+  const survivorTeachers = (teachers ?? []).filter((row) => row.person_id === input.survivorId);
+  const duplicateTeachers = (teachers ?? []).filter((row) => row.person_id === input.duplicateId);
+  if (survivorTeachers.length && duplicateTeachers.length) {
+    throw new Error(
+      "As duas fichas têm registo de professor. Não é seguro fundi-las — desactive o duplicado.",
+    );
+  }
+
+  if (duplicateStudents.length) {
+    const { error: studentError } = await db
+      .from("students")
+      .update({ person_id: input.survivorId, updated_by: input.userId })
+      .in(
+        "id",
+        duplicateStudents.map((row) => row.id),
+      );
+    if (studentError) {
+      throw publicDatabaseError(studentError, "Não foi possível transferir a matrícula de aluno.");
+    }
+  }
+  if (duplicateTeachers.length) {
+    const { error: teacherError } = await db
+      .from("teachers")
+      .update({ person_id: input.survivorId, updated_by: input.userId })
+      .in(
+        "id",
+        duplicateTeachers.map((row) => row.id),
+      );
+    if (teacherError) {
+      throw publicDatabaseError(
+        teacherError,
+        "Não foi possível transferir o registo de professor.",
+      );
+    }
+  }
+
+  // Tudo o que aponta para o duplicado passa para a ficha que fica: sem isto,
+  // o encarregado fundido perdia os educandos no portal, e documentos, cartões
+  // de acesso e vínculos de RH ficavam presos a uma ficha desactivada.
+  const moves = await Promise.all([
+    db
+      .from("person_documents")
+      .update({ person_id: input.survivorId, updated_by: input.userId })
+      .eq("school_id", input.schoolId)
+      .eq("person_id", input.duplicateId),
+    db
+      .from("siga_access_cards")
+      .update({ person_id: input.survivorId })
+      .eq("school_id", input.schoolId)
+      .eq("person_id", input.duplicateId),
+    db
+      .from("hr_employments")
+      .update({ person_id: input.survivorId, updated_by: input.userId })
+      .eq("school_id", input.schoolId)
+      .eq("person_id", input.duplicateId),
+  ]);
+  const moveError = moves.find((result) => result.error)?.error;
+  if (moveError) {
+    throw publicDatabaseError(
+      moveError,
+      "Não foi possível transferir documentos, cartões ou vínculo laboral.",
+    );
+  }
+
+  const { data: guardianLinks, error: guardianError } = await db
+    .from("student_guardians")
+    .select("id, student_id, guardian_person_id")
+    .eq("school_id", input.schoolId)
+    .in("guardian_person_id", [input.survivorId, input.duplicateId]);
+  if (guardianError) {
+    throw publicDatabaseError(guardianError, "Não foi possível carregar os educandos.");
+  }
+  const survivorWards = new Set(
+    (guardianLinks ?? [])
+      .filter((row) => row.guardian_person_id === input.survivorId)
+      .map((row) => String(row.student_id)),
+  );
+  const duplicateLinks = (guardianLinks ?? []).filter(
+    (row) => row.guardian_person_id === input.duplicateId,
+  );
+  const linksToMove = duplicateLinks
+    .filter((row) => !survivorWards.has(String(row.student_id)))
+    .map((row) => String(row.id));
+  // Mesmo educando já ligado à ficha que fica: a ligação do duplicado é repetida.
+  const redundantLinks = duplicateLinks
+    .filter((row) => survivorWards.has(String(row.student_id)))
+    .map((row) => String(row.id));
+  if (linksToMove.length) {
+    const { error } = await db
+      .from("student_guardians")
+      .update({ guardian_person_id: input.survivorId })
+      .eq("school_id", input.schoolId)
+      .in("id", linksToMove);
+    if (error) throw publicDatabaseError(error, "Não foi possível transferir os educandos.");
+  }
+  if (redundantLinks.length) {
+    const { error } = await db
+      .from("student_guardians")
+      .delete()
+      .eq("school_id", input.schoolId)
+      .in("id", redundantLinks);
+    if (error) throw publicDatabaseError(error, "Não foi possível transferir os educandos.");
+  }
+
+  const { data: roleRows, error: rolesError } = await db
+    .from("person_roles")
+    .select("id, person_id, role")
+    .eq("school_id", input.schoolId)
+    .in("person_id", [input.survivorId, input.duplicateId])
+    .is("deleted_at", null);
+  if (rolesError) throw publicDatabaseError(rolesError, "Não foi possível carregar os papéis.");
+  const survivorRoles = new Set(
+    (roleRows ?? [])
+      .filter((row) => row.person_id === input.survivorId)
+      .map((row) => String(row.role)),
+  );
+  const rolesToMove = (roleRows ?? [])
+    .filter((row) => row.person_id === input.duplicateId && !survivorRoles.has(String(row.role)))
+    .map((row) => String(row.id));
+  if (rolesToMove.length) {
+    const { error } = await db
+      .from("person_roles")
+      .update({ person_id: input.survivorId, updated_by: input.userId })
+      .eq("school_id", input.schoolId)
+      .in("id", rolesToMove);
+    if (error) throw publicDatabaseError(error, "Não foi possível transferir os papéis.");
+  }
+
+  const survivorPatch: TablesUpdate<"people"> = { updated_by: input.userId };
+  // A conta de acesso do duplicado passa para a ficha que fica.
+  const moveLogin = Boolean(duplicate.user_id && !survivor.user_id);
+  if (moveLogin) survivorPatch["user_id"] = duplicate.user_id;
+  if (!survivor["email"] && duplicate["email"]) survivorPatch["email"] = duplicate["email"];
+  if (!survivor["phone"] && duplicate["phone"]) survivorPatch["phone"] = duplicate["phone"];
+  if (!survivor["national_id"] && duplicate["national_id"]) {
+    survivorPatch["national_id"] = duplicate["national_id"];
+  }
+  if (!survivor["date_of_birth"] && duplicate["date_of_birth"]) {
+    survivorPatch["date_of_birth"] = duplicate["date_of_birth"];
+  }
+
+  // Clear unique contact fields on the duplicate first so the survivor update
+  // does not collide with school-level unique indexes (email / NIF / phone).
+  const duplicateClear: TablesUpdate<"people"> = {
+    updated_by: input.userId,
+    status: "inactive",
+  };
+  if (survivorPatch["email"]) duplicateClear["email"] = null;
+  if (survivorPatch["phone"]) duplicateClear["phone"] = null;
+  if (survivorPatch["national_id"]) duplicateClear["national_id"] = null;
+  if (moveLogin) duplicateClear["user_id"] = null;
+
+  let duplicateError = (
+    await db
+      .from("people")
+      .update(duplicateClear)
+      .eq("id", input.duplicateId)
+      .eq("school_id", input.schoolId)
+  ).error;
+  if (duplicateError) {
+    duplicateError = (
+      await db
+        .from("people")
+        .update({ ...duplicateClear, status: "archived" })
+        .eq("id", input.duplicateId)
+        .eq("school_id", input.schoolId)
+    ).error;
+  }
+  if (duplicateError) {
+    throw publicDatabaseError(duplicateError, "Não foi possível desactivar o duplicado.");
+  }
+
+  const { error: survivorError } = await db
+    .from("people")
+    .update(survivorPatch)
+    .eq("id", input.survivorId)
+    .eq("school_id", input.schoolId);
+  if (survivorError) {
+    throw publicDatabaseError(survivorError, "Não foi possível actualizar a ficha sobrevivente.");
+  }
+  // A conta passa também para o registo de professor da ficha que fica: os ecrãs
+  // procuram o professor por `teachers.user_id` e a base (current_teacher_id) pela pessoa.
+  if (moveLogin) {
+    const { error: teacherLoginError } = await db
+      .from("teachers")
+      .update({ user_id: duplicate.user_id, updated_by: input.userId })
+      .eq("school_id", input.schoolId)
+      .eq("person_id", input.survivorId)
+      .is("user_id", null);
+    if (teacherLoginError) {
+      throw publicDatabaseError(
+        teacherLoginError,
+        "Fichas fundidas, mas a conta não ficou ligada ao professor.",
+      );
+    }
+  }
+
+  const { error: auditError } = await db.from("audit_logs").insert({
+    school_id: input.schoolId,
+    actor_user_id: input.userId,
+    action: "people.merged",
+    entity_type: "person",
+    entity_id: input.survivorId,
+    metadata: {
+      duplicate_id: input.duplicateId,
+      reason: input.reason,
+      moved_guardian_links: linksToMove.length,
+      removed_redundant_guardian_links: redundantLinks.length,
+      moved_login: moveLogin,
+    },
+  });
+  if (auditError)
+    reportSigaError("people.merge.audit_failed", auditError, {
+      school_id: input.schoolId,
+      survivor_id: input.survivorId,
+    });
+}
 
 export const listStaffDirectory = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
@@ -1060,25 +1041,6 @@ export const listTeachers = createServerFn({ method: "GET" })
   });
 
 /** Número de professor automático: «DOC-000001» (IDENTIFIER_POLICIES.teacher). */
-const teacherNumberPolicy = {
-  prefix: IDENTIFIER_POLICIES.teacher.prefix,
-  padding: IDENTIFIER_POLICIES.teacher.padding,
-  constraint: "teachers_school_id_employee_number_key",
-};
-
-async function loadTeacherNumbers(
-  db: Awaited<ReturnType<typeof loadSgaAdminClient>>,
-  schoolId: string,
-) {
-  const { data, error } = await db
-    .from("teachers")
-    .select("employee_number")
-    .eq("school_id", schoolId)
-    .ilike("employee_number", `${IDENTIFIER_POLICIES.teacher.prefix}-%`);
-  if (error) throw publicDatabaseError(error, "Não foi possível numerar o professor.");
-  return (data ?? []).map((row) => String(row.employee_number ?? ""));
-}
-
 export const createTeacher = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((input: unknown) => createTeacherInputSchema.parse(input))
@@ -1088,6 +1050,8 @@ export const createTeacher = createServerFn({ method: "POST" })
       "Administrador",
       "Secretaria",
     ]);
+    // register_teacher exige 2FA: verificado antes de criar a pessoa, para não a deixar solta.
+    requireAal2(context.claims, "Cadastrar o professor");
     const db = await loadSgaAdminClient();
 
     const { data: person, error: personError } = await db
@@ -1106,32 +1070,90 @@ export const createTeacher = createServerFn({ method: "POST" })
       .single();
     if (personError) throw publicDatabaseError(personError, "Não foi possível criar a pessoa.");
 
-    const insertTeacher = (employeeNumber: string) =>
+    const discardPerson = () =>
       db
+        .from("people")
+        .update({ deleted_at: new Date().toISOString(), updated_by: context.userId })
+        .eq("id", person.id)
+        .eq("school_id", membership.schoolId);
+    // A RPC compara com a data do servidor (UTC); entre a meia-noite de Luanda e a de
+    // UTC, «hoje» na escola ainda é amanhã para ela.
+    const hiredOn =
+      data.hiredOn || [schoolTodayIso(), schoolTodayIso(new Date(), "UTC")].sort()[0]!;
+
+    let teacherId: string | null = null;
+    let failure: { code?: string; message?: string } | null = null;
+    // Número de register_teacher (auditoria 14, P3): sequência da escola, nunca abaixo
+    // do maior número existente (migração 20261010110000).
+    const registered = await sgaClient(context.supabase).rpc(
+      "register_teacher",
+      rpcArgs("register_teacher", {
+        school_id: membership.schoolId,
+        person_id: person.id,
+        hired_on: hiredOn,
+        employment_type: "permanent",
+        highest_qualification: "bachelor",
+        subject_ids: [],
+      }),
+    );
+    if (!registered.error) {
+      teacherId = String((registered.data as { teacherId?: string } | null)?.teacherId ?? "");
+    } else if (isTeacherNumberTaken(registered.error)) {
+      // Base sem a 20261010110000: a sequência começa em DOC-000001, que já existe.
+      // Numera aqui, com a mesma regra (maior + 1), até a migração ser aplicada.
+      const inserted = await insertTeacherWithNextNumber(db, membership.schoolId, (number) =>
+        db
+          .from("teachers")
+          .insert({
+            school_id: membership.schoolId,
+            person_id: person.id,
+            employee_number: number,
+            hired_on: hiredOn,
+            employment_type: "permanent",
+            highest_qualification: "bachelor",
+            status: "active",
+            created_by: context.userId,
+            updated_by: context.userId,
+          })
+          .select("id")
+          .single(),
+      );
+      teacherId = inserted.data ? String(inserted.data.id) : null;
+      failure = inserted.error;
+    } else {
+      failure = registered.error;
+    }
+    if (!teacherId) {
+      // A pessoa foi criada só para este professor: sem ele, sai (antes ficava uma
+      // ficha solta a cada tentativa falhada, e a seguinte duplicava-a).
+      await discardPerson();
+      if (failure && isRpcAuthDenied(failure)) {
+        throw new Error("Esta conta precisa de 2FA activo e de permissão para cadastrar docentes.");
+      }
+      throw publicDatabaseError(failure ?? {}, "Não foi possível criar o professor.");
+    }
+
+    // Número escrito à mão: substitui o gerado.
+    if (data.employeeNumber) {
+      const { error: numberError } = await db
         .from("teachers")
-        .insert({
-          school_id: membership.schoolId,
-          person_id: person.id,
-          employee_number: employeeNumber,
-          hired_on: data.hiredOn || schoolTodayIso(),
-          employment_type: "permanent",
-          highest_qualification: "bachelor",
-          status: "active",
-          created_by: context.userId,
-          updated_by: context.userId,
-        })
-        .select("*")
-        .single();
-    // Número escrito pela escola: grava-se tal e qual. Automático: o seguinte ao
-    // maior «DOC-n» (a contagem repetia números e a criação falhava).
-    const { data: teacher, error } = data.employeeNumber
-      ? await insertTeacher(data.employeeNumber)
-      : await insertWithSequentialCode({
-          ...teacherNumberPolicy,
-          loadExisting: () => loadTeacherNumbers(db, membership.schoolId),
-          insert: insertTeacher,
-        });
-    if (error) throw publicDatabaseError(error, "Não foi possível criar o professor.");
+        .update({ employee_number: data.employeeNumber, updated_by: context.userId })
+        .eq("id", teacherId)
+        .eq("school_id", membership.schoolId);
+      if (numberError) {
+        throw publicDatabaseError(
+          numberError,
+          "Professor criado, mas o número indicado não foi gravado.",
+        );
+      }
+    }
+    const { data: teacher, error } = await db
+      .from("teachers")
+      .select("*")
+      .eq("id", teacherId)
+      .eq("school_id", membership.schoolId)
+      .single();
+    if (error) throw publicDatabaseError(error, "Professor criado, mas não foi possível lê-lo.");
     return teacher;
   });
 
@@ -1224,9 +1246,9 @@ export const updatePerson = createServerFn({ method: "POST" })
       national_id: normalizedNif,
       updated_by: context.userId,
     };
-    const hasGeography = Boolean(
-      data.province || data.municipality || data.commune || data.address,
-    );
+    const hasGeography =
+      data.includesGeography === true ||
+      Boolean(data.province || data.municipality || data.commune || data.address);
     if (hasGeography) {
       personPatch["province"] = data.province || null;
       personPatch["municipality"] = data.municipality || null;
@@ -1512,31 +1534,30 @@ export async function ensureTeacherHrRecord(input: {
 
   let teacherId = existing?.id ? String(existing.id) : null;
   if (!teacherId) {
-    const inserted = await insertWithSequentialCode<{ id: string }>({
-      ...teacherNumberPolicy,
-      loadExisting: () => loadTeacherNumbers(db, input.schoolId),
-      insert: (employeeNumber) =>
-        db
-          .from("teachers")
-          .insert({
-            school_id: input.schoolId,
-            person_id: person.id,
-            user_id: input.userId,
-            employee_number: employeeNumber,
-            hired_on: schoolTodayIso(),
-            employment_type: "permanent",
-            highest_qualification: "bachelor",
-            status: "active",
-            created_by: input.actorId,
-            updated_by: input.actorId,
-          })
-          .select("id")
-          .single(),
-    });
-    if (inserted.error) {
-      throw publicDatabaseError(inserted.error, "Não foi possível criar a ficha de professor.");
+    const inserted = await insertTeacherWithNextNumber(db, input.schoolId, (employeeNumber) =>
+      db
+        .from("teachers")
+        .insert({
+          school_id: input.schoolId,
+          person_id: person.id,
+          user_id: input.userId,
+          employee_number: employeeNumber,
+          hired_on: schoolTodayIso(),
+          employment_type: "permanent",
+          highest_qualification: "bachelor",
+          status: "active",
+          created_by: input.actorId,
+          updated_by: input.actorId,
+        })
+        .select("id")
+        .single(),
+    );
+    if (inserted.error || !inserted.data) {
+      throw publicDatabaseError(
+        inserted.error ?? {},
+        "Não foi possível criar a ficha de professor.",
+      );
     }
-    if (!inserted.data) throw new Error("Não foi possível criar a ficha de professor.");
     teacherId = String(inserted.data.id);
   }
 

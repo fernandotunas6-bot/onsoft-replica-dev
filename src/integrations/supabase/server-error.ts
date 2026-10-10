@@ -31,6 +31,7 @@ const constraintMessages: Record<string, string> = {
   students_school_id_person_id_key: "Esta pessoa já está registada como aluno.",
   students_school_id_student_number_key: "Já existe um aluno com este número.",
   teachers_school_id_person_id_key: "Esta pessoa já está registada como professor.",
+  teachers_school_id_employee_number_key: "Já existe um professor com este número.",
   teachers_one_login_per_school: "Esta conta já está ligada a outro professor nesta escola.",
   enrollments_one_current_per_year_uidx: "O aluno já tem uma matrícula activa neste ano lectivo.",
   class_groups_school_id_academic_year_id_code_key:
@@ -60,6 +61,20 @@ const businessMessages = new Set([
   "A turma nova tem de ser da mesma escola e do mesmo ano lectivo da matrícula.",
   "Turma ativa inválida para esta escola.",
   "Identidade da matrícula é imutável.",
+  // register_student / enroll_student
+  "Estudante, ano letivo ou data de matrícula inválida.",
+  "Pessoa ou data de admissão inválida.",
+  "Encarregado inválido para esta escola.",
+  // register_teacher
+  "Dados funcionais ou pessoa inválida.",
+  "Existe disciplina inválida ou pertencente a outra escola.",
+  // merge_people (20261010110000)
+  "Seleccione duas pessoas diferentes.",
+  "Uma das pessoas não existe nesta escola.",
+  "As duas fichas têm contas de acesso diferentes. Não é seguro fundi-las — desactive o duplicado.",
+  "As duas fichas têm matrícula de aluno. Não é seguro fundi-las — desactive o duplicado.",
+  "As duas fichas têm vínculo laboral (RH). Não é seguro fundi-las — desactive o duplicado.",
+  "As duas fichas têm registo de professor. Não é seguro fundi-las — desactive o duplicado.",
   // Gatilho das mensagens (20261002100000_chat_integrity.sql).
   "Conversa inexistente.",
   "A mensagem tem de pertencer à escola da conversa.",
@@ -70,6 +85,40 @@ const businessMessages = new Set([
 function constraintMessage(message: string | undefined): string | null {
   const name = /constraint "([a-z0-9_]+)"/i.exec(message ?? "")?.[1];
   return (name && constraintMessages[name]) || null;
+}
+
+/** Função ainda por criar nesta base (migração por aplicar): quem chama segue o caminho antigo. */
+export function isMissingFunction(error: DatabaseError | null | undefined): boolean {
+  return Boolean(
+    error &&
+    (error.code === "PGRST202" ||
+      error.code === "42883" ||
+      /could not find the function|function .* does not exist/i.test(error.message ?? "")),
+  );
+}
+
+/** Tabela ainda por criar nesta base (migração por aplicar): quem lê trata-a como vazia. */
+export function isMissingTable(error: DatabaseError | null | undefined): boolean {
+  return Boolean(
+    error &&
+    (error.code === "42P01" ||
+      error.code === "PGRST205" ||
+      /schema cache|does not exist|relation .* does not exist/i.test(error.message ?? "")),
+  );
+}
+
+/**
+ * A base recusou por falta de 2FA (`private.is_aal2`) ou de permissão: as funções
+ * SECURITY DEFINER levantam 42501 «Sem autorização…». Uma só regra para o
+ * servidor traduzir a recusa em «active o 2FA» (havia seis cópias, com
+ * expressões diferentes).
+ */
+export function isRpcAuthDenied(error: DatabaseError | null | undefined): boolean {
+  if (!error) return false;
+  return (
+    error.code === "42501" ||
+    /is_aal2|autoriza[çc][ãa]o|permission denied/i.test(error.message ?? "")
+  );
 }
 
 /** Prevent database structure and raw SQL details from reaching browser clients. */

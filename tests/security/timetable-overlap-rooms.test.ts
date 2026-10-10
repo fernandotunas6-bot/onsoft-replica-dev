@@ -1,7 +1,10 @@
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
-import { detectScheduleConflicts } from "@/features/academic/schedule/utils/conflicts";
+import {
+  detectScheduleConflicts,
+  PLACEHOLDER_ROOM_LABELS,
+} from "@/features/academic/schedule/utils/conflicts";
 import type { ScheduleSlot } from "@/features/academic/schedule/types";
 
 const migration = readFileSync(
@@ -12,8 +15,16 @@ const migration = readFileSync(
   "utf8",
 );
 
+const oneRule = readFileSync(
+  resolve(
+    __dirname,
+    "../../supabase/migrations/20261010100000_timetable_rooms_one_placeholder_rule.sql",
+  ),
+  "utf8",
+);
+
 /** As etiquetas que significam "sala por atribuir", não uma sala. */
-const MARCADORES = ["sala", "a definir", "sem sala fixa"];
+const MARCADORES = [...PLACEHOLDER_ROOM_LABELS];
 
 function slot(over: Partial<ScheduleSlot>): ScheduleSlot {
   return {
@@ -51,12 +62,10 @@ describe("conflito de sala — o cliente", () => {
 });
 
 describe("conflito de sala — a base diz o mesmo", () => {
-  it("o trigger exclui exactamente os mesmos marcadores", () => {
+  it("o trigger de 24/09 passou a perguntar ao helper", () => {
     // Se alguém acrescentar um marcador no cliente e esquecer a base, o horário
     // passa a ser recusado por um conflito que a interface não mostra.
-    for (const marcador of MARCADORES) {
-      expect(migration).toContain(`'${marcador}'`);
-    }
+    // (A lista desta migração foi alargada a «s/n» pela 20261010100000, abaixo.)
     expect(migration).toMatch(/NOT IN \('sala', 'a definir', 'sem sala fixa'\)/);
   });
 
@@ -78,5 +87,25 @@ describe("conflito de sala — a base diz o mesmo", () => {
     expect(clausula).toContain("cs.teacher_id = v_teacher_id");
     expect(clausula).toContain("ts.room_id = NEW.room_id");
     expect(clausula).toContain("pg_advisory_xact_lock");
+  });
+});
+
+describe("conflito de sala — uma só regra (20261010100000)", () => {
+  it("o helper da base tem exactamente a lista do cliente", () => {
+    const lista = MARCADORES.map((m) => `'${m}'`).join(", ");
+    expect(oneRule).toContain(`NOT IN (${lista})`);
+  });
+
+  it.each([
+    "FUNCTION public.guard_timetable_slot_conflicts",
+    "FUNCTION public.create_timetable_slot_guarded",
+    "FUNCTION public.update_timetable_slot_guarded",
+  ])("%s pergunta ao helper antes de comparar etiquetas", (fn) => {
+    const start = oneRule.indexOf(fn);
+    expect(start).toBeGreaterThan(-1);
+    const corpo = oneRule.slice(start, oneRule.indexOf("$function$;", start));
+    expect(corpo).toMatch(/private\.timetable_room_is_explicit\((NEW\.room|p_room_label)\)/);
+    expect(corpo).not.toMatch(/btrim\(p_room_label\) <> ''/);
+    expect(corpo).not.toMatch(/AND t\.room = NEW\.room/);
   });
 });

@@ -41,7 +41,10 @@ import {
   type PrintTemplateKey,
 } from "./print-catalog";
 import { parsePrintSettings } from "./print-settings";
-import { updateSettingsDomainValue } from "@/features/school/settings-domains";
+import {
+  readSettingsDomainRow,
+  updateSettingsDomainValue,
+} from "@/features/school/settings-domains";
 
 /**
  * Há dois vocabulários de estado, e só o servidor deve conhecer os dois.
@@ -360,19 +363,6 @@ const MAX_TEMPLATE_CHARS = 80_000;
 type JsonMap = Record<string, unknown>;
 type AdminDb = Awaited<ReturnType<typeof loadSgaAdminClient>>;
 
-async function readSettingDomain(db: AdminDb, schoolId: string, domain: string) {
-  const { data, error } = await db
-    .from("school_settings")
-    .select("id, domain, version, value")
-    .eq("school_id", schoolId)
-    .eq("domain", domain)
-    .maybeSingle();
-  if (error && !/schema cache|does not exist|42P01|PGRST/i.test(error.message)) {
-    throw publicDatabaseError(error, `Não foi possível ler settings:${domain}.`);
-  }
-  return data as { id: string; domain: string; version: number; value: JsonMap } | null;
-}
-
 function assertPrintKey(key: string): PrintTemplateKey {
   if (!isPrintTemplateKey(key)) throw new Error("Modelo de impressão não reconhecido.");
   return key;
@@ -413,7 +403,11 @@ export const listPrintTemplates = createServerFn({ method: "GET" })
     const membership = await resolveSgaMembershipAdmin(context.userId);
     if (!membership) throw new Error("Sem membership activa nesta escola.");
     const db = await loadSgaAdminClient();
-    const row = await readSettingDomain(db, membership.schoolId, PRINT_SETTINGS_DOMAIN);
+    const row = await readSettingsDomainRow<JsonMap>(
+      db,
+      membership.schoolId,
+      PRINT_SETTINGS_DOMAIN,
+    );
     const settings = parsePrintSettings(row?.value);
     return {
       issue: settings.issue && isPrintTemplateKey(settings.issue) ? settings.issue : null,
@@ -443,7 +437,7 @@ export const getPrintTemplate = createServerFn({ method: "POST" })
     const db = await loadSgaAdminClient();
     const [bundled, row] = await Promise.all([
       readBundledTemplate(key),
-      readSettingDomain(db, membership.schoolId, PRINT_SETTINGS_DOMAIN),
+      readSettingsDomainRow<JsonMap>(db, membership.schoolId, PRINT_SETTINGS_DOMAIN),
     ]);
     const settings = parsePrintSettings(row?.value);
     const override = settings.overrides?.[key];

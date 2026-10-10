@@ -67,7 +67,7 @@ describe("alunos", () => {
   });
 
   it("matricular numa turma confirma o aluno activo", () => {
-    expect(read("src/features/students/server.ts")).toMatch(/error: activateError/);
+    expect(read("src/features/students/enrollment-core.ts")).toMatch(/error: activateError/);
   });
 });
 

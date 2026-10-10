@@ -2,6 +2,8 @@ import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 
 const source = readFileSync("src/features/people/server.ts", "utf8");
+// A fusão: a função do servidor e, até a migração 20261010110000 ser aplicada, os
+// passos soltos (mergePeopleInSteps). A transacção está em tests/sql/merge-people.mjs.
 const merge = source.slice(
   source.indexOf("export const mergePeople"),
   source.indexOf("export const listStaffDirectory"),
@@ -12,6 +14,12 @@ const duplicates = source.slice(
 );
 
 describe("fusão de fichas de pessoas", () => {
+  it("corre numa transacção quando a base tem a função, e só então nos passos soltos", () => {
+    expect(merge).toContain('"siga_merge_people" as never');
+    expect(merge).toContain("p_actor: context.userId");
+    expect(merge).toMatch(/if \(rpcError && !isMissingFunction\(rpcError\)\)/);
+  });
+
   it("exige 2FA e recusa duas contas de acesso diferentes", () => {
     expect(merge).toContain('requireAal2(context.claims, "Fundir fichas de pessoas")');
     expect(merge).toContain("survivor.user_id !== duplicate.user_id");
@@ -19,7 +27,7 @@ describe("fusão de fichas de pessoas", () => {
 
   it("os educandos do duplicado passam para a ficha que fica", () => {
     expect(merge).toContain('.from("student_guardians")');
-    expect(merge).toContain(".update({ guardian_person_id: data.survivorId })");
+    expect(merge).toContain(".update({ guardian_person_id: input.survivorId })");
   });
 
   it("documentos, cartões, RH e papéis acompanham a fusão", () => {
@@ -40,7 +48,8 @@ describe("fusão de fichas de pessoas", () => {
 
   it("fica registada na auditoria com o motivo", () => {
     expect(merge).toContain('action: "people.merged"');
-    expect(merge).toContain("reason: data.reason");
+    expect(merge).toContain("reason: input.reason");
+    expect(merge).toContain("p_reason: data.reason");
   });
 });
 

@@ -425,6 +425,11 @@ export const commitImportBatch = createServerFn({ method: "POST" })
     if (job.module === "propinas" && !data.dry_run) {
       requireAal2(context.claims, "Importar as regras de cobrança");
     }
+    // Matricular e mudar de turma exigem 2FA, como no ecrã (auditoria 14, A3): sem isto,
+    // um ficheiro com «actualizar» mudava alunos de turma sem 2FA.
+    if (job.module === "matriculas" && !data.dry_run) {
+      requireAal2(context.claims, "Importar matrículas");
+    }
 
     const PENDING_STATUSES = [
       "valid",

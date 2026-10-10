@@ -48,13 +48,17 @@ import { StudentExtensiveModal } from "@/features/students/components/StudentExt
 import { StudentStatusBadge } from "@/features/students/components/StudentStatusBadge";
 import { StudentFinanceBadge } from "@/features/students/components/StudentFinanceBadge";
 import {
+  ACADEMIC_STATUS_LABELS,
+  academicStatusLabel,
   computeDynamicCounters,
   matchesQuickCategory,
+  studentStatusChoices,
+  type ManualStudentStatus,
   type QuickFilterCategory,
   type InactiveSubFilter,
   type CandidateSubFilter,
 } from "@/features/students/academic-status";
-import { batchAssignClass, batchUpdateStudentStatus } from "@/features/students/server";
+import { classGroupChoices } from "@/features/students/enrollment-directory";
 import { studentStatusOptions } from "@/features/students/schemas";
 import { ListPaginationBar } from "@/components/filters/ListPaginationBar";
 import { MediaAvatar } from "@/components/ui/media-frame";
@@ -113,6 +117,8 @@ import {
 } from "@/components/ui/table";
 import { searchPeople } from "@/features/people/server";
 import {
+  batchAssignClass,
+  batchUpdateStudentStatus,
   changeStudentStatus,
   enrollStudentInClass,
   searchStudents,
@@ -179,22 +185,6 @@ export const Route = createFileRoute("/alunos/")({
 const selectClass = "h-9 rounded-lg border border-input bg-background px-3 text-sm text-foreground";
 
 const badge = "inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-semibold";
-
-const estadoLabels: Record<string, string> = {
-  active: "Activo",
-  inactive: "Inactivo",
-  transferred: "Transferido",
-  graduated: "Concluído",
-  applicant: "Candidato",
-};
-
-const estadoTone: Record<string, string> = {
-  active: "bg-primary text-primary-foreground",
-  inactive: "bg-muted text-muted-foreground",
-  transferred: "border border-destructive/30 bg-destructive/10 text-destructive-strong",
-  graduated: "bg-success/15 text-success",
-  applicant: "bg-warning/20 text-warning-foreground",
-};
 
 const pagamentoLabels: Record<string, string> = {
   settled: "Regularizado",
@@ -355,9 +345,16 @@ function StudentsPage() {
   );
   const pendingApplicationsCount = pendingApplicationsQuery.data?.length ?? 0;
   const classGroups = workspaceQuery.data?.classGroups ?? [];
-  const turmaOptions = classGroups
-    .filter((group) => group.academic_year_id)
-    .map((group) => `${group.name}${group.grade_name ? ` · ${group.grade_name}` : ""}`);
+  const turmaOptions = classGroupChoices(classGroups);
+  // «Turma» e «Mudar» na linha: a mesma colocação (`enrollStudentInClass`).
+  const placeInClass = async (studentId: string, classGroupId: string) => {
+    await enrollStudentInClass({ data: { studentId, classGroupId } });
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: ["students", "search"] }),
+      queryClient.invalidateQueries({ queryKey: ["academic", "pedagogical-workspace"] }),
+      queryClient.invalidateQueries({ queryKey: ["dashboard", "overview"] }),
+    ]);
+  };
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -458,7 +455,7 @@ function StudentsPage() {
     { label: "Turma", value: (row: StudentRow) => row.class_name ?? "" },
     {
       label: "Estado",
-      value: (row: StudentRow) => estadoLabels[row.student_status] ?? row.student_status,
+      value: (row: StudentRow) => academicStatusLabel(row.student_status),
     },
     {
       label: "Pagamento",
@@ -516,7 +513,7 @@ function StudentsPage() {
             rows: filtered.map((row) => ({
               label: String(row.full_name),
               value: String(row.registration_number ?? "—"),
-              note: [row.class_name, estadoLabels[String(row.student_status)] ?? row.student_status]
+              note: [row.class_name, academicStatusLabel(String(row.student_status))]
                 .filter(Boolean)
                 .join(" · "),
             })),
@@ -798,7 +795,7 @@ function StudentsPage() {
                   {
                     name: "estado",
                     label: "Estado",
-                    value: estadoLabels[estado] ?? estado,
+                    value: academicStatusLabel(estado),
                     emptyValue: "todos",
                   },
                 ]
@@ -830,7 +827,10 @@ function StudentsPage() {
               emptyValue: "todos",
               options: [
                 { value: "todos", label: "Todos os estados" },
-                ...Object.entries(estadoLabels).map(([value, label]) => ({ value, label })),
+                ...Object.entries(ACADEMIC_STATUS_LABELS).map(([value, label]) => ({
+                  value,
+                  label,
+                })),
               ],
             },
             {
@@ -1362,35 +1362,7 @@ function StudentsPage() {
                                       options: turmaOptions,
                                     },
                                   ]}
-                                  onSubmit={async (values) => {
-                                    const group = classGroups.find(
-                                      (item) =>
-                                        `${item.name}${item.grade_name ? ` · ${item.grade_name}` : ""}` ===
-                                        values["turma"],
-                                    );
-                                    const yearId = String(group?.academic_year_id ?? "");
-                                    if (!group || !yearId) {
-                                      throw new Error("Seleccione uma turma com ano lectivo.");
-                                    }
-                                    await enrollStudentInClass({
-                                      data: {
-                                        studentId: s.id,
-                                        classGroupId: group.id,
-                                        academicYearId: yearId,
-                                      },
-                                    });
-                                    await Promise.all([
-                                      queryClient.invalidateQueries({
-                                        queryKey: ["students", "search"],
-                                      }),
-                                      queryClient.invalidateQueries({
-                                        queryKey: ["academic", "pedagogical-workspace"],
-                                      }),
-                                      queryClient.invalidateQueries({
-                                        queryKey: ["dashboard", "overview"],
-                                      }),
-                                    ]);
-                                  }}
+                                  onSubmit={(values) => placeInClass(s.id, values["turma"] ?? "")}
                                   trigger={(open) => (
                                     <Button
                                       size="sm"
@@ -1421,39 +1393,11 @@ function StudentsPage() {
                                       type: "select",
                                       required: true,
                                       options: turmaOptions.filter(
-                                        (option) => option !== s.class_name,
+                                        (option) => option.value !== s.class_group_id,
                                       ),
                                     },
                                   ]}
-                                  onSubmit={async (values) => {
-                                    const group = classGroups.find(
-                                      (item) =>
-                                        `${item.name}${item.grade_name ? ` · ${item.grade_name}` : ""}` ===
-                                        values["turma"],
-                                    );
-                                    const yearId = String(group?.academic_year_id ?? "");
-                                    if (!group || !yearId) {
-                                      throw new Error("Seleccione uma turma com ano lectivo.");
-                                    }
-                                    await enrollStudentInClass({
-                                      data: {
-                                        studentId: s.id,
-                                        classGroupId: group.id,
-                                        academicYearId: yearId,
-                                      },
-                                    });
-                                    await Promise.all([
-                                      queryClient.invalidateQueries({
-                                        queryKey: ["students", "search"],
-                                      }),
-                                      queryClient.invalidateQueries({
-                                        queryKey: ["academic", "pedagogical-workspace"],
-                                      }),
-                                      queryClient.invalidateQueries({
-                                        queryKey: ["dashboard", "overview"],
-                                      }),
-                                    ]);
-                                  }}
+                                  onSubmit={(values) => placeInClass(s.id, values["turma"] ?? "")}
                                   trigger={(open) => (
                                     <Button
                                       size="sm"
@@ -1481,8 +1425,8 @@ function StudentsPage() {
                                       label: "Estado",
                                       type: "select",
                                       required: true,
-                                      defaultValue: estadoLabels[s.student_status] ?? "Activo",
-                                      options: ["Activo", "Inactivo", "Transferido", "Concluído"],
+                                      defaultValue: s.student_status,
+                                      options: studentStatusChoices(),
                                     },
                                     {
                                       name: "motivo",
@@ -1493,16 +1437,8 @@ function StudentsPage() {
                                     },
                                   ]}
                                   onSubmit={async (values) => {
-                                    const statusMap: Record<
-                                      string,
-                                      "active" | "inactive" | "transferred" | "graduated"
-                                    > = {
-                                      Activo: "active",
-                                      Inactivo: "inactive",
-                                      Transferido: "transferred",
-                                      Concluído: "graduated",
-                                    };
-                                    const newStatus = statusMap[values["estado"] ?? ""] ?? "active";
+                                    const newStatus = (values["estado"] ||
+                                      "active") as ManualStudentStatus;
                                     await changeStudentStatus({
                                       data: {
                                         studentId: s.id,
@@ -1603,11 +1539,7 @@ function StudentsPage() {
                       },
                     ]}
                     onSubmit={async (values) => {
-                      const group = classGroups.find(
-                        (item) =>
-                          `${item.name}${item.grade_name ? ` · ${item.grade_name}` : ""}` ===
-                          values["turma"],
-                      );
+                      const group = classGroups.find((item) => item.id === values["turma"]);
                       const yearId = String(group?.academic_year_id ?? "");
                       if (!group || !yearId)
                         throw new Error("Seleccione uma turma com ano lectivo.");
@@ -1651,13 +1583,7 @@ function StudentsPage() {
                       label: "Novo Estado",
                       type: "select",
                       required: true,
-                      options: [
-                        { value: "active", label: "Activo" },
-                        { value: "inactive", label: "Desistente / Inactivo" },
-                        { value: "transferred", label: "Transferido" },
-                        { value: "graduated", label: "Concluído" },
-                        { value: "applicant", label: "Candidato" },
-                      ],
+                      options: studentStatusChoices(["applicant"]),
                     },
                     {
                       name: "motivo",

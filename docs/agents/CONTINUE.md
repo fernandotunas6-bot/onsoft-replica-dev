@@ -27,6 +27,53 @@ Detalhe e cobertura real: [docs/education-catalog/README.md](../education-catalo
 - **Por aplicar (dono):** `20261010120000_global_education_catalog.sql`, depois
   `supabase/seeds/education/catalog.sql`, depois `20261010150000_merge_school_subjects.sql`. A página não depende delas.
 
+## Auditoria 14 — lógica das matrículas e repetições (2026-10-10)
+
+Relatório: [14-auditoria-logica-matriculas-2026-10-10.md](../auditoria/14-auditoria-logica-matriculas-2026-10-10.md).
+Nada escrito na produção; nenhuma migração nova.
+
+- **Núcleo único da matrícula:** `src/features/students/enrollment-core.ts`. Toda a chamada a
+  `register_student`/`enroll_student`, a recusa por falta de 2FA (`isRpcAuthDenied`, em
+  `server-error.ts`), «colocar ou mudar de turma» (`placeStudentInClass`) e o estado do aluno
+  depois disso passam por lá. Não voltar a chamar as RPCs directamente nem a escrever o estado
+  do aluno à mão numa função nova.
+- **Ficha de pessoa única:** `src/features/people/person-fields.ts` (`buildPersonInsert`,
+  `toStoredSex`: o «Outro» do formulário é `other` na base; `sexInitial`, `sexLabel`).
+- **Regras novas (M1, M4, M8):** quem saiu (anulado, desistente, transferido, concluído) volta a
+  matricular-se — é reaberto como candidato e reposto se a matrícula falhar; suspenso e trancado
+  não são levantados por uma mudança de turma; o lote confirma a matrícula pendente de quem já
+  está na turma. O ano da colocação é o da turma.
+- **Saíram:** `createStudent`, `updateEnrollment` (a ficha usa `enrollStudentInClass` para
+  atribuir e para mudar), a escrita escondida em `searchStudents`, `src/lib/saas/provisioning-service.ts`.
+- **Partilhados fora das matrículas:** `valueOf` dos importadores (`engine/normalize.ts`),
+  `src/lib/escape-html.ts`, `isMissingTable`, `readSettingsDomainRow`,
+  `finance/payment-method.ts`, `academic/own-teacher.ts`, `src/lib/option-label.ts`,
+  `src/lib/base64.ts`.
+- **Decididos pelo dono (secção 8.5 do relatório):** A3 — 2FA também na mudança de turma
+  (feito). A2 — matrícula antecipada no ano em preparação, até 183 dias antes
+  (`20261010130000`, por aplicar, mesmo pacote; `enrollmentWindow` no servidor). A1 — o dono diz
+  que as 40 matrículas do Huambo são reais, mas estão nas turmas «DEMO — 1.ª Classe A/B», em
+  rascunho: confirmar na escola antes; guia nos dois sentidos na secção 8.5.
+- **Terceira passagem (secção 9):** conta ligada também ao professor (fusão e convite, K1);
+  eliminar avaliação e emitir documento respeitam a escola bloqueada (G1); listas sem o pedaço
+  do id. Integridade dos dados de produção verificada (só as turmas «DEMO» e 34 alunos sem
+  encarregado). **Por decidir:** bloqueio da escola também na gestão de acessos. **Por fazer
+  (dono):** activar a protecção contra senhas comprometidas no Auth do Supabase.
+- **Segunda passagem (Pessoas, Perfil, Horários, Salas)** — secção 8 do relatório. CI do PR #118
+  corrigido (`ecosystem-urls.ts` sem `import.meta.env` em Node). **Por aplicar (dono, SQL Editor):**
+  `docs/agents/SIGA_aplicar_auditoria14_2026-10-10.sql` — `20261010100000` (H1: duas turmas sem
+  sala à mesma hora eram recusadas pela RPC e pelo gatilho antigo; ensaio
+  `tests/sql/timetable-room-placeholders.mjs`). Depois: recapturar o retrato. Número de
+  professor num só sítio (`people/teacher-number.ts`, maior + 1). A mesma migração traz o H2 (trocar o professor de uma aula, que o troca em todas as
+  aulas da disciplina na turma, é recusado se ele ficar em duas turmas à mesma hora). O importador de professores numera como o servidor. **Decididos pelo dono e feitos (por aplicar, mesmo pacote):** `20261010110000` —
+  `register_teacher` numera acima do maior número e «Novo professor» usa-a (P3); «Fundir pessoas»
+  numa transacção, `private.merge_people` / `siga_merge_people`, só servidor (P4). Até serem
+  aplicadas, o servidor segue o caminho antigo (`isMissingFunction`, número repetido). Depois de
+  aplicar: tirar `siga_merge_people` de `tests/security/espera-migracao.ts` e apagar
+  `mergePeopleInSteps`. P5 (encarregado reaproveitado na candidatura,
+  `people/guardian-lookup.ts`) e P6 (apagar a morada na ficha 360) corrigidos; a `20260925170000`, por
+  aplicar, passou a usar `private.timetable_room_is_explicit` (H3).
+
 ## Auditoria 13 — fluxos da escola (2026-10-06)
 
 Relatório: [13-auditoria-fluxos-2026-10-06.md](../auditoria/13-auditoria-fluxos-2026-10-06.md).

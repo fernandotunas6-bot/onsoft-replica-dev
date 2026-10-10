@@ -293,7 +293,7 @@
       "skill": "siga-saas",
       "label": "SaaS Control Center (plataforma)",
       "routes": ["src/routes/saas-admin.tsx", "src/routes/criar-escola.tsx"],
-      "feature": ["src/features/saas/schemas.ts", "src/features/saas/server.ts", "src/features/saas/types.ts", "src/features/saas/tenant-context.tsx", "src/lib/saas/provisioning-service.ts", "src/lib/saas/tenant-resolver.ts"],
+      "feature": ["src/features/saas/schemas.ts", "src/features/saas/server.ts", "src/features/saas/types.ts", "src/features/saas/tenant-context.tsx", "src/lib/saas/tenant-resolver.ts"],
       "tests": ["tests/saas/schemas.test.ts"],
       "publicPath": "/criar-escola"
     }

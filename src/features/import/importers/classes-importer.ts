@@ -1,4 +1,4 @@
-import { normalizeNumber, normalizeText } from "../engine/normalize";
+import { normalizeNumber, normalizeText, valueOf } from "../engine/normalize";
 import type { ImportRefCache, RowImporter } from "../engine/types";
 import { uniqueExactMatch } from "./academic-core";
 
@@ -8,14 +8,6 @@ type ClassesCache = ImportRefCache & {
   existingGrades: GradeRef[];
   programs: Ref[];
 };
-
-function valueOf(row: Record<string, unknown>, ...keys: string[]) {
-  for (const key of keys) {
-    const value = row[key];
-    if (value !== undefined && value !== null && normalizeText(value)) return value;
-  }
-  return null;
-}
 
 /**
  * Em produção uma classe pertence a um curso: a chave natural de `grade_levels` é

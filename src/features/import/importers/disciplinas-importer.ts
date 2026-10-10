@@ -1,4 +1,4 @@
-import { normalizeNumber, normalizeText } from "../engine/normalize";
+import { normalizeNumber, normalizeText, valueOf } from "../engine/normalize";
 import type { ImportRefCache, RowImporter } from "../engine/types";
 import { uniqueExactMatch } from "./academic-core";
 
@@ -6,14 +6,6 @@ type Ref = { id: string; code: string; name: string };
 type DisciplinasCache = ImportRefCache & {
   existingSubjects: Ref[];
 };
-
-function valueOf(row: Record<string, unknown>, ...keys: string[]) {
-  for (const key of keys) {
-    const value = row[key];
-    if (value !== undefined && value !== null && normalizeText(value)) return value;
-  }
-  return null;
-}
 
 export const disciplinasImporter: RowImporter = {
   module: "disciplinas",

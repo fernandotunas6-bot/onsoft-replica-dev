@@ -1,5 +1,14 @@
 import { normalizeText } from "../engine/normalize";
-import type { ImportRefCache, RowImporter } from "../engine/types";
+import type { ImportCommitContext, ImportRefCache, RowImporter } from "../engine/types";
+import { selectAllPages } from "../engine/paged";
+import { sgaClient } from "@/integrations/supabase/sga";
+import { CURRENT_ENROLLMENT_STATUSES } from "@/features/students/enrollment-sync";
+import {
+  enrollStudentReopening,
+  heldStudentMessage,
+  rpcFailureError,
+  syncStudentStatusAfterPlacement,
+} from "@/features/students/enrollment-core";
 import {
   loadClassGroupRefs,
   loadStudentRefs,
@@ -10,10 +19,6 @@ import {
   type ClassGroupRef,
   type StudentRef,
 } from "./academic-core";
-
-function rpcAuthError(error: { code?: string; message?: string }) {
-  return error.code === "42501" || /is_aal2|autorização|autorizacao/i.test(error.message ?? "");
-}
 
 type EnrollmentRef = {
   id: string;
@@ -39,20 +44,39 @@ export const matriculasImporter: RowImporter = {
   module: "matriculas",
 
   async loadRefCache(ctx) {
+    type EnrollmentRow = {
+      id: string;
+      student_id: string;
+      academic_year_id: string;
+      class_group_id: string;
+      status: string | null;
+      enrolled_on: string | null;
+    };
+    // Só a matrícula corrente de cada aluno (pendente ou activa), lida em páginas.
+    // Lia todas as do ano, sem paginação: uma anulada podia ficar no lugar da
+    // corrente (e «actualizar» reactivava-a), e acima de 1000 matrículas as
+    // restantes não eram reconhecidas.
     const [students, groups, enrollmentRows] = await Promise.all([
       loadStudentRefs(ctx.db, ctx.schoolId),
       loadClassGroupRefs(ctx.db, ctx.schoolId, ctx.academicYearId),
       ctx.academicYearId
-        ? ctx.db
-            .from("enrollments")
-            .select("id, student_id, academic_year_id, class_group_id, status, enrolled_on")
-            .eq("school_id", ctx.schoolId)
-            .eq("academic_year_id", ctx.academicYearId)
-        : Promise.resolve({ data: [], error: null }),
+        ? selectAllPages<EnrollmentRow>(
+            (from, to) =>
+              ctx.db
+                .from("enrollments")
+                .select("id, student_id, academic_year_id, class_group_id, status, enrolled_on")
+                .eq("school_id", ctx.schoolId)
+                .eq("academic_year_id", ctx.academicYearId!)
+                .in("status", [...CURRENT_ENROLLMENT_STATUSES])
+                .order("id", { ascending: true })
+                .range(from, to) as unknown as PromiseLike<{
+                data: EnrollmentRow[] | null;
+                error: { message: string } | null;
+              }>,
+            "Não foi possível carregar matrículas",
+          )
+        : Promise.resolve([] as EnrollmentRow[]),
     ]);
-    if (enrollmentRows.error) {
-      throw new Error(`Não foi possível carregar matrículas: ${enrollmentRows.error.message}`);
-    }
     return {
       existingPeople: [],
       classGroups: groups.map((g) => ({ id: g.id, name: g.name })),
@@ -61,7 +85,7 @@ export const matriculasImporter: RowImporter = {
       students,
       groups,
       enrollmentByStudent: new Map(
-        (enrollmentRows.data ?? []).map((row) => [
+        enrollmentRows.map((row) => [
           String(row.student_id),
           {
             id: String(row.id),
@@ -103,6 +127,8 @@ export const matriculasImporter: RowImporter = {
     }
     if (errors.length) return { status: "error", warnings: [], errors };
     const existing = student.row ? cache.enrollmentByStudent.get(student.row.id) : null;
+    const held = existing ? null : heldStudentMessage(student.row?.status);
+    if (held) return { status: "error", warnings: [], errors: [held] };
     if (existing) {
       return {
         status: "duplicate",
@@ -176,8 +202,15 @@ export const matriculasImporter: RowImporter = {
         .eq("school_id", ctx.schoolId)
         .eq("academic_year_id", ctx.academicYearId)
         .eq("student_id", student.id);
-      if (error) return { status: "error", warnings: [], errors: [error.message], audits: [] };
+      if (error) {
+        const message = rpcFailureError(
+          { error, authDenied: false },
+          { fallback: "Não foi possível actualizar a matrícula." },
+        ).message;
+        return { status: "error", warnings: [], errors: [message], audits: [] };
+      }
       Object.assign(existing, patch);
+      await markStudentPlaced(ctx, student, "Matrícula actualizada por importação");
       return {
         status: "imported",
         target_record_id: existing.id,
@@ -200,24 +233,26 @@ export const matriculasImporter: RowImporter = {
     // importador de alunos): gera o `enrollment_number` (MAT-000123), que é
     // obrigatório, e valida capacidade, ano activo e data. O insert directo que
     // estava aqui omitia o número e a base recusava todas as linhas.
-    const { data: enrolled, error } = await ctx.sessionSupabase.rpc("enroll_student", {
-      school_id: ctx.schoolId,
-      student_id: student.id,
-      class_group_id: group.id,
-      enrolled_on: enrolledOn,
+    // Quem tinha saído é reaberto, como na colocação em turma do ecrã.
+    const enrolled = await enrollStudentReopening(sgaClient(ctx.db), ctx.sessionSupabase, {
+      schoolId: ctx.schoolId,
+      studentId: student.id,
+      previousStatus: student.status,
+      classGroupId: group.id,
+      enrolledOn,
+      userId: ctx.userId,
     });
-    const outcome = enrolled as { enrollmentId?: string; status?: string } | null;
-    if (error || !outcome?.enrollmentId)
+    if (!enrolled.ok)
       return {
         status: "error",
         warnings: [],
         errors: [
-          error && rpcAuthError(error)
-            ? "Esta conta precisa de verificação em duas etapas (2FA) activa para matricular alunos."
-            : (error?.message ?? "Não foi possível criar a matrícula."),
+          rpcFailureError(enrolled, { fallback: "Não foi possível criar a matrícula." }).message,
         ],
         audits: [],
       };
+    const outcome = enrolled.value;
+    await markStudentPlaced(ctx, student, "Matrícula importada");
     const ref: EnrollmentRef = {
       id: String(outcome.enrollmentId),
       student_id: student.id,
@@ -238,3 +273,18 @@ export const matriculasImporter: RowImporter = {
     };
   },
 };
+
+/** O aluno com matrícula corrente fica activo (salvo suspenso/trancado), com histórico. */
+async function markStudentPlaced(
+  ctx: { db: ImportCommitContext["db"]; schoolId: string; userId: string },
+  student: StudentRef,
+  reason: string,
+) {
+  await syncStudentStatusAfterPlacement(sgaClient(ctx.db), {
+    schoolId: ctx.schoolId,
+    students: [{ studentId: student.id, previousStatus: student.status }],
+    reason,
+    userId: ctx.userId,
+  });
+  if (!heldStudentMessage(student.status)) student.status = "active";
+}

@@ -3,12 +3,12 @@ import { canonicalEntityKey, findBestEntityMatch, findBestPersonMatch } from "..
 import { normalizeText } from "../engine/normalize";
 import type { AuditEntry, ImportRefCache, RowImporter } from "../engine/types";
 import { loadExistingPeople, personCandidateFromRow, resolveOrCreatePerson } from "./people-core";
-import { schoolTodayIso } from "@/lib/school-date";
 import { selectAllPages } from "../engine/paged";
-
-function rpcAuthError(error: { code?: string; message?: string }) {
-  return error.code === "42501" || /is_aal2|autorização|autorizacao/i.test(error.message ?? "");
-}
+import {
+  enrollStudentRpc,
+  registerStudentRpc,
+  rpcFailureError,
+} from "@/features/students/enrollment-core";
 
 async function loadStudentsByPersonId(
   db: SupabaseClient,
@@ -159,37 +159,24 @@ export const alunosImporter: RowImporter = {
 
     let student = cache.studentByPersonId.get(personResult.personId) ?? null;
     if (!student) {
-      const { data: registered, error: registerError } = await ctx.sessionSupabase.rpc(
-        "register_student",
-        {
-          school_id: ctx.schoolId,
-          person_id: personResult.personId,
-          admission_date: schoolTodayIso(),
-          guardian_person_id: null,
-          relationship: null,
-          primary_guardian: false,
-          financial_responsibility: false,
-          pickup_authorization: true,
-        },
-      );
-      if (registerError) {
-        if (rpcAuthError(registerError)) {
-          return {
-            status: "error",
-            warnings: [],
-            errors: ["Esta conta precisa de 2FA activo para matricular alunos (register_student)."],
-            audits,
-          };
-        }
+      const registered = await registerStudentRpc(ctx.sessionSupabase, {
+        schoolId: ctx.schoolId,
+        personId: personResult.personId,
+      });
+      if (!registered.ok) {
         return {
           status: "error",
           warnings: [],
-          errors: [`Falha ao registar aluno: ${registerError.message}`],
+          errors: [
+            rpcFailureError(registered, { fallback: "Não foi possível registar o aluno." }).message,
+          ],
           audits,
         };
       }
-      const outcome = registered as { studentId: string; studentNumber: string };
-      student = { id: outcome.studentId, student_number: outcome.studentNumber };
+      student = {
+        id: registered.value.studentId,
+        student_number: registered.value.studentNumber,
+      };
       cache.studentByPersonId.set(personResult.personId, student);
       audits.push({
         table_name: "students",
@@ -237,50 +224,29 @@ export const alunosImporter: RowImporter = {
     if (className && ctx.academicYearId) {
       const found = findBestEntityMatch(className, cache.classGroups, (g) => g.name);
       if (found) {
-        const { error: enrollError } = await ctx.sessionSupabase.rpc("enroll_student", {
-          school_id: ctx.schoolId,
-          student_id: student.id,
-          class_group_id: found.id,
-          enrolled_on: schoolTodayIso(),
+        const enrolled = await enrollStudentRpc(ctx.sessionSupabase, {
+          schoolId: ctx.schoolId,
+          studentId: student.id,
+          classGroupId: found.id,
         });
-        if (enrollError && !rpcAuthError(enrollError)) {
-          warnings.push(
-            `Não foi possível matricular na turma "${className}": ${enrollError.message}`,
-          );
-        } else if (enrollError) {
-          warnings.push(
-            "Esta conta precisa de 2FA activo para matricular numa turma (enroll_student).",
-          );
+        if (!enrolled.ok) {
+          const reason = rpcFailureError(enrolled, {
+            fallback: "Não foi possível criar a matrícula.",
+          }).message;
+          warnings.push(`Não foi possível matricular na turma "${className}": ${reason}`);
         } else {
-          const { data: enrollment, error: enrollmentLookupError } = await ctx.db
-            .from("enrollments")
-            .select("id")
-            .eq("school_id", ctx.schoolId)
-            .eq("student_id", student.id)
-            .eq("academic_year_id", ctx.academicYearId)
-            .eq("class_group_id", found.id)
-            .in("status", ["pending", "active"])
-            .order("created_at", { ascending: false })
-            .limit(1)
-            .maybeSingle();
-
-          if (enrollmentLookupError || !enrollment?.id) {
-            warnings.push(
-              "Matrícula criada, mas não foi possível resolver o ID para auditoria/rollback.",
-            );
-          } else {
-            audits.push({
-              table_name: "enrollments",
-              target_id: String(enrollment.id),
-              action_type: "inserted",
-              after_data: {
-                school_id: ctx.schoolId,
-                student_id: student.id,
-                academic_year_id: ctx.academicYearId,
-                class_group_id: found.id,
-              },
-            });
-          }
+          // enroll_student devolve o id: já não é preciso procurá-lo para a reversão.
+          audits.push({
+            table_name: "enrollments",
+            target_id: enrolled.value.enrollmentId,
+            action_type: "inserted",
+            after_data: {
+              school_id: ctx.schoolId,
+              student_id: student.id,
+              academic_year_id: ctx.academicYearId,
+              class_group_id: found.id,
+            },
+          });
         }
       } else {
         warnings.push(

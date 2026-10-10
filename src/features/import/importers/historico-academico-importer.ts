@@ -1,4 +1,4 @@
-import { normalizeText } from "../engine/normalize";
+import { normalizeText, valueOf } from "../engine/normalize";
 import type { ImportRefCache, RowImporter } from "../engine/types";
 import { loadStudentRefs, uniqueExactMatch, type StudentRef } from "./academic-core";
 
@@ -6,14 +6,6 @@ type HistoricoAcademicoCache = ImportRefCache & {
   students: StudentRef[];
   existingKeys: Set<string>;
 };
-
-function valueOf(row: Record<string, unknown>, ...keys: string[]) {
-  for (const key of keys) {
-    const value = row[key];
-    if (value !== undefined && value !== null && normalizeText(value)) return value;
-  }
-  return null;
-}
 
 function historyKey(studentId: string, year: string, grade: string) {
   return `${studentId}::${normalizeText(year)}::${normalizeText(grade)}`;

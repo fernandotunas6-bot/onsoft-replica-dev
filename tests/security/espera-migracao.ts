@@ -26,4 +26,7 @@ export const FUNCOES_ESPERA_MIGRACAO = new Set<string>([
   // 20261010150000_merge_school_subjects.sql. education-catalog/subject-review-server.ts
   // responde «falta aplicar a migração …» ao PGRST202/42883.
   "merge_school_subjects",
+  // 20261010110000 (auditoria 14, P4): fundir pessoas numa transacção. Sem ela,
+  // mergePeople segue os passos soltos de antes (mergePeopleInSteps, por isMissingFunction).
+  "siga_merge_people",
 ]);

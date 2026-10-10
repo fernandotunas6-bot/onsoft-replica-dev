@@ -6,9 +6,16 @@ function timeValue(value: string) {
   return Number(hours) * 3600 + Number(minutes) * 60 + Number(seconds);
 }
 
+/**
+ * Etiquetas que significam «sala por atribuir». A mesma lista está na base, em
+ * `private.timetable_room_is_explicit` (migração 20261010100000): «Sala» é o que o
+ * ecrã grava sem sala escolhida e «S/N» o que a base gravava sem rótulo.
+ */
+export const PLACEHOLDER_ROOM_LABELS = ["sala", "s/n", "a definir", "sem sala fixa"] as const;
+
 function isExplicitRoomLabel(value: string | null | undefined): boolean {
   const label = value?.trim().toLocaleLowerCase() ?? "";
-  return Boolean(label) && !["sala", "a definir", "sem sala fixa"].includes(label);
+  return Boolean(label) && !(PLACEHOLDER_ROOM_LABELS as readonly string[]).includes(label);
 }
 
 function overlaps(left: ScheduleSlot, right: ScheduleSlot) {

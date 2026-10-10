@@ -45,6 +45,7 @@ import {
   tooManyRecipientsReason,
   unsupportedAudienceReason,
 } from "./audience-recipients";
+import { escapeHtml } from "@/lib/escape-html";
 
 const upsertIntegrationInputSchema = z.object({
   provider: z.string().trim().min(2).max(80),
@@ -792,14 +793,6 @@ export const sendSchoolSmsMessage = createServerFn({ method: "POST" })
       partialErrors: errors.length ? errors.slice(0, 3) : undefined,
     };
   });
-
-function escapeHtml(value: string) {
-  return value
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;");
-}
 
 type AudienceRecipients = { ok: true; recipients: string[] } | { ok: false; reason: string };
 
