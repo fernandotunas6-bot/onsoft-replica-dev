@@ -1,5 +1,6 @@
 import type { TablesUpdate } from "@/integrations/supabase/types";
 import { createServerFn } from "@tanstack/react-start";
+import { reportSigaError } from "@/lib/ops-report";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { publicDatabaseError } from "@/integrations/supabase/server-error";
 import {
@@ -831,26 +832,30 @@ export const changeStudentStatus = createServerFn({ method: "POST" })
       changedBy: context.userId,
     });
 
-    try {
-      // `audit_logs` tem `actor_user_id` e um `metadata` jsonb — não `actor_id`,
-      // `reason`, `before_data` nem `after_data`. Com esses nomes o PostgREST recusava
-      // a linha inteira, e o `catch` vazio engolia o erro: a mudança de estado do aluno
-      // nunca deixou rasto de auditoria.
-      await db.from("audit_logs").insert({
+    // `audit_logs` tem `actor_user_id` e um `metadata` jsonb — não `actor_id`,
+    // `reason`, `before_data` nem `after_data`. Com esses nomes o PostgREST recusava
+    // a linha inteira, e o `catch` vazio engolia o erro: a mudança de estado do aluno
+    // nunca deixou rasto de auditoria.
+    const { error: auditError } = await db.from("audit_logs").insert({
+      school_id: membership.schoolId,
+      actor_user_id: context.userId,
+      action: "student.status_change",
+      entity_type: "student",
+      entity_id: data.studentId,
+      metadata: {
+        reason: data.reason || null,
+        before: { status: previousStatus },
+        after: { status: nextStatus },
+        enrollments_closed: closedEnrollments,
+      },
+    });
+    // O cliente devolve o erro em vez de o lançar: o `catch` que aqui estava nunca o via.
+    // A mudança de estado já ficou feita; o rasto que falta fica registado.
+    if (auditError) {
+      reportSigaError("students.status_change.audit_failed", auditError, {
         school_id: membership.schoolId,
-        actor_user_id: context.userId,
-        action: "student.status_change",
-        entity_type: "student",
-        entity_id: data.studentId,
-        metadata: {
-          reason: data.reason || null,
-          before: { status: previousStatus },
-          after: { status: nextStatus },
-          enrollments_closed: closedEnrollments,
-        },
+        student_id: data.studentId,
       });
-    } catch {
-      // Fallback
     }
 
     queueTenantUsageSync(membership.schoolId);

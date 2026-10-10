@@ -157,6 +157,17 @@ perdendo o que se escreveu (código de sala repetido, sala em uso ao desactivar,
 identidade). O erro chega agora ao formulário, que fica aberto. Os outros formulários de Pessoas,
 Alunos e Horários foram verificados: já deixavam o erro passar.
 
+Na leitura da ficha do aluno e da página pública de matrícula, mais dois, corrigidos:
+
+- **C1 (P2) Candidatura pública:** o telefone do candidato e o do encarregado não eram validados
+  no envio (o `.pick` usa o esquema da ficha sem as regras do telefone). Um valor que
+  `people_phone_check` recusa (por exemplo «923000000 / 912000000») só falhava ao **aceitar**
+  a candidatura, que ficava presa, sem a secretaria poder corrigir o número. Agora valida-se no
+  envio com a regra que grava (`normalizeStoredPhone`: Angola ou internacional).
+- **A5 (P3) Mudar estado do aluno:** a gravação em `audit_logs` estava num `try/catch` vazio, mas
+  o cliente devolve o erro em vez de o lançar: uma falha perdia-se. Passa a ser registada
+  (`reportSigaError`), como na fusão de pessoas.
+
 ### 8.3 Achados abertos (pedem decisão)
 
 | #   | Sev. | Achado                                                                                                                                                                                                                                                                                                                                                                                       | O que falta                                                                                                                                                                                                                                                                               |
