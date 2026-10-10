@@ -11,6 +11,9 @@ Decisão do dono: a PWA professor/aluno (`mobile-v4/`, PR #116) publica-se em
 `public/mobile/` (corre no `deploy-cf.mjs`); `src/lib/mobile-host.ts` fecha o host `m.` a tudo
 menos `/api/mobile-v4/*`; `m`/`mobile` reservados. Detalhes, acções do dono e ordem das próximas
 integrações: [PUBLICACAO_M_PORTAL_SIGA.md](../../mobile-v4/docs/PUBLICACAO_M_PORTAL_SIGA.md).
+Hoje `m.` ainda é servido pelo Worker `siga-plus-mobile-v4-domain` (outra sessão); a passagem
+(deploy do portal → remover rota/Custom Domain no painel) está nesse documento. Não remover a
+rota antes do deploy do portal.
 
 ## Auditoria 13 — fluxos da escola (2026-10-06)
 

@@ -1,5 +1,9 @@
 # Publicação Mobile V4 — Cloudflare
 
+> **Transitório.** Decisão do dono (10/10/2026): `m.portal-siga.com` passa para o Worker do
+> portal. Este Worker de domínio serve `m.` só até à passagem descrita em
+> [PUBLICACAO_M_PORTAL_SIGA.md](PUBLICACAO_M_PORTAL_SIGA.md#passagem-para-o-worker-do-portal-opção-2-decidida-a-10102026).
+
 ## Endereço público
 
 - Mobile: https://m.portal-siga.com.

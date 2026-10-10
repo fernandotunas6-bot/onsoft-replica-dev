@@ -80,3 +80,33 @@ Worker em qualquer host). É a mesma app; o endereço oficial a divulgar é `m.p
 - A sessão anuncia `attendance.write` ao professor. App: «Chamada de hoje» no ecrã de presenças
   (Todos presentes, Presente/Falta/Justificada por aluno, Fechar chamada).
 - Sem migrações: usa as tabelas e funções já existentes.
+
+## Passagem para o Worker do portal (opção 2, decidida a 10/10/2026)
+
+O dono escolheu servir `m.portal-siga.com` pelo Worker do portal
+(`fernandotunas6-bot-onsoft-replica-dev`). Até à passagem, o Worker de domínio
+`siga-plus-mobile-v4-domain` (rota específica + Custom Domain) continua a servir `m.`, e o
+encaminhamento em `src/lib/mobile-host.ts` não recebe pedidos. A ordem importa: remover a rota
+antes do deploy deixaria `m.` no portal antigo, que trata `m` como escola.
+
+1. **Merge e deploy do portal** com este código (`deploy-cf.mjs` compila `public/mobile/`).
+2. **Ensaio sem mexer no domínio** — o Worker do portal já responde a `m.` quando o pedido
+   lhe chega; confirmar no `workers.dev`/preview do portal com o cabeçalho Host:
+   `curl -sI -H "Host: m.portal-siga.com" <url do portal>/` → `302 Location: /mobile/`;
+   `…/mobile/manifest.webmanifest` → 200; `…/api/mobile-v4/session` → 401.
+3. **Passagem (painel Cloudflare, zona portal-siga.com):**
+   - Workers & Pages → `siga-plus-mobile-v4-domain` → Settings → Domains & Routes: remover o
+     Custom Domain `m.portal-siga.com` e a rota `m.portal-siga.com/*`.
+   - DNS: confirmar que `m` fica coberto pelo registo wildcard `*` do portal (se a remoção do
+     Custom Domain apagar um registo `m` próprio, o wildcard passa a responder).
+4. **Verificar em produção:** `https://m.portal-siga.com/` → `/mobile/`; entrar com uma conta de
+   professor e uma de aluno; `…/api/saas/tenants/lookup` → 404.
+5. **Limpeza (depois de validado):** apagar o Worker `siga-plus-mobile-v4-domain` e o projecto
+   Pages `siga-plus-mobile-v4` (ou pelo menos o segredo de servidor do ambiente preview).
+
+**Reversão:** voltar a adicionar a rota `m.portal-siga.com/*` e o Custom Domain ao Worker
+`siga-plus-mobile-v4-domain` (configuração em `mobile-v4/deployment/wrangler.jsonc`). O portal
+não precisa de ser revertido: sem pedidos para `m.`, o código fica inactivo.
+
+A sessão de agente não tem ferramentas Cloudflare de escrita (só leitura); os passos 3 e 5 são do
+dono no painel.
