@@ -259,8 +259,8 @@ function DuplicateGroupCard({ group }: { group: DuplicateGroup }) {
                     setConfirming(false);
                   }}
                   className="accent-primary"
+                  aria-label={`Manter ${m.name}`}
                 />
-                <span className="sr-only">Manter</span>
                 <span>{m.name}</span>
               </label>
               <span className="font-mono text-muted-foreground">{m.code}</span>
