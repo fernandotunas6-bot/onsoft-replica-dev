@@ -47,3 +47,11 @@ O transporte consulta o SDK em cada pedido; a renovação e armazenamento contin
 Testes locais usam SDK/HTTP controlados: renovação do Bearer, erros de sessão, ausência de sessão, scope local de logout, mudança de conta/MFA, rejeição de resposta tardia e limpeza da interface. Não são testes com contas reais nem prova de publicação de backend.
 
 O Pages público continua a responder `503 INSTITUTIONAL_API_DISABLED`. Ainda é necessário disponibilizar um backend de testes isolado com configuração validada e ensaiar professor/aluno com contas autorizadas antes de activar a ligação. Não apontar o preview público automaticamente ao portal de produção.
+
+## Preview ligado ao Sga
+
+`npm run build:connected` compila a entrada isolada de testes e o Worker autenticado em `dist-connected`. Requer instalar primeiro as dependências bloqueadas da raiz e depois as de `mobile-v4`. O build usa o cliente Supabase real do portal; não inclui credenciais de servidor no navegador. Entrada por e-mail/senha e confirmação do TOTP existente; chaves WebAuthn ligadas ao domínio original não funcionam no domínio Pages.
+
+O Worker expõe apenas `/api/mobile-v4/*`, com a validação de sessão/MFA/escola existente. O adaptador de cookies usa AsyncLocalStorage para preservar contexto por pedido. Outras rotas `/api/*` devolvem 404. A configuração Supabase é fornecida por bindings de preview, incluindo a chave de servidor como secret_text. Não regista service worker nem guarda respostas académicas em cache.
+
+A publicação manual deve usar a branch de ambiente `staging-mobile-v4-pr116`, que difere da production_branch do projecto Pages. Não executar scripts de deploy do portal, alterar a configuração de produção ou aplicar SQL. Workspace completo, comandos e outros módulos não implementados permanecem indisponíveis; só o catálogo académico anuncia leitura autorizada.

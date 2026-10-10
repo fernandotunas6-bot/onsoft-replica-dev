@@ -75,3 +75,5 @@ client_secret_*.json
 
 # Opt-in Mobile V4 host library build
 mobile-v4/dist-institutional/
+
+mobile-v4/dist-connected/

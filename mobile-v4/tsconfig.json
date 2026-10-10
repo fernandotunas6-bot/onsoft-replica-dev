@@ -8,7 +8,11 @@
     "strict": true,
     "noEmit": true,
     "skipLibCheck": true,
-    "allowImportingTsExtensions": true
+    "allowImportingTsExtensions": true,
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["../src/*"]
+    }
   },
-  "include": ["src", "tests"]
+  "include": ["src", "staging", "tests"]
 }

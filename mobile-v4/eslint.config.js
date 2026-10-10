@@ -4,7 +4,12 @@ import globals from "globals";
 export default tseslint.config(
   { ignores: ["node_modules/**", "dist/**", "reference/**"] },
   {
-    files: ["src/**/*.{ts,tsx}", "tests/**/*.{ts,tsx}", "public/_worker.js"],
+    files: [
+      "src/**/*.{ts,tsx}",
+      "staging/**/*.{ts,tsx}",
+      "tests/**/*.{ts,tsx}",
+      "public/_worker.js",
+    ],
     extends: [...tseslint.configs.recommended],
     languageOptions: { globals: globals.browser },
     plugins: { "react-hooks": hooks },
