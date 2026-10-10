@@ -7,6 +7,7 @@ export default tseslint.config(
     files: [
       "src/**/*.{ts,tsx}",
       "staging/**/*.{ts,tsx}",
+      "portal/**/*.{ts,tsx}",
       "tests/**/*.{ts,tsx}",
       "public/_worker.js",
     ],
