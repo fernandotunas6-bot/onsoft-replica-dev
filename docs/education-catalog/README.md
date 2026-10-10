@@ -156,6 +156,11 @@ novo.
   exactos; se nada bater, pela equivalência do catálogo («L. Portuguesa» → «Língua
   Portuguesa»), só por nome, nunca por siglas soltas, e só quando aponta para uma única
   disciplina da escola. Notas e presenças associadas assim ficam com aviso na pré-visualização.
+- **Classes (turmas, preçário de propinas):** código ou nome exactos; se nada bater, a mesma
+  classe escrita de outra forma («10a classe», «décima classe» → «10ª Classe»), pelo número
+  e pela unidade (classe ≠ ano), só quando é uma. Nas turmas fica com aviso.
+- **Períodos (notas, avaliações):** além de «1º Trimestre» e «Segundo Trimestre», aceita
+  «I Trimestre», «III trimestre» e «T2». Nunca um 4.º período.
 
 ## API de pesquisa (Mobile V4, WEB, integrações)
 

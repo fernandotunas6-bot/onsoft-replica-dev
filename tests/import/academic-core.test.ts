@@ -4,6 +4,7 @@ import {
   parseScore,
   parseTerm,
   resolveClassGroup,
+  resolveGradeLevel,
   resolveStudent,
   resolveSubject,
   uniqueExactMatch,
@@ -110,6 +111,41 @@ describe("Import académico — resolução estrita de referências", () => {
     expect(parseTerm("3° trimestre")).toBe(3);
     expect(parseTerm("4º Trimestre")).toBeNull();
     expect(parseTerm("Período desconhecido")).toBeNull();
+  });
+
+  it("aceita os períodos escritos de outra forma, pelas regras do catálogo", () => {
+    expect(parseTerm("I Trimestre")).toBe(1);
+    expect(parseTerm("III trimestre")).toBe(3);
+    expect(parseTerm("T2")).toBe(2);
+    expect(parseTerm("IV Trimestre")).toBeNull();
+    expect(parseTerm("Exame")).toBeNull();
+  });
+
+  it("encontra a classe escrita de outra forma, só quando é uma", () => {
+    const grades = [
+      { id: "g10", code: "10", name: "10ª Classe" },
+      { id: "g11", code: "11", name: "11ª Classe" },
+      { id: "a7", code: "7A", name: "7º Ano" },
+    ];
+    for (const raw of ["10ª Classe", "10.ª Classe", "10"]) {
+      expect(resolveGradeLevel(raw, grades), raw).toEqual({ row: grades[0], ambiguous: false });
+    }
+    for (const raw of ["10a classe", "décima classe", "Décima Classe"]) {
+      expect(resolveGradeLevel(raw, grades), raw).toEqual({
+        row: grades[0],
+        ambiguous: false,
+        viaCatalog: true,
+      });
+    }
+    expect(resolveGradeLevel("7.º ano", grades).row?.id).toBe("a7");
+    // A unidade conta: «7ª classe» não é o «7º Ano».
+    expect(resolveGradeLevel("7ª classe", grades).row).toBeNull();
+    expect(resolveGradeLevel("Turma B", grades)).toEqual({ row: null, ambiguous: false });
+    const twoCourses = [
+      { id: "c1", code: "10-CFB", name: "10ª Classe — Ciências" },
+      { id: "c2", code: "10-CEJ", name: "10ª Classe — Humanidades" },
+    ];
+    expect(resolveGradeLevel("10a classe", twoCourses)).toEqual({ row: null, ambiguous: true });
   });
 
   it("aceita notas 0–20, vírgula decimal e rejeita valores fora da escala", () => {
