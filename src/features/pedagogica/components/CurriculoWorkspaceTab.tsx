@@ -24,7 +24,7 @@ import {
   listTeacherAvailability,
   saveTeacherAvailability,
 } from "@/features/academic/server";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import { EMPTY_LIST } from "@/lib/stable-empty";
 import { errorMessage } from "@/lib/error-message";
 

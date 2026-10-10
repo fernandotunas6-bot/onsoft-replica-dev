@@ -9,8 +9,13 @@
 const TECHNICAL =
   /environment variable|supabase|PGRST|schema cache|\bSQL\b|relation |column |violates|fetch failed|Failed to fetch|NetworkError|Unexpected token|is not a function|Cannot read|undefined|Tabela em falta|Connect .* in Lovable/i;
 
+/** Mensagem técnica (servidor, SQL, rede, JavaScript), não escrita para o utilizador. */
+export function isTechnicalMessage(message: string): boolean {
+  return TECHNICAL.test(message) || /^\s*[[{]/.test(message);
+}
+
 export function publicErrorMessage(error: unknown, fallback: string): string {
   const message = error instanceof Error ? error.message.trim() : "";
-  if (!message || TECHNICAL.test(message)) return fallback;
+  if (!message || isTechnicalMessage(message)) return fallback;
   return message;
 }

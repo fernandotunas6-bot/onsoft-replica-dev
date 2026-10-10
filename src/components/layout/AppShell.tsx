@@ -4,7 +4,7 @@ import {
 } from "@/features/notifications/PersonalNotificationsList";
 import { lazy, Suspense, useEffect, useRef, useState, type ReactNode } from "react";
 import { Link, useRouter, useRouterState } from "@tanstack/react-router";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 
 import {
   Bell,
