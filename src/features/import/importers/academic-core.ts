@@ -3,6 +3,7 @@ import { canonicalEntityKey } from "../engine/dedupe";
 import { normalizeDate, normalizeText } from "../engine/normalize";
 import { schoolTodayIso } from "@/lib/school-date";
 import { selectAllPages } from "../engine/paged";
+import { subjectCatalogKey } from "@/features/education-catalog/normalize";
 
 export type StudentRef = {
   id: string;
@@ -229,8 +230,27 @@ export function resolveClassGroup(value: unknown, groups: ClassGroupRef[]) {
   return uniqueExactMatch(value, groups, [(group) => group.code, (group) => group.name]);
 }
 
-export function resolveSubject(value: unknown, subjects: SubjectRef[]) {
-  return uniqueExactMatch(value, subjects, [(subject) => subject.code, (subject) => subject.name]);
+/**
+ * Disciplina da folha → disciplina da escola. Primeiro código ou nome exactos;
+ * se nada bater, a equivalência do catálogo («L. Portuguesa» → «Língua
+ * Portuguesa», «Inglês» → «Língua Estrangeira (Inglês)»), só por nome e só
+ * quando aponta para uma única disciplina da escola. `viaCatalog` permite ao
+ * importador avisar da associação.
+ */
+export function resolveSubject(
+  value: unknown,
+  subjects: SubjectRef[],
+): { row: SubjectRef | null; ambiguous: boolean; viaCatalog?: true } {
+  const exact = uniqueExactMatch(value, subjects, [
+    (subject) => subject.code,
+    (subject) => subject.name,
+  ]);
+  if (exact.row || exact.ambiguous) return exact;
+  const key = subjectCatalogKey(value);
+  if (!key) return exact;
+  const matches = subjects.filter((subject) => subjectCatalogKey(subject.name) === key);
+  if (matches.length === 1) return { row: matches[0]!, ambiguous: false, viaCatalog: true };
+  return { row: null, ambiguous: matches.length > 1 };
 }
 
 export function parseTerm(value: unknown): 1 | 2 | 3 | null {

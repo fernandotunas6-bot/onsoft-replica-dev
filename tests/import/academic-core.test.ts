@@ -79,6 +79,31 @@ describe("Import académico — resolução estrita de referências", () => {
     expect(resolveSubject("Físic", subjects).row).toBeNull();
   });
 
+  it("sem correspondência exacta, usa a equivalência do catálogo (só por nome)", () => {
+    const school = [
+      { id: "lp", code: "LP", name: "Língua Portuguesa" },
+      { id: "ing", code: "LE", name: "Língua Estrangeira (Inglês)" },
+      { id: "em", code: "EM", name: "Educação Moral" },
+    ];
+    expect(resolveSubject("L. Portuguesa", school)).toEqual({
+      row: school[0],
+      ambiguous: false,
+      viaCatalog: true,
+    });
+    expect(resolveSubject("Inglês", school).row?.id).toBe("ing");
+    // O exacto ganha e não leva aviso.
+    expect(resolveSubject("EM", school)).toEqual({ row: school[2], ambiguous: false });
+    // Sigla solta não passa pelo catálogo: «EMC» não vira nenhuma disciplina.
+    expect(resolveSubject("EMC", school).row).toBeNull();
+    // Duas disciplinas da escola que o catálogo considera a mesma: ambíguo, nada escolhido.
+    const twice = [
+      ...school,
+      { id: "ing2", code: "ING", name: "Inglês Geral" },
+      { id: "ing3", code: "ENG", name: "English" },
+    ];
+    expect(resolveSubject("Língua Inglesa", twice)).toEqual({ row: null, ambiguous: true });
+  });
+
   it("normaliza os três períodos angolanos sem inventar um quarto período", () => {
     expect(parseTerm("1º Trimestre")).toBe(1);
     expect(parseTerm("Segundo Trimestre")).toBe(2);

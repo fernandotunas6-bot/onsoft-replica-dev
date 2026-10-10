@@ -167,3 +167,16 @@ export function findSubjectDuplicates(names: readonly string[]) {
     .filter(([, list]) => list.length > 1)
     .map(([code, list]) => ({ code, names: list }));
 }
+
+/**
+ * Código do catálogo para um NOME escrito pela escola ou numa folha, só por
+ * correspondência exacta (nome, nome local ou sinónimo). Siglas soltas («EM»,
+ * «MAT») não contam: numa escola «EM» é Estudo do Meio, noutra Educação Moral.
+ * Para juntar coisas que já são da escola sem adivinhar.
+ */
+export function subjectCatalogKey(raw: unknown): string | null {
+  const text = String(raw ?? "").trim();
+  if (!text || /^[A-ZÀ-Ý0-9.]{1,6}$/.test(text)) return null;
+  const match = resolveSubject(text);
+  return match?.via === "exact" ? match.subject.code : null;
+}

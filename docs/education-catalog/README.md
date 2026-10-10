@@ -147,6 +147,16 @@ novo.
 - Até a migração ser aplicada, o botão responde «falta aplicar a migração 20261010150000…»
   (e a função está em `FUNCOES_ESPERA_MIGRACAO`).
 
+## Importação de dados
+
+- **Disciplinas:** uma linha da folha é dada como «já cadastrada» pelo mesmo código, pelo
+  mesmo nome ou pela mesma disciplina do catálogo escrita de outra forma. Antes só o código
+  contava: «MATEM | Matemática» numa escola com «MAT | Matemática» criava outra Matemática.
+- **Notas, presenças, avaliações:** a disciplina da folha procura-se por código ou nome
+  exactos; se nada bater, pela equivalência do catálogo («L. Portuguesa» → «Língua
+  Portuguesa»), só por nome, nunca por siglas soltas, e só quando aponta para uma única
+  disciplina da escola. Notas e presenças associadas assim ficam com aviso na pré-visualização.
+
 ## API de pesquisa (Mobile V4, WEB, integrações)
 
 `GET /api/saas/education-catalog/search` (`api.ts`) — a mesma lógica e os mesmos dados do

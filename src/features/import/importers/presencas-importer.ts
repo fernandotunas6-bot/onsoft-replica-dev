@@ -115,10 +115,14 @@ export const presencasImporter: RowImporter = {
       errors.push(`Disciplina "${normalizeText(subjectValue)}" é ambígua; use o código exacto.`);
     else if (subjectValue && !subject.row)
       errors.push(`Disciplina "${normalizeText(subjectValue)}" não encontrada.`);
+    else if (subject.viaCatalog)
+      warnings.push(
+        `Disciplina "${normalizeText(subjectValue)}" associada a «${subject.row!.name}» (mesma disciplina no catálogo).`,
+      );
 
     if (errors.length) return { status: "error", warnings, errors };
 
-    return { status: "valid", warnings, errors: [] };
+    return { status: warnings.length ? "warning" : "valid", warnings, errors: [] };
   },
 
   async commitRow(normalized, ctx, rawCache) {

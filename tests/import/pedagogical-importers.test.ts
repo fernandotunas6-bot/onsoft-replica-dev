@@ -124,6 +124,32 @@ describe("Pedagogical Importers (cursos, classes, disciplinas, salas)", () => {
       expect(analysis.status).toBe("valid");
     });
 
+    it("reconhece a disciplina existente pelo nome ou pela grafia do catálogo, não só pelo código", () => {
+      const cache = {
+        existingSubjects: [
+          { id: "mat", code: "MAT", name: "Matemática" },
+          { id: "ef", code: "EDF", name: "Educação Física" },
+        ],
+      };
+      // Código diferente, mesmo nome: antes criava outra Matemática.
+      const sameName = disciplinasImporter.analyzeRow(
+        { code: "MATEM", name: "Matemática" },
+        cache as any,
+      );
+      expect(sameName).toMatchObject({ status: "duplicate", duplicate_of: "mat" });
+      expect(sameName.warnings[0]).toMatch(/o mesmo nome/);
+      const otherSpelling = disciplinasImporter.analyzeRow(
+        { code: "EFIS", name: "Ed. Física" },
+        cache as any,
+      );
+      expect(otherSpelling).toMatchObject({ status: "duplicate", duplicate_of: "ef" });
+      expect(otherSpelling.warnings[0]).toMatch(/outra grafia/);
+      // Disciplina nova continua a entrar.
+      expect(
+        disciplinasImporter.analyzeRow({ code: "ROB", name: "Robótica" }, cache as any).status,
+      ).toBe("valid");
+    });
+
     it("avisa quando a carga horária parece semanal", () => {
       // `subjects.annual_hours` é anual. A folha pedia horas semanais até 2026-09-16, por
       // isso um 4 continua a chegar — e tem de ser assinalado, não convertido às cegas.

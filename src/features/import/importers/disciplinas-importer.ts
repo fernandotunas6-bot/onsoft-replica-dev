@@ -1,5 +1,6 @@
 import { normalizeNumber, normalizeText } from "../engine/normalize";
 import type { ImportRefCache, RowImporter } from "../engine/types";
+import { subjectCatalogKey } from "@/features/education-catalog/normalize";
 import { uniqueExactMatch } from "./academic-core";
 
 type Ref = { id: string; code: string; name: string };
@@ -49,16 +50,27 @@ export const disciplinasImporter: RowImporter = {
 
     if (errors.length) return { status: "error", warnings, errors };
 
-    const existing = uniqueExactMatch(code || name, cache.existingSubjects, [
-      (r) => r.code,
-      (r) => r.name,
-    ]);
-    if (existing.row) {
+    // O mesmo código, o mesmo nome, ou a mesma disciplina do catálogo escrita de
+    // outra forma («Matematica», «Ed. Física»). Antes só se via o código: «MATEM
+    // | Matemática» numa escola com «MAT | Matemática» criava outra Matemática.
+    const byCode = uniqueExactMatch(code, cache.existingSubjects, [(r) => r.code]);
+    const byName = byCode.row
+      ? byCode
+      : uniqueExactMatch(name, cache.existingSubjects, [(r) => r.name]);
+    const catalogKey = byName.row ? null : subjectCatalogKey(name);
+    const byCatalog = catalogKey
+      ? cache.existingSubjects.filter((r) => subjectCatalogKey(r.name) === catalogKey)
+      : [];
+    const existing = byName.row ?? (byCatalog.length === 1 ? byCatalog[0]! : null);
+    if (existing) {
+      const same = byCode.row ? "o mesmo código" : byName.row ? "o mesmo nome" : "outra grafia";
       return {
         status: "duplicate",
-        warnings: ["Disciplina já cadastrada nesta instituição."],
+        warnings: [
+          `Disciplina já cadastrada nesta instituição (${same}): «${existing.name}» (${existing.code}).`,
+        ],
         errors: [],
-        duplicate_of: existing.row.id,
+        duplicate_of: existing.id,
       };
     }
 
