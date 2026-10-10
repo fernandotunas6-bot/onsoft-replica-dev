@@ -872,6 +872,22 @@ async function mergePeopleInSteps(
   if (survivorError) {
     throw publicDatabaseError(survivorError, "Não foi possível actualizar a ficha sobrevivente.");
   }
+  // A conta passa também para o registo de professor da ficha que fica: os ecrãs
+  // procuram o professor por `teachers.user_id` e a base (current_teacher_id) pela pessoa.
+  if (moveLogin) {
+    const { error: teacherLoginError } = await db
+      .from("teachers")
+      .update({ user_id: duplicate.user_id, updated_by: input.userId })
+      .eq("school_id", input.schoolId)
+      .eq("person_id", input.survivorId)
+      .is("user_id", null);
+    if (teacherLoginError) {
+      throw publicDatabaseError(
+        teacherLoginError,
+        "Fichas fundidas, mas a conta não ficou ligada ao professor.",
+      );
+    }
+  }
 
   const { error: auditError } = await db.from("audit_logs").insert({
     school_id: input.schoolId,

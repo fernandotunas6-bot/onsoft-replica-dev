@@ -176,6 +176,12 @@ const snapshot = async () => {
 };
 
 // Uma falha no último passo desfaz tudo: nada fica a meio.
+// A ficha que fica é professor, sem conta; a conta está no duplicado.
+await db.query(
+  `INSERT INTO public.teachers (school_id, person_id, employee_number, hired_on, employment_type, highest_qualification, created_by, updated_by)
+   VALUES ($1, $2, 'DOC-000050', current_date, 'permanent', 'bachelor', $3, $3)`,
+  [S, id(SURV), ACTOR],
+);
 const before = await snapshot();
 await db.exec("SET test.fail_audit = 'on'");
 await refused(merge(SURV, DUP), /falha provocada/);
@@ -194,6 +200,11 @@ const people = Object.fromEntries(
 assert.equal(people[id(SURV)].email, "maria@escola.ao");
 assert.equal(people[id(SURV)].national_id, "000111222LA033");
 assert.equal(people[id(SURV)].user_id, LOGIN);
+// …e a conta liga-se também ao professor (o servidor procura por teachers.user_id).
+const teacherLogin = (
+  await db.query("SELECT user_id FROM public.teachers WHERE person_id = $1", [id(SURV)])
+).rows[0].user_id;
+assert.equal(teacherLogin, LOGIN);
 assert.equal(people[id(SURV)].phone, "+244923000000");
 assert.equal(people[id(DUP)].status, "inactive");
 assert.equal(people[id(DUP)].email, null);

@@ -532,6 +532,15 @@ begin
     updated_by = p_actor
   where school_id = p_school_id and id = p_survivor_id;
 
+  -- A conta que passou para a ficha passa também para o registo de professor dela:
+  -- current_teacher_id() procura pela pessoa e o servidor pelo professor; sem isto, um
+  -- professor sem conta fundido com a ficha que a tinha ficava reconhecido por um e não
+  -- pelo outro.
+  if v_move_login then
+    update public.teachers set user_id = v_duplicate.user_id, updated_by = p_actor
+    where school_id = p_school_id and person_id = p_survivor_id and user_id is null;
+  end if;
+
   insert into public.audit_logs (school_id, actor_user_id, action, entity_type, entity_id, metadata)
   values (
     p_school_id, p_actor, 'people.merged', 'person', p_survivor_id,

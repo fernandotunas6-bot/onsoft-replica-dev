@@ -213,3 +213,36 @@ compara a lista do ecrã com a da migração nova.
     alunos «activo», com histórico (M8). Exige 2FA (A3). Repetir para a outra turma.
   - **Se forem de demonstração:** anular as matrículas (ficha do aluno › anular matrícula, ou
     um SQL revisto, que posso preparar) e arquivar as duas turmas. Os alunos ficam «inactivo».
+
+## 9. Terceira passagem — outros problemas (2026-10-10)
+
+**Avisos do Supabase** (segurança e desempenho, leitura de 2026-10-10, lidos por inteiro):
+
+- **Por fazer (dono, painel do Supabase):** Authentication › Password security › activar a
+  protecção contra senhas comprometidas (HaveIBeenPwned). Está desligada.
+- Os restantes avisos de segurança são intencionais: 76 tabelas «RLS sem políticas» são as que
+  só o servidor lê (regra 5 de `DATABASE_RULES.md`); 18 funções `SECURITY DEFINER` chamáveis
+  por `authenticated` são as de apoio às políticas e RPCs que verificam 2FA e permissão por
+  dentro (`merge_school_subjects`, aplicada hoje, verificada).
+- Desempenho: só avisos informativos (209 chaves estrangeiras sem índice, 234 índices sem uso).
+  Com o volume actual não pesam; rever quando houver escolas grandes.
+
+**Corrigido — K1 (P2) conta reconhecida como professor pela base e não pelos ecrãs.** A base
+(`current_teacher_id`) reconhece o professor por `teachers.user_id` **ou** `people.user_id`; os
+ecrãs do servidor (`ownTeacherId` e mais oito sítios) só por `teachers.user_id`. Dois caminhos
+ligavam a conta só à pessoa:
+
+- **Fundir pessoas:** a ficha que fica é professor sem conta e o duplicado tem a conta → depois
+  da fusão a conta estava na pessoa e não no professor. Corrigido nos passos e em
+  `private.merge_people` (ensaio em `tests/sql/merge-people.mjs`).
+- **Convidar uma conta** (`inviteSystemUser`) ligava-a à pessoa com o mesmo e-mail: escrevia
+  por cima de uma conta já ligada, comparava o e-mail com maiúsculas e não ligava o professor.
+  Agora só liga uma ficha sem conta, sem maiúsculas, liga também o professor, e uma falha fica
+  registada (antes era engolida).
+
+Na produção, hoje, as 9 fichas de professor têm as duas ligações coerentes; isto evita que
+deixem de ter.
+
+**Por fazer (interface, sem defeito):** em `pedagogica.tsx` e no horário as listas de turma,
+disciplina, professor e sala mostram «nome · 3f2e79f0» (o pedaço do id desfaz empates). Passar
+a opções `{ value: id, label }`, como `classGroupChoices` nos alunos.
