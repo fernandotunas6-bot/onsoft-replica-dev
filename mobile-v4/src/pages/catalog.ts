@@ -91,17 +91,44 @@ export const infoPages: Record<string, { title: string; intro: string; items: st
     ],
   },
 };
+/**
+ * Cor de cada função: a mesma em todos os ecrãs (Meu dia, todos os serviços),
+ * para se reconhecer o serviço antes de ler o nome. Só identidade visual: não
+ * muda permissões nem dados.
+ */
+export const SERVICE_TONES: Record<string, string> = {
+  aulas: "indigo",
+  horario: "indigo",
+  presencas: "green",
+  faltas: "green",
+  notas: "amber",
+  "notas-aluno": "amber",
+  turmas: "blue",
+  disciplinas: "teal",
+  planos: "teal",
+  tarefas: "orange",
+  trabalhos: "orange",
+  mensagens: "violet",
+  calendario: "rose",
+  avisos: "coral",
+  documentos: "slate",
+  propinas: "emerald",
+  "propinas-pagas": "emerald",
+};
+export const serviceTone = (id: string) => SERVICE_TONES[id] ?? "violet";
 export function serviceCatalog(role: Role) {
   const modules = role === "professor" ? teacherModules : studentModules;
   return [
     ...modules,
     ...(role === "aluno"
       ? [
-          ["Propinas", "panel-top", "propinas"],
-          ["Propinas pagas", "check", "propinas-pagas"],
+          ["Propinas", "wallet", "propinas"],
+          ["Propinas pagas", "receipt", "propinas-pagas"],
         ]
       : []),
-    ...(role === "aluno" ? [["Calendário", "bell", "calendario"]] : [["Avisos", "bell", "avisos"]]),
+    ...(role === "aluno"
+      ? [["Calendário", "calendar", "calendario"]]
+      : [["Avisos", "bell", "avisos"]]),
   ];
 }
 export const footerGroups = [

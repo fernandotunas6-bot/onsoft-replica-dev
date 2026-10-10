@@ -44,3 +44,11 @@
 7. Testar Android/iOS, teclado, zoom, acessibilidade e ausência de fuga entre tenants.
 
 **Não integrado:** backend, autenticação, dados reais, gravação de notas/presenças ou publicação.
+
+## V5 — Refinamento visual e ícones (10-10-2026)
+- **Tema escuro reposto:** os blocos `#app …` do refinamento anterior sobrepunham-se a `.dark …` (barra inferior branca, texto secundário sem contraste, papel activo invertido). Regras `#app.dark` no fim do CSS, sem tocar no original.
+- **Ícones com significado:** calendário (Calendário), relógio (Meu horário), prancheta (Presenças), quadro (Aulas de hoje), caderno (Plano de aula), lista (Tarefas/Trabalhos), medalha (Minhas notas), camadas (Disciplinas), documento (Documentos), carteira e recibo (Propinas). A roda dentada é gerada por geometria (8 dentes simétricos); sino e presente redesenhados. Mesma grelha 24×24 e traço 1,8.
+- **Cada função com a sua cor** (`SERVICE_TONES` em `pages/catalog.ts`, `data-tone`): a mesma em «Meu dia» e «Os teus serviços», com variante para o tema escuro. Os mosaicos entram em cascata (32 ms entre eles) e o ícone sobe ligeiramente ao passar; nada anima com movimento reduzido.
+- **Mosaicos e agenda:** seta sempre no canto, toque com ligeira compressão, agenda com uma linha por actividade e a hora em destaque. Espaço inferior reservado para a barra com a margem segura do iPhone.
+- `tests/icons.test.ts`: todos os ícones usados existem (nenhum cai no «?»), cada serviço de um perfil tem ícone próprio, e cada ícone é só traço, sem cores nem scripts.
+- Revisto em Chromium a 390 px, claro e escuro, professor e aluno, sem erros JS. Continua por rever em Android/iOS físicos e com leitores de ecrã.

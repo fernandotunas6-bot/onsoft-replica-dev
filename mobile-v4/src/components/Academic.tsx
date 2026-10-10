@@ -2,24 +2,24 @@ import { useState, type FormEvent } from "react";
 import type { Workspace, Context, Command, AttendanceStatus } from "../domain/model";
 import { parseGrade } from "../domain/policy";
 export const teacherModules = [
-  ["Aulas de hoje", "book-open", "aulas"],
-  ["Presenças", "users", "presencas"],
-  ["Lançar notas", "pencil", "notas"],
-  ["Minhas turmas", "school", "turmas"],
-  ["Plano de aula", "panel-top", "planos"],
-  ["Tarefas", "check", "tarefas"],
+  ["Aulas de hoje", "presentation", "aulas"],
+  ["Presenças", "clipboard-check", "presencas"],
+  ["Lançar notas", "file-pen", "notas"],
+  ["Minhas turmas", "users", "turmas"],
+  ["Plano de aula", "notebook", "planos"],
+  ["Tarefas", "list-checks", "tarefas"],
   ["Mensagens", "messages-square", "mensagens"],
-  ["Calendário", "bell", "calendario"],
+  ["Calendário", "calendar", "calendario"],
 ];
 export const studentModules = [
-  ["Meu horário", "book-open", "horario"],
-  ["Minhas notas", "star", "notas-aluno"],
-  ["Trabalhos", "pencil", "trabalhos"],
-  ["Disciplinas", "grid-2x2", "disciplinas"],
-  ["Presenças", "check", "faltas"],
+  ["Meu horário", "clock", "horario"],
+  ["Minhas notas", "award", "notas-aluno"],
+  ["Trabalhos", "list-checks", "trabalhos"],
+  ["Disciplinas", "layers", "disciplinas"],
+  ["Presenças", "clipboard-check", "faltas"],
   ["Avisos", "bell", "avisos"],
   ["Mensagens", "messages-square", "mensagens"],
-  ["Documentos", "panel-top", "documentos"],
+  ["Documentos", "file-text", "documentos"],
 ];
 export function Academic({
   module,

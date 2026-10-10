@@ -1541,3 +1541,270 @@ select:focus-visible {
 #app.compact h1 {
   margin-block: 8px 14px;
 }
+
+/* Mobile V4 — refinamento visual v5 (10/10/2026).
+ * Aditivo: o CSS original e a geometria ficam iguais. Repõe o tema escuro, que
+ * os blocos `#app …` anteriores sobrepunham (barra inferior branca, texto
+ * secundário sem contraste, papel activo invertido), e afina mosaicos, listas
+ * e o espaço para a barra inferior. */
+#app {
+  --v5-accent: #5b4bc4;
+  --v5-accent-soft: #f0edff;
+  --v5-ink-2: #5b6372;
+  --v5-line: rgba(29, 39, 57, 0.08);
+}
+#app .content {
+  padding-bottom: calc(120px + env(safe-area-inset-bottom));
+}
+#app .small {
+  color: var(--v5-ink-2);
+  letter-spacing: 0.01em;
+}
+#app .card {
+  border-color: var(--v5-line);
+  box-shadow: 0 1px 2px rgba(20, 28, 45, 0.04);
+}
+
+/* Mosaicos de serviço: ícone, nome e seta sempre alinhados. */
+#app .quicktile {
+  position: relative;
+  min-height: 108px;
+  justify-content: space-between;
+  padding: 16px 40px 16px 16px;
+  border-color: var(--v5-line);
+  line-height: 1.25;
+  transition:
+    transform 0.16s ease,
+    box-shadow 0.16s ease,
+    border-color 0.16s ease;
+}
+#app .quicktile > svg:last-child {
+  position: absolute;
+  right: 14px;
+  bottom: 18px;
+  margin: 0;
+  opacity: 0.45;
+}
+#app .quicktile:hover {
+  border-color: rgba(91, 75, 196, 0.22);
+  box-shadow: 0 6px 22px rgba(36, 30, 90, 0.07);
+}
+#app .quicktile:active {
+  transform: scale(0.985);
+}
+#app .tileicon {
+  width: 42px;
+  height: 42px;
+  border-radius: 14px;
+  background: var(--v5-accent-soft);
+  color: var(--v5-accent);
+  box-shadow: inset 0 0 0 1px rgba(91, 75, 196, 0.08);
+}
+
+/* Agenda: cada actividade é uma linha separada, com a hora em destaque. */
+#app .agenda .menurow {
+  padding: 12px 4px;
+  border-radius: 0;
+  border-bottom: 1px solid var(--v5-line);
+  line-height: 1.45;
+}
+#app .agenda .menurow:last-of-type {
+  border-bottom: 0;
+}
+#app .agenda .menurow span {
+  font-size: 15px;
+}
+#app .agenda .menurow span::first-line {
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Papel activo e botões redondos: estado legível nos dois temas. */
+#app .rolebar .pill {
+  font-weight: 600;
+}
+#app .pill .ui-icon {
+  flex: none;
+}
+#app .round,
+#app .profile {
+  color: inherit;
+}
+
+/* Tema escuro: superfícies, texto e barra inferior. */
+#app.dark {
+  --v5-accent: #b9adff;
+  --v5-accent-soft: #2f2a4a;
+  --v5-ink-2: #a9b0bd;
+  --v5-line: rgba(255, 255, 255, 0.09);
+}
+#app.dark .muted {
+  color: #a9b0bd;
+}
+#app.dark .nav {
+  background: rgba(30, 30, 36, 0.92);
+  border-color: rgba(255, 255, 255, 0.08);
+  box-shadow: 0 14px 40px rgba(0, 0, 0, 0.45);
+}
+#app.dark .nav button {
+  color: #ececf1;
+}
+#app.dark .nav button.active {
+  background: rgba(255, 255, 255, 0.1);
+}
+#app.dark .pill,
+#app.dark .round,
+#app.dark .profile {
+  background: #26262c;
+  color: #f4f4f5;
+  border-color: #3a3a44;
+}
+#app.dark .role-active {
+  background: #f4f4f5 !important;
+  color: #151518 !important;
+  border-color: transparent;
+}
+#app.dark .quicktile:hover {
+  border-color: rgba(185, 173, 255, 0.28);
+  box-shadow: 0 6px 22px rgba(0, 0, 0, 0.35);
+}
+#app.dark .tileicon {
+  background: var(--v5-accent-soft);
+  color: var(--v5-accent);
+  box-shadow: inset 0 0 0 1px rgba(185, 173, 255, 0.14);
+}
+#app.dark .card {
+  box-shadow: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #app .quicktile:active {
+    transform: none;
+  }
+}
+
+/* Vida a cada função: uma cor por serviço (data-tone) e entrada em cascata. */
+#app [data-tone="indigo"] {
+  --tone: #4f46e5;
+  --tone-soft: #eef0ff;
+}
+#app [data-tone="green"] {
+  --tone: #15803d;
+  --tone-soft: #e7f7ec;
+}
+#app [data-tone="amber"] {
+  --tone: #b45309;
+  --tone-soft: #fff4e2;
+}
+#app [data-tone="blue"] {
+  --tone: #1d6fd1;
+  --tone-soft: #e8f1fd;
+}
+#app [data-tone="teal"] {
+  --tone: #0f766e;
+  --tone-soft: #e3f6f3;
+}
+#app [data-tone="orange"] {
+  --tone: #c2410c;
+  --tone-soft: #ffede3;
+}
+#app [data-tone="violet"] {
+  --tone: #6d28d9;
+  --tone-soft: #f2ecff;
+}
+#app [data-tone="rose"] {
+  --tone: #be185d;
+  --tone-soft: #fde9f2;
+}
+#app [data-tone="coral"] {
+  --tone: #c2362b;
+  --tone-soft: #fdeceb;
+}
+#app [data-tone="slate"] {
+  --tone: #475569;
+  --tone-soft: #eef1f5;
+}
+#app [data-tone="emerald"] {
+  --tone: #047857;
+  --tone-soft: #e2f6ef;
+}
+#app.dark [data-tone="indigo"] {
+  --tone: #a5b4fc;
+  --tone-soft: #272a4d;
+}
+#app.dark [data-tone="green"] {
+  --tone: #86efac;
+  --tone-soft: #1d3527;
+}
+#app.dark [data-tone="amber"] {
+  --tone: #fcd34d;
+  --tone-soft: #3a2f17;
+}
+#app.dark [data-tone="blue"] {
+  --tone: #93c5fd;
+  --tone-soft: #1c2d45;
+}
+#app.dark [data-tone="teal"] {
+  --tone: #5eead4;
+  --tone-soft: #173532;
+}
+#app.dark [data-tone="orange"] {
+  --tone: #fdba74;
+  --tone-soft: #3b2619;
+}
+#app.dark [data-tone="violet"] {
+  --tone: #c4b5fd;
+  --tone-soft: #2e2448;
+}
+#app.dark [data-tone="rose"] {
+  --tone: #f9a8d4;
+  --tone-soft: #3b1f30;
+}
+#app.dark [data-tone="coral"] {
+  --tone: #fca5a5;
+  --tone-soft: #3d2020;
+}
+#app.dark [data-tone="slate"] {
+  --tone: #cbd5e1;
+  --tone-soft: #2a2f38;
+}
+#app.dark [data-tone="emerald"] {
+  --tone: #6ee7b7;
+  --tone-soft: #173528;
+}
+#app .quicktile[data-tone] .tileicon {
+  background: var(--tone-soft);
+  color: var(--tone);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--tone) 14%, transparent);
+}
+#app .quicktile[data-tone]:hover {
+  border-color: color-mix(in srgb, var(--tone) 32%, transparent);
+}
+#app .quicktile[data-tone] .tileicon .ui-icon {
+  transition: transform 0.22s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+#app .quicktile[data-tone]:hover .tileicon .ui-icon {
+  transform: translateY(-1px) scale(1.06);
+}
+#app .quicktile[data-tone] {
+  animation: v5-tile-in 0.36s cubic-bezier(0.2, 0.8, 0.2, 1) backwards;
+  animation-delay: calc(var(--i, 0) * 32ms);
+}
+@keyframes v5-tile-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  #app .quicktile[data-tone] {
+    animation: none;
+  }
+  #app .quicktile[data-tone]:hover .tileicon .ui-icon {
+    transform: none;
+  }
+}

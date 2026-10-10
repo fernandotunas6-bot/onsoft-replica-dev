@@ -13,7 +13,7 @@ import { Academic } from "../components/Academic";
 import { AttendanceMap } from "../components/AttendanceMap";
 import { ProfilePage } from "./ProfilePage";
 import { ChatPage } from "./ChatPage";
-import { serviceCatalog, infoPages, footerGroups, routeFor } from "./catalog";
+import { serviceCatalog, serviceTone, infoPages, footerGroups, routeFor } from "./catalog";
 import { Icon } from "../components/Icon";
 export function ServiceFooter({
   role,
@@ -110,10 +110,12 @@ export function ServicePages({
           <div className="page-eyebrow">Para professores e alunos</div>
           <h1>Os teus serviços</h1>
           <div className="quickgrid">
-            {serviceCatalog(role).map(([label, icon, id]) => (
+            {serviceCatalog(role).map(([label, icon, id], i) => (
               <a
                 className="quicktile"
                 key={id}
+                data-tone={serviceTone(id)}
+                style={{ "--i": i } as React.CSSProperties}
                 href={"#/" + id}
                 onClick={(e) => {
                   e.preventDefault();

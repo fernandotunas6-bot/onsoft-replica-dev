@@ -9,7 +9,7 @@ import { Sheet } from "./components/Sheet";
 import { Academic, teacherModules, studentModules } from "./components/Academic";
 import { ServicePages } from "./pages/ServicePages";
 import { ChatPage } from "./pages/ChatPage";
-import { serviceCatalog, routeFor } from "./pages/catalog";
+import { serviceCatalog, routeFor, serviceTone } from "./pages/catalog";
 import "./styles.css";
 type Project = { id: string; name: string; favorite: boolean };
 const tabs = [
@@ -20,7 +20,7 @@ const tabs = [
 ];
 const menu = [
   ["Caixa de entrada", "inbox", "inbox"],
-  ["Novidades", "bell", "news"],
+  ["Novidades", "newspaper", "news"],
   ["Perfil", "user-round", "profile-detail"],
   ["Configurações da conta", "settings", "settings"],
   ["Conectores", "plug", "connectors"],
@@ -542,19 +542,27 @@ export function App({ initialGateway }: { initialGateway?: Gateway }) {
             )}
             <h2>{role === "professor" ? "Trabalho do professor" : "Espaço do aluno"}</h2>
             <div className="quickgrid">
-              {(role === "professor" ? teacherModules : studentModules).map(([label, icon, id]) => (
-                <button className="quicktile" key={id} onClick={() => openModule(id)}>
-                  <span className="tileicon">
-                    <Icon name={icon} size={24} />
-                  </span>
-                  <span>
-                    {session?.mode === "api" && id === "aulas" ? "Horário semanal" : label}
-                  </span>
-                  <Icon name="chevron-right" size={17} />
-                </button>
-              ))}
+              {(role === "professor" ? teacherModules : studentModules).map(
+                ([label, icon, id], i) => (
+                  <button
+                    className="quicktile"
+                    key={id}
+                    data-tone={serviceTone(id)}
+                    style={{ "--i": i } as React.CSSProperties}
+                    onClick={() => openModule(id)}
+                  >
+                    <span className="tileicon">
+                      <Icon name={icon} size={24} />
+                    </span>
+                    <span>
+                      {session?.mode === "api" && id === "aulas" ? "Horário semanal" : label}
+                    </span>
+                    <Icon name="chevron-right" size={17} />
+                  </button>
+                ),
+              )}
             </div>
-            <div className="card">
+            <div className="card agenda">
               <b>Próximas actividades</b>
               {loading ? (
                 <p role="status">A carregar…</p>
