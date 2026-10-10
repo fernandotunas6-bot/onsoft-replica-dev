@@ -4,6 +4,8 @@
 --   H1: duas turmas sem sala à mesma hora deixam de ser recusadas como «sala
 --       sobreposta». «Sala», «S/N», «A definir» e «Sem sala fixa» não são salas, nas
 --       duas funções do horário e nos dois gatilhos.
+--   H2: trocar o professor de uma aula (troca-o em todas as aulas dessa disciplina na
+--       turma) é recusado quando ele já tem aula noutra turma à hora de alguma delas.
 -- Não mexe em dados. Ensaiada em PGlite (tests/sql/timetable-room-placeholders.mjs):
 -- reproduz a recusa com os corpos da produção e corre duas vezes.
 -- Confirmar no fim com a consulta do fundo deste ficheiro (deve dar "aplicada").
@@ -35,6 +37,11 @@
 -- 2026-10-10), só com a cláusula da etiqueta mudada; o ficheiro
 -- 20260925170000_timetable_builder_shifts_versions.sql nunca foi aplicado e não é a base
 -- disto. CREATE OR REPLACE mantém as permissões. Não mexe em dados. Idempotente.
+--
+-- H2 (mesma auditoria): o professor é de `class_subjects`, por isso trocá-lo numa aula
+-- troca-o em todas as aulas dessa disciplina na turma. As duas funções passam a recusar a
+-- troca quando o novo professor já tem aula noutra turma à hora de alguma delas; antes
+-- ficava em duas turmas ao mesmo tempo sem aviso.
 
 BEGIN;
 
@@ -119,6 +126,23 @@ BEGIN
     VALUES (p_school_id, p_class_group_id, p_subject_id, p_teacher_id, 1, 'active', p_actor, p_actor)
     RETURNING id INTO v_class_subject_id;
   ELSIF p_teacher_id IS NOT NULL AND p_teacher_id IS DISTINCT FROM v_existing_teacher_id THEN
+    -- H2: o professor é da disciplina na turma, por isso a troca vale para todas as
+    -- aulas dela. Recusa-se se o novo professor já tem aula noutra turma à hora de
+    -- alguma dessas aulas (os gatilhos só verificam a aula que se grava).
+    IF p_teacher_id IS NOT NULL AND EXISTS (
+      SELECT 1
+      FROM public.timetable_slots mine
+      JOIN public.timetable_slots other
+        ON other.school_id = mine.school_id AND other.weekday = mine.weekday
+       AND other.status = 'active' AND other.id <> mine.id
+       AND other.starts_at < mine.ends_at AND other.ends_at > mine.starts_at
+      JOIN public.class_subjects ocs ON ocs.id = other.class_subject_id
+      WHERE mine.school_id = p_school_id AND mine.class_subject_id = v_class_subject_id
+        AND mine.status = 'active' AND ocs.id <> v_class_subject_id AND ocs.teacher_id = p_teacher_id
+    ) THEN
+      RAISE EXCEPTION 'Conflito de horário: o professor muda em todas as aulas desta disciplina na turma, e já tem aula noutra turma à hora de uma delas.'
+        USING ERRCODE = 'unique_violation';
+    END IF;
     UPDATE public.class_subjects
     SET teacher_id = p_teacher_id, updated_by = p_actor
     WHERE id = v_class_subject_id;
@@ -218,6 +242,24 @@ BEGIN
       )
       RETURNING id INTO v_target_class_subject_id;
     ELSIF p_teacher_id IS DISTINCT FROM v_existing_teacher_id THEN
+      -- H2: o professor é da disciplina na turma, por isso a troca vale para todas as
+      -- aulas dela. Recusa-se se o novo professor já tem aula noutra turma à hora de
+      -- alguma dessas aulas (os gatilhos só verificam a aula que se grava).
+      IF p_teacher_id IS NOT NULL AND EXISTS (
+        SELECT 1
+        FROM public.timetable_slots mine
+        JOIN public.timetable_slots other
+          ON other.school_id = mine.school_id AND other.weekday = mine.weekday
+         AND other.status = 'active' AND other.id <> mine.id
+         AND other.starts_at < mine.ends_at AND other.ends_at > mine.starts_at
+        JOIN public.class_subjects ocs ON ocs.id = other.class_subject_id
+        WHERE mine.school_id = p_school_id AND mine.class_subject_id = v_target_class_subject_id
+          AND mine.status = 'active' AND ocs.id <> v_target_class_subject_id AND ocs.teacher_id = p_teacher_id
+            AND mine.id <> p_slot_id
+      ) THEN
+        RAISE EXCEPTION 'Conflito de horário: o professor muda em todas as aulas desta disciplina na turma, e já tem aula noutra turma à hora de uma delas.'
+          USING ERRCODE = 'unique_violation';
+      END IF;
       UPDATE public.class_subjects
       SET teacher_id = p_teacher_id, updated_by = p_actor
       WHERE id = v_target_class_subject_id;
@@ -282,6 +324,10 @@ SELECT
      AND (SELECT count(*) FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace
           WHERE n.nspname = 'private' AND p.proname = 'timetable_room_is_explicit'
             AND p.prosrc LIKE '%''s/n''%') = 1
+     AND (SELECT count(*) FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace
+          WHERE n.nspname = 'public'
+            AND p.proname IN ('create_timetable_slot_guarded', 'update_timetable_slot_guarded')
+            AND p.prosrc LIKE '%muda em todas as aulas%') = 2
       THEN 'aplicada'
     ELSE 'por aplicar'
   END AS "20261010100000 salas por atribuir";

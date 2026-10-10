@@ -161,6 +161,39 @@ await refused(
   /Conflito de horário/,
 );
 
+// H2: o professor é da disciplina na turma. Trocá-lo numa aula troca-o em todas; se
+// o novo professor já tem aula noutra turma à hora de uma delas, é recusado.
+await reset();
+const T1 = uuid(701);
+const T2 = uuid(702);
+// Turma 101, Matemática com T1: segunda e terça às 08:00. Turma 102, Física com T2: segunda às 08:00.
+await create(101, 201, "Sala", { teacher: T1, weekday: 1 });
+const tuesday = await create(101, 201, "Sala", { teacher: T1, weekday: 2 });
+await create(102, 202, "Sala", { teacher: T2, weekday: 1 });
+// Nova aula de Matemática na quarta com T2: T2 passaria a dar a de segunda, em que já dá Física.
+await refused(create(101, 201, "Sala", { teacher: T2, weekday: 3 }), /muda em todas as aulas/);
+// Editar a aula de terça para T2: o mesmo.
+const editTuesday = (teacher) =>
+  db.query(
+    `SELECT public.update_timetable_slot_guarded($1, $2, NULL, $3, NULL, 2::smallint, '08:00'::time,
+       '08:45'::time, 'Sala', NULL, NULL, NULL, NULL, $4)`,
+    [SCHOOL, tuesday.rows[0].id, teacher, ACTOR],
+  );
+await refused(editTuesday(T2), /muda em todas as aulas/);
+const { rows: teacherRows } = await db.query(
+  "SELECT teacher_id FROM public.class_subjects WHERE class_group_id = $1",
+  [uuid(101)],
+);
+assert.equal(teacherRows[0].teacher_id, T1, "a recusa não troca o professor");
+// Sem conflito noutra aula, a troca passa (e vale para as duas aulas de Matemática).
+const T3 = uuid(703);
+await editTuesday(T3);
+const { rows: after } = await db.query(
+  "SELECT teacher_id FROM public.class_subjects WHERE class_group_id = $1",
+  [uuid(101)],
+);
+assert.equal(after[0].teacher_id, T3);
+
 console.log(
-  "timetable-room-placeholders: recusa reproduzida; marcadores livres nos 4 sítios; salas e turmas continuam a colidir; idempotente.",
+  "timetable-room-placeholders: recusa reproduzida; marcadores livres nos 4 sítios; salas e turmas continuam a colidir; troca de professor com conflito noutra aula recusada; idempotente.",
 );
