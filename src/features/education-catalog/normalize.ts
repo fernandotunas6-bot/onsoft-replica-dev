@@ -9,6 +9,7 @@
  * equivalência só vale quando o texto bate exactamente com um nome,
  * sinónimo ou código conhecido, ou difere numa só letra.
  */
+import { GLOBAL_COURSES } from "./data/courses";
 import { GLOBAL_SUBJECTS, type GlobalSubject } from "./data/subjects";
 import { editDistance, normalizeText } from "./search";
 
@@ -166,4 +167,42 @@ export function findSubjectDuplicates(names: readonly string[]) {
   return [...groups.entries()]
     .filter(([, list]) => list.length > 1)
     .map(([code, list]) => ({ code, names: list }));
+}
+
+/**
+ * Código do catálogo para um NOME escrito pela escola ou numa folha, só por
+ * correspondência exacta (nome, nome local ou sinónimo). Siglas soltas («EM»,
+ * «MAT») não contam: numa escola «EM» é Estudo do Meio, noutra Educação Moral.
+ * Para juntar coisas que já são da escola sem adivinhar.
+ */
+export function subjectCatalogKey(raw: unknown): string | null {
+  const text = String(raw ?? "").trim();
+  if (!text || /^[A-ZÀ-Ý0-9.]{1,6}$/.test(text)) return null;
+  const match = resolveSubject(text);
+  return match?.via === "exact" ? match.subject.code : null;
+}
+
+let courseIndex: Map<string, string | null> | null = null;
+
+/**
+ * Código do catálogo para o NOME de um curso («Ciências Económico-Jurídicas» →
+ * SEC-CEJ), só por nome ou sinónimo exactos. Siglas soltas («CEJ», «INF») não
+ * contam, e um sinónimo que serve dois cursos não aponta para nenhum.
+ */
+export function courseCatalogKey(raw: unknown): string | null {
+  const text = String(raw ?? "").trim();
+  if (!text || /^[A-ZÀ-Ý0-9.]{1,6}$/.test(text)) return null;
+  if (!courseIndex) {
+    courseIndex = new Map();
+    for (const c of GLOBAL_COURSES) {
+      for (const key of [c.name, ...c.aliases]) {
+        if (/^[A-ZÀ-Ý0-9.]{1,6}$/.test(key)) continue;
+        const k = normalizeText(key);
+        if (!k) continue;
+        const seen = courseIndex.get(k);
+        courseIndex.set(k, seen === undefined || seen === c.code ? c.code : null);
+      }
+    }
+  }
+  return courseIndex.get(normalizeText(text)) ?? null;
 }

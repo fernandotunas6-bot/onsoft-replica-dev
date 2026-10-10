@@ -1,10 +1,12 @@
 import { normalizeText } from "../engine/normalize";
 import type { ImportRefCache, RowImporter } from "../engine/types";
+import { normalizeGrade } from "@/features/education-catalog/normalize";
 import { loadStudentRefs, uniqueExactMatch, type StudentRef } from "./academic-core";
 
 type HistoricoAcademicoCache = ImportRefCache & {
   students: StudentRef[];
-  existingKeys: Set<string>;
+  /** Chave → classe como está gravada (para actualizar a linha certa). */
+  existingKeys: Map<string, string>;
 };
 
 function valueOf(row: Record<string, unknown>, ...keys: string[]) {
@@ -15,8 +17,14 @@ function valueOf(row: Record<string, unknown>, ...keys: string[]) {
   return null;
 }
 
+/**
+ * «10a classe», «10.ª Classe» e «décima classe» são a mesma classe: a chave usa
+ * a forma do catálogo, para a reimportação actualizar em vez de duplicar.
+ */
 function historyKey(studentId: string, year: string, grade: string) {
-  return `${studentId}::${normalizeText(year)}::${normalizeText(grade)}`;
+  const text = normalizeText(grade);
+  const canonical = normalizeGrade(text)?.label ?? text.toLowerCase();
+  return `${studentId}::${normalizeText(year)}::${canonical}`;
 }
 
 export const historicoAcademicoImporter: RowImporter = {
@@ -29,10 +37,13 @@ export const historicoAcademicoImporter: RowImporter = {
       .select("student_id, academic_year_label, grade_level")
       .eq("school_id", ctx.schoolId);
 
-    const existingKeys = new Set(
+    const existingKeys = new Map(
       (existing ?? []).map(
         (row: { student_id: string; academic_year_label: string; grade_level: string }) =>
-          historyKey(row.student_id, row.academic_year_label, row.grade_level),
+          [
+            historyKey(row.student_id, row.academic_year_label, row.grade_level),
+            row.grade_level,
+          ] as const,
       ),
     );
 
@@ -134,7 +145,10 @@ export const historicoAcademicoImporter: RowImporter = {
       created_by: ctx.userId,
     };
 
-    if (cache.existingKeys.has(key)) {
+    const storedGrade = cache.existingKeys.get(key);
+    if (storedGrade !== undefined) {
+      // A linha existente fica com a classe como estava escrita.
+      payload.grade_level = storedGrade;
       if (ctx.dryRun) {
         return {
           status: "will_update",
@@ -151,7 +165,7 @@ export const historicoAcademicoImporter: RowImporter = {
         .eq("school_id", ctx.schoolId)
         .eq("student_id", student.id)
         .eq("academic_year_label", academicYear)
-        .eq("grade_level", gradeLevel)
+        .eq("grade_level", storedGrade)
         .maybeSingle();
 
       if (beforeError || !beforeRow) {
@@ -171,7 +185,7 @@ export const historicoAcademicoImporter: RowImporter = {
         .eq("school_id", ctx.schoolId)
         .eq("student_id", student.id)
         .eq("academic_year_label", academicYear)
-        .eq("grade_level", gradeLevel)
+        .eq("grade_level", storedGrade)
         .select("id")
         .maybeSingle();
 
@@ -225,7 +239,7 @@ export const historicoAcademicoImporter: RowImporter = {
       };
     }
 
-    cache.existingKeys.add(key);
+    cache.existingKeys.set(key, gradeLevel);
     return {
       status: "imported",
       warnings: analysis.warnings,

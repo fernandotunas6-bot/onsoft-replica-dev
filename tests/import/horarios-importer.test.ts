@@ -80,4 +80,14 @@ describe("horariosImporter", () => {
       "A disciplina já está atribuída a outro professor nesta turma.",
     );
   });
+
+  it("associa a disciplina pelo catálogo e avisa", () => {
+    const result = horariosImporter.analyzeRow(
+      { ...row, subject: "L. Portuguesa" },
+      cache({ subjects: [{ id: "subject-2", code: "LP", name: "Língua Portuguesa" }] }) as any,
+    );
+
+    expect(result.status).toBe("warning");
+    expect(result.warnings.join(" ")).toContain("associada a «Língua Portuguesa» (LP)");
+  });
 });

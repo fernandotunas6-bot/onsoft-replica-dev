@@ -147,6 +147,29 @@ novo.
 - Até a migração ser aplicada, o botão responde «falta aplicar a migração 20261010150000…»
   (e a função está em `FUNCOES_ESPERA_MIGRACAO`).
 
+## Importação de dados
+
+- **Disciplinas:** uma linha da folha é dada como «já cadastrada» pelo mesmo código, pelo
+  mesmo nome ou pela mesma disciplina do catálogo escrita de outra forma. Antes só o código
+  contava: «MATEM | Matemática» numa escola com «MAT | Matemática» criava outra Matemática.
+- **Notas, presenças, avaliações:** a disciplina da folha procura-se por código ou nome
+  exactos; se nada bater, pela equivalência do catálogo («L. Portuguesa» → «Língua
+  Portuguesa»), só por nome, nunca por siglas soltas, e só quando aponta para uma única
+  disciplina da escola. Notas e presenças associadas assim ficam com aviso na pré-visualização.
+- **Cursos:** o mesmo — código, nome, ou o mesmo curso do catálogo por nome ou sinónimo
+  («Ciências Económico-Jurídicas» = «Ciências Económicas e Jurídicas»). Siglas não contam,
+  e um nome que serve dois cursos do catálogo («Enfermagem»: técnico e licenciatura) não
+  aponta para nenhum (`courseCatalogKey`).
+- **Classes (turmas, preçário de propinas):** código ou nome exactos; se nada bater, a mesma
+  classe escrita de outra forma («10a classe», «décima classe» → «10ª Classe»), pelo número
+  e pela unidade (classe ≠ ano), só quando é uma. Nas turmas fica com aviso.
+- **Horários:** a disciplina segue a mesma regra das notas (catálogo só por nome, com aviso).
+- **Histórico académico:** «8a classe» e «oitava classe» são o mesmo histórico que «8ª
+  Classe»: reimportar actualiza a linha existente (que fica com a classe como estava
+  escrita) em vez de criar outra.
+- **Períodos (notas, avaliações):** além de «1º Trimestre» e «Segundo Trimestre», aceita
+  «I Trimestre», «III trimestre» e «T2». Nunca um 4.º período.
+
 ## API de pesquisa (Mobile V4, WEB, integrações)
 
 `GET /api/saas/education-catalog/search` (`api.ts`) — a mesma lógica e os mesmos dados do

@@ -36,6 +36,38 @@ describe("Pedagogical Importers (cursos, classes, disciplinas, salas)", () => {
       expect(analysis.status).toBe("duplicate");
       expect(analysis.duplicate_of).toBe("c1");
     });
+
+    it("detecta o mesmo curso com outro código, pelo nome ou pelo catálogo", () => {
+      const cache = {
+        existingCourses: [{ id: "c1", code: "CEJ", name: "Ciências Económicas e Jurídicas" }],
+        academicLevels: [{ id: "al1", code: "SEC", name: "Ensino Secundário" }],
+      };
+      const sameName = cursosImporter.analyzeRow(
+        { code: "CEJ2", name: "Ciencias Economicas e Juridicas" },
+        cache as any,
+      );
+      expect(sameName.status).toBe("duplicate");
+      expect(sameName.warnings[0]).toContain("o mesmo nome");
+      const synonym = cursosImporter.analyzeRow(
+        { code: "CEJ2", name: "Ciências Económico-Jurídicas" },
+        cache as any,
+      );
+      expect(synonym.status).toBe("duplicate");
+      expect(synonym.duplicate_of).toBe("c1");
+      expect(synonym.warnings[0]).toContain("outra grafia");
+    });
+
+    it("um curso diferente não é duplicado", () => {
+      const cache = {
+        existingCourses: [{ id: "c1", code: "CEJ", name: "Ciências Económicas e Jurídicas" }],
+        academicLevels: [{ id: "al1", code: "SEC", name: "Ensino Secundário" }],
+      };
+      const analysis = cursosImporter.analyzeRow(
+        { code: "CFB", name: "Ciências Físicas e Biológicas" },
+        cache as any,
+      );
+      expect(analysis.status).toBe("valid");
+    });
   });
 
   describe("classesImporter", () => {
@@ -122,6 +154,32 @@ describe("Pedagogical Importers (cursos, classes, disciplinas, salas)", () => {
         cache as any,
       );
       expect(analysis.status).toBe("valid");
+    });
+
+    it("reconhece a disciplina existente pelo nome ou pela grafia do catálogo, não só pelo código", () => {
+      const cache = {
+        existingSubjects: [
+          { id: "mat", code: "MAT", name: "Matemática" },
+          { id: "ef", code: "EDF", name: "Educação Física" },
+        ],
+      };
+      // Código diferente, mesmo nome: antes criava outra Matemática.
+      const sameName = disciplinasImporter.analyzeRow(
+        { code: "MATEM", name: "Matemática" },
+        cache as any,
+      );
+      expect(sameName).toMatchObject({ status: "duplicate", duplicate_of: "mat" });
+      expect(sameName.warnings[0]).toMatch(/o mesmo nome/);
+      const otherSpelling = disciplinasImporter.analyzeRow(
+        { code: "EFIS", name: "Ed. Física" },
+        cache as any,
+      );
+      expect(otherSpelling).toMatchObject({ status: "duplicate", duplicate_of: "ef" });
+      expect(otherSpelling.warnings[0]).toMatch(/outra grafia/);
+      // Disciplina nova continua a entrar.
+      expect(
+        disciplinasImporter.analyzeRow({ code: "ROB", name: "Robótica" }, cache as any).status,
+      ).toBe("valid");
     });
 
     it("avisa quando a carga horária parece semanal", () => {
