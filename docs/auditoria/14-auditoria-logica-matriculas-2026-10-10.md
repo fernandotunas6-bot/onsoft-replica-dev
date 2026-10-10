@@ -164,7 +164,7 @@ Na leitura da ficha do aluno e da página pública de matrícula, mais dois, cor
   `people_phone_check` recusa (por exemplo «923000000 / 912000000») só falhava ao **aceitar**
   a candidatura, que ficava presa, sem a secretaria poder corrigir o número. Agora valida-se no
   envio com a regra que grava (`normalizeStoredPhone`: Angola ou internacional).
-- **A5 (P3) Mudar estado do aluno:** a gravação em `audit_logs` estava num `try/catch` vazio, mas
+- **AL1 (P3) Mudar estado do aluno:** a gravação em `audit_logs` estava num `try/catch` vazio, mas
   o cliente devolve o erro em vez de o lançar: uma falha perdia-se. Passa a ser registada
   (`reportSigaError`), como na fusão de pessoas.
 
