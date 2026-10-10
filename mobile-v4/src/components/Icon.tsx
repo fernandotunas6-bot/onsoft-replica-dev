@@ -1,6 +1,6 @@
 /**
  * Ícones de traço originais do SIGA Plus Mobile (grelha 24×24, traço 1,8).
- * A cor e o relevo de cada função vêm do CSS (`data-tone`), não do desenho.
+ * O tom e o movimento vêm do CSS (`.tileicon`), não do desenho.
  */
 export const paths: Record<string, string> = {
   menu: '<path d="M4 6h16M4 12h16M4 18h10"/>',

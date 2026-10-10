@@ -1683,110 +1683,14 @@ select:focus-visible {
   }
 }
 
-/* Vida a cada função: uma cor por serviço (data-tone) e entrada em cascata. */
-#app [data-tone="indigo"] {
-  --tone: #4f46e5;
-  --tone-soft: #eef0ff;
-}
-#app [data-tone="green"] {
-  --tone: #15803d;
-  --tone-soft: #e7f7ec;
-}
-#app [data-tone="amber"] {
-  --tone: #b45309;
-  --tone-soft: #fff4e2;
-}
-#app [data-tone="blue"] {
-  --tone: #1d6fd1;
-  --tone-soft: #e8f1fd;
-}
-#app [data-tone="teal"] {
-  --tone: #0f766e;
-  --tone-soft: #e3f6f3;
-}
-#app [data-tone="orange"] {
-  --tone: #c2410c;
-  --tone-soft: #ffede3;
-}
-#app [data-tone="violet"] {
-  --tone: #6d28d9;
-  --tone-soft: #f2ecff;
-}
-#app [data-tone="rose"] {
-  --tone: #be185d;
-  --tone-soft: #fde9f2;
-}
-#app [data-tone="coral"] {
-  --tone: #c2362b;
-  --tone-soft: #fdeceb;
-}
-#app [data-tone="slate"] {
-  --tone: #475569;
-  --tone-soft: #eef1f5;
-}
-#app [data-tone="emerald"] {
-  --tone: #047857;
-  --tone-soft: #e2f6ef;
-}
-#app.dark [data-tone="indigo"] {
-  --tone: #a5b4fc;
-  --tone-soft: #272a4d;
-}
-#app.dark [data-tone="green"] {
-  --tone: #86efac;
-  --tone-soft: #1d3527;
-}
-#app.dark [data-tone="amber"] {
-  --tone: #fcd34d;
-  --tone-soft: #3a2f17;
-}
-#app.dark [data-tone="blue"] {
-  --tone: #93c5fd;
-  --tone-soft: #1c2d45;
-}
-#app.dark [data-tone="teal"] {
-  --tone: #5eead4;
-  --tone-soft: #173532;
-}
-#app.dark [data-tone="orange"] {
-  --tone: #fdba74;
-  --tone-soft: #3b2619;
-}
-#app.dark [data-tone="violet"] {
-  --tone: #c4b5fd;
-  --tone-soft: #2e2448;
-}
-#app.dark [data-tone="rose"] {
-  --tone: #f9a8d4;
-  --tone-soft: #3b1f30;
-}
-#app.dark [data-tone="coral"] {
-  --tone: #fca5a5;
-  --tone-soft: #3d2020;
-}
-#app.dark [data-tone="slate"] {
-  --tone: #cbd5e1;
-  --tone-soft: #2a2f38;
-}
-#app.dark [data-tone="emerald"] {
-  --tone: #6ee7b7;
-  --tone-soft: #173528;
-}
-#app .quicktile[data-tone] .tileicon {
-  background: var(--tone-soft);
-  color: var(--tone);
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--tone) 14%, transparent);
-}
-#app .quicktile[data-tone]:hover {
-  border-color: color-mix(in srgb, var(--tone) 32%, transparent);
-}
-#app .quicktile[data-tone] .tileicon .ui-icon {
+/* Movimento dos mosaicos: entrada em cascata e ícone que sobe ao passar. */
+#app .quickgrid .tileicon .ui-icon {
   transition: transform 0.22s cubic-bezier(0.2, 0.8, 0.2, 1);
 }
-#app .quicktile[data-tone]:hover .tileicon .ui-icon {
+#app .quicktile:hover .tileicon .ui-icon {
   transform: translateY(-1px) scale(1.06);
 }
-#app .quicktile[data-tone] {
+#app .quickgrid .quicktile {
   animation: v5-tile-in 0.36s cubic-bezier(0.2, 0.8, 0.2, 1) backwards;
   animation-delay: calc(var(--i, 0) * 32ms);
 }
@@ -1801,10 +1705,10 @@ select:focus-visible {
   }
 }
 @media (prefers-reduced-motion: reduce) {
-  #app .quicktile[data-tone] {
+  #app .quickgrid .quicktile {
     animation: none;
   }
-  #app .quicktile[data-tone]:hover .tileicon .ui-icon {
+  #app .quicktile:hover .tileicon .ui-icon {
     transform: none;
   }
 }

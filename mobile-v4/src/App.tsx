@@ -9,7 +9,7 @@ import { Sheet } from "./components/Sheet";
 import { Academic, teacherModules, studentModules } from "./components/Academic";
 import { ServicePages } from "./pages/ServicePages";
 import { ChatPage } from "./pages/ChatPage";
-import { serviceCatalog, routeFor, serviceTone } from "./pages/catalog";
+import { serviceCatalog, routeFor } from "./pages/catalog";
 import "./styles.css";
 type Project = { id: string; name: string; favorite: boolean };
 const tabs = [
@@ -547,7 +547,6 @@ export function App({ initialGateway }: { initialGateway?: Gateway }) {
                   <button
                     className="quicktile"
                     key={id}
-                    data-tone={serviceTone(id)}
                     style={{ "--i": i } as React.CSSProperties}
                     onClick={() => openModule(id)}
                   >
