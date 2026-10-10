@@ -36,10 +36,10 @@ Nada escrito na produção; nenhuma migração nova.
   sala à mesma hora eram recusadas pela RPC e pelo gatilho antigo; ensaio
   `tests/sql/timetable-room-placeholders.mjs`). Depois: recapturar o retrato. Número de
   professor num só sítio (`people/teacher-number.ts`, maior + 1). **Por decidir:** H2 (trocar o
-  professor de uma aula troca-o em todas, sem verificar conflitos), H3 (a `20260925170000`, por
-  aplicar, tem outra lista de marcadores), P3 (três numerações de professor; `register_teacher`
+  professor de uma aula troca-o em todas, sem verificar conflitos), P3 (três numerações de professor; `register_teacher`
   sem uso), P4 (fundir pessoas sem transacção). P5 (encarregado reaproveitado na candidatura,
-  `people/guardian-lookup.ts`) e P6 (apagar a morada na ficha 360) corrigidos.
+  `people/guardian-lookup.ts`) e P6 (apagar a morada na ficha 360) corrigidos; a `20260925170000`, por
+  aplicar, passou a usar `private.timetable_room_is_explicit` (H3).
 
 ## Auditoria 13 — fluxos da escola (2026-10-06)
 
