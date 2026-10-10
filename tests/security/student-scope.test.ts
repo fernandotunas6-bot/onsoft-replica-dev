@@ -72,8 +72,9 @@ describe("funções que lêem fichas de alunos e pessoas aplicam o âmbito", () 
 describe("leituras da escola inteira só para o pessoal", () => {
   const read = (path: string) => readFileSync(join(process.cwd(), path), "utf8");
   const body = (source: string, name: string) => {
-    const start = source.indexOf(`export const ${name} `);
-    const next = source.indexOf("export const ", start + 1);
+    const fn = source.indexOf(`export async function ${name}(`);
+    const start = fn > -1 ? fn : source.indexOf(`export const ${name} `);
+    const next = source.indexOf("export ", start + 1);
     return source.slice(start, next === -1 ? undefined : next);
   };
   const cases: Array<[string, string[], RegExp]> = [
@@ -110,6 +111,12 @@ describe("leituras da escola inteira só para o pessoal", () => {
     [
       "src/features/pedagogica/attendance-server.ts",
       ["submitAttendanceCallBatch"],
+      /recordAttendanceCall\(/,
+    ],
+    // Núcleo partilhado pelo portal e pela app móvel.
+    [
+      "src/features/pedagogica/attendance-core.server.ts",
+      ["recordAttendanceCall"],
       /não estão matriculados nesta turma/,
     ],
     [
@@ -120,6 +127,12 @@ describe("leituras da escola inteira só para o pessoal", () => {
     [
       "src/features/academic/server-legacy.ts",
       ["upsertAssessmentScores"],
+      /recordAssessmentScores\(/,
+    ],
+    // Núcleo partilhado pelo portal e pela app móvel.
+    [
+      "src/features/academic/assessment-scores-core.server.ts",
+      ["recordAssessmentScores"],
       /"grades\.assessment_score_changed"/,
     ],
   ];

@@ -6,17 +6,23 @@ import { describe, expect, it } from "vitest";
  * correcção ou justificação aprovada num período com pauta oficial mudava a
  * percentagem de faltas de uma pauta já homologada ou publicada.
  */
-const source = readFileSync("src/features/pedagogica/attendance-server.ts", "utf8");
+// O núcleo da chamada (portal e app móvel) vive em attendance-core.server.ts.
+const source =
+  readFileSync("src/features/pedagogica/attendance-server.ts", "utf8") +
+  readFileSync("src/features/pedagogica/attendance-core.server.ts", "utf8");
 const body = (name: string) => {
-  const start = source.indexOf(`export const ${name} = createServerFn`);
+  const fn = source.indexOf(`export async function ${name}(`);
+  const start = fn > -1 ? fn : source.indexOf(`export const ${name} = createServerFn`);
   return source.slice(start, source.indexOf("export const", start + 1));
 };
 
 describe("presenças num período com pauta oficial", () => {
   it("a chamada e a correcção verificam a pauta antes de gravar", () => {
-    for (const name of ["submitAttendanceCallBatch", "editFinalizedAttendanceCall"]) {
+    // A chamada vive em recordAttendanceCall (portal e app móvel); `actor` é a escola de quem grava.
+    expect(body("submitAttendanceCallBatch")).toContain("recordAttendanceCall(");
+    for (const name of ["recordAttendanceCall", "editFinalizedAttendanceCall"]) {
       const fn = body(name);
-      const check = fn.indexOf("assertAttendanceNotLocked(db, membership.schoolId");
+      const check = fn.search(/assertAttendanceNotLocked\(db, (membership|actor)\.schoolId/);
       expect(check, name).toBeGreaterThan(-1);
       expect(check, name).toBeLessThan(fn.indexOf('.from("siga_attendance_records").upsert'));
     }

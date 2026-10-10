@@ -2,9 +2,13 @@ import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { absencePercentageFromStatuses } from "@/features/academic/exam-engine";
 
-const source = readFileSync("src/features/pedagogica/attendance-server.ts", "utf8");
+// O núcleo da chamada (portal e app móvel) vive em attendance-core.server.ts.
+const source =
+  readFileSync("src/features/pedagogica/attendance-server.ts", "utf8") +
+  readFileSync("src/features/pedagogica/attendance-core.server.ts", "utf8");
 const block = (name: string) => {
-  const start = source.indexOf(`export const ${name} = createServerFn`);
+  const fn = source.indexOf(`export async function ${name}(`);
+  const start = fn > -1 ? fn : source.indexOf(`export const ${name} = createServerFn`);
   const next = source.indexOf("export const ", start + 1);
   return source.slice(start, next === -1 ? undefined : next);
 };
@@ -30,7 +34,9 @@ describe("percentagem de faltas (exclusão por faltas)", () => {
 
 describe("chamada fechada só se corrige com motivo", () => {
   it("reenviar a chamada de uma sessão fechada é recusado antes de gravar", () => {
-    const submit = block("submitAttendanceCallBatch");
+    // Núcleo partilhado pelo portal (submitAttendanceCallBatch) e pela app móvel.
+    expect(block("submitAttendanceCallBatch")).toContain("recordAttendanceCall(");
+    const submit = block("recordAttendanceCall");
     const guard = submit.indexOf('session.status === "completed"');
     expect(guard).toBeGreaterThan(-1);
     expect(guard).toBeLessThan(submit.indexOf('from("siga_attendance_records")'));

@@ -28,7 +28,9 @@ describe("acessos", () => {
 });
 
 describe("presenças", () => {
-  const source = read("src/features/pedagogica/attendance-server.ts");
+  const source =
+    read("src/features/pedagogica/attendance-server.ts") +
+    read("src/features/pedagogica/attendance-core.server.ts");
 
   it("fechar a chamada e decidir justificações verificam o erro", () => {
     expect(source).toMatch(/error: completeError/);

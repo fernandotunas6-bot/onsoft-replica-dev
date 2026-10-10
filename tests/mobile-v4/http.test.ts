@@ -8,6 +8,8 @@ vi.mock("@/features/mobile-v4/operations-core.server", () => ({
   loadMobileV4AcademicCatalog: vi.fn(),
   loadMobileV4Attendance: vi.fn(),
   loadMobileV4Results: vi.fn(),
+  loadMobileV4Lessons: vi.fn(),
+  loadMobileV4Assessments: vi.fn(),
   loadMobileV4Gradebooks: vi.fn(),
   loadMobileV4Finance: vi.fn(),
   loadMobileV4Chat: vi.fn(),
@@ -71,6 +73,8 @@ beforeEach(() => {
       timetable: [],
       tasks: [],
     }),
+    lessons: vi.fn().mockResolvedValue({ schoolId: school, date: "2026-10-10", lessons: [] }),
+    assessments: vi.fn().mockResolvedValue({ schoolId: school, items: [] }),
     chatCommand: vi
       .fn()
       .mockResolvedValue({ type: "send", conversationId: school, messageId: requestId }),
@@ -311,6 +315,21 @@ it("rejects results before service invocation on invalid scope, missing auth and
   ).toBe(405);
   expect(deps.results).not.toHaveBeenCalled();
 });
+it("routes the teacher's day lessons as a read with verified identity", async () => {
+  const response = await handleMobileV4Http(
+    request(`/schools/${school}/lessons?role=professor`),
+    deps,
+  );
+  expect(response.status).toBe(200);
+  expect(deps.lessons).toHaveBeenCalledWith("verified-user", {
+    schoolId: school,
+    role: "professor",
+  });
+  expect(
+    (await handleMobileV4Http(request(`/schools/${school}/lessons?role=professor`, {}), deps))
+      .status,
+  ).toBe(405);
+});
 
 it("routes internal gradebooks only after validating identity and scope", async () => {
   const response = await handleMobileV4Http(
@@ -447,4 +466,20 @@ it("marks notices read only by POST, with MFA, a strict body and the route schoo
   expect(
     (await handleMobileV4Http(request(path, { role: "professor", all: true }), deps)).status,
   ).toBe(200);
+});
+
+it("routes the teacher's assessments as a read and rejects other methods", async () => {
+  const response = await handleMobileV4Http(
+    request(`/schools/${school}/assessments?role=professor&teacherId=attacker`),
+    deps,
+  );
+  expect(response.status).toBe(200);
+  expect(deps.assessments).toHaveBeenCalledWith("verified-user", {
+    schoolId: school,
+    role: "professor",
+  });
+  expect(
+    (await handleMobileV4Http(request(`/schools/${school}/assessments?role=professor`, {}), deps))
+      .status,
+  ).toBe(405);
 });

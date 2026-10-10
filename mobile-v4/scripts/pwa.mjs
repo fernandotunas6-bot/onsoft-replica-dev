@@ -1,5 +1,7 @@
 import { readdir, readFile, writeFile } from "node:fs/promises";
 import { createHash } from "node:crypto";
+// Pasta do build: `dist` (preview) ou outra passada como argumento (portal).
+const dir = process.argv[2] ?? "dist";
 async function walk(dir) {
   const items = await readdir(dir, { withFileTypes: true });
   return (
@@ -8,15 +10,13 @@ async function walk(dir) {
     )
   ).flat();
 }
-const files = (await walk("dist")).filter(
-  (f) => !f.endsWith("sw.js") && !f.endsWith("/_worker.js"),
-);
+const files = (await walk(dir)).filter((f) => !f.endsWith("sw.js") && !f.endsWith("/_worker.js"));
 const hash = createHash("sha256");
 for (const f of files) hash.update(await readFile(f));
 const version = hash.digest("hex").slice(0, 16);
-const assets = files.map((f) => "./" + f.slice(5));
+const assets = files.map((f) => "./" + f.slice(dir.length + 1));
 await writeFile(
-  "dist/sw.js",
+  dir + "/sw.js",
   `const CACHE='siga-mobile-v4-${version}';
 const ASSETS=${JSON.stringify(assets)};
 const urls=new Set(ASSETS.map(p=>new URL(p,self.registration.scope).href));

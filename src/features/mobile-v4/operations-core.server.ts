@@ -42,6 +42,14 @@ export async function applyMobileV4Command(userId: string, input: unknown) {
   if (data.command.type !== "message" && (studentCommand ? "aluno" : "professor") !== data.role) {
     throw new MobileApiError(403, "COMMAND_ROLE_FORBIDDEN");
   }
+  if (data.command.type === "attendance") {
+    const { recordMobileV4Attendance } = await import("./teacher-attendance.server");
+    return recordMobileV4Attendance(userId, { ...data, command: data.command });
+  }
+  if (data.command.type === "scores") {
+    const { recordMobileV4Scores } = await import("./teacher-scores.server");
+    return recordMobileV4Scores(userId, { ...data, command: data.command });
+  }
   await requireMobileAcademicAccess(userId, data.schoolId, data.role, "write");
   throw new MobileApiError(503, "COMMANDS_NOT_READY");
 }
@@ -78,6 +86,11 @@ export async function loadMobileV4Results(userId: string, input: unknown) {
   const catalog = await readMobileAcademicCatalog(db, scope, userId);
   const { readMobileResults } = await import("./results.server");
   return readMobileResults(db, scope, catalog, userId);
+}
+
+export async function loadMobileV4Lessons(userId: string, input: unknown) {
+  const { loadMobileV4TeacherDay } = await import("./teacher-attendance.server");
+  return loadMobileV4TeacherDay(userId, input);
 }
 
 export async function loadMobileV4Gradebooks(userId: string, input: unknown) {
@@ -184,4 +197,9 @@ export async function applyMobileV4NotificationsRead(userId: string, input: unkn
     { schoolId: s.schoolId, role: s.role, userId },
     "ids" in s ? { ids: s.ids } : { all: true },
   );
+}
+
+export async function loadMobileV4Assessments(userId: string, input: unknown) {
+  const { loadMobileV4Assessments: load } = await import("./teacher-scores.server");
+  return load(userId, input);
 }

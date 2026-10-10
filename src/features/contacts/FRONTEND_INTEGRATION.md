@@ -5,6 +5,7 @@ Como integrar Contact Verification com componentes de UI do SIGA Plus.
 ## 1. Sincronizar Email Após Login
 
 ### Magic Link Flow
+
 Quando o utilizador faz login via magic link, sincronizar a verificação de email:
 
 ```tsx
@@ -31,6 +32,7 @@ export function MagicLinkCallback() {
 ```
 
 ### Password Reset Flow
+
 Similar para reset de password:
 
 ```tsx
@@ -116,14 +118,10 @@ export function ContactVerificationStatus() {
                   ✓ Verificado
                 </span>
               ) : (
-                <button className="text-blue-600 text-sm hover:underline">
-                  Verificar
-                </button>
+                <button className="text-blue-600 text-sm hover:underline">Verificar</button>
               )
             ) : (
-              <button className="text-blue-600 text-sm hover:underline">
-                Adicionar
-              </button>
+              <button className="text-blue-600 text-sm hover:underline">Adicionar</button>
             )}
           </div>
         </div>
@@ -143,14 +141,10 @@ export function ContactVerificationStatus() {
                   ✓ Verificado
                 </span>
               ) : (
-                <button className="text-blue-600 text-sm hover:underline">
-                  Verificar
-                </button>
+                <button className="text-blue-600 text-sm hover:underline">Verificar</button>
               )
             ) : (
-              <button className="text-blue-600 text-sm hover:underline">
-                Adicionar
-              </button>
+              <button className="text-blue-600 text-sm hover:underline">Adicionar</button>
             )}
           </div>
         </div>
@@ -167,7 +161,10 @@ Painel para escolher categorias e canais:
 ```tsx
 // src/routes/app/account/communication-preferences.tsx
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { getCommunicationPreferencesFn, updateCommunicationPreferencesFn } from "@/features/contacts";
+import {
+  getCommunicationPreferencesFn,
+  updateCommunicationPreferencesFn,
+} from "@/features/contacts";
 
 export function CommunicationPreferencesPanel() {
   const { data: prefs } = useQuery({
@@ -381,9 +378,7 @@ export function OtpVerificationModal({
         {step === "verify" && (
           <>
             <div className="mb-6">
-              <label className="block text-sm font-medium mb-2">
-                Código de Verificação
-              </label>
+              <label className="block text-sm font-medium mb-2">Código de Verificação</label>
               <input
                 type="text"
                 value={code}
@@ -446,7 +441,10 @@ export function PreferredChannelSelector() {
     <div className="space-y-3">
       <h3 className="font-semibold">Canal Preferido para Notificações</h3>
       {channels.map((ch) => (
-        <label key={ch.value} className="flex items-center p-3 border rounded cursor-pointer hover:bg-gray-50">
+        <label
+          key={ch.value}
+          className="flex items-center p-3 border rounded cursor-pointer hover:bg-gray-50"
+        >
           <input
             type="radio"
             name="preferred-channel"
@@ -466,13 +464,14 @@ export function PreferredChannelSelector() {
 ## 6. Testing
 
 ### Teste de Sincronização
+
 ```tsx
 import { renderHook, waitFor } from "@testing-library/react";
 import { syncMagicLinkVerificationFn } from "@/features/auth/magic-link-server";
 
 test("sincroniza verificação após magic link login", async () => {
   const { result } = renderHook(() => syncMagicLinkVerificationFn());
-  
+
   await waitFor(() => {
     expect(result.current).toBeDefined();
   });
@@ -486,4 +485,3 @@ test("sincroniza verificação após magic link login", async () => {
 - [ ] Integrar OtpVerificationModal nos fluxos
 - [ ] Testes e2e para verificação de contactos
 - [ ] Dashboard de status de verificação
-

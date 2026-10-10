@@ -169,9 +169,12 @@ describe("Mobile tenant and role authorization", () => {
     await expect(requireMobileAcademicAccess("user", b, "admin" as never)).rejects.toThrow();
     expect(mocks.load).not.toHaveBeenCalled();
   });
-  it("does not advertise unavailable write capabilities", async () => {
+  it("advertises only the writes the server implements (attendance call and scores)", async () => {
     const memberships = mapMobileMemberships(await mocks.list());
-    expect(memberships.map((m) => m.permissions)).toEqual([["academic.read"], ["academic.read"]]);
+    expect(memberships.map((m) => m.permissions)).toEqual([
+      ["academic.read", "attendance.write", "grades.write"],
+      ["academic.read"],
+    ]);
   });
   it("keeps institutional commands unavailable after valid authorization", async () => {
     await expect(

@@ -6,6 +6,7 @@ import { ApiError } from "../services/api";
 import { daysOfMonth, luandaDate, type DayStatus } from "../domain/calendar";
 import { attendanceLabels } from "./AttendanceMap";
 import { Icon } from "./Icon";
+import { TeacherCall } from "./TeacherCall";
 const studentLabels: Record<StudentAttendanceStatus, string> = {
   present: "Presente",
   absent: "Falta",
@@ -120,6 +121,15 @@ export function InstitutionalAttendance({
   }
   return (
     <section className="attendance-map">
+      {ctx.role === "professor" && (
+        <TeacherCall
+          catalog={catalog}
+          ctx={ctx}
+          gateway={gateway}
+          onSaved={() => setReload((r) => r + 1)}
+          onAccessError={onAccessError}
+        />
+      )}
       <div className="map-heading">
         <button className="iconbtn" aria-label="Mês anterior" onClick={() => changeMonth(-1)}>
           <Icon name="chevron-left" />

@@ -7,7 +7,8 @@ import { describe, expect, it } from "vitest";
 
 const read = (path: string) => readFileSync(join(process.cwd(), path), "utf8");
 const body = (source: string, name: string) => {
-  const start = source.indexOf(`export const ${name} `);
+  const fn = source.indexOf(`export async function ${name}(`);
+  const start = fn > -1 ? fn : source.indexOf(`export const ${name} `);
   expect(start, `${name} não encontrado`).toBeGreaterThan(-1);
   const next = source.indexOf("export const ", start + 1);
   return source.slice(start, next === -1 ? undefined : next);
@@ -32,9 +33,16 @@ describe("atribuir turma em lote (alunos)", () => {
 });
 
 describe("chamada de presença", () => {
-  const source = read("src/features/pedagogica/attendance-server.ts");
+  // A chamada vive em recordAttendanceCall (núcleo partilhado pelo portal e pela app móvel).
+  const source =
+    read("src/features/pedagogica/attendance-server.ts") +
+    read("src/features/pedagogica/attendance-core.server.ts");
 
-  for (const name of ["submitAttendanceCallBatch", "editFinalizedAttendanceCall"]) {
+  it("submitAttendanceCallBatch delega no núcleo partilhado", () => {
+    expect(body(source, "submitAttendanceCallBatch")).toMatch(/recordAttendanceCall\(/);
+  });
+
+  for (const name of ["recordAttendanceCall", "editFinalizedAttendanceCall"]) {
     it(`${name}: um upsert para a turma, com erro verificado`, () => {
       const fn = body(source, name);
       expect(fn).not.toMatch(/for \(const item of data\.records\)/);
@@ -110,9 +118,12 @@ describe("notas de exame", () => {
 });
 
 describe("aulas do dia (presença)", () => {
-  const fn = body(
-    read("src/features/pedagogica/attendance-server.ts"),
-    "listTeacherAttendanceSessions",
+  const server = read("src/features/pedagogica/attendance-server.ts");
+  const fn = body(server, "listTeacherAttendanceSessions");
+  // Núcleo partilhado pelo portal e pela app móvel.
+  const core = body(
+    read("src/features/pedagogica/attendance-core.server.ts"),
+    "prepareTeacherDaySessions",
   );
 
   it("só o corpo docente: aluno e encarregado não vêem nem criam sessões", () => {
@@ -123,13 +134,15 @@ describe("aulas do dia (presença)", () => {
   });
 
   it("professor sem ficha de docente não vê as aulas da escola inteira", () => {
-    expect(fn).toMatch(/if \(!linked\.teacher_id\) return \{ sessions: \[\]/);
+    expect(fn).toMatch(/linkedTeacherId\(db, membership, context\.userId\)/);
+    expect(server).toMatch(/if \(membership\.appRole !== "Professor"\) return null;/);
+    expect(core).toMatch(/if \(!actor\.teacherId\) return \{ sessions: \[\]/);
   });
 
   it("as sessões em falta criam-se numa só escrita, com erro verificado", () => {
-    const loop = fn.slice(fn.indexOf("for (const slot of slots"));
+    const loop = core.slice(core.indexOf("for (const slot of slots"));
     expect(loop).not.toMatch(/\.insert\(/);
-    expect(fn).toMatch(/error: createError/);
+    expect(core).toMatch(/error: createError/);
   });
 });
 
@@ -148,8 +161,8 @@ describe("sessões de presença: uma por aula e por dia", () => {
 
   it("o servidor aceita o conflito de outro pedido e lê as sessões que ficaram", () => {
     const fn = body(
-      read("src/features/pedagogica/attendance-server.ts"),
-      "listTeacherAttendanceSessions",
+      read("src/features/pedagogica/attendance-core.server.ts"),
+      "prepareTeacherDaySessions",
     );
     expect(fn).toMatch(/createError\?\.code === "23505"/);
   });
@@ -171,7 +184,17 @@ describe("mudar estado em lote (alunos)", () => {
 });
 
 describe("lançar notas de avaliação", () => {
-  const fn = body(read("src/features/academic/server-legacy.ts"), "upsertAssessmentScores");
+  // Núcleo partilhado pelo portal (upsertAssessmentScores) e pela app móvel.
+  const fn = body(
+    read("src/features/academic/assessment-scores-core.server.ts"),
+    "recordAssessmentScores",
+  );
+
+  it("upsertAssessmentScores delega no núcleo partilhado", () => {
+    expect(body(read("src/features/academic/server-legacy.ts"), "upsertAssessmentScores")).toMatch(
+      /recordAssessmentScores\(/,
+    );
+  });
 
   it("só aceita alunos da turma da avaliação, também para a Administração e a Secretaria", () => {
     expect(fn).toMatch(/\.eq\("class_group_id", String\(item\.class_group_id\)\)/);

@@ -30,7 +30,9 @@ export function mapMobileMemberships(
       const assigned = item.allAppRoles;
       if (assigned.includes("Professor")) {
         roles.push("professor");
-        permissions.push("academic.read");
+        // Chamada e notas de avaliações têm comando no servidor
+        // (teacher-attendance.server.ts, teacher-scores.server.ts).
+        permissions.push("academic.read", "attendance.write", "grades.write");
       }
       if (assigned.includes("Aluno")) {
         roles.push("aluno");
@@ -54,8 +56,8 @@ export async function loadMobileV4Session(userId: string) {
   const memberships = mapMobileMemberships(
     await listUserSchoolMemberships(db, userId, { strict: true }),
   );
-  // The UI advertises no write permission until the corresponding atomic
-  // command is available. Module grants are still checked on every request.
+  // The UI advertises only writes whose atomic command exists on the server
+  // (today: the teacher's attendance call). Grants are checked on every request.
   for (const membership of memberships) {
     await assertModuleNotBlocked(membership.schoolId, userId, "pedagogica", "read");
   }

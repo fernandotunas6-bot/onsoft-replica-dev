@@ -39,6 +39,18 @@ requireEnv("SUPABASE_SERVICE_ROLE_KEY");
 const CLOUDFLARE_API_TOKEN = requireEnv("CLOUDFLARE_API_TOKEN");
 const CLOUDFLARE_ACCOUNT_ID = requireEnv("CLOUDFLARE_ACCOUNT_ID");
 
+// App móvel em public/mobile/ (m.portal-siga.com), publicada nos assets do mesmo Worker.
+console.log("==> Building mobile app (m.portal-siga.com)...");
+execSync("node scripts/build-mobile.mjs", {
+  stdio: "inherit",
+  env: {
+    ...process.env,
+    ...envVars,
+    VITE_SUPABASE_URL: SUPABASE_URL,
+    VITE_SUPABASE_PUBLISHABLE_KEY: SUPABASE_PUBLISHABLE_KEY,
+  },
+});
+
 console.log("==> Building for Cloudflare (production)...");
 const WEB_URL = envVars["VITE_WEB_URL"] || "https://siga-web.pages.dev";
 const ADMIN_URL = envVars["VITE_ADMIN_URL"] || "https://siga-admin.pages.dev";

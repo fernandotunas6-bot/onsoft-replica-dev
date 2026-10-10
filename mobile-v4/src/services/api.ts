@@ -21,6 +21,13 @@ import { authorize, scopeWorkspace, required, validateCommand } from "../domain/
 import { importSigaDirectMessages } from "./chat-import";
 import { parseAcademicCatalog } from "../domain/catalog-validation";
 import type { AcademicCatalog } from "../domain/catalog";
+import { parseTeacherDay, type TeacherDay } from "../domain/teacher-day";
+import {
+  parseTeacherAssessments,
+  type ScoreEntry,
+  type TeacherAssessments,
+} from "../domain/assessments";
+import type { AttendanceStatus } from "../domain/model";
 const allowedPermissions: readonly Permission[] = [
   "academic.read",
   "attendance.write",
@@ -372,6 +379,101 @@ export class ApiGateway implements Gateway {
       signal,
     );
     return parseAcademicAttendance(data, ctx, catalog, range);
+  }
+  async teacherDay(
+    ctx: Context,
+    catalog: AcademicCatalog,
+    signal?: AbortSignal,
+  ): Promise<TeacherDay> {
+    authorize(this.current, ctx, "attendance.write");
+    if (ctx.role !== "professor") throw new ApiError(403, "A chamada é exclusiva do professor.");
+    const data = await this.request(
+      "/schools/" + encodeURIComponent(ctx.schoolId) + "/lessons?role=professor",
+      signal,
+    );
+    return parseTeacherDay(data, ctx, catalog);
+  }
+  /** Fecha a chamada de uma aula de hoje; o servidor volta a verificar tudo. */
+  async recordAttendance(
+    ctx: Context,
+    catalog: AcademicCatalog,
+    day: TeacherDay,
+    sessionId: string,
+    entries: { studentId: string; status: AttendanceStatus }[],
+    signal?: AbortSignal,
+  ) {
+    authorize(this.current, ctx, required.attendance);
+    const lesson = day.lessons.find((l) => l.sessionId === sessionId);
+    const group = catalog.classes.find((c) => c.classSubjectId === lesson?.classSubjectId);
+    if (ctx.role !== "professor" || day.schoolId !== ctx.schoolId || !lesson || !group)
+      throw new Error("Aula fora do teu horário de hoje.");
+    if (lesson.status !== "pending") throw new Error("Esta chamada já não está aberta.");
+    const roster = new Set(group.students.map((s) => s.studentId));
+    const ids = new Set(entries.map((e) => e.studentId));
+    if (
+      !entries.length ||
+      ids.size !== entries.length ||
+      entries.some((e) => !roster.has(e.studentId))
+    )
+      throw new Error("A chamada só pode incluir alunos desta turma, uma vez cada.");
+    const command: Command = { type: "attendance", lessonId: sessionId, entries };
+    const retryKey = this.key(ctx) + ":" + JSON.stringify(command);
+    const requestId = this.pendingRequests.get(retryKey) ?? crypto.randomUUID();
+    this.pendingRequests.set(retryKey, requestId);
+    await this.request("/schools/" + encodeURIComponent(ctx.schoolId) + "/commands", signal, {
+      role: ctx.role,
+      command,
+      requestId,
+    });
+    this.pendingRequests.delete(retryKey);
+  }
+  async teacherAssessments(ctx: Context, catalog: AcademicCatalog, signal?: AbortSignal) {
+    authorize(this.current, ctx, required.scores);
+    if (ctx.role !== "professor") throw new ApiError(403, "O lançamento de notas é do professor.");
+    const data = await this.request(
+      "/schools/" + encodeURIComponent(ctx.schoolId) + "/assessments?role=professor",
+      signal,
+    );
+    return parseTeacherAssessments(data, ctx, catalog);
+  }
+  /** Grava as notas de uma avaliação; cada nota leva a versão que o professor viu. */
+  async recordScores(
+    ctx: Context,
+    catalog: AcademicCatalog,
+    assessments: TeacherAssessments,
+    itemId: string,
+    entries: ScoreEntry[],
+    signal?: AbortSignal,
+  ) {
+    authorize(this.current, ctx, required.scores);
+    const item = assessments.items.find((i) => i.id === itemId);
+    const group = catalog.classes.find((c) => c.classSubjectId === item?.classSubjectId);
+    if (ctx.role !== "professor" || assessments.schoolId !== ctx.schoolId || !item || !group)
+      throw new Error("Avaliação fora das tuas disciplinas.");
+    const roster = new Set(group.students.map((s) => s.enrollmentId));
+    const ids = new Set(entries.map((e) => e.enrollmentId));
+    const max = item.maxScore ?? 20;
+    if (
+      !entries.length ||
+      entries.length > 80 ||
+      ids.size !== entries.length ||
+      entries.some(
+        (e) =>
+          !roster.has(e.enrollmentId) ||
+          (e.score !== null && (!Number.isFinite(e.score) || e.score < 0 || e.score > max)),
+      )
+    )
+      throw new Error("Notas fora da turma ou acima da cotação desta avaliação.");
+    const command: Command = { type: "scores", itemId, entries };
+    const retryKey = this.key(ctx) + ":" + JSON.stringify(command);
+    const requestId = this.pendingRequests.get(retryKey) ?? crypto.randomUUID();
+    this.pendingRequests.set(retryKey, requestId);
+    await this.request("/schools/" + encodeURIComponent(ctx.schoolId) + "/commands", signal, {
+      role: ctx.role,
+      command,
+      requestId,
+    });
+    this.pendingRequests.delete(retryKey);
   }
   async workspace(ctx: Context, signal?: AbortSignal): Promise<Workspace> {
     authorize(this.current, ctx);

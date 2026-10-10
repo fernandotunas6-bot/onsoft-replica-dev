@@ -4,6 +4,25 @@ Ler isto **antes** de alterar código. Ecossistema (5 apps):
 [ARCHITECTURE_HARMONIZATION.md](./ARCHITECTURE_HARMONIZATION.md).
 Depois abrir o skill do módulo em `.cursor/skills/`.
 
+## App móvel em m.portal-siga.com (2026-10-10)
+
+Decisão do dono: a PWA professor/aluno (`mobile-v4/`, PR #116) publica-se em
+`m.portal-siga.com` pelo Worker do portal, não no `pages.dev`. `npm run mobile:build` →
+`public/mobile/` (corre no `deploy-cf.mjs`); `src/lib/mobile-host.ts` fecha o host `m.` a tudo
+menos `/api/mobile-v4/*`; `m`/`mobile` reservados. Detalhes, acções do dono e ordem das próximas
+integrações: [PUBLICACAO_M_PORTAL_SIGA.md](../../mobile-v4/docs/PUBLICACAO_M_PORTAL_SIGA.md).
+Hoje `m.` ainda é servido pelo Worker `siga-plus-mobile-v4-domain` (outra sessão); a passagem
+(deploy do portal → remover rota/Custom Domain no painel) está nesse documento. Não remover a
+rota antes do deploy do portal.
+
+**Chat Mobile — migração aplicada a 10/10 (aprovada pelo dono):**
+`supabase/migrations/20261010083336_mobile_v4_chat_commands.sql` (tabela
+`mobile_v4_chat_requests`, só servidor; funções `mobile_v4_chat_command` e
+`mobile_v4_chat_capabilities`). Corrigida antes de aplicar: `audit_logs.entity_id`/`request_id`
+são uuid na produção (a proposta gravava `::text` e todos os comandos falhariam); o ensaio
+`tests/sql/mobile-v4-chat-commands.mjs` usa agora os tipos reais. **Por fazer (dono):**
+recapturar o retrato (`npm run siga:db-snapshot`, precisa das credenciais da base).
+
 ## Catálogo educacional global (2026-10-10)
 
 Detalhe e cobertura real: [docs/education-catalog/README.md](../education-catalog/README.md).

@@ -55,6 +55,27 @@ export const mobileCommandSchema = z.discriminatedUnion("type", [
     .strict(),
   z
     .object({
+      type: z.literal("scores"),
+      itemId: z.string().uuid(),
+      entries: z
+        .array(
+          z
+            .object({
+              enrollmentId: z.string().uuid(),
+              score: z.number().finite().min(0).max(20).nullable(),
+              expectedUpdatedAt: z.string().datetime({ offset: true }).nullable(),
+            })
+            .strict(),
+        )
+        .min(1)
+        .max(80)
+        .refine(
+          (entries) => new Set(entries.map((entry) => entry.enrollmentId)).size === entries.length,
+        ),
+    })
+    .strict(),
+  z
+    .object({
       type: z.literal("plan"),
       lessonId: id,
       objectives: text,

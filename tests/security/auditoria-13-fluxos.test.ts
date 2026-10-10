@@ -45,7 +45,10 @@ describe("notas e cotação da avaliação", () => {
   const legacy = read("src/features/academic/server-legacy.ts");
 
   it("nenhuma nota passa a cotação da avaliação", () => {
-    const body = fnBody(legacy, "upsertAssessmentScores");
+    // Núcleo partilhado pelo portal (upsertAssessmentScores) e pela app móvel.
+    expect(fnBody(legacy, "upsertAssessmentScores")).toContain("recordAssessmentScores(");
+    const core = read("src/features/academic/assessment-scores-core.server.ts");
+    const body = core.slice(core.indexOf("export async function recordAssessmentScores("));
     expect(body).toContain('.select("id, term, class_group_id, max_score")');
     expect(body.indexOf("row.score > maxScore")).toBeLessThan(
       body.indexOf('from("siga_assessment_scores")'),
