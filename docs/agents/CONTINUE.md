@@ -7,7 +7,10 @@ Depois abrir o skill do módulo em `.cursor/skills/`.
 ## Auditoria 13 — fluxos da escola (2026-10-06)
 
 Relatório: [13-auditoria-fluxos-2026-10-06.md](../auditoria/13-auditoria-fluxos-2026-10-06.md).
-Nada escrito na produção; duas migrações escritas e ensaiadas, por aplicar.
+As duas migrações da auditoria foram **aplicadas na produção a 10/10** (`20261010103557 school_logos_no_svg`,
+`20261010104325 academic_year_dates_cover_terms`; a segunda cria o gatilho só se não existir,
+sem `DROP TRIGGER`). Uma escola tem um período de 11/08 fora do ano: só volta a mudar as datas
+do ano depois de o acertar.
 
 - **Corrigido:** importação em páginas (`import/engine/paged.ts`; antes cortava a 1000/2000 e
   passava listas de ids gigantes); um lote que lança já não perde o registo de reversão;
@@ -71,7 +74,7 @@ Nada escrito na produção; duas migrações escritas e ensaiadas, por aplicar.
 
 Levantamento completo: [estado-deploy-2026-10-06.md](../auditoria/estado-deploy-2026-10-06.md).
 
-- **Migrações:** desde a auditoria 13 há **2 por aplicar** (secção acima). Antes dela, nada por aplicar. As três que faltavam de facto foram aplicadas a 06/10
+- **Migrações:** as 2 da auditoria 13 foram aplicadas a 10/10 (secção acima); nada por aplicar dela. As três que faltavam de facto foram aplicadas a 06/10
   (`20261005030000_school_row_role_policies`, `20261005150000_fee_items_grade_level`,
   `20261006100000_enrollment_class_change`) e registadas no histórico. As
   `20261005010000` e `20261005020000`, que os relatórios davam por pendentes, **já
