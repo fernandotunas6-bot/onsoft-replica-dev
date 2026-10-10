@@ -59,3 +59,18 @@ export async function loadMobileV4Attendance(userId: string, input: unknown) {
     throw new MobileApiError(503, "ATTENDANCE_INCONSISTENT");
   }
 }
+
+export async function loadMobileV4Results(userId: string, input: unknown) {
+  const requested = mobileScopeSchema.parse(input);
+  const { db } = await requireMobileAcademicAccess(
+    userId,
+    requested.schoolId,
+    requested.role,
+    "read",
+  );
+  if (requested.role !== "aluno") throw new MobileApiError(403, "RESULTS_STUDENT_ONLY");
+  const scope = await resolveMobileAcademicScope(db, userId, requested.schoolId, requested.role);
+  const catalog = await readMobileAcademicCatalog(db, scope, userId);
+  const { readMobileResults } = await import("./results.server");
+  return readMobileResults(db, scope, catalog, userId);
+}

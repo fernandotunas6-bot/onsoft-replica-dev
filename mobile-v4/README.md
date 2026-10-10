@@ -23,7 +23,7 @@ Os anexos efectivamente recebidos foram `index.html` e `REFINAMENTO.md`, não um
 
 O selector foi mantido por instrução expressa do utilizador. Esta aplicação isolada não altera o comportamento single-school da aplicação principal.
 
-## Percursos disponíveis
+## Percursos da demonstração explícita
 
 1. Início → Meu dia → Testar como professor → Seleccionar escola → Escola de teste A.
 2. Aulas → Fazer chamada → confirmar presentes/ausentes/justificados → Lançar notas → aluno → nota 0–20 → guardar ou publicar.
@@ -35,6 +35,10 @@ O selector foi mantido por instrução expressa do utilizador. Esta aplicação 
 8. Início → criar projecto local; lista, pesquisa, favorito, cópia, edição e exclusão. Não é um gerador IA e não cria entidades no SIGA.
 
 Os registos académicos de teste vivem em memória; um recarregamento elimina-os. Trocar de escola limpa imediatamente a vista, os projectos e os formulários. Os registos da demonstração permanecem separados por escola no serviço de teste, para verificar os percursos entre professor/aluno. As escolas de teste só aparecem após escolha explícita da demonstração.
+
+## Consulta institucional de pautas
+
+Na ligação autenticada, Aluno → Notas consulta `GET /api/mobile-v4/schools/:schoolId/results?role=aluno`. Apenas pautas no estado `published` com data de publicação e linhas das próprias matrículas activas são projectadas. A página permite filtrar pauta anual/de período e actualizar. Apresenta as médias e o resultado armazenados na pauta; não calcula notas por disciplina nem presume uma escala de 0–20. Valores nulos aparecem como “Sem média publicada” e zero continua zero. As observações, detalhes privados, rascunhos e dados de colegas não são seleccionados. A consulta do professor e as escritas permanecem pendentes. Relatório: `docs/RELATORIO_PAUTAS_2026-10-10.md`.
 
 ## Arquitectura
 
@@ -56,7 +60,7 @@ Sem ligação, o shell abre após uma primeira visita bem-sucedida; dados instit
 
 ## Limites desta versão
 
-Sem autenticação real, endpoints implementados no SIGA, RLS novo, SQL executado, upload de ficheiros, emissões oficiais, notificações push ou deploy. Conectores, suporte, comunidade, pedidos de vínculo e acções de desenvolvimento IA conservam painéis de informação e indicam a integração pendente. Não afirmar segurança de produção a partir das guardas do browser: a autorização efectiva é do servidor existente.
+O preview ligado usa a sessão Supabase Sga existente, login/TOTP, API autenticada, catálogo académico, presenças e pautas publicadas próprias do aluno. A publicação actual e os ensaios estão descritos no PR #116 e nos relatórios de cada ciclo. Não houve migrações na produção nem validação positiva com contas reais autorizadas. Escritas institucionais, notas por disciplina do professor, upload de ficheiros, emissões oficiais e notificações push continuam pendentes. Conectores, suporte, comunidade, pedidos de vínculo e acções de desenvolvimento IA conservam painéis de informação e indicam a integração pendente. Não afirmar segurança de produção a partir das guardas do browser: a autorização efectiva é do servidor existente.
 
 Revisão visual em dispositivos reais, TalkBack/VoiceOver, teclado virtual, zoom 200%, contraste e desempenho dos gradientes ainda pendente. Os testes React usam jsdom; não equivalem a validação visual Android/iOS.
 

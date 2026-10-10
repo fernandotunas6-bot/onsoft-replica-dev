@@ -7,6 +7,7 @@ vi.mock("@/features/mobile-v4/operations-core.server", () => ({
   loadMobileV4Workspace: vi.fn(),
   loadMobileV4AcademicCatalog: vi.fn(),
   loadMobileV4Attendance: vi.fn(),
+  loadMobileV4Results: vi.fn(),
   applyMobileV4Command: vi.fn(),
 }));
 
@@ -40,6 +41,7 @@ beforeEach(() => {
     authenticate: vi.fn().mockResolvedValue({ userId: "verified-user", aal: "aal2" }),
     session: vi.fn().mockResolvedValue({ userId: "verified-user" }),
     workspace: vi.fn().mockResolvedValue({ schoolId: school }),
+    results: vi.fn().mockResolvedValue({ schoolId: school, role: "aluno", sheets: [] }),
     attendance: vi.fn().mockResolvedValue({ sessions: [], teacherLessons: [] }),
     academic: vi.fn().mockResolvedValue({
       schoolId: school,
@@ -260,4 +262,27 @@ describe("attendance HTTP scope", () => {
     expect(r.status).toBe(422);
     expect(deps.attendance).not.toHaveBeenCalled();
   });
+});
+
+it("routes published results with verified identity and exact school/role", async () => {
+  const response = await handleMobileV4Http(
+    request(`/schools/${school}/results?role=aluno&userId=attacker`),
+    deps,
+  );
+  expect(response.status).toBe(200);
+  expect(deps.results).toHaveBeenCalledWith("verified-user", { schoolId: school, role: "aluno" });
+  expect(response.headers.get("cache-control")).toBe("private, no-store");
+});
+it("rejects results before service invocation on invalid scope, missing auth and wrong method", async () => {
+  expect(
+    (await handleMobileV4Http(request(`/schools/${school}/results?role=guardian`), deps)).status,
+  ).toBe(422);
+  deps.authenticate = vi.fn().mockRejectedValue(new Error("expired"));
+  expect(
+    (await handleMobileV4Http(request(`/schools/${school}/results?role=aluno`), deps)).status,
+  ).toBe(401);
+  expect(
+    (await handleMobileV4Http(request(`/schools/${school}/results?role=aluno`, {}), deps)).status,
+  ).toBe(405);
+  expect(deps.results).not.toHaveBeenCalled();
 });

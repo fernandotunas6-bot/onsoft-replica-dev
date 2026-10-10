@@ -1,3 +1,4 @@
+import { InstitutionalResults } from "../components/InstitutionalResults";
 import { InstitutionalAttendance } from "../components/InstitutionalAttendance";
 import type { ApiError } from "../services/api";
 import type { Gateway } from "../domain/model";
@@ -176,6 +177,17 @@ export function ServicePages({
               key={ctx.userId + ctx.schoolId + ctx.role + page}
               catalog={catalog}
               ctx={ctx}
+              gateway={gateway}
+              onAccessError={onAccessError}
+            />
+          ) : catalog &&
+            gateway &&
+            ctx.role === "aluno" &&
+            ["notas", "notas-aluno"].includes(page) ? (
+            <InstitutionalResults
+              key={ctx.userId + ctx.schoolId + ctx.role + page}
+              ctx={ctx}
+              catalog={catalog}
               gateway={gateway}
               onAccessError={onAccessError}
             />

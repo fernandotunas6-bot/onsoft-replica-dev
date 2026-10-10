@@ -1,3 +1,4 @@
+import { parseAcademicResults } from "../domain/results";
 import type { AcademicAttendance, AttendanceRange } from "../domain/attendance";
 import { parseAcademicAttendance } from "../domain/attendance-validation";
 import type { Gateway, Session, Context, Workspace, Command, Permission } from "../domain/model";
@@ -162,6 +163,16 @@ export class ApiGateway implements Gateway {
       signal,
     );
     return parseAcademicCatalog(data, ctx);
+  }
+  async academicResults(ctx: Context, catalog: AcademicCatalog, signal?: AbortSignal) {
+    authorize(this.current, ctx);
+    if (ctx.role !== "aluno")
+      throw new ApiError(403, "A consulta das pautas publicadas é exclusiva do aluno.");
+    const data = await this.request(
+      "/schools/" + encodeURIComponent(ctx.schoolId) + "/results?role=" + ctx.role,
+      signal,
+    );
+    return parseAcademicResults(data, ctx, catalog);
   }
   async academicAttendance(
     ctx: Context,

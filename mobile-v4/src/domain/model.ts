@@ -1,3 +1,4 @@
+import type { AcademicResults } from "./results";
 import type { AcademicAttendance, AttendanceRange } from "./attendance";
 import type { AcademicCatalog } from "./catalog";
 export type Role = "professor" | "aluno";
@@ -143,6 +144,11 @@ export interface Gateway {
   subscribeSessionChanged?(listener: () => void): () => void;
   session(signal?: AbortSignal): Promise<Session | null>;
   academicCatalog?(ctx: Context, signal?: AbortSignal): Promise<AcademicCatalog>;
+  academicResults?(
+    ctx: Context,
+    catalog: AcademicCatalog,
+    signal?: AbortSignal,
+  ): Promise<AcademicResults>;
   academicAttendance?(
     ctx: Context,
     range: AttendanceRange,

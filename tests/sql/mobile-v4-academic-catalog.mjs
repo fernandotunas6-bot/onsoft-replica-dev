@@ -42,8 +42,13 @@ const { readMobileAttendance } = await import(
 const { parseAcademicAttendance } = await import(
   new URL("../../mobile-v4/src/domain/attendance-validation.ts", import.meta.url)
 );
+const { readMobileResults } = await import(
+  new URL("../../src/features/mobile-v4/results.server.ts", import.meta.url)
+);
 const pg = new PGlite();
 await pg.exec(`
+CREATE TABLE grade_sheets(id uuid PRIMARY KEY, school_id uuid NOT NULL, class_group_id uuid NOT NULL, academic_year_id uuid NOT NULL, title text NOT NULL, kind text CHECK(kind IN ('term','annual')), status text CHECK(status IN ('draft','submitted','in_review','homologated','published','contested','rectified','closed')), published_at timestamptz);
+CREATE TABLE grade_sheet_rows(id uuid PRIMARY KEY, school_id uuid NOT NULL, grade_sheet_id uuid NOT NULL, enrollment_id uuid NOT NULL, continuous_average numeric, exam_average numeric, term_average numeric, result text CHECK(result IN ('pending','pass','fail','incomplete')), observation text, subject_breakdown jsonb, UNIQUE(school_id,grade_sheet_id,enrollment_id));
 CREATE TABLE siga_attendance_sessions(id uuid PRIMARY KEY, school_id uuid NOT NULL, class_group_id uuid NOT NULL, subject_id uuid NOT NULL, academic_year_id uuid, teacher_id uuid, lesson_date date NOT NULL, starts_at text, ends_at text, status text CHECK(status IN ('pending','completed','cancelled')));
 CREATE TABLE siga_attendance_records(id uuid PRIMARY KEY, school_id uuid NOT NULL, session_id uuid NOT NULL, student_id uuid NOT NULL, status text CHECK(status IN ('present','absent','excused','late','early_exit','not_registered')));
 CREATE TABLE hr_teacher_lesson_occurrences(id uuid PRIMARY KEY, school_id uuid NOT NULL, teacher_id uuid NOT NULL, class_subject_id uuid NOT NULL, lesson_date date NOT NULL, scheduled_starts_at time NOT NULL, scheduled_ends_at time NOT NULL, status text CHECK(status IN ('scheduled','confirmed','rejected','cancelled')), deleted_at timestamptz);
@@ -262,11 +267,14 @@ function adapter({ fail, cap } = {}) {
             Object.fromEntries(
               Object.entries(row).map(([key, value]) => [
                 key,
-                value instanceof Date
-                  ? key.startsWith("scheduled_")
-                    ? value.toISOString()
-                    : value.toISOString().slice(0, 10)
-                  : value,
+                ["continuous_average", "exam_average", "term_average"].includes(key) &&
+                value !== null
+                  ? Number(value)
+                  : value instanceof Date
+                    ? !["lesson_date", "valid_from", "valid_to", "due_on"].includes(key)
+                      ? value.toISOString()
+                      : value.toISOString().slice(0, 10)
+                    : value,
               ]),
             ),
           );
@@ -532,6 +540,100 @@ try {
   check(
     calls.every((c) => c.filters.some((f) => f.startsWith('"school_id"='))),
     "new attendance queries also repeat school filters",
+  );
+
+  for (const [n, status, school, group, year] of [
+    [200, "published", A, groupA, yearA],
+    [201, "draft", A, groupA, yearA],
+    [202, "homologated", A, groupA, yearA],
+    [203, "published", B, groupB, yearB],
+    [204, "published", A, groupA, yearB],
+    [205, "closed", A, groupA, yearA],
+    [206, "contested", A, groupA, yearA],
+    [207, "rectified", A, groupA, yearA],
+  ]) {
+    await insert("grade_sheets", {
+      id: uuid(n),
+      school_id: school,
+      class_group_id: group,
+      academic_year_id: year,
+      title: `Pauta ${n}`,
+      kind: "term",
+      status,
+      published_at: "2026-10-01T12:00:00Z",
+    });
+    await insert("grade_sheet_rows", {
+      id: uuid(n + 100),
+      school_id: school,
+      grade_sheet_id: uuid(n),
+      enrollment_id: school === A ? enrollment : foreignEnrollment,
+      continuous_average: 0,
+      exam_average: null,
+      term_average: 12.5,
+      result: "pass",
+      observation: "PRIVATE OBSERVATION",
+      subject_breakdown: JSON.stringify([{ private: "PRIVATE BREAKDOWN" }]),
+    });
+  }
+  await insert("grade_sheet_rows", {
+    id: uuid(400),
+    school_id: A,
+    grade_sheet_id: uuid(200),
+    enrollment_id: peerEnrollment,
+    continuous_average: 19,
+    exam_average: 18,
+    term_average: 19,
+    result: "pass",
+    observation: "PRIVATE PEER",
+    subject_breakdown: "[]",
+  });
+  const ownResults = await readMobileResults(db, pupilScope, studentData, studentUser);
+  check(
+    ownResults.sheets.length === 1 && ownResults.sheets[0].id === uuid(200),
+    "only current published own-year results, no drafts/homologated/closed/contested/rectified/foreign sheets",
+  );
+  check(ownResults.sheets[0].enrollmentId === enrollment, "only own enrollment, peer excluded");
+  check(
+    ownResults.sheets[0].continuousAverage === 0 &&
+      ownResults.sheets[0].examAverage === null &&
+      ownResults.sheets[0].termAverage === 12.5,
+    "actual numeric zero, null and decimal preserved",
+  );
+  check(
+    !JSON.stringify(ownResults).includes("PRIVATE") &&
+      !JSON.stringify(ownResults).includes(peerEnrollment),
+    "no private observations, subject breakdown or peer identifiers",
+  );
+  await assert.rejects(
+    readMobileResults(db, teacherScope, teacherData, teacherUser),
+    (e) => e.code === "RESULTS_STUDENT_ONLY",
+  );
+  checks++;
+  for (const table of ["grade_sheets", "grade_sheet_rows"]) {
+    await assert.rejects(
+      readMobileResults(adapter({ fail: table }), pupilScope, studentData, studentUser),
+      (e) => e.code === "RESULTS_UNAVAILABLE",
+    );
+    checks++;
+    await assert.rejects(
+      readMobileResults(adapter({ cap: table }), pupilScope, studentData, studentUser),
+      (e) => e.code === "RESULTS_UNAVAILABLE",
+    );
+    checks++;
+  }
+  await pg.query("UPDATE grade_sheets SET published_at=null WHERE id=$1", [uuid(200)]);
+  await assert.rejects(
+    readMobileResults(db, pupilScope, studentData, studentUser),
+    (e) => e.code === "RESULTS_INCONSISTENT",
+  );
+  checks++;
+  await pg.query(
+    "UPDATE grade_sheets SET published_at='2026-10-01T12:00:00Z',status='draft' WHERE id=$1",
+    [uuid(200)],
+  );
+  check(
+    (await readMobileResults(db, pupilScope, studentData, studentUser)).sheets.length === 0,
+    "withdrawn publication disappears",
   );
   const noRows = await readMobileAttendance(db, pupilScope, studentData, {
     from: "2026-11-01",

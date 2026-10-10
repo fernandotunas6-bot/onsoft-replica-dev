@@ -238,8 +238,9 @@ it("teacher opens canonical roster, filters weekly slots and reads published tas
   expect(gateway.workspace).not.toHaveBeenCalled();
   expect(gateway.execute).not.toHaveBeenCalled();
 });
-it("student reads own disciplines and tasks; unintegrated grades show no empty results or write controls", async () => {
+it("student reads own disciplines, tasks and published results without write controls", async () => {
   const { gateway } = institutionalGateway("aluno");
+  gateway.academicResults = vi.fn().mockResolvedValue({ schoolId, role: "aluno", sheets: [] });
   render(<App initialGateway={gateway} />);
   await selectInstitutionalSchool();
   fireEvent.click(screen.getByRole("button", { name: "Disciplinas" }));
@@ -248,7 +249,8 @@ it("student reads own disciplines and tasks; unintegrated grades show no empty r
   fireEvent.click(screen.getByRole("button", { name: "Ver trabalhos" }));
   await screen.findByText("Trabalho publicado");
   fireEvent.click(screen.getByRole("link", { name: "Notas" }));
-  await screen.findByText("A consulta de notas ainda aguarda integração validada.");
+  await screen.findByText("Sem pautas publicadas para os filtros seleccionados.");
+  expect(gateway.academicResults).toHaveBeenCalled();
   expect(screen.queryByRole("button", { name: /Guardar/ })).toBeNull();
   expect(gateway.workspace).not.toHaveBeenCalled();
   expect(gateway.execute).not.toHaveBeenCalled();
