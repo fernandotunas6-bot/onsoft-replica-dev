@@ -1,6 +1,6 @@
 [package]
 name = "siga-desktop"
-version = "1.2.1"
+version = "1.2.2"
 description = "SIGA Plus — aplicação desktop"
 authors = ["OnSoft", "Danny Smith (template)"]
 edition = "2021"

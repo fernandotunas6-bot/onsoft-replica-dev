@@ -12,7 +12,7 @@ import {
   Save,
   Unlock,
 } from "lucide-react";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { SqlChecklistLink } from "@/components/ui/sql-checklist-link";

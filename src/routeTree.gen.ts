@@ -52,6 +52,7 @@ import { Route as ConfiguracoesInicioRouteImport } from './routes/configuracoes_
 import { Route as ConviteTokenRouteImport } from './routes/convite.$token'
 import { Route as FinanceiroRhRouteImport } from './routes/financeiro.rh'
 import { Route as MatriculaSlugRouteImport } from './routes/matricula/$slug'
+import { Route as PedagogicaCatalogoRouteImport } from './routes/pedagogica_.catalogo'
 import { Route as PedagogicaPautasSuperiorRouteImport } from './routes/pedagogica_.pautas-superior'
 import { Route as PedagogicaPresencaDocenteRouteImport } from './routes/pedagogica_.presenca-docente'
 import { Route as PedagogicaRiscoRouteImport } from './routes/pedagogica_.risco'
@@ -73,6 +74,7 @@ import { Route as ApiMobileV4SessionRouteImport } from './routes/api/mobile-v4/s
 import { Route as ApiSaasAuditLogsRouteImport } from './routes/api/saas/audit-logs'
 import { Route as ApiSaasBillingProofsRouteImport } from './routes/api/saas/billing-proofs'
 import { Route as ApiSaasDomainsRouteImport } from './routes/api/saas/domains'
+import { Route as ApiSaasEducationCatalogRouteImport } from './routes/api/saas/education-catalog'
 import { Route as ApiSaasGatewayWebhooksRouteImport } from './routes/api/saas/gateway-webhooks'
 import { Route as ApiSaasMailboxesRouteImport } from './routes/api/saas/mailboxes'
 import { Route as ApiSaasMeRouteImport } from './routes/api/saas/me'
@@ -105,6 +107,7 @@ import { Route as ApiSaasDomainsCheckRouteImport } from './routes/api/saas/domai
 import { Route as ApiSaasDomainsPollRouteImport } from './routes/api/saas/domains.poll'
 import { Route as ApiSaasDomainsStatusRouteImport } from './routes/api/saas/domains.status'
 import { Route as ApiSaasDomainsVerifyRouteImport } from './routes/api/saas/domains.verify'
+import { Route as ApiSaasEducationCatalogSearchRouteImport } from './routes/api/saas/education-catalog.search'
 import { Route as ApiSaasEmailRoutesRouteImport } from './routes/api/saas/email.routes'
 import { Route as ApiSaasPlatformAdminsRevokeRouteImport } from './routes/api/saas/platform-admins.revoke'
 import { Route as ApiSaasPublicBlogRouteImport } from './routes/api/saas/public.blog'
@@ -136,6 +139,7 @@ import { Route as ApiMobileV4SchoolsSchoolIdFinanceRouteImport } from './routes/
 import { Route as ApiMobileV4SchoolsSchoolIdGradebooksRouteImport } from './routes/api/mobile-v4/schools/$schoolId/gradebooks'
 import { Route as ApiMobileV4SchoolsSchoolIdLessonsRouteImport } from './routes/api/mobile-v4/schools/$schoolId/lessons'
 import { Route as ApiMobileV4SchoolsSchoolIdNotificationsRouteImport } from './routes/api/mobile-v4/schools/$schoolId/notifications'
+import { Route as ApiMobileV4SchoolsSchoolIdNotificationsReadRouteImport } from './routes/api/mobile-v4/schools/$schoolId/notifications-read'
 import { Route as ApiMobileV4SchoolsSchoolIdResultsRouteImport } from './routes/api/mobile-v4/schools/$schoolId/results'
 import { Route as ApiMobileV4SchoolsSchoolIdWorkspaceRouteImport } from './routes/api/mobile-v4/schools/$schoolId/workspace'
 
@@ -356,6 +360,11 @@ const MatriculaSlugRoute = MatriculaSlugRouteImport.update({
   path: '/matricula/$slug',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PedagogicaCatalogoRoute = PedagogicaCatalogoRouteImport.update({
+  id: '/pedagogica_/catalogo',
+  path: '/pedagogica/catalogo',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const PedagogicaPautasSuperiorRoute =
   PedagogicaPautasSuperiorRouteImport.update({
     id: '/pedagogica_/pautas-superior',
@@ -461,6 +470,11 @@ const ApiSaasBillingProofsRoute = ApiSaasBillingProofsRouteImport.update({
 const ApiSaasDomainsRoute = ApiSaasDomainsRouteImport.update({
   id: '/api/saas/domains',
   path: '/api/saas/domains',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiSaasEducationCatalogRoute = ApiSaasEducationCatalogRouteImport.update({
+  id: '/api/saas/education-catalog',
+  path: '/api/saas/education-catalog',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiSaasGatewayWebhooksRoute = ApiSaasGatewayWebhooksRouteImport.update({
@@ -635,6 +649,12 @@ const ApiSaasDomainsVerifyRoute = ApiSaasDomainsVerifyRouteImport.update({
   path: '/verify',
   getParentRoute: () => ApiSaasDomainsRoute,
 } as any)
+const ApiSaasEducationCatalogSearchRoute =
+  ApiSaasEducationCatalogSearchRouteImport.update({
+    id: '/search',
+    path: '/search',
+    getParentRoute: () => ApiSaasEducationCatalogRoute,
+  } as any)
 const ApiSaasEmailRoutesRoute = ApiSaasEmailRoutesRouteImport.update({
   id: '/api/saas/email/routes',
   path: '/api/saas/email/routes',
@@ -808,6 +828,12 @@ const ApiMobileV4SchoolsSchoolIdNotificationsRoute =
     path: '/api/mobile-v4/schools/$schoolId/notifications',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiMobileV4SchoolsSchoolIdNotificationsReadRoute =
+  ApiMobileV4SchoolsSchoolIdNotificationsReadRouteImport.update({
+    id: '/api/mobile-v4/schools/$schoolId/notifications-read',
+    path: '/api/mobile-v4/schools/$schoolId/notifications-read',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiMobileV4SchoolsSchoolIdResultsRoute =
   ApiMobileV4SchoolsSchoolIdResultsRouteImport.update({
     id: '/api/mobile-v4/schools/$schoolId/results',
@@ -864,6 +890,7 @@ export interface FileRoutesByFullPath {
   '/convite/$token': typeof ConviteTokenRoute
   '/financeiro/rh': typeof FinanceiroRhRouteWithChildren
   '/matricula/$slug': typeof MatriculaSlugRoute
+  '/pedagogica/catalogo': typeof PedagogicaCatalogoRoute
   '/pedagogica/pautas-superior': typeof PedagogicaPautasSuperiorRoute
   '/pedagogica/presenca-docente': typeof PedagogicaPresencaDocenteRoute
   '/pedagogica/risco': typeof PedagogicaRiscoRoute
@@ -886,6 +913,7 @@ export interface FileRoutesByFullPath {
   '/api/saas/audit-logs': typeof ApiSaasAuditLogsRoute
   '/api/saas/billing-proofs': typeof ApiSaasBillingProofsRoute
   '/api/saas/domains': typeof ApiSaasDomainsRouteWithChildren
+  '/api/saas/education-catalog': typeof ApiSaasEducationCatalogRouteWithChildren
   '/api/saas/gateway-webhooks': typeof ApiSaasGatewayWebhooksRoute
   '/api/saas/mailboxes': typeof ApiSaasMailboxesRoute
   '/api/saas/me': typeof ApiSaasMeRoute
@@ -918,6 +946,7 @@ export interface FileRoutesByFullPath {
   '/api/saas/domains/poll': typeof ApiSaasDomainsPollRoute
   '/api/saas/domains/status': typeof ApiSaasDomainsStatusRoute
   '/api/saas/domains/verify': typeof ApiSaasDomainsVerifyRoute
+  '/api/saas/education-catalog/search': typeof ApiSaasEducationCatalogSearchRoute
   '/api/saas/email/routes': typeof ApiSaasEmailRoutesRoute
   '/api/saas/platform-admins/revoke': typeof ApiSaasPlatformAdminsRevokeRoute
   '/api/saas/public/blog': typeof ApiSaasPublicBlogRoute
@@ -949,6 +978,7 @@ export interface FileRoutesByFullPath {
   '/api/mobile-v4/schools/$schoolId/gradebooks': typeof ApiMobileV4SchoolsSchoolIdGradebooksRoute
   '/api/mobile-v4/schools/$schoolId/lessons': typeof ApiMobileV4SchoolsSchoolIdLessonsRoute
   '/api/mobile-v4/schools/$schoolId/notifications': typeof ApiMobileV4SchoolsSchoolIdNotificationsRoute
+  '/api/mobile-v4/schools/$schoolId/notifications-read': typeof ApiMobileV4SchoolsSchoolIdNotificationsReadRoute
   '/api/mobile-v4/schools/$schoolId/results': typeof ApiMobileV4SchoolsSchoolIdResultsRoute
   '/api/mobile-v4/schools/$schoolId/workspace': typeof ApiMobileV4SchoolsSchoolIdWorkspaceRoute
 }
@@ -995,6 +1025,7 @@ export interface FileRoutesByTo {
   '/convite/$token': typeof ConviteTokenRoute
   '/financeiro/rh': typeof FinanceiroRhRouteWithChildren
   '/matricula/$slug': typeof MatriculaSlugRoute
+  '/pedagogica/catalogo': typeof PedagogicaCatalogoRoute
   '/pedagogica/pautas-superior': typeof PedagogicaPautasSuperiorRoute
   '/pedagogica/presenca-docente': typeof PedagogicaPresencaDocenteRoute
   '/pedagogica/risco': typeof PedagogicaRiscoRoute
@@ -1017,6 +1048,7 @@ export interface FileRoutesByTo {
   '/api/saas/audit-logs': typeof ApiSaasAuditLogsRoute
   '/api/saas/billing-proofs': typeof ApiSaasBillingProofsRoute
   '/api/saas/domains': typeof ApiSaasDomainsRouteWithChildren
+  '/api/saas/education-catalog': typeof ApiSaasEducationCatalogRouteWithChildren
   '/api/saas/gateway-webhooks': typeof ApiSaasGatewayWebhooksRoute
   '/api/saas/mailboxes': typeof ApiSaasMailboxesRoute
   '/api/saas/me': typeof ApiSaasMeRoute
@@ -1049,6 +1081,7 @@ export interface FileRoutesByTo {
   '/api/saas/domains/poll': typeof ApiSaasDomainsPollRoute
   '/api/saas/domains/status': typeof ApiSaasDomainsStatusRoute
   '/api/saas/domains/verify': typeof ApiSaasDomainsVerifyRoute
+  '/api/saas/education-catalog/search': typeof ApiSaasEducationCatalogSearchRoute
   '/api/saas/email/routes': typeof ApiSaasEmailRoutesRoute
   '/api/saas/platform-admins/revoke': typeof ApiSaasPlatformAdminsRevokeRoute
   '/api/saas/public/blog': typeof ApiSaasPublicBlogRoute
@@ -1080,6 +1113,7 @@ export interface FileRoutesByTo {
   '/api/mobile-v4/schools/$schoolId/gradebooks': typeof ApiMobileV4SchoolsSchoolIdGradebooksRoute
   '/api/mobile-v4/schools/$schoolId/lessons': typeof ApiMobileV4SchoolsSchoolIdLessonsRoute
   '/api/mobile-v4/schools/$schoolId/notifications': typeof ApiMobileV4SchoolsSchoolIdNotificationsRoute
+  '/api/mobile-v4/schools/$schoolId/notifications-read': typeof ApiMobileV4SchoolsSchoolIdNotificationsReadRoute
   '/api/mobile-v4/schools/$schoolId/results': typeof ApiMobileV4SchoolsSchoolIdResultsRoute
   '/api/mobile-v4/schools/$schoolId/workspace': typeof ApiMobileV4SchoolsSchoolIdWorkspaceRoute
 }
@@ -1127,6 +1161,7 @@ export interface FileRoutesById {
   '/convite/$token': typeof ConviteTokenRoute
   '/financeiro/rh': typeof FinanceiroRhRouteWithChildren
   '/matricula/$slug': typeof MatriculaSlugRoute
+  '/pedagogica_/catalogo': typeof PedagogicaCatalogoRoute
   '/pedagogica_/pautas-superior': typeof PedagogicaPautasSuperiorRoute
   '/pedagogica_/presenca-docente': typeof PedagogicaPresencaDocenteRoute
   '/pedagogica_/risco': typeof PedagogicaRiscoRoute
@@ -1149,6 +1184,7 @@ export interface FileRoutesById {
   '/api/saas/audit-logs': typeof ApiSaasAuditLogsRoute
   '/api/saas/billing-proofs': typeof ApiSaasBillingProofsRoute
   '/api/saas/domains': typeof ApiSaasDomainsRouteWithChildren
+  '/api/saas/education-catalog': typeof ApiSaasEducationCatalogRouteWithChildren
   '/api/saas/gateway-webhooks': typeof ApiSaasGatewayWebhooksRoute
   '/api/saas/mailboxes': typeof ApiSaasMailboxesRoute
   '/api/saas/me': typeof ApiSaasMeRoute
@@ -1181,6 +1217,7 @@ export interface FileRoutesById {
   '/api/saas/domains/poll': typeof ApiSaasDomainsPollRoute
   '/api/saas/domains/status': typeof ApiSaasDomainsStatusRoute
   '/api/saas/domains/verify': typeof ApiSaasDomainsVerifyRoute
+  '/api/saas/education-catalog/search': typeof ApiSaasEducationCatalogSearchRoute
   '/api/saas/email/routes': typeof ApiSaasEmailRoutesRoute
   '/api/saas/platform-admins/revoke': typeof ApiSaasPlatformAdminsRevokeRoute
   '/api/saas/public/blog': typeof ApiSaasPublicBlogRoute
@@ -1212,6 +1249,7 @@ export interface FileRoutesById {
   '/api/mobile-v4/schools/$schoolId/gradebooks': typeof ApiMobileV4SchoolsSchoolIdGradebooksRoute
   '/api/mobile-v4/schools/$schoolId/lessons': typeof ApiMobileV4SchoolsSchoolIdLessonsRoute
   '/api/mobile-v4/schools/$schoolId/notifications': typeof ApiMobileV4SchoolsSchoolIdNotificationsRoute
+  '/api/mobile-v4/schools/$schoolId/notifications-read': typeof ApiMobileV4SchoolsSchoolIdNotificationsReadRoute
   '/api/mobile-v4/schools/$schoolId/results': typeof ApiMobileV4SchoolsSchoolIdResultsRoute
   '/api/mobile-v4/schools/$schoolId/workspace': typeof ApiMobileV4SchoolsSchoolIdWorkspaceRoute
 }
@@ -1260,6 +1298,7 @@ export interface FileRouteTypes {
     | '/convite/$token'
     | '/financeiro/rh'
     | '/matricula/$slug'
+    | '/pedagogica/catalogo'
     | '/pedagogica/pautas-superior'
     | '/pedagogica/presenca-docente'
     | '/pedagogica/risco'
@@ -1282,6 +1321,7 @@ export interface FileRouteTypes {
     | '/api/saas/audit-logs'
     | '/api/saas/billing-proofs'
     | '/api/saas/domains'
+    | '/api/saas/education-catalog'
     | '/api/saas/gateway-webhooks'
     | '/api/saas/mailboxes'
     | '/api/saas/me'
@@ -1314,6 +1354,7 @@ export interface FileRouteTypes {
     | '/api/saas/domains/poll'
     | '/api/saas/domains/status'
     | '/api/saas/domains/verify'
+    | '/api/saas/education-catalog/search'
     | '/api/saas/email/routes'
     | '/api/saas/platform-admins/revoke'
     | '/api/saas/public/blog'
@@ -1345,6 +1386,7 @@ export interface FileRouteTypes {
     | '/api/mobile-v4/schools/$schoolId/gradebooks'
     | '/api/mobile-v4/schools/$schoolId/lessons'
     | '/api/mobile-v4/schools/$schoolId/notifications'
+    | '/api/mobile-v4/schools/$schoolId/notifications-read'
     | '/api/mobile-v4/schools/$schoolId/results'
     | '/api/mobile-v4/schools/$schoolId/workspace'
   fileRoutesByTo: FileRoutesByTo
@@ -1391,6 +1433,7 @@ export interface FileRouteTypes {
     | '/convite/$token'
     | '/financeiro/rh'
     | '/matricula/$slug'
+    | '/pedagogica/catalogo'
     | '/pedagogica/pautas-superior'
     | '/pedagogica/presenca-docente'
     | '/pedagogica/risco'
@@ -1413,6 +1456,7 @@ export interface FileRouteTypes {
     | '/api/saas/audit-logs'
     | '/api/saas/billing-proofs'
     | '/api/saas/domains'
+    | '/api/saas/education-catalog'
     | '/api/saas/gateway-webhooks'
     | '/api/saas/mailboxes'
     | '/api/saas/me'
@@ -1445,6 +1489,7 @@ export interface FileRouteTypes {
     | '/api/saas/domains/poll'
     | '/api/saas/domains/status'
     | '/api/saas/domains/verify'
+    | '/api/saas/education-catalog/search'
     | '/api/saas/email/routes'
     | '/api/saas/platform-admins/revoke'
     | '/api/saas/public/blog'
@@ -1476,6 +1521,7 @@ export interface FileRouteTypes {
     | '/api/mobile-v4/schools/$schoolId/gradebooks'
     | '/api/mobile-v4/schools/$schoolId/lessons'
     | '/api/mobile-v4/schools/$schoolId/notifications'
+    | '/api/mobile-v4/schools/$schoolId/notifications-read'
     | '/api/mobile-v4/schools/$schoolId/results'
     | '/api/mobile-v4/schools/$schoolId/workspace'
   id:
@@ -1522,6 +1568,7 @@ export interface FileRouteTypes {
     | '/convite/$token'
     | '/financeiro/rh'
     | '/matricula/$slug'
+    | '/pedagogica_/catalogo'
     | '/pedagogica_/pautas-superior'
     | '/pedagogica_/presenca-docente'
     | '/pedagogica_/risco'
@@ -1544,6 +1591,7 @@ export interface FileRouteTypes {
     | '/api/saas/audit-logs'
     | '/api/saas/billing-proofs'
     | '/api/saas/domains'
+    | '/api/saas/education-catalog'
     | '/api/saas/gateway-webhooks'
     | '/api/saas/mailboxes'
     | '/api/saas/me'
@@ -1576,6 +1624,7 @@ export interface FileRouteTypes {
     | '/api/saas/domains/poll'
     | '/api/saas/domains/status'
     | '/api/saas/domains/verify'
+    | '/api/saas/education-catalog/search'
     | '/api/saas/email/routes'
     | '/api/saas/platform-admins/revoke'
     | '/api/saas/public/blog'
@@ -1607,6 +1656,7 @@ export interface FileRouteTypes {
     | '/api/mobile-v4/schools/$schoolId/gradebooks'
     | '/api/mobile-v4/schools/$schoolId/lessons'
     | '/api/mobile-v4/schools/$schoolId/notifications'
+    | '/api/mobile-v4/schools/$schoolId/notifications-read'
     | '/api/mobile-v4/schools/$schoolId/results'
     | '/api/mobile-v4/schools/$schoolId/workspace'
   fileRoutesById: FileRoutesById
@@ -1643,6 +1693,7 @@ export interface RootRouteChildren {
   ConfiguracoesInicioRoute: typeof ConfiguracoesInicioRoute
   ConviteTokenRoute: typeof ConviteTokenRoute
   MatriculaSlugRoute: typeof MatriculaSlugRoute
+  PedagogicaCatalogoRoute: typeof PedagogicaCatalogoRoute
   PedagogicaPautasSuperiorRoute: typeof PedagogicaPautasSuperiorRoute
   PedagogicaPresencaDocenteRoute: typeof PedagogicaPresencaDocenteRoute
   PedagogicaRiscoRoute: typeof PedagogicaRiscoRoute
@@ -1663,6 +1714,7 @@ export interface RootRouteChildren {
   ApiSaasAuditLogsRoute: typeof ApiSaasAuditLogsRoute
   ApiSaasBillingProofsRoute: typeof ApiSaasBillingProofsRoute
   ApiSaasDomainsRoute: typeof ApiSaasDomainsRouteWithChildren
+  ApiSaasEducationCatalogRoute: typeof ApiSaasEducationCatalogRouteWithChildren
   ApiSaasGatewayWebhooksRoute: typeof ApiSaasGatewayWebhooksRoute
   ApiSaasMailboxesRoute: typeof ApiSaasMailboxesRoute
   ApiSaasMeRoute: typeof ApiSaasMeRoute
@@ -1705,6 +1757,7 @@ export interface RootRouteChildren {
   ApiMobileV4SchoolsSchoolIdGradebooksRoute: typeof ApiMobileV4SchoolsSchoolIdGradebooksRoute
   ApiMobileV4SchoolsSchoolIdLessonsRoute: typeof ApiMobileV4SchoolsSchoolIdLessonsRoute
   ApiMobileV4SchoolsSchoolIdNotificationsRoute: typeof ApiMobileV4SchoolsSchoolIdNotificationsRoute
+  ApiMobileV4SchoolsSchoolIdNotificationsReadRoute: typeof ApiMobileV4SchoolsSchoolIdNotificationsReadRoute
   ApiMobileV4SchoolsSchoolIdResultsRoute: typeof ApiMobileV4SchoolsSchoolIdResultsRoute
   ApiMobileV4SchoolsSchoolIdWorkspaceRoute: typeof ApiMobileV4SchoolsSchoolIdWorkspaceRoute
 }
@@ -2012,6 +2065,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof MatriculaSlugRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/pedagogica_/catalogo': {
+      id: '/pedagogica_/catalogo'
+      path: '/pedagogica/catalogo'
+      fullPath: '/pedagogica/catalogo'
+      preLoaderRoute: typeof PedagogicaCatalogoRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/pedagogica_/pautas-superior': {
       id: '/pedagogica_/pautas-superior'
       path: '/pedagogica/pautas-superior'
@@ -2157,6 +2217,13 @@ declare module '@tanstack/react-router' {
       path: '/api/saas/domains'
       fullPath: '/api/saas/domains'
       preLoaderRoute: typeof ApiSaasDomainsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/saas/education-catalog': {
+      id: '/api/saas/education-catalog'
+      path: '/api/saas/education-catalog'
+      fullPath: '/api/saas/education-catalog'
+      preLoaderRoute: typeof ApiSaasEducationCatalogRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/saas/gateway-webhooks': {
@@ -2383,6 +2450,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiSaasDomainsVerifyRouteImport
       parentRoute: typeof ApiSaasDomainsRoute
     }
+    '/api/saas/education-catalog/search': {
+      id: '/api/saas/education-catalog/search'
+      path: '/search'
+      fullPath: '/api/saas/education-catalog/search'
+      preLoaderRoute: typeof ApiSaasEducationCatalogSearchRouteImport
+      parentRoute: typeof ApiSaasEducationCatalogRoute
+    }
     '/api/saas/email/routes': {
       id: '/api/saas/email/routes'
       path: '/api/saas/email/routes'
@@ -2600,6 +2674,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiMobileV4SchoolsSchoolIdNotificationsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/mobile-v4/schools/$schoolId/notifications-read': {
+      id: '/api/mobile-v4/schools/$schoolId/notifications-read'
+      path: '/api/mobile-v4/schools/$schoolId/notifications-read'
+      fullPath: '/api/mobile-v4/schools/$schoolId/notifications-read'
+      preLoaderRoute: typeof ApiMobileV4SchoolsSchoolIdNotificationsReadRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/mobile-v4/schools/$schoolId/results': {
       id: '/api/mobile-v4/schools/$schoolId/results'
       path: '/api/mobile-v4/schools/$schoolId/results'
@@ -2747,6 +2828,20 @@ const ApiSaasDomainsRouteWithChildren = ApiSaasDomainsRoute._addFileChildren(
   ApiSaasDomainsRouteChildren,
 )
 
+interface ApiSaasEducationCatalogRouteChildren {
+  ApiSaasEducationCatalogSearchRoute: typeof ApiSaasEducationCatalogSearchRoute
+}
+
+const ApiSaasEducationCatalogRouteChildren: ApiSaasEducationCatalogRouteChildren =
+  {
+    ApiSaasEducationCatalogSearchRoute: ApiSaasEducationCatalogSearchRoute,
+  }
+
+const ApiSaasEducationCatalogRouteWithChildren =
+  ApiSaasEducationCatalogRoute._addFileChildren(
+    ApiSaasEducationCatalogRouteChildren,
+  )
+
 interface ApiSaasPlatformAdminsRouteChildren {
   ApiSaasPlatformAdminsRevokeRoute: typeof ApiSaasPlatformAdminsRevokeRoute
 }
@@ -2838,6 +2933,7 @@ const rootRouteChildren: RootRouteChildren = {
   ConfiguracoesInicioRoute: ConfiguracoesInicioRoute,
   ConviteTokenRoute: ConviteTokenRoute,
   MatriculaSlugRoute: MatriculaSlugRoute,
+  PedagogicaCatalogoRoute: PedagogicaCatalogoRoute,
   PedagogicaPautasSuperiorRoute: PedagogicaPautasSuperiorRoute,
   PedagogicaPresencaDocenteRoute: PedagogicaPresencaDocenteRoute,
   PedagogicaRiscoRoute: PedagogicaRiscoRoute,
@@ -2858,6 +2954,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiSaasAuditLogsRoute: ApiSaasAuditLogsRoute,
   ApiSaasBillingProofsRoute: ApiSaasBillingProofsRoute,
   ApiSaasDomainsRoute: ApiSaasDomainsRouteWithChildren,
+  ApiSaasEducationCatalogRoute: ApiSaasEducationCatalogRouteWithChildren,
   ApiSaasGatewayWebhooksRoute: ApiSaasGatewayWebhooksRoute,
   ApiSaasMailboxesRoute: ApiSaasMailboxesRoute,
   ApiSaasMeRoute: ApiSaasMeRoute,
@@ -2911,6 +3008,8 @@ const rootRouteChildren: RootRouteChildren = {
     ApiMobileV4SchoolsSchoolIdLessonsRoute,
   ApiMobileV4SchoolsSchoolIdNotificationsRoute:
     ApiMobileV4SchoolsSchoolIdNotificationsRoute,
+  ApiMobileV4SchoolsSchoolIdNotificationsReadRoute:
+    ApiMobileV4SchoolsSchoolIdNotificationsReadRoute,
   ApiMobileV4SchoolsSchoolIdResultsRoute:
     ApiMobileV4SchoolsSchoolIdResultsRoute,
   ApiMobileV4SchoolsSchoolIdWorkspaceRoute:

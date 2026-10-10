@@ -35,6 +35,7 @@
     "siga:check": "node scripts/siga/check-modules.mjs && npm run siga:check-nav",
     "siga:check-nav": "vitest run tests/auth/navigation-catalog.test.ts",
     "siga:sql": "node scripts/siga/print-apply-sql.mjs",
+    "siga:catalog-seed": "bun scripts/siga/gen-education-catalog-seed.ts",
     "siga:db-snapshot": "node scripts/siga/capture-db-snapshot.mjs",
     "siga:gen-types": "node scripts/siga/gen-types.mjs",
     "siga:check-dns": "node scripts/siga/check-platform-dns.mjs",

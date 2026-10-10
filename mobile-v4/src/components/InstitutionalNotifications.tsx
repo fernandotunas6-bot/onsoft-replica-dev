@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import type { Context, Gateway } from "../domain/model";
-import type { NotificationInbox } from "../domain/notifications";
+import type { NotificationInbox, NotificationReadTarget } from "../domain/notifications";
 import { ApiError } from "../services/api";
 export function InstitutionalNotifications({
   ctx,
@@ -15,15 +15,31 @@ export function InstitutionalNotifications({
   const [loaded, setLoaded] = useState<{ key: string; data: NotificationInbox } | null>(null);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
+  const [busy, setBusy] = useState(false);
   const [reload, setReload] = useState(0);
   const [unreadOnly, setUnreadOnly] = useState(false);
   const [query, setQuery] = useState("");
   const access = useRef(onAccessError);
   access.current = onAccessError;
+  // Chave em vigor: uma resposta de outra escola ou conta é descartada.
+  const current = useRef(key);
+  current.current = key;
   useEffect(() => {
     setUnreadOnly(false);
     setQuery("");
   }, [key]);
+  const fail = (e: unknown, fallback: string, write = false) => {
+    // Numa escrita, 403 é quase sempre a falta do segundo factor nesta sessão:
+    // não é motivo para sair da escola, que continua legível.
+    if (write && e instanceof ApiError && e.status === 403) {
+      setError(
+        "Não foi possível marcar como lido. Entre com o segundo factor (código ou chave de acesso) e tente de novo.",
+      );
+      return;
+    }
+    setError(e instanceof Error ? e.message : fallback);
+    if (e instanceof ApiError && [401, 403].includes(e.status)) access.current?.(e);
+  };
   useEffect(() => {
     let live = true;
     const controller = new AbortController();
@@ -38,10 +54,7 @@ export function InstitutionalNotifications({
         if (live) setLoaded({ key, data });
       })
       .catch((e) => {
-        if (live) {
-          setError(e instanceof Error ? e.message : "Não foi possível carregar os avisos.");
-          if (e instanceof ApiError && [401, 403].includes(e.status)) access.current?.(e);
-        }
+        if (live) fail(e, "Não foi possível carregar os avisos.");
       })
       .finally(() => {
         if (live) setLoading(false);
@@ -52,6 +65,64 @@ export function InstitutionalNotifications({
     };
   }, [ctx, key, gateway, reload]);
   const inbox = loaded?.key === key ? loaded.data : null;
+  const loadMore = async () => {
+    if (!inbox?.next || !gateway.notifications) return;
+    const requestKey = key;
+    setBusy(true);
+    setError("");
+    try {
+      const page = await gateway.notifications(ctx, undefined, inbox.next);
+      if (current.current !== requestKey) return;
+      setLoaded((prev) => {
+        if (!prev || prev.key !== requestKey) return prev;
+        const seen = new Set(prev.data.items.map((x) => x.id));
+        return {
+          key: requestKey,
+          data: {
+            ...prev.data,
+            unread: page.unread,
+            items: [...prev.data.items, ...page.items.filter((x) => !seen.has(x.id))],
+            next: page.next,
+          },
+        };
+      });
+    } catch (e) {
+      if (current.current === requestKey) fail(e, "Não foi possível carregar mais avisos.");
+    } finally {
+      setBusy(false);
+    }
+  };
+  const markRead = async (target: NotificationReadTarget) => {
+    if (!gateway.markNotificationsRead) return;
+    const requestKey = key;
+    setBusy(true);
+    setError("");
+    try {
+      const receipt = await gateway.markNotificationsRead(ctx, target);
+      if (current.current !== requestKey) return;
+      const ids = "ids" in target ? new Set(target.ids) : null;
+      setLoaded((prev) =>
+        !prev || prev.key !== requestKey
+          ? prev
+          : {
+              key: requestKey,
+              data: {
+                ...prev.data,
+                unread: receipt.unread,
+                items: prev.data.items.map((x) =>
+                  !ids || ids.has(x.id) ? { ...x, read: true } : x,
+                ),
+              },
+            },
+      );
+    } catch (e) {
+      if (current.current === requestKey)
+        fail(e, "Não foi possível marcar os avisos como lidos.", true);
+    } finally {
+      setBusy(false);
+    }
+  };
+  const canMark = Boolean(gateway.markNotificationsRead);
   const items =
     inbox?.items.filter(
       (x) =>
@@ -60,10 +131,20 @@ export function InstitutionalNotifications({
     ) ?? [];
   return (
     <section className="academic" style={{ overflowWrap: "anywhere" }}>
-      <p>Os teus 50 avisos mais recentes nesta escola. Consultar não marca como lido.</p>
-      <button className="pill" disabled={loading} onClick={() => setReload((n) => n + 1)}>
-        Actualizar avisos
-      </button>
+      <p>
+        Os teus avisos nesta escola, dos mais recentes para os mais antigos. Consultar não marca
+        como lido.
+      </p>
+      <div className="flow-actions">
+        <button className="pill" disabled={loading || busy} onClick={() => setReload((n) => n + 1)}>
+          Actualizar avisos
+        </button>
+        {canMark && inbox && inbox.unread > 0 && (
+          <button className="pill" disabled={busy} onClick={() => markRead({ all: true })}>
+            Marcar todos como lidos
+          </button>
+        )}
+      </div>
       {loading && <p role="status">A carregar avisos…</p>}
       {error && <p role="alert">{error}</p>}
       {inbox && (
@@ -101,8 +182,23 @@ export function InstitutionalNotifications({
                   }).format(new Date(item.createdAt))}
                 </time>
               </p>
+              {canMark && !item.read && (
+                <button
+                  className="pill"
+                  disabled={busy}
+                  aria-label={`Marcar «${item.title}» como lido`}
+                  onClick={() => markRead({ ids: [item.id] })}
+                >
+                  Marcar como lido
+                </button>
+              )}
             </article>
           ))}
+          {inbox.next && (
+            <button className="pill" disabled={busy} onClick={loadMore}>
+              Mostrar avisos mais antigos
+            </button>
+          )}
         </>
       )}
     </section>

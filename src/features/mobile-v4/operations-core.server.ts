@@ -8,6 +8,8 @@ import {
   mobileChatScopeSchema,
   mobileChatAttachmentSchema,
   mobileChatCommandRequestSchema,
+  mobileNotificationsScopeSchema,
+  mobileNotificationsReadSchema,
 } from "./schemas";
 import { resolveMobileAcademicScope } from "./academic-scope.server";
 import { readMobileAcademicCatalog } from "./academic-catalog.server";
@@ -167,8 +169,28 @@ export async function loadMobileV4ChatCapabilities(userId: string, input: unknow
 }
 
 export async function loadMobileV4Notifications(userId: string, input: unknown) {
-  const s = mobileScopeSchema.parse(input);
+  const s = mobileNotificationsScopeSchema.parse(input);
   const { db } = await requireMobileAcademicAccess(userId, s.schoolId, s.role, "read");
   const { readMobileNotifications } = await import("./notifications.server");
-  return readMobileNotifications(db, { ...s, userId });
+  return readMobileNotifications(
+    db,
+    { schoolId: s.schoolId, role: s.role, userId },
+    s.before && s.beforeId ? { date: s.before, id: s.beforeId } : undefined,
+  );
+}
+
+/**
+ * Marcar os próprios avisos como lidos. Acesso de leitura ao módulo chega: é o
+ * estado da caixa da própria pessoa, não um dado da escola (o SIGA faz o mesmo
+ * com a sessão do utilizador). O 2FA é exigido pelo adaptador HTTP.
+ */
+export async function applyMobileV4NotificationsRead(userId: string, input: unknown) {
+  const s = mobileNotificationsReadSchema.parse(input);
+  const { db } = await requireMobileAcademicAccess(userId, s.schoolId, s.role, "read");
+  const { markMobileNotificationsRead } = await import("./notifications.server");
+  return markMobileNotificationsRead(
+    db,
+    { schoolId: s.schoolId, role: s.role, userId },
+    "ids" in s ? { ids: s.ids } : { all: true },
+  );
 }

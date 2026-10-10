@@ -15,10 +15,36 @@ Hoje `m.` ainda é servido pelo Worker `siga-plus-mobile-v4-domain` (outra sess�
 (deploy do portal → remover rota/Custom Domain no painel) está nesse documento. Não remover a
 rota antes do deploy do portal.
 
+## Catálogo educacional global (2026-10-10)
+
+Detalhe e cobertura real: [docs/education-catalog/README.md](../education-catalog/README.md).
+
+- `src/features/education-catalog/`: ISCED 2011 / ISCED-F 2013, países, 115 disciplinas e
+  54 cursos de referência, etapas de AO (com planos, derivados de `curriculum-templates.ts`),
+  PT (com planos, DL 55/2018) e MZ (só etapas). Tudo «Em revisão» excepto UNESCO/ISO.
+- Contexto de nível obrigatório (`catalog.ts`), pesquisa local sem acentos/siglas/erros
+  (`search.ts`), normalização de classes, períodos e disciplinas (`normalize.ts`), IDs
+  curtos (`identifiers.ts`). Página `/pedagogica/catalogo` (só consulta).
+- Fase 8: «Usar modelo de estrutura» com Sistema de ensino (AO como antes; PT e MZ pelo
+  catálogo, `plan-from-catalog.ts` + `applyCatalogStructure`). Ao aplicar, disciplinas já
+  existentes com outra grafia são reaproveitadas pelo catálogo (só nome/sinónimo exacto).
+- «Rever disciplinas» (Estrutura): duplicados (só mostra) e correcção de grafia dos nomes
+  (RLS, 2FA, auditado). Juntar duplicados: `public.merge_school_subjects` (20261010150000),
+  transaccional, recusa o que misturaria pautas/exames/competências e o superior.
+- «Nova disciplina» sugere nomes do catálogo e avisa antes de criar um duplicado
+  (`subject-hint.ts`; `QuickFormModal` com `suggestions` e `renderHint`).
+- Documentos: o registo de cada emissão (`documents.issued`) guarda os nomes das disciplinas
+  impressas e `/verificar` mostra-os — o nome à data da emissão sobrevive a renomear/juntar.
+- **Por aplicar (dono):** `20261010120000_global_education_catalog.sql`, depois
+  `supabase/seeds/education/catalog.sql`, depois `20261010150000_merge_school_subjects.sql`. A página não depende delas.
+
 ## Auditoria 13 — fluxos da escola (2026-10-06)
 
 Relatório: [13-auditoria-fluxos-2026-10-06.md](../auditoria/13-auditoria-fluxos-2026-10-06.md).
-Nada escrito na produção; duas migrações escritas e ensaiadas, por aplicar.
+As duas migrações da auditoria foram **aplicadas na produção a 10/10** (`20261010103557 school_logos_no_svg`,
+`20261010104325 academic_year_dates_cover_terms`; a segunda cria o gatilho só se não existir,
+sem `DROP TRIGGER`). Uma escola tem um período de 11/08 fora do ano: só volta a mudar as datas
+do ano depois de o acertar.
 
 - **Corrigido:** importação em páginas (`import/engine/paged.ts`; antes cortava a 1000/2000 e
   passava listas de ids gigantes); um lote que lança já não perde o registo de reversão;
@@ -37,6 +63,20 @@ Nada escrito na produção; duas migrações escritas e ensaiadas, por aplicar.
   aluno fecha a matrícula corrente e anular a última matrícula deixa o aluno inactivo
   (`students/enrollment-sync.ts`). A RLS continua sem olhar para o tenant (escritas
   directas pela API já exigem 2FA e papel).
+
+## Orientação de erros em todo o sistema (2026-10-07, PR #102)
+
+- Cada erro sai com **o que correu mal, a forma certa e um botão para o sítio onde se
+  corrige**. Catálogo único: `src/lib/error-guidance.ts` (testes com as mensagens reais
+  do servidor). Mapa completo de casos e destinos: [ERROR_GUIDANCE.md](./ERROR_GUIDANCE.md).
+- `import { toast } from "sonner"` proibido pelo lint: tudo usa `@/lib/toast`, que
+  orienta cada `toast.error`. Mutações sem `onError` deixam de falhar caladas
+  (`MutationCache`); leituras que falham por configuração avisam (`QueryCache`); o
+  `RouteErrorScreen` mostra a correcção e o botão.
+- O botão só aparece a quem pode abrir o destino; os outros recebem «peça a …».
+- A parte de mensagens do PR #102 duplicava a da auditoria 13 (já na `main`): ficou a
+  da `main`, mais o chat montado uma só vez (coluna em `lg`, folha abaixo, contador do
+  servidor) e o atalho «Ficha do aluno» no lugar de `?tab=presenca`, que não existe.
 
 ## Verificação por níveis: um toque, código só por recurso (2026-10-06)
 
@@ -68,7 +108,7 @@ Nada escrito na produção; duas migrações escritas e ensaiadas, por aplicar.
 
 Levantamento completo: [estado-deploy-2026-10-06.md](../auditoria/estado-deploy-2026-10-06.md).
 
-- **Migrações:** desde a auditoria 13 há **2 por aplicar** (secção acima). Antes dela, nada por aplicar. As três que faltavam de facto foram aplicadas a 06/10
+- **Migrações:** as 2 da auditoria 13 foram aplicadas a 10/10 (secção acima); nada por aplicar dela. As três que faltavam de facto foram aplicadas a 06/10
   (`20261005030000_school_row_role_policies`, `20261005150000_fee_items_grade_level`,
   `20261006100000_enrollment_class_change`) e registadas no histórico. As
   `20261005010000` e `20261005020000`, que os relatórios davam por pendentes, **já

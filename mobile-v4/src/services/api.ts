@@ -1,4 +1,9 @@
-import { parseNotificationInbox } from "../domain/notifications";
+import {
+  parseNotificationInbox,
+  parseNotificationReadReceipt,
+  type NotificationCursor,
+  type NotificationReadTarget,
+} from "../domain/notifications";
 import {
   parseChatReceipt,
   type ChatCommand,
@@ -268,14 +273,30 @@ export class ApiGateway implements Gateway {
       throw new Error("Contrato de contactos inválido.");
     return data.contacts;
   }
-  async notifications(ctx: Context, signal?: AbortSignal) {
+  async notifications(ctx: Context, signal?: AbortSignal, before?: NotificationCursor) {
     authorize(this.current, ctx);
+    const params = new URLSearchParams({
+      role: ctx.role,
+      ...(before ? { before: before.date, beforeId: before.id } : {}),
+    });
     return parseNotificationInbox(
       await this.request(
-        "/schools/" + encodeURIComponent(ctx.schoolId) + "/notifications?role=" + ctx.role,
+        "/schools/" + encodeURIComponent(ctx.schoolId) + "/notifications?" + params,
         signal,
       ),
       ctx,
+    );
+  }
+  async markNotificationsRead(ctx: Context, target: NotificationReadTarget, signal?: AbortSignal) {
+    authorize(this.current, ctx);
+    return parseNotificationReadReceipt(
+      await this.request(
+        `/schools/${encodeURIComponent(ctx.schoolId)}/notifications-read`,
+        signal,
+        { role: ctx.role, ...target },
+      ),
+      ctx,
+      target,
     );
   }
   async chatInbox(ctx: Context, signal?: AbortSignal) {

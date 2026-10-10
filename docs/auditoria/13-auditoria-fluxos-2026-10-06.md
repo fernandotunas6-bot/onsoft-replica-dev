@@ -194,6 +194,23 @@ pessoa). Saiu o código morto: o fio de conversa antigo, `listDirectThread`, `se
 `listInboxPreviews`, os esquemas e o armazenamento local deles. A tabela antiga fica na base, com os
 dados, sem escritas. Testes `tests/messages/chat-unread.test.ts` e `tests/tauri/desktop-notifications*`.
 
+## 4h. Fecho (2026-10-10)
+
+- **Migrações aplicadas na produção:** `20261010103557 school_logos_no_svg` (o bucket
+  `school-logos` só aceita PNG, JPEG e WebP) e `20261010104325 academic_year_dates_cover_terms`
+  (gatilho diferido; só o servidor o executa). A segunda foi aplicada sem `DROP TRIGGER`: cria o
+  gatilho só se não existir, com o mesmo efeito idempotente do ficheiro do repositório.
+- **Período fora do ano (decisão do dono):** «Recuperação SIGA», 20/08 a 31/08, no ano 2026/2027
+  (01/09 a 31/07) do Colégio Adventista do Huambo. Não tem pautas, diários nem boletins. Enquanto
+  existir, essa escola não consegue mudar as datas do ano (a mensagem diz qual é o período).
+- **Gateway de pagamento:** os 42 eventos da produção são todos de 09/09, de ensaios de ponta a
+  ponta (15 em modo dev); nenhum pagamento real. Todos os eventos aceites têm recibo. Sem achado.
+- **Boletins:** 120, todos em rascunho, de pautas em rascunho; sem cruzamento de escola, ano ou
+  matrícula, sem duplicados. A política «School staff only» destas tabelas é RESTRICTIVE (filtro a
+  mais), não alarga a escrita: continuam a valer 2FA e a permissão de homologar. Sem achado.
+- **PRs:** #101 (esta auditoria) e #120 (orientação de erros do #102 sobre a `main` actual) juntos
+  e publicados; o deploy de 10/10 às 09:43 correu bem.
+
 ## 5. O que foi verificado e está bem
 
 - **Criação de escola:** pré-validação de subdomínio e e-mail antes de escrever; prova de posse do

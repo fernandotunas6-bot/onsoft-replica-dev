@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import type { z } from "zod";
 import { sendOrQueue } from "@/lib/offline/outbox";
 import { currentUserId } from "@/lib/offline/outbox-session";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import {
   Check,
   X,

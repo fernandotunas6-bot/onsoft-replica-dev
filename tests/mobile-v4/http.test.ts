@@ -17,6 +17,7 @@ vi.mock("@/features/mobile-v4/operations-core.server", () => ({
   applyMobileV4ChatCommand: vi.fn(),
   loadMobileV4ChatCapabilities: vi.fn(),
   loadMobileV4Notifications: vi.fn(),
+  applyMobileV4NotificationsRead: vi.fn(),
   applyMobileV4Command: vi.fn(),
 }));
 
@@ -76,6 +77,7 @@ beforeEach(() => {
       .fn()
       .mockResolvedValue({ type: "send", conversationId: school, messageId: requestId }),
     command: vi.fn().mockResolvedValue({ committed: true }),
+    notificationsRead: vi.fn().mockResolvedValue({ updated: 1, unread: 0 }),
     logout: vi.fn().mockResolvedValue(undefined),
   };
 });
@@ -411,3 +413,55 @@ it.each(["professor", "aluno"])(
     expect(deps.notifications).toHaveBeenCalledWith("verified-user", { schoolId: school, role });
   },
 );
+
+it("forwards the notification cursor and refuses half a cursor", async () => {
+  const before = "2026-10-10T08:00:00.123456+00:00";
+  const beforeId = "33333333-3333-4333-8333-333333333333";
+  const params = new URLSearchParams({ role: "aluno", before, beforeId });
+  const ok = await handleMobileV4Http(request(`/schools/${school}/notifications?${params}`), deps);
+  expect(ok.status).toBe(200);
+  expect(deps.notifications).toHaveBeenCalledWith("verified-user", {
+    schoolId: school,
+    role: "aluno",
+    before,
+    beforeId,
+  });
+  const half = await handleMobileV4Http(
+    request(`/schools/${school}/notifications?role=aluno&before=${encodeURIComponent(before)}`),
+    deps,
+  );
+  expect(half.status).toBe(422);
+});
+
+it("marks notices read only by POST, with MFA, a strict body and the route school", async () => {
+  const path = `/schools/${school}/notifications-read`;
+  const ids = ["33333333-3333-4333-8333-333333333333"];
+  expect((await handleMobileV4Http(request(path), deps)).status).toBe(405);
+  deps.authenticate = vi.fn().mockResolvedValue({ userId: "verified-user", aal: "aal1" });
+  expect((await handleMobileV4Http(request(path, { role: "aluno", ids }), deps)).status).toBe(403);
+  deps.authenticate = vi.fn().mockResolvedValue({ userId: "verified-user", aal: "aal2" });
+  for (const body of [
+    { role: "aluno" },
+    { role: "aluno", ids: [] },
+    { role: "aluno", ids: [ids[0], ids[0]] },
+    { role: "aluno", ids: ["not-a-uuid"] },
+    { role: "aluno", ids, all: true },
+    { role: "aluno", all: false },
+    { role: "aluno", ids, schoolId: school },
+    { role: "aluno", ids, userId: "attacker" },
+  ])
+    expect((await handleMobileV4Http(request(path, body), deps)).status, JSON.stringify(body)).toBe(
+      422,
+    );
+  expect(deps.notificationsRead).not.toHaveBeenCalled();
+  const response = await handleMobileV4Http(request(path, { role: "aluno", ids }), deps);
+  expect(response.status).toBe(200);
+  expect(deps.notificationsRead).toHaveBeenCalledWith("verified-user", {
+    role: "aluno",
+    ids,
+    schoolId: school,
+  });
+  expect(
+    (await handleMobileV4Http(request(path, { role: "professor", all: true }), deps)).status,
+  ).toBe(200);
+});
