@@ -107,6 +107,18 @@ export function normalizeGender(value: unknown): "male" | "female" | null {
   return null;
 }
 
+/**
+ * Primeiro valor preenchido de uma linha entre vários nomes de coluna possíveis
+ * («turma», «Turma», «class_group»…). Estava copiado em 17 importadores.
+ */
+export function valueOf(row: Record<string, unknown>, ...keys: string[]): unknown {
+  for (const key of keys) {
+    const value = row[key];
+    if (value !== undefined && value !== null && normalizeText(value)) return value;
+  }
+  return null;
+}
+
 export function isBlankRow(row: Record<string, unknown>): boolean {
   return Object.values(row).every((v) => normalizeText(v) === "");
 }

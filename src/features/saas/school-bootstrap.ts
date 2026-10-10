@@ -10,15 +10,7 @@ import {
   bootstrapAcademicYearIfMissing,
 } from "@/features/academic/academic-bootstrap";
 import { schoolSettingDefaults } from "@/lib/school-config";
-
-function isMissingTable(error: { code?: string; message?: string } | null) {
-  return Boolean(
-    error &&
-    (error.code === "42P01" ||
-      error.code === "PGRST205" ||
-      /schema cache|does not exist|relation .* does not exist/i.test(error.message ?? "")),
-  );
-}
+import { isMissingTable } from "@/integrations/supabase/server-error";
 
 // Conjunto validado em produção (escola "Colegio Adventista - Huambo", semeada
 // manualmente antes deste bootstrap existir). `private.has_permission()` faz

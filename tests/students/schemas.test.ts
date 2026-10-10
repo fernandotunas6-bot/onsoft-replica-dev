@@ -3,7 +3,6 @@ import {
   assignGuardianInputSchema,
   mapSgaGuardianRelationship,
   changeStudentStatusInputSchema,
-  createStudentInputSchema,
   enrollNewStudentInputSchema,
   removeGuardianInputSchema,
   searchStudentsInputSchema,
@@ -24,26 +23,6 @@ describe("searchStudentsInputSchema", () => {
 
   it("rejects a negative offset", () => {
     expect(searchStudentsInputSchema.safeParse({ offset: -1 }).success).toBe(false);
-  });
-});
-
-describe("createStudentInputSchema", () => {
-  it("requires a registration number", () => {
-    expect(
-      createStudentInputSchema.safeParse({ personId: uuid, registrationNumber: "" }).success,
-    ).toBe(false);
-    expect(
-      createStudentInputSchema.safeParse({ personId: uuid, registrationNumber: "2026-0001" })
-        .success,
-    ).toBe(true);
-  });
-
-  it("defaults guardians to an empty array", () => {
-    const result = createStudentInputSchema.parse({
-      personId: uuid,
-      registrationNumber: "2026-0001",
-    });
-    expect(result.guardians).toEqual([]);
   });
 });
 

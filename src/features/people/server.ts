@@ -39,14 +39,9 @@ import {
   personRoleOptions,
 } from "./schemas";
 import { isAngolaBiNif, normalizePersonNif } from "@/lib/angola-identity";
+import { buildPersonInsert, isMissingPeopleGeography } from "./person-fields";
+import { syncBiDocumentFromNif } from "./bi-document";
 import { schoolTodayIso } from "@/lib/school-date";
-
-function mapSex(sex: string | undefined) {
-  if (!sex) return null;
-  if (sex === "M") return "male";
-  if (sex === "F") return "female";
-  return sex;
-}
 
 type AdminDb = Awaited<ReturnType<typeof loadSgaAdminClient>>;
 
@@ -101,49 +96,8 @@ async function insertPersonDocuments(
   }
 }
 
-async function syncBiDocumentFromNif(
-  db: AdminDb,
-  schoolId: string,
-  personId: string,
-  nif: string | null | undefined,
-  userId: string,
-) {
-  if (!isAngolaBiNif(nif)) return;
-  const compact = normalizePersonNif(nif);
-  if (!compact) return;
-  const { data: existing } = await db
-    .from("person_documents")
-    .select("id")
-    .eq("school_id", schoolId)
-    .eq("person_id", personId)
-    .eq("document_type", "bi")
-    .eq("document_number", compact)
-    .is("deleted_at", null)
-    .maybeSingle();
-  if (existing?.id) return;
-  const { error } = await db.from("person_documents").insert({
-    school_id: schoolId,
-    person_id: personId,
-    document_type: "bi",
-    document_number: compact,
-    created_by: userId,
-    updated_by: userId,
-  });
-  if (error && !/duplicate|unique|23505/i.test(error.message)) {
-    throw publicDatabaseError(error, "Não foi possível sincronizar o BI.");
-  }
-}
-
 function normalizePhone(value: string | null | undefined) {
   return (value ?? "").replace(/\D/g, "");
-}
-
-function isMissingPeopleGeography(error: { message?: string; code?: string } | null | undefined) {
-  return Boolean(
-    error &&
-    (/province|municipality|commune|address|42703|schema cache/i.test(error.message ?? "") ||
-      error.code === "42703"),
-  );
 }
 
 function isMissingPersonRoles(error: { message?: string; code?: string } | null | undefined) {
@@ -579,35 +533,10 @@ export const createPerson = createServerFn({ method: "POST" })
     const personInput = data.person;
     const roles = data.roles ?? [];
 
-    const normalizedNif = normalizePersonNif(personInput.nif);
-    const personPayload: TablesInsert<"people"> = {
-      school_id: membership.schoolId,
-      full_name: personInput.full_name,
-      preferred_name:
-        personInput.preferred_name ||
-        personInput.first_name ||
-        personInput.full_name.split(/\s+/)[0],
-      email: personInput.email || null,
-      phone: normalizePersonPhone(personInput.phone_primary),
-      national_id: normalizedNif,
-      date_of_birth: personInput.birth_date || null,
-      sex: mapSex(personInput.sex),
-      status: "active",
-      created_by: context.userId,
-      updated_by: context.userId,
-    };
-    const hasGeography = Boolean(
-      personInput.province ||
-      personInput.municipality ||
-      personInput.commune ||
-      personInput.address,
-    );
-    if (hasGeography) {
-      personPayload["province"] = personInput.province || null;
-      personPayload["municipality"] = personInput.municipality || null;
-      personPayload["commune"] = personInput.commune || null;
-      personPayload["address"] = personInput.address || null;
-    }
+    const { payload: personPayload } = buildPersonInsert(personInput, {
+      schoolId: membership.schoolId,
+      userId: context.userId,
+    });
 
     const firstRelationship = data.relationships[0];
     const { data: result, error } = await context.supabase.rpc("siga_create_person_bundle", {

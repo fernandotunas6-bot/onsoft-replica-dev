@@ -60,11 +60,39 @@ const businessMessages = new Set([
   "A turma nova tem de ser da mesma escola e do mesmo ano lectivo da matrícula.",
   "Turma ativa inválida para esta escola.",
   "Identidade da matrícula é imutável.",
+  // register_student / enroll_student
+  "Estudante, ano letivo ou data de matrícula inválida.",
+  "Pessoa ou data de admissão inválida.",
+  "Encarregado inválido para esta escola.",
 ]);
 
 function constraintMessage(message: string | undefined): string | null {
   const name = /constraint "([a-z0-9_]+)"/i.exec(message ?? "")?.[1];
   return (name && constraintMessages[name]) || null;
+}
+
+/** Tabela ainda por criar nesta base (migração por aplicar): quem lê trata-a como vazia. */
+export function isMissingTable(error: DatabaseError | null | undefined): boolean {
+  return Boolean(
+    error &&
+    (error.code === "42P01" ||
+      error.code === "PGRST205" ||
+      /schema cache|does not exist|relation .* does not exist/i.test(error.message ?? "")),
+  );
+}
+
+/**
+ * A base recusou por falta de 2FA (`private.is_aal2`) ou de permissão: as funções
+ * SECURITY DEFINER levantam 42501 «Sem autorização…». Uma só regra para o
+ * servidor traduzir a recusa em «active o 2FA» (havia seis cópias, com
+ * expressões diferentes).
+ */
+export function isRpcAuthDenied(error: DatabaseError | null | undefined): boolean {
+  if (!error) return false;
+  return (
+    error.code === "42501" ||
+    /is_aal2|autoriza[çc][ãa]o|permission denied/i.test(error.message ?? "")
+  );
 }
 
 /** Prevent database structure and raw SQL details from reaching browser clients. */

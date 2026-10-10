@@ -1,4 +1,4 @@
-import { foldForCompare, normalizeMoney, normalizeText } from "../engine/normalize";
+import { foldForCompare, normalizeMoney, normalizeText, valueOf } from "../engine/normalize";
 import type { ImportRefCache, RowImporter } from "../engine/types";
 import {
   parseSettingsDomain,
@@ -75,14 +75,6 @@ const RULE_FIELDS: Record<
 
 /** «Todos», «Todas», «Geral»: o curso não restringe a classe. */
 const ANY_COURSE = new Set(["todos", "todas", "geral", "todos os cursos", "-"]);
-
-function valueOf(row: Record<string, unknown>, ...keys: string[]) {
-  for (const key of keys) {
-    const value = row[key];
-    if (value !== undefined && value !== null && normalizeText(value)) return value;
-  }
-  return null;
-}
 
 /** As regras que a linha traz (só essas) e os erros de limites. */
 function rulesFromRow(row: Record<string, unknown>) {

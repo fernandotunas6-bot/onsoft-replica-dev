@@ -1,4 +1,4 @@
-import { normalizeMoney, normalizeText } from "../engine/normalize";
+import { normalizeMoney, normalizeText, valueOf } from "../engine/normalize";
 import {
   invoiceYearForSchool,
   loadNextInvoiceSequence,
@@ -37,14 +37,6 @@ type HistoricoFinanceiroCache = ImportRefCache & {
   invoiceYear: number;
   invoiceSequence: number;
 };
-
-function valueOf(row: Record<string, unknown>, ...keys: string[]) {
-  for (const key of keys) {
-    const value = row[key];
-    if (value !== undefined && value !== null && normalizeText(value)) return value;
-  }
-  return null;
-}
 
 export const historicoFinanceiroImporter: RowImporter = {
   module: "historico_financeiro",

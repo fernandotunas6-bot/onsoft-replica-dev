@@ -4,6 +4,33 @@ Ler isto **antes** de alterar código. Ecossistema (5 apps):
 [ARCHITECTURE_HARMONIZATION.md](./ARCHITECTURE_HARMONIZATION.md).
 Depois abrir o skill do módulo em `.cursor/skills/`.
 
+## Auditoria 14 — lógica das matrículas e repetições (2026-10-10)
+
+Relatório: [14-auditoria-logica-matriculas-2026-10-10.md](../auditoria/14-auditoria-logica-matriculas-2026-10-10.md).
+Nada escrito na produção; nenhuma migração nova.
+
+- **Núcleo único da matrícula:** `src/features/students/enrollment-core.ts`. Toda a chamada a
+  `register_student`/`enroll_student`, a recusa por falta de 2FA (`isRpcAuthDenied`, em
+  `server-error.ts`), «colocar ou mudar de turma» (`placeStudentInClass`) e o estado do aluno
+  depois disso passam por lá. Não voltar a chamar as RPCs directamente nem a escrever o estado
+  do aluno à mão numa função nova.
+- **Ficha de pessoa única:** `src/features/people/person-fields.ts` (`buildPersonInsert`,
+  `toStoredSex`: o «Outro» do formulário é `other` na base; `sexInitial`, `sexLabel`).
+- **Regras novas (M1, M4, M8):** quem saiu (anulado, desistente, transferido, concluído) volta a
+  matricular-se — é reaberto como candidato e reposto se a matrícula falhar; suspenso e trancado
+  não são levantados por uma mudança de turma; o lote confirma a matrícula pendente de quem já
+  está na turma. O ano da colocação é o da turma.
+- **Saíram:** `createStudent`, `updateEnrollment` (a ficha usa `enrollStudentInClass` para
+  atribuir e para mudar), a escrita escondida em `searchStudents`, `src/lib/saas/provisioning-service.ts`.
+- **Partilhados fora das matrículas:** `valueOf` dos importadores (`engine/normalize.ts`),
+  `src/lib/escape-html.ts`, `isMissingTable`, `readSettingsDomainRow`,
+  `finance/payment-method.ts`, `academic/own-teacher.ts`, `src/lib/option-label.ts`,
+  `src/lib/base64.ts`.
+- **Por decidir (dono):** A1 — 40 matrículas pendentes do Huambo (`MAT-98xxxx`, 08/10, escritas
+  fora da aplicação; 39 alunos ficaram «candidato»): confirmar com «Atribuir turma» à mesma
+  turma, ou anular. A2 — matrículas antes de o ano lectivo começar (a RPC exige o ano activo e a
+  data dentro dele). A3 — 2FA na mudança de turma.
+
 ## Auditoria 13 — fluxos da escola (2026-10-06)
 
 Relatório: [13-auditoria-fluxos-2026-10-06.md](../auditoria/13-auditoria-fluxos-2026-10-06.md).

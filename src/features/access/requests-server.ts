@@ -41,6 +41,7 @@ import {
   searchSchoolsForAccessInputSchema,
   submitAccessRequestInputSchema,
 } from "./request-schemas";
+import { escapeHtml } from "@/lib/escape-html";
 
 type Db = Awaited<ReturnType<typeof loadSgaAdminClient>>;
 
@@ -237,14 +238,6 @@ async function notifyReviewers(
     console.error("[access-requests] in-app notify failed:", error);
     return 0;
   }
-}
-
-function escapeHtml(value: string) {
-  return value
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;");
 }
 
 /** Mostra só o fim de um identificador sensível (B.I.) na lista da secretaria. */

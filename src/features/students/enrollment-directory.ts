@@ -127,3 +127,28 @@ export function buildEnrollmentDirectory(
     classGroups: roomRows,
   };
 }
+
+/**
+ * Opções de turma para os formulários de colocação: o valor é o id. As listas
+ * escolhiam a turma pelo texto «nome · classe», e duas turmas com o mesmo nome e
+ * classe em cursos diferentes davam a primeira; a ficha juntava ao rótulo um
+ * pedaço do id para as distinguir. Turmas sem ano lectivo não entram.
+ */
+export function classGroupChoices(
+  groups: Array<{
+    id: string;
+    name: string;
+    grade_name?: string | null;
+    course_name?: string | null;
+    academic_year_id?: string | null;
+  }>,
+) {
+  return groups
+    .filter((group) => group.academic_year_id)
+    .map((group) => ({
+      value: group.id,
+      label: [group.name, group.grade_name, group.course_name]
+        .filter((part) => part && part !== "—")
+        .join(" · "),
+    }));
+}

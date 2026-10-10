@@ -1,3 +1,5 @@
+import { escapeHtml } from "@/lib/escape-html";
+
 export type TemplateCategory = "auth" | "academic" | "finance" | "notices";
 
 export interface CommunicationTemplate {
@@ -10,14 +12,6 @@ export interface CommunicationTemplate {
   defaultText: string;
   defaultHtml: string;
   render: (vars: Record<string, string>) => { subject: string; text: string; html: string };
-}
-
-function escapeHtml(str: string): string {
-  return str
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;");
 }
 
 function interpolate(content: string, vars: Record<string, string>, escape = false): string {
