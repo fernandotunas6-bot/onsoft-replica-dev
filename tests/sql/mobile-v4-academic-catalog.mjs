@@ -57,8 +57,12 @@ const { readMobileChat } = await import(
 const { readMobileChatContacts, signMobileChatAttachment } = await import(
   new URL("../../src/features/mobile-v4/chat-files.server.ts", import.meta.url)
 );
+const { readMobileNotifications } = await import(
+  new URL("../../src/features/mobile-v4/notifications.server.ts", import.meta.url)
+);
 const pg = new PGlite();
 await pg.exec(`
+CREATE TABLE notifications(id uuid PRIMARY KEY,school_id uuid NOT NULL,user_id uuid NOT NULL,channel text NOT NULL,event_type text NOT NULL,title text NOT NULL,body text NOT NULL,status text NOT NULL,read_at timestamptz,created_at timestamptz NOT NULL);
 CREATE TABLE member_roles(membership_id uuid,role_id uuid);
 CREATE TABLE roles(id uuid PRIMARY KEY,code text);
 CREATE TABLE siga_files(id uuid PRIMARY KEY,school_id uuid,name text,area text,visibility text,owner_user_id uuid,related_user_id uuid,is_folder boolean,is_system boolean,storage_backend text,storage_path text,deleted_at timestamptz);
@@ -1172,6 +1176,62 @@ try {
   await assert.rejects(
     readMobileAcademicCatalog(db, scope, teacherUser),
     (e) => e.code === "ACADEMIC_CATALOG_INCONSISTENT",
+  );
+  checks++;
+  // Notification fixtures: actual reader and count query against local PostgreSQL.
+  const notification = (id, school_id, user_id, extras = {}) =>
+    insert("notifications", {
+      id: uuid(id),
+      school_id,
+      user_id,
+      channel: "in_app",
+      event_type: "schedule",
+      title: "Aviso de ensaio SQL",
+      body: "Texto controlado",
+      status: "sent",
+      read_at: null,
+      created_at: "2026-10-10T08:00:00Z",
+      ...extras,
+    });
+  for (let n = 900; n < 960; n++) await notification(n, A, studentUser);
+  await notification(960, A, studentUser, { status: "read" });
+  await notification(961, A, studentUser, { read_at: "2026-10-10T08:10:00Z" });
+  await notification(962, A, studentUser, { channel: "email" });
+  await notification(963, B, studentUser);
+  await notification(964, A, peerUser);
+  await notification(965, A, teacherUser);
+  const notices = await readMobileNotifications(db, {
+    schoolId: A,
+    userId: studentUser,
+    role: "aluno",
+  });
+  check(notices.items.length === 50, "notification recent list capped at 50");
+  check(
+    notices.unread === 60,
+    "unread count includes older own in-app notices, excludes read status/read timestamp",
+  );
+  check(
+    notices.items[0].id === uuid(961) && notices.items[1].id === uuid(960),
+    "equal-time notices have deterministic UUID ordering",
+  );
+  check(notices.items[0].read && notices.items[1].read, "both canonical read markers recognized");
+  check(
+    (await readMobileNotifications(db, { schoolId: B, userId: studentUser, role: "aluno" })).items
+      .length === 1,
+    "same notification account in another school remains isolated",
+  );
+  check(
+    (await readMobileNotifications(db, { schoolId: A, userId: teacherUser, role: "professor" }))
+      .items.length === 1,
+    "teacher only sees own notifications",
+  );
+  await assert.rejects(
+    readMobileNotifications(adapter({ fail: "notifications" }), {
+      schoolId: A,
+      userId: studentUser,
+      role: "aluno",
+    }),
+    (e) => e.code === "NOTIFICATIONS_UNAVAILABLE",
   );
   checks++;
   console.log(

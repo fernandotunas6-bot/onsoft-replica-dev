@@ -19,6 +19,7 @@ Consultar **não** marca automaticamente avisos como lidos. Não foram implement
 - 196 testes Mobile aprovados, incluindo nove novos testes de contrato/interface e resposta tardia.
 - 3.363 testes do repositório aprovados, com 19 ignorados; lint raiz sem erros (47 avisos existentes).
 - 33 testes nos dois ficheiros de HTTP/notificações do servidor, incluindo filtro por utilizador/escola, respostas externas, falhas da base e encaminhamento para ambos os perfis.
+- 107 verificações da projecção Mobile em PostgreSQL local, incluindo sete novas para avisos: 50 recentes/60 não lidas, ordenação estável, dois marcadores de leitura, escola/utilizador e falha da base. Usa o leitor real e um adaptador SQL parametrizado; não valida PostgREST/Auth/RLS remoto.
 - Tipos Mobile e raiz, três builds Mobile, build raiz, lint e formatação verificados. A rota gerada foi actualizada pelo build antes da verificação final de tipos.
 - Testes com dados controlados são ensaios; não equivalem a validação positiva com uma conta real Sga nem à verificação remota de RLS/PostgREST.
 - Sem alterações Supabase ou migrações de produção; sem publicação do portal principal.
