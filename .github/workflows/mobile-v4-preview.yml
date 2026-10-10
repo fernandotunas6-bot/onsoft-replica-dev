@@ -49,6 +49,8 @@ jobs:
         run: npm run format:check
       - name: Run tests
         run: npm test
+      - name: Test mobile domain protections
+        run: npm run test:domain
       - name: Build PWA
         run: npm run build
       - name: Build institutional host module
