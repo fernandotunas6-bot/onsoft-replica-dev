@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ArrowLeft, ArrowRight, LogOut, MessageSquareReply, Send } from "lucide-react";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import { toneClass } from "@/components/layout/PageHeader";
 import { IconChip } from "@/components/ui/icon-chip";
 import { SigaLogo } from "@/components/ui/siga-logo";

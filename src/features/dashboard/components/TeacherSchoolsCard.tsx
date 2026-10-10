@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { School } from "lucide-react";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import { Button } from "@/components/ui/button";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { useCurrentAccount } from "@/features/auth/use-current-account";
