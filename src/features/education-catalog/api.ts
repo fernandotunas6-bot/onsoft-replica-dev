@@ -6,6 +6,8 @@
  * GET /api/saas/education-catalog/search
  *   type=subjects&stage=AO-ESG2[&course=SEC-CFB][&grade=10][&q=mat]
  *   type=subjects&isced=6&track=higher[&country=PT][&q=…]
+ *   type=subjects&stage=AO-ETP&area=saude   (área só dentro do nível)
+ *   type=areas&stage=AO-ETP                 (áreas que existem nesse nível)
  *   type=courses[&country=AO][&stage=PT-SEC][&kind=bachelor][&q=enf]
  *   type=stages&country=AO
  *   limit=1…50 (20 por omissão)
@@ -15,6 +17,7 @@
  */
 import {
   CatalogContextError,
+  areasForContext,
   coursesFor,
   searchCourses,
   searchSubjects,
@@ -25,7 +28,7 @@ import { COURSE_KIND_LABEL, type CourseKind } from "./data/courses";
 import type { IscedLevel } from "./data/isced";
 import { VERIFICATION_LABEL } from "./data/sources";
 import { gradeLabel, stagesFor, type EducationStage } from "./data/stages";
-import { SUBJECT_AREA_LABEL } from "./data/subjects";
+import { SUBJECT_AREA_LABEL, isSubjectArea } from "./data/subjects";
 import { CATALOG_VERSION } from "./overview";
 
 export type CatalogApiResponse = { status: number; body: Record<string, unknown> };
@@ -112,7 +115,13 @@ export function catalogSearch(params: URLSearchParams): CatalogApiResponse {
       };
     }
 
-    if (type !== "subjects") return bad("«type» inválido. Use: subjects, courses ou stages.");
+    if (type !== "subjects" && type !== "areas") {
+      return bad("«type» inválido. Use: subjects, areas, courses ou stages.");
+    }
+    const area = text(params, "area", 20) || null;
+    if (area && !isSubjectArea(area)) {
+      return bad(`«area» inválida. Use: ${Object.keys(SUBJECT_AREA_LABEL).join(", ")}.`);
+    }
 
     let ctx: LevelContext;
     if (stageId) {
@@ -125,12 +134,18 @@ export function catalogSearch(params: URLSearchParams): CatalogApiResponse {
       const track = text(params, "track", 20);
       if (isced.value == null || !TRACKS.includes(track as (typeof TRACKS)[number])) {
         return bad(
-          "Disciplinas precisam do nível de ensino: stage=<etapa> (ex.: AO-ESG2), ou isced=0…8 e track=general|technical|higher.",
+          "Disciplinas e áreas precisam do nível de ensino: stage=<etapa> (ex.: AO-ESG2), ou isced=0…8 e track=general|technical|higher.",
         );
       }
       ctx = { isced: isced.value as IscedLevel, track: track as EducationStage["track"], country };
     }
-    const list = q ? searchSubjects(q, ctx, max) : subjectsForContext(ctx).slice(0, max);
+    if (type === "areas") {
+      return { status: 200, body: { version: CATALOG_VERSION, items: areasForContext(ctx) } };
+    }
+    const subjectArea = area && isSubjectArea(area) ? area : null;
+    const list = q
+      ? searchSubjects(q, ctx, max, subjectArea)
+      : subjectsForContext(ctx, { area: subjectArea }).slice(0, max);
     return {
       status: 200,
       body: {

@@ -17,6 +17,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { moduleIcons } from "@/lib/app-icons";
 import { cn } from "@/lib/utils";
 import {
+  areasForContext,
   catalogCoverage,
   coursesFor,
   searchCourses,
@@ -31,7 +32,7 @@ import { COURSE_KIND_LABEL, GLOBAL_COURSES, globalCourse } from "./data/courses"
 import { ISCED_FIELDS, ISCED_LEVELS, iscedField, iscedLevel } from "./data/isced";
 import { CATALOG_SOURCES, VERIFICATION_LABEL, type VerificationStatus } from "./data/sources";
 import { PERIOD_MODEL_LABEL, gradeLabel, stage as findStage, stagesFor } from "./data/stages";
-import { GLOBAL_SUBJECTS, SUBJECT_AREA_LABEL } from "./data/subjects";
+import { GLOBAL_SUBJECTS, SUBJECT_AREA_LABEL, type SubjectArea } from "./data/subjects";
 
 const selectClass =
   "h-9 w-full rounded-md border border-input bg-background px-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
@@ -86,16 +87,23 @@ function SearchTab() {
   const [grade, setGrade] = useState("");
   const [mode, setMode] = useState<"disciplinas" | "cursos">("disciplinas");
   const [query, setQuery] = useState("");
+  const [area, setArea] = useState<SubjectArea | "">("");
 
   const effectiveCourse = current && current.courses.includes(course) ? course : "";
   const effectiveGrade =
     current && current.grades.includes(Number(grade)) && grade !== "" ? Number(grade) : null;
 
+  // Só as áreas que existem neste nível: o primário não tem nenhuma.
+  const areas = useMemo(() => (current ? areasForContext({ stageId: current.id }) : []), [current]);
+  const effectiveArea = areas.some((a) => a.area === area) ? (area as SubjectArea) : null;
+
   const subjects: SubjectSuggestion[] = useMemo(() => {
     if (!current) return [];
     const ctx = { stageId: current.id, course: effectiveCourse || null, grade: effectiveGrade };
-    return query.trim() ? searchSubjects(query, ctx, 40) : subjectsForContext(ctx);
-  }, [current, effectiveCourse, effectiveGrade, query]);
+    return query.trim()
+      ? searchSubjects(query, ctx, 40, effectiveArea)
+      : subjectsForContext(ctx, { area: effectiveArea });
+  }, [current, effectiveCourse, effectiveGrade, effectiveArea, query]);
 
   const courses: CourseSuggestion[] = useMemo(() => {
     const filter = current ? { stageId: current.id } : { country };
@@ -276,11 +284,63 @@ function SearchTab() {
           />
         </div>
         {mode === "disciplinas" ? (
+          <AreaFilter areas={areas} value={effectiveArea} onChange={setArea} />
+        ) : null}
+        {mode === "disciplinas" ? (
           <SubjectList items={subjects} country={country} />
         ) : (
           <CourseList items={courses} />
         )}
       </Panel>
+    </div>
+  );
+}
+
+function AreaFilter({
+  areas,
+  value,
+  onChange,
+}: {
+  areas: ReturnType<typeof areasForContext>;
+  value: SubjectArea | null;
+  onChange: (area: SubjectArea | "") => void;
+}) {
+  if (!areas.length) {
+    return (
+      <p className="mb-3 text-xs text-muted-foreground">
+        Neste nível só há disciplinas de formação geral: as áreas de especialidade (Saúde,
+        Informática, Gestão…) começam no técnico-profissional e no superior.
+      </p>
+    );
+  }
+  const chip = (active: boolean) =>
+    cn(
+      "rounded-full border px-2.5 py-1 text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+      active
+        ? "border-primary bg-primary text-primary-foreground"
+        : "border-border text-muted-foreground hover:text-foreground",
+    );
+  return (
+    <div role="group" aria-label="Área de formação" className="mb-3 flex flex-wrap gap-1.5">
+      <button
+        type="button"
+        aria-pressed={!value}
+        className={chip(!value)}
+        onClick={() => onChange("")}
+      >
+        Todas as áreas
+      </button>
+      {areas.map((a) => (
+        <button
+          key={a.area}
+          type="button"
+          aria-pressed={value === a.area}
+          className={chip(value === a.area)}
+          onClick={() => onChange(a.area)}
+        >
+          {a.label} <span className="tabular-nums opacity-70">{a.subjects}</span>
+        </button>
+      ))}
     </div>
   );
 }

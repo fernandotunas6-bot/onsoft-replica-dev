@@ -181,6 +181,26 @@ não aparece no primário; Termodinâmica só no superior; «Estudo do Meio» n�
 superior. `validateSubjectContext()` devolve o motivo («Física não é uma disciplina de
 «Ensino Primário».»). Curso ou classe que não pertencem à etapa são recusados.
 
+### Contexto de nível por área (2026-10-10)
+
+Cada área de formação (Saúde, Informática, Gestão, Engenharia, Construção, Agricultura,
+Direito, Educação, Artes, Turismo, Comunicação, Transportes, Ambiente) tem a sua regra em
+`SUBJECT_AREA_LEVELS` (`data/subjects.ts`): **nenhuma começa antes do ISCED 3**, e a via
+geral só existe para Artes (Desenho, História da Arte) e Ambiente (Ecologia).
+
+- `areasForContext(ctx)` — as áreas que existem no nível escolhido, com quantas disciplinas
+  cada uma tem nele. O primário e o I ciclo não têm nenhuma.
+- `subjectsForContext(ctx, { area })` e `searchSubjects(q, ctx, limit, area)` — só a área,
+  e só dentro do nível. Uma área fora do nível é recusada com o motivo («A área Saúde não
+  existe em «Ensino Primário»: começa no nível ISCED 3 (técnico-profissional, ensino
+  superior).»); `validateAreaContext()` devolve-o sem lançar.
+- API: `type=areas&stage=AO-ETP` e `type=subjects&stage=AO-ETP&area=saude` (400 com o
+  motivo quando a área não existe no nível).
+- Página: no modo «Disciplinas», chips com as áreas do nível; no primário aparece a
+  explicação em vez dos chips.
+- Teste `tests/education-catalog/area-level-context.test.ts`: toda a disciplina com área
+  cabe na regra da área, nenhuma etapa ISCED 0–2 sugere disciplinas de especialidade.
+
 ## Pesquisa
 
 Corre sobre os dados empacotados — funciona sem rede, sem base e sem IA. Com ~170 registos

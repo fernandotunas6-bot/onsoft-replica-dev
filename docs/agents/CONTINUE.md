@@ -24,6 +24,12 @@ Detalhe e cobertura real: [docs/education-catalog/README.md](../education-catalo
   (`subject-hint.ts`; `QuickFormModal` com `suggestions` e `renderHint`).
 - Documentos: o registo de cada emissão (`documents.issued`) guarda os nomes das disciplinas
   impressas e `/verificar` mostra-os — o nome à data da emissão sobrevive a renomear/juntar.
+- **Contexto de nível por área** (`SUBJECT_AREA_LEVELS`): Saúde, Informática, Gestão… só
+  existem do ISCED 3 em diante; `areasForContext`, filtro `area` na pesquisa, na API
+  (`type=areas`, `&area=`) e chips na página. Teste `area-level-context.test.ts`.
+- **Duas sessões fizeram este catálogo em paralelo.** A da branch `ccr-680ee371-6vebkz`
+  começou o mesmo trabalho sem saber deste; ficou num `git stash` local (não publicado) e só
+  entrou a regra por área acima. Antes de começar, `git fetch` e ler este ficheiro na `main`.
 - **Por aplicar (dono):** `20261010120000_global_education_catalog.sql`, depois
   `supabase/seeds/education/catalog.sql`, depois `20261010150000_merge_school_subjects.sql`. A página não depende delas.
 
