@@ -17,6 +17,8 @@ Detalhe e cobertura real: [docs/education-catalog/README.md](../education-catalo
 - Fase 8: «Usar modelo de estrutura» com Sistema de ensino (AO como antes; PT e MZ pelo
   catálogo, `plan-from-catalog.ts` + `applyCatalogStructure`). Ao aplicar, disciplinas já
   existentes com outra grafia são reaproveitadas pelo catálogo (só nome/sinónimo exacto).
+- «Rever disciplinas» (Estrutura): duplicados (só mostra) e correcção de grafia dos nomes
+  (RLS, 2FA, auditado). Juntar duplicados fica por fazer (função SQL transaccional).
 - **Por aplicar (dono):** `20261010120000_global_education_catalog.sql` e depois
   `supabase/seeds/education/catalog.sql`. A página não depende delas.
 

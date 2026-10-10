@@ -74,6 +74,28 @@ tem com outra grafia é reaproveitada — «Inglês» serve para «Língua Estra
 catálogo, nunca por código («EM» é Estudo do Meio nos modelos e Educação Moral noutros
 sítios) nem por letras trocadas.
 
+## Rever disciplinas da escola (fases 9–10, primeira parte)
+
+Pedagógica → Estrutura → **Rever disciplinas** compara as disciplinas da escola com o
+catálogo (`subject-review.ts`, `subject-review-server.ts`, `SubjectReviewDialog.tsx`):
+
+- **Duplicados** — a mesma disciplina mais de uma vez («Matemática», «Matematica», «MAT»),
+  com o número de ligações (turmas, currículos, professores) e qual manter (a mais usada).
+  Só se mostram: **juntar não está automatizado**, porque mexe em notas, presenças, planos de
+  aula, inscrições em exame e mais seis tabelas; precisa de uma função SQL transaccional
+  revista. O diálogo diz como fazê-lo à mão.
+- **Nomes a corrigir** — só grafia (acentos, maiúsculas), uma letra trocada, ou sigla usada
+  como nome. Sinónimos legítimos («Inglês») ficam. Siglas vêm desmarcadas («EM» pode ser
+  Educação Moral). O nome segue o país da escola (pela moeda: AOA → Angola, EUR → Portugal,
+  MZN → Moçambique).
+- **Próprias da escola** — sem correspondência no catálogo; ficam como estão.
+
+A correcção só muda `subjects.name` (o código, as turmas e as notas ficam), exige
+Administrador/Secretaria, 2FA na sessão e `academic.subjects.manage` (política de UPDATE), e
+fica no registo de auditoria (`academic.subject.renamed_to_catalog`). O servidor recalcula a
+revisão e só aplica o que ele próprio sugere, e só se o nome não mudou entretanto. Usa o
+cliente do utilizador (RLS), não o privilegiado.
+
 ## Contexto de nível
 
 Toda a sugestão de disciplina pede uma etapa (país + nível) ou um nível ISCED + via. Física
@@ -124,6 +146,8 @@ não há nada em `TABELAS_AUSENTES_DA_PRODUCAO`.
 ## Próximas fases
 
 - ~~Assistente de estrutura para Moçambique e Portugal~~ (feito, ver acima).
+- Juntar duplicados: função SQL transaccional que passa todas as ligações (10 tabelas com
+  `subject_id`) para a disciplina a manter, com auditoria, ensaiada em PGlite.
 - Ligar `subjects.catalog_subject_code` e `programs.catalog_course_code` (colunas novas, por
   `ALTER TABLE`) e usar `findSubjectDuplicates` para propor fusões com mapeamento auditado.
 - Documentos e pautas a resolverem nomes pelo catálogo (mantendo o nome à data da emissão).
