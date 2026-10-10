@@ -147,6 +147,23 @@ novo.
 - Até a migração ser aplicada, o botão responde «falta aplicar a migração 20261010150000…»
   (e a função está em `FUNCOES_ESPERA_MIGRACAO`).
 
+## API de pesquisa (Mobile V4, WEB, integrações)
+
+`GET /api/saas/education-catalog/search` (`api.ts`) — a mesma lógica e os mesmos dados do
+SIGA, para ninguém manter um catálogo próprio. Pública (só dados de referência), calculada
+em memória, CORS para WEB e ADMIN; o Mobile V4 chama-a na mesma origem.
+
+| Pedido | Devolve |
+|---|---|
+| `type=subjects&stage=AO-ESG2[&course=SEC-CFB][&grade=10][&q=mat]` | disciplinas do nível, as do plano primeiro (`inPlan`: `core`/`optional`/`null`) |
+| `type=subjects&isced=6&track=higher[&country=PT][&q=…]` | disciplinas do nível ISCED e via |
+| `type=courses[&country=AO][&stage=PT-SEC][&kind=bachelor][&q=enf]` | cursos |
+| `type=stages&country=AO` | etapas, classes com rótulo, períodos, escala, cursos, se há plano |
+
+`limit` 1–50 (20 por omissão). Disciplinas sem nível → 400 com a explicação; etapa, curso
+ou classe que não existem → 400. Cada resposta leva `version` do catálogo e, por registo, o
+estado de verificação e a fonte.
+
 ## Governação no ADMIN
 
 ADMIN → **Catálogos globais** (`painel/admin`, `/education-catalog`, só para administradores
