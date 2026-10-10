@@ -18,9 +18,10 @@ Detalhe e cobertura real: [docs/education-catalog/README.md](../education-catalo
   catálogo, `plan-from-catalog.ts` + `applyCatalogStructure`). Ao aplicar, disciplinas já
   existentes com outra grafia são reaproveitadas pelo catálogo (só nome/sinónimo exacto).
 - «Rever disciplinas» (Estrutura): duplicados (só mostra) e correcção de grafia dos nomes
-  (RLS, 2FA, auditado). Juntar duplicados fica por fazer (função SQL transaccional).
-- **Por aplicar (dono):** `20261010120000_global_education_catalog.sql` e depois
-  `supabase/seeds/education/catalog.sql`. A página não depende delas.
+  (RLS, 2FA, auditado). Juntar duplicados: `public.merge_school_subjects` (20261010150000),
+  transaccional, recusa o que misturaria pautas/exames/competências e o superior.
+- **Por aplicar (dono):** `20261010120000_global_education_catalog.sql`, depois
+  `supabase/seeds/education/catalog.sql`, depois `20261010150000_merge_school_subjects.sql`. A página não depende delas.
 
 ## Auditoria 13 — fluxos da escola (2026-10-06)
 

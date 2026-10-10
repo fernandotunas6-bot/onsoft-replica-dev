@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { normalizeSubjectNamesInputSchema } from "@/features/education-catalog/subject-review-server";
+import {
+  mergeDuplicateSubjectsInputSchema,
+  normalizeSubjectNamesInputSchema,
+} from "@/features/education-catalog/subject-review-server";
 import { countryFromCurrency, reviewSubjects } from "@/features/education-catalog/subject-review";
 
 const s = (id: string, code: string, name: string) => ({ id, code, name });
@@ -72,5 +75,21 @@ describe("revisão das disciplinas da escola", () => {
         subjectIds: ["00000000-0000-4000-8000-000000000001"],
       }),
     ).toBeTruthy();
+  });
+
+  it("o pedido de junção exige a que fica e pelo menos uma a juntar, até 20", () => {
+    const id = (n: number) => `00000000-0000-4000-8000-${String(n).padStart(12, "0")}`;
+    expect(
+      mergeDuplicateSubjectsInputSchema.parse({ keepId: id(1), mergeIds: [id(2)] }),
+    ).toBeTruthy();
+    expect(() =>
+      mergeDuplicateSubjectsInputSchema.parse({ keepId: id(1), mergeIds: [] }),
+    ).toThrow();
+    expect(() =>
+      mergeDuplicateSubjectsInputSchema.parse({
+        keepId: id(1),
+        mergeIds: Array.from({ length: 21 }, (_, i) => id(i + 2)),
+      }),
+    ).toThrow();
   });
 });

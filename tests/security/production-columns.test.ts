@@ -1,7 +1,7 @@
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { COLUNAS_ESPERA_MIGRACAO } from "./espera-migracao";
+import { COLUNAS_ESPERA_MIGRACAO, FUNCOES_ESPERA_MIGRACAO } from "./espera-migracao";
 
 /**
  * O código só lê e filtra colunas que existem na produção
@@ -79,7 +79,9 @@ describe("colunas usadas existem na produção", () => {
     for (const file of walk("src")) {
       const source = readFileSync(file, "utf8");
       for (const match of source.matchAll(/\.rpc\(\s*"([a-z_0-9]+)"/g)) {
-        if (!functions.has(match[1]!)) missing.push(`${file}: ${match[1]}`);
+        if (!functions.has(match[1]!) && !FUNCOES_ESPERA_MIGRACAO.has(match[1]!)) {
+          missing.push(`${file}: ${match[1]}`);
+        }
       }
     }
     expect(missing).toEqual([]);

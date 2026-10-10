@@ -118,3 +118,79 @@ export const normalizeSubjectNames = createServerFn({ method: "POST" })
       ignored: data.subjectIds.length - chosen.length,
     };
   });
+
+export const mergeDuplicateSubjectsInputSchema = z.object({
+  keepId: z.string().uuid(),
+  mergeIds: z.array(z.string().uuid()).min(1).max(20),
+});
+
+type MergeResult = Record<string, number | string>;
+type RpcClient = {
+  rpc: (
+    fn: "merge_school_subjects",
+    args: { target_school_id: string; keep_subject_id: string; merge_subject_ids: string[] },
+  ) => PromiseLike<{ data: MergeResult | null; error: { code?: string; message?: string } | null }>;
+};
+
+/**
+ * Junta disciplinas duplicadas numa só (`public.merge_school_subjects`,
+ * migração 20261010150000). Só aceita um grupo que a revisão reconhece como
+ * a mesma disciplina do catálogo: não junta «Física» com «Matemática» por
+ * engano. A função na base volta a exigir 2FA e a permissão, e recusa o que
+ * perderia informação (as duas na mesma turma, exames, competências,
+ * ensino superior).
+ */
+export const mergeDuplicateSubjects = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .validator((input: unknown) => mergeDuplicateSubjectsInputSchema.parse(input))
+  .handler(async ({ data, context }) => {
+    const membership = await requireSgaWriterForWrite(
+      "pedagogica",
+      context.supabase,
+      context.userId,
+      ["Administrador", "Secretaria"],
+    );
+    requireAal2(context.claims, "Juntar disciplinas");
+    const review = await loadReview(context.supabase, membership.schoolId);
+    const group = review.duplicates.find((g) => g.members.some((m) => m.id === data.keepId));
+    const members = new Set(group?.members.map((m) => m.id));
+    if (!group || data.mergeIds.some((id) => id === data.keepId || !members.has(id))) {
+      throw new Error("Só se juntam disciplinas que o catálogo reconhece como a mesma.");
+    }
+    // A função ainda não está nos tipos gerados (migração por aplicar).
+    const db = context.supabase as unknown as RpcClient;
+    const { data: result, error } = await db.rpc("merge_school_subjects", {
+      target_school_id: membership.schoolId,
+      keep_subject_id: data.keepId,
+      merge_subject_ids: data.mergeIds,
+    });
+    if (error) {
+      if (error.code === "PGRST202" || error.code === "42883") {
+        throw new Error(
+          "Juntar disciplinas ainda não está activo no servidor: falta aplicar a migração 20261010150000_merge_school_subjects.sql.",
+        );
+      }
+      // Recusas da própria função: a mensagem já diz o que corrigir.
+      if (error.code === "22023" && error.message) throw new Error(error.message);
+      throw publicDatabaseError(error, "Não foi possível juntar as disciplinas.");
+    }
+    const keep = group.members.find((m) => m.id === data.keepId)!;
+    await recordAuditBatch([
+      {
+        schoolId: membership.schoolId,
+        actorUserId: context.userId,
+        action: "academic.subject.merged",
+        entityType: "subject",
+        entityId: data.keepId,
+        metadata: {
+          keep: { id: keep.id, code: keep.code, name: keep.name },
+          merged: group.members
+            .filter((m) => data.mergeIds.includes(m.id))
+            .map((m) => ({ id: m.id, code: m.code, name: m.name })),
+          moved: result,
+          source: "education-catalog",
+        },
+      },
+    ]).catch(() => undefined);
+    return { merged: Number(result?.["merged"] ?? 0), keepName: keep.name };
+  });

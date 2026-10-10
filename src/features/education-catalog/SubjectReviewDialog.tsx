@@ -1,7 +1,7 @@
 /**
  * «Rever disciplinas»: compara as disciplinas da escola com o catálogo e
- * mostra duplicados e nomes fora do padrão. Corrige os nomes escolhidos;
- * os duplicados só se mostram (juntar é uma operação à parte).
+ * mostra duplicados e nomes fora do padrão. Corrige os nomes escolhidos e
+ * junta duplicados, sempre com confirmação.
  */
 import { useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -21,8 +21,12 @@ import {
 import { InlineLoading } from "@/components/ui/inline-loading";
 import { badgeBase, toneClass } from "@/components/layout/PageHeader";
 import { cn } from "@/lib/utils";
-import type { RenameSuggestion, SubjectReview } from "./subject-review";
-import { getSubjectReview, normalizeSubjectNames } from "./subject-review-server";
+import type { DuplicateGroup, RenameSuggestion, SubjectReview } from "./subject-review";
+import {
+  getSubjectReview,
+  mergeDuplicateSubjects,
+  normalizeSubjectNames,
+} from "./subject-review-server";
 
 const REASON_LABEL: Record<RenameSuggestion["reason"], string> = {
   grafia: "acentos/maiúsculas",
@@ -155,37 +159,13 @@ export function SubjectReviewDialog() {
                   <>
                     <ul className="space-y-2">
                       {review.duplicates.map((g) => (
-                        <li
-                          key={g.catalogCode}
-                          className="rounded-lg border border-border px-3 py-2"
-                        >
-                          <p className="font-medium">{g.canonicalName}</p>
-                          <ul className="mt-1 space-y-0.5 text-xs">
-                            {g.members.map((m) => (
-                              <li key={m.id} className="flex flex-wrap items-center gap-2">
-                                <span>{m.name}</span>
-                                <span className="font-mono text-muted-foreground">{m.code}</span>
-                                <span className="text-muted-foreground">
-                                  {m.usage === 1 ? "1 ligação" : `${m.usage} ligações`}
-                                </span>
-                                {m.id === g.keepId ? (
-                                  <span className={cn(badgeBase, toneClass.success)}>manter</span>
-                                ) : null}
-                                {m.ambiguous ? (
-                                  <span className={cn(badgeBase, toneClass.warning)}>
-                                    só sigla — confirme
-                                  </span>
-                                ) : null}
-                              </li>
-                            ))}
-                          </ul>
-                        </li>
+                        <DuplicateGroupCard key={g.catalogCode} group={g} />
                       ))}
                     </ul>
                     <p className="text-xs text-muted-foreground">
-                      Para juntar: em Disciplinas e Turmas, passe as turmas e os currículos para a
-                      marcada «manter» e desactive as outras. As notas já lançadas ficam na
-                      disciplina onde foram lançadas.
+                      Juntar passa turmas, currículos, professores, avaliações, presenças e planos
+                      de aula para a disciplina a manter; as outras ficam inactivas (não se apagam).
+                      Recusa-se se as duas estiverem na mesma turma.
                     </p>
                   </>
                 ) : (
@@ -224,5 +204,124 @@ export function SubjectReviewDialog() {
         </DialogContent>
       </Dialog>
     </>
+  );
+}
+
+/** Um grupo de duplicados: escolher a que fica, as que se juntam, e confirmar. */
+function DuplicateGroupCard({ group }: { group: DuplicateGroup }) {
+  const merge = useServerFn(mergeDuplicateSubjects);
+  const queryClient = useQueryClient();
+  const [keepId, setKeepId] = useState(group.keepId);
+  // Siglas soltas («EM») podem ser outra disciplina: não vão por omissão.
+  const [joined, setJoined] = useState<Record<string, boolean>>({});
+  const [confirming, setConfirming] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const keep = group.members.find((m) => m.id === keepId)!;
+  const mergeIds = group.members
+    .filter((m) => m.id !== keepId && (joined[m.id] ?? !m.ambiguous))
+    .map((m) => m.id);
+
+  const submit = async () => {
+    setSaving(true);
+    try {
+      const result = await merge({ data: { keepId, mergeIds } });
+      toast.success(`Disciplinas juntas em «${result.keepName}»`, {
+        description:
+          result.merged === 1
+            ? "1 disciplina ficou inactiva."
+            : `${result.merged} ficaram inactivas.`,
+      });
+      await queryClient.invalidateQueries({ queryKey: ["academic"] });
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : "Não foi possível juntar as disciplinas.",
+      );
+    } finally {
+      setSaving(false);
+      setConfirming(false);
+    }
+  };
+
+  return (
+    <li className="rounded-lg border border-border px-3 py-2">
+      <fieldset>
+        <legend className="font-medium">{group.canonicalName}</legend>
+        <ul className="mt-1 space-y-1 text-xs">
+          {group.members.map((m) => (
+            <li key={m.id} className="flex flex-wrap items-center gap-2">
+              <label className="flex items-center gap-1.5">
+                <input
+                  type="radio"
+                  name={`keep-${group.catalogCode}`}
+                  checked={m.id === keepId}
+                  onChange={() => {
+                    setKeepId(m.id);
+                    setConfirming(false);
+                  }}
+                  className="accent-primary"
+                />
+                <span className="sr-only">Manter</span>
+                <span>{m.name}</span>
+              </label>
+              <span className="font-mono text-muted-foreground">{m.code}</span>
+              <span className="text-muted-foreground">
+                {m.usage === 1 ? "1 ligação" : `${m.usage} ligações`}
+              </span>
+              {m.id === keepId ? (
+                <span className={cn(badgeBase, toneClass.success)}>fica</span>
+              ) : (
+                <label className="flex items-center gap-1.5">
+                  <Checkbox
+                    checked={joined[m.id] ?? !m.ambiguous}
+                    onCheckedChange={(v) => {
+                      setJoined((p) => ({ ...p, [m.id]: v === true }));
+                      setConfirming(false);
+                    }}
+                  />
+                  juntar
+                </label>
+              )}
+              {m.ambiguous ? (
+                <span className={cn(badgeBase, toneClass.warning)}>só sigla — confirme</span>
+              ) : null}
+            </li>
+          ))}
+        </ul>
+      </fieldset>
+      {confirming ? (
+        <div className="mt-2 rounded-md bg-muted p-2 text-xs" role="alert">
+          <p>
+            Juntar {mergeIds.length === 1 ? "1 disciplina" : `${mergeIds.length} disciplinas`} em «
+            {keep.name}»? Tudo o que está ligado a elas passa para «{keep.name}». Não se desfaz
+            automaticamente.
+          </p>
+          <div className="mt-2 flex gap-2">
+            <Button type="button" size="sm" onClick={submit} disabled={saving}>
+              {saving ? "A juntar…" : "Confirmar"}
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              onClick={() => setConfirming(false)}
+              disabled={saving}
+            >
+              Cancelar
+            </Button>
+          </div>
+        </div>
+      ) : (
+        <Button
+          type="button"
+          size="sm"
+          variant="outline"
+          className="mt-2"
+          disabled={!mergeIds.length}
+          onClick={() => setConfirming(true)}
+        >
+          Juntar em «{keep.name}»…
+        </Button>
+      )}
+    </li>
   );
 }

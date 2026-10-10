@@ -80,10 +80,9 @@ Pedagógica → Estrutura → **Rever disciplinas** compara as disciplinas da es
 catálogo (`subject-review.ts`, `subject-review-server.ts`, `SubjectReviewDialog.tsx`):
 
 - **Duplicados** — a mesma disciplina mais de uma vez («Matemática», «Matematica», «MAT»),
-  com o número de ligações (turmas, currículos, professores) e qual manter (a mais usada).
-  Só se mostram: **juntar não está automatizado**, porque mexe em notas, presenças, planos de
-  aula, inscrições em exame e mais seis tabelas; precisa de uma função SQL transaccional
-  revista. O diálogo diz como fazê-lo à mão.
+  com o número de ligações (turmas, currículos, professores). A escola escolhe a que fica
+  (por omissão a mais usada) e as que se juntam (siglas soltas vêm desmarcadas), e confirma.
+  Ver «Juntar duplicados» abaixo.
 - **Nomes a corrigir** — só grafia (acentos, maiúsculas), uma letra trocada, ou sigla usada
   como nome. Sinónimos legítimos («Inglês») ficam. Siglas vêm desmarcadas («EM» pode ser
   Educação Moral). O nome segue o país da escola (pela moeda: AOA → Angola, EUR → Portugal,
@@ -95,6 +94,29 @@ Administrador/Secretaria, 2FA na sessão e `academic.subjects.manage` (política
 fica no registo de auditoria (`academic.subject.renamed_to_catalog`). O servidor recalcula a
 revisão e só aplica o que ele próprio sugere, e só se o nome não mudou entretanto. Usa o
 cliente do utilizador (RLS), não o privilegiado.
+
+## Juntar duplicados
+
+`public.merge_school_subjects(escola, a_manter, a_juntar[])` — migração
+`20261010150000_merge_school_subjects.sql`, ensaio `tests/sql/merge-school-subjects.mjs`.
+
+- Uma só transacção. Passa para a disciplina a manter: turmas (`class_subjects`, e com elas
+  as pautas e horários, que apontam para a turma-disciplina), currículos, professores,
+  disciplinas-chave da avaliação, avaliações, presenças, competências, inscrições em exame e
+  planos de aula. As juntas ficam `inactive` — não se apagam.
+- Ligações repetidas nas tabelas que só ligam (o mesmo currículo, professor ou regra com as
+  duas): fica a da disciplina a manter.
+- **Recusa**, sem mexer em nada: as duas na mesma turma (cada uma tem a sua pauta); o mesmo
+  aluno no mesmo exame nas duas; competências com o mesmo código no mesmo nível; disciplinas
+  em planos do ensino superior (`program_subjects` tem identidade imutável e inscrições por
+  cadeira). Qualquer outro erro — o gatilho de período fechado das avaliações, uma restrição
+  da produção que o repositório não conhece — desfaz tudo.
+- Chamada pelo utilizador (RLS), não pelo servidor privilegiado. A função exige 2FA
+  (`is_aal2`) e `academic.subjects.manage`; o servidor exige ainda Administrador/Secretaria e
+  só aceita um grupo que a revisão reconhece como a mesma disciplina. Auditado
+  (`academic.subject.merged`, com o que mudou).
+- Até a migração ser aplicada, o botão responde «falta aplicar a migração 20261010150000…»
+  (e a função está em `FUNCOES_ESPERA_MIGRACAO`).
 
 ## Contexto de nível
 
@@ -134,7 +156,9 @@ códigos das turmas e salas continuam como hoje. Ligar só depois de a migraçã
 1. `supabase/migrations/20261010120000_global_education_catalog.sql` (idempotente; tabelas
    novas, nenhuma alteração a tabelas existentes).
 2. `supabase/seeds/education/catalog.sql` (idempotente).
-3. Recapturar o retrato (`npm run siga:db-snapshot`).
+3. `supabase/migrations/20261010150000_merge_school_subjects.sql` (só cria a função).
+4. Recapturar o retrato (`npm run siga:db-snapshot`) e tirar `merge_school_subjects` de
+   `FUNCOES_ESPERA_MIGRACAO` (`tests/security/espera-migracao.ts`).
 
 Ensaio local: `SIGA_SQL_TEST_MODULE_PATH=<…/pglite/dist/index.js> node tests/sql/education-catalog.mjs`
 — migração e carga duas vezes, contagens iguais, chaves estrangeiras, estados, anon sem
@@ -146,8 +170,7 @@ não há nada em `TABELAS_AUSENTES_DA_PRODUCAO`.
 ## Próximas fases
 
 - ~~Assistente de estrutura para Moçambique e Portugal~~ (feito, ver acima).
-- Juntar duplicados: função SQL transaccional que passa todas as ligações (10 tabelas com
-  `subject_id`) para a disciplina a manter, com auditoria, ensaiada em PGlite.
+- ~~Juntar duplicados~~ (feito; falta aplicar a migração).
 - Ligar `subjects.catalog_subject_code` e `programs.catalog_course_code` (colunas novas, por
   `ALTER TABLE`) e usar `findSubjectDuplicates` para propor fusões com mapeamento auditado.
 - Documentos e pautas a resolverem nomes pelo catálogo (mantendo o nome à data da emissão).
