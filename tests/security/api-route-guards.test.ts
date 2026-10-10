@@ -32,6 +32,8 @@ const ROUTE_TREE = resolve(__dirname, "../../src/routeTree.gen.ts");
 const PUBLIC_BY_DESIGN: Record<string, string> = {
   "saas/signup.tsx": "registo público de escola; protegido por honeypot e rate-limit",
   "saas/plans.tsx": "tabela de preços mostrada no site comercial",
+  "saas/education-catalog.tsx":
+    "resumo do catálogo educacional (ISCED, etapas por país, fontes): só dados de referência, sem escolas nem pessoas",
   "saas/tenants.lookup.tsx": "resolve a escola pelo slug para o wizard e para o branding do login",
   "saas/domains.check.tsx": "verifica disponibilidade de slug durante o registo",
   "saas/me.tsx": "devolve a sessão actual; responde 401 quando não há",

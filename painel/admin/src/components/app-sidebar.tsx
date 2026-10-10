@@ -25,6 +25,7 @@ import {
   Newspaper,
   Inbox,
   School,
+  Library,
 } from "lucide-react"
 import { getCreateSchoolUrl, getDocsUrl, getPayflowUrl, getSigaUrl, getWebUrl } from "@/lib/ecosystem-urls"
 import Link from "next/link"
@@ -133,6 +134,11 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
             title: t("nav.gateway_webhooks"),
             url: "/gateway-webhooks",
             icon: Activity,
+          },
+          {
+            title: t("nav.education_catalog"),
+            url: "/education-catalog",
+            icon: Library,
           },
           {
             title: t("nav.domains"),

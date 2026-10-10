@@ -147,6 +147,16 @@ novo.
 - Até a migração ser aplicada, o botão responde «falta aplicar a migração 20261010150000…»
   (e a função está em `FUNCOES_ESPERA_MIGRACAO`).
 
+## Governação no ADMIN
+
+ADMIN → **Catálogos globais** (`painel/admin`, `/education-catalog`, só para administradores
+da plataforma): totais, cobertura real por país, etapas (filtro por país) e fontes, com o
+nível de confiança de cada uma. Lê `GET /api/saas/education-catalog` do SIGA
+(`overview.ts`): só dados de referência, sem sessão, como `/api/saas/plans`.
+
+Só consulta, por agora. Aprovar propostas, publicar versões e comparar alterações precisa das
+tabelas do catálogo aplicadas na base (`20261010120000`).
+
 ## Contexto de nível
 
 Toda a sugestão de disciplina pede uma etapa (país + nível) ou um nível ISCED + via. Física
