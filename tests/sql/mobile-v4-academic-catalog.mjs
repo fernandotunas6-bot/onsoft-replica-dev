@@ -36,8 +36,17 @@ const { readMobileAcademicCatalog } = await import(
 const { parseAcademicCatalog } = await import(
   new URL("../../mobile-v4/src/domain/catalog-validation.ts", import.meta.url)
 );
+const { readMobileAttendance } = await import(
+  new URL("../../src/features/mobile-v4/attendance.server.ts", import.meta.url)
+);
+const { parseAcademicAttendance } = await import(
+  new URL("../../mobile-v4/src/domain/attendance-validation.ts", import.meta.url)
+);
 const pg = new PGlite();
 await pg.exec(`
+CREATE TABLE siga_attendance_sessions(id uuid PRIMARY KEY, school_id uuid NOT NULL, class_group_id uuid NOT NULL, subject_id uuid NOT NULL, academic_year_id uuid, teacher_id uuid, lesson_date date NOT NULL, starts_at text, ends_at text, status text CHECK(status IN ('pending','completed','cancelled')));
+CREATE TABLE siga_attendance_records(id uuid PRIMARY KEY, school_id uuid NOT NULL, session_id uuid NOT NULL, student_id uuid NOT NULL, status text CHECK(status IN ('present','absent','excused','late','early_exit','not_registered')));
+CREATE TABLE hr_teacher_lesson_occurrences(id uuid PRIMARY KEY, school_id uuid NOT NULL, teacher_id uuid NOT NULL, class_subject_id uuid NOT NULL, lesson_date date NOT NULL, scheduled_starts_at time NOT NULL, scheduled_ends_at time NOT NULL, status text CHECK(status IN ('scheduled','confirmed','rejected','cancelled')), deleted_at timestamptz);
 CREATE TABLE people(id uuid PRIMARY KEY, school_id uuid NOT NULL, full_name text NOT NULL, user_id uuid, status text NOT NULL, deleted_at timestamptz);
 CREATE TABLE students(id uuid PRIMARY KEY, school_id uuid NOT NULL, person_id uuid NOT NULL, status text NOT NULL, deleted_at timestamptz);
 CREATE TABLE teachers(id uuid PRIMARY KEY, school_id uuid NOT NULL, person_id uuid NOT NULL, user_id uuid, status text NOT NULL);
@@ -253,7 +262,11 @@ function adapter({ fail, cap } = {}) {
             Object.fromEntries(
               Object.entries(row).map(([key, value]) => [
                 key,
-                value instanceof Date ? value.toISOString().slice(0, 10) : value,
+                value instanceof Date
+                  ? key.startsWith("scheduled_")
+                    ? value.toISOString()
+                    : value.toISOString().slice(0, 10)
+                  : value,
               ]),
             ),
           );
@@ -272,6 +285,16 @@ function adapter({ fail, cap } = {}) {
           return chain;
         },
         eq,
+        gte(field, value) {
+          values.push(value);
+          filters.push(`${identifier(field)}>=$${values.length}`);
+          return chain;
+        },
+        lte(field, value) {
+          values.push(value);
+          filters.push(`${identifier(field)}<=$${values.length}`);
+          return chain;
+        },
         is(field, value) {
           assert.equal(value, null);
           filters.push(`${identifier(field)} IS NULL`);
@@ -389,6 +412,132 @@ try {
     calls.every((c) => c.filters.some((f) => f.startsWith('"school_id"='))),
     "all queries have explicit tenant filters",
   );
+  const range = { from: "2026-10-01", to: "2026-10-31" };
+  const completeSession = uuid(80),
+    pendingSession = uuid(81),
+    foreignSession = uuid(82),
+    previousSession = uuid(83);
+  for (const [id, school_id, status, academic_year_id] of [
+    [completeSession, A, "completed", yearA],
+    [pendingSession, A, "pending", yearA],
+    [foreignSession, B, "completed", yearA],
+    [previousSession, A, "completed", yearB],
+  ])
+    await insert("siga_attendance_sessions", {
+      id,
+      school_id,
+      status,
+      academic_year_id,
+      class_group_id: groupA,
+      subject_id: subjectA,
+      teacher_id: teacher,
+      lesson_date: "2026-10-06",
+      starts_at: null,
+      ends_at: null,
+    });
+  for (const [id, session_id, student_id, status, school_id] of [
+    [uuid(84), completeSession, student, "absent", A],
+    [uuid(85), completeSession, peer, "present", A],
+    [uuid(86), pendingSession, student, "present", A],
+    [uuid(87), completeSession, student, "present", B],
+  ])
+    await insert("siga_attendance_records", { id, session_id, student_id, status, school_id });
+  for (const [id, teacher_id, school_id, status, deleted_at] of [
+    [uuid(88), teacher, A, "confirmed", null],
+    [uuid(89), otherTeacher, A, "confirmed", null],
+    [uuid(90), teacher, B, "confirmed", null],
+    [uuid(91), teacher, A, "rejected", null],
+    [uuid(92), teacher, A, "confirmed", "2026-10-01T00:00:00Z"],
+  ])
+    await insert("hr_teacher_lesson_occurrences", {
+      id,
+      teacher_id,
+      school_id,
+      status,
+      deleted_at,
+      class_subject_id: csA,
+      lesson_date: "2026-10-06",
+      scheduled_starts_at: "07:00:00",
+      scheduled_ends_at: "08:00:00",
+    });
+  const pupilScope = await resolveMobileAcademicScope(db, studentUser, A, "aluno");
+  const pupilAttendance = await readMobileAttendance(db, pupilScope, studentData, range);
+  check(
+    pupilAttendance.sessions.length === 2,
+    "foreign school and previous year sessions excluded",
+  );
+  check(
+    pupilAttendance.sessions.find((s) => s.id === completeSession).records.length === 1 &&
+      pupilAttendance.sessions.find((s) => s.id === completeSession).records[0].status === "absent",
+    "own absent mark, no peer or cross-school mark",
+  );
+  check(
+    !pupilAttendance.sessions.find((s) => s.id === pendingSession).records.length,
+    "pending calls do not publish marks",
+  );
+  check(pupilAttendance.teacherLessons.length === 0, "pupils never read teacher HR occurrences");
+  check(
+    !JSON.stringify(pupilAttendance).includes(peer),
+    "no peer identifiers in attendance projection",
+  );
+  check(
+    parseAcademicAttendance(
+      pupilAttendance,
+      { userId: studentUser, schoolId: A, role: "aluno" },
+      studentData,
+      range,
+    ).sessions.length === 2,
+    "pupil SQL attendance matches strict browser contract",
+  );
+  const teacherScope = await resolveMobileAcademicScope(db, teacherUser, A, "professor");
+  const teacherAttendance = await readMobileAttendance(db, teacherScope, teacherData, range);
+  check(
+    teacherAttendance.sessions.find((s) => s.id === completeSession).records.length === 2,
+    "assigned teacher sees scoped call roster",
+  );
+  check(
+    teacherAttendance.teacherLessons.length === 2 &&
+      teacherAttendance.teacherLessons.some((l) => l.status === "rejected"),
+    "own HR statuses preserved; unrelated, deleted and foreign occurrences excluded",
+  );
+  check(
+    parseAcademicAttendance(
+      teacherAttendance,
+      { userId: teacherUser, schoolId: A, role: "professor" },
+      teacherData,
+      range,
+    ).teacherLessons[0].startsAt === "07:00:00",
+    "real SQL time encoding passes contract",
+  );
+  await assert.rejects(
+    readMobileAttendance(
+      adapter({ cap: "siga_attendance_records" }),
+      pupilScope,
+      studentData,
+      range,
+    ),
+    (e) => e.code === "ATTENDANCE_UNAVAILABLE",
+  );
+  checks++;
+  await assert.rejects(
+    readMobileAttendance(
+      adapter({ fail: "hr_teacher_lesson_occurrences" }),
+      teacherScope,
+      teacherData,
+      range,
+    ),
+    (e) => e.code === "ATTENDANCE_UNAVAILABLE",
+  );
+  checks++;
+  check(
+    calls.every((c) => c.filters.some((f) => f.startsWith('"school_id"='))),
+    "new attendance queries also repeat school filters",
+  );
+  const noRows = await readMobileAttendance(db, pupilScope, studentData, {
+    from: "2026-11-01",
+    to: "2026-11-30",
+  });
+  check(!noRows.sessions.length, "no synthetic lessons derived from timetable");
   const foreignData = await catalog(studentUser, B, "aluno");
   check(
     foreignData.classes.length === 1 && foreignData.classes[0].classSubjectId === csB,

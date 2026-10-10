@@ -690,6 +690,19 @@ export function App({ initialGateway }: { initialGateway?: Gateway }) {
               session={session}
               data={currentData}
               catalog={currentCatalog}
+              gateway={gateway}
+              onAccessError={(e) => {
+                setError(e.message);
+                setData(null);
+                setCatalog(null);
+                setProjects([]);
+                setSchool("");
+                setSheet("");
+                if (e.status === 401) {
+                  setSession(null);
+                  if (!initialGateway) setGateway(null);
+                }
+              }}
               onRefresh={() => setReload((r) => r + 1)}
               ctx={ctx}
               role={role}

@@ -1,6 +1,11 @@
+import { parseAcademicAttendance } from "../../../mobile-v4/src/domain/attendance-validation";
 import { requireMobileAcademicAccess } from "./authorization";
 import { MobileApiError } from "./errors";
-import { mobileCommandRequestSchema, mobileScopeSchema } from "./schemas";
+import {
+  mobileCommandRequestSchema,
+  mobileScopeSchema,
+  mobileAttendanceScopeSchema,
+} from "./schemas";
 import { resolveMobileAcademicScope } from "./academic-scope.server";
 import { readMobileAcademicCatalog } from "./academic-catalog.server";
 
@@ -34,4 +39,23 @@ export async function applyMobileV4Command(userId: string, input: unknown) {
   }
   await requireMobileAcademicAccess(userId, data.schoolId, data.role, "write");
   throw new MobileApiError(503, "COMMANDS_NOT_READY");
+}
+
+export async function loadMobileV4Attendance(userId: string, input: unknown) {
+  const range = mobileAttendanceScopeSchema.parse(input);
+  const { db } = await requireMobileAcademicAccess(userId, range.schoolId, range.role, "read");
+  const scope = await resolveMobileAcademicScope(db, userId, range.schoolId, range.role);
+  const catalog = await readMobileAcademicCatalog(db, scope, userId);
+  const { readMobileAttendance } = await import("./attendance.server");
+  const data = await readMobileAttendance(db, scope, catalog, { from: range.from, to: range.to });
+  try {
+    return parseAcademicAttendance(
+      data,
+      { userId, schoolId: scope.schoolId, role: scope.role },
+      catalog,
+      range,
+    );
+  } catch {
+    throw new MobileApiError(503, "ATTENDANCE_INCONSISTENT");
+  }
 }

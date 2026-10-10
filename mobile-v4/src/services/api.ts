@@ -1,3 +1,5 @@
+import type { AcademicAttendance, AttendanceRange } from "../domain/attendance";
+import { parseAcademicAttendance } from "../domain/attendance-validation";
 import type { Gateway, Session, Context, Workspace, Command, Permission } from "../domain/model";
 import { authorize, scopeWorkspace, required, validateCommand } from "../domain/policy";
 import { importSigaDirectMessages } from "./chat-import";
@@ -160,6 +162,20 @@ export class ApiGateway implements Gateway {
       signal,
     );
     return parseAcademicCatalog(data, ctx);
+  }
+  async academicAttendance(
+    ctx: Context,
+    range: AttendanceRange,
+    catalog: AcademicCatalog,
+    signal?: AbortSignal,
+  ): Promise<AcademicAttendance> {
+    authorize(this.current, ctx);
+    const params = new URLSearchParams({ role: ctx.role, from: range.from, to: range.to });
+    const data = await this.request(
+      "/schools/" + encodeURIComponent(ctx.schoolId) + "/attendance?" + params,
+      signal,
+    );
+    return parseAcademicAttendance(data, ctx, catalog, range);
   }
   async workspace(ctx: Context, signal?: AbortSignal): Promise<Workspace> {
     authorize(this.current, ctx);

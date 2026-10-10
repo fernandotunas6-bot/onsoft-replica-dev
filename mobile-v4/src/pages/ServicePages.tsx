@@ -1,3 +1,6 @@
+import { InstitutionalAttendance } from "../components/InstitutionalAttendance";
+import type { ApiError } from "../services/api";
+import type { Gateway } from "../domain/model";
 import type { AcademicCatalog as Catalog } from "../domain/catalog";
 import { AcademicCatalog } from "../components/AcademicCatalog";
 import type { Session, Workspace, Context, Role, Command } from "../domain/model";
@@ -56,6 +59,8 @@ export function ServicePages({
   session,
   data,
   catalog,
+  gateway,
+  onAccessError,
   ctx,
   role,
   loading,
@@ -70,6 +75,8 @@ export function ServicePages({
   session: Session | null;
   data: Workspace | null;
   catalog?: Catalog | null;
+  gateway?: Gateway | null;
+  onAccessError?: (error: ApiError) => void;
   ctx: Context | null;
   role: Role;
   loading: boolean;
@@ -164,6 +171,14 @@ export function ServicePages({
             </div>
           ) : loading ? (
             <p role="status">A carregar…</p>
+          ) : catalog && gateway && ["calendario", "presencas", "faltas"].includes(page) ? (
+            <InstitutionalAttendance
+              key={ctx.userId + ctx.schoolId + ctx.role + page}
+              catalog={catalog}
+              ctx={ctx}
+              gateway={gateway}
+              onAccessError={onAccessError}
+            />
           ) : catalog ? (
             <AcademicCatalog
               key={ctx.userId + ctx.schoolId + ctx.role + page}

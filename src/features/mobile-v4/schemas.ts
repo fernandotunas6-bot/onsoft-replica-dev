@@ -18,6 +18,17 @@ const date = z
     return !Number.isNaN(parsed.getTime()) && parsed.toISOString().slice(0, 10) === value;
   });
 
+export const mobileAttendanceScopeSchema = mobileScopeSchema
+  .extend({ from: date, to: date })
+  .strict()
+  .refine(
+    ({ from, to }) => {
+      const days = (Date.parse(to) - Date.parse(from)) / 86400000;
+      return days >= 0 && days <= 30;
+    },
+    { message: "A consulta aceita no máximo 31 dias." },
+  );
+
 export const mobileCommandSchema = z.discriminatedUnion("type", [
   z
     .object({

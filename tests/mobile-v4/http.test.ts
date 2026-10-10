@@ -6,6 +6,7 @@ vi.mock("@/features/mobile-v4/session-core.server", () => ({ loadMobileV4Session
 vi.mock("@/features/mobile-v4/operations-core.server", () => ({
   loadMobileV4Workspace: vi.fn(),
   loadMobileV4AcademicCatalog: vi.fn(),
+  loadMobileV4Attendance: vi.fn(),
   applyMobileV4Command: vi.fn(),
 }));
 
@@ -39,6 +40,7 @@ beforeEach(() => {
     authenticate: vi.fn().mockResolvedValue({ userId: "verified-user", aal: "aal2" }),
     session: vi.fn().mockResolvedValue({ userId: "verified-user" }),
     workspace: vi.fn().mockResolvedValue({ schoolId: school }),
+    attendance: vi.fn().mockResolvedValue({ sessions: [], teacherLessons: [] }),
     academic: vi.fn().mockResolvedValue({
       schoolId: school,
       role: "aluno",
@@ -226,5 +228,36 @@ describe("Mobile V4 HTTP transport with controlled service dependencies", () => 
   it("fails logout if revocation is unavailable", async () => {
     vi.mocked(deps.logout).mockRejectedValue(new MobileApiError(503, "LOGOUT_UNAVAILABLE"));
     expect((await handleMobileV4Http(request("/logout", {}), deps)).status).toBe(503);
+  });
+});
+
+describe("attendance HTTP scope", () => {
+  it("uses verified identity and server-validated bounded period", async () => {
+    const r = await handleMobileV4Http(
+      request(
+        `/schools/${school}/attendance?role=aluno&from=2026-10-01&to=2026-10-31&studentId=other`,
+      ),
+      deps,
+    );
+    expect(r.status).toBe(200);
+    expect(deps.attendance).toHaveBeenCalledWith("verified-user", {
+      schoolId: school,
+      role: "aluno",
+      from: "2026-10-01",
+      to: "2026-10-31",
+    });
+  });
+  it.each([
+    ["2026-02-30", "2026-03-01"],
+    ["2026-10-31", "2026-10-01"],
+    ["2026-10-01", "2026-11-01"],
+    ["", "2026-10-01"],
+  ])("rejects invalid period %s to %s", async (from, to) => {
+    const r = await handleMobileV4Http(
+      request(`/schools/${school}/attendance?role=aluno&from=${from}&to=${to}`),
+      deps,
+    );
+    expect(r.status).toBe(422);
+    expect(deps.attendance).not.toHaveBeenCalled();
   });
 });
