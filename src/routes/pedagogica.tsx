@@ -85,7 +85,7 @@ import { SchoolNowWidget } from "@/features/academic/components/SchoolNowWidget"
 import { getSigaNavDocUrl } from "@/lib/ecosystem-urls";
 import { toast } from "@/lib/toast";
 import { warmPedagogicaCharts } from "@/lib/warm-charts";
-import { optionLabel, resolveOptionId } from "@/lib/option-label";
+import { distinctOptionLabels, resolveOptionId } from "@/lib/option-label";
 
 const PedagogicaNotasCharts = lazy(() =>
   import("@/features/academic/PedagogicaNotasCharts").then((module) => ({
@@ -330,28 +330,29 @@ function PedagogicaPage() {
   const visibleGradeLevels = gradeLevels.filter((grade) =>
     gradeMatchesTeachingLevels(String(grade.name ?? ""), teachingLevels),
   );
-  const yearOptions = academicYears.map((year) => optionLabel(year.id, year.name));
-  const gradeOptions = visibleGradeLevels.map((grade) => optionLabel(grade.id, grade.name));
+  const yearOptions = distinctOptionLabels(academicYears, (year) => year.name);
+  const gradeOptions = distinctOptionLabels(visibleGradeLevels, (grade) => grade.name);
   // Salas físicas activas (`rooms`). O campus da turma vem da sala escolhida.
   const activeClassrooms = classrooms.filter((room) => room.status === "active");
   const roomOptions = [
     SEM_SALA,
-    ...activeClassrooms.map((room) =>
-      optionLabel(room.id, room.capacity ? `${room.name} (${room.capacity} lugares)` : room.name),
+    ...distinctOptionLabels(activeClassrooms, (room) =>
+      room.capacity ? `${room.name} (${room.capacity} lugares)` : room.name,
     ),
   ];
-  const subjectOptions = subjects.map((subject) => optionLabel(subject.id, subject.name));
+  const subjectOptions = distinctOptionLabels(subjects, (subject) => subject.name);
   const teachers = teachersQuery.data ?? [];
-  const teacherOptions = teachers.map((teacher) => optionLabel(teacher.id, teacher.full_name));
-  const turmaAssignOptions = classGroups.map((group) => optionLabel(group.id, group.name));
+  const teacherOptions = distinctOptionLabels(teachers, (teacher) => teacher.full_name);
+  const turmaAssignOptions = distinctOptionLabels(classGroups, (group) => group.name);
   const teacherNameById = new Map(teachers.map((teacher) => [teacher.id, teacher.full_name]));
   const refreshAcademic = () =>
     Promise.all([
       queryClient.invalidateQueries({ queryKey: ["academic", "pedagogical-workspace"] }),
       queryClient.invalidateQueries({ queryKey: ["academic", "teacher-workspace"] }),
     ]).then(() => undefined);
-  const enrollmentSelectOptions = enrollmentOptions.map((enrollment) =>
-    optionLabel(enrollment.id, enrollment.label),
+  const enrollmentSelectOptions = distinctOptionLabels(
+    enrollmentOptions,
+    (enrollment) => enrollment.label,
   );
   const structureReady = academicYears.length > 0 && courses.length > 0 && gradeLevels.length > 0;
 

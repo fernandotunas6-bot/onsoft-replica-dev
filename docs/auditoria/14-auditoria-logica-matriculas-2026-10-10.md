@@ -243,6 +243,9 @@ ligavam a conta só à pessoa:
 Na produção, hoje, as 9 fichas de professor têm as duas ligações coerentes; isto evita que
 deixem de ter.
 
-**Por fazer (interface, sem defeito):** em `pedagogica.tsx` e no horário as listas de turma,
-disciplina, professor e sala mostram «nome · 3f2e79f0» (o pedaço do id desfaz empates). Passar
-a opções `{ value: id, label }`, como `classGroupChoices` nos alunos.
+**Feito (interface):** as listas de turma, disciplina, professor, sala, ano, classe e
+matrícula na Pedagógica, no horário e na ficha do professor mostravam «nome · 3f2e79f0». Agora
+só o nome; o pedaço do id entra apenas quando dois nomes coincidem (`distinctOptionLabels`,
+`idOptions` em `src/lib/option-label.ts`). O horário e a ficha do professor passam a opções
+`{ value: id, label }`; as listas que acham o id pela posição continuam a achá-lo, porque os
+rótulos ficam únicos.
