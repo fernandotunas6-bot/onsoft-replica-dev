@@ -9,6 +9,7 @@ import {
   studentPublicCode,
 } from "@/features/education-catalog/identifiers";
 import {
+  courseCatalogKey,
   findSubjectDuplicates,
   normalizeGrade,
   normalizePeriod,
@@ -94,6 +95,16 @@ describe("disciplinas", () => {
       { code: "MAT", names: ["Matemática", "Matematica", "MAT"] },
       { code: "HIST", names: ["História", "Historia"] },
     ]);
+  });
+});
+
+describe("cursos", () => {
+  it("reconhece o curso pelo nome ou sinónimo, nunca pela sigla", () => {
+    expect(courseCatalogKey("Ciências Económico-Jurídicas")).toBe("SEC-CEJ");
+    expect(courseCatalogKey("ciencias economicas e juridicas")).toBe("SEC-CEJ");
+    expect(courseCatalogKey("CEJ")).toBeNull();
+    expect(courseCatalogKey("Curso de Teatro Experimental")).toBeNull();
+    expect(courseCatalogKey("")).toBeNull();
   });
 });
 

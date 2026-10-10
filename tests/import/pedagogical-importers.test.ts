@@ -36,6 +36,38 @@ describe("Pedagogical Importers (cursos, classes, disciplinas, salas)", () => {
       expect(analysis.status).toBe("duplicate");
       expect(analysis.duplicate_of).toBe("c1");
     });
+
+    it("detecta o mesmo curso com outro código, pelo nome ou pelo catálogo", () => {
+      const cache = {
+        existingCourses: [{ id: "c1", code: "CEJ", name: "Ciências Económicas e Jurídicas" }],
+        academicLevels: [{ id: "al1", code: "SEC", name: "Ensino Secundário" }],
+      };
+      const sameName = cursosImporter.analyzeRow(
+        { code: "CEJ2", name: "Ciencias Economicas e Juridicas" },
+        cache as any,
+      );
+      expect(sameName.status).toBe("duplicate");
+      expect(sameName.warnings[0]).toContain("o mesmo nome");
+      const synonym = cursosImporter.analyzeRow(
+        { code: "CEJ2", name: "Ciências Económico-Jurídicas" },
+        cache as any,
+      );
+      expect(synonym.status).toBe("duplicate");
+      expect(synonym.duplicate_of).toBe("c1");
+      expect(synonym.warnings[0]).toContain("outra grafia");
+    });
+
+    it("um curso diferente não é duplicado", () => {
+      const cache = {
+        existingCourses: [{ id: "c1", code: "CEJ", name: "Ciências Económicas e Jurídicas" }],
+        academicLevels: [{ id: "al1", code: "SEC", name: "Ensino Secundário" }],
+      };
+      const analysis = cursosImporter.analyzeRow(
+        { code: "CFB", name: "Ciências Físicas e Biológicas" },
+        cache as any,
+      );
+      expect(analysis.status).toBe("valid");
+    });
   });
 
   describe("classesImporter", () => {

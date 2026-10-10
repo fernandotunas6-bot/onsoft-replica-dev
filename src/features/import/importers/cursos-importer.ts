@@ -1,5 +1,6 @@
 import { normalizeText } from "../engine/normalize";
 import type { ImportRefCache, RowImporter } from "../engine/types";
+import { courseCatalogKey } from "@/features/education-catalog/normalize";
 import { loadAcademicLevelRefs, uniqueExactMatch, type AcademicLevelRef } from "./academic-core";
 
 type Ref = { id: string; code: string; name: string };
@@ -108,16 +109,27 @@ export const cursosImporter: RowImporter = {
 
     if (errors.length) return { status: "error", warnings, errors };
 
-    const existing = uniqueExactMatch(code || name, cache.existingCourses, [
-      (r) => r.code,
-      (r) => r.name,
-    ]);
-    if (existing.row) {
+    // Pelo código, pelo nome ou pelo mesmo curso do catálogo escrito de outra
+    // forma. Antes só o código contava: «CEJ2 | Ciências Económicas e Jurídicas»
+    // numa escola com «CEJ» criava um segundo curso igual.
+    const byCode = uniqueExactMatch(code, cache.existingCourses, [(r) => r.code]);
+    const byName = byCode.row
+      ? byCode
+      : uniqueExactMatch(name, cache.existingCourses, [(r) => r.name]);
+    const catalogKey = byName.row ? null : courseCatalogKey(name);
+    const byCatalog = catalogKey
+      ? cache.existingCourses.filter((r) => courseCatalogKey(r.name) === catalogKey)
+      : [];
+    const existing = byName.row ?? (byCatalog.length === 1 ? byCatalog[0]! : null);
+    if (existing) {
+      const same = byCode.row ? "o mesmo código" : byName.row ? "o mesmo nome" : "outra grafia";
       return {
         status: "duplicate",
-        warnings: ["Curso já cadastrado nesta instituição."],
+        warnings: [
+          `Curso já cadastrado nesta instituição (${same}): «${existing.name}» (${existing.code}).`,
+        ],
         errors: [],
-        duplicate_of: existing.row.id,
+        duplicate_of: existing.id,
       };
     }
 
