@@ -22,7 +22,28 @@ function icsEscape(value: string) {
     .replaceAll("\\", "\\\\")
     .replaceAll(";", "\\;")
     .replaceAll(",", "\\,")
-    .replaceAll("\n", "\\n");
+    .replace(/\r\n|\r|\n/g, "\\n");
+}
+
+/** Fold at 75 UTF-8 octets without splitting a Unicode character. */
+function serializeCalendar(lines: string[]) {
+  const encoder = new TextEncoder();
+  return `${lines
+    .map((line) => {
+      let folded = "";
+      let octets = 0;
+      for (const character of line) {
+        const size = encoder.encode(character).length;
+        if (octets + size > 75) {
+          folded += "\r\n ";
+          octets = 1;
+        }
+        folded += character;
+        octets += size;
+      }
+      return folded;
+    })
+    .join("\r\n")}\r\n`;
 }
 
 function icsDate(value: string) {
@@ -64,13 +85,15 @@ export function toIcsCalendar(
   options?: { calendarName?: string; calendarDescription?: string },
 ) {
   const lines = calendarHeader(options);
+  const stamp = icsUtcDateTime(new Date().toISOString());
   for (const event of events) {
     const start = event.event_date.slice(0, 10);
     const inclusiveEnd = (event.ends_on ?? event.event_date).slice(0, 10);
-    const uid = event.uid ?? `${start}-${icsEscape(event.title).slice(0, 40)}@siga.plus`;
+    const uid = event.uid ?? `${start}-${event.title.slice(0, 40)}@siga.plus`;
     lines.push(
       "BEGIN:VEVENT",
-      `UID:${uid}`,
+      `UID:${icsEscape(uid)}`,
+      `DTSTAMP:${stamp}`,
       `DTSTART;VALUE=DATE:${icsDate(start)}`,
       `DTEND;VALUE=DATE:${icsDate(icsExclusiveEnd(inclusiveEnd))}`,
       `SUMMARY:${icsEscape(event.title)}`,
@@ -79,7 +102,7 @@ export function toIcsCalendar(
     );
   }
   lines.push("END:VCALENDAR");
-  return `${lines.join("\r\n")}\r\n`;
+  return serializeCalendar(lines);
 }
 
 export function toIcsTimedCalendar(
@@ -87,15 +110,17 @@ export function toIcsTimedCalendar(
   options?: { calendarName?: string; calendarDescription?: string },
 ) {
   const lines = calendarHeader(options);
+  const stamp = icsUtcDateTime(new Date().toISOString());
   for (const event of events) {
     const start = icsUtcDateTime(event.starts_at);
     const end = icsUtcDateTime(
       event.ends_at ?? new Date(new Date(event.starts_at).getTime() + 60 * 60 * 1000).toISOString(),
     );
-    const uid = event.uid ?? `${start}-${icsEscape(event.title).slice(0, 40)}@siga.plus`;
+    const uid = event.uid ?? `${start}-${event.title.slice(0, 40)}@siga.plus`;
     lines.push(
       "BEGIN:VEVENT",
-      `UID:${uid}`,
+      `UID:${icsEscape(uid)}`,
+      `DTSTAMP:${stamp}`,
       `DTSTART:${start}`,
       `DTEND:${end}`,
       `SUMMARY:${icsEscape(event.title)}`,
@@ -105,7 +130,7 @@ export function toIcsTimedCalendar(
     );
   }
   lines.push("END:VCALENDAR");
-  return `${lines.join("\r\n")}\r\n`;
+  return serializeCalendar(lines);
 }
 
 export function calendarIcsFeedUrl(origin: string, token: string) {
