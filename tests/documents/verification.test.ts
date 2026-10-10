@@ -95,3 +95,33 @@ describe("quem emite cada documento verificável", () => {
     expect(register.indexOf("issuerRoleFor(")).toBeLessThan(register.indexOf('from("audit_logs")'));
   });
 });
+
+describe("disciplinas com o nome à data da emissão", () => {
+  it("lê as disciplinas impressas nas formas que os modelos usam, sem notas nem repetições", async () => {
+    const { printedSubjectNames } = await import("@/features/documents/printed-subjects");
+    expect(
+      printedSubjectNames({
+        grades: [
+          { subject: "Matemática", mac: 14, finalGrade: 15 },
+          { subject: " Língua   Portuguesa ", finalGrade: 12 },
+          { subject: "Matemática" },
+          { subject: 3 },
+        ],
+        subjects: [{ name: "Física" }, { other: "x" }],
+        subject: { name: "Química" },
+      }),
+    ).toEqual(["Matemática", "Língua Portuguesa", "Física", "Química"]);
+    expect(printedSubjectNames({})).toEqual([]);
+    expect(printedSubjectNames({ grades: "x", subjects: null, subject: [] })).toEqual([]);
+    const many = Array.from({ length: 60 }, (_, i) => ({ subject: `D${i}` }));
+    expect(printedSubjectNames({ grades: many })).toHaveLength(40);
+  });
+
+  it("a emissão guarda os nomes impressos e a verificação mostra-os", () => {
+    const issue = read("src/features/documents/print-issue.ts");
+    expect(issue).toMatch(/subjects: printedSubjectNames\(payload\)/);
+    const verification = read("src/features/documents/verification.ts");
+    expect(verification).toMatch(/subjects: data\.subjects\?\.length \? data\.subjects : null/);
+    expect(read("src/routes/verificar.tsx")).toMatch(/query\.data\.subjects\.join/);
+  });
+});

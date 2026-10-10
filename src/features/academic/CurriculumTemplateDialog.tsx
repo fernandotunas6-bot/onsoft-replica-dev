@@ -22,7 +22,19 @@ import {
   type EducationLevelId,
   type TemplateSelection,
 } from "./curriculum-templates";
-import { applyCurriculumTemplate } from "./curriculum-templates-server";
+import { applyCatalogStructure, applyCurriculumTemplate } from "./curriculum-templates-server";
+import { COUNTRIES } from "@/features/education-catalog/data/countries";
+import { globalCourse } from "@/features/education-catalog/data/courses";
+import {
+  plannableStages,
+  planFromCatalog,
+  stagesWithoutPlan,
+} from "@/features/education-catalog/plan-from-catalog";
+
+/** Angola usa os modelos próprios; os outros países com etapas, o catálogo. */
+const CATALOG_COUNTRIES = COUNTRIES.filter(
+  (c) => c.code === "AO" || plannableStages(c.code).length > 0,
+);
 
 const SHIFTS: Array<{ id: TemplateSelection["shifts"][number]; label: string }> = [
   { id: "morning", label: "Manhã" },
@@ -41,6 +53,8 @@ export function CurriculumTemplateDialog({
   trigger?: (open: () => void) => React.ReactNode;
 }) {
   const [open, setOpen] = useState(false);
+  const [country, setCountry] = useState("AO");
+  const [catalogStages, setCatalogStages] = useState<Record<string, string[]>>({});
   const [courses, setCourses] = useState<Partial<Record<EducationLevelId, string[]>>>({});
   const [groupsPerGrade, setGroupsPerGrade] = useState(1);
   const [shifts, setShifts] = useState<TemplateSelection["shifts"]>(["morning"]);
@@ -48,13 +62,23 @@ export function CurriculumTemplateDialog({
   const [createRooms, setCreateRooms] = useState(true);
   const [saving, setSaving] = useState(false);
   const apply = useServerFn(applyCurriculumTemplate);
+  const applyCatalog = useServerFn(applyCatalogStructure);
+  const fromCatalog = country !== "AO";
   const queryClient = useQueryClient();
 
   const selection = useMemo<TemplateSelection>(
     () => ({ courses, groupsPerGrade, shifts, capacity, createRooms }),
     [courses, groupsPerGrade, shifts, capacity, createRooms],
   );
-  const plan = useMemo(() => planCurriculum(selection), [selection]);
+  const catalogSelection = useMemo(
+    () => ({ country, stages: catalogStages, groupsPerGrade, shifts, capacity, createRooms }),
+    [country, catalogStages, groupsPerGrade, shifts, capacity, createRooms],
+  );
+  const plan = useMemo(
+    () => (fromCatalog ? planFromCatalog(catalogSelection) : planCurriculum(selection)),
+    [fromCatalog, catalogSelection, selection],
+  );
+  const withoutPlan = fromCatalog ? stagesWithoutPlan(catalogSelection) : [];
   const summary = summarizePlan(plan);
 
   const toggleLevel = (id: EducationLevelId, on: boolean) => {
@@ -71,10 +95,27 @@ export function CurriculumTemplateDialog({
       return { ...prev, [id]: [...list] };
     });
 
+  const toggleStage = (id: string, on: boolean) =>
+    setCatalogStages((prev) => {
+      const next = { ...prev };
+      if (on) next[id] = prev[id] ?? [];
+      else delete next[id];
+      return next;
+    });
+  const toggleStageCourse = (id: string, code: string, on: boolean) =>
+    setCatalogStages((prev) => {
+      const list = new Set(prev[id] ?? []);
+      if (on) list.add(code);
+      else list.delete(code);
+      return { ...prev, [id]: [...list] };
+    });
+
   const submit = async () => {
     setSaving(true);
     try {
-      const result = await apply({ data: selection });
+      const result = fromCatalog
+        ? await applyCatalog({ data: catalogSelection })
+        : await apply({ data: selection });
       const c = result.created;
       toast.success("Estrutura criada", {
         description:
@@ -116,42 +157,104 @@ export function CurriculumTemplateDialog({
             </DialogDescription>
           </DialogHeader>
 
-          <div className="grid gap-3">
-            {EDUCATION_LEVELS.map((level) => {
-              const chosen = courses[level.id] ?? [];
-              const on = chosen.length > 0;
-              return (
-                <fieldset key={level.id} className="rounded-lg border border-border/70 p-3">
-                  <label className="flex items-start gap-2.5">
-                    <Checkbox
-                      checked={on}
-                      onCheckedChange={(value) => toggleLevel(level.id, value === true)}
-                      aria-label={level.label}
-                    />
-                    <span>
-                      <span className="block text-sm font-medium">{level.label}</span>
-                      <span className="block text-xs text-muted-foreground">{level.hint}</span>
-                    </span>
-                  </label>
-                  {level.courses.length > 1 ? (
-                    <div className="mt-2 flex flex-wrap gap-x-4 gap-y-2 pl-7">
-                      {level.courses.map((course) => (
-                        <label key={course.code} className="flex items-center gap-2 text-sm">
-                          <Checkbox
-                            checked={chosen.includes(course.code)}
-                            onCheckedChange={(value) =>
-                              toggleCourse(level.id, course.code, value === true)
-                            }
-                          />
-                          {course.name}
-                        </label>
-                      ))}
-                    </div>
-                  ) : null}
-                </fieldset>
-              );
-            })}
+          <div className="grid gap-1.5 sm:max-w-xs">
+            <Label htmlFor="tpl-country">Sistema de ensino</Label>
+            <select
+              id="tpl-country"
+              className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              value={country}
+              onChange={(e) => {
+                setCountry(e.target.value);
+                setCatalogStages({});
+              }}
+            >
+              {CATALOG_COUNTRIES.map((c) => (
+                <option key={c.code} value={c.code}>
+                  {c.name}
+                </option>
+              ))}
+            </select>
           </div>
+
+          {fromCatalog ? (
+            <div className="grid gap-3">
+              {plannableStages(country).map((st) => {
+                const on = st.id in catalogStages;
+                const label = st.cycle ? `${st.name} — ${st.cycle}` : st.name;
+                return (
+                  <fieldset key={st.id} className="rounded-lg border border-border/70 p-3">
+                    <label className="flex items-start gap-2.5">
+                      <Checkbox
+                        checked={on}
+                        onCheckedChange={(value) => toggleStage(st.id, value === true)}
+                        aria-label={label}
+                      />
+                      <span>
+                        <span className="block text-sm font-medium">{label}</span>
+                        <span className="block text-xs text-muted-foreground">
+                          {st.curriculum.length
+                            ? "Com as disciplinas obrigatórias do plano (em revisão)."
+                            : "Só classes e turmas: plano curricular por carregar no catálogo."}
+                        </span>
+                      </span>
+                    </label>
+                    {on && st.courses.length ? (
+                      <div className="mt-2 flex flex-wrap gap-x-4 gap-y-2 pl-7">
+                        {st.courses.map((code) => (
+                          <label key={code} className="flex items-center gap-2 text-sm">
+                            <Checkbox
+                              checked={catalogStages[st.id]?.includes(code) ?? false}
+                              onCheckedChange={(value) =>
+                                toggleStageCourse(st.id, code, value === true)
+                              }
+                            />
+                            {globalCourse(code)?.name ?? code}
+                          </label>
+                        ))}
+                      </div>
+                    ) : null}
+                  </fieldset>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="grid gap-3">
+              {EDUCATION_LEVELS.map((level) => {
+                const chosen = courses[level.id] ?? [];
+                const on = chosen.length > 0;
+                return (
+                  <fieldset key={level.id} className="rounded-lg border border-border/70 p-3">
+                    <label className="flex items-start gap-2.5">
+                      <Checkbox
+                        checked={on}
+                        onCheckedChange={(value) => toggleLevel(level.id, value === true)}
+                        aria-label={level.label}
+                      />
+                      <span>
+                        <span className="block text-sm font-medium">{level.label}</span>
+                        <span className="block text-xs text-muted-foreground">{level.hint}</span>
+                      </span>
+                    </label>
+                    {level.courses.length > 1 ? (
+                      <div className="mt-2 flex flex-wrap gap-x-4 gap-y-2 pl-7">
+                        {level.courses.map((course) => (
+                          <label key={course.code} className="flex items-center gap-2 text-sm">
+                            <Checkbox
+                              checked={chosen.includes(course.code)}
+                              onCheckedChange={(value) =>
+                                toggleCourse(level.id, course.code, value === true)
+                              }
+                            />
+                            {course.name}
+                          </label>
+                        ))}
+                      </div>
+                    ) : null}
+                  </fieldset>
+                );
+              })}
+            </div>
+          )}
 
           <div className="grid gap-3 sm:grid-cols-3">
             <div className="grid gap-1.5">
@@ -225,6 +328,15 @@ export function CurriculumTemplateDialog({
                     .join(", ")}
                   {plan.classGroups.length > 3 ? "…" : ""}
                 </p>
+                {withoutPlan.length ? (
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    Sem disciplinas para:{" "}
+                    {withoutPlan
+                      .map((s) => (s.cycle ? `${s.name} — ${s.cycle}` : s.name))
+                      .join("; ")}
+                    . Acrescente-as depois em Disciplinas.
+                  </p>
+                ) : null}
               </>
             ) : (
               <p className="text-muted-foreground">Escolha pelo menos um nível de ensino.</p>

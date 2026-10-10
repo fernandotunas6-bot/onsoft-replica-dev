@@ -4,6 +4,29 @@ Ler isto **antes** de alterar código. Ecossistema (5 apps):
 [ARCHITECTURE_HARMONIZATION.md](./ARCHITECTURE_HARMONIZATION.md).
 Depois abrir o skill do módulo em `.cursor/skills/`.
 
+## Catálogo educacional global (2026-10-10)
+
+Detalhe e cobertura real: [docs/education-catalog/README.md](../education-catalog/README.md).
+
+- `src/features/education-catalog/`: ISCED 2011 / ISCED-F 2013, países, 115 disciplinas e
+  54 cursos de referência, etapas de AO (com planos, derivados de `curriculum-templates.ts`),
+  PT (com planos, DL 55/2018) e MZ (só etapas). Tudo «Em revisão» excepto UNESCO/ISO.
+- Contexto de nível obrigatório (`catalog.ts`), pesquisa local sem acentos/siglas/erros
+  (`search.ts`), normalização de classes, períodos e disciplinas (`normalize.ts`), IDs
+  curtos (`identifiers.ts`). Página `/pedagogica/catalogo` (só consulta).
+- Fase 8: «Usar modelo de estrutura» com Sistema de ensino (AO como antes; PT e MZ pelo
+  catálogo, `plan-from-catalog.ts` + `applyCatalogStructure`). Ao aplicar, disciplinas já
+  existentes com outra grafia são reaproveitadas pelo catálogo (só nome/sinónimo exacto).
+- «Rever disciplinas» (Estrutura): duplicados (só mostra) e correcção de grafia dos nomes
+  (RLS, 2FA, auditado). Juntar duplicados: `public.merge_school_subjects` (20261010150000),
+  transaccional, recusa o que misturaria pautas/exames/competências e o superior.
+- «Nova disciplina» sugere nomes do catálogo e avisa antes de criar um duplicado
+  (`subject-hint.ts`; `QuickFormModal` com `suggestions` e `renderHint`).
+- Documentos: o registo de cada emissão (`documents.issued`) guarda os nomes das disciplinas
+  impressas e `/verificar` mostra-os — o nome à data da emissão sobrevive a renomear/juntar.
+- **Por aplicar (dono):** `20261010120000_global_education_catalog.sql`, depois
+  `supabase/seeds/education/catalog.sql`, depois `20261010150000_merge_school_subjects.sql`. A página não depende delas.
+
 ## Auditoria 13 — fluxos da escola (2026-10-06)
 
 Relatório: [13-auditoria-fluxos-2026-10-06.md](../auditoria/13-auditoria-fluxos-2026-10-06.md).
