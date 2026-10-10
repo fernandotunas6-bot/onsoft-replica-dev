@@ -2,7 +2,11 @@ import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { loadActivePassingValue } from "./exam-data";
 import { publicDatabaseError } from "@/integrations/supabase/server-error";
-import { loadSgaAdminClient, resolveSgaMembershipAdmin } from "@/integrations/supabase/sga-admin";
+import {
+  loadSgaAdminClient,
+  requireSgaWriterForWrite,
+  resolveSgaMembershipAdmin,
+} from "@/integrations/supabase/sga-admin";
 import { loadPeopleLite, loadPersonNamesById } from "@/features/people/lookup";
 import { averagePercent } from "@/features/students/schemas";
 import { scoreAverage } from "@/lib/angola-academic";
@@ -548,6 +552,14 @@ export const deleteAssessmentItem = createServerFn({ method: "POST" })
   .validator((input: unknown) => deleteAssessmentInputSchema.parse(input))
   .handler(async ({ data, context }) => {
     if (!context) throw new Error("Não autenticado.");
+    // O mesmo guarda das outras escritas pedagógicas (e da versão antiga desta função):
+    // escola bloqueada não grava (auditoria 13, A1) e a permissão por módulo «Nenhum» /
+    // «Leitura» na Pedagógica recusa. Esta reescrita tinha-o perdido.
+    await requireSgaWriterForWrite("pedagogica", context.supabase, context.userId, [
+      "Administrador",
+      "Secretaria",
+      "Professor",
+    ]);
     const membership = await requireAcademicMembership(context.userId);
     const db = await loadSgaAdminClient();
 

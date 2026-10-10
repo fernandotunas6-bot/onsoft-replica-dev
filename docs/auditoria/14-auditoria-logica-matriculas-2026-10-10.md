@@ -249,3 +249,28 @@ só o nome; o pedaço do id entra apenas quando dois nomes coincidem (`distinctO
 `idOptions` em `src/lib/option-label.ts`). O horário e a ficha do professor passam a opções
 `{ value: id, label }`; as listas que acham o id pela posição continuam a achá-lo, porque os
 rótulos ficam únicos.
+
+**Corrigido — G1 (P2) escritas que tinham perdido o guarda de escrita.** Varredura das funções
+do servidor que gravam e não passam por `requireSgaWriterForWrite` nem por um guarda que o
+inclua (`assertModuleNotBlocked` em escrita):
+
+- **Eliminar avaliação** (`deleteAssessmentItem`, a versão endurecida em
+  `server-secure-legacy.ts`): ao reescrevê-la perdeu-se o guarda que a versão antiga tinha.
+  Uma escola bloqueada (suspensa, cancelada, arquivada, trial terminado) continuava a apagar
+  avaliações e as notas delas, e quem tinha a Pedagógica em «Nenhum» ou «Leitura» também.
+  Repostos, com os mesmos papéis. A versão antiga, sem uso, saiu de `server-legacy.ts`.
+- **Registo de documentos emitidos** (`registerIssuedDocument`): emitia documentos oficiais
+  numa escola bloqueada. Passa a recusar (só o bloqueio da escola: os recibos são da
+  Tesouraria, que pode não ter o módulo Pessoas).
+- **Por decidir:** a gestão de acessos (`access/server.ts`: convidar, mudar cargo, suspender
+  contas) não aplica o bloqueio da escola. Pode ser intencional — numa escola suspensa o
+  administrador pode precisar de gerir contas para regularizar — e fica para o dono decidir.
+
+O resto das escritas sem `requireSgaWriterForWrite` usa guardas próprios que já o incluem
+(RH, importação, risco, antigos alunos, AppyPay, Ensino Superior) ou é da própria conta
+(perfil, mensagens, portal do antigo aluno) ou pública (candidatura, pedido de acesso).
+
+**Estrutura do servidor académico (A5):** `server-secure-legacy.ts` é uma fachada — as escritas
+vêm de `server-legacy.ts`; 6 leituras usam a versão endurecida para o professor e delegam na
+antiga para a direcção e a secretaria. As duas continuam necessárias; juntá-las num só
+ficheiro é arrumação, sem defeito à vista, e fica para depois.
