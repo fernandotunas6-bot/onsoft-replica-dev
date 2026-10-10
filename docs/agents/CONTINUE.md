@@ -15,6 +15,14 @@ Hoje `m.` ainda é servido pelo Worker `siga-plus-mobile-v4-domain` (outra sess�
 (deploy do portal → remover rota/Custom Domain no painel) está nesse documento. Não remover a
 rota antes do deploy do portal.
 
+**Chat Mobile — migração aplicada a 10/10 (aprovada pelo dono):**
+`supabase/migrations/20261010083336_mobile_v4_chat_commands.sql` (tabela
+`mobile_v4_chat_requests`, só servidor; funções `mobile_v4_chat_command` e
+`mobile_v4_chat_capabilities`). Corrigida antes de aplicar: `audit_logs.entity_id`/`request_id`
+são uuid na produção (a proposta gravava `::text` e todos os comandos falhariam); o ensaio
+`tests/sql/mobile-v4-chat-commands.mjs` usa agora os tipos reais. **Por fazer (dono):**
+recapturar o retrato (`npm run siga:db-snapshot`, precisa das credenciais da base).
+
 ## Catálogo educacional global (2026-10-10)
 
 Detalhe e cobertura real: [docs/education-catalog/README.md](../education-catalog/README.md).

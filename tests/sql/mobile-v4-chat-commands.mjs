@@ -21,7 +21,7 @@ CREATE TABLE siga_chat_conversations(id uuid PRIMARY KEY,school_id uuid,type tex
 CREATE TABLE siga_chat_members(conversation_id uuid,user_id uuid,last_read_at timestamptz NOT NULL DEFAULT now(),PRIMARY KEY(conversation_id,user_id));
 CREATE TABLE siga_chat_messages(id uuid PRIMARY KEY,school_id uuid NOT NULL,conversation_id uuid NOT NULL,sender_id uuid NOT NULL,body text NOT NULL,created_at timestamptz NOT NULL DEFAULT now(),deleted_at timestamptz,reply_to uuid,attachment_file_id uuid,attachment_file_name text);
 CREATE TABLE siga_files(id uuid PRIMARY KEY,school_id uuid);
-CREATE TABLE audit_logs(school_id uuid,actor_user_id uuid,action text,entity_type text,entity_id text,request_id text,metadata jsonb);
+CREATE TABLE audit_logs(school_id uuid,actor_user_id uuid,action text,entity_type text,entity_id uuid,request_id uuid,metadata jsonb);
 GRANT SELECT,INSERT,UPDATE ON ALL TABLES IN SCHEMA public TO service_role;
 INSERT INTO roles VALUES('${id(10)}','student'),('${id(11)}','teacher');
 INSERT INTO school_memberships VALUES('${id(20)}','${id(1)}','${id(2)}','active'),('${id(21)}','${id(1)}','${id(3)}','active'),('${id(22)}','${id(1)}','${id(4)}','active'),('${id(23)}','${id(9)}','${id(5)}','active');
