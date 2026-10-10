@@ -19,6 +19,7 @@ import {
 import { recordStudentStatusHistory } from "@/features/students/status-history";
 import { buildPersonInsert, isMissingPeopleGeography } from "@/features/people/person-fields";
 import { syncBiDocumentFromNif } from "@/features/people/bi-document";
+import { findExistingGuardian } from "@/features/people/guardian-lookup";
 import {
   publicInstalledProviderIds,
   publicSchoolEmail,
@@ -534,17 +535,26 @@ export const decideEnrollmentApplication = createServerFn({ method: "POST" })
             { full_name: guardianName, phone_primary: payload.guardianPhone },
             { schoolId: membership.schoolId, userId: context.userId },
           );
-          const { data: guardianPerson, error: guardianError } = await db
-            .from("people")
-            .insert(guardianPayload)
-            .select("id")
-            .single();
-          // Antes o erro era ignorado e o aluno ficava sem encarregado, sem aviso.
-          if (guardianError) {
-            throw publicDatabaseError(guardianError, "Não foi possível registar o encarregado.");
+          // Irmão de um aluno da escola: o encarregado já tem ficha (mesmo nome e
+          // telefone). Antes criava-se sempre uma segunda.
+          guardianPersonId = await findExistingGuardian(db, {
+            schoolId: membership.schoolId,
+            fullName: guardianName,
+            phone: guardianPayload.phone,
+          });
+          if (!guardianPersonId) {
+            const { data: guardianPerson, error: guardianError } = await db
+              .from("people")
+              .insert(guardianPayload)
+              .select("id")
+              .single();
+            // Antes o erro era ignorado e o aluno ficava sem encarregado, sem aviso.
+            if (guardianError) {
+              throw publicDatabaseError(guardianError, "Não foi possível registar o encarregado.");
+            }
+            guardianPersonId = guardianPerson.id;
+            createdPeople.push(guardianPerson.id);
           }
-          guardianPersonId = guardianPerson.id;
-          createdPeople.push(guardianPerson.id);
         }
 
         // register_student cria o aluno (+ encarregado) numa transação atómica: gera o

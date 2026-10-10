@@ -38,7 +38,8 @@ Nada escrito na produção; nenhuma migração nova.
   professor num só sítio (`people/teacher-number.ts`, maior + 1). **Por decidir:** H2 (trocar o
   professor de uma aula troca-o em todas, sem verificar conflitos), H3 (a `20260925170000`, por
   aplicar, tem outra lista de marcadores), P3 (três numerações de professor; `register_teacher`
-  sem uso), P4 (fundir pessoas sem transacção), P5 (encarregado duplicado na candidatura).
+  sem uso), P4 (fundir pessoas sem transacção). P5 (encarregado reaproveitado na candidatura,
+  `people/guardian-lookup.ts`) e P6 (apagar a morada na ficha 360) corrigidos.
 
 ## Auditoria 13 — fluxos da escola (2026-10-06)
 

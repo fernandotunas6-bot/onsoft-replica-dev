@@ -1133,9 +1133,9 @@ export const updatePerson = createServerFn({ method: "POST" })
       national_id: normalizedNif,
       updated_by: context.userId,
     };
-    const hasGeography = Boolean(
-      data.province || data.municipality || data.commune || data.address,
-    );
+    const hasGeography =
+      data.includesGeography === true ||
+      Boolean(data.province || data.municipality || data.commune || data.address);
     if (hasGeography) {
       personPatch["province"] = data.province || null;
       personPatch["municipality"] = data.municipality || null;
