@@ -310,3 +310,21 @@ iguais deixam de aparecer iguais.
 Não corrigidos (o caminho é improvável e a correcção não compensa): uma sala chamada «Sem sala
 fixa» confunde-se com a opção «sem sala» em Nova turma; o importador de professores relê os
 números da escola a cada linha (custo só em importações muito grandes).
+
+## 11. Leituras cortadas nas 1000 linhas (2026-10-11)
+
+O PostgREST devolve no máximo 1000 linhas por pedido e corta sem erro: um `.limit(5000)`
+recebe 1000. Os volumes de hoje (máx. 4 faturas e 42 alunos por escola, 27 aulas por turma)
+ainda não chegam lá, mas uma escola real chega no primeiro ano:
+
+| #   | Onde                                                                                              | Efeito                                                                                                                                                                                                              | Correcção                                                                            |
+| --- | ------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------ |
+| L1  | Faltas da pauta, dos exames e do resultado final                                                  | Uma aula é uma linha por tempo lectivo (30 por semana ≈ 1000 no ano): a percentagem saía de parte das aulas. Um erro de leitura caía para os 0% da pauta: **um aluno excluído por faltas transitava** no histórico. | Leitura por páginas ordenadas; um erro pára (só a tabela em falta mantém o recurso). |
+| L2  | Resultado final: épocas e notas de exame                                                          | Um erro de leitura era ignorado e o histórico ficava com o resultado de antes do recurso.                                                                                                                           | O erro pára a leitura.                                                               |
+| L3  | Painel: tesouraria e alerta de faturas vencidas                                                   | Faturas e recibos cortados cada um à sua maneira: uma fatura paga cujo recibo ficava de fora contava como dívida e vencida.                                                                                         | Por páginas (`readAllPages`).                                                        |
+| L4  | Mensagens: telefones conhecidos da escola                                                         | Quem estava depois das primeiras 1000 pessoas era recusado como destinatário.                                                                                                                                       | Por páginas.                                                                         |
+| L5  | Painel: aniversários; estrutura: cadernetas e pautas por estado; heatmap: turma de cada matrícula | Contagens sobre parte dos dados.                                                                                                                                                                                    | Por páginas.                                                                         |
+
+O heatmap de desempenho do painel continua a ser uma amostra de 1000 notas (agora dito no
+código): ler todas as notas da escola em cada abertura do painel seria pesado, e o cálculo exacto
+pede uma agregação na base.

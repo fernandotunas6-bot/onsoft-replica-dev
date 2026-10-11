@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { readAllPages } from "@/integrations/supabase/read-all-pages";
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { publicDatabaseError } from "@/integrations/supabase/server-error";
@@ -401,12 +402,16 @@ async function onlySchoolPhones(
   schoolId: string,
   recipients: string[],
 ): Promise<string[]> {
-  const { data: people } = await db
-    .from("people")
-    .select("phone")
-    .eq("school_id", schoolId)
-    .not("phone", "is", null)
-    .limit(20000);
+  // Todas as páginas: com o corte das 1000 linhas, quem estava depois era recusado.
+  const { data: people } = await readAllPages((from, to) =>
+    db
+      .from("people")
+      .select("id, phone")
+      .eq("school_id", schoolId)
+      .not("phone", "is", null)
+      .order("id", { ascending: true })
+      .range(from, to),
+  );
   const known = new Set(
     (people ?? [])
       .map((row) => phoneKey(String(row.phone ?? "")))

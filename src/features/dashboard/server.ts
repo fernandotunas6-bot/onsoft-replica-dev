@@ -1,4 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
+import { readAllPages } from "@/integrations/supabase/read-all-pages";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { publicDatabaseError } from "@/integrations/supabase/server-error";
 import { resolveSgaMembershipAdmin } from "@/integrations/supabase/sga-admin";
@@ -418,6 +419,9 @@ export const getDashboardOverview = createServerFn({ method: "GET" })
     if (capabilities.students) {
       try {
         // Heatmap de desempenho: médias por turma e disciplina, por trimestre.
+        // Amostra: o servidor devolve no máximo 1000 notas por pedido (o `limit(5000)`
+        // antigo recebia as mesmas 1000). Ler todas as notas da escola em cada abertura
+        // do painel seria pesado; o cálculo exacto pede uma agregação na base.
         const [{ data: heatmapGrades }, { data: heatmapGroups }, { data: heatmapSubjects }] =
           await Promise.all([
             db
@@ -426,16 +430,19 @@ export const getDashboardOverview = createServerFn({ method: "GET" })
                 "score, enrollment_id, siga_assessment_items!inner(term, subject_id, max_score)",
               )
               .eq("school_id", schoolId)
-              .limit(5000),
+              .limit(1000),
             db.from("class_groups").select("id, name, grade_level_id").eq("school_id", schoolId),
             db.from("subjects").select("id, name, code").eq("school_id", schoolId),
           ]);
 
-        const { data: heatmapEnrollments } = await db
-          .from("enrollments")
-          .select("id, class_group_id")
-          .eq("school_id", schoolId)
-          .limit(1000);
+        const { data: heatmapEnrollments } = await readAllPages((from, to) =>
+          db
+            .from("enrollments")
+            .select("id, class_group_id")
+            .eq("school_id", schoolId)
+            .order("id", { ascending: true })
+            .range(from, to),
+        );
         const groupByEnrollment = new Map(
           (heatmapEnrollments ?? []).map((row) => [String(row.id), String(row.class_group_id)]),
         );
@@ -573,17 +580,26 @@ export const getDashboardOverview = createServerFn({ method: "GET" })
     }
 
     if (capabilities.finance) {
+      // Todas as linhas: cortadas, uma fatura paga cujo recibo ficava de fora contava como dívida.
       const [{ data: invoices }, { data: receipts }] = await Promise.all([
-        db
-          .from("finance_invoices")
-          .select("id, amount, discount_amount, penalty_amount, competence_month, status, due_date")
-          .eq("school_id", schoolId)
-          .limit(3000),
-        db
-          .from("finance_receipts")
-          .select("invoice_id, amount, paid_on, status, payment_method")
-          .eq("school_id", schoolId)
-          .limit(3000),
+        readAllPages((from, to) =>
+          db
+            .from("finance_invoices")
+            .select(
+              "id, amount, discount_amount, penalty_amount, competence_month, status, due_date",
+            )
+            .eq("school_id", schoolId)
+            .order("id", { ascending: true })
+            .range(from, to),
+        ),
+        readAllPages((from, to) =>
+          db
+            .from("finance_receipts")
+            .select("id, invoice_id, amount, paid_on, status, payment_method")
+            .eq("school_id", schoolId)
+            .order("id", { ascending: true })
+            .range(from, to),
+        ),
       ]);
 
       const paidByInvoice = new Map<string, number>();
@@ -958,12 +974,15 @@ export const getSchoolTodayOps = createServerFn({ method: "GET" })
       // quando esta leitura passou a ser tipada — com o cliente privilegiado,
       // que não tem tipos, um nome de coluna errado é indistinguível de um dia
       // sem aniversários.
-      const { data: people } = await db
-        .from("people")
-        .select("id, date_of_birth")
-        .eq("school_id", schoolId)
-        .not("date_of_birth", "is", null)
-        .limit(2000);
+      const { data: people } = await readAllPages((from, to) =>
+        db
+          .from("people")
+          .select("id, date_of_birth")
+          .eq("school_id", schoolId)
+          .not("date_of_birth", "is", null)
+          .order("id", { ascending: true })
+          .range(from, to),
+      );
       ops.birthdaysToday = (people ?? []).filter(
         (person) => String(person.date_of_birth ?? "").slice(5, 10) === mmDd,
       ).length;
@@ -1083,17 +1102,23 @@ export const listSchoolAlerts = createServerFn({ method: "GET" })
     if (canFinance) {
       try {
         const [{ data: invoices }, { data: receipts }] = await Promise.all([
-          db
-            .from("finance_invoices")
-            .select("id, amount, discount_amount, penalty_amount, status, due_date")
-            .eq("school_id", schoolId)
-            .neq("status", "cancelled")
-            .limit(5000),
-          db
-            .from("finance_receipts")
-            .select("invoice_id, amount, status")
-            .eq("school_id", schoolId)
-            .limit(5000),
+          readAllPages((from, to) =>
+            db
+              .from("finance_invoices")
+              .select("id, amount, discount_amount, penalty_amount, status, due_date")
+              .eq("school_id", schoolId)
+              .neq("status", "cancelled")
+              .order("id", { ascending: true })
+              .range(from, to),
+          ),
+          readAllPages((from, to) =>
+            db
+              .from("finance_receipts")
+              .select("id, invoice_id, amount, status")
+              .eq("school_id", schoolId)
+              .order("id", { ascending: true })
+              .range(from, to),
+          ),
         ]);
         const paidByInvoice = new Map<string, number>();
         for (const receipt of receipts ?? []) {
