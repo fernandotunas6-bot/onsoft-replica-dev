@@ -1,3 +1,4 @@
+import { readAllPages, readInChunks } from "@/integrations/supabase/read-all-pages";
 import { normalizeText, valueOf } from "../engine/normalize";
 import type { AuditEntry, ImportRefCache, RowImporter } from "../engine/types";
 import {
@@ -87,10 +88,14 @@ export const horariosImporter: RowImporter = {
       ctx.db.from("subjects").select("id, code, name").eq("school_id", ctx.schoolId),
       loadTeacherRefs(ctx.db, ctx.schoolId),
       loadClassSubjectRefs(ctx.db, ctx.schoolId),
-      ctx.db
-        .from("timetable_slots")
-        .select("class_subject_id, weekday, starts_at, ends_at, room")
-        .eq("school_id", ctx.schoolId),
+      readAllPages((from, to) =>
+        ctx.db
+          .from("timetable_slots")
+          .select("id, class_subject_id, weekday, starts_at, ends_at, room")
+          .eq("school_id", ctx.schoolId)
+          .order("id", { ascending: true })
+          .range(from, to),
+      ),
     ]);
 
     if (groups.error) throw new Error(`Não foi possível carregar turmas: ${groups.error.message}`);

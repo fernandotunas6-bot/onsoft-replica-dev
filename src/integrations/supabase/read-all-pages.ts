@@ -34,3 +34,29 @@ export async function readAllPages<T, E = { message: string }>(
   }
   return { data: rows, error: null };
 }
+
+/**
+ * Ids por pedido num `.in(...)`: a lista vai no URL, e centenas de uuids passam o
+ * tamanho máximo. 150 ids lidos pela chave primária também ficam abaixo das 1000 linhas.
+ */
+export const ID_CHUNK_SIZE = 150;
+
+/**
+ * Lê as linhas de uma lista de ids em lotes (`build` recebe cada lote). Só para
+ * leituras de uma linha por id (chave primária); com várias linhas por id, usar
+ * `readAllPages` dentro de cada lote. Como `readAllPages`, devolve o erro em vez de lançar.
+ */
+export async function readInChunks<T, E = { message: string }>(
+  ids: readonly string[],
+  build: (chunk: string[]) => PromiseLike<Page<T, E>>,
+  chunkSize = ID_CHUNK_SIZE,
+): Promise<{ data: T[]; error: E | null }> {
+  const unique = [...new Set(ids)];
+  const rows: T[] = [];
+  for (let i = 0; i < unique.length; i += chunkSize) {
+    const { data, error } = await build(unique.slice(i, i + chunkSize));
+    if (error) return { data: [], error };
+    rows.push(...(data ?? []));
+  }
+  return { data: rows, error: null };
+}

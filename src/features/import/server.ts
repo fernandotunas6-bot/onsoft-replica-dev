@@ -1,4 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
+import { PagedReadError } from "@/integrations/supabase/paged-client";
 import { safeCell } from "@/lib/export-csv";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { publicDatabaseError } from "@/integrations/supabase/server-error";
@@ -825,6 +826,14 @@ export const exportSchoolDataFn = createServerFn({ method: "POST" })
       classGroupId: data.class_group_id,
       modules: data.modules,
       mode: data.mode,
+    }).catch((error: unknown) => {
+      if (error instanceof PagedReadError) {
+        throw publicDatabaseError(
+          error.dbError,
+          "Não foi possível ler os dados para exportar. Nenhum ficheiro foi gerado.",
+        );
+      }
+      throw error;
     });
 
     // Uma exportação leva dados pessoais da escola inteira: fica registada.

@@ -37,3 +37,18 @@ describe("readAllPages", () => {
     }
   });
 });
+
+describe("readInChunks", () => {
+  it("divide os ids em lotes e junta as linhas", async () => {
+    const { readInChunks } = await import("@/integrations/supabase/read-all-pages");
+    const ids = Array.from({ length: 400 }, (_, n) => `id-${n}`);
+    const sizes: number[] = [];
+    const { data, error } = await readInChunks([...ids, ...ids], (chunk) => {
+      sizes.push(chunk.length);
+      return Promise.resolve({ data: chunk.map((id) => ({ id })), error: null });
+    });
+    expect(error).toBeNull();
+    expect(data).toHaveLength(400);
+    expect(sizes).toEqual([150, 150, 100]);
+  });
+});

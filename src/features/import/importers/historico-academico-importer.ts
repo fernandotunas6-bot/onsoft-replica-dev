@@ -1,3 +1,5 @@
+import { rowsOrThrow } from "../engine/paged";
+import { readAllPages, readInChunks } from "@/integrations/supabase/read-all-pages";
 import { normalizeText, valueOf } from "../engine/normalize";
 import type { ImportRefCache, RowImporter } from "../engine/types";
 import { loadStudentRefs, uniqueExactMatch, type StudentRef } from "./academic-core";
@@ -16,13 +18,21 @@ export const historicoAcademicoImporter: RowImporter = {
 
   async loadRefCache(ctx) {
     const students = await loadStudentRefs(ctx.db, ctx.schoolId);
-    const { data: existing } = await ctx.db
-      .from("student_academic_history")
-      .select("student_id, academic_year_label, grade_level")
-      .eq("school_id", ctx.schoolId);
+    // Todas as páginas: cortado nas 1000 linhas, um registo já importado entrava outra vez.
+    const existing = await rowsOrThrow(
+      readAllPages((from, to) =>
+        ctx.db
+          .from("student_academic_history")
+          .select("id, student_id, academic_year_label, grade_level")
+          .eq("school_id", ctx.schoolId)
+          .order("id", { ascending: true })
+          .range(from, to),
+      ),
+      "Não foi possível carregar o histórico académico",
+    );
 
     const existingKeys = new Set(
-      (existing ?? []).map(
+      existing.map(
         (row: { student_id: string; academic_year_label: string; grade_level: string }) =>
           historyKey(row.student_id, row.academic_year_label, row.grade_level),
       ),
