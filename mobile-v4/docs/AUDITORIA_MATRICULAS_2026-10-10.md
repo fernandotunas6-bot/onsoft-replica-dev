@@ -53,3 +53,17 @@ O Mobile passa a explicar estes casos:
 - O aluno só vê no Mobile as pautas do ano activo. O portal mostra também as de anos anteriores.
 - Ligar as contas dos alunos e atribuir as disciplinas às 33 turmas.
 - As 40 matrículas pendentes em turmas `draft` devem ser confirmadas pela escola.
+
+## Painel de prontidão (SIGA → Definições → Prontidão do Mobile)
+
+`/configuracoes/mobile`, só para o Administrador e só de leitura. Mostra quantos alunos e professores já conseguem usar o Mobile e, caso a caso, o que falta aos outros, com atalho para o resolver:
+
+| Grupo       | Verificação                                                                                          | Atalho                         |
+| ----------- | ---------------------------------------------------------------------------------------------------- | ------------------------------ |
+| Alunos      | sem e-mail na ficha · e-mail repetido · por convidar · convite por aceitar · conta sem o papel Aluno | ficha do aluno, Acessos        |
+| Professores | as mesmas cinco, com o papel Professor · sem disciplinas atribuídas                                  | ficha do professor, Pedagógica |
+| Turmas      | turmas com alunos e sem disciplinas · disciplinas sem professor · disciplinas sem horário            | Pedagógica, na turma certa     |
+
+As regras são as do servidor do Mobile (ano, turma e matrícula activos; horário publicado ou sem versão; papel no vínculo activo). O e-mail aparece à parte porque a conta só se liga à ficha, ao aceitar o convite, pelo e-mail exacto e quando há uma única ficha sem conta com ele. Os e-mails não saem do servidor.
+
+Lê com a sessão do Administrador (`context.supabase`, respeita RLS). Todas as tabelas lidas têm política SELECT para ele em produção. Código: `src/features/school/mobile-readiness.ts` (regras), `mobile-readiness-server.ts` (leitura), `MobileReadinessContent.tsx`, `src/routes/configuracoes_.mobile.tsx`. Testes: `tests/school/mobile-readiness*.test.ts*`.
