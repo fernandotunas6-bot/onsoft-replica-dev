@@ -406,7 +406,7 @@ export const decideEnrollmentApplication = createServerFn({ method: "POST" })
         .eq("decided_by", context.userId);
     };
     // Pessoas criadas por esta tentativa: se o registo do aluno falhar, saem
-    // (marcadas como apagadas) para a tentativa seguinte não as duplicar.
+    // (apagadas) para a tentativa seguinte não as duplicar.
     const createdPeople: string[] = [];
     const discardCreatedPeople = async () => {
       if (!createdPeople.length) return;
@@ -415,11 +415,27 @@ export const decideEnrollmentApplication = createServerFn({ method: "POST" })
         .delete()
         .eq("school_id", membership.schoolId)
         .in("person_id", createdPeople);
-      await db
+      // Apagadas de vez: marcá-las como apagadas deixava o BI e o e-mail presos nos
+      // índices únicos da escola, e a tentativa seguinte falhava com «Já existe…».
+      const removed = await db
         .from("people")
-        .update({ deleted_at: new Date().toISOString(), updated_by: context.userId })
+        .delete()
         .eq("school_id", membership.schoolId)
         .in("id", createdPeople);
+      if (removed.error) {
+        await db
+          .from("people")
+          .update({
+            deleted_at: new Date().toISOString(),
+            status: "inactive",
+            email: null,
+            phone: null,
+            national_id: null,
+            updated_by: context.userId,
+          })
+          .eq("school_id", membership.schoolId)
+          .in("id", createdPeople);
+      }
     };
 
     let studentId: string | null = null;

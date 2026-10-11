@@ -103,7 +103,9 @@ export function isMissingTable(error: DatabaseError | null | undefined): boolean
     error &&
     (error.code === "42P01" ||
       error.code === "PGRST205" ||
-      /schema cache|does not exist|relation .* does not exist/i.test(error.message ?? "")),
+      // Só a tabela: «column … does not exist» (42703) ou uma função em falta são erros
+      // a mostrar, não «sem dados».
+      /relation .* does not exist|could not find the table/i.test(error.message ?? "")),
   );
 }
 

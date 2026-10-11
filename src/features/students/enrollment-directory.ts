@@ -1,3 +1,4 @@
+import { idOptions } from "@/lib/option-label";
 export type EnrollmentClassGroup = {
   id: string;
   name: string;
@@ -143,12 +144,12 @@ export function classGroupChoices(
     academic_year_id?: string | null;
   }>,
 ) {
-  return groups
-    .filter((group) => group.academic_year_id)
-    .map((group) => ({
-      value: group.id,
-      label: [group.name, group.grade_name, group.course_name]
+  // Dois rótulos iguais (mesmo nome, classe e curso) levam um pedaço do id (idOptions).
+  return idOptions(
+    groups.filter((group) => group.academic_year_id),
+    (group) =>
+      [group.name, group.grade_name, group.course_name]
         .filter((part) => part && part !== "—")
         .join(" · "),
-    }));
+  );
 }

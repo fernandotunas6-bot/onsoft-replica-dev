@@ -27,3 +27,10 @@ describe("rótulos de opção", () => {
     expect(idOptions(groups, (g) => g.name)[2]).toEqual({ value: groups[2]!.id, label: "B" });
   });
 });
+
+describe("escape de padrões LIKE", () => {
+  it("% e _ deixam de ser coringas", async () => {
+    const { escapeLikePattern } = await import("@/lib/like-pattern");
+    expect(escapeLikePattern("j_silva%@escola.ao")).toBe("j\\_silva\\%@escola.ao");
+  });
+});

@@ -54,6 +54,7 @@ import { recordAccessAudit, recordAuditBatch } from "@/features/audit/record-aud
 import { queueTenantUsageSync } from "@/features/saas/usage-sync";
 import { assertCanAddStudentForSchool } from "@/features/saas/tenant-limits-server";
 import { schoolTodayIso } from "@/lib/school-date";
+import { pickCurrentEnrollment } from "./current-enrollment";
 
 async function linkGuardian(
   db: Awaited<ReturnType<typeof loadSgaAdminClient>>,
@@ -191,13 +192,16 @@ export const searchStudents = createServerFn({ method: "GET" })
           }),
     ]);
 
-    // Map de matrículas: prioriza a matrícula activa; se não houver, usa a mais recente
-    const enrollmentByStudent = new Map<string, Record<string, unknown>>();
+    // A matrícula de cada aluno, com a mesma regra da ficha (pickCurrentEnrollment).
+    const enrollmentsOf = new Map<string, NonNullable<typeof allEnrollments>>();
     for (const enr of allEnrollments ?? []) {
-      const existing = enrollmentByStudent.get(enr.student_id);
-      if (!existing || enr.status === "active") {
-        enrollmentByStudent.set(enr.student_id, enr as Record<string, unknown>);
-      }
+      enrollmentsOf.set(enr.student_id, [...(enrollmentsOf.get(enr.student_id) ?? []), enr]);
+    }
+    const today = schoolTodayIso();
+    const enrollmentByStudent = new Map<string, Record<string, unknown>>();
+    for (const [studentId, rows] of enrollmentsOf) {
+      const picked = pickCurrentEnrollment(rows, today);
+      if (picked) enrollmentByStudent.set(studentId, picked as Record<string, unknown>);
     }
 
     // Carregamento financeiro para os alunos pesquisados
@@ -492,9 +496,8 @@ export const getStudentProfile = createServerFn({ method: "GET" })
         .select("guardian_person_id, relationship, is_primary")
         .eq("student_id", student.id)
         .eq("school_id", membership.schoolId),
-      // Matrícula corrente: a activa e, sem ela, a pendente (que já ocupa lugar na
-      // turma); «active» ordena antes de «pending». Só a activa deixava a ficha sem
-      // turma para quem estava pendente.
+      // Matrículas correntes (activa ou pendente, que já ocupa lugar na turma). Com a
+      // matrícula antecipada pode haver duas, uma por ano: escolhe pickCurrentEnrollment.
       db
         .from("enrollments")
         .select(
@@ -502,10 +505,7 @@ export const getStudentProfile = createServerFn({ method: "GET" })
         )
         .eq("student_id", student.id)
         .eq("school_id", membership.schoolId)
-        .in("status", [...CURRENT_ENROLLMENT_STATUSES])
-        .order("status", { ascending: true })
-        .limit(1)
-        .maybeSingle(),
+        .in("status", [...CURRENT_ENROLLMENT_STATUSES]),
     ]);
     const person = personResult.data as {
       full_name?: string | null;
@@ -521,7 +521,7 @@ export const getStudentProfile = createServerFn({ method: "GET" })
       address?: string | null;
     } | null;
     const guardians = guardiansResult.data;
-    let enrollment = enrollmentResult.data as {
+    type CurrentEnrollment = {
       id: string;
       class_group_id: string | null;
       academic_year_id: string | null;
@@ -529,7 +529,8 @@ export const getStudentProfile = createServerFn({ method: "GET" })
       enrolled_on: string | null;
       attendance_rate?: number | null;
       final_average?: number | null;
-    } | null;
+    };
+    let enrollmentRows = (enrollmentResult.data ?? []) as CurrentEnrollment[];
     if (
       enrollmentResult.error &&
       /attendance_rate|final_average|42703|schema cache/i.test(enrollmentResult.error.message)
@@ -539,16 +540,16 @@ export const getStudentProfile = createServerFn({ method: "GET" })
         .select("id, class_group_id, academic_year_id, status, enrolled_on")
         .eq("student_id", student.id)
         .eq("school_id", membership.schoolId)
-        .in("status", [...CURRENT_ENROLLMENT_STATUSES])
-        .order("status", { ascending: true })
-        .limit(1)
-        .maybeSingle();
-      enrollment = fallback.data
-        ? { ...fallback.data, attendance_rate: null, final_average: null }
-        : null;
+        .in("status", [...CURRENT_ENROLLMENT_STATUSES]);
+      enrollmentRows = (fallback.data ?? []).map((row) => ({
+        ...row,
+        attendance_rate: null,
+        final_average: null,
+      }));
     } else if (enrollmentResult.error) {
       throw publicDatabaseError(enrollmentResult.error, "Não foi possível carregar a matrícula.");
     }
+    const enrollment = pickCurrentEnrollment(enrollmentRows, schoolTodayIso());
 
     const guardianIds = (guardians ?? []).map(
       (row: { guardian_person_id: string }) => row.guardian_person_id,

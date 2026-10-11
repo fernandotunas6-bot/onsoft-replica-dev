@@ -1,4 +1,5 @@
 import { requireAal2 } from "@/features/hr/require-aal2";
+import { escapeLikePattern } from "@/lib/like-pattern";
 import type { Database, TablesInsert, TablesUpdate } from "@/integrations/supabase/types";
 import { createServerFn } from "@tanstack/react-start";
 import { canSeePerson, loadStudentScope } from "@/features/students/student-scope";
@@ -387,7 +388,7 @@ export const findPersonDuplicates = createServerFn({ method: "POST" })
 
     // Procura dirigida por cada critério, em vez das primeiras 250 fichas da
     // escola: numa escola grande o duplicado estava quase sempre fora da amostra.
-    const likeSafe = (value: string) => value.replace(/[\\%_]/g, (c) => `\\${c}`);
+    const likeSafe = escapeLikePattern;
     const columns = "id, full_name, email, phone, national_id, date_of_birth, status";
     const base = () => db.from("people").select(columns).eq("school_id", membership.schoolId);
     const lookups = [
@@ -1070,62 +1071,90 @@ export const createTeacher = createServerFn({ method: "POST" })
       .single();
     if (personError) throw publicDatabaseError(personError, "Não foi possível criar a pessoa.");
 
-    const discardPerson = () =>
-      db
+    // A pessoa foi criada só para este professor: se ele não ficar gravado, sai de vez.
+    // Marcá-la como apagada deixava o e-mail e o BI presos (índices únicos por escola) e
+    // a tentativa seguinte falhava com «Já existe uma pessoa com este e-mail».
+    const discardPerson = async () => {
+      const removed = await db
         .from("people")
-        .update({ deleted_at: new Date().toISOString(), updated_by: context.userId })
+        .delete()
         .eq("id", person.id)
         .eq("school_id", membership.schoolId);
+      if (removed.error) {
+        await db
+          .from("people")
+          .update({
+            deleted_at: new Date().toISOString(),
+            status: "inactive",
+            email: null,
+            phone: null,
+            national_id: null,
+            updated_by: context.userId,
+          })
+          .eq("id", person.id)
+          .eq("school_id", membership.schoolId);
+      }
+    };
     // A RPC compara com a data do servidor (UTC); entre a meia-noite de Luanda e a de
     // UTC, «hoje» na escola ainda é amanhã para ela.
-    const hiredOn =
-      data.hiredOn || [schoolTodayIso(), schoolTodayIso(new Date(), "UTC")].sort()[0]!;
+    const today = [schoolTodayIso(), schoolTodayIso(new Date(), "UTC")].sort()[0]!;
+    const hiredOn = data.hiredOn || today;
+    const insertDirect = (employeeNumber: string) =>
+      db
+        .from("teachers")
+        .insert({
+          school_id: membership.schoolId,
+          person_id: person.id,
+          employee_number: employeeNumber,
+          hired_on: hiredOn,
+          employment_type: "permanent",
+          highest_qualification: "bachelor",
+          status: "active",
+          created_by: context.userId,
+          updated_by: context.userId,
+        })
+        .select("id")
+        .single();
 
     let teacherId: string | null = null;
     let failure: { code?: string; message?: string } | null = null;
-    // Número de register_teacher (auditoria 14, P3): sequência da escola, nunca abaixo
-    // do maior número existente (migração 20261010110000).
-    const registered = await sgaClient(context.supabase).rpc(
-      "register_teacher",
-      rpcArgs("register_teacher", {
-        school_id: membership.schoolId,
-        person_id: person.id,
-        hired_on: hiredOn,
-        employment_type: "permanent",
-        highest_qualification: "bachelor",
-        subject_ids: [],
-      }),
-    );
-    if (!registered.error) {
-      teacherId = String((registered.data as { teacherId?: string } | null)?.teacherId ?? "");
-    } else if (isTeacherNumberTaken(registered.error)) {
-      // Base sem a 20261010110000: a sequência começa em DOC-000001, que já existe.
-      // Numera aqui, com a mesma regra (maior + 1), até a migração ser aplicada.
-      const inserted = await insertTeacherWithNextNumber(db, membership.schoolId, (number) =>
-        db
-          .from("teachers")
-          .insert({
-            school_id: membership.schoolId,
-            person_id: person.id,
-            employee_number: number,
-            hired_on: hiredOn,
-            employment_type: "permanent",
-            highest_qualification: "bachelor",
-            status: "active",
-            created_by: context.userId,
-            updated_by: context.userId,
-          })
-          .select("id")
-          .single(),
-      );
+    let fixHiredOn = false;
+    if (data.employeeNumber) {
+      // Número escrito pela escola: uma só inserção, como antes; um número repetido
+      // falha sem criar o professor.
+      const inserted = await insertDirect(data.employeeNumber);
       teacherId = inserted.data ? String(inserted.data.id) : null;
       failure = inserted.error;
     } else {
-      failure = registered.error;
+      // Número de register_teacher (auditoria 14, P3): sequência da escola, nunca abaixo
+      // do maior número existente (migração 20261010110000). A RPC recusa datas de
+      // admissão futuras: regista com hoje e a data pedida grava-se a seguir.
+      fixHiredOn = hiredOn > today;
+      const registered = await sgaClient(context.supabase).rpc(
+        "register_teacher",
+        rpcArgs("register_teacher", {
+          school_id: membership.schoolId,
+          person_id: person.id,
+          hired_on: fixHiredOn ? today : hiredOn,
+          employment_type: "permanent",
+          highest_qualification: "bachelor",
+          subject_ids: [],
+        }),
+      );
+      if (!registered.error) {
+        teacherId = String((registered.data as { teacherId?: string } | null)?.teacherId ?? "");
+      } else if (isTeacherNumberTaken(registered.error)) {
+        // Base sem a 20261010110000: a sequência começa em DOC-000001, que já existe.
+        // Numera aqui, com a mesma regra (maior + 1), até a migração ser aplicada.
+        fixHiredOn = false;
+        const inserted = await insertTeacherWithNextNumber(db, membership.schoolId, insertDirect);
+        teacherId = inserted.data ? String(inserted.data.id) : null;
+        failure = inserted.error;
+      } else {
+        failure = registered.error;
+      }
     }
     if (!teacherId) {
-      // A pessoa foi criada só para este professor: sem ele, sai (antes ficava uma
-      // ficha solta a cada tentativa falhada, e a seguinte duplicava-a).
       await discardPerson();
       if (failure && isRpcAuthDenied(failure)) {
         throw new Error("Esta conta precisa de 2FA activo e de permissão para cadastrar docentes.");
@@ -1133,17 +1162,16 @@ export const createTeacher = createServerFn({ method: "POST" })
       throw publicDatabaseError(failure ?? {}, "Não foi possível criar o professor.");
     }
 
-    // Número escrito à mão: substitui o gerado.
-    if (data.employeeNumber) {
-      const { error: numberError } = await db
+    if (fixHiredOn) {
+      const { error: hiredError } = await db
         .from("teachers")
-        .update({ employee_number: data.employeeNumber, updated_by: context.userId })
+        .update({ hired_on: hiredOn, updated_by: context.userId })
         .eq("id", teacherId)
         .eq("school_id", membership.schoolId);
-      if (numberError) {
+      if (hiredError) {
         throw publicDatabaseError(
-          numberError,
-          "Professor criado, mas o número indicado não foi gravado.",
+          hiredError,
+          "Professor criado, mas a data de admissão indicada não foi gravada.",
         );
       }
     }
@@ -1471,7 +1499,7 @@ export async function ensureTeacherHrRecord(input: {
     .from("people")
     .select("id, email, full_name, user_id")
     .eq("school_id", input.schoolId)
-    .ilike("email", email);
+    .ilike("email", escapeLikePattern(email));
   if (peopleError)
     throw publicDatabaseError(peopleError, "Não foi possível validar a identidade do professor.");
   const matchingPeople = (people ?? []).filter(

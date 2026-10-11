@@ -288,3 +288,25 @@ membros sem papel; contas de professor sem ficha; dois encarregados principais. 
   nomes: foram escritos directamente na base. Reforça que é um conjunto de demonstração.
 - **34 alunos activos sem encarregado.** Não é proibido (alunos adultos, Ensino Superior), mas
   merece revisão pela secretaria.
+
+## 10. Revisão independente do PR #121 (2026-10-11)
+
+Revisão de código sobre todo o PR (5 474 linhas). Dez achados, cada um verificado contra o
+código; sete corrigidos:
+
+| #   | Achado                                                                                                                                                                                                                     | Correcção                                                                                                                        |
+| --- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| R1  | Com a matrícula antecipada (A2) um aluno pode ter duas matrículas correntes; a ficha escolhia uma qualquer e a lista a última activa da ordenação.                                                                         | `pickCurrentEnrollment`: a que já começou, activa antes de pendente; a antecipada só quando não há outra. Ficha e lista usam-na. |
+| R2  | «Novo professor» com número escrito à mão: criava o professor pela RPC e só depois tentava o número; repetido, ficava criado com outro número e a nova tentativa duplicava-o.                                              | Com número escrito, uma só inserção, como antes.                                                                                 |
+| R3  | «Novo professor» com data de admissão futura: a RPC recusa datas futuras.                                                                                                                                                  | A RPC recebe hoje e a data pedida grava-se a seguir.                                                                             |
+| R4  | A pessoa criada para um professor (ou numa candidatura) que falhou ficava só marcada como apagada, com o e-mail e o BI presos nos índices únicos: a tentativa seguinte falhava com «Já existe uma pessoa com este e-mail». | Apagada de vez (com recurso a limpar os contactos se o apagar falhar).                                                           |
+| R5  | O convite ligava a conta à pessoa por `ilike` no e-mail sem escapar `_`/`%`: «j_silva@…» apanhava «jxsilva@…» e ligava a conta à pessoa errada.                                                                            | `escapeLikePattern` (`src/lib/like-pattern.ts`), também nas três cópias que já existiam e em `ensureTeacherHrRecord`.            |
+| R6  | Importação de matrículas: se actualizar o estado do aluno falhasse depois de gravar a matrícula, a linha abortava sem o registo da matrícula e a reversão já não a desfazia.                                               | A falha vira aviso da linha; a matrícula fica registada.                                                                         |
+| R7  | `isMissingTable` tratava «column … does not exist» e funções em falta como «tabela em falta», e quem a usa lia isso como «sem dados».                                                                                      | Só `42P01`, `PGRST205` e «relation … does not exist».                                                                            |
+
+Também: as listas de turma dos alunos (`classGroupChoices`) passam a `idOptions` — dois rótulos
+iguais deixam de aparecer iguais.
+
+Não corrigidos (o caminho é improvável e a correcção não compensa): uma sala chamada «Sem sala
+fixa» confunde-se com a opção «sem sala» em Nova turma; o importador de professores relê os
+números da escola a cada linha (custo só em importações muito grandes).

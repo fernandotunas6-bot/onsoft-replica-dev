@@ -210,11 +210,15 @@ export const matriculasImporter: RowImporter = {
         return { status: "error", warnings: [], errors: [message], audits: [] };
       }
       Object.assign(existing, patch);
-      await markStudentPlaced(ctx, student, "Matrícula actualizada por importação");
+      const placedWarnings = await markStudentPlaced(
+        ctx,
+        student,
+        "Matrícula actualizada por importação",
+      );
       return {
         status: "imported",
         target_record_id: existing.id,
-        warnings: ["Matrícula existente actualizada."],
+        warnings: ["Matrícula existente actualizada.", ...placedWarnings],
         errors: [],
         audits: [
           {
@@ -252,7 +256,7 @@ export const matriculasImporter: RowImporter = {
         audits: [],
       };
     const outcome = enrolled.value;
-    await markStudentPlaced(ctx, student, "Matrícula importada");
+    const placedWarnings = await markStudentPlaced(ctx, student, "Matrícula importada");
     const ref: EnrollmentRef = {
       id: String(outcome.enrollmentId),
       student_id: student.id,
@@ -265,7 +269,7 @@ export const matriculasImporter: RowImporter = {
     return {
       status: "imported",
       target_record_id: ref.id,
-      warnings: [],
+      warnings: placedWarnings,
       errors: [],
       audits: [
         { table_name: "enrollments", target_id: ref.id, action_type: "inserted", after_data: ref },
@@ -274,17 +278,28 @@ export const matriculasImporter: RowImporter = {
   },
 };
 
-/** O aluno com matrícula corrente fica activo (salvo suspenso/trancado), com histórico. */
+/**
+ * O aluno com matrícula corrente fica activo (salvo suspenso/trancado), com histórico.
+ * Corre depois de a matrícula estar gravada: uma falha aqui volta como aviso da linha,
+ * não como erro — antes abortava a linha sem o registo da matrícula, e a reversão da
+ * importação já não a conseguia desfazer.
+ */
 async function markStudentPlaced(
   ctx: { db: ImportCommitContext["db"]; schoolId: string; userId: string },
   student: StudentRef,
   reason: string,
-) {
-  await syncStudentStatusAfterPlacement(sgaClient(ctx.db), {
-    schoolId: ctx.schoolId,
-    students: [{ studentId: student.id, previousStatus: student.status }],
-    reason,
-    userId: ctx.userId,
-  });
+): Promise<string[]> {
+  try {
+    await syncStudentStatusAfterPlacement(sgaClient(ctx.db), {
+      schoolId: ctx.schoolId,
+      students: [{ studentId: student.id, previousStatus: student.status }],
+      reason,
+      userId: ctx.userId,
+    });
+  } catch (error) {
+    const detail = error instanceof Error ? error.message : String(error);
+    return [`Matrícula gravada, mas o estado do aluno não foi actualizado: ${detail}`];
+  }
   if (!heldStudentMessage(student.status)) student.status = "active";
+  return [];
 }

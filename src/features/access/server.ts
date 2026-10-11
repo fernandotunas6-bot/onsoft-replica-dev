@@ -1,4 +1,5 @@
 import { requireRecentVerification } from "@/lib/step-up";
+import { escapeLikePattern } from "@/lib/like-pattern";
 import { createServerFn } from "@tanstack/react-start";
 import { getRequestIP } from "@tanstack/react-start/server";
 import type { SupabaseClient } from "@supabase/supabase-js";
@@ -389,7 +390,7 @@ export const inviteSystemUser = createServerFn({ method: "POST" })
         .from("people")
         .select("id")
         .eq("school_id", schoolId)
-        .ilike("email", data.email.trim())
+        .ilike("email", escapeLikePattern(data.email.trim()))
         .is("user_id", null)
         .is("deleted_at", null)
         .maybeSingle();
@@ -1308,10 +1309,7 @@ export const acceptSchoolInvitation = createServerFn({ method: "POST" })
         .from("people")
         .select("id, email")
         .eq("school_id", schoolId)
-        .ilike(
-          "email",
-          invitedEmail.replace(/[\\%_]/g, (c) => `\\${c}`),
-        )
+        .ilike("email", escapeLikePattern(invitedEmail))
         .is("user_id", null)
         .limit(5);
       const exact = (candidates ?? []).filter(
