@@ -455,13 +455,17 @@ function AcessosPage() {
                 note="Requer SUPABASE_SECRET_KEY no ambiente do servidor."
                 successDescription="Convite enviado. O utilizador define a senha pelo email recebido."
                 onSubmit={async (values) => {
-                  await inviteSystemUser({
+                  const result = await inviteSystemUser({
                     data: {
                       fullName: values["nome"] ?? "",
                       email: values["email"] ?? "",
                       cargo: (values["cargo"] as ApplicationRole) ?? "Utilizador",
                     },
                   });
+                  // A conta existe, mas sem ficha o aluno ou professor não vê nada no Mobile.
+                  if (result.personLinkWarning) {
+                    toast.warning(result.personLinkWarning, { duration: 12_000 });
+                  }
                   await queryClient.invalidateQueries({ queryKey: ["access", "accounts"] });
                 }}
                 fields={[

@@ -67,3 +67,12 @@ O Mobile passa a explicar estes casos:
 As regras são as do servidor do Mobile (ano, turma e matrícula activos; horário publicado ou sem versão; papel no vínculo activo). O e-mail aparece à parte porque a conta só se liga à ficha, ao aceitar o convite, pelo e-mail exacto e quando há uma única ficha sem conta com ele. Os e-mails não saem do servidor.
 
 Lê com a sessão do Administrador (`context.supabase`, respeita RLS). Todas as tabelas lidas têm política SELECT para ele em produção. Código: `src/features/school/mobile-readiness.ts` (regras), `mobile-readiness-server.ts` (leitura), `MobileReadinessContent.tsx`, `src/routes/configuracoes_.mobile.tsx`. Testes: `tests/school/mobile-readiness*.test.ts*`.
+
+### Ligação da conta à ficha (`src/features/access/person-link.ts`)
+
+O painel manda convidar em Acessos. Ao verificar esse caminho, a criação de conta em Acessos (`inviteSystemUser`) ligava a ficha de forma diferente do aceitar convite:
+
+- comparava o e-mail à letra: uma ficha com «Ana@Escola.ao» ou com espaços nunca ficava ligada, e ninguém era avisado;
+- não verificava se a ficha já tinha conta, e podia trocar a conta de uma ficha já ligada.
+
+Agora os dois caminhos usam `linkPersonByEmail`: e-mail inteiro sem olhar a maiúsculas nem espaços, curingas do ILIKE escapados, só com uma única ficha sem conta, e nunca troca uma conta já ligada. Se a conta de um aluno, professor ou encarregado não ficar ligada, Acessos mostra o motivo e aponta para a Prontidão do Mobile. Testes: `tests/access/person-link.test.ts`.

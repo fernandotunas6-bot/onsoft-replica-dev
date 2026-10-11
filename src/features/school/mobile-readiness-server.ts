@@ -182,6 +182,7 @@ export async function loadMobileReadinessSnapshot(
         .select("email")
         .eq("school_id", schoolId)
         .is("user_id", null)
+        .is("deleted_at", null)
         .not("email", "is", null)
         .order("id")
         .range(a, b),

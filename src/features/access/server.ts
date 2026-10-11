@@ -7,6 +7,7 @@ import { publicDatabaseError } from "@/integrations/supabase/server-error";
 import { mapAppRoleToSgaCodes, mapSgaRoleCode, sgaClient } from "@/integrations/supabase/sga";
 import { resolveSgaMembershipAdmin } from "@/integrations/supabase/sga-admin";
 import { ensureTeacherHrRecord } from "@/features/people/server";
+import { linkPersonByEmail, personLinkWarning, type PersonLinkResult } from "./person-link";
 import { getAppName, getAppUrl, getAuthResetPasswordUrl } from "@/lib/app-config";
 import { fetchSchoolBranding } from "@/features/auth/reset-password-server";
 import { renderSchoolInvitationEmail } from "@/features/auth/email-templates";
@@ -378,21 +379,15 @@ export const inviteSystemUser = createServerFn({ method: "POST" })
       });
     }
 
-    // Vinculação idempotente com o registo de pessoa (se já existir na escola com este email)
+    // Ligar a conta à ficha com o mesmo e-mail (regras em person-link.ts). Não
+    // impede a conta, que já existe; quem a criou é avisado se não ficou ligada.
+    let personLink: PersonLinkResult = "no-record";
     try {
-      const { data: existingPerson } = await admin
-        .from("people")
-        .select("id")
-        .eq("school_id", schoolId)
-        .eq("email", data.email.trim().toLowerCase())
-        .maybeSingle();
-
-      if (existingPerson?.id) {
-        await admin.from("people").update({ user_id: userId }).eq("id", existingPerson.id);
-      }
+      personLink = await linkPersonByEmail(admin, schoolId, data.email, userId);
     } catch {
-      // Falha não impeditiva na vinculação biográfica
+      // A ligação pode ser feita depois; o aviso abaixo diz que não ficou feita.
     }
+    const personLinkMessage = personLinkWarning(personLink, data.cargo);
 
     // Entrega do link de acesso por e-mail institucional (best-effort: a conta
     // já está criada e funcional mesmo que a entrega falhe).
@@ -460,6 +455,8 @@ export const inviteSystemUser = createServerFn({ method: "POST" })
       cargo: data.cargo,
       inviteDelivered,
       inviteDeliveryError,
+      personLink,
+      personLinkWarning: personLinkMessage,
     };
   });
 
@@ -1283,35 +1280,9 @@ export const acceptSchoolInvitation = createServerFn({ method: "POST" })
       }
     }
 
-    // 6. Ligar people.user_id por email (idempotente). Em ILIKE, «_» e «%» são
-    // curingas: «ana_silva@…» também apanhava «ana.silva@…» e ligava esta conta
-    // à ficha de outra pessoa. Compara-se o e-mail exacto e só se liga quando há
-    // uma única ficha sem conta.
+    // 6. Ligar people.user_id por email (idempotente; regras em person-link.ts).
     try {
-      const { data: candidates } = await admin
-        .from("people")
-        .select("id, email")
-        .eq("school_id", schoolId)
-        .ilike(
-          "email",
-          invitedEmail.replace(/[\\%_]/g, (c) => `\\${c}`),
-        )
-        .is("user_id", null)
-        .limit(5);
-      const exact = (candidates ?? []).filter(
-        (row) =>
-          String(row.email ?? "")
-            .toLowerCase()
-            .trim() === invitedEmail,
-      );
-      if (exact.length === 1) {
-        await admin
-          .from("people")
-          .update({ user_id: userId })
-          .eq("school_id", schoolId)
-          .eq("id", String(exact[0].id))
-          .is("user_id", null);
-      }
+      await linkPersonByEmail(admin, schoolId, invitedEmail, userId);
     } catch {
       // Não crítico — o vínculo à ficha pode ser feito depois em Pessoas.
     }
