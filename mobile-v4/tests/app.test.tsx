@@ -281,7 +281,7 @@ it("discards late institutional catalog after changing school", async () => {
   fireEvent.click(screen.getByRole("button", { name: "Meu dia" }));
   await screen.findByText("0 períodos no horário semanal.");
   fireEvent.click(screen.getByRole("button", { name: "Minhas turmas" }));
-  await screen.findByText("Sem resultados para os filtros seleccionados.");
+  await screen.findByText(/Ainda não tem turmas e disciplinas atribuídas/);
   expect(screen.queryByText("Aluno autorizado")).toBeNull();
 });
 

@@ -25,8 +25,31 @@ As matrículas activas estão consistentes. As 40 pendentes parecem uma admissã
 
 O formato dos dados entre a app e o servidor não mudou: uma app antiga continua a funcionar.
 
+## Segunda ronda (11-10-2026)
+
+| Verificação                                                       | Resultado    |
+| ----------------------------------------------------------------- | ------------ |
+| Matrículas activas cujo aluno tem conta ligada (`people.user_id`) | **0 de 36**  |
+| Matrículas activas em turmas sem disciplinas atribuídas           | **33 de 36** |
+| Matrículas activas em turmas sem horário                          | 33 de 36     |
+| Chamadas fechadas com alunos da turma por marcar                  | 0 de 2       |
+| Presenças de alunos fora da turma                                 | 0            |
+| Notas sem matrícula, ou em matrículas terminadas                  | 0            |
+| Linhas de pauta noutra turma                                      | 0            |
+| Inscrições do ensino superior (`course_unit_enrollments`)         | 0            |
+
+Os dados que existem estão coerentes. O problema é operacional: hoje nenhum aluno consegue entrar no Mobile, porque nenhum tem conta ligada à ficha. Mesmo com conta, 33 dos 36 veriam uma lista vazia, porque a turma não tem disciplinas. Isto resolve-se no SIGA Plus (ligar contas, atribuir disciplinas), não no Mobile.
+
+O Mobile passa a explicar estes casos:
+
+- `ACADEMIC_IDENTITY_REQUIRED` diz «A sua conta ainda não está ligada à sua ficha… Peça à secretaria que a ligue», em vez de «Sem autorização».
+- `ACADEMIC_IDENTITY_CONFLICT` e `ACADEMIC_SCOPE_CHANGED` também têm mensagem própria (`services/api.ts`).
+- Sem turmas ou disciplinas atribuídas, as páginas dizem isso a cada perfil, em vez de «Sem resultados para os filtros seleccionados».
+
 ## Fica por decidir
 
 - O portal ainda deixa fechar uma chamada incompleta (`submitAttendanceCallBatch`). Aplicar a mesma regra lá é uma mudança na Pedagógica, fora do Mobile.
-- O ensino superior inscreve por unidade curricular (`course_unit_enrollments`). O Mobile só lê `enrollments` e ainda não mostra essas inscrições.
+- O ensino superior inscreve por unidade curricular (`course_unit_enrollments`). O Mobile só lê `enrollments`. Ainda não há nenhuma inscrição destas em produção.
+- O aluno só vê no Mobile as pautas do ano activo. O portal mostra também as de anos anteriores.
+- Ligar as contas dos alunos e atribuir as disciplinas às 33 turmas.
 - As 40 matrículas pendentes em turmas `draft` devem ser confirmadas pela escola.

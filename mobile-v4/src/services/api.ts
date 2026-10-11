@@ -44,6 +44,16 @@ export interface SessionTransport {
   clearSession?(): Promise<void>;
   subscribeSessionChanged?(listener: () => void): () => void;
 }
+/** Recusas que a pessoa resolve com a secretaria: dizer o quê, não só «sem autorização». */
+const CODE_MESSAGES: Record<string, string> = {
+  ACADEMIC_IDENTITY_REQUIRED:
+    "A sua conta ainda não está ligada à sua ficha de aluno ou de professor nesta escola. Peça à secretaria que a ligue.",
+  ACADEMIC_IDENTITY_CONFLICT:
+    "A sua ficha nesta escola está ligada a outra conta. Peça à secretaria que verifique a ligação.",
+  ACADEMIC_SCOPE_CHANGED:
+    "As suas turmas ou matrículas mudaram entretanto. Actualize para ver a lista nova.",
+};
+
 export class ApiError extends Error {
   constructor(
     public status: number,
@@ -134,15 +144,16 @@ export class ApiGateway implements Gateway {
       }
       throw new ApiError(
         response.status,
-        response.status === 401
-          ? "Sessão expirada."
-          : response.status === 403
-            ? "Sem autorização para esta escola ou operação."
-            : response.status === 409
-              ? "Os dados foram alterados. Actualize antes de voltar a guardar."
-              : response.status === 422
-                ? "Os dados enviados não passaram na validação institucional."
-                : "Não foi possível concluir a operação (" + response.status + ").",
+        (code && CODE_MESSAGES[code]) ??
+          (response.status === 401
+            ? "Sessão expirada."
+            : response.status === 403
+              ? "Sem autorização para esta escola ou operação."
+              : response.status === 409
+                ? "Os dados foram alterados. Actualize antes de voltar a guardar."
+                : response.status === 422
+                  ? "Os dados enviados não passaram na validação institucional."
+                  : "Não foi possível concluir a operação (" + response.status + ")."),
         code,
       );
     }

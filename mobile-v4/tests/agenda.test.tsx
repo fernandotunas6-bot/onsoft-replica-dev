@@ -127,3 +127,25 @@ describe("páginas de cada função", () => {
     expect(onNavigate).toHaveBeenCalledWith("notas-aluno");
   });
 });
+
+describe("sem turmas atribuídas", () => {
+  it("explica a cada perfil em vez de culpar os filtros", () => {
+    for (const [role, text] of [
+      ["professor", /Ainda não tem turmas e disciplinas atribuídas/],
+      ["aluno", /A sua matrícula ainda não tem disciplinas atribuídas/],
+    ] as const) {
+      render(
+        <AcademicCatalog
+          catalog={{ ...catalog(role), classes: [], timetable: [], tasks: [] }}
+          module={role === "professor" ? "turmas" : "disciplinas"}
+          onNavigate={vi.fn()}
+          now={NOW}
+        />,
+      );
+      expect(screen.getByRole("status").textContent).toMatch(text);
+      expect(screen.queryByText(/Sem resultados/)).toBeNull();
+      expect(screen.queryByLabelText("Pesquisar turma ou disciplina")).toBeNull();
+      cleanup();
+    }
+  });
+});

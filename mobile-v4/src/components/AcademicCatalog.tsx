@@ -66,6 +66,22 @@ export function AcademicCatalog({
         </button>
       </div>
     );
+  // Sem nada atribuído não é «sem resultados»: os filtros não têm culpa.
+  if (!catalog.classes.length)
+    return (
+      <div className="card" role="status">
+        <p>
+          {catalog.role === "professor"
+            ? "Ainda não tem turmas e disciplinas atribuídas nesta escola, no ano lectivo activo."
+            : "A sua matrícula ainda não tem disciplinas atribuídas, no ano lectivo activo."}
+        </p>
+        <p className="small">
+          {catalog.role === "professor"
+            ? "A atribuição é feita pela direcção pedagógica no SIGA Plus."
+            : "As disciplinas e o horário da turma são publicados pela secretaria no SIGA Plus."}
+        </p>
+      </div>
+    );
   const slots = catalog.timetable.filter(
     (s) => byId.has(s.classSubjectId) && (!day || s.weekday === Number(day)),
   );

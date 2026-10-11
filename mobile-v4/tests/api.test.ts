@@ -340,3 +340,31 @@ it("posts the teacher call and keeps the server error code", async () => {
   await expect(api.recordAttendanceCall({ ...ctx, role: "aluno" }, input)).rejects.toThrow();
   expect(fetch).toHaveBeenCalledTimes(3);
 });
+
+it("explains the refusals the school office can fix, and keeps the generic one for the rest", async () => {
+  const refuse = (status: number, error?: string) => ({
+    ok: false,
+    status,
+    json: async () => (error ? { error } : {}),
+  });
+  const fetch = vi
+    .fn()
+    .mockResolvedValueOnce({ ok: true, status: 200, json: async () => demoSession("professor") })
+    .mockResolvedValueOnce(refuse(403, "ACADEMIC_IDENTITY_REQUIRED"))
+    .mockResolvedValueOnce(refuse(409, "ACADEMIC_SCOPE_CHANGED"))
+    .mockResolvedValueOnce(refuse(403, "SOMETHING_ELSE"));
+  vi.stubGlobal("fetch", fetch);
+  const api = new ApiGateway();
+  await api.session();
+  await expect(api.academicCatalog!(ctx)).rejects.toMatchObject({
+    status: 403,
+    code: "ACADEMIC_IDENTITY_REQUIRED",
+    message: expect.stringMatching(/ainda não está ligada à sua ficha/),
+  });
+  await expect(api.academicCatalog!(ctx)).rejects.toMatchObject({
+    message: expect.stringMatching(/turmas ou matrículas mudaram/),
+  });
+  await expect(api.academicCatalog!(ctx)).rejects.toMatchObject({
+    message: "Sem autorização para esta escola ou operação.",
+  });
+});
