@@ -176,3 +176,13 @@ numa escola maior os gráficos ficam incompletos. Pede uma agregação na base (
 
 Verificado e sem mudança: os rótulos de opção em Pedagógica, horário e ficha do professor levam o
 início do id, por isso não confundem opções homónimas (ao contrário de M7).
+
+## 10. Quarta passagem: pautas e notas
+
+| #   | Sev. | Achado                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                | Correcção                                                                                                                                                  |
+| --- | ---- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| N1  | P2   | **A mesma média com dois valores.** Havia três arredondamentos de notas: o do modelo de avaliação (exacto, sobre o valor decimal) e dois com `+ Number.EPSILON` (pautas impressas e médias de `angola-academic`). Em 1 022 de 40 401 pares de notas davam resultados diferentes: (0,1 + 4,6) / 2 = 2,35 saía 2,4 num e 2,3 nos outros, porque o computador guarda 2,3499999…. Não encontrei casos exactamente no limiar de aprovação (10), mas a nota do ecrã e a da pauta podiam diferir em 0,1. Produção: 1 nota lançada, 0 pautas. | `roundHalfUp` em `angola-academic.ts`, usado pelos três. Teste `tests/academic/grade-rounding-single-rule.test.ts` compara as três vias em todos os pares. |
+
+Aberto (P3): quando falta a prova do trimestre, a média de `angola-academic` mostra a MAC sozinha
+(provisória) e a da pauta deixa em branco. É uma diferença de propósito (ecrã provisório vs pauta
+oficial), mas convém o dono confirmar.
