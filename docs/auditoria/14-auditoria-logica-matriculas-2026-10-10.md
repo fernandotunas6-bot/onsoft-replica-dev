@@ -352,3 +352,12 @@ das 1000 linhas por pedido — isso continua nos sítios L1–L12.
 O heatmap de desempenho do painel continua a ser uma amostra de 1000 notas (agora dito no
 código): ler todas as notas da escola em cada abertura do painel seria pesado, e o cálculo exacto
 pede uma agregação na base.
+
+## 12. Valor em dívida em cêntimos (2026-10-12)
+
+O estado da fatura (`invoiceStatusFromPaid`) já compara em cêntimos, mas sete sítios
+calculavam o que falta pagar com `total - pago` em vírgula flutuante e contavam `> 0`
+(tesouraria, painel em três sítios, ficha do aluno, contexto da pessoa e importação de
+pagamentos). Um resíduo (`0,3 - (0,1 + 0,2)`) punha uma fatura paga «em aberto» e o aluno
+com dívida vencida. Todos usam agora `invoiceOpenAmount` (cêntimos, a mesma regra do
+estado).

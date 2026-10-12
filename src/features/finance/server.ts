@@ -28,7 +28,7 @@ import {
 // Só o schema (zod puro, sem dependências pesadas) entra estaticamente; o
 // gerador de XML continua a ser carregado dinamicamente dentro do handler.
 import { generateSaftInputSchema } from "./saft-generator";
-import { invoiceNetTotal } from "./invoice-settlement";
+import { invoiceNetTotal, invoiceOpenAmount } from "./invoice-settlement";
 import { lateFeeFor, paidOnIso, todayIso } from "./late-fee";
 import {
   feeItemMatcher,
@@ -525,7 +525,7 @@ export const getFinanceReporting = createServerFn({ method: "GET" })
     for (const invoice of activeInvoices) {
       const amount = invoiceNetTotal(invoice);
       const paid = paidByInvoice.get(String(invoice.id)) ?? 0;
-      const openAmount = Math.max(amount - paid, 0);
+      const openAmount = invoiceOpenAmount(amount, paid);
       billed += amount;
       outstanding += openAmount;
       if (openAmount > 0) {

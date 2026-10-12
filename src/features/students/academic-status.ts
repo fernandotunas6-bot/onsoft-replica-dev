@@ -1,4 +1,5 @@
 import { schoolTodayIso } from "@/lib/school-date";
+import { invoiceOpenAmount } from "@/features/finance/invoice-settlement";
 /**
  * academic-status.ts
  *
@@ -218,7 +219,7 @@ export function deriveFinancialSnapshot(
           );
 
     const paid = Math.min(total, Math.max(0, Number(inv.amount_paid ?? 0)));
-    const openAmount = Math.max(0, total - paid);
+    const openAmount = invoiceOpenAmount(total, paid);
     const dueDate = inv.due_date || inv.due_on;
 
     totalBilled += total;

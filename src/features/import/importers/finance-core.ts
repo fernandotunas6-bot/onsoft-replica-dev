@@ -1,6 +1,10 @@
 import { readAllPages, readInChunks } from "@/integrations/supabase/read-all-pages";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { invoiceNetTotal, invoiceStatusFromPaid } from "@/features/finance/invoice-settlement";
+import {
+  invoiceNetTotal,
+  invoiceOpenAmount,
+  invoiceStatusFromPaid,
+} from "@/features/finance/invoice-settlement";
 import { normalizeText } from "../engine/normalize";
 import { rowsOrThrow, selectAllPages } from "../engine/paged";
 import { categoryToFeeKind } from "@/features/finance/server";
@@ -372,7 +376,7 @@ export async function loadOpenInvoiceRefs(
             amount,
             due_date: String(row.due_date),
             competence_month: row.competence_month ? String(row.competence_month) : null,
-            remaining: Math.max(0, amount - paid),
+            remaining: invoiceOpenAmount(amount, paid),
           }
         : null;
     })

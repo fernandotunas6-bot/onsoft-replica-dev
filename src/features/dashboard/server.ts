@@ -36,7 +36,7 @@ import {
   type AcademicYearPhase,
 } from "@/features/calendar/dates";
 import { buildUpcomingCalendarItems } from "@/features/calendar/upcoming";
-import { invoiceNetTotal } from "@/features/finance/invoice-settlement";
+import { invoiceNetTotal, invoiceOpenAmount } from "@/features/finance/invoice-settlement";
 import {
   emptySchoolTodayOps,
   isStartingWithinMinutes,
@@ -634,7 +634,7 @@ export const getDashboardOverview = createServerFn({ method: "GET" })
         if (invoice.status === "cancelled") continue;
         const total = invoiceNetTotal(invoice);
         const paid = paidByInvoice.get(String(invoice.id)) ?? 0;
-        const openAmount = Math.max(total - paid, 0);
+        const openAmount = invoiceOpenAmount(total, paid);
         billed += total;
         received += Math.min(paid, total);
         outstanding += openAmount;
@@ -1020,7 +1020,7 @@ export const getSchoolTodayOps = createServerFn({ method: "GET" })
           if (invoice.status === "cancelled") continue;
           const total = invoiceNetTotal(invoice);
           const paid = paidByInvoice.get(String(invoice.id)) ?? 0;
-          const openAmount = Math.max(total - paid, 0);
+          const openAmount = invoiceOpenAmount(total, paid);
           if (openAmount > 0 && String(invoice.due_date ?? "") < today) overdueCount += 1;
         }
         ops.overdueInvoices = overdueCount;
@@ -1137,7 +1137,7 @@ export const listSchoolAlerts = createServerFn({ method: "GET" })
           if (invoice.status === "cancelled") continue;
           const total = invoiceNetTotal(invoice);
           const paid = paidByInvoice.get(String(invoice.id)) ?? 0;
-          const openAmount = Math.max(total - paid, 0);
+          const openAmount = invoiceOpenAmount(total, paid);
           if (openAmount > 0 && String(invoice.due_date ?? "") < today) overdueCount += 1;
         }
         const faturas = buildSchoolAlert("faturas", overdueCount);
