@@ -49,12 +49,13 @@ async function readIn<T>(
   page: (chunk: string[], from: number, to: number) => Page<T>,
 ): Promise<T[]> {
   const unique = [...new Set(ids)];
-  const rows: T[] = [];
-  for (let i = 0; i < unique.length; i += CHUNK) {
-    const chunk = unique.slice(i, i + CHUNK);
-    rows.push(...(await readAll((from, to) => page(chunk, from, to))));
-  }
-  return rows;
+  const chunks: string[][] = [];
+  for (let i = 0; i < unique.length; i += CHUNK) chunks.push(unique.slice(i, i + CHUNK));
+  // Os pedaços pedem-se em paralelo; as páginas de cada um, em sequência.
+  const parts = await Promise.all(
+    chunks.map((chunk) => readAll((from, to) => page(chunk, from, to))),
+  );
+  return parts.flat();
 }
 
 export async function loadMobileReadinessSnapshot(
@@ -143,12 +144,12 @@ export async function loadMobileReadinessSnapshot(
           .order("id")
           .range(a, b),
     ),
-    readIn<{ id: string; person_id: string }>(
+    readIn<{ id: string; person_id: string; status: string }>(
       enrollments.map((e) => e.student_id),
       (ids, a, b) =>
         db
           .from("students")
-          .select("id, person_id")
+          .select("id, person_id, status")
           .eq("school_id", schoolId)
           .is("deleted_at", null)
           .in("id", ids)
@@ -164,12 +165,18 @@ export async function loadMobileReadinessSnapshot(
   );
 
   const [people, unlinked, invitations] = await Promise.all([
-    readIn<{ id: string; full_name: string; email: string | null; user_id: string | null }>(
+    readIn<{
+      id: string;
+      full_name: string;
+      email: string | null;
+      user_id: string | null;
+      status: string;
+    }>(
       [...students, ...teachers].map((row) => row.person_id),
       (ids, a, b) =>
         db
           .from("people")
-          .select("id, full_name, email, user_id")
+          .select("id, full_name, email, user_id, status")
           .eq("school_id", schoolId)
           .is("deleted_at", null)
           .in("id", ids)
@@ -256,6 +263,7 @@ export async function loadMobileReadinessSnapshot(
     id: string,
     personId: string,
     appRole: "Aluno" | "Professor",
+    recordActive: boolean,
     direct?: string | null,
   ) => {
     const p = personMap.get(personId);
@@ -266,6 +274,8 @@ export async function loadMobileReadinessSnapshot(
       name: p?.full_name?.trim() || "Ficha sem nome",
       hasAccount: !!account,
       hasRole: !!account && !!rolesByUser.get(account)?.has(appRole),
+      // Como `resolveMobileAcademicScope`: ficha e pessoa activas.
+      recordActive: recordActive && p?.status === "active",
       email: emailState(p?.email, !!account, emailCounts),
       invitePending: !!email && invited.has(email),
     };
@@ -274,6 +284,15 @@ export async function loadMobileReadinessSnapshot(
   const studentGroups = new Map<string, string[]>();
   for (const e of enrollments)
     studentGroups.set(e.student_id, [...(studentGroups.get(e.student_id) ?? []), e.class_group_id]);
+  const studentsByGroup = new Map<string, Set<string>>();
+  for (const e of enrollments) {
+    const set = studentsByGroup.get(e.class_group_id) ?? new Set<string>();
+    set.add(e.student_id);
+    studentsByGroup.set(e.class_group_id, set);
+  }
+  const subjectsByGroup = new Map<string, typeof classSubjects>();
+  for (const cs of classSubjects)
+    subjectsByGroup.set(cs.class_group_id, [...(subjectsByGroup.get(cs.class_group_id) ?? []), cs]);
   const subjectsByTeacher = new Map<string, number>();
   for (const cs of classSubjects)
     if (cs.teacher_id)
@@ -282,21 +301,19 @@ export async function loadMobileReadinessSnapshot(
   return {
     activeYears: years.map((y) => y.name),
     students: students.map((s) => ({
-      ...person(s.id, s.person_id, "Aluno"),
+      ...person(s.id, s.person_id, "Aluno", s.status === "active"),
       classGroupIds: [...new Set(studentGroups.get(s.id) ?? [])],
     })),
     teachers: teachers.map((t) => ({
-      ...person(t.id, t.person_id, "Professor", t.user_id),
+      ...person(t.id, t.person_id, "Professor", true, t.user_id),
       classSubjects: subjectsByTeacher.get(t.id) ?? 0,
     })),
     classGroups: groups.map((g) => {
-      const subjects = classSubjects.filter((cs) => cs.class_group_id === g.id);
+      const subjects = subjectsByGroup.get(g.id) ?? [];
       return {
         id: g.id,
         name: g.name,
-        students: new Set(
-          enrollments.filter((e) => e.class_group_id === g.id).map((e) => e.student_id),
-        ).size,
+        students: studentsByGroup.get(g.id)?.size ?? 0,
         subjects: subjects.length,
         subjectsWithoutTeacher: subjects.filter((cs) => !cs.teacher_id).length,
         subjectsWithoutTimetable: subjects.filter((cs) => !timetabled.has(cs.id)).length,

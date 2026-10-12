@@ -132,6 +132,23 @@ describe("planos de aula do professor no Mobile", () => {
     ).toBe(true);
   });
 
+  it("pede os componentes de muitos planos em pedaços curtos", async () => {
+    const many = Array.from({ length: 400 }, (_, i) => ({
+      school_id: SCHOOL,
+      ...plan(1000 + i, 110, 210),
+    }));
+    const { db, calls } = database({ siga_lesson_plans: many, siga_lesson_plan_components: [] });
+    expect((await readMobileLessonPlans(db, scope, catalog, USER)).plans).toHaveLength(400);
+    const parts = calls.filter((c) => c.table === "siga_lesson_plan_components");
+    expect(parts).toHaveLength(3);
+    for (const c of parts) {
+      const ids = c.filters.find(
+        ([op, f]) => op === "in" && f === "lesson_plan_id",
+      )![2] as string[];
+      expect(ids.length).toBeLessThanOrEqual(150);
+    }
+  });
+
   it("um aluno nunca chega aqui e uma leitura truncada não é dada como completa", async () => {
     await expect(
       readMobileLessonPlans(database({}).db, { ...scope, role: "aluno" }, catalog, USER),

@@ -26,6 +26,7 @@ const person = (id: string, extra: Partial<MobileReadinessSnapshot["students"][n
   name: `Pessoa ${id}`,
   hasAccount: false,
   hasRole: false,
+  recordActive: true,
   email: "ok" as const,
   invitePending: false,
   classGroupIds: ["g1"],
@@ -57,6 +58,8 @@ describe("prontidão do Mobile — regras", () => {
       person("repetido", { email: "duplicate" }),
       person("convidar"),
       person("convidado", { invitePending: true }),
+      // Conta e papel, mas a ficha está inactiva: o Mobile recusa-o.
+      person("inactivo", { hasAccount: true, hasRole: true, recordActive: false }),
     ],
     teachers: [
       { ...person("prof-pronto", { hasAccount: true, hasRole: true }), classSubjects: 2 },
@@ -73,7 +76,9 @@ describe("prontidão do Mobile — regras", () => {
   const r = buildMobileReadiness(snapshot);
 
   it("conta como pronto só quem tem conta, papel e disciplinas", () => {
-    expect(r.students).toEqual({ ready: 1, total: 7 });
+    expect(r.students).toEqual({ ready: 1, total: 8 });
+    expect(check(r, "aluno-ficha-inactiva").items.map((i) => i.id)).toEqual(["inactivo"]);
+    expect(check(r, "aluno-sem-papel").items.map((i) => i.id)).toEqual(["sem-papel"]);
     expect(r.teachers).toEqual({ ready: 1, total: 3 });
   });
 
@@ -236,7 +241,7 @@ describe("prontidão do Mobile — leitura da base", () => {
       { id: "ts3", school_id: S, class_subject_id: "cs3", schedule_id: "draft", status: "active" },
     ],
     teachers: [{ id: "t1", school_id: S, person_id: "pt1", user_id: "ut1", status: "active" }],
-    students: [{ id: "s1", school_id: S, person_id: "ps1", deleted_at: null }],
+    students: [{ id: "s1", school_id: S, person_id: "ps1", deleted_at: null, status: "active" }],
     people: [
       {
         id: "ps1",
@@ -245,6 +250,7 @@ describe("prontidão do Mobile — leitura da base", () => {
         email: "Ana@x.ao",
         user_id: null,
         deleted_at: null,
+        status: "active",
       },
       {
         id: "px",
@@ -253,6 +259,7 @@ describe("prontidão do Mobile — leitura da base", () => {
         email: "ana@x.ao",
         user_id: null,
         deleted_at: null,
+        status: "active",
       },
       {
         id: "pt1",
@@ -261,6 +268,7 @@ describe("prontidão do Mobile — leitura da base", () => {
         email: "p@x.ao",
         user_id: "ut1",
         deleted_at: null,
+        status: "active",
       },
       {
         id: "foreign",
@@ -269,6 +277,7 @@ describe("prontidão do Mobile — leitura da base", () => {
         email: "ana@x.ao",
         user_id: null,
         deleted_at: null,
+        status: "active",
       },
     ],
     school_invitations: [] as Row[],
@@ -314,6 +323,22 @@ describe("prontidão do Mobile — leitura da base", () => {
     expect((await loadMobileReadinessSnapshot(db, S)).teachers[0]!.hasRole).toBe(false);
   });
 
+  it("como o Mobile, só reconhece fichas e pessoas activas", async () => {
+    const tables = base();
+    expect((await loadMobileReadinessSnapshot(database(tables).db, S)).students[0]).toMatchObject({
+      recordActive: true,
+    });
+    tables.students[0]!.status = "inactive";
+    expect((await loadMobileReadinessSnapshot(database(tables).db, S)).students[0]).toMatchObject({
+      recordActive: false,
+    });
+    tables.students[0]!.status = "active";
+    tables.people[2]!.status = "archived";
+    expect((await loadMobileReadinessSnapshot(database(tables).db, S)).teachers[0]).toMatchObject({
+      recordActive: false,
+    });
+  });
+
   it("um convite expirado não conta como pendente", async () => {
     const tables = base();
     tables.people[1]!.email = "outra@x.ao";
@@ -342,6 +367,7 @@ describe("prontidão do Mobile — leitura da base", () => {
       school_id: S,
       person_id: `p${i}`,
       deleted_at: null,
+      status: "active",
     }));
     const snap = await loadMobileReadinessSnapshot(database(tables).db, S);
     expect(snap.students).toHaveLength(2300);

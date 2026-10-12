@@ -94,6 +94,31 @@ describe("documentos do aluno no Mobile", () => {
     ).toBe(true);
   });
 
+  it("cada documento que a escola emite aparece uma vez, mesmo com várias versões", async () => {
+    const { db } = database({
+      document_requests: [],
+      document_templates: [
+        {
+          id: id(50),
+          school_id: SCHOOL,
+          name: "Declaração",
+          document_type: "declaration",
+          status: "active",
+        },
+        {
+          id: id(51),
+          school_id: SCHOOL,
+          name: "declaração ",
+          document_type: "declaration",
+          status: "active",
+        },
+      ],
+    });
+    expect((await readMobileDocuments(db, scope, USER)).available).toEqual([
+      { name: "declaração", kind: "declaration" },
+    ]);
+  });
+
   it("um professor nunca chega aqui; leitura truncada ou estado desconhecido falham", async () => {
     await expect(
       readMobileDocuments(database({}).db, { ...scope, role: "professor", studentId: null }, USER),

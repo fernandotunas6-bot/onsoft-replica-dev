@@ -195,3 +195,51 @@ export async function resolveMobileAcademicScope(
   }
   return scope;
 }
+
+/**
+ * Alunos que entram na chamada de uma turma: a mesma lista que o catálogo do
+ * professor mostra. Matrícula activa ou pendente; uma pendente cuja ficha de
+ * aluno foi apagada (ou cuja pessoa está inactiva) fica de fora, em vez de
+ * tornar a chamada impossível. Numa activa, isso é uma inconsistência.
+ */
+export async function rosterStudentIds(
+  db: Db,
+  schoolId: string,
+  classGroupId: string,
+): Promise<Set<string>> {
+  const enrollments = await rows<{ student_id: string; status: string }>(
+    db
+      .from("enrollments")
+      .select("student_id, status", { count: "exact" })
+      .eq("school_id", schoolId)
+      .eq("class_group_id", classGroupId)
+      .in("status", ROSTER_ENROLLMENT_STATUSES)
+      .limit(1000),
+  );
+  const ids = [...new Set(enrollments.map((e) => e.student_id))];
+  if (!ids.length) return new Set();
+  const students = await rows<{ id: string; person_id: string }>(
+    db
+      .from("students")
+      .select("id, person_id", { count: "exact" })
+      .eq("school_id", schoolId)
+      .is("deleted_at", null)
+      .in("id", ids)
+      .limit(1000),
+  );
+  const people = await rows<{ id: string }>(
+    db
+      .from("people")
+      .select("id", { count: "exact" })
+      .eq("school_id", schoolId)
+      .eq("status", "active")
+      .is("deleted_at", null)
+      .in("id", [...new Set(students.map((s) => s.person_id))])
+      .limit(1000),
+  );
+  const activePeople = new Set(people.map((p) => p.id));
+  const usable = new Set(students.filter((s) => activePeople.has(s.person_id)).map((s) => s.id));
+  if (enrollments.some((e) => e.status === "active" && !usable.has(e.student_id)))
+    throw new MobileApiError(503, "ACADEMIC_SCOPE_UNAVAILABLE");
+  return new Set(enrollments.map((e) => e.student_id).filter((id) => usable.has(id)));
+}

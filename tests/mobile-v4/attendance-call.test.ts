@@ -53,6 +53,7 @@ function database(answer: (table: string, ops: Op[]) => Result) {
         "select",
         "eq",
         "in",
+        "is",
         "limit",
         "insert",
         "update",
@@ -89,7 +90,16 @@ function happy(over: Partial<Record<string, (ops: Op[]) => Result>> = {}) {
       return { data: { id: CS, class_group_id: GROUP, subject_id: SUBJECT, teacher_id: TEACHER } };
     if (table === "siga_attendance_sessions")
       return has(ops, "update") ? {} : { data: [session()] };
-    if (table === "enrollments") return { data: [A, B].map((s) => ({ student_id: s })), count: 2 };
+    if (table === "enrollments")
+      return { data: [A, B].map((s) => ({ student_id: s, status: "active" })), count: 2 };
+    // Fichas de aluno e pessoas: todas existem e estão activas.
+    if (table === "students" || table === "people") {
+      const ids = (ops.find(([m, a]) => m === "in" && a[0] === "id")?.[1][1] ?? []) as string[];
+      return {
+        data: ids.map((x) => (table === "students" ? { id: x, person_id: "p-" + x } : { id: x })),
+        count: ids.length,
+      };
+    }
     if (table === "siga_attendance_records") return {};
     throw new Error("tabela inesperada " + table);
   });
@@ -274,16 +284,42 @@ describe("chamada do professor no Mobile", () => {
     const call = happy({
       enrollments: (ops) => {
         expect(ops).toContainEqual(["in", ["status", ["active", "pending"]]]);
-        return { data: [A, B, C].map((s) => ({ student_id: s })), count: 3 };
+        return { data: [A, B, C].map((s) => ({ student_id: s, status: "active" })), count: 3 };
       },
     });
     await refuses(409, "ATTENDANCE_ROSTER_CHANGED", () =>
       recordMobileAttendanceCall(call.db, scope, USER, input()),
     );
     expect(call.queries.some((q) => q.table === "siga_attendance_records")).toBe(false);
-    expect(
-      call.queries.some((q) => q.table === "siga_attendance_sessions" && has(q.ops, "update")),
-    ).toBe(false);
+    // Recusada antes de abrir a sessão do dia: nada fica aberto no portal.
+    expect(call.queries.some((q) => q.table === "siga_attendance_sessions")).toBe(false);
+  });
+
+  it("uma matrícula pendente sem ficha de aluno não bloqueia a chamada", async () => {
+    const call = happy({
+      enrollments: () => ({
+        data: [
+          { student_id: A, status: "active" },
+          { student_id: B, status: "active" },
+          { student_id: C, status: "pending" },
+        ],
+        count: 3,
+      }),
+      // A ficha de C foi apagada: não volta na leitura dos alunos.
+      students: (ops) => {
+        const ids = (ops.find(([m, a]) => m === "in" && a[0] === "id")?.[1][1] ?? []) as string[];
+        const kept = ids.filter((x) => x !== C);
+        return { data: kept.map((x) => ({ id: x, person_id: "p-" + x })), count: kept.length };
+      },
+    });
+    expect((await recordMobileAttendanceCall(call.db, scope, USER, input())).count).toBe(2);
+    // Numa matrícula activa, a mesma falta é uma inconsistência, não um aluno a menos.
+    const broken = happy({
+      students: () => ({ data: [{ id: A, person_id: "p-" + A }], count: 1 }),
+    });
+    await refuses(503, "ATTENDANCE_UNAVAILABLE", () =>
+      recordMobileAttendanceCall(broken.db, scope, USER, input()),
+    );
   });
 
   it("um erro ao gravar ou ao fechar não é dado como sucesso", async () => {

@@ -28,7 +28,7 @@ type ClassSubject = {
   subject_id: string;
   teacher_id: string | null;
 };
-type Enrollment = { id: string; class_group_id: string; student_id: string };
+type Enrollment = { id: string; class_group_id: string; student_id: string; status: string };
 type Student = { id: string; person_id: string };
 type Teacher = { id: string; person_id: string; user_id: string | null };
 type Person = { id: string; full_name: string; user_id: string | null };
@@ -129,7 +129,7 @@ export async function readMobileAcademicCatalog(
       ? read<Enrollment>(
           db
             .from("enrollments")
-            .select("id, class_group_id, student_id", { count: "exact" })
+            .select("id, class_group_id, student_id, status", { count: "exact" })
             .eq("school_id", schoolId)
             .in("status", scope.role === "professor" ? ROSTER_ENROLLMENT_STATUSES : ["active"])
             .in("id", scope.enrollmentIds)
@@ -247,6 +247,14 @@ export async function readMobileAcademicCatalog(
             : null,
         students: enrollments
           .filter((row) => row.class_group_id === group.id)
+          // Uma matrícula pendente de uma ficha apagada ou inactiva fica fora da
+          // lista (e da chamada, `rosterStudentIds`) em vez de bloquear a turma.
+          // Numa activa, a falta da ficha continua a ser uma inconsistência.
+          .filter(
+            (row) =>
+              row.status !== "pending" ||
+              personMap.has(studentMap.get(row.student_id)?.person_id ?? ""),
+          )
           .map((enrollment) => {
             const student = required(studentMap, enrollment.student_id);
             const person = required(personMap, student.person_id);

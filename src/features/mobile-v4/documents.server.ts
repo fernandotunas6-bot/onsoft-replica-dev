@@ -8,6 +8,7 @@
 import type { requireMobileAcademicAccess } from "./authorization";
 import type { MobileAcademicScope } from "./academic-scope.server";
 import {
+  DOCUMENT_TEMPLATES_MAX,
   documentStatuses,
   parseStudentDocuments,
   type DocumentStatus,
@@ -80,15 +81,24 @@ export async function readMobileDocuments(
         updatedAt: r.updated_at ?? r.created_at,
       }))
       .sort((a, b) => b.requestedAt.localeCompare(a.requestedAt) || a.id.localeCompare(b.id)),
-    available: templates
-      .filter((t) => t.status === "active" && filled(t.name))
-      .map((t) => ({
-        name: filled(t.name)!,
-        kind: (t.document_type === "certificate" || t.document_type === "declaration"
-          ? t.document_type
-          : "other") as StudentDocuments["available"][number]["kind"],
-      }))
-      .sort((a, b) => a.name.localeCompare(b.name, "pt")),
+    // Cada versão de um modelo é uma linha: ao aluno basta o nome, uma vez.
+    available: [
+      ...new Map(
+        templates
+          .filter((t) => t.status === "active" && filled(t.name))
+          .map((t) => [
+            filled(t.name)!.toLocaleLowerCase("pt"),
+            {
+              name: filled(t.name)!,
+              kind: (t.document_type === "certificate" || t.document_type === "declaration"
+                ? t.document_type
+                : "other") as StudentDocuments["available"][number]["kind"],
+            },
+          ]),
+      ).values(),
+    ]
+      .sort((a, b) => a.name.localeCompare(b.name, "pt"))
+      .slice(0, DOCUMENT_TEMPLATES_MAX),
   };
   try {
     return parseStudentDocuments(response, {

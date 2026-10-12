@@ -14,7 +14,7 @@
  * Erros conhecidos saem com código e estado HTTP; nada é convertido em sucesso.
  */
 import type { requireMobileAcademicAccess } from "./authorization";
-import { ROSTER_ENROLLMENT_STATUSES, type MobileAcademicScope } from "./academic-scope.server";
+import { rosterStudentIds, type MobileAcademicScope } from "./academic-scope.server";
 import type { AttendanceCallInput } from "../../../mobile-v4/src/domain/attendance";
 import {
   assertAttendanceNotLocked,
@@ -82,6 +82,22 @@ export async function recordMobileAttendanceCall(
   } | null;
   if (!cs || cs.teacher_id !== scope.teacherId) throw new MobileApiError(403, "CLASS_FORBIDDEN");
 
+  // A lista da turma valida-se antes de abrir a sessão do dia: uma chamada
+  // recusada aqui não deixa uma sessão vazia aberta no portal.
+  let enrolled: Set<string>;
+  try {
+    enrolled = await rosterStudentIds(db, scope.schoolId, cs.class_group_id);
+  } catch {
+    throw new MobileApiError(503, "ATTENDANCE_UNAVAILABLE");
+  }
+  if (input.records.some((r) => !enrolled.has(r.studentId)))
+    throw new MobileApiError(422, "ATTENDANCE_STUDENT_NOT_ENROLLED");
+  // A chamada fecha a sessão: um aluno da turma sem registo ficava sem presença
+  // nem falta, e só o portal (com motivo) o podia acrescentar depois.
+  const recorded = new Set(input.records.map((r) => r.studentId));
+  if ([...enrolled].some((studentId) => !recorded.has(studentId)))
+    throw new MobileApiError(409, "ATTENDANCE_ROSTER_CHANGED");
+
   let session = await findSessions(
     db,
     scope.schoolId,
@@ -122,29 +138,6 @@ export async function recordMobileAttendanceCall(
   }
   if (session.status === "completed") throw new MobileApiError(409, "ATTENDANCE_ALREADY_CLOSED");
   if (session.status !== "pending") throw new MobileApiError(503, "ATTENDANCE_INCONSISTENT");
-
-  const enrollments = await db
-    .from("enrollments")
-    .select("student_id", { count: "exact" })
-    .eq("school_id", scope.schoolId)
-    .eq("class_group_id", session.class_group_id)
-    .in("status", ROSTER_ENROLLMENT_STATUSES)
-    .limit(1000);
-  if (
-    enrollments.error ||
-    !enrollments.data ||
-    enrollments.count == null ||
-    enrollments.count !== enrollments.data.length
-  )
-    throw new MobileApiError(503, "ATTENDANCE_UNAVAILABLE");
-  const enrolled = new Set(enrollments.data.map((row) => String(row.student_id)));
-  if (input.records.some((r) => !enrolled.has(r.studentId)))
-    throw new MobileApiError(422, "ATTENDANCE_STUDENT_NOT_ENROLLED");
-  // A chamada fecha a sessão: um aluno da turma sem registo ficava sem presença
-  // nem falta, e só o portal (com motivo) o podia acrescentar depois.
-  const recorded = new Set(input.records.map((r) => r.studentId));
-  if ([...enrolled].some((studentId) => !recorded.has(studentId)))
-    throw new MobileApiError(409, "ATTENDANCE_ROSTER_CHANGED");
 
   const now = new Date().toISOString();
   const { error: upsertError } = await db.from("siga_attendance_records").upsert(

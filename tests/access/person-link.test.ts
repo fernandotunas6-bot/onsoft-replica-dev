@@ -9,15 +9,17 @@ type Row = {
   deleted_at?: string | null;
 };
 /** Fichas em memória; o ILIKE trata «_» e «%» como curingas, como o Postgres. */
-function database(rows: Row[], options: { raceOnUpdate?: boolean } = {}) {
+function database(rows: Row[], options: { raceOnUpdate?: boolean; failRead?: boolean } = {}) {
   const updates: { id: string; user_id: string }[] = [];
   const db = {
     from: () => {
       const filters: ((r: Row) => boolean)[] = [];
       let patch: Partial<Row> | null = null;
+      let limit = Infinity;
       const chain = {
         select: () => chain,
-        limit: () => chain,
+        order: () => chain,
+        limit: (n: number) => ((limit = n), chain),
         eq: (f: keyof Row, v: unknown) => (filters.push((r) => r[f] === v), chain),
         is: (f: keyof Row, v: unknown) => (filters.push((r) => (r[f] ?? null) === v), chain),
         ilike: (f: keyof Row, pattern: string) => {
@@ -47,7 +49,12 @@ function database(rows: Row[], options: { raceOnUpdate?: boolean } = {}) {
           return { data: { id: hit[0]!.id }, error: null };
         },
         then: (resolve: (v: unknown) => void) =>
-          resolve({ data: rows.filter((r) => filters.every((f) => f(r))), error: null }),
+          options.failRead
+            ? resolve({ data: null, error: { message: "x" } })
+            : resolve({
+                data: rows.filter((r) => filters.every((f) => f(r))).slice(0, limit),
+                error: null,
+              }),
       };
       return chain;
     },
@@ -107,6 +114,20 @@ describe("ligar a conta à ficha pelo e-mail", () => {
   it("se outra conta ganhou a ficha entretanto, diz que está tomada", async () => {
     const { db } = database([row("p1", "ana@escola.ao")], { raceOnUpdate: true });
     expect(await linkPersonByEmail(db, S, "ana@escola.ao", "u1")).toBe("taken");
+  });
+
+  it("encontra a ficha exacta mesmo entre muitos e-mails parecidos", async () => {
+    const lookalikes = Array.from({ length: 1200 }, (_, i) => row(`x${i}`, `jo${i}ana@escola.ao`));
+    const { db, updates } = database([...lookalikes, row("p1", "ana@escola.ao")]);
+    expect(await linkPersonByEmail(db, S, "ana@escola.ao", "u1")).toBe("linked");
+    expect(updates).toEqual([{ id: "p1", user_id: "u1" }]);
+  });
+
+  it("uma falha da base sobe, para o aviso não culpar o e-mail", async () => {
+    const { db } = database([row("p1", "ana@escola.ao")], { failRead: true });
+    await expect(linkPersonByEmail(db, S, "ana@escola.ao", "u1")).rejects.toThrow();
+    expect(personLinkWarning("error", "Aluno")).toMatch(/não foi possível ligá-la à ficha agora/);
+    expect(personLinkWarning("error", "Aluno")).not.toMatch(/Corrija o e-mail/);
   });
 
   it("avisa quem criou a conta de aluno ou professor sem ficha ligada", () => {

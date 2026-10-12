@@ -15,6 +15,8 @@
  * parte: um convite não resolve esses casos.
  */
 
+import { normalizeEmail as normalizeLinkEmail } from "@/features/access/person-link";
+
 export type ReadinessEmail = "missing" | "duplicate" | "ok";
 
 export type ReadinessPerson = {
@@ -24,6 +26,8 @@ export type ReadinessPerson = {
   hasAccount: boolean;
   /** Vínculo activo à escola com o papel (Aluno/Professor). */
   hasRole: boolean;
+  /** Ficha (aluno ou professor) e pessoa activas: o Mobile só reconhece estas. */
+  recordActive: boolean;
   email: ReadinessEmail;
   invitePending: boolean;
 };
@@ -79,7 +83,9 @@ function accountChecks(
 ): ReadinessCheck[] {
   const noun = group === "Alunos" ? "aluno" : "professor";
   const role = group === "Alunos" ? "Aluno" : "Professor";
-  const without = people.filter((p) => !p.hasAccount);
+  // Uma ficha inactiva aparece só na sua verificação: convidar não a resolve.
+  const usable = people.filter((p) => p.recordActive);
+  const without = usable.filter((p) => !p.hasAccount);
   const check = (
     id: string,
     title: string,
@@ -132,8 +138,15 @@ function accountChecks(
       `${noun}-sem-papel`,
       `Conta sem o papel ${role}`,
       `A conta está ligada à ficha, mas não tem acesso activo à escola com o papel ${role}. Corrija o papel em Acessos.`,
-      people.filter((p) => p.hasAccount && !p.hasRole),
+      usable.filter((p) => p.hasAccount && !p.hasRole),
       { label: "Abrir Acessos", to: "/acessos" },
+    ),
+    check(
+      `${noun}-ficha-inactiva`,
+      "Ficha inactiva",
+      `A ficha do ${noun} ou a pessoa está inactiva ou arquivada: o Mobile não a reconhece, mesmo com conta. Reactive-a na ficha, se o ${noun} continua na escola.`,
+      people.filter((p) => !p.recordActive),
+      { label: "Abrir fichas", to: group === "Alunos" ? "/alunos" : "/pessoas" },
     ),
   ];
 }
@@ -173,12 +186,14 @@ export function buildMobileReadiness(s: MobileReadinessSnapshot): MobileReadines
     students: {
       total: s.students.length,
       ready: s.students.filter(
-        (p) => p.hasAccount && p.hasRole && studentHasSubjects(p.classGroupIds),
+        (p) => p.recordActive && p.hasAccount && p.hasRole && studentHasSubjects(p.classGroupIds),
       ).length,
     },
     teachers: {
       total: s.teachers.length,
-      ready: s.teachers.filter((p) => p.hasAccount && p.hasRole && p.classSubjects > 0).length,
+      ready: s.teachers.filter(
+        (p) => p.recordActive && p.hasAccount && p.hasRole && p.classSubjects > 0,
+      ).length,
     },
     checks: [
       ...accountChecks("Alunos", s.students, (id) => ({
@@ -265,5 +280,6 @@ export function emailState(
   return !hasAccount && (counts.get(normal) ?? 0) > 1 ? "duplicate" : "ok";
 }
 
+/** A mesma normalização da ligação da conta (`person-link.ts`); vazio é null. */
 export const normalizeEmail = (email: string | null | undefined) =>
-  (email ?? "").trim().toLowerCase() || null;
+  normalizeLinkEmail(email) || null;

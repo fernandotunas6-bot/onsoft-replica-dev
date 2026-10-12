@@ -13,6 +13,7 @@ export const documentStatuses = [
   "cancelled",
 ] as const;
 export type DocumentStatus = (typeof documentStatuses)[number];
+export const DOCUMENT_TEMPLATES_MAX = 200;
 
 export interface StudentDocuments {
   schoolId: string;
@@ -55,7 +56,7 @@ export function parseStudentDocuments(value: unknown, ctx: Context): StudentDocu
     !Array.isArray(value.requests) ||
     value.requests.length > 500 ||
     !Array.isArray(value.available) ||
-    value.available.length > 200
+    value.available.length > DOCUMENT_TEMPLATES_MAX
   )
     return invalid();
   const ids = new Set<string>();
@@ -74,14 +75,17 @@ export function parseStudentDocuments(value: unknown, ctx: Context): StudentDocu
       return invalid();
     ids.add(r.id);
   }
+  const names = new Set<string>();
   for (const t of value.available) {
     if (
       !object(t) ||
       !keys(t, ["name", "kind"]) ||
       !text(t.name) ||
-      !["certificate", "declaration", "other"].includes(String(t.kind))
+      !["certificate", "declaration", "other"].includes(String(t.kind)) ||
+      names.has(String(t.name).toLocaleLowerCase("pt"))
     )
       return invalid();
+    names.add(String(t.name).toLocaleLowerCase("pt"));
   }
   return value as unknown as StudentDocuments;
 }

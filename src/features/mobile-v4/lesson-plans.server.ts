@@ -71,23 +71,30 @@ export async function readMobileLessonPlans(
   const plans = rows.filter((p) => byPair.has(`${p.class_group_id}:${p.subject_id}`));
   if (!plans.length) return response;
 
-  const components = await read<{
-    lesson_plan_id: string;
-    kind: string;
-    name: string;
-    planned_count: number;
-    sequence: number;
-  }>(
-    db
-      .from("siga_lesson_plan_components")
-      .select("lesson_plan_id, kind, name, planned_count, sequence", { count: "exact" })
-      .eq("school_id", scope.schoolId)
-      .in(
-        "lesson_plan_id",
-        plans.map((p) => p.id),
-      )
-      .limit(5000),
-  );
+  // Em pedaços: centenas de IDs num só GET davam um URL demasiado longo.
+  const planIds = plans.map((p) => p.id);
+  const chunks: string[][] = [];
+  for (let i = 0; i < planIds.length; i += 150) chunks.push(planIds.slice(i, i + 150));
+  const components = (
+    await Promise.all(
+      chunks.map((chunk) =>
+        read<{
+          lesson_plan_id: string;
+          kind: string;
+          name: string;
+          planned_count: number;
+          sequence: number;
+        }>(
+          db
+            .from("siga_lesson_plan_components")
+            .select("lesson_plan_id, kind, name, planned_count, sequence", { count: "exact" })
+            .eq("school_id", scope.schoolId)
+            .in("lesson_plan_id", chunk)
+            .limit(5000),
+        ),
+      ),
+    )
+  ).flat();
 
   response.plans = plans
     .map((p) => ({

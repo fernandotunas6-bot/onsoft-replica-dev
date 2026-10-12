@@ -37,6 +37,7 @@ const readiness = buildMobileReadiness({
       name: "Ana Lopes",
       hasAccount: false,
       hasRole: false,
+      recordActive: true,
       email: "missing",
       invitePending: false,
       classGroupIds: ["g1"],

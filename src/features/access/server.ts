@@ -385,7 +385,8 @@ export const inviteSystemUser = createServerFn({ method: "POST" })
     try {
       personLink = await linkPersonByEmail(admin, schoolId, data.email, userId);
     } catch {
-      // A ligação pode ser feita depois; o aviso abaixo diz que não ficou feita.
+      // A conta existe; o aviso diz que a ligação falhou, sem culpar o e-mail.
+      personLink = "error";
     }
     const personLinkMessage = personLinkWarning(personLink, data.cargo);
 

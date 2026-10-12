@@ -31,5 +31,7 @@ describe("ligação da conta à ficha da pessoa", () => {
 
   it("quem cria a conta é avisado quando a ficha não fica ligada", () => {
     expect(body("inviteSystemUser")).toContain("personLinkWarning: personLinkMessage");
+    // Uma falha da base não passa por «nenhuma ficha tem este e-mail».
+    expect(body("inviteSystemUser")).toContain('personLink = "error"');
   });
 });
