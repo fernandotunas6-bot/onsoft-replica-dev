@@ -95,6 +95,42 @@ fica no registo de auditoria (`academic.subject.renamed_to_catalog`). O servidor
 revisão e só aplica o que ele próprio sugere, e só se o nome não mudou entretanto. Usa o
 cliente do utilizador (RLS), não o privilegiado.
 
+### Ligar ao catálogo
+
+`subjects.catalog_subject_code` (migração `20261012120000_subjects_catalog_link.sql`, só
+`ALTER TABLE`, sem chave estrangeira — o catálogo vive no código; formato verificado por
+`CHECK`) diz de que disciplina do catálogo se trata, sem mudar o nome nem o código. Em
+**Rever disciplinas → Ligação ao catálogo**:
+- as reconhecidas pelo nome exacto (nome, nome local, sinónimo; nunca siglas soltas nem
+  letras trocadas) ligam-se de uma vez;
+- as próprias da escola podem ligar-se à mão («Mat. Aplicada» → Matemática) ou ficar como
+  estão.
+
+A ligação à mão não as torna duplicadas (duplicados e nomes continuam só pelo nome). O
+servidor recalcula a revisão e só grava o que ela sugere ou um código que o catálogo
+conhece, nunca por cima de uma ligação existente; 2FA, Administrador/Secretaria, política
+de UPDATE e auditoria (`academic.subject.linked_to_catalog`). Antes da migração, a revisão
+lê com `select("*")`, mostra «fica disponível depois de aplicada…» e não grava nada.
+Ensaio: `tests/sql/subjects-catalog-link.mjs`.
+
+Ao criar — «Nova» disciplina, «Usar modelo de estrutura» e importação — a disciplina com
+nome exacto do catálogo fica logo ligada (`catalog-link.ts`). É um passo a seguir à
+criação e tolerante: sem a coluna, ou se falhar, a disciplina fica criada e por ligar.
+
+Cursos: a mesma migração acrescenta `programs.catalog_course_code`. O modelo de
+estrutura, a importação de cursos e «Novo curso» do ensino superior ligam o curso novo
+pelo nome ou sinónimo (`courseCatalogKey`: nunca siglas, e um nome que serve dois cursos
+do catálogo, como «Enfermagem», não liga).
+
+Os cursos que já existem ligam-se em Pedagógica → Estrutura → **Ligar cursos**
+(`course-review.ts`, `CourseReviewDialog.tsx`; servidor em `curriculum-templates-server.ts`):
+os reconhecidos pelo nome de uma vez, os próprios da escola à mão (a lista diz o tipo:
+«Curso técnico — Enfermagem», «Licenciatura — Enfermagem») ou ficam como estão. `programs`
+não tem política de escrita para utilizadores: grava com o cliente privilegiado, na escola
+da membership, só o que a revisão (recalculada no servidor) sugere ou um código que o
+catálogo conhece, nunca por cima de uma ligação; Administrador/Secretaria, 2FA, auditoria
+(`academic.program.linked_to_catalog`).
+
 ## Criar disciplina com o catálogo
 
 Pedagógica → Disciplinas → **Nova**: o campo «Disciplina» sugere os nomes do catálogo
@@ -146,6 +182,33 @@ novo.
   (`academic.subject.merged`, com o que mudou).
 - Até a migração ser aplicada, o botão responde «falta aplicar a migração 20261010150000…»
   (e a função está em `FUNCOES_ESPERA_MIGRACAO`).
+
+## Importação de dados
+
+- **Disciplinas:** uma linha da folha é dada como «já cadastrada» pelo mesmo código, pelo
+  mesmo nome ou pela mesma disciplina do catálogo escrita de outra forma. Antes só o código
+  contava: «MATEM | Matemática» numa escola com «MAT | Matemática» criava outra Matemática.
+- **Notas, presenças, avaliações:** a disciplina da folha procura-se por código ou nome
+  exactos; se nada bater, pela equivalência do catálogo («L. Portuguesa» → «Língua
+  Portuguesa»), só por nome, nunca por siglas soltas, e só quando aponta para uma única
+  disciplina da escola. Notas e presenças associadas assim ficam com aviso na pré-visualização.
+- **Cursos:** código (único na escola), ou — no mesmo nível de ensino — nome, ou o mesmo
+  curso do catálogo por nome ou sinónimo («Ciências Económico-Jurídicas» = «Ciências
+  Económicas e Jurídicas»). «Informática» no médio e na licenciatura são cursos
+  diferentes. O catálogo só procura cursos do âmbito do nível (`levelScope`: superior ou
+  não superior), por isso «Contabilidade» numa licenciatura não é o curso técnico; sem
+  nível, um nome que serve dois cursos («Enfermagem») não aponta para nenhum.
+- **Siglas soltas** nunca contam como nome, em maiúsculas ou minúsculas («EM», «em», «fq»,
+  «Filos.»).
+- **Classes (turmas, preçário de propinas):** código ou nome exactos; se nada bater, a mesma
+  classe escrita de outra forma («10a classe», «décima classe» → «10ª Classe»), pelo número
+  e pela unidade (classe ≠ ano), só quando é uma. Nas turmas fica com aviso.
+- **Horários:** a disciplina segue a mesma regra das notas (catálogo só por nome, com aviso).
+- **Histórico académico:** «8a classe» e «oitava classe» são o mesmo histórico que «8ª
+  Classe»: reimportar actualiza a linha existente (que fica com a classe como estava
+  escrita) em vez de criar outra.
+- **Períodos (notas, avaliações):** além de «1º Trimestre» e «Segundo Trimestre», aceita
+  «I Trimestre», «III trimestre» e «T2». Nunca um 4.º período.
 
 ## API de pesquisa (Mobile V4, WEB, integrações)
 
@@ -230,8 +293,8 @@ não há nada em `TABELAS_AUSENTES_DA_PRODUCAO`.
 
 - ~~Assistente de estrutura para Moçambique e Portugal~~ (feito, ver acima).
 - ~~Juntar duplicados~~ (feito; falta aplicar a migração).
-- Ligar `subjects.catalog_subject_code` e `programs.catalog_course_code` (colunas novas, por
-  `ALTER TABLE`) e usar `findSubjectDuplicates` para propor fusões com mapeamento auditado.
+- ~~Ligar `subjects.catalog_subject_code` e `programs.catalog_course_code`~~ (feito ao
+  criar, em «Rever disciplinas» e em «Ligar cursos»; falta aplicar a migração).
 - Documentos e pautas a resolverem nomes pelo catálogo (mantendo o nome à data da emissão).
 - Painel de governação no ADMIN (aprovar propostas, versões, comparar, restaurar) com
   `catalog_review_queue`.

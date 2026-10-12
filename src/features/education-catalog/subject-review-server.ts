@@ -27,6 +27,7 @@ import { requireSgaWriterFor, requireSgaWriterForWrite } from "@/integrations/su
 import type { Database } from "@/integrations/supabase/types";
 import { recordAuditBatch } from "@/features/audit/record-audit";
 import { requireAal2 } from "@/features/hr/require-aal2";
+import { globalSubject } from "./data/subjects";
 import { countryFromCurrency, reviewSubjects, type SubjectReview } from "./subject-review";
 
 type Db = SupabaseClient<Database>;
@@ -34,7 +35,9 @@ type Db = SupabaseClient<Database>;
 async function loadReview(db: Db, schoolId: string): Promise<SubjectReview> {
   const [school, subjects, classLinks, curriculumLinks, teacherLinks] = await Promise.all([
     db.from("schools").select("currency_code").eq("id", schoolId).maybeSingle(),
-    db.from("subjects").select("id, code, name").eq("school_id", schoolId).is("deleted_at", null),
+    // `*`: `catalog_subject_code` só existe depois de 20261012120000; assim a
+    // revisão funciona antes e depois da migração e sabe se a ligação está activa.
+    db.from("subjects").select("*").eq("school_id", schoolId).is("deleted_at", null),
     db.from("class_subjects").select("subject_id").eq("school_id", schoolId),
     db.from("curriculum_subjects").select("subject_id").eq("school_id", schoolId),
     db.from("teacher_subjects").select("subject_id").eq("school_id", schoolId),
@@ -49,10 +52,31 @@ async function loadReview(db: Db, schoolId: string): Promise<SubjectReview> {
       usage[row.subject_id] = (usage[row.subject_id] ?? 0) + 1;
     }
   }
+  const rows = (subjects.data ?? []) as Array<Record<string, unknown>>;
   return reviewSubjects(
-    (subjects.data ?? []).map((s) => ({ id: s.id, code: s.code, name: s.name })),
+    rows.map((s) => ({
+      id: String(s.id),
+      code: String(s.code ?? ""),
+      name: String(s.name ?? ""),
+      catalogCode: typeof s[CATALOG_COLUMN] === "string" ? (s[CATALOG_COLUMN] as string) : null,
+    })),
     usage,
     countryFromCurrency(school.data?.currency_code),
+    rows.length > 0 && CATALOG_COLUMN in rows[0]!,
+  );
+}
+
+const CATALOG_COLUMN = "catalog_subject_code";
+const LINK_MIGRATION = "20261012120000_subjects_catalog_link.sql";
+
+/** A coluna ainda não existe na base (migração por aplicar). */
+export function isMissingCatalogColumn(
+  error: { code?: string | null; message?: string | null } | null,
+) {
+  return Boolean(
+    error &&
+    /42703|PGRST204/.test(String(error.code ?? "")) &&
+    String(error.message ?? "").includes(CATALOG_COLUMN),
   );
 }
 
@@ -193,4 +217,91 @@ export const mergeDuplicateSubjects = createServerFn({ method: "POST" })
       },
     ]).catch(() => undefined);
     return { merged: Number(result?.["merged"] ?? 0), keepName: keep.name };
+  });
+
+export const linkSubjectsToCatalogInputSchema = z.object({
+  /** Sugestões automáticas da revisão (nome exacto) a aplicar. */
+  auto: z.array(z.string().uuid()).max(500).default([]),
+  /** Disciplinas próprias da escola ligadas à mão a uma disciplina do catálogo. */
+  manual: z
+    .array(
+      z.object({
+        subjectId: z.string().uuid(),
+        catalogCode: z.string().regex(/^[A-Z][A-Z0-9-]{0,23}$/),
+      }),
+    )
+    .max(50)
+    .default([]),
+});
+
+/**
+ * Grava `subjects.catalog_subject_code`. Como a correcção de nomes, recalcula
+ * a revisão no servidor: as automáticas só se a revisão as sugere, as manuais
+ * só para disciplinas sem correspondência e com um código que o catálogo
+ * conhece. Não substitui uma ligação que já existe (`IS NULL`).
+ */
+export const linkSubjectsToCatalog = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .validator((input: unknown) => linkSubjectsToCatalogInputSchema.parse(input))
+  .handler(async ({ data, context }) => {
+    const membership = await requireSgaWriterForWrite(
+      "pedagogica",
+      context.supabase,
+      context.userId,
+      ["Administrador", "Secretaria"],
+    );
+    requireAal2(context.claims, "Ligar disciplinas ao catálogo");
+    const db = context.supabase;
+    const review = await loadReview(db, membership.schoolId);
+    const wanted = new Set(data.auto);
+    const unmatched = new Map(review.unmatched.map((u) => [u.id, u]));
+    const links = [
+      ...review.toLink
+        .filter((l) => wanted.has(l.id))
+        .map((l) => ({ id: l.id, name: l.name, catalogCode: l.catalogCode, how: "name" })),
+      ...data.manual
+        .filter((m) => unmatched.has(m.subjectId) && globalSubject(m.catalogCode))
+        .map((m) => ({
+          id: m.subjectId,
+          name: unmatched.get(m.subjectId)!.name,
+          catalogCode: m.catalogCode,
+          how: "manual",
+        })),
+    ];
+    const applied: typeof links = [];
+    for (const link of links) {
+      // Sem tipos: a coluna só existe depois de 20261012120000.
+      const { data: row, error } = await db
+        .from("subjects")
+        .update({ catalog_subject_code: link.catalogCode, updated_by: context.userId } as never)
+        .eq("id", link.id)
+        .eq("school_id", membership.schoolId)
+        .is("catalog_subject_code" as never, null)
+        .select("id")
+        .maybeSingle();
+      if (isMissingCatalogColumn(error)) {
+        throw new Error(
+          `Ligar ao catálogo ainda não está activo no servidor: falta aplicar a migração ${LINK_MIGRATION}.`,
+        );
+      }
+      if (error) throw publicDatabaseError(error, `Não foi possível ligar «${link.name}».`);
+      if (row) applied.push(link);
+    }
+    if (applied.length) {
+      await recordAuditBatch(
+        applied.map((a) => ({
+          schoolId: membership.schoolId,
+          actorUserId: context.userId,
+          action: "academic.subject.linked_to_catalog",
+          entityType: "subject",
+          entityId: a.id,
+          metadata: { name: a.name, catalogCode: a.catalogCode, how: a.how },
+        })),
+      ).catch(() => undefined);
+    }
+    return {
+      applied: applied.length,
+      skipped: links.length - applied.length,
+      ignored: data.auto.length + data.manual.length - links.length,
+    };
   });

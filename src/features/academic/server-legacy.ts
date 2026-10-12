@@ -1,4 +1,5 @@
 import type { TablesInsert, TablesUpdate } from "@/integrations/supabase/types";
+import { linkNewSubjectsToCatalog } from "@/features/education-catalog/catalog-link";
 import { createServerFn } from "@tanstack/react-start";
 import { assertCanSeeStudent, loadStudentScope } from "@/features/students/student-scope";
 import { loadActivePassingValue, loadActiveRuleSummary } from "./exam-data";
@@ -985,6 +986,10 @@ export const createSubject = createServerFn({ method: "POST" })
       .select("*")
       .single();
     if (error) throw publicDatabaseError(error, "Não foi possível criar a disciplina.");
+    // «Matemática», «Inglês»: fica ligada ao catálogo (se a migração já foi aplicada).
+    await linkNewSubjectsToCatalog(db, membership.schoolId, [
+      { id: subject.id, name: subject.name },
+    ]);
     return subject;
   });
 
