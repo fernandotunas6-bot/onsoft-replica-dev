@@ -370,3 +370,6 @@ dois cliques no mesmo instante enviavam duas vezes. `register_payment` tranca a 
 recusa pagar acima do valor em aberto, mas um pagamento parcial repetido cabia nas duas
 vezes — dois recibos. Agora há uma guarda síncrona (`inFlight`); o teste reproduz os dois
 cliques e falha sem ela.
+
+Os outros dois modais partilhados com a mesma corrida — `ConfirmActionModal` (anular,
+estornar, excluir) e `SequentialSheetModal` (assistentes por passos) — têm a mesma guarda.

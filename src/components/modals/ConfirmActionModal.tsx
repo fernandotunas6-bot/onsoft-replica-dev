@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from "react";
+import { useRef, useState, type ReactNode } from "react";
 import { toast } from "@/lib/toast";
 import { QuickModal } from "@/components/ui/modal-system";
 import { Label } from "@/components/ui/label";
@@ -28,12 +28,17 @@ export function ConfirmActionModal({
   const [open, setOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [reason, setReason] = useState("");
+  // Guarda síncrona: dois cliques no mesmo instante confirmavam duas vezes (o botão só
+  // fica desactivado depois de o React voltar a desenhar).
+  const inFlight = useRef(false);
 
   const run = async () => {
     if (reasonLabel && reason.trim().length < MIN_REASON) {
       toast.error(`Indique o motivo (pelo menos ${MIN_REASON} caracteres).`);
       return;
     }
+    if (inFlight.current) return;
+    inFlight.current = true;
     setSaving(true);
     try {
       await onConfirm(reasonLabel ? reason.trim() : undefined);
@@ -45,6 +50,7 @@ export function ConfirmActionModal({
         description: error instanceof Error ? error.message : "Tente novamente.",
       });
     } finally {
+      inFlight.current = false;
       setSaving(false);
     }
   };

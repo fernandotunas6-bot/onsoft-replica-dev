@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { toast } from "@/lib/toast";
 import { WizardModal } from "@/components/ui/modal-system";
 import { cn } from "@/lib/utils";
@@ -39,6 +39,8 @@ export function SequentialSheetModal({
 }) {
   const [stepIndex, setStepIndex] = useState(0);
   const [saving, setSaving] = useState(false);
+  // Guarda síncrona contra dois cliques no mesmo instante (ver QuickFormModal).
+  const inFlight = useRef(false);
   const current = steps[stepIndex] ?? steps[0];
 
   useEffect(() => {
@@ -46,6 +48,8 @@ export function SequentialSheetModal({
   }, [open]);
 
   const handleFinish = async () => {
+    if (inFlight.current) return;
+    inFlight.current = true;
     setSaving(true);
     try {
       await onSubmit();
@@ -56,6 +60,7 @@ export function SequentialSheetModal({
         description: error instanceof Error ? error.message : "Tenta novamente.",
       });
     } finally {
+      inFlight.current = false;
       setSaving(false);
     }
   };
