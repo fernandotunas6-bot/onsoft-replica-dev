@@ -61,13 +61,13 @@ function isPlainList(calls: Call[]) {
   return !options?.head;
 }
 
-async function readPages(db: Db, table: string, calls: Call[]): Promise<Result> {
+async function readPages(db: Db, table: string, calls: Call[], opts: Options): Promise<Result> {
   const rows: unknown[] = [];
   for (let page = 0; page < MAX_PAGES; page += 1) {
     const from = page * PAGED_CLIENT_PAGE;
-    const { data, error } = await replay(db, table, calls)
-      .order("id", { ascending: true })
-      .range(from, from + PAGED_CLIENT_PAGE - 1);
+    let query = replay(db, table, calls);
+    for (const column of opts.keys(table)) query = query.order(column, { ascending: true });
+    const { data, error } = await query.range(from, from + PAGED_CLIENT_PAGE - 1);
     if (error) return { data: null, error };
     const list = (data ?? []) as unknown[];
     rows.push(...list);
@@ -76,7 +76,7 @@ async function readPages(db: Db, table: string, calls: Call[]): Promise<Result> 
   return { data: rows, error: null };
 }
 
-async function execute(db: Db, table: string, calls: Call[], strict: boolean): Promise<Result> {
+async function execute(db: Db, table: string, calls: Call[], opts: Options): Promise<Result> {
   if (!isPlainList(calls)) return replay(db, table, calls);
 
   const longIn = calls.findIndex(
@@ -87,7 +87,7 @@ async function execute(db: Db, table: string, calls: Call[], strict: boolean): P
   );
   let result: Result;
   if (longIn < 0) {
-    result = await readPages(db, table, calls);
+    result = await readPages(db, table, calls, opts);
   } else {
     const values = [...new Set(calls[longIn].args[1] as unknown[])];
     const rows: unknown[] = [];
@@ -97,7 +97,7 @@ async function execute(db: Db, table: string, calls: Call[], strict: boolean): P
       const chunkCalls = calls.map((call, index) =>
         index === longIn ? { method: "in", args: [call.args[0], chunk] } : call,
       );
-      const part = await readPages(db, table, chunkCalls);
+      const part = await readPages(db, table, chunkCalls, opts);
       if (part.error) {
         result = part;
         break;
@@ -105,40 +105,56 @@ async function execute(db: Db, table: string, calls: Call[], strict: boolean): P
       rows.push(...(part.data as unknown[]));
     }
   }
-  if (result.error && strict && !isMissingTable(result.error)) {
+  if (result.error && opts.strict && !isMissingTable(result.error)) {
     throw new PagedReadError(table, result.error);
   }
   return result;
 }
 
-function recorder(db: Db, table: string, calls: Call[], strict: boolean): unknown {
+function recorder(db: Db, table: string, calls: Call[], opts: Options): unknown {
   return new Proxy(
     {},
     {
       get(_target, property) {
         if (property === "then") {
           return (resolve: (value: Result) => unknown, reject: (reason: unknown) => unknown) =>
-            execute(db, table, calls, strict).then(resolve, reject);
+            execute(db, table, calls, opts).then(resolve, reject);
         }
         if (typeof property !== "string") return undefined;
         return (...args: unknown[]) =>
-          recorder(db, table, [...calls, { method: property, args }], strict);
+          recorder(db, table, [...calls, { method: property, args }], opts);
       },
     },
   );
 }
 
 /**
+ * Tabelas sem `id`: as páginas ordenam pela chave primária composta.
+ */
+const KEYS_WITHOUT_ID: Record<string, string[]> = {
+  member_roles: ["membership_id", "role_id"],
+};
+
+type Options = { strict: boolean; keys: (table: string) => string[] };
+
+/**
  * `strict`: um erro de leitura lança `PagedReadError` (a tabela em falta continua a
  * devolver o erro, para quem já trata esse caso). Sem `strict`, o erro volta no
- * resultado, como no cliente normal.
+ * resultado, como no cliente normal. `keys`: colunas únicas por tabela para ordenar
+ * as páginas (por omissão `id`, ou a chave de `KEYS_WITHOUT_ID`).
  */
-export function pagedReadClient<T extends Db>(db: T, options: { strict?: boolean } = {}): T {
-  const strict = options.strict ?? false;
+export function pagedReadClient<T extends Db>(
+  db: T,
+  options: { strict?: boolean; keys?: Record<string, string[]> } = {},
+): T {
+  const opts: Options = {
+    strict: options.strict ?? false,
+    keys: (table) => options.keys?.[table] ?? KEYS_WITHOUT_ID[table] ?? ["id"],
+  };
   return new Proxy(db, {
     get(target, property, receiver) {
       if (property === "from") {
-        return (table: string) => recorder(target, table, [], strict);
+        return (table: string) => recorder(target, table, [], opts);
       }
       return Reflect.get(target, property, receiver);
     },

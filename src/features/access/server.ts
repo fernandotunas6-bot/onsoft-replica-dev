@@ -1,4 +1,5 @@
 import { requireRecentVerification } from "@/lib/step-up";
+import { pagedReadClient } from "@/integrations/supabase/paged-client";
 import { escapeLikePattern } from "@/lib/like-pattern";
 import { createServerFn } from "@tanstack/react-start";
 import { getRequestIP } from "@tanstack/react-start/server";
@@ -198,7 +199,8 @@ export const listSystemAccounts = createServerFn({ method: "GET" })
   .handler(async ({ context }) => {
     if (!context) throw new Error("Unauthorized");
     const { schoolId } = await requireAdminContext(context);
-    const admin = await loadAdminClient();
+    // Todas as contas (por páginas) e os papéis em lotes de ids.
+    const admin = pagedReadClient(await loadAdminClient());
 
     const { data: memberships, error } = await admin
       .from("school_memberships")

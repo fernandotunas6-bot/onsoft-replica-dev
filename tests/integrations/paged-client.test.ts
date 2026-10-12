@@ -74,6 +74,44 @@ describe("pagedReadClient", () => {
     expect(calls.requests).toBe(2);
   });
 
+  it("tabelas sem id (member_roles) ordenam pela chave composta", async () => {
+    const orders: string[] = [];
+    const memberRoles = Array.from({ length: 1300 }, (_, n) => ({
+      membership_id: fakeId("m", n),
+      role_id: "r",
+    }));
+    const fake = fakePostgrest({ member_roles: memberRoles });
+    const spy = {
+      from: (table: string) => {
+        const query = fake.client.from(table) as unknown as Record<string, unknown>;
+        const order = query.order as (column: string) => unknown;
+        query.order = (column: string) => {
+          orders.push(column);
+          return order(column);
+        };
+        return query;
+      },
+    };
+    const db = pagedReadClient(spy as unknown as typeof fake.client);
+    const ids = memberRoles.map((row) => row.membership_id);
+    const { data } = (await db
+      .from("member_roles")
+      .select("membership_id, role_id")
+      .in("membership_id", ids)) as { data: Row[] };
+    expect(data).toHaveLength(1300);
+    expect(new Set(orders)).toEqual(new Set(["membership_id", "role_id"]));
+  });
+
+  it("chat, pedidos de acesso e contas usam o cliente paginado", () => {
+    for (const file of [
+      "src/features/messages/server.ts",
+      "src/features/access/requests-server.ts",
+      "src/features/access/server.ts",
+    ]) {
+      expect(readFileSync(file, "utf8"), file).toMatch(/pagedReadClient\(/);
+    }
+  });
+
   it("a exportação de dados usa o cliente paginado", () => {
     const source = readFileSync("src/features/import/export-engine.ts", "utf8");
     expect(source).toMatch(/const db = pagedReadClient\(client, \{ strict: true \}\)/);
