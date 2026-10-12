@@ -106,4 +106,11 @@ describe("escritas de uma escola bloqueada", () => {
       expect(source).toMatch(/assertModuleNotBlocked\([^)]*"financeiro",\s*(mode|"write")\)/);
     }
   });
+
+  it("os atalhos da pesquisa (definição da escola) gravam pelo guarda de escrita", () => {
+    const source = readFileSync("src/features/spotlight/server.ts", "utf8");
+    const fn = source.slice(source.indexOf("export const saveSpotlightOverrides"));
+    expect(fn).toMatch(/requireSgaWriterForWrite\("gestao"/);
+    expect(source).not.toMatch(/requireSgaWriter\(/);
+  });
 });

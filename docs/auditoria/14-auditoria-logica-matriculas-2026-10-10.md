@@ -381,3 +381,14 @@ emitida «hoje» em Luanda e a vencer a 15 dias em UTC — perto da meia-noite s
 fim do período por omissão no calendário avançado. Usam agora `schoolDateInDays`
 (`src/lib/school-date.ts`), que parte de `schoolTodayIso`. Os outros `toISOString().slice(0,
 10)` do código trabalham sobre datas já fixas (sem hora), o que está certo.
+
+## 15. Escola bloqueada: revisão das escritas (2026-10-12)
+
+Revi as 123 funções de escrita (`POST`) que não chamam `requireSgaWriterForWrite` no
+próprio corpo. Quase todas estão cobertas por um guarda local em modo escrita (ensino
+superior, importação, Alumni, risco, RH através de `assertModuleNotBlocked`) ou ficam de
+fora de propósito (autenticação, perfil próprio, registo público, plataforma, pagamento da
+assinatura). Faltava uma: os atalhos da pesquisa (`saveSpotlightOverrides`), uma definição
+da escola que gravava numa escola bloqueada — passa a `requireSgaWriterForWrite("gestao")`,
+como as outras definições. Continua por decidir a gestão de acessos (`access/server.ts`,
+`access/grants.ts`).
