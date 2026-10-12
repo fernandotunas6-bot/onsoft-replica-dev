@@ -195,11 +195,12 @@ export const FIELD_CATALOG: Record<string, ModuleFieldCatalog> = {
       {
         key: "student_number",
         label: "Nº de Processo / Nº Aluno",
-        description: "Número de processo escolar único na instituição",
+        description:
+          "Para reconhecer um aluno já registado (ex.: 1260042). Os alunos novos recebem o número do SIGA: 1 + ano + 4 dígitos",
         type: "text",
         required: false,
         recommended: true,
-        example: "2026-0042",
+        example: "1260042",
         aliases: [
           "n processo",
           "no processo",
@@ -528,7 +529,7 @@ export const FIELD_CATALOG: Record<string, ModuleFieldCatalog> = {
         description: "Processo, documento nacional ou nome para localizar o estudante",
         type: "text",
         required: true,
-        example: "2026-0042",
+        example: "1260042",
         aliases: [
           "aluno",
           "estudante",
@@ -589,7 +590,7 @@ export const FIELD_CATALOG: Record<string, ModuleFieldCatalog> = {
         description: "Nº de processo, BI ou nome completo do aluno na turma",
         type: "text",
         required: true,
-        example: "2026-0042",
+        example: "1260042",
         aliases: ["aluno", "estudante", "n processo", "processo", "n aluno", "nome", "student"],
       },
       {

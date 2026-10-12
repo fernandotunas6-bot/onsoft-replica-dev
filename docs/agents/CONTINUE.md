@@ -14,6 +14,17 @@ Facturas, recibos, notas de crédito e despesas mantêm a série fiscal (AGT). O
 PayFlow do aluno passa a ser o próprio número (antes `0900038` de `EST-900038`): um aluno
 já sincronizado no PayFlow com o código antigo tem de ser sincronizado de novo.
 
+Feito à volta (não depende da migração):
+- **Entrar com o número de aluno** — escolha da escola em Definições → Segurança
+  (`school_settings` domínio `student_access`, `student_number_login`, desligado por
+  omissão; só Administrador, com 2FA, auditado). Login: `student-number-login.ts` (escola
+  do endereço; no endereço geral só se o número existir numa única escola com a opção
+  ligada, senão `school_required`); `student-access-server.ts` (get/set e a pergunta sem
+  sessão que muda o rótulo do ecrã de entrada). Só fichas activas/candidatas com conta.
+  Antes da migração os números são `EST-…` e o login por número não encontra ninguém.
+- Pesquisa por número tolerante a espaços/traços (`numberMatches`): alunos, matrículas,
+  presenças, avaliações, documentos, arquivo, superior. Exemplos da importação em `1260042`.
+
 ## Catálogo educacional global (2026-10-10)
 
 Detalhe e cobertura real: [docs/education-catalog/README.md](../education-catalog/README.md).

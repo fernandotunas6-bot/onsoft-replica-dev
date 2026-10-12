@@ -209,6 +209,19 @@ export function studentPublicCode(studentNumber: string | null | undefined, stud
 }
 
 /**
+ * Pesquisa por número (aluno, matrícula, documento): «126 0001», «126-0001» e
+ * «1260001» encontram o mesmo. Com texto, é a pesquisa normal por pedaço.
+ */
+export function numberMatches(value: string | null | undefined, query: string) {
+  const text = String(value ?? "").toLowerCase();
+  const q = query.trim().toLowerCase();
+  if (!q) return true;
+  if (text.includes(q)) return true;
+  const digits = q.replace(/[\s.\-/]/g, "");
+  return /^\d{3,}$/.test(digits) && text.replace(/\D/g, "").includes(digits);
+}
+
+/**
  * Próximo código «PREFIXO-000123» a seguir ao MAIOR existente com esse
  * prefixo — não à contagem de linhas. A contagem repetia números depois de
  * um registo apagado ou de um número escrito à mão, e a restrição de

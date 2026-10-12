@@ -5,6 +5,7 @@ import {
   nextSequentialCode,
   suggestNextCode,
   isValidIdentifier,
+  numberMatches,
   parseIdentifier,
   studentPublicCode,
 } from "@/features/education-catalog/identifiers";
@@ -176,6 +177,20 @@ describe("identificadores curtos", () => {
     expect(studentPublicCode("1260123", "00000000-0000-0000-0000-000000000000")).toBe("1260123");
     // Um número antigo que ainda não tenha sido renumerado continua a dar 7 dígitos.
     expect(studentPublicCode("EST-000123", "00000000-0000-0000-0000-000000000000")).toBe("0000123");
+  });
+});
+
+describe("pesquisa por número", () => {
+  it("ignora espaços, pontos e traços", () => {
+    expect(numberMatches("1260123", "126 0123")).toBe(true);
+    expect(numberMatches("1260123", "126-01")).toBe(true);
+    expect(numberMatches("1260123", "0123")).toBe(true);
+    expect(numberMatches("1260123", "")).toBe(true);
+    expect(numberMatches("1260123", "125")).toBe(false);
+    expect(numberMatches("FT-0001", "ft-00")).toBe(true);
+    expect(numberMatches(null, "126")).toBe(false);
+    // Poucos dígitos não comparam só dígitos: «1-2» não encontra tudo o que tem 12.
+    expect(numberMatches("1260123", "1-2")).toBe(false);
   });
 });
 

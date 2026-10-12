@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { numberMatches } from "@/features/education-catalog/identifiers";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Calculator,
@@ -233,10 +234,7 @@ export function AssessmentCenter({
       .filter((row) => {
         if (!q) return true;
         return (
-          row.student_name.toLowerCase().includes(q) ||
-          String(row.registration_number ?? "")
-            .toLowerCase()
-            .includes(q)
+          row.student_name.toLowerCase().includes(q) || numberMatches(row.registration_number, q)
         );
       })
       .slice()
