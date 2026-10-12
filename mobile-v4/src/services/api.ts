@@ -14,6 +14,7 @@ import {
 import { parseStudentFinance } from "../domain/finance";
 import { parseAcademicGradebooks } from "../domain/gradebooks";
 import { parseAcademicLessonPlans } from "../domain/lesson-plans";
+import { parseStudentDocuments } from "../domain/documents";
 import { parseAcademicResults } from "../domain/results";
 import {
   parseAttendanceCallReceipt,
@@ -389,6 +390,19 @@ export class ApiGateway implements Gateway {
       signal,
     );
     return parseAcademicGradebooks(data, ctx, catalog);
+  }
+  async studentDocuments(ctx: Context, signal?: AbortSignal) {
+    authorize(this.current, ctx);
+    if (ctx.role !== "aluno")
+      throw new ApiError(
+        403,
+        "Os pedidos de documentos são consultados apenas pelo próprio aluno.",
+      );
+    const data = await this.request(
+      "/schools/" + encodeURIComponent(ctx.schoolId) + "/documents?role=" + ctx.role,
+      signal,
+    );
+    return parseStudentDocuments(data, ctx);
   }
   async academicLessonPlans(ctx: Context, catalog: AcademicCatalog, signal?: AbortSignal) {
     authorize(this.current, ctx);

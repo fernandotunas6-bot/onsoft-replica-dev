@@ -3,6 +3,7 @@ import { InstitutionalChat } from "../components/InstitutionalChat";
 import { InstitutionalFinance } from "../components/InstitutionalFinance";
 import { InstitutionalGradebooks } from "../components/InstitutionalGradebooks";
 import { InstitutionalLessonPlans } from "../components/InstitutionalLessonPlans";
+import { InstitutionalDocuments } from "../components/InstitutionalDocuments";
 import { InstitutionalResults } from "../components/InstitutionalResults";
 import { InstitutionalAttendance } from "../components/InstitutionalAttendance";
 import type { ApiError } from "../services/api";
@@ -207,6 +208,13 @@ export function ServicePages({
               key={ctx.userId + ctx.schoolId + ctx.role + page}
               ctx={ctx}
               catalog={catalog}
+              gateway={gateway}
+              onAccessError={onAccessError}
+            />
+          ) : catalog && gateway && ctx.role === "aluno" && page === "documentos" ? (
+            <InstitutionalDocuments
+              key={ctx.userId + ctx.schoolId + ctx.role + page}
+              ctx={ctx}
               gateway={gateway}
               onAccessError={onAccessError}
             />

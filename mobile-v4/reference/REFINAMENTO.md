@@ -70,4 +70,6 @@
 
 | Planos de aula (professor) | «aguarda integração» | os planos das turmas-disciplinas que lecciona (rascunhos incluídos), por trimestre, com as avaliações e provas previstas e o texto do plano; só consulta — criar e editar fica no portal, porque o plano gera as avaliações da pauta (`GET /lesson-plans`, `tests/lesson-plans.test.tsx`, `tests/mobile-v4/lesson-plans.test.ts`) |
 
+| Documentos (aluno) | «aguarda integração» | os seus pedidos, «Em curso» e «Concluídos», com o estado de cada um («Recebido», «Em análise», «Pronto a levantar», «Entregue», «Recusado», «Cancelado») e os documentos que a escola emite; só consulta — o pedido regista-se na secretaria, como no portal. Sem a nota interna da revisão (`GET /documents`, `tests/documents.test.tsx`, `tests/mobile-v4/documents.test.ts`) |
+
 `tests/agenda.test.tsx` cobre o relógio de Luanda, a ordem dos dias, os estados da aula, os prazos e a navegação de cada perfil.

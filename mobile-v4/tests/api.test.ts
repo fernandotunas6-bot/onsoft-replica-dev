@@ -393,3 +393,29 @@ it("asks the teacher's lesson plans by role, and never for a student", async () 
   await expect(api.academicLessonPlans({ ...ctx, role: "aluno" }, catalog)).rejects.toThrow();
   expect(fetch).toHaveBeenCalledTimes(2);
 });
+
+it("asks the student's own documents by role, and never for a teacher", async () => {
+  const pupil = { ...ctx, role: "aluno" as const };
+  const fetch = vi
+    .fn()
+    .mockResolvedValueOnce({ ok: true, status: 200, json: async () => demoSession("aluno") })
+    .mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      json: async () => ({
+        schoolId: pupil.schoolId,
+        userId: (await demoSession("aluno")).userId,
+        role: "aluno",
+        requests: [],
+        available: [],
+      }),
+    });
+  vi.stubGlobal("fetch", fetch);
+  const api = new ApiGateway();
+  const session = await api.session();
+  const own = { ...pupil, userId: session!.userId };
+  expect((await api.studentDocuments(own)).requests).toEqual([]);
+  expect(fetch.mock.calls[1][0]).toBe("/api/mobile-v4/schools/demo-a/documents?role=aluno");
+  await expect(api.studentDocuments({ ...own, role: "professor" })).rejects.toThrow();
+  expect(fetch).toHaveBeenCalledTimes(2);
+});

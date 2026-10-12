@@ -2,6 +2,7 @@ import type { ChatInbox, ChatHistory, ChatCursor } from "./institutional-chat";
 import type { StudentFinance } from "./finance";
 import type { AcademicGradebooks } from "./gradebooks";
 import type { AcademicLessonPlans } from "./lesson-plans";
+import type { StudentDocuments } from "./documents";
 import type { AcademicResults } from "./results";
 import type { AcademicAttendance, AttendanceRange } from "./attendance";
 import type { AcademicCatalog } from "./catalog";
@@ -181,6 +182,7 @@ export interface Gateway {
     signal?: AbortSignal,
   ): Promise<ChatHistory>;
   studentFinance?(ctx: Context, signal?: AbortSignal): Promise<StudentFinance>;
+  studentDocuments?(ctx: Context, signal?: AbortSignal): Promise<StudentDocuments>;
   academicGradebooks?(
     ctx: Context,
     catalog: AcademicCatalog,

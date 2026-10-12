@@ -111,6 +111,20 @@ export async function loadMobileV4LessonPlans(userId: string, input: unknown) {
   return readMobileLessonPlans(db, scope, catalog, userId);
 }
 
+export async function loadMobileV4Documents(userId: string, input: unknown) {
+  const requested = mobileScopeSchema.parse(input);
+  const { db } = await requireMobileAcademicAccess(
+    userId,
+    requested.schoolId,
+    requested.role,
+    "read",
+  );
+  if (requested.role !== "aluno") throw new MobileApiError(403, "DOCUMENTS_STUDENT_ONLY");
+  const scope = await resolveMobileAcademicScope(db, userId, requested.schoolId, requested.role);
+  const { readMobileDocuments } = await import("./documents.server");
+  return readMobileDocuments(db, scope, userId);
+}
+
 export async function loadMobileV4Finance(userId: string, input: unknown) {
   const requested = mobileScopeSchema.parse(input);
   const { db } = await requireMobileAcademicAccess(

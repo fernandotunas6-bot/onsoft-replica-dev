@@ -10,6 +10,7 @@ vi.mock("@/features/mobile-v4/operations-core.server", () => ({
   loadMobileV4Results: vi.fn(),
   loadMobileV4Gradebooks: vi.fn(),
   loadMobileV4LessonPlans: vi.fn(),
+  loadMobileV4Documents: vi.fn(),
   loadMobileV4Finance: vi.fn(),
   loadMobileV4Chat: vi.fn(),
   loadMobileV4ChatContacts: vi.fn(),
@@ -65,6 +66,7 @@ beforeEach(() => {
     }),
     gradebooks: vi.fn().mockResolvedValue({ schoolId: school, role: "professor", books: [] }),
     "lesson-plans": vi.fn().mockResolvedValue({ schoolId: school, role: "professor", plans: [] }),
+    documents: vi.fn().mockResolvedValue({ schoolId: school, role: "aluno", requests: [] }),
     results: vi.fn().mockResolvedValue({ schoolId: school, role: "aluno", sheets: [] }),
     attendance: vi.fn().mockResolvedValue({ sessions: [], teacherLessons: [] }),
     academic: vi.fn().mockResolvedValue({
@@ -347,6 +349,18 @@ it("routes lesson plans by GET only, with the scope from the route", async () =>
   expect(
     (await handleMobileV4Http(request(`/schools/${school}/lesson-plans?role=other`), deps)).status,
   ).toBe(422);
+});
+
+it("routes the student's documents by GET only, with the scope from the route", async () => {
+  const response = await handleMobileV4Http(
+    request(`/schools/${school}/documents?role=aluno&studentId=attacker`),
+    deps,
+  );
+  expect(response.status).toBe(200);
+  expect(deps.documents).toHaveBeenCalledWith("verified-user", { schoolId: school, role: "aluno" });
+  expect((await handleMobileV4Http(request(`/schools/${school}/documents`, {}), deps)).status).toBe(
+    405,
+  );
 });
 
 it("serves only the finance scope bound to verified identity", async () => {

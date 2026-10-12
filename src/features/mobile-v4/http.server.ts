@@ -10,6 +10,7 @@ import {
   loadMobileV4Results,
   loadMobileV4Gradebooks,
   loadMobileV4LessonPlans,
+  loadMobileV4Documents,
   loadMobileV4Finance,
   loadMobileV4Chat,
   loadMobileV4ChatContacts,
@@ -47,6 +48,7 @@ export type MobileHttpDependencies = {
   finance: (userId: string, scope: unknown) => Promise<unknown>;
   gradebooks: (userId: string, scope: unknown) => Promise<unknown>;
   "lesson-plans": (userId: string, scope: unknown) => Promise<unknown>;
+  documents: (userId: string, scope: unknown) => Promise<unknown>;
   results: (userId: string, scope: unknown) => Promise<unknown>;
   attendance: (userId: string, scope: unknown) => Promise<unknown>;
   academic: (userId: string, scope: unknown) => Promise<unknown>;
@@ -65,6 +67,7 @@ const dependencies: MobileHttpDependencies = {
   results: loadMobileV4Results,
   gradebooks: loadMobileV4Gradebooks,
   "lesson-plans": loadMobileV4LessonPlans,
+  documents: loadMobileV4Documents,
   finance: loadMobileV4Finance,
   chat: loadMobileV4Chat,
   notifications: loadMobileV4Notifications,
@@ -142,7 +145,7 @@ export async function handleMobileV4Http(request: Request, deps = dependencies):
     const url = new URL(request.url);
     const path = url.pathname;
     const schoolRoute =
-      /^\/api\/mobile-v4\/schools\/([0-9a-f-]+)\/(workspace|academic|attendance|results|gradebooks|lesson-plans|finance|notifications|notifications-read|attendance-call|chat|contacts|attachment|chat-capabilities|chat-commands|commands)$/i.exec(
+      /^\/api\/mobile-v4\/schools\/([0-9a-f-]+)\/(workspace|academic|attendance|results|gradebooks|lesson-plans|documents|finance|notifications|notifications-read|attendance-call|chat|contacts|attachment|chat-capabilities|chat-commands|commands)$/i.exec(
         path,
       );
     const operation =
@@ -163,6 +166,7 @@ export async function handleMobileV4Http(request: Request, deps = dependencies):
       "results",
       "gradebooks",
       "lesson-plans",
+      "documents",
       "finance",
       "notifications",
       "chat",
@@ -257,6 +261,7 @@ export async function handleMobileV4Http(request: Request, deps = dependencies):
       operation === "results" ||
       operation === "gradebooks" ||
       operation === "lesson-plans" ||
+      operation === "documents" ||
       operation === "finance"
     ) {
       const role = mobileRoleSchema.parse(url.searchParams.get("role"));
