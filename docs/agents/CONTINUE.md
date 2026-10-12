@@ -4,6 +4,16 @@ Ler isto **antes** de alterar código. Ecossistema (5 apps):
 [ARCHITECTURE_HARMONIZATION.md](./ARCHITECTURE_HARMONIZATION.md).
 Depois abrir o skill do módulo em `.cursor/skills/`.
 
+## Numeração só com dígitos (2026-10-12) — POR APLICAR
+
+Pedido do dono: número do aluno, da matrícula e dos documentos da escola com 7 dígitos,
+«1» + ano + 4 dígitos (2026 → 1260001), a recomeçar em cada ano por escola e tipo; os
+existentes (EST-…, MAT-…) renumerados por ordem de criação. Migração
+`20261012140000_numbering_one_year_digits.sql`, ensaio `tests/sql/numbering-one-year-digits.mjs`.
+Facturas, recibos, notas de crédito e despesas mantêm a série fiscal (AGT). O código
+PayFlow do aluno passa a ser o próprio número (antes `0900038` de `EST-900038`): um aluno
+já sincronizado no PayFlow com o código antigo tem de ser sincronizado de novo.
+
 ## Catálogo educacional global (2026-10-10)
 
 Detalhe e cobertura real: [docs/education-catalog/README.md](../education-catalog/README.md).

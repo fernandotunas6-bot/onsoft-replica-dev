@@ -804,7 +804,7 @@ export const FIELD_CATALOG: Record<string, ModuleFieldCatalog> = {
         description: "Número de processo ou BI do estudante que pagou",
         type: "text",
         required: true,
-        example: "PROC-2026-042",
+        example: "1260042",
         aliases: [
           "processo",
           "n processo",
@@ -911,7 +911,7 @@ export const FIELD_CATALOG: Record<string, ModuleFieldCatalog> = {
         description: "Nº de Processo ou BI do educando",
         type: "text",
         required: true,
-        example: "PROC-2026-042",
+        example: "1260042",
         aliases: ["aluno", "processo", "bi aluno", "estudante", "student id", "student identifier"],
       },
       {
@@ -1436,7 +1436,7 @@ export const FIELD_CATALOG: Record<string, ModuleFieldCatalog> = {
         description: "Número do processo ou bilhete de identidade",
         type: "text",
         required: true,
-        example: "PROC-2026-042",
+        example: "1260042",
         aliases: ["aluno", "processo", "bi", "student id"],
       },
       {
@@ -1517,7 +1517,7 @@ export const FIELD_CATALOG: Record<string, ModuleFieldCatalog> = {
         description: "Identificação do estudante",
         type: "text",
         required: true,
-        example: "PROC-2026-042",
+        example: "1260042",
         aliases: ["aluno", "processo", "bi", "student id"],
       },
       {
@@ -1642,7 +1642,7 @@ export const FIELD_CATALOG: Record<string, ModuleFieldCatalog> = {
         description: "Aluno devedor",
         type: "text",
         required: true,
-        example: "PROC-2026-042",
+        example: "1260042",
         aliases: ["aluno", "processo", "bi", "student id"],
       },
       {
@@ -1716,7 +1716,7 @@ export const FIELD_CATALOG: Record<string, ModuleFieldCatalog> = {
         description: "Aluno no SIGA",
         type: "text",
         required: true,
-        example: "PROC-2026-042",
+        example: "1260042",
         aliases: ["aluno", "processo", "bi", "student id"],
       },
       {
@@ -1779,7 +1779,7 @@ export const FIELD_CATALOG: Record<string, ModuleFieldCatalog> = {
         description: "Identificação do estudante",
         type: "text",
         required: true,
-        example: "PROC-2026-042",
+        example: "1260042",
         aliases: ["aluno", "processo", "bi", "student id"],
       },
       {

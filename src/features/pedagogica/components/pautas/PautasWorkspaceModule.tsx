@@ -327,7 +327,7 @@ export function PautasWorkspaceModule({
           const g3 = rawFor(3);
           return {
             id: summary.enrollmentId,
-            code: summary.registrationNumber ?? `EST-${index + 1}`,
+            code: summary.registrationNumber ?? String(index + 1),
             number: index + 1,
             name: summary.studentName,
             gender: genderByEnrollmentId.get(summary.enrollmentId) ?? "",
@@ -440,7 +440,7 @@ export function PautasWorkspaceModule({
 
           return {
             id: summary.enrollmentId,
-            code: summary.registrationNumber ?? `EST-${index + 1}`,
+            code: summary.registrationNumber ?? String(index + 1),
             number: index + 1,
             name: summary.studentName,
             gender: genderByEnrollmentId.get(summary.enrollmentId) ?? "",
@@ -494,7 +494,7 @@ export function PautasWorkspaceModule({
           const officialSummary = officialPautaSummaries.get(summary.enrollmentId);
           return {
             id: summary.enrollmentId,
-            code: summary.registrationNumber ?? `EST-${index + 1}`,
+            code: summary.registrationNumber ?? String(index + 1),
             number: index + 1,
             name: summary.studentName,
             gender: genderByEnrollmentId.get(summary.enrollmentId) ?? "",

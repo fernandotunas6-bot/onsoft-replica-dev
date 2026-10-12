@@ -5,12 +5,15 @@
  * institucional que aparece em listas, documentos e QR codes. São convenções
  * internas configuráveis por escola, não códigos oficiais.
  *
- * O que já existe na base fica como está:
- *   - aluno: `students.student_number` = «EST-000123» (CHECK
- *     `^EST-[0-9]{6,}$`, gerado por `private.register_student()` com
- *     `private.student_number_sequences` e `FOR UPDATE`); o código público de
- *     7 dígitos (PayFlow, QR) deriva dele — `studentPublicCode`;
- *   - documentos: `document_sequences` + `private.next_document_number()`.
+ * Aluno, matrícula e documento da escola: só dígitos, «1» + ano + 4 dígitos
+ * (2026 → 1260001…1269999), a recomeçar em cada ano, por escola e por tipo
+ * (migração 20261012140000_numbering_one_year_digits.sql, CHECK `^1[0-9]{6}$`):
+ *   - aluno: `students.student_number`, ano da admissão (`private.register_student()`);
+ *   - matrícula: `enrollments.enrollment_number`, ano em que começa o ano lectivo
+ *     (`private.enroll_student()`);
+ *   - documentos da escola: `private.next_document_number()`, ano de emissão. Facturas,
+ *     recibos, notas de crédito e despesas mantêm a série fiscal (`document_sequences`).
+ *   O código público de 7 dígitos (PayFlow, QR) é o próprio número — `studentPublicCode`.
  *
  *   - professor: `teachers.employee_number` = «DOC-000123», gerado ao criar
  *     o professor a seguir ao maior existente (`insertWithSequentialCode`);
@@ -44,12 +47,15 @@ export type IdentifierPolicy = {
   label: string;
   /** Prefixo sem hífen; vazio para só dígitos. */
   prefix: string;
+  /** «1» + ano (2 dígitos) + `padding` dígitos, a recomeçar em cada ano. */
+  yearly?: boolean;
   padding: number;
   /** Âmbito da unicidade. */
   scope: "platform" | "school";
   /** Onde o número é emitido na base. */
   issuer:
     | "register_student"
+    | "enroll_student"
     | "create_teacher"
     | "next_document_number"
     | "next_entity_identifier"
@@ -68,8 +74,9 @@ export const IDENTIFIER_POLICIES: Record<IdentifierEntity, IdentifierPolicy> = {
   student: {
     entity: "student",
     label: "Aluno",
-    prefix: "EST",
-    padding: 6,
+    prefix: "",
+    padding: 4,
+    yearly: true,
     scope: "school",
     issuer: "register_student",
   },
@@ -125,29 +132,45 @@ export const IDENTIFIER_POLICIES: Record<IdentifierEntity, IdentifierPolicy> = {
   enrollment: {
     entity: "enrollment",
     label: "Matrícula",
-    prefix: "M",
-    padding: 6,
+    prefix: "",
+    padding: 4,
+    yearly: true,
     scope: "school",
-    issuer: "next_entity_identifier",
+    issuer: "enroll_student",
   },
   document: {
     entity: "document",
     label: "Documento",
-    prefix: "OT",
-    padding: 6,
+    prefix: "",
+    padding: 4,
+    yearly: true,
     scope: "school",
     issuer: "next_document_number",
   },
 };
 
-type Overrides = Partial<Pick<IdentifierPolicy, "prefix" | "padding">>;
+type Overrides = Partial<Pick<IdentifierPolicy, "prefix" | "padding">> & {
+  /** Ano dos números anuais (aluno, matrícula, documento); por omissão o de Luanda hoje. */
+  year?: number;
+};
 
-/** «DOC-000012» (professor), «EST-000123» (aluno), «OT-000123» (documento). */
+const luandaYear = () =>
+  Number(new Intl.DateTimeFormat("en-CA", { timeZone: "Africa/Luanda", year: "numeric" }).format());
+
+/** «DOC-000012» (professor), «1260123» (aluno, matrícula e documento de 2026). */
 export function formatIdentifier(entity: IdentifierEntity, n: number, overrides: Overrides = {}) {
   if (!Number.isSafeInteger(n) || n < 1) {
     throw new RangeError("O número do identificador tem de ser inteiro e positivo.");
   }
   const policy = { ...IDENTIFIER_POLICIES[entity], ...overrides };
+  if (policy.yearly) {
+    const year = overrides.year ?? luandaYear();
+    if (!Number.isInteger(year) || year < 2000 || year > 2099)
+      throw new RangeError("O ano do número tem de estar entre 2000 e 2099.");
+    if (n > 10 ** policy.padding - 1)
+      throw new RangeError(`São no máximo ${10 ** policy.padding - 1} números por ano.`);
+    return `1${String(year % 100).padStart(2, "0")}${String(n).padStart(policy.padding, "0")}`;
+  }
   const digits = String(n).padStart(policy.padding, "0");
   return policy.prefix ? `${policy.prefix}-${digits}` : digits;
 }
@@ -156,6 +179,11 @@ export function formatIdentifier(entity: IdentifierEntity, n: number, overrides:
 export function parseIdentifier(entity: IdentifierEntity, raw: string, overrides: Overrides = {}) {
   const policy = { ...IDENTIFIER_POLICIES[entity], ...overrides };
   const value = raw.trim().toUpperCase();
+  if (policy.yearly) {
+    const y = new RegExp(`^1(\\d{2})(\\d{${policy.padding}})$`).exec(value);
+    const n = y ? Number(y[2]) : 0;
+    return y && n >= 1 ? { n, year: 2000 + Number(y[1]), code: value } : null;
+  }
   const re = policy.prefix
     ? new RegExp(`^${policy.prefix}-(\\d{${policy.padding},})$`)
     : new RegExp(`^(\\d{${policy.padding},})$`);
@@ -175,7 +203,7 @@ export function isValidIdentifier(
   return parseIdentifier(entity, raw, overrides) !== null;
 }
 
-/** Código público de 7 dígitos do aluno (QR, PayFlow): «EST-000123» → «0000123». */
+/** Código público de 7 dígitos do aluno (QR, PayFlow): é o próprio número, «1260123». */
 export function studentPublicCode(studentNumber: string | null | undefined, studentId: string) {
   return toPayflowStudentCode(studentNumber, studentId);
 }

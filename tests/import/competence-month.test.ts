@@ -32,7 +32,7 @@ describe("parseCompetenceMonth", () => {
 const student = {
   id: "s1",
   person_id: "p1",
-  student_number: "PROC-2026-042",
+  student_number: "1260042",
   national_id: "005432190LA048",
   status: "active",
 };
@@ -67,7 +67,7 @@ function cacheComFaturas() {
 describe("pagamentos escolhe a fatura pelo mês declarado", () => {
   it("aceita o pagamento do mês que tem fatura em aberto", () => {
     const res = pagamentosImporter.analyzeRow(
-      { student_identifier: "PROC-2026-042", month_ref: "Fevereiro 2026", amount: 35000 },
+      { student_identifier: "1260042", month_ref: "Fevereiro 2026", amount: 35000 },
       cacheComFaturas() as never,
     );
     expect(res.status).toBe("valid");
@@ -75,7 +75,7 @@ describe("pagamentos escolhe a fatura pelo mês declarado", () => {
 
   it("recusa em vez de liquidar a fatura de outro mês", () => {
     const res = pagamentosImporter.analyzeRow(
-      { student_identifier: "PROC-2026-042", month_ref: "Dezembro 2025", amount: 35000 },
+      { student_identifier: "1260042", month_ref: "Dezembro 2025", amount: 35000 },
       cacheComFaturas() as never,
     );
     expect(res.status).toBe("error");
@@ -84,7 +84,7 @@ describe("pagamentos escolhe a fatura pelo mês declarado", () => {
 
   it("sem mês declarado, liquida a mais antiga em aberto", () => {
     const res = pagamentosImporter.analyzeRow(
-      { student_identifier: "PROC-2026-042", amount: 35000 },
+      { student_identifier: "1260042", amount: 35000 },
       cacheComFaturas() as never,
     );
     expect(res.status).toBe("valid");
@@ -93,7 +93,7 @@ describe("pagamentos escolhe a fatura pelo mês declarado", () => {
   it("o nº de fatura tem precedência sobre o mês", () => {
     const res = pagamentosImporter.analyzeRow(
       {
-        student_identifier: "PROC-2026-042",
+        student_identifier: "1260042",
         invoice_number: "FT-2026/0002",
         month_ref: "Dezembro 2025",
         amount: 35000,
