@@ -84,6 +84,7 @@ export function EnrollmentCyclesEditor() {
             <label className="text-xs">
               Nome
               <Input
+                aria-label={`Nome do ciclo ${index + 1}`}
                 value={row.label}
                 disabled={!editable}
                 placeholder="Matrículas 2027/2028"
@@ -94,6 +95,7 @@ export function EnrollmentCyclesEditor() {
               Abre
               <Input
                 type="date"
+                aria-label={`Abertura do ciclo ${index + 1}`}
                 value={row.opens_on}
                 disabled={!editable}
                 onChange={(event) => update(index, { opens_on: event.target.value })}
@@ -103,6 +105,7 @@ export function EnrollmentCyclesEditor() {
               Fecha
               <Input
                 type="date"
+                aria-label={`Fecho do ciclo ${index + 1}`}
                 value={row.closes_on}
                 disabled={!editable}
                 onChange={(event) => update(index, { closes_on: event.target.value })}
