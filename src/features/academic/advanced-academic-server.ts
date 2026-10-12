@@ -23,7 +23,7 @@ import {
   updateScheduleSlotInputSchema,
 } from "./schemas";
 import { z } from "zod";
-import { schoolTodayIso } from "@/lib/school-date";
+import { schoolDayOffsetIso, schoolTodayIso } from "@/lib/school-date";
 
 function timeSlice(value: unknown): string {
   return String(value ?? "").slice(0, 5);
@@ -1090,8 +1090,7 @@ async function syncScheduleSlotsToSessions({
     .maybeSingle();
 
   const startDate = currentTerm?.starts_on ?? schoolTodayIso();
-  const endDate =
-    currentTerm?.ends_on ?? new Date(Date.now() + 30 * 86400000).toISOString().slice(0, 10);
+  const endDate = currentTerm?.ends_on ?? schoolDayOffsetIso(30);
 
   // Buscar slots da turma
   const { data: classSubjects } = await db

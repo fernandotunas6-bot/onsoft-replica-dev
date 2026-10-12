@@ -32,3 +32,8 @@ export function schoolTodayIso(now: Date = new Date(), timeZone = "Africa/Luanda
   if (!year || !month || !day) throw new Error("Fuso institucional inválido.");
   return `${year}-${month}-${day}`;
 }
+
+/** «Hoje» na escola mais `days` dias (negativo para trás), também em data de Luanda. */
+export function schoolDayOffsetIso(days: number, now: Date = new Date()): string {
+  return schoolTodayIso(new Date(now.getTime() + days * 86_400_000));
+}

@@ -13,6 +13,7 @@ import {
   occurrenceIdInputSchema,
   redeemTeacherLessonQrInputSchema,
 } from "@/features/hr/schemas";
+import { schoolDayOffsetIso } from "@/lib/school-date";
 
 const HR_LESSON_ROLES = new Set(["Administrador", "Tesouraria"]);
 const TEACHER_QR_ISSUER_ROLES = new Set(["Administrador", "Secretaria", "Tesouraria"]);
@@ -462,7 +463,7 @@ export const listTeacherQrOccurrences = createServerFn({ method: "GET" })
       )
       .eq("school_id", membership.schoolId)
       .is("deleted_at", null)
-      .gte("lesson_date", new Date(Date.now() - 86_400_000).toISOString().slice(0, 10))
+      .gte("lesson_date", schoolDayOffsetIso(-1))
       .order("lesson_date", { ascending: true })
       .order("scheduled_starts_at", { ascending: true })
       .limit(120);

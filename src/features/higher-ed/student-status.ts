@@ -9,6 +9,7 @@ import {
 } from "@/integrations/supabase/sga-admin";
 import { requireAal2 } from "@/features/hr/require-aal2";
 import { NO_STATUS, type StudentStatus } from "./engine";
+import { schoolTodayIso } from "@/lib/school-date";
 
 /**
  * Estatuto de trabalhador-estudante (`student_special_statuses`, 20261004140000).
@@ -32,7 +33,7 @@ const missingTable = (error: { code?: string; message?: string } | null) =>
       /student_special_statuses/.test(error.message ?? "")),
   );
 
-const todayIso = () => new Date(Date.now() + 60 * 60 * 1000).toISOString().slice(0, 10);
+const todayIso = () => schoolTodayIso();
 
 /** Estatuto em vigor numa data: não revogado, já começou e ainda não acabou. */
 export function statusInForce(
