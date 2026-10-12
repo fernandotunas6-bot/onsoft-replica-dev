@@ -60,6 +60,8 @@ function longInIndex(calls: Call[]) {
   );
 }
 
+const TEXT_ORDER = new Intl.Collator("pt", { sensitivity: "variant", numeric: false });
+
 function compareValues(a: unknown, b: unknown, options: OrderOptions) {
   const ascending = options.ascending ?? true;
   // Como o Postgres: nulos no fim em ordem crescente, no início em decrescente.
@@ -68,18 +70,20 @@ function compareValues(a: unknown, b: unknown, options: OrderOptions) {
     if (a == null && b == null) return 0;
     return (a == null ? -1 : 1) * (nullsFirst ? 1 : -1);
   }
+  // Texto pela ordem portuguesa (acentos e maiúsculas como o Postgres com colação
+  // linguística), não pelos códigos dos caracteres: «Álvaro» antes de «Zé».
   const order =
     typeof a === "number" && typeof b === "number"
       ? a - b
-      : String(a) < String(b)
-        ? -1
-        : String(a) > String(b)
-          ? 1
-          : 0;
+      : TEXT_ORDER.compare(String(a), String(b));
   return ascending ? order : -order;
 }
 
-/** Volta a ordenar as linhas juntas pelas `.order(...)` da consulta (colunas da tabela). */
+/**
+ * Volta a ordenar as linhas juntas pelas `.order(...)` da consulta (colunas da tabela).
+ * Limite: a coluna da ordem tem de vir no `select` (sem alias); se não vier, as linhas
+ * ficam pela ordem dos lotes.
+ */
 function sortLikeQuery(rows: Row[], calls: Call[]) {
   const orders = calls
     .filter((call) => call.method === "order")

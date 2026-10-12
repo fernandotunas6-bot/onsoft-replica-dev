@@ -4,6 +4,7 @@
  */
 import type { loadSgaAdminClient } from "@/integrations/supabase/sga-admin";
 import { isMissingTable, publicDatabaseError } from "@/integrations/supabase/server-error";
+import { ID_CHUNK_SIZE } from "@/integrations/supabase/read-all-pages";
 import {
   ROUNDING_METHODS,
   parsePromotionRules,
@@ -198,8 +199,8 @@ export async function studentNames(db: Db, schoolId: string, enrollmentIds: stri
 
 /** Linhas por pedido: o PostgREST devolve no máximo 1000 e corta sem erro. */
 const ATTENDANCE_PAGE = 1000;
-/** Ids de aula por pedido (o `.in(...)` vai no URL). */
-const SESSION_CHUNK = 200;
+/** Ids de aula por pedido (o `.in(...)` vai no URL; 200 uuids ficam perto do limite). */
+const SESSION_CHUNK = ID_CHUNK_SIZE;
 
 /**
  * Faltas por matrícula a partir das presenças do SIGA (`siga_attendance_*`),

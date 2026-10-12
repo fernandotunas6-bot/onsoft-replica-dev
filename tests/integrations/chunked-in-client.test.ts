@@ -106,6 +106,37 @@ describe("chunkedInClient", () => {
     expect(urls[0]!.length).toBeLessThan(8000);
   });
 
+  it("texto volta a ordenar-se pela ordem portuguesa, não pelos códigos", async () => {
+    const names = ["Zé", "Álvaro", "bruno", "Carla", "ana"];
+    const people = Array.from({ length: 200 }, (_, n) => ({
+      id: `00000000-0000-0000-0000-${String(n).padStart(12, "0")}`,
+      full_name: names[n % names.length],
+    }));
+    const client = createClient("http://db.test", "service-key", {
+      global: {
+        fetch: (async (input: RequestInfo | URL) => {
+          const url = new URL(String(input));
+          const ids = (url.searchParams.get("id") ?? "").slice(4, -1).split(",");
+          return new Response(JSON.stringify(people.filter((p) => ids.includes(p.id))), {
+            status: 200,
+            headers: { "content-type": "application/json" },
+          });
+        }) as typeof fetch,
+      },
+      auth: { persistSession: false },
+    });
+    const { data } = await chunkedInClient(client)
+      .from("people")
+      .select("id, full_name")
+      .in(
+        "id",
+        people.map((p) => p.id),
+      )
+      .order("full_name");
+    const order = [...new Set((data as Array<{ full_name: string }>).map((p) => p.full_name))];
+    expect(order).toEqual(["Álvaro", "ana", "bruno", "Carla", "Zé"]);
+  });
+
   it("contagem (head) soma os lotes", async () => {
     const { db, methods } = fakeServer();
     const { count, error } = await db
