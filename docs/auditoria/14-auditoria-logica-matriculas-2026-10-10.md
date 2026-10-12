@@ -230,3 +230,13 @@ oficiais: `document_sequences` por escola, sem achados.
 | C6  | P3  | Cópias: `todayInLuanda` (calendário) e `isMissingTable` (pedidos de acesso); ano do cartão em UTC na noite de 31/12.                                              | Usam `schoolTodayIso` e o `isMissingTable` partilhado; ano pela data de Luanda. |
 
 Verificado sem achados: todas as escritas destas pastas passam por `requireSgaWriterForWrite`.
+
+## 16. Nona passagem: ensino superior, antigos alunos, arquivo, mensagens
+
+| Id  | Gr. | Achado                                                                                                                                                                                   | Correcção                                                                                       |
+| --- | --- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------- |
+| D1  | P2  | **Mapa SISIES cortado aos 1000 matriculados** (`exportSisiesWorkbook`): o `.limit(20000)` não passa o tecto do PostgREST; o relatório oficial saía com alunos e totais por sexo a menos. | Matrículas em páginas; alunos e pessoas da escola em páginas (sem `.in()` com milhares de ids). |
+| D2  | P3  | Painéis de antigos alunos (visão geral e impacto) contavam sobre leituras cortadas aos 1000.                                                                                             | `allSchoolRows` (`alumni/paged-rows.ts`).                                                       |
+| D3  | P3  | Código dos documentos do arquivo e pasta dos arquivos financeiros pela data UTC: entre 00:00 e 01:00 de Luanda, dia (ou mês) anterior.                                                   | Data de Luanda (`schoolTodayIso`).                                                              |
+
+Verificado sem achados: todas as escritas destas pastas passam pelo guarda de escrita ou só tocam nas linhas do próprio utilizador; mensagens e notificações sem problemas de datas no servidor.
