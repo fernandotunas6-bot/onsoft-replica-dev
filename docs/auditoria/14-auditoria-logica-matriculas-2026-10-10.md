@@ -186,3 +186,9 @@ início do id, por isso não confundem opções homónimas (ao contrário de M7)
 Aberto (P3): quando falta a prova do trimestre, a média de `angola-academic` mostra a MAC sozinha
 (provisória) e a da pauta deixa em branco. É uma diferença de propósito (ecrã provisório vs pauta
 oficial), mas convém o dono confirmar.
+
+## 11. Quinta passagem: presenças
+
+| #   | Sev. | Achado                                                                                                                                                                                                                                                                                             | Correcção                                                |
+| --- | ---- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------- |
+| P1  | P3   | O histórico de presenças do aluno calculava a taxa com fórmula própria, contando as aulas «não registadas» no total: a taxa saía mais baixa do que a da ficha e da pauta (`computeAttendanceRate` e `siga_recompute_attendance_rates` excluem-nas). Produção: 20 registos, nenhum «não registado». | Usa `computeAttendanceRate` sobre os registos contáveis. |

@@ -47,3 +47,14 @@ describe("presenças num período com pauta oficial", () => {
     expect(fn).toContain('sheet.kind === "annual"');
   });
 });
+
+describe("taxa de presença do histórico do aluno (auditoria 14)", () => {
+  it("usa a regra oficial: aulas não registadas não contam", async () => {
+    const { readFileSync } = await import("node:fs");
+    const { computeAttendanceRate } = await import("@/features/pedagogica/attendance-server");
+    expect(computeAttendanceRate([{ status: "present" }, { status: "absent" }])).toBe(50);
+    const source = readFileSync("src/features/pedagogica/attendance-server.ts", "utf8");
+    expect(source).toContain('record.status !== "not_registered"');
+    expect(source).toContain("computeAttendanceRate(counted)");
+  });
+});
