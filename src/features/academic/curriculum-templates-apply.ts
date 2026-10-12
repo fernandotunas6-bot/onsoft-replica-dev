@@ -7,6 +7,7 @@
  * Recebe o cliente já autorizado (ver curriculum-templates-server.ts): este
  * ficheiro não decide quem pode escrever.
  */
+import { resolveSubject } from "@/features/education-catalog/normalize";
 import type { CurriculumPlan } from "./curriculum-templates";
 
 type Row = Record<string, unknown>;
@@ -52,6 +53,16 @@ function fail(error: { message: string } | null, what: string): void {
 
 const normalizeName = (value: string) =>
   value.normalize("NFD").replace(/[̀-ͯ]/g, "").trim().toLowerCase();
+
+/**
+ * Disciplina do catálogo global com este nome — só correspondência exacta
+ * (nome, nome local ou sinónimo), nunca por código: «EM» é Estudo do Meio nos
+ * modelos mas Educação Moral noutros sítios.
+ */
+const catalogKey = (name: string) => {
+  const match = resolveSubject(name);
+  return match?.via === "exact" ? match.subject.code : null;
+};
 
 export async function applyCurriculumPlan(
   db: ApplyDb,
@@ -165,12 +176,23 @@ export async function applyCurriculumPlan(
   fail(subjErr, "as disciplinas");
   const subjectByCode = new Map<string, string>();
   const subjectByName = new Map<string, string>();
+  // «Inglês» já criado à mão é a mesma disciplina que «Língua Estrangeira (Inglês)».
+  const subjectByCatalog = new Map<string, string>();
   for (const r of existingSubjects ?? []) {
     subjectByCode.set(String(r["code"]), String(r["id"]));
     subjectByName.set(normalizeName(String(r["name"])), String(r["id"]));
+    const key = catalogKey(String(r["name"]));
+    if (key && !subjectByCatalog.has(key)) subjectByCatalog.set(key, String(r["id"]));
   }
+  const existingByCatalog = (name: string) => {
+    const key = catalogKey(name);
+    return key ? subjectByCatalog.get(key) : undefined;
+  };
   const newSubjects = plan.subjects.filter(
-    (s) => !subjectByCode.has(s.code) && !subjectByName.has(normalizeName(s.name)),
+    (s) =>
+      !subjectByCode.has(s.code) &&
+      !subjectByName.has(normalizeName(s.name)) &&
+      !existingByCatalog(s.name),
   );
   if (newSubjects.length) {
     const { data, error } = await db
@@ -195,7 +217,10 @@ export async function applyCurriculumPlan(
   const subjectId = (code: string) => {
     const def = plan.subjects.find((s) => s.code === code);
     return (
-      subjectByCode.get(code) ?? (def ? subjectByName.get(normalizeName(def.name)) : undefined)
+      subjectByCode.get(code) ??
+      (def
+        ? (subjectByName.get(normalizeName(def.name)) ?? existingByCatalog(def.name))
+        : undefined)
     );
   };
 

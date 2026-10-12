@@ -1,4 +1,4 @@
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import {
   PWNED_PASSWORD_MESSAGE,
   PWNED_SIGN_IN_NOTICE,

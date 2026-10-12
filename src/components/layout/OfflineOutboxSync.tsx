@@ -1,6 +1,6 @@
 import { useEffect, useRef } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import { discardOutboxItem, flushOutbox, useOutbox } from "@/lib/offline/outbox";
 import { currentUserId } from "@/lib/offline/outbox-session";
 import { enableDesktopPagesOffline } from "@/lib/offline/desktop-offline";

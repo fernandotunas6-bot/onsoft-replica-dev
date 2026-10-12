@@ -10,7 +10,7 @@ import {
   Search,
 } from "lucide-react";
 import { z } from "zod";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import { AppShell } from "@/components/layout/AppShell";
 import { PageHeader, Panel } from "@/components/layout/PageHeader";
 import { DocHelpButton } from "@/components/ui/doc-help-button";

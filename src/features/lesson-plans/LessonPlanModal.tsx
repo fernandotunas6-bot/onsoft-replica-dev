@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import { ClipboardCheck, FileText, Plus, Sparkles, Trash2 } from "lucide-react";
 import { FormModal } from "@/components/ui/modal-system";
 import { Button } from "@/components/ui/button";

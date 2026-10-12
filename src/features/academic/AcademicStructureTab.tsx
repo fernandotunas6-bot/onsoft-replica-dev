@@ -17,6 +17,7 @@ import {
 import { getAcademicStructureStatus } from "./academic-structure";
 import { cn } from "@/lib/utils";
 import { CurriculumTemplateDialog } from "./CurriculumTemplateDialog";
+import { SubjectReviewDialog } from "@/features/education-catalog/SubjectReviewDialog";
 
 const STATUS_DOT: Record<ModuleStatus, string> = {
   ready: "bg-success/70",
@@ -81,7 +82,10 @@ export function AcademicStructureTab({
             anos e licenciaturas no ensino superior. Tudo editável depois.
           </p>
         </div>
-        <CurriculumTemplateDialog />
+        <div className="flex flex-wrap gap-2">
+          <SubjectReviewDialog />
+          <CurriculumTemplateDialog />
+        </div>
       </section>
 
       <section className="surface-card space-y-3 p-5">

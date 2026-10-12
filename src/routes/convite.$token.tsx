@@ -3,7 +3,7 @@ import { InlineLoading } from "@/components/ui/inline-loading";
 import { publicErrorMessage } from "@/lib/public-error";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { CheckCircle2, AlertTriangle, LoaderCircle, Building2 } from "lucide-react";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { acceptSchoolInvitation } from "@/features/access/server";

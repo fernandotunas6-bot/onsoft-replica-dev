@@ -13,7 +13,7 @@ import appCss from "../styles.css?url";
 import { applyPendingUpdate, registerServiceWorker, SW_UPDATE_READY_EVENT } from "@/lib/pwa";
 import { measureVitals } from "@/lib/vitals";
 
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import { Toaster } from "@/components/ui/sonner";
 import { AppearanceProvider } from "@/lib/appearance";
 import { AuthGate } from "@/components/auth/AuthGate";
@@ -137,7 +137,17 @@ function ClientOnlyToaster() {
     setHydrated(true);
   }, []);
 
-  return hydrated ? <Toaster position="top-right" richColors /> : null;
+  // Computador: canto superior direito. Telemóvel (< 600px): o sonner ocupa a
+  // largura toda; o topo fica abaixo do entalhe e longe da barra inferior.
+  return hydrated ? (
+    <Toaster
+      position="top-right"
+      richColors
+      closeButton
+      visibleToasts={4}
+      mobileOffset={{ top: "calc(env(safe-area-inset-top, 0px) + 8px)", left: 8, right: 8 }}
+    />
+  ) : null;
 }
 
 function RootComponent() {

@@ -482,3 +482,81 @@ export async function fetchSignupLeads(
   if (!res.ok) return { ok: false, error: data.error || "Não foi possível ler os registos." }
   return { ok: true, data }
 }
+
+/** Estado de verificação dos registos do catálogo educacional (SIGA). */
+export type CatalogVerificationStatus =
+  | "official_verified"
+  | "institutional_approved"
+  | "in_review"
+  | "outdated"
+  | "archived";
+
+export interface EducationCatalogOverview {
+  version: string;
+  totals: {
+    iscedLevels: number;
+    iscedFields: number;
+    countries: number;
+    countriesWithStages: number;
+    stages: number;
+    subjects: number;
+    courses: number;
+    sources: number;
+  };
+  coverage: Array<{
+    country: string;
+    name: string;
+    stages: number;
+    grades: number;
+    stagesWithPlan: number;
+    planEntries: number;
+    subjectsInPlans: number;
+    courses: number;
+    byStatus: Partial<Record<CatalogVerificationStatus, number>>;
+  }>;
+  stages: Array<{
+    id: string;
+    country: string;
+    name: string;
+    isced: number;
+    iscedName: string;
+    track: string;
+    grades: number[];
+    periods: string[];
+    courses: number;
+    planEntries: number;
+    status: CatalogVerificationStatus;
+    statusLabel: string;
+    source: string;
+    version: string;
+    notes: string | null;
+  }>;
+  sources: Array<{
+    id: string;
+    title: string;
+    authority: string;
+    country: string | null;
+    url: string | null;
+    version: string;
+    licence: string;
+    recordedOn: string;
+    status: CatalogVerificationStatus;
+    statusLabel: string;
+    notes?: string;
+  }>;
+}
+
+/** Catálogo educacional global (só dados de referência; GET público no SIGA). */
+export async function fetchEducationCatalog(): Promise<{
+  ok: boolean;
+  catalog?: EducationCatalogOverview;
+  error?: string;
+}> {
+  const res = await apiFetch(getSaasApiUrl("/api/saas/education-catalog"));
+  if (!res.ok) return { ok: false, error: `O SIGA respondeu ${res.status}.` };
+  try {
+    return { ok: true, catalog: (await res.json()) as EducationCatalogOverview };
+  } catch {
+    return { ok: false, error: "Resposta inválida do SIGA." };
+  }
+}

@@ -15,3 +15,15 @@ export const COLUNAS_ESPERA_MIGRACAO = new Set<string>([
   // tem a coluna. Uma lista que ninguém esvazia deixa de ser espera e passa a ser
   // dívida silenciosa.
 ]);
+
+/**
+ * Funções `public` que o código chama e a produção ainda não tem (migração escrita e por
+ * aplicar). Mesma regra das colunas: só vale se o chamador tratar o PGRST202 com uma
+ * mensagem que diga o que falta, em vez de falhar calado. `colunas-inexistentes.test.ts`
+ * obriga a tirar a entrada quando o retrato mostrar a função.
+ */
+export const FUNCOES_ESPERA_MIGRACAO = new Set<string>([
+  // 20261010150000_merge_school_subjects.sql. education-catalog/subject-review-server.ts
+  // responde «falta aplicar a migração …» ao PGRST202/42883.
+  "merge_school_subjects",
+]);

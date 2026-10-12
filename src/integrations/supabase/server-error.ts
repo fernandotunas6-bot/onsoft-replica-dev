@@ -66,6 +66,11 @@ const businessMessages = new Set([
   "Encarregado inválido para esta escola.",
   // 20261012100000_enrollment_cycle_guard
   "Fora do período de matrículas: só a Administração matricula fora do ciclo.",
+  // Gatilho das mensagens (20261002100000_chat_integrity.sql).
+  "Conversa inexistente.",
+  "A mensagem tem de pertencer à escola da conversa.",
+  "O anexo tem de ser um ficheiro da escola da conversa.",
+  "Só pode responder a mensagens da mesma conversa.",
 ]);
 
 function constraintMessage(message: string | undefined): string | null {
