@@ -368,3 +368,28 @@ it("explains the refusals the school office can fix, and keeps the generic one f
     message: "Sem autorização para esta escola ou operação.",
   });
 });
+
+it("asks the teacher's lesson plans by role, and never for a student", async () => {
+  const fetch = vi
+    .fn()
+    .mockResolvedValueOnce({ ok: true, status: 200, json: async () => demoSession("professor") })
+    .mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      json: async () => ({ schoolId: ctx.schoolId, role: "professor", plans: [] }),
+    });
+  vi.stubGlobal("fetch", fetch);
+  const api = new ApiGateway();
+  await api.session();
+  const catalog = {
+    schoolId: ctx.schoolId,
+    role: "professor" as const,
+    classes: [],
+    timetable: [],
+    tasks: [],
+  };
+  expect((await api.academicLessonPlans(ctx, catalog)).plans).toEqual([]);
+  expect(fetch.mock.calls[1][0]).toBe("/api/mobile-v4/schools/demo-a/lesson-plans?role=professor");
+  await expect(api.academicLessonPlans({ ...ctx, role: "aluno" }, catalog)).rejects.toThrow();
+  expect(fetch).toHaveBeenCalledTimes(2);
+});

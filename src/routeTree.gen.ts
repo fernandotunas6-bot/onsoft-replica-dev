@@ -139,6 +139,7 @@ import { Route as ApiMobileV4SchoolsSchoolIdCommandsRouteImport } from './routes
 import { Route as ApiMobileV4SchoolsSchoolIdContactsRouteImport } from './routes/api/mobile-v4/schools/$schoolId/contacts'
 import { Route as ApiMobileV4SchoolsSchoolIdFinanceRouteImport } from './routes/api/mobile-v4/schools/$schoolId/finance'
 import { Route as ApiMobileV4SchoolsSchoolIdGradebooksRouteImport } from './routes/api/mobile-v4/schools/$schoolId/gradebooks'
+import { Route as ApiMobileV4SchoolsSchoolIdLessonPlansRouteImport } from './routes/api/mobile-v4/schools/$schoolId/lesson-plans'
 import { Route as ApiMobileV4SchoolsSchoolIdNotificationsRouteImport } from './routes/api/mobile-v4/schools/$schoolId/notifications'
 import { Route as ApiMobileV4SchoolsSchoolIdNotificationsReadRouteImport } from './routes/api/mobile-v4/schools/$schoolId/notifications-read'
 import { Route as ApiMobileV4SchoolsSchoolIdResultsRouteImport } from './routes/api/mobile-v4/schools/$schoolId/results'
@@ -828,6 +829,12 @@ const ApiMobileV4SchoolsSchoolIdGradebooksRoute =
     path: '/api/mobile-v4/schools/$schoolId/gradebooks',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiMobileV4SchoolsSchoolIdLessonPlansRoute =
+  ApiMobileV4SchoolsSchoolIdLessonPlansRouteImport.update({
+    id: '/api/mobile-v4/schools/$schoolId/lesson-plans',
+    path: '/api/mobile-v4/schools/$schoolId/lesson-plans',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiMobileV4SchoolsSchoolIdNotificationsRoute =
   ApiMobileV4SchoolsSchoolIdNotificationsRouteImport.update({
     id: '/api/mobile-v4/schools/$schoolId/notifications',
@@ -984,6 +991,7 @@ export interface FileRoutesByFullPath {
   '/api/mobile-v4/schools/$schoolId/contacts': typeof ApiMobileV4SchoolsSchoolIdContactsRoute
   '/api/mobile-v4/schools/$schoolId/finance': typeof ApiMobileV4SchoolsSchoolIdFinanceRoute
   '/api/mobile-v4/schools/$schoolId/gradebooks': typeof ApiMobileV4SchoolsSchoolIdGradebooksRoute
+  '/api/mobile-v4/schools/$schoolId/lesson-plans': typeof ApiMobileV4SchoolsSchoolIdLessonPlansRoute
   '/api/mobile-v4/schools/$schoolId/notifications': typeof ApiMobileV4SchoolsSchoolIdNotificationsRoute
   '/api/mobile-v4/schools/$schoolId/notifications-read': typeof ApiMobileV4SchoolsSchoolIdNotificationsReadRoute
   '/api/mobile-v4/schools/$schoolId/results': typeof ApiMobileV4SchoolsSchoolIdResultsRoute
@@ -1120,6 +1128,7 @@ export interface FileRoutesByTo {
   '/api/mobile-v4/schools/$schoolId/contacts': typeof ApiMobileV4SchoolsSchoolIdContactsRoute
   '/api/mobile-v4/schools/$schoolId/finance': typeof ApiMobileV4SchoolsSchoolIdFinanceRoute
   '/api/mobile-v4/schools/$schoolId/gradebooks': typeof ApiMobileV4SchoolsSchoolIdGradebooksRoute
+  '/api/mobile-v4/schools/$schoolId/lesson-plans': typeof ApiMobileV4SchoolsSchoolIdLessonPlansRoute
   '/api/mobile-v4/schools/$schoolId/notifications': typeof ApiMobileV4SchoolsSchoolIdNotificationsRoute
   '/api/mobile-v4/schools/$schoolId/notifications-read': typeof ApiMobileV4SchoolsSchoolIdNotificationsReadRoute
   '/api/mobile-v4/schools/$schoolId/results': typeof ApiMobileV4SchoolsSchoolIdResultsRoute
@@ -1257,6 +1266,7 @@ export interface FileRoutesById {
   '/api/mobile-v4/schools/$schoolId/contacts': typeof ApiMobileV4SchoolsSchoolIdContactsRoute
   '/api/mobile-v4/schools/$schoolId/finance': typeof ApiMobileV4SchoolsSchoolIdFinanceRoute
   '/api/mobile-v4/schools/$schoolId/gradebooks': typeof ApiMobileV4SchoolsSchoolIdGradebooksRoute
+  '/api/mobile-v4/schools/$schoolId/lesson-plans': typeof ApiMobileV4SchoolsSchoolIdLessonPlansRoute
   '/api/mobile-v4/schools/$schoolId/notifications': typeof ApiMobileV4SchoolsSchoolIdNotificationsRoute
   '/api/mobile-v4/schools/$schoolId/notifications-read': typeof ApiMobileV4SchoolsSchoolIdNotificationsReadRoute
   '/api/mobile-v4/schools/$schoolId/results': typeof ApiMobileV4SchoolsSchoolIdResultsRoute
@@ -1395,6 +1405,7 @@ export interface FileRouteTypes {
     | '/api/mobile-v4/schools/$schoolId/contacts'
     | '/api/mobile-v4/schools/$schoolId/finance'
     | '/api/mobile-v4/schools/$schoolId/gradebooks'
+    | '/api/mobile-v4/schools/$schoolId/lesson-plans'
     | '/api/mobile-v4/schools/$schoolId/notifications'
     | '/api/mobile-v4/schools/$schoolId/notifications-read'
     | '/api/mobile-v4/schools/$schoolId/results'
@@ -1531,6 +1542,7 @@ export interface FileRouteTypes {
     | '/api/mobile-v4/schools/$schoolId/contacts'
     | '/api/mobile-v4/schools/$schoolId/finance'
     | '/api/mobile-v4/schools/$schoolId/gradebooks'
+    | '/api/mobile-v4/schools/$schoolId/lesson-plans'
     | '/api/mobile-v4/schools/$schoolId/notifications'
     | '/api/mobile-v4/schools/$schoolId/notifications-read'
     | '/api/mobile-v4/schools/$schoolId/results'
@@ -1667,6 +1679,7 @@ export interface FileRouteTypes {
     | '/api/mobile-v4/schools/$schoolId/contacts'
     | '/api/mobile-v4/schools/$schoolId/finance'
     | '/api/mobile-v4/schools/$schoolId/gradebooks'
+    | '/api/mobile-v4/schools/$schoolId/lesson-plans'
     | '/api/mobile-v4/schools/$schoolId/notifications'
     | '/api/mobile-v4/schools/$schoolId/notifications-read'
     | '/api/mobile-v4/schools/$schoolId/results'
@@ -1769,6 +1782,7 @@ export interface RootRouteChildren {
   ApiMobileV4SchoolsSchoolIdContactsRoute: typeof ApiMobileV4SchoolsSchoolIdContactsRoute
   ApiMobileV4SchoolsSchoolIdFinanceRoute: typeof ApiMobileV4SchoolsSchoolIdFinanceRoute
   ApiMobileV4SchoolsSchoolIdGradebooksRoute: typeof ApiMobileV4SchoolsSchoolIdGradebooksRoute
+  ApiMobileV4SchoolsSchoolIdLessonPlansRoute: typeof ApiMobileV4SchoolsSchoolIdLessonPlansRoute
   ApiMobileV4SchoolsSchoolIdNotificationsRoute: typeof ApiMobileV4SchoolsSchoolIdNotificationsRoute
   ApiMobileV4SchoolsSchoolIdNotificationsReadRoute: typeof ApiMobileV4SchoolsSchoolIdNotificationsReadRoute
   ApiMobileV4SchoolsSchoolIdResultsRoute: typeof ApiMobileV4SchoolsSchoolIdResultsRoute
@@ -2687,6 +2701,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiMobileV4SchoolsSchoolIdGradebooksRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/mobile-v4/schools/$schoolId/lesson-plans': {
+      id: '/api/mobile-v4/schools/$schoolId/lesson-plans'
+      path: '/api/mobile-v4/schools/$schoolId/lesson-plans'
+      fullPath: '/api/mobile-v4/schools/$schoolId/lesson-plans'
+      preLoaderRoute: typeof ApiMobileV4SchoolsSchoolIdLessonPlansRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/mobile-v4/schools/$schoolId/notifications': {
       id: '/api/mobile-v4/schools/$schoolId/notifications'
       path: '/api/mobile-v4/schools/$schoolId/notifications'
@@ -3027,6 +3048,8 @@ const rootRouteChildren: RootRouteChildren = {
     ApiMobileV4SchoolsSchoolIdFinanceRoute,
   ApiMobileV4SchoolsSchoolIdGradebooksRoute:
     ApiMobileV4SchoolsSchoolIdGradebooksRoute,
+  ApiMobileV4SchoolsSchoolIdLessonPlansRoute:
+    ApiMobileV4SchoolsSchoolIdLessonPlansRoute,
   ApiMobileV4SchoolsSchoolIdNotificationsRoute:
     ApiMobileV4SchoolsSchoolIdNotificationsRoute,
   ApiMobileV4SchoolsSchoolIdNotificationsReadRoute:

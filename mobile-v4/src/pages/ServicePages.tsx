@@ -2,6 +2,7 @@ import { InstitutionalNotifications } from "../components/InstitutionalNotificat
 import { InstitutionalChat } from "../components/InstitutionalChat";
 import { InstitutionalFinance } from "../components/InstitutionalFinance";
 import { InstitutionalGradebooks } from "../components/InstitutionalGradebooks";
+import { InstitutionalLessonPlans } from "../components/InstitutionalLessonPlans";
 import { InstitutionalResults } from "../components/InstitutionalResults";
 import { InstitutionalAttendance } from "../components/InstitutionalAttendance";
 import type { ApiError } from "../services/api";
@@ -203,6 +204,14 @@ export function ServicePages({
             ctx.role === "aluno" &&
             ["notas", "notas-aluno"].includes(page) ? (
             <InstitutionalResults
+              key={ctx.userId + ctx.schoolId + ctx.role + page}
+              ctx={ctx}
+              catalog={catalog}
+              gateway={gateway}
+              onAccessError={onAccessError}
+            />
+          ) : catalog && gateway && ctx.role === "professor" && page === "planos" ? (
+            <InstitutionalLessonPlans
               key={ctx.userId + ctx.schoolId + ctx.role + page}
               ctx={ctx}
               catalog={catalog}

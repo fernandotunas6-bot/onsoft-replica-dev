@@ -9,6 +9,7 @@ vi.mock("@/features/mobile-v4/operations-core.server", () => ({
   loadMobileV4Attendance: vi.fn(),
   loadMobileV4Results: vi.fn(),
   loadMobileV4Gradebooks: vi.fn(),
+  loadMobileV4LessonPlans: vi.fn(),
   loadMobileV4Finance: vi.fn(),
   loadMobileV4Chat: vi.fn(),
   loadMobileV4ChatContacts: vi.fn(),
@@ -63,6 +64,7 @@ beforeEach(() => {
       invoices: [],
     }),
     gradebooks: vi.fn().mockResolvedValue({ schoolId: school, role: "professor", books: [] }),
+    "lesson-plans": vi.fn().mockResolvedValue({ schoolId: school, role: "professor", plans: [] }),
     results: vi.fn().mockResolvedValue({ schoolId: school, role: "aluno", sheets: [] }),
     attendance: vi.fn().mockResolvedValue({ sessions: [], teacherLessons: [] }),
     academic: vi.fn().mockResolvedValue({
@@ -326,6 +328,24 @@ it("routes internal gradebooks only after validating identity and scope", async 
   });
   expect(
     (await handleMobileV4Http(request(`/schools/${school}/gradebooks?role=other`), deps)).status,
+  ).toBe(422);
+});
+
+it("routes lesson plans by GET only, with the scope from the route", async () => {
+  const response = await handleMobileV4Http(
+    request(`/schools/${school}/lesson-plans?role=professor&teacherId=attacker`),
+    deps,
+  );
+  expect(response.status).toBe(200);
+  expect(deps["lesson-plans"]).toHaveBeenCalledWith("verified-user", {
+    schoolId: school,
+    role: "professor",
+  });
+  expect(
+    (await handleMobileV4Http(request(`/schools/${school}/lesson-plans`, {}), deps)).status,
+  ).toBe(405);
+  expect(
+    (await handleMobileV4Http(request(`/schools/${school}/lesson-plans?role=other`), deps)).status,
   ).toBe(422);
 });
 

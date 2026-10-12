@@ -1758,3 +1758,9 @@ select:focus-visible {
   background: var(--v5-accent);
   color: #fff;
 }
+
+/* Texto do plano de aula: mantém parágrafos e listas escritos no portal. */
+#app .plan-content {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}

@@ -13,6 +13,7 @@ import {
 } from "../domain/institutional-chat";
 import { parseStudentFinance } from "../domain/finance";
 import { parseAcademicGradebooks } from "../domain/gradebooks";
+import { parseAcademicLessonPlans } from "../domain/lesson-plans";
 import { parseAcademicResults } from "../domain/results";
 import {
   parseAttendanceCallReceipt,
@@ -388,6 +389,16 @@ export class ApiGateway implements Gateway {
       signal,
     );
     return parseAcademicGradebooks(data, ctx, catalog);
+  }
+  async academicLessonPlans(ctx: Context, catalog: AcademicCatalog, signal?: AbortSignal) {
+    authorize(this.current, ctx);
+    if (ctx.role !== "professor")
+      throw new ApiError(403, "Os planos de aula são consultados apenas pelo professor.");
+    const data = await this.request(
+      "/schools/" + encodeURIComponent(ctx.schoolId) + "/lesson-plans?role=" + ctx.role,
+      signal,
+    );
+    return parseAcademicLessonPlans(data, ctx, catalog);
   }
   async academicResults(ctx: Context, catalog: AcademicCatalog, signal?: AbortSignal) {
     authorize(this.current, ctx);

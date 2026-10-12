@@ -96,6 +96,21 @@ export async function loadMobileV4Gradebooks(userId: string, input: unknown) {
   return readMobileGradebooks(db, scope, catalog, userId);
 }
 
+export async function loadMobileV4LessonPlans(userId: string, input: unknown) {
+  const requested = mobileScopeSchema.parse(input);
+  const { db } = await requireMobileAcademicAccess(
+    userId,
+    requested.schoolId,
+    requested.role,
+    "read",
+  );
+  if (requested.role !== "professor") throw new MobileApiError(403, "LESSON_PLANS_TEACHER_ONLY");
+  const scope = await resolveMobileAcademicScope(db, userId, requested.schoolId, requested.role);
+  const catalog = await readMobileAcademicCatalog(db, scope, userId);
+  const { readMobileLessonPlans } = await import("./lesson-plans.server");
+  return readMobileLessonPlans(db, scope, catalog, userId);
+}
+
 export async function loadMobileV4Finance(userId: string, input: unknown) {
   const requested = mobileScopeSchema.parse(input);
   const { db } = await requireMobileAcademicAccess(
