@@ -373,3 +373,11 @@ cliques e falha sem ela.
 
 Os outros dois modais partilhados com a mesma corrida — `ConfirmActionModal` (anular,
 estornar, excluir) e `SequentialSheetModal` (assistentes por passos) — têm a mesma guarda.
+
+## 14. Datas a partir do dia de Luanda (2026-10-12)
+
+Dois sítios somavam dias ao instante actual em UTC: o vencimento da pró-forma (Faturas,
+emitida «hoje» em Luanda e a vencer a 15 dias em UTC — perto da meia-noite saía a 14) e o
+fim do período por omissão no calendário avançado. Usam agora `schoolDateInDays`
+(`src/lib/school-date.ts`), que parte de `schoolTodayIso`. Os outros `toISOString().slice(0,
+10)` do código trabalham sobre datas já fixas (sem hora), o que está certo.
