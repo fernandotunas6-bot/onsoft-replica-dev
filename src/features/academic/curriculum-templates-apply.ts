@@ -7,6 +7,7 @@
  * Recebe o cliente já autorizado (ver curriculum-templates-server.ts): este
  * ficheiro não decide quem pode escrever.
  */
+import { linkNewSubjectsToCatalog } from "@/features/education-catalog/catalog-link";
 import { resolveSubject } from "@/features/education-catalog/normalize";
 import type { CurriculumPlan } from "./curriculum-templates";
 
@@ -213,6 +214,15 @@ export async function applyCurriculumPlan(
     fail(error, "as disciplinas");
     created.disciplinas = data?.length ?? 0;
     for (const r of data ?? []) subjectByCode.set(String(r["code"]), String(r["id"]));
+    const nameByCode = new Map(newSubjects.map((s) => [s.code, s.name]));
+    await linkNewSubjectsToCatalog(
+      db,
+      schoolId,
+      (data ?? []).map((r) => ({
+        id: String(r["id"]),
+        name: nameByCode.get(String(r["code"])) ?? "",
+      })),
+    );
   }
   const subjectId = (code: string) => {
     const def = plan.subjects.find((s) => s.code === code);

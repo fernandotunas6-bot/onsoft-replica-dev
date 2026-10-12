@@ -111,8 +111,12 @@ servidor recalcula a revisão e só grava o que ela sugere ou um código que o c
 conhece, nunca por cima de uma ligação existente; 2FA, Administrador/Secretaria, política
 de UPDATE e auditoria (`academic.subject.linked_to_catalog`). Antes da migração, a revisão
 lê com `select("*")`, mostra «fica disponível depois de aplicada…» e não grava nada.
-Ensaio: `tests/sql/subjects-catalog-link.mjs`. Ainda por fazer: gravar a ligação ao criar
-disciplinas (modelo de estrutura, «Nova», importação) e `programs.catalog_course_code`.
+Ensaio: `tests/sql/subjects-catalog-link.mjs`.
+
+Ao criar — «Nova» disciplina, «Usar modelo de estrutura» e importação — a disciplina com
+nome exacto do catálogo fica logo ligada (`catalog-link.ts`). É um passo a seguir à
+criação e tolerante: sem a coluna, ou se falhar, a disciplina fica criada e por ligar.
+Ainda por fazer: `programs.catalog_course_code`.
 
 ## Criar disciplina com o catálogo
 
@@ -272,8 +276,8 @@ não há nada em `TABELAS_AUSENTES_DA_PRODUCAO`.
 
 - ~~Assistente de estrutura para Moçambique e Portugal~~ (feito, ver acima).
 - ~~Juntar duplicados~~ (feito; falta aplicar a migração).
-- ~~Ligar `subjects.catalog_subject_code`~~ (feito; falta aplicar a migração). Falta
-  `programs.catalog_course_code` e gravar a ligação ao criar disciplinas.
+- ~~Ligar `subjects.catalog_subject_code`~~ (feito, também ao criar; falta aplicar a
+  migração). Falta `programs.catalog_course_code`.
 - Documentos e pautas a resolverem nomes pelo catálogo (mantendo o nome à data da emissão).
 - Painel de governação no ADMIN (aprovar propostas, versões, comparar, restaurar) com
   `catalog_review_queue`.

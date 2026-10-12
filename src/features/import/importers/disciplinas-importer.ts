@@ -1,5 +1,6 @@
 import { normalizeNumber, normalizeText } from "../engine/normalize";
 import type { ImportRefCache, RowImporter } from "../engine/types";
+import { linkNewSubjectsToCatalog } from "@/features/education-catalog/catalog-link";
 import { subjectCatalogKey } from "@/features/education-catalog/normalize";
 import { uniqueExactMatch } from "./academic-core";
 
@@ -146,6 +147,7 @@ export const disciplinasImporter: RowImporter = {
     }
 
     cache.existingSubjects.push({ id: String(data.id), code, name });
+    await linkNewSubjectsToCatalog(ctx.db, ctx.schoolId, [{ id: String(data.id), name }]);
     return {
       status: "imported",
       warnings: analysis.warnings,
