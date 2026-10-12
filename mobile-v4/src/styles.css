@@ -1764,3 +1764,44 @@ select:focus-visible {
   white-space: pre-wrap;
   overflow-wrap: anywhere;
 }
+
+/* Filtros das páginas ligadas ao SIGA (horário, trabalhos, diários, pautas,
+ * planos, avisos): o rótulo por cima e o campo a toda a largura, como nos
+ * formulários. Antes só `.academic` e `form` os tinham, e o rótulo seguinte
+ * ficava encostado a uma caixa de pesquisa estreita. */
+#app section > label:not(.checkline) {
+  display: block;
+  margin: 12px 0;
+  font-weight: 500;
+}
+#app
+  section
+  > label:not(.checkline)
+  > :is(input:not([type="checkbox"]):not([type="radio"]), select) {
+  display: block;
+  width: 100%;
+  min-height: 48px;
+  border: 1px solid #d5d5de;
+  border-radius: 14px;
+  background: #fff;
+  color: #17171c;
+  padding: 12px;
+  margin-top: 8px;
+  font: inherit;
+}
+#app.dark
+  section
+  > label:not(.checkline)
+  > :is(input:not([type="checkbox"]):not([type="radio"]), select) {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.16);
+  color: inherit;
+}
+
+/* O fundo animado (#app::before/::after, inset -18%) deixa #app mais largo do
+ * que o ecrã. Com `overflow: hidden` o browser ainda o desloca ao levar um
+ * botão perto da margem à vista, e a página inteira ficava 86 px para a
+ * esquerda. `clip` corta igual e não deixa deslocar. */
+#app {
+  overflow: clip;
+}
