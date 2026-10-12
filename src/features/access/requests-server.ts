@@ -1,3 +1,4 @@
+import { isMissingTable as isMissingDatabaseTable } from "@/integrations/supabase/server-error";
 /**
  * Solicitações de vinculação institucional — servidor.
  *
@@ -89,11 +90,8 @@ const MISSING_TABLE_MESSAGE =
   "As solicitações de acesso ainda não estão activas nesta instalação (tabela school_access_requests por aplicar — ver npm run siga:sql).";
 
 function isMissingTable(error: { code?: string; message?: string } | null | undefined) {
-  if (!error) return false;
   return (
-    error.code === "42P01" ||
-    error.code === "PGRST205" ||
-    /school_access_requests/.test(error.message ?? "")
+    isMissingDatabaseTable(error) || (!!error && /school_access_requests/.test(error.message ?? ""))
   );
 }
 

@@ -1,3 +1,4 @@
+import { selectAllPages } from "@/features/import/engine/paged";
 import type { TablesUpdate } from "@/integrations/supabase/types";
 import { z } from "zod";
 import { resolveVerifiedAccountEmail } from "@/features/students/student-scope";
@@ -31,7 +32,7 @@ import {
 } from "./gate-pass-token";
 import { evaluateGatePassAccess, resolveGatePassDevice } from "./gate-pass-validation";
 import { runDeviceGatePassWebhook } from "./device-webhook-handler";
-import { schoolTodayIso } from "@/lib/school-date";
+import { schoolDayOffsetIso, schoolTodayIso } from "@/lib/school-date";
 
 export interface GateEntryRecord {
   student_id: string | null;
@@ -53,6 +54,13 @@ export type AttendanceAnomaly = {
  * entrou no recinto mas foi marcado ausente na aula, ou que só bateu o cartão depois das 08:00,
  * é sinalizado como anomalia para a secretaria investigar.
  */
+const SCHOOL_TIME_ZONE = "Africa/Luanda";
+const luandaHour = new Intl.DateTimeFormat("en-GB", {
+  timeZone: SCHOOL_TIME_ZONE,
+  hour: "2-digit",
+  hourCycle: "h23",
+});
+
 export function detectAttendanceAnomalies(
   gateEntries: GateEntryRecord[],
   classStatusByStudentId: Map<string, string>,
@@ -64,12 +72,20 @@ export function detectAttendanceAnomalies(
 
   return enteredStudentIds
     .map((stId): AttendanceAnomaly | null => {
-      const entry = gateEntries.find((g) => g.student_id === stId);
+      // Primeira entrada do dia, pela hora (as linhas podem vir em qualquer ordem).
+      const entry = gateEntries
+        .filter((g) => g.student_id === stId)
+        .reduce<GateEntryRecord | undefined>(
+          (first, g) => (!first || g.created_at < first.created_at ? g : first),
+          undefined,
+        );
       const classStatus = classStatusByStudentId.get(stId);
       const personName = entry?.person_id
         ? (personNameByPersonId.get(entry.person_id) ?? "Estudante")
         : "Estudante";
-      const gateEntryTime = entry ? new Date(entry.created_at).toLocaleTimeString("pt-PT") : "—";
+      const gateEntryTime = entry
+        ? new Date(entry.created_at).toLocaleTimeString("pt-PT", { timeZone: SCHOOL_TIME_ZONE })
+        : "—";
 
       if (classStatus === "absent") {
         return {
@@ -82,8 +98,9 @@ export function detectAttendanceAnomalies(
         };
       }
 
-      const entryHour = entry ? new Date(entry.created_at).getHours() : 0;
-      if (entryHour >= 8) {
+      // Hora de Luanda: o servidor corre em UTC, e «8» seria 09:00 na escola.
+      const entryHour = entry ? luandaHour.format(new Date(entry.created_at)) : "00";
+      if (Number(entryHour) >= 8) {
         return {
           studentId: stId,
           studentName: personName,
@@ -621,22 +638,26 @@ export const exportGatePassOfflineList = createServerFn({ method: "GET" })
     ]);
     const db = await loadSgaAdminClient();
 
-    const { data: cards, error } = await db
-      .from("siga_access_cards")
-      .select(
-        "id, person_id, student_id, card_number, barcode, qr_secret, rfid_tag, status, expires_at",
-      )
-      .eq("school_id", membership.schoolId)
-      .eq("status", "active");
-
-    if (error)
-      throw publicDatabaseError(error, "Não foi possível exportar a lista offline de catracas.");
+    // Em páginas: o PostgREST corta aos 1000 e os cartões a mais ficavam recusados offline.
+    const cards = await selectAllPages(
+      (from, to) =>
+        db
+          .from("siga_access_cards")
+          .select(
+            "id, person_id, student_id, card_number, barcode, qr_secret, rfid_tag, status, expires_at",
+          )
+          .eq("school_id", membership.schoolId)
+          .eq("status", "active")
+          .order("id")
+          .range(from, to),
+      "Não foi possível exportar a lista offline de catracas",
+    );
 
     return {
       schoolId: membership.schoolId,
       exportedAt: new Date().toISOString(),
-      totalCards: cards?.length ?? 0,
-      cards: cards ?? [],
+      totalCards: cards.length,
+      cards,
     };
   });
 
@@ -652,13 +673,21 @@ export const getCampusVsClassroomReconciliation = createServerFn({ method: "GET"
 
     const todayStr = schoolTodayIso();
 
-    const { data: gateEntries } = await db
-      .from("siga_access_logs")
-      .select("student_id, person_id, created_at, direction, status")
-      .eq("school_id", membership.schoolId)
-      .eq("direction", "entry")
-      .eq("status", "granted")
-      .gte("created_at", `${todayStr}T00:00:00.000Z`);
+    // Dia de Luanda (UTC+1), em páginas: a escola pode ter mais de mil entradas por dia.
+    const gateEntries = await selectAllPages<GateEntryRecord>(
+      (from, to) =>
+        db
+          .from("siga_access_logs")
+          .select("id, student_id, person_id, created_at, direction, status")
+          .eq("school_id", membership.schoolId)
+          .eq("direction", "entry")
+          .eq("status", "granted")
+          .gte("created_at", `${todayStr}T00:00:00+01:00`)
+          .lt("created_at", `${schoolDayOffsetIso(1)}T00:00:00+01:00`)
+          .order("id")
+          .range(from, to),
+      "Não foi possível ler as entradas de hoje",
+    );
 
     // A data da aula vive na sessão (`siga_attendance_sessions.lesson_date`), não no
     // registo: `siga_attendance_records` não tem coluna `date`, e filtrar por ela fazia o
@@ -671,16 +700,22 @@ export const getCampusVsClassroomReconciliation = createServerFn({ method: "GET"
       .eq("lesson_date", todayStr);
 
     const todaySessionIds = (todaySessions ?? []).map((s) => s.id as string);
-    const { data: classRecords } = todaySessionIds.length
-      ? await db
-          .from("siga_attendance_records")
-          .select("student_id, status, session_id")
-          .eq("school_id", membership.schoolId)
-          .in("session_id", todaySessionIds)
-      : { data: [] };
+    const classRecords = todaySessionIds.length
+      ? await selectAllPages<{ student_id: string; status: string }>(
+          (from, to) =>
+            db
+              .from("siga_attendance_records")
+              .select("id, student_id, status, session_id")
+              .eq("school_id", membership.schoolId)
+              .in("session_id", todaySessionIds)
+              .order("id")
+              .range(from, to),
+          "Não foi possível ler as presenças de hoje",
+        )
+      : [];
 
     const { loadPeopleLite } = await import("@/features/people/lookup");
-    const personIds = (gateEntries ?? []).filter((g) => g.person_id).map((g) => g.person_id!);
+    const personIds = gateEntries.filter((g) => g.person_id).map((g) => g.person_id!);
     const peopleMap = personIds.length
       ? await loadPeopleLite(db, membership.schoolId, personIds)
       : new Map();
@@ -689,17 +724,13 @@ export const getCampusVsClassroomReconciliation = createServerFn({ method: "GET"
     );
 
     const classStatusMap = new Map<string, string>();
-    (classRecords ?? []).forEach((r) => {
+    classRecords.forEach((r) => {
       classStatusMap.set(r.student_id, r.status);
     });
 
-    const anomalies = detectAttendanceAnomalies(
-      gateEntries ?? [],
-      classStatusMap,
-      personNameByPersonId,
-    );
+    const anomalies = detectAttendanceAnomalies(gateEntries, classStatusMap, personNameByPersonId);
     const totalCampusEntriesToday = new Set(
-      (gateEntries ?? []).filter((g) => g.student_id).map((g) => g.student_id!),
+      gateEntries.filter((g) => g.student_id).map((g) => g.student_id!),
     ).size;
 
     return {
