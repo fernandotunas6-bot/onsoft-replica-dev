@@ -55,6 +55,7 @@ import { recordAccessAudit, recordAuditBatch } from "@/features/audit/record-aud
 import { queueTenantUsageSync } from "@/features/saas/usage-sync";
 import { assertCanAddStudentForSchool } from "@/features/saas/tenant-limits-server";
 import { schoolTodayIso } from "@/lib/school-date";
+import { sumPaidByInvoice } from "@/features/finance/invoice-settlement";
 
 async function linkGuardian(
   db: Awaited<ReturnType<typeof loadSgaAdminClient>>,
@@ -236,14 +237,7 @@ export const searchStudents = createServerFn({ method: "GET" })
                 .eq("school_id", membership.schoolId)
             : { data: [] };
 
-          const paidByInvoice = new Map<string, number>();
-          for (const r of receipts ?? []) {
-            if (r.status === "reversed") continue;
-            paidByInvoice.set(
-              r.invoice_id,
-              (paidByInvoice.get(r.invoice_id) ?? 0) + Number(r.amount ?? 0),
-            );
-          }
+          const paidByInvoice = sumPaidByInvoice(receipts);
 
           const studentIdByContract = new Map<string, string>();
           const studentByEnrollment = new Map(

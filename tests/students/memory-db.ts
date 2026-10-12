@@ -76,6 +76,10 @@ export function memoryDb(tables: Record<string, Row[]>) {
         else filters.push((row) => row[column] !== value);
         return chain;
       },
+      lt: (column: string, value: unknown) => {
+        filters.push((row) => String(row[column]) < String(value));
+        return chain;
+      },
       order: () => chain,
       limit: () => chain,
       range: (from: number, to: number) => {

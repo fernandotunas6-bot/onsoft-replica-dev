@@ -71,6 +71,7 @@ import {
   loadNextInvoiceSequence,
 } from "./invoice-numbering";
 import { mapPaymentMethodForLedger } from "./payment-method";
+import { sumPaidByInvoice } from "@/features/finance/invoice-settlement";
 
 const REPORTING_PAGE_SIZE = 1000;
 const REPORTING_MAX_PAGES = 30;
@@ -659,14 +660,7 @@ export const listInvoices = createServerFn({ method: "GET" })
     const enrollmentById = new Map((enrollments ?? []).map((row) => [row.id, row]));
     const contractById = new Map((contracts ?? []).map((row) => [row.id, row]));
     const feeById = new Map((feeItems ?? []).map((row) => [row.id, row]));
-    const paidByInvoice = new Map<string, number>();
-    for (const receipt of receipts ?? []) {
-      if (receipt.status === "reversed") continue;
-      paidByInvoice.set(
-        receipt.invoice_id,
-        (paidByInvoice.get(receipt.invoice_id) ?? 0) + Number(receipt.amount ?? 0),
-      );
-    }
+    const paidByInvoice = sumPaidByInvoice(receipts);
     // A multa que um pagamento registado hoje levaria (late-fee.ts): a tesouraria vê-a
     // antes de receber, em vez de a fatura ficar «parcial» depois.
     const billing = await readSettingsDomain(db, membership.schoolId, "billing");

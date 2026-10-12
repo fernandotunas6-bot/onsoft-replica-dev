@@ -168,5 +168,11 @@ utilizador não são afectadas; mudar de turma não passa pelo gatilho. Ensaio
 | --- | ---- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
 | F1  | P2   | A lista de alunos calculava a dívida **sem a multa por atraso**: não pedia `penalty_amount` à base, e o total estava copiado em `academic-status.ts`. A ficha e as Finanças incluem a multa, por isso o mesmo aluno tinha duas dívidas diferentes. Produção: 0 faturas com multa (nenhum número errado hoje). | A lista pede a multa; o total usa `invoiceNetTotal`, a regra única de `invoice-settlement.ts`. |
 
+| F2 | P2 | **Faturas em atraso falsas.** O painel (`ops.overdueInvoices`) e o sino liam as primeiras 250 (ou 5 000) faturas e recibos da escola, sem ordem. Acima disso, uma fatura paga cujo recibo ficasse fora do corte contava como em atraso, e faturas além do corte não contavam. A conta estava escrita duas vezes. Produção: 38 faturas, ainda sem efeito. | `countOverdueInvoices` (`finance/overdue-invoices.ts`): só faturas por pagar já vencidas, em páginas, e só os recibos delas. |
+| F3 | P3 | «Quanto foi pago de cada fatura» copiado em seis sítios. | `sumPaidByInvoice` (`invoice-settlement.ts`) onde a soma era tudo o que o ciclo fazia. |
+
+Aberto (P3): os gráficos do painel (receita por mês, canais) ainda lêem até 3 000 faturas e recibos;
+numa escola maior os gráficos ficam incompletos. Pede uma agregação na base (vista ou RPC).
+
 Verificado e sem mudança: os rótulos de opção em Pedagógica, horário e ficha do professor levam o
 início do id, por isso não confundem opções homónimas (ao contrário de M7).

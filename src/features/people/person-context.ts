@@ -1,6 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { schoolTodayIso } from "@/lib/school-date";
 import { invoiceNetTotal } from "@/features/finance/invoice-settlement";
+import { sumPaidByInvoice } from "@/features/finance/invoice-settlement";
 
 export type PersonAcademicSummary = {
   total_enrollments: number;
@@ -166,14 +167,7 @@ export async function resolvePersonContext(
               .in("invoice_id", invoiceIds)
           : { data: [] as Array<{ invoice_id: string; amount: number; status: string }> };
 
-        const paidByInvoice = new Map<string, number>();
-        for (const receipt of receipts ?? []) {
-          if (receipt.status === "reversed") continue;
-          paidByInvoice.set(
-            receipt.invoice_id,
-            (paidByInvoice.get(receipt.invoice_id) ?? 0) + Number(receipt.amount ?? 0),
-          );
-        }
+        const paidByInvoice = sumPaidByInvoice(receipts);
 
         const today = schoolTodayIso();
         let balance = 0;
