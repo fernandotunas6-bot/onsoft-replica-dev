@@ -24,8 +24,19 @@ Detalhe e cobertura real: [docs/education-catalog/README.md](../education-catalo
   (`subject-hint.ts`; `QuickFormModal` com `suggestions` e `renderHint`).
 - Documentos: o registo de cada emissão (`documents.issued`) guarda os nomes das disciplinas
   impressas e `/verificar` mostra-os — o nome à data da emissão sobrevive a renomear/juntar.
+- Importação (PR #125): disciplinas e cursos duplicados reconhecidos pelo código, nome ou
+  catálogo (`subjectCatalogKey`, `courseCatalogKey` — nunca por siglas); disciplina das
+  notas/presenças/avaliações/horários e classe das turmas/propinas pela equivalência do
+  catálogo (`resolveSubject`, `resolveGradeLevel`, com aviso); períodos «I/III Trimestre»,
+  «T2» (`parseTerm`); histórico académico sem duplicar por grafia da classe.
+- Ligação ao catálogo: `subjects.catalog_subject_code` (`20261012120000`), em «Rever
+  disciplinas» (automática pelo nome exacto, ou à mão para as próprias) e ao criar
+  (`catalog-link.ts`: «Nova», modelo de estrutura, importação; tolerante). Cursos novos
+  também (`programs.catalog_course_code`, mesma migração); os existentes em «Ligar cursos». Colunas em
+  `COLUNAS_ESPERA_MIGRACAO` até o retrato as ter.
 - **Por aplicar (dono):** `20261010120000_global_education_catalog.sql`, depois
-  `supabase/seeds/education/catalog.sql`, depois `20261010150000_merge_school_subjects.sql`. A página não depende delas.
+  `supabase/seeds/education/catalog.sql`, depois `20261010150000_merge_school_subjects.sql`,
+  depois `20261012120000_subjects_catalog_link.sql` (independente das outras). A página não depende delas.
 
 ## Auditoria 14 — lógica das matrículas e repetições (2026-10-10)
 

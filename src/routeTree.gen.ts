@@ -105,6 +105,7 @@ import { Route as ApiSaasDomainsCheckRouteImport } from './routes/api/saas/domai
 import { Route as ApiSaasDomainsPollRouteImport } from './routes/api/saas/domains.poll'
 import { Route as ApiSaasDomainsStatusRouteImport } from './routes/api/saas/domains.status'
 import { Route as ApiSaasDomainsVerifyRouteImport } from './routes/api/saas/domains.verify'
+import { Route as ApiSaasEducationCatalogAdoptionRouteImport } from './routes/api/saas/education-catalog.adoption'
 import { Route as ApiSaasEducationCatalogSearchRouteImport } from './routes/api/saas/education-catalog.search'
 import { Route as ApiSaasEmailRoutesRouteImport } from './routes/api/saas/email.routes'
 import { Route as ApiSaasPlatformAdminsRevokeRouteImport } from './routes/api/saas/platform-admins.revoke'
@@ -622,6 +623,12 @@ const ApiSaasDomainsVerifyRoute = ApiSaasDomainsVerifyRouteImport.update({
   path: '/verify',
   getParentRoute: () => ApiSaasDomainsRoute,
 } as any)
+const ApiSaasEducationCatalogAdoptionRoute =
+  ApiSaasEducationCatalogAdoptionRouteImport.update({
+    id: '/adoption',
+    path: '/adoption',
+    getParentRoute: () => ApiSaasEducationCatalogRoute,
+  } as any)
 const ApiSaasEducationCatalogSearchRoute =
   ApiSaasEducationCatalogSearchRouteImport.update({
     id: '/search',
@@ -827,6 +834,7 @@ export interface FileRoutesByFullPath {
   '/api/saas/domains/poll': typeof ApiSaasDomainsPollRoute
   '/api/saas/domains/status': typeof ApiSaasDomainsStatusRoute
   '/api/saas/domains/verify': typeof ApiSaasDomainsVerifyRoute
+  '/api/saas/education-catalog/adoption': typeof ApiSaasEducationCatalogAdoptionRoute
   '/api/saas/education-catalog/search': typeof ApiSaasEducationCatalogSearchRoute
   '/api/saas/email/routes': typeof ApiSaasEmailRoutesRoute
   '/api/saas/platform-admins/revoke': typeof ApiSaasPlatformAdminsRevokeRoute
@@ -945,6 +953,7 @@ export interface FileRoutesByTo {
   '/api/saas/domains/poll': typeof ApiSaasDomainsPollRoute
   '/api/saas/domains/status': typeof ApiSaasDomainsStatusRoute
   '/api/saas/domains/verify': typeof ApiSaasDomainsVerifyRoute
+  '/api/saas/education-catalog/adoption': typeof ApiSaasEducationCatalogAdoptionRoute
   '/api/saas/education-catalog/search': typeof ApiSaasEducationCatalogSearchRoute
   '/api/saas/email/routes': typeof ApiSaasEmailRoutesRoute
   '/api/saas/platform-admins/revoke': typeof ApiSaasPlatformAdminsRevokeRoute
@@ -1064,6 +1073,7 @@ export interface FileRoutesById {
   '/api/saas/domains/poll': typeof ApiSaasDomainsPollRoute
   '/api/saas/domains/status': typeof ApiSaasDomainsStatusRoute
   '/api/saas/domains/verify': typeof ApiSaasDomainsVerifyRoute
+  '/api/saas/education-catalog/adoption': typeof ApiSaasEducationCatalogAdoptionRoute
   '/api/saas/education-catalog/search': typeof ApiSaasEducationCatalogSearchRoute
   '/api/saas/email/routes': typeof ApiSaasEmailRoutesRoute
   '/api/saas/platform-admins/revoke': typeof ApiSaasPlatformAdminsRevokeRoute
@@ -1184,6 +1194,7 @@ export interface FileRouteTypes {
     | '/api/saas/domains/poll'
     | '/api/saas/domains/status'
     | '/api/saas/domains/verify'
+    | '/api/saas/education-catalog/adoption'
     | '/api/saas/education-catalog/search'
     | '/api/saas/email/routes'
     | '/api/saas/platform-admins/revoke'
@@ -1302,6 +1313,7 @@ export interface FileRouteTypes {
     | '/api/saas/domains/poll'
     | '/api/saas/domains/status'
     | '/api/saas/domains/verify'
+    | '/api/saas/education-catalog/adoption'
     | '/api/saas/education-catalog/search'
     | '/api/saas/email/routes'
     | '/api/saas/platform-admins/revoke'
@@ -1420,6 +1432,7 @@ export interface FileRouteTypes {
     | '/api/saas/domains/poll'
     | '/api/saas/domains/status'
     | '/api/saas/domains/verify'
+    | '/api/saas/education-catalog/adoption'
     | '/api/saas/education-catalog/search'
     | '/api/saas/email/routes'
     | '/api/saas/platform-admins/revoke'
@@ -2200,6 +2213,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiSaasDomainsVerifyRouteImport
       parentRoute: typeof ApiSaasDomainsRoute
     }
+    '/api/saas/education-catalog/adoption': {
+      id: '/api/saas/education-catalog/adoption'
+      path: '/adoption'
+      fullPath: '/api/saas/education-catalog/adoption'
+      preLoaderRoute: typeof ApiSaasEducationCatalogAdoptionRouteImport
+      parentRoute: typeof ApiSaasEducationCatalogRoute
+    }
     '/api/saas/education-catalog/search': {
       id: '/api/saas/education-catalog/search'
       path: '/search'
@@ -2474,11 +2494,13 @@ const ApiSaasDomainsRouteWithChildren = ApiSaasDomainsRoute._addFileChildren(
 )
 
 interface ApiSaasEducationCatalogRouteChildren {
+  ApiSaasEducationCatalogAdoptionRoute: typeof ApiSaasEducationCatalogAdoptionRoute
   ApiSaasEducationCatalogSearchRoute: typeof ApiSaasEducationCatalogSearchRoute
 }
 
 const ApiSaasEducationCatalogRouteChildren: ApiSaasEducationCatalogRouteChildren =
   {
+    ApiSaasEducationCatalogAdoptionRoute: ApiSaasEducationCatalogAdoptionRoute,
     ApiSaasEducationCatalogSearchRoute: ApiSaasEducationCatalogSearchRoute,
   }
 

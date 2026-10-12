@@ -277,6 +277,13 @@ export const notasImporter: RowImporter = {
       if (scores[code] === null) errors.push(`${code} é obrigatório e deve estar entre 0 e 20.`);
     }
     if (errors.length) return { status: "error", warnings: [], errors };
+    // Associada pelo catálogo («Inglês» → «Língua Estrangeira (Inglês)»): diz-se, para
+    // a escola confirmar antes de gravar notas.
+    const catalogWarnings = context.subject.viaCatalog
+      ? [
+          `Disciplina "${String(subjectValue(normalized) ?? "")}" associada a «${context.subject.row!.name}» (mesma disciplina no catálogo).`,
+        ]
+      : [];
     const hasExisting = (["MAC", "NPP", "NPT"] as const).some((code) => {
       const item = context.items!.get(code)!;
       return cache.scoreByItemEnrollment.has(scoreKey(item.id, context.enrollment!.id));
@@ -285,12 +292,15 @@ export const notasImporter: RowImporter = {
       ? {
           status: "duplicate",
           warnings: [
+            ...catalogWarnings,
             "Já existem notas neste diário; a estratégia update substituirá apenas MAC/NPP/NPT desta linha.",
           ],
           errors: [],
           duplicate_of: context.enrollment!.id,
         }
-      : { status: "valid", warnings: [], errors: [] };
+      : catalogWarnings.length
+        ? { status: "warning", warnings: catalogWarnings, errors: [] }
+        : { status: "valid", warnings: [], errors: [] };
   },
 
   async commitRow(normalized, ctx, rawCache) {
