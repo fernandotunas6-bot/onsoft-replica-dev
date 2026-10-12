@@ -97,6 +97,9 @@ function mapSignInError(message: string) {
   if (value.includes("invalid login credentials") || value.includes("invalid_credentials")) {
     return "Email ou senha incorrectos. Confirme os dados e tente novamente.";
   }
+  if (value.includes("school_required")) {
+    return "Este número de aluno existe em mais de uma escola. Entre pelo endereço da sua escola.";
+  }
   if (value.includes("email not confirmed")) {
     return "Confirme o email da conta antes de iniciar sessão.";
   }
@@ -119,6 +122,7 @@ const identifierSignInErrors = {
   invalid_credentials: "Invalid login credentials",
   email_not_confirmed: "Email not confirmed",
   rate_limited: "Too many requests",
+  school_required: "school_required",
   unavailable: "network",
 } as const;
 
@@ -195,6 +199,8 @@ export function AuthGate({
   const [installDismissed, setInstallDismissed] = useState(true);
   const [isStandalone, setIsStandalone] = useState(false);
   const [mode, setMode] = useState<"signin" | "signup">("signin");
+  // A escola deste endereço deixa os alunos entrar com o número (Definições → Segurança).
+  const [studentNumberLogin, setStudentNumberLogin] = useState(false);
 
   useEffect(() => {
     try {
@@ -247,6 +253,20 @@ export function AuthGate({
       console.warn("PWA install error:", e);
     }
   };
+
+  useEffect(() => {
+    if (session) return;
+    let active = true;
+    void import("@/features/access/student-access-server")
+      .then(({ studentNumberLoginAvailable }) => studentNumberLoginAvailable())
+      .then((result) => {
+        if (active && result.available) setStudentNumberLogin(true);
+      })
+      .catch(() => undefined);
+    return () => {
+      active = false;
+    };
+  }, [session]);
 
   useEffect(() => {
     let active = true;
@@ -673,7 +693,9 @@ export function AuthGate({
             <p className="mt-1.5 text-xs text-muted-foreground text-center">
               {mode === "signup"
                 ? "Uma só identidade para todas as escolas a que pertencer."
-                : "Entre com Google, e-mail ou Nº de BI."}
+                : studentNumberLogin
+                  ? "Entre com Google, e-mail, Nº de BI ou Nº de aluno."
+                  : "Entre com Google, e-mail ou Nº de BI."}
             </p>
             <div
               role="tablist"
@@ -763,7 +785,9 @@ export function AuthGate({
             >
               <div className="space-y-1.5">
                 <Label htmlFor="login-email" className="text-xs font-medium">
-                  Email ou Nº de BI / NIF
+                  {studentNumberLogin
+                    ? "Email, Nº de BI ou Nº de aluno"
+                    : "Email ou Nº de BI / NIF"}
                 </Label>
                 <div className="relative">
                   <Mail className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
@@ -775,7 +799,11 @@ export function AuthGate({
                     required
                     defaultValue={rememberedEmail}
                     className="pl-9 h-10 text-sm"
-                    placeholder="utilizador@escola.ao ou 004212984LA042"
+                    placeholder={
+                      studentNumberLogin
+                        ? "utilizador@escola.ao, 004212984LA042 ou 1260001"
+                        : "utilizador@escola.ao ou 004212984LA042"
+                    }
                   />
                 </div>
               </div>
