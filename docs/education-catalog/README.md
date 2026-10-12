@@ -120,8 +120,16 @@ criação e tolerante: sem a coluna, ou se falhar, a disciplina fica criada e po
 Cursos: a mesma migração acrescenta `programs.catalog_course_code`. O modelo de
 estrutura, a importação de cursos e «Novo curso» do ensino superior ligam o curso novo
 pelo nome ou sinónimo (`courseCatalogKey`: nunca siglas, e um nome que serve dois cursos
-do catálogo, como «Enfermagem», não liga). Ainda não há revisão de cursos para ligar os
-que já existem.
+do catálogo, como «Enfermagem», não liga).
+
+Os cursos que já existem ligam-se em Pedagógica → Estrutura → **Ligar cursos**
+(`course-review.ts`, `CourseReviewDialog.tsx`; servidor em `curriculum-templates-server.ts`):
+os reconhecidos pelo nome de uma vez, os próprios da escola à mão (a lista diz o tipo:
+«Curso técnico — Enfermagem», «Licenciatura — Enfermagem») ou ficam como estão. `programs`
+não tem política de escrita para utilizadores: grava com o cliente privilegiado, na escola
+da membership, só o que a revisão (recalculada no servidor) sugere ou um código que o
+catálogo conhece, nunca por cima de uma ligação; Administrador/Secretaria, 2FA, auditoria
+(`academic.program.linked_to_catalog`).
 
 ## Criar disciplina com o catálogo
 
@@ -282,8 +290,7 @@ não há nada em `TABELAS_AUSENTES_DA_PRODUCAO`.
 - ~~Assistente de estrutura para Moçambique e Portugal~~ (feito, ver acima).
 - ~~Juntar duplicados~~ (feito; falta aplicar a migração).
 - ~~Ligar `subjects.catalog_subject_code` e `programs.catalog_course_code`~~ (feito ao
-  criar e, nas disciplinas, em «Rever disciplinas»; falta aplicar a migração). Falta uma
-  revisão de cursos para ligar os já existentes.
+  criar, em «Rever disciplinas» e em «Ligar cursos»; falta aplicar a migração).
 - Documentos e pautas a resolverem nomes pelo catálogo (mantendo o nome à data da emissão).
 - Painel de governação no ADMIN (aprovar propostas, versões, comparar, restaurar) com
   `catalog_review_queue`.
