@@ -43,6 +43,7 @@ import {
   type SchoolTodayOps,
 } from "./school-today";
 import { countOverdueInvoices } from "@/features/finance/overdue-invoices";
+import { selectAllPages } from "@/features/import/engine/paged";
 
 function countMap(entries: Array<string | null | undefined>) {
   const map = new Map<string, number>();
@@ -574,17 +575,53 @@ export const getDashboardOverview = createServerFn({ method: "GET" })
     }
 
     if (capabilities.finance) {
-      const [{ data: invoices }, { data: receipts }] = await Promise.all([
-        db
-          .from("finance_invoices")
-          .select("id, amount, discount_amount, penalty_amount, competence_month, status, due_date")
-          .eq("school_id", schoolId)
-          .limit(3000),
-        db
-          .from("finance_receipts")
-          .select("invoice_id, amount, paid_on, status, payment_method")
-          .eq("school_id", schoolId)
-          .limit(3000),
+      // Todas as faturas e recibos, em páginas: com um corte de 3 000 (sem ordem), os
+      // gráficos de receita e de canais ficavam incompletos numa escola maior.
+      type InvoiceRow = {
+        id: string;
+        amount: number;
+        discount_amount: number | null;
+        penalty_amount: number | null;
+        competence_month: string | null;
+        status: string;
+        due_date: string | null;
+      };
+      type ReceiptRow = {
+        invoice_id: string;
+        amount: number;
+        paid_on: string | null;
+        status: string;
+        payment_method: string | null;
+      };
+      const [invoices, receipts] = await Promise.all([
+        selectAllPages<InvoiceRow>(
+          (from, to) =>
+            db
+              .from("finance_invoices")
+              .select(
+                "id, amount, discount_amount, penalty_amount, competence_month, status, due_date",
+              )
+              .eq("school_id", schoolId)
+              .order("id", { ascending: true })
+              .range(from, to) as unknown as PromiseLike<{
+              data: InvoiceRow[] | null;
+              error: { message: string } | null;
+            }>,
+          "Não foi possível ler as faturas",
+        ),
+        selectAllPages<ReceiptRow>(
+          (from, to) =>
+            db
+              .from("finance_receipts")
+              .select("id, invoice_id, amount, paid_on, status, payment_method")
+              .eq("school_id", schoolId)
+              .order("id", { ascending: true })
+              .range(from, to) as unknown as PromiseLike<{
+              data: ReceiptRow[] | null;
+              error: { message: string } | null;
+            }>,
+          "Não foi possível ler os recibos",
+        ),
       ]);
 
       const paidByInvoice = new Map<string, number>();

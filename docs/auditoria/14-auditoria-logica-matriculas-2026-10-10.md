@@ -171,8 +171,9 @@ utilizador não são afectadas; mudar de turma não passa pelo gatilho. Ensaio
 | F2 | P2 | **Faturas em atraso falsas.** O painel (`ops.overdueInvoices`) e o sino liam as primeiras 250 (ou 5 000) faturas e recibos da escola, sem ordem. Acima disso, uma fatura paga cujo recibo ficasse fora do corte contava como em atraso, e faturas além do corte não contavam. A conta estava escrita duas vezes. Produção: 38 faturas, ainda sem efeito. | `countOverdueInvoices` (`finance/overdue-invoices.ts`): só faturas por pagar já vencidas, em páginas, e só os recibos delas. |
 | F3 | P3 | «Quanto foi pago de cada fatura» copiado em seis sítios. | `sumPaidByInvoice` (`invoice-settlement.ts`) onde a soma era tudo o que o ciclo fazia. |
 
-Aberto (P3): os gráficos do painel (receita por mês, canais) ainda lêem até 3 000 faturas e recibos;
-numa escola maior os gráficos ficam incompletos. Pede uma agregação na base (vista ou RPC).
+Corrigido depois (F4): os gráficos do painel (receita por mês, canais) liam até 3 000 faturas e
+recibos sem ordem; passam a ler tudo em páginas (`selectAllPages`). Uma agregação na base seria
+mais leve numa escola muito grande, mas já não há números cortados.
 
 Verificado e sem mudança: os rótulos de opção em Pedagógica, horário e ficha do professor levam o
 início do id, por isso não confundem opções homónimas (ao contrário de M7).

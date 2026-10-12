@@ -48,3 +48,11 @@ describe("faturas em atraso", () => {
     expect(paid.get("a")).toBe(125);
   });
 });
+
+describe("painel financeiro sem cortes", () => {
+  it("gráficos e contadores não lêem faturas ou recibos com um limite fixo", async () => {
+    const { readFileSync } = await import("node:fs");
+    const source = readFileSync("src/features/dashboard/server.ts", "utf8");
+    expect(source).not.toMatch(/from\("finance_(invoices|receipts)"\)[^;]*\.limit\(\d+\)/);
+  });
+});
