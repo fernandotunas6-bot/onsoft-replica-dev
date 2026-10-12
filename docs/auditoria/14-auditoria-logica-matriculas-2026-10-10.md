@@ -361,3 +361,12 @@ calculavam o que falta pagar com `total - pago` em vírgula flutuante e contavam
 pagamentos). Um resíduo (`0,3 - (0,1 + 0,2)`) punha uma fatura paga «em aberto» e o aluno
 com dívida vencida. Todos usam agora `invoiceOpenAmount` (cêntimos, a mesma regra do
 estado).
+
+## 13. Envio duplicado nos formulários rápidos (2026-10-12)
+
+`QuickFormModal` (Receber pagamento na ficha do aluno, em Faturas e em Financeiro, e os
+outros formulários rápidos) só desactivava «Guardar» depois de o React voltar a desenhar:
+dois cliques no mesmo instante enviavam duas vezes. `register_payment` tranca a fatura e
+recusa pagar acima do valor em aberto, mas um pagamento parcial repetido cabia nas duas
+vezes — dois recibos. Agora há uma guarda síncrona (`inFlight`); o teste reproduz os dois
+cliques e falha sem ela.
