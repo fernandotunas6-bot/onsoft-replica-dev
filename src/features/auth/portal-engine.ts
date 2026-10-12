@@ -503,6 +503,11 @@ export function getPortalNavigation(
               to: "/configuracoes/assinatura",
             },
             {
+              label: "Prontidão do Mobile",
+              icon: moduleIcons.mobileReadiness,
+              to: "/configuracoes/mobile",
+            },
+            {
               label: "Diagnóstico de erros",
               icon: moduleIcons.diagnostics,
               to: "/configuracoes/diagnostico",
