@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { pagedReadClient } from "@/integrations/supabase/paged-client";
 import {
   assertCanSeeStudent,
   loadStudentScope,
@@ -177,7 +178,11 @@ export const listTeacherAttendanceSessions = createServerFn({ method: "GET" })
     const dateObj = new Date(`${today}T12:00:00Z`);
     const weekday = dateObj.getDay(); // 0 = Domingo, 1 = Segunda...
 
-    let classSubjectQuery = db
+    // Leituras por páginas e com os `.in(...)` em lotes: a direcção vê as disciplinas
+    // de todas as turmas, e com ~200 a lista passava o tamanho do URL — o erro era
+    // ignorado e o ecrã ficava sem aulas.
+    const reads = pagedReadClient(db);
+    let classSubjectQuery = reads
       .from("class_subjects")
       .select("id, class_group_id, subject_id, teacher_id")
       .eq("school_id", membership.schoolId)
@@ -203,7 +208,7 @@ export const listTeacherAttendanceSessions = createServerFn({ method: "GET" })
       return { sessions: [], date: today, pendingCount: 0 };
     }
 
-    const { data: slots } = await db
+    const { data: slots } = await reads
       .from("timetable_slots")
       .select("id, class_subject_id, weekday, starts_at, ends_at, room")
       .in("class_subject_id", classSubjectIds)
@@ -219,8 +224,8 @@ export const listTeacherAttendanceSessions = createServerFn({ method: "GET" })
     ];
 
     const [{ data: groups }, { data: subjects }] = await Promise.all([
-      db.from("class_groups").select("id, name").in("id", classGroupIds),
-      db.from("subjects").select("id, name").in("id", subjectIds),
+      reads.from("class_groups").select("id, name").in("id", classGroupIds),
+      reads.from("subjects").select("id, name").in("id", subjectIds),
     ]);
 
     const groupMap = new Map(
@@ -240,7 +245,7 @@ export const listTeacherAttendanceSessions = createServerFn({ method: "GET" })
       ),
     );
 
-    const { data: existingSessions } = await db
+    const { data: existingSessions } = await reads
       .from("siga_attendance_sessions")
       .select(
         "id, class_group_id, subject_id, timetable_slot_id, lesson_date, status, starts_at, ends_at",
@@ -287,7 +292,7 @@ export const listTeacherAttendanceSessions = createServerFn({ method: "GET" })
       // Outro pedido criou-as entretanto (índice único por escola, aula e dia,
       // migração 20260929230000): lêem-se as que ficaram.
       if (createError?.code === "23505") {
-        ({ data: created, error: createError } = await db
+        ({ data: created, error: createError } = await reads
           .from("siga_attendance_sessions")
           .select("id, status, timetable_slot_id")
           .eq("school_id", membership.schoolId)
@@ -351,6 +356,8 @@ export const listTeacherAttendanceSessions = createServerFn({ method: "GET" })
       });
     }
 
+    // Os lotes de ids não mantêm a ordem por hora entre si.
+    sessionsList.sort((a, b) => a.starts_at.localeCompare(b.starts_at));
     return { sessions: sessionsList, date: today, pendingCount };
   });
 

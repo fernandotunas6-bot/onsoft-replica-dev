@@ -1,4 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
+import { pagedReadClient } from "@/integrations/supabase/paged-client";
 import { readAllPages } from "@/integrations/supabase/read-all-pages";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { publicDatabaseError } from "@/integrations/supabase/server-error";
@@ -245,26 +246,29 @@ export const getDashboardOverview = createServerFn({ method: "GET" })
     }
 
     if (capabilities.students) {
+      // Totais de alunos, matrículas, sexo e idade sobre todas as linhas: os alunos
+      // vinham cortados nas 1000, as matrículas nas 500, e as fichas iam num só
+      // `.in(...)` que passava o tamanho do URL com ~200 alunos (sexo e idade a zero).
+      const reads = pagedReadClient(db);
       try {
         const [studentsResult, programsResult, groupsResult, roomsResult, enrollmentsResult] =
           await Promise.all([
-            db.from("students").select("id, status, person_id").eq("school_id", schoolId),
+            reads.from("students").select("id, status, person_id").eq("school_id", schoolId),
             db
               .from("programs")
               .select("id", { count: "exact", head: true })
               .eq("school_id", schoolId)
               .eq("is_active", true),
-            db.from("class_groups").select("id, name, grade_level_id").eq("school_id", schoolId),
+            reads.from("class_groups").select("id, name, grade_level_id").eq("school_id", schoolId),
             db
               .from("rooms")
               .select("id", { count: "exact", head: true })
               .eq("school_id", schoolId)
               .neq("status", "inactive"),
-            db
+            reads
               .from("enrollments")
               .select("id, status, class_group_id, enrolled_on, student_id, attendance_rate")
-              .eq("school_id", schoolId)
-              .limit(500),
+              .eq("school_id", schoolId),
           ]);
 
         let enrollments: Array<{
@@ -279,18 +283,17 @@ export const getDashboardOverview = createServerFn({ method: "GET" })
           enrollmentsResult.error &&
           /attendance_rate|42703|schema cache/i.test(enrollmentsResult.error.message)
         ) {
-          const retry = await db
+          const retry = await reads
             .from("enrollments")
             .select("id, status, class_group_id, enrolled_on, student_id")
-            .eq("school_id", schoolId)
-            .limit(500);
+            .eq("school_id", schoolId);
           enrollments = (retry.data ?? []).map((row) => ({ ...row, attendance_rate: null }));
         }
 
         const students = studentsResult.data ?? [];
         const personIds = [...new Set(students.map((row) => row.person_id).filter(Boolean))];
         const { data: people } = personIds.length
-          ? await db.from("people").select("id, sex, date_of_birth").in("id", personIds)
+          ? await reads.from("people").select("id, sex, date_of_birth").in("id", personIds)
           : { data: [] as Array<{ id: string; sex: string | null; date_of_birth: string | null }> };
         const peopleById = new Map((people ?? []).map((row) => [row.id, row]));
 
@@ -910,7 +913,7 @@ export const getSchoolTodayOps = createServerFn({ method: "GET" })
         ...new Set(slotRows.map((slot) => String(slot.class_subject_id)).filter(Boolean)),
       ];
       if (classSubjectIds.length) {
-        const { data: classSubjects } = await db
+        const { data: classSubjects } = await pagedReadClient(db)
           .from("class_subjects")
           .select("id, class_group_id, teacher_id")
           .eq("school_id", schoolId)

@@ -110,6 +110,8 @@ describe("pagedReadClient", () => {
       "src/features/students/server.ts",
       "src/features/students/student-scope.ts",
       "src/features/alumni/server.ts",
+      "src/features/pedagogica/attendance-server.ts",
+      "src/features/dashboard/server.ts",
     ]) {
       expect(readFileSync(file, "utf8"), file).toMatch(/pagedReadClient\(/);
     }
