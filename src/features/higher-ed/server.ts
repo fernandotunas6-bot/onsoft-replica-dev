@@ -11,6 +11,7 @@
  * a linha fica `status = inscrito`, `season = frequencia` e `final_grade` guarda
  * a média de frequência — é daí que a época normal a lê.
  */
+import { linkNewProgramsToCatalog } from "@/features/education-catalog/catalog-link";
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
@@ -440,6 +441,7 @@ export const createHigherEdProgram = createServerFn({ method: "POST" })
       .single();
     if (error) throw publicDatabaseError(error, "Não foi possível criar o curso.");
     const programId = str(program.id);
+    await linkNewProgramsToCatalog(db, schoolId, [{ id: programId, name: data.name }]);
     if (data.profile)
       await saveProgramProfile(db, schoolId, programId, data.profile, context.userId);
     try {

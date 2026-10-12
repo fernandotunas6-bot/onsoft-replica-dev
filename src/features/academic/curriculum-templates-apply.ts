@@ -7,7 +7,10 @@
  * Recebe o cliente já autorizado (ver curriculum-templates-server.ts): este
  * ficheiro não decide quem pode escrever.
  */
-import { linkNewSubjectsToCatalog } from "@/features/education-catalog/catalog-link";
+import {
+  linkNewProgramsToCatalog,
+  linkNewSubjectsToCatalog,
+} from "@/features/education-catalog/catalog-link";
 import { resolveSubject } from "@/features/education-catalog/normalize";
 import type { CurriculumPlan } from "./curriculum-templates";
 
@@ -120,9 +123,18 @@ export async function applyCurriculumPlan(
     const { data, error } = await db
       .from("programs")
       .upsert(programRows, { onConflict: "school_id,code", ignoreDuplicates: true })
-      .select("id");
+      .select("id, code");
     fail(error, "os cursos");
     created.cursos = data?.length ?? 0;
+    const programName = new Map(programRows.map((p) => [p.code, p.name]));
+    await linkNewProgramsToCatalog(
+      db,
+      schoolId,
+      (data ?? []).map((r) => ({
+        id: String(r["id"]),
+        name: programName.get(String(r["code"])) ?? "",
+      })),
+    );
   }
   const { data: programData, error: programErr } = await db
     .from("programs")

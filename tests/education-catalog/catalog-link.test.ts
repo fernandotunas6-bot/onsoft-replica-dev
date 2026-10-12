@@ -1,13 +1,17 @@
 import { describe, expect, it } from "vitest";
-import { linkNewSubjectsToCatalog } from "@/features/education-catalog/catalog-link";
+import {
+  linkNewProgramsToCatalog,
+  linkNewSubjectsToCatalog,
+} from "@/features/education-catalog/catalog-link";
+import { GLOBAL_COURSES } from "@/features/education-catalog/data/courses";
 
 type Call = { values: Record<string, unknown>; filters: Array<[string, string, unknown]> };
 
-function fakeDb(error: unknown = null) {
+function fakeDb(error: unknown = null, expectedTable = "subjects") {
   const calls: Call[] = [];
   const db = {
     from: (table: string) => {
-      expect(table).toBe("subjects");
+      expect(table).toBe(expectedTable);
       return {
         update: (values: Record<string, unknown>) => {
           const call: Call = { values, filters: [] };
@@ -72,5 +76,24 @@ describe("ligar ao catálogo ao criar", () => {
         [{ id: "a", name: "Matemática" }],
       ),
     ).resolves.toBe(0);
+  });
+
+  it("liga os cursos pelo nome ou sinónimo; nomes de dois cursos não", async () => {
+    const { db, calls } = fakeDb(null, "programs");
+    const linked = await linkNewProgramsToCatalog(db, "s1", [
+      { id: "a", name: "Ciências Económico-Jurídicas" },
+      { id: "b", name: "Enfermagem" },
+      { id: "c", name: "CFB" },
+    ]);
+    expect(linked).toBe(1);
+    expect(calls.map((c) => c.values)).toEqual([{ catalog_course_code: "SEC-CEJ" }]);
+    expect(calls[0]!.filters[2]).toEqual(["is", "catalog_course_code", null]);
+  });
+
+  it("todos os códigos de curso cabem na restrição da base", () => {
+    const bad = GLOBAL_COURSES.map((c) => c.code).filter(
+      (code) => !/^[A-Z][A-Z0-9-]{0,23}$/.test(code),
+    );
+    expect(bad).toEqual([]);
   });
 });

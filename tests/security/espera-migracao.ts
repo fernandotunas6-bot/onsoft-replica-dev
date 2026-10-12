@@ -16,6 +16,8 @@ export const COLUNAS_ESPERA_MIGRACAO = new Set<string>([
   // esteve vazia de 2026-10-06 a 2026-10-12 — uma lista que ninguém esvazia deixa de
   // ser espera e passa a ser dívida silenciosa.
   "subjects.catalog_subject_code",
+  // A mesma migração: education-catalog/catalog-link.ts liga os cursos novos e ignora a falta.
+  "programs.catalog_course_code",
 ]);
 
 /**

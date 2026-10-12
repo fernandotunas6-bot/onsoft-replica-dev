@@ -31,8 +31,9 @@ Detalhe e cobertura real: [docs/education-catalog/README.md](../education-catalo
   «T2» (`parseTerm`); histórico académico sem duplicar por grafia da classe.
 - Ligação ao catálogo: `subjects.catalog_subject_code` (`20261012120000`), em «Rever
   disciplinas» (automática pelo nome exacto, ou à mão para as próprias) e ao criar
-  (`catalog-link.ts`: «Nova», modelo de estrutura, importação; tolerante). Coluna em
-  `COLUNAS_ESPERA_MIGRACAO` até o retrato a ter.
+  (`catalog-link.ts`: «Nova», modelo de estrutura, importação; tolerante). Cursos novos
+  também (`programs.catalog_course_code`, mesma migração). Colunas em
+  `COLUNAS_ESPERA_MIGRACAO` até o retrato as ter.
 - **Por aplicar (dono):** `20261010120000_global_education_catalog.sql`, depois
   `supabase/seeds/education/catalog.sql`, depois `20261010150000_merge_school_subjects.sql`,
   depois `20261012120000_subjects_catalog_link.sql` (independente das outras). A página não depende delas.

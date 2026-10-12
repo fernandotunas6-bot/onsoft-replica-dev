@@ -1,15 +1,16 @@
 /**
- * Liga disciplinas acabadas de criar ao catálogo (`subjects.catalog_subject_code`,
- * migração 20261012120000) quando o nome é exactamente uma disciplina do
- * catálogo (nome, nome local ou sinónimo; nunca siglas soltas).
+ * Liga disciplinas e cursos acabados de criar ao catálogo
+ * (`subjects.catalog_subject_code`, `programs.catalog_course_code`, migração
+ * 20261012120000) quando o nome é exactamente uma entrada do catálogo (nome,
+ * nome local ou sinónimo; nunca siglas soltas nem nomes que servem dois cursos).
  *
- * Complementar e tolerante: a disciplina já foi criada por quem chama, com as
+ * Complementar e tolerante: o registo já foi criado por quem chama, com as
  * verificações dele; isto só acrescenta a ligação. Se a coluna ainda não existe
  * (migração por aplicar) ou a gravação falha, não liga e não estraga nada — a
  * escola pode ligar depois em «Rever disciplinas». Nunca substitui uma ligação
  * existente (`IS NULL`).
  */
-import { subjectCatalogKey } from "./normalize";
+import { courseCatalogKey, subjectCatalogKey } from "./normalize";
 
 type LinkResult = PromiseLike<{ data: unknown; error: unknown }>;
 type LinkQuery = {
@@ -20,29 +21,48 @@ type LinkQuery = {
 };
 type LinkDb = { from: (table: string) => unknown };
 
-export async function linkNewSubjectsToCatalog(
+export function linkNewSubjectsToCatalog(
   db: LinkDb,
   schoolId: string,
   subjects: ReadonlyArray<{ id: string; name: string }>,
 ): Promise<number> {
+  return linkNew(db, "subjects", "catalog_subject_code", subjectCatalogKey, schoolId, subjects);
+}
+
+export function linkNewProgramsToCatalog(
+  db: LinkDb,
+  schoolId: string,
+  programs: ReadonlyArray<{ id: string; name: string }>,
+): Promise<number> {
+  return linkNew(db, "programs", "catalog_course_code", courseCatalogKey, schoolId, programs);
+}
+
+async function linkNew(
+  db: LinkDb,
+  table: "subjects" | "programs",
+  column: "catalog_subject_code" | "catalog_course_code",
+  keyOf: (name: string) => string | null,
+  schoolId: string,
+  rows: ReadonlyArray<{ id: string; name: string }>,
+): Promise<number> {
   const byCode = new Map<string, string[]>();
-  for (const s of subjects) {
-    const key = subjectCatalogKey(s.name);
+  for (const row of rows) {
+    const key = keyOf(row.name);
     if (!key) continue;
-    byCode.set(key, [...(byCode.get(key) ?? []), s.id]);
+    byCode.set(key, [...(byCode.get(key) ?? []), row.id]);
   }
   let linked = 0;
   for (const [code, ids] of byCode) {
     try {
-      const table = db.from("subjects") as {
+      const query = db.from(table) as {
         update?: (values: Record<string, unknown>) => LinkQuery;
       };
-      if (typeof table.update !== "function") return linked;
-      const { data, error } = await table
-        .update({ catalog_subject_code: code })
+      if (typeof query.update !== "function") return linked;
+      const { data, error } = await query
+        .update({ [column]: code })
         .eq("school_id", schoolId)
         .in("id", ids)
-        .is("catalog_subject_code", null)
+        .is(column, null)
         .select("id");
       // Coluna em falta (42703/PGRST204) ou outra recusa: fica por ligar.
       if (error) return linked;

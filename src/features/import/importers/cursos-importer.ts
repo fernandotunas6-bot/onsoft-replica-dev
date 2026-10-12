@@ -1,5 +1,6 @@
 import { normalizeText } from "../engine/normalize";
 import type { ImportRefCache, RowImporter } from "../engine/types";
+import { linkNewProgramsToCatalog } from "@/features/education-catalog/catalog-link";
 import { courseCatalogKey } from "@/features/education-catalog/normalize";
 import { loadAcademicLevelRefs, uniqueExactMatch, type AcademicLevelRef } from "./academic-core";
 
@@ -208,6 +209,7 @@ export const cursosImporter: RowImporter = {
     }
 
     cache.existingCourses.push({ id: String(data.id), code, name });
+    await linkNewProgramsToCatalog(ctx.db, ctx.schoolId, [{ id: String(data.id), name }]);
     return {
       status: "imported",
       warnings: analysis.warnings,

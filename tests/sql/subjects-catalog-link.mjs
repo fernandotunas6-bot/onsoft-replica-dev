@@ -16,6 +16,10 @@ CREATE TABLE public.subjects (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), sch
   code text NOT NULL, name text NOT NULL);
 INSERT INTO public.subjects (school_id, code, name) VALUES
   ('00000000-0000-0000-0000-000000000001', 'MAT', 'Matemática');
+CREATE TABLE public.programs (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), school_id uuid NOT NULL,
+  code text NOT NULL, name text NOT NULL);
+INSERT INTO public.programs (school_id, code, name) VALUES
+  ('00000000-0000-0000-0000-000000000001', 'CFB', 'Ciências Físicas e Biológicas');
 `);
 
 await db.exec(migration);
@@ -54,6 +58,25 @@ assert.equal(
   (
     await one(
       `SELECT count(*)::int AS n FROM pg_indexes WHERE indexname = 'subjects_school_catalog_code_idx'`,
+    )
+  ).n,
+  1,
+);
+
+// Cursos: a mesma regra.
+assert.equal(
+  (await one(`SELECT count(*)::int AS n FROM public.programs WHERE catalog_course_code IS NULL`)).n,
+  1,
+);
+await db.exec(`UPDATE public.programs SET catalog_course_code = 'SEC-CFB'`);
+await assert.rejects(
+  db.query(`UPDATE public.programs SET catalog_course_code = 'sec cfb'`),
+  /programs_catalog_course_code_format/,
+);
+assert.equal(
+  (
+    await one(
+      `SELECT count(*)::int AS n FROM pg_indexes WHERE indexname = 'programs_school_catalog_code_idx'`,
     )
   ).n,
   1,

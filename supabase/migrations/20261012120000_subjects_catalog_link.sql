@@ -1,4 +1,4 @@
--- Ligação das disciplinas da escola ao catálogo educacional global.
+-- Ligação das disciplinas e dos cursos da escola ao catálogo educacional global.
 --
 -- `subjects.catalog_subject_code` guarda o código da disciplina de referência do
 -- catálogo («MAT», «LP», «FQ»…). Serve para reconhecer a mesma disciplina sem
@@ -9,8 +9,10 @@
 -- (20261010120000) são uma cópia opcional. O servidor só grava códigos que o
 -- catálogo conhece; aqui só se garante o formato.
 --
--- Só ALTER TABLE: a tabela existe na produção (supabase/PRODUCTION_SNAPSHOT.json),
--- com RLS forçado e políticas próprias, que valem também para a coluna nova.
+-- `programs.catalog_course_code` faz o mesmo para os cursos («SEC-CFB», «LIC-ENF»).
+--
+-- Só ALTER TABLE: as tabelas existem na produção (supabase/PRODUCTION_SNAPSHOT.json),
+-- com RLS e políticas próprias, que valem também para as colunas novas.
 -- Gravar continua a exigir a política de UPDATE (`is_aal2()` +
 -- `academic.subjects.manage`). Idempotente.
 
@@ -35,3 +37,25 @@ CREATE INDEX IF NOT EXISTS subjects_school_catalog_code_idx
 
 COMMENT ON COLUMN public.subjects.catalog_subject_code IS
   'Código da disciplina no catálogo educacional do SIGA (ex.: MAT). Nulo = por ligar ou própria da escola.';
+
+ALTER TABLE public.programs ADD COLUMN IF NOT EXISTS catalog_course_code text;
+
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint
+    WHERE conname = 'programs_catalog_course_code_format'
+      AND conrelid = 'public.programs'::regclass
+  ) THEN
+    ALTER TABLE public.programs
+      ADD CONSTRAINT programs_catalog_course_code_format
+      CHECK (catalog_course_code IS NULL OR catalog_course_code ~ '^[A-Z][A-Z0-9-]{0,23}$');
+  END IF;
+END $$;
+
+CREATE INDEX IF NOT EXISTS programs_school_catalog_code_idx
+  ON public.programs (school_id, catalog_course_code)
+  WHERE catalog_course_code IS NOT NULL;
+
+COMMENT ON COLUMN public.programs.catalog_course_code IS
+  'Código do curso no catálogo educacional do SIGA (ex.: SEC-CFB). Nulo = por ligar ou próprio da escola.';
