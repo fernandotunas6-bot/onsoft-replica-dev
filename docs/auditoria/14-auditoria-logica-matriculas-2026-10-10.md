@@ -340,6 +340,15 @@ Segunda passagem (a mesma classe de defeito, mais grave):
 | L12 | Presenças do dia (vista da direcção/secretaria) e painel (alunos, sexo, idade, aulas de hoje) | As disciplinas de todas as turmas num só `.in(...)` (hoje já 66 numa escola; a ~200 o URL passa o limite): o erro era ignorado e o ecrã de presenças ficava **sem aulas**. No painel, alunos cortados nas 1000, matrículas nas 500 e as fichas num `.in` longo (sexo e idade a zero).   | `pagedReadClient`; a lista de aulas volta a ser ordenada por hora.                              |
 | L9  | Chat (colegas), aviso de pedidos de acesso, lista de contas                                   | As contas da escola num só pedido e depois todos os ids num `.in(...)`: com ~200 contas (alunos e encarregados também as têm) o URL passa o tamanho máximo — o chat deixa de listar colegas e ninguém é avisado de um pedido de acesso. Hoje: máx. 8 contas activas por escola.         | `pagedReadClient` nos três sítios; `member_roles` (sem `id`) ordena pela chave composta.        |
 
+**Correcção central (L13).** O padrão `.in("coluna", lista)` aparece ~350 vezes no
+servidor, muitas com o erro ignorado. Em vez de as corrigir uma a uma, o cliente do
+servidor (`loadSgaAdminClient`) passa pelo `chunkedInClient`
+(`src/integrations/supabase/chunked-in-client.ts`): uma leitura com uma lista acima de
+150 ids é pedida em lotes, as linhas juntam-se e voltam a ordenar-se pela ordem da
+consulta, e as contagens somam-se. Escritas, `single`/`maybeSingle`, `range`/`limit` e
+listas curtas passam tal e qual (um só pedido, igual ao de antes). Não resolve o corte
+das 1000 linhas por pedido — isso continua nos sítios L1–L12.
+
 O heatmap de desempenho do painel continua a ser uma amostra de 1000 notas (agora dito no
 código): ler todas as notas da escola em cada abertura do painel seria pesado, e o cálculo exacto
 pede uma agregação na base.
