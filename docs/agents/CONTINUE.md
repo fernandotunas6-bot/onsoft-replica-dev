@@ -24,6 +24,11 @@ Detalhe e cobertura real: [docs/education-catalog/README.md](../education-catalo
   (`subject-hint.ts`; `QuickFormModal` com `suggestions` e `renderHint`).
 - Documentos: o registo de cada emissão (`documents.issued`) guarda os nomes das disciplinas
   impressas e `/verificar` mostra-os — o nome à data da emissão sobrevive a renomear/juntar.
+- Importação (PR #125): disciplinas e cursos duplicados reconhecidos pelo código, nome ou
+  catálogo (`subjectCatalogKey`, `courseCatalogKey` — nunca por siglas); disciplina das
+  notas/presenças/avaliações/horários e classe das turmas/propinas pela equivalência do
+  catálogo (`resolveSubject`, `resolveGradeLevel`, com aviso); períodos «I/III Trimestre»,
+  «T2» (`parseTerm`); histórico académico sem duplicar por grafia da classe.
 - **Por aplicar (dono):** `20261010120000_global_education_catalog.sql`, depois
   `supabase/seeds/education/catalog.sql`, depois `20261010150000_merge_school_subjects.sql`. A página não depende delas.
 
