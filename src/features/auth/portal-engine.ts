@@ -104,6 +104,7 @@ export function getPortalNavigation(
           title: "Portal do Aluno",
           items: [
             { label: "Início", icon: moduleIcons.dashboard, to: "/" },
+            { label: "SIGA AI", icon: moduleIcons.sigaAi, to: "/siga-ai" },
             {
               label: "Académico",
               icon: moduleIcons.pedagogy,
@@ -160,6 +161,7 @@ export function getPortalNavigation(
           title: "Portal do Encarregado",
           items: [
             { label: "Meu Educando", icon: moduleIcons.dashboard, to: "/" },
+            { label: "SIGA AI", icon: moduleIcons.sigaAi, to: "/siga-ai" },
             {
               label: "Desempenho",
               icon: moduleIcons.academicReports,
@@ -271,6 +273,7 @@ export function getPortalNavigation(
                 },
               ],
             },
+            { label: "SIGA AI", icon: moduleIcons.sigaAi, to: "/siga-ai" },
             { label: "Calendário Lectivo", icon: moduleIcons.calendar, to: "/calendario" },
             { label: "Biblioteca & Materiais", icon: moduleIcons.files, to: "/arquivos" },
             { label: "Comunicação", icon: moduleIcons.communications, to: "/comunicacoes" },
@@ -455,6 +458,7 @@ export function getPortalNavigation(
     {
       title: "Gestão e Comunicação",
       items: [
+        { label: "SIGA AI", icon: moduleIcons.sigaAi, to: "/siga-ai" },
         { label: "Catracas & Cartão Virtual", icon: moduleIcons.accessCards, to: "/catracas" },
         { label: "Gestão de Acessos", icon: moduleIcons.access, to: "/acessos" },
         { label: "Comunicações", icon: moduleIcons.communications, to: "/comunicacoes" },
