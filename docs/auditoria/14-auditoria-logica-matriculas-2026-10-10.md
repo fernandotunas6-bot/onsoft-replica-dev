@@ -161,3 +161,12 @@ directamente pela API. A Administração passa (o motivo exige-o o servidor); es
 utilizador não são afectadas; mudar de turma não passa pelo gatilho. Ensaio
 `tests/sql/enrollment-cycle-guard.mjs`. **Dono:** aplicar no SQL Editor
 `docs/agents/SIGA_aplicar_ciclos_matricula.sql` e recapturar o retrato.
+
+## 9. Terceira passagem: Finanças na lista de alunos
+
+| #   | Sev. | Achado                                                                                                                                                                                                                                                                                                        | Correcção                                                                                      |
+| --- | ---- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
+| F1  | P2   | A lista de alunos calculava a dívida **sem a multa por atraso**: não pedia `penalty_amount` à base, e o total estava copiado em `academic-status.ts`. A ficha e as Finanças incluem a multa, por isso o mesmo aluno tinha duas dívidas diferentes. Produção: 0 faturas com multa (nenhum número errado hoje). | A lista pede a multa; o total usa `invoiceNetTotal`, a regra única de `invoice-settlement.ts`. |
+
+Verificado e sem mudança: os rótulos de opção em Pedagógica, horário e ficha do professor levam o
+início do id, por isso não confundem opções homónimas (ao contrário de M7).

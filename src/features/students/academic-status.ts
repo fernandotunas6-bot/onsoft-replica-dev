@@ -1,4 +1,5 @@
 import { schoolTodayIso } from "@/lib/school-date";
+import { invoiceNetTotal } from "@/features/finance/invoice-settlement";
 /**
  * academic-status.ts
  *
@@ -223,12 +224,7 @@ export function deriveFinancialSnapshot(
     const total =
       inv.total_amount != null
         ? Number(inv.total_amount)
-        : Math.max(
-            0,
-            Number(inv.amount ?? 0) -
-              Number(inv.discount_amount ?? 0) +
-              Number(inv.penalty_amount ?? 0),
-          );
+        : invoiceNetTotal({ ...inv, amount: inv.amount ?? 0 });
 
     const paid = Math.min(total, Math.max(0, Number(inv.amount_paid ?? 0)));
     const openAmount = Math.max(0, total - paid);

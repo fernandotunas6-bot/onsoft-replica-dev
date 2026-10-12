@@ -222,7 +222,7 @@ export const searchStudents = createServerFn({ method: "GET" })
         if (contractIds.length) {
           const { data: invoices } = await db
             .from("finance_invoices")
-            .select("id, contract_id, amount, discount_amount, due_date, status")
+            .select("id, contract_id, amount, discount_amount, penalty_amount, due_date, status")
             .in("contract_id", contractIds)
             .eq("school_id", membership.schoolId)
             .neq("status", "cancelled");
@@ -262,6 +262,8 @@ export const searchStudents = createServerFn({ method: "GET" })
                 id: inv.id,
                 amount: inv.amount,
                 discount_amount: inv.discount_amount,
+                // Sem a multa, a dívida da lista ficava abaixo da da ficha e das Finanças.
+                penalty_amount: inv.penalty_amount,
                 amount_paid: paidByInvoice.get(inv.id) ?? 0,
                 due_date: inv.due_date,
                 status: inv.status,

@@ -129,3 +129,31 @@ describe("filtro «Sem matrícula»", () => {
     expect(matchesQuickCategory(row("active", true), "sem_matricula")).toBe(false);
   });
 });
+
+describe("dívida na lista de alunos", () => {
+  it("conta a multa por atraso, como a ficha e as Finanças", async () => {
+    const { deriveFinancialSnapshot } = await import("@/features/students/academic-status");
+    const snapshot = deriveFinancialSnapshot(
+      [
+        {
+          id: "f1",
+          amount: 10000,
+          discount_amount: 0,
+          penalty_amount: 500,
+          amount_paid: 0,
+          due_date: "2026-01-01",
+          status: "issued",
+        },
+      ],
+      "2026-10-10",
+    );
+    expect(snapshot.debtAmount).toBe(10500);
+  });
+
+  it("a lista pede a multa à base", async () => {
+    const { readFileSync } = await import("node:fs");
+    expect(readFileSync("src/features/students/server.ts", "utf8")).toContain(
+      '"id, contract_id, amount, discount_amount, penalty_amount, due_date, status"',
+    );
+  });
+});
