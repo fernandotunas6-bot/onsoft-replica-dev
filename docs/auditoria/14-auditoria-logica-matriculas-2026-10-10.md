@@ -155,6 +155,9 @@ suspensos e trancados.
 até a escola definir ciclos fora das aulas (ou os períodos deixarem intervalos). Só 2 escolas têm
 períodos definidos; as restantes ficam abertas.
 
-**Por fazer (dono):** a regra vive no servidor. Quem chamar `enroll_student` directamente pela API
-(com 2FA e a permissão) não passa pelo ciclo; fechá-lo na base pede uma migração em
-`private.enroll_student`.
+**Na base (migração escrita e ensaiada, por aplicar):** `20261012100000_enrollment_cycle_guard.sql`
+— gatilho `BEFORE INSERT` em `enrollments` com a mesma regra, para quem chamar `enroll_student`
+directamente pela API. A Administração passa (o motivo exige-o o servidor); escritas sem
+utilizador não são afectadas; mudar de turma não passa pelo gatilho. Ensaio
+`tests/sql/enrollment-cycle-guard.mjs`. **Dono:** aplicar no SQL Editor
+`docs/agents/SIGA_aplicar_ciclos_matricula.sql` e recapturar o retrato.

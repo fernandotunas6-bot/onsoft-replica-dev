@@ -64,6 +64,8 @@ const businessMessages = new Set([
   "Estudante, ano letivo ou data de matrícula inválida.",
   "Pessoa ou data de admissão inválida.",
   "Encarregado inválido para esta escola.",
+  // 20261012100000_enrollment_cycle_guard
+  "Fora do período de matrículas: só a Administração matricula fora do ciclo.",
 ]);
 
 function constraintMessage(message: string | undefined): string | null {

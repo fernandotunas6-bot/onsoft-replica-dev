@@ -34,8 +34,9 @@ Nada escrito na produção; nenhuma migração nova.
 - **Ciclos de matrícula (segunda passagem):** matrícula nova só no ciclo e nunca em período de
   aulas (`enrollment-cycle.ts`, `assertNewEnrollmentAllowed`); fora disso só a Administração, com
   motivo em `audit_logs`. Mudar de turma não conta. Filtro «Sem matrícula» em `/alunos`. Huambo:
-  períodos cobrem o ano todo → só a Administração matricula até haver ciclos. Por fazer:
-  migração para o ciclo também em `private.enroll_student`.
+  períodos cobrem o ano todo → só a Administração matricula até haver ciclos. **Por aplicar (dono):**
+  `docs/agents/SIGA_aplicar_ciclos_matricula.sql` (migração `20261012100000`, gatilho na base;
+  ensaio `tests/sql/enrollment-cycle-guard.mjs`).
 
 ## Auditoria 13 — fluxos da escola (2026-10-06)
 
