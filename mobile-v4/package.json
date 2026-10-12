@@ -14,7 +14,9 @@
     "lint": "eslint src staging tests public/_worker.js",
     "build:institutional": "tsc --noEmit && vite build --config vite.institutional.config.ts",
     "build:connected": "node scripts/build-connected.mjs",
-    "test:domain": "node --test deployment/domain-worker.check.mjs"
+    "test:domain": "node --test deployment/domain-worker.check.mjs",
+    "publish:preview": "node scripts/publish.mjs preview",
+    "publish:check": "node scripts/publish.mjs check"
   },
   "dependencies": {
     "react": "19.2.0",

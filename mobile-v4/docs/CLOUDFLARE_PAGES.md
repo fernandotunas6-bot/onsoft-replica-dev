@@ -22,6 +22,16 @@ A API rejeita Origin externo/cross-site **antes** de encaminhar. Só a origem p�
 
 ## Actualização e reversão
 
+Com `CLOUDFLARE_API_TOKEN` no ambiente (Pages: Edit e Workers Scripts: Edit na conta acima), os passos abaixo correm por script, com as verificações da publicação de 10/10/2026:
+
+```sh
+npm run publish:preview --prefix mobile-v4          # passos 1–3: constrói, publica o preview e verifica-o
+node mobile-v4/scripts/publish.mjs promote <url> --public   # passo 4: muda só PAGES_ORIGIN e verifica o domínio
+npm run publish:check --prefix mobile-v4 -- <url>   # só as verificações
+```
+
+As verificações exigem: página HTML 200; sessão sem token e com token inválido 401, `no-store`; origem externa 403; `academic`, `lesson-plans`, `documents` e `notifications` sem token 401 (uma rota em falta dá 404); método errado 405. Sem `--public`, `promote` não faz nada. A reversão é `promote <url-anterior> --public`, e o URL anterior fica impresso. Testes: `tests/mobile-v4/publish-checks.test.ts`, contra a API real.
+
 1. Executar testes, tipos, lint e builds da branch; confirmar os workflows do SHA.
 2. Publicar `dist-connected` como **preview** no projecto `siga-plus-mobile-v4`, com a branch `staging-mobile-v4-pr116`; nunca publicar o `dist` demo como aplicação conectada.
 3. Validar o novo URL fixo: assets, autenticação negativa, métodos/origens, interface e percursos autorizados de professor/aluno.
