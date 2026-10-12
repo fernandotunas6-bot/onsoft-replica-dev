@@ -131,6 +131,15 @@ da membership, só o que a revisão (recalculada no servidor) sugere ou um códi
 catálogo conhece, nunca por cima de uma ligação; Administrador/Secretaria, 2FA, auditoria
 (`academic.program.linked_to_catalog`).
 
+### Adopção pelas escolas (ADMIN)
+
+ADMIN → Catálogos globais → **Adopção pelas escolas** (`GET
+/api/saas/education-catalog/adoption`, só administradores da plataforma; contagem em
+`adoption.ts`, leitura em `platform-ops.ts`): por escola e no total, disciplinas e cursos
+ligados ao catálogo, por ligar com o nome já reconhecido, e próprios da escola. Só lê; a
+ligação faz-se em cada escola. Antes da migração 20261012120000 uma sonda de uma linha
+deteta a falta da coluna e a página diz que a ligação ainda não está activa.
+
 ## Criar disciplina com o catálogo
 
 Pedagógica → Disciplinas → **Nova**: o campo «Disciplina» sugere os nomes do catálogo
