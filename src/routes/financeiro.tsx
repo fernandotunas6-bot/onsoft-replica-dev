@@ -498,18 +498,20 @@ function FinanceiroPage() {
                 icon={<Wallet className="size-5" />}
                 submitLabel="Criar plano"
                 onSubmit={async (values) => {
-                  const invoice = payableInvoices.find((item) =>
-                    `${item.number} · ${item.student_name} · ${Number(item.total_amount).toLocaleString("pt-PT")} Kz`.includes(
-                      values["fatura"] ?? "",
-                    ),
-                  );
+                  // Fatura opcional: sem escolha, o plano fica sem fatura. Antes,
+                  // `includes("")` era verdadeiro para todas e ligava o plano (e a
+                  // referência EMIS) à primeira fatura da lista, de outro aluno.
+                  const chosen = values["fatura"] ?? "";
+                  const invoice = chosen
+                    ? payableInvoices.find((_, index) => invoiceOptions[index] === chosen)
+                    : undefined;
                   const channelMap = {
                     "Multicaixa Express": "multicaixa_express",
                     "Unitel Money": "unitel_money",
                     Transferência: "transfer",
                     Numerário: "cash",
                   } as const;
-                  await createPaymentPlan({
+                  const plan = await createPaymentPlan({
                     data: {
                       invoiceId: invoice?.id,
                       channel:
@@ -522,14 +524,14 @@ function FinanceiroPage() {
                   });
                   await queryClient.invalidateQueries({ queryKey: ["finance"] });
                   await queryClient.invalidateQueries({ queryKey: ["finance", "payment-plans"] });
+                  // O talão leva o plano e a referência que o servidor gravou (a gerada
+                  // para Multicaixa/Unitel quando ninguém a escreveu).
                   await printPaymentPlan({
-                    id: values["referencia"] || "plano",
-                    channel:
-                      channelMap[(values["canal"] as keyof typeof channelMap) ?? "Numerário"] ??
-                      "cash",
-                    installments: Number(values["prestacoes"] || 1),
-                    reference: values["referencia"] || null,
-                    status: "pending_gateway",
+                    id: String(plan.id),
+                    channel: plan.channel,
+                    installments: plan.installments,
+                    reference: plan.reference ?? null,
+                    status: plan.status,
                     notes: values["notas"] || null,
                   });
                 }}
