@@ -18,6 +18,8 @@ import {
   emptyGatewayWebhookMetrics,
   type GatewayWebhookEventRow,
 } from "@/features/finance/gateway-webhook-metrics";
+import { summarizeAdoption, type CatalogAdoption } from "@/features/education-catalog/adoption";
+import { selectAllPages } from "@/features/import/engine/paged";
 import {
   verifyCustomDomainDns,
   expectedCnameTarget,
@@ -705,4 +707,111 @@ export async function signedBillingProofUrl(path: string): Promise<string> {
   const { data, error } = await db.storage.from("billing-proofs").createSignedUrl(path, 300);
   if (error || !data?.signedUrl) throw new Error("Comprovativo não encontrado.");
   return data.signedUrl;
+}
+
+type AdoptionTable = "subjects" | "programs";
+const ADOPTION_COLUMN: Record<AdoptionTable, string> = {
+  subjects: "catalog_subject_code",
+  programs: "catalog_course_code",
+};
+
+/**
+ * Disciplinas e cursos de todas as escolas, com a ligação ao catálogo se a
+ * migração 20261012120000 já estiver aplicada. A sonda (uma linha) diz se a
+ * coluna existe; sem ela, conta só o total e o que o nome reconhece.
+ */
+export async function fetchCatalogAdoption(): Promise<CatalogAdoption> {
+  const db = await loadSgaAdminClient();
+  const untyped = db as unknown as {
+    from: (table: string) => {
+      select: (columns: string) => {
+        limit: (n: number) => PromiseLike<{ error: { code?: string; message?: string } | null }>;
+        is: (
+          column: string,
+          value: null,
+        ) => {
+          order: (
+            column: string,
+            options: { ascending: boolean },
+          ) => {
+            range: (
+              from: number,
+              to: number,
+            ) => PromiseLike<{
+              data: Array<Record<string, unknown>> | null;
+              error: { message: string } | null;
+            }>;
+          };
+        };
+        order: (
+          column: string,
+          options: { ascending: boolean },
+        ) => {
+          range: (
+            from: number,
+            to: number,
+          ) => PromiseLike<{
+            data: Array<Record<string, unknown>> | null;
+            error: { message: string } | null;
+          }>;
+        };
+      };
+    };
+  };
+  const probe = await untyped.from("subjects").select("id, catalog_subject_code").limit(1);
+  const missing =
+    probe.error &&
+    /42703|PGRST204/.test(String(probe.error.code ?? "")) &&
+    String(probe.error.message ?? "").includes("catalog_subject_code");
+  if (probe.error && !missing) {
+    throw publicDatabaseError(
+      probe.error as { message: string },
+      "Não foi possível ler as disciplinas.",
+    );
+  }
+  const linkAvailable = !missing;
+
+  const load = async (table: AdoptionTable) => {
+    const columns = linkAvailable
+      ? `id, school_id, name, ${ADOPTION_COLUMN[table]}`
+      : "id, school_id, name";
+    const rows = await selectAllPages<Record<string, unknown>>(
+      (from, to) => {
+        const query = untyped.from(table).select(columns);
+        const ordered =
+          table === "subjects"
+            ? query.is("deleted_at", null).order("id", { ascending: true })
+            : query.order("id", { ascending: true });
+        return ordered.range(from, to);
+      },
+      `Não foi possível ler ${table === "subjects" ? "as disciplinas" : "os cursos"}`,
+    );
+    return rows.map((r) => ({
+      id: String(r["id"]),
+      school_id: String(r["school_id"]),
+      name: String(r["name"] ?? ""),
+      catalog_code:
+        typeof r[ADOPTION_COLUMN[table]] === "string"
+          ? (r[ADOPTION_COLUMN[table]] as string)
+          : null,
+    }));
+  };
+
+  const [schools, subjects, programs] = await Promise.all([
+    db.from("schools").select("id, name, commercial_name"),
+    load("subjects"),
+    load("programs"),
+  ]);
+  if (schools.error) {
+    throw publicDatabaseError(schools.error, "Não foi possível carregar as escolas.");
+  }
+  return summarizeAdoption({
+    linkAvailable,
+    schools: (schools.data ?? []).map((s) => ({
+      id: s.id,
+      name: s.commercial_name || s.name,
+    })),
+    subjects,
+    programs,
+  });
 }

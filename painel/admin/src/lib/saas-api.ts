@@ -560,3 +560,39 @@ export async function fetchEducationCatalog(): Promise<{
     return { ok: false, error: "Resposta inválida do SIGA." };
   }
 }
+
+export type CatalogAdoptionCounts = {
+  total: number;
+  linked: number;
+  recognized: number;
+  own: number;
+};
+
+export type CatalogAdoption = {
+  linkAvailable: boolean;
+  totals: { subjects: CatalogAdoptionCounts; courses: CatalogAdoptionCounts };
+  schools: Array<{
+    schoolId: string;
+    name: string;
+    subjects: CatalogAdoptionCounts;
+    courses: CatalogAdoptionCounts;
+  }>;
+};
+
+/** Disciplinas e cursos das escolas ligados ao catálogo (só administradores da plataforma). */
+export async function fetchCatalogAdoption(
+  accessToken: string | undefined | null,
+): Promise<{ ok: boolean; adoption?: CatalogAdoption; error?: string }> {
+  if (!accessToken) return { ok: false, error: "Sessão em falta." };
+  const res = await apiFetch(getSaasApiUrl("/api/saas/education-catalog/adoption"), {
+    headers: authHeaders(accessToken),
+  });
+  const data = (await res.json().catch(() => ({}))) as {
+    adoption?: CatalogAdoption;
+    error?: string;
+  };
+  if (!res.ok || !data.adoption) {
+    return { ok: false, error: data.error || "Não foi possível carregar a adopção do catálogo." };
+  }
+  return { ok: true, adoption: data.adoption };
+}
