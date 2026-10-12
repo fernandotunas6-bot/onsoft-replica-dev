@@ -1,4 +1,5 @@
 import type { TablesUpdate } from "@/integrations/supabase/types";
+import { pagedReadClient } from "@/integrations/supabase/paged-client";
 import { createServerFn } from "@tanstack/react-start";
 import { reportSigaError } from "@/lib/ops-report";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
@@ -128,14 +129,33 @@ export const searchStudents = createServerFn({ method: "GET" })
     const scope = await loadStudentScope(db, membership, context.userId);
     if (!scope.all && scope.studentIds.length === 0) return [];
 
-    let studentsQuery = db
-      .from("students")
-      .select("id, student_number, status, person_id, school_id, admission_date")
-      .eq("school_id", membership.schoolId);
-    if (!scope.all) studentsQuery = studentsQuery.in("id", scope.studentIds);
-    const { data: students, error } = await studentsQuery
-      .order("student_number")
-      .range(data.offset, data.offset + data.limit - 1);
+    // A lista pede até 1000 alunos e, a seguir, as fichas, matrículas, encarregados e
+    // faturas de todos eles por `.in(...)`: com mais de ~200 alunos o URL passava o
+    // tamanho máximo e a página de alunos deixava de abrir. Estas leituras vão por
+    // páginas e em lotes de ids.
+    const reads = pagedReadClient(db);
+    const studentColumns = "id, student_number, status, person_id, school_id, admission_date";
+    const { data: students, error } = scope.all
+      ? await db
+          .from("students")
+          .select(studentColumns)
+          .eq("school_id", membership.schoolId)
+          .order("student_number")
+          .range(data.offset, data.offset + data.limit - 1)
+      : // Professor: os alunos das suas turmas (centenas de ids) em lotes, e a página aqui.
+        await reads
+          .from("students")
+          .select(studentColumns)
+          .eq("school_id", membership.schoolId)
+          .in("id", scope.studentIds)
+          .then((result) => ({
+            ...result,
+            data: (result.data ?? [])
+              .sort((a, b) =>
+                String(a.student_number ?? "").localeCompare(String(b.student_number ?? "")),
+              )
+              .slice(data.offset, data.offset + data.limit),
+          }));
     if (error) throw publicDatabaseError(error, "Não foi possível pesquisar os alunos.");
 
     const rows = students ?? [];
@@ -144,7 +164,7 @@ export const searchStudents = createServerFn({ method: "GET" })
 
     const [{ data: people }, { data: allEnrollments }, { data: guardians }] = await Promise.all([
       personIds.length
-        ? db
+        ? reads
             .from("people")
             .select("id, full_name, email, phone, photo_url, national_id")
             .eq("school_id", membership.schoolId)
@@ -160,7 +180,7 @@ export const searchStudents = createServerFn({ method: "GET" })
             }>,
           }),
       studentIds.length
-        ? db
+        ? reads
             .from("enrollments")
             .select("id, student_id, class_group_id, academic_year_id, status, enrolled_on")
             .in("student_id", studentIds)
@@ -177,7 +197,7 @@ export const searchStudents = createServerFn({ method: "GET" })
             }>,
           }),
       studentIds.length
-        ? db
+        ? reads
             .from("student_guardians")
             .select("student_id, guardian_person_id, is_primary")
             .in("student_id", studentIds)
@@ -209,7 +229,7 @@ export const searchStudents = createServerFn({ method: "GET" })
     let invoicesByStudent = new Map<string, InvoiceLike[]>();
     try {
       if (enrollmentIds.length) {
-        const { data: contracts } = await db
+        const { data: contracts } = await reads
           .from("finance_contracts")
           .select("id, enrollment_id")
           .in("enrollment_id", enrollmentIds)
@@ -217,7 +237,7 @@ export const searchStudents = createServerFn({ method: "GET" })
 
         const contractIds = (contracts ?? []).map((c) => c.id);
         if (contractIds.length) {
-          const { data: invoices } = await db
+          const { data: invoices } = await reads
             .from("finance_invoices")
             .select("id, contract_id, amount, discount_amount, due_date, status")
             .in("contract_id", contractIds)
@@ -226,7 +246,7 @@ export const searchStudents = createServerFn({ method: "GET" })
 
           const invoiceIds = (invoices ?? []).map((inv) => inv.id);
           const { data: receipts } = invoiceIds.length
-            ? await db
+            ? await reads
                 .from("finance_receipts")
                 .select("invoice_id, amount, status")
                 .in("invoice_id", invoiceIds)
@@ -301,7 +321,7 @@ export const searchStudents = createServerFn({ method: "GET" })
 
     const [{ data: classGroups }, { data: years }, { data: guardianPeople }] = await Promise.all([
       classGroupIds.length
-        ? db
+        ? reads
             .from("class_groups")
             .select("id, name, grade_level_id")
             .eq("school_id", membership.schoolId)
@@ -310,14 +330,14 @@ export const searchStudents = createServerFn({ method: "GET" })
             data: [] as Array<{ id: string; name: string; grade_level_id: string | null }>,
           }),
       yearIds.length
-        ? db
+        ? reads
             .from("academic_years")
             .select("id, name")
             .eq("school_id", membership.schoolId)
             .in("id", yearIds)
         : Promise.resolve({ data: [] as Array<{ id: string; name: string }> }),
       guardianPersonIds.length
-        ? db
+        ? reads
             .from("people")
             .select("id, full_name")
             .eq("school_id", membership.schoolId)
@@ -333,7 +353,7 @@ export const searchStudents = createServerFn({ method: "GET" })
       ),
     ] as string[];
     const { data: gradeLevels } = gradeLevelIds.length
-      ? await db
+      ? await reads
           .from("grade_levels")
           .select("id, name")
           .eq("school_id", membership.schoolId)

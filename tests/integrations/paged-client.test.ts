@@ -102,11 +102,14 @@ describe("pagedReadClient", () => {
     expect(new Set(orders)).toEqual(new Set(["membership_id", "role_id"]));
   });
 
-  it("chat, pedidos de acesso e contas usam o cliente paginado", () => {
+  it("chat, pedidos de acesso, contas, lista de alunos e Alumni usam o cliente paginado", () => {
     for (const file of [
       "src/features/messages/server.ts",
       "src/features/access/requests-server.ts",
       "src/features/access/server.ts",
+      "src/features/students/server.ts",
+      "src/features/students/student-scope.ts",
+      "src/features/alumni/server.ts",
     ]) {
       expect(readFileSync(file, "utf8"), file).toMatch(/pagedReadClient\(/);
     }
