@@ -12,10 +12,16 @@
  *     própria na base.
  */
 import { globalSubject, subjectDisplayName } from "./data/subjects";
-import { resolveSubject } from "./normalize";
+import { resolveSubject, subjectCatalogKey } from "./normalize";
 import { normalizeText } from "./search";
 
-export type SchoolSubject = { id: string; code: string; name: string };
+export type SchoolSubject = {
+  id: string;
+  code: string;
+  name: string;
+  /** `subjects.catalog_subject_code` (migração 20261012120000); null = por ligar. */
+  catalogCode?: string | null;
+};
 
 export type ReviewedSubject = SchoolSubject & {
   /** Turmas, currículos e professores ligados. */
@@ -42,14 +48,31 @@ export type RenameSuggestion = {
   preselected: boolean;
 };
 
+export type LinkSuggestion = {
+  id: string;
+  code: string;
+  name: string;
+  catalogCode: string;
+  catalogName: string;
+};
+
 export type SubjectReview = {
   country: string;
   total: number;
   matched: number;
   duplicates: DuplicateGroup[];
   renames: RenameSuggestion[];
-  /** Sem correspondência no catálogo (disciplinas próprias da escola, ou por catalogar). */
+  /** Sem correspondência no catálogo nem ligação (próprias da escola, ou por catalogar). */
   unmatched: SchoolSubject[];
+  /** A base já tem `subjects.catalog_subject_code` (migração aplicada). */
+  linkAvailable: boolean;
+  /** Já ligadas ao catálogo. */
+  linked: number;
+  /**
+   * Por ligar, reconhecidas pelo nome exacto (nome, nome local ou sinónimo).
+   * Siglas soltas e letras trocadas não: primeiro corrige-se o nome.
+   */
+  toLink: LinkSuggestion[];
 };
 
 /** País do sistema de ensino a partir da moeda da escola (o esquema não tem país). */
@@ -79,16 +102,35 @@ export function reviewSubjects(
   subjects: readonly SchoolSubject[],
   usage: Readonly<Record<string, number>>,
   country: string,
+  linkAvailable = false,
 ): SubjectReview {
   const byCatalog = new Map<string, ReviewedSubject[]>();
   const renames: RenameSuggestion[] = [];
   const unmatched: SchoolSubject[] = [];
+  const toLink: LinkSuggestion[] = [];
   let matched = 0;
+  let linked = 0;
 
   for (const s of subjects) {
+    const linkedTo = s.catalogCode ? globalSubject(s.catalogCode) : null;
+    if (linkedTo) linked += 1;
+    else {
+      const key = subjectCatalogKey(s.name);
+      if (key) {
+        toLink.push({
+          id: s.id,
+          code: s.code,
+          name: s.name,
+          catalogCode: key,
+          catalogName: subjectDisplayName(globalSubject(key)!, country),
+        });
+      }
+    }
+    // Duplicados e nomes só pelo nome: uma ligação feita à mão («Matemática A»
+    // → MAT) diz de que disciplina se trata, não que é a mesma que «Matemática».
     const match = resolveSubject(s.name);
     if (!match) {
-      unmatched.push(s);
+      if (!linkedTo) unmatched.push(s);
       continue;
     }
     matched += 1;
@@ -130,5 +172,16 @@ export function reviewSubjects(
   duplicates.sort((a, b) => a.canonicalName.localeCompare(b.canonicalName, "pt"));
   renames.sort((a, b) => a.to.localeCompare(b.to, "pt"));
   unmatched.sort((a, b) => a.name.localeCompare(b.name, "pt"));
-  return { country, total: subjects.length, matched, duplicates, renames, unmatched };
+  toLink.sort((a, b) => a.name.localeCompare(b.name, "pt"));
+  return {
+    country,
+    total: subjects.length,
+    matched,
+    duplicates,
+    renames,
+    unmatched,
+    linkAvailable,
+    linked,
+    toLink,
+  };
 }

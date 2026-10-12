@@ -1,7 +1,7 @@
 /**
  * «Rever disciplinas»: compara as disciplinas da escola com o catálogo e
- * mostra duplicados e nomes fora do padrão. Corrige os nomes escolhidos e
- * junta duplicados, sempre com confirmação.
+ * mostra duplicados e nomes fora do padrão. Corrige os nomes escolhidos,
+ * junta duplicados (sempre com confirmação) e liga as disciplinas ao catálogo.
  */
 import { useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -22,8 +22,10 @@ import { InlineLoading } from "@/components/ui/inline-loading";
 import { badgeBase, toneClass } from "@/components/layout/PageHeader";
 import { cn } from "@/lib/utils";
 import type { DuplicateGroup, RenameSuggestion, SubjectReview } from "./subject-review";
+import { GLOBAL_SUBJECTS, subjectDisplayName } from "./data/subjects";
 import {
   getSubjectReview,
+  linkSubjectsToCatalog,
   mergeDuplicateSubjects,
   normalizeSubjectNames,
 } from "./subject-review-server";
@@ -109,6 +111,7 @@ export function SubjectReviewDialog() {
                 {review.total} disciplinas · {review.matched} reconhecidas no catálogo ·{" "}
                 {review.duplicates.length} duplicadas · {review.renames.length} nomes a corrigir ·{" "}
                 {review.unmatched.length} próprias da escola
+                {review.linkAvailable ? ` · ${review.linked} ligadas ao catálogo` : ""}
               </p>
 
               <section className="space-y-2">
@@ -173,7 +176,9 @@ export function SubjectReviewDialog() {
                 )}
               </section>
 
-              {review.unmatched.length ? (
+              <CatalogLinkSection review={review} />
+
+              {review.unmatched.length && !review.linkAvailable ? (
                 <section className="space-y-1">
                   <h3 className="font-medium">Próprias da escola</h3>
                   <p className="text-xs text-muted-foreground">
@@ -204,6 +209,133 @@ export function SubjectReviewDialog() {
         </DialogContent>
       </Dialog>
     </>
+  );
+}
+
+/**
+ * Ligação ao catálogo (`subjects.catalog_subject_code`): as reconhecidas pelo
+ * nome ligam-se de uma vez; as próprias da escola podem ligar-se à mão a uma
+ * disciplina do catálogo («Mat. Aplicada» → Matemática). Só muda a ligação.
+ */
+function CatalogLinkSection({ review }: { review: SubjectReview }) {
+  const link = useServerFn(linkSubjectsToCatalog);
+  const queryClient = useQueryClient();
+  const [saving, setSaving] = useState(false);
+  const [chosen, setChosen] = useState<Record<string, string>>({});
+  const options = useMemo(
+    () =>
+      GLOBAL_SUBJECTS.map((g) => ({
+        code: g.code,
+        name: subjectDisplayName(g, review.country),
+      })).sort((a, b) => a.name.localeCompare(b.name, "pt")),
+    [review.country],
+  );
+
+  if (!review.total) return null;
+  if (!review.linkAvailable) {
+    return (
+      <section className="space-y-1">
+        <h3 className="font-medium">Ligação ao catálogo</h3>
+        <p className="text-xs text-muted-foreground">
+          Fica disponível depois de aplicada no servidor a migração
+          20261012120000_subjects_catalog_link.sql.
+        </p>
+      </section>
+    );
+  }
+
+  const run = async (data: {
+    auto?: string[];
+    manual?: Array<{ subjectId: string; catalogCode: string }>;
+  }) => {
+    setSaving(true);
+    try {
+      const result = await link({ data: { auto: data.auto ?? [], manual: data.manual ?? [] } });
+      toast.success(
+        result.applied === 1
+          ? "1 disciplina ligada ao catálogo"
+          : `${result.applied} disciplinas ligadas ao catálogo`,
+        result.skipped
+          ? { description: `${result.skipped} mudaram entretanto e ficaram como estavam.` }
+          : undefined,
+      );
+      setChosen({});
+      await queryClient.invalidateQueries({ queryKey: ["academic"] });
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Não foi possível ligar ao catálogo.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <section className="space-y-2">
+      <h3 className="font-medium">Ligação ao catálogo</h3>
+      <p className="text-xs text-muted-foreground">
+        {review.linked === 1 ? "1 disciplina ligada" : `${review.linked} disciplinas ligadas`}. A
+        ligação diz de que disciplina do catálogo se trata, sem mudar o nome nem o código.
+      </p>
+      {review.toLink.length ? (
+        <div className="flex flex-wrap items-center gap-2">
+          <p className="min-w-0 flex-1 text-xs">
+            Reconhecidas pelo nome:{" "}
+            {review.toLink
+              .slice(0, 12)
+              .map((l) => l.name)
+              .join(", ")}
+            {review.toLink.length > 12 ? ` e mais ${review.toLink.length - 12}` : ""}.
+          </p>
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            disabled={saving}
+            onClick={() => run({ auto: review.toLink.map((l) => l.id) })}
+          >
+            {review.toLink.length === 1 ? "Ligar 1" : `Ligar ${review.toLink.length}`}
+          </Button>
+        </div>
+      ) : null}
+      {review.unmatched.length ? (
+        <>
+          <p className="text-xs text-muted-foreground">
+            Próprias da escola, sem correspondência pelo nome. Ligue só as que são uma disciplina do
+            catálogo; as outras ficam como estão.
+          </p>
+          <ul className="divide-y divide-border rounded-lg border border-border">
+            {review.unmatched.map((u) => (
+              <li key={u.id} className="flex flex-wrap items-center gap-2 px-3 py-2 text-xs">
+                <span className="min-w-0 flex-1">
+                  {u.name} <span className="font-mono text-muted-foreground">{u.code}</span>
+                </span>
+                <select
+                  className="h-8 max-w-[14rem] rounded-md border border-input bg-background px-2"
+                  value={chosen[u.id] ?? ""}
+                  onChange={(e) => setChosen((c) => ({ ...c, [u.id]: e.target.value }))}
+                  aria-label={`Disciplina do catálogo para ${u.name}`}
+                >
+                  <option value="">— própria da escola —</option>
+                  {options.map((o) => (
+                    <option key={o.code} value={o.code}>
+                      {o.name}
+                    </option>
+                  ))}
+                </select>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  disabled={saving || !chosen[u.id]}
+                  onClick={() => run({ manual: [{ subjectId: u.id, catalogCode: chosen[u.id]! }] })}
+                >
+                  Ligar
+                </Button>
+              </li>
+            ))}
+          </ul>
+        </>
+      ) : null}
+    </section>
   );
 }
 

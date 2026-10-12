@@ -17,6 +17,7 @@ import {
 import { getAcademicStructureStatus } from "./academic-structure";
 import { cn } from "@/lib/utils";
 import { CurriculumTemplateDialog } from "./CurriculumTemplateDialog";
+import { CourseReviewDialog } from "@/features/education-catalog/CourseReviewDialog";
 import { SubjectReviewDialog } from "@/features/education-catalog/SubjectReviewDialog";
 
 const STATUS_DOT: Record<ModuleStatus, string> = {
@@ -84,6 +85,7 @@ export function AcademicStructureTab({
         </div>
         <div className="flex flex-wrap gap-2">
           <SubjectReviewDialog />
+          <CourseReviewDialog />
           <CurriculumTemplateDialog />
         </div>
       </section>

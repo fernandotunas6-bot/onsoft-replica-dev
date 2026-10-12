@@ -9,7 +9,10 @@ import {
   studentPublicCode,
 } from "@/features/education-catalog/identifiers";
 import {
+  courseCatalogKey,
   findSubjectDuplicates,
+  levelScope,
+  subjectCatalogKey,
   normalizeGrade,
   normalizePeriod,
   resolveSubject,
@@ -94,6 +97,37 @@ describe("disciplinas", () => {
       { code: "MAT", names: ["Matemática", "Matematica", "MAT"] },
       { code: "HIST", names: ["História", "Historia"] },
     ]);
+  });
+});
+
+describe("siglas soltas não valem como nome, em qualquer caixa", () => {
+  it.each(["EM", "em", "Em", "le", "fq", "ef", "mat", "Filos.", "TICs"])("%s", (raw) => {
+    expect(subjectCatalogKey(raw)).toBeNull();
+  });
+
+  it("nomes continuam a valer", () => {
+    expect(subjectCatalogKey("Matemática")).toBe("MAT");
+    expect(subjectCatalogKey("estudo do meio")).toBe("EM");
+  });
+});
+
+describe("cursos", () => {
+  it("respeita o nível: superior ou não superior", () => {
+    expect(courseCatalogKey("Contabilidade", "higher")).not.toBe("TEC-CG");
+    expect(courseCatalogKey("Contabilidade", "school")).toBe("TEC-CG");
+    expect(courseCatalogKey("Gestão", "school")).not.toBe("LIC-GEST");
+    expect(levelScope({ code: "ES", name: "Ensino Superior" })).toBe("higher");
+    expect(levelScope({ code: "ESG2", name: "Ensino Secundário Geral — II Ciclo" })).toBe("school");
+    expect(levelScope({ code: "LIC", name: "Licenciaturas" })).toBe("higher");
+    expect(levelScope(null)).toBeNull();
+  });
+
+  it("reconhece o curso pelo nome ou sinónimo, nunca pela sigla", () => {
+    expect(courseCatalogKey("Ciências Económico-Jurídicas")).toBe("SEC-CEJ");
+    expect(courseCatalogKey("ciencias economicas e juridicas")).toBe("SEC-CEJ");
+    expect(courseCatalogKey("CEJ")).toBeNull();
+    expect(courseCatalogKey("Curso de Teatro Experimental")).toBeNull();
+    expect(courseCatalogKey("")).toBeNull();
   });
 });
 
