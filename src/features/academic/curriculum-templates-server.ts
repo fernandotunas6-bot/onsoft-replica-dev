@@ -22,9 +22,11 @@ import { stage as findStage } from "@/features/education-catalog/data/stages";
 import { planFromCatalog } from "@/features/education-catalog/plan-from-catalog";
 import {
   catalogCourse,
+  courseInScope,
   reviewCourses,
   type CourseReview,
 } from "@/features/education-catalog/course-review";
+import { levelScope } from "@/features/education-catalog/normalize";
 import { publicDatabaseError } from "@/integrations/supabase/server-error";
 import { requireAal2 } from "@/features/hr/require-aal2";
 
@@ -150,7 +152,7 @@ const COURSE_LINK_MIGRATION = "20261012120000_subjects_catalog_link.sql";
 
 /** Lê os cursos com o cliente do utilizador (`programs_select_authorized`). */
 async function loadCourseReview(
-  db: { from: (table: "programs") => unknown },
+  db: { from: (table: "programs" | "academic_levels") => unknown },
   schoolId: string,
 ): Promise<CourseReview> {
   // `*`: `catalog_course_code` só existe depois de 20261012120000.
@@ -162,10 +164,21 @@ async function loadCourseReview(
       ) => PromiseLike<{ data: Array<Record<string, unknown>> | null; error: unknown }>;
     };
   };
-  const { data, error } = await query.select("*").eq("school_id", schoolId);
+  const levelsQuery = db.from("academic_levels") as typeof query;
+  const [{ data, error }, levels] = await Promise.all([
+    query.select("*").eq("school_id", schoolId),
+    levelsQuery.select("id, code, name").eq("school_id", schoolId),
+  ]);
   if (error) {
     throw publicDatabaseError(error as { message: string }, "Não foi possível ler os cursos.");
   }
+  // O nível diz se o curso é superior: «Contabilidade» é outro curso em cada um.
+  const levelById = new Map(
+    (levels.data ?? []).map((l) => [
+      String(l["id"]),
+      { code: String(l["code"] ?? ""), name: String(l["name"] ?? "") },
+    ]),
+  );
   const rows = data ?? [];
   return reviewCourses(
     rows.map((r) => ({
@@ -173,6 +186,7 @@ async function loadCourseReview(
       code: String(r["code"] ?? ""),
       name: String(r["name"] ?? ""),
       catalogCode: typeof r["catalog_course_code"] === "string" ? r["catalog_course_code"] : null,
+      scope: levelScope(levelById.get(String(r["academic_level_id"] ?? ""))),
     })),
     rows.length > 0 && "catalog_course_code" in rows[0]!,
   );
@@ -231,7 +245,11 @@ export const linkCoursesToCatalog = createServerFn({ method: "POST" })
         .filter((l) => wanted.has(l.id))
         .map((l) => ({ id: l.id, name: l.name, catalogCode: l.catalogCode, how: "name" })),
       ...data.manual
-        .filter((m) => unmatched.has(m.programId) && catalogCourse(m.catalogCode))
+        .filter((m) => {
+          const course = catalogCourse(m.catalogCode);
+          const own = unmatched.get(m.programId);
+          return Boolean(own && course && courseInScope(course, own.scope));
+        })
         .map((m) => ({
           id: m.programId,
           name: unmatched.get(m.programId)!.name,

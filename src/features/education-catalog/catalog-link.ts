@@ -10,7 +10,7 @@
  * escola pode ligar depois em «Rever disciplinas». Nunca substitui uma ligação
  * existente (`IS NULL`).
  */
-import { courseCatalogKey, subjectCatalogKey } from "./normalize";
+import { courseCatalogKey, subjectCatalogKey, type CourseScope } from "./normalize";
 
 type LinkResult = PromiseLike<{ data: unknown; error: unknown }>;
 type LinkQuery = {
@@ -29,12 +29,21 @@ export function linkNewSubjectsToCatalog(
   return linkNew(db, "subjects", "catalog_subject_code", subjectCatalogKey, schoolId, subjects);
 }
 
+/** `scope`: o curso é do ensino superior ou não — «Contabilidade» é outro curso em cada um. */
 export function linkNewProgramsToCatalog(
   db: LinkDb,
   schoolId: string,
   programs: ReadonlyArray<{ id: string; name: string }>,
+  scope: CourseScope | null,
 ): Promise<number> {
-  return linkNew(db, "programs", "catalog_course_code", courseCatalogKey, schoolId, programs);
+  return linkNew(
+    db,
+    "programs",
+    "catalog_course_code",
+    (name) => courseCatalogKey(name, scope),
+    schoolId,
+    programs,
+  );
 }
 
 async function linkNew(

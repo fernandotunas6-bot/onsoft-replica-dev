@@ -441,7 +441,7 @@ export const createHigherEdProgram = createServerFn({ method: "POST" })
       .single();
     if (error) throw publicDatabaseError(error, "Não foi possível criar o curso.");
     const programId = str(program.id);
-    await linkNewProgramsToCatalog(db, schoolId, [{ id: programId, name: data.name }]);
+    await linkNewProgramsToCatalog(db, schoolId, [{ id: programId, name: data.name }], "higher");
     if (data.profile)
       await saveProgramProfile(db, schoolId, programId, data.profile, context.userId);
     try {

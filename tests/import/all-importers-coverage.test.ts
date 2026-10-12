@@ -87,6 +87,40 @@ describe("All 22 Importers Completeness & Coverage", () => {
       expect(res.status).toBe("valid");
     });
 
+    it("avisa quando a disciplina foi associada pelo catálogo", () => {
+      const res = avaliacoesImporter.analyzeRow(
+        {
+          assessment_name: "Prova",
+          code: "P1",
+          max_score: 20,
+          class_group: "10A",
+          subject: "Matematica Geral",
+          term: "1º Trimestre",
+        },
+        {
+          ...cacheComDiario,
+          subjects: [{ id: "sub1", code: "LP", name: "Língua Portuguesa" }],
+        } as any,
+      );
+      expect(res.status).toBe("error");
+      const viaCatalogo = avaliacoesImporter.analyzeRow(
+        {
+          assessment_name: "Prova",
+          code: "P1",
+          max_score: 20,
+          class_group: "10A",
+          subject: "Português",
+          term: "1º Trimestre",
+        },
+        {
+          ...cacheComDiario,
+          subjects: [{ id: "sub1", code: "LP", name: "Língua Portuguesa" }],
+        } as any,
+      );
+      expect(viaCatalogo.status).toBe("warning");
+      expect(viaCatalogo.warnings[0]).toContain("pelo catálogo");
+    });
+
     it("recusa quando o diário da turma/disciplina/período não existe", () => {
       const res = avaliacoesImporter.analyzeRow(
         {

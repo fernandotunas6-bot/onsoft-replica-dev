@@ -27,6 +27,18 @@ describe("cursos da escola contra o catálogo", () => {
     expect(review.unmatched.map((u) => u.id)).toEqual(["4", "5", "3"]);
   });
 
+  it("no superior, «Contabilidade» não é o curso técnico", () => {
+    const review = reviewCourses(
+      [
+        { ...c("1", "CONT", "Contabilidade"), scope: "higher" as const },
+        { ...c("2", "CG", "Contabilidade"), scope: "school" as const },
+      ],
+      true,
+    );
+    expect(review.toLink.map((l) => [l.id, l.catalogCode])).toEqual([["2", "TEC-CG"]]);
+    expect(catalogCourseOptions("higher").some((o) => o.code.startsWith("TEC-"))).toBe(false);
+  });
+
   it("as opções para ligar à mão dizem o tipo de curso", () => {
     const options = catalogCourseOptions();
     const enf = options.filter((o) => o.label.includes("Enfermagem"));

@@ -1,10 +1,10 @@
 import { normalizeText } from "../engine/normalize";
 import type { ImportRefCache, RowImporter } from "../engine/types";
 import { linkNewProgramsToCatalog } from "@/features/education-catalog/catalog-link";
-import { courseCatalogKey } from "@/features/education-catalog/normalize";
+import { courseCatalogKey, levelScope } from "@/features/education-catalog/normalize";
 import { loadAcademicLevelRefs, uniqueExactMatch, type AcademicLevelRef } from "./academic-core";
 
-type Ref = { id: string; code: string; name: string };
+type Ref = { id: string; code: string; name: string; academic_level_id?: string | null };
 type CursosCache = ImportRefCache & {
   existingCourses: Ref[];
   academicLevels: AcademicLevelRef[];
@@ -78,7 +78,10 @@ export const cursosImporter: RowImporter = {
 
   async loadRefCache(ctx) {
     const [coursesResult, academicLevels] = await Promise.all([
-      ctx.db.from("programs").select("id, code, name").eq("school_id", ctx.schoolId),
+      ctx.db
+        .from("programs")
+        .select("id, code, name, academic_level_id")
+        .eq("school_id", ctx.schoolId),
       loadAcademicLevelRefs(ctx.db, ctx.schoolId),
     ]);
     if (coursesResult.error) {
@@ -92,6 +95,7 @@ export const cursosImporter: RowImporter = {
         id: String(r.id),
         code: String(r.code ?? ""),
         name: String(r.name ?? ""),
+        academic_level_id: r.academic_level_id ? String(r.academic_level_id) : null,
       })),
       academicLevels,
     } as CursosCache;
@@ -110,16 +114,21 @@ export const cursosImporter: RowImporter = {
 
     if (errors.length) return { status: "error", warnings, errors };
 
-    // Pelo código, pelo nome ou pelo mesmo curso do catálogo escrito de outra
-    // forma. Antes só o código contava: «CEJ2 | Ciências Económicas e Jurídicas»
-    // numa escola com «CEJ» criava um segundo curso igual.
+    // Pelo código (único na escola), ou — no mesmo nível de ensino — pelo nome ou
+    // pelo mesmo curso do catálogo escrito de outra forma. Antes só o código
+    // contava: «CEJ2 | Ciências Económicas e Jurídicas» numa escola com «CEJ»
+    // criava um segundo curso igual. «Informática» no médio e na licenciatura
+    // são cursos diferentes.
+    const resolved = resolveAcademicLevel(normalized, cache.academicLevels);
+    const sameLevel = resolved.level
+      ? cache.existingCourses.filter((r) => r.academic_level_id === resolved.level!.id)
+      : [];
+    const scope = levelScope(resolved.level);
     const byCode = uniqueExactMatch(code, cache.existingCourses, [(r) => r.code]);
-    const byName = byCode.row
-      ? byCode
-      : uniqueExactMatch(name, cache.existingCourses, [(r) => r.name]);
-    const catalogKey = byName.row ? null : courseCatalogKey(name);
+    const byName = byCode.row ? byCode : uniqueExactMatch(name, sameLevel, [(r) => r.name]);
+    const catalogKey = byName.row ? null : courseCatalogKey(name, scope);
     const byCatalog = catalogKey
-      ? cache.existingCourses.filter((r) => courseCatalogKey(r.name) === catalogKey)
+      ? sameLevel.filter((r) => courseCatalogKey(r.name, scope) === catalogKey)
       : [];
     const existing = byName.row ?? (byCatalog.length === 1 ? byCatalog[0]! : null);
     if (existing) {
@@ -208,8 +217,13 @@ export const cursosImporter: RowImporter = {
       };
     }
 
-    cache.existingCourses.push({ id: String(data.id), code, name });
-    await linkNewProgramsToCatalog(ctx.db, ctx.schoolId, [{ id: String(data.id), name }]);
+    cache.existingCourses.push({ id: String(data.id), code, name, academic_level_id: level!.id });
+    await linkNewProgramsToCatalog(
+      ctx.db,
+      ctx.schoolId,
+      [{ id: String(data.id), name }],
+      levelScope(level),
+    );
     return {
       status: "imported",
       warnings: analysis.warnings,

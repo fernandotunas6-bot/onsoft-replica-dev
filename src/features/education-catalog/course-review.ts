@@ -3,14 +3,21 @@
  * migração 20261012120000): os reconhecidos pelo nome ou sinónimo, por ligar,
  * e os próprios da escola, que se podem ligar à mão. Só sugere.
  */
-import { COURSE_KIND_LABEL, GLOBAL_COURSES, type GlobalCourse } from "./data/courses";
-import { courseCatalogKey } from "./normalize";
+import {
+  COURSE_KIND_ISCED,
+  COURSE_KIND_LABEL,
+  GLOBAL_COURSES,
+  type GlobalCourse,
+} from "./data/courses";
+import { courseCatalogKey, type CourseScope } from "./normalize";
 
 export type SchoolCourse = {
   id: string;
   code: string;
   name: string;
   catalogCode?: string | null;
+  /** Do nível de ensino do curso (`levelScope`); null se não se sabe. */
+  scope?: CourseScope | null;
 };
 
 export type CourseLinkSuggestion = {
@@ -37,9 +44,16 @@ export function catalogCourse(code: string) {
   return BY_CODE.get(code);
 }
 
-/** Opções para ligar à mão: «Licenciatura — Enfermagem (LIC-ENF)». */
-export function catalogCourseOptions() {
-  return [...GLOBAL_COURSES]
+/** O curso do catálogo é do âmbito indicado (sem âmbito, qualquer um serve). */
+export function courseInScope(course: GlobalCourse, scope: CourseScope | null | undefined) {
+  if (!scope) return true;
+  const higher = COURSE_KIND_ISCED[course.kind] >= 5;
+  return scope === "higher" ? higher : !higher;
+}
+
+/** Opções para ligar à mão: «Licenciatura — Enfermagem», só do âmbito do curso. */
+export function catalogCourseOptions(scope?: CourseScope | null) {
+  return GLOBAL_COURSES.filter((c) => courseInScope(c, scope))
     .map((c) => ({ code: c.code, label: `${COURSE_KIND_LABEL[c.kind]} — ${c.name}` }))
     .sort((a, b) => a.label.localeCompare(b.label, "pt"));
 }
@@ -56,7 +70,7 @@ export function reviewCourses(
       linked += 1;
       continue;
     }
-    const key = courseCatalogKey(c.name);
+    const key = courseCatalogKey(c.name, c.scope);
     if (key) {
       toLink.push({
         id: c.id,

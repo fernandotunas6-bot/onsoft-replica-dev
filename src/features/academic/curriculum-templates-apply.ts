@@ -126,15 +126,22 @@ export async function applyCurriculumPlan(
       .select("id, code");
     fail(error, "os cursos");
     created.cursos = data?.length ?? 0;
-    const programName = new Map(programRows.map((p) => [p.code, p.name]));
-    await linkNewProgramsToCatalog(
-      db,
-      schoolId,
-      (data ?? []).map((r) => ({
-        id: String(r["id"]),
-        name: programName.get(String(r["code"])) ?? "",
-      })),
+    // Superior e não superior em separado: «Contabilidade» é outro curso em cada um.
+    const higherByCode = new Map(
+      plan.programs.map((p) => [p.code, { name: p.name, higher: p.higherEducation }]),
     );
+    const newPrograms = (data ?? []).map((r) => ({
+      id: String(r["id"]),
+      ...(higherByCode.get(String(r["code"])) ?? { name: "", higher: false }),
+    }));
+    for (const scope of ["higher", "school"] as const) {
+      await linkNewProgramsToCatalog(
+        db,
+        schoolId,
+        newPrograms.filter((c) => c.higher === (scope === "higher")),
+        scope,
+      );
+    }
   }
   const { data: programData, error: programErr } = await db
     .from("programs")

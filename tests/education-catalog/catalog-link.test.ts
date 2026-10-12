@@ -78,16 +78,33 @@ describe("ligar ao catálogo ao criar", () => {
     ).resolves.toBe(0);
   });
 
-  it("liga os cursos pelo nome ou sinónimo; nomes de dois cursos não", async () => {
+  it("liga os cursos pelo nome ou sinónimo, dentro do nível; siglas não", async () => {
     const { db, calls } = fakeDb(null, "programs");
-    const linked = await linkNewProgramsToCatalog(db, "s1", [
-      { id: "a", name: "Ciências Económico-Jurídicas" },
-      { id: "b", name: "Enfermagem" },
-      { id: "c", name: "CFB" },
+    const linked = await linkNewProgramsToCatalog(
+      db,
+      "s1",
+      [
+        { id: "a", name: "Ciências Económico-Jurídicas" },
+        { id: "b", name: "Enfermagem" },
+        { id: "c", name: "CFB" },
+      ],
+      "school",
+    );
+    // No ensino não superior, «Enfermagem» é o curso técnico.
+    expect(linked).toBe(2);
+    expect(calls.map((c) => c.values)).toEqual([
+      { catalog_course_code: "SEC-CEJ" },
+      { catalog_course_code: "TEC-ENF" },
     ]);
-    expect(linked).toBe(1);
-    expect(calls.map((c) => c.values)).toEqual([{ catalog_course_code: "SEC-CEJ" }]);
     expect(calls[0]!.filters[2]).toEqual(["is", "catalog_course_code", null]);
+  });
+
+  it("sem saber o nível, um nome de dois cursos não liga", async () => {
+    const { db, calls } = fakeDb(null, "programs");
+    expect(await linkNewProgramsToCatalog(db, "s1", [{ id: "b", name: "Enfermagem" }], null)).toBe(
+      0,
+    );
+    expect(calls).toEqual([]);
   });
 
   it("todos os códigos de curso cabem na restrição da base", () => {

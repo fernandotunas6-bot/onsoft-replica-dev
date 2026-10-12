@@ -39,7 +39,14 @@ describe("Pedagogical Importers (cursos, classes, disciplinas, salas)", () => {
 
     it("detecta o mesmo curso com outro código, pelo nome ou pelo catálogo", () => {
       const cache = {
-        existingCourses: [{ id: "c1", code: "CEJ", name: "Ciências Económicas e Jurídicas" }],
+        existingCourses: [
+          {
+            id: "c1",
+            code: "CEJ",
+            name: "Ciências Económicas e Jurídicas",
+            academic_level_id: "al1",
+          },
+        ],
         academicLevels: [{ id: "al1", code: "SEC", name: "Ensino Secundário" }],
       };
       const sameName = cursosImporter.analyzeRow(
@@ -55,6 +62,26 @@ describe("Pedagogical Importers (cursos, classes, disciplinas, salas)", () => {
       expect(synonym.status).toBe("duplicate");
       expect(synonym.duplicate_of).toBe("c1");
       expect(synonym.warnings[0]).toContain("outra grafia");
+    });
+
+    it("o mesmo nome noutro nível de ensino não é duplicado", () => {
+      const cache = {
+        existingCourses: [{ id: "c1", code: "INF", name: "Informática", academic_level_id: "al1" }],
+        academicLevels: [
+          { id: "al1", code: "EM", name: "Ensino Médio" },
+          { id: "al2", code: "ES", name: "Ensino Superior" },
+        ],
+      };
+      const other = cursosImporter.analyzeRow(
+        { code: "LINF", name: "Informática", nivel: "Ensino Superior" },
+        cache as any,
+      );
+      expect(other.status).toBe("valid");
+      const same = cursosImporter.analyzeRow(
+        { code: "INF2", name: "Informática", nivel: "Ensino Médio" },
+        cache as any,
+      );
+      expect(same.status).toBe("duplicate");
     });
 
     it("um curso diferente não é duplicado", () => {

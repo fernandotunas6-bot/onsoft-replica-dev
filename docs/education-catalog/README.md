@@ -192,10 +192,14 @@ novo.
   exactos; se nada bater, pela equivalência do catálogo («L. Portuguesa» → «Língua
   Portuguesa»), só por nome, nunca por siglas soltas, e só quando aponta para uma única
   disciplina da escola. Notas e presenças associadas assim ficam com aviso na pré-visualização.
-- **Cursos:** o mesmo — código, nome, ou o mesmo curso do catálogo por nome ou sinónimo
-  («Ciências Económico-Jurídicas» = «Ciências Económicas e Jurídicas»). Siglas não contam,
-  e um nome que serve dois cursos do catálogo («Enfermagem»: técnico e licenciatura) não
-  aponta para nenhum (`courseCatalogKey`).
+- **Cursos:** código (único na escola), ou — no mesmo nível de ensino — nome, ou o mesmo
+  curso do catálogo por nome ou sinónimo («Ciências Económico-Jurídicas» = «Ciências
+  Económicas e Jurídicas»). «Informática» no médio e na licenciatura são cursos
+  diferentes. O catálogo só procura cursos do âmbito do nível (`levelScope`: superior ou
+  não superior), por isso «Contabilidade» numa licenciatura não é o curso técnico; sem
+  nível, um nome que serve dois cursos («Enfermagem») não aponta para nenhum.
+- **Siglas soltas** nunca contam como nome, em maiúsculas ou minúsculas («EM», «em», «fq»,
+  «Filos.»).
 - **Classes (turmas, preçário de propinas):** código ou nome exactos; se nada bater, a mesma
   classe escrita de outra forma («10a classe», «décima classe» → «10ª Classe»), pelo número
   e pela unidade (classe ≠ ano), só quando é uma. Nas turmas fica com aviso.

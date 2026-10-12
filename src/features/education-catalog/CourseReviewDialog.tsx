@@ -39,7 +39,14 @@ export function CourseReviewDialog() {
   const review = query.data;
   const [saving, setSaving] = useState(false);
   const [chosen, setChosen] = useState<Record<string, string>>({});
-  const options = useMemo(() => catalogCourseOptions(), []);
+  const options = useMemo(
+    () => ({
+      higher: catalogCourseOptions("higher"),
+      school: catalogCourseOptions("school"),
+      all: catalogCourseOptions(),
+    }),
+    [],
+  );
 
   const run = async (data: {
     auto?: string[];
@@ -163,7 +170,7 @@ export function CourseReviewDialog() {
                           aria-label={`Curso do catálogo para ${u.name}`}
                         >
                           <option value="">— próprio da escola —</option>
-                          {options.map((o) => (
+                          {options[u.scope ?? "all"].map((o) => (
                             <option key={o.code} value={o.code}>
                               {o.label}
                             </option>
