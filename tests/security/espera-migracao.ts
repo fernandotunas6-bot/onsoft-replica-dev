@@ -10,10 +10,12 @@
  * obriga a lista a encolher: a coluna sai daqui quando o retrato recapturado já a tiver.
  */
 export const COLUNAS_ESPERA_MIGRACAO = new Set<string>([
-  // Vazia, e é isso que se pretende. `fee_items.grade_level_id` saiu a 2026-10-06:
-  // a migração 20261005150000 foi aplicada na produção e o retrato recapturado já
-  // tem a coluna. Uma lista que ninguém esvazia deixa de ser espera e passa a ser
-  // dívida silenciosa.
+  // 20261012120000_subjects_catalog_link.sql. A revisão lê `subjects` com `*` e sabe
+  // se a coluna existe; `linkSubjectsToCatalog` (education-catalog/subject-review-server.ts)
+  // responde «falta aplicar a migração …» ao 42703/PGRST204. Antes desta, a lista
+  // esteve vazia de 2026-10-06 a 2026-10-12 — uma lista que ninguém esvazia deixa de
+  // ser espera e passa a ser dívida silenciosa.
+  "subjects.catalog_subject_code",
 ]);
 
 /**

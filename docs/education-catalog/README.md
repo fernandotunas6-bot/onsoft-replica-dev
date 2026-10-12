@@ -95,6 +95,25 @@ fica no registo de auditoria (`academic.subject.renamed_to_catalog`). O servidor
 revisão e só aplica o que ele próprio sugere, e só se o nome não mudou entretanto. Usa o
 cliente do utilizador (RLS), não o privilegiado.
 
+### Ligar ao catálogo
+
+`subjects.catalog_subject_code` (migração `20261012120000_subjects_catalog_link.sql`, só
+`ALTER TABLE`, sem chave estrangeira — o catálogo vive no código; formato verificado por
+`CHECK`) diz de que disciplina do catálogo se trata, sem mudar o nome nem o código. Em
+**Rever disciplinas → Ligação ao catálogo**:
+- as reconhecidas pelo nome exacto (nome, nome local, sinónimo; nunca siglas soltas nem
+  letras trocadas) ligam-se de uma vez;
+- as próprias da escola podem ligar-se à mão («Mat. Aplicada» → Matemática) ou ficar como
+  estão.
+
+A ligação à mão não as torna duplicadas (duplicados e nomes continuam só pelo nome). O
+servidor recalcula a revisão e só grava o que ela sugere ou um código que o catálogo
+conhece, nunca por cima de uma ligação existente; 2FA, Administrador/Secretaria, política
+de UPDATE e auditoria (`academic.subject.linked_to_catalog`). Antes da migração, a revisão
+lê com `select("*")`, mostra «fica disponível depois de aplicada…» e não grava nada.
+Ensaio: `tests/sql/subjects-catalog-link.mjs`. Ainda por fazer: gravar a ligação ao criar
+disciplinas (modelo de estrutura, «Nova», importação) e `programs.catalog_course_code`.
+
 ## Criar disciplina com o catálogo
 
 Pedagógica → Disciplinas → **Nova**: o campo «Disciplina» sugere os nomes do catálogo
@@ -253,8 +272,8 @@ não há nada em `TABELAS_AUSENTES_DA_PRODUCAO`.
 
 - ~~Assistente de estrutura para Moçambique e Portugal~~ (feito, ver acima).
 - ~~Juntar duplicados~~ (feito; falta aplicar a migração).
-- Ligar `subjects.catalog_subject_code` e `programs.catalog_course_code` (colunas novas, por
-  `ALTER TABLE`) e usar `findSubjectDuplicates` para propor fusões com mapeamento auditado.
+- ~~Ligar `subjects.catalog_subject_code`~~ (feito; falta aplicar a migração). Falta
+  `programs.catalog_course_code` e gravar a ligação ao criar disciplinas.
 - Documentos e pautas a resolverem nomes pelo catálogo (mantendo o nome à data da emissão).
 - Painel de governação no ADMIN (aprovar propostas, versões, comparar, restaurar) com
   `catalog_review_queue`.
