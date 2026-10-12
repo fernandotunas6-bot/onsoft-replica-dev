@@ -55,7 +55,8 @@ function longInIndex(calls: Call[]) {
     (call) =>
       call.method === "in" &&
       Array.isArray(call.args[1]) &&
-      new Set(call.args[1] as unknown[]).size > IN_CHUNK,
+      // Pela lista tal como vai no URL (com repetidos): os lotes vão sem repetidos.
+      (call.args[1] as unknown[]).length > IN_CHUNK,
   );
 }
 

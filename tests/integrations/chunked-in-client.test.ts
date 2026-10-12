@@ -93,6 +93,19 @@ describe("chunkedInClient", () => {
     expect(urls[0]!.length).toBeGreaterThan(8000);
   });
 
+  it("lista longa só por repetidos: vai sem repetidos e cabe no URL", async () => {
+    const { db, urls } = fakeServer();
+    const ids = allIds.slice(0, 100);
+    const { data, error } = await db
+      .from("people")
+      .select("id")
+      .in("id", [...ids, ...ids, ...ids]);
+    expect(error).toBeNull();
+    expect(data).toHaveLength(100);
+    expect(urls).toHaveLength(1);
+    expect(urls[0]!.length).toBeLessThan(8000);
+  });
+
   it("contagem (head) soma os lotes", async () => {
     const { db, methods } = fakeServer();
     const { count, error } = await db
