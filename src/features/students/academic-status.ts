@@ -28,7 +28,20 @@ export type AcademicStatus =
 
 export type FinancialStatus = "settled" | "pending" | "overdue" | "partial";
 
-export type QuickFilterCategory = "todos" | "activos" | "candidatos" | "divida" | "inactivos";
+export type QuickFilterCategory =
+  "todos" | "activos" | "candidatos" | "divida" | "inactivos" | "sem_matricula";
+
+/**
+ * «Sem matrícula»: alunos da escola sem matrícula pendente ou activa — os que
+ * faltam matricular no ciclo. Transferidos e concluídos saíram de vez e não entram.
+ */
+export function isWithoutEnrollment(student: {
+  student_status: string;
+  has_current_enrollment?: boolean | undefined;
+}): boolean {
+  if (student.has_current_enrollment !== false) return false;
+  return student.student_status !== "transferred" && student.student_status !== "graduated";
+}
 
 export type InactiveSubFilter =
   "todos" | "transferred" | "inactive" | "graduated" | "cancelled" | "suspended" | "locked";
@@ -266,6 +279,7 @@ export function matchesQuickCategory(
     payment_status?: string | null;
     has_debt?: boolean;
     class_name?: string | null;
+    has_current_enrollment?: boolean | undefined;
   },
   category: QuickFilterCategory,
   inactiveSub?: InactiveSubFilter,
@@ -288,6 +302,9 @@ export function matchesQuickCategory(
 
     case "divida":
       return isDebt;
+
+    case "sem_matricula":
+      return isWithoutEnrollment(student);
 
     case "inactivos": {
       const isInactiveType = [
@@ -314,6 +331,7 @@ export function computeDynamicCounters<
     payment_status?: string | null;
     has_debt?: boolean;
     class_name?: string | null;
+    has_current_enrollment?: boolean | undefined;
   },
 >(
   students: T[],
@@ -324,6 +342,7 @@ export function computeDynamicCounters<
   applicant: number;
   overdue: number;
   other: number;
+  withoutEnrollment: number;
   inactivesDetail: {
     transferred: number;
     inactive: number;
@@ -337,6 +356,7 @@ export function computeDynamicCounters<
   let applicant = 0;
   let overdue = 0;
   let other = 0;
+  let withoutEnrollment = 0;
 
   const inactivesDetail = {
     transferred: 0,
@@ -364,6 +384,7 @@ export function computeDynamicCounters<
     }
 
     if (isDebt) overdue += 1;
+    if (isWithoutEnrollment(s)) withoutEnrollment += 1;
   }
 
   // Candidaturas pendentes submetidas no portal público que ainda aguardam admissão
@@ -375,6 +396,7 @@ export function computeDynamicCounters<
     applicant,
     overdue,
     other,
+    withoutEnrollment,
     inactivesDetail,
   };
 }

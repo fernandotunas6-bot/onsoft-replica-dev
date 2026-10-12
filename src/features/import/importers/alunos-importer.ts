@@ -223,7 +223,15 @@ export const alunosImporter: RowImporter = {
     const className = classNameOf(normalized);
     if (className && ctx.academicYearId) {
       const found = findBestEntityMatch(className, cache.classGroups, (g) => g.name);
-      if (found) {
+      const refusal = found
+        ? await ctx.assertNewEnrollment?.(student.id).then(
+            () => null,
+            (error: unknown) => (error instanceof Error ? error.message : String(error)),
+          )
+        : null;
+      if (found && refusal) {
+        warnings.push(`Aluno registado sem turma: ${refusal}`);
+      } else if (found) {
         const enrolled = await enrollStudentRpc(ctx.sessionSupabase, {
           schoolId: ctx.schoolId,
           studentId: student.id,

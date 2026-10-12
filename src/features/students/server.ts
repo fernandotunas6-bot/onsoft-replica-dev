@@ -35,6 +35,8 @@ import {
 import {
   ENROLLMENT_2FA_MESSAGE,
   assertClassAcceptsEnrollment,
+  assertNewEnrollmentAllowed,
+  recordOutsideCycleEnrollments,
   enrollStudentRpc,
   heldStudentMessage,
   placeStudentInClass,
@@ -113,6 +115,9 @@ type StudentListRow = {
   total_billed?: number;
   total_paid?: number;
   national_id?: string | null;
+  /** Tem matrícula pendente ou activa (em qualquer ano). */
+  has_current_enrollment: boolean;
+  enrollment_status: string | null;
 };
 
 export const searchStudents = createServerFn({ method: "GET" })
@@ -190,11 +195,14 @@ export const searchStudents = createServerFn({ method: "GET" })
           }),
     ]);
 
-    // Map de matrículas: prioriza a matrícula activa; se não houver, usa a mais recente
+    // Matrícula mostrada: a activa, depois a pendente, depois a mais recente (as
+    // linhas vêm por data descendente). Antes uma anulada recente podia ficar à
+    // frente de uma pendente, e a lista mostrava a turma de onde o aluno saiu.
+    const rank = (status: unknown) => (status === "active" ? 0 : status === "pending" ? 1 : 2);
     const enrollmentByStudent = new Map<string, Record<string, unknown>>();
     for (const enr of allEnrollments ?? []) {
       const existing = enrollmentByStudent.get(enr.student_id);
-      if (!existing || enr.status === "active") {
+      if (!existing || rank(enr.status) < rank(existing["status"])) {
         enrollmentByStudent.set(enr.student_id, enr as Record<string, unknown>);
       }
     }
@@ -368,9 +376,14 @@ export const searchStudents = createServerFn({ method: "GET" })
       }) => {
         const person = peopleById.get(student.person_id);
         const enrollment = enrollmentByStudent.get(student.id);
-        const classGroup = enrollment?.["class_group_id"]
-          ? classById.get(String(enrollment["class_group_id"]))
-          : null;
+        const enrollmentStatus = enrollment?.["status"] ? String(enrollment["status"]) : null;
+        const hasCurrentEnrollment =
+          enrollmentStatus === "active" || enrollmentStatus === "pending";
+        // Turma só da matrícula corrente: a de uma matrícula fechada não é a turma do aluno.
+        const classGroup =
+          hasCurrentEnrollment && enrollment?.["class_group_id"]
+            ? classById.get(String(enrollment["class_group_id"]))
+            : null;
         const grade = classGroup?.["grade_level_id"]
           ? gradeById.get(String(classGroup["grade_level_id"]))
           : null;
@@ -378,8 +391,7 @@ export const searchStudents = createServerFn({ method: "GET" })
           ? yearById.get(String(enrollment["academic_year_id"]))
           : null;
         const guardianId = guardianByStudent.get(student.id);
-        const enrollmentStatus = enrollment?.["status"] ? String(enrollment["status"]) : null;
-        const hasClassGroup = Boolean(enrollment?.["class_group_id"]);
+        const hasClassGroup = Boolean(classGroup);
         const effectiveStatus = deriveAcademicStatus({
           studentStatus: student.status,
           enrollmentStatus,
@@ -411,6 +423,8 @@ export const searchStudents = createServerFn({ method: "GET" })
           primary_guardian_name: guardianId ? (guardianNameById.get(guardianId) ?? null) : null,
           person_id: student.person_id,
           school_id: student.school_id,
+          has_current_enrollment: hasCurrentEnrollment,
+          enrollment_status: enrollmentStatus,
         };
       },
     );
@@ -668,6 +682,15 @@ export const enrollNewStudent = createServerFn({ method: "POST" })
     await assertCanAddStudentForSchool(membership.schoolId);
 
     const admittedOn = data.admittedOn ?? schoolTodayIso();
+    // Com turma é uma matrícula nova: só no ciclo de matrículas (ou Administração
+    // com motivo). Sem turma, o aluno fica candidato e pode registar-se a qualquer altura.
+    const outsideCycle = data.classGroupId
+      ? await assertNewEnrollmentAllowed(db, {
+          schoolId: membership.schoolId,
+          appRole: membership.appRole,
+          overrideReason: data.outsideCycleReason ?? null,
+        })
+      : null;
     // Turma cheia, ano por abrir ou data fora do ano: recusado antes de criar o aluno.
     const classGroup = data.classGroupId
       ? await assertClassAcceptsEnrollment(db, {
@@ -735,7 +758,7 @@ export const enrollNewStudent = createServerFn({ method: "POST" })
         schoolId: membership.schoolId,
         studentId: studentOutcome.studentId,
         classGroupId: classGroup.id,
-        enrolledOn: admittedOn,
+        enrolledOn: classGroup.enrolledOn,
       });
       if (!enrolled.ok) {
         throw rpcFailureError(enrolled, {
@@ -744,6 +767,12 @@ export const enrollNewStudent = createServerFn({ method: "POST" })
         });
       }
       enrollmentNumber = enrolled.value.enrollmentNumber;
+      await recordOutsideCycleEnrollments(outsideCycle, {
+        schoolId: membership.schoolId,
+        userId: context.userId,
+        studentIds: [studentOutcome.studentId],
+        action: "nova matrícula",
+      });
     }
 
     // O BI também em `person_documents`, como ao aceitar uma candidatura. No fim e sem
@@ -924,6 +953,8 @@ export const enrollStudentInClass = createServerFn({ method: "POST" })
       enrolledOn: data.enrolledOn ?? null,
       userId: context.userId,
       hasAal2: context.claims?.["aal"] === "aal2",
+      appRole: membership.appRole,
+      overrideReason: data.outsideCycleReason ?? null,
     });
     queueTenantUsageSync(membership.schoolId);
     return {
@@ -1443,10 +1474,18 @@ export const batchAssignClass = createServerFn({ method: "POST" })
       if (held) failed.push({ studentId, message: held });
       else toEnroll.push(studentId);
     }
-    // A matrícula nova exige 2FA na base: recusado antes de mexer em qualquer aluno.
+    // A matrícula nova exige 2FA na base e o ciclo de matrículas: recusado antes de
+    // mexer em qualquer aluno. Mudar de turma e confirmar pendentes não são matrículas novas.
     if (toEnroll.length && context.claims?.["aal"] !== "aal2") {
       throw new Error(ENROLLMENT_2FA_MESSAGE);
     }
+    const outsideCycle = toEnroll.length
+      ? await assertNewEnrollmentAllowed(db, {
+          schoolId,
+          appRole: membership.appRole,
+          overrideReason: data.outsideCycleReason ?? null,
+        })
+      : null;
 
     // Capacidade: tudo ou nada, antes de mexer em qualquer matrícula.
     const capacity = typeof group.capacity === "number" ? group.capacity : null;
@@ -1466,6 +1505,17 @@ export const batchAssignClass = createServerFn({ method: "POST" })
         );
       }
     }
+
+    // Data das matrículas novas: hoje, ou o início do ano se ainda não começou.
+    const enrolledOn = toEnroll.length
+      ? (
+          await assertClassAcceptsEnrollment(db, {
+            schoolId,
+            classGroupId: group.id,
+            academicYearId: data.academicYearId,
+          })
+        ).enrolledOn
+      : schoolTodayIso();
 
     const enrolled = new Set(
       currentRows.filter((row) => row.class_group_id === group.id).map((row) => row.student_id),
@@ -1510,7 +1560,6 @@ export const batchAssignClass = createServerFn({ method: "POST" })
 
     // Matrículas novas pela mesma função que a matrícula individual. Em série,
     // porque cada chamada tranca a mesma turma.
-    const enrolledOn = schoolTodayIso();
     const toRestore: Array<{ studentId: string; status: string }> = [];
     for (const studentId of toEnroll) {
       const outcome = await enrollStudentRpc(context.supabase, {
@@ -1533,6 +1582,12 @@ export const batchAssignClass = createServerFn({ method: "POST" })
       });
     }
     await restoreStudentStatuses(db, { schoolId, students: toRestore, userId: context.userId });
+    await recordOutsideCycleEnrollments(outsideCycle, {
+      schoolId,
+      userId: context.userId,
+      studentIds: toEnroll.filter((id) => enrolled.has(id)),
+      action: "atribuir turma em lote",
+    });
 
     await syncStudentStatusAfterPlacement(db, {
       schoolId,

@@ -233,6 +233,17 @@ export const matriculasImporter: RowImporter = {
     // importador de alunos): gera o `enrollment_number` (MAT-000123), que é
     // obrigatório, e valida capacidade, ano activo e data. O insert directo que
     // estava aqui omitia o número e a base recusava todas as linhas.
+    // Matrícula nova: só no ciclo de matrículas (a Administração pode importar fora dele).
+    try {
+      await ctx.assertNewEnrollment?.(student.id);
+    } catch (error) {
+      return {
+        status: "error",
+        warnings: [],
+        errors: [error instanceof Error ? error.message : String(error)],
+        audits: [],
+      };
+    }
     // Quem tinha saído é reaberto, como na colocação em turma do ecrã.
     const enrolled = await enrollStudentReopening(sgaClient(ctx.db), ctx.sessionSupabase, {
       schoolId: ctx.schoolId,

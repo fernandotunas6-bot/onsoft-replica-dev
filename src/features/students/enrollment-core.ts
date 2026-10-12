@@ -23,6 +23,16 @@ import { schoolTodayIso } from "@/lib/school-date";
 import { mapSgaGuardianRelationship } from "./schemas";
 import { CURRENT_ENROLLMENT_STATUSES } from "./enrollment-sync";
 import { recordStudentStatusHistoryBatch } from "./status-history";
+import { recordAuditBatch } from "@/features/audit/record-audit";
+import { readSettingsDomainRow } from "@/features/school/settings-domains";
+import {
+  enrollmentWindow,
+  outsideCycleRefusal,
+  parseEnrollmentCycles,
+  type EnrollmentCycle,
+  type EnrollmentWindow,
+  type TeachingPeriod,
+} from "./enrollment-cycle";
 
 type AdminDb = Awaited<ReturnType<typeof loadSgaAdminClient>>;
 type DbError = { code?: string | undefined; message?: string | undefined };
@@ -119,6 +129,8 @@ export type EnrollableClass = {
   name: string;
   academicYearId: string;
   capacity: number | null;
+  /** Data a gravar: a pedida, ou o início do ano se a matrícula é antecipada. */
+  enrolledOn: string;
 };
 
 /**
@@ -163,8 +175,11 @@ export async function assertClassAcceptsEnrollment(
       `O ano lectivo ${year?.name ?? "da turma"} não está activo: só se matricula no ano activo.`,
     );
   }
-  const enrolledOn = input.enrolledOn || schoolTodayIso();
-  if (enrolledOn < String(year.starts_on) || enrolledOn > String(year.ends_on)) {
+  // Matrícula feita antes de o ano começar (o ciclo de matrículas) vale desde o
+  // primeiro dia do ano: enroll_student exige a data dentro do ano lectivo.
+  const asked = input.enrolledOn || schoolTodayIso();
+  const enrolledOn = asked < String(year.starts_on) ? String(year.starts_on) : asked;
+  if (enrolledOn > String(year.ends_on)) {
     throw new Error(
       `A data da matrícula (${enrolledOn}) está fora do ano lectivo ${year.name} (${year.starts_on} a ${year.ends_on}).`,
     );
@@ -181,7 +196,7 @@ export async function assertClassAcceptsEnrollment(
     if (countError) throw publicDatabaseError(countError, "Não foi possível ler a lotação.");
     if ((count ?? 0) >= capacity) throw new Error("A turma atingiu a capacidade configurada.");
   }
-  return { id: String(group.id), name: String(group.name), academicYearId, capacity };
+  return { id: String(group.id), name: String(group.name), academicYearId, capacity, enrolledOn };
 }
 
 /** Quem saiu da escola: voltar a ser colocado numa turma reactiva-o. */
@@ -368,6 +383,9 @@ export async function placeStudentInClass(
     userId: string;
     /** Sessão com 2FA (aal2): a matrícula nova exige-o na base. */
     hasAal2: boolean;
+    /** Papel na escola: fora do ciclo de matrículas só a Administração matricula. */
+    appRole: string;
+    overrideReason?: string | null;
   },
 ): Promise<PlacementResult> {
   const { data: group, error: groupError } = await db
@@ -428,12 +446,24 @@ export async function placeStudentInClass(
     const held = heldStudentMessage(previousStatus);
     if (held) throw new Error(held);
     if (!input.hasAal2) throw new Error(ENROLLMENT_2FA_MESSAGE);
+    // Matrícula nova: só no ciclo de matrículas (mudar de turma não passa aqui).
+    const grant = await assertNewEnrollmentAllowed(db, {
+      schoolId: input.schoolId,
+      appRole: input.appRole,
+      overrideReason: input.overrideReason,
+    });
+    const accepted = await assertClassAcceptsEnrollment(db, {
+      schoolId: input.schoolId,
+      classGroupId: input.classGroupId,
+      academicYearId,
+      enrolledOn: input.enrolledOn ?? null,
+    });
     const enrolled = await enrollStudentReopening(db, session, {
       schoolId: input.schoolId,
       studentId: input.studentId,
       previousStatus,
       classGroupId: input.classGroupId,
-      enrolledOn: input.enrolledOn ?? null,
+      enrolledOn: accepted.enrolledOn,
       userId: input.userId,
     });
     if (!enrolled.ok) {
@@ -441,6 +471,12 @@ export async function placeStudentInClass(
         fallback: "Não foi possível matricular o aluno na turma.",
       });
     }
+    await recordOutsideCycleEnrollments(grant, {
+      schoolId: input.schoolId,
+      userId: input.userId,
+      studentIds: [input.studentId],
+      action: "colocar em turma",
+    });
     result = {
       enrollmentId: enrolled.value.enrollmentId,
       enrollmentNumber: enrolled.value.enrollmentNumber,
@@ -458,4 +494,81 @@ export async function placeStudentInClass(
     userId: input.userId,
   });
   return result;
+}
+
+/** Ciclos de matrícula da escola, períodos de aulas do ano activo e o estado de hoje. */
+export async function loadEnrollmentWindow(
+  db: AdminDb,
+  schoolId: string,
+  today = schoolTodayIso(),
+): Promise<{ window: EnrollmentWindow; cycles: EnrollmentCycle[]; periods: TeachingPeriod[] }> {
+  const row = await readSettingsDomainRow(db, schoolId, "enrollment");
+  const cycles = parseEnrollmentCycles(row?.value);
+  const { data: year, error: yearError } = await db
+    .from("academic_years")
+    .select("id")
+    .eq("school_id", schoolId)
+    .eq("status", "active")
+    .order("starts_on", { ascending: false })
+    .order("created_at", { ascending: true })
+    .order("id", { ascending: true })
+    .limit(1)
+    .maybeSingle();
+  if (yearError) throw publicDatabaseError(yearError, "Não foi possível ler o ano lectivo.");
+  let periods: TeachingPeriod[] = [];
+  if (year?.id) {
+    const { data: terms, error: termsError } = await db
+      .from("terms")
+      .select("name, starts_on, ends_on")
+      .eq("school_id", schoolId)
+      .eq("academic_year_id", String(year.id))
+      .order("starts_on", { ascending: true });
+    if (termsError) throw publicDatabaseError(termsError, "Não foi possível ler os períodos.");
+    periods = (terms ?? []).map((term) => ({
+      name: String(term.name),
+      starts_on: String(term.starts_on),
+      ends_on: String(term.ends_on),
+    }));
+  }
+  return { window: enrollmentWindow({ today, cycles, periods }), cycles, periods };
+}
+
+/** Matrícula nova autorizada fora do ciclo (para registar depois de feita). */
+export type OutsideCycleGrant = { message: string; reason: string } | null;
+
+/**
+ * Matrícula nova: só no ciclo de matrículas e fora dos períodos de aulas. Fora
+ * disso, só a Administração, com motivo. Lança a recusa; devolve a autorização
+ * de excepção (ou null) para `recordOutsideCycleEnrollments` depois de gravar.
+ */
+export async function assertNewEnrollmentAllowed(
+  db: AdminDb,
+  input: { schoolId: string; appRole: string; overrideReason?: string | null },
+): Promise<OutsideCycleGrant> {
+  const { window } = await loadEnrollmentWindow(db, input.schoolId);
+  const refusal = outsideCycleRefusal({
+    window,
+    canOverride: input.appRole === "Administrador",
+    reason: input.overrideReason,
+  });
+  if (refusal) throw new Error(refusal);
+  return window.open ? null : { message: window.message, reason: input.overrideReason!.trim() };
+}
+
+/** Rasto em `audit_logs` de cada matrícula feita fora do ciclo. */
+export async function recordOutsideCycleEnrollments(
+  grant: OutsideCycleGrant,
+  input: { schoolId: string; userId: string; studentIds: string[]; action: string },
+): Promise<void> {
+  if (!grant || !input.studentIds.length) return;
+  await recordAuditBatch(
+    input.studentIds.map((studentId) => ({
+      schoolId: input.schoolId,
+      actorUserId: input.userId,
+      action: "students.enrollment_outside_cycle",
+      entityType: "student",
+      entityId: studentId,
+      metadata: { reason: grant.reason, window: grant.message, via: input.action },
+    })),
+  );
 }

@@ -101,6 +101,8 @@ const aluno: StudentRow = {
   grade_name: "10ª Classe",
   class_name: "10ª A",
   class_group_id: "turma-1",
+  has_current_enrollment: true,
+  enrollment_status: "active",
   academic_year: "2026/2027",
   primary_guardian_name: "Ana Miguel",
   person_id: "pessoa-1",

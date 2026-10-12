@@ -36,6 +36,8 @@ export const batchAssignClassInputSchema = z.object({
   studentIds: z.array(z.string().uuid()).min(1).max(100),
   classGroupId: z.string().uuid(),
   academicYearId: z.string().uuid(),
+  /** Matrícula nova fora do ciclo: só a Administração, com motivo (fica registado). */
+  outsideCycleReason: z.string().trim().max(300).optional(),
 });
 export type BatchAssignClassInput = z.infer<typeof batchAssignClassInputSchema>;
 
@@ -98,6 +100,8 @@ export const enrollNewStudentInputSchema = z.object({
   admittedOn: optionalText,
   guardians: z.array(studentGuardianInputSchema).default([]),
   duplicateDecision: optionalText,
+  /** Matrícula nova fora do ciclo: só a Administração, com motivo (fica registado). */
+  outsideCycleReason: optionalText,
 });
 export type EnrollNewStudentInput = z.infer<typeof enrollNewStudentInputSchema>;
 
@@ -144,6 +148,8 @@ export const enrollStudentInClassInputSchema = z.object({
   /** O ano é o da turma; se vier, o servidor só confirma que coincide. */
   academicYearId: z.string().uuid().optional(),
   enrolledOn: optionalText,
+  /** Matrícula nova fora do ciclo: só a Administração, com motivo (fica registado). */
+  outsideCycleReason: optionalText,
 });
 export type EnrollStudentInClassInput = z.infer<typeof enrollStudentInClassInputSchema>;
 

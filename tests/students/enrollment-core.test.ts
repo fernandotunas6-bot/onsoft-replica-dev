@@ -114,6 +114,7 @@ const place = (
     classGroupId: "turma-b",
     userId: "secretaria",
     hasAal2: true,
+    appRole: "Secretaria",
     ...extra,
   });
 
@@ -275,5 +276,62 @@ describe("turma validada antes de criar o aluno", () => {
         enrolledOn: "3000-01-01",
       }),
     ).rejects.toThrow(/fora do ano lectivo/);
+  });
+});
+
+describe("ciclo de matrículas na colocação em turma", () => {
+  const inClasses = (store: ReturnType<typeof fixture>) => {
+    store.tables["terms"] = [
+      {
+        school_id: SCHOOL,
+        academic_year_id: YEAR,
+        name: "1.º Trimestre",
+        starts_on: "2000-01-01",
+        ends_on: "2999-12-31",
+      },
+    ];
+    return store;
+  };
+
+  it("durante as aulas, a Secretaria não matricula (e nada é escrito)", async () => {
+    const store = inClasses(fixture({ status: "applicant" }));
+    const rpc = enrollRpc(store);
+    await expect(place(store, rpc)).rejects.toThrow(/Só a Administração/);
+    expect(rpc).not.toHaveBeenCalled();
+    expect(store.writes).toEqual([]);
+  });
+
+  it("a Administração matricula fora do ciclo com motivo", async () => {
+    const store = inClasses(fixture({ status: "applicant" }));
+    const rpc = enrollRpc(store);
+    await expect(place(store, rpc, { appRole: "Administrador" })).rejects.toThrow(
+      /indique o motivo/,
+    );
+    await place(store, rpc, {
+      appRole: "Administrador",
+      overrideReason: "Transferência autorizada pela direcção",
+    });
+    expect(rpc).toHaveBeenCalledTimes(1);
+  });
+
+  it("mudar de turma não é matrícula nova: continua possível durante as aulas", async () => {
+    const store = inClasses(
+      fixture({ status: "active" }, [
+        { id: "mat-1", class_group_id: "turma-a", academic_year_id: YEAR, status: "active" },
+      ]),
+    );
+    const result = await place(store, enrollRpc(store));
+    expect(result.moved).toBe(true);
+  });
+
+  it("matrícula antes de o ano começar vale desde o primeiro dia do ano", async () => {
+    const store = fixture({ status: "applicant" });
+    store.tables["academic_years"]![0]!["starts_on"] = "2999-09-01";
+    const rpc = enrollRpc(store);
+    await place(store, rpc);
+    expect(rpc).toHaveBeenCalledWith(
+      "enroll_student",
+      expect.objectContaining({ enrolled_on: "2999-09-01" }),
+    );
   });
 });

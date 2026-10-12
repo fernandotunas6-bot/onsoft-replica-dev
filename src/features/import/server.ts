@@ -26,6 +26,11 @@ import { getImporter, isModuleImplemented } from "./engine/registry";
 import { assertImportModuleGoverned } from "./engine/governance";
 import { requireAal2 } from "@/features/hr/require-aal2";
 import { assertCanAddStudentForSchool } from "@/features/saas/tenant-limits-server";
+import {
+  assertNewEnrollmentAllowed,
+  recordOutsideCycleEnrollments,
+  type OutsideCycleGrant,
+} from "@/features/students/enrollment-core";
 import type { ImportCommitContext } from "./engine/types";
 import { dynamicTablesClient } from "@/integrations/supabase/sga";
 import type { Json, TablesInsert } from "@/integrations/supabase/types";
@@ -469,6 +474,7 @@ export const commitImportBatch = createServerFn({ method: "POST" })
       schoolId: membership.schoolId,
       academicYearId: job.academic_year_id ?? null,
     });
+    let outsideCycleGrant: OutsideCycleGrant | undefined;
     const commitCtx: ImportCommitContext = {
       db,
       sessionSupabase: context.supabase,
@@ -478,6 +484,21 @@ export const commitImportBatch = createServerFn({ method: "POST" })
       duplicateStrategy: data.duplicate_strategy,
       dryRun: data.dry_run,
       assertCanAddStudent: () => assertCanAddStudentForSchool(membership.schoolId),
+      assertNewEnrollment: async (studentId) => {
+        // Uma importação de matrículas é uma carga de dados: a Administração pode
+        // fazê-la fora do ciclo (o motivo é a própria importação), a Secretaria não.
+        outsideCycleGrant ??= await assertNewEnrollmentAllowed(db, {
+          schoolId: membership.schoolId,
+          appRole: membership.appRole,
+          overrideReason: `Importação de dados (${job.module})`,
+        });
+        await recordOutsideCycleEnrollments(outsideCycleGrant, {
+          schoolId: membership.schoolId,
+          userId: context.userId,
+          studentIds: [studentId],
+          action: `importação ${job.id}`,
+        });
+      },
     };
 
     let inserted = 0;

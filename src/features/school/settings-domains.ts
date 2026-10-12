@@ -18,9 +18,9 @@
  *   volta a escrever `value["campo"] ?? x` noutro sítio.
  */
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { publicDatabaseError } from "@/integrations/supabase/server-error";
 import { isSchoolTypeId, type AngolaSchoolTypeId } from "@/lib/school-config";
 import { pedagogySettingsSchema, type PedagogySettings } from "./schemas";
+import { parseEnrollmentCycles, type EnrollmentCycle } from "@/features/students/enrollment-cycle";
 
 type Raw = Record<string, unknown>;
 
@@ -319,6 +319,12 @@ export const SETTINGS_DOMAINS = {
         gradingProfile: null,
       },
   },
+  enrollment: {
+    label: "Matrícula",
+    parse: (value: unknown): { cycles: EnrollmentCycle[] } => ({
+      cycles: parseEnrollmentCycles(value),
+    }),
+  },
   higher_ed: {
     label: "Ensino Superior",
     parse: (value: unknown): HigherEdRegulation => {
@@ -468,8 +474,9 @@ export async function readSettingsDomainRow<V = unknown>(
     .eq("domain", domain)
     .maybeSingle();
   // Base sem a tabela (instalação antiga): sem linha, como uma escola que nunca gravou.
+  // Sem server-error: este ficheiro corre também fora do Vite (ensaios tests/sql).
   if (error && !/schema cache|does not exist|42P01|PGRST/i.test(error.message)) {
-    throw publicDatabaseError(error, `Não foi possível ler as definições (${domain}).`);
+    throw new Error(`Não foi possível ler as definições (${domain}).`);
   }
   return (data as { id: string; domain: string; version: number; value: V } | null) ?? null;
 }

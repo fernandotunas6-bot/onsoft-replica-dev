@@ -26,6 +26,8 @@ import { useSchoolSettings } from "@/features/auth/use-school-settings";
 import { overlayTalao } from "@/features/documents/print-overlays";
 import { issuePrintDocument } from "@/features/documents/print-issue-loader";
 import { orderGroupsForCandidate, type CandidateGrade } from "./candidate-groups";
+import { useEnrollmentWindow } from "./use-enrollment-window";
+import { EnrollmentCyclesEditor } from "./EnrollmentCyclesEditor";
 
 const fieldLabels: Record<EnrollmentVisibleField, string> = {
   birth_date: "Data de nascimento",
@@ -133,6 +135,7 @@ export function EnrollmentCampaignPanel() {
           <a href="/documentos#modelos">Modelos de impressão</a>
         </Button>
       </div>
+      <EnrollmentCyclesEditor />
       <div className="rounded-xl border border-border bg-secondary/40 p-3">
         <p className="text-xs font-semibold text-muted-foreground">Link público</p>
         <p className="mt-1 break-all font-mono text-xs">{publicUrl}</p>
@@ -312,6 +315,18 @@ function ApplicationRow({
   );
   const [classGroupId, setClassGroupId] = useState(classGroups[0]?.id ?? "");
   const [busy, setBusy] = useState(false);
+  const enrollmentWindow = useEnrollmentWindow();
+  /**
+   * Fora do ciclo de matrículas, colocar em turma é uma excepção da Administração:
+   * pede o motivo (fica registado). Devolve null se a pessoa desistiu.
+   */
+  const outsideCycleReason = (): string | undefined | null => {
+    if (!enrollmentWindow.closed || !enrollmentWindow.status?.canOverride) return undefined;
+    const reason = window.prompt(
+      `${enrollmentWindow.status.message}\n\nMotivo da matrícula fora do ciclo (fica registado):`,
+    );
+    return reason && reason.trim().length >= 5 ? reason.trim() : null;
+  };
   const { school, selectedYearLabel } = useSchoolSettings();
   const installed = useInstalledIntegrations();
   const whatsappOn = installed.hasCapability("whatsapp.notices");
@@ -361,6 +376,11 @@ function ApplicationRow({
   };
 
   const accept = async (withClass: boolean) => {
+    const reason = withClass && classGroupId ? outsideCycleReason() : undefined;
+    if (reason === null) {
+      toast.error("Sem motivo, a matrícula fora do ciclo não avança.");
+      return;
+    }
     setBusy(true);
     try {
       await decideEnrollmentApplication({
@@ -368,6 +388,7 @@ function ApplicationRow({
           applicationId: row.id,
           decision: "accepted",
           classGroupId: withClass && classGroupId ? classGroupId : undefined,
+          outsideCycleReason: reason,
         },
       });
       await refresh(
@@ -388,6 +409,11 @@ function ApplicationRow({
       toast.error("Seleccione uma turma com ano lectivo.");
       return;
     }
+    const reason = outsideCycleReason();
+    if (reason === null) {
+      toast.error("Sem motivo, a matrícula fora do ciclo não avança.");
+      return;
+    }
     setBusy(true);
     try {
       await enrollStudentInClass({
@@ -395,6 +421,7 @@ function ApplicationRow({
           studentId: row.student_id,
           classGroupId: selected.id,
           academicYearId: selected.academic_year_id,
+          outsideCycleReason: reason,
         },
       });
       await refresh(`Aluno colocado em ${selected.name ?? "turma"}.`);

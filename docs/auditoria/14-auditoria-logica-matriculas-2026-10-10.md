@@ -125,3 +125,36 @@ no sítio antigo (`decide-application-integrity`, `auditoria-13-fluxos`, `batch-
 saiu com a função e a garantia passou para os testes de comportamento.
 
 Resultados finais: secção «Verificação final» do PR.
+
+## 8. Segunda passagem (pedido do dono, 2026-10-10): sem matrícula e ciclos de matrícula
+
+**Filtro «Sem matrícula»** em `/alunos`: alunos da escola sem matrícula pendente ou activa
+(transferidos e concluídos não entram). `searchStudents` devolve `has_current_enrollment`, e a
+turma mostrada passa a ser só a da matrícula corrente (antes podia ser a de uma matrícula
+anulada). A acção «Turma» aparece para todos estes alunos (não só para candidatos), salvo
+suspensos e trancados.
+
+**Ciclos de matrícula** (`src/features/students/enrollment-cycle.ts`, domínio de definições
+`enrollment`, editor em Definições › Matrícula):
+
+- Matrícula **nova** só dentro de um ciclo e **nunca durante um período de aulas** (os `terms` do
+  ano activo). Sem ciclos definidos, fica aberta só fora dos períodos de aulas. Um ciclo que
+  coincida com um período de aulas é recusado ao gravar.
+- **Excepção:** a Administração matricula fora do ciclo indicando o motivo; cada matrícula assim
+  fica em `audit_logs` (`students.enrollment_outside_cycle`). A Secretaria é recusada com a razão
+  e o próximo ciclo.
+- Vale para Nova matrícula com turma, colocar em turma, aceitar candidatura com turma, atribuir
+  turma em lote e importações (a Administração pode importar fora do ciclo, com registo).
+  **Não** vale para mudar de turma dentro do ano, confirmar matrícula pendente, registar o aluno
+  sem turma, nem receber candidaturas no formulário público.
+- Matrícula feita antes de o ano começar grava a data de início do ano (resolve em parte A2:
+  continua a exigir o ano já activo).
+
+**Efeito imediato na produção:** no Colégio do Huambo os períodos de aulas cobrem o ano inteiro
+(01/09/2026 a 31/07/2027), por isso desde já só a Administração faz matrículas novas, com motivo,
+até a escola definir ciclos fora das aulas (ou os períodos deixarem intervalos). Só 2 escolas têm
+períodos definidos; as restantes ficam abertas.
+
+**Por fazer (dono):** a regra vive no servidor. Quem chamar `enroll_student` directamente pela API
+(com 2FA e a permissão) não passa pelo ciclo; fechá-lo na base pede uma migração em
+`private.enroll_student`.

@@ -31,6 +31,12 @@ Nada escrito na produção; nenhuma migração nova.
   turma, ou anular. A2 — matrículas antes de o ano lectivo começar (a RPC exige o ano activo e a
   data dentro dele). A3 — 2FA na mudança de turma.
 
+- **Ciclos de matrícula (segunda passagem):** matrícula nova só no ciclo e nunca em período de
+  aulas (`enrollment-cycle.ts`, `assertNewEnrollmentAllowed`); fora disso só a Administração, com
+  motivo em `audit_logs`. Mudar de turma não conta. Filtro «Sem matrícula» em `/alunos`. Huambo:
+  períodos cobrem o ano todo → só a Administração matricula até haver ciclos. Por fazer:
+  migração para o ciclo também em `private.enroll_student`.
+
 ## Auditoria 13 — fluxos da escola (2026-10-06)
 
 Relatório: [13-auditoria-fluxos-2026-10-06.md](../auditoria/13-auditoria-fluxos-2026-10-06.md).
