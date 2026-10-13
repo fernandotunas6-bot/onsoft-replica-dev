@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 import '../design/tokens.dart';
 
 /// Páginas da apresentação: o que a aplicação faz, sem prometer integrações.
@@ -7,10 +8,10 @@ const welcomeSlides = [
     'Tudo o que a sua escola precisa',
     'Ensino, aprendizagem, comunicação e gestão num só lugar.',
     [
-      Icons.school,
+      LucideIcons.graduationCap,
       Icons.bar_chart_rounded,
-      Icons.people_outline,
-      Icons.calendar_month_outlined,
+      LucideIcons.users,
+      LucideIcons.calendarDays,
     ],
   ),
   (
@@ -18,10 +19,10 @@ const welcomeSlides = [
     'Disciplinas, tarefas e horários de cada turma, num espaço de '
         'aprendizagem como o do Moodle.',
     [
-      Icons.menu_book_outlined,
-      Icons.assignment_turned_in_outlined,
-      Icons.schedule,
-      Icons.chat_bubble_outline,
+      LucideIcons.bookOpen,
+      LucideIcons.clipboardCheck,
+      LucideIcons.clock,
+      LucideIcons.messageCircle,
     ],
   ),
   (
@@ -29,10 +30,10 @@ const welcomeSlides = [
     'Entra com a conta institucional e escolhe a escola. O acesso é decidido '
         'pelo servidor da escola, conforme o seu perfil.',
     [
-      Icons.verified_user_outlined,
-      Icons.apartment_outlined,
-      Icons.badge_outlined,
-      Icons.lock_outline,
+      LucideIcons.shieldCheck,
+      LucideIcons.building2,
+      LucideIcons.idCard,
+      LucideIcons.lockKeyhole,
     ],
   ),
 ];
@@ -145,7 +146,7 @@ class _WelcomePageState extends State<WelcomePage> {
                         foregroundColor: scheme.surface,
                         minimumSize: const Size(52, 52),
                       ),
-                      icon: const Icon(Icons.arrow_forward),
+                      icon: const Icon(LucideIcons.arrowRight),
                     ),
                 ],
               ),
@@ -197,7 +198,7 @@ class _Slide extends StatelessWidget {
                     right: 0,
                     top: 0,
                     child: _Tile(
-                      icon: Icons.search,
+                      icon: LucideIcons.search,
                       size: 44,
                       color: Siga.institutionalBlue,
                     ),

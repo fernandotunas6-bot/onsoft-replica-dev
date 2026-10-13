@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'academic.dart' show luandaClock;
 import 'design/tokens.dart';
 import 'design/widgets.dart';
@@ -165,7 +166,7 @@ class _ChatHistoryState extends State<ChatHistoryPage> {
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(Icons.attach_file, size: 16, color: soft),
+                      Icon(LucideIcons.paperclip, size: 16, color: soft),
                       const SizedBox(width: 4),
                       Flexible(
                         child: Text(
@@ -230,7 +231,7 @@ class _ChatHistoryState extends State<ChatHistoryPage> {
         for (final message in messages) bubble(message),
         if (error != null)
           EmptyState(
-            icon: Icons.cloud_off_outlined,
+            icon: LucideIcons.cloudOff,
             message: error!,
             action: 'Tentar novamente',
             onAction: load,

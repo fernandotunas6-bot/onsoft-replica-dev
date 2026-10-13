@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 import '../design/tokens.dart';
 import '../design/widgets.dart';
 
@@ -28,8 +29,8 @@ class SideMenu extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final palette = SigaPalette.of(context);
-    IconData i(IconData outlined, IconData modern) =>
-        AppearanceScope.icon(context, outlined, modern);
+    IconData i(IconData line, IconData classic) =>
+        AppearanceScope.icon(context, line, classic);
     void go(String path) {
       Navigator.of(context).pop();
       onNavigate(path);
@@ -38,42 +39,42 @@ class SideMenu extends StatelessWidget {
     final items = [
       (
         'Meu perfil',
-        i(Icons.person_outline, Icons.person_rounded),
+        i(LucideIcons.user, Icons.person_rounded),
         '/more/profile',
       ),
       (
         'Notas',
-        i(Icons.info_outline, Icons.info_rounded),
+        i(LucideIcons.info, Icons.info_rounded),
         student ? '/more/results' : '/more/student-only',
       ),
       (
         'Faltas',
-        i(Icons.schedule_outlined, Icons.schedule_rounded),
+        i(LucideIcons.clock, Icons.schedule_rounded),
         '/more/absences',
       ),
       (
         'Propinas',
-        i(Icons.monetization_on_outlined, Icons.monetization_on_rounded),
+        i(LucideIcons.circleDollarSign, Icons.monetization_on_rounded),
         student ? '/more/finance' : '/more/student-only',
       ),
       (
         'Recibos',
-        i(Icons.receipt_long_outlined, Icons.receipt_long_rounded),
+        i(LucideIcons.receipt, Icons.receipt_long_rounded),
         student ? '/more/finance' : '/more/student-only',
       ),
       (
         'Biblioteca',
-        i(Icons.menu_book_outlined, Icons.menu_book_rounded),
+        i(LucideIcons.bookOpen, Icons.menu_book_rounded),
         '/more/library',
       ),
       (
         'Documentos',
-        i(Icons.description_outlined, Icons.description_rounded),
+        i(LucideIcons.fileText, Icons.description_rounded),
         student ? '/more/documents' : '/more/student-only',
       ),
       (
         'Definições',
-        i(Icons.settings_outlined, Icons.settings_rounded),
+        i(LucideIcons.settings, Icons.settings_rounded),
         '/more/appearance',
       ),
     ];
@@ -148,14 +149,14 @@ class SideMenu extends StatelessWidget {
                 MenuRow(icon: icon, title: label, onTap: () => go(path)),
               const SizedBox(height: Siga.s1),
               MenuRow(
-                icon: i(Icons.dark_mode_outlined, Icons.dark_mode_rounded),
+                icon: i(LucideIcons.moon, Icons.dark_mode_rounded),
                 title: 'Modo escuro',
                 trailing: Switch(value: dark, onChanged: onDark),
                 onTap: () => onDark(!dark),
               ),
               const SizedBox(height: Siga.s2),
               MenuRow(
-                icon: Icons.logout,
+                icon: LucideIcons.logOut,
                 title: 'Sair',
                 destructive: true,
                 onTap: () {

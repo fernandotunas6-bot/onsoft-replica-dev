@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 import '../design/tokens.dart';
 import '../design/widgets.dart';
 
@@ -20,67 +21,57 @@ class ServicesPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final palette = SigaPalette.of(context);
-    IconData i(IconData outlined, IconData modern) =>
-        AppearanceScope.icon(context, outlined, modern);
-    final modern = AppearanceScope.maybeOf(context)?.modernIcons ?? false;
+    IconData i(IconData line, IconData classic) =>
+        AppearanceScope.icon(context, line, classic);
+    final modern = AppearanceScope.maybeOf(context)?.modernIcons ?? true;
     // Propinas e notas publicadas são consultas do aluno; para o professor,
     // o mosaico explica isso em vez de abrir um erro.
     final tiles = [
       (
         'Disciplinas',
-        i(Icons.menu_book_outlined, Icons.menu_book_rounded),
+        i(LucideIcons.bookOpen, Icons.menu_book_rounded),
         '/subjects',
       ),
-      (
-        'Turmas',
-        i(Icons.people_outline, Icons.people_rounded),
-        '/more/classes',
-      ),
+      ('Turmas', i(LucideIcons.users, Icons.people_rounded), '/more/classes'),
       (
         'Tarefas',
-        i(
-          Icons.assignment_turned_in_outlined,
-          Icons.assignment_turned_in_rounded,
-        ),
+        i(LucideIcons.clipboardCheck, Icons.assignment_turned_in_rounded),
         '/more/tasks',
       ),
       (
         'Transporte',
-        i(Icons.directions_bus_outlined, Icons.directions_bus_rounded),
+        i(LucideIcons.bus, Icons.directions_bus_rounded),
         '/more/transport',
       ),
       (
         'Aulas online',
-        i(Icons.videocam_outlined, Icons.videocam_rounded),
+        i(LucideIcons.video, Icons.videocam_rounded),
         '/more/online',
       ),
       (
         'Calendário',
-        i(Icons.calendar_month_outlined, Icons.calendar_month_rounded),
+        i(LucideIcons.calendarDays, Icons.calendar_month_rounded),
         '/calendar',
       ),
       (
         'WhatsApp',
-        i(Icons.chat_bubble_outline, Icons.chat_bubble_rounded),
+        i(LucideIcons.messageCircle, Icons.chat_bubble_rounded),
         '/more/whatsapp',
       ),
-      ('Google', i(Icons.cloud_outlined, Icons.cloud_rounded), '/more/google'),
+      ('Google', i(LucideIcons.cloud, Icons.cloud_rounded), '/more/google'),
       (
         'Propinas',
-        i(
-          Icons.account_balance_wallet_outlined,
-          Icons.account_balance_wallet_rounded,
-        ),
+        i(LucideIcons.wallet, Icons.account_balance_wallet_rounded),
         student ? '/more/finance' : '/more/student-only',
       ),
       (
         'Biblioteca',
-        i(Icons.local_library_outlined, Icons.local_library_rounded),
+        i(LucideIcons.library, Icons.local_library_rounded),
         '/more/library',
       ),
       (
         'Notas',
-        i(Icons.school_outlined, Icons.school_rounded),
+        i(LucideIcons.graduationCap, Icons.school_rounded),
         student ? '/more/results' : '/more/student-only',
       ),
     ];
@@ -128,7 +119,7 @@ class ServicesPage extends StatelessWidget {
               icon: Icon(
                 AppearanceScope.icon(
                   context,
-                  Icons.notifications_none,
+                  LucideIcons.bell,
                   Icons.notifications_rounded,
                 ),
               ),
@@ -142,19 +133,16 @@ class ServicesPage extends StatelessWidget {
               ServiceTile(
                 icon: icon,
                 label: label,
-                glyph: label == 'Biblioteca' && !modern
-                    ? const LineGlyph.library()
-                    : null,
                 onTap: () => onNavigate(path),
               ),
             ServiceTile(
               icon: AppearanceScope.icon(
                 context,
-                Icons.grid_view_outlined,
+                LucideIcons.layoutGrid,
                 Icons.grid_view_rounded,
               ),
               label: 'Mais',
-              glyph: modern ? null : const LineGlyph.rings(),
+              glyph: modern ? const LineGlyph.rings() : null,
               onTap: () => Scaffold.maybeOf(context)?.openDrawer(),
             ),
           ],

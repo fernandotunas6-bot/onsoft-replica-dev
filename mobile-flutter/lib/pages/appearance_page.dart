@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 import '../design/tokens.dart';
 import '../design/widgets.dart';
 
@@ -34,9 +35,9 @@ class AppearancePage extends StatelessWidget {
     final palette = SigaPalette.of(context);
     final scheme = Theme.of(context).colorScheme;
     const modes = [
-      (ThemeMode.system, 'Sistema', Icons.desktop_windows_outlined),
-      (ThemeMode.light, 'Claro', Icons.light_mode_outlined),
-      (ThemeMode.dark, 'Escuro', Icons.dark_mode_outlined),
+      (ThemeMode.system, 'Sistema', LucideIcons.monitor),
+      (ThemeMode.light, 'Claro', LucideIcons.sun),
+      (ThemeMode.dark, 'Escuro', LucideIcons.moon),
     ];
     Widget heading(String text) => Padding(
       padding: const EdgeInsets.only(top: Siga.s3, bottom: 12),
@@ -186,7 +187,7 @@ class AppearancePage extends StatelessWidget {
         ),
         const SizedBox(height: Siga.s3),
         _ToggleRow(
-          icon: Icons.monitor_heart_outlined,
+          icon: LucideIcons.activity,
           color: const Color(0xffff4f8b),
           title: 'Reduzir movimentos',
           subtitle: 'Animações mais suaves.',
@@ -195,7 +196,7 @@ class AppearancePage extends StatelessWidget {
         ),
         if (onModernIcons != null)
           _ToggleRow(
-            icon: Icons.auto_awesome_mosaic_outlined,
+            icon: LucideIcons.layoutDashboard,
             color: const Color(0xff1fbf9f),
             title: 'Utilizar ícones modernos',
             subtitle: 'Estilo 2026.',

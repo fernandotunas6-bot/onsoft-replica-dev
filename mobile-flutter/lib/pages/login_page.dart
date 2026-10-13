@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../design/tokens.dart';
 import '../design/widgets.dart';
@@ -223,7 +224,7 @@ class _LoginPageState extends State<LoginPage> {
                         onSubmitted: (_) => submit(),
                         decoration: field(
                           'Código de autenticação',
-                          Icons.shield_outlined,
+                          LucideIcons.shield,
                         ),
                       )
                     else ...[
@@ -244,7 +245,7 @@ class _LoginPageState extends State<LoginPage> {
                             child: Row(
                               children: [
                                 Icon(
-                                  Icons.school_outlined,
+                                  LucideIcons.graduationCap,
                                   size: 20,
                                   color: palette.ink2,
                                 ),
@@ -256,7 +257,7 @@ class _LoginPageState extends State<LoginPage> {
                                     overflow: TextOverflow.ellipsis,
                                   ),
                                 ),
-                                const Icon(Icons.keyboard_arrow_down, size: 20),
+                                const Icon(LucideIcons.chevronDown, size: 20),
                               ],
                             ),
                           ),
@@ -270,7 +271,7 @@ class _LoginPageState extends State<LoginPage> {
                         autofillHints: const [AutofillHints.username],
                         decoration: field(
                           'E-mail, ID da escola ou B.I.',
-                          Icons.mail_outline,
+                          LucideIcons.mail,
                         ),
                       ),
                       const SizedBox(height: 12),
@@ -281,14 +282,12 @@ class _LoginPageState extends State<LoginPage> {
                         onSubmitted: (_) => submit(),
                         decoration: field(
                           'Senha',
-                          Icons.key_outlined,
+                          LucideIcons.keyRound,
                           suffix: IconButton(
                             tooltip: hidden ? 'Mostrar senha' : 'Ocultar senha',
                             onPressed: () => setState(() => hidden = !hidden),
                             icon: Icon(
-                              hidden
-                                  ? Icons.visibility_outlined
-                                  : Icons.visibility_off_outlined,
+                              hidden ? LucideIcons.eye : LucideIcons.eyeOff,
                               size: 20,
                             ),
                           ),

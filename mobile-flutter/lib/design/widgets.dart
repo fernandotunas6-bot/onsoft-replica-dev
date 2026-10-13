@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'tokens.dart';
 
 /// Cartão com borda fina e uma pequena resposta ao toque, sem sombras pesadas.
@@ -251,7 +252,7 @@ class EmptyState extends StatelessWidget {
   const EmptyState({
     super.key,
     required this.message,
-    this.icon = Icons.inbox_outlined,
+    this.icon = LucideIcons.inbox,
     this.action,
     this.onAction,
   });
@@ -391,7 +392,7 @@ class MenuRow extends StatelessWidget {
           trailing ??
           (onTap == null || destructive
               ? null
-              : const Icon(Icons.chevron_right, size: 20)),
+              : const Icon(LucideIcons.chevronRight, size: 20)),
       onTap: onTap,
     );
   }
@@ -525,27 +526,20 @@ class TintIcon extends StatelessWidget {
   );
 }
 
-/// Ícones de traço que o Material não tem: «Biblioteca» (três lombadas e
-/// um livro inclinado) e «Mais» (quatro anéis), como nas referências.
+/// «Mais» (quatro anéis) no traço Lucide: a família não tem este ícone.
 class LineGlyph extends StatelessWidget {
-  const LineGlyph.library({super.key}) : rings = false;
-  const LineGlyph.rings({super.key}) : rings = true;
-  final bool rings;
+  const LineGlyph.rings({super.key});
   @override
   Widget build(BuildContext context) => CustomPaint(
     size: const Size.square(28),
-    painter: _LineGlyphPainter(
-      rings: rings,
-      color:
-          IconTheme.of(context).color ??
-          Theme.of(context).colorScheme.onSurface,
+    painter: _RingsPainter(
+      IconTheme.of(context).color ?? Theme.of(context).colorScheme.onSurface,
     ),
   );
 }
 
-class _LineGlyphPainter extends CustomPainter {
-  _LineGlyphPainter({required this.rings, required this.color});
-  final bool rings;
+class _RingsPainter extends CustomPainter {
+  _RingsPainter(this.color);
   final Color color;
   @override
   void paint(Canvas canvas, Size size) {
@@ -553,26 +547,17 @@ class _LineGlyphPainter extends CustomPainter {
     final pen = Paint()
       ..color = color
       ..style = PaintingStyle.stroke
-      ..strokeWidth = 2 * u
-      ..strokeCap = StrokeCap.round;
-    if (rings) {
-      for (final (x, y) in const [
-        (7.0, 7.0),
-        (17.0, 7.0),
-        (7.0, 17.0),
-        (17.0, 17.0),
-      ]) {
-        canvas.drawCircle(Offset(x * u, y * u), 3.6 * u, pen);
-      }
-      return;
+      ..strokeWidth = 2 * u;
+    for (final (x, y) in const [
+      (7.0, 7.0),
+      (17.0, 7.0),
+      (7.0, 17.0),
+      (17.0, 17.0),
+    ]) {
+      canvas.drawCircle(Offset(x * u, y * u), 3.5 * u, pen);
     }
-    for (final x in const [4.0, 9.0, 14.0]) {
-      canvas.drawLine(Offset(x * u, 4 * u), Offset(x * u, 20 * u), pen);
-    }
-    canvas.drawLine(Offset(16.5 * u, 4.5 * u), Offset(20.5 * u, 19.5 * u), pen);
   }
 
   @override
-  bool shouldRepaint(_LineGlyphPainter old) =>
-      old.rings != rings || old.color != color;
+  bool shouldRepaint(_RingsPainter old) => old.color != color;
 }

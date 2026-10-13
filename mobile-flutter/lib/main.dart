@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -61,21 +62,43 @@ Future<void> main() async {
 }
 
 /// Separadores da barra inferior, pela ordem das rotas do shell.
+/// Separadores: traço Lucide; o activo com traço mais forte (mesma família).
+/// O terceiro valor é o ícone clássico, quando os ícones modernos estão
+/// desligados em Aparência.
 const tabs = [
-  ('/home', NavItem(Icons.home_outlined, Icons.home_rounded, 'Início')),
+  (
+    '/home',
+    NavItem(LucideIcons.house, LucideIcons.house600, 'Início'),
+    Icons.home_rounded,
+  ),
   (
     '/subjects',
-    NavItem(Icons.menu_book_outlined, Icons.menu_book, 'Disciplinas'),
+    NavItem(LucideIcons.bookOpen, LucideIcons.bookOpen600, 'Disciplinas'),
+    Icons.menu_book_rounded,
   ),
   (
     '/calendar',
-    NavItem(Icons.calendar_month_outlined, Icons.calendar_month, 'Calendário'),
+    NavItem(
+      LucideIcons.calendarDays,
+      LucideIcons.calendarDays600,
+      'Calendário',
+    ),
+    Icons.calendar_month_rounded,
   ),
   (
     '/messages',
-    NavItem(Icons.chat_bubble_outline, Icons.chat_bubble, 'Mensagens'),
+    NavItem(
+      LucideIcons.messageCircle,
+      LucideIcons.messageCircle600,
+      'Mensagens',
+    ),
+    Icons.chat_bubble_rounded,
   ),
-  ('/more', NavItem(Icons.more_horiz, Icons.more_horiz, 'Mais')),
+  (
+    '/more',
+    NavItem(LucideIcons.ellipsis, LucideIcons.ellipsis600, 'Mais'),
+    Icons.more_horiz_rounded,
+  ),
 ];
 
 /// Consultas institucionais só de leitura (servidor decide o acesso; propinas,
@@ -116,7 +139,7 @@ class _SigaAppState extends State<SigaApp> {
   ThemeMode appearance = ThemeMode.system;
   Color accent = Siga.institutionalBlue;
   int? backdrop;
-  bool modernIcons = false;
+  bool modernIcons = true;
 
   @override
   void initState() {
@@ -127,7 +150,7 @@ class _SigaAppState extends State<SigaApp> {
       orElse: () => ThemeMode.system,
     );
     backdrop = widget.prefs.getInt('backdrop');
-    modernIcons = widget.prefs.getBool('modern-icons') ?? false;
+    modernIcons = widget.prefs.getBool('modern-icons') ?? true;
     final savedAccent = widget.prefs.getInt('accent');
     for (final (_, color) in Siga.accents) {
       if (color.toARGB32() == savedAccent) accent = color;
@@ -222,7 +245,7 @@ class _SigaAppState extends State<SigaApp> {
         StatefulShellRoute.indexedStack(
           builder: (context, state, shell) => shellPage(shell),
           branches: [
-            for (final (path, _) in tabs)
+            for (final (path, _, _) in tabs)
               StatefulShellBranch(
                 routes: [
                   GoRoute(
@@ -475,10 +498,8 @@ class _SigaAppState extends State<SigaApp> {
     ),
     bottomNavigationBar: FloatingNavBar(
       items: [
-        for (final (_, item) in tabs)
-          modernIcons
-              ? NavItem(item.selectedIcon, item.selectedIcon, item.label)
-              : item,
+        for (final (_, item, classic) in tabs)
+          modernIcons ? item : NavItem(classic, classic, item.label),
       ],
       index: shell.currentIndex,
       onSelected: (index) =>
@@ -512,7 +533,7 @@ class _SigaAppState extends State<SigaApp> {
           title: Text(title),
           leading: IconButton(
             tooltip: 'Voltar',
-            icon: const Icon(Icons.arrow_back),
+            icon: const Icon(LucideIcons.chevronLeft),
             onPressed: () => router.go(back),
           ),
         ),

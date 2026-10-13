@@ -276,7 +276,8 @@ ThemeData sigaTheme(Brightness brightness, Color accent) {
 }
 
 /// Preferências de Aparência que mudam os ecrãs: plano de fundo do painel
-/// (ecrã 12) e ícones modernos (cheios e arredondados em vez de traço).
+/// (ecrã 12) e ícones modernos — o traço fino Lucide das referências (por
+/// omissão); desligado, volta aos ícones clássicos cheios e arredondados.
 class AppearanceScope extends InheritedWidget {
   const AppearanceScope({
     super.key,
@@ -292,12 +293,10 @@ class AppearanceScope extends InheritedWidget {
   static AppearanceScope? maybeOf(BuildContext context) =>
       context.dependOnInheritedWidgetOfExactType<AppearanceScope>();
 
-  /// Escolhe o ícone conforme a preferência «Utilizar ícones modernos».
-  static IconData icon(
-    BuildContext context,
-    IconData outlined,
-    IconData modern,
-  ) => (maybeOf(context)?.modernIcons ?? false) ? modern : outlined;
+  /// Escolhe o ícone conforme a preferência «Utilizar ícones modernos»:
+  /// [line] (Lucide) quando ligada, [classic] quando desligada.
+  static IconData icon(BuildContext context, IconData line, IconData classic) =>
+      (maybeOf(context)?.modernIcons ?? true) ? line : classic;
 
   @override
   bool updateShouldNotify(AppearanceScope old) =>

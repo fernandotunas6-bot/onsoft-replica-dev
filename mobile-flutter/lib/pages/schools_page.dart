@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 import '../design/tokens.dart';
 import '../design/widgets.dart';
 
@@ -89,8 +90,8 @@ class _SchoolsPageState extends State<SchoolsPage> {
           for (final choice in school)
             MenuRow(
               icon: choice.role == 'professor'
-                  ? Icons.co_present_outlined
-                  : Icons.person_outline,
+                  ? LucideIcons.presentation
+                  : LucideIcons.user,
               title: choice.roleLabel,
               onTap: () {
                 Navigator.of(sheet).pop();
@@ -128,7 +129,7 @@ class _SchoolsPageState extends State<SchoolsPage> {
                 tooltip: 'Sair',
                 color: Colors.white,
                 onPressed: widget.onSignOut,
-                icon: const Icon(Icons.logout_outlined),
+                icon: const Icon(LucideIcons.logOut),
               ),
             ),
             Expanded(
@@ -171,7 +172,7 @@ class _SchoolsPageState extends State<SchoolsPage> {
                     TextField(
                       decoration: InputDecoration(
                         hintText: 'Pesquisar escola…',
-                        prefixIcon: const Icon(Icons.search, size: 20),
+                        prefixIcon: const Icon(LucideIcons.search, size: 20),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(24),
                           borderSide: BorderSide.none,
@@ -187,7 +188,7 @@ class _SchoolsPageState extends State<SchoolsPage> {
                     const SizedBox(height: Siga.s2),
                     if (widget.error != null)
                       EmptyState(
-                        icon: Icons.cloud_off_outlined,
+                        icon: LucideIcons.cloudOff,
                         message: widget.error!,
                         action: 'Tentar novamente',
                         onAction: widget.onRetry,
@@ -224,7 +225,7 @@ class _SchoolsPageState extends State<SchoolsPage> {
                                   ],
                                 ),
                               ),
-                              const Icon(Icons.chevron_right, size: 20),
+                              const Icon(LucideIcons.chevronRight, size: 20),
                             ],
                           ),
                         ),
@@ -246,7 +247,7 @@ class _SchoolsPageState extends State<SchoolsPage> {
                                 shape: BoxShape.circle,
                                 border: Border.all(color: palette.line),
                               ),
-                              child: const Icon(Icons.cloud_outlined, size: 22),
+                              child: const Icon(LucideIcons.cloud, size: 22),
                             ),
                             const SizedBox(width: 14),
                             Expanded(

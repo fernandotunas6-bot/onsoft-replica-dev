@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'design/tokens.dart';
 import 'design/widgets.dart';
 import 'gateway.dart';
@@ -131,7 +132,7 @@ class _InstitutionalPageState extends State<InstitutionalPage> {
         return [
           for (final r in rows(result, 'items'))
             record(
-              icon: Icons.notifications_none,
+              icon: LucideIcons.bell,
               title: text(r['title']),
               lines: [text(r['body'])],
             ),
@@ -140,7 +141,7 @@ class _InstitutionalPageState extends State<InstitutionalPage> {
         return [
           for (final r in rows(result, 'requests'))
             record(
-              icon: Icons.description_outlined,
+              icon: LucideIcons.fileText,
               title: text(r['document']),
               status: label(documentStatusLabels, r['status']),
               highlight: r['status'] == 'approved',
@@ -150,7 +151,7 @@ class _InstitutionalPageState extends State<InstitutionalPage> {
         return [
           for (final r in rows(result, 'sheets'))
             record(
-              icon: Icons.school_outlined,
+              icon: LucideIcons.graduationCap,
               title: text(r['title']),
               lines: [
                 'Média publicada: ${average(r['termAverage'])}',
@@ -162,7 +163,7 @@ class _InstitutionalPageState extends State<InstitutionalPage> {
         return [
           for (final r in rows(result, 'invoices'))
             record(
-              icon: Icons.account_balance_wallet_outlined,
+              icon: LucideIcons.wallet,
               title: text(r['label']),
               lines: [
                 'Factura ${text(r['number'])} · vence ${text(r['due'])}',
@@ -177,7 +178,7 @@ class _InstitutionalPageState extends State<InstitutionalPage> {
                     padding: const EdgeInsets.only(top: Siga.s1, left: 56),
                     child: Row(
                       children: [
-                        const Icon(Icons.receipt_long_outlined, size: 18),
+                        const Icon(LucideIcons.receipt, size: 18),
                         const SizedBox(width: Siga.s1),
                         Expanded(
                           child: Text(
@@ -234,7 +235,7 @@ class _InstitutionalPageState extends State<InstitutionalPage> {
           child: Padding(
             padding: const EdgeInsets.all(Siga.s3),
             child: EmptyState(
-              icon: Icons.cloud_off_outlined,
+              icon: LucideIcons.cloudOff,
               message: 'Não foi possível carregar esta consulta institucional.',
               action: 'Tentar novamente',
               onAction: () => setState(reload),

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:go_router/go_router.dart';
 import 'academic_page.dart';
 import 'demo/demo_data.dart';
@@ -38,7 +39,7 @@ class _DemoAppState extends State<DemoApp> {
   ThemeMode mode = ThemeMode.system;
   Color accent = Siga.institutionalBlue;
   int? backdrop;
-  bool modernIcons = false;
+  bool modernIcons = true;
 
   void update() {
     if (!mounted) return;
@@ -111,7 +112,7 @@ class _DemoAppState extends State<DemoApp> {
         StatefulShellRoute.indexedStack(
           builder: (context, state, shell) => shellPage(shell),
           branches: [
-            for (final (path, _) in tabs)
+            for (final (path, _, _) in tabs)
               StatefulShellBranch(
                 routes: [
                   GoRoute(
@@ -235,7 +236,7 @@ class _DemoAppState extends State<DemoApp> {
           title: Text(title),
           leading: IconButton(
             tooltip: 'Voltar',
-            icon: const Icon(Icons.arrow_back),
+            icon: const Icon(LucideIcons.chevronLeft),
             onPressed: () => router.go(back),
           ),
         ),
@@ -259,10 +260,8 @@ class _DemoAppState extends State<DemoApp> {
     body: SafeArea(bottom: false, child: shell),
     bottomNavigationBar: FloatingNavBar(
       items: [
-        for (final (_, item) in tabs)
-          modernIcons
-              ? NavItem(item.selectedIcon, item.selectedIcon, item.label)
-              : item,
+        for (final (_, item, classic) in tabs)
+          modernIcons ? item : NavItem(classic, classic, item.label),
       ],
       index: shell.currentIndex,
       onSelected: (index) =>
