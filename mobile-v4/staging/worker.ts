@@ -1,3 +1,4 @@
+import { handleMobileInstitutionalExtension } from '../../src/features/mobile-v4/institutional-extension.server';
 import { requestContext } from "./request-context";
 import { handleMobileV4Http } from "../../src/features/mobile-v4/http.server";
 
@@ -6,6 +7,8 @@ import { handleMobileV4Http } from "../../src/features/mobile-v4/http.server";
 export default {
   async fetch(request: Request, env: { ASSETS: { fetch(request: Request): Promise<Response> } }) {
     const url = new URL(request.url);
+    if (/^\/api\/mobile-v4\/schools\/[^/]+\/(?:classes|tasks)(?:\/[^/]+)?$/.test(url.pathname))
+      return requestContext.run(request, () => handleMobileInstitutionalExtension(request));
     if (url.pathname.startsWith("/api/mobile-v4/"))
       return requestContext.run(request, () => handleMobileV4Http(request));
     if (url.pathname === "/api" || url.pathname.startsWith("/api/"))
