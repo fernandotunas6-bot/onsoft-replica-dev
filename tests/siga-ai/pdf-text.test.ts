@@ -8,6 +8,7 @@ import { describe, expect, it } from "vitest";
 import { jsPDF } from "jspdf";
 import {
   assertReadable,
+  bytesToLatin1,
   contentStreamToText,
   extractPdfText,
   PdfParseError,
@@ -139,6 +140,45 @@ describe("siga-ai extraccao de PDF", () => {
 
     it("usa Td/T* como mudança de linha", () => {
       expect(contentStreamToText("BT (linha1) Tj 0 -14 Td (linha2) Tj ET")).toBe("linha1\nlinha2");
+    });
+  });
+
+  describe("fidelidade dos bytes", () => {
+    /**
+     * A falha que custou três voltas de CI: fazer o binário passar por um
+     * `TextDecoder("iso-8859-1")`, rótulo que resolve para windows-1252, onde
+     * 0x81, 0x8D, 0x8F, 0x90 e 0x9D não têm caractere — e uma implementação
+     * estrita devolve U+FFFD. Só os PDF comprimidos ficavam irrecuperáveis,
+     * porque os em claro são ASCII. Estes dois testes são o guarda-fogo.
+     */
+    it("converte os 256 bytes sem perder nenhum", () => {
+      const all = new Uint8Array(256);
+      for (let index = 0; index < 256; index += 1) all[index] = index;
+      const text = bytesToLatin1(all);
+      expect(text).toHaveLength(256);
+      for (let index = 0; index < 256; index += 1) {
+        expect(text.charCodeAt(index), `byte ${index}`).toBe(index);
+      }
+      // Em particular, os indefinidos no windows-1252.
+      for (const byte of [0x81, 0x8d, 0x8f, 0x90, 0x9d]) {
+        expect(text.charCodeAt(byte)).not.toBe(0xfffd);
+      }
+    });
+
+    it("lê um fluxo cujo corpo tem todos os bytes altos", async () => {
+      // Corpo não comprimido, com `/Length`: o texto tem de sobreviver mesmo
+      // rodeado dos bytes que um decoder estrito destruiria.
+      const noise = Array.from({ length: 32 }, (_, index) => 0x80 + index);
+      const body = `BT (Regulamento Interno da Escola) Tj ET\n${String.fromCharCode(...noise)}`;
+      const head = `%PDF-1.4\n1 0 obj\n<<\n/Length ${body.length}\n>>\nstream\n`;
+      const tail = "\nendstream\nendobj\n%%EOF\n";
+      const full = head + body + tail;
+      const bytes = new Uint8Array(full.length);
+      for (let index = 0; index < full.length; index += 1) {
+        bytes[index] = full.charCodeAt(index) & 0xff;
+      }
+      const text = await extractPdfText(bytes.buffer as ArrayBuffer);
+      expect(text).toContain("Regulamento Interno da Escola");
     });
   });
 });
