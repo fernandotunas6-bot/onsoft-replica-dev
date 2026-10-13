@@ -115,3 +115,13 @@ catálogo existente montados no Worker de staging local; guardas de transporte
 e integrações em backend/. 20 testes Node executados e aprovados. Não confundir
 com Flutter/Worker compilados ou Supabase remoto validado. O ZIP inclui os dois
 ficheiros de integração no repositório, além do cliente e backend isolado.
+
+## Substituição do antigo frontend
+
+A pasta mobile-v4 e o workflow React foram removidos nesta branch. Contratos
+e serviços partilhados ficam em contracts/, Worker em staging/ e recursos
+de domínio em deployment/. APIs /api/mobile-v4 preservadas por compatibilidade.
+Após flutter build web, executar node scripts/build-worker.mjs a partir de
+mobile-flutter. O empacotador exige index.html gerado. Não foi executado: SDK e
+dependências do Worker ausentes. Nenhuma troca do site publicado foi feita.
+Documentos em docs/mobile-v4-history são históricos, não instruções de build.

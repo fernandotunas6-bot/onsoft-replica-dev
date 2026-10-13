@@ -15,7 +15,7 @@
  */
 import type { requireMobileAcademicAccess } from "./authorization";
 import { rosterStudentIds, type MobileAcademicScope } from "./academic-scope.server";
-import type { AttendanceCallInput } from "../../../mobile-v4/src/domain/attendance";
+import type { AttendanceCallInput } from "../../../mobile-flutter/contracts/domain/attendance";
 import {
   assertAttendanceNotLocked,
   recomputeAttendanceRates,

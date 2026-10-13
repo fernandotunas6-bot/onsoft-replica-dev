@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { readMobileLessonPlans } from "@/features/mobile-v4/lesson-plans.server";
 import type { MobileAcademicScope } from "@/features/mobile-v4/academic-scope.server";
-import type { AcademicCatalog } from "../../mobile-v4/src/domain/catalog";
+import type { AcademicCatalog } from "../../mobile-flutter/contracts/domain/catalog";
 
 const id = (n: number) => `00000000-0000-4000-8000-${String(n).padStart(12, "0")}`;
 const SCHOOL = id(1);

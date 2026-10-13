@@ -1,7 +1,7 @@
 import type { requireMobileAcademicAccess } from "./authorization";
 import type { MobileAcademicScope } from "./academic-scope.server";
-import type { AcademicCatalog } from "../../../mobile-v4/src/domain/catalog";
-import { parseAcademicResults } from "../../../mobile-v4/src/domain/results";
+import type { AcademicCatalog } from "../../../mobile-flutter/contracts/domain/catalog";
+import { parseAcademicResults } from "../../../mobile-flutter/contracts/domain/results";
 import { MobileApiError } from "./errors";
 type Db = Awaited<ReturnType<typeof requireMobileAcademicAccess>>["db"];
 async function read<T>(
@@ -24,7 +24,7 @@ export async function readMobileResults(
   const response = {
     schoolId: scope.schoolId,
     role: "aluno" as const,
-    sheets: [] as import("../../../mobile-v4/src/domain/results").AcademicResults["sheets"],
+    sheets: [] as import("../../../mobile-flutter/contracts/domain/results").AcademicResults["sheets"],
   };
   if (!scope.enrollmentIds.length || !catalog.classes.length) return response;
   const sheets = await read<{
@@ -87,7 +87,7 @@ export async function readMobileResults(
         examAverage: r.exam_average,
         termAverage: r.term_average,
         result:
-          r.result as import("../../../mobile-v4/src/domain/results").AcademicResults["sheets"][number]["result"],
+          r.result as import("../../../mobile-flutter/contracts/domain/results").AcademicResults["sheets"][number]["result"],
       };
     })
     .sort((a, b) => b.publishedAt.localeCompare(a.publishedAt) || a.id.localeCompare(b.id));

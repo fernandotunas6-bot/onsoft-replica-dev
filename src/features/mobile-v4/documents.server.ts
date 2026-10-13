@@ -13,7 +13,7 @@ import {
   parseStudentDocuments,
   type DocumentStatus,
   type StudentDocuments,
-} from "../../../mobile-v4/src/domain/documents";
+} from "../../../mobile-flutter/contracts/domain/documents";
 import { MobileApiError } from "./errors";
 
 type Db = Awaited<ReturnType<typeof requireMobileAcademicAccess>>["db"];

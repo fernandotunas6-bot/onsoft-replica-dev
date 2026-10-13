@@ -11,12 +11,12 @@
  */
 import type { requireMobileAcademicAccess } from "./authorization";
 import type { MobileAcademicScope } from "./academic-scope.server";
-import type { AcademicCatalog } from "../../../mobile-v4/src/domain/catalog";
+import type { AcademicCatalog } from "../../../mobile-flutter/contracts/domain/catalog";
 import {
   LESSON_PLAN_CONTENT_MAX,
   parseAcademicLessonPlans,
   type AcademicLessonPlans,
-} from "../../../mobile-v4/src/domain/lesson-plans";
+} from "../../../mobile-flutter/contracts/domain/lesson-plans";
 import { MobileApiError } from "./errors";
 
 type Db = Awaited<ReturnType<typeof requireMobileAcademicAccess>>["db"];

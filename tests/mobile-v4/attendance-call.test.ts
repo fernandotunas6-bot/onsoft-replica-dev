@@ -8,7 +8,7 @@ vi.mock("@/features/pedagogica/attendance-guards", () => guards);
 
 import { recordMobileAttendanceCall } from "@/features/mobile-v4/attendance-call.server";
 import type { MobileAcademicScope } from "@/features/mobile-v4/academic-scope.server";
-import type { CallStatus } from "../../mobile-v4/src/domain/attendance";
+import type { CallStatus } from "../../mobile-flutter/contracts/domain/attendance";
 
 const id = (n: number) => `00000000-0000-4000-8000-${String(n).padStart(12, "0")}`;
 const SCHOOL = id(1);

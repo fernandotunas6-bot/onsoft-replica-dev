@@ -34,13 +34,13 @@ const { readMobileAcademicCatalog } = await import(
   new URL("../../src/features/mobile-v4/academic-catalog.server.ts", import.meta.url)
 );
 const { parseAcademicCatalog } = await import(
-  new URL("../../mobile-v4/src/domain/catalog-validation.ts", import.meta.url)
+  new URL("../../mobile-flutter/contracts/domain/catalog-validation.ts", import.meta.url)
 );
 const { readMobileAttendance } = await import(
   new URL("../../src/features/mobile-v4/attendance.server.ts", import.meta.url)
 );
 const { parseAcademicAttendance } = await import(
-  new URL("../../mobile-v4/src/domain/attendance-validation.ts", import.meta.url)
+  new URL("../../mobile-flutter/contracts/domain/attendance-validation.ts", import.meta.url)
 );
 const { readMobileResults } = await import(
   new URL("../../src/features/mobile-v4/results.server.ts", import.meta.url)

@@ -1,7 +1,7 @@
 import type { requireMobileAcademicAccess } from "./authorization";
 import type { MobileAcademicScope } from "./academic-scope.server";
-import type { AcademicCatalog } from "../../../mobile-v4/src/domain/catalog";
-import type { AcademicAttendance, AttendanceRange } from "../../../mobile-v4/src/domain/attendance";
+import type { AcademicCatalog } from "../../../mobile-flutter/contracts/domain/catalog";
+import type { AcademicAttendance, AttendanceRange } from "../../../mobile-flutter/contracts/domain/attendance";
 import { MobileApiError } from "./errors";
 type Db = Awaited<ReturnType<typeof requireMobileAcademicAccess>>["db"];
 async function read<T>(

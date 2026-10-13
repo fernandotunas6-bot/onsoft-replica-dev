@@ -7,7 +7,7 @@ import {
   type ChatInbox,
   type ChatHistory,
   type ChatCursor,
-} from "../../../mobile-v4/src/domain/institutional-chat";
+} from "../../../mobile-flutter/contracts/domain/institutional-chat";
 import { MobileApiError } from "./errors";
 type Db = Awaited<ReturnType<typeof requireMobileAcademicAccess>>["db"];
 async function read<T>(

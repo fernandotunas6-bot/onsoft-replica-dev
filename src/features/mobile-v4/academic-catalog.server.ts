@@ -1,6 +1,6 @@
 import type { requireMobileAcademicAccess } from "./authorization";
 import { ROSTER_ENROLLMENT_STATUSES, type MobileAcademicScope } from "./academic-scope.server";
-import type { AcademicCatalog } from "../../../mobile-v4/src/domain/catalog";
+import type { AcademicCatalog } from "../../../mobile-flutter/contracts/domain/catalog";
 import { MobileApiError } from "./errors";
 
 type Db = Awaited<ReturnType<typeof requireMobileAcademicAccess>>["db"];

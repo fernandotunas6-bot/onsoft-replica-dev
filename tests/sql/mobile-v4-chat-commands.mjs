@@ -8,7 +8,7 @@ const id = (n) => `00000000-0000-4000-8000-${String(n).padStart(12, "0")}`;
 let checks = 0;
 const sql = await readFile(
   new URL(
-    "../../mobile-v4/staging/database/supabase/migrations/20261010083336_mobile_v4_chat_commands.sql",
+    "../../mobile-flutter/staging/database/supabase/migrations/20261010083336_mobile_v4_chat_commands.sql",
     import.meta.url,
   ),
   "utf8",

@@ -1,12 +1,12 @@
 import type { requireMobileAcademicAccess } from "./authorization";
-import type { Context } from "../../../mobile-v4/src/domain/model";
+import type { Context } from "../../../mobile-flutter/contracts/domain/model";
 import {
   NOTIFICATIONS_PAGE,
   parseNotificationInbox,
   parseNotificationReadReceipt,
   type NotificationCursor,
   type NotificationReadTarget,
-} from "../../../mobile-v4/src/domain/notifications";
+} from "../../../mobile-flutter/contracts/domain/notifications";
 import { MobileApiError } from "./errors";
 import { isoMicros } from "./timestamps";
 type Db = Awaited<ReturnType<typeof requireMobileAcademicAccess>>["db"];

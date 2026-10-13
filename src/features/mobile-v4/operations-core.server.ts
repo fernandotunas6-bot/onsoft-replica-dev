@@ -1,4 +1,4 @@
-import { parseAcademicAttendance } from "../../../mobile-v4/src/domain/attendance-validation";
+import { parseAcademicAttendance } from "../../../mobile-flutter/contracts/domain/attendance-validation";
 import { requireMobileAcademicAccess } from "./authorization";
 import { MobileApiError } from "./errors";
 import {
