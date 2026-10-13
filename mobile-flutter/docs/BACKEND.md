@@ -132,3 +132,49 @@ institutional-extension.server.ts e a alteração de staging/worker.ts ficam
 na branch completa feat/siga-flutter-motion-2026. Os endpoints aqui descritos
 não estão montados na main. Integrar a dependência e validar o Worker antes
 de activá-los. Nenhum domínio ou banco foi alterado nesta integração.
+
+## Incremento de notas e avisos — 13/10/2026
+
+GET /api/mobile-v4/schools/:schoolId/results?role=aluno
+GET /api/mobile-v4/schools/:schoolId/notices?role=aluno|professor[&cursor=…]
+
+Reutilizam a mesma validação de sessão, origem, escola e perfil, e o catálogo
+autorizado continua a decidir quais disciplinas podem aparecer. As notas são
+servidas apenas ao perfil aluno e apenas ao próprio: `studentId` tem de ser o
+utilizador autenticado, e qualquer registo fora disso devolve 503. O perfil
+professor recebe 403 RESULTS_PROFILE_UNSUPPORTED — as notas de uma turma
+dependem de uma avaliação de privacidade por perfil que não está feita.
+
+Só entram avaliações com `publication: 'published'`. A escala vem da escola
+(`scaleMax`, 0 < escala <= 100); nota fora da escala, trimestre duplicado,
+código de nota repetido ou disciplina fora do catálogo falham fechado (503).
+O servidor não calcula médias nem arredonda: devolve o que a escola publicou.
+A projecção leva classSubjectId, subjectName (do catálogo), termId, termName,
+publication, scaleMax, grades[code,label,value], finalGrade e status — sem
+studentId, comentários de docente ou campos futuros.
+
+Os avisos respeitam a audiência decidida no servidor: `school` não pode trazer
+classSubjectId e `class`/`subject` têm de apontar para disciplina autorizada.
+Aviso agendado (publishedAt acima do relógio injectado, com 60 s de tolerância),
+id duplicado, carimbo sem timezone ou página acima de 100 itens falham com 503.
+O cursor é opaco: validado por `[A-Za-z0-9_-]{1,128}`, nunca interpretado aqui,
+e um `nextCursor` igual ao pedido é recusado para não criar ciclo de paginação.
+`cursor` só é aceite em notices; qualquer outro campo de query continua 422.
+Sem endpoint montado (dependência ausente) devolve 503, nunca lista vazia.
+
+39 testes Node aprovados (`node --experimental-strip-types --test
+mobile-flutter/backend/*.test.mjs`). Os 11 novos cobrem projecção, perfil
+professor, notas de terceiros, rascunhos, escala, duplicações, audiência,
+agendamento, cursor inválido/repetido, ids de recurso e serviço não montado.
+Continuam a faltar: adaptador na main, build completa do Worker e ensaio remoto
+com duas escolas reais. Nenhum endpoint está montado nem publicado.
+
+## Validação Flutter executada — 13/10/2026
+
+Com Flutter 3.35.7 / Dart 3.9.2 instalados no executor desta sessão:
+`flutter pub get` (pubspec.lock fixado), `dart format lib test` (sem alterações
+após a formatação versionada), `flutter analyze` (18 avisos informativos, os
+mesmos da base — o incremento não acrescenta avisos) e `flutter test`
+(23 testes aprovados). A build web release corre no workflow e foi executada
+localmente. Isto valida compilação e lógica local; não valida sessão real,
+CAPTCHA, RLS, nem dados de produção.

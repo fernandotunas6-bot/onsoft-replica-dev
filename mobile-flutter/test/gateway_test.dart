@@ -59,4 +59,43 @@ void main() {
     gateway.select('user', 'school', 'professor');
     await expectLater(gateway.read('academic'), throwsStateError);
   });
+  test('teacher profile never requests pupil marks', () async {
+    var calls = 0;
+    final gateway = MobileGateway(
+      Uri.parse('https://example.test'),
+      () async => 'token',
+      client: MockClient((_) async {
+        calls++;
+        return http.Response('{}', 200);
+      }),
+    );
+    gateway.select('user', 'school', 'professor');
+    await expectLater(gateway.read('results'), throwsStateError);
+    expect(calls, 0);
+  });
+  test(
+    'cursor is only accepted for the notice feed and must be opaque',
+    () async {
+      final gateway = MobileGateway(
+        Uri.parse('https://example.test'),
+        () async => 'token',
+        client: MockClient(
+          (request) async => http.Response(
+            '{"schoolId":"school","role":"aluno","cursor":"${request.url.queryParameters['cursor']}"}',
+            200,
+          ),
+        ),
+      );
+      gateway.select('user', 'school', 'aluno');
+      await expectLater(
+        gateway.read('results', cursor: 'abc'),
+        throwsStateError,
+      );
+      await expectLater(
+        gateway.read('notices', cursor: '../etc'),
+        throwsStateError,
+      );
+      expect((await gateway.read('notices', cursor: 'abc'))['cursor'], 'abc');
+    },
+  );
 }

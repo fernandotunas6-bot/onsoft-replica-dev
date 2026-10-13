@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'academic.dart';
 import 'gateway.dart';
+import 'records.dart';
 
 class DataPage extends StatefulWidget {
   const DataPage({
@@ -24,6 +25,7 @@ class _DataPageState extends State<DataPage> {
   late Future<Map<String, dynamic>> data;
   Timer? clock;
   String query = '';
+  String? term;
   DateTime selected = luandaClock(DateTime.now());
   @override
   void initState() {
@@ -40,10 +42,53 @@ class _DataPageState extends State<DataPage> {
     super.dispose();
   }
 
+  String get collection => switch (widget.path) {
+    '/messages' => 'chat',
+    '/results' => 'results',
+    '/notices' => 'notices',
+    _ => 'academic',
+  };
   void load() {
-    data = widget.gateway.read(
-      widget.path == '/messages' ? 'chat' : 'academic',
-    );
+    feed = null;
+    paging = false;
+    data = widget.gateway.read(collection);
+  }
+
+  NoticeFeed? feed;
+  bool paging = false;
+  Future<void> more(NoticeFeed current) async {
+    final cursor = current.nextCursor;
+    if (paging || cursor == null) return;
+    setState(() {
+      paging = true;
+    });
+    try {
+      final page = await widget.gateway.read('notices', cursor: cursor);
+      if (!mounted) return;
+      final parsed = NoticeFeed.parse(
+        page,
+        DateTime.now().toUtc(),
+        cursor: cursor,
+      );
+      setState(() {
+        feed = current.merge(parsed);
+      });
+    } catch (_) {
+      if (mounted) {
+        // A failed page never silently truncates the feed.
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Não foi possível carregar mais avisos.'),
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          paging = false;
+        });
+      }
+    }
   }
 
   bool matches(String value) => value.toLowerCase().contains(query);
@@ -151,7 +196,7 @@ class _DataPageState extends State<DataPage> {
         );
       final result = snapshot.data!;
       AcademicCatalog? catalog;
-      if (widget.path != '/messages') {
+      if (collection == 'academic') {
         try {
           catalog = AcademicCatalog.parse(result);
         } on FormatException {
@@ -166,12 +211,18 @@ class _DataPageState extends State<DataPage> {
       final isHome = widget.path == '/home';
       final isCalendar = widget.path == '/calendar';
       final isChat = widget.path == '/messages';
+      final isResults = widget.path == '/results';
+      final isNotices = widget.path == '/notices';
       final title = isHome
           ? 'Bem-vindo, ${widget.name}'
           : isCalendar
           ? 'Calendário'
           : isChat
           ? 'Mensagens'
+          : isResults
+          ? 'Notas'
+          : isNotices
+          ? 'Avisos'
           : isClasses
           ? 'Turmas'
           : isClass
@@ -377,6 +428,10 @@ class _DataPageState extends State<DataPage> {
               const Text(
                 'Horário previsto. Presenças e cancelamentos serão apresentados após integração dos respectivos registos.',
               ),
+            ] else if (isResults) ...[
+              ...results(result),
+            ] else if (isNotices) ...[
+              ...notices(result),
             ] else if (isChat) ...[
               if (result['threads'] is! List)
                 empty('Não foi possível interpretar a lista de conversas.')
@@ -408,6 +463,171 @@ class _DataPageState extends State<DataPage> {
       );
     },
   );
+  List<Widget> results(Map<String, dynamic> result) {
+    GradeReport report;
+    try {
+      report = GradeReport.parse(result);
+    } on FormatException catch (error) {
+      return [empty(error.message)];
+    }
+    if (report.items.isEmpty) {
+      return [empty('Sem avaliações publicadas neste vínculo.')];
+    }
+    final terms = report.terms;
+    final chosen = terms.contains(term) ? term! : terms.first;
+    return [
+      if (terms.length > 1)
+        Wrap(
+          spacing: 8,
+          children: [
+            for (final name in terms)
+              ChoiceChip(
+                label: Text(name),
+                selected: name == chosen,
+                onSelected: (_) => setState(() {
+                  term = name;
+                }),
+              ),
+          ],
+        ),
+      for (final item
+          in report
+              .forTerm(chosen)
+              .where((i) => matches(i['subjectName'] as String)))
+        Card(
+          margin: const EdgeInsets.symmetric(vertical: 8),
+          elevation: 0,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+            side: BorderSide(
+              color: Theme.of(context).colorScheme.outlineVariant,
+            ),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        '${item['subjectName']}',
+                        style: Theme.of(context).textTheme.titleMedium,
+                      ),
+                    ),
+                    Text(
+                      GradeReport.mark(item['finalGrade'], item['scaleMax']),
+                      style: Theme.of(context).textTheme.titleMedium,
+                    ),
+                  ],
+                ),
+                if (item['status'] is String)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 4),
+                    child: Text('${item['status']}'),
+                  ),
+                const SizedBox(height: 8),
+                Wrap(
+                  spacing: 16,
+                  runSpacing: 4,
+                  children: [
+                    for (final grade in item['grades'] as List)
+                      Text(
+                        '${grade['label']}: ${GradeReport.mark(grade['value'], item['scaleMax'])}',
+                      ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      if (report
+          .forTerm(chosen)
+          .where((i) => matches(i['subjectName'] as String))
+          .isEmpty)
+        empty('Sem avaliações para os filtros escolhidos.'),
+      const SizedBox(height: 16),
+      const Text(
+        'Notas publicadas pela escola, na escala comunicada por disciplina. '
+        'Médias, exames e recursos seguem as regras da escola e não são calculados neste cliente.',
+      ),
+    ];
+  }
+
+  List<Widget> notices(Map<String, dynamic> result) {
+    NoticeFeed current;
+    try {
+      current = feed ?? NoticeFeed.parse(result, DateTime.now().toUtc());
+    } on FormatException catch (error) {
+      return [empty(error.message)];
+    }
+    final visible = current
+        .ordered()
+        .where((n) => matches('${n['title']} ${n['body']}'))
+        .toList();
+    return [
+      if (visible.isEmpty) empty('Sem avisos para os filtros escolhidos.'),
+      for (final item in visible)
+        ListTile(
+          contentPadding: const EdgeInsets.symmetric(vertical: 8),
+          leading: Icon(
+            item['pinned'] == true
+                ? Icons.push_pin_outlined
+                : Icons.campaign_outlined,
+          ),
+          title: Text('${item['title']}'),
+          subtitle: Text(
+            '${item['subjectName'] ?? (item['audience'] == 'school' ? 'Toda a escola' : 'Turma')}'
+            '\n${deadline(item['publishedAt'])}',
+          ),
+          trailing: const Icon(Icons.chevron_right),
+          onTap: () => noticeDetail(item),
+        ),
+      if (current.nextCursor != null)
+        Padding(
+          padding: const EdgeInsets.only(top: 8),
+          child: Center(
+            child: FilledButton.tonal(
+              onPressed: paging ? null : () => more(current),
+              child: Text(paging ? 'A carregar…' : 'Ver avisos anteriores'),
+            ),
+          ),
+        ),
+      const SizedBox(height: 16),
+      const Text(
+        'A escola decide quem recebe cada aviso. A marcação como lido e os anexos ainda não estão disponíveis neste cliente.',
+      ),
+    ];
+  }
+
+  void noticeDetail(Map<String, dynamic> notice) {
+    showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      isScrollControlled: true,
+      builder: (context) => SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                '${notice['title']}',
+                style: Theme.of(context).textTheme.headlineSmall,
+              ),
+              const SizedBox(height: 8),
+              Text(deadline(notice['publishedAt'])),
+              const SizedBox(height: 16),
+              Text('${notice['body']}'),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   Map<String, List<Map<String, dynamic>>> groupClasses(
     List<Map<String, dynamic>> classes,
   ) {

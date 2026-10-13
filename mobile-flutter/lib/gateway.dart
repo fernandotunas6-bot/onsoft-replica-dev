@@ -32,22 +32,45 @@ class MobileGateway {
 
   Future<Map<String, dynamic>> session() => _get('/session');
 
-  Future<Map<String, dynamic>> read(String collection) async {
-    if (!{'academic', 'notifications', 'chat'}.contains(collection) ||
+  static final _cursor = RegExp(r'^[A-Za-z0-9_-]{1,128}$');
+
+  /// Only these collections carry the caller identity in the envelope; the
+  /// academic contracts are scoped by school and profile alone.
+  static const _withUserId = {'notifications', 'chat'};
+
+  Future<Map<String, dynamic>> read(String collection, {String? cursor}) async {
+    if (!{
+          'academic',
+          'notifications',
+          'chat',
+          'results',
+          'notices',
+        }.contains(collection) ||
         schoolId == null ||
         role == null) {
       throw StateError('Seleccione uma escola e um perfil.');
+    }
+    if (cursor != null &&
+        (collection != 'notices' || !_cursor.hasMatch(cursor))) {
+      throw StateError('Paginação inválida.');
+    }
+    // Marks of a class depend on a per-profile privacy contract that the
+    // teacher profile does not have yet; do not ask the server for them.
+    if (collection == 'results' && role != 'aluno') {
+      throw StateError('Perfil sem contrato de notas neste cliente.');
     }
     final expectedSchool = schoolId;
     final expectedRole = role;
     final expectedUser = userId;
     final result = await _get(
       '/schools/${Uri.encodeComponent(expectedSchool!)}'
-      '/$collection?role=${Uri.encodeComponent(expectedRole!)}',
+      '/$collection?role=${Uri.encodeComponent(expectedRole!)}'
+      '${cursor == null ? '' : '&cursor=${Uri.encodeComponent(cursor)}'}',
     );
     if (result['schoolId'] != expectedSchool ||
         result['role'] != expectedRole ||
-        (collection != 'academic' && result['userId'] != expectedUser)) {
+        (_withUserId.contains(collection) &&
+            result['userId'] != expectedUser)) {
       throw StateError('Resposta fora do contexto autorizado.');
     }
     return result;

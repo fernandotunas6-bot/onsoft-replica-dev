@@ -150,6 +150,20 @@ class _SigaAppState extends State<SigaApp> {
                                 groupId: state.pathParameters['id'],
                               ),
                             ),
+                            GoRoute(
+                              path: 'notices',
+                              builder: (_, _) =>
+                                  servicePage('Avisos', '/notices'),
+                            ),
+                            // Only the pupil profile has a results contract; the route is not
+                            // offered to a teacher instead of showing an authorization error.
+                            GoRoute(
+                              path: 'results',
+                              redirect: (_, _) =>
+                                  role == 'aluno' ? null : '/more',
+                              builder: (_, _) =>
+                                  servicePage('Notas', '/results'),
+                            ),
                           ]
                         : [],
                   ),
@@ -376,6 +390,19 @@ class _SigaAppState extends State<SigaApp> {
             title: const Text('Tarefas'),
             trailing: const Icon(Icons.chevron_right),
             onTap: () => router.go('/more/tasks'),
+          ),
+          if (role == 'aluno')
+            ListTile(
+              leading: const Icon(Icons.grade_outlined),
+              title: const Text('Notas'),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => router.go('/more/results'),
+            ),
+          ListTile(
+            leading: const Icon(Icons.campaign_outlined),
+            title: const Text('Avisos'),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => router.go('/more/notices'),
           ),
           ListTile(
             leading: const Icon(Icons.palette_outlined),

@@ -11,10 +11,10 @@ produção nem de todas as PRs actuais; schema snapshot não prova RLS instalada
 | Google OAuth/recuperação | Parcial no ecossistema | Por implementar no Flutter com redirects e captcha compatíveis | src/features/auth/reset-password-server.ts; cliente Supabase |
 | Turmas/disciplinas/horários/tarefas | Existente em API | Páginas de consulta implementadas, testes não executados | academic-catalog.server.ts; lib/academic_page.dart |
 | Presenças/chamada | Existente em código servidor | Por migrar UI; exige MFA e validação de turmas | attendance.server.ts, attendance-call.server.ts |
-| Notas e diários | Existente em API | Por migrar UI, não presumir escala nem publicação | results.server.ts, gradebooks.server.ts |
+| Notas e diários | Existente em API | Página de notas do aluno entregue e testada (escala da escola, só publicadas); diários e perfil docente pendentes | results.server.ts, gradebooks.server.ts; lib/records.dart |
 | Propinas/recibos/Payflow | Existente em API | Por migrar UI; pagamento confirmado pelo provedor | finance.server.ts |
 | Chat/Storage/Realtime | Parcial | Flutter só lista conversas; escrita depende de capacidades instaladas | chat.server.ts, chat-commands.server.ts, chat-files.server.ts, browser.ts |
-| Avisos | Existente em API | Por migrar UI/paginação/marcação | notifications.server.ts |
+| Avisos | Existente em API | Página e paginação por cursor entregues e testadas; marcação como lido e anexos pendentes | notifications.server.ts; lib/records.dart |
 | Integrações por escola | Existente no portal | Falta endpoint móvel de capacidades | src/features/integrations/server.ts, install.ts |
 | Zoom | Parcial, OAuth/API no servidor | Falta endpoint móvel autorizado; configuração e execução não verificadas | src/features/integrations/zoom.ts; api/integrations/zoom/callback.tsx |
 | WhatsApp | Parcial: mensagens/lançadores | Convite da turma requer contrato e link validado; não há prova de grupos automáticos | whatsapp-client.ts, actions.ts |
@@ -23,7 +23,7 @@ produção nem de todas as PRs actuais; schema snapshot não prova RLS instalada
 | BigBlueButton | Por implementar no código examinado | Conector servidor, endpoint e permissões próprios | pesquisa de BBB/BigBlueButton sem implementação encontrada |
 | Transporte/GPS | Por implementar no código examinado | Schema privado, autorização, dispositivos e API | pesquisa em src e snapshot sem módulo operacional encontrado |
 | Biblioteca | Por expor ao cliente móvel | Não consta do router HTTP Mobile V4 examinado | src/features/mobile-v4/http.server.ts |
-| Flutter build/testes | Bloqueado no executor | SDK ausente; workflow preparado, não executado | .github/workflows/mobile-flutter.yml |
+| Flutter build/testes | Executado nesta sessão | 3.35.7/3.9.2: pub get, format, analyze (18 avisos informativos da base), 23 testes e build web release; pubspec.lock fixado | .github/workflows/mobile-flutter.yml |
 | Publicação | Bloqueada | Envio público rejeitado anteriormente; domínio não alterado | trabalho local; sem push nesta expansão |
 
 “Existente” significa código encontrado; “validado” requer execução e evidência.
@@ -33,14 +33,15 @@ validada nesta auditoria. Não houve consultas a dados pessoais nem migrações.
 ## Organização e contratos
 
 Rotas entregues: /home, /subjects, /calendar, /messages, /more,
-/more/classes, /more/classes/:id, /more/tasks. Todas partilham o gate de sessão,
+/more/classes, /more/classes/:id, /more/tasks, /more/results (só aluno),
+/more/notices. Todas partilham o gate de sessão,
 escola e papel; a lista de turmas deriva de classGroupId no catálogo autorizado.
 Participantes não são renderizados por ausência de avaliação de privacidade por
 perfil; nenhuma lista de colegas é inferida das permissões académicas.
 
 Novas rotas planeadas (não publicadas): /transport com /vehicles, /drivers,
 /routes, /routes/:id, /boarding, /history; /online-lessons; /integrations/google,
-/whatsapp; /finance; /library; /results. Não criar atalhos antes de haver serviço.
+/whatsapp; /finance; /library. Não criar atalhos antes de haver serviço.
 
 Manter /api/mobile-v4 existente. Novos endpoints exigem contratos versionados,
 schemas, guardas servidor e testes HTTP de origem/sessão/escola/perfil. A
@@ -75,11 +76,28 @@ UI email/TOTP desta base não comprova funcionamento em produção. Google OAuth
 precisa callback autorizado e recuperação precisa fluxo completo de sessão;
 passkeys precisam do domínio original e integração correspondente.
 
+## Notas e avisos
+
+Notas só para o perfil aluno e só do próprio: o contrato exige studentId igual
+ao autenticado e recusa rascunhos. A escala vem da escola por disciplina; o
+cliente não calcula médias, não arredonda e não presume 0-20. Trimestre
+duplicado, código repetido ou nota fora da escala falham fechado em vez de
+mostrar avaliação parcial. O perfil professor não tem contrato de notas: a
+rota nem é oferecida e o servidor responde 403.
+
+Avisos seguem a audiência decidida no servidor; um aviso de outra turma ou
+agendado para depois é recusado, não apenas escondido. A paginação usa cursor
+opaco validado, sem reinterpretação no cliente, e a página seguinte é anexada
+mantendo os avisos já mostrados. Marcação como lido exige escrita autorizada e
+não foi implementada.
+
 ## Sequência de execução
 
-1. Executar analyze/test/build e corrigir antes da release; fixar lockfile.
+1. Executado nesta sessão: analyze/test/build e lockfile fixado. Repetir no CI
+   com o workflow antes de qualquer release.
 2. Completar login/CAPTCHA, MFA, sessão e perfis com contas autorizadas.
-3. Validar turmas/tarefas de duas escolas; acrescentar páginas de notas/avisos.
+3. Validar turmas/tarefas/notas/avisos de duas escolas reais; acrescentar
+   diários e o contrato de notas dos perfis docente e encarregado.
 4. Migrar chat/histórico/Storage/Realtime, mantendo capacidades server-side.
 5. Expor capacidades e links institucionais de aula/WhatsApp com allowlist.
 6. Integrar Zoom e Google com credenciais existentes no servidor; BBB novo.
