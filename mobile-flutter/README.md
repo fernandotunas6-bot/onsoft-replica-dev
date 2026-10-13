@@ -50,6 +50,26 @@ temporal. O wordmark também é provisório.
 - `test/ui_test.dart`: linha temporal da abertura, barra inferior, ecrãs com
   um gateway simulado, selector, aparência e transporte.
 
+## Instalar no Android (APK)
+
+O workflow «SIGA Flutter — validate migration» gera, no job `android`, o
+artefacto **siga-plus-android-apk** com dois ficheiros:
+
+- `siga-plus-demonstracao.apk` — os ecrãs reais com dados fictícios locais
+  (`lib/main_demo.dart`); não pede senha nem contacta servidores; faixa
+  «Demonstração · dados fictícios» sempre visível.
+- `siga-plus.apk` — a app institucional: Supabase do SGA e API móvel do portal
+  (`SIGA_API_ORIGIN`, por omissão `https://portal-siga.com`). As três
+  definições podem ser trocadas nas variáveis do repositório
+  (`SIGA_SUPABASE_URL`, `SIGA_SUPABASE_PUBLISHABLE_KEY`, `SIGA_API_ORIGIN`).
+
+Para instalar: GitHub → Actions → a execução mais recente → Artifacts →
+descarregar o ZIP, abrir o APK no telemóvel e permitir «instalar apps de origem
+desconhecida». Os APK vão assinados com a chave de depuração: servem para
+testar, não para a Play Store (falta a keystore da plataforma).
+
+Localmente, com o Android SDK: `flutter build apk --release -t lib/main_demo.dart`.
+
 ## Executar
 
 Flutter 3.35.7 / Dart 3.9.2:

@@ -1,6 +1,27 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 
+/// Servidor da API móvel. No browser é a própria origem da página; nas apps
+/// nativas (Android/iOS) não há origem, e o servidor vem de
+/// `--dart-define=SIGA_API_ORIGIN=https://…`. Só HTTPS; sem servidor válido
+/// devolve null e a app mostra que aguarda configuração.
+Uri? resolveApiOrigin(
+  String configured, {
+  required bool web,
+  required Uri base,
+}) {
+  if (configured.isNotEmpty) {
+    final uri = Uri.tryParse(configured);
+    if (uri == null || uri.scheme != 'https' || uri.host.isEmpty) return null;
+    return Uri(
+      scheme: 'https',
+      host: uri.host,
+      port: uri.hasPort ? uri.port : null,
+    );
+  }
+  return web ? base : null;
+}
+
 /// Transport only. The existing Mobile V4 server owns authorization and rules.
 class MobileGateway {
   MobileGateway(this.origin, this.token, {http.Client? client})

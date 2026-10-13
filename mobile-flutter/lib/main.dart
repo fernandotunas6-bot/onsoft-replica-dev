@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -20,7 +21,12 @@ Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   const url = String.fromEnvironment('SUPABASE_URL');
   const key = String.fromEnvironment('SUPABASE_PUBLISHABLE_KEY');
-  if (url.isEmpty || !key.startsWith('sb_publishable_')) {
+  final origin = resolveApiOrigin(
+    const String.fromEnvironment('SIGA_API_ORIGIN'),
+    web: kIsWeb,
+    base: Uri.base,
+  );
+  if (url.isEmpty || !key.startsWith('sb_publishable_') || origin == null) {
     runApp(
       MaterialApp(
         debugShowCheckedModeBanner: false,
@@ -43,7 +49,7 @@ Future<void> main() async {
   }
   await Supabase.initialize(url: url, anonKey: key);
   final prefs = await SharedPreferences.getInstance();
-  runApp(SigaApp(prefs: prefs));
+  runApp(SigaApp(prefs: prefs, origin: origin));
 }
 
 /// Separadores da barra inferior, pela ordem das rotas do shell.
@@ -74,8 +80,9 @@ const institutionalServices = [
 ];
 
 class SigaApp extends StatefulWidget {
-  const SigaApp({super.key, required this.prefs});
+  const SigaApp({super.key, required this.prefs, required this.origin});
   final SharedPreferences prefs;
+  final Uri origin;
   @override
   State<SigaApp> createState() => _SigaAppState();
 }
@@ -83,7 +90,7 @@ class SigaApp extends StatefulWidget {
 class _SigaAppState extends State<SigaApp> {
   final auth = Supabase.instance.client.auth;
   late final MobileGateway gateway = MobileGateway(
-    Uri.base,
+    widget.origin,
     () async => auth.currentSession?.accessToken,
   );
   late final GoRouter router;

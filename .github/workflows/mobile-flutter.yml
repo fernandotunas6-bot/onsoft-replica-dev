@@ -49,3 +49,47 @@ jobs:
             mobile-flutter/build/web/
             mobile-flutter/pubspec.lock
           if-no-files-found: error
+  # APK instaláveis (Android), descarregáveis em «Artifacts» desta execução.
+  # Assinados com a chave de depuração: para instalar à mão, não para a Play
+  # Store. Os valores por omissão são públicos (os mesmos do portal web).
+  android:
+    runs-on: ubuntu-latest
+    needs: flutter
+    defaults:
+      run:
+        working-directory: mobile-flutter
+    env:
+      SUPABASE_URL: ${{ vars.SIGA_SUPABASE_URL || 'https://xodgfmxiaunpamctfeea.supabase.co' }}
+      SUPABASE_PUBLISHABLE_KEY: ${{ vars.SIGA_SUPABASE_PUBLISHABLE_KEY || 'sb_publishable_NSqtGz5zxP_EngLuNj00Og_y3V4D4td' }}
+      SIGA_API_ORIGIN: ${{ vars.SIGA_API_ORIGIN || 'https://portal-siga.com' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.35.7'
+          channel: stable
+          cache: true
+      - run: flutter pub get
+      - name: APK de demonstração (dados fictícios, sem servidor)
+        run: |
+          flutter build apk --release -t lib/main_demo.dart
+          mkdir -p ../dist
+          cp build/app/outputs/flutter-apk/app-release.apk ../dist/siga-plus-demonstracao.apk
+      - name: APK institucional (Supabase e API do portal)
+        run: |
+          flutter build apk --release \
+            --dart-define=SUPABASE_URL="$SUPABASE_URL" \
+            --dart-define=SUPABASE_PUBLISHABLE_KEY="$SUPABASE_PUBLISHABLE_KEY" \
+            --dart-define=SIGA_API_ORIGIN="$SIGA_API_ORIGIN"
+          cp build/app/outputs/flutter-apk/app-release.apk ../dist/siga-plus.apk
+      - run: ls -la ../dist && sha256sum ../dist/*.apk
+      - uses: actions/upload-artifact@v4
+        with:
+          name: siga-plus-android-apk
+          path: dist/*.apk
+          if-no-files-found: error
+          retention-days: 30

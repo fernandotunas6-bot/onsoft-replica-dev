@@ -87,4 +87,18 @@ void main() {
     gateway.select('student', 'school', 'aluno');
     await expectLater(gateway.read('finance'), throwsStateError);
   });
+  test('servidor da API: origem no browser, HTTPS configurado no nativo', () {
+    final page = Uri.parse('https://m.portal-siga.com/home');
+    expect(resolveApiOrigin('', web: true, base: page), page);
+    expect(resolveApiOrigin('', web: false, base: page), isNull);
+    expect(
+      resolveApiOrigin('https://portal-siga.com/x', web: false, base: page),
+      Uri.parse('https://portal-siga.com'),
+    );
+    expect(
+      resolveApiOrigin('http://portal-siga.com', web: false, base: page),
+      isNull,
+    );
+    expect(resolveApiOrigin('nada', web: false, base: page), isNull);
+  });
 }
