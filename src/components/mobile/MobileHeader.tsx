@@ -55,7 +55,7 @@ export function MobileHeader({
   };
 
   return (
-    <header className="sticky top-0 z-[30] border-b border-border bg-background/95 backdrop-blur-sm lg:hidden">
+    <header className="app-topbar sticky top-0 z-[30] border-b border-border/50 lg:hidden">
       <div className="flex min-h-[56px] items-center gap-2 px-3">
         {isRoot ? (
           <>
