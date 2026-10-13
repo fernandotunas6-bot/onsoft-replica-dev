@@ -168,8 +168,8 @@ marcado VALIDATION_ONLY. check-worker.mjs importou o bundle e verificou:
 sessão ausente 401, origem externa 403, API desconhecida 404/no-store e assets
 encaminhados ao binding ASSETS controlado. 36 testes backend passaram.
 
-A instalação de dependências foi interrompida após estas verificações; não
-equivale à instalação/build integral do portal. Não houve ensaio positivo
+A instalação terminou com 819 pacotes do lockfile, com scripts de instalação
+desactivados; não equivale à build integral do portal. Não houve ensaio positivo
 Auth/MFA, queries autorizadas, pagamentos ou providers. Flutter continua sem
 build neste ambiente. O pacote de produção exige index.html e
 flutter_bootstrap.js gerados pelo Flutter, além dos bindings configurados.
