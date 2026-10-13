@@ -19,6 +19,8 @@ const publicMessages: Record<string, string> = {
  * estrutura. A chave é o nome da restrição, que vem na mensagem do Postgres.
  */
 const constraintMessages: Record<string, string> = {
+  course_unit_enrollments_unique:
+    "O estudante já tem um registo nesta cadeira neste ano lectivo (mesmo anulado). Altere esse registo em vez de criar outro.",
   people_school_email_uidx: "Já existe uma pessoa com este e-mail nesta escola.",
   people_school_national_id_uidx: "Já existe uma pessoa com este BI nesta escola.",
   people_one_active_login_per_school: "Esta conta já está ligada a outra pessoa nesta escola.",

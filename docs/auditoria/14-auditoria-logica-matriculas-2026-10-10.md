@@ -403,3 +403,23 @@ criptográfico, limite partilhado por IP, titular só com iniciais). Migração
 **`20261013100000`**: índice parcial em `metadata->>'code'` só sobre os documentos emitidos,
 no pacote `SIGA_aplicar_auditoria14_2026-10-10.sql` (nova coluna na consulta do fim).
 Ensaio: `tests/sql/document-code-index.mjs` (o plano passa a usar o índice).
+
+## 17. Ensino superior (2026-10-13)
+
+Revisão do motor e do servidor do ensino superior. Corrigidos (com testes que falham sem a
+correcção):
+
+| #   | Defeito                                                                                                                                                               | Correcção                                                                              |
+| --- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------- |
+| ES1 | Época normal sem nota de exame: a fórmula usava só a frequência e **aprovava quem não fez o exame** (abaixo da dispensa), com os créditos.                            | `seasonResult` sem exame não dá resultado; o servidor exige a nota em todas as épocas. |
+| ES2 | Inscrição em lote, pauta da cadeira e mapa SISIES liam o histórico cortado nas 1000 linhas: reinscrições em cadeiras feitas, alunos fora da pauta, graduados a menos. | `pagedReadClient`.                                                                     |
+| ES3 | Classificação final arredondada duas vezes (13,45 → 13,5 → 14 «Bom» em vez de 13 «Suficiente»), no certificado e no SISIES.                                           | `averageExact` sem arredondamento intermédio.                                          |
+| ES4 | Limites de créditos contavam só as cadeiras «inscrito»: com resultados lançados, cabia o dobro da carga no ano.                                                       | Conta toda a carga do ano, excepto anuladas e creditadas.                              |
+| ES5 | Época especial lançada vezes sem conta (cada vez sobrescrevia a nota).                                                                                                | Uma vez.                                                                               |
+| ES8 | Anular e voltar a inscrever, ou creditar, no mesmo ano: erro técnico da restrição única.                                                                              | Mensagem clara.                                                                        |
+
+Por decidir (mudam regras ou modelo, ficam para o dono): correcção de nota que ignora as
+regras da frequência (ES6); professor autorizado por qualquer turma da disciplina, em qualquer
+ano (ES7 — a migração `20261006090000_course_unit_shift.sql` refere `shifts.ts`, que não
+existe); dois certificados em simultâneo (ES9, falta índice único); SISIES conta graduados de
+todos os anos (ES10).

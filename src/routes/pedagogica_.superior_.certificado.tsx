@@ -65,7 +65,7 @@ function CertificatePage() {
   // Decreto 257/25: classificação final inteira (10–20) com menção qualitativa.
   const degree = data?.program.degree ?? "licenciatura";
   const doctoral = degree === "doutoramento";
-  const final = data?.progress.completed ? finalClassification(data.progress.average) : null;
+  const final = data?.progress.completed ? finalClassification(data.progress.averageExact) : null;
   // Doutoramento: sem nota numérica, conta a decisão do júri (Decreto 257/25).
   const completed = Boolean(data?.progress.completed && (doctoral ? data.juryMention : final));
   const title = DEGREE_TITLE[degree];

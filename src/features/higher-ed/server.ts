@@ -11,6 +11,7 @@
  * a linha fica `status = inscrito`, `season = frequencia` e `final_grade` guarda
  * a média de frequência — é daí que a época normal a lê.
  */
+import { pagedReadClient } from "@/integrations/supabase/paged-client";
 import { linkNewProgramsToCatalog } from "@/features/education-catalog/catalog-link";
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
@@ -978,7 +979,7 @@ export const issueHigherEdCertificate = createServerFn({ method: "POST" })
 
     const doctoral = transcript.program.degree === "doutoramento";
     const final = transcript.progress.completed
-      ? finalClassification(transcript.progress.average)
+      ? finalClassification(transcript.progress.averageExact)
       : null;
     if (!transcript.progress.completed || (doctoral ? !transcript.juryMention : !final)) {
       throw new Error(
@@ -1264,7 +1265,10 @@ export const enrollCohort = createServerFn({ method: "POST" })
     const candidates = units.filter((unit) => unit.semester === data.semester);
     if (!candidates.length) throw new Error("O plano não tem cadeiras neste semestre.");
     const indebted = await assertEnrollmentAllowed(db, schoolId, regulation, studentIds);
-    const { data: recordRows, error: recordsError } = await db
+    // Por páginas: cada estudante tem vários registos e o servidor devolve no máximo
+    // 1000 linhas — com o histórico cortado, havia quem fosse inscrito outra vez em
+    // cadeiras já feitas e sem as precedências confirmadas.
+    const { data: recordRows, error: recordsError } = await pagedReadClient(db)
       .from("course_unit_enrollments")
       .select(RECORD_COLUMNS)
       .eq("school_id", schoolId)
@@ -1814,6 +1818,9 @@ export const recordUnitResult = createServerFn({ method: "POST" })
               : "Melhoria só depois de aprovar a cadeira, uma vez, se o regulamento a permitir.",
         );
       }
+      // Uma época de exame precisa da nota do exame (a normal, sem ela, aprovava pela
+      // frequência quem não fez o exame).
+      if (data.exam == null) throw new Error("Indique a nota do exame.");
       const frequency = season === "normal" ? latestRecord.finalGrade : null;
       const result = seasonResult({
         season,
@@ -2036,7 +2043,8 @@ export const getUnitSheet = createServerFn({ method: "GET" })
 
     // O histórico completo de cada estudante no curso: a época especial depende
     // de quantas cadeiras lhe faltam no plano, não só desta.
-    const { data: recordRows, error } = await db
+    // Por páginas (ver enrollCohort): com o histórico cortado, estudantes saíam da pauta.
+    const { data: recordRows, error } = await pagedReadClient(db)
       .from("course_unit_enrollments")
       .select(RECORD_COLUMNS)
       .eq("school_id", schoolId)
@@ -2630,12 +2638,12 @@ export const exportSisiesWorkbook = createServerFn({ method: "POST" })
     for (const programId of programIds) {
       const { units } = await loadPlan(db, schoolId, programId);
       if (!units.length) continue;
-      const { data: recordRows } = await db
+      // Todas as páginas (o limit(50000) recebia 1000 linhas): graduados contados a menos.
+      const { data: recordRows } = await pagedReadClient(db)
         .from("course_unit_enrollments")
         .select(RECORD_COLUMNS)
         .eq("school_id", schoolId)
-        .eq("program_id", programId)
-        .limit(50000);
+        .eq("program_id", programId);
       const byStudent = new Map<string, UnitRecord[]>();
       for (const row of (recordRows ?? []) as Row[]) {
         const list = byStudent.get(str(row.student_id)) ?? [];
@@ -2648,7 +2656,7 @@ export const exportSisiesWorkbook = createServerFn({ method: "POST" })
         if (!units.every((unit) => done.has(unit.id))) continue;
         entry.total += 1;
         const final = finalClassification(
-          studentProgress({ plan: units, records, regulation }).average,
+          studentProgress({ plan: units, records, regulation }).averageExact,
         );
         if (final) entry.averages.push(final.value);
       }

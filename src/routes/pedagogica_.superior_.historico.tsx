@@ -169,7 +169,7 @@ function TranscriptPage() {
                   {(() => {
                     if (data.progress.average === null) return "—";
                     const final = data.progress.completed
-                      ? finalClassification(data.progress.average)
+                      ? finalClassification(data.progress.averageExact)
                       : null;
                     return final
                       ? `${final.value} valores (${final.mention})`
