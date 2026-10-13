@@ -195,10 +195,10 @@ export function AiSettingsPanel() {
       </div>
 
       {form.mode === "remote" ? (
-        <div className="flex items-start justify-between gap-4 rounded-lg border border-amber-500/40 p-3">
+        <div className="flex items-start justify-between gap-4 rounded-lg border border-warning/50 bg-warning/10 p-3">
           <div>
             <Label htmlFor="ai-remote" className="flex items-center gap-1.5">
-              <TriangleAlert className="size-3.5 text-amber-600" aria-hidden="true" />
+              <TriangleAlert className="size-3.5 text-warning-strong" aria-hidden="true" />
               Autorizar IA remota
             </Label>
             <p className="text-xs text-muted-foreground">
