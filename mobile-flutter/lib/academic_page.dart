@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'academic.dart';
 import 'gateway.dart';
 import 'design_system.dart';
+import 'chat_history.dart';
 
 class DataPage extends StatefulWidget {
   const DataPage({super.key, required this.gateway, required this.path, required this.name, this.groupId});
@@ -146,8 +147,10 @@ class _DataPageState extends State<DataPage> {
           for (final thread in result['threads'] as List)
             if (thread is Map && thread['name'] is String && matches(thread['name'] as String))
               ListTile(contentPadding: const EdgeInsets.symmetric(vertical: 8), leading: const Icon(Icons.chat_bubble_outline),
-                title: Text(thread['name'] as String), subtitle: Text('${thread['unread']} não lidas')),
-          const SizedBox(height: 16), const Text('O histórico e o envio de mensagens estão em integração.'),
+                title: Text(thread['name'] as String), subtitle: Text('${thread['unread']} não lidas'),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: thread['id'] is! String ? null : () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => ChatHistoryPage(gateway:widget.gateway,id:thread['id'] as String,name:thread['name'] as String)))),
+          const SizedBox(height: 16), const Text('Seleccione uma conversa para consultar o histórico.'),
         ],
       ] else ...[
         if (subjects.isEmpty) empty('Sem disciplinas para os filtros escolhidos.'),

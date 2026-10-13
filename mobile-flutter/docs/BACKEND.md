@@ -186,3 +186,11 @@ Novos testes Dart de âmbito financeiro preparados, não executados (SDK ausente
 Worker recompilado e smoke checks aprovados. Sem ensaio autenticado real, a
 ligação de código não comprova conexão total operacional. CAPTCHA/Auth/MFA,
 chat completo, escritas, providers e Flutter build permanecem pendentes.
+
+## Chat Flutter — histórico
+
+Conversas abrem histórico real via API autenticada, validando escola/papel/
+utilizador/conversa. Paginação mantém cursor textual com precisão temporal e
+deduplica IDs; mensagens eliminadas não mostram corpo. Envio e abertura de
+anexos continuam indisponíveis no cliente. Código Dart ainda sem build/testes
+executados; o funcionamento positivo com conta real não foi verificado.
