@@ -12,6 +12,7 @@ import 'package:siga_plus_flutter/identity.dart';
 import 'package:siga_plus_flutter/pages/appearance_page.dart';
 import 'package:siga_plus_flutter/pages/schools_page.dart';
 import 'package:siga_plus_flutter/pages/transport_page.dart';
+import 'package:siga_plus_flutter/pages/welcome_page.dart';
 
 Widget app(Widget child, {double width = 390}) => MaterialApp(
   theme: sigaTheme(Brightness.light, Siga.institutionalBlue),
@@ -352,5 +353,22 @@ void main() {
       findsOneWidget,
     );
     expect(find.byType(FilledButton), findsNothing);
+  });
+
+  testWidgets('apresentação: avança até «Começar» e também se pode saltar', (
+    tester,
+  ) async {
+    var done = 0;
+    await tester.pumpWidget(app(WelcomePage(onDone: () => done++)));
+    expect(find.text('Tudo o que a sua escola precisa'), findsOneWidget);
+    await tester.tap(find.byTooltip('Seguinte'));
+    await tester.pumpAndSettle();
+    expect(find.text('A sua turma, organizada'), findsOneWidget);
+    await tester.tap(find.byTooltip('Seguinte'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Começar'));
+    expect(done, 1);
+    await tester.tap(find.text('Saltar'));
+    expect(done, 2);
   });
 }

@@ -17,6 +17,13 @@ notas e documentos só para o aluno. Integrações que ainda não existem (Whats
 da turma, aulas online, presenças/notas da turma, GPS do transporte) aparecem
 como «Por activar» ou «Simulação», com a explicação, sem botões fictícios.
 
+Avisos, propinas, notas e documentos em cartões com o estado em português
+(«Pronto a levantar», «Pago em parte»…), a mesma validação de antes. Chat em
+balões (os meus à direita, na cor principal) com hora de Luanda, resposta
+citada e anexo identificado; as páginas antigas aparecem acima das recentes.
+Apresentação de três páginas uma só vez, depois da abertura do S, com
+«Saltar»; não espera pela sessão.
+
 Revisto em Chromium a 390×844, claro e escuro, com uma pré-visualização local
 de dados fictícios. Inter empacotada e o vector original do S (ou Rive)
 permanecem pendentes; validação em Android/iOS físicos também.

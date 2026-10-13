@@ -14,6 +14,7 @@ import 'pages/login_page.dart';
 import 'pages/more_page.dart';
 import 'pages/schools_page.dart';
 import 'pages/transport_page.dart';
+import 'pages/welcome_page.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -93,6 +94,7 @@ class _SigaAppState extends State<SigaApp> {
   String? factor;
   String? error;
   bool intro = true;
+  bool welcome = false;
   bool busy = true;
   bool reduced = false;
   int generation = 0;
@@ -113,11 +115,16 @@ class _SigaAppState extends State<SigaApp> {
     }
     // Movimento reduzido escolhido na app também dispensa a abertura.
     intro = !reduced;
+    // A apresentação aparece uma só vez, depois da abertura.
+    welcome = !(widget.prefs.getBool('welcome-seen') ?? false);
     router = GoRouter(
       initialLocation: '/home',
       refreshListenable: refresh,
       redirect: (context, state) {
         if (intro) return state.matchedLocation == '/intro' ? null : '/intro';
+        if (welcome) {
+          return state.matchedLocation == '/welcome' ? null : '/welcome';
+        }
         final gate = busy
             ? '/loading'
             : auth.currentSession == null
@@ -130,6 +137,7 @@ class _SigaAppState extends State<SigaApp> {
         if (gate != null) return state.matchedLocation == gate ? null : gate;
         if ({
           '/intro',
+          '/welcome',
           '/loading',
           '/login',
           '/mfa',
@@ -148,6 +156,17 @@ class _SigaAppState extends State<SigaApp> {
               if (!mounted) return;
               widget.prefs.setBool('intro-seen', true);
               intro = false;
+              update();
+            },
+          ),
+        ),
+        GoRoute(
+          path: '/welcome',
+          builder: (_, _) => WelcomePage(
+            onDone: () {
+              if (!mounted) return;
+              widget.prefs.setBool('welcome-seen', true);
+              welcome = false;
               update();
             },
           ),
