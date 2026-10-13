@@ -24,7 +24,8 @@ export async function readMobileResults(
   const response = {
     schoolId: scope.schoolId,
     role: "aluno" as const,
-    sheets: [] as import("../../../mobile-flutter/contracts/domain/results").AcademicResults["sheets"],
+    sheets:
+      [] as import("../../../mobile-flutter/contracts/domain/results").AcademicResults["sheets"],
   };
   if (!scope.enrollmentIds.length || !catalog.classes.length) return response;
   const sheets = await read<{
