@@ -173,3 +173,16 @@ desactivados; não equivale à build integral do portal. Não houve ensaio posit
 Auth/MFA, queries autorizadas, pagamentos ou providers. Flutter continua sem
 build neste ambiente. O pacote de produção exige index.html e
 flutter_bootstrap.js gerados pelo Flutter, além dos bindings configurados.
+
+## Cliente Flutter: consultas institucionais
+
+Rotas /more/notifications, /finance, /documents e /results ligadas aos endpoints
+existentes via Bearer/session/contexto actual. Finance/documents/results apenas
+aluno; validação de escola/papel e, quando o contrato contém, userId. Consulta
+de avisos sem marcar leitura; facturas com recibos, sem saldo inferido ou checkout
+local; pautas com média nula preservada; pedidos documentais sem escrita.
+
+Novos testes Dart de âmbito financeiro preparados, não executados (SDK ausente).
+Worker recompilado e smoke checks aprovados. Sem ensaio autenticado real, a
+ligação de código não comprova conexão total operacional. CAPTCHA/Auth/MFA,
+chat completo, escritas, providers e Flutter build permanecem pendentes.

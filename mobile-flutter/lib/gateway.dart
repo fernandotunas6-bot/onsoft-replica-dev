@@ -31,9 +31,12 @@ class MobileGateway {
   Future<Map<String, dynamic>> session() => _get('/session');
 
   Future<Map<String, dynamic>> read(String collection) async {
-    if (!{'academic', 'notifications', 'chat'}.contains(collection) ||
+    if (!{'academic', 'notifications', 'chat', 'finance', 'documents', 'results'}.contains(collection) ||
         schoolId == null || role == null) {
       throw StateError('Seleccione uma escola e um perfil.');
+    }
+    if ({'finance', 'documents', 'results'}.contains(collection) && role != 'aluno') {
+      throw StateError('Esta consulta é exclusiva do aluno.');
     }
     final expectedSchool = schoolId;
     final expectedRole = role;
@@ -41,7 +44,7 @@ class MobileGateway {
     final result = await _get('/schools/${Uri.encodeComponent(expectedSchool!)}'
         '/$collection?role=${Uri.encodeComponent(expectedRole!)}');
     if (result['schoolId'] != expectedSchool || result['role'] != expectedRole ||
-        (collection != 'academic' && result['userId'] != expectedUser)) {
+        (!{'academic', 'results'}.contains(collection) && result['userId'] != expectedUser)) {
       throw StateError('Resposta fora do contexto autorizado.');
     }
     return result;

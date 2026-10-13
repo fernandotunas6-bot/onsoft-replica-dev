@@ -37,4 +37,19 @@ void main() {
     gateway.select('user', 'school', 'professor');
     await expectLater(gateway.read('academic'), throwsStateError);
   });
+  test('professor cannot request own-student finance endpoint', () async {
+    var calls = 0;
+    final gateway = MobileGateway(Uri.parse('https://example.test'), () async => 'token',
+      client: MockClient((_) async { calls++; return http.Response('{}', 200); }));
+    gateway.select('teacher', 'school', 'professor');
+    await expectLater(gateway.read('finance'), throwsStateError);
+    expect(calls, 0);
+  });
+  test('finance response for another user is discarded', () async {
+    final gateway = MobileGateway(Uri.parse('https://example.test'), () async => 'token',
+      client: MockClient((_) async => http.Response('{"schoolId":"school","role":"aluno","userId":"other","invoices":[]}', 200)));
+    gateway.select('student', 'school', 'aluno');
+    await expectLater(gateway.read('finance'), throwsStateError);
+  });
+
 }

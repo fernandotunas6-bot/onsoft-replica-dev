@@ -7,6 +7,7 @@ import 'gateway.dart';
 import 'identity.dart';
 import 'academic_page.dart';
 import 'design_system.dart';
+import 'institutional_page.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -73,6 +74,8 @@ class _SigaAppState extends State<SigaApp> {
           for (final path in ['/home', '/subjects', '/calendar', '/messages', '/more'])
             StatefulShellBranch(routes: [GoRoute(path: path, builder: (_, _) => page(path), routes: path == '/more' ? [
               GoRoute(path: 'classes', builder: (_, _) => servicePage('Turmas', '/classes')),
+              for (final service in ['notifications','finance','documents','results'])
+                GoRoute(path: service, builder: (_, _) => institutionalService(service)),
               GoRoute(path: 'tasks', builder: (_, _) => servicePage('Tarefas', '/tasks')),
               GoRoute(path: 'classes/:id', builder: (_, state) => servicePage('Turma', '/class', groupId: state.pathParameters['id'])),
             ] : [])]),
@@ -175,6 +178,12 @@ class _SigaAppState extends State<SigaApp> {
         ]);
       }),
       const SizedBox(height: 24),
+      ListTile(leading: const Icon(Icons.notifications_outlined), title: const Text('Avisos'), onTap: () => router.go('/more/notifications')),
+      if (role == 'aluno') ...[
+        ListTile(leading: const Icon(Icons.account_balance_wallet_outlined), title: const Text('Propinas e recibos'), onTap: () => router.go('/more/finance')),
+        ListTile(leading: const Icon(Icons.school_outlined), title: const Text('Notas publicadas'), onTap: () => router.go('/more/results')),
+        ListTile(leading: const Icon(Icons.description_outlined), title: const Text('Documentos'), onTap: () => router.go('/more/documents')),
+      ],
       ListTile(leading: const Icon(Icons.palette_outlined), title: const Text('Aparência'), onTap: () {
         showModalBottomSheet<void>(context: router.routerDelegate.navigatorKey.currentContext!,
           showDragHandle: true, builder: (context) => SafeArea(child: StatefulBuilder(builder: (context, sheetSetState) =>
@@ -190,6 +199,9 @@ class _SigaAppState extends State<SigaApp> {
     ]);
     return DataPage(key: ValueKey('$school:$role:$path'), gateway: gateway, path: path, name: '${session?['name'] ?? ''}');
   }
+  Widget institutionalService(String collection) => Scaffold(
+    appBar: AppBar(title: Text({'notifications':'Avisos','finance':'Propinas e recibos','documents':'Documentos','results':'Notas publicadas'}[collection]!), leading: IconButton(tooltip:'Voltar', icon: const Icon(Icons.arrow_back), onPressed: () => router.go('/more'))),
+    body: InstitutionalPage(key: ValueKey('$school:$role:$collection'), gateway: gateway, collection: collection));
   Widget servicePage(String title, String path, {String? groupId}) => Scaffold(
     appBar: AppBar(title: Text(title), leading: IconButton(tooltip: 'Voltar', icon: const Icon(Icons.arrow_back), onPressed: () => router.go('/more'))),
     body: DataPage(key: ValueKey('$school:$role:$path:$groupId'), gateway: gateway, path: path, name: session?['name'] as String? ?? '', groupId: groupId));
