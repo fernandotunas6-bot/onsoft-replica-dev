@@ -175,9 +175,16 @@ class _LoginPageState extends State<LoginPage> {
     final palette = SigaPalette.of(context);
     return Scaffold(
       body: SafeArea(
-        child: Center(
+        // Alinhado ao topo, com a marca em cima, como no ecrã 5.
+        child: Align(
+          alignment: Alignment.topCenter,
           child: SingleChildScrollView(
-            padding: const EdgeInsets.all(Siga.s3),
+            padding: const EdgeInsets.fromLTRB(
+              Siga.s3,
+              Siga.s3,
+              Siga.s3,
+              Siga.s3,
+            ),
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 420),
               child: AutofillGroup(

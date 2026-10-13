@@ -254,6 +254,14 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.text('Mariana Silva'), findsNothing);
       expect(find.text('2 mensagens por ler'), findsOneWidget);
+      // Favoritas só mostra o que foi marcado neste dispositivo.
+      await tester.tap(find.text('Favoritas'));
+      await tester.pumpAndSettle();
+      expect(find.text('Prof. Carlos Mendes'), findsNothing);
+      expect(
+        find.text('Sem favoritas. Toque longo numa conversa para a marcar.'),
+        findsOneWidget,
+      );
       await unmount(tester);
     });
 

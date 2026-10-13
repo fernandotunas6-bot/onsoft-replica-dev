@@ -23,7 +23,7 @@ class TransportPage extends StatelessWidget {
             children: [
               Row(
                 children: [
-                  const IconBadge(Icons.directions_bus_outlined, accent: true),
+                  const Icon(Icons.directions_bus_outlined, size: 30),
                   const SizedBox(width: Siga.s2),
                   Expanded(
                     child: Column(
@@ -84,7 +84,7 @@ class TransportPage extends StatelessWidget {
                                   ),
                                   child: const Text(
                                     'Autocarro 01',
-                                    style: TextStyle(fontSize: 11),
+                                    style: TextStyle(fontSize: 12),
                                   ),
                                 ),
                               ),
@@ -163,7 +163,15 @@ class _Stat extends StatelessWidget {
         children: [
           Text(label, style: Theme.of(context).textTheme.bodySmall),
           const SizedBox(height: 6),
-          Text(value, style: Theme.of(context).textTheme.titleMedium),
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: Alignment.centerLeft,
+            child: Text(
+              value,
+              maxLines: 1,
+              style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w700),
+            ),
+          ),
         ],
       ),
     );
@@ -210,14 +218,15 @@ class RoutePainter extends CustomPainter {
       ..moveTo(180 * sx, 76 * sy)
       ..cubicTo(210 * sx, 66 * sy, 220 * sx, 30 * sy, 250 * sx, 26 * sy)
       ..cubicTo(270 * sx, 24 * sy, 285 * sx, 40 * sy, 292 * sx, 48 * sy);
+    // Tracejado azul-acinzentado, traços curtos como na referência.
     final dash = Paint()
-      ..color = ink.withValues(alpha: .35)
+      ..color = const Color(0xff94a3b8)
       ..style = PaintingStyle.stroke
-      ..strokeWidth = 4
+      ..strokeWidth = 4.5
       ..strokeCap = StrokeCap.round;
     for (final metric in ahead.computeMetrics()) {
-      for (var d = 0.0; d < metric.length; d += 11) {
-        canvas.drawPath(metric.extractPath(d, d + 2), dash);
+      for (var d = 0.0; d < metric.length; d += 13 * sx) {
+        canvas.drawPath(metric.extractPath(d, d + 6 * sx), dash);
       }
     }
 

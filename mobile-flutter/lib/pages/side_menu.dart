@@ -77,85 +77,94 @@ class SideMenu extends StatelessWidget {
         '/more/appearance',
       ),
     ];
+    // Cartão flutuante com cantos redondos, afastado das margens (ecrã 11).
     return Drawer(
       width: 300,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.horizontal(right: Radius.circular(20)),
-      ),
+      backgroundColor: Colors.transparent,
+      elevation: 0,
+      shape: const RoundedRectangleBorder(),
       child: SafeArea(
-        child: ListView(
-          padding: const EdgeInsets.fromLTRB(
-            Siga.s2,
-            Siga.s2,
-            Siga.s2,
-            Siga.s3,
-          ),
-          children: [
-            Semantics(
-              button: true,
-              label: '$name, $subtitle. Mudar de escola',
-              excludeSemantics: true,
-              child: InkWell(
-                borderRadius: BorderRadius.circular(Siga.rMedium),
-                onTap: () {
-                  Navigator.of(context).pop();
-                  onSwitchSchool();
-                },
-                child: Padding(
-                  padding: const EdgeInsets.all(Siga.s1),
-                  child: Row(
-                    children: [
-                      InitialsAvatar(name, size: 48),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              name,
-                              style: const TextStyle(
-                                fontSize: 15,
-                                fontWeight: FontWeight.w600,
+        minimum: const EdgeInsets.all(12),
+        child: Material(
+          color: Theme.of(context).colorScheme.surface,
+          elevation: 8,
+          shadowColor: const Color(0x33000000),
+          borderRadius: BorderRadius.circular(24),
+          clipBehavior: Clip.antiAlias,
+          child: ListView(
+            padding: const EdgeInsets.fromLTRB(
+              Siga.s2,
+              Siga.s2,
+              Siga.s2,
+              Siga.s3,
+            ),
+            children: [
+              Semantics(
+                button: true,
+                label: '$name, $subtitle. Mudar de escola',
+                excludeSemantics: true,
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(Siga.rMedium),
+                  onTap: () {
+                    Navigator.of(context).pop();
+                    onSwitchSchool();
+                  },
+                  child: Padding(
+                    padding: const EdgeInsets.all(Siga.s1),
+                    child: Row(
+                      children: [
+                        InitialsAvatar(name, size: 48),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                name,
+                                style: const TextStyle(
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w600,
+                                ),
                               ),
-                            ),
-                            Text(
-                              subtitle,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: palette.ink2,
+                              Text(
+                                subtitle,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: palette.ink2,
+                                ),
                               ),
-                            ),
-                          ],
+                            ],
+                          ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
               ),
-            ),
-            const SizedBox(height: Siga.s2),
-            for (final (label, icon, path) in items)
-              MenuRow(icon: icon, title: label, onTap: () => go(path)),
-            const SizedBox(height: Siga.s1),
-            MenuRow(
-              icon: i(Icons.dark_mode_outlined, Icons.dark_mode_rounded),
-              title: 'Modo escuro',
-              trailing: Switch(value: dark, onChanged: onDark),
-              onTap: () => onDark(!dark),
-            ),
-            const SizedBox(height: Siga.s2),
-            MenuRow(
-              icon: Icons.logout,
-              title: 'Sair',
-              destructive: true,
-              onTap: () {
-                Navigator.of(context).pop();
-                onSignOut();
-              },
-            ),
-          ],
+              const SizedBox(height: Siga.s2),
+              for (final (label, icon, path) in items)
+                MenuRow(icon: icon, title: label, onTap: () => go(path)),
+              const SizedBox(height: Siga.s1),
+              MenuRow(
+                icon: i(Icons.dark_mode_outlined, Icons.dark_mode_rounded),
+                title: 'Modo escuro',
+                trailing: Switch(value: dark, onChanged: onDark),
+                onTap: () => onDark(!dark),
+              ),
+              const SizedBox(height: Siga.s2),
+              MenuRow(
+                icon: Icons.logout,
+                title: 'Sair',
+                destructive: true,
+                onTap: () {
+                  Navigator.of(context).pop();
+                  onSignOut();
+                },
+              ),
+            ],
+          ),
         ),
       ),
     );

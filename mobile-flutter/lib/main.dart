@@ -261,7 +261,7 @@ class _SigaAppState extends State<SigaApp> {
         GoRoute(
           path: ':id',
           builder: (_, state) => servicePage(
-            'Turma',
+            '',
             '/class',
             back: '/more/classes',
             groupId: state.pathParameters['id'],

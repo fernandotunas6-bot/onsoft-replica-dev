@@ -22,6 +22,7 @@ class ServicesPage extends StatelessWidget {
     final palette = SigaPalette.of(context);
     IconData i(IconData outlined, IconData modern) =>
         AppearanceScope.icon(context, outlined, modern);
+    final modern = AppearanceScope.maybeOf(context)?.modernIcons ?? false;
     // Propinas e notas publicadas são consultas do aluno; para o professor,
     // o mosaico explica isso em vez de abrir um erro.
     final tiles = [
@@ -141,6 +142,9 @@ class ServicesPage extends StatelessWidget {
               ServiceTile(
                 icon: icon,
                 label: label,
+                glyph: label == 'Biblioteca' && !modern
+                    ? const LineGlyph.library()
+                    : null,
                 onTap: () => onNavigate(path),
               ),
             ServiceTile(
@@ -150,6 +154,7 @@ class ServicesPage extends StatelessWidget {
                 Icons.grid_view_rounded,
               ),
               label: 'Mais',
+              glyph: modern ? null : const LineGlyph.rings(),
               onTap: () => Scaffold.maybeOf(context)?.openDrawer(),
             ),
           ],

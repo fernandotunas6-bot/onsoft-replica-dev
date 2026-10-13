@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'academic.dart';
 import 'chat_history.dart';
 import 'design/tokens.dart';
@@ -60,17 +61,44 @@ class _DataPageState extends State<DataPage> {
   bool searching = false;
   int subjectFilter = 0;
   int calendarView = 0;
-  int classView = 0;
-  bool unreadOnly = false;
+
+  /// Mensagens: 0 Todas, 1 Não lidas, 2 Favoritas.
+  int chatFilter = 0;
+
+  /// Conversas marcadas como favoritas neste dispositivo (toque longo).
+  Set<String> favorites = {};
+  String get favoritesKey =>
+      'favorite-threads:${widget.gateway.schoolId}:${widget.gateway.userId}';
   DateTime selected = luandaClock(DateTime.now());
 
   @override
   void initState() {
     super.initState();
     load();
+    if (widget.path == '/messages') unawaited(loadFavorites());
     clock = Timer.periodic(const Duration(minutes: 1), (_) {
       if (mounted) setState(() {});
     });
+  }
+
+  Future<void> loadFavorites() async {
+    final prefs = await SharedPreferences.getInstance();
+    final saved = prefs.getStringList(favoritesKey) ?? const [];
+    if (mounted) setState(() => favorites = saved.toSet());
+  }
+
+  Future<void> toggleFavorite(String id, String name) async {
+    final added = !favorites.contains(id);
+    setState(() => added ? favorites.add(id) : favorites.remove(id));
+    ScaffoldMessenger.maybeOf(context)?.showSnackBar(
+      SnackBar(
+        content: Text(
+          added ? '$name nas favoritas.' : '$name saiu das favoritas.',
+        ),
+      ),
+    );
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setStringList(favoritesKey, favorites.toList());
   }
 
   @override
@@ -124,6 +152,25 @@ class _DataPageState extends State<DataPage> {
 
   IconData icon(IconData outlined, IconData modern) =>
       AppearanceScope.icon(context, outlined, modern);
+
+  /// Ícone de cada disciplina, pela mesma ordem das cores (ecrã 8).
+  static const subjectIcons = [
+    (Icons.view_in_ar_outlined, Icons.view_in_ar_rounded),
+    (Icons.description_outlined, Icons.description_rounded),
+    (Icons.science_outlined, Icons.science_rounded),
+    (Icons.grid_on_outlined, Icons.grid_on_rounded),
+    (Icons.forum_outlined, Icons.forum_rounded),
+    (Icons.menu_book_outlined, Icons.auto_stories_rounded),
+  ];
+
+  IconData subjectIcon(AcademicCatalog catalog, dynamic classSubjectId) {
+    final index = catalog.classes.indexWhere(
+      (c) => c['classSubjectId'] == classSubjectId,
+    );
+    final (outlined, modern) =
+        subjectIcons[(index < 0 ? 0 : index) % subjectIcons.length];
+    return icon(outlined, modern);
+  }
 
   // ───────── Folhas de detalhe ─────────
 
@@ -257,7 +304,7 @@ class _DataPageState extends State<DataPage> {
         child: Row(
           children: [
             TintIcon(
-              icon(Icons.menu_book_outlined, Icons.auto_stories_rounded),
+              subjectIcon(catalog, item['classSubjectId']),
               color: subjectColor(catalog, item['classSubjectId']),
             ),
             const SizedBox(width: 14),
@@ -717,7 +764,13 @@ class _DataPageState extends State<DataPage> {
     final unreadThreads = threads.where((t) => unread(t) > 0).length;
     final shown = threads
         .where(
-          (t) => matches(t['name'] as String) && (!unreadOnly || unread(t) > 0),
+          (t) =>
+              matches(t['name'] as String) &&
+              switch (chatFilter) {
+                1 => unread(t) > 0,
+                2 => favorites.contains(t['id']),
+                _ => true,
+              },
         )
         .toList();
     final scheme = Theme.of(context).colorScheme;
@@ -730,16 +783,20 @@ class _DataPageState extends State<DataPage> {
       titleRow('Mensagens', search: false),
       searchField('Pesquisar conversas…', always: true),
       Segmented(
-        options: const ['Todas', 'Não lidas'],
-        selected: unreadOnly ? 1 : 0,
+        options: const ['Todas', 'Não lidas', 'Favoritas'],
+        selected: chatFilter,
         badges: {1: unreadThreads},
-        onSelected: (i) => setState(() => unreadOnly = i == 1),
+        onSelected: (i) => setState(() => chatFilter = i),
       ),
       const SizedBox(height: Siga.s1),
       if (threads.isEmpty)
         const EmptyState(message: 'Sem conversas nesta escola.')
       else if (shown.isEmpty)
-        const EmptyState(message: 'Sem conversas para os filtros escolhidos.'),
+        EmptyState(
+          message: chatFilter == 2
+              ? 'Sem favoritas. Toque longo numa conversa para a marcar.'
+              : 'Sem conversas para os filtros escolhidos.',
+        ),
       for (final thread in shown)
         ListTile(
           contentPadding: const EdgeInsets.symmetric(vertical: 4),
@@ -749,6 +806,12 @@ class _DataPageState extends State<DataPage> {
             style: const TextStyle(fontWeight: FontWeight.w600),
           ),
           subtitle: Text(pending(unread(thread))),
+          onLongPress: thread['id'] is! String
+              ? null
+              : () => toggleFavorite(
+                  thread['id'] as String,
+                  thread['name'] as String,
+                ),
           onTap: thread['id'] is! String
               ? null
               : () => Navigator.of(context).push(
@@ -761,7 +824,9 @@ class _DataPageState extends State<DataPage> {
                   ),
                 ),
           trailing: unread(thread) == 0
-              ? null
+              ? (favorites.contains(thread['id'])
+                    ? Icon(Icons.star_rounded, color: scheme.primary, size: 20)
+                    : null)
               : Container(
                   padding: const EdgeInsets.symmetric(
                     horizontal: 7,
@@ -783,8 +848,9 @@ class _DataPageState extends State<DataPage> {
         ),
       const SizedBox(height: Siga.s2),
       Text(
-        'Seleccione uma conversa para consultar o histórico. O envio '
-        'aguarda a integração no servidor.',
+        'Seleccione uma conversa para consultar o histórico; toque longo '
+        'para a marcar como favorita. O envio aguarda a integração no '
+        'servidor.',
         style: Theme.of(context).textTheme.bodySmall,
       ),
     ];
@@ -914,28 +980,87 @@ class _DataPageState extends State<DataPage> {
       builder: (_) => Column(children: children),
     );
     void pending(String key) => context.go('/more/$key');
-    return [
-      Text(
-        'Turma',
-        style: TextStyle(color: palette.ink2, fontWeight: FontWeight.w500),
-      ),
-      const SizedBox(height: 6),
-      Semantics(
-        header: true,
-        child: Text(
-          subjects.first['className'] as String,
-          style: const TextStyle(
-            fontSize: 26,
-            fontWeight: FontWeight.w700,
-            letterSpacing: -.5,
+    // «10.ª Classe · Turma A» → «Turma · 10.ª Classe» por cima de «Turma A».
+    final className = subjects.first['className'] as String;
+    final split = className.indexOf(' · ');
+    final grade = split > 0 ? className.substring(0, split) : null;
+    final group = split > 0 ? className.substring(split + 3) : className;
+    void openView(int view) => switch (view) {
+      0 => sheet('Disciplinas', [
+        for (final item in subjects) subjectCard(item, catalog),
+      ]),
+      1 => sheet('Professores', [
+        if (teachers.isEmpty)
+          const EmptyState(message: 'Professores ainda não indicados.'),
+        for (final name in teachers)
+          ListTile(
+            contentPadding: EdgeInsets.zero,
+            leading: InitialsAvatar(name, size: 40),
+            title: Text(name),
           ),
-        ),
+      ]),
+      _ => sheet('Aulas de hoje', [
+        if (todaySlots.isEmpty)
+          const EmptyState(message: 'Sem aulas publicadas para hoje.'),
+        for (final slot in todaySlots) slotRow(slot, catalog),
+      ]),
+    };
+    return [
+      Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  grade == null ? 'Turma' : 'Turma · $grade',
+                  style: TextStyle(fontSize: 13, color: palette.ink2),
+                ),
+                const SizedBox(height: 6),
+                Semantics(
+                  header: true,
+                  child: Text(
+                    group,
+                    style: const TextStyle(
+                      fontSize: 26,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: -.5,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          IconButton(
+            tooltip: 'Outras turmas',
+            icon: const Icon(Icons.more_horiz),
+            onPressed: () => context.go('/more/classes'),
+          ),
+        ],
       ),
       const SizedBox(height: Siga.s2),
-      Segmented(
-        options: const ['Disciplinas', 'Professores', 'Aulas'],
-        selected: classView,
-        onSelected: (i) => setState(() => classView = i),
+      Wrap(
+        spacing: 10,
+        runSpacing: 8,
+        children: [
+          for (final (i, label) in const [
+            'Disciplinas',
+            'Professores',
+            'Aulas',
+          ].indexed)
+            ActionChip(
+              label: Text(label),
+              onPressed: () => openView(i),
+              backgroundColor: palette.surface2,
+              side: BorderSide.none,
+              shape: const StadiumBorder(),
+              labelStyle: const TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+        ],
       ),
       const SizedBox(height: Siga.s2),
       const Divider(),
@@ -980,23 +1105,6 @@ class _DataPageState extends State<DataPage> {
           widget.gateway.role == 'aluno' ? '/more/results' : '/more/absences',
         ),
       ),
-      const SizedBox(height: Siga.s2),
-      if (classView == 0)
-        for (final item in subjects) subjectCard(item, catalog)
-      else if (classView == 1) ...[
-        if (teachers.isEmpty)
-          const EmptyState(message: 'Professores ainda não indicados.'),
-        for (final name in teachers)
-          ListTile(
-            contentPadding: EdgeInsets.zero,
-            leading: InitialsAvatar(name, size: 40),
-            title: Text(name),
-          ),
-      ] else ...[
-        if (todaySlots.isEmpty)
-          const EmptyState(message: 'Sem aulas publicadas para hoje.'),
-        for (final slot in todaySlots) slotRow(slot, catalog),
-      ],
     ];
   }
 

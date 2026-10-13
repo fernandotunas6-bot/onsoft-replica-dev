@@ -122,10 +122,14 @@ class ServiceTile extends StatefulWidget {
     required this.icon,
     required this.label,
     required this.onTap,
+    this.glyph,
   });
   final IconData icon;
   final String label;
   final VoidCallback onTap;
+
+  /// Desenho próprio quando o Material não tem o ícone da referência.
+  final Widget? glyph;
   @override
   State<ServiceTile> createState() => _ServiceTileState();
 }
@@ -159,7 +163,8 @@ class _ServiceTileState extends State<ServiceTile> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(widget.icon, size: 28, color: scheme.onSurface),
+                  widget.glyph ??
+                      Icon(widget.icon, size: 28, color: scheme.onSurface),
                   const SizedBox(height: 12),
                   // Encolhe o rótulo em vez de o cortar («Aulas online»).
                   FittedBox(
@@ -518,4 +523,56 @@ class TintIcon extends StatelessWidget {
     ),
     child: Icon(icon, color: color, size: size * .5),
   );
+}
+
+/// Ícones de traço que o Material não tem: «Biblioteca» (três lombadas e
+/// um livro inclinado) e «Mais» (quatro anéis), como nas referências.
+class LineGlyph extends StatelessWidget {
+  const LineGlyph.library({super.key}) : rings = false;
+  const LineGlyph.rings({super.key}) : rings = true;
+  final bool rings;
+  @override
+  Widget build(BuildContext context) => CustomPaint(
+    size: const Size.square(28),
+    painter: _LineGlyphPainter(
+      rings: rings,
+      color:
+          IconTheme.of(context).color ??
+          Theme.of(context).colorScheme.onSurface,
+    ),
+  );
+}
+
+class _LineGlyphPainter extends CustomPainter {
+  _LineGlyphPainter({required this.rings, required this.color});
+  final bool rings;
+  final Color color;
+  @override
+  void paint(Canvas canvas, Size size) {
+    final u = size.width / 24;
+    final pen = Paint()
+      ..color = color
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2 * u
+      ..strokeCap = StrokeCap.round;
+    if (rings) {
+      for (final (x, y) in const [
+        (7.0, 7.0),
+        (17.0, 7.0),
+        (7.0, 17.0),
+        (17.0, 17.0),
+      ]) {
+        canvas.drawCircle(Offset(x * u, y * u), 3.6 * u, pen);
+      }
+      return;
+    }
+    for (final x in const [4.0, 9.0, 14.0]) {
+      canvas.drawLine(Offset(x * u, 4 * u), Offset(x * u, 20 * u), pen);
+    }
+    canvas.drawLine(Offset(16.5 * u, 4.5 * u), Offset(20.5 * u, 19.5 * u), pen);
+  }
+
+  @override
+  bool shouldRepaint(_LineGlyphPainter old) =>
+      old.rings != rings || old.color != color;
 }

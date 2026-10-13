@@ -141,7 +141,7 @@ class _DemoAppState extends State<DemoApp> {
         GoRoute(
           path: ':id',
           builder: (_, state) => subPage(
-            'Turma',
+            '',
             data('/class', groupId: state.pathParameters['id']),
             back: '/more/classes',
           ),
