@@ -251,4 +251,7 @@ Verificado sem achados: todas as escritas destas pastas passam pelo guarda de es
 | E4  | P3  | OTP comparava o hash com `===`.                                                                                                       | `timingSafeEqual`.    |
 | E5  | P3  | Ano lectivo por omissão (arranque da escola) pelo ano UTC.                                                                            | Ano de Luanda.        |
 
-Abertos (P3, sem impacto conhecido): `.limit(2000/5000)` em `academic-structure.ts`, `web-site-content.ts`, `setup-status.ts`, `commercial-lifecycle.ts` — só afectam escolas com mais de mil linhas nessas listas; código público da escola (`provisioning-core.ts`) com `Math.random` pode colidir e falhar a inserção.
+| E6 | P3 | Painel da estrutura académica: cadernetas e pautas do ano cortadas aos 1000 (`.limit(5000)`). | Leitura em páginas. |
+| E7 | P3 | Código público de escola nova com `Math.random`, sem nova tentativa: uma colisão fazia falhar a criação da escola. | `randomInt` e até 5 tentativas em caso de código repetido. |
+
+Verificado sem achados: as escritas destas pastas passam pelo guarda de escrita (`requireSgaWriterForWrite`, `requireTenantAccess`, `requireSchoolAdminTenant`); as de autenticação e OTP são do próprio utilizador ou públicas, por desenho. Ficam como estão (listas que nunca chegam a mil linhas): turmas do ano, montra de escolas, inscrições comerciais dos últimos dias.
