@@ -68,6 +68,8 @@ class AcademicCatalog {
   }
 }
 int? minutes(dynamic time) {
-  if (time is! String || !RegExp(r'^([01]\d|2[0-3]):[0-5]\d(?::[0-5]\d)?$').hasMatch(time)) return null;
+  if (time is! String || !RegExp(r'^([01]\d|2[0-3]):[0-5]\d(?::[0-5]\d)?$').hasMatch(time)) {
+    return null;
+  }
   return int.parse(time.substring(0,2)) * 60 + int.parse(time.substring(3,5));
 }

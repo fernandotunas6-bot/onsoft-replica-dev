@@ -1,0 +1,252 @@
+import 'package:flutter/material.dart';
+
+/// Design system SIGA Plus 2026: branco como superfície, preto suave nos
+/// títulos, cinzento no texto secundário, um azul institucional nas acções e
+/// selecções. O gradiente pertence só à identidade (o «S» e a marca).
+class Siga {
+  Siga._();
+
+  // Espaçamento em múltiplos de 8.
+  static const double s1 = 8;
+  static const double s2 = 16;
+  static const double s3 = 24;
+  static const double s4 = 32;
+
+  // Cantos proporcionais.
+  static const double rSmall = 12;
+  static const double rMedium = 16;
+  static const double rLarge = 24;
+
+  static const Color ink = Color(0xff14161b);
+  static const Color ink2 = Color(0xff5d6472);
+  static const Color line = Color(0x1414161b);
+  static const Color surface2 = Color(0xfff4f5f7);
+  static const Color darkSurface = Color(0xff121318);
+  static const Color darkSurface2 = Color(0xff1e2027);
+  static const Color darkInk2 = Color(0xffa9b0bd);
+
+  static const Color institutionalBlue = Color(0xff2563eb);
+
+  /// Cores principais escolhidas em Aparência. Mudam só o destaque.
+  static const List<(String, Color)> accents = [
+    ('Azul', institutionalBlue),
+    ('Violeta', Color(0xff7c3aed)),
+    ('Laranja', Color(0xffea580c)),
+    ('Verde-água', Color(0xff0d9488)),
+    ('Grafite', Color(0xff52525b)),
+  ];
+
+  static const LinearGradient brand = LinearGradient(
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+    colors: [
+      Color(0xffff2f82),
+      Color(0xffff8a3d),
+      Color(0xffa259ff),
+      Color(0xff3d7bff),
+    ],
+    stops: [0, .34, .68, 1],
+  );
+
+  static const Curve ease = Cubic(0.22, 1, 0.36, 1);
+  static const Duration quick = Duration(milliseconds: 200);
+  static const Duration medium = Duration(milliseconds: 360);
+
+  /// Duração das animações: zero quando o movimento está reduzido.
+  static Duration motion(BuildContext context, Duration value) =>
+      MediaQuery.disableAnimationsOf(context) ? Duration.zero : value;
+}
+
+/// Cores do tema que não existem no `ColorScheme` do Material.
+@immutable
+class SigaPalette extends ThemeExtension<SigaPalette> {
+  const SigaPalette({
+    required this.surface2,
+    required this.ink2,
+    required this.line,
+    required this.accentSoft,
+  });
+  final Color surface2;
+  final Color ink2;
+  final Color line;
+  final Color accentSoft;
+
+  /// Paleta do tema; fora do tema SIGA (testes, diálogos do sistema) usa a
+  /// paleta clara por omissão.
+  static SigaPalette of(BuildContext context) =>
+      Theme.of(context).extension<SigaPalette>() ?? fallback;
+
+  static const fallback = SigaPalette(
+    surface2: Siga.surface2,
+    ink2: Siga.ink2,
+    line: Siga.line,
+    accentSoft: Color(0xffe9effd),
+  );
+
+  @override
+  SigaPalette copyWith({
+    Color? surface2,
+    Color? ink2,
+    Color? line,
+    Color? accentSoft,
+  }) => SigaPalette(
+    surface2: surface2 ?? this.surface2,
+    ink2: ink2 ?? this.ink2,
+    line: line ?? this.line,
+    accentSoft: accentSoft ?? this.accentSoft,
+  );
+
+  @override
+  SigaPalette lerp(SigaPalette? other, double t) {
+    if (other == null) return this;
+    return SigaPalette(
+      surface2: Color.lerp(surface2, other.surface2, t)!,
+      ink2: Color.lerp(ink2, other.ink2, t)!,
+      line: Color.lerp(line, other.line, t)!,
+      accentSoft: Color.lerp(accentSoft, other.accentSoft, t)!,
+    );
+  }
+}
+
+ThemeData sigaTheme(Brightness brightness, Color accent) {
+  final light = brightness == Brightness.light;
+  final surface = light ? Colors.white : Siga.darkSurface;
+  final ink = light ? Siga.ink : const Color(0xfff2f3f5);
+  final ink2 = light ? Siga.ink2 : Siga.darkInk2;
+  final line = light ? Siga.line : const Color(0x17ffffff);
+  final surface2 = light ? Siga.surface2 : Siga.darkSurface2;
+  final primary = light ? accent : Color.lerp(accent, Colors.white, .28)!;
+  final accentSoft = Color.lerp(surface, accent, light ? .1 : .22)!;
+  final scheme = ColorScheme.fromSeed(seedColor: accent, brightness: brightness)
+      .copyWith(
+        primary: primary,
+        onPrimary: Colors.white,
+        surface: surface,
+        onSurface: ink,
+        onSurfaceVariant: ink2,
+        outlineVariant: line,
+        secondaryContainer: accentSoft,
+        onSecondaryContainer: primary,
+      );
+  final text = ThemeData(
+    brightness: brightness,
+    useMaterial3: true,
+  ).textTheme.apply(bodyColor: ink, displayColor: ink);
+  return ThemeData(
+    useMaterial3: true,
+    brightness: brightness,
+    colorScheme: scheme,
+    scaffoldBackgroundColor: surface,
+    splashFactory: InkSparkle.splashFactory,
+    textTheme: text.copyWith(
+      headlineSmall: text.headlineSmall?.copyWith(
+        fontWeight: FontWeight.w700,
+        letterSpacing: -.4,
+      ),
+      titleLarge: text.titleLarge?.copyWith(fontWeight: FontWeight.w700),
+      titleMedium: text.titleMedium?.copyWith(fontWeight: FontWeight.w600),
+      bodyMedium: text.bodyMedium?.copyWith(color: ink2),
+      bodySmall: text.bodySmall?.copyWith(color: ink2),
+    ),
+    extensions: [
+      SigaPalette(
+        surface2: surface2,
+        ink2: ink2,
+        line: line,
+        accentSoft: accentSoft,
+      ),
+    ],
+    appBarTheme: AppBarTheme(
+      backgroundColor: surface,
+      surfaceTintColor: Colors.transparent,
+      elevation: 0,
+      scrolledUnderElevation: 0,
+      centerTitle: false,
+      titleTextStyle: text.titleLarge?.copyWith(
+        fontSize: 20,
+        fontWeight: FontWeight.w700,
+        color: ink,
+      ),
+    ),
+    dividerTheme: DividerThemeData(color: line, thickness: 1, space: 1),
+    iconTheme: IconThemeData(color: ink, size: 22),
+    listTileTheme: ListTileThemeData(
+      iconColor: ink,
+      contentPadding: const EdgeInsets.symmetric(horizontal: Siga.s2),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(Siga.rMedium),
+      ),
+    ),
+    inputDecorationTheme: InputDecorationTheme(
+      filled: true,
+      fillColor: surface2,
+      contentPadding: const EdgeInsets.symmetric(
+        horizontal: Siga.s2,
+        vertical: 14,
+      ),
+      prefixIconColor: ink2,
+      hintStyle: TextStyle(color: ink2),
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(Siga.rSmall),
+        borderSide: BorderSide.none,
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(Siga.rSmall),
+        borderSide: BorderSide(color: line),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(Siga.rSmall),
+        borderSide: BorderSide(color: primary, width: 1.5),
+      ),
+    ),
+    filledButtonTheme: FilledButtonThemeData(
+      style: FilledButton.styleFrom(
+        minimumSize: const Size.fromHeight(52),
+        backgroundColor: primary,
+        foregroundColor: Colors.white,
+        textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(Siga.rSmall),
+        ),
+      ),
+    ),
+    chipTheme: ChipThemeData(
+      backgroundColor: surface2,
+      selectedColor: primary,
+      side: BorderSide.none,
+      labelStyle: TextStyle(color: ink, fontWeight: FontWeight.w500),
+      secondaryLabelStyle: const TextStyle(
+        color: Colors.white,
+        fontWeight: FontWeight.w600,
+      ),
+      checkmarkColor: Colors.white,
+      shape: const StadiumBorder(),
+      padding: const EdgeInsets.symmetric(horizontal: 6),
+    ),
+    bottomSheetTheme: BottomSheetThemeData(
+      backgroundColor: surface,
+      surfaceTintColor: Colors.transparent,
+      showDragHandle: true,
+      dragHandleColor: line,
+      // Escurecimento discreto, sem desfoque.
+      modalBarrierColor: const Color(0x5c0c0e14),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(Siga.rLarge)),
+      ),
+    ),
+    switchTheme: SwitchThemeData(
+      thumbColor: const WidgetStatePropertyAll(Colors.white),
+      trackColor: WidgetStateProperty.resolveWith(
+        (states) => states.contains(WidgetState.selected) ? primary : line,
+      ),
+      trackOutlineColor: const WidgetStatePropertyAll(Colors.transparent),
+    ),
+    pageTransitionsTheme: const PageTransitionsTheme(
+      builders: {
+        TargetPlatform.android: FadeForwardsPageTransitionsBuilder(),
+        TargetPlatform.iOS: CupertinoPageTransitionsBuilder(),
+        TargetPlatform.macOS: CupertinoPageTransitionsBuilder(),
+      },
+    ),
+  );
+}

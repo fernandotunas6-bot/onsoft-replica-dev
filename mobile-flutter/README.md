@@ -18,12 +18,37 @@ persistida pelo código; o SDK gere a sua própria sessão.
 
 ## Identidade: limite explícito
 
-O painter é uma proposta tipográfica com expansão, recorte e dissolução.
-**Não é o morph vectorial exacto pedido pelo utilizador.** A referência raster
-não fornece o vector original; não foi criado nem inventado um ficheiro Rive.
-Antes da aprovação visual, obter o SVG original do S, construir um artboard
-Rive e validar a transformação contínua S → Seja bem-vindo → S.
-O wordmark provisório também não substitui a arte final fornecida.
+`IdentityIntro` (`lib/identity.dart`) faz a transformação contínua em widgets
+Flutter: «Seja» começa pelo mesmo «S», que nunca sai do lugar; o resto da
+mensagem abre e fecha a partir dele (`MorphingMark`, `reveal` 0→1→0) enquanto
+o mosaico estica até cápsula e volta; depois a marca encaixa por baixo.
+Primeira abertura 3,3 s, seguintes 1,2 s, «Saltar», e nada com movimento
+reduzido (do sistema ou da app). Os tempos estão em `IntroTimeline` e testados.
+**Ainda não usa o vector original do S nem Rive:** o «S» é tipográfico (fonte
+do sistema) sobre o gradiente da marca. Com o SVG original, trocar o «S» do
+`MorphingMark` pelo vector, ou construir o artboard Rive com a mesma linha
+temporal. O wordmark também é provisório.
+
+## Design system e ecrãs (front-end)
+
+- `lib/design/tokens.dart`: branco, preto suave, cinzento secundário, azul
+  institucional configurável (Aparência → Cor principal), espaçamento de 8,
+  cantos 12/16/24, gradiente só na identidade; claro e escuro.
+- `lib/design/widgets.dart`: cartões com borda fina e resposta ao toque,
+  mosaicos de serviço, etiquetas de estado, estados vazios, avatar por
+  iniciais (nenhuma fotografia inventada), painéis inferiores com
+  escurecimento discreto (sem desfoque).
+- `lib/design/floating_nav.dart`: barra inferior flutuante com indicador que
+  desliza; respeita movimento reduzido.
+- Ecrãs: login, selector de escola, início (próxima aula, serviços escolares,
+  disciplinas, próximas actividades), disciplinas com filtro por turma,
+  calendário com faixa semanal, mensagens com «Não lidas», turmas, espaço da
+  turma (estilo Moodle), tarefas por prazo, Mais, Aparência e Transporte.
+- Honestidade: WhatsApp da turma, aulas online, presenças/notas da turma e o
+  trajecto do transporte aparecem como «Por activar» ou «Simulação», com a
+  explicação; nenhum botão simula uma integração que não existe.
+- `test/ui_test.dart`: linha temporal da abertura, barra inferior, ecrãs com
+  um gateway simulado, selector, aparência e transporte.
 
 ## Executar
 
