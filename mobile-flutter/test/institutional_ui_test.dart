@@ -87,8 +87,8 @@ void main() {
     );
     await tester.pumpAndSettle();
     expect(find.text('Pago em parte'), findsOneWidget);
-    expect(find.text('Valor base: 25000,00'), findsOneWidget);
-    expect(find.text('Recibo R-7 · 10000,00'), findsOneWidget);
+    expect(find.text('Valor base: 25\u00a0000,00'), findsOneWidget);
+    expect(find.text('Recibo R-7 · 10\u00a0000,00'), findsOneWidget);
     expect(find.text('Emitido'), findsOneWidget);
   });
 

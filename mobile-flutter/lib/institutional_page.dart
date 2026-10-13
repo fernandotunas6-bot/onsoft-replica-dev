@@ -73,7 +73,12 @@ class _InstitutionalPageState extends State<InstitutionalPage> {
     if (value is! int || value < 0 || value > 9007199254740991) {
       throw const FormatException('Valor inválido.');
     }
-    return '${value ~/ 100},${(value % 100).toString().padLeft(2, '0')}';
+    // Milhares separados por espaço inseparável, como em Angola: 25 000,00.
+    final units = '${value ~/ 100}'.replaceAllMapped(
+      RegExp(r'\B(?=(\d{3})+$)'),
+      (_) => '\u00a0',
+    );
+    return '$units,${(value % 100).toString().padLeft(2, '0')}';
   }
 
   String label(Map<String, String> labels, dynamic value) =>

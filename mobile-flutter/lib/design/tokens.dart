@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:fluentui_system_icons/fluentui_system_icons.dart';
 
 /// Design system SIGA Plus 2026: branco como superfície, preto suave nos
 /// títulos, cinzento no texto secundário, um azul institucional nas acções e
@@ -180,6 +181,12 @@ ThemeData sigaTheme(Brightness brightness, Color accent) {
         accentSoft: accentSoft,
       ),
     ],
+    // Voltar com o chevron Fluent em todas as páginas, também nas que usam a
+    // seta automática do AppBar.
+    actionIconTheme: ActionIconThemeData(
+      backButtonIconBuilder: (_) =>
+          const Icon(FluentIcons.chevron_left_24_regular),
+    ),
     appBarTheme: AppBarTheme(
       backgroundColor: surface,
       surfaceTintColor: Colors.transparent,
