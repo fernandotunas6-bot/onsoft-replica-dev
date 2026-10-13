@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'tokens.dart';
 
@@ -429,7 +430,10 @@ class Segmented extends StatelessWidget {
         label: options[i],
         excludeSemantics: true,
         child: GestureDetector(
-          onTap: () => onSelected(i),
+          onTap: () {
+            if (i != selected) HapticFeedback.selectionClick();
+            onSelected(i);
+          },
           child: AnimatedContainer(
             duration: Siga.motion(context, Siga.quick),
             curve: Siga.ease,

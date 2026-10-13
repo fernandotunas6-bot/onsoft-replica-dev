@@ -109,8 +109,10 @@ class _DemoAppState extends State<DemoApp> {
             },
           ),
         ),
-        StatefulShellRoute.indexedStack(
+        StatefulShellRoute(
           builder: (context, state, shell) => shellPage(shell),
+          navigatorContainerBuilder: (context, shell, children) =>
+              FadeThroughStack(index: shell.currentIndex, children: children),
           branches: [
             for (final (path, _, _) in tabs)
               StatefulShellBranch(

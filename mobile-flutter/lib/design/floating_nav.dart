@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'tokens.dart';
 
 class NavItem {
@@ -44,7 +45,10 @@ class FloatingNavBar extends StatelessWidget {
                     item: items[i],
                     selected: i == index,
                     duration: duration,
-                    onTap: () => onSelected(i),
+                    onTap: () {
+                      if (i != index) HapticFeedback.selectionClick();
+                      onSelected(i);
+                    },
                   ),
                 ),
             ],
@@ -75,9 +79,12 @@ class _NavButton extends StatelessWidget {
       selected: selected,
       label: item.label,
       excludeSemantics: true,
+      // Sem ondulação: a resposta é a troca animada do ícone e o toque háptico.
       child: InkResponse(
         onTap: onTap,
-        radius: 36,
+        splashFactory: NoSplash.splashFactory,
+        highlightColor: Colors.transparent,
+        hoverColor: Colors.transparent,
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
@@ -110,6 +117,57 @@ class _NavButton extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+/// Conteúdo dos separadores com «fade through»: ao trocar de separador, o
+/// novo aparece e cresce de 98 % para 100 %. Mantém o estado de cada
+/// separador (IndexedStack); sem animação com «Reduzir movimentos».
+class FadeThroughStack extends StatefulWidget {
+  const FadeThroughStack({
+    super.key,
+    required this.index,
+    required this.children,
+  });
+  final int index;
+  final List<Widget> children;
+  @override
+  State<FadeThroughStack> createState() => _FadeThroughStackState();
+}
+
+class _FadeThroughStackState extends State<FadeThroughStack>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController motion = AnimationController(
+    vsync: this,
+    duration: Siga.medium,
+    value: 1,
+  );
+
+  @override
+  void didUpdateWidget(FadeThroughStack old) {
+    super.didUpdateWidget(old);
+    if (old.index != widget.index) {
+      motion.duration = Siga.motion(context, Siga.medium);
+      motion.forward(from: motion.duration == Duration.zero ? 1 : 0);
+    }
+  }
+
+  @override
+  void dispose() {
+    motion.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final curve = CurvedAnimation(parent: motion, curve: Siga.ease);
+    return FadeTransition(
+      opacity: curve,
+      child: ScaleTransition(
+        scale: Tween<double>(begin: .98, end: 1).animate(curve),
+        child: IndexedStack(index: widget.index, children: widget.children),
       ),
     );
   }

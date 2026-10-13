@@ -242,8 +242,10 @@ class _SigaAppState extends State<SigaApp> {
               LoginPage(auth: auth, onSync: sync, factor: factor),
         ),
         GoRoute(path: '/schools', builder: (_, _) => schools()),
-        StatefulShellRoute.indexedStack(
+        StatefulShellRoute(
           builder: (context, state, shell) => shellPage(shell),
+          navigatorContainerBuilder: (context, shell, children) =>
+              FadeThroughStack(index: shell.currentIndex, children: children),
           branches: [
             for (final (path, _, _) in tabs)
               StatefulShellBranch(
