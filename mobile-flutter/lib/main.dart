@@ -161,7 +161,8 @@ class _SigaAppState extends State<SigaApp> {
     return 'SIGA Plus';
   }
   Widget page(String path) {
-    if (path == '/more') return ListView(padding: const EdgeInsets.all(24), children: [
+    if (path == '/more') {
+      return ListView(padding: const EdgeInsets.all(24), children: [
       const Brand(), const SizedBox(height: 24), Text('${session?['name'] ?? ''}'), Text(role ?? ''),
       const SizedBox(height: 24), Text('Serviços escolares', style: Theme.of(context).textTheme.titleLarge),
       ListTile(leading: const Icon(Icons.groups_outlined), title: const Text('Turmas'), trailing: const Icon(Icons.chevron_right), onTap: () => router.go('/more/classes')),
@@ -170,15 +171,19 @@ class _SigaAppState extends State<SigaApp> {
         showModalBottomSheet<void>(context: router.routerDelegate.navigatorKey.currentContext!,
           showDragHandle: true, builder: (context) => SafeArea(child: StatefulBuilder(builder: (context, sheetSetState) =>
             Column(mainAxisSize: MainAxisSize.min, children: [
-              for (final mode in ThemeMode.values) RadioListTile<ThemeMode>(value: mode, groupValue: appearance,
-                title: Text(mode == ThemeMode.system ? 'Sistema' : mode == ThemeMode.light ? 'Claro' : 'Escuro'),
-                onChanged: (value) { appearance = value!; widget.prefs.setString('appearance', appearance.name); update(); sheetSetState(() {}); }),
+              RadioGroup<ThemeMode>(groupValue: appearance,
+                onChanged: (value) { if (value == null) return; appearance = value; widget.prefs.setString('appearance', appearance.name); update(); sheetSetState(() {}); },
+                child: Column(mainAxisSize: MainAxisSize.min, children: [
+                  for (final mode in ThemeMode.values) RadioListTile<ThemeMode>(value: mode,
+                    title: Text(mode == ThemeMode.system ? 'Sistema' : mode == ThemeMode.light ? 'Claro' : 'Escuro')),
+                ])),
               SwitchListTile(title: const Text('Reduzir movimentos'), value: reduced,
                 onChanged: (value) { reduced = value; widget.prefs.setBool('reduced-motion', value); update(); sheetSetState(() {}); }),
             ]))));
       }),
       ListTile(leading: const Icon(Icons.logout_outlined), title: const Text('Sair'), onTap: () => auth.signOut()),
     ]);
+    }
     return DataPage(key: ValueKey('$school:$role:$path'), gateway: gateway, path: path, name: '${session?['name'] ?? ''}');
   }
   Widget servicePage(String title, String path, {String? groupId}) => Scaffold(
