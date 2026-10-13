@@ -69,6 +69,18 @@ const accessRules: Array<{ prefixes: string[]; roles: ApplicationRole[] }> = [
     roles: ["Administrador", "Secretaria", "Tesouraria", "Professor", "Encarregado", "Aluno"],
   },
   { prefixes: ["/alumni"], roles: ["Administrador", "Secretaria"] },
+  // SIGA AI: assistente de consulta, sem escrita nos dados escolares. Aberto a
+  // quem a escola autorizar nas Configurações — o servidor confirma o perfil em
+  // cada pergunta (`allowed_profiles`), por isso o ecrã não é a fronteira.
+  //
+  // Deliberadamente fora de `accessModules`: pô-lo sob "pedagogica" fazia
+  // `accessLevelForRole` concluir que a Tesouraria lê a área pedagógica (basta
+  // um prefixo do módulo acessível), e com isso abria os relatórios académicos.
+  // A permissão deste módulo é a da escola, não a de um departamento.
+  {
+    prefixes: ["/siga-ai"],
+    roles: ["Administrador", "Secretaria", "Tesouraria", "Professor", "Encarregado", "Aluno"],
+  },
   { prefixes: ["/acessos", "/catracas"], roles: ["Administrador", "Secretaria"] },
   { prefixes: ["/configuracoes"], roles: ["Administrador"] },
   { prefixes: ["/tesouraria"], roles: ["Administrador", "Tesouraria"] },

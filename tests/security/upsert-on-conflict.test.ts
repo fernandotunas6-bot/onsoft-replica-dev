@@ -52,6 +52,9 @@ const UNICOS_PRODUCAO: Record<string, string[]> = {
   // 2026-10-07: chave primária de 20261007100000_web_site_content.sql (vitrine do site).
   // Recapturar da produção depois de aplicada a migração.
   web_school_showcase: ["school_id"],
+  // 2026-10-12: chave primária de 20261012160000_siga_ai_module.sql (configuração
+  // do SIGA AI por escola). Recapturar da produção depois de aplicada a migração.
+  siga_ai_settings: ["school_id"],
 };
 
 function upsertsNoCodigo() {

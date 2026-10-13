@@ -159,6 +159,13 @@ const TABELAS_AUSENTES_DA_PRODUCAO = new Set<string>([
   "web_contact_messages",
   "web_faqs",
   "web_school_showcase",
+  // 20261012160000_siga_ai_module.sql (SIGA AI): sai daqui quando o retrato for
+  // recapturado depois de aplicada.
+  "siga_ai_settings",
+  "siga_ai_conversations",
+  "siga_ai_messages",
+  "siga_ai_documents",
+  "siga_ai_usage",
 ]);
 
 /** Tabelas consultadas pelo código — `.from("x")`, excluindo buckets de storage. */

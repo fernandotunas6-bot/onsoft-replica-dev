@@ -47,6 +47,15 @@ const MIGRATIONS = {
     "web_faqs",
     "web_school_showcase",
   ],
+  // Conversas, documentos e métricas do SIGA AI: conversas de outras pessoas e
+  // documentos institucionais da escola.
+  "supabase/migrations/20261012160000_siga_ai_module.sql": [
+    "siga_ai_settings",
+    "siga_ai_conversations",
+    "siga_ai_messages",
+    "siga_ai_documents",
+    "siga_ai_usage",
+  ],
   "supabase/migrations/20260925162000_lesson_plans_and_subject_guards.sql": [
     "siga_lesson_plans",
     "siga_lesson_plan_components",
