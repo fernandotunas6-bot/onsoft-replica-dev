@@ -144,7 +144,7 @@ Reescrevê-los "por intuição" seria perder exactamente o trabalho que justific
 
 ## 8. O que esta PR entrega e o que fica para depois
 
-Entregue (Fases 2–5 em código, com testes): parâmetros portados, cliente Ollama, cliente Qdrant,
+Entregue (Fases 2–6 em código, com testes): parâmetros portados, cliente Ollama, cliente Qdrant,
 resolução de modo A/B/C com diagnóstico, gateway autenticado com isolamento por escola, pipeline RAG
 (fragmentação → embeddings → pesquisa → reordenação → piso → orçamento → resposta com referências),
 persistência de conversas e documentos, página SIGA AI, área administrativa por escola, SQL, documentação.
@@ -157,7 +157,6 @@ persistência de conversas e documentos, página SIGA AI, área administrativa p
   lidos — o .docx no próprio browser, com o ZIP e o `DecompressionStream` nativos
   (`src/features/siga-ai/docx-text.ts`), para o servidor receber texto e nunca o binário.
 - Instalação de modelos pela interface administrativa (`/api/pull` com progresso).
-- Resposta em *streaming* token a token (a resposta chega completa; o cancelamento aborta o pedido).
 - Sincronização offline de dados académicos (explicitamente fora de âmbito: §9 do pedido exige
   resolução de conflitos e auditoria que não existem).
 - Testes end-to-end com Ollama real: requerem um anfitrião com modelo instalado, que o CI não tem.

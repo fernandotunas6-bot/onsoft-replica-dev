@@ -32,9 +32,13 @@ Auditoria, matriz de compatibilidade, licenças e o que **não** entrou:
 - Área administrativa em Definições → SIGA AI (`AiSettingsPanel`, só Administrador: o centro
   de definições está atrás de `/configuracoes`). Documentos .docx lidos no browser
   (`docx-text.ts`, sem dependências).
-- **Falta (não declarado feito):** streaming token a token, extracção de PDF (precisa de
-  pdfjs — dependência por decidir), juiz de relevância por LLM, reescrita da pergunta,
-  instalação de modelos pela UI, e testes com Ollama real (o CI não tem modelo instalado).
+- Streaming token a token por `src/routes/api/siga-ai/chat.tsx` (NDJSON, bearer da sessão,
+  `resolveBearerSession` + membership). `prepareAsk` é partilhado por `askAi` e `askAiStream`
+  para as permissões e o isolamento não poderem divergir. Cliente em `ask-stream.ts`,
+  com recuo para a resposta completa quando o streaming não passa.
+- **Falta (não declarado feito):** extracção de PDF (precisa de pdfjs — dependência por
+  decidir), juiz de relevância por LLM, reescrita da pergunta, instalação de modelos pela UI,
+  e testes com Ollama real (o CI não tem modelo instalado).
 
 ## Catálogo educacional global (2026-10-10)
 

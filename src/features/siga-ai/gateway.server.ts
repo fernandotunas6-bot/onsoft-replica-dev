@@ -27,6 +27,7 @@ import {
 import {
   AiServiceError,
   chat,
+  chatStream,
   embed,
   embedBatched,
   listModels,
@@ -68,6 +69,7 @@ import {
   rerankChunks,
   type RerankedChunk,
 } from "./rerank";
+import type { GatewayEvent } from "./stream-parse";
 import type {
   AiDocumentScope,
   AskAiInput,
@@ -407,12 +409,28 @@ export type AskResult = {
   usedKnowledgeBase: boolean;
 };
 
-export async function askAi(
+/**
+ * Tudo o que uma pergunta precisa antes de falar com o modelo: permissões,
+ * limites, modelo escolhido, histórico e contexto documental.
+ *
+ * Existe separado para que a resposta completa (`askAi`) e a resposta token a
+ * token (`askAiStream`) não possam divergir em permissões ou em isolamento —
+ * era o tipo de duplicação em que uma das duas acaba sem uma verificação.
+ */
+async function prepareAsk(
   membership: SgaMembershipContext,
   userId: string,
   input: AskAiInput,
   signal?: AbortSignal,
-): Promise<AskResult> {
+): Promise<{
+  settings: AiSettings;
+  endpoints: ResolvedAiEndpoints;
+  model: string;
+  messages: ChatMessage[];
+  citations: Citation[];
+  usedKnowledgeBase: boolean;
+  profile: AiProfile;
+}> {
   const settings = await loadAiSettings(membership.schoolId);
   if (!settings.enabled) throw new Error("O SIGA AI não está activado nesta escola.");
 
@@ -453,8 +471,9 @@ export async function askAi(
         model,
       );
       citations = retrieved.citations;
-      if (retrieved.chunks.length)
+      if (retrieved.chunks.length) {
         contextPrompt = ragContextPrompt(buildContextBlock(retrieved.chunks));
+      }
     } catch (error) {
       // A base documental em baixo não impede responder: degrada para conversa
       // sem contexto, que é o comportamento que a escola espera.
@@ -472,8 +491,28 @@ export async function askAi(
     { role: "user", content: input.question },
   ];
 
+  return {
+    settings,
+    endpoints,
+    model,
+    messages,
+    citations,
+    usedKnowledgeBase: Boolean(contextPrompt),
+    profile,
+  };
+}
+
+export async function askAi(
+  membership: SgaMembershipContext,
+  userId: string,
+  input: AskAiInput,
+  signal?: AbortSignal,
+): Promise<AskResult> {
+  const prepared = await prepareAsk(membership, userId, input, signal);
   const started = Date.now();
-  const answer = await chat(endpoints.chatBaseUrl, model, messages, { signal });
+  const answer = await chat(prepared.endpoints.chatBaseUrl, prepared.model, prepared.messages, {
+    signal,
+  });
   const elapsed = Date.now() - started;
 
   const conversationId = await persistTurn({
@@ -482,29 +521,93 @@ export async function askAi(
     conversationId: input.conversationId ?? null,
     question: input.question,
     answer,
-    model,
-    citations,
-    profile,
+    model: prepared.model,
+    citations: prepared.citations,
+    profile: prepared.profile,
   });
 
   await recordUsage({
     schoolId: membership.schoolId,
     userId,
-    model,
-    mode: settings.mode,
+    model: prepared.model,
+    mode: prepared.settings.mode,
     elapsedMs: elapsed,
     questionChars: input.question.length,
     answerChars: answer.length,
-    citations: citations.length,
+    citations: prepared.citations.length,
   });
 
   return {
     conversationId,
     answer,
-    citations,
-    model,
-    mode: settings.mode,
-    usedKnowledgeBase: Boolean(contextPrompt),
+    citations: prepared.citations,
+    model: prepared.model,
+    mode: prepared.settings.mode,
+    usedKnowledgeBase: prepared.usedKnowledgeBase,
+  };
+}
+
+/**
+ * A mesma pergunta, token a token.
+ *
+ * Emite os eventos do protocolo do gateway e, no fim, grava o turno — mas só
+ * se a resposta tiver chegado completa. Uma geração cancelada a meio não deixa
+ * meia resposta gravada como se fosse a resposta da IA; o que o utilizador viu
+ * no ecrã fica no ecrã, e a conversa guardada continua coerente.
+ */
+export async function* askAiStream(
+  membership: SgaMembershipContext,
+  userId: string,
+  input: AskAiInput,
+  signal?: AbortSignal,
+): AsyncGenerator<GatewayEvent, void, undefined> {
+  const prepared = await prepareAsk(membership, userId, input, signal);
+  const started = Date.now();
+  let answer = "";
+
+  for await (const delta of chatStream(
+    prepared.endpoints.chatBaseUrl,
+    prepared.model,
+    prepared.messages,
+    { signal },
+  )) {
+    answer += delta;
+    yield { type: "token", text: delta };
+  }
+
+  if (signal?.aborted) return;
+  if (!answer.trim()) {
+    throw new AiServiceError("O modelo devolveu uma resposta vazia.", "bad_response");
+  }
+
+  const conversationId = await persistTurn({
+    schoolId: membership.schoolId,
+    userId,
+    conversationId: input.conversationId ?? null,
+    question: input.question,
+    answer,
+    model: prepared.model,
+    citations: prepared.citations,
+    profile: prepared.profile,
+  });
+
+  await recordUsage({
+    schoolId: membership.schoolId,
+    userId,
+    model: prepared.model,
+    mode: prepared.settings.mode,
+    elapsedMs: Date.now() - started,
+    questionChars: input.question.length,
+    answerChars: answer.length,
+    citations: prepared.citations.length,
+  });
+
+  yield {
+    type: "done",
+    conversationId,
+    citations: prepared.citations,
+    model: prepared.model,
+    usedKnowledgeBase: prepared.usedKnowledgeBase,
   };
 }
 

@@ -131,6 +131,18 @@ próprias.
 | Resposta vazia / truncada | confirmar `OLLAMA_CONTEXT_LENGTH` |
 | Documento indexado não é citado | o piso de relevância (0,62) corta fragmentos fracos; ver `nomad-params.ts` |
 
+## Streaming
+
+A resposta chega token a token por `/api/siga-ai/chat` (NDJSON autenticado com o token da
+sessão). «Parar» aborta o pedido, e o cancelamento chega ao próprio Ollama — liberta o
+modelo em vez de só deixar o browser de esperar. Uma geração interrompida fica no ecrã
+marcada como tal e **não** é gravada na conversa.
+
+Onde um *proxy* acumule a resposta em vez de a deixar passar (ou o endpoint não responda),
+o assistente volta sozinho à resposta completa pela função de servidor: perde-se o efeito de
+escrita, não a resposta. O cabeçalho `x-accel-buffering: no` pede aos *proxies* que não
+acumulem.
+
 ## Limites conhecidos
 
 - Resposta sem *streaming*: chega completa. O botão «Parar» interrompe a espera do

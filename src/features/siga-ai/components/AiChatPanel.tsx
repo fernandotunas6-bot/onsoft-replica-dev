@@ -29,6 +29,7 @@ import { toast } from "@/lib/toast";
 import { cn } from "@/lib/utils";
 import type { AiStatus, Citation } from "../gateway.server";
 import { aiAsk, aiDeleteConversation, aiGetConversation, aiListConversations } from "../server";
+import { askAiStreaming, StreamUnavailableError } from "../ask-stream";
 
 type Turn = {
   id: string;
@@ -92,37 +93,76 @@ export function AiChatPanel({ status }: { status: AiStatus }) {
     mutationFn: async (question: string) => {
       const controller = new AbortController();
       abortRef.current = controller;
+      const input = {
+        question,
+        useKnowledgeBase: useKb,
+        ...(conversationId ? { conversationId } : {}),
+        ...(model ? { model } : {}),
+      };
       try {
-        return await aiAsk({
-          data: {
-            question,
-            useKnowledgeBase: useKb,
-            ...(conversationId ? { conversationId } : {}),
-            ...(model ? { model } : {}),
-          },
+        // Caminho normal: token a token. O texto vai directo ao turno pendente,
+        // por isso o utilizador vê a resposta a ser escrita.
+        const done = await askAiStreaming(input, {
           signal: controller.signal,
+          onToken: (text) =>
+            setTurns((previous) =>
+              previous.map((turn) =>
+                turn.id === "pending" ? { ...turn, content: turn.content + text } : turn,
+              ),
+            ),
         });
+        return { ...done, answer: null } as const;
+      } catch (error) {
+        if (!(error instanceof StreamUnavailableError)) throw error;
+        // Sem streaming (proxy que acumula a resposta, endpoint em falta):
+        // resposta completa pela função de servidor, para a conversa continuar
+        // a funcionar sem o efeito de escrita.
+        setTurns((previous) =>
+          previous.map((turn) => (turn.id === "pending" ? { ...turn, content: "" } : turn)),
+        );
+        const result = await aiAsk({ data: input, signal: controller.signal });
+        return { ...result, answer: result.answer } as const;
       } finally {
         abortRef.current = null;
       }
     },
     onSuccess: (result) => {
       setConversationId(result.conversationId);
-      setTurns((previous) => [
-        ...previous.filter((turn) => turn.id !== "pending"),
-        {
-          id: `a-${Date.now()}`,
-          role: "assistant",
-          content: result.answer,
-          citations: result.citations,
-          model: result.model,
-        },
-      ]);
+      setTurns((previous) => {
+        const streamed = previous.find((turn) => turn.id === "pending")?.content ?? "";
+        return [
+          ...previous.filter((turn) => turn.id !== "pending"),
+          {
+            id: `a-${Date.now()}`,
+            role: "assistant",
+            // No streaming o texto já veio pelos tokens; só a resposta completa o traz aqui.
+            content: result.answer ?? streamed,
+            citations: result.citations,
+            model: result.model,
+          },
+        ];
+      });
       void queryClient.invalidateQueries({ queryKey: ["siga-ai", "conversations"] });
     },
     onError: (error: Error) => {
-      setTurns((previous) => previous.filter((turn) => turn.id !== "pending"));
-      if (error.name === "AbortError") return;
+      // Cancelamento: o que já foi escrito fica no ecrã, marcado como
+      // interrompido. Apagá-lo escondia trabalho que o utilizador leu — e o
+      // servidor também não grava uma geração cortada a meio.
+      const aborted = error.name === "AbortError";
+      setTurns((previous) =>
+        previous.flatMap((turn) => {
+          if (turn.id !== "pending") return [turn];
+          if (!aborted || !turn.content.trim()) return [];
+          return [
+            {
+              ...turn,
+              id: `a-${Date.now()}`,
+              content: `${turn.content}\n\n_(resposta interrompida — não ficou guardada)_`,
+            },
+          ];
+        }),
+      );
+      if (aborted) return;
       toast.error(error.message || "A IA não conseguiu responder.");
     },
   });
@@ -291,9 +331,22 @@ export function AiChatPanel({ status }: { status: AiStatus }) {
               turn.id === "pending" ? (
                 <div
                   key="pending"
-                  className="flex items-center gap-2 rounded-lg bg-muted/60 px-3 py-2 text-sm text-muted-foreground"
+                  className="max-w-[95%] rounded-lg bg-muted/60 px-3 py-2 text-sm"
+                  aria-live="polite"
+                  aria-busy="true"
                 >
-                  <Loader2 className="size-4 animate-spin" aria-hidden="true" />A pensar…
+                  {turn.content ? (
+                    <p className="whitespace-pre-wrap break-words">
+                      {turn.content}
+                      <span className="ml-0.5 inline-block animate-pulse" aria-hidden="true">
+                        ▍
+                      </span>
+                    </p>
+                  ) : (
+                    <span className="flex items-center gap-2 text-muted-foreground">
+                      <Loader2 className="size-4 animate-spin" aria-hidden="true" />A pensar…
+                    </span>
+                  )}
                 </div>
               ) : (
                 <div

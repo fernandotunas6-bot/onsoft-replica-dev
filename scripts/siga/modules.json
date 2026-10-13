@@ -446,7 +446,8 @@
       "skill": "siga-ai",
       "label": "SIGA AI (IA local, Project NOMAD)",
       "routes": [
-        "src/routes/siga-ai.tsx"
+        "src/routes/siga-ai.tsx",
+        "src/routes/api/siga-ai/chat.tsx"
       ],
       "feature": [
         "src/features/siga-ai/schemas.ts",
@@ -464,7 +465,9 @@
         "src/features/siga-ai/components/AiSettingsPanel.tsx",
         "src/lib/siga-ai/ollama-client.server.ts",
         "src/lib/siga-ai/qdrant-client.server.ts",
-        "src/lib/siga-ai/endpoint-resolver.server.ts"
+        "src/lib/siga-ai/endpoint-resolver.server.ts",
+        "src/features/siga-ai/stream-parse.ts",
+        "src/features/siga-ai/ask-stream.ts"
       ],
       "tests": [
         "tests/siga-ai/schemas.test.ts",
@@ -474,7 +477,9 @@
         "tests/siga-ai/prompts.test.ts",
         "tests/siga-ai/endpoint-resolver.test.ts",
         "tests/siga-ai/admin-panel.test.ts",
-        "tests/siga-ai/docx-text.test.ts"
+        "tests/siga-ai/docx-text.test.ts",
+        "tests/siga-ai/stream-parse.test.ts",
+        "tests/siga-ai/ask-stream.test.ts"
       ],
       "navPath": "/siga-ai",
       "sql": "supabase/migrations/20261012160000_siga_ai_module.sql"

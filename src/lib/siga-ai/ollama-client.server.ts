@@ -16,6 +16,7 @@ import {
   EMBEDDING_BATCH_SIZE,
   SAMPLER_AUTO,
 } from "@/features/siga-ai/nomad-params";
+import { parseOllamaLine, parseSseLine, splitLines } from "@/features/siga-ai/stream-parse";
 
 export class AiServiceError extends Error {
   constructor(
@@ -253,4 +254,113 @@ export async function chat(
   if (!text.trim())
     throw new AiServiceError("O modelo devolveu uma resposta vazia.", "bad_response");
   return text;
+}
+
+/**
+ * A mesma conversa, token a token.
+ *
+ * Porque é que isto existe ao lado de `chat()`: num modelo local de 7B uma
+ * resposta longa leva dezenas de segundos, e sem streaming o utilizador fica a
+ * olhar para um indicador sem saber se está a funcionar. O `signal` corta o
+ * pedido ao próprio motor de inferência — o «parar» passa a libertar o modelo,
+ * em vez de só deixar o browser de esperar.
+ *
+ * Tenta o NDJSON nativo do Ollama e recorre ao SSE compatível com OpenAI, pela
+ * mesma ordem de `chat()`.
+ */
+export async function* chatStream(
+  baseUrl: string,
+  model: string,
+  messages: ChatMessage[],
+  options: { numCtx?: number; signal?: AbortSignal } = {},
+): AsyncGenerator<string, void, undefined> {
+  const native = await request(baseUrl, "/api/chat", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({
+      model,
+      messages,
+      stream: true,
+      options: {
+        temperature: SAMPLER_AUTO.temperature,
+        top_p: SAMPLER_AUTO.topP,
+        top_k: SAMPLER_AUTO.topK,
+        min_p: SAMPLER_AUTO.minP,
+        repeat_penalty: SAMPLER_AUTO.repeatPenalty,
+        num_ctx: options.numCtx ?? DEFAULT_CONTEXT_LENGTH,
+      },
+    }),
+    timeoutMs: CHAT_TIMEOUT_MS,
+    signal: options.signal,
+  }).catch((error) => {
+    if (error instanceof AiServiceError && error.code === "unreachable") return null;
+    throw error;
+  });
+
+  if (native?.ok && native.body) {
+    yield* readStream(native.body, parseOllamaLine);
+    return;
+  }
+  if (native && native.status === 404) {
+    throw new AiServiceError(
+      `O modelo ${model} não está instalado neste servidor de IA.`,
+      "model_missing",
+    );
+  }
+
+  const compat = await request(baseUrl, "/v1/chat/completions", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({
+      model,
+      messages,
+      stream: true,
+      temperature: SAMPLER_AUTO.temperature,
+      top_p: SAMPLER_AUTO.topP,
+    }),
+    timeoutMs: CHAT_TIMEOUT_MS,
+    signal: options.signal,
+  });
+  if (!compat.ok || !compat.body) {
+    if (compat.status === 404) {
+      throw new AiServiceError(
+        `O modelo ${model} não está instalado neste servidor de IA.`,
+        "model_missing",
+      );
+    }
+    throw new AiServiceError("O serviço de IA respondeu com erro.", "bad_response");
+  }
+  yield* readStream(compat.body, parseSseLine);
+}
+
+/** Corpo da resposta → pedaços de texto, linha a linha, sem partir caracteres. */
+async function* readStream(
+  body: ReadableStream<Uint8Array>,
+  parseLine: (line: string) => { text: string; done: boolean } | null,
+): AsyncGenerator<string, void, undefined> {
+  const reader = body.getReader();
+  // `stream: true` no decoder é o que impede um «ç» partido entre dois pedaços
+  // de chegar corrompido ao ecrã.
+  const decoder = new TextDecoder("utf-8");
+  let buffer = "";
+  try {
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+      const { lines, rest } = splitLines(buffer);
+      buffer = rest;
+      for (const line of lines) {
+        const chunk = parseLine(line);
+        if (!chunk) continue;
+        if (chunk.text) yield chunk.text;
+        if (chunk.done) return;
+      }
+    }
+    const tail = parseLine(buffer.trim());
+    if (tail?.text) yield tail.text;
+  } finally {
+    // Cancelar liberta a ligação (e o modelo) quando quem consome desiste.
+    await reader.cancel().catch(() => {});
+  }
 }
