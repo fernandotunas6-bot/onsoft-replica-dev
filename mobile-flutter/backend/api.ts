@@ -64,7 +64,7 @@ function validateCatalog(catalog: Catalog, scope: Scope) {
         !clock(slot.startsAt) || !clock(slot.endsAt) || (slot.startsAt as string).slice(0,5) >= (slot.endsAt as string).slice(0,5) ||
         !['published','legacy'].includes(slot.publication as string) ||
         (slot.room != null && (typeof slot.room !== 'string' || slot.room.length > 200))) fail(503, 'CATALOG_INVALID');
-    slotIds.add(slot.slotId);
+    slotIds.add(slot.slotId as string);
   }
   const taskIds = new Set<string>();
   for (const t of catalog.tasks) {
