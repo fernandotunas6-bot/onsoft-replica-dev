@@ -423,3 +423,36 @@ regras da frequência (ES6); professor autorizado por qualquer turma da discipli
 ano (ES7 — a migração `20261006090000_course_unit_shift.sql` refere `shifts.ts`, que não
 existe); dois certificados em simultâneo (ES9, falta índice único); SISIES conta graduados de
 todos os anos (ES10).
+
+## 18. PayFlow (2026-10-13)
+
+Corrigidos:
+
+- **PF2 — Fatura paga em parte ia pelo total.** A sincronização SIGA → PayFlow enviava o total
+  líquido, sem os recibos já emitidos: com 30 000 de 50 000 pagos na tesouraria, o encarregado
+  via 50 000 e pagava outra vez; o SIGA recusava o excesso na liquidação, com o dinheiro já
+  recebido. Vai agora o que falta; uma fatura liquidada vai como paga
+  (`payflow-sync-execute.ts`, teste `tests/finance/payflow-sync-outstanding.test.ts`).
+- **PF4 — Montantes dos extractos.** «1.234» era lido como 1,23 Kz, «1,234.56» também, e
+  «1.500.000» ficava por ler: transferências válidas ficavam por conciliar. O separador
+  decimal é o último seguido de 1–2 algarismos; os milhares têm de ser grupos de 3 de um
+  só tipo; o ambíguo fica recusado.
+- **PF5 — Datas impossíveis** (31/02) passavam a 3 de Março; agora ficam vazias.
+- **PF6 — Débitos.** Com uma coluna de natureza (D/C), um débito com a referência e o mesmo
+  valor conciliava o pagamento; passa a erro da linha.
+
+Por decidir (mudam o desenho do PayFlow ou exigem um segredo novo):
+
+- **PF1 (alto):** a notificação PayFlow → SIGA de um pagamento é `void fetch(...)`, sem
+  repetição nem fila: se falhar (ou o Worker a cortar), o SIGA fica com a fatura em aberto, e a
+  sincronização seguinte devolve-a «em aberto» ao PayFlow — pagável outra vez. Precisa de uma
+  fila de notificações pendentes (ou, no mínimo, `ctx.waitUntil`) e de a sincronização não
+  rebaixar uma fatura com pagamento confirmado.
+- **PF3 (médio-alto):** cada pedido sem `Idempotency-Key` cria outro pagamento para a mesma
+  fatura, e a verificação não olha para o estado da fatura: duas transferências dão dois
+  recibos. Recusar um segundo pagamento pendente/pago e, na verificação, marcar para reembolso.
+- **PF7 (médio, segurança):** o PIN do portal do aluno é um hash sem chave do id do aluno
+  (`derivePayflowPaymentPin`): quem souber o id calcula-o. Mudar para HMAC com um segredo do
+  servidor muda os PIN de todos os alunos — decisão do dono.
+- **PF8 (baixo):** um erro a meio da importação de um extracto devolve 500 sem dizer que linhas
+  já foram aplicadas.
