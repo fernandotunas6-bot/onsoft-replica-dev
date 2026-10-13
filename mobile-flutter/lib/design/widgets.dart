@@ -561,3 +561,34 @@ class _RingsPainter extends CustomPainter {
   @override
   bool shouldRepaint(_RingsPainter old) => old.color != color;
 }
+
+/// Entrada suave do conteúdo: cada bloco aparece e sobe 10 px, um pouco
+/// depois do anterior (até ao oitavo). Corre uma vez; com «Reduzir
+/// movimentos» o conteúdo aparece logo.
+class Entrance extends StatelessWidget {
+  const Entrance({super.key, required this.index, required this.child});
+  final int index;
+  final Widget child;
+  @override
+  Widget build(BuildContext context) {
+    final delay = 45 * index.clamp(0, 8);
+    final total = Siga.motion(
+      context,
+      Duration(milliseconds: Siga.medium.inMilliseconds + delay),
+    );
+    if (total == Duration.zero) return child;
+    return TweenAnimationBuilder<double>(
+      tween: Tween(begin: 0, end: 1),
+      duration: total,
+      curve: Interval(delay / total.inMilliseconds, 1, curve: Siga.ease),
+      child: child,
+      builder: (context, t, child) => Opacity(
+        opacity: t,
+        child: Transform.translate(
+          offset: Offset(0, 10 * (1 - t)),
+          child: child,
+        ),
+      ),
+    );
+  }
+}

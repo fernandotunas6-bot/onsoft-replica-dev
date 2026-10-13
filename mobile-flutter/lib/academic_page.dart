@@ -1171,7 +1171,10 @@ class _DataPageState extends State<DataPage> {
         child: ListView(
           physics: const AlwaysScrollableScrollPhysics(),
           padding: const EdgeInsets.fromLTRB(Siga.s3, Siga.s2, Siga.s3, 96),
-          children: body,
+          children: [
+            for (final (i, child) in body.indexed)
+              Entrance(index: i, child: child),
+          ],
         ),
       );
       if (path != '/home' || backdrop == null) return list;

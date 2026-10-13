@@ -129,21 +129,27 @@ class ServicesPage extends StatelessWidget {
         const SizedBox(height: Siga.s3),
         ServiceGrid(
           children: [
-            for (final (label, icon, path) in tiles)
-              ServiceTile(
-                icon: icon,
-                label: label,
-                onTap: () => onNavigate(path),
+            for (final (i, (label, icon, path)) in tiles.indexed)
+              Entrance(
+                index: i ~/ 3,
+                child: ServiceTile(
+                  icon: icon,
+                  label: label,
+                  onTap: () => onNavigate(path),
+                ),
               ),
-            ServiceTile(
-              icon: AppearanceScope.icon(
-                context,
-                LucideIcons.layoutGrid,
-                Icons.grid_view_rounded,
+            Entrance(
+              index: 3,
+              child: ServiceTile(
+                icon: AppearanceScope.icon(
+                  context,
+                  LucideIcons.layoutGrid,
+                  Icons.grid_view_rounded,
+                ),
+                label: 'Mais',
+                glyph: modern ? const LineGlyph.rings() : null,
+                onTap: () => Scaffold.maybeOf(context)?.openDrawer(),
               ),
-              label: 'Mais',
-              glyph: modern ? const LineGlyph.rings() : null,
-              onTap: () => Scaffold.maybeOf(context)?.openDrawer(),
             ),
           ],
         ),
