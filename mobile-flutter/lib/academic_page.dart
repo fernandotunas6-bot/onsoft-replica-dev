@@ -31,9 +31,10 @@ const months = [
   'Dezembro',
 ];
 
-/// Ecrãs com dados da escola activa: início, disciplinas, calendário,
-/// mensagens, turmas, turma e tarefas. Os dados vêm só do gateway (o
-/// servidor decide a autorização); aqui decide-se apenas a apresentação.
+/// Ecrãs com dados da escola activa (ecrãs 7–10 das referências e a página da
+/// turma). Os dados vêm só do gateway — o servidor decide a autorização; aqui
+/// decide-se a apresentação. O que o servidor ainda não fornece (progresso,
+/// pré-visualização da última mensagem, fotografias) não é inventado.
 class DataPage extends StatefulWidget {
   const DataPage({
     super.key,
@@ -56,7 +57,10 @@ class _DataPageState extends State<DataPage> {
   late Future<Map<String, dynamic>> data;
   Timer? clock;
   String query = '';
-  String? classFilter;
+  bool searching = false;
+  int subjectFilter = 0;
+  int calendarView = 0;
+  int classView = 0;
   bool unreadOnly = false;
   DateTime selected = luandaClock(DateTime.now());
 
@@ -106,6 +110,20 @@ class _DataPageState extends State<DataPage> {
         b['due'] as String? ?? '9999',
       ),
     );
+
+  String plural(int n, String one, String many) =>
+      n == 1 ? '1 $one' : '$n $many';
+
+  /// Cor estável de cada disciplina: a ordem em que aparece no catálogo.
+  Color subjectColor(AcademicCatalog catalog, dynamic classSubjectId) {
+    final index = catalog.classes.indexWhere(
+      (c) => c['classSubjectId'] == classSubjectId,
+    );
+    return Siga.subjectColor(index < 0 ? 0 : index);
+  }
+
+  IconData icon(IconData outlined, IconData modern) =>
+      AppearanceScope.icon(context, outlined, modern);
 
   // ───────── Folhas de detalhe ─────────
 
@@ -166,62 +184,97 @@ class _DataPageState extends State<DataPage> {
     );
   }
 
-  /// Serviço que depende de uma integração ainda por activar: diz o que é e
-  /// porque ainda não está disponível, sem simular que funciona.
-  void pendingService(String title, String explanation) {
-    showSigaSheet<void>(
-      context,
-      title: title,
-      builder: (context) => Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Align(
-            alignment: Alignment.centerLeft,
-            child: StatusTag('Por activar'),
-          ),
-          const SizedBox(height: Siga.s2),
-          Text(explanation, style: Theme.of(context).textTheme.bodyLarge),
-          const SizedBox(height: Siga.s2),
-          const Text(
-            'Links e credenciais são geridos pelo servidor da escola; esta '
-            'aplicação não os guarda nem os inventa.',
-          ),
-        ],
-      ),
-    );
-  }
+  // ───────── Peças ─────────
 
-  // ───────── Linhas ─────────
+  /// Título de ecrã com a lupa à direita (ecrãs 8–10).
+  Widget titleRow(String title, {bool search = true}) => Padding(
+    padding: const EdgeInsets.only(bottom: Siga.s2),
+    child: Row(
+      children: [
+        Expanded(
+          child: Semantics(
+            header: true,
+            child: Text(
+              title,
+              style: const TextStyle(
+                fontSize: 26,
+                fontWeight: FontWeight.w700,
+                letterSpacing: -.5,
+              ),
+            ),
+          ),
+        ),
+        if (search)
+          IconButton(
+            tooltip: searching ? 'Fechar pesquisa' : 'Pesquisar',
+            onPressed: () => setState(() {
+              searching = !searching;
+              if (!searching) query = '';
+            }),
+            icon: Icon(searching ? Icons.close : Icons.search),
+          ),
+      ],
+    ),
+  );
 
+  Widget searchField(String hint, {bool always = false}) =>
+      !always && !searching
+      ? const SizedBox.shrink()
+      : Padding(
+          padding: const EdgeInsets.only(bottom: Siga.s2),
+          child: TextField(
+            autofocus: !always,
+            decoration: InputDecoration(
+              hintText: hint,
+              prefixIcon: const Icon(Icons.search, size: 20),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(24),
+                borderSide: BorderSide.none,
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(24),
+                borderSide: BorderSide.none,
+              ),
+            ),
+            onChanged: (value) => setState(() {
+              query = value.trim().toLowerCase();
+            }),
+          ),
+        );
+
+  /// Linha de disciplina (ecrãs 7 e 8): ícone na cor da disciplina, nome,
+  /// turma e número de tarefas.
   Widget subjectCard(Map<String, dynamic> item, AcademicCatalog catalog) {
     final count = catalog.tasks
         .where((t) => t['classSubjectId'] == item['classSubjectId'])
         .length;
-    final tasks = count == 0
-        ? 'sem tarefas'
-        : count == 1
-        ? '1 tarefa'
-        : '$count tarefas';
     return Padding(
-      padding: const EdgeInsets.only(bottom: Siga.s1),
+      padding: const EdgeInsets.only(bottom: 10),
       child: SigaCard(
         onTap: () => subjectDetail(item, catalog),
+        padding: const EdgeInsets.all(12),
         semanticLabel: '${item['subjectName']}, ${item['className']}',
         child: Row(
           children: [
-            const IconBadge(Icons.menu_book_outlined, accent: true),
-            const SizedBox(width: Siga.s2),
+            TintIcon(
+              icon(Icons.menu_book_outlined, Icons.auto_stories_rounded),
+              color: subjectColor(catalog, item['classSubjectId']),
+            ),
+            const SizedBox(width: 14),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
                     '${item['subjectName']}',
-                    style: Theme.of(context).textTheme.titleMedium,
+                    style: const TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                   const SizedBox(height: 2),
                   Text(
-                    '${item['className']} · $tasks',
+                    '${item['className']} · ${plural(count, 'tarefa', 'tarefas')}',
                     style: Theme.of(context).textTheme.bodySmall,
                   ),
                 ],
@@ -234,12 +287,11 @@ class _DataPageState extends State<DataPage> {
     );
   }
 
-  /// Aula no horário: barra de cor à esquerda, disciplina, hora e sala.
+  /// Aula no horário (ecrã 9): barra na cor da disciplina, nome, hora e sala.
   Widget slotRow(Map<String, dynamic> slot, AcademicCatalog catalog) {
-    final scheme = Theme.of(context).colorScheme;
     final legacy = slot['publication'] == 'legacy';
     return Padding(
-      padding: const EdgeInsets.only(bottom: Siga.s1),
+      padding: const EdgeInsets.only(bottom: 14),
       child: IntrinsicHeight(
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -247,33 +299,35 @@ class _DataPageState extends State<DataPage> {
             Container(
               width: 4,
               decoration: BoxDecoration(
-                color: legacy ? scheme.outline : scheme.primary,
+                color: legacy
+                    ? Theme.of(context).colorScheme.outline
+                    : subjectColor(catalog, slot['classSubjectId']),
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
-            const SizedBox(width: Siga.s2),
+            const SizedBox(width: 12),
             Expanded(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 6),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      catalog.subject(slot['classSubjectId']),
-                      style: Theme.of(context).textTheme.titleMedium,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    catalog.subject(slot['classSubjectId']),
+                    style: const TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w600,
                     ),
-                    const SizedBox(height: 2),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    '${hours(slot)} · ${slot['room'] ?? 'Sala por indicar'}',
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                  if (legacy)
                     Text(
-                      '${hours(slot)} · ${slot['room'] ?? 'Sala por indicar'}',
+                      'Horário legado: confirme com a escola',
                       style: Theme.of(context).textTheme.bodySmall,
                     ),
-                    if (legacy)
-                      Text(
-                        'Horário legado: confirme com a escola',
-                        style: Theme.of(context).textTheme.bodySmall,
-                      ),
-                  ],
-                ),
+                ],
               ),
             ),
           ],
@@ -287,7 +341,7 @@ class _DataPageState extends State<DataPage> {
     AcademicCatalog catalog, {
     bool showSubject = true,
   }) => MenuRow(
-    icon: Icons.assignment_outlined,
+    icon: icon(Icons.assignment_outlined, Icons.assignment_rounded),
     title: '${task['title']}',
     subtitle: showSubject
         ? '${catalog.subject(task['classSubjectId'])} · ${deadline(task['due'])}'
@@ -295,58 +349,31 @@ class _DataPageState extends State<DataPage> {
     onTap: () => taskDetail(task),
   );
 
-  Widget searchField(String hint) => Padding(
-    padding: const EdgeInsets.only(bottom: Siga.s2),
-    child: TextField(
-      decoration: InputDecoration(
-        hintText: hint,
-        prefixIcon: const Icon(Icons.search),
-      ),
-      onChanged: (value) => setState(() {
-        query = value.trim().toLowerCase();
-      }),
-    ),
-  );
-
-  Widget chips(List<(String, bool, VoidCallback)> options) =>
-      SingleChildScrollView(
-        scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.only(bottom: Siga.s2),
-        child: Row(
-          children: [
-            for (final (label, isSelected, onTap) in options)
-              Padding(
-                padding: const EdgeInsets.only(right: Siga.s1),
-                child: ChoiceChip(
-                  label: Text(label),
-                  selected: isSelected,
-                  showCheckmark: false,
-                  labelStyle: TextStyle(
-                    color: isSelected
-                        ? Colors.white
-                        : Theme.of(context).colorScheme.onSurface,
-                    fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
-                  ),
-                  onSelected: (_) => setState(onTap),
-                ),
-              ),
-          ],
-        ),
-      );
-
   // ───────── Ecrãs ─────────
 
+  /// Início (ecrã 7).
   List<Widget> home(AcademicCatalog catalog) {
     final now = luandaClock(DateTime.now());
     final next = catalog.upcoming(DateTime.now());
     final isTeacher = widget.gateway.role == 'professor';
     final first = widget.name.trim().split(RegExp(r'\s+')).first;
     final tasks = sortedTasks(catalog.tasks.where((t) => !overdue(t)));
+    final className = !isTeacher && catalog.classes.isNotEmpty
+        ? catalog.classes.first['className'] as String
+        : widget.schoolName;
     return [
       Row(
         children: [
-          InitialsAvatar(widget.name, size: 52),
-          const SizedBox(width: Siga.s2),
+          Semantics(
+            button: true,
+            label: 'Abrir menu',
+            excludeSemantics: true,
+            child: GestureDetector(
+              onTap: () => Scaffold.maybeOf(context)?.openDrawer(),
+              child: InitialsAvatar(widget.name, size: 52),
+            ),
+          ),
+          const SizedBox(width: 14),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -355,19 +382,27 @@ class _DataPageState extends State<DataPage> {
                   header: true,
                   child: Text(
                     first.isEmpty ? 'Bem-vindo!' : 'Bem-vindo, $first!',
-                    style: Theme.of(context).textTheme.headlineSmall,
+                    style: const TextStyle(
+                      fontSize: 22,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: -.4,
+                    ),
                   ),
                 ),
                 Text(
-                  [
-                    isTeacher ? 'Professor' : 'Aluno',
-                    ?widget.schoolName,
-                  ].join(' · '),
-                  style: Theme.of(context).textTheme.bodyMedium,
+                  [isTeacher ? 'Professor' : 'Aluno', ?className].join(' · '),
+                  style: Theme.of(context).textTheme.bodySmall,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
               ],
+            ),
+          ),
+          IconButton(
+            tooltip: 'Avisos',
+            onPressed: () => context.go('/more/notifications'),
+            icon: Icon(
+              icon(Icons.notifications_none, Icons.notifications_rounded),
             ),
           ),
         ],
@@ -390,78 +425,6 @@ class _DataPageState extends State<DataPage> {
             ],
           ),
         ),
-      const SectionHeader('Serviços escolares'),
-      ServiceGrid(
-        children: [
-          ServiceTile(
-            icon: Icons.menu_book_outlined,
-            label: 'Disciplinas',
-            onTap: () => context.go('/subjects'),
-          ),
-          ServiceTile(
-            icon: Icons.groups_outlined,
-            label: 'Turmas',
-            onTap: () => context.go('/more/classes'),
-          ),
-          ServiceTile(
-            icon: Icons.assignment_turned_in_outlined,
-            label: 'Tarefas',
-            onTap: () => context.go('/more/tasks'),
-          ),
-          ServiceTile(
-            icon: Icons.directions_bus_outlined,
-            label: 'Transporte',
-            onTap: () => context.go('/more/transport'),
-          ),
-          ServiceTile(
-            icon: Icons.calendar_month_outlined,
-            label: 'Calendário',
-            onTap: () => context.go('/calendar'),
-          ),
-          ServiceTile(
-            icon: Icons.chat_bubble_outline,
-            label: 'Mensagens',
-            onTap: () => context.go('/messages'),
-          ),
-          ServiceTile(
-            icon: Icons.notifications_none,
-            label: 'Avisos',
-            onTap: () => context.go('/more/notifications'),
-          ),
-          if (!isTeacher) ...[
-            ServiceTile(
-              icon: Icons.account_balance_wallet_outlined,
-              label: 'Propinas',
-              onTap: () => context.go('/more/finance'),
-            ),
-            ServiceTile(
-              icon: Icons.school_outlined,
-              label: 'Notas',
-              onTap: () => context.go('/more/results'),
-            ),
-            ServiceTile(
-              icon: Icons.description_outlined,
-              label: 'Documentos',
-              onTap: () => context.go('/more/documents'),
-            ),
-          ],
-          ServiceTile(
-            icon: Icons.videocam_outlined,
-            label: 'Aulas online',
-            onTap: () => pendingService(
-              'Aulas online',
-              'Zoom, Google Meet ou BigBlueButton, configurados pela escola por '
-                  'instituição, turma ou aula. A ligação aparece aqui quando a '
-                  'escola a activar.',
-            ),
-          ),
-          ServiceTile(
-            icon: Icons.apps,
-            label: 'Mais',
-            onTap: () => context.go('/more'),
-          ),
-        ],
-      ),
       SectionHeader(
         'Disciplinas',
         action: 'Ver todas',
@@ -472,7 +435,7 @@ class _DataPageState extends State<DataPage> {
       for (final item in catalog.classes.take(3)) subjectCard(item, catalog),
       SectionHeader(
         'Próximas actividades',
-        action: 'Ver todas',
+        action: 'Ver todos',
         onAction: () => context.go('/more/tasks'),
       ),
       if (tasks.isEmpty)
@@ -481,6 +444,7 @@ class _DataPageState extends State<DataPage> {
     ];
   }
 
+  /// Cartão «Aula agora» do ecrã 7: barra azul, disciplina, hora e «Entrar».
   Widget nextLesson(
     Map<String, dynamic> next,
     AcademicCatalog catalog,
@@ -488,6 +452,9 @@ class _DataPageState extends State<DataPage> {
   ) {
     final scheme = Theme.of(context).colorScheme;
     final running = minutes(next['startsAt'])! <= now.hour * 60 + now.minute;
+    final subject = catalog.classes.firstWhere(
+      (c) => c['classSubjectId'] == next['classSubjectId'],
+    );
     return SigaCard(
       padding: EdgeInsets.zero,
       child: IntrinsicHeight(
@@ -498,25 +465,44 @@ class _DataPageState extends State<DataPage> {
             Expanded(
               child: Padding(
                 padding: const EdgeInsets.all(Siga.s2),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                child: Row(
                   children: [
-                    Text(
-                      running ? 'Aula agora' : 'Próxima aula',
-                      style: TextStyle(
-                        color: scheme.primary,
-                        fontWeight: FontWeight.w600,
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            running ? 'Aula agora' : 'Próxima aula',
+                            style: const TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            catalog.subject(next['classSubjectId']),
+                            style: const TextStyle(
+                              fontSize: 17,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            '${hours(next)} · ${next['room'] ?? 'Sala por indicar'}',
+                            style: Theme.of(context).textTheme.bodySmall,
+                          ),
+                        ],
                       ),
                     ),
-                    const SizedBox(height: 6),
-                    Text(
-                      catalog.subject(next['classSubjectId']),
-                      style: Theme.of(context).textTheme.titleLarge,
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      '${hours(next)} · ${next['room'] ?? 'Sala por indicar'}',
-                      style: Theme.of(context).textTheme.bodyMedium,
+                    FilledButton(
+                      onPressed: () => subjectDetail(subject, catalog),
+                      style: FilledButton.styleFrom(
+                        minimumSize: const Size(76, 40),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(Siga.rSmall),
+                        ),
+                      ),
+                      child: const Text('Entrar'),
                     ),
                   ],
                 ),
@@ -528,25 +514,31 @@ class _DataPageState extends State<DataPage> {
     );
   }
 
+  /// Disciplinas (ecrã 8). «Em andamento»: com tarefas por entregar;
+  /// «Concluídas»: com tarefas e nenhuma por entregar.
   List<Widget> subjectsScreen(AcademicCatalog catalog) {
-    final classNames = {
-      for (final c in catalog.classes) c['className'] as String,
-    }.toList()..sort();
-    final subjects = catalog.classes
-        .where(
-          (c) =>
-              (classFilter == null || c['className'] == classFilter) &&
-              matches('${c['subjectName']} ${c['className']}'),
-        )
-        .toList();
+    bool open(Map<String, dynamic> c) => catalog.tasks.any(
+      (t) => t['classSubjectId'] == c['classSubjectId'] && !overdue(t),
+    );
+    bool any(Map<String, dynamic> c) =>
+        catalog.tasks.any((t) => t['classSubjectId'] == c['classSubjectId']);
+    final subjects = catalog.classes.where((c) {
+      if (!matches('${c['subjectName']} ${c['className']}')) return false;
+      return switch (subjectFilter) {
+        1 => open(c),
+        2 => any(c) && !open(c),
+        _ => true,
+      };
+    }).toList();
     return [
+      titleRow('Disciplinas'),
       searchField('Pesquisar disciplina…'),
-      if (classNames.length > 1)
-        chips([
-          ('Todas', classFilter == null, () => classFilter = null),
-          for (final name in classNames)
-            (name, classFilter == name, () => classFilter = name),
-        ]),
+      Segmented(
+        options: const ['Todas', 'Em andamento', 'Concluídas'],
+        selected: subjectFilter,
+        onSelected: (i) => setState(() => subjectFilter = i),
+      ),
+      const SizedBox(height: Siga.s2),
       if (subjects.isEmpty)
         const EmptyState(
           message: 'Sem disciplinas para os filtros escolhidos.',
@@ -555,6 +547,7 @@ class _DataPageState extends State<DataPage> {
     ];
   }
 
+  /// Calendário (ecrã 9): Agenda do dia ou Horários da semana.
   List<Widget> calendarScreen(AcademicCatalog catalog) {
     final scheme = Theme.of(context).colorScheme;
     final palette = SigaPalette.of(context);
@@ -564,121 +557,138 @@ class _DataPageState extends State<DataPage> {
       selected.month,
       selected.day,
     ).subtract(Duration(days: selected.weekday - 1));
-    final week = [for (var i = 0; i < 7; i++) monday.add(Duration(days: i))];
-    final slots = catalog
-        .forDay(selected)
-        .where((s) => matches(catalog.subject(s['classSubjectId'])))
-        .toList();
+    final week = [for (var i = 0; i < 5; i++) monday.add(Duration(days: i))];
     bool same(DateTime a, DateTime b) =>
         a.year == b.year && a.month == b.month && a.day == b.day;
     final dayLabel = same(selected, today)
         ? 'Hoje'
         : weekdays[selected.weekday - 1];
+    final slots = catalog
+        .forDay(selected)
+        .where((s) => matches(catalog.subject(s['classSubjectId'])))
+        .toList();
     return [
-      Row(
-        children: [
-          IconButton(
-            tooltip: 'Semana anterior',
-            onPressed: () => setState(() {
-              selected = selected.subtract(const Duration(days: 7));
-            }),
-            icon: const Icon(Icons.chevron_left),
-          ),
-          Expanded(
-            child: Center(
-              child: Text(
-                '${months[selected.month - 1]} ${selected.year}',
-                style: Theme.of(context).textTheme.titleMedium,
-              ),
-            ),
-          ),
-          IconButton(
-            tooltip: 'Semana seguinte',
-            onPressed: () => setState(() {
-              selected = selected.add(const Duration(days: 7));
-            }),
-            icon: const Icon(Icons.chevron_right),
-          ),
-        ],
+      titleRow('Calendário'),
+      searchField('Pesquisar disciplina…'),
+      Segmented(
+        options: const ['Agenda', 'Horários'],
+        selected: calendarView,
+        expanded: true,
+        onSelected: (i) => setState(() => calendarView = i),
       ),
-      const SizedBox(height: Siga.s1),
-      Row(
-        children: [
-          for (final day in week)
-            Expanded(
-              child: Semantics(
-                button: true,
-                selected: same(day, selected),
-                label:
-                    '${weekdays[day.weekday - 1]}, ${day.day} de ${months[day.month - 1]}',
-                excludeSemantics: true,
-                child: InkWell(
-                  borderRadius: BorderRadius.circular(Siga.rSmall),
-                  onTap: () => setState(() => selected = day),
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 6),
-                    child: Column(
-                      children: [
-                        Text(
-                          weekdays[day.weekday - 1].substring(0, 3),
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: same(day, today)
-                                ? scheme.primary
-                                : palette.ink2,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                        const SizedBox(height: 6),
-                        AnimatedContainer(
-                          duration: Siga.motion(context, Siga.quick),
-                          width: 38,
-                          height: 38,
-                          alignment: Alignment.center,
-                          decoration: BoxDecoration(
-                            color: same(day, selected)
-                                ? scheme.primary
-                                : Colors.transparent,
-                            borderRadius: BorderRadius.circular(Siga.rSmall),
-                          ),
-                          child: Text(
-                            '${day.day}',
-                            style: TextStyle(
-                              fontWeight: FontWeight.w600,
-                              color: same(day, selected)
-                                  ? Colors.white
-                                  : scheme.onSurface,
+      const SizedBox(height: Siga.s2),
+      if (calendarView == 0) ...[
+        GestureDetector(
+          // Deslizar muda de semana.
+          onHorizontalDragEnd: (details) {
+            final v = details.primaryVelocity ?? 0;
+            if (v.abs() < 200) return;
+            setState(() {
+              selected = selected.add(Duration(days: v < 0 ? 7 : -7));
+            });
+          },
+          child: Row(
+            children: [
+              for (final day in week)
+                Expanded(
+                  child: Semantics(
+                    button: true,
+                    selected: same(day, selected),
+                    label:
+                        '${weekdays[day.weekday - 1]}, ${day.day} de ${months[day.month - 1]}',
+                    excludeSemantics: true,
+                    child: InkWell(
+                      borderRadius: BorderRadius.circular(Siga.rSmall),
+                      onTap: () => setState(() => selected = day),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 6),
+                        child: Column(
+                          children: [
+                            Text(
+                              weekdays[day.weekday - 1].substring(0, 3),
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: same(day, selected) || same(day, today)
+                                    ? scheme.primary
+                                    : palette.ink2,
+                                fontWeight: FontWeight.w500,
+                              ),
                             ),
-                          ),
+                            const SizedBox(height: 6),
+                            AnimatedContainer(
+                              duration: Siga.motion(context, Siga.quick),
+                              width: 34,
+                              height: 34,
+                              alignment: Alignment.center,
+                              decoration: BoxDecoration(
+                                color: same(day, selected)
+                                    ? scheme.primary
+                                    : Colors.transparent,
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              child: Text(
+                                '${day.day}',
+                                style: TextStyle(
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w600,
+                                  color: same(day, selected)
+                                      ? Colors.white
+                                      : scheme.onSurface,
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
-                      ],
+                      ),
                     ),
                   ),
                 ),
-              ),
-            ),
-        ],
-      ),
-      Padding(
-        padding: const EdgeInsets.only(top: Siga.s3, bottom: Siga.s2),
-        child: Row(
-          children: [
-            Expanded(
-              child: Text(
-                '$dayLabel · ${selected.day} de ${months[selected.month - 1]}',
-                style: Theme.of(context).textTheme.titleMedium,
-              ),
-            ),
-            if (!same(selected, today))
-              TextButton(
-                onPressed: () => setState(() => selected = today),
-                child: const Text('Hoje'),
-              ),
-          ],
+            ],
+          ),
         ),
-      ),
-      if (slots.isEmpty) const EmptyState(message: 'Sem aulas neste dia.'),
-      for (final slot in slots) slotRow(slot, catalog),
+        Padding(
+          padding: const EdgeInsets.only(top: Siga.s3, bottom: Siga.s2),
+          child: Row(
+            children: [
+              Expanded(
+                child: Text(
+                  '$dayLabel · ${selected.day} de ${months[selected.month - 1]}',
+                  style: const TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+              if (!same(selected, today))
+                TextButton(
+                  onPressed: () => setState(() => selected = today),
+                  child: const Text('Hoje'),
+                ),
+            ],
+          ),
+        ),
+        if (slots.isEmpty) const EmptyState(message: 'Sem aulas neste dia.'),
+        for (final slot in slots) slotRow(slot, catalog),
+      ] else ...[
+        for (var d = 0; d < 5; d++) ...[
+          SectionHeader(weekdays[d]),
+          ...() {
+            final day = monday.add(Duration(days: d));
+            final list = catalog
+                .forDay(day)
+                .where((s) => matches(catalog.subject(s['classSubjectId'])))
+                .toList();
+            return list.isEmpty
+                ? [
+                    Text(
+                      'Sem aulas.',
+                      style: Theme.of(context).textTheme.bodySmall,
+                    ),
+                  ]
+                : [for (final slot in list) slotRow(slot, catalog)];
+          }(),
+        ],
+      ],
       const SizedBox(height: Siga.s2),
       Text(
         'Horário previsto. Presenças e cancelamentos aparecem depois de '
@@ -688,10 +698,12 @@ class _DataPageState extends State<DataPage> {
     ];
   }
 
+  /// Mensagens (ecrã 10).
   List<Widget> chatScreen(Map<String, dynamic> result) {
     if (result['threads'] is! List) {
-      return const [
-        EmptyState(
+      return [
+        titleRow('Mensagens', search: false),
+        const EmptyState(
           message: 'Não foi possível interpretar a lista de conversas.',
         ),
       ];
@@ -702,6 +714,7 @@ class _DataPageState extends State<DataPage> {
     ];
     int unread(Map thread) =>
         thread['unread'] is int ? thread['unread'] as int : 0;
+    final unreadThreads = threads.where((t) => unread(t) > 0).length;
     final shown = threads
         .where(
           (t) => matches(t['name'] as String) && (!unreadOnly || unread(t) > 0),
@@ -714,11 +727,15 @@ class _DataPageState extends State<DataPage> {
         ? '1 mensagem por ler'
         : '$count mensagens por ler';
     return [
-      searchField('Pesquisar conversas…'),
-      chips([
-        ('Todas', !unreadOnly, () => unreadOnly = false),
-        ('Não lidas', unreadOnly, () => unreadOnly = true),
-      ]),
+      titleRow('Mensagens', search: false),
+      searchField('Pesquisar conversas…', always: true),
+      Segmented(
+        options: const ['Todas', 'Não lidas'],
+        selected: unreadOnly ? 1 : 0,
+        badges: {1: unreadThreads},
+        onSelected: (i) => setState(() => unreadOnly = i == 1),
+      ),
+      const SizedBox(height: Siga.s1),
       if (threads.isEmpty)
         const EmptyState(message: 'Sem conversas nesta escola.')
       else if (shown.isEmpty)
@@ -747,18 +764,18 @@ class _DataPageState extends State<DataPage> {
               ? null
               : Container(
                   padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 3,
+                    horizontal: 7,
+                    vertical: 2,
                   ),
                   decoration: BoxDecoration(
                     color: scheme.primary,
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(10),
                   ),
                   child: Text(
                     '${unread(thread)}',
                     style: const TextStyle(
                       color: Colors.white,
-                      fontSize: 12,
+                      fontSize: 11,
                       fontWeight: FontWeight.w700,
                     ),
                   ),
@@ -782,33 +799,38 @@ class _DataPageState extends State<DataPage> {
       }
     }
     return [
-      searchField('Pesquisar turma…'),
+      searchField('Pesquisar turma…', always: true),
       if (groups.isEmpty)
         const EmptyState(
           message: 'Sem turmas autorizadas para os filtros escolhidos.',
         ),
       for (final group in groups.entries)
         Padding(
-          padding: const EdgeInsets.only(bottom: Siga.s1),
+          padding: const EdgeInsets.only(bottom: 10),
           child: SigaCard(
             onTap: () =>
                 context.go('/more/classes/${Uri.encodeComponent(group.key)}'),
+            padding: const EdgeInsets.all(12),
             child: Row(
               children: [
-                const IconBadge(Icons.groups_outlined, accent: true),
-                const SizedBox(width: Siga.s2),
+                TintIcon(
+                  icon(Icons.groups_outlined, Icons.groups_rounded),
+                  color: Theme.of(context).colorScheme.primary,
+                ),
+                const SizedBox(width: 14),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
                         group.value.first['className'] as String,
-                        style: Theme.of(context).textTheme.titleMedium,
+                        style: const TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
                       Text(
-                        group.value.length == 1
-                            ? '1 disciplina'
-                            : '${group.value.length} disciplinas',
+                        plural(group.value.length, 'disciplina', 'disciplinas'),
                         style: Theme.of(context).textTheme.bodySmall,
                       ),
                     ],
@@ -822,8 +844,8 @@ class _DataPageState extends State<DataPage> {
     ];
   }
 
-  /// Espaço da turma, organizado como no Moodle: conteúdos, comunicação,
-  /// aulas, horário e avaliação, cada um com o seu destino.
+  /// Página da turma, como na referência: «Turma · …», título, cápsulas
+  /// Disciplinas / Professores / Aulas e os cinco serviços da turma.
   List<Widget> classScreen(AcademicCatalog catalog) {
     final subjects = catalog.classes
         .where((c) => c['classGroupId'] == widget.groupId)
@@ -852,111 +874,129 @@ class _DataPageState extends State<DataPage> {
         .where((s) => ids.contains(s['classSubjectId']))
         .toList();
     final palette = SigaPalette.of(context);
-    String plural(int n, String one, String many) =>
-        n == 1 ? '1 $one' : '$n $many';
+    Widget row(IconData i, String title, String subtitle, VoidCallback onTap) =>
+        InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(Siga.rMedium),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 10),
+            child: Row(
+              children: [
+                IconBadge(i, size: 52),
+                const SizedBox(width: Siga.s2),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        title,
+                        style: const TextStyle(
+                          fontSize: 17,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        subtitle,
+                        style: Theme.of(context).textTheme.bodySmall,
+                      ),
+                    ],
+                  ),
+                ),
+                Icon(Icons.chevron_right, color: palette.ink2),
+              ],
+            ),
+          ),
+        );
+    void sheet(String title, List<Widget> children) => showSigaSheet<void>(
+      context,
+      title: title,
+      builder: (_) => Column(children: children),
+    );
+    void pending(String key) => context.go('/more/$key');
     return [
       Text(
         'Turma',
-        style: TextStyle(color: palette.ink2, fontWeight: FontWeight.w600),
+        style: TextStyle(color: palette.ink2, fontWeight: FontWeight.w500),
       ),
-      const SizedBox(height: 4),
+      const SizedBox(height: 6),
       Semantics(
         header: true,
         child: Text(
           subjects.first['className'] as String,
-          style: Theme.of(context).textTheme.headlineSmall,
+          style: const TextStyle(
+            fontSize: 26,
+            fontWeight: FontWeight.w700,
+            letterSpacing: -.5,
+          ),
         ),
       ),
       const SizedBox(height: Siga.s2),
-      Wrap(
-        spacing: Siga.s1,
-        runSpacing: Siga.s1,
-        children: [
-          StatusTag(plural(subjects.length, 'disciplina', 'disciplinas')),
-          if (teachers.isNotEmpty)
-            StatusTag(plural(teachers.length, 'professor', 'professores')),
-          StatusTag(plural(todaySlots.length, 'aula hoje', 'aulas hoje')),
-        ],
+      Segmented(
+        options: const ['Disciplinas', 'Professores', 'Aulas'],
+        selected: classView,
+        onSelected: (i) => setState(() => classView = i),
       ),
       const SizedBox(height: Siga.s2),
       const Divider(),
-      MenuRow(
-        icon: Icons.menu_book_outlined,
-        title: 'Conteúdos e tarefas',
-        subtitle: tasks.isEmpty
-            ? 'Sem actividades publicadas'
-            : plural(
-                tasks.length,
-                'actividade publicada',
-                'actividades publicadas',
-              ),
-        onTap: () => showSigaSheet<void>(
-          context,
-          title: 'Conteúdos e tarefas',
-          builder: (context) => Column(
-            children: [
-              if (tasks.isEmpty)
-                const EmptyState(message: 'Sem actividades publicadas.'),
-              for (final task in tasks) taskRow(task, catalog),
-            ],
+      const SizedBox(height: Siga.s1),
+      row(
+        Icons.menu_book_outlined,
+        'Conteúdos e tarefas',
+        'Materiais, actividades e avaliações',
+        () => sheet('Conteúdos e tarefas', [
+          if (tasks.isEmpty)
+            const EmptyState(message: 'Sem actividades publicadas.'),
+          for (final task in tasks) taskRow(task, catalog),
+        ]),
+      ),
+      row(
+        Icons.chat_bubble_outline,
+        'Grupo WhatsApp',
+        'Convite institucional da turma',
+        () => pending('whatsapp'),
+      ),
+      row(
+        Icons.videocam_outlined,
+        'Aulas online',
+        'Zoom, Meet ou BigBlueButton',
+        () => pending('online'),
+      ),
+      row(
+        Icons.calendar_month_outlined,
+        'Horário da turma',
+        'Aulas presenciais e virtuais',
+        () => sheet('Horário de hoje', [
+          if (todaySlots.isEmpty)
+            const EmptyState(message: 'Sem aulas publicadas para hoje.'),
+          for (final slot in todaySlots) slotRow(slot, catalog),
+        ]),
+      ),
+      row(
+        Icons.assignment_turned_in_outlined,
+        'Presenças e notas',
+        'Conforme o perfil autorizado',
+        () => context.go(
+          widget.gateway.role == 'aluno' ? '/more/results' : '/more/absences',
+        ),
+      ),
+      const SizedBox(height: Siga.s2),
+      if (classView == 0)
+        for (final item in subjects) subjectCard(item, catalog)
+      else if (classView == 1) ...[
+        if (teachers.isEmpty)
+          const EmptyState(message: 'Professores ainda não indicados.'),
+        for (final name in teachers)
+          ListTile(
+            contentPadding: EdgeInsets.zero,
+            leading: InitialsAvatar(name, size: 40),
+            title: Text(name),
           ),
-        ),
-      ),
-      MenuRow(
-        icon: Icons.forum_outlined,
-        title: 'Grupo WhatsApp',
-        subtitle: 'Convite institucional da turma',
-        trailing: const StatusTag('Por activar'),
-        onTap: () => pendingService(
-          'Grupo WhatsApp',
-          'A escola partilha aqui o link de convite do grupo da turma. A API '
-              'oficial do WhatsApp não permite criar nem gerir grupos '
-              'automaticamente, por isso o convite é registado pela escola.',
-        ),
-      ),
-      MenuRow(
-        icon: Icons.videocam_outlined,
-        title: 'Aulas online',
-        subtitle: 'Zoom, Meet ou BigBlueButton',
-        trailing: const StatusTag('Por activar'),
-        onTap: () => pendingService(
-          'Aulas online',
-          'A plataforma de videoconferência é configurada pela escola, por '
-              'instituição, turma ou aula.',
-        ),
-      ),
-      MenuRow(
-        icon: Icons.calendar_month_outlined,
-        title: 'Horário da turma',
-        subtitle: todaySlots.isEmpty
-            ? 'Sem aulas hoje'
-            : 'Hoje: ${plural(todaySlots.length, 'aula', 'aulas')}',
-        onTap: () => showSigaSheet<void>(
-          context,
-          title: 'Horário de hoje',
-          builder: (context) => Column(
-            children: [
-              if (todaySlots.isEmpty)
-                const EmptyState(message: 'Sem aulas publicadas para hoje.'),
-              for (final slot in todaySlots) slotRow(slot, catalog),
-            ],
-          ),
-        ),
-      ),
-      MenuRow(
-        icon: Icons.fact_check_outlined,
-        title: 'Presenças e notas',
-        subtitle: 'Conforme o perfil autorizado',
-        trailing: const StatusTag('Por activar'),
-        onTap: () => pendingService(
-          'Presenças e notas',
-          'As presenças e as notas publicadas aparecem aqui, só para quem '
-              'tem permissão, quando os respectivos contratos estiverem '
-              'ligados.',
-        ),
-      ),
-      const SectionHeader('Disciplinas'),
-      for (final item in subjects) subjectCard(item, catalog),
+      ] else ...[
+        if (todaySlots.isEmpty)
+          const EmptyState(message: 'Sem aulas publicadas para hoje.'),
+        for (final slot in todaySlots) slotRow(slot, catalog),
+      ],
     ];
   }
 
@@ -967,7 +1007,7 @@ class _DataPageState extends State<DataPage> {
     final open = all.where((t) => !overdue(t)).toList();
     final closed = all.where(overdue).toList();
     return [
-      searchField('Pesquisar tarefa…'),
+      searchField('Pesquisar tarefa…', always: true),
       if (all.isEmpty)
         const EmptyState(message: 'Sem tarefas para os filtros escolhidos.'),
       if (open.isNotEmpty) const SectionHeader('Por entregar'),
@@ -1001,12 +1041,6 @@ class _DataPageState extends State<DataPage> {
           );
         }
       }
-      final title = switch (path) {
-        '/calendar' => 'Calendário',
-        '/messages' => 'Mensagens',
-        '/subjects' => 'Disciplinas',
-        _ => null,
-      };
       final List<Widget> body = switch (path) {
         '/home' => home(catalog!),
         '/calendar' => calendarScreen(catalog!),
@@ -1016,7 +1050,8 @@ class _DataPageState extends State<DataPage> {
         '/tasks' => tasksScreen(catalog!),
         _ => subjectsScreen(catalog!),
       };
-      return RefreshIndicator(
+      final backdrop = AppearanceScope.maybeOf(context)?.backdrop;
+      final list = RefreshIndicator(
         onRefresh: () async {
           setState(load);
           // O FutureBuilder mostra o erro; aqui só se evita um Future órfão.
@@ -1028,21 +1063,35 @@ class _DataPageState extends State<DataPage> {
         },
         child: ListView(
           physics: const AlwaysScrollableScrollPhysics(),
-          padding: const EdgeInsets.fromLTRB(Siga.s3, Siga.s2, Siga.s3, 120),
-          children: [
-            if (title != null) ...[
-              Semantics(
-                header: true,
-                child: Text(
-                  title,
-                  style: Theme.of(context).textTheme.headlineSmall,
+          padding: const EdgeInsets.fromLTRB(Siga.s3, Siga.s2, Siga.s3, 96),
+          children: body,
+        ),
+      );
+      if (path != '/home' || backdrop == null) return list;
+      // Plano de fundo do painel (Aparência): só no topo do início, suave.
+      final colors = Siga.backdrops[backdrop % Siga.backdrops.length];
+      return Stack(
+        children: [
+          Positioned(
+            left: 0,
+            right: 0,
+            top: 0,
+            height: 260,
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    for (final c in colors) c.withValues(alpha: .35),
+                    Theme.of(context).colorScheme.surface,
+                  ],
                 ),
               ),
-              const SizedBox(height: Siga.s2),
-            ],
-            ...body,
-          ],
-        ),
+            ),
+          ),
+          list,
+        ],
       );
     },
   );

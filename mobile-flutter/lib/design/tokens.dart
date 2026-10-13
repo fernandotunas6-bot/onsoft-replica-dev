@@ -25,15 +25,37 @@ class Siga {
   static const Color darkSurface2 = Color(0xff1e2027);
   static const Color darkInk2 = Color(0xffa9b0bd);
 
-  static const Color institutionalBlue = Color(0xff2563eb);
+  static const Color institutionalBlue = Color(0xff2f6bff);
 
-  /// Cores principais escolhidas em Aparência. Mudam só o destaque.
+  /// Cores principais de Aparência (ecrã 12): azul, violeta, laranja,
+  /// verde-água e cinzento. Mudam só o destaque.
   static const List<(String, Color)> accents = [
     ('Azul', institutionalBlue),
-    ('Violeta', Color(0xff7c3aed)),
-    ('Laranja', Color(0xffea580c)),
-    ('Verde-água', Color(0xff0d9488)),
-    ('Grafite', Color(0xff52525b)),
+    ('Violeta', Color(0xff9b5cf6)),
+    ('Laranja', Color(0xffff8a3d)),
+    ('Verde-água', Color(0xff1fbf9f)),
+    ('Cinzento', Color(0xff8e949e)),
+  ];
+
+  /// Cor de cada disciplina (ecrã 8): ícone na cor, fundo suave da mesma cor.
+  static const List<Color> subjectColors = [
+    Color(0xff2f6bff),
+    Color(0xff1fbf8f),
+    Color(0xff4b6bff),
+    Color(0xffff8a3d),
+    Color(0xff9b5cf6),
+    Color(0xff14b8c4),
+  ];
+
+  /// Cor estável de uma disciplina, pela ordem em que aparece no catálogo.
+  static Color subjectColor(int index) =>
+      subjectColors[index % subjectColors.length];
+
+  /// Planos de fundo do painel (ecrã 12), usados no topo do início.
+  static const List<List<Color>> backdrops = [
+    [Color(0xffc9b6ff), Color(0xff8fb8ff), Color(0xffffb3d9)],
+    [Color(0xffd7e6ff), Color(0xffb9cfff), Color(0xffe9d9ff)],
+    [Color(0xffffd6c2), Color(0xffffc2e0), Color(0xffd9d2ff)],
   ];
 
   static const LinearGradient brand = LinearGradient(
@@ -131,9 +153,11 @@ ThemeData sigaTheme(Brightness brightness, Color accent) {
   final text = ThemeData(
     brightness: brightness,
     useMaterial3: true,
+    fontFamily: 'Inter',
   ).textTheme.apply(bodyColor: ink, displayColor: ink);
   return ThemeData(
     useMaterial3: true,
+    fontFamily: 'Inter',
     brightness: brightness,
     colorScheme: scheme,
     scaffoldBackgroundColor: surface,
@@ -249,4 +273,33 @@ ThemeData sigaTheme(Brightness brightness, Color accent) {
       },
     ),
   );
+}
+
+/// Preferências de Aparência que mudam os ecrãs: plano de fundo do painel
+/// (ecrã 12) e ícones modernos (cheios e arredondados em vez de traço).
+class AppearanceScope extends InheritedWidget {
+  const AppearanceScope({
+    super.key,
+    required this.backdrop,
+    required this.modernIcons,
+    required super.child,
+  });
+
+  /// Índice em [Siga.backdrops], ou null sem plano de fundo.
+  final int? backdrop;
+  final bool modernIcons;
+
+  static AppearanceScope? maybeOf(BuildContext context) =>
+      context.dependOnInheritedWidgetOfExactType<AppearanceScope>();
+
+  /// Escolhe o ícone conforme a preferência «Utilizar ícones modernos».
+  static IconData icon(
+    BuildContext context,
+    IconData outlined,
+    IconData modern,
+  ) => (maybeOf(context)?.modernIcons ?? false) ? modern : outlined;
+
+  @override
+  bool updateShouldNotify(AppearanceScope old) =>
+      old.backdrop != backdrop || old.modernIcons != modernIcons;
 }

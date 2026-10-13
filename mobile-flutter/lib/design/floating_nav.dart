@@ -8,8 +8,9 @@ class NavItem {
   final String label;
 }
 
-/// Barra inferior flutuante: cápsula com borda fina, sem desfoque permanente,
-/// e um indicador que desliza até ao separador activo.
+/// Barra inferior dos ecrãs 7–10: branca, com borda fina no topo, ícone e
+/// nome; o separador activo fica azul (cor principal) e o ícone muda para a
+/// versão cheia com uma transição curta.
 class FloatingNavBar extends StatelessWidget {
   const FloatingNavBar({
     super.key,
@@ -25,72 +26,28 @@ class FloatingNavBar extends StatelessWidget {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     final palette = SigaPalette.of(context);
-    final duration = Siga.motion(context, Siga.medium);
-    return SafeArea(
-      top: false,
-      minimum: const EdgeInsets.only(bottom: Siga.s1),
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(Siga.s2, 0, Siga.s2, Siga.s1),
-        child: Center(
-          heightFactor: 1,
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 480),
-            child: DecoratedBox(
-              decoration: BoxDecoration(
-                color: scheme.surface,
-                borderRadius: BorderRadius.circular(34),
-                border: Border.all(color: palette.line),
-                boxShadow: const [
-                  BoxShadow(
-                    color: Color(0x1a141824),
-                    blurRadius: 32,
-                    offset: Offset(0, 10),
-                  ),
-                ],
-              ),
-              child: Padding(
-                padding: const EdgeInsets.all(6),
-                child: SizedBox(
-                  height: 56,
-                  child: LayoutBuilder(
-                    builder: (context, constraints) {
-                      final width = constraints.maxWidth / items.length;
-                      return Stack(
-                        children: [
-                          AnimatedPositioned(
-                            duration: duration,
-                            curve: Siga.ease,
-                            left: width * index,
-                            top: 0,
-                            bottom: 0,
-                            width: width,
-                            child: DecoratedBox(
-                              decoration: BoxDecoration(
-                                color: palette.accentSoft,
-                                borderRadius: BorderRadius.circular(28),
-                              ),
-                            ),
-                          ),
-                          Row(
-                            children: [
-                              for (var i = 0; i < items.length; i++)
-                                Expanded(
-                                  child: _NavButton(
-                                    item: items[i],
-                                    selected: i == index,
-                                    duration: duration,
-                                    onTap: () => onSelected(i),
-                                  ),
-                                ),
-                            ],
-                          ),
-                        ],
-                      );
-                    },
+    final duration = Siga.motion(context, Siga.quick);
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: scheme.surface,
+        border: Border(top: BorderSide(color: palette.line)),
+      ),
+      child: SafeArea(
+        top: false,
+        child: SizedBox(
+          height: 64,
+          child: Row(
+            children: [
+              for (var i = 0; i < items.length; i++)
+                Expanded(
+                  child: _NavButton(
+                    item: items[i],
+                    selected: i == index,
+                    duration: duration,
+                    onTap: () => onSelected(i),
                   ),
                 ),
-              ),
-            ),
+            ],
           ),
         ),
       ),
@@ -118,27 +75,30 @@ class _NavButton extends StatelessWidget {
       selected: selected,
       label: item.label,
       excludeSemantics: true,
-      child: InkWell(
+      child: InkResponse(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(28),
+        radius: 36,
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             AnimatedSwitcher(
               duration: duration,
+              transitionBuilder: (child, animation) =>
+                  ScaleTransition(scale: animation, child: child),
               child: Icon(
                 selected ? item.selectedIcon : item.icon,
                 key: ValueKey(selected),
                 color: color,
-                size: 22,
+                size: 23,
               ),
             ),
-            const SizedBox(height: 3),
+            const SizedBox(height: 4),
             AnimatedDefaultTextStyle(
               duration: duration,
               style: TextStyle(
+                fontFamily: 'Inter',
                 fontSize: 11,
-                fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+                fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
                 color: color,
               ),
               child: Text(

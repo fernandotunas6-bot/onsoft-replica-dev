@@ -135,6 +135,7 @@ class _ServiceTileState extends State<ServiceTile> {
   @override
   Widget build(BuildContext context) {
     final palette = SigaPalette.of(context);
+    final scheme = Theme.of(context).colorScheme;
     return Semantics(
       button: true,
       label: widget.label,
@@ -145,7 +146,7 @@ class _ServiceTileState extends State<ServiceTile> {
         curve: Siga.ease,
         child: Material(
           color: palette.surface2,
-          borderRadius: BorderRadius.circular(Siga.rMedium),
+          borderRadius: BorderRadius.circular(18),
           clipBehavior: Clip.antiAlias,
           child: InkWell(
             onTap: widget.onTap,
@@ -158,17 +159,20 @@ class _ServiceTileState extends State<ServiceTile> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(widget.icon, size: 26),
-                  const SizedBox(height: 10),
-                  Text(
-                    widget.label,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
-                      color: Theme.of(context).colorScheme.onSurface,
+                  Icon(widget.icon, size: 28, color: scheme.onSurface),
+                  const SizedBox(height: 12),
+                  // Encolhe o rótulo em vez de o cortar («Aulas online»).
+                  FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Text(
+                      widget.label,
+                      maxLines: 1,
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w500,
+                        color: scheme.onSurface,
+                      ),
                     ),
                   ),
                 ],
@@ -189,15 +193,21 @@ class ServiceGrid extends StatelessWidget {
   Widget build(BuildContext context) => LayoutBuilder(
     builder: (context, constraints) {
       final columns = constraints.maxWidth < 300 ? 2 : 3;
+      const gap = 12.0;
+      final width = (constraints.maxWidth - gap * (columns - 1)) / columns;
+      // Proporção da referência (larga), mas nunca mais baixo do que o
+      // ícone e o nome precisam (também com texto ampliado).
+      final scale = MediaQuery.textScalerOf(context).scale(15) / 15;
+      final height = (width / 1.42).clamp(96.0 * scale, double.infinity);
       return GridView.count(
-        // Sem herdar o recuo da barra flutuante: a grelha está dentro da lista.
+        // Sem herdar o recuo da barra inferior: a grelha está dentro da lista.
         padding: EdgeInsets.zero,
         crossAxisCount: columns,
         shrinkWrap: true,
         physics: const NeverScrollableScrollPhysics(),
-        mainAxisSpacing: 10,
-        crossAxisSpacing: 10,
-        childAspectRatio: 1.12,
+        mainAxisSpacing: gap,
+        crossAxisSpacing: gap,
+        childAspectRatio: width / height,
         children: children,
       );
     },
@@ -380,4 +390,132 @@ class MenuRow extends StatelessWidget {
       onTap: onTap,
     );
   }
+}
+
+/// Selector em cápsulas (ecrãs 8–10): a opção activa em azul, as outras em
+/// cinzento claro; [expanded] reparte a largura (Agenda / Horários).
+class Segmented extends StatelessWidget {
+  const Segmented({
+    super.key,
+    required this.options,
+    required this.selected,
+    required this.onSelected,
+    this.expanded = false,
+    this.badges = const {},
+  });
+  final List<String> options;
+  final int selected;
+  final ValueChanged<int> onSelected;
+  final bool expanded;
+
+  /// Número a mostrar num ponto vermelho ao lado da opção (ex.: «Não lidas»).
+  final Map<int, int> badges;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final palette = SigaPalette.of(context);
+    Widget pill(int i) {
+      final active = i == selected;
+      return Semantics(
+        button: true,
+        selected: active,
+        label: options[i],
+        excludeSemantics: true,
+        child: GestureDetector(
+          onTap: () => onSelected(i),
+          child: AnimatedContainer(
+            duration: Siga.motion(context, Siga.quick),
+            curve: Siga.ease,
+            height: 34,
+            padding: const EdgeInsets.symmetric(horizontal: Siga.s2),
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: active ? scheme.primary : palette.surface2,
+              borderRadius: BorderRadius.circular(17),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  options[i],
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: active ? FontWeight.w600 : FontWeight.w500,
+                    color: active ? Colors.white : palette.ink2,
+                  ),
+                ),
+                if ((badges[i] ?? 0) > 0) ...[
+                  const SizedBox(width: 6),
+                  Container(
+                    constraints: const BoxConstraints(minWidth: 16),
+                    height: 16,
+                    padding: const EdgeInsets.symmetric(horizontal: 4),
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      color: const Color(0xffff3b4e),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(
+                      '${badges[i]}',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 10,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
+    if (expanded) {
+      return Container(
+        padding: const EdgeInsets.all(3),
+        decoration: BoxDecoration(
+          color: palette.surface2,
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: Row(
+          children: [
+            for (var i = 0; i < options.length; i++) Expanded(child: pill(i)),
+          ],
+        ),
+      );
+    }
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: Row(
+        children: [
+          for (var i = 0; i < options.length; i++)
+            Padding(
+              padding: const EdgeInsets.only(right: Siga.s1),
+              child: pill(i),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Ícone numa cor, sobre um fundo suave da mesma cor (disciplinas, menus).
+class TintIcon extends StatelessWidget {
+  const TintIcon(this.icon, {super.key, required this.color, this.size = 48});
+  final IconData icon;
+  final Color color;
+  final double size;
+  @override
+  Widget build(BuildContext context) => Container(
+    width: size,
+    height: size,
+    decoration: BoxDecoration(
+      color: color.withValues(alpha: .12),
+      borderRadius: BorderRadius.circular(size * .3),
+    ),
+    child: Icon(icon, color: color, size: size * .5),
+  );
 }

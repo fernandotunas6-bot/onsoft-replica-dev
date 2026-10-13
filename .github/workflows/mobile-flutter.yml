@@ -2,9 +2,9 @@ name: SIGA Flutter — validate migration
 on:
   push:
     branches: [main, feat/siga-flutter-motion-2026]
-    paths: ['mobile-flutter/**', '.github/workflows/mobile-flutter.yml']
+    paths: ["mobile-flutter/**", ".github/workflows/mobile-flutter.yml"]
   pull_request:
-    paths: ['mobile-flutter/**', '.github/workflows/mobile-flutter.yml']
+    paths: ["mobile-flutter/**", ".github/workflows/mobile-flutter.yml"]
   workflow_dispatch:
 permissions:
   contents: read
@@ -15,7 +15,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: '24'
+          node-version: "24"
       - run: npm ci --ignore-scripts
         working-directory: mobile-flutter
       - run: npm run typecheck:backend
@@ -34,7 +34,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.35.7'
+          flutter-version: "3.35.7"
           channel: stable
           cache: true
       - run: flutter pub get
@@ -58,21 +58,43 @@ jobs:
     defaults:
       run:
         working-directory: mobile-flutter
+    # Variáveis do repositório (Settings → Variables) substituem os valores
+    # de .env.example; o .env gerado passa por scripts/check-env.mjs.
     env:
-      SUPABASE_URL: ${{ vars.SIGA_SUPABASE_URL || 'https://xodgfmxiaunpamctfeea.supabase.co' }}
-      SUPABASE_PUBLISHABLE_KEY: ${{ vars.SIGA_SUPABASE_PUBLISHABLE_KEY || 'sb_publishable_NSqtGz5zxP_EngLuNj00Og_y3V4D4td' }}
-      SIGA_API_ORIGIN: ${{ vars.SIGA_API_ORIGIN || 'https://portal-siga.com' }}
+      SUPABASE_URL: ${{ vars.SIGA_SUPABASE_URL }}
+      SUPABASE_PUBLISHABLE_KEY: ${{ vars.SIGA_SUPABASE_PUBLISHABLE_KEY }}
+      SIGA_API_ORIGIN: ${{ vars.SIGA_API_ORIGIN }}
+      SIGA_GOOGLE_LOGIN: ${{ vars.SIGA_GOOGLE_LOGIN }}
+      SIGA_MICROSOFT_LOGIN: ${{ vars.SIGA_MICROSOFT_LOGIN }}
+      SIGA_APPLE_LOGIN: ${{ vars.SIGA_APPLE_LOGIN }}
+      SIGA_AUTH_REDIRECT: ${{ vars.SIGA_AUTH_REDIRECT }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
-          java-version: '17'
+          java-version: "17"
       - uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.35.7'
+          flutter-version: "3.35.7"
           channel: stable
           cache: true
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+      - name: .env a partir de .env.example e das variáveis do repositório
+        run: |
+          cp .env.example .env
+          for key in SUPABASE_URL SUPABASE_PUBLISHABLE_KEY SIGA_API_ORIGIN \
+            SIGA_GOOGLE_LOGIN SIGA_MICROSOFT_LOGIN SIGA_APPLE_LOGIN SIGA_AUTH_REDIRECT; do
+            value="${!key}"
+            if [ -n "$value" ]; then
+              grep -v "^$key=" .env > .env.tmp && mv .env.tmp .env
+              echo "$key=$value" >> .env
+            fi
+          done
+          node scripts/check-env.mjs .env
+          grep -E '^(SUPABASE_URL|SIGA_API_ORIGIN|SIGA_[A-Z]+_LOGIN)=' .env
       - run: flutter pub get
       - name: APK de demonstração (dados fictícios, sem servidor)
         run: |
@@ -81,10 +103,7 @@ jobs:
           cp build/app/outputs/flutter-apk/app-release.apk ../dist/siga-plus-demonstracao.apk
       - name: APK institucional (Supabase e API do portal)
         run: |
-          flutter build apk --release \
-            --dart-define=SUPABASE_URL="$SUPABASE_URL" \
-            --dart-define=SUPABASE_PUBLISHABLE_KEY="$SUPABASE_PUBLISHABLE_KEY" \
-            --dart-define=SIGA_API_ORIGIN="$SIGA_API_ORIGIN"
+          flutter build apk --release --dart-define-from-file=.env
           cp build/app/outputs/flutter-apk/app-release.apk ../dist/siga-plus.apk
       - run: ls -la ../dist && sha256sum ../dist/*.apk
       - uses: actions/upload-artifact@v4

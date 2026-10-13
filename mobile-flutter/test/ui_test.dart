@@ -107,9 +107,9 @@ void main() {
       expect(t.reveal(.05), 0);
       expect(t.reveal(.47), 1);
       expect(t.reveal(.66), inExclusiveRange(0, 1));
-      expect(t.reveal(.8), 0);
-      expect(t.branded(.7), 0);
-      expect(t.branded(.95), 1);
+      expect(t.reveal(.85), 0);
+      expect(t.left(.85), 0);
+      expect(t.left(1), 1);
     });
 
     test('a versão curta nunca abre a mensagem', () {
@@ -119,23 +119,36 @@ void main() {
       expect(IntroTimeline.short.duration.inMilliseconds, lessThan(1500));
     });
 
-    testWidgets('o S fica no lugar enquanto «eja bem-vindo» se desdobra', (
+    testWidgets('o S dilata e revela «Seja bem-vindo», depois volta ao logo', (
       tester,
     ) async {
-      await tester.pumpWidget(
-        app(const Center(child: MorphingMark(reveal: 0))),
+      Future<void> frame(double reveal) => tester.pumpWidget(
+        app(IntroFrame(enter: 1, reveal: reveal, progress: .5)),
       );
-      final closed = tester.getSize(find.byType(MorphingMark)).width;
-      await tester.pumpWidget(
-        app(const Center(child: MorphingMark(reveal: 1))),
-      );
-      final open = tester.getSize(find.byType(MorphingMark)).width;
-      expect(find.text('S'), findsOneWidget);
-      expect(find.text('eja bem-vindo'), findsOneWidget);
-      expect(open, greaterThan(closed * 2));
-      await tester.pumpWidget(
-        app(const Center(child: MorphingMark(reveal: 1)), width: 320),
-      );
+      double opacityOf(String text) => tester
+          .widgetList<Opacity>(
+            find.ancestor(of: find.text(text), matching: find.byType(Opacity)),
+          )
+          .fold(1.0, (value, o) => value * o.opacity);
+      await frame(0);
+      expect(opacityOf('Seja bem-vindo'), 0);
+      expect(opacityOf('Ao SIGA Plus'), 0);
+      await frame(1);
+      expect(opacityOf('Seja bem-vindo'), 1);
+      expect(opacityOf('Ao SIGA Plus'), 1);
+      // O mesmo S, maior, continua no ecrã durante a mensagem.
+      final scale = tester
+          .widgetList<Transform>(
+            find.ancestor(
+              of: find.byType(MorphingMark),
+              matching: find.byType(Transform),
+            ),
+          )
+          .first
+          .transform
+          .getMaxScaleOnAxis();
+      expect(scale, greaterThan(1.5));
+      expect(find.byType(LinearProgressIndicator), findsOneWidget);
       expect(tester.takeException(), isNull);
     });
   });
@@ -180,45 +193,45 @@ void main() {
   });
 
   group('ecrãs com dados', () {
-    testWidgets('início: saudação, próxima aula, serviços e actividades', (
-      tester,
-    ) async {
-      await showData(tester, '/home');
-      expect(find.text('Bem-vindo, Ana!'), findsOneWidget);
-      expect(find.text('Aluno · Escola Central da Luz'), findsOneWidget);
-      expect(find.text('Aula agora'), findsOneWidget);
-      expect(find.text('Serviços escolares'), findsOneWidget);
-      for (final service in [
-        'Turmas',
-        'Tarefas',
-        'Transporte',
-        'Calendário',
-        'Avisos',
-        'Propinas',
-        'Notas',
-      ]) {
-        expect(find.text(service), findsOneWidget);
-      }
-      await tester.scrollUntilVisible(
-        find.text('Ficha de equações'),
-        200,
-        scrollable: find.byType(Scrollable).first,
-      );
-      expect(find.text('Ficha de equações'), findsOneWidget);
-      await unmount(tester);
-    });
+    testWidgets(
+      'início (ecrã 7): saudação, aula agora, disciplinas, actividades',
+      (tester) async {
+        await showData(tester, '/home');
+        expect(find.text('Bem-vindo, Ana!'), findsOneWidget);
+        expect(find.text('Aluno · Turma A — Manhã'), findsOneWidget);
+        expect(find.text('Aula agora'), findsOneWidget);
+        expect(find.text('Entrar'), findsOneWidget);
+        expect(find.text('Ver todas'), findsOneWidget);
+        expect(find.text('Próximas actividades'), findsOneWidget);
+        // O início das referências não tem a grelha de serviços.
+        expect(find.text('Serviços escolares'), findsNothing);
+        await tester.scrollUntilVisible(
+          find.text('Ficha de equações'),
+          200,
+          scrollable: find.byType(Scrollable).first,
+        );
+        expect(find.text('Ficha de equações'), findsOneWidget);
+        await unmount(tester);
+      },
+    );
 
     testWidgets('calendário: semana com o dia escolhido e as aulas', (
       tester,
     ) async {
       await showData(tester, '/calendar');
-      expect(find.textContaining('Hoje · '), findsOneWidget);
+      expect(find.text('Agenda'), findsOneWidget);
+      expect(find.text('Horários'), findsOneWidget);
       expect(find.text('Seg'), findsOneWidget);
-      expect(find.text('Dom'), findsOneWidget);
-      expect(find.text('Matemática'), findsOneWidget);
-      await tester.tap(find.byTooltip('Semana seguinte'));
+      expect(find.text('Sex'), findsOneWidget);
+      expect(find.text('Dom'), findsNothing);
+      final today = DateTime.now().toUtc().add(const Duration(hours: 1));
+      if (today.weekday <= 5) {
+        expect(find.textContaining('Hoje · '), findsOneWidget);
+      }
+      await tester.tap(find.text('Horários'));
       await tester.pumpAndSettle();
-      expect(find.text('Hoje'), findsOneWidget);
+      expect(find.text('Segunda'), findsOneWidget);
+      expect(find.text('Sexta'), findsOneWidget);
       await unmount(tester);
     });
 
@@ -249,12 +262,26 @@ void main() {
     ) async {
       await showData(tester, '/class', groupId: 'class-a');
       expect(find.text('Turma A — Manhã'), findsOneWidget);
-      expect(find.text('2 disciplinas'), findsOneWidget);
-      expect(find.text('1 professor'), findsOneWidget);
-      expect(find.text('Por activar'), findsNWidgets(3));
-      await tester.tap(find.text('Grupo WhatsApp'));
+      for (final text in [
+        'Disciplinas',
+        'Professores',
+        'Aulas',
+        'Conteúdos e tarefas',
+        'Materiais, actividades e avaliações',
+        'Grupo WhatsApp',
+        'Convite institucional da turma',
+        'Aulas online',
+        'Zoom, Meet ou BigBlueButton',
+        'Horário da turma',
+        'Aulas presenciais e virtuais',
+        'Presenças e notas',
+        'Conforme o perfil autorizado',
+      ]) {
+        expect(find.text(text), findsOneWidget, reason: text);
+      }
+      await tester.tap(find.text('Professores'));
       await tester.pumpAndSettle();
-      expect(find.textContaining('não permite criar'), findsOneWidget);
+      expect(find.text('Carlos Mendes'), findsOneWidget);
       await unmount(tester);
     });
 

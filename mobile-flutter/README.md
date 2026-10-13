@@ -58,17 +58,39 @@ artefacto **siga-plus-android-apk** com dois ficheiros:
 - `siga-plus-demonstracao.apk` — os ecrãs reais com dados fictícios locais
   (`lib/main_demo.dart`); não pede senha nem contacta servidores; faixa
   «Demonstração · dados fictícios» sempre visível.
-- `siga-plus.apk` — a app institucional: Supabase do SGA e API móvel do portal
-  (`SIGA_API_ORIGIN`, por omissão `https://portal-siga.com`). As três
-  definições podem ser trocadas nas variáveis do repositório
-  (`SIGA_SUPABASE_URL`, `SIGA_SUPABASE_PUBLISHABLE_KEY`, `SIGA_API_ORIGIN`).
+- `siga-plus.apk` — a app institucional: Supabase do SGA e API móvel em
+  `https://m.portal-siga.com`. O job copia `.env.example` para `.env`, aplica
+  as variáveis do repositório que existirem (`SIGA_SUPABASE_URL`,
+  `SIGA_SUPABASE_PUBLISHABLE_KEY`, `SIGA_API_ORIGIN`, `SIGA_GOOGLE_LOGIN`,
+  `SIGA_MICROSOFT_LOGIN`, `SIGA_APPLE_LOGIN`, `SIGA_AUTH_REDIRECT`), valida com
+  `scripts/check-env.mjs` e compila com `--dart-define-from-file=.env`.
 
 Para instalar: GitHub → Actions → a execução mais recente → Artifacts →
 descarregar o ZIP, abrir o APK no telemóvel e permitir «instalar apps de origem
 desconhecida». Os APK vão assinados com a chave de depuração: servem para
 testar, não para a Play Store (falta a keystore da plataforma).
 
-Localmente, com o Android SDK: `flutter build apk --release -t lib/main_demo.dart`.
+Localmente, com o Android SDK:
+
+```
+cp .env.example .env            # e ajustar
+node scripts/check-env.mjs .env # recusa segredos
+flutter build apk --release --dart-define-from-file=.env
+```
+
+## Configuração (.env)
+
+O `.env` (fora do Git) só leva valores públicos, porque fica legível dentro do
+APK: URL e chave `sb_publishable_` do Supabase, origem da API e os
+interruptores de login social. A senha da base de dados, a chave
+`service_role`/`sb_secret_` e a senha do Gmail/SMTP ficam só no servidor
+(segredos do Supabase e do Cloudflare); `check-env.mjs` recusa-as.
+
+Entrar com Google (Gmail): no Supabase → Authentication → Providers activar
+Google com o Client ID/Secret do Google Cloud, acrescentar
+`ao.portalsiga.sigaplus://login-callback` (e o domínio web) às Redirect URLs e
+pôr `SIGA_GOOGLE_LOGIN=true`. O mesmo para Microsoft (Azure) e Apple. A
+recuperação de senha usa o e-mail do Supabase Auth (SMTP configurado lá).
 
 ## Executar
 
@@ -78,7 +100,7 @@ Flutter 3.35.7 / Dart 3.9.2:
 flutter pub get
 flutter analyze
 flutter test
-flutter run -d chrome --dart-define=SUPABASE_URL=<url-do-SGA> --dart-define=SUPABASE_PUBLISHABLE_KEY=<chave-publica>
+flutter run -d chrome --dart-define-from-file=.env
 ```
 
 As duas definições são públicas; nunca incluir service_role ou segredos de

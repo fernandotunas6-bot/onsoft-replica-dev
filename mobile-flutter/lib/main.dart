@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'academic_page.dart';
+import 'config.dart';
 import 'design/floating_nav.dart';
 import 'design/tokens.dart';
 import 'gateway.dart';
@@ -12,34 +13,38 @@ import 'identity.dart';
 import 'institutional_page.dart';
 import 'pages/appearance_page.dart';
 import 'pages/login_page.dart';
-import 'pages/more_page.dart';
+import 'pages/pending_page.dart';
 import 'pages/schools_page.dart';
+import 'pages/services_page.dart';
+import 'pages/side_menu.dart';
 import 'pages/transport_page.dart';
 import 'pages/welcome_page.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  const url = String.fromEnvironment('SUPABASE_URL');
-  const key = String.fromEnvironment('SUPABASE_PUBLISHABLE_KEY');
-  final origin = resolveApiOrigin(
-    const String.fromEnvironment('SIGA_API_ORIGIN'),
-    web: kIsWeb,
-    base: Uri.base,
-  );
-  if (url.isEmpty || !key.startsWith('sb_publishable_') || origin == null) {
+  final config = AppConfig.fromEnvironment(web: kIsWeb, base: Uri.base);
+  if (config.problems.isNotEmpty) {
     runApp(
       MaterialApp(
         debugShowCheckedModeBanner: false,
         theme: sigaTheme(Brightness.light, Siga.institutionalBlue),
-        home: const Scaffold(
+        home: Scaffold(
           body: Center(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Brand(),
-                SizedBox(height: Siga.s2),
-                Text('A aplicação aguarda configuração institucional.'),
-              ],
+            child: Padding(
+              padding: const EdgeInsets.all(Siga.s3),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Brand(),
+                  const SizedBox(height: Siga.s2),
+                  const Text('A aplicação aguarda configuração institucional.'),
+                  const SizedBox(height: Siga.s1),
+                  Text(
+                    'Em falta no .env: ${config.problems.join(', ')}',
+                    textAlign: TextAlign.center,
+                  ),
+                ],
+              ),
             ),
           ),
         ),
@@ -47,9 +52,12 @@ Future<void> main() async {
     );
     return;
   }
-  await Supabase.initialize(url: url, anonKey: key);
+  await Supabase.initialize(
+    url: config.supabaseUrl,
+    anonKey: config.publishableKey,
+  );
   final prefs = await SharedPreferences.getInstance();
-  runApp(SigaApp(prefs: prefs, origin: origin));
+  runApp(SigaApp(prefs: prefs, config: config));
 }
 
 /// Separadores da barra inferior, pela ordem das rotas do shell.
@@ -80,9 +88,9 @@ const institutionalServices = [
 ];
 
 class SigaApp extends StatefulWidget {
-  const SigaApp({super.key, required this.prefs, required this.origin});
+  const SigaApp({super.key, required this.prefs, required this.config});
   final SharedPreferences prefs;
-  final Uri origin;
+  final AppConfig config;
   @override
   State<SigaApp> createState() => _SigaAppState();
 }
@@ -90,7 +98,7 @@ class SigaApp extends StatefulWidget {
 class _SigaAppState extends State<SigaApp> {
   final auth = Supabase.instance.client.auth;
   late final MobileGateway gateway = MobileGateway(
-    widget.origin,
+    widget.config.apiOrigin!,
     () async => auth.currentSession?.accessToken,
   );
   late final GoRouter router;
@@ -107,6 +115,8 @@ class _SigaAppState extends State<SigaApp> {
   int generation = 0;
   ThemeMode appearance = ThemeMode.system;
   Color accent = Siga.institutionalBlue;
+  int? backdrop;
+  bool modernIcons = false;
 
   @override
   void initState() {
@@ -116,6 +126,8 @@ class _SigaAppState extends State<SigaApp> {
       (mode) => mode.name == widget.prefs.getString('appearance'),
       orElse: () => ThemeMode.system,
     );
+    backdrop = widget.prefs.getInt('backdrop');
+    modernIcons = widget.prefs.getBool('modern-icons') ?? false;
     final savedAccent = widget.prefs.getInt('accent');
     for (final (_, color) in Siga.accents) {
       if (color.toARGB32() == savedAccent) accent = color;
@@ -185,7 +197,21 @@ class _SigaAppState extends State<SigaApp> {
         ),
         GoRoute(
           path: '/login',
-          builder: (_, _) => LoginPage(auth: auth, onSync: sync),
+          builder: (_, _) => LoginPage(
+            auth: auth,
+            onSync: sync,
+            recoveryRedirect: widget.config.authRedirect,
+            lastSchool: widget.prefs.getString('last-school-name'),
+            onGoogle: widget.config.googleLogin
+                ? () => signInWith(OAuthProvider.google)
+                : null,
+            onMicrosoft: widget.config.microsoftLogin
+                ? () => signInWith(OAuthProvider.azure)
+                : null,
+            onApple: widget.config.appleLogin
+                ? () => signInWith(OAuthProvider.apple)
+                : null,
+          ),
         ),
         GoRoute(
           path: '/mfa',
@@ -263,6 +289,11 @@ class _SigaAppState extends State<SigaApp> {
       path: 'transport',
       builder: (_, _) => subPage('Transporte escolar', const TransportPage()),
     ),
+    for (final MapEntry(key: path, value: service) in pendingServices.entries)
+      GoRoute(
+        path: path,
+        builder: (_, _) => subPage(service.title, PendingPage(service)),
+      ),
     GoRoute(
       path: 'appearance',
       builder: (_, _) => subPage(
@@ -286,6 +317,22 @@ class _SigaAppState extends State<SigaApp> {
             onReduced: (value) {
               reduced = value;
               widget.prefs.setBool('reduced-motion', value);
+              update();
+            },
+            backdrop: backdrop,
+            onBackdrop: (value) {
+              backdrop = value;
+              if (value == null) {
+                widget.prefs.remove('backdrop');
+              } else {
+                widget.prefs.setInt('backdrop', value);
+              }
+              update();
+            },
+            modernIcons: modernIcons,
+            onModernIcons: (value) {
+              modernIcons = value;
+              widget.prefs.setBool('modern-icons', value);
               update();
             },
           ),
@@ -359,6 +406,16 @@ class _SigaAppState extends State<SigaApp> {
     }
   }
 
+  /// Abre o fornecedor (Google, Microsoft ou Apple) no browser; o regresso à
+  /// app (SIGA_AUTH_REDIRECT) faz o SDK criar a sessão, e o
+  /// onAuthStateChange trata do resto.
+  Future<void> signInWith(OAuthProvider provider) async {
+    await auth.signInWithOAuth(
+      provider,
+      redirectTo: widget.config.authRedirect,
+    );
+  }
+
   void switchSchool() {
     gateway.reset();
     school = role = null;
@@ -373,6 +430,7 @@ class _SigaAppState extends State<SigaApp> {
     onSelect: (choice) {
       school = choice.schoolId;
       role = choice.role;
+      widget.prefs.setString('last-school-name', choice.schoolName);
       gateway.select(session!['userId'] as String, school!, role!);
       update();
     },
@@ -387,53 +445,41 @@ class _SigaAppState extends State<SigaApp> {
     return 'SIGA Plus';
   }
 
+  /// Turma do aluno (para «Aluno · 10.ª Classe»); vazio até haver catálogo.
+  String get memberSubtitle => [roleLabel, schoolName].join(' · ');
+
   Widget shellPage(StatefulNavigationShell shell) => Scaffold(
-    extendBody: true,
-    appBar: AppBar(
-      toolbarHeight: 64,
-      titleSpacing: Siga.s2,
-      title: Semantics(
-        button: true,
-        label: 'Escola activa: $schoolName. Mudar de escola',
-        excludeSemantics: true,
-        child: InkWell(
-          onTap: switchSchool,
-          borderRadius: BorderRadius.circular(Siga.rLarge),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 4),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const SigaMark(size: 34),
-                const SizedBox(width: 10),
-                Flexible(
-                  child: Text(
-                    schoolName,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 4),
-                const Icon(Icons.unfold_more, size: 18),
-              ],
-            ),
-          ),
+    drawer: SideMenu(
+      name: '${session?['name'] ?? ''}',
+      subtitle: memberSubtitle,
+      student: role == 'aluno',
+      dark: appearance == ThemeMode.dark,
+      onDark: (value) {
+        appearance = value ? ThemeMode.dark : ThemeMode.light;
+        widget.prefs.setString('appearance', appearance.name);
+        update();
+      },
+      onNavigate: router.go,
+      onSwitchSchool: switchSchool,
+      onSignOut: () => auth.signOut(),
+    ),
+    body: SafeArea(
+      bottom: false,
+      child: Align(
+        alignment: Alignment.topCenter,
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 720),
+          child: shell,
         ),
       ),
     ),
-    body: Align(
-      alignment: Alignment.topCenter,
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 720),
-        child: shell,
-      ),
-    ),
     bottomNavigationBar: FloatingNavBar(
-      items: [for (final (_, item) in tabs) item],
+      items: [
+        for (final (_, item) in tabs)
+          modernIcons
+              ? NavItem(item.selectedIcon, item.selectedIcon, item.label)
+              : item,
+      ],
       index: shell.currentIndex,
       onSelected: (index) =>
           shell.goBranch(index, initialLocation: index == shell.currentIndex),
@@ -442,14 +488,11 @@ class _SigaAppState extends State<SigaApp> {
 
   Widget page(String path) {
     if (path == '/more') {
-      return MorePage(
-        name: '${session?['name'] ?? ''}',
-        roleLabel: roleLabel,
-        student: role == 'aluno',
+      return ServicesPage(
         schoolName: schoolName,
+        student: role == 'aluno',
         onNavigate: router.go,
         onSwitchSchool: switchSchool,
-        onSignOut: () => auth.signOut(),
       );
     }
     return DataPage(
@@ -522,7 +565,11 @@ class _SigaAppState extends State<SigaApp> {
       data: MediaQuery.of(context).copyWith(
         disableAnimations: reduced || MediaQuery.disableAnimationsOf(context),
       ),
-      child: child!,
+      child: AppearanceScope(
+        backdrop: backdrop,
+        modernIcons: modernIcons,
+        child: child!,
+      ),
     ),
   );
 }

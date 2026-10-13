@@ -7,9 +7,9 @@ const welcomeSlides = [
     'Tudo o que a sua escola precisa',
     'Ensino, aprendizagem, comunicação e gestão num só lugar.',
     [
-      Icons.school_outlined,
-      Icons.insights_outlined,
-      Icons.groups_outlined,
+      Icons.school,
+      Icons.bar_chart_rounded,
+      Icons.people_outline,
       Icons.calendar_month_outlined,
     ],
   ),
@@ -114,12 +114,14 @@ class _WelcomePageState extends State<WelcomePage> {
                         for (var i = 0; i < welcomeSlides.length; i++)
                           AnimatedContainer(
                             duration: Siga.motion(context, Siga.quick),
-                            margin: const EdgeInsets.only(right: 6),
-                            width: i == index ? 22 : 8,
-                            height: 8,
+                            margin: const EdgeInsets.only(right: 8),
+                            width: 7,
+                            height: 7,
                             decoration: BoxDecoration(
-                              color: i == index ? scheme.primary : palette.line,
-                              borderRadius: BorderRadius.circular(4),
+                              color: i == index
+                                  ? scheme.primary
+                                  : const Color(0xffd5d8df),
+                              shape: BoxShape.circle,
                             ),
                           ),
                       ],
@@ -170,21 +172,36 @@ class _Slide extends StatelessWidget {
         children: [
           ExcludeSemantics(
             child: SizedBox(
-              width: 220,
-              height: 200,
+              width: 240,
+              height: 220,
               child: Stack(
                 children: [
                   for (final (i, (dx, dy, size)) in const [
-                    (0.0, 0.0, 76.0),
-                    (120.0, 20.0, 92.0),
-                    (14.0, 110.0, 84.0),
-                    (136.0, 124.0, 64.0),
+                    (10.0, 0.0, 78.0),
+                    (100.0, 46.0, 92.0),
+                    (0.0, 104.0, 74.0),
+                    (124.0, 150.0, 58.0),
                   ].indexed)
                     Positioned(
                       left: dx,
                       top: dy,
-                      child: _Tile(icon: icons[i], size: size, accent: i == 1),
+                      child: _Tile(
+                        icon: icons[i],
+                        size: size,
+                        color: i == 2
+                            ? const Color(0xff7b5cff)
+                            : Siga.institutionalBlue,
+                      ),
                     ),
+                  const Positioned(
+                    right: 0,
+                    top: 0,
+                    child: _Tile(
+                      icon: Icons.search,
+                      size: 44,
+                      color: Siga.institutionalBlue,
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -211,34 +228,33 @@ class _Slide extends StatelessWidget {
 }
 
 class _Tile extends StatelessWidget {
-  const _Tile({required this.icon, required this.size, required this.accent});
+  const _Tile({required this.icon, required this.size, required this.color});
   final IconData icon;
   final double size;
-  final bool accent;
+  final Color color;
   @override
-  Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    final palette = SigaPalette.of(context);
-    return Container(
-      width: size,
-      height: size,
-      decoration: BoxDecoration(
-        color: accent ? palette.accentSoft : scheme.surface,
-        borderRadius: BorderRadius.circular(size * .28),
-        border: Border.all(color: palette.line),
-        boxShadow: const [
-          BoxShadow(
-            color: Color(0x0f141824),
-            blurRadius: 24,
-            offset: Offset(0, 8),
-          ),
-        ],
-      ),
-      child: Icon(
-        icon,
-        size: size * .4,
-        color: accent ? scheme.primary : scheme.onSurface,
-      ),
-    );
-  }
+  Widget build(BuildContext context) => Container(
+    width: size,
+    height: size,
+    decoration: BoxDecoration(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(size * .26),
+      boxShadow: const [
+        BoxShadow(
+          color: Color(0x1a2f3a66),
+          blurRadius: 28,
+          offset: Offset(0, 10),
+        ),
+      ],
+    ),
+    child: ShaderMask(
+      blendMode: BlendMode.srcIn,
+      shaderCallback: LinearGradient(
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+        colors: [color, Color.lerp(color, const Color(0xff9b5cf6), .5)!],
+      ).createShader,
+      child: Icon(icon, size: size * .46, color: Colors.white),
+    ),
+  );
 }

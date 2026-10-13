@@ -2,16 +2,6 @@ import 'package:flutter/material.dart';
 import '../design/tokens.dart';
 import '../design/widgets.dart';
 
-/// Partes do módulo de transporte, por ordem de implementação.
-const transportParts = [
-  ('Rotas e paragens', 'Percursos de ida e volta, com a ordem das paragens'),
-  ('Veículos e motoristas', 'Cada rota com o seu autocarro e responsável'),
-  ('Alunos autorizados', 'Quem viaja em cada rota, autorizado pela escola'),
-  ('Embarque e desembarque', 'Registo à entrada e à saída do autocarro'),
-  ('Notificações', 'Aviso ao encarregado no embarque e na chegada'),
-  ('Histórico e relatórios', 'Viagens anteriores, atrasos e ocorrências'),
-];
-
 /// Transporte escolar — prévia do módulo.
 ///
 /// Ainda não há rotas, veículos nem GPS no SIGA Plus. O trajecto é
@@ -67,10 +57,38 @@ class TransportPage extends StatelessWidget {
                       label: 'Trajecto ilustrativo da rota',
                       child: AspectRatio(
                         aspectRatio: 320 / 150,
-                        child: CustomPaint(
-                          painter: RoutePainter(
-                            done: theme.colorScheme.primary,
-                            ink: theme.colorScheme.onSurface,
+                        child: LayoutBuilder(
+                          builder: (context, box) => Stack(
+                            clipBehavior: Clip.none,
+                            children: [
+                              Positioned.fill(
+                                child: CustomPaint(
+                                  painter: RoutePainter(
+                                    done: theme.colorScheme.primary,
+                                    ink: theme.colorScheme.onSurface,
+                                  ),
+                                ),
+                              ),
+                              Positioned(
+                                left: box.maxWidth * 196 / 320,
+                                top: box.maxHeight * 50 / 150,
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 10,
+                                    vertical: 4,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: theme.colorScheme.surface,
+                                    borderRadius: BorderRadius.circular(14),
+                                    border: Border.all(color: palette.line),
+                                  ),
+                                  child: const Text(
+                                    'Autocarro 01',
+                                    style: TextStyle(fontSize: 11),
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
                         ),
                       ),
@@ -105,8 +123,7 @@ class TransportPage extends StatelessWidget {
                   Expanded(
                     child: Text(
                       'A localização real só estará disponível após '
-                      'autorização da escola, integração com dispositivos GPS '
-                      'e activação da rota.',
+                      'autorização, integração GPS e activação da rota.',
                       style: theme.textTheme.bodySmall,
                     ),
                   ),
@@ -115,23 +132,13 @@ class TransportPage extends StatelessWidget {
             ],
           ),
         ),
-        const SectionHeader('O que o módulo vai ter'),
-        for (final (title, detail) in transportParts)
-          ListTile(
-            contentPadding: const EdgeInsets.symmetric(horizontal: Siga.s1),
-            leading: const Icon(Icons.check, size: 20),
-            title: Text(
-              title,
-              style: const TextStyle(fontWeight: FontWeight.w600),
-            ),
-            subtitle: Text(detail),
-          ),
-        const SizedBox(height: Siga.s2),
+        const SizedBox(height: Siga.s3),
         Text(
-          'Os encarregados verão apenas os trajectos dos seus educandos '
-          'autorizados. As permissões são decididas no servidor da escola, '
-          'não nesta aplicação.',
-          style: theme.textTheme.bodySmall,
+          'Este módulo incluirá rotas, paragens, motoristas, veículos, alunos '
+          'autorizados, notificações de embarque/desembarque, histórico e '
+          'acompanhamento GPS quando disponível. Os encarregados verão apenas '
+          'os trajectos dos seus educandos autorizados.',
+          style: theme.textTheme.bodyMedium,
         ),
       ],
     );

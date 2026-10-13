@@ -8,8 +8,10 @@ import 'identity.dart';
 import 'institutional_page.dart';
 import 'main.dart' show tabs, institutionalServices;
 import 'pages/appearance_page.dart';
-import 'pages/more_page.dart';
+import 'pages/pending_page.dart';
 import 'pages/schools_page.dart';
+import 'pages/services_page.dart';
+import 'pages/side_menu.dart';
 import 'pages/transport_page.dart';
 import 'pages/welcome_page.dart';
 
@@ -35,6 +37,8 @@ class _DemoAppState extends State<DemoApp> {
   bool reduced = false;
   ThemeMode mode = ThemeMode.system;
   Color accent = Siga.institutionalBlue;
+  int? backdrop;
+  bool modernIcons = false;
 
   void update() {
     if (!mounted) return;
@@ -164,6 +168,11 @@ class _DemoAppState extends State<DemoApp> {
       path: 'transport',
       builder: (_, _) => subPage('Transporte escolar', const TransportPage()),
     ),
+    for (final MapEntry(key: path, value: service) in pendingServices.entries)
+      GoRoute(
+        path: path,
+        builder: (_, _) => subPage(service.title, PendingPage(service)),
+      ),
     GoRoute(
       path: 'appearance',
       builder: (_, _) => subPage(
@@ -186,6 +195,16 @@ class _DemoAppState extends State<DemoApp> {
               reduced = value;
               update();
             },
+            backdrop: backdrop,
+            onBackdrop: (value) {
+              backdrop = value;
+              update();
+            },
+            modernIcons: modernIcons,
+            onModernIcons: (value) {
+              modernIcons = value;
+              update();
+            },
           ),
         ),
       ),
@@ -202,14 +221,11 @@ class _DemoAppState extends State<DemoApp> {
   );
 
   Widget page(String path) => path == '/more'
-      ? MorePage(
-          name: demoName,
-          roleLabel: choice?.roleLabel ?? '',
+      ? ServicesPage(
           schoolName: choice?.schoolName ?? '',
           student: choice?.role == 'aluno',
           onNavigate: router.go,
           onSwitchSchool: switchSchool,
-          onSignOut: switchSchool,
         )
       : data(path);
 
@@ -227,38 +243,27 @@ class _DemoAppState extends State<DemoApp> {
       );
 
   Widget shellPage(StatefulNavigationShell shell) => Scaffold(
-    extendBody: true,
-    appBar: AppBar(
-      toolbarHeight: 64,
-      titleSpacing: Siga.s2,
-      title: InkWell(
-        onTap: switchSchool,
-        borderRadius: BorderRadius.circular(Siga.rLarge),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const SigaMark(size: 34),
-            const SizedBox(width: 10),
-            Flexible(
-              child: Text(
-                choice?.schoolName ?? 'SIGA Plus',
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-            ),
-            const SizedBox(width: 4),
-            const Icon(Icons.unfold_more, size: 18),
-          ],
-        ),
-      ),
+    drawer: SideMenu(
+      name: demoName,
+      subtitle: [choice?.roleLabel ?? '', choice?.schoolName ?? ''].join(' · '),
+      student: choice?.role == 'aluno',
+      dark: mode == ThemeMode.dark,
+      onDark: (value) {
+        mode = value ? ThemeMode.dark : ThemeMode.light;
+        update();
+      },
+      onNavigate: router.go,
+      onSwitchSchool: switchSchool,
+      onSignOut: switchSchool,
     ),
-    body: shell,
+    body: SafeArea(bottom: false, child: shell),
     bottomNavigationBar: FloatingNavBar(
-      items: [for (final (_, item) in tabs) item],
+      items: [
+        for (final (_, item) in tabs)
+          modernIcons
+              ? NavItem(item.selectedIcon, item.selectedIcon, item.label)
+              : item,
+      ],
       index: shell.currentIndex,
       onSelected: (index) =>
           shell.goBranch(index, initialLocation: index == shell.currentIndex),
@@ -292,7 +297,11 @@ class _DemoAppState extends State<DemoApp> {
             child: MediaQuery.removePadding(
               context: context,
               removeBottom: true,
-              child: child!,
+              child: AppearanceScope(
+                backdrop: backdrop,
+                modernIcons: modernIcons,
+                child: child!,
+              ),
             ),
           ),
           const DemoStrip(),

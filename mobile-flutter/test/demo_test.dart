@@ -22,7 +22,18 @@ void main() {
     await tester.tap(find.text('Escola Central da Luz (demonstração)'));
     await tester.pumpAndSettle(const Duration(milliseconds: 500));
     expect(find.text('Bem-vindo, Ana!'), findsOneWidget);
-    expect(find.text('Propinas'), findsOneWidget);
+    await tester.tap(find.text('Mais').last);
+    await tester.pumpAndSettle(const Duration(milliseconds: 500));
+    expect(find.text('Serviços escolares'), findsOneWidget);
+    for (final tile in [
+      'WhatsApp',
+      'Google',
+      'Propinas',
+      'Biblioteca',
+      'Notas',
+    ]) {
+      expect(find.text(tile), findsOneWidget, reason: tile);
+    }
     await tester.tap(find.text('Mensagens').last);
     await tester.pumpAndSettle(const Duration(milliseconds: 500));
     expect(find.text('Prof. Carlos Mendes'), findsOneWidget);
