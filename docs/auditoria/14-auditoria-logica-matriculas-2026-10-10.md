@@ -392,3 +392,14 @@ assinatura). Faltava uma: os atalhos da pesquisa (`saveSpotlightOverrides`), uma
 da escola que gravava numa escola bloqueada — passa a `requireSgaWriterForWrite("gestao")`,
 como as outras definições. Continua por decidir a gestão de acessos (`access/server.ts`,
 `access/grants.ts`).
+
+## 16. Verificação pública de documentos sem índice (2026-10-13)
+
+`/verificar` (pública, sem sessão) procura o código em `audit_logs` por
+`action = 'documents.issued' AND metadata->>'code'`. Na produção (leitura de 2026-10-13) a
+tabela tem ~16 000 linhas e nenhum índice para isto: cada verificação percorria a tabela
+inteira, e o custo cresce com cada acção de cada escola. O resto está bem (código aleatório
+criptográfico, limite partilhado por IP, titular só com iniciais). Migração
+**`20261013100000`**: índice parcial em `metadata->>'code'` só sobre os documentos emitidos,
+no pacote `SIGA_aplicar_auditoria14_2026-10-10.sql` (nova coluna na consulta do fim).
+Ensaio: `tests/sql/document-code-index.mjs` (o plano passa a usar o índice).

@@ -1,6 +1,6 @@
 -- SIGA Plus — SQL a aplicar no Supabase (projecto Sga), pacote de 2026-10-10
 -- Colar TUDO no SQL Editor → Run. Pode correr mais do que uma vez sem problema.
--- 3 migrações da auditoria 14:
+-- 3 migrações da auditoria 14 e 1 índice:
 --   H1: duas turmas sem sala à mesma hora deixam de ser recusadas como «sala
 --       sobreposta». «Sala», «S/N», «A definir» e «Sem sala fixa» não são salas, nas
 --       duas funções do horário e nos dois gatilhos.
@@ -10,6 +10,8 @@
 --       a usá-la). P4: «Fundir pessoas» numa só transacção (private.merge_people).
 --   A2: matrícula antecipada no ano em preparação, até 183 dias antes do início
 --       (fica com a data de início do ano).
+-- + 1 índice (2026-10-13): a verificação pública de documentos (/verificar) deixa de
+--   percorrer a tabela de auditoria inteira a cada código.
 -- Nenhuma mexe em dados. Ensaiadas em PGlite (tests/sql/timetable-room-placeholders.mjs,
 -- tests/sql/merge-people.mjs e tests/sql/early-enrollment.mjs): cada uma corre duas vezes.
 -- Confirmar no fim com a consulta do fundo deste ficheiro (deve dar "aplicada").
@@ -690,6 +692,24 @@ $function$;
 
 COMMIT;
 
+-- ══════════ 20261013100000_audit_logs_document_code_index.sql ══════════
+-- Verificação pública de documentos (/verificar): índice para o código.
+--
+-- `verifyIssuedDocument` (src/features/documents/verification.ts) procura o código em
+-- `audit_logs` por `action = 'documents.issued' AND metadata->>'code' = $1`. Não havia
+-- índice para isto (leitura de 2026-10-13: só pkey, school_id, actor e escola+data), e
+-- cada verificação — pública, sem sessão — percorria a tabela inteira (~16 000 linhas e
+-- a crescer a cada acção de cada escola). O limite de tentativas é por IP.
+--
+-- Índice parcial só sobre os documentos emitidos: pequeno, e a consulta já filtra pela
+-- mesma acção. Não único: os códigos são aleatórios e uma colisão não deve impedir a
+-- emissão. Não mexe em dados. Idempotente.
+
+CREATE INDEX IF NOT EXISTS audit_logs_issued_document_code_idx
+  ON public.audit_logs ((metadata ->> 'code'))
+  WHERE action = 'documents.issued';
+
+
 -- ══════════ Confirmar ══════════
 SELECT
   CASE
@@ -722,4 +742,9 @@ SELECT
             AND p.prosrc LIKE '%recorded_enrolled_on%') = 1
       THEN 'aplicada'
     ELSE 'por aplicar'
-  END AS "20261010130000 matrícula antecipada";
+  END AS "20261010130000 matrícula antecipada",
+  CASE
+    WHEN to_regclass('public.audit_logs_issued_document_code_idx') IS NOT NULL
+      THEN 'aplicada'
+    ELSE 'por aplicar'
+  END AS "20261013100000 índice da verificação";
