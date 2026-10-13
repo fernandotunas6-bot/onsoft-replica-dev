@@ -24,6 +24,7 @@ produção nem de todas as PRs actuais; schema snapshot não prova RLS instalada
 | Transporte/GPS | Por implementar no código examinado | Schema privado, autorização, dispositivos e API | pesquisa em src e snapshot sem módulo operacional encontrado |
 | Biblioteca | Por expor ao cliente móvel | Não consta do router HTTP Mobile V4 examinado | src/features/mobile-v4/http.server.ts |
 | Flutter build/testes | Executado nesta sessão | 3.35.7/3.9.2: pub get, format, analyze (18 avisos informativos da base), 23 testes e build web release; pubspec.lock fixado | .github/workflows/mobile-flutter.yml |
+| Interface / desenho | Refeita sobre sistema medido | `lib/design.dart` + `docs/DESIGN.md`; fiel aos ecrãs aprovados, com limites ditos por palavras onde não há contrato | lib/design.dart, docs/DESIGN.md |
 | Publicação | Bloqueada | Envio público rejeitado anteriormente; domínio não alterado | trabalho local; sem push nesta expansão |
 
 “Existente” significa código encontrado; “validado” requer execução e evidência.
@@ -32,9 +33,10 @@ validada nesta auditoria. Não houve consultas a dados pessoais nem migrações.
 
 ## Organização e contratos
 
-Rotas entregues: /home, /subjects, /calendar, /messages, /more,
-/more/classes, /more/classes/:id, /more/tasks, /more/results (só aluno),
-/more/notices. Todas partilham o gate de sessão,
+Rotas entregues: /intro, /apresentacao, /login, /mfa, /schools, /home,
+/subjects, /calendar, /messages, /more, /more/classes, /more/classes/:id,
+/more/tasks, /more/results (só aluno), /more/notices, /more/aparencia,
+/more/transporte (conceito) e /more/servico (preparação por serviço). Todas partilham o gate de sessão,
 escola e papel; a lista de turmas deriva de classGroupId no catálogo autorizado.
 Participantes não são renderizados por ausência de avaliação de privacidade por
 perfil; nenhuma lista de colegas é inferida das permissões académicas.
