@@ -148,3 +148,14 @@ hora inválida, fim anterior ao início, publicação desconhecida e sala com ti
 ou tamanho inválido. Evita exportar objectos inesperados dentro de campos
 de apresentação. TypeScript aprovado, 29 testes backend e 96 contratos
 aprovados. Nenhuma validação remota ou build Flutter foi inferida destes testes.
+
+## Fronteira Worker/API
+
+Router testável separa assets Flutter, API canónica e extensão turmas/tarefas.
+API desconhecida nunca cai no HTML. Origem externa é recusada antes do serviço;
+respostas API recebem private/no-store, Vary e nosniff, sem Set-Cookie.
+Excepções inesperadas devolvem 503 genérico. Worker staging usa este router
+e mantém request-context isolado por chamada.
+
+TypeScript de backend aprovado; 36 testes Node aprovados (7 novos de routing).
+Não comprova bundle Cloudflare, bindings de produção ou integração Auth real.
