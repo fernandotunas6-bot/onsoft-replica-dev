@@ -210,10 +210,22 @@ async function inflateWith(
   data: Uint8Array,
   format: "deflate" | "deflate-raw",
 ): Promise<Uint8Array> {
-  const stream = new Blob([data as unknown as BlobPart])
-    .stream()
-    .pipeThrough(new DecompressionStream(format));
-  return new Uint8Array(await new Response(stream).arrayBuffer());
+  // Escrever directamente no `writable` é o uso canónico da API e poupa a
+  // cópia que `new Blob([...]).stream()` faz dos bytes — num manual escolar com
+  // centenas de fluxos, essa cópia é o dobro da memória sem nada em troca.
+  const decompressor = new DecompressionStream(format);
+  const writer = decompressor.writable.getWriter();
+  const written = writer
+    // O tipo do `write` pede um buffer sobre `ArrayBuffer`; os bytes vêm de uma
+    // fatia e por isso o TypeScript vê `ArrayBufferLike`.
+    .write(data as unknown as BufferSource)
+    .then(() => writer.close())
+    .catch(() => {
+      // O erro real vem da leitura; aqui só se evita uma rejeição sem dono.
+    });
+  const bytes = new Uint8Array(await new Response(decompressor.readable).arrayBuffer());
+  await written;
+  return bytes;
 }
 
 /**

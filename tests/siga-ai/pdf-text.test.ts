@@ -4,7 +4,6 @@
  * binários no repositório, e nos dois formatos que importam (fluxo de conteúdo
  * em claro e comprimido com Flate).
  */
-import { deflateSync } from "node:zlib";
 import { describe, expect, it } from "vitest";
 import { jsPDF } from "jspdf";
 import {
@@ -21,16 +20,36 @@ function makePdf(lines: string[]): ArrayBuffer {
 }
 
 /**
- * PDF de um fluxo comprimido, montado aqui com o `zlib` do Node.
+ * PDF de um fluxo comprimido, montado com o `CompressionStream` do próprio
+ * runtime.
  *
- * Porque não `new jsPDF({ compress: true })`: esse caminho depende do deflate
- * do próprio jsPDF **e** da tolerância do `inflate` do runtime, e falhou no CI
- * (bun `latest`) enquanto passava localmente (bun 1.4.2) — estava a testar a
- * cadeia de ferramentas em vez do nosso extractor. Montado assim, o teste é
- * determinístico e exercita exactamente o caminho `/FlateDecode` + `/Length`.
+ * Duas voltas foram precisas para chegar aqui, e a razão interessa. Com
+ * `new jsPDF({ compress: true })` o teste dependia do deflate do jsPDF; com o
+ * `zlib` do Node, dependia de o `zlib` e o `DecompressionStream` concordarem.
+ * Nas duas versões passou localmente (bun 1.4.2 e 1.4.3) e falhou no CI, ou
+ * seja, media a cadeia de ferramentas em vez do extractor. Comprimindo com a
+ * mesma família de API que usamos para descomprimir, o ciclo fecha-se em si
+ * mesmo: se o runtime comprime, tem de conseguir descomprimir, e o que resta
+ * em teste é o nosso código.
  */
-function makeCompressedPdf(content: string): ArrayBuffer {
-  const deflated = deflateSync(Buffer.from(content, "latin1"));
+async function deflate(content: string): Promise<Uint8Array> {
+  const compressor = new CompressionStream("deflate");
+  const writer = compressor.writable.getWriter();
+  const bytes = new Uint8Array(content.length);
+  for (let index = 0; index < content.length; index += 1) {
+    bytes[index] = content.charCodeAt(index) & 0xff;
+  }
+  const written = writer
+    .write(bytes as unknown as BufferSource)
+    .then(() => writer.close())
+    .catch(() => {});
+  const out = new Uint8Array(await new Response(compressor.readable).arrayBuffer());
+  await written;
+  return out;
+}
+
+async function makeCompressedPdf(content: string): Promise<ArrayBuffer> {
+  const deflated = await deflate(content);
   const head = `%PDF-1.4\n1 0 obj\n<<\n/Length ${deflated.length}\n/Filter /FlateDecode\n>>\nstream\n`;
   const tail = "\nendstream\nendobj\ntrailer\n<</Root 1 0 R>>\n%%EOF\n";
   const bytes = new Uint8Array(head.length + deflated.length + tail.length);
@@ -56,14 +75,14 @@ describe("siga-ai extraccao de PDF", () => {
 
   it("lê um PDF com fluxo comprimido (Flate)", async () => {
     const content = LINES.map((line) => `BT (${line}) Tj ET`).join("\n");
-    const text = await extractPdfText(makeCompressedPdf(content));
+    const text = await extractPdfText(await makeCompressedPdf(content));
     for (const line of LINES) expect(text).toContain(line);
   });
 
   it("diz que não conseguiu descomprimir, em vez de culpar o documento", async () => {
     // Fluxo anunciado como Flate mas com dados que não abrem: o utilizador tem
     // de saber que o ficheiro está danificado, não que «é digitalizado».
-    const broken = makeCompressedPdf("BT (x) Tj ET");
+    const broken = await makeCompressedPdf("BT (x) Tj ET");
     const bytes = new Uint8Array(broken);
     const streamStart = new TextDecoder("iso-8859-1").decode(bytes).indexOf("stream\n") + 7;
     bytes[streamStart + 2] = 0x00;

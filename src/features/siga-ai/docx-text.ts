@@ -82,10 +82,19 @@ function entryData(bytes: Uint8Array, entry: ZipEntry): Uint8Array {
 }
 
 async function inflateRaw(data: Uint8Array): Promise<Uint8Array> {
-  const stream = new Blob([data as unknown as BlobPart])
-    .stream()
-    .pipeThrough(new DecompressionStream("deflate-raw"));
-  return new Uint8Array(await new Response(stream).arrayBuffer());
+  // Escrever no `writable` é o uso canónico da API e poupa a cópia dos bytes
+  // que `new Blob([...]).stream()` faz (ver nota igual em `pdf-text.ts`).
+  const decompressor = new DecompressionStream("deflate-raw");
+  const writer = decompressor.writable.getWriter();
+  const written = writer
+    // O tipo do `write` pede um buffer sobre `ArrayBuffer`; os bytes vêm de uma
+    // fatia e por isso o TypeScript vê `ArrayBufferLike`.
+    .write(data as unknown as BufferSource)
+    .then(() => writer.close())
+    .catch(() => {});
+  const bytes = new Uint8Array(await new Response(decompressor.readable).arrayBuffer());
+  await written;
+  return bytes;
 }
 
 /**
