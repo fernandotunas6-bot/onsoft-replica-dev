@@ -56,6 +56,16 @@ function validateCatalog(catalog: Catalog, scope: Scope) {
     }
     ids.add(c.classSubjectId);
   }
+  const slotIds = new Set<string>();
+  const clock = (v: unknown) => typeof v === 'string' && /^([01]\d|2[0-3]):[0-5]\d(?::[0-5]\d)?$/.test(v);
+  for (const slot of catalog.timetable) {
+    if (!slot || typeof slot.slotId !== 'string' || !uuid.test(slot.slotId) || slotIds.has(slot.slotId) ||
+        !Number.isInteger(slot.weekday) || (slot.weekday as number) < 1 || (slot.weekday as number) > 7 ||
+        !clock(slot.startsAt) || !clock(slot.endsAt) || (slot.startsAt as string).slice(0,5) >= (slot.endsAt as string).slice(0,5) ||
+        !['published','legacy'].includes(slot.publication as string) ||
+        (slot.room != null && (typeof slot.room !== 'string' || slot.room.length > 200))) fail(503, 'CATALOG_INVALID');
+    slotIds.add(slot.slotId);
+  }
   const taskIds = new Set<string>();
   for (const t of catalog.tasks) {
     if (!t || typeof t.id !== 'string' || !uuid.test(t.id) || taskIds.has(t.id) ||

@@ -140,3 +140,11 @@ em oito ficheiros aprovados, cobrindo catálogo, políticas, API, sessão,
 calendário/chat, próximas aulas e isolamento de request-context. Backend Node:
 28 testes já aprovados. Workflow passa a executar as três verificações.
 Não equivale à build do Worker completo, Flutter ou ensaio Supabase remoto.
+
+## Validação dos horários na projecção
+
+Backend de turmas passa a rejeitar horário com ID repetido, dia fora de 1–7,
+hora inválida, fim anterior ao início, publicação desconhecida e sala com tipo
+ou tamanho inválido. Evita exportar objectos inesperados dentro de campos
+de apresentação. TypeScript aprovado, 29 testes backend e 96 contratos
+aprovados. Nenhuma validação remota ou build Flutter foi inferida destes testes.

@@ -8,7 +8,7 @@ const other='44444444-4444-4444-8444-444444444444';
 const catalog=()=>({schoolId:school,role:'aluno',classes:[{
  classGroupId:group,classSubjectId:subject,academicYearId:other,className:'10.ª A',subjectId:subject,subjectName:'Matemática',
  teacher:{name:'Docente',userId:'secret-user'},students:[{name:'Other pupil',userId:'private'}],privateField:'hidden',
-}], timetable:[{classSubjectId:subject,slotId:other,weekday:2,startsAt:'09:00',endsAt:'10:00',privateField:'secret'}],tasks:[]});
+}], timetable:[{classSubjectId:subject,slotId:other,weekday:2,startsAt:'09:00',endsAt:'10:00',publication:'published',room:null,privateField:'secret'}],tasks:[]});
 function req(path='',headers={},method='GET') { return new Request(`https://test.example/api/mobile-v4/schools/${school}/classes${path}`,{method,headers:{Authorization:'Bearer token',...headers}}); }
 function deps() { return {authenticate:async()=>({userId:'verified',aal:'aal1'}),academicCatalog:async(user,scope)=>{assert.equal(user,'verified');assert.equal(scope.schoolId,school);return catalog();}}; }
 test('class list exports only explicit academic fields, no roster or user IDs',async()=>{
@@ -17,7 +17,7 @@ test('class list exports only explicit academic fields, no roster or user IDs',a
  assert.equal(r.headers.get('Cache-Control'),'private, no-store');
 });
 test('class detail filters to authorized subject scope and drops future private fields',async()=>{
- const d=deps();d.academicCatalog=async()=>{const c=catalog();c.classes.push({...c.classes[0],classGroupId:other,classSubjectId:other});c.timetable.push({classSubjectId:other});return c;};
+ const d=deps();d.academicCatalog=async()=>{const c=catalog();c.classes.push({...c.classes[0],classGroupId:other,classSubjectId:other});c.timetable.push({...c.timetable[0],slotId:subject,classSubjectId:other});return c;};
  const r=await handleInstitutionalExtension(req(`/${group}?role=aluno`),d);assert.equal(r.status,200);
  const body=await r.json();assert.equal(body.item.timetable.length,1);assert.ok(!JSON.stringify(body).includes('privateField'));
 });
@@ -68,5 +68,14 @@ test('malformed teacher fields fail closed rather than exporting nested values',
 });
 test('duplicate tasks are rejected',async()=>{
  const d=deps();d.academicCatalog=async()=>({...catalog(),tasks:Array(2).fill({id:other,classSubjectId:subject,kind:'assignment',title:'Task',due:null})});
+ assert.equal((await handleInstitutionalExtension(req('?role=aluno'),d)).status,503);
+});
+
+test('invalid or repeated timetable rows never reach class output',async()=>{
+ for(const change of [{weekday:8},{startsAt:'25:00'},{endsAt:'08:00'},{room:{private:'value'}}]) {
+  const d=deps();d.academicCatalog=async()=>{const c=catalog();Object.assign(c.timetable[0],change);return c;};
+  assert.equal((await handleInstitutionalExtension(req('?role=aluno'),d)).status,503);
+ }
+ const d=deps();d.academicCatalog=async()=>{const c=catalog();c.timetable.push(c.timetable[0]);return c;};
  assert.equal((await handleInstitutionalExtension(req('?role=aluno'),d)).status,503);
 });
