@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:lucide_icons_flutter/lucide_icons.dart';
+import 'package:fluentui_system_icons/fluentui_system_icons.dart';
 import '../design/tokens.dart';
 import '../design/widgets.dart';
 
@@ -39,42 +39,45 @@ class SideMenu extends StatelessWidget {
     final items = [
       (
         'Meu perfil',
-        i(LucideIcons.user, Icons.person_rounded),
+        i(FluentIcons.person_24_regular, FluentIcons.person_24_filled),
         '/more/profile',
       ),
       (
         'Notas',
-        i(LucideIcons.info, Icons.info_rounded),
+        i(FluentIcons.info_24_regular, FluentIcons.info_24_filled),
         student ? '/more/results' : '/more/student-only',
       ),
       (
         'Faltas',
-        i(LucideIcons.clock, Icons.schedule_rounded),
+        i(FluentIcons.clock_24_regular, FluentIcons.clock_24_filled),
         '/more/absences',
       ),
       (
         'Propinas',
-        i(LucideIcons.circleDollarSign, Icons.monetization_on_rounded),
+        i(FluentIcons.money_24_regular, FluentIcons.money_24_filled),
         student ? '/more/finance' : '/more/student-only',
       ),
       (
         'Recibos',
-        i(LucideIcons.receipt, Icons.receipt_long_rounded),
+        i(FluentIcons.receipt_24_regular, FluentIcons.receipt_24_filled),
         student ? '/more/finance' : '/more/student-only',
       ),
       (
         'Biblioteca',
-        i(LucideIcons.bookOpen, Icons.menu_book_rounded),
+        i(FluentIcons.book_open_24_regular, FluentIcons.book_open_24_filled),
         '/more/library',
       ),
       (
         'Documentos',
-        i(LucideIcons.fileText, Icons.description_rounded),
+        i(
+          FluentIcons.document_text_24_regular,
+          FluentIcons.document_text_24_filled,
+        ),
         student ? '/more/documents' : '/more/student-only',
       ),
       (
         'Definições',
-        i(LucideIcons.settings, Icons.settings_rounded),
+        i(FluentIcons.settings_24_regular, FluentIcons.settings_24_filled),
         '/more/appearance',
       ),
     ];
@@ -149,14 +152,17 @@ class SideMenu extends StatelessWidget {
                 MenuRow(icon: icon, title: label, onTap: () => go(path)),
               const SizedBox(height: Siga.s1),
               MenuRow(
-                icon: i(LucideIcons.moon, Icons.dark_mode_rounded),
+                icon: i(
+                  FluentIcons.weather_moon_24_regular,
+                  FluentIcons.weather_moon_24_filled,
+                ),
                 title: 'Modo escuro',
                 trailing: Switch(value: dark, onChanged: onDark),
                 onTap: () => onDark(!dark),
               ),
               const SizedBox(height: Siga.s2),
               MenuRow(
-                icon: LucideIcons.logOut,
+                icon: FluentIcons.sign_out_24_regular,
                 title: 'Sair',
                 destructive: true,
                 onTap: () {

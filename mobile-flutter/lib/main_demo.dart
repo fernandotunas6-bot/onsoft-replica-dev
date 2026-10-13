@@ -1,5 +1,6 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:lucide_icons_flutter/lucide_icons.dart';
+import 'package:fluentui_system_icons/fluentui_system_icons.dart';
 import 'package:go_router/go_router.dart';
 import 'academic_page.dart';
 import 'demo/demo_data.dart';
@@ -7,7 +8,7 @@ import 'design/floating_nav.dart';
 import 'design/tokens.dart';
 import 'identity.dart';
 import 'institutional_page.dart';
-import 'main.dart' show tabs, institutionalServices;
+import 'main.dart' show tabs, institutionalServices, messagesTab;
 import 'pages/appearance_page.dart';
 import 'pages/pending_page.dart';
 import 'pages/schools_page.dart';
@@ -40,6 +41,22 @@ class _DemoAppState extends State<DemoApp> {
   Color accent = Siga.institutionalBlue;
   int? backdrop;
   bool modernIcons = true;
+
+  /// Há conversas por ler? Alimenta o ponto vermelho em «Mensagens».
+  bool unreadChats = false;
+
+  Future<void> refreshUnread() async {
+    try {
+      final chat = await gateway.read('chat');
+      final threads = chat['threads'];
+      final any =
+          threads is List &&
+          threads.any((t) => t is Map && t['unread'] is int && t['unread'] > 0);
+      if (mounted && any != unreadChats) setState(() => unreadChats = any);
+    } catch (_) {
+      // Sem ligação: o ponto fica como estava; a página mostra o erro.
+    }
+  }
 
   void update() {
     if (!mounted) return;
@@ -106,6 +123,7 @@ class _DemoAppState extends State<DemoApp> {
               gateway.select(demoUserId, selected.schoolId, selected.role);
               choice = selected;
               update();
+              unawaited(refreshUnread());
             },
           ),
         ),
@@ -238,7 +256,7 @@ class _DemoAppState extends State<DemoApp> {
           title: Text(title),
           leading: IconButton(
             tooltip: 'Voltar',
-            icon: const Icon(LucideIcons.chevronLeft),
+            icon: const Icon(FluentIcons.chevron_left_24_regular),
             onPressed: () => router.go(back),
           ),
         ),
@@ -266,8 +284,14 @@ class _DemoAppState extends State<DemoApp> {
           modernIcons ? item : NavItem(classic, classic, item.label),
       ],
       index: shell.currentIndex,
-      onSelected: (index) =>
-          shell.goBranch(index, initialLocation: index == shell.currentIndex),
+      dots: {if (unreadChats) messagesTab},
+      onSelected: (index) {
+        // Ao sair de «Mensagens», o que foi lido deixa de contar.
+        if (shell.currentIndex == messagesTab && index != messagesTab) {
+          unawaited(refreshUnread());
+        }
+        shell.goBranch(index, initialLocation: index == shell.currentIndex);
+      },
     ),
   );
 

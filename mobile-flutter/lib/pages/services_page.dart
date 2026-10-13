@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:lucide_icons_flutter/lucide_icons.dart';
+import 'package:fluentui_system_icons/fluentui_system_icons.dart';
 import '../design/tokens.dart';
 import '../design/widgets.dart';
 
@@ -23,55 +23,74 @@ class ServicesPage extends StatelessWidget {
     final palette = SigaPalette.of(context);
     IconData i(IconData line, IconData classic) =>
         AppearanceScope.icon(context, line, classic);
-    final modern = AppearanceScope.maybeOf(context)?.modernIcons ?? true;
     // Propinas e notas publicadas são consultas do aluno; para o professor,
     // o mosaico explica isso em vez de abrir um erro.
     final tiles = [
       (
         'Disciplinas',
-        i(LucideIcons.bookOpen, Icons.menu_book_rounded),
+        i(FluentIcons.book_open_24_regular, FluentIcons.book_open_24_filled),
         '/subjects',
       ),
-      ('Turmas', i(LucideIcons.users, Icons.people_rounded), '/more/classes'),
+      (
+        'Turmas',
+        i(FluentIcons.people_24_regular, FluentIcons.people_24_filled),
+        '/more/classes',
+      ),
       (
         'Tarefas',
-        i(LucideIcons.clipboardCheck, Icons.assignment_turned_in_rounded),
+        i(
+          FluentIcons.clipboard_task_24_regular,
+          FluentIcons.clipboard_task_24_filled,
+        ),
         '/more/tasks',
       ),
       (
         'Transporte',
-        i(LucideIcons.bus, Icons.directions_bus_rounded),
+        i(
+          FluentIcons.vehicle_bus_24_regular,
+          FluentIcons.vehicle_bus_24_filled,
+        ),
         '/more/transport',
       ),
       (
         'Aulas online',
-        i(LucideIcons.video, Icons.videocam_rounded),
+        i(FluentIcons.video_24_regular, FluentIcons.video_24_filled),
         '/more/online',
       ),
       (
         'Calendário',
-        i(LucideIcons.calendarDays, Icons.calendar_month_rounded),
+        i(
+          FluentIcons.calendar_ltr_24_regular,
+          FluentIcons.calendar_ltr_24_filled,
+        ),
         '/calendar',
       ),
       (
         'WhatsApp',
-        i(LucideIcons.messageCircle, Icons.chat_bubble_rounded),
+        i(FluentIcons.chat_24_regular, FluentIcons.chat_24_filled),
         '/more/whatsapp',
       ),
-      ('Google', i(LucideIcons.cloud, Icons.cloud_rounded), '/more/google'),
+      (
+        'Google',
+        i(FluentIcons.cloud_24_regular, FluentIcons.cloud_24_filled),
+        '/more/google',
+      ),
       (
         'Propinas',
-        i(LucideIcons.wallet, Icons.account_balance_wallet_rounded),
+        i(FluentIcons.wallet_24_regular, FluentIcons.wallet_24_filled),
         student ? '/more/finance' : '/more/student-only',
       ),
       (
         'Biblioteca',
-        i(LucideIcons.library, Icons.local_library_rounded),
+        i(FluentIcons.library_24_regular, FluentIcons.library_24_filled),
         '/more/library',
       ),
       (
         'Notas',
-        i(LucideIcons.graduationCap, Icons.school_rounded),
+        i(
+          FluentIcons.hat_graduation_24_regular,
+          FluentIcons.hat_graduation_24_filled,
+        ),
         student ? '/more/results' : '/more/student-only',
       ),
     ];
@@ -119,8 +138,8 @@ class ServicesPage extends StatelessWidget {
               icon: Icon(
                 AppearanceScope.icon(
                   context,
-                  LucideIcons.bell,
-                  Icons.notifications_rounded,
+                  FluentIcons.alert_24_regular,
+                  FluentIcons.alert_24_filled,
                 ),
               ),
             ),
@@ -143,11 +162,10 @@ class ServicesPage extends StatelessWidget {
               child: ServiceTile(
                 icon: AppearanceScope.icon(
                   context,
-                  LucideIcons.layoutGrid,
-                  Icons.grid_view_rounded,
+                  FluentIcons.grid_circles_24_regular,
+                  FluentIcons.grid_circles_24_filled,
                 ),
                 label: 'Mais',
-                glyph: modern ? const LineGlyph.rings() : null,
                 onTap: () => Scaffold.maybeOf(context)?.openDrawer(),
               ),
             ),

@@ -18,10 +18,14 @@ class FloatingNavBar extends StatelessWidget {
     required this.items,
     required this.index,
     required this.onSelected,
+    this.dots = const {},
   });
   final List<NavItem> items;
   final int index;
   final ValueChanged<int> onSelected;
+
+  /// Separadores com novidades reais (ponto vermelho, como no Teams).
+  final Set<int> dots;
 
   @override
   Widget build(BuildContext context) {
@@ -44,6 +48,7 @@ class FloatingNavBar extends StatelessWidget {
                   child: _NavButton(
                     item: items[i],
                     selected: i == index,
+                    dot: dots.contains(i),
                     duration: duration,
                     onTap: () {
                       if (i != index) HapticFeedback.selectionClick();
@@ -65,9 +70,11 @@ class _NavButton extends StatelessWidget {
     required this.selected,
     required this.duration,
     required this.onTap,
+    this.dot = false,
   });
   final NavItem item;
   final bool selected;
+  final bool dot;
   final Duration duration;
   final VoidCallback onTap;
   @override
@@ -77,7 +84,7 @@ class _NavButton extends StatelessWidget {
     return Semantics(
       button: true,
       selected: selected,
-      label: item.label,
+      label: dot ? '${item.label}, com novidades' : item.label,
       excludeSemantics: true,
       // Sem ondulação: a resposta é a troca animada do ícone e o toque háptico.
       child: InkResponse(
@@ -88,16 +95,39 @@ class _NavButton extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            AnimatedSwitcher(
-              duration: duration,
-              transitionBuilder: (child, animation) =>
-                  ScaleTransition(scale: animation, child: child),
-              child: Icon(
-                selected ? item.selectedIcon : item.icon,
-                key: ValueKey(selected),
-                color: color,
-                size: 23,
-              ),
+            Stack(
+              clipBehavior: Clip.none,
+              children: [
+                AnimatedSwitcher(
+                  duration: duration,
+                  transitionBuilder: (child, animation) =>
+                      ScaleTransition(scale: animation, child: child),
+                  child: Icon(
+                    selected ? item.selectedIcon : item.icon,
+                    key: ValueKey(selected),
+                    color: color,
+                    size: 23,
+                  ),
+                ),
+                Positioned(
+                  top: -1,
+                  right: -3,
+                  child: AnimatedScale(
+                    scale: dot ? 1 : 0,
+                    duration: duration,
+                    curve: Siga.ease,
+                    child: Container(
+                      width: 9,
+                      height: 9,
+                      decoration: BoxDecoration(
+                        color: const Color(0xffd92c3a),
+                        shape: BoxShape.circle,
+                        border: Border.all(color: scheme.surface, width: 1.5),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
             ),
             const SizedBox(height: 4),
             AnimatedDefaultTextStyle(

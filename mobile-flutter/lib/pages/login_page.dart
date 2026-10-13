@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:lucide_icons_flutter/lucide_icons.dart';
+import 'package:fluentui_system_icons/fluentui_system_icons.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../design/tokens.dart';
 import '../design/widgets.dart';
@@ -224,7 +224,7 @@ class _LoginPageState extends State<LoginPage> {
                         onSubmitted: (_) => submit(),
                         decoration: field(
                           'Código de autenticação',
-                          LucideIcons.shield,
+                          FluentIcons.shield_24_regular,
                         ),
                       )
                     else ...[
@@ -245,7 +245,7 @@ class _LoginPageState extends State<LoginPage> {
                             child: Row(
                               children: [
                                 Icon(
-                                  LucideIcons.graduationCap,
+                                  FluentIcons.hat_graduation_24_regular,
                                   size: 20,
                                   color: palette.ink2,
                                 ),
@@ -257,7 +257,10 @@ class _LoginPageState extends State<LoginPage> {
                                     overflow: TextOverflow.ellipsis,
                                   ),
                                 ),
-                                const Icon(LucideIcons.chevronDown, size: 20),
+                                const Icon(
+                                  FluentIcons.chevron_down_24_regular,
+                                  size: 20,
+                                ),
                               ],
                             ),
                           ),
@@ -271,7 +274,7 @@ class _LoginPageState extends State<LoginPage> {
                         autofillHints: const [AutofillHints.username],
                         decoration: field(
                           'E-mail, ID da escola ou B.I.',
-                          LucideIcons.mail,
+                          FluentIcons.mail_24_regular,
                         ),
                       ),
                       const SizedBox(height: 12),
@@ -282,12 +285,14 @@ class _LoginPageState extends State<LoginPage> {
                         onSubmitted: (_) => submit(),
                         decoration: field(
                           'Senha',
-                          LucideIcons.keyRound,
+                          FluentIcons.key_24_regular,
                           suffix: IconButton(
                             tooltip: hidden ? 'Mostrar senha' : 'Ocultar senha',
                             onPressed: () => setState(() => hidden = !hidden),
                             icon: Icon(
-                              hidden ? LucideIcons.eye : LucideIcons.eyeOff,
+                              hidden
+                                  ? FluentIcons.eye_24_regular
+                                  : FluentIcons.eye_off_24_regular,
                               size: 20,
                             ),
                           ),

@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:lucide_icons_flutter/lucide_icons.dart';
+import 'package:fluentui_system_icons/fluentui_system_icons.dart';
 import '../design/tokens.dart';
 import '../design/widgets.dart';
 
@@ -24,7 +24,7 @@ class TransportPage extends StatelessWidget {
             children: [
               Row(
                 children: [
-                  const Icon(LucideIcons.bus, size: 30),
+                  const Icon(FluentIcons.vehicle_bus_24_regular, size: 30),
                   const SizedBox(width: Siga.s2),
                   Expanded(
                     child: Column(
@@ -115,7 +115,11 @@ class TransportPage extends StatelessWidget {
               Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Icon(LucideIcons.shieldCheck, size: 18, color: palette.ink2),
+                  Icon(
+                    FluentIcons.shield_checkmark_24_regular,
+                    size: 18,
+                    color: palette.ink2,
+                  ),
                   const SizedBox(width: Siga.s1),
                   Expanded(
                     child: Text(

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:lucide_icons_flutter/lucide_icons.dart';
+import 'package:fluentui_system_icons/fluentui_system_icons.dart';
 import 'tokens.dart';
 
 /// Cartão com borda fina e uma pequena resposta ao toque, sem sombras pesadas.
@@ -124,14 +124,11 @@ class ServiceTile extends StatefulWidget {
     required this.icon,
     required this.label,
     required this.onTap,
-    this.glyph,
   });
   final IconData icon;
   final String label;
   final VoidCallback onTap;
 
-  /// Desenho próprio quando o Material não tem o ícone da referência.
-  final Widget? glyph;
   @override
   State<ServiceTile> createState() => _ServiceTileState();
 }
@@ -165,8 +162,7 @@ class _ServiceTileState extends State<ServiceTile> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  widget.glyph ??
-                      Icon(widget.icon, size: 28, color: scheme.onSurface),
+                  Icon(widget.icon, size: 28, color: scheme.onSurface),
                   const SizedBox(height: 12),
                   // Encolhe o rótulo em vez de o cortar («Aulas online»).
                   FittedBox(
@@ -253,7 +249,7 @@ class EmptyState extends StatelessWidget {
   const EmptyState({
     super.key,
     required this.message,
-    this.icon = LucideIcons.inbox,
+    this.icon = FluentIcons.mail_inbox_24_regular,
     this.action,
     this.onAction,
   });
@@ -393,7 +389,7 @@ class MenuRow extends StatelessWidget {
           trailing ??
           (onTap == null || destructive
               ? null
-              : const Icon(LucideIcons.chevronRight, size: 20)),
+              : const Icon(FluentIcons.chevron_right_24_regular, size: 20)),
       onTap: onTap,
     );
   }
@@ -528,42 +524,6 @@ class TintIcon extends StatelessWidget {
     ),
     child: Icon(icon, color: color, size: size * .5),
   );
-}
-
-/// «Mais» (quatro anéis) no traço Lucide: a família não tem este ícone.
-class LineGlyph extends StatelessWidget {
-  const LineGlyph.rings({super.key});
-  @override
-  Widget build(BuildContext context) => CustomPaint(
-    size: const Size.square(28),
-    painter: _RingsPainter(
-      IconTheme.of(context).color ?? Theme.of(context).colorScheme.onSurface,
-    ),
-  );
-}
-
-class _RingsPainter extends CustomPainter {
-  _RingsPainter(this.color);
-  final Color color;
-  @override
-  void paint(Canvas canvas, Size size) {
-    final u = size.width / 24;
-    final pen = Paint()
-      ..color = color
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 2 * u;
-    for (final (x, y) in const [
-      (7.0, 7.0),
-      (17.0, 7.0),
-      (7.0, 17.0),
-      (17.0, 17.0),
-    ]) {
-      canvas.drawCircle(Offset(x * u, y * u), 3.5 * u, pen);
-    }
-  }
-
-  @override
-  bool shouldRepaint(_RingsPainter old) => old.color != color;
 }
 
 /// Entrada suave do conteúdo: cada bloco aparece e sobe 10 px, um pouco

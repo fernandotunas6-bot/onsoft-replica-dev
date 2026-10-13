@@ -1,6 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:lucide_icons_flutter/lucide_icons.dart';
+import 'package:fluentui_system_icons/fluentui_system_icons.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'academic.dart';
@@ -156,12 +156,12 @@ class _DataPageState extends State<DataPage> {
 
   /// Ícone de cada disciplina, pela mesma ordem das cores (ecrã 8).
   static const subjectIcons = [
-    (LucideIcons.box, Icons.view_in_ar_rounded),
-    (LucideIcons.fileText, Icons.description_rounded),
-    (LucideIcons.flaskConical, Icons.science_rounded),
-    (LucideIcons.grid3x3, Icons.grid_on_rounded),
-    (LucideIcons.messagesSquare, Icons.forum_rounded),
-    (LucideIcons.bookOpen, Icons.auto_stories_rounded),
+    (FluentIcons.cube_24_regular, FluentIcons.cube_24_filled),
+    (FluentIcons.document_text_24_regular, FluentIcons.document_text_24_filled),
+    (FluentIcons.beaker_24_regular, FluentIcons.beaker_24_filled),
+    (FluentIcons.table_24_regular, FluentIcons.table_24_filled),
+    (FluentIcons.chat_multiple_24_regular, FluentIcons.chat_multiple_24_filled),
+    (FluentIcons.book_open_24_regular, FluentIcons.book_open_24_filled),
   ];
 
   IconData subjectIcon(AcademicCatalog catalog, dynamic classSubjectId) {
@@ -213,7 +213,7 @@ class _DataPageState extends State<DataPage> {
             runSpacing: Siga.s1,
             crossAxisAlignment: WrapCrossAlignment.center,
             children: [
-              const Icon(LucideIcons.calendar, size: 18),
+              const Icon(FluentIcons.calendar_empty_24_regular, size: 18),
               Text(deadline(task['due'])),
               if (overdue(task)) const StatusTag('Prazo terminado'),
             ],
@@ -259,7 +259,11 @@ class _DataPageState extends State<DataPage> {
               searching = !searching;
               if (!searching) query = '';
             }),
-            icon: Icon(searching ? LucideIcons.x : LucideIcons.search),
+            icon: Icon(
+              searching
+                  ? FluentIcons.dismiss_24_regular
+                  : FluentIcons.search_24_regular,
+            ),
           ),
       ],
     ),
@@ -274,7 +278,7 @@ class _DataPageState extends State<DataPage> {
             autofocus: !always,
             decoration: InputDecoration(
               hintText: hint,
-              prefixIcon: const Icon(LucideIcons.search, size: 20),
+              prefixIcon: const Icon(FluentIcons.search_24_regular, size: 20),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(24),
                 borderSide: BorderSide.none,
@@ -328,7 +332,7 @@ class _DataPageState extends State<DataPage> {
                 ],
               ),
             ),
-            const Icon(LucideIcons.chevronRight, size: 20),
+            const Icon(FluentIcons.chevron_right_24_regular, size: 20),
           ],
         ),
       ),
@@ -389,7 +393,10 @@ class _DataPageState extends State<DataPage> {
     AcademicCatalog catalog, {
     bool showSubject = true,
   }) => MenuRow(
-    icon: icon(LucideIcons.clipboardList, Icons.assignment_rounded),
+    icon: icon(
+      FluentIcons.task_list_ltr_24_regular,
+      FluentIcons.task_list_ltr_24_filled,
+    ),
     title: '${task['title']}',
     subtitle: showSubject
         ? '${catalog.subject(task['classSubjectId'])} · ${deadline(task['due'])}'
@@ -449,7 +456,9 @@ class _DataPageState extends State<DataPage> {
           IconButton(
             tooltip: 'Avisos',
             onPressed: () => context.go('/more/notifications'),
-            icon: Icon(icon(LucideIcons.bell, Icons.notifications_rounded)),
+            icon: Icon(
+              icon(FluentIcons.alert_24_regular, FluentIcons.alert_24_filled),
+            ),
           ),
         ],
       ),
@@ -460,7 +469,7 @@ class _DataPageState extends State<DataPage> {
         SigaCard(
           child: Row(
             children: [
-              const IconBadge(LucideIcons.calendarCheck),
+              const IconBadge(FluentIcons.calendar_checkmark_24_regular),
               const SizedBox(width: Siga.s2),
               Expanded(
                 child: Text(
@@ -824,7 +833,11 @@ class _DataPageState extends State<DataPage> {
                 ),
           trailing: unread(thread) == 0
               ? (favorites.contains(thread['id'])
-                    ? Icon(Icons.star_rounded, color: scheme.primary, size: 20)
+                    ? Icon(
+                        FluentIcons.star_24_filled,
+                        color: scheme.primary,
+                        size: 20,
+                      )
                     : null)
               : Container(
                   padding: const EdgeInsets.symmetric(
@@ -879,7 +892,10 @@ class _DataPageState extends State<DataPage> {
             child: Row(
               children: [
                 TintIcon(
-                  icon(LucideIcons.usersRound, Icons.groups_rounded),
+                  icon(
+                    FluentIcons.people_team_24_regular,
+                    FluentIcons.people_team_24_filled,
+                  ),
                   color: Theme.of(context).colorScheme.primary,
                 ),
                 const SizedBox(width: 14),
@@ -901,7 +917,7 @@ class _DataPageState extends State<DataPage> {
                     ],
                   ),
                 ),
-                const Icon(LucideIcons.chevronRight, size: 20),
+                const Icon(FluentIcons.chevron_right_24_regular, size: 20),
               ],
             ),
           ),
@@ -968,7 +984,7 @@ class _DataPageState extends State<DataPage> {
                     ],
                   ),
                 ),
-                Icon(LucideIcons.chevronRight, color: palette.ink2),
+                Icon(FluentIcons.chevron_right_24_regular, color: palette.ink2),
               ],
             ),
           ),
@@ -1033,7 +1049,7 @@ class _DataPageState extends State<DataPage> {
           ),
           IconButton(
             tooltip: 'Outras turmas',
-            icon: const Icon(LucideIcons.ellipsis),
+            icon: const Icon(FluentIcons.more_horizontal_24_regular),
             onPressed: () => context.go('/more/classes'),
           ),
         ],
@@ -1065,7 +1081,7 @@ class _DataPageState extends State<DataPage> {
       const Divider(),
       const SizedBox(height: Siga.s1),
       row(
-        LucideIcons.bookOpen,
+        FluentIcons.book_open_24_regular,
         'Conteúdos e tarefas',
         'Materiais, actividades e avaliações',
         () => sheet('Conteúdos e tarefas', [
@@ -1075,19 +1091,19 @@ class _DataPageState extends State<DataPage> {
         ]),
       ),
       row(
-        LucideIcons.messageCircle,
+        FluentIcons.chat_24_regular,
         'Grupo WhatsApp',
         'Convite institucional da turma',
         () => pending('whatsapp'),
       ),
       row(
-        LucideIcons.video,
+        FluentIcons.video_24_regular,
         'Aulas online',
         'Zoom, Meet ou BigBlueButton',
         () => pending('online'),
       ),
       row(
-        LucideIcons.calendarDays,
+        FluentIcons.calendar_ltr_24_regular,
         'Horário da turma',
         'Aulas presenciais e virtuais',
         () => sheet('Horário de hoje', [
@@ -1097,7 +1113,7 @@ class _DataPageState extends State<DataPage> {
         ]),
       ),
       row(
-        LucideIcons.clipboardCheck,
+        FluentIcons.clipboard_task_24_regular,
         'Presenças e notas',
         'Conforme o perfil autorizado',
         () => context.go(
@@ -1210,7 +1226,7 @@ class _DataPageState extends State<DataPage> {
     child: Padding(
       padding: const EdgeInsets.all(Siga.s3),
       child: EmptyState(
-        icon: LucideIcons.cloudOff,
+        icon: FluentIcons.cloud_off_24_regular,
         message: message,
         action: 'Tentar novamente',
         onAction: () => setState(load),

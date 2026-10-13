@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:lucide_icons_flutter/lucide_icons.dart';
+import 'package:fluentui_system_icons/fluentui_system_icons.dart';
 import '../design/tokens.dart';
 
 /// Páginas da apresentação: o que a aplicação faz, sem prometer integrações.
@@ -8,10 +8,10 @@ const welcomeSlides = [
     'Tudo o que a sua escola precisa',
     'Ensino, aprendizagem, comunicação e gestão num só lugar.',
     [
-      LucideIcons.graduationCap,
-      Icons.bar_chart_rounded,
-      LucideIcons.users,
-      LucideIcons.calendarDays,
+      FluentIcons.hat_graduation_24_regular,
+      FluentIcons.data_bar_vertical_24_filled,
+      FluentIcons.people_24_regular,
+      FluentIcons.calendar_ltr_24_regular,
     ],
   ),
   (
@@ -19,10 +19,10 @@ const welcomeSlides = [
     'Disciplinas, tarefas e horários de cada turma, num espaço de '
         'aprendizagem como o do Moodle.',
     [
-      LucideIcons.bookOpen,
-      LucideIcons.clipboardCheck,
-      LucideIcons.clock,
-      LucideIcons.messageCircle,
+      FluentIcons.book_open_24_regular,
+      FluentIcons.clipboard_task_24_regular,
+      FluentIcons.clock_24_regular,
+      FluentIcons.chat_24_regular,
     ],
   ),
   (
@@ -30,10 +30,10 @@ const welcomeSlides = [
     'Entra com a conta institucional e escolhe a escola. O acesso é decidido '
         'pelo servidor da escola, conforme o seu perfil.',
     [
-      LucideIcons.shieldCheck,
-      LucideIcons.building2,
-      LucideIcons.idCard,
-      LucideIcons.lockKeyhole,
+      FluentIcons.shield_checkmark_24_regular,
+      FluentIcons.building_24_regular,
+      FluentIcons.contact_card_24_regular,
+      FluentIcons.lock_closed_24_regular,
     ],
   ),
 ];
@@ -146,7 +146,7 @@ class _WelcomePageState extends State<WelcomePage> {
                         foregroundColor: scheme.surface,
                         minimumSize: const Size(52, 52),
                       ),
-                      icon: const Icon(LucideIcons.arrowRight),
+                      icon: const Icon(FluentIcons.arrow_right_24_regular),
                     ),
                 ],
               ),
@@ -198,7 +198,7 @@ class _Slide extends StatelessWidget {
                     right: 0,
                     top: 0,
                     child: _Tile(
-                      icon: LucideIcons.search,
+                      icon: FluentIcons.search_24_regular,
                       size: 44,
                       color: Siga.institutionalBlue,
                     ),

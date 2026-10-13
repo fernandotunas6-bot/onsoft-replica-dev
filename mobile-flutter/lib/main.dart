@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
-import 'package:lucide_icons_flutter/lucide_icons.dart';
+import 'package:fluentui_system_icons/fluentui_system_icons.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -62,44 +62,56 @@ Future<void> main() async {
 }
 
 /// Separadores da barra inferior, pela ordem das rotas do shell.
-/// Separadores: traço Lucide; o activo com traço mais forte (mesma família).
+/// Separadores: ícones Fluent em traço; o activo na versão cheia (como no
+/// Teams e no LinkedIn).
 /// O terceiro valor é o ícone clássico, quando os ícones modernos estão
 /// desligados em Aparência.
 const tabs = [
   (
     '/home',
-    NavItem(LucideIcons.house, LucideIcons.house600, 'Início'),
-    Icons.home_rounded,
+    NavItem(FluentIcons.home_24_regular, FluentIcons.home_24_filled, 'Início'),
+    FluentIcons.home_24_filled,
   ),
   (
     '/subjects',
-    NavItem(LucideIcons.bookOpen, LucideIcons.bookOpen600, 'Disciplinas'),
-    Icons.menu_book_rounded,
+    NavItem(
+      FluentIcons.book_open_24_regular,
+      FluentIcons.book_open_24_filled,
+      'Disciplinas',
+    ),
+    FluentIcons.book_open_24_filled,
   ),
   (
     '/calendar',
     NavItem(
-      LucideIcons.calendarDays,
-      LucideIcons.calendarDays600,
+      FluentIcons.calendar_ltr_24_regular,
+      FluentIcons.calendar_ltr_24_filled,
       'Calendário',
     ),
-    Icons.calendar_month_rounded,
+    FluentIcons.calendar_ltr_24_filled,
   ),
   (
     '/messages',
     NavItem(
-      LucideIcons.messageCircle,
-      LucideIcons.messageCircle600,
+      FluentIcons.chat_24_regular,
+      FluentIcons.chat_24_filled,
       'Mensagens',
     ),
-    Icons.chat_bubble_rounded,
+    FluentIcons.chat_24_filled,
   ),
   (
     '/more',
-    NavItem(LucideIcons.ellipsis, LucideIcons.ellipsis600, 'Mais'),
-    Icons.more_horiz_rounded,
+    NavItem(
+      FluentIcons.more_horizontal_24_regular,
+      FluentIcons.more_horizontal_24_filled,
+      'Mais',
+    ),
+    FluentIcons.more_horizontal_24_filled,
   ),
 ];
+
+/// Posição de «Mensagens» na barra inferior.
+final messagesTab = tabs.indexWhere((t) => t.$1 == '/messages');
 
 /// Consultas institucionais só de leitura (servidor decide o acesso; propinas,
 /// notas e documentos são exclusivas do aluno).
@@ -367,6 +379,23 @@ class _SigaAppState extends State<SigaApp> {
   ];
 
   final refresh = ValueNotifier<int>(0);
+
+  /// Há conversas por ler? Alimenta o ponto vermelho em «Mensagens».
+  bool unreadChats = false;
+
+  Future<void> refreshUnread() async {
+    try {
+      final chat = await gateway.read('chat');
+      final threads = chat['threads'];
+      final any =
+          threads is List &&
+          threads.any((t) => t is Map && t['unread'] is int && t['unread'] > 0);
+      if (mounted && any != unreadChats) setState(() => unreadChats = any);
+    } catch (_) {
+      // Sem ligação: o ponto fica como estava; a página mostra o erro.
+    }
+  }
+
   void update() {
     if (mounted) {
       setState(() {});
@@ -458,6 +487,7 @@ class _SigaAppState extends State<SigaApp> {
       widget.prefs.setString('last-school-name', choice.schoolName);
       gateway.select(session!['userId'] as String, school!, role!);
       update();
+      unawaited(refreshUnread());
     },
   );
 
@@ -504,8 +534,14 @@ class _SigaAppState extends State<SigaApp> {
           modernIcons ? item : NavItem(classic, classic, item.label),
       ],
       index: shell.currentIndex,
-      onSelected: (index) =>
-          shell.goBranch(index, initialLocation: index == shell.currentIndex),
+      dots: {if (unreadChats) messagesTab},
+      onSelected: (index) {
+        // Ao sair de «Mensagens», o que foi lido deixa de contar.
+        if (shell.currentIndex == messagesTab && index != messagesTab) {
+          unawaited(refreshUnread());
+        }
+        shell.goBranch(index, initialLocation: index == shell.currentIndex);
+      },
     ),
   );
 
@@ -535,7 +571,7 @@ class _SigaAppState extends State<SigaApp> {
           title: Text(title),
           leading: IconButton(
             tooltip: 'Voltar',
-            icon: const Icon(LucideIcons.chevronLeft),
+            icon: const Icon(FluentIcons.chevron_left_24_regular),
             onPressed: () => router.go(back),
           ),
         ),

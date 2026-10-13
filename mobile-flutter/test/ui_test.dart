@@ -101,6 +101,31 @@ Future<void> unmount(WidgetTester tester) =>
     tester.pumpWidget(const SizedBox());
 
 void main() {
+  testWidgets('ponto de novidades só aparece no separador indicado', (
+    tester,
+  ) async {
+    const items = [
+      NavItem(Icons.home_outlined, Icons.home, 'Início'),
+      NavItem(Icons.chat_outlined, Icons.chat, 'Mensagens'),
+    ];
+    Widget bar(Set<int> dots) => MaterialApp(
+      home: Scaffold(
+        bottomNavigationBar: FloatingNavBar(
+          items: items,
+          index: 0,
+          dots: dots,
+          onSelected: (_) {},
+        ),
+      ),
+    );
+    await tester.pumpWidget(bar(const {}));
+    expect(find.bySemanticsLabel('Mensagens, com novidades'), findsNothing);
+    await tester.pumpWidget(bar(const {1}));
+    await tester.pumpAndSettle();
+    expect(find.bySemanticsLabel('Mensagens, com novidades'), findsOneWidget);
+    expect(find.bySemanticsLabel('Início'), findsOneWidget);
+  });
+
   group('abertura do S', () {
     test('a mensagem abre, fica legível e recolhe no S', () {
       const t = IntroTimeline.full;

@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:lucide_icons_flutter/lucide_icons.dart';
+import 'package:fluentui_system_icons/fluentui_system_icons.dart';
 import '../design/tokens.dart';
 import '../design/widgets.dart';
 
@@ -90,8 +90,8 @@ class _SchoolsPageState extends State<SchoolsPage> {
           for (final choice in school)
             MenuRow(
               icon: choice.role == 'professor'
-                  ? LucideIcons.presentation
-                  : LucideIcons.user,
+                  ? FluentIcons.presenter_24_regular
+                  : FluentIcons.person_24_regular,
               title: choice.roleLabel,
               onTap: () {
                 Navigator.of(sheet).pop();
@@ -129,7 +129,7 @@ class _SchoolsPageState extends State<SchoolsPage> {
                 tooltip: 'Sair',
                 color: Colors.white,
                 onPressed: widget.onSignOut,
-                icon: const Icon(LucideIcons.logOut),
+                icon: const Icon(FluentIcons.sign_out_24_regular),
               ),
             ),
             Expanded(
@@ -172,7 +172,10 @@ class _SchoolsPageState extends State<SchoolsPage> {
                     TextField(
                       decoration: InputDecoration(
                         hintText: 'Pesquisar escola…',
-                        prefixIcon: const Icon(LucideIcons.search, size: 20),
+                        prefixIcon: const Icon(
+                          FluentIcons.search_24_regular,
+                          size: 20,
+                        ),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(24),
                           borderSide: BorderSide.none,
@@ -188,7 +191,7 @@ class _SchoolsPageState extends State<SchoolsPage> {
                     const SizedBox(height: Siga.s2),
                     if (widget.error != null)
                       EmptyState(
-                        icon: LucideIcons.cloudOff,
+                        icon: FluentIcons.cloud_off_24_regular,
                         message: widget.error!,
                         action: 'Tentar novamente',
                         onAction: widget.onRetry,
@@ -225,7 +228,10 @@ class _SchoolsPageState extends State<SchoolsPage> {
                                   ],
                                 ),
                               ),
-                              const Icon(LucideIcons.chevronRight, size: 20),
+                              const Icon(
+                                FluentIcons.chevron_right_24_regular,
+                                size: 20,
+                              ),
                             ],
                           ),
                         ),
@@ -247,7 +253,10 @@ class _SchoolsPageState extends State<SchoolsPage> {
                                 shape: BoxShape.circle,
                                 border: Border.all(color: palette.line),
                               ),
-                              child: const Icon(LucideIcons.cloud, size: 22),
+                              child: const Icon(
+                                FluentIcons.cloud_24_regular,
+                                size: 22,
+                              ),
                             ),
                             const SizedBox(width: 14),
                             Expanded(
