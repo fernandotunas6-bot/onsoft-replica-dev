@@ -123,3 +123,11 @@ utilizáveis; capacidades repetidas são deduplicadas. Links com fragmentos são
 recusados. Transporte rejeita papéis desconhecidos mesmo em leitura. Ingestão
 GPS exige timestamp com timezone explícita e relógio de validação válido.
 28 testes Node aprovados; nenhum conector ou dispositivo real foi activado.
+
+## Validação após remoção do React
+
+Workflow Flutter passa a validar Node backend também em main e na branch
+Flutter. Comandos preview/promote do publicador legado estão bloqueados;
+check mantém verificações históricas e não comprova compatibilidade Flutter.
+Worker packing depende de Flutter Web compilado e de dependências do backend.
+Nenhuma publicação automática foi introduzida.
