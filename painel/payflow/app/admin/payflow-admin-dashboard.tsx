@@ -25,6 +25,7 @@ import {
   Upload,
 } from "lucide-react";
 import { toast } from "sonner";
+import { payflowGuidance } from "@/lib/error-guidance";
 
 import { PayflowBrandLockup, PayflowBrandMark } from "@/components/payflow/brand-mark";
 import { Money } from "@/components/payflow/money";
@@ -146,6 +147,27 @@ const STATEMENT_TEMPLATE = `data;referencia;valor;moeda;movimento;descricao
 05/09/2026;PF-TF-20260905-XXXXXXXXXX;15.000,00;AOA;MOV-001;Propina Setembro
 `;
 
+
+/**
+ * Erro da API ou da rede com a forma certa de o resolver (`lib/error-guidance`).
+ * Se repetir pode resolver (rede, serviço em baixo), o aviso traz «Tentar outra vez».
+ */
+function showApiError(
+  error: { code?: string; message?: string } | null | undefined,
+  fallback: string,
+  retry?: () => void,
+) {
+  const guidance = payflowGuidance(error, "admin");
+  toast.error(error?.message?.trim() || fallback, {
+    description: guidance?.fix,
+    duration: guidance ? 12_000 : undefined,
+    action:
+      guidance?.retryable && retry ? { label: "Tentar outra vez", onClick: retry } : undefined,
+  });
+}
+
+const NETWORK_ERROR = { code: "network_error", message: "" };
+
 export function PayflowAdminDashboard() {
   const [session, setSession] = useState<AdminSession | null>(null);
   const [loading, setLoading] = useState(true);
@@ -207,11 +229,21 @@ export function PayflowAdminDashboard() {
       if (res.ok) {
         const json = (await res.json()) as { data: ReconciliationData };
         setData(json.data);
+      } else {
+        // Antes ficava calado: a lista não mudava e ninguém sabia porquê.
+        const json = (await res.json().catch(() => null)) as {
+          error?: { code?: string; message?: string };
+        } | null;
+        showApiError(json?.error, "Não foi possível carregar a conciliação.", () =>
+          void loadReconciliation(),
+        );
       }
       await loadRuntimeStatus();
     } catch (err) {
       console.error(err);
-      toast.error("Erro ao carregar dados de conciliação.");
+      showApiError(NETWORK_ERROR, "Não foi possível carregar a conciliação.", () =>
+        void loadReconciliation(),
+      );
     } finally {
       setRefreshing(false);
     }
@@ -233,7 +265,10 @@ export function PayflowAdminDashboard() {
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault();
     if (!sandboxLoginAllowed) {
-      toast.error("Em produção, abra o painel a partir do SIGA (Conciliação PayFlow).");
+      toast.error("Em produção, a conciliação abre-se a partir do SIGA.", {
+        description: "No SIGA, vá a Financeiro e carregue em «Conciliação PayFlow»: a sessão passa sozinha.",
+        action: { label: "Abrir o SIGA", onClick: () => window.location.assign(sigaFinanceHref) },
+      });
       return;
     }
     try {
@@ -245,14 +280,14 @@ export function PayflowAdminDashboard() {
       });
       const json = await res.json();
       if (!res.ok) {
-        toast.error(json.error?.message || "Credencial inválida.");
+        showApiError(json.error, "Credencial inválida.");
         return;
       }
       toast.success("Sessão administrativa iniciada com sucesso!");
       setSession(json.data);
       await loadReconciliation();
     } catch {
-      toast.error("Não foi possível conectar ao servidor.");
+      showApiError(NETWORK_ERROR, "Não foi possível ligar ao servidor do PayFlow.");
     } finally {
       setLoggingIn(false);
     }
@@ -272,7 +307,9 @@ export function PayflowAdminDashboard() {
   async function confirmManualTransfer() {
     if (!selectedItem) return;
     if (!bankTxId.trim()) {
-      toast.error("Informe o número do movimento bancário.");
+      toast.error("Falta o número do movimento bancário.", {
+        description: "Copie-o do extrato do banco (ID ou referência da transacção) e confirme outra vez.",
+      });
       return;
     }
 
@@ -293,7 +330,7 @@ export function PayflowAdminDashboard() {
       });
       const json = await res.json();
       if (!res.ok) {
-        toast.error(json.error?.message || "Erro ao verificar transferência.");
+        showApiError(json.error, "Não foi possível confirmar a transferência.");
         return;
       }
       toast.success(`Transferência confirmada! Recibo: ${json.data?.receipt_code || "Emitido"}`);
@@ -302,7 +339,9 @@ export function PayflowAdminDashboard() {
       setBankTxId("");
       await loadReconciliation();
     } catch {
-      toast.error("Falha ao comunicar com o serviço bancário.");
+      showApiError(NETWORK_ERROR, "A confirmação não chegou ao servidor.", () =>
+        void confirmManualTransfer(),
+      );
     } finally {
       setVerifying(false);
     }
@@ -311,7 +350,9 @@ export function PayflowAdminDashboard() {
   async function confirmRefund() {
     if (!selectedItem) return;
     if (refundReason.trim().length < 8) {
-      toast.error("Descreva o motivo do estorno (mínimo 8 caracteres).");
+      toast.error("Descreva o motivo do estorno (mínimo 8 caracteres).", {
+        description: "Ex.: «Pagamento em duplicado da propina de Março». Fica no histórico para auditoria.",
+      });
       return;
     }
     try {
@@ -323,7 +364,7 @@ export function PayflowAdminDashboard() {
       });
       const json = await res.json();
       if (!res.ok) {
-        toast.error(json.error?.message || "Não foi possível estornar.");
+        showApiError(json.error, "Não foi possível estornar.");
         return;
       }
       toast.success("Pagamento estornado. O recibo original mantém-se para auditoria.");
@@ -332,7 +373,9 @@ export function PayflowAdminDashboard() {
       setRefundReason("");
       await loadReconciliation();
     } catch {
-      toast.error("Falha ao comunicar o estorno.");
+      showApiError(NETWORK_ERROR, "O pedido de estorno não chegou ao servidor.", () =>
+        void confirmRefund(),
+      );
     } finally {
       setRefunding(false);
     }
@@ -347,7 +390,7 @@ export function PayflowAdminDashboard() {
       const res = await fetch("/api/v1/bank-statements/import", { method: "POST", body });
       const json = await res.json();
       if (!res.ok) {
-        toast.error(json.error?.message || "Não foi possível ler o extrato.");
+        showApiError(json.error, "Não foi possível ler o extrato.");
         return;
       }
       setStatementResult(json.data as StatementImportData);
@@ -361,7 +404,9 @@ export function PayflowAdminDashboard() {
         await loadReconciliation();
       }
     } catch {
-      toast.error("Falha ao enviar o extrato bancário.");
+      showApiError(NETWORK_ERROR, "O extrato não chegou ao servidor.", () =>
+        void importBankStatement(file),
+      );
     } finally {
       setStatementBusy(false);
     }
@@ -377,7 +422,9 @@ export function PayflowAdminDashboard() {
       });
       const json = await res.json();
       if (!res.ok) {
-        toast.error(json.error?.message || "Conector bancário indisponível.");
+        showApiError(json.error, "O conector bancário não respondeu.", () =>
+          void pullBankConnector(),
+        );
         return;
       }
       const applied = Number(json.data?.applied ?? 0);
@@ -389,7 +436,9 @@ export function PayflowAdminDashboard() {
       );
       if (applied > 0) await loadReconciliation();
     } catch {
-      toast.error("Falha ao contactar o conector bancário.");
+      showApiError(NETWORK_ERROR, "Não foi possível contactar o conector bancário.", () =>
+        void pullBankConnector(),
+      );
     } finally {
       setPullBusy(false);
     }
