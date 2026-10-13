@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'academic.dart';
 import 'gateway.dart';
+import 'design_system.dart';
 
 class DataPage extends StatefulWidget {
   const DataPage({super.key, required this.gateway, required this.path, required this.name, this.groupId});
@@ -52,7 +53,7 @@ class _DataPageState extends State<DataPage> {
   }
   Widget subjectRow(Map<String, dynamic> item, AcademicCatalog catalog) => ListTile(
     contentPadding: const EdgeInsets.symmetric(vertical: 8),
-    leading: Icon(Icons.menu_book_outlined, color: Theme.of(context).colorScheme.primary),
+    leading: const IconWell(Icons.menu_book_outlined),
     title: Text('${item['subjectName']}'), subtitle: Text('${item['className']}'),
     trailing: const Icon(Icons.chevron_right), onTap: () => detail(item, catalog));
   Widget slotRow(Map<String, dynamic> slot, AcademicCatalog catalog) => ListTile(

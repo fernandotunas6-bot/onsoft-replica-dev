@@ -6,6 +6,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'gateway.dart';
 import 'identity.dart';
 import 'academic_page.dart';
+import 'design_system.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -164,8 +165,16 @@ class _SigaAppState extends State<SigaApp> {
     if (path == '/more') return ListView(padding: const EdgeInsets.all(24), children: [
       const Brand(), const SizedBox(height: 24), Text('${session?['name'] ?? ''}'), Text(role ?? ''),
       const SizedBox(height: 24), Text('Serviços escolares', style: Theme.of(context).textTheme.titleLarge),
-      ListTile(leading: const Icon(Icons.groups_outlined), title: const Text('Turmas'), trailing: const Icon(Icons.chevron_right), onTap: () => router.go('/more/classes')),
-      ListTile(leading: const Icon(Icons.assignment_outlined), title: const Text('Tarefas'), trailing: const Icon(Icons.chevron_right), onTap: () => router.go('/more/tasks')),
+      const SizedBox(height: 16),
+      LayoutBuilder(builder: (context, constraints) {
+        final width = constraints.maxWidth < 340 || MediaQuery.textScalerOf(context).scale(16) > 24
+          ? constraints.maxWidth : (constraints.maxWidth - 12) / 2;
+        return Wrap(spacing: 12, runSpacing: 12, children: [
+          SizedBox(width: width, child: ServiceTile(icon: Icons.groups_outlined, title: 'Turmas', subtitle: 'Disciplinas e aulas', onTap: () => router.go('/more/classes'))),
+          SizedBox(width: width, child: ServiceTile(icon: Icons.assignment_outlined, title: 'Tarefas', subtitle: 'Actividades e prazos', onTap: () => router.go('/more/tasks'))),
+        ]);
+      }),
+      const SizedBox(height: 24),
       ListTile(leading: const Icon(Icons.palette_outlined), title: const Text('Aparência'), onTap: () {
         showModalBottomSheet<void>(context: router.routerDelegate.navigatorKey.currentContext!,
           showDragHandle: true, builder: (context) => SafeArea(child: StatefulBuilder(builder: (context, sheetSetState) =>
@@ -191,12 +200,7 @@ class _SigaAppState extends State<SigaApp> {
     themeMode: appearance, theme: theme(Brightness.light), darkTheme: theme(Brightness.dark), routerConfig: router,
     builder: (context, child) => MediaQuery(data: MediaQuery.of(context).copyWith(
       disableAnimations: reduced || MediaQuery.disableAnimationsOf(context)), child: child!));
-  ThemeData theme(Brightness brightness) => ThemeData(useMaterial3: true, brightness: brightness,
-    colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xff315ff6), brightness: brightness),
-    scaffoldBackgroundColor: brightness == Brightness.light ? Colors.white : const Color(0xff151922),
-    appBarTheme: const AppBarTheme(surfaceTintColor: Colors.transparent),
-    inputDecorationTheme: InputDecorationTheme(border: OutlineInputBorder(borderRadius: BorderRadius.circular(14))),
-    navigationBarTheme: const NavigationBarThemeData(height: 72, indicatorColor: Color(0xffdce5ff)));
+  ThemeData theme(Brightness brightness) => SigaTheme.build(brightness);
 }
 
 class LoginPage extends StatefulWidget {
