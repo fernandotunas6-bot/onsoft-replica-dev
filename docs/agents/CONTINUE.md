@@ -5287,6 +5287,59 @@ Implementado sem unificar frontends:
   - `npm run siga:check`: **100% aprovado**.
   - `npm test`: **134 ficheiros · 944 testes aprovados** (100% verde em Node 24) + **16 testes PayFlow**.
 
+## Ciclo 56 — Flutter: notas, avisos e validação executada
+
+- **Notas (`/more/results`, só perfil aluno)**: contrato `GET /api/mobile-v4/schools/:id/results`
+  no backend isolado (`mobile-flutter/backend/api.ts`). Serve apenas o próprio aluno
+  (`studentId` tem de ser o utilizador autenticado), apenas avaliações `published`, com a
+  escala da escola por disciplina. Nenhuma média, arredondamento ou escala 0-20 presumida
+  no dispositivo. Nota fora da escala, trimestre duplicado, código de nota repetido ou
+  disciplina fora do catálogo autorizado falham fechado (503). Perfil professor: 403
+  `RESULTS_PROFILE_UNSUPPORTED` e a rota nem aparece no menu — notas de turma exigem
+  avaliação de privacidade por perfil que continua em falta.
+- **Avisos (`/more/notices`)**: `GET …/notices[?cursor=…]`. Audiência decidida no servidor
+  (`school` sem disciplina, `class`/`subject` só com disciplina autorizada); aviso agendado
+  para depois nunca chega ao dispositivo; fixados primeiro e paginação por cursor opaco
+  validado (`[A-Za-z0-9_-]{1,128}`), que recusa `nextCursor` igual ao pedido para não criar
+  ciclo. Marcação como lido, anexos e push continuam pendentes (exigem escrita autorizada).
+- **Cliente**: `mobile-flutter/lib/records.dart` (parsing fail-closed de pautas e avisos),
+  páginas em `academic_page.dart`, rotas e menu em `main.dart`, gateway com coleções
+  `results`/`notices` e cursor. O gateway nem pede notas quando o perfil é professor.
+- **Validação executada** (SDK instalado no executor desta sessão, Flutter 3.35.7 / Dart 3.9.2):
+  `flutter pub get` com **pubspec.lock fixado e versionado**, `dart format lib test`
+  (formatação aplicada em commit próprio, sem alteração de comportamento), `flutter analyze`
+  — 18 avisos informativos, os mesmos da base, sem avisos novos —, `flutter test` com
+  **23 testes aprovados** e `flutter build web --release` com êxito. Backend isolado:
+  `node --experimental-strip-types --test mobile-flutter/backend/*.test.mjs` — **39 testes**.
+- **Limites**: os endpoints continuam **não montados** na main (o adaptador Mobile V4 vive na
+  branch dependente) e nada foi publicado, migrado ou alterado em produção. Falta ensaio com
+  duas escolas reais, sessão/CAPTCHA real, diários, e contratos de notas para docente e
+  encarregado.
+
+## Ciclo 57 — Flutter: interface refeita sobre os ecrãs aprovados
+
+- **Sistema visual** (`mobile-flutter/lib/design.dart`): grelha de 4 pt, `gutter` 20,
+  raios 14/18/28, tile 44, controlo 52, barra inferior 64, escala tipográfica fixa e
+  `SigaPalette` (ThemeExtension) com claro e escuro explícitos. Componentes partilhados:
+  `IconTile`, `SigaCard`, `SigaRow`, `SectionHeader`, `FilterChips`, `SearchField`,
+  `InitialsAvatar`, `StateBadge`, `StateMessage`, `Footnote`. Nenhum ecrã define medidas próprias.
+- **Ecrãs**: abertura em três tempos com indicador de passos (`identity.dart`), apresentação,
+  login (`access_page.dart`), escolha de escola com pesquisa e perfil explícito, início,
+  disciplinas, calendário (agenda + horários), mensagens, grelha de serviços escolares,
+  espaço da turma, notas, avisos, conta, aparência e transporte em conceito
+  (`services_page.dart`, `academic_page.dart`).
+- **Aparência**: tema (sistema/claro/escuro), plano de fundo, cor principal, movimento
+  reduzido e ícones modernos — tudo em `SharedPreferences`, sem tocar no perfil ou na escola.
+- **Fidelidade com limites ditos, nunca simulados** (`mobile-flutter/docs/DESIGN.md`):
+  iniciais em vez de fotografias; sem barras de progresso inventadas; sem botão de entrada
+  na aula; selector de escola, ID/B.I. e provedores OAuth explicam o que falta; serviços sem
+  contrato (Faltas, Propinas, Biblioteca, Aulas online, WhatsApp, Google) abrem página de
+  preparação em vez de atalho sem destino; transporte mantém «Conceito»/«Simulação» e não lê,
+  guarda nem anima coordenadas; participantes da turma continuam fora.
+- **Validação**: `dart format` sem alterações, `flutter analyze` **sem qualquer aviso**
+  (antes 18), **29 testes Flutter** (6 novos de interface em `test/ui_test.dart`) e
+  `flutter build web --release` com êxito; **39 testes Node** no backend isolado.
+
 ## Próximos passos úteis
 
 0. **SQL:** verificado live 2026-09-05 (33/33 + `current_school_id` + RLS históricos). Manter `npm run siga:sql:verify` após alterações DDL.

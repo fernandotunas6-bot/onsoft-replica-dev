@@ -8,13 +8,29 @@ Base incremental para substituir o cliente Mobile V4 em m.portal-siga.com.
 
 Flutter Material 3, GoRouter com separadores preservados, selector de vínculos
 activos/perfil aluno ou professor; e-mail/senha e desafio TOTP do Supabase SGA;
-consulta HTTP de sessão, disciplinas/turmas, horários, tarefas e lista de
-conversas. Mudança de escola/conta invalida respostas pendentes. A API existente
+consulta HTTP de sessão, disciplinas/turmas, horários, tarefas, notas
+publicadas, avisos paginados e lista de conversas. Mudança de escola/conta invalida respostas pendentes. A API existente
 continua a decidir autorização e MFA; o cliente não consulta tabelas académicas.
+Notas apenas no perfil aluno, por trimestre e na escala comunicada pela escola
+(nenhuma média é calculada no dispositivo); avisos por audiência da escola, com
+fixados primeiro e «Ver avisos anteriores» por cursor opaco.
 Estados de erro/carregamento/vazio, pesquisa, refresh e aparência claro/escuro.
-Introdução 3,2 s ou 650 ms após a primeira abertura, salto, movimento reduzido,
-e restauração de sessão em paralelo. Só a preferência de intro/movimento é
-persistida pelo código; o SDK gere a sua própria sessão.
+Introdução 3,2 s ou 650 ms após a primeira abertura, com salto, indicador de
+passos, apresentação inicial, movimento reduzido e restauração de sessão em
+paralelo. As preferências de abertura, tema, plano
+de fundo, cor principal, movimento e estilo de ícones ficam no dispositivo; o
+SDK gere a sua própria sessão.
+
+## Desenho
+
+Sistema visual medido a partir dos ecrãs aprovados em `lib/design.dart`
+(espaçamento, raios, tipografia, paleta clara/escura e componentes partilhados),
+documentado em [docs/DESIGN.md](docs/DESIGN.md), que também lista o que foi
+mantido fiel e o que foi dito por palavras em vez de simulado com dados.
+Ecrãs: abertura em três tempos, apresentação, login, escolha de escola,
+início, disciplinas, calendário (agenda e horários), mensagens, grelha de
+serviços escolares, espaço da turma, notas, avisos, conta, aparência,
+transporte (conceito) e páginas de preparação por serviço.
 
 ## Identidade: limite explícito
 
@@ -27,7 +43,8 @@ O wordmark provisório também não substitui a arte final fornecida.
 
 ## Executar
 
-Flutter 3.35.7 / Dart 3.9.2:
+Flutter 3.35.7 / Dart 3.9.2 (validado nesta versão: `pub get`, `dart format`,
+`analyze` sem avisos, `test` com 29 testes e `build web --release`):
 
 ```
 flutter pub get
@@ -41,23 +58,32 @@ servidor. A validação CI compila sem configurações de produção e mostra um
 estado de configuração pendente. O artefacto CI não é uma release institucional.
 O gateway usa a mesma origem no Web; apps Android/iOS ainda precisam de
 configuração de origem HTTPS e política CORS explícita. Não estão empacotadas.
-Commitar pubspec.lock após a primeira resolução aprovada, antes da release.
+O pubspec.lock está versionado a partir da primeira resolução executada.
+
+Backend isolado (não montado): `node --experimental-strip-types --test
+backend/*.test.mjs` — 39 testes.
 
 ## Pendências de paridade antes de substituir o domínio
 
 - Fonte Inter empacotada, iconografia equivalente, wordmark original e Rive.
 - Login por ID/B.I., recuperação, OAuth, passkeys e migração da sessão React
   para Flutter (não ler tokens directamente de localStorage nem de URLs).
-- Próxima aula pelo relógio de Luanda; horários por dia; avisos; calendário
+- Próxima aula pelo relógio de Luanda; horários por dia; calendário
   de presenças reais (um horário não prova presença); páginas de actividades.
+- Marcação de avisos como lidos, anexos e notificações push; notas do perfil
+  professor e do encarregado dependem de contratos de privacidade próprios.
 - Detalhe de disciplina, tarefas/entregas, chat/histórico/anexos/Realtime,
-  notas, propinas, recibos, documentos e funcionalidades docentes completas.
+  propinas, recibos, documentos e funcionalidades docentes completas.
+- Notas: exames/recursos, boletim oficial e histórico ficam no portal; este
+  cliente mostra o que a escola publicou, sem recalcular nem arredondar.
 - Perfis encarregado/administrador requerem contratos próprios: a API actual
   apenas oferece aluno/professor. Não atribuir permissões artificiais.
 - Lógica de aprendizagem inspirada no Moodle; nenhuma integração Moodle,
   duplicação de notas ou nova base de dados foi implementada.
-- Persistência de aparência e estados de filtros; acessibilidade, teclado,
-  zoom e motion contextual em menus/cartões/bottom sheets.
+- Fotografias de perfil, progresso por disciplina e entrada directa na aula:
+  dependem de contratos próprios e não são simulados neste cliente.
+- Acessibilidade completa: teclado, zoom, leitor de ecrã e contraste validados
+  em todos os ecrãs; só parte está coberta por semântica explícita.
 - Offline apenas quando houver política para dados sensíveis: sem cache
   académica/service worker neste incremento.
 

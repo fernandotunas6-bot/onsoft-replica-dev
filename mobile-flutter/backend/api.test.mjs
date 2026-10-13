@@ -70,3 +70,89 @@ test('duplicate tasks are rejected',async()=>{
  const d=deps();d.academicCatalog=async()=>({...catalog(),tasks:Array(2).fill({id:other,classSubjectId:subject,kind:'assignment',title:'Task',due:null})});
  assert.equal((await handleInstitutionalExtension(req('?role=aluno'),d)).status,503);
 });
+
+const term='55555555-5555-4555-8555-555555555555';
+const notice='66666666-6666-4666-8666-666666666666';
+const resultSet=()=>({schoolId:school,role:'aluno',studentId:'verified',items:[{
+ classSubjectId:subject,termId:term,termName:'1.º Trimestre',publication:'published',scaleMax:20,
+ finalGrade:14,status:'APROVADO',grades:[{code:'MAC',label:'MAC',value:13},{code:'NPP',label:'NPP',value:null}],
+ teacherComment:'private-comment',studentId:'private',
+}]});
+const noticeFeed=()=>({schoolId:school,role:'aluno',nextCursor:null,items:[{
+ id:notice,title:'Reunião',body:'Convocatória',publishedAt:'2026-10-12T08:00:00Z',
+ audience:'school',classSubjectId:null,pinned:true,authorEmail:'secret@example.test',
+}]});
+function records(path,extra={}) {
+ const d=deps(); d.now=()=>new Date('2026-10-13T08:00:00Z');
+ d.academicResults=async()=>resultSet(); d.notices=async()=>noticeFeed();
+ return [new Request(`https://test.example/api/mobile-v4/schools/${school}/${path}`,{headers:{Authorization:'Bearer token'}}),Object.assign(d,extra)];
+}
+test('published results are exported with the school scale and no private fields',async()=>{
+ const r=await handleInstitutionalExtension(...records('results?role=aluno'));assert.equal(r.status,200);
+ const body=await r.json();assert.equal(body.items.length,1);
+ assert.equal(body.items[0].subjectName,'Matemática');assert.equal(body.items[0].scaleMax,20);
+ assert.equal(body.items[0].grades[1].value,null);
+ const text=JSON.stringify(body);for(const secret of ['private-comment','studentId','private'])assert.ok(!text.includes(secret));
+});
+test('teacher profile has no results contract instead of seeing class marks',async()=>{
+ const [,d]=records('results?role=professor');
+ d.academicCatalog=async()=>({...catalog(),role:'professor'});
+ d.academicResults=async()=>{throw Error('should not run');};
+ const request=new Request(`https://test.example/api/mobile-v4/schools/${school}/results?role=professor`,{headers:{Authorization:'Bearer token'}});
+ assert.equal((await handleInstitutionalExtension(request,d)).status,403);
+});
+test('results of another pupil or unpublished marks fail closed',async()=>{
+ for(const patch of [{studentId:'other-pupil'},{items:[{...resultSet().items[0],publication:'draft'}]}]) {
+  const [request,d]=records('results?role=aluno'); d.academicResults=async()=>({...resultSet(),...patch});
+  assert.equal((await handleInstitutionalExtension(request,d)).status,503);
+ }
+});
+test('a grade outside the school scale or a subject outside the catalog is refused',async()=>{
+ for(const patch of [{scaleMax:20,finalGrade:34},{classSubjectId:other}]) {
+  const [request,d]=records('results?role=aluno');
+  d.academicResults=async()=>({...resultSet(),items:[{...resultSet().items[0],...patch}]});
+  assert.equal((await handleInstitutionalExtension(request,d)).status,503);
+ }
+});
+test('duplicate terms and duplicate grade codes are rejected',async()=>{
+ for(const items of [Array(2).fill(resultSet().items[0]),[{...resultSet().items[0],grades:[{code:'MAC',label:'MAC',value:1},{code:'MAC',label:'MAC',value:2}]}]]) {
+  const [request,d]=records('results?role=aluno'); d.academicResults=async()=>({...resultSet(),items});
+  assert.equal((await handleInstitutionalExtension(request,d)).status,503);
+ }
+});
+test('notice feed exports the authorized audience and hides author contacts',async()=>{
+ const r=await handleInstitutionalExtension(...records('notices?role=aluno'));assert.equal(r.status,200);
+ const body=await r.json();assert.equal(body.items[0].title,'Reunião');assert.equal(body.nextCursor,null);
+ assert.ok(!JSON.stringify(body).includes('secret@example.test'));
+});
+test('a scheduled notice never reaches the device before publication',async()=>{
+ const [request,d]=records('notices?role=aluno');
+ d.notices=async()=>({...noticeFeed(),items:[{...noticeFeed().items[0],publishedAt:'2026-10-14T08:00:00Z'}]});
+ assert.equal((await handleInstitutionalExtension(request,d)).status,503);
+});
+test('a notice for another class is refused rather than filtered silently',async()=>{
+ const [request,d]=records('notices?role=aluno');
+ d.notices=async()=>({...noticeFeed(),items:[{...noticeFeed().items[0],audience:'class',classSubjectId:other}]});
+ assert.equal((await handleInstitutionalExtension(request,d)).status,503);
+});
+test('cursor is validated and a repeated cursor cannot loop the feed',async()=>{
+ const [,d]=records('notices?role=aluno');
+ const bad=new Request(`https://test.example/api/mobile-v4/schools/${school}/notices?role=aluno&cursor=../../etc`,{headers:{Authorization:'Bearer token'}});
+ assert.equal((await handleInstitutionalExtension(bad,d)).status,422);
+ const page=new Request(`https://test.example/api/mobile-v4/schools/${school}/notices?role=aluno&cursor=abc`,{headers:{Authorization:'Bearer token'}});
+ d.notices=async(user,scope,cursor)=>{assert.equal(cursor,'abc');return {...noticeFeed(),nextCursor:'abc'};};
+ assert.equal((await handleInstitutionalExtension(page,d)).status,503);
+});
+test('results and notices accept no resource id and no unknown query field',async()=>{
+ const [,d]=records('results?role=aluno');
+ for(const [path,status] of [[`results/${term}?role=aluno`,404],[`notices/${notice}?role=aluno`,404],['notices?role=aluno&page=2',422],['results?role=aluno&cursor=abc',422]]) {
+  const request=new Request(`https://test.example/api/mobile-v4/schools/${school}/${path}`,{headers:{Authorization:'Bearer token'}});
+  assert.equal((await handleInstitutionalExtension(request,d)).status,status,path);
+ }
+});
+test('a service that is not mounted does not answer with empty records',async()=>{
+ for(const path of ['results?role=aluno','notices?role=aluno']) {
+  const request=new Request(`https://test.example/api/mobile-v4/schools/${school}/${path}`,{headers:{Authorization:'Bearer token'}});
+  assert.equal((await handleInstitutionalExtension(request,deps())).status,503);
+ }
+});
