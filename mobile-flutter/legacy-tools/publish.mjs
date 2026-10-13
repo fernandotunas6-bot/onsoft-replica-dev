@@ -124,7 +124,9 @@ export function withPagesOrigin(config, url) {
 
 async function main([mode, target, ...flags]) {
   if (mode === "preview" || mode === "promote")
-    throw new Error("Publicação React retirada. Validar Flutter Web e Worker antes de configurar um novo fluxo de publicação.");
+    throw new Error(
+      "Publicação React retirada. Validar Flutter Web e Worker antes de configurar um novo fluxo de publicação.",
+    );
   if (mode === "check" && target) return report(target);
   if (mode === "preview") {
     requireToken();
