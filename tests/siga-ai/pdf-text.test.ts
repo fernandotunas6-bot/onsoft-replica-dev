@@ -84,7 +84,7 @@ describe("siga-ai extraccao de PDF", () => {
     // de saber que o ficheiro está danificado, não que «é digitalizado».
     const broken = await makeCompressedPdf("BT (x) Tj ET");
     const bytes = new Uint8Array(broken);
-    const streamStart = new TextDecoder("iso-8859-1").decode(bytes).indexOf("stream\n") + 7;
+    const streamStart = String.fromCharCode(...bytes).indexOf("stream\n") + 7;
     bytes[streamStart + 2] = 0x00;
     bytes[streamStart + 3] = 0x00;
     await expect(extractPdfText(bytes.buffer as ArrayBuffer)).rejects.toThrow(/descomprimir/i);

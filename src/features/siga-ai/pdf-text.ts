@@ -19,8 +19,22 @@
 
 export class PdfParseError extends Error {}
 
-/** Bytes → texto preservando cada byte (a estrutura do PDF é byte a byte). */
-const latin1 = new TextDecoder("iso-8859-1");
+/**
+ * Bytes → texto preservando cada byte (a estrutura do PDF é byte a byte).
+ *
+ * Não pode ser `new TextDecoder("iso-8859-1")`: pela norma WHATWG esse rótulo é
+ * windows-1252, e os bytes 0x80–0x9F saem como «€», aspas curvas, etc. — que
+ * `charCodeAt(i) & 0xff` já não devolve ao byte original. Os browsers, o Bun e o
+ * Node 24 seguem a norma (o Node 22 não), e um fluxo Flate com esses bytes
+ * deixava de abrir.
+ */
+function latin1(bytes: Uint8Array): string {
+  let text = "";
+  for (let index = 0; index < bytes.length; index += 0x8000) {
+    text += String.fromCharCode(...bytes.subarray(index, index + 0x8000));
+  }
+  return text;
+}
 
 /**
  * WinAnsi difere de Latin-1 em 0x80–0x9F, e é lá que vivem as aspas curvas, os
@@ -285,7 +299,7 @@ export function assertReadable(text: string): string {
 
 /** Texto de um PDF de texto. Lança `PdfParseError` com motivo legível. */
 export async function extractPdfText(buffer: ArrayBuffer): Promise<string> {
-  const raw = latin1.decode(new Uint8Array(buffer));
+  const raw = latin1(new Uint8Array(buffer));
   if (!raw.startsWith("%PDF-")) {
     throw new PdfParseError("Ficheiro inválido: não parece um PDF.");
   }
@@ -308,7 +322,7 @@ export async function extractPdfText(buffer: ArrayBuffer): Promise<string> {
     if (/\/FlateDecode/.test(dict)) {
       flateStreams += 1;
       try {
-        content = latin1.decode(await inflate(toBytes(body)));
+        content = latin1(await inflate(toBytes(body)));
       } catch {
         flateFailures += 1;
         continue; // fluxo que não abre: segue para o próximo
