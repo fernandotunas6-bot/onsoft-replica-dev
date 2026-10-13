@@ -1,0 +1,1 @@
+{"compilerOptions":{"target":"ES2022","module":"ESNext","moduleResolution":"Bundler","lib":["ES2022","DOM","DOM.Iterable"],"types":["node"],"strict":true,"noEmit":true,"allowImportingTsExtensions":true,"skipLibCheck":true},"include":["backend/**/*.ts","contracts/domain/**/*.ts","contracts/services/**/*.ts","staging/request-context.ts"]}

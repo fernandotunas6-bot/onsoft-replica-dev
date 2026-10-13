@@ -131,3 +131,12 @@ Flutter. Comandos preview/promote do publicador legado estão bloqueados;
 check mantém verificações históricas e não comprova compatibilidade Flutter.
 Worker packing depende de Flutter Web compilado e de dependências do backend.
 Nenhuma publicação automática foi introduzida.
+
+## Contratos migrados validados
+
+Instalação Node isolada com package-lock.json e versões fixas.
+TypeScript de backend, contratos e request-context aprovado. Vitest: 96 testes
+em oito ficheiros aprovados, cobrindo catálogo, políticas, API, sessão,
+calendário/chat, próximas aulas e isolamento de request-context. Backend Node:
+28 testes já aprovados. Workflow passa a executar as três verificações.
+Não equivale à build do Worker completo, Flutter ou ensaio Supabase remoto.
