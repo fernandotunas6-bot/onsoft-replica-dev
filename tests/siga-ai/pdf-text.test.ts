@@ -4,6 +4,7 @@
  * binários no repositório, e nos dois formatos que importam (fluxo de conteúdo
  * em claro e comprimido com Flate).
  */
+import { deflateSync } from "node:zlib";
 import { describe, expect, it } from "vitest";
 import { jsPDF } from "jspdf";
 import {
@@ -13,10 +14,32 @@ import {
   PdfParseError,
 } from "@/features/siga-ai/pdf-text";
 
-function makePdf(lines: string[], compress: boolean): ArrayBuffer {
-  const doc = new jsPDF({ compress });
+function makePdf(lines: string[]): ArrayBuffer {
+  const doc = new jsPDF();
   lines.forEach((line, index) => doc.text(line, 10, 10 + index * 10));
   return doc.output("arraybuffer");
+}
+
+/**
+ * PDF de um fluxo comprimido, montado aqui com o `zlib` do Node.
+ *
+ * Porque não `new jsPDF({ compress: true })`: esse caminho depende do deflate
+ * do próprio jsPDF **e** da tolerância do `inflate` do runtime, e falhou no CI
+ * (bun `latest`) enquanto passava localmente (bun 1.4.2) — estava a testar a
+ * cadeia de ferramentas em vez do nosso extractor. Montado assim, o teste é
+ * determinístico e exercita exactamente o caminho `/FlateDecode` + `/Length`.
+ */
+function makeCompressedPdf(content: string): ArrayBuffer {
+  const deflated = deflateSync(Buffer.from(content, "latin1"));
+  const head = `%PDF-1.4\n1 0 obj\n<<\n/Length ${deflated.length}\n/Filter /FlateDecode\n>>\nstream\n`;
+  const tail = "\nendstream\nendobj\ntrailer\n<</Root 1 0 R>>\n%%EOF\n";
+  const bytes = new Uint8Array(head.length + deflated.length + tail.length);
+  for (let index = 0; index < head.length; index += 1) bytes[index] = head.charCodeAt(index);
+  bytes.set(deflated, head.length);
+  for (let index = 0; index < tail.length; index += 1) {
+    bytes[head.length + deflated.length + index] = tail.charCodeAt(index);
+  }
+  return bytes.buffer;
 }
 
 const LINES = [
@@ -27,17 +50,29 @@ const LINES = [
 
 describe("siga-ai extraccao de PDF", () => {
   it("lê um PDF com fluxo em claro", async () => {
-    const text = await extractPdfText(makePdf(LINES, false));
+    const text = await extractPdfText(makePdf(LINES));
     for (const line of LINES) expect(text).toContain(line);
   });
 
   it("lê um PDF com fluxo comprimido (Flate)", async () => {
-    const text = await extractPdfText(makePdf(LINES, true));
-    expect(text).toContain("Regulamento Interno da Escola");
+    const content = LINES.map((line) => `BT (${line}) Tj ET`).join("\n");
+    const text = await extractPdfText(makeCompressedPdf(content));
+    for (const line of LINES) expect(text).toContain(line);
+  });
+
+  it("diz que não conseguiu descomprimir, em vez de culpar o documento", async () => {
+    // Fluxo anunciado como Flate mas com dados que não abrem: o utilizador tem
+    // de saber que o ficheiro está danificado, não que «é digitalizado».
+    const broken = makeCompressedPdf("BT (x) Tj ET");
+    const bytes = new Uint8Array(broken);
+    const streamStart = new TextDecoder("iso-8859-1").decode(bytes).indexOf("stream\n") + 7;
+    bytes[streamStart + 2] = 0x00;
+    bytes[streamStart + 3] = 0x00;
+    await expect(extractPdfText(bytes.buffer as ArrayBuffer)).rejects.toThrow(/descomprimir/i);
   });
 
   it("separa as linhas, para a fragmentação ter onde cortar", async () => {
-    const text = await extractPdfText(makePdf(LINES, false));
+    const text = await extractPdfText(makePdf(LINES));
     expect(text.split("\n").filter((line) => line.trim()).length).toBeGreaterThanOrEqual(3);
   });
 

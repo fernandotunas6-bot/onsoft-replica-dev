@@ -206,11 +206,39 @@ function* streamBlocks(raw: string): Generator<{ dict: string; body: string }> {
   }
 }
 
-async function inflate(data: Uint8Array, raw: boolean): Promise<Uint8Array> {
+async function inflateWith(
+  data: Uint8Array,
+  format: "deflate" | "deflate-raw",
+): Promise<Uint8Array> {
   const stream = new Blob([data as unknown as BlobPart])
     .stream()
-    .pipeThrough(new DecompressionStream(raw ? "deflate-raw" : "deflate"));
+    .pipeThrough(new DecompressionStream(format));
   return new Uint8Array(await new Response(stream).arrayBuffer());
+}
+
+/**
+ * Descomprime um fluxo `/FlateDecode`.
+ *
+ * O PDF não diz se os dados trazem o invólucro zlib ou são deflate cru, e há
+ * ficheiros com cada um. O primeiro byte 0x78 é a assinatura do zlib, e serve
+ * para tentar primeiro o formato certo; se falhar, tenta-se o outro, porque
+ * ficheiros mal gerados existem e a tolerância do `inflate` varia com o
+ * runtime.
+ */
+async function inflate(data: Uint8Array): Promise<Uint8Array> {
+  const zlibFirst = data[0] === 0x78;
+  const order: Array<"deflate" | "deflate-raw"> = zlibFirst
+    ? ["deflate", "deflate-raw"]
+    : ["deflate-raw", "deflate"];
+  let lastError: unknown;
+  for (const format of order) {
+    try {
+      return await inflateWith(data, format);
+    } catch (error) {
+      lastError = error;
+    }
+  }
+  throw lastError instanceof Error ? lastError : new Error("inflate falhou");
 }
 
 function toBytes(body: string): Uint8Array {
@@ -256,16 +284,21 @@ export async function extractPdfText(buffer: ArrayBuffer): Promise<string> {
   }
 
   const pieces: string[] = [];
+  // Contados para distinguir «este PDF não tem texto» de «não consegui abrir os
+  // fluxos deste PDF»: antes, um `continue` silencioso em cada fluxo acabava na
+  // mensagem errada — dizia ao utilizador que o documento era digitalizado.
+  let flateStreams = 0;
+  let flateFailures = 0;
   for (const { dict, body } of streamBlocks(raw)) {
     // Fluxos que não são conteúdo de página (imagens, tipos de letra, metadados)
     // não têm operadores de texto; são ignorados pelo extractor sem custo.
     let content: string;
     if (/\/FlateDecode/.test(dict)) {
+      flateStreams += 1;
       try {
-        const bytes = toBytes(body);
-        const inflated = await inflate(bytes, false).catch(() => inflate(bytes, true));
-        content = latin1.decode(inflated);
+        content = latin1.decode(await inflate(toBytes(body)));
       } catch {
+        flateFailures += 1;
         continue; // fluxo que não abre: segue para o próximo
       }
     } else if (/\/(?:DCT|JPX|CCITTFax|JBIG2|LZW|RunLength)Decode/.test(dict)) {
@@ -282,6 +315,15 @@ export async function extractPdfText(buffer: ArrayBuffer): Promise<string> {
     .replace(/[ \t]+\n/g, "\n")
     .replace(/\n{3,}/g, "\n\n")
     .trim();
+
+  if (!joined && flateStreams > 0 && flateFailures === flateStreams) {
+    throw new PdfParseError(
+      "Não foi possível descomprimir o conteúdo deste PDF — o ficheiro pode estar " +
+        "danificado. Guarde-o de novo a partir da aplicação de origem, ou use a versão " +
+        "em Word.",
+    );
+  }
+
   assertReadable(joined);
   return joined;
 }
