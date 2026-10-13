@@ -1,8 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import {
-  supabaseSessionTransport,
-  type SupabaseSessionClient,
-} from "../services/supabase-session";
+import { supabaseSessionTransport, type SupabaseSessionClient } from "../services/supabase-session";
 import { ApiGateway } from "../services/api";
 
 function clientFixture() {

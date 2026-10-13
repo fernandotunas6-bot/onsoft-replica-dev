@@ -140,3 +140,57 @@ em oito ficheiros aprovados, cobrindo catálogo, políticas, API, sessão,
 calendário/chat, próximas aulas e isolamento de request-context. Backend Node:
 28 testes já aprovados. Workflow passa a executar as três verificações.
 Não equivale à build do Worker completo, Flutter ou ensaio Supabase remoto.
+
+## Validação dos horários na projecção
+
+Backend de turmas passa a rejeitar horário com ID repetido, dia fora de 1–7,
+hora inválida, fim anterior ao início, publicação desconhecida e sala com tipo
+ou tamanho inválido. Evita exportar objectos inesperados dentro de campos
+de apresentação. TypeScript aprovado, 29 testes backend e 96 contratos
+aprovados. Nenhuma validação remota ou build Flutter foi inferida destes testes.
+
+## Fronteira Worker/API
+
+Router testável separa assets Flutter, API canónica e extensão turmas/tarefas.
+API desconhecida nunca cai no HTML. Origem externa é recusada antes do serviço;
+respostas API recebem private/no-store, Vary e nosniff, sem Set-Cookie.
+Excepções inesperadas devolvem 503 genérico. Worker staging usa este router
+e mantém request-context isolado por chamada.
+
+TypeScript de backend aprovado; 36 testes Node aprovados (7 novos de routing).
+Não comprova bundle Cloudflare, bindings de produção ou integração Auth real.
+
+## Worker compilado e verificado
+
+Executado build-worker.mjs --validate-only com dependências do lockfile Bun.
+Bundle completo gerado em build/worker-check, separado dos assets Flutter e
+marcado VALIDATION_ONLY. check-worker.mjs importou o bundle e verificou:
+sessão ausente 401, origem externa 403, API desconhecida 404/no-store e assets
+encaminhados ao binding ASSETS controlado. 36 testes backend passaram.
+
+A instalação terminou com 819 pacotes do lockfile, com scripts de instalação
+desactivados; não equivale à build integral do portal. Não houve ensaio positivo
+Auth/MFA, queries autorizadas, pagamentos ou providers. Flutter continua sem
+build neste ambiente. O pacote de produção exige index.html e
+flutter_bootstrap.js gerados pelo Flutter, além dos bindings configurados.
+
+## Cliente Flutter: consultas institucionais
+
+Rotas /more/notifications, /finance, /documents e /results ligadas aos endpoints
+existentes via Bearer/session/contexto actual. Finance/documents/results apenas
+aluno; validação de escola/papel e, quando o contrato contém, userId. Consulta
+de avisos sem marcar leitura; facturas com recibos, sem saldo inferido ou checkout
+local; pautas com média nula preservada; pedidos documentais sem escrita.
+
+Novos testes Dart de âmbito financeiro preparados, não executados (SDK ausente).
+Worker recompilado e smoke checks aprovados. Sem ensaio autenticado real, a
+ligação de código não comprova conexão total operacional. CAPTCHA/Auth/MFA,
+chat completo, escritas, providers e Flutter build permanecem pendentes.
+
+## Chat Flutter — histórico
+
+Conversas abrem histórico real via API autenticada, validando escola/papel/
+utilizador/conversa. Paginação mantém cursor textual com precisão temporal e
+deduplica IDs; mensagens eliminadas não mostram corpo. Envio e abertura de
+anexos continuam indisponíveis no cliente. Código Dart ainda sem build/testes
+executados; o funcionamento positivo com conta real não foi verificado.

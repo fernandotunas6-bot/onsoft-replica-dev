@@ -187,7 +187,15 @@ void main() {
       expect(find.text('Aluno · Escola Central da Luz'), findsOneWidget);
       expect(find.text('Aula agora'), findsOneWidget);
       expect(find.text('Serviços escolares'), findsOneWidget);
-      for (final service in ['Turmas', 'Tarefas', 'Transporte', 'Calendário']) {
+      for (final service in [
+        'Turmas',
+        'Tarefas',
+        'Transporte',
+        'Calendário',
+        'Avisos',
+        'Propinas',
+        'Notas',
+      ]) {
         expect(find.text(service), findsOneWidget);
       }
       await tester.scrollUntilVisible(

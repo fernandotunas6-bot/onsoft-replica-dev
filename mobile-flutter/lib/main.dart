@@ -8,6 +8,7 @@ import 'design/floating_nav.dart';
 import 'design/tokens.dart';
 import 'gateway.dart';
 import 'identity.dart';
+import 'institutional_page.dart';
 import 'pages/appearance_page.dart';
 import 'pages/login_page.dart';
 import 'pages/more_page.dart';
@@ -60,6 +61,15 @@ const tabs = [
     NavItem(Icons.chat_bubble_outline, Icons.chat_bubble, 'Mensagens'),
   ),
   ('/more', NavItem(Icons.more_horiz, Icons.more_horiz, 'Mais')),
+];
+
+/// Consultas institucionais só de leitura (servidor decide o acesso; propinas,
+/// notas e documentos são exclusivas do aluno).
+const institutionalServices = [
+  ('notifications', 'Avisos'),
+  ('finance', 'Propinas e recibos'),
+  ('results', 'Notas publicadas'),
+  ('documents', 'Documentos'),
 ];
 
 class SigaApp extends StatefulWidget {
@@ -211,6 +221,18 @@ class _SigaAppState extends State<SigaApp> {
       path: 'tasks',
       builder: (_, _) => servicePage('Tarefas', '/tasks', back: '/more'),
     ),
+    for (final (service, title) in institutionalServices)
+      GoRoute(
+        path: service,
+        builder: (_, _) => subPage(
+          title,
+          InstitutionalPage(
+            key: ValueKey('$school:$role:$service'),
+            gateway: gateway,
+            collection: service,
+          ),
+        ),
+      ),
     GoRoute(
       path: 'transport',
       builder: (_, _) => subPage('Transporte escolar', const TransportPage()),
@@ -397,6 +419,7 @@ class _SigaAppState extends State<SigaApp> {
       return MorePage(
         name: '${session?['name'] ?? ''}',
         roleLabel: roleLabel,
+        student: role == 'aluno',
         schoolName: schoolName,
         onNavigate: router.go,
         onSwitchSchool: switchSchool,

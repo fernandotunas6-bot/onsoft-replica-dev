@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'academic.dart';
+import 'chat_history.dart';
 import 'design/tokens.dart';
 import 'design/widgets.dart';
 import 'gateway.dart';
@@ -423,6 +424,28 @@ class _DataPageState extends State<DataPage> {
             onTap: () => context.go('/messages'),
           ),
           ServiceTile(
+            icon: Icons.notifications_none,
+            label: 'Avisos',
+            onTap: () => context.go('/more/notifications'),
+          ),
+          if (!isTeacher) ...[
+            ServiceTile(
+              icon: Icons.account_balance_wallet_outlined,
+              label: 'Propinas',
+              onTap: () => context.go('/more/finance'),
+            ),
+            ServiceTile(
+              icon: Icons.school_outlined,
+              label: 'Notas',
+              onTap: () => context.go('/more/results'),
+            ),
+            ServiceTile(
+              icon: Icons.description_outlined,
+              label: 'Documentos',
+              onTap: () => context.go('/more/documents'),
+            ),
+          ],
+          ServiceTile(
             icon: Icons.videocam_outlined,
             label: 'Aulas online',
             onTap: () => pendingService(
@@ -431,11 +454,6 @@ class _DataPageState extends State<DataPage> {
                   'instituição, turma ou aula. A ligação aparece aqui quando a '
                   'escola a activar.',
             ),
-          ),
-          ServiceTile(
-            icon: Icons.palette_outlined,
-            label: 'Aparência',
-            onTap: () => context.go('/more/appearance'),
           ),
           ServiceTile(
             icon: Icons.apps,
@@ -714,6 +732,17 @@ class _DataPageState extends State<DataPage> {
             style: const TextStyle(fontWeight: FontWeight.w600),
           ),
           subtitle: Text(pending(unread(thread))),
+          onTap: thread['id'] is! String
+              ? null
+              : () => Navigator.of(context).push(
+                  MaterialPageRoute<void>(
+                    builder: (_) => ChatHistoryPage(
+                      gateway: widget.gateway,
+                      id: thread['id'] as String,
+                      name: thread['name'] as String,
+                    ),
+                  ),
+                ),
           trailing: unread(thread) == 0
               ? null
               : Container(
@@ -737,7 +766,8 @@ class _DataPageState extends State<DataPage> {
         ),
       const SizedBox(height: Siga.s2),
       Text(
-        'O histórico e o envio de mensagens estão em integração.',
+        'Seleccione uma conversa para consultar o histórico. O envio '
+        'aguarda a integração no servidor.',
         style: Theme.of(context).textTheme.bodySmall,
       ),
     ];

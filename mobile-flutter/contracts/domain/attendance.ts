@@ -4,12 +4,7 @@ export interface AttendanceRange {
   to: string;
 }
 export type StudentAttendanceStatus =
-  | "present"
-  | "absent"
-  | "excused"
-  | "late"
-  | "early_exit"
-  | "not_registered";
+  "present" | "absent" | "excused" | "late" | "early_exit" | "not_registered";
 export type TeacherLessonStatus = "scheduled" | "confirmed" | "rejected" | "cancelled";
 export interface AcademicAttendance extends AttendanceRange {
   schoolId: string;

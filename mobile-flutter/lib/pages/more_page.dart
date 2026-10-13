@@ -10,6 +10,7 @@ class MorePage extends StatelessWidget {
     required this.name,
     required this.roleLabel,
     required this.schoolName,
+    this.student = false,
     required this.onNavigate,
     required this.onSwitchSchool,
     required this.onSignOut,
@@ -17,6 +18,7 @@ class MorePage extends StatelessWidget {
   final String name;
   final String roleLabel;
   final String schoolName;
+  final bool student;
   final ValueChanged<String> onNavigate;
   final VoidCallback onSwitchSchool;
   final VoidCallback onSignOut;
@@ -63,6 +65,28 @@ class MorePage extends StatelessWidget {
           title: 'Tarefas',
           onTap: () => onNavigate('/more/tasks'),
         ),
+        MenuRow(
+          icon: Icons.notifications_none,
+          title: 'Avisos',
+          onTap: () => onNavigate('/more/notifications'),
+        ),
+        if (student) ...[
+          MenuRow(
+            icon: Icons.account_balance_wallet_outlined,
+            title: 'Propinas e recibos',
+            onTap: () => onNavigate('/more/finance'),
+          ),
+          MenuRow(
+            icon: Icons.school_outlined,
+            title: 'Notas publicadas',
+            onTap: () => onNavigate('/more/results'),
+          ),
+          MenuRow(
+            icon: Icons.description_outlined,
+            title: 'Documentos',
+            onTap: () => onNavigate('/more/documents'),
+          ),
+        ],
         MenuRow(
           icon: Icons.directions_bus_outlined,
           title: 'Transporte escolar',
