@@ -106,14 +106,14 @@ class _DataPageState extends State<DataPage> {
         if (subjects.isEmpty) empty('Sem disciplinas neste vínculo.'),
         heading('Actividades publicadas'),
         if (catalog!.tasks.isEmpty) empty('Sem actividades publicadas.'),
-        for (final task in (catalog!.tasks.toList()..sort((a,b) => (a['due'] as String? ?? '9999').compareTo(b['due'] as String? ?? '9999'))).take(5))
+        for (final task in (catalog.tasks.toList()..sort((a,b) => (a['due'] as String? ?? '9999').compareTo(b['due'] as String? ?? '9999'))).take(5))
           ListTile(contentPadding: const EdgeInsets.symmetric(vertical: 8), leading: const Icon(Icons.assignment_outlined),
-            title: Text('${task['title']}'), subtitle: Text('${catalog!.subject(task['classSubjectId'])}\n${deadline(task['due'])}')),
+            title: Text('${task['title']}'), subtitle: Text('${catalog.subject(task['classSubjectId'])}\n${deadline(task['due'])}')),
       ] else if (isTasks) ...[
         if (catalog!.tasks.where((t) => matches(t['title'] as String)).isEmpty) empty('Sem tarefas para os filtros escolhidos.'),
-        for (final task in catalog!.tasks.where((t) => matches(t['title'] as String)))
+        for (final task in catalog.tasks.where((t) => matches(t['title'] as String)))
           ListTile(leading: const Icon(Icons.assignment_outlined), title: Text(task['title'] as String),
-            subtitle: Text('${catalog!.subject(task['classSubjectId'])}\n${deadline(task['due'])}'),
+            subtitle: Text('${catalog.subject(task['classSubjectId'])}\n${deadline(task['due'])}'),
             trailing: const Icon(Icons.chevron_right), onTap: () => taskDetail(task)),
       ] else if (isClasses) ...[
         if (subjects.isEmpty) empty('Sem turmas autorizadas para os filtros escolhidos.'),
@@ -125,7 +125,7 @@ class _DataPageState extends State<DataPage> {
         if (subjects.isEmpty) empty('Esta turma não está disponível no seu contexto actual.'),
         for (final item in subjects) subjectRow(item, catalog!),
         heading('Horário de hoje'),
-        for (final slot in catalog!.forDay(now).where((s) => subjects.any((c) => c['classSubjectId'] == s['classSubjectId']))) slotRow(slot, catalog!),
+        for (final slot in catalog!.forDay(now).where((s) => subjects.any((c) => c['classSubjectId'] == s['classSubjectId']))) slotRow(slot, catalog),
         const SizedBox(height: 16),
         const Text('Participantes, presenças e integrações da turma dependem de permissões e contratos próprios. Não são apresentados dados de colegas neste incremento.'),
       ] else if (isCalendar) ...[
