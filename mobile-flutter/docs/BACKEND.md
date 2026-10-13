@@ -159,3 +159,17 @@ e mantém request-context isolado por chamada.
 
 TypeScript de backend aprovado; 36 testes Node aprovados (7 novos de routing).
 Não comprova bundle Cloudflare, bindings de produção ou integração Auth real.
+
+## Worker compilado e verificado
+
+Executado build-worker.mjs --validate-only com dependências do lockfile Bun.
+Bundle completo gerado em build/worker-check, separado dos assets Flutter e
+marcado VALIDATION_ONLY. check-worker.mjs importou o bundle e verificou:
+sessão ausente 401, origem externa 403, API desconhecida 404/no-store e assets
+encaminhados ao binding ASSETS controlado. 36 testes backend passaram.
+
+A instalação de dependências foi interrompida após estas verificações; não
+equivale à instalação/build integral do portal. Não houve ensaio positivo
+Auth/MFA, queries autorizadas, pagamentos ou providers. Flutter continua sem
+build neste ambiente. O pacote de produção exige index.html e
+flutter_bootstrap.js gerados pelo Flutter, além dos bindings configurados.
