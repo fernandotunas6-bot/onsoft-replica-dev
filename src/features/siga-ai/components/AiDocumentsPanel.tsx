@@ -16,6 +16,7 @@ import { Badge } from "@/components/ui/badge";
 import { toast } from "@/lib/toast";
 import type { AiStatus } from "../gateway.server";
 import { MAX_DOCUMENT_CHARS, type AiDocumentScope } from "../schemas";
+import { DocxParseError, extractDocxText } from "../docx-text";
 import { aiDeleteDocument, aiIngestDocument, aiListDocuments } from "../server";
 
 const SCOPE_LABEL: Record<AiDocumentScope, string> = {
@@ -24,8 +25,30 @@ const SCOPE_LABEL: Record<AiDocumentScope, string> = {
   public: "Público",
 };
 
-/** Formatos cujo texto o browser extrai directamente (ver auditoria §8). */
-const ACCEPTED = ".txt,.md,.markdown,.csv,text/plain,text/markdown";
+/** Formatos cujo texto o browser extrai sem serviço externo. */
+const ACCEPTED =
+  ".txt,.md,.markdown,.csv,.docx,text/plain,text/markdown," +
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
+
+const DOCX_MIME = "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
+
+/**
+ * Texto do ficheiro escolhido. O .docx é descomprimido e lido aqui, no browser:
+ * o servidor recebe texto, nunca o binário, e por isso nenhuma biblioteca de
+ * análise de ficheiros corre do lado do servidor com a chave de serviço.
+ */
+async function readFileText(file: File): Promise<string> {
+  const isDocx = file.type === DOCX_MIME || /\.docx$/i.test(file.name);
+  if (!isDocx) return file.text();
+  try {
+    return await extractDocxText(await file.arrayBuffer());
+  } catch (error) {
+    if (error instanceof DocxParseError) throw error;
+    throw new Error(
+      "Não foi possível ler este .docx. Guarde-o de novo no Word, ou cole o texto num .txt.",
+    );
+  }
+}
 
 export function AiDocumentsPanel({ status }: { status: AiStatus }) {
   const queryClient = useQueryClient();
@@ -39,7 +62,7 @@ export function AiDocumentsPanel({ status }: { status: AiStatus }) {
 
   const ingest = useMutation({
     mutationFn: async (file: File) => {
-      const text = await file.text();
+      const text = await readFileText(file);
       if (text.length > MAX_DOCUMENT_CHARS) {
         throw new Error("Documento demasiado grande. Divida-o em partes.");
       }
@@ -121,8 +144,8 @@ export function AiDocumentsPanel({ status }: { status: AiStatus }) {
         </p>
       ) : (
         <p className="text-xs text-muted-foreground">
-          Formatos aceites nesta fase: TXT, Markdown e CSV. PDF e DOCX exigem a extracção no
-          servidor, que está planeada e ainda não entrou.
+          Formatos aceites: TXT, Markdown, CSV e Word (.docx) — o texto do .docx é extraído neste
+          browser. PDF ainda não: precisa de uma biblioteca de análise que não está instalada.
         </p>
       )}
 

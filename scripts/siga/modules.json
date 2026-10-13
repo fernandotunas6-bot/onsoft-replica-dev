@@ -457,9 +457,11 @@
         "src/features/siga-ai/rerank.ts",
         "src/features/siga-ai/context-limits.ts",
         "src/features/siga-ai/prompts.ts",
+        "src/features/siga-ai/docx-text.ts",
         "src/features/siga-ai/components/AiChatPanel.tsx",
         "src/features/siga-ai/components/AiDocumentsPanel.tsx",
         "src/features/siga-ai/components/AiStatusBanner.tsx",
+        "src/features/siga-ai/components/AiSettingsPanel.tsx",
         "src/lib/siga-ai/ollama-client.server.ts",
         "src/lib/siga-ai/qdrant-client.server.ts",
         "src/lib/siga-ai/endpoint-resolver.server.ts"
@@ -470,7 +472,9 @@
         "tests/siga-ai/rerank.test.ts",
         "tests/siga-ai/isolation.test.ts",
         "tests/siga-ai/prompts.test.ts",
-        "tests/siga-ai/endpoint-resolver.test.ts"
+        "tests/siga-ai/endpoint-resolver.test.ts",
+        "tests/siga-ai/admin-panel.test.ts",
+        "tests/siga-ai/docx-text.test.ts"
       ],
       "navPath": "/siga-ai",
       "sql": "supabase/migrations/20261012160000_siga_ai_module.sql"

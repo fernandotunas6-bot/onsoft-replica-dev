@@ -1,5 +1,6 @@
 import { useMemo } from "react";
 import {
+  BrainCircuit,
   Building2,
   CreditCard,
   GraduationCap,
@@ -32,6 +33,7 @@ import { EnrollmentCampaignPanel } from "@/features/enrollment/EnrollmentCampaig
 import { SpotlightSettingsPanel } from "@/features/spotlight/SpotlightSettingsPanel";
 import { FilesSettingsPanel } from "@/features/arquivos/FilesSettingsPanel";
 import { PerformancePanel } from "@/features/school/PerformancePanel";
+import { AiSettingsPanel } from "@/features/siga-ai/components/AiSettingsPanel";
 
 /**
  * Centro único de configurações do SIGA: tudo o que antes vivia espalhado
@@ -89,6 +91,13 @@ function useSettingsPanels(): StackPanel[] {
             icon: FolderOpen,
             tone: "info",
             to: "arquivos",
+          },
+          {
+            label: "SIGA AI",
+            description: "IA local, modelos e perfis com acesso",
+            icon: BrainCircuit,
+            tone: "primary",
+            to: "siga-ai",
           },
           {
             label: "Integrações",
@@ -213,6 +222,14 @@ function useSettingsPanels(): StackPanel[] {
         icon: FolderOpen,
         tone: "info",
         render: () => <FilesSettingsPanel />,
+      },
+      {
+        id: "siga-ai",
+        title: "SIGA AI",
+        description: "Assistente de IA local da escola: serviços, modelos, acesso e limites.",
+        icon: BrainCircuit,
+        tone: "primary",
+        render: () => <AiSettingsPanel />,
       },
       {
         id: "integracoes",

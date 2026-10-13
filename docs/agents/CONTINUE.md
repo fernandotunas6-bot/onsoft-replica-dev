@@ -29,9 +29,12 @@ Auditoria, matriz de compatibilidade, licenças e o que **não** entrou:
   (cinco tabelas novas, só-servidor, idempotente). Sem ela a página diz «por configurar» e
   não grava conversas; nenhum outro módulo é afectado. Tabelas em
   `TABELAS_AUSENTES_DA_PRODUCAO` até recapturar o retrato.
-- **Falta (não declarado feito):** streaming token a token, extracção de PDF/DOCX, juiz de
-  relevância por LLM, reescrita da pergunta, instalação de modelos pela UI, e testes com
-  Ollama real (o CI não tem modelo instalado).
+- Área administrativa em Definições → SIGA AI (`AiSettingsPanel`, só Administrador: o centro
+  de definições está atrás de `/configuracoes`). Documentos .docx lidos no browser
+  (`docx-text.ts`, sem dependências).
+- **Falta (não declarado feito):** streaming token a token, extracção de PDF (precisa de
+  pdfjs — dependência por decidir), juiz de relevância por LLM, reescrita da pergunta,
+  instalação de modelos pela UI, e testes com Ollama real (o CI não tem modelo instalado).
 
 ## Catálogo educacional global (2026-10-10)
 

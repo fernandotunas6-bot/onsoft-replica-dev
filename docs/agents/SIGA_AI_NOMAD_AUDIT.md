@@ -152,8 +152,10 @@ persistência de conversas e documentos, página SIGA AI, área administrativa p
 **Não entregue nesta PR, e por isso não declarado concluído:**
 
 - Juiz de relevância por LLM e reescrita da pergunta por LLM (uma chamada extra por pergunta).
-- Extracção de PDF/DOCX **no servidor**: nesta fase o texto é extraído no cliente (TXT/Markdown
-  directo; PDF/DOCX exigem a biblioteca de extracção que fica para a fase seguinte).
+- Extracção de **PDF**: exige uma biblioteca de análise (pdfjs) que não está instalada; a
+  decisão de acrescentar a dependência fica para o dono. TXT, Markdown, CSV e **DOCX** já são
+  lidos — o .docx no próprio browser, com o ZIP e o `DecompressionStream` nativos
+  (`src/features/siga-ai/docx-text.ts`), para o servidor receber texto e nunca o binário.
 - Instalação de modelos pela interface administrativa (`/api/pull` com progresso).
 - Resposta em *streaming* token a token (a resposta chega completa; o cancelamento aborta o pedido).
 - Sincronização offline de dados académicos (explicitamente fora de âmbito: §9 do pedido exige

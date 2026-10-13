@@ -104,10 +104,11 @@ retenção das conversas.
 - **Estado:** a página `/siga-ai` mostra o modo, o modelo, se a pesquisa documental
   está activa e se o browser está sem internet. Sem serviço, mostra o motivo —
   nenhum outro módulo do SIGA é afectado.
-- **Base documental:** aba *Base documental*. TXT, Markdown e CSV nesta fase (PDF e
-  DOCX exigem extracção no servidor, ainda não implementada). Âmbitos: pessoal (só o
-  dono), escola, público da escola. Só administração e secretaria carregam documentos
-  institucionais.
+- **Base documental:** aba *Base documental*. TXT, Markdown, CSV e Word (.docx) — o texto
+  do .docx é extraído no browser (ZIP + `DecompressionStream` nativos, sem dependências), por
+  isso o servidor recebe texto e nunca o binário. PDF ainda não: precisa de uma biblioteca de
+  análise que não está instalada. Âmbitos: pessoal (só o dono), escola, público da escola. Só
+  administração e secretaria carregam documentos institucionais.
 - **Métricas:** perguntas nas últimas 24 h e 7 dias, tempo médio e modelos usados, em
   `Configurações → SIGA AI`.
 
@@ -136,7 +137,7 @@ próprias.
   browser; o modelo pode continuar a gerar no servidor até terminar.
 - Sem juiz de relevância por LLM e sem reescrita da pergunta (custam uma chamada
   extra ao modelo).
-- PDF e DOCX ainda não são extraídos.
+- PDF ainda não é extraído (DOCX, TXT, Markdown e CSV são).
 - Instalação de modelos pela área administrativa ainda não existe.
 
 ## Segurança
