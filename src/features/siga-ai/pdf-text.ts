@@ -22,19 +22,19 @@ export class PdfParseError extends Error {}
 /**
  * Bytes → texto preservando cada byte.
  *
- * **Não** se usa `TextDecoder` aqui, e a razão custou três voltas de CI: o
- * rótulo «iso-8859-1» resolve para windows-1252, onde 0x81, 0x8D, 0x8F, 0x90 e
- * 0x9D não têm caractere. Uma implementação estrita devolve U+FFFD nesses
- * bytes, e um fluxo comprimido — que é binário — fica irrecuperável, enquanto
- * um PDF em claro (ASCII) continua a funcionar. Foi essa a assinatura exacta da
- * falha: só os PDF comprimidos, e só no runtime do CI.
+ * Não pode ser `new TextDecoder("iso-8859-1")`: pela norma WHATWG esse rótulo é
+ * windows-1252, e os bytes 0x80–0x9F saem como «€», aspas curvas, etc. — que
+ * `charCodeAt(i) & 0xff` já não devolve ao byte original. Os browsers, o Bun e o
+ * Node 24 seguem a norma (o Node 22 não, e foi por isso que o teste passava
+ * localmente e falhava no CI), e um fluxo Flate com esses bytes deixava de abrir
+ * — em produção também, não só em teste.
  *
- * Este mapeamento é Latin-1 por construção e dá o mesmo resultado em qualquer
- * runtime. Em fatias, porque `String.fromCharCode(...bytes)` com um manual
- * inteiro estoura a pilha de chamadas.
+ * Este mapeamento é Latin-1 por construção e dá o mesmo em qualquer runtime.
+ * Em fatias, porque `String.fromCharCode(...bytes)` com um manual inteiro
+ * estoura a pilha de chamadas.
  */
 export function bytesToLatin1(bytes: Uint8Array): string {
-  const CHUNK = 8192;
+  const CHUNK = 0x8000;
   let out = "";
   for (let index = 0; index < bytes.length; index += CHUNK) {
     out += String.fromCharCode(...bytes.subarray(index, index + CHUNK));
@@ -42,7 +42,13 @@ export function bytesToLatin1(bytes: Uint8Array): string {
   return out;
 }
 
-/** Procura uma sequência ASCII nos bytes. Devolve -1 quando não existe. */
+/**
+ * Procura uma sequência ASCII nos bytes. Devolve -1 quando não existe.
+ *
+ * O ficheiro inteiro deixa de ser convertido numa string só para encontrar os
+ * `stream`: num manual de 30 MB isso eram 60 MB de string no browser de um
+ * portátil de escola, antes de descomprimir fosse o que fosse.
+ */
 function indexOfAscii(bytes: Uint8Array, needle: string, from = 0): number {
   const first = needle.charCodeAt(0);
   const limit = bytes.length - needle.length;
