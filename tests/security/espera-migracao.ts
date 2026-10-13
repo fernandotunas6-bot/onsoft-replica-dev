@@ -10,14 +10,16 @@
  * obriga a lista a encolher: a coluna sai daqui quando o retrato recapturado já a tiver.
  */
 export const COLUNAS_ESPERA_MIGRACAO = new Set<string>([
-  // 20261012120000_subjects_catalog_link.sql. A revisão lê `subjects` com `*` e sabe
-  // se a coluna existe; `linkSubjectsToCatalog` (education-catalog/subject-review-server.ts)
-  // responde «falta aplicar a migração …» ao 42703/PGRST204. Antes desta, a lista
-  // esteve vazia de 2026-10-06 a 2026-10-12 — uma lista que ninguém esvazia deixa de
-  // ser espera e passa a ser dívida silenciosa.
-  "subjects.catalog_subject_code",
-  // A mesma migração: education-catalog/catalog-link.ts liga os cursos novos e ignora a falta.
-  "programs.catalog_course_code",
+  // Vazia, e é isso que se pretende. `subjects.catalog_subject_code` e
+  // `programs.catalog_course_code` saíram a 2026-10-12: a `20261012120000_subjects_catalog_link`
+  // foi aplicada na produção e registada no histórico, e o retrato recapturado já traz
+  // as duas colunas, os dois CHECK de formato e os dois índices parciais.
+  //
+  // A espera durou menos de um dia, mas não foi inofensiva: o código que as escreve foi
+  // publicado às 17:33 (PR #127) antes de a migração existir na base, pelo que a adopção
+  // do catálogo esteve inerte em produção — a leitura degradava com `select("*")`, a
+  // escrita respondia «falta aplicar a migração». Publicar o código antes da coluna é o
+  // que esta lista deve tornar visível, não normal.
 ]);
 
 /**
@@ -27,7 +29,6 @@ export const COLUNAS_ESPERA_MIGRACAO = new Set<string>([
  * obriga a tirar a entrada quando o retrato mostrar a função.
  */
 export const FUNCOES_ESPERA_MIGRACAO = new Set<string>([
-  // 20261010150000_merge_school_subjects.sql. education-catalog/subject-review-server.ts
-  // responde «falta aplicar a migração …» ao PGRST202/42883.
-  "merge_school_subjects",
+  // Vazia. `merge_school_subjects` saiu a 2026-10-12: a `20261010150000` estava aplicada
+  // na produção desde 10/10 e o retrato recapturado traz a função em `public`.
 ]);
