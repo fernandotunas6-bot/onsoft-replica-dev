@@ -459,6 +459,7 @@
         "src/features/siga-ai/context-limits.ts",
         "src/features/siga-ai/prompts.ts",
         "src/features/siga-ai/docx-text.ts",
+        "src/features/siga-ai/pdf-text.ts",
         "src/features/siga-ai/components/AiChatPanel.tsx",
         "src/features/siga-ai/components/AiDocumentsPanel.tsx",
         "src/features/siga-ai/components/AiStatusBanner.tsx",
@@ -479,7 +480,8 @@
         "tests/siga-ai/admin-panel.test.ts",
         "tests/siga-ai/docx-text.test.ts",
         "tests/siga-ai/stream-parse.test.ts",
-        "tests/siga-ai/ask-stream.test.ts"
+        "tests/siga-ai/ask-stream.test.ts",
+        "tests/siga-ai/pdf-text.test.ts"
       ],
       "navPath": "/siga-ai",
       "sql": "supabase/migrations/20261012160000_siga_ai_module.sql"

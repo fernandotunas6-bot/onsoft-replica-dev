@@ -104,11 +104,13 @@ retenção das conversas.
 - **Estado:** a página `/siga-ai` mostra o modo, o modelo, se a pesquisa documental
   está activa e se o browser está sem internet. Sem serviço, mostra o motivo —
   nenhum outro módulo do SIGA é afectado.
-- **Base documental:** aba *Base documental*. TXT, Markdown, CSV e Word (.docx) — o texto
-  do .docx é extraído no browser (ZIP + `DecompressionStream` nativos, sem dependências), por
-  isso o servidor recebe texto e nunca o binário. PDF ainda não: precisa de uma biblioteca de
-  análise que não está instalada. Âmbitos: pessoal (só o dono), escola, público da escola. Só
-  administração e secretaria carregam documentos institucionais.
+- **Base documental:** aba *Base documental*. TXT, Markdown, CSV, Word (.docx) e **PDF de
+  texto**. A extracção é feita no browser (ZIP/`DecompressionStream` nativos para o .docx,
+  leitor de operadores de texto para o PDF — sem dependências novas), por isso o servidor
+  recebe texto e nunca o binário. **PDF digitalizado não serve:** não há reconhecimento
+  óptico, e um PDF sem texto ou com tipos de letra em subconjunto é recusado com instruções,
+  em vez de indexar lixo que a IA depois citaria. Âmbitos: pessoal (só o dono), escola,
+  público da escola. Só administração e secretaria carregam documentos institucionais.
 - **Métricas:** perguntas nas últimas 24 h e 7 dias, tempo médio e modelos usados, em
   `Configurações → SIGA AI`.
 
@@ -130,6 +132,8 @@ próprias.
 | Respostas lentas | modelo grande demais para o hardware; usar `llama3.2:3b` ou GPU |
 | Resposta vazia / truncada | confirmar `OLLAMA_CONTEXT_LENGTH` |
 | Documento indexado não é citado | o piso de relevância (0,62) corta fragmentos fracos; ver `nomad-params.ts` |
+| «Não foi possível extrair texto deste PDF» | PDF digitalizado (imagem): usar a versão Word, ou colar o texto num .txt |
+| «O texto deste PDF saiu ilegível» | tipo de letra embutido em subconjunto sem `/ToUnicode`: guardar como .docx |
 
 ## Streaming
 
@@ -149,7 +153,7 @@ acumulem.
   browser; o modelo pode continuar a gerar no servidor até terminar.
 - Sem juiz de relevância por LLM e sem reescrita da pergunta (custam uma chamada
   extra ao modelo).
-- PDF ainda não é extraído (DOCX, TXT, Markdown e CSV são).
+- Sem OCR: PDF digitalizado (imagem) é recusado, não indexado.
 - Instalação de modelos pela área administrativa ainda não existe.
 
 ## Segurança

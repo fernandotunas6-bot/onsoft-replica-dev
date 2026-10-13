@@ -17,6 +17,7 @@ import { toast } from "@/lib/toast";
 import type { AiStatus } from "../gateway.server";
 import { MAX_DOCUMENT_CHARS, type AiDocumentScope } from "../schemas";
 import { DocxParseError, extractDocxText } from "../docx-text";
+import { PdfParseError, extractPdfText } from "../pdf-text";
 import { aiDeleteDocument, aiIngestDocument, aiListDocuments } from "../server";
 
 const SCOPE_LABEL: Record<AiDocumentScope, string> = {
@@ -27,7 +28,7 @@ const SCOPE_LABEL: Record<AiDocumentScope, string> = {
 
 /** Formatos cujo texto o browser extrai sem serviço externo. */
 const ACCEPTED =
-  ".txt,.md,.markdown,.csv,.docx,text/plain,text/markdown," +
+  ".txt,.md,.markdown,.csv,.docx,.pdf,text/plain,text/markdown,application/pdf," +
   "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
 
 const DOCX_MIME = "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
@@ -39,13 +40,18 @@ const DOCX_MIME = "application/vnd.openxmlformats-officedocument.wordprocessingm
  */
 async function readFileText(file: File): Promise<string> {
   const isDocx = file.type === DOCX_MIME || /\.docx$/i.test(file.name);
-  if (!isDocx) return file.text();
+  const isPdf = file.type === "application/pdf" || /\.pdf$/i.test(file.name);
+  if (!isDocx && !isPdf) return file.text();
   try {
-    return await extractDocxText(await file.arrayBuffer());
+    const buffer = await file.arrayBuffer();
+    return isDocx ? await extractDocxText(buffer) : await extractPdfText(buffer);
   } catch (error) {
-    if (error instanceof DocxParseError) throw error;
+    // Os erros destes dois extractores já dizem o que fazer; qualquer outro é
+    // falha nossa e não deve aparecer como «documento inválido».
+    if (error instanceof DocxParseError || error instanceof PdfParseError) throw error;
     throw new Error(
-      "Não foi possível ler este .docx. Guarde-o de novo no Word, ou cole o texto num .txt.",
+      `Não foi possível ler este ${isDocx ? ".docx" : "PDF"}. Guarde-o de novo, ` +
+        "ou cole o texto num .txt.",
     );
   }
 }

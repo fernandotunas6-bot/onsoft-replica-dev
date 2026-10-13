@@ -36,9 +36,12 @@ Auditoria, matriz de compatibilidade, licenças e o que **não** entrou:
   `resolveBearerSession` + membership). `prepareAsk` é partilhado por `askAi` e `askAiStream`
   para as permissões e o isolamento não poderem divergir. Cliente em `ask-stream.ts`,
   com recuo para a resposta completa quando o streaming não passa.
-- **Falta (não declarado feito):** extracção de PDF (precisa de pdfjs — dependência por
-  decidir), juiz de relevância por LLM, reescrita da pergunta, instalação de modelos pela UI,
-  e testes com Ollama real (o CI não tem modelo instalado).
+- Documentos: .docx e PDF de texto lidos no browser, sem dependências (`docx-text.ts`,
+  `pdf-text.ts`). O PDF recusa quando é digitalizado ou quando o texto sai ilegível, em vez
+  de indexar lixo; testes geram PDFs reais com o `jspdf` que o SIGA já usa.
+- **Falta (não declarado feito):** OCR (PDF digitalizado), juiz de relevância por LLM,
+  reescrita da pergunta, instalação de modelos pela UI, e testes com Ollama real (o CI não
+  tem modelo instalado).
 
 ## Catálogo educacional global (2026-10-10)
 
