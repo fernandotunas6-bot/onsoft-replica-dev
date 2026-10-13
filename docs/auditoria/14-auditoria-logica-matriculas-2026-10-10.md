@@ -240,3 +240,15 @@ Verificado sem achados: todas as escritas destas pastas passam por `requireSgaWr
 | D3  | P3  | Código dos documentos do arquivo e pasta dos arquivos financeiros pela data UTC: entre 00:00 e 01:00 de Luanda, dia (ou mês) anterior.                                                   | Data de Luanda (`schoolTodayIso`).                                                              |
 
 Verificado sem achados: todas as escritas destas pastas passam pelo guarda de escrita ou só tocam nas linhas do próprio utilizador; mensagens e notificações sem problemas de datas no servidor.
+
+## 17. Décima passagem: académico, integrações, OTP, SaaS
+
+| Id  | Gr. | Achado                                                                                                                                | Correcção             |
+| --- | --- | ------------------------------------------------------------------------------------------------------------------------------------- | --------------------- |
+| E1  | P2  | **Envio de mensagens retirava destinatários válidos** (`onlySchoolPhones`): `.limit(20000)` devolvia só 1000 telefones.               | Leitura em páginas.   |
+| E2  | P2  | **Faltas para elegibilidade a exame** (`exam-data.ts`): sessões da turma cortadas aos 1000.                                           | Leitura em páginas.   |
+| E3  | P2  | **Ocupação de salas em tempo real pela hora UTC**: aulas «a decorrer» desfasadas uma hora e dia da semana errado entre 23:00 e 24:00. | Hora e dia de Luanda. |
+| E4  | P3  | OTP comparava o hash com `===`.                                                                                                       | `timingSafeEqual`.    |
+| E5  | P3  | Ano lectivo por omissão (arranque da escola) pelo ano UTC.                                                                            | Ano de Luanda.        |
+
+Abertos (P3, sem impacto conhecido): `.limit(2000/5000)` em `academic-structure.ts`, `web-site-content.ts`, `setup-status.ts`, `commercial-lifecycle.ts` — só afectam escolas com mais de mil linhas nessas listas; código público da escola (`provisioning-core.ts`) com `Math.random` pode colidir e falhar a inserção.

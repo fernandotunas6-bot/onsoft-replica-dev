@@ -1,3 +1,4 @@
+import { selectAllPages } from "@/features/import/engine/paged";
 import { z } from "zod";
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
@@ -401,12 +402,19 @@ async function onlySchoolPhones(
   schoolId: string,
   recipients: string[],
 ): Promise<string[]> {
-  const { data: people } = await db
-    .from("people")
-    .select("phone")
-    .eq("school_id", schoolId)
-    .not("phone", "is", null)
-    .limit(20000);
+  // Em páginas: com `.limit(20000)` o PostgREST devolvia só 1000 e destinatários válidos
+  // eram retirados do envio.
+  const people = await selectAllPages<{ id: string; phone: string | null }>(
+    (from, to) =>
+      db
+        .from("people")
+        .select("id, phone")
+        .eq("school_id", schoolId)
+        .not("phone", "is", null)
+        .order("id")
+        .range(from, to),
+    "Telefones da escola",
+  );
   const known = new Set(
     (people ?? [])
       .map((row) => phoneKey(String(row.phone ?? "")))

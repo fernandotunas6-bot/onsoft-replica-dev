@@ -1,3 +1,4 @@
+import { selectAllPages } from "@/features/import/engine/paged";
 /**
  * Leituras partilhadas por exames e resultado final (só servidor): pauta
  * anual, regra com que foi gerada, nomes dos alunos.
@@ -219,14 +220,26 @@ export async function absenceByEnrollment(
   );
   if (!enrollmentOfStudent.size) return result;
 
-  const { data: sessions, error: sessionsError } = await db
-    .from("siga_attendance_sessions")
-    .select("id")
-    .eq("school_id", schoolId)
-    .eq("academic_year_id", yearId)
-    .eq("class_group_id", classGroupId)
-    .limit(5000);
-  if (sessionsError || !sessions?.length) return result;
+  // Em páginas: o `.limit(5000)` não passava do tecto de 1000 do PostgREST, e numa turma
+  // com mais aulas no ano a percentagem de faltas (elegibilidade a exame) saía errada.
+  let sessions: Row[];
+  try {
+    sessions = await selectAllPages<Row>(
+      (from, to) =>
+        db
+          .from("siga_attendance_sessions")
+          .select("id")
+          .eq("school_id", schoolId)
+          .eq("academic_year_id", yearId)
+          .eq("class_group_id", classGroupId)
+          .order("id")
+          .range(from, to),
+      "Sessões de presença",
+    );
+  } catch {
+    return result;
+  }
+  if (!sessions.length) return result;
   const sessionIds = (sessions as Row[]).map((s) => str(s.id));
 
   const statuses = new Map<string, string[]>();

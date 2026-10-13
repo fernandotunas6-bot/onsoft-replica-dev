@@ -1,3 +1,4 @@
+import { schoolTodayIso } from "@/lib/school-date";
 import type { TablesInsert } from "@/integrations/supabase/types";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import {
@@ -425,7 +426,7 @@ export async function bootstrapSchoolDefaults(
       domain: "academic",
       version: 1,
       value: {
-        academic_year: `Ano Lectivo ${new Date().getFullYear()}`,
+        academic_year: `Ano Lectivo ${schoolTodayIso().slice(0, 4)}`,
         evaluation_periods: schoolSettingDefaults.evaluationPeriods,
         passing_grade: schoolSettingDefaults.passingGrade,
       },
