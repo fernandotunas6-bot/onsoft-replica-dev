@@ -459,3 +459,85 @@ Para correr:
 ```
 SIGA_CLEANUP_ALLOW_PRODUCTION=1 npm run siga:e2e-cleanup-stale
 ```
+
+---
+
+## 16. O trabalho dos outros agentes (07–14/10)
+
+Sete dias, **357 commits** fora da `main` em **21 ramos** com actividade: 147 assinados `Claude`,
+10 `Claude Code`, 196 `Valentino Canguele`, 6 `gpt-engineer-app[bot]`. Dezenove ramos têm PR
+aberto. **Três não têm PR nenhum** — é aí que o trabalho morre.
+
+### 16.1 O achado grave: uma falha de RLS corrigida e esquecida
+
+`origin/ccr-1cb32a3f-afnzyp`, 12 commits, último a 07/10, **sem PR**. Nenhum dos seus ficheiros
+de teste existe na `main`. Contém a migração
+`20261007100000_teacher_scope_and_treasury_reads.sql`, que o próprio cabeçalho descreve como
+auditoria 13, F-01 e F-08:
+
+> F-01: um professor de uma só turma lia pela API **todos os alunos, pessoas, matrículas e
+> encarregados da escola**, e — pelo ramo «qualquer membro» — todas as notas e presenças.
+> F-08: a tesouraria lia notas e presenças.
+
+**Confirmei na produção que a falha está aberta.** A política `students_read` é, em produção:
+
+```
+school_id IN (SELECT private.user_permission_school_ids('students.records.read'))
+OR (membro AND (papel de pessoal OR private.teacher_students()))
+```
+
+O primeiro ramo basta, e `private.user_permission_school_ids` devolve a escola a **qualquer
+membro activo cujo papel tenha a permissão**, sem âmbito de turma. E o papel `teacher` tem
+`students.records.read`, `people.records.read` e `students.enrollments.read` **nas 47 escolas**.
+O ramo estreito do professor nunca é alcançado. O mesmo padrão em `people_read` e
+`enrollments_read`.
+
+A exposição **hoje** é pequena por acidente: há 1 membro activo com papel `teacher`, 1 `student`,
+3 `admin` e 51 `owner`. Mas o Huambo já tem 9 professores e 42 alunos em tabela — a falha abre no
+momento em que esses professores receberem acesso, que é o uso normal do produto.
+
+A correcção existe, tem ensaio PGlite que reproduz o defeito antes e confirma o âmbito depois, e
+está há sete dias num ramo que ninguém abriu. **E não pode ser aplicada como está:** a versão
+`20261007100000` colide com `20261007100000_web_site_content`, que já está na `main` e aplicada.
+Precisa de ser renumerada, como aconteceu com a `enrollment_class_change`.
+
+### 16.2 Os outros dois ramos órfãos
+
+| Ramo                                    | Commits | O que traz                                                        |
+| --------------------------------------- | ------- | ----------------------------------------------------------------- |
+| `ccr-680ee371-6vebkz`                   | 6       | Numeração `1 + ano + 4 dígitos` para aluno, matrícula e documentos; entrar com o número de aluno; contexto de nível por área de formação. 1 749 linhas, com migração `20261012140000`. |
+| `audit/timetable-enrollment-2026-10-10` | 1       | Guarda de conflito de sala e acesso às RPCs de horário: relatório, migração e teste estático. |
+
+### 16.3 Nove migrações escritas e nunca aplicadas
+
+A §4 mostrou a base à frente do código. O inverso também é verdade — em ramos não fundidos há
+migrações que nunca chegaram à produção:
+
+| Migração                                            | Ramo / PR                        |
+| --------------------------------------------------- | -------------------------------- |
+| `20261007100000_teacher_scope_and_treasury_reads`   | **órfão** (§16.1)                |
+| `20261012140000_numbering_one_year_digits`          | **órfão**                        |
+| `20261010100000_timetable_rooms_one_placeholder_rule` | #121 Auditoria 14              |
+| `20261010110000_teacher_number_and_merge_people`    | #121 Auditoria 14                |
+| `20261010130000_early_enrollment`                   | #121 Auditoria 14                |
+| `20261013100000_audit_logs_document_code_index`     | #121 Auditoria 14                |
+| `20261012100000_enrollment_cycle_guard`             | #118 Auditoria 14                |
+| `20261012160000_siga_ai_module`                     | #130 SIGA AI                     |
+| `20261006160000_waitlist_scholarship_shift_indexes` | #87                              |
+
+E duas são **duplicados com outra versão** de migrações já aplicadas, que voltariam a correr se
+alguém fundisse o ramo sem olhar: `20261010083336_mobile_v4_chat_commands` (#119) contra a
+`20261010190715` aplicada, e `20261008170000_bbb_classroom_metadata` (#108) contra a
+`20261008144147` aplicada.
+
+### 16.4 A leitura
+
+O §9.1 dizia que o gargalo passou da produção para a integração. Isto quantifica-o: **a mesma
+semana produziu cinco apps de front-end em paralelo (Flutter em três ramos, Mobile V4 em dois) e
+deixou uma falha de leitura de dados pessoais corrigida mas não integrada.** Não é falta de
+trabalho nem de qualidade — o ensaio PGlite do F-01 é melhor do que a média do repositório. É
+falta de alguém a fechar o ciclo.
+
+**A regra prática:** um ramo sem PR é trabalho perdido, e ninguém dá por isso porque não há nada
+vermelho. Vale mais varrer `git branch -r` por ramos sem PR uma vez por semana do que abrir o
+sexto front-end.
