@@ -62,6 +62,30 @@ Um `prettier --write` em 6 ficheiros desbloqueia a publicação. O problema não
 que um empurrão directo sem PR passou por cima do portão que existe precisamente para isto, e
 ninguém fechou o ciclo.
 
+### E uma terceira porta: o Flutter nunca foi verificado na `main`
+
+O `mobile-flutter.yml` corre `dart format`, `flutter analyze`, `flutter test` e `flutter build
+web`. Mas os seus gatilhos são:
+
+```yaml
+push:
+  branches: [feat/siga-flutter-motion-2026]
+pull_request:
+  paths: ['mobile-flutter/**', ...]
+```
+
+**Em `push`, só vigia um ramo de funcionalidade. Nunca a `main`.** Quando a `df78e817` levou o
+cliente Flutter directamente para a `main`, nenhuma verificação de Flutter correu — e o
+`flutter analyze` acusa **18 problemas** em `lib/academic.dart`, `lib/academic_page.dart` e
+`lib/main.dart` (chaves em `if`, cinco `!` desnecessários, API `Radio` depreciada), que estão na
+`main` neste momento.
+
+Só apareceram porque o PR #135 toca em `mobile-flutter/backend/` e dispara o filtro de caminhos
+do `pull_request`. O mesmo empurrão furou três portas: o lint (apanhado só na publicação), os
+testes (`skipped`) e esta, que não olha para onde devia.
+
+Não se corrigem aqui: os PRs #131, #132 e #136 estão a reescrever esses mesmos ficheiros.
+
 ### Os dois portões discordam
 
 O CI da `main` falha em **todos** os runs desde 10/10 — `categories.performance` 0.84 contra um
@@ -273,7 +297,10 @@ Por ordem de custo crescente:
 6. **Decidir a auditoria 14** (PRs #118/#121): as correcções de arredondamento de médias e de
    contagem de dívida são de lógica escolar e estão fora da produção.
 7. **Chaves de assinatura da app desktop** — sem elas não há actualização automática.
-8. **Travar o empurrão directo para a `main`** — uma regra de protecção no ramo resolvia o §2.
+8. **Travar o empurrão directo para a `main`** — `main` **não tem protecção nenhuma** nem checks
+   obrigatórios (confirmado: a API devolve 404 «Branch not protected»). Uma regra resolvia o §2
+   inteiro. E pôr o `mobile-flutter.yml` a vigiar a `main` em `push`, não um ramo de
+   funcionalidade.
 9. Pendentes de antes, sem novidade: rodar a `service_role` e o PAT, projecto de staging, DMARC,
    o que o PayFlow é.
 
