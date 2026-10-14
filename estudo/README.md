@@ -11,6 +11,12 @@ README do autor está errado. A licença permite estudar e modificar, mas a
 *Additional Use Grant* **proíbe oferecer o software como serviço a sistemas de
 gestão escolar concorrentes**. O SIGA é um sistema de gestão escolar.
 
+**Actualização 14/10/2026:** o utilizador declarou ter autorização do autor
+para usar o YFT no SIGA e pediu a publicação em `m.portal-siga.com`. A
+publicação, com Firebase `siga-plus-integracoes` e reversão, está em
+`yft-school-system/PUBLICAR_SIGA.md`. A autorização escrita deve ser guardada
+fora do repositório. Até lá, valem as regras abaixo.
+
 Regras para nós:
 
 - Podemos ler, compilar e tirar ideias de arquitectura e de interface.
