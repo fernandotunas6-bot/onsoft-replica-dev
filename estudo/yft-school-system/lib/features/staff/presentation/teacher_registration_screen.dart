@@ -179,7 +179,7 @@ class _TeacherRegistrationScreenState
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Teacher registered successfully'),
+            content: Text('Professor registado'),
             backgroundColor: Colors.green,
           ),
         );
@@ -264,7 +264,7 @@ class _TeacherRegistrationScreenState
         backgroundColor: AppColors.background,
         appBar: AppBar(
           title: const Text(
-            'Edit teacher',
+            'Editar professor',
             style: TextStyle(fontWeight: FontWeight.w600),
           ),
           backgroundColor: Colors.transparent,
@@ -275,7 +275,7 @@ class _TeacherRegistrationScreenState
           child: Padding(
             padding: getResponsiveHorizontalPadding(context),
             child: const Text(
-              'Editing teacher records from this screen is not available yet.',
+              'A edição de professores ainda não está disponível neste ecrã.',
               textAlign: TextAlign.center,
               style: TextStyle(color: AppColors.textSecondary, fontSize: 16),
             ),
@@ -290,7 +290,7 @@ class _TeacherRegistrationScreenState
       backgroundColor: AppColors.background,
       appBar: AppBar(
         title: const Text(
-          'New teacher registration',
+          'Registo de novo professor',
           style: TextStyle(fontWeight: FontWeight.w600),
         ),
         backgroundColor: Colors.transparent,
@@ -309,7 +309,7 @@ class _TeacherRegistrationScreenState
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 const Text(
-                  'Personal information',
+                  'Dados pessoais',
                   style: TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.w600,
@@ -321,7 +321,7 @@ class _TeacherRegistrationScreenState
                 const SizedBox(height: 8),
                 Center(
                   child: Text(
-                    'Tap to add photo',
+                    'Toque para adicionar fotografia',
                     style: TextStyle(
                       fontSize: 13,
                       color: AppColors.textSecondary.withValues(alpha: 0.9),
@@ -333,17 +333,17 @@ class _TeacherRegistrationScreenState
                   TextFormField(
                     controller: _firstNameController,
                     style: _fieldStyle,
-                    decoration: _decoration('First name', LucideIcons.user),
+                    decoration: _decoration('Nome próprio', LucideIcons.user),
                     validator: (v) =>
-                        v == null || v.trim().isEmpty ? 'Required' : null,
+                        v == null || v.trim().isEmpty ? 'Obrigatório' : null,
                   ),
                   const SizedBox(height: 18),
                   TextFormField(
                     controller: _lastNameController,
                     style: _fieldStyle,
-                    decoration: _decoration('Last name', LucideIcons.user),
+                    decoration: _decoration('Apelido', LucideIcons.user),
                     validator: (v) =>
-                        v == null || v.trim().isEmpty ? 'Required' : null,
+                        v == null || v.trim().isEmpty ? 'Obrigatório' : null,
                   ),
                 ] else
                   Row(
@@ -354,9 +354,9 @@ class _TeacherRegistrationScreenState
                           controller: _firstNameController,
                           style: _fieldStyle,
                           decoration:
-                              _decoration('First name', LucideIcons.user),
+                              _decoration('Nome próprio', LucideIcons.user),
                           validator: (v) =>
-                              v == null || v.trim().isEmpty ? 'Required' : null,
+                              v == null || v.trim().isEmpty ? 'Obrigatório' : null,
                         ),
                       ),
                       const SizedBox(width: 16),
@@ -365,9 +365,9 @@ class _TeacherRegistrationScreenState
                           controller: _lastNameController,
                           style: _fieldStyle,
                           decoration:
-                              _decoration('Last name', LucideIcons.user),
+                              _decoration('Apelido', LucideIcons.user),
                           validator: (v) =>
-                              v == null || v.trim().isEmpty ? 'Required' : null,
+                              v == null || v.trim().isEmpty ? 'Obrigatório' : null,
                         ),
                       ),
                     ],
@@ -392,7 +392,7 @@ class _TeacherRegistrationScreenState
                   style: _fieldStyle,
                   keyboardType: TextInputType.emailAddress,
                   decoration: _decoration(
-                    'Email (optional)',
+                    'E-mail (opcional)',
                     LucideIcons.mail,
                   ),
                 ),
@@ -402,11 +402,11 @@ class _TeacherRegistrationScreenState
                   style: _fieldStyle,
                   keyboardType: TextInputType.phone,
                   decoration: _decoration(
-                    'Phone number',
+                    'Telemóvel',
                     LucideIcons.phone,
                   ),
                   validator: (v) =>
-                      v == null || v.trim().isEmpty ? 'Required' : null,
+                      v == null || v.trim().isEmpty ? 'Obrigatório' : null,
                 ),
                 const SizedBox(height: 18),
                 TextFormField(
@@ -414,13 +414,13 @@ class _TeacherRegistrationScreenState
                   style: _fieldStyle,
                   maxLines: 3,
                   decoration: _decoration(
-                    'Residential address',
+                    'Morada',
                     LucideIcons.mapPin,
                   ),
                 ),
                 const SizedBox(height: 36),
                 const Text(
-                  'Professional information',
+                  'Dados profissionais',
                   style: TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.w600,
@@ -432,7 +432,7 @@ class _TeacherRegistrationScreenState
                   controller: _primaryQualificationController,
                   style: _fieldStyle,
                   decoration: _decoration(
-                    'Primary qualification',
+                    'Habilitação principal',
                     LucideIcons.award,
                   ),
                 ),
@@ -442,7 +442,7 @@ class _TeacherRegistrationScreenState
                   style: _fieldStyle,
                   keyboardType: TextInputType.number,
                   decoration: _decoration(
-                    'Years of experience (optional)',
+                    'Anos de experiência (opcional)',
                     LucideIcons.briefcase,
                   ),
                 ),
@@ -452,13 +452,13 @@ class _TeacherRegistrationScreenState
                   style: _fieldStyle,
                   maxLines: 3,
                   decoration: _decoration(
-                    'Subjects / specialization',
+                    'Disciplinas e especialização',
                     LucideIcons.bookOpen,
                   ),
                 ),
                 const SizedBox(height: 36),
                 const Text(
-                  'Government & personal',
+                  'Dados oficiais',
                   style: TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.w600,
@@ -470,7 +470,7 @@ class _TeacherRegistrationScreenState
                   controller: _ssnItNumberController,
                   style: _fieldStyle,
                   decoration: _decoration(
-                    'SSNIT number (optional)',
+                    'Número da Segurança Social (opcional)',
                     LucideIcons.creditCard,
                   ),
                 ),
@@ -479,13 +479,13 @@ class _TeacherRegistrationScreenState
                   controller: _maritalStatusController,
                   style: _fieldStyle,
                   decoration: _decoration(
-                    'Marital status (optional)',
+                    'Estado civil (opcional)',
                     LucideIcons.heart,
                   ),
                 ),
                 const SizedBox(height: 36),
                 const Text(
-                  'Emergency contact',
+                  'Contacto de emergência',
                   style: TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.w600,
@@ -497,7 +497,7 @@ class _TeacherRegistrationScreenState
                   controller: _emergencyContactNameController,
                   style: _fieldStyle,
                   decoration: _decoration(
-                    'Emergency contact name',
+                    'Nome do contacto de emergência',
                     LucideIcons.alertCircle,
                   ),
                 ),
@@ -507,13 +507,13 @@ class _TeacherRegistrationScreenState
                   style: _fieldStyle,
                   keyboardType: TextInputType.phone,
                   decoration: _decoration(
-                    'Emergency contact phone',
+                    'Telefone do contacto de emergência',
                     LucideIcons.phone,
                   ),
                 ),
                 const SizedBox(height: 36),
                 const Text(
-                  'Bank details',
+                  'Dados bancários',
                   style: TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.w600,
@@ -525,7 +525,7 @@ class _TeacherRegistrationScreenState
                   controller: _bankNameController,
                   style: _fieldStyle,
                   decoration: _decoration(
-                    'Bank name (optional)',
+                    'Banco (opcional)',
                     LucideIcons.building2,
                   ),
                 ),
@@ -534,7 +534,7 @@ class _TeacherRegistrationScreenState
                   controller: _accountNumberController,
                   style: _fieldStyle,
                   decoration: _decoration(
-                    'Account number (optional)',
+                    'Número da conta (opcional)',
                     LucideIcons.hash,
                   ),
                 ),
@@ -543,7 +543,7 @@ class _TeacherRegistrationScreenState
                   controller: _accountHolderNameController,
                   style: _fieldStyle,
                   decoration: _decoration(
-                    'Account holder (optional)',
+                    'Titular da conta (opcional)',
                     LucideIcons.user,
                   ),
                 ),
@@ -562,14 +562,14 @@ class _TeacherRegistrationScreenState
                             ),
                           )
                         : const Text(
-                            'Complete registration',
+                            'Concluir registo',
                             style: TextStyle(fontSize: 16),
                           ),
                   ),
                 ),
                 const SizedBox(height: 16),
                 Text(
-                  'Login details are emailed or generated from the phone number where no email is set.',
+                  'Os dados de acesso vão por e-mail, ou são gerados a partir do telemóvel quando não há e-mail.',
                   textAlign: TextAlign.center,
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                         fontSize: 13,
@@ -590,13 +590,17 @@ class _TeacherRegistrationScreenState
       value: _gender,
       style: _fieldStyle,
       decoration: const InputDecoration(
-        labelText: 'Gender',
+        labelText: 'Sexo',
         prefixIcon: Icon(LucideIcons.users, size: 22),
         contentPadding: _contentPadding,
       ),
-      items: ['Male', 'Female', 'Other']
-          .map((v) => DropdownMenuItem(value: v, child: Text(v)))
-          .toList(),
+      // O valor fica em inglês: é o que vai em `gender` para a API e o que
+      // os registos existentes já têm. Só o rótulo é traduzido.
+      items: const [
+        DropdownMenuItem(value: 'Male', child: Text('Masculino')),
+        DropdownMenuItem(value: 'Female', child: Text('Feminino')),
+        DropdownMenuItem(value: 'Other', child: Text('Outro')),
+      ],
       onChanged: (v) => setState(() => _gender = v ?? 'Male'),
     );
   }
