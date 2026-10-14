@@ -1,0 +1,59 @@
+name: Estudo — YFT School System (build)
+# Compila a cópia de estudo em estudo/yft-school-system. Só corre à mão
+# (Actions → este workflow → Run workflow). Não publica nada, e a app não
+# precisa de ligação: API_BASE_URL aponta para um endereço local inexistente.
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  flutter-web:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: estudo/yft-school-system
+    steps:
+      - uses: actions/checkout@v4
+      # Versão do autor (.metadata). Com Flutter 3.47, lucide_icons 0.257 não
+      # compila (IconData passou a final).
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: "3.41.5"
+          channel: stable
+          cache: true
+      - run: flutter pub get
+      - run: flutter analyze
+      - run: flutter test
+      - run: flutter build web --release --no-web-resources-cdn --dart-define=API_BASE_URL=http://127.0.0.1:9
+      - uses: actions/upload-artifact@v4
+        with:
+          name: yft-flutter-web
+          path: estudo/yft-school-system/build/web/
+          retention-days: 14
+  worker:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: estudo/yft-school-system/school-worker
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - run: npm ci --ignore-scripts
+      - run: npx vitest run
+      - run: npx wrangler deploy --dry-run --outdir dist
+  super-admin:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: estudo/yft-school-system/super-admin
+    env:
+      NEXT_TELEMETRY_DISABLED: "1"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - run: npm ci --ignore-scripts
+      - run: npx next build
