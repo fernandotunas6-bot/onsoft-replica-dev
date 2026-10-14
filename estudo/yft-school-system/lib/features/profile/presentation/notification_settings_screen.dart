@@ -23,7 +23,7 @@ class _NotificationSettingsScreenState
       backgroundColor: AppColors.background,
       appBar: AppBar(
         title: const Text(
-          'Notifications',
+          'Notificações',
           style: TextStyle(fontWeight: FontWeight.w600),
         ),
         backgroundColor: Colors.transparent,
@@ -36,32 +36,32 @@ class _NotificationSettingsScreenState
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const Text(
-              'Manage your notification preferences.',
+              'Faça a gestão das suas notificações.',
               style: TextStyle(color: AppColors.textSecondary, fontSize: 13),
             ),
             const SizedBox(height: 32),
 
             const Text(
-              'Delivery Methods',
+              'Formas de envio',
               style: TextStyle(fontWeight: FontWeight.w600, fontSize: 18),
             ),
             const SizedBox(height: 16),
 
             _buildToggleItem(
-              'Push Notifications',
-              'Receive alerts directly on your device.',
+              'Notificações na aplicação',
+              'Receba avisos directamente no dispositivo.',
               _pushEnabled,
               (val) => setState(() => _pushEnabled = val),
             ),
             _buildToggleItem(
-              'Email Notifications',
-              'Receive summarized alerts in your inbox.',
+              'Notificações por e-mail',
+              'Receba um resumo na caixa de entrada.',
               _emailEnabled,
               (val) => setState(() => _emailEnabled = val),
             ),
             _buildToggleItem(
-              'SMS Notifications',
-              'Get instant text messages for critical info.',
+              'Notificações por SMS',
+              'Mensagens imediatas para o que é urgente.',
               _smsEnabled,
               (val) => setState(() => _smsEnabled = val),
             ),
@@ -71,20 +71,20 @@ class _NotificationSettingsScreenState
             const SizedBox(height: 32),
 
             const Text(
-              'Notification Types',
+              'Tipos de notificação',
               style: TextStyle(fontWeight: FontWeight.w600, fontSize: 18),
             ),
             const SizedBox(height: 16),
 
             _buildToggleItem(
-              'Fee & Payment Alerts',
-              'Updates on pending fees and transactions.',
+              'Propinas e pagamentos',
+              'Avisos de propinas pendentes e de pagamentos.',
               _feeAlerts,
               (val) => setState(() => _feeAlerts = val),
             ),
             _buildToggleItem(
-              'Academic Updates',
-              'Notices regarding grades, attendance, and terms.',
+              'Vida académica',
+              'Avisos sobre notas, presenças e períodos.',
               _academicAlerts,
               (val) => setState(() => _academicAlerts = val),
             ),
@@ -99,7 +99,7 @@ class _NotificationSettingsScreenState
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(
                       content: Text(
-                        'Preferences saved!',
+                        'Preferências guardadas.',
                         style: TextStyle(fontWeight: FontWeight.w600),
                       ),
                     ),
@@ -114,7 +114,7 @@ class _NotificationSettingsScreenState
                   ),
                 ),
                 child: const Text(
-                  'Save Preferences',
+                  'Guardar preferências',
                   style: TextStyle(fontWeight: FontWeight.w600, fontSize: 16),
                 ),
               ),
