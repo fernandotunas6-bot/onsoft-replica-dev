@@ -1,10 +1,10 @@
 {
-  "capturadoEm": "2026-10-12T18:43:32.374Z",
+  "capturadoEm": "2026-10-14T14:02:40.785Z",
   "resumo": {
     "buckets": 6,
     "buckets_publicos": 1,
     "com_rls": 206,
-    "funcoes_private": 129,
+    "funcoes_private": 130,
     "politicas": 370,
     "politicas_storage": 14,
     "tabelas": 206,
@@ -6499,13 +6499,13 @@
       "verificando": ""
     },
     {
-      "cmd": "SELECT",
-      "modo": "PERMISSIVE",
-      "papeis": "{authenticated}",
-      "politica": "enrollments_read",
       "tabela": "enrollments",
-      "usando": "((school_id IN ( SELECT private.user_permission_school_ids('students.enrollments.read'::text) AS user_permission_school_ids)) OR ((school_id IN ( SELECT private.user_member_school_ids() AS user_member_school_ids)) AND ((school_id IN ( SELECT private.user_role_school_ids(ARRAY['owner'::text, 'admin'::text, 'administrador'::text, 'secretary'::text, 'secretaria'::text]) AS user_role_school_ids)) OR ((status = ANY (ARRAY['active'::text, 'pending'::text])) AND ((school_id, class_group_id) IN ( SELECT tc.school_id,\n    tc.class_group_id\n   FROM private.teacher_class_subjects(true) tc(school_id, class_subject_id, class_group_id, subject_id)))))))",
-      "verificando": ""
+      "politica": "enrollments_read",
+      "cmd": "SELECT",
+      "papeis": "{authenticated}",
+      "usando": "(((school_id IN ( SELECT private.user_permission_school_ids('students.enrollments.read'::text) AS user_permission_school_ids)) AND (school_id IN ( SELECT private.user_wide_reader_school_ids() AS user_wide_reader_school_ids))) OR ((school_id IN ( SELECT private.user_member_school_ids() AS user_member_school_ids)) AND ((school_id IN ( SELECT private.user_role_school_ids(ARRAY['owner'::text, 'admin'::text, 'administrador'::text, 'secretary'::text, 'secretaria'::text]) AS user_role_school_ids)) OR ((status = ANY (ARRAY['active'::text, 'pending'::text])) AND ((school_id, class_group_id) IN ( SELECT tc.school_id,\n    tc.class_group_id\n   FROM private.teacher_class_subjects(true) tc(school_id, class_subject_id, class_group_id, subject_id)))))))",
+      "verificando": "",
+      "modo": "PERMISSIVE"
     },
     {
       "cmd": "UPDATE",
@@ -7768,13 +7768,13 @@
       "verificando": "(private.is_aal2() AND private.has_permission(school_id, 'people.records.create'::text) AND (created_by = ( SELECT auth.uid() AS uid)) AND (updated_by = ( SELECT auth.uid() AS uid)))"
     },
     {
-      "cmd": "SELECT",
-      "modo": "PERMISSIVE",
-      "papeis": "{authenticated}",
-      "politica": "people_read",
       "tabela": "people",
-      "usando": "((school_id IN ( SELECT private.user_permission_school_ids('people.records.read'::text) AS user_permission_school_ids)) OR ((school_id IN ( SELECT private.user_member_school_ids() AS user_member_school_ids)) AND ((school_id IN ( SELECT private.user_role_school_ids(ARRAY['owner'::text, 'admin'::text, 'administrador'::text, 'secretary'::text, 'secretaria'::text]) AS user_role_school_ids)) OR ((school_id, id) IN ( SELECT tp.school_id,\n    tp.person_id\n   FROM private.teacher_people() tp(school_id, person_id))))))",
-      "verificando": ""
+      "politica": "people_read",
+      "cmd": "SELECT",
+      "papeis": "{authenticated}",
+      "usando": "(((school_id IN ( SELECT private.user_permission_school_ids('people.records.read'::text) AS user_permission_school_ids)) AND (school_id IN ( SELECT private.user_wide_reader_school_ids() AS user_wide_reader_school_ids))) OR ((school_id IN ( SELECT private.user_member_school_ids() AS user_member_school_ids)) AND ((school_id IN ( SELECT private.user_role_school_ids(ARRAY['owner'::text, 'admin'::text, 'administrador'::text, 'secretary'::text, 'secretaria'::text]) AS user_role_school_ids)) OR ((school_id, id) IN ( SELECT tp.school_id,\n    tp.person_id\n   FROM private.teacher_people() tp(school_id, person_id))))))",
+      "verificando": "",
+      "modo": "PERMISSIVE"
     },
     {
       "cmd": "UPDATE",
@@ -8488,22 +8488,22 @@
       "verificando": "(school_id IN ( SELECT private.user_role_school_ids(ARRAY['owner'::text, 'admin'::text, 'administrador'::text, 'secretary'::text, 'secretaria'::text, 'treasury'::text, 'tesouraria'::text, 'finance'::text, 'teacher'::text, 'professor'::text]) AS user_role_school_ids))"
     },
     {
-      "cmd": "SELECT",
-      "modo": "PERMISSIVE",
-      "papeis": "{authenticated}",
-      "politica": "siga_assessment_scores_read",
       "tabela": "siga_assessment_scores",
-      "usando": "(current_user_can_manage_assessment_score(school_id, item_id, enrollment_id) OR ((school_id IS NOT NULL) AND (school_id IN ( SELECT private.user_member_school_ids() AS user_member_school_ids))))",
-      "verificando": ""
+      "politica": "siga_assessment_scores_read",
+      "cmd": "SELECT",
+      "papeis": "{authenticated}",
+      "usando": "(current_user_can_manage_assessment_score(school_id, item_id, enrollment_id) OR ((school_id IS NOT NULL) AND (school_id IN ( SELECT private.user_member_school_ids() AS user_member_school_ids)) AND (school_id IN ( SELECT private.user_role_school_ids(ARRAY['owner'::text, 'admin'::text, 'administrador'::text, 'secretary'::text, 'secretaria'::text]) AS user_role_school_ids))))",
+      "verificando": "",
+      "modo": "PERMISSIVE"
     },
     {
-      "cmd": "SELECT",
-      "modo": "PERMISSIVE",
-      "papeis": "{authenticated}",
+      "tabela": "siga_attendance_justifications",
       "politica": "Members read siga_attendance_justifications",
-      "tabela": "siga_attendance_justifications",
-      "usando": "((school_id IS NOT NULL) AND (school_id IN ( SELECT private.user_member_school_ids() AS user_member_school_ids)))",
-      "verificando": ""
+      "cmd": "SELECT",
+      "papeis": "{authenticated}",
+      "usando": "(((school_id IS NOT NULL) AND (school_id IN ( SELECT private.user_member_school_ids() AS user_member_school_ids)) AND (school_id IN ( SELECT private.user_role_school_ids(ARRAY['owner'::text, 'admin'::text, 'administrador'::text, 'secretary'::text, 'secretaria'::text]) AS user_role_school_ids))) OR ((school_id, student_id) IN ( SELECT ts.school_id,\n    ts.student_id\n   FROM private.teacher_students() ts(school_id, student_id))))",
+      "verificando": "",
+      "modo": "PERMISSIVE"
     },
     {
       "cmd": "ALL",
@@ -8515,13 +8515,13 @@
       "verificando": "(school_id IN ( SELECT private.user_role_school_ids(ARRAY['owner'::text, 'admin'::text, 'administrador'::text, 'secretary'::text, 'secretaria'::text, 'treasury'::text, 'tesouraria'::text, 'finance'::text, 'teacher'::text, 'professor'::text]) AS user_role_school_ids))"
     },
     {
-      "cmd": "SELECT",
-      "modo": "PERMISSIVE",
-      "papeis": "{authenticated}",
+      "tabela": "siga_attendance_records",
       "politica": "Members read siga_attendance_records",
-      "tabela": "siga_attendance_records",
-      "usando": "((school_id IS NOT NULL) AND (school_id IN ( SELECT private.user_member_school_ids() AS user_member_school_ids)))",
-      "verificando": ""
+      "cmd": "SELECT",
+      "papeis": "{authenticated}",
+      "usando": "(((school_id IS NOT NULL) AND (school_id IN ( SELECT private.user_member_school_ids() AS user_member_school_ids)) AND (school_id IN ( SELECT private.user_role_school_ids(ARRAY['owner'::text, 'admin'::text, 'administrador'::text, 'secretary'::text, 'secretaria'::text]) AS user_role_school_ids))) OR ((school_id, student_id) IN ( SELECT ts.school_id,\n    ts.student_id\n   FROM private.teacher_students() ts(school_id, student_id))))",
+      "verificando": "",
+      "modo": "PERMISSIVE"
     },
     {
       "cmd": "ALL",
@@ -8533,13 +8533,13 @@
       "verificando": "(school_id IN ( SELECT private.user_role_school_ids(ARRAY['owner'::text, 'admin'::text, 'administrador'::text, 'secretary'::text, 'secretaria'::text, 'treasury'::text, 'tesouraria'::text, 'finance'::text, 'teacher'::text, 'professor'::text]) AS user_role_school_ids))"
     },
     {
-      "cmd": "SELECT",
-      "modo": "PERMISSIVE",
-      "papeis": "{authenticated}",
-      "politica": "Members read siga_attendance_sessions",
       "tabela": "siga_attendance_sessions",
-      "usando": "((school_id IS NOT NULL) AND (school_id IN ( SELECT private.user_member_school_ids() AS user_member_school_ids)))",
-      "verificando": ""
+      "politica": "Members read siga_attendance_sessions",
+      "cmd": "SELECT",
+      "papeis": "{authenticated}",
+      "usando": "(((school_id IS NOT NULL) AND (school_id IN ( SELECT private.user_member_school_ids() AS user_member_school_ids)) AND (school_id IN ( SELECT private.user_role_school_ids(ARRAY['owner'::text, 'admin'::text, 'administrador'::text, 'secretary'::text, 'secretaria'::text]) AS user_role_school_ids))) OR ((school_id, class_group_id) IN ( SELECT tc.school_id,\n    tc.class_group_id\n   FROM private.teacher_class_subjects(true) tc(school_id, class_subject_id, class_group_id, subject_id))))",
+      "verificando": "",
+      "modo": "PERMISSIVE"
     },
     {
       "cmd": "ALL",
@@ -8785,13 +8785,13 @@
       "verificando": "(is_school_member(school_id) AND is_school_office(school_id))"
     },
     {
-      "cmd": "SELECT",
-      "modo": "PERMISSIVE",
-      "papeis": "{authenticated}",
-      "politica": "student_guardians_read",
       "tabela": "student_guardians",
-      "usando": "(((school_id IS NOT NULL) AND (school_id IN ( SELECT private.user_member_school_ids() AS user_member_school_ids)) AND ((school_id IS NOT NULL) AND (school_id IN ( SELECT private.user_role_school_ids(ARRAY['owner'::text, 'admin'::text, 'administrador'::text, 'secretary'::text, 'secretaria'::text]) AS user_role_school_ids)))) OR ((school_id IS NOT NULL) AND (school_id IN ( SELECT private.user_permission_school_ids('students.records.read'::text) AS user_permission_school_ids))))",
-      "verificando": ""
+      "politica": "student_guardians_read",
+      "cmd": "SELECT",
+      "papeis": "{authenticated}",
+      "usando": "(((school_id IS NOT NULL) AND (school_id IN ( SELECT private.user_member_school_ids() AS user_member_school_ids)) AND (school_id IN ( SELECT private.user_role_school_ids(ARRAY['owner'::text, 'admin'::text, 'administrador'::text, 'secretary'::text, 'secretaria'::text]) AS user_role_school_ids))) OR ((school_id IS NOT NULL) AND (school_id IN ( SELECT private.user_permission_school_ids('students.records.read'::text) AS user_permission_school_ids)) AND (school_id IN ( SELECT private.user_wide_reader_school_ids() AS user_wide_reader_school_ids))) OR ((school_id, student_id) IN ( SELECT ts.school_id,\n    ts.student_id\n   FROM private.teacher_students() ts(school_id, student_id))))",
+      "verificando": "",
+      "modo": "PERMISSIVE"
     },
     {
       "cmd": "SELECT",
@@ -8821,13 +8821,13 @@
       "verificando": "(school_id IN ( SELECT private.user_role_school_ids(ARRAY['owner'::text, 'admin'::text, 'administrador'::text, 'secretary'::text, 'secretaria'::text, 'treasury'::text, 'tesouraria'::text, 'finance'::text, 'teacher'::text, 'professor'::text]) AS user_role_school_ids))"
     },
     {
-      "cmd": "SELECT",
-      "modo": "PERMISSIVE",
-      "papeis": "{authenticated}",
-      "politica": "students_read",
       "tabela": "students",
-      "usando": "((school_id IN ( SELECT private.user_permission_school_ids('students.records.read'::text) AS user_permission_school_ids)) OR ((school_id IN ( SELECT private.user_member_school_ids() AS user_member_school_ids)) AND ((school_id IN ( SELECT private.user_role_school_ids(ARRAY['owner'::text, 'admin'::text, 'administrador'::text, 'secretary'::text, 'secretaria'::text]) AS user_role_school_ids)) OR ((school_id, id) IN ( SELECT ts.school_id,\n    ts.student_id\n   FROM private.teacher_students() ts(school_id, student_id))))))",
-      "verificando": ""
+      "politica": "students_read",
+      "cmd": "SELECT",
+      "papeis": "{authenticated}",
+      "usando": "(((school_id IN ( SELECT private.user_permission_school_ids('students.records.read'::text) AS user_permission_school_ids)) AND (school_id IN ( SELECT private.user_wide_reader_school_ids() AS user_wide_reader_school_ids))) OR ((school_id IN ( SELECT private.user_member_school_ids() AS user_member_school_ids)) AND ((school_id IN ( SELECT private.user_role_school_ids(ARRAY['owner'::text, 'admin'::text, 'administrador'::text, 'secretary'::text, 'secretaria'::text]) AS user_role_school_ids)) OR ((school_id, id) IN ( SELECT ts.school_id,\n    ts.student_id\n   FROM private.teacher_students() ts(school_id, student_id))))))",
+      "verificando": "",
+      "modo": "PERMISSIVE"
     },
     {
       "cmd": "UPDATE",
@@ -10163,6 +10163,12 @@
       "args": "p_codes text[]",
       "funcao": "user_role_school_ids",
       "schema": "private",
+      "security_definer": true
+    },
+    {
+      "schema": "private",
+      "funcao": "user_wide_reader_school_ids",
+      "args": "",
       "security_definer": true
     },
     {
