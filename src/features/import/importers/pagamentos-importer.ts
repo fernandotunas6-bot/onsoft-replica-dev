@@ -1,4 +1,4 @@
-import { normalizeDate, normalizeMoney, normalizeText } from "../engine/normalize";
+import { normalizeDate, normalizeMoney, normalizeText, valueOf } from "../engine/normalize";
 import type { ImportRefCache, RowImporter } from "../engine/types";
 import { loadStudentRefs, uniqueExactMatch, type StudentRef } from "./academic-core";
 import {
@@ -16,14 +16,6 @@ type PagamentosCache = ImportRefCache & {
   openInvoices: OpenInvoiceRef[];
   existingReceiptNumbers: Set<string>;
 };
-
-function valueOf(row: Record<string, unknown>, ...keys: string[]) {
-  for (const key of keys) {
-    const value = row[key];
-    if (value !== undefined && value !== null && normalizeText(value)) return value;
-  }
-  return null;
-}
 
 /**
  * Que fatura este pagamento liquida, por ordem de especificidade:

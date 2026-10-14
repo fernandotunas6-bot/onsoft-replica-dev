@@ -1,4 +1,4 @@
-import { normalizeDate, normalizeMoney, normalizeText } from "../engine/normalize";
+import { normalizeDate, normalizeMoney, normalizeText, valueOf } from "../engine/normalize";
 import {
   invoiceYearForSchool,
   loadNextInvoiceSequence,
@@ -31,14 +31,6 @@ type DividasCache = ImportRefCache & {
   invoiceYear: number;
   invoiceSequence: number;
 };
-
-function valueOf(row: Record<string, unknown>, ...keys: string[]) {
-  for (const key of keys) {
-    const value = row[key];
-    if (value !== undefined && value !== null && normalizeText(value)) return value;
-  }
-  return null;
-}
 
 export const dividasImporter: RowImporter = {
   module: "dividas",

@@ -1,4 +1,5 @@
 import { schoolTodayIso } from "@/lib/school-date";
+import { invoiceNetTotal } from "@/features/finance/invoice-settlement";
 /**
  * academic-status.ts
  *
@@ -28,7 +29,20 @@ export type AcademicStatus =
 
 export type FinancialStatus = "settled" | "pending" | "overdue" | "partial";
 
-export type QuickFilterCategory = "todos" | "activos" | "candidatos" | "divida" | "inactivos";
+export type QuickFilterCategory =
+  "todos" | "activos" | "candidatos" | "divida" | "inactivos" | "sem_matricula";
+
+/**
+ * «Sem matrícula»: alunos da escola sem matrícula pendente ou activa — os que
+ * faltam matricular no ciclo. Transferidos e concluídos saíram de vez e não entram.
+ */
+export function isWithoutEnrollment(student: {
+  student_status: string;
+  has_current_enrollment?: boolean | undefined;
+}): boolean {
+  if (student.has_current_enrollment !== false) return false;
+  return student.student_status !== "transferred" && student.student_status !== "graduated";
+}
 
 export type InactiveSubFilter =
   "todos" | "transferred" | "inactive" | "graduated" | "cancelled" | "suspended" | "locked";
@@ -93,6 +107,37 @@ export const ACADEMIC_STATUS_LABELS: Record<AcademicStatus, string> = {
   suspended: "Suspenso",
   locked: "Trancado",
 };
+
+/** Rótulo do estado do aluno — o mesmo no distintivo, nos filtros, na ficha e nas exportações. */
+export function academicStatusLabel(status: string | null | undefined): string {
+  if (!status) return "—";
+  return ACADEMIC_STATUS_LABELS[status as AcademicStatus] ?? status;
+}
+
+/** Estados que a secretaria escolhe à mão (ficha, lista e lote). */
+export const MANUAL_STUDENT_STATUSES = ["active", "inactive", "transferred", "graduated"] as const;
+export type ManualStudentStatus = (typeof MANUAL_STUDENT_STATUSES)[number];
+
+/** Opções `{ value, label }` para os formulários de mudança de estado. */
+export function studentStatusChoices(extra: AcademicStatus[] = []) {
+  return [...MANUAL_STUDENT_STATUSES, ...extra].map((value) => ({
+    value,
+    label: ACADEMIC_STATUS_LABELS[value],
+  }));
+}
+
+export const ENROLLMENT_STATUS_LABELS: Record<string, string> = {
+  pending: "Pendente",
+  active: "Activa",
+  transferred: "Transferida",
+  completed: "Concluída",
+  cancelled: "Anulada",
+};
+
+export function enrollmentStatusLabel(status: string | null | undefined): string {
+  if (!status) return "Sem matrícula";
+  return ENROLLMENT_STATUS_LABELS[status] ?? status;
+}
 
 export const FINANCIAL_STATUS_LABELS: Record<FinancialStatus, string> = {
   settled: "Regularizado",
@@ -179,12 +224,7 @@ export function deriveFinancialSnapshot(
     const total =
       inv.total_amount != null
         ? Number(inv.total_amount)
-        : Math.max(
-            0,
-            Number(inv.amount ?? 0) -
-              Number(inv.discount_amount ?? 0) +
-              Number(inv.penalty_amount ?? 0),
-          );
+        : invoiceNetTotal({ ...inv, amount: inv.amount ?? 0 });
 
     const paid = Math.min(total, Math.max(0, Number(inv.amount_paid ?? 0)));
     const openAmount = Math.max(0, total - paid);
@@ -235,6 +275,7 @@ export function matchesQuickCategory(
     payment_status?: string | null;
     has_debt?: boolean;
     class_name?: string | null;
+    has_current_enrollment?: boolean | undefined;
   },
   category: QuickFilterCategory,
   inactiveSub?: InactiveSubFilter,
@@ -257,6 +298,9 @@ export function matchesQuickCategory(
 
     case "divida":
       return isDebt;
+
+    case "sem_matricula":
+      return isWithoutEnrollment(student);
 
     case "inactivos": {
       const isInactiveType = [
@@ -283,6 +327,7 @@ export function computeDynamicCounters<
     payment_status?: string | null;
     has_debt?: boolean;
     class_name?: string | null;
+    has_current_enrollment?: boolean | undefined;
   },
 >(
   students: T[],
@@ -293,6 +338,7 @@ export function computeDynamicCounters<
   applicant: number;
   overdue: number;
   other: number;
+  withoutEnrollment: number;
   inactivesDetail: {
     transferred: number;
     inactive: number;
@@ -306,6 +352,7 @@ export function computeDynamicCounters<
   let applicant = 0;
   let overdue = 0;
   let other = 0;
+  let withoutEnrollment = 0;
 
   const inactivesDetail = {
     transferred: 0,
@@ -333,6 +380,7 @@ export function computeDynamicCounters<
     }
 
     if (isDebt) overdue += 1;
+    if (isWithoutEnrollment(s)) withoutEnrollment += 1;
   }
 
   // Candidaturas pendentes submetidas no portal público que ainda aguardam admissão
@@ -344,6 +392,7 @@ export function computeDynamicCounters<
     applicant,
     overdue,
     other,
+    withoutEnrollment,
     inactivesDetail,
   };
 }

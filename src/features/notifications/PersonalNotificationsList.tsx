@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import { Link } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { listMyNotifications, markMyNotificationsRead } from "./personal";
+import { Bell } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export const PERSONAL_NOTIFICATIONS_KEY = ["notifications", "personal"];
@@ -49,27 +50,49 @@ export function PersonalNotificationsList({ open }: { open: boolean }) {
 
   if (!items.length) return null;
   return (
-    <ul className="divide-y divide-border rounded-2xl border border-border">
+    <ul className="space-y-2">
       {items.map((item) => (
-        <li key={item.id} className={cn("px-3 py-2.5", !item.read && "bg-primary-soft/30")}>
-          <p className="flex items-start justify-between gap-2 text-sm">
-            {item.href ? (
-              <Link
-                to={item.href as never}
-                className={cn("hover:underline", !item.read && "font-medium")}
-              >
-                {item.title}
-              </Link>
-            ) : (
-              <span className={cn(!item.read && "font-medium")}>{item.title}</span>
+        <li
+          key={item.id}
+          className={cn(
+            "notification-card relative flex items-start gap-3 px-3.5 py-3",
+            !item.read && "notification-card-unread",
+          )}
+        >
+          <span
+            className={cn(
+              "grid size-10 shrink-0 place-items-center rounded-xl",
+              item.read ? "bg-secondary text-muted-foreground" : "bg-primary-soft text-primary",
             )}
-            <span className="shrink-0 text-xs text-muted-foreground">
-              {relativeTime(item.createdAt)}
-            </span>
-          </p>
-          <p className="mt-0.5 whitespace-pre-line text-xs text-muted-foreground line-clamp-4">
-            {item.body}
-          </p>
+          >
+            <Bell className="size-4.5" />
+          </span>
+          <div className="min-w-0 flex-1">
+            <p className="flex items-start justify-between gap-2 text-sm">
+              {item.href ? (
+                <Link
+                  to={item.href as never}
+                  className={cn("hover:underline", !item.read && "font-semibold")}
+                >
+                  {item.title}
+                </Link>
+              ) : (
+                <span className={cn(!item.read && "font-semibold")}>{item.title}</span>
+              )}
+              <span className="shrink-0 text-[11px] text-muted-foreground">
+                {relativeTime(item.createdAt)}
+              </span>
+            </p>
+            <p className="mt-0.5 whitespace-pre-line text-xs text-muted-foreground line-clamp-4">
+              {item.body}
+            </p>
+          </div>
+          {!item.read ? (
+            <span
+              className="absolute right-2 top-2 size-2 rounded-full bg-primary"
+              aria-label="Nova"
+            />
+          ) : null}
         </li>
       ))}
     </ul>

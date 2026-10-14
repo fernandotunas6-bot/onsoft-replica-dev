@@ -21,6 +21,7 @@ import {
   type EnrollmentClassGroup,
 } from "@/features/students/enrollment-directory";
 import { angolaProvinces } from "@/lib/angola-territory";
+import { useEnrollmentWindow } from "@/features/enrollment/use-enrollment-window";
 
 const steps = [
   { id: "identidade", label: "Identidade", description: "Dados pessoais do aluno." },
@@ -68,6 +69,7 @@ const emptyValues = {
   turmaId: "",
   encarregadoId: "",
   parentesco: "encarregado",
+  motivoCiclo: "",
 };
 
 export function StudentEnrollmentSheet({
@@ -85,6 +87,7 @@ export function StudentEnrollmentSheet({
 }) {
   const [open, setOpen] = useState(autoOpen);
   const installed = useInstalledIntegrations();
+  const enrollmentWindow = useEnrollmentWindow();
   const resendOn = installed.hasCapability("resend.send");
   const [values, setValues] = useState(emptyValues);
   const [guardianQuery, setGuardianQuery] = useState("");
@@ -241,19 +244,24 @@ export function StudentEnrollmentSheet({
               throw new Error("Matrícula cancelada — verifique o registo existente em Pessoas.");
             }
           }
-          const turma = classGroups.find((group) => group.id === values.turmaId);
+          const turma = enrollmentWindow.blocked
+            ? undefined
+            : classGroups.find((group) => group.id === values.turmaId);
+          if (turma && enrollmentWindow.reasonField && values.motivoCiclo.trim().length < 5) {
+            throw new Error("Indique o motivo da matrícula fora do ciclo.");
+          }
+          // A lotação é uma regra da base (enroll_student): não há matrícula acima
+          // dela. O ecrã oferecia «continuar com a matrícula extraordinária», que
+          // depois falhava com o aluno já criado e sem turma.
           if (
             turma &&
             typeof turma.capacity === "number" &&
             turma.capacity > 0 &&
             (turma.enrolled_count ?? 0) >= turma.capacity
           ) {
-            const proceedCapacity = window.confirm(
-              `Aviso de lotação: a turma "${turma.name}" já atingiu a sua lotação máxima (${turma.enrolled_count ?? 0}/${turma.capacity} alunos).\n\nDeseja continuar com a matrícula extraordinária nesta turma?`,
+            throw new Error(
+              `A turma "${turma.name}" está cheia (${turma.enrolled_count ?? 0}/${turma.capacity} alunos). Escolha outra turma ou aumente a lotação em Pedagógica.`,
             );
-            if (!proceedCapacity) {
-              throw new Error("Matrícula cancelada — selecione outra turma com vagas disponíveis.");
-            }
           }
           const relationship = values.parentesco || "encarregado";
           await enrollNewStudent({
@@ -276,6 +284,7 @@ export function StudentEnrollmentSheet({
               },
               classGroupId: turma?.id,
               academicYearId: turma?.academic_year_id || undefined,
+              outsideCycleReason: turma ? values.motivoCiclo || undefined : undefined,
               guardians:
                 values.encarregadoId && relationship
                   ? [
@@ -594,10 +603,22 @@ export function StudentEnrollmentSheet({
                   </select>
                 </SheetCell>
                 <SheetCell label="Turma" full>
+                  {enrollmentWindow.closed ? (
+                    <p
+                      role="status"
+                      className="mb-2 rounded-md border border-warning/40 bg-warning/10 p-2 text-xs"
+                    >
+                      {enrollmentWindow.status?.message}{" "}
+                      {enrollmentWindow.blocked
+                        ? "O aluno fica registado como candidato; a matrícula numa turma faz-se no ciclo de matrículas ou pela Administração."
+                        : "Matrícula fora do ciclo: indique o motivo, que fica registado."}
+                    </p>
+                  ) : null}
                   <select
                     aria-label="Turma"
                     className={fieldClass}
-                    value={values.turmaId}
+                    value={enrollmentWindow.blocked ? "" : values.turmaId}
+                    disabled={enrollmentWindow.blocked}
                     onChange={(e) => setField("turmaId", e.target.value)}
                   >
                     <option value="">Sem turma (só processo)</option>
@@ -622,12 +643,20 @@ export function StudentEnrollmentSheet({
                       selectedTurma.capacity > 0 &&
                       (selectedTurma.enrolled_count ?? 0) >= selectedTurma.capacity ? (
                         <div className="mt-2 rounded-md border border-destructive/30 bg-destructive/10 p-2 text-xs text-destructive">
-                          ⚠️ <strong>Lotação atingida:</strong> Esta turma já tem{" "}
-                          {selectedTurma.enrolled_count ?? 0} de {selectedTurma.capacity} vagas
-                          preenchidas. Uma nova matrícula constituirá sobrelotação.
+                          <strong>Turma cheia:</strong> {selectedTurma.enrolled_count ?? 0} de{" "}
+                          {selectedTurma.capacity} lugares ocupados. Escolha outra turma.
                         </div>
                       ) : null}
                     </>
+                  ) : null}
+                  {enrollmentWindow.reasonField && values.turmaId ? (
+                    <Textarea
+                      aria-label="Motivo da matrícula fora do ciclo"
+                      placeholder="Motivo da matrícula fora do ciclo (fica registado)"
+                      className="mt-2"
+                      value={values.motivoCiclo}
+                      onChange={(e) => setField("motivoCiclo", e.target.value)}
+                    />
                   ) : null}
                 </SheetCell>
               </SheetGrid>

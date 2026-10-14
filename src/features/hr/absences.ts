@@ -15,6 +15,7 @@ import {
   type HrRemunerationModel,
   type HrValidationStatus,
 } from "@/features/hr/schemas";
+import { baseSalaryOn, estimateAbsenceDeduction, type SalaryAmendment } from "./absence-deduction";
 
 const ABSENCE_ADMIN_ROLES = new Set(["Administrador", "Tesouraria"]);
 
@@ -90,6 +91,7 @@ export const listHrAbsencesForReview = createServerFn({ method: "GET" })
 
     let contracts: Array<Record<string, unknown>> = [];
     let policies: Array<Record<string, unknown>> = [];
+    const amendmentsByContract = new Map<string, SalaryAmendment[]>();
     if (contractIds.length) {
       const { data: contractRows, error: contractError } = await db
         .from("hr_contracts")
@@ -119,6 +121,28 @@ export const listHrAbsencesForReview = createServerFn({ method: "GET" })
         );
       }
       policies = (policyRows ?? []) as Array<Record<string, unknown>>;
+
+      // A folha desconta com o salário em vigor na data da falta.
+      const { data: amendmentRows, error: amendmentError } = await db
+        .from("hr_contract_salary_amendments")
+        .select("contract_id, new_base_salary_kz, effective_on, created_at")
+        .eq("school_id", membership.schoolId)
+        .in("contract_id", contractIds);
+      if (amendmentError && !isMissingHrTable(amendmentError)) {
+        throw publicDatabaseError(
+          amendmentError,
+          "Não foi possível carregar as alterações salariais.",
+        );
+      }
+      for (const row of amendmentRows ?? []) {
+        const list = amendmentsByContract.get(String(row.contract_id)) ?? [];
+        list.push({
+          new_base_salary_kz: row.new_base_salary_kz,
+          effective_on: String(row.effective_on),
+          created_at: String(row.created_at ?? ""),
+        });
+        amendmentsByContract.set(String(row.contract_id), list);
+      }
     }
 
     const personIds = [...new Set((employments ?? []).map((row) => String(row.person_id)))];
@@ -159,14 +183,17 @@ export const listHrAbsencesForReview = createServerFn({ method: "GET" })
         const divisor = Number(policy.monthly_divisor_days ?? 0);
         const workday = Number(policy.standard_workday_minutes ?? 0);
         if (shouldDeduct && divisor > 0 && workday > 0) {
-          estimatedDeductionKz =
-            Math.round(
-              ((Number(contract.base_salary_kz ?? 0) / divisor) *
-                (Number(row.duration_minutes) / workday) *
-                Number(row.deduction_multiplier ?? 1) +
-                Number.EPSILON) *
-                100,
-            ) / 100;
+          estimatedDeductionKz = estimateAbsenceDeduction({
+            baseSalary: baseSalaryOn(
+              contract.base_salary_kz,
+              amendmentsByContract.get(String(contractId)) ?? [],
+              String(row.absence_date),
+            ),
+            monthlyDivisorDays: divisor,
+            standardWorkdayMinutes: workday,
+            durationMinutes: Number(row.duration_minutes),
+            multiplier: Number(row.deduction_multiplier ?? 1),
+          });
         } else if (!shouldDeduct) {
           estimatedDeductionKz = 0;
         }

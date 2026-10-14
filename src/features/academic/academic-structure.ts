@@ -1,3 +1,4 @@
+import { selectAllPages } from "@/features/import/engine/paged";
 /**
  * Contagens reais do ano lectivo para o separador "Estrutura académica".
  * Só contagens (head: true), nunca dados de alunos. Pessoal da escola.
@@ -99,18 +100,30 @@ export const getAcademicStructureStatus = createServerFn({ method: "GET" })
         .select("id", head)
         .eq("school_id", schoolId)
         .in("class_group_id", hasGroups ? groupIds : noGroup),
-      db
-        .from("gradebooks")
-        .select("status")
-        .eq("school_id", schoolId)
-        .eq("academic_year_id", yearId ?? noGroup[0])
-        .limit(5000),
-      db
-        .from("grade_sheets")
-        .select("status")
-        .eq("school_id", schoolId)
-        .eq("academic_year_id", yearId ?? noGroup[0])
-        .limit(5000),
+      // Em páginas: o `.limit(5000)` não passava do tecto de 1000 do PostgREST.
+      selectAllPages<{ status: string }>(
+        (from, to) =>
+          db
+            .from("gradebooks")
+            .select("id, status")
+            .eq("school_id", schoolId)
+            .eq("academic_year_id", yearId ?? noGroup[0])
+            .order("id")
+            .range(from, to),
+        "gradebooks",
+      ).then((data) => ({ data, error: null })),
+      // Em páginas: o `.limit(5000)` não passava do tecto de 1000 do PostgREST.
+      selectAllPages<{ status: string }>(
+        (from, to) =>
+          db
+            .from("grade_sheets")
+            .select("id, status")
+            .eq("school_id", schoolId)
+            .eq("academic_year_id", yearId ?? noGroup[0])
+            .order("id")
+            .range(from, to),
+        "grade_sheets",
+      ).then((data) => ({ data, error: null })),
       db
         .from("grade_scores")
         .select("id", head)

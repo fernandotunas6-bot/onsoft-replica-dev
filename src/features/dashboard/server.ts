@@ -42,6 +42,8 @@ import {
   weekdayJsFromIso,
   type SchoolTodayOps,
 } from "./school-today";
+import { countOverdueInvoices } from "@/features/finance/overdue-invoices";
+import { selectAllPages } from "@/features/import/engine/paged";
 
 function countMap(entries: Array<string | null | undefined>) {
   const map = new Map<string, number>();
@@ -573,17 +575,53 @@ export const getDashboardOverview = createServerFn({ method: "GET" })
     }
 
     if (capabilities.finance) {
-      const [{ data: invoices }, { data: receipts }] = await Promise.all([
-        db
-          .from("finance_invoices")
-          .select("id, amount, discount_amount, penalty_amount, competence_month, status, due_date")
-          .eq("school_id", schoolId)
-          .limit(3000),
-        db
-          .from("finance_receipts")
-          .select("invoice_id, amount, paid_on, status, payment_method")
-          .eq("school_id", schoolId)
-          .limit(3000),
+      // Todas as faturas e recibos, em páginas: com um corte de 3 000 (sem ordem), os
+      // gráficos de receita e de canais ficavam incompletos numa escola maior.
+      type InvoiceRow = {
+        id: string;
+        amount: number;
+        discount_amount: number | null;
+        penalty_amount: number | null;
+        competence_month: string | null;
+        status: string;
+        due_date: string | null;
+      };
+      type ReceiptRow = {
+        invoice_id: string;
+        amount: number;
+        paid_on: string | null;
+        status: string;
+        payment_method: string | null;
+      };
+      const [invoices, receipts] = await Promise.all([
+        selectAllPages<InvoiceRow>(
+          (from, to) =>
+            db
+              .from("finance_invoices")
+              .select(
+                "id, amount, discount_amount, penalty_amount, competence_month, status, due_date",
+              )
+              .eq("school_id", schoolId)
+              .order("id", { ascending: true })
+              .range(from, to) as unknown as PromiseLike<{
+              data: InvoiceRow[] | null;
+              error: { message: string } | null;
+            }>,
+          "Não foi possível ler as faturas",
+        ),
+        selectAllPages<ReceiptRow>(
+          (from, to) =>
+            db
+              .from("finance_receipts")
+              .select("id, invoice_id, amount, paid_on, status, payment_method")
+              .eq("school_id", schoolId)
+              .order("id", { ascending: true })
+              .range(from, to) as unknown as PromiseLike<{
+              data: ReceiptRow[] | null;
+              error: { message: string } | null;
+            }>,
+          "Não foi possível ler os recibos",
+        ),
       ]);
 
       const paidByInvoice = new Map<string, number>();
@@ -973,34 +1011,8 @@ export const getSchoolTodayOps = createServerFn({ method: "GET" })
 
     if (["Administrador", "Tesouraria"].includes(role)) {
       try {
-        const [{ data: invoices }, { data: receipts }] = await Promise.all([
-          db
-            .from("finance_invoices")
-            .select("id, amount, discount_amount, penalty_amount, status, due_date")
-            .eq("school_id", schoolId)
-            .limit(250),
-          db
-            .from("finance_receipts")
-            .select("invoice_id, amount, status")
-            .eq("school_id", schoolId)
-            .limit(250),
-        ]);
-        const paidByInvoice = new Map<string, number>();
-        for (const receipt of receipts ?? []) {
-          if (receipt.status === "reversed") continue;
-          paidByInvoice.set(
-            String(receipt.invoice_id),
-            (paidByInvoice.get(String(receipt.invoice_id)) ?? 0) + Number(receipt.amount ?? 0),
-          );
-        }
-        let overdueCount = 0;
-        for (const invoice of invoices ?? []) {
-          if (invoice.status === "cancelled") continue;
-          const total = invoiceNetTotal(invoice);
-          const paid = paidByInvoice.get(String(invoice.id)) ?? 0;
-          const openAmount = Math.max(total - paid, 0);
-          if (openAmount > 0 && String(invoice.due_date ?? "") < today) overdueCount += 1;
-        }
+        // Só as faturas por pagar já vencidas e os recibos delas, sem corte.
+        const overdueCount = await countOverdueInvoices(db, schoolId, today);
         ops.overdueInvoices = overdueCount;
       } catch {
         /* financeiro opcional */
@@ -1082,36 +1094,7 @@ export const listSchoolAlerts = createServerFn({ method: "GET" })
 
     if (canFinance) {
       try {
-        const [{ data: invoices }, { data: receipts }] = await Promise.all([
-          db
-            .from("finance_invoices")
-            .select("id, amount, discount_amount, penalty_amount, status, due_date")
-            .eq("school_id", schoolId)
-            .neq("status", "cancelled")
-            .limit(5000),
-          db
-            .from("finance_receipts")
-            .select("invoice_id, amount, status")
-            .eq("school_id", schoolId)
-            .limit(5000),
-        ]);
-        const paidByInvoice = new Map<string, number>();
-        for (const receipt of receipts ?? []) {
-          if (receipt.status === "reversed") continue;
-          paidByInvoice.set(
-            String(receipt.invoice_id),
-            (paidByInvoice.get(String(receipt.invoice_id)) ?? 0) + Number(receipt.amount ?? 0),
-          );
-        }
-        const today = todayInLuanda();
-        let overdueCount = 0;
-        for (const invoice of invoices ?? []) {
-          if (invoice.status === "cancelled") continue;
-          const total = invoiceNetTotal(invoice);
-          const paid = paidByInvoice.get(String(invoice.id)) ?? 0;
-          const openAmount = Math.max(total - paid, 0);
-          if (openAmount > 0 && String(invoice.due_date ?? "") < today) overdueCount += 1;
-        }
+        const overdueCount = await countOverdueInvoices(db, schoolId, todayInLuanda());
         const faturas = buildSchoolAlert("faturas", overdueCount);
         if (faturas) alerts.push(faturas);
       } catch {

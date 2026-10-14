@@ -3,7 +3,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { readSettingsDomain } from "@/features/school/settings-domains";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { publicDatabaseError } from "@/integrations/supabase/server-error";
+import { isRpcAuthDenied, publicDatabaseError } from "@/integrations/supabase/server-error";
 import { reportSigaError } from "@/lib/ops-report";
 import { dynamicTablesClient, sgaClient } from "@/integrations/supabase/sga";
 import {
@@ -70,6 +70,8 @@ import {
   invoiceYearForSchool,
   loadNextInvoiceSequence,
 } from "./invoice-numbering";
+import { mapPaymentMethodForLedger } from "./payment-method";
+import { sumPaidByInvoice } from "@/features/finance/invoice-settlement";
 
 const REPORTING_PAGE_SIZE = 1000;
 const REPORTING_MAX_PAGES = 30;
@@ -658,14 +660,7 @@ export const listInvoices = createServerFn({ method: "GET" })
     const enrollmentById = new Map((enrollments ?? []).map((row) => [row.id, row]));
     const contractById = new Map((contracts ?? []).map((row) => [row.id, row]));
     const feeById = new Map((feeItems ?? []).map((row) => [row.id, row]));
-    const paidByInvoice = new Map<string, number>();
-    for (const receipt of receipts ?? []) {
-      if (receipt.status === "reversed") continue;
-      paidByInvoice.set(
-        receipt.invoice_id,
-        (paidByInvoice.get(receipt.invoice_id) ?? 0) + Number(receipt.amount ?? 0),
-      );
-    }
+    const paidByInvoice = sumPaidByInvoice(receipts);
     // A multa que um pagamento registado hoje levaria (late-fee.ts): a tesouraria vê-a
     // antes de receber, em vez de a fatura ficar «parcial» depois.
     const billing = await readSettingsDomain(db, membership.schoolId, "billing");
@@ -794,15 +789,6 @@ export const listCashEntries = createServerFn({ method: "GET" })
  * Os métodos premium angolanos (Multicaixa Express, Unitel Money) não têm
  * equivalente 1:1 — o método original fica registado na descrição do arquivo.
  */
-function mapPaymentMethodForLedger(method: string): "cash" | "bank_transfer" | "card" | "other" {
-  if (method === "cash") return "cash";
-  if (method === "transfer") return "bank_transfer";
-  if (method === "multicaixa" || method === "multicaixa_express" || method === "express") {
-    return "card";
-  }
-  return "other";
-}
-
 export const recordInvoicePayment = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((input: unknown) => recordInvoicePaymentInputSchema.parse(input))
@@ -827,7 +813,7 @@ export const recordInvoicePayment = createServerFn({ method: "POST" })
       paid_on: paidOnIso(data.paidAt),
     });
     if (error) {
-      if (error.code === "42501" || /is_aal2|autorização/i.test(error.message ?? "")) {
+      if (isRpcAuthDenied(error)) {
         throw new Error(
           "Esta conta precisa de verificação em duas etapas (2FA) activa para registar pagamentos.",
         );

@@ -70,10 +70,20 @@ import {
   enrollStudentInClass,
   getStudentProfile,
   removeGuardian,
-  updateEnrollment,
   updateEnrollmentAttendance,
   updateStudentProfile,
 } from "@/features/students/server";
+import {
+  academicStatusLabel,
+  enrollmentStatusLabel,
+  studentStatusChoices,
+  type ManualStudentStatus,
+} from "@/features/students/academic-status";
+import { classGroupChoices } from "@/features/students/enrollment-directory";
+import {
+  OUTSIDE_CYCLE_FIELD,
+  useEnrollmentWindow,
+} from "@/features/enrollment/use-enrollment-window";
 import { searchPeople } from "@/features/people/server";
 import { personRelationshipTypeOptions } from "@/features/people/schemas";
 import { buildStudentDossier, documentValidationCode } from "@/features/academic/assessment-views";
@@ -131,13 +141,6 @@ export const Route = createFileRoute("/alunos/$studentId")({
 
 const badge = "inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-semibold";
 
-const estadoLabels: Record<string, string> = {
-  active: "Activo",
-  inactive: "Inactivo",
-  transferred: "Transferido",
-  graduated: "Concluído",
-};
-
 const pagamentoLabels: Record<string, string> = {
   settled: "Regularizado",
   pending: "Pendente",
@@ -180,6 +183,7 @@ type StudentProfile = {
   enrollment_id: string | null;
   enrollment_status: string | null;
   enrolled_on: string | null;
+  class_group_id: string | null;
   academic_year_id: string | null;
   final_average: number | null;
   attendance_rate: number | null;
@@ -233,6 +237,7 @@ function StudentDetail() {
   const queryClient = useQueryClient();
   const [cardModalOpen, setCardModalOpen] = useState(false);
   const { activeYearLabel, selectedYearId, school, selectedYearLabel } = useSchoolSettings();
+  const enrollmentWindow = useEnrollmentWindow();
   // Nota de aprovação do modelo de avaliação em vigor (a da pauta oficial).
   const passingValue = usePassingValue();
   const account = useCurrentAccount();
@@ -478,13 +483,7 @@ function StudentDetail() {
   };
 
   const handleChangeStatus = async (values: Record<string, string>) => {
-    const statusMap: Record<string, "active" | "inactive" | "transferred" | "graduated"> = {
-      Activo: "active",
-      Inactivo: "inactive",
-      Transferido: "transferred",
-      Concluído: "graduated",
-    };
-    const newStatus = statusMap[values["estado"] ?? ""] ?? "active";
+    const newStatus = (values["estado"] || "active") as ManualStudentStatus;
     await changeStudentStatus({
       data: {
         studentId,
@@ -499,10 +498,7 @@ function StudentDetail() {
   };
 
   const classGroups = workspaceQuery.data?.classGroups ?? [];
-  const turmaOptions = classGroups.map(
-    (group) =>
-      `${group.name} · ${group.grade_name} · ${group.course_name} · ${group.id.slice(0, 8)}`,
-  );
+  const turmaOptions = classGroupChoices(classGroups);
 
   const invalidateStudent = async () => {
     await Promise.all([
@@ -514,29 +510,17 @@ function StudentDetail() {
   };
 
   const handleAssignClass = async (values: Record<string, string>) => {
-    const index = turmaOptions.indexOf(values["turma"] ?? "");
-    const selected = index >= 0 ? classGroups[index] : undefined;
+    const selected = classGroups.find((group) => group.id === values["turma"]);
     if (!selected) throw new Error("Seleccione uma turma válida.");
-    if (student.enrollment_id) {
-      await updateEnrollment({
-        data: {
-          enrollmentId: student.enrollment_id,
-          classGroupId: selected.id,
-          status: "active",
-        },
-      });
-    } else {
-      const academicYearId =
-        selected.academic_year_id ?? student.academic_year_id ?? selectedYearId;
-      if (!academicYearId) throw new Error("A turma seleccionada não tem ano lectivo associado.");
-      await enrollStudentInClass({
-        data: {
-          studentId,
-          classGroupId: selected.id,
-          academicYearId,
-        },
-      });
-    }
+    // Atribuir e alterar são a mesma operação no servidor: com matrícula no ano da
+    // turma muda a turma nessa matrícula, sem ela matricula (o ano vem da turma).
+    await enrollStudentInClass({
+      data: {
+        studentId,
+        classGroupId: selected.id,
+        outsideCycleReason: values[OUTSIDE_CYCLE_FIELD] || undefined,
+      },
+    });
     await invalidateStudent();
   };
 
@@ -747,10 +731,10 @@ function StudentDetail() {
         programName: student.grade_name ?? student.course_name,
       },
       overlay: overlayDossie({
-        status: estadoLabels[student.student_status] ?? student.student_status,
-        enrollmentStatus: student.enrollment_id ? "Activa" : "Sem matrícula",
+        status: academicStatusLabel(student.student_status),
+        enrollmentStatus: enrollmentStatusLabel(student.enrollment_status),
         checklist: [
-          { item: "Matrícula activa", ok: Boolean(student.enrollment_id) },
+          { item: "Matrícula activa", ok: student.enrollment_status === "active" },
           { item: "Turma atribuída", ok: Boolean(student.class_name) },
           { item: "Encarregado de educação", ok: guardians.length > 0 },
           { item: "Contacto do aluno", ok: Boolean(student.email || student.phone) },
@@ -1033,7 +1017,7 @@ function StudentDetail() {
                       ? "inactive"
                       : "neutral"
                 }
-                label={estadoLabels[student.student_status] ?? student.student_status}
+                label={academicStatusLabel(student.student_status)}
               />
               {student.course_name ? (
                 <span className="inline-flex items-center rounded-full bg-secondary px-2.5 py-0.5 text-[11px] font-semibold text-secondary-foreground border border-border/50">
@@ -1207,10 +1191,12 @@ function StudentDetail() {
                     type: "select",
                     options: turmaOptions,
                     full: true,
-                    defaultValue: student.class_name
-                      ? turmaOptions.find((option) => option.startsWith(`${student.class_name} ·`))
-                      : undefined,
+                    defaultValue: student.class_group_id ?? undefined,
                   },
+                  // Sem matrícula é uma matrícula nova: fora do ciclo, a Administração dá o motivo.
+                  ...(!student.enrollment_id && enrollmentWindow.reasonField
+                    ? [enrollmentWindow.reasonField]
+                    : []),
                 ]}
                 trigger={(open) => (
                   <Button variant="outline" className="gap-2" onClick={open}>
@@ -1401,8 +1387,8 @@ function StudentDetail() {
                   name: "estado",
                   label: "Novo estado",
                   type: "select",
-                  options: ["Activo", "Inactivo", "Transferido", "Concluído"],
-                  defaultValue: estadoLabels[student.student_status] ?? "Activo",
+                  options: studentStatusChoices(),
+                  defaultValue: student.student_status,
                 },
                 {
                   name: "motivo",
@@ -1551,7 +1537,7 @@ function StudentDetail() {
             title="Estado académico"
             value={
               student.enrollment_status
-                ? (estadoLabels[student.enrollment_status] ?? student.enrollment_status)
+                ? enrollmentStatusLabel(student.enrollment_status)
                 : "Sem matrícula activa"
             }
             subtitle={
@@ -1947,7 +1933,7 @@ function StudentDetail() {
           ...(student.course_name ? { course_name: student.course_name } : {}),
           academic_year: activeYearLabel,
           photo_url: student.photo_url ?? null,
-          status: estadoLabels[student.student_status] ?? student.student_status,
+          status: academicStatusLabel(student.student_status),
         }}
       />
     </AppShell>

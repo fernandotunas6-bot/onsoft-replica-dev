@@ -26,15 +26,7 @@ import { consumeRateLimit } from "@/lib/shared-rate-limit";
 import { reportSigaError } from "@/lib/ops-report";
 import { readSettingsDomain } from "@/features/school/settings-domains";
 import { schoolTodayIso } from "@/lib/school-date";
-
-function mapPaymentMethodForLedger(method: string): "cash" | "bank_transfer" | "card" | "other" {
-  if (method === "cash") return "cash";
-  if (method === "transfer") return "bank_transfer";
-  if (method === "multicaixa" || method === "multicaixa_express" || method === "express") {
-    return "card";
-  }
-  return "other";
-}
+import { mapPaymentMethodForLedger } from "./payment-method";
 
 const GATEWAY_PROVIDERS = ["multicaixa_express", "unitel_money"] as const;
 

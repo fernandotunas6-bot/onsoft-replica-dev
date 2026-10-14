@@ -36,6 +36,7 @@ export function SchoolSwitcherSheet({
     activeYear,
     terms,
     selectedTermId,
+    currentTermId,
     setSelectedTermId,
   } = useSchoolSettings();
 
@@ -169,6 +170,9 @@ export function SchoolSwitcherSheet({
                   )}
                 >
                   {term.label}
+                  {term.id === currentTermId ? (
+                    <span className="ml-1.5 text-[11px] opacity-70">· Actual</span>
+                  ) : null}
                 </button>
               ))}
             </div>

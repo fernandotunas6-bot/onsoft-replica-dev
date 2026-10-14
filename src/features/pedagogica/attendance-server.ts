@@ -1045,8 +1045,11 @@ export const getStudentAttendanceHistory = createServerFn({ method: "GET" })
       },
     );
 
-    const total = formattedRecords.length;
-    const rate = total > 0 ? Math.round(((present + excused + late) / total) * 100) : 100;
+    // A mesma taxa da ficha e da pauta (computeAttendanceRate, siga_recompute_attendance_rates):
+    // aulas «não registadas» não contam. Aqui contavam no total e a taxa saía mais baixa.
+    const counted = formattedRecords.filter((record) => record.status !== "not_registered");
+    const total = counted.length;
+    const rate = computeAttendanceRate(counted) ?? 100;
 
     return {
       records: formattedRecords,

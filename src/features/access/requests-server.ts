@@ -1,3 +1,4 @@
+import { isMissingTable as isMissingDatabaseTable } from "@/integrations/supabase/server-error";
 /**
  * Solicitações de vinculação institucional — servidor.
  *
@@ -41,6 +42,7 @@ import {
   searchSchoolsForAccessInputSchema,
   submitAccessRequestInputSchema,
 } from "./request-schemas";
+import { escapeHtml } from "@/lib/escape-html";
 
 type Db = Awaited<ReturnType<typeof loadSgaAdminClient>>;
 
@@ -88,11 +90,8 @@ const MISSING_TABLE_MESSAGE =
   "As solicitações de acesso ainda não estão activas nesta instalação (tabela school_access_requests por aplicar — ver npm run siga:sql).";
 
 function isMissingTable(error: { code?: string; message?: string } | null | undefined) {
-  if (!error) return false;
   return (
-    error.code === "42P01" ||
-    error.code === "PGRST205" ||
-    /school_access_requests/.test(error.message ?? "")
+    isMissingDatabaseTable(error) || (!!error && /school_access_requests/.test(error.message ?? ""))
   );
 }
 
@@ -237,14 +236,6 @@ async function notifyReviewers(
     console.error("[access-requests] in-app notify failed:", error);
     return 0;
   }
-}
-
-function escapeHtml(value: string) {
-  return value
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;");
 }
 
 /** Mostra só o fim de um identificador sensível (B.I.) na lista da secretaria. */

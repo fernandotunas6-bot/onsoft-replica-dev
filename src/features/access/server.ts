@@ -30,6 +30,7 @@ import {
   revokeSchoolInvitationInputSchema,
   acceptSchoolInvitationInputSchema,
 } from "./schemas";
+import { escapeHtml } from "@/lib/escape-html";
 
 const BI_LOOKUP_RATE_LIMIT = { windowMs: 60 * 1000, max: 10 };
 /** Por conta: 10 tentativas por 15 minutos, venham de onde vierem. */
@@ -919,10 +920,6 @@ export const resetStaffPasswordDirect = createServerFn({ method: "POST" })
     });
     return { success: true, userId: data.userId };
   });
-
-function escapeHtml(value: string) {
-  return value.replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
-}
 
 /**
  * Avisa o funcionário de que a senha foi mudada pela Administração: se não foi

@@ -1,3 +1,4 @@
+import { allSchoolRows } from "./paged-rows";
 import type { Json } from "@/integrations/supabase/types";
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
@@ -205,25 +206,21 @@ export const getAlumniImpactAnalytics = createServerFn({ method: "GET" })
       { data: events },
       { data: mentorships },
     ] = await Promise.all([
-      db
-        .from("alumni_profiles")
-        .select(
-          "graduation_year, employment_status, industry, province, country, skills, profile_completion",
-        )
-        .eq("school_id", membership.schoolId),
-      db
-        .from("alumni_contributions")
-        .select("contribution_type, amount, currency, hours, occurred_at")
-        .eq("school_id", membership.schoolId),
-      db
-        .from("alumni_survey_responses")
-        .select("survey_id, submitted_at")
-        .eq("school_id", membership.schoolId),
-      db
-        .from("alumni_event_registrations")
-        .select("event_id, status")
-        .eq("school_id", membership.schoolId),
-      db.from("alumni_mentorships").select("status").eq("school_id", membership.schoolId),
+      allSchoolRows(
+        db,
+        "alumni_profiles",
+        "graduation_year, employment_status, industry, province, country, skills, profile_completion",
+        membership.schoolId,
+      ),
+      allSchoolRows(
+        db,
+        "alumni_contributions",
+        "contribution_type, amount, currency, hours, occurred_at",
+        membership.schoolId,
+      ),
+      allSchoolRows(db, "alumni_survey_responses", "survey_id, submitted_at", membership.schoolId),
+      allSchoolRows(db, "alumni_event_registrations", "event_id, status", membership.schoolId),
+      allSchoolRows(db, "alumni_mentorships", "status", membership.schoolId),
     ]);
 
     const rows = profiles ?? [];

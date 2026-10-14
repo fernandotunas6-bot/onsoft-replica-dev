@@ -1,4 +1,4 @@
-import { normalizeText } from "../engine/normalize";
+import { normalizeText, valueOf } from "../engine/normalize";
 import type { ImportRefCache, RowImporter } from "../engine/types";
 import { normalizeGrade } from "@/features/education-catalog/normalize";
 import { loadStudentRefs, uniqueExactMatch, type StudentRef } from "./academic-core";
@@ -8,14 +8,6 @@ type HistoricoAcademicoCache = ImportRefCache & {
   /** Chave → classe como está gravada (para actualizar a linha certa). */
   existingKeys: Map<string, string>;
 };
-
-function valueOf(row: Record<string, unknown>, ...keys: string[]) {
-  for (const key of keys) {
-    const value = row[key];
-    if (value !== undefined && value !== null && normalizeText(value)) return value;
-  }
-  return null;
-}
 
 /**
  * «10a classe», «10.ª Classe» e «décima classe» são a mesma classe: a chave usa

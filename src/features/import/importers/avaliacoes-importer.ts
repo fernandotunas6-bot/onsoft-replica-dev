@@ -1,4 +1,4 @@
-import { normalizeDate, normalizeNumber, normalizeText } from "../engine/normalize";
+import { normalizeDate, normalizeNumber, normalizeText, valueOf } from "../engine/normalize";
 import type { ImportRefCache, RowImporter } from "../engine/types";
 import {
   loadClassSubjectRefs,
@@ -39,14 +39,6 @@ function resolveKind(value: unknown): string {
   if (texto.includes("recupera")) return "recovery";
   if (texto.includes("exame")) return texto.includes("trimestr") ? "term_exam" : "exam";
   return "test";
-}
-
-function valueOf(row: Record<string, unknown>, ...keys: string[]) {
-  for (const key of keys) {
-    const value = row[key];
-    if (value !== undefined && value !== null && normalizeText(value)) return value;
-  }
-  return null;
 }
 
 /**

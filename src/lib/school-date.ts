@@ -32,3 +32,29 @@ export function schoolTodayIso(now: Date = new Date(), timeZone = "Africa/Luanda
   if (!year || !month || !day) throw new Error("Fuso institucional inválido.");
   return `${year}-${month}-${day}`;
 }
+
+/** «Hoje» na escola mais `days` dias (negativo para trás), também em data de Luanda. */
+export function schoolDayOffsetIso(days: number, now: Date = new Date()): string {
+  return schoolTodayIso(new Date(now.getTime() + days * 86_400_000));
+}
+
+/**
+ * Número de proforma pela data e hora de emissão em Luanda (FP-AAAAMMDD-HHMMSS).
+ * A proforma não é documento fiscal: não precisa de série sequencial, e o antigo
+ * «total de faturas + 1» repetia-se entre utilizadores e misturava séries.
+ */
+export function proformaNumber(now: Date = new Date(), timeZone = "Africa/Luanda"): string {
+  const parts = new Intl.DateTimeFormat("en-GB", {
+    timeZone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hourCycle: "h23",
+  }).formatToParts(now);
+  const get = (type: Intl.DateTimeFormatPartTypes) =>
+    parts.find((item) => item.type === type)?.value ?? "00";
+  return `FP-${get("year")}${get("month")}${get("day")}-${get("hour")}${get("minute")}${get("second")}`;
+}

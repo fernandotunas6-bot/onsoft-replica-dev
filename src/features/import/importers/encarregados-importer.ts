@@ -1,5 +1,5 @@
 import { findBestPersonMatch } from "../engine/dedupe";
-import { normalizeText } from "../engine/normalize";
+import { normalizeText, valueOf } from "../engine/normalize";
 import type { ImportRefCache, RowImporter } from "../engine/types";
 import { loadExistingPeople, resolveOrCreatePerson, type PersonCandidate } from "./people-core";
 import { loadStudentRefs, uniqueExactMatch, type StudentRef } from "./academic-core";
@@ -8,14 +8,6 @@ type EncarregadosCache = ImportRefCache & {
   students: StudentRef[];
   existingGuardians: Set<string>; // key: `${student_id}:${guardian_person_id}`
 };
-
-function valueOf(row: Record<string, unknown>, ...keys: string[]) {
-  for (const key of keys) {
-    const value = row[key];
-    if (value !== undefined && value !== null && normalizeText(value)) return value;
-  }
-  return null;
-}
 
 export const encarregadosImporter: RowImporter = {
   module: "encarregados",

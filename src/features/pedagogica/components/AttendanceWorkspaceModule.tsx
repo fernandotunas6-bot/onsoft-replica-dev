@@ -1,3 +1,4 @@
+import { useFollowSelectedTerm, useSchoolSettings } from "@/features/auth/use-school-settings";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
@@ -46,6 +47,17 @@ export function AttendanceWorkspaceModule({
   initialDate?: string | undefined;
 } = {}) {
   const [selectedDate, setSelectedDate] = useState(initialDate ?? todayInLuanda());
+  // Período escolhido no cabeçalho: leva o dia para dentro dele (hoje, ou o último dia
+  // do período se já acabou, ou o primeiro se ainda não começou).
+  const { terms } = useSchoolSettings();
+  useFollowSelectedTerm((sequence) => {
+    const term = terms.find((item) => item.sequence === sequence);
+    if (!term) return;
+    const today = todayInLuanda();
+    setSelectedDate(
+      today < term.starts_on ? term.starts_on : today > term.ends_on ? term.ends_on : today,
+    );
+  });
   const [selectedSessionId, setSelectedSessionId] = useState<string | null>(null);
   const [draftCall, setDraftCall] = useState<{
     classGroupId: string;

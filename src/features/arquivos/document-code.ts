@@ -1,3 +1,4 @@
+import { schoolTodayIso } from "@/lib/school-date";
 /** IDs simples da biblioteca SIGA para pesquisa rápida (ex.: REC-260812-K4M2). */
 
 export const documentCodePrefixes = {
@@ -19,11 +20,10 @@ export type DocumentCodeKind = keyof typeof documentCodePrefixes;
 
 const CODE_RE = /^[A-Z]{2,4}-\d{6}-[A-Z0-9]{4}$/;
 
+// Data de Luanda: o servidor corre em UTC e entre 00:00 e 01:00 dava o dia anterior.
 function yymmdd(date = new Date()) {
-  const yy = String(date.getFullYear()).slice(-2);
-  const mm = String(date.getMonth() + 1).padStart(2, "0");
-  const dd = String(date.getDate()).padStart(2, "0");
-  return `${yy}${mm}${dd}`;
+  const [year, month, day] = schoolTodayIso(date).split("-");
+  return `${year.slice(-2)}${month}${day}`;
 }
 
 function randomSuffix(length = 4) {

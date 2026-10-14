@@ -70,7 +70,7 @@ import { UserAvatar } from "@/components/ui/user-avatar";
 import { gradeMatchesTeachingLevels, initialsFromName } from "@/lib/angola-academic";
 import { useCurrentAccount } from "@/features/auth/use-current-account";
 import { canWriteModule } from "@/features/auth/access-policy";
-import { useSchoolSettings } from "@/features/auth/use-school-settings";
+import { useSchoolSettings, useFollowSelectedTerm } from "@/features/auth/use-school-settings";
 import { cn } from "@/lib/utils";
 import { exportCsv } from "@/lib/export-csv";
 import { exportOfficialPautaPdf, exportPdfTable } from "@/lib/export-pdf-loader";
@@ -85,6 +85,7 @@ import { SchoolNowWidget } from "@/features/academic/components/SchoolNowWidget"
 import { getSigaNavDocUrl } from "@/lib/ecosystem-urls";
 import { toast } from "@/lib/toast";
 import { warmPedagogicaCharts } from "@/lib/warm-charts";
+import { optionLabel, resolveOptionId } from "@/lib/option-label";
 
 const PedagogicaNotasCharts = lazy(() =>
   import("@/features/academic/PedagogicaNotasCharts").then((module) => ({
@@ -166,15 +167,6 @@ const shiftLabels = {
   evening: "Noite",
 } as const;
 
-function optionLabel(id: string, label: string) {
-  return `${label} · ${id.slice(0, 8)}`;
-}
-
-function resolveOptionId(options: string[], selected: string | undefined, ids: string[]) {
-  const index = options.indexOf(selected ?? "");
-  return index >= 0 ? ids[index] : undefined;
-}
-
 function PedagogicaPage() {
   const navigate = useNavigate({ from: "/pedagogica" });
   const queryClient = useQueryClient();
@@ -206,6 +198,10 @@ function PedagogicaPage() {
     "pedagogica",
     pedagogicaFilterDefaults,
   );
+  // Período escolhido no cabeçalho → filtro de trimestre deste ecrã.
+  useFollowSelectedTerm((sequence) => {
+    if (sequence >= 1 && sequence <= 3) setFilter("trimestre", String(sequence));
+  });
 
   const canManageAcademic = canWriteModule(account.role, "pedagogica", account.grants);
   const canLaunchGrades = canManageAcademic || account.role === "Professor";

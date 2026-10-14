@@ -125,8 +125,20 @@ export const angolaGradeScale = {
  * Existe como função e não inline porque a mesma linha estava copiada em três cálculos deste
  * ficheiro, e o motor de avaliação precisa dela para as médias que calcula por fora.
  */
+/**
+ * Arredondamento de notas (meio para cima) sobre o valor decimal, sem o ruído da
+ * vírgula flutuante: (0,1 + 4,6) / 2 vale 2,35 mas o computador guarda
+ * 2,3499999…; com `+ Number.EPSILON` dava 2,3. Era assim nas pautas e nas médias,
+ * enquanto o modelo de avaliação já dava 2,4: a mesma média saía diferente no ecrã
+ * e na pauta (1 022 em 40 401 pares de notas). Uma só regra (auditoria 14).
+ */
+export function roundHalfUp(value: number, decimals = 1): number {
+  const factor = 10 ** Math.max(0, decimals);
+  return Math.round(Number((value * factor).toPrecision(12))) / factor;
+}
+
 export function roundToOneDecimal(value: number): number {
-  return Math.round((value + Number.EPSILON) * 10) / 10;
+  return roundHalfUp(value, 1);
 }
 
 /**

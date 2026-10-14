@@ -1,7 +1,9 @@
+import { schoolTodayIso } from "@/lib/school-date";
 import type { TablesInsert } from "@/integrations/supabase/types";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { publicDatabaseError } from "@/integrations/supabase/server-error";
 import { ensureDefaultTeacher } from "@/features/academic/sga-grades";
+import { isMissingTable } from "@/integrations/supabase/server-error";
 
 export type BootstrapAcademicOptions = {
   /** Propaga erros em vez de ignorar (ex.: botão em Pedagógica). */
@@ -17,17 +19,8 @@ export const DEFAULT_ACADEMIC_SUBJECTS = [
 ] as const;
 
 export function defaultAcademicYearLabel(referenceDate = new Date()): string {
-  const year = referenceDate.getFullYear();
+  const year = Number(schoolTodayIso(referenceDate).slice(0, 4));
   return `${year}/${year + 1}`;
-}
-
-function isMissingTable(error: { code?: string; message?: string } | null) {
-  return Boolean(
-    error &&
-    (error.code === "42P01" ||
-      error.code === "PGRST205" ||
-      /schema cache|does not exist|relation .* does not exist/i.test(error.message ?? "")),
-  );
 }
 
 function handleBootstrapError(
@@ -65,7 +58,7 @@ export async function bootstrapAcademicYearIfMissing(
     .maybeSingle();
   if (existing?.id) return { seeded: [] };
 
-  const year = new Date().getFullYear();
+  const year = Number(schoolTodayIso().slice(0, 4));
   const { error } = await db.from("academic_years").insert({
     school_id: input.schoolId,
     name: input.yearName ?? defaultAcademicYearLabel(),

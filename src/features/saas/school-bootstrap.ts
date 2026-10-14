@@ -1,3 +1,4 @@
+import { schoolTodayIso } from "@/lib/school-date";
 import type { TablesInsert } from "@/integrations/supabase/types";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import {
@@ -10,15 +11,7 @@ import {
   bootstrapAcademicYearIfMissing,
 } from "@/features/academic/academic-bootstrap";
 import { schoolSettingDefaults } from "@/lib/school-config";
-
-function isMissingTable(error: { code?: string; message?: string } | null) {
-  return Boolean(
-    error &&
-    (error.code === "42P01" ||
-      error.code === "PGRST205" ||
-      /schema cache|does not exist|relation .* does not exist/i.test(error.message ?? "")),
-  );
-}
+import { isMissingTable } from "@/integrations/supabase/server-error";
 
 // Conjunto validado em produção (escola "Colegio Adventista - Huambo", semeada
 // manualmente antes deste bootstrap existir). `private.has_permission()` faz
@@ -433,7 +426,7 @@ export async function bootstrapSchoolDefaults(
       domain: "academic",
       version: 1,
       value: {
-        academic_year: `Ano Lectivo ${new Date().getFullYear()}`,
+        academic_year: `Ano Lectivo ${schoolTodayIso().slice(0, 4)}`,
         evaluation_periods: schoolSettingDefaults.evaluationPeriods,
         passing_grade: schoolSettingDefaults.passingGrade,
       },

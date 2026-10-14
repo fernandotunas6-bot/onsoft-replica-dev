@@ -1,3 +1,4 @@
+import { allSchoolRows } from "./paged-rows";
 import type { TablesUpdate } from "@/integrations/supabase/types";
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
@@ -283,16 +284,13 @@ export const getAlumniOverview = createServerFn({ method: "GET" })
         .eq("school_id", membership.schoolId)
         .eq("status", "published")
         .gte("starts_at", new Date().toISOString()),
-      db
-        .from("alumni_profiles")
-        .select(
-          "employment_status, open_to_opportunities, verified_at, graduation_year, profile_completion, province",
-        )
-        .eq("school_id", membership.schoolId),
-      db
-        .from("alumni_contributions")
-        .select("amount, currency, hours")
-        .eq("school_id", membership.schoolId),
+      allSchoolRows(
+        db,
+        "alumni_profiles",
+        "employment_status, open_to_opportunities, verified_at, graduation_year, profile_completion, province",
+        membership.schoolId,
+      ),
+      allSchoolRows(db, "alumni_contributions", "amount, currency, hours", membership.schoolId),
     ]);
 
     const rows = profiles ?? [];

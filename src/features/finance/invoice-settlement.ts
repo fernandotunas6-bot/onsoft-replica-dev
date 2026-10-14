@@ -29,3 +29,20 @@ export function invoiceNetTotal(invoice: {
     0,
   );
 }
+
+/**
+ * Quanto os recibos válidos (não anulados) já pagaram de cada fatura. Estava
+ * copiado em seis sítios (tesouraria, painel, ficha da pessoa, lista de alunos).
+ */
+export function sumPaidByInvoice(
+  receipts:
+    ReadonlyArray<{ invoice_id: unknown; amount: unknown; status?: unknown }> | null | undefined,
+): Map<string, number> {
+  const paid = new Map<string, number>();
+  for (const receipt of receipts ?? []) {
+    if (receipt.status === "reversed") continue;
+    const id = String(receipt.invoice_id);
+    paid.set(id, (paid.get(id) ?? 0) + Number(receipt.amount ?? 0));
+  }
+  return paid;
+}

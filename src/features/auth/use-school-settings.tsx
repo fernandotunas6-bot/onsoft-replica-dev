@@ -4,10 +4,11 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { getSchoolSettings, listAcademicTerms, listAcademicYears } from "@/features/school/server";
 import type { PedagogySettings } from "@/features/school/schemas";
 import {
@@ -108,12 +109,15 @@ type SchoolYearContextValue = {
   selectedTerm: AcademicTermOption | null;
   selectedTermId: string | null;
   selectedTermLabel: string;
+  /** Período em que hoje cai (o «actual»), independente do seleccionado. */
+  currentTermId: string | null;
   setSelectedTermId: (termId: string) => void;
 };
 
 const SchoolYearContext = createContext<SchoolYearContextValue | null>(null);
 
 export function SchoolYearProvider({ children }: { children: ReactNode }) {
+  const queryClient = useQueryClient();
   const [selectedYearId, setSelectedYearIdState] = useState<string | null>(() => {
     if (typeof window === "undefined") return null;
     return localStorage.getItem(YEAR_ID_KEY);
@@ -202,10 +206,18 @@ export function SchoolYearProvider({ children }: { children: ReactNode }) {
     }
   }, [academicYears, selectedYearId, activeYear?.id]);
 
-  const setSelectedYearId = useCallback((yearId: string) => {
-    setSelectedYearIdState(yearId);
-    localStorage.setItem(YEAR_ID_KEY, yearId);
-  }, []);
+  // Trocar de ano recarrega os ecrãs: várias consultas não têm o ano na chave e
+  // mostravam os dados em cache do ano anterior («seleciono e nada acontece»).
+  const setSelectedYearId = useCallback(
+    (yearId: string) => {
+      setSelectedYearIdState(yearId);
+      localStorage.setItem(YEAR_ID_KEY, yearId);
+      void queryClient.invalidateQueries({
+        predicate: (query) => query.queryKey[0] !== "school",
+      });
+    },
+    [queryClient],
+  );
 
   const selectedYear =
     academicYears.find((year) => year.id === selectedYearId) ?? activeYear ?? null;
@@ -281,6 +293,7 @@ export function SchoolYearProvider({ children }: { children: ReactNode }) {
       selectedTerm,
       selectedTermId: selectedTerm?.id ?? null,
       selectedTermLabel,
+      currentTermId: currentTerm?.id ?? null,
       setSelectedTermId,
     }),
     [
@@ -295,6 +308,7 @@ export function SchoolYearProvider({ children }: { children: ReactNode }) {
       terms,
       selectedTerm,
       selectedTermLabel,
+      currentTerm?.id,
       setSelectedTermId,
     ],
   );
@@ -321,6 +335,7 @@ export function useSchoolSettings() {
       selectedTerm: null,
       selectedTermId: null,
       selectedTermLabel: "Período",
+      currentTermId: null,
       setSelectedTermId: (_termId: string) => {
         /* sem provider */
       },
@@ -334,4 +349,22 @@ export function useSchoolSettings() {
     data: context.school,
     isLoading: context.isLoading,
   };
+}
+
+/**
+ * Ecrãs com filtro de trimestre próprio seguem o período escolhido no cabeçalho.
+ * Só reage a mudanças (não no arranque), para não estreitar a vista por omissão.
+ */
+export function useFollowSelectedTerm(onTermChange: (sequence: number) => void) {
+  const { selectedTerm } = useSchoolSettings();
+  const previous = useRef<string | null | undefined>(undefined);
+  const callback = useRef(onTermChange);
+  callback.current = onTermChange;
+  useEffect(() => {
+    const id = selectedTerm?.id ?? null;
+    if (previous.current !== undefined && previous.current !== id && selectedTerm?.sequence) {
+      callback.current(selectedTerm.sequence);
+    }
+    previous.current = id;
+  }, [selectedTerm?.id, selectedTerm?.sequence]);
 }
