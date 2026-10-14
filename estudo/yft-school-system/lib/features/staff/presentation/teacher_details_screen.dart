@@ -31,15 +31,15 @@ class TeacherDetailsScreen extends ConsumerWidget {
         title: async.when(
           data: (t) => Text(
             t.name,
-            style: const TextStyle(fontWeight: FontWeight.bold),
+            style: const TextStyle(fontWeight: FontWeight.w600),
           ),
           loading: () => const Text(
             'Staff profile',
-            style: TextStyle(fontWeight: FontWeight.bold),
+            style: TextStyle(fontWeight: FontWeight.w600),
           ),
           error: (Object e, StackTrace? st) => const Text(
             'Staff profile',
-            style: TextStyle(fontWeight: FontWeight.bold),
+            style: TextStyle(fontWeight: FontWeight.w600),
           ),
         ),
         backgroundColor: Colors.transparent,
@@ -175,7 +175,7 @@ class _TeacherProfileBody extends StatelessWidget {
                         initials,
                         style: const TextStyle(
                           fontSize: 28,
-                          fontWeight: FontWeight.bold,
+                          fontWeight: FontWeight.w600,
                           color: AppColors.secondary,
                         ),
                       )
@@ -260,7 +260,7 @@ class _TeacherProfileBody extends StatelessWidget {
             child: Text(
               title,
               style: const TextStyle(
-                fontWeight: FontWeight.bold,
+                fontWeight: FontWeight.w600,
                 fontSize: 16,
                 color: AppColors.secondary,
               ),

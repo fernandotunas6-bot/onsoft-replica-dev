@@ -10,7 +10,7 @@ class SubjectPlanningScreen extends StatelessWidget {
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: const Text('Subject Planning', style: TextStyle(fontWeight: FontWeight.bold)),
+        title: const Text('Subject Planning', style: TextStyle(fontWeight: FontWeight.w600)),
         backgroundColor: Colors.transparent,
         elevation: 0,
         foregroundColor: AppColors.secondary,

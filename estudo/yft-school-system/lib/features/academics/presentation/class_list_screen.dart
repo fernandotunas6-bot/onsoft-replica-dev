@@ -21,7 +21,7 @@ class ClassListScreen extends ConsumerWidget {
       appBar: AppBar(
         title: const Text(
           'Academic Classes',
-          style: TextStyle(fontWeight: FontWeight.bold),
+          style: TextStyle(fontWeight: FontWeight.w600),
         ),
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -130,7 +130,7 @@ class ClassListScreen extends ConsumerWidget {
                                     Text(
                                       cls.className,
                                       style: const TextStyle(
-                                        fontWeight: FontWeight.bold,
+                                        fontWeight: FontWeight.w600,
                                         fontSize: 18,
                                       ),
                                     ),
@@ -213,7 +213,7 @@ class ClassListScreen extends ConsumerWidget {
                   'Delete "${cls.className}"?',
                   style: const TextStyle(
                     fontSize: 20,
-                    fontWeight: FontWeight.bold,
+                    fontWeight: FontWeight.w600,
                   ),
                 ),
                 const SizedBox(height: 8),

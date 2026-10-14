@@ -12,7 +12,7 @@ class HelpSupportScreen extends StatelessWidget {
       appBar: AppBar(
         title: const Text(
           'Help & Support',
-          style: TextStyle(fontWeight: FontWeight.bold),
+          style: TextStyle(fontWeight: FontWeight.w600),
         ),
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -63,7 +63,7 @@ class HelpSupportScreen extends StatelessWidget {
                               'How can we help you?',
                               style: TextStyle(
                                 color: Colors.white,
-                                fontWeight: FontWeight.bold,
+                                fontWeight: FontWeight.w600,
                                 fontSize: 18,
                                 height: 1.2,
                               ),
@@ -94,7 +94,7 @@ class HelpSupportScreen extends StatelessWidget {
                     ),
                     child: const Text(
                       'Contact Support',
-                      style: TextStyle(fontWeight: FontWeight.bold),
+                      style: TextStyle(fontWeight: FontWeight.w600),
                     ),
                   ),
                 ],
@@ -104,7 +104,7 @@ class HelpSupportScreen extends StatelessWidget {
             const SizedBox(height: 40),
             const Text(
               'Frequently Asked Questions',
-              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+              style: TextStyle(fontWeight: FontWeight.w600, fontSize: 18),
             ),
             const SizedBox(height: 16),
 
@@ -141,7 +141,7 @@ class HelpSupportScreen extends StatelessWidget {
       child: ExpansionTile(
         title: Text(
           question,
-          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+          style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
         ),
         iconColor: AppColors.primary,
         collapsedIconColor: AppColors.textSecondary,

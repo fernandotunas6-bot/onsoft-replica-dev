@@ -32,7 +32,7 @@ class _SubjectListScreenState extends ConsumerState<SubjectListScreen> {
       appBar: AppBar(
         title: const Text(
           'Subject Manager',
-          style: TextStyle(fontWeight: FontWeight.bold),
+          style: TextStyle(fontWeight: FontWeight.w600),
         ),
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -185,7 +185,7 @@ class _SubjectListScreenState extends ConsumerState<SubjectListScreen> {
                               title: Text(
                                 sub.name,
                                 style: const TextStyle(
-                                  fontWeight: FontWeight.bold,
+                                  fontWeight: FontWeight.w600,
                                 ),
                               ),
                               subtitle: Text(
@@ -307,7 +307,7 @@ class _SubjectListScreenState extends ConsumerState<SubjectListScreen> {
                         : 'Manage Subject Classes',
                     style: const TextStyle(
                       fontSize: 20,
-                      fontWeight: FontWeight.bold,
+                      fontWeight: FontWeight.w600,
                     ),
                   ),
                   const SizedBox(height: 16),
@@ -321,7 +321,7 @@ class _SubjectListScreenState extends ConsumerState<SubjectListScreen> {
                   const SizedBox(height: 16),
                   const Text(
                     'Assign to Classes',
-                    style: TextStyle(fontWeight: FontWeight.bold),
+                    style: TextStyle(fontWeight: FontWeight.w600),
                   ),
                   const SizedBox(height: 8),
                   ...availableClasses.map(

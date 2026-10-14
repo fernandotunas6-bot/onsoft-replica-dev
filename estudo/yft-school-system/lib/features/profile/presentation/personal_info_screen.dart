@@ -13,7 +13,7 @@ class PersonalInfoScreen extends StatelessWidget {
       appBar: AppBar(
         title: const Text(
           'Personal Information',
-          style: TextStyle(fontWeight: FontWeight.bold),
+          style: TextStyle(fontWeight: FontWeight.w600),
         ),
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -25,7 +25,7 @@ class PersonalInfoScreen extends StatelessWidget {
                 const SnackBar(
                   content: Text(
                     'Information saved successfully!',
-                    style: TextStyle(fontWeight: FontWeight.bold),
+                    style: TextStyle(fontWeight: FontWeight.w600),
                   ),
                 ),
               );
@@ -35,7 +35,7 @@ class PersonalInfoScreen extends StatelessWidget {
               'Save',
               style: TextStyle(
                 color: AppColors.primary,
-                fontWeight: FontWeight.bold,
+                fontWeight: FontWeight.w600,
                 fontSize: 16,
               ),
             ),

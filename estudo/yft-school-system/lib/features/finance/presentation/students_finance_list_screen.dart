@@ -68,7 +68,7 @@ class _StudentsFinanceListScreenState
       appBar: AppBar(
         title: const Text(
           'All Students Finance',
-          style: TextStyle(fontWeight: FontWeight.bold),
+          style: TextStyle(fontWeight: FontWeight.w600),
         ),
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -197,7 +197,7 @@ class _StudentsFinanceListScreenState
                               ? Colors.white
                               : AppColors.textSecondary,
                           fontWeight: isSelected
-                              ? FontWeight.bold
+                              ? FontWeight.w600
                               : FontWeight.normal,
                         ),
                         backgroundColor: AppColors.surface,
@@ -265,7 +265,7 @@ class _StudentsFinanceListScreenState
               child: Text(
                 student.name.isNotEmpty ? student.name[0] : '?',
                 style: const TextStyle(
-                    color: AppColors.secondary, fontWeight: FontWeight.bold),
+                    color: AppColors.secondary, fontWeight: FontWeight.w600),
               ),
             ),
             const SizedBox(width: 16),
@@ -274,7 +274,7 @@ class _StudentsFinanceListScreenState
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(student.name,
-                      style: const TextStyle(fontWeight: FontWeight.bold)),
+                      style: const TextStyle(fontWeight: FontWeight.w600)),
                   Text(displayClass,
                       style: TextStyle(
                           color: AppColors.textSecondary, fontSize: 12)),
@@ -285,7 +285,7 @@ class _StudentsFinanceListScreenState
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
                 Text(displayAmount,
-                    style: const TextStyle(fontWeight: FontWeight.bold)),
+                    style: const TextStyle(fontWeight: FontWeight.w600)),
                 Container(
                   padding:
                       const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -298,7 +298,7 @@ class _StudentsFinanceListScreenState
                     style: TextStyle(
                         color: statusColor,
                         fontSize: 11,
-                        fontWeight: FontWeight.bold),
+                        fontWeight: FontWeight.w600),
                   ),
                 ),
               ],
@@ -341,7 +341,7 @@ class _StudentsFinanceListScreenState
                   child: Text(
                     'Finance Details - ${student.name}',
                     style: const TextStyle(
-                        fontSize: 20, fontWeight: FontWeight.bold),
+                        fontSize: 20, fontWeight: FontWeight.w600),
                   ),
                 ),
                 Container(
@@ -355,7 +355,7 @@ class _StudentsFinanceListScreenState
                     status,
                     style: TextStyle(
                         color: statusColor,
-                        fontWeight: FontWeight.bold,
+                        fontWeight: FontWeight.w600,
                         fontSize: 12),
                   ),
                 ),
@@ -421,7 +421,7 @@ class _StudentsFinanceListScreenState
                 fontWeight: FontWeight.w500)),
         Text(value,
             style:
-                const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                const TextStyle(fontWeight: FontWeight.w600, fontSize: 16)),
       ],
     );
   }

@@ -124,7 +124,7 @@ class _AcademicCalendarScreenState
         appBar: AppBar(
           title: const Text(
             'Academic Calendar',
-            style: TextStyle(fontWeight: FontWeight.bold),
+            style: TextStyle(fontWeight: FontWeight.w600),
           ),
           backgroundColor: Colors.transparent,
           elevation: 0,
@@ -140,7 +140,7 @@ class _AcademicCalendarScreenState
         appBar: AppBar(
           title: const Text(
             'Academic Calendar',
-            style: TextStyle(fontWeight: FontWeight.bold),
+            style: TextStyle(fontWeight: FontWeight.w600),
           ),
           backgroundColor: Colors.transparent,
           elevation: 0,
@@ -177,7 +177,7 @@ class _AcademicCalendarScreenState
       appBar: AppBar(
         title: const Text(
           'Academic Calendar',
-          style: TextStyle(fontWeight: FontWeight.bold),
+          style: TextStyle(fontWeight: FontWeight.w600),
         ),
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -208,7 +208,7 @@ class _AcademicCalendarScreenState
                     style: const TextStyle(
                       color: AppColors.primary,
                       fontSize: 28,
-                      fontWeight: FontWeight.bold,
+                      fontWeight: FontWeight.w600,
                     ),
                   ),
                   const SizedBox(height: 4),
@@ -261,7 +261,7 @@ class _AcademicCalendarScreenState
                 children: [
                   const Text(
                     'System Currency & Settings',
-                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+                    style: TextStyle(fontWeight: FontWeight.w600, fontSize: 18),
                   ),
                   const SizedBox(height: 8),
                   const Text(
@@ -309,7 +309,7 @@ class _AcademicCalendarScreenState
 
                   const Text(
                     'Term Structure',
-                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+                    style: TextStyle(fontWeight: FontWeight.w600, fontSize: 18),
                   ),
                   const SizedBox(height: 8),
                   const Text(
@@ -352,7 +352,7 @@ class _AcademicCalendarScreenState
             // Term Date Configs
             const Text(
               'Term Dates & Durations',
-              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
+              style: TextStyle(fontWeight: FontWeight.w600, fontSize: 20),
             ),
             const SizedBox(height: 16),
 
@@ -466,7 +466,7 @@ class _AcademicCalendarScreenState
                                   content: Text(
                                     'Academic Calendar saved successfully!',
                                     style: TextStyle(
-                                      fontWeight: FontWeight.bold,
+                                      fontWeight: FontWeight.w600,
                                     ),
                                   ),
                                 ),
@@ -495,7 +495,7 @@ class _AcademicCalendarScreenState
                   ),
                   child: const Text(
                     'Save Configuration',
-                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                    style: TextStyle(fontWeight: FontWeight.w600, fontSize: 16),
                   ),
                 ),
               ),
@@ -611,7 +611,7 @@ class _AcademicCalendarScreenState
         child: Text(
           title,
           style: TextStyle(
-            fontWeight: FontWeight.bold,
+            fontWeight: FontWeight.w600,
             color: isSelected ? AppColors.primary : AppColors.textSecondary,
           ),
         ),
@@ -667,7 +667,7 @@ class _AcademicCalendarScreenState
                     Text(
                       termName,
                       style: const TextStyle(
-                        fontWeight: FontWeight.bold,
+                        fontWeight: FontWeight.w600,
                         fontSize: 18,
                       ),
                     ),

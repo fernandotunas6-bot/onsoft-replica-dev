@@ -326,7 +326,7 @@ class FeeReceiptTemplate extends StatelessWidget {
               style: GoogleFonts.inter(
                 fontSize: accentRow ? 14 : 12,
                 fontWeight:
-                    accentRow ? FontWeight.w700 : FontWeight.w600,
+                    accentRow ? FontWeight.w600 : FontWeight.w600,
                 color: vc,
                 height: 1.35,
               ),

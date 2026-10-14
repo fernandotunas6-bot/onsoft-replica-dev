@@ -17,12 +17,12 @@ class AppTheme {
       textTheme: GoogleFonts.outfitTextTheme().copyWith(
         displayLarge: GoogleFonts.outfit(
           fontSize: 32,
-          fontWeight: FontWeight.bold,
+          fontWeight: FontWeight.w600,
           color: AppColors.textPrimary,
         ),
         displayMedium: GoogleFonts.outfit(
           fontSize: 24,
-          fontWeight: FontWeight.bold,
+          fontWeight: FontWeight.w600,
           color: AppColors.textPrimary,
         ),
         bodyLarge: GoogleFonts.outfit(
@@ -47,7 +47,7 @@ class AppTheme {
           elevation: 0,
           textStyle: GoogleFonts.outfit(
             fontSize: 16,
-            fontWeight: FontWeight.bold,
+            fontWeight: FontWeight.w600,
           ),
         ),
       ),

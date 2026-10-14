@@ -117,11 +117,11 @@ class StudentDetailsScreen extends ConsumerWidget {
       appBar: AppBar(
         title: async.when(
           data: (s) => Text(s.name,
-              style: const TextStyle(fontWeight: FontWeight.bold)),
+              style: const TextStyle(fontWeight: FontWeight.w600)),
           loading: () => const Text('Student Profile',
-              style: TextStyle(fontWeight: FontWeight.bold)),
+              style: TextStyle(fontWeight: FontWeight.w600)),
           error: (e, s) => const Text('Student Profile',
-              style: TextStyle(fontWeight: FontWeight.bold)),
+              style: TextStyle(fontWeight: FontWeight.w600)),
         ),
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -314,7 +314,7 @@ class _StudentProfileBody extends StatelessWidget {
                     initials,
                     style: const TextStyle(
                       fontSize: 28,
-                      fontWeight: FontWeight.bold,
+                      fontWeight: FontWeight.w600,
                       color: AppColors.secondary,
                     ),
                   )
@@ -403,7 +403,7 @@ class _StudentProfileBody extends StatelessWidget {
             child: Text(
               title,
               style: const TextStyle(
-                fontWeight: FontWeight.bold,
+                fontWeight: FontWeight.w600,
                 fontSize: 16,
                 color: AppColors.secondary,
               ),

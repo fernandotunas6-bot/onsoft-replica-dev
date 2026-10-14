@@ -28,7 +28,7 @@ class _TeacherStudentSearchScreenState extends ConsumerState<TeacherStudentSearc
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: const Text('Search Students', style: TextStyle(fontWeight: FontWeight.bold)),
+        title: const Text('Search Students', style: TextStyle(fontWeight: FontWeight.w600)),
         backgroundColor: Colors.transparent,
         elevation: 0,
         foregroundColor: AppColors.secondary,
@@ -75,14 +75,14 @@ class _TeacherStudentSearchScreenState extends ConsumerState<TeacherStudentSearc
                           CircleAvatar(
                             backgroundColor: AppColors.primary.withValues(alpha: 0.1),
                             child: Text(s.name.isNotEmpty ? s.name[0] : '?',
-                                style: const TextStyle(color: AppColors.secondary, fontWeight: FontWeight.bold)),
+                                style: const TextStyle(color: AppColors.secondary, fontWeight: FontWeight.w600)),
                           ),
                           const SizedBox(width: 16),
                           Expanded(
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text(s.name, style: const TextStyle(fontWeight: FontWeight.bold)),
+                                Text(s.name, style: const TextStyle(fontWeight: FontWeight.w600)),
                                 Text(s.className ?? s.classId,
                                     style: const TextStyle(color: AppColors.textSecondary, fontSize: 12)),
                               ],

@@ -17,7 +17,7 @@ class ProfileScreen extends ConsumerWidget {
       appBar: AppBar(
         title: const Text(
           'My Profile',
-          style: TextStyle(fontWeight: FontWeight.bold),
+          style: TextStyle(fontWeight: FontWeight.w600),
         ),
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -69,7 +69,7 @@ class ProfileScreen extends ConsumerWidget {
                     session?.userName ?? 'User Name',
                     style: const TextStyle(
                       fontSize: 22,
-                      fontWeight: FontWeight.bold,
+                      fontWeight: FontWeight.w600,
                     ),
                   ),
                   const SizedBox(height: 4),
@@ -87,7 +87,7 @@ class ProfileScreen extends ConsumerWidget {
                       style: const TextStyle(
                         color: Colors.white,
                         fontSize: 10,
-                        fontWeight: FontWeight.bold,
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
                   ),
@@ -153,7 +153,7 @@ class ProfileScreen extends ConsumerWidget {
                 'Sign Out',
                 style: TextStyle(
                   color: AppColors.error,
-                  fontWeight: FontWeight.bold,
+                  fontWeight: FontWeight.w600,
                 ),
               ),
               trailing: const Icon(

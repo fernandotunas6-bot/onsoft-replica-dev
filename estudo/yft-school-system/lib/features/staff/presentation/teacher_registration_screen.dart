@@ -265,7 +265,7 @@ class _TeacherRegistrationScreenState
         appBar: AppBar(
           title: const Text(
             'Edit teacher',
-            style: TextStyle(fontWeight: FontWeight.bold),
+            style: TextStyle(fontWeight: FontWeight.w600),
           ),
           backgroundColor: Colors.transparent,
           elevation: 0,
@@ -291,7 +291,7 @@ class _TeacherRegistrationScreenState
       appBar: AppBar(
         title: const Text(
           'New teacher registration',
-          style: TextStyle(fontWeight: FontWeight.bold),
+          style: TextStyle(fontWeight: FontWeight.w600),
         ),
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -312,7 +312,7 @@ class _TeacherRegistrationScreenState
                   'Personal information',
                   style: TextStyle(
                     fontSize: 20,
-                    fontWeight: FontWeight.bold,
+                    fontWeight: FontWeight.w600,
                     color: AppColors.secondary,
                   ),
                 ),
@@ -423,7 +423,7 @@ class _TeacherRegistrationScreenState
                   'Professional information',
                   style: TextStyle(
                     fontSize: 20,
-                    fontWeight: FontWeight.bold,
+                    fontWeight: FontWeight.w600,
                     color: AppColors.secondary,
                   ),
                 ),
@@ -461,7 +461,7 @@ class _TeacherRegistrationScreenState
                   'Government & personal',
                   style: TextStyle(
                     fontSize: 20,
-                    fontWeight: FontWeight.bold,
+                    fontWeight: FontWeight.w600,
                     color: AppColors.secondary,
                   ),
                 ),
@@ -488,7 +488,7 @@ class _TeacherRegistrationScreenState
                   'Emergency contact',
                   style: TextStyle(
                     fontSize: 20,
-                    fontWeight: FontWeight.bold,
+                    fontWeight: FontWeight.w600,
                     color: AppColors.secondary,
                   ),
                 ),
@@ -516,7 +516,7 @@ class _TeacherRegistrationScreenState
                   'Bank details',
                   style: TextStyle(
                     fontSize: 20,
-                    fontWeight: FontWeight.bold,
+                    fontWeight: FontWeight.w600,
                     color: AppColors.secondary,
                   ),
                 ),

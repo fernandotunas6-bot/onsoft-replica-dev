@@ -79,7 +79,7 @@ class _FeeReceiptViewScreenState extends ConsumerState<FeeReceiptViewScreen> {
       appBar: AppBar(
         title: const Text(
           'Fee receipt',
-          style: TextStyle(fontWeight: FontWeight.bold),
+          style: TextStyle(fontWeight: FontWeight.w600),
         ),
         backgroundColor: AppColors.background,
         elevation: 0,
