@@ -97,6 +97,11 @@ jobs:
       - name: Lint
         run: bun run lint
 
+      # O plugin TanStack Router gera src/routeTree.gen.ts durante o build.
+      # Executar o build antes do tsc impede que rotas novas falhem por tipos desactualizados.
+      - name: Build e geração de rotas TanStack
+        run: bun run build
+
       - name: Tipos (tsc)
         run: bun run typecheck
 
@@ -119,9 +124,6 @@ jobs:
 
       - name: Inventário SIGA (módulos e infra de navegação)
         run: node scripts/siga/check-modules.mjs
-
-      - name: Build
-        run: bun run build
 
   # O job "Cobertura IconChip / MediaFrame por rota" saiu a 29/09. Abria 13
   # páginas protegidas no servidor de desenvolvimento sem sessão iniciada e só
