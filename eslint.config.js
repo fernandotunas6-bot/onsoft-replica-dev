@@ -18,8 +18,6 @@ export default tseslint.config(
       // da raiz analisava ~490 ficheiros com um config que não é o deles
       // (outro tsconfig, outros globals) — só produzia ruído e ~10 min de CPU.
       "painel/**",
-      // Código de terceiros copiado só para estudo (ver estudo/README.md).
-      "estudo/**",
       "desktop/**",
       "modelo de pautas/**",
       "playwright-report/**",
