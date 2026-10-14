@@ -19,7 +19,7 @@ class FinanceOverviewScreen extends ConsumerWidget {
       backgroundColor: AppColors.background,
       appBar: AppBar(
         title: const Text(
-          'Finance & Fees',
+          'Propinas',
           style: TextStyle(fontWeight: FontWeight.w600),
         ),
         backgroundColor: Colors.transparent,
@@ -44,7 +44,7 @@ class FinanceOverviewScreen extends ConsumerWidget {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     const Text(
-                      'Students with Arrears',
+                      'Alunos com dívidas',
                       style: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.w600,
@@ -53,7 +53,7 @@ class FinanceOverviewScreen extends ConsumerWidget {
                     TextButton(
                       onPressed: () => context.push('/students-finance'),
                       child: const Text(
-                        'View All Students',
+                        'Ver todos os alunos',
                         style: TextStyle(
                           color: AppColors.primary,
                           fontWeight: FontWeight.w600,
@@ -76,11 +76,11 @@ class FinanceOverviewScreen extends ConsumerWidget {
                           color: AppColors.error,
                         ),
                         const SizedBox(height: 16),
-                        const Text('Failed to load arrears'),
+                        const Text('Não foi possível carregar as dívidas'),
                         const SizedBox(height: 16),
                         ElevatedButton(
                           onPressed: () => ref.invalidate(arrearsProvider),
-                          child: const Text('Retry'),
+                          child: const Text('Tentar de novo'),
                         ),
                       ],
                     ),
@@ -103,7 +103,7 @@ class FinanceOverviewScreen extends ConsumerWidget {
                             ),
                             const SizedBox(height: 12),
                             const Text(
-                              'All fees are cleared!',
+                              'Não há propinas em dívida.',
                               style: TextStyle(
                                 fontWeight: FontWeight.w600,
                                 fontSize: 16,
@@ -132,7 +132,7 @@ class FinanceOverviewScreen extends ConsumerWidget {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               const Text(
-                                'Total Outstanding',
+                                'Total em dívida',
                                 style: TextStyle(
                                   color: Colors.white,
                                   fontSize: 14,
@@ -235,7 +235,7 @@ class FinanceOverviewScreen extends ConsumerWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       const Text(
-                        'Class Fee Structures',
+                        'Propinas por turma',
                         style: TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.w600,
@@ -243,7 +243,7 @@ class FinanceOverviewScreen extends ConsumerWidget {
                       ),
                       const SizedBox(height: 8),
                       const Text(
-                        'Set one fee structure per class, then choose whether it collects per term or per academic year.',
+                        'Defina uma propina por turma e escolha se é cobrada por período ou por ano lectivo.',
                         style: TextStyle(color: AppColors.textSecondary),
                       ),
                       const SizedBox(height: 16),
@@ -252,7 +252,7 @@ class FinanceOverviewScreen extends ConsumerWidget {
                         child: OutlinedButton.icon(
                           onPressed: () => context.push('/classes'),
                           icon: const Icon(LucideIcons.graduationCap),
-                          label: const Text('Manage Class Fees'),
+                          label: const Text('Gerir propinas das turmas'),
                         ),
                       ),
                     ],
