@@ -16,8 +16,8 @@ class StudentsFinanceListScreen extends ConsumerStatefulWidget {
 
 class _StudentsFinanceListScreenState
     extends ConsumerState<StudentsFinanceListScreen> {
-  String _filter = 'All';
-  String _classFilter = 'All Classes';
+  String _filter = 'Todos';
+  String _classFilter = 'Todas as turmas';
   String _searchQuery = '';
   final TextEditingController _searchController = TextEditingController();
 
@@ -28,18 +28,18 @@ class _StudentsFinanceListScreenState
   }
 
   String _statusOf(Student s) {
-    if (s.balance < 0) return 'Owing';
-    if (s.balance > 0) return 'Credit';
-    return 'Paid';
+    if (s.balance < 0) return 'Em dívida';
+    if (s.balance > 0) return 'Crédito';
+    return 'Regularizado';
   }
 
   Color _statusColor(String status) {
     switch (status) {
-      case 'Owing':
+      case 'Em dívida':
         return AppColors.error;
-      case 'Paid':
+      case 'Regularizado':
         return Colors.green;
-      case 'Credit':
+      case 'Crédito':
         return Colors.blue.shade700;
       default:
         return AppColors.textSecondary;
@@ -67,7 +67,7 @@ class _StudentsFinanceListScreenState
       backgroundColor: AppColors.background,
       appBar: AppBar(
         title: const Text(
-          'All Students Finance',
+          'Propinas dos alunos',
           style: TextStyle(fontWeight: FontWeight.w600),
         ),
         backgroundColor: Colors.transparent,
@@ -80,13 +80,13 @@ class _StudentsFinanceListScreenState
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text('Failed to load students',
+              Text('Não foi possível carregar os alunos',
                   style: TextStyle(color: AppColors.error)),
               const SizedBox(height: 8),
               TextButton(
                 onPressed: () => ref.invalidate(
                     studentsProvider((classId: null, page: 1))),
-                child: const Text('Retry'),
+                child: const Text('Tentar de novo'),
               ),
             ],
           ),
@@ -100,16 +100,16 @@ class _StudentsFinanceListScreenState
 
           final filteredList = allStudents.where((s) {
             final status = _statusOf(s);
-            final matchesStatus = _filter == 'All' || _filter == status;
+            final matchesStatus = _filter == 'Todos' || _filter == status;
             final displayClass = s.className ?? classNames[s.classId] ?? '';
             final matchesClass =
-                _classFilter == 'All Classes' || displayClass == _classFilter;
+                _classFilter == 'Todas as turmas' || displayClass == _classFilter;
             final matchesSearch =
                 s.name.toLowerCase().contains(_searchQuery.toLowerCase());
             return matchesStatus && matchesClass && matchesSearch;
           }).toList();
 
-          final classSet = <String>{'All Classes'};
+          final classSet = <String>{'Todas as turmas'};
           for (final s in allStudents) {
             final cn = s.className ?? classNames[s.classId] ?? '';
             if (cn.isNotEmpty) classSet.add(cn);
@@ -127,7 +127,7 @@ class _StudentsFinanceListScreenState
                       child: TextField(
                         controller: _searchController,
                         decoration: InputDecoration(
-                          hintText: 'Search student...',
+                          hintText: 'Procurar aluno...',
                           prefixIcon: const Icon(Icons.search, size: 20),
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
@@ -159,7 +159,7 @@ class _StudentsFinanceListScreenState
                       child: DropdownButton<String>(
                         value: classes.contains(_classFilter)
                             ? _classFilter
-                            : 'All Classes',
+                            : 'Todas as turmas',
                         items: classes.map((c) {
                           return DropdownMenuItem(value: c, child: Text(c));
                         }).toList(),
@@ -181,7 +181,7 @@ class _StudentsFinanceListScreenState
                 padding:
                     const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
                 child: Row(
-                  children: ['All', 'Paid', 'Credit', 'Owing'].map((filter) {
+                  children: ['Todos', 'Regularizado', 'Crédito', 'Em dívida'].map((filter) {
                     final isSelected = _filter == filter;
                     return Padding(
                       padding: const EdgeInsets.only(right: 8.0),
@@ -209,7 +209,7 @@ class _StudentsFinanceListScreenState
               if (filteredList.isEmpty)
                 const Expanded(
                   child: Center(
-                    child: Text('No students found',
+                    child: Text('Não há alunos',
                         style: TextStyle(color: AppColors.textSecondary)),
                   ),
                 )
@@ -339,7 +339,7 @@ class _StudentsFinanceListScreenState
               children: [
                 Expanded(
                   child: Text(
-                    'Finance Details - ${student.name}',
+                    'Conta de ${student.name}',
                     style: const TextStyle(
                         fontSize: 20, fontWeight: FontWeight.w600),
                   ),
@@ -362,16 +362,16 @@ class _StudentsFinanceListScreenState
               ],
             ),
             const SizedBox(height: 24),
-            _buildDetailRow('Class', displayClass),
+            _buildDetailRow('Turma', displayClass),
             const SizedBox(height: 16),
-            _buildDetailRow('Balance', displayAmount),
+            _buildDetailRow('Saldo', displayAmount),
             const SizedBox(height: 16),
             if (student.parentName != null) ...[
-              _buildDetailRow('Parent', student.parentName!),
+              _buildDetailRow('Encarregado', student.parentName!),
               const SizedBox(height: 16),
             ],
             if (student.parentPhone != null) ...[
-              _buildDetailRow('Parent Phone', student.parentPhone!),
+              _buildDetailRow('Telefone do encarregado', student.parentPhone!),
               const SizedBox(height: 16),
             ],
             const SizedBox(height: 16),
@@ -389,7 +389,7 @@ class _StudentsFinanceListScreenState
                     );
                   },
                   icon: const Icon(Icons.payment),
-                  label: const Text('Process Payment'),
+                  label: const Text('Registar pagamento'),
                 ),
               )
             else
@@ -401,7 +401,7 @@ class _StudentsFinanceListScreenState
                     student.balance > 0 ? Icons.savings : Icons.check_circle,
                   ),
                   label: Text(
-                    student.balance > 0 ? 'In credit' : 'All clear',
+                    student.balance > 0 ? 'Com crédito' : 'Sem dívidas',
                   ),
                 ),
               ),
