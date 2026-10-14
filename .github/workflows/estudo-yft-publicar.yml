@@ -6,7 +6,9 @@ name: Estudo — YFT (publicar na Cloudflare)
 # Faz o mesmo que estudo/yft-school-system/scripts/publicar-siga.sh na máquina
 # do autor; ver estudo/yft-school-system/PUBLICAR_SIGA.md.
 #
-# Segredos do repositório (Settings → Secrets and variables → Actions):
+# Segredos do environment yft-publicacao (ou do repositório). Atenção: os
+# CLOUDFLARE_* que já existem estão no environment production e NÃO são
+# visíveis daqui; e esse token pode não ter D1, R2 nem Custom Domains.
 #   CLOUDFLARE_API_TOKEN            Workers Scripts/Routes, D1, R2, Custom Domains: Edit
 #   FIREBASE_WEB_API_KEY            apiKey web do projecto Firebase
 #   SUPER_ADMIN_API_KEY             ≥ 32 caracteres, partilhado com o super-admin
@@ -56,6 +58,32 @@ jobs:
           echo "Estado actual do domínio:"
           curl -s -o /dev/null -w "  HTTP %{http_code}\n" https://m.portal-siga.com/ || true
 
+      # Falha em segundos, com o nome do que falta, antes dos ~10 min de
+      # build. Mesma lição do deploy-production.yml: sem isto, a falta de um
+      # segredo só aparece a meio, dita pelo wrangler. Só nomes, nunca valores.
+      - name: Confirmar segredos
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID || vars.CLOUDFLARE_ACCOUNT_ID }}
+          FIREBASE_WEB_API_KEY: ${{ secrets.FIREBASE_WEB_API_KEY }}
+          SUPER_ADMIN_API_KEY: ${{ secrets.SUPER_ADMIN_API_KEY }}
+        run: |
+          faltam=""
+          for k in CLOUDFLARE_API_TOKEN CLOUDFLARE_ACCOUNT_ID FIREBASE_WEB_API_KEY SUPER_ADMIN_API_KEY; do
+            [ -n "${!k}" ] || faltam="$faltam $k"
+          done
+          if [ -n "$faltam" ]; then
+            echo "::error::Em falta:$faltam — os secrets do environment yft-publicacao não são os do environment production."
+            exit 1
+          fi
+          # Um espaço ou \n colado a mais passa a validação de comprimento do
+          # script e só falha depois, na comparação com o super-admin.
+          if [ "$SUPER_ADMIN_API_KEY" != "$(printf '%s' "$SUPER_ADMIN_API_KEY" | tr -d '[:space:]')" ]; then
+            echo "::error::SUPER_ADMIN_API_KEY tem espaços ou newline — voltar a colar sem eles."
+            exit 1
+          fi
+          echo "Os quatro estão definidos."
+
       # Versão do autor (.metadata). Com Flutter 3.47, lucide_icons 0.257 não
       # compila (IconData passou a final).
       - uses: subosito/flutter-action@v2
@@ -81,7 +109,7 @@ jobs:
       - name: Publicar
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID || vars.CLOUDFLARE_ACCOUNT_ID }}
           FIREBASE_WEB_API_KEY: ${{ secrets.FIREBASE_WEB_API_KEY }}
           SUPER_ADMIN_API_KEY: ${{ secrets.SUPER_ADMIN_API_KEY }}
           FIREBASE_SERVICE_ACCOUNT_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
