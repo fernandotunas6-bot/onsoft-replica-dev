@@ -38,9 +38,13 @@ async function firebaseRequest<T>(env: Env, endpoint: string, body: Record<strin
       ? (payload as { error?: { message?: string } }).error?.message ?? ''
       : '';
     const isEmailExists = rawMsg.includes('EMAIL_EXISTS');
+    // O código do Identity Toolkit (EMAIL_EXISTS, API key not valid,
+    // PASSWORD_LOGIN_DISABLED, ...) não é segredo e é a única pista de quem
+    // está a diagnosticar. Antes ficava só no console.error, que exige
+    // acesso aos logs da Cloudflare — e sem ele a falha é indistinguível.
     const userMessage = isEmailExists
       ? 'An account with this email already exists'
-      : 'Account provisioning failed';
+      : `Account provisioning failed: ${rawMsg || `HTTP ${response.status}`}`;
     console.error('Firebase Auth error:', rawMsg);
     throw new Error(userMessage);
   }
