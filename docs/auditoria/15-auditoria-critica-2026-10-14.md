@@ -524,9 +524,11 @@ A exposição **hoje** é pequena por acidente: há 1 membro activo com papel `t
 momento em que esses professores receberem acesso, que é o uso normal do produto.
 
 A correcção existe, tem ensaio PGlite que reproduz o defeito antes e confirma o âmbito depois, e
-está há sete dias num ramo que ninguém abriu. **E não pode ser aplicada como está:** a versão
-`20261007100000` colide com `20261007100000_web_site_content`, que já está na `main` e aplicada.
-Precisa de ser renumerada, como aconteceu com a `enrollment_class_change`.
+esteve sete dias num ramo que ninguém abriu. A versão `20261007100000` colidia com
+`20261007100000_web_site_content`, já aplicada, por isso não podia ser aplicada como estava.
+
+**Resolvido a 14/10:** resgatada no PR #139, renumerada e **aplicada na produção** como
+`20261014121549`. Ver §17.
 
 ### 16.2 Os outros dois ramos órfãos
 
@@ -568,3 +570,62 @@ falta de alguém a fechar o ciclo.
 **A regra prática:** um ramo sem PR é trabalho perdido, e ninguém dá por isso porque não há nada
 vermelho. Vale mais varrer `git branch -r` por ramos sem PR uma vez por semana do que abrir o
 sexto front-end.
+
+---
+
+## 17. A falha de RLS, fechada (2026-10-14)
+
+Resgate do ramo órfão no PR #139 e aplicação na produção. O ramo inteiro ainda integrava: **um
+só conflito**, dois imports somados em `src/features/import/server.ts`, ambos usados.
+
+### Aplicação
+
+Aplicada com o conteúdo exacto do ficheiro — md5 `9974b607e50a5e74e6d0fccb7c075e0e`, não
+transcrito à mão. Provado por md5 das políticas antes e depois:
+
+| Objecto                                        | Antes        | Depois    |
+| ---------------------------------------------- | ------------ | --------- |
+| `private.user_wide_reader_school_ids`          | não existia  | **criada**|
+| `students_read`                                | `1418e28a…`  | alterada  |
+| `people_read`                                  | `aabc1f21…`  | alterada  |
+| `enrollments_read`                             | `932ea1a7…`  | alterada  |
+| `student_guardians_read`                       | `a367bc26…`  | alterada  |
+| `siga_assessment_scores_read`                  | `c551b268…`  | alterada  |
+| `Members read siga_attendance_records`         | `b9001d66…`  | alterada  |
+| `Members read siga_attendance_justifications`  | `b9001d66…`  | alterada  |
+| `Members read siga_attendance_sessions`        | `b9001d66…`  | alterada  |
+
+As três de presenças partilhavam o mesmo md5 — era literalmente o mesmo ramo «qualquer membro»
+do F-08, copiado nas três.
+
+### A falha está fechada, medida no professor real
+
+| Verificação                  | Valor                                      |
+| ---------------------------- | ------------------------------------------ |
+| Alunos na escola dele        | 42                                         |
+| Ramo da permissão            | 1 escola — mantém `students.records.read`  |
+| Ramo do leitor largo         | **0 escolas**                              |
+
+O ramo largo passou a exigir as duas coisas, por isso o professor cai no ramo das suas turmas.
+Antes lia os 42.
+
+**Sem regressão:** os 51 `owner` e os 3 `admin` continuam leitores largos; só o professor e o
+aluno deixaram de o ser, que é a intenção.
+
+### Renumerada duas vezes, e porquê
+
+De `20261007100000` para `20261014100000` (colisão com `web_site_content`), e depois para
+**`20261014121549`** — porque o `apply_migration` **gera o seu próprio carimbo** em vez de
+aceitar o do ficheiro. É exactamente assim que nascem os desalinhamentos entre histórico e
+repositório que a §4 descreve, e vale registá-lo como causa: não é desleixo de quem aplica, é a
+ferramenta. Quem aplicar por aqui tem de alinhar o nome do ficheiro depois, sempre.
+
+### Por fazer: recapturar o retrato
+
+O `supabase/PRODUCTION_SNAPSHOT.json` descreve oito políticas que já não existem naquela forma.
+Não foi recapturado porque o `siga:db-snapshot` precisa do CLI ligado (`supabase link`), e porque
+o PR #135 traz o retrato de 12/10 — recapturar nos dois ramos daria conflito. **Fazer uma vez,
+depois de ambos fundirem.**
+
+Os 638 testes de segurança continuam verdes porque comparam contra o ficheiro, não contra a
+produção — que é precisamente a razão para o recapturar, e a mesma lição da §5.
