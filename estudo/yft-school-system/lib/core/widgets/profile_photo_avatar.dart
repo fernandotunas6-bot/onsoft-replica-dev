@@ -87,7 +87,7 @@ class ProfilePhotoCircle extends StatelessWidget {
           label,
           style: TextStyle(
             fontSize: fontSize,
-            fontWeight: FontWeight.bold,
+            fontWeight: FontWeight.w600,
             color: AppColors.secondary,
           ),
         ),
@@ -109,7 +109,7 @@ class ProfilePhotoCircle extends StatelessWidget {
               label,
               style: TextStyle(
                 fontSize: fontSize,
-                fontWeight: FontWeight.bold,
+                fontWeight: FontWeight.w600,
                 color: AppColors.secondary,
               ),
             ),

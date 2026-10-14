@@ -95,7 +95,7 @@ class _ClassSetupScreenState extends ConsumerState<ClassSetupScreen> {
           isEditing
               ? 'Class Setup: ${widget.schoolClass!.className}'
               : 'New Class Setup',
-          style: const TextStyle(fontWeight: FontWeight.bold),
+          style: const TextStyle(fontWeight: FontWeight.w600),
         ),
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -283,7 +283,7 @@ class _ClassSetupScreenState extends ConsumerState<ClassSetupScreen> {
       title,
       style: const TextStyle(
         fontSize: 18,
-        fontWeight: FontWeight.bold,
+        fontWeight: FontWeight.w600,
         color: AppColors.secondary,
       ),
     );
@@ -334,7 +334,7 @@ class _ClassSetupScreenState extends ConsumerState<ClassSetupScreen> {
                       'Configure Class Fee Structure',
                       style: TextStyle(
                         fontSize: 22,
-                        fontWeight: FontWeight.bold,
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
                     const SizedBox(height: 8),

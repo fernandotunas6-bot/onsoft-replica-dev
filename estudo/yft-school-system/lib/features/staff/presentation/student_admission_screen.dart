@@ -462,7 +462,7 @@ class _StudentAdmissionScreenState extends ConsumerState<StudentAdmissionScreen>
           appBar: AppBar(
             title: const Text(
               'Edit student',
-              style: TextStyle(fontWeight: FontWeight.bold),
+              style: TextStyle(fontWeight: FontWeight.w600),
             ),
             backgroundColor: Colors.transparent,
             elevation: 0,
@@ -477,7 +477,7 @@ class _StudentAdmissionScreenState extends ConsumerState<StudentAdmissionScreen>
           appBar: AppBar(
             title: const Text(
               'Edit student',
-              style: TextStyle(fontWeight: FontWeight.bold),
+              style: TextStyle(fontWeight: FontWeight.w600),
             ),
             backgroundColor: Colors.transparent,
             elevation: 0,
@@ -521,7 +521,7 @@ class _StudentAdmissionScreenState extends ConsumerState<StudentAdmissionScreen>
       appBar: AppBar(
         title: Text(
           widget.studentId != null ? 'Edit student' : 'New admission',
-          style: const TextStyle(fontWeight: FontWeight.bold),
+          style: const TextStyle(fontWeight: FontWeight.w600),
         ),
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -542,7 +542,7 @@ class _StudentAdmissionScreenState extends ConsumerState<StudentAdmissionScreen>
                   'Student information',
                   style: TextStyle(
                     fontSize: 20,
-                    fontWeight: FontWeight.bold,
+                    fontWeight: FontWeight.w600,
                     color: AppColors.secondary,
                   ),
                 ),
@@ -611,7 +611,7 @@ class _StudentAdmissionScreenState extends ConsumerState<StudentAdmissionScreen>
                   'Parent / guardian',
                   style: TextStyle(
                     fontSize: 20,
-                    fontWeight: FontWeight.bold,
+                    fontWeight: FontWeight.w600,
                     color: AppColors.secondary,
                   ),
                 ),
@@ -674,7 +674,7 @@ class _StudentAdmissionScreenState extends ConsumerState<StudentAdmissionScreen>
                   'Emergency contact',
                   style: TextStyle(
                     fontSize: 20,
-                    fontWeight: FontWeight.bold,
+                    fontWeight: FontWeight.w600,
                     color: AppColors.secondary,
                   ),
                 ),
@@ -702,7 +702,7 @@ class _StudentAdmissionScreenState extends ConsumerState<StudentAdmissionScreen>
                   'Health',
                   style: TextStyle(
                     fontSize: 20,
-                    fontWeight: FontWeight.bold,
+                    fontWeight: FontWeight.w600,
                     color: AppColors.secondary,
                   ),
                 ),
@@ -845,7 +845,7 @@ class _StudentAdmissionScreenState extends ConsumerState<StudentAdmissionScreen>
               ),
               title: Text(
                 _selectedExistingParent!.name,
-                style: const TextStyle(fontWeight: FontWeight.bold),
+                style: const TextStyle(fontWeight: FontWeight.w600),
               ),
               subtitle: Text(
                 _formatSelectedParentSubtitle(_selectedExistingParent!),

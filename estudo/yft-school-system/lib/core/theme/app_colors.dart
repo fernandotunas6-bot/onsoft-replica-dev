@@ -1,25 +1,28 @@
 import 'package:flutter/material.dart';
 
 class AppColors {
-  // Brand Colors
-  static const Color primary = Color(0xFFC7FF00); // Vibrant Lime
-  /// Same family as [primary], dark enough for body text on white (receipts, PDF).
-  static const Color primaryOnLight = Color(0xFF3D4F00);
-  static const Color secondary = Color(0xFF1A1A1A); // Dark Grey/Black
+  // Paleta suave. Substitui o lima #C7FF00 do autor, que saturava cada ecrã
+  // e obrigava a texto preto para ser legível. Este azul acinzentado tem a
+  // mesma função — fundo de botões e realces — com metade do ruído.
+  static const Color primary = Color(0xFF93ACCB);
 
-  // Neutral Colors
-  static const Color background = Color(0xFFF8F9FA);
+  /// Mesma família, escura o suficiente para texto em branco (recibos, PDF).
+  static const Color primaryOnLight = Color(0xFF2F4A66);
+  static const Color secondary = Color(0xFF2B3440);
+
+  // Neutros
+  static const Color background = Color(0xFFF7F8FA);
   static const Color surface = Colors.white;
-  static const Color error = Color(0xFFFF4B4B);
+  static const Color error = Color(0xFFD96A6A);
 
-  // Text Colors
-  static const Color textPrimary = Color(0xFF1A1A1A);
-  static const Color textSecondary = Color(0xFF7C8B9A);
+  // Texto
+  static const Color textPrimary = Color(0xFF2B3440);
+  static const Color textSecondary = Color(0xFF75828F);
 
-  // Gradients
+  // Gradientes
   static const LinearGradient primaryGradient = LinearGradient(
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
-    colors: [primary, Color(0xFFB5E600)],
+    colors: [primary, Color(0xFF7D9BC1)],
   );
 }

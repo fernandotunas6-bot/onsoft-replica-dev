@@ -39,7 +39,7 @@ class _CreateNoticeScreenState extends State<CreateNoticeScreen> {
       appBar: AppBar(
         title: const Text(
           'Create Notice',
-          style: TextStyle(fontWeight: FontWeight.bold),
+          style: TextStyle(fontWeight: FontWeight.w600),
         ),
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -60,7 +60,7 @@ class _CreateNoticeScreenState extends State<CreateNoticeScreen> {
                   'New Announcement',
                   style: TextStyle(
                     fontSize: 18,
-                    fontWeight: FontWeight.bold,
+                    fontWeight: FontWeight.w600,
                     color: AppColors.secondary,
                   ),
                 ),
@@ -108,7 +108,7 @@ class _CreateNoticeScreenState extends State<CreateNoticeScreen> {
                   'Delivery Channels',
                   style: TextStyle(
                     fontSize: 16,
-                    fontWeight: FontWeight.bold,
+                    fontWeight: FontWeight.w600,
                     color: AppColors.textSecondary,
                   ),
                 ),

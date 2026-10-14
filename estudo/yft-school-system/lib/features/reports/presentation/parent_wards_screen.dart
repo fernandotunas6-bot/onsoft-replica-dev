@@ -19,7 +19,7 @@ class ParentWardsScreen extends ConsumerWidget {
       appBar: AppBar(
         title: const Text(
           'My Wards',
-          style: TextStyle(fontWeight: FontWeight.bold),
+          style: TextStyle(fontWeight: FontWeight.w600),
         ),
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -66,7 +66,7 @@ class ParentWardsScreen extends ConsumerWidget {
                   leading: WardPhotoAvatar(ward: ward, radius: 28),
                   title: Text(
                     ward.name,
-                    style: const TextStyle(fontWeight: FontWeight.bold),
+                    style: const TextStyle(fontWeight: FontWeight.w600),
                   ),
                   subtitle: Text(ward.className ?? 'Unknown Class'),
                   trailing: const Icon(LucideIcons.chevronRight, size: 20),

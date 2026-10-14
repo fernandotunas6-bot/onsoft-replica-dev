@@ -62,7 +62,7 @@ class NoticesScreen extends ConsumerWidget {
                 notice.title,
                 style: const TextStyle(
                   fontSize: 20,
-                  fontWeight: FontWeight.bold,
+                  fontWeight: FontWeight.w600,
                   color: AppColors.secondary,
                 ),
               ),
@@ -99,7 +99,7 @@ class NoticesScreen extends ConsumerWidget {
       appBar: AppBar(
         title: const Text(
           'School Notices',
-          style: TextStyle(fontWeight: FontWeight.bold),
+          style: TextStyle(fontWeight: FontWeight.w600),
         ),
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -202,7 +202,7 @@ class NoticesScreen extends ConsumerWidget {
                                         style: TextStyle(
                                           fontWeight: n.isRead
                                               ? FontWeight.w600
-                                              : FontWeight.bold,
+                                              : FontWeight.w600,
                                           fontSize: 15,
                                         ),
                                       ),

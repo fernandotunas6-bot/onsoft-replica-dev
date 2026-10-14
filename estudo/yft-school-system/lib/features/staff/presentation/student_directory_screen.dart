@@ -58,7 +58,7 @@ class _StudentDirectoryScreenState
       appBar: AppBar(
         title: const Text(
           'Student Directory',
-          style: TextStyle(fontWeight: FontWeight.bold),
+          style: TextStyle(fontWeight: FontWeight.w600),
         ),
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -174,7 +174,7 @@ class _StudentDirectoryScreenState
                                         _initials(student),
                                         style: const TextStyle(
                                           color: AppColors.secondary,
-                                          fontWeight: FontWeight.bold,
+                                          fontWeight: FontWeight.w600,
                                           fontSize: 13,
                                         ),
                                       ),

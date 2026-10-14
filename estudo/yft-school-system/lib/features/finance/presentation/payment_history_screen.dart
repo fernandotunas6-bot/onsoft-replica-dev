@@ -20,7 +20,7 @@ class PaymentHistoryScreen extends ConsumerWidget {
       appBar: AppBar(
         title: const Text(
           'Fee Payment',
-          style: TextStyle(fontWeight: FontWeight.bold),
+          style: TextStyle(fontWeight: FontWeight.w600),
         ),
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -80,7 +80,7 @@ class PaymentHistoryScreen extends ConsumerWidget {
                       style: const TextStyle(
                         color: AppColors.primary,
                         fontSize: 32,
-                        fontWeight: FontWeight.bold,
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
                     const SizedBox(height: 8),
@@ -134,7 +134,7 @@ class PaymentHistoryScreen extends ConsumerWidget {
                                   Text(
                                     ward.name,
                                     style: const TextStyle(
-                                      fontWeight: FontWeight.bold,
+                                      fontWeight: FontWeight.w600,
                                       fontSize: 16,
                                     ),
                                   ),
@@ -161,7 +161,7 @@ class PaymentHistoryScreen extends ConsumerWidget {
                                 statusText,
                                 style: TextStyle(
                                   color: statusColor,
-                                  fontWeight: FontWeight.bold,
+                                  fontWeight: FontWeight.w600,
                                   fontSize: 11,
                                 ),
                               ),
@@ -189,7 +189,7 @@ class PaymentHistoryScreen extends ConsumerWidget {
                                       ? '$currency ${credit.toStringAsFixed(2)}'
                                       : '$currency 0.00',
                               style: TextStyle(
-                                fontWeight: FontWeight.bold,
+                                fontWeight: FontWeight.w600,
                                 color: statusColor,
                               ),
                             ),

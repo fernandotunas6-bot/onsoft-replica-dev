@@ -119,7 +119,7 @@ class DashboardScreen extends ConsumerWidget {
                       schoolName,
                       style: const TextStyle(
                         fontSize: 18,
-                        fontWeight: FontWeight.w900,
+                        fontWeight: FontWeight.w600,
                         color: AppColors.secondary,
                         letterSpacing: -0.5,
                       ),
@@ -221,7 +221,7 @@ class DashboardScreen extends ConsumerWidget {
                     'SYSTEM',
                     style: TextStyle(
                       fontSize: 11,
-                      fontWeight: FontWeight.bold,
+                      fontWeight: FontWeight.w600,
                       color: AppColors.textSecondary,
                       letterSpacing: 1.2,
                     ),
@@ -270,7 +270,7 @@ class DashboardScreen extends ConsumerWidget {
                             const Text(
                               'My Account',
                               style: TextStyle(
-                                fontWeight: FontWeight.bold,
+                                fontWeight: FontWeight.w600,
                                 fontSize: 14,
                                 color: AppColors.textPrimary,
                               ),
@@ -785,7 +785,7 @@ class _SummaryCard extends StatelessWidget {
                 child: Text(
                   title,
                   style: const TextStyle(
-                    fontWeight: FontWeight.bold,
+                    fontWeight: FontWeight.w600,
                     fontSize: 18,
                   ),
                   maxLines: 1,
@@ -832,7 +832,7 @@ class _SummaryRow extends StatelessWidget {
           Text(
             value,
             style: const TextStyle(
-              fontWeight: FontWeight.bold,
+              fontWeight: FontWeight.w600,
               color: AppColors.textPrimary,
             ),
           ),
@@ -909,7 +909,7 @@ class _ActionCard extends StatelessWidget {
                   title,
                   style: TextStyle(
                     fontSize: 15,
-                    fontWeight: FontWeight.bold,
+                    fontWeight: FontWeight.w600,
                     color: isDark ? Colors.white : AppColors.secondary,
                     height: 1.2,
                   ),
@@ -941,7 +941,7 @@ class _ActionCard extends StatelessWidget {
                   style: const TextStyle(
                     color: Colors.white,
                     fontSize: 11,
-                    fontWeight: FontWeight.bold,
+                    fontWeight: FontWeight.w600,
                   ),
                 ),
               ),

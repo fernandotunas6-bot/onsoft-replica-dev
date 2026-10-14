@@ -265,7 +265,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                           Text(
                             'Recovery Email Sent',
                             style: TextStyle(
-                              fontWeight: FontWeight.bold,
+                              fontWeight: FontWeight.w600,
                               fontSize: 18,
                               color: Colors.green,
                             ),

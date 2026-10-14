@@ -26,7 +26,7 @@ class ReceiptPreviewScreen extends StatelessWidget {
       appBar: AppBar(
         title: const Text(
           'Receipt Preview',
-          style: TextStyle(fontWeight: FontWeight.bold),
+          style: TextStyle(fontWeight: FontWeight.w600),
         ),
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -64,7 +64,7 @@ class ReceiptPreviewScreen extends StatelessWidget {
                             style: TextStyle(
                               color: Colors.white,
                               fontSize: 22,
-                              fontWeight: FontWeight.bold,
+                              fontWeight: FontWeight.w600,
                             ),
                           ),
                           const Text(
@@ -100,7 +100,7 @@ class ReceiptPreviewScreen extends StatelessWidget {
                               (tx['status'] ?? '').toString(),
                               style: TextStyle(
                                 color: statusColor,
-                                fontWeight: FontWeight.bold,
+                                fontWeight: FontWeight.w600,
                                 fontSize: 13,
                               ),
                             ),
@@ -162,7 +162,7 @@ class ReceiptPreviewScreen extends StatelessWidget {
                               Text(
                                 (ward['name'] ?? 'Unknown').toString(),
                                 style: const TextStyle(
-                                  fontWeight: FontWeight.bold,
+                                  fontWeight: FontWeight.w600,
                                   fontSize: 18,
                                 ),
                               ),
@@ -211,7 +211,7 @@ class ReceiptPreviewScreen extends StatelessWidget {
                           'Payment Details',
                           style: TextStyle(
                             fontSize: 18,
-                            fontWeight: FontWeight.bold,
+                            fontWeight: FontWeight.w600,
                           ),
                         ),
                         Container(
@@ -259,14 +259,14 @@ class ReceiptPreviewScreen extends StatelessWidget {
                             'Total Amount',
                             style: TextStyle(
                               fontSize: 18,
-                              fontWeight: FontWeight.bold,
+                              fontWeight: FontWeight.w600,
                             ),
                           ),
                           Text(
                             (tx['amount'] ?? 'GH₵ 0.00').toString(),
                             style: const TextStyle(
                               fontSize: 24,
-                              fontWeight: FontWeight.bold,
+                              fontWeight: FontWeight.w600,
                               color: AppColors.primary,
                             ),
                           ),
@@ -384,7 +384,7 @@ class ReceiptPreviewScreen extends StatelessWidget {
           amount ?? 'GH₵ 0.00',
           style: const TextStyle(
             fontSize: 18,
-            fontWeight: FontWeight.bold,
+            fontWeight: FontWeight.w600,
             color: AppColors.secondary,
           ),
         ),

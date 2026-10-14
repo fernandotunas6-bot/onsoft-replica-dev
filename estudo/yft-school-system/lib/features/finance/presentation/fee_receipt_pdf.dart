@@ -59,7 +59,7 @@ pw.Widget _rowStyled(
             style: pw.TextStyle(
               fontSize: valueBold ? 9.5 : 8,
               color: vc,
-              fontWeight: valueBold ? pw.FontWeight.bold : pw.FontWeight.normal,
+              fontWeight: valueBold ? pw.FontWeight.w600 : pw.FontWeight.normal,
             ),
           ),
         ),
@@ -131,7 +131,7 @@ Future<Uint8List> buildFeeReceiptPdf(FeeReceiptTemplateData data) async {
                       textAlign: pw.TextAlign.center,
                       style: pw.TextStyle(
                         fontSize: 13,
-                        fontWeight: pw.FontWeight.bold,
+                        fontWeight: pw.FontWeight.w600,
                         letterSpacing: 0.8,
                       ),
                     ),
@@ -161,7 +161,7 @@ Future<Uint8List> buildFeeReceiptPdf(FeeReceiptTemplateData data) async {
                     'OFFICIAL FEE RECEIPT',
                     style: pw.TextStyle(
                       fontSize: 11,
-                      fontWeight: pw.FontWeight.bold,
+                      fontWeight: pw.FontWeight.w600,
                       letterSpacing: 2,
                     ),
                   ),

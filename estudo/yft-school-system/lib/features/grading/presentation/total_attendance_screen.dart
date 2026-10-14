@@ -14,7 +14,7 @@ class TotalAttendanceScreen extends ConsumerWidget {
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: const Text('Total Attendance', style: TextStyle(fontWeight: FontWeight.bold)),
+        title: const Text('Total Attendance', style: TextStyle(fontWeight: FontWeight.w600)),
         backgroundColor: Colors.transparent,
         elevation: 0,
         foregroundColor: AppColors.secondary,

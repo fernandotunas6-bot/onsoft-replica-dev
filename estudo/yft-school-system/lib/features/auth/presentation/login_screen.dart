@@ -35,7 +35,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         const SnackBar(
           content: Text(
             'Please enter your email and password.',
-            style: TextStyle(fontWeight: FontWeight.bold),
+            style: TextStyle(fontWeight: FontWeight.w600),
           ),
           backgroundColor: AppColors.error,
         ),
@@ -57,7 +57,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         SnackBar(
           content: Text(
             error,
-            style: const TextStyle(fontWeight: FontWeight.bold),
+            style: const TextStyle(fontWeight: FontWeight.w600),
           ),
           backgroundColor: AppColors.error,
         ),
