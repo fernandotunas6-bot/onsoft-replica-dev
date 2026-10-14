@@ -243,7 +243,7 @@ Future<Uint8List> buildFeeReceiptPdf(FeeReceiptTemplateData data) async {
                   decoration: pw.BoxDecoration(color: PdfColors.grey200),
                   child: pw.Text(
                     'Guarde este recibo. Para questões de facturação, contacte '
-                    'the school office using the details above. Generated from the school '
+                    'a secretaria pelos contactos acima. Emitido pelo sistema de gestão '
                     'management system.',
                     style: const pw.TextStyle(
                       fontSize: 7,

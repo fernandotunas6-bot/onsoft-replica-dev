@@ -157,7 +157,7 @@ class DashboardScreen extends ConsumerWidget {
                           context.push('/parent-receipts');
                         } else if (label == 'Results') {
                           context.push('/results-setup');
-                        } else if (label == 'Profile') {
+                        } else if (label == 'Perfil') {
                           context.push('/profile');
                         }
                       },
@@ -508,7 +508,7 @@ class DashboardScreen extends ConsumerWidget {
           context.push('/parent-receipts');
         } else if (label == 'Results') {
           context.push('/results-setup');
-        } else if (label == 'Profile') {
+        } else if (label == 'Perfil') {
           context.push('/profile');
         }
       },
@@ -549,7 +549,7 @@ class DashboardScreen extends ConsumerWidget {
         ),
       const BottomNavigationBarItem(
         icon: Icon(LucideIcons.userCircle),
-        label: 'Profile',
+        label: 'Perfil',
       ),
     ];
   }

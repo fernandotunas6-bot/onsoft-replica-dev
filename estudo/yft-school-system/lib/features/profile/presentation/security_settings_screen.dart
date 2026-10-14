@@ -182,12 +182,12 @@ class _SecuritySettingsScreenState
                         SwitchListTile(
                           contentPadding: EdgeInsets.zero,
                           title: const Text(
-                            'Allow Teachers to Enter Results',
+                            'Permitir que os professores lancem notas',
                             style: TextStyle(fontWeight: FontWeight.w600),
                           ),
                           subtitle: Text(
                             teacherCanEditResults
-                                ? 'Teachers can currently input and edit student results.'
+                                ? 'Os professores podem lançar e alterar notas.'
                                 : 'Teachers can only view results. Editing is disabled.',
                             style: const TextStyle(
                               fontSize: 12,
@@ -232,8 +232,8 @@ class _SecuritySettingsScreenState
                                       SnackBar(
                                         content: Text(
                                           val
-                                              ? 'Teachers can now enter results.'
-                                              : 'Teacher result editing has been disabled.',
+                                              ? 'Os professores passam a poder lançar notas.'
+                                              : 'O lançamento de notas por professores foi desactivado.',
                                           style: const TextStyle(
                                             fontWeight: FontWeight.w600,
                                           ),
@@ -272,7 +272,7 @@ class _SecuritySettingsScreenState
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(
                           content: Text(
-                            'Security settings updated successfully!',
+                            'Definições de segurança guardadas.',
                             style: TextStyle(fontWeight: FontWeight.w600),
                           ),
                         ),
@@ -287,7 +287,7 @@ class _SecuritySettingsScreenState
                       ),
                     ),
                     child: const Text(
-                      'Update Password',
+                      'Alterar palavra-passe',
                       style: TextStyle(
                         fontWeight: FontWeight.w600,
                         fontSize: 16,

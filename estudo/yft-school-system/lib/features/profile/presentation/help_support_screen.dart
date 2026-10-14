@@ -114,7 +114,7 @@ class HelpSupportScreen extends StatelessWidget {
             ),
             _buildFAQItem(
               'Where can I see child\'s grades?',
-              'Go to the global Home or Dashboard and click on the "Wards" section to view their latest Academic Reports.',
+              'No painel, abra a secção dos educandos para ver os boletins mais recentes.',
             ),
             _buildFAQItem(
               'Como contacto um professor?',
