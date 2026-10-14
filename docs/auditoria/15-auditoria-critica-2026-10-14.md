@@ -655,3 +655,57 @@ A emenda são 48 inserções e 42 remoções. `funcoes_private` passa de 129 a 1
 
 Os 648 testes de segurança passam — e agora passam contra um ficheiro que **descreve a produção**,
 não contra um que descreve o que ela era. A diferença é toda.
+
+---
+
+## 18. A correcção de RLS não tirou nada a ninguém — e o que revelou
+
+Apliquei a §17 e provei que a falha fechou. Faltava a outra metade: **confirmar que o professor
+continua a ver os seus alunos.** Se o ramo estreito não devolvesse nada, a correcção teria
+trocado «vê a escola toda» por «não vê nada».
+
+### O susto
+
+O único professor com pertença activa tem **0 disciplinas atribuídas**, logo o ramo estreito
+dar-lhe-ia **0 alunos** — numa escola de 42. E é uma conta real, que entrou a 27/09.
+
+### Porque não há regressão
+
+As leituras da aplicação **não passam por estas políticas**. O `listPedagogicalWorkspace`, que
+alimenta o portal do professor, usa `loadSgaAdminClient()` — a chave de serviço. E na produção:
+
+| Papel           | `rolbypassrls` |
+| --------------- | -------------- |
+| `service_role`  | **true**       |
+| `authenticated` | false          |
+| `anon`          | false          |
+
+Mais: dos **25** ficheiros que usam o cliente do browser, **nenhum** lê `students`, `people`,
+`enrollments`, `student_guardians`, `siga_assessment_scores` ou `siga_attendance_*`. Todas essas
+leituras saem por funções de servidor com a chave de serviço.
+
+Os ecrãs ficam como estavam. O que a migração fecha é o acesso **directo pelo PostgREST** — um
+professor a chamar `/rest/v1/students` com o seu próprio token — que era a falha a sério.
+
+**A lição de método:** depois de apertar RLS, verificar os dois lados. «Fechou para quem não
+devia» e «continua aberto para quem devia» são duas perguntas, e a segunda esquece-se. Aqui a
+resposta foi boa por desenho da aplicação, não por sorte — mas eu não o sabia antes de medir.
+
+### O que a falha estava a mascarar
+
+| Verificação                        | Resultado   |
+| ---------------------------------- | ----------- |
+| Professores registados             | 9           |
+| Com disciplina atribuída           | 7           |
+| `class_subjects` no total          | 71          |
+| **`class_subjects` sem professor** | **60 (85%)** |
+| Professores com conta              | 2 de 9      |
+| Turmas / aulas no horário           | 48 / 198    |
+
+A leitura larga fazia o âmbito «as minhas turmas» não ter importância — via-se tudo de qualquer
+maneira. Fechada, passa a importar que 60 das 71 disciplinas não tenham professor. Não é causado
+pela migração nem resolvido por ela: é configuração da escola, e agora tem consequência.
+
+E há aqui um dado que contraria a §3: **198 aulas no horário e 48 turmas.** O horário está a ser
+usado a sério, ao contrário das notas (1) e das presenças (0). A §7 dizia que a importação foi o
+primeiro sinal de uso real; o horário é o segundo, e é maior.
