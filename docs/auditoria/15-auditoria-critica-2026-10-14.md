@@ -709,3 +709,52 @@ pela migração nem resolvido por ela: é configuração da escola, e agora tem 
 E há aqui um dado que contraria a §3: **198 aulas no horário e 48 turmas.** O horário está a ser
 usado a sério, ao contrário das notas (1) e das presenças (0). A §7 dizia que a importação foi o
 primeiro sinal de uso real; o horário é o segundo, e é maior.
+
+---
+
+## 19. Duas medições que corrigem este relatório
+
+### O horário está configurado — o conflito de sala está dormente
+
+A §18 registou 198 aulas e eu concluí daí que o defeito do conflito de sala (PR #144) morderia
+depressa. **Medi melhor e está errado:**
+
+| Verificação                              | Resultado |
+| ---------------------------------------- | --------- |
+| Aulas no horário                         | 198       |
+| **Com sala por `room_id`**               | **196**   |
+| Com rótulo marcador (`Sala`, `A definir`)| 1         |
+| Com rótulo livre                         | 1         |
+| Salas registadas (`rooms`)               | 20        |
+| Rótulos distintos                        | 16        |
+| **Pares sobrepostos com o mesmo rótulo** | **0**     |
+
+A escola **configurou 20 salas** e usa `room_id` em 196 das 198 aulas. Não há nenhum par
+sobreposto com o mesmo rótulo. O defeito é real no código e **não afecta ninguém hoje**.
+
+Isto reclassifica o PR #144: a regra da sala passa a endurecimento preventivo, e o que vale por
+si são as três revogações de EXECUTE. Também desmente a ideia de que «não usar salas é o estado
+por omissão» — nesta escola não é.
+
+**E reforça a §18 noutro sentido:** 20 salas, 48 turmas, 198 aulas e 196 com sala atribuída é
+configuração a sério. A §3 — «construído, não ligado» — vale para a avaliação (1 nota) e a
+assiduidade (0), e **não** vale para o horário.
+
+### O catálogo continua a zero, um dia depois
+
+A §3 disse que o catálogo estava aplicado e semeado com zero adopção. Reconferido a 14/10, mais
+tarde:
+
+| | |
+| --- | --- |
+| Disciplinas da escola ligadas ao catálogo | **0** de 11 |
+| Cursos ligados | **0** de 35 |
+
+Mantém-se. O maior bloco de trabalho da semana continua sem uma única linha de uso.
+
+### A regra de método
+
+Duas vezes neste relatório tirei uma conclusão de um número agregado e tive de a corrigir ao
+olhar para a decomposição: «198 aulas, logo o bug morde» e, antes, «seis migrações em falta»
+quando por efeito eram quatro. **Um total não é uma conclusão.** Antes de dizer que um defeito
+está a afectar alguém, contar as linhas que o accionam — não as linhas que existem.
