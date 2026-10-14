@@ -151,7 +151,7 @@ from (values
                      where tablename = 'schools'
                        and policyname = 'Administrators can update their own school')),
   -- Auditoria 13, F-01/F-08: âmbito do professor e leituras da tesouraria.
-  ('20261014100000_teacher_scope_and_treasury_reads',
+  ('20261014121549_teacher_scope_and_treasury_reads',
      to_regprocedure('private.user_wide_reader_school_ids()') is not null
      and (select count(*) from pg_policies
           where schemaname = 'public'

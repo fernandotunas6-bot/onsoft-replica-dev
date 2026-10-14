@@ -32,7 +32,10 @@ describe("pauta oficial em PDF", () => {
       const pageHeight = result.doc.internal.pageSize.getHeight();
       expect(result.signaturesY, `n=${n}`).toBeLessThanOrEqual(pageHeight - 24);
     }
-  });
+    // 80 PDFs completos em ciclo: ~5,3 s nesta máquina, contra os 5 s por omissão do
+    // vitest. Sem orçamento explícito o teste passa ou falha pela velocidade da máquina,
+    // que é o defeito que o `appypay-stale-settling` já tinha tido.
+  }, 30_000);
 
   it("os casos que antes se sobrepunham (16, 39, 40) passam para página nova", () => {
     // Paisagem A4: 210 mm de altura. Fins de tabela medidos com o código antigo.

@@ -1,4 +1,4 @@
-// Ensaio local (PGlite) de 20261014100000_teacher_scope_and_treasury_reads.sql. Sem produção.
+// Ensaio local (PGlite) de 20261014121549_teacher_scope_and_treasury_reads.sql. Sem produção.
 // Executar: SIGA_SQL_TEST_MODULE_PATH=<.../pglite/dist/index.js> node tests/sql/teacher-scope-reads.mjs
 //
 // Auditoria 13, F-01/F-08. Funções auxiliares e políticas «antes» copiadas da produção
@@ -10,7 +10,7 @@ import assert from "node:assert/strict";
 
 const migration = readFileSync(
   new URL(
-    "../../supabase/migrations/20261014100000_teacher_scope_and_treasury_reads.sql",
+    "../../supabase/migrations/20261014121549_teacher_scope_and_treasury_reads.sql",
     import.meta.url,
   ),
   "utf8",
