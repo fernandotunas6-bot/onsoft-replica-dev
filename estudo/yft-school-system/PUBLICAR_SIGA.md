@@ -64,6 +64,27 @@ O script faz isto:
 4. Publica o Worker `siga-yft`, que serve a app e a API, e grava os segredos.
 5. Verifica `/health`, a página inicial e se `/api` sem sessão responde 401.
 
+## Em alternativa: publicar pelo GitHub Actions
+
+O passo 2 e o passo 4 também correm no workflow **Estudo — YFT (publicar na
+Cloudflare)** (`.github/workflows/estudo-yft-publicar.yml`), que executa este
+mesmo script em Linux. É o caminho obrigatório em máquinas com macOS 12: o
+Flutter exige macOS 14+ e o `workerd` dos testes do Worker exige 13.5+.
+
+Antes da primeira corrida, em Settings → Secrets and variables → Actions:
+
+- Secrets: `CLOUDFLARE_API_TOKEN`, `FIREBASE_WEB_API_KEY`, `SUPER_ADMIN_API_KEY`
+  e, opcional, `FIREBASE_SERVICE_ACCOUNT_JSON`.
+- Variable: `CLOUDFLARE_ACCOUNT_ID` = `701800d01d428c5141fa1fdb60ee01ae`.
+- Environment `yft-publicacao` com *required reviewers*, se se quiser uma
+  aprovação humana antes de cada escrita na Cloudflare.
+
+O `lib/firebase_options.dart` do passo 1 tem de estar commitado com os valores
+reais (são públicos); o script recusa-se a publicar enquanto tiver os
+`YOUR_..._API_KEY` do repositório de origem. Para o alvo `dominio` é preciso
+escrever `TROCAR m.portal-siga.com` no campo de confirmação do dispatch, e o
+passo 4.1 (remover a rota do Worker do Mobile V4) continua a ser à mão.
+
 ## 3. Primeiro administrador
 
 O super-admin (`super-admin/`, Next.js) cria escolas e administradores. O
