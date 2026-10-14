@@ -11,6 +11,10 @@ on:
   schedule:
     # Scan de segurança semanal (segundas, 04:00 UTC)
     - cron: "0 4 * * 1"
+  # Disparo manual: o Lighthouse só corria em push na `main` e no agendamento, por isso
+  # medir uma correcção de desempenho obrigava a publicar primeiro. Com isto mede-se em
+  # qualquer ramo. Não arrasta o smoke E2E (ver a condição desse job).
+  workflow_dispatch:
 
 # Fonte única da porta do servidor de desenvolvimento no CI. `bun run dev` fixa
 # 3006 (package.json); a porta 8080 só existe dentro do sandbox do Lovable, que
@@ -193,8 +197,9 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     needs: quality
-    # Pesado (browser + servidor): só na main e no agendamento, não em cada PR.
-    if: github.event_name != 'pull_request'
+    # Pesado (browser + servidor): só na main e no agendamento, não em cada PR nem no
+    # disparo manual — esse existe para medir o Lighthouse.
+    if: github.event_name != 'pull_request' && github.event_name != 'workflow_dispatch'
     steps:
       - uses: actions/checkout@v4
 

@@ -1,14 +1,14 @@
 {
-  "capturadoEm": "2026-10-06T08:39:05.488Z",
+  "capturadoEm": "2026-10-14T14:02:40.785Z",
   "resumo": {
     "buckets": 6,
     "buckets_publicos": 1,
-    "com_rls": 189,
-    "funcoes_private": 125,
-    "politicas": 359,
+    "com_rls": 206,
+    "funcoes_private": 130,
+    "politicas": 370,
     "politicas_storage": 14,
-    "tabelas": 189,
-    "triggers": 206
+    "tabelas": 206,
+    "triggers": 220
   },
   "tabelas": [
     {
@@ -724,6 +724,80 @@
     },
     {
       "anon_select": false,
+      "auth_select": false,
+      "colunas": [
+        "id",
+        "school_id",
+        "session_id",
+        "participant_user_id",
+        "joined_at",
+        "left_at",
+        "attendance_approved"
+      ],
+      "obrigatorias": [
+        "school_id",
+        "session_id",
+        "participant_user_id",
+        "joined_at"
+      ],
+      "politicas": 0,
+      "rls": true,
+      "rls_forcada": true,
+      "tabela": "bbb_classroom_participation"
+    },
+    {
+      "anon_select": false,
+      "auth_select": false,
+      "colunas": [
+        "id",
+        "school_id",
+        "session_id",
+        "recording_id",
+        "published",
+        "created_at"
+      ],
+      "obrigatorias": [
+        "school_id",
+        "session_id",
+        "recording_id"
+      ],
+      "politicas": 0,
+      "rls": true,
+      "rls_forcada": true,
+      "tabela": "bbb_classroom_recordings"
+    },
+    {
+      "anon_select": false,
+      "auth_select": false,
+      "colunas": [
+        "id",
+        "school_id",
+        "class_group_id",
+        "teacher_id",
+        "title",
+        "starts_at",
+        "ends_at",
+        "status",
+        "meeting_id",
+        "recordings_published",
+        "created_at"
+      ],
+      "obrigatorias": [
+        "school_id",
+        "class_group_id",
+        "teacher_id",
+        "title",
+        "starts_at",
+        "ends_at",
+        "meeting_id"
+      ],
+      "politicas": 0,
+      "rls": true,
+      "rls_forcada": true,
+      "tabela": "bbb_classroom_sessions"
+    },
+    {
+      "anon_select": false,
       "auth_select": true,
       "colunas": [
         "id",
@@ -765,6 +839,64 @@
       "rls": true,
       "rls_forcada": false,
       "tabela": "campuses"
+    },
+    {
+      "anon_select": false,
+      "auth_select": true,
+      "colunas": [
+        "code",
+        "name",
+        "locale",
+        "currency_code",
+        "grade_unit",
+        "admin_division",
+        "stages_loaded",
+        "created_at",
+        "updated_at"
+      ],
+      "obrigatorias": [
+        "code",
+        "name",
+        "locale",
+        "currency_code",
+        "grade_unit",
+        "admin_division"
+      ],
+      "politicas": 1,
+      "rls": true,
+      "rls_forcada": true,
+      "tabela": "catalog_countries"
+    },
+    {
+      "anon_select": false,
+      "auth_select": true,
+      "colunas": [
+        "id",
+        "title",
+        "authority",
+        "country_code",
+        "url",
+        "version",
+        "licence",
+        "recorded_on",
+        "status",
+        "notes",
+        "created_at",
+        "updated_at"
+      ],
+      "obrigatorias": [
+        "id",
+        "title",
+        "authority",
+        "version",
+        "licence",
+        "recorded_on",
+        "status"
+      ],
+      "politicas": 1,
+      "rls": true,
+      "rls_forcada": true,
+      "tabela": "catalog_sources"
     },
     {
       "anon_select": false,
@@ -949,6 +1081,78 @@
       "rls": true,
       "rls_forcada": false,
       "tabela": "contact_verification_profiles"
+    },
+    {
+      "anon_select": false,
+      "auth_select": true,
+      "colunas": [
+        "id",
+        "stage_id",
+        "course_code",
+        "grade",
+        "subject_code",
+        "is_mandatory",
+        "version",
+        "source_id",
+        "status",
+        "effective_from",
+        "effective_until",
+        "created_at",
+        "updated_at"
+      ],
+      "obrigatorias": [
+        "stage_id",
+        "grade",
+        "subject_code",
+        "version",
+        "source_id",
+        "status"
+      ],
+      "politicas": 1,
+      "rls": true,
+      "rls_forcada": true,
+      "tabela": "country_curriculum_entries"
+    },
+    {
+      "anon_select": false,
+      "auth_select": true,
+      "colunas": [
+        "id",
+        "country_code",
+        "name",
+        "cycle",
+        "isced_level",
+        "track",
+        "grades",
+        "grade_unit",
+        "period_models",
+        "assessment",
+        "course_codes",
+        "source_id",
+        "status",
+        "version",
+        "effective_from",
+        "effective_until",
+        "notes",
+        "created_at",
+        "updated_at"
+      ],
+      "obrigatorias": [
+        "id",
+        "country_code",
+        "name",
+        "isced_level",
+        "track",
+        "grade_unit",
+        "period_models",
+        "source_id",
+        "status",
+        "version"
+      ],
+      "politicas": 1,
+      "rls": true,
+      "rls_forcada": true,
+      "tabela": "country_education_stages"
     },
     {
       "anon_select": false,
@@ -1556,6 +1760,116 @@
       "rls": true,
       "rls_forcada": false,
       "tabela": "financial_rule_sets"
+    },
+    {
+      "anon_select": false,
+      "auth_select": true,
+      "colunas": [
+        "code",
+        "name",
+        "short_name",
+        "aliases",
+        "kind",
+        "isced_level",
+        "field_code",
+        "typical_years",
+        "source_id",
+        "status",
+        "created_at",
+        "updated_at"
+      ],
+      "obrigatorias": [
+        "code",
+        "name",
+        "short_name",
+        "kind",
+        "isced_level",
+        "field_code",
+        "source_id"
+      ],
+      "politicas": 1,
+      "rls": true,
+      "rls_forcada": true,
+      "tabela": "global_course_catalog"
+    },
+    {
+      "anon_select": false,
+      "auth_select": true,
+      "colunas": [
+        "code",
+        "name",
+        "name_en",
+        "broad_code",
+        "source_id",
+        "created_at",
+        "updated_at"
+      ],
+      "obrigatorias": [
+        "code",
+        "name",
+        "name_en",
+        "source_id"
+      ],
+      "politicas": 1,
+      "rls": true,
+      "rls_forcada": true,
+      "tabela": "global_education_fields"
+    },
+    {
+      "anon_select": false,
+      "auth_select": true,
+      "colunas": [
+        "level",
+        "code",
+        "name",
+        "name_en",
+        "source_id",
+        "created_at",
+        "updated_at"
+      ],
+      "obrigatorias": [
+        "level",
+        "code",
+        "name",
+        "name_en",
+        "source_id"
+      ],
+      "politicas": 1,
+      "rls": true,
+      "rls_forcada": true,
+      "tabela": "global_education_levels"
+    },
+    {
+      "anon_select": false,
+      "auth_select": true,
+      "colunas": [
+        "code",
+        "name",
+        "short_name",
+        "aliases",
+        "field_code",
+        "isced_levels",
+        "tracks",
+        "local_names",
+        "area",
+        "source_id",
+        "status",
+        "created_at",
+        "updated_at"
+      ],
+      "obrigatorias": [
+        "code",
+        "name",
+        "short_name",
+        "field_code",
+        "isced_levels",
+        "tracks",
+        "source_id"
+      ],
+      "politicas": 1,
+      "rls": true,
+      "rls_forcada": true,
+      "tabela": "global_subject_catalog"
     },
     {
       "anon_select": false,
@@ -2710,6 +3024,25 @@
     },
     {
       "anon_select": false,
+      "auth_select": false,
+      "colunas": [
+        "school_id",
+        "entity",
+        "last_value",
+        "created_at",
+        "updated_at"
+      ],
+      "obrigatorias": [
+        "school_id",
+        "entity"
+      ],
+      "politicas": 0,
+      "rls": true,
+      "rls_forcada": true,
+      "tabela": "identifier_sequences"
+    },
+    {
+      "anon_select": false,
       "auth_select": true,
       "colunas": [
         "id",
@@ -2956,6 +3289,29 @@
       "rls": true,
       "rls_forcada": false,
       "tabela": "member_roles"
+    },
+    {
+      "anon_select": false,
+      "auth_select": false,
+      "colunas": [
+        "school_id",
+        "actor_user_id",
+        "request_id",
+        "payload",
+        "result",
+        "created_at"
+      ],
+      "obrigatorias": [
+        "school_id",
+        "actor_user_id",
+        "request_id",
+        "payload",
+        "result"
+      ],
+      "politicas": 0,
+      "rls": true,
+      "rls_forcada": true,
+      "tabela": "mobile_v4_chat_requests"
     },
     {
       "anon_select": false,
@@ -3294,7 +3650,8 @@
         "kind",
         "is_active",
         "created_at",
-        "grading_profile"
+        "grading_profile",
+        "catalog_course_code"
       ],
       "obrigatorias": [
         "school_id",
@@ -4731,7 +5088,7 @@
         "module_key",
         "level"
       ],
-      "politicas": 4,
+      "politicas": 7,
       "rls": true,
       "rls_forcada": true,
       "tabela": "staff_module_grants"
@@ -5057,7 +5414,8 @@
         "icon",
         "display_order",
         "deleted_at",
-        "version"
+        "version",
+        "catalog_subject_code"
       ],
       "obrigatorias": [
         "school_id",
@@ -5451,6 +5809,107 @@
       "rls": true,
       "rls_forcada": false,
       "tabela": "verification_otps"
+    },
+    {
+      "anon_select": false,
+      "auth_select": false,
+      "colunas": [
+        "id",
+        "slug",
+        "title",
+        "excerpt",
+        "body",
+        "category",
+        "cover_url",
+        "author_name",
+        "status",
+        "published_at",
+        "created_by",
+        "updated_by",
+        "created_at",
+        "updated_at"
+      ],
+      "obrigatorias": [
+        "slug",
+        "title"
+      ],
+      "politicas": 0,
+      "rls": true,
+      "rls_forcada": true,
+      "tabela": "web_blog_posts"
+    },
+    {
+      "anon_select": false,
+      "auth_select": false,
+      "colunas": [
+        "id",
+        "name",
+        "email",
+        "school",
+        "subject",
+        "message",
+        "status",
+        "handled_by",
+        "handled_at",
+        "created_at",
+        "updated_at"
+      ],
+      "obrigatorias": [
+        "name",
+        "email",
+        "subject",
+        "message"
+      ],
+      "politicas": 0,
+      "rls": true,
+      "rls_forcada": true,
+      "tabela": "web_contact_messages"
+    },
+    {
+      "anon_select": false,
+      "auth_select": false,
+      "colunas": [
+        "id",
+        "question",
+        "answer",
+        "category",
+        "sort_order",
+        "featured",
+        "is_published",
+        "created_by",
+        "updated_by",
+        "created_at",
+        "updated_at"
+      ],
+      "obrigatorias": [
+        "question",
+        "answer"
+      ],
+      "politicas": 0,
+      "rls": true,
+      "rls_forcada": true,
+      "tabela": "web_faqs"
+    },
+    {
+      "anon_select": false,
+      "auth_select": false,
+      "colunas": [
+        "school_id",
+        "opted_in",
+        "opted_in_at",
+        "opted_in_by",
+        "hidden_by_platform",
+        "hidden_reason",
+        "created_at",
+        "updated_at"
+      ],
+      "obrigatorias": [
+        "school_id"
+      ],
+      "politicas": 0,
+      "rls": true,
+      "rls_forcada": true,
+      "tabela": "web_school_showcase"
     }
   ],
   "politicas": [
@@ -5653,6 +6112,24 @@
       "verificando": ""
     },
     {
+      "cmd": "SELECT",
+      "modo": "PERMISSIVE",
+      "papeis": "{authenticated}",
+      "politica": "catalog_countries_select_authenticated",
+      "tabela": "catalog_countries",
+      "usando": "true",
+      "verificando": ""
+    },
+    {
+      "cmd": "SELECT",
+      "modo": "PERMISSIVE",
+      "papeis": "{authenticated}",
+      "politica": "catalog_sources_select_authenticated",
+      "tabela": "catalog_sources",
+      "usando": "true",
+      "verificando": ""
+    },
+    {
       "cmd": "INSERT",
       "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
@@ -5741,6 +6218,24 @@
       "tabela": "contact_verification_profiles",
       "usando": "true",
       "verificando": "true"
+    },
+    {
+      "cmd": "SELECT",
+      "modo": "PERMISSIVE",
+      "papeis": "{authenticated}",
+      "politica": "country_curriculum_entries_select_authenticated",
+      "tabela": "country_curriculum_entries",
+      "usando": "true",
+      "verificando": ""
+    },
+    {
+      "cmd": "SELECT",
+      "modo": "PERMISSIVE",
+      "papeis": "{authenticated}",
+      "politica": "country_education_stages_select_authenticated",
+      "tabela": "country_education_stages",
+      "usando": "true",
+      "verificando": ""
     },
     {
       "cmd": "INSERT",
@@ -6004,13 +6499,13 @@
       "verificando": ""
     },
     {
-      "cmd": "SELECT",
-      "modo": "PERMISSIVE",
-      "papeis": "{authenticated}",
-      "politica": "enrollments_read",
       "tabela": "enrollments",
-      "usando": "((school_id IN ( SELECT private.user_permission_school_ids('students.enrollments.read'::text) AS user_permission_school_ids)) OR ((school_id IN ( SELECT private.user_member_school_ids() AS user_member_school_ids)) AND ((school_id IN ( SELECT private.user_role_school_ids(ARRAY['owner'::text, 'admin'::text, 'administrador'::text, 'secretary'::text, 'secretaria'::text]) AS user_role_school_ids)) OR ((status = ANY (ARRAY['active'::text, 'pending'::text])) AND ((school_id, class_group_id) IN ( SELECT tc.school_id,\n    tc.class_group_id\n   FROM private.teacher_class_subjects(true) tc(school_id, class_subject_id, class_group_id, subject_id)))))))",
-      "verificando": ""
+      "politica": "enrollments_read",
+      "cmd": "SELECT",
+      "papeis": "{authenticated}",
+      "usando": "(((school_id IN ( SELECT private.user_permission_school_ids('students.enrollments.read'::text) AS user_permission_school_ids)) AND (school_id IN ( SELECT private.user_wide_reader_school_ids() AS user_wide_reader_school_ids))) OR ((school_id IN ( SELECT private.user_member_school_ids() AS user_member_school_ids)) AND ((school_id IN ( SELECT private.user_role_school_ids(ARRAY['owner'::text, 'admin'::text, 'administrador'::text, 'secretary'::text, 'secretaria'::text]) AS user_role_school_ids)) OR ((status = ANY (ARRAY['active'::text, 'pending'::text])) AND ((school_id, class_group_id) IN ( SELECT tc.school_id,\n    tc.class_group_id\n   FROM private.teacher_class_subjects(true) tc(school_id, class_subject_id, class_group_id, subject_id)))))))",
+      "verificando": "",
+      "modo": "PERMISSIVE"
     },
     {
       "cmd": "UPDATE",
@@ -6136,6 +6631,42 @@
       "politica": "financial_rules_select_authorized",
       "tabela": "financial_rule_sets",
       "usando": "((school_id IS NOT NULL) AND (school_id IN ( SELECT private.user_permission_school_ids('finance.settings.read'::text) AS user_permission_school_ids)))",
+      "verificando": ""
+    },
+    {
+      "cmd": "SELECT",
+      "modo": "PERMISSIVE",
+      "papeis": "{authenticated}",
+      "politica": "global_course_catalog_select_authenticated",
+      "tabela": "global_course_catalog",
+      "usando": "true",
+      "verificando": ""
+    },
+    {
+      "cmd": "SELECT",
+      "modo": "PERMISSIVE",
+      "papeis": "{authenticated}",
+      "politica": "global_education_fields_select_authenticated",
+      "tabela": "global_education_fields",
+      "usando": "true",
+      "verificando": ""
+    },
+    {
+      "cmd": "SELECT",
+      "modo": "PERMISSIVE",
+      "papeis": "{authenticated}",
+      "politica": "global_education_levels_select_authenticated",
+      "tabela": "global_education_levels",
+      "usando": "true",
+      "verificando": ""
+    },
+    {
+      "cmd": "SELECT",
+      "modo": "PERMISSIVE",
+      "papeis": "{authenticated}",
+      "politica": "global_subject_catalog_select_authenticated",
+      "tabela": "global_subject_catalog",
+      "usando": "true",
       "verificando": ""
     },
     {
@@ -7237,13 +7768,13 @@
       "verificando": "(private.is_aal2() AND private.has_permission(school_id, 'people.records.create'::text) AND (created_by = ( SELECT auth.uid() AS uid)) AND (updated_by = ( SELECT auth.uid() AS uid)))"
     },
     {
-      "cmd": "SELECT",
-      "modo": "PERMISSIVE",
-      "papeis": "{authenticated}",
-      "politica": "people_read",
       "tabela": "people",
-      "usando": "((school_id IN ( SELECT private.user_permission_school_ids('people.records.read'::text) AS user_permission_school_ids)) OR ((school_id IN ( SELECT private.user_member_school_ids() AS user_member_school_ids)) AND ((school_id IN ( SELECT private.user_role_school_ids(ARRAY['owner'::text, 'admin'::text, 'administrador'::text, 'secretary'::text, 'secretaria'::text]) AS user_role_school_ids)) OR ((school_id, id) IN ( SELECT tp.school_id,\n    tp.person_id\n   FROM private.teacher_people() tp(school_id, person_id))))))",
-      "verificando": ""
+      "politica": "people_read",
+      "cmd": "SELECT",
+      "papeis": "{authenticated}",
+      "usando": "(((school_id IN ( SELECT private.user_permission_school_ids('people.records.read'::text) AS user_permission_school_ids)) AND (school_id IN ( SELECT private.user_wide_reader_school_ids() AS user_wide_reader_school_ids))) OR ((school_id IN ( SELECT private.user_member_school_ids() AS user_member_school_ids)) AND ((school_id IN ( SELECT private.user_role_school_ids(ARRAY['owner'::text, 'admin'::text, 'administrador'::text, 'secretary'::text, 'secretaria'::text]) AS user_role_school_ids)) OR ((school_id, id) IN ( SELECT tp.school_id,\n    tp.person_id\n   FROM private.teacher_people() tp(school_id, person_id))))))",
+      "verificando": "",
+      "modo": "PERMISSIVE"
     },
     {
       "cmd": "UPDATE",
@@ -7957,22 +8488,22 @@
       "verificando": "(school_id IN ( SELECT private.user_role_school_ids(ARRAY['owner'::text, 'admin'::text, 'administrador'::text, 'secretary'::text, 'secretaria'::text, 'treasury'::text, 'tesouraria'::text, 'finance'::text, 'teacher'::text, 'professor'::text]) AS user_role_school_ids))"
     },
     {
-      "cmd": "SELECT",
-      "modo": "PERMISSIVE",
-      "papeis": "{authenticated}",
-      "politica": "siga_assessment_scores_read",
       "tabela": "siga_assessment_scores",
-      "usando": "(current_user_can_manage_assessment_score(school_id, item_id, enrollment_id) OR ((school_id IS NOT NULL) AND (school_id IN ( SELECT private.user_member_school_ids() AS user_member_school_ids))))",
-      "verificando": ""
+      "politica": "siga_assessment_scores_read",
+      "cmd": "SELECT",
+      "papeis": "{authenticated}",
+      "usando": "(current_user_can_manage_assessment_score(school_id, item_id, enrollment_id) OR ((school_id IS NOT NULL) AND (school_id IN ( SELECT private.user_member_school_ids() AS user_member_school_ids)) AND (school_id IN ( SELECT private.user_role_school_ids(ARRAY['owner'::text, 'admin'::text, 'administrador'::text, 'secretary'::text, 'secretaria'::text]) AS user_role_school_ids))))",
+      "verificando": "",
+      "modo": "PERMISSIVE"
     },
     {
-      "cmd": "SELECT",
-      "modo": "PERMISSIVE",
-      "papeis": "{authenticated}",
+      "tabela": "siga_attendance_justifications",
       "politica": "Members read siga_attendance_justifications",
-      "tabela": "siga_attendance_justifications",
-      "usando": "((school_id IS NOT NULL) AND (school_id IN ( SELECT private.user_member_school_ids() AS user_member_school_ids)))",
-      "verificando": ""
+      "cmd": "SELECT",
+      "papeis": "{authenticated}",
+      "usando": "(((school_id IS NOT NULL) AND (school_id IN ( SELECT private.user_member_school_ids() AS user_member_school_ids)) AND (school_id IN ( SELECT private.user_role_school_ids(ARRAY['owner'::text, 'admin'::text, 'administrador'::text, 'secretary'::text, 'secretaria'::text]) AS user_role_school_ids))) OR ((school_id, student_id) IN ( SELECT ts.school_id,\n    ts.student_id\n   FROM private.teacher_students() ts(school_id, student_id))))",
+      "verificando": "",
+      "modo": "PERMISSIVE"
     },
     {
       "cmd": "ALL",
@@ -7984,13 +8515,13 @@
       "verificando": "(school_id IN ( SELECT private.user_role_school_ids(ARRAY['owner'::text, 'admin'::text, 'administrador'::text, 'secretary'::text, 'secretaria'::text, 'treasury'::text, 'tesouraria'::text, 'finance'::text, 'teacher'::text, 'professor'::text]) AS user_role_school_ids))"
     },
     {
-      "cmd": "SELECT",
-      "modo": "PERMISSIVE",
-      "papeis": "{authenticated}",
+      "tabela": "siga_attendance_records",
       "politica": "Members read siga_attendance_records",
-      "tabela": "siga_attendance_records",
-      "usando": "((school_id IS NOT NULL) AND (school_id IN ( SELECT private.user_member_school_ids() AS user_member_school_ids)))",
-      "verificando": ""
+      "cmd": "SELECT",
+      "papeis": "{authenticated}",
+      "usando": "(((school_id IS NOT NULL) AND (school_id IN ( SELECT private.user_member_school_ids() AS user_member_school_ids)) AND (school_id IN ( SELECT private.user_role_school_ids(ARRAY['owner'::text, 'admin'::text, 'administrador'::text, 'secretary'::text, 'secretaria'::text]) AS user_role_school_ids))) OR ((school_id, student_id) IN ( SELECT ts.school_id,\n    ts.student_id\n   FROM private.teacher_students() ts(school_id, student_id))))",
+      "verificando": "",
+      "modo": "PERMISSIVE"
     },
     {
       "cmd": "ALL",
@@ -8002,13 +8533,13 @@
       "verificando": "(school_id IN ( SELECT private.user_role_school_ids(ARRAY['owner'::text, 'admin'::text, 'administrador'::text, 'secretary'::text, 'secretaria'::text, 'treasury'::text, 'tesouraria'::text, 'finance'::text, 'teacher'::text, 'professor'::text]) AS user_role_school_ids))"
     },
     {
-      "cmd": "SELECT",
-      "modo": "PERMISSIVE",
-      "papeis": "{authenticated}",
-      "politica": "Members read siga_attendance_sessions",
       "tabela": "siga_attendance_sessions",
-      "usando": "((school_id IS NOT NULL) AND (school_id IN ( SELECT private.user_member_school_ids() AS user_member_school_ids)))",
-      "verificando": ""
+      "politica": "Members read siga_attendance_sessions",
+      "cmd": "SELECT",
+      "papeis": "{authenticated}",
+      "usando": "(((school_id IS NOT NULL) AND (school_id IN ( SELECT private.user_member_school_ids() AS user_member_school_ids)) AND (school_id IN ( SELECT private.user_role_school_ids(ARRAY['owner'::text, 'admin'::text, 'administrador'::text, 'secretary'::text, 'secretaria'::text]) AS user_role_school_ids))) OR ((school_id, class_group_id) IN ( SELECT tc.school_id,\n    tc.class_group_id\n   FROM private.teacher_class_subjects(true) tc(school_id, class_subject_id, class_group_id, subject_id))))",
+      "verificando": "",
+      "modo": "PERMISSIVE"
     },
     {
       "cmd": "ALL",
@@ -8164,6 +8695,15 @@
       "verificando": ""
     },
     {
+      "cmd": "DELETE",
+      "modo": "RESTRICTIVE",
+      "papeis": "{authenticated}",
+      "politica": "staff_module_grants_delete_aal2",
+      "tabela": "staff_module_grants",
+      "usando": "private.is_aal2()",
+      "verificando": ""
+    },
+    {
       "cmd": "INSERT",
       "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
@@ -8171,6 +8711,15 @@
       "tabela": "staff_module_grants",
       "usando": "",
       "verificando": "(is_school_admin(school_id) OR (is_school_member(school_id) AND (private.sga_app_role(school_id) = 'Administrador'::text)))"
+    },
+    {
+      "cmd": "INSERT",
+      "modo": "RESTRICTIVE",
+      "papeis": "{authenticated}",
+      "politica": "staff_module_grants_insert_aal2",
+      "tabela": "staff_module_grants",
+      "usando": "",
+      "verificando": "private.is_aal2()"
     },
     {
       "cmd": "SELECT",
@@ -8189,6 +8738,15 @@
       "tabela": "staff_module_grants",
       "usando": "(is_school_admin(school_id) OR (is_school_member(school_id) AND (private.sga_app_role(school_id) = 'Administrador'::text)))",
       "verificando": "(is_school_admin(school_id) OR (is_school_member(school_id) AND (private.sga_app_role(school_id) = 'Administrador'::text)))"
+    },
+    {
+      "cmd": "UPDATE",
+      "modo": "RESTRICTIVE",
+      "papeis": "{authenticated}",
+      "politica": "staff_module_grants_update_aal2",
+      "tabela": "staff_module_grants",
+      "usando": "private.is_aal2()",
+      "verificando": "private.is_aal2()"
     },
     {
       "cmd": "SELECT",
@@ -8227,13 +8785,13 @@
       "verificando": "(is_school_member(school_id) AND is_school_office(school_id))"
     },
     {
-      "cmd": "SELECT",
-      "modo": "PERMISSIVE",
-      "papeis": "{authenticated}",
-      "politica": "student_guardians_read",
       "tabela": "student_guardians",
-      "usando": "(((school_id IS NOT NULL) AND (school_id IN ( SELECT private.user_member_school_ids() AS user_member_school_ids)) AND ((school_id IS NOT NULL) AND (school_id IN ( SELECT private.user_role_school_ids(ARRAY['owner'::text, 'admin'::text, 'administrador'::text, 'secretary'::text, 'secretaria'::text]) AS user_role_school_ids)))) OR ((school_id IS NOT NULL) AND (school_id IN ( SELECT private.user_permission_school_ids('students.records.read'::text) AS user_permission_school_ids))))",
-      "verificando": ""
+      "politica": "student_guardians_read",
+      "cmd": "SELECT",
+      "papeis": "{authenticated}",
+      "usando": "(((school_id IS NOT NULL) AND (school_id IN ( SELECT private.user_member_school_ids() AS user_member_school_ids)) AND (school_id IN ( SELECT private.user_role_school_ids(ARRAY['owner'::text, 'admin'::text, 'administrador'::text, 'secretary'::text, 'secretaria'::text]) AS user_role_school_ids))) OR ((school_id IS NOT NULL) AND (school_id IN ( SELECT private.user_permission_school_ids('students.records.read'::text) AS user_permission_school_ids)) AND (school_id IN ( SELECT private.user_wide_reader_school_ids() AS user_wide_reader_school_ids))) OR ((school_id, student_id) IN ( SELECT ts.school_id,\n    ts.student_id\n   FROM private.teacher_students() ts(school_id, student_id))))",
+      "verificando": "",
+      "modo": "PERMISSIVE"
     },
     {
       "cmd": "SELECT",
@@ -8263,13 +8821,13 @@
       "verificando": "(school_id IN ( SELECT private.user_role_school_ids(ARRAY['owner'::text, 'admin'::text, 'administrador'::text, 'secretary'::text, 'secretaria'::text, 'treasury'::text, 'tesouraria'::text, 'finance'::text, 'teacher'::text, 'professor'::text]) AS user_role_school_ids))"
     },
     {
-      "cmd": "SELECT",
-      "modo": "PERMISSIVE",
-      "papeis": "{authenticated}",
-      "politica": "students_read",
       "tabela": "students",
-      "usando": "((school_id IN ( SELECT private.user_permission_school_ids('students.records.read'::text) AS user_permission_school_ids)) OR ((school_id IN ( SELECT private.user_member_school_ids() AS user_member_school_ids)) AND ((school_id IN ( SELECT private.user_role_school_ids(ARRAY['owner'::text, 'admin'::text, 'administrador'::text, 'secretary'::text, 'secretaria'::text]) AS user_role_school_ids)) OR ((school_id, id) IN ( SELECT ts.school_id,\n    ts.student_id\n   FROM private.teacher_students() ts(school_id, student_id))))))",
-      "verificando": ""
+      "politica": "students_read",
+      "cmd": "SELECT",
+      "papeis": "{authenticated}",
+      "usando": "(((school_id IN ( SELECT private.user_permission_school_ids('students.records.read'::text) AS user_permission_school_ids)) AND (school_id IN ( SELECT private.user_wide_reader_school_ids() AS user_wide_reader_school_ids))) OR ((school_id IN ( SELECT private.user_member_school_ids() AS user_member_school_ids)) AND ((school_id IN ( SELECT private.user_role_school_ids(ARRAY['owner'::text, 'admin'::text, 'administrador'::text, 'secretary'::text, 'secretaria'::text]) AS user_role_school_ids)) OR ((school_id, id) IN ( SELECT ts.school_id,\n    ts.student_id\n   FROM private.teacher_students() ts(school_id, student_id))))))",
+      "verificando": "",
+      "modo": "PERMISSIVE"
     },
     {
       "cmd": "UPDATE",
@@ -8709,7 +9267,7 @@
       "file_size_limit": 2097152,
       "id": "school-logos",
       "public": true,
-      "tipos_aceites": "{image/png,image/jpeg,image/webp,image/svg+xml}"
+      "tipos_aceites": "{image/png,image/jpeg,image/webp}"
     },
     {
       "file_size_limit": 52428800,
@@ -9062,6 +9620,12 @@
       "security_definer": true
     },
     {
+      "args": "p_school_id uuid, p_request_id uuid, p_person jsonb, p_guardians jsonb, p_class_group_id uuid, p_academic_year_id uuid, p_admission_date date",
+      "funcao": "enroll_new_student_atomic",
+      "schema": "private",
+      "security_definer": true
+    },
+    {
       "args": "target_school_id uuid, target_student_id uuid, target_class_group_id uuid, target_enrolled_on date",
       "funcao": "enroll_student",
       "schema": "private",
@@ -9078,6 +9642,12 @@
       "funcao": "grade_sheet_versions_immutable",
       "schema": "private",
       "security_definer": false
+    },
+    {
+      "args": "",
+      "funcao": "guard_academic_year_covers_terms",
+      "schema": "private",
+      "security_definer": true
     },
     {
       "args": "target_school_id uuid, permission_code text",
@@ -9172,6 +9742,12 @@
     {
       "args": "target_school_id uuid, target_document_type text, default_prefix text",
       "funcao": "next_document_number_service",
+      "schema": "private",
+      "security_definer": true
+    },
+    {
+      "args": "target_school_id uuid, target_entity text",
+      "funcao": "next_entity_identifier",
       "schema": "private",
       "security_definer": true
     },
@@ -9354,6 +9930,12 @@
       "funcao": "round_grade",
       "schema": "private",
       "security_definer": false
+    },
+    {
+      "args": "p_school_id uuid, p_year_id uuid, p_name text, p_starts_on date, p_ends_on date",
+      "funcao": "save_active_academic_year",
+      "schema": "private",
+      "security_definer": true
     },
     {
       "args": "target_school_id uuid, target_class_subject_id uuid, target_weekday integer, target_starts_at time without time zone, target_ends_at time without time zone, target_room text",
@@ -9581,6 +10163,12 @@
       "args": "p_codes text[]",
       "funcao": "user_role_school_ids",
       "schema": "private",
+      "security_definer": true
+    },
+    {
+      "schema": "private",
+      "funcao": "user_wide_reader_school_ids",
+      "args": "",
       "security_definer": true
     },
     {
@@ -10184,6 +10772,24 @@
       "security_definer": false
     },
     {
+      "args": "target_school_id uuid, keep_subject_id uuid, merge_subject_ids uuid[]",
+      "funcao": "merge_school_subjects",
+      "schema": "public",
+      "security_definer": true
+    },
+    {
+      "args": "",
+      "funcao": "mobile_v4_chat_capabilities",
+      "schema": "public",
+      "security_definer": false
+    },
+    {
+      "args": "p_school_id uuid, p_actor_id uuid, p_role text, p_request_id uuid, p_command jsonb",
+      "funcao": "mobile_v4_chat_command",
+      "schema": "public",
+      "security_definer": false
+    },
+    {
       "args": "school_id uuid, document_type text, default_prefix text",
       "funcao": "next_document_number_service",
       "schema": "public",
@@ -10376,6 +10982,12 @@
       "security_definer": false
     },
     {
+      "args": "p_school_id uuid, p_request_id uuid, p_person jsonb, p_guardians jsonb, p_class_group_id uuid, p_academic_year_id uuid, p_admission_date date",
+      "funcao": "siga_enroll_new_student_atomic",
+      "schema": "public",
+      "security_definer": false
+    },
+    {
       "args": "target_school_id uuid, actor uuid, rule_name text, continuous_weight_value numeric, exam_weight_value numeric, passing_grade_value numeric, maximum_absence_value numeric, rounding_method_value text, require_change_approval boolean, lock_after_publication_value boolean, key_subject_ids uuid[], key_subjects_cause_failure boolean, promotion_rules jsonb, calculation_options jsonb",
       "funcao": "siga_publish_assessment_rule",
       "schema": "public",
@@ -10402,6 +11014,12 @@
     {
       "args": "p_school_id uuid, p_receipt_id uuid, p_reason text",
       "funcao": "siga_reverse_finance_receipt",
+      "schema": "public",
+      "security_definer": false
+    },
+    {
+      "args": "p_school_id uuid, p_year_id uuid, p_name text, p_starts_on date, p_ends_on date",
+      "funcao": "siga_save_active_academic_year",
       "schema": "public",
       "security_definer": false
     },
@@ -10504,6 +11122,12 @@
       "trigger": "enforce_academic_calendar_manager_scope"
     },
     {
+      "funcao": "guard_academic_year_covers_terms",
+      "funcao_schema": "private",
+      "tabela": "academic_years",
+      "trigger": "trg_guard_academic_year_covers_terms"
+    },
+    {
       "funcao": "audit_alumni_self_service_claim",
       "funcao_schema": "public",
       "tabela": "alumni_profiles",
@@ -10596,6 +11220,18 @@
     {
       "funcao": "siga_touch_updated_at",
       "funcao_schema": "public",
+      "tabela": "catalog_countries",
+      "trigger": "catalog_countries_touch_updated_at"
+    },
+    {
+      "funcao": "siga_touch_updated_at",
+      "funcao_schema": "public",
+      "tabela": "catalog_sources",
+      "trigger": "catalog_sources_touch_updated_at"
+    },
+    {
+      "funcao": "siga_touch_updated_at",
+      "funcao_schema": "public",
       "tabela": "class_group_waitlist",
       "trigger": "class_group_waitlist_touch"
     },
@@ -10640,6 +11276,18 @@
       "funcao_schema": "public",
       "tabela": "contact_verification_profiles",
       "trigger": "contact_verification_profiles_set_updated_at"
+    },
+    {
+      "funcao": "siga_touch_updated_at",
+      "funcao_schema": "public",
+      "tabela": "country_curriculum_entries",
+      "trigger": "country_curriculum_entries_touch_updated_at"
+    },
+    {
+      "funcao": "siga_touch_updated_at",
+      "funcao_schema": "public",
+      "tabela": "country_education_stages",
+      "trigger": "country_education_stages_touch_updated_at"
     },
     {
       "funcao": "audit_row_change",
@@ -10808,6 +11456,30 @@
       "funcao_schema": "private",
       "tabela": "financial_rule_sets",
       "trigger": "audit_financial_rules_change"
+    },
+    {
+      "funcao": "siga_touch_updated_at",
+      "funcao_schema": "public",
+      "tabela": "global_course_catalog",
+      "trigger": "global_course_catalog_touch_updated_at"
+    },
+    {
+      "funcao": "siga_touch_updated_at",
+      "funcao_schema": "public",
+      "tabela": "global_education_fields",
+      "trigger": "global_education_fields_touch_updated_at"
+    },
+    {
+      "funcao": "siga_touch_updated_at",
+      "funcao_schema": "public",
+      "tabela": "global_education_levels",
+      "trigger": "global_education_levels_touch_updated_at"
+    },
+    {
+      "funcao": "siga_touch_updated_at",
+      "funcao_schema": "public",
+      "tabela": "global_subject_catalog",
+      "trigger": "global_subject_catalog_touch_updated_at"
     },
     {
       "funcao": "audit_row_change",
@@ -11168,6 +11840,12 @@
       "funcao_schema": "public",
       "tabela": "hr_teacher_qr_sessions",
       "trigger": "hr_teacher_qr_same_school"
+    },
+    {
+      "funcao": "siga_touch_updated_at",
+      "funcao_schema": "public",
+      "tabela": "identifier_sequences",
+      "trigger": "identifier_sequences_touch_updated_at"
     },
     {
       "funcao": "audit_row_change",
@@ -11714,6 +12392,30 @@
       "funcao_schema": "public",
       "tabela": "users",
       "trigger": "on_auth_user_created"
+    },
+    {
+      "funcao": "siga_touch_updated_at",
+      "funcao_schema": "public",
+      "tabela": "web_blog_posts",
+      "trigger": "web_blog_posts_touch_updated_at"
+    },
+    {
+      "funcao": "siga_touch_updated_at",
+      "funcao_schema": "public",
+      "tabela": "web_contact_messages",
+      "trigger": "web_contact_messages_touch_updated_at"
+    },
+    {
+      "funcao": "siga_touch_updated_at",
+      "funcao_schema": "public",
+      "tabela": "web_faqs",
+      "trigger": "web_faqs_touch_updated_at"
+    },
+    {
+      "funcao": "siga_touch_updated_at",
+      "funcao_schema": "public",
+      "tabela": "web_school_showcase",
+      "trigger": "web_school_showcase_touch_updated_at"
     }
   ],
   "relacoes": [
@@ -12013,6 +12715,31 @@
       "para": "schools"
     },
     {
+      "chave": "bbb_classroom_participation_school_id_session_id_fkey",
+      "de": "bbb_classroom_participation",
+      "para": "bbb_classroom_sessions"
+    },
+    {
+      "chave": "bbb_classroom_recordings_school_id_session_id_fkey",
+      "de": "bbb_classroom_recordings",
+      "para": "bbb_classroom_sessions"
+    },
+    {
+      "chave": "bbb_classroom_sessions_school_id_class_group_id_fkey",
+      "de": "bbb_classroom_sessions",
+      "para": "class_groups"
+    },
+    {
+      "chave": "bbb_classroom_sessions_school_id_fkey",
+      "de": "bbb_classroom_sessions",
+      "para": "schools"
+    },
+    {
+      "chave": "bbb_classroom_sessions_school_id_teacher_id_fkey",
+      "de": "bbb_classroom_sessions",
+      "para": "teachers"
+    },
+    {
       "chave": "calendar_feed_tokens_school_id_fkey",
       "de": "calendar_feed_tokens",
       "para": "schools"
@@ -12106,6 +12833,41 @@
       "chave": "contact_verification_profiles_school_id_fkey",
       "de": "contact_verification_profiles",
       "para": "schools"
+    },
+    {
+      "chave": "country_curriculum_entries_source_id_fkey",
+      "de": "country_curriculum_entries",
+      "para": "catalog_sources"
+    },
+    {
+      "chave": "country_curriculum_entries_stage_id_fkey",
+      "de": "country_curriculum_entries",
+      "para": "country_education_stages"
+    },
+    {
+      "chave": "country_curriculum_entries_course_code_fkey",
+      "de": "country_curriculum_entries",
+      "para": "global_course_catalog"
+    },
+    {
+      "chave": "country_curriculum_entries_subject_code_fkey",
+      "de": "country_curriculum_entries",
+      "para": "global_subject_catalog"
+    },
+    {
+      "chave": "country_education_stages_country_code_fkey",
+      "de": "country_education_stages",
+      "para": "catalog_countries"
+    },
+    {
+      "chave": "country_education_stages_source_id_fkey",
+      "de": "country_education_stages",
+      "para": "catalog_sources"
+    },
+    {
+      "chave": "country_education_stages_isced_level_fkey",
+      "de": "country_education_stages",
+      "para": "global_education_levels"
     },
     {
       "chave": "course_unit_enrollments_year_fkey",
@@ -12346,6 +13108,46 @@
       "chave": "financial_rule_sets_school_id_fkey",
       "de": "financial_rule_sets",
       "para": "schools"
+    },
+    {
+      "chave": "global_course_catalog_source_id_fkey",
+      "de": "global_course_catalog",
+      "para": "catalog_sources"
+    },
+    {
+      "chave": "global_course_catalog_field_code_fkey",
+      "de": "global_course_catalog",
+      "para": "global_education_fields"
+    },
+    {
+      "chave": "global_course_catalog_isced_level_fkey",
+      "de": "global_course_catalog",
+      "para": "global_education_levels"
+    },
+    {
+      "chave": "global_education_fields_source_id_fkey",
+      "de": "global_education_fields",
+      "para": "catalog_sources"
+    },
+    {
+      "chave": "global_education_fields_broad_code_fkey",
+      "de": "global_education_fields",
+      "para": "global_education_fields"
+    },
+    {
+      "chave": "global_education_levels_source_id_fkey",
+      "de": "global_education_levels",
+      "para": "catalog_sources"
+    },
+    {
+      "chave": "global_subject_catalog_source_id_fkey",
+      "de": "global_subject_catalog",
+      "para": "catalog_sources"
+    },
+    {
+      "chave": "global_subject_catalog_field_code_fkey",
+      "de": "global_subject_catalog",
+      "para": "global_education_fields"
     },
     {
       "chave": "google_workspace_connections_school_id_fkey",
@@ -12785,6 +13587,11 @@
     {
       "chave": "hr_teacher_qr_sessions_school_id_fkey",
       "de": "hr_teacher_qr_sessions",
+      "para": "schools"
+    },
+    {
+      "chave": "identifier_sequences_school_id_fkey",
+      "de": "identifier_sequences",
       "para": "schools"
     },
     {
@@ -13736,6 +14543,11 @@
       "chave": "verification_otps_school_id_fkey",
       "de": "verification_otps",
       "para": "schools"
+    },
+    {
+      "chave": "web_school_showcase_school_id_fkey",
+      "de": "web_school_showcase",
+      "para": "schools"
     }
   ],
   "valores": [
@@ -14042,6 +14854,35 @@
     },
     {
       "coluna": "status",
+      "tabela": "bbb_classroom_sessions",
+      "valores": [
+        "cancelled",
+        "ended",
+        "live",
+        "scheduled"
+      ]
+    },
+    {
+      "coluna": "grade_unit",
+      "tabela": "catalog_countries",
+      "valores": [
+        "ano",
+        "classe"
+      ]
+    },
+    {
+      "coluna": "status",
+      "tabela": "catalog_sources",
+      "valores": [
+        "archived",
+        "in_review",
+        "institutional_approved",
+        "official_verified",
+        "outdated"
+      ]
+    },
+    {
+      "coluna": "status",
       "tabela": "class_group_waitlist",
       "valores": [
         "cancelled",
@@ -14076,6 +14917,45 @@
         "active",
         "archived",
         "inactive"
+      ]
+    },
+    {
+      "coluna": "status",
+      "tabela": "country_curriculum_entries",
+      "valores": [
+        "archived",
+        "in_review",
+        "institutional_approved",
+        "official_verified",
+        "outdated"
+      ]
+    },
+    {
+      "coluna": "grade_unit",
+      "tabela": "country_education_stages",
+      "valores": [
+        "ano",
+        "classe"
+      ]
+    },
+    {
+      "coluna": "status",
+      "tabela": "country_education_stages",
+      "valores": [
+        "archived",
+        "in_review",
+        "institutional_approved",
+        "official_verified",
+        "outdated"
+      ]
+    },
+    {
+      "coluna": "track",
+      "tabela": "country_education_stages",
+      "valores": [
+        "general",
+        "higher",
+        "technical"
       ]
     },
     {
@@ -14319,6 +15199,40 @@
         "active",
         "draft",
         "retired"
+      ]
+    },
+    {
+      "coluna": "kind",
+      "tabela": "global_course_catalog",
+      "valores": [
+        "bachelor",
+        "doctorate",
+        "general_track",
+        "master",
+        "short_cycle",
+        "technical_secondary"
+      ]
+    },
+    {
+      "coluna": "status",
+      "tabela": "global_course_catalog",
+      "valores": [
+        "archived",
+        "in_review",
+        "institutional_approved",
+        "official_verified",
+        "outdated"
+      ]
+    },
+    {
+      "coluna": "status",
+      "tabela": "global_subject_catalog",
+      "valores": [
+        "archived",
+        "in_review",
+        "institutional_approved",
+        "official_verified",
+        "outdated"
       ]
     },
     {
@@ -14739,6 +15653,19 @@
         "expired",
         "revoked",
         "used"
+      ]
+    },
+    {
+      "coluna": "entity",
+      "tabela": "identifier_sequences",
+      "valores": [
+        "class_group",
+        "course",
+        "enrollment",
+        "room",
+        "staff",
+        "subject",
+        "teacher"
       ]
     },
     {
@@ -15627,6 +16554,24 @@
         "active",
         "archived",
         "cancelled"
+      ]
+    },
+    {
+      "coluna": "status",
+      "tabela": "web_blog_posts",
+      "valores": [
+        "archived",
+        "draft",
+        "published"
+      ]
+    },
+    {
+      "coluna": "status",
+      "tabela": "web_contact_messages",
+      "valores": [
+        "answered",
+        "archived",
+        "new"
       ]
     }
   ]
