@@ -1,14 +1,30 @@
 name: SIGA Flutter — validate migration
 on:
   push:
-    branches: [feat/siga-flutter-motion-2026]
-    paths: ['mobile-flutter/**', '.github/workflows/mobile-flutter.yml']
+    branches: [main, feat/siga-flutter-motion-2026, "claude/flutter-**"]
+    paths: ["mobile-flutter/**", ".github/workflows/mobile-flutter.yml"]
   pull_request:
-    paths: ['mobile-flutter/**', '.github/workflows/mobile-flutter.yml']
+    paths: ["mobile-flutter/**", ".github/workflows/mobile-flutter.yml"]
   workflow_dispatch:
 permissions:
   contents: read
 jobs:
+  backend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+      - run: npm ci --ignore-scripts
+        working-directory: mobile-flutter
+      - run: npm run typecheck:backend
+        working-directory: mobile-flutter
+      - run: npm run test:contracts
+        working-directory: mobile-flutter
+      - run: npm run test:backend
+        working-directory: mobile-flutter
+  # This validates the Flutter client only; no automatic deployment.
   flutter:
     runs-on: ubuntu-latest
     defaults:
@@ -18,7 +34,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.35.7'
+          flutter-version: "3.35.7"
           channel: stable
           cache: true
       - run: flutter pub get
@@ -33,3 +49,99 @@ jobs:
             mobile-flutter/build/web/
             mobile-flutter/pubspec.lock
           if-no-files-found: error
+  # APK instaláveis (Android), descarregáveis em «Artifacts» desta execução.
+  # Assinados com a chave de depuração: para instalar à mão, não para a Play
+  # Store. Os valores por omissão são públicos (os mesmos do portal web).
+  android:
+    runs-on: ubuntu-latest
+    needs: flutter
+    defaults:
+      run:
+        working-directory: mobile-flutter
+    # Variáveis do repositório (Settings → Variables) substituem os valores
+    # de .env.example; o .env gerado passa por scripts/check-env.mjs.
+    env:
+      SUPABASE_URL: ${{ vars.SIGA_SUPABASE_URL }}
+      SUPABASE_PUBLISHABLE_KEY: ${{ vars.SIGA_SUPABASE_PUBLISHABLE_KEY }}
+      SIGA_API_ORIGIN: ${{ vars.SIGA_API_ORIGIN }}
+      SIGA_GOOGLE_LOGIN: ${{ vars.SIGA_GOOGLE_LOGIN }}
+      SIGA_MICROSOFT_LOGIN: ${{ vars.SIGA_MICROSOFT_LOGIN }}
+      SIGA_APPLE_LOGIN: ${{ vars.SIGA_APPLE_LOGIN }}
+      SIGA_AUTH_REDIRECT: ${{ vars.SIGA_AUTH_REDIRECT }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: "3.35.7"
+          channel: stable
+          cache: true
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+      - name: .env a partir de .env.example e das variáveis do repositório
+        run: |
+          cp .env.example .env
+          for key in SUPABASE_URL SUPABASE_PUBLISHABLE_KEY SIGA_API_ORIGIN \
+            SIGA_GOOGLE_LOGIN SIGA_MICROSOFT_LOGIN SIGA_APPLE_LOGIN SIGA_AUTH_REDIRECT; do
+            value="${!key}"
+            if [ -n "$value" ]; then
+              grep -v "^$key=" .env > .env.tmp && mv .env.tmp .env
+              echo "$key=$value" >> .env
+            fi
+          done
+          node scripts/check-env.mjs .env
+          grep -E '^(SUPABASE_URL|SIGA_API_ORIGIN|SIGA_[A-Z]+_LOGIN)=' .env
+      - run: flutter pub get
+      - name: APK de demonstração (dados fictícios, sem servidor)
+        run: |
+          flutter build apk --release -t lib/main_demo.dart
+          mkdir -p ../dist
+          cp build/app/outputs/flutter-apk/app-release.apk ../dist/siga-plus-demonstracao.apk
+      - name: APK institucional (Supabase e API do portal)
+        run: |
+          flutter build apk --release --dart-define-from-file=.env
+          cp build/app/outputs/flutter-apk/app-release.apk ../dist/siga-plus.apk
+      - run: ls -la ../dist && sha256sum ../dist/*.apk
+      - uses: actions/upload-artifact@v4
+        with:
+          name: siga-plus-android-apk
+          path: dist/*.apk
+          if-no-files-found: error
+          retention-days: 30
+  # Demonstração web (dados fictícios) no Cloudflare Pages, para rever o
+  # visual no browser ou no telemóvel. Projecto isolado: não toca em
+  # m.portal-siga.com. Só corre com os segredos CLOUDFLARE_API_TOKEN e
+  # CLOUDFLARE_ACCOUNT_ID do repositório; sem eles, o passo é ignorado.
+  demo-web:
+    runs-on: ubuntu-latest
+    needs: flutter
+    if: github.event_name != 'pull_request'
+    defaults:
+      run:
+        working-directory: mobile-flutter
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: "3.35.7"
+          channel: stable
+          cache: true
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+      - name: Publicar a demonstração no Cloudflare Pages
+        if: env.CLOUDFLARE_API_TOKEN != '' && env.CLOUDFLARE_ACCOUNT_ID != ''
+        run: node scripts/publish-demo.mjs --branch="${GITHUB_REF_NAME}" | tee publish.log
+      - name: Endereço
+        if: env.CLOUDFLARE_API_TOKEN != '' && env.CLOUDFLARE_ACCOUNT_ID != ''
+        run: grep "Pré-visualização" publish.log >> "$GITHUB_STEP_SUMMARY"
+      - name: Sem segredos Cloudflare
+        if: env.CLOUDFLARE_API_TOKEN == '' || env.CLOUDFLARE_ACCOUNT_ID == ''
+        run: echo "CLOUDFLARE_API_TOKEN/CLOUDFLARE_ACCOUNT_ID não configurados; demonstração não publicada." >> "$GITHUB_STEP_SUMMARY"

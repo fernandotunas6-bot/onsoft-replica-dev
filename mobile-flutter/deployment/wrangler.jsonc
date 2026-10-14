@@ -1,0 +1,13 @@
+{
+  "name": "siga-plus-mobile-v4-domain",
+  "main": "domain-worker.mjs",
+  "compatibility_date": "2026-10-10",
+  "compatibility_flags": ["nodejs_compat"],
+  "workers_dev": false,
+  "vars": {
+    "PUBLIC_ORIGIN": "https://m.portal-siga.com",
+    "PAGES_ORIGIN": "https://361b8072.siga-plus-mobile-v4.pages.dev",
+  },
+  "routes": [{ "pattern": "m.portal-siga.com", "custom_domain": true }],
+  "observability": { "enabled": false },
+}
