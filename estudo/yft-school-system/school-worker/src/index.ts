@@ -5,16 +5,21 @@ import { apiRoutes, superAdminRoutes } from './routes';
 
 const app = new Hono<AppEnv>();
 
+// A app Flutter é servida pelo próprio Worker (mesma origem) e o super-admin
+// chama a API a partir do servidor, por isso o CORS só abre para o
+// desenvolvimento local e para as origens listadas em ALLOWED_ORIGINS.
 app.use('*', cors({
-  origin: (origin) => {
-    if (!origin) return '*';
+  origin: (origin, c) => {
+    if (!origin) return '';
     try {
-      const url = new URL(origin);
-      const host = url.hostname;
+      const host = new URL(origin).hostname;
       if (host === 'localhost' || host === '127.0.0.1') return origin;
     } catch { /* not a valid URL */ }
-    if (origin.endsWith('.vercel.app') || origin.endsWith('.workers.dev')) return origin;
-    return '';
+    const allowed = (c.env.ALLOWED_ORIGINS ?? '')
+      .split(',')
+      .map((o: string) => o.trim())
+      .filter(Boolean);
+    return allowed.includes(origin) ? origin : '';
   },
   allowMethods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   allowHeaders: ['Content-Type', 'Authorization', 'X-Super-Admin-Key'],

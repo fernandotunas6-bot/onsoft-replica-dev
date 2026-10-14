@@ -1,3 +1,4 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:yft_school_system/core/models/school_class.dart';
@@ -48,6 +49,16 @@ final rootNavigatorKey = GlobalKey<NavigatorState>();
 final appRouter = GoRouter(
   navigatorKey: rootNavigatorKey,
   initialLocation: '/',
+  // Sem sessão Firebase, só as páginas públicas abrem; o resto vai ao login.
+  redirect: (context, state) {
+    const public = {'/', '/login', '/forgot-password'};
+    if (public.contains(state.matchedLocation)) return null;
+    try {
+      return FirebaseAuth.instance.currentUser == null ? '/login' : null;
+    } catch (_) {
+      return '/login'; // Firebase não inicializado
+    }
+  },
   routes: [
     GoRoute(path: '/', builder: (context, state) => const SplashScreen()),
     GoRoute(path: '/login', builder: (context, state) => const LoginScreen()),

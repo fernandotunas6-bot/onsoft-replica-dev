@@ -6,6 +6,8 @@ export interface Env {
   /** Optional; enables Firebase Auth user delete when removing a parent from D1. */
   FIREBASE_SERVICE_ACCOUNT_JSON?: string;
   SUPER_ADMIN_API_KEY?: string;
+  /** Origens extra aceites pelo CORS, separadas por vírgulas. */
+  ALLOWED_ORIGINS?: string;
 }
 
 export interface User {
