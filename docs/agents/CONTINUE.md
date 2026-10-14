@@ -4,6 +4,27 @@ Ler isto **antes** de alterar código. Ecossistema (5 apps):
 [ARCHITECTURE_HARMONIZATION.md](./ARCHITECTURE_HARMONIZATION.md).
 Depois abrir o skill do módulo em `.cursor/skills/`.
 
+## Numeração só com dígitos (2026-10-12) — POR APLICAR
+
+Pedido do dono: número do aluno, da matrícula e dos documentos da escola com 7 dígitos,
+«1» + ano + 4 dígitos (2026 → 1260001), a recomeçar em cada ano por escola e tipo; os
+existentes (EST-…, MAT-…) renumerados por ordem de criação. Migração
+`20261012140000_numbering_one_year_digits.sql`, ensaio `tests/sql/numbering-one-year-digits.mjs`.
+Facturas, recibos, notas de crédito e despesas mantêm a série fiscal (AGT). O código
+PayFlow do aluno passa a ser o próprio número (antes `0900038` de `EST-900038`): um aluno
+já sincronizado no PayFlow com o código antigo tem de ser sincronizado de novo.
+
+Feito à volta (não depende da migração):
+- **Entrar com o número de aluno** — escolha da escola em Definições → Segurança
+  (`school_settings` domínio `student_access`, `student_number_login`, desligado por
+  omissão; só Administrador, com 2FA, auditado). Login: `student-number-login.ts` (escola
+  do endereço; no endereço geral só se o número existir numa única escola com a opção
+  ligada, senão `school_required`); `student-access-server.ts` (get/set e a pergunta sem
+  sessão que muda o rótulo do ecrã de entrada). Só fichas activas/candidatas com conta.
+  Antes da migração os números são `EST-…` e o login por número não encontra ninguém.
+- Pesquisa por número tolerante a espaços/traços (`numberMatches`): alunos, matrículas,
+  presenças, avaliações, documentos, arquivo, superior. Exemplos da importação em `1260042`.
+
 ## Catálogo educacional global (2026-10-10)
 
 Detalhe e cobertura real: [docs/education-catalog/README.md](../education-catalog/README.md).
@@ -34,9 +55,19 @@ Detalhe e cobertura real: [docs/education-catalog/README.md](../education-catalo
   (`catalog-link.ts`: «Nova», modelo de estrutura, importação; tolerante). Cursos novos
   também (`programs.catalog_course_code`, mesma migração); os existentes em «Ligar cursos». Colunas em
   `COLUNAS_ESPERA_MIGRACAO` até o retrato as ter.
-- **Por aplicar (dono):** `20261010120000_global_education_catalog.sql`, depois
-  `supabase/seeds/education/catalog.sql`, depois `20261010150000_merge_school_subjects.sql`,
-  depois `20261012120000_subjects_catalog_link.sql` (independente das outras). A página não depende delas.
+- **Contexto de nível por área** (`SUBJECT_AREA_LEVELS`): Saúde, Informática, Gestão… só
+  existem do ISCED 3 em diante; `areasForContext`, filtro `area` na pesquisa, na API
+  (`type=areas`, `&area=`) e chips na página. Teste `area-level-context.test.ts`.
+- **Duas sessões fizeram este catálogo em paralelo.** A da branch `ccr-680ee371-6vebkz`
+  começou o mesmo trabalho sem saber deste; ficou num `git stash` local (não publicado) e só
+  entrou a regra por área acima. Antes de começar, `git fetch` e ler este ficheiro na `main`.
+- **Aplicado na produção:** `20261010120000_global_education_catalog.sql`,
+  `20261010150000_merge_school_subjects.sql` e a carga `supabase/seeds/education/catalog.sql`
+  (a 2026-10-10, md5 das 8 tabelas igual ao do ficheiro; ver o README do catálogo), e
+  `20261012120000_subjects_catalog_link.sql` (as colunas `subjects.catalog_subject_code` e
+  `programs.catalog_course_code` existem a 2026-10-12). **Falta:** recapturar o retrato e os
+  tipos (`npm run siga:db-snapshot`, `npm run siga:gen-types`), tirar `merge_school_subjects`
+  de `FUNCOES_ESPERA_MIGRACAO` e as duas colunas de `COLUNAS_ESPERA_MIGRACAO`.
 
 ## Auditoria 13 — fluxos da escola (2026-10-06)
 

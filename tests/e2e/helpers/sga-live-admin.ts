@@ -399,7 +399,10 @@ export async function seedE2EGatewayFixture(
     .single();
   if (personError) throw new Error(personError.message);
 
-  const studentNumber = `EST-${String(Math.floor(100000 + Math.random() * 900000))}`;
+  // Formato da base (CHECK ^1[0-9]{6}$): «1» + ano + 4 dígitos. Os números altos
+  // (9000–9999) ficam para os testes, longe da contagem das escolas.
+  const yy = new Date().toISOString().slice(2, 4);
+  const studentNumber = `1${yy}${9000 + Math.floor(Math.random() * 1000)}`;
   const { data: student, error: studentErr } = await admin
     .from("students")
     .insert({
@@ -415,7 +418,7 @@ export async function seedE2EGatewayFixture(
   if (studentErr) throw new Error(`Falha ao criar estudante: ${studentErr.message}`);
   const studentId = student.id;
 
-  const enrollmentNumber = `MAT-${String(Math.floor(100000 + Math.random() * 900000))}`;
+  const enrollmentNumber = `1${yy}${9000 + Math.floor(Math.random() * 1000)}`;
   const { data: enrollment, error: enrollmentErr } = await admin
     .from("enrollments")
     .insert({

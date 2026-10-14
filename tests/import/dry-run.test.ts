@@ -70,7 +70,7 @@ function commitContext(db: unknown) {
 const student = {
   id: "s1",
   person_id: "p1",
-  student_number: "PROC-2026-042",
+  student_number: "1260042",
   national_id: "005432190LA048",
   status: "active",
 };
@@ -167,7 +167,7 @@ describe("dry run não escreve na base", () => {
     };
     const res = await dividasImporter.commitRow(
       {
-        student_identifier: "PROC-2026-042",
+        student_identifier: "1260042",
         amount_due: 35000,
         month_ref: "Janeiro 2026",
         due_date: "2026-01-10",
@@ -197,7 +197,7 @@ describe("dry run não escreve na base", () => {
       existingReceiptNumbers: new Set<string>(),
     };
     const res = await pagamentosImporter.commitRow(
-      { student_identifier: "PROC-2026-042", amount: 35000, payment_method: "Multicaixa" },
+      { student_identifier: "1260042", amount: 35000, payment_method: "Multicaixa" },
       commitContext(client) as never,
       cache as never,
     );
@@ -239,7 +239,7 @@ describe("dry run não escreve na base", () => {
       enrollmentByStudentId: new Map([["s1", enrollment]]),
     };
     const res = await pautasImporter.commitRow(
-      { student_identifier: "PROC-2026-042", final_average: 15.4 },
+      { student_identifier: "1260042", final_average: 15.4 },
       commitContext(client) as never,
       cache as never,
     );
@@ -286,7 +286,7 @@ describe("dry run não escreve na base", () => {
     };
     const res = await presencasImporter.commitRow(
       {
-        student_identifier: "PROC-2026-042",
+        student_identifier: "1260042",
         turma: "10A",
         disciplina: "MAT",
         data: "2026-03-02",
@@ -380,7 +380,7 @@ describe("dry run não escreve na base", () => {
     };
     const res = await historicoFinanceiroImporter.commitRow(
       {
-        student_identifier: "PROC-2026-042",
+        student_identifier: "1260042",
         academic_year: "2023/2024",
         total_billed: 45000,
         total_paid: 45000,
