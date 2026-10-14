@@ -40,15 +40,18 @@ class DefaultFirebaseOptions {
     }
   }
 
+  // Projecto siga-plus-integracoes (número 65146690021), app web.
+  // Valores públicos por desenho: a apiKey do Firebase identifica o
+  // projecto, não autoriza nada — quem protege os dados são as regras do
+  // Firebase e os Authorized domains da consola.
   static const FirebaseOptions web = FirebaseOptions(
-    // Replace with your values: flutterfire configure
-    apiKey: 'YOUR_WEB_API_KEY',
-    appId: 'YOUR_WEB_APP_ID',
-    messagingSenderId: 'YOUR_SENDER_ID',
-    projectId: 'your-project-id',
-    authDomain: 'your-project.firebaseapp.com',
-    storageBucket: 'your-project.firebasestorage.app',
-    measurementId: 'YOUR_MEASUREMENT_ID',
+    apiKey: 'AIzaSyCp175R-OFSlPmBG3UF8Vj3an_qNEGNbUk',
+    appId: '1:65146690021:web:fb8d6a455a432e858cf70c',
+    messagingSenderId: '65146690021',
+    projectId: 'siga-plus-integracoes',
+    authDomain: 'siga-plus-integracoes.firebaseapp.com',
+    storageBucket: 'siga-plus-integracoes.firebasestorage.app',
+    measurementId: 'G-N96MTKG3BT',
   );
 
   static const FirebaseOptions android = FirebaseOptions(
