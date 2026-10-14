@@ -1,3 +1,8 @@
 .dart_tool/
 build/
 .flutter-plugins-dependencies
+
+node_modules/
+
+# Configuração local (ver .env.example); nunca no Git.
+.env
