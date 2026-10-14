@@ -620,12 +620,38 @@ aceitar o do ficheiro. É exactamente assim que nascem os desalinhamentos entre 
 repositório que a §4 descreve, e vale registá-lo como causa: não é desleixo de quem aplica, é a
 ferramenta. Quem aplicar por aqui tem de alinhar o nome do ficheiro depois, sempre.
 
-### Por fazer: recapturar o retrato
+### O retrato, actualizado sem o CLI
 
-O `supabase/PRODUCTION_SNAPSHOT.json` descreve oito políticas que já não existem naquela forma.
-Não foi recapturado porque o `siga:db-snapshot` precisa do CLI ligado (`supabase link`), e porque
-o PR #135 traz o retrato de 12/10 — recapturar nos dois ramos daria conflito. **Fazer uma vez,
-depois de ambos fundirem.**
+O `siga:db-snapshot` **não corre**: pede o CLI ligado, e o link existe
+(`supabase/.temp/project-ref`, `pooler-url`) mas o token guardado responde **401 «Invalid access
+token»** — o PAT foi rodado. E o MCP não despeja um ficheiro de 454 KB pelo contexto.
 
-Os 638 testes de segurança continuam verdes porque comparam contra o ficheiro, não contra a
-produção — que é precisamente a razão para o recapturar, e a mesma lição da §5.
+Deixar a fonte de verdade a descrever oito políticas que já não existem não era opção — é o
+defeito da §5. Mas o cabeçalho do próprio script avisa que «um dump parcial gerado à mão parece
+autoritativo e não é». A saída foi uma **actualização incremental verificada por md5**, que não é
+nem uma coisa nem outra.
+
+**Primeiro provar que só esta migração o desactualiza.** md5 por categoria, calculado dos dois
+lados — em SQL e sobre o JSON — excluindo os objectos alterados:
+
+| Categoria                     | Linhas | md5 (igual nos dois)                 |
+| ----------------------------- | ------ | ------------------------------------ |
+| políticas (fora das 8)        | 362    | `f6ca47811ac9e795a39a9860df2ea03a`   |
+| funções (fora da nova)        | 282    | `32794ff7f4a42d735afa7579dc8f2a2e`   |
+| tabelas                       | 206    | `e3c421ccc73254ee389ae53ff998e7a4`   |
+| triggers                      | 220    | `4f0618c6163d9b2732921010f2d17cc0`   |
+| relações                      | 426    | `26b8f7fa30a1b9ca4460a910fba57246`   |
+| políticas de storage          | 14     | `6205055c1a39db26468264e3b39b3ba1`   |
+| valores de CHECK              | 197    | `74a17d8a861bbd4178f98d641b1bb7ca`   |
+| buckets                       | 6      | `5ce48e7431337edb3607b5c603ca9795`   |
+
+Todos idênticos — e o último SQL antes deste foi a `20261012120000`, anterior à captura de 12/10
+às 18:43. **Depois** trazer as 9 linhas que faltavam e conferir o que se escreve: md5 das 8
+políticas `7809e8ba333110b9ef44b0cc7839844b` dos dois lados, zero erro de transcrição. **Por fim**
+conferir o total: 370 políticas `fe35798e60ed0126319bbf6c4c81b7ab` e 283 funções
+`e3f10a58068b746b07f6cca6b58130bd`, iguais na produção.
+
+A emenda são 48 inserções e 42 remoções. `funcoes_private` passa de 129 a 130.
+
+Os 648 testes de segurança passam — e agora passam contra um ficheiro que **descreve a produção**,
+não contra um que descreve o que ela era. A diferença é toda.
