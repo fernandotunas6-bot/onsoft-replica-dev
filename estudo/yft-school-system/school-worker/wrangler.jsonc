@@ -1,0 +1,33 @@
+{
+	"$schema": "node_modules/wrangler/config-schema.json",
+	"name": "school-worker",
+	"main": "src/index.ts",
+	"compatibility_date": "2026-04-09",
+	"observability": {
+		"enabled": true
+	},
+	"upload_source_maps": true,
+	"compatibility_flags": [
+		"nodejs_compat"
+	],
+	"d1_databases": [
+		{
+			"binding": "DB",
+			"database_name": "school_management_db",
+			"database_id": "09fede4b-0a9a-4e06-b12e-68d9a5fc3723"
+		}
+	],
+	"r2_buckets": [
+		{
+			"binding": "MEDIA_BUCKET",
+			"bucket_name": "school-management-media"
+		}
+	],
+  "vars": {
+    "FIREBASE_PROJECT_ID": "yft-ss"
+    // Optional: full Firebase service account JSON for deleting parent Auth users when removing their last child.
+    //   npx wrangler secret put FIREBASE_SERVICE_ACCOUNT_JSON
+    // FIREBASE_WEB_API_KEY and SUPER_ADMIN_API_KEY are set via `wrangler secret put`
+    // Do NOT commit real secrets here. See ENVIRONMENT.md for setup instructions.
+  }
+}
