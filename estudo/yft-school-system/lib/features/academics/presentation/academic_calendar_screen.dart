@@ -464,7 +464,7 @@ class _AcademicCalendarScreenState
                               ScaffoldMessenger.of(context).showSnackBar(
                                 const SnackBar(
                                   content: Text(
-                                    'Academic Calendar saved successfully!',
+                                    'Calendário académico guardado.',
                                     style: TextStyle(
                                       fontWeight: FontWeight.w600,
                                     ),
@@ -494,7 +494,7 @@ class _AcademicCalendarScreenState
                     ),
                   ),
                   child: const Text(
-                    'Save Configuration',
+                    'Guardar configuração',
                     style: TextStyle(fontWeight: FontWeight.w600, fontSize: 16),
                   ),
                 ),
@@ -688,7 +688,7 @@ class _AcademicCalendarScreenState
             children: [
               Expanded(
                 child: _buildDatePickerField(
-                  'Start Date',
+                  'Data de início',
                   startDate,
                   isReadOnly
                       ? null
@@ -698,7 +698,7 @@ class _AcademicCalendarScreenState
               const SizedBox(width: 16),
               Expanded(
                 child: _buildDatePickerField(
-                  'End Date',
+                  'Data de fim',
                   endDate,
                   isReadOnly
                       ? null

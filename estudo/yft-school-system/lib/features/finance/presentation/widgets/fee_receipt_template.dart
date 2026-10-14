@@ -203,7 +203,7 @@ class FeeReceiptTemplate extends StatelessWidget {
                         ),
                         if (r.balanceAfter < 0)
                           _line(
-                            'Outstanding after this payment',
+                            'Em dívida depois deste pagamento',
                             formatMoneyDisplay(
                               r.currency,
                               r.balanceAfter.abs(),
@@ -244,9 +244,9 @@ class FeeReceiptTemplate extends StatelessWidget {
                           padding: const EdgeInsets.all(14),
                           color: _surface,
                           child: Text(
-                            'Retain this receipt for your records. For billing inquiries, '
-                            'contact the school office using the details above. '
-                            'This receipt is generated from the school management system.',
+                            'Guarde este recibo. Para questões de facturação, '
+                            'contacte a secretaria pelos contactos acima. '
+                            'Recibo emitido pelo sistema de gestão escolar.',
                             style: GoogleFonts.inter(
                               fontSize: 10,
                               color: _muted,

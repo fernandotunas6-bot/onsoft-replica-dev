@@ -230,7 +230,7 @@ class _TeacherProfileBody extends StatelessWidget {
             const SizedBox(height: 16),
             _section(context, 'Bank', [
               _row(LucideIcons.building2, 'Bank', bankName ?? '—'),
-              _row(LucideIcons.hash, 'Account', bankAccountNumber ?? '—'),
+              _row(LucideIcons.hash, 'Conta', bankAccountNumber ?? '—'),
               _row(LucideIcons.user, 'Holder', bankAccountHolder ?? '—'),
             ]),
           ],

@@ -11,7 +11,7 @@ class PrivacyPolicyScreen extends StatelessWidget {
       backgroundColor: AppColors.background,
       appBar: AppBar(
         title: const Text(
-          'Privacy Policy',
+          'Política de privacidade',
           style: TextStyle(fontWeight: FontWeight.w600),
         ),
         backgroundColor: Colors.transparent,
@@ -39,7 +39,7 @@ class PrivacyPolicyScreen extends StatelessWidget {
             ),
             const SizedBox(height: 32),
             const Text(
-              'Your Privacy is Important to Us',
+              'A sua privacidade importa',
               style: TextStyle(
                 fontWeight: FontWeight.w600,
                 fontSize: 24,
@@ -76,7 +76,7 @@ class PrivacyPolicyScreen extends StatelessWidget {
               child: TextButton(
                 onPressed: () => Navigator.pop(context),
                 child: const Text(
-                  'I Understand',
+                  'Compreendi',
                   style: TextStyle(
                     color: AppColors.primary,
                     fontWeight: FontWeight.w600,

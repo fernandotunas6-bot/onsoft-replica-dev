@@ -149,7 +149,7 @@ class FinanceOverviewScreen extends ConsumerWidget {
                               ),
                               const SizedBox(height: 12),
                               Text(
-                                '${arrears.length} student${arrears.length == 1 ? '' : 's'} with arrears',
+                                '${arrears.length} aluno${arrears.length == 1 ? '' : 's'} com dívidas',
                                 style: const TextStyle(
                                   color: Colors.white70,
                                   fontSize: 13,
@@ -264,7 +264,7 @@ class FinanceOverviewScreen extends ConsumerWidget {
                 ElevatedButton.icon(
                   onPressed: () => context.push('/log-payment'),
                   icon: const Icon(LucideIcons.plusCircle),
-                  label: const Text('Log New Payment'),
+                  label: const Text('Registar pagamento'),
                 ),
               ],
             ),
