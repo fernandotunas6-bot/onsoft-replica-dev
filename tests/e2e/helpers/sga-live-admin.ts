@@ -90,9 +90,15 @@ export async function getAcceptedApplicationStudentId(schoolId: string, fullName
   return data;
 }
 
-/** Slugs criados pelos testes Playwright @live (prefixos de uniqueE2ESlug). */
+/**
+ * Slugs criados pelos testes Playwright @live (prefixos de uniqueE2ESlug).
+ *
+ * Um ou mais segmentos depois do prefixo: o teste do WEB cria `e2e-web-<id>`, com dois.
+ * Tem de coincidir com `E2E_SLUG_PATTERN` em `scripts/siga/e2e-cleanup-lib.mjs` — são duas
+ * cópias e `tests/saas/e2e-cleanup.test.ts` guarda-as uma contra a outra.
+ */
 export function isE2ETenantSlug(slug: string) {
-  return /^(e2e|web|mat|gw)-[a-z0-9]+$/i.test(slug.trim());
+  return /^(e2e|web|mat|gw)(-[a-z0-9]+)+$/i.test(slug.trim());
 }
 
 /** Chave dev partilhada — espelha SIGA_GATEWAY_DEV_API_KEY na CI (.env). */

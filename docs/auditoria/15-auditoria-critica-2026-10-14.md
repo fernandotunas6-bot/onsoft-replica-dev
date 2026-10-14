@@ -267,8 +267,8 @@ Por ordem de custo crescente:
 2. ~~Fundir o PR #129~~ — **integrado** (§12). As duas de 04/10 não precisam de ficheiro: o
    efeito já está no repositório (§4).
 3. ~~Recapturar o retrato e esvaziar a `espera-migracao.ts`~~ — **veio no PR #129** (§12).
-4. **Decidir o Lighthouse:** se 0.90 é o mínimo, corrigir o desempenho; se não é, baixar o
-   limiar. Deixá-lo vermelho é a pior das três opções.
+4. **Decidir o Lighthouse** — com o que o §14 mediu, a escolha é outra: os orçamentos
+   explícitos do próprio ficheiro **passam todos**; só o `minScore` composto falha.
 5. **Limpar os 42 restos de E2E** — simulação feita e confirmada (§13); falta correr o script.
 6. **Decidir a auditoria 14** (PRs #118/#121): as correcções de arredondamento de médias e de
    contagem de dívida são de lógica escolar e estão fora da produção.
@@ -355,3 +355,107 @@ npm run siga:e2e-cleanup-stale                # apaga
 Precisa da `SUPABASE_SERVICE_ROLE_KEY` no ambiente. **Essa chave continua por rodar desde a
 exposição de 04/10** (§10.9) — rodá-la antes é a ordem certa, e depois actualizar o segredo do
 ambiente `production`, ou a publicação deixa de passar.
+
+---
+
+## 14. O Lighthouse, medido (2026-10-14)
+
+O relatório tinha uma pergunta em aberto: corrigir o desempenho ou baixar o limiar. Tentou-se
+corrigir. O que se aprendeu muda a pergunta.
+
+### O que se fez
+
+`/brands/siga-plus-icon.png` era o maior pedido do caminho crítico — 1254×1254, 670 KB, para um
+render de no máximo 160 px. Reduzido a 384 px e **106 KB**. O peso da página caiu de
+**3 164 KiB para 2 613 KiB**.
+
+### O que mudou na pontuação
+
+**Nada.** 0.84 → 0.83, dentro do ruído entre execuções:
+
+| Métrica                  | Antes          | Depois         |
+| ------------------------ | -------------- | -------------- |
+| `categories.performance` | 0.84           | **0.83**       |
+| First Contentful Paint   | 1,6 s (0.47)   | 1,7 s (0.43)   |
+| Largest Contentful Paint | 1,9 s (0.66)   | 1,9 s (0.66)   |
+| Speed Index              | 1,6 s (0.77)   | 1,7 s (0.74)   |
+| Total Blocking Time      | 0 ms (1)       | 0 ms (1)       |
+| Cumulative Layout Shift  | 0.003 (1)      | 0 (1)          |
+
+**Cortar 550 KB não moveu uma única métrica.** O gargalo não são bytes: a medição corre contra
+`127.0.0.1`, onde a transferência é praticamente grátis. Com resposta do servidor em 180 ms,
+`bootup-time` de 0,3 s e trabalho de main thread de 0,8 s, o FCP de 1,7 s está no caminho de
+render — CSS e tipo de letra bloqueantes, e o ecrã de entrada a depender da hidratação — não no
+tamanho dos ficheiros. As «oportunidades» que o relatório lista (287 KB de JavaScript não usado,
+imagens sobredimensionadas) têm **peso 0** na pontuação e enganam quem as tente primeiro.
+
+### O que a medição revela sobre o próprio portão
+
+Das asserções do `lighthouserc.json`, **a única que falha é o `categories:performance`**:
+
+| Asserção                          | Orçamento   | Medido  | Estado  |
+| --------------------------------- | ----------- | ------- | ------- |
+| `first-contentful-paint`          | ≤ 2 000 ms  | 1 700   | passa   |
+| `largest-contentful-paint`        | ≤ 2 500 ms  | 1 900   | passa   |
+| `interactive`                     | ≤ 3 500 ms  | 1 900   | passa   |
+| `total-blocking-time`             | ≤ 300 ms    | 0       | passa   |
+| `max-potential-fid`               | ≤ 300 ms    | 20      | passa   |
+| `cumulative-layout-shift`         | ≤ 0.1       | 0       | passa   |
+| `categories:accessibility`        | ≥ 0.95      | —       | passa   |
+| `categories:best-practices`       | ≥ 0.9       | —       | passa   |
+| **`categories:performance`**      | **≥ 0.9**   | **0.83**| **falha** |
+
+O ficheiro contradiz-se: declara 2 s de FCP aceitável e ao mesmo tempo exige uma pontuação que,
+na curva do preset `desktop`, só se alcança com FCP perto de 1 s. Os orçamentos que a equipa
+escolheu explicitamente estão todos cumpridos; o número composto é o que está fora de passo.
+
+Por isso a decisão deixa de ser «corrigir ou baixar». É: **ou se assume que os orçamentos
+explícitos são o contrato — e então o `minScore` composto sai ou desce —, ou se aceita que
+chegar a 0.90 é trabalho no caminho de render** (menos JavaScript inicial no `/`, CSS crítico,
+ecrã de entrada sem depender da hidratação), que é arquitectura e não uma correcção pontual.
+
+A redução do ícone fica: 550 KB a menos continua a valer para quem abre o SIGA numa rede real,
+mesmo que a medição em `localhost` não o mostre.
+
+### Nota de método
+
+Medir isto exigiu acrescentar `workflow_dispatch` ao CI: o Lighthouse só corria em push na
+`main` e no agendamento, por isso **medir uma correcção de desempenho obrigava a publicar
+primeiro** — e não há reprodução local, porque o `preview:prod` usa `workerd`, que recusa correr
+em macOS abaixo de 13.5. Isto é parte da explicação de o portão ter ficado vermelho quatro dias
+sem ninguém o tocar: era caro de observar. O disparo manual não arrasta o smoke E2E.
+
+---
+
+## 15. A limpeza dos restos de E2E não podia correr
+
+Ao executar a simulação do §13 com o script, dois factos que a leitura não dava.
+
+**São 43, não 42.** O padrão na `main` é `^(e2e|web|mat|gw)-[a-z0-9]+$` — um só segmento depois
+do prefixo. O teste do WEB cria `e2e-web-<id>`, com **dois**, e esse escapava a cada execução.
+Havia trabalho local **não commitado** que já tinha corrigido o padrão para
+`^(e2e|web|mat|gw)(-[a-z0-9]+)+$`, com testes, e que nunca chegou à `main` — outra vez o padrão
+do §9.1: feito, não integrado.
+
+**E a execução real teria falhado em todos os 43.** Esse mesmo trabalho local acrescentou
+`scripts/siga/e2e-safety.mjs` com `assertSafeE2ETarget()`, que **recusa a produção por desenho**
+— correctíssimo para impedir os testes @live de escreverem lá — e passou a ser chamado dentro de
+`cleanupE2ETenantBySlug`. Só que limpar restos **na** produção é o inverso de correr testes
+**contra** a produção. O `--dry-run` passava porque salta a chamada (`continue` antes dela); a
+execução real teria lançado «produção nunca é permitida» em cada tenant.
+
+Resolvido com `assertSafeCleanupTarget()`: fora da produção delega nas regras estritas do E2E;
+na produção exige um opt-in próprio, `SIGA_CLEANUP_ALLOW_PRODUCTION=1`, e nada mais afrouxa — o
+opt-in da limpeza **não** abre a porta ao E2E com escrita, e continuam a valer a validação do
+URL (sem credenciais embutidas, sem projectos misturados) e, em quem chama, o padrão do slug e o
+domínio `@siga-plus.test`. Seis casos cobertos em `tests/security/e2e-safety.test.ts`.
+
+As duas cópias do padrão ficaram alinhadas: `scripts/siga/e2e-cleanup-lib.mjs` e
+`tests/e2e/helpers/sga-live-admin.ts` — são duas implementações paralelas de
+`cleanupE2ETenantBySlug`, e `tests/saas/e2e-cleanup.test.ts` guarda-as uma contra a outra.
+
+Para correr:
+
+```
+SIGA_CLEANUP_ALLOW_PRODUCTION=1 npm run siga:e2e-cleanup-stale
+```
