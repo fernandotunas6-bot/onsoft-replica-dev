@@ -48,9 +48,9 @@ O super-admin fala com o Worker com uma chave partilhada
 | `flutter analyze` (Flutter 3.41.5) | sem avisos |
 | `flutter test` | 1 teste, passa |
 | `flutter build web` | compila com 3.41.5; **falha com 3.47** (`lucide_icons` estende `IconData`, que passou a `final`) |
-| Worker `vitest` | 2 testes, passam |
+| Worker `vitest` | 6 testes, passam |
 | Worker `wrangler deploy --dry-run` | empacota |
-| Worker `tsc --noEmit` | 1 erro de tipos (`src/api/classes.ts:23`) |
+| Worker `tsc --noEmit` | sem erros (o erro de `classes.ts:23` foi corrigido) |
 | Super-admin `next build` | compila (15 rotas) |
 
 No GitHub: Actions → «Estudo — YFT School System (build)» → Run workflow.
@@ -88,10 +88,19 @@ alteração não está na cópia.
 3. **Recibo de propina em PDF** gerado no cliente (`pdf`, `share_plus`).
 4. **Admissão com encarregado** «existente / novo» no mesmo formulário.
 
-## Fragilidades notadas (não repetir no SIGA)
+## Fragilidades notadas e corrigidas (14/10/2026)
 
-- O router não tem guarda: qualquer rota abre sem sessão. Só a API recusa.
-- A chave do super-admin é comparada com `!==`, sem comparação em tempo
-  constante (`school-worker/src/lib/auth-guards.ts`).
-- O CORS aceita qualquer `*.vercel.app` e `*.workers.dev`.
-- Os textos estão escritos à mão em inglês, sem i18n; a moeda é a do Gana.
+- O router não tinha guarda: qualquer rota abria sem sessão. **Corrigido**:
+  sem utilizador Firebase, só `/`, `/login` e `/forgot-password` abrem; o resto
+  vai ao login (`lib/core/routing/app_router.dart`).
+- A chave do super-admin era comparada com `!==`. **Corrigido**: a comparação
+  é feita em tempo constante sobre os resumos SHA-256
+  (`school-worker/src/lib/auth-guards.ts`).
+- O CORS aceitava qualquer `*.vercel.app` e `*.workers.dev`. **Corrigido**:
+  aceita só localhost e as origens da variável `ALLOWED_ORIGINS`. A app é
+  servida na mesma origem e o super-admin chama a API pelo servidor.
+- O `tsc` dava um erro (`classes.ts:23`, `c: any`). **Corrigido**, com tipos.
+- Testes novos em `school-worker/test/security.spec.ts`: o Worker passa de 2
+  para 6 testes, todos aprovados.
+- Ainda por resolver: os textos estão escritos à mão em inglês, sem i18n, e a
+  moeda é a do Gana.

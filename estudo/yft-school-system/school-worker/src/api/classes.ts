@@ -1,4 +1,4 @@
-import { Hono } from 'hono';
+import { Hono, type Context } from 'hono';
 import type { AppEnv } from '../app-env';
 import { requireAdmin, requireAdminOrTeacher } from '../lib/auth-guards';
 import { createPrefixedId } from '../lib/id';
@@ -19,7 +19,7 @@ const updateClassSchema = z.object({
   fee_collection_cycle: z.enum(['term', 'year']).optional().nullable(),
 });
 
-async function requireAcademicCalendar(c: any, schoolId: string) {
+async function requireAcademicCalendar(c: Context<AppEnv>, schoolId: string) {
   const school = await c.env.DB.prepare(
     'SELECT academic_calendar_json FROM Schools WHERE id = ? LIMIT 1'
   ).bind(schoolId).first<{ academic_calendar_json: string | null }>();

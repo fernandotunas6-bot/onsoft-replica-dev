@@ -45,9 +45,19 @@ export const requireSuperAdminKey: MiddlewareHandler<AppEnv> = async (c, next) =
   }
 
   const providedKey = c.req.header('X-Super-Admin-Key');
-  if (!providedKey || providedKey !== configuredKey) {
+  if (!providedKey || !(await sameSecret(providedKey, configuredKey))) {
     return jsonError(c, 'Forbidden', 403);
   }
 
   await next();
 };
+
+/** Compara em tempo constante: os resumos SHA-256 têm sempre o mesmo tamanho. */
+async function sameSecret(a: string, b: string): Promise<boolean> {
+  const enc = new TextEncoder();
+  const [da, db] = await Promise.all([
+    crypto.subtle.digest('SHA-256', enc.encode(a)),
+    crypto.subtle.digest('SHA-256', enc.encode(b)),
+  ]);
+  return crypto.subtle.timingSafeEqual(da, db);
+}
