@@ -165,3 +165,5 @@ dist
 .env*
 !.env.example
 .wrangler/
+# Gerado por ../scripts/publicar-siga.sh com o id real da base D1
+wrangler.siga.generated.jsonc
