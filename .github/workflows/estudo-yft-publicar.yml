@@ -76,13 +76,43 @@ jobs:
             echo "::error::Em falta:$faltam — os secrets do environment yft-publicacao não são os do environment production."
             exit 1
           fi
-          # Um espaço ou \n colado a mais passa a validação de comprimento do
-          # script e só falha depois, na comparação com o super-admin.
-          if [ "$SUPER_ADMIN_API_KEY" != "$(printf '%s' "$SUPER_ADMIN_API_KEY" | tr -d '[:space:]')" ]; then
-            echo "::error::SUPER_ADMIN_API_KEY tem espaços ou newline — voltar a colar sem eles."
-            exit 1
+          # Espaços e newline: `openssl rand -hex 32 | gh secret set` deixa um
+          # \n no valor, que passa a validação de comprimento do script e só
+          # falha depois, na comparação com o super-admin.
+          for k in CLOUDFLARE_API_TOKEN CLOUDFLARE_ACCOUNT_ID FIREBASE_WEB_API_KEY SUPER_ADMIN_API_KEY; do
+            v="${!k}"
+            if [ "$v" != "$(printf '%s' "$v" | tr -d '[:space:]')" ]; then
+              echo "::error::$k tem espaços ou newline. Regravar com: pbpaste | tr -d '\\n' | gh secret set $k --env yft-publicacao"
+              exit 1
+            fi
+          done
+
+          # Forma de cada um. Sem isto, um valor trocado entre dois prompts só
+          # dá erro mais tarde, dito pelo wrangler e sem relação aparente com
+          # a causa. Só comprimentos e prefixos, nunca valores.
+          erro=0
+          case "$CLOUDFLARE_ACCOUNT_ID" in
+            [0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f]) ;;
+            *) echo "::error::CLOUDFLARE_ACCOUNT_ID devia ser 32 caracteres hex; tem ${#CLOUDFLARE_ACCOUNT_ID}."; erro=1 ;;
+          esac
+          case "$FIREBASE_WEB_API_KEY" in
+            AIza*) [ ${#FIREBASE_WEB_API_KEY} -eq 39 ] || { echo "::error::FIREBASE_WEB_API_KEY devia ter 39 caracteres; tem ${#FIREBASE_WEB_API_KEY}."; erro=1; } ;;
+            *) echo "::error::FIREBASE_WEB_API_KEY devia começar por AIza (tem ${#FIREBASE_WEB_API_KEY} caracteres) — é a apiKey web de lib/firebase_options.dart."; erro=1 ;;
+          esac
+          # Token da Cloudflare: 40 caracteres no formato clássico, ou prefixo
+          # cfut_. Um valor de 64 hex é quase certamente a SUPER_ADMIN_API_KEY
+          # colada no prompt errado.
+          case "$CLOUDFLARE_API_TOKEN" in
+            cfut_*) ;;
+            *) [ ${#CLOUDFLARE_API_TOKEN} -eq 40 ] || { echo "::error::CLOUDFLARE_API_TOKEN tem ${#CLOUDFLARE_API_TOKEN} caracteres; esperado 40, ou prefixo cfut_. 64 é o comprimento de openssl rand -hex 32 — verificar se não é a SUPER_ADMIN_API_KEY."; erro=1; } ;;
+          esac
+          [ ${#SUPER_ADMIN_API_KEY} -ge 32 ] || { echo "::error::SUPER_ADMIN_API_KEY tem ${#SUPER_ADMIN_API_KEY} caracteres; mínimo 32."; erro=1; }
+          if [ "$CLOUDFLARE_API_TOKEN" = "$SUPER_ADMIN_API_KEY" ]; then
+            echo "::error::CLOUDFLARE_API_TOKEN e SUPER_ADMIN_API_KEY têm o mesmo valor."
+            erro=1
           fi
-          echo "Os quatro estão definidos."
+          [ "$erro" -eq 0 ] || exit 1
+          echo "Os quatro estão definidos e com a forma esperada."
 
       # Versão do autor (.metadata). Com Flutter 3.47, lucide_icons 0.257 não
       # compila (IconData passou a final).
