@@ -35,8 +35,34 @@ if (( ${#SUPER_ADMIN_API_KEY} < 32 )); then
   exit 1
 fi
 
-# 1. Firebase: lib/firebase_options.dart tem de vir do flutterfire configure.
+# 1. Firebase: lib/firebase_options.dart vem do flutterfire configure. Na CI,
+# sem flutterfire, gera-se a configuração web a partir dos valores públicos
+# (FIREBASE_WEB_APP_ID e FIREBASE_MESSAGING_SENDER_ID, da consola Firebase).
 OPTIONS="$ROOT/lib/firebase_options.dart"
+if grep -q "YOUR_WEB_API_KEY" "$OPTIONS" && [[ -n "${FIREBASE_WEB_APP_ID:-}" && -n "${FIREBASE_MESSAGING_SENDER_ID:-}" ]]; then
+  echo "A gerar lib/firebase_options.dart (web) para $FIREBASE_PROJECT."
+  cat >"$OPTIONS" <<DART
+// Gerado por scripts/publicar-siga.sh (só web). Valores públicos.
+import 'package:firebase_core/firebase_core.dart' show FirebaseOptions;
+import 'package:flutter/foundation.dart' show kIsWeb;
+
+class DefaultFirebaseOptions {
+  static FirebaseOptions get currentPlatform {
+    if (kIsWeb) return web;
+    throw UnsupportedError('Correr flutterfire configure para Android/iOS.');
+  }
+
+  static const FirebaseOptions web = FirebaseOptions(
+    apiKey: '$FIREBASE_WEB_API_KEY',
+    appId: '$FIREBASE_WEB_APP_ID',
+    messagingSenderId: '$FIREBASE_MESSAGING_SENDER_ID',
+    projectId: '$FIREBASE_PROJECT',
+    authDomain: '$FIREBASE_PROJECT.firebaseapp.com',
+    storageBucket: '$FIREBASE_PROJECT.firebasestorage.app',
+  );
+}
+DART
+fi
 if ! grep -q "projectId: '$FIREBASE_PROJECT'" "$OPTIONS" || grep -q "YOUR_WEB_API_KEY" "$OPTIONS"; then
   echo "lib/firebase_options.dart não é do projecto $FIREBASE_PROJECT." >&2
   echo "Correr: dart pub global activate flutterfire_cli && flutterfire configure --project=$FIREBASE_PROJECT" >&2

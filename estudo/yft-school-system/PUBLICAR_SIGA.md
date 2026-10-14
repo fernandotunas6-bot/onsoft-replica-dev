@@ -15,6 +15,28 @@ empresa: o `LICENSE` do repositório continua a ser BSL 1.1.
   e passa a ver o login do YFT. As contas SIGA não entram até serem criadas
   no Firebase e no D1.
 
+## Atalho: publicar pelo GitHub (sem flutterfire), ainda por autorizar
+
+O workflow `.github/workflows/yft-publicar.yml` foi escrito, mas não está no
+repositório: o commit de um workflow de publicação em produção espera
+autorização explícita. Sem ele, usar os passos 1 a 4 na máquina local. Com
+ele, a configuração seria esta:
+
+Settings → Environments → `production`. Os segredos `CLOUDFLARE_API_TOKEN` e
+`CLOUDFLARE_ACCOUNT_ID` já lá estão. Acrescentar:
+
+- Secrets: `FIREBASE_WEB_API_KEY`, `YFT_SUPER_ADMIN_API_KEY` (≥ 32 caracteres;
+  `openssl rand -hex 32`), e opcionalmente `YFT_FIREBASE_SERVICE_ACCOUNT_JSON`.
+- Variables: `FIREBASE_WEB_APP_ID` e `FIREBASE_MESSAGING_SENDER_ID`, da
+  consola Firebase → Project settings → a app web.
+
+Depois: Actions → «YFT — publicar (siga-yft)» → Run workflow → `teste`.
+Quando o teste estiver validado, fazer o passo 4.1 e correr com `dominio`.
+O token tem de ter permissão de edição em Workers, D1, R2 e Custom Domains.
+
+Mesmo pelo GitHub, as definições da consola Firebase do passo 1 (login por
+e-mail/senha e domínios autorizados) continuam a ser precisas.
+
 ## 1. Firebase (na tua máquina)
 
 ```sh
