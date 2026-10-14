@@ -269,8 +269,7 @@ Por ordem de custo crescente:
 3. ~~Recapturar o retrato e esvaziar a `espera-migracao.ts`~~ — **veio no PR #129** (§12).
 4. **Decidir o Lighthouse:** se 0.90 é o mínimo, corrigir o desempenho; se não é, baixar o
    limiar. Deixá-lo vermelho é a pior das três opções.
-5. **Limpar os 42 restos de E2E** (`npm run siga:e2e-cleanup-stale -- --dry-run`) — apaga dados
-   da produção, por isso fica para decisão explícita.
+5. **Limpar os 42 restos de E2E** — simulação feita e confirmada (§13); falta correr o script.
 6. **Decidir a auditoria 14** (PRs #118/#121): as correcções de arredondamento de médias e de
    contagem de dívida são de lógica escolar e estão fora da produção.
 7. **Chaves de assinatura da app desktop** — sem elas não há actualização automática.
@@ -321,3 +320,38 @@ ambiente), por isso não escreveu na produção.
 valer trabalho; a limpeza dos restos de E2E (§10.5) apaga dados da produção; os PRs da auditoria
 14 (§10.6), as chaves de assinatura (§10.7), a protecção do ramo (§10.8) e a rotação de segredos
 (§10.9) são do dono.
+
+---
+
+## 13. Simulação da limpeza dos restos de E2E (2026-10-14)
+
+Reproduzida em **leitura apenas** contra a produção, com o critério exacto de
+`scripts/siga/e2e-cleanup-stale.mjs` — slug `^(e2e|web|mat|gw)-[a-z0-9]+$` **e**
+`contact_email` em `@siga-plus.test`:
+
+| Alvo                          | Quantidade                       |
+| ----------------------------- | -------------------------------- |
+| Tenants                       | **42** (todos de 09/09)          |
+| Prefixos de slug              | `gw`, `mat`                      |
+| Escolas                       | 42                               |
+| Alunos                        | 42                               |
+| `tenant_domains`              | 42                               |
+| Contas `@siga-plus.test`      | 44                               |
+| Notas (`siga_assessment_scores`) | **0**                         |
+
+O que **fica**: 6 escolas, 43 alunos (42 do Huambo + 1 de 08/09), 22 contas reais e a única
+nota real. **O Colegio Adventista - Huambo não está no alvo** — verificado por nome contra o
+conjunto a apagar (0 correspondências).
+
+Executar com o script, que é o caminho sancionado: tem as guardas (recusa slug fora do padrão e
+e-mail fora do domínio de teste), apaga as dependências pela ordem das chaves estrangeiras e
+remove as contas pela API de auth, o que SQL cru não faz.
+
+```
+npm run siga:e2e-cleanup-stale -- --dry-run   # confirma a lista
+npm run siga:e2e-cleanup-stale                # apaga
+```
+
+Precisa da `SUPABASE_SERVICE_ROLE_KEY` no ambiente. **Essa chave continua por rodar desde a
+exposição de 04/10** (§10.9) — rodá-la antes é a ordem certa, e depois actualizar o segredo do
+ambiente `production`, ou a publicação deixa de passar.
