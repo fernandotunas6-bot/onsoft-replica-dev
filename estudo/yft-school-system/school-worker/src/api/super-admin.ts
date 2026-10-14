@@ -363,11 +363,27 @@ superAdmin.post('/onboard-school', async (c) => {
     parsed.data.school.teacher_id_prefix,
   );
 
-  const adminFirebase = await createFirebaseEmailUser(c.env, {
-    email: adminEmail,
-    password: adminTempPassword,
-    displayName: parsed.data.admin.name,
-  });
+  // Sem isto, um e-mail já registado — a falha mais provável deste passo —
+  // sai como 500 "Internal Server Error", sem dizer o que correu mal: a rota
+  // não apanhava o erro e o Hono devolvia o genérico.
+  let adminFirebase;
+  try {
+    adminFirebase = await createFirebaseEmailUser(c.env, {
+      email: adminEmail,
+      password: adminTempPassword,
+      displayName: parsed.data.admin.name,
+    });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Account provisioning failed';
+    const exists = message.includes('already exists');
+    return jsonError(
+      c,
+      exists
+        ? `Já existe uma conta Firebase com ${adminEmail}. Usar outro e-mail, ou apagar a conta em Authentication → Users.`
+        : message,
+      exists ? 409 : 502,
+    );
+  }
 
   await c.env.DB.batch([
     schoolInsert,
