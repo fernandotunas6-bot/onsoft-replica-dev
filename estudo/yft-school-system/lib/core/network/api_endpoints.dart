@@ -39,6 +39,10 @@ class ApiEndpoints {
   static String report(String studentId, String termId) =>
       '/api/reports/$studentId/$termId';
 
+  // Timetable (horário semanal)
+  static const timetable = '/api/timetable';
+  static String timetableSlot(String id) => '/api/timetable/$id';
+
   // Calendar
   static const calendar = '/api/calendar';
 

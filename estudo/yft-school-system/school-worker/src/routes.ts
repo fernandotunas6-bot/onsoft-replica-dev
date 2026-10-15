@@ -13,6 +13,7 @@ import media from './api/media';
 import grades from './api/grades';
 import settings from './api/settings';
 import notices from './api/notices';
+import timetable from './api/timetable';
 
 export const apiRoutes = new Hono<AppEnv>();
 
@@ -26,6 +27,7 @@ apiRoutes.route('/students', students);
 apiRoutes.route('/parents', parents);
 apiRoutes.route('/finance', finance);
 apiRoutes.route('/notices', notices);
+apiRoutes.route('/timetable', timetable);
 apiRoutes.route('/users', users);
 apiRoutes.route('/wards', wards);
 

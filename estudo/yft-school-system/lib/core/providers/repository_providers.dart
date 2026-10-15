@@ -4,6 +4,7 @@ import '../models/school_class.dart';
 import '../models/student.dart';
 import '../models/subject.dart';
 import '../models/teacher_profile.dart';
+import '../models/timetable_slot.dart';
 import '../models/user_profile.dart';
 import '../models/paginated_response.dart';
 import '../network/api_client.dart';
@@ -15,6 +16,7 @@ import '../repositories/notices_repository.dart';
 import '../repositories/settings_repository.dart';
 import '../repositories/student_repository.dart';
 import '../repositories/subject_repository.dart';
+import '../repositories/timetable_repository.dart';
 import '../repositories/user_repository.dart';
 
 // ── Repository providers ──
@@ -49,6 +51,10 @@ final mediaRepositoryProvider = Provider<MediaRepository>((ref) {
 
 final gradesRepositoryProvider = Provider<GradesRepository>((ref) {
   return GradesRepository(ref.watch(dioProvider));
+});
+
+final timetableRepositoryProvider = Provider<TimetableRepository>((ref) {
+  return TimetableRepository(ref.watch(dioProvider));
 });
 
 final settingsRepositoryProvider = Provider<SettingsRepository>((ref) {
@@ -93,4 +99,10 @@ final userProfileProvider = FutureProvider<UserProfile>((ref) {
 final teacherProfileProvider =
     FutureProvider.family<TeacherProfile, String>((ref, uid) {
   return ref.read(userRepositoryProvider).getTeacherProfile(uid);
+});
+
+/// Horário de uma turma, ou de todas as que o utilizador pode ver (`null`).
+final timetableProvider =
+    FutureProvider.family<List<TimetableSlot>, String?>((ref, classId) {
+  return ref.read(timetableRepositoryProvider).getSlots(classId: classId);
 });

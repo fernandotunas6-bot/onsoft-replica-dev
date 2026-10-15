@@ -100,6 +100,11 @@ const _months = [
 
 const weekdayShort = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom'];
 
+const weekdayLong = [
+  'Segunda-feira', 'Terça-feira', 'Quarta-feira', 'Quinta-feira',
+  'Sexta-feira', 'Sábado', 'Domingo',
+];
+
 /// "15 de Março".
 String formatDayMonth(DateTime d) => '${d.day} de ${_months[d.month - 1]}';
 

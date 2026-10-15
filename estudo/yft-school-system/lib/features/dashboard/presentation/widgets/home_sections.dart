@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:yft_school_system/core/models/timetable_slot.dart';
 import 'package:yft_school_system/core/providers/repository_providers.dart';
 import 'package:yft_school_system/core/theme/app_colors.dart';
 import 'package:yft_school_system/core/widgets/section_widgets.dart';
@@ -183,6 +184,94 @@ class UpcomingActivities extends ConsumerWidget {
           },
         ),
       ],
+    );
+  }
+}
+
+/// "Aula agora" (ou "Próxima aula" hoje), a partir do horário das turmas
+/// que o utilizador pode ver. Não aparece quando não há aulas hoje.
+class CurrentClassCard extends ConsumerWidget {
+  const CurrentClassCard({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final slots =
+        ref.watch(timetableProvider(null)).whenOrNull(data: (s) => s) ??
+        const <TimetableSlot>[];
+    final now = DateTime.now();
+    final nowMin = now.hour * 60 + now.minute;
+    final today = slots
+        .where((s) => s.weekday == now.weekday && !s.isBreak)
+        .toList()
+      ..sort((a, b) => a.startMinutes.compareTo(b.startMinutes));
+    final live = today
+        .where((s) => nowMin >= s.startMinutes && nowMin < s.endMinutes)
+        .firstOrNull;
+    final slot = live ?? today.where((s) => s.startMinutes > nowMin).firstOrNull;
+    if (slot == null) return const SizedBox.shrink();
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 24),
+      child: SoftCard(
+        onTap: () => context.go('/calendario'),
+        padding: const EdgeInsets.fromLTRB(0, 16, 16, 16),
+        child: Row(
+          children: [
+            Container(
+              width: 4,
+              height: 56,
+              margin: const EdgeInsets.only(right: 16),
+              decoration: BoxDecoration(
+                color: AppColors.primary,
+                borderRadius: const BorderRadius.horizontal(
+                  right: Radius.circular(2),
+                ),
+              ),
+            ),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    live != null ? 'Aula agora' : 'Próxima aula',
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: AppColors.textSecondary,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    slot.label,
+                    style: TextStyle(
+                      fontSize: 17,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.textPrimary,
+                    ),
+                  ),
+                  Text(
+                    slot.caption,
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: AppColors.textSecondary,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            FilledButton(
+              onPressed: () => context.go('/calendario'),
+              style: FilledButton.styleFrom(
+                backgroundColor: AppColors.primary,
+                foregroundColor: AppColors.onPrimary,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14),
+                ),
+              ),
+              child: const Text('Horário'),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
