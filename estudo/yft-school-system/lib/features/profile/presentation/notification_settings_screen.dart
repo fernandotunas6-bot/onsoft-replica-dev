@@ -35,7 +35,7 @@ class _NotificationSettingsScreenState
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
+            Text(
               'Manage your notification preferences.',
               style: TextStyle(color: AppColors.textSecondary, fontSize: 13),
             ),
@@ -67,7 +67,7 @@ class _NotificationSettingsScreenState
             ),
 
             const SizedBox(height: 32),
-            const Divider(color: AppColors.surface, thickness: 2),
+            Divider(color: AppColors.surface, thickness: 2),
             const SizedBox(height: 32),
 
             const Text(
@@ -108,7 +108,7 @@ class _NotificationSettingsScreenState
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.primary,
-                  foregroundColor: AppColors.secondary,
+                  foregroundColor: AppColors.onPrimary,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(16),
                   ),
@@ -145,7 +145,7 @@ class _NotificationSettingsScreenState
         ),
         subtitle: Text(
           subtitle,
-          style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
+          style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
         ),
         activeThumbColor: AppColors.primary,
         value: value,

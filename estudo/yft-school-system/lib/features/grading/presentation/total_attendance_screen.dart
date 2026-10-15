@@ -24,7 +24,7 @@ class TotalAttendanceScreen extends ConsumerWidget {
         error: (e, _) => Center(child: Text('Failed to load', style: TextStyle(color: AppColors.error))),
         data: (classes) {
           if (classes.isEmpty) {
-            return const Center(child: Text('No classes configured.', style: TextStyle(color: AppColors.textSecondary)));
+            return Center(child: Text('No classes configured.', style: TextStyle(color: AppColors.textSecondary)));
           }
           return Center(
             child: Column(
@@ -32,11 +32,11 @@ class TotalAttendanceScreen extends ConsumerWidget {
               children: [
                 Icon(LucideIcons.barChart3, size: 56, color: AppColors.textSecondary.withValues(alpha: 0.3)),
                 const SizedBox(height: 16),
-                const Text('Attendance reports will appear here.',
+                Text('Attendance reports will appear here.',
                     style: TextStyle(color: AppColors.textSecondary, fontSize: 14)),
                 const SizedBox(height: 8),
                 Text('${classes.length} class(es) configured',
-                    style: const TextStyle(color: AppColors.textSecondary, fontSize: 12)),
+                    style: TextStyle(color: AppColors.textSecondary, fontSize: 12)),
               ],
             ),
           );

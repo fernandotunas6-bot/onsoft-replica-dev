@@ -41,7 +41,7 @@ class PaymentHistoryScreen extends ConsumerWidget {
               Text(
                 'Failed to load ward balances: $error',
                 textAlign: TextAlign.center,
-                style: const TextStyle(color: AppColors.textSecondary),
+                style: TextStyle(color: AppColors.textSecondary),
               ),
               const SizedBox(height: 16),
               ElevatedButton(
@@ -64,7 +64,7 @@ class PaymentHistoryScreen extends ConsumerWidget {
               Container(
                 padding: const EdgeInsets.all(24),
                 decoration: BoxDecoration(
-                  color: AppColors.secondary,
+                  color: AppColors.ink,
                   borderRadius: BorderRadius.circular(28),
                 ),
                 child: Column(
@@ -77,7 +77,7 @@ class PaymentHistoryScreen extends ConsumerWidget {
                     const SizedBox(height: 8),
                     Text(
                       '$currency ${totalOutstanding.toStringAsFixed(2)}',
-                      style: const TextStyle(
+                      style: TextStyle(
                         color: AppColors.primary,
                         fontSize: 32,
                         fontWeight: FontWeight.w600,
@@ -140,7 +140,7 @@ class PaymentHistoryScreen extends ConsumerWidget {
                                   ),
                                   Text(
                                     ward.className ?? 'Unknown Class',
-                                    style: const TextStyle(
+                                    style: TextStyle(
                                       color: AppColors.textSecondary,
                                       fontSize: 12,
                                     ),
@@ -178,7 +178,7 @@ class PaymentHistoryScreen extends ConsumerWidget {
                                   : credit > 0
                                       ? 'Credit balance'
                                       : 'Amount due',
-                              style: const TextStyle(
+                              style: TextStyle(
                                 color: AppColors.textSecondary,
                               ),
                             ),
@@ -254,7 +254,7 @@ class _EmptyState extends StatelessWidget {
           Text(
             message,
             textAlign: TextAlign.center,
-            style: const TextStyle(
+            style: TextStyle(
               color: AppColors.textSecondary,
               fontSize: 14,
             ),

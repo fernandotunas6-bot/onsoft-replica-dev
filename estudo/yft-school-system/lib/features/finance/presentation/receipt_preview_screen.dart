@@ -148,7 +148,7 @@ class ReceiptPreviewScreen extends StatelessWidget {
                             color: AppColors.primary.withValues(alpha: 0.1),
                             borderRadius: BorderRadius.circular(12),
                           ),
-                          child: const Icon(
+                          child: Icon(
                             LucideIcons.user,
                             color: AppColors.primary,
                             size: 24,
@@ -223,7 +223,7 @@ class ReceiptPreviewScreen extends StatelessWidget {
                             color: AppColors.background,
                             borderRadius: BorderRadius.circular(20),
                           ),
-                          child: const Icon(
+                          child: Icon(
                             LucideIcons.receipt,
                             color: AppColors.primary,
                             size: 20,
@@ -264,7 +264,7 @@ class ReceiptPreviewScreen extends StatelessWidget {
                           ),
                           Text(
                             (tx['amount'] ?? 'GH₵ 0.00').toString(),
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 24,
                               fontWeight: FontWeight.w600,
                               color: AppColors.primary,
@@ -288,7 +288,7 @@ class ReceiptPreviewScreen extends StatelessWidget {
               ),
               child: Column(
                 children: [
-                  const Text(
+                  Text(
                     'Thank you for your payment!',
                     style: TextStyle(
                       fontSize: 16,
@@ -298,7 +298,7 @@ class ReceiptPreviewScreen extends StatelessWidget {
                     textAlign: TextAlign.center,
                   ),
                   const SizedBox(height: 8),
-                  const Text(
+                  Text(
                     'This is a computer-generated receipt. No signature required.',
                     style: TextStyle(
                       fontSize: 12,
@@ -333,7 +333,7 @@ class ReceiptPreviewScreen extends StatelessWidget {
                     onPressed: () {
                       Navigator.pop(context);
                       ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
+                        SnackBar(
                           content: Text(
                             'PDF Downloaded! Ready for print/share.',
                           ),
@@ -345,7 +345,7 @@ class ReceiptPreviewScreen extends StatelessWidget {
                     label: const Text('Download PDF'),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppColors.primary,
-                      foregroundColor: Colors.white,
+                      foregroundColor: AppColors.onPrimary,
                       padding: const EdgeInsets.symmetric(vertical: 16),
                     ),
                   ),
@@ -382,7 +382,7 @@ class ReceiptPreviewScreen extends StatelessWidget {
         ),
         Text(
           amount ?? 'GH₵ 0.00',
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.w600,
             color: AppColors.secondary,

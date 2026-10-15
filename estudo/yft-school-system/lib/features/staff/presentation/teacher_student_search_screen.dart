@@ -56,7 +56,7 @@ class _TeacherStudentSearchScreenState extends ConsumerState<TeacherStudentSearc
               data: (paginated) {
                 final filtered = paginated.data.where((s) => s.name.toLowerCase().contains(_query)).toList();
                 if (filtered.isEmpty) {
-                  return const Center(child: Text('No students found.', style: TextStyle(color: AppColors.textSecondary)));
+                  return Center(child: Text('No students found.', style: TextStyle(color: AppColors.textSecondary)));
                 }
                 return ListView.builder(
                   padding: const EdgeInsets.symmetric(horizontal: 24),
@@ -75,7 +75,7 @@ class _TeacherStudentSearchScreenState extends ConsumerState<TeacherStudentSearc
                           CircleAvatar(
                             backgroundColor: AppColors.primary.withValues(alpha: 0.1),
                             child: Text(s.name.isNotEmpty ? s.name[0] : '?',
-                                style: const TextStyle(color: AppColors.secondary, fontWeight: FontWeight.w600)),
+                                style: TextStyle(color: AppColors.secondary, fontWeight: FontWeight.w600)),
                           ),
                           const SizedBox(width: 16),
                           Expanded(
@@ -84,7 +84,7 @@ class _TeacherStudentSearchScreenState extends ConsumerState<TeacherStudentSearc
                               children: [
                                 Text(s.name, style: const TextStyle(fontWeight: FontWeight.w600)),
                                 Text(s.className ?? s.classId,
-                                    style: const TextStyle(color: AppColors.textSecondary, fontSize: 12)),
+                                    style: TextStyle(color: AppColors.textSecondary, fontSize: 12)),
                               ],
                             ),
                           ),

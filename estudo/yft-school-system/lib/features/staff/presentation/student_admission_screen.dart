@@ -399,7 +399,7 @@ class _StudentAdmissionScreenState extends ConsumerState<StudentAdmissionScreen>
           width: 128,
           height: 128,
           fit: BoxFit.cover,
-          errorBuilder: (_, _, _) => const Icon(
+          errorBuilder: (_, _, _) => Icon(
             LucideIcons.camera,
             size: 48,
             color: AppColors.primary,
@@ -407,7 +407,7 @@ class _StudentAdmissionScreenState extends ConsumerState<StudentAdmissionScreen>
         ),
       );
     } else {
-      child = const Icon(
+      child = Icon(
         LucideIcons.camera,
         size: 48,
         color: AppColors.primary,
@@ -437,14 +437,14 @@ class _StudentAdmissionScreenState extends ConsumerState<StudentAdmissionScreen>
             right: 2,
             child: Container(
               padding: const EdgeInsets.all(10),
-              decoration: const BoxDecoration(
+              decoration: BoxDecoration(
                 color: AppColors.primary,
                 shape: BoxShape.circle,
               ),
-              child: const Icon(
+              child: Icon(
                 LucideIcons.plus,
                 size: 18,
-                color: Colors.white,
+                color: AppColors.onPrimary,
               ),
             ),
           ),
@@ -538,7 +538,7 @@ class _StudentAdmissionScreenState extends ConsumerState<StudentAdmissionScreen>
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                const Text(
+                Text(
                   'Dados do aluno',
                   style: TextStyle(
                     fontSize: 20,
@@ -607,7 +607,7 @@ class _StudentAdmissionScreenState extends ConsumerState<StudentAdmissionScreen>
                   ),
                 ),
                 const SizedBox(height: 36),
-                const Text(
+                Text(
                   'Encarregado de educação',
                   style: TextStyle(
                     fontSize: 20,
@@ -670,7 +670,7 @@ class _StudentAdmissionScreenState extends ConsumerState<StudentAdmissionScreen>
                   ),
                 ),
                 const SizedBox(height: 36),
-                const Text(
+                Text(
                   'Contacto de emergência',
                   style: TextStyle(
                     fontSize: 20,
@@ -698,7 +698,7 @@ class _StudentAdmissionScreenState extends ConsumerState<StudentAdmissionScreen>
                   ),
                 ),
                 const SizedBox(height: 36),
-                const Text(
+                Text(
                   'Saúde',
                   style: TextStyle(
                     fontSize: 20,
@@ -731,12 +731,12 @@ class _StudentAdmissionScreenState extends ConsumerState<StudentAdmissionScreen>
                   child: ElevatedButton(
                     onPressed: _submitting ? null : _submit,
                     child: _submitting
-                        ? const SizedBox(
+                        ? SizedBox(
                             width: 22,
                             height: 22,
                             child: CircularProgressIndicator(
                               strokeWidth: 2,
-                              color: Colors.white,
+                              color: AppColors.onPrimary,
                             ),
                           )
                         : Text(
@@ -838,7 +838,7 @@ class _StudentAdmissionScreenState extends ConsumerState<StudentAdmissionScreen>
               ),
               leading: CircleAvatar(
                 backgroundColor: AppColors.primary.withValues(alpha: 0.15),
-                child: const Icon(
+                child: Icon(
                   LucideIcons.userCheck,
                   color: AppColors.primary,
                 ),

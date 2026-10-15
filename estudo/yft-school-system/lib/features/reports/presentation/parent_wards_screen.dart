@@ -40,7 +40,7 @@ class ParentWardsScreen extends ConsumerWidget {
                     color: AppColors.textSecondary.withValues(alpha: 0.3),
                   ),
                   const SizedBox(height: 16),
-                  const Text(
+                  Text(
                     'No wards linked to your account.',
                     style: TextStyle(
                       color: AppColors.textSecondary,

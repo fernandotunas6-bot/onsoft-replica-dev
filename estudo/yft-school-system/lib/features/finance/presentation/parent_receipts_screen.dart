@@ -34,7 +34,7 @@ class ParentReceiptsScreen extends ConsumerWidget {
         minChildSize: 0.35,
         maxChildSize: 0.92,
         builder: (_, scroll) => Container(
-          decoration: const BoxDecoration(
+          decoration: BoxDecoration(
             color: AppColors.background,
             borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
           ),
@@ -55,7 +55,7 @@ class ParentReceiptsScreen extends ConsumerWidget {
               const SizedBox(height: 16),
               Text(
                 'Receipt ${r.id}',
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.w600,
                   color: AppColors.secondary,
@@ -64,7 +64,7 @@ class ParentReceiptsScreen extends ConsumerWidget {
               const SizedBox(height: 8),
               Text(
                 _formatWhen(r.createdAt),
-                style: const TextStyle(
+                style: TextStyle(
                   color: AppColors.textSecondary,
                   fontSize: 13,
                 ),
@@ -220,7 +220,7 @@ class ParentReceiptsScreen extends ConsumerWidget {
                     color: AppColors.textSecondary.withValues(alpha: 0.3),
                   ),
                   const SizedBox(height: 16),
-                  const Text(
+                  Text(
                     'No receipts yet.',
                     style: TextStyle(
                       color: AppColors.textSecondary,
@@ -263,7 +263,7 @@ class ParentReceiptsScreen extends ConsumerWidget {
                               color: AppColors.primary.withValues(alpha: 0.12),
                               borderRadius: BorderRadius.circular(12),
                             ),
-                            child: const Icon(
+                            child: Icon(
                               LucideIcons.receipt,
                               color: AppColors.primary,
                               size: 22,
@@ -284,7 +284,7 @@ class ParentReceiptsScreen extends ConsumerWidget {
                                 const SizedBox(height: 4),
                                 Text(
                                   subtitle,
-                                  style: const TextStyle(
+                                  style: TextStyle(
                                     color: AppColors.textSecondary,
                                     fontSize: 13,
                                   ),
@@ -292,7 +292,7 @@ class ParentReceiptsScreen extends ConsumerWidget {
                               ],
                             ),
                           ),
-                          const Icon(
+                          Icon(
                             Icons.chevron_right,
                             color: AppColors.textSecondary,
                           ),

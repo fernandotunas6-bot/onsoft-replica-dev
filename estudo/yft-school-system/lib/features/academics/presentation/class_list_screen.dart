@@ -36,7 +36,7 @@ class ClassListScreen extends ConsumerWidget {
       floatingActionButton: FloatingActionButton(
         onPressed: () => context.push('/class-setup'),
         backgroundColor: AppColors.primary,
-        child: const Icon(LucideIcons.plus, color: AppColors.secondary),
+        child: Icon(LucideIcons.plus, color: AppColors.onPrimary),
       ),
       body: classesAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
@@ -70,7 +70,7 @@ class ClassListScreen extends ConsumerWidget {
                         color: AppColors.textSecondary.withValues(alpha: 0.3),
                       ),
                       const SizedBox(height: 16),
-                      const Text(
+                      Text(
                         'No classes yet. Tap + to create one.',
                         style: TextStyle(
                           color: AppColors.textSecondary,
@@ -117,7 +117,7 @@ class ClassListScreen extends ConsumerWidget {
                                   ),
                                   borderRadius: BorderRadius.circular(12),
                                 ),
-                                child: const Icon(
+                                child: Icon(
                                   LucideIcons.graduationCap,
                                   color: AppColors.secondary,
                                 ),
@@ -137,7 +137,7 @@ class ClassListScreen extends ConsumerWidget {
                                     if (cls.level != null)
                                       Text(
                                         'Level ${cls.level}',
-                                        style: const TextStyle(
+                                        style: TextStyle(
                                           color: AppColors.textSecondary,
                                           fontSize: 14,
                                         ),
@@ -145,7 +145,7 @@ class ClassListScreen extends ConsumerWidget {
                                     if (cls.hasFeeStructure)
                                       Text(
                                         'Fee: $currency ${cls.feeAmount.toStringAsFixed(2)} / ${cls.feeCollectionCycle == 'year' ? 'year' : 'term'}',
-                                        style: const TextStyle(
+                                        style: TextStyle(
                                           color: AppColors.textSecondary,
                                           fontSize: 13,
                                         ),
@@ -162,7 +162,7 @@ class ClassListScreen extends ConsumerWidget {
                                 onPressed: () =>
                                     _showDeleteConfirm(context, ref, cls),
                               ),
-                              const Icon(
+                              Icon(
                                 LucideIcons.chevronRight,
                                 color: AppColors.textSecondary,
                               ),
@@ -190,7 +190,7 @@ class ClassListScreen extends ConsumerWidget {
         bool isDeleting = false;
         return StatefulBuilder(
           builder: (ctx, setSheetState) => Container(
-            decoration: const BoxDecoration(
+            decoration: BoxDecoration(
               color: AppColors.background,
               borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
             ),
@@ -217,7 +217,7 @@ class ClassListScreen extends ConsumerWidget {
                   ),
                 ),
                 const SizedBox(height: 8),
-                const Text(
+                Text(
                   'This will also remove all subject assignments for this class.',
                   textAlign: TextAlign.center,
                   style: TextStyle(color: AppColors.textSecondary),

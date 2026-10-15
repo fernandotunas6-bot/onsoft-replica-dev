@@ -48,21 +48,21 @@ class HelpSupportScreen extends StatelessWidget {
                           color: Colors.white.withValues(alpha: 0.2),
                           borderRadius: BorderRadius.circular(16),
                         ),
-                        child: const Icon(
+                        child: Icon(
                           LucideIcons.headphones,
-                          color: Colors.white,
+                          color: AppColors.onPrimary,
                           size: 28,
                         ),
                       ),
                       const SizedBox(width: 16),
-                      const Expanded(
+                      Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
                               'How can we help you?',
                               style: TextStyle(
-                                color: Colors.white,
+                                color: AppColors.onPrimary,
                                 fontWeight: FontWeight.w600,
                                 fontSize: 18,
                                 height: 1.2,
@@ -149,7 +149,7 @@ class HelpSupportScreen extends StatelessWidget {
         children: [
           Text(
             answer,
-            style: const TextStyle(
+            style: TextStyle(
               color: AppColors.textSecondary,
               fontSize: 13,
               height: 1.5,

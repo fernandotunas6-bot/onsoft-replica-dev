@@ -37,7 +37,7 @@ class _SplashScreenState extends State<SplashScreen> {
                   style: Theme.of(context).textTheme.displayLarge?.copyWith(
                     fontSize: 48,
                     letterSpacing: -1.5,
-                    color: AppColors.secondary,
+                    color: AppColors.onPrimary,
                   ),
                 )
                 .animate()
@@ -53,7 +53,7 @@ class _SplashScreenState extends State<SplashScreen> {
             Text(
               'Modern School Ecosystem',
               style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                color: AppColors.secondary.withValues(alpha: 0.6),
+                color: AppColors.onPrimary.withValues(alpha: 0.75),
                 fontWeight: FontWeight.w600,
               ),
             ).animate().fadeIn(delay: 1000.ms, duration: 600.ms),

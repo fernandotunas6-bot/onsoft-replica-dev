@@ -25,7 +25,7 @@ class MyClassesScreen extends ConsumerWidget {
         error: (e, _) => Center(child: Text('Failed to load classes', style: TextStyle(color: AppColors.error))),
         data: (classes) {
           if (classes.isEmpty) {
-            return const Center(child: Text('No classes assigned.', style: TextStyle(color: AppColors.textSecondary)));
+            return Center(child: Text('No classes assigned.', style: TextStyle(color: AppColors.textSecondary)));
           }
           return ListView.builder(
             padding: const EdgeInsets.all(24),
@@ -48,7 +48,7 @@ class MyClassesScreen extends ConsumerWidget {
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
                         content: Text('Dashboard switched to ${cls.className}'),
-                        backgroundColor: AppColors.secondary,
+                        backgroundColor: AppColors.ink,
                         duration: const Duration(seconds: 1),
                       ),
                     );
@@ -63,7 +63,7 @@ class MyClassesScreen extends ConsumerWidget {
                           ))
                       : null,
                   trailing: isSelected
-                      ? const Icon(LucideIcons.checkCircle2, color: AppColors.secondary)
+                      ? Icon(LucideIcons.checkCircle2, color: AppColors.secondary)
                       : const Icon(LucideIcons.chevronRight, size: 18),
                 ),
               );

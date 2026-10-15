@@ -30,7 +30,7 @@ class TeacherListScreen extends StatelessWidget {
             children: [
               Icon(LucideIcons.users, size: 56, color: AppColors.textSecondary.withValues(alpha: 0.3)),
               const SizedBox(height: 16),
-              const Text('Registe professores no botão + acima.',
+              Text('Registe professores no botão + acima.',
                   style: TextStyle(color: AppColors.textSecondary, fontSize: 14)),
               const SizedBox(height: 24),
               ElevatedButton.icon(

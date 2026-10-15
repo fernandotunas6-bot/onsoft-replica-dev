@@ -43,6 +43,10 @@ import 'package:yft_school_system/features/finance/presentation/log_payment_scre
 import 'package:yft_school_system/features/grading/presentation/total_attendance_screen.dart';
 
 import 'package:yft_school_system/features/finance/presentation/parent_receipts_screen.dart';
+import 'package:yft_school_system/features/calendar/presentation/calendar_screen.dart';
+import 'package:yft_school_system/features/messages/presentation/messages_screen.dart';
+import 'package:yft_school_system/features/profile/presentation/appearance_screen.dart';
+import 'package:yft_school_system/features/subjects/presentation/subjects_screen.dart';
 
 final rootNavigatorKey = GlobalKey<NavigatorState>();
 
@@ -51,7 +55,7 @@ final appRouter = GoRouter(
   initialLocation: '/',
   // Sem sessão Firebase, só as páginas públicas abrem; o resto vai ao login.
   redirect: (context, state) {
-    const public = {'/', '/login', '/forgot-password'};
+    const public = {'/', '/login', '/forgot-password', '/help-support'};
     if (public.contains(state.matchedLocation)) return null;
     try {
       return FirebaseAuth.instance.currentUser == null ? '/login' : null;
@@ -69,6 +73,23 @@ final appRouter = GoRouter(
     GoRoute(
       path: '/dashboard',
       builder: (context, state) => const DashboardScreen(),
+    ),
+    // Separadores da barra inferior.
+    GoRoute(
+      path: '/disciplinas',
+      builder: (context, state) => const SubjectsScreen(),
+    ),
+    GoRoute(
+      path: '/calendario',
+      builder: (context, state) => const CalendarScreen(),
+    ),
+    GoRoute(
+      path: '/mensagens',
+      builder: (context, state) => const MessagesScreen(),
+    ),
+    GoRoute(
+      path: '/aparencia',
+      builder: (context, state) => const AppearanceScreen(),
     ),
     GoRoute(
       path: '/register-teacher',

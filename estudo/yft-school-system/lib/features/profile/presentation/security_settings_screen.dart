@@ -48,7 +48,7 @@ class _SecuritySettingsScreenState
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
+                Text(
                   'Update your password and secure your account.',
                   style: TextStyle(
                     color: AppColors.textSecondary,
@@ -103,7 +103,7 @@ class _SecuritySettingsScreenState
                       'Two-Factor Authentication',
                       style: TextStyle(fontWeight: FontWeight.w600),
                     ),
-                    subtitle: const Text(
+                    subtitle: Text(
                       'Add an extra layer of security.',
                       style: TextStyle(
                         fontSize: 12,
@@ -130,14 +130,14 @@ class _SecuritySettingsScreenState
                           color: AppColors.secondary.withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(12),
                         ),
-                        child: const Icon(
+                        child: Icon(
                           LucideIcons.shieldCheck,
                           color: AppColors.secondary,
                           size: 22,
                         ),
                       ),
                       const SizedBox(width: 12),
-                      const Column(
+                      Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
@@ -189,7 +189,7 @@ class _SecuritySettingsScreenState
                             teacherCanEditResults
                                 ? 'Teachers can currently input and edit student results.'
                                 : 'Teachers can only view results. Editing is disabled.',
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 12,
                               color: AppColors.textSecondary,
                             ),
@@ -281,7 +281,7 @@ class _SecuritySettingsScreenState
                     },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppColors.primary,
-                      foregroundColor: AppColors.secondary,
+                      foregroundColor: AppColors.onPrimary,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(16),
                       ),
@@ -314,7 +314,7 @@ class _SecuritySettingsScreenState
       children: [
         Text(
           label,
-          style: const TextStyle(
+          style: TextStyle(
             fontWeight: FontWeight.w600,
             fontSize: 13,
             color: AppColors.secondary,
@@ -338,7 +338,7 @@ class _SecuritySettingsScreenState
           child: TextField(
             obscureText: isObscured,
             decoration: InputDecoration(
-              icon: const Icon(
+              icon: Icon(
                 LucideIcons.lock,
                 color: AppColors.primary,
                 size: 20,

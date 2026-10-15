@@ -337,7 +337,7 @@ class _LogPaymentScreenState extends ConsumerState<LogPaymentScreen> {
                                             const SizedBox(height: 2),
                                             Text(
                                               'Class: $dc',
-                                              style: const TextStyle(
+                                              style: TextStyle(
                                                 fontSize: 12,
                                                 color: AppColors.textSecondary,
                                               ),
@@ -346,7 +346,7 @@ class _LogPaymentScreenState extends ConsumerState<LogPaymentScreen> {
                                                 s.parentName!.trim().isNotEmpty)
                                               Text(
                                                 'Parent: ${s.parentName!.trim()}',
-                                                style: const TextStyle(
+                                                style: TextStyle(
                                                   fontSize: 11,
                                                   color: AppColors.textSecondary,
                                                 ),
@@ -476,12 +476,12 @@ class _LogPaymentScreenState extends ConsumerState<LogPaymentScreen> {
                                     ? null
                                     : () => _submit(currency),
                                 child: _submitting
-                                    ? const SizedBox(
+                                    ? SizedBox(
                                         width: 22,
                                         height: 22,
                                         child: CircularProgressIndicator(
                                           strokeWidth: 2,
-                                          color: Colors.white,
+                                          color: AppColors.onPrimary,
                                         ),
                                       )
                                     : const Text(
@@ -516,7 +516,7 @@ class _LogPaymentScreenState extends ConsumerState<LogPaymentScreen> {
             width: 110,
             child: Text(
               label,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 12,
                 color: AppColors.textSecondary,
                 fontWeight: FontWeight.w500,

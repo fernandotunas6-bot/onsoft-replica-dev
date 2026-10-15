@@ -24,7 +24,7 @@ void main() {
 
     await tester.pumpWidget(
       MaterialApp.router(
-        theme: AppTheme.lightTheme,
+        theme: AppTheme.build(),
         routerConfig: router,
       ),
     );

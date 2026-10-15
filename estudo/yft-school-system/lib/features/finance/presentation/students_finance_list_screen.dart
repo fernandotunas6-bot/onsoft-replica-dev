@@ -169,7 +169,7 @@ class _StudentsFinanceListScreenState
                           }
                         },
                         underline: const SizedBox(),
-                        icon: const Icon(Icons.arrow_drop_down,
+                        icon: Icon(Icons.arrow_drop_down,
                             color: AppColors.primary),
                       ),
                     ),
@@ -194,7 +194,7 @@ class _StudentsFinanceListScreenState
                         selectedColor: AppColors.primary,
                         labelStyle: TextStyle(
                           color: isSelected
-                              ? Colors.white
+                              ? AppColors.onPrimary
                               : AppColors.textSecondary,
                           fontWeight: isSelected
                               ? FontWeight.w600
@@ -207,7 +207,7 @@ class _StudentsFinanceListScreenState
                 ),
               ),
               if (filteredList.isEmpty)
-                const Expanded(
+                Expanded(
                   child: Center(
                     child: Text('No students found',
                         style: TextStyle(color: AppColors.textSecondary)),
@@ -264,7 +264,7 @@ class _StudentsFinanceListScreenState
               backgroundColor: AppColors.primary.withValues(alpha: 0.1),
               child: Text(
                 student.name.isNotEmpty ? student.name[0] : '?',
-                style: const TextStyle(
+                style: TextStyle(
                     color: AppColors.secondary, fontWeight: FontWeight.w600),
               ),
             ),
@@ -324,7 +324,7 @@ class _StudentsFinanceListScreenState
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (context) => Container(
-        decoration: const BoxDecoration(
+        decoration: BoxDecoration(
           color: AppColors.background,
           borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
         ),
@@ -416,7 +416,7 @@ class _StudentsFinanceListScreenState
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         Text(label,
-            style: const TextStyle(
+            style: TextStyle(
                 color: AppColors.textSecondary,
                 fontWeight: FontWeight.w500)),
         Text(value,

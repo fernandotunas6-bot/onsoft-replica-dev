@@ -30,7 +30,7 @@ class PrivacyPolicyScreen extends StatelessWidget {
                   color: AppColors.primary.withValues(alpha: 0.1),
                   shape: BoxShape.circle,
                 ),
-                child: const Icon(
+                child: Icon(
                   LucideIcons.shieldCheck,
                   size: 64,
                   color: AppColors.primary,
@@ -47,7 +47,7 @@ class PrivacyPolicyScreen extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 16),
-            const Text(
+            Text(
               'Last updated: October 10, 2026\n\n'
               'Edu Manager ("we", "our", or "us") is committed to protecting your personal information and your right to privacy. '
               'If you have any questions or concerns about this privacy notice, or our practices with regards to your personal information, please contact us at privacy@edumanager.app.',
@@ -75,7 +75,7 @@ class PrivacyPolicyScreen extends StatelessWidget {
             Center(
               child: TextButton(
                 onPressed: () => Navigator.pop(context),
-                child: const Text(
+                child: Text(
                   'I Understand',
                   style: TextStyle(
                     color: AppColors.primary,
@@ -99,7 +99,7 @@ class PrivacyPolicyScreen extends StatelessWidget {
         children: [
           Text(
             title,
-            style: const TextStyle(
+            style: TextStyle(
               fontWeight: FontWeight.w600,
               fontSize: 18,
               color: AppColors.secondary,
@@ -108,7 +108,7 @@ class PrivacyPolicyScreen extends StatelessWidget {
           const SizedBox(height: 8),
           Text(
             content,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 14,
               color: AppColors.textSecondary,
               height: 1.6,

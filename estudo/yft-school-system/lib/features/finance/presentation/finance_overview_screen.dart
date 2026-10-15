@@ -52,7 +52,7 @@ class FinanceOverviewScreen extends ConsumerWidget {
                     ),
                     TextButton(
                       onPressed: () => context.push('/students-finance'),
-                      child: const Text(
+                      child: Text(
                         'View All Students',
                         style: TextStyle(
                           color: AppColors.primary,
@@ -125,7 +125,7 @@ class FinanceOverviewScreen extends ConsumerWidget {
                           width: double.infinity,
                           padding: const EdgeInsets.all(24),
                           decoration: BoxDecoration(
-                            color: AppColors.secondary,
+                            color: AppColors.ink,
                             borderRadius: BorderRadius.circular(32),
                           ),
                           child: Column(
@@ -141,7 +141,7 @@ class FinanceOverviewScreen extends ConsumerWidget {
                               const SizedBox(height: 8),
                               Text(
                                 '$currency ${totalOwed.toStringAsFixed(2)}',
-                                style: const TextStyle(
+                                style: TextStyle(
                                   color: AppColors.primary,
                                   fontSize: 32,
                                   fontWeight: FontWeight.w600,
@@ -175,7 +175,7 @@ class FinanceOverviewScreen extends ConsumerWidget {
                                   ),
                                   child: Text(
                                     a.name.isNotEmpty ? a.name[0] : '?',
-                                    style: const TextStyle(
+                                    style: TextStyle(
                                       color: AppColors.secondary,
                                       fontWeight: FontWeight.w600,
                                     ),
@@ -195,7 +195,7 @@ class FinanceOverviewScreen extends ConsumerWidget {
                                       ),
                                       Text(
                                         a.className ?? a.classId,
-                                        style: const TextStyle(
+                                        style: TextStyle(
                                           color: AppColors.textSecondary,
                                           fontSize: 12,
                                         ),
@@ -242,7 +242,7 @@ class FinanceOverviewScreen extends ConsumerWidget {
                         ),
                       ),
                       const SizedBox(height: 8),
-                      const Text(
+                      Text(
                         'Set one fee structure per class, then choose whether it collects per term or per academic year.',
                         style: TextStyle(color: AppColors.textSecondary),
                       ),

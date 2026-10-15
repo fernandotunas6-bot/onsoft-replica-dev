@@ -41,7 +41,7 @@ class _SubjectListScreenState extends ConsumerState<SubjectListScreen> {
       floatingActionButton: FloatingActionButton(
         onPressed: () => _showSubjectSheet(),
         backgroundColor: AppColors.primary,
-        child: const Icon(LucideIcons.plus, color: AppColors.secondary),
+        child: Icon(LucideIcons.plus, color: AppColors.onPrimary),
       ),
       body: Column(
         children: [
@@ -62,7 +62,7 @@ class _SubjectListScreenState extends ConsumerState<SubjectListScreen> {
               ),
             ),
           ),
-          const Padding(
+          Padding(
             padding: EdgeInsets.symmetric(horizontal: 24.0, vertical: 8.0),
             child: Align(
               alignment: Alignment.centerLeft,
@@ -126,7 +126,7 @@ class _SubjectListScreenState extends ConsumerState<SubjectListScreen> {
                           color: AppColors.textSecondary.withValues(alpha: 0.3),
                         ),
                         const SizedBox(height: 16),
-                        const Text(
+                        Text(
                           'No subjects found.',
                           style: TextStyle(
                             color: AppColors.textSecondary,
@@ -177,7 +177,7 @@ class _SubjectListScreenState extends ConsumerState<SubjectListScreen> {
                                   ),
                                   borderRadius: BorderRadius.circular(12),
                                 ),
-                                child: const Icon(
+                                child: Icon(
                                   LucideIcons.book,
                                   color: AppColors.secondary,
                                 ),
@@ -192,14 +192,14 @@ class _SubjectListScreenState extends ConsumerState<SubjectListScreen> {
                                 classNames.isNotEmpty
                                     ? 'Assigned to: $classNames'
                                     : 'Not assigned to any class',
-                                style: const TextStyle(
+                                style: TextStyle(
                                   color: AppColors.textSecondary,
                                   fontSize: 13,
                                 ),
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                               ),
-                              trailing: const Icon(
+                              trailing: Icon(
                                 LucideIcons.chevronRight,
                                 color: AppColors.textSecondary,
                               ),
@@ -275,7 +275,7 @@ class _SubjectListScreenState extends ConsumerState<SubjectListScreen> {
           }
 
           return Container(
-            decoration: const BoxDecoration(
+            decoration: BoxDecoration(
               color: AppColors.background,
               borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
             ),

@@ -44,14 +44,14 @@ class _ResultsSetupScreenState extends ConsumerState<ResultsSetupScreen> {
             Container(
               width: double.infinity,
               padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(color: AppColors.secondary, borderRadius: BorderRadius.circular(20)),
+              decoration: BoxDecoration(color: AppColors.ink, borderRadius: BorderRadius.circular(20)),
               child: Row(
                 children: [
                   Container(
                     padding: const EdgeInsets.all(10),
                     decoration: BoxDecoration(
                         color: AppColors.primary.withValues(alpha: 0.2), borderRadius: BorderRadius.circular(12)),
-                    child: const Icon(LucideIcons.calendarDays, color: AppColors.primary, size: 20),
+                    child: Icon(LucideIcons.calendarDays, color: AppColors.primary, size: 20),
                   ),
                   const SizedBox(width: 16),
                   Column(
@@ -60,18 +60,18 @@ class _ResultsSetupScreenState extends ConsumerState<ResultsSetupScreen> {
                       const Text('Academic Year', style: TextStyle(color: Colors.white54, fontSize: 12)),
                       const SizedBox(height: 4),
                       Text('${academicYear.academicYear} • ${academicYear.activeTerm}',
-                          style: const TextStyle(color: AppColors.primary, fontWeight: FontWeight.w600, fontSize: 16)),
+                          style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.w600, fontSize: 16)),
                     ],
                   ),
                 ],
               ),
             ),
             const SizedBox(height: 24),
-            const Text('Select parameters to input or view student results.',
+            Text('Select parameters to input or view student results.',
                 style: TextStyle(color: AppColors.textSecondary, fontSize: 14)),
             const SizedBox(height: 32),
 
-            const Text('Select Class',
+            Text('Select Class',
                 style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: AppColors.secondary)),
             const SizedBox(height: 8),
             classesAsync.when(
@@ -89,7 +89,7 @@ class _ResultsSetupScreenState extends ConsumerState<ResultsSetupScreen> {
             ),
 
             const SizedBox(height: 24),
-            const Text('Select Term',
+            Text('Select Term',
                 style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: AppColors.secondary)),
             const SizedBox(height: 8),
             _buildDropdown(
@@ -100,7 +100,7 @@ class _ResultsSetupScreenState extends ConsumerState<ResultsSetupScreen> {
             ),
 
             const SizedBox(height: 24),
-            const Text('Select Student',
+            Text('Select Student',
                 style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: AppColors.secondary)),
             const SizedBox(height: 8),
             if (studentsAsync == null)
@@ -141,7 +141,7 @@ class _ResultsSetupScreenState extends ConsumerState<ResultsSetupScreen> {
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.primary,
                   disabledBackgroundColor: AppColors.primary.withValues(alpha: 0.3),
-                  foregroundColor: AppColors.secondary,
+                  foregroundColor: AppColors.onPrimary,
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                 ),
                 child: const Text('Proceed', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 16)),
@@ -170,7 +170,7 @@ class _ResultsSetupScreenState extends ConsumerState<ResultsSetupScreen> {
         child: DropdownButton<T>(
           value: value,
           isExpanded: true,
-          icon: const Icon(LucideIcons.chevronDown, color: AppColors.textSecondary),
+          icon: Icon(LucideIcons.chevronDown, color: AppColors.textSecondary),
           hint: Text('Choose...', style: TextStyle(color: AppColors.textSecondary.withValues(alpha: 0.5))),
           items: items,
           onChanged: onChanged,

@@ -238,7 +238,7 @@ class _ResultsInputScreenState extends ConsumerState<ResultsInputScreen> {
                 children: [
                   Icon(LucideIcons.lock, size: 18, color: Colors.orange.shade700),
                   const SizedBox(width: 12),
-                  const Expanded(
+                  Expanded(
                     child: Text(
                       'View-only: enable “Allow teachers to enter results” in Security for teacher editing.',
                       style: TextStyle(
@@ -271,7 +271,7 @@ class _ResultsInputScreenState extends ConsumerState<ResultsInputScreen> {
                     color: AppColors.primary.withValues(alpha: 0.1),
                     shape: BoxShape.circle,
                   ),
-                  child: const Icon(
+                  child: Icon(
                     LucideIcons.clipboardSignature,
                     color: AppColors.secondary,
                   ),
@@ -291,7 +291,7 @@ class _ResultsInputScreenState extends ConsumerState<ResultsInputScreen> {
                       const SizedBox(height: 4),
                       Text(
                         term,
-                        style: const TextStyle(
+                        style: TextStyle(
                           color: AppColors.textSecondary,
                           fontSize: 13,
                         ),
@@ -318,7 +318,7 @@ class _ResultsInputScreenState extends ConsumerState<ResultsInputScreen> {
                         ),
                       )
                     : _subjects.isEmpty
-                        ? const Center(
+                        ? Center(
                             child: Text(
                               'No subjects for this class.',
                               style: TextStyle(color: AppColors.textSecondary),
@@ -393,7 +393,7 @@ class _ResultsInputScreenState extends ConsumerState<ResultsInputScreen> {
               const SizedBox(width: 16),
               Column(
                 children: [
-                  const Text(
+                  Text(
                     'Total',
                     style: TextStyle(
                       fontSize: 11,
@@ -411,7 +411,7 @@ class _ResultsInputScreenState extends ConsumerState<ResultsInputScreen> {
                     ),
                     child: Text(
                       _total(classCtrl.text, examCtrl.text),
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontWeight: FontWeight.w600,
                         color: AppColors.secondary,
                       ),
@@ -441,7 +441,7 @@ class _ResultsInputScreenState extends ConsumerState<ResultsInputScreen> {
       children: [
         Text(
           label,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 11,
             color: AppColors.textSecondary,
           ),

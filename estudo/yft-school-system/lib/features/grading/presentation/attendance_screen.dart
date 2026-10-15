@@ -45,20 +45,20 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
                   children: [
                     Row(
                       children: [
-                        const Icon(LucideIcons.calendar, size: 20, color: AppColors.textSecondary),
+                        Icon(LucideIcons.calendar, size: 20, color: AppColors.textSecondary),
                         const SizedBox(width: 12),
                         Text('Today • ${DateTime.now().day}/${DateTime.now().month}/${DateTime.now().year}',
                             style: const TextStyle(fontWeight: FontWeight.w600)),
                       ],
                     ),
                     Text('$presentCount/${students.length}',
-                        style: const TextStyle(fontWeight: FontWeight.w600, color: AppColors.primary)),
+                        style: TextStyle(fontWeight: FontWeight.w600, color: AppColors.primary)),
                   ],
                 ),
               ),
               Expanded(
                 child: students.isEmpty
-                    ? const Center(child: Text('No students found.', style: TextStyle(color: AppColors.textSecondary)))
+                    ? Center(child: Text('No students found.', style: TextStyle(color: AppColors.textSecondary)))
                     : ListView.builder(
                         padding: const EdgeInsets.symmetric(horizontal: 24),
                         itemCount: students.length,
@@ -70,11 +70,11 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
                               value: _attendance[s.id] ?? true,
                               onChanged: (val) => setState(() => _attendance[s.id] = val ?? true),
                               title: Text(s.name, style: const TextStyle(fontWeight: FontWeight.w600)),
-                              subtitle: Text(s.className ?? '', style: const TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+                              subtitle: Text(s.className ?? '', style: TextStyle(fontSize: 12, color: AppColors.textSecondary)),
                               secondary: CircleAvatar(
                                 backgroundColor: AppColors.primary.withValues(alpha: 0.1),
                                 child: Text(s.name.isNotEmpty ? s.name[0] : '?',
-                                    style: const TextStyle(color: AppColors.secondary, fontWeight: FontWeight.w600)),
+                                    style: TextStyle(color: AppColors.secondary, fontWeight: FontWeight.w600)),
                               ),
                               activeColor: AppColors.primary,
                               checkColor: AppColors.secondary,

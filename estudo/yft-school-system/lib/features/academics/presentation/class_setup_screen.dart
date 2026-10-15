@@ -150,12 +150,12 @@ class _ClassSetupScreenState extends ConsumerState<ClassSetupScreen> {
                       child: ElevatedButton(
                         onPressed: _isSaving ? null : _saveClass,
                         child: _isSaving
-                            ? const SizedBox(
+                            ? SizedBox(
                                 width: 20,
                                 height: 20,
                                 child: CircularProgressIndicator(
                                   strokeWidth: 2,
-                                  color: Colors.white,
+                                  color: AppColors.onPrimary,
                                 ),
                               )
                             : Text(
@@ -188,13 +188,13 @@ class _ClassSetupScreenState extends ConsumerState<ClassSetupScreen> {
                   ),
                   child: Column(
                     children: [
-                      const Icon(
+                      Icon(
                         LucideIcons.banknote,
                         size: 48,
                         color: AppColors.primary,
                       ),
                       const SizedBox(height: 16),
-                      const Text(
+                      Text(
                         'Fee structures for this class are configured here. Choose whether the class is billed per term or once per academic year, then apply the fee to current students.',
                         textAlign: TextAlign.center,
                         style: TextStyle(color: AppColors.textSecondary),
@@ -204,7 +204,7 @@ class _ClassSetupScreenState extends ConsumerState<ClassSetupScreen> {
                         Text(
                           'Current structure: GH₵ ${widget.schoolClass!.feeAmount.toStringAsFixed(2)} / ${widget.schoolClass!.feeCollectionCycle == 'year' ? 'year' : 'term'}',
                           textAlign: TextAlign.center,
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontWeight: FontWeight.w600,
                             color: AppColors.secondary,
                           ),
@@ -241,13 +241,13 @@ class _ClassSetupScreenState extends ConsumerState<ClassSetupScreen> {
                   ),
                   child: Column(
                     children: [
-                      const Icon(
+                      Icon(
                         LucideIcons.bookOpen,
                         size: 48,
                         color: AppColors.primary,
                       ),
                       const SizedBox(height: 16),
-                      const Text(
+                      Text(
                         'Assign specific subjects to this class for the term.',
                         textAlign: TextAlign.center,
                         style: TextStyle(color: AppColors.textSecondary),
@@ -281,7 +281,7 @@ class _ClassSetupScreenState extends ConsumerState<ClassSetupScreen> {
   Widget _buildSectionTitle(String title) {
     return Text(
       title,
-      style: const TextStyle(
+      style: TextStyle(
         fontSize: 18,
         fontWeight: FontWeight.w600,
         color: AppColors.secondary,
@@ -316,7 +316,7 @@ class _ClassSetupScreenState extends ConsumerState<ClassSetupScreen> {
                 bottom: MediaQuery.of(sheetContext).viewInsets.bottom,
               ),
               child: Container(
-                decoration: const BoxDecoration(
+                decoration: BoxDecoration(
                   color: AppColors.background,
                   borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
                 ),
@@ -338,7 +338,7 @@ class _ClassSetupScreenState extends ConsumerState<ClassSetupScreen> {
                       ),
                     ),
                     const SizedBox(height: 8),
-                    const Text(
+                    Text(
                       'Store the fee structure on the class, then decide whether it collects per term or by academic year.',
                       style: TextStyle(
                         color: AppColors.textSecondary,
@@ -495,12 +495,12 @@ class _ClassSetupScreenState extends ConsumerState<ClassSetupScreen> {
                                 }
                               },
                         child: isSaving
-                            ? const SizedBox(
+                            ? SizedBox(
                                 width: 20,
                                 height: 20,
                                 child: CircularProgressIndicator(
                                   strokeWidth: 2,
-                                  color: Colors.white,
+                                  color: AppColors.onPrimary,
                                 ),
                               )
                             : const Text('Save Fee Structure'),

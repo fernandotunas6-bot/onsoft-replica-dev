@@ -159,7 +159,7 @@ class _AcademicCalendarScreenState
               Text(
                 _loadError!,
                 textAlign: TextAlign.center,
-                style: const TextStyle(color: AppColors.textSecondary),
+                style: TextStyle(color: AppColors.textSecondary),
               ),
               const SizedBox(height: 16),
               ElevatedButton(
@@ -192,7 +192,7 @@ class _AcademicCalendarScreenState
             Container(
               padding: const EdgeInsets.all(24),
               decoration: BoxDecoration(
-                color: AppColors.secondary,
+                color: AppColors.ink,
                 borderRadius: BorderRadius.circular(24),
               ),
               child: Column(
@@ -205,7 +205,7 @@ class _AcademicCalendarScreenState
                   const SizedBox(height: 8),
                   Text(
                     academicYear.academicYear,
-                    style: const TextStyle(
+                    style: TextStyle(
                       color: AppColors.primary,
                       fontSize: 28,
                       fontWeight: FontWeight.w600,
@@ -264,7 +264,7 @@ class _AcademicCalendarScreenState
                     style: TextStyle(fontWeight: FontWeight.w600, fontSize: 18),
                   ),
                   const SizedBox(height: 8),
-                  const Text(
+                  Text(
                     'Select the default currency symbol across the platform.',
                     style: TextStyle(
                       color: AppColors.textSecondary,
@@ -312,7 +312,7 @@ class _AcademicCalendarScreenState
                     style: TextStyle(fontWeight: FontWeight.w600, fontSize: 18),
                   ),
                   const SizedBox(height: 8),
-                  const Text(
+                  Text(
                     'Select whether the academic year is divided into two or three terms.',
                     style: TextStyle(
                       color: AppColors.textSecondary,
@@ -488,7 +488,7 @@ class _AcademicCalendarScreenState
                         },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.primary,
-                    foregroundColor: AppColors.secondary,
+                    foregroundColor: AppColors.onPrimary,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(16),
                     ),
@@ -518,7 +518,7 @@ class _AcademicCalendarScreenState
       child: DropdownButtonHideUnderline(
         child: DropdownButton<String>(
           value: current,
-          dropdownColor: AppColors.secondary,
+          dropdownColor: AppColors.ink,
           isExpanded: true,
           icon: const Icon(
             LucideIcons.chevronDown,
@@ -560,7 +560,7 @@ class _AcademicCalendarScreenState
       child: DropdownButtonHideUnderline(
         child: DropdownButton<String>(
           value: safeValue,
-          dropdownColor: AppColors.secondary,
+          dropdownColor: AppColors.ink,
           isExpanded: true,
           icon: const Icon(
             LucideIcons.chevronDown,
@@ -653,7 +653,7 @@ class _AcademicCalendarScreenState
                   color: AppColors.secondary.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: const Icon(
+                child: Icon(
                   LucideIcons.calendarDays,
                   color: AppColors.secondary,
                   size: 20,
@@ -673,7 +673,7 @@ class _AcademicCalendarScreenState
                     ),
                     Text(
                       description,
-                      style: const TextStyle(
+                      style: TextStyle(
                         color: AppColors.textSecondary,
                         fontSize: 11,
                       ),
@@ -722,7 +722,7 @@ class _AcademicCalendarScreenState
       children: [
         Text(
           label,
-          style: const TextStyle(
+          style: TextStyle(
             fontWeight: FontWeight.w600,
             fontSize: 12,
             color: AppColors.textSecondary,

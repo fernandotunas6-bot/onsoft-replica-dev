@@ -37,7 +37,7 @@ class AdminClassStudentsScreen extends ConsumerWidget {
         data: (paginated) {
           final students = paginated.data;
           if (students.isEmpty) {
-            return const Center(child: Text('No students enrolled yet.', style: TextStyle(color: AppColors.textSecondary)));
+            return Center(child: Text('No students enrolled yet.', style: TextStyle(color: AppColors.textSecondary)));
           }
           return ListView.builder(
             padding: const EdgeInsets.all(24),
@@ -56,7 +56,7 @@ class AdminClassStudentsScreen extends ConsumerWidget {
                     CircleAvatar(
                       backgroundColor: AppColors.primary.withValues(alpha: 0.1),
                       child: Text(s.name.isNotEmpty ? s.name[0] : '?',
-                          style: const TextStyle(color: AppColors.secondary, fontWeight: FontWeight.w600)),
+                          style: TextStyle(color: AppColors.secondary, fontWeight: FontWeight.w600)),
                     ),
                     const SizedBox(width: 16),
                     Expanded(
@@ -65,11 +65,11 @@ class AdminClassStudentsScreen extends ConsumerWidget {
                         children: [
                           Text(s.name, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 16)),
                           Text(s.className ?? s.classId,
-                              style: const TextStyle(color: AppColors.textSecondary, fontSize: 12)),
+                              style: TextStyle(color: AppColors.textSecondary, fontSize: 12)),
                         ],
                       ),
                     ),
-                    const Icon(LucideIcons.chevronRight, color: AppColors.textSecondary, size: 20),
+                    Icon(LucideIcons.chevronRight, color: AppColors.textSecondary, size: 20),
                   ],
                 ),
               );

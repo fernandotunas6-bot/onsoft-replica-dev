@@ -100,7 +100,7 @@ class _StudentDirectoryScreenState
                             color: AppColors.textSecondary
                                 .withValues(alpha: 0.3)),
                         const SizedBox(height: 16),
-                        const Text(
+                        Text(
                           'Não há alunos.',
                           style: TextStyle(
                               color: AppColors.textSecondary, fontSize: 14),
@@ -121,7 +121,7 @@ class _StudentDirectoryScreenState
                             color: AppColors.textSecondary
                                 .withValues(alpha: 0.3)),
                         const SizedBox(height: 16),
-                        const Text(
+                        Text(
                           'Nada corresponde à pesquisa.',
                           style: TextStyle(
                               color: AppColors.textSecondary, fontSize: 14),
@@ -172,7 +172,7 @@ class _StudentDirectoryScreenState
                                           .withValues(alpha: 0.12),
                                       child: Text(
                                         _initials(student),
-                                        style: const TextStyle(
+                                        style: TextStyle(
                                           color: AppColors.secondary,
                                           fontWeight: FontWeight.w600,
                                           fontSize: 13,
@@ -192,7 +192,7 @@ class _StudentDirectoryScreenState
                                       '${student.id} • ${student.className ?? student.classId}',
                                       maxLines: 1,
                                       overflow: TextOverflow.ellipsis,
-                                      style: const TextStyle(
+                                      style: TextStyle(
                                         fontSize: 13,
                                         color: AppColors.textSecondary,
                                       ),
@@ -271,10 +271,10 @@ class _StudentDirectoryScreenState
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => context.push('/admission'),
         backgroundColor: AppColors.primary,
-        icon: const Icon(LucideIcons.userPlus, color: Colors.white),
-        label: const Text(
+        icon: Icon(LucideIcons.userPlus, color: AppColors.onPrimary),
+        label: Text(
           'Nova admissão',
-          style: TextStyle(color: Colors.white),
+          style: TextStyle(color: AppColors.onPrimary),
         ),
       ),
     );

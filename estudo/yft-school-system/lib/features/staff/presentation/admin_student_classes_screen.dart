@@ -33,7 +33,7 @@ class AdminStudentClassesScreen extends ConsumerWidget {
           ),
         ),
         data: (classes) => classes.isEmpty
-            ? const Center(child: Text('No classes yet', style: TextStyle(color: AppColors.textSecondary)))
+            ? Center(child: Text('No classes yet', style: TextStyle(color: AppColors.textSecondary)))
             : ListView.builder(
                 padding: const EdgeInsets.all(24),
                 itemCount: classes.length,
@@ -60,7 +60,7 @@ class AdminStudentClassesScreen extends ConsumerWidget {
                               color: AppColors.primary.withValues(alpha: 0.2),
                               borderRadius: BorderRadius.circular(16),
                             ),
-                            child: const Icon(LucideIcons.graduationCap, color: AppColors.secondary, size: 28),
+                            child: Icon(LucideIcons.graduationCap, color: AppColors.secondary, size: 28),
                           ),
                           const SizedBox(width: 16),
                           Expanded(
@@ -70,11 +70,11 @@ class AdminStudentClassesScreen extends ConsumerWidget {
                                 Text(cls.className, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 18)),
                                 if (cls.level != null)
                                   Text('Level ${cls.level}',
-                                      style: const TextStyle(color: AppColors.textSecondary, fontSize: 12)),
+                                      style: TextStyle(color: AppColors.textSecondary, fontSize: 12)),
                               ],
                             ),
                           ),
-                          const Icon(LucideIcons.chevronRight, color: AppColors.primary),
+                          Icon(LucideIcons.chevronRight, color: AppColors.primary),
                         ],
                       ),
                     ),

@@ -56,7 +56,7 @@ class _CreateNoticeScreenState extends State<CreateNoticeScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
+                Text(
                   'Novo comunicado',
                   style: TextStyle(
                     fontSize: 18,
@@ -104,7 +104,7 @@ class _CreateNoticeScreenState extends State<CreateNoticeScreen> {
                       value == null || value.isEmpty ? 'Required' : null,
                 ),
                 const SizedBox(height: 24),
-                const Text(
+                Text(
                   'Canais de envio',
                   style: TextStyle(
                     fontSize: 16,
@@ -164,7 +164,7 @@ class _CreateNoticeScreenState extends State<CreateNoticeScreen> {
                     onPressed: () {
                       if (_formKey.currentState!.validate()) {
                         ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
+                          SnackBar(
                             content: Text('Comunicado publicado.'),
                             backgroundColor: AppColors.primary,
                           ),

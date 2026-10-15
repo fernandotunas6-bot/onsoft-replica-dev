@@ -143,7 +143,7 @@ class StudentDetailsScreen extends ConsumerWidget {
                 const SizedBox(height: 8),
                 Text('$e',
                     textAlign: TextAlign.center,
-                    style: const TextStyle(
+                    style: TextStyle(
                         color: AppColors.textSecondary, fontSize: 12)),
                 const SizedBox(height: 24),
                 ElevatedButton(
@@ -312,7 +312,7 @@ class _StudentProfileBody extends StatelessWidget {
             child: photoUrl == null
                 ? Text(
                     initials,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 28,
                       fontWeight: FontWeight.w600,
                       color: AppColors.secondary,
@@ -325,7 +325,7 @@ class _StudentProfileBody extends StatelessWidget {
         Center(
           child: Text(
             student.id,
-            style: const TextStyle(
+            style: TextStyle(
               color: AppColors.textSecondary,
               fontSize: 13,
             ),
@@ -402,7 +402,7 @@ class _StudentProfileBody extends StatelessWidget {
             padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
             child: Text(
               title,
-              style: const TextStyle(
+              style: TextStyle(
                 fontWeight: FontWeight.w600,
                 fontSize: 16,
                 color: AppColors.secondary,
@@ -429,7 +429,7 @@ class _StudentProfileBody extends StatelessWidget {
             flex: 2,
             child: Text(
               label,
-              style: const TextStyle(
+              style: TextStyle(
                 color: AppColors.textSecondary,
                 fontSize: 14,
               ),

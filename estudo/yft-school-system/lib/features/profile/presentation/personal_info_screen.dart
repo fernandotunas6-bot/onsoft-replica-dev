@@ -31,7 +31,7 @@ class PersonalInfoScreen extends StatelessWidget {
               );
               Navigator.pop(context);
             },
-            child: const Text(
+            child: Text(
               'Save',
               style: TextStyle(
                 color: AppColors.primary,
@@ -59,7 +59,7 @@ class PersonalInfoScreen extends StatelessWidget {
                         color: AppColors.primary.withValues(alpha: 0.1),
                         shape: BoxShape.circle,
                       ),
-                      child: const Icon(
+                      child: Icon(
                         LucideIcons.user,
                         size: 48,
                         color: AppColors.secondary,
@@ -70,14 +70,14 @@ class PersonalInfoScreen extends StatelessWidget {
                       right: 0,
                       child: Container(
                         padding: const EdgeInsets.all(8),
-                        decoration: const BoxDecoration(
+                        decoration: BoxDecoration(
                           color: AppColors.primary,
                           shape: BoxShape.circle,
                         ),
-                        child: const Icon(
+                        child: Icon(
                           LucideIcons.camera,
                           size: 16,
-                          color: AppColors.secondary,
+                          color: AppColors.onPrimary,
                         ),
                       ),
                     ),
@@ -117,7 +117,7 @@ class PersonalInfoScreen extends StatelessWidget {
       children: [
         Text(
           label,
-          style: const TextStyle(
+          style: TextStyle(
             fontWeight: FontWeight.w600,
             fontSize: 13,
             color: AppColors.secondary,

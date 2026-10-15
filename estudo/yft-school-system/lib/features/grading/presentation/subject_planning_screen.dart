@@ -21,7 +21,7 @@ class SubjectPlanningScreen extends StatelessWidget {
           children: [
             Icon(LucideIcons.clipboardList, size: 56, color: AppColors.textSecondary.withValues(alpha: 0.3)),
             const SizedBox(height: 16),
-            const Text('No lesson plans yet.', style: TextStyle(color: AppColors.textSecondary, fontSize: 14)),
+            Text('No lesson plans yet.', style: TextStyle(color: AppColors.textSecondary, fontSize: 14)),
           ],
         ),
       ),

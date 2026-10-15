@@ -40,7 +40,7 @@ class ProfileScreen extends ConsumerWidget {
                           color: AppColors.primary.withValues(alpha: 0.1),
                           shape: BoxShape.circle,
                         ),
-                        child: const Icon(
+                        child: Icon(
                           LucideIcons.user,
                           size: 48,
                           color: AppColors.secondary,
@@ -51,14 +51,14 @@ class ProfileScreen extends ConsumerWidget {
                         right: 0,
                         child: Container(
                           padding: const EdgeInsets.all(8),
-                          decoration: const BoxDecoration(
+                          decoration: BoxDecoration(
                             color: AppColors.primary,
                             shape: BoxShape.circle,
                           ),
-                          child: const Icon(
+                          child: Icon(
                             LucideIcons.camera,
                             size: 16,
-                            color: AppColors.secondary,
+                            color: AppColors.onPrimary,
                           ),
                         ),
                       ),
@@ -79,7 +79,7 @@ class ProfileScreen extends ConsumerWidget {
                       vertical: 4,
                     ),
                     decoration: BoxDecoration(
-                      color: AppColors.secondary,
+                      color: AppColors.ink,
                       borderRadius: BorderRadius.circular(20),
                     ),
                     child: Text(
@@ -117,6 +117,11 @@ class ProfileScreen extends ConsumerWidget {
               icon: LucideIcons.bell,
               title: 'Notifications',
               onTap: () => context.push('/notifications-settings'),
+            ),
+            _buildSettingItem(
+              icon: LucideIcons.palette,
+              title: 'Aparência',
+              onTap: () => context.push('/aparencia'),
             ),
             _buildSettingItem(
               icon: LucideIcons.shieldCheck,
@@ -193,7 +198,7 @@ class ProfileScreen extends ConsumerWidget {
           title,
           style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
         ),
-        trailing: const Icon(
+        trailing: Icon(
           LucideIcons.chevronRight,
           size: 18,
           color: AppColors.textSecondary,

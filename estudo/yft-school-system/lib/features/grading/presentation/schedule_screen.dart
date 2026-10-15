@@ -21,7 +21,7 @@ class ScheduleScreen extends StatelessWidget {
           children: [
             Icon(LucideIcons.calendarClock, size: 56, color: AppColors.textSecondary.withValues(alpha: 0.3)),
             const SizedBox(height: 16),
-            const Text('Schedule not configured yet.',
+            Text('Schedule not configured yet.',
                 style: TextStyle(color: AppColors.textSecondary, fontSize: 14)),
           ],
         ),

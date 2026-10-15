@@ -107,7 +107,7 @@ class WardProfileScreen extends ConsumerWidget {
                 ),
                 Text(
                   w.className ?? 'No Assigned Class',
-                  style: const TextStyle(
+                  style: TextStyle(
                     color: AppColors.textSecondary,
                     fontSize: 16,
                   ),
@@ -155,7 +155,7 @@ class WardProfileScreen extends ConsumerWidget {
                       const SizedBox(height: 8),
                       Text(
                         statusHint,
-                        style: const TextStyle(color: AppColors.textSecondary),
+                        style: TextStyle(color: AppColors.textSecondary),
                       ),
                     ],
                   ),
@@ -243,7 +243,7 @@ class WardProfileScreen extends ConsumerWidget {
               color: AppColors.textSecondary.withValues(alpha: 0.3),
             ),
             const SizedBox(height: 16),
-            const Text(
+            Text(
               'Ward profile not available.',
               style: TextStyle(color: AppColors.textSecondary, fontSize: 14),
             ),
