@@ -18,6 +18,7 @@ import { createClient, isSupabaseConfigured } from "@/lib/supabase/client"
 import { getCreateSchoolUrl, getSaasApiUrl, getSigaSchoolUrl } from "@/lib/ecosystem-urls"
 import { syncSaasUsage } from "@/lib/saas-api"
 import { TenantSubscriptionDialog } from "./components/tenant-subscription-dialog"
+import { TenantAdminAccessDialog } from "./components/tenant-admin-access-dialog"
 
 interface TenantRow {
   id: string
@@ -67,6 +68,7 @@ export default function TenantsPage() {
   const [needsAuth, setNeedsAuth] = useState(false)
   const [syncing, setSyncing] = useState(false)
   const [manageTenant, setManageTenant] = useState<TenantRow | null>(null)
+  const [accessTenant, setAccessTenant] = useState<TenantRow | null>(null)
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -280,6 +282,9 @@ export default function TenantsPage() {
                         <Button variant="ghost" size="sm" onClick={() => setManageTenant(tenant)}>
                           Gerir
                         </Button>
+                        <Button variant="ghost" size="sm" onClick={() => setAccessTenant(tenant)}>
+                          Acesso
+                        </Button>
                         <Button variant="ghost" size="sm" asChild>
                           <a href={getSigaSchoolUrl(tenant.slug)}>
                             SIGA <ExternalLink className="size-3" />
@@ -310,6 +315,17 @@ export default function TenantsPage() {
             </Table>
           </CardContent>
         </Card>
+
+        {accessTenant ? (
+          <TenantAdminAccessDialog
+            tenant={accessTenant}
+            open={Boolean(accessTenant)}
+            onOpenChange={(open) => {
+              if (!open) setAccessTenant(null)
+            }}
+            onManageSubscription={() => setManageTenant(accessTenant)}
+          />
+        ) : null}
 
         {manageTenant ? (
           <TenantSubscriptionDialog

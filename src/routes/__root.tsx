@@ -24,6 +24,7 @@ import { EntityFocusProvider } from "@/features/intelligence/entity-focus-contex
 import { isPublicAppPath } from "@/lib/public-paths";
 import { RouteErrorScreen } from "@/components/error/RouteErrorScreen";
 import { TenantProvider } from "@/features/saas/tenant-context";
+import { TenantAccessBarrier } from "@/features/saas/TenantAccessBarrier";
 import { PageLoading } from "@/components/ui/page-loading";
 import { readSessionHint } from "@/features/auth/session-hint";
 
@@ -188,19 +189,29 @@ function RootComponent() {
           <DesktopVaultGate />
           <div className="relative pt-[env(safe-area-inset-top,0)] flex min-h-screen flex-col">
             {isPublic ? (
-              <Outlet />
+              // Escola bloqueada fecha a matrícula online; /auth continua aberto
+              // para o administrador chegar à assinatura e regularizar.
+              pathname.startsWith("/matricula") ? (
+                <TenantAccessBarrier>
+                  <Outlet />
+                </TenantAccessBarrier>
+              ) : (
+                <Outlet />
+              )
             ) : (
               <AuthGate sessionHint={sessionHint}>
                 <OfflineOutboxSync />
-                <SchoolYearProvider>
-                  <SchoolBrandAppearanceSync />
-                  <EntityFocusProvider>
-                    <RouteAccessGate>
-                      {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
-                      <Outlet />
-                    </RouteAccessGate>
-                  </EntityFocusProvider>
-                </SchoolYearProvider>
+                <TenantAccessBarrier allowSchoolAdmin>
+                  <SchoolYearProvider>
+                    <SchoolBrandAppearanceSync />
+                    <EntityFocusProvider>
+                      <RouteAccessGate>
+                        {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
+                        <Outlet />
+                      </RouteAccessGate>
+                    </EntityFocusProvider>
+                  </SchoolYearProvider>
+                </TenantAccessBarrier>
               </AuthGate>
             )}
           </div>

@@ -108,6 +108,13 @@ export async function findProvisioningGaps(
       filters: [["school_id", ids.schoolId]],
     },
     {
+      peca: "permissões dos papéis",
+      detalhe:
+        "sem role_permissions o administrador entra e não consegue gravar nada (has_permission falha)",
+      table: "role_permissions",
+      filters: [["school_id", ids.schoolId]],
+    },
+    {
       peca: "papéis da escola",
       detalhe: "o bootstrap cria os papéis padrão; sem eles não há a quem delegar",
       table: "roles",
