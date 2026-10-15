@@ -148,17 +148,17 @@ class DashboardScreen extends ConsumerWidget {
                       onTap: () {
                         if (index == 0) return; // Home
                         final label = item.label;
-                        if (label == 'Staff') {
+                        if (label == 'Professores') {
                           context.push('/teachers');
-                        } else if (label == 'Classes') {
+                        } else if (label == 'Turmas') {
                           context.push('/my-classes');
-                        } else if (label == 'Wards') {
+                        } else if (label == 'Educandos') {
                           context.push('/wards');
-                        } else if (label == 'Receipts') {
+                        } else if (label == 'Recibos') {
                           context.push('/parent-receipts');
-                        } else if (label == 'Results') {
+                        } else if (label == 'Notas') {
                           context.push('/results-setup');
-                        } else if (label == 'Profile') {
+                        } else if (label == 'Perfil') {
                           context.push('/profile');
                         }
                       },
@@ -239,7 +239,7 @@ class DashboardScreen extends ConsumerWidget {
                         ),
                         const SizedBox(width: 16),
                         const Text(
-                          'Help & Support',
+                          'Ajuda',
                           style: TextStyle(
                             fontWeight: FontWeight.w500,
                             color: AppColors.textSecondary,
@@ -269,7 +269,7 @@ class DashboardScreen extends ConsumerWidget {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             const Text(
-                              'My Account',
+                              'A minha conta',
                               style: TextStyle(
                                 fontWeight: FontWeight.bold,
                                 fontSize: 14,
@@ -395,7 +395,7 @@ class DashboardScreen extends ConsumerWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Hi! ${session?.userName ?? "User"}',
+                        'Olá, ${session?.userName ?? "Utilizador"}',
                         style: Theme.of(context).textTheme.displayMedium,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
@@ -419,7 +419,7 @@ class DashboardScreen extends ConsumerWidget {
                 constraints: const BoxConstraints(maxWidth: 400),
                 child: TextField(
                   decoration: InputDecoration(
-                    hintText: 'Search everything...',
+                    hintText: 'Pesquisar…',
                     prefixIcon: const Icon(LucideIcons.search, size: 18),
                     filled: true,
                     fillColor: AppColors.surface,
@@ -477,13 +477,13 @@ class DashboardScreen extends ConsumerWidget {
   String _getSubtitle(UserRole? role) {
     switch (role) {
       case UserRole.admin:
-        return 'School Administrator';
+        return 'Administração da escola';
       case UserRole.teacher:
-        return 'Class Instructor';
+        return 'Professor';
       case UserRole.parent:
-        return 'Parent Account';
+        return 'Encarregado de educação';
       default:
-        return 'User';
+        return 'Utilizador';
     }
   }
 
@@ -499,17 +499,17 @@ class DashboardScreen extends ConsumerWidget {
         if (index >= items.length) return;
 
         final label = items[index].label;
-        if (label == 'Staff') {
+        if (label == 'Professores') {
           context.push('/teachers');
-        } else if (label == 'Classes') {
+        } else if (label == 'Turmas') {
           context.push('/my-classes');
-        } else if (label == 'Wards') {
+        } else if (label == 'Educandos') {
           context.push('/wards');
-        } else if (label == 'Receipts') {
+        } else if (label == 'Recibos') {
           context.push('/parent-receipts');
-        } else if (label == 'Results') {
+        } else if (label == 'Notas') {
           context.push('/results-setup');
-        } else if (label == 'Profile') {
+        } else if (label == 'Perfil') {
           context.push('/profile');
         }
       },
@@ -521,36 +521,36 @@ class DashboardScreen extends ConsumerWidget {
     return [
       const BottomNavigationBarItem(
         icon: Icon(LucideIcons.home),
-        label: 'Home',
+        label: 'Início',
       ),
       if (role == UserRole.admin)
         const BottomNavigationBarItem(
           icon: Icon(LucideIcons.users),
-          label: 'Staff',
+          label: 'Professores',
         ),
       if (role == UserRole.teacher)
         const BottomNavigationBarItem(
           icon: Icon(LucideIcons.bookOpen),
-          label: 'Classes',
+          label: 'Turmas',
         ),
       if (role == UserRole.parent)
         const BottomNavigationBarItem(
           icon: Icon(LucideIcons.baby),
-          label: 'Wards',
+          label: 'Educandos',
         ),
       if (role == UserRole.parent)
         const BottomNavigationBarItem(
           icon: Icon(LucideIcons.receipt),
-          label: 'Receipts',
+          label: 'Recibos',
         ),
       if (role == UserRole.admin || role == UserRole.teacher)
         const BottomNavigationBarItem(
           icon: Icon(LucideIcons.clipboardList),
-          label: 'Results',
+          label: 'Notas',
         ),
       const BottomNavigationBarItem(
         icon: Icon(LucideIcons.userCircle),
-        label: 'Profile',
+        label: 'Perfil',
       ),
     ];
   }
@@ -581,12 +581,12 @@ class AdminDashboard extends ConsumerWidget {
     return Column(
       children: [
         _SummaryCard(
-          title: 'Ecosystem Summary',
+          title: 'Resumo da escola',
           rows: [
-            _SummaryRow(label: 'Total Students', value: '$studentCount'),
-            _SummaryRow(label: 'Classes', value: '$classCount'),
+            _SummaryRow(label: 'Alunos', value: '$studentCount'),
+            _SummaryRow(label: 'Turmas', value: '$classCount'),
             _SummaryRow(
-              label: 'Total Arrears',
+              label: 'Dívidas',
               value: arrearsDisplay,
             ),
           ],
@@ -597,51 +597,51 @@ class AdminDashboard extends ConsumerWidget {
           crossAxisSpacing: 20,
           children: [
             _ActionCard(
-              title: 'Teacher\nRegistration',
+              title: 'Registar\nprofessor',
               icon: LucideIcons.userPlus,
               color: AppColors.primary,
               onTap: () => context.push('/register-teacher'),
             ),
             _ActionCard(
-              title: 'Student\nAdmissions',
+              title: 'Matricular\naluno',
               icon: LucideIcons.graduationCap,
               color: AppColors.surface,
               onTap: () => context.push('/admission'),
             ),
             _ActionCard(
-              title: 'Finance\n& Fees',
+              title: 'Propinas e\npagamentos',
               icon: LucideIcons.wallet,
               color: AppColors.secondary,
               isDark: true,
               onTap: () => context.push('/finance'),
             ),
             _ActionCard(
-              title: 'Academic\nSetup',
+              title: 'Calendário\nacadémico',
               icon: LucideIcons.settings2,
               color: AppColors.surface,
               onTap: () => context.push('/classes'),
             ),
             _ActionCard(
-              title: 'Students\nDirectory',
+              title: 'Lista de\nalunos',
               icon: LucideIcons.users,
               color: AppColors.primary,
               onTap: () => context.push('/admin-student-classes'),
             ),
             _ActionCard(
-              title: 'Subjects\nSetup',
+              title: 'Disciplinas',
               icon: LucideIcons.book,
               color: AppColors.surface,
               onTap: () => context.push('/subjects'),
             ),
             _ActionCard(
-              title: 'Send\nNotice',
+              title: 'Enviar\naviso',
               icon: LucideIcons.send,
               color: AppColors.secondary,
               isDark: true,
               onTap: () => context.push('/create-notice'),
             ),
             _ActionCard(
-              title: 'School\nNotices',
+              title: 'Avisos da\nescola',
               icon: LucideIcons.megaphone,
               color: AppColors.primary,
               onTap: () => context.push('/notices'),
@@ -663,9 +663,9 @@ class TeacherDashboard extends ConsumerWidget {
     return Column(
       children: [
         _SummaryCard(
-          title: '${selectedClass?.className ?? "Class"} Summary',
+          title: 'Resumo: ${selectedClass?.className ?? "turma"}',
           rows: [
-            const _SummaryRow(label: 'Welcome', value: 'Dashboard'),
+            const _SummaryRow(label: 'Bem-vindo', value: 'Painel'),
           ],
         ),
         const SizedBox(height: 32),
@@ -674,25 +674,25 @@ class TeacherDashboard extends ConsumerWidget {
           crossAxisSpacing: 20,
           children: [
             _ActionCard(
-              title: 'Take\nAttendance',
+              title: 'Marcar\npresenças',
               icon: LucideIcons.userCheck,
               color: AppColors.surface,
               onTap: () => context.push('/attendance'),
             ),
             _ActionCard(
-              title: 'Students\nDirectory',
+              title: 'Lista de\nalunos',
               icon: LucideIcons.users,
               color: AppColors.primary,
               onTap: () => context.push('/student-search'),
             ),
             _ActionCard(
-              title: 'Total\nAttendance',
+              title: 'Resumo de\npresenças',
               icon: LucideIcons.barChart3,
               color: AppColors.surface,
               onTap: () => context.push('/total-attendance'),
             ),
             _ActionCard(
-              title: 'School\nNotices',
+              title: 'Avisos da\nescola',
               icon: LucideIcons.megaphone,
               color: AppColors.surface,
               onTap: () => context.push('/notices'),
@@ -716,9 +716,9 @@ class ParentDashboard extends ConsumerWidget {
     return Column(
       children: [
         _SummaryCard(
-          title: 'Ward Overview',
+          title: 'Educandos',
           rows: [
-            const _SummaryRow(label: 'Welcome', value: 'Dashboard'),
+            const _SummaryRow(label: 'Bem-vindo', value: 'Painel'),
           ],
         ),
         const SizedBox(height: 32),
@@ -727,26 +727,26 @@ class ParentDashboard extends ConsumerWidget {
           crossAxisSpacing: 20,
           children: [
             _ActionCard(
-              title: 'Report\nCards',
+              title: 'Boletins',
               icon: LucideIcons.scrollText,
               color: AppColors.surface,
               onTap: () => context.push('/result-card'),
             ),
             _ActionCard(
-              title: 'Fee\nPayment',
+              title: 'Propinas',
               icon: LucideIcons.creditCard,
               color: AppColors.primary,
               onTap: () => context.push('/payment-history'),
             ),
             _ActionCard(
-              title: 'School\nNotices',
+              title: 'Avisos da\nescola',
               icon: LucideIcons.megaphone,
               color: AppColors.surface,
               badgeCount: noticeBadge,
               onTap: () => context.push('/notices'),
             ),
             _ActionCard(
-              title: 'Messages',
+              title: 'Mensagens',
               icon: LucideIcons.messageSquare,
               color: AppColors.surface,
               onTap: () {},

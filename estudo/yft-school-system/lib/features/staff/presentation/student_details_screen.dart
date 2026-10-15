@@ -10,6 +10,7 @@ import 'package:yft_school_system/core/theme/app_colors.dart';
 import 'package:yft_school_system/core/network/api_client.dart';
 import 'package:yft_school_system/core/utils/media_url.dart';
 import 'package:yft_school_system/core/utils/currency_display.dart';
+import 'package:yft_school_system/core/utils/labels.dart';
 import 'package:yft_school_system/core/utils/responsive_utils.dart';
 
 class StudentDetailsScreen extends ConsumerWidget {
@@ -33,20 +34,20 @@ class StudentDetailsScreen extends ConsumerWidget {
     final ok = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Delete student?'),
+        title: const Text('Eliminar aluno?'),
         content: Text(
-          'This removes ${student.name}, their grades, fee history, and enrollments. '
-          'The parent account is deleted only if they have no other children at this school.',
+          'Elimina ${student.name}, as notas, o histórico de propinas e as matrículas. '
+          'A conta do encarregado só é eliminada se não tiver outros educandos na escola.',
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Cancel'),
+            child: const Text('Cancelar'),
           ),
           FilledButton(
             style: FilledButton.styleFrom(backgroundColor: AppColors.error),
             onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Delete'),
+            child: const Text('Eliminar'),
           ),
         ],
       ),
@@ -59,7 +60,7 @@ class StudentDetailsScreen extends ConsumerWidget {
       ref.invalidate(studentsProvider((classId: student.classId, page: 1)));
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Student removed')),
+          const SnackBar(content: Text('Aluno eliminado')),
         );
         context.pop();
       }
@@ -92,7 +93,7 @@ class StudentDetailsScreen extends ConsumerWidget {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(active ? 'Student activated' : 'Student deactivated'),
+            content: Text(active ? 'Aluno activado' : 'Aluno desactivado'),
           ),
         );
       }
@@ -119,9 +120,9 @@ class StudentDetailsScreen extends ConsumerWidget {
         title: async.when(
           data: (s) => Text(s.name,
               style: const TextStyle(fontWeight: FontWeight.bold)),
-          loading: () => const Text('Student Profile',
+          loading: () => const Text('Ficha do aluno',
               style: TextStyle(fontWeight: FontWeight.bold)),
-          error: (e, s) => const Text('Student Profile',
+          error: (e, s) => const Text('Ficha do aluno',
               style: TextStyle(fontWeight: FontWeight.bold)),
         ),
         backgroundColor: Colors.transparent,
@@ -139,7 +140,7 @@ class StudentDetailsScreen extends ConsumerWidget {
                 Icon(LucideIcons.alertTriangle,
                     size: 48, color: AppColors.error),
                 const SizedBox(height: 16),
-                Text('Could not load student',
+                Text('Não foi possível carregar o aluno',
                     style: TextStyle(color: AppColors.error)),
                 const SizedBox(height: 8),
                 Text('$e',
@@ -150,7 +151,7 @@ class StudentDetailsScreen extends ConsumerWidget {
                 ElevatedButton(
                   onPressed: () =>
                       ref.invalidate(studentByIdProvider(id)),
-                  child: const Text('Retry'),
+                  child: const Text('Tentar novamente'),
                 ),
               ],
             ),
@@ -185,7 +186,7 @@ class StudentDetailsScreen extends ConsumerWidget {
                                     const SizedBox(width: 10),
                                     Expanded(
                                       child: Text(
-                                        'This student is inactive and hidden from the parent app.',
+                                        'Aluno inactivo: não aparece ao encarregado.',
                                         style: TextStyle(
                                           color: Colors.orange.shade900,
                                           fontSize: 13,
@@ -224,7 +225,7 @@ class StudentDetailsScreen extends ConsumerWidget {
                                 onPressed: () => context
                                     .push('/admission?id=${student.id}'),
                                 icon: const Icon(LucideIcons.pencil, size: 22),
-                                tooltip: 'Edit',
+                                tooltip: 'Editar',
                               ),
                               const SizedBox(width: 12),
                               Expanded(
@@ -242,8 +243,8 @@ class StudentDetailsScreen extends ConsumerWidget {
                                     size: 20,
                                   ),
                                   label: Text(student.isActive
-                                      ? 'Deactivate'
-                                      : 'Activate'),
+                                      ? 'Desactivar'
+                                      : 'Activar'),
                                 ),
                               ),
                               const SizedBox(width: 12),
@@ -257,7 +258,7 @@ class StudentDetailsScreen extends ConsumerWidget {
                                   onPressed: () =>
                                       _confirmDelete(context, ref, student),
                                   icon: const Icon(LucideIcons.trash2, size: 20),
-                                  label: const Text('Delete'),
+                                  label: const Text('Eliminar'),
                                 ),
                               ),
                             ],
@@ -333,45 +334,45 @@ class _StudentProfileBody extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 24),
-        _section(context, 'Student', [
-          _row(LucideIcons.bookOpen, 'Class',
+        _section(context, 'Aluno', [
+          _row(LucideIcons.bookOpen, 'Turma',
               student.className ?? student.classId),
-          _row(LucideIcons.users, 'Gender', student.gender ?? '—'),
-          _row(LucideIcons.calendar, 'Date of birth', formatDob(student.dob)),
-          _row(LucideIcons.school, 'Previous school',
+          _row(LucideIcons.users, 'Género', genderLabel(student.gender)),
+          _row(LucideIcons.calendar, 'Data de nascimento', formatDob(student.dob)),
+          _row(LucideIcons.school, 'Escola anterior',
               student.previousSchool ?? '—'),
-          _row(LucideIcons.mapPin, 'Address', student.address ?? '—'),
+          _row(LucideIcons.mapPin, 'Morada', student.address ?? '—'),
         ]),
         const SizedBox(height: 16),
-        _section(context, 'Emergency', [
-          _row(LucideIcons.alertCircle, 'Contact name',
+        _section(context, 'Emergência', [
+          _row(LucideIcons.alertCircle, 'Nome',
               student.emergencyContactName ?? '—'),
-          _row(LucideIcons.phone, 'Contact phone',
+          _row(LucideIcons.phone, 'Telefone',
               student.emergencyContactPhone ?? '—'),
         ]),
         const SizedBox(height: 16),
-        _section(context, 'Health', [
-          _row(LucideIcons.droplet, 'Blood group',
+        _section(context, 'Saúde', [
+          _row(LucideIcons.droplet, 'Grupo sanguíneo',
               student.bloodGroup ?? '—'),
-          _row(LucideIcons.heartHandshake, 'Medical notes',
+          _row(LucideIcons.heartHandshake, 'Notas médicas',
               student.medicalNotes ?? '—'),
         ]),
         const SizedBox(height: 16),
-        _section(context, 'Parent / guardian', [
-          _row(LucideIcons.contact, 'Name', student.parentName ?? '—'),
-          _row(LucideIcons.phone, 'Phone', student.parentPhone ?? '—'),
-          _row(LucideIcons.mail, 'Email', student.parentEmail ?? '—'),
+        _section(context, 'Encarregado de educação', [
+          _row(LucideIcons.contact, 'Nome', student.parentName ?? '—'),
+          _row(LucideIcons.phone, 'Telefone', student.parentPhone ?? '—'),
+          _row(LucideIcons.mail, 'E-mail', student.parentEmail ?? '—'),
         ]),
         const SizedBox(height: 16),
-        _section(context, 'Fees', [
+        _section(context, 'Propinas', [
           _row(
             LucideIcons.wallet,
-            'Balance',
+            'Saldo',
             student.hasDebt
-                ? '${formatMoneyDisplay(currency, student.balance.abs())} (owing)'
+                ? '${formatMoneyDisplay(currency, student.balance.abs())} (em dívida)'
                 : student.isOverpaid
-                    ? '+${formatMoneyDisplay(currency, student.balance)} (credit)'
-                    : '${formatMoneyDisplay(currency, 0)} (cleared)',
+                    ? '+${formatMoneyDisplay(currency, student.balance)} (crédito)'
+                    : '${formatMoneyDisplay(currency, 0)} (em dia)',
             valueColor: student.hasDebt
                 ? Colors.red.shade700
                 : student.isOverpaid

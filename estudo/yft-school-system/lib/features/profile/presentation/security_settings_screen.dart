@@ -33,7 +33,7 @@ class _SecuritySettingsScreenState
       backgroundColor: AppColors.background,
       appBar: AppBar(
         title: const Text(
-          'Security & Password',
+          'Segurança e senha',
           style: TextStyle(fontWeight: FontWeight.bold),
         ),
         backgroundColor: Colors.transparent,
@@ -49,7 +49,7 @@ class _SecuritySettingsScreenState
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const Text(
-                  'Update your password and secure your account.',
+                  'Altere a senha e proteja a conta.',
                   style: TextStyle(
                     color: AppColors.textSecondary,
                     fontSize: 13,
@@ -58,8 +58,8 @@ class _SecuritySettingsScreenState
                 const SizedBox(height: 32),
 
                 _buildPasswordField(
-                  'Current Password',
-                  'Enter current password',
+                  'Senha actual',
+                  'Senha actual',
                   _obscureCurrent,
                   () {
                     setState(() => _obscureCurrent = !_obscureCurrent);
@@ -68,8 +68,8 @@ class _SecuritySettingsScreenState
                 const SizedBox(height: 20),
 
                 _buildPasswordField(
-                  'New Password',
-                  'Create new password',
+                  'Nova senha',
+                  'Nova senha',
                   _obscureNew,
                   () {
                     setState(() => _obscureNew = !_obscureNew);
@@ -78,8 +78,8 @@ class _SecuritySettingsScreenState
                 const SizedBox(height: 20),
 
                 _buildPasswordField(
-                  'Repeat New Password',
-                  'Confirm new password',
+                  'Repetir nova senha',
+                  'Confirmar nova senha',
                   _obscureRepeat,
                   () {
                     setState(() => _obscureRepeat = !_obscureRepeat);
@@ -100,7 +100,7 @@ class _SecuritySettingsScreenState
                   child: SwitchListTile(
                     contentPadding: EdgeInsets.zero,
                     title: const Text(
-                      'Two-Factor Authentication',
+                      'Verificação em dois passos',
                       style: TextStyle(fontWeight: FontWeight.bold),
                     ),
                     subtitle: const Text(
@@ -139,14 +139,14 @@ class _SecuritySettingsScreenState
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'Access Control',
+                            'Permissões',
                             style: TextStyle(
                               fontSize: 20,
                               fontWeight: FontWeight.bold,
                             ),
                           ),
                           Text(
-                            'Manage app-wide permissions',
+                            'Permissões da escola',
                             style: TextStyle(
                               color: AppColors.textSecondary,
                               fontSize: 12,
@@ -180,13 +180,13 @@ class _SecuritySettingsScreenState
                         SwitchListTile(
                           contentPadding: EdgeInsets.zero,
                           title: const Text(
-                            'Allow Teachers to Enter Results',
+                            'Professores lançam notas',
                             style: TextStyle(fontWeight: FontWeight.bold),
                           ),
                           subtitle: Text(
                             teacherCanEditResults
-                                ? 'Teachers can currently input and edit student results.'
-                                : 'Teachers can only view results. Editing is disabled.',
+                                ? 'Os professores podem lançar e corrigir notas.'
+                                : 'Os professores só podem consultar as notas.',
                             style: const TextStyle(
                               fontSize: 12,
                               color: AppColors.textSecondary,
@@ -230,8 +230,8 @@ class _SecuritySettingsScreenState
                                       SnackBar(
                                         content: Text(
                                           val
-                                              ? 'Teachers can now enter results.'
-                                              : 'Teacher result editing has been disabled.',
+                                              ? 'Os professores já podem lançar notas.'
+                                              : 'Os professores deixaram de poder lançar notas.',
                                           style: const TextStyle(
                                             fontWeight: FontWeight.bold,
                                           ),

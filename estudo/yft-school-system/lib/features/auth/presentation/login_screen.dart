@@ -34,7 +34,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text(
-            'Please enter your email and password.',
+            'Indique o e-mail e a senha.',
             style: TextStyle(fontWeight: FontWeight.bold),
           ),
           backgroundColor: AppColors.error,
@@ -103,7 +103,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       ),
                       const SizedBox(height: 48),
                       Text(
-                        'School Management Ecosystem',
+                        'Gestão escolar',
                         style: Theme.of(context).textTheme.displayLarge
                             ?.copyWith(
                               fontSize: 32,
@@ -113,7 +113,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       ),
                       const SizedBox(height: 16),
                       Text(
-                        'Empowering education with modern technology.',
+                        'Escola, professores e encarregados no mesmo sítio.',
                         style: Theme.of(
                           context,
                         ).textTheme.bodyMedium?.copyWith(fontSize: 16),
@@ -171,7 +171,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           ),
         ),
         const SizedBox(height: 8),
-        Text('Welcome Back', style: Theme.of(context).textTheme.bodyMedium),
+        Text('Bem-vindo', style: Theme.of(context).textTheme.bodyMedium),
 
         const SizedBox(height: 60),
 
@@ -179,7 +179,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           controller: _emailController,
           keyboardType: TextInputType.emailAddress,
           decoration: const InputDecoration(
-            hintText: 'Email address',
+            hintText: 'E-mail',
             prefixIcon: Icon(LucideIcons.mail, size: 20),
           ),
         ),
@@ -190,7 +190,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           controller: _passwordController,
           obscureText: !_isPasswordVisible,
           decoration: InputDecoration(
-            hintText: 'Password',
+            hintText: 'Senha',
             prefixIcon: const Icon(LucideIcons.lock, size: 20),
             suffixIcon: IconButton(
               icon: Icon(
@@ -209,7 +209,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           alignment: Alignment.centerRight,
           child: TextButton(
             onPressed: () => context.push('/forgot-password'),
-            child: const Text('Forgot password?'),
+            child: const Text('Esqueceu a senha?'),
           ),
         ),
 
@@ -229,7 +229,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       color: AppColors.secondary,
                     ),
                   )
-                : const Text('Login', style: TextStyle(fontSize: 16)),
+                : const Text('Entrar', style: TextStyle(fontSize: 16)),
           ),
         ),
 
@@ -249,7 +249,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               const SizedBox(width: 8),
               const Expanded(
                 child: Text(
-                  'Your account is provisioned by your school administrator.',
+                  'A sua conta é criada pela administração da escola.',
                   style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
                 ),
               ),

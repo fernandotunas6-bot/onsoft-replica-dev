@@ -11,7 +11,7 @@ class PrivacyPolicyScreen extends StatelessWidget {
       backgroundColor: AppColors.background,
       appBar: AppBar(
         title: const Text(
-          'Privacy Policy',
+          'Privacidade',
           style: TextStyle(fontWeight: FontWeight.bold),
         ),
         backgroundColor: Colors.transparent,
@@ -39,7 +39,7 @@ class PrivacyPolicyScreen extends StatelessWidget {
             ),
             const SizedBox(height: 32),
             const Text(
-              'Your Privacy is Important to Us',
+              'Privacidade',
               style: TextStyle(
                 fontWeight: FontWeight.bold,
                 fontSize: 24,
@@ -48,9 +48,11 @@ class PrivacyPolicyScreen extends StatelessWidget {
             ),
             const SizedBox(height: 16),
             const Text(
-              'Last updated: October 10, 2026\n\n'
-              'Edu Manager ("we", "our", or "us") is committed to protecting your personal information and your right to privacy. '
-              'If you have any questions or concerns about this privacy notice, or our practices with regards to your personal information, please contact us at privacy@edumanager.app.',
+              'Os seus dados (nome, contactos, dados dos alunos, notas e '
+              'pagamentos) são tratados pela escola que lhe deu acesso. Para '
+              'saber como são usados, pedir uma cópia ou corrigi-los, fale com a '
+              'secretaria da escola.\n\n'
+              'Esta aplicação ainda não tem uma política de privacidade própria.',
               style: TextStyle(
                 fontSize: 14,
                 color: AppColors.textSecondary,
@@ -58,25 +60,11 @@ class PrivacyPolicyScreen extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 24),
-            _buildSection(
-              '1. Information We Collect',
-              'We collect personal information that you voluntarily provide to us when you register on the application, express an interest in obtaining school updates, or otherwise when you contact us.\n\n'
-                  'The personal information that we collect depends on the context of your interactions with us and the school administration.',
-            ),
-            _buildSection(
-              '2. How We Use Your Information',
-              'We use personal information collected via our application for a variety of academic and administrative purposes described below. We process your personal information for these purposes in reliance on our legitimate school administrative interests.',
-            ),
-            _buildSection(
-              '3. Will Your Information Be Shared?',
-              'We only share information with your consent, to comply with laws, to provide you with services, to protect your rights, or to fulfill academic obligations (such as sharing grades with parents).',
-            ),
-            const SizedBox(height: 24),
             Center(
               child: TextButton(
                 onPressed: () => Navigator.pop(context),
                 child: const Text(
-                  'I Understand',
+                  'Compreendi',
                   style: TextStyle(
                     color: AppColors.primary,
                     fontWeight: FontWeight.bold,
@@ -87,34 +75,6 @@ class PrivacyPolicyScreen extends StatelessWidget {
             ),
           ],
         ),
-      ),
-    );
-  }
-
-  Widget _buildSection(String title, String content) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 24.0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            title,
-            style: const TextStyle(
-              fontWeight: FontWeight.bold,
-              fontSize: 18,
-              color: AppColors.secondary,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            content,
-            style: const TextStyle(
-              fontSize: 14,
-              color: AppColors.textSecondary,
-              height: 1.6,
-            ),
-          ),
-        ],
       ),
     );
   }

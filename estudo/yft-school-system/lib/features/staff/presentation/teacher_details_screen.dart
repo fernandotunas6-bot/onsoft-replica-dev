@@ -5,6 +5,7 @@ import 'package:yft_school_system/core/network/api_client.dart';
 import 'package:yft_school_system/core/providers/repository_providers.dart';
 import 'package:yft_school_system/core/theme/app_colors.dart';
 import 'package:yft_school_system/core/utils/media_url.dart';
+import 'package:yft_school_system/core/utils/labels.dart';
 import 'package:yft_school_system/core/utils/responsive_utils.dart';
 
 class TeacherDetailsScreen extends ConsumerWidget {
@@ -34,11 +35,11 @@ class TeacherDetailsScreen extends ConsumerWidget {
             style: const TextStyle(fontWeight: FontWeight.bold),
           ),
           loading: () => const Text(
-            'Staff profile',
+            'Ficha do professor',
             style: TextStyle(fontWeight: FontWeight.bold),
           ),
           error: (Object e, StackTrace? st) => const Text(
-            'Staff profile',
+            'Ficha do professor',
             style: TextStyle(fontWeight: FontWeight.bold),
           ),
         ),
@@ -57,7 +58,7 @@ class TeacherDetailsScreen extends ConsumerWidget {
                 Icon(LucideIcons.alertTriangle,
                     size: 48, color: AppColors.error),
                 const SizedBox(height: 16),
-                Text('Could not load teacher',
+                Text('Não foi possível carregar o professor',
                     style: TextStyle(color: AppColors.error)),
                 const SizedBox(height: 8),
                 Text(
@@ -71,7 +72,7 @@ class TeacherDetailsScreen extends ConsumerWidget {
                 const SizedBox(height: 24),
                 ElevatedButton(
                   onPressed: () => ref.invalidate(teacherProfileProvider(id)),
-                  child: const Text('Retry'),
+                  child: const Text('Tentar novamente'),
                 ),
               ],
             ),
@@ -193,45 +194,45 @@ class _TeacherProfileBody extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 24),
-            _section(context, 'Profile', [
-              _row(LucideIcons.users, 'Gender', gender ?? '—'),
-              _row(LucideIcons.calendar, 'Date of birth', dateOfBirth),
-              _row(LucideIcons.phone, 'Phone', phone ?? '—'),
-              _row(LucideIcons.mail, 'Email', email ?? '—'),
-              _row(LucideIcons.mapPin, 'Address', residentialAddress ?? '—'),
+            _section(context, 'Perfil', [
+              _row(LucideIcons.users, 'Género', genderLabel(gender)),
+              _row(LucideIcons.calendar, 'Data de nascimento', dateOfBirth),
+              _row(LucideIcons.phone, 'Telefone', phone ?? '—'),
+              _row(LucideIcons.mail, 'E-mail', email ?? '—'),
+              _row(LucideIcons.mapPin, 'Morada', residentialAddress ?? '—'),
             ]),
             const SizedBox(height: 16),
-            _section(context, 'Professional', [
-              _row(LucideIcons.award, 'Qualification', qualification ?? '—'),
+            _section(context, 'Profissional', [
+              _row(LucideIcons.award, 'Habilitações', qualification ?? '—'),
               _row(
                 LucideIcons.briefcase,
-                'Years experience',
+                'Anos de experiência',
                 yearsExperience != null ? '$yearsExperience' : '—',
               ),
               _row(
                 LucideIcons.bookOpen,
-                'Subjects',
+                'Disciplinas',
                 subjectsText ?? '—',
                 multiline: true,
               ),
             ]),
             const SizedBox(height: 16),
-            _section(context, 'Other', [
+            _section(context, 'Outros', [
               _row(LucideIcons.creditCard, 'SSNIT', ssnitNumber ?? '—'),
-              _row(LucideIcons.heart, 'Marital status', maritalStatus ?? '—'),
+              _row(LucideIcons.heart, 'Estado civil', maritalStatus ?? '—'),
             ]),
             const SizedBox(height: 16),
-            _section(context, 'Emergency', [
-              _row(LucideIcons.alertCircle, 'Name',
+            _section(context, 'Emergência', [
+              _row(LucideIcons.alertCircle, 'Nome',
                   emergencyContactName ?? '—'),
-              _row(LucideIcons.phone, 'Phone',
+              _row(LucideIcons.phone, 'Telefone',
                   emergencyContactPhone ?? '—'),
             ]),
             const SizedBox(height: 16),
-            _section(context, 'Bank', [
-              _row(LucideIcons.building2, 'Bank', bankName ?? '—'),
-              _row(LucideIcons.hash, 'Account', bankAccountNumber ?? '—'),
-              _row(LucideIcons.user, 'Holder', bankAccountHolder ?? '—'),
+            _section(context, 'Banco', [
+              _row(LucideIcons.building2, 'Banco', bankName ?? '—'),
+              _row(LucideIcons.hash, 'Conta', bankAccountNumber ?? '—'),
+              _row(LucideIcons.user, 'Titular', bankAccountHolder ?? '—'),
             ]),
           ],
         ),

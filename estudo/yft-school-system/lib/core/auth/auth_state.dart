@@ -110,7 +110,7 @@ class AuthStateNotifier extends Notifier<AppSession?> {
         userName: (profile['name'] as String?) ??
             user.displayName ??
             user.email ??
-            'User',
+            'Utilizador',
         schoolId: schoolId,
         uid: user.uid,
         schoolName: profile['school_name'] as String?,
@@ -148,18 +148,17 @@ class AuthStateNotifier extends Notifier<AppSession?> {
       );
 
       final user = credential.user;
-      if (user == null) return 'Authentication failed.';
+      if (user == null) return 'Não foi possível iniciar sessão.';
 
       final (session, meStatus) = await _resolveSessionFromApi(user);
       if (session == null) {
         await FirebaseAuth.instance.signOut();
         if (meStatus == 401) {
-          return 'The server could not verify your login. Usually the school API '
-              'is set to a different Firebase project than this app. Your developer '
-              'should set the worker’s FIREBASE_PROJECT_ID to match the project in '
-              'Firebase Console (same as google-services.json).';
+          return 'O servidor não reconheceu a sessão. A API da escola está ligada a '
+              'outro projecto Firebase: o FIREBASE_PROJECT_ID do Worker tem de ser '
+              'o mesmo desta app.';
         }
-        return 'Account not provisioned. Contact your administrator.';
+        return 'Conta sem acesso configurado. Fale com a administração da escola.';
       }
 
       state = session;
@@ -167,21 +166,21 @@ class AuthStateNotifier extends Notifier<AppSession?> {
     } on FirebaseAuthException catch (e) {
       switch (e.code) {
         case 'user-not-found':
-          return 'No account found with this email.';
+          return 'Não existe conta com este e-mail.';
         case 'wrong-password':
         case 'invalid-credential':
-          return 'Invalid email or password.';
+          return 'E-mail ou senha incorrectos.';
         case 'user-disabled':
-          return 'This account has been disabled.';
+          return 'Esta conta foi desactivada.';
         case 'too-many-requests':
-          return 'Too many attempts. Try again later.';
+          return 'Demasiadas tentativas. Tente mais tarde.';
         case 'invalid-email':
-          return 'Invalid email address.';
+          return 'E-mail inválido.';
         default:
-          return e.message ?? 'Authentication failed.';
+          return e.message ?? 'Não foi possível iniciar sessão.';
       }
     } catch (e) {
-      return 'Connection error. Please try again.';
+      return 'Erro de ligação. Tente novamente.';
     }
   }
 

@@ -46,13 +46,13 @@ class _FeeReceiptViewScreenState extends ConsumerState<FeeReceiptViewScreen> {
       await file.writeAsBytes(bytes, flush: true);
       await Share.shareXFiles(
         [XFile(file.path)],
-        subject: 'Fee receipt ${widget.receipt.id}',
+        subject: 'Recibo de propina ${widget.receipt.id}',
       );
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Could not prepare PDF: $e'),
+          content: Text('Não foi possível gerar o PDF: $e'),
           backgroundColor: AppColors.error,
         ),
       );
@@ -78,7 +78,7 @@ class _FeeReceiptViewScreenState extends ConsumerState<FeeReceiptViewScreen> {
       backgroundColor: const Color(0xFFE2E8F0),
       appBar: AppBar(
         title: const Text(
-          'Fee receipt',
+          'Recibo de propina',
           style: TextStyle(fontWeight: FontWeight.bold),
         ),
         backgroundColor: AppColors.background,
@@ -98,7 +98,7 @@ class _FeeReceiptViewScreenState extends ConsumerState<FeeReceiptViewScreen> {
             )
           else
             IconButton(
-              tooltip: 'Download / share PDF',
+              tooltip: 'Descarregar / partilhar PDF',
               onPressed: () => _sharePdf(data),
               icon: const Icon(LucideIcons.download),
             ),

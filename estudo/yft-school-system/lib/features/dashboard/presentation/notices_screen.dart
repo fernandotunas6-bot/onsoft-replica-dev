@@ -98,7 +98,7 @@ class NoticesScreen extends ConsumerWidget {
       backgroundColor: AppColors.background,
       appBar: AppBar(
         title: const Text(
-          'School Notices',
+          'Avisos da escola',
           style: TextStyle(fontWeight: FontWeight.bold),
         ),
         backgroundColor: Colors.transparent,
@@ -114,13 +114,13 @@ class NoticesScreen extends ConsumerWidget {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
-                  'Could not load notices.',
+                  'Não foi possível carregar os avisos.',
                   style: TextStyle(color: AppColors.error),
                 ),
                 const SizedBox(height: 12),
                 TextButton(
                   onPressed: () => ref.invalidate(parentNoticesProvider),
-                  child: const Text('Retry'),
+                  child: const Text('Tentar novamente'),
                 ),
               ],
             ),
@@ -139,7 +139,7 @@ class NoticesScreen extends ConsumerWidget {
                   ),
                   const SizedBox(height: 16),
                   const Text(
-                    'No notices yet.',
+                    'Ainda não há avisos.',
                     style: TextStyle(
                       color: AppColors.textSecondary,
                       fontSize: 14,

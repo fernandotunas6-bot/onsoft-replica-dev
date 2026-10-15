@@ -14,7 +14,7 @@ class AdminClassStudentsScreen extends ConsumerWidget {
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: const Text('Students Directory', style: TextStyle(fontWeight: FontWeight.bold)),
+        title: const Text('Lista de alunos', style: TextStyle(fontWeight: FontWeight.bold)),
         backgroundColor: Colors.transparent,
         elevation: 0,
         foregroundColor: AppColors.secondary,
@@ -25,11 +25,11 @@ class AdminClassStudentsScreen extends ConsumerWidget {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text('Failed to load students', style: TextStyle(color: AppColors.error)),
+              Text('Não foi possível carregar os alunos', style: TextStyle(color: AppColors.error)),
               const SizedBox(height: 8),
               TextButton(
                 onPressed: () => ref.invalidate(studentsProvider((classId: null, page: 1))),
-                child: const Text('Retry'),
+                child: const Text('Tentar novamente'),
               ),
             ],
           ),
@@ -37,7 +37,7 @@ class AdminClassStudentsScreen extends ConsumerWidget {
         data: (paginated) {
           final students = paginated.data;
           if (students.isEmpty) {
-            return const Center(child: Text('No students enrolled yet.', style: TextStyle(color: AppColors.textSecondary)));
+            return const Center(child: Text('Ainda não há alunos matriculados.', style: TextStyle(color: AppColors.textSecondary)));
           }
           return ListView.builder(
             padding: const EdgeInsets.all(24),

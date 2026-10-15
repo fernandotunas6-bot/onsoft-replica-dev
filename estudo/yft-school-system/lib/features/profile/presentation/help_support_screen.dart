@@ -11,7 +11,7 @@ class HelpSupportScreen extends StatelessWidget {
       backgroundColor: AppColors.background,
       appBar: AppBar(
         title: const Text(
-          'Help & Support',
+          'Ajuda',
           style: TextStyle(fontWeight: FontWeight.bold),
         ),
         backgroundColor: Colors.transparent,
@@ -60,7 +60,7 @@ class HelpSupportScreen extends StatelessWidget {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              'How can we help you?',
+                              'Como podemos ajudar?',
                               style: TextStyle(
                                 color: Colors.white,
                                 fontWeight: FontWeight.bold,
@@ -70,7 +70,7 @@ class HelpSupportScreen extends StatelessWidget {
                             ),
                             SizedBox(height: 4),
                             Text(
-                              'Our support team is available 24/7.',
+                              'Fale com a secretaria da sua escola.',
                               style: TextStyle(
                                 color: Colors.white70,
                                 fontSize: 13,
@@ -83,7 +83,7 @@ class HelpSupportScreen extends StatelessWidget {
                   ),
                   const SizedBox(height: 24),
                   ElevatedButton(
-                    onPressed: () {},
+                    onPressed: null, // não havia acção nenhuma
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.white,
                       foregroundColor: AppColors.primary,
@@ -93,7 +93,7 @@ class HelpSupportScreen extends StatelessWidget {
                       ),
                     ),
                     child: const Text(
-                      'Contact Support',
+                      'Contactar a escola',
                       style: TextStyle(fontWeight: FontWeight.bold),
                     ),
                   ),
@@ -103,26 +103,22 @@ class HelpSupportScreen extends StatelessWidget {
 
             const SizedBox(height: 40),
             const Text(
-              'Frequently Asked Questions',
+              'Perguntas frequentes',
               style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
             ),
             const SizedBox(height: 16),
 
             _buildFAQItem(
-              'How do I reset my password?',
-              'You can reset your password by going to Profile > Security & Password, or by tapping "Forgot Password" on the login screen.',
+              'Como recupero a senha?',
+              'No ecrã de entrada, toque em «Esqueceu a senha?». Se a conta não tiver e-mail, peça uma nova senha à secretaria.',
             ),
             _buildFAQItem(
-              'Where can I see child\'s grades?',
-              'Go to the global Home or Dashboard and click on the "Wards" section to view their latest Academic Reports.',
+              'Onde vejo os dados do meu educando?',
+              'No separador «Educandos». Os boletins ainda não estão disponíveis na app.',
             ),
             _buildFAQItem(
-              'How do I contact a teacher?',
-              'Teachers can be contacted via the official school email directory provided by the admin, or through the upcoming messaging portal.',
-            ),
-            _buildFAQItem(
-              'Why are the fees not updating?',
-              'Fee payments take up to 24 hours to clear in the school\'s accounting backend. If it still doesn\'t reflect, please use the Contact Support button.',
+              'Como contacto um professor?',
+              'Pelos contactos que a secretaria da escola indicar. A app ainda não tem mensagens.',
             ),
           ],
         ),

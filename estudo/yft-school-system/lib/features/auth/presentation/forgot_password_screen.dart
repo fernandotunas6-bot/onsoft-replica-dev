@@ -26,7 +26,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
     if (_usernameController.text.trim().isEmpty ||
         !_usernameController.text.contains('@')) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please enter a valid email address')),
+        const SnackBar(content: Text('Indique um e-mail válido')),
       );
       return;
     }
@@ -50,14 +50,14 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
       if (mounted) {
         setState(() => _isLoading = false);
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(e.message ?? 'Failed to send reset email')),
+          SnackBar(content: Text(e.message ?? 'Não foi possível enviar o e-mail')),
         );
       }
     } catch (_) {
       if (mounted) {
         setState(() => _isLoading = false);
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Connection error. Please try again.')),
+          const SnackBar(content: Text('Erro de ligação. Tente novamente.')),
         );
       }
     }
@@ -100,7 +100,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                       ),
                       const SizedBox(height: 48),
                       Text(
-                        'Reset Your Password',
+                        'Recuperar a senha',
                         style: Theme.of(context).textTheme.displayLarge
                             ?.copyWith(
                               fontSize: 32,
@@ -110,7 +110,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                       ),
                       const SizedBox(height: 16),
                       Text(
-                        'Enter your registered email address to receive a secure link to reset your password.',
+                        'Indique o e-mail da conta para receber uma ligação segura de recuperação.',
                         style: Theme.of(
                           context,
                         ).textTheme.bodyMedium?.copyWith(fontSize: 16),
@@ -175,7 +175,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                 color: AppColors.textPrimary,
               ),
               onPressed: () => Navigator.pop(context),
-              tooltip: 'Back to Login',
+              tooltip: 'Voltar ao início de sessão',
             ),
           ),
           const SizedBox(height: 20),
@@ -183,7 +183,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
 
         // Header Title
         Text(
-          'Forgot Password',
+          'Recuperar senha',
           style: Theme.of(context).textTheme.displayLarge?.copyWith(
             fontSize: 32,
             color: AppColors.secondary,
@@ -191,7 +191,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
         ),
         const SizedBox(height: 16),
         Text(
-          'Enter your registered email address and we will send you a secure link to reset your password.',
+          'Indique o e-mail da conta e enviamos uma ligação segura para definir nova senha.',
           style: Theme.of(context).textTheme.bodyMedium,
           textAlign: TextAlign.center,
         ),
@@ -204,7 +204,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
             controller: _usernameController,
             keyboardType: TextInputType.emailAddress,
             decoration: const InputDecoration(
-              hintText: 'Enter your email address',
+              hintText: 'O seu e-mail',
               prefixIcon: Icon(LucideIcons.mail, size: 20),
             ),
             onSubmitted: (_) => _handleSendResetLink(),
@@ -225,7 +225,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                       ),
                     )
                   : const Text(
-                      'Send Reset Link',
+                      'Enviar ligação',
                       style: TextStyle(fontSize: 16),
                     ),
             ),
@@ -263,7 +263,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'Recovery Email Sent',
+                            'E-mail enviado',
                             style: TextStyle(
                               fontWeight: FontWeight.bold,
                               fontSize: 18,
@@ -272,7 +272,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                           ),
                           SizedBox(height: 4),
                           Text(
-                            'Check your inbox for a reset link',
+                            'Veja a caixa de entrada',
                             style: TextStyle(
                               color: AppColors.textSecondary,
                               fontSize: 13,
@@ -285,7 +285,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                 ),
                 const SizedBox(height: 24),
                 Text(
-                  'We have sent an email to ${_usernameController.text} with instructions to safely reset your password. It may take a few minutes to arrive.',
+                  'Enviámos para ${_usernameController.text} as instruções para definir nova senha. Pode demorar alguns minutos.',
                   style: const TextStyle(fontSize: 14, height: 1.5),
                 ),
               ],
@@ -298,7 +298,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
             child: OutlinedButton.icon(
               onPressed: () => Navigator.pop(context),
               icon: const Icon(LucideIcons.arrowLeft, size: 20),
-              label: const Text('Back to Login'),
+              label: const Text('Voltar ao início de sessão'),
             ),
           ),
         ],

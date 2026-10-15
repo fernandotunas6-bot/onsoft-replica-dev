@@ -147,6 +147,28 @@ Por resolver, porque mexe na API e nos ecrãs: a senha continua partilhada
 dentro de cada escola. O correcto é uma senha temporária por pessoa, mostrada
 uma só vez, com troca obrigatória no primeiro acesso.
 
+## Tradução para português (15/10/2026)
+
+Os textos da app passaram para português, com os termos do SIGA: turma,
+disciplina, aluno, encarregado, educando, propina, dívida, aviso, presenças e
+notas. O nome «Edu Manager» ficou, porque mudar a marca é uma decisão de
+produto. Captura: `yft-estudo-capturas/entrada-pt.jpg`.
+
+- Os valores que a API grava ou compara continuam iguais (`Term 1`, `Male`,
+  `Female`, `Other`). Passam a ser mostrados através de `lib/core/utils/labels.dart`:
+  «1.º Trimestre» (ou «1.º Semestre» num ano de dois períodos), «Masculino».
+- Os meses do recibo passaram a português.
+- Texto inventado retirado:
+  - «Ajuda»: prometia suporte 24/7, pagamentos «até 24 horas» e um portal de
+    mensagens que não existe;
+  - «Privacidade»: tinha uma política com data e um e-mail inventados. Agora
+    diz a verdade: a escola trata os dados e a app ainda não tem política
+    própria;
+  - o botão «Contactar» da ajuda não fazia nada e ficou desactivado.
+- O teste do autor (`test/widget_test.dart`) foi actualizado para o novo
+  subtítulo do arranque; os 7 testes passam e o `flutter analyze` não dá
+  avisos.
+
 ## Pontos a reter (ideias, não código)
 
 1. **Suspensão da escola** tratada no servidor e no cliente: o Worker

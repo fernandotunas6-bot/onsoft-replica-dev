@@ -58,7 +58,7 @@ class _StudentDirectoryScreenState
       backgroundColor: AppColors.background,
       appBar: AppBar(
         title: const Text(
-          'Student Directory',
+          'Lista de alunos',
           style: TextStyle(fontWeight: FontWeight.bold),
         ),
         backgroundColor: Colors.transparent,
@@ -79,12 +79,12 @@ class _StudentDirectoryScreenState
                     const Icon(LucideIcons.alertTriangle,
                         size: 48, color: AppColors.error),
                     const SizedBox(height: 16),
-                    const Text('Failed to load students'),
+                    const Text('Não foi possível carregar os alunos'),
                     const SizedBox(height: 16),
                     ElevatedButton(
                       onPressed: () => ref.invalidate(studentsProvider(
                           (classId: _selectedClassId, page: _currentPage))),
-                      child: const Text('Retry'),
+                      child: const Text('Tentar novamente'),
                     ),
                   ],
                 ),
@@ -102,7 +102,7 @@ class _StudentDirectoryScreenState
                                 .withValues(alpha: 0.3)),
                         const SizedBox(height: 16),
                         const Text(
-                          'No students found.',
+                          'Nenhum aluno encontrado.',
                           style: TextStyle(
                               color: AppColors.textSecondary, fontSize: 14),
                         ),
@@ -123,7 +123,7 @@ class _StudentDirectoryScreenState
                                 .withValues(alpha: 0.3)),
                         const SizedBox(height: 16),
                         const Text(
-                          'No matches for your search.',
+                          'Nada encontrado.',
                           style: TextStyle(
                               color: AppColors.textSecondary, fontSize: 14),
                         ),
@@ -149,7 +149,7 @@ class _StudentDirectoryScreenState
                                 ? formatMoneyDisplay(currency, student.balance.abs())
                                 : student.isOverpaid
                                     ? '+${formatMoneyDisplay(currency, student.balance)}'
-                                    : 'Cleared';
+                                    : 'Em dia';
                             final balanceColor = student.hasDebt
                                 ? Colors.red.shade700
                                 : student.isOverpaid
@@ -240,13 +240,13 @@ class _StudentDirectoryScreenState
                                   TextButton(
                                     onPressed: () => setState(
                                         () => _currentPage--),
-                                    child: const Text('Previous'),
+                                    child: const Text('Anterior'),
                                   ),
                                 Padding(
                                   padding: const EdgeInsets.symmetric(
                                       horizontal: 16),
                                   child: Text(
-                                    'Page $_currentPage of ${paginated.totalPages}',
+                                    'Página $_currentPage de ${paginated.totalPages}',
                                     style: const TextStyle(
                                         fontWeight: FontWeight.w600),
                                   ),
@@ -255,7 +255,7 @@ class _StudentDirectoryScreenState
                                   TextButton(
                                     onPressed: () => setState(
                                         () => _currentPage++),
-                                    child: const Text('Next'),
+                                    child: const Text('Seguinte'),
                                   ),
                               ],
                             ),
@@ -274,7 +274,7 @@ class _StudentDirectoryScreenState
         backgroundColor: AppColors.primary,
         icon: const Icon(LucideIcons.userPlus, color: Colors.white),
         label: const Text(
-          'New Admission',
+          'Nova matrícula',
           style: TextStyle(color: Colors.white),
         ),
       ),
@@ -304,7 +304,7 @@ class _StudentDirectoryScreenState
                 controller: _searchController,
                 onChanged: (_) => setState(() {}),
                 decoration: InputDecoration(
-                  hintText: 'Search ID or name…',
+                  hintText: 'Pesquisar n.º ou nome…',
                   prefixIcon: const Icon(LucideIcons.search, size: 20),
                   contentPadding:
                       const EdgeInsets.symmetric(horizontal: 16),
@@ -336,17 +336,17 @@ class _StudentDirectoryScreenState
                                 strokeWidth: 2))),
                   ),
                   error: (_, _) =>
-                      const Text('Error', style: TextStyle(fontSize: 12)),
+                      const Text('Erro', style: TextStyle(fontSize: 12)),
                   data: (classes) => DropdownButtonHideUnderline(
                     child: DropdownButton<String?>(
                       value: _selectedClassId,
-                      hint: const Text('All classes',
+                      hint: const Text('Todas as turmas',
                           style: TextStyle(fontSize: 14)),
                       isExpanded: true,
                       items: [
                         const DropdownMenuItem<String?>(
                           value: null,
-                          child: Text('All classes'),
+                          child: Text('Todas as turmas'),
                         ),
                         ...classes.map(
                           (c) => DropdownMenuItem<String?>(

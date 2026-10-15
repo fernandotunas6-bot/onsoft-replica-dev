@@ -6,6 +6,7 @@ import 'package:yft_school_system/core/models/school_academic_calendar.dart';
 import 'package:yft_school_system/core/providers/repository_providers.dart';
 import 'package:yft_school_system/core/settings/academic_year_state.dart';
 import 'package:yft_school_system/core/utils/date_utils.dart';
+import 'package:yft_school_system/core/utils/labels.dart';
 import 'package:yft_school_system/core/theme/app_colors.dart';
 
 class AcademicCalendarScreen extends ConsumerStatefulWidget {
@@ -108,7 +109,7 @@ class _AcademicCalendarScreenState
   }
 
   String _formatDate(DateTime? date) {
-    if (date == null) return 'Select...';
+    if (date == null) return 'Seleccionar…';
     return '${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')}/${date.year}';
   }
 
@@ -123,7 +124,7 @@ class _AcademicCalendarScreenState
         backgroundColor: AppColors.background,
         appBar: AppBar(
           title: const Text(
-            'Academic Calendar',
+            'Calendário académico',
             style: TextStyle(fontWeight: FontWeight.bold),
           ),
           backgroundColor: Colors.transparent,
@@ -139,7 +140,7 @@ class _AcademicCalendarScreenState
         backgroundColor: AppColors.background,
         appBar: AppBar(
           title: const Text(
-            'Academic Calendar',
+            'Calendário académico',
             style: TextStyle(fontWeight: FontWeight.bold),
           ),
           backgroundColor: Colors.transparent,
@@ -164,7 +165,7 @@ class _AcademicCalendarScreenState
               const SizedBox(height: 16),
               ElevatedButton(
                 onPressed: _loadAcademicCalendar,
-                child: const Text('Retry'),
+                child: const Text('Tentar novamente'),
               ),
             ],
           ),
@@ -176,7 +177,7 @@ class _AcademicCalendarScreenState
       backgroundColor: AppColors.background,
       appBar: AppBar(
         title: const Text(
-          'Academic Calendar',
+          'Calendário académico',
           style: TextStyle(fontWeight: FontWeight.bold),
         ),
         backgroundColor: Colors.transparent,
@@ -199,7 +200,7 @@ class _AcademicCalendarScreenState
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const Text(
-                    'Academic Year',
+                    'Ano lectivo',
                     style: TextStyle(color: Colors.white70, fontSize: 13),
                   ),
                   const SizedBox(height: 8),
@@ -213,7 +214,7 @@ class _AcademicCalendarScreenState
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    'Active Term: ${academicYear.activeTerm}',
+                    'Período activo: ${termLabel(academicYear.activeTerm, twoTerms: !_isTriTerm)}',
                     style: const TextStyle(color: Colors.white54, fontSize: 13),
                   ),
                   if (!isReadOnly) ...[
@@ -260,12 +261,12 @@ class _AcademicCalendarScreenState
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const Text(
-                    'System Currency & Settings',
+                    'Moeda e definições',
                     style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
                   ),
                   const SizedBox(height: 8),
                   const Text(
-                    'Select the default currency symbol across the platform.',
+                    'Escolha a moeda usada em toda a aplicação.',
                     style: TextStyle(
                       color: AppColors.textSecondary,
                       fontSize: 13,
@@ -293,11 +294,11 @@ class _AcademicCalendarScreenState
                         ),
                         const DropdownMenuItem(
                           value: 'GH₵',
-                          child: Text('Ghana Cedis (GH₵)'),
+                          child: Text('Cedi do Gana (GH₵)'),
                         ),
                         const DropdownMenuItem(
                           value: '\$',
-                          child: Text('US Dollars (\$)'),
+                          child: Text('Dólar americano (\$)'),
                         ),
                         // Uma moeda gravada que não esteja na lista deixava o
                         // campo vazio: mostra-se tal como está.
@@ -323,12 +324,12 @@ class _AcademicCalendarScreenState
                   const SizedBox(height: 32),
 
                   const Text(
-                    'Term Structure',
+                    'Organização do ano',
                     style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
                   ),
                   const SizedBox(height: 8),
                   const Text(
-                    'Select whether the academic year is divided into two or three terms.',
+                    'Indique se o ano lectivo tem dois ou três períodos.',
                     style: TextStyle(
                       color: AppColors.textSecondary,
                       fontSize: 13,
@@ -339,7 +340,7 @@ class _AcademicCalendarScreenState
                     children: [
                       Expanded(
                         child: _buildTermToggle(
-                          title: 'Bi Terms (2)',
+                          title: 'Semestres (2)',
                           isSelected: !_isTriTerm,
                           onTap: isReadOnly
                               ? null
@@ -349,7 +350,7 @@ class _AcademicCalendarScreenState
                       const SizedBox(width: 16),
                       Expanded(
                         child: _buildTermToggle(
-                          title: 'Tri Terms (3)',
+                          title: 'Trimestres (3)',
                           isSelected: _isTriTerm,
                           onTap: isReadOnly
                               ? null
@@ -366,14 +367,14 @@ class _AcademicCalendarScreenState
 
             // Term Date Configs
             const Text(
-              'Term Dates & Durations',
+              'Datas dos períodos',
               style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
             ),
             const SizedBox(height: 16),
 
             _buildTermConfigCard(
-              'First Term',
-              'Select dates for the first academic term.',
+              '1.º período',
+              'Datas do primeiro período.',
               _term1Start,
               _term1End,
               isReadOnly,
@@ -381,8 +382,8 @@ class _AcademicCalendarScreenState
               (d) => setState(() => _term1End = d),
             ),
             _buildTermConfigCard(
-              'Second Term',
-              'Select dates for the second academic term.',
+              '2.º período',
+              'Datas do segundo período.',
               _term2Start,
               _term2End,
               isReadOnly,
@@ -391,8 +392,8 @@ class _AcademicCalendarScreenState
             ),
             if (_isTriTerm)
               _buildTermConfigCard(
-                'Third Term',
-                'Select dates for the third academic term.',
+                '3.º período',
+                'Datas do terceiro período.',
                 _term3Start,
                 _term3End,
                 isReadOnly,
@@ -423,7 +424,7 @@ class _AcademicCalendarScreenState
                             ScaffoldMessenger.of(context).showSnackBar(
                               const SnackBar(
                                 content: Text(
-                                  'Please select valid start and end dates for every active term.',
+                                  'Indique datas de início e fim válidas para todos os períodos.',
                                 ),
                               ),
                             );
@@ -435,7 +436,7 @@ class _AcademicCalendarScreenState
                               ScaffoldMessenger.of(context).showSnackBar(
                                 SnackBar(
                                   content: Text(
-                                    '${entry.$3} start date must be before its end date.',
+                                    '${termLabel(entry.$3, twoTerms: !_isTriTerm)}: a data de início tem de ser anterior à de fim.',
                                   ),
                                 ),
                               );
@@ -479,7 +480,7 @@ class _AcademicCalendarScreenState
                               ScaffoldMessenger.of(context).showSnackBar(
                                 const SnackBar(
                                   content: Text(
-                                    'Academic Calendar saved successfully!',
+                                    'Calendário académico guardado.',
                                     style: TextStyle(
                                       fontWeight: FontWeight.bold,
                                     ),
@@ -493,7 +494,7 @@ class _AcademicCalendarScreenState
                               ScaffoldMessenger.of(context).showSnackBar(
                                 SnackBar(
                                   content: Text(
-                                    'Failed to save academic calendar: $e',
+                                    'Não foi possível guardar o calendário: $e',
                                   ),
                                   backgroundColor: AppColors.error,
                                 ),
@@ -509,7 +510,7 @@ class _AcademicCalendarScreenState
                     ),
                   ),
                   child: const Text(
-                    'Save Configuration',
+                    'Guardar configuração',
                     style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
                   ),
                 ),
@@ -587,7 +588,7 @@ class _AcademicCalendarScreenState
                 (t) => DropdownMenuItem(
                   value: t,
                   child: Text(
-                    t,
+                    termLabel(t, twoTerms: !_isTriTerm),
                     style: const TextStyle(color: Colors.white, fontSize: 14),
                   ),
                 ),
@@ -703,7 +704,7 @@ class _AcademicCalendarScreenState
             children: [
               Expanded(
                 child: _buildDatePickerField(
-                  'Start Date',
+                  'Início',
                   startDate,
                   isReadOnly
                       ? null
@@ -713,7 +714,7 @@ class _AcademicCalendarScreenState
               const SizedBox(width: 16),
               Expanded(
                 child: _buildDatePickerField(
-                  'End Date',
+                  'Fim',
                   endDate,
                   isReadOnly
                       ? null

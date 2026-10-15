@@ -12,7 +12,7 @@ class TeacherListScreen extends StatelessWidget {
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: const Text('Staff Directory', style: TextStyle(fontWeight: FontWeight.bold)),
+        title: const Text('Professores', style: TextStyle(fontWeight: FontWeight.bold)),
         backgroundColor: Colors.transparent,
         elevation: 0,
         foregroundColor: AppColors.secondary,
@@ -30,13 +30,13 @@ class TeacherListScreen extends StatelessWidget {
             children: [
               Icon(LucideIcons.users, size: 56, color: AppColors.textSecondary.withValues(alpha: 0.3)),
               const SizedBox(height: 16),
-              const Text('Register teachers using the + button above.',
+              const Text('Registe professores com o botão +.',
                   style: TextStyle(color: AppColors.textSecondary, fontSize: 14)),
               const SizedBox(height: 24),
               ElevatedButton.icon(
                 onPressed: () => context.push('/register-teacher'),
                 icon: const Icon(LucideIcons.userPlus, size: 18),
-                label: const Text('Register Teacher'),
+                label: const Text('Registar professor'),
               ),
             ],
           ),

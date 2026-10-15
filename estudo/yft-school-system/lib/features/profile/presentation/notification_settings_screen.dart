@@ -23,7 +23,7 @@ class _NotificationSettingsScreenState
       backgroundColor: AppColors.background,
       appBar: AppBar(
         title: const Text(
-          'Notifications',
+          'Notificações',
           style: TextStyle(fontWeight: FontWeight.bold),
         ),
         backgroundColor: Colors.transparent,
@@ -36,32 +36,32 @@ class _NotificationSettingsScreenState
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const Text(
-              'Manage your notification preferences.',
+              'Escolha como quer ser avisado.',
               style: TextStyle(color: AppColors.textSecondary, fontSize: 13),
             ),
             const SizedBox(height: 32),
 
             const Text(
-              'Delivery Methods',
+              'Canais',
               style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
             ),
             const SizedBox(height: 16),
 
             _buildToggleItem(
-              'Push Notifications',
-              'Receive alerts directly on your device.',
+              'Notificações no telemóvel',
+              'Alertas directamente no telemóvel.',
               _pushEnabled,
               (val) => setState(() => _pushEnabled = val),
             ),
             _buildToggleItem(
-              'Email Notifications',
-              'Receive summarized alerts in your inbox.',
+              'E-mail',
+              'Resumo dos alertas por e-mail.',
               _emailEnabled,
               (val) => setState(() => _emailEnabled = val),
             ),
             _buildToggleItem(
-              'SMS Notifications',
-              'Get instant text messages for critical info.',
+              'SMS',
+              'Mensagens para informação urgente.',
               _smsEnabled,
               (val) => setState(() => _smsEnabled = val),
             ),
@@ -71,20 +71,20 @@ class _NotificationSettingsScreenState
             const SizedBox(height: 32),
 
             const Text(
-              'Notification Types',
+              'Tipos de aviso',
               style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
             ),
             const SizedBox(height: 16),
 
             _buildToggleItem(
-              'Fee & Payment Alerts',
-              'Updates on pending fees and transactions.',
+              'Propinas e pagamentos',
+              'Propinas em dívida e pagamentos.',
               _feeAlerts,
               (val) => setState(() => _feeAlerts = val),
             ),
             _buildToggleItem(
-              'Academic Updates',
-              'Notices regarding grades, attendance, and terms.',
+              'Vida académica',
+              'Notas, presenças e períodos.',
               _academicAlerts,
               (val) => setState(() => _academicAlerts = val),
             ),
