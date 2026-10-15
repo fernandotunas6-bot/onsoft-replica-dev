@@ -461,6 +461,9 @@ class _ResultsInputScreenState extends ConsumerState<ResultsInputScreen> {
             enabled: !isReadOnly,
             decoration: const InputDecoration(
               border: InputBorder.none,
+              enabledBorder: InputBorder.none,
+              focusedBorder: InputBorder.none,
+              filled: false,
               hintText: '0',
             ),
             style: TextStyle(

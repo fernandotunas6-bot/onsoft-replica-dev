@@ -23,6 +23,30 @@ class NoticesRepository {
     return int.tryParse('$raw') ?? 0;
   }
 
+  /// Publica um comunicado (só admin). [classId] só com audience 'class'.
+  Future<void> create({
+    required String title,
+    required String body,
+    required String audience,
+    String? classId,
+    String category = 'general',
+  }) async {
+    await _dio.post(
+      ApiEndpoints.notices,
+      data: {
+        'title': title,
+        'body': body,
+        'audience': audience,
+        'class_id': ?classId,
+        'category': category,
+      },
+    );
+  }
+
+  Future<void> delete(String noticeId) async {
+    await _dio.delete('${ApiEndpoints.notices}/$noticeId');
+  }
+
   Future<void> markRead(String noticeId) async {
     await _dio.post(ApiEndpoints.noticeMarkRead(noticeId));
   }

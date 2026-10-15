@@ -1,3 +1,4 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons/lucide_icons.dart';
@@ -20,7 +21,81 @@ class _SecuritySettingsScreenState
   bool _obscureCurrent = true;
   bool _obscureNew = true;
   bool _obscureRepeat = true;
-  bool _twoFactorEnabled = false;
+  final _current = TextEditingController();
+  final _new = TextEditingController();
+  final _repeat = TextEditingController();
+  bool _changingPassword = false;
+
+  @override
+  void dispose() {
+    _current.dispose();
+    _new.dispose();
+    _repeat.dispose();
+    super.dispose();
+  }
+
+  void _say(String msg, {bool error = false}) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(msg),
+        backgroundColor: error ? AppColors.error : null,
+      ),
+    );
+  }
+
+  /// Muda a palavra-passe na conta Firebase: confirma a actual e grava a nova.
+  Future<void> _changePassword() async {
+    final current = _current.text;
+    final next = _new.text;
+    if (current.isEmpty || next.isEmpty) {
+      _say('Escreva a palavra-passe actual e a nova.', error: true);
+      return;
+    }
+    if (next.length < 8) {
+      _say('A nova palavra-passe precisa de pelo menos 8 caracteres.', error: true);
+      return;
+    }
+    if (next != _repeat.text) {
+      _say('As duas novas palavras-passe não são iguais.', error: true);
+      return;
+    }
+    if (next == current) {
+      _say('A nova palavra-passe tem de ser diferente da actual.', error: true);
+      return;
+    }
+    final user = FirebaseAuth.instance.currentUser;
+    final email = user?.email;
+    if (user == null || email == null) {
+      _say('Sessão terminada. Entre de novo.', error: true);
+      return;
+    }
+    setState(() => _changingPassword = true);
+    try {
+      await user.reauthenticateWithCredential(
+        EmailAuthProvider.credential(email: email, password: current),
+      );
+      await user.updatePassword(next);
+      if (!mounted) return;
+      _current.clear();
+      _new.clear();
+      _repeat.clear();
+      _say('Palavra-passe alterada.');
+    } on FirebaseAuthException catch (e) {
+      if (!mounted) return;
+      _say(
+        switch (e.code) {
+          'wrong-password' || 'invalid-credential' => 'A palavra-passe actual não está certa.',
+          'weak-password' => 'A nova palavra-passe é demasiado fraca.',
+          'too-many-requests' => 'Demasiadas tentativas. Tente mais tarde.',
+          'requires-recent-login' => 'Por segurança, saia e entre de novo antes de mudar.',
+          _ => 'Não foi possível mudar a palavra-passe.',
+        },
+        error: true,
+      );
+    } finally {
+      if (mounted) setState(() => _changingPassword = false);
+    }
+  }
   bool _savingAccessControl = false;
 
   @override
@@ -58,6 +133,7 @@ class _SecuritySettingsScreenState
                 const SizedBox(height: 32),
 
                 _buildPasswordField(
+                  _current,
                   'Palavra-passe actual',
                   'Escreva a palavra-passe actual',
                   _obscureCurrent,
@@ -68,6 +144,7 @@ class _SecuritySettingsScreenState
                 const SizedBox(height: 20),
 
                 _buildPasswordField(
+                  _new,
                   'Nova palavra-passe',
                   'Escolha a nova palavra-passe',
                   _obscureNew,
@@ -78,6 +155,7 @@ class _SecuritySettingsScreenState
                 const SizedBox(height: 20),
 
                 _buildPasswordField(
+                  _repeat,
                   'Repetir a nova palavra-passe',
                   'Confirme a nova palavra-passe',
                   _obscureRepeat,
@@ -86,35 +164,23 @@ class _SecuritySettingsScreenState
                   },
                 ),
 
-                const SizedBox(height: 40),
+                const SizedBox(height: 24),
 
-                Container(
-                  padding: const EdgeInsets.all(20),
-                  decoration: BoxDecoration(
-                    color: AppColors.surface,
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(
-                      color: AppColors.primary.withValues(alpha: 0.3),
-                    ),
-                  ),
-                  child: SwitchListTile(
-                    contentPadding: EdgeInsets.zero,
-                    title: const Text(
-                      'Verificação em dois passos',
-                      style: TextStyle(fontWeight: FontWeight.w600),
-                    ),
-                    subtitle: Text(
-                      'Uma camada extra de segurança.',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: AppColors.textSecondary,
-                      ),
-                    ),
-                    activeThumbColor: AppColors.primary,
-                    value: _twoFactorEnabled,
-                    onChanged: (val) {
-                      setState(() => _twoFactorEnabled = val);
-                    },
+                SizedBox(
+                  width: double.infinity,
+                  height: 56,
+                  child: ElevatedButton(
+                    onPressed: _changingPassword ? null : _changePassword,
+                    child: _changingPassword
+                        ? SizedBox(
+                            width: 22,
+                            height: 22,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: AppColors.onPrimary,
+                            ),
+                          )
+                        : const Text('Alterar palavra-passe'),
                   ),
                 ),
 
@@ -137,7 +203,8 @@ class _SecuritySettingsScreenState
                         ),
                       ),
                       const SizedBox(width: 12),
-                      Column(
+                      Expanded(
+                        child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
@@ -155,6 +222,7 @@ class _SecuritySettingsScreenState
                             ),
                           ),
                         ],
+                      ),
                       ),
                     ],
                   ),
@@ -262,39 +330,6 @@ class _SecuritySettingsScreenState
                   ),
                 ],
 
-                const SizedBox(height: 48),
-
-                SizedBox(
-                  width: double.infinity,
-                  height: 56,
-                  child: ElevatedButton(
-                    onPressed: () {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text(
-                            'Definições de segurança guardadas.',
-                            style: TextStyle(fontWeight: FontWeight.w600),
-                          ),
-                        ),
-                      );
-                      Navigator.pop(context);
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.primary,
-                      foregroundColor: AppColors.onPrimary,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                    ),
-                    child: const Text(
-                      'Alterar palavra-passe',
-                      style: TextStyle(
-                        fontWeight: FontWeight.w600,
-                        fontSize: 16,
-                      ),
-                    ),
-                  ),
-                ),
               ],
             ),
           ),
@@ -304,6 +339,7 @@ class _SecuritySettingsScreenState
   }
 
   Widget _buildPasswordField(
+    TextEditingController controller,
     String label,
     String hint,
     bool isObscured,
@@ -336,6 +372,7 @@ class _SecuritySettingsScreenState
             ],
           ),
           child: TextField(
+            controller: controller,
             obscureText: isObscured,
             decoration: InputDecoration(
               icon: Icon(
@@ -344,6 +381,9 @@ class _SecuritySettingsScreenState
                 size: 20,
               ),
               border: InputBorder.none,
+              enabledBorder: InputBorder.none,
+              focusedBorder: InputBorder.none,
+              filled: false,
               hintText: hint,
               hintStyle: TextStyle(
                 color: AppColors.textSecondary.withValues(alpha: 0.5),

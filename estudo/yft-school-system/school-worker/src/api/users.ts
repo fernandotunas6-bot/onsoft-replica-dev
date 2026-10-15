@@ -3,7 +3,7 @@ import type { AppEnv } from '../app-env';
 import { requireAdmin, requireRoles } from '../lib/auth-guards';
 import { createFirebaseEmailUser } from '../lib/firebase-auth';
 import { createPrefixedId } from '../lib/id';
-import { buildSyntheticEmailFromPhone } from '../lib/phone';
+import { buildSyntheticEmailFromPhone, normalizePhone } from '../lib/phone';
 import { jsonError, jsonOk } from '../lib/response';
 import { z } from 'zod';
 
@@ -159,6 +159,54 @@ users.get('/teachers/:targetUid', requireRoles('admin', 'teacher'), async (c) =>
     return jsonError(c, 'Teacher not found', 404);
   }
 
+  return jsonOk(c, { data: row });
+});
+
+const updateMeSchema = z
+  .object({
+    name: z.string().trim().min(2).max(120).optional(),
+    phone: z.string().trim().max(30).optional(),
+    residential_address: z.string().trim().max(200).optional(),
+  })
+  .refine((v) => Object.values(v).some((x) => x !== undefined), { message: 'Nothing to update' });
+
+/**
+ * O próprio utilizador corrige nome, telefone e morada. O e-mail não: é o
+ * da conta de entrada (Firebase) e muda-se pela administração.
+ */
+users.patch('/me', requireRoles('admin', 'teacher', 'parent'), async (c) => {
+  const user = c.get('user');
+  const parsed = updateMeSchema.safeParse(await c.req.json().catch(() => null));
+  if (!parsed.success) {
+    return jsonError(c, 'Invalid profile payload', 400, parsed.error.flatten());
+  }
+  const v = parsed.data;
+  const phone = v.phone === undefined ? undefined : normalizePhone(v.phone) || null;
+
+  const sets: string[] = [];
+  const binds: unknown[] = [];
+  if (v.name !== undefined) { sets.push('name = ?'); binds.push(v.name); }
+  if (phone !== undefined) { sets.push('phone = ?'); binds.push(phone); }
+  if (v.residential_address !== undefined) {
+    sets.push('residential_address = ?');
+    binds.push(v.residential_address || null);
+  }
+
+  try {
+    const result = await c.env.DB.prepare(
+      `UPDATE Users SET ${sets.join(', ')} WHERE uid = ? AND school_id = ?`
+    ).bind(...binds, user.uid, user.schoolId).run();
+    if (!result.meta.changes) return jsonError(c, 'User not found', 404);
+  } catch (e) {
+    if (String(e).includes('UNIQUE')) {
+      return jsonError(c, 'Phone already used by another account in this school', 409);
+    }
+    throw e;
+  }
+
+  const row = await c.env.DB.prepare(
+    'SELECT uid, name, phone, email, residential_address FROM Users WHERE uid = ? AND school_id = ?'
+  ).bind(user.uid, user.schoolId).first();
   return jsonOk(c, { data: row });
 });
 

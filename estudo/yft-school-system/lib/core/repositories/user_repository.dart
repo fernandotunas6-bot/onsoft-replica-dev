@@ -16,6 +16,22 @@ class UserRepository {
     return UserProfile.fromJson(data);
   }
 
+  /// Corrige o próprio nome, telefone e morada.
+  Future<void> updateMe({
+    required String name,
+    required String phone,
+    required String residentialAddress,
+  }) async {
+    await _dio.patch(
+      ApiEndpoints.usersMe,
+      data: {
+        'name': name,
+        'phone': phone,
+        'residential_address': residentialAddress,
+      },
+    );
+  }
+
   Future<void> storeFcmToken(String token, {String? platform}) async {
     await _dio.put(
       ApiEndpoints.usersMeFcmToken,

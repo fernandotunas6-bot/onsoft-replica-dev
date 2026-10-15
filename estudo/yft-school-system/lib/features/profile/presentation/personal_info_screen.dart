@@ -1,13 +1,23 @@
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons/lucide_icons.dart';
+import 'package:yft_school_system/core/auth/auth_state.dart';
+import 'package:yft_school_system/core/models/user_profile.dart';
+import 'package:yft_school_system/core/providers/repository_providers.dart';
 import 'package:yft_school_system/core/theme/app_colors.dart';
 import 'package:yft_school_system/core/utils/responsive_utils.dart';
+import 'package:yft_school_system/core/widgets/profile_photo_avatar.dart';
+import 'package:yft_school_system/core/widgets/section_widgets.dart';
 
-class PersonalInfoScreen extends StatelessWidget {
+/// Dados pessoais: o utilizador corrige nome, telefone e morada. O e-mail é
+/// o da conta de entrada e só a administração o muda.
+class PersonalInfoScreen extends ConsumerWidget {
   const PersonalInfoScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final profileAsync = ref.watch(userProfileProvider);
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
@@ -15,142 +25,156 @@ class PersonalInfoScreen extends StatelessWidget {
           'Dados pessoais',
           style: TextStyle(fontWeight: FontWeight.w600),
         ),
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        foregroundColor: AppColors.secondary,
-        actions: [
-          TextButton(
-            onPressed: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text(
-                    'Dados guardados.',
-                    style: TextStyle(fontWeight: FontWeight.w600),
-                  ),
-                ),
-              );
-              Navigator.pop(context);
-            },
-            child: Text(
-              'Guardar',
-              style: TextStyle(
-                color: AppColors.primary,
-                fontWeight: FontWeight.w600,
-                fontSize: 16,
-              ),
-            ),
-          ),
-        ],
       ),
-      body: SingleChildScrollView(
-        padding: getResponsiveHorizontalPadding(context),
-        child: ResponsiveConstrainedContent(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 24.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                Stack(
-                  children: [
-                    Container(
-                      width: 100,
-                      height: 100,
-                      decoration: BoxDecoration(
-                        color: AppColors.primary.withValues(alpha: 0.1),
-                        shape: BoxShape.circle,
-                      ),
-                      child: Icon(
-                        LucideIcons.user,
-                        size: 48,
-                        color: AppColors.secondary,
-                      ),
-                    ),
-                    Positioned(
-                      bottom: 0,
-                      right: 0,
-                      child: Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          color: AppColors.primary,
-                          shape: BoxShape.circle,
-                        ),
-                        child: Icon(
-                          LucideIcons.camera,
-                          size: 16,
-                          color: AppColors.onPrimary,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 32),
-                _buildInputField('Nome completo', 'Ana Souza', LucideIcons.user),
-                const SizedBox(height: 20),
-                _buildInputField(
-                  'E-mail',
-                  'ana.souza@email.ao',
-                  LucideIcons.mail,
-                ),
-                const SizedBox(height: 20),
-                _buildInputField(
-                  'Telefone',
-                  '+233 55 123 4567',
-                  LucideIcons.phone,
-                ),
-                const SizedBox(height: 20),
-                _buildInputField(
-                  'Morada',
-                  'Luanda, Maianga',
-                  LucideIcons.mapPin,
-                ),
-              ],
-            ),
+      body: profileAsync.when(
+        loading: () => const Center(child: CircularProgressIndicator()),
+        error: (_, _) => EmptyHint(
+          icon: LucideIcons.wifiOff,
+          message: 'Não foi possível carregar os seus dados.',
+          action: TextButton(
+            onPressed: () => ref.invalidate(userProfileProvider),
+            child: const Text('Tentar de novo'),
           ),
         ),
+        data: (profile) => _Form(profile: profile),
       ),
     );
   }
+}
 
-  Widget _buildInputField(String label, String hint, IconData icon) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          label,
-          style: TextStyle(
-            fontWeight: FontWeight.w600,
-            fontSize: 13,
-            color: AppColors.secondary,
+class _Form extends ConsumerStatefulWidget {
+  final UserProfile profile;
+
+  const _Form({required this.profile});
+
+  @override
+  ConsumerState<_Form> createState() => _FormState();
+}
+
+class _FormState extends ConsumerState<_Form> {
+  final _formKey = GlobalKey<FormState>();
+  late final _name = TextEditingController(text: widget.profile.name);
+  late final _phone = TextEditingController(text: widget.profile.phone ?? '');
+  late final _address = TextEditingController(
+    text: widget.profile.residentialAddress ?? '',
+  );
+  bool _saving = false;
+
+  @override
+  void dispose() {
+    _name.dispose();
+    _phone.dispose();
+    _address.dispose();
+    super.dispose();
+  }
+
+  Future<void> _save() async {
+    if (!_formKey.currentState!.validate()) return;
+    setState(() => _saving = true);
+    try {
+      await ref.read(userRepositoryProvider).updateMe(
+        name: _name.text.trim(),
+        phone: _phone.text.trim(),
+        residentialAddress: _address.text.trim(),
+      );
+      ref.invalidate(userProfileProvider);
+      // O nome também aparece no Início e no menu.
+      await ref.read(authProvider.notifier).refreshProfile();
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Dados guardados.')),
+      );
+      Navigator.pop(context);
+    } on DioException catch (e) {
+      if (!mounted) return;
+      setState(() => _saving = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          backgroundColor: AppColors.error,
+          content: Text(
+            e.response?.statusCode == 409
+                ? 'Esse telefone já pertence a outra conta da escola.'
+                : 'Não foi possível guardar. Tente de novo.',
           ),
         ),
-        const SizedBox(height: 8),
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-          decoration: BoxDecoration(
-            color: AppColors.surface,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: AppColors.background, width: 2),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.02),
-                blurRadius: 10,
-                offset: const Offset(0, 4),
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    InputDecoration deco(String label, IconData icon) => InputDecoration(
+      labelText: label,
+      prefixIcon: Icon(icon, size: 20),
+    );
+
+    return SingleChildScrollView(
+      padding: getResponsiveHorizontalPadding(context).copyWith(top: 16, bottom: 40),
+      child: ResponsiveConstrainedContent(
+        child: Form(
+          key: _formKey,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Center(
+                child: ProfilePhotoCircle(
+                  imageUrl: null,
+                  radius: 44,
+                  fallbackLabel: widget.profile.name,
+                ),
+              ),
+              const SizedBox(height: 28),
+              TextFormField(
+                controller: _name,
+                textCapitalization: TextCapitalization.words,
+                decoration: deco('Nome completo', LucideIcons.user),
+                validator: (v) => (v ?? '').trim().length < 2
+                    ? 'Escreva o nome completo.'
+                    : null,
+              ),
+              const SizedBox(height: 16),
+              TextFormField(
+                initialValue: widget.profile.email ?? '—',
+                enabled: false,
+                decoration: deco('E-mail (conta de entrada)', LucideIcons.mail),
+              ),
+              const SizedBox(height: 16),
+              TextFormField(
+                controller: _phone,
+                keyboardType: TextInputType.phone,
+                decoration: deco('Telefone', LucideIcons.phone),
+              ),
+              const SizedBox(height: 16),
+              TextFormField(
+                controller: _address,
+                decoration: deco('Morada', LucideIcons.mapPin),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                'Para mudar o e-mail de entrada, fale com a administração da escola.',
+                style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
+              ),
+              const SizedBox(height: 28),
+              SizedBox(
+                height: 52,
+                child: ElevatedButton(
+                  onPressed: _saving ? null : _save,
+                  child: _saving
+                      ? SizedBox(
+                          width: 22,
+                          height: 22,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: AppColors.onPrimary,
+                          ),
+                        )
+                      : const Text('Guardar'),
+                ),
               ),
             ],
           ),
-          child: TextField(
-            decoration: InputDecoration(
-              icon: Icon(icon, color: AppColors.primary, size: 20),
-              border: InputBorder.none,
-              hintText: hint,
-              hintStyle: TextStyle(
-                color: AppColors.textSecondary.withValues(alpha: 0.5),
-              ),
-            ),
-            style: const TextStyle(fontWeight: FontWeight.w600),
-          ),
         ),
-      ],
+      ),
     );
   }
 }

@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:yft_school_system/core/auth/auth_state.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import 'package:yft_school_system/core/theme/app_colors.dart';
 
@@ -83,7 +85,7 @@ class HelpSupportScreen extends StatelessWidget {
                   ),
                   const SizedBox(height: 24),
                   ElevatedButton(
-                    onPressed: () {},
+                    onPressed: () => _showContacts(context),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.white,
                       foregroundColor: AppColors.primary,
@@ -159,4 +161,59 @@ class HelpSupportScreen extends StatelessWidget {
       ),
     );
   }
+}
+
+/// Contactos da escola (vêm de /users/me). Sem sessão, explica onde pedir.
+void _showContacts(BuildContext context) {
+  final session = ProviderScope.containerOf(context).read(authProvider);
+  final rows = <(IconData, String, String)>[
+    if (session?.schoolPhone?.isNotEmpty ?? false)
+      (Icons.phone_outlined, 'Telefone', session!.schoolPhone!),
+    if (session?.schoolEmail?.isNotEmpty ?? false)
+      (Icons.mail_outline, 'E-mail', session!.schoolEmail!),
+    if (session?.schoolAddress?.isNotEmpty ?? false)
+      (Icons.place_outlined, 'Morada', session!.schoolAddress!),
+  ];
+  showModalBottomSheet<void>(
+    context: context,
+    showDragHandle: true,
+    builder: (ctx) => SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(24, 0, 24, 20),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              session?.schoolName ?? 'Contactos da escola',
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.w600,
+                color: AppColors.textPrimary,
+              ),
+            ),
+            const SizedBox(height: 16),
+            if (rows.isEmpty)
+              Text(
+                session == null
+                    ? 'Entre na sua conta para ver os contactos da escola, '
+                          'ou dirija-se à secretaria.'
+                    : 'A escola ainda não registou contactos. Dirija-se à secretaria.',
+                style: TextStyle(color: AppColors.textSecondary, height: 1.4),
+              ),
+            for (final (icon, label, value) in rows)
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: Icon(icon, color: AppColors.primary),
+                title: Text(label, style: TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+                subtitle: SelectableText(
+                  value,
+                  style: TextStyle(fontSize: 15, color: AppColors.textPrimary),
+                ),
+              ),
+          ],
+        ),
+      ),
+    ),
+  );
 }

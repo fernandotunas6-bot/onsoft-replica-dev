@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import 'package:yft_school_system/core/auth/auth_state.dart';
 import 'package:yft_school_system/core/models/school_notice.dart';
+import 'package:yft_school_system/core/providers/repository_providers.dart';
 import 'package:yft_school_system/core/theme/app_colors.dart';
 import 'package:yft_school_system/core/utils/responsive_utils.dart';
 import 'package:yft_school_system/core/widgets/app_shell.dart';
@@ -152,6 +153,7 @@ class _MessagesScreenState extends ConsumerState<MessagesScreen> {
                         itemBuilder: (context, i) => _ConversationTile(
                           notice: list[i],
                           favorite: favorites.contains(list[i].id),
+                          isAdmin: role == UserRole.admin,
                         ),
                       );
                     },
@@ -170,7 +172,46 @@ class _ConversationTile extends ConsumerWidget {
   final SchoolNotice notice;
   final bool favorite;
 
-  const _ConversationTile({required this.notice, required this.favorite});
+  /// Admin: mostra a quem foi e deixa apagar com toque longo.
+  final bool isAdmin;
+
+  const _ConversationTile({
+    required this.notice,
+    required this.favorite,
+    this.isAdmin = false,
+  });
+
+  Future<void> _confirmDelete(BuildContext context, WidgetRef ref) async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Apagar comunicado?'),
+        content: Text('«${notice.title}» deixa de aparecer a todos.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancelar'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: Text('Apagar', style: TextStyle(color: AppColors.error)),
+          ),
+        ],
+      ),
+    );
+    if (ok != true) return;
+    try {
+      await ref.read(noticesRepositoryProvider).delete(notice.id);
+      ref.invalidate(parentNoticesProvider);
+      ref.invalidate(unreadNoticesCountProvider);
+    } catch (_) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Não foi possível apagar.')),
+        );
+      }
+    }
+  }
 
   (IconData, Color) get _avatar => switch (notice.category.toLowerCase()) {
     'academic' || 'academico' || 'pedagogico' => (
@@ -196,6 +237,9 @@ class _ConversationTile extends ConsumerWidget {
 
     return InkWell(
       onTap: () => openNoticeSheet(context, ref, notice),
+      onLongPress: isAdmin && notice.parentUid == null
+          ? () => _confirmDelete(context, ref)
+          : null,
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 12),
         child: Row(
@@ -245,7 +289,9 @@ class _ConversationTile extends ConsumerWidget {
                     children: [
                       Expanded(
                         child: Text(
-                          notice.summary,
+                          isAdmin
+                              ? 'Para: ${notice.audienceLabel} · ${notice.summary}'
+                              : notice.summary,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: TextStyle(
