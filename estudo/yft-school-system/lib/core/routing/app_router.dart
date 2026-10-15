@@ -46,6 +46,7 @@ import 'package:yft_school_system/features/grading/presentation/total_attendance
 
 import 'package:yft_school_system/features/finance/presentation/parent_receipts_screen.dart';
 import 'package:yft_school_system/features/calendar/presentation/calendar_screen.dart';
+import 'package:yft_school_system/features/messages/presentation/conversations.dart';
 import 'package:yft_school_system/features/messages/presentation/messages_screen.dart';
 import 'package:yft_school_system/features/profile/presentation/appearance_screen.dart';
 import 'package:yft_school_system/features/subjects/presentation/subjects_screen.dart';
@@ -98,6 +99,11 @@ final appRouter = GoRouter(
     GoRoute(
       path: '/mensagens',
       builder: (context, state) => const MessagesScreen(),
+    ),
+    GoRoute(
+      path: '/conversa/:id',
+      builder: (context, state) =>
+          ChatScreen(conversationId: state.pathParameters['id']!),
     ),
     GoRoute(
       path: '/aparencia',

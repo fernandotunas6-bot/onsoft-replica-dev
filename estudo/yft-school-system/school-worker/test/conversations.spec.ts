@@ -1,0 +1,93 @@
+import { env, applyD1Migrations } from "cloudflare:test";
+import { Hono } from "hono";
+import { beforeAll, describe, expect, it } from "vitest";
+import type { AppEnv, User } from "../src/app-env";
+import conversations from "../src/api/conversations";
+
+const app = new Hono<AppEnv>();
+app.use("*", async (c, next) => {
+	c.set("user", JSON.parse(c.req.header("X-Test-User")!) as User);
+	await next();
+});
+app.route("/c", conversations);
+
+const admin: User = { uid: "ca", schoolId: "k1", role: "admin" };
+const teacher: User = { uid: "ct", schoolId: "k1", role: "teacher" };
+const parent: User = { uid: "cp", schoolId: "k1", role: "parent" };
+const parent2: User = { uid: "cp2", schoolId: "k1", role: "parent" };
+const outsider: User = { uid: "cx", schoolId: "k2", role: "teacher" };
+
+const call = (u: User, path: string, init: RequestInit = {}) =>
+	app.request(path, { ...init, headers: { "Content-Type": "application/json", "X-Test-User": JSON.stringify(u) } }, env);
+const open = async (u: User, other: string) => call(u, "/c", { method: "POST", body: JSON.stringify({ user_uid: other }) });
+const send = (u: User, id: string, body: string) => call(u, `/c/${id}/messages`, { method: "POST", body: JSON.stringify({ body }) });
+const unread = async (u: User) => ((await (await call(u, "/c/unread-count")).json()) as { unread_count: number }).unread_count;
+
+beforeAll(async () => {
+	await applyD1Migrations(env.DB, env.TEST_MIGRATIONS);
+	await env.DB.batch(
+		[
+			"INSERT INTO Schools (id, name) VALUES ('k1', 'K'), ('k2', 'Outra')",
+			"INSERT INTO Users (uid, school_id, role, name, subjects_text) VALUES ('ca', 'k1', 'admin', 'Direcção', NULL), ('ct', 'k1', 'teacher', 'Carlos Mendes', 'Matemática'), ('cp', 'k1', 'parent', 'Mariana Silva', NULL), ('cp2', 'k1', 'parent', 'Outro Pai', NULL), ('cx', 'k2', 'teacher', 'De Fora', NULL)",
+			"INSERT INTO Classes (id, school_id, class_name) VALUES ('kc', 'k1', 'C')",
+			"INSERT INTO Students (id, school_id, class_id, parent_uid, name) VALUES ('ks', 'k1', 'kc', 'cp', 'Ana')",
+		].map((sql) => env.DB.prepare(sql)),
+	);
+});
+
+describe("conversas", () => {
+	let id = "";
+
+	it("contactos: o encarregado só vê funcionários; o professor vê também encarregados com educandos", async () => {
+		const p = ((await (await call(parent, "/c/contacts")).json()) as { data: { uid: string }[] }).data.map((u) => u.uid);
+		expect(p).toEqual(["ca", "ct"]);
+		const t = ((await (await call(teacher, "/c/contacts")).json()) as { data: { uid: string; wards: string | null }[] }).data;
+		expect(t.map((u) => u.uid)).toEqual(["ca", "cp", "cp2"]);
+		expect(t.find((u) => u.uid === "cp")?.wards).toBe("Ana");
+	});
+
+	it("abre uma conversa e reutiliza-a dos dois lados", async () => {
+		const res = await open(parent, "ct");
+		expect(res.status).toBe(201);
+		id = ((await res.json()) as { id: string }).id;
+		expect(((await (await open(parent, "ct")).json()) as { id: string }).id).toBe(id);
+		expect(((await (await open(teacher, "cp")).json()) as { id: string }).id).toBe(id);
+	});
+
+	it("recusa encarregado com encarregado, outra escola e a si próprio", async () => {
+		expect((await open(parent, "cp2")).status).toBe(403);
+		expect((await open(parent, "cx")).status).toBe(404);
+		expect((await open(outsider, "cp")).status).toBe(404);
+		expect((await open(parent, "cp")).status).toBe(400);
+	});
+
+	it("mensagens, não lidas e marcação como lida", async () => {
+		expect((await send(parent, id, "Bom dia, professor.")).status).toBe(201);
+		expect((await send(parent, id, "A Ana faltou ontem por doença.")).status).toBe(201);
+		expect(await unread(teacher)).toBe(2);
+		expect(await unread(parent)).toBe(0);
+
+		const list = ((await (await call(teacher, "/c")).json()) as { data: { id: string; other_name: string; unread: number; last_preview: string }[] }).data;
+		expect(list).toEqual([expect.objectContaining({ id, other_name: "Mariana Silva", unread: 2, last_preview: "A Ana faltou ontem por doença." })]);
+
+		const thread = (await (await call(teacher, `/c/${id}/messages`)).json()) as { data: { body: string; mine: boolean }[]; other: { name: string } };
+		expect(thread.data.map((m) => [m.body, m.mine])).toEqual([["Bom dia, professor.", false], ["A Ana faltou ontem por doença.", false]]);
+		expect(thread.other.name).toBe("Mariana Silva");
+		expect(await unread(teacher)).toBe(0);
+
+		expect((await send(teacher, id, "Obrigado, fica registado.")).status).toBe(201);
+		expect(await unread(parent)).toBe(1);
+	});
+
+	it("quem não é da conversa não lê nem escreve", async () => {
+		expect((await call(admin, `/c/${id}/messages`)).status).toBe(404);
+		expect((await send(admin, id, "olá")).status).toBe(404);
+		expect((await send(parent, id, "   ")).status).toBe(400);
+		expect(((await (await call(admin, "/c")).json()) as { data: unknown[] }).data).toEqual([]);
+	});
+
+	it("conversas abertas sem mensagens não aparecem na lista", async () => {
+		await open(admin, "ct");
+		expect(((await (await call(admin, "/c")).json()) as { data: unknown[] }).data).toEqual([]);
+	});
+});

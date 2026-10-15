@@ -15,6 +15,7 @@ import settings from './api/settings';
 import notices from './api/notices';
 import timetable from './api/timetable';
 import attendance from './api/attendance';
+import conversations from './api/conversations';
 
 export const apiRoutes = new Hono<AppEnv>();
 
@@ -30,6 +31,7 @@ apiRoutes.route('/finance', finance);
 apiRoutes.route('/notices', notices);
 apiRoutes.route('/timetable', timetable);
 apiRoutes.route('/attendance', attendance);
+apiRoutes.route('/conversations', conversations);
 apiRoutes.route('/users', users);
 apiRoutes.route('/wards', wards);
 

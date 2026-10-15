@@ -11,6 +11,7 @@ import '../models/paginated_response.dart';
 import '../network/api_client.dart';
 import '../repositories/attendance_repository.dart';
 import '../repositories/class_repository.dart';
+import '../repositories/conversations_repository.dart';
 import '../repositories/finance_repository.dart';
 import '../repositories/grades_repository.dart';
 import '../repositories/media_repository.dart';
@@ -61,6 +62,10 @@ final timetableRepositoryProvider = Provider<TimetableRepository>((ref) {
 
 final attendanceRepositoryProvider = Provider<AttendanceRepository>((ref) {
   return AttendanceRepository(ref.watch(dioProvider));
+});
+
+final conversationsRepositoryProvider = Provider<ConversationsRepository>((ref) {
+  return ConversationsRepository(ref.watch(dioProvider));
 });
 
 final settingsRepositoryProvider = Provider<SettingsRepository>((ref) {
@@ -147,4 +152,21 @@ final attendanceSummaryProvider =
 final studentAttendanceProvider =
     FutureProvider.family<StudentAttendance, String>((ref, studentId) {
   return ref.read(attendanceRepositoryProvider).forStudent(studentId);
+});
+
+final conversationsProvider = FutureProvider<List<ConversationSummary>>((ref) {
+  return ref.read(conversationsRepositoryProvider).list();
+});
+
+final conversationsUnreadProvider = FutureProvider<int>((ref) {
+  return ref.read(conversationsRepositoryProvider).unreadCount();
+});
+
+final chatContactsProvider = FutureProvider<List<ChatContact>>((ref) {
+  return ref.read(conversationsRepositoryProvider).contacts();
+});
+
+final chatThreadProvider =
+    FutureProvider.autoDispose.family<ChatThread, String>((ref, id) {
+  return ref.read(conversationsRepositoryProvider).thread(id);
 });

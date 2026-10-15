@@ -31,6 +31,7 @@ class DashboardScreen extends ConsumerWidget {
         child: RefreshIndicator(
           onRefresh: () async {
             ref.invalidate(unreadNoticesCountProvider);
+            ref.invalidate(conversationsUnreadProvider);
             ref.invalidate(parentNoticesProvider);
             ref.invalidate(subjectsProvider(null));
             ref.invalidate(academicCalendarProvider);
@@ -77,8 +78,10 @@ class _HomeHeader extends ConsumerWidget {
     final session = ref.watch(authProvider);
     final backdrop = ref.watch(appearanceProvider).backdrop;
     final icons = AppIcons(ref.watch(appearanceProvider).modernIcons);
+    // Comunicados e conversas por ler, juntos no sino.
     final unread =
-        ref.watch(unreadNoticesCountProvider).whenOrNull(data: (n) => n) ?? 0;
+        (ref.watch(unreadNoticesCountProvider).whenOrNull(data: (n) => n) ?? 0) +
+        (ref.watch(conversationsUnreadProvider).whenOrNull(data: (n) => n) ?? 0);
     final name = session?.userName ?? 'utilizador';
     final firstName = name.trim().split(RegExp(r'\s+')).first;
     final subtitle = [
