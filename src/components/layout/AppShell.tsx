@@ -24,6 +24,7 @@ import {
 import { AppSidebar } from "./AppSidebar";
 import { AccountDrawer } from "./AccountDrawer";
 import { AppLauncher } from "./AppLauncher";
+import { EnvironmentSwitcher } from "./EnvironmentSwitcher";
 import { DesktopNotifications } from "./DesktopNotifications";
 import { CommandPalette, requestOpenCommandPalette } from "./CommandPalette";
 import { TopbarCalendar } from "./TopbarCalendar";
@@ -319,6 +320,8 @@ function AuthenticatedAppShell({ children }: { children: ReactNode }) {
             >
               <Menu className="size-5" />
             </Button>
+
+            <EnvironmentSwitcher />
 
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
