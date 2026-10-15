@@ -5,6 +5,7 @@ import { createFirebaseEmailUser } from '../lib/firebase-auth';
 import { createPrefixedId } from '../lib/id';
 import { buildSyntheticEmailFromPhone } from '../lib/phone';
 import { jsonError, jsonOk } from '../lib/response';
+import { createTempPassword } from '../lib/password';
 import { z } from 'zod';
 
 const tokenSchema = z.object({
@@ -229,7 +230,8 @@ users.post('/register-teacher', requireAdmin, async (c) => {
   ).bind(user.schoolId).first<{ default_password: string; teacher_id_prefix: string }>();
 
   const teacherEmail = parsed.data.email?.trim() || buildSyntheticEmailFromPhone(parsed.data.phone, user.schoolId);
-  const teacherPassword = schoolConfig?.default_password || 'Welcome@123';
+  // Sem senha da escola, uma senha aleatória (nunca uma senha fixa conhecida).
+  const teacherPassword = schoolConfig?.default_password || createTempPassword();
   const teacherIdPrefix = schoolConfig?.teacher_id_prefix?.toLowerCase() || 'tch';
   const staffId = createPrefixedId(teacherIdPrefix);
 

@@ -20,7 +20,7 @@ class _SecuritySettingsScreenState
   bool _obscureCurrent = true;
   bool _obscureNew = true;
   bool _obscureRepeat = true;
-  bool _twoFactorEnabled = false;
+  final bool _twoFactorEnabled = false;
   bool _savingAccessControl = false;
 
   @override
@@ -104,7 +104,7 @@ class _SecuritySettingsScreenState
                       style: TextStyle(fontWeight: FontWeight.bold),
                     ),
                     subtitle: const Text(
-                      'Add an extra layer of security.',
+                      'Ainda não disponível: o servidor não suporta.',
                       style: TextStyle(
                         fontSize: 12,
                         color: AppColors.textSecondary,
@@ -112,9 +112,7 @@ class _SecuritySettingsScreenState
                     ),
                     activeThumbColor: AppColors.primary,
                     value: _twoFactorEnabled,
-                    onChanged: (val) {
-                      setState(() => _twoFactorEnabled = val);
-                    },
+                    onChanged: null, // sem suporte no servidor
                   ),
                 ),
 
@@ -268,17 +266,7 @@ class _SecuritySettingsScreenState
                   width: double.infinity,
                   height: 56,
                   child: ElevatedButton(
-                    onPressed: () {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text(
-                            'Security settings updated successfully!',
-                            style: TextStyle(fontWeight: FontWeight.bold),
-                          ),
-                        ),
-                      );
-                      Navigator.pop(context);
-                    },
+                    onPressed: null, // o servidor não tem rota para isto
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppColors.primary,
                       foregroundColor: AppColors.secondary,
@@ -287,7 +275,7 @@ class _SecuritySettingsScreenState
                       ),
                     ),
                     child: const Text(
-                      'Update Password',
+                      'Mudar senha (ainda não disponível)',
                       style: TextStyle(
                         fontWeight: FontWeight.bold,
                         fontSize: 16,

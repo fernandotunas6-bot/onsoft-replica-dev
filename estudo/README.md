@@ -48,7 +48,7 @@ O super-admin fala com o Worker com uma chave partilhada
 | `flutter analyze` (Flutter 3.41.5) | sem avisos |
 | `flutter test` | 7 testes, passam |
 | `flutter build web` | compila com 3.41.5; **falha com 3.47** (`lucide_icons` estende `IconData`, que passou a `final`) |
-| Worker `vitest` | 6 testes, passam |
+| Worker `vitest` | 7 testes, passam |
 | Worker `wrangler deploy --dry-run` | empacota |
 | Worker `tsc --noEmit` | sem erros (o erro de `classes.ts:23` foi corrigido) |
 | Super-admin `next build` | compila (15 rotas) |
@@ -109,6 +109,43 @@ Agora todos passam por `formatMoneyDisplay` (`lib/core/utils/currency_display.da
 Os campos onde o utilizador escreve o valor continuam com o número simples.
 O teste `test/currency_display_test.dart` cobre os milhares, os negativos, o
 arredondamento ao cêntimo e o PDF.
+
+## Dados inventados e botões falsos no código original (15/10/2026)
+
+Corrigido:
+
+- `receipt_preview_screen.dart` tinha «YFT School System», «Accra, Ghana» e a
+  turma «Basic 4A» escritos no código. O ecrã não era usado e foi apagado.
+- «Dados pessoais» vinha preenchido com «John Doe», «johndoe@email.com»,
+  «+233 55 123 4567» e «Tema, Community 2». O botão «Save» dizia que tinha
+  guardado, mas não guardava nada. Agora mostra os dados reais da conta
+  (`GET /api/users/me`) e é só de leitura.
+- Quatro botões diziam «guardado» sem chamar o servidor: publicar aviso,
+  guardar presenças, preferências de notificação e mudar a senha. O
+  interruptor de dois factores também não fazia nada. O Worker não tem
+  rotas para nenhum destes, por isso ficam desactivados com «ainda não
+  disponível».
+
+## Senha partilhada por escola (15/10/2026)
+
+Cada escola tem uma única senha para todos os professores e encarregados
+criados na app. Por omissão, essa senha era `Welcome@123`, no Worker e no
+formulário do super-admin. Quem não tem e-mail entra com um endereço gerado a
+partir do telefone, fácil de adivinhar.
+
+Corrigido:
+
+- O Worker já não usa `Welcome@123`: sem senha da escola, gera uma aleatória,
+  como já fazia para os encarregados.
+- O onboarding exige uma senha escolhida para a escola, com pelo menos 10
+  caracteres e sem valor por omissão. O formulário do super-admin deixou de a
+  preencher.
+- Teste no Worker (`test/security.spec.ts`), 7/7. Falha com o código antigo,
+  em que a escola sem senha passava a validação.
+
+Por resolver, porque mexe na API e nos ecrãs: a senha continua partilhada
+dentro de cada escola. O correcto é uma senha temporária por pessoa, mostrada
+uma só vez, com troca obrigatória no primeiro acesso.
 
 ## Pontos a reter (ideias, não código)
 

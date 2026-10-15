@@ -17,7 +17,9 @@ const onboardSchema = z.object({
     phone: z.string().trim().optional().nullable(),
     email: z.string().trim().email().optional().nullable(),
     address: z.string().trim().optional().nullable(),
-    default_password: z.string().trim().min(6).default('Welcome@123'),
+    // Obrigatória e sem valor por omissão: antes, todas as escolas criadas sem
+    // senha ficavam com «Welcome@123» para professores e encarregados.
+    default_password: z.string().trim().min(10),
     student_id_prefix: z.string().trim().min(1).max(10).default('STU'),
     teacher_id_prefix: z.string().trim().min(1).max(10).default('TCH'),
   }),
@@ -203,7 +205,7 @@ const updateSchoolSchema = z.object({
   phone: z.string().trim().optional().nullable(),
   email: z.string().trim().email().optional().nullable(),
   address: z.string().trim().optional().nullable(),
-  default_password: z.string().trim().min(6).optional(),
+  default_password: z.string().trim().min(10).optional(),
   student_id_prefix: z.string().trim().min(1).max(10).optional(),
   teacher_id_prefix: z.string().trim().min(1).max(10).optional(),
 });

@@ -91,13 +91,8 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
                 child: SizedBox(
                   width: double.infinity,
                   child: ElevatedButton(
-                    onPressed: () {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Attendance saved'), backgroundColor: Colors.green),
-                      );
-                      Navigator.pop(context);
-                    },
-                    child: const Text('Save Attendance'),
+                    onPressed: null, // o servidor não tem rota para isto
+                    child: const Text('Guardar presenças (ainda não disponível)'),
                   ),
                 ),
               ),

@@ -157,21 +157,11 @@ class _CreateNoticeScreenState extends State<CreateNoticeScreen> {
                   width: double.infinity,
                   child: ElevatedButton.icon(
                     icon: const Icon(LucideIcons.send),
-                    label: const Text('Publish Notice'),
+                    label: const Text('Publicar aviso (ainda não disponível)'),
                     style: ElevatedButton.styleFrom(
                       padding: const EdgeInsets.symmetric(vertical: 16),
                     ),
-                    onPressed: () {
-                      if (_formKey.currentState!.validate()) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('Notice published successfully!'),
-                            backgroundColor: AppColors.primary,
-                          ),
-                        );
-                        Navigator.pop(context);
-                      }
-                    },
+                    onPressed: null, // o servidor não tem rota para isto
                   ),
                 ),
                 const SizedBox(height: 40),

@@ -50,3 +50,25 @@ describe("CORS", () => {
 		expect(response.headers.get("Access-Control-Allow-Origin")).toBe("https://admin.portal-siga.com");
 	});
 });
+
+describe("senha da escola no onboarding", () => {
+	const onboard = (school: Record<string, unknown>) =>
+		call(
+			"/api/super-admin/onboard-school",
+			{
+				method: "POST",
+				headers: { "X-Super-Admin-Key": KEY, "Content-Type": "application/json" },
+				body: JSON.stringify({ school: { name: "Escola", ...school }, admin: { name: "Admin", phone: "+244923000000", email: "admin@escola.ao" } }),
+			},
+			{ SUPER_ADMIN_API_KEY: KEY },
+		);
+
+	it("recusa escola sem senha (antes ficava «Welcome@123») e senha curta", async () => {
+		for (const school of [{}, { default_password: "Welcome@1" }]) {
+			expect((await onboard(school)).status).toBe(400);
+		}
+		// O mesmo pedido com uma senha válida passa a validação (falha depois,
+		// na base de dados vazia do teste, mas não com 400).
+		expect((await onboard({ default_password: "senha-da-escola-2026" })).status).not.toBe(400);
+	});
+});

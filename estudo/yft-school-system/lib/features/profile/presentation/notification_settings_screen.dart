@@ -95,17 +95,7 @@ class _NotificationSettingsScreenState
               width: double.infinity,
               height: 56,
               child: ElevatedButton(
-                onPressed: () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text(
-                        'Preferences saved!',
-                        style: TextStyle(fontWeight: FontWeight.bold),
-                      ),
-                    ),
-                  );
-                  Navigator.pop(context);
-                },
+                onPressed: null, // o servidor não tem rota para isto
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.primary,
                   foregroundColor: AppColors.secondary,
@@ -114,7 +104,7 @@ class _NotificationSettingsScreenState
                   ),
                 ),
                 child: const Text(
-                  'Save Preferences',
+                  'Guardar preferências (ainda não disponível)',
                   style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
                 ),
               ),

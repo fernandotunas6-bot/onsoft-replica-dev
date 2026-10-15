@@ -44,7 +44,7 @@ const initialState = {
   schoolPhone: '',
   schoolEmail: '',
   schoolAddress: '',
-  defaultPassword: 'Welcome@123',
+  defaultPassword: '',
   studentIdPrefix: 'STU',
   teacherIdPrefix: 'TCH',
   adminName: '',
@@ -133,7 +133,7 @@ export function SchoolForm() {
             phone: form.schoolPhone || null,
             email: form.schoolEmail || null,
             address: form.schoolAddress || null,
-            default_password: form.defaultPassword || 'Welcome@123',
+            default_password: form.defaultPassword,
             student_id_prefix: form.studentIdPrefix || 'STU',
             teacher_id_prefix: form.teacherIdPrefix || 'TCH',
           },
@@ -351,12 +351,12 @@ export function SchoolForm() {
                     id="defaultPassword"
                     value={form.defaultPassword}
                     onChange={(event) => setForm((current) => ({ ...current, defaultPassword: event.target.value }))}
-                    placeholder="Welcome@123"
+                    placeholder="Mínimo 10 caracteres"
                     required
-                    minLength={6}
+                    minLength={10}
                     className="h-12 rounded-xl border-none bg-slate-50 px-4 ring-1 ring-slate-100 focus:ring-2 focus:ring-primary/20"
                   />
-                  <p className="text-[11px] text-slate-400">Minimum 6 characters. Used for all newly registered teachers and parents.</p>
+                  <p className="text-[11px] text-slate-400">Minimum 10 characters, specific to this school. Used for all newly registered teachers and parents.</p>
                 </div>
                 <div className="grid gap-6 md:grid-cols-2">
                   <div className="space-y-2">
