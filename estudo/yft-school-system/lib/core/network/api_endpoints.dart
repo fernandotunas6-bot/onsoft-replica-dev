@@ -26,6 +26,7 @@ class ApiEndpoints {
   // Attendance
   static const attendance = '/api/attendance';
   static const attendanceSummary = '/api/attendance/summary';
+  static String attendanceStudent(String id) => '/api/attendance/student/$id';
 
   // Grades
   static const grades = '/api/grades';

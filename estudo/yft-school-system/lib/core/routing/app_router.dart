@@ -28,6 +28,7 @@ import 'package:yft_school_system/features/staff/presentation/student_detail_vie
 import 'package:yft_school_system/features/reports/presentation/ward_profile_screen.dart';
 import 'package:yft_school_system/features/reports/presentation/parent_wards_screen.dart';
 import 'package:yft_school_system/features/reports/presentation/result_card_screen.dart';
+import 'package:yft_school_system/features/reports/presentation/ward_attendance_screen.dart';
 import 'package:yft_school_system/features/finance/presentation/payment_history_screen.dart';
 import 'package:yft_school_system/features/dashboard/presentation/notices_screen.dart';
 import 'package:yft_school_system/features/academics/presentation/class_setup_screen.dart';
@@ -240,6 +241,12 @@ final appRouter = GoRouter(
         final id = state.uri.queryParameters['student'];
         return LogPaymentScreen(initialStudentId: id);
       },
+    ),
+    GoRoute(
+      path: '/ward-attendance',
+      builder: (context, state) => WardAttendanceScreen(
+        initialWardId: state.extra is String ? state.extra as String : null,
+      ),
     ),
     GoRoute(
       path: '/total-attendance',

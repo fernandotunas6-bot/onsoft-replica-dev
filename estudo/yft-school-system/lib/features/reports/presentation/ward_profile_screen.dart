@@ -190,13 +190,8 @@ class WardProfileScreen extends ConsumerWidget {
                       icon: LucideIcons.calendarCheck,
                       title: 'Histórico de\npresenças',
                       color: Colors.orange,
-                      onTap: () {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('A abrir as presenças…'),
-                          ),
-                        );
-                      },
+                      onTap: () =>
+                          context.push('/ward-attendance', extra: w.id),
                     ),
                     _actionCard(
                       icon: LucideIcons.heartPulse,

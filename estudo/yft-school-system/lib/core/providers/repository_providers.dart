@@ -9,6 +9,7 @@ import '../models/timetable_slot.dart';
 import '../models/user_profile.dart';
 import '../models/paginated_response.dart';
 import '../network/api_client.dart';
+import '../repositories/attendance_repository.dart';
 import '../repositories/class_repository.dart';
 import '../repositories/finance_repository.dart';
 import '../repositories/grades_repository.dart';
@@ -56,6 +57,10 @@ final gradesRepositoryProvider = Provider<GradesRepository>((ref) {
 
 final timetableRepositoryProvider = Provider<TimetableRepository>((ref) {
   return TimetableRepository(ref.watch(dioProvider));
+});
+
+final attendanceRepositoryProvider = Provider<AttendanceRepository>((ref) {
+  return AttendanceRepository(ref.watch(dioProvider));
 });
 
 final settingsRepositoryProvider = Provider<SettingsRepository>((ref) {
@@ -124,4 +129,22 @@ final reportCardProvider = FutureProvider.family<List<ReportLine>,
   return ref
       .read(gradesRepositoryProvider)
       .getReportCard(studentId: args.studentId, term: args.term);
+});
+
+/// Lista de presenças de uma turma num dia.
+final attendanceRosterProvider = FutureProvider.family<AttendanceRoster,
+    ({String classId, String day})>((ref, a) {
+  return ref
+      .read(attendanceRepositoryProvider)
+      .getRoster(a.classId, DateTime.parse(a.day));
+});
+
+final attendanceSummaryProvider =
+    FutureProvider.family<AttendanceSummary, String>((ref, classId) {
+  return ref.read(attendanceRepositoryProvider).summary(classId);
+});
+
+final studentAttendanceProvider =
+    FutureProvider.family<StudentAttendance, String>((ref, studentId) {
+  return ref.read(attendanceRepositoryProvider).forStudent(studentId);
 });

@@ -1,9 +1,21 @@
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons/lucide_icons.dart';
+import 'package:yft_school_system/core/models/school_class.dart';
+import 'package:yft_school_system/core/network/api_client.dart';
 import 'package:yft_school_system/core/providers/repository_providers.dart';
+import 'package:yft_school_system/core/repositories/attendance_repository.dart';
 import 'package:yft_school_system/core/theme/app_colors.dart';
+import 'package:yft_school_system/core/utils/media_url.dart';
+import 'package:yft_school_system/core/utils/responsive_utils.dart';
+import 'package:yft_school_system/core/widgets/profile_photo_avatar.dart';
+import 'package:yft_school_system/core/widgets/section_widgets.dart';
+import 'package:yft_school_system/features/academics/application/academic_state.dart';
+import 'package:yft_school_system/features/calendar/application/school_events.dart';
 
+/// Marcar presenças: escolhe-se a turma e o dia; quem não foi marcado conta
+/// como presente. Gravar o mesmo dia outra vez corrige.
 class AttendanceScreen extends ConsumerStatefulWidget {
   const AttendanceScreen({super.key});
 
@@ -12,99 +24,273 @@ class AttendanceScreen extends ConsumerStatefulWidget {
 }
 
 class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
-  final Map<String, bool> _attendance = {};
+  String? _classId;
+  DateTime _day = dayOnly(DateTime.now());
+
+  /// Alterações feitas neste ecrã, por cima do que veio do servidor.
+  final Map<String, bool> _edits = {};
+  bool _saving = false;
+
+  ({String classId, String day}) _key(String classId) =>
+      (classId: classId, day: isoDay(_day));
+
+  Future<void> _pickDay() async {
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: _day,
+      firstDate: DateTime(_day.year - 1),
+      lastDate: dayOnly(DateTime.now()),
+      helpText: 'Dia das presenças',
+    );
+    if (picked != null) {
+      setState(() {
+        _day = dayOnly(picked);
+        _edits.clear();
+      });
+    }
+  }
+
+  Future<void> _save(String classId, List<AttendanceEntry> entries) async {
+    setState(() => _saving = true);
+    final records = {
+      for (final e in entries) e.studentId: _edits[e.studentId] ?? e.present ?? true,
+    };
+    try {
+      await ref.read(attendanceRepositoryProvider).save(classId, _day, records);
+      ref.invalidate(attendanceRosterProvider(_key(classId)));
+      ref.invalidate(attendanceSummaryProvider(classId));
+      if (!mounted) return;
+      final absent = records.values.where((p) => !p).length;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            absent == 0
+                ? 'Presenças guardadas: todos presentes.'
+                : 'Presenças guardadas: $absent ${absent == 1 ? 'falta' : 'faltas'}.',
+          ),
+        ),
+      );
+      setState(() {
+        _edits.clear();
+        _saving = false;
+      });
+    } on DioException catch (e) {
+      if (!mounted) return;
+      setState(() => _saving = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          backgroundColor: AppColors.error,
+          content: Text(
+            e.response?.statusCode == 400
+                ? 'A lista mudou entretanto. Actualize e tente de novo.'
+                : 'Não foi possível guardar. Verifique a ligação.',
+          ),
+        ),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    final studentsAsync = ref.watch(studentsProvider((classId: null, page: 1)));
+    final classes =
+        ref.watch(classesProvider).whenOrNull(data: (c) => c) ??
+        const <SchoolClass>[];
+    final preferred = _classId ?? ref.watch(selectedClassProvider)?.id;
+    final classId = classes.any((c) => c.id == preferred)
+        ? preferred
+        : classes.firstOrNull?.id;
+    final pad = getResponsiveHorizontalPadding(context);
+    final today = dayOnly(DateTime.now());
 
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: const Text('Presenças do dia', style: TextStyle(fontWeight: FontWeight.w600)),
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        foregroundColor: AppColors.secondary,
+        title: const Text(
+          'Marcar presenças',
+          style: TextStyle(fontWeight: FontWeight.w600),
+        ),
       ),
-      body: studentsAsync.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => Center(child: Text('Não foi possível carregar os alunos', style: TextStyle(color: AppColors.error))),
-        data: (paginated) {
-          final students = paginated.data;
-          for (final s in students) {
-            _attendance.putIfAbsent(s.id, () => true);
-          }
-          final presentCount = _attendance.values.where((v) => v).length;
-
-          return Column(
-            children: [
+      body: ResponsiveConstrainedContent(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if (classes.length > 1)
               Padding(
-                padding: const EdgeInsets.all(24),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Row(
-                      children: [
-                        Icon(LucideIcons.calendar, size: 20, color: AppColors.textSecondary),
-                        const SizedBox(width: 12),
-                        Text('Hoje · ${DateTime.now().day}/${DateTime.now().month}/${DateTime.now().year}',
-                            style: const TextStyle(fontWeight: FontWeight.w600)),
-                      ],
-                    ),
-                    Text('$presentCount/${students.length}',
-                        style: TextStyle(fontWeight: FontWeight.w600, color: AppColors.primary)),
-                  ],
+                padding: EdgeInsets.fromLTRB(pad.left, 4, 0, 8),
+                child: PillTabs(
+                  labels: [for (final c in classes) c.className],
+                  selected: classes.indexWhere((c) => c.id == classId),
+                  onSelected: (i) => setState(() {
+                    _classId = classes[i].id;
+                    _edits.clear();
+                  }),
                 ),
               ),
-              Expanded(
-                child: students.isEmpty
-                    ? Center(child: Text('Nenhum aluno.', style: TextStyle(color: AppColors.textSecondary)))
-                    : ListView.builder(
-                        padding: const EdgeInsets.symmetric(horizontal: 24),
-                        itemCount: students.length,
-                        itemBuilder: (context, index) {
-                          final s = students[index];
-                          return Padding(
-                            padding: const EdgeInsets.only(bottom: 12),
-                            child: CheckboxListTile(
-                              value: _attendance[s.id] ?? true,
-                              onChanged: (val) => setState(() => _attendance[s.id] = val ?? true),
-                              title: Text(s.name, style: const TextStyle(fontWeight: FontWeight.w600)),
-                              subtitle: Text(s.className ?? '', style: TextStyle(fontSize: 12, color: AppColors.textSecondary)),
-                              secondary: CircleAvatar(
-                                backgroundColor: AppColors.primary.withValues(alpha: 0.1),
-                                child: Text(s.name.isNotEmpty ? s.name[0] : '?',
-                                    style: TextStyle(color: AppColors.secondary, fontWeight: FontWeight.w600)),
-                              ),
-                              activeColor: AppColors.primary,
-                              checkColor: AppColors.secondary,
-                              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                              tileColor: AppColors.surface,
-                            ),
-                          );
-                        },
-                      ),
+            Padding(
+              padding: EdgeInsets.symmetric(horizontal: pad.left),
+              child: OutlinedButton.icon(
+                onPressed: _pickDay,
+                icon: const Icon(LucideIcons.calendar, size: 18),
+                label: Text(
+                  _day == today
+                      ? 'Hoje · ${formatDayMonth(_day)}'
+                      : '${weekdayShort[_day.weekday - 1]} · ${formatDayMonth(_day)}',
+                ),
               ),
-              Padding(
-                padding: const EdgeInsets.all(24),
+            ),
+            const SizedBox(height: 8),
+            Expanded(
+              child: classId == null
+                  ? const EmptyHint(
+                      icon: LucideIcons.layoutGrid,
+                      message: 'Ainda não há turmas.',
+                    )
+                  : _roster(classId, pad),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _roster(String classId, EdgeInsets pad) {
+    final key = _key(classId);
+    final rosterAsync = ref.watch(attendanceRosterProvider(key));
+    final base = ref.read(dioProvider).options.baseUrl;
+
+    return rosterAsync.when(
+      loading: () => const Center(child: CircularProgressIndicator()),
+      error: (_, _) => EmptyHint(
+        icon: LucideIcons.wifiOff,
+        message: 'Não foi possível carregar a turma.',
+        action: TextButton(
+          onPressed: () => ref.invalidate(attendanceRosterProvider(key)),
+          child: const Text('Tentar de novo'),
+        ),
+      ),
+      data: (roster) {
+        final entries = roster.entries;
+        if (entries.isEmpty) {
+          return const EmptyHint(
+            icon: LucideIcons.users,
+            message: 'Esta turma não tem alunos activos.',
+          );
+        }
+        bool isPresent(AttendanceEntry e) =>
+            _edits[e.studentId] ?? e.present ?? true;
+        final absent = entries.where((e) => !isPresent(e)).length;
+
+        return Column(
+          children: [
+            Padding(
+              padding: EdgeInsets.fromLTRB(pad.left, 4, pad.right - 8, 4),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      '${entries.length - absent} presentes · $absent ${absent == 1 ? 'falta' : 'faltas'}'
+                      '${roster.marked ? ' · já marcado' : ''}',
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: AppColors.textSecondary,
+                      ),
+                    ),
+                  ),
+                  TextButton(
+                    onPressed: () => setState(() {
+                      for (final e in entries) {
+                        _edits[e.studentId] = true;
+                      }
+                    }),
+                    child: const Text('Todos presentes'),
+                  ),
+                ],
+              ),
+            ),
+            Expanded(
+              child: ListView.separated(
+                padding: EdgeInsets.fromLTRB(pad.left, 0, pad.right, 16),
+                itemCount: entries.length,
+                separatorBuilder: (_, _) => const SizedBox(height: 8),
+                itemBuilder: (context, i) {
+                  final e = entries[i];
+                  final present = isPresent(e);
+                  return SoftCard(
+                    onTap: () =>
+                        setState(() => _edits[e.studentId] = !present),
+                    padding: const EdgeInsets.fromLTRB(12, 8, 8, 8),
+                    child: Row(
+                      children: [
+                        ProfilePhotoCircle(
+                          imageUrl: profilePhotoUrlFromKey(e.photoUrl, base),
+                          radius: 20,
+                          fallbackLabel: e.name,
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Text(
+                            e.name,
+                            style: TextStyle(
+                              fontSize: 15,
+                              color: AppColors.textPrimary,
+                            ),
+                          ),
+                        ),
+                        SegmentedButton<bool>(
+                          showSelectedIcon: false,
+                          style: SegmentedButton.styleFrom(
+                            visualDensity: VisualDensity.compact,
+                            selectedBackgroundColor: present
+                                ? AppColors.success.withValues(alpha: 0.15)
+                                : AppColors.error.withValues(alpha: 0.15),
+                            selectedForegroundColor: present
+                                ? AppColors.success
+                                : AppColors.error,
+                          ),
+                          segments: const [
+                            ButtonSegment(value: true, label: Text('P')),
+                            ButtonSegment(value: false, label: Text('F')),
+                          ],
+                          selected: {present},
+                          onSelectionChanged: (v) =>
+                              setState(() => _edits[e.studentId] = v.first),
+                        ),
+                      ],
+                    ),
+                  );
+                },
+              ),
+            ),
+            SafeArea(
+              top: false,
+              child: Padding(
+                padding: EdgeInsets.fromLTRB(pad.left, 4, pad.right, 12),
                 child: SizedBox(
                   width: double.infinity,
+                  height: 52,
                   child: ElevatedButton(
-                    onPressed: () {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Presenças guardadas'), backgroundColor: Colors.green),
-                      );
-                      Navigator.pop(context);
-                    },
-                    child: const Text('Guardar presenças'),
+                    onPressed: _saving ? null : () => _save(classId, entries),
+                    child: _saving
+                        ? SizedBox(
+                            width: 22,
+                            height: 22,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: AppColors.onPrimary,
+                            ),
+                          )
+                        : Text(
+                            roster.marked
+                                ? 'Guardar correcção'
+                                : 'Guardar presenças',
+                          ),
                   ),
                 ),
               ),
-            ],
-          );
-        },
-      ),
+            ),
+          ],
+        );
+      },
     );
   }
 }

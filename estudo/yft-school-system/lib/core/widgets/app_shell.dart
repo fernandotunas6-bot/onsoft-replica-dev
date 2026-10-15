@@ -173,6 +173,7 @@ List<_MenuEntry> _entriesFor(UserRole? role, AppIcons i) {
     if (role == UserRole.parent) ...[
       _MenuEntry(i.wards, 'Educandos', '/wards'),
       _MenuEntry(i.grades, 'Notas', '/result-card'),
+      _MenuEntry(i.absences, 'Faltas', '/ward-attendance'),
       _MenuEntry(i.fees, 'Propinas', '/payment-history'),
       _MenuEntry(i.receipts, 'Recibos', '/parent-receipts'),
     ],
@@ -187,6 +188,7 @@ List<_MenuEntry> _entriesFor(UserRole? role, AppIcons i) {
       _MenuEntry(i.students, 'Alunos', '/admin-student-classes'),
       _MenuEntry(i.classes, 'Turmas', '/classes'),
       _MenuEntry(i.grades, 'Notas', '/results-setup'),
+      _MenuEntry(i.absences, 'Faltas', '/total-attendance'),
       _MenuEntry(i.fees, 'Propinas', '/finance'),
       _MenuEntry(i.receipts, 'Pagamentos', '/students-finance'),
     ],
