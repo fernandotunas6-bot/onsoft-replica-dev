@@ -25,6 +25,8 @@ Future<String?> changeFirebasePassword(String current, String next) async {
       EmailAuthProvider.credential(email: email, password: current),
     );
     await user.updatePassword(next);
+    // Token novo, para o servidor ver a troca ao confirmar.
+    await user.getIdToken(true);
     return null;
   } on FirebaseAuthException catch (e) {
     switch (e.code) {

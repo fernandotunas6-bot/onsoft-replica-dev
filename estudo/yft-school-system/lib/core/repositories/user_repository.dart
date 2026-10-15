@@ -25,6 +25,12 @@ class UserRepository {
     );
   }
 
+  /// Depois de trocar a senha no Firebase: o servidor confirma e deixa de
+  /// exigir a troca.
+  Future<void> confirmPasswordChanged() async {
+    await _dio.post(ApiEndpoints.usersMePasswordChanged);
+  }
+
   Future<SchoolAcademicCalendar?> getAcademicCalendar() async {
     final response = await _dio.get(ApiEndpoints.usersMeAcademicCalendar);
     final raw = response.data['data'];

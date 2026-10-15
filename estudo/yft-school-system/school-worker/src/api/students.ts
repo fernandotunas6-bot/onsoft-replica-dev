@@ -5,6 +5,7 @@ import { requireAdmin, requireAdminOrTeacher } from '../lib/auth-guards';
 import { deleteFirebaseAuthUser } from '../lib/firebase-delete-user';
 import { buildSyntheticEmailFromPhone } from '../lib/phone';
 import { createHandoutPassword } from '../lib/password';
+import { markTemporaryPassword } from '../lib/temporary-password';
 import { createFirebaseEmailUser } from '../lib/firebase-auth';
 import { createPrefixedId } from '../lib/id';
 import { jsonError, jsonOk } from '../lib/response';
@@ -481,6 +482,7 @@ students.post('/', requireAdminOrTeacher, async (c) => {
       await c.env.DB.prepare(
         'INSERT INTO Users (uid, school_id, role, name, phone, email) VALUES (?, ?, ?, ?, ?, ?)'
       ).bind(parentUid, user.schoolId, 'parent', parsed.data.parent.name, parsed.data.parent.phone, parentEmail).run();
+      await markTemporaryPassword(c.env, parentUid);
     }
     parentLoginEmail = parentEmail;
   }

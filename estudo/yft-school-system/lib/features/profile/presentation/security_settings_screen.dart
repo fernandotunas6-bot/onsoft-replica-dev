@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import 'package:yft_school_system/core/auth/auth_state.dart';
 import 'package:yft_school_system/core/auth/password_change.dart';
@@ -59,7 +60,25 @@ class _SecuritySettingsScreenState
     _currentController.clear();
     _newController.clear();
     _repeatController.clear();
+
+    // Senha temporária: o servidor confirma no Firebase e deixa de a exigir.
+    final wasRequired = ref.read(authProvider)?.mustChangePassword ?? false;
+    if (wasRequired) {
+      try {
+        await ref.read(userRepositoryProvider).confirmPasswordChanged();
+        await ref.read(authProvider.notifier).refreshProfile();
+      } catch (_) {
+        if (!mounted) return;
+        return show(
+          'Senha alterada, mas o servidor ainda não a confirmou. '
+          'Termine a sessão e entre com a nova senha.',
+          AppColors.error,
+        );
+      }
+    }
+    if (!mounted) return;
     show('Senha alterada.', Colors.green);
+    if (wasRequired) context.go('/dashboard');
   }
 
   @override
@@ -87,6 +106,22 @@ class _SecuritySettingsScreenState
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                if (session?.mustChangePassword ?? false) ...[
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.amber.withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: const Text(
+                      'Está a usar uma senha temporária. Escolha a sua senha '
+                      'para continuar.',
+                      style: TextStyle(fontWeight: FontWeight.w600),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                ],
                 const Text(
                   'Altere a senha e proteja a conta.',
                   style: TextStyle(

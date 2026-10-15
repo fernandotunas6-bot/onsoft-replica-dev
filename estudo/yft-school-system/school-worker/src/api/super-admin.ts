@@ -375,14 +375,16 @@ superAdmin.post('/onboard-school', async (c) => {
   await c.env.DB.batch([
     schoolInsert,
     c.env.DB.prepare(
-      'INSERT INTO Users (uid, school_id, role, name, phone, email) VALUES (?, ?, ?, ?, ?, ?)'
+      'INSERT INTO Users (uid, school_id, role, name, phone, email, temp_password_issued_at) VALUES (?, ?, ?, ?, ?, ?, ?)'
     ).bind(
       adminFirebase.uid,
       schoolId,
       'admin',
       parsed.data.admin.name,
       parsed.data.admin.phone,
-      adminEmail
+      adminEmail,
+      // O administrador também recebe uma senha temporária (temp_password).
+      Date.now()
     ),
   ]);
 

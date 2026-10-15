@@ -1,4 +1,5 @@
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:yft_school_system/core/auth/auth_state.dart' show passwordChangeRequired;
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:yft_school_system/core/models/school_class.dart';
@@ -46,18 +47,38 @@ import 'package:yft_school_system/features/finance/presentation/parent_receipts_
 
 final rootNavigatorKey = GlobalKey<NavigatorState>();
 
+/// Para onde ir antes de abrir [location] (null: abre).
+/// Sem sessão, só as páginas públicas; com senha temporária por trocar, só o
+/// ecrã da senha.
+String? guardRedirect(
+  String location, {
+  required bool signedIn,
+  required bool mustChangePassword,
+}) {
+  const public = {'/', '/login', '/forgot-password'};
+  const passwordPage = '/security-password';
+  if (public.contains(location)) return null;
+  if (!signedIn) return '/login';
+  if (mustChangePassword && location != passwordPage) return passwordPage;
+  return null;
+}
+
 final appRouter = GoRouter(
   navigatorKey: rootNavigatorKey,
   initialLocation: '/',
   // Sem sessão Firebase, só as páginas públicas abrem; o resto vai ao login.
   redirect: (context, state) {
-    const public = {'/', '/login', '/forgot-password'};
-    if (public.contains(state.matchedLocation)) return null;
+    bool signedIn;
     try {
-      return FirebaseAuth.instance.currentUser == null ? '/login' : null;
+      signedIn = FirebaseAuth.instance.currentUser != null;
     } catch (_) {
-      return '/login'; // Firebase não inicializado
+      signedIn = false; // Firebase não inicializado
     }
+    return guardRedirect(
+      state.matchedLocation,
+      signedIn: signedIn,
+      mustChangePassword: passwordChangeRequired,
+    );
   },
   routes: [
     GoRoute(path: '/', builder: (context, state) => const SplashScreen()),

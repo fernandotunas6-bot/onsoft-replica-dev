@@ -1,11 +1,12 @@
 import { Hono } from 'hono';
 import type { AppEnv } from '../app-env';
 import { requireAdmin, requireRoles } from '../lib/auth-guards';
-import { createFirebaseEmailUser } from '../lib/firebase-auth';
+import { createFirebaseEmailUser, getPasswordUpdatedAt } from '../lib/firebase-auth';
 import { createPrefixedId } from '../lib/id';
 import { buildSyntheticEmailFromPhone } from '../lib/phone';
 import { jsonError, jsonOk } from '../lib/response';
 import { createHandoutPassword } from '../lib/password';
+import { changedAfterIssue, markTemporaryPassword } from '../lib/temporary-password';
 import { z } from 'zod';
 
 const tokenSchema = z.object({
@@ -94,7 +95,8 @@ users.get('/me', requireRoles('admin', 'teacher', 'parent'), async (c) => {
       `SELECT uid, school_id, role, name, phone, email, staff_id, created_at,
         photo_url, residential_address, qualification, years_experience, subjects_text,
         ssnit_number, marital_status, emergency_contact_name, emergency_contact_phone,
-        bank_name, bank_account_number, bank_account_holder, date_of_birth, gender
+        bank_name, bank_account_number, bank_account_holder, date_of_birth, gender,
+        temp_password_issued_at
        FROM Users WHERE uid = ? AND school_id = ? LIMIT 1`
     ).bind(user.uid, user.schoolId).first(),
     c.env.DB.prepare(
@@ -114,9 +116,14 @@ users.get('/me', requireRoles('admin', 'teacher', 'parent'), async (c) => {
     }>(),
   ]);
 
+  const { temp_password_issued_at: issuedAt, ...profileFields } =
+    (profile ?? user) as Record<string, unknown> & { temp_password_issued_at?: number | null };
+
   return jsonOk(c, {
     data: {
-      ...(profile ?? user),
+      ...profileFields,
+      // Enquanto houver senha temporária por trocar, a app só deixa mudar a senha.
+      must_change_password: issuedAt != null,
       school_name: school?.name ?? null,
       school_logo_url: school?.logo_url ?? null,
       school_address: school?.address ?? null,
@@ -281,6 +288,8 @@ users.post('/register-teacher', requireAdmin, async (c) => {
     parsed.data.gender ?? null
   ).run();
 
+  await markTemporaryPassword(c.env, firebaseUser.uid);
+
   return jsonOk(c, {
     uid: firebaseUser.uid,
     staff_id: staffId,
@@ -288,6 +297,26 @@ users.post('/register-teacher', requireAdmin, async (c) => {
     // Só nesta resposta: a secretaria entrega-a ao professor, que a troca.
     temporary_password: teacherPassword,
   }, 201);
+});
+
+// A app chama isto depois de trocar a senha no Firebase. O servidor confirma
+// no Firebase, com o token da própria pessoa, que a senha mudou mesmo.
+users.post('/me/password-changed', requireRoles('admin', 'teacher', 'parent'), async (c) => {
+  const user = c.get('user');
+  const row = await c.env.DB.prepare(
+    'SELECT temp_password_issued_at FROM Users WHERE uid = ? AND school_id = ? LIMIT 1'
+  ).bind(user.uid, user.schoolId).first<{ temp_password_issued_at: number | null }>();
+  const issuedAt = row?.temp_password_issued_at ?? null;
+  if (issuedAt == null) return jsonOk(c, { must_change_password: false });
+
+  const idToken = c.req.header('Authorization')?.slice(7) ?? '';
+  const updatedAt = await getPasswordUpdatedAt(c.env, idToken).catch(() => null);
+  if (!changedAfterIssue(updatedAt, issuedAt)) {
+    return jsonError(c, 'A senha temporária ainda não foi trocada', 409);
+  }
+  await c.env.DB.prepare('UPDATE Users SET temp_password_issued_at = NULL WHERE uid = ?')
+    .bind(user.uid).run();
+  return jsonOk(c, { must_change_password: false });
 });
 
 users.put('/me/fcm-token', requireRoles('admin', 'teacher', 'parent'), async (c) => {

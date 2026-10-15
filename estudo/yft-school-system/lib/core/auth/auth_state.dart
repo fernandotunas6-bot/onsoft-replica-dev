@@ -21,6 +21,9 @@ class AppSession {
   /// When true, teachers may PUT `/api/grades` for their school.
   final bool teacherCanEditResults;
 
+  /// A conta ainda tem a senha temporária: só pode mudar a senha.
+  final bool mustChangePassword;
+
   AppSession({
     required this.role,
     required this.userName,
@@ -33,6 +36,7 @@ class AppSession {
     this.schoolPhone,
     this.schoolMotto,
     this.teacherCanEditResults = false,
+    this.mustChangePassword = false,
   });
 
   AppSession copyWith({
@@ -47,6 +51,7 @@ class AppSession {
     String? schoolPhone,
     String? schoolMotto,
     bool? teacherCanEditResults,
+    bool? mustChangePassword,
   }) {
     return AppSession(
       role: role ?? this.role,
@@ -61,6 +66,7 @@ class AppSession {
       schoolMotto: schoolMotto ?? this.schoolMotto,
       teacherCanEditResults:
           teacherCanEditResults ?? this.teacherCanEditResults,
+      mustChangePassword: mustChangePassword ?? this.mustChangePassword,
     );
   }
 }
@@ -78,7 +84,16 @@ UserRole _parseRole(String? roleStr) {
   }
 }
 
+/// Lido pelo router (que não tem acesso ao Riverpod): há senha por trocar?
+bool passwordChangeRequired = false;
+
 class AuthStateNotifier extends Notifier<AppSession?> {
+  @override
+  set state(AppSession? value) {
+    passwordChangeRequired = value?.mustChangePassword ?? false;
+    super.state = value;
+  }
+
   @override
   AppSession? build() {
     _tryRestoreSession();
@@ -120,6 +135,7 @@ class AuthStateNotifier extends Notifier<AppSession?> {
         schoolPhone: profile['school_phone'] as String?,
         schoolMotto: profile['school_motto'] as String?,
         teacherCanEditResults: teacherCanEdit,
+        mustChangePassword: profile['must_change_password'] == true,
       );
       return (session, null);
     } on DioException catch (e) {

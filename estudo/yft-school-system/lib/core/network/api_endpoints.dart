@@ -54,6 +54,7 @@ class ApiEndpoints {
   static String usersTeacher(String uid) => '/api/users/teachers/$uid';
   static const usersMeAcademicCalendar = '/api/users/me/academic-calendar';
   static const usersMePassword = '/api/users/me/password';
+  static const usersMePasswordChanged = '/api/users/me/password-changed';
   static const usersMeFcmToken = '/api/users/me/fcm-token';
 
   // Settings

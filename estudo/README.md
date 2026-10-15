@@ -46,9 +46,9 @@ O super-admin fala com o Worker com uma chave partilhada
 | Passo | Resultado |
 | --- | --- |
 | `flutter analyze` (Flutter 3.41.5) | sem avisos |
-| `flutter test` | 10 testes, passam |
+| `flutter test` | 14 testes, passam |
 | `flutter build web` | compila com 3.41.5; **falha com 3.47** (`lucide_icons` estende `IconData`, que passou a `final`) |
-| Worker `vitest` | 9 testes, passam |
+| Worker `vitest` | 11 testes, passam |
 | Worker `wrangler deploy --dry-run` | empacota |
 | Worker `tsc --noEmit` | sem erros (o erro de `classes.ts:23` foi corrigido) |
 | Super-admin `next build` | compila (15 rotas) |
@@ -158,8 +158,17 @@ Corrigido:
   diferente da actual.
 - **Super-admin:** o campo da senha comum saiu dos dois formulários.
 - **Testes:** app 10/10, Worker 9/9.
-- **Falta:** obrigar a trocar a senha no primeiro acesso. Hoje a troca
-  depende de a pessoa a fazer.
+- **Troca obrigatória no primeiro acesso:**
+  - A migração `0012_temporary_password.sql` cria a coluna
+    `temp_password_issued_at`, marcada quando se cria um professor, um
+    encarregado ou o administrador.
+  - `GET /api/users/me` devolve `must_change_password`. Enquanto for
+    verdadeiro, o router da app leva qualquer ecrã para «Segurança e senha».
+  - Depois da troca, a app chama `POST /api/users/me/password-changed`. O
+    servidor não acredita só na app: pergunta ao Firebase, com o token da
+    própria pessoa, quando a senha mudou (`accounts:lookup` →
+    `passwordUpdatedAt`) e só limpa a marca se mudou depois de emitida.
+  - Testes: app 14/14, Worker 11/11.
 
 ## Tradução para português (15/10/2026)
 

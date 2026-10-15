@@ -81,3 +81,13 @@ export async function createFirebaseLinkedUser(
     provisionalUserId: user.uid ?? createPrefixedId('user'),
   };
 }
+
+type FirebaseLookupResponse = { users?: Array<{ passwordUpdatedAt?: number | string }> };
+
+/** Quando a senha da conta dona de [idToken] foi alterada pela última vez (ms). */
+export async function getPasswordUpdatedAt(env: Env, idToken: string): Promise<number | null> {
+  const lookup = await firebaseRequest<FirebaseLookupResponse>(env, 'accounts:lookup', { idToken });
+  const raw = lookup.users?.[0]?.passwordUpdatedAt;
+  const value = typeof raw === 'string' ? Number(raw) : raw;
+  return typeof value === 'number' && Number.isFinite(value) ? value : null;
+}

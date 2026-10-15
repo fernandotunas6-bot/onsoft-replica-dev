@@ -2,6 +2,7 @@ import { env, createExecutionContext, waitOnExecutionContext } from "cloudflare:
 import { describe, it, expect } from "vitest";
 import worker from "../src/index";
 import { createHandoutPassword } from "../src/lib/password";
+import { changedAfterIssue } from "../src/lib/temporary-password";
 
 const KEY = "k".repeat(40);
 
@@ -92,5 +93,30 @@ describe("senha temporária por pessoa", () => {
 			expect(source).not.toMatch(/default_password\s*\|\|/);
 			expect(source).toMatch(/createHandoutPassword\(\)/);
 		}
+	});
+});
+
+describe("troca obrigatória da senha temporária", () => {
+	it("só conta como trocada se o Firebase disser que mudou depois da emissão", () => {
+		const issued = 1_760_000_000_000;
+		expect(changedAfterIssue(null, null)).toBe(true); // sem senha temporária
+		expect(changedAfterIssue(null, issued)).toBe(false); // Firebase não respondeu
+		expect(changedAfterIssue(issued - 1, issued)).toBe(false); // a da criação da conta
+		expect(changedAfterIssue(issued, issued)).toBe(false);
+		expect(changedAfterIssue(issued + 1, issued)).toBe(true);
+	});
+
+	it("a migração cria a coluna e as três criações de conta a marcam", () => {
+		const files = import.meta.glob(
+			["../migrations/0012_temporary_password.sql", "../src/api/{users,students,super-admin}.ts"],
+			{ query: "?raw", import: "default", eager: true },
+		) as Record<string, string>;
+		expect(Object.keys(files)).toHaveLength(4);
+		expect(files["../migrations/0012_temporary_password.sql"]).toMatch(
+			/ALTER TABLE Users ADD COLUMN temp_password_issued_at INTEGER/,
+		);
+		expect(files["../src/api/users.ts"]).toMatch(/markTemporaryPassword\(c\.env, firebaseUser\.uid\)/);
+		expect(files["../src/api/students.ts"]).toMatch(/markTemporaryPassword\(c\.env, parentUid\)/);
+		expect(files["../src/api/super-admin.ts"]).toMatch(/temp_password_issued_at\) VALUES/);
 	});
 });
