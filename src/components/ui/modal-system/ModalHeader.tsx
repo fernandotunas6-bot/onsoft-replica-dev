@@ -24,7 +24,7 @@ export function ModalHeader({
   return (
     <div
       className={cn(
-        "flex shrink-0 items-center justify-between border-b border-border bg-muted/20 px-5 py-3.5",
+        "flex items-center justify-between border-b border-border bg-muted/20 px-5 py-3.5",
         className,
       )}
     >
@@ -51,8 +51,7 @@ export function ModalHeader({
             type="button"
             onClick={onHelp}
             title="Ajuda contextual"
-            aria-label="Ajuda contextual"
-            className="flex size-8 min-h-[44px] min-w-[44px] items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring lg:min-h-0 lg:min-w-0"
+            className="flex size-8 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
           >
             <HelpCircle className="size-4" />
           </button>
@@ -62,8 +61,7 @@ export function ModalHeader({
             type="button"
             onClick={onClose}
             title="Fechar (Esc)"
-            aria-label="Fechar"
-            className="flex size-8 min-h-[44px] min-w-[44px] items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring lg:min-h-0 lg:min-w-0"
+            className="flex size-8 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
           >
             <X className="size-4" />
           </button>

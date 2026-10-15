@@ -1,5 +1,5 @@
 import { Users } from "lucide-react";
-import { toast } from "@/lib/toast";
+import { toast } from "sonner";
 import { UserAvatar } from "@/components/ui/user-avatar";
 import { cn } from "@/lib/utils";
 import { FileKindIcon, initialsFromName } from "./FileKindIcon";

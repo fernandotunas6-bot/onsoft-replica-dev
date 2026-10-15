@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { toast } from "@/lib/toast";
+import { toast } from "sonner";
 import { Fingerprint, LoaderCircle, ShieldCheck } from "lucide-react";
 import {
   Dialog,

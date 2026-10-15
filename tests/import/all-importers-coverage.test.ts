@@ -87,40 +87,6 @@ describe("All 22 Importers Completeness & Coverage", () => {
       expect(res.status).toBe("valid");
     });
 
-    it("avisa quando a disciplina foi associada pelo catálogo", () => {
-      const res = avaliacoesImporter.analyzeRow(
-        {
-          assessment_name: "Prova",
-          code: "P1",
-          max_score: 20,
-          class_group: "10A",
-          subject: "Matematica Geral",
-          term: "1º Trimestre",
-        },
-        {
-          ...cacheComDiario,
-          subjects: [{ id: "sub1", code: "LP", name: "Língua Portuguesa" }],
-        } as any,
-      );
-      expect(res.status).toBe("error");
-      const viaCatalogo = avaliacoesImporter.analyzeRow(
-        {
-          assessment_name: "Prova",
-          code: "P1",
-          max_score: 20,
-          class_group: "10A",
-          subject: "Português",
-          term: "1º Trimestre",
-        },
-        {
-          ...cacheComDiario,
-          subjects: [{ id: "sub1", code: "LP", name: "Língua Portuguesa" }],
-        } as any,
-      );
-      expect(viaCatalogo.status).toBe("warning");
-      expect(viaCatalogo.warnings[0]).toContain("pelo catálogo");
-    });
-
     it("recusa quando o diário da turma/disciplina/período não existe", () => {
       const res = avaliacoesImporter.analyzeRow(
         {
@@ -166,7 +132,7 @@ describe("All 22 Importers Completeness & Coverage", () => {
             person_id: "p1",
           },
         ],
-        existingKeys: new Map(),
+        existingKeys: new Set(),
       };
       const res = historicoAcademicoImporter.analyzeRow(
         { student_identifier: "PROC-1", academic_year: "2023/2024", grade_level: "8ª Classe" },
@@ -186,22 +152,14 @@ describe("All 22 Importers Completeness & Coverage", () => {
             person_id: "p1",
           },
         ],
-        existingKeys: new Map([["s1::2023/2024::8ª Classe", "8ª Classe"]]),
+        existingKeys: new Set(["s1::2023/2024::8ª Classe"]),
       };
-      // A mesma classe escrita de outra forma também é o mesmo histórico.
-      for (const grade of ["8ª Classe", "8a classe", "oitava classe"]) {
-        const res = historicoAcademicoImporter.analyzeRow(
-          { student_identifier: "PROC-1", academic_year: "2023/2024", grade_level: grade },
-          cache as any,
-        );
-        expect(res.status, grade).toBe("warning");
-        expect(res.warnings[0]).toMatch(/já existe/i);
-      }
-      const other = historicoAcademicoImporter.analyzeRow(
-        { student_identifier: "PROC-1", academic_year: "2023/2024", grade_level: "8º Ano" },
+      const res = historicoAcademicoImporter.analyzeRow(
+        { student_identifier: "PROC-1", academic_year: "2023/2024", grade_level: "8ª Classe" },
         cache as any,
       );
-      expect(other.status).toBe("valid");
+      expect(res.status).toBe("warning");
+      expect(res.warnings[0]).toMatch(/já existe/i);
     });
   });
 

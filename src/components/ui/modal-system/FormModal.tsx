@@ -60,7 +60,7 @@ export function FormModal({
       size={size}
       hasUnsavedChanges={hasUnsavedChanges}
     >
-      <form onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col">
+      <form onSubmit={handleSubmit} className="flex flex-col h-full">
         <ModalHeader
           {...(icon ? { icon } : {})}
           title={title}

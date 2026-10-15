@@ -12,7 +12,7 @@ import {
   ShieldCheck,
   WalletCards,
 } from "lucide-react";
-import { toast } from "@/lib/toast";
+import { toast } from "sonner";
 import { AppShell } from "@/components/layout/AppShell";
 import { PageHeader, Panel, StatGrid } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/button";

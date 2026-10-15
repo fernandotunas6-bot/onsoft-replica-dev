@@ -18,7 +18,6 @@ import { createClient, isSupabaseConfigured } from "@/lib/supabase/client"
 import { getCreateSchoolUrl, getSaasApiUrl, getSigaSchoolUrl } from "@/lib/ecosystem-urls"
 import { syncSaasUsage } from "@/lib/saas-api"
 import { TenantSubscriptionDialog } from "./components/tenant-subscription-dialog"
-import { TenantAdminAccessDialog } from "./components/tenant-admin-access-dialog"
 
 interface TenantRow {
   id: string
@@ -68,7 +67,6 @@ export default function TenantsPage() {
   const [needsAuth, setNeedsAuth] = useState(false)
   const [syncing, setSyncing] = useState(false)
   const [manageTenant, setManageTenant] = useState<TenantRow | null>(null)
-  const [accessTenant, setAccessTenant] = useState<TenantRow | null>(null)
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -228,12 +226,7 @@ export default function TenantsPage() {
                   tenants.map((tenant) => (
                     <TableRow key={tenant.id}>
                       <TableCell>
-                        <Link
-                          href={`/tenants/escola?id=${encodeURIComponent(tenant.id)}`}
-                          className="font-medium hover:underline"
-                        >
-                          {tenant.name}
-                        </Link>
+                        <div className="font-medium">{tenant.name}</div>
                         <div className="text-xs text-muted-foreground font-mono">{tenant.slug}</div>
                       </TableCell>
                       <TableCell>{tenant.plans?.name || tenant.plans?.code || "—"}</TableCell>
@@ -275,11 +268,6 @@ export default function TenantsPage() {
                       </TableCell>
                       <TableCell className="text-right space-x-1">
                         <Button variant="ghost" size="sm" asChild>
-                          <Link href={`/tenants/escola?id=${encodeURIComponent(tenant.id)}`}>
-                            Configurações
-                          </Link>
-                        </Button>
-                        <Button variant="ghost" size="sm" asChild>
                           <Link href={`/subscriptions?tenant=${encodeURIComponent(tenant.slug)}`}>
                             Subscrição
                           </Link>
@@ -291,9 +279,6 @@ export default function TenantsPage() {
                         </Button>
                         <Button variant="ghost" size="sm" onClick={() => setManageTenant(tenant)}>
                           Gerir
-                        </Button>
-                        <Button variant="ghost" size="sm" onClick={() => setAccessTenant(tenant)}>
-                          Acesso
                         </Button>
                         <Button variant="ghost" size="sm" asChild>
                           <a href={getSigaSchoolUrl(tenant.slug)}>
@@ -325,17 +310,6 @@ export default function TenantsPage() {
             </Table>
           </CardContent>
         </Card>
-
-        {accessTenant ? (
-          <TenantAdminAccessDialog
-            tenant={accessTenant}
-            open={Boolean(accessTenant)}
-            onOpenChange={(open) => {
-              if (!open) setAccessTenant(null)
-            }}
-            onManageSubscription={() => setManageTenant(accessTenant)}
-          />
-        ) : null}
 
         {manageTenant ? (
           <TenantSubscriptionDialog

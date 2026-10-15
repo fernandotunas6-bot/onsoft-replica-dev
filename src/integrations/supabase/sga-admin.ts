@@ -240,7 +240,7 @@ export async function assertTenantAllowsWrites(schoolId: string, now = new Date(
   if (!school.tenant_id) return;
   const { data: tenant, error: tenantError } = await db
     .from("tenants")
-    .select("status, subscription_status, trial_ends_at, billing_exempt")
+    .select("status, subscription_status, trial_ends_at")
     .eq("id", school.tenant_id)
     .maybeSingle();
   if (tenantError) {

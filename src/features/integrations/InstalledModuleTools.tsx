@@ -1,5 +1,5 @@
 import { useNavigate } from "@tanstack/react-router";
-import { toast } from "@/lib/toast";
+import { toast } from "sonner";
 import { getOrCreateCalendarFeedToken } from "@/features/calendar/feed";
 import { calendarIcsFeedUrl } from "@/features/calendar/ics";
 import { useSchoolSettings } from "@/features/auth/use-school-settings";

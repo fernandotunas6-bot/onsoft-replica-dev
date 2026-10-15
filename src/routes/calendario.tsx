@@ -15,7 +15,7 @@ import {
   Smartphone,
   Trash2,
 } from "lucide-react";
-import { toast } from "@/lib/toast";
+import { toast } from "sonner";
 import { whatsappHref } from "@/features/integrations/actions";
 import { InstalledModuleTools } from "@/features/integrations/InstalledModuleTools";
 import { useInstalledIntegrations } from "@/features/integrations/use-installed-integrations";

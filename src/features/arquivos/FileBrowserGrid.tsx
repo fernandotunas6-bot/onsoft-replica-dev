@@ -1,4 +1,4 @@
-import { toast } from "@/lib/toast";
+import { toast } from "sonner";
 import { FileCoverTile } from "./FileCoverTile";
 import {
   canAccessFileContent,

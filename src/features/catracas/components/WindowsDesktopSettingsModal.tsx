@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { toast } from "@/lib/toast";
+import { toast } from "sonner";
 import {
   Monitor,
   Cpu,

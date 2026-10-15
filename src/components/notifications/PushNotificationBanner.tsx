@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { Bell, BellRing, Check, X } from "lucide-react";
 import { useFirebaseNotifications } from "@/integrations/firebase/messaging";
-import { toast } from "@/lib/toast";
+import { toast } from "sonner";
 
 export interface PushNotificationBannerProps {
   onTokenRegistered?: (token: string) => void;

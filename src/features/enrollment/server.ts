@@ -167,7 +167,7 @@ async function schoolAcceptsPublicEnrollment(
   if (!school.tenant_id) return true;
   const { data: tenant, error: tenantError } = await db
     .from("tenants")
-    .select("status, subscription_status, trial_ends_at, billing_exempt")
+    .select("status, subscription_status, trial_ends_at")
     .eq("id", school.tenant_id)
     .maybeSingle();
   if (tenantError) throw publicDatabaseError(tenantError, "Não foi possível validar a escola.");

@@ -54,20 +54,19 @@ export function WizardModal({
   const isLastStep = currentStepIndex === steps.length - 1;
 
   const handleNext = () => {
-    if (!isLastStep && canProceed && !isSubmitting) {
+    if (!isLastStep && canProceed) {
       onStepChange(currentStepIndex + 1);
     }
   };
 
   const handlePrev = () => {
-    if (!isFirstStep && !isSubmitting) {
+    if (!isFirstStep) {
       onStepChange(currentStepIndex - 1);
     }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!canProceed || isSubmitting) return;
     if (isLastStep) {
       await onSubmit();
     } else {
@@ -90,8 +89,8 @@ export function WizardModal({
         onSubmit={handleSubmit}
         className={
           visualPanel
-            ? "grid min-h-0 max-h-[90dvh] grid-rows-[auto_auto_minmax(0,1fr)_auto] overflow-hidden lg:min-h-[78dvh] lg:grid-cols-[minmax(300px,0.9fr)_minmax(0,1.1fr)]"
-            : "flex min-h-0 flex-1 flex-col"
+            ? "grid min-h-[78vh] max-h-[90vh] overflow-hidden lg:grid-cols-[minmax(300px,0.9fr)_minmax(0,1.1fr)]"
+            : "flex flex-col"
         }
       >
         {visualPanel ? (
@@ -107,23 +106,20 @@ export function WizardModal({
         />
 
         {/* Stepper Progress Bar */}
-        <div className="shrink-0 border-b border-border bg-muted/10 px-6 py-2.5">
+        <div className="border-b border-border bg-muted/10 px-6 py-2.5">
           <div className="flex items-center justify-between gap-2 overflow-x-auto">
             {steps.map((step, idx) => {
               const isCompleted = idx < currentStepIndex;
               const isCurrent = idx === currentStepIndex;
               return (
                 <React.Fragment key={step.id}>
-                  <button
-                    type="button"
-                    disabled={!isCompleted || isSubmitting}
-                    aria-current={isCurrent ? "step" : undefined}
-                    aria-label={`Etapa ${idx + 1}: ${step.label}`}
-                    onClick={() => isCompleted && !isSubmitting && onStepChange(idx)}
-                    className="flex min-h-[44px] shrink-0 items-center gap-2 rounded-md px-1 text-[14px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring enabled:hover:bg-muted lg:min-h-0 lg:py-1 lg:text-xs"
+                  <div
+                    onClick={() => isCompleted && onStepChange(idx)}
+                    className={`flex items-center gap-2 ${
+                      isCompleted ? "cursor-pointer hover:opacity-80" : ""
+                    }`}
                   >
-                    <span
-                      aria-hidden
+                    <div
                       className={`flex size-6 shrink-0 items-center justify-center rounded-full text-xs font-semibold ${
                         isCompleted
                           ? "bg-emerald-600 text-white"
@@ -132,10 +128,10 @@ export function WizardModal({
                             : "bg-muted text-muted-foreground"
                       }`}
                     >
-                      {isCompleted ? <Check className="size-3.5" aria-hidden /> : idx + 1}
-                    </span>
+                      {isCompleted ? <Check className="size-3.5" /> : idx + 1}
+                    </div>
                     <span
-                      className={`font-medium whitespace-nowrap ${
+                      className={`text-xs font-medium whitespace-nowrap ${
                         isCurrent
                           ? "text-foreground font-semibold"
                           : isCompleted
@@ -145,10 +141,9 @@ export function WizardModal({
                     >
                       {step.label}
                     </span>
-                  </button>
+                  </div>
                   {idx < steps.length - 1 && (
                     <div
-                      aria-hidden
                       className={`h-0.5 min-w-4 flex-1 ${
                         idx < currentStepIndex ? "bg-emerald-600" : "bg-border"
                       }`}
@@ -176,7 +171,6 @@ export function WizardModal({
                 variant="outline"
                 size="sm"
                 onClick={handlePrev}
-                disabled={isSubmitting}
                 className="text-xs"
               >
                 Anterior

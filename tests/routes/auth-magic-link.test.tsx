@@ -23,7 +23,7 @@ import { renderRoute, routeComponentOf } from "./_harness";
  *    conta para e-mail inexistente, ver o comentário do próprio ficheiro).
  * 4. Sem nenhum parâmetro e sem sessão activa: erro genérico "Nenhum link...".
  * 5. `exchangeCodeForSession` falha (link já usado) → estado de erro com
- *    atalho "Entrar com e-mail e senha", que leva ao destino de `?next=`.
+ *    atalho "Voltar ao início de sessão".
  */
 
 const exchangeCodeForSessionMock = vi.fn();
@@ -126,36 +126,6 @@ describe("/auth/magic-link", () => {
     await waitFor(() => {
       expect(screen.getByText("O link de acesso é inválido ou já foi utilizado.")).toBeDefined();
     });
-    expect(
-      screen.getByRole("link", { name: "Entrar com e-mail e senha" }).getAttribute("href"),
-    ).toBe("/");
-  });
-
-  it("com ?next= o atalho leva ao destino escolhido no fim do registo", async () => {
-    navigateTo("/auth/magic-link?code=usado&next=/configuracoes/inicio");
-    exchangeCodeForSessionMock.mockResolvedValue({ error: { message: "invalid_grant" } });
-
-    const Page = await loadPage();
-    renderRoute(Page);
-
-    await waitFor(() => {
-      expect(
-        screen.getByRole("link", { name: "Entrar com e-mail e senha" }).getAttribute("href"),
-      ).toBe("/configuracoes/inicio");
-    });
-  });
-
-  it("?next= para outro domínio é ignorado", async () => {
-    navigateTo("/auth/magic-link?code=usado&next=//evil.example");
-    exchangeCodeForSessionMock.mockResolvedValue({ error: { message: "invalid_grant" } });
-
-    const Page = await loadPage();
-    renderRoute(Page);
-
-    await waitFor(() => {
-      expect(
-        screen.getByRole("link", { name: "Entrar com e-mail e senha" }).getAttribute("href"),
-      ).toBe("/");
-    });
+    expect(screen.getByRole("link", { name: "Voltar ao início de sessão" })).toBeDefined();
   });
 });

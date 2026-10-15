@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { IconChip } from "@/components/ui/icon-chip";
 import { getFinanceGatewayConfirmUrl } from "@/lib/ecosystem-urls";
 import { confirmManualMulticaixaPayment, generateInvoicePaymentReference } from "../server";
-import { toast } from "@/lib/toast";
+import { toast } from "sonner";
 
 const kwanzaLabel = (value: number) =>
   new Intl.NumberFormat("pt-AO", { style: "currency", currency: "AOA" }).format(value);

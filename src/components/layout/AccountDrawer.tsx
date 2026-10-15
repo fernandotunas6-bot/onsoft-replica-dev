@@ -14,7 +14,6 @@ import {
   Users,
 } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
-import { EnvironmentSwitcher } from "@/components/layout/EnvironmentSwitcher";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import {
   AlertDialog,
@@ -225,10 +224,6 @@ export function AccountDrawer({
             <ColleagueDirectory onBack={() => setView("menu")} onOpenThread={openThread} />
           ) : (
             <div className="no-scrollbar flex-1 overflow-y-auto px-3 pb-2">
-              {/* Em computador o seletor vive no topo; aqui serve o telemóvel. */}
-              <div className="mb-2 px-1 lg:hidden">
-                <EnvironmentSwitcher />
-              </div>
               <ul className="space-y-0.5">
                 {rows
                   .filter(

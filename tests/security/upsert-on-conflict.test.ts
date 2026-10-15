@@ -52,9 +52,6 @@ const UNICOS_PRODUCAO: Record<string, string[]> = {
   // 2026-10-07: chave primária de 20261007100000_web_site_content.sql (vitrine do site).
   // Recapturar da produção depois de aplicada a migração.
   web_school_showcase: ["school_id"],
-  // 2026-10-15: chave primária de 20261015120000_tenant_billing_profiles.sql (cobrança
-  // por escola). Recapturar da produção depois de aplicada a migração.
-  tenant_billing_profiles: ["tenant_id"],
 };
 
 function upsertsNoCodigo() {

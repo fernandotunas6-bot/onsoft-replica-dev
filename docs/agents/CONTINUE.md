@@ -4,106 +4,10 @@ Ler isto **antes** de alterar código. Ecossistema (5 apps):
 [ARCHITECTURE_HARMONIZATION.md](./ARCHITECTURE_HARMONIZATION.md).
 Depois abrir o skill do módulo em `.cursor/skills/`.
 
-## Cobrança SaaS por escola e escolas públicas (2026-10-15)
-
-- **ADMIN → Escolas → clicar na escola** (`/tenants/escola?id=…`, exportação estática):
-  Visão geral, Plano e assinatura, Cobrança, Escola pública, Acesso, Domínios e registo.
-  Dados: `GET/POST /api/saas/tenants/billing` (platform admin + aal2, auditado).
-- **Cobrança** (`tenant-billing-rules.ts` puro, `tenant-billing.ts` servidor): tabela do
-  plano, por aluno activo (com mínimo facturável) ou valor fixo; mensal/trimestral/
-  semestral/anual com o desconto de `saas_billing_settings.periods`; desconto da escola;
-  dia de vencimento (1–28), prazo de emissão, tolerância e só-consulta automática; modos
-  de pagamento (IBAN, Multicaixa Express, referência, PayFlow, numerário); contacto e NIF
-  de facturação. O SIGA (Assinatura) cobra o valor nas condições da escola.
-- **Pausar cobranças** (qualquer escola, com motivo e data opcional; a tarefa diária
-  retoma as que acabaram). **Escola pública**: ao marcar como Pública (ou ao registar-se
-  como pública no WEB) abre a revisão e pausa as cobranças; aprovar exige os requisitos
-  obrigatórios (acto de criação, código oficial, tutela, nomeação do director, acordo de
-  dados — Lei 22/11) e deixa-a isenta; recusar exige motivo.
-- **Efeito no acesso** só por `tenants.billing_exempt` (já na produção): o servidor mantém-no
-  igual a «não cobrar». Isenta/pausada não é bloqueada por trial nem atraso; suspender,
-  cancelar e arquivar continuam a bloquear. Lembretes de fim de trial não vão para elas.
-- **Por aplicar (dono):** `docs/agents/SIGA_aplicar_cobranca_escolas.sql`
-  (`20261015120000_tenant_billing_profiles.sql`). Sem ela o ADMIN mostra os valores de
-  omissão e não grava; nada mais parte. Depois recapturar o retrato e tirar a tabela de
-  `TABELAS_AUSENTES_DA_PRODUCAO`.
-
-## Smart School Onboarding: criação → acesso → ambiente (2026-10-15)
-
-Três ambientes, uma conta: **Administração Global** (ADMIN, só `platform_admins`),
-**Administração Institucional** (SIGA, papel Administrador) e **Portal Escolar** (SIGA,
-gestão académica). Ser administrador da escola nunca dá a Administração Global.
-
-- **Causa encontrada na produção:** as três escolas do registo público tinham o trial de
-  14 dias expirado e o ecrã de bloqueio cobria o SIGA inteiro, também para o administrador
-  e para `/auth/*` (nem o link de entrada abria). Agora `TenantAccessBarrier`
-  (`src/features/saas/TenantAccessBarrier.tsx`): o Administrador entra em modo de consulta
-  com aviso e «Regularizar a assinatura»; os outros e a matrícula online continuam
-  bloqueados; `/auth`, `/verificar`, `/convite` já não. O servidor continua a recusar
-  gravações (`assertTenantAllowsWrites`).
-- **Diagnóstico e reparação** (`school-admin-access-rules.ts` puro + `school-admin-access.ts`):
-  escola/tenant bloqueado, sem administrador, conta apagada/bloqueada, e-mail por confirmar,
-  papel sem permissões, perfil em falta/sem escola, nunca entrou, sem 2FA. Repara só o
-  automático (perfil, e-mail, `role_permissions`) e gera links de definição de senha para
-  quem nunca entrou. Nunca mexe em senhas, `platform_admins`, vínculos ou assinatura.
-- **ADMIN** → Escolas → «Acesso»: `GET/POST /api/saas/tenants/admin-access`
-  (platform admin + aal2; auditado em `saas_audit_logs` sem os links).
-  **Por fazer pelo dono:** abrir «Acesso» em `ekovongo` e `twapandula` (proprietários
-  nunca entraram) e em `epatuloko`; estender o trial em «Gerir» se for caso disso.
-- **SIGA** `/configuracoes/boas-vindas` («Onde deseja começar?»): 1. Escola criada,
-  2. Autenticação segura (conta, 2FA, escola activa, permissões; «Corrigir
-  automaticamente» só para a própria conta), 3. Painel Administrativo (`/`), Portal
-  Escolar (`/pedagogica`), Assistente (`/configuracoes/inicio`, com % concluído).
-- **Seletor de ambientes** (`EnvironmentSwitcher`) no topo e na gaveta da conta em
-  telemóvel: só o Administrador (ambientes da escola) e `platform_admins` (mais a
-  Administração Global). Ambientes em `src/features/auth/environments.ts`.
-- **WEB** `/start`, fim do registo: os mesmos três passos, sem redireccionar sozinho; o
-  link de entrada directa leva `?next=` (`/auth/magic-link` aceita só caminho relativo,
-  `src/lib/safe-next-path.ts`; se o link falhar, «Entrar com e-mail e senha» no destino).
-- O provisionamento também verifica `role_permissions` (`findProvisioningGaps` e
-  `siga:audit-provisioning`).
-
-## Catálogo educacional global (2026-10-10)
-
-Detalhe e cobertura real: [docs/education-catalog/README.md](../education-catalog/README.md).
-
-- `src/features/education-catalog/`: ISCED 2011 / ISCED-F 2013, países, 115 disciplinas e
-  54 cursos de referência, etapas de AO (com planos, derivados de `curriculum-templates.ts`),
-  PT (com planos, DL 55/2018) e MZ (só etapas). Tudo «Em revisão» excepto UNESCO/ISO.
-- Contexto de nível obrigatório (`catalog.ts`), pesquisa local sem acentos/siglas/erros
-  (`search.ts`), normalização de classes, períodos e disciplinas (`normalize.ts`), IDs
-  curtos (`identifiers.ts`). Página `/pedagogica/catalogo` (só consulta).
-- Fase 8: «Usar modelo de estrutura» com Sistema de ensino (AO como antes; PT e MZ pelo
-  catálogo, `plan-from-catalog.ts` + `applyCatalogStructure`). Ao aplicar, disciplinas já
-  existentes com outra grafia são reaproveitadas pelo catálogo (só nome/sinónimo exacto).
-- «Rever disciplinas» (Estrutura): duplicados (só mostra) e correcção de grafia dos nomes
-  (RLS, 2FA, auditado). Juntar duplicados: `public.merge_school_subjects` (20261010150000),
-  transaccional, recusa o que misturaria pautas/exames/competências e o superior.
-- «Nova disciplina» sugere nomes do catálogo e avisa antes de criar um duplicado
-  (`subject-hint.ts`; `QuickFormModal` com `suggestions` e `renderHint`).
-- Documentos: o registo de cada emissão (`documents.issued`) guarda os nomes das disciplinas
-  impressas e `/verificar` mostra-os — o nome à data da emissão sobrevive a renomear/juntar.
-- Importação (PR #125): disciplinas e cursos duplicados reconhecidos pelo código, nome ou
-  catálogo (`subjectCatalogKey`, `courseCatalogKey` — nunca por siglas); disciplina das
-  notas/presenças/avaliações/horários e classe das turmas/propinas pela equivalência do
-  catálogo (`resolveSubject`, `resolveGradeLevel`, com aviso); períodos «I/III Trimestre»,
-  «T2» (`parseTerm`); histórico académico sem duplicar por grafia da classe.
-- Ligação ao catálogo: `subjects.catalog_subject_code` (`20261012120000`), em «Rever
-  disciplinas» (automática pelo nome exacto, ou à mão para as próprias) e ao criar
-  (`catalog-link.ts`: «Nova», modelo de estrutura, importação; tolerante). Cursos novos
-  também (`programs.catalog_course_code`, mesma migração); os existentes em «Ligar cursos». Colunas em
-  `COLUNAS_ESPERA_MIGRACAO` até o retrato as ter.
-- **Por aplicar (dono):** `20261010120000_global_education_catalog.sql`, depois
-  `supabase/seeds/education/catalog.sql`, depois `20261010150000_merge_school_subjects.sql`,
-  depois `20261012120000_subjects_catalog_link.sql` (independente das outras). A página não depende delas.
-
 ## Auditoria 13 — fluxos da escola (2026-10-06)
 
 Relatório: [13-auditoria-fluxos-2026-10-06.md](../auditoria/13-auditoria-fluxos-2026-10-06.md).
-As duas migrações da auditoria foram **aplicadas na produção a 10/10** (`20261010103557 school_logos_no_svg`,
-`20261010104325 academic_year_dates_cover_terms`; a segunda cria o gatilho só se não existir,
-sem `DROP TRIGGER`). Uma escola tem um período de 11/08 fora do ano: só volta a mudar as datas
-do ano depois de o acertar.
+Nada escrito na produção; duas migrações escritas e ensaiadas, por aplicar.
 
 - **Corrigido:** importação em páginas (`import/engine/paged.ts`; antes cortava a 1000/2000 e
   passava listas de ids gigantes); um lote que lança já não perde o registo de reversão;
@@ -122,20 +26,6 @@ do ano depois de o acertar.
   aluno fecha a matrícula corrente e anular a última matrícula deixa o aluno inactivo
   (`students/enrollment-sync.ts`). A RLS continua sem olhar para o tenant (escritas
   directas pela API já exigem 2FA e papel).
-
-## Orientação de erros em todo o sistema (2026-10-07, PR #102)
-
-- Cada erro sai com **o que correu mal, a forma certa e um botão para o sítio onde se
-  corrige**. Catálogo único: `src/lib/error-guidance.ts` (testes com as mensagens reais
-  do servidor). Mapa completo de casos e destinos: [ERROR_GUIDANCE.md](./ERROR_GUIDANCE.md).
-- `import { toast } from "sonner"` proibido pelo lint: tudo usa `@/lib/toast`, que
-  orienta cada `toast.error`. Mutações sem `onError` deixam de falhar caladas
-  (`MutationCache`); leituras que falham por configuração avisam (`QueryCache`); o
-  `RouteErrorScreen` mostra a correcção e o botão.
-- O botão só aparece a quem pode abrir o destino; os outros recebem «peça a …».
-- A parte de mensagens do PR #102 duplicava a da auditoria 13 (já na `main`): ficou a
-  da `main`, mais o chat montado uma só vez (coluna em `lg`, folha abaixo, contador do
-  servidor) e o atalho «Ficha do aluno» no lugar de `?tab=presenca`, que não existe.
 
 ## Verificação por níveis: um toque, código só por recurso (2026-10-06)
 
@@ -167,7 +57,7 @@ do ano depois de o acertar.
 
 Levantamento completo: [estado-deploy-2026-10-06.md](../auditoria/estado-deploy-2026-10-06.md).
 
-- **Migrações:** as 2 da auditoria 13 foram aplicadas a 10/10 (secção acima); nada por aplicar dela. As três que faltavam de facto foram aplicadas a 06/10
+- **Migrações:** desde a auditoria 13 há **2 por aplicar** (secção acima). Antes dela, nada por aplicar. As três que faltavam de facto foram aplicadas a 06/10
   (`20261005030000_school_row_role_policies`, `20261005150000_fee_items_grade_level`,
   `20261006100000_enrollment_class_change`) e registadas no histórico. As
   `20261005010000` e `20261005020000`, que os relatórios davam por pendentes, **já

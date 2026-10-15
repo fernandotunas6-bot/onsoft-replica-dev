@@ -2,7 +2,7 @@
 
 import { useState, type ReactNode } from "react";
 import { LoaderCircle } from "lucide-react";
-import { toast } from "@/lib/toast";
+import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { PayflowBrandIcon } from "@/features/finance/components/PayflowBrandIcon";

@@ -1,6 +1,6 @@
 import * as React from "react";
 import { Check, School } from "lucide-react";
-import { toast } from "@/lib/toast";
+import { toast } from "sonner";
 
 import { useCurrentAccount } from "@/features/auth/use-current-account";
 import { useSchoolSettings } from "@/features/auth/use-school-settings";
@@ -135,7 +135,7 @@ export function SchoolSwitcherSheet({
                     setSelectedYearId(year.id);
                   }}
                   className={cn(
-                    "touch-feedback inline-flex min-h-[44px] items-center rounded-lg border px-3 text-[14px] font-medium",
+                    "touch-feedback inline-flex min-h-9 items-center rounded-lg border px-3 text-xs font-medium",
                     year.id === selectedYearId
                       ? "border-primary/50 bg-primary-soft text-primary-strong"
                       : "border-border bg-card text-muted-foreground",
@@ -162,7 +162,7 @@ export function SchoolSwitcherSheet({
                   aria-pressed={term.id === selectedTermId}
                   onClick={() => setSelectedTermId(term.id)}
                   className={cn(
-                    "touch-feedback inline-flex min-h-[44px] items-center rounded-lg border px-3 text-[14px] font-medium",
+                    "touch-feedback inline-flex min-h-9 items-center rounded-lg border px-3 text-xs font-medium",
                     term.id === selectedTermId
                       ? "border-primary/50 bg-primary-soft text-primary-strong"
                       : "border-border bg-card text-muted-foreground",

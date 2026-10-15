@@ -83,7 +83,7 @@ import { SalasWorkspaceTab } from "@/features/pedagogica/components/SalasWorkspa
 import { CurriculoWorkspaceTab } from "@/features/pedagogica/components/CurriculoWorkspaceTab";
 import { SchoolNowWidget } from "@/features/academic/components/SchoolNowWidget";
 import { getSigaNavDocUrl } from "@/lib/ecosystem-urls";
-import { toast } from "@/lib/toast";
+import { toast } from "sonner";
 import { warmPedagogicaCharts } from "@/lib/warm-charts";
 
 const PedagogicaNotasCharts = lazy(() =>

@@ -19,10 +19,8 @@ import { getPlatformSubdomain } from "@/lib/saas/platform-domain";
 import { fetchActivePlans } from "./catalog";
 import { planCodeSchema } from "./schemas";
 import type { Plan } from "./types";
-import { PLAN_REQUEST_ACTIONS, pendingPlanRequestFrom } from "./subscription-view";
+import { PLAN_REQUEST_ACTIONS, pendingPlanRequestFrom, planPriceKz } from "./subscription-view";
 import { getPayflowUrl } from "@/lib/ecosystem-urls";
-import { amountForSchool, loadTenantBillingProfile } from "./tenant-billing";
-import { billingStateOf, describeTenantBilling, type BillingState } from "./tenant-billing-rules";
 
 type Db = Awaited<ReturnType<typeof loadSgaAdminClient>>;
 
@@ -46,20 +44,6 @@ export type SubscriptionOverview = {
   subdomain: string;
   plans: Plan[];
   pendingPlanRequest: { planCode: string; requestedAt: string } | null;
-  /** Cobrança desta escola (ADMIN → escola → Cobrança). */
-  billing: {
-    mode: BillingState["mode"];
-    label: string;
-    reason: string | null;
-    until: string | null;
-    /** Valor de um período nas condições da escola; null quando segue a tabela do plano. */
-    customAmountKz: number | null;
-    customByPeriodKz: { monthly: number; yearly: number } | null;
-    customLines: string[];
-    period: string;
-    dueDay: number;
-    paymentMethods: string[];
-  };
 };
 
 async function requireSchoolAdminTenant(userId: string) {
@@ -131,7 +115,6 @@ export const getMySubscription = createServerFn({ method: "GET" })
       fetchActivePlans(),
       latestPlanRequest(db, tenantId),
     ]);
-    const billingProfile = await loadTenantBillingProfile(db, tenantId).catch(() => null);
     if (tenantRes.error)
       throw publicDatabaseError(tenantRes.error, "Não foi possível ler a assinatura.");
     const tenant = tenantRes.data;
@@ -178,11 +161,6 @@ export const getMySubscription = createServerFn({ method: "GET" })
       subdomain: getPlatformSubdomain(String(tenant.slug ?? "")),
       plans,
       pendingPlanRequest: pending,
-      billing: describeTenantBilling(
-        billingProfile?.profile ?? null,
-        plan,
-        Number(usage?.active_students_count ?? 0),
-      ),
     };
   });
 
@@ -277,16 +255,7 @@ export const startPlanPayment = createServerFn({ method: "POST" })
     const plans = await fetchActivePlans();
     const plan = plans.find((p) => p.code === data.planCode);
     if (!plan) throw new Error("Esse plano não está disponível.");
-    // Escola pública isenta ou cobranças pausadas: não há nada a pagar.
-    const billingProfile = await loadTenantBillingProfile(db, tenantId).catch(() => null);
-    const profile = billingProfile?.stored ? billingProfile.profile : null;
-    if (profile) {
-      const state = billingStateOf(profile);
-      if (!state.charging) {
-        throw new Error(`${state.label}. Não há pagamento a fazer agora.`);
-      }
-    }
-    const amountKz = await amountForSchool(db, tenantId, plan, data.billing, profile);
+    const amountKz = planPriceKz(plan, data.billing);
     if (!amountKz)
       throw new Error("Este plano não tem preço definido. Fale com a equipa comercial.");
 
@@ -449,14 +418,6 @@ export const submitPlanPaymentProof = createServerFn({ method: "POST" })
       .eq("id", tenantId)
       .maybeSingle();
     const current = plans.find((p) => p.id === tenant?.plan_id);
-    const billingProfile = await loadTenantBillingProfile(db, tenantId).catch(() => null);
-    const amountKz = await amountForSchool(
-      db,
-      tenantId,
-      plan,
-      data.billing,
-      billingProfile?.stored ? billingProfile.profile : null,
-    );
     const rows = [
       {
         tenant_id: tenantId,
@@ -468,7 +429,7 @@ export const submitPlanPaymentProof = createServerFn({ method: "POST" })
           school: schoolName,
           plan_code: plan.code,
           billing: data.billing,
-          amount_kz: amountKz,
+          amount_kz: planPriceKz(plan, data.billing),
           proof_path: path,
           content_type: data.contentType,
           transfer_reference: data.transferReference ?? null,

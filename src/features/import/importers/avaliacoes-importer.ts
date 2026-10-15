@@ -58,7 +58,7 @@ function valueOf(row: Record<string, unknown>, ...keys: string[]) {
 function resolveGradebook(
   normalized: Record<string, unknown>,
   cache: AvaliacoesCache,
-): { gradebook: GradebookRecord | null; motivo: string | null; aviso?: string } {
+): { gradebook: GradebookRecord | null; motivo: string | null } {
   const groupVal = valueOf(normalized, "class_group", "turma", "codigo_turma");
   const subjectVal = valueOf(normalized, "subject", "disciplina", "materia");
   const termNum = parseTerm(valueOf(normalized, "term", "periodo", "trimestre"));
@@ -113,13 +113,7 @@ function resolveGradebook(
     };
   }
 
-  return {
-    gradebook,
-    motivo: null,
-    aviso: subject.viaCatalog
-      ? `Disciplina "${normalizeText(subjectVal)}" associada a «${subject.row.name}» (${subject.row.code}) pelo catálogo.`
-      : undefined,
-  };
+  return { gradebook, motivo: null };
 }
 
 export const avaliacoesImporter: RowImporter = {
@@ -200,14 +194,13 @@ export const avaliacoesImporter: RowImporter = {
 
     if (errors.length) return { status: "error", warnings, errors };
 
-    const { motivo, aviso } = resolveGradebook(normalized, cache);
+    const { motivo } = resolveGradebook(normalized, cache);
     if (motivo) {
       errors.push(motivo);
       return { status: "error", warnings, errors };
     }
-    if (aviso) warnings.push(aviso);
 
-    return { status: warnings.length ? "warning" : "valid", warnings, errors: [] };
+    return { status: "valid", warnings, errors: [] };
   },
 
   async commitRow(normalized, ctx, rawCache) {

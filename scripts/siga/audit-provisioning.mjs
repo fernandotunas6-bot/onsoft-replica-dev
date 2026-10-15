@@ -54,7 +54,6 @@ const SQL = `
     (select count(*) from public.school_memberships x
        where x.school_id = e.school_id and x.status = 'active')                     as memberships,
     (select count(*) from public.member_roles x where x.school_id = e.school_id)    as papeis_atribuidos,
-    (select count(*) from public.role_permissions x where x.school_id = e.school_id) as permissoes,
     (select count(*) from public.roles x where x.school_id = e.school_id)           as papeis,
     (select count(*) from public.school_settings x where x.school_id = e.school_id) as definicoes,
     (select count(*) from public.academic_years x where x.school_id = e.school_id)  as anos_lectivos
@@ -93,12 +92,6 @@ const INVARIANTES = [
     minimo: 1,
     peca: "papel atribuído",
     porque: "nenhuma conta tem permissões",
-  },
-  {
-    campo: "permissoes",
-    minimo: 1,
-    peca: "permissões dos papéis",
-    porque: "o administrador entra e não consegue gravar nada",
   },
   { campo: "papeis", minimo: 2, peca: "papéis da escola", porque: "não há a quem delegar" },
   {

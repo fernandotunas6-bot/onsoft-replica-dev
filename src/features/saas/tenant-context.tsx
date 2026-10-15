@@ -11,6 +11,7 @@ import {
   getTenantForCurrentUser,
 } from "@/features/saas/server";
 import { getTenantAccessBlock, type TenantAccessBlockReason } from "@/features/saas/tenant-access";
+import { DOC_PATHS, getDocUrl, getPricingUrl } from "@/lib/ecosystem-urls";
 import { ACTIVE_SCHOOL_CHANGED_EVENT } from "@/features/auth/active-school";
 
 interface TenantContextType {
@@ -19,8 +20,6 @@ interface TenantContextType {
   isAdminArea: boolean;
   isLoadingTenant: boolean;
   isSuspended: boolean;
-  /** Motivo do bloqueio quando `isSuspended`; o ecrã é `TenantAccessBarrier`. */
-  accessBlockReason: TenantAccessBlockReason | null;
   activePlan: Plan | null;
   refreshTenant: () => Promise<void>;
   setDevSlug: (slug: string) => void;
@@ -32,7 +31,6 @@ const TenantContext = createContext<TenantContextType>({
   isAdminArea: false,
   isLoadingTenant: true,
   isSuspended: false,
-  accessBlockReason: null,
   activePlan: null,
   refreshTenant: async () => {},
   setDevSlug: () => {},
@@ -142,6 +140,24 @@ export const TenantProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const access = getTenantAccessBlock(activeTenant);
   const isSuspended = access.blocked;
 
+  const blockCopy: Record<TenantAccessBlockReason, { title: string; body: string }> = {
+    suspended: {
+      title: "Assinatura Suspensa",
+      body: "A assinatura encontra-se temporariamente suspensa por razões administrativas.",
+    },
+    trial_expired: {
+      title: "Período de Trial Expirado",
+      body: "O período experimental terminou. Escolha um plano para continuar a usar o SIGA Plus.",
+    },
+    cancelled: {
+      title: "Assinatura Cancelada",
+      body: "A subscrição desta instituição foi cancelada. Reactive no portal comercial.",
+    },
+  };
+
+  const blockReason = access.reason ?? "suspended";
+  const copy = blockCopy[blockReason];
+
   return (
     <TenantContext.Provider
       value={{
@@ -150,13 +166,55 @@ export const TenantProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         isAdminArea,
         isLoadingTenant,
         isSuspended,
-        accessBlockReason: isSuspended ? (access.reason ?? "suspended") : null,
         activePlan,
         refreshTenant: loadTenant,
         setDevSlug,
       }}
     >
-      {children}
+      {isSuspended && !isAdminArea ? (
+        <div className="flex min-h-screen items-center justify-center bg-background px-4 text-foreground">
+          <div className="max-w-md text-center">
+            <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-warning/20 text-warning">
+              <svg className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+                />
+              </svg>
+            </div>
+            <h1 className="text-2xl font-bold">{copy.title}</h1>
+            <p className="mt-2 text-sm text-muted-foreground">
+              {copy.body} Instituição{" "}
+              <strong className="text-foreground">{activeTenant?.name}</strong>.
+            </p>
+            <p className="mt-4 text-xs text-muted-foreground">
+              Regularize a assinatura no portal comercial ou contacte o suporte da plataforma.
+            </p>
+            <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
+              <a
+                href={getPricingUrl()}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:bg-primary/90 shadow-card"
+              >
+                Ver planos e renovar
+              </a>
+              <a
+                href={getDocUrl(DOC_PATHS.guideSupport)}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center rounded-xl border border-border px-4 py-2 text-sm text-foreground hover:bg-muted"
+              >
+                Suporte institucional
+              </a>
+            </div>
+          </div>
+        </div>
+      ) : (
+        children
+      )}
     </TenantContext.Provider>
   );
 };
