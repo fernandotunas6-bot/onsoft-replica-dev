@@ -6,6 +6,7 @@ import 'package:yft_school_system/core/models/student.dart';
 import 'package:yft_school_system/features/auth/presentation/forgot_password_screen.dart';
 import 'package:yft_school_system/features/auth/presentation/login_screen.dart';
 import 'package:yft_school_system/features/dashboard/presentation/dashboard_screen.dart';
+import 'package:yft_school_system/features/onboarding/presentation/onboarding_screen.dart';
 import 'package:yft_school_system/features/splash/presentation/splash_screen.dart';
 import 'package:yft_school_system/features/staff/presentation/teacher_registration_screen.dart';
 import 'package:yft_school_system/features/staff/presentation/student_details_screen.dart';
@@ -55,7 +56,13 @@ final appRouter = GoRouter(
   initialLocation: '/',
   // Sem sessão Firebase, só as páginas públicas abrem; o resto vai ao login.
   redirect: (context, state) {
-    const public = {'/', '/login', '/forgot-password', '/help-support'};
+    const public = {
+      '/',
+      '/bem-vindo',
+      '/login',
+      '/forgot-password',
+      '/help-support',
+    };
     if (public.contains(state.matchedLocation)) return null;
     try {
       return FirebaseAuth.instance.currentUser == null ? '/login' : null;
@@ -65,6 +72,10 @@ final appRouter = GoRouter(
   },
   routes: [
     GoRoute(path: '/', builder: (context, state) => const SplashScreen()),
+    GoRoute(
+      path: '/bem-vindo',
+      builder: (context, state) => const OnboardingScreen(),
+    ),
     GoRoute(path: '/login', builder: (context, state) => const LoginScreen()),
     GoRoute(
       path: '/forgot-password',

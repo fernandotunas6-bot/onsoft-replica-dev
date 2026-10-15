@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import 'package:yft_school_system/core/auth/auth_state.dart';
 import 'package:yft_school_system/core/theme/app_colors.dart';
+import 'package:yft_school_system/core/widgets/app_shell.dart';
 import 'package:go_router/go_router.dart';
 
 class ProfileScreen extends ConsumerWidget {
@@ -16,7 +17,7 @@ class ProfileScreen extends ConsumerWidget {
       backgroundColor: AppColors.background,
       appBar: AppBar(
         title: const Text(
-          'My Profile',
+          'Definições',
           style: TextStyle(fontWeight: FontWeight.w600),
         ),
         backgroundColor: Colors.transparent,
@@ -66,7 +67,7 @@ class ProfileScreen extends ConsumerWidget {
                   ),
                   const SizedBox(height: 16),
                   Text(
-                    session?.userName ?? 'User Name',
+                    session?.userName ?? 'Utilizador',
                     style: const TextStyle(
                       fontSize: 22,
                       fontWeight: FontWeight.w600,
@@ -83,7 +84,7 @@ class ProfileScreen extends ConsumerWidget {
                       borderRadius: BorderRadius.circular(20),
                     ),
                     child: Text(
-                      (session?.role.name ?? 'user').toUpperCase(),
+                      roleLabel(session?.role).toUpperCase(),
                       style: const TextStyle(
                         color: Colors.white,
                         fontSize: 10,
@@ -100,22 +101,22 @@ class ProfileScreen extends ConsumerWidget {
             // Settings List
             _buildSettingItem(
               icon: LucideIcons.calendar,
-              title: 'Academic Calendar',
+              title: 'Calendário académico',
               onTap: () => context.push('/academic-calendar'),
             ),
             _buildSettingItem(
               icon: LucideIcons.user,
-              title: 'Personal Information',
+              title: 'Dados pessoais',
               onTap: () => context.push('/personal-info'),
             ),
             _buildSettingItem(
               icon: LucideIcons.lock,
-              title: 'Security & Password',
+              title: 'Segurança e palavra-passe',
               onTap: () => context.push('/security-password'),
             ),
             _buildSettingItem(
               icon: LucideIcons.bell,
-              title: 'Notifications',
+              title: 'Notificações',
               onTap: () => context.push('/notifications-settings'),
             ),
             _buildSettingItem(
@@ -125,12 +126,12 @@ class ProfileScreen extends ConsumerWidget {
             ),
             _buildSettingItem(
               icon: LucideIcons.shieldCheck,
-              title: 'Privacy Policy',
+              title: 'Política de privacidade',
               onTap: () => context.push('/privacy-policy'),
             ),
             _buildSettingItem(
               icon: LucideIcons.helpCircle,
-              title: 'Help & Support',
+              title: 'Ajuda e apoio',
               onTap: () => context.push('/help-support'),
             ),
 
@@ -155,7 +156,7 @@ class ProfileScreen extends ConsumerWidget {
                 ),
               ),
               title: const Text(
-                'Sign Out',
+                'Terminar sessão',
                 style: TextStyle(
                   color: AppColors.error,
                   fontWeight: FontWeight.w600,

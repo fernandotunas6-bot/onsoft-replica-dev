@@ -124,7 +124,7 @@ class _AppRootState extends ConsumerState<AppRoot> with WidgetsBindingObserver {
                               ),
                               const SizedBox(height: 16),
                               Text(
-                                'School access paused',
+                                'Acesso da escola em pausa',
                                 textAlign: TextAlign.center,
                                 style: Theme.of(context)
                                     .textTheme
@@ -135,8 +135,8 @@ class _AppRootState extends ConsumerState<AppRoot> with WidgetsBindingObserver {
                               ),
                               const SizedBox(height: 12),
                               Text(
-                                'Your school account has been temporarily suspended by the platform administrator. '
-                                'Please contact your school leadership or support. You have been signed out.',
+                                'A conta da escola foi suspensa temporariamente pela administração da plataforma. '
+                                'Fale com a direcção da escola ou com o apoio. A sessão foi terminada.',
                                 textAlign: TextAlign.center,
                                 style: Theme.of(context)
                                     .textTheme
@@ -153,7 +153,7 @@ class _AppRootState extends ConsumerState<AppRoot> with WidgetsBindingObserver {
                                 width: double.infinity,
                                 child: FilledButton(
                                   onPressed: _onAcknowledgeSuspension,
-                                  child: const Text('Back to sign in'),
+                                  child: const Text('Voltar ao início de sessão'),
                                 ),
                               ),
                             ],
