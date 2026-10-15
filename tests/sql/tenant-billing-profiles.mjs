@@ -85,7 +85,11 @@ await recusa(upd + "payment_methods = ARRAY[]::text[]" + where, [t1], "sem méto
 await recusa(upd + "payment_methods = ARRAY['bitcoin']" + where, [t1], "método desconhecido");
 await recusa(upd + "billing_period = 'weekly'" + where, [t1], "periodicidade desconhecida");
 await recusa(upd + "billing_paused = true" + where, [t1], "pausa sem motivo");
-await recusa(upd + "public_review_status = 'approved'" + where, [t1], "privada aprovada como pública");
+await recusa(
+  upd + "public_review_status = 'approved'" + where,
+  [t1],
+  "privada aprovada como pública",
+);
 await recusa(upd + "public_requirements = '[]'::jsonb" + where, [t1], "requisitos não são objecto");
 await recusa(upd + "currency_code = 'USD'" + where, [t1], "outra moeda");
 
@@ -103,10 +107,14 @@ await db.query(
 await db.query(upd + "public_review_status = 'approved', billing_paused = false" + where, [t2]);
 
 // updated_at muda; apagar o tenant leva o perfil.
-const before = (await db.query("select updated_at from tenant_billing_profiles where tenant_id = $1", [t1])).rows[0].updated_at;
+const before = (
+  await db.query("select updated_at from tenant_billing_profiles where tenant_id = $1", [t1])
+).rows[0].updated_at;
 await new Promise((r) => setTimeout(r, 5));
 await db.query(upd + "notes = 'x'" + where, [t1]);
-const after = (await db.query("select updated_at from tenant_billing_profiles where tenant_id = $1", [t1])).rows[0].updated_at;
+const after = (
+  await db.query("select updated_at from tenant_billing_profiles where tenant_id = $1", [t1])
+).rows[0].updated_at;
 assert.ok(after > before);
 await db.query("delete from tenants where id = $1", [t2]);
 assert.equal(
