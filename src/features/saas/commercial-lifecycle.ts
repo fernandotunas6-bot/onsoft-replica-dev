@@ -21,6 +21,7 @@ import {
   type LeadForReminder,
 } from "./lifecycle-rules";
 import { renderSignupReminderEmail, renderTrialEndingEmail } from "./lifecycle-emails";
+import { endExpiredBillingPauses } from "./tenant-billing";
 
 type Db = Awaited<ReturnType<typeof loadSgaAdminClient>>;
 // Tabela nova (20260930162029): lida sem o tipo gerado, como as outras fora de types.ts.
@@ -266,8 +267,10 @@ async function runTrialReminders(db: Db, now: Date) {
   const horizon = new Date(now.getTime() + 8 * 86_400_000).toISOString();
   const { data: tenants } = await db
     .from("tenants")
-    .select("id, name, trial_ends_at, contact_email, status, plan_id, plans(name)")
+    .select("id, name, trial_ends_at, contact_email, status, plan_id, billing_exempt, plans(name)")
     .eq("subscription_status", "trialing")
+    // Escola pública isenta ou com cobranças pausadas: o fim do trial não a afecta.
+    .eq("billing_exempt", false)
     .gte("trial_ends_at", now.toISOString())
     .lte("trial_ends_at", horizon)
     .in("status", ["active", "trial"])
@@ -378,8 +381,9 @@ async function runLeadReminders(now: Date) {
 
 export async function runCommercialLifecycle(now = new Date()) {
   const db = await loadSgaAdminClient();
+  const billingPausesEnded = await endExpiredBillingPauses(db, now);
   const trialReminders = await runTrialReminders(db, now);
   const signupReminders = await runLeadReminders(now);
   reportSigaEvent("saas.lifecycle.completed", { count: trialReminders + signupReminders });
-  return { trialReminders, signupReminders };
+  return { trialReminders, signupReminders, billingPausesEnded };
 }

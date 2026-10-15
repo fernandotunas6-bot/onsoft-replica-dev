@@ -679,19 +679,20 @@ h6,
   /* Margem lateral do conteúdo no telemóvel. */
   --siga-mobile-pad: 1rem;
 
-  /*
-   * Alturas de controlo. `md` é 44px porque é o alvo mínimo de toque das WCAG
-   * (2.5.8) e da HIG: qualquer botão que se toque com o dedo usa este ou o lg.
+  /* Pixels CSS: a densidade da raiz não deve reduzir a área de toque.
+   * 44px é o objectivo de conforto do SIGA e o critério WCAG 2.5.5 (AAA).
+   * O mínimo WCAG 2.5.8 (AA) é 24px, com as respectivas excepções.
    */
-  --siga-control-sm: 2.25rem;
-  --siga-control-md: 2.75rem;
-  --siga-control-lg: 3rem;
-  --siga-touch-min: 2.75rem;
+  --siga-control-sm: 36px;
+  --siga-control-md: 44px;
+  --siga-control-lg: 48px;
+  --siga-touch-min: 44px;
 
   /* Cromo da aplicação mobile. */
-  --siga-mobile-header-h: 3.5rem;
+  --siga-mobile-header-h: 56px;
   --siga-mobile-context-h: 2.25rem;
-  --siga-bottom-nav-h: 3.75rem;
+  /* Alvo de 44px + pt-1.5 e pb-2; a área segura é somada pelo consumidor. */
+  --siga-bottom-nav-h: calc(44px + 0.875rem);
 
   /*
    * Z-index com nomes. Antes havia z-30/z-40/z-50 espalhados e nada dizia qual
@@ -1210,4 +1211,60 @@ h6,
   .empty-chip {
     animation: none;
   }
+}
+
+
+/* Microinteracções CSS: só o glifo se move; os alvos de toque mantêm-se fixos.
+ * Sem timers ou animações decorativas contínuas. Ícones de carregamento
+ * conservam a sua rotação e os controlos indisponíveis não dão feedback.
+ */
+@media (prefers-reduced-motion: no-preference) {
+  .siga-motion-control:not(:disabled):not([aria-disabled="true"]):not([aria-busy="true"]) > svg:not(.animate-spin),
+  [data-nav-row] [data-nav-icon] > svg,
+  .siga-motion-nav svg,
+  .header-icon-btn:not(:disabled):not([aria-disabled="true"]) > svg:not(.animate-spin) {
+    transition: transform var(--siga-motion-fast) var(--siga-ease);
+    transform-origin: center;
+  }
+
+  /* Teclado e toque recebem o mesmo feedback, sem alterar o foco. */
+  .siga-motion-control:not(:disabled):not([aria-disabled="true"]):not([aria-busy="true"]):is(:focus-visible, :active) > svg:not(.animate-spin),
+  [data-nav-row]:is(:focus-visible, :active) [data-nav-icon] > svg,
+  .siga-motion-nav:is(:focus-visible, :active) svg,
+  .header-icon-btn:not(:disabled):not([aria-disabled="true"]):is(:focus-visible, :active) > svg:not(.animate-spin) {
+    transform: scale(1.08);
+  }
+
+  .siga-check-indicator[data-state="checked"] {
+    animation: siga-check-enter var(--siga-motion-fast) var(--siga-ease);
+  }
+
+  /* Hover apenas para rato/trackpad; evita estados presos no telemóvel. */
+  @media (hover: hover) and (pointer: fine) {
+    .siga-motion-control:not(:disabled):not([aria-disabled="true"]):not([aria-busy="true"]):hover > svg:not(.animate-spin),
+    [data-nav-row]:hover [data-nav-icon] > svg,
+    .siga-motion-nav:hover svg,
+    .header-icon-btn:not(:disabled):not([aria-disabled="true"]):hover > svg:not(.animate-spin) {
+      transform: scale(1.08);
+    }
+
+    .siga-motion-control:not(:disabled):not([aria-disabled="true"]):not([aria-busy="true"]):hover > .lucide-download {
+      transform: translateY(2px);
+    }
+
+    .siga-motion-control:not(:disabled):not([aria-disabled="true"]):not([aria-busy="true"]):hover > .lucide-upload {
+      transform: translateY(-2px);
+    }
+
+    .siga-motion-control:not(:disabled):not([aria-disabled="true"]):not([aria-busy="true"]):hover > :is(.lucide-settings, .lucide-refresh-cw),
+    [data-nav-row]:hover [data-nav-icon] > .lucide-settings,
+    .header-icon-btn:not(:disabled):not([aria-disabled="true"]):hover > .lucide-settings {
+      transform: rotate(12deg);
+    }
+  }
+}
+
+@keyframes siga-check-enter {
+  from { opacity: 0; transform: scale(0.8); }
+  to { opacity: 1; transform: scale(1); }
 }

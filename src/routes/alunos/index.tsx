@@ -3,7 +3,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { realtimeInvalidator } from "@/lib/realtime-invalidate";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import { z } from "zod";
 import {
   ArrowDown,

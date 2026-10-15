@@ -50,4 +50,15 @@ describe('SIGA desktop actions', () => {
     )
     expect(commands.desktopUpdateStatus).toHaveBeenCalledOnce()
   })
+
+  it('shows the offline state and keeps the portal button', () => {
+    const online = vi.spyOn(navigator, 'onLine', 'get').mockReturnValue(false)
+    render(<MainWindowContent />)
+    expect(screen.getByText('Sem rede')).toBeVisible()
+    expect(screen.getByRole('status')).toHaveTextContent(/Internet/)
+    expect(
+      screen.getByRole('button', { name: 'Abrir SIGA Plus' })
+    ).toBeEnabled()
+    online.mockRestore()
+  })
 })

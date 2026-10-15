@@ -106,6 +106,11 @@ const accessRules: Array<{ prefixes: string[]; roles: ApplicationRole[] }> = [
     roles: ["Administrador", "Secretaria", "Professor"],
   },
   {
+    // Catálogo de referência (cursos, disciplinas, etapas): só leitura, para quem configura e ensina.
+    prefixes: ["/pedagogica/catalogo"],
+    roles: ["Administrador", "Secretaria", "Professor"],
+  },
+  {
     prefixes: ["/pessoas", "/alunos", "/documentos"],
     roles: ["Administrador", "Secretaria", "Encarregado", "Aluno"],
   },

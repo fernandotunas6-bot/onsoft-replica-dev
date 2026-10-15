@@ -5,7 +5,7 @@ import { usePassingValue } from "@/features/academic/use-passing-value";
 import { EvolutionPanel } from "@/features/academic/EvolutionPanel";
 import { YearComparisonPanel } from "@/features/academic/YearComparisonPanel";
 import { Award, Download, FileBadge, FileDown } from "lucide-react";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import { whatsappHref } from "@/features/integrations/actions";
 import { AppMark } from "@/features/integrations/app-marks";
 import { InstalledModuleTools } from "@/features/integrations/InstalledModuleTools";

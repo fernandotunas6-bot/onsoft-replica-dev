@@ -1,5 +1,5 @@
 import * as React from "react";
-import { useRouter, useRouterState } from "@tanstack/react-router";
+import { useCanGoBack, useRouter, useRouterState } from "@tanstack/react-router";
 import { ArrowLeft, Bell, ChevronDown, Search } from "lucide-react";
 
 import { UserAvatar } from "@/components/ui/user-avatar";
@@ -40,13 +40,14 @@ export function MobileHeader({
   fallbackTo?: string;
 }) {
   const router = useRouter();
+  const canGoBack = useCanGoBack();
   const pathname = useRouterState({ select: (state) => state.location.pathname });
   const currentUser = useCurrentAccount();
   const { school, selectedYearLabel } = useSchoolSettings();
   const isRoot = pathname === "/";
 
   const goBack = () => {
-    if (window.history.length > 1) {
+    if (canGoBack) {
       router.history.back();
       return;
     }
@@ -55,16 +56,16 @@ export function MobileHeader({
 
   return (
     <header className="sticky top-0 z-[30] border-b border-border bg-background/95 backdrop-blur-sm lg:hidden">
-      <div className="flex h-14 items-center gap-2 px-3">
+      <div className="flex min-h-[56px] items-center gap-2 px-3">
         {isRoot ? (
           <>
             <button
               type="button"
               onClick={onOpenContext}
-              className="flex min-w-0 flex-1 items-center gap-1.5 rounded-lg py-1 pl-1 pr-2 text-left active:bg-secondary"
+              className="flex min-h-[44px] min-w-0 flex-1 items-center gap-1.5 rounded-lg py-1 pl-1 pr-2 text-left active:bg-secondary"
             >
               <span className="min-w-0">
-                <span className="block truncate text-sm font-medium text-foreground">
+                <span className="block truncate text-[14px] font-medium text-foreground">
                   {greeting()}, {currentUser.name.split(" ")[0]}
                 </span>
                 <span className="mt-0.5 flex items-center gap-1 text-[11px] text-muted-foreground">
@@ -87,7 +88,15 @@ export function MobileHeader({
               <ArrowLeft className="size-5" />
             </button>
             <h1 className="min-w-0 flex-1 truncate text-[15px] font-medium text-foreground">
-              {title ?? "SIGA"}
+              <button
+                type="button"
+                onClick={onOpenContext}
+                aria-label="Alterar escola, ano lectivo ou período"
+                className="flex min-h-[44px] w-full min-w-0 items-center gap-1 rounded-lg text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              >
+                <span className="truncate">{title ?? "SIGA"}</span>
+                <ChevronDown className="size-3 shrink-0 text-muted-foreground" aria-hidden />
+              </button>
             </h1>
           </>
         )}

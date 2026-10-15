@@ -44,6 +44,8 @@ export type SchoolAdminAccessSnapshot = {
     status: TenantStatus;
     subscription_status: SubscriptionLifecycle | null;
     trial_ends_at: string | null;
+    /** Cobranças pausadas ou escola pública isenta: o trial não bloqueia. */
+    billing_exempt?: boolean | null;
   };
   school: { id: string; name: string; status: string | null } | null;
   admins: SchoolAdminAccountSnapshot[];
@@ -128,6 +130,7 @@ export function assessSchoolAdminAccess(
       status: tenant.status,
       subscription_status: tenant.subscription_status ?? undefined,
       trial_ends_at: tenant.trial_ends_at,
+      billing_exempt: tenant.billing_exempt ?? false,
     },
     now,
   );

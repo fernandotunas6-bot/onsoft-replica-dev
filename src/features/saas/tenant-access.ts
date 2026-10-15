@@ -6,6 +6,12 @@ export interface TenantAccessSnapshot {
   status?: TenantStatus;
   subscription_status?: SubscriptionLifecycle;
   trial_ends_at?: string | null;
+  /**
+   * Cobranças pausadas ou escola pública isenta (mantido pelo servidor a partir de
+   * `tenant_billing_profiles`). Sem cobrança, o trial e os atrasos não bloqueiam;
+   * suspender, cancelar e arquivar continuam a ser decisões que bloqueiam.
+   */
+  billing_exempt?: boolean | null;
 }
 
 export function getTenantAccessBlock(
@@ -14,9 +20,10 @@ export function getTenantAccessBlock(
 ): { blocked: boolean; reason?: TenantAccessBlockReason } {
   if (!tenant) return { blocked: false };
 
+  const exempt = tenant.billing_exempt === true;
   const blockedStatuses: TenantStatus[] = [
     "suspended",
-    "past_due",
+    ...(exempt ? [] : (["past_due"] as TenantStatus[])),
     "cancelled",
     "archived",
     "provisioning_failed",
@@ -27,6 +34,8 @@ export function getTenantAccessBlock(
       reason: tenant.status === "cancelled" ? "cancelled" : "suspended",
     };
   }
+
+  if (exempt) return { blocked: false };
 
   if (tenant.subscription_status === "canceled" || tenant.subscription_status === "unpaid") {
     return { blocked: true, reason: "cancelled" };

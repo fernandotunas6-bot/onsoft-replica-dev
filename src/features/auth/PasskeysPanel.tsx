@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { Fingerprint, Trash2 } from "lucide-react";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";

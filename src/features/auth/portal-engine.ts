@@ -333,6 +333,11 @@ export function getPortalNavigation(
               icon: moduleIcons.studentRisk,
               to: "/pedagogica/risco",
             },
+            {
+              label: "Catálogo global",
+              icon: moduleIcons.educationCatalog,
+              to: "/pedagogica/catalogo",
+            },
           ],
         },
       ],

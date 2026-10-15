@@ -1,0 +1,146 @@
+name: Estudo — YFT (publicar na Cloudflare)
+# Publica o YFT na conta Cloudflare do SIGA. Corre só à mão
+# (Actions → este workflow → Run workflow), porque o build do Flutter não
+# corre em macOS 12 (precisa de 14+) nem o workerd dos testes (13.5+).
+#
+# Faz o mesmo que estudo/yft-school-system/scripts/publicar-siga.sh na máquina
+# do autor; ver estudo/yft-school-system/PUBLICAR_SIGA.md.
+#
+# Segredos do environment yft-publicacao (ou do repositório). Atenção: os
+# CLOUDFLARE_* que já existem estão no environment production e NÃO são
+# visíveis daqui; e esse token pode não ter D1, R2 nem Custom Domains.
+#   CLOUDFLARE_API_TOKEN            Workers Scripts/Routes, D1, R2, Custom Domains: Edit
+#   FIREBASE_WEB_API_KEY            apiKey web do projecto Firebase
+#   SUPER_ADMIN_API_KEY             ≥ 32 caracteres, partilhado com o super-admin
+#   FIREBASE_SERVICE_ACCOUNT_JSON   opcional (apagar contas Firebase de encarregados)
+# Variável:
+#   CLOUDFLARE_ACCOUNT_ID           701800d01d428c5141fa1fdb60ee01ae
+on:
+  workflow_dispatch:
+    inputs:
+      alvo:
+        description: "Onde publicar"
+        type: choice
+        default: teste
+        options:
+          - teste
+          - dominio
+      confirmar_dominio:
+        description: "Só para alvo=dominio: escrever TROCAR m.portal-siga.com"
+        type: string
+        default: ""
+permissions:
+  contents: read
+concurrency:
+  group: yft-publicar
+  cancel-in-progress: false
+jobs:
+  publicar:
+    runs-on: ubuntu-latest
+    # Criar o environment "yft-publicacao" com required reviewers dá um
+    # segundo travão humano antes de qualquer escrita na Cloudflare.
+    environment: yft-publicacao
+    defaults:
+      run:
+        working-directory: estudo/yft-school-system
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Travão do domínio
+        if: inputs.alvo == 'dominio'
+        run: |
+          if [ "${{ inputs.confirmar_dominio }}" != "TROCAR m.portal-siga.com" ]; then
+            echo "::error::Para trocar o domínio, escrever exactamente: TROCAR m.portal-siga.com"
+            exit 1
+          fi
+          echo "A rota m.portal-siga.com tem de já estar removida do Worker"
+          echo "siga-plus-mobile-v4-domain (passo 4.1 do PUBLICAR_SIGA.md)."
+          echo "Estado actual do domínio:"
+          curl -s -o /dev/null -w "  HTTP %{http_code}\n" https://m.portal-siga.com/ || true
+
+      # Falha em segundos, com o nome do que falta, antes dos ~10 min de
+      # build. Mesma lição do deploy-production.yml: sem isto, a falta de um
+      # segredo só aparece a meio, dita pelo wrangler. Só nomes, nunca valores.
+      - name: Confirmar segredos
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID || vars.CLOUDFLARE_ACCOUNT_ID }}
+          FIREBASE_WEB_API_KEY: ${{ secrets.FIREBASE_WEB_API_KEY }}
+          SUPER_ADMIN_API_KEY: ${{ secrets.SUPER_ADMIN_API_KEY }}
+        run: |
+          faltam=""
+          for k in CLOUDFLARE_API_TOKEN CLOUDFLARE_ACCOUNT_ID FIREBASE_WEB_API_KEY SUPER_ADMIN_API_KEY; do
+            [ -n "${!k}" ] || faltam="$faltam $k"
+          done
+          if [ -n "$faltam" ]; then
+            echo "::error::Em falta:$faltam — os secrets do environment yft-publicacao não são os do environment production."
+            exit 1
+          fi
+          # Espaços e newline: `openssl rand -hex 32 | gh secret set` deixa um
+          # \n no valor, que passa a validação de comprimento do script e só
+          # falha depois, na comparação com o super-admin.
+          for k in CLOUDFLARE_API_TOKEN CLOUDFLARE_ACCOUNT_ID FIREBASE_WEB_API_KEY SUPER_ADMIN_API_KEY; do
+            v="${!k}"
+            if [ "$v" != "$(printf '%s' "$v" | tr -d '[:space:]')" ]; then
+              echo "::error::$k tem espaços ou newline. Regravar com: pbpaste | tr -d '\\n' | gh secret set $k --env yft-publicacao"
+              exit 1
+            fi
+          done
+
+          # Forma de cada um. Sem isto, um valor trocado entre dois prompts só
+          # dá erro mais tarde, dito pelo wrangler e sem relação aparente com
+          # a causa. Só comprimentos e prefixos, nunca valores.
+          erro=0
+          case "$CLOUDFLARE_ACCOUNT_ID" in
+            [0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f]) ;;
+            *) echo "::error::CLOUDFLARE_ACCOUNT_ID devia ser 32 caracteres hex; tem ${#CLOUDFLARE_ACCOUNT_ID}."; erro=1 ;;
+          esac
+          case "$FIREBASE_WEB_API_KEY" in
+            AIza*) [ ${#FIREBASE_WEB_API_KEY} -eq 39 ] || { echo "::error::FIREBASE_WEB_API_KEY devia ter 39 caracteres; tem ${#FIREBASE_WEB_API_KEY}."; erro=1; } ;;
+            *) echo "::error::FIREBASE_WEB_API_KEY devia começar por AIza (tem ${#FIREBASE_WEB_API_KEY} caracteres) — é a apiKey web de lib/firebase_options.dart."; erro=1 ;;
+          esac
+          # Token da Cloudflare: 40 caracteres no formato clássico, ou prefixo
+          # cfut_. Um valor de 64 hex é quase certamente a SUPER_ADMIN_API_KEY
+          # colada no prompt errado.
+          case "$CLOUDFLARE_API_TOKEN" in
+            cfut_*) ;;
+            *) [ ${#CLOUDFLARE_API_TOKEN} -eq 40 ] || { echo "::error::CLOUDFLARE_API_TOKEN tem ${#CLOUDFLARE_API_TOKEN} caracteres; esperado 40, ou prefixo cfut_. 64 é o comprimento de openssl rand -hex 32 — verificar se não é a SUPER_ADMIN_API_KEY."; erro=1; } ;;
+          esac
+          [ ${#SUPER_ADMIN_API_KEY} -ge 32 ] || { echo "::error::SUPER_ADMIN_API_KEY tem ${#SUPER_ADMIN_API_KEY} caracteres; mínimo 32."; erro=1; }
+          if [ "$CLOUDFLARE_API_TOKEN" = "$SUPER_ADMIN_API_KEY" ]; then
+            echo "::error::CLOUDFLARE_API_TOKEN e SUPER_ADMIN_API_KEY têm o mesmo valor."
+            erro=1
+          fi
+          [ "$erro" -eq 0 ] || exit 1
+          echo "Os quatro estão definidos e com a forma esperada."
+
+      # Versão do autor (.metadata). Com Flutter 3.47, lucide_icons 0.257 não
+      # compila (IconData passou a final).
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: "3.41.5"
+          channel: stable
+          cache: true
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Análise e testes
+        run: |
+          flutter pub get
+          flutter analyze
+          flutter test
+      - name: Testes do Worker
+        working-directory: estudo/yft-school-system/school-worker
+        run: |
+          npm ci --ignore-scripts
+          npx vitest run
+
+      - name: Publicar
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID || vars.CLOUDFLARE_ACCOUNT_ID }}
+          FIREBASE_WEB_API_KEY: ${{ secrets.FIREBASE_WEB_API_KEY }}
+          SUPER_ADMIN_API_KEY: ${{ secrets.SUPER_ADMIN_API_KEY }}
+          FIREBASE_SERVICE_ACCOUNT_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
+        run: scripts/publicar-siga.sh "${{ inputs.alvo }}"

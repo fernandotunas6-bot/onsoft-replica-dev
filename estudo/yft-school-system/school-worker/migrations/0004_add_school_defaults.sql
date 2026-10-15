@@ -1,0 +1,4 @@
+ALTER TABLE Schools ADD COLUMN default_password TEXT NOT NULL DEFAULT 'Welcome@123';
+ALTER TABLE Schools ADD COLUMN student_id_prefix TEXT NOT NULL DEFAULT 'STU';
+ALTER TABLE Schools ADD COLUMN teacher_id_prefix TEXT NOT NULL DEFAULT 'TCH';
+ALTER TABLE Users ADD COLUMN staff_id TEXT;
