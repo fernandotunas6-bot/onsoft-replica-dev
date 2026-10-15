@@ -72,7 +72,7 @@ class _CreateNoticeScreenState extends State<CreateNoticeScreen> {
                     prefixIcon: Icon(LucideIcons.type, size: 20),
                   ),
                   validator: (value) =>
-                      value == null || value.isEmpty ? 'Required' : null,
+                      value == null || value.isEmpty ? 'Obrigatório' : null,
                 ),
                 const SizedBox(height: 16),
                 DropdownButtonFormField<String>(
@@ -101,7 +101,7 @@ class _CreateNoticeScreenState extends State<CreateNoticeScreen> {
                     ),
                   ),
                   validator: (value) =>
-                      value == null || value.isEmpty ? 'Required' : null,
+                      value == null || value.isEmpty ? 'Obrigatório' : null,
                 ),
                 const SizedBox(height: 24),
                 Text(

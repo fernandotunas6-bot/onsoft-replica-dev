@@ -11,7 +11,7 @@ class HelpSupportScreen extends StatelessWidget {
       backgroundColor: AppColors.background,
       appBar: AppBar(
         title: const Text(
-          'Help & Support',
+          'Ajuda e apoio',
           style: TextStyle(fontWeight: FontWeight.w600),
         ),
         backgroundColor: Colors.transparent,
@@ -60,7 +60,7 @@ class HelpSupportScreen extends StatelessWidget {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              'How can we help you?',
+                              'Como podemos ajudar?',
                               style: TextStyle(
                                 color: AppColors.onPrimary,
                                 fontWeight: FontWeight.w600,
@@ -70,7 +70,7 @@ class HelpSupportScreen extends StatelessWidget {
                             ),
                             SizedBox(height: 4),
                             Text(
-                              'Our support team is available 24/7.',
+                              'Fale com a administração da sua escola ou com o apoio SIGA Plus.',
                               style: TextStyle(
                                 color: Colors.white70,
                                 fontSize: 13,
@@ -93,7 +93,7 @@ class HelpSupportScreen extends StatelessWidget {
                       ),
                     ),
                     child: const Text(
-                      'Contact Support',
+                      'Contactar o apoio',
                       style: TextStyle(fontWeight: FontWeight.w600),
                     ),
                   ),
@@ -103,26 +103,26 @@ class HelpSupportScreen extends StatelessWidget {
 
             const SizedBox(height: 40),
             const Text(
-              'Frequently Asked Questions',
+              'Perguntas frequentes',
               style: TextStyle(fontWeight: FontWeight.w600, fontSize: 18),
             ),
             const SizedBox(height: 16),
 
             _buildFAQItem(
-              'How do I reset my password?',
-              'You can reset your password by going to Profile > Security & Password, or by tapping "Forgot Password" on the login screen.',
+              'Como recupero a palavra-passe?',
+              'Em Definições › Segurança e palavra-passe, ou em «Esqueceu a palavra-passe?» no ecrã de entrada.',
             ),
             _buildFAQItem(
-              'Where can I see child\'s grades?',
-              'Go to the global Home or Dashboard and click on the "Wards" section to view their latest Academic Reports.',
+              'Onde vejo as notas do meu educando?',
+              'No menu lateral, em Notas ou em Educandos.',
             ),
             _buildFAQItem(
-              'How do I contact a teacher?',
-              'Teachers can be contacted via the official school email directory provided by the admin, or through the upcoming messaging portal.',
+              'Como contacto um professor?',
+              'Pelos contactos que a escola divulga. Os comunicados da escola chegam a Mensagens.',
             ),
             _buildFAQItem(
-              'Why are the fees not updating?',
-              'Fee payments take up to 24 hours to clear in the school\'s accounting backend. If it still doesn\'t reflect, please use the Contact Support button.',
+              'Porque é que o pagamento ainda não aparece?',
+              'O pagamento aparece quando a secretaria o regista. Se demorar, fale com a escola ou use «Contactar o apoio».',
             ),
           ],
         ),

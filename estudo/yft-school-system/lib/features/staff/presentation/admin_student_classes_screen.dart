@@ -15,7 +15,7 @@ class AdminStudentClassesScreen extends ConsumerWidget {
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: const Text('All Classes', style: TextStyle(fontWeight: FontWeight.w600)),
+        title: const Text('Turmas', style: TextStyle(fontWeight: FontWeight.w600)),
         backgroundColor: Colors.transparent,
         elevation: 0,
         foregroundColor: AppColors.secondary,
@@ -26,14 +26,14 @@ class AdminStudentClassesScreen extends ConsumerWidget {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text('Failed to load classes', style: TextStyle(color: AppColors.error)),
+              Text('Não foi possível carregar as turmas', style: TextStyle(color: AppColors.error)),
               const SizedBox(height: 8),
-              TextButton(onPressed: () => ref.invalidate(classesProvider), child: const Text('Retry')),
+              TextButton(onPressed: () => ref.invalidate(classesProvider), child: const Text('Tentar de novo')),
             ],
           ),
         ),
         data: (classes) => classes.isEmpty
-            ? Center(child: Text('No classes yet', style: TextStyle(color: AppColors.textSecondary)))
+            ? Center(child: Text('Ainda não há turmas', style: TextStyle(color: AppColors.textSecondary)))
             : ListView.builder(
                 padding: const EdgeInsets.all(24),
                 itemCount: classes.length,
@@ -69,7 +69,7 @@ class AdminStudentClassesScreen extends ConsumerWidget {
                               children: [
                                 Text(cls.className, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 18)),
                                 if (cls.level != null)
-                                  Text('Level ${cls.level}',
+                                  Text('Nível ${cls.level}',
                                       style: TextStyle(color: AppColors.textSecondary, fontSize: 12)),
                               ],
                             ),

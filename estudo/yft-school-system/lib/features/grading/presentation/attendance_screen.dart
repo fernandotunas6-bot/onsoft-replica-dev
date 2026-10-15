@@ -21,14 +21,14 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: const Text('Daily Attendance', style: TextStyle(fontWeight: FontWeight.w600)),
+        title: const Text('Presenças do dia', style: TextStyle(fontWeight: FontWeight.w600)),
         backgroundColor: Colors.transparent,
         elevation: 0,
         foregroundColor: AppColors.secondary,
       ),
       body: studentsAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => Center(child: Text('Failed to load students', style: TextStyle(color: AppColors.error))),
+        error: (e, _) => Center(child: Text('Não foi possível carregar os alunos', style: TextStyle(color: AppColors.error))),
         data: (paginated) {
           final students = paginated.data;
           for (final s in students) {
@@ -47,7 +47,7 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
                       children: [
                         Icon(LucideIcons.calendar, size: 20, color: AppColors.textSecondary),
                         const SizedBox(width: 12),
-                        Text('Today • ${DateTime.now().day}/${DateTime.now().month}/${DateTime.now().year}',
+                        Text('Hoje · ${DateTime.now().day}/${DateTime.now().month}/${DateTime.now().year}',
                             style: const TextStyle(fontWeight: FontWeight.w600)),
                       ],
                     ),
@@ -58,7 +58,7 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
               ),
               Expanded(
                 child: students.isEmpty
-                    ? Center(child: Text('No students found.', style: TextStyle(color: AppColors.textSecondary)))
+                    ? Center(child: Text('Nenhum aluno.', style: TextStyle(color: AppColors.textSecondary)))
                     : ListView.builder(
                         padding: const EdgeInsets.symmetric(horizontal: 24),
                         itemCount: students.length,
@@ -93,11 +93,11 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
                   child: ElevatedButton(
                     onPressed: () {
                       ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Attendance saved'), backgroundColor: Colors.green),
+                        const SnackBar(content: Text('Presenças guardadas'), backgroundColor: Colors.green),
                       );
                       Navigator.pop(context);
                     },
-                    child: const Text('Save Attendance'),
+                    child: const Text('Guardar presenças'),
                   ),
                 ),
               ),

@@ -15,17 +15,17 @@ class MyClassesScreen extends ConsumerWidget {
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: const Text('My Assigned Classes', style: TextStyle(fontWeight: FontWeight.w600)),
+        title: const Text('As minhas turmas', style: TextStyle(fontWeight: FontWeight.w600)),
         backgroundColor: Colors.transparent,
         elevation: 0,
         foregroundColor: AppColors.secondary,
       ),
       body: classesAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => Center(child: Text('Failed to load classes', style: TextStyle(color: AppColors.error))),
+        error: (e, _) => Center(child: Text('Não foi possível carregar as turmas', style: TextStyle(color: AppColors.error))),
         data: (classes) {
           if (classes.isEmpty) {
-            return Center(child: Text('No classes assigned.', style: TextStyle(color: AppColors.textSecondary)));
+            return Center(child: Text('Sem turmas atribuídas.', style: TextStyle(color: AppColors.textSecondary)));
           }
           return ListView.builder(
             padding: const EdgeInsets.all(24),
@@ -47,7 +47,7 @@ class MyClassesScreen extends ConsumerWidget {
                     ref.read(selectedClassProvider.notifier).selectClass(cls);
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
-                        content: Text('Dashboard switched to ${cls.className}'),
+                        content: Text('Início mostra agora ${cls.className}'),
                         backgroundColor: AppColors.ink,
                         duration: const Duration(seconds: 1),
                       ),
@@ -57,7 +57,7 @@ class MyClassesScreen extends ConsumerWidget {
                   title: Text(cls.className,
                       style: TextStyle(fontWeight: FontWeight.w600, color: AppColors.secondary)),
                   subtitle: cls.level != null
-                      ? Text('Level ${cls.level}',
+                      ? Text('Nível ${cls.level}',
                           style: TextStyle(
                             color: isSelected ? AppColors.secondary.withValues(alpha: 0.7) : AppColors.textSecondary,
                           ))

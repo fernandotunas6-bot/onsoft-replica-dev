@@ -64,7 +64,7 @@ class _ClassSetupScreenState extends ConsumerState<ClassSetupScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Class saved successfully'),
+            content: Text('Turma guardada'),
             backgroundColor: Colors.green,
           ),
         );
@@ -93,8 +93,8 @@ class _ClassSetupScreenState extends ConsumerState<ClassSetupScreen> {
       appBar: AppBar(
         title: Text(
           isEditing
-              ? 'Class Setup: ${widget.schoolClass!.className}'
-              : 'New Class Setup',
+              ? 'Turma ${widget.schoolClass!.className}'
+              : 'Nova turma',
           style: const TextStyle(fontWeight: FontWeight.w600),
         ),
         backgroundColor: Colors.transparent,
@@ -109,7 +109,7 @@ class _ClassSetupScreenState extends ConsumerState<ClassSetupScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _buildSectionTitle('Class Information'),
+              _buildSectionTitle('Dados da turma'),
               const SizedBox(height: 16),
               Container(
                 padding: const EdgeInsets.all(24),
@@ -129,18 +129,18 @@ class _ClassSetupScreenState extends ConsumerState<ClassSetupScreen> {
                     TextField(
                       controller: _nameController,
                       decoration: const InputDecoration(
-                        hintText: 'Class Name (e.g. Basic 7)',
+                        hintText: 'Nome da turma (ex.: 7.ª Classe A)',
                         prefixIcon: Icon(LucideIcons.graduationCap, size: 20),
-                        labelText: 'Class Name',
+                        labelText: 'Nome da turma',
                       ),
                     ),
                     const SizedBox(height: 16),
                     TextField(
                       controller: _levelController,
                       decoration: const InputDecoration(
-                        hintText: 'Level (used for sorting)',
+                        hintText: 'Nível (para ordenar)',
                         prefixIcon: Icon(LucideIcons.barChart2, size: 20),
-                        labelText: 'Level',
+                        labelText: 'Nível',
                       ),
                       keyboardType: TextInputType.number,
                     ),
@@ -160,8 +160,8 @@ class _ClassSetupScreenState extends ConsumerState<ClassSetupScreen> {
                               )
                             : Text(
                                 isEditing
-                                    ? 'Update Class Details'
-                                    : 'Create Class',
+                                    ? 'Guardar alterações'
+                                    : 'Criar turma',
                               ),
                       ),
                     ),
@@ -171,7 +171,7 @@ class _ClassSetupScreenState extends ConsumerState<ClassSetupScreen> {
 
               if (isEditing) ...[
                 const SizedBox(height: 40),
-                _buildSectionTitle('Academic Fees & Finances'),
+                _buildSectionTitle('Propinas'),
                 const SizedBox(height: 16),
                 Container(
                   padding: const EdgeInsets.all(24),
@@ -195,14 +195,14 @@ class _ClassSetupScreenState extends ConsumerState<ClassSetupScreen> {
                       ),
                       const SizedBox(height: 16),
                       Text(
-                        'Fee structures for this class are configured here. Choose whether the class is billed per term or once per academic year, then apply the fee to current students.',
+                        'Aqui define-se a propina da turma: por período ou uma vez por ano lectivo. Depois pode aplicá-la aos alunos actuais.',
                         textAlign: TextAlign.center,
                         style: TextStyle(color: AppColors.textSecondary),
                       ),
                       if (widget.schoolClass?.hasFeeStructure == true) ...[
                         const SizedBox(height: 12),
                         Text(
-                          'Current structure: GH₵ ${widget.schoolClass!.feeAmount.toStringAsFixed(2)} / ${widget.schoolClass!.feeCollectionCycle == 'year' ? 'year' : 'term'}',
+                          'Propina actual: ${ref.read(academicYearProvider).currency} ${widget.schoolClass!.feeAmount.toStringAsFixed(2)} / ${widget.schoolClass!.feeCollectionCycle == 'year' ? 'ano' : 'período'}',
                           textAlign: TextAlign.center,
                           style: TextStyle(
                             fontWeight: FontWeight.w600,
@@ -216,7 +216,7 @@ class _ClassSetupScreenState extends ConsumerState<ClassSetupScreen> {
                         child: OutlinedButton.icon(
                           onPressed: () => _showChargeClassSheet(context),
                           icon: const Icon(LucideIcons.settings),
-                          label: const Text('Configure Fee Structure'),
+                          label: const Text('Definir propina'),
                         ),
                       ),
                     ],
@@ -224,7 +224,7 @@ class _ClassSetupScreenState extends ConsumerState<ClassSetupScreen> {
                 ),
 
                 const SizedBox(height: 40),
-                _buildSectionTitle('Subjects & Curriculum'),
+                _buildSectionTitle('Disciplinas'),
                 const SizedBox(height: 16),
                 Container(
                   padding: const EdgeInsets.all(24),
@@ -248,7 +248,7 @@ class _ClassSetupScreenState extends ConsumerState<ClassSetupScreen> {
                       ),
                       const SizedBox(height: 16),
                       Text(
-                        'Assign specific subjects to this class for the term.',
+                        'Atribua as disciplinas que esta turma tem.',
                         textAlign: TextAlign.center,
                         style: TextStyle(color: AppColors.textSecondary),
                       ),
@@ -259,12 +259,12 @@ class _ClassSetupScreenState extends ConsumerState<ClassSetupScreen> {
                           onPressed: () {
                             ScaffoldMessenger.of(context).showSnackBar(
                               const SnackBar(
-                                content: Text('Subjects module coming soon'),
+                                content: Text('Gerir em Disciplinas'),
                               ),
                             );
                           },
                           icon: const Icon(LucideIcons.book),
-                          label: const Text('Manage Assigned Subjects'),
+                          label: const Text('Gerir disciplinas'),
                         ),
                       ),
                     ],
@@ -331,7 +331,7 @@ class _ClassSetupScreenState extends ConsumerState<ClassSetupScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const Text(
-                      'Configure Class Fee Structure',
+                      'Propina da turma',
                       style: TextStyle(
                         fontSize: 22,
                         fontWeight: FontWeight.w600,
@@ -339,7 +339,7 @@ class _ClassSetupScreenState extends ConsumerState<ClassSetupScreen> {
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      'Store the fee structure on the class, then decide whether it collects per term or by academic year.',
+                      'Guarde a propina na turma e escolha se é cobrada por período ou por ano lectivo.',
                       style: TextStyle(
                         color: AppColors.textSecondary,
                         fontSize: 14,
@@ -349,15 +349,15 @@ class _ClassSetupScreenState extends ConsumerState<ClassSetupScreen> {
                     TextField(
                       controller: titleController,
                       decoration: const InputDecoration(
-                        hintText: 'Fee label (e.g. Term 1 Tuition)',
+                        hintText: 'Descrição (ex.: Propina do 1.º trimestre)',
                         prefixIcon: Icon(LucideIcons.tag, size: 20),
                       ),
                     ),
                     const SizedBox(height: 16),
                     TextField(
                       controller: amountController,
-                      decoration: const InputDecoration(
-                        hintText: 'Amount (GH₵)',
+                      decoration: InputDecoration(
+                        hintText: 'Valor (${ref.read(academicYearProvider).currency})',
                         prefixIcon: Icon(LucideIcons.coins, size: 20),
                       ),
                       keyboardType: TextInputType.number,
@@ -366,17 +366,17 @@ class _ClassSetupScreenState extends ConsumerState<ClassSetupScreen> {
                     DropdownButtonFormField<String>(
                       initialValue: selectedCycle,
                       decoration: const InputDecoration(
-                        labelText: 'Collection cycle',
+                        labelText: 'Cobrança',
                         prefixIcon: Icon(LucideIcons.calendarRange, size: 20),
                       ),
                       items: const [
                         DropdownMenuItem(
                           value: 'term',
-                          child: Text('Per term'),
+                          child: Text('Por período'),
                         ),
                         DropdownMenuItem(
                           value: 'year',
-                          child: Text('Per academic year'),
+                          child: Text('Por ano lectivo'),
                         ),
                       ],
                       onChanged: (value) {
@@ -394,11 +394,11 @@ class _ClassSetupScreenState extends ConsumerState<ClassSetupScreen> {
                         });
                       },
                       contentPadding: EdgeInsets.zero,
-                      title: const Text('Apply to current students now'),
+                      title: const Text('Aplicar já aos alunos actuais'),
                       subtitle: Text(
                         selectedCycle == 'year'
-                            ? 'The fee will be tracked against the current academic year.'
-                            : 'The fee will be tracked against the current term.',
+                            ? 'A propina conta para o ano lectivo actual.'
+                            : 'A propina conta para o período actual.',
                       ),
                       controlAffinity: ListTileControlAffinity.leading,
                     ),
@@ -454,7 +454,7 @@ class _ClassSetupScreenState extends ConsumerState<ClassSetupScreen> {
                                     );
                                     final adjustmentDescription =
                                         titleController.text.trim().isEmpty
-                                        ? 'Class fee structure adjustment (${settings.academicYear})'
+                                        ? 'Ajuste da propina da turma (${settings.academicYear})'
                                         : titleController.text.trim();
 
                                     await ref
@@ -473,8 +473,8 @@ class _ClassSetupScreenState extends ConsumerState<ClassSetupScreen> {
                                       SnackBar(
                                         content: Text(
                                           applyToCurrentStudents
-                                              ? 'Fee structure saved and applied.'
-                                              : 'Fee structure saved.',
+                                              ? 'Propina guardada e aplicada.'
+                                              : 'Propina guardada.',
                                         ),
                                         backgroundColor: Colors.green,
                                       ),
@@ -503,7 +503,7 @@ class _ClassSetupScreenState extends ConsumerState<ClassSetupScreen> {
                                   color: AppColors.onPrimary,
                                 ),
                               )
-                            : const Text('Save Fee Structure'),
+                            : const Text('Guardar propina'),
                       ),
                     ),
                   ],

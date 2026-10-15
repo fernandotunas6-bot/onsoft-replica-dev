@@ -168,7 +168,7 @@ class AdminDashboard extends ConsumerWidget {
           title: 'Resumo',
           rows: [
             _SummaryRow(label: 'Total de alunos', value: '$studentCount'),
-            _SummaryRow(label: 'Classes', value: '$classCount'),
+            _SummaryRow(label: 'Turmas', value: '$classCount'),
             _SummaryRow(
               label: 'Dívidas em atraso',
               value: arrearsDisplay,

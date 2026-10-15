@@ -18,7 +18,7 @@ class ParentWardsScreen extends ConsumerWidget {
       backgroundColor: AppColors.background,
       appBar: AppBar(
         title: const Text(
-          'My Wards',
+          'Os meus educandos',
           style: TextStyle(fontWeight: FontWeight.w600),
         ),
         backgroundColor: Colors.transparent,
@@ -27,7 +27,7 @@ class ParentWardsScreen extends ConsumerWidget {
       ),
       body: wardsAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (error, stack) => Center(child: Text('Error: $error')),
+        error: (error, stack) => Center(child: Text('Não foi possível carregar: $error')),
         data: (wards) {
           if (wards.isEmpty) {
             return Center(
@@ -41,7 +41,7 @@ class ParentWardsScreen extends ConsumerWidget {
                   ),
                   const SizedBox(height: 16),
                   Text(
-                    'No wards linked to your account.',
+                    'Ainda não há educandos associados à sua conta.',
                     style: TextStyle(
                       color: AppColors.textSecondary,
                       fontSize: 14,
@@ -68,7 +68,7 @@ class ParentWardsScreen extends ConsumerWidget {
                     ward.name,
                     style: const TextStyle(fontWeight: FontWeight.w600),
                   ),
-                  subtitle: Text(ward.className ?? 'Unknown Class'),
+                  subtitle: Text(ward.className ?? 'Turma por definir'),
                   trailing: const Icon(LucideIcons.chevronRight, size: 20),
                   onTap: () {
                     context.push('/ward-profile', extra: ward);

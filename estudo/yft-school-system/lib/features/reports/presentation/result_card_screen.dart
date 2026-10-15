@@ -10,7 +10,7 @@ class ResultCardScreen extends StatelessWidget {
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: const Text('Academic Reports', style: TextStyle(fontWeight: FontWeight.w600)),
+        title: const Text('Boletins', style: TextStyle(fontWeight: FontWeight.w600)),
         backgroundColor: Colors.transparent,
         elevation: 0,
         foregroundColor: AppColors.secondary,
@@ -21,7 +21,7 @@ class ResultCardScreen extends StatelessWidget {
           children: [
             Icon(LucideIcons.fileText, size: 56, color: AppColors.textSecondary.withValues(alpha: 0.3)),
             const SizedBox(height: 16),
-            Text('No reports available yet.', style: TextStyle(color: AppColors.textSecondary, fontSize: 14)),
+            Text('Ainda não há boletins.', style: TextStyle(color: AppColors.textSecondary, fontSize: 14)),
           ],
         ),
       ),

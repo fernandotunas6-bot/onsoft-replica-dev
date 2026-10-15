@@ -611,13 +611,13 @@ class _TeacherRegistrationScreenState
       borderRadius: BorderRadius.circular(12),
       child: InputDecorator(
         decoration: const InputDecoration(
-          labelText: 'Date of birth (optional)',
+          labelText: 'Data de nascimento (opcional)',
           prefixIcon: Icon(LucideIcons.calendar, size: 22),
           contentPadding: _contentPadding,
         ),
         child: Text(
           _dob == null
-              ? 'Select date'
+              ? 'Escolher data'
               : '${_dob!.day}/${_dob!.month}/${_dob!.year}',
           style: TextStyle(
             fontSize: 16,

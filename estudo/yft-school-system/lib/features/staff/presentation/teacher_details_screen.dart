@@ -6,6 +6,7 @@ import 'package:yft_school_system/core/providers/repository_providers.dart';
 import 'package:yft_school_system/core/theme/app_colors.dart';
 import 'package:yft_school_system/core/utils/media_url.dart';
 import 'package:yft_school_system/core/utils/responsive_utils.dart';
+import 'package:yft_school_system/core/utils/term_label.dart';
 
 class TeacherDetailsScreen extends ConsumerWidget {
   final String id;
@@ -194,7 +195,7 @@ class _TeacherProfileBody extends StatelessWidget {
             ),
             const SizedBox(height: 24),
             _section(context, 'Perfil', [
-              _row(LucideIcons.users, 'Sexo', gender ?? '—'),
+              _row(LucideIcons.users, 'Sexo', genderLabel(gender)),
               _row(LucideIcons.calendar, 'Data de nascimento', dateOfBirth),
               _row(LucideIcons.phone, 'Telefone', phone ?? '—'),
               _row(LucideIcons.mail, 'E-mail', email ?? '—'),
@@ -216,22 +217,22 @@ class _TeacherProfileBody extends StatelessWidget {
               ),
             ]),
             const SizedBox(height: 16),
-            _section(context, 'Other', [
-              _row(LucideIcons.creditCard, 'SSNIT', ssnitNumber ?? '—'),
-              _row(LucideIcons.heart, 'Marital status', maritalStatus ?? '—'),
+            _section(context, 'Outros', [
+              _row(LucideIcons.creditCard, 'Segurança social', ssnitNumber ?? '—'),
+              _row(LucideIcons.heart, 'Estado civil', maritalStatus ?? '—'),
             ]),
             const SizedBox(height: 16),
-            _section(context, 'Emergency', [
-              _row(LucideIcons.alertCircle, 'Name',
+            _section(context, 'Emergência', [
+              _row(LucideIcons.alertCircle, 'Nome',
                   emergencyContactName ?? '—'),
               _row(LucideIcons.phone, 'Telefone',
                   emergencyContactPhone ?? '—'),
             ]),
             const SizedBox(height: 16),
-            _section(context, 'Bank', [
-              _row(LucideIcons.building2, 'Bank', bankName ?? '—'),
-              _row(LucideIcons.hash, 'Account', bankAccountNumber ?? '—'),
-              _row(LucideIcons.user, 'Holder', bankAccountHolder ?? '—'),
+            _section(context, 'Banco', [
+              _row(LucideIcons.building2, 'Banco', bankName ?? '—'),
+              _row(LucideIcons.hash, 'Conta', bankAccountNumber ?? '—'),
+              _row(LucideIcons.user, 'Titular', bankAccountHolder ?? '—'),
             ]),
           ],
         ),

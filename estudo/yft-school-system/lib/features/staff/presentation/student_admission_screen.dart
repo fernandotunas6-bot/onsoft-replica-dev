@@ -176,7 +176,7 @@ class _StudentAdmissionScreenState extends ConsumerState<StudentAdmissionScreen>
     final emailBit =
         (email != null && email.isNotEmpty) ? ' · $email' : '';
     return '${p.phone}$emailBit\n'
-        '${p.studentCount} child(ren) at this school';
+        '${p.studentCount} educando(s) nesta escola';
   }
 
   InputDecoration _decoration(String hint, IconData icon) {
@@ -881,7 +881,7 @@ class _StudentAdmissionScreenState extends ConsumerState<StudentAdmissionScreen>
                 return ListTile(
                   title: Text(p.name),
                   subtitle: Text(
-                    '${p.phone} · ${p.studentCount} child(ren)',
+                    '${p.phone} · ${p.studentCount} educando(s)',
                     style: const TextStyle(fontSize: 13),
                   ),
                   onTap: () {
@@ -901,7 +901,7 @@ class _StudentAdmissionScreenState extends ConsumerState<StudentAdmissionScreen>
             child: Text(
               _parentSearchController.text.trim().isNotEmpty
                   ? 'Nenhum encarregado encontrado. Tente outra pesquisa ou use «Novo encarregado».'
-                  : 'No parents found yet. Use “New parent” to register one first; then you can link siblings here.',
+                  : 'Ainda não há encarregados. Use «Novo encarregado» para registar o primeiro; depois pode associar irmãos aqui.',
               style: TextStyle(
                 fontSize: 13,
                 color: AppColors.textSecondary.withValues(alpha: 0.95),
@@ -939,13 +939,13 @@ class _StudentAdmissionScreenState extends ConsumerState<StudentAdmissionScreen>
       borderRadius: BorderRadius.circular(12),
       child: InputDecorator(
         decoration: const InputDecoration(
-          labelText: 'Date of birth',
+          labelText: 'Data de nascimento',
           prefixIcon: Icon(LucideIcons.calendar, size: 22),
           contentPadding: _contentPadding,
         ),
         child: Text(
           _dob == null
-              ? 'Select date'
+              ? 'Escolher data'
               : '${_dob!.day}/${_dob!.month}/${_dob!.year}',
           style: TextStyle(
             fontSize: 16,
@@ -972,7 +972,7 @@ class _StudentAdmissionScreenState extends ConsumerState<StudentAdmissionScreen>
   Widget _buildClassDropdown(List<SchoolClass> sorted) {
     if (sorted.isEmpty) {
       return const Text(
-        'No classes found. Create a class before admitting students.',
+        'Ainda não há turmas. Crie uma turma antes de admitir alunos.',
         style: TextStyle(color: AppColors.error),
       );
     }
@@ -987,7 +987,7 @@ class _StudentAdmissionScreenState extends ConsumerState<StudentAdmissionScreen>
       value: viable,
       style: _fieldStyle,
       decoration: const InputDecoration(
-        labelText: 'Class',
+        labelText: 'Turma',
         prefixIcon: Icon(LucideIcons.bookOpen, size: 22),
         contentPadding: _contentPadding,
       ),

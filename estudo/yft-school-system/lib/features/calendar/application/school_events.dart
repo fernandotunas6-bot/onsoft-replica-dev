@@ -6,6 +6,7 @@ import 'package:yft_school_system/core/models/school_notice.dart';
 import 'package:yft_school_system/core/providers/repository_providers.dart';
 import 'package:yft_school_system/core/theme/app_colors.dart';
 import 'package:yft_school_system/features/dashboard/presentation/providers/notices_providers.dart';
+import 'package:yft_school_system/core/utils/term_label.dart';
 
 enum SchoolEventKind { termStart, termEnd, notice }
 
@@ -52,7 +53,7 @@ final schoolEventsProvider = FutureProvider<List<SchoolEvent>>((ref) async {
       events.add(
         SchoolEvent(
           date: dayOnly(term.startDate),
-          title: 'Início do ${term.name}',
+          title: 'Início do ${termLabel(term.name)}',
           subtitle: 'Calendário académico',
           kind: SchoolEventKind.termStart,
         ),
@@ -60,7 +61,7 @@ final schoolEventsProvider = FutureProvider<List<SchoolEvent>>((ref) async {
       events.add(
         SchoolEvent(
           date: dayOnly(term.endDate),
-          title: 'Fim do ${term.name}',
+          title: 'Fim do ${termLabel(term.name)}',
           subtitle: 'Calendário académico',
           kind: SchoolEventKind.termEnd,
         ),

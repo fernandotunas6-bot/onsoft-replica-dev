@@ -63,25 +63,25 @@ class WardProfileScreen extends ConsumerWidget {
       final isCleared = w.isCleared;
       final hasDebt = w.hasDebt;
       final balanceText = hasDebt
-          ? 'Outstanding: $currency ${w.balance.abs().toStringAsFixed(2)}'
+          ? 'Em dívida: $currency ${w.balance.abs().toStringAsFixed(2)}'
           : isCleared
-              ? 'All fees cleared'
-              : 'Credit balance: $currency ${w.balance.toStringAsFixed(2)}';
+              ? 'Propinas em dia'
+              : 'Saldo a favor: $currency ${w.balance.toStringAsFixed(2)}';
       final balanceColor = hasDebt
           ? AppColors.error
           : (isCleared ? Colors.green : Colors.blueAccent);
 
       final statusHint = hasDebt
-          ? 'Please clear outstanding fees to avoid disruptions.'
+          ? 'Regularize as propinas em dívida.'
           : isCleared
-              ? 'Account is in good standing.'
-              : 'This credit will apply toward future fee charges.';
+              ? 'Está tudo regularizado.'
+              : 'Este crédito abate às próximas propinas.';
 
       return Scaffold(
         backgroundColor: AppColors.background,
         appBar: AppBar(
           title: const Text(
-            'Ward Profile',
+            'Educando',
             style: TextStyle(fontWeight: FontWeight.w600),
           ),
           backgroundColor: Colors.transparent,
@@ -106,7 +106,7 @@ class WardProfileScreen extends ConsumerWidget {
                   ),
                 ),
                 Text(
-                  w.className ?? 'No Assigned Class',
+                  w.className ?? 'Sem turma',
                   style: TextStyle(
                     color: AppColors.textSecondary,
                     fontSize: 16,
@@ -134,11 +134,14 @@ class WardProfileScreen extends ConsumerWidget {
                         children: [
                           Icon(LucideIcons.wallet, color: balanceColor),
                           const SizedBox(width: 12),
-                          const Text(
-                            'Financial Status',
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.w600,
+                          const Expanded(
+                            child: Text(
+                              'Situação financeira',
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.w600,
+                              ),
                             ),
                           ),
                         ],
@@ -173,42 +176,42 @@ class WardProfileScreen extends ConsumerWidget {
                   children: [
                     _actionCard(
                       icon: LucideIcons.fileSpreadsheet,
-                      title: 'Academic\nReports',
+                      title: 'Boletins\nescolares',
                       color: AppColors.primary,
                       onTap: () {
                         ScaffoldMessenger.of(context).showSnackBar(
                           const SnackBar(
-                            content: Text('Academic reports opening...'),
+                            content: Text('A abrir os boletins…'),
                           ),
                         );
                       },
                     ),
                     _actionCard(
                       icon: LucideIcons.receipt,
-                      title: 'Payment\nReceipts',
+                      title: 'Recibos de\npagamento',
                       color: Colors.teal,
                       onTap: () => context.push('/parent-receipts'),
                     ),
                     _actionCard(
                       icon: LucideIcons.calendarCheck,
-                      title: 'Attendance\nHistory',
+                      title: 'Histórico de\npresenças',
                       color: Colors.orange,
                       onTap: () {
                         ScaffoldMessenger.of(context).showSnackBar(
                           const SnackBar(
-                            content: Text('Attendance opening...'),
+                            content: Text('A abrir as presenças…'),
                           ),
                         );
                       },
                     ),
                     _actionCard(
                       icon: LucideIcons.heartPulse,
-                      title: 'Medical\nRecords',
+                      title: 'Ficha\nmédica',
                       color: AppColors.error,
                       onTap: () {
                         ScaffoldMessenger.of(context).showSnackBar(
                           const SnackBar(
-                            content: Text('Medical records opening...'),
+                            content: Text('A abrir a ficha médica…'),
                           ),
                         );
                       },
@@ -226,7 +229,7 @@ class WardProfileScreen extends ConsumerWidget {
       backgroundColor: AppColors.background,
       appBar: AppBar(
         title: const Text(
-          'Ward Profile',
+          'Educando',
           style: TextStyle(fontWeight: FontWeight.w600),
         ),
         backgroundColor: Colors.transparent,
@@ -244,7 +247,7 @@ class WardProfileScreen extends ConsumerWidget {
             ),
             const SizedBox(height: 16),
             Text(
-              'Ward profile not available.',
+              'Perfil do educando indisponível.',
               style: TextStyle(color: AppColors.textSecondary, fontSize: 14),
             ),
           ],
