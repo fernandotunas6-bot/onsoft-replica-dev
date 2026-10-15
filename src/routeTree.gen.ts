@@ -47,6 +47,7 @@ import { Route as AuthMagicLinkRouteImport } from './routes/auth.magic-link'
 import { Route as AuthResetPasswordRouteImport } from './routes/auth.reset-password'
 import { Route as CalendarioIcsRouteImport } from './routes/calendario.ics'
 import { Route as ConfiguracoesAssinaturaRouteImport } from './routes/configuracoes_.assinatura'
+import { Route as ConfiguracoesBoasVindasRouteImport } from './routes/configuracoes_.boas-vindas'
 import { Route as ConfiguracoesDiagnosticoRouteImport } from './routes/configuracoes_.diagnostico'
 import { Route as ConfiguracoesInicioRouteImport } from './routes/configuracoes_.inicio'
 import { Route as ConviteTokenRouteImport } from './routes/convite.$token'
@@ -117,6 +118,7 @@ import { Route as ApiSaasSiteMessagesRouteImport } from './routes/api/saas/site.
 import { Route as ApiSaasSitePostsRouteImport } from './routes/api/saas/site.posts'
 import { Route as ApiSaasSiteShowcaseRouteImport } from './routes/api/saas/site.showcase'
 import { Route as ApiSaasSubscriptionsBackfillRouteImport } from './routes/api/saas/subscriptions.backfill'
+import { Route as ApiSaasTenantsAdminAccessRouteImport } from './routes/api/saas/tenants.admin-access'
 import { Route as ApiSaasTenantsLookupRouteImport } from './routes/api/saas/tenants.lookup'
 import { Route as ApiSaasTenantsStatusRouteImport } from './routes/api/saas/tenants.status'
 import { Route as ApiSaasTenantsSubscriptionRouteImport } from './routes/api/saas/tenants.subscription'
@@ -312,6 +314,11 @@ const CalendarioIcsRoute = CalendarioIcsRouteImport.update({
 const ConfiguracoesAssinaturaRoute = ConfiguracoesAssinaturaRouteImport.update({
   id: '/configuracoes_/assinatura',
   path: '/configuracoes/assinatura',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ConfiguracoesBoasVindasRoute = ConfiguracoesBoasVindasRouteImport.update({
+  id: '/configuracoes_/boas-vindas',
+  path: '/configuracoes/boas-vindas',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ConfiguracoesDiagnosticoRoute =
@@ -683,6 +690,12 @@ const ApiSaasSubscriptionsBackfillRoute =
     path: '/backfill',
     getParentRoute: () => ApiSaasSubscriptionsRoute,
   } as any)
+const ApiSaasTenantsAdminAccessRoute =
+  ApiSaasTenantsAdminAccessRouteImport.update({
+    id: '/admin-access',
+    path: '/admin-access',
+    getParentRoute: () => ApiSaasTenantsRoute,
+  } as any)
 const ApiSaasTenantsLookupRoute = ApiSaasTenantsLookupRouteImport.update({
   id: '/lookup',
   path: '/lookup',
@@ -749,6 +762,7 @@ export interface FileRoutesByFullPath {
   '/auth/reset-password': typeof AuthResetPasswordRoute
   '/calendario/ics': typeof CalendarioIcsRoute
   '/configuracoes/assinatura': typeof ConfiguracoesAssinaturaRoute
+  '/configuracoes/boas-vindas': typeof ConfiguracoesBoasVindasRoute
   '/configuracoes/diagnostico': typeof ConfiguracoesDiagnosticoRoute
   '/configuracoes/inicio': typeof ConfiguracoesInicioRoute
   '/convite/$token': typeof ConviteTokenRoute
@@ -820,6 +834,7 @@ export interface FileRoutesByFullPath {
   '/api/saas/site/posts': typeof ApiSaasSitePostsRoute
   '/api/saas/site/showcase': typeof ApiSaasSiteShowcaseRoute
   '/api/saas/subscriptions/backfill': typeof ApiSaasSubscriptionsBackfillRoute
+  '/api/saas/tenants/admin-access': typeof ApiSaasTenantsAdminAccessRoute
   '/api/saas/tenants/lookup': typeof ApiSaasTenantsLookupRoute
   '/api/saas/tenants/status': typeof ApiSaasTenantsStatusRoute
   '/api/saas/tenants/subscription': typeof ApiSaasTenantsSubscriptionRoute
@@ -864,6 +879,7 @@ export interface FileRoutesByTo {
   '/auth/reset-password': typeof AuthResetPasswordRoute
   '/calendario/ics': typeof CalendarioIcsRoute
   '/configuracoes/assinatura': typeof ConfiguracoesAssinaturaRoute
+  '/configuracoes/boas-vindas': typeof ConfiguracoesBoasVindasRoute
   '/configuracoes/diagnostico': typeof ConfiguracoesDiagnosticoRoute
   '/configuracoes/inicio': typeof ConfiguracoesInicioRoute
   '/convite/$token': typeof ConviteTokenRoute
@@ -935,6 +951,7 @@ export interface FileRoutesByTo {
   '/api/saas/site/posts': typeof ApiSaasSitePostsRoute
   '/api/saas/site/showcase': typeof ApiSaasSiteShowcaseRoute
   '/api/saas/subscriptions/backfill': typeof ApiSaasSubscriptionsBackfillRoute
+  '/api/saas/tenants/admin-access': typeof ApiSaasTenantsAdminAccessRoute
   '/api/saas/tenants/lookup': typeof ApiSaasTenantsLookupRoute
   '/api/saas/tenants/status': typeof ApiSaasTenantsStatusRoute
   '/api/saas/tenants/subscription': typeof ApiSaasTenantsSubscriptionRoute
@@ -980,6 +997,7 @@ export interface FileRoutesById {
   '/auth/reset-password': typeof AuthResetPasswordRoute
   '/calendario/ics': typeof CalendarioIcsRoute
   '/configuracoes_/assinatura': typeof ConfiguracoesAssinaturaRoute
+  '/configuracoes_/boas-vindas': typeof ConfiguracoesBoasVindasRoute
   '/configuracoes_/diagnostico': typeof ConfiguracoesDiagnosticoRoute
   '/configuracoes_/inicio': typeof ConfiguracoesInicioRoute
   '/convite/$token': typeof ConviteTokenRoute
@@ -1051,6 +1069,7 @@ export interface FileRoutesById {
   '/api/saas/site/posts': typeof ApiSaasSitePostsRoute
   '/api/saas/site/showcase': typeof ApiSaasSiteShowcaseRoute
   '/api/saas/subscriptions/backfill': typeof ApiSaasSubscriptionsBackfillRoute
+  '/api/saas/tenants/admin-access': typeof ApiSaasTenantsAdminAccessRoute
   '/api/saas/tenants/lookup': typeof ApiSaasTenantsLookupRoute
   '/api/saas/tenants/status': typeof ApiSaasTenantsStatusRoute
   '/api/saas/tenants/subscription': typeof ApiSaasTenantsSubscriptionRoute
@@ -1097,6 +1116,7 @@ export interface FileRouteTypes {
     | '/auth/reset-password'
     | '/calendario/ics'
     | '/configuracoes/assinatura'
+    | '/configuracoes/boas-vindas'
     | '/configuracoes/diagnostico'
     | '/configuracoes/inicio'
     | '/convite/$token'
@@ -1168,6 +1188,7 @@ export interface FileRouteTypes {
     | '/api/saas/site/posts'
     | '/api/saas/site/showcase'
     | '/api/saas/subscriptions/backfill'
+    | '/api/saas/tenants/admin-access'
     | '/api/saas/tenants/lookup'
     | '/api/saas/tenants/status'
     | '/api/saas/tenants/subscription'
@@ -1212,6 +1233,7 @@ export interface FileRouteTypes {
     | '/auth/reset-password'
     | '/calendario/ics'
     | '/configuracoes/assinatura'
+    | '/configuracoes/boas-vindas'
     | '/configuracoes/diagnostico'
     | '/configuracoes/inicio'
     | '/convite/$token'
@@ -1283,6 +1305,7 @@ export interface FileRouteTypes {
     | '/api/saas/site/posts'
     | '/api/saas/site/showcase'
     | '/api/saas/subscriptions/backfill'
+    | '/api/saas/tenants/admin-access'
     | '/api/saas/tenants/lookup'
     | '/api/saas/tenants/status'
     | '/api/saas/tenants/subscription'
@@ -1327,6 +1350,7 @@ export interface FileRouteTypes {
     | '/auth/reset-password'
     | '/calendario/ics'
     | '/configuracoes_/assinatura'
+    | '/configuracoes_/boas-vindas'
     | '/configuracoes_/diagnostico'
     | '/configuracoes_/inicio'
     | '/convite/$token'
@@ -1398,6 +1422,7 @@ export interface FileRouteTypes {
     | '/api/saas/site/posts'
     | '/api/saas/site/showcase'
     | '/api/saas/subscriptions/backfill'
+    | '/api/saas/tenants/admin-access'
     | '/api/saas/tenants/lookup'
     | '/api/saas/tenants/status'
     | '/api/saas/tenants/subscription'
@@ -1433,6 +1458,7 @@ export interface RootRouteChildren {
   AuthMagicLinkRoute: typeof AuthMagicLinkRoute
   AuthResetPasswordRoute: typeof AuthResetPasswordRoute
   ConfiguracoesAssinaturaRoute: typeof ConfiguracoesAssinaturaRoute
+  ConfiguracoesBoasVindasRoute: typeof ConfiguracoesBoasVindasRoute
   ConfiguracoesDiagnosticoRoute: typeof ConfiguracoesDiagnosticoRoute
   ConfiguracoesInicioRoute: typeof ConfiguracoesInicioRoute
   ConviteTokenRoute: typeof ConviteTokenRoute
@@ -1753,6 +1779,13 @@ declare module '@tanstack/react-router' {
       path: '/configuracoes/assinatura'
       fullPath: '/configuracoes/assinatura'
       preLoaderRoute: typeof ConfiguracoesAssinaturaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/configuracoes_/boas-vindas': {
+      id: '/configuracoes_/boas-vindas'
+      path: '/configuracoes/boas-vindas'
+      fullPath: '/configuracoes/boas-vindas'
+      preLoaderRoute: typeof ConfiguracoesBoasVindasRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/configuracoes_/diagnostico': {
@@ -2245,6 +2278,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiSaasSubscriptionsBackfillRouteImport
       parentRoute: typeof ApiSaasSubscriptionsRoute
     }
+    '/api/saas/tenants/admin-access': {
+      id: '/api/saas/tenants/admin-access'
+      path: '/admin-access'
+      fullPath: '/api/saas/tenants/admin-access'
+      preLoaderRoute: typeof ApiSaasTenantsAdminAccessRouteImport
+      parentRoute: typeof ApiSaasTenantsRoute
+    }
     '/api/saas/tenants/lookup': {
       id: '/api/saas/tenants/lookup'
       path: '/lookup'
@@ -2456,12 +2496,14 @@ const ApiSaasSubscriptionsRouteWithChildren =
   ApiSaasSubscriptionsRoute._addFileChildren(ApiSaasSubscriptionsRouteChildren)
 
 interface ApiSaasTenantsRouteChildren {
+  ApiSaasTenantsAdminAccessRoute: typeof ApiSaasTenantsAdminAccessRoute
   ApiSaasTenantsLookupRoute: typeof ApiSaasTenantsLookupRoute
   ApiSaasTenantsStatusRoute: typeof ApiSaasTenantsStatusRoute
   ApiSaasTenantsSubscriptionRoute: typeof ApiSaasTenantsSubscriptionRoute
 }
 
 const ApiSaasTenantsRouteChildren: ApiSaasTenantsRouteChildren = {
+  ApiSaasTenantsAdminAccessRoute: ApiSaasTenantsAdminAccessRoute,
   ApiSaasTenantsLookupRoute: ApiSaasTenantsLookupRoute,
   ApiSaasTenantsStatusRoute: ApiSaasTenantsStatusRoute,
   ApiSaasTenantsSubscriptionRoute: ApiSaasTenantsSubscriptionRoute,
@@ -2500,6 +2542,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthMagicLinkRoute: AuthMagicLinkRoute,
   AuthResetPasswordRoute: AuthResetPasswordRoute,
   ConfiguracoesAssinaturaRoute: ConfiguracoesAssinaturaRoute,
+  ConfiguracoesBoasVindasRoute: ConfiguracoesBoasVindasRoute,
   ConfiguracoesDiagnosticoRoute: ConfiguracoesDiagnosticoRoute,
   ConfiguracoesInicioRoute: ConfiguracoesInicioRoute,
   ConviteTokenRoute: ConviteTokenRoute,
