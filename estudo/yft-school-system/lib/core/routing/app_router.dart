@@ -46,15 +46,6 @@ import 'package:yft_school_system/features/finance/presentation/parent_receipts_
 
 final rootNavigatorKey = GlobalKey<NavigatorState>();
 
-/// Há sessão? Por omissão, o utilizador Firebase; a demonstração substitui-a.
-bool Function() hasSession = () {
-  try {
-    return FirebaseAuth.instance.currentUser != null;
-  } catch (_) {
-    return false; // Firebase não inicializado
-  }
-};
-
 final appRouter = GoRouter(
   navigatorKey: rootNavigatorKey,
   initialLocation: '/',
@@ -62,7 +53,11 @@ final appRouter = GoRouter(
   redirect: (context, state) {
     const public = {'/', '/login', '/forgot-password'};
     if (public.contains(state.matchedLocation)) return null;
-    return hasSession() ? null : '/login';
+    try {
+      return FirebaseAuth.instance.currentUser == null ? '/login' : null;
+    } catch (_) {
+      return '/login'; // Firebase não inicializado
+    }
   },
   routes: [
     GoRoute(path: '/', builder: (context, state) => const SplashScreen()),

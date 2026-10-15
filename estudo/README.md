@@ -79,35 +79,20 @@ alteração não está na cópia.
   propinas e dívidas, registar pagamento, recibo em PDF, calendário
   académico, avisos, lançar notas, presenças, perfil, educandos e recibos.
 
-## Demonstração com dados (15/10/2026)
+## Defeito corrigido: moeda da escola (15/10/2026)
 
-`lib/main_demo.dart` abre os ecrãs reais com dados fictícios de uma escola
-angolana, em kwanzas, sem Firebase nem API (`lib/demo/demo_api.dart`
-responde aos pedidos do Dio). Para entrar, usa-se qualquer senha com um
-destes e-mails:
-
-- `admin@demo.ao`
-- `professor@demo.ao`
-- `encarregado@demo.ao`
-
-```sh
-flutter run -d chrome -t lib/main_demo.dart
-```
-
-Capturas dos três perfis: `yft-estudo-capturas/demo-com-dados.jpg`.
-
-**Defeito encontrado e corrigido com a demonstração:** a moeda, o ano e o
-trimestre da escola só eram carregados quando o administrador abria o
-calendário académico. Até lá, todos os ecrãs mostravam GH₵, mesmo numa escola
-em Kz. A lista de moedas também não tinha o kwanza, e uma moeda fora da lista
-deixava o campo vazio. Agora:
+A moeda, o ano e o trimestre da escola só eram carregados quando o
+administrador abria o calendário académico. Até lá, todos os ecrãs mostravam
+GH₵, mesmo numa escola em Kz. A lista de moedas também não tinha o kwanza, e
+uma moeda fora da lista deixava o campo vazio. Agora:
 
 - a configuração carrega-se logo após o login (`academic_year_state.dart`);
 - a lista inclui o Kwanza e a moeda gravada pela escola;
 - o GH₵ fixo no código desapareceu.
 
 O teste `test/academic_year_test.dart` falha com o código antigo e passa com
-o novo.
+o novo. Não há modo de demonstração nem dados fictícios: os ecrãs só mostram
+dados vindos da API da escola.
 
 ## Pontos a reter (ideias, não código)
 
