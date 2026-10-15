@@ -5,7 +5,19 @@ import { Link } from "react-router-dom"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import { z } from "zod"
-import { ArrowLeft, ArrowRight, Check, Eye, EyeOff, Globe, LayoutDashboard, Loader2, Settings2 } from "lucide-react"
+import {
+  ArrowLeft,
+  ArrowRight,
+  Check,
+  Eye,
+  EyeOff,
+  Globe,
+  GraduationCap,
+  LayoutDashboard,
+  Loader2,
+  Settings2,
+  ShieldCheck,
+} from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -163,17 +175,24 @@ const FIELD_STEP = Object.fromEntries(
  * Destinos oferecidos no fim do registo. O administrador escolhe por onde
  * entrar; ambos abrem o SIGA da escola com a sessão do administrador.
  */
+// Mesmos ambientes e caminhos do SIGA (src/features/auth/environments.ts).
 const ENTRY_CHOICES = [
   {
     path: "/",
-    title: "Painel administrativo",
-    hint: "Visão geral da escola: alunos, finanças, pedagogia e acessos.",
+    title: "Painel Administrativo",
+    hint: "Gestão da escola",
     icon: LayoutDashboard,
   },
   {
+    path: "/pedagogica",
+    title: "Portal Escolar",
+    hint: "Gestão académica",
+    icon: GraduationCap,
+  },
+  {
     path: "/configuracoes/inicio",
-    title: "Configurar a escola",
-    hint: "Guia de arranque: dados, ano lectivo, turmas, propinas e equipa.",
+    title: "Assistente de configuração",
+    hint: "Preparar a instituição para começar a funcionar",
     icon: Settings2,
   },
 ] as const
@@ -613,64 +632,89 @@ export function StartSchoolWizard() {
           </CardDescription>
         </CardHeader>
         <CardContent className="grid gap-5 text-center">
-          <div className="rounded-lg border p-4 space-y-2 text-left">
-            <h3 className="text-sm">Acesso do administrador</h3>
-            {done.adminLoginUrl ? (
-              <p className="text-sm text-muted-foreground">
-                A conta de <strong>{values.admin_email}</strong> está pronta. Escolha por onde quer entrar — a
-                sessão já vai aberta. Nas próximas vezes, entre com este e-mail e a senha que definiu.
-              </p>
-            ) : done.adminExistingAccount && !done.adminPasswordSet ? (
-              <p className="text-sm text-muted-foreground">
-                <strong>{values.admin_email}</strong> já tinha conta no SIGA Plus (por exemplo, entrada com o Google).
-                A escola ficou ligada a essa conta: entre como de costume. A senha escolhida neste registo não
-                substituiu a sua.
-              </p>
-            ) : done.adminPasswordSet ? (
-              <p className="text-sm text-muted-foreground">
-                A conta já está pronta. Entre no SIGA Plus com <strong>{values.admin_email}</strong> e a senha que definiu neste registo.
-                {done.adminInviteDelivered
-                  ? " Também enviámos um e-mail de confirmação — se não chegar em poucos minutos, verifique a pasta de spam."
-                  : ""}
-              </p>
-            ) : done.adminInviteDelivered ? (
-              <p className="text-sm text-muted-foreground">
-                Enviámos para <strong>{values.admin_email}</strong> o link para definir a senha de acesso. Se não chegar em poucos minutos, verifique a pasta de spam.
-              </p>
-            ) : (
-              <p className="text-sm text-muted-foreground">
-                A conta de <strong>{values.admin_email}</strong> já está criada, mas o convite ainda não foi enviado. Use «Recuperar senha» no SIGA Plus com este e-mail, ou peça o link à equipa de suporte.
-              </p>
-            )}
-            <div className="mt-2 grid gap-2 sm:grid-cols-2">
-              {ENTRY_CHOICES.map((choice) => {
-                const Icon = choice.icon
-                return (
-                  <a
-                    key={choice.path}
-                    href={entryUrl(done.sigaUrl, choice.path, useLoginLink ? done.adminLoginUrl : null)}
-                    onClick={() => {
-                      if (useLoginLink) setLoginLinkUsed(true)
-                    }}
-                    className="group flex flex-col gap-1 rounded-lg border p-3 text-left transition-colors hover:border-primary hover:bg-primary/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                  >
-                    <span className="flex items-center gap-2 text-sm font-medium">
-                      <Icon className="size-4 text-primary" />
-                      {choice.title}
-                      <ArrowRight className="ml-auto size-4 opacity-60 transition-transform group-hover:translate-x-0.5" />
-                    </span>
-                    <span className="text-xs text-muted-foreground">{choice.hint}</span>
-                  </a>
-                )
-              })}
-            </div>
-            {loginLinkUsed ? (
-              <p className="text-xs text-muted-foreground">
-                A entrada directa já foi usada. Para abrir o outro destino, entre com{" "}
-                <strong>{values.admin_email}</strong> e a sua senha.
-              </p>
-            ) : null}
-          </div>
+          <ol className="grid gap-3 text-left">
+            <li className="flex gap-3 rounded-lg border border-green-500/30 bg-green-500/5 p-4">
+              <Check className="mt-0.5 size-5 shrink-0 text-green-600 dark:text-green-400" strokeWidth={3} />
+              <div>
+                <h3 className="text-sm font-medium">1. Escola criada</h3>
+                <p className="text-xs text-muted-foreground">
+                  Instituição, administrador e vínculo verificados no servidor antes de confirmar.
+                </p>
+              </div>
+            </li>
+
+            <li className="flex gap-3 rounded-lg border p-4">
+              <ShieldCheck className="mt-0.5 size-5 shrink-0 text-primary" />
+              <div className="space-y-1">
+                <h3 className="text-sm font-medium">2. Autenticação segura</h3>
+                {done.adminLoginUrl ? (
+                  <p className="text-sm text-muted-foreground">
+                    A conta de <strong>{values.admin_email}</strong> está pronta. Escolha por onde quer entrar — a
+                    sessão já vai aberta. Nas próximas vezes, entre com este e-mail e a senha que definiu.
+                  </p>
+                ) : done.adminExistingAccount && !done.adminPasswordSet ? (
+                  <p className="text-sm text-muted-foreground">
+                    <strong>{values.admin_email}</strong> já tinha conta no SIGA Plus (por exemplo, entrada com o Google).
+                    A escola ficou ligada a essa conta: entre como de costume. A senha escolhida neste registo não
+                    substituiu a sua.
+                  </p>
+                ) : done.adminPasswordSet ? (
+                  <p className="text-sm text-muted-foreground">
+                    A conta já está pronta. Entre no SIGA Plus com <strong>{values.admin_email}</strong> e a senha que definiu neste registo.
+                    {done.adminInviteDelivered
+                      ? " Também enviámos um e-mail de confirmação — se não chegar em poucos minutos, verifique a pasta de spam."
+                      : ""}
+                  </p>
+                ) : done.adminInviteDelivered ? (
+                  <p className="text-sm text-muted-foreground">
+                    Enviámos para <strong>{values.admin_email}</strong> o link para definir a senha de acesso. Se não chegar em poucos minutos, verifique a pasta de spam.
+                  </p>
+                ) : (
+                  <p className="text-sm text-muted-foreground">
+                    A conta de <strong>{values.admin_email}</strong> já está criada, mas o convite ainda não foi enviado. Use «Recuperar senha» no SIGA Plus com este e-mail, ou peça o link à equipa de suporte.
+                  </p>
+                )}
+                <p className="text-xs text-muted-foreground">
+                  Uma só conta: entra no painel administrativo e no portal escolar sem criar outra. O
+                  SIGA confirma a conta, a escola activa e as permissões ao entrar, e pede a
+                  verificação em dois passos antes de gravar.
+                </p>
+              </div>
+            </li>
+
+            <li className="space-y-2 rounded-lg border p-4">
+              <h3 className="text-sm font-medium">3. Onde deseja começar?</h3>
+              <div className="grid gap-2 sm:grid-cols-3">
+                {ENTRY_CHOICES.map((choice) => {
+                  const Icon = choice.icon
+                  return (
+                    <a
+                      key={choice.path}
+                      href={entryUrl(done.sigaUrl, choice.path, useLoginLink ? done.adminLoginUrl : null)}
+                      onClick={() => {
+                        if (useLoginLink) setLoginLinkUsed(true)
+                      }}
+                      className="group flex flex-col gap-1 rounded-lg border p-3 text-left transition-colors hover:border-primary hover:bg-primary/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    >
+                      <span className="flex items-center gap-2 text-sm font-medium">
+                        <Icon className="size-4 text-primary" />
+                        <span className="min-w-0 flex-1">{choice.title}</span>
+                        <ArrowRight className="size-4 opacity-60 transition-transform group-hover:translate-x-0.5" />
+                      </span>
+                      <span className="text-xs text-muted-foreground">{choice.hint}</span>
+                    </a>
+                  )
+                })}
+              </div>
+              {loginLinkUsed ? (
+                <p className="text-xs text-muted-foreground">
+                  A entrada directa já foi usada. Para abrir outro ambiente, entre com{" "}
+                  <strong>{values.admin_email}</strong> e a sua senha — ou mude de ambiente no seletor do
+                  topo do SIGA.
+                </p>
+              ) : null}
+            </li>
+          </ol>
 
           <div className="rounded-lg border p-4 text-left">
             <h3 className="text-sm">Primeiros passos no SIGA Plus</h3>

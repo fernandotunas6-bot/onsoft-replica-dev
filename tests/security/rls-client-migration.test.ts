@@ -55,6 +55,15 @@ const MIGRADOS = [
  * na contagem de dívida abaixo.
  */
 const PRIVILEGIO_POR_DESENHO = new Set([
+  // Acesso do administrador da escola (Smart School Onboarding, 2026-10-15): lê o
+  // estado da conta no Supabase Auth (e-mail confirmado, último acesso, 2FA), os
+  // papéis e permissões da escola e o tenant — nada disso é legível pelo JWT. A
+  // reparação só mexe no perfil e nas permissões dos papéis da própria escola.
+  // A lógica vive em src/features/saas/school-admin-access.ts, que recebe o
+  // cliente de quem chama: a rota do ADMIN (platform_admins + aal2) e a página de
+  // boas-vindas (Administrador da escola, só a própria conta).
+  "src/routes/api/saas/tenants.admin-access.tsx",
+  "src/features/school/admin-welcome.ts",
   // Ensino Superior: `program_subject_prerequisites` e `course_unit_enrollments`
   // não têm política nenhuma para `authenticated` (só o servidor lhes toca). Cada
   // função exige Administrador/Secretaria (ou o professor da cadeira, para lançar

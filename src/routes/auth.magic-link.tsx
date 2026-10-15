@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { AlertTriangle, LoaderCircle, ShieldCheck } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -21,6 +21,7 @@ export const Route = createFileRoute("/auth/magic-link")({
  * e sem formulário — só confirma e redirecciona ao portal).
  */
 function MagicLinkCallbackPage() {
+  const navigate = useNavigate();
   const [status, setStatus] = useState<"checking" | "success" | "error">("checking");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [nextPath] = useState(() =>
@@ -61,7 +62,7 @@ function MagicLinkCallbackPage() {
           return;
         }
         setStatus("success");
-        setTimeout(() => window.location.replace(nextPath), 1200);
+        setTimeout(() => void navigate({ href: nextPath, replace: true }), 1200);
         return;
       }
 
@@ -81,7 +82,7 @@ function MagicLinkCallbackPage() {
           return;
         }
         setStatus("success");
-        setTimeout(() => window.location.replace(nextPath), 1200);
+        setTimeout(() => void navigate({ href: nextPath, replace: true }), 1200);
         return;
       }
 
@@ -89,7 +90,7 @@ function MagicLinkCallbackPage() {
       if (!active) return;
       if (data.session) {
         setStatus("success");
-        setTimeout(() => window.location.replace(nextPath), 1200);
+        setTimeout(() => void navigate({ href: nextPath, replace: true }), 1200);
       } else {
         setErrorMessage("Nenhum link de acesso válido encontrado.");
         setStatus("error");
@@ -100,7 +101,7 @@ function MagicLinkCallbackPage() {
     return () => {
       active = false;
     };
-  }, [nextPath]);
+  }, [navigate, nextPath]);
 
   return (
     <main className="min-h-screen flex flex-col items-center justify-center bg-muted/20 p-4 sm:p-6">

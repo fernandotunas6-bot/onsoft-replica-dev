@@ -4,15 +4,40 @@ Ler isto **antes** de alterar código. Ecossistema (5 apps):
 [ARCHITECTURE_HARMONIZATION.md](./ARCHITECTURE_HARMONIZATION.md).
 Depois abrir o skill do módulo em `.cursor/skills/`.
 
-## Fim do registo da escola: escolher por onde entrar (2026-10-15)
+## Smart School Onboarding: criação → acesso → ambiente (2026-10-15)
 
-- O ecrã final do WEB `/start` deixou de redireccionar sozinho para `/` ao fim de 8 s. O
-  administrador escolhe entre «Painel administrativo» (`/`) e «Configurar a escola»
-  (`/configuracoes/inicio`). Com entrada directa, o link de uso único leva `?next=`.
-- `/auth/magic-link` aceita `next` (só caminho relativo, `src/lib/safe-next-path.ts`) e, se o
-  link falhar ou já tiver sido usado, oferece «Entrar com e-mail e senha» no mesmo destino.
-- O administrador da escola entra no SIGA; o ADMIN (`painel/admin`) continua só para
-  administradores de plataforma.
+Três ambientes, uma conta: **Administração Global** (ADMIN, só `platform_admins`),
+**Administração Institucional** (SIGA, papel Administrador) e **Portal Escolar** (SIGA,
+gestão académica). Ser administrador da escola nunca dá a Administração Global.
+
+- **Causa encontrada na produção:** as três escolas do registo público tinham o trial de
+  14 dias expirado e o ecrã de bloqueio cobria o SIGA inteiro, também para o administrador
+  e para `/auth/*` (nem o link de entrada abria). Agora `TenantAccessBarrier`
+  (`src/features/saas/TenantAccessBarrier.tsx`): o Administrador entra em modo de consulta
+  com aviso e «Regularizar a assinatura»; os outros e a matrícula online continuam
+  bloqueados; `/auth`, `/verificar`, `/convite` já não. O servidor continua a recusar
+  gravações (`assertTenantAllowsWrites`).
+- **Diagnóstico e reparação** (`school-admin-access-rules.ts` puro + `school-admin-access.ts`):
+  escola/tenant bloqueado, sem administrador, conta apagada/bloqueada, e-mail por confirmar,
+  papel sem permissões, perfil em falta/sem escola, nunca entrou, sem 2FA. Repara só o
+  automático (perfil, e-mail, `role_permissions`) e gera links de definição de senha para
+  quem nunca entrou. Nunca mexe em senhas, `platform_admins`, vínculos ou assinatura.
+- **ADMIN** → Escolas → «Acesso»: `GET/POST /api/saas/tenants/admin-access`
+  (platform admin + aal2; auditado em `saas_audit_logs` sem os links).
+  **Por fazer pelo dono:** abrir «Acesso» em `ekovongo` e `twapandula` (proprietários
+  nunca entraram) e em `epatuloko`; estender o trial em «Gerir» se for caso disso.
+- **SIGA** `/configuracoes/boas-vindas` («Onde deseja começar?»): 1. Escola criada,
+  2. Autenticação segura (conta, 2FA, escola activa, permissões; «Corrigir
+  automaticamente» só para a própria conta), 3. Painel Administrativo (`/`), Portal
+  Escolar (`/pedagogica`), Assistente (`/configuracoes/inicio`, com % concluído).
+- **Seletor de ambientes** (`EnvironmentSwitcher`) no topo e na gaveta da conta em
+  telemóvel: só o Administrador (ambientes da escola) e `platform_admins` (mais a
+  Administração Global). Ambientes em `src/features/auth/environments.ts`.
+- **WEB** `/start`, fim do registo: os mesmos três passos, sem redireccionar sozinho; o
+  link de entrada directa leva `?next=` (`/auth/magic-link` aceita só caminho relativo,
+  `src/lib/safe-next-path.ts`; se o link falhar, «Entrar com e-mail e senha» no destino).
+- O provisionamento também verifica `role_permissions` (`findProvisioningGaps` e
+  `siga:audit-provisioning`).
 
 ## Catálogo educacional global (2026-10-10)
 
