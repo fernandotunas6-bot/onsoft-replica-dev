@@ -1,0 +1,23 @@
+name = "school-worker"
+compatibility_date = "2026-04-09"
+main = "src/index.ts"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "school_management_db"
+database_id = "09fede4b-0a9a-4e06-b12e-68d9a5fc3723"
+
+[[r2_buckets]]
+binding = "MEDIA_BUCKET"
+bucket_name = "school-management-media"
+
+[vars]
+# Public Firebase project id (same as NEXT_PUBLIC_FIREBASE_PROJECT_ID). Not a secret.
+# Override in the Cloudflare dashboard if you use different values per environment.
+FIREBASE_PROJECT_ID = "yft-ss"
+# Set via Wrangler secrets (never commit values):
+#   npx wrangler secret put FIREBASE_WEB_API_KEY
+#   npx wrangler secret put SUPER_ADMIN_API_KEY
+# Use the same Web API key as NEXT_PUBLIC_FIREBASE_API_KEY. See ENVIRONMENT.md.
+
+

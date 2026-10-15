@@ -7,6 +7,7 @@ import {
 } from "@/features/school/settings-domains";
 import { gradeTuitionCode, isMissingGradeColumn, toFeeItemRow } from "@/features/finance/fee-items";
 import { dynamicTablesClient } from "@/integrations/supabase/sga";
+import { normalizeGrade } from "@/features/education-catalog/normalize";
 
 /**
  * Importação de «propinas» (2026-10-04):
@@ -147,11 +148,23 @@ function priceFromRow(
     return { price: null, errors };
   }
   const grade = foldForCompare(gradeText);
-  const matches = (cache.grades ?? []).filter(
-    (g) =>
-      (foldForCompare(g.name) === grade || foldForCompare(g.code) === grade) &&
-      (!programIds || (g.programId !== null && programIds.has(g.programId))),
+  const candidates = (cache.grades ?? []).filter(
+    (g) => !programIds || (g.programId !== null && programIds.has(g.programId)),
   );
+  let matches = candidates.filter(
+    (g) => foldForCompare(g.name) === grade || foldForCompare(g.code) === grade,
+  );
+  // «10a classe», «décima classe» → «10ª Classe»: a mesma classe escrita de
+  // outra forma (número e unidade), como nas turmas.
+  if (matches.length === 0) {
+    const wanted = normalizeGrade(normalizeText(gradeText));
+    if (wanted) {
+      matches = candidates.filter((g) => {
+        const own = normalizeGrade(g.name) ?? normalizeGrade(g.code);
+        return own?.n === wanted.n && own.unit === wanted.unit;
+      });
+    }
+  }
   if (matches.length === 0) {
     errors.push(`Classe «${normalizeText(gradeText)}» não encontrada nesta escola.`);
     return { price: null, errors };

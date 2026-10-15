@@ -13,7 +13,7 @@ import appCss from "../styles.css?url";
 import { applyPendingUpdate, registerServiceWorker, SW_UPDATE_READY_EVENT } from "@/lib/pwa";
 import { measureVitals } from "@/lib/vitals";
 
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import { Toaster } from "@/components/ui/sonner";
 import { AppearanceProvider } from "@/lib/appearance";
 import { AuthGate } from "@/components/auth/AuthGate";
@@ -24,6 +24,7 @@ import { EntityFocusProvider } from "@/features/intelligence/entity-focus-contex
 import { isPublicAppPath } from "@/lib/public-paths";
 import { RouteErrorScreen } from "@/components/error/RouteErrorScreen";
 import { TenantProvider } from "@/features/saas/tenant-context";
+import { TenantAccessBarrier } from "@/features/saas/TenantAccessBarrier";
 import { PageLoading } from "@/components/ui/page-loading";
 import { readSessionHint } from "@/features/auth/session-hint";
 
@@ -137,7 +138,17 @@ function ClientOnlyToaster() {
     setHydrated(true);
   }, []);
 
-  return hydrated ? <Toaster position="top-right" richColors /> : null;
+  // Computador: canto superior direito. Telemóvel (< 600px): o sonner ocupa a
+  // largura toda; o topo fica abaixo do entalhe e longe da barra inferior.
+  return hydrated ? (
+    <Toaster
+      position="top-right"
+      richColors
+      closeButton
+      visibleToasts={4}
+      mobileOffset={{ top: "calc(env(safe-area-inset-top, 0px) + 8px)", left: 8, right: 8 }}
+    />
+  ) : null;
 }
 
 function RootComponent() {
@@ -188,19 +199,30 @@ function RootComponent() {
           <DesktopVaultGate />
           <div className="relative pt-[env(safe-area-inset-top,0)] flex min-h-screen flex-col">
             {isPublic ? (
-              <Outlet />
+              // Escola bloqueada fecha a matrícula online. Entrar, definir senha
+              // e verificar documentos continuam: sem /auth o administrador nem
+              // chegava à assinatura para a regularizar.
+              pathname.startsWith("/matricula") ? (
+                <TenantAccessBarrier>
+                  <Outlet />
+                </TenantAccessBarrier>
+              ) : (
+                <Outlet />
+              )
             ) : (
               <AuthGate sessionHint={sessionHint}>
                 <OfflineOutboxSync />
-                <SchoolYearProvider>
-                  <SchoolBrandAppearanceSync />
-                  <EntityFocusProvider>
-                    <RouteAccessGate>
-                      {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
-                      <Outlet />
-                    </RouteAccessGate>
-                  </EntityFocusProvider>
-                </SchoolYearProvider>
+                <TenantAccessBarrier allowSchoolAdmin>
+                  <SchoolYearProvider>
+                    <SchoolBrandAppearanceSync />
+                    <EntityFocusProvider>
+                      <RouteAccessGate>
+                        {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
+                        <Outlet />
+                      </RouteAccessGate>
+                    </EntityFocusProvider>
+                  </SchoolYearProvider>
+                </TenantAccessBarrier>
               </AuthGate>
             )}
           </div>

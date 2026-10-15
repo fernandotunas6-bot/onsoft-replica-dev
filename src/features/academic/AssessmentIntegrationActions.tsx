@@ -1,4 +1,4 @@
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import { Button } from "@/components/ui/button";
 import { useInstalledIntegrations } from "@/features/integrations/use-installed-integrations";
 import { whatsappHref } from "@/features/integrations/actions";

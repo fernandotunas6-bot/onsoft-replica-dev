@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { CheckCircle2, ExternalLink, Upload } from "lucide-react";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import { Panel } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -55,7 +55,13 @@ export function PlanPaymentPanel({ data }: { data: SubscriptionOverview }) {
   const submitProof = useServerFn(submitPlanPaymentProof);
 
   const plan = data.plans.find((p) => p.code === planCode) ?? null;
-  const amount = plan ? planPriceKz(plan, billing) : 0;
+  // Condições próprias da escola (por aluno ou valor fixo): o valor vem do servidor.
+  const amount =
+    data.billing.customByPeriodKz != null
+      ? data.billing.customByPeriodKz[billing]
+      : plan
+        ? planPriceKz(plan, billing)
+        : 0;
 
   const startMutation = useMutation({
     mutationFn: () => start({ data: { planCode: planCode as never, billing } }),
@@ -93,6 +99,19 @@ export function PlanPaymentPanel({ data }: { data: SubscriptionOverview }) {
         error instanceof Error ? error.message : "Não foi possível enviar o comprovativo.",
       ),
   });
+
+  if (data.billing.mode !== "charging") {
+    return (
+      <Panel title="Pagamento">
+        <p className="text-sm">{data.billing.label}</p>
+        <p className="mt-1 text-sm text-muted-foreground">
+          {data.billing.mode === "exempt"
+            ? "Escola pública isenta do plano: não há pagamentos a fazer."
+            : (data.billing.reason ?? "Não há pagamentos a fazer enquanto a pausa durar.")}
+        </p>
+      </Panel>
+    );
+  }
 
   return (
     <Panel title="Pagamento">

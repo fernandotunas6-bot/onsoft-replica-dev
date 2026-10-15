@@ -1,5 +1,5 @@
 import { useEffect, useState, type ReactNode } from "react";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import { WizardModal } from "@/components/ui/modal-system";
 import { cn } from "@/lib/utils";
 
