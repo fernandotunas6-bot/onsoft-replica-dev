@@ -1,10 +1,11 @@
 import { useEffect, useState } from "react";
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { AlertTriangle, LoaderCircle, ShieldCheck } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { getAppName } from "@/lib/app-config";
+import { safeNextPath } from "@/lib/safe-next-path";
 
 // style-check: route-exempt - fluxo de autenticação por magic link.
 export const Route = createFileRoute("/auth/magic-link")({
@@ -20,9 +21,13 @@ export const Route = createFileRoute("/auth/magic-link")({
  * e sem formulário — só confirma e redirecciona ao portal).
  */
 function MagicLinkCallbackPage() {
-  const navigate = useNavigate();
   const [status, setStatus] = useState<"checking" | "success" | "error">("checking");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [nextPath] = useState(() =>
+    typeof window === "undefined"
+      ? "/"
+      : safeNextPath(new URLSearchParams(window.location.search).get("next")),
+  );
 
   useEffect(() => {
     let active = true;
@@ -56,7 +61,7 @@ function MagicLinkCallbackPage() {
           return;
         }
         setStatus("success");
-        setTimeout(() => void navigate({ to: "/" }), 1200);
+        setTimeout(() => window.location.replace(nextPath), 1200);
         return;
       }
 
@@ -76,7 +81,7 @@ function MagicLinkCallbackPage() {
           return;
         }
         setStatus("success");
-        setTimeout(() => void navigate({ to: "/" }), 1200);
+        setTimeout(() => window.location.replace(nextPath), 1200);
         return;
       }
 
@@ -84,7 +89,7 @@ function MagicLinkCallbackPage() {
       if (!active) return;
       if (data.session) {
         setStatus("success");
-        setTimeout(() => void navigate({ to: "/" }), 1200);
+        setTimeout(() => window.location.replace(nextPath), 1200);
       } else {
         setErrorMessage("Nenhum link de acesso válido encontrado.");
         setStatus("error");
@@ -95,7 +100,7 @@ function MagicLinkCallbackPage() {
     return () => {
       active = false;
     };
-  }, [navigate]);
+  }, [nextPath]);
 
   return (
     <main className="min-h-screen flex flex-col items-center justify-center bg-muted/20 p-4 sm:p-6">
@@ -135,8 +140,12 @@ function MagicLinkCallbackPage() {
                     <p className="text-xs opacity-90">{errorMessage}</p>
                   </div>
                 </div>
+                <p className="text-xs text-muted-foreground">
+                  O link de entrada directa só pode ser usado uma vez. Entre com o seu e-mail e a
+                  senha da conta.
+                </p>
                 <Button asChild className="w-full">
-                  <a href="/">Voltar ao início de sessão</a>
+                  <a href={nextPath}>Entrar com e-mail e senha</a>
                 </Button>
               </div>
             )}

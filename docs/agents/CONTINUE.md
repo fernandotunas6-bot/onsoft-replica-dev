@@ -4,6 +4,16 @@ Ler isto **antes** de alterar código. Ecossistema (5 apps):
 [ARCHITECTURE_HARMONIZATION.md](./ARCHITECTURE_HARMONIZATION.md).
 Depois abrir o skill do módulo em `.cursor/skills/`.
 
+## Fim do registo da escola: escolher por onde entrar (2026-10-15)
+
+- O ecrã final do WEB `/start` deixou de redireccionar sozinho para `/` ao fim de 8 s. O
+  administrador escolhe entre «Painel administrativo» (`/`) e «Configurar a escola»
+  (`/configuracoes/inicio`). Com entrada directa, o link de uso único leva `?next=`.
+- `/auth/magic-link` aceita `next` (só caminho relativo, `src/lib/safe-next-path.ts`) e, se o
+  link falhar ou já tiver sido usado, oferece «Entrar com e-mail e senha» no mesmo destino.
+- O administrador da escola entra no SIGA; o ADMIN (`painel/admin`) continua só para
+  administradores de plataforma.
+
 ## Catálogo educacional global (2026-10-10)
 
 Detalhe e cobertura real: [docs/education-catalog/README.md](../education-catalog/README.md).

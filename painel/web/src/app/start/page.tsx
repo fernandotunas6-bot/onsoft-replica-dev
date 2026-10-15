@@ -5,7 +5,7 @@ import { Link } from "react-router-dom"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import { z } from "zod"
-import { ArrowLeft, ArrowRight, Check, Eye, EyeOff, Globe, Loader2 } from "lucide-react"
+import { ArrowLeft, ArrowRight, Check, Eye, EyeOff, Globe, LayoutDashboard, Loader2, Settings2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -159,7 +159,24 @@ const FIELD_STEP = Object.fromEntries(
   Object.entries(FIELDS_BY_STEP).flatMap(([step, fields]) => fields.map((field) => [field, Number(step)])),
 ) as Record<keyof FormValues, number>
 
-const AUTO_ENTER_SECONDS = 8
+/**
+ * Destinos oferecidos no fim do registo. O administrador escolhe por onde
+ * entrar; ambos abrem o SIGA da escola com a sessão do administrador.
+ */
+const ENTRY_CHOICES = [
+  {
+    path: "/",
+    title: "Painel administrativo",
+    hint: "Visão geral da escola: alunos, finanças, pedagogia e acessos.",
+    icon: LayoutDashboard,
+  },
+  {
+    path: "/configuracoes/inicio",
+    title: "Configurar a escola",
+    hint: "Guia de arranque: dados, ano lectivo, turmas, propinas e equipa.",
+    icon: Settings2,
+  },
+] as const
 
 /** Rascunho no navegador: quem fecha a página a meio retoma onde estava. Nunca a senha. */
 const DRAFT_KEY = "siga-web:start-draft:v1"
@@ -284,9 +301,9 @@ export function StartSchoolWizard() {
     adminExistingAccount: boolean
     adminLoginUrl: string | null
   } | null>(null)
-  // Com entrada directa disponível, segue sozinho para o painel da escola ao fim
-  // de uns segundos — dá tempo de ler o essencial e pode ser cancelado.
-  const [redirectIn, setRedirectIn] = useState<number | null>(null)
+  // O link de entrada directa é de uso único: depois de usado, as outras
+  // escolhas abrem o SIGA normal (entrada com e-mail e senha).
+  const [loginLinkUsed, setLoginLinkUsed] = useState(false)
 
   const form = useForm<FormValues>({
     resolver: zodResolver(schema),
@@ -562,24 +579,13 @@ export function StartSchoolWizard() {
         adminExistingAccount: result.adminExistingAccount ?? false,
         adminLoginUrl: result.adminLoginUrl ?? null,
       })
-      if (result.adminLoginUrl) setRedirectIn(AUTO_ENTER_SECONDS)
     } finally {
       setIsCreating(false)
     }
   }
 
-  useEffect(() => {
-    if (redirectIn == null || !done?.adminLoginUrl) return
-    if (redirectIn <= 0) {
-      window.location.assign(done.adminLoginUrl)
-      return
-    }
-    const timeout = setTimeout(() => setRedirectIn((s) => (s == null ? null : s - 1)), 1000)
-    return () => clearTimeout(timeout)
-  }, [redirectIn, done])
-
   if (done) {
-    const enterUrl = done.adminLoginUrl || done.sigaUrl
+    const useLoginLink = Boolean(done.adminLoginUrl) && !loginLinkUsed
     const paymentMessage = encodeURIComponent(
       `Olá, registei a escola ${values.name} no SIGA Plus. Pretendo enviar o comprovativo do plano ${planLabel}. Endereço: ${done.hostname}.`,
     )
@@ -611,8 +617,8 @@ export function StartSchoolWizard() {
             <h3 className="text-sm">Acesso do administrador</h3>
             {done.adminLoginUrl ? (
               <p className="text-sm text-muted-foreground">
-                A conta de <strong>{values.admin_email}</strong> está pronta e a sessão já vai aberta: entra
-                directamente no painel da escola. Nas próximas vezes, entre com este e-mail e a senha que definiu.
+                A conta de <strong>{values.admin_email}</strong> está pronta. Escolha por onde quer entrar — a
+                sessão já vai aberta. Nas próximas vezes, entre com este e-mail e a senha que definiu.
               </p>
             ) : done.adminExistingAccount && !done.adminPasswordSet ? (
               <p className="text-sm text-muted-foreground">
@@ -636,21 +642,32 @@ export function StartSchoolWizard() {
                 A conta de <strong>{values.admin_email}</strong> já está criada, mas o convite ainda não foi enviado. Use «Recuperar senha» no SIGA Plus com este e-mail, ou peça o link à equipa de suporte.
               </p>
             )}
-            <Button asChild className="mt-2 w-full">
-              <a href={enterUrl}>
-                Entrar no painel da escola <ArrowRight className="size-4" />
-              </a>
-            </Button>
-            {redirectIn != null && done.adminLoginUrl ? (
-              <p className="text-center text-xs text-muted-foreground">
-                A entrar automaticamente em {Math.max(redirectIn, 0)} s…{" "}
-                <button
-                  type="button"
-                  className="underline underline-offset-4"
-                  onClick={() => setRedirectIn(null)}
-                >
-                  Ficar nesta página
-                </button>
+            <div className="mt-2 grid gap-2 sm:grid-cols-2">
+              {ENTRY_CHOICES.map((choice) => {
+                const Icon = choice.icon
+                return (
+                  <a
+                    key={choice.path}
+                    href={entryUrl(done.sigaUrl, choice.path, useLoginLink ? done.adminLoginUrl : null)}
+                    onClick={() => {
+                      if (useLoginLink) setLoginLinkUsed(true)
+                    }}
+                    className="group flex flex-col gap-1 rounded-lg border p-3 text-left transition-colors hover:border-primary hover:bg-primary/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  >
+                    <span className="flex items-center gap-2 text-sm font-medium">
+                      <Icon className="size-4 text-primary" />
+                      {choice.title}
+                      <ArrowRight className="ml-auto size-4 opacity-60 transition-transform group-hover:translate-x-0.5" />
+                    </span>
+                    <span className="text-xs text-muted-foreground">{choice.hint}</span>
+                  </a>
+                )
+              })}
+            </div>
+            {loginLinkUsed ? (
+              <p className="text-xs text-muted-foreground">
+                A entrada directa já foi usada. Para abrir o outro destino, entre com{" "}
+                <strong>{values.admin_email}</strong> e a sua senha.
               </p>
             ) : null}
           </div>
@@ -1310,6 +1327,22 @@ export function StartSchoolWizard() {
       </Card>
     </div>
   )
+}
+
+/**
+ * Endereço de um destino no SIGA. Com o link de entrada directa, vai por ele e
+ * leva o destino em `next` (aceite só como caminho relativo em /auth/magic-link).
+ */
+function entryUrl(sigaUrl: string, path: string, loginUrl: string | null) {
+  const plain = `${sigaUrl.replace(/\/+$/, "")}${path}`
+  if (!loginUrl) return plain
+  try {
+    const url = new URL(loginUrl)
+    if (path !== "/") url.searchParams.set("next", path)
+    return url.toString()
+  } catch {
+    return plain
+  }
 }
 
 /** Área do cliente no SIGA: plano, uso, pagamento e domínio (só Administrador). */
