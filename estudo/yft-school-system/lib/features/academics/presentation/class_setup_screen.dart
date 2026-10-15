@@ -6,6 +6,7 @@ import 'package:yft_school_system/core/providers/repository_providers.dart';
 import 'package:yft_school_system/core/settings/academic_year_state.dart';
 import 'package:yft_school_system/core/theme/app_colors.dart';
 import 'package:yft_school_system/core/utils/responsive_utils.dart';
+import 'package:yft_school_system/core/utils/currency_display.dart';
 import 'package:go_router/go_router.dart';
 
 class ClassSetupScreen extends ConsumerStatefulWidget {
@@ -202,7 +203,7 @@ class _ClassSetupScreenState extends ConsumerState<ClassSetupScreen> {
                       if (widget.schoolClass?.hasFeeStructure == true) ...[
                         const SizedBox(height: 12),
                         Text(
-                          'Current structure: ${ref.watch(academicYearProvider).currency} ${widget.schoolClass!.feeAmount.toStringAsFixed(2)} / ${widget.schoolClass!.feeCollectionCycle == 'year' ? 'year' : 'term'}',
+                          'Current structure: ${formatMoneyDisplay(ref.watch(academicYearProvider).currency, widget.schoolClass!.feeAmount)} / ${widget.schoolClass!.feeCollectionCycle == 'year' ? 'year' : 'term'}',
                           textAlign: TextAlign.center,
                           style: const TextStyle(
                             fontWeight: FontWeight.w600,

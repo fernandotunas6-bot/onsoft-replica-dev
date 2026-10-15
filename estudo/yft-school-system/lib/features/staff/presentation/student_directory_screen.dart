@@ -6,6 +6,7 @@ import 'package:yft_school_system/core/providers/repository_providers.dart';
 import 'package:yft_school_system/core/settings/academic_year_state.dart';
 import 'package:yft_school_system/core/theme/app_colors.dart';
 import 'package:go_router/go_router.dart';
+import 'package:yft_school_system/core/utils/currency_display.dart';
 import 'package:yft_school_system/core/utils/responsive_utils.dart';
 
 class StudentDirectoryScreen extends ConsumerStatefulWidget {
@@ -145,9 +146,9 @@ class _StudentDirectoryScreenState
                           (context, index) {
                             final student = visible[index];
                             final balanceText = student.hasDebt
-                                ? '$currency ${student.balance.abs().toStringAsFixed(2)}'
+                                ? formatMoneyDisplay(currency, student.balance.abs())
                                 : student.isOverpaid
-                                    ? '+$currency ${student.balance.toStringAsFixed(2)}'
+                                    ? '+${formatMoneyDisplay(currency, student.balance)}'
                                     : 'Cleared';
                             final balanceColor = student.hasDebt
                                 ? Colors.red.shade700

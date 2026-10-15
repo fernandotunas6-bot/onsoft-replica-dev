@@ -6,6 +6,7 @@ import 'package:yft_school_system/core/models/school_class.dart';
 import 'package:yft_school_system/core/providers/repository_providers.dart';
 import 'package:yft_school_system/core/settings/academic_year_state.dart';
 import 'package:yft_school_system/core/theme/app_colors.dart';
+import 'package:yft_school_system/core/utils/currency_display.dart';
 import 'package:yft_school_system/core/utils/responsive_utils.dart';
 
 class ClassListScreen extends ConsumerWidget {
@@ -144,7 +145,7 @@ class ClassListScreen extends ConsumerWidget {
                                       ),
                                     if (cls.hasFeeStructure)
                                       Text(
-                                        'Fee: $currency ${cls.feeAmount.toStringAsFixed(2)} / ${cls.feeCollectionCycle == 'year' ? 'year' : 'term'}',
+                                        'Fee: ${formatMoneyDisplay(currency, cls.feeAmount)} / ${cls.feeCollectionCycle == 'year' ? 'year' : 'term'}',
                                         style: const TextStyle(
                                           color: AppColors.textSecondary,
                                           fontSize: 13,

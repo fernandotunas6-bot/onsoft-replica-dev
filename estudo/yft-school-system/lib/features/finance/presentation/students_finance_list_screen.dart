@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:yft_school_system/core/providers/repository_providers.dart';
 import 'package:yft_school_system/core/settings/academic_year_state.dart';
 import 'package:yft_school_system/core/theme/app_colors.dart';
+import 'package:yft_school_system/core/utils/currency_display.dart';
 import 'package:yft_school_system/core/models/student.dart';
 
 class StudentsFinanceListScreen extends ConsumerStatefulWidget {
@@ -48,12 +49,12 @@ class _StudentsFinanceListScreenState
 
   String _balanceLine(Student student, String currency) {
     if (student.balance < 0) {
-      return '$currency ${student.balance.abs().toStringAsFixed(2)} owing';
+      return '${formatMoneyDisplay(currency, student.balance.abs())} owing';
     }
     if (student.balance > 0) {
-      return '$currency ${student.balance.toStringAsFixed(2)} credit';
+      return '${formatMoneyDisplay(currency, student.balance)} credit';
     }
-    return '$currency 0.00';
+    return formatMoneyDisplay(currency, 0);
   }
 
   @override

@@ -5,6 +5,7 @@ import 'package:yft_school_system/core/settings/academic_year_state.dart';
 import 'package:go_router/go_router.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import 'package:yft_school_system/core/theme/app_colors.dart';
+import 'package:yft_school_system/core/utils/currency_display.dart';
 import 'package:yft_school_system/core/utils/responsive_utils.dart';
 
 class FinanceOverviewScreen extends ConsumerWidget {
@@ -140,7 +141,7 @@ class FinanceOverviewScreen extends ConsumerWidget {
                               ),
                               const SizedBox(height: 8),
                               Text(
-                                '$currency ${totalOwed.toStringAsFixed(2)}',
+                                formatMoneyDisplay(currency, totalOwed),
                                 style: const TextStyle(
                                   color: AppColors.primary,
                                   fontSize: 32,
@@ -204,7 +205,7 @@ class FinanceOverviewScreen extends ConsumerWidget {
                                   ),
                                 ),
                                 Text(
-                                  '$currency ${a.amountOwed.toStringAsFixed(2)}',
+                                  formatMoneyDisplay(currency, a.amountOwed),
                                   style: TextStyle(
                                     fontWeight: FontWeight.bold,
                                     color: Colors.red.shade700,

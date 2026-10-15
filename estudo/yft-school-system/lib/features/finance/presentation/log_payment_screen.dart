@@ -6,6 +6,7 @@ import 'package:yft_school_system/core/models/student.dart';
 import 'package:yft_school_system/core/providers/repository_providers.dart';
 import 'package:yft_school_system/core/settings/academic_year_state.dart';
 import 'package:yft_school_system/core/theme/app_colors.dart';
+import 'package:yft_school_system/core/utils/currency_display.dart';
 import 'package:yft_school_system/core/utils/responsive_utils.dart';
 
 /// Full-screen flow to record a fee payment: pick a student from the roster
@@ -111,9 +112,9 @@ class _LogPaymentScreenState extends ConsumerState<LogPaymentScreen> {
       final credit = result.creditAddedOrZero;
       final msg = StringBuffer('Payment recorded.');
       if (credit > 0) {
-        msg.write(' Credit added: $payCur ${credit.toStringAsFixed(2)}.');
+        msg.write(' Credit added: ${formatMoneyDisplay(payCur, credit)}.');
       }
-      msg.write(' New balance: $payCur ${result.balance.toStringAsFixed(2)}.');
+      msg.write(' New balance: ${formatMoneyDisplay(payCur, result.balance)}.');
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(msg.toString())),
       );
@@ -365,7 +366,7 @@ class _LogPaymentScreenState extends ConsumerState<LogPaymentScreen> {
                                             ),
                                           ),
                                           Text(
-                                            '$currency ${s.balance.toStringAsFixed(2)}',
+                                            formatMoneyDisplay(currency, s.balance),
                                             style: TextStyle(
                                               fontWeight: FontWeight.bold,
                                               fontSize: 14,
@@ -431,7 +432,7 @@ class _LogPaymentScreenState extends ConsumerState<LogPaymentScreen> {
                                   ),
                                   _summaryRow(
                                     'Balance before',
-                                    '$currency ${_selected!.balance.toStringAsFixed(2)}',
+                                    formatMoneyDisplay(currency, _selected!.balance),
                                   ),
                                 ],
                               ),

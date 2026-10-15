@@ -10,6 +10,7 @@ import 'package:go_router/go_router.dart';
 import 'package:yft_school_system/features/academics/application/academic_state.dart';
 import 'package:yft_school_system/core/utils/responsive_utils.dart';
 import 'package:yft_school_system/core/widgets/profile_photo_avatar.dart';
+import 'package:yft_school_system/core/utils/currency_display.dart';
 import 'package:yft_school_system/features/dashboard/presentation/providers/notices_providers.dart';
 
 class DashboardScreen extends ConsumerWidget {
@@ -572,7 +573,7 @@ class AdminDashboard extends ConsumerWidget {
         studentsAsync.whenOrNull(data: (d) => d.total) ?? 0;
     final arrearsDisplay = arrearsAsync.when(
       data: (d) =>
-          '$currency ${d.fold<double>(0, (sum, s) => sum + s.amountOwed).toStringAsFixed(0)}',
+          formatMoneyDisplay(currency, d.fold<double>(0, (sum, s) => sum + s.amountOwed)),
       loading: () => '…',
       error: (_, _) => '—',
     );

@@ -46,7 +46,7 @@ O super-admin fala com o Worker com uma chave partilhada
 | Passo | Resultado |
 | --- | --- |
 | `flutter analyze` (Flutter 3.41.5) | sem avisos |
-| `flutter test` | 3 testes, passam |
+| `flutter test` | 7 testes, passam |
 | `flutter build web` | compila com 3.41.5; **falha com 3.47** (`lucide_icons` estende `IconData`, que passou a `final`) |
 | Worker `vitest` | 6 testes, passam |
 | Worker `wrangler deploy --dry-run` | empacota |
@@ -93,6 +93,22 @@ uma moeda fora da lista deixava o campo vazio. Agora:
 O teste `test/academic_year_test.dart` falha com o código antigo e passa com
 o novo. Não há modo de demonstração nem dados fictícios: os ecrãs só mostram
 dados vindos da API da escola.
+
+## Valores em kwanzas no formato angolano (15/10/2026)
+
+Os valores eram escritos como `Kz 12500.00`, sem separador de milhares, e
+cada ecrã formatava à sua maneira (o painel inicial nem mostrava cêntimos).
+Agora todos passam por `formatMoneyDisplay` (`lib/core/utils/currency_display.dart`):
+
+- kwanza: `12 500,00 Kz`, como no SIGA Flutter (espaço inseparável nos
+  milhares, vírgula decimal, símbolo no fim);
+- outras moedas: `GH₵ 12,500.00`;
+- no PDF, o mesmo formato com espaço normal, porque as fontes base do PDF não
+  têm o espaço inseparável.
+
+Os campos onde o utilizador escreve o valor continuam com o número simples.
+O teste `test/currency_display_test.dart` cobre os milhares, os negativos, o
+arredondamento ao cêntimo e o PDF.
 
 ## Pontos a reter (ideias, não código)
 

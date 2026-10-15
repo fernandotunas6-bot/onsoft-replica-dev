@@ -9,6 +9,7 @@ import 'package:yft_school_system/core/settings/academic_year_state.dart';
 import 'package:yft_school_system/core/theme/app_colors.dart';
 import 'package:yft_school_system/core/network/api_client.dart';
 import 'package:yft_school_system/core/utils/media_url.dart';
+import 'package:yft_school_system/core/utils/currency_display.dart';
 import 'package:yft_school_system/core/utils/responsive_utils.dart';
 
 class StudentDetailsScreen extends ConsumerWidget {
@@ -367,10 +368,10 @@ class _StudentProfileBody extends StatelessWidget {
             LucideIcons.wallet,
             'Balance',
             student.hasDebt
-                ? '$currency ${student.balance.abs().toStringAsFixed(2)} (owing)'
+                ? '${formatMoneyDisplay(currency, student.balance.abs())} (owing)'
                 : student.isOverpaid
-                    ? '+$currency ${student.balance.toStringAsFixed(2)} (credit)'
-                    : '$currency 0.00 (cleared)',
+                    ? '+${formatMoneyDisplay(currency, student.balance)} (credit)'
+                    : '${formatMoneyDisplay(currency, 0)} (cleared)',
             valueColor: student.hasDebt
                 ? Colors.red.shade700
                 : student.isOverpaid
