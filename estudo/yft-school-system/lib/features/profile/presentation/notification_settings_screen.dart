@@ -1,155 +1,133 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
+import 'package:lucide_icons/lucide_icons.dart';
 import 'package:yft_school_system/core/theme/app_colors.dart';
+import 'package:yft_school_system/core/utils/responsive_utils.dart';
+import 'package:yft_school_system/core/widgets/section_widgets.dart';
 
-class NotificationSettingsScreen extends StatefulWidget {
+/// Notificações: onde chegam os avisos hoje.
+///
+/// Os antigos interruptores (telemóvel, e-mail, SMS) não estavam ligados a
+/// nada — o servidor não envia nenhum destes. Até existir envio, o ecrã diz
+/// a verdade em vez de fingir guardar preferências.
+class NotificationSettingsScreen extends StatelessWidget {
   const NotificationSettingsScreen({super.key});
 
   @override
-  State<NotificationSettingsScreen> createState() =>
-      _NotificationSettingsScreenState();
-}
-
-class _NotificationSettingsScreenState
-    extends State<NotificationSettingsScreen> {
-  bool _pushEnabled = true;
-  bool _emailEnabled = true;
-  bool _smsEnabled = false;
-  bool _feeAlerts = true;
-  bool _academicAlerts = true;
-
-  @override
   Widget build(BuildContext context) {
+    Widget channel(IconData icon, Color color, String title, String body,
+        {bool available = false}) {
+      return Padding(
+        padding: const EdgeInsets.only(bottom: 10),
+        child: SoftCard(
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              IconTile(icon: icon, color: color, size: 40),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            title,
+                            style: TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w500,
+                              color: AppColors.textPrimary,
+                            ),
+                          ),
+                        ),
+                        Text(
+                          available ? 'Activo' : 'Em breve',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            color: available
+                                ? AppColors.success
+                                : AppColors.textSecondary,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      body,
+                      style: TextStyle(
+                        fontSize: 13,
+                        height: 1.35,
+                        color: AppColors.textSecondary,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
         title: const Text(
-          'Notifications',
+          'Notificações',
           style: TextStyle(fontWeight: FontWeight.w600),
         ),
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        foregroundColor: AppColors.secondary,
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(24.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Manage your notification preferences.',
-              style: TextStyle(color: AppColors.textSecondary, fontSize: 13),
-            ),
-            const SizedBox(height: 32),
-
-            const Text(
-              'Delivery Methods',
-              style: TextStyle(fontWeight: FontWeight.w600, fontSize: 18),
-            ),
-            const SizedBox(height: 16),
-
-            _buildToggleItem(
-              'Push Notifications',
-              'Receive alerts directly on your device.',
-              _pushEnabled,
-              (val) => setState(() => _pushEnabled = val),
-            ),
-            _buildToggleItem(
-              'Email Notifications',
-              'Receive summarized alerts in your inbox.',
-              _emailEnabled,
-              (val) => setState(() => _emailEnabled = val),
-            ),
-            _buildToggleItem(
-              'SMS Notifications',
-              'Get instant text messages for critical info.',
-              _smsEnabled,
-              (val) => setState(() => _smsEnabled = val),
-            ),
-
-            const SizedBox(height: 32),
-            const Divider(color: AppColors.surface, thickness: 2),
-            const SizedBox(height: 32),
-
-            const Text(
-              'Notification Types',
-              style: TextStyle(fontWeight: FontWeight.w600, fontSize: 18),
-            ),
-            const SizedBox(height: 16),
-
-            _buildToggleItem(
-              'Fee & Payment Alerts',
-              'Updates on pending fees and transactions.',
-              _feeAlerts,
-              (val) => setState(() => _feeAlerts = val),
-            ),
-            _buildToggleItem(
-              'Academic Updates',
-              'Notices regarding grades, attendance, and terms.',
-              _academicAlerts,
-              (val) => setState(() => _academicAlerts = val),
-            ),
-
-            const SizedBox(height: 48),
-
-            SizedBox(
-              width: double.infinity,
-              height: 56,
-              child: ElevatedButton(
-                onPressed: () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text(
-                        'Preferences saved!',
-                        style: TextStyle(fontWeight: FontWeight.w600),
-                      ),
-                    ),
-                  );
-                  Navigator.pop(context);
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primary,
-                  foregroundColor: AppColors.secondary,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                ),
-                child: const Text(
-                  'Save Preferences',
-                  style: TextStyle(fontWeight: FontWeight.w600, fontSize: 16),
+        padding: getResponsiveHorizontalPadding(context).copyWith(top: 8, bottom: 40),
+        child: ResponsiveConstrainedContent(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(
+                'Onde chegam os avisos da escola.',
+                style: TextStyle(color: AppColors.textSecondary, fontSize: 13),
+              ),
+              const SizedBox(height: 20),
+              channel(
+                LucideIcons.messageCircle,
+                AppColors.primary,
+                'Mensagens na aplicação',
+                'Comunicados, recibos de pagamento e avisos da escola. O sino '
+                    'do Início mostra quantos estão por ler.',
+                available: true,
+              ),
+              channel(
+                LucideIcons.smartphone,
+                AppColors.tileColors[4],
+                'Notificações no telemóvel',
+                'Aviso no ecrã mesmo com a aplicação fechada.',
+              ),
+              channel(
+                LucideIcons.mail,
+                AppColors.tileColors[5],
+                'E-mail',
+                'Resumo dos comunicados na sua caixa de correio.',
+              ),
+              channel(
+                LucideIcons.messageSquare,
+                AppColors.tileColors[3],
+                'SMS',
+                'Mensagem de texto para o que é urgente.',
+              ),
+              const SizedBox(height: 20),
+              SizedBox(
+                height: 52,
+                child: ElevatedButton.icon(
+                  onPressed: () => context.go('/mensagens'),
+                  icon: const Icon(LucideIcons.messageCircle),
+                  label: const Text('Abrir Mensagens'),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
-      ),
-    );
-  }
-
-  Widget _buildToggleItem(
-    String title,
-    String subtitle,
-    bool value,
-    Function(bool) onChanged,
-  ) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(8),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: SwitchListTile(
-        title: Text(
-          title,
-          style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
-        ),
-        subtitle: Text(
-          subtitle,
-          style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
-        ),
-        activeThumbColor: AppColors.primary,
-        value: value,
-        onChanged: onChanged,
       ),
     );
   }

@@ -23,6 +23,31 @@ class GradeUpsertRow {
   });
 }
 
+/// Uma linha do boletim: a disciplina e as duas notas (0–30 e 0–70).
+class ReportLine {
+  final String subjectId;
+  final String subjectName;
+  final double classScore;
+  final double examScore;
+
+  const ReportLine({
+    required this.subjectId,
+    required this.subjectName,
+    required this.classScore,
+    required this.examScore,
+  });
+
+  double get total => classScore + examScore;
+}
+
+/// Boletim de um período: o ano lectivo a que se refere e as linhas.
+class ReportCard {
+  final String academicYear;
+  final List<ReportLine> lines;
+
+  const ReportCard(this.academicYear, this.lines);
+}
+
 class GradesRepository {
   final Dio _dio;
 
@@ -50,6 +75,27 @@ class GradesRepository {
       );
     }
     return out;
+  }
+
+  /// Notas de um aluno num período, com o nome de cada disciplina.
+  Future<ReportCard> getReportCard({
+    required String studentId,
+    required String term,
+  }) async {
+    final response = await _dio.get(
+      ApiEndpoints.grades,
+      queryParameters: {'student_id': studentId, 'term': term},
+    );
+    final list = response.data['data'] as List<dynamic>;
+    return ReportCard(response.data['academic_year'] as String? ?? '', [
+      for (final raw in list.cast<Map<String, dynamic>>())
+        ReportLine(
+          subjectId: raw['subject_id'] as String,
+          subjectName: raw['subject_name'] as String? ?? '—',
+          classScore: (raw['class_score'] as num?)?.toDouble() ?? 0,
+          examScore: (raw['exam_score'] as num?)?.toDouble() ?? 0,
+        ),
+    ]);
   }
 
   Future<void> saveGrades({

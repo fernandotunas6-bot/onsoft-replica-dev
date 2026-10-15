@@ -7,6 +7,7 @@ import 'package:yft_school_system/core/theme/app_colors.dart';
 import 'package:yft_school_system/core/utils/currency_display.dart';
 import 'package:yft_school_system/features/finance/presentation/fee_receipt_view_screen.dart';
 import 'package:yft_school_system/features/finance/presentation/providers/parent_receipts_provider.dart';
+import 'package:yft_school_system/core/utils/term_label.dart';
 
 class ParentReceiptsScreen extends ConsumerWidget {
   const ParentReceiptsScreen({super.key});
@@ -22,8 +23,8 @@ class ParentReceiptsScreen extends ConsumerWidget {
         ? r.academicYear!.trim()
         : (cal.academicYear.trim().isNotEmpty ? cal.academicYear.trim() : '—');
     final displayTerm = r.feeTerm?.trim().isNotEmpty == true
-        ? r.feeTerm!.trim()
-        : (cal.activeTerm.trim().isNotEmpty ? cal.activeTerm.trim() : '—');
+        ? termLabel(r.feeTerm)
+        : (cal.activeTerm.trim().isNotEmpty ? termLabel(cal.activeTerm) : '—');
 
     showModalBottomSheet<void>(
       context: context,
@@ -34,7 +35,7 @@ class ParentReceiptsScreen extends ConsumerWidget {
         minChildSize: 0.35,
         maxChildSize: 0.92,
         builder: (_, scroll) => Container(
-          decoration: const BoxDecoration(
+          decoration: BoxDecoration(
             color: AppColors.background,
             borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
           ),
@@ -54,8 +55,8 @@ class ParentReceiptsScreen extends ConsumerWidget {
               ),
               const SizedBox(height: 16),
               Text(
-                'Receipt ${r.id}',
-                style: const TextStyle(
+                'Recibo ${r.id}',
+                style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.w600,
                   color: AppColors.secondary,
@@ -64,31 +65,31 @@ class ParentReceiptsScreen extends ConsumerWidget {
               const SizedBox(height: 8),
               Text(
                 _formatWhen(r.createdAt),
-                style: const TextStyle(
+                style: TextStyle(
                   color: AppColors.textSecondary,
                   fontSize: 13,
                 ),
               ),
               const SizedBox(height: 20),
-              _detailRow('Academic year', displayYear),
-              _detailRow('Fee term', displayTerm),
+              _detailRow('Ano lectivo', displayYear),
+              _detailRow('Período', displayTerm),
               if (r.studentName != null && r.studentName!.isNotEmpty)
-                _detailRow('Student', r.studentName!),
+                _detailRow('Aluno', r.studentName!),
               _detailRow(
-                'Amount received',
+                'Valor recebido',
                 formatMoneyDisplay(r.currency, r.amountPaid),
                 labelColor: AppColors.primaryOnLight,
                 valueColor: AppColors.primaryOnLight,
               ),
               if (r.creditAdded > 0)
                 _detailRow(
-                  'Credit / advance balance added',
+                  'Crédito / adiantamento',
                   formatMoneyDisplay(r.currency, r.creditAdded),
                   labelColor: AppColors.primaryOnLight,
                   valueColor: AppColors.primaryOnLight,
                 ),
               _detailRow(
-                'Account balance after payment',
+                'Saldo depois do pagamento',
                 formatMoneyDisplay(r.currency, r.balanceAfter),
                 valueColor: r.balanceAfter < 0
                     ? AppColors.error
@@ -98,7 +99,7 @@ class ParentReceiptsScreen extends ConsumerWidget {
               ),
               if (r.balanceAfter < 0)
                 _detailRow(
-                  'Outstanding after this payment',
+                  'Em dívida depois deste pagamento',
                   formatMoneyDisplay(r.currency, r.balanceAfter.abs()),
                   labelColor: AppColors.error,
                   valueColor: AppColors.error,
@@ -118,7 +119,7 @@ class ParentReceiptsScreen extends ConsumerWidget {
                   },
                   icon: const Icon(LucideIcons.fileText, size: 20),
                   label: const Text(
-                    'View formal receipt',
+                    'Ver recibo oficial',
                     style: TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
                   ),
                 ),
@@ -126,7 +127,7 @@ class ParentReceiptsScreen extends ConsumerWidget {
               const SizedBox(height: 12),
               TextButton(
                 onPressed: () => Navigator.of(ctx).pop(),
-                child: const Text('Close'),
+                child: const Text('Fechar'),
               ),
             ],
           ),
@@ -180,7 +181,7 @@ class ParentReceiptsScreen extends ConsumerWidget {
       backgroundColor: AppColors.background,
       appBar: AppBar(
         title: const Text(
-          'Receipts',
+          'Recibos',
           style: TextStyle(fontWeight: FontWeight.w600),
         ),
         backgroundColor: Colors.transparent,
@@ -196,13 +197,13 @@ class ParentReceiptsScreen extends ConsumerWidget {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
-                  'Could not load receipts.',
+                  'Não foi possível carregar os recibos.',
                   style: TextStyle(color: AppColors.error),
                 ),
                 const SizedBox(height: 12),
                 TextButton(
                   onPressed: () => ref.invalidate(parentReceiptsProvider),
-                  child: const Text('Retry'),
+                  child: const Text('Tentar de novo'),
                 ),
               ],
             ),
@@ -220,8 +221,8 @@ class ParentReceiptsScreen extends ConsumerWidget {
                     color: AppColors.textSecondary.withValues(alpha: 0.3),
                   ),
                   const SizedBox(height: 16),
-                  const Text(
-                    'No receipts yet.',
+                  Text(
+                    'Ainda não há recibos.',
                     style: TextStyle(
                       color: AppColors.textSecondary,
                       fontSize: 14,
@@ -244,7 +245,7 @@ class ParentReceiptsScreen extends ConsumerWidget {
                 final r = list[i];
                 final title = r.studentName?.isNotEmpty == true
                     ? r.studentName!
-                    : 'Fee receipt';
+                    : 'Recibo de propina';
                 final subtitle =
                     '${formatMoneyDisplay(r.currency, r.amountPaid)} · ${_formatWhen(r.createdAt)}';
                 return Material(
@@ -263,7 +264,7 @@ class ParentReceiptsScreen extends ConsumerWidget {
                               color: AppColors.primary.withValues(alpha: 0.12),
                               borderRadius: BorderRadius.circular(12),
                             ),
-                            child: const Icon(
+                            child: Icon(
                               LucideIcons.receipt,
                               color: AppColors.primary,
                               size: 22,
@@ -284,7 +285,7 @@ class ParentReceiptsScreen extends ConsumerWidget {
                                 const SizedBox(height: 4),
                                 Text(
                                   subtitle,
-                                  style: const TextStyle(
+                                  style: TextStyle(
                                     color: AppColors.textSecondary,
                                     fontSize: 13,
                                   ),
@@ -292,7 +293,7 @@ class ParentReceiptsScreen extends ConsumerWidget {
                               ],
                             ),
                           ),
-                          const Icon(
+                          Icon(
                             Icons.chevron_right,
                             color: AppColors.textSecondary,
                           ),

@@ -5,7 +5,7 @@ import 'package:yft_school_system/core/theme/app_theme.dart';
 import 'package:yft_school_system/features/splash/presentation/splash_screen.dart';
 
 void main() {
-  testWidgets('SplashScreen shows app title and drains navigation timer',
+  testWidgets('SplashScreen shows the SIGA Plus brand and drains navigation timer',
       (WidgetTester tester) async {
     final router = GoRouter(
       initialLocation: '/',
@@ -13,6 +13,11 @@ void main() {
         GoRoute(
           path: '/',
           builder: (context, state) => const SplashScreen(),
+        ),
+        GoRoute(
+          path: '/bem-vindo',
+          builder: (context, state) =>
+              const Scaffold(body: SizedBox.shrink()),
         ),
         GoRoute(
           path: '/login',
@@ -24,13 +29,17 @@ void main() {
 
     await tester.pumpWidget(
       MaterialApp.router(
-        theme: AppTheme.lightTheme,
+        theme: AppTheme.build(),
         routerConfig: router,
       ),
     );
 
-    expect(find.text('Edu Manager'), findsOneWidget);
-    expect(find.text('Modern School Ecosystem'), findsOneWidget);
+    await tester.pump(const Duration(milliseconds: 400));
+    expect(find.text('Plus'), findsOneWidget);
+    expect(
+      find.text('Educação que transforma\nem qualquer lugar'),
+      findsOneWidget,
+    );
 
     await tester.pump(const Duration(seconds: 4));
     await tester.pumpAndSettle();

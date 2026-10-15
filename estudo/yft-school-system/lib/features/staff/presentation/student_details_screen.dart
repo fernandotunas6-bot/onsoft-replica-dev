@@ -10,6 +10,7 @@ import 'package:yft_school_system/core/theme/app_colors.dart';
 import 'package:yft_school_system/core/network/api_client.dart';
 import 'package:yft_school_system/core/utils/media_url.dart';
 import 'package:yft_school_system/core/utils/responsive_utils.dart';
+import 'package:yft_school_system/core/utils/term_label.dart';
 
 class StudentDetailsScreen extends ConsumerWidget {
   final String id;
@@ -143,7 +144,7 @@ class StudentDetailsScreen extends ConsumerWidget {
                 const SizedBox(height: 8),
                 Text('$e',
                     textAlign: TextAlign.center,
-                    style: const TextStyle(
+                    style: TextStyle(
                         color: AppColors.textSecondary, fontSize: 12)),
                 const SizedBox(height: 24),
                 ElevatedButton(
@@ -241,8 +242,8 @@ class StudentDetailsScreen extends ConsumerWidget {
                                     size: 20,
                                   ),
                                   label: Text(student.isActive
-                                      ? 'Deactivate'
-                                      : 'Activate'),
+                                      ? 'Desactivar'
+                                      : 'Activar'),
                                 ),
                               ),
                               const SizedBox(width: 12),
@@ -312,7 +313,7 @@ class _StudentProfileBody extends StatelessWidget {
             child: photoUrl == null
                 ? Text(
                     initials,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 28,
                       fontWeight: FontWeight.w600,
                       color: AppColors.secondary,
@@ -325,52 +326,52 @@ class _StudentProfileBody extends StatelessWidget {
         Center(
           child: Text(
             student.id,
-            style: const TextStyle(
+            style: TextStyle(
               color: AppColors.textSecondary,
               fontSize: 13,
             ),
           ),
         ),
         const SizedBox(height: 24),
-        _section(context, 'Student', [
-          _row(LucideIcons.bookOpen, 'Class',
+        _section(context, 'Aluno', [
+          _row(LucideIcons.bookOpen, 'Turma',
               student.className ?? student.classId),
-          _row(LucideIcons.users, 'Gender', student.gender ?? '—'),
-          _row(LucideIcons.calendar, 'Date of birth', formatDob(student.dob)),
-          _row(LucideIcons.school, 'Previous school',
+          _row(LucideIcons.users, 'Sexo', genderLabel(student.gender)),
+          _row(LucideIcons.calendar, 'Data de nascimento', formatDob(student.dob)),
+          _row(LucideIcons.school, 'Escola anterior',
               student.previousSchool ?? '—'),
-          _row(LucideIcons.mapPin, 'Address', student.address ?? '—'),
+          _row(LucideIcons.mapPin, 'Morada', student.address ?? '—'),
         ]),
         const SizedBox(height: 16),
-        _section(context, 'Emergency', [
-          _row(LucideIcons.alertCircle, 'Contact name',
+        _section(context, 'Emergência', [
+          _row(LucideIcons.alertCircle, 'Contacto',
               student.emergencyContactName ?? '—'),
-          _row(LucideIcons.phone, 'Contact phone',
+          _row(LucideIcons.phone, 'Telefone de emergência',
               student.emergencyContactPhone ?? '—'),
         ]),
         const SizedBox(height: 16),
-        _section(context, 'Health', [
-          _row(LucideIcons.droplet, 'Blood group',
+        _section(context, 'Saúde', [
+          _row(LucideIcons.droplet, 'Grupo sanguíneo',
               student.bloodGroup ?? '—'),
-          _row(LucideIcons.heartHandshake, 'Medical notes',
+          _row(LucideIcons.heartHandshake, 'Notas médicas',
               student.medicalNotes ?? '—'),
         ]),
         const SizedBox(height: 16),
-        _section(context, 'Parent / guardian', [
-          _row(LucideIcons.contact, 'Name', student.parentName ?? '—'),
-          _row(LucideIcons.phone, 'Phone', student.parentPhone ?? '—'),
-          _row(LucideIcons.mail, 'Email', student.parentEmail ?? '—'),
+        _section(context, 'Encarregado de educação', [
+          _row(LucideIcons.contact, 'Nome', student.parentName ?? '—'),
+          _row(LucideIcons.phone, 'Telefone', student.parentPhone ?? '—'),
+          _row(LucideIcons.mail, 'E-mail', student.parentEmail ?? '—'),
         ]),
         const SizedBox(height: 16),
-        _section(context, 'Fees', [
+        _section(context, 'Propinas', [
           _row(
             LucideIcons.wallet,
-            'Balance',
+            'Saldo',
             student.hasDebt
-                ? '$currency ${student.balance.abs().toStringAsFixed(2)} (owing)'
+                ? '$currency ${student.balance.abs().toStringAsFixed(2)} (em dívida)'
                 : student.isOverpaid
-                    ? '+$currency ${student.balance.toStringAsFixed(2)} (credit)'
-                    : '$currency 0.00 (cleared)',
+                    ? '+$currency ${student.balance.toStringAsFixed(2)} (a favor)'
+                    : '$currency 0.00 (em dia)',
             valueColor: student.hasDebt
                 ? Colors.red.shade700
                 : student.isOverpaid
@@ -402,7 +403,7 @@ class _StudentProfileBody extends StatelessWidget {
             padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
             child: Text(
               title,
-              style: const TextStyle(
+              style: TextStyle(
                 fontWeight: FontWeight.w600,
                 fontSize: 16,
                 color: AppColors.secondary,
@@ -429,7 +430,7 @@ class _StudentProfileBody extends StatelessWidget {
             flex: 2,
             child: Text(
               label,
-              style: const TextStyle(
+              style: TextStyle(
                 color: AppColors.textSecondary,
                 fontSize: 14,
               ),

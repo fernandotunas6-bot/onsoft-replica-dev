@@ -28,7 +28,7 @@ class AcademicYearSettings {
     return AcademicYearSettings(
       academicYear: getCurrentAcademicYear(),
       activeTerm: 'Term 1',
-      currency: 'GH₵',
+      currency: 'Kz',
     );
   }
 }

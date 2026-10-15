@@ -1,6 +1,7 @@
 import 'package:dio/dio.dart';
 import '../models/school_academic_calendar.dart';
 import '../models/teacher_profile.dart';
+import '../models/teacher_summary.dart';
 import '../models/user_profile.dart';
 import '../network/api_endpoints.dart';
 
@@ -13,6 +14,22 @@ class UserRepository {
     final response = await _dio.get(ApiEndpoints.usersMe);
     final data = response.data['data'] as Map<String, dynamic>;
     return UserProfile.fromJson(data);
+  }
+
+  /// Corrige o próprio nome, telefone e morada.
+  Future<void> updateMe({
+    required String name,
+    required String phone,
+    required String residentialAddress,
+  }) async {
+    await _dio.patch(
+      ApiEndpoints.usersMe,
+      data: {
+        'name': name,
+        'phone': phone,
+        'residential_address': residentialAddress,
+      },
+    );
   }
 
   Future<void> storeFcmToken(String token, {String? platform}) async {
@@ -41,6 +58,14 @@ class UserRepository {
     );
     final raw = response.data['data'] as Map<String, dynamic>;
     return SchoolAcademicCalendar.fromJson(raw);
+  }
+
+  Future<List<TeacherSummary>> getTeachers() async {
+    final response = await _dio.get(ApiEndpoints.usersTeachers);
+    final list = response.data['data'] as List;
+    return list
+        .map((e) => TeacherSummary.fromJson(e as Map<String, dynamic>))
+        .toList();
   }
 
   Future<TeacherProfile> getTeacherProfile(String uid) async {

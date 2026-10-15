@@ -28,7 +28,7 @@ class _TeacherStudentSearchScreenState extends ConsumerState<TeacherStudentSearc
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: const Text('Search Students', style: TextStyle(fontWeight: FontWeight.w600)),
+        title: const Text('Pesquisar alunos', style: TextStyle(fontWeight: FontWeight.w600)),
         backgroundColor: Colors.transparent,
         elevation: 0,
         foregroundColor: AppColors.secondary,
@@ -40,7 +40,7 @@ class _TeacherStudentSearchScreenState extends ConsumerState<TeacherStudentSearc
             child: TextField(
               controller: _searchController,
               decoration: InputDecoration(
-                hintText: 'Search by name...',
+                hintText: 'Pesquisar por nome…',
                 prefixIcon: const Icon(LucideIcons.search, size: 20),
                 fillColor: AppColors.surface,
                 filled: true,
@@ -52,11 +52,11 @@ class _TeacherStudentSearchScreenState extends ConsumerState<TeacherStudentSearc
           Expanded(
             child: studentsAsync.when(
               loading: () => const Center(child: CircularProgressIndicator()),
-              error: (e, _) => Center(child: Text('Failed to load', style: TextStyle(color: AppColors.error))),
+              error: (e, _) => Center(child: Text('Não foi possível carregar', style: TextStyle(color: AppColors.error))),
               data: (paginated) {
                 final filtered = paginated.data.where((s) => s.name.toLowerCase().contains(_query)).toList();
                 if (filtered.isEmpty) {
-                  return const Center(child: Text('No students found.', style: TextStyle(color: AppColors.textSecondary)));
+                  return Center(child: Text('Nenhum aluno.', style: TextStyle(color: AppColors.textSecondary)));
                 }
                 return ListView.builder(
                   padding: const EdgeInsets.symmetric(horizontal: 24),
@@ -75,7 +75,7 @@ class _TeacherStudentSearchScreenState extends ConsumerState<TeacherStudentSearc
                           CircleAvatar(
                             backgroundColor: AppColors.primary.withValues(alpha: 0.1),
                             child: Text(s.name.isNotEmpty ? s.name[0] : '?',
-                                style: const TextStyle(color: AppColors.secondary, fontWeight: FontWeight.w600)),
+                                style: TextStyle(color: AppColors.secondary, fontWeight: FontWeight.w600)),
                           ),
                           const SizedBox(width: 16),
                           Expanded(
@@ -84,7 +84,7 @@ class _TeacherStudentSearchScreenState extends ConsumerState<TeacherStudentSearc
                               children: [
                                 Text(s.name, style: const TextStyle(fontWeight: FontWeight.w600)),
                                 Text(s.className ?? s.classId,
-                                    style: const TextStyle(color: AppColors.textSecondary, fontSize: 12)),
+                                    style: TextStyle(color: AppColors.textSecondary, fontSize: 12)),
                               ],
                             ),
                           ),

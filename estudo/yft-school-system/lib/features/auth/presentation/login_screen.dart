@@ -3,6 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import 'package:go_router/go_router.dart';
 import 'package:yft_school_system/core/auth/auth_state.dart';
+import 'package:yft_school_system/core/schools/known_schools.dart';
+import 'package:yft_school_system/core/widgets/brand_mark.dart';
+import 'package:yft_school_system/features/auth/presentation/school_picker_sheet.dart';
 import 'package:yft_school_system/core/theme/app_colors.dart';
 import 'package:yft_school_system/core/utils/responsive_utils.dart';
 
@@ -18,6 +21,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   final _passwordController = TextEditingController();
   bool _isPasswordVisible = false;
   bool _isLoading = false;
+  KnownSchool? _school;
 
   @override
   void dispose() {
@@ -51,6 +55,18 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     setState(() => _isLoading = false);
 
     if (error == null) {
+      final session = ref.read(authProvider);
+      final picked = _school;
+      if (picked != null && session != null && session.schoolId != picked.id) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Esta conta pertence a ${session.schoolName ?? 'outra escola'}; '
+              'entrou nessa escola.',
+            ),
+          ),
+        );
+      }
       context.go('/dashboard');
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -80,43 +96,22 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 decoration: BoxDecoration(
                   color: AppColors.surface,
                   border: Border(
-                    right: BorderSide(
-                      color: Colors.black.withValues(alpha: 0.05),
-                    ),
+                    right: BorderSide(color: AppColors.border),
                   ),
                 ),
                 child: Center(
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Container(
-                        padding: const EdgeInsets.all(24),
-                        decoration: BoxDecoration(
-                          color: AppColors.primary.withValues(alpha: 0.1),
-                          shape: BoxShape.circle,
-                        ),
-                        child: const Icon(
-                          LucideIcons.graduationCap,
-                          size: 100,
-                          color: AppColors.primary,
-                        ),
-                      ),
-                      const SizedBox(height: 48),
-                      Text(
-                        'Sistema de Gestão Escolar',
-                        style: Theme.of(context).textTheme.displayLarge
-                            ?.copyWith(
-                              fontSize: 32,
-                              color: AppColors.secondary,
-                            ),
-                        textAlign: TextAlign.center,
-                      ),
+                      const BrandMark(size: 140),
+                      const SizedBox(height: 40),
+                      const BrandWordmark(fontSize: 40),
                       const SizedBox(height: 16),
                       Text(
-                        'Tecnologia ao serviço da educação.',
+                        'Educação que transforma, em qualquer lugar.',
                         style: Theme.of(
                           context,
-                        ).textTheme.bodyMedium?.copyWith(fontSize: 16),
+                        ).textTheme.bodyMedium?.copyWith(fontSize: 18),
                         textAlign: TextAlign.center,
                       ),
                     ],
@@ -156,45 +151,93 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     );
   }
 
-  Widget _buildLoginForm() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.center,
-      children: [
-        const SizedBox(height: 60),
+  Future<void> _pickSchool() async {
+    final school = await showSchoolPicker(context);
+    if (school != null && mounted) setState(() => _school = school);
+  }
 
-        // Logo/Brand
+  Widget _buildLoginForm() {
+    final textTheme = Theme.of(context).textTheme;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        const SizedBox(height: 48),
+        const Center(child: BrandWordmark(fontSize: 28)),
+        const SizedBox(height: 40),
         Text(
-          'Edu Manager',
-          style: Theme.of(context).textTheme.displayLarge?.copyWith(
-            fontSize: 36,
-            color: AppColors.secondary,
-          ),
+          'Aceda à sua conta',
+          style: textTheme.displayMedium?.copyWith(fontSize: 26),
         ),
         const SizedBox(height: 8),
-        Text('Bem-vindo de volta', style: Theme.of(context).textTheme.bodyMedium),
+        Text(
+          'Seleccione a sua escola e utilize as suas credenciais '
+          'institucionais.',
+          style: textTheme.bodyMedium?.copyWith(height: 1.4),
+        ),
+        const SizedBox(height: 28),
 
-        const SizedBox(height: 60),
+        // Selector de escola: abre a folha com as escolas deste dispositivo.
+        Material(
+          color: AppColors.surface,
+          borderRadius: BorderRadius.circular(16),
+          child: InkWell(
+            borderRadius: BorderRadius.circular(16),
+            onTap: _pickSchool,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: AppColors.border),
+              ),
+              child: Row(
+                children: [
+                  Icon(LucideIcons.school, size: 20, color: AppColors.textSecondary),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      _school?.name ?? 'Seleccione a escola',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: _school == null
+                            ? AppColors.textSecondary
+                            : AppColors.textPrimary,
+                      ),
+                    ),
+                  ),
+                  Icon(LucideIcons.chevronDown, size: 18, color: AppColors.textSecondary),
+                ],
+              ),
+            ),
+          ),
+        ),
+
+        const SizedBox(height: 14),
 
         TextField(
           controller: _emailController,
           keyboardType: TextInputType.emailAddress,
+          autofillHints: const [AutofillHints.email],
           decoration: const InputDecoration(
-            hintText: 'Endereço de e-mail',
+            hintText: 'E-mail da conta escolar',
             prefixIcon: Icon(LucideIcons.mail, size: 20),
           ),
         ),
 
-        const SizedBox(height: 16),
+        const SizedBox(height: 14),
 
         TextField(
           controller: _passwordController,
           obscureText: !_isPasswordVisible,
+          autofillHints: const [AutofillHints.password],
+          onSubmitted: (_) => _handleLogin(),
           decoration: InputDecoration(
             hintText: 'Palavra-passe',
-            prefixIcon: const Icon(LucideIcons.lock, size: 20),
+            prefixIcon: const Icon(LucideIcons.keyRound, size: 20),
             suffixIcon: IconButton(
               icon: Icon(
-                _isPasswordVisible ? LucideIcons.eye : LucideIcons.eyeOff,
+                _isPasswordVisible ? LucideIcons.eyeOff : LucideIcons.eye,
                 size: 20,
               ),
               onPressed: () =>
@@ -203,51 +246,49 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           ),
         ),
 
-        const SizedBox(height: 12),
-
         Align(
           alignment: Alignment.centerRight,
           child: TextButton(
             onPressed: () => context.push('/forgot-password'),
-            child: const Text('Esqueceu-se da palavra-passe?'),
+            child: Text(
+              'Esqueceu a palavra-passe?',
+              style: TextStyle(color: AppColors.primary),
+            ),
           ),
         ),
 
-        const SizedBox(height: 40),
+        const SizedBox(height: 16),
 
         SizedBox(
-          width: double.infinity,
           height: 56,
           child: ElevatedButton(
             onPressed: _isLoading ? null : _handleLogin,
             child: _isLoading
-                ? const SizedBox(
+                ? SizedBox(
                     width: 24,
                     height: 24,
                     child: CircularProgressIndicator(
                       strokeWidth: 2.5,
-                      color: AppColors.secondary,
+                      color: AppColors.onPrimary,
                     ),
                   )
                 : const Text('Entrar', style: TextStyle(fontSize: 16)),
           ),
         ),
 
-        const SizedBox(height: 40),
+        const SizedBox(height: 28),
 
         Container(
-          width: double.infinity,
-          padding: const EdgeInsets.all(20),
+          padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: AppColors.surface,
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: AppColors.primary.withValues(alpha: 0.3)),
+            color: AppColors.primary.withValues(alpha: 0.06),
+            borderRadius: BorderRadius.circular(16),
           ),
           child: Row(
             children: [
               Icon(LucideIcons.info, size: 16, color: AppColors.primary),
-              const SizedBox(width: 8),
-              const Expanded(
+              const SizedBox(width: 10),
+              Expanded(
                 child: Text(
                   'A sua conta é criada pela administração da escola.',
                   style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
@@ -261,5 +302,4 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       ],
     );
   }
-
 }

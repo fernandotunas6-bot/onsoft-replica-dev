@@ -26,6 +26,7 @@ class ApiEndpoints {
   // Attendance
   static const attendance = '/api/attendance';
   static const attendanceSummary = '/api/attendance/summary';
+  static String attendanceStudent(String id) => '/api/attendance/student/$id';
 
   // Grades
   static const grades = '/api/grades';
@@ -39,6 +40,10 @@ class ApiEndpoints {
   static String report(String studentId, String termId) =>
       '/api/reports/$studentId/$termId';
 
+  // Timetable (horário semanal)
+  static const timetable = '/api/timetable';
+  static String timetableSlot(String id) => '/api/timetable/$id';
+
   // Calendar
   static const calendar = '/api/calendar';
 
@@ -51,6 +56,7 @@ class ApiEndpoints {
   // Users
   static const usersMe = '/api/users/me';
   static const usersRegisterTeacher = '/api/users/register-teacher';
+  static const usersTeachers = '/api/users/teachers';
   static String usersTeacher(String uid) => '/api/users/teachers/$uid';
   static const usersMeAcademicCalendar = '/api/users/me/academic-calendar';
   static const usersMePassword = '/api/users/me/password';

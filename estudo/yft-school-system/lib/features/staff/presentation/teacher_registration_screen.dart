@@ -211,7 +211,7 @@ class _TeacherRegistrationScreenState
         ),
       );
     } else {
-      child = const Icon(
+      child = Icon(
         LucideIcons.camera,
         size: 48,
         color: AppColors.primary,
@@ -241,14 +241,14 @@ class _TeacherRegistrationScreenState
             right: 2,
             child: Container(
               padding: const EdgeInsets.all(10),
-              decoration: const BoxDecoration(
+              decoration: BoxDecoration(
                 color: AppColors.primary,
                 shape: BoxShape.circle,
               ),
-              child: const Icon(
+              child: Icon(
                 LucideIcons.plus,
                 size: 18,
-                color: Colors.white,
+                color: AppColors.onPrimary,
               ),
             ),
           ),
@@ -274,7 +274,7 @@ class _TeacherRegistrationScreenState
         body: Center(
           child: Padding(
             padding: getResponsiveHorizontalPadding(context),
-            child: const Text(
+            child: Text(
               'A edição de professores ainda não está disponível neste ecrã.',
               textAlign: TextAlign.center,
               style: TextStyle(color: AppColors.textSecondary, fontSize: 16),
@@ -308,7 +308,7 @@ class _TeacherRegistrationScreenState
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                const Text(
+                Text(
                   'Dados pessoais',
                   style: TextStyle(
                     fontSize: 20,
@@ -419,7 +419,7 @@ class _TeacherRegistrationScreenState
                   ),
                 ),
                 const SizedBox(height: 36),
-                const Text(
+                Text(
                   'Dados profissionais',
                   style: TextStyle(
                     fontSize: 20,
@@ -457,7 +457,7 @@ class _TeacherRegistrationScreenState
                   ),
                 ),
                 const SizedBox(height: 36),
-                const Text(
+                Text(
                   'Dados oficiais',
                   style: TextStyle(
                     fontSize: 20,
@@ -484,7 +484,7 @@ class _TeacherRegistrationScreenState
                   ),
                 ),
                 const SizedBox(height: 36),
-                const Text(
+                Text(
                   'Contacto de emergência',
                   style: TextStyle(
                     fontSize: 20,
@@ -512,7 +512,7 @@ class _TeacherRegistrationScreenState
                   ),
                 ),
                 const SizedBox(height: 36),
-                const Text(
+                Text(
                   'Dados bancários',
                   style: TextStyle(
                     fontSize: 20,
@@ -553,12 +553,12 @@ class _TeacherRegistrationScreenState
                   child: ElevatedButton(
                     onPressed: _submitting ? null : _submit,
                     child: _submitting
-                        ? const SizedBox(
+                        ? SizedBox(
                             width: 22,
                             height: 22,
                             child: CircularProgressIndicator(
                               strokeWidth: 2,
-                              color: Colors.white,
+                              color: AppColors.onPrimary,
                             ),
                           )
                         : const Text(
@@ -611,13 +611,13 @@ class _TeacherRegistrationScreenState
       borderRadius: BorderRadius.circular(12),
       child: InputDecorator(
         decoration: const InputDecoration(
-          labelText: 'Date of birth (optional)',
+          labelText: 'Data de nascimento (opcional)',
           prefixIcon: Icon(LucideIcons.calendar, size: 22),
           contentPadding: _contentPadding,
         ),
         child: Text(
           _dob == null
-              ? 'Select date'
+              ? 'Escolher data'
               : '${_dob!.day}/${_dob!.month}/${_dob!.year}',
           style: TextStyle(
             fontSize: 16,

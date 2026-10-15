@@ -176,7 +176,7 @@ class _StudentAdmissionScreenState extends ConsumerState<StudentAdmissionScreen>
     final emailBit =
         (email != null && email.isNotEmpty) ? ' · $email' : '';
     return '${p.phone}$emailBit\n'
-        '${p.studentCount} child(ren) at this school';
+        '${p.studentCount} educando(s) nesta escola';
   }
 
   InputDecoration _decoration(String hint, IconData icon) {
@@ -399,7 +399,7 @@ class _StudentAdmissionScreenState extends ConsumerState<StudentAdmissionScreen>
           width: 128,
           height: 128,
           fit: BoxFit.cover,
-          errorBuilder: (_, _, _) => const Icon(
+          errorBuilder: (_, _, _) => Icon(
             LucideIcons.camera,
             size: 48,
             color: AppColors.primary,
@@ -407,7 +407,7 @@ class _StudentAdmissionScreenState extends ConsumerState<StudentAdmissionScreen>
         ),
       );
     } else {
-      child = const Icon(
+      child = Icon(
         LucideIcons.camera,
         size: 48,
         color: AppColors.primary,
@@ -437,14 +437,14 @@ class _StudentAdmissionScreenState extends ConsumerState<StudentAdmissionScreen>
             right: 2,
             child: Container(
               padding: const EdgeInsets.all(10),
-              decoration: const BoxDecoration(
+              decoration: BoxDecoration(
                 color: AppColors.primary,
                 shape: BoxShape.circle,
               ),
-              child: const Icon(
+              child: Icon(
                 LucideIcons.plus,
                 size: 18,
-                color: Colors.white,
+                color: AppColors.onPrimary,
               ),
             ),
           ),
@@ -538,7 +538,7 @@ class _StudentAdmissionScreenState extends ConsumerState<StudentAdmissionScreen>
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                const Text(
+                Text(
                   'Dados do aluno',
                   style: TextStyle(
                     fontSize: 20,
@@ -607,7 +607,7 @@ class _StudentAdmissionScreenState extends ConsumerState<StudentAdmissionScreen>
                   ),
                 ),
                 const SizedBox(height: 36),
-                const Text(
+                Text(
                   'Encarregado de educação',
                   style: TextStyle(
                     fontSize: 20,
@@ -670,7 +670,7 @@ class _StudentAdmissionScreenState extends ConsumerState<StudentAdmissionScreen>
                   ),
                 ),
                 const SizedBox(height: 36),
-                const Text(
+                Text(
                   'Contacto de emergência',
                   style: TextStyle(
                     fontSize: 20,
@@ -698,7 +698,7 @@ class _StudentAdmissionScreenState extends ConsumerState<StudentAdmissionScreen>
                   ),
                 ),
                 const SizedBox(height: 36),
-                const Text(
+                Text(
                   'Saúde',
                   style: TextStyle(
                     fontSize: 20,
@@ -731,12 +731,12 @@ class _StudentAdmissionScreenState extends ConsumerState<StudentAdmissionScreen>
                   child: ElevatedButton(
                     onPressed: _submitting ? null : _submit,
                     child: _submitting
-                        ? const SizedBox(
+                        ? SizedBox(
                             width: 22,
                             height: 22,
                             child: CircularProgressIndicator(
                               strokeWidth: 2,
-                              color: Colors.white,
+                              color: AppColors.onPrimary,
                             ),
                           )
                         : Text(
@@ -838,7 +838,7 @@ class _StudentAdmissionScreenState extends ConsumerState<StudentAdmissionScreen>
               ),
               leading: CircleAvatar(
                 backgroundColor: AppColors.primary.withValues(alpha: 0.15),
-                child: const Icon(
+                child: Icon(
                   LucideIcons.userCheck,
                   color: AppColors.primary,
                 ),
@@ -881,7 +881,7 @@ class _StudentAdmissionScreenState extends ConsumerState<StudentAdmissionScreen>
                 return ListTile(
                   title: Text(p.name),
                   subtitle: Text(
-                    '${p.phone} · ${p.studentCount} child(ren)',
+                    '${p.phone} · ${p.studentCount} educando(s)',
                     style: const TextStyle(fontSize: 13),
                   ),
                   onTap: () {
@@ -901,7 +901,7 @@ class _StudentAdmissionScreenState extends ConsumerState<StudentAdmissionScreen>
             child: Text(
               _parentSearchController.text.trim().isNotEmpty
                   ? 'Nenhum encarregado encontrado. Tente outra pesquisa ou use «Novo encarregado».'
-                  : 'No parents found yet. Use “New parent” to register one first; then you can link siblings here.',
+                  : 'Ainda não há encarregados. Use «Novo encarregado» para registar o primeiro; depois pode associar irmãos aqui.',
               style: TextStyle(
                 fontSize: 13,
                 color: AppColors.textSecondary.withValues(alpha: 0.95),
@@ -939,13 +939,13 @@ class _StudentAdmissionScreenState extends ConsumerState<StudentAdmissionScreen>
       borderRadius: BorderRadius.circular(12),
       child: InputDecorator(
         decoration: const InputDecoration(
-          labelText: 'Date of birth',
+          labelText: 'Data de nascimento',
           prefixIcon: Icon(LucideIcons.calendar, size: 22),
           contentPadding: _contentPadding,
         ),
         child: Text(
           _dob == null
-              ? 'Select date'
+              ? 'Escolher data'
               : '${_dob!.day}/${_dob!.month}/${_dob!.year}',
           style: TextStyle(
             fontSize: 16,
@@ -972,7 +972,7 @@ class _StudentAdmissionScreenState extends ConsumerState<StudentAdmissionScreen>
   Widget _buildClassDropdown(List<SchoolClass> sorted) {
     if (sorted.isEmpty) {
       return const Text(
-        'No classes found. Create a class before admitting students.',
+        'Ainda não há turmas. Crie uma turma antes de admitir alunos.',
         style: TextStyle(color: AppColors.error),
       );
     }
@@ -987,7 +987,7 @@ class _StudentAdmissionScreenState extends ConsumerState<StudentAdmissionScreen>
       value: viable,
       style: _fieldStyle,
       decoration: const InputDecoration(
-        labelText: 'Class',
+        labelText: 'Turma',
         prefixIcon: Icon(LucideIcons.bookOpen, size: 22),
         contentPadding: _contentPadding,
       ),
