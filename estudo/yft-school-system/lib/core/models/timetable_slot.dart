@@ -15,6 +15,7 @@ class TimetableSlot {
   final String endTime;
   final String? room;
   final String? teacherName;
+  final String? teacherUid;
 
   const TimetableSlot({
     required this.id,
@@ -28,6 +29,7 @@ class TimetableSlot {
     required this.endTime,
     this.room,
     this.teacherName,
+    this.teacherUid,
   });
 
   factory TimetableSlot.fromJson(Map<String, dynamic> j) => TimetableSlot(
@@ -42,6 +44,7 @@ class TimetableSlot {
     endTime: j['end_time'] as String,
     room: j['room'] as String?,
     teacherName: j['teacher_name'] as String?,
+    teacherUid: j['teacher_uid'] as String?,
   );
 
   /// Nome a mostrar: a disciplina, ou o título da pausa.

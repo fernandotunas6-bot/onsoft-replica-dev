@@ -8,6 +8,9 @@ import 'package:yft_school_system/core/widgets/section_widgets.dart';
 class SlotTile extends StatelessWidget {
   final TimetableSlot slot;
   final bool live;
+
+  /// Mostra a turma (nas aulas do professor, que atravessam turmas).
+  final bool showClass;
   final VoidCallback? onTap;
   final VoidCallback? onLongPress;
 
@@ -15,6 +18,7 @@ class SlotTile extends StatelessWidget {
     super.key,
     required this.slot,
     this.live = false,
+    this.showClass = false,
     this.onTap,
     this.onLongPress,
   });
@@ -25,8 +29,11 @@ class SlotTile extends StatelessWidget {
         ? AppColors.textSecondary
         : subjectColor(slot.subjectName ?? slot.label);
     final details = [
+      if (showClass && slot.className.isNotEmpty) slot.className,
       slot.caption,
-      if (slot.teacherName != null && slot.teacherName!.isNotEmpty)
+      if (!showClass &&
+          slot.teacherName != null &&
+          slot.teacherName!.isNotEmpty)
         slot.teacherName!,
     ].join(' · ');
 

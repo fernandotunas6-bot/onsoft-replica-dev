@@ -1,6 +1,7 @@
 import 'package:dio/dio.dart';
 import '../models/school_academic_calendar.dart';
 import '../models/teacher_profile.dart';
+import '../models/teacher_summary.dart';
 import '../models/user_profile.dart';
 import '../network/api_endpoints.dart';
 
@@ -41,6 +42,14 @@ class UserRepository {
     );
     final raw = response.data['data'] as Map<String, dynamic>;
     return SchoolAcademicCalendar.fromJson(raw);
+  }
+
+  Future<List<TeacherSummary>> getTeachers() async {
+    final response = await _dio.get(ApiEndpoints.usersTeachers);
+    final list = response.data['data'] as List;
+    return list
+        .map((e) => TeacherSummary.fromJson(e as Map<String, dynamic>))
+        .toList();
   }
 
   Future<TeacherProfile> getTeacherProfile(String uid) async {

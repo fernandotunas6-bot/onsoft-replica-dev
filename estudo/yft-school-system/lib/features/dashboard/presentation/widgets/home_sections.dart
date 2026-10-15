@@ -191,12 +191,17 @@ class UpcomingActivities extends ConsumerWidget {
 /// "Aula agora" (ou "Próxima aula" hoje), a partir do horário das turmas
 /// que o utilizador pode ver. Não aparece quando não há aulas hoje.
 class CurrentClassCard extends ConsumerWidget {
-  const CurrentClassCard({super.key});
+  /// Professor: só as suas aulas, com a turma no texto.
+  final bool mine;
+
+  const CurrentClassCard({super.key, this.mine = false});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final slots =
-        ref.watch(timetableProvider(null)).whenOrNull(data: (s) => s) ??
+        ref
+            .watch(mine ? myTimetableProvider : timetableProvider(null))
+            .whenOrNull(data: (s) => s) ??
         const <TimetableSlot>[];
     final now = DateTime.now();
     final nowMin = now.hour * 60 + now.minute;
@@ -249,7 +254,9 @@ class CurrentClassCard extends ConsumerWidget {
                     ),
                   ),
                   Text(
-                    slot.caption,
+                    mine && slot.className.isNotEmpty
+                        ? '${slot.className} · ${slot.caption}'
+                        : slot.caption,
                     style: TextStyle(
                       fontSize: 13,
                       color: AppColors.textSecondary,

@@ -45,6 +45,7 @@ class _AddSlotSheetState extends ConsumerState<_AddSlotSheet> {
   late int _weekday = widget.weekday;
   bool _isBreak = false;
   String? _subjectId;
+  String? _teacherUid;
   TimeOfDay _start = const TimeOfDay(hour: 8, minute: 0);
   TimeOfDay _end = const TimeOfDay(hour: 9, minute: 0);
   final _title = TextEditingController(text: 'Intervalo');
@@ -108,19 +109,25 @@ class _AddSlotSheetState extends ConsumerState<_AddSlotSheet> {
       _error = null;
     });
     try {
-      await ref.read(timetableRepositoryProvider).createSlot(
-        classId: _classId,
-        subjectId: _isBreak ? null : _subjectId,
-        title: _isBreak ? _title.text.trim() : null,
-        weekday: _weekday,
-        startTime: start,
-        endTime: end,
-        room: _room.text.trim().isEmpty ? null : _room.text.trim(),
-        teacherName:
-            _teacher.text.trim().isEmpty ? null : _teacher.text.trim(),
-      );
+      await ref
+          .read(timetableRepositoryProvider)
+          .createSlot(
+            classId: _classId,
+            subjectId: _isBreak ? null : _subjectId,
+            title: _isBreak ? _title.text.trim() : null,
+            weekday: _weekday,
+            startTime: start,
+            endTime: end,
+            room: _room.text.trim().isEmpty ? null : _room.text.trim(),
+            teacherUid: _isBreak ? null : _teacherUid,
+            teacherName:
+                _isBreak || _teacherUid != null || _teacher.text.trim().isEmpty
+                ? null
+                : _teacher.text.trim(),
+          );
       ref.invalidate(timetableProvider(_classId));
       ref.invalidate(timetableProvider(null));
+      ref.invalidate(myTimetableProvider);
       if (mounted) Navigator.of(context).pop();
     } on DioException catch (e) {
       setState(() {
@@ -236,10 +243,43 @@ class _AddSlotSheetState extends ConsumerState<_AddSlotSheet> {
               const SizedBox(height: 12),
               TextField(controller: _room, decoration: deco('Sala (opcional)')),
               const SizedBox(height: 12),
-              TextField(
-                controller: _teacher,
-                decoration: deco('Professor (opcional)'),
-              ),
+              // Com conta: escolhe-se da lista e o professor vê a aula no
+              // seu horário. Sem conta (substituto): escreve-se o nome.
+              ...ref
+                  .watch(teachersProvider)
+                  .maybeWhen(
+                    data: (teachers) => [
+                      DropdownButtonFormField<String?>(
+                        initialValue: _teacherUid,
+                        decoration: deco('Professor (opcional)'),
+                        items: [
+                          const DropdownMenuItem<String?>(
+                            value: null,
+                            child: Text('Sem conta / escrever nome'),
+                          ),
+                          for (final t in teachers)
+                            DropdownMenuItem<String?>(
+                              value: t.uid,
+                              child: Text(t.name),
+                            ),
+                        ],
+                        onChanged: (v) => setState(() => _teacherUid = v),
+                      ),
+                      if (_teacherUid == null) ...[
+                        const SizedBox(height: 12),
+                        TextField(
+                          controller: _teacher,
+                          decoration: deco('Nome do professor (opcional)'),
+                        ),
+                      ],
+                    ],
+                    orElse: () => [
+                      TextField(
+                        controller: _teacher,
+                        decoration: deco('Professor (opcional)'),
+                      ),
+                    ],
+                  ),
             ],
             if (_error != null) ...[
               const SizedBox(height: 12),

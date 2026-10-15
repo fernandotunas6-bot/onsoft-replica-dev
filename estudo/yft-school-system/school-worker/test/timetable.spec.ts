@@ -5,6 +5,7 @@ import type { AppEnv, User } from "../src/app-env";
 import classes from "../src/api/classes";
 import subjects from "../src/api/subjects";
 import timetable from "../src/api/timetable";
+import users from "../src/api/users";
 
 // As rotas reais, com o utilizador posto por um cabeçalho em vez do token
 // Firebase: o que se testa aqui são as regras de acesso e os dados.
@@ -37,7 +38,7 @@ beforeAll(async () => {
 	await env.DB.batch(
 		[
 			"INSERT INTO Schools (id, name) VALUES ('sch1', 'Escola Um'), ('sch2', 'Escola Dois')",
-			"INSERT INTO Users (uid, school_id, role, name) VALUES ('par', 'sch1', 'parent', 'Encarregado')",
+			"INSERT INTO Users (uid, school_id, role, name) VALUES ('par', 'sch1', 'parent', 'Encarregado'), ('tch', 'sch1', 'teacher', 'Carlos Mendes'), ('tch2', 'sch2', 'teacher', 'De Fora')",
 			"INSERT INTO Classes (id, school_id, class_name, level) VALUES ('c10', 'sch1', '10ª', 10), ('c11', 'sch1', '11ª', 11), ('x1', 'sch2', 'Outra', 1)",
 			"INSERT INTO Subjects (id, school_id, name) VALUES ('mat', 'sch1', 'Matemática'), ('his', 'sch1', 'História')",
 			"INSERT INTO SubjectClasses (id, school_id, subject_id, class_id) VALUES ('sc1', 'sch1', 'mat', 'c10'), ('sc2', 'sch1', 'his', 'c11')",
@@ -48,7 +49,7 @@ beforeAll(async () => {
 
 describe("horário", () => {
 	it("o admin cria tempos e recusa sobreposições", async () => {
-		expect((await post(admin, { class_id: "c10", subject_id: "mat", weekday: 1, start_time: "09:00", end_time: "10:30", room: "Sala 3" })).status).toBe(201);
+		expect((await post(admin, { class_id: "c10", subject_id: "mat", weekday: 1, start_time: "09:00", end_time: "10:30", room: "Sala 3", teacher_uid: "tch" })).status).toBe(201);
 		expect((await post(admin, { class_id: "c10", title: "Almoço", weekday: 1, start_time: "12:15", end_time: "13:30" })).status).toBe(201);
 		expect((await post(admin, { class_id: "c11", subject_id: "his", weekday: 1, start_time: "09:00", end_time: "10:00" })).status).toBe(201);
 		expect((await post(admin, { class_id: "c10", subject_id: "mat", weekday: 1, start_time: "10:00", end_time: "11:00" })).status).toBe(409);
@@ -87,6 +88,32 @@ describe("horário", () => {
 		const { data } = (await (await call(admin, "/timetable?class_id=c11")).json()) as { data: { id: string }[] };
 		expect((await call(stranger, `/timetable/${data[0].id}`, { method: "DELETE" })).status).toBe(404);
 		expect((await call(admin, `/timetable/${data[0].id}`, { method: "DELETE" })).status).toBe(200);
+	});
+});
+
+describe("professor do tempo", () => {
+	it("recusa professor de outra escola", async () => {
+		expect((await post(admin, { class_id: "c10", subject_id: "mat", weekday: 4, start_time: "08:00", end_time: "09:00", teacher_uid: "tch2" })).status).toBe(404);
+	});
+
+	it("?mine=1 devolve só as aulas do professor, com o nome dele", async () => {
+		const { data } = (await (await call(teacher, "/timetable?mine=1")).json()) as { data: { subject_name: string; teacher_name: string }[] };
+		expect(data.map((s) => s.subject_name)).toEqual(["Matemática"]);
+		expect(data[0].teacher_name).toBe("Carlos Mendes");
+	});
+
+	it("lista de professores só para o admin e só da escola", async () => {
+		const usersApp = new Hono<AppEnv>();
+		usersApp.use("*", async (c, next) => {
+			c.set("user", JSON.parse(c.req.header("X-Test-User")!) as User);
+			await next();
+		});
+		usersApp.route("/users", users);
+		const get = (u: User) => usersApp.request("/users/teachers", { headers: { "X-Test-User": JSON.stringify(u) } }, env);
+		const { data } = (await (await get(admin)).json()) as { data: { uid: string }[] };
+		expect(data.map((t) => t.uid)).toEqual(["tch"]);
+		expect((await get(teacher)).status).toBe(403);
+		expect((await get(parent)).status).toBe(403);
 	});
 });
 

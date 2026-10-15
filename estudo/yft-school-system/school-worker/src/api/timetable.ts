@@ -18,6 +18,7 @@ const slotSchema = z
     end_time: time,
     room: z.string().trim().max(40).optional(),
     teacher_name: z.string().trim().max(80).optional(),
+    teacher_uid: z.string().trim().min(1).optional(),
   })
   .refine((s) => s.subject_id || s.title, { message: 'subject_id or title is required' })
   .refine((s) => s.end_time > s.start_time, { message: 'end_time must be after start_time' });
@@ -31,6 +32,7 @@ const timetable = new Hono<AppEnv>();
 timetable.get('/', requireRoles('admin', 'teacher', 'parent'), async (c) => {
   const user = c.get('user');
   const requested = c.req.query('class_id')?.trim();
+  const mine = c.req.query('mine') === '1';
 
   let classIds: string[] | null = null;
   if (user.role === 'parent') {
@@ -44,19 +46,26 @@ timetable.get('/', requireRoles('admin', 'teacher', 'parent'), async (c) => {
     classIds = [requested];
   }
 
-  const filter = classIds ? `AND t.class_id IN (${classIds.map(() => '?').join(',')})` : '';
+  // ?mine=1: as aulas do próprio professor, em todas as turmas.
+  const byTeacher = mine && user.role === 'teacher';
+  const filter = [
+    classIds ? `AND t.class_id IN (${classIds.map(() => '?').join(',')})` : '',
+    byTeacher ? 'AND t.teacher_uid = ?' : '',
+  ].join(' ');
   const { results } = await c.env.DB.prepare(
     `
       SELECT
         t.id, t.class_id, c.class_name, t.subject_id, s.name AS subject_name,
-        t.title, t.weekday, t.start_time, t.end_time, t.room, t.teacher_name
+        t.title, t.weekday, t.start_time, t.end_time, t.room,
+        COALESCE(t.teacher_name, u.name) AS teacher_name, t.teacher_uid
       FROM TimetableSlots t
       JOIN Classes c ON c.id = t.class_id AND c.school_id = t.school_id
       LEFT JOIN Subjects s ON s.id = t.subject_id AND s.school_id = t.school_id
+      LEFT JOIN Users u ON u.uid = t.teacher_uid AND u.school_id = t.school_id
       WHERE t.school_id = ? ${filter}
       ORDER BY t.weekday, t.start_time, c.class_name
     `
-  ).bind(user.schoolId, ...(classIds ?? [])).all();
+  ).bind(user.schoolId, ...(classIds ?? []), ...(byTeacher ? [user.uid] : [])).all();
 
   return jsonOk(c, { data: results });
 });
@@ -81,6 +90,13 @@ timetable.post('/', requireAdmin, async (c) => {
     if (!subject) return jsonError(c, 'Subject not found', 404);
   }
 
+  if (slot.teacher_uid) {
+    const teacher = await c.env.DB.prepare(
+      "SELECT uid FROM Users WHERE uid = ? AND school_id = ? AND role = 'teacher'"
+    ).bind(slot.teacher_uid, user.schoolId).first();
+    if (!teacher) return jsonError(c, 'Teacher not found', 404);
+  }
+
   // Dois tempos da mesma turma não se podem sobrepor.
   const clash = await c.env.DB.prepare(
     `SELECT id FROM TimetableSlots
@@ -93,8 +109,8 @@ timetable.post('/', requireAdmin, async (c) => {
   const id = createPrefixedId('tts');
   await c.env.DB.prepare(
     `INSERT INTO TimetableSlots
-       (id, school_id, class_id, subject_id, title, weekday, start_time, end_time, room, teacher_name)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+       (id, school_id, class_id, subject_id, title, weekday, start_time, end_time, room, teacher_name, teacher_uid)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
   ).bind(
     id,
     user.schoolId,
@@ -106,6 +122,7 @@ timetable.post('/', requireAdmin, async (c) => {
     slot.end_time,
     slot.room ?? null,
     slot.teacher_name ?? null,
+    slot.teacher_uid ?? null,
   ).run();
 
   return jsonOk(c, { id, ...slot }, 201);

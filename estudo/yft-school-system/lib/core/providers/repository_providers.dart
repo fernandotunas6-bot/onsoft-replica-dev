@@ -4,6 +4,7 @@ import '../models/school_class.dart';
 import '../models/student.dart';
 import '../models/subject.dart';
 import '../models/teacher_profile.dart';
+import '../models/teacher_summary.dart';
 import '../models/timetable_slot.dart';
 import '../models/user_profile.dart';
 import '../models/paginated_response.dart';
@@ -105,4 +106,14 @@ final teacherProfileProvider =
 final timetableProvider =
     FutureProvider.family<List<TimetableSlot>, String?>((ref, classId) {
   return ref.read(timetableRepositoryProvider).getSlots(classId: classId);
+});
+
+/// As aulas do professor autenticado, em todas as turmas.
+final myTimetableProvider = FutureProvider<List<TimetableSlot>>((ref) {
+  return ref.read(timetableRepositoryProvider).getSlots(mine: true);
+});
+
+/// Professores da escola (só o admin pode pedir).
+final teachersProvider = FutureProvider<List<TeacherSummary>>((ref) {
+  return ref.read(userRepositoryProvider).getTeachers();
 });

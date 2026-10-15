@@ -35,6 +35,7 @@ class DashboardScreen extends ConsumerWidget {
             ref.invalidate(subjectsProvider(null));
             ref.invalidate(academicCalendarProvider);
             ref.invalidate(timetableProvider(null));
+            ref.invalidate(myTimetableProvider);
           },
           child: SingleChildScrollView(
             physics: const AlwaysScrollableScrollPhysics(),
@@ -243,6 +244,7 @@ class TeacherDashboard extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     return Column(
       children: [
+        const CurrentClassCard(mine: true),
         const UpcomingActivities(),
         const SizedBox(height: 24),
         ResponsiveGrid(

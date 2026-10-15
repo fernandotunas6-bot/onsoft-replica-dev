@@ -30,6 +30,9 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
   DateTime _selected = dayOnly(DateTime.now());
   String? _classId;
 
+  /// Professor: começa em "As minhas aulas"; escolher uma turma desliga.
+  bool _mine = true;
+
   DateTime get _weekStart =>
       _selected.subtract(Duration(days: _selected.weekday - 1));
 
@@ -47,6 +50,15 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
     final classId = classes.any((c) => c.id == _classId)
         ? _classId
         : classes.firstOrNull?.id;
+    final isTeacher = role == UserRole.teacher;
+    final mine = isTeacher && _mine;
+    final pills = [
+      if (isTeacher) 'As minhas aulas',
+      for (final c in classes) c.className,
+    ];
+    final pillIndex = mine
+        ? 0
+        : classes.indexWhere((c) => c.id == classId) + (isTeacher ? 1 : 0);
 
     return AppShell(
       tab: AppTab.calendar,
@@ -106,21 +118,27 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
               ),
               // Com mais de uma turma (admin, professor, vários educandos),
               // escolhe-se qual; com uma só, não há nada a escolher.
-              if (classes.length > 1)
+              if (pills.length > 1)
                 Padding(
                   padding: EdgeInsets.fromLTRB(pad.left, 12, 0, 0),
                   child: PillTabs(
-                    labels: [for (final c in classes) c.className],
-                    selected: classes.indexWhere((c) => c.id == classId),
-                    onSelected: (i) =>
-                        setState(() => _classId = classes[i].id),
+                    labels: pills,
+                    selected: pillIndex,
+                    onSelected: (i) => setState(() {
+                      if (isTeacher && i == 0) {
+                        _mine = true;
+                      } else {
+                        _mine = false;
+                        _classId = classes[i - (isTeacher ? 1 : 0)].id;
+                      }
+                    }),
                   ),
                 ),
               const SizedBox(height: 16),
               Expanded(
                 child: _tab == 0
-                    ? _agenda(pad, classId)
-                    : _timetable(pad, classId, isAdmin),
+                    ? _agenda(pad, mine ? null : classId, mine)
+                    : _timetable(pad, mine ? null : classId, isAdmin, mine),
               ),
             ],
           ),
@@ -129,13 +147,23 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
     );
   }
 
-  AsyncValue<List<TimetableSlot>> _slots(String? classId) => classId == null
+  AsyncValue<List<TimetableSlot>> _slots(String? classId, bool mine) => mine
+      ? ref.watch(myTimetableProvider)
+      : classId == null
       ? const AsyncValue.data(<TimetableSlot>[])
       : ref.watch(timetableProvider(classId));
 
-  Widget _agenda(EdgeInsets pad, String? classId) {
+  void _invalidateSlots(String? classId, bool mine) {
+    if (mine) {
+      ref.invalidate(myTimetableProvider);
+    } else if (classId != null) {
+      ref.invalidate(timetableProvider(classId));
+    }
+  }
+
+  Widget _agenda(EdgeInsets pad, String? classId, bool mine) {
     final eventsAsync = ref.watch(schoolEventsProvider);
-    final slotsAsync = _slots(classId);
+    final slotsAsync = _slots(classId, mine);
     final today = dayOnly(DateTime.now());
     final days = [for (var i = 0; i < 7; i++) _weekStart.add(Duration(days: i))];
     final eventDays =
@@ -198,7 +226,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
             onRefresh: () async {
               ref.invalidate(academicCalendarProvider);
               ref.invalidate(parentNoticesProvider);
-              if (classId != null) ref.invalidate(timetableProvider(classId));
+              _invalidateSlots(classId, mine);
               await ref.read(schoolEventsProvider.future);
             },
             child: Builder(
@@ -236,6 +264,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                         padding: const EdgeInsets.only(bottom: 10),
                         child: SlotTile(
                           slot: s,
+                          showClass: mine,
                           live: _selected == today &&
                               nowMin >= s.startMinutes &&
                               nowMin < s.endMinutes,
@@ -272,15 +301,10 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
     );
   }
 
-  Widget _timetable(EdgeInsets pad, String? classId, bool isAdmin) {
-    final slotsAsync = _slots(classId);
+  Widget _timetable(EdgeInsets pad, String? classId, bool isAdmin, bool mine) {
+    final slotsAsync = _slots(classId, mine);
     return RefreshIndicator(
-      onRefresh: () async {
-        if (classId != null) {
-          ref.invalidate(timetableProvider(classId));
-          await ref.read(timetableProvider(classId).future);
-        }
-      },
+      onRefresh: () async => _invalidateSlots(classId, mine),
       child: slotsAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (_, _) => ListView(
@@ -289,7 +313,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
               icon: LucideIcons.wifiOff,
               message: 'Não foi possível carregar o horário.',
               action: TextButton(
-                onPressed: () => ref.invalidate(timetableProvider(classId)),
+                onPressed: () => _invalidateSlots(classId, mine),
                 child: const Text('Tentar de novo'),
               ),
             ),
@@ -301,7 +325,9 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
               children: [
                 EmptyHint(
                   icon: LucideIcons.clock,
-                  message: classId == null
+                  message: mine
+                      ? 'Ainda não tem aulas atribuídas no horário.'
+                      : classId == null
                       ? 'Ainda não há turmas associadas a esta conta.'
                       : isAdmin
                       ? 'Esta turma ainda não tem horário.\n'
@@ -338,6 +364,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                     padding: const EdgeInsets.only(bottom: 10),
                     child: SlotTile(
                       slot: s,
+                      showClass: mine,
                       onLongPress: isAdmin ? () => _confirmDelete(s) : null,
                     ),
                   ),
@@ -385,6 +412,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
       await ref.read(timetableRepositoryProvider).deleteSlot(s.id);
       ref.invalidate(timetableProvider(s.classId));
       ref.invalidate(timetableProvider(null));
+      ref.invalidate(myTimetableProvider);
     } catch (_) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(

@@ -129,6 +129,17 @@ users.get('/me', requireRoles('admin', 'teacher', 'parent'), async (c) => {
   });
 });
 
+/** Professores da escola: só os dados de contacto, sem os pessoais. */
+users.get('/teachers', requireAdmin, async (c) => {
+  const user = c.get('user');
+  const { results } = await c.env.DB.prepare(
+    `SELECT uid, name, email, phone, staff_id, photo_url, subjects_text
+     FROM Users WHERE school_id = ? AND role = 'teacher'
+     ORDER BY name COLLATE NOCASE`
+  ).bind(user.schoolId).all();
+  return jsonOk(c, { data: results });
+});
+
 users.get('/teachers/:targetUid', requireRoles('admin', 'teacher'), async (c) => {
   const user = c.get('user');
   const targetUid = c.req.param('targetUid');

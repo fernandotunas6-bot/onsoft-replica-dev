@@ -8,10 +8,11 @@ class TimetableRepository {
 
   TimetableRepository(this._dio);
 
-  Future<List<TimetableSlot>> getSlots({String? classId}) async {
+  /// [mine]: só as aulas do professor autenticado, em todas as turmas.
+  Future<List<TimetableSlot>> getSlots({String? classId, bool mine = false}) async {
     final response = await _dio.get(
       ApiEndpoints.timetable,
-      queryParameters: {'class_id': ?classId},
+      queryParameters: {'class_id': ?classId, if (mine) 'mine': '1'},
     );
     final list = response.data['data'] as List;
     return list
@@ -28,6 +29,7 @@ class TimetableRepository {
     required String endTime,
     String? room,
     String? teacherName,
+    String? teacherUid,
   }) async {
     await _dio.post(
       ApiEndpoints.timetable,
@@ -40,6 +42,7 @@ class TimetableRepository {
         'end_time': endTime,
         'room': ?room,
         'teacher_name': ?teacherName,
+        'teacher_uid': ?teacherUid,
       },
     );
   }
