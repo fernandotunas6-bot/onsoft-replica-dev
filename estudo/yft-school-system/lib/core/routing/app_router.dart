@@ -161,7 +161,9 @@ final appRouter = GoRouter(
     ),
     GoRoute(
       path: '/result-card',
-      builder: (context, state) => const ResultCardScreen(),
+      builder: (context, state) => ResultCardScreen(
+        initialWardId: state.extra is String ? state.extra as String : null,
+      ),
     ),
     GoRoute(
       path: '/payment-history',

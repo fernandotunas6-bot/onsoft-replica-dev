@@ -1,6 +1,6 @@
 import { Hono } from 'hono';
 import type { AppEnv } from '../app-env';
-import { requireAdminOrTeacher } from '../lib/auth-guards';
+import { requireAdminOrTeacher, requireRoles } from '../lib/auth-guards';
 import { createPrefixedId } from '../lib/id';
 import { jsonError, jsonOk } from '../lib/response';
 import { z } from 'zod';
@@ -27,7 +27,8 @@ async function schoolAllowsTeacherGradeEdits(
   return Boolean(row?.teacher_can_edit_results);
 }
 
-grades.get('/', requireAdminOrTeacher, async (c) => {
+// O encarregado lê as notas (boletim) dos seus educandos activos.
+grades.get('/', requireRoles('admin', 'teacher', 'parent'), async (c) => {
   const user = c.get('user');
   const studentId = c.req.query('student_id')?.trim();
   const term = c.req.query('term')?.trim();
@@ -35,9 +36,13 @@ grades.get('/', requireAdminOrTeacher, async (c) => {
     return jsonError(c, 'student_id and term are required', 400);
   }
 
-  const student = await c.env.DB.prepare(
-    'SELECT id FROM Students WHERE id = ? AND school_id = ? LIMIT 1',
-  ).bind(studentId, user.schoolId).first<{ id: string }>();
+  const student = user.role === 'parent'
+    ? await c.env.DB.prepare(
+      'SELECT id FROM Students WHERE id = ? AND school_id = ? AND parent_uid = ? AND is_active = 1 LIMIT 1',
+    ).bind(studentId, user.schoolId, user.uid).first<{ id: string }>()
+    : await c.env.DB.prepare(
+      'SELECT id FROM Students WHERE id = ? AND school_id = ? LIMIT 1',
+    ).bind(studentId, user.schoolId).first<{ id: string }>();
   if (!student) {
     return jsonError(c, 'Student not found', 404);
   }

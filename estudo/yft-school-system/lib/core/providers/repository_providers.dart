@@ -117,3 +117,11 @@ final myTimetableProvider = FutureProvider<List<TimetableSlot>>((ref) {
 final teachersProvider = FutureProvider<List<TeacherSummary>>((ref) {
   return ref.read(userRepositoryProvider).getTeachers();
 });
+
+/// Boletim de um aluno num período ("Term 1"…).
+final reportCardProvider = FutureProvider.family<List<ReportLine>,
+    ({String studentId, String term})>((ref, args) {
+  return ref
+      .read(gradesRepositoryProvider)
+      .getReportCard(studentId: args.studentId, term: args.term);
+});

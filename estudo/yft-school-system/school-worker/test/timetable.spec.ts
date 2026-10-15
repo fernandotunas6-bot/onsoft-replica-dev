@@ -6,6 +6,7 @@ import classes from "../src/api/classes";
 import subjects from "../src/api/subjects";
 import timetable from "../src/api/timetable";
 import users from "../src/api/users";
+import grades from "../src/api/grades";
 
 // As rotas reais, com o utilizador posto por um cabeçalho em vez do token
 // Firebase: o que se testa aqui são as regras de acesso e os dados.
@@ -17,6 +18,7 @@ app.use("*", async (c, next) => {
 app.route("/classes", classes);
 app.route("/subjects", subjects);
 app.route("/timetable", timetable);
+app.route("/grades", grades);
 
 const admin: User = { uid: "adm", schoolId: "sch1", role: "admin" };
 const teacher: User = { uid: "tch", schoolId: "sch1", role: "teacher" };
@@ -42,7 +44,9 @@ beforeAll(async () => {
 			"INSERT INTO Classes (id, school_id, class_name, level) VALUES ('c10', 'sch1', '10ª', 10), ('c11', 'sch1', '11ª', 11), ('x1', 'sch2', 'Outra', 1)",
 			"INSERT INTO Subjects (id, school_id, name) VALUES ('mat', 'sch1', 'Matemática'), ('his', 'sch1', 'História')",
 			"INSERT INTO SubjectClasses (id, school_id, subject_id, class_id) VALUES ('sc1', 'sch1', 'mat', 'c10'), ('sc2', 'sch1', 'his', 'c11')",
-			"INSERT INTO Students (id, school_id, class_id, parent_uid, name) VALUES ('st1', 'sch1', 'c10', 'par', 'Ana')",
+			"INSERT INTO Students (id, school_id, class_id, parent_uid, name) VALUES ('st1', 'sch1', 'c10', 'par', 'Ana'), ('st2', 'sch1', 'c11', NULL, 'Outro')",
+			"INSERT INTO Students (id, school_id, class_id, parent_uid, name, is_active) VALUES ('st3', 'sch1', 'c10', 'par', 'Inactivo', 0)",
+			"INSERT INTO Enrollments (id, school_id, student_id, subject_id, term_id, class_score, exam_score) VALUES ('e1', 'sch1', 'st1', 'mat', 'Term 1', 24, 58), ('e2', 'sch1', 'st2', 'his', 'Term 1', 20, 40)",
 		].map((sql) => env.DB.prepare(sql)),
 	);
 });
@@ -133,5 +137,26 @@ describe("disciplinas e turmas para o encarregado", () => {
 	it("admin continua a ver tudo", async () => {
 		const { data } = (await (await call(admin, "/subjects")).json()) as { data: unknown[] };
 		expect(data.length).toBe(2);
+	});
+});
+
+describe("boletim do encarregado", () => {
+	const get = (u: User, id: string) => call(u, `/grades?student_id=${id}&term=Term%201`);
+
+	it("vê as notas do educando", async () => {
+		const res = await get(parent, "st1");
+		expect(res.status).toBe(200);
+		const { data } = (await res.json()) as { data: { subject_name: string; class_score: number; exam_score: number }[] };
+		expect(data).toEqual([expect.objectContaining({ subject_name: "Matemática", class_score: 24, exam_score: 58 })]);
+	});
+
+	it("não vê alunos que não são seus, nem educandos inactivos", async () => {
+		expect((await get(parent, "st2")).status).toBe(404);
+		expect((await get(parent, "st3")).status).toBe(404);
+	});
+
+	it("o professor continua a ver qualquer aluno da escola", async () => {
+		expect((await get(teacher, "st2")).status).toBe(200);
+		expect((await get(stranger, "st1")).status).toBe(404);
 	});
 });

@@ -178,13 +178,7 @@ class WardProfileScreen extends ConsumerWidget {
                       icon: LucideIcons.fileSpreadsheet,
                       title: 'Boletins\nescolares',
                       color: AppColors.primary,
-                      onTap: () {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('A abrir os boletins…'),
-                          ),
-                        );
-                      },
+                      onTap: () => context.push('/result-card', extra: w.id),
                     ),
                     _actionCard(
                       icon: LucideIcons.receipt,
@@ -208,13 +202,7 @@ class WardProfileScreen extends ConsumerWidget {
                       icon: LucideIcons.heartPulse,
                       title: 'Ficha\nmédica',
                       color: AppColors.error,
-                      onTap: () {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('A abrir a ficha médica…'),
-                          ),
-                        );
-                      },
+                      onTap: () => _showMedical(context, w),
                     ),
                   ],
                 ),
@@ -255,4 +243,48 @@ class WardProfileScreen extends ConsumerWidget {
       ),
     );
   }
+}
+
+/// Ficha médica: o que a escola registou na admissão.
+void _showMedical(BuildContext context, Student w) {
+  String v(String? s) => (s == null || s.trim().isEmpty) ? '—' : s.trim();
+  Widget row(String label, String value) => Padding(
+    padding: const EdgeInsets.only(bottom: 14),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(label, style: TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+        const SizedBox(height: 2),
+        Text(value, style: TextStyle(fontSize: 15, color: AppColors.textPrimary)),
+      ],
+    ),
+  );
+  showModalBottomSheet<void>(
+    context: context,
+    showDragHandle: true,
+    builder: (ctx) => SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(24, 0, 24, 16),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Ficha médica',
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600, color: AppColors.textPrimary),
+            ),
+            const SizedBox(height: 16),
+            row('Grupo sanguíneo', v(w.bloodGroup)),
+            row('Notas médicas', v(w.medicalNotes)),
+            row('Contacto de emergência', v(w.emergencyContactName)),
+            row('Telefone de emergência', v(w.emergencyContactPhone)),
+            Text(
+              'Para corrigir estes dados, fale com a secretaria da escola.',
+              style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
+            ),
+          ],
+        ),
+      ),
+    ),
+  );
 }
