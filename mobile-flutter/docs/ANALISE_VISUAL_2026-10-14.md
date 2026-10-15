@@ -23,17 +23,12 @@ Validado neste ramo, com Flutter 3.35.7: `flutter analyze` sem avisos,
 39 testes Dart, `flutter build web` da demonstração; Node: typecheck,
 96 testes de contratos e 39 testes do backend.
 
-## Capturas
+## Referência
 
-Demonstração (`lib/main_demo.dart`), Chromium 390×844.
-
-- Entrada (abertura do S, apresentação, escola): `visual/00-entrada.jpg`
-- Aluno, claro: `visual/01-aluno-claro.jpg`. Aparecem, por ordem: Início,
-  Disciplinas, Calendário, Mensagens, Mais, Turmas, Tarefas, Avisos, Propinas,
-  Notas, Documentos, Transporte e Aparência.
-- Aluno, escuro: `visual/02-aluno-escuro.jpg`
-- Professor, claro: `visual/03-professor-claro.jpg`
-- Referência: `visual/maquetas-referencia.jpg` e `visual/wordmark-siga-plus.jpg`
+As maquetas e o wordmark fornecidos estão em `visual/maquetas-referencia.jpg`
+e `visual/wordmark-siga-plus.jpg`. A comparação abaixo foi feita a partir dos
+ecrãs da demonstração do ramo de origem; as capturas desses ecrãs foram
+retiradas por terem dados fictícios.
 
 ## Comparação com as maquetas
 
@@ -84,37 +79,10 @@ interruptores) e barra inferior com cinco separadores.
      com os dados do aluno (dados da demonstração).
    - O sino do Início não mostra o ponto vermelho da maqueta.
 
-## Publicar para ver no browser / telemóvel (Cloudflare)
+## Publicação
 
-A demonstração não precisa de servidor nem de chaves: é publicada num
-projecto Pages próprio, **`siga-plus-flutter-demo`**. Não altera
-`m.portal-siga.com`, o Worker do domínio nem o projecto `siga-plus-mobile-v4`.
-As páginas levam `noindex` (`web/_headers`).
-
-**Da máquina local** (Flutter 3.35.7 e Node instalados):
-
-```sh
-cd mobile-flutter
-export CLOUDFLARE_API_TOKEN=...   # token com «Cloudflare Pages: Edit»
-export CLOUDFLARE_ACCOUNT_ID=701800d01d428c5141fa1fdb60ee01ae
-npm run publish:demo              # compila e publica; imprime o URL
-```
-
-O URL fica `https://<ramo>.siga-plus-flutter-demo.pages.dev`. Na primeira
-vez, o script cria o projecto.
-
-**Automaticamente pelo GitHub:** basta acrescentar os segredos
-`CLOUDFLARE_API_TOKEN` e `CLOUDFLARE_ACCOUNT_ID` em Settings → Secrets and
-variables → Actions. Depois, cada push para `main`,
-`feat/siga-flutter-motion-2026` ou `claude/flutter-**` publica a demonstração
-(job `demo-web`). O endereço aparece no resumo da execução. Sem os segredos,
-o job não publica e diz porquê.
-
-**Fluxo sugerido:** trabalhar localmente, fazer commit e push para este ramo,
-esperar a CI (analyze, testes e build) e abrir o URL no telemóvel.
-
-**A app institucional** (Supabase e dados reais) não vai para este projecto.
-A API `/api/mobile-v4` só é servida pelo Worker de `m.portal-siga.com` e
-recusa outras origens. Promovê-la segue o processo do Worker do domínio:
-`docs/mobile-v4-history/CLOUDFLARE_PAGES.md`, preview fixo e depois
-`PAGES_ORIGIN`.
+A publicação da demonstração (dados fictícios) foi retirada a pedido: sem
+script, sem job na CI e sem projecto Pages. Só se publica a app institucional,
+com dados reais, pelo processo do Worker do domínio:
+`docs/mobile-v4-history/CLOUDFLARE_PAGES.md` (preview fixo, depois
+`PAGES_ORIGIN`).
