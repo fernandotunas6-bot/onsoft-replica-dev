@@ -40,6 +40,14 @@ class ReportLine {
   double get total => classScore + examScore;
 }
 
+/// Boletim de um período: o ano lectivo a que se refere e as linhas.
+class ReportCard {
+  final String academicYear;
+  final List<ReportLine> lines;
+
+  const ReportCard(this.academicYear, this.lines);
+}
+
 class GradesRepository {
   final Dio _dio;
 
@@ -70,7 +78,7 @@ class GradesRepository {
   }
 
   /// Notas de um aluno num período, com o nome de cada disciplina.
-  Future<List<ReportLine>> getReportCard({
+  Future<ReportCard> getReportCard({
     required String studentId,
     required String term,
   }) async {
@@ -79,7 +87,7 @@ class GradesRepository {
       queryParameters: {'student_id': studentId, 'term': term},
     );
     final list = response.data['data'] as List<dynamic>;
-    return [
+    return ReportCard(response.data['academic_year'] as String? ?? '', [
       for (final raw in list.cast<Map<String, dynamic>>())
         ReportLine(
           subjectId: raw['subject_id'] as String,
@@ -87,7 +95,7 @@ class GradesRepository {
           classScore: (raw['class_score'] as num?)?.toDouble() ?? 0,
           examScore: (raw['exam_score'] as num?)?.toDouble() ?? 0,
         ),
-    ];
+    ]);
   }
 
   Future<void> saveGrades({

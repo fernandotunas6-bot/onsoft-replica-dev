@@ -124,7 +124,7 @@ final teachersProvider = FutureProvider<List<TeacherSummary>>((ref) {
 });
 
 /// Boletim de um aluno num período ("Term 1"…).
-final reportCardProvider = FutureProvider.family<List<ReportLine>,
+final reportCardProvider = FutureProvider.family<ReportCard,
     ({String studentId, String term})>((ref, args) {
   return ref
       .read(gradesRepositoryProvider)

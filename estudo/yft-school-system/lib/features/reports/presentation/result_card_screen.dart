@@ -155,10 +155,24 @@ class _ReportBody extends ConsumerWidget {
                 ),
               ),
             ],
-            data: (lines) {
+            data: (card) {
+              final lines = card.lines;
+              final year = card.academicYear.isEmpty
+                  ? null
+                  : Padding(
+                      padding: const EdgeInsets.only(bottom: 12),
+                      child: Text(
+                        'Ano lectivo ${card.academicYear}',
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: AppColors.textSecondary,
+                        ),
+                      ),
+                    );
               if (lines.isEmpty) {
-                return const [
-                  EmptyHint(
+                return [
+                  ?year,
+                  const EmptyHint(
                     icon: LucideIcons.fileText,
                     message: 'Ainda não há notas lançadas neste período.',
                   ),
@@ -167,6 +181,7 @@ class _ReportBody extends ConsumerWidget {
               final average =
                   lines.fold<double>(0, (s, l) => s + l.total) / lines.length;
               return [
+                ?year,
                 _AverageCard(average: average, count: lines.length),
                 const SizedBox(height: 16),
                 for (final l in lines)

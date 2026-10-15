@@ -10,6 +10,7 @@ const grades = new Hono<AppEnv>();
 const putBodySchema = z.object({
   student_id: z.string().trim().min(1),
   term: z.string().trim().min(1),
+  academic_year: z.string().trim().max(20).optional(),
   grades: z.array(z.object({
     subject_id: z.string().trim().min(1),
     class_score: z.number().finite().min(0).max(100),
@@ -28,6 +29,22 @@ async function schoolAllowsTeacherGradeEdits(
 }
 
 // O encarregado lê as notas (boletim) dos seus educandos activos.
+/**
+ * Ano lectivo pedido, ou o actual da escola (calendário académico).
+ * Sem calendário, '' — o mesmo valor que as notas antigas receberam.
+ */
+async function resolveAcademicYear(
+  db: D1Database,
+  schoolId: string,
+  requested: string | undefined,
+): Promise<string> {
+  if (requested) return requested;
+  const row = await db.prepare(
+    "SELECT json_extract(academic_calendar_json, '$.academic_year') AS year FROM Schools WHERE id = ? LIMIT 1",
+  ).bind(schoolId).first<{ year: string | null }>();
+  return row?.year ?? '';
+}
+
 grades.get('/', requireRoles('admin', 'teacher', 'parent'), async (c) => {
   const user = c.get('user');
   const studentId = c.req.query('student_id')?.trim();
@@ -47,6 +64,12 @@ grades.get('/', requireRoles('admin', 'teacher', 'parent'), async (c) => {
     return jsonError(c, 'Student not found', 404);
   }
 
+  const academicYear = await resolveAcademicYear(
+    c.env.DB,
+    user.schoolId,
+    c.req.query('academic_year')?.trim() || undefined,
+  );
+
   const { results } = await c.env.DB.prepare(
     `
     SELECT
@@ -54,15 +77,16 @@ grades.get('/', requireRoles('admin', 'teacher', 'parent'), async (c) => {
       e.term_id,
       e.class_score,
       e.exam_score,
+      e.academic_year,
       s.name AS subject_name
     FROM Enrollments e
     JOIN Subjects s ON s.id = e.subject_id AND s.school_id = e.school_id
-    WHERE e.school_id = ? AND e.student_id = ? AND e.term_id = ?
+    WHERE e.school_id = ? AND e.student_id = ? AND e.term_id = ? AND e.academic_year = ?
     ORDER BY s.name
     `,
-  ).bind(user.schoolId, studentId, term).all();
+  ).bind(user.schoolId, studentId, term, academicYear).all();
 
-  return jsonOk(c, { data: results });
+  return jsonOk(c, { data: results, academic_year: academicYear });
 });
 
 grades.put('/', requireAdminOrTeacher, async (c) => {
@@ -84,6 +108,7 @@ grades.put('/', requireAdminOrTeacher, async (c) => {
   }
 
   const { student_id: studentId, term, grades: rows } = parsed.data;
+  const academicYear = await resolveAcademicYear(c.env.DB, user.schoolId, parsed.data.academic_year);
 
   const student = await c.env.DB.prepare(
     'SELECT id FROM Students WHERE id = ? AND school_id = ? LIMIT 1',
@@ -105,10 +130,10 @@ grades.put('/', requireAdminOrTeacher, async (c) => {
     const existing = await c.env.DB.prepare(
       `
       SELECT id FROM Enrollments
-      WHERE school_id = ? AND student_id = ? AND subject_id = ? AND term_id = ?
+      WHERE school_id = ? AND student_id = ? AND subject_id = ? AND term_id = ? AND academic_year = ?
       LIMIT 1
       `,
-    ).bind(user.schoolId, studentId, row.subject_id, term).first<{ id: string }>();
+    ).bind(user.schoolId, studentId, row.subject_id, term, academicYear).first<{ id: string }>();
 
     if (existing) {
       await c.env.DB.prepare(
@@ -118,8 +143,8 @@ grades.put('/', requireAdminOrTeacher, async (c) => {
       const id = createPrefixedId('enr');
       await c.env.DB.prepare(
         `
-        INSERT INTO Enrollments (id, school_id, student_id, subject_id, term_id, class_score, exam_score)
-        VALUES (?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO Enrollments (id, school_id, student_id, subject_id, term_id, class_score, exam_score, academic_year)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
         `,
       ).bind(
         id,
@@ -129,11 +154,12 @@ grades.put('/', requireAdminOrTeacher, async (c) => {
         term,
         row.class_score,
         row.exam_score,
+        academicYear,
       ).run();
     }
   }
 
-  return jsonOk(c, { ok: true, updated: rows.length });
+  return jsonOk(c, { ok: true, updated: rows.length, academic_year: academicYear });
 });
 
 export default grades;
