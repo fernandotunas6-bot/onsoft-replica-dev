@@ -256,13 +256,7 @@ class _ClassSetupScreenState extends ConsumerState<ClassSetupScreen> {
                       SizedBox(
                         width: double.infinity,
                         child: OutlinedButton.icon(
-                          onPressed: () {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text('Gerir em Disciplinas'),
-                              ),
-                            );
-                          },
+                          onPressed: () => context.push('/subjects'),
                           icon: const Icon(LucideIcons.book),
                           label: const Text('Gerir disciplinas'),
                         ),

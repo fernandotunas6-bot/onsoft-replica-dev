@@ -4,6 +4,30 @@ Ler isto **antes** de alterar código. Ecossistema (5 apps):
 [ARCHITECTURE_HARMONIZATION.md](./ARCHITECTURE_HARMONIZATION.md).
 Depois abrir o skill do módulo em `.cursor/skills/`.
 
+## App Flutter `estudo/yft-school-system` — SIGA Plus (2026-10-15)
+
+Branch `ccr-797179ec-129c5n`. App Flutter (Firebase Auth + worker Cloudflare D1 em
+`estudo/yft-school-system/school-worker`), **não** usa o Supabase do SIGA.
+
+- Visual do mockup SIGA Plus (ecrãs 1–12): paleta em `lib/core/theme/app_colors.dart`
+  (já não é `const`; cor principal e modo escuro em Aparência, `onPrimary` calculado para AA),
+  abertura + apresentação, login com escolas já usadas no aparelho, barra Início /
+  Disciplinas / Calendário / Mensagens / Mais. Detalhe: `estudo/yft-school-system/docs/IDENTIDADE_VISUAL.md`.
+- Tudo em português; períodos e sexo continuam gravados em inglês («Term 1», «Male») e são
+  mostrados por `lib/core/utils/term_label.dart`. Moeda por omissão: Kz.
+- Funcionalidades que **fingiam** gravar e agora gravam: presenças, comunicados (com público:
+  todos/encarregados/professores/turma), dados pessoais, palavra-passe (Firebase). Notificações
+  push/e-mail/SMS **não existem** no worker — o ecrã diz «Em breve».
+- Novas no worker: horário (`/api/timetable`, professor por tempo), presenças
+  (`/api/attendance`), boletim e disciplinas/turmas para o encarregado (só educandos activos),
+  lista de professores, `PATCH /api/users/me`, notas por ano lectivo.
+- Testes: `cd estudo/yft-school-system/school-worker && npx vitest run` (37, D1 real com
+  migrações). App: `flutter analyze` + `flutter test` com Flutter 3.41 (o 3.47 parte o `lucide_icons`).
+- **Por aplicar (dono):** migrações D1 `0012`→`0016` e `npx wrangler deploy`. A `0015` atribui as
+  notas existentes ao ano lectivo actual de cada escola e troca a chave única — fazer
+  `npx wrangler d1 export school_management_db --remote --output=backup.sql` antes.
+  Sem o deploy, Horários, Faltas, Boletins e Mensagens de professores/admin dão erro.
+
 ## Catálogo educacional global (2026-10-10)
 
 Detalhe e cobertura real: [docs/education-catalog/README.md](../education-catalog/README.md).
