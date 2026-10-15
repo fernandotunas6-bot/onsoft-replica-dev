@@ -286,15 +286,30 @@ class _AcademicCalendarScreenState
                           horizontal: 16,
                         ),
                       ),
-                      items: const [
-                        DropdownMenuItem(
+                      items: [
+                        const DropdownMenuItem(
+                          value: 'Kz',
+                          child: Text('Kwanza (Kz)'),
+                        ),
+                        const DropdownMenuItem(
                           value: 'GH₵',
                           child: Text('Ghana Cedis (GH₵)'),
                         ),
-                        DropdownMenuItem(
+                        const DropdownMenuItem(
                           value: '\$',
                           child: Text('US Dollars (\$)'),
                         ),
+                        // Uma moeda gravada que não esteja na lista deixava o
+                        // campo vazio: mostra-se tal como está.
+                        if (!const {
+                          'Kz',
+                          'GH₵',
+                          '\$',
+                        }.contains(academicYear.currency))
+                          DropdownMenuItem(
+                            value: academicYear.currency,
+                            child: Text(academicYear.currency),
+                          ),
                       ],
                       onChanged: (val) {
                         if (val != null) {

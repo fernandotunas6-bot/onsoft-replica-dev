@@ -30,6 +30,13 @@ jobs:
           name: yft-flutter-web
           path: estudo/yft-school-system/build/web/
           retention-days: 14
+      # Demonstração com dados fictícios (sem Firebase nem API).
+      - run: flutter build web --release --no-web-resources-cdn -t lib/main_demo.dart -o build/demo
+      - uses: actions/upload-artifact@v4
+        with:
+          name: yft-flutter-demo
+          path: estudo/yft-school-system/build/demo/
+          retention-days: 14
   worker:
     runs-on: ubuntu-latest
     defaults:

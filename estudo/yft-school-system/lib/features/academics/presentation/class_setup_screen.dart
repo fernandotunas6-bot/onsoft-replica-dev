@@ -202,7 +202,7 @@ class _ClassSetupScreenState extends ConsumerState<ClassSetupScreen> {
                       if (widget.schoolClass?.hasFeeStructure == true) ...[
                         const SizedBox(height: 12),
                         Text(
-                          'Current structure: GH₵ ${widget.schoolClass!.feeAmount.toStringAsFixed(2)} / ${widget.schoolClass!.feeCollectionCycle == 'year' ? 'year' : 'term'}',
+                          'Current structure: ${ref.watch(academicYearProvider).currency} ${widget.schoolClass!.feeAmount.toStringAsFixed(2)} / ${widget.schoolClass!.feeCollectionCycle == 'year' ? 'year' : 'term'}',
                           textAlign: TextAlign.center,
                           style: const TextStyle(
                             fontWeight: FontWeight.w600,
@@ -356,8 +356,9 @@ class _ClassSetupScreenState extends ConsumerState<ClassSetupScreen> {
                     const SizedBox(height: 16),
                     TextField(
                       controller: amountController,
-                      decoration: const InputDecoration(
-                        hintText: 'Amount (GH₵)',
+                      decoration: InputDecoration(
+                        hintText:
+                            'Amount (${ref.watch(academicYearProvider).currency})',
                         prefixIcon: Icon(LucideIcons.coins, size: 20),
                       ),
                       keyboardType: TextInputType.number,
@@ -418,8 +419,9 @@ class _ClassSetupScreenState extends ConsumerState<ClassSetupScreen> {
 
                                 List<SchoolClass> freshClasses = const [];
                                 try {
-                                  freshClasses =
-                                      await ref.read(classesProvider.future);
+                                  freshClasses = await ref.read(
+                                    classesProvider.future,
+                                  );
                                 } catch (_) {
                                   freshClasses = const [];
                                 }

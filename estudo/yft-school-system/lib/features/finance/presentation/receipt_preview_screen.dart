@@ -263,7 +263,7 @@ class ReceiptPreviewScreen extends StatelessWidget {
                             ),
                           ),
                           Text(
-                            (tx['amount'] ?? 'GH₵ 0.00').toString(),
+                            (tx['amount'] ?? '—').toString(),
                             style: const TextStyle(
                               fontSize: 24,
                               fontWeight: FontWeight.bold,
@@ -381,7 +381,7 @@ class ReceiptPreviewScreen extends StatelessWidget {
           style: TextStyle(fontWeight: FontWeight.w600),
         ),
         Text(
-          amount ?? 'GH₵ 0.00',
+          amount ?? '—',
           style: const TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.bold,

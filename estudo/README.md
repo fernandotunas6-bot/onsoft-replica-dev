@@ -46,7 +46,7 @@ O super-admin fala com o Worker com uma chave partilhada
 | Passo | Resultado |
 | --- | --- |
 | `flutter analyze` (Flutter 3.41.5) | sem avisos |
-| `flutter test` | 1 teste, passa |
+| `flutter test` | 3 testes, passam |
 | `flutter build web` | compila com 3.41.5; **falha com 3.47** (`lucide_icons` estende `IconData`, que passou a `final`) |
 | Worker `vitest` | 6 testes, passam |
 | Worker `wrangler deploy --dry-run` | empacota |
@@ -78,6 +78,36 @@ alteração não está na cópia.
   professores, admissão de alunos com encarregado, turmas, disciplinas,
   propinas e dívidas, registar pagamento, recibo em PDF, calendário
   académico, avisos, lançar notas, presenças, perfil, educandos e recibos.
+
+## Demonstração com dados (15/10/2026)
+
+`lib/main_demo.dart` abre os ecrãs reais com dados fictícios de uma escola
+angolana, em kwanzas, sem Firebase nem API (`lib/demo/demo_api.dart`
+responde aos pedidos do Dio). Para entrar, usa-se qualquer senha com um
+destes e-mails:
+
+- `admin@demo.ao`
+- `professor@demo.ao`
+- `encarregado@demo.ao`
+
+```sh
+flutter run -d chrome -t lib/main_demo.dart
+```
+
+Capturas dos três perfis: `yft-estudo-capturas/demo-com-dados.jpg`.
+
+**Defeito encontrado e corrigido com a demonstração:** a moeda, o ano e o
+trimestre da escola só eram carregados quando o administrador abria o
+calendário académico. Até lá, todos os ecrãs mostravam GH₵, mesmo numa escola
+em Kz. A lista de moedas também não tinha o kwanza, e uma moeda fora da lista
+deixava o campo vazio. Agora:
+
+- a configuração carrega-se logo após o login (`academic_year_state.dart`);
+- a lista inclui o Kwanza e a moeda gravada pela escola;
+- o GH₵ fixo no código desapareceu.
+
+O teste `test/academic_year_test.dart` falha com o código antigo e passa com
+o novo.
 
 ## Pontos a reter (ideias, não código)
 
