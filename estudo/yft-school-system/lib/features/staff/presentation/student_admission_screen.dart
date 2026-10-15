@@ -12,6 +12,7 @@ import 'package:yft_school_system/core/network/api_client.dart';
 import 'package:yft_school_system/core/theme/app_colors.dart';
 import 'package:yft_school_system/core/utils/media_url.dart';
 import 'package:yft_school_system/core/utils/labels.dart';
+import 'package:yft_school_system/core/widgets/temporary_access_dialog.dart';
 import 'package:yft_school_system/core/utils/responsive_utils.dart';
 
 /// New admission only: link an account that already exists vs enter details (creates/matches by phone).
@@ -228,6 +229,7 @@ class _StudentAdmissionScreenState extends ConsumerState<StudentAdmissionScreen>
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
     final messenger = ScaffoldMessenger.of(context);
+    Map<String, dynamic>? created;
 
     final classes = await ref.read(classesProvider.future);
     final sorted = _sortClasses(classes);
@@ -311,7 +313,7 @@ class _StudentAdmissionScreenState extends ConsumerState<StudentAdmissionScreen>
         ref.invalidate(studentByIdProvider(editId));
       } else {
         final linked = _selectedExistingParent;
-        await ref.read(studentRepositoryProvider).createStudent(
+        created = await ref.read(studentRepositoryProvider).createStudent(
               name: _studentNameController.text.trim(),
               classId: classId,
               dob: _dobIso(),
@@ -365,6 +367,15 @@ class _StudentAdmissionScreenState extends ConsumerState<StudentAdmissionScreen>
           backgroundColor: Colors.green,
         ),
       );
+      if (created != null) {
+        await showTemporaryAccessDialog(
+          context,
+          who: _parentNameController.text.trim(),
+          loginEmail: created['parent_login_email'] as String?,
+          temporaryPassword: created['parent_temporary_password'] as String?,
+        );
+        if (!mounted) return;
+      }
       Navigator.pop(context);
     } catch (e) {
       if (!mounted) return;

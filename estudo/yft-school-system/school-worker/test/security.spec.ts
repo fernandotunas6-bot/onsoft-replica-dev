@@ -1,6 +1,7 @@
 import { env, createExecutionContext, waitOnExecutionContext } from "cloudflare:test";
 import { describe, it, expect } from "vitest";
 import worker from "../src/index";
+import { createHandoutPassword } from "../src/lib/password";
 
 const KEY = "k".repeat(40);
 
@@ -58,17 +59,38 @@ describe("senha da escola no onboarding", () => {
 			{
 				method: "POST",
 				headers: { "X-Super-Admin-Key": KEY, "Content-Type": "application/json" },
-				body: JSON.stringify({ school: { name: "Escola", ...school }, admin: { name: "Admin", phone: "+244923000000", email: "admin@escola.ao" } }),
+				body: JSON.stringify({
+					school: { name: "Escola", ...school },
+					admin: { name: "Admin", phone: "+244923000000", email: "admin@escola.ao" },
+				}),
 			},
 			{ SUPER_ADMIN_API_KEY: KEY },
 		);
 
-	it("recusa escola sem senha (antes ficava «Welcome@123») e senha curta", async () => {
-		for (const school of [{}, { default_password: "Welcome@1" }]) {
-			expect((await onboard(school)).status).toBe(400);
+	it("já não é obrigatória (cada pessoa tem senha própria), mas se vier não pode ser curta", async () => {
+		expect((await onboard({ default_password: "Welcome@1" })).status).toBe(400);
+		// Sem senha passa a validação (falha depois, na base de dados vazia do teste).
+		expect((await onboard({})).status).not.toBe(400);
+	});
+});
+
+describe("senha temporária por pessoa", () => {
+	it("12 caracteres, sem 0/O/1/l/I, diferente a cada chamada", () => {
+		const seen = new Set<string>();
+		for (let i = 0; i < 500; i++) {
+			const p = createHandoutPassword();
+			expect(p).toMatch(/^[A-HJ-NP-Za-km-z2-9]{12}$/);
+			seen.add(p);
 		}
-		// O mesmo pedido com uma senha válida passa a validação (falha depois,
-		// na base de dados vazia do teste, mas não com 400).
-		expect((await onboard({ default_password: "senha-da-escola-2026" })).status).not.toBe(400);
+		expect(seen.size).toBe(500);
+	});
+
+	it("as rotas de criação não usam a senha comum da escola", async () => {
+		const sources = import.meta.glob("../src/api/{users,students}.ts", { query: "?raw", import: "default", eager: true });
+		expect(Object.keys(sources)).toHaveLength(2);
+		for (const source of Object.values(sources) as string[]) {
+			expect(source).not.toMatch(/default_password\s*\|\|/);
+			expect(source).toMatch(/createHandoutPassword\(\)/);
+		}
 	});
 });

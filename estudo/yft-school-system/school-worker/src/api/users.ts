@@ -5,7 +5,7 @@ import { createFirebaseEmailUser } from '../lib/firebase-auth';
 import { createPrefixedId } from '../lib/id';
 import { buildSyntheticEmailFromPhone } from '../lib/phone';
 import { jsonError, jsonOk } from '../lib/response';
-import { createTempPassword } from '../lib/password';
+import { createHandoutPassword } from '../lib/password';
 import { z } from 'zod';
 
 const tokenSchema = z.object({
@@ -226,12 +226,13 @@ users.post('/register-teacher', requireAdmin, async (c) => {
   }
 
   const schoolConfig = await c.env.DB.prepare(
-    'SELECT default_password, teacher_id_prefix FROM Schools WHERE id = ? LIMIT 1'
-  ).bind(user.schoolId).first<{ default_password: string; teacher_id_prefix: string }>();
+    'SELECT teacher_id_prefix FROM Schools WHERE id = ? LIMIT 1'
+  ).bind(user.schoolId).first<{ teacher_id_prefix: string }>();
 
   const teacherEmail = parsed.data.email?.trim() || buildSyntheticEmailFromPhone(parsed.data.phone, user.schoolId);
-  // Sem senha da escola, uma senha aleatória (nunca uma senha fixa conhecida).
-  const teacherPassword = schoolConfig?.default_password || createTempPassword();
+  // Uma senha temporária por professor, devolvida uma só vez abaixo. Antes,
+  // todos os professores da escola recebiam a mesma senha (default_password).
+  const teacherPassword = createHandoutPassword();
   const teacherIdPrefix = schoolConfig?.teacher_id_prefix?.toLowerCase() || 'tch';
   const staffId = createPrefixedId(teacherIdPrefix);
 
@@ -284,7 +285,8 @@ users.post('/register-teacher', requireAdmin, async (c) => {
     uid: firebaseUser.uid,
     staff_id: staffId,
     login_email: teacherEmail,
-    default_password_used: true,
+    // Só nesta resposta: a secretaria entrega-a ao professor, que a troca.
+    temporary_password: teacherPassword,
   }, 201);
 });
 

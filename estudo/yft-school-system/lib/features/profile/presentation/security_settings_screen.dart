@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import 'package:yft_school_system/core/auth/auth_state.dart';
+import 'package:yft_school_system/core/auth/password_change.dart';
 import 'package:yft_school_system/core/providers/repository_providers.dart';
 import 'package:yft_school_system/core/settings/access_control_state.dart';
 import 'package:yft_school_system/core/theme/app_colors.dart';
@@ -17,11 +18,49 @@ class SecuritySettingsScreen extends ConsumerStatefulWidget {
 
 class _SecuritySettingsScreenState
     extends ConsumerState<SecuritySettingsScreen> {
+  final _currentController = TextEditingController();
+  final _newController = TextEditingController();
+  final _repeatController = TextEditingController();
+  bool _changingPassword = false;
   bool _obscureCurrent = true;
   bool _obscureNew = true;
   bool _obscureRepeat = true;
   final bool _twoFactorEnabled = false;
   bool _savingAccessControl = false;
+
+  @override
+  void dispose() {
+    _currentController.dispose();
+    _newController.dispose();
+    _repeatController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _changePassword() async {
+    final messenger = ScaffoldMessenger.of(context);
+    void show(String text, Color color) => messenger.showSnackBar(
+      SnackBar(content: Text(text), backgroundColor: color),
+    );
+    final current = _currentController.text;
+    final next = _newController.text;
+    final invalid = passwordChangeProblem(
+      current,
+      next,
+      _repeatController.text,
+    );
+    if (invalid != null) return show(invalid, AppColors.error);
+
+    setState(() => _changingPassword = true);
+    final failed = await changeFirebasePassword(current, next);
+    if (!mounted) return;
+    setState(() => _changingPassword = false);
+    if (failed != null) return show(failed, AppColors.error);
+
+    _currentController.clear();
+    _newController.clear();
+    _repeatController.clear();
+    show('Senha alterada.', Colors.green);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -58,6 +97,7 @@ class _SecuritySettingsScreenState
                 const SizedBox(height: 32),
 
                 _buildPasswordField(
+                  _currentController,
                   'Senha actual',
                   'Senha actual',
                   _obscureCurrent,
@@ -68,6 +108,7 @@ class _SecuritySettingsScreenState
                 const SizedBox(height: 20),
 
                 _buildPasswordField(
+                  _newController,
                   'Nova senha',
                   'Nova senha',
                   _obscureNew,
@@ -78,6 +119,7 @@ class _SecuritySettingsScreenState
                 const SizedBox(height: 20),
 
                 _buildPasswordField(
+                  _repeatController,
                   'Repetir nova senha',
                   'Confirmar nova senha',
                   _obscureRepeat,
@@ -266,7 +308,7 @@ class _SecuritySettingsScreenState
                   width: double.infinity,
                   height: 56,
                   child: ElevatedButton(
-                    onPressed: null, // o servidor não tem rota para isto
+                    onPressed: _changingPassword ? null : _changePassword,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppColors.primary,
                       foregroundColor: AppColors.secondary,
@@ -275,7 +317,7 @@ class _SecuritySettingsScreenState
                       ),
                     ),
                     child: const Text(
-                      'Mudar senha (ainda não disponível)',
+                      'Mudar senha',
                       style: TextStyle(
                         fontWeight: FontWeight.bold,
                         fontSize: 16,
@@ -292,6 +334,7 @@ class _SecuritySettingsScreenState
   }
 
   Widget _buildPasswordField(
+    TextEditingController controller,
     String label,
     String hint,
     bool isObscured,
@@ -324,6 +367,7 @@ class _SecuritySettingsScreenState
             ],
           ),
           child: TextField(
+            controller: controller,
             obscureText: isObscured,
             decoration: InputDecoration(
               icon: const Icon(

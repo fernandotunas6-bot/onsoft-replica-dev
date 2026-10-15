@@ -46,9 +46,9 @@ O super-admin fala com o Worker com uma chave partilhada
 | Passo | Resultado |
 | --- | --- |
 | `flutter analyze` (Flutter 3.41.5) | sem avisos |
-| `flutter test` | 7 testes, passam |
+| `flutter test` | 10 testes, passam |
 | `flutter build web` | compila com 3.41.5; **falha com 3.47** (`lucide_icons` estende `IconData`, que passou a `final`) |
-| Worker `vitest` | 7 testes, passam |
+| Worker `vitest` | 9 testes, passam |
 | Worker `wrangler deploy --dry-run` | empacota |
 | Worker `tsc --noEmit` | sem erros (o erro de `classes.ts:23` foi corrigido) |
 | Super-admin `next build` | compila (15 rotas) |
@@ -143,9 +143,23 @@ Corrigido:
 - Teste no Worker (`test/security.spec.ts`), 7/7. Falha com o código antigo,
   em que a escola sem senha passava a validação.
 
-Por resolver, porque mexe na API e nos ecrãs: a senha continua partilhada
-dentro de cada escola. O correcto é uma senha temporária por pessoa, mostrada
-uma só vez, com troca obrigatória no primeiro acesso.
+**Senha temporária por pessoa (resolvido a seguir):**
+
+- **Worker:** cada professor e cada encarregado novo recebe uma senha
+  própria (`createHandoutPassword`: 12 caracteres sem 0/O/1/l/I, cerca de
+  69 bits). A senha é devolvida uma só vez, em `temporary_password` ou
+  `parent_temporary_password`. A senha comum da escola deixou de ser
+  usada; no onboarding ficou opcional e, sem ela, guarda-se um valor
+  aleatório (a coluna é NOT NULL).
+- **App:** depois do registo ou da matrícula, mostra o acesso (e-mail e senha)
+  numa janela que só fecha com «Já anotei».
+- **App:** «Mudar senha» passou a funcionar pelo Firebase. Confirma a senha
+  actual (reautenticação) e exige pelo menos 8 caracteres e uma senha
+  diferente da actual.
+- **Super-admin:** o campo da senha comum saiu dos dois formulários.
+- **Testes:** app 10/10, Worker 9/9.
+- **Falta:** obrigar a trocar a senha no primeiro acesso. Hoje a troca
+  depende de a pessoa a fazer.
 
 ## Tradução para português (15/10/2026)
 

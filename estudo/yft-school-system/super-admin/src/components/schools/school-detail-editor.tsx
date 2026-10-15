@@ -37,7 +37,6 @@ export function SchoolDetailEditor({ school }: Props) {
     phone: school.phone ?? '',
     email: school.email ?? '',
     address: school.address ?? '',
-    defaultPassword: '',
     studentIdPrefix: school.student_id_prefix,
     teacherIdPrefix: school.teacher_id_prefix,
   });
@@ -157,10 +156,6 @@ export function SchoolDetailEditor({ school }: Props) {
 
       if (logoUrl !== undefined) {
         payload.logo_url = logoUrl;
-      }
-
-      if (form.defaultPassword.trim().length >= 6) {
-        payload.default_password = form.defaultPassword.trim();
       }
 
       const response = await fetch(`/api/super-admin/schools/${school.id}`, {
@@ -348,17 +343,6 @@ export function SchoolDetailEditor({ school }: Props) {
               <CardTitle className="text-lg text-white">Defaults &amp; ID Configuration</CardTitle>
             </CardHeader>
             <CardContent className="grid gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="defaultPassword" className={labelClass}>Default Password</Label>
-                <Input
-                  id="defaultPassword"
-                  value={form.defaultPassword}
-                  onChange={(e) => setForm((c) => ({ ...c, defaultPassword: e.target.value }))}
-                  placeholder="Leave blank to keep current"
-                  className={inputClass}
-                />
-                <p className="text-[11px] text-white/30">Only fill this to change the default password. Min 6 characters.</p>
-              </div>
               <div className="grid gap-4 md:grid-cols-2">
                 <div className="space-y-2">
                   <Label htmlFor="studentIdPrefix" className={labelClass}>Student ID Prefix</Label>

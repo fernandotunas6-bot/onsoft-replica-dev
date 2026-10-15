@@ -7,6 +7,7 @@ import 'package:lucide_icons/lucide_icons.dart';
 import 'package:yft_school_system/core/providers/repository_providers.dart';
 import 'package:yft_school_system/core/theme/app_colors.dart';
 import 'package:yft_school_system/core/utils/labels.dart';
+import 'package:yft_school_system/core/widgets/temporary_access_dialog.dart';
 import 'package:yft_school_system/core/utils/responsive_utils.dart';
 
 class TeacherRegistrationScreen extends ConsumerStatefulWidget {
@@ -131,7 +132,7 @@ class _TeacherRegistrationScreenState
 
       final years = int.tryParse(_yearsOfExperienceController.text.trim());
 
-      await ref.read(userRepositoryProvider).registerTeacher(
+      final result = await ref.read(userRepositoryProvider).registerTeacher(
             name: fullName,
             phone: _phoneController.text.trim(),
             email: _emailController.text.trim().isEmpty
@@ -184,7 +185,13 @@ class _TeacherRegistrationScreenState
             backgroundColor: Colors.green,
           ),
         );
-        Navigator.pop(context);
+        await showTemporaryAccessDialog(
+          context,
+          who: fullName,
+          loginEmail: result['login_email'] as String?,
+          temporaryPassword: result['temporary_password'] as String?,
+        );
+        if (mounted) Navigator.pop(context);
       }
     } catch (e) {
       if (mounted) {

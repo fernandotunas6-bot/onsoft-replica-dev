@@ -4,7 +4,7 @@ import type { AppEnv } from '../app-env';
 import { requireAdmin, requireAdminOrTeacher } from '../lib/auth-guards';
 import { deleteFirebaseAuthUser } from '../lib/firebase-delete-user';
 import { buildSyntheticEmailFromPhone } from '../lib/phone';
-import { createTempPassword } from '../lib/password';
+import { createHandoutPassword } from '../lib/password';
 import { createFirebaseEmailUser } from '../lib/firebase-auth';
 import { createPrefixedId } from '../lib/id';
 import { jsonError, jsonOk } from '../lib/response';
@@ -435,8 +435,8 @@ students.post('/', requireAdminOrTeacher, async (c) => {
       'SELECT id, fee_amount, fee_collection_cycle FROM Classes WHERE id = ? AND school_id = ? LIMIT 1'
     ).bind(parsed.data.class_id, user.schoolId).first<{ id: string; fee_amount: number | null; fee_collection_cycle: string | null }>(),
     c.env.DB.prepare(
-      'SELECT default_password, student_id_prefix FROM Schools WHERE id = ? LIMIT 1'
-    ).bind(user.schoolId).first<{ default_password: string; student_id_prefix: string }>(),
+      'SELECT student_id_prefix FROM Schools WHERE id = ? LIMIT 1'
+    ).bind(user.schoolId).first<{ student_id_prefix: string }>(),
   ]);
 
   if (!classRow) {
@@ -446,6 +446,7 @@ students.post('/', requireAdminOrTeacher, async (c) => {
   let parentUid = parsed.data.parent_uid ?? null;
   let createdParent = false;
   let parentLoginEmail: string | null = null;
+  let parentTemporaryPassword: string | null = null;
 
   if (parentUid) {
     const existingByUid = await c.env.DB.prepare(
@@ -457,7 +458,8 @@ students.post('/', requireAdminOrTeacher, async (c) => {
     }
   } else if (parsed.data.parent) {
     const parentEmail = parsed.data.parent.email?.trim() || buildSyntheticEmailFromPhone(parsed.data.parent.phone, user.schoolId);
-    const parentPassword = schoolConfig?.default_password || createTempPassword();
+    // Senha temporária por encarregado (antes: a senha comum da escola).
+    const parentPassword = createHandoutPassword();
 
     const existingParent = await c.env.DB.prepare(
       'SELECT uid, name, phone, email FROM Users WHERE school_id = ? AND phone = ? AND role = ? LIMIT 1'
@@ -474,6 +476,7 @@ students.post('/', requireAdminOrTeacher, async (c) => {
 
       parentUid = firebaseUser.uid;
       createdParent = true;
+      parentTemporaryPassword = parentPassword;
 
       await c.env.DB.prepare(
         'INSERT INTO Users (uid, school_id, role, name, phone, email) VALUES (?, ?, ?, ?, ?, ?)'
@@ -532,7 +535,8 @@ students.post('/', requireAdminOrTeacher, async (c) => {
     parent_uid: parentUid,
     parent_created: createdParent,
     parent_login_email: parentLoginEmail,
-    uses_school_default_password: createdParent,
+    // Só quando o encarregado foi criado agora; nunca volta a ser devolvida.
+    parent_temporary_password: parentTemporaryPassword,
   }, 201);
 });
 

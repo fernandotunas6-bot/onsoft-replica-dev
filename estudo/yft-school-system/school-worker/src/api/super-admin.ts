@@ -17,9 +17,9 @@ const onboardSchema = z.object({
     phone: z.string().trim().optional().nullable(),
     email: z.string().trim().email().optional().nullable(),
     address: z.string().trim().optional().nullable(),
-    // Obrigatória e sem valor por omissão: antes, todas as escolas criadas sem
-    // senha ficavam com «Welcome@123» para professores e encarregados.
-    default_password: z.string().trim().min(10),
+    // Já não é usada: cada professor e encarregado recebe uma senha temporária
+    // própria. Antes, a senha comum da escola era «Welcome@123» por omissão.
+    default_password: z.string().trim().min(10).optional(),
     student_id_prefix: z.string().trim().min(1).max(10).default('STU'),
     teacher_id_prefix: z.string().trim().min(1).max(10).default('TCH'),
   }),
@@ -360,7 +360,8 @@ superAdmin.post('/onboard-school', async (c) => {
     parsed.data.school.phone ?? null,
     parsed.data.school.email ?? null,
     parsed.data.school.address ?? null,
-    parsed.data.school.default_password,
+    // A coluna é NOT NULL: guarda-se um valor aleatório, nunca uma senha conhecida.
+    parsed.data.school.default_password ?? createTempPassword(),
     parsed.data.school.student_id_prefix,
     parsed.data.school.teacher_id_prefix,
   );

@@ -44,7 +44,6 @@ const initialState = {
   schoolPhone: '',
   schoolEmail: '',
   schoolAddress: '',
-  defaultPassword: '',
   studentIdPrefix: 'STU',
   teacherIdPrefix: 'TCH',
   adminName: '',
@@ -133,7 +132,6 @@ export function SchoolForm() {
             phone: form.schoolPhone || null,
             email: form.schoolEmail || null,
             address: form.schoolAddress || null,
-            default_password: form.defaultPassword,
             student_id_prefix: form.studentIdPrefix || 'STU',
             teacher_id_prefix: form.teacherIdPrefix || 'TCH',
           },
@@ -342,21 +340,8 @@ export function SchoolForm() {
                 <div className="rounded-2xl bg-amber-50 border border-amber-200 p-4">
                   <p className="text-sm font-semibold text-amber-800">Defaults &amp; ID Configuration</p>
                   <p className="text-xs text-amber-600 mt-1">
-                    Set the default password and ID prefixes for all teachers and students registered under this school.
+                    Set the ID prefixes for teachers and students. Each teacher and parent gets their own temporary password when registered.
                   </p>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="defaultPassword" className="text-xs font-bold uppercase tracking-widest text-[#7c8b9a]">Default Password</Label>
-                  <Input
-                    id="defaultPassword"
-                    value={form.defaultPassword}
-                    onChange={(event) => setForm((current) => ({ ...current, defaultPassword: event.target.value }))}
-                    placeholder="Mínimo 10 caracteres"
-                    required
-                    minLength={10}
-                    className="h-12 rounded-xl border-none bg-slate-50 px-4 ring-1 ring-slate-100 focus:ring-2 focus:ring-primary/20"
-                  />
-                  <p className="text-[11px] text-slate-400">Minimum 10 characters, specific to this school. Used for all newly registered teachers and parents.</p>
                 </div>
                 <div className="grid gap-6 md:grid-cols-2">
                   <div className="space-y-2">
