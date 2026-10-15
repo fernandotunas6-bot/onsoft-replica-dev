@@ -123,6 +123,7 @@ import { Route as ApiSaasSitePostsRouteImport } from './routes/api/saas/site.pos
 import { Route as ApiSaasSiteShowcaseRouteImport } from './routes/api/saas/site.showcase'
 import { Route as ApiSaasSubscriptionsBackfillRouteImport } from './routes/api/saas/subscriptions.backfill'
 import { Route as ApiSaasTenantsAdminAccessRouteImport } from './routes/api/saas/tenants.admin-access'
+import { Route as ApiSaasTenantsBillingRouteImport } from './routes/api/saas/tenants.billing'
 import { Route as ApiSaasTenantsLookupRouteImport } from './routes/api/saas/tenants.lookup'
 import { Route as ApiSaasTenantsStatusRouteImport } from './routes/api/saas/tenants.status'
 import { Route as ApiSaasTenantsSubscriptionRouteImport } from './routes/api/saas/tenants.subscription'
@@ -722,6 +723,11 @@ const ApiSaasTenantsAdminAccessRoute =
     path: '/admin-access',
     getParentRoute: () => ApiSaasTenantsRoute,
   } as any)
+const ApiSaasTenantsBillingRoute = ApiSaasTenantsBillingRouteImport.update({
+  id: '/billing',
+  path: '/billing',
+  getParentRoute: () => ApiSaasTenantsRoute,
+} as any)
 const ApiSaasTenantsLookupRoute = ApiSaasTenantsLookupRouteImport.update({
   id: '/lookup',
   path: '/lookup',
@@ -865,6 +871,7 @@ export interface FileRoutesByFullPath {
   '/api/saas/site/showcase': typeof ApiSaasSiteShowcaseRoute
   '/api/saas/subscriptions/backfill': typeof ApiSaasSubscriptionsBackfillRoute
   '/api/saas/tenants/admin-access': typeof ApiSaasTenantsAdminAccessRoute
+  '/api/saas/tenants/billing': typeof ApiSaasTenantsBillingRoute
   '/api/saas/tenants/lookup': typeof ApiSaasTenantsLookupRoute
   '/api/saas/tenants/status': typeof ApiSaasTenantsStatusRoute
   '/api/saas/tenants/subscription': typeof ApiSaasTenantsSubscriptionRoute
@@ -986,6 +993,7 @@ export interface FileRoutesByTo {
   '/api/saas/site/showcase': typeof ApiSaasSiteShowcaseRoute
   '/api/saas/subscriptions/backfill': typeof ApiSaasSubscriptionsBackfillRoute
   '/api/saas/tenants/admin-access': typeof ApiSaasTenantsAdminAccessRoute
+  '/api/saas/tenants/billing': typeof ApiSaasTenantsBillingRoute
   '/api/saas/tenants/lookup': typeof ApiSaasTenantsLookupRoute
   '/api/saas/tenants/status': typeof ApiSaasTenantsStatusRoute
   '/api/saas/tenants/subscription': typeof ApiSaasTenantsSubscriptionRoute
@@ -1108,6 +1116,7 @@ export interface FileRoutesById {
   '/api/saas/site/showcase': typeof ApiSaasSiteShowcaseRoute
   '/api/saas/subscriptions/backfill': typeof ApiSaasSubscriptionsBackfillRoute
   '/api/saas/tenants/admin-access': typeof ApiSaasTenantsAdminAccessRoute
+  '/api/saas/tenants/billing': typeof ApiSaasTenantsBillingRoute
   '/api/saas/tenants/lookup': typeof ApiSaasTenantsLookupRoute
   '/api/saas/tenants/status': typeof ApiSaasTenantsStatusRoute
   '/api/saas/tenants/subscription': typeof ApiSaasTenantsSubscriptionRoute
@@ -1231,6 +1240,7 @@ export interface FileRouteTypes {
     | '/api/saas/site/showcase'
     | '/api/saas/subscriptions/backfill'
     | '/api/saas/tenants/admin-access'
+    | '/api/saas/tenants/billing'
     | '/api/saas/tenants/lookup'
     | '/api/saas/tenants/status'
     | '/api/saas/tenants/subscription'
@@ -1352,6 +1362,7 @@ export interface FileRouteTypes {
     | '/api/saas/site/showcase'
     | '/api/saas/subscriptions/backfill'
     | '/api/saas/tenants/admin-access'
+    | '/api/saas/tenants/billing'
     | '/api/saas/tenants/lookup'
     | '/api/saas/tenants/status'
     | '/api/saas/tenants/subscription'
@@ -1473,6 +1484,7 @@ export interface FileRouteTypes {
     | '/api/saas/site/showcase'
     | '/api/saas/subscriptions/backfill'
     | '/api/saas/tenants/admin-access'
+    | '/api/saas/tenants/billing'
     | '/api/saas/tenants/lookup'
     | '/api/saas/tenants/status'
     | '/api/saas/tenants/subscription'
@@ -2365,6 +2377,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiSaasTenantsAdminAccessRouteImport
       parentRoute: typeof ApiSaasTenantsRoute
     }
+    '/api/saas/tenants/billing': {
+      id: '/api/saas/tenants/billing'
+      path: '/billing'
+      fullPath: '/api/saas/tenants/billing'
+      preLoaderRoute: typeof ApiSaasTenantsBillingRouteImport
+      parentRoute: typeof ApiSaasTenantsRoute
+    }
     '/api/saas/tenants/lookup': {
       id: '/api/saas/tenants/lookup'
       path: '/lookup'
@@ -2593,6 +2612,7 @@ const ApiSaasSubscriptionsRouteWithChildren =
 
 interface ApiSaasTenantsRouteChildren {
   ApiSaasTenantsAdminAccessRoute: typeof ApiSaasTenantsAdminAccessRoute
+  ApiSaasTenantsBillingRoute: typeof ApiSaasTenantsBillingRoute
   ApiSaasTenantsLookupRoute: typeof ApiSaasTenantsLookupRoute
   ApiSaasTenantsStatusRoute: typeof ApiSaasTenantsStatusRoute
   ApiSaasTenantsSubscriptionRoute: typeof ApiSaasTenantsSubscriptionRoute
@@ -2600,6 +2620,7 @@ interface ApiSaasTenantsRouteChildren {
 
 const ApiSaasTenantsRouteChildren: ApiSaasTenantsRouteChildren = {
   ApiSaasTenantsAdminAccessRoute: ApiSaasTenantsAdminAccessRoute,
+  ApiSaasTenantsBillingRoute: ApiSaasTenantsBillingRoute,
   ApiSaasTenantsLookupRoute: ApiSaasTenantsLookupRoute,
   ApiSaasTenantsStatusRoute: ApiSaasTenantsStatusRoute,
   ApiSaasTenantsSubscriptionRoute: ApiSaasTenantsSubscriptionRoute,

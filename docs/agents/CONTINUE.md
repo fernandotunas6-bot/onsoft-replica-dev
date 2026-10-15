@@ -4,6 +4,30 @@ Ler isto **antes** de alterar código. Ecossistema (5 apps):
 [ARCHITECTURE_HARMONIZATION.md](./ARCHITECTURE_HARMONIZATION.md).
 Depois abrir o skill do módulo em `.cursor/skills/`.
 
+## Cobrança SaaS por escola e escolas públicas (2026-10-15)
+
+- **ADMIN → Escolas → clicar na escola** (`/tenants/escola?id=…`, exportação estática):
+  Visão geral, Plano e assinatura, Cobrança, Escola pública, Acesso, Domínios e registo.
+  Dados: `GET/POST /api/saas/tenants/billing` (platform admin + aal2, auditado).
+- **Cobrança** (`tenant-billing-rules.ts` puro, `tenant-billing.ts` servidor): tabela do
+  plano, por aluno activo (com mínimo facturável) ou valor fixo; mensal/trimestral/
+  semestral/anual com o desconto de `saas_billing_settings.periods`; desconto da escola;
+  dia de vencimento (1–28), prazo de emissão, tolerância e só-consulta automática; modos
+  de pagamento (IBAN, Multicaixa Express, referência, PayFlow, numerário); contacto e NIF
+  de facturação. O SIGA (Assinatura) cobra o valor nas condições da escola.
+- **Pausar cobranças** (qualquer escola, com motivo e data opcional; a tarefa diária
+  retoma as que acabaram). **Escola pública**: ao marcar como Pública (ou ao registar-se
+  como pública no WEB) abre a revisão e pausa as cobranças; aprovar exige os requisitos
+  obrigatórios (acto de criação, código oficial, tutela, nomeação do director, acordo de
+  dados — Lei 22/11) e deixa-a isenta; recusar exige motivo.
+- **Efeito no acesso** só por `tenants.billing_exempt` (já na produção): o servidor mantém-no
+  igual a «não cobrar». Isenta/pausada não é bloqueada por trial nem atraso; suspender,
+  cancelar e arquivar continuam a bloquear. Lembretes de fim de trial não vão para elas.
+- **Por aplicar (dono):** `docs/agents/SIGA_aplicar_cobranca_escolas.sql`
+  (`20261015120000_tenant_billing_profiles.sql`). Sem ela o ADMIN mostra os valores de
+  omissão e não grava; nada mais parte. Depois recapturar o retrato e tirar a tabela de
+  `TABELAS_AUSENTES_DA_PRODUCAO`.
+
 ## Smart School Onboarding: criação → acesso → ambiente (2026-10-15)
 
 Três ambientes, uma conta: **Administração Global** (ADMIN, só `platform_admins`),

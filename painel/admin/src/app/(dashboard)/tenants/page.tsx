@@ -228,7 +228,12 @@ export default function TenantsPage() {
                   tenants.map((tenant) => (
                     <TableRow key={tenant.id}>
                       <TableCell>
-                        <div className="font-medium">{tenant.name}</div>
+                        <Link
+                          href={`/tenants/escola?id=${encodeURIComponent(tenant.id)}`}
+                          className="font-medium hover:underline"
+                        >
+                          {tenant.name}
+                        </Link>
                         <div className="text-xs text-muted-foreground font-mono">{tenant.slug}</div>
                       </TableCell>
                       <TableCell>{tenant.plans?.name || tenant.plans?.code || "—"}</TableCell>
@@ -269,6 +274,11 @@ export default function TenantsPage() {
                         ) : null}
                       </TableCell>
                       <TableCell className="text-right space-x-1">
+                        <Button variant="ghost" size="sm" asChild>
+                          <Link href={`/tenants/escola?id=${encodeURIComponent(tenant.id)}`}>
+                            Configurações
+                          </Link>
+                        </Button>
                         <Button variant="ghost" size="sm" asChild>
                           <Link href={`/subscriptions?tenant=${encodeURIComponent(tenant.slug)}`}>
                             Subscrição
