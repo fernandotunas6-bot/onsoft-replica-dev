@@ -7,6 +7,7 @@ import 'package:yft_school_system/core/providers/repository_providers.dart';
 import 'package:yft_school_system/core/settings/access_control_state.dart';
 import 'package:yft_school_system/core/theme/app_colors.dart';
 import 'package:yft_school_system/core/utils/responsive_utils.dart';
+import 'package:yft_school_system/core/sga/sga_config.dart';
 
 class SecuritySettingsScreen extends ConsumerStatefulWidget {
   const SecuritySettingsScreen({super.key});
@@ -61,6 +62,10 @@ class _SecuritySettingsScreenState
     }
     if (next == current) {
       _say('A nova palavra-passe tem de ser diferente da actual.', error: true);
+      return;
+    }
+    if (sgaMode) {
+      _say('A sua conta é a do SIGA: altere a palavra-passe no portal do SIGA.');
       return;
     }
     final user = FirebaseAuth.instance.currentUser;

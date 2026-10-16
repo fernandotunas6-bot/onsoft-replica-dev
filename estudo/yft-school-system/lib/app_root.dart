@@ -1,4 +1,4 @@
-import 'package:firebase_auth/firebase_auth.dart';
+import 'package:yft_school_system/core/auth/auth_state.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:yft_school_system/core/auth/school_suspension.dart';
@@ -45,7 +45,7 @@ class _AppRootState extends ConsumerState<AppRoot> with WidgetsBindingObserver {
   }
 
   Future<void> _onAcknowledgeSuspension() async {
-    await FirebaseAuth.instance.signOut();
+    await ref.read(authProvider.notifier).logout();
     if (!mounted) return;
     ref.read(schoolSuspendedProvider.notifier).setSuspended(false);
     appRouter.go('/login');

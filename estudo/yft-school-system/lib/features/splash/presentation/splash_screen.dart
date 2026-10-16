@@ -6,6 +6,8 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:go_router/go_router.dart';
 import 'package:yft_school_system/core/theme/app_colors.dart';
 import 'package:yft_school_system/core/widgets/brand_mark.dart';
+import 'package:yft_school_system/core/sga/sga_config.dart';
+import 'package:yft_school_system/core/sga/sga_providers.dart';
 
 /// Chave do armazenamento que diz se a apresentação já foi vista.
 const onboardingSeenKey = 'onboarding_seen';
@@ -57,7 +59,9 @@ class _SplashScreenState extends State<SplashScreen>
     }
     var signedIn = false;
     try {
-      signedIn = FirebaseAuth.instance.currentUser != null;
+      signedIn = sgaMode
+          ? await appSgaSession.restore()
+          : FirebaseAuth.instance.currentUser != null;
     } catch (_) {
       // Firebase por inicializar.
     }

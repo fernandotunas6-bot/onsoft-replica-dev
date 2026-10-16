@@ -10,6 +10,7 @@ import 'package:flutter/services.dart' show rootBundle;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:yft_school_system/app_root.dart';
+import 'package:yft_school_system/core/sga/sga_config.dart';
 import 'firebase_options.dart';
 
 void main() async {
@@ -23,12 +24,15 @@ void main() async {
   // Android: [DEFAULT] comes from google-services.json. Passing
   // DefaultFirebaseOptions here throws duplicate-app if they differ slightly
   // from the native config (common after swapping google-services.json).
-  if (!kIsWeb && defaultTargetPlatform == TargetPlatform.android) {
-    await Firebase.initializeApp();
-  } else {
-    await Firebase.initializeApp(
-      options: DefaultFirebaseOptions.currentPlatform,
-    );
+  // No modo SIGA a conta é a do Supabase do SIGA: o Firebase não arranca.
+  if (!sgaMode) {
+    if (!kIsWeb && defaultTargetPlatform == TargetPlatform.android) {
+      await Firebase.initializeApp();
+    } else {
+      await Firebase.initializeApp(
+        options: DefaultFirebaseOptions.currentPlatform,
+      );
+    }
   }
   runApp(const ProviderScope(child: AppRoot()));
 }

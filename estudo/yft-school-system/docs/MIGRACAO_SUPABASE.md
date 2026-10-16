@@ -24,10 +24,37 @@ gere no SIGA, em vez do Firebase e da base D1 própria.
 | Fase | O quê | Estado |
 | ---- | ----- | ------ |
 | 1 | API de leitura do encarregado: `GET /api/sga/me`, `/wards`, `/notices` | feito (testes em `school-worker/test/sga.spec.ts`) |
-| 2 | Entrada na app com a conta do SIGA (Supabase Auth) e ecrãs do encarregado a ler `/api/sga` | por fazer |
+| 2 | Entrada na app com a conta do SIGA (Supabase Auth) e ecrãs do encarregado a ler `/api/sga` | feito na web (Educandos e Comunicados); Android à espera do captcha |
 | 3 | Mais leituras: horário (`timetable_slots`), faltas (`attendance_records` por matrícula), boletim (`grade_scores`), recibos (`finance_receipts`) | por fazer |
 | 4 | Escritas do professor (presenças, notas) e mensagens, com as regras e a auditoria do SIGA | por fazer |
 | 5 | Desligar o Firebase e a base D1 | por fazer |
+
+## Modo SIGA na app
+
+Liga-se na compilação; sem estes valores a app fica no modo Firebase:
+
+```sh
+flutter build web --release \
+  --dart-define=SGA_SUPABASE_URL=https://xodgfmxiaunpamctfeea.supabase.co \
+  --dart-define=SGA_SUPABASE_PUBLISHABLE_KEY=sb_publishable_NSqtGz5zxP_EngLuNj00Og_y3V4D4td \
+  --dart-define=HCAPTCHA_SITE_KEY=<a mesma VITE_HCAPTCHA_SITE_KEY do SIGA>
+```
+
+- Entrada: `lib/core/sga/sga_auth.dart` fala com o Supabase Auth por REST
+  (`/auth/v1/token`), guarda o par de tokens no armazenamento seguro e renova
+  o de acesso antes de expirar (uma renovação de cada vez). O Firebase não
+  arranca.
+- Captcha: o Supabase do SIGA exige hCaptcha. Na web, o ecrã de entrada mostra
+  o widget oficial (`captcha_box_web.dart`); o domínio da app
+  (`m.portal-siga.com`) tem de estar na lista de domínios da chave no painel do
+  hCaptcha. **No Android ainda não há captcha** (falta um WebView): o ecrã
+  diz para usar a versão web.
+- Sessão: `GET /api/sga/me` dá o papel e a escola; o pedido leva a escola em
+  `X-School-Id`. Encarregado completo nesta fase só em Educandos e
+  Comunicados (sem contagem de "não lidos": o SIGA não a guarda). Os outros
+  ecrãs ainda chamam a API antiga e falham até à fase 3; professor e direcção
+  entram, mas os seus ecrãs são da fase 4.
+- Recuperar e mudar a palavra-passe: no portal do SIGA (a app diz isso).
 
 ## Regras de acesso de `/api/sga` (iguais às do SIGA)
 

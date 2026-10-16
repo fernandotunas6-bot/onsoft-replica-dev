@@ -50,6 +50,8 @@ import 'package:yft_school_system/features/messages/presentation/conversations.d
 import 'package:yft_school_system/features/messages/presentation/messages_screen.dart';
 import 'package:yft_school_system/features/profile/presentation/appearance_screen.dart';
 import 'package:yft_school_system/features/subjects/presentation/subjects_screen.dart';
+import 'package:yft_school_system/core/sga/sga_config.dart';
+import 'package:yft_school_system/core/sga/sga_providers.dart';
 
 final rootNavigatorKey = GlobalKey<NavigatorState>();
 
@@ -67,7 +69,10 @@ final appRouter = GoRouter(
     };
     if (public.contains(state.matchedLocation)) return null;
     try {
-      return FirebaseAuth.instance.currentUser == null ? '/login' : null;
+      final signedIn = sgaMode
+          ? appSgaSession.signedIn
+          : FirebaseAuth.instance.currentUser != null;
+      return signedIn ? null : '/login';
     } catch (_) {
       return '/login'; // Firebase não inicializado
     }

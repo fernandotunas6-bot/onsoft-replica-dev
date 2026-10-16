@@ -67,5 +67,10 @@ class ApiEndpoints {
 
   // Wards (parent)
   static const wards = '/api/wards';
+
+  // Modo SIGA (conta e dados do Supabase do SIGA): ver core/sga.
+  static const sgaMe = '/api/sga/me';
+  static const sgaWards = '/api/sga/wards';
+  static const sgaNotices = '/api/sga/notices';
   static String wardProfile(String id) => '/api/wards/$id/profile';
 }

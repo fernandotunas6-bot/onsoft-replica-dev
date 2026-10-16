@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/utils/responsive_utils.dart';
+import 'package:yft_school_system/core/sga/sga_config.dart';
 
 class ForgotPasswordScreen extends StatefulWidget {
   const ForgotPasswordScreen({super.key});
@@ -36,6 +37,18 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
       _showAdminContact = false;
     });
 
+    if (sgaMode) {
+      // A conta é a do SIGA: a recuperação é a do portal (com captcha).
+      setState(() => _isLoading = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'A sua conta é a do SIGA: recupere a palavra-passe no portal do SIGA.',
+          ),
+        ),
+      );
+      return;
+    }
     try {
       await FirebaseAuth.instance.sendPasswordResetEmail(
         email: _usernameController.text.trim(),

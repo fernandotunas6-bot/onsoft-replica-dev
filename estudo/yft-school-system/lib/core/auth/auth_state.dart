@@ -4,6 +4,9 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:yft_school_system/core/network/api_client.dart';
 import 'package:yft_school_system/core/network/api_endpoints.dart';
+import 'package:yft_school_system/core/sga/sga_auth.dart';
+import 'package:yft_school_system/core/sga/sga_config.dart';
+import 'package:yft_school_system/core/sga/sga_providers.dart';
 
 enum UserRole { admin, teacher, parent }
 
@@ -137,7 +140,63 @@ class AuthStateNotifier extends Notifier<AppSession?> {
     }
   }
 
+  // ── Modo SIGA (conta Supabase do SIGA) ──
+
+  /// Sessão a partir de `/api/sga/me`. Devolve a mensagem de erro, se houver.
+  Future<String?> _resolveSga() async {
+    try {
+      final res = await _dio.get(ApiEndpoints.sgaMe);
+      final me = res.data as Map<String, dynamic>;
+      final role = me['role'] as String?;
+      final school = me['school'] as Map<String, dynamic>?;
+      if (school == null) return 'Esta conta não tem vínculo activo numa escola.';
+      final appRole = switch (role) {
+        'admin' => UserRole.admin,
+        'teacher' => UserRole.teacher,
+        'parent' => UserRole.parent,
+        _ => null,
+      };
+      if (appRole == null) {
+        return role == 'student'
+            ? 'A área do aluno ainda não está nesta app. Use o portal do SIGA.'
+            : 'Esta conta não tem um papel na escola. Fale com a administração.';
+      }
+      state = AppSession(
+        role: appRole,
+        userName: me['name'] as String? ?? 'Utilizador',
+        schoolId: school['id'] as String,
+        uid: me['user_id'] as String,
+        schoolName: school['name'] as String?,
+      );
+      return null;
+    } on DioException catch (e) {
+      return switch (e.response?.statusCode) {
+        401 => 'A sessão terminou. Entre de novo.',
+        403 => 'Esta conta não tem vínculo activo numa escola.',
+        503 => 'O serviço da escola está indisponível. Tente mais tarde.',
+        null => 'Sem ligação. Tente de novo.',
+        _ => 'Não foi possível entrar. Tente de novo.',
+      };
+    }
+  }
+
+  Future<String?> _loginSga(String email, String password, String? captchaToken) async {
+    final session = ref.read(sgaSessionProvider);
+    try {
+      await session.signIn(email, password, captchaToken: captchaToken);
+    } on SgaAuthException catch (e) {
+      return e.message;
+    }
+    final error = await _resolveSga();
+    if (error != null) await session.signOut();
+    return error;
+  }
+
   Future<void> _tryRestoreSession() async {
+    if (sgaMode) {
+      if (await ref.read(sgaSessionProvider).restore()) await _resolveSga();
+      return;
+    }
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return;
 
@@ -147,7 +206,9 @@ class AuthStateNotifier extends Notifier<AppSession?> {
     }
   }
 
-  Future<String?> login(String email, String password) async {
+  /// [captchaToken]: no modo SIGA, o token do hCaptcha (o Supabase exige-o).
+  Future<String?> login(String email, String password, {String? captchaToken}) async {
+    if (sgaMode) return _loginSga(email, password, captchaToken);
     try {
       final credential = await FirebaseAuth.instance.signInWithEmailAndPassword(
         email: email.trim(),
@@ -198,12 +259,21 @@ class AuthStateNotifier extends Notifier<AppSession?> {
   }
 
   Future<void> logout() async {
+    if (sgaMode) {
+      await ref.read(sgaSessionProvider).signOut();
+      state = null;
+      return;
+    }
     await FirebaseAuth.instance.signOut();
     state = null;
   }
 
   /// Reload `/users/me` (e.g. after admin changes access-control flags).
   Future<void> refreshProfile() async {
+    if (sgaMode) {
+      await _resolveSga();
+      return;
+    }
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return;
     final (session, _) = await _resolveSessionFromApi(user);

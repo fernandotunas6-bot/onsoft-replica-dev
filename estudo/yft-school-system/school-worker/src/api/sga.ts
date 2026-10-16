@@ -53,10 +53,17 @@ const requireGuardian = (c: Context<SgaAppEnv>) => {
 };
 
 /** Quem sou nesta escola, e as outras escolas onde tenho vínculo activo. */
-sga.get('/me', (c) => {
+sga.get('/me', async (c) => {
   const m = c.get('membership');
+  const user = c.get('sgaUser');
+  const [profile] = await c.get('sgaDb').select<{ full_name: string | null; display_name: string | null }>('profiles', {
+    select: 'full_name,display_name',
+    id: `eq.${user.id}`,
+    limit: '1',
+  });
   return c.json({
-    user_id: c.get('sgaUser').id,
+    user_id: user.id,
+    name: profile?.display_name || profile?.full_name || null,
     school: { id: m.schoolId, name: m.schoolName },
     roles: m.roles,
     role: appRole(m.roles),
@@ -66,8 +73,22 @@ sga.get('/me', (c) => {
 
 sga.get('/wards', async (c) => {
   requireGuardian(c);
-  const wards = await loadWards(c.get('sgaDb'), c.get('membership').schoolId, c.get('sgaUser'));
-  return c.json({ data: wards });
+  const { schoolId } = c.get('membership');
+  const wards = await loadWards(c.get('sgaDb'), schoolId, c.get('sgaUser'));
+  // No formato de GET /api/wards, para o app ler com o mesmo modelo.
+  return c.json({
+    data: wards.map((w) => ({
+      id: w.id,
+      school_id: schoolId,
+      class_id: w.classGroupId ?? '',
+      class_name: w.className,
+      name: w.name,
+      photo_url: w.photoUrl,
+      student_number: w.studentNumber,
+      enrollment_id: w.enrollmentId,
+      is_active: 1,
+    })),
+  });
 });
 
 /** Comunicados publicados para encarregados (e, com dívida vencida, os de cobrança). */
@@ -95,7 +116,23 @@ sga.get('/notices', async (c) => {
     order: 'published_at.desc.nullslast,created_at.desc',
     limit: '100',
   });
-  return c.json({ data: rows });
+  // No formato de GET /api/notices. O SIGA não guarda o "lido" por pessoa.
+  return c.json({
+    data: rows.map((n) => {
+      const body = n.body ?? '';
+      return {
+        id: n.id,
+        school_id: schoolId,
+        title: n.title,
+        summary: body.length > 140 ? `${body.slice(0, 137).trimEnd()}…` : body,
+        body,
+        category: n.audience === 'guardians_with_debt' ? 'finance' : 'general',
+        created_at: n.published_at ?? n.created_at,
+        audience: n.audience,
+        read_flag: 0,
+      };
+    }),
+  });
 });
 
 export default sga;

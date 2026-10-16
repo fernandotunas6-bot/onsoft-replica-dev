@@ -25,6 +25,7 @@ const tables: Record<string, Row[]> = {
 		{ membership_id: "m-t", role_id: "r-t" },
 		{ membership_id: "m-e", role_id: "r-g" },
 	],
+	profiles: [{ id: "u-guardian", full_name: "Mariana Silva", display_name: null }],
 	roles: [{ id: "r-g", code: "encarregado" }, { id: "r-t", code: "professor" }],
 	people: [
 		{ id: "p-g", school_id: S1, user_id: "u-guardian", email: null, deleted_at: null, full_name: "Mariana" },
@@ -148,7 +149,7 @@ describe("API SGA", () => {
 
 	it("/me: escola, papel e as outras escolas; a escola pedida só vale se tiver vínculo", async () => {
 		const me = (await (await get("/me", "tok-guardian")).json()) as Record<string, unknown>;
-		expect(me).toMatchObject({ school: { id: S1, name: "Escola Um" }, role: "parent", roles: ["Encarregado"] });
+		expect(me).toMatchObject({ name: "Mariana Silva", school: { id: S1, name: "Escola Um" }, role: "parent", roles: ["Encarregado"] });
 		expect((me.schools as unknown[]).length).toBe(2);
 		const other = (await (await get("/me", "tok-guardian", S2)).json()) as { school: { id: string } };
 		expect(other.school.id).toBe(S2);
@@ -161,8 +162,8 @@ describe("API SGA", () => {
 		expect(res.headers.get("Cache-Control")).toBe("private, no-store");
 		const { data } = (await res.json()) as { data: Record<string, unknown>[] };
 		expect(data).toEqual([
-			{ id: "st-ana", name: "Ana Silva", studentNumber: "A1", photoUrl: null, enrollmentId: "e-ana", classGroupId: "cg-10a", className: "10.ª A" },
-			{ id: "st-rui", name: "Rui", studentNumber: "A2", photoUrl: "https://x/rui.jpg", enrollmentId: "e-rui", classGroupId: "cg-7b", className: "7.ª B" },
+			{ id: "st-ana", school_id: S1, class_id: "cg-10a", class_name: "10.ª A", name: "Ana Silva", photo_url: null, student_number: "A1", enrollment_id: "e-ana", is_active: 1 },
+			{ id: "st-rui", school_id: S1, class_id: "cg-7b", class_name: "7.ª B", name: "Rui", photo_url: "https://x/rui.jpg", student_number: "A2", enrollment_id: "e-rui", is_active: 1 },
 		]);
 		const s2 = (await (await get("/wards", "tok-guardian", S2)).json()) as { data: { id: string }[] };
 		expect(s2.data.map((w) => w.id)).toEqual(["st-other"]);
@@ -183,6 +184,7 @@ describe("API SGA", () => {
 	it("/notices: publicados para encarregados, os de dívida só com factura vencida, só desta escola", async () => {
 		const { data } = (await (await get("/notices", "tok-guardian")).json()) as { data: { id: string }[] };
 		expect(data.map((n) => n.id).sort()).toEqual(["n-all", "n-debt"]);
+		expect(data.find((n) => n.id === "n-debt")).toMatchObject({ school_id: S1, category: "finance", summary: "x", read_flag: 0, created_at: "2026-10-02" });
 		const noDebt = (await (await get("/notices", "tok-email")).json()) as { data: { id: string }[] };
 		expect(noDebt.data.map((n) => n.id)).toEqual(["n-all"]);
 	});

@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:yft_school_system/core/sga/captcha_box.dart';
+import 'package:yft_school_system/core/sga/sga_config.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import 'package:go_router/go_router.dart';
@@ -22,6 +24,13 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   bool _isPasswordVisible = false;
   bool _isLoading = false;
   KnownSchool? _school;
+
+  /// Modo SIGA: token do hCaptcha (cada um serve uma vez) e a geração do
+  /// widget, para mostrar um desafio novo depois de cada tentativa.
+  String? _captchaToken;
+  int _captchaRound = 0;
+  static const _sga = SgaConfig.fromEnvironment;
+  bool get _captchaRequired => _sga.enabled && _sga.needsCaptcha;
 
   @override
   void dispose() {
@@ -47,12 +56,27 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       return;
     }
 
+    if (_captchaRequired && _captchaToken == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Confirme primeiro que não é um robô.')),
+      );
+      return;
+    }
+
     setState(() => _isLoading = true);
 
-    final error = await ref.read(authProvider.notifier).login(email, password);
+    final error = await ref
+        .read(authProvider.notifier)
+        .login(email, password, captchaToken: _captchaToken);
 
     if (!mounted) return;
-    setState(() => _isLoading = false);
+    setState(() {
+      _isLoading = false;
+      if (_captchaRequired) {
+        _captchaToken = null;
+        _captchaRound++;
+      }
+    });
 
     if (error == null) {
       final session = ref.read(authProvider);
@@ -95,9 +119,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               child: Container(
                 decoration: BoxDecoration(
                   color: AppColors.surface,
-                  border: Border(
-                    right: BorderSide(color: AppColors.border),
-                  ),
+                  border: Border(right: BorderSide(color: AppColors.border)),
                 ),
                 child: Center(
                   child: Column(
@@ -170,50 +192,67 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         ),
         const SizedBox(height: 8),
         Text(
-          'Seleccione a sua escola e utilize as suas credenciais '
-          'institucionais.',
+          _sga.enabled
+              ? 'Entre com a conta do SIGA: o mesmo e-mail e palavra-passe '
+                    'do portal da escola.'
+              : 'Seleccione a sua escola e utilize as suas credenciais '
+                    'institucionais.',
           style: textTheme.bodyMedium?.copyWith(height: 1.4),
         ),
         const SizedBox(height: 28),
 
         // Selector de escola: abre a folha com as escolas deste dispositivo.
-        Material(
-          color: AppColors.surface,
-          borderRadius: BorderRadius.circular(16),
-          child: InkWell(
+        // No modo SIGA a escola vem da própria conta.
+        if (!_sga.enabled) ...[
+          Material(
+            color: AppColors.surface,
             borderRadius: BorderRadius.circular(16),
-            onTap: _pickSchool,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: AppColors.border),
-              ),
-              child: Row(
-                children: [
-                  Icon(LucideIcons.school, size: 20, color: AppColors.textSecondary),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Text(
-                      _school?.name ?? 'Seleccione a escola',
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: _school == null
-                            ? AppColors.textSecondary
-                            : AppColors.textPrimary,
+            child: InkWell(
+              borderRadius: BorderRadius.circular(16),
+              onTap: _pickSchool,
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 18,
+                ),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: AppColors.border),
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      LucideIcons.school,
+                      size: 20,
+                      color: AppColors.textSecondary,
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        _school?.name ?? 'Seleccione a escola',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: _school == null
+                              ? AppColors.textSecondary
+                              : AppColors.textPrimary,
+                        ),
                       ),
                     ),
-                  ),
-                  Icon(LucideIcons.chevronDown, size: 18, color: AppColors.textSecondary),
-                ],
+                    Icon(
+                      LucideIcons.chevronDown,
+                      size: 18,
+                      color: AppColors.textSecondary,
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
-        ),
 
-        const SizedBox(height: 14),
+          const SizedBox(height: 14),
+        ],
 
         TextField(
           controller: _emailController,
@@ -260,6 +299,23 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
         const SizedBox(height: 16),
 
+        if (_captchaRequired) ...[
+          if (captchaSupported)
+            CaptchaBox(
+              key: ValueKey(_captchaRound),
+              siteKey: _sga.captchaSiteKey,
+              onToken: (t) => setState(() => _captchaToken = t),
+            )
+          else
+            Text(
+              'Para entrar com a conta do SIGA neste aparelho, use por agora a '
+              'versão web da app (o captcha do SIGA ainda não está aqui).',
+              textAlign: TextAlign.center,
+              style: TextStyle(fontSize: 13, color: AppColors.textSecondary),
+            ),
+          const SizedBox(height: 16),
+        ],
+
         SizedBox(
           height: 56,
           child: ElevatedButton(
@@ -292,7 +348,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               Expanded(
                 child: Text(
                   'A sua conta é criada pela administração da escola.',
-                  style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: AppColors.textSecondary,
+                  ),
                 ),
               ),
             ],

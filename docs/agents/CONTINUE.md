@@ -31,6 +31,7 @@ Branch `ccr-797179ec-129c5n`. App Flutter (Firebase Auth + worker Cloudflare D1 
 - **Supabase do SIGA:** a app passa por fases para as contas e os dados do SIGA — plano e regras em
   `estudo/yft-school-system/docs/MIGRACAO_SUPABASE.md`. Feito: API de leitura do encarregado
   `/api/sga/{me,wards,notices}` no `school-worker` (segredo `SGA_SUPABASE_SECRET_KEY`).
+  App: modo SIGA por `--dart-define` (login Supabase + hCaptcha na web), em `lib/core/sga/`.
 - **Por aplicar (dono):** migrações D1 `0012`→`0018` e `npx wrangler deploy`. A `0015` atribui as
   notas existentes ao ano lectivo actual de cada escola e troca a chave única — fazer
   `npx wrangler d1 export school_management_db --remote --output=backup.sql` antes.
