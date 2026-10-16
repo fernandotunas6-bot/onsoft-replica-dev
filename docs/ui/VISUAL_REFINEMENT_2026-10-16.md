@@ -161,3 +161,24 @@ Acção de configuração pendente: substituir `CLOUDFLARE_API_TOKEN` em
 GitHub → Settings → Environments → production por um token válido para a conta e
 recursos usados pelo workflow; depois repetir a execução falhada. Não guardar o token
 no código ou na documentação. Este bloqueio não exige alterar os componentes visuais.
+
+## Continuação — formulários por etapas
+
+- Cabeçalhos dos modais com título de 18 px e descrição de 13 px em várias linhas;
+  botão de fechar de 44 px no topo. Rodapés opacos com botões de pelo menos 44 px
+  e texto que pode quebrar, mantendo os callbacks existentes.
+- Assistente usado nas matrículas e turmas: etapas com tipografia explícita,
+  alvos de 44 px também no desktop e indicação de conclusão nos tokens da marca.
+  Sem alterações à validação, à ordem das etapas ou à submissão.
+- Células dos formulários com labels de 12 px e mais espaçamento; áreas de texto
+  opacas com mínimo de 96 px. Ajuda e mensagens dos formulários React Hook Form
+  com 12 px e entrelinha de 20 px, mantendo associações e erros existentes.
+- ModalShell com margem de 16 px e cantos de 20 px; véus sem desfoque, incluindo
+  a confirmação de alterações não guardadas.
+- Chromium com formulário e callbacks fictícios a 320×700, 390×844 (escuro),
+  768×1024, 1440×960 e 568×320: sem overflow horizontal, título completo,
+  textarea de 96 px, fechar e concluir com 44 px; avançar, voltar e concluir
+  uma vez aprovados. Não testa submissão de matrícula real nem teclado nativo.
+- 99 testes existentes de UI/filtros/navegação aprovados. Lint dos ficheiros
+  editados sem erros, com um aviso de Fast Refresh já existente em `form.tsx`;
+  scripts de estilo/acessibilidade aprovados. Build local aprovado.

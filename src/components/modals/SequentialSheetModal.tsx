@@ -78,11 +78,13 @@ export function SequentialSheetModal({
       }
       size={visualPanel ? "2xl" : "xl"}
     >
-      <div className="space-y-3">
+      <div className="min-w-0 space-y-4">
         {current?.description && (
-          <p className="text-xs text-muted-foreground">{current.description}</p>
+          <p className="break-words text-[13px] leading-[20px] text-muted-foreground">
+            {current.description}
+          </p>
         )}
-        <div className="rounded-xl border border-border bg-secondary/20 p-1">
+        <div className="min-w-0 rounded-2xl border border-border bg-card p-1">
           {current ? children({ stepId: current.id, stepIndex }) : null}
         </div>
       </div>
@@ -92,7 +94,7 @@ export function SequentialSheetModal({
 
 export function SheetGrid({ children }: { children: ReactNode }) {
   return (
-    <div className="grid gap-px overflow-hidden rounded-lg bg-border sm:grid-cols-2">
+    <div className="grid min-w-0 gap-px overflow-hidden rounded-xl bg-border sm:grid-cols-2">
       {children}
     </div>
   );
@@ -108,8 +110,10 @@ export function SheetCell({
   full?: boolean;
 }) {
   return (
-    <label className={cn("block bg-card px-4 py-3", full && "sm:col-span-2")}>
-      <span className="mb-1.5 block text-[11px] font-semibold text-muted-foreground">{label}</span>
+    <label className={cn("block min-w-0 bg-card px-4 py-4", full && "sm:col-span-2")}>
+      <span className="mb-2 block break-words text-[12px] font-medium leading-[20px] text-muted-foreground">
+        {label}
+      </span>
       {children}
     </label>
   );
