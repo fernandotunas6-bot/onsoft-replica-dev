@@ -81,3 +81,26 @@ rotas e regras de acesso intactos. Nada alterado nesta revisão. Por decidir:
    (`size-[36px]` = `size-9`, `leading-[20px]` = `leading-5`); `flex-wrap` sem efeito no
    rodapé (filhos `flex-1 min-w-0` nunca quebram) e `whitespace-normal` sem efeito em
    `FilterOption`.
+
+## PR #170 (carregamento e avisos de ligação)
+
+Responde em parte ao ponto 2 do #164 (carregamento sem sinal de progresso). Nada alterado
+nesta revisão. Por decidir:
+
+1. **Aviso offline mais alto e no fluxo da página.** `OfflineBanner` passou de ~28 px a
+   44–58 px e continua antes do contentor `min-h-screen` do `AppShell`, cuja barra lateral é
+   `sticky h-screen`. Sem rede, a página fica mais alta que o ecrã (aparece scroll e o fundo da
+   barra lateral sai do ecrã); no telemóvel o aviso não é fixo e desaparece ao rolar, logo
+   enquanto se preenchem formulários. Já acontecia com 28 px; agora nota-se mais. Sugestão:
+   torná-lo fixo por cima do cabeçalho (com reserva) ou tirá-lo do fluxo; os 44 px de altura
+   mínima não servem de alvo de toque (não é interactivo).
+2. **`role="status"` montado já com o texto.** Em `PageLoading` (pendente de rotas e
+   «A confirmar acesso…»), muitos leitores de ecrã não anunciam uma região viva que nasce com
+   o conteúdo; os que anunciam repetem «A carregar…» em cada navegação lenta.
+3. **Movimento reduzido:** o novo indicador é um anel estático com um segmento colorido
+   (`motion-safe:animate-spin`), que parece parado; sem `message`, não há outro sinal.
+4. **A marca continua a entrar duas vezes** (ver #164, ponto 3): agora com a respiração
+   `siga-brand-wait`, cortada a meio quando o login monta e volta a fazer a entrada.
+5. **Limpeza:** `Bar` em `mobile/skeletons.tsx` duplica `ui/skeleton.tsx`; muitas trocas de
+   classes da escala por valores arbitrários iguais (`size-9`→`size-[36px]`); guardas
+   `motion-safe:` repetem a regra global de `prefers-reduced-motion` em `styles.css`.
