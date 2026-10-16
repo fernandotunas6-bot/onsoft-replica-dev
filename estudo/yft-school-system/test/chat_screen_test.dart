@@ -75,6 +75,8 @@ void main() {
     await tester.pump();
     expect(find.text('mensagem 0'), findsOneWidget);
     expect(find.text('Ver mensagens anteriores'), findsNothing);
+    // Todas do mesmo dia: um só separador, por cima da primeira.
+    expect(find.textContaining('1 de Maio'), findsOneWidget);
 
     // Chega uma nova: a página mais recente avança, as antigas ficam.
     repo.total = 151;

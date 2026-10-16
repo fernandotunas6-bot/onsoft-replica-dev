@@ -12,6 +12,7 @@ import 'package:yft_school_system/core/utils/media_url.dart';
 import 'package:yft_school_system/core/utils/responsive_utils.dart';
 import 'package:yft_school_system/core/widgets/profile_photo_avatar.dart';
 import 'package:yft_school_system/core/widgets/section_widgets.dart';
+import 'package:yft_school_system/features/calendar/application/school_events.dart';
 import 'package:yft_school_system/features/messages/presentation/messages_screen.dart';
 
 /// Lista das conversas 1:1 (separador "Conversas" de Mensagens).
@@ -492,7 +493,15 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                         ),
                       );
                     }
-                    return _Bubble(message: _messages[n - 1 - i]);
+                    final k = n - 1 - i;
+                    final day = _messageDay(_messages[k]);
+                    final newDay = k == 0 || day != _messageDay(_messages[k - 1]);
+                    final bubble = _Bubble(message: _messages[k]);
+                    if (!newDay || day == null) return bubble;
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [_DayChip(day: day), bubble],
+                    );
                   },
                 );
               },
@@ -554,6 +563,49 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   }
 }
 
+/// Hora local de uma mensagem (o servidor grava em UTC, sem "T" nem "Z").
+DateTime? _messageTime(ChatMessage m) =>
+    DateTime.tryParse('${m.createdAt.replaceFirst(' ', 'T')}Z')?.toLocal();
+
+DateTime? _messageDay(ChatMessage m) {
+  final t = _messageTime(m);
+  return t == null ? null : dayOnly(t);
+}
+
+/// Separador de dia na conversa: "Hoje", "Ontem" ou "15 de Março".
+class _DayChip extends StatelessWidget {
+  final DateTime day;
+
+  const _DayChip({required this.day});
+
+  @override
+  Widget build(BuildContext context) {
+    final today = dayOnly(DateTime.now());
+    final diff = today.difference(day).inDays;
+    final label = switch (diff) {
+      0 => 'Hoje',
+      1 => 'Ontem',
+      _ when day.year == today.year => formatDayMonth(day),
+      _ => '${formatDayMonth(day)} de ${day.year}',
+    };
+    return Center(
+      child: Container(
+        margin: const EdgeInsets.symmetric(vertical: 10),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+        decoration: BoxDecoration(
+          color: AppColors.surface,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: AppColors.border),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
+        ),
+      ),
+    );
+  }
+}
+
 class _Bubble extends StatelessWidget {
   final ChatMessage message;
 
@@ -562,8 +614,7 @@ class _Bubble extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final mine = message.mine;
-    final when = DateTime.tryParse('${message.createdAt.replaceFirst(' ', 'T')}Z')
-        ?.toLocal();
+    final when = _messageTime(message);
     final time = when == null
         ? ''
         : '${when.hour.toString().padLeft(2, '0')}:${when.minute.toString().padLeft(2, '0')}';
