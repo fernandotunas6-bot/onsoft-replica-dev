@@ -225,6 +225,7 @@ class _ResultsInputScreenState extends ConsumerState<ResultsInputScreen> {
         actions: [
           if (!isReadOnly)
             IconButton(
+              tooltip: 'Guardar notas',
               icon: _saveBusy
                   ? const SizedBox(
                       width: 22,

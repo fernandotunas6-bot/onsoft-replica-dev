@@ -14,7 +14,10 @@ class BackdropOption {
   final String id;
   final List<Color> colors;
 
-  const BackdropOption(this.id, this.colors);
+  /// Nome para o leitor de ecrã.
+  final String label;
+
+  const BackdropOption(this.id, this.colors, this.label);
 }
 
 /// Paleta da aplicação.
@@ -48,9 +51,9 @@ class AppColors {
   ];
 
   static const List<BackdropOption> backdrops = [
-    BackdropOption('aurora', [Color(0xFF7FA8FF), Color(0xFFE38BFF), Color(0xFFFFB38A)]),
-    BackdropOption('mist', [Color(0xFFB9D3FF), Color(0xFFE7EEFF), Color(0xFFD8C8FF)]),
-    BackdropOption('sunset', [Color(0xFFFFC2D6), Color(0xFFFFD8B5), Color(0xFFC9D6FF)]),
+    BackdropOption('aurora', [Color(0xFF7FA8FF), Color(0xFFE38BFF), Color(0xFFFFB38A)], 'Aurora'),
+    BackdropOption('mist', [Color(0xFFB9D3FF), Color(0xFFE7EEFF), Color(0xFFD8C8FF)], 'Névoa'),
+    BackdropOption('sunset', [Color(0xFFFFC2D6), Color(0xFFFFD8B5), Color(0xFFC9D6FF)], 'Pôr do sol'),
   ];
 
   /// Cores dos mosaicos de disciplina (ícone sobre o tom a 12 %).

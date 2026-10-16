@@ -236,6 +236,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             hintText: 'Palavra-passe',
             prefixIcon: const Icon(LucideIcons.keyRound, size: 20),
             suffixIcon: IconButton(
+              tooltip: _isPasswordVisible ? 'Esconder senha' : 'Mostrar senha',
               icon: Icon(
                 _isPasswordVisible ? LucideIcons.eyeOff : LucideIcons.eye,
                 size: 20,

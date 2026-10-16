@@ -31,7 +31,10 @@ class AppearanceScreen extends ConsumerWidget {
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: const Text('Aparência', style: TextStyle(fontWeight: FontWeight.w600)),
+        title: const Text(
+          'Aparência',
+          style: TextStyle(fontWeight: FontWeight.w600),
+        ),
       ),
       body: SingleChildScrollView(
         padding: EdgeInsets.fromLTRB(
@@ -77,6 +80,7 @@ class AppearanceScreen extends ConsumerWidget {
                           right: b == AppColors.backdrops.last ? 0 : 10,
                         ),
                         child: _BackdropOption(
+                          label: b.label,
                           colors: b.colors,
                           selected: s.backdropId == b.id,
                           onTap: () => n.setBackdrop(b.id),
@@ -192,11 +196,13 @@ class _ThemeOption extends StatelessWidget {
 }
 
 class _BackdropOption extends StatelessWidget {
+  final String label;
   final List<Color> colors;
   final bool selected;
   final VoidCallback onTap;
 
   const _BackdropOption({
+    required this.label,
     required this.colors,
     required this.selected,
     required this.onTap,
@@ -204,28 +210,37 @@ class _BackdropOption extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: AspectRatio(
-        aspectRatio: 1.25,
-        child: Container(
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(16),
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: colors,
+    return Semantics(
+      label: label,
+      selected: selected,
+      button: true,
+      child: GestureDetector(
+        onTap: onTap,
+        child: AspectRatio(
+          aspectRatio: 1.25,
+          child: Container(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(16),
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: colors,
+              ),
+              border: Border.all(
+                color: selected ? AppColors.primary : Colors.transparent,
+                width: 2.5,
+              ),
             ),
-            border: Border.all(
-              color: selected ? AppColors.primary : Colors.transparent,
-              width: 2.5,
-            ),
+            alignment: Alignment.topRight,
+            padding: const EdgeInsets.all(6),
+            child: selected
+                ? Icon(
+                    Icons.check_circle_rounded,
+                    color: AppColors.primary,
+                    size: 20,
+                  )
+                : null,
           ),
-          alignment: Alignment.topRight,
-          padding: const EdgeInsets.all(6),
-          child: selected
-              ? Icon(Icons.check_circle_rounded, color: AppColors.primary, size: 20)
-              : null,
         ),
       ),
     );
@@ -272,7 +287,10 @@ class _SwitchRow extends StatelessWidget {
                 ),
                 Text(
                   subtitle,
-                  style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: AppColors.textSecondary,
+                  ),
                 ),
               ],
             ),

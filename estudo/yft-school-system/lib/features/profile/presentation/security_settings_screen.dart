@@ -389,6 +389,7 @@ class _SecuritySettingsScreenState
                 color: AppColors.textSecondary.withValues(alpha: 0.5),
               ),
               suffixIcon: IconButton(
+                tooltip: isObscured ? 'Mostrar senha' : 'Esconder senha',
                 icon: Icon(
                   isObscured ? LucideIcons.eyeOff : LucideIcons.eye,
                   color: AppColors.textSecondary,

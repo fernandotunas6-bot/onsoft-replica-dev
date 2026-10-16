@@ -28,12 +28,14 @@ class ClassListScreen extends ConsumerWidget {
         foregroundColor: AppColors.secondary,
         actions: [
           IconButton(
+            tooltip: 'Disciplinas',
             icon: const Icon(LucideIcons.book),
             onPressed: () => context.push('/subjects'),
           ),
         ],
       ),
       floatingActionButton: FloatingActionButton(
+        tooltip: 'Nova turma',
         onPressed: () => context.push('/class-setup'),
         backgroundColor: AppColors.primary,
         child: Icon(LucideIcons.plus, color: AppColors.onPrimary),
@@ -154,6 +156,7 @@ class ClassListScreen extends ConsumerWidget {
                                 ),
                               ),
                               IconButton(
+                                tooltip: 'Apagar turma',
                                 icon: Icon(
                                   LucideIcons.trash2,
                                   color: AppColors.error,

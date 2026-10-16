@@ -39,6 +39,7 @@ class _SubjectListScreenState extends ConsumerState<SubjectListScreen> {
         foregroundColor: AppColors.secondary,
       ),
       floatingActionButton: FloatingActionButton(
+        tooltip: 'Nova disciplina',
         onPressed: () => _showSubjectSheet(),
         backgroundColor: AppColors.primary,
         child: Icon(LucideIcons.plus, color: AppColors.onPrimary),
