@@ -62,3 +62,22 @@ Por decidir (escolhas de design, não alteradas):
 5. **Repetição de classes**: o conjunto de 44 px dos botões dos modais e a animação dos menus
    estão copiados em 3 sítios cada; um tamanho de `Button` e uma constante partilhada evitam
    que divirjam.
+
+## PR #168 (MoreHub, acções rápidas, filtros)
+
+Sem erros de lógica: só estilo em `FilterSheet`, `MoreHub` e `QuickActions`; callbacks,
+rotas e regras de acesso intactos. Nada alterado nesta revisão. Por decidir:
+
+1. **Chips de filtro aplicado perderam a cor de «activo»** (de `primary-soft` para
+   `secondary` neutro), ao contrário do botão de filtros e das opções, que continuam a
+   primária. Um filtro aplicado passa a parecer um controlo qualquer.
+2. **Acções rápidas com 104 px de altura mínima** em duas colunas: com 6 acções o bloco passa
+   de ~170 px a mais de 340 px no painel do Administrador e empurra métricas e alertas para
+   fora do primeiro ecrã a 320×700.
+3. **Títulos de secção desalinhados**: o MoreHub passou a 12 px sem maiúsculas, mas
+   «Acções rápidas» no painel (`AdminPortalDashboard`) continua 11 px em maiúsculas.
+4. **Limpeza**: `min-h-[56px]` fixo em vez dos tokens `--siga-control-*`; a mesma linha do
+   MoreHub copiada 4 vezes (um `HubRow` evitava); valores arbitrários iguais à escala
+   (`size-[36px]` = `size-9`, `leading-[20px]` = `leading-5`); `flex-wrap` sem efeito no
+   rodapé (filhos `flex-1 min-w-0` nunca quebram) e `whitespace-normal` sem efeito em
+   `FilterOption`.
