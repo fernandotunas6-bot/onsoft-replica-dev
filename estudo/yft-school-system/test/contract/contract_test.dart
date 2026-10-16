@@ -106,6 +106,14 @@ void main() {
     expect(card.lines.single.total, 82.5);
   });
 
+  test('boletim: anos lectivos com notas', () async {
+    final y = await GradesRepository(
+      _dio({'GET /api/grades/years': 'grade_years'}),
+    ).getYears('q-st');
+    expect(y.years, contains('2025/2026'));
+    expect(y.current, isNotEmpty);
+  });
+
   test('disciplinas e turmas do encarregado', () async {
     final subjects = await SubjectRepository(
       _dio({'GET /api/subjects': 'subjects_parent'}),

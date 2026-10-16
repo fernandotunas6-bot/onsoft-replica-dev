@@ -65,6 +65,7 @@ describe("contrato", () => {
 		fixtures.attendance_student = await call(parent, "/attendance/student/q-st");
 
 		fixtures.grades = await call(parent, "/grades?student_id=q-st&term=Term%201");
+		fixtures.grade_years = await call(parent, "/grades/years?student_id=q-st");
 		fixtures.subjects_parent = await call(parent, "/subjects");
 		fixtures.classes_parent = await call(parent, "/classes");
 		fixtures.teachers = await call(admin, "/users/teachers");
