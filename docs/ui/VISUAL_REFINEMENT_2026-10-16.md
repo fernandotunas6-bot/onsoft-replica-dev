@@ -12,16 +12,16 @@ espera na autenticação Web. A restauração da sessão Flutter continua em par
 
 ## Alterações
 
-| Área                       | Implementação                                                                                                                          | Validação e limite                                                                    |
-| -------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------- |
-| Web / painel escolar       | Cabeçalho opaco, títulos 20–24 px, descrições com respiro, métricas sem brilho/elevação ao passar o rato                               | Checks Web; módulos autenticados ainda sem inspecção com contas reais                 |
-| Login Web                  | Painel neutro, formulário limitado a 420 px, sem zoom CSS, sem vídeo/poster, marca animada na entrada                                  | Tipos, build, testes e inspecção do login em Chromium a 320/390/768/1440 px           |
-| Carregamento de sessão Web | Marca apenas, mensagem acessível a leitores de ecrã, sem spinner visível                                                               | Caminho visual alterado, lógica de sessão preservada                                  |
-| Modais e campos Web        | Véu discreto, largura com margem, limite de altura dinâmico, cantos consistentes, campos opacos                                        | Check de acessibilidade e testes UI; testar teclado virtual/zoom em aparelho          |
-| Marca                      | Palavra Plus com gradiente reservado à identidade; pesos 400/500/600, sem fonte serifada nem sublinhado dourado no wordmark horizontal | Interpretação tipográfica da referência, não reprodução vectorial exacta              |
-| Flutter / páginas          | Tema central claro/escuro, Inter local, superfícies neutras, estados legíveis, botões de 48 px, navegação e folhas alinhadas           | Formatação Dart aprovada; análise, testes e renderização Flutter pendentes            |
-| Flutter / login            | Formulário em superfície delimitada, hierarquia mais clara e mensagem de erro destacada                                                | Callbacks, credenciais e MFA preservados; ainda sem teste executado no SDK            |
-| Flutter / abertura         | Só a marca, fade/escala breve: 1,4 s na primeira abertura e 0,5 s nas seguintes; salto e movimento reduzido                            | Não há vídeo, áudio, .riv ou alegação de morph exacto; testes existentes por executar |
+| Área                       | Implementação                                                                                                                          | Validação e limite                                                                           |
+| -------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
+| Web / painel escolar       | Cabeçalho opaco, títulos 20–24 px, descrições com respiro, métricas sem brilho/elevação ao passar o rato                               | Checks Web; módulos autenticados ainda sem inspecção com contas reais                        |
+| Login Web                  | Painel neutro, formulário limitado a 420 px, sem zoom CSS, sem vídeo/poster, marca animada na entrada                                  | Tipos, build, testes e inspecção do login em Chromium a 320/390/768/1440 px                  |
+| Carregamento de sessão Web | Marca apenas, mensagem acessível a leitores de ecrã, sem spinner visível                                                               | Caminho visual alterado, lógica de sessão preservada                                         |
+| Modais e campos Web        | Véu discreto, largura com margem, limite de altura dinâmico, cantos consistentes, campos opacos                                        | Check de acessibilidade e testes UI; testar teclado virtual/zoom em aparelho                 |
+| Marca                      | Palavra Plus com gradiente reservado à identidade; pesos 400/500/600, sem fonte serifada nem sublinhado dourado no wordmark horizontal | Interpretação tipográfica da referência, não reprodução vectorial exacta                     |
+| Flutter / páginas          | Tema central claro/escuro, Inter local, superfícies neutras, estados legíveis, botões de 48 px, navegação e folhas alinhadas           | Análise, testes e build Web Flutter aprovados no GitHub; inspecção em aparelho pendente      |
+| Flutter / login            | Formulário em superfície delimitada, hierarquia mais clara e mensagem de erro destacada                                                | Callbacks, credenciais e MFA preservados; testes Flutter aprovados no GitHub                 |
+| Flutter / abertura         | Só a marca, fade/escala breve: 1,4 s na primeira abertura e 0,5 s nas seguintes; salto e movimento reduzido                            | Não há vídeo, áudio, .riv ou alegação de morph exacto; testes existentes aprovados no GitHub |
 
 A mascote raster já existente continua disponível para os contextos que a usam;
 a abertura usa a marca tipográfica. Não foi inventado um novo vector do S.
@@ -45,11 +45,12 @@ a abertura usa a marca tipográfica. Não foi inventado um novo vector do S.
 
 ## Bloqueios e próximos passos
 
-A revisão automática bloqueou a inicialização do Flutter porque a ferramenta tentou
-consultar o endpoint de metadados da instância, com risco de exposição de credenciais.
-Não repetir nem contornar essa chamada. Executar `flutter analyze`, testes e build
-num ambiente autorizado antes de integrar; verificar os testes existentes de salto
-único e movimento reduzido.
+A inicialização local do Flutter foi bloqueada pela revisão automática devido a uma
+consulta a metadados da instância; não se contornou essa chamada. O workflow já existente
+no repositório validou entretanto o commit `5bbb735`: `flutter pub get`, formatação,
+`flutter analyze`, testes e build Web release aprovados no
+[run 38900488665](https://github.com/fernandotunas6-bot/onsoft-replica-dev/actions/runs/38900488665).
+O incremento seguinte altera apenas componentes Web e mantém esses ficheiros Flutter.
 
 Antes de considerar todas as superfícies validadas: conferir páginas autenticadas
 Web e Flutter em 320, 390, 768 e 1440 px,
@@ -63,3 +64,20 @@ transformar imagens de referência em dados institucionais. Não publicar por es
 em `public/fonts/inter/`, sem redesenhar glifos. Inclui os acentos portugueses. Caracteres
 fora do subconjunto usam o fallback da plataforma. Licença SIL OFL 1.1 junto ao ficheiro;
 fonte da licença: https://github.com/rsms/inter/blob/master/LICENSE.txt.
+
+## Continuação — listas e navegação móvel
+
+- Cabeçalho móvel opaco de 64 px; barra inferior flutuante de 64 px com margens de 8 px.
+  A reserva `--siga-bottom-nav-h` acompanha a altura total (80 px + área segura), para
+  não cobrir as últimas linhas ou botões.
+- Nomes/contextos das entidades podem ocupar duas linhas; estado e metadados partilham
+  a linha seguinte. Alvos de toque, foco, selecção e callbacks são preservados.
+- Pesquisa com 44 px reais, texto de 16 px e área de limpeza de 44 px; mantém debounce.
+- Folhas inferiores com título em várias linhas e largura limitada em ecrãs grandes;
+  tabelas, métricas e estados vazios com hierarquia tipográfica mais legível.
+- Revisão em Chromium a 320 e 390 px, claro/escuro, usando componentes reais com
+  providers/avatares de demonstração: sem overflow, pesquisa de 44 px, navegação total
+  de 80 px, última linha visível ao chegar ao fim, folha a abrir/fechar sem erros JS.
+  Não representa um ensaio autenticado de dados ou de isolamento.
+- 92 testes UI/navegação aprovados após este incremento; checks de estilo e
+  acessibilidade aprovados. TypeScript e build aprovados na branch.

@@ -689,10 +689,10 @@ h6,
   --siga-touch-min: 44px;
 
   /* Cromo da aplicação mobile. */
-  --siga-mobile-header-h: 56px;
+  --siga-mobile-header-h: 64px;
   --siga-mobile-context-h: 2.25rem;
-  /* Alvo de 44px + pt-1.5 e pb-2; a área segura é somada pelo consumidor. */
-  --siga-bottom-nav-h: calc(44px + 0.875rem);
+  /* Barra de 64px e margens de 8px; a área segura é somada pelo consumidor. */
+  --siga-bottom-nav-h: 80px;
 
   /*
    * Z-index com nomes. Antes havia z-30/z-40/z-50 espalhados e nada dizia qual
