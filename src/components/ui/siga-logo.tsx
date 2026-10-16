@@ -30,7 +30,8 @@ const iconSizes = {
 };
 
 /**
- * Ícone Mascote Oficial SIGA Plus — Formato Exclusivo PNG (/brands/siga-plus-icon.png / logo.png).
+ * Ícone Mascote Oficial SIGA Plus (/brands/siga-plus-icon-256.webp, reduzido do PNG oficial
+ * /brands/siga-plus-icon.png).
  */
 export function SigaMascotIcon({
   size = 44,
@@ -43,7 +44,10 @@ export function SigaMascotIcon({
 }) {
   return (
     <img
-      src="/brands/siga-plus-icon.png"
+      // Mostrado a 128 px no máximo: 256 px chega para ecrãs 2x. O PNG original
+      // (1254 px, 670 KB) era pré-carregado em todas as páginas e atrasava o
+      // primeiro conteúdo.
+      src="/brands/siga-plus-icon-256.webp"
       alt="SIGA Plus Mascot"
       width={size}
       height={size}
