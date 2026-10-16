@@ -4,7 +4,7 @@ import type { AppEnv } from '../app-env';
 import { requireAdminOrTeacher, requireRoles } from '../lib/auth-guards';
 import { createPrefixedId } from '../lib/id';
 import { jsonError, jsonOk } from '../lib/response';
-import { canSeeStudent } from '../lib/ward-classes';
+import { canMarkClass, canSeeStudent } from '../lib/ward-classes';
 
 const day = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Use YYYY-MM-DD');
 
@@ -63,6 +63,9 @@ attendance.put('/', requireAdminOrTeacher, async (c) => {
   }
   const { class_id: classId, date, records } = parsed.data;
   if (date > todayLuanda()) return jsonError(c, 'Date is in the future', 400);
+  if (!(await canMarkClass(c, classId))) {
+    return jsonError(c, 'You do not teach this class', 403);
+  }
 
   const ids = [...new Set(records.map((r) => r.student_id))];
   const { results: valid } = await c.env.DB.prepare(

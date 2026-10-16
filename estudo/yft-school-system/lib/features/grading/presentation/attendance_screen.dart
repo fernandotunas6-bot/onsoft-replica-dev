@@ -81,9 +81,11 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
         SnackBar(
           backgroundColor: AppColors.error,
           content: Text(
-            e.response?.statusCode == 400
-                ? 'A lista mudou entretanto. Actualize e tente de novo.'
-                : 'Não foi possível guardar. Verifique a ligação.',
+            switch (e.response?.statusCode) {
+              400 => 'A lista mudou entretanto. Actualize e tente de novo.',
+              403 => 'Só pode marcar presenças nas turmas onde dá aulas.',
+              _ => 'Não foi possível guardar. Verifique a ligação.',
+            },
           ),
         ),
       );
@@ -92,17 +94,19 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final classes =
+    final all =
         ref.watch(classesProvider).whenOrNull(data: (c) => c) ??
         const <SchoolClass>[];
-    // Ordem: a escolhida aqui, a escolhida em "As minhas turmas", a primeira
-    // turma do horário do professor.
     final mine =
         ref.watch(teacherClassIdsProvider).whenOrNull(data: (s) => s) ??
         const <String>{};
-    final preferred = _classId ??
-        ref.watch(selectedClassProvider)?.id ??
-        classes.where((c) => mine.contains(c.id)).firstOrNull?.id;
+    // Com horário, o professor só marca as turmas onde dá aulas (o servidor
+    // recusa as outras). Sem horário, aparecem todas.
+    final classes = mine.isEmpty
+        ? all
+        : all.where((c) => mine.contains(c.id)).toList();
+    // Ordem: a escolhida aqui, a escolhida em "As minhas turmas", a primeira.
+    final preferred = _classId ?? ref.watch(selectedClassProvider)?.id;
     final classId = classes.any((c) => c.id == preferred)
         ? preferred
         : classes.firstOrNull?.id;

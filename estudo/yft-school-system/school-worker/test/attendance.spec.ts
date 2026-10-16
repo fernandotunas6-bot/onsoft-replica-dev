@@ -58,6 +58,17 @@ describe("presenças", () => {
 		expect((await put(stranger, { class_id: "k1", date: "2026-03-02", records: [{ student_id: "s1", present: true }] })).status).toBe(400);
 	});
 
+	it("o professor com horário só marca as turmas onde dá aulas", async () => {
+		await env.DB.batch([
+			env.DB.prepare("INSERT OR IGNORE INTO Users (uid, school_id, role, name) VALUES ('t2', 'a1', 'teacher', 'T2')"),
+			env.DB.prepare("INSERT OR IGNORE INTO TimetableSlots (id, school_id, class_id, title, weekday, start_time, end_time, teacher_uid) VALUES ('ts1', 'a1', 'k2', 'Aula', 1, '08:00', '08:45', 't2')"),
+		]);
+		const t2: User = { uid: "t2", schoolId: "a1", role: "teacher" };
+		expect((await put(t2, { class_id: "k1", date: "2026-03-04", records: [{ student_id: "s1", present: true }] })).status).toBe(403);
+		expect((await put(t2, { class_id: "k2", date: "2026-03-04", records: [{ student_id: "s3", present: true }] })).status).toBe(200);
+		await env.DB.prepare("DELETE FROM Attendance WHERE date = '2026-03-04'").run();
+	});
+
 	it("resumo da turma conta presenças e faltas", async () => {
 		const body = (await (await call(teacher, "/attendance/summary?class_id=k1")).json()) as { data: { student_id: string; present_days: number; absent_days: number }[]; days_marked: number };
 		expect(body.days_marked).toBe(2);

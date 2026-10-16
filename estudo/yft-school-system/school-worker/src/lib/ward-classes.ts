@@ -25,3 +25,19 @@ export async function canSeeStudent(c: Context<AppEnv>, studentId: string): Prom
       .first();
   return row !== null;
 }
+
+/**
+ * O professor pode marcar presenças nesta turma. Se o horário o tem como
+ * professor de alguma turma, só nessas; se a escola ainda não lhe atribuiu
+ * tempos, em qualquer uma (como antes de haver horário). A direcção pode
+ * sempre.
+ */
+export async function canMarkClass(c: Context<AppEnv>, classId: string): Promise<boolean> {
+  const user = c.get('user');
+  if (user.role !== 'teacher') return true;
+  const row = await c.env.DB.prepare(
+    `SELECT COUNT(*) AS total, COALESCE(SUM(class_id = ?), 0) AS here
+     FROM TimetableSlots WHERE school_id = ? AND teacher_uid = ?`
+  ).bind(classId, user.schoolId, user.uid).first<{ total: number; here: number }>();
+  return !row || row.total === 0 || row.here > 0;
+}
