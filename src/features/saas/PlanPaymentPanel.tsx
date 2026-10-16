@@ -27,6 +27,12 @@ const kz = (value: number) =>
     maximumFractionDigits: 0,
   }).format(value);
 
+/** «2026-11-30» → «30/11/2026» (data civil, sem fuso). */
+const formatDate = (iso: string) => {
+  const [y, m, d] = iso.slice(0, 10).split("-");
+  return y && m && d ? `${d}/${m}/${y}` : iso;
+};
+
 async function fileToBase64(file: File): Promise<string> {
   const buffer = new Uint8Array(await file.arrayBuffer());
   let binary = "";
@@ -109,6 +115,11 @@ export function PlanPaymentPanel({ data }: { data: SubscriptionOverview }) {
             ? "Escola pública isenta do plano: não há pagamentos a fazer."
             : (data.billing.reason ?? "Não há pagamentos a fazer enquanto a pausa durar.")}
         </p>
+        {data.billing.mode !== "exempt" && data.billing.until ? (
+          <p className="mt-1 text-sm text-muted-foreground">
+            As cobranças retomam a {formatDate(data.billing.until)}.
+          </p>
+        ) : null}
       </Panel>
     );
   }
@@ -154,6 +165,24 @@ export function PlanPaymentPanel({ data }: { data: SubscriptionOverview }) {
         <p className="text-sm">
           A pagar: <strong>{amount ? kz(amount) : "sem preço definido"}</strong>
         </p>
+        <dl className="grid gap-1 text-xs text-muted-foreground">
+          {data.billing.customLines.length ? (
+            <div>
+              <dt className="sr-only">Como se calcula</dt>
+              {data.billing.customLines.map((line) => (
+                <dd key={line}>{line}</dd>
+              ))}
+            </div>
+          ) : null}
+          <div>
+            <dt className="inline">Vencimento: </dt>
+            <dd className="inline">dia {data.billing.dueDay} do período</dd>
+          </div>
+          <div>
+            <dt className="inline">Pagamentos aceites: </dt>
+            <dd className="inline">{data.billing.paymentMethods.join(", ")}</dd>
+          </div>
+        </dl>
 
         {!charge ? (
           <Button
