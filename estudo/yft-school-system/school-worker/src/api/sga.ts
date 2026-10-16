@@ -8,7 +8,14 @@
  */
 import { Hono, type Context } from 'hono';
 import type { AppEnv } from '../app-env';
-import { hasOverdueInvoice, loadWards, wardIds } from '../sga/guardian';
+import {
+  hasOverdueInvoice,
+  loadClassTimetable,
+  loadReceipts,
+  loadStudentAttendance,
+  loadWards,
+  wardIds,
+} from '../sga/guardian';
 import {
   appRole,
   loadMemberships,
@@ -89,6 +96,40 @@ sga.get('/wards', async (c) => {
       is_active: 1,
     })),
   });
+});
+
+/** Horário da turma de um educando (?class_id=); sem turma, o da primeira. */
+sga.get('/timetable', async (c) => {
+  requireGuardian(c);
+  const { schoolId } = c.get('membership');
+  const wards = await loadWards(c.get('sgaDb'), schoolId, c.get('sgaUser'));
+  const classes = [...new Set(wards.map((w) => w.classGroupId).filter((x): x is string => !!x))];
+  const requested = c.req.query('class_id')?.trim();
+  if (requested && !classes.includes(requested)) throw new SgaError(404, 'CLASS_NOT_FOUND');
+  const classId = requested || classes[0];
+  if (!classId) return c.json({ data: [] });
+  return c.json({ data: await loadClassTimetable(c.get('sgaDb'), schoolId, classId) });
+});
+
+/** Faltas de um educando. Outro aluno responde 404, como um que não existe. */
+sga.get('/attendance/student/:studentId', async (c) => {
+  requireGuardian(c);
+  const db = c.get('sgaDb');
+  const { schoolId } = c.get('membership');
+  const studentId = c.req.param('studentId');
+  if (!(await wardIds(db, schoolId, c.get('sgaUser'))).includes(studentId)) {
+    throw new SgaError(404, 'STUDENT_NOT_FOUND');
+  }
+  return c.json(await loadStudentAttendance(db, schoolId, studentId));
+});
+
+/** Recibos dos educandos (pagamentos registados no SIGA, sem os anulados). */
+sga.get('/finance/receipts', async (c) => {
+  requireGuardian(c);
+  const db = c.get('sgaDb');
+  const { schoolId } = c.get('membership');
+  const wards = await loadWards(db, schoolId, c.get('sgaUser'));
+  return c.json({ data: await loadReceipts(db, schoolId, wards) });
 });
 
 /** Comunicados publicados para encarregados (e, com dívida vencida, os de cobrança). */

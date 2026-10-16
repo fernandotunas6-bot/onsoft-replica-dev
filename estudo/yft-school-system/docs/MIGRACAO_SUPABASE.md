@@ -25,7 +25,7 @@ gere no SIGA, em vez do Firebase e da base D1 própria.
 | ---- | ----- | ------ |
 | 1 | API de leitura do encarregado: `GET /api/sga/me`, `/wards`, `/notices` | feito (testes em `school-worker/test/sga.spec.ts`) |
 | 2 | Entrada na app com a conta do SIGA (Supabase Auth) e ecrãs do encarregado a ler `/api/sga` | feito na web (Educandos e Comunicados); Android à espera do captcha |
-| 3 | Mais leituras: horário (`timetable_slots`), faltas (`attendance_records` por matrícula), boletim (`grade_scores`), recibos (`finance_receipts`) | por fazer |
+| 3 | Mais leituras do encarregado: horário, faltas e recibos feitos; boletim por fazer | em curso |
 | 4 | Escritas do professor (presenças, notas) e mensagens, com as regras e a auditoria do SIGA | por fazer |
 | 5 | Desligar o Firebase e a base D1 | por fazer |
 
@@ -57,6 +57,21 @@ flutter build web --release \
 - Recuperar e mudar a palavra-passe: no portal do SIGA (a app diz isso).
 
 ## Regras de acesso de `/api/sga` (iguais às do SIGA)
+
+Rotas: `GET /api/sga/me`, `/wards`, `/notices`, `/timetable?class_id=`,
+`/attendance/student/:id`, `/finance/receipts`. Todas no formato das rotas
+antigas, para os ecrãs não mudarem.
+
+- Horário: `class_subjects` da turma → `timetable_slots` com `status = active`
+  (dias 1–7, segunda = 1, como o app). A turma tem de ser de um educando.
+- Faltas: `siga_attendance_records` (as que o SIGA usa) e a data da aula em
+  `siga_attendance_sessions`. O SIGA marca por aula, o app mostra dias: um dia
+  com alguma `absent` é falta; atraso e falta justificada contam como presença;
+  `not_registered` não conta.
+- Recibos: matrícula → `finance_contracts` → `finance_invoices` →
+  `finance_receipts` sem `reversed_at`. O SIGA não guarda saldos no recibo: o
+  "saldo depois" é o que falta dessa factura (valor − desconto + multa) depois
+  desse recibo e dos anteriores; a descrição diz a factura.
 
 - Vínculo: `school_memberships` activos da conta; papéis por `member_roles` →
   `roles.code` (mesmo mapa de `src/integrations/supabase/sga.ts`). A escola

@@ -11,7 +11,7 @@ const URL_BASE = "https://sga.test";
 const S1 = "11111111-1111-1111-1111-111111111111";
 const S2 = "22222222-2222-2222-2222-222222222222";
 const tables: Record<string, Row[]> = {
-	schools: [{ id: S1, name: "Escola Um" }, { id: S2, name: "Escola Dois" }],
+	schools: [{ id: S1, name: "Escola Um", currency_code: "AOA" }, { id: S2, name: "Escola Dois", currency_code: "AOA" }],
 	school_memberships: [
 		{ id: "m-g", school_id: S1, user_id: "u-guardian", status: "active", created_at: "1" },
 		{ id: "m-g2", school_id: S2, user_id: "u-guardian", status: "active", created_at: "2" },
@@ -28,6 +28,7 @@ const tables: Record<string, Row[]> = {
 	profiles: [{ id: "u-guardian", full_name: "Mariana Silva", display_name: null }],
 	roles: [{ id: "r-g", code: "encarregado" }, { id: "r-t", code: "professor" }],
 	people: [
+		{ id: "p-prof", school_id: S1, full_name: "Carlos Mendes", preferred_name: null, deleted_at: null },
 		{ id: "p-g", school_id: S1, user_id: "u-guardian", email: null, deleted_at: null, full_name: "Mariana" },
 		{ id: "p-g2", school_id: S2, user_id: "u-guardian", email: null, deleted_at: null, full_name: "Mariana" },
 		{ id: "p-e", school_id: S1, user_id: null, email: "pai@ex.ao", deleted_at: null, full_name: "Pai" },
@@ -52,15 +53,52 @@ const tables: Record<string, Row[]> = {
 	enrollments: [
 		{ id: "e-ana", school_id: S1, student_id: "st-ana", class_group_id: "cg-10a", status: "active" },
 		{ id: "e-ana-old", school_id: S1, student_id: "st-ana", class_group_id: "cg-9a", status: "completed" },
-		{ id: "e-rui", school_id: S1, student_id: "st-rui", class_group_id: "cg-7b", status: "active" },
+		{ id: "e-rui", school_id: S1, student_id: "st-rui", class_group_id: "cg-7b", status: "active", academic_year_id: "ay-1" },
 	],
 	class_groups: [
 		{ id: "cg-10a", school_id: S1, name: "10.ª A" },
 		{ id: "cg-9a", school_id: S1, name: "9.ª A" },
 		{ id: "cg-7b", school_id: S1, name: "7.ª B" },
 	],
+	class_subjects: [
+		{ id: "cs-mat", school_id: S1, class_group_id: "cg-10a", subject_id: "sub-mat", teacher_id: "t-1" },
+		{ id: "cs-por", school_id: S1, class_group_id: "cg-10a", subject_id: "sub-por", teacher_id: null },
+		{ id: "cs-other", school_id: S1, class_group_id: "cg-7b", subject_id: "sub-mat", teacher_id: "t-1" },
+	],
+	subjects: [{ id: "sub-mat", school_id: S1, name: "Matemática" }, { id: "sub-por", school_id: S1, name: "Português" }],
+	teachers: [{ id: "t-1", school_id: S1, person_id: "p-prof" }],
+	timetable_slots: [
+		{ id: "ts-1", school_id: S1, class_subject_id: "cs-mat", weekday: 1, starts_at: "07:30:00", ends_at: "08:15:00", room: "Sala 3", status: "active" },
+		{ id: "ts-2", school_id: S1, class_subject_id: "cs-por", weekday: 2, starts_at: "08:20:00", ends_at: "09:05:00", room: null, status: "active" },
+		{ id: "ts-old", school_id: S1, class_subject_id: "cs-mat", weekday: 3, starts_at: "10:00:00", ends_at: "10:45:00", room: null, status: "archived" },
+		{ id: "ts-7b", school_id: S1, class_subject_id: "cs-other", weekday: 1, starts_at: "07:30:00", ends_at: "08:15:00", room: null, status: "active" },
+	],
+	siga_attendance_sessions: [
+		{ id: "ss-1", school_id: S1, lesson_date: "2026-10-05" },
+		{ id: "ss-2", school_id: S1, lesson_date: "2026-10-05" },
+		{ id: "ss-3", school_id: S1, lesson_date: "2026-10-06" },
+		{ id: "ss-4", school_id: S1, lesson_date: "2026-10-07" },
+		{ id: "ss-5", school_id: S1, lesson_date: "2026-10-08" },
+	],
+	siga_attendance_records: [
+		{ school_id: S1, session_id: "ss-1", student_id: "st-ana", status: "present" },
+		{ school_id: S1, session_id: "ss-2", student_id: "st-ana", status: "absent" },
+		{ school_id: S1, session_id: "ss-3", student_id: "st-ana", status: "late" },
+		{ school_id: S1, session_id: "ss-4", student_id: "st-ana", status: "excused" },
+		{ school_id: S1, session_id: "ss-5", student_id: "st-ana", status: "not_registered" },
+		{ school_id: S1, session_id: "ss-3", student_id: "st-rui", status: "absent" },
+	],
 	finance_contracts: [{ id: "fc-rui", school_id: S1, enrollment_id: "e-rui" }],
-	finance_invoices: [{ id: "fi-1", school_id: S1, contract_id: "fc-rui", status: "open", due_date: "2000-01-01" }],
+	finance_invoices: [
+		{ id: "fi-1", school_id: S1, contract_id: "fc-rui", status: "open", due_date: "2000-01-01", fee_item_id: "fee-prop", invoice_number: "F-7", competence_month: "2026-10-01", amount: 20000, discount_amount: 2000, penalty_amount: 1000 },
+	],
+	finance_receipts: [
+		{ id: "fr-2", school_id: S1, invoice_id: "fi-1", receipt_number: "R-2", amount: 5000, paid_on: "2026-10-12", created_at: "2026-10-12T09:00:00Z", reversed_at: null },
+		{ id: "fr-1", school_id: S1, invoice_id: "fi-1", receipt_number: "R-1", amount: 10000, paid_on: "2026-10-05", created_at: "2026-10-05T09:00:00Z", reversed_at: null },
+		{ id: "fr-x", school_id: S1, invoice_id: "fi-1", receipt_number: "R-X", amount: 999, paid_on: "2026-10-06", created_at: "2026-10-06T09:00:00Z", reversed_at: "2026-10-07" },
+	],
+	fee_items: [{ id: "fee-prop", school_id: S1, name: "Propina" }],
+	academic_years: [{ id: "ay-1", school_id: S1, name: "2026/2027" }],
 	school_announcements: [
 		{ id: "n-all", school_id: S1, title: "Reunião", body: "x", audience: "all_guardians", status: "sent", deleted_at: null, published_at: "2026-10-01", created_at: "2026-10-01" },
 		{ id: "n-debt", school_id: S1, title: "Propinas", body: "x", audience: "guardians_with_debt", status: "sent", deleted_at: null, published_at: "2026-10-02", created_at: "2026-10-02" },
@@ -87,6 +125,7 @@ function matches(row: Row, key: string, expr: string): boolean {
 	const cell = row[key];
 	switch (op) {
 		case "eq": return String(cell) === val;
+		case "neq": return String(cell) !== val;
 		case "is": return val === "null" ? cell == null : String(cell) === val;
 		case "in": return val.slice(1, -1).split(",").map(unquote).includes(String(cell));
 		case "lt": return cell != null && String(cell) < val;
@@ -201,5 +240,34 @@ describe("API SGA", () => {
 			tables.students = original;
 			vi.stubGlobal("fetch", fakeFetch);
 		}
+	});
+
+	it("/timetable: só tempos activos da turma de um educando, com disciplina e professor", async () => {
+		const { data } = (await (await get("/timetable?class_id=cg-10a", "tok-guardian")).json()) as { data: Record<string, unknown>[] };
+		expect(data).toEqual([
+			{ id: "ts-1", class_id: "cg-10a", class_name: "10.ª A", subject_id: "sub-mat", subject_name: "Matemática", title: null, weekday: 1, start_time: "07:30", end_time: "08:15", room: "Sala 3", teacher_name: "Carlos Mendes", teacher_uid: null },
+			{ id: "ts-2", class_id: "cg-10a", class_name: "10.ª A", subject_id: "sub-por", subject_name: "Português", title: null, weekday: 2, start_time: "08:20", end_time: "09:05", room: null, teacher_name: null, teacher_uid: null },
+		]);
+		// Turma que não é de nenhum educando desta conta.
+		expect((await get("/timetable?class_id=cg-9a", "tok-email")).status).toBe(404);
+		expect((await get("/timetable", "tok-teacher")).status).toBe(403);
+	});
+
+	it("/attendance: dias com falta e dias de presença; outro aluno é 404", async () => {
+		const res = await get("/attendance/student/st-ana", "tok-guardian");
+		expect(await res.json()).toEqual({ present_days: 2, absent_days: 1, absences: ["2026-10-05"] });
+		expect((await get("/attendance/student/st-other", "tok-guardian")).status).toBe(404);
+		expect((await get("/attendance/student/st-rui", "tok-email")).status).toBe(404);
+	});
+
+	it("/finance/receipts: recibos não anulados, com o que falta da factura depois de cada um", async () => {
+		const { data } = (await (await get("/finance/receipts", "tok-guardian")).json()) as { data: Record<string, unknown>[] };
+		// Factura: 20 000 − 2 000 + 1 000 = 19 000.
+		expect(data).toEqual([
+			{ id: "fr-2", school_id: S1, student_id: "st-rui", parent_uid: null, transaction_id: "R-2", amount_paid: 5000, balance_before: 9000, balance_after: 4000, amount_to_debt: 5000, credit_added: 0, currency: "AOA", student_name: "Rui", description: "Propina · Outubro (factura F-7)", created_at: "2026-10-12", academic_year: "2026/2027", fee_term: null },
+			{ id: "fr-1", school_id: S1, student_id: "st-rui", parent_uid: null, transaction_id: "R-1", amount_paid: 10000, balance_before: 19000, balance_after: 9000, amount_to_debt: 10000, credit_added: 0, currency: "AOA", student_name: "Rui", description: "Propina · Outubro (factura F-7)", created_at: "2026-10-05", academic_year: "2026/2027", fee_term: null },
+		]);
+		const none = (await (await get("/finance/receipts", "tok-email")).json()) as { data: unknown[] };
+		expect(none.data).toEqual([]);
 	});
 });

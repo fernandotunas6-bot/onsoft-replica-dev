@@ -2,6 +2,7 @@ import 'package:dio/dio.dart';
 
 import '../models/timetable_slot.dart';
 import '../network/api_endpoints.dart';
+import '../sga/sga_config.dart';
 
 class TimetableRepository {
   final Dio _dio;
@@ -11,7 +12,7 @@ class TimetableRepository {
   /// [mine]: só as aulas do professor autenticado, em todas as turmas.
   Future<List<TimetableSlot>> getSlots({String? classId, bool mine = false}) async {
     final response = await _dio.get(
-      ApiEndpoints.timetable,
+      sgaMode ? ApiEndpoints.sgaTimetable : ApiEndpoints.timetable,
       queryParameters: {'class_id': ?classId, if (mine) 'mine': '1'},
     );
     final list = response.data['data'] as List;

@@ -1,6 +1,7 @@
 import 'package:dio/dio.dart';
 
 import '../network/api_endpoints.dart';
+import '../sga/sga_config.dart';
 
 /// Um aluno na lista de presenças de um dia. [present] é null por marcar.
 class AttendanceEntry {
@@ -118,7 +119,11 @@ class AttendanceRepository {
   }
 
   Future<StudentAttendance> forStudent(String studentId) async {
-    final res = await _dio.get(ApiEndpoints.attendanceStudent(studentId));
+    final res = await _dio.get(
+      sgaMode
+          ? ApiEndpoints.sgaAttendanceStudent(studentId)
+          : ApiEndpoints.attendanceStudent(studentId),
+    );
     return StudentAttendance(
       (res.data['present_days'] as num).toInt(),
       (res.data['absent_days'] as num).toInt(),
