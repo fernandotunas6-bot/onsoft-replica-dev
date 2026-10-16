@@ -10,7 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { getSaasApiUrl, getSigaSchoolUrl } from "@/lib/ecosystem-urls"
 import { createClient, isSupabaseConfigured } from "@/lib/supabase/client"
 import { TenantSubscriptionDialog } from "../components/tenant-subscription-dialog"
-import { TenantAdminAccessDialog } from "../components/tenant-admin-access-dialog"
+import { TenantAdminAccessPanel } from "../components/tenant-admin-access-dialog"
 import { BillingTab } from "./billing-tab"
 import { PublicTab } from "./public-tab"
 import { dateLabel, fetchTenantOverview, kz, type TenantOverview } from "./types"
@@ -65,7 +65,6 @@ export default function TenantDetailPage() {
   const [loading, setLoading] = useState(true)
   const [tab, setTab] = useState<TabId>("geral")
   const [subscriptionOpen, setSubscriptionOpen] = useState(false)
-  const [accessOpen, setAccessOpen] = useState(false)
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search)
@@ -282,7 +281,7 @@ export default function TenantDetailPage() {
                 </CardDescription>
               </CardHeader>
               <CardContent className="flex flex-wrap gap-2">
-                {t.status !== "suspended" ? (
+                {t.status !== "suspended" && t.status !== "past_due" ? (
                   <Button variant="outline" onClick={() => void setStatus("suspended")}>
                     Suspender
                   </Button>
@@ -306,11 +305,17 @@ export default function TenantDetailPage() {
               <CardHeader>
                 <CardTitle className="text-base">Acesso do administrador</CardTitle>
                 <CardDescription>
-                  Diagnóstico e reparação: perfil, permissões, e-mail, links de acesso para quem nunca entrou.
+                  O administrador entra no painel administrativo e no portal escolar com a mesma
+                  conta. Diagnóstico e reparação: perfil, permissões, e-mail e links de acesso para
+                  quem nunca entrou. A Administração Global continua só da equipa da plataforma.
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <Button onClick={() => setAccessOpen(true)}>Verificar acesso</Button>
+                <TenantAdminAccessPanel
+                  tenant={{ id: t.id, name: t.name, slug: t.slug }}
+                  active={tab === "acesso"}
+                  onManageSubscription={() => setSubscriptionOpen(true)}
+                />
               </CardContent>
             </Card>
           </TabsContent>
@@ -368,12 +373,6 @@ export default function TenantDetailPage() {
             open={subscriptionOpen}
             onOpenChange={setSubscriptionOpen}
             onUpdated={load}
-          />
-          <TenantAdminAccessDialog
-            tenant={{ id: t.id, name: t.name, slug: t.slug }}
-            open={accessOpen}
-            onOpenChange={setAccessOpen}
-            onManageSubscription={() => setSubscriptionOpen(true)}
           />
         </>
       ) : null}

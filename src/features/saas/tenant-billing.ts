@@ -22,6 +22,7 @@ import {
   computeTenantCharge,
   defaultBillingProfile,
   exemptReasonOf,
+  overdueSuspensionDue,
   publicReviewReadiness,
   type BillingPeriod,
   type BillingState,
@@ -459,6 +460,78 @@ export async function endExpiredBillingPauses(
   return ended;
 }
 
+/**
+ * Tarefa diária: escolas cujo período pago acabou há mais dias do que a
+ * tolerância passam a só consulta (`past_due`, que tenant-access.ts bloqueia
+ * para gravação e o administrador vê com «Regularizar a assinatura»).
+ *
+ * Só escolas com perfil de cobrança gravado no ADMIN e «passar a só consulta»
+ * ligado: uma escola que ninguém configurou nunca é suspensa por isto.
+ * Confirmar o pagamento no ADMIN (Gerir) volta a pôr a escola activa.
+ */
+export async function suspendOverdueTenants(db: SupabaseClient, now = new Date()): Promise<number> {
+  const { data, error } = await loose(db)
+    .from("tenant_billing_profiles")
+    .select("*")
+    .eq("auto_suspend", true)
+    .limit(1000);
+  if (error) return 0;
+  let suspended = 0;
+  for (const row of (data ?? []) as Array<Record<string, unknown>>) {
+    const profile = profileFromRow(row);
+    try {
+      const state = billingStateOf(profile, now);
+      if (!state.charging) continue;
+      const [{ data: tenant }, { data: subscription }] = await Promise.all([
+        db.from("tenants").select("status").eq("id", profile.tenantId).maybeSingle(),
+        db
+          .from("subscriptions")
+          .select("id, status, current_period_end")
+          .eq("tenant_id", profile.tenantId)
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle(),
+      ]);
+      if (!tenant) continue;
+      const verdict = overdueSuspensionDue(
+        {
+          profile,
+          state,
+          tenantStatus: String(tenant.status ?? ""),
+          subscription: subscription
+            ? {
+                status: (subscription.status as string | null) ?? null,
+                currentPeriodEnd: (subscription.current_period_end as string | null) ?? null,
+              }
+            : null,
+        },
+        now,
+      );
+      if (!verdict.due || !subscription) continue;
+      const stamp = now.toISOString();
+      const { error: tenantErr } = await db
+        .from("tenants")
+        .update({ status: "past_due", subscription_status: "past_due", updated_at: stamp })
+        .eq("id", profile.tenantId)
+        .eq("status", "active");
+      if (tenantErr) continue;
+      await db
+        .from("subscriptions")
+        .update({ status: "past_due", updated_at: stamp })
+        .eq("id", subscription.id);
+      await audit(db, profile.tenantId, null, "TENANT_BILLING_OVERDUE", {
+        paid_until: subscription.current_period_end,
+        grace_days: profile.graceDays,
+        suspend_after: verdict.suspendAfter,
+      });
+      suspended += 1;
+    } catch {
+      // Fica para a próxima corrida.
+    }
+  }
+  return suspended;
+}
+
 // ─── Visão completa para o ADMIN ────────────────────────────────────────────
 
 export type TenantOverview = Awaited<ReturnType<typeof loadTenantOverview>>;
@@ -560,6 +633,31 @@ export async function loadTenantOverview(db: SupabaseClient, tenantId: string) {
     (tenant as { plans?: { price_aoa_monthly?: number; price_aoa_yearly?: number } }).plans ?? null;
   const state = billingStateOf(profile);
   const charge = computeTenantCharge({ profile, plan, activeStudents, state, periodDiscounts });
+  // A data em que passa a só consulta é a da regra que a tarefa diária aplica
+  // (fim do período pago + tolerância), não a do próximo dia de vencimento.
+  const subscriptionRow = subscriptionRes.data as {
+    status?: string | null;
+    current_period_end?: string | null;
+  } | null;
+  const overdue = overdueSuspensionDue({
+    profile,
+    state,
+    tenantStatus: String((tenant as { status?: string }).status ?? ""),
+    subscription: subscriptionRow
+      ? {
+          status: subscriptionRow.status ?? null,
+          currentPeriodEnd: subscriptionRow.current_period_end ?? null,
+        }
+      : null,
+  });
+  const baseSchedule = billingSchedule(profile);
+  const schedule = {
+    ...baseSchedule,
+    paidUntil:
+      subscriptionRow?.status === "active" ? (subscriptionRow.current_period_end ?? null) : null,
+    suspendAfter: overdue.suspendAfter,
+    overdue: overdue.due,
+  };
 
   return {
     tenant,
@@ -582,7 +680,7 @@ export async function loadTenantOverview(db: SupabaseClient, tenantId: string) {
       suggestedInstitutionType,
       state,
       charge,
-      schedule: billingSchedule(profile),
+      schedule,
       publicReadiness: publicReviewReadiness(profile),
       periodDiscounts,
     },

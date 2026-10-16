@@ -31,6 +31,9 @@ interface TenantRow {
   max_students?: number
   usage_last_calculated_at?: string
   plans?: { name?: string; code?: string }
+  /** Cobranças pausadas ou escola pública isenta (mantido pelo servidor). */
+  billing_exempt?: boolean | null
+  billing_exempt_reason?: string | null
 }
 
 interface Stats {
@@ -48,6 +51,9 @@ function tenantStatusLabel(status: string) {
     suspended: "Suspensa",
     trial: "Trial",
     past_due: "Em atraso",
+    cancelled: "Cancelada",
+    archived: "Arquivada",
+    provisioning_failed: "Criação falhou",
   }
   return map[status] || status
 }
@@ -254,7 +260,16 @@ export default function TenantsPage() {
                         </div>
                       </TableCell>
                       <TableCell>
-                        <Badge variant="outline">{tenantStatusLabel(tenant.status)}</Badge>
+                        <div className="flex flex-wrap gap-1">
+                          <Badge variant="outline">{tenantStatusLabel(tenant.status)}</Badge>
+                          {tenant.billing_exempt ? (
+                            <Badge variant="secondary" title={tenant.billing_exempt_reason ?? undefined}>
+                              {tenant.billing_exempt_reason?.startsWith("Escola pública")
+                                ? "Isenta"
+                                : "Cobrança pausada"}
+                            </Badge>
+                          ) : null}
+                        </div>
                       </TableCell>
                       <TableCell className="text-sm">
                         <div>{tenant.contact_email || "—"}</div>
@@ -300,7 +315,7 @@ export default function TenantsPage() {
                             SIGA <ExternalLink className="size-3" />
                           </a>
                         </Button>
-                        {tenant.status !== "suspended" ? (
+                        {tenant.status !== "suspended" && tenant.status !== "past_due" ? (
                           <Button
                             variant="ghost"
                             size="sm"

@@ -115,7 +115,16 @@ export interface TenantOverview {
     suggestedInstitutionType: string | null
     state: BillingState
     charge: ChargeBreakdown
-    schedule: { issueOn: string; dueOn: string; suspendAfter: string | null }
+    schedule: {
+      issueOn: string
+      dueOn: string
+      /** Fim do período pago (assinatura activa), se houver. */
+      paidUntil: string | null
+      /** Fim do período pago + tolerância; null sem período pago ou sem «só consulta». */
+      suspendAfter: string | null
+      /** Já passou a tolerância: a tarefa diária põe a escola só de consulta. */
+      overdue: boolean
+    }
     publicReadiness: { canApprove: boolean; missing: string[]; recommendedMissing: string[] }
     periodDiscounts: Record<string, number>
   }

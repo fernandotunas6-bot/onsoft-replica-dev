@@ -21,7 +21,7 @@ import {
   type LeadForReminder,
 } from "./lifecycle-rules";
 import { renderSignupReminderEmail, renderTrialEndingEmail } from "./lifecycle-emails";
-import { endExpiredBillingPauses } from "./tenant-billing";
+import { endExpiredBillingPauses, suspendOverdueTenants } from "./tenant-billing";
 
 type Db = Awaited<ReturnType<typeof loadSgaAdminClient>>;
 // Tabela nova (20260930162029): lida sem o tipo gerado, como as outras fora de types.ts.
@@ -382,8 +382,9 @@ async function runLeadReminders(now: Date) {
 export async function runCommercialLifecycle(now = new Date()) {
   const db = await loadSgaAdminClient();
   const billingPausesEnded = await endExpiredBillingPauses(db, now);
+  const overdueSuspended = await suspendOverdueTenants(db, now);
   const trialReminders = await runTrialReminders(db, now);
   const signupReminders = await runLeadReminders(now);
   reportSigaEvent("saas.lifecycle.completed", { count: trialReminders + signupReminders });
-  return { trialReminders, signupReminders, billingPausesEnded };
+  return { trialReminders, signupReminders, billingPausesEnded, overdueSuspended };
 }

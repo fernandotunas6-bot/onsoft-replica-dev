@@ -6,6 +6,7 @@ import {
   defaultBillingProfile,
   exemptReasonOf,
   nextDueDate,
+  overdueSuspensionDue,
   publicReviewReadiness,
   tenantBillingProfileInputSchema,
   PUBLIC_SCHOOL_REQUIREMENTS,
@@ -251,5 +252,59 @@ describe("acesso de escola isenta ou pausada", () => {
     expect(getTenantAccessBlock({ status: "archived", billing_exempt: true }, NOW).blocked).toBe(
       true,
     );
+  });
+});
+
+describe("overdueSuspensionDue", () => {
+  const charging = { charging: true };
+  const profile = { graceDays: 7, autoSuspend: true };
+  const paid = (end: string) => ({ status: "active", currentPeriodEnd: end });
+
+  it("só depois de acabar a tolerância (dia de Luanda)", () => {
+    // Pago até 1/10; tolerância de 7 dias → só consulta a partir de 9/10.
+    const base = {
+      profile,
+      state: charging,
+      tenantStatus: "active",
+      subscription: paid("2026-10-01T12:00:00Z"),
+    };
+    expect(overdueSuspensionDue(base, new Date("2026-10-08T12:00:00Z"))).toEqual({
+      due: false,
+      suspendAfter: "2026-10-08",
+    });
+    expect(overdueSuspensionDue(base, new Date("2026-10-09T08:00:00Z")).due).toBe(true);
+  });
+
+  it("nunca suspende escola isenta, pausada ou sem «passar a só consulta»", () => {
+    const old = paid("2026-01-01T00:00:00Z");
+    expect(
+      overdueSuspensionDue(
+        { profile, state: { charging: false }, tenantStatus: "active", subscription: old },
+        NOW,
+      ).due,
+    ).toBe(false);
+    expect(
+      overdueSuspensionDue(
+        {
+          profile: { ...profile, autoSuspend: false },
+          state: charging,
+          tenantStatus: "active",
+          subscription: old,
+        },
+        NOW,
+      ).due,
+    ).toBe(false);
+  });
+
+  it("deixa em paz o trial, a suspensão manual e quem não tem data paga", () => {
+    const old = "2026-01-01T00:00:00Z";
+    const run = (
+      tenantStatus: string,
+      subscription: { status: string | null; currentPeriodEnd: string | null } | null,
+    ) => overdueSuspensionDue({ profile, state: charging, tenantStatus, subscription }, NOW).due;
+    expect(run("active", { status: "trialing", currentPeriodEnd: old })).toBe(false);
+    expect(run("suspended", paid(old))).toBe(false);
+    expect(run("active", { status: "active", currentPeriodEnd: null })).toBe(false);
+    expect(run("active", null)).toBe(false);
   });
 });
