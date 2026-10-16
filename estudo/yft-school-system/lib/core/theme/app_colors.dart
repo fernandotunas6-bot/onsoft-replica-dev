@@ -51,9 +51,21 @@ class AppColors {
   ];
 
   static const List<BackdropOption> backdrops = [
-    BackdropOption('aurora', [Color(0xFF7FA8FF), Color(0xFFE38BFF), Color(0xFFFFB38A)], 'Aurora'),
-    BackdropOption('mist', [Color(0xFFB9D3FF), Color(0xFFE7EEFF), Color(0xFFD8C8FF)], 'Névoa'),
-    BackdropOption('sunset', [Color(0xFFFFC2D6), Color(0xFFFFD8B5), Color(0xFFC9D6FF)], 'Pôr do sol'),
+    BackdropOption('aurora', [
+      Color(0xFF7FA8FF),
+      Color(0xFFE38BFF),
+      Color(0xFFFFB38A),
+    ], 'Aurora'),
+    BackdropOption('mist', [
+      Color(0xFFB9D3FF),
+      Color(0xFFE7EEFF),
+      Color(0xFFD8C8FF),
+    ], 'Névoa'),
+    BackdropOption('sunset', [
+      Color(0xFFFFC2D6),
+      Color(0xFFFFD8B5),
+      Color(0xFFC9D6FF),
+    ], 'Pôr do sol'),
   ];
 
   /// Cores dos mosaicos de disciplina (ícone sobre o tom a 12 %).
@@ -90,7 +102,7 @@ class AppColors {
   static const Color warning = Color(0xFFF59E0B);
 
   static Color textPrimary = const Color(0xFF1E2633);
-  static Color textSecondary = const Color(0xFF6B7585);
+  static Color textSecondary = const Color(0xFF5F6878);
 
   static bool isDark = false;
 
@@ -109,8 +121,8 @@ class AppColors {
   /// Activa a paleta para a cor principal [accent] e o modo [dark].
   static void apply({required Color accent, required bool dark}) {
     isDark = dark;
-    primary = accent;
-    onPrimary = _readableOn(accent);
+    primary = dark ? _liftForDark(accent) : accent;
+    onPrimary = _readableOn(primary);
     if (dark) {
       background = const Color(0xFF0E131A);
       surface = const Color(0xFF171E28);
@@ -126,13 +138,31 @@ class AppColors {
       secondary = const Color(0xFF1E2633);
       ink = const Color(0xFF1E2633);
       textPrimary = const Color(0xFF1E2633);
-      textSecondary = const Color(0xFF6B7585);
+      textSecondary = const Color(0xFF5F6878);
     }
   }
 
+  /// No modo escuro a cor principal também é texto (ligações, separadores)
+  /// sobre fundos quase pretos: clareia-se até ler bem (4,5:1) no cartão.
+  static Color _liftForDark(Color accent) {
+    const card = Color(0xFF171E28);
+    var c = accent;
+    for (var t = 0.05; contrast(c, card) < 4.5 && t <= 1; t += 0.05) {
+      c = Color.lerp(accent, Colors.white, t)!;
+    }
+    return c;
+  }
+
+  /// Branco, a tinta ou quase preto: o primeiro que passar AA (4,5:1); se
+  /// nenhum passar, o de maior contraste.
   static Color _readableOn(Color bg) {
-    const dark = Color(0xFF1E2633);
-    return contrast(Colors.white, bg) >= 4.5 ? Colors.white : dark;
+    const candidates = [Colors.white, Color(0xFF1E2633), Color(0xFF0E131A)];
+    for (final c in candidates) {
+      if (contrast(c, bg) >= 4.5) return c;
+    }
+    return candidates.reduce(
+      (a, b) => contrast(a, bg) >= contrast(b, bg) ? a : b,
+    );
   }
 
   /// Rácio de contraste WCAG entre duas cores.

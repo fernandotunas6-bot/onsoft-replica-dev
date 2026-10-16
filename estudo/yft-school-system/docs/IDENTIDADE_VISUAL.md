@@ -32,8 +32,16 @@ Gradiente do logótipo SIGA Plus, em `AppColors.brandGradient`:
 | `slate` | Cinza | `#64748B` | branco (4,76) |
 
 **Texto e ícones sobre `primary` usam sempre `AppColors.onPrimary`**, que é
-calculado: branco se passar 4,5 contra a cor, senão a tinta escura. Nunca
-escrever `Colors.white` nem `AppColors.secondary` sobre o primário.
+calculado: o primeiro de branco, tinta (`#1E2633`) ou quase preto (`#0E131A`)
+que passar 4,5 contra a cor. Nunca escrever `Colors.white` nem
+`AppColors.secondary` sobre o primário.
+
+No modo escuro o `primary` é clareado (para o branco) até passar 4,5 sobre o
+cartão `#171E28`, porque também serve de cor de texto (ligações, separadores).
+O teste `test/accessibility_test.dart` verifica o contraste nos dois modos.
+
+A letra Outfit vem com a app em `assets/google_fonts/` (licença OFL), para
+aparecer logo mesmo sem internet.
 
 ### Neutros
 
@@ -43,7 +51,7 @@ escrever `Colors.white` nem `AppColors.secondary` sobre o primário.
 | `surface` | branco | `#171E28` | cartões, folhas, menu |
 | `border` | `#E6E9F0` | `#263040` | contornos finos |
 | `secondary` / `textPrimary` | `#1E2633` | `#E8ECF2` | títulos e corpo |
-| `textSecondary` | `#6B7585` | `#98A3B3` | legendas |
+| `textSecondary` | `#5F6878` | `#98A3B3` | legendas |
 | `ink` | `#1E2633` | `#243044` | superfícies escuras com texto branco |
 | `primaryOnLight` | `#1E40AF` | — | recibos e PDF (papel é sempre branco) |
 | `error` | `#E5484D` | — | validações |

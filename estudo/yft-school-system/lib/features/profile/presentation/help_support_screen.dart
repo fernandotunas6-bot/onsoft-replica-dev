@@ -74,7 +74,7 @@ class HelpSupportScreen extends StatelessWidget {
                             Text(
                               'Fale com a administração da sua escola ou com o apoio SIGA Plus.',
                               style: TextStyle(
-                                color: Colors.white70,
+                                color: AppColors.onPrimary,
                                 fontSize: 13,
                               ),
                             ),
@@ -87,7 +87,9 @@ class HelpSupportScreen extends StatelessWidget {
                   ElevatedButton(
                     onPressed: () => _showContacts(context),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.white,
+                      // Invertido: as duas cores já passam AA uma sobre a outra,
+                      // seja qual for a cor principal e o modo.
+                      backgroundColor: AppColors.onPrimary,
                       foregroundColor: AppColors.primary,
                       minimumSize: const Size(double.infinity, 50),
                       shape: RoundedRectangleBorder(
