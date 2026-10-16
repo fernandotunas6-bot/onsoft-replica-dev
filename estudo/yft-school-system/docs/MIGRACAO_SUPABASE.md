@@ -25,7 +25,7 @@ gere no SIGA, em vez do Firebase e da base D1 própria.
 | ---- | ----- | ------ |
 | 1 | API de leitura do encarregado: `GET /api/sga/me`, `/wards`, `/notices` | feito (testes em `school-worker/test/sga.spec.ts`) |
 | 2 | Entrada na app com a conta do SIGA (Supabase Auth) e ecrãs do encarregado a ler `/api/sga` | feito na web (Educandos e Comunicados); Android à espera do captcha |
-| 3 | Mais leituras do encarregado: horário, faltas e recibos feitos; boletim por fazer | em curso |
+| 3 | Leituras do encarregado: horário, faltas, recibos e boletim | feito |
 | 4 | Escritas do professor (presenças, notas) e mensagens, com as regras e a auditoria do SIGA | por fazer |
 | 5 | Desligar o Firebase e a base D1 | por fazer |
 
@@ -59,7 +59,8 @@ flutter build web --release \
 ## Regras de acesso de `/api/sga` (iguais às do SIGA)
 
 Rotas: `GET /api/sga/me`, `/wards`, `/notices`, `/timetable?class_id=`,
-`/attendance/student/:id`, `/finance/receipts`. Todas no formato das rotas
+`/attendance/student/:id`, `/finance/receipts`, `/grades?student_id=&term=Term N[&academic_year=]`,
+`/grades/years?student_id=`. Todas no formato das rotas
 antigas, para os ecrãs não mudarem.
 
 - Horário: `class_subjects` da turma → `timetable_slots` com `status = active`
@@ -68,6 +69,14 @@ antigas, para os ecrãs não mudarem.
   `siga_attendance_sessions`. O SIGA marca por aula, o app mostra dias: um dia
   com alguma `absent` é falta; atraso e falta justificada contam como presença;
   `not_registered` não conta.
+- Boletim: como `getMyStudentGrades` do SIGA — matrícula do ano (sem as
+  canceladas) → `terms` (sequência N) → `gradebooks` da turma e do trimestre →
+  `grade_items` MAC/NPP/NPT → `grade_scores` da matrícula. MT = (MAC + NPT)/2
+  à décima (só uma das duas: vale essa; a NPP não entra), escala 0–20, aprova
+  com 10. Diário não fechado (`closed`/`homologated`/`published`/`locked`) =
+  nota provisória. Todas as disciplinas da turma aparecem, com ou sem notas.
+  As fórmulas estão em `school-worker/src/sga/grades.ts` e têm de seguir
+  `src/lib/angola-academic.ts`.
 - Recibos: matrícula → `finance_contracts` → `finance_invoices` →
   `finance_receipts` sem `reversed_at`. O SIGA não guarda saldos no recibo: o
   "saldo depois" é o que falta dessa factura (valor − desconto + multa) depois

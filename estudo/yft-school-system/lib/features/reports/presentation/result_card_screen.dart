@@ -197,7 +197,10 @@ class _ReportBody extends ConsumerWidget {
                         ),
                       ),
                     );
-              if (lines.isEmpty) {
+              // Modo SIGA: as disciplinas vêm todas, com ou sem notas.
+              final graded = [for (final l in lines) if (l.score != null) l];
+              final scale = card.scale;
+              if (graded.isEmpty) {
                 return [
                   ?year,
                   const EmptyHint(
@@ -207,20 +210,23 @@ class _ReportBody extends ConsumerWidget {
                 ];
               }
               final average =
-                  lines.fold<double>(0, (s, l) => s + l.total) / lines.length;
+                  graded.fold<double>(0, (s, l) => s + l.score!) / graded.length;
               return [
                 ?year,
-                _AverageCard(average: average, count: lines.length),
+                _AverageCard(average: average, count: graded.length, scale: scale),
                 const SizedBox(height: 16),
                 for (final l in lines)
                   Padding(
                     padding: const EdgeInsets.only(bottom: 10),
-                    child: _SubjectLine(line: l),
+                    child: _SubjectLine(line: l, scale: scale),
                   ),
                 Padding(
                   padding: const EdgeInsets.only(top: 6),
                   child: Text(
-                    'Avaliação contínua até 30 + exame até 70 = nota até 100.',
+                    scale == 20
+                        ? 'Escala 0–20 (aprova com 10). MT = (MAC + NPT) ÷ 2. '
+                              'As notas provisórias podem mudar até o diário fechar.'
+                        : 'Avaliação contínua até 30 + exame até 70 = nota até 100.',
                     style: TextStyle(
                       fontSize: 12,
                       color: AppColors.textSecondary,
@@ -280,8 +286,9 @@ class _WardHeader extends StatelessWidget {
 class _AverageCard extends StatelessWidget {
   final double average;
   final int count;
+  final int scale;
 
-  const _AverageCard({required this.average, required this.count});
+  const _AverageCard({required this.average, required this.count, this.scale = 100});
 
   @override
   Widget build(BuildContext context) {
@@ -324,7 +331,7 @@ class _AverageCard extends StatelessWidget {
             ),
           ),
           Text(
-            ' /100',
+            ' /$scale',
             style: TextStyle(
               fontSize: 14,
               color: AppColors.onPrimary.withValues(alpha: 0.85),
@@ -338,11 +345,14 @@ class _AverageCard extends StatelessWidget {
 
 class _SubjectLine extends StatelessWidget {
   final ReportLine line;
+  final int scale;
 
-  const _SubjectLine({required this.line});
+  const _SubjectLine({required this.line, this.scale = 100});
 
   String _fmt(double v) =>
       v == v.roundToDouble() ? v.toStringAsFixed(0) : v.toStringAsFixed(1);
+
+  String _opt(double? v) => v == null ? '—' : _fmt(v);
 
   @override
   Widget build(BuildContext context) {
@@ -372,7 +382,11 @@ class _SubjectLine extends StatelessWidget {
                       ),
                     ),
                     Text(
-                      'Contínua ${_fmt(line.classScore)} · Exame ${_fmt(line.examScore)}',
+                      line.angola == null
+                          ? 'Contínua ${_fmt(line.classScore)} · Exame ${_fmt(line.examScore)}'
+                          : 'MAC ${_opt(line.angola!.mac)} · NPP ${_opt(line.angola!.npp)} · '
+                                'NPT ${_opt(line.angola!.npt)}'
+                                '${line.angola!.provisional ? ' · provisória' : ''}',
                       style: TextStyle(
                         fontSize: 12,
                         color: AppColors.textSecondary,
@@ -382,11 +396,14 @@ class _SubjectLine extends StatelessWidget {
                 ),
               ),
               Text(
-                _fmt(line.total),
+                _opt(line.score),
                 style: TextStyle(
                   fontSize: 20,
                   fontWeight: FontWeight.w600,
-                  color: AppColors.textPrimary,
+                  // Escala angolana: abaixo de 10 não aprova.
+                  color: scale == 20 && (line.score ?? 10) < 10
+                      ? AppColors.error
+                      : AppColors.textPrimary,
                 ),
               ),
             ],
@@ -395,7 +412,7 @@ class _SubjectLine extends StatelessWidget {
           ClipRRect(
             borderRadius: BorderRadius.circular(3),
             child: LinearProgressIndicator(
-              value: (line.total / 100).clamp(0, 1),
+              value: ((line.score ?? 0) / scale).clamp(0, 1),
               minHeight: 6,
               color: color,
               backgroundColor: color.withValues(alpha: 0.12),

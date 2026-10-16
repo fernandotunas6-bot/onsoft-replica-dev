@@ -24,6 +24,7 @@ import {
   type SgaMembership,
   type SgaUser,
 } from '../sga/identity';
+import { loadGradeYears, loadReportCard } from '../sga/grades';
 import { SgaDb, SgaError, inList } from '../sga/rest';
 
 type SgaVars = { sgaUser: SgaUser; sgaDb: SgaDb; membership: SgaMembership; memberships: SgaMembership[] };
@@ -113,14 +114,32 @@ sga.get('/timetable', async (c) => {
 
 /** Faltas de um educando. Outro aluno responde 404, como um que não existe. */
 sga.get('/attendance/student/:studentId', async (c) => {
+  const studentId = await requireWard(c, c.req.param('studentId'));
+  return c.json(await loadStudentAttendance(c.get('sgaDb'), c.get('membership').schoolId, studentId));
+});
+
+const requireWard = async (c: Context<SgaAppEnv>, studentId: string | undefined) => {
   requireGuardian(c);
-  const db = c.get('sgaDb');
   const { schoolId } = c.get('membership');
-  const studentId = c.req.param('studentId');
-  if (!(await wardIds(db, schoolId, c.get('sgaUser'))).includes(studentId)) {
+  if (!studentId || !(await wardIds(c.get('sgaDb'), schoolId, c.get('sgaUser'))).includes(studentId)) {
     throw new SgaError(404, 'STUDENT_NOT_FOUND');
   }
-  return c.json(await loadStudentAttendance(db, schoolId, studentId));
+  return studentId;
+};
+
+/** Boletim de um trimestre: ?student_id=&term=Term N[&academic_year=nome]. */
+sga.get('/grades', async (c) => {
+  const studentId = await requireWard(c, c.req.query('student_id')?.trim());
+  const term = c.req.query('term')?.trim() ?? '';
+  if (!/^Term [1-4]$/.test(term)) throw new SgaError(422, 'INVALID_TERM');
+  const year = c.req.query('academic_year')?.trim() || undefined;
+  return c.json(await loadReportCard(c.get('sgaDb'), c.get('membership').schoolId, studentId, term, year));
+});
+
+/** Anos lectivos com matrícula do educando, mais recente primeiro. */
+sga.get('/grades/years', async (c) => {
+  const studentId = await requireWard(c, c.req.query('student_id')?.trim());
+  return c.json(await loadGradeYears(c.get('sgaDb'), c.get('membership').schoolId, studentId));
 });
 
 /** Recibos dos educandos (pagamentos registados no SIGA, sem os anulados). */
