@@ -9,6 +9,9 @@ import 'package:yft_school_system/core/theme/app_colors.dart';
 import 'package:yft_school_system/core/utils/responsive_utils.dart';
 import 'package:yft_school_system/core/widgets/profile_photo_avatar.dart';
 import 'package:yft_school_system/core/widgets/section_widgets.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:yft_school_system/core/network/api_client.dart';
+import 'package:yft_school_system/core/utils/media_url.dart';
 
 /// Dados pessoais: o utilizador corrige nome, telefone e morada. O e-mail é
 /// o da conta de entrada e só a administração o muda.
@@ -116,13 +119,7 @@ class _FormState extends ConsumerState<_Form> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Center(
-                child: ProfilePhotoCircle(
-                  imageUrl: null,
-                  radius: 44,
-                  fallbackLabel: widget.profile.name,
-                ),
-              ),
+              Center(child: _PhotoPicker(name: widget.profile.name)),
               const SizedBox(height: 28),
               TextFormField(
                 controller: _name,
@@ -175,6 +172,118 @@ class _FormState extends ConsumerState<_Form> {
           ),
         ),
       ),
+    );
+  }
+}
+
+/// A própria fotografia, com botão para mudar ou tirar.
+class _PhotoPicker extends ConsumerStatefulWidget {
+  final String name;
+
+  const _PhotoPicker({required this.name});
+
+  @override
+  ConsumerState<_PhotoPicker> createState() => _PhotoPickerState();
+}
+
+class _PhotoPickerState extends ConsumerState<_PhotoPicker> {
+  bool _busy = false;
+
+  Future<void> _run(Future<void> Function() action, String ok) async {
+    setState(() => _busy = true);
+    try {
+      await action();
+      await ref.read(authProvider.notifier).refreshProfile();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(ok)));
+      }
+    } on DioException catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            backgroundColor: AppColors.error,
+            content: Text(
+              e.response?.statusCode == 400
+                  ? 'Use uma imagem JPEG, PNG ou WebP até 2 MB.'
+                  : 'Não foi possível guardar a fotografia.',
+            ),
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  Future<void> _choose() async {
+    final file = await ImagePicker().pickImage(
+      source: ImageSource.gallery,
+      maxWidth: 800,
+      maxHeight: 800,
+      imageQuality: 85,
+    );
+    if (file == null) return;
+    await _run(
+      () => ref.read(userRepositoryProvider).uploadMyPhoto(file),
+      'Fotografia actualizada.',
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final key = ref.watch(authProvider)?.photoUrl;
+    final base = ref.read(dioProvider).options.baseUrl;
+    return Column(
+      children: [
+        Stack(
+          children: [
+            ProfilePhotoCircle(
+              imageUrl: profilePhotoUrlFromKey(key, base),
+              radius: 44,
+              fallbackLabel: widget.name,
+            ),
+            Positioned(
+              right: 0,
+              bottom: 0,
+              child: Material(
+                color: AppColors.primary,
+                shape: const CircleBorder(),
+                child: InkWell(
+                  customBorder: const CircleBorder(),
+                  onTap: _busy ? null : _choose,
+                  child: Padding(
+                    padding: const EdgeInsets.all(8),
+                    child: _busy
+                        ? SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: AppColors.onPrimary,
+                            ),
+                          )
+                        : Icon(
+                            LucideIcons.camera,
+                            size: 16,
+                            color: AppColors.onPrimary,
+                          ),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+        if (key != null && key.isNotEmpty)
+          TextButton(
+            onPressed: _busy
+                ? null
+                : () => _run(
+                    () => ref.read(userRepositoryProvider).removeMyPhoto(),
+                    'Fotografia removida.',
+                  ),
+            child: const Text('Tirar fotografia'),
+          ),
+      ],
     );
   }
 }

@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:image_picker/image_picker.dart';
 import '../models/school_academic_calendar.dart';
 import '../models/teacher_profile.dart';
 import '../models/teacher_summary.dart';
@@ -30,6 +31,23 @@ class UserRepository {
         'residential_address': residentialAddress,
       },
     );
+  }
+
+  /// Envia e grava a própria fotografia; devolve a chave guardada.
+  Future<String> uploadMyPhoto(XFile file) async {
+    final bytes = await file.readAsBytes();
+    final name = file.name.trim().isEmpty ? 'foto.jpg' : file.name;
+    final res = await _dio.post(
+      '${ApiEndpoints.usersMe}/photo',
+      data: FormData.fromMap({
+        'file': MultipartFile.fromBytes(bytes, filename: name),
+      }),
+    );
+    return res.data['photo_url'] as String;
+  }
+
+  Future<void> removeMyPhoto() async {
+    await _dio.delete('${ApiEndpoints.usersMe}/photo');
   }
 
   Future<void> storeFcmToken(String token, {String? platform}) async {

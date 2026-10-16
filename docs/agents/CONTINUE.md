@@ -20,9 +20,9 @@ Branch `ccr-797179ec-129c5n`. App Flutter (Firebase Auth + worker Cloudflare D1 
   push/e-mail/SMS **não existem** no worker — o ecrã diz «Em breve».
 - Novas no worker: horário (`/api/timetable`, professor por tempo), presenças
   (`/api/attendance`), boletim e disciplinas/turmas para o encarregado (só educandos activos),
-  lista de professores, `PATCH /api/users/me`, notas por ano lectivo, conversas 1:1
+  lista de professores, `PATCH /api/users/me` e `POST /api/users/me/photo`, notas por ano lectivo, conversas 1:1
   (`/api/conversations`: encarregado ↔ professor/direcção; sem push, o ecrã actualiza a cada 15 s).
-- Testes: `cd estudo/yft-school-system/school-worker && npx vitest run` (43, D1 real com
+- Testes: `cd estudo/yft-school-system/school-worker && npx vitest run` (46, D1 real com
   migrações). App: `flutter analyze` + `flutter test` com Flutter 3.41 (o 3.47 parte o `lucide_icons`).
 - **Por aplicar (dono):** migrações D1 `0012`→`0017` e `npx wrangler deploy`. A `0015` atribui as
   notas existentes ao ano lectivo actual de cada escola e troca a chave única — fazer

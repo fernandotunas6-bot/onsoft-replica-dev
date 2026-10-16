@@ -4,6 +4,7 @@ import { requireAdmin, requireRoles } from '../lib/auth-guards';
 import { createFirebaseEmailUser } from '../lib/firebase-auth';
 import { createPrefixedId } from '../lib/id';
 import { buildSyntheticEmailFromPhone, normalizePhone } from '../lib/phone';
+import { storeProfilePhoto } from '../lib/media-upload';
 import { jsonError, jsonOk } from '../lib/response';
 import { z } from 'zod';
 
@@ -208,6 +209,29 @@ users.patch('/me', requireRoles('admin', 'teacher', 'parent'), async (c) => {
     'SELECT uid, name, phone, email, residential_address FROM Users WHERE uid = ? AND school_id = ?'
   ).bind(user.uid, user.schoolId).first();
   return jsonOk(c, { data: row });
+});
+
+/**
+ * A própria fotografia: envia e grava num só passo, para ninguém apontar o
+ * perfil para uma chave arbitrária.
+ */
+users.post('/me/photo', requireRoles('admin', 'teacher', 'parent'), async (c) => {
+  const user = c.get('user');
+  const result = await storeProfilePhoto(c);
+  if ('error' in result) return jsonError(c, result.error, 400);
+  const update = await c.env.DB.prepare('UPDATE Users SET photo_url = ? WHERE uid = ? AND school_id = ?')
+    .bind(result.key, user.uid, user.schoolId)
+    .run();
+  if (!update.meta.changes) return jsonError(c, 'User not found', 404);
+  return jsonOk(c, { photo_url: result.key });
+});
+
+users.delete('/me/photo', requireRoles('admin', 'teacher', 'parent'), async (c) => {
+  const user = c.get('user');
+  await c.env.DB.prepare('UPDATE Users SET photo_url = NULL WHERE uid = ? AND school_id = ?')
+    .bind(user.uid, user.schoolId)
+    .run();
+  return jsonOk(c, { ok: true });
 });
 
 users.get('/me/academic-calendar', requireRoles('admin', 'teacher', 'parent'), async (c) => {

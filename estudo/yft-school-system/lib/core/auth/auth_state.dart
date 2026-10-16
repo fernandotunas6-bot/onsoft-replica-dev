@@ -18,6 +18,9 @@ class AppSession {
   final String? schoolEmail;
   final String? schoolPhone;
   final String? schoolMotto;
+
+  /// Chave R2 da fotografia do próprio utilizador.
+  final String? photoUrl;
   /// When true, teachers may PUT `/api/grades` for their school.
   final bool teacherCanEditResults;
 
@@ -32,6 +35,7 @@ class AppSession {
     this.schoolEmail,
     this.schoolPhone,
     this.schoolMotto,
+    this.photoUrl,
     this.teacherCanEditResults = false,
   });
 
@@ -46,6 +50,7 @@ class AppSession {
     String? schoolEmail,
     String? schoolPhone,
     String? schoolMotto,
+    String? photoUrl,
     bool? teacherCanEditResults,
   }) {
     return AppSession(
@@ -59,6 +64,7 @@ class AppSession {
       schoolEmail: schoolEmail ?? this.schoolEmail,
       schoolPhone: schoolPhone ?? this.schoolPhone,
       schoolMotto: schoolMotto ?? this.schoolMotto,
+      photoUrl: photoUrl ?? this.photoUrl,
       teacherCanEditResults:
           teacherCanEditResults ?? this.teacherCanEditResults,
     );
@@ -119,6 +125,7 @@ class AuthStateNotifier extends Notifier<AppSession?> {
         schoolEmail: profile['school_email'] as String?,
         schoolPhone: profile['school_phone'] as String?,
         schoolMotto: profile['school_motto'] as String?,
+        photoUrl: profile['photo_url'] as String?,
         teacherCanEditResults: teacherCanEdit,
       );
       return (session, null);

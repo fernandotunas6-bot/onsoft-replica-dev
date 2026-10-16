@@ -8,6 +8,8 @@ import '../theme/appearance_state.dart';
 import '../utils/responsive_utils.dart';
 import 'app_icons.dart';
 import 'profile_photo_avatar.dart';
+import '../network/api_client.dart';
+import '../utils/media_url.dart';
 
 /// Os quatro separadores da barra inferior; "Mais" abre o menu lateral.
 enum AppTab { home, subjects, calendar, messages }
@@ -273,9 +275,11 @@ class AppMenu extends ConsumerWidget {
             padding: const EdgeInsets.fromLTRB(24, 24, 24, 16),
             child: Row(
               children: [
-                // A sessão não traz fotografia do utilizador: fica a inicial.
                 ProfilePhotoCircle(
-                  imageUrl: null,
+                  imageUrl: profilePhotoUrlFromKey(
+                    session?.photoUrl,
+                    ref.read(dioProvider).options.baseUrl,
+                  ),
                   radius: 24,
                   fallbackLabel: name,
                 ),

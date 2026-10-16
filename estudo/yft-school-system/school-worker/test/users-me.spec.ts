@@ -46,3 +46,33 @@ describe("PATCH /users/me", () => {
 		expect(row?.name).toBe("Rui");
 	});
 });
+
+describe("POST /users/me/photo", () => {
+	const upload = (u: User, file: Blob | null) => {
+		const form = new FormData();
+		if (file) form.set("file", file, "foto.png");
+		return app.request("/users/me/photo", { method: "POST", body: form, headers: { "X-Test-User": JSON.stringify(u) } }, env);
+	};
+
+	it("guarda a imagem no R2 e no perfil", async () => {
+		const res = await upload(me, new Blob([new Uint8Array([137, 80, 78, 71])], { type: "image/png" }));
+		expect(res.status).toBe(200);
+		const { photo_url } = (await res.json()) as { photo_url: string };
+		expect(photo_url).toMatch(/^profile-photos\/m1\/img_\w+\.png$/);
+		expect(await env.MEDIA_BUCKET.get(photo_url)).not.toBeNull();
+		const row = await env.DB.prepare("SELECT photo_url FROM Users WHERE uid = 'u1'").first<{ photo_url: string }>();
+		expect(row?.photo_url).toBe(photo_url);
+	});
+
+	it("recusa outros tipos e pedidos sem ficheiro", async () => {
+		expect((await upload(me, new Blob(["<svg/>"], { type: "image/svg+xml" }))).status).toBe(400);
+		expect((await upload(me, null)).status).toBe(400);
+	});
+
+	it("apagar tira a fotografia do perfil", async () => {
+		const res = await app.request("/users/me/photo", { method: "DELETE", headers: { "X-Test-User": JSON.stringify(me) } }, env);
+		expect(res.status).toBe(200);
+		const row = await env.DB.prepare("SELECT photo_url FROM Users WHERE uid = 'u1'").first<{ photo_url: string | null }>();
+		expect(row?.photo_url).toBeNull();
+	});
+});

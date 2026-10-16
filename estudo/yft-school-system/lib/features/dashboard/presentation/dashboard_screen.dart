@@ -14,6 +14,8 @@ import 'package:yft_school_system/core/widgets/profile_photo_avatar.dart';
 import 'package:yft_school_system/features/calendar/application/school_events.dart';
 import 'package:yft_school_system/features/dashboard/presentation/widgets/home_sections.dart';
 import 'package:yft_school_system/features/dashboard/presentation/providers/notices_providers.dart';
+import 'package:yft_school_system/core/network/api_client.dart';
+import 'package:yft_school_system/core/utils/media_url.dart';
 
 class DashboardScreen extends ConsumerWidget {
   const DashboardScreen({super.key});
@@ -104,7 +106,14 @@ class _HomeHeader extends ConsumerWidget {
       ),
       child: Row(
         children: [
-          ProfilePhotoCircle(imageUrl: null, radius: 26, fallbackLabel: name),
+          ProfilePhotoCircle(
+            imageUrl: profilePhotoUrlFromKey(
+              session?.photoUrl,
+              ref.read(dioProvider).options.baseUrl,
+            ),
+            radius: 26,
+            fallbackLabel: name,
+          ),
           const SizedBox(width: 14),
           Expanded(
             child: Column(
