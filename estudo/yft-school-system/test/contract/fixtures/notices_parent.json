@@ -1,7 +1,7 @@
 {
   "data": [
     {
-      "id": "ntc_2a55ff1b86be",
+      "id": "ntc_9afa1394c884",
       "school_id": "q1",
       "parent_uid": null,
       "title": "Reunião de pais",
@@ -11,7 +11,7 @@
       "audience": "class",
       "class_id": "q-c10",
       "class_name": "10ª Classe",
-      "created_at": "2026-10-16 05:58:02",
+      "created_at": "2026-10-16 06:37:54",
       "read_flag": 0
     }
   ]

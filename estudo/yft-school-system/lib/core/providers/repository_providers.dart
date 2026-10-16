@@ -21,6 +21,7 @@ import '../repositories/student_repository.dart';
 import '../repositories/subject_repository.dart';
 import '../repositories/timetable_repository.dart';
 import '../repositories/user_repository.dart';
+import '../auth/auth_state.dart';
 
 // ── Repository providers ──
 
@@ -74,12 +75,22 @@ final settingsRepositoryProvider = Provider<SettingsRepository>((ref) {
 
 // ── Data providers ──
 
+/// O uid da sessão. Os providers de dados observam-no: ao sair e entrar com
+/// outra conta no mesmo aparelho, recarregam em vez de mostrarem os dados da
+/// pessoa anterior.
+final currentUidProvider = Provider<String?>((ref) {
+  return ref.watch(authProvider.select((s) => s?.uid));
+});
+
 final classesProvider = FutureProvider<List<SchoolClass>>((ref) {
+  ref.watch(currentUidProvider);
   return ref.read(classRepositoryProvider).getClasses();
 });
 
 final subjectsProvider = FutureProvider.family<List<Subject>, String?>(
   (ref, classId) {
+    ref.watch(currentUidProvider);
+  ref.watch(currentUidProvider);
     return ref.read(subjectRepositoryProvider).getSubjects(classId: classId);
   },
 );
@@ -87,6 +98,8 @@ final subjectsProvider = FutureProvider.family<List<Subject>, String?>(
 final studentsProvider =
     FutureProvider.family<PaginatedResponse<Student>, ({String? classId, int page})>(
   (ref, params) {
+    ref.watch(currentUidProvider);
+  ref.watch(currentUidProvider);
     return ref.read(studentRepositoryProvider).getStudents(
           classId: params.classId,
           page: params.page,
@@ -96,35 +109,42 @@ final studentsProvider =
 
 final studentByIdProvider =
     FutureProvider.family<Student, String>((ref, studentId) {
+  ref.watch(currentUidProvider);
   return ref.read(studentRepositoryProvider).getStudentById(studentId);
 });
 
 final arrearsProvider = FutureProvider<List<ArrearsStudent>>((ref) {
+  ref.watch(currentUidProvider);
   return ref.read(financeRepositoryProvider).getArrears();
 });
 
 final userProfileProvider = FutureProvider<UserProfile>((ref) {
+  ref.watch(currentUidProvider);
   return ref.read(userRepositoryProvider).getProfile();
 });
 
 final teacherProfileProvider =
     FutureProvider.family<TeacherProfile, String>((ref, uid) {
+  ref.watch(currentUidProvider);
   return ref.read(userRepositoryProvider).getTeacherProfile(uid);
 });
 
 /// Horário de uma turma, ou de todas as que o utilizador pode ver (`null`).
 final timetableProvider =
     FutureProvider.family<List<TimetableSlot>, String?>((ref, classId) {
+  ref.watch(currentUidProvider);
   return ref.read(timetableRepositoryProvider).getSlots(classId: classId);
 });
 
 /// As aulas do professor autenticado, em todas as turmas.
 final myTimetableProvider = FutureProvider<List<TimetableSlot>>((ref) {
+  ref.watch(currentUidProvider);
   return ref.read(timetableRepositoryProvider).getSlots(mine: true);
 });
 
 /// Professores da escola (só o admin pode pedir).
 final teachersProvider = FutureProvider<List<TeacherSummary>>((ref) {
+  ref.watch(currentUidProvider);
   return ref.read(userRepositoryProvider).getTeachers();
 });
 
@@ -146,27 +166,33 @@ final attendanceRosterProvider = FutureProvider.family<AttendanceRoster,
 
 final attendanceSummaryProvider =
     FutureProvider.family<AttendanceSummary, String>((ref, classId) {
+  ref.watch(currentUidProvider);
   return ref.read(attendanceRepositoryProvider).summary(classId);
 });
 
 final studentAttendanceProvider =
     FutureProvider.family<StudentAttendance, String>((ref, studentId) {
+  ref.watch(currentUidProvider);
   return ref.read(attendanceRepositoryProvider).forStudent(studentId);
 });
 
 final conversationsProvider = FutureProvider<List<ConversationSummary>>((ref) {
+  ref.watch(currentUidProvider);
   return ref.read(conversationsRepositoryProvider).list();
 });
 
 final conversationsUnreadProvider = FutureProvider<int>((ref) {
+  ref.watch(currentUidProvider);
   return ref.read(conversationsRepositoryProvider).unreadCount();
 });
 
 final chatContactsProvider = FutureProvider<List<ChatContact>>((ref) {
+  ref.watch(currentUidProvider);
   return ref.read(conversationsRepositoryProvider).contacts();
 });
 
 final chatThreadProvider =
     FutureProvider.autoDispose.family<ChatThread, String>((ref, id) {
+  ref.watch(currentUidProvider);
   return ref.read(conversationsRepositoryProvider).thread(id);
 });

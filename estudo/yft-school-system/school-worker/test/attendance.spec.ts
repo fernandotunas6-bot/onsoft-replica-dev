@@ -64,6 +64,14 @@ describe("presenças", () => {
 		expect(body.data[0]).toMatchObject({ student_id: "s1", present_days: 1, absent_days: 1 });
 	});
 
+	it("o resumo da turma ignora registos de quando o aluno estava noutra turma", async () => {
+		await env.DB.prepare("INSERT INTO Attendance (id, school_id, student_id, class_id, date, present) VALUES ('old-k2', 'a1', 's2', 'k2', '2026-01-10', 0)").run();
+		const body = (await (await call(teacher, "/attendance/summary?class_id=k1")).json()) as { data: { student_id: string; absent_days: number }[] };
+		expect(body.data.find((r) => r.student_id === "s2")?.absent_days).toBe(0);
+		const roster = (await (await call(teacher, "/attendance?class_id=k1&date=2026-01-10")).json()) as { data: { student_id: string; present: boolean | null }[] };
+		expect(roster.data.find((r) => r.student_id === "s2")?.present).toBeNull();
+	});
+
 	it("o encarregado vê só o histórico do seu educando", async () => {
 		const res = await call(parent, "/attendance/student/s1");
 		expect(res.status).toBe(200);

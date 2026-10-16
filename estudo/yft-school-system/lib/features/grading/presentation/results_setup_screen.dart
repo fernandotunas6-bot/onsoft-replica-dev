@@ -6,6 +6,7 @@ import 'package:yft_school_system/core/settings/academic_year_state.dart';
 import 'package:yft_school_system/core/theme/app_colors.dart';
 import 'package:go_router/go_router.dart';
 import 'package:yft_school_system/core/utils/term_label.dart';
+import 'package:yft_school_system/features/calendar/application/school_events.dart';
 
 class ResultsSetupScreen extends ConsumerStatefulWidget {
   const ResultsSetupScreen({super.key});
@@ -19,10 +20,13 @@ class _ResultsSetupScreenState extends ConsumerState<ResultsSetupScreen> {
   String? _selectedTerm;
   String? _selectedStudentId;
 
-  final List<String> _terms = ['Term 1', 'Term 2', 'Term 3'];
 
   @override
   Widget build(BuildContext context) {
+    // Semestres ou trimestres, conforme o calendário da escola.
+    final termSystem =
+        ref.watch(academicCalendarProvider).whenOrNull(data: (c) => c?.termSystem) ?? 3;
+    final terms = [for (var i = 1; i <= termSystem; i++) 'Term $i'];
     final academicYear = ref.watch(academicYearProvider);
     final classesAsync = ref.watch(classesProvider);
     final studentsAsync = _selectedClassId != null
@@ -95,8 +99,8 @@ class _ResultsSetupScreenState extends ConsumerState<ResultsSetupScreen> {
             const SizedBox(height: 8),
             _buildDropdown(
               icon: LucideIcons.calendarDays,
-              value: _selectedTerm,
-              items: _terms.map((t) => DropdownMenuItem(value: t, child: Text(termLabel(t)))).toList(),
+              value: terms.contains(_selectedTerm) ? _selectedTerm : null,
+              items: terms.map((t) => DropdownMenuItem(value: t, child: Text(termLabel(t, termSystem: termSystem)))).toList(),
               onChanged: (val) => setState(() => _selectedTerm = val),
             ),
 
@@ -130,7 +134,7 @@ class _ResultsSetupScreenState extends ConsumerState<ResultsSetupScreen> {
               width: double.infinity,
               height: 56,
               child: ElevatedButton(
-                onPressed: _selectedClassId != null && _selectedTerm != null && _selectedStudentId != null
+                onPressed: _selectedClassId != null && terms.contains(_selectedTerm) && _selectedStudentId != null
                     ? () {
                         context.push('/results-input', extra: {
                           'studentId': _selectedStudentId,

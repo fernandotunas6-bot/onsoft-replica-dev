@@ -41,10 +41,12 @@ class SchoolEvent {
 DateTime dayOnly(DateTime d) => DateTime(d.year, d.month, d.day);
 
 final academicCalendarProvider = FutureProvider<SchoolAcademicCalendar?>((ref) {
+  ref.watch(currentUidProvider);
   return ref.read(userRepositoryProvider).getAcademicCalendar();
 });
 
 final schoolEventsProvider = FutureProvider<List<SchoolEvent>>((ref) async {
+  ref.watch(currentUidProvider);
   final events = <SchoolEvent>[];
 
   try {
@@ -53,7 +55,7 @@ final schoolEventsProvider = FutureProvider<List<SchoolEvent>>((ref) async {
       events.add(
         SchoolEvent(
           date: dayOnly(term.startDate),
-          title: 'Início do ${termLabel(term.name)}',
+          title: 'Início do ${termLabel(term.name, termSystem: calendar!.termSystem)}',
           subtitle: 'Calendário académico',
           kind: SchoolEventKind.termStart,
         ),
@@ -61,7 +63,7 @@ final schoolEventsProvider = FutureProvider<List<SchoolEvent>>((ref) async {
       events.add(
         SchoolEvent(
           date: dayOnly(term.endDate),
-          title: 'Fim do ${termLabel(term.name)}',
+          title: 'Fim do ${termLabel(term.name, termSystem: calendar.termSystem)}',
           subtitle: 'Calendário académico',
           kind: SchoolEventKind.termEnd,
         ),

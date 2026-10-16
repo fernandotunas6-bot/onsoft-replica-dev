@@ -3,6 +3,7 @@ import type { AppEnv } from '../app-env';
 import { requireAdminOrTeacher, requireRoles } from '../lib/auth-guards';
 import { createPrefixedId } from '../lib/id';
 import { jsonError, jsonOk } from '../lib/response';
+import { canSeeStudent } from '../lib/ward-classes';
 import { z } from 'zod';
 
 const grades = new Hono<AppEnv>();
@@ -53,14 +54,7 @@ grades.get('/', requireRoles('admin', 'teacher', 'parent'), async (c) => {
     return jsonError(c, 'student_id and term are required', 400);
   }
 
-  const student = user.role === 'parent'
-    ? await c.env.DB.prepare(
-      'SELECT id FROM Students WHERE id = ? AND school_id = ? AND parent_uid = ? AND is_active = 1 LIMIT 1',
-    ).bind(studentId, user.schoolId, user.uid).first<{ id: string }>()
-    : await c.env.DB.prepare(
-      'SELECT id FROM Students WHERE id = ? AND school_id = ? LIMIT 1',
-    ).bind(studentId, user.schoolId).first<{ id: string }>();
-  if (!student) {
+  if (!(await canSeeStudent(c, studentId))) {
     return jsonError(c, 'Student not found', 404);
   }
 

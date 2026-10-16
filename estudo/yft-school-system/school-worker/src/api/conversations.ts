@@ -98,21 +98,31 @@ conversations.post('/', async (c) => {
   if (!other) return jsonError(c, 'User not found', 404);
   if (!canTalk(user.role as Role, other.role)) return jsonError(c, 'Forbidden', 403);
 
-  const existing = await c.env.DB.prepare(
-    `SELECT a.conversation_id AS id FROM ConversationMembers a
-     JOIN ConversationMembers b ON b.conversation_id = a.conversation_id AND b.user_uid = ?
-     JOIN Conversations cv ON cv.id = a.conversation_id AND cv.school_id = ?
-     WHERE a.user_uid = ? LIMIT 1`
-  ).bind(otherUid, user.schoolId, user.uid).first<{ id: string }>();
+  const pairKey = [user.uid, otherUid].sort().join('|');
+  const find = () =>
+    c.env.DB.prepare('SELECT id FROM Conversations WHERE school_id = ? AND pair_key = ?')
+      .bind(user.schoolId, pairKey)
+      .first<{ id: string }>();
+  const existing = await find();
   if (existing) return jsonOk(c, { id: existing.id });
 
+  // O índice único em (school_id, pair_key) resolve pedidos simultâneos: o
+  // segundo INSERT é ignorado e ambos devolvem a mesma conversa.
   const id = createPrefixedId('cnv');
   await c.env.DB.batch([
-    c.env.DB.prepare('INSERT INTO Conversations (id, school_id) VALUES (?, ?)').bind(id, user.schoolId),
-    c.env.DB.prepare('INSERT INTO ConversationMembers (conversation_id, user_uid) VALUES (?, ?), (?, ?)')
-      .bind(id, user.uid, id, otherUid),
+    c.env.DB.prepare('INSERT OR IGNORE INTO Conversations (id, school_id, pair_key) VALUES (?, ?, ?)')
+      .bind(id, user.schoolId, pairKey),
+    c.env.DB.prepare(
+      `INSERT OR IGNORE INTO ConversationMembers (conversation_id, user_uid)
+       SELECT ?, ? WHERE EXISTS (SELECT 1 FROM Conversations WHERE id = ?)`
+    ).bind(id, user.uid, id),
+    c.env.DB.prepare(
+      `INSERT OR IGNORE INTO ConversationMembers (conversation_id, user_uid)
+       SELECT ?, ? WHERE EXISTS (SELECT 1 FROM Conversations WHERE id = ?)`
+    ).bind(id, otherUid, id),
   ]);
-  return jsonOk(c, { id }, 201);
+  const created = await find();
+  return jsonOk(c, { id: created!.id }, created!.id === id ? 201 : 200);
 });
 
 /** Mensagens (até 200 mais recentes, por ordem) e marca a conversa como lida. */
@@ -134,9 +144,15 @@ conversations.get('/:id/messages', async (c) => {
      WHERE m.conversation_id = ? AND m.user_uid != ?`
   ).bind(user.schoolId, id, user.uid).first();
 
-  await c.env.DB.prepare(
-    'UPDATE ConversationMembers SET last_read_at = ? WHERE conversation_id = ? AND user_uid = ?'
-  ).bind(now(), id, user.uid).run();
+  // Lido até à última mensagem devolvida — não até "agora", para não marcar
+  // como lida uma mensagem que chegou entre a leitura e esta actualização.
+  const lastSeen = results.at(-1)?.created_at;
+  if (lastSeen) {
+    await c.env.DB.prepare(
+      `UPDATE ConversationMembers SET last_read_at = ?
+       WHERE conversation_id = ? AND user_uid = ? AND (last_read_at IS NULL OR last_read_at < ?)`
+    ).bind(lastSeen, id, user.uid, lastSeen).run();
+  }
 
   return jsonOk(c, {
     data: results.map((m) => ({ ...m, mine: m.sender_uid === user.uid })),

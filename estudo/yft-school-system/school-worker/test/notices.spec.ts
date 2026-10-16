@@ -53,18 +53,18 @@ describe("comunicados", () => {
 	it("cada um vê só o que lhe é dirigido", async () => {
 		expect(await titles(parentA)).toEqual(["Antigo", "Pais", "Recibo", "Todos", "Turma A"]);
 		expect(await titles(parentB)).toEqual(["Antigo", "Pais", "Todos"]);
-		expect(await titles(teacher)).toEqual(["Profs", "Todos", "Turma A"]);
+		expect(await titles(teacher)).toEqual(["Profs", "Todos"]);
 		expect(await titles(admin)).toEqual(["Antigo", "Pais", "Profs", "Todos", "Turma A"]);
 		expect(await titles(stranger)).toEqual([]);
 	});
 
 	it("lidos e por ler contam por pessoa, também para professores", async () => {
 		const unread = async (u: User) => ((await (await call(u, "/notices/unread-count")).json()) as { unread_count: number }).unread_count;
-		expect(await unread(teacher)).toBe(3);
+		expect(await unread(teacher)).toBe(2);
 		const { data } = (await (await call(teacher, "/notices")).json()) as { data: { id: string; title: string }[] };
 		const profs = data.find((n) => n.title === "Profs")!;
 		expect((await call(teacher, `/notices/${profs.id}/read`, { method: "POST" })).status).toBe(200);
-		expect(await unread(teacher)).toBe(2);
+		expect(await unread(teacher)).toBe(1);
 		expect((await call(parentB, `/notices/${profs.id}/read`, { method: "POST" })).status).toBe(404);
 	});
 

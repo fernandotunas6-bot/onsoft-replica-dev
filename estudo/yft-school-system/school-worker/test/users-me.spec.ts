@@ -26,11 +26,11 @@ beforeAll(async () => {
 });
 
 describe("PATCH /users/me", () => {
-	it("actualiza nome, telefone (normalizado) e morada, mas não o e-mail", async () => {
+	it("actualiza nome, telefone (como escrito) e morada, mas não o e-mail", async () => {
 		const res = await patch(me, { name: "Ana Souza", phone: "+244 923 000 009", residential_address: "Luanda", email: "outro@x.ao" });
 		expect(res.status).toBe(200);
 		expect(((await res.json()) as { data: unknown }).data).toEqual({
-			uid: "u1", name: "Ana Souza", phone: "+244923000009", email: "ana@x.ao", residential_address: "Luanda",
+			uid: "u1", name: "Ana Souza", phone: "+244 923 000 009", email: "ana@x.ao", residential_address: "Luanda",
 		});
 	});
 

@@ -3,7 +3,7 @@ import type { AppEnv } from '../app-env';
 import { requireAdmin, requireRoles } from '../lib/auth-guards';
 import { createFirebaseEmailUser } from '../lib/firebase-auth';
 import { createPrefixedId } from '../lib/id';
-import { buildSyntheticEmailFromPhone, normalizePhone } from '../lib/phone';
+import { buildSyntheticEmailFromPhone } from '../lib/phone';
 import { storeProfilePhoto } from '../lib/media-upload';
 import { jsonError, jsonOk } from '../lib/response';
 import { z } from 'zod';
@@ -182,7 +182,9 @@ users.patch('/me', requireRoles('admin', 'teacher', 'parent'), async (c) => {
     return jsonError(c, 'Invalid profile payload', 400, parsed.error.flatten());
   }
   const v = parsed.data;
-  const phone = v.phone === undefined ? undefined : normalizePhone(v.phone) || null;
+  // Guardado como escrito: a admissão e o registo procuram o telefone pelo
+  // texto exacto, e normalizar aqui faria o encarregado "desaparecer".
+  const phone = v.phone === undefined ? undefined : v.phone || null;
 
   const sets: string[] = [];
   const binds: unknown[] = [];

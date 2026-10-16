@@ -20,6 +20,7 @@ final selectedClassProvider =
 /// Turmas onde o professor autenticado tem aulas no horário (vazio se o
 /// horário ainda não o tem ou se falhar).
 final teacherClassIdsProvider = FutureProvider<Set<String>>((ref) async {
+  ref.watch(currentUidProvider);
   try {
     final slots = await ref.watch(myTimetableProvider.future);
     return {for (final s in slots) s.classId};

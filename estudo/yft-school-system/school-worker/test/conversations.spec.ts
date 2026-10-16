@@ -86,6 +86,22 @@ describe("conversas", () => {
 		expect(((await (await call(admin, "/c")).json()) as { data: unknown[] }).data).toEqual([]);
 	});
 
+	it("pedidos simultâneos dão a mesma conversa", async () => {
+		const [a, b] = await Promise.all([open(admin, "cp2"), open({ uid: "cp2", schoolId: "k1", role: "parent" }, "ca")]);
+		const ia = ((await a.json()) as { id: string }).id;
+		const ib = ((await b.json()) as { id: string }).id;
+		expect(ia).toBe(ib);
+		const { results } = await env.DB.prepare("SELECT COUNT(*) AS n FROM Conversations WHERE pair_key = 'ca|cp2'").all<{ n: number }>();
+		expect(results[0].n).toBe(1);
+	});
+
+	it("ler não marca como lida uma mensagem posterior à leitura", async () => {
+		await call(teacher, `/c/${id}/messages`);
+		// Mensagem com data anterior ao "agora" do servidor mas posterior à última vista.
+		await env.DB.prepare("INSERT INTO Messages (id, conversation_id, school_id, sender_uid, body, created_at) VALUES ('late', ?, 'k1', 'cp', 'atrasada', strftime('%Y-%m-%d %H:%M:%f', 'now'))").bind(id).run();
+		expect(await unread(teacher)).toBe(1);
+	});
+
 	it("conversas abertas sem mensagens não aparecem na lista", async () => {
 		await open(admin, "ct");
 		expect(((await (await call(admin, "/c")).json()) as { data: unknown[] }).data).toEqual([]);

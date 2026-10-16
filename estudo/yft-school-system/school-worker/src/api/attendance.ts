@@ -4,6 +4,7 @@ import type { AppEnv } from '../app-env';
 import { requireAdminOrTeacher, requireRoles } from '../lib/auth-guards';
 import { createPrefixedId } from '../lib/id';
 import { jsonError, jsonOk } from '../lib/response';
+import { canSeeStudent } from '../lib/ward-classes';
 
 const day = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Use YYYY-MM-DD');
 
@@ -43,7 +44,7 @@ attendance.get('/', requireAdminOrTeacher, async (c) => {
     `SELECT s.id AS student_id, s.name, s.photo_url, a.present
      FROM Students s
      LEFT JOIN Attendance a
-       ON a.student_id = s.id AND a.school_id = s.school_id AND a.date = ?
+       ON a.student_id = s.id AND a.school_id = s.school_id AND a.class_id = s.class_id AND a.date = ?
      WHERE s.school_id = ? AND s.class_id = ? AND s.is_active = 1
      ORDER BY s.name COLLATE NOCASE`
   ).bind(date, user.schoolId, classId).all<{ student_id: string; name: string; photo_url: string | null; present: number | null }>();
@@ -100,7 +101,8 @@ attendance.get('/summary', requireAdminOrTeacher, async (c) => {
             COALESCE(SUM(a.present = 1), 0) AS present_days,
             COALESCE(SUM(a.present = 0), 0) AS absent_days
      FROM Students s
-     LEFT JOIN Attendance a ON a.student_id = s.id AND a.school_id = s.school_id
+     LEFT JOIN Attendance a
+       ON a.student_id = s.id AND a.school_id = s.school_id AND a.class_id = s.class_id
      WHERE s.school_id = ? AND s.class_id = ? AND s.is_active = 1
      GROUP BY s.id
      ORDER BY absent_days DESC, s.name COLLATE NOCASE`
@@ -119,14 +121,7 @@ attendance.get('/summary', requireAdminOrTeacher, async (c) => {
 attendance.get('/student/:studentId', requireRoles('admin', 'teacher', 'parent'), async (c) => {
   const user = c.get('user');
   const studentId = c.req.param('studentId');
-  const student = user.role === 'parent'
-    ? await c.env.DB.prepare(
-      'SELECT id FROM Students WHERE id = ? AND school_id = ? AND parent_uid = ? AND is_active = 1'
-    ).bind(studentId, user.schoolId, user.uid).first()
-    : await c.env.DB.prepare('SELECT id FROM Students WHERE id = ? AND school_id = ?')
-      .bind(studentId, user.schoolId)
-      .first();
-  if (!student) return jsonError(c, 'Student not found', 404);
+  if (!(await canSeeStudent(c, studentId))) return jsonError(c, 'Student not found', 404);
 
   const totals = await c.env.DB.prepare(
     `SELECT COALESCE(SUM(present = 1), 0) AS present_days,

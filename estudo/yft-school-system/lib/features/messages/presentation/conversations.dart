@@ -334,9 +334,14 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   Timer? _poll;
   bool _sending = false;
 
+  /// Guardado no início: no dispose o `ref` já não pode ser usado.
+  late final ProviderContainer _container =
+      ProviderScope.containerOf(context, listen: false);
+
   @override
   void initState() {
     super.initState();
+    _container; // resolve já, enquanto o contexto está montado
     _poll = Timer.periodic(const Duration(seconds: 15), (_) {
       if (mounted) ref.invalidate(chatThreadProvider(widget.conversationId));
     });
@@ -348,8 +353,8 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     _text.dispose();
     _scroll.dispose();
     // Ao sair, a lista e o sino reflectem o que foi lido.
-    ref.invalidate(conversationsProvider);
-    ref.invalidate(conversationsUnreadProvider);
+    _container.invalidate(conversationsProvider);
+    _container.invalidate(conversationsUnreadProvider);
     super.dispose();
   }
 

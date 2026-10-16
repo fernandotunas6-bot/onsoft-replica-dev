@@ -13,7 +13,8 @@ const notices = new Hono<AppEnv>();
  * Condição SQL (sobre `n`) dos comunicados que o utilizador pode ver:
  * - encarregado: os dirigidos a ele (recibos) e os gerais para encarregados,
  *   para todos, ou para a turma de um educando activo;
- * - professor: os gerais para todos, para professores ou para uma turma;
+ * - professor: os gerais para todos ou para professores (os de turma são
+ *   para os encarregados dessa turma);
  * - admin: todos os gerais (não os recibos individuais).
  */
 async function visibility(c: Context<AppEnv>): Promise<{ sql: string; binds: unknown[] }> {
@@ -29,7 +30,7 @@ async function visibility(c: Context<AppEnv>): Promise<{ sql: string; binds: unk
     };
   }
   if (user.role === 'teacher') {
-    return { sql: `(n.parent_uid IS NULL AND n.audience IN ('all', 'teachers', 'class'))`, binds: [] };
+    return { sql: `(n.parent_uid IS NULL AND n.audience IN ('all', 'teachers'))`, binds: [] };
   }
   return { sql: 'n.parent_uid IS NULL', binds: [] };
 }
