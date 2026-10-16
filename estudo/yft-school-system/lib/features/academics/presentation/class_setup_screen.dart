@@ -65,7 +65,7 @@ class _ClassSetupScreenState extends ConsumerState<ClassSetupScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Turma guardada'),
-            backgroundColor: Colors.green,
+            backgroundColor: AppColors.success,
           ),
         );
         if (widget.schoolClass == null) {
@@ -470,7 +470,7 @@ class _ClassSetupScreenState extends ConsumerState<ClassSetupScreen> {
                                               ? 'Propina guardada e aplicada.'
                                               : 'Propina guardada.',
                                         ),
-                                        backgroundColor: Colors.green,
+                                        backgroundColor: AppColors.success,
                                       ),
                                     );
                                   }

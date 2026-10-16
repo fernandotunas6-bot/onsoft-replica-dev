@@ -69,7 +69,7 @@ class WardProfileScreen extends ConsumerWidget {
               : 'Saldo a favor: $currency ${w.balance.toStringAsFixed(2)}';
       final balanceColor = hasDebt
           ? AppColors.error
-          : (isCleared ? Colors.green : Colors.blueAccent);
+          : (isCleared ? AppColors.success : AppColors.primary);
 
       final statusHint = hasDebt
           ? 'Regularize as propinas em dívida.'
@@ -189,7 +189,7 @@ class WardProfileScreen extends ConsumerWidget {
                     _actionCard(
                       icon: LucideIcons.calendarCheck,
                       title: 'Histórico de\npresenças',
-                      color: Colors.orange,
+                      color: AppColors.warning,
                       onTap: () =>
                           context.push('/ward-attendance', extra: w.id),
                     ),

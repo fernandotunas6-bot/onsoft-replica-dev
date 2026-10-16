@@ -48,6 +48,7 @@ escrever `Colors.white` nem `AppColors.secondary` sobre o primário.
 | `primaryOnLight` | `#1E40AF` | — | recibos e PDF (papel é sempre branco) |
 | `error` | `#E5484D` | — | validações |
 | `success` | `#10B981` | — | início de período, confirmações |
+| `warning` | `#F59E0B` | — | avisos (aluno inactivo, só leitura) |
 
 `secondary` passou a ser **cor de texto** (claro no escuro). Cartões e
 etiquetas escuras com texto branco usam `ink`.

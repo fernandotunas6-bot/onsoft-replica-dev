@@ -173,7 +173,7 @@ class StudentDetailsScreen extends ConsumerWidget {
                           Padding(
                             padding: const EdgeInsets.only(bottom: 12),
                             child: Material(
-                              color: Colors.orange.shade50,
+                              color: AppColors.warning.withValues(alpha: 0.12),
                               borderRadius: BorderRadius.circular(12),
                               child: Padding(
                                 padding: const EdgeInsets.symmetric(
@@ -181,13 +181,13 @@ class StudentDetailsScreen extends ConsumerWidget {
                                 child: Row(
                                   children: [
                                     Icon(Icons.pause_circle_outline,
-                                        color: Colors.orange.shade800),
+                                        color: AppColors.warning),
                                     const SizedBox(width: 10),
                                     Expanded(
                                       child: Text(
                                         'Este aluno está inactivo e não aparece na aplicação do encarregado.',
                                         style: TextStyle(
-                                          color: Colors.orange.shade900,
+                                          color: AppColors.textPrimary,
                                           fontSize: 13,
                                         ),
                                       ),
@@ -373,9 +373,9 @@ class _StudentProfileBody extends StatelessWidget {
                     ? '+$currency ${student.balance.toStringAsFixed(2)} (a favor)'
                     : '$currency 0.00 (em dia)',
             valueColor: student.hasDebt
-                ? Colors.red.shade700
+                ? AppColors.error
                 : student.isOverpaid
-                    ? Colors.green.shade700
+                    ? AppColors.success
                     : AppColors.textPrimary,
           ),
         ]),

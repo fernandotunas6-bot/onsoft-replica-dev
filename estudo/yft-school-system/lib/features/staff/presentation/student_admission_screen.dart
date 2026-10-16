@@ -361,7 +361,7 @@ class _StudentAdmissionScreenState extends ConsumerState<StudentAdmissionScreen>
           content: Text(editId != null
               ? 'Aluno actualizado'
               : 'Admissão concluída'),
-          backgroundColor: Colors.green,
+          backgroundColor: AppColors.success,
         ),
       );
       Navigator.pop(context);

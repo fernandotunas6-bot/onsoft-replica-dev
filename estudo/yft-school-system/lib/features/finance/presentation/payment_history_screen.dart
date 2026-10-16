@@ -110,8 +110,8 @@ class PaymentHistoryScreen extends ConsumerWidget {
                   final statusColor = due > 0
                       ? AppColors.error
                       : credit > 0
-                          ? Colors.blue.shade700
-                          : Colors.green;
+                          ? AppColors.primary
+                          : AppColors.success;
 
                   return Container(
                     margin: const EdgeInsets.only(bottom: 12),

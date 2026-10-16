@@ -46,9 +46,9 @@ class _StudentsFinanceListScreenState
       case 'Owing':
         return AppColors.error;
       case 'Paid':
-        return Colors.green;
+        return AppColors.success;
       case 'Credit':
-        return Colors.blue.shade700;
+        return AppColors.primary;
       default:
         return AppColors.textSecondary;
     }

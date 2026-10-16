@@ -293,7 +293,7 @@ class _LogPaymentScreenState extends ConsumerState<LogPaymentScreen> {
                                     border: Border.all(
                                       color: selected
                                           ? AppColors.primaryOnLight
-                                          : Colors.grey.shade200,
+                                          : AppColors.border,
                                       width: selected ? 2 : 1,
                                     ),
                                     borderRadius: BorderRadius.circular(16),
@@ -372,7 +372,7 @@ class _LogPaymentScreenState extends ConsumerState<LogPaymentScreen> {
                                               color: s.balance < 0
                                                   ? AppColors.error
                                                   : (s.balance > 0
-                                                      ? Colors.blue.shade800
+                                                      ? AppColors.primary
                                                       : AppColors.textSecondary),
                                             ),
                                           ),
@@ -414,7 +414,7 @@ class _LogPaymentScreenState extends ConsumerState<LogPaymentScreen> {
                               decoration: BoxDecoration(
                                 color: AppColors.background,
                                 borderRadius: BorderRadius.circular(12),
-                                border: Border.all(color: Colors.grey.shade300),
+                                border: Border.all(color: AppColors.border),
                               ),
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,

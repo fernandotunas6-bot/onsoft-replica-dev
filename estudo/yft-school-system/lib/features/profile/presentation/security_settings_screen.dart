@@ -266,7 +266,7 @@ class _SecuritySettingsScreenState
                             padding: const EdgeInsets.all(8),
                             decoration: BoxDecoration(
                               color: teacherCanEditResults
-                                  ? Colors.green.withValues(alpha: 0.1)
+                                  ? AppColors.success.withValues(alpha: 0.1)
                                   : AppColors.error.withValues(alpha: 0.1),
                               borderRadius: BorderRadius.circular(10),
                             ),
@@ -275,12 +275,12 @@ class _SecuritySettingsScreenState
                                   ? LucideIcons.checkCircle
                                   : LucideIcons.xCircle,
                               color: teacherCanEditResults
-                                  ? Colors.green
+                                  ? AppColors.success
                                   : AppColors.error,
                               size: 20,
                             ),
                           ),
-                          activeThumbColor: Colors.green,
+                          activeThumbColor: AppColors.success,
                           value: teacherCanEditResults,
                           onChanged: _savingAccessControl
                               ? null

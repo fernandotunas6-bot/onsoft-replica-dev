@@ -174,7 +174,7 @@ class _ResultsInputScreenState extends ConsumerState<ResultsInputScreen> {
             'Notas guardadas',
             style: TextStyle(fontWeight: FontWeight.w600),
           ),
-          backgroundColor: Colors.green,
+          backgroundColor: AppColors.success,
         ),
       );
     } on DioException catch (e) {
@@ -244,15 +244,15 @@ class _ResultsInputScreenState extends ConsumerState<ResultsInputScreen> {
               margin: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               decoration: BoxDecoration(
-                color: Colors.orange.withValues(alpha: 0.1),
+                color: AppColors.warning.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(16),
                 border: Border.all(
-                  color: Colors.orange.withValues(alpha: 0.3),
+                  color: AppColors.warning.withValues(alpha: 0.3),
                 ),
               ),
               child: Row(
                 children: [
-                  Icon(LucideIcons.lock, size: 18, color: Colors.orange.shade700),
+                  Icon(LucideIcons.lock, size: 18, color: AppColors.warning),
                   const SizedBox(width: 12),
                   Expanded(
                     child: Text(

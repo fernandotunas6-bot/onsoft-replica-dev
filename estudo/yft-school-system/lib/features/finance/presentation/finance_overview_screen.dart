@@ -94,7 +94,7 @@ class FinanceOverviewScreen extends ConsumerWidget {
                         width: double.infinity,
                         padding: const EdgeInsets.all(32),
                         decoration: BoxDecoration(
-                          color: Colors.green.withValues(alpha: 0.1),
+                          color: AppColors.success.withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(20),
                         ),
                         child: Column(
@@ -102,7 +102,7 @@ class FinanceOverviewScreen extends ConsumerWidget {
                             Icon(
                               LucideIcons.checkCircle,
                               size: 48,
-                              color: Colors.green.shade600,
+                              color: AppColors.success,
                             ),
                             const SizedBox(height: 12),
                             const Text(
@@ -210,7 +210,7 @@ class FinanceOverviewScreen extends ConsumerWidget {
                                   '$currency ${a.amountOwed.toStringAsFixed(2)}',
                                   style: TextStyle(
                                     fontWeight: FontWeight.w600,
-                                    color: Colors.red.shade700,
+                                    color: AppColors.error,
                                   ),
                                 ),
                               ],

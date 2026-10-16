@@ -150,9 +150,9 @@ class _StudentDirectoryScreenState
                                     ? '+$currency ${student.balance.toStringAsFixed(2)}'
                                     : 'Limpo';
                             final balanceColor = student.hasDebt
-                                ? Colors.red.shade700
+                                ? AppColors.error
                                 : student.isOverpaid
-                                    ? Colors.green.shade700
+                                    ? AppColors.success
                                     : AppColors.textSecondary;
 
                             return Column(
