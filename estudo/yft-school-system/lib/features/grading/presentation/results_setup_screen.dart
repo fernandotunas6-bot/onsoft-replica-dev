@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:yft_school_system/features/academics/application/academic_state.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import 'package:yft_school_system/core/providers/repository_providers.dart';
@@ -29,7 +30,16 @@ class _ResultsSetupScreenState extends ConsumerState<ResultsSetupScreen> {
         ref.watch(academicCalendarProvider).whenOrNull(data: (c) => c?.termSystem) ?? 3;
     final terms = [for (var i = 1; i <= termSystem; i++) 'Term $i'];
     final academicYear = ref.watch(academicYearProvider);
-    final classesAsync = ref.watch(classesProvider);
+    // Com horário, o professor só vê as turmas onde dá aulas (o servidor
+    // recusa as outras). Sem horário, aparecem todas.
+    final mine =
+        ref.watch(teacherClassIdsProvider).whenOrNull(data: (s) => s) ??
+        const <String>{};
+    final classesAsync = ref.watch(classesProvider).whenData(
+          (all) => mine.isEmpty
+              ? all
+              : all.where((c) => mine.contains(c.id)).toList(),
+        );
     final studentsAsync = _selectedClassId != null
         ? ref.watch(studentsProvider((classId: _selectedClassId, page: 1)))
         : null;

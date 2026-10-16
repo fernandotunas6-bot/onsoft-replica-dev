@@ -70,3 +70,24 @@ describe("anos com notas", () => {
 		expect((await call("/grades/years?student_id=nao-existe")).status).toBe(404);
 	});
 });
+
+describe("professores", () => {
+	it("com horário, só lança notas a alunos das suas turmas", async () => {
+		await env.DB.batch(
+			[
+				"UPDATE Schools SET teacher_can_edit_results = 1 WHERE id = 'g1'",
+				"INSERT INTO Classes (id, school_id, class_name) VALUES ('gc3', 'g1', 'Outra')",
+				"INSERT INTO Users (uid, school_id, role, name) VALUES ('gt', 'g1', 'teacher', 'Prof'), ('gt2', 'g1', 'teacher', 'Sem horário')",
+				"INSERT INTO TimetableSlots (id, school_id, class_id, title, weekday, start_time, end_time, teacher_uid) VALUES ('gts', 'g1', 'gc3', 'Aula', 1, '08:00', '08:45', 'gt')",
+			].map((sql) => env.DB.prepare(sql)),
+		);
+		const as = (uid: string) =>
+			app.request("/grades", {
+				method: "PUT",
+				body: JSON.stringify({ student_id: "gs", term: "Term 2", grades: [{ subject_id: "gm", class_score: 1, exam_score: 1 }] }),
+				headers: { "Content-Type": "application/json", "X-Test-User": JSON.stringify({ uid, schoolId: "g1", role: "teacher" }) },
+			}, env);
+		expect((await as("gt")).status).toBe(403);
+		expect((await as("gt2")).status).toBe(200);
+	});
+});

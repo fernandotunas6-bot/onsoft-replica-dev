@@ -179,9 +179,18 @@ class _ResultsInputScreenState extends ConsumerState<ResultsInputScreen> {
       );
     } on DioException catch (e) {
       if (!mounted) return;
-      final msg = e.response?.data is Map<String, dynamic>
-          ? (e.response!.data['error'] as String? ?? '$e')
-          : '$e';
+      final serverMsg = e.response?.data is Map<String, dynamic>
+          ? e.response!.data['error'] as String? ?? ''
+          : '';
+      final msg = switch (e.response?.statusCode) {
+        403 when serverMsg.contains('class') =>
+          'Só pode lançar notas aos alunos das turmas onde dá aulas.',
+        403 => 'A escola não permite que os professores lancem notas. '
+            'Peça à direcção para activar esta opção.',
+        404 => 'Este aluno já não existe na escola.',
+        400 => 'Verifique as notas: há valores fora do limite.',
+        _ => 'Não foi possível guardar. Verifique a ligação.',
+      };
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(msg), backgroundColor: AppColors.error),
       );

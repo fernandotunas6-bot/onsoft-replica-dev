@@ -3,7 +3,7 @@ import type { AppEnv } from '../app-env';
 import { requireAdminOrTeacher, requireRoles } from '../lib/auth-guards';
 import { createPrefixedId } from '../lib/id';
 import { jsonError, jsonOk } from '../lib/response';
-import { canSeeStudent } from '../lib/ward-classes';
+import { canMarkClass, canSeeStudent } from '../lib/ward-classes';
 import { z } from 'zod';
 
 const grades = new Hono<AppEnv>();
@@ -127,10 +127,13 @@ grades.put('/', requireAdminOrTeacher, async (c) => {
   const academicYear = await resolveAcademicYear(c.env.DB, user.schoolId, parsed.data.academic_year);
 
   const student = await c.env.DB.prepare(
-    'SELECT id FROM Students WHERE id = ? AND school_id = ? LIMIT 1',
-  ).bind(studentId, user.schoolId).first<{ id: string }>();
+    'SELECT id, class_id FROM Students WHERE id = ? AND school_id = ? LIMIT 1',
+  ).bind(studentId, user.schoolId).first<{ id: string; class_id: string }>();
   if (!student) {
     return jsonError(c, 'Student not found', 404);
+  }
+  if (!(await canMarkClass(c, student.class_id))) {
+    return jsonError(c, 'You do not teach this class', 403);
   }
 
   for (const row of rows) {
