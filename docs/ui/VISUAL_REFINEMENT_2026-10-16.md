@@ -148,3 +148,16 @@ Pontos para a revisão seguinte:
    renumeração de alunos pertencem a revisões próprias; esta entrega não aplica SQL.
 5. A marca actual é tipográfica. Uma futura reprodução vectorial exacta deve usar
    um asset aprovado; não substituir a marca por uma animação de vídeo na abertura.
+
+### Resultado da tentativa de publicação
+
+O [run 38904027322](https://github.com/fernandotunas6-bot/onsoft-replica-dev/actions/runs/38904027322)
+passou tipos, lint e testes, mas falhou na primeira publicação do ecossistema,
+`DOC → siga-docs`, com `Authentication error [10000]` e `Invalid access token [9109]`
+da Cloudflare. O script parou antes das etapas WEB, ADMIN, PAYFLOW/D1 e SIGA;
+esta execução não publicou o novo visual do SIGA. DNS e health checks finais foram ignorados.
+
+Acção de configuração pendente: substituir `CLOUDFLARE_API_TOKEN` em
+GitHub → Settings → Environments → production por um token válido para a conta e
+recursos usados pelo workflow; depois repetir a execução falhada. Não guardar o token
+no código ou na documentação. Este bloqueio não exige alterar os componentes visuais.
