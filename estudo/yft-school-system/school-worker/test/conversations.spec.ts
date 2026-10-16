@@ -106,4 +106,30 @@ describe("conversas", () => {
 		await open(admin, "ct");
 		expect(((await (await call(admin, "/c")).json()) as { data: unknown[] }).data).toEqual([]);
 	});
+
+	it("páginas de mensagens anteriores, sem saltos nem repetições", async () => {
+		const res = await open(admin, "cp2");
+		const cid = ((await res.json()) as { id: string }).id;
+		// Todas no mesmo instante: a ordem de inserção desempata.
+		await env.DB.batch(
+			Array.from({ length: 205 }, (_, i) =>
+				env.DB.prepare("INSERT INTO Messages (id, conversation_id, school_id, sender_uid, body, created_at) VALUES (?, ?, 'k1', 'ca', ?, '2026-05-01 10:00:00.000')")
+					.bind(`pg-${String(i).padStart(3, "0")}`, cid, `m${i}`),
+			),
+		);
+		type Page = { data: { id: string; body: string }[]; has_more: boolean };
+		const get = async (q = "") => (await (await call(parent2, `/c/${cid}/messages${q}`)).json()) as Page;
+		const first = await get();
+		expect(first.data).toHaveLength(100);
+		expect(first.has_more).toBe(true);
+		expect(first.data.at(-1)!.body).toBe("m204");
+		const second = await get(`?before=${first.data[0].id}`);
+		const third = await get(`?before=${second.data[0].id}`);
+		expect(second.has_more).toBe(true);
+		expect(third.data).toHaveLength(5);
+		expect(third.has_more).toBe(false);
+		const all = [...third.data, ...second.data, ...first.data].map((m) => m.body);
+		expect(all).toEqual(Array.from({ length: 205 }, (_, i) => `m${i}`));
+		expect((await call(parent2, `/c/${cid}/messages?before=nope`)).status).toBe(404);
+	});
 });

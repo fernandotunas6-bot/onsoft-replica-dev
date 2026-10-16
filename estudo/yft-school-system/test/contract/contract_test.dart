@@ -179,6 +179,7 @@ void main() {
     expect(thread.otherName, 'Mariana Silva');
     expect(thread.messages.single.body, 'Bom dia, professor.');
     expect(thread.messages.single.mine, isFalse);
+    expect(thread.hasMore, isFalse);
     // A data vem do servidor em UTC, sem "T" nem "Z": o app tem de a ler.
     expect(
       DateTime.tryParse('${thread.messages.single.createdAt.replaceFirst(' ', 'T')}Z'),

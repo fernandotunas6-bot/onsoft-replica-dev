@@ -61,7 +61,15 @@ class ChatThread {
   final String otherName;
   final String otherRole;
 
-  const ChatThread(this.messages, this.otherName, this.otherRole);
+  /// Há mensagens anteriores às de [messages].
+  final bool hasMore;
+
+  const ChatThread(
+    this.messages,
+    this.otherName,
+    this.otherRole, {
+    this.hasMore = false,
+  });
 }
 
 /// Alguém com quem posso começar uma conversa.
@@ -141,6 +149,24 @@ class ConversationsRepository {
           .toList(),
       other?['name'] as String? ?? 'Conversa',
       other?['role'] as String? ?? '',
+      hasMore: res.data['has_more'] == true,
+    );
+  }
+
+  /// As mensagens anteriores a [beforeId] (uma página), por ordem.
+  Future<({List<ChatMessage> messages, bool hasMore})> older(
+    String id,
+    String beforeId,
+  ) async {
+    final res = await _dio.get(
+      '$_base/$id/messages',
+      queryParameters: {'before': beforeId},
+    );
+    return (
+      messages: (res.data['data'] as List)
+          .map((e) => ChatMessage.fromJson(e as Map<String, dynamic>))
+          .toList(),
+      hasMore: res.data['has_more'] == true,
     );
   }
 

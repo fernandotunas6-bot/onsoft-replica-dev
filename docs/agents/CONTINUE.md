@@ -21,8 +21,8 @@ Branch `ccr-797179ec-129c5n`. App Flutter (Firebase Auth + worker Cloudflare D1 
 - Novas no worker: horário (`/api/timetable`, professor por tempo), presenças
   (`/api/attendance`), boletim e disciplinas/turmas para o encarregado (só educandos activos),
   lista de professores, `PATCH /api/users/me` e `POST /api/users/me/photo`, notas por ano lectivo (`/api/grades/years`; o boletim e o lançamento escolhem o ano), conversas 1:1
-  (`/api/conversations`: encarregado ↔ professor/direcção; sem push, o ecrã actualiza a cada 15 s).
-- Testes: `cd estudo/yft-school-system/school-worker && npx vitest run` (53, D1 real com
+  (`/api/conversations`: encarregado ↔ professor/direcção; sem push, o ecrã actualiza a cada 15 s; mensagens em páginas de 100 com `?before=<id>`).
+- Testes: `cd estudo/yft-school-system/school-worker && npx vitest run` (54, D1 real com
   migrações). App: `flutter analyze` + `flutter test` com Flutter 3.41; os testes de contrato
   (`test/contract/`) lêem respostas reais do worker — depois de mudar uma resposta, correr
   `school-worker/scripts/update-contract-fixtures.sh` (o 3.47 parte o `lucide_icons`).

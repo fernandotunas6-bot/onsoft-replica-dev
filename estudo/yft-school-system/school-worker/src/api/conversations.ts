@@ -125,18 +125,36 @@ conversations.post('/', async (c) => {
   return jsonOk(c, { id: created!.id }, created!.id === id ? 201 : 200);
 });
 
-/** Mensagens (até 200 mais recentes, por ordem) e marca a conversa como lida. */
+const PAGE = 100;
+
+/**
+ * Mensagens por ordem, as 100 mais recentes ou, com `?before=<id>`, as 100
+ * anteriores a essa. `has_more` diz se há mais atrás. Só a página mais
+ * recente marca a conversa como lida.
+ */
 conversations.get('/:id/messages', async (c) => {
   const user = c.get('user');
   const id = c.req.param('id');
   if (!(await membership(c, id))) return jsonError(c, 'Conversation not found', 404);
 
-  const { results } = await c.env.DB.prepare(
-    `SELECT id, sender_uid, body, created_at FROM (
-       SELECT id, sender_uid, body, created_at FROM Messages
-       WHERE conversation_id = ? ORDER BY created_at DESC LIMIT 200
-     ) ORDER BY created_at ASC`
-  ).bind(id).all<{ id: string; sender_uid: string; body: string; created_at: string }>();
+  const before = c.req.query('before')?.trim();
+  let cursor: { created_at: string; rid: number } | null = null;
+  if (before) {
+    cursor = await c.env.DB.prepare(
+      'SELECT created_at, rowid AS rid FROM Messages WHERE id = ? AND conversation_id = ?'
+    ).bind(before, id).first<{ created_at: string; rid: number }>();
+    if (!cursor) return jsonError(c, 'Message not found', 404);
+  }
+
+  const { results: page } = await c.env.DB.prepare(
+    `SELECT id, sender_uid, body, created_at FROM Messages
+     WHERE conversation_id = ?
+       ${cursor ? 'AND (created_at < ? OR (created_at = ? AND rowid < ?))' : ''}
+     ORDER BY created_at DESC, rowid DESC LIMIT ?`
+  ).bind(id, ...(cursor ? [cursor.created_at, cursor.created_at, cursor.rid] : []), PAGE + 1)
+    .all<{ id: string; sender_uid: string; body: string; created_at: string }>();
+  const hasMore = page.length > PAGE;
+  const results = page.slice(0, PAGE).reverse();
 
   const other = await c.env.DB.prepare(
     `SELECT u.uid, u.name, u.role FROM ConversationMembers m
@@ -147,7 +165,7 @@ conversations.get('/:id/messages', async (c) => {
   // Lido até à última mensagem devolvida — não até "agora", para não marcar
   // como lida uma mensagem que chegou entre a leitura e esta actualização.
   const lastSeen = results.at(-1)?.created_at;
-  if (lastSeen) {
+  if (lastSeen && !cursor) {
     await c.env.DB.prepare(
       `UPDATE ConversationMembers SET last_read_at = ?
        WHERE conversation_id = ? AND user_uid = ? AND (last_read_at IS NULL OR last_read_at < ?)`
@@ -157,6 +175,7 @@ conversations.get('/:id/messages', async (c) => {
   return jsonOk(c, {
     data: results.map((m) => ({ ...m, mine: m.sender_uid === user.uid })),
     other,
+    has_more: hasMore,
   });
 });
 

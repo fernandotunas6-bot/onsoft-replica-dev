@@ -330,9 +330,16 @@ class ChatScreen extends ConsumerStatefulWidget {
 
 class _ChatScreenState extends ConsumerState<ChatScreen> {
   final _text = TextEditingController();
-  final _scroll = ScrollController();
   Timer? _poll;
   bool _sending = false;
+
+  /// Todas as mensagens já vistas, por ordem: cada actualização junta as
+  /// novas no fim e "Ver anteriores" junta as antigas no início, para que a
+  /// página mais recente não apague o que se carregou para trás.
+  final List<ChatMessage> _messages = [];
+  final Set<String> _seen = {};
+  bool? _olderHasMore;
+  bool _loadingOlder = false;
 
   /// Guardado no início: no dispose o `ref` já não pode ser usado.
   late final ProviderContainer _container =
@@ -342,6 +349,20 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   void initState() {
     super.initState();
     _container; // resolve já, enquanto o contexto está montado
+    ref.listenManual(
+      chatThreadProvider(widget.conversationId),
+      (_, next) {
+        final t = next.whenOrNull(data: (t) => t);
+        if (t == null) return;
+        final fresh = [for (final m in t.messages) if (!_seen.contains(m.id)) m];
+        if (fresh.isEmpty) return;
+        setState(() {
+          _messages.addAll(fresh);
+          _seen.addAll(fresh.map((m) => m.id));
+        });
+      },
+      fireImmediately: true,
+    );
     _poll = Timer.periodic(const Duration(seconds: 15), (_) {
       if (mounted) ref.invalidate(chatThreadProvider(widget.conversationId));
     });
@@ -351,7 +372,6 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   void dispose() {
     _poll?.cancel();
     _text.dispose();
-    _scroll.dispose();
     // Ao sair, a lista e o sino reflectem o que foi lido.
     _container.invalidate(conversationsProvider);
     _container.invalidate(conversationsUnreadProvider);
@@ -379,12 +399,29 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     }
   }
 
-  void _scrollToEnd() {
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (_scroll.hasClients) {
-        _scroll.jumpTo(_scroll.position.maxScrollExtent);
+  Future<void> _loadOlder() async {
+    if (_loadingOlder || _messages.isEmpty) return;
+    setState(() => _loadingOlder = true);
+    try {
+      final page = await ref
+          .read(conversationsRepositoryProvider)
+          .older(widget.conversationId, _messages.first.id);
+      if (!mounted) return;
+      final older = [for (final m in page.messages) if (!_seen.contains(m.id)) m];
+      setState(() {
+        _messages.insertAll(0, older);
+        _seen.addAll(older.map((m) => m.id));
+        _olderHasMore = page.hasMore;
+      });
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Não foi possível carregar as anteriores.')),
+        );
       }
-    });
+    } finally {
+      if (mounted) setState(() => _loadingOlder = false);
+    }
   }
 
   @override
@@ -428,18 +465,35 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                 ),
               ),
               data: (t) {
-                if (t.messages.isEmpty) {
+                if (_messages.isEmpty) {
                   return const EmptyHint(
                     icon: LucideIcons.messageCircle,
                     message: 'Escreva a primeira mensagem.',
                   );
                 }
-                _scrollToEnd();
+                final hasMore = _olderHasMore ?? t.hasMore;
+                final n = _messages.length;
+                // Lista invertida: começa no fim (a mais recente) sem ter de
+                // descer, e carregar as anteriores não mexe no que está à vista.
                 return ListView.builder(
-                  controller: _scroll,
+                  reverse: true,
                   padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
-                  itemCount: t.messages.length,
-                  itemBuilder: (context, i) => _Bubble(message: t.messages[i]),
+                  itemCount: n + (hasMore ? 1 : 0),
+                  itemBuilder: (context, i) {
+                    if (i == n) {
+                      return Center(
+                        child: TextButton(
+                          onPressed: _loadingOlder ? null : _loadOlder,
+                          child: Text(
+                            _loadingOlder
+                                ? 'A carregar…'
+                                : 'Ver mensagens anteriores',
+                          ),
+                        ),
+                      );
+                    }
+                    return _Bubble(message: _messages[n - 1 - i]);
+                  },
                 );
               },
             ),
