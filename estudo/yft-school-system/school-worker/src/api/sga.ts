@@ -1,0 +1,101 @@
+/**
+ * API móvel sobre o Supabase do SIGA (SGA): a conta é a do SIGA (token de
+ * sessão Supabase) e os dados são os que a escola já gere no SIGA.
+ *
+ * Só leitura, por agora, e só o que o encarregado pode ver dos seus
+ * educandos. A autorização decide-se aqui, a cada pedido: o cliente nunca
+ * indica o utilizador, e a escola pedida só vale se for um vínculo activo.
+ */
+import { Hono, type Context } from 'hono';
+import type { AppEnv } from '../app-env';
+import { hasOverdueInvoice, loadWards, wardIds } from '../sga/guardian';
+import {
+  appRole,
+  loadMemberships,
+  pickMembership,
+  verifySgaToken,
+  type SgaMembership,
+  type SgaUser,
+} from '../sga/identity';
+import { SgaDb, SgaError, inList } from '../sga/rest';
+
+type SgaVars = { sgaUser: SgaUser; sgaDb: SgaDb; membership: SgaMembership; memberships: SgaMembership[] };
+type SgaAppEnv = { Bindings: AppEnv['Bindings']; Variables: SgaVars };
+
+const sga = new Hono<SgaAppEnv>();
+
+const noStore = { 'Cache-Control': 'private, no-store', Vary: 'Authorization' };
+
+sga.onError((err, c) => {
+  if (err instanceof SgaError) return c.json({ error: err.code }, err.status as 401, noStore);
+  console.error('[sga]', err instanceof Error ? err.message : 'erro');
+  return c.json({ error: 'SGA_FAILURE' }, 503, noStore);
+});
+
+sga.use('*', async (c, next) => {
+  const header = c.req.header('Authorization') ?? '';
+  const token = header.startsWith('Bearer ') ? header.slice(7).trim() : '';
+  if (!token) throw new SgaError(401, 'SESSION_REQUIRED');
+  const db = SgaDb.from(c.env);
+  const user = await verifySgaToken(c.env, token);
+  const memberships = await loadMemberships(db, user.id);
+  const membership = pickMembership(memberships, c.req.header('X-School-Id'));
+  c.set('sgaUser', user);
+  c.set('sgaDb', db);
+  c.set('membership', membership);
+  c.set('memberships', memberships);
+  await next();
+  for (const [k, v] of Object.entries(noStore)) c.header(k, v);
+});
+
+const requireGuardian = (c: Context<SgaAppEnv>) => {
+  if (!c.get('membership').roles.includes('Encarregado')) throw new SgaError(403, 'GUARDIAN_ONLY');
+};
+
+/** Quem sou nesta escola, e as outras escolas onde tenho vínculo activo. */
+sga.get('/me', (c) => {
+  const m = c.get('membership');
+  return c.json({
+    user_id: c.get('sgaUser').id,
+    school: { id: m.schoolId, name: m.schoolName },
+    roles: m.roles,
+    role: appRole(m.roles),
+    schools: c.get('memberships').map((s) => ({ id: s.schoolId, name: s.schoolName, role: appRole(s.roles) })),
+  });
+});
+
+sga.get('/wards', async (c) => {
+  requireGuardian(c);
+  const wards = await loadWards(c.get('sgaDb'), c.get('membership').schoolId, c.get('sgaUser'));
+  return c.json({ data: wards });
+});
+
+/** Comunicados publicados para encarregados (e, com dívida vencida, os de cobrança). */
+sga.get('/notices', async (c) => {
+  requireGuardian(c);
+  const db = c.get('sgaDb');
+  const { schoolId } = c.get('membership');
+  const audiences = ['all_guardians'];
+  if (await hasOverdueInvoice(db, schoolId, await wardIds(db, schoolId, c.get('sgaUser')))) {
+    audiences.push('guardians_with_debt');
+  }
+  const rows = await db.select<{
+    id: string;
+    title: string;
+    body: string | null;
+    audience: string;
+    published_at: string | null;
+    created_at: string;
+  }>('school_announcements', {
+    select: 'id,title,body,audience,published_at,created_at',
+    school_id: `eq.${schoolId}`,
+    status: 'eq.sent',
+    deleted_at: 'is.null',
+    audience: inList(audiences),
+    order: 'published_at.desc.nullslast,created_at.desc',
+    limit: '100',
+  });
+  return c.json({ data: rows });
+});
+
+export default sga;

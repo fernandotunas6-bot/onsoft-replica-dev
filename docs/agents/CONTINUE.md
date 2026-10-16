@@ -22,12 +22,15 @@ Branch `ccr-797179ec-129c5n`. App Flutter (Firebase Auth + worker Cloudflare D1 
   (`/api/attendance`), boletim e disciplinas/turmas para o encarregado (só educandos activos),
   lista de professores, `PATCH /api/users/me` e `POST /api/users/me/photo`, notas por ano lectivo (`/api/grades/years`; o boletim e o lançamento escolhem o ano), conversas 1:1
   (`/api/conversations`: encarregado ↔ professor/direcção; sem push, o ecrã actualiza a cada 15 s; mensagens em páginas de 100 com `?before=<id>`).
-- Testes: `cd estudo/yft-school-system/school-worker && npx vitest run` (54, D1 real com
+- Testes: `cd estudo/yft-school-system/school-worker && npx vitest run` (62, D1 real com
   migrações). App: `flutter analyze` + `flutter test` com Flutter 3.41; os testes de contrato
   (`test/contract/`) lêem respostas reais do worker — depois de mudar uma resposta, correr
   `school-worker/scripts/update-contract-fixtures.sh` (o 3.47 parte o `lucide_icons`).
 - Presenças e notas: o professor com tempos no horário só marca/lança nessas turmas (403 nas outras); sem
   horário marca qualquer uma, como antes.
+- **Supabase do SIGA:** a app passa por fases para as contas e os dados do SIGA — plano e regras em
+  `estudo/yft-school-system/docs/MIGRACAO_SUPABASE.md`. Feito: API de leitura do encarregado
+  `/api/sga/{me,wards,notices}` no `school-worker` (segredo `SGA_SUPABASE_SECRET_KEY`).
 - **Por aplicar (dono):** migrações D1 `0012`→`0018` e `npx wrangler deploy`. A `0015` atribui as
   notas existentes ao ano lectivo actual de cada escola e troca a chave única — fazer
   `npx wrangler d1 export school_management_db --remote --output=backup.sql` antes.

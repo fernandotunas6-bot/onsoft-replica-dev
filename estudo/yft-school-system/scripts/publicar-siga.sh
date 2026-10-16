@@ -11,6 +11,8 @@
 #   FIREBASE_WEB_API_KEY   apiKey web do projecto siga-plus-integracoes
 #   SUPER_ADMIN_API_KEY    segredo partilhado com o super-admin (≥ 32 caracteres)
 #   FIREBASE_SERVICE_ACCOUNT_JSON  opcional (apagar contas Firebase de encarregados)
+#   SGA_SUPABASE_SECRET_KEY        opcional: chave de servidor do Supabase do SIGA,
+#                                  para a API /api/sga (contas e dados do SIGA)
 set -euo pipefail
 
 TARGET="${1:-}"
@@ -86,6 +88,7 @@ sed "s/__D1_DATABASE_ID__/$D1_ID/g" "$WORKER/wrangler.siga.jsonc" >"$CONFIG"
 node -e '
 const s = { FIREBASE_WEB_API_KEY: process.env.FIREBASE_WEB_API_KEY, SUPER_ADMIN_API_KEY: process.env.SUPER_ADMIN_API_KEY };
 if (process.env.FIREBASE_SERVICE_ACCOUNT_JSON) s.FIREBASE_SERVICE_ACCOUNT_JSON = process.env.FIREBASE_SERVICE_ACCOUNT_JSON;
+if (process.env.SGA_SUPABASE_SECRET_KEY) s.SGA_SUPABASE_SECRET_KEY = process.env.SGA_SUPABASE_SECRET_KEY;
 process.stdout.write(JSON.stringify(s));
 ' | "${WRANGLER[@]}" secret bulk --config "$CONFIG" "${ENV_ARGS[@]}"
 

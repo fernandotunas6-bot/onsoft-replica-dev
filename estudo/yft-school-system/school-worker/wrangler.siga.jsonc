@@ -28,6 +28,11 @@
   "vars": {
     // Público: o mesmo id que `flutterfire configure --project=...` usa.
     "FIREBASE_PROJECT_ID": "siga-plus-integracoes",
+    // Supabase do SIGA (público, igual a src/integrations/supabase/client.ts):
+    // a API /api/sga valida aqui as sessões. A chave de servidor é segredo:
+    // SGA_SUPABASE_SECRET_KEY, gravada pelo script (nunca neste ficheiro).
+    "SGA_SUPABASE_URL": "https://xodgfmxiaunpamctfeea.supabase.co",
+    "SGA_SUPABASE_PUBLISHABLE_KEY": "sb_publishable_NSqtGz5zxP_EngLuNj00Og_y3V4D4td",
   },
   // Segredos (nunca aqui): FIREBASE_WEB_API_KEY, SUPER_ADMIN_API_KEY e,
   // opcional, FIREBASE_SERVICE_ACCOUNT_JSON. O script grava-os com
@@ -55,7 +60,11 @@
         },
       ],
       "r2_buckets": [{ "binding": "MEDIA_BUCKET", "bucket_name": "siga-yft-media" }],
-      "vars": { "FIREBASE_PROJECT_ID": "siga-plus-integracoes" },
+      "vars": {
+        "FIREBASE_PROJECT_ID": "siga-plus-integracoes",
+        "SGA_SUPABASE_URL": "https://xodgfmxiaunpamctfeea.supabase.co",
+        "SGA_SUPABASE_PUBLISHABLE_KEY": "sb_publishable_NSqtGz5zxP_EngLuNj00Og_y3V4D4td",
+      },
     },
   },
 }
