@@ -1,0 +1,18 @@
+{
+  "data": [
+    {
+      "id": "ntc_2a55ff1b86be",
+      "school_id": "q1",
+      "parent_uid": null,
+      "title": "Reunião de pais",
+      "summary": "Sexta às 14h.",
+      "body": "Sexta às 14h.",
+      "category": "event",
+      "audience": "class",
+      "class_id": "q-c10",
+      "class_name": "10ª Classe",
+      "created_at": "2026-10-16 05:58:02",
+      "read_flag": 0
+    }
+  ]
+}
