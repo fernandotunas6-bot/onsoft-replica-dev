@@ -27,8 +27,8 @@ const DropdownMenuSubTrigger = React.forwardRef<
   <DropdownMenuPrimitive.SubTrigger
     ref={ref}
     className={cn(
-      "flex min-h-[44px] min-w-0 cursor-default select-none items-center gap-2 whitespace-normal break-words rounded-lg px-3 py-2 text-left text-[14px] leading-[20px] outline-none focus:bg-accent data-[state=open]:bg-accent [&_svg]:pointer-events-none [&_svg]:size-[18px] [&_svg]:shrink-0",
-      inset && "pl-8",
+      "flex min-h-[44px] min-w-0 cursor-default select-none items-center gap-2 whitespace-normal break-words rounded-lg px-3 py-2 text-left text-[14px] leading-[20px] outline-none focus:bg-accent data-[state=open]:bg-accent [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-[18px] [&_svg]:shrink-0",
+      inset && "pl-[36px]",
       className,
     )}
     {...props}
@@ -46,7 +46,7 @@ const DropdownMenuSubContent = React.forwardRef<
   <DropdownMenuPrimitive.SubContent
     ref={ref}
     className={cn(
-      "z-50 max-h-[var(--radix-dropdown-menu-content-available-height)] min-w-[160px] max-w-[calc(100vw-24px)] max-lg:w-[var(--radix-dropdown-menu-trigger-width)] max-lg:min-w-0 max-lg:data-[side=right]:-translate-x-[calc(100%-8px)] max-lg:data-[side=left]:translate-x-[calc(100%-8px)] overflow-y-auto overflow-x-hidden overscroll-contain rounded-xl border bg-popover p-1 text-popover-foreground shadow-lg motion-safe:data-[state=open]:animate-in motion-safe:data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 origin-(--radix-dropdown-menu-content-transform-origin)",
+      "z-50 max-h-[var(--radix-dropdown-menu-content-available-height)] min-w-[160px] max-w-[calc(100vw-24px)] max-sm:w-[var(--radix-dropdown-menu-trigger-width)] max-sm:min-w-0 max-sm:data-[side=right]:-translate-x-[calc(100%-8px)] max-sm:data-[side=left]:translate-x-[calc(100%-8px)] overflow-y-auto overflow-x-hidden overscroll-contain rounded-xl border bg-popover p-1 text-popover-foreground shadow-lg motion-safe:data-[state=open]:animate-in motion-safe:data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 origin-(--radix-dropdown-menu-content-transform-origin)",
       className,
     )}
     {...props}
@@ -82,8 +82,8 @@ const DropdownMenuItem = React.forwardRef<
   <DropdownMenuPrimitive.Item
     ref={ref}
     className={cn(
-      "relative flex min-h-[44px] min-w-0 cursor-pointer select-none items-center gap-2 whitespace-normal break-words rounded-lg px-3 py-2 text-left text-[14px] leading-[20px] outline-none transition-colors focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50 [&>svg]:size-[18px] [&>svg]:shrink-0",
-      inset && "pl-8",
+      "relative flex min-h-[44px] min-w-0 cursor-pointer select-none items-center gap-2 whitespace-normal break-words rounded-lg px-3 py-2 text-left text-[14px] leading-[20px] outline-none transition-colors focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50 [&>svg:not([class*='size-'])]:size-[18px] [&>svg]:shrink-0",
+      inset && "pl-[36px]",
       className,
     )}
     {...props}
@@ -145,7 +145,7 @@ const DropdownMenuLabel = React.forwardRef<
     ref={ref}
     className={cn(
       "px-3 py-2 text-[12px] font-medium leading-[20px] text-muted-foreground",
-      inset && "pl-8",
+      inset && "pl-[36px]",
       className,
     )}
     {...props}

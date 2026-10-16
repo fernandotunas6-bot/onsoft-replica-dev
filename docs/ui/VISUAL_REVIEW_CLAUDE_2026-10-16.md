@@ -28,3 +28,37 @@ Por decidir ou verificar (não alterado):
    verificação e volta a entrar no login (`AuthBrandIntro`), noutra posição.
 4. **Flutter `/loading`:** `Semantics` de «A carregar a sua sessão» envolve a `Brand`, que já
    tem rótulo próprio; os leitores de ecrã juntam os dois.
+
+## PR #166 e #167 (formulários por etapas, selectores e menus)
+
+Corrigido (regressões funcionais do #167):
+
+- **Selects compactos forçados a 44 px no desktop.** `SelectTrigger` tinha `h-[44px] min-h-[44px]`
+  sem a excepção `lg:min-h-0`; quem pede `h-7`/`h-8` (tabelas da importação, Turnstile,
+  heatmap) ficava com 44 px. Sai o `min-h`: a omissão continua 44 px e o `h-*` de quem chama
+  volta a valer.
+- **Lista do select mais estreita que 160 px.** Em `popper`, `min-w-[trigger]` substituía o
+  `min-w-[160px]` (tailwind-merge fica com o último). Agora
+  `min-w-[max(var(--radix-select-trigger-width),160px)]`.
+- **Submenu por cima do menu em tablets.** O deslocamento do submenu para dentro do ecrã
+  aplicava-se abaixo de `lg` (1024 px); em tablets e janelas estreitas tapava o próprio item e
+  os de baixo. Passa a só abaixo de `sm` (telemóvel), onde não há espaço ao lado.
+- **Ícones forçados a 18 px** nos itens e sub-itens, mesmo quando quem chama pede `size-3.5`
+  (ex.: exportação SAFT em `faturas.tsx`). Agora só os ícones sem `size-*`.
+- **`inset` desalinhado** (32 px) dos itens com visto/rádio (36 px): `inset` passa a 36 px.
+
+Por decidir (escolhas de design, não alteradas):
+
+1. **`Textarea` com mínimo de 96 px** (#166) sobrepõe `rows={2}` (pedido de alteração de nota,
+   acompanhamento de risco): os formulários compactos crescem ~1/3. Se for para manter, rever
+   esses usos; senão, baixar o mínimo e deixar `rows` decidir.
+2. **`Textarea` com fundo `bg-card`** em todos os 19 usos, também fora dos modais (superfícies
+   tingidas passam a mostrar um bloco opaco).
+3. **Cabeçalho dos modais** com `items-start`: um título de uma linha fica desalinhado do ícone e
+   do botão de fechar de 44 px. Os botões de 44 px também no desktop tornam mais alto o
+   cabeçalho de modais densos (PrintTemplateStudio, ficha do aluno).
+4. **`DropdownMenuLabel`** passou de 14 px semibold a 12 px cinzento para todos os menus; títulos
+   de menu (ex.: nome da conta) ficam menos visíveis.
+5. **Repetição de classes**: o conjunto de 44 px dos botões dos modais e a animação dos menus
+   estão copiados em 3 sítios cada; um tamanho de `Button` e uma constante partilhada evitam
+   que divirjam.
