@@ -1,6 +1,6 @@
 import type { SubscriptionLifecycle, TenantStatus } from "@/features/saas/types";
 
-export type TenantAccessBlockReason = "suspended" | "trial_expired" | "cancelled";
+export type TenantAccessBlockReason = "suspended" | "past_due" | "trial_expired" | "cancelled";
 
 export interface TenantAccessSnapshot {
   status?: TenantStatus;
@@ -31,7 +31,12 @@ export function getTenantAccessBlock(
   if (tenant.status && blockedStatuses.includes(tenant.status)) {
     return {
       blocked: true,
-      reason: tenant.status === "cancelled" ? "cancelled" : "suspended",
+      reason:
+        tenant.status === "cancelled"
+          ? "cancelled"
+          : tenant.status === "past_due"
+            ? "past_due"
+            : "suspended",
     };
   }
 
