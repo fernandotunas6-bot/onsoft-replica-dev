@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:yft_school_system/core/widgets/section_widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:lucide_icons/lucide_icons.dart';
@@ -219,22 +220,9 @@ class WardProfileScreen extends ConsumerWidget {
         elevation: 0,
         foregroundColor: AppColors.secondary,
       ),
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              LucideIcons.user,
-              size: 56,
-              color: AppColors.textSecondary.withValues(alpha: 0.3),
-            ),
-            const SizedBox(height: 16),
-            Text(
-              'Perfil do educando indisponível.',
-              style: TextStyle(color: AppColors.textSecondary, fontSize: 14),
-            ),
-          ],
-        ),
+      body: const EmptyHint(
+        icon: LucideIcons.user,
+        message: 'Perfil do educando indisponível.',
       ),
     );
   }

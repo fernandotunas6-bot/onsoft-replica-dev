@@ -70,14 +70,16 @@ class _ResultsSetupScreenState extends ConsumerState<ResultsSetupScreen> {
                     child: Icon(LucideIcons.calendarDays, color: AppColors.primary, size: 20),
                   ),
                   const SizedBox(width: 16),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text('Ano lectivo', style: TextStyle(color: Colors.white54, fontSize: 12)),
-                      const SizedBox(height: 4),
-                      Text('${academicYear.academicYear} • ${termLabel(academicYear.activeTerm, termSystem: termSystem)}',
-                          style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.w600, fontSize: 16)),
-                    ],
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text('Ano lectivo', style: TextStyle(color: Colors.white54, fontSize: 12)),
+                        const SizedBox(height: 4),
+                        Text('${academicYear.academicYear} • ${termLabel(academicYear.activeTerm, termSystem: termSystem)}',
+                            style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.w600, fontSize: 16)),
+                      ],
+                    ),
                   ),
                 ],
               ),
