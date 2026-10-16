@@ -29,6 +29,28 @@ async function schoolAllowsTeacherGradeEdits(
   return Boolean(row?.teacher_can_edit_results);
 }
 
+/**
+ * Anos lectivos em que o aluno tem notas, mais o actual da escola (primeiro
+ * o mais recente). Serve o selector de ano das notas e do boletim.
+ */
+grades.get('/years', requireRoles('admin', 'teacher', 'parent'), async (c) => {
+  const user = c.get('user');
+  const studentId = c.req.query('student_id')?.trim();
+  if (!studentId) return jsonError(c, 'student_id is required', 400);
+  if (!(await canSeeStudent(c, studentId))) return jsonError(c, 'Student not found', 404);
+
+  const current = await resolveAcademicYear(c.env.DB, user.schoolId, undefined);
+  const { results } = await c.env.DB.prepare(
+    `SELECT DISTINCT academic_year FROM Enrollments
+     WHERE school_id = ? AND student_id = ? AND academic_year != ''`
+  ).bind(user.schoolId, studentId).all<{ academic_year: string }>();
+  const years = [...new Set([current, ...results.map((r) => r.academic_year)])]
+    .filter((y) => y !== '')
+    .sort()
+    .reverse();
+  return jsonOk(c, { data: years, current });
+});
+
 // O encarregado lê as notas (boletim) dos seus educandos activos.
 /**
  * Ano lectivo pedido, ou o actual da escola (calendário académico).

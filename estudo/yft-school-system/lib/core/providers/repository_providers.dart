@@ -150,15 +150,26 @@ final teachersProvider = FutureProvider<List<TeacherSummary>>((ref) {
 
 /// Boletim de um aluno num período ("Term 1"…).
 final reportCardProvider = FutureProvider.family<ReportCard,
-    ({String studentId, String term})>((ref, args) {
-  return ref
-      .read(gradesRepositoryProvider)
-      .getReportCard(studentId: args.studentId, term: args.term);
+    ({String studentId, String term, String? year})>((ref, args) {
+  ref.watch(currentUidProvider);
+  return ref.read(gradesRepositoryProvider).getReportCard(
+    studentId: args.studentId,
+    term: args.term,
+    academicYear: args.year,
+  );
+});
+
+/// Anos lectivos com notas de um aluno, mais o actual.
+final gradeYearsProvider = FutureProvider.family<
+    ({List<String> years, String current}), String>((ref, studentId) {
+  ref.watch(currentUidProvider);
+  return ref.read(gradesRepositoryProvider).getYears(studentId);
 });
 
 /// Lista de presenças de uma turma num dia.
 final attendanceRosterProvider = FutureProvider.family<AttendanceRoster,
     ({String classId, String day})>((ref, a) {
+  ref.watch(currentUidProvider);
   return ref
       .read(attendanceRepositoryProvider)
       .getRoster(a.classId, DateTime.parse(a.day));

@@ -61,3 +61,12 @@ describe("notas por ano lectivo", () => {
 		expect(current.data[0]).toMatchObject({ class_score: 25, exam_score: 60, academic_year: "2025/2026" });
 	});
 });
+
+describe("anos com notas", () => {
+	it("devolve o actual e os anos com notas, mais recente primeiro", async () => {
+		const res = await call("/grades/years?student_id=gs");
+		expect(res.status).toBe(200);
+		expect(await res.json()).toEqual({ data: ["2026/2027", "2025/2026"], current: "2025/2026" });
+		expect((await call("/grades/years?student_id=nao-existe")).status).toBe(404);
+	});
+});

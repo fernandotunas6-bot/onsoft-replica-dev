@@ -28,6 +28,9 @@ class _ResultCardScreenState extends ConsumerState<ResultCardScreen> {
   late String? _wardId = widget.initialWardId;
   String? _term;
 
+  /// Ano lectivo escolhido; null = o actual.
+  String? _year;
+
   @override
   Widget build(BuildContext context) {
     final wardsAsync = ref.watch(wardsProvider);
@@ -86,7 +89,10 @@ class _ResultCardScreenState extends ConsumerState<ResultCardScreen> {
                         for (final w in wards) w.name.trim().split(' ').first,
                       ],
                       selected: wards.indexOf(ward),
-                      onSelected: (i) => setState(() => _wardId = wards[i].id),
+                      onSelected: (i) => setState(() {
+                        _wardId = wards[i].id;
+                        _year = null;
+                      }),
                     ),
                   ),
                 Padding(
@@ -100,8 +106,28 @@ class _ResultCardScreenState extends ConsumerState<ResultCardScreen> {
                     onSelected: (i) => setState(() => _term = terms[i]),
                   ),
                 ),
+                // Anos anteriores só aparecem se o educando tiver notas neles.
+                ...ref.watch(gradeYearsProvider(ward.id)).maybeWhen(
+                  data: (y) => y.years.length < 2
+                      ? const <Widget>[]
+                      : [
+                          Padding(
+                            padding: EdgeInsets.fromLTRB(pad.left, 4, 0, 4),
+                            child: PillTabs(
+                              labels: y.years,
+                              selected: y.years.indexOf(
+                                y.years.contains(_year) ? _year! : y.current,
+                              ),
+                              onSelected: (i) => setState(
+                                () => _year = y.years[i] == y.current ? null : y.years[i],
+                              ),
+                            ),
+                          ),
+                        ],
+                  orElse: () => const <Widget>[],
+                ),
                 Expanded(
-                  child: _ReportBody(ward: ward, term: term, pad: pad),
+                  child: _ReportBody(ward: ward, term: term, year: _year, pad: pad),
                 ),
               ],
             );
@@ -115,17 +141,19 @@ class _ResultCardScreenState extends ConsumerState<ResultCardScreen> {
 class _ReportBody extends ConsumerWidget {
   final Student ward;
   final String term;
+  final String? year;
   final EdgeInsets pad;
 
   const _ReportBody({
     required this.ward,
     required this.term,
+    required this.year,
     required this.pad,
   });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final key = (studentId: ward.id, term: term);
+    final key = (studentId: ward.id, term: term, year: year);
     final reportAsync = ref.watch(reportCardProvider(key));
 
     return RefreshIndicator(

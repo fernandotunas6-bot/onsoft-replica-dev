@@ -18,6 +18,7 @@ class ResultsSetupScreen extends ConsumerStatefulWidget {
 class _ResultsSetupScreenState extends ConsumerState<ResultsSetupScreen> {
   String? _selectedClassId;
   String? _selectedTerm;
+  String? _selectedYear;
   String? _selectedStudentId;
 
 
@@ -64,7 +65,7 @@ class _ResultsSetupScreenState extends ConsumerState<ResultsSetupScreen> {
                     children: [
                       const Text('Ano lectivo', style: TextStyle(color: Colors.white54, fontSize: 12)),
                       const SizedBox(height: 4),
-                      Text('${academicYear.academicYear} • ${academicYear.activeTerm}',
+                      Text('${academicYear.academicYear} • ${termLabel(academicYear.activeTerm, termSystem: termSystem)}',
                           style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.w600, fontSize: 16)),
                     ],
                   ),
@@ -125,8 +126,37 @@ class _ResultsSetupScreenState extends ConsumerState<ResultsSetupScreen> {
                   items: paginated.data
                       .map((s) => DropdownMenuItem(value: s.id, child: Text(s.name)))
                       .toList(),
-                  onChanged: (val) => setState(() => _selectedStudentId = val),
+                  onChanged: (val) => setState(() {
+                    _selectedStudentId = val;
+                    _selectedYear = null;
+                  }),
                 ),
+              ),
+            // Ano lectivo: o actual por omissão; anos anteriores só se o
+            // aluno tiver notas neles (para corrigir depois de mudar de ano).
+            if (_selectedStudentId != null)
+              ...ref.watch(gradeYearsProvider(_selectedStudentId!)).maybeWhen(
+                data: (y) => y.years.length < 2
+                    ? const <Widget>[]
+                    : [
+                        const SizedBox(height: 24),
+                        Text('Ano lectivo',
+                            style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: AppColors.secondary)),
+                        const SizedBox(height: 8),
+                        _buildDropdown<String>(
+                          icon: LucideIcons.calendarRange,
+                          value: y.years.contains(_selectedYear) ? _selectedYear : y.current,
+                          items: [
+                            for (final year in y.years)
+                              DropdownMenuItem(
+                                value: year,
+                                child: Text(year == y.current ? '$year (actual)' : year),
+                              ),
+                          ],
+                          onChanged: (val) => setState(() => _selectedYear = val),
+                        ),
+                      ],
+                orElse: () => const <Widget>[],
               ),
 
             const SizedBox(height: 48),
@@ -140,6 +170,7 @@ class _ResultsSetupScreenState extends ConsumerState<ResultsSetupScreen> {
                           'studentId': _selectedStudentId,
                           'className': _selectedClassId,
                           'term': _selectedTerm,
+                          'academicYear': ?_selectedYear,
                         });
                       }
                     : null,

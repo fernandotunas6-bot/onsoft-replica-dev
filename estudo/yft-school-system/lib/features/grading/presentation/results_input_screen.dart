@@ -7,6 +7,7 @@ import 'package:yft_school_system/core/models/subject.dart';
 import 'package:yft_school_system/core/providers/repository_providers.dart';
 import 'package:yft_school_system/core/repositories/grades_repository.dart';
 import 'package:yft_school_system/core/theme/app_colors.dart';
+import 'package:yft_school_system/core/utils/term_label.dart';
 
 class ResultsInputScreen extends ConsumerStatefulWidget {
   final Map<String, dynamic>? extraArgs;
@@ -21,6 +22,9 @@ class _ResultsInputScreenState extends ConsumerState<ResultsInputScreen> {
   late final String studentId;
   late final String classId;
   late final String term;
+
+  /// Ano lectivo escolhido; null = o actual da escola.
+  late final String? academicYear;
 
   bool _loading = true;
   String? _loadError;
@@ -38,6 +42,7 @@ class _ResultsInputScreenState extends ConsumerState<ResultsInputScreen> {
     studentId = widget.extraArgs?['studentId'] as String? ?? '';
     classId = widget.extraArgs?['className'] as String? ?? '';
     term = widget.extraArgs?['term'] as String? ?? '';
+    academicYear = widget.extraArgs?['academicYear'] as String?;
     WidgetsBinding.instance.addPostFrameCallback((_) => _bootstrap());
   }
 
@@ -75,6 +80,7 @@ class _ResultsInputScreenState extends ConsumerState<ResultsInputScreen> {
       final gradeMap = await ref.read(gradesRepositoryProvider).getGradesForStudent(
             studentId: studentId,
             term: term,
+            academicYear: academicYear,
           );
 
       if (!mounted) return;
@@ -158,6 +164,7 @@ class _ResultsInputScreenState extends ConsumerState<ResultsInputScreen> {
       await ref.read(gradesRepositoryProvider).saveGrades(
             studentId: studentId,
             term: term,
+            academicYear: academicYear,
             grades: rows,
           );
       if (!mounted) return;
@@ -290,7 +297,7 @@ class _ResultsInputScreenState extends ConsumerState<ResultsInputScreen> {
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        term,
+                        [termLabel(term), ?academicYear].join(' · '),
                         style: TextStyle(
                           color: AppColors.textSecondary,
                           fontSize: 13,

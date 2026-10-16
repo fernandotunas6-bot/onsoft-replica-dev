@@ -56,12 +56,14 @@ class GradesRepository {
   Future<Map<String, SubjectGradeScores>> getGradesForStudent({
     required String studentId,
     required String term,
+    String? academicYear,
   }) async {
     final response = await _dio.get(
       ApiEndpoints.grades,
       queryParameters: {
         'student_id': studentId,
         'term': term,
+        'academic_year': ?academicYear,
       },
     );
     final list = response.data['data'] as List<dynamic>;
@@ -81,10 +83,15 @@ class GradesRepository {
   Future<ReportCard> getReportCard({
     required String studentId,
     required String term,
+    String? academicYear,
   }) async {
     final response = await _dio.get(
       ApiEndpoints.grades,
-      queryParameters: {'student_id': studentId, 'term': term},
+      queryParameters: {
+        'student_id': studentId,
+        'term': term,
+        'academic_year': ?academicYear,
+      },
     );
     final list = response.data['data'] as List<dynamic>;
     return ReportCard(response.data['academic_year'] as String? ?? '', [
@@ -98,9 +105,22 @@ class GradesRepository {
     ]);
   }
 
+  /// Anos com notas deste aluno, mais o actual (mais recente primeiro).
+  Future<({List<String> years, String current})> getYears(String studentId) async {
+    final res = await _dio.get(
+      '${ApiEndpoints.grades}/years',
+      queryParameters: {'student_id': studentId},
+    );
+    return (
+      years: (res.data['data'] as List).cast<String>(),
+      current: res.data['current'] as String? ?? '',
+    );
+  }
+
   Future<void> saveGrades({
     required String studentId,
     required String term,
+    String? academicYear,
     required List<GradeUpsertRow> grades,
   }) async {
     await _dio.put(
@@ -108,6 +128,7 @@ class GradesRepository {
       data: {
         'student_id': studentId,
         'term': term,
+        'academic_year': ?academicYear,
         'grades': grades
             .map(
               (g) => {
