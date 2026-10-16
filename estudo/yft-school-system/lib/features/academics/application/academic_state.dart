@@ -16,6 +16,14 @@ final selectedClassProvider =
   return SelectedClassNotifier();
 });
 
-final assignedClassesProvider = FutureProvider<List<SchoolClass>>((ref) {
-  return ref.read(classRepositoryProvider).getClasses();
+
+/// Turmas onde o professor autenticado tem aulas no horário (vazio se o
+/// horário ainda não o tem ou se falhar).
+final teacherClassIdsProvider = FutureProvider<Set<String>>((ref) async {
+  try {
+    final slots = await ref.watch(myTimetableProvider.future);
+    return {for (final s in slots) s.classId};
+  } catch (_) {
+    return const {};
+  }
 });

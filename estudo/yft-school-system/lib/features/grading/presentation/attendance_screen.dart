@@ -95,7 +95,14 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
     final classes =
         ref.watch(classesProvider).whenOrNull(data: (c) => c) ??
         const <SchoolClass>[];
-    final preferred = _classId ?? ref.watch(selectedClassProvider)?.id;
+    // Ordem: a escolhida aqui, a escolhida em "As minhas turmas", a primeira
+    // turma do horário do professor.
+    final mine =
+        ref.watch(teacherClassIdsProvider).whenOrNull(data: (s) => s) ??
+        const <String>{};
+    final preferred = _classId ??
+        ref.watch(selectedClassProvider)?.id ??
+        classes.where((c) => mine.contains(c.id)).firstOrNull?.id;
     final classId = classes.any((c) => c.id == preferred)
         ? preferred
         : classes.firstOrNull?.id;
