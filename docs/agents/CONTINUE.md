@@ -4,6 +4,24 @@ Ler isto **antes** de alterar código. Ecossistema (5 apps):
 [ARCHITECTURE_HARMONIZATION.md](./ARCHITECTURE_HARMONIZATION.md).
 Depois abrir o skill do módulo em `.cursor/skills/`.
 
+## Desempenho do primeiro desenho — Lighthouse do main verde (2026-10-16)
+
+- O job Lighthouse (só corre no push do `main`) falhava desde 07/10 (0,80–0,87 para
+  mínimo 0,90). Passou a 0,94–0,97 em todas as páginas com o PR #163.
+- **Causa principal:** `/browser-check.js` era síncrono no `<head>`; em HTTP/1.1 ficava
+  na fila atrás de ~100 pré-carregamentos de JS e o primeiro desenho esperava por ele.
+  Agora `defer: true` em `__root.tsx` (a app desktop mantém-no síncrono).
+- **Também:** `SigaMascotIcon` usa `/brands/siga-plus-icon-256.webp` (13 KB) em vez do PNG
+  de 670 KB que era pré-carregado em todas as páginas; `vite.config.ts` agrupa os ícones
+  do lucide e o núcleo (React, TanStack Router/Query) em `icons` e `framework`; na
+  Pedagógica, os separadores que não são iniciais são `lazy`.
+- **Não fazer:** agrupar Radix ou módulos da app num só ficheiro (gerava 1–1,6 MB);
+  tornar `PickFileButton`/`InstallConsentModal` lazy (o peso é partilhado, não poupa nada).
+- Guarda: `tests/ui/first-paint-budget.test.ts`. Medir localmente: build, `npm run
+  preview:prod`, e `npx lighthouse@12 <url> --preset=desktop` com
+  `CHROME_PATH=/opt/pw-browsers/chromium-*/chrome-linux/chrome`. As notas variam
+  ±0,04 entre corridas; comparar várias.
+
 ## Cobrança SaaS por escola e escolas públicas (2026-10-15)
 
 - **ADMIN → Escolas → clicar na escola** (`/tenants/escola?id=…`, exportação estática):
