@@ -422,6 +422,12 @@ export function BillingTab({
                 {billing.state.label}
               </Badge>
               <p className="text-2xl font-semibold tabular-nums">{kz(billing.charge.total)}</p>
+              {billing.schedule.overdue ? (
+                <p role="alert" className="rounded-md bg-destructive/10 px-2 py-1 text-xs text-destructive">
+                  Pagamento em atraso: a tolerância acabou e a escola passa a só consulta na próxima
+                  verificação diária. Confirme o pagamento em Subscrições para a manter activa.
+                </p>
+              ) : null}
               <ul className="grid gap-0.5 text-xs text-muted-foreground">
                 {billing.charge.lines.map((line) => (
                   <li key={line}>{line}</li>
@@ -433,8 +439,16 @@ export function BillingTab({
                   <dd>{dateLabel(billing.schedule.issueOn)}</dd>
                   <dt className="text-muted-foreground">Vencimento</dt>
                   <dd>{dateLabel(billing.schedule.dueOn)}</dd>
+                  <dt className="text-muted-foreground">Pago até</dt>
+                  <dd>{dateLabel(billing.schedule.paidUntil)}</dd>
                   <dt className="text-muted-foreground">Só consulta após</dt>
-                  <dd>{billing.schedule.suspendAfter ? dateLabel(billing.schedule.suspendAfter) : "Nunca (manual)"}</dd>
+                  <dd>
+                    {!billing.profile.autoSuspend
+                      ? "Nunca (manual)"
+                      : billing.schedule.suspendAfter
+                        ? dateLabel(billing.schedule.suspendAfter)
+                        : "Sem período pago"}
+                  </dd>
                 </dl>
               ) : null}
             </CardContent>

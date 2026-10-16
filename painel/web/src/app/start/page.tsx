@@ -990,6 +990,13 @@ export function StartSchoolWizard() {
                             </button>
                           ))}
                         </div>
+                        {field.value === "publica" ? (
+                          <p className="rounded-md bg-muted/60 px-3 py-2 text-xs text-muted-foreground">
+                            As escolas públicas não pagam o plano, depois de verificadas pela equipa
+                            SIGA (código oficial, órgão de tutela e documentos). Durante a revisão as
+                            cobranças ficam pausadas e a escola trabalha sem bloqueios.
+                          </p>
+                        ) : null}
                       </FormItem>
                     )}
                   />

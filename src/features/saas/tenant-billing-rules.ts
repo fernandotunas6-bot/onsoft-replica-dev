@@ -472,6 +472,36 @@ export function billingSchedule(
   };
 }
 
+/**
+ * A escola passa a só consulta por falta de pagamento?
+ *
+ * Só quando tudo isto é verdade: a escola é cobrada (não está isenta nem
+ * pausada), o ADMIN ligou «passar a só consulta», a assinatura está activa e
+ * paga até uma data, e já passaram os dias de tolerância depois dessa data
+ * (no dia da escola, Luanda). O fim do período experimental tem regra própria
+ * (tenant-access.ts) e não entra aqui.
+ */
+export function overdueSuspensionDue(
+  input: {
+    profile: Pick<TenantBillingProfile, "graceDays" | "autoSuspend">;
+    state: Pick<BillingState, "charging">;
+    tenantStatus: string;
+    subscription: { status: string | null; currentPeriodEnd: string | null } | null;
+  },
+  now: Date = new Date(),
+): { due: boolean; suspendAfter: string | null } {
+  const { profile, state, tenantStatus, subscription } = input;
+  if (!state.charging || !profile.autoSuspend) return { due: false, suspendAfter: null };
+  if (tenantStatus !== "active" || subscription?.status !== "active") {
+    return { due: false, suspendAfter: null };
+  }
+  const end = subscription.currentPeriodEnd;
+  if (!end || Number.isNaN(Date.parse(end))) return { due: false, suspendAfter: null };
+  const paidUntil = schoolTodayIso(new Date(end));
+  const suspendAfter = addDays(paidUntil, Math.max(0, Math.floor(profile.graceDays)));
+  return { due: schoolTodayIso(now) > suspendAfter, suspendAfter };
+}
+
 // ─── Escola pública ─────────────────────────────────────────────────────────
 
 /** O que falta para poder aprovar uma escola pública. */

@@ -23,6 +23,13 @@ Depois abrir o skill do módulo em `.cursor/skills/`.
 - **Efeito no acesso** só por `tenants.billing_exempt` (já na produção): o servidor mantém-no
   igual a «não cobrar». Isenta/pausada não é bloqueada por trial nem atraso; suspender,
   cancelar e arquivar continuam a bloquear. Lembretes de fim de trial não vão para elas.
+- **Atraso (2026-10-16):** com «só consulta» ligado, a tarefa diária
+  (`suspendOverdueTenants` em `commercial-lifecycle.ts`, regra pura `overdueSuspensionDue`)
+  passa a `past_due` a escola activa e cobrada cujo período pago acabou há mais que a
+  tolerância; auditado `TENANT_BILLING_OVERDUE`. O ADMIN mostra «Pago até», «Só consulta
+  após» e o aviso de atraso; «Activar» reactiva `past_due`. A lista mostra «Isenta» /
+  «Cobrança pausada». O separador Acesso traz o diagnóstico embutido
+  (`TenantAdminAccessPanel`).
 - **Por aplicar (dono):** `docs/agents/SIGA_aplicar_cobranca_escolas.sql`
   (`20261015120000_tenant_billing_profiles.sql`). Sem ela o ADMIN mostra os valores de
   omissão e não grava; nada mais parte. Depois recapturar o retrato e tirar a tabela de
