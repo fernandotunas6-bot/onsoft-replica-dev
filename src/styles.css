@@ -1264,3 +1264,26 @@ h6,
     -webkit-text-fill-color: CanvasText;
   }
 }
+
+/* A sessão pode demorar; a marca dá um sinal discreto sem atrasar o login. */
+.siga-brand-wait {
+  display: inline-block;
+}
+
+@keyframes siga-brand-breathe {
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.72;
+    transform: scale(0.99);
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .siga-brand-wait {
+    animation: siga-brand-breathe 3.2s ease-in-out 2s infinite;
+  }
+}
