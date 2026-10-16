@@ -20,6 +20,18 @@ export interface SigaLogoProps extends React.HTMLAttributes<HTMLDivElement> {
   useOfficialImage?: boolean;
 }
 
+/** Marca tipográfica partilhada; cor reservada à palavra Plus. */
+export function SigaWordmark({ className }: { className?: string }) {
+  return (
+    <span role="img" aria-label="SIGA Plus" className={cn("siga-wordmark", className)}>
+      <span aria-hidden="true">SIGA</span>
+      <span aria-hidden="true" className="siga-wordmark-plus">
+        Plus
+      </span>
+    </span>
+  );
+}
+
 const iconSizes = {
   xs: 24,
   sm: 32,
@@ -53,7 +65,7 @@ export function SigaMascotIcon({
       height={size}
       className={cn(
         "object-contain select-none transition-transform duration-300",
-        animated && "animate-pulse",
+        animated && "motion-safe:animate-pulse",
         className,
       )}
       style={{ width: size, height: size }}
@@ -135,16 +147,13 @@ export function SigaLogo({
 
       <div className="relative flex flex-col">
         <div className="flex items-baseline gap-1.5 leading-none">
-          <span className="font-sans text-2xl md:text-3xl font-black tracking-tighter text-[#0A192F] dark:text-white">
+          <span className="font-sans text-2xl md:text-3xl font-semibold tracking-tight text-foreground">
             SIGA
           </span>
-          <span className="font-serif italic text-2xl md:text-3xl font-extrabold tracking-tight text-[#0A192F] dark:text-amber-400">
+          <span className="siga-wordmark-plus font-sans text-2xl md:text-3xl font-semibold tracking-tight">
             Plus
           </span>
         </div>
-
-        {/* Sub-linha decorativa */}
-        <div className="h-1.5 w-full mt-1 rounded-full bg-gradient-to-r from-[#C59B27] to-amber-300 opacity-90" />
       </div>
     </div>
   );

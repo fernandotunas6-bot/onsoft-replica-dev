@@ -50,13 +50,13 @@ export function MobileTabs({
             data-active={active}
             onClick={() => onSelect(tab.id)}
             className={cn(
-              "relative shrink-0 whitespace-nowrap px-3 pb-2.5 pt-2 text-sm transition-colors",
+              "relative min-h-[44px] shrink-0 whitespace-nowrap rounded-t-lg px-3 py-3 text-[13px] leading-5 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring",
               active ? "font-medium text-primary-strong" : "text-muted-foreground",
             )}
           >
             {tab.label}
             {tab.badge ? (
-              <span className="tnum ml-1.5 inline-flex min-w-4 items-center justify-center rounded-full bg-secondary px-1 text-[10px] text-secondary-foreground">
+              <span className="tnum ml-1.5 inline-flex min-h-[20px] min-w-[20px] items-center justify-center rounded-full bg-secondary px-1.5 text-[11px] text-secondary-foreground">
                 {tab.badge}
               </span>
             ) : null}

@@ -5,6 +5,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'gateway.dart';
 import 'identity.dart';
+import 'design.dart';
 import 'academic_page.dart';
 
 Future<void> main() async {
@@ -103,8 +104,14 @@ class _SigaAppState extends State<SigaApp> {
         ),
         GoRoute(
           path: '/loading',
-          builder: (_, _) =>
-              const Scaffold(body: Center(child: CircularProgressIndicator())),
+          builder: (_, _) => Scaffold(
+            body: Center(
+              child: Semantics(
+                label: 'A carregar a sua sessão',
+                child: const Brand(),
+              ),
+            ),
+          ),
         ),
         GoRoute(
           path: '/login',
@@ -292,7 +299,7 @@ class _SigaAppState extends State<SigaApp> {
   );
   Widget shellPage(StatefulNavigationShell shell) => Scaffold(
     appBar: AppBar(
-      title: Text(schoolName),
+      title: Text(schoolName, maxLines: 1, overflow: TextOverflow.ellipsis),
       actions: [
         IconButton(
           tooltip: 'Mudar de escola',
@@ -315,8 +322,14 @@ class _SigaAppState extends State<SigaApp> {
     bottomNavigationBar: SafeArea(
       child: Padding(
         padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(24),
+        child: Container(
+          clipBehavior: Clip.antiAlias,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(24),
+            border: Border.all(
+              color: Theme.of(context).colorScheme.outlineVariant,
+            ),
+          ),
           child: NavigationBar(
             selectedIndex: shell.currentIndex,
             animationDuration: Duration(milliseconds: reduced ? 0 : 220),
@@ -498,25 +511,7 @@ class _SigaAppState extends State<SigaApp> {
       child: child!,
     ),
   );
-  ThemeData theme(Brightness brightness) => ThemeData(
-    useMaterial3: true,
-    brightness: brightness,
-    colorScheme: ColorScheme.fromSeed(
-      seedColor: const Color(0xff315ff6),
-      brightness: brightness,
-    ),
-    scaffoldBackgroundColor: brightness == Brightness.light
-        ? Colors.white
-        : const Color(0xff151922),
-    appBarTheme: const AppBarTheme(surfaceTintColor: Colors.transparent),
-    inputDecorationTheme: InputDecorationTheme(
-      border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
-    ),
-    navigationBarTheme: const NavigationBarThemeData(
-      height: 72,
-      indicatorColor: Color(0xffdce5ff),
-    ),
-  );
+  ThemeData theme(Brightness brightness) => sigaTheme(brightness);
 }
 
 class LoginPage extends StatefulWidget {
@@ -606,74 +601,111 @@ class _LoginPageState extends State<LoginPage> {
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(24),
           child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 400),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                const Center(child: Brand()),
-                const SizedBox(height: 56),
-                Text(
-                  widget.factor == null
-                      ? 'Aceda à sua conta'
-                      : 'Confirme a sua identidade',
-                  style: Theme.of(context).textTheme.headlineSmall,
+            constraints: const BoxConstraints(maxWidth: 440),
+            child: Container(
+              padding: const EdgeInsets.all(24),
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.surface,
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(
+                  color: Theme.of(context).colorScheme.outlineVariant,
                 ),
-                const SizedBox(height: 16),
-                if (widget.factor == 'unsupported')
-                  const Text(
-                    'Use o portal original para confirmar o seu segundo factor. Este cliente suporta TOTP.',
-                  )
-                else if (widget.factor != null)
-                  TextField(
-                    controller: code,
-                    keyboardType: TextInputType.number,
-                    autofillHints: const [AutofillHints.oneTimeCode],
-                    maxLength: 6,
-                    decoration: const InputDecoration(
-                      labelText: 'Código de autenticação',
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  const Center(child: Brand()),
+                  const SizedBox(height: 32),
+                  Text(
+                    widget.factor == null
+                        ? 'Aceda à sua conta'
+                        : 'Confirme a sua identidade',
+                    style: Theme.of(context).textTheme.headlineSmall,
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    widget.factor == null
+                        ? 'O seu espaço escolar, num só lugar.'
+                        : 'Introduza o código da aplicação de autenticação.',
+                    style: Theme.of(context).textTheme.bodyMedium,
+                  ),
+                  const SizedBox(height: 24),
+                  if (widget.factor == 'unsupported')
+                    const Text(
+                      'Use o portal original para confirmar o seu segundo factor. Este cliente suporta TOTP.',
+                    )
+                  else if (widget.factor != null)
+                    TextField(
+                      controller: code,
+                      keyboardType: TextInputType.number,
+                      autofillHints: const [AutofillHints.oneTimeCode],
+                      maxLength: 6,
+                      decoration: const InputDecoration(
+                        labelText: 'Código de autenticação',
+                      ),
+                    )
+                  else ...[
+                    TextField(
+                      controller: email,
+                      keyboardType: TextInputType.emailAddress,
+                      autofillHints: const [AutofillHints.username],
+                      decoration: const InputDecoration(
+                        labelText: 'E-mail institucional',
+                        prefixIcon: Icon(Icons.mail_outline),
+                      ),
                     ),
-                  )
-                else ...[
-                  TextField(
-                    controller: email,
-                    keyboardType: TextInputType.emailAddress,
-                    autofillHints: const [AutofillHints.username],
-                    decoration: const InputDecoration(
-                      labelText: 'E-mail institucional',
-                      prefixIcon: Icon(Icons.mail_outline),
+                    const SizedBox(height: 16),
+                    TextField(
+                      controller: password,
+                      obscureText: true,
+                      autofillHints: const [AutofillHints.password],
+                      decoration: const InputDecoration(
+                        labelText: 'Senha',
+                        prefixIcon: Icon(Icons.lock_outline),
+                      ),
+                    ),
+                  ],
+                  const SizedBox(height: 24),
+                  FilledButton(
+                    onPressed: busy || widget.factor == 'unsupported'
+                        ? null
+                        : submit,
+                    child: Text(
+                      busy
+                          ? 'A confirmar…'
+                          : widget.factor == null
+                          ? 'Entrar'
+                          : 'Confirmar código',
                     ),
                   ),
-                  const SizedBox(height: 16),
-                  TextField(
-                    controller: password,
-                    obscureText: true,
-                    autofillHints: const [AutofillHints.password],
-                    decoration: const InputDecoration(
-                      labelText: 'Senha',
-                      prefixIcon: Icon(Icons.lock_outline),
+                  if (widget.factor != null)
+                    TextButton(
+                      onPressed: () => widget.auth.signOut(),
+                      child: const Text('Sair desta conta'),
                     ),
-                  ),
+                  if (error != null) ...[
+                    const SizedBox(height: 16),
+                    Semantics(
+                      liveRegion: true,
+                      child: Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: Theme.of(context).colorScheme.errorContainer,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Text(
+                          error!,
+                          style: TextStyle(
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.onErrorContainer,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
                 ],
-                const SizedBox(height: 24),
-                FilledButton(
-                  onPressed: busy || widget.factor == 'unsupported'
-                      ? null
-                      : submit,
-                  child: Text(
-                    busy
-                        ? 'A confirmar…'
-                        : widget.factor == null
-                        ? 'Entrar'
-                        : 'Confirmar código',
-                  ),
-                ),
-                if (widget.factor != null)
-                  TextButton(
-                    onPressed: () => widget.auth.signOut(),
-                    child: const Text('Sair desta conta'),
-                  ),
-                if (error != null) Text(error!, semanticsLabel: error),
-              ],
+              ),
             ),
           ),
         ),

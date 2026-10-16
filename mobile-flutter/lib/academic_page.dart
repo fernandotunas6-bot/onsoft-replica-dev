@@ -61,7 +61,7 @@ class _DataPageState extends State<DataPage> {
   );
   Widget empty(String label) => Padding(
     padding: const EdgeInsets.symmetric(vertical: 24),
-    child: Text(label),
+    child: Text(label, style: Theme.of(context).textTheme.bodyMedium),
   );
   void detail(Map<String, dynamic> item, AcademicCatalog catalog) {
     final tasks = catalog.tasks
@@ -239,6 +239,7 @@ class _DataPageState extends State<DataPage> {
                 Container(
                   padding: const EdgeInsets.all(20),
                   decoration: BoxDecoration(
+                    color: Theme.of(context).colorScheme.surface,
                     borderRadius: BorderRadius.circular(18),
                     border: Border.all(
                       color: Theme.of(context).colorScheme.outlineVariant,
