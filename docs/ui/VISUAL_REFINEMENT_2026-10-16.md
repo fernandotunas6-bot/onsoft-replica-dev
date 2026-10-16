@@ -101,3 +101,25 @@ fonte da licença: https://github.com/rsms/inter/blob/master/LICENSE.txt.
 - CI e Flutter do incremento anterior (`86daf1f`) concluídos com sucesso:
   [CI 38901652089](https://github.com/fernandotunas6-bot/onsoft-replica-dev/actions/runs/38901652089)
   e [Flutter 38901652086](https://github.com/fernandotunas6-bot/onsoft-replica-dev/actions/runs/38901652086).
+
+## Continuação — contexto escolar e confirmações
+
+- Selector escolar com nomes e funções completos em várias linhas, estado na zona
+  de texto e escola activa assinalada também por `aria-pressed`. Linhas com pelo
+  menos 64 px; ano e período admitem textos compridos e mantêm alvos de 44 px.
+- Confirmação destrutiva com assunto destacado, título de 18 px e espaçamento
+  entre linhas em px. Botões podem crescer para acomodar os rótulos completos;
+  callbacks e fecho conservam o comportamento existente.
+- Base partilhada `AlertDialog`: margem de 16 px, cantos arredondados em todas as
+  larguras, fundo opaco e véu mais leve. Altura limitada à janela dinâmica com
+  rolagem interna para manter o conteúdo acessível em janelas baixas.
+- Chromium com componentes reais e providers de demonstração: 320×700,
+  390×844 (escuro), 768×1024, 1440×960 e 568×320. Sem overflow lateral ou erros JS;
+  confirmação dentro da janela, botões de pelo menos 44 px, foco inicial em
+  Cancelar, cancelar sem confirmar e confirmar uma única vez. Troca de período
+  verificada apenas no provider fictício; não valida contexto ou permissões reais.
+- 99 testes existentes de UI/filtros/navegação aprovados; lint dos componentes e
+  scripts de estilo/acessibilidade e TypeScript aprovados. Abertura mantém apenas a marca animada.
+
+- CI e Flutter do incremento de filtros (`d29a31b`) concluídos com sucesso nos
+  runs 38902673975 e 38902674002, respectivamente.
