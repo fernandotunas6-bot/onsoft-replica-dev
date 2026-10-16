@@ -13,6 +13,12 @@ const BLOCK_COPY: Record<TenantAccessBlockReason, { title: string; body: string;
       body: "A assinatura encontra-se temporariamente suspensa por razões administrativas.",
       banner: "A assinatura está suspensa: pode consultar os dados, mas não alterá-los.",
     },
+    past_due: {
+      title: "Pagamento em Atraso",
+      body: "O pagamento da assinatura passou do prazo e da tolerância. A escola fica só de consulta até o pagamento ser confirmado.",
+      banner:
+        "Pagamento em atraso: pode consultar os dados, mas não alterá-los até o pagamento ser confirmado.",
+    },
     trial_expired: {
       title: "Período de Trial Expirado",
       body: "O período experimental terminou. Escolha um plano para continuar a usar o SIGA Plus.",

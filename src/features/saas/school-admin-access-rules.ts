@@ -88,6 +88,8 @@ export type SchoolAdminAccessIssue = {
 
 const BLOCK_MESSAGES: Record<TenantAccessBlockReason, string> = {
   suspended: "A assinatura está suspensa: a escola só pode ser consultada.",
+  past_due:
+    "O pagamento está em atraso: a escola só pode ser consultada até o pagamento ser confirmado.",
   cancelled: "A assinatura foi cancelada: a escola só pode ser consultada.",
   trial_expired:
     "O período experimental terminou: o administrador entra, mas não consegue gravar a configuração.",
