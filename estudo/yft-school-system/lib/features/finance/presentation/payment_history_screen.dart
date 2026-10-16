@@ -6,6 +6,7 @@ import 'package:yft_school_system/core/settings/academic_year_state.dart';
 import 'package:yft_school_system/core/theme/app_colors.dart';
 import 'package:yft_school_system/core/widgets/profile_photo_avatar.dart';
 import 'package:yft_school_system/features/reports/presentation/providers/wards_provider.dart';
+import 'package:yft_school_system/core/utils/currency_display.dart';
 
 class PaymentHistoryScreen extends ConsumerWidget {
   const PaymentHistoryScreen({super.key});
@@ -76,7 +77,7 @@ class PaymentHistoryScreen extends ConsumerWidget {
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      '$currency ${totalOutstanding.toStringAsFixed(2)}',
+                      formatMoneyDisplay(currency, totalOutstanding),
                       style: TextStyle(
                         color: AppColors.primary,
                         fontSize: 32,
@@ -184,9 +185,9 @@ class PaymentHistoryScreen extends ConsumerWidget {
                             ),
                             Text(
                               due > 0
-                                  ? '$currency ${due.toStringAsFixed(2)}'
+                                  ? formatMoneyDisplay(currency, due)
                                   : credit > 0
-                                      ? '$currency ${credit.toStringAsFixed(2)}'
+                                      ? formatMoneyDisplay(currency, credit)
                                       : '$currency 0.00',
                               style: TextStyle(
                                 fontWeight: FontWeight.w600,

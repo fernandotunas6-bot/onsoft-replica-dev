@@ -10,10 +10,13 @@ import { Hono, type Context } from 'hono';
 import type { AppEnv } from '../app-env';
 import {
   hasOverdueInvoice,
+  loadAcademicCalendar,
   loadClassTimetable,
   loadReceipts,
   loadStudentAttendance,
+  loadWardSubjects,
   loadWards,
+  wardBalances,
   wardIds,
 } from '../sga/guardian';
 import {
@@ -82,7 +85,9 @@ sga.get('/me', async (c) => {
 sga.get('/wards', async (c) => {
   requireGuardian(c);
   const { schoolId } = c.get('membership');
-  const wards = await loadWards(c.get('sgaDb'), schoolId, c.get('sgaUser'));
+  const db = c.get('sgaDb');
+  const wards = await loadWards(db, schoolId, c.get('sgaUser'));
+  const balances = await wardBalances(db, schoolId, wards.map((w) => w.id));
   // No formato de GET /api/wards, para o app ler com o mesmo modelo.
   return c.json({
     data: wards.map((w) => ({
@@ -94,6 +99,7 @@ sga.get('/wards', async (c) => {
       photo_url: w.photoUrl,
       student_number: w.studentNumber,
       enrollment_id: w.enrollmentId,
+      balance: balances.get(w.id) ?? 0,
       is_active: 1,
     })),
   });
@@ -140,6 +146,33 @@ sga.get('/grades', async (c) => {
 sga.get('/grades/years', async (c) => {
   const studentId = await requireWard(c, c.req.query('student_id')?.trim());
   return c.json(await loadGradeYears(c.get('sgaDb'), c.get('membership').schoolId, studentId));
+});
+
+/** Turmas activas dos educandos, no formato de GET /api/classes. */
+sga.get('/classes', async (c) => {
+  requireGuardian(c);
+  const { schoolId } = c.get('membership');
+  const wards = await loadWards(c.get('sgaDb'), schoolId, c.get('sgaUser'));
+  const seen = new Map<string, string>();
+  for (const w of wards) if (w.classGroupId) seen.set(w.classGroupId, w.className ?? 'Turma');
+  return c.json({
+    data: [...seen].map(([id, name]) => ({ id, school_id: schoolId, class_name: name, level: null })),
+  });
+});
+
+/** Calendário do ano lectivo activo (qualquer papel com vínculo). */
+sga.get('/academic-calendar', async (c) => {
+  return c.json({ data: await loadAcademicCalendar(c.get('sgaDb'), c.get('membership').schoolId) });
+});
+
+/** Disciplinas das turmas dos educandos (?class_id= para uma delas). */
+sga.get('/subjects', async (c) => {
+  requireGuardian(c);
+  const db = c.get('sgaDb');
+  const { schoolId } = c.get('membership');
+  const wards = await loadWards(db, schoolId, c.get('sgaUser'));
+  const classes = [...new Set(wards.map((w) => w.classGroupId).filter((x): x is string => !!x))];
+  return c.json({ data: await loadWardSubjects(db, schoolId, classes, c.req.query('class_id')?.trim() || undefined) });
 });
 
 /** Recibos dos educandos (pagamentos registados no SIGA, sem os anulados). */

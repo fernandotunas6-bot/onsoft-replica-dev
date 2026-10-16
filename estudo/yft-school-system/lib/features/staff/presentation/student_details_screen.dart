@@ -11,6 +11,7 @@ import 'package:yft_school_system/core/network/api_client.dart';
 import 'package:yft_school_system/core/utils/media_url.dart';
 import 'package:yft_school_system/core/utils/responsive_utils.dart';
 import 'package:yft_school_system/core/utils/term_label.dart';
+import 'package:yft_school_system/core/utils/currency_display.dart';
 
 class StudentDetailsScreen extends ConsumerWidget {
   final String id;
@@ -368,9 +369,9 @@ class _StudentProfileBody extends StatelessWidget {
             LucideIcons.wallet,
             'Saldo',
             student.hasDebt
-                ? '$currency ${student.balance.abs().toStringAsFixed(2)} (em dívida)'
+                ? '${formatMoneyDisplay(currency, student.balance.abs())} (em dívida)'
                 : student.isOverpaid
-                    ? '+$currency ${student.balance.toStringAsFixed(2)} (a favor)'
+                    ? '+${formatMoneyDisplay(currency, student.balance)} (a favor)'
                     : '$currency 0.00 (em dia)',
             valueColor: student.hasDebt
                 ? AppColors.error

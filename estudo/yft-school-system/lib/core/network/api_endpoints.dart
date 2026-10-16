@@ -75,6 +75,9 @@ class ApiEndpoints {
   static const sgaTimetable = '/api/sga/timetable';
   static const sgaReceipts = '/api/sga/finance/receipts';
   static const sgaGrades = '/api/sga/grades';
+  static const sgaSubjects = '/api/sga/subjects';
+  static const sgaClasses = '/api/sga/classes';
+  static const sgaAcademicCalendar = '/api/sga/academic-calendar';
   static const sgaGradeYears = '/api/sga/grades/years';
   static String sgaAttendanceStudent(String id) => '/api/sga/attendance/student/$id';
   static String wardProfile(String id) => '/api/wards/$id/profile';

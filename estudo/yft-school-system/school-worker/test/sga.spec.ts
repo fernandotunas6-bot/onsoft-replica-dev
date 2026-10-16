@@ -109,8 +109,9 @@ const tables: Record<string, Row[]> = {
 		{ id: "ay-0", school_id: S1, name: "2025/2026", status: "closed", starts_on: "2025-09-01" },
 	],
 	terms: [
-		{ id: "t1-26", school_id: S1, academic_year_id: "ay-1", sequence: 1 },
-		{ id: "t2-26", school_id: S1, academic_year_id: "ay-1", sequence: 2 },
+		{ id: "t1-26", school_id: S1, academic_year_id: "ay-1", sequence: 1, starts_on: "2026-09-01", ends_on: "2026-12-15" },
+		{ id: "t2-26", school_id: S1, academic_year_id: "ay-1", sequence: 2, starts_on: "2027-01-05", ends_on: "2027-04-10" },
+		{ id: "t3-26", school_id: S1, academic_year_id: "ay-1", sequence: 3, starts_on: "2027-04-20", ends_on: "2027-07-20" },
 		{ id: "t1-25", school_id: S1, academic_year_id: "ay-0", sequence: 1 },
 	],
 	gradebooks: [
@@ -238,8 +239,8 @@ describe("API SGA", () => {
 		expect(res.headers.get("Cache-Control")).toBe("private, no-store");
 		const { data } = (await res.json()) as { data: Record<string, unknown>[] };
 		expect(data).toEqual([
-			{ id: "st-ana", school_id: S1, class_id: "cg-10a", class_name: "10.ª A", name: "Ana Silva", photo_url: null, student_number: "A1", enrollment_id: "e-ana", is_active: 1 },
-			{ id: "st-rui", school_id: S1, class_id: "cg-7b", class_name: "7.ª B", name: "Rui", photo_url: "https://x/rui.jpg", student_number: "A2", enrollment_id: "e-rui", is_active: 1 },
+			{ id: "st-ana", school_id: S1, class_id: "cg-10a", class_name: "10.ª A", name: "Ana Silva", photo_url: null, student_number: "A1", enrollment_id: "e-ana", balance: 0, is_active: 1 },
+			{ id: "st-rui", school_id: S1, class_id: "cg-7b", class_name: "7.ª B", name: "Rui", photo_url: "https://x/rui.jpg", student_number: "A2", enrollment_id: "e-rui", balance: -4000, is_active: 1 },
 		]);
 		const s2 = (await (await get("/wards", "tok-guardian", S2)).json()) as { data: { id: string }[] };
 		expect(s2.data.map((w) => w.id)).toEqual(["st-other"]);
@@ -338,5 +339,51 @@ describe("API SGA", () => {
 		expect((await get("/grades?student_id=st-ana&term=1", "tok-guardian")).status).toBe(422);
 		expect((await get("/grades/years?student_id=st-rui", "tok-email")).status).toBe(404);
 		expect((await get("/grades?student_id=st-ana&term=Term%201", "tok-teacher")).status).toBe(403);
+	});
+
+	it("/academic-calendar: ano activo e trimestres «Term N», para qualquer papel", async () => {
+		vi.useFakeTimers({ toFake: ["Date"] });
+		vi.setSystemTime(new Date("2027-02-01T10:00:00Z"));
+		try {
+			const { data } = (await (await get("/academic-calendar", "tok-teacher")).json()) as { data: Record<string, unknown> };
+			expect(data).toEqual({
+				academic_year: "2026/2027",
+				active_term: "Term 2",
+				currency: "AOA",
+				term_system: 3,
+				terms: [
+					{ name: "Term 1", start_date: "2026-09-01", end_date: "2026-12-15" },
+					{ name: "Term 2", start_date: "2027-01-05", end_date: "2027-04-10" },
+					{ name: "Term 3", start_date: "2027-04-20", end_date: "2027-07-20" },
+				],
+			});
+		} finally {
+			vi.useRealTimers();
+		}
+		const none = (await (await get("/academic-calendar", "tok-guardian", S2)).json()) as { data: unknown };
+		expect(none.data).toBeNull();
+	});
+
+	it("/subjects: disciplinas das turmas dos educandos, com as turmas de cada uma", async () => {
+		const { data } = (await (await get("/subjects", "tok-guardian")).json()) as { data: Record<string, unknown>[] };
+		expect(data).toEqual([
+			{ id: "sub-fis", school_id: S1, name: "Física", class_ids: ["cg-10a"], created_at: null },
+			{ id: "sub-mat", school_id: S1, name: "Matemática", class_ids: ["cg-10a", "cg-7b"], created_at: null },
+			{ id: "sub-por", school_id: S1, name: "Português", class_ids: ["cg-10a"], created_at: null },
+		]);
+		const one = (await (await get("/subjects?class_id=cg-7b", "tok-guardian")).json()) as { data: { id: string }[] };
+		expect(one.data.map((s) => s.id)).toEqual(["sub-mat"]);
+		// Turma de outra pessoa: nada.
+		const other = (await (await get("/subjects?class_id=cg-9a", "tok-guardian")).json()) as { data: unknown[] };
+		expect(other.data).toEqual([]);
+	});
+
+	it("/classes: turmas activas dos educandos, sem repetir", async () => {
+		const { data } = (await (await get("/classes", "tok-guardian")).json()) as { data: unknown[] };
+		expect(data).toEqual([
+			{ id: "cg-10a", school_id: S1, class_name: "10.ª A", level: null },
+			{ id: "cg-7b", school_id: S1, class_name: "7.ª B", level: null },
+		]);
+		expect((await get("/classes", "tok-teacher")).status).toBe(403);
 	});
 });

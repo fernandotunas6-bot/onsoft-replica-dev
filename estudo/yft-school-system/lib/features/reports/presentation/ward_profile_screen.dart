@@ -8,6 +8,7 @@ import 'package:yft_school_system/core/settings/academic_year_state.dart';
 import 'package:yft_school_system/core/theme/app_colors.dart';
 import 'package:yft_school_system/core/utils/responsive_utils.dart';
 import 'package:yft_school_system/core/widgets/profile_photo_avatar.dart';
+import 'package:yft_school_system/core/utils/currency_display.dart';
 
 class WardProfileScreen extends ConsumerWidget {
   final Student? ward;
@@ -64,10 +65,10 @@ class WardProfileScreen extends ConsumerWidget {
       final isCleared = w.isCleared;
       final hasDebt = w.hasDebt;
       final balanceText = hasDebt
-          ? 'Em dívida: $currency ${w.balance.abs().toStringAsFixed(2)}'
+          ? 'Em dívida: ${formatMoneyDisplay(currency, w.balance.abs())}'
           : isCleared
               ? 'Propinas em dia'
-              : 'Saldo a favor: $currency ${w.balance.toStringAsFixed(2)}';
+              : 'Saldo a favor: ${formatMoneyDisplay(currency, w.balance)}';
       final balanceColor = hasDebt
           ? AppColors.error
           : (isCleared ? AppColors.success : AppColors.primary);

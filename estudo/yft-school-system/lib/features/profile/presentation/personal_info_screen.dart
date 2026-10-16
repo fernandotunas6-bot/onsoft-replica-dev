@@ -12,6 +12,7 @@ import 'package:yft_school_system/core/widgets/section_widgets.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:yft_school_system/core/network/api_client.dart';
 import 'package:yft_school_system/core/utils/media_url.dart';
+import 'package:yft_school_system/core/sga/sga_config.dart';
 
 /// Dados pessoais: o utilizador corrige nome, telefone e morada. O e-mail é
 /// o da conta de entrada e só a administração o muda.
@@ -20,6 +21,7 @@ class PersonalInfoScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    if (sgaMode) return const _SgaPersonalInfo();
     final profileAsync = ref.watch(userProfileProvider);
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -284,6 +286,54 @@ class _PhotoPickerState extends ConsumerState<_PhotoPicker> {
             child: const Text('Tirar fotografia'),
           ),
       ],
+    );
+  }
+}
+
+/// Modo SIGA: os dados pessoais são os da ficha no SIGA; aqui só se mostram.
+class _SgaPersonalInfo extends ConsumerWidget {
+  const _SgaPersonalInfo();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final session = ref.watch(authProvider);
+    Widget row(IconData icon, String label, String value) => SoftCard(
+      child: Row(
+        children: [
+          Icon(icon, size: 20, color: AppColors.textSecondary),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(label, style: TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+                const SizedBox(height: 2),
+                Text(value, style: TextStyle(fontSize: 15, color: AppColors.textPrimary)),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+    return Scaffold(
+      backgroundColor: AppColors.background,
+      appBar: AppBar(
+        title: const Text('Dados pessoais', style: TextStyle(fontWeight: FontWeight.w600)),
+      ),
+      body: ListView(
+        padding: getResponsiveHorizontalPadding(context).copyWith(top: 16, bottom: 40),
+        children: [
+          row(LucideIcons.user, 'Nome', session?.userName ?? '—'),
+          const SizedBox(height: 10),
+          row(LucideIcons.school, 'Escola', session?.schoolName ?? '—'),
+          const SizedBox(height: 16),
+          Text(
+            'Os seus dados vêm da ficha da escola no SIGA. Para os corrigir, '
+            'use o portal do SIGA ou fale com a secretaria.',
+            style: TextStyle(fontSize: 13, color: AppColors.textSecondary, height: 1.4),
+          ),
+        ],
+      ),
     );
   }
 }

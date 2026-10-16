@@ -5,6 +5,7 @@ import '../models/teacher_profile.dart';
 import '../models/teacher_summary.dart';
 import '../models/user_profile.dart';
 import '../network/api_endpoints.dart';
+import '../sga/sga_config.dart';
 
 class UserRepository {
   final Dio _dio;
@@ -61,7 +62,9 @@ class UserRepository {
   }
 
   Future<SchoolAcademicCalendar?> getAcademicCalendar() async {
-    final response = await _dio.get(ApiEndpoints.usersMeAcademicCalendar);
+    final response = await _dio.get(
+      sgaMode ? ApiEndpoints.sgaAcademicCalendar : ApiEndpoints.usersMeAcademicCalendar,
+    );
     final raw = response.data['data'];
     if (raw == null) return null;
     return SchoolAcademicCalendar.fromJson(raw as Map<String, dynamic>);

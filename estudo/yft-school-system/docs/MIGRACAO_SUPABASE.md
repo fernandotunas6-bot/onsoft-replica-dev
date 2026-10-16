@@ -25,7 +25,7 @@ gere no SIGA, em vez do Firebase e da base D1 própria.
 | ---- | ----- | ------ |
 | 1 | API de leitura do encarregado: `GET /api/sga/me`, `/wards`, `/notices` | feito (testes em `school-worker/test/sga.spec.ts`) |
 | 2 | Entrada na app com a conta do SIGA (Supabase Auth) e ecrãs do encarregado a ler `/api/sga` | feito na web (Educandos e Comunicados); Android à espera do captcha |
-| 3 | Leituras do encarregado: horário, faltas, recibos e boletim | feito |
+| 3 | Leituras do encarregado: horário, faltas, recibos, boletim, saldo, disciplinas, turmas e calendário | feito |
 | 4 | Escritas do professor (presenças, notas) e mensagens, com as regras e a auditoria do SIGA | por fazer |
 | 5 | Desligar o Firebase e a base D1 | por fazer |
 
@@ -60,7 +60,7 @@ flutter build web --release \
 
 Rotas: `GET /api/sga/me`, `/wards`, `/notices`, `/timetable?class_id=`,
 `/attendance/student/:id`, `/finance/receipts`, `/grades?student_id=&term=Term N[&academic_year=]`,
-`/grades/years?student_id=`. Todas no formato das rotas
+`/grades/years?student_id=`, `/subjects`, `/classes`, `/academic-calendar`. Todas no formato das rotas
 antigas, para os ecrãs não mudarem.
 
 - Horário: `class_subjects` da turma → `timetable_slots` com `status = active`
@@ -77,6 +77,12 @@ antigas, para os ecrãs não mudarem.
   nota provisória. Todas as disciplinas da turma aparecem, com ou sem notas.
   As fórmulas estão em `school-worker/src/sga/grades.ts` e têm de seguir
   `src/lib/angola-academic.ts`.
+- Saldo do educando (em `/wards`, `balance`): negativo = em dívida, o que
+  falta das facturas `open`/`partially_paid` depois dos recibos não anulados.
+- Calendário: o ano lectivo `active` da escola e os seus `terms` como
+  "Term N"; o trimestre activo é o que contém hoje (Luanda).
+- Ainda no modo antigo: conversas (o separador diz que chegam numa próxima
+  versão) e dados pessoais (só leitura; alteram-se no portal do SIGA).
 - Recibos: matrícula → `finance_contracts` → `finance_invoices` →
   `finance_receipts` sem `reversed_at`. O SIGA não guarda saldos no recibo: o
   "saldo depois" é o que falta dessa factura (valor − desconto + multa) depois

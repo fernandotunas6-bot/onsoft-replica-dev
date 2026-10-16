@@ -14,6 +14,7 @@ import 'package:yft_school_system/features/dashboard/presentation/notices_screen
 import 'package:yft_school_system/features/dashboard/presentation/providers/notices_providers.dart';
 import 'package:yft_school_system/features/messages/application/favorite_notices.dart';
 import 'package:yft_school_system/features/messages/presentation/conversations.dart';
+import 'package:yft_school_system/core/sga/sga_config.dart';
 
 /// Mensagens: conversas 1:1 com a escola e a caixa dos comunicados (com
 /// pesquisa, não lidas e favoritas).
@@ -48,7 +49,7 @@ class _MessagesScreenState extends ConsumerState<MessagesScreen> {
 
     return AppShell(
       tab: AppTab.messages,
-      floatingActionButton: _section == 0
+      floatingActionButton: _section == 0 && !sgaMode
           ? FloatingActionButton(
               tooltip: 'Nova conversa',
               onPressed: () => showNewConversationSheet(context),

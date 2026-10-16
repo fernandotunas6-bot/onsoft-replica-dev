@@ -357,3 +357,126 @@ export async function loadReceipts(db: SgaDb, schoolId: string, wards: { id: str
   }
   return out.sort((a, b) => b.created_at.localeCompare(a.created_at));
 }
+
+/**
+ * Calendário do ano lectivo activo da escola, no formato de
+ * GET /api/users/me/academic-calendar: trimestres "Term N" pela sequência, e o
+ * activo é o que contém hoje (hora de Luanda); fora de todos, o próximo ou o
+ * último.
+ */
+export async function loadAcademicCalendar(db: SgaDb, schoolId: string) {
+  const [years, schools] = await Promise.all([
+    db.select<{ id: string; name: string }>('academic_years', {
+      select: 'id,name',
+      school_id: `eq.${schoolId}`,
+      status: 'eq.active',
+      order: 'starts_on.desc',
+      limit: '1',
+    }),
+    db.select<{ currency_code: string | null }>('schools', { select: 'currency_code', id: `eq.${schoolId}` }),
+  ]);
+  const year = years[0];
+  if (!year) return null;
+  const terms = await db.select<{ sequence: number; starts_on: string | null; ends_on: string | null }>('terms', {
+    select: 'sequence,starts_on,ends_on',
+    school_id: `eq.${schoolId}`,
+    academic_year_id: `eq.${year.id}`,
+    order: 'sequence.asc',
+  });
+  const dated = terms.filter((t) => t.starts_on && t.ends_on);
+  const today = luandaToday();
+  const active =
+    dated.find((t) => t.starts_on! <= today && today <= t.ends_on!) ??
+    dated.find((t) => t.starts_on! > today) ??
+    dated[dated.length - 1];
+  return {
+    academic_year: year.name,
+    active_term: active ? `Term ${active.sequence}` : '',
+    currency: schools[0]?.currency_code || 'AOA',
+    term_system: Math.max(2, Math.min(3, terms.length || 3)),
+    terms: dated.map((t) => ({
+      name: `Term ${t.sequence}`,
+      start_date: t.starts_on!.slice(0, 10),
+      end_date: t.ends_on!.slice(0, 10),
+    })),
+  };
+}
+
+/** Disciplinas das turmas dos educandos, no formato de GET /api/subjects. */
+export async function loadWardSubjects(db: SgaDb, schoolId: string, classGroupIds: string[], onlyClass?: string) {
+  const classes = onlyClass ? classGroupIds.filter((c) => c === onlyClass) : classGroupIds;
+  if (!classes.length) return [];
+  const classSubjects = await db.select<{ class_group_id: string; subject_id: string }>('class_subjects', {
+    select: 'class_group_id,subject_id',
+    school_id: `eq.${schoolId}`,
+    class_group_id: inList(classes),
+  });
+  if (!classSubjects.length) return [];
+  const subjects = await db.select<{ id: string; name: string }>('subjects', {
+    select: 'id,name',
+    school_id: `eq.${schoolId}`,
+    id: inList([...new Set(classSubjects.map((c) => c.subject_id))]),
+  });
+  return subjects
+    .map((s) => ({
+      id: s.id,
+      school_id: schoolId,
+      name: s.name,
+      class_ids: [...new Set(classSubjects.filter((c) => c.subject_id === s.id).map((c) => c.class_group_id))],
+      created_at: null,
+    }))
+    .sort((a, b) => a.name.localeCompare(b.name, 'pt'));
+}
+
+/**
+ * Saldo de cada educando, com o sinal do app: negativo = em dívida. É o que
+ * falta pagar das facturas em aberto (valor − desconto + multa − recibos não
+ * anulados), as mesmas que o SIGA conta como «por pagar».
+ */
+export async function wardBalances(db: SgaDb, schoolId: string, studentIds: string[]): Promise<Map<string, number>> {
+  const balances = new Map(studentIds.map((id) => [id, 0]));
+  if (!studentIds.length) return balances;
+  const enrollments = await db.select<{ id: string; student_id: string }>('enrollments', {
+    select: 'id,student_id',
+    school_id: `eq.${schoolId}`,
+    student_id: inList(studentIds),
+  });
+  if (!enrollments.length) return balances;
+  const contracts = await db.select<{ id: string; enrollment_id: string }>('finance_contracts', {
+    select: 'id,enrollment_id',
+    school_id: `eq.${schoolId}`,
+    enrollment_id: inList(enrollments.map((e) => e.id)),
+  });
+  if (!contracts.length) return balances;
+  const invoices = await db.select<{
+    id: string;
+    contract_id: string;
+    amount: number;
+    discount_amount: number | null;
+    penalty_amount: number | null;
+  }>('finance_invoices', {
+    select: 'id,contract_id,amount,discount_amount,penalty_amount',
+    school_id: `eq.${schoolId}`,
+    contract_id: inList(contracts.map((c) => c.id)),
+    status: 'in.(open,partially_paid)',
+  });
+  if (!invoices.length) return balances;
+  const receipts = await db.select<{ invoice_id: string; amount: number }>('finance_receipts', {
+    select: 'invoice_id,amount',
+    school_id: `eq.${schoolId}`,
+    invoice_id: inList(invoices.map((i) => i.id)),
+    reversed_at: 'is.null',
+  });
+  const paid = new Map<string, number>();
+  for (const r of receipts) paid.set(r.invoice_id, (paid.get(r.invoice_id) ?? 0) + money(r.amount));
+  const studentOfContract = new Map(
+    contracts.map((c) => [c.id, enrollments.find((e) => e.id === c.enrollment_id)?.student_id]),
+  );
+  for (const inv of invoices) {
+    const student = studentOfContract.get(inv.contract_id);
+    if (!student) continue;
+    const due = money(inv.amount) - money(inv.discount_amount) + money(inv.penalty_amount) - (paid.get(inv.id) ?? 0);
+    if (due > 0) balances.set(student, money((balances.get(student) ?? 0) - due));
+  }
+  return balances;
+}
