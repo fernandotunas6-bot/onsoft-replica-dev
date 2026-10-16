@@ -1,3 +1,4 @@
+import 'package:yft_school_system/core/utils/date_utils.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons/lucide_icons.dart';
@@ -12,10 +13,7 @@ import 'package:yft_school_system/core/utils/term_label.dart';
 class ParentReceiptsScreen extends ConsumerWidget {
   const ParentReceiptsScreen({super.key});
 
-  String _formatWhen(String raw) {
-    if (raw.isEmpty) return '—';
-    return raw.replaceFirst('T', ' ').split('.').first;
-  }
+  String _formatWhen(String raw) => formatServerDateTime(raw);
 
   void _openDetail(BuildContext context, WidgetRef ref, FeeReceipt r) {
     final cal = ref.read(academicYearProvider);

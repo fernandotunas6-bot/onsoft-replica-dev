@@ -1,3 +1,4 @@
+import 'package:yft_school_system/core/utils/date_utils.dart';
 import 'dart:typed_data';
 
 import 'package:dio/dio.dart';
@@ -10,10 +11,7 @@ import 'package:yft_school_system/features/finance/presentation/widgets/fee_rece
 final PdfColor _kBrandGreen = PdfColor(61 / 255, 79 / 255, 0);
 final PdfColor _kOwing = PdfColor(1.0, 0.294, 0.294);
 
-String _formatWhen(String raw) {
-  if (raw.isEmpty) return '—';
-  return raw.replaceFirst('T', ' ').split('.').first;
-}
+String _formatWhen(String raw) => formatServerDateTime(raw);
 
 List<pw.Widget> _contactLinesCentered(String? text) {
   if (text == null || text.trim().isEmpty) return [];

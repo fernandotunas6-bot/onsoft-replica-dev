@@ -6,6 +6,7 @@ import 'package:yft_school_system/core/models/school_notice.dart';
 import 'package:yft_school_system/core/providers/repository_providers.dart';
 import 'package:yft_school_system/core/theme/app_colors.dart';
 import 'package:yft_school_system/features/dashboard/presentation/providers/notices_providers.dart';
+import 'package:yft_school_system/core/utils/date_utils.dart';
 import 'package:yft_school_system/core/utils/term_label.dart';
 
 enum SchoolEventKind { termStart, termEnd, notice }
@@ -76,11 +77,11 @@ final schoolEventsProvider = FutureProvider<List<SchoolEvent>>((ref) async {
   try {
     final notices = await ref.watch(parentNoticesProvider.future);
     for (final n in notices) {
-      final when = DateTime.tryParse(n.createdAt);
+      final when = parseServerTime(n.createdAt);
       if (when == null) continue;
       events.add(
         SchoolEvent(
-          date: dayOnly(when.toLocal()),
+          date: dayOnly(when),
           title: n.title,
           subtitle: n.summary.isNotEmpty ? n.summary : 'Comunicado',
           kind: SchoolEventKind.notice,

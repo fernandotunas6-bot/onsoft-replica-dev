@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:yft_school_system/core/utils/date_utils.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:lucide_icons/lucide_icons.dart';
@@ -113,9 +114,7 @@ class ConversationsList extends ConsumerWidget {
                                 ),
                                 const SizedBox(width: 8),
                                 Text(
-                                  relativeWhen(
-                                    '${(c.lastMessageAt ?? '').replaceFirst(' ', 'T')}Z',
-                                  ),
+                                  relativeWhen(c.lastMessageAt ?? ''),
                                   style: TextStyle(
                                     fontSize: 12,
                                     color: unread
@@ -565,7 +564,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
 
 /// Hora local de uma mensagem (o servidor grava em UTC, sem "T" nem "Z").
 DateTime? _messageTime(ChatMessage m) =>
-    DateTime.tryParse('${m.createdAt.replaceFirst(' ', 'T')}Z')?.toLocal();
+    parseServerTime(m.createdAt);
 
 DateTime? _messageDay(ChatMessage m) {
   final t = _messageTime(m);

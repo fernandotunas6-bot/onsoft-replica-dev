@@ -1,3 +1,4 @@
+import 'package:yft_school_system/core/utils/date_utils.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons/lucide_icons.dart';
@@ -7,10 +8,7 @@ import 'package:yft_school_system/core/theme/app_colors.dart';
 import 'package:yft_school_system/features/dashboard/presentation/providers/notices_providers.dart';
 
 /// Data de publicação legível, sem segundos.
-String formatNoticeWhen(String raw) {
-  if (raw.isEmpty) return '—';
-  return raw.replaceFirst('T', ' ').split('.').first;
-}
+String formatNoticeWhen(String raw) => formatServerDateTime(raw);
 
 /// Marca o comunicado como lido e abre-o numa folha.
 Future<void> openNoticeSheet(

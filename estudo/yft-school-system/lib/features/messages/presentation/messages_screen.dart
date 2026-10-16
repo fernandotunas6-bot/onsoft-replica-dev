@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:yft_school_system/core/utils/date_utils.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:lucide_icons/lucide_icons.dart';
@@ -378,7 +379,7 @@ class _ConversationTile extends ConsumerWidget {
 
 /// "10:24" hoje, "Ontem", "3d" na semana, depois a data.
 String relativeWhen(String raw) {
-  final when = DateTime.tryParse(raw)?.toLocal();
+  final when = parseServerTime(raw);
   if (when == null) return '';
   final now = DateTime.now();
   final today = DateTime(now.year, now.month, now.day);

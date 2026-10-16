@@ -8,6 +8,7 @@ import 'dart:typed_data';
 
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:yft_school_system/core/utils/date_utils.dart';
 import 'package:yft_school_system/core/repositories/attendance_repository.dart';
 import 'package:yft_school_system/core/repositories/class_repository.dart';
 import 'package:yft_school_system/core/repositories/conversations_repository.dart';
@@ -182,7 +183,7 @@ void main() {
     expect(thread.hasMore, isFalse);
     // A data vem do servidor em UTC, sem "T" nem "Z": o app tem de a ler.
     expect(
-      DateTime.tryParse('${thread.messages.single.createdAt.replaceFirst(' ', 'T')}Z'),
+      parseServerTime(thread.messages.single.createdAt),
       isNotNull,
     );
   });

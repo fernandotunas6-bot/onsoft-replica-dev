@@ -1,3 +1,4 @@
+import 'package:yft_school_system/core/utils/date_utils.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:yft_school_system/core/theme/app_colors.dart';
@@ -15,10 +16,7 @@ class FeeReceiptTemplate extends StatelessWidget {
   static const _muted = Color(0xFF475569);
   static const _surface = Color(0xFFF8FAFC);
 
-  String _formatWhen(String raw) {
-    if (raw.isEmpty) return '—';
-    return raw.replaceFirst('T', ' ').split('.').first;
-  }
+  String _formatWhen(String raw) => formatServerDateTime(raw);
 
   @override
   Widget build(BuildContext context) {
