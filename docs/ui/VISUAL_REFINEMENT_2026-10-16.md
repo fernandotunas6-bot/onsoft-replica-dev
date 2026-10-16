@@ -81,3 +81,23 @@ fonte da licença: https://github.com/rsms/inter/blob/master/LICENSE.txt.
   Não representa um ensaio autenticado de dados ou de isolamento.
 - 92 testes UI/navegação aprovados após este incremento; checks de estilo e
   acessibilidade aprovados. TypeScript e build aprovados na branch.
+
+## Continuação — filtros, paginação e acções
+
+- Filtros com campos de 44 px, labels de 12 px e texto de entrada de 16 px no
+  telemóvel. Os campos ocupam uma linha cada em ecrãs estreitos; os chips quebram
+  nomes compridos sem alargar a página. Pesquisa mantém o debounce de 220 ms.
+- Paginação com botões e selector de 44 px, números tabulares e distribuição
+  adaptável. Separadores com alvo de 44 px e foco visível.
+- Folhas de acções mostram nomes e descrições em várias linhas, com linhas de
+  pelo menos 52 px. Mantêm separação destrutiva, regras de visibilidade e callbacks.
+- Chromium com dados fictícios em 320, 390 (escuro), 768 e 1440 px: todos os
+  controlos medidos com 44 px; sem overflow horizontal nem erros JavaScript;
+  mudar página e separador, escrever na pesquisa e abrir a folha funcionaram.
+  Revisão de capturas para filtros e acções; não equivale a uma sessão institucional.
+- 99 testes de UI/filtros/navegação aprovados; scripts de estilo/acessibilidade e
+  lint dos componentes editados, TypeScript e build aprovados. A abertura continua apenas com o
+  logótipo animado, sem vídeo.
+- CI e Flutter do incremento anterior (`86daf1f`) concluídos com sucesso:
+  [CI 38901652089](https://github.com/fernandotunas6-bot/onsoft-replica-dev/actions/runs/38901652089)
+  e [Flutter 38901652086](https://github.com/fernandotunas6-bot/onsoft-replica-dev/actions/runs/38901652086).
