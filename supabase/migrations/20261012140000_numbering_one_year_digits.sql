@@ -322,88 +322,125 @@ begin
 end;
 $function$;
 
--- 6. Renumerar os existentes. As regras de formato e a protecção da identidade saem
---    durante a troca e voltam no fim, dentro desta transacção.
+-- 6. Validar e planear antes de desactivar protecções ou alterar números.
+-- Executar apenas numa transacção única. Estes locks impedem escritas nas tabelas
+-- de origem enquanto o plano é calculado e aplicado.
+lock table public.students, public.enrollments, public.issued_documents,
+  public.academic_years in share row exclusive mode;
+
+create table if not exists private.siga_numbering_changes (
+  migration text not null,
+  school_id uuid not null references public.schools(id),
+  kind text not null check (kind in ('student', 'enrollment', 'document')),
+  record_id uuid not null,
+  old_number text not null,
+  new_number text not null,
+  changed_at timestamptz not null default now(),
+  primary key (migration, kind, record_id)
+);
+alter table private.siga_numbering_changes enable row level security;
+alter table private.siga_numbering_changes force row level security;
+revoke all on private.siga_numbering_changes from public, anon, authenticated, service_role;
+grant select on private.siga_numbering_changes to service_role;
+
+-- Tabelas temporárias explícitas permitem ensaiar a mesma migração duas vezes.
+drop table if exists pg_temp.siga_numbering_source;
+drop table if exists pg_temp.siga_numbering_plan;
+create temporary table siga_numbering_source on commit drop as
+select 'student'::text as kind, s.id, s.school_id, s.student_number as old_number,
+  extract(year from s.admission_date)::integer as year, s.created_at as ordered_at
+from public.students s
+union all
+select 'enrollment', e.id, e.school_id, e.enrollment_number,
+  extract(year from y.starts_on)::integer, e.created_at
+from public.enrollments e
+left join public.academic_years y on y.id = e.academic_year_id and y.school_id = e.school_id
+union all
+select 'document', d.id, d.school_id, d.document_number,
+  extract(year from (d.issued_at at time zone 'Africa/Luanda'))::integer, d.issued_at
+from public.issued_documents d
+where d.document_type not in ('invoice', 'receipt', 'credit_note', 'expense');
+
+do $preflight$
+begin
+  if exists (select 1 from pg_temp.siga_numbering_source
+    where year is null or year not between 2000 and 2099 or old_number is null) then
+    raise exception using errcode = '22023',
+      message = 'Renumeração recusada: data, ano, escola do ano lectivo ou número inválido.';
+  end if;
+  if exists (select 1 from pg_temp.siga_numbering_source
+    where old_number ~ '^1[0-9]{6}$'
+      and (right(old_number, 4) = '0000'
+        or ('20' || substr(old_number, 2, 2))::integer <> year)) then
+    raise exception using errcode = '22023',
+      message = 'Renumeração recusada: número existente com sequência zero ou ano divergente.';
+  end if;
+end;
+$preflight$;
+
+create temporary table siga_numbering_plan on commit drop as
+with base as (
+  select kind, school_id, year, max(right(old_number, 4)::integer) as last
+  from pg_temp.siga_numbering_source where old_number ~ '^1[0-9]{6}$'
+  group by kind, school_id, year
+), pending as (
+  select *, row_number() over (
+    partition by kind, school_id, year order by ordered_at, id
+  ) as rn
+  from pg_temp.siga_numbering_source where old_number !~ '^1[0-9]{6}$'
+)
+select p.*, coalesce(b.last, 0) + p.rn as sequence
+from pending p left join base b using (kind, school_id, year);
+
+do $capacity$
+begin
+  if exists (select 1 from pg_temp.siga_numbering_plan where sequence > 9999) then
+    raise exception using errcode = '54000',
+      message = 'Renumeração recusada: excede 9999 números por escola, tipo e ano.';
+  end if;
+  if exists (
+    select 1 from pg_temp.siga_numbering_plan p
+    join private.siga_numbering_changes c
+      on c.migration = '20261012140000' and c.kind = p.kind and c.record_id = p.id
+  ) then
+    raise exception using errcode = '22023',
+      message = 'Renumeração recusada: registo já renumerado foi alterado; rever histórico.';
+  end if;
+end;
+$capacity$;
+
+-- Guardar o mapa na mesma transacção: uma falha desfaz mapa e alterações juntos.
+insert into private.siga_numbering_changes
+  (migration, school_id, kind, record_id, old_number, new_number)
+select '20261012140000', school_id, kind, id, old_number,
+  '1' || lpad((year % 100)::text, 2, '0') || lpad(sequence::text, 4, '0')
+from pg_temp.siga_numbering_plan;
+
 alter table public.students drop constraint if exists students_student_number_check;
 alter table public.enrollments drop constraint if exists enrollments_enrollment_number_check;
 alter table public.students disable trigger protect_student_identity;
 alter table public.enrollments disable trigger protect_enrollment_identity;
 
--- Alunos: por escola e ano de admissão, por ordem de criação, a seguir ao maior já
--- atribuído no formato novo.
-with pending as (
-  select s.id, s.school_id, extract(year from s.admission_date)::integer as year,
-    row_number() over (
-      partition by s.school_id, extract(year from s.admission_date)
-      order by s.created_at, s.id
-    ) as rn
-  from public.students s
-  where s.student_number !~ '^1[0-9]{6}$'
-),
-base as (
-  select school_id, extract(year from admission_date)::integer as year,
-    max(right(student_number, 4)::integer) as last
-  from public.students
-  where student_number ~ '^1[0-9]{6}$'
-  group by 1, 2
-)
-update public.students s
-set student_number = '1' || lpad((p.year % 100)::text, 2, '0')
-  || lpad((coalesce(b.last, 0) + p.rn)::text, 4, '0')
-from pending p
-left join base b on b.school_id = p.school_id and b.year = p.year
-where s.id = p.id;
+update public.students t
+set student_number = c.new_number
+from private.siga_numbering_changes c
+join pg_temp.siga_numbering_plan p on p.id = c.record_id and p.kind = c.kind
+where c.migration = '20261012140000' and c.kind = 'student'
+  and t.id = c.record_id and t.school_id = c.school_id;
 
--- Matrículas: por escola e ano em que começa o ano lectivo.
-with pending as (
-  select e.id, e.school_id, extract(year from y.starts_on)::integer as year,
-    row_number() over (
-      partition by e.school_id, extract(year from y.starts_on)
-      order by e.created_at, e.id
-    ) as rn
-  from public.enrollments e
-  join public.academic_years y on y.id = e.academic_year_id
-  where e.enrollment_number !~ '^1[0-9]{6}$'
-),
-base as (
-  select e.school_id, extract(year from y.starts_on)::integer as year,
-    max(right(e.enrollment_number, 4)::integer) as last
-  from public.enrollments e
-  join public.academic_years y on y.id = e.academic_year_id
-  where e.enrollment_number ~ '^1[0-9]{6}$'
-  group by 1, 2
-)
-update public.enrollments e
-set enrollment_number = '1' || lpad((p.year % 100)::text, 2, '0')
-  || lpad((coalesce(b.last, 0) + p.rn)::text, 4, '0')
-from pending p
-left join base b on b.school_id = p.school_id and b.year = p.year
-where e.id = p.id;
+update public.enrollments t
+set enrollment_number = c.new_number
+from private.siga_numbering_changes c
+join pg_temp.siga_numbering_plan p on p.id = c.record_id and p.kind = c.kind
+where c.migration = '20261012140000' and c.kind = 'enrollment'
+  and t.id = c.record_id and t.school_id = c.school_id;
 
--- Documentos emitidos pela escola (declarações, certificados…).
-with pending as (
-  select d.id, d.school_id,
-    extract(year from (d.issued_at at time zone 'Africa/Luanda'))::integer as year,
-    row_number() over (
-      partition by d.school_id, extract(year from (d.issued_at at time zone 'Africa/Luanda'))
-      order by d.issued_at, d.id
-    ) as rn
-  from public.issued_documents d
-  where d.document_number !~ '^1[0-9]{6}$'
-),
-base as (
-  select school_id, ('20' || substr(document_number, 2, 2))::integer as year,
-    max(right(document_number, 4)::integer) as last
-  from public.issued_documents
-  where document_number ~ '^1[0-9]{6}$'
-  group by 1, 2
-)
-update public.issued_documents d
-set document_number = '1' || lpad((p.year % 100)::text, 2, '0')
-  || lpad((coalesce(b.last, 0) + p.rn)::text, 4, '0')
-from pending p
-left join base b on b.school_id = p.school_id and b.year = p.year
-where d.id = p.id;
+update public.issued_documents t
+set document_number = c.new_number
+from private.siga_numbering_changes c
+join pg_temp.siga_numbering_plan p on p.id = c.record_id and p.kind = c.kind
+where c.migration = '20261012140000' and c.kind = 'document'
+  and t.id = c.record_id and t.school_id = c.school_id;
 
 alter table public.students enable trigger protect_student_identity;
 alter table public.enrollments enable trigger protect_enrollment_identity;
@@ -429,13 +466,14 @@ insert into private.siga_year_sequences (school_id, kind, year, next_number)
 select school_id, 'document', ('20' || substr(document_number, 2, 2))::integer,
   max(right(document_number, 4)::integer) + 1
 from public.issued_documents where document_number ~ '^1[0-9]{6}$'
+  and document_type not in ('invoice', 'receipt', 'credit_note', 'expense')
 group by 1, 3
 on conflict (school_id, kind, year)
 do update set next_number = greatest(private.siga_year_sequences.next_number, excluded.next_number);
 
 -- 7. O formato novo passa a ser a regra.
 alter table public.students
-  add constraint students_student_number_check check (student_number ~ '^1[0-9]{6}$');
+  add constraint students_student_number_check check (student_number ~ '^1[0-9]{6}$' and right(student_number, 4) <> '0000');
 alter table public.enrollments
-  add constraint enrollments_enrollment_number_check check (enrollment_number ~ '^1[0-9]{6}$');
+  add constraint enrollments_enrollment_number_check check (enrollment_number ~ '^1[0-9]{6}$' and right(enrollment_number, 4) <> '0000');
 

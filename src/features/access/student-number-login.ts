@@ -18,7 +18,8 @@ import { parseSettingsDomain } from "@/features/school/settings-domains";
 import { loadSgaAdminClient } from "@/integrations/supabase/sga-admin";
 
 export const STUDENT_ACCESS_DOMAIN = "student_access";
-const STUDENT_NUMBER = /^1\d{6}$/;
+const STUDENT_NUMBER = /^1\d{2}(?!0000)\d{4}$/;
+const MAX_LOGIN_CANDIDATES = 50;
 /** Estados de aluno que podem entrar (candidato: acabou de ser registado). */
 const LOGIN_STATUSES = ["active", "applicant"];
 
@@ -76,10 +77,13 @@ export async function resolveStudentNumberLogin(
     .eq("student_number", studentNumber)
     .in("status", LOGIN_STATUSES)
     .is("deleted_at", null)
-    .limit(50);
+    .limit(MAX_LOGIN_CANDIDATES);
   if (hostSchoolId) query = query.eq("school_id", hostSchoolId);
   const { data: students, error } = await query;
   if (error || !students?.length) return null;
+  // Um resultado saturado pode omitir outra escola. Sem escola no endereço,
+  // pedir o endereço específico antes de escolher qualquer conta.
+  if (!hostSchoolId && students.length >= MAX_LOGIN_CANDIDATES) return { error: "school_required" };
   const rows = students as { school_id: string; person_id: string }[];
 
   const { data: settings } = await db

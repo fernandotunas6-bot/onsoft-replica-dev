@@ -11,6 +11,8 @@ type Row = Record<string, unknown>;
 function fakeDb(tables: Record<string, Row[]>, users: Record<string, string>) {
   const from = (table: string) => {
     let rows = [...(tables[table] ?? [])];
+    let rowLimit = Infinity;
+    const result = () => rows.slice(0, rowLimit);
     const builder = {
       select: () => builder,
       eq: (column: string, value: unknown) => {
@@ -29,10 +31,13 @@ function fakeDb(tables: Record<string, Row[]>, users: Record<string, string>) {
         rows = rows.filter((r) => (r[column] ?? null) !== value);
         return builder;
       },
-      limit: () => builder,
-      maybeSingle: async () => ({ data: rows[0] ?? null, error: null }),
+      limit: (value: number) => {
+        rowLimit = value;
+        return builder;
+      },
+      maybeSingle: async () => ({ data: result()[0] ?? null, error: null }),
       then: (resolve: (v: { data: Row[]; error: null }) => unknown) =>
-        resolve({ data: rows, error: null }),
+        resolve({ data: result(), error: null }),
     };
     return builder;
   };
@@ -73,6 +78,7 @@ const users = { ua: "Ana@Escola.ao", ub: "bruno@outra.ao" };
 
 describe("número de aluno", () => {
   it("aceita só 1 + ano + 4 dígitos, com espaços ou traços", () => {
+    expect(normalizeStudentNumber("1260000")).toBeNull();
     expect(normalizeStudentNumber("1260001")).toBe("1260001");
     expect(normalizeStudentNumber(" 126 0001 ")).toBe("1260001");
     expect(normalizeStudentNumber("126-0001")).toBe("1260001");
@@ -146,5 +152,34 @@ describe("escola do endereço", () => {
     expect(await schoolIdForHost(db, "localhost")).toBeNull();
     expect(await schoolIdForHost(db, "outra.ao")).toBeNull();
     expect(await schoolIdForHost(db, null)).toBeNull();
+  });
+});
+
+// O limite precisa de actuar antes da escolha da conta, como no PostgREST.
+describe("login geral com muitas escolas", () => {
+  const rows = Array.from({ length: 51 }, (_, i) => student(`school-${i}`, `person-${i}`));
+  const tables = {
+    students: rows,
+    people: [person("person-0", "school-0", "ua"), person("person-50", "school-50", "ub")],
+    school_settings: [on("school-0"), on("school-50")],
+  };
+  it("não escolhe a única conta visível quando outra está depois do limite", async () => {
+    expect(await resolveStudentNumberLogin(fakeDb(tables, users), "1260001", null)).toEqual({
+      error: "school_required",
+    });
+  });
+  it("continua a resolver a escola do endereço, mesmo depois das primeiras 50", async () => {
+    expect(await resolveStudentNumberLogin(fakeDb(tables, users), "1260001", "school-50")).toEqual({
+      email: "bruno@outra.ao",
+    });
+  });
+  it("pede escola também no limiar exacto, sem provar completude", async () => {
+    expect(
+      await resolveStudentNumberLogin(
+        fakeDb({ ...tables, students: rows.slice(0, 50) }, users),
+        "1260001",
+        null,
+      ),
+    ).toEqual({ error: "school_required" });
   });
 });

@@ -4,6 +4,13 @@ Ler isto **antes** de alterar código. Ecossistema (5 apps):
 [ARCHITECTURE_HARMONIZATION.md](./ARCHITECTURE_HARMONIZATION.md).
 Depois abrir o skill do módulo em `.cursor/skills/`.
 
+## Revisão #148 — reforço antes de aplicar (2026-10-16)
+
+Preflight antes do lote (datas/ano/zero/capacidade), locks, mapa privado antigo → novo
+`private.siga_numbering_changes` e testes de documentos existentes/rollback. Login geral
+recusa escolher conta ao atingir 50 fichas. Produção continua **por aplicar**.
+Matriz e critérios: [NUMBERING_148_VALIDATION.md](./NUMBERING_148_VALIDATION.md).
+
 ## Numeração só com dígitos (2026-10-12) — POR APLICAR
 
 Pedido do dono: número do aluno, da matrícula e dos documentos da escola com 7 dígitos,
@@ -15,6 +22,7 @@ PayFlow do aluno passa a ser o próprio número (antes `0900038` de `EST-900038`
 já sincronizado no PayFlow com o código antigo tem de ser sincronizado de novo.
 
 Feito à volta (não depende da migração):
+
 - **Entrar com o número de aluno** — escolha da escola em Definições → Segurança
   (`school_settings` domínio `student_access`, `student_number_login`, desligado por
   omissão; só Administrador, com 2FA, auditado). Login: `student-number-login.ts` (escola

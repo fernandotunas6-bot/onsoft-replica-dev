@@ -24,7 +24,7 @@ const YEAR = Number(
 );
 const yy = String(YEAR % 100).padStart(2, "0");
 
-await db.exec(`
+const schema = `
 CREATE ROLE anon; CREATE ROLE authenticated; CREATE ROLE service_role;
 CREATE SCHEMA private; CREATE SCHEMA auth;
 CREATE FUNCTION auth.uid() RETURNS uuid LANGUAGE sql AS $$ SELECT '${USER}'::uuid $$;
@@ -59,7 +59,7 @@ CREATE TABLE public.document_sequences (school_id uuid, document_type text, pref
   next_number integer NOT NULL DEFAULT 1, padding integer NOT NULL DEFAULT 6, updated_at timestamptz,
   PRIMARY KEY (school_id, document_type));
 CREATE TABLE public.issued_documents (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), school_id uuid NOT NULL,
-  document_number text NOT NULL, issued_at timestamptz NOT NULL DEFAULT now(),
+  document_number text NOT NULL, document_type text NOT NULL DEFAULT 'declaration', issued_at timestamptz NOT NULL DEFAULT now(),
   CONSTRAINT issued_documents_school_id_document_number_key UNIQUE (school_id, document_number));
 CREATE FUNCTION private.protect_student_identity() RETURNS trigger LANGUAGE plpgsql AS $$
 begin
@@ -77,7 +77,8 @@ begin
   return new;
 end $$;
 CREATE TRIGGER protect_enrollment_identity BEFORE UPDATE ON public.enrollments FOR EACH ROW EXECUTE FUNCTION private.protect_enrollment_identity();
-`);
+`;
+await db.exec(schema);
 
 // Dados de antes: números antigos, por ordem de criação diferente da ordem dos números.
 const yearA = (
@@ -244,3 +245,178 @@ await assert.rejects(
 );
 
 console.log("Numeração 1+ano+4 dígitos: ensaio local aprovado (PGlite, sem produção).");
+
+// Regressões da revisão #148: bases isoladas, sem tocar na produção.
+async function scenario(seed, check) {
+  const isolated = new PGlite();
+  try {
+    await isolated.exec(schema);
+    await isolated.exec(seed);
+    await check(isolated);
+  } finally {
+    await isolated.close();
+  }
+}
+const oldStudent = (number, date) => `INSERT INTO students
+  (school_id, person_id, student_number, admission_date)
+  VALUES ('${A}', gen_random_uuid(), '${number}', ${date === null ? "NULL" : `'${date}'`});`;
+for (const date of [null, "1999-01-01", "2100-01-01"]) {
+  await scenario(oldStudent("EST-000001", date), async (d) => {
+    await assert.rejects(d.exec(migration), /Renumeração recusada/);
+    assert.equal(
+      (await d.query("SELECT student_number FROM students")).rows[0].student_number,
+      "EST-000001",
+    );
+    assert.equal(
+      (await d.query("SELECT tgenabled FROM pg_trigger WHERE tgname = 'protect_student_identity'"))
+        .rows[0].tgenabled,
+      "O",
+    );
+  });
+}
+const acceptMixed = `ALTER TABLE students DROP CONSTRAINT students_student_number_check;`;
+for (const number of ["1250001", "1260000"]) {
+  await scenario(acceptMixed + oldStudent(number, "2026-01-01"), async (d) => {
+    await assert.rejects(d.exec(migration), /sequência zero ou ano divergente/);
+  });
+}
+await scenario(
+  acceptMixed + oldStudent("1269999", "2026-01-01") + oldStudent("EST-000001", "2026-01-02"),
+  async (d) => {
+    await assert.rejects(d.exec(migration), /excede 9999/);
+    assert.deepEqual(
+      (await d.query("SELECT student_number FROM students ORDER BY student_number")).rows.map(
+        (r) => r.student_number,
+      ),
+      ["1269999", "EST-000001"],
+    );
+  },
+);
+await scenario(
+  acceptMixed + oldStudent("1260042", "2026-01-01") + oldStudent("EST-000001", "2026-01-02"),
+  async (d) => {
+    await d.exec(migration);
+    assert.equal(
+      (await d.query("SELECT student_number FROM students WHERE admission_date = '2026-01-02'"))
+        .rows[0].student_number,
+      "1260043",
+    );
+    const map = (await d.query("SELECT old_number, new_number FROM private.siga_numbering_changes"))
+      .rows;
+    assert.deepEqual(map, [{ old_number: "EST-000001", new_number: "1260043" }]);
+    await d.exec(migration);
+    assert.equal(
+      (await d.query("SELECT count(*)::int AS n FROM private.siga_numbering_changes")).rows[0].n,
+      1,
+    );
+    await assert.rejects(
+      d.exec("SET ROLE anon; SELECT * FROM private.siga_numbering_changes"),
+      /permission denied/,
+    );
+    await d.exec("RESET ROLE");
+    await assert.rejects(
+      d.query(
+        "INSERT INTO students (school_id, person_id, student_number) VALUES ($1, gen_random_uuid(), '1260000')",
+        [A],
+      ),
+      /students_student_number_check/,
+    );
+  },
+);
+await scenario(
+  `INSERT INTO issued_documents (school_id, document_number, issued_at)
+  VALUES ('${A}', 'DEC-000001', '2026-02-01T10:00:00Z'),
+         ('${A}', '1260042', '2026-02-02T10:00:00Z'),
+         ('${B}', 'DEC-000002', '2025-12-31T23:30:00Z');`,
+  async (d) => {
+    await d.exec(migration);
+    assert.deepEqual(
+      (
+        await d.query("SELECT document_number FROM issued_documents ORDER BY school_id, issued_at")
+      ).rows.map((r) => r.document_number),
+      ["1260043", "1260042", "1260001"],
+    );
+    assert.equal(
+      (await d.query("SELECT private.next_document_number_service($1, 'declaration') AS n", [A]))
+        .rows[0].n,
+      `1${yy}${YEAR === 2026 ? "0044" : "0001"}`,
+    );
+    await d.exec(migration);
+    assert.equal(
+      (
+        await d.query(
+          "SELECT count(*)::int AS n FROM private.siga_numbering_changes WHERE kind = 'document'",
+        )
+      ).rows[0].n,
+      2,
+    );
+  },
+);
+// A matrícula precisa de um ano pertencente à própria escola.
+await scenario(
+  `INSERT INTO academic_years (id, school_id, starts_on, ends_on)
+  VALUES ('00000000-0000-4000-8000-000000000010', '${B}', '2026-01-01', '2026-12-31');
+  INSERT INTO enrollments (school_id, academic_year_id, class_group_id, student_id, enrollment_number)
+  VALUES ('${A}', '00000000-0000-4000-8000-000000000010', gen_random_uuid(), gen_random_uuid(), 'MAT-000001');`,
+  async (d) => {
+    await assert.rejects(d.exec(migration), /Renumeração recusada/);
+    assert.equal(
+      (await d.query("SELECT enrollment_number FROM enrollments")).rows[0].enrollment_number,
+      "MAT-000001",
+    );
+  },
+);
+// O limite do lote aplica-se também à categoria documental.
+await scenario(
+  `INSERT INTO issued_documents (school_id, document_number, issued_at)
+  VALUES ('${A}', '1269999', '2026-01-01T10:00:00Z'), ('${A}', 'DEC-000001', '2026-01-02T10:00:00Z');`,
+  async (d) => {
+    await assert.rejects(d.exec(migration), /excede 9999/);
+    assert.equal(
+      (
+        await d.query(
+          "SELECT count(*)::int AS n FROM issued_documents WHERE document_number = 'DEC-000001'",
+        )
+      ).rows[0].n,
+      1,
+    );
+  },
+);
+// Mesmo se houver documentos fiscais nesta tabela, o lote deixa-os intactos.
+await scenario(
+  `INSERT INTO issued_documents (school_id, document_number, document_type, issued_at)
+  VALUES ('${A}', 'FT-000001', 'invoice', '2026-01-01T10:00:00Z'),
+         ('${A}', 'REC-000001', 'receipt', '2026-01-01T10:00:00Z'),
+         ('${A}', 'NC-000001', 'credit_note', '2026-01-01T10:00:00Z'),
+         ('${A}', 'DES-000001', 'expense', '2026-01-01T10:00:00Z');`,
+  async (d) => {
+    await d.exec(migration);
+    assert.equal(
+      (await d.query("SELECT count(*)::int AS n FROM private.siga_numbering_changes")).rows[0].n,
+      0,
+    );
+    assert.deepEqual(
+      (
+        await d.query("SELECT document_number FROM issued_documents ORDER BY document_number")
+      ).rows.map((r) => r.document_number),
+      ["DES-000001", "FT-000001", "NC-000001", "REC-000001"],
+    );
+  },
+);
+// Uma falha depois dos UPDATE tem de restaurar números, mapa e gatilhos.
+await scenario(oldStudent("EST-000001", "2026-01-01"), async (d) => {
+  await assert.rejects(d.exec(migration + "\nSELECT 1 / 0;"), /division by zero/);
+  assert.equal(
+    (await d.query("SELECT student_number FROM students")).rows[0].student_number,
+    "EST-000001",
+  );
+  assert.equal(
+    (await d.query("SELECT to_regclass('private.siga_numbering_changes') AS t")).rows[0].t,
+    null,
+  );
+  await assert.rejects(d.exec("UPDATE students SET student_number = 'EST-000002'"), /imutável/);
+});
+await db.close();
+console.log(
+  "Revisão #148: preflight, limite em lote, mapa, documentos existentes e rollback aprovados.",
+);
