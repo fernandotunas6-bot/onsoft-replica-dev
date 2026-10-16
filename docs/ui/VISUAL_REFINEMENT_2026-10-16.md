@@ -123,3 +123,28 @@ fonte da licença: https://github.com/rsms/inter/blob/master/LICENSE.txt.
 
 - CI e Flutter do incremento de filtros (`d29a31b`) concluídos com sucesso nos
   runs 38902673975 e 38902674002, respectivamente.
+
+## Entrega no main para revisão pelo Claude — 16/10/2026
+
+Por pedido do utilizador, a PR #164 foi integrada em `main` no commit
+`ee8b732b9d4627e56ff336a3bce7a00f1c434082`. As indicações anteriores de não integrar
+ou publicar descrevem o estado antes desta autorização.
+
+O commit final da PR (`3471217`) passou os workflows completos
+[CI Web](https://github.com/fernandotunas6-bot/onsoft-replica-dev/actions/runs/38903471251)
+e [Flutter](https://github.com/fernandotunas6-bot/onsoft-replica-dev/actions/runs/38903471194).
+A integração accionou o workflow já existente de
+[publicação](https://github.com/fernandotunas6-bot/onsoft-replica-dev/actions/runs/38904027322);
+o sucesso desse workflow deve ser consultado separadamente das validações da PR.
+
+Pontos para a revisão seguinte:
+
+1. Preservar a abertura apenas com o logótipo animado, sem vídeo ou som.
+2. Conferir páginas autenticadas por perfil, sobretudo formulários longos, modais,
+   selector de escola e reserva inferior da navegação com teclado virtual aberto.
+3. Verificar texto ampliado, foco e retorno, movimento reduzido, Safari e aparelho
+   Android real; as capturas de Chromium com dados fictícios não cobrem esses casos.
+4. Manter o âmbito visual. Alterações de autenticação, permissões, dados e
+   renumeração de alunos pertencem a revisões próprias; esta entrega não aplica SQL.
+5. A marca actual é tipográfica. Uma futura reprodução vectorial exacta deve usar
+   um asset aprovado; não substituir a marca por uma animação de vídeo na abertura.
