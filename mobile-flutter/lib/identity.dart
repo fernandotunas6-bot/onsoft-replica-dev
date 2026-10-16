@@ -1,30 +1,62 @@
-import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
 class Brand extends StatelessWidget {
   const Brand({super.key});
   @override
-  Widget build(BuildContext context) => const Row(
-    mainAxisSize: MainAxisSize.min,
-    children: [
-      Text(
-        'SIGA ',
-        style: TextStyle(fontSize: 28, fontWeight: FontWeight.w600),
-      ),
-      Text(
-        'Plus',
-        style: TextStyle(
-          fontSize: 28,
-          color: Color(0xff9954ed),
-          fontWeight: FontWeight.w600,
+  Widget build(BuildContext context) {
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    return Semantics(
+      label: 'SIGA Plus',
+      child: ExcludeSemantics(
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.baseline,
+          textBaseline: TextBaseline.alphabetic,
+          children: [
+            Text(
+              'SIGA ',
+              style: TextStyle(
+                fontFamily: 'Inter',
+                fontSize: 32,
+                letterSpacing: -1.2,
+                fontWeight: FontWeight.w600,
+                color: Theme.of(context).colorScheme.onSurface,
+              ),
+            ),
+            ShaderMask(
+              blendMode: BlendMode.srcIn,
+              shaderCallback: (bounds) => LinearGradient(
+                colors: dark
+                    ? [
+                        const Color(0xffa898ff),
+                        const Color(0xffed8ee4),
+                        const Color(0xffffad80),
+                      ]
+                    : [
+                        const Color(0xff6246ea),
+                        const Color(0xffc026d3),
+                        const Color(0xffe95a35),
+                      ],
+              ).createShader(bounds),
+              child: const Text(
+                'Plus',
+                style: TextStyle(
+                  fontFamily: 'Inter',
+                  fontSize: 32,
+                  letterSpacing: -1.2,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.white,
+                ),
+              ),
+            ),
+          ],
         ),
       ),
-    ],
-  );
+    );
+  }
 }
 
-/// Interim typographic reveal; not an exact morph of the original logo vector.
-/// Replace this painter with the approved Rive artboard before brand sign-off.
+/// Apenas a marca com uma entrada breve. Sem vídeo, som ou morph inventado.
 class IdentityIntro extends StatefulWidget {
   const IdentityIntro({super.key, required this.onDone, this.short = false});
   final VoidCallback onDone;
@@ -37,7 +69,11 @@ class _IdentityIntroState extends State<IdentityIntro>
     with SingleTickerProviderStateMixin {
   late final AnimationController motion = AnimationController(
     vsync: this,
-    duration: Duration(milliseconds: widget.short ? 650 : 3200),
+    duration: Duration(milliseconds: widget.short ? 500 : 1400),
+  );
+  late final CurvedAnimation enter = CurvedAnimation(
+    parent: motion,
+    curve: const Interval(0, .55, curve: Curves.easeOutCubic),
   );
   bool done = false;
   bool started = false;
@@ -51,8 +87,8 @@ class _IdentityIntroState extends State<IdentityIntro>
   @override
   void initState() {
     super.initState();
-    motion.addStatusListener((s) {
-      if (s == AnimationStatus.completed) finish();
+    motion.addStatusListener((status) {
+      if (status == AnimationStatus.completed) finish();
     });
   }
 
@@ -71,6 +107,7 @@ class _IdentityIntroState extends State<IdentityIntro>
 
   @override
   void dispose() {
+    enter.dispose();
     motion.dispose();
     super.dispose();
   }
@@ -81,112 +118,27 @@ class _IdentityIntroState extends State<IdentityIntro>
       child: Stack(
         children: [
           Center(
-            child: AnimatedBuilder(
-              animation: motion,
-              builder: (context, _) {
-                final t = motion.value;
-                final reveal = widget.short
-                    ? 0.0
-                    : t < .25
-                    ? 0.0
-                    : t < .45
-                    ? (t - .25) / .20
-                    : t < .65
-                    ? 1.0
-                    : t < .85
-                    ? 1 - (t - .65) / .20
-                    : 0.0;
-                return Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Semantics(
-                      label: reveal > .5 ? 'Seja bem-vindo' : 'SIGA Plus',
-                      child: ExcludeSemantics(
-                        child: CustomPaint(
-                          size: const Size(320, 110),
-                          painter: _IdentityPainter(reveal, t),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 24),
-                    Opacity(
-                      opacity: t > .85 ? ((t - .85) / .15).clamp(0.0, 1.0) : 0,
-                      child: const Brand(),
-                    ),
-                    const SizedBox(height: 12),
-                    const Text(
-                      'Educação que transforma',
-                      style: TextStyle(color: Color(0xff707783)),
-                    ),
-                  ],
-                );
-              },
+            child: Padding(
+              padding: const EdgeInsets.all(32),
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                child: FadeTransition(
+                  opacity: enter,
+                  child: ScaleTransition(
+                    scale: Tween<double>(begin: .96, end: 1).animate(enter),
+                    child: const Brand(),
+                  ),
+                ),
+              ),
             ),
           ),
           Positioned(
             right: 24,
-            bottom: 24,
+            bottom: 16,
             child: TextButton(onPressed: finish, child: const Text('Saltar')),
           ),
         ],
       ),
     ),
   );
-}
-
-class _IdentityPainter extends CustomPainter {
-  _IdentityPainter(this.reveal, this.progress);
-  final double reveal;
-  final double progress;
-  @override
-  void paint(Canvas canvas, Size size) {
-    final r = Curves.easeInOutCubic.transform(reveal.clamp(0.0, 1.0));
-    final scale = .94 + .06 * math.min(progress * 5, 1);
-    canvas.translate(size.width / 2, size.height / 2);
-    canvas.scale(scale);
-    final rect = Rect.fromCenter(
-      center: Offset.zero,
-      width: 84 + 220 * r,
-      height: 84 - 12 * r,
-    );
-    final gradient = LinearGradient(
-      colors: [
-        const Color(0xffff914d),
-        const Color(0xffed25ba),
-        const Color(0xff7047ff),
-        const Color(0xff3689fa),
-      ].map((c) => c.withValues(alpha: 1 - r)).toList(),
-    );
-    canvas.drawRRect(
-      RRect.fromRectAndRadius(rect, Radius.circular(26 - 10 * r)),
-      Paint()
-        ..shader = gradient.createShader(rect)
-        ..color = Colors.white.withValues(alpha: 1 - r),
-    );
-    void text(String label, double font, double opacity) {
-      final painter = TextPainter(
-        text: TextSpan(
-          text: label,
-          style: TextStyle(
-            fontSize: font,
-            fontWeight: FontWeight.w600,
-            color: (label == 'S' ? Colors.white : const Color(0xff7047ff))
-                .withValues(alpha: opacity),
-          ),
-        ),
-        textDirection: TextDirection.ltr,
-      )..layout(maxWidth: size.width);
-      painter.paint(canvas, Offset(-painter.width / 2, -painter.height / 2));
-    }
-
-    text('S', 58 + 14 * r, 1 - r);
-    canvas.save();
-    canvas.clipRect(rect);
-    text('Seja bem-vindo', 28, r);
-    canvas.restore();
-  }
-
-  @override
-  bool shouldRepaint(_IdentityPainter old) =>
-      old.reveal != reveal || old.progress != progress;
 }
