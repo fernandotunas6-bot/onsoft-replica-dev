@@ -18,14 +18,21 @@ export function PageLoading({
     <div className={cn("flex items-center justify-center bg-background", minHeight, className)}>
       {brandOnly ? (
         <div role="status" className="siga-brand-reveal text-[32px]">
-          <SigaWordmark />
+          <span aria-hidden="true" className="siga-brand-wait">
+            <SigaWordmark />
+          </span>
           <span className="sr-only">{message}</span>
         </div>
       ) : (
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto" />
+        <div role="status" className="max-w-full px-5 text-center">
+          <div
+            aria-hidden="true"
+            className="mx-auto size-[28px] rounded-full border-2 border-border border-t-primary motion-safe:animate-spin"
+          />
           {message ? (
-            <p className="text-muted-foreground mt-2 text-sm font-medium">{message}</p>
+            <p className="mt-3 break-words text-[13px] font-medium leading-[20px] text-muted-foreground">
+              {message}
+            </p>
           ) : null}
         </div>
       )}
