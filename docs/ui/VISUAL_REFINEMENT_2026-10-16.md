@@ -182,3 +182,27 @@ no código ou na documentação. Este bloqueio não exige alterar os componentes
 - 99 testes existentes de UI/filtros/navegação aprovados. Lint dos ficheiros
   editados sem erros, com um aviso de Fast Refresh já existente em `form.tsx`;
   scripts de estilo/acessibilidade aprovados. Build local aprovado.
+
+## Continuação — selectores e menus de escolha
+
+- Select com campo opaco de 44 px, valor limitado à largura disponível e ícone
+  que não encolhe. Opções com pelo menos 44 px e texto de 14 px/20 px em várias
+  linhas; popup limitado à largura da janela, com rolagem interna.
+- Menus de acções, opções checkbox/radio e submenus com o mesmo mínimo de 44 px,
+  espaçamento uniforme e rótulos compridos que podem quebrar. Títulos de grupo
+  e atalhos usam dimensões explícitas para não ficarem minúsculos no tema denso.
+- Animações de abertura/fecho respeitam movimento reduzido. Não se alteraram
+  callbacks, valores, estado disabled ou lógica de selecção.
+- Chromium com opções fictícias a 320×700, 390×844 (escuro), 768×1024, 1440×960
+  e 568×320: menus/selectores dentro da largura da janela, sem overflow lateral
+  nem erros JS, campos e opções com pelo menos 44 px; escolha simples, checkbox,
+  radio e acção aprovados. Abrir pelo teclado e Escape devolvem o foco ao selector.
+- 99 testes existentes de UI/filtros/navegação aprovados; lint dos componentes,
+  scripts de estilo/acessibilidade e build local aprovados. Revisão autenticada
+  e ensaios com teclado virtual/Safari/aparelhos reais permanecem pendentes.
+- A revisão adicional detectou o submenu lateral fora da janela. Em larguras
+  inferiores a `lg`, o submenu passa a ter a largura do seu botão e sobrepõe a
+  área do menu principal. Nova revisão nas cinco dimensões confirmou os submenus
+  dentro da janela e callbacks fictícios executados uma única vez por escolha.
+- TypeScript local aprovado. O fluxo de publicação permanece independente e
+  dependente de um token Cloudflare válido.
