@@ -236,28 +236,15 @@ export async function createSchoolAdminAccount(
       account.setupUrl = actionLink;
     }
 
-    const apiKey = process.env["RESEND_API_KEY"]?.trim();
-    if (!apiKey) {
-      account.deliveryError = "RESEND_API_KEY não configurada — link de acesso não foi enviado.";
+    const delivery = await sendAdminAccessEmail({
+      email,
+      schoolName: input.schoolName,
+      url: account.setupUrl ?? getAppUrl(),
+    });
+    if (!delivery.sent) {
+      account.deliveryError = delivery.error;
       return account;
     }
-
-    const message = renderSchoolInvitationEmail({
-      schoolName: input.schoolName,
-      roleName: "Administrador da Escola",
-      invitationUrl: account.setupUrl ?? getAppUrl(),
-      platformName: getAppName(),
-      platformUrl: getAppUrl(),
-      recipientEmail: email,
-    });
-    await sendResendEmail({
-      apiKey,
-      from: resolveSystemSender("auth", { schoolName: input.schoolName }),
-      to: [email],
-      subject: message.subject,
-      html: message.html,
-      text: message.text,
-    });
     account.inviteDelivered = true;
     account.inviteChannel = "resend";
   } catch (error) {
@@ -266,4 +253,47 @@ export async function createSchoolAdminAccount(
   }
 
   return account;
+}
+
+/**
+ * Envia ao administrador o e-mail com o link de acesso (definir senha ou
+ * entrar). Nunca lança: devolve o motivo quando não envia, para quem chama
+ * dizer a verdade a quem opera.
+ */
+export async function sendAdminAccessEmail(input: {
+  email: string;
+  schoolName: string;
+  url: string;
+}): Promise<{ sent: true } | { sent: false; error: string }> {
+  const apiKey = process.env["RESEND_API_KEY"]?.trim();
+  if (!apiKey) {
+    return {
+      sent: false,
+      error: "RESEND_API_KEY não configurada — link de acesso não foi enviado.",
+    };
+  }
+  try {
+    const message = renderSchoolInvitationEmail({
+      schoolName: input.schoolName,
+      roleName: "Administrador da Escola",
+      invitationUrl: input.url,
+      platformName: getAppName(),
+      platformUrl: getAppUrl(),
+      recipientEmail: input.email,
+    });
+    await sendResendEmail({
+      apiKey,
+      from: resolveSystemSender("auth", { schoolName: input.schoolName }),
+      to: [input.email],
+      subject: message.subject,
+      html: message.html,
+      text: message.text,
+    });
+    return { sent: true };
+  } catch (error) {
+    return {
+      sent: false,
+      error: error instanceof Error ? error.message : "Falha ao enviar o convite do administrador.",
+    };
+  }
 }

@@ -204,12 +204,20 @@ export const updateTenantSubscriptionInputSchema = z
     extend_trial_days: z.number().int().min(1).max(90).optional(),
     // Pagamento confirmado pela equipa: activa a assinatura por um mês ou um ano.
     confirm_payment_billing: z.enum(["monthly", "yearly"]).optional(),
+    // Ou pelo número de meses pagos (trimestral e semestral incluídos). Ganha a
+    // `confirm_payment_billing` quando vêm os dois.
+    confirm_payment_months: z
+      .union([z.literal(1), z.literal(3), z.literal(6), z.literal(12)])
+      .optional(),
+    // Referência do pagamento recebido sem comprovativo (numerário, transferência).
+    payment_reference: z.string().trim().max(120).optional(),
   })
   .refine(
     (data) =>
       data.plan_code != null ||
       data.extend_trial_days != null ||
-      data.confirm_payment_billing != null,
+      data.confirm_payment_billing != null ||
+      data.confirm_payment_months != null,
     { message: "Indique plano, extensão de trial ou pagamento confirmado." },
   );
 

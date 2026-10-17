@@ -35,3 +35,5 @@ ano divergente em número digital, sequência zero, excesso no lote com máximo 
 continuação depois de números digitais existentes, mapa privado antigo/novo idempotente,
 recusa anon, documentos existentes com mudança de ano em Luanda e rollback induzido depois
 dos UPDATE. Critérios remotos: `docs/agents/NUMBERING_148_VALIDATION.md`.
+
+Cobrança por escola (2026-10-15): `node tests/sql/tenant-billing-profiles.mjs` corre duas vezes o pacote `docs/agents/SIGA_aplicar_cobranca_escolas.sql` (que leva `20261015120000_tenant_billing_profiles.sql` tal e qual), e confirma que a consulta do pacote e a sonda de `SIGA_confirmar_migracoes.sql` passam de «por aplicar»/«EM FALTA» a «aplicada», que anon e authenticated ficam sem acesso nenhum com RLS forçado, os valores por omissão (privada, tabela do plano, mensal, transferência), e que são recusados: por aluno sem preço, fixo sem valor, desconto acima de 100, dia 31, tolerância acima de 60, nenhum ou um modo de pagamento desconhecido, periodicidade desconhecida, pausa sem motivo, privada aprovada como pública, requisitos que não são objecto e outra moeda; `updated_at` muda e apagar o tenant leva o perfil.

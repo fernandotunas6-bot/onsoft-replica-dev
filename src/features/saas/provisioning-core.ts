@@ -17,6 +17,7 @@ import {
   type SchoolAdminAccount,
 } from "@/features/saas/admin-account";
 import { reportSigaError, reportSigaEvent } from "@/lib/ops-report";
+import { initBillingProfileForNewSchool } from "@/features/saas/tenant-billing";
 
 type ProvisioningResult = {
   success: true;
@@ -462,6 +463,13 @@ async function runProvisioning(
     await cleanupTenant();
     throw err instanceof Error ? err : new Error("Falha ao provisionar o administrador da escola.");
   }
+
+  trace.stage = "billing";
+  // Escola pública: cobranças pausadas enquanto a equipa revê a elegibilidade
+  // (ADMIN → escola → Escola pública). Sem a tabela ainda aplicada, não faz nada.
+  await initBillingProfileForNewSchool(db, tenantId, data.school_type).catch((error: unknown) => {
+    console.warn("[provisioning] perfil de cobrança:", error);
+  });
 
   trace.stage = "usage";
   await syncTenantUsageForSchool(tenantId, schoolId);
