@@ -924,7 +924,14 @@ export const getStudentTranscript = createServerFn({ method: "GET" })
 /** Modelo no registo de documentos emitidos (`audit_logs`, `documents.issued`). */
 export const HIGHER_ED_CERTIFICATE_TEMPLATE = "certificado-conclusao-superior";
 
-type IssuedCertificate = { number: string; code: string; issuedAt: string };
+type IssuedCertificate = {
+  number: string;
+  code: string;
+  issuedAt: string;
+  /** A classificação e a menção gravadas na emissão: a reimpressão não muda. */
+  finalGrade: number | null;
+  mention: string | null;
+};
 
 /**
  * O certificado já emitido para o estudante neste curso (o primeiro, se por alguma
@@ -954,6 +961,11 @@ async function findIssuedCertificate(
     number: str(meta.reference),
     code: str(meta.code),
     issuedAt: str(meta.issued_at) || str(data.occurred_at),
+    finalGrade:
+      meta.final_grade == null || !Number.isFinite(Number(meta.final_grade))
+        ? null
+        : Number(meta.final_grade),
+    mention: meta.mention == null ? null : str(meta.mention),
   };
 }
 
@@ -1014,6 +1026,8 @@ export const issueHigherEdCertificate = createServerFn({ method: "POST" })
       number: String(number),
       code: generateVerificationCode(),
       issuedAt: new Date().toISOString(),
+      finalGrade: final?.value ?? null,
+      mention: doctoral ? (transcript.juryMention ?? null) : (final?.mention ?? null),
     };
     // Sem este registo o documento diria que é verificável e não é: o erro não se engole.
     const { error } = await db.from("audit_logs").insert({

@@ -115,6 +115,7 @@ const sampleInvoice: Invoice = {
   total_amount: 45000,
   amount_paid: 0,
   penalty_amount: 0,
+  receipts: [],
   late_fee_today: { counter: 0, electronic: 0 },
   status: "pending",
 };
@@ -167,6 +168,34 @@ describe("/faturas — render", () => {
       expect(screen.getByText("António Manuel")).toBeDefined();
       expect(screen.getByText("Propina de Março")).toBeDefined();
     });
+  });
+
+  it("só oferece «Recibo» numa fatura paga com recibo oficial emitido", async () => {
+    const paid = (id: string, number: string, receipts: Invoice["receipts"]): Invoice => ({
+      ...sampleInvoice,
+      id,
+      number,
+      amount_paid: 45000,
+      status: "paid",
+      receipts,
+    });
+    seed({
+      invoices: [
+        paid("inv-a", "FT-2025/010", [
+          { number: "REC-2025/0007", amount: 45000, paid_on: "2026-03-10" },
+        ]),
+        paid("inv-b", "FT-2025/011", []),
+      ],
+      students: [sampleStudent],
+    });
+    renderRoute(FaturasRouteComponent);
+
+    await waitFor(() => {
+      expect(screen.getByText("FT-2025/010")).toBeDefined();
+      expect(screen.getByText("FT-2025/011")).toBeDefined();
+    });
+    // Uma só: a fatura sem recibo emitido não inventa um número «RC-…».
+    expect(screen.getAllByRole("button", { name: /^Recibo$/ })).toHaveLength(1);
   });
 
   it("apresenta o estado vazio com indicação clara quando não há faturas", async () => {

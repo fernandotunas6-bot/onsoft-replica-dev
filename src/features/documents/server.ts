@@ -100,6 +100,54 @@ export const nextSgaStatus: Record<string, string | null> = {
   cancelled: null,
 };
 
+/** Listas de ids em blocos: um `.in()` com centenas de UUID passa o tamanho do URL. */
+function idChunks(ids: readonly string[], size = 150): string[][] {
+  const chunks: string[][] = [];
+  for (let i = 0; i < ids.length; i += size) chunks.push(ids.slice(i, i + size));
+  return chunks;
+}
+
+type DocumentStudentRow = { id: string; student_number: string; person_id: string };
+
+/**
+ * Alunos para a área de documentos: os do âmbito (aluno/encarregado), em blocos,
+ * ou todos os da escola, em páginas de 1000 por número de processo.
+ */
+async function loadDocumentStudents(
+  db: Awaited<ReturnType<typeof loadSgaAdminClient>>,
+  schoolId: string,
+  onlyStudents: string[] | null,
+): Promise<{ data: DocumentStudentRow[]; error: { message: string } | null }> {
+  const rows: DocumentStudentRow[] = [];
+  if (onlyStudents) {
+    for (const chunk of idChunks(onlyStudents)) {
+      const { data, error } = await db
+        .from("students")
+        .select("id, student_number, person_id")
+        .eq("school_id", schoolId)
+        .in("id", chunk);
+      if (error) return { data: [], error };
+      rows.push(...((data ?? []) as DocumentStudentRow[]));
+    }
+  } else {
+    const pageSize = 1000;
+    for (let page = 0; page < 50; page += 1) {
+      const { data, error } = await db
+        .from("students")
+        .select("id, student_number, person_id")
+        .eq("school_id", schoolId)
+        .order("student_number")
+        .order("id")
+        .range(page * pageSize, page * pageSize + pageSize - 1);
+      if (error) return { data: [], error };
+      rows.push(...((data ?? []) as DocumentStudentRow[]));
+      if (!data || data.length < pageSize) break;
+    }
+  }
+  rows.sort((a, b) => String(a.student_number).localeCompare(String(b.student_number)));
+  return { data: rows, error: null };
+}
+
 export const listDocumentWorkspace = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .validator((input: unknown) => listDocumentsInputSchema.parse(input))
@@ -135,19 +183,10 @@ export const listDocumentWorkspace = createServerFn({ method: "GET" })
       )
         .order("created_at", { ascending: false })
         .limit(data.limit),
-      (onlyStudents
-        ? db
-            .from("students")
-            .select("id, student_number, person_id")
-            .eq("school_id", membership.schoolId)
-            .in("id", onlyStudents)
-        : db
-            .from("students")
-            .select("id, student_number, person_id")
-            .eq("school_id", membership.schoolId)
-      )
-        .order("student_number")
-        .limit(250),
+      // Todos os alunos (para a escolha no pedido), em páginas; antes eram os 250
+      // primeiros por número, e os pedidos dos outros saíam como «Aluno · Sem
+      // processo» — também na declaração emitida.
+      loadDocumentStudents(db, membership.schoolId, onlyStudents),
     ]);
 
     if (templatesResult.error) {
@@ -163,7 +202,12 @@ export const listDocumentWorkspace = createServerFn({ method: "GET" })
     const personIds = [
       ...new Set((studentsResult.data ?? []).map((row: { person_id: string }) => row.person_id)),
     ];
-    const peopleById = await loadPersonNamesById(db, membership.schoolId, personIds);
+    const peopleById = new Map<string, string>();
+    for (const chunk of idChunks(personIds)) {
+      for (const [id, name] of await loadPersonNamesById(db, membership.schoolId, chunk)) {
+        peopleById.set(id, name);
+      }
+    }
 
     const students = (studentsResult.data ?? []).map(
       (student: { id: string; student_number: string; person_id: string }) => ({
@@ -173,14 +217,16 @@ export const listDocumentWorkspace = createServerFn({ method: "GET" })
       }),
     );
     const studentIds = students.map((student) => student.id);
-    const { data: enrollments } = studentIds.length
-      ? await db
-          .from("enrollments")
-          .select("student_id, class_group_id")
-          .eq("school_id", membership.schoolId)
-          .in("student_id", studentIds)
-          .eq("status", "active")
-      : { data: [] as Array<{ student_id: string; class_group_id: string | null }> };
+    const enrollments: Array<{ student_id: string; class_group_id: string | null }> = [];
+    for (const chunk of idChunks(studentIds)) {
+      const { data: rows } = await db
+        .from("enrollments")
+        .select("student_id, class_group_id")
+        .eq("school_id", membership.schoolId)
+        .in("student_id", chunk)
+        .eq("status", "active");
+      enrollments.push(...((rows ?? []) as typeof enrollments));
+    }
     const classIds = [
       ...new Set(
         (enrollments ?? [])
@@ -188,9 +234,11 @@ export const listDocumentWorkspace = createServerFn({ method: "GET" })
           .filter((id): id is string => Boolean(id)),
       ),
     ];
-    const { data: classGroups } = classIds.length
-      ? await db.from("class_groups").select("id, name").in("id", classIds)
-      : { data: [] as Array<{ id: string; name: string }> };
+    const classGroups: Array<{ id: string; name: string }> = [];
+    for (const chunk of idChunks(classIds)) {
+      const { data: rows } = await db.from("class_groups").select("id, name").in("id", chunk);
+      classGroups.push(...((rows ?? []) as typeof classGroups));
+    }
     const classNameById = new Map((classGroups ?? []).map((row) => [row.id, row.name]));
     const classNameByStudentId = new Map(
       (enrollments ?? []).map((row) => [
@@ -282,6 +330,17 @@ export const createDocumentRequest = createServerFn({ method: "POST" })
       throw publicDatabaseError(templateError, "Não foi possível validar o modelo.");
     }
     if (!template) throw new Error("Modelo de documento não encontrado.");
+    // O aluno tem de ser desta escola: a escrita usa o cliente privilegiado.
+    const { data: ownStudent, error: studentError } = await db
+      .from("students")
+      .select("id")
+      .eq("id", data.studentId)
+      .eq("school_id", membership.schoolId)
+      .maybeSingle();
+    if (studentError) {
+      throw publicDatabaseError(studentError, "Não foi possível validar o aluno.");
+    }
+    if (!ownStudent) throw new Error("Aluno não encontrado nesta escola.");
 
     const purposeParts = [
       data.requestNumber ? `Nº ${data.requestNumber}` : null,

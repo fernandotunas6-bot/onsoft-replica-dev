@@ -112,6 +112,32 @@ async function fetchAllRows<T>(
   return { rows, truncated: true };
 }
 
+/** Listas de ids em blocos: um `.in()` com centenas de UUID passa o tamanho do URL. */
+const IN_CHUNK = 150;
+function inChunks<T>(values: readonly T[]): T[][] {
+  const chunks: T[][] = [];
+  for (let i = 0; i < values.length; i += IN_CHUNK) chunks.push(values.slice(i, i + IN_CHUNK));
+  return chunks;
+}
+
+/** `.in()` em blocos, juntando as linhas; um erro em qualquer bloco falha tudo. */
+async function selectIn<T>(
+  ids: readonly string[],
+  fallbackMessage: string,
+  query: (chunk: string[]) => PromiseLike<{
+    data: T[] | null;
+    error: { code?: string; message?: string } | null;
+  }>,
+): Promise<T[]> {
+  const rows: T[] = [];
+  for (const chunk of inChunks(ids)) {
+    const { data, error } = await query(chunk);
+    if (error) throw publicDatabaseError(error, fallbackMessage);
+    rows.push(...(data ?? []));
+  }
+  return rows;
+}
+
 function isMissingSgaTable(error: { code?: string; message?: string } | null) {
   return Boolean(
     error &&
@@ -292,29 +318,52 @@ async function archiveFinanceQuietly(
   }
 }
 
+/**
+ * Alunos da escola com nome e processo. Com `studentIds`, só esses (em blocos);
+ * sem eles, todos, em páginas e por nome. Antes havia um `.limit(250)` sem ordem:
+ * numa escola maior, o seletor de alunos da faturação perdia alunos ao acaso e a
+ * exportação SAF-T punha «Consumidor final» nas faturas a partir do 251.º aluno.
+ */
 async function loadStudentDirectory(
   db: ReturnType<typeof sgaClient>,
   schoolId: string,
   studentIds?: string[],
 ) {
-  let query = db
-    .from("students")
-    .select("id, student_number, person_id, status")
-    .eq("school_id", schoolId);
-  if (studentIds?.length) query = query.in("id", studentIds);
-  const { data: students, error } = await query.limit(250);
-  if (error) throw publicDatabaseError(error, "Não foi possível carregar os alunos.");
-  const personIds = [
-    ...new Set((students ?? []).map((row: { person_id: string }) => row.person_id)),
-  ];
-  const peopleById = await loadPersonNamesById(db, schoolId, personIds);
-  return (students ?? []).map(
-    (student: { id: string; student_number: string; person_id: string }) => ({
+  type StudentRow = { id: string; student_number: string; person_id: string; status: string };
+  const columns = "id, student_number, person_id, status";
+  const students: StudentRow[] = studentIds
+    ? await selectIn<StudentRow>(
+        [...new Set(studentIds)],
+        "Não foi possível carregar os alunos.",
+        (chunk) =>
+          db.from("students").select(columns).eq("school_id", schoolId).in("id", chunk) as never,
+      )
+    : (
+        await fetchAllRows<StudentRow>(
+          "Não foi possível carregar os alunos.",
+          (from, to) =>
+            db
+              .from("students")
+              .select(columns)
+              .eq("school_id", schoolId)
+              .order("id", { ascending: true })
+              .range(from, to) as never,
+        )
+      ).rows;
+  const personIds = [...new Set(students.map((row) => row.person_id))];
+  const peopleById = new Map<string, string>();
+  for (const chunk of inChunks(personIds)) {
+    for (const [id, name] of await loadPersonNamesById(db, schoolId, chunk)) {
+      peopleById.set(id, name);
+    }
+  }
+  return students
+    .map((student) => ({
       student_id: student.id,
       full_name: peopleById.get(student.person_id) ?? "Aluno",
       registration_number: student.student_number,
-    }),
-  );
+    }))
+    .sort((a, b) => a.full_name.localeCompare(b.full_name, "pt"));
 }
 
 export const getFinanceSchemaStatus = createServerFn({ method: "GET" })
@@ -382,8 +431,10 @@ export const listFinanceStudents = createServerFn({ method: "GET" })
       "Secretaria",
     ]);
     const db = await loadSgaAdminClient();
-    const students = await loadStudentDirectory(db, membership.schoolId);
-    return students.slice(0, data.limit);
+    // Todos: o seletor de alunos da faturação não pode esconder alunos. `limit` fica
+    // no pedido por compatibilidade, mas já não corta a lista.
+    void data;
+    return loadStudentDirectory(db, membership.schoolId);
   });
 
 export const getFinanceReporting = createServerFn({ method: "GET" })
@@ -602,16 +653,38 @@ export const listInvoices = createServerFn({ method: "GET" })
     ]);
     const db = await loadSgaAdminClient();
 
-    const { data: invoices, error } = await db
-      .from("finance_invoices")
-      .select(
-        "id, contract_id, fee_item_id, invoice_number, competence_month, amount, discount_amount, penalty_amount, due_date, status, created_at",
-      )
-      .eq("school_id", membership.schoolId)
-      .neq("status", "cancelled")
-      .order("created_at", { ascending: false })
-      .limit(data.limit);
-    if (error) throw publicDatabaseError(error, "Não foi possível carregar as faturas.");
+    // Todas as faturas da escola, em páginas. Antes eram só as `limit` (250) mais
+    // recentes: depois de uma emissão mensal, as faturas por pagar do mês anterior
+    // desapareciam da lista, de «Por cobrar» e do recebimento, e a ficha do aluno
+    // deixava de mostrar a dívida. `limit` fica no pedido mas já não corta a lista.
+    void data;
+    type InvoiceListRow = {
+      id: string;
+      contract_id: string | null;
+      fee_item_id: string | null;
+      invoice_number: string;
+      competence_month: string | null;
+      amount: number;
+      discount_amount: number;
+      penalty_amount: number;
+      due_date: string;
+      status: string;
+      created_at: string;
+    };
+    const { rows: invoices } = await fetchAllRows<InvoiceListRow>(
+      "Não foi possível carregar as faturas.",
+      (from, to) =>
+        db
+          .from("finance_invoices")
+          .select(
+            "id, contract_id, fee_item_id, invoice_number, competence_month, amount, discount_amount, penalty_amount, due_date, status, created_at",
+          )
+          .eq("school_id", membership.schoolId)
+          .neq("status", "cancelled")
+          .order("created_at", { ascending: false })
+          .order("id", { ascending: false })
+          .range(from, to) as never,
+    );
 
     const invoiceIds = (invoices ?? []).map((row: { id: string }) => row.id);
     const contractIds = [
@@ -629,29 +702,57 @@ export const listInvoices = createServerFn({ method: "GET" })
       ),
     ] as string[];
 
-    const [{ data: contracts }, { data: feeItems }, { data: receipts }] = await Promise.all([
-      contractIds.length
-        ? db.from("finance_contracts").select("id, enrollment_id").in("id", contractIds)
-        : Promise.resolve({ data: [] as Array<{ id: string; enrollment_id: string }> }),
-      feeIds.length
-        ? db.from("fee_items").select("id, name, kind").in("id", feeIds)
-        : Promise.resolve({ data: [] as Array<{ id: string; name: string; kind: string }> }),
-      invoiceIds.length
-        ? db
+    type ReceiptListRow = {
+      invoice_id: string;
+      receipt_number: string | null;
+      amount: number;
+      paid_on: string | null;
+      status: string;
+    };
+    const [contracts, feeItems, receipts] = await Promise.all([
+      selectIn<{ id: string; enrollment_id: string }>(
+        contractIds,
+        "Não foi possível carregar os contratos.",
+        (chunk) =>
+          db.from("finance_contracts").select("id, enrollment_id").in("id", chunk) as never,
+      ),
+      selectIn<{ id: string; name: string; kind: string }>(
+        feeIds,
+        "Não foi possível carregar os itens de propina.",
+        (chunk) => db.from("fee_items").select("id, name, kind").in("id", chunk) as never,
+      ),
+      selectIn<ReceiptListRow>(
+        invoiceIds,
+        "Não foi possível carregar os recibos.",
+        (chunk) =>
+          db
             .from("finance_receipts")
-            .select("invoice_id, amount, status")
-            .in("invoice_id", invoiceIds)
-        : Promise.resolve({
-            data: [] as Array<{ invoice_id: string; amount: number; status: string }>,
-          }),
+            .select("invoice_id, receipt_number, amount, paid_on, status")
+            .in("invoice_id", chunk) as never,
+      ),
     ]);
+    // Recibos válidos de cada fatura, para reimprimir o recibo verdadeiro.
+    const receiptsByInvoice = new Map<
+      string,
+      Array<{ number: string; amount: number; paid_on: string | null }>
+    >();
+    for (const receipt of receipts) {
+      if (receipt.status === "reversed" || !receipt.receipt_number) continue;
+      const list = receiptsByInvoice.get(receipt.invoice_id) ?? [];
+      list.push({
+        number: receipt.receipt_number,
+        amount: Number(receipt.amount ?? 0),
+        paid_on: receipt.paid_on,
+      });
+      receiptsByInvoice.set(receipt.invoice_id, list);
+    }
 
-    const enrollmentIds = [
-      ...new Set((contracts ?? []).map((row) => row.enrollment_id).filter(Boolean)),
-    ];
-    const { data: enrollments } = enrollmentIds.length
-      ? await db.from("enrollments").select("id, student_id").in("id", enrollmentIds)
-      : { data: [] as Array<{ id: string; student_id: string }> };
+    const enrollmentIds = [...new Set(contracts.map((row) => row.enrollment_id).filter(Boolean))];
+    const enrollments = await selectIn<{ id: string; student_id: string }>(
+      enrollmentIds,
+      "Não foi possível carregar as matrículas.",
+      (chunk) => db.from("enrollments").select("id, student_id").in("id", chunk) as never,
+    );
     const studentIds = [...new Set((enrollments ?? []).map((row) => row.student_id))];
     const students = await loadStudentDirectory(db, membership.schoolId, studentIds);
     const studentById = new Map(students.map((row) => [row.student_id, row]));
@@ -706,6 +807,7 @@ export const listInvoices = createServerFn({ method: "GET" })
           total_amount: total,
           amount_paid: paid,
           penalty_amount: Number(invoice.penalty_amount ?? 0),
+          receipts: receiptsByInvoice.get(invoice.id) ?? [],
           late_fee_today: {
             counter: open ? lateFeeFor(invoice, billing, today, "counter") : 0,
             electronic: open ? lateFeeFor(invoice, billing, today, "electronic") : 0,
@@ -1819,6 +1921,9 @@ export const upsertFeePlanSettings = createServerFn({ method: "POST" })
       context.userId,
       ["Administrador", "Tesouraria"],
     );
+    // Muda o preço de todas as faturas futuras: 2FA, como cancelar faturas ou
+    // registar despesas (o cliente privilegiado passa por cima das políticas aal2).
+    requireAal2(context.claims, "Esta operação financeira");
     const db = await loadSgaAdminClient();
 
     let planId: string;
@@ -1964,6 +2069,9 @@ export const saveGradeTuitionPrices = createServerFn({ method: "POST" })
       context.userId,
       ["Administrador", "Tesouraria"],
     );
+    // Muda o preço de todas as faturas futuras: 2FA, como cancelar faturas ou
+    // registar despesas (o cliente privilegiado passa por cima das políticas aal2).
+    requireAal2(context.claims, "Esta operação financeira");
     const db = await loadSgaAdminClient();
     const schoolId = membership.schoolId;
     if (!(await gradePricingAvailable(db))) {
@@ -2102,37 +2210,48 @@ export const exportSaftAoXml = createServerFn({ method: "POST" })
       "id, contract_id, fee_item_id, invoice_number, amount, discount_amount, status, created_at, cancelled_at";
 
     const period = saftPeriodBounds(data);
-    const [{ data: invoiceRows, error }, { data: receiptRows, error: receiptsError }] =
-      await Promise.all([
-        db
-          .from("finance_invoices")
-          .select(invoiceColumns)
-          .eq("school_id", membership.schoolId)
-          .gte("created_at", `${period.start}T00:00:00`)
-          .lte("created_at", `${period.end}T23:59:59`)
-          .order("created_at", { ascending: true }),
-        db
-          .from("finance_receipts")
-          .select(
-            "id, invoice_id, receipt_number, amount, paid_on, payment_method, status, reversed_at, created_at",
-          )
-          .eq("school_id", membership.schoolId)
-          .gte("paid_on", period.start)
-          .lte("paid_on", period.end)
-          .order("paid_on", { ascending: true }),
-      ]);
-
-    if (error) {
-      throw publicDatabaseError(error, "Não foi possível carregar as faturas para o SAFT-AO.");
-    }
-    if (receiptsError) {
-      throw publicDatabaseError(
-        receiptsError,
+    // Em páginas: um ano fiscal passa facilmente das 1000 linhas que o PostgREST
+    // devolve de uma vez, e o ficheiro saía com faturas e recibos a menos, sem aviso.
+    const [
+      { rows: invoices, truncated: invoicesTruncated },
+      { rows: receipts, truncated: receiptsTruncated },
+    ] = await Promise.all([
+      fetchAllRows<InvoiceRow>(
+        "Não foi possível carregar as faturas para o SAFT-AO.",
+        (from, to) =>
+          db
+            .from("finance_invoices")
+            .select(invoiceColumns)
+            .eq("school_id", membership.schoolId)
+            .gte("created_at", `${period.start}T00:00:00`)
+            .lte("created_at", `${period.end}T23:59:59`)
+            .order("created_at", { ascending: true })
+            .order("id", { ascending: true })
+            .range(from, to) as never,
+      ),
+      fetchAllRows<ReceiptRow>(
         "Não foi possível carregar os recibos para o SAFT-AO.",
+        (from, to) =>
+          db
+            .from("finance_receipts")
+            .select(
+              "id, invoice_id, receipt_number, amount, paid_on, payment_method, status, reversed_at, created_at",
+            )
+            .eq("school_id", membership.schoolId)
+            .gte("paid_on", period.start)
+            .lte("paid_on", period.end)
+            .order("paid_on", { ascending: true })
+            .order("id", { ascending: true })
+            .range(from, to) as never,
+      ),
+    ]);
+
+    // Um ficheiro fiscal incompleto é pior do que nenhum: acima do tecto, recusa.
+    if (invoicesTruncated || receiptsTruncated) {
+      throw new Error(
+        "O período tem documentos a mais para um só ficheiro SAF-T. Exporte um período mais curto.",
       );
     }
-    const invoices = (invoiceRows ?? []) as InvoiceRow[];
-    const receipts = (receiptRows ?? []) as ReceiptRow[];
 
     // Recibos do período podem liquidar faturas emitidas antes: carregá-las
     // também (só para o número, a data e o aluno; não entram nas faturas).
@@ -2144,14 +2263,17 @@ export const exportSaftAoXml = createServerFn({ method: "POST" })
           .filter((id): id is string => Boolean(id) && !invoiceById.has(id as string)),
       ),
     ];
-    if (missingInvoiceIds.length) {
-      const { data: earlier } = await db
-        .from("finance_invoices")
-        .select(invoiceColumns)
-        .eq("school_id", membership.schoolId)
-        .in("id", missingInvoiceIds);
-      for (const row of (earlier ?? []) as InvoiceRow[]) invoiceById.set(row.id, row);
-    }
+    const earlier = await selectIn<InvoiceRow>(
+      missingInvoiceIds,
+      "Não foi possível carregar as faturas para o SAFT-AO.",
+      (chunk) =>
+        db
+          .from("finance_invoices")
+          .select(invoiceColumns)
+          .eq("school_id", membership.schoolId)
+          .in("id", chunk) as never,
+    );
+    for (const row of earlier) invoiceById.set(row.id, row);
     const allInvoices = [...invoiceById.values()];
 
     const contractIds = [
@@ -2161,33 +2283,40 @@ export const exportSaftAoXml = createServerFn({ method: "POST" })
       ...new Set(allInvoices.map((row) => row.fee_item_id).filter(Boolean)),
     ] as string[];
 
-    const [{ data: contracts }, { data: feeItems }] = await Promise.all([
-      contractIds.length
-        ? db
+    const [contracts, feeItems] = await Promise.all([
+      selectIn<{ id: string; enrollment_id: string }>(
+        contractIds,
+        "Não foi possível carregar os contratos para o SAFT-AO.",
+        (chunk) =>
+          db
             .from("finance_contracts")
             .select("id, enrollment_id")
             .eq("school_id", membership.schoolId)
-            .in("id", contractIds)
-        : Promise.resolve({ data: [] as Array<{ id: string; enrollment_id: string }> }),
-      feeIds.length
-        ? db
+            .in("id", chunk) as never,
+      ),
+      selectIn<{ id: string; name: string }>(
+        feeIds,
+        "Não foi possível carregar os itens para o SAFT-AO.",
+        (chunk) =>
+          db
             .from("fee_items")
             .select("id, name")
             .eq("school_id", membership.schoolId)
-            .in("id", feeIds)
-        : Promise.resolve({ data: [] as Array<{ id: string; name: string }> }),
+            .in("id", chunk) as never,
+      ),
     ]);
 
-    const enrollmentIds = [
-      ...new Set((contracts ?? []).map((row) => row.enrollment_id).filter(Boolean)),
-    ];
-    const { data: enrollments } = enrollmentIds.length
-      ? await db
+    const enrollmentIds = [...new Set(contracts.map((row) => row.enrollment_id).filter(Boolean))];
+    const enrollments = await selectIn<{ id: string; student_id: string }>(
+      enrollmentIds,
+      "Não foi possível carregar as matrículas para o SAFT-AO.",
+      (chunk) =>
+        db
           .from("enrollments")
           .select("id, student_id")
           .eq("school_id", membership.schoolId)
-          .in("id", enrollmentIds)
-      : { data: [] as Array<{ id: string; student_id: string }> };
+          .in("id", chunk) as never,
+    );
 
     const studentIds = [...new Set((enrollments ?? []).map((row) => row.student_id))];
     const students = studentIds.length
