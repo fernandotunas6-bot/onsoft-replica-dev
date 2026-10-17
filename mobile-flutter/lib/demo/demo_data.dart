@@ -390,8 +390,12 @@ Map<String, dynamic> _response(Uri url) {
         'sheets': [
           {
             'title': 'Pauta do I Trimestre',
+            'kind': 'term',
+            'publishedAt': '2026-10-15T10:00:00Z',
+            'continuousAverage': 15.2,
+            'examAverage': 13.8,
             'termAverage': 14.6,
-            'result': 'Transita',
+            'result': 'pass',
           },
         ],
       };

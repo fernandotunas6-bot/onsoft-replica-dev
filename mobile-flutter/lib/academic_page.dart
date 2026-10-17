@@ -9,6 +9,8 @@ import 'design/tokens.dart';
 import 'design/widgets.dart';
 import 'gateway.dart';
 import 'pages/attendance_page.dart';
+import 'pages/subject_page.dart';
+import 'pages/task_sheet.dart';
 
 const weekdays = [
   'Segunda',
@@ -195,62 +197,33 @@ class _DataPageState extends State<DataPage> {
 
   // ───────── Folhas de detalhe ─────────
 
-  void subjectDetail(Map<String, dynamic> item, AcademicCatalog catalog) {
-    final tasks = sortedTasks(
-      catalog.tasks.where((t) => t['classSubjectId'] == item['classSubjectId']),
-    );
-    final teacher = item['teacher'];
-    showSigaSheet<void>(
-      context,
-      title: '${item['subjectName']}',
-      builder: (context) => Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text('${item['className']}'),
-          if (teacher is Map && teacher['name'] is String)
-            Padding(
-              padding: const EdgeInsets.only(top: Siga.s1),
-              child: Text('Professor: ${teacher['name']}'),
-            ),
-          const SectionHeader('Actividades'),
-          if (tasks.isEmpty)
-            const EmptyState(message: 'Sem actividades publicadas.'),
-          for (final task in tasks) taskRow(task, catalog, showSubject: false),
-        ],
+  /// Abre a disciplina numa página própria; ao voltar pode pedir um destino
+  /// (ex.: a assiduidade leva às Faltas).
+  Future<void> subjectDetail(
+    Map<String, dynamic> item,
+    AcademicCatalog catalog,
+  ) async {
+    final route = await Navigator.of(context).push<String>(
+      MaterialPageRoute(
+        builder: (_) => SubjectPage(
+          gateway: widget.gateway,
+          catalog: catalog,
+          item: item,
+          color: subjectColor(catalog, item['classSubjectId']),
+          icon: subjectIcon(catalog, item['classSubjectId']),
+        ),
       ),
     );
+    if (route != null && mounted) context.go(route);
   }
 
-  void taskDetail(Map<String, dynamic> task) {
-    showSigaSheet<void>(
-      context,
-      title: task['title'] as String,
-      builder: (context) => Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Wrap(
-            spacing: Siga.s1,
-            runSpacing: Siga.s1,
-            crossAxisAlignment: WrapCrossAlignment.center,
-            children: [
-              const Icon(FluentIcons.calendar_empty_24_regular, size: 18),
-              Text(deadline(task['due'])),
-              if (overdue(task)) const StatusTag('Prazo terminado'),
-            ],
-          ),
-          const SizedBox(height: Siga.s2),
-          Text(
-            task['instructions'] as String? ?? 'Sem instruções adicionais.',
-            style: Theme.of(context).textTheme.bodyLarge,
-          ),
-          const SizedBox(height: Siga.s3),
-          const Text(
-            'A entrega de trabalhos ainda não está disponível neste cliente.',
-          ),
-        ],
-      ),
-    );
-  }
+  void taskDetail(Map<String, dynamic> task, AcademicCatalog catalog) =>
+      showTaskSheet(
+        context,
+        task,
+        subject: catalog.subject(task['classSubjectId']),
+        student: widget.gateway.role == 'aluno',
+      );
 
   // ───────── Peças ─────────
 
@@ -412,16 +385,14 @@ class _DataPageState extends State<DataPage> {
     Map<String, dynamic> task,
     AcademicCatalog catalog, {
     bool showSubject = true,
-  }) => MenuRow(
+  }) => TaskTile(
+    task: task,
+    subject: showSubject ? catalog.subject(task['classSubjectId']) : null,
     icon: icon(
       FluentIcons.task_list_ltr_24_regular,
       FluentIcons.task_list_ltr_24_filled,
     ),
-    title: '${task['title']}',
-    subtitle: showSubject
-        ? '${catalog.subject(task['classSubjectId'])} · ${deadline(task['due'])}'
-        : deadline(task['due']),
-    onTap: () => taskDetail(task),
+    onTap: () => taskDetail(task, catalog),
   );
 
   // ───────── Ecrãs ─────────
@@ -1237,16 +1208,29 @@ class _DataPageState extends State<DataPage> {
     final all = sortedTasks(
       catalog.tasks.where((t) => matches(t['title'] as String)),
     );
-    final open = all.where((t) => !overdue(t)).toList();
-    final closed = all.where(overdue).toList();
+    // Agrupadas por urgência; as de prazo terminado no fim, mais recentes
+    // primeiro.
+    final groups = <Urgency, List<Map<String, dynamic>>>{};
+    for (final task in all) {
+      (groups[dueText(task['due']).$2] ??= []).add(task);
+    }
+    const titles = {
+      Urgency.today: 'Hoje',
+      Urgency.week: 'Esta semana',
+      Urgency.later: 'Mais tarde',
+      Urgency.none: 'Sem prazo',
+      Urgency.overdue: 'Prazo terminado',
+    };
     return [
       searchField('Pesquisar tarefa…', always: true),
       if (all.isEmpty)
         const EmptyState(message: 'Sem tarefas para os filtros escolhidos.'),
-      if (open.isNotEmpty) const SectionHeader('Por entregar'),
-      for (final task in open) taskRow(task, catalog),
-      if (closed.isNotEmpty) const SectionHeader('Prazo terminado'),
-      for (final task in closed) taskRow(task, catalog),
+      for (final MapEntry(key: urgency, value: title) in titles.entries)
+        if (groups[urgency] case final list?) ...[
+          SectionHeader('$title (${list.length})'),
+          for (final task in urgency == Urgency.overdue ? list.reversed : list)
+            taskRow(task, catalog),
+        ],
     ];
   }
 

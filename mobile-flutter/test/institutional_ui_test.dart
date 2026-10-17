@@ -32,6 +32,40 @@ Widget app(Widget child) => MaterialApp(
 const context = {'schoolId': 'school-a', 'role': 'aluno', 'userId': 'aluno-1'};
 
 void main() {
+  testWidgets('notas publicadas: média, parciais e resultado em português', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      app(
+        InstitutionalPage(
+          collection: 'results',
+          gateway: gateway(
+            (_) async => json({
+              ...context,
+              'sheets': [
+                {
+                  'title': 'I Trimestre',
+                  'kind': 'term',
+                  'publishedAt': '2026-10-15T10:00:00Z',
+                  'continuousAverage': 15.2,
+                  'examAverage': null,
+                  'termAverage': 14,
+                  'result': 'pass',
+                },
+              ],
+            }),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('Aprovado'), findsOneWidget);
+    expect(find.text('14'), findsOneWidget);
+    expect(find.text('15,2'), findsOneWidget);
+    expect(find.text('—'), findsOneWidget); // provas ainda sem média
+    expect(find.textContaining('publicada a 15/10/2026'), findsOneWidget);
+  });
+
   testWidgets('documentos mostram o estado em português', (tester) async {
     await tester.pumpWidget(
       app(

@@ -90,11 +90,14 @@ class _InstitutionalPageState extends State<InstitutionalPage> {
   }
 
   String average(dynamic value) {
-    if (value == null) return 'Não disponível';
+    if (value == null) return '—';
     if (value is! num || !value.isFinite) {
       throw const FormatException('Nota inválida.');
     }
-    return '$value';
+    // Uma casa decimal, com vírgula (14,6); inteiros sem casas.
+    return value == value.roundToDouble()
+        ? '${value.round()}'
+        : value.toStringAsFixed(1).replaceAll('.', ',');
   }
 
   String money(dynamic value) {
@@ -161,6 +164,117 @@ class _InstitutionalPageState extends State<InstitutionalPage> {
     ),
   );
 
+  /// Resultado de uma pauta publicada, como no portal.
+  static const resultLabels = {
+    'pending': ('Por apurar', Color(0xff8e949e)),
+    'pass': ('Aprovado', Color(0xff1f9d55)),
+    'fail': ('Reprovado', Color(0xffd92c3a)),
+    'incomplete': ('Incompleto', Color(0xffe8890c)),
+  };
+
+  /// Pauta publicada: média em destaque, médias parciais e resultado.
+  Widget resultCard(Map<String, dynamic> r) {
+    final palette = SigaPalette.of(context);
+    final (label, color) =
+        resultLabels[r['result']] ?? (text(r['result']), palette.ink2);
+    final published = r['publishedAt'] is String
+        ? DateTime.tryParse(r['publishedAt'] as String)
+        : null;
+    Widget part(String name, dynamic value) => Expanded(
+      child: Container(
+        padding: const EdgeInsets.all(10),
+        decoration: BoxDecoration(
+          color: palette.surface2,
+          borderRadius: BorderRadius.circular(Siga.rSmall),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(name, style: TextStyle(fontSize: 11, color: palette.ink2)),
+            Text(
+              average(value),
+              style: const TextStyle(fontWeight: FontWeight.w700),
+            ),
+          ],
+        ),
+      ),
+    );
+    return Padding(
+      padding: const EdgeInsets.only(bottom: Siga.s1),
+      child: SigaCard(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        text(r['title']),
+                        style: Theme.of(context).textTheme.titleMedium,
+                      ),
+                      Text(
+                        [
+                          r['kind'] == 'annual'
+                              ? 'Pauta anual'
+                              : 'Pauta do período',
+                          if (published != null)
+                            'publicada a ${published.day}/${published.month}/${published.year}',
+                        ].join(' · '),
+                        style: Theme.of(context).textTheme.bodySmall,
+                      ),
+                    ],
+                  ),
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 5,
+                  ),
+                  decoration: BoxDecoration(
+                    color: color.withValues(alpha: .12),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Text(
+                    label,
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: color,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: Siga.s2),
+            Text(
+              average(r['termAverage']),
+              style: const TextStyle(
+                fontSize: 34,
+                fontWeight: FontWeight.w700,
+                letterSpacing: -1,
+              ),
+            ),
+            Text(
+              'Média final publicada',
+              style: TextStyle(fontSize: 12, color: palette.ink2),
+            ),
+            const SizedBox(height: Siga.s2),
+            Row(
+              children: [
+                part('Avaliação contínua', r['continuousAverage']),
+                const SizedBox(width: Siga.s1),
+                part('Provas', r['examAverage']),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   List<Widget> content(Map<String, dynamic> result) {
     switch (widget.collection) {
       case 'notifications':
@@ -201,17 +315,7 @@ class _InstitutionalPageState extends State<InstitutionalPage> {
             ),
         ];
       case 'results':
-        return [
-          for (final r in rows(result, 'sheets'))
-            record(
-              icon: FluentIcons.hat_graduation_24_regular,
-              title: text(r['title']),
-              lines: [
-                'Média publicada: ${average(r['termAverage'])}',
-                text(r['result']),
-              ],
-            ),
-        ];
+        return [for (final r in rows(result, 'sheets')) resultCard(r)];
       case 'finance':
         return [
           for (final r in rows(result, 'invoices'))
