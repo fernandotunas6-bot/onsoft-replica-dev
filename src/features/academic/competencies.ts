@@ -19,6 +19,7 @@ import {
   type CompetencyClassRate,
   type StudentMastery,
 } from "./competency-mastery";
+import { ownTeacherId } from "./own-teacher";
 
 type Db = Awaited<ReturnType<typeof loadSgaAdminClient>>;
 type Row = Record<string, unknown>;
@@ -36,16 +37,6 @@ function competencyDbError(error: { message?: string; code?: string }, fallback:
     return new Error(MISSING);
   }
   return publicDatabaseError(error, fallback);
-}
-
-async function ownTeacherId(db: Db, schoolId: string, userId: string) {
-  const { data } = await db
-    .from("teachers")
-    .select("id")
-    .eq("school_id", schoolId)
-    .eq("user_id", userId)
-    .maybeSingle();
-  return data?.id ? String(data.id) : null;
 }
 
 const isManager = (roles: string[]) =>

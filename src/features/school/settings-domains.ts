@@ -18,6 +18,7 @@
  *   volta a escrever `value["campo"] ?? x` noutro sítio.
  */
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { isMissingTable, publicDatabaseError } from "@/integrations/supabase/server-error";
 import { isSchoolTypeId, type AngolaSchoolTypeId } from "@/lib/school-config";
 import { pedagogySettingsSchema, type PedagogySettings } from "./schemas";
 
@@ -450,17 +451,27 @@ export async function readSettingsDomain<D extends SettingsDomainId>(
   return parseSettingsDomain(domain, data?.value);
 }
 
-type SettingsRow = { id: string; version: number; value: unknown };
-
-async function readSettingsRow(db: SupabaseClient, schoolId: string, domain: string) {
+/**
+ * A linha de um domínio (id, versão e valor por interpretar), ou null. Usada por
+ * quem grava com bloqueio de versão. Havia três cópias desta leitura (aqui, nas
+ * Definições e nos Documentos), cada uma a tratar o erro à sua maneira.
+ */
+export async function readSettingsDomainRow<V = unknown>(
+  db: SupabaseClient,
+  schoolId: string,
+  domain: string,
+): Promise<{ id: string; domain: string; version: number; value: V } | null> {
   const { data, error } = await db
     .from("school_settings")
-    .select("id, version, value")
+    .select("id, domain, version, value")
     .eq("school_id", schoolId)
     .eq("domain", domain)
     .maybeSingle();
-  if (error) throw new Error(`Não foi possível ler as definições (${domain}).`);
-  return (data as SettingsRow | null) ?? null;
+  // Base sem a tabela (instalação antiga): sem linha, como uma escola que nunca gravou.
+  if (error && !isMissingTable(error)) {
+    throw publicDatabaseError(error, `Não foi possível ler as definições (${domain}).`);
+  }
+  return (data as { id: string; domain: string; version: number; value: V } | null) ?? null;
 }
 
 /**
@@ -476,7 +487,7 @@ export async function updateSettingsDomainValue<T>(
   userId: string,
 ): Promise<T> {
   for (let attempt = 0; attempt < 3; attempt += 1) {
-    const row = await readSettingsRow(db, schoolId, domain);
+    const row = await readSettingsDomainRow(db, schoolId, domain);
     const next = change(row?.value ?? null);
     if (row) {
       const { data, error } = await db

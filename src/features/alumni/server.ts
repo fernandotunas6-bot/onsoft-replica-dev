@@ -1,4 +1,5 @@
 import type { TablesUpdate } from "@/integrations/supabase/types";
+import { pagedReadClient } from "@/integrations/supabase/paged-client";
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { publicDatabaseError } from "@/integrations/supabase/server-error";
@@ -338,7 +339,10 @@ export const bootstrapGraduatedStudents = createServerFn({ method: "POST" })
   .handler(async ({ context }) => {
     if (!context) throw new Error("Sessão inválida. Termine e volte a entrar.");
     const membership = await requireSgaWriterForWrite("pessoas", context.userId);
-    const db = await loadSgaAdminClient();
+    // Todos os concluídos (por páginas) e os perfis já criados em lotes de ids: cortada
+    // nas 1000 linhas, ou com a lista de ids longa demais para o URL, a leitura dos
+    // existentes falhava em silêncio e criava perfis outra vez.
+    const db = pagedReadClient(await loadSgaAdminClient());
     const { data: graduated, error } = await db
       .from("students")
       .select("id, person_id")
@@ -348,11 +352,14 @@ export const bootstrapGraduatedStudents = createServerFn({ method: "POST" })
     if (!graduated?.length) return { created: 0 };
 
     const ids = graduated.map((row) => row.id);
-    const { data: existing } = await db
+    const { data: existing, error: existingError } = await db
       .from("alumni_profiles")
       .select("student_id")
       .eq("school_id", membership.schoolId)
       .in("student_id", ids);
+    if (existingError) {
+      throw publicDatabaseError(existingError, "Não foi possível ler os Alumni existentes.");
+    }
     const existingIds = new Set((existing ?? []).map((row) => row.student_id));
     const missing = graduated.filter((row) => !existingIds.has(row.id));
     if (!missing.length) return { created: 0 };

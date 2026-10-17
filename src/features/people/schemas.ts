@@ -214,6 +214,12 @@ export const updatePersonInputSchema = z
     municipality: optionalText,
     commune: optionalText,
     address: optionalText,
+    /**
+     * O formulário mostra a morada: os quatro campos gravam-se tal como vêm, vazios
+     * incluídos. Sem isto, apagar a morada não fazia nada (o vazio chega como «não
+     * enviado»); quem não mostra a morada (edição rápida da lista) não a toca.
+     */
+    includesGeography: z.boolean().optional(),
   })
   .superRefine((value, ctx) => {
     if (!value.nif) return;

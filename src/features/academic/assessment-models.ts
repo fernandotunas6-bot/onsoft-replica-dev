@@ -6,6 +6,7 @@
  * `siga_publish_assessment_rule`, que só a chave de serviço executa — a função
  * de produção não é SECURITY DEFINER e a tabela só tem política de leitura.
  */
+import { ID_CHUNK_SIZE, readAllPages } from "@/integrations/supabase/read-all-pages";
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
@@ -272,21 +273,28 @@ export const publishAssessmentModel = createServerFn({ method: "POST" })
     // O motor da pauta conta a NPP pelo tipo do item: alinhar os diários ainda
     // abertos com a opção agora publicada (os fechados ficam como foram
     // calculados).
-    const { data: openBooks } = await db
-      .from("gradebooks")
-      .select("id")
-      .eq("school_id", membership.schoolId)
-      .neq("status", "closed");
-    const bookIds = (openBooks ?? []).map((b) => str(b.id));
-    if (bookIds.length) {
+    // Todos os diários abertos (por páginas) e a actualização em lotes de ids: com
+    // algumas centenas de diários a lista passava o tamanho do URL, a actualização
+    // falhava e a NPP ficava contada à maneira antiga.
+    const { data: openBooks, error: booksError } = await readAllPages((from, to) =>
+      db
+        .from("gradebooks")
+        .select("id")
+        .eq("school_id", membership.schoolId)
+        .neq("status", "closed")
+        .order("id", { ascending: true })
+        .range(from, to),
+    );
+    if (booksError) console.warn("[assessment-models] diários abertos:", booksError.message);
+    const bookIds = openBooks.map((b) => str(b.id));
+    const kind = data.calculation.nppMode === "in_continuous" ? "continuous" : "informative";
+    for (let i = 0; i < bookIds.length; i += ID_CHUNK_SIZE) {
       const { error: kindError } = await db
         .from("grade_items")
-        .update({
-          kind: data.calculation.nppMode === "in_continuous" ? "continuous" : "informative",
-        })
+        .update({ kind })
         .eq("school_id", membership.schoolId)
         .eq("code", "NPP")
-        .in("gradebook_id", bookIds);
+        .in("gradebook_id", bookIds.slice(i, i + ID_CHUNK_SIZE));
       if (kindError) console.warn("[assessment-models] NPP kind:", kindError.message);
     }
     return result as { ruleSetId: string; version: number };

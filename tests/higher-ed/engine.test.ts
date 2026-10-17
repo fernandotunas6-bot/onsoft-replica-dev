@@ -620,3 +620,68 @@ describe("doutoramento: decisão do júri", () => {
     expect(decodeJuryDecision("júri:outra|x")).toBeNull();
   });
 });
+
+describe("auditoria 14 (ensino superior): correcções da revisão", () => {
+  it("época normal sem nota de exame não aprova pela frequência", () => {
+    expect(seasonResult({ season: "normal", frequency: 12, exam: null, regulation: reg })).toEqual({
+      status: "reprovado",
+      finalGrade: null,
+    });
+    expect(
+      seasonResult({ season: "normal", frequency: 12, exam: 12, regulation: reg }).status,
+    ).toBe("aprovado");
+  });
+
+  it("a classificação final arredonda uma só vez (13,45 → 13, não 14)", () => {
+    const two = [unit("a", 1, 6), unit("b", 1, 6)];
+    const progress = studentProgress({
+      plan: two,
+      records: [
+        rec("a", "aprovado", { finalGrade: 13, credits: 6 }),
+        rec("b", "aprovado", { finalGrade: 13.9, credits: 6 }),
+      ],
+      regulation: reg,
+    });
+    expect(progress.average).toBe(13.5);
+    expect(progress.averageExact).toBeCloseTo(13.45, 10);
+    expect(finalClassification(progress.averageExact)).toEqual({
+      value: 13,
+      mention: "Suficiente",
+    });
+  });
+
+  it("os limites de créditos contam a carga do ano com resultado já lançado", () => {
+    const big = (id: string) => unit(id, 1, 18);
+    const heavyPlan = [big("x1"), big("x2"), big("y1"), big("y2")];
+    const failed = ["x1", "x2"].map((id) =>
+      rec(id, "reprovado", { credits: 18, academicYearId: "y1" }),
+    );
+    const result = checkEnrollmentBatch({
+      selected: [heavyPlan[2]!, heavyPlan[3]!],
+      plan: heavyPlan,
+      prerequisites: [],
+      records: failed,
+      regulation: reg,
+      academicYearId: "y1",
+    });
+    expect(result.ok).toBe(false);
+  });
+
+  it("a época especial vale uma vez: reprovado na especial já não volta", () => {
+    const records = [rec("tfc", "reprovado", { season: "especial" })];
+    const eligible = seasonEligibility({
+      unitId: "tfc",
+      records,
+      plan: [unit("tfc", 4, 12)],
+      regulation: reg,
+    });
+    expect(eligible.especial).toBe(false);
+    const afterNormal = seasonEligibility({
+      unitId: "tfc",
+      records: [rec("tfc", "reprovado", { season: "normal" })],
+      plan: [unit("tfc", 4, 12)],
+      regulation: reg,
+    });
+    expect(afterNormal.especial).toBe(true);
+  });
+});

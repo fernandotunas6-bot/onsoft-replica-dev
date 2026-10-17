@@ -75,6 +75,7 @@ type DocumentWorkspaceView = {
     student_name: string;
     registration_number: string;
     class_name: string | null;
+    enrolled?: boolean;
     requested_at: string;
     assigned_to: string | null;
     status: string;
@@ -198,6 +199,7 @@ function DocumentosPage() {
         aluno: request.student_name,
         processo: request.registration_number,
         turma: request.class_name ?? null,
+        matriculado: request.enrolled ?? true,
         pedidoEm: request.requested_at,
         responsavel: request.assigned_to ? "Secretaria" : "Por atribuir",
         estado: statusLabels[request.status] ?? "Em processamento",
@@ -278,10 +280,19 @@ function DocumentosPage() {
       aluno: string;
       processo: string;
       turma: string | null;
+      matriculado: boolean;
       nextStatus: string | null;
     },
     nextStatus: string,
   ) => {
+    // A declaração sai ao ficar «pronto» e diz que o aluno está matriculado: sem
+    // matrícula activa, não se aprova (antes aprovava-se e saía na mesma).
+    if (nextStatus === "ready" && !documento.matriculado) {
+      toast.error(
+        `${documento.aluno} não tem matrícula activa: a declaração diria que é aluno(a) da escola. Recuse o pedido ou matricule primeiro.`,
+      );
+      return;
+    }
     setAdvancingId(documento.id);
     try {
       await updateDocumentRequestStatus({
@@ -427,12 +438,14 @@ function DocumentosPage() {
         {d.nextStatus ? (
           <>
             <ConfirmActionModal
-              title="Cancelar pedido"
-              description={`Cancela o pedido de ${d.tipo} de ${d.aluno}. O aluno pode voltar a pedir.`}
-              confirmLabel="Cancelar pedido"
+              title="Recusar pedido"
+              description={`Recusa o pedido de ${d.tipo} de ${d.aluno}. O aluno pode voltar a pedir.`}
+              confirmLabel="Recusar pedido"
               onConfirm={async () => {
+                // «Recusar» gravava «cancelado»: o aluno via «Cancelado» como se tivesse
+                // sido ele, e o estado «Recusado» nunca aparecia.
                 await updateDocumentRequestStatus({
-                  data: { requestId: d.id, status: "cancelled" },
+                  data: { requestId: d.id, status: "rejected" },
                 });
                 await Promise.all([
                   queryClient.invalidateQueries({
@@ -803,8 +816,11 @@ function DocumentosPage() {
                             {d.aluno} · <span className="tnum">{d.processo}</span>
                           </p>
                           <p className="mt-0.5 text-[11px] text-muted-foreground">
-                            Pedido {new Date(d.pedidoEm).toLocaleDateString("pt-PT")} ·{" "}
-                            {d.responsavel}
+                            Pedido{" "}
+                            {new Date(d.pedidoEm).toLocaleDateString("pt-PT", {
+                              timeZone: "Africa/Luanda",
+                            })}{" "}
+                            · {d.responsavel}
                           </p>
                         </div>
                         <StatusBadge
@@ -856,7 +872,11 @@ function DocumentosPage() {
                         <TableCell className="font-mono text-xs text-muted-foreground">
                           {d.processo}
                         </TableCell>
-                        <TableCell>{new Date(d.pedidoEm).toLocaleDateString("pt-PT")}</TableCell>
+                        <TableCell>
+                          {new Date(d.pedidoEm).toLocaleDateString("pt-PT", {
+                            timeZone: "Africa/Luanda",
+                          })}
+                        </TableCell>
                         <TableCell className="text-sm text-muted-foreground">
                           {d.responsavel}
                         </TableCell>

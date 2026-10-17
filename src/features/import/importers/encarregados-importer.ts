@@ -1,5 +1,6 @@
+import { readAllPages, readInChunks } from "@/integrations/supabase/read-all-pages";
 import { findBestPersonMatch } from "../engine/dedupe";
-import { normalizeText } from "../engine/normalize";
+import { normalizeText, valueOf } from "../engine/normalize";
 import type { ImportRefCache, RowImporter } from "../engine/types";
 import { loadExistingPeople, resolveOrCreatePerson, type PersonCandidate } from "./people-core";
 import { loadStudentRefs, uniqueExactMatch, type StudentRef } from "./academic-core";
@@ -9,14 +10,6 @@ type EncarregadosCache = ImportRefCache & {
   existingGuardians: Set<string>; // key: `${student_id}:${guardian_person_id}`
 };
 
-function valueOf(row: Record<string, unknown>, ...keys: string[]) {
-  for (const key of keys) {
-    const value = row[key];
-    if (value !== undefined && value !== null && normalizeText(value)) return value;
-  }
-  return null;
-}
-
 export const encarregadosImporter: RowImporter = {
   module: "encarregados",
 
@@ -24,10 +17,14 @@ export const encarregadosImporter: RowImporter = {
     const [existingPeople, students, guardianRows] = await Promise.all([
       loadExistingPeople(ctx.db, ctx.schoolId),
       loadStudentRefs(ctx.db, ctx.schoolId),
-      ctx.db
-        .from("student_guardians")
-        .select("student_id, guardian_person_id")
-        .eq("school_id", ctx.schoolId),
+      readAllPages((from, to) =>
+        ctx.db
+          .from("student_guardians")
+          .select("id, student_id, guardian_person_id")
+          .eq("school_id", ctx.schoolId)
+          .order("id", { ascending: true })
+          .range(from, to),
+      ),
     ]);
 
     if (guardianRows.error) {

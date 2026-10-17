@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { readAllPages } from "@/integrations/supabase/read-all-pages";
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { publicDatabaseError } from "@/integrations/supabase/server-error";
@@ -45,6 +46,7 @@ import {
   tooManyRecipientsReason,
   unsupportedAudienceReason,
 } from "./audience-recipients";
+import { escapeHtml } from "@/lib/escape-html";
 
 const upsertIntegrationInputSchema = z.object({
   provider: z.string().trim().min(2).max(80),
@@ -400,12 +402,16 @@ async function onlySchoolPhones(
   schoolId: string,
   recipients: string[],
 ): Promise<string[]> {
-  const { data: people } = await db
-    .from("people")
-    .select("phone")
-    .eq("school_id", schoolId)
-    .not("phone", "is", null)
-    .limit(20000);
+  // Todas as páginas: com o corte das 1000 linhas, quem estava depois era recusado.
+  const { data: people } = await readAllPages((from, to) =>
+    db
+      .from("people")
+      .select("id, phone")
+      .eq("school_id", schoolId)
+      .not("phone", "is", null)
+      .order("id", { ascending: true })
+      .range(from, to),
+  );
   const known = new Set(
     (people ?? [])
       .map((row) => phoneKey(String(row.phone ?? "")))
@@ -792,14 +798,6 @@ export const sendSchoolSmsMessage = createServerFn({ method: "POST" })
       partialErrors: errors.length ? errors.slice(0, 3) : undefined,
     };
   });
-
-function escapeHtml(value: string) {
-  return value
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;");
-}
 
 type AudienceRecipients = { ok: true; recipients: string[] } | { ok: false; reason: string };
 

@@ -29,3 +29,13 @@ export function invoiceNetTotal(invoice: {
     0,
   );
 }
+
+/**
+ * O que falta pagar, em cêntimos como `invoiceStatusFromPaid`. A subtracção em vírgula
+ * flutuante deixava resíduos (`1000.2 - (500.1 + 500.1)` não dá 0): uma fatura paga
+ * contava como «em aberto» e o aluno aparecia com dívida vencida.
+ */
+export function invoiceOpenAmount(total: number, paid: number) {
+  const cents = (v: number) => Math.round(Number(v || 0) * 100);
+  return Math.max(cents(total) - cents(paid), 0) / 100;
+}

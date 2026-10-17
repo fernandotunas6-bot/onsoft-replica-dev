@@ -242,18 +242,18 @@ export function StudentEnrollmentSheet({
             }
           }
           const turma = classGroups.find((group) => group.id === values.turmaId);
+          // A lotação é uma regra da base (enroll_student): não há matrícula acima
+          // dela. O ecrã oferecia «continuar com a matrícula extraordinária», que
+          // depois falhava com o aluno já criado e sem turma.
           if (
             turma &&
             typeof turma.capacity === "number" &&
             turma.capacity > 0 &&
             (turma.enrolled_count ?? 0) >= turma.capacity
           ) {
-            const proceedCapacity = window.confirm(
-              `Aviso de lotação: a turma "${turma.name}" já atingiu a sua lotação máxima (${turma.enrolled_count ?? 0}/${turma.capacity} alunos).\n\nDeseja continuar com a matrícula extraordinária nesta turma?`,
+            throw new Error(
+              `A turma "${turma.name}" está cheia (${turma.enrolled_count ?? 0}/${turma.capacity} alunos). Escolha outra turma ou aumente a lotação em Pedagógica.`,
             );
-            if (!proceedCapacity) {
-              throw new Error("Matrícula cancelada — selecione outra turma com vagas disponíveis.");
-            }
           }
           const relationship = values.parentesco || "encarregado";
           await enrollNewStudent({

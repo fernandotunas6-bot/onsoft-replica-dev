@@ -1,9 +1,10 @@
 import { requireAal2 } from "@/features/hr/require-aal2";
+import { readAllPages, readInChunks } from "@/integrations/supabase/read-all-pages";
 import { createServerFn } from "@tanstack/react-start";
 import { readSettingsDomain } from "@/features/school/settings-domains";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { publicDatabaseError } from "@/integrations/supabase/server-error";
+import { isRpcAuthDenied, publicDatabaseError } from "@/integrations/supabase/server-error";
 import { reportSigaError } from "@/lib/ops-report";
 import { dynamicTablesClient, sgaClient } from "@/integrations/supabase/sga";
 import {
@@ -27,7 +28,7 @@ import {
 // Só o schema (zod puro, sem dependências pesadas) entra estaticamente; o
 // gerador de XML continua a ser carregado dinamicamente dentro do handler.
 import { generateSaftInputSchema } from "./saft-generator";
-import { invoiceNetTotal } from "./invoice-settlement";
+import { invoiceNetTotal, invoiceOpenAmount } from "./invoice-settlement";
 import { lateFeeFor, paidOnIso, todayIso } from "./late-fee";
 import {
   feeItemMatcher,
@@ -70,6 +71,7 @@ import {
   invoiceYearForSchool,
   loadNextInvoiceSequence,
 } from "./invoice-numbering";
+import { mapPaymentMethodForLedger } from "./payment-method";
 
 const REPORTING_PAGE_SIZE = 1000;
 const REPORTING_MAX_PAGES = 30;
@@ -297,12 +299,21 @@ async function loadStudentDirectory(
   schoolId: string,
   studentIds?: string[],
 ) {
-  let query = db
-    .from("students")
-    .select("id, student_number, person_id, status")
-    .eq("school_id", schoolId);
-  if (studentIds?.length) query = query.in("id", studentIds);
-  const { data: students, error } = await query.limit(250);
+  // Com ids, todos (em lotes): o tecto de 250 da lista deixava os restantes alunos da
+  // SAF-T como «Consumidor final». Sem ids, os primeiros 250 para a lista.
+  const { data: students, error } = studentIds?.length
+    ? await readInChunks(studentIds, (chunk) =>
+        db
+          .from("students")
+          .select("id, student_number, person_id, status")
+          .eq("school_id", schoolId)
+          .in("id", chunk),
+      )
+    : await db
+        .from("students")
+        .select("id, student_number, person_id, status")
+        .eq("school_id", schoolId)
+        .limit(250);
   if (error) throw publicDatabaseError(error, "Não foi possível carregar os alunos.");
   const personIds = [
     ...new Set((students ?? []).map((row: { person_id: string }) => row.person_id)),
@@ -514,7 +525,7 @@ export const getFinanceReporting = createServerFn({ method: "GET" })
     for (const invoice of activeInvoices) {
       const amount = invoiceNetTotal(invoice);
       const paid = paidByInvoice.get(String(invoice.id)) ?? 0;
-      const openAmount = Math.max(amount - paid, 0);
+      const openAmount = invoiceOpenAmount(amount, paid);
       billed += amount;
       outstanding += openAmount;
       if (openAmount > 0) {
@@ -794,15 +805,6 @@ export const listCashEntries = createServerFn({ method: "GET" })
  * Os métodos premium angolanos (Multicaixa Express, Unitel Money) não têm
  * equivalente 1:1 — o método original fica registado na descrição do arquivo.
  */
-function mapPaymentMethodForLedger(method: string): "cash" | "bank_transfer" | "card" | "other" {
-  if (method === "cash") return "cash";
-  if (method === "transfer") return "bank_transfer";
-  if (method === "multicaixa" || method === "multicaixa_express" || method === "express") {
-    return "card";
-  }
-  return "other";
-}
-
 export const recordInvoicePayment = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((input: unknown) => recordInvoicePaymentInputSchema.parse(input))
@@ -827,7 +829,7 @@ export const recordInvoicePayment = createServerFn({ method: "POST" })
       paid_on: paidOnIso(data.paidAt),
     });
     if (error) {
-      if (error.code === "42501" || /is_aal2|autorização/i.test(error.message ?? "")) {
+      if (isRpcAuthDenied(error)) {
         throw new Error(
           "Esta conta precisa de verificação em duas etapas (2FA) activa para registar pagamentos.",
         );
@@ -2102,24 +2104,34 @@ export const exportSaftAoXml = createServerFn({ method: "POST" })
       "id, contract_id, fee_item_id, invoice_number, amount, discount_amount, status, created_at, cancelled_at";
 
     const period = saftPeriodBounds(data);
+    // Todas as linhas do período, por páginas: o servidor devolve no máximo 1000 por
+    // pedido, sem erro, e o ficheiro para a AGT saía incompleto num mês ou ano maior.
     const [{ data: invoiceRows, error }, { data: receiptRows, error: receiptsError }] =
       await Promise.all([
-        db
-          .from("finance_invoices")
-          .select(invoiceColumns)
-          .eq("school_id", membership.schoolId)
-          .gte("created_at", `${period.start}T00:00:00`)
-          .lte("created_at", `${period.end}T23:59:59`)
-          .order("created_at", { ascending: true }),
-        db
-          .from("finance_receipts")
-          .select(
-            "id, invoice_id, receipt_number, amount, paid_on, payment_method, status, reversed_at, created_at",
-          )
-          .eq("school_id", membership.schoolId)
-          .gte("paid_on", period.start)
-          .lte("paid_on", period.end)
-          .order("paid_on", { ascending: true }),
+        readAllPages((from, to) =>
+          db
+            .from("finance_invoices")
+            .select(invoiceColumns)
+            .eq("school_id", membership.schoolId)
+            .gte("created_at", `${period.start}T00:00:00`)
+            .lte("created_at", `${period.end}T23:59:59`)
+            .order("created_at", { ascending: true })
+            .order("id", { ascending: true })
+            .range(from, to),
+        ),
+        readAllPages((from, to) =>
+          db
+            .from("finance_receipts")
+            .select(
+              "id, invoice_id, receipt_number, amount, paid_on, payment_method, status, reversed_at, created_at",
+            )
+            .eq("school_id", membership.schoolId)
+            .gte("paid_on", period.start)
+            .lte("paid_on", period.end)
+            .order("paid_on", { ascending: true })
+            .order("id", { ascending: true })
+            .range(from, to),
+        ),
       ]);
 
     if (error) {
@@ -2144,13 +2156,21 @@ export const exportSaftAoXml = createServerFn({ method: "POST" })
           .filter((id): id is string => Boolean(id) && !invoiceById.has(id as string)),
       ),
     ];
+    // As leituras seguintes em lotes de ids e com o erro verificado: antes, um erro ou
+    // um URL longo demais deixava os clientes como «Consumidor final», sem aviso.
+    const saftLookupError = "Não foi possível carregar os clientes para o SAFT-AO.";
     if (missingInvoiceIds.length) {
-      const { data: earlier } = await db
-        .from("finance_invoices")
-        .select(invoiceColumns)
-        .eq("school_id", membership.schoolId)
-        .in("id", missingInvoiceIds);
-      for (const row of (earlier ?? []) as InvoiceRow[]) invoiceById.set(row.id, row);
+      const { data: earlier, error: earlierError } = await readInChunks(
+        missingInvoiceIds,
+        (chunk) =>
+          db
+            .from("finance_invoices")
+            .select(invoiceColumns)
+            .eq("school_id", membership.schoolId)
+            .in("id", chunk),
+      );
+      if (earlierError) throw publicDatabaseError(earlierError, saftLookupError);
+      for (const row of earlier as InvoiceRow[]) invoiceById.set(row.id, row);
     }
     const allInvoices = [...invoiceById.values()];
 
@@ -2161,33 +2181,40 @@ export const exportSaftAoXml = createServerFn({ method: "POST" })
       ...new Set(allInvoices.map((row) => row.fee_item_id).filter(Boolean)),
     ] as string[];
 
-    const [{ data: contracts }, { data: feeItems }] = await Promise.all([
-      contractIds.length
-        ? db
-            .from("finance_contracts")
-            .select("id, enrollment_id")
-            .eq("school_id", membership.schoolId)
-            .in("id", contractIds)
-        : Promise.resolve({ data: [] as Array<{ id: string; enrollment_id: string }> }),
-      feeIds.length
-        ? db
-            .from("fee_items")
-            .select("id, name")
-            .eq("school_id", membership.schoolId)
-            .in("id", feeIds)
-        : Promise.resolve({ data: [] as Array<{ id: string; name: string }> }),
+    const [contractsRead, feeItemsRead] = await Promise.all([
+      readInChunks(contractIds, (chunk) =>
+        db
+          .from("finance_contracts")
+          .select("id, enrollment_id")
+          .eq("school_id", membership.schoolId)
+          .in("id", chunk),
+      ),
+      readInChunks(feeIds, (chunk) =>
+        db
+          .from("fee_items")
+          .select("id, name")
+          .eq("school_id", membership.schoolId)
+          .in("id", chunk),
+      ),
     ]);
+    if (contractsRead.error) throw publicDatabaseError(contractsRead.error, saftLookupError);
+    if (feeItemsRead.error) throw publicDatabaseError(feeItemsRead.error, saftLookupError);
+    const contracts = contractsRead.data;
+    const feeItems = feeItemsRead.data;
 
     const enrollmentIds = [
-      ...new Set((contracts ?? []).map((row) => row.enrollment_id).filter(Boolean)),
-    ];
-    const { data: enrollments } = enrollmentIds.length
-      ? await db
+      ...new Set(contracts.map((row) => row.enrollment_id).filter(Boolean)),
+    ] as string[];
+    const { data: enrollments, error: enrollmentsError } = await readInChunks(
+      enrollmentIds,
+      (chunk) =>
+        db
           .from("enrollments")
           .select("id, student_id")
           .eq("school_id", membership.schoolId)
-          .in("id", enrollmentIds)
-      : { data: [] as Array<{ id: string; student_id: string }> };
+          .in("id", chunk),
+    );
+    if (enrollmentsError) throw publicDatabaseError(enrollmentsError, saftLookupError);
 
     const studentIds = [...new Set((enrollments ?? []).map((row) => row.student_id))];
     const students = studentIds.length

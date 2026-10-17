@@ -88,16 +88,6 @@ export function mapSgaGuardianRelationship(value: string): string {
   return sgaGuardianRelationshipMap[key] ?? "other";
 }
 
-export const createStudentInputSchema = z.object({
-  personId: z.string().uuid(),
-  registrationNumber: z.string().trim().min(1, "Número de processo é obrigatório"),
-  classGroupId: z.string().uuid().optional(),
-  academicYearId: z.string().uuid().optional(),
-  admittedOn: optionalText,
-  guardians: z.array(studentGuardianInputSchema).default([]),
-});
-export type CreateStudentInput = z.infer<typeof createStudentInputSchema>;
-
 export const enrollNewStudentInputSchema = z.object({
   person: personCoreFieldsSchema,
   // Não persistido: o nº do aluno (EST-######) é gerado pela sequência própria
@@ -151,17 +141,11 @@ export const updateStudentProfileInputSchema = z.object({
 export const enrollStudentInClassInputSchema = z.object({
   studentId: z.string().uuid(),
   classGroupId: z.string().uuid(),
-  academicYearId: z.string().uuid(),
+  /** O ano é o da turma; se vier, o servidor só confirma que coincide. */
+  academicYearId: z.string().uuid().optional(),
   enrolledOn: optionalText,
 });
 export type EnrollStudentInClassInput = z.infer<typeof enrollStudentInClassInputSchema>;
-
-export const updateEnrollmentInputSchema = z.object({
-  enrollmentId: z.string().uuid(),
-  classGroupId: z.string().uuid(),
-  status: z.enum(["active", "inactive", "transferred", "withdrawn"]).default("active"),
-});
-export type UpdateEnrollmentInput = z.infer<typeof updateEnrollmentInputSchema>;
 
 export const cancelEnrollmentInputSchema = z.object({
   enrollmentId: z.string().uuid(),

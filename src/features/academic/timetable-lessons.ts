@@ -28,6 +28,7 @@ import {
   type ReminderSettings,
 } from "./lesson-messages";
 import { insertInAppNotifications, resolveClassAudience } from "./lesson-delivery";
+import { ownTeacherId } from "./own-teacher";
 
 type Db = Awaited<ReturnType<typeof loadSgaAdminClient>>;
 
@@ -80,16 +81,6 @@ async function loadSlot(db: Db, schoolId: string, slotId: string) {
     .maybeSingle();
   if (!cs) return null;
   return { slot, classSubject: cs };
-}
-
-async function ownTeacherId(db: Db, schoolId: string, userId: string) {
-  const { data } = await db
-    .from("teachers")
-    .select("id")
-    .eq("school_id", schoolId)
-    .eq("user_id", userId)
-    .maybeSingle();
-  return data?.id ? String(data.id) : null;
 }
 
 /** Administrador/Secretaria sempre; Professor só na sua disciplina. */
