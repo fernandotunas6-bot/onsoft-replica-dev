@@ -129,6 +129,14 @@ Feito à volta (não depende da migração):
   Antes da migração os números são `EST-…` e o login por número não encontra ninguém.
 - Pesquisa por número tolerante a espaços/traços (`numberMatches`): alunos, matrículas,
   presenças, avaliações, documentos, arquivo, superior. Exemplos da importação em `1260042`.
+- **Nº de aluno nas listas** — `src/components/ui/identifier-value.tsx` (`IdentifierValue`):
+  um só desenho (Inter, `tabular-nums`, «126» leve + «0001» em destaque, copiar dá o
+  número inteiro; texto sem algarismos, como «Sem processo», conta como vazio). Usado em
+  alunos, ficha, pautas/avaliações/exames/competências, chamada, turma, risco, tesouraria,
+  faturas, documentos, pessoas, duplicados, encarregado, superior, catracas. Cabeçalho
+  «Nº de aluno». Exportações da pauta com a coluna. Ficha: «Matrícula 1260001 · desde …».
+  Por fazer (precisam de junção nova): cobranças AppyPay, planos de pagamento (sem coluna
+  de aluno), reconciliação portaria/sala, pessoa relacionada no carregamento de ficheiros.
 
 ## Catálogo educacional global (2026-10-10)
 
