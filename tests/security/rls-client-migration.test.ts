@@ -246,6 +246,13 @@ const PRIVILEGIO_POR_DESENHO = new Set([
   "src/features/hr/salary-amendments.ts",
   "src/features/hr/salary-catalog.ts",
   "src/features/hr/salary-changes.ts",
+  // Entrar com o número de aluno: antes do login não há sessão, por isso só o
+  // servidor procura a ficha, a escola do endereço e a conta (`auth.admin`). O
+  // e-mail nunca sai do servidor, como no login por B.I.
+  "src/features/access/student-number-login.ts",
+  // A mesma definição: o ecrã de entrada pergunta sem sessão se a escola a tem
+  // ligada; ler e gravar exige Administrador (gravar, também 2FA) e fica na auditoria.
+  "src/features/access/student-access-server.ts",
 ]);
 
 /**

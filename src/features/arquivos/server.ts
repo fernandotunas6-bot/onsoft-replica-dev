@@ -1,4 +1,5 @@
 import type { TablesUpdate } from "@/integrations/supabase/types";
+import { numberMatches } from "@/features/education-catalog/identifiers";
 import { requiresVerifiedSchoolStorage } from "./storage-policy";
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
@@ -1198,7 +1199,7 @@ export const listArquivosStudentOptions = createServerFn({ method: "GET" })
         if (
           needle &&
           !name.toLowerCase().includes(needle) &&
-          !registrationNumber.toLowerCase().includes(needle)
+          !numberMatches(registrationNumber, needle)
         ) {
           return null;
         }

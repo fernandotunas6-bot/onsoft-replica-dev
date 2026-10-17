@@ -1,4 +1,5 @@
 import { useEffect, useId, useMemo, useState } from "react";
+import { numberMatches } from "@/features/education-catalog/identifiers";
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -313,7 +314,7 @@ function DocumentosPage() {
         (!q ||
           d.aluno.toLowerCase().includes(q) ||
           d.tipo.toLowerCase().includes(q) ||
-          d.processo.toLowerCase().includes(q) ||
+          numberMatches(d.processo, q) ||
           d.responsavel.toLowerCase().includes(q)),
     );
   }, [ate, de, documentos, query, estado]);
