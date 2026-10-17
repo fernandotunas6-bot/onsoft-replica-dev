@@ -11634,6 +11634,131 @@ export type Database = {
           },
         ]
       }
+      tenant_billing_profiles: {
+        Row: {
+          auto_suspend: boolean
+          billing_address: string | null
+          billing_contact_name: string | null
+          billing_email: string | null
+          billing_nif: string | null
+          billing_paused: boolean
+          billing_paused_at: string | null
+          billing_paused_by: string | null
+          billing_paused_reason: string | null
+          billing_paused_until: string | null
+          billing_period: string
+          billing_phone: string | null
+          created_at: string
+          currency_code: string
+          discount_pct: number
+          due_day: number
+          fixed_amount_aoa: number | null
+          grace_days: number
+          institution_type: string
+          invoice_by_email: boolean
+          min_billable_students: number
+          notes: string | null
+          payment_methods: string[]
+          payment_terms_days: number
+          price_per_student_aoa: number | null
+          pricing_model: string
+          public_official_code: string | null
+          public_requirements: Json
+          public_review_notes: string | null
+          public_review_status: string
+          public_reviewed_at: string | null
+          public_reviewed_by: string | null
+          public_supervising_body: string | null
+          tenant_id: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          auto_suspend?: boolean
+          billing_address?: string | null
+          billing_contact_name?: string | null
+          billing_email?: string | null
+          billing_nif?: string | null
+          billing_paused?: boolean
+          billing_paused_at?: string | null
+          billing_paused_by?: string | null
+          billing_paused_reason?: string | null
+          billing_paused_until?: string | null
+          billing_period?: string
+          billing_phone?: string | null
+          created_at?: string
+          currency_code?: string
+          discount_pct?: number
+          due_day?: number
+          fixed_amount_aoa?: number | null
+          grace_days?: number
+          institution_type?: string
+          invoice_by_email?: boolean
+          min_billable_students?: number
+          notes?: string | null
+          payment_methods?: string[]
+          payment_terms_days?: number
+          price_per_student_aoa?: number | null
+          pricing_model?: string
+          public_official_code?: string | null
+          public_requirements?: Json
+          public_review_notes?: string | null
+          public_review_status?: string
+          public_reviewed_at?: string | null
+          public_reviewed_by?: string | null
+          public_supervising_body?: string | null
+          tenant_id: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          auto_suspend?: boolean
+          billing_address?: string | null
+          billing_contact_name?: string | null
+          billing_email?: string | null
+          billing_nif?: string | null
+          billing_paused?: boolean
+          billing_paused_at?: string | null
+          billing_paused_by?: string | null
+          billing_paused_reason?: string | null
+          billing_paused_until?: string | null
+          billing_period?: string
+          billing_phone?: string | null
+          created_at?: string
+          currency_code?: string
+          discount_pct?: number
+          due_day?: number
+          fixed_amount_aoa?: number | null
+          grace_days?: number
+          institution_type?: string
+          invoice_by_email?: boolean
+          min_billable_students?: number
+          notes?: string | null
+          payment_methods?: string[]
+          payment_terms_days?: number
+          price_per_student_aoa?: number | null
+          pricing_model?: string
+          public_official_code?: string | null
+          public_requirements?: Json
+          public_review_notes?: string | null
+          public_review_status?: string
+          public_reviewed_at?: string | null
+          public_reviewed_by?: string | null
+          public_supervising_body?: string | null
+          tenant_id?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tenant_billing_profiles_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: true
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tenant_domains: {
         Row: {
           check_count: number
@@ -12144,6 +12269,182 @@ export type Database = {
             foreignKeyName: "verification_otps_school_id_fkey"
             columns: ["school_id"]
             isOneToOne: false
+            referencedRelation: "schools"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      web_blog_posts: {
+        Row: {
+          author_name: string | null
+          body: string
+          category: string
+          cover_url: string | null
+          created_at: string
+          created_by: string | null
+          excerpt: string
+          id: string
+          published_at: string | null
+          slug: string
+          status: string
+          title: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          author_name?: string | null
+          body?: string
+          category?: string
+          cover_url?: string | null
+          created_at?: string
+          created_by?: string | null
+          excerpt?: string
+          id?: string
+          published_at?: string | null
+          slug: string
+          status?: string
+          title: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          author_name?: string | null
+          body?: string
+          category?: string
+          cover_url?: string | null
+          created_at?: string
+          created_by?: string | null
+          excerpt?: string
+          id?: string
+          published_at?: string | null
+          slug?: string
+          status?: string
+          title?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
+      web_contact_messages: {
+        Row: {
+          created_at: string
+          email: string
+          handled_at: string | null
+          handled_by: string | null
+          id: string
+          message: string
+          name: string
+          school: string | null
+          status: string
+          subject: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          handled_at?: string | null
+          handled_by?: string | null
+          id?: string
+          message: string
+          name: string
+          school?: string | null
+          status?: string
+          subject: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          handled_at?: string | null
+          handled_by?: string | null
+          id?: string
+          message?: string
+          name?: string
+          school?: string | null
+          status?: string
+          subject?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      web_faqs: {
+        Row: {
+          answer: string
+          category: string
+          created_at: string
+          created_by: string | null
+          featured: boolean
+          id: string
+          is_published: boolean
+          question: string
+          sort_order: number
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          answer: string
+          category?: string
+          created_at?: string
+          created_by?: string | null
+          featured?: boolean
+          id?: string
+          is_published?: boolean
+          question: string
+          sort_order?: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          answer?: string
+          category?: string
+          created_at?: string
+          created_by?: string | null
+          featured?: boolean
+          id?: string
+          is_published?: boolean
+          question?: string
+          sort_order?: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
+      web_school_showcase: {
+        Row: {
+          created_at: string
+          hidden_by_platform: boolean
+          hidden_reason: string | null
+          opted_in: boolean
+          opted_in_at: string | null
+          opted_in_by: string | null
+          school_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          hidden_by_platform?: boolean
+          hidden_reason?: string | null
+          opted_in?: boolean
+          opted_in_at?: string | null
+          opted_in_by?: string | null
+          school_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          hidden_by_platform?: boolean
+          hidden_reason?: string | null
+          opted_in?: boolean
+          opted_in_at?: string | null
+          opted_in_by?: string | null
+          school_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "web_school_showcase_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: true
             referencedRelation: "schools"
             referencedColumns: ["id"]
           },

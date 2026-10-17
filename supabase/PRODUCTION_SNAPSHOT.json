@@ -3,12 +3,12 @@
   "resumo": {
     "buckets": 6,
     "buckets_publicos": 1,
-    "com_rls": 189,
+    "com_rls": 194,
     "funcoes_private": 125,
     "politicas": 359,
     "politicas_storage": 14,
-    "tabelas": 189,
-    "triggers": 206
+    "tabelas": 194,
+    "triggers": 211
   },
   "tabelas": [
     {
@@ -5209,6 +5209,55 @@
       "tabela": "teachers"
     },
     {
+      "tabela": "tenant_billing_profiles",
+      "rls": true,
+      "rls_forcada": true,
+      "anon_select": false,
+      "auth_select": false,
+      "politicas": 0,
+      "colunas": [
+        "tenant_id",
+        "institution_type",
+        "pricing_model",
+        "price_per_student_aoa",
+        "min_billable_students",
+        "fixed_amount_aoa",
+        "billing_period",
+        "discount_pct",
+        "currency_code",
+        "due_day",
+        "payment_terms_days",
+        "grace_days",
+        "auto_suspend",
+        "payment_methods",
+        "invoice_by_email",
+        "billing_contact_name",
+        "billing_email",
+        "billing_phone",
+        "billing_nif",
+        "billing_address",
+        "billing_paused",
+        "billing_paused_reason",
+        "billing_paused_until",
+        "billing_paused_at",
+        "billing_paused_by",
+        "public_review_status",
+        "public_requirements",
+        "public_official_code",
+        "public_supervising_body",
+        "public_reviewed_by",
+        "public_reviewed_at",
+        "public_review_notes",
+        "notes",
+        "updated_by",
+        "created_at",
+        "updated_at"
+      ],
+      "obrigatorias": [
+        "tenant_id"
+      ]
+    },
+    {
       "anon_select": false,
       "auth_select": true,
       "colunas": [
@@ -5451,6 +5500,107 @@
       "rls": true,
       "rls_forcada": false,
       "tabela": "verification_otps"
+    },
+    {
+      "tabela": "web_blog_posts",
+      "rls": true,
+      "rls_forcada": true,
+      "anon_select": false,
+      "auth_select": false,
+      "politicas": 0,
+      "colunas": [
+        "id",
+        "slug",
+        "title",
+        "excerpt",
+        "body",
+        "category",
+        "cover_url",
+        "author_name",
+        "status",
+        "published_at",
+        "created_by",
+        "updated_by",
+        "created_at",
+        "updated_at"
+      ],
+      "obrigatorias": [
+        "slug",
+        "title"
+      ]
+    },
+    {
+      "tabela": "web_contact_messages",
+      "rls": true,
+      "rls_forcada": true,
+      "anon_select": false,
+      "auth_select": false,
+      "politicas": 0,
+      "colunas": [
+        "id",
+        "name",
+        "email",
+        "school",
+        "subject",
+        "message",
+        "status",
+        "handled_by",
+        "handled_at",
+        "created_at",
+        "updated_at"
+      ],
+      "obrigatorias": [
+        "name",
+        "email",
+        "subject",
+        "message"
+      ]
+    },
+    {
+      "tabela": "web_faqs",
+      "rls": true,
+      "rls_forcada": true,
+      "anon_select": false,
+      "auth_select": false,
+      "politicas": 0,
+      "colunas": [
+        "id",
+        "question",
+        "answer",
+        "category",
+        "sort_order",
+        "featured",
+        "is_published",
+        "created_by",
+        "updated_by",
+        "created_at",
+        "updated_at"
+      ],
+      "obrigatorias": [
+        "question",
+        "answer"
+      ]
+    },
+    {
+      "tabela": "web_school_showcase",
+      "rls": true,
+      "rls_forcada": true,
+      "anon_select": false,
+      "auth_select": false,
+      "politicas": 0,
+      "colunas": [
+        "school_id",
+        "opted_in",
+        "opted_in_at",
+        "opted_in_by",
+        "hidden_by_platform",
+        "hidden_reason",
+        "created_at",
+        "updated_at"
+      ],
+      "obrigatorias": [
+        "school_id"
+      ]
     }
   ],
   "politicas": [
@@ -11650,6 +11800,12 @@
       "trigger": "protect_teacher_identity"
     },
     {
+      "tabela": "tenant_billing_profiles",
+      "trigger": "tenant_billing_profiles_touch_updated_at",
+      "funcao": "siga_touch_updated_at",
+      "funcao_schema": "public"
+    },
+    {
       "funcao": "siga_touch_updated_at",
       "funcao_schema": "public",
       "tabela": "tenant_mailboxes",
@@ -11714,6 +11870,30 @@
       "funcao_schema": "public",
       "tabela": "users",
       "trigger": "on_auth_user_created"
+    },
+    {
+      "tabela": "web_blog_posts",
+      "trigger": "web_blog_posts_touch_updated_at",
+      "funcao": "siga_touch_updated_at",
+      "funcao_schema": "public"
+    },
+    {
+      "tabela": "web_contact_messages",
+      "trigger": "web_contact_messages_touch_updated_at",
+      "funcao": "siga_touch_updated_at",
+      "funcao_schema": "public"
+    },
+    {
+      "tabela": "web_faqs",
+      "trigger": "web_faqs_touch_updated_at",
+      "funcao": "siga_touch_updated_at",
+      "funcao_schema": "public"
+    },
+    {
+      "tabela": "web_school_showcase",
+      "trigger": "web_school_showcase_touch_updated_at",
+      "funcao": "siga_touch_updated_at",
+      "funcao_schema": "public"
     }
   ],
   "relacoes": [
@@ -13668,6 +13848,11 @@
       "para": "schools"
     },
     {
+      "de": "tenant_billing_profiles",
+      "para": "tenants",
+      "chave": "tenant_billing_profiles_tenant_id_fkey"
+    },
+    {
       "chave": "tenant_domains_tenant_id_fkey",
       "de": "tenant_domains",
       "para": "tenants"
@@ -13736,6 +13921,11 @@
       "chave": "verification_otps_school_id_fkey",
       "de": "verification_otps",
       "para": "schools"
+    },
+    {
+      "de": "web_school_showcase",
+      "para": "schools",
+      "chave": "web_school_showcase_school_id_fkey"
     }
   ],
   "valores": [
@@ -15560,6 +15750,45 @@
       ]
     },
     {
+      "tabela": "tenant_billing_profiles",
+      "coluna": "billing_period",
+      "valores": [
+        "monthly",
+        "quarterly",
+        "semiannual",
+        "yearly"
+      ]
+    },
+    {
+      "tabela": "tenant_billing_profiles",
+      "coluna": "institution_type",
+      "valores": [
+        "community",
+        "private",
+        "public",
+        "public_private"
+      ]
+    },
+    {
+      "tabela": "tenant_billing_profiles",
+      "coluna": "pricing_model",
+      "valores": [
+        "fixed",
+        "per_student",
+        "plan"
+      ]
+    },
+    {
+      "tabela": "tenant_billing_profiles",
+      "coluna": "public_review_status",
+      "valores": [
+        "approved",
+        "not_applicable",
+        "pending",
+        "rejected"
+      ]
+    },
+    {
       "coluna": "status",
       "tabela": "tenant_domains",
       "valores": [
@@ -15627,6 +15856,24 @@
         "active",
         "archived",
         "cancelled"
+      ]
+    },
+    {
+      "tabela": "web_blog_posts",
+      "coluna": "status",
+      "valores": [
+        "archived",
+        "draft",
+        "published"
+      ]
+    },
+    {
+      "tabela": "web_contact_messages",
+      "coluna": "status",
+      "valores": [
+        "answered",
+        "archived",
+        "new"
       ]
     }
   ]
