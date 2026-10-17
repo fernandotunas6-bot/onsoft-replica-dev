@@ -172,7 +172,7 @@ export default function SubscriptionsPage() {
     const token = await accessToken()
     const [result, audit] = await Promise.all([
       fetchSaasSubscriptions(token),
-      fetchSaasAuditLogs(token, 300, [
+      fetchSaasAuditLogs(token, 500, [
         "plan_change_requested",
         "plan_change_cancelled",
         "TENANT_SUBSCRIPTION_UPDATED",
