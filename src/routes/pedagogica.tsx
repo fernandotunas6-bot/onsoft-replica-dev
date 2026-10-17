@@ -1,4 +1,5 @@
 import { AcademicStructureTab } from "@/features/academic/AcademicStructureTab";
+import { IdentifierValue } from "@/components/ui/identifier-value";
 import { useActiveAssessmentRule } from "@/features/academic/use-passing-value";
 import { useEffect, useMemo, useRef, useState, lazy, Suspense, type ReactNode } from "react";
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
@@ -412,8 +413,17 @@ function PedagogicaPage() {
       queryClient.invalidateQueries({ queryKey: ["academic", "pedagogical-workspace"] }),
       queryClient.invalidateQueries({ queryKey: ["academic", "teacher-workspace"] }),
     ]).then(() => undefined);
-  const enrollmentSelectOptions = enrollmentOptions.map((enrollment) =>
-    optionLabel(enrollment.id, enrollment.label),
+  // O aluno reconhece-se pelo número, não por um pedaço do id; o id só entra quando
+  // o mesmo rótulo se repete (duas matrículas do mesmo aluno), para a escolha não falhar.
+  const enrollmentLabels = enrollmentOptions.map((enrollment) =>
+    enrollment.registration_number
+      ? `${enrollment.label} · Nº ${enrollment.registration_number}`
+      : optionLabel(enrollment.id, enrollment.label),
+  );
+  const enrollmentSelectOptions = enrollmentLabels.map((label, index) =>
+    enrollmentLabels.indexOf(label) !== enrollmentLabels.lastIndexOf(label)
+      ? optionLabel(enrollmentOptions[index]!.id, label)
+      : label,
   );
   const structureReady = academicYears.length > 0 && courses.length > 0 && gradeLevels.length > 0;
 
@@ -531,6 +541,7 @@ function PedagogicaPage() {
   });
 
   const pautaColumns = [
+    { label: "Nº de aluno", value: (row: Record<string, string | number>) => row["numero"] },
     { label: "Aluno", value: (row: Record<string, string | number>) => row["aluno"] },
     { label: "Turma", value: (row: Record<string, string | number>) => row["turma"] },
     { label: "Disciplina", value: (row: Record<string, string | number>) => row["disciplina"] },
@@ -542,6 +553,7 @@ function PedagogicaPage() {
   ] as const;
 
   const pautaRows = notasFiltradas.map((nota) => ({
+    numero: nota.registration_number ?? "",
     aluno: nota.student_name,
     turma: nota.class_group_name,
     disciplina: nota.subject_name,
@@ -586,7 +598,7 @@ function PedagogicaPage() {
           {
             title: "Notas filtradas",
             rows: pautaRows.map((row) => ({
-              label: `${row.aluno} · ${row.disciplina}`,
+              label: `${row.aluno}${row.numero ? ` (Nº ${row.numero})` : ""} · ${row.disciplina}`,
               value: `${row.trimestre}: ${row.media}`,
               note: `${row.turma} · MAC ${row.mac} · NPP ${row.npp} · NPT ${row.npt}`,
             })),
@@ -1220,7 +1232,14 @@ function PedagogicaPage() {
                                 initials={initialsFromName(n.student_name)}
                                 className="size-9 bg-primary-soft text-[11px] font-extrabold text-primary"
                               />
-                              <span className="font-semibold">{n.student_name}</span>
+                              <div className="min-w-0">
+                                <p className="font-semibold">{n.student_name}</p>
+                                <IdentifierValue
+                                  value={n.registration_number}
+                                  variant="plain"
+                                  className="text-muted-foreground"
+                                />
+                              </div>
                             </div>
                           </TableCell>
                           <TableCell>{n.class_group_name}</TableCell>

@@ -205,6 +205,7 @@ function RelatoriosAcademicos() {
     .sort((a, b) => (a.aprovacao ?? 0) - (b.aprovacao ?? 0));
 
   const pautaRows = termGrades.map((nota) => ({
+    numero: nota.registration_number ?? "",
     aluno: nota.student_name,
     turma: nota.class_group_name,
     disciplina: nota.subject_name,
@@ -217,6 +218,7 @@ function RelatoriosAcademicos() {
   }));
   const pautaColumns: Array<{ label: string; value: (row: Record<string, CsvValue>) => CsvValue }> =
     [
+      { label: "Nº de aluno", value: (row) => row["numero"] },
       { label: "Aluno", value: (row) => row["aluno"] },
       { label: "Turma", value: (row) => row["turma"] },
       { label: "Disciplina", value: (row) => row["disciplina"] },
@@ -268,7 +270,7 @@ function RelatoriosAcademicos() {
           {
             title: "Pauta detalhada",
             rows: pautaRows.map((row) => ({
-              label: `${row.aluno} · ${row.disciplina}`,
+              label: `${row.aluno}${row.numero ? ` (Nº ${row.numero})` : ""} · ${row.disciplina}`,
               value: `${row.media} · ${row.resultado}`,
               note: `${row.turma} · ${row.trimestre}`,
             })),

@@ -1,3 +1,4 @@
+import { IdentifierValue } from "@/components/ui/identifier-value";
 import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "@/lib/toast";
@@ -399,7 +400,15 @@ function ClassExamDetail({ sessionId, classGroupId }: { sessionId: string; class
           return (
             <li key={s.enrollmentId} className="space-y-2 py-3">
               <div className="flex flex-wrap items-baseline justify-between gap-2">
-                <span className="text-sm">{s.studentName}</span>
+                <span className="text-sm">
+                  {s.studentName}{" "}
+                  <IdentifierValue
+                    value={s.studentNumber}
+                    variant="plain"
+                    emptyLabel=""
+                    className="text-xs text-muted-foreground"
+                  />
+                </span>
                 <span className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
                   <ResultTag result={s.before} />
                   {active.length ? (
@@ -752,7 +761,13 @@ function FinalResultsPanel({ board }: { board: ExamBoard }) {
                 className="flex flex-wrap items-baseline justify-between gap-2 py-2.5"
               >
                 <span className="text-sm">
-                  {s.studentName}
+                  {s.studentName}{" "}
+                  <IdentifierValue
+                    value={s.studentNumber}
+                    variant="plain"
+                    emptyLabel=""
+                    className="text-xs text-muted-foreground"
+                  />
                   {s.examSubjects ? (
                     <span className="text-xs text-muted-foreground">
                       {" "}

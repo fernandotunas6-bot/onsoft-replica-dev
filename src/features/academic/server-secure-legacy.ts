@@ -298,7 +298,7 @@ async function buildTeacherWorkspace(db: Db, membership: Membership, userId: str
 
   const studentIds = [...new Set((enrollments ?? []).map((row) => String(row.student_id)))];
   const { data: studentRows, error: studentError } = studentIds.length
-    ? await db.from("students").select("id, person_id").in("id", studentIds)
+    ? await db.from("students").select("id, person_id, student_number").in("id", studentIds)
     : { data: [], error: null };
   if (studentError) throw publicDatabaseError(studentError, "Não foi possível carregar os alunos.");
   const personIds = [...new Set((studentRows ?? []).map((row) => String(row.person_id)))];
@@ -314,6 +314,9 @@ async function buildTeacherWorkspace(db: Db, membership: Membership, userId: str
       String(row.id),
       personNameById.get(String(row.person_id)) ?? "Aluno",
     ]),
+  );
+  const studentNumberById = new Map(
+    (studentRows ?? []).map((row) => [String(row.id), String(row.student_number ?? "") || null]),
   );
   const enrollmentCountByClass = new Map<string, number>();
   for (const enrollment of enrollments ?? []) {
@@ -343,6 +346,7 @@ async function buildTeacherWorkspace(db: Db, membership: Membership, userId: str
       id: String(row.id),
       student_id: String(row.student_id),
       student_name: studentNameById.get(String(row.student_id)) ?? "Aluno",
+      registration_number: studentNumberById.get(String(row.student_id)) ?? null,
       class_group_name: String(groupById.get(String(row.class_group_id))?.name ?? "Turma"),
       subject_name: subjectById.get(assignment.subject_id) ?? "Disciplina",
     }));

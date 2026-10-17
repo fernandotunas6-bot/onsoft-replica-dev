@@ -45,9 +45,12 @@ export function IdentifierValue({
   className,
   ...props
 }: IdentifierValueProps) {
-  const code = String(value ?? "").trim();
+  // «Sem processo» e afins (texto de substituição de alguns servidores) contam como vazio.
+  const raw = String(value ?? "").trim();
+  const code = /\d/.test(raw) ? raw : "";
   const label = KIND_LABEL[kind];
   if (!code) {
+    if (!emptyLabel) return null;
     return (
       <span className={cn("text-muted-foreground", className)}>
         <span className="sr-only">{label}: </span>

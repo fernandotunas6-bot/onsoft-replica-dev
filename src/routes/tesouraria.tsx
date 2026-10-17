@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { IdentifierValue } from "@/components/ui/identifier-value";
 import { safeCell } from "@/lib/export-csv";
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
@@ -261,7 +262,14 @@ function TreasuryPage() {
                   {pending.slice(0, 100).map((i) => (
                     <tr key={i.id} className="border-t border-border">
                       <td className="py-2 pr-3 font-mono text-xs">{i.number}</td>
-                      <td className="py-2 pr-3">{i.student_name}</td>
+                      <td className="py-2 pr-3">
+                        <span className="block">{i.student_name}</span>
+                        <IdentifierValue
+                          value={i.registration_number}
+                          variant="plain"
+                          className="text-muted-foreground"
+                        />
+                      </td>
                       <td className={cn("py-2 pr-3", i.overdue && "text-destructive")}>
                         {i.due_on ?? "—"}
                         {i.overdue ? " · em atraso" : ""}

@@ -164,7 +164,10 @@ export async function loadAnnualSheet(
 }
 
 export async function studentNames(db: Db, schoolId: string, enrollmentIds: string[]) {
-  const names = new Map<string, { name: string; studentId: string; personId: string }>();
+  const names = new Map<
+    string,
+    { name: string; studentId: string; personId: string; studentNumber: string | null }
+  >();
   if (!enrollmentIds.length) return names;
   const { data: enrollments } = await db
     .from("enrollments")
@@ -175,7 +178,7 @@ export async function studentNames(db: Db, schoolId: string, enrollmentIds: stri
   const { data: students } = studentIds.length
     ? await db
         .from("students")
-        .select("id, person_id")
+        .select("id, person_id, student_number")
         .eq("school_id", schoolId)
         .in("id", studentIds)
     : { data: [] as Row[] };
@@ -185,12 +188,16 @@ export async function studentNames(db: Db, schoolId: string, enrollmentIds: stri
     : { data: [] as Row[] };
   const personName = new Map(((people ?? []) as Row[]).map((p) => [str(p.id), str(p.full_name)]));
   const personOf = new Map(((students ?? []) as Row[]).map((s) => [str(s.id), str(s.person_id)]));
+  const numberOf = new Map(
+    ((students ?? []) as Row[]).map((s) => [str(s.id), str(s.student_number) || null]),
+  );
   for (const e of (enrollments ?? []) as Row[]) {
     const personId = personOf.get(str(e.student_id)) ?? "";
     names.set(str(e.id), {
       name: personName.get(personId) || "Aluno",
       studentId: str(e.student_id),
       personId,
+      studentNumber: numberOf.get(str(e.student_id)) ?? null,
     });
   }
   return names;

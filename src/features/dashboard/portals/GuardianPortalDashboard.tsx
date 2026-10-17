@@ -1,3 +1,4 @@
+import { IdentifierValue } from "@/components/ui/identifier-value";
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
@@ -163,7 +164,14 @@ export function GuardianPortalDashboard() {
                       onClick={() => currentUser.setActiveStudentId(st.student_id)}
                       className="flex items-center justify-between gap-2 text-sm"
                     >
-                      <span>{st.full_name}</span>
+                      <span className="min-w-0">
+                        <span className="block truncate">{st.full_name}</span>
+                        <IdentifierValue
+                          value={st.registration_number}
+                          variant="plain"
+                          className="text-muted-foreground"
+                        />
+                      </span>
                       <span className="text-xs text-muted-foreground">{st.class_name ?? ""}</span>
                     </DropdownMenuItem>
                   ))}
@@ -173,7 +181,12 @@ export function GuardianPortalDashboard() {
               <p className="text-base font-medium">{activeStudent.full_name}</p>
             )}
             <p className="text-xs text-muted-foreground">
-              {className ? `${className} · ` : ""}Nº {activeStudent.registration_number || "—"}
+              {className ? `${className} · ` : ""}
+              <IdentifierValue
+                value={activeStudent.registration_number}
+                variant="plain"
+                showLabel
+              />
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-2">

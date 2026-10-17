@@ -493,7 +493,14 @@ export function TurmaProfileModal({
                       className="flex items-center justify-between gap-2 p-3 text-xs"
                     >
                       <span className="min-w-0 truncate font-medium text-foreground">
-                        {grade.student_name} · {grade.term}º trimestre
+                        {grade.student_name}{" "}
+                        <IdentifierValue
+                          value={grade.registration_number}
+                          variant="plain"
+                          emptyLabel=""
+                          className="font-normal text-muted-foreground"
+                        />{" "}
+                        · {grade.term}º trimestre
                       </span>
                       <span className="shrink-0 tabular-nums text-muted-foreground">
                         Média: {grade.average?.toFixed(1) ?? "—"}

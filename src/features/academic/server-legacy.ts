@@ -1437,6 +1437,7 @@ export const getTeacherWorkspace = createServerFn({ method: "GET" })
         enrollments: [] as Array<{
           id: string;
           student_name: string;
+          registration_number: string | null;
           class_group_name: string;
           subject_name: string;
         }>,
@@ -1535,12 +1536,15 @@ export const getTeacherWorkspace = createServerFn({ method: "GET" })
     );
     const studentIds = [...new Set((enrollments ?? []).map((row) => String(row.student_id)))];
     const { data: studentRows } = studentIds.length
-      ? await db.from("students").select("id, person_id").in("id", studentIds)
-      : { data: [] as Array<{ id: string; person_id: string }> };
+      ? await db.from("students").select("id, person_id, student_number").in("id", studentIds)
+      : { data: [] as Array<{ id: string; person_id: string; student_number: string | null }> };
     const personIds = [...new Set((studentRows ?? []).map((row) => row.person_id))];
     const personNameById = await loadPersonNamesById(db, membership.schoolId, personIds);
     const studentNameById = new Map(
       (studentRows ?? []).map((row) => [row.id, personNameById.get(row.person_id) ?? "Aluno"]),
+    );
+    const studentNumberById = new Map(
+      (studentRows ?? []).map((row) => [row.id, row.student_number || null]),
     );
 
     const groupMap = new Map((groups ?? []).map((item) => [item.id, item]));
@@ -1571,6 +1575,7 @@ export const getTeacherWorkspace = createServerFn({ method: "GET" })
         id: String(row.id),
         student_id: String(row.student_id),
         student_name: studentNameById.get(String(row.student_id)) ?? "Aluno",
+        registration_number: studentNumberById.get(String(row.student_id)) ?? null,
         class_group_name: groupById.get(String(row.class_group_id)) ?? "Turma",
         subject_name: assignment
           ? (subjectById.get(String(assignment.subject_id)) ?? "Disciplina")

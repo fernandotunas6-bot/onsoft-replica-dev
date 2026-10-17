@@ -165,6 +165,7 @@ export type GradeSheetDetail = {
   rows: Array<{
     enrollmentId: string;
     studentName: string;
+    studentNumber: string | null;
     continuous: number | null;
     exam: number | null;
     average: number | null;
@@ -391,12 +392,15 @@ export const getGradeSheetDetail = createServerFn({ method: "GET" })
       : { data: [] as Row[] };
     const studentIds = (enrollments ?? []).map((e) => str(e.student_id));
     const { data: students } = studentIds.length
-      ? await db.from("students").select("id, person_id").in("id", studentIds)
+      ? await db.from("students").select("id, person_id, student_number").in("id", studentIds)
       : { data: [] as Row[] };
     const personIds = (students ?? []).map((s) => str(s.person_id));
     const { data: people } = personIds.length
       ? await db.from("people").select("id, full_name").in("id", personIds)
       : { data: [] as Row[] };
+    const numberByStudent = new Map(
+      (students ?? []).map((s) => [str(s.id), str(s.student_number) || null]),
+    );
     const nameByPerson = new Map((people ?? []).map((p) => [str(p.id), str(p.full_name)]));
     const personByStudent = new Map((students ?? []).map((s) => [str(s.id), str(s.person_id)]));
     const studentByEnrollment = new Map(
@@ -445,6 +449,8 @@ export const getGradeSheetDetail = createServerFn({ method: "GET" })
             nameByPerson.get(
               personByStudent.get(studentByEnrollment.get(str(r.enrollment_id)) ?? "") ?? "",
             ) || "Aluno",
+          studentNumber:
+            numberByStudent.get(studentByEnrollment.get(str(r.enrollment_id)) ?? "") ?? null,
           continuous: num(r.continuous_average),
           exam: num(r.exam_average),
           average: num(r.term_average),

@@ -330,10 +330,16 @@ function FinanceiroPage() {
   const payableInvoices = faturas.filter(
     (invoice) => invoice.status === "issued" || invoice.status === "partial",
   );
-  const invoiceOptions = payableInvoices.map(
-    (invoice) =>
-      `${invoice.number} · ${invoice.student_name} · ${Number(invoice.total_amount).toLocaleString("pt-PT")} Kz`,
-  );
+  // Rótulo da factura nas escolhas: o nº de aluno distingue dois alunos com o mesmo nome.
+  const invoiceLabel = (invoice: (typeof payableInvoices)[number]) =>
+    [
+      invoice.number,
+      /\d/.test(invoice.registration_number ?? "")
+        ? `${invoice.student_name} (Nº ${invoice.registration_number})`
+        : invoice.student_name,
+      `${Number(invoice.total_amount).toLocaleString("pt-PT")} Kz`,
+    ].join(" · ");
+  const invoiceOptions = payableInvoices.map(invoiceLabel);
   // SGA finance_receipts.payment_method only accepts `cash` (confirmed in live smoke).
   const paymentMethods = {
     Numerário: "cash",
@@ -498,11 +504,7 @@ function FinanceiroPage() {
                 icon={<Wallet className="size-5" />}
                 submitLabel="Criar plano"
                 onSubmit={async (values) => {
-                  const invoice = payableInvoices.find((item) =>
-                    `${item.number} · ${item.student_name} · ${Number(item.total_amount).toLocaleString("pt-PT")} Kz`.includes(
-                      values["fatura"] ?? "",
-                    ),
-                  );
+                  const invoice = payableInvoices[invoiceOptions.indexOf(values["fatura"] ?? "")];
                   const channelMap = {
                     "Multicaixa Express": "multicaixa_express",
                     "Unitel Money": "unitel_money",
@@ -647,7 +649,7 @@ function FinanceiroPage() {
                     school: financeSchool,
                     student: {
                       fullName: invoice.student_name,
-                      academicNumber: invoice.number,
+                      academicNumber: invoice.registration_number,
                     },
                     overlay: overlayServico({
                       name: "Recibo de pagamento",

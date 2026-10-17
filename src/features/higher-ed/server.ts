@@ -1456,12 +1456,16 @@ export const listStalePendingEnrollments = createServerFn({ method: "GET" })
     const studentName = new Map(
       (students ?? []).map((s) => [str(s.id), personName.get(str(s.person_id)) || "Estudante"]),
     );
+    const studentNumber = new Map(
+      (students ?? []).map((s) => [str(s.id), str(s.student_number) || null]),
+    );
     const yearName = new Map(((years ?? []) as Row[]).map((y) => [str(y.id), str(y.name)]));
     const unitName = new Map(units.map((u) => [u.id, u.name]));
     return list
       .map((row) => ({
         id: str(row.id),
         studentName: studentName.get(str(row.student_id)) ?? "Estudante",
+        studentNumber: studentNumber.get(str(row.student_id)) ?? null,
         unitName: unitName.get(str(row.program_subject_id)) ?? "Cadeira",
         yearName: yearName.get(str(row.academic_year_id)) ?? "Ano anterior",
         admitted: row.season === "frequencia",

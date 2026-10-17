@@ -33,6 +33,13 @@ describe("número de aluno nas listas", () => {
     expect(container.textContent).toBe("Nº de matrícula: —");
   });
 
+  it("texto de substituição sem algarismos conta como vazio", () => {
+    const { container } = render(<IdentifierValue value="Sem processo" />);
+    expect(container.textContent).toBe("Nº de aluno: —");
+    const { container: hidden } = render(<IdentifierValue value={null} emptyLabel="" />);
+    expect(hidden.innerHTML).toBe("");
+  });
+
   it("com rótulo visível e sem moldura", () => {
     const { container } = render(<IdentifierValue value="1250001" showLabel variant="plain" />);
     const chip = container.firstElementChild as HTMLElement;

@@ -1,3 +1,4 @@
+import { IdentifierValue } from "@/components/ui/identifier-value";
 import { useMemo, useState } from "react";
 import { numberMatches } from "@/features/education-catalog/identifiers";
 import { createFileRoute, Link } from "@tanstack/react-router";
@@ -727,8 +728,10 @@ function StudentsTab({ programId }: { programId: string }) {
                   }`}
                 >
                   {student.name}
-                  <span className="block text-xs text-muted-foreground">
-                    {[student.number, student.className].filter(Boolean).join(" · ")}
+                  <span className="block text-xs font-normal text-muted-foreground">
+                    <IdentifierValue value={student.number} variant="plain" emptyLabel="" />
+                    {student.number && student.className ? " · " : ""}
+                    {student.className}
                   </span>
                 </button>
               </li>
@@ -779,7 +782,14 @@ function StalePending({ programId }: { programId: string }) {
             className="flex flex-wrap items-center justify-between gap-2 py-2 text-sm"
           >
             <span className="min-w-0">
-              <span className="font-medium">{row.studentName}</span> · {row.unitName}
+              <span className="font-medium">{row.studentName}</span>{" "}
+              <IdentifierValue
+                value={row.studentNumber}
+                variant="plain"
+                emptyLabel=""
+                className="text-muted-foreground"
+              />{" "}
+              · {row.unitName}
               <span className="ml-2 text-xs text-muted-foreground">
                 {row.yearName}
                 {row.admitted ? " · admitido a exame" : ""}
@@ -806,7 +816,7 @@ function CohortEnrollment({
   students,
 }: {
   programId: string;
-  students: Array<{ id: string; name: string; className: string | null }>;
+  students: Array<{ id: string; name: string; className: string | null; number?: string | null }>;
 }) {
   const queryClient = useQueryClient();
   const fetchPlan = useServerFn(getProgramPlan);
@@ -823,6 +833,7 @@ function CohortEnrollment({
   const chosenSemester = semester || (semesters[0] ? String(semesters[0]) : "");
   const targets = students.filter((s) => className === "__all" || s.className === className);
   const nameOf = new Map(students.map((s) => [s.id, s.name]));
+  const numberOf = new Map(students.map((s) => [s.id, s.number ?? null]));
   const run = useMutation({
     mutationFn: () =>
       enrollCohort({
@@ -894,8 +905,14 @@ function CohortEnrollment({
           <ul className="mt-2 max-h-64 space-y-1 overflow-y-auto text-xs">
             {run.data.skipped.map((item, index) => (
               <li key={`${item.studentId}-${index}`}>
-                <span className="font-medium">{nameOf.get(item.studentId) ?? "Estudante"}</span> ·{" "}
-                {item.unit}: {item.reasons.join(" ")}
+                <span className="font-medium">{nameOf.get(item.studentId) ?? "Estudante"}</span>{" "}
+                <IdentifierValue
+                  value={numberOf.get(item.studentId)}
+                  variant="plain"
+                  emptyLabel=""
+                  className="text-muted-foreground"
+                />{" "}
+                · {item.unit}: {item.reasons.join(" ")}
               </li>
             ))}
           </ul>

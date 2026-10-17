@@ -92,7 +92,7 @@ export function changeHistoryLines(
     updated_at?: unknown;
   }>,
   items: Array<{ id: unknown; name: unknown }>,
-  students: Array<{ id: string; student_name: string }>,
+  students: Array<{ id: string; student_name: string; registration_number?: string | null }>,
 ) {
   return scores
     .filter((row) => row.previous_score != null)
@@ -102,6 +102,7 @@ export function changeHistoryLines(
       return {
         id: `${row.item_id}-${row.enrollment_id}-${row.updated_at}`,
         studentName: student?.student_name ?? "Aluno",
+        studentNumber: student?.registration_number ?? null,
         itemName: String(item?.name ?? "Avaliação"),
         previous: Number(row.previous_score),
         current: row.score == null ? null : Number(row.score),

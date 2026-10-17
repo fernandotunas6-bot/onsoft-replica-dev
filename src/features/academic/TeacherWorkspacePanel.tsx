@@ -1,3 +1,4 @@
+import { IdentifierValue } from "@/components/ui/identifier-value";
 import { Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { CalendarDays, FileBadge, GraduationCap, Users } from "lucide-react";
@@ -206,6 +207,12 @@ export function TeacherWorkspacePanel({
                 <li key={item.id} className="rounded-lg border border-border px-3 py-2">
                   <p className="font-semibold">{item.student_name}</p>
                   <p className="text-xs text-muted-foreground">
+                    <IdentifierValue
+                      value={item.registration_number}
+                      variant="plain"
+                      emptyLabel=""
+                    />
+                    {item.registration_number ? " · " : ""}
                     {item.class_group_name} · {item.subject_name}
                   </p>
                 </li>

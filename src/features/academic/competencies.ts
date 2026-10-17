@@ -72,7 +72,7 @@ export type CompetencyBoard = {
     maxScore: number | null;
     competencyIds: string[];
   }>;
-  students: Array<{ enrollmentId: string; name: string }>;
+  students: Array<{ enrollmentId: string; name: string; studentNumber: string | null }>;
   mastery: { students: StudentMastery[]; competencies: CompetencyClassRate[] };
   passing: number;
   canManage: boolean;
@@ -251,7 +251,11 @@ export const getCompetencyBoard = createServerFn({ method: "GET" })
         .map((l) => l.competencyId),
     }));
     const students = enrollmentIds
-      .map((id) => ({ enrollmentId: id, name: names.get(id)?.name ?? "Aluno" }))
+      .map((id) => ({
+        enrollmentId: id,
+        name: names.get(id)?.name ?? "Aluno",
+        studentNumber: names.get(id)?.studentNumber ?? null,
+      }))
       .sort((a, b) => a.name.localeCompare(b.name, "pt"));
 
     const mastery = computeMastery({
