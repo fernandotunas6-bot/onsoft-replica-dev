@@ -135,8 +135,9 @@ Feito à volta (não depende da migração):
   alunos, ficha, pautas/avaliações/exames/competências, chamada, turma, risco, tesouraria,
   faturas, documentos, pessoas, duplicados, encarregado, superior, catracas. Cabeçalho
   «Nº de aluno». Exportações da pauta com a coluna. Ficha: «Matrícula 1260001 · desde …».
-  Por fazer (precisam de junção nova): cobranças AppyPay, planos de pagamento (sem coluna
-  de aluno), reconciliação portaria/sala, pessoa relacionada no carregamento de ficheiros.
+  Também planos de pagamento (coluna «Aluno»), cobranças AppyPay (`invoice-students.ts`:
+  factura → contrato → matrícula → aluno) e reconciliação portaria/sala. Falta só a
+  pessoa relacionada (fora do modo fotografia) no carregamento de ficheiros.
 
 ## Catálogo educacional global (2026-10-10)
 
