@@ -32,7 +32,7 @@ import {
   X,
   XCircle,
 } from "lucide-react";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import { ModalShell, ModalSidebar, type ModalSidebarItem } from "@/components/ui/modal-system";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";

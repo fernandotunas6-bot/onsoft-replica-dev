@@ -10,6 +10,7 @@ import {
 } from "@/features/documents/print-catalog";
 import { renderHandlebars } from "@/features/documents/render-hbs";
 import { printOfficialHtml } from "@/lib/print-html";
+import { printedSubjectNames } from "@/features/documents/printed-subjects";
 
 export function mergePrintPayload(
   base: Record<string, unknown>,
@@ -105,6 +106,7 @@ export async function issuePrintDocument(input: {
       templateKey: key,
       reference: input.student?.documentTitle,
       amountLabel: input.amountLabel,
+      subjects: printedSubjectNames(payload),
     });
     const document = (payload.document ?? {}) as Record<string, unknown>;
     payload.document = {
@@ -131,6 +133,7 @@ async function registerForVerification(details: {
   templateKey: string;
   reference?: string | undefined;
   amountLabel?: string | undefined;
+  subjects?: string[] | undefined;
 }) {
   const [{ registerIssuedDocument }, { default: QRCode }] = await Promise.all([
     import("@/features/documents/verification"),

@@ -40,6 +40,10 @@ import {
 } from "./schemas";
 import { isAngolaBiNif, normalizePersonNif } from "@/lib/angola-identity";
 import { schoolTodayIso } from "@/lib/school-date";
+import {
+  IDENTIFIER_POLICIES,
+  insertWithSequentialCode,
+} from "@/features/education-catalog/identifiers";
 
 function mapSex(sex: string | undefined) {
   if (!sex) return null;
@@ -1055,6 +1059,26 @@ export const listTeachers = createServerFn({ method: "GET" })
     });
   });
 
+/** Número de professor automático: «DOC-000001» (IDENTIFIER_POLICIES.teacher). */
+const teacherNumberPolicy = {
+  prefix: IDENTIFIER_POLICIES.teacher.prefix,
+  padding: IDENTIFIER_POLICIES.teacher.padding,
+  constraint: "teachers_school_id_employee_number_key",
+};
+
+async function loadTeacherNumbers(
+  db: Awaited<ReturnType<typeof loadSgaAdminClient>>,
+  schoolId: string,
+) {
+  const { data, error } = await db
+    .from("teachers")
+    .select("employee_number")
+    .eq("school_id", schoolId)
+    .ilike("employee_number", `${IDENTIFIER_POLICIES.teacher.prefix}-%`);
+  if (error) throw publicDatabaseError(error, "Não foi possível numerar o professor.");
+  return (data ?? []).map((row) => String(row.employee_number ?? ""));
+}
+
 export const createTeacher = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((input: unknown) => createTeacherInputSchema.parse(input))
@@ -1082,26 +1106,31 @@ export const createTeacher = createServerFn({ method: "POST" })
       .single();
     if (personError) throw publicDatabaseError(personError, "Não foi possível criar a pessoa.");
 
-    const { count } = await db
-      .from("teachers")
-      .select("id", { count: "exact", head: true })
-      .eq("school_id", membership.schoolId);
-    const seq = String((count ?? 0) + 1).padStart(6, "0");
-    const { data: teacher, error } = await db
-      .from("teachers")
-      .insert({
-        school_id: membership.schoolId,
-        person_id: person.id,
-        employee_number: data.employeeNumber || `DOC-${seq}`,
-        hired_on: data.hiredOn || schoolTodayIso(),
-        employment_type: "permanent",
-        highest_qualification: "bachelor",
-        status: "active",
-        created_by: context.userId,
-        updated_by: context.userId,
-      })
-      .select("*")
-      .single();
+    const insertTeacher = (employeeNumber: string) =>
+      db
+        .from("teachers")
+        .insert({
+          school_id: membership.schoolId,
+          person_id: person.id,
+          employee_number: employeeNumber,
+          hired_on: data.hiredOn || schoolTodayIso(),
+          employment_type: "permanent",
+          highest_qualification: "bachelor",
+          status: "active",
+          created_by: context.userId,
+          updated_by: context.userId,
+        })
+        .select("*")
+        .single();
+    // Número escrito pela escola: grava-se tal e qual. Automático: o seguinte ao
+    // maior «DOC-n» (a contagem repetia números e a criação falhava).
+    const { data: teacher, error } = data.employeeNumber
+      ? await insertTeacher(data.employeeNumber)
+      : await insertWithSequentialCode({
+          ...teacherNumberPolicy,
+          loadExisting: () => loadTeacherNumbers(db, membership.schoolId),
+          insert: insertTeacher,
+        });
     if (error) throw publicDatabaseError(error, "Não foi possível criar o professor.");
     return teacher;
   });
@@ -1483,30 +1512,31 @@ export async function ensureTeacherHrRecord(input: {
 
   let teacherId = existing?.id ? String(existing.id) : null;
   if (!teacherId) {
-    const { count } = await db
-      .from("teachers")
-      .select("id", { count: "exact", head: true })
-      .eq("school_id", input.schoolId);
-    const seq = String((count ?? 0) + 1).padStart(6, "0");
-    const inserted = await db
-      .from("teachers")
-      .insert({
-        school_id: input.schoolId,
-        person_id: person.id,
-        user_id: input.userId,
-        employee_number: `DOC-${seq}`,
-        hired_on: schoolTodayIso(),
-        employment_type: "permanent",
-        highest_qualification: "bachelor",
-        status: "active",
-        created_by: input.actorId,
-        updated_by: input.actorId,
-      })
-      .select("id")
-      .single();
+    const inserted = await insertWithSequentialCode<{ id: string }>({
+      ...teacherNumberPolicy,
+      loadExisting: () => loadTeacherNumbers(db, input.schoolId),
+      insert: (employeeNumber) =>
+        db
+          .from("teachers")
+          .insert({
+            school_id: input.schoolId,
+            person_id: person.id,
+            user_id: input.userId,
+            employee_number: employeeNumber,
+            hired_on: schoolTodayIso(),
+            employment_type: "permanent",
+            highest_qualification: "bachelor",
+            status: "active",
+            created_by: input.actorId,
+            updated_by: input.actorId,
+          })
+          .select("id")
+          .single(),
+    });
     if (inserted.error) {
       throw publicDatabaseError(inserted.error, "Não foi possível criar a ficha de professor.");
     }
+    if (!inserted.data) throw new Error("Não foi possível criar a ficha de professor.");
     teacherId = String(inserted.data.id);
   }
 

@@ -6,9 +6,14 @@ export function requestSettingsOpen(panelId?: string) {
   sessionStorage.setItem(SETTINGS_OPEN_KEY, panelId ?? "");
 }
 
-export function openSettingsPanel(panelId?: string) {
-  if (typeof window === "undefined") return;
-  window.dispatchEvent(new CustomEvent(OPEN_SETTINGS_EVENT, { detail: { panelId } }));
+/**
+ * Abre o painel de Definições por cima do ecrã actual. Devolve `true` quando
+ * o `AppShell` o abriu (cancela o evento); `false` sem AppShell ou sem acesso.
+ */
+export function openSettingsPanel(panelId?: string): boolean {
+  if (typeof window === "undefined") return false;
+  const event = new CustomEvent(OPEN_SETTINGS_EVENT, { detail: { panelId }, cancelable: true });
+  return !window.dispatchEvent(event);
 }
 
 export function consumeSettingsOpen() {

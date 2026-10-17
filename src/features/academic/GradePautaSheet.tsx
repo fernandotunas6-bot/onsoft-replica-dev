@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { FileBadge, FileDown, Lock, Save, Unlock } from "lucide-react";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import { whatsappHref } from "@/features/integrations/actions";
 import { useInstalledIntegrations } from "@/features/integrations/use-installed-integrations";
 import { Button } from "@/components/ui/button";

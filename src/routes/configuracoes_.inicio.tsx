@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import { toastActionError } from "@/lib/action-error-toast";
 import { useServerFn } from "@tanstack/react-start";
 import { ArrowRight, CheckCircle2, Circle, LoaderCircle, RefreshCw, Star } from "lucide-react";

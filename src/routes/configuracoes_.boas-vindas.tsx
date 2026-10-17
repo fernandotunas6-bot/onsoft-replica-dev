@@ -23,7 +23,7 @@ import {
   repairOwnAdminAccess,
   type AdminWelcomeStatus,
 } from "@/features/school/admin-welcome";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import { toastActionError } from "@/lib/action-error-toast";
 import { moduleIcons } from "@/lib/app-icons";
 import { cn } from "@/lib/utils";

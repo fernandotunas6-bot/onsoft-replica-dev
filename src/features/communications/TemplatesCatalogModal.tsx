@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Copy, FileText, Check } from "lucide-react";
 import { listOfficialTemplates, CommunicationTemplate } from "./templates";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 
 export interface TemplatesCatalogModalProps {
   open: boolean;

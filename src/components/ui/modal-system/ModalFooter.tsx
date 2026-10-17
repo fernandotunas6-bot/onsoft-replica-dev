@@ -29,13 +29,15 @@ export function ModalFooter({
   return (
     <div
       className={cn(
-        "flex items-center justify-between border-t border-border bg-muted/10 px-5 py-3 gap-3",
+        "flex shrink-0 flex-wrap items-center justify-between border-t border-border bg-card px-5 py-4 gap-3",
         className,
       )}
     >
-      <div className="flex items-center gap-2">{extraActions}</div>
+      {extraActions ? (
+        <div className="flex min-w-0 flex-wrap items-center gap-2">{extraActions}</div>
+      ) : null}
 
-      <div className="flex items-center gap-2">
+      <div className="ml-auto flex max-w-full flex-wrap items-center justify-end gap-2">
         {onCancel && (
           <Button
             type="button"
@@ -43,7 +45,7 @@ export function ModalFooter({
             size="sm"
             onClick={onCancel}
             disabled={isSubmitting}
-            className="text-xs"
+            className="h-auto min-h-[44px] max-w-full whitespace-normal break-words rounded-xl px-4 py-3 text-[13px] leading-[20px] lg:min-h-[44px]"
           >
             {cancelLabel}
           </Button>
@@ -56,10 +58,10 @@ export function ModalFooter({
             size="sm"
             onClick={onSubmit}
             disabled={disabled || isSubmitting}
-            className="gap-1.5 text-xs min-w-[90px]"
+            className="h-auto min-h-[44px] min-w-[90px] max-w-full gap-2 whitespace-normal break-words rounded-xl px-4 py-3 text-[13px] leading-[20px] lg:min-h-[44px]"
           >
             {isSubmitting && (
-              <LoaderCircle className="size-3.5 animate-spin motion-reduce:animate-none" />
+              <LoaderCircle className="size-[16px] shrink-0 animate-spin motion-reduce:animate-none" />
             )}
             {submitLabel}
           </Button>

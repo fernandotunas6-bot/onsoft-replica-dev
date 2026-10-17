@@ -13,7 +13,7 @@ import appCss from "../styles.css?url";
 import { applyPendingUpdate, registerServiceWorker, SW_UPDATE_READY_EVENT } from "@/lib/pwa";
 import { measureVitals } from "@/lib/vitals";
 
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import { Toaster } from "@/components/ui/sonner";
 import { AppearanceProvider } from "@/lib/appearance";
 import { AuthGate } from "@/components/auth/AuthGate";
@@ -99,9 +99,11 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { rel: "apple-touch-icon", href: "/icons/apple-touch-icon.png", sizes: "180x180" },
       { rel: "manifest", href: "/manifest.webmanifest" },
     ],
-    // Antes do resto: num motor antigo (ex.: Mac com o Safari por actualizar, também na
-    // app desktop) explica como actualizar em vez de deixar um ecrã que não responde.
-    scripts: [{ src: "/browser-check.js" }],
+    // Num motor antigo (ex.: Mac com o Safari por actualizar, também na app desktop)
+    // explica como actualizar em vez de deixar um ecrã que não responde. `defer`: corre
+    // antes dos módulos da app, mas não trava o primeiro desenho da página (síncrono,
+    // ficava na fila atrás dos pré-carregamentos e atrasava-o ~0,5 s).
+    scripts: [{ src: "/browser-check.js", defer: true }],
   }),
   // Pista de sessão para o SSR desenhar logo o ecrã de entrada (ver session-hint.ts).
   loader: async () => ({ sessionHint: await readSessionHint() }),
@@ -138,7 +140,17 @@ function ClientOnlyToaster() {
     setHydrated(true);
   }, []);
 
-  return hydrated ? <Toaster position="top-right" richColors /> : null;
+  // Computador: canto superior direito. Telemóvel (< 600px): o sonner ocupa a
+  // largura toda; o topo fica abaixo do entalhe e longe da barra inferior.
+  return hydrated ? (
+    <Toaster
+      position="top-right"
+      richColors
+      closeButton
+      visibleToasts={4}
+      mobileOffset={{ top: "calc(env(safe-area-inset-top, 0px) + 8px)", left: 8, right: 8 }}
+    />
+  ) : null;
 }
 
 function RootComponent() {
@@ -189,8 +201,9 @@ function RootComponent() {
           <DesktopVaultGate />
           <div className="relative pt-[env(safe-area-inset-top,0)] flex min-h-screen flex-col">
             {isPublic ? (
-              // Escola bloqueada fecha a matrícula online; /auth continua aberto
-              // para o administrador chegar à assinatura e regularizar.
+              // Escola bloqueada fecha a matrícula online. Entrar, definir senha
+              // e verificar documentos continuam: sem /auth o administrador nem
+              // chegava à assinatura para a regularizar.
               pathname.startsWith("/matricula") ? (
                 <TenantAccessBarrier>
                   <Outlet />

@@ -1,7 +1,7 @@
 /* style-check: exempt — cartão digital físico de estudante com elementos gráficos de passe escolar */
 import { useState, useEffect } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import QRCode from "qrcode";
 import { QrCode, ShieldCheck, ShieldOff, GraduationCap } from "lucide-react";
 import { ModalShell, ModalHeader, ModalContent, ModalFooter } from "@/components/ui/modal-system";

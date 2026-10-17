@@ -44,6 +44,8 @@ export type SchoolAdminAccessSnapshot = {
     status: TenantStatus;
     subscription_status: SubscriptionLifecycle | null;
     trial_ends_at: string | null;
+    /** Cobranças pausadas ou escola pública isenta: o trial não bloqueia. */
+    billing_exempt?: boolean | null;
   };
   school: { id: string; name: string; status: string | null } | null;
   admins: SchoolAdminAccountSnapshot[];
@@ -86,6 +88,8 @@ export type SchoolAdminAccessIssue = {
 
 const BLOCK_MESSAGES: Record<TenantAccessBlockReason, string> = {
   suspended: "A assinatura está suspensa: a escola só pode ser consultada.",
+  past_due:
+    "O pagamento está em atraso: a escola só pode ser consultada até o pagamento ser confirmado.",
   cancelled: "A assinatura foi cancelada: a escola só pode ser consultada.",
   trial_expired:
     "O período experimental terminou: o administrador entra, mas não consegue gravar a configuração.",
@@ -128,6 +132,7 @@ export function assessSchoolAdminAccess(
       status: tenant.status,
       subscription_status: tenant.subscription_status ?? undefined,
       trial_ends_at: tenant.trial_ends_at,
+      billing_exempt: tenant.billing_exempt ?? false,
     },
     now,
   );

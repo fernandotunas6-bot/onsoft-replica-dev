@@ -36,7 +36,12 @@ function formatDate(iso: string | null) {
   const date = new Date(iso);
   return Number.isNaN(date.getTime())
     ? null
-    : date.toLocaleDateString("pt-PT", { day: "2-digit", month: "2-digit", year: "numeric" });
+    : date.toLocaleDateString("pt-PT", {
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric",
+        timeZone: "Africa/Luanda",
+      });
 }
 
 function StepAction({ step, primary }: { step: SetupStep; primary?: boolean }) {

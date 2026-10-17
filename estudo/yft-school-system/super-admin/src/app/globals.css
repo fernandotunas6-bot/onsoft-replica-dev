@@ -1,0 +1,79 @@
+@import "tailwindcss";
+
+:root {
+  --background: 210 40% 98%;
+  --foreground: 222 47% 11%;
+  --muted: 210 40% 96.1%;
+  --muted-foreground: 215.4 16.3% 46.9%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 222.2 84% 4.9%;
+  --card: 0 0% 100%;
+  --card-foreground: 222.2 84% 4.9%;
+  --border: 214.3 31.8% 91.4%;
+  --input: 214.3 31.8% 91.4%;
+  --primary: 247 72% 62%;
+  --primary-foreground: 210 40% 98%;
+  --secondary: 210 40% 96.1%;
+  --secondary-foreground: 222.2 47.4% 11.2%;
+  --accent: 210 40% 96.1%;
+  --accent-foreground: 222.2 47.4% 11.2%;
+  --destructive: 0 84.2% 60.2%;
+  --destructive-foreground: 210 40% 98%;
+  --ring: 247 72% 62%;
+  --radius: 1.5rem;
+}
+
+* {
+  border-color: hsl(var(--border));
+}
+
+body {
+  background-color: hsl(var(--background));
+  color: hsl(var(--foreground));
+  font-family: var(--font-plus-jakarta), var(--font-inter), system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+@layer components {
+  .premium-shadow {
+    box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.04), 0 4px 12px -3px rgba(0, 0, 0, 0.02);
+  }
+
+  .premium-sidebar {
+    background: #ffffff;
+    box-shadow: 1px 0 0 0 rgba(0, 0, 0, 0.05);
+  }
+
+  .stat-card-purple {
+    background: #f4f2ff;
+    color: #6a5ae0;
+  }
+  .stat-card-blue {
+    background: #eef8ff;
+    color: #3b82f6;
+  }
+  .stat-card-orange {
+    background: #fff8f0;
+    color: #f97316;
+  }
+  .stat-card-green {
+    background: #f0fdf4;
+    color: #22c55e;
+  }
+
+  .glass-panel-strong {
+    background: rgba(255, 255, 255, 0.8);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(0, 0, 0, 0.05);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.04);
+  }
+
+  .portal-grid {
+    background-color: #f8fafc;
+    background-image: 
+      radial-gradient(at 0% 0%, hsla(247, 72%, 62%, 0.05) 0, transparent 50%), 
+      radial-gradient(at 100% 0%, hsla(199, 89%, 48%, 0.05) 0, transparent 50%);
+  }
+}
+

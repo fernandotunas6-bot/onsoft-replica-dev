@@ -22,6 +22,7 @@ export const PLATFORM_ROUTE_PREFIXES = [
   "/audit",
   "/domains",
   "/gateway-webhooks",
+  "/education-catalog",
   "/tasks",
   "/calendar",
   "/mail",

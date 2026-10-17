@@ -5,7 +5,7 @@ import { publicErrorMessage } from "@/lib/public-error";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { MailCheck, MailWarning } from "lucide-react";
 import { actionIcons, moduleIcons, statusIcons } from "@/lib/app-icons";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import { toastActionError } from "@/lib/action-error-toast";
 import { Panel, badgeBase, toneClass } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/button";

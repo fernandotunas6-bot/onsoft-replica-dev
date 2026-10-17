@@ -1,4 +1,4 @@
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import {
   PWNED_PASSWORD_MESSAGE,
   PWNED_SIGN_IN_NOTICE,
@@ -12,7 +12,6 @@ import {
   consumeSessionExpiredFlag,
   reportPossibleSessionError,
 } from "@/lib/session-expiry";
-import { SigaLogo } from "@/components/ui/siga-logo";
 import { AuthHeroSlides } from "./AuthHeroSlides";
 import { writeSessionHint } from "@/features/auth/session-hint";
 import { pendingMfaFactors } from "@/features/auth/pending-mfa";
@@ -32,7 +31,7 @@ import {
   forgetTrustedDevice,
   trustDevice,
 } from "@/features/auth/trusted-device";
-import { AuthBackgroundVideo } from "./AuthBackgroundVideo";
+import { AuthBrandIntro } from "./AuthBrandIntro";
 import { AuthCaptcha } from "./AuthCaptcha";
 import { authCaptchaConfigured } from "@/lib/auth-captcha-config";
 import {
@@ -624,7 +623,7 @@ export function AuthGate({
   if (checking) {
     return (
       <AuthSessionContext.Provider value={session}>
-        <PageLoading message="A verificar sessão…" />
+        <PageLoading message="A verificar sessão…" brandOnly />
       </AuthSessionContext.Provider>
     );
   }
@@ -640,37 +639,30 @@ export function AuthGate({
 
   return (
     <AuthSessionContext.Provider value={null}>
-      <main className="grid min-h-screen bg-background lg:grid-cols-[1.15fr_0.85fr] lg:p-2">
-        <section className="relative hidden overflow-hidden flex-col justify-between rounded-2xl border border-border/60 bg-primary p-12 text-primary-foreground shadow-sm lg:flex">
-          <AuthBackgroundVideo />
-          <div
-            aria-hidden
-            // Só escurece em baixo, onde está o texto: o vídeo (sem logótipo por
-            // cima) fica visível no resto do painel.
-            className="pointer-events-none absolute inset-0 bg-gradient-to-t from-primary/85 via-primary/30 to-transparent"
-          />
-          <div />
+      <main className="grid min-h-dvh bg-background lg:grid-cols-[1fr_1fr] lg:gap-2 lg:p-3">
+        <section className="relative hidden flex-col justify-between overflow-hidden rounded-2xl border border-border/60 bg-card p-12 text-foreground lg:flex">
+          <AuthBrandIntro className="self-start text-[32px]" />
           <AuthHeroSlides />
-          <div className="relative flex items-center justify-between text-xs opacity-80">
+          <div className="relative flex items-center justify-between gap-3 text-xs text-muted-foreground">
             <div className="flex items-center gap-2">
               <ShieldCheck className="size-4" /> Autenticação Segura
             </div>
             {isStandalone && (
-              <div className="flex items-center gap-1.5 rounded-md bg-primary-foreground/15 px-2.5 py-1 text-xs">
+              <div className="flex items-center gap-1.5 rounded-md bg-muted px-2.5 py-1 text-xs">
                 <Smartphone className="size-3.5" /> PWA Ativo
               </div>
             )}
           </div>
         </section>
 
-        <section className="flex flex-col items-center justify-center bg-muted/20 px-5 py-10 sm:px-10">
+        <section className="flex flex-col items-center justify-center px-5 py-8 sm:px-8">
           {/* No telemóvel o painel da marca não aparece: sem isto, o ecrã não dizia onde se entra. */}
-          <SigaLogo className="mb-6 lg:hidden" />
-          <div className="w-full max-w-lg rounded-2xl border border-border bg-card p-8 shadow-sm sm:p-10 lg:[zoom:1.15]">
-            <h2 className="mt-1 font-display text-xl font-semibold tracking-tight text-center">
+          <AuthBrandIntro className="mb-8 text-[28px] lg:hidden" />
+          <div className="siga-auth-card w-full max-w-[420px] rounded-2xl border border-border/70 bg-card p-6 sm:p-8">
+            <h2 className="mt-1 font-display text-[24px] font-semibold tracking-tight text-center">
               {mode === "signup" ? "Criar conta SIGA Plus" : "Iniciar sessão"}
             </h2>
-            <p className="mt-1.5 text-xs text-muted-foreground text-center">
+            <p className="mt-2 text-sm leading-relaxed text-muted-foreground text-center">
               {mode === "signup"
                 ? "Uma só identidade para todas as escolas a que pertencer."
                 : "Entre com Google, e-mail ou Nº de BI."}
@@ -697,7 +689,7 @@ export function AuthGate({
                     setError(null);
                     setInfo(null);
                   }}
-                  className={`rounded-lg px-3 py-1.5 transition-colors ${
+                  className={`min-h-[36px] rounded-lg px-3 py-2 transition-colors ${
                     mode === value
                       ? "bg-card text-foreground shadow-sm"
                       : "text-foreground/75 hover:text-foreground"
@@ -774,7 +766,7 @@ export function AuthGate({
                     autoComplete="username"
                     required
                     defaultValue={rememberedEmail}
-                    className="pl-9 h-10 text-sm"
+                    className="pl-9 h-[44px] text-[16px] lg:h-[44px] lg:text-[16px]"
                     placeholder="utilizador@escola.ao ou 004212984LA042"
                   />
                 </div>
@@ -802,7 +794,7 @@ export function AuthGate({
                     autoComplete="current-password"
                     required
                     minLength={8}
-                    className="pr-11 pl-9 h-10 text-sm"
+                    className="pr-11 pl-9 h-[44px] text-[16px] lg:h-[44px] lg:text-[16px]"
                     placeholder="••••••••"
                   />
                   <button
@@ -828,7 +820,7 @@ export function AuthGate({
               <AuthCaptcha onToken={setCaptchaToken} resetSignal={captchaReset} />
               <Button
                 type="submit"
-                className="w-full gap-2 h-10 text-sm font-semibold"
+                className="w-full gap-2 h-[44px] text-[14px] font-semibold"
                 disabled={submitting || resetting || sendingMagicLink}
               >
                 {submitting ? (
@@ -861,7 +853,7 @@ export function AuthGate({
                     required
                     minLength={3}
                     maxLength={160}
-                    className="h-10 text-sm"
+                    className="h-[44px] text-[16px] lg:h-[44px] lg:text-[16px]"
                   />
                 </div>
                 <div className="space-y-1.5">
@@ -874,7 +866,7 @@ export function AuthGate({
                     type="email"
                     autoComplete="email"
                     required
-                    className="h-10 text-sm"
+                    className="h-[44px] text-[16px] lg:h-[44px] lg:text-[16px]"
                     placeholder="nome@exemplo.ao"
                   />
                 </div>
@@ -890,7 +882,7 @@ export function AuthGate({
                       autoComplete="new-password"
                       required
                       minLength={8}
-                      className="h-10 text-sm"
+                      className="h-[44px] text-[16px] lg:h-[44px] lg:text-[16px]"
                     />
                   </div>
                   <div className="space-y-1.5">
@@ -904,7 +896,7 @@ export function AuthGate({
                       autoComplete="new-password"
                       required
                       minLength={8}
-                      className="h-10 text-sm"
+                      className="h-[44px] text-[16px] lg:h-[44px] lg:text-[16px]"
                     />
                   </div>
                 </div>
@@ -915,7 +907,7 @@ export function AuthGate({
                 <AuthCaptcha onToken={setCaptchaToken} resetSignal={captchaReset} />
                 <Button
                   type="submit"
-                  className="w-full gap-2 h-10 text-sm font-semibold"
+                  className="w-full gap-2 h-[44px] text-[14px] font-semibold"
                   disabled={submitting}
                 >
                   {submitting ? <LoaderCircle className="size-4 animate-spin" /> : null}
@@ -935,7 +927,7 @@ export function AuthGate({
                 <Button
                   type="button"
                   variant="outline"
-                  className="mt-4 w-full gap-2 h-10 text-sm font-medium"
+                  className="mt-4 w-full gap-2 h-[44px] text-[14px] font-medium"
                   onClick={() => void signInWithGoogle()}
                   disabled={submitting || resetting || sendingMagicLink}
                 >
