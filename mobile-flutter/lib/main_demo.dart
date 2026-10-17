@@ -34,7 +34,30 @@ class DemoApp extends StatefulWidget {
   State<DemoApp> createState() => _DemoAppState();
 }
 
-class _DemoAppState extends State<DemoApp> {
+class _DemoAppState extends State<DemoApp> with WidgetsBindingObserver {
+  /// Sincronização com o SIGA: ao voltar à app e de 2 em 2 minutos com a
+  /// app aberta, as páginas visíveis voltam a ler os dados e os pontos de
+  /// novidades actualizam-se. O portal e a app partilham a mesma base, por
+  /// isso o que muda no portal aparece aqui na sincronização seguinte.
+  int syncTick = 0;
+  Timer? syncTimer;
+  static const syncEvery = Duration(minutes: 2);
+
+  void syncNow() {
+    if (gateway.schoolId == null) return;
+    setState(() => syncTick++);
+    unawaited(refreshUnread());
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    syncTimer?.cancel();
+    if (state == AppLifecycleState.resumed) {
+      syncNow();
+      syncTimer = Timer.periodic(syncEvery, (_) => syncNow());
+    }
+  }
+
   final gateway = demoGateway();
   final refresh = ValueNotifier<int>(0);
   late final GoRouter router;
@@ -94,6 +117,8 @@ class _DemoAppState extends State<DemoApp> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    syncTimer = Timer.periodic(syncEvery, (_) => syncNow());
     gateway.session().then((value) {
       session = value;
       update();
@@ -338,6 +363,7 @@ class _DemoAppState extends State<DemoApp> {
   Widget shellPage(StatefulNavigationShell shell) => ActivityScope(
     unreadNotices: unreadNotices,
     unreadChats: unreadChats,
+    syncTick: syncTick,
     refresh: () => unawaited(refreshUnread()),
     child: shellScaffold(shell),
   );
@@ -376,6 +402,8 @@ class _DemoAppState extends State<DemoApp> {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    syncTimer?.cancel();
     gateway.dispose();
     router.dispose();
     refresh.dispose();

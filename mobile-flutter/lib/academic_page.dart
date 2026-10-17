@@ -58,7 +58,10 @@ class DataPage extends StatefulWidget {
   State<DataPage> createState() => _DataPageState();
 }
 
-class _DataPageState extends State<DataPage> {
+class _DataPageState extends State<DataPage> with SyncedState {
+  @override
+  void resync() => load();
+
   late Future<Map<String, dynamic>> data;
   Timer? clock;
   String query = '';
@@ -1305,7 +1308,8 @@ class _DataPageState extends State<DataPage> {
   Widget build(BuildContext context) => FutureBuilder<Map<String, dynamic>>(
     future: data,
     builder: (context, snapshot) {
-      if (snapshot.connectionState != ConnectionState.done) {
+      if (snapshot.connectionState != ConnectionState.done &&
+          !snapshot.hasData) {
         return const Center(child: CircularProgressIndicator());
       }
       if (snapshot.hasError) {

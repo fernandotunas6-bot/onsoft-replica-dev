@@ -15,7 +15,10 @@ class LessonPlansPage extends StatefulWidget {
   State<LessonPlansPage> createState() => _LessonPlansPageState();
 }
 
-class _LessonPlansPageState extends State<LessonPlansPage> {
+class _LessonPlansPageState extends State<LessonPlansPage> with SyncedState {
+  @override
+  void resync() => load();
+
   late Future<(AcademicCatalog, List<Map<String, dynamic>>)> data;
   int term = 0; // 0 = todos
 
@@ -127,7 +130,8 @@ class _LessonPlansPageState extends State<LessonPlansPage> {
   Widget build(BuildContext context) => FutureBuilder(
     future: data,
     builder: (context, snapshot) {
-      if (snapshot.connectionState != ConnectionState.done) {
+      if (snapshot.connectionState != ConnectionState.done &&
+          !snapshot.hasData) {
         return const Center(child: CircularProgressIndicator());
       }
       if (snapshot.hasError) {

@@ -36,7 +36,11 @@ class InstitutionalPage extends StatefulWidget {
   State<InstitutionalPage> createState() => _InstitutionalPageState();
 }
 
-class _InstitutionalPageState extends State<InstitutionalPage> {
+class _InstitutionalPageState extends State<InstitutionalPage>
+    with SyncedState {
+  @override
+  void resync() => reload();
+
   late Future<Map<String, dynamic>> data;
 
   /// Avisos marcados como lidos nesta visita (já gravados no SIGA).
@@ -569,7 +573,8 @@ class _InstitutionalPageState extends State<InstitutionalPage> {
   Widget build(BuildContext context) => FutureBuilder<Map<String, dynamic>>(
     future: data,
     builder: (context, snapshot) {
-      if (snapshot.connectionState != ConnectionState.done) {
+      if (snapshot.connectionState != ConnectionState.done &&
+          !snapshot.hasData) {
         return const Center(child: CircularProgressIndicator());
       }
       List<Widget> children = [];

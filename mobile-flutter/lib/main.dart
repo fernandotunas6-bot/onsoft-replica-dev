@@ -136,7 +136,30 @@ class SigaApp extends StatefulWidget {
   State<SigaApp> createState() => _SigaAppState();
 }
 
-class _SigaAppState extends State<SigaApp> {
+class _SigaAppState extends State<SigaApp> with WidgetsBindingObserver {
+  /// Sincronização com o SIGA: ao voltar à app e de 2 em 2 minutos com a
+  /// app aberta, as páginas visíveis voltam a ler os dados e os pontos de
+  /// novidades actualizam-se. O portal e a app partilham a mesma base, por
+  /// isso o que muda no portal aparece aqui na sincronização seguinte.
+  int syncTick = 0;
+  Timer? syncTimer;
+  static const syncEvery = Duration(minutes: 2);
+
+  void syncNow() {
+    if (gateway.schoolId == null) return;
+    setState(() => syncTick++);
+    unawaited(refreshUnread());
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    syncTimer?.cancel();
+    if (state == AppLifecycleState.resumed) {
+      syncNow();
+      syncTimer = Timer.periodic(syncEvery, (_) => syncNow());
+    }
+  }
+
   final auth = Supabase.instance.client.auth;
   late final MobileGateway gateway = MobileGateway(
     widget.config.apiOrigin!,
@@ -162,6 +185,8 @@ class _SigaAppState extends State<SigaApp> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    syncTimer = Timer.periodic(syncEvery, (_) => syncNow());
     reduced = widget.prefs.getBool('reduced-motion') ?? false;
     appearance = ThemeMode.values.firstWhere(
       (mode) => mode.name == widget.prefs.getString('appearance'),
@@ -569,6 +594,7 @@ class _SigaAppState extends State<SigaApp> {
   Widget shellPage(StatefulNavigationShell shell) => ActivityScope(
     unreadNotices: unreadNotices,
     unreadChats: unreadChats,
+    syncTick: syncTick,
     refresh: () => unawaited(refreshUnread()),
     child: shellScaffold(shell),
   );
@@ -674,6 +700,8 @@ class _SigaAppState extends State<SigaApp> {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    syncTimer?.cancel();
     generation++;
     subscription?.cancel();
     gateway.dispose();

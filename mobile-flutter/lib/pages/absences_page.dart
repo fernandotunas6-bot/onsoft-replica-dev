@@ -43,7 +43,10 @@ class AbsencesPage extends StatefulWidget {
   State<AbsencesPage> createState() => _AbsencesPageState();
 }
 
-class _AbsencesPageState extends State<AbsencesPage> {
+class _AbsencesPageState extends State<AbsencesPage> with SyncedState {
+  @override
+  void resync() => load();
+
   late DateTime month = () {
     final now = luandaClock(DateTime.now());
     return DateTime(now.year, now.month);
@@ -372,7 +375,8 @@ class _AbsencesPageState extends State<AbsencesPage> {
           FutureBuilder(
             future: data,
             builder: (context, snapshot) {
-              if (snapshot.connectionState != ConnectionState.done) {
+              if (snapshot.connectionState != ConnectionState.done &&
+                  !snapshot.hasData) {
                 return const Padding(
                   padding: EdgeInsets.all(Siga.s4),
                   child: Center(child: CircularProgressIndicator()),

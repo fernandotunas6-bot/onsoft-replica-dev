@@ -570,17 +570,24 @@ class ActivityScope extends InheritedWidget {
     required this.unreadChats,
     required this.refresh,
     required super.child,
+    this.syncTick = 0,
   });
   final bool unreadNotices;
   final bool unreadChats;
   final VoidCallback refresh;
+
+  /// Muda a cada sincronização com o SIGA (ao voltar à app e de 2 em 2
+  /// minutos com a app aberta); as páginas abertas recarregam em silêncio.
+  final int syncTick;
 
   static ActivityScope? maybeOf(BuildContext context) =>
       context.dependOnInheritedWidgetOfExactType<ActivityScope>();
 
   @override
   bool updateShouldNotify(ActivityScope old) =>
-      old.unreadNotices != unreadNotices || old.unreadChats != unreadChats;
+      old.unreadNotices != unreadNotices ||
+      old.unreadChats != unreadChats ||
+      old.syncTick != syncTick;
 }
 
 /// Sino dos avisos com ponto vermelho quando há avisos por ler no SIGA.
@@ -622,5 +629,23 @@ class NoticeBell extends StatelessWidget {
         ],
       ),
     );
+  }
+}
+
+/// Página que acompanha o SIGA: quando a app sincroniza (ver
+/// [ActivityScope.syncTick]), chama [resync] para voltar a ler os dados,
+/// mantendo os actuais no ecrã até chegarem os novos.
+mixin SyncedState<T extends StatefulWidget> on State<T> {
+  int? _tick;
+
+  /// Volta a pedir os dados ao SIGA (sem setState: corre antes do build).
+  void resync();
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final tick = ActivityScope.maybeOf(context)?.syncTick;
+    if (_tick != null && tick != null && tick != _tick) resync();
+    _tick = tick;
   }
 }

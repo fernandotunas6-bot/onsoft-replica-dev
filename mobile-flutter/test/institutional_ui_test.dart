@@ -5,6 +5,7 @@ import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:siga_plus_flutter/chat_history.dart';
 import 'package:siga_plus_flutter/design/tokens.dart';
+import 'package:siga_plus_flutter/design/widgets.dart';
 import 'package:siga_plus_flutter/gateway.dart';
 import 'package:siga_plus_flutter/institutional_page.dart';
 
@@ -32,6 +33,42 @@ Widget app(Widget child) => MaterialApp(
 const context = {'schoolId': 'school-a', 'role': 'aluno', 'userId': 'aluno-1'};
 
 void main() {
+  testWidgets('sincronização: volta a ler o SIGA sem esvaziar o ecrã', (
+    tester,
+  ) async {
+    var calls = 0;
+    final g = gateway((_) async {
+      calls++;
+      return json({
+        ...context,
+        'requests': [
+          {
+            'document': calls == 1 ? 'Declaração' : 'Declaração actualizada',
+            'status': 'in_review',
+          },
+        ],
+      });
+    });
+    Widget at(int tick) => app(
+      ActivityScope(
+        unreadNotices: false,
+        unreadChats: false,
+        refresh: () {},
+        syncTick: tick,
+        child: InstitutionalPage(collection: 'documents', gateway: g),
+      ),
+    );
+    await tester.pumpWidget(at(0));
+    await tester.pumpAndSettle();
+    expect(find.text('Declaração'), findsOneWidget);
+    await tester.pumpWidget(at(1));
+    // Enquanto o pedido corre, o conteúdo anterior continua visível.
+    expect(find.text('Declaração'), findsOneWidget);
+    await tester.pumpAndSettle();
+    expect(calls, 2);
+    expect(find.text('Declaração actualizada'), findsOneWidget);
+  });
+
   testWidgets('avisos: páginas anteriores pelo cursor do servidor', (
     tester,
   ) async {
