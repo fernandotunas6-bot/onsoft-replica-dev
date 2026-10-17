@@ -18,6 +18,14 @@ Map<String, dynamic> _context(String school, String role) => {
   'userId': demoUserId,
 };
 
+const _students = [
+  {'studentId': 'al-1', 'name': 'Ana Souza'},
+  {'studentId': 'al-2', 'name': 'Bruno Kiala'},
+  {'studentId': 'al-3', 'name': 'Carla Mateus'},
+  {'studentId': 'al-4', 'name': 'Daniel Neto'},
+  {'studentId': 'al-5', 'name': 'Esperança Lopes'},
+];
+
 Map<String, dynamic> _academic(String school, String role) => {
   ..._context(school, role),
   'classes': [
@@ -26,7 +34,9 @@ Map<String, dynamic> _academic(String school, String role) => {
       'classGroupId': 'turma-a',
       'subjectName': 'Matemática',
       'className': '10.ª Classe · Turma A',
-      'teacher': {'name': 'Carlos Mendes'},
+      // Na escola de demonstração do professor, a disciplina é do utilizador.
+      'teacher': {'name': 'Carlos Mendes', 'userId': demoUserId},
+      'students': _students,
     },
     {
       'classSubjectId': 'lp',
@@ -207,18 +217,42 @@ Map<String, dynamic> _response(Uri url) {
         ],
       };
     case 'notifications':
+      final items = [
+        {
+          'id': 'av-1',
+          'title': 'Reunião de encarregados',
+          'body': 'Sexta-feira, às 15h, no salão da escola.',
+          'read': _readNotices.contains('av-1'),
+        },
+        {
+          'id': 'av-2',
+          'title': 'Calendário de provas',
+          'body': 'As provas do I trimestre começam na próxima semana.',
+          'read': true,
+        },
+      ];
       return {
         ..._context(school, role),
-        'items': [
-          {
-            'title': 'Reunião de encarregados',
-            'body': 'Sexta-feira, às 15h, no salão da escola.',
-          },
-          {
-            'title': 'Calendário de provas',
-            'body': 'As provas do I trimestre começam na próxima semana.',
-          },
+        'unread': items.where((i) => i['read'] == false).length,
+        'items': items,
+      };
+    case 'chat-capabilities':
+      return {'writes': true};
+    case 'attendance':
+      return {
+        ..._context(school, role),
+        'from': url.queryParameters['from'],
+        'to': url.queryParameters['to'],
+        'sessions': [
+          if (_attendanceDone)
+            {
+              'id': 'sessao-demo',
+              'classSubjectId': 'mat',
+              'status': 'completed',
+              'records': _attendanceRecords,
+            },
         ],
+        'teacherLessons': [],
       };
     case 'finance':
       return {
@@ -278,6 +312,47 @@ Map<String, dynamic> _response(Uri url) {
   throw StateError('Serviço sem dados de demonstração.');
 }
 
+// Estado das escritas da demonstração: só em memória, nunca sai do aparelho.
+final _readNotices = <String>{};
+var _attendanceDone = false;
+var _attendanceRecords = <Map<String, dynamic>>[];
+var _sent = 0;
+
+Map<String, dynamic> _command(Uri url, Map<String, dynamic> body) {
+  final parts = url.pathSegments;
+  final school = parts[parts.indexOf('schools') + 1];
+  final role = body['role'] as String;
+  switch (parts.last) {
+    case 'notifications-read':
+      if (body['all'] == true) {
+        _readNotices.add('av-1');
+      } else {
+        _readNotices.addAll((body['ids'] as List).cast<String>());
+      }
+      return {..._context(school, role), 'updated': 1, 'unread': 0};
+    case 'attendance-call':
+      _attendanceDone = true;
+      _attendanceRecords = (body['records'] as List)
+          .cast<Map<String, dynamic>>();
+      return {
+        ..._context(school, role),
+        'classSubjectId': body['classSubjectId'],
+        'sessionId': 'sessao-demo',
+        'date': body['date'],
+        'count': _attendanceRecords.length,
+        'status': 'completed',
+      };
+    case 'chat-commands':
+      final command = body['command'] as Map<String, dynamic>;
+      return {
+        'type': command['type'],
+        'conversationId': command['conversationId'],
+        'messageId': command['type'] == 'send' ? 'demo-envio-${++_sent}' : null,
+      };
+  }
+  throw StateError('Acção sem simulação na demonstração.');
+}
+
 /// Gateway que responde localmente, com um pequeno atraso para se verem os
 /// estados de carregamento. Mantém as mesmas verificações do gateway real.
 MobileGateway demoGateway() => MobileGateway(
@@ -285,8 +360,14 @@ MobileGateway demoGateway() => MobileGateway(
   () async => 'demo',
   client: MockClient((request) async {
     await Future<void>.delayed(const Duration(milliseconds: 350));
+    final result = request.method == 'POST'
+        ? _command(
+            request.url,
+            jsonDecode(request.body) as Map<String, dynamic>,
+          )
+        : _response(request.url);
     return http.Response.bytes(
-      utf8.encode(jsonEncode(_response(request.url))),
+      utf8.encode(jsonEncode(result)),
       200,
       headers: {'content-type': 'application/json; charset=utf-8'},
     );

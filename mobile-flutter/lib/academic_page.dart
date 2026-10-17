@@ -8,6 +8,7 @@ import 'chat_history.dart';
 import 'design/tokens.dart';
 import 'design/widgets.dart';
 import 'gateway.dart';
+import 'pages/attendance_page.dart';
 
 const weekdays = [
   'Segunda',
@@ -453,11 +454,11 @@ class _DataPageState extends State<DataPage> {
               ],
             ),
           ),
-          IconButton(
-            tooltip: 'Avisos',
+          NoticeBell(
             onPressed: () => context.go('/more/notifications'),
-            icon: Icon(
-              icon(FluentIcons.alert_24_regular, FluentIcons.alert_24_filled),
+            icon: icon(
+              FluentIcons.alert_24_regular,
+              FluentIcons.alert_24_filled,
             ),
           ),
         ],
@@ -860,9 +861,8 @@ class _DataPageState extends State<DataPage> {
         ),
       const SizedBox(height: Siga.s2),
       Text(
-        'Seleccione uma conversa para consultar o histórico; toque longo '
-        'para a marcar como favorita. O envio aguarda a integração no '
-        'servidor.',
+        'Conversas sincronizadas com o SIGA. Toque longo numa conversa para '
+        'a marcar como favorita.',
         style: Theme.of(context).textTheme.bodySmall,
       ),
     ];
@@ -1116,11 +1116,63 @@ class _DataPageState extends State<DataPage> {
         FluentIcons.clipboard_task_24_regular,
         'Presenças e notas',
         'Conforme o perfil autorizado',
-        () => context.go(
-          widget.gateway.role == 'aluno' ? '/more/results' : '/more/absences',
-        ),
+        () => widget.gateway.role == 'aluno'
+            ? context.go('/more/results')
+            : takeAttendance(subjects),
       ),
     ];
+  }
+
+  /// Professor: chamada de hoje numa das disciplinas que lecciona nesta
+  /// turma (o servidor confirma a atribuição antes de gravar).
+  void takeAttendance(List<Map<String, dynamic>> subjects) {
+    final mine = [
+      for (final s in subjects)
+        if (s['teacher'] is Map &&
+            (s['teacher'] as Map)['userId'] == widget.gateway.userId)
+          s,
+    ];
+    void open(Map<String, dynamic> subject) => Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => AttendancePage(
+          gateway: widget.gateway,
+          classSubjectId: subject['classSubjectId'] as String,
+          subjectName: subject['subjectName'] as String,
+          className: subject['className'] as String,
+          students: [
+            for (final st in (subject['students'] as List? ?? []))
+              if (st is Map &&
+                  st['studentId'] is String &&
+                  st['name'] is String)
+                (st['studentId'] as String, st['name'] as String),
+          ],
+        ),
+      ),
+    );
+    if (mine.length == 1) return open(mine.single);
+    showSigaSheet<void>(
+      context,
+      title: 'Fazer chamada',
+      builder: (sheet) => Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          if (mine.isEmpty)
+            const Text(
+              'Não tem disciplinas atribuídas nesta turma. As presenças são '
+              'lançadas pelo professor da disciplina.',
+            ),
+          for (final subject in mine)
+            MenuRow(
+              icon: FluentIcons.clipboard_task_24_regular,
+              title: subject['subjectName'] as String,
+              onTap: () {
+                Navigator.of(sheet).pop();
+                open(subject);
+              },
+            ),
+        ],
+      ),
+    );
   }
 
   List<Widget> tasksScreen(AcademicCatalog catalog) {

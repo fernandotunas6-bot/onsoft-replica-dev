@@ -36,6 +36,33 @@ class InstitutionalPage extends StatefulWidget {
 
 class _InstitutionalPageState extends State<InstitutionalPage> {
   late Future<Map<String, dynamic>> data;
+
+  /// Avisos marcados como lidos nesta visita (já gravados no SIGA).
+  final readNow = <String>{};
+
+  /// Marca avisos como lidos no SIGA: os [ids], ou todos quando null.
+  Future<void> markRead(List<String>? ids) async {
+    try {
+      await widget.gateway.markNoticesRead(ids: ids);
+      if (!mounted) return;
+      if (ids == null) {
+        setState(reload);
+      } else {
+        setState(() => readNow.addAll(ids));
+      }
+      ActivityScope.maybeOf(context)?.refresh();
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.maybeOf(context)?.showSnackBar(
+        SnackBar(
+          content: Text(
+            e is CommandError ? e.message : 'Sem ligação. Tente de novo.',
+          ),
+        ),
+      );
+    }
+  }
+
   @override
   void initState() {
     super.initState();
@@ -92,9 +119,11 @@ class _InstitutionalPageState extends State<InstitutionalPage> {
     String? status,
     bool highlight = false,
     List<Widget> footer = const [],
+    VoidCallback? onTap,
   }) => Padding(
     padding: const EdgeInsets.only(bottom: Siga.s1),
     child: SigaCard(
+      onTap: onTap,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -134,12 +163,30 @@ class _InstitutionalPageState extends State<InstitutionalPage> {
   List<Widget> content(Map<String, dynamic> result) {
     switch (widget.collection) {
       case 'notifications':
+        final items = rows(result, 'items');
+        bool unread(Map<String, dynamic> r) =>
+            r['read'] == false && !readNow.contains(r['id']);
         return [
-          for (final r in rows(result, 'items'))
+          if (items.any(unread))
+            Align(
+              alignment: Alignment.centerRight,
+              child: TextButton(
+                onPressed: () => markRead(null),
+                child: const Text('Marcar todas como lidas'),
+              ),
+            ),
+          for (final r in items)
             record(
-              icon: FluentIcons.alert_24_regular,
+              icon: unread(r)
+                  ? FluentIcons.alert_badge_24_regular
+                  : FluentIcons.alert_24_regular,
               title: text(r['title']),
               lines: [text(r['body'])],
+              status: unread(r) ? 'Novo' : null,
+              highlight: unread(r),
+              onTap: unread(r) && r['id'] is String
+                  ? () => markRead([r['id'] as String])
+                  : null,
             ),
         ];
       case 'documents':
@@ -209,7 +256,8 @@ class _InstitutionalPageState extends State<InstitutionalPage> {
 
   String? get note => switch (widget.collection) {
     'notifications' =>
-      'Últimos avisos. Não são marcados automaticamente como lidos.',
+      'Sincronizado com o SIGA: toque num aviso novo para o marcar como '
+          'lido, aqui e no portal.',
     'finance' =>
       'Consulta de facturas e recibos. Pagamento e reconciliação permanecem '
           'no Payflow; o valor base não representa o saldo em dívida.',

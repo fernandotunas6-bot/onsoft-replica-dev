@@ -132,15 +132,12 @@ class ServicesPage extends StatelessWidget {
                 ],
               ),
             ),
-            IconButton(
-              tooltip: 'Avisos',
+            NoticeBell(
               onPressed: () => onNavigate('/more/notifications'),
-              icon: Icon(
-                AppearanceScope.icon(
-                  context,
-                  FluentIcons.alert_24_regular,
-                  FluentIcons.alert_24_filled,
-                ),
+              icon: AppearanceScope.icon(
+                context,
+                FluentIcons.alert_24_regular,
+                FluentIcons.alert_24_filled,
               ),
             ),
           ],

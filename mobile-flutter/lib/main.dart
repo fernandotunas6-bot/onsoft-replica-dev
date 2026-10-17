@@ -9,6 +9,7 @@ import 'academic_page.dart';
 import 'config.dart';
 import 'design/floating_nav.dart';
 import 'design/tokens.dart';
+import 'design/widgets.dart' show ActivityScope;
 import 'gateway.dart';
 import 'identity.dart';
 import 'institutional_page.dart';
@@ -380,20 +381,41 @@ class _SigaAppState extends State<SigaApp> {
 
   final refresh = ValueNotifier<int>(0);
 
-  /// Há conversas por ler? Alimenta o ponto vermelho em «Mensagens».
+  /// Novidades por ler no SIGA: conversas (ponto em «Mensagens») e avisos
+  /// (ponto no sino).
   bool unreadChats = false;
+  bool unreadNotices = false;
 
   Future<void> refreshUnread() async {
-    try {
-      final chat = await gateway.read('chat');
-      final threads = chat['threads'];
-      final any =
-          threads is List &&
-          threads.any((t) => t is Map && t['unread'] is int && t['unread'] > 0);
-      if (mounted && any != unreadChats) setState(() => unreadChats = any);
-    } catch (_) {
-      // Sem ligação: o ponto fica como estava; a página mostra o erro.
-    }
+    await Future.wait([
+      () async {
+        try {
+          final chat = await gateway.read('chat');
+          final threads = chat['threads'];
+          final any =
+              threads is List &&
+              threads.any(
+                (t) => t is Map && t['unread'] is int && t['unread'] > 0,
+              );
+          if (mounted && any != unreadChats) {
+            setState(() => unreadChats = any);
+          }
+        } catch (_) {
+          // Sem ligação: o ponto fica como estava; a página mostra o erro.
+        }
+      }(),
+      () async {
+        try {
+          final notices = await gateway.read('notifications');
+          final any = notices['unread'] is int && notices['unread'] > 0;
+          if (mounted && any != unreadNotices) {
+            setState(() => unreadNotices = any);
+          }
+        } catch (_) {
+          // Idem.
+        }
+      }(),
+    ]);
   }
 
   void update() {
@@ -503,7 +525,14 @@ class _SigaAppState extends State<SigaApp> {
   /// Turma do aluno (para «Aluno · 10.ª Classe»); vazio até haver catálogo.
   String get memberSubtitle => [roleLabel, schoolName].join(' · ');
 
-  Widget shellPage(StatefulNavigationShell shell) => Scaffold(
+  Widget shellPage(StatefulNavigationShell shell) => ActivityScope(
+    unreadNotices: unreadNotices,
+    unreadChats: unreadChats,
+    refresh: () => unawaited(refreshUnread()),
+    child: shellScaffold(shell),
+  );
+
+  Widget shellScaffold(StatefulNavigationShell shell) => Scaffold(
     drawer: SideMenu(
       name: '${session?['name'] ?? ''}',
       subtitle: memberSubtitle,

@@ -366,6 +366,7 @@ class MenuRow extends StatelessWidget {
     this.onTap,
     this.trailing,
     this.destructive = false,
+    this.color,
   });
   final IconData icon;
   final String title;
@@ -373,13 +374,16 @@ class MenuRow extends StatelessWidget {
   final VoidCallback? onTap;
   final Widget? trailing;
   final bool destructive;
+
+  /// Cor do ícone (ex.: estado de presença); o texto mantém-se neutro.
+  final Color? color;
   @override
   Widget build(BuildContext context) {
     final color = destructive ? Theme.of(context).colorScheme.error : null;
     return ListTile(
       contentPadding: const EdgeInsets.symmetric(horizontal: Siga.s1),
       minVerticalPadding: 12,
-      leading: Icon(icon, color: color),
+      leading: Icon(icon, color: color ?? this.color),
       title: Text(
         title,
         style: TextStyle(fontWeight: FontWeight.w500, color: color),
@@ -552,6 +556,70 @@ class Entrance extends StatelessWidget {
           offset: Offset(0, 10 * (1 - t)),
           child: child,
         ),
+      ),
+    );
+  }
+}
+
+/// Novidades reais vindas do SIGA (avisos e conversas por ler) e como pedir
+/// nova contagem depois de uma acção (ler um aviso, sair das mensagens).
+class ActivityScope extends InheritedWidget {
+  const ActivityScope({
+    super.key,
+    required this.unreadNotices,
+    required this.unreadChats,
+    required this.refresh,
+    required super.child,
+  });
+  final bool unreadNotices;
+  final bool unreadChats;
+  final VoidCallback refresh;
+
+  static ActivityScope? maybeOf(BuildContext context) =>
+      context.dependOnInheritedWidgetOfExactType<ActivityScope>();
+
+  @override
+  bool updateShouldNotify(ActivityScope old) =>
+      old.unreadNotices != unreadNotices || old.unreadChats != unreadChats;
+}
+
+/// Sino dos avisos com ponto vermelho quando há avisos por ler no SIGA.
+class NoticeBell extends StatelessWidget {
+  const NoticeBell({super.key, required this.icon, required this.onPressed});
+  final IconData icon;
+  final VoidCallback onPressed;
+  @override
+  Widget build(BuildContext context) {
+    final unread = ActivityScope.maybeOf(context)?.unreadNotices ?? false;
+    return IconButton(
+      tooltip: unread ? 'Avisos, há avisos por ler' : 'Avisos',
+      onPressed: onPressed,
+      icon: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          Icon(icon),
+          Positioned(
+            top: -1,
+            right: -1,
+            child: AnimatedScale(
+              scale: unread ? 1 : 0,
+              duration: Siga.motion(context, Siga.quick),
+              curve: Siga.ease,
+              child: Container(
+                width: 9,
+                height: 9,
+                decoration: BoxDecoration(
+                  color: const Color(0xffd92c3a),
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: Theme.of(context).colorScheme.surface,
+                    width: 1.5,
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

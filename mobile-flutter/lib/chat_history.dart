@@ -24,11 +24,138 @@ class _ChatHistoryState extends State<ChatHistoryPage> {
   Map<String, dynamic>? cursor;
   bool busy = true;
   String? error;
+
+  /// O servidor aceita envio? null enquanto se verifica.
+  bool? canSend;
+  bool sending = false;
+  final input = TextEditingController();
+
+  /// Pedido em curso: repetir com o mesmo identificador não duplica a
+  /// mensagem no SIGA; muda quando o texto muda.
+  String? requestId;
+  String? requestBody;
+
   @override
   void initState() {
     super.initState();
-    load();
+    load().then((_) => markRead());
+    widget.gateway
+        .chatWrites()
+        .then((value) {
+          if (mounted) setState(() => canSend = value);
+          if (value) markRead();
+        })
+        .catchError((_) {
+          if (mounted) setState(() => canSend = false);
+        });
   }
+
+  @override
+  void dispose() {
+    input.dispose();
+    super.dispose();
+  }
+
+  /// Marca a conversa como lida no SIGA até à última mensagem recebida.
+  Future<void> markRead() async {
+    if (canSend != true) return;
+    final last = messages.lastWhere(
+      (m) => m['senderId'] != widget.gateway.userId,
+      orElse: () => const {},
+    );
+    if (last['id'] is! String) return;
+    try {
+      await widget.gateway.chatCommand({
+        'type': 'read',
+        'conversationId': widget.id,
+        'messageId': last['id'],
+      });
+    } catch (_) {
+      // Ler é acessório: sem ligação, a conversa continua por ler no SIGA.
+    }
+  }
+
+  Future<void> send() async {
+    final body = input.text.trim();
+    if (body.isEmpty || sending) return;
+    if (body.length > 4000) {
+      notify('A mensagem tem mais de 4000 caracteres.');
+      return;
+    }
+    if (body != requestBody) {
+      requestBody = body;
+      requestId = newRequestId();
+    }
+    setState(() => sending = true);
+    try {
+      final result = await widget.gateway.chatCommand({
+        'type': 'send',
+        'conversationId': widget.id,
+        'body': body,
+      }, requestId: requestId);
+      if (!mounted) return;
+      setState(() {
+        messages.add({
+          'id': result['messageId'] ?? requestId,
+          'senderId': widget.gateway.userId,
+          'senderName': '',
+          'body': body,
+          'createdAt': DateTime.now().toUtc().toIso8601String(),
+          'deleted': false,
+          'status': 'sent',
+          'reply': null,
+          'attachment': null,
+        });
+        input.clear();
+        requestId = requestBody = null;
+      });
+    } catch (e) {
+      notify(e is CommandError ? e.message : 'Sem ligação. Tente de novo.');
+    } finally {
+      if (mounted) setState(() => sending = false);
+    }
+  }
+
+  Future<void> remove(Map<String, dynamic> message) async {
+    final confirmed = await showSigaSheet<bool>(
+      context,
+      title: 'Apagar mensagem',
+      builder: (sheet) => Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          const Text('A mensagem fica apagada para todos, também no SIGA.'),
+          const SizedBox(height: Siga.s2),
+          FilledButton(
+            style: FilledButton.styleFrom(
+              backgroundColor: Theme.of(sheet).colorScheme.error,
+            ),
+            onPressed: () => Navigator.of(sheet).pop(true),
+            child: const Text('Apagar'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+    try {
+      await widget.gateway.chatCommand({
+        'type': 'delete',
+        'conversationId': widget.id,
+        'messageId': message['id'],
+      });
+      if (mounted) {
+        setState(() {
+          message['deleted'] = true;
+          message['body'] = '';
+        });
+      }
+    } catch (e) {
+      notify(e is CommandError ? e.message : 'Sem ligação. Tente de novo.');
+    }
+  }
+
+  void notify(String text) => ScaffoldMessenger.maybeOf(
+    context,
+  )?.showSnackBar(SnackBar(content: Text(text)));
 
   Future<void> load() async {
     setState(() {
@@ -109,7 +236,7 @@ class _ChatHistoryState extends State<ChatHistoryPage> {
     final attachment = message['attachment'];
     final ink = mine ? Colors.white : scheme.onSurface;
     final soft = mine ? Colors.white70 : palette.ink2;
-    return Align(
+    final bubble = Align(
       alignment: mine ? Alignment.centerRight : Alignment.centerLeft,
       child: ConstrainedBox(
         constraints: BoxConstraints(
@@ -195,10 +322,88 @@ class _ChatHistoryState extends State<ChatHistoryPage> {
         ),
       ),
     );
+    if (!mine || deleted || canSend != true) return bubble;
+    return GestureDetector(onLongPress: () => remove(message), child: bubble);
+  }
+
+  Widget composer() {
+    final palette = SigaPalette.of(context);
+    final scheme = Theme.of(context).colorScheme;
+    if (canSend != true) {
+      return SafeArea(
+        top: false,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(Siga.s3, Siga.s1, Siga.s3, 12),
+          child: Text(
+            canSend == null
+                ? 'A verificar o envio…'
+                : 'Histórico sincronizado com o SIGA. O envio ainda não está '
+                      'activo no servidor da escola.',
+            textAlign: TextAlign.center,
+            style: Theme.of(context).textTheme.bodySmall,
+          ),
+        ),
+      );
+    }
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: scheme.surface,
+        border: Border(top: BorderSide(color: palette.line)),
+      ),
+      child: SafeArea(
+        top: false,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(Siga.s2, 8, 8, 8),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Expanded(
+                child: TextField(
+                  controller: input,
+                  minLines: 1,
+                  maxLines: 5,
+                  maxLength: 4000,
+                  textCapitalization: TextCapitalization.sentences,
+                  decoration: InputDecoration(
+                    hintText: 'Escrever mensagem…',
+                    counterText: '',
+                    isDense: true,
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 12,
+                    ),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(22),
+                      borderSide: BorderSide.none,
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(22),
+                      borderSide: BorderSide.none,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 6),
+              IconButton.filled(
+                tooltip: 'Enviar',
+                onPressed: sending ? null : send,
+                icon: sending
+                    ? const SizedBox.square(
+                        dimension: 20,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Icon(FluentIcons.send_24_filled),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) => Scaffold(
+    bottomNavigationBar: composer(),
     appBar: AppBar(
       titleSpacing: 0,
       title: Row(
@@ -240,13 +445,15 @@ class _ChatHistoryState extends State<ChatHistoryPage> {
             action: 'Tentar novamente',
             onAction: load,
           ),
-        const SizedBox(height: Siga.s2),
-        Text(
-          'Consulta do histórico. Envio e anexos aguardam a integração no '
-          'servidor.',
-          textAlign: TextAlign.center,
-          style: Theme.of(context).textTheme.bodySmall,
-        ),
+        if (canSend == true) ...[
+          const SizedBox(height: Siga.s2),
+          Text(
+            'Sincronizado com o SIGA. Toque longo numa mensagem sua para a '
+            'apagar. Anexos abrem-se no portal.',
+            textAlign: TextAlign.center,
+            style: Theme.of(context).textTheme.bodySmall,
+          ),
+        ],
       ],
     ),
   );
