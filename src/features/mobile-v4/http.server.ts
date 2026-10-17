@@ -20,6 +20,10 @@ import {
   loadMobileV4Notifications,
   applyMobileV4NotificationsRead,
   applyMobileV4AttendanceCall,
+  applyMobileV4SubmissionUpload,
+  applyMobileV4Submission,
+  loadMobileV4Submissions,
+  loadMobileV4SubmissionFile,
 } from "./operations-core.server";
 import { MobileApiError } from "./errors";
 import {
@@ -33,6 +37,10 @@ import {
   mobileNotificationsScopeSchema,
   mobileNotificationsReadSchema,
   mobileAttendanceCallSchema,
+  mobileSubmissionUploadSchema,
+  mobileSubmissionSchema,
+  mobileSubmissionsScopeSchema,
+  mobileSubmissionFileSchema,
 } from "./schemas";
 
 type Identity = { userId: string; aal: string | null };
@@ -55,6 +63,10 @@ export type MobileHttpDependencies = {
   chatCommand: (userId: string, scope: unknown) => Promise<unknown>;
   notificationsRead: (userId: string, input: unknown) => Promise<unknown>;
   attendanceCall: (userId: string, input: unknown) => Promise<unknown>;
+  submissionUpload: (userId: string, input: unknown) => Promise<unknown>;
+  submission: (userId: string, input: unknown) => Promise<unknown>;
+  submissions: (userId: string, scope: unknown) => Promise<unknown>;
+  submissionFile: (userId: string, scope: unknown) => Promise<unknown>;
   command: (userId: string, input: unknown) => Promise<unknown>;
   logout: (token: string) => Promise<void>;
 };
@@ -78,6 +90,10 @@ const dependencies: MobileHttpDependencies = {
   chatCommand: applyMobileV4ChatCommand,
   notificationsRead: applyMobileV4NotificationsRead,
   attendanceCall: applyMobileV4AttendanceCall,
+  submissionUpload: applyMobileV4SubmissionUpload,
+  submission: applyMobileV4Submission,
+  submissions: loadMobileV4Submissions,
+  submissionFile: loadMobileV4SubmissionFile,
   logout: async (token) => {
     const db = await loadSgaAdminClient();
     const { error } = await db.auth.admin.signOut(token, "local");
@@ -145,7 +161,7 @@ export async function handleMobileV4Http(request: Request, deps = dependencies):
     const url = new URL(request.url);
     const path = url.pathname;
     const schoolRoute =
-      /^\/api\/mobile-v4\/schools\/([0-9a-f-]+)\/(workspace|academic|attendance|results|gradebooks|lesson-plans|documents|finance|notifications|notifications-read|attendance-call|chat|contacts|attachment|chat-capabilities|chat-commands|commands)$/i.exec(
+      /^\/api\/mobile-v4\/schools\/([0-9a-f-]+)\/(workspace|academic|attendance|results|gradebooks|lesson-plans|documents|finance|notifications|notifications-read|attendance-call|chat|contacts|attachment|chat-capabilities|chat-commands|commands|submissions|submission-file|submission-upload|submission)$/i.exec(
         path,
       );
     const operation =
@@ -170,6 +186,8 @@ export async function handleMobileV4Http(request: Request, deps = dependencies):
       "finance",
       "notifications",
       "chat",
+      "submissions",
+      "submission-file",
     ].includes(operation)
       ? "GET"
       : "POST";
@@ -217,6 +235,28 @@ export async function handleMobileV4Http(request: Request, deps = dependencies):
             schoolId,
             role: url.searchParams.get("role"),
             messageId: url.searchParams.get("messageId"),
+          }),
+        ),
+      );
+    if (operation === "submissions")
+      return respond(
+        await deps.submissions(
+          identity.userId,
+          mobileSubmissionsScopeSchema.parse({
+            schoolId,
+            role: url.searchParams.get("role"),
+            taskId: url.searchParams.get("taskId") ?? undefined,
+          }),
+        ),
+      );
+    if (operation === "submission-file")
+      return respond(
+        await deps.submissionFile(
+          identity.userId,
+          mobileSubmissionFileSchema.parse({
+            schoolId,
+            role: url.searchParams.get("role"),
+            submissionId: url.searchParams.get("submissionId"),
           }),
         ),
       );
@@ -280,6 +320,17 @@ export async function handleMobileV4Http(request: Request, deps = dependencies):
           identity.userId,
           mobileAttendanceCallSchema.parse({ ...body, schoolId }),
         ),
+      );
+    if (operation === "submission-upload")
+      return respond(
+        await deps.submissionUpload(
+          identity.userId,
+          mobileSubmissionUploadSchema.parse({ ...body, schoolId }),
+        ),
+      );
+    if (operation === "submission")
+      return respond(
+        await deps.submission(identity.userId, mobileSubmissionSchema.parse({ ...body, schoolId })),
       );
     if (operation === "notifications-read")
       return respond(

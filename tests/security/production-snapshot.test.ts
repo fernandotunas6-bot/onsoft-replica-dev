@@ -159,6 +159,9 @@ const TABELAS_AUSENTES_DA_PRODUCAO = new Set<string>([
   "web_contact_messages",
   "web_faqs",
   "web_school_showcase",
+  // 20261017140000_task_submissions.sql (entregas em PDF pela app): sai daqui
+  // quando o retrato for recapturado depois de aplicada.
+  "siga_task_submissions",
 ]);
 
 /** Tabelas consultadas pelo código — `.from("x")`, excluindo buckets de storage. */

@@ -51,6 +51,8 @@ const MIGRATIONS = {
     "siga_lesson_plans",
     "siga_lesson_plan_components",
   ],
+  // Entregas de trabalhos (PDF) dos alunos pela app.
+  "supabase/migrations/20261017140000_task_submissions.sql": ["siga_task_submissions"],
 };
 
 const read = (path: string) => readFileSync(join(process.cwd(), path), "utf8");

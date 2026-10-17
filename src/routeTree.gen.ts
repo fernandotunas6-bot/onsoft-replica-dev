@@ -144,6 +144,10 @@ import { Route as ApiMobileV4SchoolsSchoolIdLessonPlansRouteImport } from './rou
 import { Route as ApiMobileV4SchoolsSchoolIdNotificationsRouteImport } from './routes/api/mobile-v4/schools/$schoolId/notifications'
 import { Route as ApiMobileV4SchoolsSchoolIdNotificationsReadRouteImport } from './routes/api/mobile-v4/schools/$schoolId/notifications-read'
 import { Route as ApiMobileV4SchoolsSchoolIdResultsRouteImport } from './routes/api/mobile-v4/schools/$schoolId/results'
+import { Route as ApiMobileV4SchoolsSchoolIdSubmissionRouteImport } from './routes/api/mobile-v4/schools/$schoolId/submission'
+import { Route as ApiMobileV4SchoolsSchoolIdSubmissionFileRouteImport } from './routes/api/mobile-v4/schools/$schoolId/submission-file'
+import { Route as ApiMobileV4SchoolsSchoolIdSubmissionUploadRouteImport } from './routes/api/mobile-v4/schools/$schoolId/submission-upload'
+import { Route as ApiMobileV4SchoolsSchoolIdSubmissionsRouteImport } from './routes/api/mobile-v4/schools/$schoolId/submissions'
 import { Route as ApiMobileV4SchoolsSchoolIdWorkspaceRouteImport } from './routes/api/mobile-v4/schools/$schoolId/workspace'
 
 const IndexRoute = IndexRouteImport.update({
@@ -860,6 +864,30 @@ const ApiMobileV4SchoolsSchoolIdResultsRoute =
     path: '/api/mobile-v4/schools/$schoolId/results',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiMobileV4SchoolsSchoolIdSubmissionRoute =
+  ApiMobileV4SchoolsSchoolIdSubmissionRouteImport.update({
+    id: '/api/mobile-v4/schools/$schoolId/submission',
+    path: '/api/mobile-v4/schools/$schoolId/submission',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiMobileV4SchoolsSchoolIdSubmissionFileRoute =
+  ApiMobileV4SchoolsSchoolIdSubmissionFileRouteImport.update({
+    id: '/api/mobile-v4/schools/$schoolId/submission-file',
+    path: '/api/mobile-v4/schools/$schoolId/submission-file',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiMobileV4SchoolsSchoolIdSubmissionUploadRoute =
+  ApiMobileV4SchoolsSchoolIdSubmissionUploadRouteImport.update({
+    id: '/api/mobile-v4/schools/$schoolId/submission-upload',
+    path: '/api/mobile-v4/schools/$schoolId/submission-upload',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiMobileV4SchoolsSchoolIdSubmissionsRoute =
+  ApiMobileV4SchoolsSchoolIdSubmissionsRouteImport.update({
+    id: '/api/mobile-v4/schools/$schoolId/submissions',
+    path: '/api/mobile-v4/schools/$schoolId/submissions',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiMobileV4SchoolsSchoolIdWorkspaceRoute =
   ApiMobileV4SchoolsSchoolIdWorkspaceRouteImport.update({
     id: '/api/mobile-v4/schools/$schoolId/workspace',
@@ -1003,6 +1031,10 @@ export interface FileRoutesByFullPath {
   '/api/mobile-v4/schools/$schoolId/notifications': typeof ApiMobileV4SchoolsSchoolIdNotificationsRoute
   '/api/mobile-v4/schools/$schoolId/notifications-read': typeof ApiMobileV4SchoolsSchoolIdNotificationsReadRoute
   '/api/mobile-v4/schools/$schoolId/results': typeof ApiMobileV4SchoolsSchoolIdResultsRoute
+  '/api/mobile-v4/schools/$schoolId/submission': typeof ApiMobileV4SchoolsSchoolIdSubmissionRoute
+  '/api/mobile-v4/schools/$schoolId/submission-file': typeof ApiMobileV4SchoolsSchoolIdSubmissionFileRoute
+  '/api/mobile-v4/schools/$schoolId/submission-upload': typeof ApiMobileV4SchoolsSchoolIdSubmissionUploadRoute
+  '/api/mobile-v4/schools/$schoolId/submissions': typeof ApiMobileV4SchoolsSchoolIdSubmissionsRoute
   '/api/mobile-v4/schools/$schoolId/workspace': typeof ApiMobileV4SchoolsSchoolIdWorkspaceRoute
 }
 export interface FileRoutesByTo {
@@ -1141,6 +1173,10 @@ export interface FileRoutesByTo {
   '/api/mobile-v4/schools/$schoolId/notifications': typeof ApiMobileV4SchoolsSchoolIdNotificationsRoute
   '/api/mobile-v4/schools/$schoolId/notifications-read': typeof ApiMobileV4SchoolsSchoolIdNotificationsReadRoute
   '/api/mobile-v4/schools/$schoolId/results': typeof ApiMobileV4SchoolsSchoolIdResultsRoute
+  '/api/mobile-v4/schools/$schoolId/submission': typeof ApiMobileV4SchoolsSchoolIdSubmissionRoute
+  '/api/mobile-v4/schools/$schoolId/submission-file': typeof ApiMobileV4SchoolsSchoolIdSubmissionFileRoute
+  '/api/mobile-v4/schools/$schoolId/submission-upload': typeof ApiMobileV4SchoolsSchoolIdSubmissionUploadRoute
+  '/api/mobile-v4/schools/$schoolId/submissions': typeof ApiMobileV4SchoolsSchoolIdSubmissionsRoute
   '/api/mobile-v4/schools/$schoolId/workspace': typeof ApiMobileV4SchoolsSchoolIdWorkspaceRoute
 }
 export interface FileRoutesById {
@@ -1280,6 +1316,10 @@ export interface FileRoutesById {
   '/api/mobile-v4/schools/$schoolId/notifications': typeof ApiMobileV4SchoolsSchoolIdNotificationsRoute
   '/api/mobile-v4/schools/$schoolId/notifications-read': typeof ApiMobileV4SchoolsSchoolIdNotificationsReadRoute
   '/api/mobile-v4/schools/$schoolId/results': typeof ApiMobileV4SchoolsSchoolIdResultsRoute
+  '/api/mobile-v4/schools/$schoolId/submission': typeof ApiMobileV4SchoolsSchoolIdSubmissionRoute
+  '/api/mobile-v4/schools/$schoolId/submission-file': typeof ApiMobileV4SchoolsSchoolIdSubmissionFileRoute
+  '/api/mobile-v4/schools/$schoolId/submission-upload': typeof ApiMobileV4SchoolsSchoolIdSubmissionUploadRoute
+  '/api/mobile-v4/schools/$schoolId/submissions': typeof ApiMobileV4SchoolsSchoolIdSubmissionsRoute
   '/api/mobile-v4/schools/$schoolId/workspace': typeof ApiMobileV4SchoolsSchoolIdWorkspaceRoute
 }
 export interface FileRouteTypes {
@@ -1420,6 +1460,10 @@ export interface FileRouteTypes {
     | '/api/mobile-v4/schools/$schoolId/notifications'
     | '/api/mobile-v4/schools/$schoolId/notifications-read'
     | '/api/mobile-v4/schools/$schoolId/results'
+    | '/api/mobile-v4/schools/$schoolId/submission'
+    | '/api/mobile-v4/schools/$schoolId/submission-file'
+    | '/api/mobile-v4/schools/$schoolId/submission-upload'
+    | '/api/mobile-v4/schools/$schoolId/submissions'
     | '/api/mobile-v4/schools/$schoolId/workspace'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -1558,6 +1602,10 @@ export interface FileRouteTypes {
     | '/api/mobile-v4/schools/$schoolId/notifications'
     | '/api/mobile-v4/schools/$schoolId/notifications-read'
     | '/api/mobile-v4/schools/$schoolId/results'
+    | '/api/mobile-v4/schools/$schoolId/submission'
+    | '/api/mobile-v4/schools/$schoolId/submission-file'
+    | '/api/mobile-v4/schools/$schoolId/submission-upload'
+    | '/api/mobile-v4/schools/$schoolId/submissions'
     | '/api/mobile-v4/schools/$schoolId/workspace'
   id:
     | '__root__'
@@ -1696,6 +1744,10 @@ export interface FileRouteTypes {
     | '/api/mobile-v4/schools/$schoolId/notifications'
     | '/api/mobile-v4/schools/$schoolId/notifications-read'
     | '/api/mobile-v4/schools/$schoolId/results'
+    | '/api/mobile-v4/schools/$schoolId/submission'
+    | '/api/mobile-v4/schools/$schoolId/submission-file'
+    | '/api/mobile-v4/schools/$schoolId/submission-upload'
+    | '/api/mobile-v4/schools/$schoolId/submissions'
     | '/api/mobile-v4/schools/$schoolId/workspace'
   fileRoutesById: FileRoutesById
 }
@@ -1800,6 +1852,10 @@ export interface RootRouteChildren {
   ApiMobileV4SchoolsSchoolIdNotificationsRoute: typeof ApiMobileV4SchoolsSchoolIdNotificationsRoute
   ApiMobileV4SchoolsSchoolIdNotificationsReadRoute: typeof ApiMobileV4SchoolsSchoolIdNotificationsReadRoute
   ApiMobileV4SchoolsSchoolIdResultsRoute: typeof ApiMobileV4SchoolsSchoolIdResultsRoute
+  ApiMobileV4SchoolsSchoolIdSubmissionRoute: typeof ApiMobileV4SchoolsSchoolIdSubmissionRoute
+  ApiMobileV4SchoolsSchoolIdSubmissionFileRoute: typeof ApiMobileV4SchoolsSchoolIdSubmissionFileRoute
+  ApiMobileV4SchoolsSchoolIdSubmissionUploadRoute: typeof ApiMobileV4SchoolsSchoolIdSubmissionUploadRoute
+  ApiMobileV4SchoolsSchoolIdSubmissionsRoute: typeof ApiMobileV4SchoolsSchoolIdSubmissionsRoute
   ApiMobileV4SchoolsSchoolIdWorkspaceRoute: typeof ApiMobileV4SchoolsSchoolIdWorkspaceRoute
 }
 
@@ -2750,6 +2806,34 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiMobileV4SchoolsSchoolIdResultsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/mobile-v4/schools/$schoolId/submission': {
+      id: '/api/mobile-v4/schools/$schoolId/submission'
+      path: '/api/mobile-v4/schools/$schoolId/submission'
+      fullPath: '/api/mobile-v4/schools/$schoolId/submission'
+      preLoaderRoute: typeof ApiMobileV4SchoolsSchoolIdSubmissionRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/mobile-v4/schools/$schoolId/submission-file': {
+      id: '/api/mobile-v4/schools/$schoolId/submission-file'
+      path: '/api/mobile-v4/schools/$schoolId/submission-file'
+      fullPath: '/api/mobile-v4/schools/$schoolId/submission-file'
+      preLoaderRoute: typeof ApiMobileV4SchoolsSchoolIdSubmissionFileRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/mobile-v4/schools/$schoolId/submission-upload': {
+      id: '/api/mobile-v4/schools/$schoolId/submission-upload'
+      path: '/api/mobile-v4/schools/$schoolId/submission-upload'
+      fullPath: '/api/mobile-v4/schools/$schoolId/submission-upload'
+      preLoaderRoute: typeof ApiMobileV4SchoolsSchoolIdSubmissionUploadRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/mobile-v4/schools/$schoolId/submissions': {
+      id: '/api/mobile-v4/schools/$schoolId/submissions'
+      path: '/api/mobile-v4/schools/$schoolId/submissions'
+      fullPath: '/api/mobile-v4/schools/$schoolId/submissions'
+      preLoaderRoute: typeof ApiMobileV4SchoolsSchoolIdSubmissionsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/mobile-v4/schools/$schoolId/workspace': {
       id: '/api/mobile-v4/schools/$schoolId/workspace'
       path: '/api/mobile-v4/schools/$schoolId/workspace'
@@ -3079,6 +3163,14 @@ const rootRouteChildren: RootRouteChildren = {
     ApiMobileV4SchoolsSchoolIdNotificationsReadRoute,
   ApiMobileV4SchoolsSchoolIdResultsRoute:
     ApiMobileV4SchoolsSchoolIdResultsRoute,
+  ApiMobileV4SchoolsSchoolIdSubmissionRoute:
+    ApiMobileV4SchoolsSchoolIdSubmissionRoute,
+  ApiMobileV4SchoolsSchoolIdSubmissionFileRoute:
+    ApiMobileV4SchoolsSchoolIdSubmissionFileRoute,
+  ApiMobileV4SchoolsSchoolIdSubmissionUploadRoute:
+    ApiMobileV4SchoolsSchoolIdSubmissionUploadRoute,
+  ApiMobileV4SchoolsSchoolIdSubmissionsRoute:
+    ApiMobileV4SchoolsSchoolIdSubmissionsRoute,
   ApiMobileV4SchoolsSchoolIdWorkspaceRoute:
     ApiMobileV4SchoolsSchoolIdWorkspaceRoute,
 }

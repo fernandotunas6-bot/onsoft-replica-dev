@@ -20,6 +20,10 @@ vi.mock("@/features/mobile-v4/operations-core.server", () => ({
   loadMobileV4Notifications: vi.fn(),
   applyMobileV4NotificationsRead: vi.fn(),
   applyMobileV4AttendanceCall: vi.fn(),
+  applyMobileV4SubmissionUpload: vi.fn(),
+  applyMobileV4Submission: vi.fn(),
+  loadMobileV4Submissions: vi.fn(),
+  loadMobileV4SubmissionFile: vi.fn(),
   applyMobileV4Command: vi.fn(),
 }));
 

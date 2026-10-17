@@ -149,6 +149,10 @@ from (values
                and qual like '%sga_app_role%')
      and not exists (select 1 from pg_policies
                      where tablename = 'schools'
-                       and policyname = 'Administrators can update their own school'))
+                       and policyname = 'Administrators can update their own school')),
+  -- Entregas em PDF pela app, no pacote docs/agents/SIGA_aplicar_entregas_pdf.sql.
+  ('20261017140000_task_submissions',
+     to_regclass('public.siga_task_submissions') is not null
+     and not has_table_privilege('authenticated', 'public.siga_task_submissions', 'SELECT'))
 ) as m(migracao, ok)
 order by migracao;

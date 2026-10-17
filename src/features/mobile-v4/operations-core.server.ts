@@ -11,6 +11,10 @@ import {
   mobileNotificationsScopeSchema,
   mobileNotificationsReadSchema,
   mobileAttendanceCallSchema,
+  mobileSubmissionUploadSchema,
+  mobileSubmissionSchema,
+  mobileSubmissionsScopeSchema,
+  mobileSubmissionFileSchema,
 } from "./schemas";
 import { resolveMobileAcademicScope } from "./academic-scope.server";
 import { readMobileAcademicCatalog } from "./academic-catalog.server";
@@ -228,4 +232,44 @@ export async function applyMobileV4AttendanceCall(userId: string, input: unknown
     date: data.date,
     records: data.records,
   });
+}
+
+/** Aluno: URL assinado para enviar o PDF de uma tarefa sua com prazo aberto. */
+export async function applyMobileV4SubmissionUpload(userId: string, input: unknown) {
+  const data = mobileSubmissionUploadSchema.parse(input);
+  if (data.role !== "aluno") throw new MobileApiError(403, "COMMAND_ROLE_FORBIDDEN");
+  const { db } = await requireMobileAcademicAccess(userId, data.schoolId, data.role, "write");
+  const scope = await resolveMobileAcademicScope(db, userId, data.schoolId, data.role);
+  const { prepareMobileSubmissionUpload } = await import("./submissions.server");
+  return prepareMobileSubmissionUpload(db, scope, userId, {
+    taskId: data.taskId,
+    fileName: data.fileName,
+    sizeBytes: data.sizeBytes,
+  });
+}
+
+/** Aluno: regista (ou substitui) a entrega depois de o PDF estar no storage. */
+export async function applyMobileV4Submission(userId: string, input: unknown) {
+  const data = mobileSubmissionSchema.parse(input);
+  if (data.role !== "aluno") throw new MobileApiError(403, "COMMAND_ROLE_FORBIDDEN");
+  const { db } = await requireMobileAcademicAccess(userId, data.schoolId, data.role, "write");
+  const scope = await resolveMobileAcademicScope(db, userId, data.schoolId, data.role);
+  const { registerMobileSubmission } = await import("./submissions.server");
+  return registerMobileSubmission(db, scope, userId, { taskId: data.taskId, path: data.path });
+}
+
+export async function loadMobileV4Submissions(userId: string, input: unknown) {
+  const s = mobileSubmissionsScopeSchema.parse(input);
+  const { db } = await requireMobileAcademicAccess(userId, s.schoolId, s.role, "read");
+  const scope = await resolveMobileAcademicScope(db, userId, s.schoolId, s.role);
+  const { readMobileSubmissions } = await import("./submissions.server");
+  return readMobileSubmissions(db, scope, userId, s.taskId);
+}
+
+export async function loadMobileV4SubmissionFile(userId: string, input: unknown) {
+  const s = mobileSubmissionFileSchema.parse(input);
+  const { db } = await requireMobileAcademicAccess(userId, s.schoolId, s.role, "read");
+  const scope = await resolveMobileAcademicScope(db, userId, s.schoolId, s.role);
+  const { signMobileSubmissionFile } = await import("./submissions.server");
+  return signMobileSubmissionFile(db, scope, s.submissionId);
 }

@@ -20,6 +20,10 @@ vi.mock("@/features/mobile-v4/operations-core.server", () => ({
   loadMobileV4Notifications: vi.fn(),
   applyMobileV4NotificationsRead: vi.fn(),
   applyMobileV4AttendanceCall: vi.fn(),
+  applyMobileV4SubmissionUpload: vi.fn(),
+  applyMobileV4Submission: vi.fn(),
+  loadMobileV4Submissions: vi.fn(),
+  loadMobileV4SubmissionFile: vi.fn(),
   applyMobileV4Command: vi.fn(),
 }));
 
@@ -69,6 +73,10 @@ beforeEach(() => {
     documents: vi.fn().mockResolvedValue({ schoolId: school, role: "aluno", requests: [] }),
     results: vi.fn().mockResolvedValue({ schoolId: school, role: "aluno", sheets: [] }),
     attendance: vi.fn().mockResolvedValue({ sessions: [], teacherLessons: [] }),
+    submissionUpload: vi.fn().mockResolvedValue({ path: "p", uploadUrl: "https://u.test" }),
+    submission: vi.fn().mockResolvedValue({ submission: { id: "s" } }),
+    submissions: vi.fn().mockResolvedValue({ submissions: [] }),
+    submissionFile: vi.fn().mockResolvedValue({ url: "https://f.test" }),
     academic: vi.fn().mockResolvedValue({
       schoolId: school,
       role: "aluno",
@@ -516,4 +524,72 @@ it("records a teacher call only by POST, with MFA, a strict body and the route s
   const response = await handleMobileV4Http(request(path, call), deps);
   expect(response.status).toBe(200);
   expect(deps.attendanceCall).toHaveBeenCalledWith("verified-user", { ...call, schoolId: school });
+});
+
+it("PDF submissions: upload and register only by POST with MFA and strict bodies", async () => {
+  const task = "66666666-6666-4666-8666-666666666666";
+  const upload = { role: "aluno", taskId: task, fileName: "trabalho.pdf", sizeBytes: 2048 };
+  const uploadPath = `/schools/${school}/submission-upload`;
+  expect((await handleMobileV4Http(request(uploadPath), deps)).status).toBe(405);
+  deps.authenticate = vi.fn().mockResolvedValue({ userId: "verified-user", aal: "aal1" });
+  expect((await handleMobileV4Http(request(uploadPath, upload), deps)).status).toBe(403);
+  deps.authenticate = vi.fn().mockResolvedValue({ userId: "verified-user", aal: "aal2" });
+  for (const body of [
+    { ...upload, sizeBytes: 10 * 1024 * 1024 + 1 },
+    { ...upload, sizeBytes: 0 },
+    { ...upload, taskId: "task" },
+    { ...upload, schoolId: school },
+    { ...upload, studentId: "attacker" },
+  ])
+    expect(
+      (await handleMobileV4Http(request(uploadPath, body), deps)).status,
+      JSON.stringify(body),
+    ).toBe(422);
+  expect(deps.submissionUpload).not.toHaveBeenCalled();
+  expect((await handleMobileV4Http(request(uploadPath, upload), deps)).status).toBe(200);
+  expect(deps.submissionUpload).toHaveBeenCalledWith("verified-user", {
+    ...upload,
+    schoolId: school,
+  });
+
+  const register = { role: "aluno", taskId: task, path: `${school}/2026/10/submissions/u/x.pdf` };
+  const registerPath = `/schools/${school}/submission`;
+  expect(
+    (await handleMobileV4Http(request(registerPath, { ...register, extra: 1 }), deps)).status,
+  ).toBe(422);
+  expect((await handleMobileV4Http(request(registerPath, register), deps)).status).toBe(200);
+  expect(deps.submission).toHaveBeenCalledWith("verified-user", { ...register, schoolId: school });
+});
+
+it("PDF submissions: list and open by GET with the route school", async () => {
+  const task = "66666666-6666-4666-8666-666666666666";
+  const sub = "77777777-7777-4777-8777-777777777777";
+  const list = await handleMobileV4Http(
+    request(`/schools/${school}/submissions?role=professor&taskId=${task}`),
+    deps,
+  );
+  expect(list.status).toBe(200);
+  expect(deps.submissions).toHaveBeenCalledWith("verified-user", {
+    schoolId: school,
+    role: "professor",
+    taskId: task,
+  });
+  expect(
+    (await handleMobileV4Http(request(`/schools/${school}/submissions?role=aluno&taskId=x`), deps))
+      .status,
+  ).toBe(422);
+  const file = await handleMobileV4Http(
+    request(`/schools/${school}/submission-file?role=aluno&submissionId=${sub}`),
+    deps,
+  );
+  expect(file.status).toBe(200);
+  expect(deps.submissionFile).toHaveBeenCalledWith("verified-user", {
+    schoolId: school,
+    role: "aluno",
+    submissionId: sub,
+  });
+  expect(
+    (await handleMobileV4Http(request(`/schools/${school}/submissions?role=aluno`, {}), deps))
+      .status,
+  ).toBe(405);
 });

@@ -175,3 +175,26 @@ export const mobileChatCommandSchema = z.discriminatedUnion("type", [
 export const mobileChatCommandRequestSchema = mobileScopeSchema
   .extend({ requestId: z.string().uuid(), command: mobileChatCommandSchema })
   .strict();
+
+/** Entregas em PDF: pedir o URL de envio (até 10 MB, nome .pdf). */
+export const mobileSubmissionUploadSchema = mobileScopeSchema
+  .extend({
+    taskId: z.string().uuid(),
+    fileName: z.string().trim().min(5).max(160),
+    sizeBytes: z
+      .number()
+      .int()
+      .min(1)
+      .max(10 * 1024 * 1024),
+  })
+  .strict();
+/** Entregas em PDF: registar o ficheiro já enviado para o caminho devolvido. */
+export const mobileSubmissionSchema = mobileScopeSchema
+  .extend({ taskId: z.string().uuid(), path: z.string().min(10).max(400) })
+  .strict();
+export const mobileSubmissionsScopeSchema = mobileScopeSchema
+  .extend({ taskId: z.string().uuid().optional() })
+  .strict();
+export const mobileSubmissionFileSchema = mobileScopeSchema
+  .extend({ submissionId: z.string().uuid() })
+  .strict();
