@@ -1,11 +1,12 @@
 "use client"
 
-import { useCallback, useEffect, useState } from "react"
+import { useCallback, useEffect, useMemo, useState } from "react"
 import Link from "next/link"
 import { RefreshCw, ScrollText } from "lucide-react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
+import { Input } from "@/components/ui/input"
 import {
   Table,
   TableBody,
@@ -45,12 +46,15 @@ export default function AuditPage() {
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [needsAuth, setNeedsAuth] = useState(false)
+  // O servidor serve até 100 eventos sem filtro de acção.
+  const [limit, setLimit] = useState(50)
+  const [query, setQuery] = useState("")
 
   const load = useCallback(async () => {
     setLoading(true)
     setError(null)
     const token = await accessToken()
-    const result = await fetchSaasAuditLogs(token, 50)
+    const result = await fetchSaasAuditLogs(token, limit)
     if (!token || result.error?.includes("Unauthorized") || result.error?.includes("Sem permissão")) {
       setNeedsAuth(true)
       setLogs([])
@@ -65,7 +69,17 @@ export default function AuditPage() {
     }
     setLogs(result.logs ?? [])
     setLoading(false)
-  }, [])
+  }, [limit])
+
+  const visible = useMemo(() => {
+    const q = query.trim().toLowerCase()
+    if (!q) return logs
+    return logs.filter((log) =>
+      [log.tenant_name, log.tenant_slug, log.action, actionLabel(log.action)]
+        .filter(Boolean)
+        .some((value) => String(value).toLowerCase().includes(q)),
+    )
+  }, [logs, query])
 
   useEffect(() => {
     void load()
@@ -77,7 +91,7 @@ export default function AuditPage() {
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Auditoria SaaS</h1>
           <p className="text-muted-foreground">
-            Últimos eventos da plataforma (`saas_audit_logs`) — provisionamento, estado, subscrição e admins.
+            Últimas alterações na plataforma: criação de escolas, estado, assinaturas, cobrança e operadores.
           </p>
         </div>
         <Button variant="outline" size="sm" onClick={() => void load()} disabled={loading}>
@@ -104,6 +118,14 @@ export default function AuditPage() {
           </p>
         ) : null}
 
+        <Input
+          placeholder="Filtrar por escola ou acção"
+          aria-label="Filtrar eventos"
+          value={query}
+          onChange={(event) => setQuery(event.target.value)}
+          className="mb-3 max-w-xs"
+        />
+
         <Card>
           <CardContent className="pt-6">
             <Table>
@@ -122,17 +144,17 @@ export default function AuditPage() {
                       A carregar…
                     </TableCell>
                   </TableRow>
-                ) : logs.length === 0 ? (
+                ) : visible.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={4} className="text-muted-foreground">
                       <div className="flex items-center gap-2">
                         <ScrollText className="size-4" />
-                        Nenhum registo de auditoria.
+                        {logs.length ? "Nenhum evento corresponde ao filtro." : "Nenhum registo de auditoria."}
                       </div>
                     </TableCell>
                   </TableRow>
                 ) : (
-                  logs.map((log) => (
+                  visible.map((log) => (
                     <TableRow key={log.id}>
                       <TableCell className="whitespace-nowrap text-sm text-muted-foreground">
                         {new Date(log.created_at).toLocaleString("pt-AO", {
@@ -163,6 +185,18 @@ export default function AuditPage() {
                 )}
               </TableBody>
             </Table>
+            {!loading && logs.length >= limit && limit < 100 ? (
+              <div className="mt-4 flex justify-center">
+                <Button variant="outline" size="sm" onClick={() => setLimit(100)}>
+                  Mostrar mais (até 100)
+                </Button>
+              </div>
+            ) : !loading && logs.length >= 100 ? (
+              <p className="mt-4 text-center text-xs text-muted-foreground">
+                Mostram-se os 100 eventos mais recentes. Para uma escola, veja o separador Registo na
+                página dela.
+              </p>
+            ) : null}
           </CardContent>
         </Card>
       </div>
