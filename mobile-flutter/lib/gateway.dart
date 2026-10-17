@@ -59,6 +59,29 @@ class MobileGateway {
     return result;
   }
 
+  /// Histórico de uma conversa. O servidor volta a verificar a participação
+  /// nesta conversa; o cliente só confirma que a resposta é deste contexto.
+  Future<Map<String, dynamic>> readThread(String threadId) async {
+    if (threadId.isEmpty || schoolId == null || role == null) {
+      throw StateError('Seleccione uma escola e um perfil.');
+    }
+    final expectedSchool = schoolId;
+    final expectedRole = role;
+    final expectedUser = userId;
+    final result = await _get(
+      '/schools/${Uri.encodeComponent(expectedSchool!)}'
+      '/chat/threads/${Uri.encodeComponent(threadId)}'
+      '?role=${Uri.encodeComponent(expectedRole!)}',
+    );
+    if (result['schoolId'] != expectedSchool ||
+        result['role'] != expectedRole ||
+        result['userId'] != expectedUser ||
+        result['threadId'] != threadId) {
+      throw StateError('Resposta fora do contexto autorizado.');
+    }
+    return result;
+  }
+
   Future<Map<String, dynamic>> _get(String path) async {
     final revision = _revision;
     final access = await token();

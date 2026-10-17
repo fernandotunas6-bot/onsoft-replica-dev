@@ -188,3 +188,24 @@ método, origem e query são as mesmas de `api.ts`.
 9 testes Node novos (48 no total em `backend/`), executados e aprovados.
 Não montado em nenhum Worker; o cliente só oferece as páginas com
 `--dart-define=INSTITUTIONAL_RECORDS=true`.
+
+
+## Incremento 5 — histórico de conversa (17/10/2026)
+
+`backend/chat.ts`: `GET /api/mobile-v4/schools/:schoolId/chat/threads/:threadId?role=`.
+Só leitura, por decisão: o envio, os anexos e o Realtime exigem endpoints de
+escrita, políticas de Storage e capacidades instaladas por escola que não são
+verificáveis a partir deste repositório — e o cliente não deve ganhar um botão
+de envio sem servidor onde publicar.
+
+Anexos viajam como nome e tamanho, **nunca como ligação**: um endereço para o
+armazenamento da escola tem de ser assinado a cada pedido pelo servidor que é
+dono da política. A allowlist não devolve userId, e-mail, telefone nem caminho
+de Storage do autor. Conversa inexistente e conversa fora do âmbito dão a mesma
+resposta (404). Resposta sobre outra conversa, escola ou papel é 503, falha de
+leitura é 503 `HISTORY_UNAVAILABLE` e nunca uma conversa vazia, e
+`previousCursor` é declarado em vez de perder mensagens em silêncio.
+
+7 testes Node novos (55 no total em `backend/`), executados e aprovados.
+Não montado; o cliente só abre o histórico com
+`--dart-define=INSTITUTIONAL_CHAT=true`.

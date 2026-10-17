@@ -182,6 +182,30 @@ porque o endpoint não está montado em nenhum Worker publicado.
 
 41 testes Dart e 48 testes Node executados e aprovados neste ambiente.
 
+## Incremento 5 — histórico de conversa
+
+`/messages/thread/:id` lê o histórico de uma conversa (contrato em
+docs/BACKEND.md): mensagens por ordem de envio, autor, hora de Luanda e anexos
+como nome e tamanho — nunca como ligação, porque um endereço para o
+armazenamento da escola tem de ser assinado pelo servidor.
+
+**Não há campo de escrita.** O envio, os anexos e o tempo real dependem de
+endpoints de escrita e de capacidades instaladas por escola, e a regra do
+projecto — sem botões de envio fictícios — vale também aqui: a página diz que é
+leitura e remete a resposta para o portal. Na lista de conversas, só uma
+conversa com identificador fica tocável, e apenas com
+`--dart-define=INSTITUTIONAL_CHAT=true`.
+
+## Estado da validação em 17/10/2026
+
+Executado neste ambiente, com o SDK instalado: `flutter pub get`,
+`dart format`, `flutter analyze` sem problemas, **48 testes Dart**,
+**55 testes Node** e `flutter build web --release` com todas as definições
+ligadas. Continua sem validação qualquer coisa que dependa de um servidor:
+nenhuma entrada real no SGA, nenhum desafio hCaptcha resolvido num browser com
+chave verdadeira, nenhum dos quatro endpoints de `backend/` montado ou chamado,
+e nenhuma alteração de DNS, domínio ou migração.
+
 ## Limite do repositório: o servidor Mobile V4 não está aqui
 
 O cliente consome `/api/mobile-v4/...`, mas `src/features/mobile-v4/` —

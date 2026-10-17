@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'academic.dart';
+import 'config.dart';
 import 'gateway.dart';
 
 class DataPage extends StatefulWidget {
@@ -395,10 +396,26 @@ class _DataPageState extends State<DataPage> {
                       leading: const Icon(Icons.chat_bubble_outline),
                       title: Text(thread['name'] as String),
                       subtitle: Text('${thread['unread']} não lidas'),
+                      // Sem identificador de conversa não há histórico a
+                      // abrir: a linha fica legível em vez de prometer um
+                      // toque que não leva a nada.
+                      trailing: chatHistoryEnabled && thread['id'] is String
+                          ? const Icon(Icons.chevron_right)
+                          : null,
+                      onTap: chatHistoryEnabled && thread['id'] is String
+                          ? () => context.go(
+                              '/messages/thread/'
+                              '${Uri.encodeComponent(thread['id'] as String)}',
+                            )
+                          : null,
                     ),
                 const SizedBox(height: 16),
-                const Text(
-                  'O histórico e o envio de mensagens estão em integração.',
+                Text(
+                  chatHistoryEnabled
+                      ? 'Histórico em leitura. O envio de mensagens continua '
+                            'no portal.'
+                      : 'O histórico e o envio de mensagens estão em '
+                            'integração.',
                 ),
               ],
             ] else ...[

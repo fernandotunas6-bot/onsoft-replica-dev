@@ -12,21 +12,8 @@ import 'captcha.dart';
 import 'captcha_factory.dart';
 import 'identity_login.dart';
 import 'records_page.dart';
-
-/// Os endpoints de avisos e resultados (backend/records.ts) também não estão
-/// montados no Worker publicado: sem esta definição o menu não os oferece.
-const institutionalRecordsEnabled = bool.fromEnvironment(
-  'INSTITUTIONAL_RECORDS',
-);
-
-/// O endpoint móvel de login por B.I. (backend/identity.ts) ainda não está
-/// montado no Worker publicado. Sem esta definição a aplicação não oferece a
-/// opção, em vez de a apresentar e falhar com 404 na mão da pessoa.
-const identifierLoginEnabled = bool.fromEnvironment('IDENTIFIER_LOGIN');
-
-/// Chave pública do hCaptcha, par da que o portal lê em VITE_HCAPTCHA_SITE_KEY.
-/// Vai no bundle; o segredo fica no Supabase e nunca neste cliente.
-const captchaSiteKey = String.fromEnvironment('HCAPTCHA_SITE_KEY');
+import 'chat_page.dart';
+import 'config.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -158,7 +145,15 @@ class _SigaAppState extends State<SigaApp> {
                   GoRoute(
                     path: path,
                     builder: (_, _) => page(path),
-                    routes: path == '/more'
+                    routes: path == '/messages'
+                        ? [
+                            GoRoute(
+                              path: 'thread/:id',
+                              builder: (_, state) =>
+                                  threadPage(state.pathParameters['id'] ?? ''),
+                            ),
+                          ]
+                        : path == '/more'
                         ? [
                             GoRoute(
                               path: 'classes',
@@ -512,6 +507,22 @@ class _SigaAppState extends State<SigaApp> {
       name: '${session?['name'] ?? ''}',
     );
   }
+
+  Widget threadPage(String threadId) => Scaffold(
+    appBar: AppBar(
+      title: const Text('Conversa'),
+      leading: IconButton(
+        tooltip: 'Voltar',
+        icon: const Icon(Icons.arrow_back),
+        onPressed: () => router.go('/messages'),
+      ),
+    ),
+    body: ChatHistoryPage(
+      key: ValueKey('$school:$role:$threadId'),
+      gateway: gateway,
+      threadId: threadId,
+    ),
+  );
 
   Widget recordsPage(String title, String collection) => Scaffold(
     appBar: AppBar(
