@@ -26,7 +26,7 @@ gere no SIGA, em vez do Firebase e da base D1 própria.
 | 1 | API de leitura do encarregado: `GET /api/sga/me`, `/wards`, `/notices` | feito (testes em `school-worker/test/sga.spec.ts`) |
 | 2 | Entrada na app com a conta do SIGA (Supabase Auth) e ecrãs do encarregado a ler `/api/sga` | feito na web (Educandos e Comunicados); Android à espera do captcha |
 | 3 | Leituras do encarregado: horário, faltas, recibos, boletim, saldo, disciplinas, turmas e calendário | feito |
-| 4 | Escritas do professor (presenças, notas) e mensagens, com as regras e a auditoria do SIGA | por fazer |
+| 4 | Escritas do professor e mensagens. Feito: chamada por aula (`/api/mobile/attendance` no SIGA). Por fazer: notas, mensagens | em curso |
 | 5 | Desligar o Firebase e a base D1 | por fazer |
 
 ## Modo SIGA na app
@@ -98,6 +98,28 @@ antigas, para os ecrãs não mudarem.
 - Comunicados: `status = sent`, não apagados, público `all_guardians` e, se
   algum educando tiver factura vencida por pagar, `guardians_with_debt`.
 - Uma leitura falhada responde 503, nunca uma lista vazia.
+
+## Escritas: no próprio SIGA
+
+As escritas não passam pelo `school-worker`: vão para rotas `/api/mobile/*`
+da **raiz do SIGA**, que chamam as mesmas funções de servidor dos ecrãs do
+SIGA. Assim a sessão e o MFA, o papel e as permissões do módulo, a escola
+suspensa/arquivada, a pauta oficial e a auditoria são exactamente os do SIGA,
+sem cópia de regras.
+
+- `GET /api/mobile/attendance?date=` — aulas do dia do professor (cria as
+  sessões que faltam, como o ecrã Chamada).
+- `GET /api/mobile/attendance?session_id=` — folha de chamada.
+- `POST /api/mobile/attendance` `{session_id, records:[{student_id,status}], reason?}`
+  — sem `reason` grava e fecha; com `reason` (≥ 5 caracteres) corrige uma
+  chamada fechada, com registo em `siga_attendance_audits`.
+- Erros: 401 sessão, 403 MFA, 422 entrada, 400 com a mensagem do SIGA, 500
+  sem detalhe. Testes: `tests/api/mobile-attendance.test.ts` (raiz).
+- A app chama o portal em `SGA_PORTAL_URL` (`--dart-define`). Escola com mais
+  de um vínculo: o SIGA usa a escola activa do cookie do portal; sem cookie,
+  a primeira. Ecrã: Marcar presenças (`sga_attendance_screen.dart`), P / A /
+  F por aluno; por marcar conta como presente; justificadas e saídas
+  antecipadas ficam como estão no SIGA.
 
 ## Pôr no ar (dono)
 

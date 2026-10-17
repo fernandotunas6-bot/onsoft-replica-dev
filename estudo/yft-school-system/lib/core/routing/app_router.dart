@@ -52,6 +52,7 @@ import 'package:yft_school_system/features/profile/presentation/appearance_scree
 import 'package:yft_school_system/features/subjects/presentation/subjects_screen.dart';
 import 'package:yft_school_system/core/sga/sga_config.dart';
 import 'package:yft_school_system/core/sga/sga_providers.dart';
+import 'package:yft_school_system/features/grading/presentation/sga_attendance_screen.dart';
 
 final rootNavigatorKey = GlobalKey<NavigatorState>();
 
@@ -146,7 +147,9 @@ final appRouter = GoRouter(
     ),
     GoRoute(
       path: '/attendance',
-      builder: (context, state) => const AttendanceScreen(),
+      // Modo SIGA: a chamada por aula do SIGA (rotas /api/mobile do portal).
+      builder: (context, state) =>
+          sgaMode ? const SgaAttendanceScreen() : const AttendanceScreen(),
     ),
 
     GoRoute(
