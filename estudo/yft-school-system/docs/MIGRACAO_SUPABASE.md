@@ -24,7 +24,7 @@ gere no SIGA, em vez do Firebase e da base D1 própria.
 | Fase | O quê | Estado |
 | ---- | ----- | ------ |
 | 1 | API de leitura do encarregado: `GET /api/sga/me`, `/wards`, `/notices` | feito (testes em `school-worker/test/sga.spec.ts`) |
-| 2 | Entrada na app com a conta do SIGA (Supabase Auth) e ecrãs do encarregado a ler `/api/sga` | feito na web (Educandos e Comunicados); Android à espera do captcha |
+| 2 | Entrada na app com a conta do SIGA (Supabase Auth) e ecrãs do encarregado a ler `/api/sga` | feito (web e Android/iOS) |
 | 3 | Leituras do encarregado: horário, faltas, recibos, boletim, saldo, disciplinas, turmas e calendário | feito |
 | 4 | Escritas e mensagens no próprio SIGA: chamada, notas e chat (`/api/mobile/attendance`, `/grades`, `/chat`) | feito |
 | 5 | Desligar o Firebase e a base D1 | por fazer |
@@ -47,8 +47,9 @@ flutter build web --release \
 - Captcha: o Supabase do SIGA exige hCaptcha. Na web, o ecrã de entrada mostra
   o widget oficial (`captcha_box_web.dart`); o domínio da app
   (`m.portal-siga.com`) tem de estar na lista de domínios da chave no painel do
-  hCaptcha. **No Android ainda não há captcha** (falta um WebView): o ecrã
-  diz para usar a versão web.
+  hCaptcha. No Android e iOS, o mesmo widget num WebView
+  (`captcha_box_mobile.dart`), carregado como página do portal
+  (`SGA_PORTAL_URL`): esse domínio também tem de estar na lista da chave.
 - Sessão: `GET /api/sga/me` dá o papel e a escola; o pedido leva a escola em
   `X-School-Id`. Encarregado completo nesta fase só em Educandos e
   Comunicados (sem contagem de "não lidos": o SIGA não a guarda). Os outros
