@@ -15,7 +15,7 @@ export interface Ward {
  * A ficha (people) da conta nesta escola: pela conta ligada e, se não houver,
  * pelo e-mail confirmado — a mesma regra do SIGA (auth/server.ts).
  */
-async function personIdFor(db: SgaDb, schoolId: string, user: SgaUser): Promise<string | null> {
+export async function personIdFor(db: SgaDb, schoolId: string, user: SgaUser): Promise<string | null> {
   const byUser = await db.select<{ id: string }>('people', {
     select: 'id',
     school_id: `eq.${schoolId}`,

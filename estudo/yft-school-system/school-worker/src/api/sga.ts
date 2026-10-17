@@ -28,6 +28,7 @@ import {
   type SgaUser,
 } from '../sga/identity';
 import { loadGradeYears, loadReportCard } from '../sga/grades';
+import { loadClassSubjectGrades, loadTeacherAssignments } from '../sga/teacher';
 import { SgaDb, SgaError, inList } from '../sga/rest';
 
 type SgaVars = { sgaUser: SgaUser; sgaDb: SgaDb; membership: SgaMembership; memberships: SgaMembership[] };
@@ -173,6 +174,24 @@ sga.get('/subjects', async (c) => {
   const wards = await loadWards(db, schoolId, c.get('sgaUser'));
   const classes = [...new Set(wards.map((w) => w.classGroupId).filter((x): x is string => !!x))];
   return c.json({ data: await loadWardSubjects(db, schoolId, classes, c.req.query('class_id')?.trim() || undefined) });
+});
+
+/** Turmas e disciplinas que o professor lecciona. */
+sga.get('/teacher/classes', async (c) => {
+  if (!c.get('membership').roles.includes('Professor')) throw new SgaError(403, 'TEACHER_ONLY');
+  const { schoolId } = c.get('membership');
+  return c.json({ data: await loadTeacherAssignments(c.get('sgaDb'), schoolId, c.get('sgaUser')) });
+});
+
+/** Notas de uma turma numa disciplina: ?class_group_id=&subject_id=&term=1..3. */
+sga.get('/teacher/grades', async (c) => {
+  const classGroupId = c.req.query('class_group_id')?.trim();
+  const subjectId = c.req.query('subject_id')?.trim();
+  const term = Number(c.req.query('term'));
+  if (!classGroupId || !subjectId || ![1, 2, 3].includes(term)) throw new SgaError(422, 'INVALID_INPUT');
+  return c.json(
+    await loadClassSubjectGrades(c.get('sgaDb'), c.get('membership'), c.get('sgaUser'), classGroupId, subjectId, term),
+  );
 });
 
 /** Recibos dos educandos (pagamentos registados no SIGA, sem os anulados). */

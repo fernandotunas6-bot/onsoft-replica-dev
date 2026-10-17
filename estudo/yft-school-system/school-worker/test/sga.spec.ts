@@ -18,17 +18,19 @@ const tables: Record<string, Row[]> = {
 		{ id: "m-t", school_id: S1, user_id: "u-teacher", status: "active", created_at: "1" },
 		{ id: "m-old", school_id: S1, user_id: "u-gone", status: "suspended", created_at: "1" },
 		{ id: "m-e", school_id: S1, user_id: "u-email", status: "active", created_at: "1" },
+		{ id: "m-a", school_id: S1, user_id: "u-admin", status: "active", created_at: "1" },
 	],
 	member_roles: [
 		{ membership_id: "m-g", role_id: "r-g" },
 		{ membership_id: "m-g2", role_id: "r-g" },
 		{ membership_id: "m-t", role_id: "r-t" },
 		{ membership_id: "m-e", role_id: "r-g" },
+		{ membership_id: "m-a", role_id: "r-a" },
 	],
 	profiles: [{ id: "u-guardian", full_name: "Mariana Silva", display_name: null }],
-	roles: [{ id: "r-g", code: "encarregado" }, { id: "r-t", code: "professor" }],
+	roles: [{ id: "r-g", code: "encarregado" }, { id: "r-t", code: "professor" }, { id: "r-a", code: "admin" }],
 	people: [
-		{ id: "p-prof", school_id: S1, full_name: "Carlos Mendes", preferred_name: null, deleted_at: null },
+		{ id: "p-prof", school_id: S1, user_id: "u-teacher", full_name: "Carlos Mendes", preferred_name: null, deleted_at: null },
 		{ id: "p-g", school_id: S1, user_id: "u-guardian", email: null, deleted_at: null, full_name: "Mariana" },
 		{ id: "p-g2", school_id: S2, user_id: "u-guardian", email: null, deleted_at: null, full_name: "Mariana" },
 		{ id: "p-e", school_id: S1, user_id: null, email: "pai@ex.ao", deleted_at: null, full_name: "Pai" },
@@ -56,13 +58,13 @@ const tables: Record<string, Row[]> = {
 		{ id: "e-rui", school_id: S1, student_id: "st-rui", class_group_id: "cg-7b", status: "active", academic_year_id: "ay-1" },
 	],
 	class_groups: [
-		{ id: "cg-10a", school_id: S1, name: "10.ª A" },
+		{ id: "cg-10a", school_id: S1, name: "10.ª A", academic_year_id: "ay-1" },
 		{ id: "cg-9a", school_id: S1, name: "9.ª A" },
 		{ id: "cg-7b", school_id: S1, name: "7.ª B" },
 	],
 	class_subjects: [
-		{ id: "cs-mat", school_id: S1, class_group_id: "cg-10a", subject_id: "sub-mat", teacher_id: "t-1" },
-		{ id: "cs-por", school_id: S1, class_group_id: "cg-10a", subject_id: "sub-por", teacher_id: null },
+		{ id: "cs-mat", school_id: S1, class_group_id: "cg-10a", subject_id: "sub-mat", teacher_id: "t-1", status: "active" },
+		{ id: "cs-por", school_id: S1, class_group_id: "cg-10a", subject_id: "sub-por", teacher_id: null, status: "active" },
 		{ id: "cs-other", school_id: S1, class_group_id: "cg-7b", subject_id: "sub-mat", teacher_id: "t-1" },
 		{ id: "cs-9a", school_id: S1, class_group_id: "cg-9a", subject_id: "sub-mat", teacher_id: null },
 		{ id: "cs-fis", school_id: S1, class_group_id: "cg-10a", subject_id: "sub-fis", teacher_id: null },
@@ -148,6 +150,7 @@ const tables: Record<string, Row[]> = {
 const sessions: Record<string, Row> = {
 	"tok-guardian": { id: "u-guardian", email: "mariana@ex.ao", email_confirmed_at: "2026-01-01" },
 	"tok-teacher": { id: "u-teacher", email: "prof@ex.ao", email_confirmed_at: "2026-01-01" },
+	"tok-admin": { id: "u-admin", email: "dir@ex.ao", email_confirmed_at: "2026-01-01" },
 	"tok-gone": { id: "u-gone", email: "x@ex.ao", email_confirmed_at: "2026-01-01" },
 	"tok-email": { id: "u-email", email: "PAI@ex.ao", email_confirmed_at: "2026-01-01" },
 	"tok-email-unconfirmed": { id: "u-email", email: "pai@ex.ao", email_confirmed_at: null },
@@ -385,5 +388,26 @@ describe("API SGA", () => {
 			{ id: "cg-7b", school_id: S1, class_name: "7.ª B", level: null },
 		]);
 		expect((await get("/classes", "tok-teacher")).status).toBe(403);
+	});
+
+	it("/teacher/classes: as disciplinas que o professor dá, com a turma", async () => {
+		const { data } = (await (await get("/teacher/classes", "tok-teacher")).json()) as { data: unknown[] };
+		expect(data).toEqual([{ class_group_id: "cg-10a", class_name: "10.ª A", subject_id: "sub-mat", subject_name: "Matemática" }]);
+		expect((await get("/teacher/classes", "tok-guardian")).status).toBe(403);
+	});
+
+	it("/teacher/grades: notas da sua disciplina; outra disciplina 404; direcção vê qualquer uma", async () => {
+		const body = (await (await get("/teacher/grades?class_group_id=cg-10a&subject_id=sub-mat&term=1", "tok-teacher")).json()) as Record<string, unknown>;
+		expect(body).toEqual({
+			term: 1,
+			provisional: true,
+			students: [{ enrollment_id: "e-ana", student_id: "st-ana", name: "Ana Silva", photo_url: null, mac: 12.5, npp: 9, npt: 14 }],
+		});
+		expect((await get("/teacher/grades?class_group_id=cg-10a&subject_id=sub-por&term=1", "tok-teacher")).status).toBe(404);
+		expect((await get("/teacher/grades?class_group_id=cg-10a&subject_id=sub-mat&term=1", "tok-guardian")).status).toBe(403);
+		expect((await get("/teacher/grades?class_group_id=cg-10a&subject_id=sub-mat&term=5", "tok-teacher")).status).toBe(422);
+		const admin = (await (await get("/teacher/grades?class_group_id=cg-10a&subject_id=sub-por&term=1", "tok-admin")).json()) as { provisional: boolean; students: { mac: number | null }[] };
+		expect(admin.provisional).toBe(false);
+		expect(admin.students[0].mac).toBe(11);
 	});
 });

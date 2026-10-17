@@ -1,13 +1,13 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { ZodError } from "zod";
+import { mobileRespond } from "@/features/mobile/api-response";
 import {
   editFinalizedAttendanceCall,
   getAttendanceCallSheet,
   listTeacherAttendanceSessions,
   submitAttendanceCallBatch,
 } from "@/features/pedagogica/attendance-server";
-import { isSessionMfaError } from "@/integrations/supabase/session-mfa";
-import { corsPreflight, jsonWithCors } from "@/lib/ecosystem-cors";
+import { corsPreflight } from "@/lib/ecosystem-cors";
 
 // style-check: route-exempt — API da app móvel (SIGA Plus Flutter, modo SIGA).
 
@@ -28,7 +28,7 @@ export const Route = createFileRoute("/api/mobile/attendance")({
     handlers: {
       OPTIONS: async ({ request }) => corsPreflight(request),
       GET: async ({ request }) =>
-        respond(request, async () => {
+        mobileRespond(request, "api/mobile/attendance", async () => {
           const url = new URL(request.url);
           const sessionId = url.searchParams.get("session_id");
           if (sessionId) return getAttendanceCallSheet({ data: { sessionId } });
@@ -36,7 +36,7 @@ export const Route = createFileRoute("/api/mobile/attendance")({
           return listTeacherAttendanceSessions({ data: { date } });
         }),
       POST: async ({ request }) =>
-        respond(request, async () => {
+        mobileRespond(request, "api/mobile/attendance", async () => {
           const body = (await request.json().catch(() => null)) as MobileAttendanceBody | null;
           if (!body || typeof body !== "object") throw new ZodError([]);
           const records = (Array.isArray(body.records) ? body.records : []).map((r) => ({
@@ -62,34 +62,3 @@ type MobileAttendanceBody = {
   reason?: unknown;
   records?: Array<{ student_id?: unknown; status?: unknown; notes?: unknown } | null>;
 };
-
-/**
- * Erros com o mesmo texto que o SIGA mostra (são escritos para a pessoa e os
- * da base passam por publicDatabaseError). Um erro inesperado não sai: só um
- * código genérico, para não expor detalhes internos.
- */
-async function respond(request: Request, run: () => Promise<unknown>): Promise<Response> {
-  try {
-    return jsonWithCors(request, await run());
-  } catch (error) {
-    const status = (error as { statusCode?: number } | null)?.statusCode;
-    if (status === 401) {
-      return jsonWithCors(request, { error: "SESSION_INVALID" }, { status: 401 });
-    }
-    if (isSessionMfaError(error)) {
-      return jsonWithCors(
-        request,
-        { error: "MFA_REQUIRED", message: "Esta conta exige verificação em dois passos." },
-        { status: 403 },
-      );
-    }
-    if (error instanceof ZodError) {
-      return jsonWithCors(request, { error: "INVALID_INPUT" }, { status: 422 });
-    }
-    if (error instanceof Error && error.constructor === Error && error.message) {
-      return jsonWithCors(request, { error: "REJECTED", message: error.message }, { status: 400 });
-    }
-    console.error("[api/mobile/attendance]", error instanceof Error ? error.name : "erro");
-    return jsonWithCors(request, { error: "FAILURE" }, { status: 500 });
-  }
-}

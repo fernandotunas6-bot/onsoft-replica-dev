@@ -24,7 +24,7 @@ export function trimesterAverage(mac: unknown, npt: unknown): number | null {
 }
 
 /** Diários fechados/homologados: a nota deixa de ser provisória. */
-const FINAL_GRADEBOOK = new Set(['closed', 'homologated', 'published', 'locked']);
+export const FINAL_GRADEBOOK = new Set(['closed', 'homologated', 'published', 'locked']);
 
 type Enrollment = { id: string; academic_year_id: string | null; class_group_id: string | null; status: string };
 type Year = { id: string; name: string; status: string | null; starts_on: string | null };
