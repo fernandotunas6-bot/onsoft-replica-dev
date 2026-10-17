@@ -1,3 +1,4 @@
+import { IdentifierValue } from "@/components/ui/identifier-value";
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
@@ -72,6 +73,8 @@ function CaseCard({ c }: { c: RiskCase }) {
         <div>
           <p className="font-medium text-foreground">{c.student_name}</p>
           <p className="text-xs text-muted-foreground">
+            <IdentifierValue value={c.student_number} variant="plain" emptyLabel="" />
+            {c.student_number ? " · " : ""}
             {c.class_group_name ?? "Turma"} · risco {c.risk_level} · {c.status}
           </p>
         </div>

@@ -20,6 +20,7 @@ export type RiskCase = {
   enrollment_id: string;
   class_group_id: string | null;
   student_name: string;
+  student_number: string | null;
   class_group_name: string | null;
   risk_level: string;
   reasons: string[];
@@ -65,6 +66,19 @@ export const listRiskCases = createServerFn({ method: "GET" })
           .in("case_id", ids)
           .order("created_at", { ascending: true })
       : { data: [] };
+    // Nº de aluno pela matrícula (o caso só guarda o nome). Em lotes, para o URL não
+    // passar do limite; se a leitura falhar, a lista sai na mesma, sem o número.
+    const { studentNames } = await import("@/features/academic/exam-data");
+    const enrollmentIds = [
+      ...new Set((cases ?? []).map((c: Record<string, unknown>) => String(c["enrollment_id"]))),
+    ];
+    const numberByEnrollment = new Map<string, string | null>();
+    for (let i = 0; i < enrollmentIds.length; i += 150) {
+      const names = await studentNames(db, schoolId, enrollmentIds.slice(i, i + 150)).catch(
+        () => new Map(),
+      );
+      for (const [id, who] of names) numberByEnrollment.set(id, who.studentNumber);
+    }
     const byCase = new Map<string, RiskIntervention[]>();
     for (const i of items ?? []) {
       const list = byCase.get(i.case_id) ?? [];
@@ -84,6 +98,7 @@ export const listRiskCases = createServerFn({ method: "GET" })
       enrollment_id: String(c["enrollment_id"]),
       class_group_id: (c["class_group_id"] as string) ?? null,
       student_name: String(c["student_name"]),
+      student_number: numberByEnrollment.get(String(c["enrollment_id"])) ?? null,
       class_group_name: (c["class_group_name"] as string) ?? null,
       risk_level: String(c["risk_level"]),
       reasons: (c["reasons"] as string[]) ?? [],

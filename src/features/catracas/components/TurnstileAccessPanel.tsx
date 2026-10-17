@@ -1,3 +1,4 @@
+import { IdentifierValue } from "@/components/ui/identifier-value";
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "@/lib/toast";
@@ -656,6 +657,12 @@ export function TurnstileAccessPanel() {
                         </TableCell>
                         <TableCell className="text-xs font-bold text-foreground">
                           {log.person_name}
+                          <IdentifierValue
+                            value={log.student_number}
+                            variant="plain"
+                            emptyLabel=""
+                            className="block font-normal text-muted-foreground"
+                          />
                         </TableCell>
                         <TableCell className="text-xs font-semibold capitalize">
                           {log.direction === "entry" ? "Entrada" : "Saída"}

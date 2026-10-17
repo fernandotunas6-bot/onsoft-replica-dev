@@ -1,3 +1,4 @@
+import { IdentifierValue } from "@/components/ui/identifier-value";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "@/lib/toast";
 import { CreditCard, RefreshCw } from "lucide-react";
@@ -126,7 +127,15 @@ export function AccessCardsPanel() {
             <TableBody>
               {cards.map((card) => (
                 <TableRow key={card.id}>
-                  <TableCell className="text-xs font-semibold">{card.person_name}</TableCell>
+                  <TableCell className="text-xs font-semibold">
+                    {card.person_name}
+                    <IdentifierValue
+                      value={card.student_number}
+                      variant="plain"
+                      emptyLabel=""
+                      className="block font-normal text-muted-foreground"
+                    />
+                  </TableCell>
                   <TableCell className="text-xs font-mono">
                     {card.card_number}
                     <span className="block text-[11px] text-muted-foreground">{card.barcode}</span>

@@ -515,6 +515,21 @@ export const issueAccessCard = createServerFn({ method: "POST" })
     return created;
   });
 
+/** Nº de aluno de cada pessoa (só quem é aluno nesta escola). */
+async function studentNumbersByPerson(
+  db: Awaited<ReturnType<typeof loadSgaAdminClient>>,
+  schoolId: string,
+  personIds: string[],
+) {
+  if (!personIds.length) return new Map<string, string>();
+  const { data } = await db
+    .from("students")
+    .select("person_id, student_number")
+    .eq("school_id", schoolId)
+    .in("person_id", personIds);
+  return new Map((data ?? []).map((row) => [String(row.person_id), String(row.student_number)]));
+}
+
 export const listAccessCards = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .validator((input: unknown) => listAccessCardsInputSchema.parse(input ?? {}))
@@ -547,9 +562,10 @@ export const listAccessCards = createServerFn({ method: "GET" })
 
     const personIds = [...new Set((cards ?? []).map((c) => c.person_id))];
     const { loadPeopleLite } = await import("@/features/people/lookup");
-    const peopleMap = personIds.length
-      ? await loadPeopleLite(db, membership.schoolId, personIds)
-      : new Map();
+    const [peopleMap, numbers] = await Promise.all([
+      personIds.length ? loadPeopleLite(db, membership.schoolId, personIds) : new Map(),
+      studentNumbersByPerson(db, membership.schoolId, personIds),
+    ]);
 
     return (cards ?? []).map((c) => ({
       id: c.id,
@@ -560,6 +576,7 @@ export const listAccessCards = createServerFn({ method: "GET" })
       student_id: c.student_id,
       person_id: c.person_id,
       person_name: peopleMap.get(c.person_id)?.full_name ?? "Pessoa",
+      student_number: numbers.get(c.person_id) ?? null,
       updated_at: c.updated_at,
     }));
   });
@@ -594,15 +611,17 @@ export const listAccessLogs = createServerFn({ method: "GET" })
       ...new Set((logs ?? []).filter((l) => l.person_id).map((l) => l.person_id!)),
     ];
     const { loadPeopleLite } = await import("@/features/people/lookup");
-    const peopleMap = personIds.length
-      ? await loadPeopleLite(db, membership.schoolId, personIds)
-      : new Map();
+    const [peopleMap, numbers] = await Promise.all([
+      personIds.length ? loadPeopleLite(db, membership.schoolId, personIds) : new Map(),
+      studentNumbersByPerson(db, membership.schoolId, personIds),
+    ]);
 
     return (logs ?? []).map((l) => ({
       id: l.id,
       person_name: l.person_id
         ? (peopleMap.get(l.person_id)?.full_name ?? "Pessoa")
         : "Desconhecido",
+      student_number: l.person_id ? (numbers.get(l.person_id) ?? null) : null,
       direction: l.direction,
       status: l.status,
       denial_reason: l.denial_reason,
