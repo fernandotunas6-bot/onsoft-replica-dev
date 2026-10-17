@@ -1,0 +1,9 @@
+android/
+ios/
+macos/
+windows/
+linux/
+super-admin/
+school-worker/
+**/test/
+**/.dart_tool/

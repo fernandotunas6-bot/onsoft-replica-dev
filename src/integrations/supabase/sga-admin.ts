@@ -211,6 +211,8 @@ export async function assertModuleNotBlocked(
 const TENANT_WRITE_BLOCKED: Record<TenantAccessBlockReason | "archived_school", string> = {
   suspended:
     "A assinatura desta escola está suspensa: os dados podem ser consultados, mas não alterados. Regularize a assinatura no portal comercial.",
+  past_due:
+    "O pagamento da assinatura está em atraso: os dados podem ser consultados, mas não alterados. Pague em Configurações → Assinatura e envie o comprovativo.",
   trial_expired:
     "O período experimental terminou: os dados podem ser consultados, mas não alterados. Escolha um plano para continuar a usar o SIGA Plus.",
   cancelled:
@@ -242,7 +244,7 @@ export async function assertTenantAllowsWrites(schoolId: string, now = new Date(
   if (!school.tenant_id) return;
   const { data: tenant, error: tenantError } = await db
     .from("tenants")
-    .select("status, subscription_status, trial_ends_at")
+    .select("status, subscription_status, trial_ends_at, billing_exempt")
     .eq("id", school.tenant_id)
     .maybeSingle();
   if (tenantError) {

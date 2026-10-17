@@ -1,0 +1,97 @@
+# Miscellaneous
+*.class
+*.log
+*.pyc
+*.swp
+.DS_Store
+.atom/
+.build/
+.buildlog/
+.history
+.svn/
+.swiftpm/
+migrate_working_dir/
+
+# IntelliJ related
+*.iml
+*.ipr
+*.iws
+.idea/
+
+# The .vscode folder contains launch configuration and tasks you configure in
+# VS Code which you may wish to be included in version control, so this line
+# is commented out by default.
+#.vscode/
+
+# Flutter/Dart/Pub related
+**/doc/api/
+**/ios/Flutter/.last_build_id
+.dart_tool/
+.flutter-plugins-dependencies
+.pub-cache/
+.pub/
+/build/
+/coverage/
+
+# Symbolication related
+app.*.symbols
+
+# Obfuscation related
+app.*.map.json
+
+# Android Studio will place build artifacts here
+/android/app/debug
+/android/app/profile
+/android/app/release
+
+# Firebase config files
+**/google-services.json
+**/GoogleService-Info.plist
+
+# Never commit secret lists or history-rewrite tooling output
+secrets-to-remove.txt
+bfg.jar
+..bfg-report/
+
+# Web/Node related
+node_modules/
+.next/
+.wrangler/
+dist/
+.env*
+!.env.example
+!**/.env.example
+!**/.env.local.example
+!**/.dev.vars.example
+.terragrunt-cache/
+.cache/
+.env.local
+.dev.vars
+.env.example
+
+# Firebase service account keys (NEVER commit these)
+*-firebase-adminsdk-*.json
+*-service-account*.json
+
+# Temporary / scratch scripts (dev artifacts)
+extract.js
+extract_clean.py
+fix.py
+fix2.py
+fix3.py
+generated.js
+parse.js
+script0.js
+script1.js
+temp-parse.js
+tmp0.js
+tmp1.js
+update_student.js
+update_teacher.js
+update-forms.ps1
+
+# Internal design docs (should not be public)
+Full App Gen Docs.md
+
+# Root package-lock.json (artifact, not needed)
+/package-lock.json

@@ -35,11 +35,11 @@ export function BottomNavigation({ onOpenMore }: { onOpenMore: () => void }) {
     <nav
       aria-label="Navegação principal"
       className={cn(
-        "fixed inset-x-0 bottom-0 z-[35] border-t border-border bg-card/95 backdrop-blur-sm lg:hidden",
-        "[padding-bottom:calc(0.5rem+env(safe-area-inset-bottom))] pt-1.5",
+        "fixed inset-x-0 bottom-0 z-[35] px-3 lg:hidden",
+        "[padding-bottom:calc(8px+env(safe-area-inset-bottom))] pt-[8px]",
       )}
     >
-      <ul className="mx-auto flex max-w-lg items-stretch">
+      <ul className="mx-auto flex min-h-[64px] max-w-[640px] items-stretch rounded-[24px] border border-border/80 bg-card p-1 shadow-card">
         {destinations.map((destination) => {
           const Icon = destination.icon;
           const active = destination.to === activeTo;
@@ -47,7 +47,7 @@ export function BottomNavigation({ onOpenMore }: { onOpenMore: () => void }) {
             <>
               <span
                 className={cn(
-                  "inline-flex h-7 w-12 items-center justify-center rounded-full transition-colors",
+                  "inline-flex h-[28px] w-[48px] items-center justify-center rounded-full transition-colors",
                   active ? "bg-primary-soft text-primary-strong" : "text-muted-foreground",
                 )}
               >
@@ -55,7 +55,7 @@ export function BottomNavigation({ onOpenMore }: { onOpenMore: () => void }) {
               </span>
               <span
                 className={cn(
-                  "text-[10px] leading-none",
+                  "text-[11px] leading-tight",
                   active ? "font-medium text-primary-strong" : "text-muted-foreground",
                 )}
               >
@@ -64,14 +64,14 @@ export function BottomNavigation({ onOpenMore }: { onOpenMore: () => void }) {
             </>
           );
           const className =
-            "siga-motion-nav flex min-h-[44px] w-full flex-col items-center justify-center gap-1 py-1 outline-none " +
+            "siga-motion-nav flex min-h-[54px] min-w-0 w-full flex-col items-center justify-center gap-1 py-1 outline-none " +
             // O anel de foco fica por dentro (`focus-visible:ring-inset`): num
             // elemento encostado ao bordo inferior do ecrã, um anel exterior é
             // cortado pela margem e o foco deixa de se ver.
             "focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset";
 
           return (
-            <li key={destination.to + destination.label} className="flex-1">
+            <li key={destination.to + destination.label} className="min-w-0 flex-1">
               {destination.to === MORE_DESTINATION_TO ? (
                 <button
                   type="button"
