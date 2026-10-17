@@ -86,6 +86,7 @@ const sampleTeacher: TeacherRow = {
 const samplePerson: PersonRow = {
   id: "per-1",
   full_name: "Manuel dos Santos",
+  student_number: null,
   email: "prof.manuel@escola.ao",
   phone_primary: "923111222",
   status: "active",

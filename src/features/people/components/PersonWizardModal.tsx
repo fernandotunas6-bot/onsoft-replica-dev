@@ -1,3 +1,4 @@
+import { IdentifierValue } from "@/components/ui/identifier-value";
 import { useEffect, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import {
@@ -84,6 +85,7 @@ export function PersonWizardModal({
       full_name: string;
       score: number;
       match_reason: string;
+      student_number?: string | null;
       status: string;
     }>
   >([]);
@@ -426,6 +428,9 @@ export function PersonWizardModal({
                       >
                         <div className="min-w-0">
                           <p className="truncate font-bold text-foreground">{dup.full_name}</p>
+                          {dup.student_number ? (
+                            <IdentifierValue value={dup.student_number} showLabel variant="plain" />
+                          ) : null}
                           <p className="text-muted-foreground">
                             Correspondência por: {dup.match_reason}
                           </p>

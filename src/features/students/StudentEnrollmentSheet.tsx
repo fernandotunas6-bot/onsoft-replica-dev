@@ -235,7 +235,7 @@ export function StudentEnrollmentSheet({
             // irmão com nome parecido — a decisão é do utilizador, nunca
             // perde os 5 passos já preenchidos por um bloqueio sem saída.
             const proceed = window.confirm(
-              `Possível duplicado: ${strong.full_name} (${Math.round(strong.score * 100)}% de confiança, ${strong.match_reason}).\n\nSe for a mesma pessoa, cancele e use a ficha existente em Pessoas.\n\nContinuar e criar esta matrícula mesmo assim?`,
+              `Possível duplicado: ${strong.full_name}${strong.student_number ? ` — aluno Nº ${strong.student_number}` : ""} (${Math.round(strong.score * 100)}% de confiança, ${strong.match_reason}).\n\nSe for a mesma pessoa, cancele e use a ficha existente em Pessoas.\n\nContinuar e criar esta matrícula mesmo assim?`,
             );
             if (!proceed) {
               throw new Error("Matrícula cancelada — verifique o registo existente em Pessoas.");

@@ -496,7 +496,7 @@ export const getStudentProfile = createServerFn({ method: "GET" })
       db
         .from("enrollments")
         .select(
-          "id, class_group_id, academic_year_id, status, enrolled_on, attendance_rate, final_average",
+          "id, enrollment_number, class_group_id, academic_year_id, status, enrolled_on, attendance_rate, final_average",
         )
         .eq("student_id", student.id)
         .eq("school_id", membership.schoolId)
@@ -520,6 +520,7 @@ export const getStudentProfile = createServerFn({ method: "GET" })
     const guardians = guardiansResult.data;
     let enrollment = enrollmentResult.data as {
       id: string;
+      enrollment_number?: string | null;
       class_group_id: string | null;
       academic_year_id: string | null;
       status: string;
@@ -533,7 +534,7 @@ export const getStudentProfile = createServerFn({ method: "GET" })
     ) {
       const fallback = await db
         .from("enrollments")
-        .select("id, class_group_id, academic_year_id, status, enrolled_on")
+        .select("id, enrollment_number, class_group_id, academic_year_id, status, enrolled_on")
         .eq("student_id", student.id)
         .eq("school_id", membership.schoolId)
         .eq("status", "active")
@@ -612,6 +613,7 @@ export const getStudentProfile = createServerFn({ method: "GET" })
         version: 1,
         person_version: 1,
         enrollment_id: enrollment?.id ?? null,
+        enrollment_number: enrollment?.enrollment_number ?? null,
         enrollment_status: enrollment?.status ?? null,
         enrolled_on: enrollment?.enrolled_on ?? null,
         class_group_id: enrollment?.class_group_id ?? null,

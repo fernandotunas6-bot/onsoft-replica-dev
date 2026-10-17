@@ -179,6 +179,7 @@ type StudentProfile = {
   school_id: string;
   person_version: number;
   enrollment_id: string | null;
+  enrollment_number?: string | null;
   enrollment_status: string | null;
   enrolled_on: string | null;
   academic_year_id: string | null;
@@ -1557,7 +1558,12 @@ function StudentDetail() {
             }
             subtitle={
               student.enrolled_on
-                ? `Matriculado a ${new Date(student.enrolled_on).toLocaleDateString("pt-PT")}`
+                ? [
+                    student.enrollment_number ? `Matrícula ${student.enrollment_number}` : null,
+                    `desde ${new Date(student.enrolled_on).toLocaleDateString("pt-PT")}`,
+                  ]
+                    .filter(Boolean)
+                    .join(" · ")
                 : "Ainda sem turma atribuída"
             }
             icon={UserCheck}
@@ -1582,7 +1588,7 @@ function StudentDetail() {
                     : "—"
                 }
               />
-              <Field label="Nº de processo" value={student.registration_number} />
+              <Field label="Nº de aluno" value={student.registration_number} />
               <div>
                 <Field label="Email" value={student.email ?? "—"} />
                 {resendOn && student.email ? (

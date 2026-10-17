@@ -1,3 +1,4 @@
+import { numberMatches } from "@/features/education-catalog/identifiers";
 import { requireAal2 } from "@/features/hr/require-aal2";
 import type { Database, TablesInsert, TablesUpdate } from "@/integrations/supabase/types";
 import { createServerFn } from "@tanstack/react-start";
@@ -336,7 +337,7 @@ export const searchPeople = createServerFn({ method: "GET" })
     const [studentRoles, teacherRoles, guardianRoles, declaredRoles] = await Promise.all([
       db
         .from("students")
-        .select("person_id")
+        .select("person_id, student_number")
         .eq("school_id", membership.schoolId)
         .in("person_id", personIds),
       db
@@ -376,7 +377,11 @@ export const searchPeople = createServerFn({ method: "GET" })
       current.add(role);
       rolesByPerson.set(id, current);
     };
-    for (const row of studentRoles.data ?? []) addRole(row.person_id, "aluno");
+    const studentNumberByPerson = new Map<string, string>();
+    for (const row of studentRoles.data ?? []) {
+      addRole(row.person_id, "aluno");
+      if (row.student_number) studentNumberByPerson.set(String(row.person_id), row.student_number);
+    }
     for (const row of teacherRoles.data ?? []) addRole(row.person_id, "professor");
     for (const row of guardianRoles.data ?? []) addRole(row.guardian_person_id, "encarregado");
     for (const row of declaredRoles.data ?? []) addRole(row.person_id, String(row.role ?? ""));
@@ -386,6 +391,7 @@ export const searchPeople = createServerFn({ method: "GET" })
       return {
         ...person,
         roles: personRoleOptions.filter((role) => personRoles.has(role)),
+        student_number: studentNumberByPerson.get(person.id) ?? null,
       };
     });
 
@@ -404,7 +410,7 @@ export const searchPeople = createServerFn({ method: "GET" })
         ]
           .join(" ")
           .toLowerCase();
-        return haystack.includes(query);
+        return haystack.includes(query) || numberMatches(person.student_number, query);
       });
     }
     if (data.role) {
@@ -459,6 +465,21 @@ export const findPersonDuplicates = createServerFn({ method: "POST" })
       ).values(),
     ];
 
+    // Quem já é aluno mostra o nº de aluno: é por ele que a secretaria reconhece a ficha.
+    const { data: studentRows } = people.length
+      ? await db
+          .from("students")
+          .select("person_id, student_number")
+          .eq("school_id", membership.schoolId)
+          .in(
+            "person_id",
+            people.map((p) => String(p.id)),
+          )
+      : { data: [] };
+    const studentNumberOf = new Map(
+      (studentRows ?? []).map((row) => [String(row.person_id), String(row.student_number ?? "")]),
+    );
+
     return people
       .map((person: Record<string, unknown>) => {
         let score = 0;
@@ -493,6 +514,7 @@ export const findPersonDuplicates = createServerFn({ method: "POST" })
           score: Math.min(score, 1),
           match_reason: reasons.join(", ") || "semelhança parcial",
           status: person["status"] as string,
+          student_number: studentNumberOf.get(String(person["id"])) || null,
         };
       })
       .filter((row) => row.score >= 0.45)
