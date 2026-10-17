@@ -4,6 +4,27 @@ Ler isto **antes** de alterar código. Ecossistema (5 apps):
 [ARCHITECTURE_HARMONIZATION.md](./ARCHITECTURE_HARMONIZATION.md).
 Depois abrir o skill do módulo em `.cursor/skills/`.
 
+## Painel ADMIN SaaS — auditoria e correcções (2026-10-17)
+
+Ponto de partida: auditoria às páginas de escolas, subscrições, fila, painel e login do ADMIN.
+
+- **Métricas** (`fetchSaasStats`): activas, trial, trial expirado, em atraso, suspensas e sem
+  cobrança contadas à parte. O MRR usa `monthlyRevenueOf` (só escolas activas e cobradas; preço
+  do perfil de cobrança quando existe, senão o do plano).
+- **Estado**: `resolveStatusChange` recusa «activar» uma escola em atraso e não isenta (é preciso
+  registar o pagamento ou pausar cobranças); suspensa em trial volta a `trial`.
+- **Pagamento recebido** sem comprovativo: `confirm_payment_months` (1/3/6/12) + referência. Mudar
+  o plano já não reescreve o fim do período pago nem acrescenta 14 dias de trial.
+- **ADMIN**: lista de escolas com pesquisa, filtros e menu de acções; página da escola com
+  «Registar pagamento» (meses do perfil); confirmações antes de suspender, aprovar plano,
+  confirmar pagamento e revogar operador; erros já não desaparecem ao recarregar; fila
+  operacional por escola (trial expirado, atraso, criação falhada; ignora isentas); gate envia
+  sessões sem MFA de volta ao 2.º passo e guarda a página de origem em `next`.
+- Testes: `tests/saas/admin-stats-rules.test.ts`.
+
+Pendente (dono): `CLOUDFLARE_API_TOKEN` novo; desbloquear ekovongo, twapandula e epatuloko
+(trial expirado → «Prolongar trial» ou «Pausar cobranças»).
+
 ## Desempenho do primeiro desenho — Lighthouse do main verde (2026-10-16)
 
 - O job Lighthouse (só corre no push do `main`) falhava desde 07/10 (0,80–0,87 para

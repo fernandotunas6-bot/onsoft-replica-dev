@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { PauseCircle, PlayCircle, Save } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -99,9 +99,15 @@ export function BillingTab({
   const [pauseReason, setPauseReason] = useState("")
   const [pauseUntil, setPauseUntil] = useState("")
 
-  useEffect(() => setDraft(draftFrom(billing.profile)), [billing.profile])
+  // Alterações por gravar sobrevivem a um recarregamento (ex.: pausar cobranças
+  // recarrega a escola); só depois de «Gravar» o formulário volta ao servidor.
+  const dirty = useRef(false)
+  useEffect(() => {
+    if (!dirty.current) setDraft(draftFrom(billing.profile))
+  }, [billing.profile])
 
   const set = <K extends keyof Draft>(key: K, value: Draft[K]) => {
+    dirty.current = true
     setSaved(false)
     setDraft((d) => ({ ...d, [key]: value }))
   }
@@ -122,8 +128,8 @@ export function BillingTab({
   }
 
   const save = () =>
-    run(() =>
-      postBillingAction({
+    run(async () => {
+      await postBillingAction({
         action: "save",
         tenantId: overview.tenant.id,
         profile: {
@@ -147,8 +153,9 @@ export function BillingTab({
           billingAddress: draft.billingAddress,
           notes: draft.notes,
         },
-      }),
-    )
+      })
+      dirty.current = false
+    })
 
   const pause = () =>
     run(async () => {

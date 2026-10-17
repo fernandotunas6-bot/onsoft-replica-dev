@@ -559,3 +559,76 @@ export function describeTenantBilling(
     ),
   };
 }
+
+/**
+ * Receita mensal recorrente (MRR) de uma escola, para o painel do ADMIN.
+ *
+ * Só conta o que vai ser facturado: escola activa e sem cobrança pausada nem
+ * isenção. Trial, atraso, suspensão e escolas públicas aprovadas dão 0. Com
+ * condições próprias (por aluno, valor fixo, descontos) usa o valor do período
+ * dividido pelos meses; sem perfil, o preço mensal de tabela do plano.
+ */
+export function monthlyRevenueOf(
+  input: {
+    tenantStatus: string;
+    billingExempt: boolean;
+    profile: TenantBillingProfile | null;
+    plan: PlanPrices | null;
+    activeStudents: number;
+  },
+  now: Date = new Date(),
+): number {
+  if (input.tenantStatus !== "active" || input.billingExempt) return 0;
+  if (!input.profile) return Math.max(0, Number(input.plan?.price_aoa_monthly) || 0);
+  const state = billingStateOf(input.profile, now);
+  if (!state.charging) return 0;
+  const charge = computeTenantCharge({
+    profile: input.profile,
+    plan: input.plan,
+    activeStudents: input.activeStudents,
+    state,
+  });
+  return round2(charge.total / Math.max(1, charge.months));
+}
+
+/** Trial terminado sem isenção: o SIGA bloqueia as gravações. */
+export function isTrialExpired(
+  tenant: {
+    status: string;
+    subscription_status?: string | null;
+    trial_ends_at?: string | null;
+    billing_exempt?: boolean | null;
+  },
+  now: Date = new Date(),
+): boolean {
+  if (tenant.billing_exempt) return false;
+  if (tenant.status !== "trial" && tenant.subscription_status !== "trialing") return false;
+  const end = tenant.trial_ends_at ? Date.parse(tenant.trial_ends_at) : NaN;
+  return Number.isFinite(end) && end < now.getTime();
+}
+
+/**
+ * Estado a gravar quando o ADMIN muda o estado de uma escola.
+ *
+ * - «Activar» uma escola em atraso não pode ser acesso grátis por esquecimento: a
+ *   assinatura continuava `past_due` e a escola nunca mais voltava a ser suspensa.
+ *   Pede-se o registo do pagamento (ou a pausa das cobranças).
+ * - «Activar» uma escola suspensa durante o trial devolve-a ao trial, em vez de a
+ *   passar a activa (e a contar como receita) sem ter pago.
+ */
+export function resolveStatusChange(
+  current: { status: string; subscription_status?: string | null; billing_exempt?: boolean | null },
+  requested: string,
+): { status: string } | { error: string } {
+  if (requested !== "active") return { status: requested };
+  if (current.status === "past_due" && !current.billing_exempt) {
+    return {
+      error:
+        "Escola em atraso: registe o pagamento recebido (Gerir → Pagamento recebido) ou pause as cobranças.",
+    };
+  }
+  if (current.status === "suspended" && current.subscription_status === "trialing") {
+    return { status: "trial" };
+  }
+  return { status: "active" };
+}

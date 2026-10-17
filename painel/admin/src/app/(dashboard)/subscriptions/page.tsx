@@ -133,6 +133,20 @@ function formatDate(value: string) {
   return new Date(value).toLocaleDateString("pt-AO", { dateStyle: "short" })
 }
 
+const STATUS_LABEL: Record<string, string> = {
+  trialing: "Trial",
+  active: "Activa",
+  past_due: "Em atraso",
+  unpaid: "Por pagar",
+  canceled: "Cancelada",
+  cancelled: "Cancelada",
+  incomplete: "Incompleta",
+}
+
+function kz(value: number) {
+  return `${value.toLocaleString("pt-AO")} Kz`
+}
+
 function statusVariant(status: SubscriptionRow["status"]) {
   if (status === "active") return "secondary" as const
   if (status === "trialing") return "outline" as const
@@ -152,9 +166,9 @@ export default function SubscriptionsPage() {
   const [approving, setApproving] = useState<string | null>(null)
   const [proofs, setProofs] = useState<PaymentProof[]>([])
 
+  // Não limpa o erro: as acções recarregam a lista e a mensagem tem de ficar.
   const load = useCallback(async () => {
     setLoading(true)
-    setError(null)
     const token = await accessToken()
     const [result, audit] = await Promise.all([
       fetchSaasSubscriptions(token),
@@ -197,6 +211,11 @@ export default function SubscriptionsPage() {
   }, [subscriptions, filterSlug])
 
   async function approve(request: PlanRequest) {
+    const confirmed = window.confirm(
+      `Mudar «${request.tenantName}» para o plano ${request.to}? Muda limites e preço; ` +
+        "não regista pagamento nem mexe no período pago.",
+    )
+    if (!confirmed) return
     setApproving(request.tenantId)
     setError(null)
     const token = await accessToken()
@@ -218,6 +237,12 @@ export default function SubscriptionsPage() {
   }
 
   async function confirmPayment(proof: PaymentProof) {
+    const period = proof.billing === "yearly" ? "1 ano" : "1 mês"
+    const confirmed = window.confirm(
+      `Confirmar o pagamento de «${proof.tenantName}» (${period}${proof.amountKz ? `, ${kz(proof.amountKz)}` : ""})? ` +
+        "Só depois de ver o dinheiro na conta: a escola fica activa até ao fim do período.",
+    )
+    if (!confirmed) return
     setApproving(proof.tenantId)
     setError(null)
     const token = await accessToken()
@@ -225,11 +250,13 @@ export default function SubscriptionsPage() {
       tenantId: proof.tenantId,
       plan_code: proof.planCode || undefined,
       confirm_payment_billing: proof.billing,
+      confirm_payment_months: proof.billing === "yearly" ? 12 : 1,
+      payment_reference: proof.transferReference ?? undefined,
     })
     if (!result.ok) setError(result.error || "Não foi possível confirmar o pagamento.")
     else
       setBackfillMessage(
-        `${proof.tenantName}: pagamento confirmado, plano ${proof.planCode} activo (${proof.billing === "yearly" ? "1 ano" : "1 mês"}).`,
+        `${proof.tenantName}: pagamento confirmado, plano ${proof.planCode} activo (${period}).`,
       )
     await load()
     setApproving(null)
@@ -261,11 +288,20 @@ export default function SubscriptionsPage() {
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Subscrições</h1>
           <p className="text-muted-foreground">
-            Histórico de subscrições por escola (`subscriptions`) — plano, estado e período actual.
+            Assinatura de cada escola — plano, estado e período pago. Pagamentos sem comprovativo
+            registam-se em Escolas → Gerir → Pagamento recebido.
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <Button variant="outline" size="sm" onClick={() => void load()} disabled={loading}>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              setError(null)
+              void load()
+            }}
+            disabled={loading}
+          >
             <RefreshCw className="size-4" />
             Actualizar
           </Button>
@@ -327,7 +363,7 @@ export default function SubscriptionsPage() {
                       </div>
                       <div className="text-xs text-muted-foreground">
                         {proof.planCode} · {proof.billing === "yearly" ? "anual" : "mensal"}
-                        {proof.amountKz ? ` · ${proof.amountKz.toLocaleString("pt-AO")} Kz` : ""}
+                        {proof.amountKz ? ` · ${kz(proof.amountKz)}` : ""}
                         {proof.transferReference ? ` · ref. ${proof.transferReference}` : ""}
                         {proof.paidOn ? ` · pago a ${proof.paidOn}` : ""} · enviado a {formatDate(proof.submittedAt)}
                       </div>
@@ -420,7 +456,7 @@ export default function SubscriptionsPage() {
                   <TableHead>Plano</TableHead>
                   <TableHead>Estado</TableHead>
                   <TableHead>Período</TableHead>
-                  <TableHead className="text-right">MRR (AOA)</TableHead>
+                  <TableHead className="text-right">Preço de tabela</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -455,7 +491,9 @@ export default function SubscriptionsPage() {
                         ) : null}
                       </TableCell>
                       <TableCell>
-                        <Badge variant={statusVariant(row.status)}>{row.status}</Badge>
+                        <Badge variant={statusVariant(row.status)}>
+                          {STATUS_LABEL[row.status] ?? row.status}
+                        </Badge>
                         {row.cancel_at_period_end ? (
                           <div className="text-xs text-muted-foreground mt-1">Cancela no fim</div>
                         ) : null}
@@ -464,9 +502,7 @@ export default function SubscriptionsPage() {
                         {formatDate(row.current_period_start)} → {formatDate(row.current_period_end)}
                       </TableCell>
                       <TableCell className="text-right tabular-nums">
-                        {row.price_aoa_monthly != null
-                          ? row.price_aoa_monthly.toLocaleString("pt-AO")
-                          : "—"}
+                        {row.price_aoa_monthly != null ? `${kz(row.price_aoa_monthly)}/mês` : "—"}
                       </TableCell>
                     </TableRow>
                   ))

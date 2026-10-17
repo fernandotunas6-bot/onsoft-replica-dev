@@ -7,9 +7,13 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { getSaasApiUrl, getSigaSchoolUrl } from "@/lib/ecosystem-urls"
+import { getSigaSchoolUrl } from "@/lib/ecosystem-urls"
+import { setTenantStatus } from "@/lib/saas-api"
 import { createClient, isSupabaseConfigured } from "@/lib/supabase/client"
-import { TenantSubscriptionDialog } from "../components/tenant-subscription-dialog"
+import {
+  TenantSubscriptionDialog,
+  type SubscriptionAction,
+} from "../components/tenant-subscription-dialog"
 import { TenantAdminAccessPanel } from "../components/tenant-admin-access-dialog"
 import { BillingTab } from "./billing-tab"
 import { PublicTab } from "./public-tab"
@@ -33,6 +37,9 @@ const SUBSCRIPTION_STATUS: Record<string, string> = {
   canceled: "Cancelada",
   unpaid: "Por pagar",
 }
+
+/** Periodicidade do perfil de cobrança → meses sugeridos em «Pagamento recebido». */
+const PERIOD_MONTHS = { monthly: 1, quarterly: 3, semiannual: 6, yearly: 12 } as const
 
 const TABS = ["geral", "plano", "cobranca", "publica", "acesso", "registo"] as const
 type TabId = (typeof TABS)[number]
@@ -65,6 +72,7 @@ export default function TenantDetailPage() {
   const [loading, setLoading] = useState(true)
   const [tab, setTab] = useState<TabId>("geral")
   const [subscriptionOpen, setSubscriptionOpen] = useState(false)
+  const [subscriptionAction, setSubscriptionAction] = useState<SubscriptionAction>("plan")
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search)
@@ -79,9 +87,9 @@ export default function TenantDetailPage() {
       return
     }
     setLoading(true)
-    setError(null)
     try {
       setOverview(await fetchTenantOverview(tenantId))
+      setError(null)
     } catch (err) {
       setError(err instanceof Error ? err.message : "Falha de rede.")
     } finally {
@@ -100,22 +108,34 @@ export default function TenantDetailPage() {
     window.history.replaceState(null, "", url)
   }
 
-  async function setStatus(status: string) {
+  async function setStatus(status: "active" | "suspended") {
     if (!overview) return
+    if (
+      status === "suspended" &&
+      !window.confirm(
+        `Suspender «${overview.tenant.name}»? A escola fica só de consulta até ser reactivada.`,
+      )
+    ) {
+      return
+    }
     setError(null)
-    const headers: Record<string, string> = { "Content-Type": "application/json" }
+    let token: string | undefined
     if (isSupabaseConfigured()) {
       const { data } = await createClient().auth.getSession()
-      if (data.session?.access_token) headers.Authorization = `Bearer ${data.session.access_token}`
+      token = data.session?.access_token
     }
-    const res = await fetch(getSaasApiUrl("/api/saas/tenants/status"), {
-      method: "POST",
-      headers,
-      body: JSON.stringify({ tenantId: overview.tenant.id, status }),
-    })
-    const data = (await res.json().catch(() => ({}))) as { error?: string }
-    if (!res.ok) setError(data.error || "Não foi possível actualizar o estado.")
+    const result = await setTenantStatus(token, overview.tenant.id, status)
+    if (!result.ok) {
+      // Sem recarregar: o load() limpava a mensagem antes de ela aparecer.
+      setError(result.error || "Não foi possível actualizar o estado.")
+      return
+    }
     await load()
+  }
+
+  function openSubscription(action: SubscriptionAction) {
+    setSubscriptionAction(action)
+    setSubscriptionOpen(true)
   }
 
   if (!loading && !tenantId) {
@@ -267,9 +287,15 @@ export default function TenantDetailPage() {
                   <Row label="Fim do trial" value={dateLabel(t.trial_ends_at)} />
                   <Row label="Período pago até" value={dateLabel(overview.subscription?.current_period_end)} />
                 </dl>
-                <Button className="w-fit" onClick={() => setSubscriptionOpen(true)}>
-                  Mudar plano ou estender trial
-                </Button>
+                <div className="flex flex-wrap gap-2">
+                  <Button onClick={() => openSubscription("payment")}>Pagamento recebido</Button>
+                  <Button variant="outline" onClick={() => openSubscription("plan")}>
+                    Mudar plano
+                  </Button>
+                  <Button variant="outline" onClick={() => openSubscription("trial")}>
+                    Prolongar trial
+                  </Button>
+                </div>
               </CardContent>
             </Card>
             <Card>
@@ -281,13 +307,20 @@ export default function TenantDetailPage() {
                 </CardDescription>
               </CardHeader>
               <CardContent className="flex flex-wrap gap-2">
-                {t.status !== "suspended" && t.status !== "past_due" ? (
+                {t.status === "past_due" && !t.billing_exempt ? (
+                  <>
+                    <Button onClick={() => openSubscription("payment")}>Registar pagamento</Button>
+                    <Button variant="outline" onClick={() => changeTab("cobranca")}>
+                      Pausar cobranças
+                    </Button>
+                  </>
+                ) : t.status === "suspended" || t.status === "past_due" ? (
+                  <Button onClick={() => void setStatus("active")}>Reactivar</Button>
+                ) : t.status !== "cancelled" && t.status !== "archived" ? (
                   <Button variant="outline" onClick={() => void setStatus("suspended")}>
-                    Suspender
+                    Suspender…
                   </Button>
-                ) : (
-                  <Button onClick={() => void setStatus("active")}>Activar</Button>
-                )}
+                ) : null}
               </CardContent>
             </Card>
           </TabsContent>
@@ -372,6 +405,8 @@ export default function TenantDetailPage() {
             }}
             open={subscriptionOpen}
             onOpenChange={setSubscriptionOpen}
+            initialAction={subscriptionAction}
+            defaultPaidMonths={PERIOD_MONTHS[overview.billing.profile.billingPeriod] ?? 1}
             onUpdated={load}
           />
         </>
